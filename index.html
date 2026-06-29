@@ -178,6 +178,7 @@
   .hero-bg-slide{
     position:absolute;inset:0;background-size:cover;background-position:center top;
     opacity:0;transition:opacity 1.4s ease;
+    transform:scale(1.06) translateY(3%);transform-origin:center top;
   }
   .hero-bg-slide.active{opacity:1;}
   .hero-overlay{
@@ -2177,23 +2178,8 @@
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
       <div class="hero-bg-slide active" style="background-image:url('images/hero-1.webp')"></div>
-      <div class="hero-bg-slide" style="background-image:url('images/hero-2.webp')"></div>
     </div>
     <div class="hero-overlay"></div>
-
-    <div class="hero-slide-controls">
-      <div class="hero-slide-dots" id="heroSlideDots"></div>
-      <button class="hero-pause-btn" id="heroPauseBtn" aria-label="Пауза">
-        <svg class="hero-pause-ring" viewBox="0 0 36 36">
-          <circle class="ring-bg" cx="18" cy="18" r="16"></circle>
-          <circle class="ring-fill" id="heroRingFill" cx="18" cy="18" r="16"></circle>
-        </svg>
-        <svg class="hero-pause-icon" id="heroPauseIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-          <rect x="5" y="4" width="5" height="16" rx="1"></rect>
-          <rect x="14" y="4" width="5" height="16" rx="1"></rect>
-        </svg>
-      </button>
-    </div>
 
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
