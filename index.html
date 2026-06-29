@@ -3508,8 +3508,10 @@
       });
     }
 
-    function addLogo(url){
-      var layer = {id:Date.now(), url:url, x:0, y:0, scale:1, rot:0, removeBg:true};
+    function addLogo(origUrl, cleanUrl){
+      var hasClean = !!cleanUrl;
+      var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
+        url:hasClean?cleanUrl:origUrl, x:0, y:0, scale:1, rot:0, removeBg:hasClean};
       pm.logos[pm.side].push(layer);
       pm.activeLogoId = layer.id;
       renderGarment();
@@ -3596,9 +3598,7 @@
       if(pm.tab === 'photo'){
         var layers = currentLayers();
         if(layers.length === 0){
-          html = '<div class="pm-photo-empty" id="pmPhotoEmptyTrigger">' +
-            '<span class="pm-photo-empty-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>' +
-            '<div><div class="pm-photo-empty-title">Завантажте логотип</div><div class="pm-photo-empty-sub">PNG JPG SVG</div></div></div>';
+          html = '<div style="text-align:center;color:#888;font-size:13px;line-height:1.5;padding:10px 8px;">👆 Натисніть на пунктирну зону на футболці, щоб завантажити логотип<div style="font-size:11px;color:#bbb;margin-top:4px;">PNG · JPG · SVG</div></div>';
         } else {
           html = '<div class="pm-photo-filled">';
           layers.forEach(function(l){
@@ -3683,7 +3683,7 @@
           e.stopPropagation();
           var id = Number(el.dataset.bgtoggle);
           var layer = currentLayers().find(function(l){return l.id===id;});
-          if(layer){ layer.removeBg = !layer.removeBg; renderTabPanel(); }
+          if(layer){ layer.removeBg = !layer.removeBg; layer.url = layer.removeBg ? layer.cleanUrl : layer.origUrl; renderGarment(); renderTabPanel(); }
         });
       });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
@@ -3896,14 +3896,17 @@
       });
     }
 
+    // Пунктирна зона на футболці = кнопка завантаження логотипа
+    pmUploadZone.addEventListener('click', function(){ document.getElementById('pmFileInput').click(); });
+
     document.getElementById('pmFileInput').addEventListener('change', function(e){
       var f = e.target.files && e.target.files[0];
       if(!f) return;
       var rd = new FileReader();
       rd.onload = function(ev){
         var src = ev.target.result;
-        removeBgForUpload(src).then(function(clean){ addLogo(clean); })
-          .catch(function(){ addLogo(src); });
+        removeBgForUpload(src).then(function(clean){ addLogo(src, clean); })
+          .catch(function(){ addLogo(src, null); });
       };
       rd.readAsDataURL(f);
       e.target.value = '';
