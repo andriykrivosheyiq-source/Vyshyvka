@@ -3936,15 +3936,15 @@
         // Прозорі сусіди НЕ рахуються як "чорнило" — це захищає білі лого на прозорому фоні.
         var isNearWhite = function(idx){
           var jj = idx * 4;
-          return px[jj + 3] >= 10 && px[jj] > THR && px[jj + 1] > THR && px[jj + 2] > THR;
+          return px[jj + 3] >= 10 && px[jj] > 200 && px[jj + 1] > 200 && px[jj + 2] > 200;
         };
-        var INK_BRIGHT = 165, DARK_FRAC = 0.6;
+        var OPAQUE_FRAC = 0.5;   // межа просвіту переважно з непрозорого вмісту → це дірка в букві
         var comp = new Int32Array(W * H); comp.fill(-1);
         for(var s = 0; s < W * H; s++){
           if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
           var stack = [s]; comp[s] = s;
           var members = [s];
-          var darkBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
+          var opaqueBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
           while(h2 < stack.length){
             var pp = stack[h2++];
             var xx = pp % W, yy = (pp / W) | 0;
@@ -3957,12 +3957,12 @@
                 if(comp[np] === -1){ comp[np] = s; stack.push(np); members.push(np); }
               } else {
                 totalBorder++;
-                var jb = np * 4;
-                if(px[jb + 3] >= 10 && (px[jb] + px[jb + 1] + px[jb + 2]) / 3 < INK_BRIGHT) darkBorder++;
+                if(px[np * 4 + 3] >= 10) opaqueBorder++;   // непрозорий сусід (= обведення букви)
               }
             }
           }
-          if(!touchesEdge && totalBorder > 0 && darkBorder / totalBorder >= DARK_FRAC){
+          // замкнений (не торкається краю) білий просвіт, оточений непрозорим вмістом → прибрати
+          if(!touchesEdge && totalBorder > 0 && opaqueBorder / totalBorder >= OPAQUE_FRAC){
             members.forEach(function(m){ visited[m] = 1; });
           }
         }
