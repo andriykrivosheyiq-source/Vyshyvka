@@ -317,16 +317,19 @@
 
   .step-block{
     display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:16px;
-    padding:26px 22px;margin-top:24px;
+    padding:20px 20px;margin-top:16px;
+    border:1px solid var(--line);border-radius:20px;background:#FFFFFF;
   }
-  .step-info .step-num{font-weight:700;color:var(--muted);font-size:13px;letter-spacing:.08em;}
-  .step-info h3{font-size:21px;margin-top:8px;}
-  .step-info p{color:var(--muted);margin-top:8px;font-size:14px;line-height:1.5;max-width:320px;}
+  .step-info .step-num{font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.08em;}
+  .step-info h3{font-size:17px;margin-top:6px;}
+  .step-info p{color:var(--muted);margin-top:7px;font-size:13px;line-height:1.5;max-width:320px;}
   @media (max-width:480px){
-    .step-block{grid-template-columns:1.2fr 1fr;gap:10px;padding:20px 16px;margin-top:20px;}
+    .step-block{grid-template-columns:1.15fr 1fr;gap:10px;padding:16px 14px;margin-top:12px;}
+    .step-info h3{font-size:15px;}
+    .step-info p{font-size:12px;}
   }
   .step-visual{display:flex;justify-content:center;position:relative;}
-  .step-visual svg{width:min(70%,170px);color:var(--ink);}
+  .step-visual svg{width:min(62%,130px);color:var(--ink);}
   .step-visual .mini-tag{
     position:absolute;top:18%;right:14%;
     border:1.5px dashed var(--ink);border-radius:7px;padding:3px 9px;
@@ -335,7 +338,7 @@
 
   /* Interactive logo designer (step 02) */
   .step-visual--designer{align-items:flex-start;}
-  .logo-designer{width:100%;max-width:260px;margin:0 auto;user-select:none;-webkit-user-select:none;}
+  .logo-designer{width:100%;max-width:200px;margin:0 auto;user-select:none;-webkit-user-select:none;}
   .ld-stage{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;}
   .ld-shirt{position:absolute;inset:0;}
   .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
@@ -360,7 +363,7 @@
 
   /* Step 03 — box slides in from the right */
   .step-visual--box{overflow:hidden;}
-  .box-slide{width:100%;max-width:300px;margin-left:auto;
+  .box-slide{width:100%;max-width:225px;margin-left:auto;
     transform:translateX(90%);opacity:0;
     transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
   .step-block.in .box-slide{transform:translateX(0);opacity:1;}
