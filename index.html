@@ -3630,7 +3630,7 @@
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
-    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } if(pmTabPanel) pmTabPanel.style.display = ''; dlState = {mode:null}; unlockScroll(); }
+    function onDlUp(){ if(dlState.mode){ if(pmTabPanel) pmTabPanel.style.display = ''; renderLogoLayers(); renderTabPanel(); } dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
     window.addEventListener('mouseup', onDlUp);
