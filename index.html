@@ -761,9 +761,10 @@
   .help-form input::placeholder{color:var(--muted);}
   .help-form input:focus{border-color:var(--blue);}
   .help-form .btn{flex:none;white-space:nowrap;}
+  .help-form .contact-phone-row{margin-top:0;flex:1;min-width:160px;}
   @media (max-width:480px){
     .help-form{flex-direction:column;}
-    .help-form input,.help-form .btn{width:100%;justify-content:center;}
+    .help-form input,.help-form .btn,.help-form .contact-phone-row{width:100%;justify-content:center;}
   }
 
   /* Contact modal — opened from header phone button or menu "Контакти" */
@@ -2586,7 +2587,10 @@
           </div>
         </div>
         <form class="help-form" onsubmit="return false;">
-          <input type="tel" placeholder="+380 ХХ ХХХ ХХ ХХ" aria-label="Номер телефону" required>
+          <div class="contact-phone-row">
+            <span class="contact-phone-prefix">+380</span>
+            <input type="tel" placeholder="Ваш номер телефону" aria-label="Номер телефону" required>
+          </div>
           <button type="submit" class="btn btn-primary">Консультація</button>
         </form>
       </div>
