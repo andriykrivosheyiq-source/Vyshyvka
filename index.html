@@ -4242,12 +4242,14 @@
   }
 
   // continuous auto animation only — no manual interaction
-  // very subtle drift — barely-there motion so it doesn't draw attention
+  // gentle position-only drift; size is fixed so the price stays steady
+  // (a changing size made the price digits flicker — looked like a glitch)
+  var FIXED_SIZE = 17.5;
   var tour = [
-    {cx:50,cy:40,size:17.5},{cx:49.6,cy:39.6,size:17.1},
-    {cx:50.4,cy:40.4,size:17.9},{cx:50,cy:39.8,size:17.4},{cx:49.8,cy:40.2,size:17.6}
+    {cx:50,cy:40,size:FIXED_SIZE},{cx:48.6,cy:38.8,size:FIXED_SIZE},
+    {cx:51.2,cy:41,size:FIXED_SIZE},{cx:50,cy:39.2,size:FIXED_SIZE},{cx:48.9,cy:40.6,size:FIXED_SIZE}
   ];
-  var auto = {on:false, i:0, t0:0, dur:2800};
+  var auto = {on:false, i:0, t0:0, dur:2600};
   function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
   function tick(now){
     if(!auto.on) return;
