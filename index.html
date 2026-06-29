@@ -2312,7 +2312,6 @@
               <div class="ld-stat"><div class="lbl">Ціна</div><div class="val"><span id="ldPrice">1 248</span> <small>грн</small></div></div>
               <div class="ld-stat"><div class="lbl">Термін</div><div class="val"><span id="ldTerm">2–3</span> <small>дні</small></div></div>
             </div>
-            <div class="ld-hint">Перетягни логотип або потягни за кутик, щоб змінити розмір</div>
           </div>
         </div>
       </div>
@@ -4218,7 +4217,7 @@
   var st = {cx:50, cy:40, size:17.5};
 
   function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
-  function priceFor(s){ return Math.round((690 + (s-MIN)*83.3)/2)*2; }
+  function priceFor(s){ return Math.round((200 + (s-MIN)*(300/(MAX-MIN)))/5)*5; }
   function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 
   function apply(){
