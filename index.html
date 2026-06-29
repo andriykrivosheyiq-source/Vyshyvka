@@ -4306,7 +4306,7 @@
   function measure(){
     CW = car.clientWidth || car.parentElement.clientWidth || 200;
     car.style.height = CW+'px';                 // explicit square (fallback if aspect-ratio fails)
-    W = CW*0.58; G = CW*0.05;
+    W = CW*0.72; G = CW*0.05;
     for(var i=0;i<els.length;i++){ els[i].style.width=W+'px'; els[i].style.height=W+'px'; els[i].style.marginRight=G+'px'; }
   }
   function center(i,anim){
