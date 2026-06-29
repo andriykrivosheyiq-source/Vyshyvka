@@ -3936,7 +3936,7 @@
             var jj = idx * 4;
             return px[jj + 3] >= 10 && px[jj] > THR && px[jj + 1] > THR && px[jj + 2] > THR;
           };
-          var INK_BRIGHT = 90, DARK_FRAC = 0.9;
+          var INK_BRIGHT = 160, DARK_FRAC = 0.6;   // м'якші пороги: ловить просвіти в О/В/А навіть зі згладженими (сіруватими) краями
           var comp = new Int32Array(W * H); comp.fill(-1);
           for(var s = 0; s < W * H; s++){
             if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
