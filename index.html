@@ -3628,7 +3628,7 @@
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
-    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); updatePriceBar(); } dlState = {mode:null}; unlockScroll(); }
+    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
     window.addEventListener('mouseup', onDlUp);
@@ -3806,7 +3806,9 @@
       }).join('');
       var activeEl = pmTierRow.querySelector('.pm-tier-item.active');
       if(activeEl){
-        activeEl.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+        // Центруємо активний тариф ГОРИЗОНТАЛЬНО лише всередині списку — без прокрутки сторінки
+        // (scrollIntoView кидав увесь екран вниз під час перетягування/масштабування).
+        pmTierRow.scrollLeft = activeEl.offsetLeft - (pmTierRow.clientWidth - activeEl.clientWidth)/2;
       }
     }
     function updatePriceBar(){
