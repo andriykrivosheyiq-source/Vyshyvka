@@ -3384,11 +3384,17 @@
       for(var i=TIERS.length-1;i>=0;i--){ if(u>=TIERS[i].min) return TIERS[i]; }
       return TIERS[0];
     }
-    // Надбавка за розмір логотипа: що більший друк — то дорожче (рахуємо всі шари, фронт+бек)
+    // Орієнтовна ширина друку логотипа у см (scale 1 ≈ 15 см)
+    function logoWidthCm(layer){ return Math.round(layer.scale * 15); }
+    function activeLogoWidthCm(){
+      var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
+      return l ? logoWidthCm(l) : 0;
+    }
+    // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
       var total = 0;
       ['front','back'].forEach(function(side){
-        pm.logos[side].forEach(function(l){ total += Math.round(l.scale * 40 / 5) * 5; });
+        pm.logos[side].forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
       });
       return total;
     }
@@ -3520,7 +3526,7 @@
       var hasClean = !!cleanUrl;
       var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
         url:hasClean?cleanUrl:origUrl, x:0, y:0, scale:1, rot:0, removeBg:hasClean};
-      pm.logos[pm.side].push(layer);
+      pm.logos[pm.side] = [layer];   // лише один логотип на стороні, на стартовій (центральній) позиції
       pm.activeLogoId = layer.id;
       renderGarment();
       renderTabPanel();
@@ -3540,18 +3546,30 @@
     function unlockScroll(){ document.body.style.overflow=''; document.documentElement.style.overflow=''; }
     var dlState = {mode:null};
 
+    // Оновлюємо стиль наявного елемента напряму (без перебудови DOM) — щоб не глючило під час жесту
+    function applyLayerStyle(el, layer){
+      if(!el) return;
+      var sz = Math.round(120 * layer.scale);
+      el.style.width = sz + 'px';
+      el.style.height = sz + 'px';
+      el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+(layer.rot||0)+'deg)';
+    }
+
     function onImgDown(e, layer){
       e.stopPropagation(); e.preventDefault();
+      var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;
-      renderLogoLayers();
+      if(!wasActive) renderLogoLayers();   // показати рамку/маркери лише при першому виділенні
       lockScroll();
+      var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
       var p = getXY(e);
-      dlState = {mode:'drag', layer:layer, startX:p.x, startY:p.y, startLX:layer.x, startLY:layer.y};
+      dlState = {mode:'drag', layer:layer, el:el, startX:p.x, startY:p.y, startLX:layer.x, startLY:layer.y};
     }
     function onScaleDown(e, layer){
       e.stopPropagation(); e.preventDefault(); lockScroll();
+      var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
       var p = getXY(e);
-      dlState = {mode:'scale', layer:layer, startX:p.x, startY:p.y, startScale:layer.scale};
+      dlState = {mode:'scale', layer:layer, el:el, startX:p.x, startY:p.y, startScale:layer.scale};
     }
     function onRotateDown(e, layer, el){
       e.stopPropagation(); e.preventDefault(); lockScroll();
@@ -3559,7 +3577,7 @@
       var cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
       var p = getXY(e);
       var angle = Math.atan2(p.y-cy, p.x-cx)*(180/Math.PI);
-      dlState = {mode:'rotate', layer:layer, cx:cx, cy:cy, startAngle:angle, startRot:layer.rot||0};
+      dlState = {mode:'rotate', layer:layer, el:el, cx:cx, cy:cy, startAngle:angle, startRot:layer.rot||0};
     }
     function onDlMove(e){
       if(!dlState.mode) return;
@@ -3578,10 +3596,10 @@
         var a = Math.atan2(p.y-dlState.cy, p.x-dlState.cx)*(180/Math.PI);
         layer.rot = dlState.startRot + (a - dlState.startAngle);
       }
-      renderLogoLayers();
+      applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       if(dlState.mode === 'scale') updatePriceBar();   // ціна змінюється під час зміни розміру
     }
-    function onDlUp(){ dlState = {mode:null}; unlockScroll(); }
+    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
     window.addEventListener('mouseup', onDlUp);
@@ -3624,7 +3642,7 @@
               '</div>' +
             '</div>';
           });
-          html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Ще фото</span></div></div>';
+          html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Замінити лого</span></div></div>';
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
@@ -3764,7 +3782,8 @@
     }
     function updatePriceBar(){
       var u = totalUnits();
-      pmProductTitle.textContent = getGarment().name + ' оверсайз';
+      var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
+      pmProductTitle.textContent = getGarment().name + ' оверсайз' + (cmW ? ' · друк ≈ ' + cmW + ' см' : '');
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
