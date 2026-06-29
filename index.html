@@ -3615,11 +3615,11 @@
         layer.y = dlState.startLY + (p.y - dlState.startY);
       } else if(dlState.mode === 'scale'){
         var dy = p.y - dlState.startY;   // вниз = більше, вгору = менше
-        layer.scale = Math.max(0.15, Math.min(5, dlState.startScale + dy/180));
+        layer.scale = Math.max(0.04, Math.min(5, dlState.startScale + dy/180));
       } else if(dlState.mode === 'pinch'){
         if(e.touches && e.touches.length >= 2){
           var d = touchDist(e);
-          if(dlState.startDist > 0) layer.scale = Math.max(0.15, Math.min(5, dlState.startScale * (d / dlState.startDist)));
+          if(dlState.startDist > 0) layer.scale = Math.max(0.04, Math.min(5, dlState.startScale * (d / dlState.startDist)));
         }
       } else if(dlState.mode === 'rotate'){
         var a = Math.atan2(p.y-dlState.cy, p.x-dlState.cx)*(180/Math.PI);
@@ -4010,17 +4010,9 @@
       renderGarment();
       if(pm.tab==='photo') renderTabPanel();
     }
-    // Swipe left/right on the stage to flip side
-    var swipeStartX = 0, swipeStartY = 0;
+    // Свайп для перемикання сторін прибрано — він заважав перетягувати/масштабувати лого.
+    // Перемикання передня/задня лишається через стрілки та крапки.
     var pmStage = document.getElementById('pmStage');
-    pmStage.addEventListener('touchstart', function(e){ swipeStartX = e.touches[0].clientX; swipeStartY = e.touches[0].clientY; });
-    pmStage.addEventListener('touchend', function(e){
-      var dx = e.changedTouches[0].clientX - swipeStartX;
-      var dy = e.changedTouches[0].clientY - swipeStartY;
-      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30){
-        setSide(dx < 0 ? 'back' : 'front');
-      }
-    });
 
     // Open/close modal
     var productModal = document.getElementById('productModal');
