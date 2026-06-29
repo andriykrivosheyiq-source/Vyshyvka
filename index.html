@@ -3719,6 +3719,7 @@
         html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
       }
       pmTabPanel.innerHTML = '<div class="pm-tab-panel-inner">'+html+'</div>';
+      pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
     }
