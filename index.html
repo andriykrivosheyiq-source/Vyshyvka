@@ -3384,7 +3384,15 @@
       for(var i=TIERS.length-1;i>=0;i--){ if(u>=TIERS[i].min) return TIERS[i]; }
       return TIERS[0];
     }
-    function unitPrice(){ return activeTier().price + getGarment().price + getPrint().price; }
+    // Надбавка за розмір логотипа: що більший друк — то дорожче (рахуємо всі шари, фронт+бек)
+    function logoSurcharge(){
+      var total = 0;
+      ['front','back'].forEach(function(side){
+        pm.logos[side].forEach(function(l){ total += Math.round(l.scale * 40 / 5) * 5; });
+      });
+      return total;
+    }
+    function unitPrice(){ return activeTier().price + getGarment().price + getPrint().price + logoSurcharge(); }
     function dayWord(n){
       var m10=n%10, m100=n%100;
       if(m10===1 && m100!==11) return 'день';
@@ -3516,12 +3524,14 @@
       pm.activeLogoId = layer.id;
       renderGarment();
       renderTabPanel();
+      updatePriceBar();
     }
     function removeLogo(id){
       pm.logos[pm.side] = pm.logos[pm.side].filter(function(l){return l.id!==id;});
       pm.activeLogoId = null;
       renderGarment();
       renderTabPanel();
+      updatePriceBar();
     }
 
     // Drag / rotate / scale — shared pointer state, matches original DraggableLayer exactly
@@ -3569,6 +3579,7 @@
         layer.rot = dlState.startRot + (a - dlState.startAngle);
       }
       renderLogoLayers();
+      if(dlState.mode === 'scale') updatePriceBar();   // ціна змінюється під час зміни розміру
     }
     function onDlUp(){ dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
@@ -3757,7 +3768,7 @@
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
-        pmPriceText.innerHTML = '<span class="pm-num">від '+TIERS[TIERS.length-1].price+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-num">від '+(TIERS[TIERS.length-1].price + logoSurcharge())+'</span><span class="pm-unit">грн/шт</span>';
       }
       pmDeliveryText.innerHTML = (u===0?'<span class="pm-unit">від </span>':'') + '<span class="pm-num">'+deliveryTerm()+'</span><span class="pm-unit">'+dayWord(parseInt(deliveryTerm().split('-')[1],10))+'</span>';
       pmAddBtnSum.textContent = u>0 ? (unitPrice()*u)+' грн за '+u+' шт' : '';
