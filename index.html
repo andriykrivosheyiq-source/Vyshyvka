@@ -339,7 +339,7 @@
   /* Interactive logo designer (step 02) */
   .step-visual--designer{align-items:flex-start;}
   .logo-designer{width:100%;max-width:200px;margin:0 auto;user-select:none;-webkit-user-select:none;}
-  .ld-stage{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;}
+  .ld-stage{position:relative;width:100%;aspect-ratio:1/1;pointer-events:none;}
   .ld-shirt{position:absolute;inset:0;}
   .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
   .ld-print{position:absolute;cursor:grab;will-change:left,top,width,height;}
@@ -357,18 +357,28 @@
   .ld-stats{display:flex;gap:8px;margin-top:12px;justify-content:center;}
   .ld-stat{flex:1;border:1px solid var(--line);border-radius:12px;padding:8px 6px;background:#FFFFFF;text-align:center;}
   .ld-stat .lbl{font-size:11px;color:var(--muted);}
-  .ld-stat .val{font-family:var(--font-sf);font-size:18px;font-weight:800;margin-top:2px;letter-spacing:-.4px;}
+  .ld-stat .val{font-family:var(--font-sf);font-size:18px;font-weight:800;margin-top:2px;letter-spacing:-.4px;
+    white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:center;gap:4px;}
+  .ld-stat .val span{min-width:2.6em;text-align:right;}
   .ld-stat .val small{font-size:11px;font-weight:600;color:var(--muted);}
   .ld-hint{margin-top:9px;font-size:11px;color:var(--muted);text-align:center;line-height:1.4;}
 
   /* Step 03 — box slides in from the right */
   .step-visual--box{overflow:hidden;}
+  @keyframes boxSlide{
+    0%{transform:translateX(125%);opacity:0;}
+    18%{transform:translateX(0);opacity:1;}
+    70%{transform:translateX(0);opacity:1;}
+    90%,100%{transform:translateX(125%);opacity:0;}
+  }
   .box-slide{width:100%;max-width:225px;margin-left:auto;
-    transform:translateX(90%);opacity:0;
-    transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
-  .step-block.in .box-slide{transform:translateX(0);opacity:1;}
+    transform:translateX(125%);opacity:0;
+    animation:boxSlide 4.5s ease-in-out infinite;}
   .box-slide img{width:100%;height:auto;display:block;
     filter:drop-shadow(0 14px 22px rgba(0,0,0,.12));}
+  @media (prefers-reduced-motion:reduce){
+    .box-slide{animation:none;transform:none;opacity:1;}
+  }
 
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
@@ -4245,54 +4255,7 @@
     if(termEl)  termEl.textContent  = st.size>=30 ? '3–4' : '2–3';
   }
 
-  // pointer helpers
-  function pct(e){
-    var r = stage.getBoundingClientRect();
-    return { x:(e.clientX-r.left)/r.width*100, y:(e.clientY-r.top)/r.height*100 };
-  }
-  var drag=null;
-  function stopAuto(){ auto.on=false; }
-
-  function onDown(e){
-    var handle = e.target.closest('.ld-handle');
-    stopAuto();
-    designer.classList.add('active');
-    print.classList.add('grabbing');
-    var p = pct(e);
-    if(handle){
-      drag = { mode:'resize' };
-    } else {
-      drag = { mode:'move', dx:p.x-st.cx, dy:p.y-st.cy };
-    }
-    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
-    e.preventDefault();
-  }
-  function onMove(e){
-    if(!drag) return;
-    var p = pct(e);
-    if(drag.mode==='move'){
-      st.cx = p.x - drag.dx;
-      st.cy = p.y - drag.dy;
-    } else {
-      // resize from center; cap so it stays in the zone
-      var half = Math.max(Math.abs(p.x-st.cx), Math.abs(p.y-st.cy));
-      var byZone = 2*Math.min(st.cx-Z.x0, Z.x1-st.cx, st.cy-Z.y0, Z.y1-st.cy);
-      st.size = clamp(half*2, MIN, Math.min(MAX, byZone));
-    }
-    apply();
-    e.preventDefault();
-  }
-  function onUp(e){
-    drag=null;
-    print.classList.remove('grabbing');
-    try{ stage.releasePointerCapture(e.pointerId); }catch(_){}
-  }
-  stage.addEventListener('pointerdown', onDown);
-  stage.addEventListener('pointermove', onMove);
-  stage.addEventListener('pointerup', onUp);
-  stage.addEventListener('pointercancel', onUp);
-
-  // auto demo animation (until the user interacts)
+  // continuous auto animation only — no manual interaction
   var tour = [
     {cx:50,cy:40,size:17.5},{cx:43,cy:34,size:13},
     {cx:57,cy:45,size:21},{cx:50,cy:48,size:16},{cx:45,cy:33,size:19}
@@ -4314,19 +4277,20 @@
   }
 
   apply();
+  designer.classList.add('active');
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if('IntersectionObserver' in window){
-    var io = new IntersectionObserver(function(en){
-      en.forEach(function(x){
-        if(x.isIntersecting){
-          designer.classList.add('active');
-          if(!reduce && !auto.started){ auto.started=true; auto.on=true; auto.t0=0; requestAnimationFrame(tick); }
-        }
-      });
-    }, {threshold:0.4});
-    io.observe(designer);
-  } else {
-    designer.classList.add('active');
+  if(!reduce){
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(en){
+        en.forEach(function(x){
+          if(x.isIntersecting){ if(!auto.on){ auto.on=true; auto.t0=0; requestAnimationFrame(tick); } }
+          else { auto.on=false; }
+        });
+      }, {threshold:0.25});
+      io.observe(designer);
+    } else {
+      auto.on=true; requestAnimationFrame(tick);
+    }
   }
 })();
 </script>
