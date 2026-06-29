@@ -4317,19 +4317,25 @@
     d.appendChild(img); track.appendChild(d);
   });
   var els = track.children;
-  var W=0, G=0, idx=N*2;
+  var W=0, G=0, CW=0, idx=N*2;
   function measure(){
-    var cw=car.clientWidth; W=cw*0.6; G=cw*0.04;
+    CW = car.clientWidth || car.parentElement.clientWidth || 200;
+    car.style.height = CW+'px';                 // explicit square (fallback if aspect-ratio fails)
+    W = CW*0.58; G = CW*0.05;
     for(var i=0;i<els.length;i++){ els[i].style.width=W+'px'; els[i].style.height=W+'px'; els[i].style.marginRight=G+'px'; }
   }
   function center(i,anim){
-    var cw=car.clientWidth, x=cw/2-(i*(W+G)+W/2);
+    var x = CW/2-(i*(W+G)+W/2);
     track.style.transition = anim ? 'transform .6s cubic-bezier(.4,0,.2,1)' : 'none';
     track.style.transform = 'translateX('+x+'px)';
     for(var k=0;k<els.length;k++) els[k].classList.toggle('active', k===i);
   }
-  measure(); center(idx,false);
-  window.addEventListener('resize', function(){ measure(); center(idx,false); });
+  function refresh(){ measure(); center(idx,false); }
+  refresh();
+  window.addEventListener('load', refresh);
+  window.addEventListener('resize', refresh);
+  setTimeout(refresh, 300);
+  if(track.querySelector('img')) track.querySelector('img').addEventListener('load', refresh);
 
   var timer=null;
   function step(){
@@ -4343,8 +4349,9 @@
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(en){
       en.forEach(function(x){ x.isIntersecting ? start() : stop(); });
-    }, {threshold:0.3}).observe(car);
-  } else { start(); }
+    }, {threshold:0.2}).observe(car);
+  }
+  setTimeout(start, 1200);   // guaranteed start even if observer never fires
 })();
 </script>
 
