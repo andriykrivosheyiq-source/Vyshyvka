@@ -365,20 +365,22 @@
 
   /* Step 03 — box slides in from the right */
   .step-visual--box{overflow:hidden;}
-  @keyframes boxSlide{
-    0%{transform:translateX(125%);opacity:0;}
-    18%{transform:translateX(0);opacity:1;}
-    70%{transform:translateX(0);opacity:1;}
-    90%,100%{transform:translateX(125%);opacity:0;}
-  }
   .box-slide{width:100%;max-width:225px;margin-left:auto;
     transform:translateX(125%);opacity:0;
-    animation:boxSlide 4.5s ease-in-out infinite;}
+    transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
+  .step-block.in .box-slide{transform:translateX(0);opacity:1;}
   .box-slide img{width:100%;height:auto;display:block;
     filter:drop-shadow(0 14px 22px rgba(0,0,0,.12));}
-  @media (prefers-reduced-motion:reduce){
-    .box-slide{animation:none;transform:none;opacity:1;}
-  }
+
+  /* Step 01 — clothing carousel */
+  .wear-carousel{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;pointer-events:none;
+    -webkit-mask:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent);
+            mask:linear-gradient(90deg,transparent,#000 16%,#000 84%,transparent);}
+  .wear-track{display:flex;align-items:center;height:100%;will-change:transform;}
+  .wear-item{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    transform:scale(.66);opacity:.4;transition:transform .55s ease,opacity .55s ease;}
+  .wear-item.active{transform:scale(1);opacity:1;}
+  .wear-item img{width:100%;height:auto;display:block;}
 
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
@@ -2295,8 +2297,8 @@
           <h3>Оберіть одяг</h3>
           <p>Худі, футболки, світшоти, кепки та інші вироби для вашої команди.</p>
         </div>
-        <div class="step-visual">
-          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M28 18 L16 10 L6 22 L16 32 L22 28 L22 90 L78 90 L78 28 L84 32 L94 22 L84 10 L72 18 Q62 26 50 26 Q38 26 28 18 Z"/></svg>
+        <div class="step-visual step-visual--carousel">
+          <div class="wear-carousel" id="wearCarousel"><div class="wear-track" id="wearTrack"></div></div>
         </div>
       </div>
 
@@ -4292,6 +4294,57 @@
       auto.on=true; requestAnimationFrame(tick);
     }
   }
+})();
+</script>
+
+<script>
+/* Step 01 — clothing carousel (auto, centered item enlarged) */
+(function(){
+  var car = document.getElementById('wearCarousel');
+  var track = document.getElementById('wearTrack');
+  if(!car || !track) return;
+  var base = [
+    {src:'images/hoodie.png',    alt:'Худі'},
+    {src:'images/tshirt.png',    alt:'Футболка'},
+    {src:'images/sweatshirt.png',alt:'Світшот'},
+    {src:'images/cap.png',       alt:'Кепка'}
+  ];
+  var N = base.length, reps = 5, items = [];
+  for(var r=0;r<reps;r++) for(var i=0;i<N;i++) items.push(base[i]);
+  items.forEach(function(it){
+    var d=document.createElement('div'); d.className='wear-item';
+    var img=document.createElement('img'); img.src=it.src; img.alt=it.alt; img.draggable=false; img.loading='lazy';
+    d.appendChild(img); track.appendChild(d);
+  });
+  var els = track.children;
+  var W=0, G=0, idx=N*2;
+  function measure(){
+    var cw=car.clientWidth; W=cw*0.6; G=cw*0.04;
+    for(var i=0;i<els.length;i++){ els[i].style.width=W+'px'; els[i].style.height=W+'px'; els[i].style.marginRight=G+'px'; }
+  }
+  function center(i,anim){
+    var cw=car.clientWidth, x=cw/2-(i*(W+G)+W/2);
+    track.style.transition = anim ? 'transform .6s cubic-bezier(.4,0,.2,1)' : 'none';
+    track.style.transform = 'translateX('+x+'px)';
+    for(var k=0;k<els.length;k++) els[k].classList.toggle('active', k===i);
+  }
+  measure(); center(idx,false);
+  window.addEventListener('resize', function(){ measure(); center(idx,false); });
+
+  var timer=null;
+  function step(){
+    idx++; center(idx,true);
+    if(idx >= N*(reps-1)){ setTimeout(function(){ idx-=N*2; center(idx,false); }, 650); }
+  }
+  function start(){ if(!timer) timer=setInterval(step,1700); }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ return; }
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(en){
+      en.forEach(function(x){ x.isIntersecting ? start() : stop(); });
+    }, {threshold:0.3}).observe(car);
+  } else { start(); }
 })();
 </script>
 
