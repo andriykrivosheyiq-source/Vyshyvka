@@ -4368,7 +4368,21 @@ window.LOOMIQ_CONFIG = {
     document.querySelectorAll('a[href*="t.me/"]').forEach(function(a){ a.href = c.telegram; });
   }
   if(c.viber){
-    document.querySelectorAll('a[href^="viber:"]').forEach(function(a){ a.href = c.viber; });
+    document.querySelectorAll('a[href^="viber:"]').forEach(function(a){
+      a.href = c.viber;
+      // If Viber isn't installed, the viber:// scheme fails (Safari shows
+      // "address invalid"). Fall back to the Viber download page so the
+      // user isn't left at a dead end.
+      a.addEventListener('click', function(){
+        var hidden = false;
+        var onHide = function(){ if(document.hidden) hidden = true; };
+        document.addEventListener('visibilitychange', onHide);
+        setTimeout(function(){
+          document.removeEventListener('visibilitychange', onHide);
+          if(!hidden){ window.location.href = 'https://www.viber.com/download/'; }
+        }, 1500);
+      });
+    });
   }
 
   // --- Форми із номером телефону → надсилання заявки ---
