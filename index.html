@@ -322,6 +322,7 @@
     padding:20px 20px;margin-top:16px;
     border:1px solid var(--line);border-radius:20px;background:#FFFFFF;
   }
+  .step-info--top{align-self:flex-start;}
   .step-info .step-num{font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.08em;}
   .step-info h3{font-size:17px;margin-top:6px;}
   .step-info p{color:var(--muted);margin-top:7px;font-size:13px;line-height:1.5;max-width:320px;}
@@ -2286,7 +2287,7 @@
       </div>
 
       <div class="step-block reveal">
-        <div class="step-info">
+        <div class="step-info step-info--top">
           <span class="step-num">КРОК 02</span>
           <h3>Додайте логотип</h3>
           <p>Перетягуйте логотип по футболці та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
@@ -4241,12 +4242,12 @@
   }
 
   // continuous auto animation only — no manual interaction
-  // subtle motion: small position/size drift so it doesn't draw attention
+  // very subtle drift — barely-there motion so it doesn't draw attention
   var tour = [
-    {cx:50,cy:40,size:17.5},{cx:48,cy:38,size:16.5},
-    {cx:52,cy:42,size:18.5},{cx:50,cy:39,size:17},{cx:49,cy:41,size:17.5}
+    {cx:50,cy:40,size:17.5},{cx:49.6,cy:39.6,size:17.1},
+    {cx:50.4,cy:40.4,size:17.9},{cx:50,cy:39.8,size:17.4},{cx:49.8,cy:40.2,size:17.6}
   ];
-  var auto = {on:false, i:0, t0:0, dur:2200};
+  var auto = {on:false, i:0, t0:0, dur:2800};
   function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
   function tick(now){
     if(!auto.on) return;
