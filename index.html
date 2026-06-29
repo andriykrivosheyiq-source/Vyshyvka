@@ -334,13 +334,11 @@
   }
 
   /* Interactive logo designer (step 02) */
-  .step-block--interactive{grid-template-columns:1fr;justify-items:center;text-align:center;}
-  .step-block--interactive .step-info{max-width:520px;}
-  .step-block--interactive .step-info p{margin-inline:auto;}
-  .logo-designer{width:100%;max-width:330px;margin-top:22px;user-select:none;-webkit-user-select:none;}
+  .step-visual--designer{align-items:flex-start;}
+  .logo-designer{width:100%;max-width:260px;margin:0 auto;user-select:none;-webkit-user-select:none;}
   .ld-stage{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;}
   .ld-shirt{position:absolute;inset:0;}
-  .ld-shirt svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 16px rgba(0,0,0,.06));}
+  .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
   .ld-print{position:absolute;cursor:grab;will-change:left,top,width,height;}
   .ld-print.grabbing{cursor:grabbing;}
   .ld-logo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
@@ -353,12 +351,12 @@
   .ld-handle[data-h="ne"],.ld-handle[data-h="sw"]{cursor:nesw-resize;}
   .ld-handle[data-h="n"],.ld-handle[data-h="s"]{cursor:ns-resize;}
   .ld-handle[data-h="e"],.ld-handle[data-h="w"]{cursor:ew-resize;}
-  .ld-stats{display:flex;gap:10px;margin-top:18px;justify-content:center;}
-  .ld-stat{flex:1;max-width:150px;border:1px solid var(--line);border-radius:14px;padding:10px 8px;background:#FFFFFF;}
-  .ld-stat .lbl{font-size:12px;color:var(--muted);}
-  .ld-stat .val{font-family:var(--font-sf);font-size:clamp(20px,5vw,24px);font-weight:800;margin-top:3px;letter-spacing:-.5px;}
-  .ld-stat .val small{font-size:13px;font-weight:600;color:var(--muted);}
-  .ld-hint{margin-top:12px;font-size:12px;color:var(--muted);max-width:260px;margin-inline:auto;line-height:1.4;}
+  .ld-stats{display:flex;gap:8px;margin-top:12px;justify-content:center;}
+  .ld-stat{flex:1;border:1px solid var(--line);border-radius:12px;padding:8px 6px;background:#FFFFFF;text-align:center;}
+  .ld-stat .lbl{font-size:11px;color:var(--muted);}
+  .ld-stat .val{font-family:var(--font-sf);font-size:18px;font-weight:800;margin-top:2px;letter-spacing:-.4px;}
+  .ld-stat .val small{font-size:11px;font-weight:600;color:var(--muted);}
+  .ld-hint{margin-top:9px;font-size:11px;color:var(--muted);text-align:center;line-height:1.4;}
 
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
@@ -2280,7 +2278,7 @@
         </div>
       </div>
 
-      <div class="step-block step-block--interactive reveal">
+      <div class="step-block reveal">
         <div class="step-info">
           <span class="step-num">КРОК 02</span>
           <h3>Додайте логотип</h3>
@@ -2290,10 +2288,7 @@
           <div class="logo-designer" id="logoDesigner">
             <div class="ld-stage" id="ldStage">
               <div class="ld-shirt">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path fill="#46474b" d="M50 13 C45 13 41 11 37 8 L18 17 C12 20 8 25 6 31 L13 41 L23 36 L23 89 L77 89 L77 36 L87 41 L94 31 C92 25 88 20 82 17 L63 8 C59 11 55 13 50 13 Z"/>
-                  <path fill="none" stroke="#3a3b3f" stroke-width="2.2" stroke-linecap="round" d="M39 9 C43 16 57 16 61 9"/>
-                </svg>
+                <img src="images/tshirt.png" alt="Футболка" draggable="false">
               </div>
               <div class="ld-print" id="ldPrint">
                 <div class="ld-logo">
@@ -4220,12 +4215,12 @@
   if(!designer || !stage || !print) return;
 
   // printable chest zone (in % of the square stage)
-  var Z = {x0:27, y0:25, x1:73, y1:63};
-  var MIN=14, MAX=36;
-  var st = {cx:50, cy:44, size:24};
+  var Z = {x0:35, y0:28, x1:65, y1:53};
+  var MIN=11, MAX=23;
+  var st = {cx:50, cy:40, size:17.5};
 
   function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
-  function priceFor(s){ return Math.round((690 + (s-MIN)*54.5)/2)*2; }
+  function priceFor(s){ return Math.round((690 + (s-MIN)*83.3)/2)*2; }
   function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
 
   function apply(){
@@ -4290,8 +4285,8 @@
 
   // auto demo animation (until the user interacts)
   var tour = [
-    {cx:50,cy:44,size:24},{cx:39,cy:36,size:18},
-    {cx:61,cy:50,size:30},{cx:50,cy:54,size:22},{cx:44,cy:34,size:27}
+    {cx:50,cy:40,size:17.5},{cx:43,cy:34,size:13},
+    {cx:57,cy:45,size:21},{cx:50,cy:48,size:16},{cx:45,cy:33,size:19}
   ];
   var auto = {on:false, i:0, t0:0, dur:1500};
   function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
