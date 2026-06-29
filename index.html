@@ -875,10 +875,11 @@
   .pm-side-arrow--left{left:8px;}
   .pm-side-arrow--right{right:8px;}
   #pmGarmentSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 40px rgba(0,0,0,.18));}
+  #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
   .pm-upload-zone{
-    position:absolute;top:23%;left:27%;right:27%;bottom:15%;border-radius:9px;
+    position:absolute;top:31%;left:36%;right:36%;bottom:40%;border-radius:9px;
     border:2px dashed rgba(255,255,255,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:8px;cursor:pointer;text-align:center;
+    gap:6px;cursor:pointer;text-align:center;
   }
   .pm-upload-plus{width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
   .pm-upload-text{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);}
@@ -1802,6 +1803,7 @@
     <div class="pm-swipe-wrap" id="pmSwipeWrap">
       <div class="pm-garment-wrap" id="pmGarmentWrap">
         <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
+        <img id="pmGarmentPhoto" alt="" style="display:none;">
         <div class="pm-upload-zone" id="pmUploadZone">
           <span class="pm-upload-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           <div class="pm-upload-text">Завантажте логотип</div>
@@ -3398,6 +3400,7 @@
     }
 
     var pmGarmentSvg = document.getElementById('pmGarmentSvg');
+    var pmGarmentPhoto = document.getElementById('pmGarmentPhoto');
     var pmUploadZone = document.getElementById('pmUploadZone');
     var pmLogoLayers = document.getElementById('pmLogoLayers');
     var pmTabPanel = document.getElementById('pmTabPanel');
@@ -3430,28 +3433,38 @@
     function renderGarment(){
       fitGarmentStage();
       var g = getGarment(), c = getColor();
-      pmGarmentSvg.setAttribute('viewBox','0 0 100 100');
-      pmGarmentSvg.style.color = c.hex;
-      pmGarmentSvg.innerHTML = '<path d="'+g.path+'" stroke="rgba(0,0,0,.12)" stroke-width="1"/>' +
-        (g.extra ? '<path d="'+g.extra+'" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2.5" stroke-linecap="round"/>' : '');
-      // Crop the viewBox tightly around the actual silhouette (union of all paths) so the
-      // garment fills the available square instead of floating with built-in empty margins.
-      try{
-        var paths = pmGarmentSvg.querySelectorAll('path');
-        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-        paths.forEach(function(p){
-          var b = p.getBBox();
-          minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
-          maxX = Math.max(maxX, b.x+b.width); maxY = Math.max(maxY, b.y+b.height);
-        });
-        if(isFinite(minX) && maxX>minX){
-          var pad = 2.5;
-          var w = maxX-minX, h = maxY-minY;
-          var size = Math.max(w,h) + pad*2;
-          var cx = minX + w/2, cy = minY + h/2;
-          pmGarmentSvg.setAttribute('viewBox', (cx-size/2).toFixed(2)+' '+(cy-size/2).toFixed(2)+' '+size.toFixed(2)+' '+size.toFixed(2));
-        }
-      }catch(e){}
+      // Use the real photo mockup for the black t-shirt; silhouettes for everything else.
+      var usePhoto = (g.id==='tee' && c.id==='black');
+      if(usePhoto){
+        if(!pmGarmentPhoto.getAttribute('src')) pmGarmentPhoto.src = 'images/tee-black.webp';
+        pmGarmentPhoto.style.display = '';
+        pmGarmentSvg.style.display = 'none';
+      } else {
+        pmGarmentPhoto.style.display = 'none';
+        pmGarmentSvg.style.display = '';
+        pmGarmentSvg.setAttribute('viewBox','0 0 100 100');
+        pmGarmentSvg.style.color = c.hex;
+        pmGarmentSvg.innerHTML = '<path d="'+g.path+'" stroke="rgba(0,0,0,.12)" stroke-width="1"/>' +
+          (g.extra ? '<path d="'+g.extra+'" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2.5" stroke-linecap="round"/>' : '');
+        // Crop the viewBox tightly around the actual silhouette (union of all paths) so the
+        // garment fills the available square instead of floating with built-in empty margins.
+        try{
+          var paths = pmGarmentSvg.querySelectorAll('path');
+          var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+          paths.forEach(function(p){
+            var b = p.getBBox();
+            minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+            maxX = Math.max(maxX, b.x+b.width); maxY = Math.max(maxY, b.y+b.height);
+          });
+          if(isFinite(minX) && maxX>minX){
+            var pad = 2.5;
+            var w = maxX-minX, h = maxY-minY;
+            var size = Math.max(w,h) + pad*2;
+            var cx = minX + w/2, cy = minY + h/2;
+            pmGarmentSvg.setAttribute('viewBox', (cx-size/2).toFixed(2)+' '+(cy-size/2).toFixed(2)+' '+size.toFixed(2)+' '+size.toFixed(2));
+          }
+        }catch(e){}
+      }
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
     }
