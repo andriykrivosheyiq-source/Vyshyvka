@@ -4338,5 +4338,74 @@
 })();
 </script>
 
+<script>
+/* =================================================================
+   КОНТАКТИ ТА ЗАЯВКИ — ЗМІНИ ЦІ 3 ЗНАЧЕННЯ (і все запрацює)
+   ================================================================= */
+window.LOOMIQ_CONFIG = {
+  // 1) Посилання на Telegram-бота (натисни — відкриє Telegram):
+  telegram: '',                 // напр. 'https://t.me/loomiq_bot'
+
+  // 2) Посилання на Viber-бота або номер:
+  viber: '',                    // напр. 'viber://pa?chatURI=loomiq'  або  'viber://chat?number=%2B380XXXXXXXXX'
+
+  // 3) Куди надсилати заявки з номером телефону (POST JSON {phone,page,context}).
+  //    Підійде URL твого Cloudflare Worker / SendPulse-вебхука / Formspree:
+  leadEndpoint: ''              // напр. 'https://lead.ВАШ-домен.workers.dev'
+};
+
+(function(){
+  var c = window.LOOMIQ_CONFIG || {};
+
+  // --- Telegram / Viber: підставити реальні посилання всюди ---
+  if(c.telegram){
+    document.querySelectorAll('a[href*="t.me/"]').forEach(function(a){ a.href = c.telegram; });
+  }
+  if(c.viber){
+    document.querySelectorAll('a[href^="viber:"]').forEach(function(a){ a.href = c.viber; });
+  }
+
+  // --- Форми із номером телефону → надсилання заявки ---
+  function showSuccess(form){
+    form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
+  }
+  function sendLead(phone, form, btn, origText){
+    var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
+    if(!c.leadEndpoint){
+      console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
+      showSuccess(form);
+      return;
+    }
+    fetch(c.leadEndpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    }).then(function(r){ return r.ok; }).catch(function(){ return false; })
+      .then(function(ok){
+        if(ok){ showSuccess(form); }
+        else {
+          if(btn){ btn.disabled=false; btn.textContent=origText; }
+          alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
+        }
+      });
+  }
+
+  document.querySelectorAll('form').forEach(function(form){
+    var tel = form.querySelector('input[type="tel"]');
+    if(!tel) return;
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var raw = (tel.value||'').trim();
+      var digits = raw.replace(/\D/g,'');
+      if(digits.length < 7){ tel.focus(); tel.style.borderColor = '#e4572e'; return; }
+      var hasPrefix = !!form.querySelector('.contact-phone-prefix');
+      var phone = (hasPrefix && raw.charAt(0) !== '+') ? ('+380' + digits.replace(/^380/,'')) : raw;
+      var btn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+      var origText = btn ? btn.textContent : '';
+      if(btn){ btn.disabled = true; btn.textContent = 'Надсилаємо…'; }
+      sendLead(phone, form, btn, origText);
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
