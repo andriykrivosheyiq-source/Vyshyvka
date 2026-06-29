@@ -1804,15 +1804,15 @@
       <div class="pm-garment-wrap" id="pmGarmentWrap">
         <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
         <img id="pmGarmentPhoto" alt="" style="display:none;">
-        <div class="pm-upload-zone" id="pmUploadZone">
+        <label class="pm-upload-zone" id="pmUploadZone" for="pmFileInput">
           <span class="pm-upload-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           <div class="pm-upload-text">Завантажте логотип</div>
           <div class="pm-upload-sub">PNG · JPG · SVG</div>
-        </div>
+        </label>
         <div class="pm-logo-layers" id="pmLogoLayers"></div>
       </div>
     </div>
-    <input type="file" id="pmFileInput" accept="image/*" style="display:none;">
+    <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
     <div class="pm-side-dots">
       <button class="pm-side-dot active" id="pmSideFront" data-side="front"><span></span></button>
@@ -3896,8 +3896,7 @@
       });
     }
 
-    // Пунктирна зона на футболці = кнопка завантаження логотипа
-    pmUploadZone.addEventListener('click', function(){ document.getElementById('pmFileInput').click(); });
+    // Пунктирна зона на футболці = <label for="pmFileInput"> (відкриває вибір файлу нативно)
 
     document.getElementById('pmFileInput').addEventListener('change', function(e){
       var f = e.target.files && e.target.files[0];
