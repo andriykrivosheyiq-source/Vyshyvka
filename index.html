@@ -1844,6 +1844,7 @@
           <span id="pmDeliveryText"></span>
         </div>
       </div>
+      <div class="pm-print-size" id="pmPrintSize" style="font-size:11.5px;color:#888;text-align:center;margin-top:4px;min-height:15px;font-weight:600;"></div>
       <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         Для точної ціни та термінів — вкажіть кількість
@@ -3420,6 +3421,7 @@
     var pmTabPanel = document.getElementById('pmTabPanel');
     var pmPriceText = document.getElementById('pmPriceText');
     var pmDeliveryText = document.getElementById('pmDeliveryText');
+    var pmPrintSize = document.getElementById('pmPrintSize');
     var pmAddBtnSum = document.getElementById('pmAddBtnSum');
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
@@ -3493,11 +3495,14 @@
         var active = pm.activeLogoId === layer.id;
         var rot = layer.rot || 0;
         var sz = Math.round(120 * layer.scale);
+        var ar = layer.ar || 1;
+        var bw = sz, bh = sz;
+        if(ar >= 1){ bh = Math.round(sz/ar); } else { bw = Math.round(sz*ar); }
         var el = document.createElement('div');
         el.className = 'pm-draggable-layer';
         el.dataset.layerId = layer.id;
-        el.style.width = sz + 'px';
-        el.style.height = sz + 'px';
+        el.style.width = bw + 'px';
+        el.style.height = bh + 'px';
         el.style.zIndex = active ? 10 : 1;
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
         el.innerHTML =
@@ -3524,13 +3529,19 @@
 
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
+      var url = hasClean?cleanUrl:origUrl;
       var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
-        url:hasClean?cleanUrl:origUrl, x:0, y:0, scale:1, rot:0, removeBg:hasClean};
+        url:url, x:0, y:0, scale:1, rot:0, removeBg:hasClean, ar:1};
       pm.logos[pm.side] = [layer];   // лише один логотип на стороні, на стартовій (центральній) позиції
       pm.activeLogoId = layer.id;
       renderGarment();
       renderTabPanel();
       updatePriceBar();
+      // пропорції лого → рамка щільно облягає контур (зручне перетягування)
+      loadImgEl(url).then(function(img){
+        layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
+        renderLogoLayers();
+      }).catch(function(){});
     }
     function removeLogo(id){
       pm.logos[pm.side] = pm.logos[pm.side].filter(function(l){return l.id!==id;});
@@ -3542,16 +3553,26 @@
 
     // Drag / rotate / scale — shared pointer state, matches original DraggableLayer exactly
     function getXY(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
-    function lockScroll(){ document.documentElement.style.overflow = 'hidden'; }
-    function unlockScroll(){ document.body.style.overflow=''; document.documentElement.style.overflow=''; }
+    function touchDist(e){
+      var t = e.touches; if(!t || t.length < 2) return 0;
+      var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
+    // Прокрутку під час жесту глушить preventDefault у onDlMove — overflow не чіпаємо,
+    // щоб інтерфейс не стрибав (інакше ціна "втікала" вниз під час масштабування).
+    function lockScroll(){}
+    function unlockScroll(){}
     var dlState = {mode:null};
 
     // Оновлюємо стиль наявного елемента напряму (без перебудови DOM) — щоб не глючило під час жесту
     function applyLayerStyle(el, layer){
       if(!el) return;
       var sz = Math.round(120 * layer.scale);
-      el.style.width = sz + 'px';
-      el.style.height = sz + 'px';
+      var ar = layer.ar || 1;
+      var bw = sz, bh = sz;
+      if(ar >= 1){ bh = Math.round(sz/ar); } else { bw = Math.round(sz*ar); }
+      el.style.width = bw + 'px';
+      el.style.height = bh + 'px';
       el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+(layer.rot||0)+'deg)';
     }
 
@@ -3562,8 +3583,12 @@
       if(!wasActive) renderLogoLayers();   // показати рамку/маркери лише при першому виділенні
       lockScroll();
       var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
-      var p = getXY(e);
-      dlState = {mode:'drag', layer:layer, el:el, startX:p.x, startY:p.y, startLX:layer.x, startLY:layer.y};
+      if(e.touches && e.touches.length >= 2){
+        dlState = {mode:'pinch', layer:layer, el:el, startDist:touchDist(e), startScale:layer.scale};
+      } else {
+        var p = getXY(e);
+        dlState = {mode:'drag', layer:layer, el:el, startX:p.x, startY:p.y, startLX:layer.x, startLY:layer.y};
+      }
     }
     function onScaleDown(e, layer){
       e.stopPropagation(); e.preventDefault(); lockScroll();
@@ -3589,17 +3614,21 @@
         layer.x = dlState.startLX + (p.x - dlState.startX);
         layer.y = dlState.startLY + (p.y - dlState.startY);
       } else if(dlState.mode === 'scale'){
-        var dist = Math.sqrt(Math.pow(p.x-dlState.startX,2)+Math.pow(p.y-dlState.startY,2));
-        var dir = (p.x-dlState.startX)+(p.y-dlState.startY) > 0 ? 1 : -1;
-        layer.scale = Math.max(0.15, Math.min(5, dlState.startScale + (dir*dist/120)));
+        var dy = p.y - dlState.startY;   // вниз = більше, вгору = менше
+        layer.scale = Math.max(0.15, Math.min(5, dlState.startScale + dy/180));
+      } else if(dlState.mode === 'pinch'){
+        if(e.touches && e.touches.length >= 2){
+          var d = touchDist(e);
+          if(dlState.startDist > 0) layer.scale = Math.max(0.15, Math.min(5, dlState.startScale * (d / dlState.startDist)));
+        }
       } else if(dlState.mode === 'rotate'){
         var a = Math.atan2(p.y-dlState.cy, p.x-dlState.cx)*(180/Math.PI);
         layer.rot = dlState.startRot + (a - dlState.startAngle);
       }
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
-      if(dlState.mode === 'scale') updatePriceBar();   // ціна змінюється під час зміни розміру
+      if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
-    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } dlState = {mode:null}; unlockScroll(); }
+    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); updatePriceBar(); } dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
     window.addEventListener('mouseup', onDlUp);
@@ -3783,7 +3812,8 @@
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
-      pmProductTitle.textContent = getGarment().name + ' оверсайз' + (cmW ? ' · друк ≈ ' + cmW + ' см' : '');
+      pmProductTitle.textContent = getGarment().name + ' оверсайз';
+      if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
@@ -3794,6 +3824,20 @@
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       pmQtyWarning.style.display = u===0 ? '' : 'none';
       renderTiers();
+    }
+    // Легке оновлення лише ціни/розміру під час жесту (без renderTiers/scrollIntoView — щоб не смикало інтерфейс)
+    function updatePriceLive(){
+      var u = totalUnits();
+      var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
+      if(u>0){
+        pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
+        pmAddBtnSum.textContent = (unitPrice()*u)+' грн за '+u+' шт';
+      } else {
+        pmPriceText.innerHTML = '<span class="pm-num">від '+(TIERS[TIERS.length-1].price + logoSurcharge())+'</span><span class="pm-unit">грн/шт</span>';
+        pmAddBtnSum.textContent = '';
+      }
+      document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
+      if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
