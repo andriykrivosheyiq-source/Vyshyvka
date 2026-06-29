@@ -3584,6 +3584,7 @@
       lockScroll();
       var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
       if(e.touches && e.touches.length >= 2){
+        if(pmTabPanel) pmTabPanel.style.display = 'none';   // підняти ціну, щоб було видно її зміну
         dlState = {mode:'pinch', layer:layer, el:el, startDist:touchDist(e), startScale:layer.scale};
       } else {
         var p = getXY(e);
@@ -3592,6 +3593,7 @@
     }
     function onScaleDown(e, layer){
       e.stopPropagation(); e.preventDefault(); lockScroll();
+      if(pmTabPanel) pmTabPanel.style.display = 'none';   // підняти ціну, щоб було видно її зміну
       var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
       var p = getXY(e);
       dlState = {mode:'scale', layer:layer, el:el, startX:p.x, startY:p.y, startScale:layer.scale};
@@ -3615,7 +3617,7 @@
         layer.y = dlState.startLY + (p.y - dlState.startY);
       } else if(dlState.mode === 'scale'){
         var dy = p.y - dlState.startY;   // вниз = більше, вгору = менше
-        layer.scale = Math.max(0.04, Math.min(5, dlState.startScale + dy/180));
+        layer.scale = Math.max(0.04, Math.min(5, dlState.startScale + dy/80));
       } else if(dlState.mode === 'pinch'){
         if(e.touches && e.touches.length >= 2){
           var d = touchDist(e);
@@ -3628,7 +3630,7 @@
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
-    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } dlState = {mode:null}; unlockScroll(); }
+    function onDlUp(){ if(dlState.mode){ renderLogoLayers(); } if(pmTabPanel) pmTabPanel.style.display = ''; dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
     window.addEventListener('mouseup', onDlUp);
