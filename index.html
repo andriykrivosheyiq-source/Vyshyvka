@@ -3868,101 +3868,102 @@
           ctx.getImageData(0,     H - 1, 1, 1).data,
           ctx.getImageData(W - 1, H - 1, 1, 1).data
         ];
-        // Якщо кути вже прозорі — фон видаляти не треба
-        if(corners.some(function(p){ return p[3] < 128; })) return canvas.toDataURL('image/png');
-
-        // Беремо реальний колір фону з кутів (білий ТА сірий/кольоровий)
-        var br = 0, bgc = 0, bb = 0;
-        corners.forEach(function(c){ br += c[0]; bgc += c[1]; bb += c[2]; });
-        br /= 4; bgc /= 4; bb /= 4;
+        var cornersTransparent = corners.some(function(p){ return p[3] < 128; });
 
         var imageData = ctx.getImageData(0, 0, W, H);
         var px = imageData.data;
         var THR = 220;            // поріг "майже білого"
         var TOL = 40;             // допуск по каналах навколо кольору фону
-        var isWhiteBg = function(pos){
-          var i = pos * 4;
-          if(px[i + 3] < 10) return true;
-          var r = px[i], g = px[i + 1], b = px[i + 2];
-          if(r > THR && g > THR && b > THR) return true;
-          return Math.abs(r - br) <= TOL && Math.abs(g - bgc) <= TOL && Math.abs(b - bb) <= TOL;
-        };
-
-        // Заливка (flood-fill) від країв зображення всередину
         var visited = new Uint8Array(W * H);
-        var seeds = [];
-        for(var x = 0; x < W; x++){
-          [0, H - 1].forEach(function(y){
-            var p = y * W + x;
-            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
-          });
-        }
-        for(var y = 1; y < H - 1; y++){
-          [0, W - 1].forEach(function(x2){
-            var p = y * W + x2;
-            if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
-          });
-        }
-        var head = 0, NB = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-        while(head < seeds.length){
-          var pos = seeds[head++];
-          var cx0 = pos % W, cy0 = (pos / W) | 0;
-          for(var k = 0; k < 4; k++){
-            var nx = cx0 + NB[k][0], ny = cy0 + NB[k][1];
-            if(nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-            var npos = ny * W + nx;
-            if(!visited[npos] && isWhiteBg(npos)){ visited[npos] = 1; seeds.push(npos); }
+        var NB = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        // ── Заливка від країв (лише якщо є суцільний непрозорий фон) ──
+        if(!cornersTransparent){
+          // реальний колір фону з кутів (білий ТА сірий/кольоровий)
+          var br = 0, bgc = 0, bb = 0;
+          corners.forEach(function(c){ br += c[0]; bgc += c[1]; bb += c[2]; });
+          br /= 4; bgc /= 4; bb /= 4;
+          var isWhiteBg = function(pos){
+            var i = pos * 4;
+            if(px[i + 3] < 10) return true;
+            var r = px[i], g = px[i + 1], b = px[i + 2];
+            if(r > THR && g > THR && b > THR) return true;
+            return Math.abs(r - br) <= TOL && Math.abs(g - bgc) <= TOL && Math.abs(b - bb) <= TOL;
+          };
+          var seeds = [];
+          for(var x = 0; x < W; x++){
+            [0, H - 1].forEach(function(y){
+              var p = y * W + x;
+              if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
+            });
+          }
+          for(var y = 1; y < H - 1; y++){
+            [0, W - 1].forEach(function(x2){
+              var p = y * W + x2;
+              if(!visited[p] && isWhiteBg(p)){ visited[p] = 1; seeds.push(p); }
+            });
+          }
+          var head = 0;
+          while(head < seeds.length){
+            var pos = seeds[head++];
+            var cx0 = pos % W, cy0 = (pos / W) | 0;
+            for(var k = 0; k < 4; k++){
+              var nx = cx0 + NB[k][0], ny = cy0 + NB[k][1];
+              if(nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+              var npos = ny * W + nx;
+              if(!visited[npos] && isWhiteBg(npos)){ visited[npos] = 1; seeds.push(npos); }
+            }
+          }
+          // Фаза 2: замкнені "кишені" сірого/кольорового фону (білий вміст захищений)
+          var bgMax = Math.max(br, bgc, bb);
+          var bgAvg = (br + bgc + bb) / 3;
+          if(bgMax < 244){
+            var POCKET_TOL = 18;
+            for(var i2 = 0; i2 < W * H; i2++){
+              if(visited[i2]) continue;
+              var j = i2 * 4;
+              if(px[j + 3] < 10){ visited[i2] = 1; continue; }
+              var r2 = px[j], g2 = px[j + 1], b2 = px[j + 2];
+              var matchesBg = Math.abs(r2 - br) <= POCKET_TOL && Math.abs(g2 - bgc) <= POCKET_TOL && Math.abs(b2 - bb) <= POCKET_TOL;
+              var brighterThanBg = (r2 + g2 + b2) / 3 > bgAvg + 10;
+              if(matchesBg && !brighterThanBg) visited[i2] = 1;
+            }
           }
         }
 
-        var bgMax = Math.max(br, bgc, bb);
-        var bgAvg = (br + bgc + bb) / 3;
-        if(bgMax < 244){
-          // Фаза 2: замкнені "кишені" фону для сірого/кольорового фону. Білий вміст захищений.
-          var POCKET_TOL = 18;
-          for(var i2 = 0; i2 < W * H; i2++){
-            if(visited[i2]) continue;
-            var j = i2 * 4;
-            if(px[j + 3] < 10){ visited[i2] = 1; continue; }
-            var r2 = px[j], g2 = px[j + 1], b2 = px[j + 2];
-            var matchesBg = Math.abs(r2 - br) <= POCKET_TOL && Math.abs(g2 - bgc) <= POCKET_TOL && Math.abs(b2 - bb) <= POCKET_TOL;
-            var brighterThanBg = (r2 + g2 + b2) / 3 > bgAvg + 10;
-            if(matchesBg && !brighterThanBg) visited[i2] = 1;
-          }
-        } else {
-          // Фаза 3: замкнені майже-білі ділянки (дірки в буквах О, В, A, P) на білому фоні.
-          // Видаляємо ТІЛЬКИ якщо межа майже повністю темна (чорнило) — білий одяг захищений.
-          var isNearWhite = function(idx){
-            var jj = idx * 4;
-            return px[jj + 3] >= 10 && px[jj] > THR && px[jj + 1] > THR && px[jj + 2] > THR;
-          };
-          var INK_BRIGHT = 160, DARK_FRAC = 0.6;   // м'якші пороги: ловить просвіти в О/В/А навіть зі згладженими (сіруватими) краями
-          var comp = new Int32Array(W * H); comp.fill(-1);
-          for(var s = 0; s < W * H; s++){
-            if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
-            var stack = [s]; comp[s] = s;
-            var members = [s];
-            var darkBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
-            while(h2 < stack.length){
-              var pp = stack[h2++];
-              var xx = pp % W, yy = (pp / W) | 0;
-              if(xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) touchesEdge = true;
-              for(var kk = 0; kk < 4; kk++){
-                var nx2 = xx + NB[kk][0], ny2 = yy + NB[kk][1];
-                if(nx2 < 0 || nx2 >= W || ny2 < 0 || ny2 >= H) continue;
-                var np = ny2 * W + nx2;
-                if(isNearWhite(np)){
-                  if(comp[np] === -1){ comp[np] = s; stack.push(np); members.push(np); }
-                } else {
-                  totalBorder++;
-                  var jb = np * 4;
-                  if((px[jb] + px[jb + 1] + px[jb + 2]) / 3 < INK_BRIGHT) darkBorder++;
-                }
+        // ── Фаза 3 (ЗАВЖДИ): замкнені майже-білі просвіти всередині букв (О, В, А, Q…)
+        // Видаляємо лише якщо ділянка НЕ торкається краю і її межа переважно темна (чорнило).
+        // Прозорі сусіди НЕ рахуються як "чорнило" — це захищає білі лого на прозорому фоні.
+        var isNearWhite = function(idx){
+          var jj = idx * 4;
+          return px[jj + 3] >= 10 && px[jj] > THR && px[jj + 1] > THR && px[jj + 2] > THR;
+        };
+        var INK_BRIGHT = 165, DARK_FRAC = 0.6;
+        var comp = new Int32Array(W * H); comp.fill(-1);
+        for(var s = 0; s < W * H; s++){
+          if(visited[s] || comp[s] !== -1 || !isNearWhite(s)) continue;
+          var stack = [s]; comp[s] = s;
+          var members = [s];
+          var darkBorder = 0, totalBorder = 0, touchesEdge = false, h2 = 0;
+          while(h2 < stack.length){
+            var pp = stack[h2++];
+            var xx = pp % W, yy = (pp / W) | 0;
+            if(xx === 0 || yy === 0 || xx === W - 1 || yy === H - 1) touchesEdge = true;
+            for(var kk = 0; kk < 4; kk++){
+              var nx2 = xx + NB[kk][0], ny2 = yy + NB[kk][1];
+              if(nx2 < 0 || nx2 >= W || ny2 < 0 || ny2 >= H) continue;
+              var np = ny2 * W + nx2;
+              if(isNearWhite(np)){
+                if(comp[np] === -1){ comp[np] = s; stack.push(np); members.push(np); }
+              } else {
+                totalBorder++;
+                var jb = np * 4;
+                if(px[jb + 3] >= 10 && (px[jb] + px[jb + 1] + px[jb + 2]) / 3 < INK_BRIGHT) darkBorder++;
               }
             }
-            if(!touchesEdge && totalBorder > 0 && darkBorder / totalBorder >= DARK_FRAC){
-              members.forEach(function(m){ visited[m] = 1; });
-            }
+          }
+          if(!touchesEdge && totalBorder > 0 && darkBorder / totalBorder >= DARK_FRAC){
+            members.forEach(function(m){ visited[m] = 1; });
           }
         }
 
