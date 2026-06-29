@@ -333,6 +333,33 @@
     font-size:10px;font-weight:700;color:var(--ink);background:#FFFFFF;letter-spacing:.02em;
   }
 
+  /* Interactive logo designer (step 02) */
+  .step-block--interactive{grid-template-columns:1fr;justify-items:center;text-align:center;}
+  .step-block--interactive .step-info{max-width:520px;}
+  .step-block--interactive .step-info p{margin-inline:auto;}
+  .logo-designer{width:100%;max-width:330px;margin-top:22px;user-select:none;-webkit-user-select:none;}
+  .ld-stage{position:relative;width:100%;aspect-ratio:1/1;touch-action:none;}
+  .ld-shirt{position:absolute;inset:0;}
+  .ld-shirt svg{width:100%;height:100%;display:block;filter:drop-shadow(0 8px 16px rgba(0,0,0,.06));}
+  .ld-print{position:absolute;cursor:grab;will-change:left,top,width,height;}
+  .ld-print.grabbing{cursor:grabbing;}
+  .ld-logo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .ld-logo svg{width:100%;height:100%;}
+  .ld-box{position:absolute;inset:-9%;border:1.4px dashed rgba(255,255,255,.92);border-radius:2px;opacity:0;transition:opacity .25s ease;}
+  .logo-designer.active .ld-box{opacity:1;}
+  .ld-handle{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translate(-50%,-50%);}
+  .ld-handle[data-h="nw"],.ld-handle[data-h="se"]{cursor:nwse-resize;}
+  .ld-handle[data-h="ne"],.ld-handle[data-h="sw"]{cursor:nesw-resize;}
+  .ld-handle[data-h="n"],.ld-handle[data-h="s"]{cursor:ns-resize;}
+  .ld-handle[data-h="e"],.ld-handle[data-h="w"]{cursor:ew-resize;}
+  .ld-stats{display:flex;gap:10px;margin-top:18px;justify-content:center;}
+  .ld-stat{flex:1;max-width:150px;border:1px solid var(--line);border-radius:14px;padding:10px 8px;background:#FFFFFF;}
+  .ld-stat .lbl{font-size:12px;color:var(--muted);}
+  .ld-stat .val{font-family:var(--font-sf);font-size:clamp(20px,5vw,24px);font-weight:800;margin-top:3px;letter-spacing:-.5px;}
+  .ld-stat .val small{font-size:13px;font-weight:600;color:var(--muted);}
+  .ld-hint{margin-top:12px;font-size:12px;color:var(--muted);max-width:260px;margin-inline:auto;line-height:1.4;}
+
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
     margin-top:32px;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;
@@ -2253,15 +2280,47 @@
         </div>
       </div>
 
-      <div class="step-block reveal">
+      <div class="step-block step-block--interactive reveal">
         <div class="step-info">
           <span class="step-num">КРОК 02</span>
           <h3>Додайте логотип</h3>
-          <p>Оберіть місце та розмір логотипа — одразу побачите ціну та терміни.</p>
+          <p>Перетягуйте логотип по футболці та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
         </div>
-        <div class="step-visual">
-          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M28 18 L16 10 L6 22 L16 32 L22 28 L22 90 L78 90 L78 28 L84 32 L94 22 L84 10 L72 18 Q62 26 50 26 Q38 26 28 18 Z"/></svg>
-          <span class="mini-tag">LOGO</span>
+        <div class="step-visual step-visual--designer">
+          <div class="logo-designer" id="logoDesigner">
+            <div class="ld-stage" id="ldStage">
+              <div class="ld-shirt">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path fill="#46474b" d="M50 13 C45 13 41 11 37 8 L18 17 C12 20 8 25 6 31 L13 41 L23 36 L23 89 L77 89 L77 36 L87 41 L94 31 C92 25 88 20 82 17 L63 8 C59 11 55 13 50 13 Z"/>
+                  <path fill="none" stroke="#3a3b3f" stroke-width="2.2" stroke-linecap="round" d="M39 9 C43 16 57 16 61 9"/>
+                </svg>
+              </div>
+              <div class="ld-print" id="ldPrint">
+                <div class="ld-logo">
+                  <svg viewBox="0 0 70 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path fill="#ffffff" d="M10 38 L22 6 L29 6 L17 38 Z"/>
+                    <path fill="#ffffff" d="M23 38 L35 6 L42 6 L30 38 Z"/>
+                    <path fill="#ffffff" d="M56 14 C53 14 52 17 53 20 C47 23 45 30 49 35 C53 40 62 39 64 33 C66 27 63 21 59 19 C60 16 59 14 56 14 Z"/>
+                  </svg>
+                </div>
+                <div class="ld-box">
+                  <span class="ld-handle" data-h="nw" style="left:0;top:0;"></span>
+                  <span class="ld-handle" data-h="n"  style="left:50%;top:0;"></span>
+                  <span class="ld-handle" data-h="ne" style="left:100%;top:0;"></span>
+                  <span class="ld-handle" data-h="e"  style="left:100%;top:50%;"></span>
+                  <span class="ld-handle" data-h="se" style="left:100%;top:100%;"></span>
+                  <span class="ld-handle" data-h="s"  style="left:50%;top:100%;"></span>
+                  <span class="ld-handle" data-h="sw" style="left:0;top:100%;"></span>
+                  <span class="ld-handle" data-h="w"  style="left:0;top:50%;"></span>
+                </div>
+              </div>
+            </div>
+            <div class="ld-stats">
+              <div class="ld-stat"><div class="lbl">Ціна</div><div class="val"><span id="ldPrice">1 248</span> <small>грн</small></div></div>
+              <div class="ld-stat"><div class="lbl">Термін</div><div class="val"><span id="ldTerm">2–3</span> <small>дні</small></div></div>
+            </div>
+            <div class="ld-hint">Перетягни логотип або потягни за кутик, щоб змінити розмір</div>
+          </div>
         </div>
       </div>
 
@@ -4148,6 +4207,124 @@
   } else {
     reveals.forEach(el=>el.classList.add('in'));
   }
+</script>
+
+<script>
+/* Interactive logo designer — step 02 */
+(function(){
+  var designer = document.getElementById('logoDesigner');
+  var stage = document.getElementById('ldStage');
+  var print = document.getElementById('ldPrint');
+  var priceEl = document.getElementById('ldPrice');
+  var termEl = document.getElementById('ldTerm');
+  if(!designer || !stage || !print) return;
+
+  // printable chest zone (in % of the square stage)
+  var Z = {x0:27, y0:25, x1:73, y1:63};
+  var MIN=14, MAX=36;
+  var st = {cx:50, cy:44, size:24};
+
+  function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+  function priceFor(s){ return Math.round((690 + (s-MIN)*54.5)/2)*2; }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+
+  function apply(){
+    // keep logo inside the chest zone
+    var half = st.size/2;
+    st.cx = clamp(st.cx, Z.x0+half, Z.x1-half);
+    st.cy = clamp(st.cy, Z.y0+half, Z.y1-half);
+    print.style.left   = (st.cx-half)+'%';
+    print.style.top    = (st.cy-half)+'%';
+    print.style.width  = st.size+'%';
+    print.style.height = st.size+'%';
+    if(priceEl) priceEl.textContent = fmt(priceFor(st.size));
+    if(termEl)  termEl.textContent  = st.size>=30 ? '3–4' : '2–3';
+  }
+
+  // pointer helpers
+  function pct(e){
+    var r = stage.getBoundingClientRect();
+    return { x:(e.clientX-r.left)/r.width*100, y:(e.clientY-r.top)/r.height*100 };
+  }
+  var drag=null;
+  function stopAuto(){ auto.on=false; }
+
+  function onDown(e){
+    var handle = e.target.closest('.ld-handle');
+    stopAuto();
+    designer.classList.add('active');
+    print.classList.add('grabbing');
+    var p = pct(e);
+    if(handle){
+      drag = { mode:'resize' };
+    } else {
+      drag = { mode:'move', dx:p.x-st.cx, dy:p.y-st.cy };
+    }
+    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!drag) return;
+    var p = pct(e);
+    if(drag.mode==='move'){
+      st.cx = p.x - drag.dx;
+      st.cy = p.y - drag.dy;
+    } else {
+      // resize from center; cap so it stays in the zone
+      var half = Math.max(Math.abs(p.x-st.cx), Math.abs(p.y-st.cy));
+      var byZone = 2*Math.min(st.cx-Z.x0, Z.x1-st.cx, st.cy-Z.y0, Z.y1-st.cy);
+      st.size = clamp(half*2, MIN, Math.min(MAX, byZone));
+    }
+    apply();
+    e.preventDefault();
+  }
+  function onUp(e){
+    drag=null;
+    print.classList.remove('grabbing');
+    try{ stage.releasePointerCapture(e.pointerId); }catch(_){}
+  }
+  stage.addEventListener('pointerdown', onDown);
+  stage.addEventListener('pointermove', onMove);
+  stage.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', onUp);
+
+  // auto demo animation (until the user interacts)
+  var tour = [
+    {cx:50,cy:44,size:24},{cx:39,cy:36,size:18},
+    {cx:61,cy:50,size:30},{cx:50,cy:54,size:22},{cx:44,cy:34,size:27}
+  ];
+  var auto = {on:false, i:0, t0:0, dur:1500};
+  function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+  function tick(now){
+    if(!auto.on) return;
+    if(!auto.t0) auto.t0=now;
+    var t = clamp((now-auto.t0)/auto.dur,0,1);
+    var a = tour[auto.i], b = tour[(auto.i+1)%tour.length];
+    var k = ease(t);
+    st.cx = a.cx+(b.cx-a.cx)*k;
+    st.cy = a.cy+(b.cy-a.cy)*k;
+    st.size = a.size+(b.size-a.size)*k;
+    apply();
+    if(t>=1){ auto.i=(auto.i+1)%tour.length; auto.t0=now; }
+    requestAnimationFrame(tick);
+  }
+
+  apply();
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(x){
+        if(x.isIntersecting){
+          designer.classList.add('active');
+          if(!reduce && !auto.started){ auto.started=true; auto.on=true; auto.t0=0; requestAnimationFrame(tick); }
+        }
+      });
+    }, {threshold:0.4});
+    io.observe(designer);
+  } else {
+    designer.classList.add('active');
+  }
+})();
 </script>
 
 </body>
