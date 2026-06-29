@@ -4242,14 +4242,12 @@
   }
 
   // continuous auto animation only — no manual interaction
-  // gentle position-only drift; size is fixed so the price stays steady
-  // (a changing size made the price digits flicker — looked like a glitch)
-  var FIXED_SIZE = 17.5;
+  // logo drifts across the chest and changes size, so the price updates live
   var tour = [
-    {cx:50,cy:40,size:FIXED_SIZE},{cx:48.6,cy:38.8,size:FIXED_SIZE},
-    {cx:51.2,cy:41,size:FIXED_SIZE},{cx:50,cy:39.2,size:FIXED_SIZE},{cx:48.9,cy:40.6,size:FIXED_SIZE}
+    {cx:50,cy:40,size:17.5},{cx:43,cy:34,size:13},
+    {cx:57,cy:45,size:21},{cx:50,cy:48,size:16},{cx:45,cy:33,size:19}
   ];
-  var auto = {on:false, i:0, t0:0, dur:2600};
+  var auto = {on:false, i:0, t0:0, dur:1500};
   function ease(t){ return t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
   function tick(now){
     if(!auto.on) return;
