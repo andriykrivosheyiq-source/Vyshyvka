@@ -358,6 +358,15 @@
   .ld-stat .val small{font-size:11px;font-weight:600;color:var(--muted);}
   .ld-hint{margin-top:9px;font-size:11px;color:var(--muted);text-align:center;line-height:1.4;}
 
+  /* Step 03 — box slides in from the right */
+  .step-visual--box{overflow:hidden;}
+  .box-slide{width:100%;max-width:300px;margin-left:auto;
+    transform:translateX(90%);opacity:0;
+    transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
+  .step-block.in .box-slide{transform:translateX(0);opacity:1;}
+  .box-slide img{width:100%;height:auto;display:block;
+    filter:drop-shadow(0 14px 22px rgba(0,0,0,.12));}
+
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
     margin-top:32px;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;
@@ -2322,8 +2331,8 @@
           <h3>Підтвердіть замовлення</h3>
           <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
         </div>
-        <div class="step-visual">
-          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M22 36 L50 18 L78 36 L78 80 L22 80 Z"/><path d="M22 36 L50 54 L78 36"/><path d="M50 54 L50 80"/></svg>
+        <div class="step-visual step-visual--box">
+          <div class="box-slide"><img src="images/box-loomiq.png" alt="Коробка Loomiq" draggable="false"></div>
         </div>
       </div>
     </div>
