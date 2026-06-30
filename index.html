@@ -3325,7 +3325,9 @@
   // ===== Product configurator =====
   (function(){
     var GARMENTS = [
-      {id:'tee', name:'Футболка', price:0,
+      {id:'teeover', name:'Футболка', price:0,
+        path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
+      {id:'tee', name:'Футболка базова', price:0,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
       {id:'hoodie', name:'Худі', price:250,
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
@@ -3353,6 +3355,25 @@
       {id:'yellow',name:'Жовтий',hex:'#d4a017'},{id:'orange',name:'Помаранчевий',hex:'#d4622a'},
       {id:'brown',name:'Коричневий',hex:'#5c3a1a'},{id:'camel',name:'Верблюд',hex:'#c49a6c'}
     ];
+    // Кольори з реальними фото (перед/зад): файли images/<garment>-<colorId>-<side>.webp
+    var GARMENT_COLORS = {
+      tee: [
+        {id:'black',name:'Чорний',hex:'#1a1a1a'},{id:'white',name:'Білий',hex:'#eeebe4'},
+        {id:'lgray',name:'Світло-сірий',hex:'#d0d0d0'},{id:'gray',name:'Сірий',hex:'#8a8a8a'},
+        {id:'navy',name:'Синій',hex:'#1e2d4a'},{id:'steelblue',name:'Блакитний',hex:'#6c7b99'},
+        {id:'green',name:'Зелений',hex:'#2d5a27'},{id:'sand',name:'Пісочний',hex:'#c9b99a'},
+        {id:'olive',name:'Хакі',hex:'#5c5d45'},{id:'red',name:'Бордовий',hex:'#8b1a1a'},
+        {id:'rose',name:'Рожевий',hex:'#d4607a'}
+      ],
+      teeover: [
+        {id:'black',name:'Чорний',hex:'#1c1c1c'},{id:'white',name:'Білий',hex:'#efeeee'},
+        {id:'cream',name:'Молочний',hex:'#ece7e0'},{id:'greige',name:'Світло-сірий',hex:'#d2cdc6'},
+        {id:'sand',name:'Пісочний',hex:'#d9c1b4'},{id:'pink',name:'Рожевий',hex:'#f4b6d0'},
+        {id:'lblue',name:'Блакитний',hex:'#aec3dd'},{id:'slate',name:'Сіро-синій',hex:'#6b6d79'},
+        {id:'brown',name:'Коричневий',hex:'#58382e'}
+      ]
+    };
+    function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     var PRINTS = [
       {id:'dtf', name:'DTF принт', desc:'Яскраві кольори та складні дизайни', price:0,
         icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'},
@@ -3376,13 +3397,13 @@
     ];
 
     var pm = {
-      tab:'photo', garmentId:'tee', colorId:'black', printId:null, side:'front',
+      tab:'photo', garmentId:'teeover', colorId:'black', printId:null, side:'front',
       qty:{XS:0,S:0,M:0,L:0,XL:0,XXL:0},
       logos:{front:[], back:[]}, activeLogoId:null
     };
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
-    function getColor(){ return COLORS.find(function(c){return c.id===pm.colorId;}) || COLORS[0]; }
+    function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
     function getPrint(){ return PRINTS.find(function(p){return p.id===pm.printId;}) || PRINTS[0]; }
     function totalUnits(){ return SIZES.reduce(function(a,s){return a+pm.qty[s];},0); }
     function activeTier(){
@@ -3452,9 +3473,6 @@
     function currentLayers(){ return pm.logos[pm.side]; }
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
 
-    // Кольори базової футболки, для яких є реальні фото (перед/зад): images/tee-<id>-<side>.webp
-    var TEE_PHOTO_COLORS = {black:1, white:1, lgray:1, gray:1, navy:1, steelblue:1, green:1, sand:1, olive:1, red:1, rose:1};
-
     function renderGarment(){
       fitGarmentStage();
       var g = getGarment(), c = getColor();
@@ -3462,9 +3480,9 @@
       // на світлих футболках робимо текст пунктира темним (інакше зливається)
       var hx = c.hex.replace('#',''), lr = parseInt(hx.substr(0,2),16), lg = parseInt(hx.substr(2,2),16), lb = parseInt(hx.substr(4,2),16);
       pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
-      var usePhoto = (g.id==='tee' && TEE_PHOTO_COLORS[c.id]);
+      var usePhoto = (g.id==='tee' || g.id==='teeover');   // обидва варіанти футболки мають реальні фото
       if(usePhoto){
-        var src = 'images/tee-'+c.id+'-'+pm.side+'.webp';
+        var src = 'images/'+g.id+'-'+c.id+'-'+pm.side+'.webp';
         if(pmGarmentPhoto.getAttribute('src') !== src) pmGarmentPhoto.setAttribute('src', src);
         pmGarmentPhoto.style.display = '';
         pmGarmentSvg.style.display = 'none';
@@ -3701,7 +3719,7 @@
         html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
       } else if(pm.tab === 'color'){
         html = '<div class="pm-color-name">'+getColor().name+'</div><div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-color-list pm-scroll-list">';
-        COLORS.forEach(function(c){
+        getColors().forEach(function(c){
           var sel = c.id === pm.colorId;
           html += '<button class="pm-color-swatch'+(sel?' active':'')+'" data-color="'+c.id+'" style="background:'+c.hex+';" title="'+c.name+'"></button>';
         });
@@ -3761,7 +3779,12 @@
         });
       });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
-        el.addEventListener('click', function(){ pm.garmentId = el.dataset.garment; renderGarment(); renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){
+          pm.garmentId = el.dataset.garment;
+          // якщо поточний колір недоступний для нового одягу — беремо перший доступний
+          if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
+          renderGarment(); renderTabPanel(); updatePriceBar();
+        });
       });
       pmTabPanel.querySelectorAll('[data-color]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -4056,7 +4079,8 @@
     // Open/close modal
     var productModal = document.getElementById('productModal');
     function openProductModal(garmentId){
-      pm.garmentId = garmentId || 'tee';
+      pm.garmentId = garmentId || 'teeover';
+      if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
       pm.tab = 'photo';
       pm.side = 'front';
       pm.activeLogoId = pm.logos.front.length ? pm.logos.front[0].id : null;
