@@ -1460,7 +1460,7 @@
       <span>Контакти</span>
     </button>
   </nav>
-  <button class="btn btn-primary menu-overlay-cta" data-scroll-to="catalog">Створити мерч
+  <button class="btn btn-primary menu-overlay-cta" data-open-catalog>Створити мерч
     <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
   </button>
 </div>
@@ -2087,7 +2087,7 @@
   <svg width="26" height="26" viewBox="0 0 240 240" fill="none"><path d="M180 60 L40 116 L80 130 L92 172 L116 148 L150 174 L180 60 Z" fill="#FFFFFF"/><path d="M92 172 L100 142 L150 110 L106 146 L92 172Z" fill="#bcdffb"/></svg>
 </a>
 <div class="float-cta-bar" id="floatCtaBar">
-  <button class="btn btn-primary" id="floatCta" data-scroll-to="catalog">Створити мерч
+  <button class="btn btn-primary" id="floatCta" data-open-catalog>Створити мерч
     <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
   </button>
 </div>
@@ -2106,7 +2106,7 @@
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
       <p class="lead">Завантажте логотип і одразу побачите точну ціну та дату готовності.</p>
       <div class="cta-row">
-        <button class="btn btn-primary" data-scroll-to="catalog">Створити мерч</button>
+        <button class="btn btn-primary" data-open-catalog>Створити мерч</button>
         <span class="cta-or">або</span>
         <button class="btn btn-ghost hero-leave-request" id="heroLeaveRequestBtn">
           Залишити заявку
@@ -2332,7 +2332,7 @@
       </div>
 
       <div class="catalog-cta-btn reveal">
-        <button class="btn btn-primary" data-scroll-to="catalog" style="justify-content:center;background:#000000;">Перейти до каталогу</button>
+        <button class="btn btn-primary" data-open-catalog style="justify-content:center;background:#000000;">Перейти до каталогу</button>
       </div>
     </div>
   </section>
@@ -2585,7 +2585,7 @@
       <h2>Готовий зробити мерч для своєї команди?</h2>
       <p>Заходь у каталог і за кілька хвилин знатимеш точну ціну і дату готовності.</p>
       <div class="cta-row">
-        <button class="btn btn-primary" data-scroll-to="catalog">Створити мерч</button>
+        <button class="btn btn-primary" data-open-catalog>Створити мерч</button>
       </div>
     </div>
   </section>
@@ -2961,6 +2961,10 @@
     return { open, close };
   }
   const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn');
+  // "Створити мерч" / "Перейти до каталогу" — відкривають повний каталог (модалку), а не просто скрол
+  document.querySelectorAll('[data-open-catalog]').forEach(function(btn){
+    btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
+  });
   document.getElementById('catalogPhoneBtn').addEventListener('click', openContactModal);
   document.getElementById('catalogBurgerBtn').addEventListener('click', toggleMenu);
   document.getElementById('contactBurgerBtn').addEventListener('click', toggleMenu);
