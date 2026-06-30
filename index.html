@@ -922,7 +922,7 @@
   }
   .pm-tab.active{color:#111;font-weight:700;}
   .pm-tab.active::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;height:2.5px;border-radius:2px;background:#111;}
-  .pm-tab-panel{height:132px;display:flex;align-items:center;padding:3px 0;flex:none;overflow:hidden;}
+  .pm-tab-panel{height:118px;display:flex;align-items:center;padding:3px 0;flex:none;overflow:hidden;}
   .pm-tab-panel-inner{width:100%;}
 
   .pm-photo-empty{
@@ -952,7 +952,7 @@
     font-family:var(--font-sf);padding:0;
   }
   .pm-garment-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
-  .pm-garment-item-ic{width:100%;height:68px;flex:0 0 68px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
+  .pm-garment-item-ic{width:100%;height:56px;flex:0 0 56px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
   .pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
   .pm-garment-item-ic svg{width:80%;height:80%;}
   .pm-garment-item-name{font-size:11px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:4px 4px 8px;}
@@ -3707,7 +3707,13 @@
       document.getElementById('pmTrashModal').classList.remove('open');
     });
 
+    var pmLastTab = null;
     function renderTabPanel(){
+      // зберігаємо позицію горизонтальної прокрутки списку, якщо вкладка не змінилась
+      var sameTab = (pmLastTab === pm.tab);
+      var prevList = sameTab ? pmTabPanel.querySelector('.pm-scroll-list') : null;
+      var prevScroll = prevList ? prevList.scrollLeft : 0;
+      pmLastTab = pm.tab;
       var html = '';
       if(pm.tab === 'photo'){
         var layers = currentLayers();
@@ -3780,6 +3786,7 @@
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
+      if(prevScroll){ var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll; }
     }
 
     function wireTabPanelEvents(){
