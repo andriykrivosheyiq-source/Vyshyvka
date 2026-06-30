@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loomiq · Прорахунок</title>
+<style>
+  :root{
+    --ink:#0B1220;
+    --ink-soft:#4B5667;
+    --line:#E4E8EF;
+    --line-soft:#EEF1F5;
+    --paper:#FFFFFF;
+    --canvas:#F6F7FA;
+    --accent:#0369A1;
+    --accent-soft:#E5F1F8;
+    --accent-deep:#024A75;
+    --good:#0E7A4E;
+    --good-soft:#E6F6EE;
+    --warn:#B45309;
+    --warn-soft:#FDF1E1;
+    --bad:#B42318;
+    --bad-soft:#FDECEC;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--accent-soft);}
+
+  /* ---------- layout ---------- */
+  .shell{display:flex;min-height:100vh;}
+
+  /* sidebar */
+  .sidebar{
+    width:220px;flex:none;background:var(--ink);display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;overflow-y:auto;z-index:40;
+  }
+  .sidebar-inner{padding:22px 16px;display:flex;flex-direction:column;gap:28px;height:100%;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:13px;flex:none;}
+  .brand-text{display:flex;flex-direction:column;line-height:1.2;}
+  .brand-text b{font-size:15px;color:#fff;letter-spacing:.2px;}
+  .brand-text span{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;}
+
+  .nav{display:flex;flex-direction:column;gap:3px;}
+  .nav button{
+    all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
+    display:flex;align-items:center;gap:11px;font-weight:500;width:100%;box-sizing:border-box;
+  }
+  .nav button .num{font-family:var(--mono);font-size:11px;color:#3E4E65;flex:none;}
+  .nav button:hover{background:#161F2E;color:#CBD5E1;}
+  .nav button.active{background:#0F2034;color:#fff;border-left:3px solid var(--accent);padding-left:10px;}
+  .nav button.active .num{color:var(--accent);}
+  .sidebar-foot{margin-top:auto;font-size:11px;color:#334155;line-height:1.5;padding-top:16px;border-top:1px solid #1E293B;}
+
+  /* mobile: sidebar hidden off-screen, toggled by hamburger */
+  @media (max-width:767px){
+    .sidebar{
+      position:fixed;left:0;top:0;height:100%;transform:translateX(-100%);
+      transition:transform .25s cubic-bezier(.4,0,.2,1);z-index:50;
+    }
+    .sidebar.open{transform:translateX(0);}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:49;backdrop-filter:blur(1px);}
+    .overlay.show{display:block;}
+  }
+
+  /* topbar: visible only on mobile */
+  .topbar{
+    display:none;background:var(--ink);color:#fff;padding:13px 16px;
+    align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:30;
+  }
+  @media (max-width:767px){
+    .topbar{display:flex;}
+  }
+  .topbar-brand{display:flex;align-items:center;gap:9px;}
+  .topbar-brand .brand-mark{width:26px;height:26px;border-radius:7px;font-size:11px;}
+  .topbar-brand b{font-size:14px;color:#fff;}
+  .hamburger{all:unset;cursor:pointer;width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:8px;}
+  .hamburger:hover{background:#1E293B;}
+  .hamburger span{display:block;width:20px;height:2px;background:#94A3B8;border-radius:2px;transition:all .2s;}
+
+  /* main content */
+  main{flex:1;min-width:0;padding:28px 24px 80px;}
+  @media (max-width:767px){main{padding:16px 14px 40px;}}
+
+  /* page tag in topbar */
+  .page-tag{font-family:var(--mono);font-size:11px;color:#64748B;}
+
+  .page-head{margin-bottom:20px;}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
+  h1{font-size:20px;margin:0 0 6px;letter-spacing:-.3px;}
+  .sub{color:var(--ink-soft);font-size:13px;max-width:560px;line-height:1.5;}
+  @media (min-width:680px){h1{font-size:24px;} .page-head{margin-bottom:26px;}}
+
+  /* ---------- cards / sections ---------- */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+  @media (min-width:680px){.card{padding:22px;margin-bottom:18px;}}
+  .card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+  .card-head h2{font-size:14.5px;margin:0;}
+  .card-head .hint{font-size:11.5px;color:var(--ink-soft);}
+
+  .grid2{display:grid;grid-template-columns:1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr;gap:12px;}
+  @media (min-width:560px){.grid2{grid-template-columns:1fr 1fr;gap:16px;}}
+  @media (min-width:680px){.grid3{grid-template-columns:1fr 1fr 1fr;gap:16px;}}
+
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-soft);font-weight:500;}
+  label.field input, label.field select{
+    font-family:var(--mono);font-size:14px;color:var(--ink);background:var(--canvas);
+    border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;
+  }
+  label.field input:focus, label.field select:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft);}
+  label.field .unit{font-family:var(--sans);font-size:11px;color:#9AA5B5;}
+
+  .technique-block{border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .technique-block h3{font-size:13.5px;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .tl-divider{font-size:11.5px;font-weight:600;color:var(--ink-soft);margin:14px 0 10px;padding-top:12px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:6px;}
+  .tl-tiers-label{font-size:11px;color:#9AA5B5;margin-bottom:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;}
+  .dot.print{background:#0369A1;}
+  .dot.emb{background:#B45309;}
+
+  .save-row{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn{all:unset;cursor:pointer;font-size:13px;font-weight:600;padding:10px 18px;border-radius:8px;text-align:center;}
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary:hover{background:#1c2840;}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-accent:hover{background:var(--accent-deep);}
+  .btn-ghost{background:var(--canvas);color:var(--ink);border:1px solid var(--line);}
+  .btn-ghost:hover{background:#EDEFF3;}
+  .btn-danger{background:var(--bad-soft);color:var(--bad);}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;}
+  .save-msg{font-size:12px;color:var(--good);align-self:center;opacity:0;transition:opacity .25s;}
+  .save-msg.show{opacity:1;}
+
+  /* garment cards grid */
+  .garment-cards{display:grid;grid-template-columns:1fr;gap:12px;}
+  @media (min-width:560px){.garment-cards{grid-template-columns:1fr 1fr;}}
+  @media (min-width:1100px){.garment-cards{grid-template-columns:1fr 1fr 1fr;}}
+
+  .gcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px;}
+  .gcard-name-inp{font-size:15px;font-weight:600;color:var(--ink);background:transparent;border:none;border-bottom:1.5px solid var(--line);outline:none;padding:3px 0;width:100%;}
+  .gcard-name-inp:focus{border-color:var(--accent);}
+  .gcard-name-inp::placeholder{color:#B0BAC8;font-weight:400;}
+  .gcard-prices{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .gcard-price-field{background:var(--canvas);border:1px solid var(--line);border-radius:9px;padding:9px 11px;}
+  .gcard-price-field .lbl{font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;}
+  .gcard-price-field input{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--ink);background:transparent;border:none;outline:none;width:100%;}
+  .gcard-price-field input:focus{color:var(--accent);}
+  .gcard-margin{border-radius:8px;padding:7px 11px;font-size:12px;font-family:var(--mono);font-weight:600;}
+  .gcard-margin:not(.bad){background:var(--good-soft);color:var(--good);}
+  .gcard-margin.bad{background:var(--bad-soft);color:var(--bad);}
+  .gcard-actions{display:flex;gap:8px;}
+
+  /* ---- garment preview modal ---- */
+  .gmodal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px 14px;backdrop-filter:blur(2px);}
+  .gmodal{background:#fff;border-radius:18px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.22);}
+  .gmodal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);}
+  .gmodal-title{font-size:14px;font-weight:600;}
+  .gmodal-body{padding:20px 18px;}
+  .gmodal-name{font-size:22px;font-weight:700;margin:0 0 18px;}
+  .gmodal-price-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .gmodal-price-block{background:var(--canvas);border-radius:10px;padding:11px 12px;}
+  .gmodal-plabel{font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+  .gmodal-pval{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--ink);}
+  .gmodal-pval.cost{color:var(--ink-soft);font-size:15px;}
+  .gmodal-pval.good{color:var(--good);}
+  .gmodal-pval.bad{color:var(--bad);}
+  .gmodal-id{font-family:var(--mono);font-size:11px;color:#9AA5B5;margin-top:14px;}
+  .icon-btn{all:unset;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:#9AA5B5;}
+  .icon-btn:hover{background:var(--bad-soft);color:var(--bad);}
+  .add-row-btn{font-family:var(--mono);font-size:12px;color:var(--accent);cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-top:12px;}
+
+  /* ---------- calculator ---------- */
+  .calc-layout{display:grid;grid-template-columns:1fr;gap:14px;align-items:start;}
+  @media (min-width:980px){.calc-layout{grid-template-columns:1fr 360px;gap:18px;}}
+
+  .app-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;position:relative;}
+  @media (min-width:560px){.app-card{padding:16px;margin-bottom:14px;}}
+  .app-card .app-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .app-head .tag{font-family:var(--mono);font-size:11px;background:var(--accent-soft);color:var(--accent-deep);padding:3px 8px;border-radius:6px;}
+  .app-body{display:grid;grid-template-columns:1fr;gap:14px;}
+  @media (min-width:560px){.app-body{grid-template-columns:140px 1fr;gap:16px;}}
+  .drop{
+    width:100%;height:120px;border-radius:10px;border:1.5px dashed var(--line);background:var(--canvas);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;
+  }
+  @media (min-width:560px){.drop{width:140px;height:140px;flex:none;}}
+  .drop img{width:100%;height:100%;object-fit:contain;}
+  .drop .ph{font-size:11px;color:#9AA5B5;text-align:center;padding:8px;line-height:1.4;}
+  .drop:hover{border-color:var(--accent);}
+  .pixel-readout{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:8px;}
+  .pixel-readout b{color:var(--ink);}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:100%;}
+  @media (min-width:560px){.seg{width:fit-content;}}
+  .seg button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:9px 14px;color:var(--ink-soft);flex:1;text-align:center;}
+  @media (min-width:560px){.seg button{flex:none;}}
+  .seg button.active.print{background:var(--accent);color:#fff;}
+  .seg button.active.emb{background:var(--warn);color:#fff;}
+
+  .app-figures{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;}
+  .figure{font-size:12px;}
+  .figure .l{color:var(--ink-soft);display:block;margin-bottom:2px;}
+  .figure .v{font-family:var(--mono);font-size:14px;font-weight:600;}
+
+  .remove-app{position:absolute;top:14px;right:14px;}
+
+  .summary{background:var(--ink);color:#fff;border-radius:14px;padding:18px;}
+  @media (min-width:980px){.summary{position:sticky;top:24px;padding:22px;}}
+  .summary h2{font-size:12.5px;margin:0 0 14px;text-transform:uppercase;letter-spacing:1px;color:#9AA5B5;font-weight:600;}
+  .sum-row{display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid #1E293B;}
+  .sum-row span:first-child{color:#9AA5B5;}
+  .sum-row span:last-child{font-family:var(--mono);}
+  .sum-row.total{border-bottom:none;margin-top:6px;padding-top:14px;border-top:1px solid #1E293B;}
+  .sum-row.total span:last-child{font-size:19px;font-weight:700;}
+  .margin-pill{margin-top:16px;background:#0F2A20;border:1px solid #1B4332;border-radius:10px;padding:14px;}
+  .margin-pill .mv{font-family:var(--mono);font-size:22px;font-weight:700;color:#4ADE80;}
+  .margin-pill .mp{font-size:12px;color:#86EFAC;margin-top:2px;}
+  .margin-pill.bad{background:#2A0F0F;border-color:#4A1B1B;}
+  .margin-pill.bad .mv,.margin-pill.bad .mp{color:#FCA5A5;}
+
+  /* ---------- kanban ---------- */
+  .board{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -14px;padding-left:14px;padding-right:14px;-webkit-overflow-scrolling:touch;}
+  .board::-webkit-scrollbar{height:5px;}
+  .board::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;}
+  .col{background:#EEF1F6;border-radius:12px;padding:12px;min-height:140px;flex:0 0 84%;scroll-snap-align:start;}
+  @media (min-width:680px){.board{display:grid;grid-template-columns:1fr 1fr;overflow:visible;margin:0;padding:0;}.col{flex:none;}}
+  @media (min-width:980px){.board{grid-template-columns:repeat(4,1fr);}}
+  .col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;}
+  .col-head h3{font-size:12.5px;margin:0;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);}
+  .col-count{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);padding:1px 7px;border-radius:20px;color:var(--ink-soft);}
+  .col.drag-over{background:#E2E9F2;outline:2px dashed var(--accent);}
+
+  .ticket{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;display:flex;flex-direction:column;gap:9px;}
+  .ticket:active{cursor:grabbing;}
+
+  .t-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .phone{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);}
+  .t-date{font-size:10.5px;color:#9AA5B5;margin-top:2px;}
+  .src-tag{font-size:10px;background:var(--canvas);color:var(--ink-soft);padding:3px 7px;border-radius:5px;flex:none;margin-top:1px;}
+
+  .t-garment-block{background:var(--canvas);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;}
+  .t-garment-name{font-size:13px;font-weight:600;color:var(--ink);}
+  .t-garment-qty{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+
+  .t-apps-list{display:flex;flex-direction:column;gap:5px;}
+  .t-app-row{display:flex;justify-content:space-between;align-items:center;}
+  .t-app-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;}
+  .t-app-badge.p{background:var(--accent-soft);color:var(--accent-deep);}
+  .t-app-badge.e{background:var(--warn-soft);color:var(--warn);}
+  .t-app-px{font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+
+  .t-breakdown{border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:8px 0;display:flex;flex-direction:column;gap:4px;}
+  .t-brow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);}
+  .t-brow span:last-child{font-family:var(--mono);}
+  .t-brow-total{font-weight:600;color:var(--ink);margin-top:3px;padding-top:5px;border-top:1px dashed var(--line);}
+  .t-brow-price{font-weight:600;color:var(--accent);}
+
+  .t-margin{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12.5px;font-weight:700;border-radius:7px;padding:7px 10px;}
+  .t-margin.good{background:var(--good-soft);color:var(--good);}
+  .t-margin.bad{background:var(--bad-soft);color:var(--bad);}
+
+  .t-actions{display:flex;gap:6px;}
+  .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
+  .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
+  .t-actions button[disabled]{opacity:.35;cursor:not-allowed;}
+  .empty-col{font-size:11.5px;color:#AEB8C9;text-align:center;padding:20px 6px;}
+
+  .order-form-toggle{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .new-order-card{display:none;}
+  .new-order-card.open{display:block;}
+
+  .form-strip{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;}
+  @media (min-width:560px){.form-strip{grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:50;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .deadline-pill{display:flex;align-items:center;gap:10px;background:#1E293B;border-radius:10px;padding:12px 14px;margin-top:12px;}
+  .dp-icon{font-size:18px;flex:none;}
+  .dp-label{font-size:10.5px;color:#9AA5B5;margin-bottom:2px;text-transform:uppercase;letter-spacing:.6px;}
+  .dp-val{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;}
+
+  /* ticket deadline */
+  .t-deadline{display:flex;align-items:center;justify-content:space-between;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px;padding:7px 10px;}
+  .t-deadline .d-label{font-size:10.5px;color:#1E40AF;text-transform:uppercase;letter-spacing:.5px;}
+  .t-deadline .d-val{font-family:var(--mono);font-size:12px;font-weight:700;color:#1D4ED8;}
+  .t-deadline .d-overdue{color:#B42318;}
+
+  /* timeline steps in ticket */
+  .t-steps{display:flex;gap:0;margin-top:2px;}
+  .t-step{flex:1;text-align:center;position:relative;}
+  .t-step:not(:last-child)::after{content:'';position:absolute;top:7px;right:0;width:50%;height:1.5px;background:var(--line);}
+  .t-step:not(:first-child)::before{content:'';position:absolute;top:7px;left:0;width:50%;height:1.5px;background:var(--line);}
+  .t-step .step-dot{width:15px;height:15px;border-radius:50%;background:var(--line);margin:0 auto 3px;border:2px solid #fff;position:relative;z-index:1;}
+  .t-step.done .step-dot{background:var(--good);}
+  .t-step.active .step-dot{background:var(--accent);}
+  .t-step .step-lbl{font-size:9px;color:var(--ink-soft);line-height:1.2;}
+</style>
+</head>
+<body>
+
+<!-- ====== ВХІД ДЛЯ МЕНЕДЖЕРІВ (пароль) ====== -->
+<div id="auth-gate" style="position:fixed;inset:0;z-index:200;background:#0B1220;display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="width:100%;max-width:340px;background:#fff;border-radius:16px;padding:26px 22px;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#0369A1,#06b6d4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:monospace;">Lq</div>
+      <div><div style="font-weight:700;font-size:16px;color:#0B1220;">Loomiq · Адмінка</div><div style="font-size:11px;color:#64748B;">Доступ лише для команди</div></div>
+    </div>
+    <form id="auth-form">
+      <input id="auth-pass" type="password" placeholder="Пароль" autocomplete="current-password"
+        style="width:100%;font-size:15px;padding:12px;border:1px solid #E4E8EF;border-radius:9px;outline:none;margin-bottom:12px;box-sizing:border-box;">
+      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#4B5667;margin-bottom:14px;cursor:pointer;">
+        <input id="auth-remember" type="checkbox" checked> Запам'ятати на цьому пристрої
+      </label>
+      <button type="submit" style="width:100%;background:#0369A1;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Увійти</button>
+      <div id="auth-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;">Невірний пароль</div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+  <!-- sidebar (desktop: always visible / mobile: drawer) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="brand">
+        <div class="brand-mark">Lq</div>
+        <div class="brand-text"><b>Loomiq</b><span>Адмінка</span></div>
+      </div>
+      <nav class="nav">
+        <button data-view="settings"><span class="num">01</span> Формування цін</button>
+        <button data-view="garments"><span class="num">02</span> Товари</button>
+        <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
+      </nav>
+      <div class="sidebar-foot">Loomiq · прорахунок<br>та керування замовленнями</div>
+    </div>
+  </aside>
+
+  <!-- topbar (mobile only) -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="brand-mark">Lq</div>
+        <b>Loomiq</b>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <main>
+
+    <!-- ============ VIEW 1 — SETTINGS ============ -->
+    <section id="view-settings" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Довідник</div>
+        <h1>Налаштування цін і собівартості</h1>
+        <div class="sub">Ставки за піксель, мінімальні ціни нанесення та собівартість одягу. Ці значення використовуються в прорахунку замовлень.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Нанесення — ціни і терміни</h2>
+          <span class="hint">мінімум ціни — окремо на кожне нанесення</span>
+        </div>
+        <div class="grid2">
+          <div class="technique-block">
+            <h3><span class="dot print"></span> Друк (DTF)</h3>
+            <div class="grid2" style="margin-bottom:12px;">
+              <label class="field">Ціна за піксель, грн
+                <input type="number" step="0.001" id="print-price-px">
+              </label>
+              <label class="field">Собівартість за піксель, грн
+                <input type="number" step="0.001" id="print-cost-px">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:14px;">
+              <label class="field">Мін. ціна нанесення, грн
+                <input type="number" step="1" id="print-min-price">
+              </label>
+              <label class="field">Базова собівартість, грн
+                <input type="number" step="1" id="print-base-cost">
+              </label>
+            </div>
+            <div class="tl-divider">⏱ Терміни виробництва</div>
+            <label class="field" style="margin-bottom:10px;">Базовий термін, р.днів
+              <input type="number" min="1" step="1" id="print-base-days">
+            </label>
+            <div class="tl-tiers-label">Надбавки по кількості:</div>
+            <div id="print-tiers"></div>
+            <div class="add-row-btn" data-tech="print">+ поріг</div>
+          </div>
+
+          <div class="technique-block">
+            <h3><span class="dot emb"></span> Вишивка</h3>
+            <div class="grid2" style="margin-bottom:12px;">
+              <label class="field">Ціна за піксель, грн
+                <input type="number" step="0.001" id="emb-price-px">
+              </label>
+              <label class="field">Собівартість за піксель, грн
+                <input type="number" step="0.001" id="emb-cost-px">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:14px;">
+              <label class="field">Мін. ціна нанесення, грн
+                <input type="number" step="1" id="emb-min-price">
+              </label>
+              <label class="field">Базова собівартість, грн
+                <input type="number" step="1" id="emb-base-cost">
+              </label>
+            </div>
+            <div class="tl-divider">⏱ Терміни виробництва</div>
+            <label class="field" style="margin-bottom:10px;">Базовий термін, р.днів
+              <input type="number" min="1" step="1" id="emb-base-days">
+            </label>
+            <div class="tl-tiers-label">Надбавки по кількості:</div>
+            <div id="emb-tiers"></div>
+            <div class="add-row-btn" data-tech="emb">+ поріг</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-row">
+        <span class="save-msg" id="settings-save-msg">Збережено</span>
+        <button class="btn btn-accent" id="save-settings">Зберегти налаштування</button>
+      </div>
+    </section>
+
+    <!-- ============ VIEW 2 — GARMENTS ============ -->
+    <section id="view-garments" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Каталог</div>
+        <h1>Товари</h1>
+        <div class="sub">Пустий одяг — назва, собівартість, ціна продажу, фото, опис. Маржа розраховується автоматично.</div>
+      </div>
+      <div class="garment-cards" id="garment-list"></div>
+      <div class="add-row-btn" id="add-garment" style="margin-top:16px;">+ додати товар</div>
+      <div class="save-row" style="margin-top:18px;">
+        <span class="save-msg" id="garments-save-msg">Збережено</span>
+        <button class="btn btn-accent" id="save-garments">Зберегти товари</button>
+      </div>
+    </section>
+
+    <!-- ============ VIEW 2 — KANBAN (+ new order panel) ============ -->
+    <section id="view-board">
+      <div class="page-head">
+        <div class="eyebrow">Замовлення</div>
+        <h1>Канбан замовлень</h1>
+        <div class="sub">Картка показує собівартість, ціну продажу і маржу по кожному замовленню.</div>
+      </div>
+
+      <div class="order-form-toggle">
+        <button class="btn btn-accent" id="open-new-order" style="width:100%;">+ Нове замовлення</button>
+      </div>
+
+      <div class="card new-order-card" id="new-order-card">
+        <div class="card-head">
+          <h2>Нове замовлення</h2>
+          <button class="icon-btn" id="close-new-order" title="Закрити">✕</button>
+        </div>
+        <div class="sub" style="margin-bottom:14px;">Заповніть, якщо заявка прийшла не через кошик — напряму за номером телефону. Зображення без фону → кількість пікселів рахується автоматично.</div>
+
+        <div class="form-strip">
+          <label class="field">Номер телефону
+            <input type="text" id="order-phone" placeholder="+380 ХХ ХХХ ХХ ХХ">
+          </label>
+          <label class="field">Звідки заявка
+            <select id="order-source">
+              <option value="Телефон">Телефон / поза кошиком</option>
+              <option value="Сайт">Кошик сайту</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Viber/Telegram">Viber / Telegram</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-strip">
+          <label class="field">Виріб
+            <select id="order-garment"></select>
+          </label>
+          <label class="field">Кількість, шт
+            <input type="number" min="1" value="1" id="order-qty">
+          </label>
+        </div>
+
+        <div class="calc-layout">
+          <div>
+            <div id="apps-container"></div>
+            <div class="add-row-btn" id="add-app" style="margin-bottom:18px;">+ додати нанесення (лого / напис)</div>
+          </div>
+
+          <div class="summary">
+            <h2>Підсумок замовлення</h2>
+            <div class="sum-row"><span>Виріб × к-сть</span><span id="sum-garment-price">—</span></div>
+            <div class="sum-row"><span>Нанесення (ціна)</span><span id="sum-apps-price">—</span></div>
+            <div class="sum-row total"><span>Ціна продажу</span><span id="sum-total-price">0 ₴</span></div>
+
+            <div style="height:6px;"></div>
+            <div class="sum-row"><span>Виріб (собівартість)</span><span id="sum-garment-cost">—</span></div>
+            <div class="sum-row"><span>Нанесення (собівартість)</span><span id="sum-apps-cost">—</span></div>
+            <div class="sum-row total"><span>Повна собівартість</span><span id="sum-total-cost">0 ₴</span></div>
+
+            <div class="margin-pill" id="margin-pill">
+              <div class="mv" id="margin-value">0 ₴</div>
+              <div class="mp" id="margin-pct">0% маржі</div>
+            </div>
+
+            <div class="deadline-pill">
+              <span class="dp-icon">📅</span>
+              <div>
+                <div class="dp-label">Термін виробництва</div>
+                <div class="dp-val" id="sum-deadline">—</div>
+              </div>
+            </div>
+
+            <button class="btn btn-accent" id="save-order" style="width:100%;margin-top:16px;">Створити картку в канбані</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="board" id="board"></div>
+    </section>
+
+  </main>
+  </div><!-- /.main-wrap -->
+</div><!-- /.shell -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ВХІД ДЛЯ МЕНЕДЖЕРІВ
+   Пароль не зберігається у відкритому вигляді — лише його SHA-256.
+   Щоб змінити пароль: візьми новий пароль, порахуй його SHA-256
+   (напр. на emn178.github.io/online-tools/sha256.html) і встав сюди.
+   ============================================================ */
+const ADMIN_PASS_HASH = 'b153870a8a4da65b743ed8d108b10b989f1b195de01415a3183e12ba9db9688f';
+async function sha256hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+(function authGate(){
+  const gate = document.getElementById('auth-gate');
+  function unlock(){ gate.style.display = 'none'; }
+  if(localStorage.getItem('loomiq_admin_auth')==='1' || sessionStorage.getItem('loomiq_admin_auth')==='1'){ unlock(); return; }
+  document.getElementById('auth-form').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const val = document.getElementById('auth-pass').value;
+    const ok = (await sha256hex(val)) === ADMIN_PASS_HASH;
+    if(ok){
+      (document.getElementById('auth-remember').checked ? localStorage : sessionStorage).setItem('loomiq_admin_auth','1');
+      unlock();
+    } else {
+      document.getElementById('auth-err').style.display = 'block';
+      document.getElementById('auth-pass').value = '';
+    }
+  });
+})();
+
+/* ============================================================
+   STORAGE HELPERS
+   ============================================================ */
+// Дані зберігаються локально в браузері менеджера (localStorage).
+// Примітка: дані не синхронізуються між пристроями — кожен пристрій тримає свою копію.
+async function storeGet(key, fallback){
+  try{
+    const v = localStorage.getItem('loomiq_admin_' + key);
+    return v != null ? JSON.parse(v) : fallback;
+  }catch(e){ return fallback; }
+}
+async function storeSet(key, value){
+  try{ localStorage.setItem('loomiq_admin_' + key, JSON.stringify(value)); }catch(e){ console.error('storage set failed', e); }
+}
+
+const DEFAULT_SETTINGS = {
+  print: {
+    pricePerPx: 0.35, costPerPx: 0.08, minPrice: 150, baseCost: 25,
+    baseDays: 4,
+    tiers: [ {from:10,extraDays:1}, {from:50,extraDays:1}, {from:100,extraDays:1} ]
+  },
+  emb: {
+    pricePerPx: 0.55, costPerPx: 0.15, minPrice: 220, baseCost: 45,
+    baseDays: 5,
+    tiers: [ {from:10,extraDays:1}, {from:50,extraDays:2}, {from:100,extraDays:2} ]
+  },
+};
+const DEFAULT_GARMENTS = [
+  { id: cryptoId(), name: 'Футболка базова', cost: 200, minPrice: 300, description: '', mainPhoto: null, photos: [], recommended: false, recColor: '#0369A1' },
+  { id: cryptoId(), name: 'Худі', cost: 480, minPrice: 650, description: '', mainPhoto: null, photos: [], recommended: false, recColor: '#0369A1' },
+  { id: cryptoId(), name: 'Поло', cost: 320, minPrice: 440, description: '', mainPhoto: null, photos: [], recommended: false, recColor: '#0369A1' },
+];
+
+function cryptoId(){ return Math.random().toString(36).slice(2,10); }
+
+let settings = structuredClone(DEFAULT_SETTINGS);
+let garments = structuredClone(DEFAULT_GARMENTS);
+let orders = [];          // {id, phone, source, garmentId, garmentName, qty, apps:[{technique,pixels,priceImg}], createdAt, status}
+let currentApps = [];     // apps being built in calculator before save
+
+const STATUSES = [
+  {key:'new', label:'Нове'},
+  {key:'paid', label:'Оплачено'},
+  {key:'production', label:'На виробництві'},
+  {key:'done', label:'Виконано'},
+];
+
+/* ============================================================
+   NAV
+   ============================================================ */
+/* ============================================================
+   SIDEBAR / DRAWER
+   ============================================================ */
+const sidebar  = document.getElementById('sidebar');
+const overlay  = document.getElementById('overlay');
+const hamburger = document.getElementById('hamburger');
+
+function openSidebar(){
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar(){
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+hamburger.addEventListener('click', ()=> sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+overlay.addEventListener('click', closeSidebar);
+
+/* ============================================================
+   NAV
+   ============================================================ */
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
+    document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
+    document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан'};
+    const pageTag = document.getElementById('page-tag');
+    if(pageTag) pageTag.textContent = tags[view];
+    if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
+    if(view==='garments') paintGarmentList();
+    window.scrollTo({top:0, behavior:'instant'});
+    closeSidebar();
+  });
+});
+
+function toggleNewOrder(open){
+  const card = document.getElementById('new-order-card');
+  if(open){
+    card.classList.add('open');
+    refreshGarmentSelect();
+    document.getElementById('order-phone').focus();
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+  } else {
+    card.classList.remove('open');
+  }
+}
+document.getElementById('open-new-order').addEventListener('click', ()=> toggleNewOrder(true));
+document.getElementById('close-new-order').addEventListener('click', ()=> toggleNewOrder(false));
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ============================================================
+   SETTINGS VIEW
+   ============================================================ */
+function paintSettingsForm(){
+  document.getElementById('print-price-px').value  = settings.print.pricePerPx;
+  document.getElementById('print-cost-px').value   = settings.print.costPerPx;
+  document.getElementById('print-min-price').value = settings.print.minPrice;
+  document.getElementById('print-base-cost').value = settings.print.baseCost;
+  document.getElementById('print-base-days').value = settings.print.baseDays || 4;
+
+  document.getElementById('emb-price-px').value    = settings.emb.pricePerPx;
+  document.getElementById('emb-cost-px').value     = settings.emb.costPerPx;
+  document.getElementById('emb-min-price').value   = settings.emb.minPrice;
+  document.getElementById('emb-base-cost').value   = settings.emb.baseCost;
+  document.getElementById('emb-base-days').value   = settings.emb.baseDays || 5;
+
+  paintGarmentList();
+  paintTierList('print');
+  paintTierList('emb');
+}
+
+function paintTierList(tech){
+  const cfg = settings[tech] || DEFAULT_SETTINGS[tech];
+  if(!cfg.tiers) cfg.tiers = [];
+  const wrap = document.getElementById(`${tech}-tiers`);
+  wrap.innerHTML = '';
+  cfg.tiers.forEach((tier, idx)=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;';
+    row.innerHTML = `
+      <label class="field" style="font-size:11.5px;">Від, шт
+        <input type="number" min="1" step="1" value="${tier.from}" data-field="from">
+      </label>
+      <label class="field" style="font-size:11.5px;">+р.днів
+        <input type="number" min="1" step="1" value="${tier.extraDays}" data-field="extraDays">
+      </label>
+      <button class="icon-btn" style="margin-top:18px;" title="Видалити">✕</button>
+    `;
+    row.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{ tier[inp.dataset.field] = parseInt(inp.value||0); });
+    });
+    row.querySelector('.icon-btn').addEventListener('click', ()=>{
+      cfg.tiers.splice(idx, 1);
+      paintTierList(tech);
+    });
+    wrap.appendChild(row);
+  });
+}
+
+document.querySelectorAll('.add-row-btn[data-tech]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const tech = btn.dataset.tech;
+    const cfg = settings[tech] || DEFAULT_SETTINGS[tech];
+    if(!cfg.tiers) cfg.tiers = [];
+    cfg.tiers.push({from:10, extraDays:1});
+    paintTierList(tech);
+  });
+});
+
+function paintGarmentList(){
+  const wrap = document.getElementById('garment-list');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  garments.forEach(g=>{
+    const card = document.createElement('div');
+    card.className = 'gcard';
+
+    function marginHtml(){
+      const m = g.minPrice - g.cost;
+      const pct = g.minPrice > 0 ? ((m/g.minPrice)*100).toFixed(0) : 0;
+      return `<div class="gcard-margin${m<0?' bad':''}">${m>=0?'▲':'▼'} Маржа: ${fmt(m)} ₴ · ${pct}%</div>`;
+    }
+
+    card.innerHTML = `
+      <input class="gcard-name-inp" type="text" data-field="name"
+        value="${escapeHtml(g.name)}" placeholder="Назва товару">
+      <div class="gcard-prices">
+        <div class="gcard-price-field">
+          <div class="lbl">Собівартість ₴</div>
+          <input type="number" data-field="cost" value="${g.cost}">
+        </div>
+        <div class="gcard-price-field">
+          <div class="lbl">Ціна продажу ₴</div>
+          <input type="number" data-field="minPrice" value="${g.minPrice}">
+        </div>
+      </div>
+      <div class="gcard-margin-wrap">${marginHtml()}</div>
+      <div class="gcard-actions">
+        <button class="btn btn-ghost" style="flex:1;font-size:12.5px;" data-role="preview">👁 Картка товару</button>
+        <button class="icon-btn" data-role="del" title="Видалити" style="color:var(--bad);">✕</button>
+      </div>
+    `;
+
+    card.querySelectorAll('input[data-field]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const f = inp.dataset.field;
+        g[f] = f==='name' ? inp.value : parseFloat(inp.value||0);
+        card.querySelector('.gcard-margin-wrap').innerHTML = marginHtml();
+      });
+    });
+    card.querySelector('[data-role="preview"]').addEventListener('click', ()=> openGarmentPreview(g));
+    card.querySelector('[data-role="del"]').addEventListener('click', ()=>{
+      if(confirm(`Видалити "${g.name||'товар'}"?`)){ garments=garments.filter(x=>x.id!==g.id); paintGarmentList(); }
+    });
+    wrap.appendChild(card);
+  });
+}
+
+document.getElementById('add-garment').addEventListener('click', ()=>{
+  garments.push({id:cryptoId(), name:'', cost:0, minPrice:0});
+  paintGarmentList();
+});
+
+document.getElementById('save-garments').addEventListener('click', async ()=>{
+  await storeSet('garments', garments);
+  refreshGarmentSelect();
+  const msg = document.getElementById('garments-save-msg');
+  msg.classList.add('show');
+  setTimeout(()=>msg.classList.remove('show'), 1600);
+  toast('Товари збережено');
+});
+
+/* ============================================================
+   GARMENT PREVIEW MODAL
+   ============================================================ */
+function openGarmentPreview(g){
+  document.getElementById('garment-modal')?.remove();
+  const margin = g.minPrice - g.cost;
+  const marginPct = g.minPrice > 0 ? ((margin/g.minPrice)*100).toFixed(0) : 0;
+
+  const modal = document.createElement('div');
+  modal.id = 'garment-modal';
+  modal.className = 'gmodal-overlay';
+  modal.innerHTML = `
+    <div class="gmodal">
+      <div class="gmodal-head">
+        <span class="gmodal-title">Картка товару</span>
+        <button class="icon-btn gmodal-close">✕</button>
+      </div>
+      <div class="gmodal-body">
+        <div class="gmodal-name">${escapeHtml(g.name||'Без назви')}</div>
+        <div class="gmodal-price-row">
+          <div class="gmodal-price-block">
+            <div class="gmodal-plabel">Ціна продажу</div>
+            <div class="gmodal-pval">${fmt(g.minPrice)} ₴</div>
+          </div>
+          <div class="gmodal-price-block">
+            <div class="gmodal-plabel">Собівартість</div>
+            <div class="gmodal-pval cost">${fmt(g.cost)} ₴</div>
+          </div>
+          <div class="gmodal-price-block">
+            <div class="gmodal-plabel">Маржа</div>
+            <div class="gmodal-pval ${margin>=0?'good':'bad'}">${fmt(margin)} ₴<br><span style="font-size:13px;">${marginPct}%</span></div>
+          </div>
+        </div>
+        <div class="gmodal-id">ID: ${g.id}</div>
+      </div>
+    </div>
+  `;
+  modal.querySelector('.gmodal-close').addEventListener('click', ()=>modal.remove());
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+document.getElementById('save-settings').addEventListener('click', async ()=>{
+  settings.print.pricePerPx = parseFloat(document.getElementById('print-price-px').value||0);
+  settings.print.costPerPx  = parseFloat(document.getElementById('print-cost-px').value||0);
+  settings.print.minPrice   = parseFloat(document.getElementById('print-min-price').value||0);
+  settings.print.baseCost   = parseFloat(document.getElementById('print-base-cost').value||0);
+  settings.print.baseDays   = parseInt(document.getElementById('print-base-days').value||4);
+
+  settings.emb.pricePerPx = parseFloat(document.getElementById('emb-price-px').value||0);
+  settings.emb.costPerPx  = parseFloat(document.getElementById('emb-cost-px').value||0);
+  settings.emb.minPrice   = parseFloat(document.getElementById('emb-min-price').value||0);
+  settings.emb.baseCost   = parseFloat(document.getElementById('emb-base-cost').value||0);
+  settings.emb.baseDays   = parseInt(document.getElementById('emb-base-days').value||5);
+
+  await storeSet('settings', settings);
+
+  const msg = document.getElementById('settings-save-msg');
+  msg.classList.add('show');
+  setTimeout(()=>msg.classList.remove('show'), 1600);
+  toast('Налаштування збережено');
+});
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ============================================================
+   PIXEL COUNTING
+   ============================================================ */
+function countPixelsFromImage(img){
+  const canvas = document.createElement('canvas');
+  const MAXD = 600; // cap resolution for perf, ratio doesn't matter for counting logic here since price is per actual px of source — keep original size if reasonable
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const scale = Math.min(1, MAXD / Math.max(w,h));
+  canvas.width = Math.round(w*scale);
+  canvas.height = Math.round(h*scale);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+
+  let hasAlpha = false;
+  for(let i=3;i<data.length;i+=4){ if(data[i] < 250){ hasAlpha = true; break; } }
+
+  let count = 0;
+  for(let i=0;i<data.length;i+=4){
+    const r=data[i], g=data[i+1], b=data[i+2], a=data[i+3];
+    if(hasAlpha){
+      if(a > 10) count++;
+    } else {
+      // fallback: no alpha channel — treat near-white as background
+      const brightness = (r+g+b)/3;
+      if(brightness < 240) count++;
+    }
+  }
+  // scale count back up to represent original-resolution pixel area
+  const factor = (w*h) / (canvas.width*canvas.height);
+  return Math.round(count * factor);
+}
+
+/* ============================================================
+   CALCULATOR VIEW
+   ============================================================ */
+function refreshGarmentSelect(){
+  const sel = document.getElementById('order-garment');
+  sel.innerHTML = garments.map(g=>`<option value="${g.id}">${escapeHtml(g.name)} — собів. ${g.cost}₴ / мін. ${g.minPrice}₴</option>`).join('');
+}
+
+function addApp(){
+  const id = cryptoId();
+  currentApps.push({ id, technique:'print', pixels:0, imgData:null });
+  renderApps();
+}
+
+function renderApps(){
+  const wrap = document.getElementById('apps-container');
+  if(currentApps.length===0){
+    wrap.innerHTML = `<div class="card" style="text-align:center;color:#9AA5B5;font-size:13px;">Ще немає нанесень. Натисніть «+ додати нанесення».</div>`;
+    recalc();
+    return;
+  }
+  wrap.innerHTML = '';
+  currentApps.forEach((app, idx)=>{
+    const fig = computeApp(app);
+    const card = document.createElement('div');
+    card.className = 'app-card';
+    card.innerHTML = `
+      <div class="app-head">
+        <span class="tag">Нанесення ${idx+1}</span>
+        <button class="icon-btn remove-app" title="Видалити">✕</button>
+      </div>
+      <div class="app-body">
+        <div class="drop" data-id="${app.id}">
+          ${app.imgData ? `<img src="${app.imgData}">` : `<div class="ph">Натисніть, щоб завантажити зображення без фону (PNG)</div>`}
+        </div>
+        <div>
+          <div class="seg" data-id="${app.id}">
+            <button data-tech="print" class="${app.technique==='print'?'active print':''}">Друк</button>
+            <button data-tech="emb" class="${app.technique==='emb'?'active emb':''}">Вишивка</button>
+          </div>
+          <div class="pixel-readout">Пікселів: <b>${app.pixels.toLocaleString('uk-UA')}</b></div>
+          <div class="app-figures">
+            <div class="figure"><span class="l">Ціна нанесення</span><span class="v">${fmt(fig.price)} ₴</span></div>
+            <div class="figure"><span class="l">Собівартість</span><span class="v">${fmt(fig.cost)} ₴</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(card);
+
+    // image upload
+    const dropEl = card.querySelector('.drop');
+    dropEl.addEventListener('click', ()=>{
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e)=>{
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev)=>{
+          const img = new Image();
+          img.onload = ()=>{
+            app.imgData = ev.target.result;
+            app.pixels = countPixelsFromImage(img);
+            renderApps();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    });
+
+    // technique toggle
+    card.querySelectorAll('.seg button').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        app.technique = b.dataset.tech;
+        renderApps();
+      });
+    });
+
+    card.querySelector('.remove-app').addEventListener('click', ()=>{
+      currentApps = currentApps.filter(a=>a.id!==app.id);
+      renderApps();
+    });
+  });
+
+  recalc();
+}
+
+function computeApp(app){
+  const cfg = settings[app.technique];
+  const price = Math.max(app.pixels * cfg.pricePerPx, cfg.minPrice);
+  const cost = cfg.baseCost + app.pixels * cfg.costPerPx;
+  return {price, cost};
+}
+
+function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
+
+/* ============================================================
+   TIMELINE LOGIC
+   ============================================================ */
+// techniques — масив 'print'/'emb' із замовлення; якщо обидва — берем максимум
+function calcDays(qty, techniques){
+  if(!techniques || techniques.length === 0) techniques = ['print'];
+  let maxDays = 0;
+  techniques.forEach(tech=>{
+    const cfg = settings[tech] || DEFAULT_SETTINGS[tech];
+    let days = cfg.baseDays || 4;
+    (cfg.tiers || []).forEach(t=>{ if(qty >= t.from) days += t.extraDays; });
+    if(days > maxDays) maxDays = days;
+  });
+  return maxDays;
+}
+
+function addWorkingDays(fromDate, days){
+  const d = new Date(fromDate);
+  d.setDate(d.getDate() + 1);
+  while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
+  let added = 1;
+  while(added < days){
+    d.setDate(d.getDate()+1);
+    if(d.getDay()!==0&&d.getDay()!==6) added++;
+  }
+  return d;
+}
+
+function fmtDate(d){
+  return d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',weekday:'short'});
+}
+
+function deadlineLabel(qty, fromDate, techniques){
+  const days = calcDays(qty, techniques);
+  const deadline = addWorkingDays(fromDate||new Date(), days);
+  return { days, deadline, label:`${days} р.дн. → ${fmtDate(deadline)}` };
+}
+
+function timelineSteps(qty){
+  return [
+    {label:'Підготовка файлу'},
+    {label:'Замовлення одягу'},
+    {label:'Виробництво'},
+    {label:'Відправка'},
+  ];
+}
+
+function recalc(){
+  const garmentId = document.getElementById('order-garment').value;
+  const garment = garments.find(g=>g.id===garmentId) || {cost:0,minPrice:0,name:''};
+  const qty = Math.max(1, parseInt(document.getElementById('order-qty').value||1));
+
+  const garmentPrice = garment.minPrice * qty;
+  const garmentCost = garment.cost * qty;
+
+  let appsPrice = 0, appsCost = 0;
+  currentApps.forEach(app=>{
+    const f = computeApp(app);
+    appsPrice += f.price * qty;
+    appsCost += f.cost * qty;
+  });
+
+  const totalPrice = garmentPrice + appsPrice;
+  const totalCost = garmentCost + appsCost;
+  const margin = totalPrice - totalCost;
+  const marginPct = totalPrice>0 ? (margin/totalPrice*100) : 0;
+  const dl = deadlineLabel(qty, new Date(), [...new Set(currentApps.map(a=>a.technique))]);
+
+  document.getElementById('sum-garment-price').textContent = fmt(garmentPrice)+' ₴';
+  document.getElementById('sum-apps-price').textContent = fmt(appsPrice)+' ₴';
+  document.getElementById('sum-total-price').textContent = fmt(totalPrice)+' ₴';
+  document.getElementById('sum-garment-cost').textContent = fmt(garmentCost)+' ₴';
+  document.getElementById('sum-apps-cost').textContent = fmt(appsCost)+' ₴';
+  document.getElementById('sum-total-cost').textContent = fmt(totalCost)+' ₴';
+
+  document.getElementById('margin-value').textContent = fmt(margin)+' ₴';
+  document.getElementById('margin-pct').textContent = marginPct.toFixed(1)+'% маржі';
+  document.getElementById('margin-pill').className = 'margin-pill' + (margin<0 ? ' bad' : '');
+
+  const dlEl = document.getElementById('sum-deadline');
+  if(dlEl) dlEl.textContent = dl.label;
+
+  return {garment, qty, garmentPrice, garmentCost, appsPrice, appsCost, totalPrice, totalCost, margin, marginPct, deadline: dl.deadline.toISOString(), deadlineDays: dl.days};
+}
+
+document.getElementById('add-app').addEventListener('click', addApp);
+document.getElementById('order-garment').addEventListener('change', recalc);
+document.getElementById('order-qty').addEventListener('input', recalc);
+
+document.getElementById('save-order').addEventListener('click', async ()=>{
+  const phone = document.getElementById('order-phone').value.trim();
+  if(!phone){ toast('Вкажіть номер телефону'); return; }
+  if(currentApps.length===0){ toast('Додайте хоча б одне нанесення або приберіть блок нанесень'); }
+
+  const figs = recalc();
+  const order = {
+    id: cryptoId(),
+    phone,
+    source: document.getElementById('order-source').value,
+    garmentId: figs.garment.id,
+    garmentName: figs.garment.name,
+    qty: figs.qty,
+    apps: currentApps.map(a=>({technique:a.technique, pixels:a.pixels})),
+    totalPrice: figs.totalPrice,
+    totalCost: figs.totalCost,
+    garmentCost: figs.garmentCost,
+    appsCost: figs.appsCost,
+    margin: figs.margin,
+    marginPct: figs.marginPct,
+    deadline: figs.deadline,
+    deadlineDays: figs.deadlineDays,
+    status: 'new',
+    createdAt: new Date().toISOString(),
+  };
+  orders.unshift(order);
+  await storeSet('orders', orders);
+
+  // reset form
+  document.getElementById('order-phone').value = '';
+  document.getElementById('order-qty').value = 1;
+  currentApps = [];
+  renderApps();
+
+  toast('Картку створено в канбані');
+  toggleNewOrder(false);
+  renderBoard();
+});
+
+/* ============================================================
+   KANBAN VIEW
+   ============================================================ */
+function renderBoard(){
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  STATUSES.forEach(st=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.status = st.key;
+    const list = orders.filter(o=>o.status===st.key);
+    col.innerHTML = `
+      <div class="col-head"><h3>${st.label}</h3><span class="col-count">${list.length}</span></div>
+      <div class="col-body"></div>
+    `;
+    const body = col.querySelector('.col-body');
+    if(list.length===0){
+      body.innerHTML = `<div class="empty-col">Порожньо</div>`;
+    } else {
+      list.forEach(o=> body.appendChild(renderTicket(o)));
+    }
+
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('drag-over'));
+    col.addEventListener('drop', async e=>{
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const o = orders.find(x=>x.id===id);
+      if(o){ o.status = st.key; await storeSet('orders', orders); renderBoard(); }
+    });
+
+    board.appendChild(col);
+  });
+}
+
+function renderTicket(o){
+  const el = document.createElement('div');
+  el.className = 'ticket';
+  el.draggable = true;
+  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+
+  const goodMargin = o.margin >= 0;
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0;
+  const canNext = statusIdx < STATUSES.length - 1;
+
+  const appTechIcon = {print:'🖨', emb:'🧵'};
+  const appsList = o.apps.length
+    ? o.apps.map(a=>`<div class="t-app-row">
+        <span class="t-app-badge ${a.technique==='print'?'p':'e'}">${appTechIcon[a.technique]||''} ${a.technique==='print'?'DTF-друк':'Вишивка'}</span>
+        <span class="t-app-px">${(a.pixels||0).toLocaleString('uk-UA')} px</span>
+      </div>`).join('')
+    : `<div style="font-size:11px;color:#AEB8C9;">без нанесення</div>`;
+
+  const createdDate = o.createdAt
+    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    : '';
+
+  // cost breakdown: garment cost vs applications cost
+  const garmentCostLine = o.garmentCost != null ? fmt(o.garmentCost) : '—';
+  const appCostLine = o.appsCost != null ? fmt(o.appsCost) : '—';
+
+  el.innerHTML = `
+    <div class="t-top">
+      <div>
+        <div class="phone">${escapeHtml(o.phone)}</div>
+        <div class="t-date">${createdDate}</div>
+      </div>
+      <span class="src-tag">${escapeHtml(o.source)}</span>
+    </div>
+
+    <div class="t-garment-block">
+      <div class="t-garment-name">${escapeHtml(o.garmentName||'—')}</div>
+      <div class="t-garment-qty">× ${o.qty} шт</div>
+    </div>
+
+    <div class="t-apps-list">${appsList}</div>
+
+    <div class="t-breakdown">
+      <div class="t-brow"><span>Виріб</span><span>${garmentCostLine} ₴</span></div>
+      <div class="t-brow"><span>Нанесення</span><span>${appCostLine} ₴</span></div>
+      <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+      <div class="t-brow t-brow-price"><span>Продажна ціна</span><span>${fmt(o.totalPrice)} ₴</span></div>
+    </div>
+
+    <div class="t-margin ${goodMargin?'good':'bad'}">
+      <span>Маржа</span>
+      <span>${fmt(o.margin)} ₴ · ${o.marginPct.toFixed(1)}%</span>
+    </div>
+
+    ${o.deadline ? (()=>{
+      const d = new Date(o.deadline);
+      const now = new Date();
+      const isOverdue = d < now && o.status !== 'done';
+      const dStr = d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',weekday:'short'});
+      return `<div class="t-deadline">
+        <div>
+          <div class="d-label">Термін відправки</div>
+          <div class="d-val ${isOverdue?'d-overdue':''}">${o.deadlineDays} р.дн. · ${dStr}${isOverdue?' ⚠️':''}</div>
+        </div>
+        <span style="font-size:15px;">${isOverdue?'🔴':'📦'}</span>
+      </div>`;
+    })() : ''}
+
+    <div class="t-actions">
+      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
+      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+    </div>
+  `;
+
+  el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
+    if(statusIdx < STATUSES.length-1){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); }
+  });
+  el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
+    if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
+  });
+
+  return el;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init(){
+  settings = await storeGet('settings', structuredClone(DEFAULT_SETTINGS));
+  garments = await storeGet('garments', structuredClone(DEFAULT_GARMENTS));
+  orders = await storeGet('orders', []);
+
+  paintSettingsForm();
+  refreshGarmentSelect();
+  renderApps();
+  renderBoard();
+}
+init();
+</script>
+</body>
+</html>
