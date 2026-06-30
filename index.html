@@ -4490,6 +4490,7 @@
       return best;
     }
     function renderModelPhotos(){
+      if(!pmModelTrack) return;   // карусельний блок ще не ініціалізований (init-виклик renderGarment)
       var set = MODEL_PHOTOS[pm.garmentId];
       if(!set){ if(pmModelSectionEl) pmModelSectionEl.style.display='none'; return; }
       if(pmModelSectionEl) pmModelSectionEl.style.display='';
@@ -4516,6 +4517,7 @@
         });
       }
     }
+    renderModelPhotos();   // початковий рендер фото моделей (блок уже готовий)
     var pmRecCatalogCta = document.getElementById('pmRecCatalogCta');
     if(pmRecCatalogCta) pmRecCatalogCta.addEventListener('click', function(){ catalogModalCtrl.open(); });
 
