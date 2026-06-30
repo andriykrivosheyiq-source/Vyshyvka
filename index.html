@@ -3755,7 +3755,14 @@
         el.addEventListener('click', function(){ pm.garmentId = el.dataset.garment; renderGarment(); renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-color]').forEach(function(el){
-        el.addEventListener('click', function(){ pm.colorId = el.dataset.color; renderGarment(); renderTabPanel(); });
+        el.addEventListener('click', function(){
+          pm.colorId = el.dataset.color;
+          renderGarment();
+          // оновлюємо активний колір та назву без перебудови панелі — щоб не скидалась прокрутка списку
+          pmTabPanel.querySelectorAll('.pm-color-swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === pm.colorId); });
+          var nm = pmTabPanel.querySelector('.pm-color-name');
+          if(nm) nm.textContent = getColor().name;
+        });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
         el.addEventListener('click', function(){ pm.printId = el.dataset.print; renderTabPanel(); updatePriceBar(); });
