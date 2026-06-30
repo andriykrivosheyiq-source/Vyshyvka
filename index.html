@@ -4130,10 +4130,10 @@
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
     // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
-    function snapshotGarment(){
+    function snapshotSide(side){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
-        var snapSide = pm.logos.front.length ? 'front' : (pm.logos.back.length ? 'back' : 'front');
+        var snapSide = side;
         var layers = pm.logos[snapSide];
         var wrapEl = document.getElementById('pmGarmentWrap');
         var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
@@ -4189,7 +4189,7 @@
         price: unitPrice()*u,
         unitPrice: unitPrice(),
         qty: u,
-        img: null,
+        imgs: [],
         config: {
           garmentId: pm.garmentId,
           colorId: pm.colorId,
@@ -4199,7 +4199,11 @@
         }
       };
       cartItems.push(item);
-      snapshotGarment().then(function(img){ item.img = img; renderCart(); }).catch(function(){});
+      // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
+      var snapSides = ['front','back'].filter(function(s){ return pm.logos[s].length; });
+      if(!snapSides.length) snapSides = ['front'];
+      Promise.all(snapSides.map(function(s){ return snapshotSide(s); }))
+        .then(function(imgs){ item.imgs = imgs.filter(Boolean); renderCart(); }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
       productModal.classList.remove('open');
@@ -4514,8 +4518,8 @@
       container.innerHTML = cartItems.map(function(item, idx){
         return '<div class="cart-item-card">' +
           '<div class="cart-item-top">' +
-            (item.img
-              ? '<span class="cart-item-thumb"><img src="'+item.img+'" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:8px;"></span>'
+            ((item.imgs && item.imgs.length)
+              ? '<span class="cart-item-thumb" style="flex-direction:column;height:auto;gap:6px;">' + item.imgs.map(function(src){ return '<img src="'+src+'" alt="" style="width:100%;height:72px;object-fit:contain;border-radius:8px;">'; }).join('') + '</span>'
               : '<span class="cart-item-thumb"><svg viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="'+cartItemIconPath+'"/></svg></span>') +
             '<div class="cart-item-info">' +
               '<h4>'+item.name+'</h4>' +
