@@ -884,6 +884,12 @@
   .pm-upload-plus{width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
   .pm-upload-text{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);}
   .pm-upload-sub{font-size:10px;color:rgba(255,255,255,.65);}
+  /* Темний варіант — для світлих футболок (білий/сірий/пісочний), щоб не зливалось */
+  .pm-upload-zone--dark{border-color:rgba(0,0,0,.4);}
+  .pm-upload-zone--dark .pm-upload-plus{background:rgba(0,0,0,.12);}
+  .pm-upload-zone--dark .pm-upload-plus svg,.pm-upload-zone--dark .pm-upload-plus svg line{stroke:#111;}
+  .pm-upload-zone--dark .pm-upload-text{color:rgba(0,0,0,.82);text-shadow:none;}
+  .pm-upload-zone--dark .pm-upload-sub{color:rgba(0,0,0,.5);}
   .pm-draggable-layer{position:absolute;top:50%;left:50%;transform-origin:center;user-select:none;touch-action:none;}
   .pm-dl-img{width:100%;height:100%;cursor:move;position:relative;}
   .pm-dl-img img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
@@ -3453,6 +3459,9 @@
       fitGarmentStage();
       var g = getGarment(), c = getColor();
       // Реальні фото базової футболки (перед/зад) для кольорів, де вони є; решта — силуети.
+      // на світлих футболках робимо текст пунктира темним (інакше зливається)
+      var hx = c.hex.replace('#',''), lr = parseInt(hx.substr(0,2),16), lg = parseInt(hx.substr(2,2),16), lb = parseInt(hx.substr(4,2),16);
+      pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
       var usePhoto = (g.id==='tee' && TEE_PHOTO_COLORS[c.id]);
       if(usePhoto){
         var src = 'images/tee-'+c.id+'-'+pm.side+'.webp';
