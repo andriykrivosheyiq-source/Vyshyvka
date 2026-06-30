@@ -1068,7 +1068,7 @@
   .pm-model-photos{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-top:1px solid #f0f0f0;}
   .pm-model-photo{flex:0 0 auto;width:280px;height:350px;position:relative;background:#ececec;}
   .pm-model-img{width:100%;height:100%;object-fit:cover;display:block;}
-  .pm-model-logo{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:none;display:none;}
+  .pm-model-logo{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:auto;cursor:grab;touch-action:none;display:none;}
 
   .pm-twocol{display:flex;flex-direction:column;gap:12px;margin:12px 18px;}
   .pm-card{flex:1;padding:20px;border-radius:16px;background:#FFFFFF;border:1.5px solid #eee;}
@@ -3524,15 +3524,45 @@
       document.querySelectorAll('.pm-model-logo').forEach(function(el){
         var l = (el.dataset.side === 'back') ? (backLogo || frontLogo) : frontLogo;
         if(!l || !l.url){ el.style.display='none'; return; }
-        var cx = parseFloat(el.dataset.cx), cy = parseFloat(el.dataset.cy), sw = parseFloat(el.dataset.sw);
-        var u = (l.x||0)/wrapW, v = (l.y||0)/wrapW, sf = (120*(l.scale||1))/wrapW;   // зсув і розмір як частка ширини виробу
-        el.style.left = (cx + u*sw) + '%';
-        el.style.top = (cy + v*sw) + '%';
+        var sw = parseFloat(el.dataset.sw);
+        var sf = (120*(l.scale||1))/wrapW;   // розмір як частка ширини виробу
         el.style.width = (sf*sw) + '%';
         el.style.transform = 'translate(-50%,-50%) rotate('+(l.rot||0)+'deg)';
         el.style.backgroundImage = 'url("'+l.url+'")';
+        if(el.dataset.manual){
+          el.style.left = el.dataset.px + '%';
+          el.style.top = el.dataset.py + '%';
+        } else {
+          var cx = parseFloat(el.dataset.cx), cy = parseFloat(el.dataset.cy);
+          var u = (l.x||0)/wrapW, v = (l.y||0)/wrapW;   // зсув як частка ширини виробу
+          el.style.left = (cx + u*sw) + '%';
+          el.style.top = (cy + v*sw) + '%';
+        }
         el.style.display = 'block';
       });
+    }
+
+    // Перетягування лого прямо на фото моделі (тап по лого = рух; свайп поруч = прокрутка каруселі)
+    function startModelDrag(e, el){
+      e.preventDefault(); e.stopPropagation();
+      var photo = el.closest('.pm-model-photo'); if(!photo) return;
+      el.style.cursor = 'grabbing';
+      function move(ev){
+        var p = ev.touches ? ev.touches[0] : ev;
+        var rect = photo.getBoundingClientRect();
+        var px = Math.max(0, Math.min(100, ((p.clientX - rect.left)/rect.width)*100));
+        var py = Math.max(0, Math.min(100, ((p.clientY - rect.top)/rect.height)*100));
+        el.dataset.manual = '1'; el.dataset.px = px; el.dataset.py = py;
+        el.style.left = px + '%'; el.style.top = py + '%';
+        if(ev.cancelable) ev.preventDefault();
+      }
+      function up(){
+        el.style.cursor = 'grab';
+        window.removeEventListener('mousemove', move); window.removeEventListener('touchmove', move);
+        window.removeEventListener('mouseup', up); window.removeEventListener('touchend', up);
+      }
+      window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, {passive:false});
+      window.addEventListener('mouseup', up); window.addEventListener('touchend', up);
     }
 
     function renderGarment(){
@@ -4512,6 +4542,10 @@
           '</div>';
       }).join('');
       modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
+      pmModelTrack.querySelectorAll('.pm-model-logo').forEach(function(el){
+        el.addEventListener('mousedown', function(e){ startModelDrag(e, el); });
+        el.addEventListener('touchstart', function(e){ startModelDrag(e, el); }, {passive:false});
+      });
       pmModelDotsEl.innerHTML = modelPhotos.map(function(_,i){ return '<span class="dot'+(i===0?' active':'')+'" data-index="'+i+'"></span>'; }).join('');
       modelDots = Array.prototype.slice.call(pmModelDotsEl.children);
       modelDots.forEach(function(d,idx){ d.addEventListener('click', function(){ modelPhotos[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); }); });
