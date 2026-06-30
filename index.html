@@ -3325,7 +3325,7 @@
   // ===== Product configurator =====
   (function(){
     var GARMENTS = [
-      {id:'teeover', name:'Футболка', price:0,
+      {id:'teeover', name:'Футболка оверсайз', price:0,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
       {id:'tee', name:'Футболка базова', price:0,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
@@ -3374,6 +3374,8 @@
       ]
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
+    // Фото-мініатюри для списку одягу (поки є лише для футболок)
+    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp'};
     var PRINTS = [
       {id:'dtf', name:'DTF принт', desc:'Яскраві кольори та складні дизайни', price:0,
         icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'},
@@ -3710,8 +3712,12 @@
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
         GARMENTS.forEach(function(g){
           var sel = g.id === pm.garmentId;
+          var thumb = GARMENT_THUMB[g.id];
+          var ic = thumb
+            ? '<span class="pm-garment-item-ic"><img src="'+thumb+'" alt="" style="width:100%;height:100%;object-fit:contain;"></span>'
+            : '<span class="pm-garment-item-ic"><svg viewBox="0 0 100 100" fill="none" stroke="'+(sel?'#111':'#aaa')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+g.path+'"/>'+(g.extra?'<path d="'+g.extra+'"/>':'')+'</svg></span>';
           html += '<button class="pm-garment-item'+(sel?' active':'')+'" data-garment="'+g.id+'">' +
-            '<span class="pm-garment-item-ic"><svg viewBox="0 0 100 100" fill="none" stroke="'+(sel?'#111':'#aaa')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+g.path+'"/>'+(g.extra?'<path d="'+g.extra+'"/>':'')+'</svg></span>' +
+            ic +
             '<span class="pm-garment-item-name">'+g.name+'</span></button>';
         });
         html += '<button class="pm-garment-item pm-catalog-cta-item" id="pmGarmentCatalogCta">' +
@@ -3860,7 +3866,8 @@
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
-      pmProductTitle.textContent = getGarment().name + (getGarment().id === 'tee' ? ' базова' : ' оверсайз');
+      var _gid = getGarment().id;
+      pmProductTitle.textContent = getGarment().name + ((_gid==='tee'||_gid==='teeover') ? '' : ' оверсайз');
       if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
