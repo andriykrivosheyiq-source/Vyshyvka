@@ -4475,7 +4475,7 @@
       if(!set){ if(pmModelSectionEl) pmModelSectionEl.style.display='none'; return; }
       if(pmModelSectionEl) pmModelSectionEl.style.display='';
       pmModelTrack.innerHTML = set.map(function(slide){
-        return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="lazy">' +
+        return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high">' +
           slide.logos.map(function(l){ return '<span class="pm-model-logo"'+(l.side==='back'?' data-side="back"':'')+' data-cx="'+l.cx+'" data-cy="'+l.cy+'" data-sw="'+l.sw+'"></span>'; }).join('') +
           '</div>';
       }).join('');
