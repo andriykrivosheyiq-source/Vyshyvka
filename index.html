@@ -4189,7 +4189,14 @@
         price: unitPrice()*u,
         unitPrice: unitPrice(),
         qty: u,
-        img: null
+        img: null,
+        config: {
+          garmentId: pm.garmentId,
+          colorId: pm.colorId,
+          printId: pm.printId,
+          qty: Object.assign({}, pm.qty),
+          logos: JSON.parse(JSON.stringify(pm.logos))
+        }
       };
       cartItems.push(item);
       snapshotGarment().then(function(img){ item.img = img; renderCart(); }).catch(function(){});
@@ -4372,6 +4379,14 @@
     });
 
     window.__openProductModal = openProductModal;
+    // Відновлення товару з кошика для редагування (доступ до pm/openProductModal лише тут, усередині IIFE)
+    window.__editProduct = function(cfg){
+      pm.colorId = cfg.colorId;
+      pm.printId = cfg.printId;
+      pm.qty = Object.assign({XS:0,S:0,M:0,L:0,XL:0,XXL:0}, cfg.qty);
+      pm.logos = JSON.parse(JSON.stringify(cfg.logos));
+      openProductModal(cfg.garmentId);
+    };
     renderGarment();
     updatePriceBar();
 
@@ -4481,6 +4496,16 @@
   // ===== Cart =====
   var cartItems = [];
   var cartItemIconPath = 'M30 18 L20 8 L8 16 L14 34 L24 30 L24 100 L76 100 L76 30 L86 34 L92 16 L80 8 L70 18 Q62 26 50 26 Q38 26 30 18 Z';
+  function editCartItem(idx){
+    var it = cartItems[idx];
+    if(!it || !it.config){ return; }
+    var cfg = it.config;
+    cartItems.splice(idx, 1);               // приберемо стару позицію — користувач додасть оновлену
+    renderCart();
+    document.getElementById('cartModal').classList.remove('open');
+    if(window.__editProduct) window.__editProduct(cfg);  // відновлює одяг/колір/принт/розміри/лого
+  }
+
   function renderCart(){
     var container = document.getElementById('cartItemsContainer');
     if(cartItems.length === 0){
@@ -4521,6 +4546,9 @@
         cartItems.splice(Number(btn.dataset.cartDel), 1);
         renderCart();
       });
+    });
+    container.querySelectorAll('[data-cart-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){ editCartItem(Number(btn.dataset.cartEdit)); });
     });
   }
   document.getElementById('cartAddMoreBtn').addEventListener('click', function(){
