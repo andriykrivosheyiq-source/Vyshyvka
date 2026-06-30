@@ -1565,15 +1565,6 @@
     <div class="contact-section" id="catalogStep1" style="margin-top:0;">
       <h2 style="margin-top:4px;font-size:19px;">Оберіть одяг, який вам подобається</h2>
 
-      <div id="catTabSentinel" style="height:1px;"></div>
-      <div class="cat-tab-row" id="catTabRow">
-        <button class="cat-tab active" data-cat="basic">Базовий</button>
-        <button class="cat-tab" data-cat="special">Спецодяг</button>
-        <button class="cat-tab" data-cat="kids">Дитячий</button>
-        <button class="cat-tab" data-cat="accessories">Аксесуари</button>
-      </div>
-      <div id="catTabSpacer" style="height:0px;"></div>
-
       <div class="catalog-grid" id="catalogProductGrid" style="margin-top:18px;"></div>
     </div>
 
@@ -3125,40 +3116,20 @@
   });
 
   // Catalog category tabs (Базовий / Спецодяг / Дитячий) — switch displayed products
-  const catalogProducts = {
-    basic: [
-      {name:'Футболка базова', price:'від 99 грн', img:'images/tee-black-front.webp', garment:'tee'},
-      {name:'Футболка оверсайз', price:'від 129 грн', img:'images/teeover-black-front.webp', garment:'teeover'},
-      {name:'Худі базове', price:'від 299 грн', img:'images/thumb-hoodie.webp', garment:'hoodie'},
-      {name:'Худі оверсайз', price:'від 349 грн', img:'images/hoodieover-black-front.webp', garment:'hoodieover'},
-      {name:'Худі оверсайз з флісом', price:'від 399 грн', img:'images/hoodieoverfleece-brown-front.webp', garment:'hoodieoverfleece'},
-      {name:'Худі на застібці', price:'від 399 грн', img:'images/hoodiezip-black-front.webp', garment:'hoodiezip'},
-      {name:'Світшот', price:'від 199 грн', img:'images/sweat-black-front.webp', garment:'sweat'}
-    ],
-    special: [
-      {name:'Фартухи', price:'від 169 грн', path:'M30 14 H70 V30 L60 36 V90 H40 V36 L30 30 Z', vb:'0 0 100 100'},
-      {name:'Робочі куртки', price:'від 449 грн', path:'M30 18 L18 10 L6 24 L16 36 L24 30 L24 100 L76 100 L76 30 L84 36 L94 24 L82 10 L70 18 Q62 26 50 26 Q38 26 30 18 Z', vb:'0 0 100 110'},
-      {name:'Жилети', price:'від 259 грн', path:'M34 16 L24 26 L24 100 L40 100 L40 40 M66 16 L76 26 L76 100 L60 100 L60 40 M34 16 H66 L60 40 H40 Z', vb:'0 0 100 110'},
-      {name:'Халати', price:'від 329 грн', path:'M32 14 L20 22 L20 100 L50 100 L80 100 L80 22 L68 14 Q62 24 50 24 Q38 24 32 14 Z', vb:'0 0 100 110'}
-    ],
-    kids: [
-      {name:'Дитячі футболки', price:'від 89 грн', path:'M28 20 L18 12 L8 22 L16 32 L21 28 L21 86 L79 86 L79 28 L84 32 L92 22 L82 12 L72 20 Q63 27 50 27 Q37 27 28 20 Z', vb:'0 0 100 100'},
-      {name:'Дитячі худі', price:'від 219 грн', path:'M30 20 L20 12 L10 22 L18 34 L26 28 L26 92 L74 92 L74 28 L82 34 L90 22 L80 12 L70 20 Q62 27 50 27 Q38 27 30 20 Z', vb:'0 0 100 100'},
-      {name:'Боді', price:'від 79 грн', path:'M32 16 L20 24 L20 60 L30 60 L30 90 L70 90 L70 60 L80 60 L80 24 L68 16 Q60 24 50 24 Q40 24 32 16 Z', vb:'0 0 100 100'},
-      {name:'Дитячі шапки', price:'від 99 грн', path:'M22 60 Q22 30 50 30 Q78 30 78 60 Z', vb:'0 0 100 100'}
-    ],
-    accessories: [
-      {name:'Кепка', price:'від 149 грн', img:'images/cap-black-front.webp', garment:'cap'},
-      {name:'Шопер', price:'від 89 грн', img:'images/tote-beige-front.webp', garment:'tote'},
-      {name:'Парасолі', price:'від 219 грн', path:'M16 50 A34 34 0 0 1 84 50 Z M50 50 V86 Q50 94 42 94', vb:'0 0 100 100'},
-      {name:'Кружки', price:'від 149 грн', path:'M22 28 H66 V72 Q66 82 56 82 H32 Q22 82 22 72 Z M66 38 H78 Q86 38 86 48 V52 Q86 62 78 62 H66', vb:'0 0 100 100'},
-      {name:'Брелоки', price:'від 59 грн', path:'M36 20 a10 10 0 1 0 20 0 a10 10 0 1 0 -20 0 M50 30 V52 L38 78 H62 L50 52', vb:'0 0 100 100'}
-    ]
-  };
+  const catalogProducts = [
+    {name:'Футболка базова', price:'від 99 грн', img:'images/tee-black-front.webp', garment:'tee'},
+    {name:'Футболка оверсайз', price:'від 129 грн', img:'images/teeover-black-front.webp', garment:'teeover'},
+    {name:'Худі базове', price:'від 299 грн', img:'images/thumb-hoodie.webp', garment:'hoodie'},
+    {name:'Худі оверсайз', price:'від 349 грн', img:'images/hoodieover-black-front.webp', garment:'hoodieover'},
+    {name:'Худі оверсайз з флісом', price:'від 399 грн', img:'images/hoodieoverfleece-brown-front.webp', garment:'hoodieoverfleece'},
+    {name:'Худі на застібці', price:'від 399 грн', img:'images/hoodiezip-black-front.webp', garment:'hoodiezip'},
+    {name:'Світшот', price:'від 199 грн', img:'images/sweat-black-front.webp', garment:'sweat'},
+    {name:'Кепка', price:'від 149 грн', img:'images/cap-black-front.webp', garment:'cap'},
+    {name:'Шопер', price:'від 89 грн', img:'images/tote-beige-front.webp', garment:'tote'}
+  ];
   const catalogProductGrid = document.getElementById('catalogProductGrid');
-  function renderCatalogProducts(targetEl, cat){
-    const items = catalogProducts[cat] || [];
-    targetEl.innerHTML = items.map(p=>`
+  function renderCatalogProducts(targetEl){
+    targetEl.innerHTML = catalogProducts.map(p=>`
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
         <div class="product-art">
           ${p.img
@@ -3171,31 +3142,7 @@
         </div>
       </button>`).join('');
   }
-  renderCatalogProducts(catalogProductGrid, 'basic');
-  document.querySelectorAll('.cat-tab').forEach(tab=>{
-    tab.addEventListener('click', ()=>{
-      document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      renderCatalogProducts(catalogProductGrid, tab.dataset.cat);
-    });
-  });
-
-  // Fix the category tab row in place while scrolling (JS-based, avoids Safari position:sticky jitter)
-  const catTabRow = document.getElementById('catTabRow');
-  const catTabSpacer = document.getElementById('catTabSpacer');
-  const catTabSentinel = document.getElementById('catTabSentinel');
-  const catTabObserver = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if(!entry.isIntersecting && entry.boundingClientRect.top < 0){
-        catTabSpacer.style.height = catTabRow.offsetHeight + 'px';
-        catTabRow.classList.add('is-fixed');
-      } else {
-        catTabRow.classList.remove('is-fixed');
-        catTabSpacer.style.height = '0px';
-      }
-    });
-  }, {root: document.getElementById('catalogModal'), threshold:0});
-  catTabObserver.observe(catTabSentinel);
+  renderCatalogProducts(catalogProductGrid);
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
