@@ -311,13 +311,15 @@
       <div><div style="font-weight:700;font-size:16px;color:#0B1220;">Loomiq · Адмінка</div><div style="font-size:11px;color:#64748B;">Доступ лише для команди</div></div>
     </div>
     <form id="auth-form">
+      <input id="auth-email" type="email" placeholder="Email" autocomplete="username"
+        style="width:100%;font-size:15px;padding:12px;border:1px solid #E4E8EF;border-radius:9px;outline:none;margin-bottom:10px;box-sizing:border-box;">
       <input id="auth-pass" type="password" placeholder="Пароль" autocomplete="current-password"
         style="width:100%;font-size:15px;padding:12px;border:1px solid #E4E8EF;border-radius:9px;outline:none;margin-bottom:12px;box-sizing:border-box;">
       <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#4B5667;margin-bottom:14px;cursor:pointer;">
-        <input id="auth-remember" type="checkbox" checked> Запам'ятати на цьому пристрої
+        <input id="auth-remember" type="checkbox" checked> Залишатися в системі на цьому пристрої
       </label>
-      <button type="submit" style="width:100%;background:#0369A1;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Увійти</button>
-      <div id="auth-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;">Невірний пароль</div>
+      <button type="submit" id="auth-submit" style="width:100%;background:#0369A1;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Увійти</button>
+      <div id="auth-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;"></div>
     </form>
   </div>
 </div>
@@ -337,7 +339,10 @@
         <button data-view="garments"><span class="num">02</span> Товари</button>
         <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
       </nav>
-      <div class="sidebar-foot">Loomiq · прорахунок<br>та керування замовленнями</div>
+      <div class="sidebar-foot">
+        <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
+        <div>Loomiq · прорахунок<br>та керування замовленнями</div>
+      </div>
     </div>
   </aside>
 
@@ -531,49 +536,103 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* ============================================================
-   ВХІД ДЛЯ МЕНЕДЖЕРІВ
-   Пароль не зберігається у відкритому вигляді — лише його SHA-256.
-   Щоб змінити пароль: візьми новий пароль, порахуй його SHA-256
-   (напр. на emn178.github.io/online-tools/sha256.html) і встав сюди.
+   FIREBASE — спільна хмарна база (синхронізація між пристроями)
    ============================================================ */
-const ADMIN_PASS_HASH = 'b153870a8a4da65b743ed8d108b10b989f1b195de01415a3183e12ba9db9688f';
-async function sha256hex(str){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-(function authGate(){
-  const gate = document.getElementById('auth-gate');
-  function unlock(){ gate.style.display = 'none'; }
-  if(localStorage.getItem('loomiq_admin_auth')==='1' || sessionStorage.getItem('loomiq_admin_auth')==='1'){ unlock(); return; }
-  document.getElementById('auth-form').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const val = document.getElementById('auth-pass').value;
-    const ok = (await sha256hex(val)) === ADMIN_PASS_HASH;
-    if(ok){
-      (document.getElementById('auth-remember').checked ? localStorage : sessionStorage).setItem('loomiq_admin_auth','1');
-      unlock();
-    } else {
-      document.getElementById('auth-err').style.display = 'block';
-      document.getElementById('auth-pass').value = '';
-    }
-  });
-})();
+const firebaseConfig = {
+  apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+  authDomain: "loomiq-admin.firebaseapp.com",
+  projectId: "loomiq-admin",
+  storageBucket: "loomiq-admin.firebasestorage.app",
+  messagingSenderId: "828527183830",
+  appId: "1:828527183830:web:69895ce3f3c5505d014677"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+const STATE_DOC = fbDb.collection('loomiq').doc('state');
 
 /* ============================================================
-   STORAGE HELPERS
+   ВХІД ДЛЯ МЕНЕДЖЕРІВ (Firebase Authentication, email+пароль)
    ============================================================ */
-// Дані зберігаються локально в браузері менеджера (localStorage).
-// Примітка: дані не синхронізуються між пристроями — кожен пристрій тримає свою копію.
-async function storeGet(key, fallback){
+let appStarted = false;
+const authErrText = {
+  'auth/invalid-email': 'Невірний формат email',
+  'auth/user-not-found': 'Такого користувача немає',
+  'auth/wrong-password': 'Невірний пароль',
+  'auth/invalid-credential': 'Невірний email або пароль',
+  'auth/too-many-requests': 'Забагато спроб. Спробуйте пізніше',
+  'auth/network-request-failed': 'Немає звʼязку з мережею',
+};
+document.getElementById('auth-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-err');
+  const btn = document.getElementById('auth-submit');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Вхід…';
   try{
-    const v = localStorage.getItem('loomiq_admin_' + key);
-    return v != null ? JSON.parse(v) : fallback;
-  }catch(e){ return fallback; }
+    const persistence = document.getElementById('auth-remember').checked
+      ? firebase.auth.Auth.Persistence.LOCAL
+      : firebase.auth.Auth.Persistence.SESSION;
+    await fbAuth.setPersistence(persistence);
+    await fbAuth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged розблокує інтерфейс
+  }catch(err){
+    errEl.textContent = authErrText[err.code] || ('Помилка входу: ' + (err.message||err.code));
+    errEl.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Увійти';
+  }
+});
+document.getElementById('logout-btn').addEventListener('click', function(){
+  fbAuth.signOut();
+});
+fbAuth.onAuthStateChanged(function(user){
+  const gate = document.getElementById('auth-gate');
+  if(user){
+    gate.style.display = 'none';
+    if(!appStarted){ appStarted = true; init(); }
+  }else{
+    gate.style.display = 'flex';
+  }
+});
+
+/* ============================================================
+   STORAGE — спільний документ у Firestore (loomiq/state)
+   Структура: { settings, garments, orders }
+   ============================================================ */
+let cloud = { settings:null, garments:null, orders:null };
+
+async function loadCloud(){
+  const snap = await STATE_DOC.get();
+  if(snap.exists){
+    cloud = Object.assign({settings:null,garments:null,orders:null}, snap.data());
+  }else{
+    // перший запуск — засіваємо стартові значення (ті самі цифри, що були в HTML)
+    cloud = {
+      settings: structuredClone(DEFAULT_SETTINGS),
+      garments: structuredClone(DEFAULT_GARMENTS),
+      orders: [],
+    };
+    await STATE_DOC.set(cloud);
+  }
+}
+
+async function storeGet(key, fallback){
+  const v = cloud[key];
+  return (v !== undefined && v !== null) ? v : fallback;
 }
 async function storeSet(key, value){
-  try{ localStorage.setItem('loomiq_admin_' + key, JSON.stringify(value)); }catch(e){ console.error('storage set failed', e); }
+  cloud[key] = value;
+  try{ await STATE_DOC.set({ [key]: value }, { merge:true }); }
+  catch(e){ console.error('cloud set failed', e); toast('Не вдалось зберегти у хмару'); }
 }
 
 const DEFAULT_SETTINGS = {
@@ -1248,16 +1307,39 @@ function renderTicket(o){
    INIT
    ============================================================ */
 async function init(){
+  await loadCloud();
   settings = await storeGet('settings', structuredClone(DEFAULT_SETTINGS));
   garments = await storeGet('garments', structuredClone(DEFAULT_GARMENTS));
-  orders = await storeGet('orders', []);
+  orders   = await storeGet('orders', []);
 
   paintSettingsForm();
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+
+  // Жива синхронізація: зміни з інших пристроїв одразу підтягуються
+  STATE_DOC.onSnapshot(function(snap){
+    if(!snap.exists) return;
+    const data = snap.data();
+    cloud = Object.assign({settings:null,garments:null,orders:null}, data);
+    if(data.settings) settings = data.settings;
+    if(data.garments) garments = data.garments;
+    orders = data.orders || [];
+    // не перемальовуємо поля, поки користувач щось вводить (щоб не збити введення)
+    const a = document.activeElement;
+    const typing = a && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA');
+    const board = document.getElementById('view-board');
+    if(board && board.style.display!=='none') renderBoard();
+    if(!typing){
+      const settingsView = document.getElementById('view-settings');
+      const garmentsView = document.getElementById('view-garments');
+      if(settingsView && settingsView.style.display!=='none') paintSettingsForm();
+      if(garmentsView && garmentsView.style.display!=='none') paintGarmentList();
+      refreshGarmentSelect();
+    }
+  });
 }
-init();
+// init() запускається після успішного входу (див. onAuthStateChanged)
 </script>
 </body>
 </html>
