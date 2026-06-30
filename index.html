@@ -3566,9 +3566,10 @@
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
+      var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
       var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
-        url:url, x:0, y:0, scale:1, rot:0, removeBg:hasClean, ar:1};
-      pm.logos[pm.side] = [layer];   // лише один логотип на стороні, на стартовій (центральній) позиції
+        url:url, x:off, y:off, scale:1, rot:0, removeBg:hasClean, ar:1};
+      pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
       renderGarment();
       renderTabPanel();
@@ -3709,7 +3710,7 @@
               '</div>' +
             '</div>';
           });
-          html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Замінити лого</span></div></div>';
+          html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div></div>';
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
