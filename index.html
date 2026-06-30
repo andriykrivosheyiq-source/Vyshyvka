@@ -3374,6 +3374,17 @@
         {id:'sand',name:'Пісочний',hex:'#d9c1b4'},{id:'pink',name:'Рожевий',hex:'#f4b6d0'},
         {id:'lblue',name:'Блакитний',hex:'#aec3dd'},{id:'slate',name:'Сіро-синій',hex:'#6b6d79'},
         {id:'brown',name:'Коричневий',hex:'#58382e'}
+      ],
+      hoodie: [
+        {id:'white',name:'Білий',hex:'#f5f5f5'},{id:'vanilla',name:'Ванільний',hex:'#f0e7d2'},
+        {id:'skyblue',name:'Блакитний',hex:'#7f9fcc'},{id:'royalblue',name:'Синій',hex:'#4f5e95'},
+        {id:'mint',name:'Мʼятний',hex:'#99e2d9'},{id:'lavender',name:'Лавандовий',hex:'#b88fae'},
+        {id:'purple',name:'Фіолетовий',hex:'#412757'},{id:'darkgreen',name:'Темно-зелений',hex:'#385343'},
+        {id:'sunyellow',name:'Жовтий',hex:'#f4d75f'},{id:'bordo',name:'Бордовий',hex:'#6e2730'},
+        {id:'chocolate',name:'Шоколадний',hex:'#392c2a'}
+      ],
+      sweat: [
+        {id:'khaki',name:'Хакі',hex:'#616e54'},{id:'graphite',name:'Графіт',hex:'#4d4d4b'}
       ]
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
@@ -3572,7 +3583,7 @@
       // на світлих футболках робимо текст пунктира темним (інакше зливається)
       var hx = c.hex.replace('#',''), lr = parseInt(hx.substr(0,2),16), lg = parseInt(hx.substr(2,2),16), lb = parseInt(hx.substr(4,2),16);
       pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
-      var usePhoto = (g.id==='tee' || g.id==='teeover');   // обидва варіанти футболки мають реальні фото
+      var usePhoto = !!GARMENT_COLORS[g.id];   // крій має реальні фото-мокапи по кольорах
       if(usePhoto){
         var src = 'images/'+g.id+'-'+c.id+'-'+pm.side+'.webp';
         if(pmGarmentPhoto.getAttribute('src') !== src) pmGarmentPhoto.setAttribute('src', src);
@@ -4232,7 +4243,7 @@
         var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
         var ctx = canvas.getContext('2d');
         ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
-        var hasPhoto = (g.id==='tee' || g.id==='teeover');
+        var hasPhoto = !!GARMENT_COLORS[g.id];
         var garmentP = hasPhoto
           ? loadImgEl('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp').then(function(img){
               var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
