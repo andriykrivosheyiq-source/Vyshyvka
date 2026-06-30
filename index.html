@@ -4126,6 +4126,45 @@
     }, true);
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
+    // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
+    function snapshotGarment(){
+      return new Promise(function(resolve){
+        var g = getGarment(), c = getColor();
+        var snapSide = pm.logos.front.length ? 'front' : (pm.logos.back.length ? 'back' : 'front');
+        var layers = pm.logos[snapSide];
+        var wrapEl = document.getElementById('pmGarmentWrap');
+        var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
+        var C = 500, k = C / wrapW;
+        var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
+        var hasPhoto = (g.id==='tee' || g.id==='teeover');
+        var garmentP = hasPhoto
+          ? loadImgEl('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp').then(function(img){
+              var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
+              var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
+              ctx.drawImage(img, (C-dw)/2, (C-dh)/2, dw, dh);
+            }).catch(function(){})
+          : Promise.resolve();
+        garmentP.then(function(){
+          return layers.reduce(function(p, layer){
+            return p.then(function(){
+              return loadImgEl(layer.url).then(function(img){
+                var sz = 120*layer.scale, ar = layer.ar||1, bw = sz, bh = sz;
+                if(ar>=1) bh = sz/ar; else bw = sz*ar;
+                var cx = (wrapW/2 + layer.x)*k, cy = (wrapW/2 + layer.y)*k;
+                var w = bw*k, h = bh*k;
+                ctx.save(); ctx.translate(cx, cy); ctx.rotate((layer.rot||0)*Math.PI/180);
+                ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
+              }).catch(function(){});
+            });
+          }, Promise.resolve());
+        }).then(function(){
+          try { resolve(canvas.toDataURL('image/png')); } catch(e){ resolve(null); }
+        });
+      });
+    }
+
     function triggerAddToCartFlow(){
       var u = totalUnits();
       if(u===0){ alert('Оберіть розмір і кількість'); return; }
@@ -4137,15 +4176,20 @@
     document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){
       var u = totalUnits();
       var sizesStr = SIZES.filter(function(s){return pm.qty[s]>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
-      cartItems.push({
-        name: getGarment().name + ' оверсайз',
+      var gid = getGarment().id;
+      var nm = getGarment().name + ((gid==='tee'||gid==='teeover') ? '' : ' оверсайз');
+      var item = {
+        name: nm,
         color: getColor().name,
         print: getPrint().name,
         sizes: sizesStr,
         price: unitPrice()*u,
         unitPrice: unitPrice(),
-        qty: u
-      });
+        qty: u,
+        img: null
+      };
+      cartItems.push(item);
+      snapshotGarment().then(function(img){ item.img = img; renderCart(); }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
       productModal.classList.remove('open');
@@ -4442,7 +4486,9 @@
       container.innerHTML = cartItems.map(function(item, idx){
         return '<div class="cart-item-card">' +
           '<div class="cart-item-top">' +
-            '<span class="cart-item-thumb"><svg viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="'+cartItemIconPath+'"/></svg></span>' +
+            (item.img
+              ? '<span class="cart-item-thumb"><img src="'+item.img+'" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:8px;"></span>'
+              : '<span class="cart-item-thumb"><svg viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="'+cartItemIconPath+'"/></svg></span>') +
             '<div class="cart-item-info">' +
               '<h4>'+item.name+'</h4>' +
               '<p>Колір: <strong>'+item.color+'</strong></p>' +
