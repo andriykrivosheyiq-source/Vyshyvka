@@ -1900,24 +1900,9 @@
       <div id="pmDetailPanel"></div>
     </div>
 
-    <!-- Model photos (лише для «Футболка оверсайз») -->
+    <!-- Model photos (динамічно по крою) -->
     <div id="pmModelSection">
-    <div class="pm-model-photos" id="pmModelPhotos">
-      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-pair-front.webp" alt="" loading="lazy">
-        <span class="pm-model-logo" style="left:33%;top:48%;width:10%;"></span>
-        <span class="pm-model-logo" style="left:60%;top:52%;width:9%;"></span>
-      </div>
-      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-man.webp" alt="" loading="lazy">
-        <span class="pm-model-logo" style="left:50%;top:48%;width:15%;"></span>
-      </div>
-      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-woman.webp" alt="" loading="lazy">
-        <span class="pm-model-logo" style="left:46%;top:55%;width:13%;"></span>
-      </div>
-      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-pair-back.webp" alt="" loading="lazy">
-        <span class="pm-model-logo" data-side="back" style="left:33%;top:46%;width:10%;"></span>
-        <span class="pm-model-logo" data-side="back" style="left:58%;top:50%;width:9%;"></span>
-      </div>
-    </div>
+    <div class="pm-model-photos" id="pmModelPhotos"></div>
     <div class="story-controls" style="padding:10px 18px 0;">
       <div class="story-dots" id="pmModelDots"></div>
       <button class="story-next" id="pmModelNext" aria-label="Наступне фото">
@@ -3345,7 +3330,9 @@
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
       {id:'tee', name:'Футболка базова', price:0,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
-      {id:'hoodie', name:'Худі', price:250,
+      {id:'hoodieover', name:'Худі оверсайз', price:250,
+        path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
+      {id:'hoodie', name:'Худі базове', price:250,
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
       {id:'sweat', name:'Світшот', price:200,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M38 14Q40 22 50 22Q60 22 62 14'},
@@ -3391,7 +3378,43 @@
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
-    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap.webp'};
+    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/thumb-hoodie.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap.webp'};
+    // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
+    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodie:1};
+    function productName(){ var id = getGarment().id; return getGarment().name + (NAME_NO_SUFFIX[id] ? '' : ' оверсайз'); }
+    // Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)
+    var MODEL_PHOTOS = {
+      teeover: [
+        {src:'model-pair-front', logos:[{x:33,y:48,w:10},{x:60,y:52,w:9}]},
+        {src:'model-man', logos:[{x:50,y:48,w:15}]},
+        {src:'model-woman', logos:[{x:46,y:55,w:13}]},
+        {src:'model-pair-back', logos:[{x:33,y:46,w:10,side:'back'},{x:58,y:50,w:9,side:'back'}]}
+      ],
+      tee: [
+        {src:'model-tee-pair-front', logos:[{x:27,y:50,w:9},{x:63,y:48,w:10}]},
+        {src:'model-tee-man', logos:[{x:50,y:50,w:13}]},
+        {src:'model-tee-woman', logos:[{x:50,y:52,w:12}]},
+        {src:'model-tee-pair-back', logos:[{x:30,y:50,w:9,side:'back'},{x:63,y:46,w:10,side:'back'}]}
+      ],
+      polo: [
+        {src:'model-polo-pair-front', logos:[{x:27,y:55,w:9},{x:63,y:52,w:10}]},
+        {src:'model-polo-man', logos:[{x:50,y:52,w:13}]},
+        {src:'model-polo-woman', logos:[{x:48,y:55,w:11}]},
+        {src:'model-polo-pair-back', logos:[{x:30,y:55,w:9,side:'back'},{x:63,y:50,w:10,side:'back'}]}
+      ],
+      hoodieover: [
+        {src:'model-hoodieover-pair-front', logos:[{x:30,y:42,w:9},{x:63,y:46,w:8}]},
+        {src:'model-hoodieover-man', logos:[{x:50,y:42,w:12}]},
+        {src:'model-hoodieover-woman', logos:[{x:48,y:46,w:10}]},
+        {src:'model-hoodieover-pair-back', logos:[{x:33,y:40,w:9,side:'back'},{x:63,y:44,w:8,side:'back'}]}
+      ],
+      hoodie: [
+        {src:'model-hoodie-pair-front', logos:[{x:30,y:44,w:9},{x:63,y:48,w:8}]},
+        {src:'model-hoodie-man', logos:[{x:50,y:44,w:12}]},
+        {src:'model-hoodie-woman', logos:[{x:48,y:46,w:10}]},
+        {src:'model-hoodie-pair-back', logos:[{x:33,y:42,w:9,side:'back'},{x:62,y:46,w:8,side:'back'}]}
+      ]
+    };
     var PRINTS = [
       {id:'dtf', name:'DTF принт', desc:'Яскраві кольори та складні дизайни', price:0,
         icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'},
@@ -3542,11 +3565,10 @@
       }
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
-      updateModelLogos();
-      // фото моделей поки що лише для «Футболка оверсайз»
-      var ms = document.getElementById('pmModelSection');
-      if(ms) ms.style.display = (g.id === 'teeover') ? '' : 'none';
+      if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); }
+      else { updateModelLogos(); }
     }
+    var lastModelGarment = null;
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     var HANDLE_ROTATE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
@@ -3897,8 +3919,7 @@
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
-      var _gid = getGarment().id;
-      pmProductTitle.textContent = getGarment().name + ((_gid==='tee'||_gid==='teeover') ? '' : ' оверсайз');
+      pmProductTitle.textContent = productName();
       if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
@@ -4207,8 +4228,7 @@
     document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){
       var u = totalUnits();
       var sizesStr = SIZES.filter(function(s){return pm.qty[s]>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
-      var gid = getGarment().id;
-      var nm = getGarment().name + ((gid==='tee'||gid==='teeover') ? '' : ' оверсайз');
+      var nm = productName();
       var item = {
         name: nm,
         color: getColor().name,
@@ -4457,33 +4477,42 @@
     var pmModelTrack = document.getElementById('pmModelPhotos');
     var pmModelDotsEl = document.getElementById('pmModelDots');
     var pmModelNextBtn = document.getElementById('pmModelNext');
-    if(pmModelTrack && pmModelDotsEl){
-      var modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
-      pmModelDotsEl.innerHTML = modelPhotos.map(function(_,i){ return '<span class="dot'+(i===0?' active':'')+'" data-index="'+i+'"></span>'; }).join('');
-      var modelDots = Array.prototype.slice.call(pmModelDotsEl.children);
-      function modelSetActive(i){ modelDots.forEach(function(d,idx){ d.classList.toggle('active', idx===i); }); }
-      function modelClosestIndex(){
-        var center = pmModelTrack.scrollLeft + pmModelTrack.clientWidth/2;
-        var best=0, bestDist=Infinity;
-        modelPhotos.forEach(function(c,idx){
-          var dist = Math.abs((c.offsetLeft + c.offsetWidth/2) - center);
-          if(dist<bestDist){bestDist=dist;best=idx;}
-        });
-        return best;
-      }
-      pmModelTrack.addEventListener('scroll', function(){ modelSetActive(modelClosestIndex()); }, {passive:true});
-      modelDots.forEach(function(d,idx){
-        d.addEventListener('click', function(){ modelPhotos[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); });
+    var pmModelSectionEl = document.getElementById('pmModelSection');
+    var modelPhotos = [], modelDots = [];
+    function modelSetActive(i){ modelDots.forEach(function(d,idx){ d.classList.toggle('active', idx===i); }); }
+    function modelClosestIndex(){
+      var center = pmModelTrack.scrollLeft + pmModelTrack.clientWidth/2;
+      var best=0, bestDist=Infinity;
+      modelPhotos.forEach(function(c,idx){
+        var dist = Math.abs((c.offsetLeft + c.offsetWidth/2) - center);
+        if(dist<bestDist){bestDist=dist;best=idx;}
       });
+      return best;
+    }
+    function renderModelPhotos(){
+      var set = MODEL_PHOTOS[pm.garmentId];
+      if(!set){ if(pmModelSectionEl) pmModelSectionEl.style.display='none'; return; }
+      if(pmModelSectionEl) pmModelSectionEl.style.display='';
+      pmModelTrack.innerHTML = set.map(function(slide){
+        return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="lazy">' +
+          slide.logos.map(function(l){ return '<span class="pm-model-logo"'+(l.side==='back'?' data-side="back"':'')+' style="left:'+l.x+'%;top:'+l.y+'%;width:'+l.w+'%;"></span>'; }).join('') +
+          '</div>';
+      }).join('');
+      modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
+      pmModelDotsEl.innerHTML = modelPhotos.map(function(_,i){ return '<span class="dot'+(i===0?' active':'')+'" data-index="'+i+'"></span>'; }).join('');
+      modelDots = Array.prototype.slice.call(pmModelDotsEl.children);
+      modelDots.forEach(function(d,idx){ d.addEventListener('click', function(){ modelPhotos[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); }); });
+      pmModelTrack.scrollLeft = 0;
+      updateModelLogos();
+    }
+    if(pmModelTrack){
+      pmModelTrack.addEventListener('scroll', function(){ if(modelPhotos.length) modelSetActive(modelClosestIndex()); }, {passive:true});
       if(pmModelNextBtn){
         pmModelNextBtn.addEventListener('click', function(){
+          if(!modelPhotos.length) return;
           var maxScroll = pmModelTrack.scrollWidth - pmModelTrack.clientWidth;
-          if(pmModelTrack.scrollLeft >= maxScroll - 4){
-            pmModelTrack.scrollTo({left:0, behavior:'smooth'});
-          } else {
-            var next = (modelClosestIndex()+1) % modelPhotos.length;
-            modelPhotos[next].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-          }
+          if(pmModelTrack.scrollLeft >= maxScroll - 4){ pmModelTrack.scrollTo({left:0, behavior:'smooth'}); }
+          else { var next = (modelClosestIndex()+1) % modelPhotos.length; modelPhotos[next].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); }
         });
       }
     }
