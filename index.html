@@ -1066,7 +1066,9 @@
   .pm-print-compare-pro{display:flex;align-items:center;gap:4px;font-size:11px;color:#999;}
 
   .pm-model-photos{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-top:1px solid #f0f0f0;}
-  .pm-model-photo{flex:0 0 auto;width:280px;height:408px;}
+  .pm-model-photo{flex:0 0 auto;width:280px;height:350px;position:relative;background:#ececec;}
+  .pm-model-img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pm-model-logo{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:none;display:none;}
 
   .pm-twocol{display:flex;flex-direction:column;gap:12px;margin:12px 18px;}
   .pm-card{flex:1;padding:20px;border-radius:16px;background:#FFFFFF;border:1.5px solid #eee;}
@@ -1900,11 +1902,20 @@
 
     <!-- Model photos -->
     <div class="pm-model-photos" id="pmModelPhotos">
-      <div class="pm-model-photo" style="background:#d0ccc8;"></div>
-      <div class="pm-model-photo" style="background:#c9b99a;"></div>
-      <div class="pm-model-photo" style="background:#5c5d45;"></div>
-      <div class="pm-model-photo" style="background:#1e2d4a;"></div>
-      <div class="pm-model-photo" style="background:#9a4a2a;"></div>
+      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-pair-front.webp" alt="" loading="lazy">
+        <span class="pm-model-logo" style="left:33%;top:48%;width:10%;"></span>
+        <span class="pm-model-logo" style="left:60%;top:52%;width:9%;"></span>
+      </div>
+      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-man.webp" alt="" loading="lazy">
+        <span class="pm-model-logo" style="left:50%;top:48%;width:15%;"></span>
+      </div>
+      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-woman.webp" alt="" loading="lazy">
+        <span class="pm-model-logo" style="left:46%;top:55%;width:13%;"></span>
+      </div>
+      <div class="pm-model-photo"><img class="pm-model-img" src="images/model-pair-back.webp" alt="" loading="lazy">
+        <span class="pm-model-logo" data-side="back" style="left:33%;top:46%;width:10%;"></span>
+        <span class="pm-model-logo" data-side="back" style="left:58%;top:50%;width:9%;"></span>
+      </div>
     </div>
     <div class="story-controls" style="padding:10px 18px 0;">
       <div class="story-dots" id="pmModelDots"></div>
@@ -3478,6 +3489,16 @@
     function currentLayers(){ return pm.logos[pm.side]; }
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
 
+    // Накладаємо завантажений логотип на фото моделей (перед — логотип фронту, спина — логотип беку)
+    function updateModelLogos(){
+      var frontLogo = pm.logos.front[0], backLogo = pm.logos.back[0];
+      document.querySelectorAll('.pm-model-logo').forEach(function(el){
+        var logo = (el.dataset.side === 'back') ? backLogo : frontLogo;
+        if(logo && logo.url){ el.style.backgroundImage = 'url("'+logo.url+'")'; el.style.display='block'; }
+        else { el.style.display='none'; }
+      });
+    }
+
     function renderGarment(){
       fitGarmentStage();
       var g = getGarment(), c = getColor();
@@ -3519,6 +3540,7 @@
       }
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
+      updateModelLogos();
     }
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
