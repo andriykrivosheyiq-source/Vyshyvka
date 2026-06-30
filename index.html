@@ -1900,7 +1900,8 @@
       <div id="pmDetailPanel"></div>
     </div>
 
-    <!-- Model photos -->
+    <!-- Model photos (лише для «Футболка оверсайз») -->
+    <div id="pmModelSection">
     <div class="pm-model-photos" id="pmModelPhotos">
       <div class="pm-model-photo"><img class="pm-model-img" src="images/model-pair-front.webp" alt="" loading="lazy">
         <span class="pm-model-logo" style="left:33%;top:48%;width:10%;"></span>
@@ -1922,6 +1923,7 @@
       <button class="story-next" id="pmModelNext" aria-label="Наступне фото">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
       </button>
+    </div>
     </div>
 
     <!-- Guarantee + Help -->
@@ -3541,6 +3543,9 @@
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
       updateModelLogos();
+      // фото моделей поки що лише для «Футболка оверсайз»
+      var ms = document.getElementById('pmModelSection');
+      if(ms) ms.style.display = (g.id === 'teeover') ? '' : 'none';
     }
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
