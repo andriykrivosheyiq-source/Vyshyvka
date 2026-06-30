@@ -3336,6 +3336,8 @@
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
       {id:'hoodie', name:'Худі базове', price:250,
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
+      {id:'hoodiezip', name:'Худі на застібці', price:300,
+        path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M50 28v62'},
       {id:'sweat', name:'Світшот', price:200,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M38 14Q40 22 50 22Q60 22 62 14'},
       {id:'polo', name:'Поло', price:150,
@@ -3347,7 +3349,9 @@
       {id:'shorts', name:'Шорти', price:130,
         path:'M10 20h80v10L75 85H55L50 55L45 85H25L10 30z', extra:'M10 20h80'},
       {id:'cap', name:'Кепка', price:90,
-        path:'M20 55Q20 30 50 28Q80 30 80 55z', extra:'M15 58h55a5 5 0 000-10H15a5 5 0 000 10zM50 28v-10'}
+        path:'M20 55Q20 30 50 28Q80 30 80 55z', extra:'M15 58h55a5 5 0 000-10H15a5 5 0 000 10zM50 28v-10'},
+      {id:'tote', name:'Шопер', price:90,
+        path:'M25 35h50v55H25z', extra:'M35 35a15 15 0 0130 0'}
     ];
     var COLORS = [
       {id:'black',name:'Чорний',hex:'#1a1a1a'},{id:'white',name:'Білий',hex:'#eeebe4'},
@@ -3413,13 +3417,23 @@
         {id:'navy',name:'Темно-синій',hex:'#323548'},{id:'azure',name:'Блакитний',hex:'#7a94a9'},
         {id:'darkgreen',name:'Темно-зелений',hex:'#364645'},{id:'brown',name:'Коричневий',hex:'#3d2a1c'},
         {id:'red',name:'Червоний',hex:'#b2352b'}
+      ],
+      hoodiezip: [
+        {id:'black',name:'Чорний',hex:'#1d1d1d'},{id:'gray',name:'Сірий',hex:'#cdccd0'},
+        {id:'blue',name:'Синій',hex:'#2f59a0'},{id:'navy',name:'Темно-синій',hex:'#32314d'},
+        {id:'red',name:'Червоний',hex:'#b6222f'}
+      ],
+      tote: [
+        {id:'beige',name:'Бежевий',hex:'#dfd2c9'},{id:'beigegusset',name:'Бежевий з дном',hex:'#e3d7cb'},
+        {id:'white',name:'Білий',hex:'#eae9ee'},{id:'navy',name:'Темно-синій',hex:'#181333'},
+        {id:'black',name:'Чорний',hex:'#17161b'}
       ]
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
-    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/hoodieover-black-front.webp', hoodieoverfleece:'images/hoodieoverfleece-brown-front.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp'};
+    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/hoodieover-black-front.webp', hoodieoverfleece:'images/hoodieoverfleece-brown-front.webp', hoodie:'images/thumb-hoodie.webp', hoodiezip:'images/hoodiezip-black-front.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp', tote:'images/tote-beige-front.webp'};
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
-    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1};
+    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1};
     function productName(){ var id = getGarment().id; return getGarment().name + (NAME_NO_SUFFIX[id] ? '' : ' оверсайз'); }
     // Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)
     // cx,cy — центр грудей (% фото); sw — ширина виробу на фото (% фото), щоб дзеркалити зсув/розмір лого з мокапа
