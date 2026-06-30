@@ -3339,7 +3339,7 @@
     var COLORS = [
       {id:'black',name:'Чорний',hex:'#1a1a1a'},{id:'white',name:'Білий',hex:'#eeebe4'},
       {id:'sand',name:'Пісочний',hex:'#c9b99a'},{id:'olive',name:'Олівковий',hex:'#5c5d45'},
-      {id:'navy',name:'Синій',hex:'#1e2d4a'},{id:'clay',name:'Терактовий',hex:'#9a4a2a'},
+      {id:'navy',name:'Синій',hex:'#1e2d4a'},{id:'steelblue',name:'Блакитний',hex:'#6c7b99'},{id:'clay',name:'Терактовий',hex:'#9a4a2a'},
       {id:'gray',name:'Сірий',hex:'#8a8a8a'},{id:'lgray',name:'Світло-сірий',hex:'#d0d0d0'},
       {id:'green',name:'Зелений',hex:'#2d5a27'},{id:'mint',name:"М'ятний",hex:'#5a9e8a'},
       {id:'red',name:'Червоний',hex:'#8b1a1a'},{id:'rose',name:'Рожевий',hex:'#d4607a'},
@@ -3447,7 +3447,7 @@
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
 
     // Кольори базової футболки, для яких є реальні фото (перед/зад): images/tee-<id>-<side>.webp
-    var TEE_PHOTO_COLORS = {black:1, white:1, lgray:1, gray:1, navy:1, green:1, sand:1, olive:1, red:1, rose:1};
+    var TEE_PHOTO_COLORS = {black:1, white:1, lgray:1, gray:1, navy:1, steelblue:1, green:1, sand:1, olive:1, red:1, rose:1};
 
     function renderGarment(){
       fitGarmentStage();
