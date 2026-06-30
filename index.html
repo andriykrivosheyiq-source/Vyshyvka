@@ -3332,6 +3332,8 @@
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
       {id:'hoodieover', name:'Худі оверсайз', price:250,
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
+      {id:'hoodieoverfleece', name:'Худі оверсайз з флісом', price:300,
+        path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
       {id:'hoodie', name:'Худі базове', price:250,
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M40 55h20'},
       {id:'sweat', name:'Світшот', price:200,
@@ -3377,6 +3379,16 @@
         {id:'lblue',name:'Блакитний',hex:'#aec3dd'},{id:'slate',name:'Сіро-синій',hex:'#6b6d79'},
         {id:'brown',name:'Коричневий',hex:'#58382e'}
       ],
+      hoodieover: [
+        {id:'white',name:'Білий',hex:'#eeedeb'},{id:'gray',name:'Світло-сірий',hex:'#d4cec9'},
+        {id:'khaki',name:'Тауп',hex:'#b7a69d'},{id:'brown',name:'Капучино',hex:'#8d6f63'},
+        {id:'coyote',name:'Койот',hex:'#7c5e45'},{id:'fume',name:'Фюме',hex:'#878792'},
+        {id:'black',name:'Чорний',hex:'#2c2727'}
+      ],
+      hoodieoverfleece: [
+        {id:'pink',name:'Рожевий',hex:'#f2c8dd'},{id:'blue',name:'Синій',hex:'#283c61'},
+        {id:'brown',name:'Шоколадний',hex:'#3f2e2f'}
+      ],
       hoodie: [
         {id:'white',name:'Білий',hex:'#f5f5f5'},{id:'vanilla',name:'Ванільний',hex:'#f0e7d2'},
         {id:'skyblue',name:'Блакитний',hex:'#7f9fcc'},{id:'royalblue',name:'Синій',hex:'#4f5e95'},
@@ -3405,9 +3417,9 @@
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
-    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/thumb-hoodie.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp'};
+    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/hoodieover-black-front.webp', hoodieoverfleece:'images/hoodieoverfleece-brown-front.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp'};
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
-    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodie:1};
+    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1};
     function productName(){ var id = getGarment().id; return getGarment().name + (NAME_NO_SUFFIX[id] ? '' : ' оверсайз'); }
     // Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)
     // cx,cy — центр грудей (% фото); sw — ширина виробу на фото (% фото), щоб дзеркалити зсув/розмір лого з мокапа
