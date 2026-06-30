@@ -3394,11 +3394,18 @@
         {id:'red',name:'Червоний',hex:'#ba1d30'},{id:'pink',name:'Рожевий',hex:'#f8e5e7'},
         {id:'beige',name:'Бежевий',hex:'#dccbb3'},{id:'purple',name:'Фіолетовий',hex:'#37274c'},
         {id:'yellow',name:'Жовтий',hex:'#ecd048'}
+      ],
+      cap: [
+        {id:'black',name:'Чорний',hex:'#323232'},{id:'cream',name:'Молочний',hex:'#d1d1c4'},
+        {id:'beige',name:'Бежевий',hex:'#bab4a8'},{id:'graphite',name:'Графіт',hex:'#555553'},
+        {id:'navy',name:'Темно-синій',hex:'#323548'},{id:'azure',name:'Блакитний',hex:'#7a94a9'},
+        {id:'darkgreen',name:'Темно-зелений',hex:'#364645'},{id:'brown',name:'Коричневий',hex:'#3d2a1c'},
+        {id:'red',name:'Червоний',hex:'#b2352b'}
       ]
     };
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
-    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/thumb-hoodie.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap.webp'};
+    var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/thumb-hoodie.webp', hoodie:'images/thumb-hoodie.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp'};
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
     var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodie:1};
     function productName(){ var id = getGarment().id; return getGarment().name + (NAME_NO_SUFFIX[id] ? '' : ' оверсайз'); }
