@@ -5709,13 +5709,37 @@ window.LOOMIQ_CONFIG = {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(){ notifyManagers(photoUrl); success(); }).catch(function(e){ console.warn(e); fail(); });
     }
+    // стискаємо фото у браузері (телефонні знімки бувають 3-8 МБ → стає ~200-400 КБ)
+    function shrink(f){
+      return new Promise(function(resolve){
+        if(!/^image\//.test(f.type)){ resolve(f); return; }
+        var img=new Image(), url=URL.createObjectURL(f);
+        img.onload=function(){
+          URL.revokeObjectURL(url);
+          var mx=1400, w=img.naturalWidth, h=img.naturalHeight, s=Math.min(1,mx/Math.max(w,h));
+          var cw=Math.max(1,Math.round(w*s)), ch=Math.max(1,Math.round(h*s));
+          var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+          cv.getContext('2d').drawImage(img,0,0,cw,ch);
+          cv.toBlob(function(b){ resolve(b && b.size < f.size ? b : f); },'image/jpeg',0.82);
+        };
+        img.onerror=function(){ URL.revokeObjectURL(url); resolve(f); };
+        img.src=url;
+      });
+    }
+    function uploadWithTimeout(blob){
+      return new Promise(function(resolve,reject){
+        var path='review-photos/'+Date.now()+'_'+Math.round(Math.random()*1e6)+'.jpg';
+        var task=storage.ref(path).put(blob,{contentType:'image/jpeg'});
+        var to=setTimeout(function(){ try{task.cancel();}catch(e){} reject(new Error('timeout')); }, 30000);
+        task.then(function(snap){ clearTimeout(to); return snap.ref.getDownloadURL(); })
+            .then(resolve).catch(function(e){ clearTimeout(to); reject(e); });
+      });
+    }
     if(file && storage){
-      if(file.size > 8*1024*1024){ fail('Фото завелике (макс 8 МБ).'); return; }
-      var ext=((file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';
-      var path='review-photos/'+Date.now()+'_'+Math.round(Math.random()*1e6)+'.'+ext;
-      storage.ref(path).put(file).then(function(snap){ return snap.ref.getDownloadURL(); })
+      btn.textContent='Завантаження фото…';
+      shrink(file).then(uploadWithTimeout)
         .then(function(url){ saveDoc(url); })
-        .catch(function(e){ console.warn('upload failed',e); saveDoc(''); });
+        .catch(function(e){ console.warn('upload failed/slow', e); saveDoc(''); });  // якщо фото не вдалось — зберігаємо відгук без фото
     } else {
       saveDoc('');
     }
