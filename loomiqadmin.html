@@ -338,6 +338,7 @@
         <button data-view="settings"><span class="num">01</span> Формування цін</button>
         <button data-view="garments"><span class="num">02</span> Товари</button>
         <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
+        <button data-view="reviews"><span class="num">04</span> Відгуки</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -530,6 +531,21 @@
       <div class="board" id="board"></div>
     </section>
 
+    <!-- ============ VIEW 4 — REVIEWS MODERATION ============ -->
+    <section id="view-reviews" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Модерація</div>
+        <h1>Відгуки клієнтів</h1>
+        <div class="sub">Нові відгуки з сайту потрапляють сюди «на перевірці». На сайті показуються лише опубліковані.</div>
+      </div>
+      <div class="seg" id="rev-filter" style="margin-bottom:16px;">
+        <button data-f="pending" class="active print">На перевірці</button>
+        <button data-f="approved">Опубліковані</button>
+        <button data-f="all">Усі</button>
+      </div>
+      <div id="rev-list"></div>
+    </section>
+
   </main>
   </div><!-- /.main-wrap -->
 </div><!-- /.shell -->
@@ -701,11 +717,13 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан'};
+    document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
     if(view==='garments') paintGarmentList();
+    if(view==='reviews') loadReviewsAdmin();
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -1302,6 +1320,66 @@ function renderTicket(o){
 
   return el;
 }
+
+/* ============================================================
+   REVIEWS MODERATION
+   ============================================================ */
+let reviewFilter = 'pending';
+const UA_M = ['','січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+function revDate(ts){ const d = (ts && ts.toDate) ? ts.toDate() : new Date(); return d.getDate()+' '+UA_M[d.getMonth()+1]+' '+d.getFullYear(); }
+
+async function loadReviewsAdmin(){
+  const wrap = document.getElementById('rev-list');
+  wrap.innerHTML = '<div class="sub" style="padding:8px 2px;">Завантаження…</div>';
+  try{
+    const snap = await fbDb.collection('reviews').orderBy('createdAt','desc').limit(300).get();
+    let items = [];
+    snap.forEach(d=> items.push(Object.assign({id:d.id}, d.data())));
+    if(reviewFilter==='pending')  items = items.filter(r=> !r.approved);
+    if(reviewFilter==='approved') items = items.filter(r=>  r.approved);
+    if(!items.length){ wrap.innerHTML = '<div class="empty-col" style="padding:30px;">Порожньо</div>'; return; }
+    wrap.innerHTML = items.map(r=>`
+      <div class="card" style="display:flex;gap:14px;align-items:flex-start;">
+        ${r.photo ? `<img src="${escapeHtml(r.photo)}" style="width:90px;height:120px;object-fit:cover;border-radius:10px;flex:none;background:#eee;">` : ''}
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;">
+            <b style="font-size:15px;">${escapeHtml(r.name||'—')}</b>
+            <span style="font-size:12px;color:var(--ink-soft);">${revDate(r.createdAt)}</span>
+          </div>
+          <div style="color:#f5a623;font-size:14px;margin:3px 0;">${'★★★★★'.slice(0,r.rating||5)}${'☆☆☆☆☆'.slice(0,5-(r.rating||5))}</div>
+          <div style="font-size:13.5px;color:var(--ink);line-height:1.5;">${escapeHtml(r.text||'')}</div>
+          ${r.phone ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:5px;">📞 ${escapeHtml(r.phone)}</div>` : ''}
+          <div style="margin-top:6px;"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:6px;background:${r.approved?'var(--good-soft)':'var(--warn-soft)'};color:${r.approved?'var(--good)':'var(--warn)'};">${r.approved?'Опубліковано':'На перевірці'}</span></div>
+          <div class="t-actions" style="margin-top:12px;">
+            ${r.approved
+              ? `<button data-act="hide" data-id="${r.id}">Прибрати з сайту</button>`
+              : `<button data-act="approve" data-id="${r.id}" style="background:var(--good-soft);color:var(--good);">✓ Опублікувати</button>`}
+            <button data-act="del" data-id="${r.id}" style="background:var(--bad-soft);color:var(--bad);">Видалити</button>
+          </div>
+        </div>
+      </div>`).join('');
+    wrap.querySelectorAll('button[data-act]').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const id=b.dataset.id, act=b.dataset.act;
+        b.disabled=true;
+        try{
+          if(act==='approve') await fbDb.collection('reviews').doc(id).update({approved:true});
+          else if(act==='hide') await fbDb.collection('reviews').doc(id).update({approved:false});
+          else if(act==='del'){ if(!confirm('Видалити відгук назавжди?')){ b.disabled=false; return; } await fbDb.collection('reviews').doc(id).delete(); }
+          toast('Готово'); loadReviewsAdmin();
+        }catch(e){ console.error(e); toast('Помилка'); b.disabled=false; }
+      });
+    });
+  }catch(e){ console.error(e); wrap.innerHTML = '<div class="sub" style="color:var(--bad);padding:8px 2px;">Не вдалось завантажити відгуки.</div>'; }
+}
+document.querySelectorAll('#rev-filter button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#rev-filter button').forEach(x=>x.classList.remove('active','print'));
+    b.classList.add('active','print');
+    reviewFilter = b.dataset.f;
+    loadReviewsAdmin();
+  });
+});
 
 /* ============================================================
    INIT

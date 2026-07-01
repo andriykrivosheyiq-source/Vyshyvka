@@ -5628,9 +5628,10 @@ window.LOOMIQ_CONFIG = {
     if(!db) return;
     var box = document.getElementById('userReviews');
     if(!box) return;
-    db.collection('reviews').orderBy('createdAt','desc').limit(100).get().then(function(snap){
-      var html=''; snap.forEach(function(doc){ html += cardHtml(doc.data()); });
-      box.innerHTML = html;
+    db.collection('reviews').where('approved','==',true).limit(200).get().then(function(snap){
+      var arr=[]; snap.forEach(function(doc){ arr.push(doc.data()); });
+      arr.sort(function(a,b){ var ta=(a.createdAt&&a.createdAt.toMillis)?a.createdAt.toMillis():0; var tb=(b.createdAt&&b.createdAt.toMillis)?b.createdAt.toMillis():0; return tb-ta; });
+      box.innerHTML = arr.map(cardHtml).join('');
     }).catch(function(e){ console.warn('load reviews failed', e); });
   }
   loadReviews();
@@ -5668,7 +5669,7 @@ window.LOOMIQ_CONFIG = {
     btn.disabled=true; btn.textContent='Надсилаємо…'; msg.style.display='none';
 
     function fail(t){ msg.style.color='#c0392b'; msg.textContent=t||'Не вдалося надіслати. Спробуйте ще раз.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; }
-    function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Ваш відгук опубліковано.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); loadReviews(); setTimeout(closeForm,1800); }
+    function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }
 
     if(!db){ fail('Наразі не вдається зберегти відгук. Спробуйте пізніше.'); return; }
 
@@ -5676,7 +5677,7 @@ window.LOOMIQ_CONFIG = {
     function saveDoc(photoUrl){
       db.collection('reviews').add({
         name: name.slice(0,60), text: text.slice(0,800), rating: rating,
-        phone: phone.slice(0,30), photo: photoUrl||'',
+        phone: phone.slice(0,30), photo: photoUrl||'', approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(success).catch(function(e){ console.warn(e); fail(); });
     }
