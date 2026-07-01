@@ -2431,10 +2431,7 @@
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
-    <div class="pm-side-dots">
-      <button class="pm-side-dot active" id="pmSideFront" data-side="front"><span></span></button>
-      <button class="pm-side-dot" id="pmSideBack" data-side="back"><span></span></button>
-    </div>
+    <div class="pm-side-dots" id="pmSideDots"></div>
   </div>
 
   <div class="pm-sheet">
@@ -4123,8 +4120,12 @@
     var pm = {
       tab:'photo', garmentId:'teeover', colorId:'black', printId:null, side:'front',
       qty:{XS:0,S:0,M:0,L:0,XL:0,XXL:0},
-      logos:{front:[], back:[]}, activeLogoId:null
+      logos:{front:[], back:[], left:[], right:[]}, activeLogoId:null
     };
+    // Додаткові ракурси (сторони) для деяких виробів — теж можна наносити лого
+    var GARMENT_ANGLES = { cap:['left','right'] };
+    function getViews(){ return ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || []); }
+    function ensureLogoSides(){ getViews().forEach(function(v){ if(!pm.logos[v]) pm.logos[v] = []; }); }
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
     function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
@@ -4145,8 +4146,8 @@
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
       var total = 0;
-      ['front','back'].forEach(function(side){
-        pm.logos[side].forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
+      getViews().forEach(function(side){
+        (pm.logos[side]||[]).forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
       });
       return total;
     }
@@ -4573,6 +4574,11 @@
           pm.garmentId = el.dataset.garment;
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
+          // новий виріб може мати іншу кількість ракурсів → скидаємо на «перед» і перебудовуємо крапки
+          ensureLogoSides();
+          if(getViews().indexOf(pm.side) === -1) pm.side = 'front';
+          renderSideDots();
+          updateSideArrows();
           renderGarment();
           // оновлюємо активний стан без перебудови панелі — щоб не скидалась прокрутка списку
           pmTabPanel.querySelectorAll('.pm-garment-item').forEach(function(it){
@@ -4853,17 +4859,29 @@
       });
     });
 
-    document.getElementById('pmSideFront').addEventListener('click', function(){ setSide('front'); });
-    document.getElementById('pmSideBack').addEventListener('click', function(){ setSide('back'); });
-    document.getElementById('pmArrowRight').addEventListener('click', function(){ setSide('back'); });
-    document.getElementById('pmArrowLeft').addEventListener('click', function(){ setSide('front'); });
+    var VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
+    function renderSideDots(){
+      var views = getViews();
+      var wrap = document.getElementById('pmSideDots');
+      if(!wrap) return;
+      wrap.innerHTML = views.map(function(v){
+        return '<button class="pm-side-dot'+(v===pm.side?' active':'')+'" data-side="'+v+'" aria-label="'+(VIEW_LABEL[v]||v)+'"><span></span></button>';
+      }).join('');
+      wrap.querySelectorAll('[data-side]').forEach(function(b){ b.addEventListener('click', function(){ setSide(b.dataset.side); }); });
+    }
+    function updateSideArrows(){
+      var views = getViews(), i = views.indexOf(pm.side);
+      document.getElementById('pmArrowLeft').style.display = i>0 ? '' : 'none';
+      document.getElementById('pmArrowRight').style.display = i<views.length-1 ? '' : 'none';
+    }
+    document.getElementById('pmArrowRight').addEventListener('click', function(){ var v=getViews(), i=v.indexOf(pm.side); if(i<v.length-1) setSide(v[i+1]); });
+    document.getElementById('pmArrowLeft').addEventListener('click', function(){ var v=getViews(), i=v.indexOf(pm.side); if(i>0) setSide(v[i-1]); });
     function setSide(side){
+      ensureLogoSides();
       pm.side = side;
-      pm.activeLogoId = pm.logos[side].length ? pm.logos[side][0].id : null;
-      document.getElementById('pmSideFront').classList.toggle('active', side==='front');
-      document.getElementById('pmSideBack').classList.toggle('active', side==='back');
-      document.getElementById('pmArrowLeft').style.display = side==='back' ? '' : 'none';
-      document.getElementById('pmArrowRight').style.display = side==='front' ? '' : 'none';
+      pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
+      document.querySelectorAll('#pmSideDots .pm-side-dot').forEach(function(d){ d.classList.toggle('active', d.dataset.side===side); });
+      updateSideArrows();
       renderGarment();
       if(pm.tab==='photo') renderTabPanel();
     }
@@ -4878,12 +4896,11 @@
       if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
       pm.tab = 'photo';
       pm.side = 'front';
+      ensureLogoSides();
       pm.activeLogoId = pm.logos.front.length ? pm.logos.front[0].id : null;
       document.getElementById('pmTabs').querySelectorAll('.pm-tab').forEach(function(t,i){t.classList.toggle('active', i===0);});
-      document.getElementById('pmSideFront').classList.add('active');
-      document.getElementById('pmSideBack').classList.remove('active');
-      document.getElementById('pmArrowLeft').style.display = 'none';
-      document.getElementById('pmArrowRight').style.display = '';
+      renderSideDots();
+      updateSideArrows();
       closeMenu();
       closeAllMainModals();
       productModal.classList.add('open');
@@ -4984,7 +5001,7 @@
       };
       cartItems.push(item);
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
-      var snapSides = ['front','back'].filter(function(s){ return pm.logos[s].length; });
+      var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
       if(!snapSides.length) snapSides = ['front'];
       Promise.all(snapSides.map(function(s){ return snapshotSide(s); }))
         .then(function(imgs){ item.imgs = imgs.filter(Boolean); renderCart(); }).catch(function(){});
