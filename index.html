@@ -5583,15 +5583,18 @@ window.LOOMIQ_CONFIG = {
 })();
 </script>
 
-<!-- Firebase (для відгуків: збереження + показ на сайті) -->
+<!-- Firebase (Firestore — збереження і показ відгуків) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
-/* Форма "Залишити відгук" — зберігає у Firestore (+фото у Storage) і одразу показує на сайті */
+/* Форма "Залишити відгук" — фото у Cloudinary, дані у Firestore, показ на сайті після модерації */
 (function(){
   var overlay = document.getElementById('reviewFormOverlay');
   if(!overlay) return;
+
+  // ── Cloudinary (безкоштовне зберігання фото) ──
+  // ЗАПОВНИ ці два значення з панелі Cloudinary:
+  var CLOUDINARY = { cloud: '', preset: '' };  // cloud name + unsigned upload preset
 
   var FB = {
     apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
@@ -5601,12 +5604,11 @@ window.LOOMIQ_CONFIG = {
     messagingSenderId: "828527183830",
     appId: "1:828527183830:web:69895ce3f3c5505d014677"
   };
-  var db=null, storage=null;
+  var db=null;
   try{
     if(window.firebase){
       if(!firebase.apps.length) firebase.initializeApp(FB);
       db = firebase.firestore();
-      try{ storage = firebase.storage(); }catch(e){}
     }
   }catch(e){ console.warn('Firebase init failed', e); }
 
@@ -5726,18 +5728,24 @@ window.LOOMIQ_CONFIG = {
         img.src=url;
       });
     }
-    function uploadWithTimeout(blob){
+    function uploadCloudinary(blob){
       return new Promise(function(resolve,reject){
-        var path='review-photos/'+Date.now()+'_'+Math.round(Math.random()*1e6)+'.jpg';
-        var task=storage.ref(path).put(blob,{contentType:'image/jpeg'});
-        var to=setTimeout(function(){ try{task.cancel();}catch(e){} reject(new Error('timeout')); }, 30000);
-        task.then(function(snap){ clearTimeout(to); return snap.ref.getDownloadURL(); })
-            .then(resolve).catch(function(e){ clearTimeout(to); reject(e); });
+        if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
+        var fd=new FormData();
+        fd.append('file', blob);
+        fd.append('upload_preset', CLOUDINARY.preset);
+        var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+        var to = setTimeout(function(){ if(ctrl) ctrl.abort(); reject(new Error('timeout')); }, 30000);
+        fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY.cloud+'/image/upload',
+          { method:'POST', body:fd, signal: ctrl?ctrl.signal:undefined })
+          .then(function(r){ return r.json(); })
+          .then(function(j){ clearTimeout(to); if(j && j.secure_url) resolve(j.secure_url); else reject(new Error(j && j.error && j.error.message || 'no url')); })
+          .catch(function(e){ clearTimeout(to); reject(e); });
       });
     }
-    if(file && storage){
+    if(file && CLOUDINARY.cloud){
       btn.textContent='Завантаження фото…';
-      shrink(file).then(uploadWithTimeout)
+      shrink(file).then(uploadCloudinary)
         .then(function(url){ saveDoc(url); })
         .catch(function(e){ console.warn('upload failed/slow', e); saveDoc(''); });  // якщо фото не вдалось — зберігаємо відгук без фото
     } else {
