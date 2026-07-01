@@ -5648,7 +5648,8 @@ window.LOOMIQ_CONFIG = {
     reviewsModal.addEventListener('touchend', function(e){
       if(!_track) return; _track=false;
       var t=e.changedTouches[0], dx=t.clientX-_sx, dy=t.clientY-_sy;
-      if(Math.abs(dx)>70 && Math.abs(dx) > Math.abs(dy)*1.8){ reviewsModal.classList.remove('open'); }
+      // тільки свайп зліва направо (як «назад» в iOS); справа наліво — ігноруємо
+      if(dx > 70 && Math.abs(dx) > Math.abs(dy)*1.8){ reviewsModal.classList.remove('open'); }
     }, {passive:true});
   }
 
