@@ -5691,12 +5691,23 @@ window.LOOMIQ_CONFIG = {
     if(!db){ fail('Наразі не вдається зберегти відгук. Спробуйте пізніше.'); return; }
 
     var file = fileInput.files && fileInput.files[0];
+    function notifyManagers(photoUrl){
+      try{
+        var c = window.LOOMIQ_CONFIG || {};
+        if(!c.leadEndpoint) return;
+        var ctx = '📝 Новий відгук на погодження • ' + rating + '/5 від «' + name + '»'
+          + (phone ? ' (тел: ' + phone + ')' : '') + (photoUrl ? ' • з фото' : '')
+          + ': ' + text + ' — погодь в адмінці: Відгуки → «На перевірці»';
+        fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ phone:(phone||name), page:'Новий відгук (погодити в адмінці)', context: ctx }) }).catch(function(){});
+      }catch(e){}
+    }
     function saveDoc(photoUrl){
       db.collection('reviews').add({
         name: name.slice(0,60), text: text.slice(0,800), rating: rating,
         phone: phone.slice(0,30), photo: photoUrl||'', approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(success).catch(function(e){ console.warn(e); fail(); });
+      }).then(function(){ notifyManagers(photoUrl); success(); }).catch(function(e){ console.warn(e); fail(); });
     }
     if(file && storage){
       if(file.size > 8*1024*1024){ fail('Фото завелике (макс 8 МБ).'); return; }
