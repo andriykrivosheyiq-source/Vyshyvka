@@ -1414,6 +1414,18 @@
     .float-cta-bar{transition:opacity .15s linear;}
     .float-telegram{animation:none;opacity:1;transform:none;filter:none;}
   }
+
+  /* ===== Десктопна адаптація (лише ≥900px; мобільна версія не змінюється) ===== */
+  @media (min-width:900px){
+    /* Конструктор товару — компактна центрована колонка, а не на весь екран */
+    #productModal > *:not(.nav){ max-width:720px; margin-left:auto; margin-right:auto; }
+    #productModal .pm-tab-panel-inner{ max-width:100%; }
+    /* Каталог — ширша область і 3 колонки, щоб картки не тиснулись */
+    #catalogModal .contact-modal-inner{ max-width:780px; }
+    #catalogModal .catalog-grid{ grid-template-columns:repeat(3,1fr); }
+    /* Плаваюча кнопка "Створити мерч" — по центру контенту, не на всю ширину */
+    .float-cta-bar .btn{ max-width:420px; margin-left:auto; margin-right:auto; }
+  }
 </style>
 </head>
 <body>
