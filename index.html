@@ -1628,6 +1628,8 @@
       <div class="reviews-stars">★★★★★</div>
       <p class="reviews-count">На основі 128 відгуків</p>
 
+      <div id="userReviews"></div>
+
       <div class="review-card">
         <div class="review-card-main">
           <h4>Оксана</h4>
@@ -1776,7 +1778,7 @@
           <h4>Владислав</h4>
           <span class="review-date">31 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Кепки з вишивкою — виглядають дорого, всім раджу.</p>
+          <p>Кепки з вишивкою — рівно, тримають форму. Всім раджу.</p>
         </div>
       </div>
 
@@ -1805,7 +1807,7 @@
           <h4>Вікторія Л.</h4>
           <span class="review-date">2 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Кепки вийшли стильні, всі питають де брали 😊</p>
+          <p>Нашивки вийшли просто топ — рівні, щільні, лого читається. Дуже задоволені!</p>
         </div>
       </div>
 
@@ -1882,7 +1884,7 @@
           <h4>Христина</h4>
           <span class="review-date">9 жовт. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Рушники з вишитим лого — вишивка акуратна, виглядають солідно.</p>
+          <p>Рушники з вишитим лого — вишивка акуратна, зроблено солідно.</p>
         </div>
       </div>
 
@@ -1911,7 +1913,7 @@
           <h4>Микита</h4>
           <span class="review-date">12 вер. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Худі щільне, шов рівний, лого виглядає преміум.</p>
+          <p>Худі щільне, шов рівний, лого лягло ідеально.</p>
         </div>
       </div>
 
@@ -1961,7 +1963,7 @@
           <h4>Тарас</h4>
           <span class="review-date">31 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Футболки з вишитим лого — виглядають дорого. Задоволені.</p>
+          <p>Вишивали лого на одязі — вийшло чисто й акуратно, нитка рівна. Клас!</p>
         </div>
       </div>
 
@@ -2000,7 +2002,7 @@
           <h4>Туржан</h4>
           <span class="review-date">25 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Замовляли худі — пошили швидко, вишивка виглядає дорого.</p>
+          <p>Замовляли худі — пошили швидко, вишивка акуратна, лого чітке.</p>
         </div>
       </div>
 
@@ -2232,7 +2234,7 @@
           <h4>Людмила В.</h4>
           <span class="review-date">16 лист. 2024</span>
           <div class="review-stars">★★★★★</div>
-          <p>Рушники з вишивкою — виглядають дорого, дуже гарно.</p>
+          <p>Рушники з золотою вишивкою — ошатні, вишивка акуратна.</p>
         </div>
       </div>
 
@@ -2322,7 +2324,12 @@
       <textarea id="rfText" placeholder="Ваш відгук…" rows="4" maxlength="500"
         style="width:100%;font-size:15px;padding:12px;border:1px solid #e4e4e8;border-radius:10px;outline:none;margin-bottom:10px;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
       <input id="rfPhone" type="tel" placeholder="Телефон (необовʼязково)" maxlength="20"
-        style="width:100%;font-size:15px;padding:12px;border:1px solid #e4e4e8;border-radius:10px;outline:none;margin-bottom:14px;box-sizing:border-box;">
+        style="width:100%;font-size:15px;padding:12px;border:1px solid #e4e4e8;border-radius:10px;outline:none;margin-bottom:10px;box-sizing:border-box;">
+      <label for="rfPhoto" style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:14px;color:#555;padding:11px;border:1px dashed #cfcfd6;border-radius:10px;cursor:pointer;margin-bottom:14px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span id="rfPhotoText">Додати фото (необовʼязково)</span>
+      </label>
+      <input id="rfPhoto" type="file" accept="image/*" style="display:none;">
       <button type="submit" id="rfSubmit" class="btn btn-primary" style="width:100%;justify-content:center;">Надіслати відгук</button>
       <div id="rfMsg" style="display:none;text-align:center;font-size:13px;margin-top:12px;"></div>
     </form>
@@ -5575,28 +5582,72 @@ window.LOOMIQ_CONFIG = {
 })();
 </script>
 
+<!-- Firebase (для відгуків: збереження + показ на сайті) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
-/* Форма "Залишити відгук" — надсилає відгук менеджерам у Telegram через той самий Worker */
+/* Форма "Залишити відгук" — зберігає у Firestore (+фото у Storage) і одразу показує на сайті */
 (function(){
   var overlay = document.getElementById('reviewFormOverlay');
   if(!overlay) return;
+
+  var FB = {
+    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+    authDomain: "loomiq-admin.firebaseapp.com",
+    projectId: "loomiq-admin",
+    storageBucket: "loomiq-admin.firebasestorage.app",
+    messagingSenderId: "828527183830",
+    appId: "1:828527183830:web:69895ce3f3c5505d014677"
+  };
+  var db=null, storage=null;
+  try{
+    if(window.firebase){
+      if(!firebase.apps.length) firebase.initializeApp(FB);
+      db = firebase.firestore();
+      try{ storage = firebase.storage(); }catch(e){}
+    }
+  }catch(e){ console.warn('Firebase init failed', e); }
+
+  var UA=['','січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+  function fmtDate(d){ return d.getDate()+' '+UA[d.getMonth()+1]+' '+d.getFullYear(); }
+  function esc(s){ return (s||'').replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
+  function starStr(n){ n=Math.max(1,Math.min(5,n||5)); return '★★★★★'.slice(0,n)+'☆☆☆☆☆'.slice(0,5-n); }
+
+  function cardHtml(r){
+    var d = (r.createdAt && r.createdAt.toDate) ? r.createdAt.toDate() : new Date();
+    var photo = r.photo ? '<div class="review-photo"><img src="'+esc(r.photo)+'" loading="lazy" alt="Фото відгуку"></div>' : '';
+    return '<div class="review-card">'+photo+
+      '<div class="review-card-main"><h4>'+esc(r.name)+'</h4>'+
+      '<span class="review-date">'+fmtDate(d)+'</span>'+
+      '<div class="review-stars">'+starStr(r.rating)+'</div>'+
+      '<p>'+esc(r.text)+'</p></div></div>';
+  }
+
+  function loadReviews(){
+    if(!db) return;
+    var box = document.getElementById('userReviews');
+    if(!box) return;
+    db.collection('reviews').orderBy('createdAt','desc').limit(100).get().then(function(snap){
+      var html=''; snap.forEach(function(doc){ html += cardHtml(doc.data()); });
+      box.innerHTML = html;
+    }).catch(function(e){ console.warn('load reviews failed', e); });
+  }
+  loadReviews();
+
   var openBtn = document.getElementById('leaveReviewBtn');
   var closeBtn = document.getElementById('reviewFormClose');
   var form = document.getElementById('reviewForm');
   var starsWrap = document.getElementById('rfStars');
   var msg = document.getElementById('rfMsg');
+  var fileInput = document.getElementById('rfPhoto');
+  var photoText = document.getElementById('rfPhotoText');
   var rating = 5;
 
-  function paintStars(){
-    starsWrap.querySelectorAll('span').forEach(function(s){
-      s.style.opacity = (Number(s.dataset.v) <= rating) ? '1' : '0.28';
-    });
-  }
+  function paintStars(){ starsWrap.querySelectorAll('span').forEach(function(s){ s.style.opacity=(Number(s.dataset.v)<=rating)?'1':'0.28'; }); }
   paintStars();
-  starsWrap.addEventListener('click', function(e){
-    var s = e.target.closest('span[data-v]'); if(!s) return;
-    rating = Number(s.dataset.v); paintStars();
-  });
+  starsWrap.addEventListener('click', function(e){ var s=e.target.closest('span[data-v]'); if(!s)return; rating=Number(s.dataset.v); paintStars(); });
+  fileInput.addEventListener('change', function(){ photoText.textContent = (fileInput.files && fileInput.files[0]) ? ('📷 '+fileInput.files[0].name.slice(0,24)) : 'Додати фото (необовʼязково)'; });
 
   function openForm(){ overlay.style.display='flex'; document.body.style.overflow='hidden'; setTimeout(function(){document.getElementById('rfName').focus();},50); }
   function closeForm(){ overlay.style.display='none'; document.body.style.overflow=''; }
@@ -5604,37 +5655,41 @@ window.LOOMIQ_CONFIG = {
   if(closeBtn) closeBtn.addEventListener('click', closeForm);
   overlay.addEventListener('click', function(e){ if(e.target===overlay) closeForm(); });
 
+  function resetForm(){ document.getElementById('rfName').value=''; document.getElementById('rfText').value=''; document.getElementById('rfPhone').value=''; fileInput.value=''; photoText.textContent='Додати фото (необовʼязково)'; rating=5; paintStars(); }
+
   form.addEventListener('submit', function(e){
     e.preventDefault();
-    var name = (document.getElementById('rfName').value||'').trim();
-    var text = (document.getElementById('rfText').value||'').trim();
-    var phone = (document.getElementById('rfPhone').value||'').trim();
+    var name=(document.getElementById('rfName').value||'').trim();
+    var text=(document.getElementById('rfText').value||'').trim();
+    var phone=(document.getElementById('rfPhone').value||'').trim();
     if(!name){ document.getElementById('rfName').focus(); return; }
-    if(text.length < 3){ document.getElementById('rfText').focus(); return; }
-    var btn = document.getElementById('rfSubmit');
-    btn.disabled = true; btn.textContent = 'Надсилаємо…';
-    msg.style.display='none';
+    if(text.length<3){ document.getElementById('rfText').focus(); return; }
+    var btn=document.getElementById('rfSubmit');
+    btn.disabled=true; btn.textContent='Надсилаємо…'; msg.style.display='none';
 
-    var c = window.LOOMIQ_CONFIG || {};
-    var context = '⭐ Новий відгук ' + rating + '/5 від «' + name + '»'
-      + (phone ? ' (тел: ' + phone + ')' : '') + ': ' + text;
-    var payload = { phone: (phone || name), page: location.href, context: context, ts: new Date().toISOString() };
+    function fail(t){ msg.style.color='#c0392b'; msg.textContent=t||'Не вдалося надіслати. Спробуйте ще раз.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; }
+    function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Ваш відгук опубліковано.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); loadReviews(); setTimeout(closeForm,1800); }
 
-    function done(ok){
-      if(ok){
-        form.querySelector('#rfName').value=''; form.querySelector('#rfText').value=''; form.querySelector('#rfPhone').value='';
-        rating=5; paintStars();
-        msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо за відгук! Ми його опублікуємо після перевірки.'; msg.style.display='block';
-        btn.disabled=false; btn.textContent='Надіслати відгук';
-        setTimeout(closeForm, 2200);
-      } else {
-        msg.style.color='#c0392b'; msg.textContent='Не вдалося надіслати. Спробуйте ще раз або напишіть нам у Telegram.'; msg.style.display='block';
-        btn.disabled=false; btn.textContent='Надіслати відгук';
-      }
+    if(!db){ fail('Наразі не вдається зберегти відгук. Спробуйте пізніше.'); return; }
+
+    var file = fileInput.files && fileInput.files[0];
+    function saveDoc(photoUrl){
+      db.collection('reviews').add({
+        name: name.slice(0,60), text: text.slice(0,800), rating: rating,
+        phone: phone.slice(0,30), photo: photoUrl||'',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(success).catch(function(e){ console.warn(e); fail(); });
     }
-    if(!c.leadEndpoint){ done(true); return; }
-    fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-      .then(function(r){ return r.ok; }).catch(function(){ return false; }).then(done);
+    if(file && storage){
+      if(file.size > 8*1024*1024){ fail('Фото завелике (макс 8 МБ).'); return; }
+      var ext=((file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';
+      var path='review-photos/'+Date.now()+'_'+Math.round(Math.random()*1e6)+'.'+ext;
+      storage.ref(path).put(file).then(function(snap){ return snap.ref.getDownloadURL(); })
+        .then(function(url){ saveDoc(url); })
+        .catch(function(e){ console.warn('upload failed',e); saveDoc(''); });
+    } else {
+      saveDoc('');
+    }
   });
 })();
 </script>
