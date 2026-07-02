@@ -357,7 +357,7 @@
         <button data-view="garments"><span class="num">02</span> Товари</button>
         <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
         <button data-view="reviews"><span class="num">04</span> Відгуки</button>
-        <button data-view="photos"><span class="num">05</span> Фото товарів</button>
+        <button data-view="photos"><span class="num">05</span> Конструктор сайту</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -565,24 +565,108 @@
       <div id="rev-list"></div>
     </section>
 
-    <!-- ============ VIEW 5 — PRODUCT PHOTOS ============ -->
+    <!-- ============ VIEW 5 — SITE CONSTRUCTOR ============ -->
     <section id="view-photos" style="display:none;">
       <div class="page-head">
-        <div class="eyebrow">Каталог</div>
-        <h1>Фото товарів</h1>
-        <div class="sub">Оберіть товар і колір, потім завантажте власне фото або поверніть стандартне. Зміни одразу зʼявляються на сайті.</div>
+        <div class="eyebrow">Конструктор</div>
+        <h1>Конструктор сайту</h1>
+        <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.</div>
       </div>
-      <div class="photo-picker">
+      <div class="seg" id="ctor-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+        <button data-ct="photo" class="active print">Фото товарів</button>
+        <button data-ct="info">Назва й опис</button>
+        <button data-ct="sizes">Розмірна сітка</button>
+        <button data-ct="models">Моделі</button>
+        <button data-ct="reviews">Відгуки</button>
+      </div>
+
+      <div class="photo-picker" id="ctor-garment-row">
         <label class="photo-sel">
           <span>Товар</span>
           <select id="photo-garment"></select>
         </label>
-        <label class="photo-sel">
+        <label class="photo-sel" id="photo-color-wrap">
           <span>Колір</span>
           <select id="photo-color"></select>
         </label>
       </div>
-      <div id="photo-cells" class="photo-cells"></div>
+
+      <!-- Фото товарів -->
+      <div id="ctor-photo">
+        <div id="photo-cells" class="photo-cells"></div>
+      </div>
+
+      <!-- Назва й опис -->
+      <div id="ctor-info" style="display:none;">
+        <div class="card" style="max-width:640px;">
+          <label class="field" style="display:block;margin-bottom:12px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Назва товару на сайті</span>
+            <input id="info-name" type="text" maxlength="60" style="width:100%;" placeholder="">
+          </label>
+          <label class="field" style="display:block;margin-bottom:14px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Опис (вкладка «Про товар»)</span>
+            <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
+          </label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="pc-btn up" id="info-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+            <button class="pc-btn reset" id="info-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Розмірна сітка -->
+      <div id="ctor-sizes" style="display:none;">
+        <div class="card" style="max-width:640px;">
+          <div class="sub" style="margin-bottom:12px;">A — довжина (см), B — ширина (см). Порожня таблиця = стандартна сітка сайту.</div>
+          <table style="width:100%;border-collapse:collapse;" id="sc-table">
+            <thead><tr>
+              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">РОЗМІР</th>
+              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">A (см)</th>
+              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">B (см)</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="sc-body"></tbody>
+          </table>
+          <button class="pc-btn reset" id="sc-add" style="flex:none;padding:8px 16px;margin-top:10px;">+ Додати рядок</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="sc-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+            <button class="pc-btn reset" id="sc-reset" style="flex:none;padding:10px 22px;">Повернути стандартну</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Моделі -->
+      <div id="ctor-models" style="display:none;">
+        <div class="sub" style="margin-bottom:12px;">Власні фото моделей замінюють стандартні для обраного товару. Порядок — стрілками. «Скинути все» повертає стандартні фото сайту.</div>
+        <div id="model-cells" class="photo-cells"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <button class="pc-btn up" id="model-add" style="flex:none;padding:10px 22px;">+ Додати фото моделі</button>
+          <button class="pc-btn reset" id="model-clear" style="flex:none;padding:10px 22px;">Скинути все (стандартні)</button>
+        </div>
+      </div>
+
+      <!-- Відгуки: порядок + карусель -->
+      <div id="ctor-reviews" style="display:none;">
+        <div class="card">
+          <b style="font-size:14px;">Порядок відгуків на сайті</b>
+          <div class="sub" style="margin:6px 0 12px;">Стрілками пересуньте відгуки. Відгуки клієнтів із модерації завжди зверху. Зміни зберігаються одразу після натискання «Зберегти порядок».</div>
+          <div id="rev-order-list"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="rev-order-save" style="flex:none;padding:10px 22px;">Зберегти порядок</button>
+            <button class="pc-btn reset" id="rev-order-reset" style="flex:none;padding:10px 22px;">Повернути стандартний</button>
+          </div>
+        </div>
+        <div class="card">
+          <b style="font-size:14px;">Карусель фото відгуків (сторінка відгуків товару)</b>
+          <div class="sub" style="margin:6px 0 12px;">Фото у стрічці «Фото від клієнтів». Можна додавати свої, видаляти і міняти порядок.</div>
+          <div id="rev-photos-list" class="photo-cells"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="rev-photos-add" style="flex:none;padding:10px 22px;">+ Додати фото</button>
+            <button class="pc-btn up" id="rev-photos-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+            <button class="pc-btn reset" id="rev-photos-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -762,13 +846,13 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Фото товарів'};
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
-    if(view==='photos') renderPhotoManager();
+    if(view==='photos') renderCtor();
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -1465,10 +1549,20 @@ const PHOTO_CFG = [
     {id:'beige',name:'Бежевий'},{id:'white',name:'Білий'},{id:'navy',name:'Темно-синій'},{id:'black',name:'Чорний'}]}
 ];
 const VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
-let photosMap = {};
+/* Стандартні дані сайту (мають збігатися з index.html) */
+const DEFAULT_SIZE_CHART_ROWS = [
+  {size:'XS',A:64,B:47},{size:'S',A:66,B:50},{size:'M',A:68,B:53},
+  {size:'L',A:72,B:56},{size:'XL',A:74,B:60},{size:'XXL',A:77,B:62}
+];
+const DEFAULT_REVIEW_PHOTOS = ['work-17','work-01','work-06','work-18','work-03','work-08','work-13','work-15','work-07','work-09','work-16','work-05','work-14'];
+
+let photosMap = {};          // фото товарів по кольорах (map)
+let contentData = {};        // повний документ loomiq/photos (names, descriptions, sizecharts, models, reviewOrder, reviewPhotos)
 let photoGarmentId = PHOTO_CFG[0].id, photoColorId = PHOTO_CFG[0].colors[0].id;
+let ctorTab = 'photo';
 
 function photoCfg(id){ return PHOTO_CFG.find(g=>g.id===id) || PHOTO_CFG[0]; }
+function escA(s){ return String(s==null?'':s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 
 function renderPhotoManager(){
   const gSel = document.getElementById('photo-garment');
@@ -1480,6 +1574,297 @@ function renderPhotoManager(){
   cSel.innerHTML = g.colors.map(c=>`<option value="${c.id}"${c.id===photoColorId?' selected':''}>${c.name}</option>`).join('');
   renderPhotoCells();
 }
+
+/* Перемикання підрозділів конструктора */
+function renderCtor(){
+  const panes = {photo:'ctor-photo', info:'ctor-info', sizes:'ctor-sizes', models:'ctor-models', reviews:'ctor-reviews'};
+  Object.entries(panes).forEach(([k,id])=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = (k===ctorTab) ? '' : 'none';
+  });
+  const colorWrap = document.getElementById('photo-color-wrap');
+  if(colorWrap) colorWrap.style.display = (ctorTab==='photo') ? '' : 'none';
+  const gRow = document.getElementById('ctor-garment-row');
+  if(gRow) gRow.style.display = (ctorTab==='reviews') ? 'none' : '';
+  renderPhotoManager();  // заповнює селекти; для photo-таба малює і клітинки
+  if(ctorTab==='info') renderInfoTab();
+  else if(ctorTab==='sizes') renderSizesTab();
+  else if(ctorTab==='models') renderModelsTab();
+  else if(ctorTab==='reviews'){ renderReviewOrder(); renderReviewPhotosAdmin(); }
+}
+document.querySelectorAll('#ctor-tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#ctor-tabs button').forEach(x=>x.classList.remove('active','print'));
+    b.classList.add('active','print');
+    ctorTab = b.dataset.ct;
+    renderCtor();
+  });
+});
+
+/* ---------- Назва й опис ---------- */
+function renderInfoTab(){
+  const g = photoCfg(photoGarmentId);
+  const nameEl = document.getElementById('info-name');
+  const descEl = document.getElementById('info-desc');
+  nameEl.value = (contentData.names && contentData.names[g.id]) || '';
+  nameEl.placeholder = g.name + ' (стандартна)';
+  descEl.value = (contentData.descriptions && contentData.descriptions[g.id]) || '';
+  descEl.placeholder = g.name + ' з якісних матеріалів. Крій вільний, плечовий шов спущений. (стандартний)';
+}
+document.getElementById('info-save').addEventListener('click', async ()=>{
+  const g = photoCfg(photoGarmentId);
+  const name = document.getElementById('info-name').value.trim();
+  const desc = document.getElementById('info-desc').value.trim();
+  try{
+    await PHOTOS_DOC.set({
+      names: { [g.id]: name ? name : firebase.firestore.FieldValue.delete() },
+      descriptions: { [g.id]: desc ? desc : firebase.firestore.FieldValue.delete() }
+    }, { merge:true });
+    toast('Збережено');
+  }catch(e){ console.error(e); toast('Помилка збереження'); }
+});
+document.getElementById('info-reset').addEventListener('click', async ()=>{
+  const g = photoCfg(photoGarmentId);
+  if(!confirm('Повернути стандартні назву й опис для «'+g.name+'»?')) return;
+  try{
+    await PHOTOS_DOC.set({
+      names: { [g.id]: firebase.firestore.FieldValue.delete() },
+      descriptions: { [g.id]: firebase.firestore.FieldValue.delete() }
+    }, { merge:true });
+    toast('Повернуто стандартні');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+
+/* ---------- Розмірна сітка ---------- */
+function currentScRows(){
+  const custom = contentData.sizecharts && contentData.sizecharts[photoGarmentId];
+  return (custom && custom.length) ? custom.map(r=>({size:r.size,A:r.A,B:r.B})) : DEFAULT_SIZE_CHART_ROWS.map(r=>({...r}));
+}
+function renderSizesTab(rows){
+  rows = rows || currentScRows();
+  const body = document.getElementById('sc-body');
+  body.innerHTML = rows.map((r,i)=>`
+    <tr data-i="${i}">
+      <td style="padding:3px 4px;"><input data-f="size" value="${escA(r.size)}" maxlength="8" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
+      <td style="padding:3px 4px;"><input data-f="A" value="${escA(r.A)}" inputmode="decimal" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
+      <td style="padding:3px 4px;"><input data-f="B" value="${escA(r.B)}" inputmode="decimal" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
+      <td style="padding:3px 4px;"><button class="pc-btn reset" data-scdel="${i}" style="flex:none;padding:7px 10px;">✕</button></td>
+    </tr>`).join('');
+  body.querySelectorAll('[data-scdel]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows2 = readScRows(); rows2.splice(Number(b.dataset.scdel),1); renderSizesTab(rows2);
+  }));
+}
+function readScRows(){
+  return Array.from(document.querySelectorAll('#sc-body tr')).map(tr=>({
+    size: tr.querySelector('[data-f="size"]').value.trim(),
+    A: parseFloat(tr.querySelector('[data-f="A"]').value.replace(',','.')) || 0,
+    B: parseFloat(tr.querySelector('[data-f="B"]').value.replace(',','.')) || 0
+  })).filter(r=>r.size);
+}
+document.getElementById('sc-add').addEventListener('click', ()=>{
+  const rows = readScRows(); rows.push({size:'',A:'',B:''}); renderSizesTab(rows);
+});
+document.getElementById('sc-save').addEventListener('click', async ()=>{
+  const rows = readScRows();
+  if(!rows.length){ toast('Додайте хоча б один розмір'); return; }
+  try{
+    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: rows } }, { merge:true });
+    toast('Сітку збережено');
+  }catch(e){ console.error(e); toast('Помилка збереження'); }
+});
+document.getElementById('sc-reset').addEventListener('click', async ()=>{
+  if(!confirm('Повернути стандартну розмірну сітку?')) return;
+  try{
+    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: firebase.firestore.FieldValue.delete() } }, { merge:true });
+    toast('Повернуто стандартну');
+    renderSizesTab(DEFAULT_SIZE_CHART_ROWS.map(r=>({...r})));
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+
+/* ---------- Моделі ---------- */
+function renderModelsTab(){
+  const box = document.getElementById('model-cells');
+  const list = (contentData.models && contentData.models[photoGarmentId]) || [];
+  if(!list.length){
+    box.innerHTML = '<div class="sub" style="padding:6px 2px;">Зараз на сайті показуються стандартні фото моделей. Додайте свої — вони їх замінять.</div>';
+    return;
+  }
+  box.innerHTML = list.map((url,i)=>`
+    <div class="photo-cell">
+      <div class="pc-view">Фото ${i+1}</div>
+      <div class="pc-img"><img src="${escA(url)}" alt=""></div>
+      <div class="pc-actions">
+        <button class="pc-btn reset" data-mmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>←</button>
+        <button class="pc-btn reset" data-mmove="1" data-i="${i}" ${i===list.length-1?'disabled style="opacity:.4;"':''}>→</button>
+        <button class="pc-btn reset" data-mdel="${i}">✕</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-mmove]').forEach(b=>b.addEventListener('click', async ()=>{
+    const i = Number(b.dataset.i), d = Number(b.dataset.mmove);
+    const arr = list.slice(); const t = arr[i]; arr[i] = arr[i+d]; arr[i+d] = t;
+    await saveModels(arr);
+  }));
+  box.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('Видалити це фото моделі?')) return;
+    const arr = list.slice(); arr.splice(Number(b.dataset.mdel),1);
+    await saveModels(arr.length ? arr : null);
+  }));
+}
+async function saveModels(arr){
+  try{
+    await PHOTOS_DOC.set({ models: { [photoGarmentId]: arr === null ? firebase.firestore.FieldValue.delete() : arr } }, { merge:true });
+    toast('Збережено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+}
+document.getElementById('model-add').addEventListener('click', ()=>{
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.addEventListener('change', async ()=>{
+    const file = inp.files && inp.files[0];
+    if(!file) return;
+    toast('Завантаження…');
+    try{
+      const blob = await shrinkImage(file);
+      const url = await uploadCloudinary(blob);
+      const list = ((contentData.models && contentData.models[photoGarmentId]) || []).slice();
+      list.push(url);
+      await saveModels(list);
+    }catch(e){ console.error(e); toast('Не вдалось завантажити'); }
+  });
+  inp.click();
+});
+document.getElementById('model-clear').addEventListener('click', async ()=>{
+  if(!confirm('Прибрати всі власні фото моделей і повернути стандартні?')) return;
+  await saveModels(null);
+});
+
+/* ---------- Відгуки: порядок ---------- */
+let staticReviews = null;   // [{rid, name, date, text, photo}] з index.html
+let revOrderWork = null;    // робочий порядок (масив rid)
+async function loadStaticReviews(){
+  if(staticReviews) return staticReviews;
+  const res = await fetch('index.html', {cache:'no-store'});
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  staticReviews = Array.from(doc.querySelectorAll('#reviewsModal .review-card[data-rid]')).map(c=>({
+    rid: c.dataset.rid,
+    name: (c.querySelector('h4')||{}).textContent || '',
+    date: (c.querySelector('.review-date')||{}).textContent || '',
+    text: ((c.querySelector('p')||{}).textContent || '').slice(0,90),
+    photo: (c.querySelector('.review-photo img')||{getAttribute:()=>null}).getAttribute('src')
+  }));
+  return staticReviews;
+}
+async function renderReviewOrder(){
+  const box = document.getElementById('rev-order-list');
+  box.innerHTML = '<div class="sub">Завантаження…</div>';
+  let list;
+  try{ list = await loadStaticReviews(); }
+  catch(e){ console.error(e); box.innerHTML = '<div class="sub" style="color:var(--bad);">Не вдалось прочитати відгуки сайту.</div>'; return; }
+  if(!revOrderWork){
+    const saved = contentData.reviewOrder;
+    revOrderWork = (saved && saved.length) ? saved.filter(rid=>list.some(r=>r.rid===rid)) : list.map(r=>r.rid);
+    // додаємо в кінець нові відгуки, яких нема у збереженому порядку
+    list.forEach(r=>{ if(!revOrderWork.includes(r.rid)) revOrderWork.push(r.rid); });
+  }
+  const byRid = Object.fromEntries(list.map(r=>[r.rid,r]));
+  box.innerHTML = revOrderWork.map((rid,i)=>{
+    const r = byRid[rid]; if(!r) return '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--ink-soft);width:26px;">${i+1}</span>
+      ${r.photo?`<img src="${escA(r.photo)}" style="width:34px;height:34px;border-radius:7px;object-fit:cover;flex:none;">`:'<span style="width:34px;flex:none;"></span>'}
+      <div style="flex:1;min-width:0;">
+        <b style="font-size:13px;">${escA(r.name)}</b> <span style="font-size:11px;color:var(--ink-soft);">${escA(r.date)}</span>
+        <div style="font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escA(r.text)}</div>
+      </div>
+      <button class="pc-btn reset" data-rmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
+      <button class="pc-btn reset" data-rmove="1" data-i="${i}" ${i===revOrderWork.length-1?'disabled style="opacity:.4;"':''}>↓</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-rmove]').forEach(b=>b.addEventListener('click', ()=>{
+    const i = Number(b.dataset.i), d = Number(b.dataset.rmove);
+    const t = revOrderWork[i]; revOrderWork[i] = revOrderWork[i+d]; revOrderWork[i+d] = t;
+    renderReviewOrder();
+  }));
+}
+document.getElementById('rev-order-save').addEventListener('click', async ()=>{
+  if(!revOrderWork){ toast('Немає змін'); return; }
+  try{
+    await PHOTOS_DOC.set({ reviewOrder: revOrderWork }, { merge:true });
+    toast('Порядок збережено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('rev-order-reset').addEventListener('click', async ()=>{
+  if(!confirm('Повернути стандартний порядок відгуків?')) return;
+  try{
+    await PHOTOS_DOC.set({ reviewOrder: firebase.firestore.FieldValue.delete() }, { merge:true });
+    revOrderWork = null;
+    toast('Повернуто стандартний');
+    renderReviewOrder();
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+
+/* ---------- Відгуки: карусель фото ---------- */
+let revPhotosWork = null;   // робочий список (work-id або url)
+function revPhotoSrc(v){ return /^https?:/.test(v) ? v : 'images/'+v+'.webp'; }
+function renderReviewPhotosAdmin(){
+  const box = document.getElementById('rev-photos-list');
+  if(!revPhotosWork){
+    const saved = contentData.reviewPhotos;
+    revPhotosWork = (saved && saved.length) ? saved.slice() : DEFAULT_REVIEW_PHOTOS.slice();
+  }
+  box.innerHTML = revPhotosWork.map((v,i)=>`
+    <div class="photo-cell">
+      <div class="pc-view">№${i+1}</div>
+      <div class="pc-img"><img src="${escA(revPhotoSrc(v))}" alt=""></div>
+      <div class="pc-actions">
+        <button class="pc-btn reset" data-pmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>←</button>
+        <button class="pc-btn reset" data-pmove="1" data-i="${i}" ${i===revPhotosWork.length-1?'disabled style="opacity:.4;"':''}>→</button>
+        <button class="pc-btn reset" data-pdel="${i}">✕</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-pmove]').forEach(b=>b.addEventListener('click', ()=>{
+    const i = Number(b.dataset.i), d = Number(b.dataset.pmove);
+    const t = revPhotosWork[i]; revPhotosWork[i] = revPhotosWork[i+d]; revPhotosWork[i+d] = t;
+    renderReviewPhotosAdmin();
+  }));
+  box.querySelectorAll('[data-pdel]').forEach(b=>b.addEventListener('click', ()=>{
+    revPhotosWork.splice(Number(b.dataset.pdel),1);
+    renderReviewPhotosAdmin();
+  }));
+}
+document.getElementById('rev-photos-add').addEventListener('click', ()=>{
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.addEventListener('change', async ()=>{
+    const file = inp.files && inp.files[0];
+    if(!file) return;
+    toast('Завантаження…');
+    try{
+      const blob = await shrinkImage(file);
+      const url = await uploadCloudinary(blob);
+      revPhotosWork.push(url);
+      renderReviewPhotosAdmin();
+      toast('Додано. Не забудьте «Зберегти»');
+    }catch(e){ console.error(e); toast('Не вдалось завантажити'); }
+  });
+  inp.click();
+});
+document.getElementById('rev-photos-save').addEventListener('click', async ()=>{
+  try{
+    await PHOTOS_DOC.set({ reviewPhotos: revPhotosWork || [] }, { merge:true });
+    toast('Карусель збережено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('rev-photos-reset').addEventListener('click', async ()=>{
+  if(!confirm('Повернути стандартний набір фото?')) return;
+  try{
+    await PHOTOS_DOC.set({ reviewPhotos: firebase.firestore.FieldValue.delete() }, { merge:true });
+    revPhotosWork = null;
+    toast('Повернуто стандартні');
+    renderReviewPhotosAdmin();
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
 
 function renderPhotoCells(){
   const box = document.getElementById('photo-cells');
@@ -1503,7 +1888,7 @@ function renderPhotoCells(){
   box.querySelectorAll('.pc-btn.reset').forEach(b=>b.addEventListener('click', ()=>resetPhoto(b.dataset.key)));
 }
 
-document.getElementById('photo-garment').addEventListener('change', e=>{ photoGarmentId=e.target.value; renderPhotoManager(); });
+document.getElementById('photo-garment').addEventListener('change', e=>{ photoGarmentId=e.target.value; renderCtor(); });
 document.getElementById('photo-color').addEventListener('change', e=>{ photoColorId=e.target.value; renderPhotoCells(); });
 
 function pickPhoto(key, btn){
@@ -1578,11 +1963,18 @@ async function init(){
   renderApps();
   renderBoard();
 
-  // Фото товарів — живо тримаємо мапу перевизначень і оновлюємо галерею
+  // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
   PHOTOS_DOC.onSnapshot(function(snap){
-    photosMap = (snap.exists && snap.data().map) ? snap.data().map : {};
+    contentData = snap.exists ? (snap.data() || {}) : {};
+    photosMap = contentData.map || {};
     const pv = document.getElementById('view-photos');
-    if(pv && pv.style.display!=='none') renderPhotoCells();
+    if(!pv || pv.style.display==='none') return;
+    const a = document.activeElement;
+    const typing = a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA');
+    if(ctorTab==='photo') renderPhotoCells();
+    else if(ctorTab==='info' && !typing) renderInfoTab();
+    else if(ctorTab==='sizes' && !typing) renderSizesTab();
+    else if(ctorTab==='models') renderModelsTab();
   }, function(e){ console.warn('photos snapshot', e); });
 
   // Жива синхронізація: зміни з інших пристроїв одразу підтягуються

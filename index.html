@@ -1438,6 +1438,13 @@
     var m = /images\/(.+)\.webp(?:\?.*)?$/.exec(path || '');
     return (m && window.PHOTO_OVERRIDES[m[1]]) ? window.PHOTO_OVERRIDES[m[1]] : path;
   };
+  /* Решта контенту, який менеджер редагує з адмінки (той самий документ):
+     names — назви товарів, descriptions — описи, sizecharts — розмірні сітки,
+     models — фото моделей, reviewOrder — порядок відгуків, reviewPhotos — карусель фото відгуків */
+  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, models:{}, reviewOrder:null, reviewPhotos:null};
+  window.LQ_name = function(garmentId, fallback){
+    return window.SITE_CONTENT.names[garmentId] || fallback;
+  };
 </script>
 
 <header>
@@ -1652,7 +1659,7 @@
 
       <div id="userReviews"></div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r01">
         <div class="review-card-main">
           <h4>Оксана</h4>
           <span class="review-date">20 трав. 2026</span>
@@ -1661,7 +1668,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r02">
         <div class="review-photo"><img src="images/work-50.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Соф.</h4>
@@ -1671,7 +1678,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r03">
         <div class="review-card-main">
           <h4>Богдана</h4>
           <span class="review-date">2 трав. 2026</span>
@@ -1680,7 +1687,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r04">
         <div class="review-photo"><img src="images/work-35.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Кирило</h4>
@@ -1690,7 +1697,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r05">
         <div class="review-card-main">
           <h4>Дмитро К.</h4>
           <span class="review-date">22 квіт. 2026</span>
@@ -1699,7 +1706,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r06">
         <div class="review-card-main">
           <h4>Влад</h4>
           <span class="review-date">20 квіт. 2026</span>
@@ -1708,7 +1715,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r07">
         <div class="review-photo"><img src="images/work-25.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>ShopHopp</h4>
@@ -1718,7 +1725,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r08">
         <div class="review-card-main">
           <h4>Євгенія</h4>
           <span class="review-date">3 квіт. 2026</span>
@@ -1727,7 +1734,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r09">
         <div class="review-card-main">
           <h4>Настя</h4>
           <span class="review-date">15 бер. 2026</span>
@@ -1736,7 +1743,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r10">
         <div class="review-photo"><img src="images/work-29.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Поліна</h4>
@@ -1746,7 +1753,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r11">
         <div class="review-card-main">
           <h4>Артем В.</h4>
           <span class="review-date">27 лют. 2026</span>
@@ -1755,7 +1762,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r12">
         <div class="review-photo"><img src="images/work-30.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Захар</h4>
@@ -1765,7 +1772,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r13">
         <div class="review-photo"><img src="images/work-45.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Босс Бургер</h4>
@@ -1775,7 +1782,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r14">
         <div class="review-photo"><img src="images/work-43.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Юрій</h4>
@@ -1785,7 +1792,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r15">
         <div class="review-card-main">
           <h4>Віталій</h4>
           <span class="review-date">21 січ. 2026</span>
@@ -1794,7 +1801,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r16">
         <div class="review-photo"><img src="images/work-40.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Владислав</h4>
@@ -1804,7 +1811,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r17">
         <div class="review-card-main">
           <h4>Артур</h4>
           <span class="review-date">15 груд. 2025</span>
@@ -1813,7 +1820,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r18">
         <div class="review-photo"><img src="images/work-21.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Каміла</h4>
@@ -1823,7 +1830,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r19">
         <div class="review-photo"><img src="images/work-16.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Вікторія Л.</h4>
@@ -1833,7 +1840,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r20">
         <div class="review-photo"><img src="images/work-38.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Артем</h4>
@@ -1843,7 +1850,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r21">
         <div class="review-photo"><img src="images/work-44.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Ілона</h4>
@@ -1853,7 +1860,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r22">
         <div class="review-card-main">
           <h4>Настя К.</h4>
           <span class="review-date">16 лист. 2025</span>
@@ -1862,7 +1869,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r23">
         <div class="review-card-main">
           <h4>Каріна</h4>
           <span class="review-date">14 лист. 2025</span>
@@ -1871,7 +1878,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r24">
         <div class="review-card-main">
           <h4>Аліна Р.</h4>
           <span class="review-date">6 лист. 2025</span>
@@ -1880,7 +1887,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r25">
         <div class="review-photo"><img src="images/work-39.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Валерія</h4>
@@ -1890,7 +1897,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r26">
         <div class="review-photo"><img src="images/work-15.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>SI</h4>
@@ -1900,7 +1907,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r27">
         <div class="review-photo"><img src="images/work-24.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Христина</h4>
@@ -1910,7 +1917,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r28">
         <div class="review-card-main">
           <h4>Юрій П.</h4>
           <span class="review-date">4 жовт. 2025</span>
@@ -1919,7 +1926,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r29">
         <div class="review-photo"><img src="images/work-34.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Денис</h4>
@@ -1929,7 +1936,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r30">
         <div class="review-photo"><img src="images/work-26.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Микита</h4>
@@ -1939,7 +1946,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r31">
         <div class="review-photo"><img src="images/work-22.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Соломія</h4>
@@ -1949,7 +1956,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r32">
         <div class="review-photo"><img src="images/work-28.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Даша</h4>
@@ -1959,7 +1966,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r33">
         <div class="review-photo"><img src="images/work-37.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Олег</h4>
@@ -1969,7 +1976,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r34">
         <div class="review-photo"><img src="images/work-03.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Ірина К.</h4>
@@ -1979,7 +1986,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r35">
         <div class="review-photo"><img src="images/work-23.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Тарас</h4>
@@ -1989,7 +1996,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r36">
         <div class="review-photo"><img src="images/work-20.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>MoveUp Gym</h4>
@@ -1999,7 +2006,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r37">
         <div class="review-card-main">
           <h4>Марʼяна</h4>
           <span class="review-date">11 лип. 2025</span>
@@ -2008,7 +2015,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r38">
         <div class="review-photo"><img src="images/work-06.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>mycar</h4>
@@ -2018,7 +2025,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r39">
         <div class="review-photo"><img src="images/work-08.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Туржан</h4>
@@ -2028,7 +2035,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r40">
         <div class="review-photo"><img src="images/work-41.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Надія</h4>
@@ -2038,7 +2045,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r41">
         <div class="review-photo"><img src="images/work-01.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Олена Т.</h4>
@@ -2048,7 +2055,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r42">
         <div class="review-card-main">
           <h4>Богдан</h4>
           <span class="review-date">31 трав. 2025</span>
@@ -2057,7 +2064,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r43">
         <div class="review-photo"><img src="images/work-18.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Хата Смаку</h4>
@@ -2067,7 +2074,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r44">
         <div class="review-card-main">
           <h4>Юлія</h4>
           <span class="review-date">21 квіт. 2025</span>
@@ -2076,7 +2083,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r45">
         <div class="review-card-main">
           <h4>Ірина М.</h4>
           <span class="review-date">17 квіт. 2025</span>
@@ -2085,7 +2092,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r46">
         <div class="review-photo"><img src="images/work-49.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Аня</h4>
@@ -2095,7 +2102,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r47">
         <div class="review-card-main">
           <h4>Ліля</h4>
           <span class="review-date">24 бер. 2025</span>
@@ -2104,7 +2111,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r48">
         <div class="review-photo"><img src="images/work-33.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Євген</h4>
@@ -2114,7 +2121,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r49">
         <div class="review-photo"><img src="images/work-46.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Павло</h4>
@@ -2124,7 +2131,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r50">
         <div class="review-photo"><img src="images/work-05.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Роман</h4>
@@ -2134,7 +2141,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r51">
         <div class="review-card-main">
           <h4>Дмитро</h4>
           <span class="review-date">25 лют. 2025</span>
@@ -2143,7 +2150,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r52">
         <div class="review-card-main">
           <h4>Сергій</h4>
           <span class="review-date">20 лют. 2025</span>
@@ -2152,7 +2159,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r53">
         <div class="review-card-main">
           <h4>Ігор</h4>
           <span class="review-date">18 лют. 2025</span>
@@ -2161,7 +2168,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r54">
         <div class="review-photo"><img src="images/work-42.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Милана</h4>
@@ -2171,7 +2178,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r55">
         <div class="review-photo"><img src="images/work-09.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Максим Д.</h4>
@@ -2181,7 +2188,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r56">
         <div class="review-photo"><img src="images/work-17.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Галерея Смаків</h4>
@@ -2191,7 +2198,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r57">
         <div class="review-photo"><img src="images/work-27.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Аліна</h4>
@@ -2201,7 +2208,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r58">
         <div class="review-photo"><img src="images/work-36.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Станіслав</h4>
@@ -2211,7 +2218,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r59">
         <div class="review-photo"><img src="images/work-13.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Богдан Р.</h4>
@@ -2221,7 +2228,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r60">
         <div class="review-photo"><img src="images/work-19.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Назар</h4>
@@ -2231,7 +2238,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r61">
         <div class="review-card-main">
           <h4>Тетяна</h4>
           <span class="review-date">15 груд. 2024</span>
@@ -2240,7 +2247,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r62">
         <div class="review-photo"><img src="images/work-47.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Руслан</h4>
@@ -2250,7 +2257,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r63">
         <div class="review-photo"><img src="images/work-48.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Людмила В.</h4>
@@ -2260,7 +2267,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r64">
         <div class="review-card-main">
           <h4>Роман С.</h4>
           <span class="review-date">3 лист. 2024</span>
@@ -2269,7 +2276,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r65">
         <div class="review-photo"><img src="images/work-31.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Zara Coffee</h4>
@@ -2279,7 +2286,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r66">
         <div class="review-photo"><img src="images/work-32.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
           <h4>Гліб</h4>
@@ -2289,7 +2296,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r67">
         <div class="review-card-main">
           <h4>Софія</h4>
           <span class="review-date">25 жовт. 2024</span>
@@ -2298,7 +2305,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r68">
         <div class="review-card-main">
           <h4>Тарас М.</h4>
           <span class="review-date">20 жовт. 2024</span>
@@ -2307,7 +2314,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r69">
         <div class="review-card-main">
           <h4>Оля</h4>
           <span class="review-date">11 жовт. 2024</span>
@@ -2316,7 +2323,7 @@
         </div>
       </div>
 
-      <div class="review-card">
+      <div class="review-card" data-rid="r70">
         <div class="review-card-main">
           <h4>Максим</h4>
           <span class="review-date">5 жовт. 2024</span>
@@ -3896,18 +3903,21 @@
   ];
   const catalogProductGrid = document.getElementById('catalogProductGrid');
   function renderCatalogProducts(targetEl){
-    targetEl.innerHTML = catalogProducts.map(p=>`
+    targetEl.innerHTML = catalogProducts.map(p=>{
+      const pname = p.garment ? window.LQ_name(p.garment, p.name) : p.name;
+      return `
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
         <div class="product-art">
           ${p.img
-            ? `<img src="${window.LQ_img(p.img)}" alt="${p.name}" loading="lazy">`
+            ? `<img src="${window.LQ_img(p.img)}" alt="${pname}" loading="lazy">`
             : `<svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>`}
         </div>
         <div class="product-info">
-          <div><h4>${p.name}</h4><div class="price">${p.price}</div></div>
+          <div><h4>${pname}</h4><div class="price">${p.price}</div></div>
           <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
-      </button>`).join('');
+      </button>`;
+    }).join('');
   }
   renderCatalogProducts(catalogProductGrid);
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
@@ -4070,7 +4080,7 @@
     var GARMENT_THUMB = {teeover:'images/teeover-black-front.webp', tee:'images/tee-black-front.webp', hoodieover:'images/hoodieover-black-front.webp', hoodieoverfleece:'images/hoodieoverfleece-brown-front.webp', hoodie:'images/thumb-hoodie.webp', hoodiezip:'images/hoodiezip-black-front.webp', sweat:'images/thumb-sweat.webp', cap:'images/cap-black-front.webp', tote:'images/tote-beige-front.webp'};
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
     var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1};
-    function productName(){ var id = getGarment().id; return getGarment().name + (NAME_NO_SUFFIX[id] ? '' : ' оверсайз'); }
+    function productName(){ var g = getGarment(); return window.LQ_name(g.id, g.name) + (NAME_NO_SUFFIX[g.id] ? '' : ' оверсайз'); }
     // Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)
     // cx,cy — центр грудей (% фото); sw — ширина виробу на фото (% фото), щоб дзеркалити зсув/розмір лого з мокапа
     var MODEL_PHOTOS = {
@@ -4299,7 +4309,7 @@
       }
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
-      if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); }
+      if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); if(pmDetailPanel) renderDetailPanel(); }
       else { updateModelLogos(); }
     }
     var lastModelGarment = null;
@@ -4308,6 +4318,12 @@
     document.addEventListener('lq-photos', function(){
       try{ renderGarment(); }catch(e){}
       try{ if(pm.tab === 'garment' || pm.tab === 'color') renderTabPanel(); }catch(e){}
+    });
+    // Назви/описи/моделі з адмінки — оновлюємо відповідні блоки
+    document.addEventListener('lq-content', function(){
+      try{ if(pmDetailPanel) renderDetailPanel(); }catch(e){}
+      try{ renderModelPhotos(); }catch(e){}
+      try{ updatePriceBar(); }catch(e){}
     });
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
@@ -4518,7 +4534,7 @@
             : '<span class="pm-garment-item-ic"><svg viewBox="0 0 100 100" fill="none" stroke="'+(sel?'#111':'#aaa')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+g.path+'"/>'+(g.extra?'<path d="'+g.extra+'"/>':'')+'</svg></span>';
           html += '<button class="pm-garment-item'+(sel?' active':'')+'" data-garment="'+g.id+'">' +
             ic +
-            '<span class="pm-garment-item-name">'+g.name+'</span></button>';
+            '<span class="pm-garment-item-name">'+window.LQ_name(g.id, g.name)+'</span></button>';
         });
         html += '<button class="pm-garment-item pm-catalog-cta-item" id="pmGarmentCatalogCta">' +
           '<span class="pm-garment-item-name">Перейти в каталог</span></button>';
@@ -4631,6 +4647,7 @@
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
         setSizeChartTitle();
+        renderSizeChart();
         document.getElementById('pmSizeChartPage').classList.add('open');
       });
     }
@@ -5066,9 +5083,15 @@
         pros:['Якщо потрібен преміальний та довговічний результат'],
         icon:'<circle cx="17" cy="7" r="2"/><path d="M15.5 8.5L9 15M5 19s0-4 4-4l4-4"/><path d="M3 21l3-3"/>'}
     ];
+    function escHtml(s){ return String(s||'').replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
     function renderDetailPanel(){
       if(detailTab === 'about'){
-        var html = '<p class="pm-about-text">'+getGarment().name+' з якісних матеріалів. Крій вільний, плечовий шов спущений.</p>';
+        // Опис: якщо менеджер задав власний в адмінці — показуємо його
+        var customDesc = window.SITE_CONTENT.descriptions[pm.garmentId];
+        var descText = customDesc
+          ? escHtml(customDesc).replace(/\n/g,'<br>')
+          : productName()+' з якісних матеріалів. Крій вільний, плечовий шов спущений.';
+        var html = '<p class="pm-about-text">'+descText+'</p>';
         SPECS.forEach(function(row){
           html += '<div class="pm-spec-row"><div class="pm-spec-label">'+row[0]+'</div><div class="pm-spec-value">'+row[1]+'</div></div>';
         });
@@ -5120,19 +5143,39 @@
       return '<div class="pm-reviews-bar-row"><span>'+b[0]+'</span><div class="pm-reviews-bar-track"><div class="pm-reviews-bar-fill" style="width:'+b[1]+'%;"></div></div></div>';
     }).join('');
     var PM_REVIEW_PHOTOS = ['work-17','work-01','work-06','work-18','work-03','work-08','work-13','work-15','work-07','work-09','work-16','work-05','work-14'];
-    document.getElementById('pmReviewsPhotos').innerHTML = PM_REVIEW_PHOTOS.map(function(s){
-      return '<img class="pm-reviews-photo" src="images/'+s+'.webp" alt="Фото відгуку" loading="lazy" decoding="async">';
-    }).join('');
+    function renderReviewPhotosStrip(){
+      // Карусель фото відгуків: менеджер може задати власний набір в адмінці
+      var custom = window.SITE_CONTENT.reviewPhotos;
+      var srcs = (custom && custom.length)
+        ? custom.map(function(u){ return /^https?:/.test(u) ? u : 'images/'+u+'.webp'; })
+        : PM_REVIEW_PHOTOS.map(function(s){ return 'images/'+s+'.webp'; });
+      document.getElementById('pmReviewsPhotos').innerHTML = srcs.map(function(src){
+        return '<img class="pm-reviews-photo" src="'+src+'" alt="Фото відгуку" loading="lazy" decoding="async">';
+      }).join('');
+    }
+    renderReviewPhotosStrip();
+    document.addEventListener('lq-content', renderReviewPhotosStrip);
     initScrollHint(document.getElementById('pmReviewsPhotos'));
     initScrollHint(document.getElementById('pmTierRow'));
 
     // Quick rows
     function setSizeChartTitle(){
       document.getElementById('pmSizeChartTitle').innerHTML =
-        '<b style="color:#262626;">Розмірна сітка</b> <span style="color:#888;font-weight:400;">('+getGarment().name+' оверсайз)</span>';
+        '<b style="color:#262626;">Розмірна сітка</b> <span style="color:#888;font-weight:400;">('+productName()+')</span>';
+    }
+    // Розмірна сітка: якщо менеджер задав власну для цього товару — показуємо її
+    function renderSizeChart(){
+      var custom = window.SITE_CONTENT.sizecharts[pm.garmentId];
+      var rows = (custom && custom.length)
+        ? custom.map(function(r){ return {sz:r.size, A:r.A, B:r.B}; })
+        : SIZES.map(function(sz){ var v = SIZE_CHART[sz]; return {sz:sz, A:v.A, B:v.B}; });
+      document.getElementById('pmSizeChartBody').innerHTML = rows.map(function(r){
+        return '<tr><td>'+r.sz+'</td><td>'+r.A+'</td><td>'+r.B+'</td></tr>';
+      }).join('');
     }
     document.getElementById('pmRowSizeChart').addEventListener('click', function(){
       setSizeChartTitle();
+      renderSizeChart();
       document.getElementById('pmSizeChartPage').classList.add('open');
     });
     document.getElementById('pmRowDelivery').addEventListener('click', function(){
@@ -5260,14 +5303,22 @@
     }
     function renderModelPhotos(){
       if(!pmModelTrack) return;   // карусельний блок ще не ініціалізований (init-виклик renderGarment)
+      var custom = window.SITE_CONTENT.models[pm.garmentId];  // фото моделей, додані з адмінки
       var set = MODEL_PHOTOS[pm.garmentId];
-      if(!set){ if(pmModelSectionEl) pmModelSectionEl.style.display='none'; return; }
+      if((!custom || !custom.length) && !set){ if(pmModelSectionEl) pmModelSectionEl.style.display='none'; return; }
       if(pmModelSectionEl) pmModelSectionEl.style.display='';
+      if(custom && custom.length){
+        // Кастомні фото показуємо як є (без проєкції лого — позиція грудей невідома)
+        pmModelTrack.innerHTML = custom.map(function(url){
+          return '<div class="pm-model-photo"><img class="pm-model-img" src="'+url+'" alt="" loading="eager" decoding="async"></div>';
+        }).join('');
+      } else {
       pmModelTrack.innerHTML = set.map(function(slide){
         return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high">' +
           slide.logos.map(function(l){ return '<span class="pm-model-logo"'+(l.side==='back'?' data-side="back"':'')+' data-cx="'+l.cx+'" data-cy="'+l.cy+'" data-sw="'+l.sw+'"></span>'; }).join('') +
           '</div>';
       }).join('');
+      }
       modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
       pmModelTrack.querySelectorAll('.pm-model-logo').forEach(function(el){
         el.addEventListener('mousedown', function(e){ startModelDrag(e, el); });
@@ -5684,18 +5735,48 @@ window.LOOMIQ_CONFIG = {
   }
   loadReviews();
 
-  /* Підтягуємо фото товарів, які менеджер завантажив з адмінки, і слухаємо зміни наживо */
-  function applyPhotoOverrides(map){
-    window.PHOTO_OVERRIDES = map || {};
+  /* Підтягуємо контент, який менеджер редагує з адмінки (фото, назви, описи,
+     розмірні сітки, моделі, порядок відгуків), і слухаємо зміни наживо */
+  function applySiteContent(data){
+    data = data || {};
+    window.PHOTO_OVERRIDES = data.map || {};
+    window.SITE_CONTENT = {
+      names: data.names || {},
+      descriptions: data.descriptions || {},
+      sizecharts: data.sizecharts || {},
+      models: data.models || {},
+      reviewOrder: data.reviewOrder || null,
+      reviewPhotos: data.reviewPhotos || null
+    };
     document.dispatchEvent(new Event('lq-photos'));
+    document.dispatchEvent(new Event('lq-content'));
   }
   if(db){
     try{
       db.collection('loomiq').doc('photos').onSnapshot(function(snap){
-        applyPhotoOverrides(snap.exists ? (snap.data().map || {}) : {});
-      }, function(e){ console.warn('photo overrides failed', e); });
-    }catch(e){ console.warn('photo overrides failed', e); }
+        applySiteContent(snap.exists ? snap.data() : {});
+      }, function(e){ console.warn('site content failed', e); });
+    }catch(e){ console.warn('site content failed', e); }
   }
+
+  /* Порядок статичних відгуків (data-rid) — менеджер задає в адмінці */
+  document.addEventListener('lq-content', function(){
+    var order = window.SITE_CONTENT.reviewOrder;
+    if(!order || !order.length) return;
+    var head = document.querySelector('#reviewsModal .reviews-head');
+    if(!head) return;
+    var cards = {};
+    head.querySelectorAll('.review-card[data-rid]').forEach(function(c){ cards[c.dataset.rid] = c; });
+    var anchor = document.getElementById('userReviews');
+    if(!anchor) return;
+    var prev = anchor;
+    order.forEach(function(rid){
+      var c = cards[rid];
+      if(!c) return;
+      prev.after(c);
+      prev = c;
+    });
+  });
 
   // Свайп по горизонталі у модалці відгуків → повернутись на головну (закрити)
   var reviewsModal = document.getElementById('reviewsModal');
