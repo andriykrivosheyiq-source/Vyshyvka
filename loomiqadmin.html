@@ -579,6 +579,7 @@
         <button data-ct="models">Моделі</button>
         <button data-ct="reviews">Відгуки</button>
         <button data-ct="goods">Товари й ціни</button>
+        <button data-ct="site">Головна й контакти</button>
       </div>
 
       <div class="photo-picker" id="ctor-garment-row">
@@ -708,11 +709,93 @@
               <input id="np-surcharge" type="number" min="0" style="width:100%;" placeholder="0">
             </label>
           </div>
-          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Кольори</span>
-          <div id="np-colors"></div>
-          <button class="pc-btn reset" id="np-color-add" style="flex:none;padding:8px 16px;margin-top:8px;">+ Додати колір</button>
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Кольори — натисніть кружечки зі спектра (обрані позначаються ✓)</span>
+          <div id="np-palette" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div id="np-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="color" id="np-cust-hex" value="#888888" style="width:44px;height:36px;border:1px solid var(--line);border-radius:7px;padding:2px;background:#fff;cursor:pointer;">
+            <input id="np-cust-name" maxlength="24" placeholder="Свій колір — назва" style="flex:1;min-width:140px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+            <button class="pc-btn reset" id="np-cust-add" style="flex:none;padding:8px 14px;">+ Додати свій</button>
+          </div>
           <div style="margin-top:14px;">
             <button class="pc-btn up" id="np-create" style="flex:none;padding:10px 22px;">Створити товар</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Головна й контакти -->
+      <div id="ctor-site" style="display:none;">
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Контакти</b>
+          <div class="sub" style="margin:6px 0 12px;">Підставляються в усі кнопки/посилання на сайті. Порожнє поле = без змін (стандартні).</div>
+          <label class="field" style="display:block;margin-bottom:10px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Телефон (як показувати, напр. +38 (063) 804-78-18)</span>
+            <input id="site-phone" type="text" maxlength="30" style="width:100%;" placeholder="+38 (0__) ___-__-__">
+          </label>
+          <label class="field" style="display:block;margin-bottom:10px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Telegram (посилання)</span>
+            <input id="site-tg" type="text" maxlength="120" style="width:100%;" placeholder="https://t.me/loomiq_order_bot">
+          </label>
+          <label class="field" style="display:block;margin-bottom:12px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Viber (посилання)</span>
+            <input id="site-viber" type="text" maxlength="120" style="width:100%;" placeholder="viber://chat?number=%2B380638047818">
+          </label>
+          <button class="pc-btn up" id="site-contacts-save" style="flex:none;padding:10px 22px;">Зберегти контакти</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Промо-банер угорі сайту</b>
+          <div class="sub" style="margin:6px 0 12px;">Темна смужка над шапкою, напр. «-15% до кінця тижня 🔥».</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:10px;cursor:pointer;">
+            <input type="checkbox" id="promo-on"> Показувати банер
+          </label>
+          <input id="promo-text" type="text" maxlength="90" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="-15% на все до неділі 🔥">
+          <button class="pc-btn up" id="promo-save" style="flex:none;padding:10px 22px;">Зберегти банер</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Тексти головної</b>
+          <div class="sub" style="margin:6px 0 12px;">Порожнє поле = стандартний текст сайту.</div>
+          <label class="field" style="display:block;margin-bottom:10px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Головний заголовок (hero)</span>
+            <input id="hero-title" type="text" maxlength="90" style="width:100%;" placeholder="Створіть мерч для команди за 1 хв">
+          </label>
+          <label class="field" style="display:block;margin-bottom:10px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Підзаголовок (hero)</span>
+            <input id="hero-sub" type="text" maxlength="140" style="width:100%;" placeholder="Завантажте логотип і одразу побачите точну ціну та дату готовності.">
+          </label>
+          <label class="field" style="display:block;margin-bottom:10px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">«Про нас» — заголовок</span>
+            <input id="about-title" type="text" maxlength="90" style="width:100%;" placeholder="Контролюємо якість на кожному етапі">
+          </label>
+          <label class="field" style="display:block;margin-bottom:12px;">
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">«Про нас» — текст</span>
+            <textarea id="about-text" rows="3" maxlength="300" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;resize:vertical;" placeholder="Від макета до готового виробу…"></textarea>
+          </label>
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Цифри (3 плашки)</span>
+          <div id="stats-rows" style="margin-bottom:12px;"></div>
+          <button class="pc-btn up" id="site-texts-save" style="flex:none;padding:10px 22px;">Зберегти тексти</button>
+        </div>
+
+        <div class="card" style="max-width:720px;">
+          <b style="font-size:14px;">FAQ (питання-відповіді)</b>
+          <div class="sub" style="margin:6px 0 12px;">Порожній список = стандартні питання сайту.</div>
+          <div id="faq-rows"></div>
+          <button class="pc-btn reset" id="faq-add" style="flex:none;padding:8px 16px;margin-top:8px;">+ Додати питання</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="faq-save" style="flex:none;padding:10px 22px;">Зберегти FAQ</button>
+            <button class="pc-btn reset" id="faq-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
+        </div>
+
+        <div class="card" style="max-width:720px;">
+          <b style="font-size:14px;">Кейси компаній (блок «Відгуки» на головній)</b>
+          <div class="sub" style="margin:6px 0 12px;">Картки Riokan, Zendokai тощо. Порожній список = стандартні кейси сайту.</div>
+          <div id="case-rows"></div>
+          <button class="pc-btn reset" id="case-add" style="flex:none;padding:8px 16px;margin-top:8px;">+ Додати кейс</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="case-save" style="flex:none;padding:10px 22px;">Зберегти кейси</button>
+            <button class="pc-btn reset" id="case-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
           </div>
         </div>
       </div>
@@ -1525,13 +1608,22 @@ async function loadReviewsAdmin(){
             <span style="font-size:12px;color:var(--ink-soft);">${revDate(r.createdAt)}</span>
           </div>
           <div style="color:#f5a623;font-size:14px;margin:3px 0;">${'★★★★★'.slice(0,r.rating||5)}${'☆☆☆☆☆'.slice(0,5-(r.rating||5))}</div>
-          <div style="font-size:13.5px;color:var(--ink);line-height:1.5;">${escapeHtml(r.text||'')}</div>
+          <div class="rv-text" style="font-size:13.5px;color:var(--ink);line-height:1.5;">${escapeHtml(r.text||'')}</div>
+          <div class="rv-edit" style="display:none;margin-top:6px;">
+            <input class="rv-edit-name" value="${escapeHtml(r.name||'')}" maxlength="60" placeholder="Імʼя" style="width:100%;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;margin-bottom:6px;">
+            <textarea class="rv-edit-text" rows="3" maxlength="800" style="width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;resize:vertical;">${escapeHtml(r.text||'')}</textarea>
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <button data-act="editsave" data-id="${r.id}" style="background:var(--good-soft);color:var(--good);">Зберегти</button>
+              <button data-act="editcancel" data-id="${r.id}">Скасувати</button>
+            </div>
+          </div>
           ${r.phone ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:5px;">📞 ${escapeHtml(r.phone)}</div>` : ''}
           <div style="margin-top:6px;"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:6px;background:${r.approved?'var(--good-soft)':'var(--warn-soft)'};color:${r.approved?'var(--good)':'var(--warn)'};">${r.approved?'Опубліковано':'На перевірці'}</span></div>
           <div class="t-actions" style="margin-top:12px;">
             ${r.approved
               ? `<button data-act="hide" data-id="${r.id}">Прибрати з сайту</button>`
               : `<button data-act="approve" data-id="${r.id}" style="background:var(--good-soft);color:var(--good);">✓ Опублікувати</button>`}
+            <button data-act="edit" data-id="${r.id}">✎ Редагувати</button>
             <button data-act="del" data-id="${r.id}" style="background:var(--bad-soft);color:var(--bad);">Видалити</button>
           </div>
         </div>
@@ -1539,9 +1631,26 @@ async function loadReviewsAdmin(){
     wrap.querySelectorAll('button[data-act]').forEach(b=>{
       b.addEventListener('click', async ()=>{
         const id=b.dataset.id, act=b.dataset.act;
+        const card = b.closest('.card');
+        if(act==='edit'){
+          card.querySelector('.rv-text').style.display='none';
+          card.querySelector('.rv-edit').style.display='';
+          return;
+        }
+        if(act==='editcancel'){
+          card.querySelector('.rv-text').style.display='';
+          card.querySelector('.rv-edit').style.display='none';
+          return;
+        }
         b.disabled=true;
         try{
-          if(act==='approve') await fbDb.collection('reviews').doc(id).update({approved:true});
+          if(act==='editsave'){
+            const newName = card.querySelector('.rv-edit-name').value.trim();
+            const newText = card.querySelector('.rv-edit-text').value.trim();
+            if(!newText){ toast('Текст не може бути порожнім'); b.disabled=false; return; }
+            await fbDb.collection('reviews').doc(id).update({name:newName || '—', text:newText});
+          }
+          else if(act==='approve') await fbDb.collection('reviews').doc(id).update({approved:true});
           else if(act==='hide') await fbDb.collection('reviews').doc(id).update({approved:false});
           else if(act==='del'){ if(!confirm('Видалити відгук назавжди?')){ b.disabled=false; return; } await fbDb.collection('reviews').doc(id).delete(); }
           toast('Готово'); loadReviewsAdmin();
@@ -1660,30 +1769,53 @@ document.getElementById('goods-save').addEventListener('click', async ()=>{
   }catch(e){ console.error(e); toast('Помилка збереження'); }
 });
 
-/* Новий товар */
-function renderNpColors(rows){
-  rows = rows || [{name:'Чорний', hex:'#1a1a1a'}];
-  const box = document.getElementById('np-colors');
-  box.innerHTML = rows.map((r,i)=>`
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-      <input type="color" data-nc-hex value="${escA(r.hex)}" style="width:44px;height:36px;border:1px solid var(--line);border-radius:7px;padding:2px;background:#fff;cursor:pointer;">
-      <input data-nc-name value="${escA(r.name)}" maxlength="24" placeholder="Назва кольору" style="flex:1;min-width:0;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
-      <button class="pc-btn reset" data-nc-del="${i}" style="flex:none;padding:7px 10px;">✕</button>
-    </div>`).join('');
-  box.querySelectorAll('[data-nc-del]').forEach(b=>b.addEventListener('click', ()=>{
-    const rows2 = readNpColors(); rows2.splice(Number(b.dataset.ncDel),1); renderNpColors(rows2.length?rows2:undefined);
+/* Новий товар — палітра кольорів */
+const NP_PALETTE = [
+  {name:'Чорний',hex:'#1a1a1a'},{name:'Білий',hex:'#f2f1f4'},{name:'Молочний',hex:'#ece7e0'},
+  {name:'Світло-сірий',hex:'#d0d0d0'},{name:'Сірий',hex:'#8a8a8a'},{name:'Графіт',hex:'#4d4d4b'},
+  {name:'Бежевий',hex:'#dccbb3'},{name:'Пісочний',hex:'#c9b99a'},{name:'Кремовий',hex:'#f0e7d2'},
+  {name:'Тауп',hex:'#b7a69d'},{name:'Капучино',hex:'#8d6f63'},{name:'Койот',hex:'#7c5e45'},
+  {name:'Коричневий',hex:'#58463f'},{name:'Шоколадний',hex:'#3f2e2f'},{name:'Хакі',hex:'#616e54'},
+  {name:'Оливковий',hex:'#5c5d45'},{name:'Темно-зелений',hex:'#375243'},{name:'Зелений',hex:'#2d5a27'},
+  {name:'Мʼятний',hex:'#99e2d9'},{name:'Блакитний',hex:'#7f9fcc'},{name:'Синій',hex:'#325080'},
+  {name:'Електрик',hex:'#2536cc'},{name:'Темно-синій',hex:'#242739'},{name:'Сіро-синій',hex:'#6b6d79'},
+  {name:'Лавандовий',hex:'#b88fae'},{name:'Фіолетовий',hex:'#412757'},{name:'Рожевий',hex:'#f4b6d0'},
+  {name:'Пудровий',hex:'#f8e5e7'},{name:'Червоний',hex:'#ba1d30'},{name:'Бордовий',hex:'#6e2730'},
+  {name:'Вишневий',hex:'#48232a'},{name:'Жовтий',hex:'#ecd048'},{name:'Гірчичний',hex:'#d89f29'},
+  {name:'Помаранчевий',hex:'#d4602d'}
+];
+let npSelected = [];   // обрані кольори у порядку кліків
+function renderNpPalette(){
+  const pal = document.getElementById('np-palette');
+  pal.innerHTML = NP_PALETTE.map((c,i)=>{
+    const sel = npSelected.some(s=>s.hex.toLowerCase()===c.hex.toLowerCase());
+    return `<button type="button" data-npc="${i}" title="${escA(c.name)}" style="width:34px;height:34px;border-radius:50%;background:${c.hex};border:2px solid ${sel?'var(--accent)':'rgba(0,0,0,.15)'};cursor:pointer;position:relative;flex:none;${sel?'box-shadow:0 0 0 3px var(--accent-soft);':''}">${sel?'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 0 4px rgba(0,0,0,.9);font-size:15px;font-weight:700;">✓</span>':''}</button>`;
+  }).join('');
+  pal.querySelectorAll('[data-npc]').forEach(b=>b.addEventListener('click', ()=>{
+    const c = NP_PALETTE[Number(b.dataset.npc)];
+    const i = npSelected.findIndex(s=>s.hex.toLowerCase()===c.hex.toLowerCase());
+    if(i>=0) npSelected.splice(i,1); else npSelected.push({name:c.name, hex:c.hex});
+    renderNpPalette();
+  }));
+  const selBox = document.getElementById('np-selected');
+  selBox.innerHTML = npSelected.length
+    ? npSelected.map((c,i)=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 5px;font-size:12.5px;"><span style="width:18px;height:18px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.12);flex:none;"></span>${escA(c.name)}<button data-npdel="${i}" style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:13px;padding:0 2px;">✕</button></span>`).join('')
+    : '<span class="sub">Кольори ще не обрані — натисніть кружечки вище</span>';
+  selBox.querySelectorAll('[data-npdel]').forEach(b=>b.addEventListener('click', ()=>{
+    npSelected.splice(Number(b.dataset.npdel),1); renderNpPalette();
   }));
 }
-function readNpColors(){
-  return Array.from(document.querySelectorAll('#np-colors > div')).map(d=>({
-    name: d.querySelector('[data-nc-name]').value.trim(),
-    hex: d.querySelector('[data-nc-hex]').value
-  })).filter(r=>r.name);
-}
-document.getElementById('np-color-add').addEventListener('click', ()=>{
-  const rows = readNpColors(); rows.push({name:'', hex:'#888888'}); renderNpColors(rows);
+document.getElementById('np-cust-add').addEventListener('click', ()=>{
+  const name = document.getElementById('np-cust-name').value.trim();
+  const hex = document.getElementById('np-cust-hex').value;
+  if(!name){ toast('Вкажіть назву кольору'); return; }
+  if(npSelected.some(s=>s.hex.toLowerCase()===hex.toLowerCase())){ toast('Такий колір уже обрано'); return; }
+  npSelected.push({name, hex});
+  document.getElementById('np-cust-name').value='';
+  renderNpPalette();
 });
-renderNpColors();
+function readNpColors(){ return npSelected.slice(); }
+renderNpPalette();
 document.getElementById('np-create').addEventListener('click', async ()=>{
   const name = document.getElementById('np-name').value.trim();
   const price = document.getElementById('np-price').value.trim();
@@ -1703,9 +1835,212 @@ document.getElementById('np-create').addEventListener('click', async ()=>{
     document.getElementById('np-name').value = '';
     document.getElementById('np-price').value = '';
     document.getElementById('np-surcharge').value = '';
-    renderNpColors();
+    npSelected = [];
+    renderNpPalette();
     toast('Товар створено! Завантажте фото у вкладці «Фото товарів»');
   }catch(e){ console.error(e); toast('Помилка створення'); }
+});
+
+/* ============================================================
+   ГОЛОВНА Й КОНТАКТИ — контакти, банер, тексти, FAQ, кейси
+   ============================================================ */
+const DEFAULT_STATS = [
+  {num:'120+', lbl:'працівників'},
+  {num:'5+ років', lbl:'досвіду у сфері мерчу'},
+  {num:'1000+', lbl:'успішних проєктів'}
+];
+const DEFAULT_FAQ = [
+  {q:'Чи можна замовити один зразок перед великим тиражем?', a:'Так, можна замовити одну одиницю, щоб оцінити якість матеріалу та нанесення, перш ніж запускати весь тираж.'},
+  {q:'Яка різниця між вишивкою та DTF-друком — що краще обрати?', a:'Вишивка довговічніша і виглядає преміально, добре тримається на щільних тканинах (худі, кепки). DTF-друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо оптимальний варіант під ваш дизайн і тканину.'},
+  {q:'Чи можна нанести власний дизайн, а не лише логотип?', a:'Звісно — можна завантажити будь-яке зображення, напис чи ілюстрацію, не лише логотип компанії.'},
+  {q:'Як відбувається оплата для ФОП/ТОВ — потрібен договір?', a:'Приймаємо оплату на рахунок ФОП або ТОВ, надаємо рахунок і закриваючі документи. Договір укладаємо за потреби.'},
+  {q:'Що робити, якщо мерч прийшов з дефектом або не відповідає макету?', a:'Напишіть нам — безкоштовно переробимо виріб або повернемо кошти, якщо результат не відповідає погодженому макету.'},
+  {q:'Які гарантії ви надаєте?', a:'[Місце для твого тексту про гарантії — допиши тут.]'}
+];
+const DEFAULT_CASES = [
+  {tag:'Riokan', quote:'Будівельна компанія. Задача — корпоративний одяг для монтажних бригад та офісу.', img:'images/review-riokan.webp', pills:['Худі — 50 шт','Футболки — 70 шт','Кепки — 40 шт']},
+  {tag:'Zendokai Karate', quote:'Спортивна секція. Задача — мерч для тренерів і спортсменів.', img:'images/review-zendokai.webp', pills:['Футболки — 90 шт']},
+  {tag:'Studio Sante', quote:'SPA-комплекс. Задача — корпоративна форма для адміністраторів і майстрів.', img:'images/review-sante.webp', pills:['Поло — 25 шт','Халати — 15 шт']}
+];
+
+function renderSiteTab(){
+  const ct = contentData.contacts || {};
+  document.getElementById('site-phone').value = ct.phone || '';
+  document.getElementById('site-tg').value = ct.telegram || '';
+  document.getElementById('site-viber').value = ct.viber || '';
+  const promo = contentData.promo || {};
+  document.getElementById('promo-on').checked = !!promo.on;
+  document.getElementById('promo-text').value = promo.text || '';
+  const hero = contentData.hero || {};
+  document.getElementById('hero-title').value = hero.title || '';
+  document.getElementById('hero-sub').value = hero.subtitle || '';
+  const about = contentData.about || {};
+  document.getElementById('about-title').value = about.title || '';
+  document.getElementById('about-text').value = about.text || '';
+  renderStatsRows();
+  renderFaqRows();
+  renderCaseRows();
+}
+function renderStatsRows(){
+  const stats = (contentData.stats && contentData.stats.length) ? contentData.stats : DEFAULT_STATS;
+  document.getElementById('stats-rows').innerHTML = stats.slice(0,3).map((s,i)=>`
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <input data-st-num value="${escA(s.num)}" maxlength="14" placeholder="120+" style="width:110px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <input data-st-lbl value="${escA(s.lbl)}" maxlength="40" placeholder="працівників" style="flex:1;min-width:0;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+    </div>`).join('');
+}
+document.getElementById('site-contacts-save').addEventListener('click', async ()=>{
+  const phone = document.getElementById('site-phone').value.trim();
+  const tg = document.getElementById('site-tg').value.trim();
+  const vb = document.getElementById('site-viber').value.trim();
+  const D = firebase.firestore.FieldValue.delete();
+  try{
+    await PHOTOS_DOC.set({ contacts: { phone: phone||D, telegram: tg||D, viber: vb||D } }, { merge:true });
+    toast('Контакти збережено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('promo-save').addEventListener('click', async ()=>{
+  const on = document.getElementById('promo-on').checked;
+  const text = document.getElementById('promo-text').value.trim();
+  if(on && !text){ toast('Введіть текст банера'); return; }
+  try{
+    await PHOTOS_DOC.set({ promo: { on, text } }, { merge:true });
+    toast(on ? 'Банер увімкнено' : 'Банер вимкнено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('site-texts-save').addEventListener('click', async ()=>{
+  const D = firebase.firestore.FieldValue.delete();
+  const heroT = document.getElementById('hero-title').value.trim();
+  const heroS = document.getElementById('hero-sub').value.trim();
+  const abT = document.getElementById('about-title').value.trim();
+  const abX = document.getElementById('about-text').value.trim();
+  const stats = Array.from(document.querySelectorAll('#stats-rows > div')).map(d=>({
+    num: d.querySelector('[data-st-num]').value.trim(),
+    lbl: d.querySelector('[data-st-lbl]').value.trim()
+  }));
+  const isDefStats = stats.length===DEFAULT_STATS.length && stats.every((s,i)=>s.num===DEFAULT_STATS[i].num && s.lbl===DEFAULT_STATS[i].lbl);
+  try{
+    await PHOTOS_DOC.set({
+      hero: (heroT||heroS) ? {title:heroT, subtitle:heroS} : D,
+      about: (abT||abX) ? {title:abT, text:abX} : D,
+      stats: isDefStats ? D : stats
+    }, { merge:true });
+    toast('Тексти збережено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+
+/* FAQ */
+function renderFaqRows(rows){
+  rows = rows || ((contentData.faq && contentData.faq.length) ? contentData.faq.map(r=>({...r})) : DEFAULT_FAQ.map(r=>({...r})));
+  const box = document.getElementById('faq-rows');
+  box.innerHTML = rows.map((r,i)=>`
+    <div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <input data-fq value="${escA(r.q)}" maxlength="120" placeholder="Питання" style="flex:1;min-width:0;font-family:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+        <button class="pc-btn reset" data-faqdel="${i}" style="flex:none;padding:7px 10px;">✕</button>
+      </div>
+      <textarea data-fa rows="2" maxlength="600" placeholder="Відповідь" style="width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;resize:vertical;">${escA(r.a)}</textarea>
+    </div>`).join('');
+  box.querySelectorAll('[data-faqdel]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows2 = readFaqRows(); rows2.splice(Number(b.dataset.faqdel),1); renderFaqRows(rows2);
+  }));
+}
+function readFaqRows(){
+  return Array.from(document.querySelectorAll('#faq-rows > div')).map(d=>({
+    q: d.querySelector('[data-fq]').value.trim(),
+    a: d.querySelector('[data-fa]').value.trim()
+  })).filter(r=>r.q);
+}
+document.getElementById('faq-add').addEventListener('click', ()=>{
+  const rows = readFaqRows(); rows.push({q:'', a:''}); renderFaqRows(rows);
+});
+document.getElementById('faq-save').addEventListener('click', async ()=>{
+  const rows = readFaqRows();
+  if(!rows.length){ toast('Додайте хоча б одне питання'); return; }
+  try{ await PHOTOS_DOC.set({ faq: rows }, { merge:true }); toast('FAQ збережено'); }
+  catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('faq-reset').addEventListener('click', async ()=>{
+  if(!confirm('Повернути стандартні питання сайту?')) return;
+  try{
+    await PHOTOS_DOC.set({ faq: firebase.firestore.FieldValue.delete() }, { merge:true });
+    toast('Повернуто стандартні'); renderFaqRows(DEFAULT_FAQ.map(r=>({...r})));
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+
+/* Кейси */
+function renderCaseRows(rows){
+  rows = rows || ((contentData.cases && contentData.cases.length) ? contentData.cases.map(r=>({...r, pills:(r.pills||[]).slice()})) : DEFAULT_CASES.map(r=>({...r, pills:r.pills.slice()})));
+  const box = document.getElementById('case-rows');
+  box.innerHTML = rows.map((r,i)=>`
+    <div class="case-row" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;" data-img="${escA(r.img||'')}">
+      <div style="flex:none;width:86px;">
+        <div style="width:86px;height:86px;border-radius:9px;background:#f2f2f4 center/cover no-repeat;${r.img?`background-image:url('${escA(r.img)}');`:''}"></div>
+        <button class="pc-btn reset" data-caseimg="${i}" style="width:100%;margin-top:5px;padding:5px 4px;font-size:11px;">Фото</button>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <input data-ctag value="${escA(r.tag)}" maxlength="40" placeholder="Назва компанії" style="flex:1;min-width:0;font-family:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+          <button class="pc-btn reset" data-cmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
+          <button class="pc-btn reset" data-cmove="1" data-i="${i}" ${i===rows.length-1?'disabled style="opacity:.4;"':''}>↓</button>
+          <button class="pc-btn reset" data-casedel="${i}" style="flex:none;padding:7px 10px;">✕</button>
+        </div>
+        <textarea data-cquote rows="2" maxlength="240" placeholder="Опис кейсу" style="width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;resize:vertical;margin-bottom:6px;">${escA(r.quote)}</textarea>
+        <input data-cpills value="${escA((r.pills||[]).join(', '))}" maxlength="160" placeholder="Плашки через кому: Худі — 50 шт, Кепки — 40 шт" style="width:100%;font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-casedel]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows2 = readCaseRows(); rows2.splice(Number(b.dataset.casedel),1); renderCaseRows(rows2);
+  }));
+  box.querySelectorAll('[data-cmove]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows2 = readCaseRows();
+    const i = Number(b.dataset.i), d = Number(b.dataset.cmove);
+    const t = rows2[i]; rows2[i] = rows2[i+d]; rows2[i+d] = t;
+    renderCaseRows(rows2);
+  }));
+  box.querySelectorAll('[data-caseimg]').forEach(b=>b.addEventListener('click', ()=>{
+    const idx = Number(b.dataset.caseimg);
+    const inp = document.createElement('input');
+    inp.type='file'; inp.accept='image/*';
+    inp.addEventListener('change', async ()=>{
+      const file = inp.files && inp.files[0];
+      if(!file) return;
+      toast('Завантаження…');
+      try{
+        const blob = await shrinkImage(file);
+        const url = await uploadCloudinary(blob);
+        const rows2 = readCaseRows();
+        rows2[idx].img = url;
+        renderCaseRows(rows2);
+        toast('Фото додано. Не забудьте «Зберегти кейси»');
+      }catch(e){ console.error(e); toast('Не вдалось завантажити'); }
+    });
+    inp.click();
+  }));
+}
+function readCaseRows(){
+  return Array.from(document.querySelectorAll('#case-rows .case-row')).map(d=>({
+    tag: d.querySelector('[data-ctag]').value.trim(),
+    quote: d.querySelector('[data-cquote]').value.trim(),
+    pills: d.querySelector('[data-cpills]').value.split(',').map(s=>s.trim()).filter(Boolean),
+    img: d.dataset.img || ''
+  })).filter(r=>r.tag);
+}
+document.getElementById('case-add').addEventListener('click', ()=>{
+  const rows = readCaseRows(); rows.push({tag:'', quote:'', pills:[], img:''}); renderCaseRows(rows);
+});
+document.getElementById('case-save').addEventListener('click', async ()=>{
+  const rows = readCaseRows();
+  if(!rows.length){ toast('Додайте хоча б один кейс'); return; }
+  try{ await PHOTOS_DOC.set({ cases: rows }, { merge:true }); toast('Кейси збережено'); }
+  catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('case-reset').addEventListener('click', async ()=>{
+  if(!confirm('Повернути стандартні кейси сайту?')) return;
+  try{
+    await PHOTOS_DOC.set({ cases: firebase.firestore.FieldValue.delete() }, { merge:true });
+    toast('Повернуто стандартні'); renderCaseRows(DEFAULT_CASES.map(r=>({...r, pills:r.pills.slice()})));
+  }catch(e){ console.error(e); toast('Помилка'); }
 });
 
 /* ============================================================
@@ -1783,7 +2118,7 @@ function renderPhotoManager(){
 
 /* Перемикання підрозділів конструктора */
 function renderCtor(){
-  const panes = {photo:'ctor-photo', info:'ctor-info', sizes:'ctor-sizes', models:'ctor-models', reviews:'ctor-reviews', goods:'ctor-goods'};
+  const panes = {photo:'ctor-photo', info:'ctor-info', sizes:'ctor-sizes', models:'ctor-models', reviews:'ctor-reviews', goods:'ctor-goods', site:'ctor-site'};
   Object.entries(panes).forEach(([k,id])=>{
     const el = document.getElementById(id);
     if(el) el.style.display = (k===ctorTab) ? '' : 'none';
@@ -1791,13 +2126,14 @@ function renderCtor(){
   const colorWrap = document.getElementById('photo-color-wrap');
   if(colorWrap) colorWrap.style.display = (ctorTab==='photo') ? '' : 'none';
   const gRow = document.getElementById('ctor-garment-row');
-  if(gRow) gRow.style.display = (ctorTab==='reviews' || ctorTab==='goods') ? 'none' : '';
+  if(gRow) gRow.style.display = (ctorTab==='reviews' || ctorTab==='goods' || ctorTab==='site') ? 'none' : '';
   renderPhotoManager();  // заповнює селекти; для photo-таба малює і клітинки
   if(ctorTab==='info') renderInfoTab();
   else if(ctorTab==='sizes') renderSizesTab();
   else if(ctorTab==='models') renderModelsTab();
   else if(ctorTab==='reviews'){ renderReviewOrder(); renderReviewPhotosAdmin(); }
   else if(ctorTab==='goods') renderGoodsTab();
+  else if(ctorTab==='site') renderSiteTab();
 }
 document.querySelectorAll('#ctor-tabs button').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -2288,6 +2624,7 @@ async function init(){
     else if(ctorTab==='sizes' && !typing) renderSizesTab();
     else if(ctorTab==='models') renderModelsTab();
     else if(ctorTab==='goods' && !typing && !goodsWork) renderGoodsTab();
+    else if(ctorTab==='site' && !typing) renderSiteTab();
   }, function(e){ console.warn('photos snapshot', e); });
 
   // Жива синхронізація: зміни з інших пристроїв одразу підтягуються

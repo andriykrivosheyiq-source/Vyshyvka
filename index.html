@@ -1441,11 +1441,14 @@
   /* Решта контенту, який менеджер редагує з адмінки (той самий документ):
      names — назви товарів, descriptions — описи, sizecharts — розмірні сітки,
      models — фото моделей, reviewOrder — порядок відгуків, reviewPhotos — карусель фото відгуків */
-  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}};
+  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}, contacts:{}, faq:null, hero:{}, about:{}, stats:null, cases:null, promo:{}};
   window.LQ_name = function(garmentId, fallback){
     return window.SITE_CONTENT.names[garmentId] || fallback;
   };
 </script>
+
+<!-- Промо-банер (вмикається з адмінки) -->
+<div id="promoBar" style="display:none;background:#111;color:#fff;text-align:center;padding:9px 16px;font-size:13.5px;font-weight:600;letter-spacing:.2px;line-height:1.4;"></div>
 
 <header>
   <div class="nav">
@@ -3391,8 +3394,7 @@
   const storyDots = document.getElementById('storyDots');
   const storyNext = document.getElementById('storyNext');
   if(storyTrack && storyDots){
-    const cards = Array.from(storyTrack.children);
-    const dots = Array.from(storyDots.children);
+    let cards = [], dots = [];
 
     const setActive = (i)=>{
       dots.forEach((d,idx)=>d.classList.toggle('active', idx===i));
@@ -3406,10 +3408,33 @@
       });
       return best;
     };
+    function initStoryCards(){
+      cards = Array.from(storyTrack.children);
+      storyDots.innerHTML = cards.map((_,i)=>'<span class="dot'+(i===0?' active':'')+'" data-index="'+i+'"></span>').join('');
+      dots = Array.from(storyDots.children);
+      dots.forEach((d,idx)=>d.addEventListener('click', ()=>{
+        cards[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+      }));
+    }
+    initStoryCards();
+
+    // Кейси з адмінки: перебудовуємо картки
+    const escCase = s=>String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    document.addEventListener('lq-content', ()=>{
+      const cs = (window.SITE_CONTENT||{}).cases;
+      if(!cs || !cs.length) return;
+      storyTrack.innerHTML = cs.map(k=>`
+        <article class="story-card">
+          <div class="story-photo">${k.img?`<img src="${escCase(k.img)}" alt="${escCase(k.tag)}" decoding="async">`:''}</div>
+          <div class="story-content">
+            <span class="story-tag">${escCase(k.tag)}</span>
+            <p class="story-quote">${escCase(k.quote)}</p>
+            <div class="story-tags">${(k.pills||[]).map(pl=>`<span class="tag-pill">${escCase(pl)}</span>`).join('')}</div>
+          </div>
+        </article>`).join('');
+      initStoryCards();
+    });
     storyTrack.addEventListener('scroll', ()=>setActive(closestIndex()), {passive:true});
-    dots.forEach((d,idx)=>d.addEventListener('click', ()=>{
-      cards[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-    }));
     storyNext.addEventListener('click', ()=>{
       const maxScroll = storyTrack.scrollWidth - storyTrack.clientWidth;
       if(storyTrack.scrollLeft >= maxScroll - 4){
@@ -3971,22 +3996,40 @@
   }
 
   // FAQ accordion
-  document.querySelectorAll('.faq-item').forEach(item=>{
-    const q = item.querySelector('.faq-q');
-    const a = item.querySelector('.faq-a');
-    q.addEventListener('click', ()=>{
-      const isOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item.open').forEach(o=>{
-        if(o!==item){o.classList.remove('open'); o.querySelector('.faq-a').style.maxHeight=null;}
+  function bindFaqItems(root){
+    root.querySelectorAll('.faq-item').forEach(item=>{
+      const q = item.querySelector('.faq-q');
+      const a = item.querySelector('.faq-a');
+      q.addEventListener('click', ()=>{
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(o=>{
+          if(o!==item){o.classList.remove('open'); o.querySelector('.faq-a').style.maxHeight=null;}
+        });
+        if(isOpen){
+          item.classList.remove('open');
+          a.style.maxHeight = null;
+        } else {
+          item.classList.add('open');
+          a.style.maxHeight = a.scrollHeight + 'px';
+        }
       });
-      if(isOpen){
-        item.classList.remove('open');
-        a.style.maxHeight = null;
-      } else {
-        item.classList.add('open');
-        a.style.maxHeight = a.scrollHeight + 'px';
-      }
     });
+  }
+  bindFaqItems(document);
+
+  // FAQ з адмінки: якщо менеджер задав свій список — перебудовуємо
+  const escFaq = s=>String(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  document.addEventListener('lq-content', ()=>{
+    const faq = (window.SITE_CONTENT||{}).faq;
+    if(!faq || !faq.length) return;
+    const listEl = document.querySelector('#faq .faq-list');
+    if(!listEl) return;
+    listEl.innerHTML = faq.map(item=>`
+      <div class="faq-item">
+        <button class="faq-q"><span>${escFaq(item.q)}</span><span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        <div class="faq-a"><p>${escFaq(item.a).replace(/\n/g,'<br>')}</p></div>
+      </div>`).join('');
+    bindFaqItems(listEl);
   });
 
   // In-page navigation: scroll via JS using data-scroll-to (no real href = no native "Open Link?" dialog)
@@ -5827,7 +5870,14 @@ window.LOOMIQ_CONFIG = {
       models: data.models || {},
       reviewOrder: data.reviewOrder || null,
       reviewPhotos: data.reviewPhotos || null,
-      products: data.products || {}
+      products: data.products || {},
+      contacts: data.contacts || {},
+      faq: data.faq || null,
+      hero: data.hero || {},
+      about: data.about || {},
+      stats: data.stats || null,
+      cases: data.cases || null,
+      promo: data.promo || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
     document.dispatchEvent(new Event('lq-content'));
@@ -5839,6 +5889,55 @@ window.LOOMIQ_CONFIG = {
       }, function(e){ console.warn('site content failed', e); });
     }catch(e){ console.warn('site content failed', e); }
   }
+
+  /* Контакти, тексти головної, цифри, промо-банер — з адмінки */
+  document.addEventListener('lq-content', function(){
+    var sc = window.SITE_CONTENT;
+    // Контакти
+    var ct = sc.contacts || {};
+    if(ct.telegram){
+      document.querySelectorAll('a[href*="t.me/"]').forEach(function(a){ a.href = ct.telegram; });
+      var handle = (ct.telegram.match(/t\.me\/([\w_]+)/) || [])[1];
+      if(handle) document.querySelectorAll('a[href*="t.me/"] .pm-contact-sub').forEach(function(s){ s.textContent = '@'+handle; });
+    }
+    if(ct.viber){
+      document.querySelectorAll('a[href^="viber:"]').forEach(function(a){ a.href = ct.viber; });
+    }
+    if(ct.phone){
+      var tel = ct.phone.replace(/[^\d+]/g,'');
+      document.querySelectorAll('a[href^="tel:"]').forEach(function(a){
+        a.href = 'tel:'+tel;
+        var sub = a.querySelector('.pm-contact-sub');
+        if(sub) sub.textContent = ct.phone;
+      });
+      document.querySelectorAll('a[href^="viber:"] .pm-contact-sub').forEach(function(s){ s.textContent = ct.phone; });
+    }
+    // Hero
+    var hero = sc.hero || {};
+    if(hero.title){ var h1 = document.querySelector('.hero-top h1'); if(h1) h1.textContent = hero.title; }
+    if(hero.subtitle){ var lead = document.querySelector('.hero-top p.lead'); if(lead) lead.textContent = hero.subtitle; }
+    // Про нас
+    var about = sc.about || {};
+    if(about.title){ var at = document.querySelector('.about-text h2'); if(at) at.textContent = about.title; }
+    if(about.text){ var ap = document.querySelector('.about-text p'); if(ap) ap.textContent = about.text; }
+    // Цифри
+    if(sc.stats && sc.stats.length){
+      var items = document.querySelectorAll('.about-stats .item');
+      sc.stats.forEach(function(st, i){
+        if(!items[i]) return;
+        var n = items[i].querySelector('.num'), l = items[i].querySelector('.lbl');
+        if(n && st.num) n.textContent = st.num;
+        if(l && st.lbl) l.textContent = st.lbl;
+      });
+    }
+    // Промо-банер
+    var promo = sc.promo || {};
+    var bar = document.getElementById('promoBar');
+    if(bar){
+      if(promo.on && promo.text){ bar.textContent = promo.text; bar.style.display = ''; }
+      else bar.style.display = 'none';
+    }
+  });
 
   /* Порядок статичних відгуків (data-rid) — менеджер задає в адмінці */
   document.addEventListener('lq-content', function(){
