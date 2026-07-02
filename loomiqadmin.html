@@ -968,11 +968,26 @@ overlay.addEventListener('click', closeSidebar);
 /* ============================================================
    NAV
    ============================================================ */
+/* Пароль на «Конструктор сайту» (SHA-256; діє до закриття вкладки) */
+const CTOR_PASS_HASH = '2cfc5749aed98a1b77918816168c0a8cd278ef7675acdbd98e8e44b516534f29';
+async function askCtorPass(){
+  if(sessionStorage.getItem('ctorOk') === '1') return true;
+  const p = prompt('Розділ захищено. Введіть пароль до Конструктора сайту:');
+  if(p === null) return false;
+  try{
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p.trim()));
+    const hex = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    if(hex === CTOR_PASS_HASH){ sessionStorage.setItem('ctorOk','1'); return true; }
+  }catch(e){ console.error(e); }
+  toast('Невірний пароль');
+  return false;
+}
 document.querySelectorAll('.nav button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+  btn.addEventListener('click', async ()=>{
+    const view = btn.dataset.view;
+    if(view === 'photos' && !(await askCtorPass())) return;
     document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    const view = btn.dataset.view;
     document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
@@ -1712,8 +1727,7 @@ function renderGoodsTab(){
     const priceNow = goodsWork.priceLabels[p.id] !== undefined ? goodsWork.priceLabels[p.id] : p.price;
     const dispName = (contentData.names && contentData.names[p.id]) || p.name;
     return `<div class="goods-row" data-gid="${p.id}" style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);${hiddenNow?'opacity:.5;':''}">
-      <button class="pc-btn reset" data-gmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
-      <button class="pc-btn reset" data-gmove="1" data-i="${i}" ${i===items.length-1?'disabled style="opacity:.4;"':''}>↓</button>
+      ${DRAG_H}
       <b style="flex:1;min-width:120px;font-size:13.5px;">${escA(dispName)}${p.custom?' <span style="font-size:10px;color:var(--accent);font-weight:700;">СВІЙ</span>':''}</b>
       <input data-gprice value="${escA(priceNow)}" maxlength="24" style="width:120px;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;" placeholder="від … грн">
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;">
@@ -1722,14 +1736,11 @@ function renderGoodsTab(){
       ${p.custom?`<button class="pc-btn reset" data-gdel="${p.id}" title="Видалити товар">🗑</button>`:''}
     </div>`;
   }).join('');
-  box.querySelectorAll('[data-gmove]').forEach(b=>b.addEventListener('click', ()=>{
+  enableDrag(box, '.goods-row', ()=>{
     syncGoodsWorkFromDom();
-    const ids = Array.from(box.querySelectorAll('.goods-row')).map(r=>r.dataset.gid);
-    const i = Number(b.dataset.i), d = Number(b.dataset.gmove);
-    const t = ids[i]; ids[i] = ids[i+d]; ids[i+d] = t;
-    goodsWork.order = ids;
+    goodsWork.order = Array.from(box.querySelectorAll('.goods-row')).map(r=>r.dataset.gid);
     renderGoodsTab();
-  }));
+  });
   box.querySelectorAll('[data-gdel]').forEach(b=>b.addEventListener('click', async ()=>{
     const id = b.dataset.gdel;
     const c = ((contentData.products||{}).custom||[]).find(x=>x.id===id);
@@ -1980,9 +1991,8 @@ function renderCaseRows(rows){
       </div>
       <div style="flex:1;min-width:200px;">
         <div style="display:flex;gap:8px;margin-bottom:6px;">
+          ${DRAG_H}
           <input data-ctag value="${escA(r.tag)}" maxlength="40" placeholder="Назва компанії" style="flex:1;min-width:0;font-family:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
-          <button class="pc-btn reset" data-cmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
-          <button class="pc-btn reset" data-cmove="1" data-i="${i}" ${i===rows.length-1?'disabled style="opacity:.4;"':''}>↓</button>
           <button class="pc-btn reset" data-casedel="${i}" style="flex:none;padding:7px 10px;">✕</button>
         </div>
         <textarea data-cquote rows="2" maxlength="240" placeholder="Опис кейсу" style="width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;resize:vertical;margin-bottom:6px;">${escA(r.quote)}</textarea>
@@ -1992,12 +2002,7 @@ function renderCaseRows(rows){
   box.querySelectorAll('[data-casedel]').forEach(b=>b.addEventListener('click', ()=>{
     const rows2 = readCaseRows(); rows2.splice(Number(b.dataset.casedel),1); renderCaseRows(rows2);
   }));
-  box.querySelectorAll('[data-cmove]').forEach(b=>b.addEventListener('click', ()=>{
-    const rows2 = readCaseRows();
-    const i = Number(b.dataset.i), d = Number(b.dataset.cmove);
-    const t = rows2[i]; rows2[i] = rows2[i+d]; rows2[i+d] = t;
-    renderCaseRows(rows2);
-  }));
+  enableDrag(box, '.case-row', ()=>{ renderCaseRows(readCaseRows()); });
   box.querySelectorAll('[data-caseimg]').forEach(b=>b.addEventListener('click', ()=>{
     const idx = Number(b.dataset.caseimg);
     const inp = document.createElement('input');
@@ -2103,6 +2108,41 @@ function allPhotoCfg(){
 }
 function photoCfg(id){ const all = allPhotoCfg(); return all.find(g=>g.id===id) || all[0]; }
 function escA(s){ return String(s==null?'':s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+/* Універсальне перетягування елементів списку/сітки за ручку .drag-h */
+function enableDrag(box, rowSel, onDrop){
+  box.querySelectorAll(rowSel+' .drag-h').forEach(h=>{
+    const row = h.closest(rowSel);
+    h.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      row.style.opacity = '.55';
+      row.style.boxShadow = '0 4px 14px rgba(0,0,0,.2)';
+      const onMove = ev=>{
+        ev.preventDefault();
+        const others = Array.from(box.querySelectorAll(rowSel)).filter(r=>r!==row);
+        // reading-order: перший елемент, чий центр «після» курсора (працює і для списків, і для сіток)
+        const after = others.find(r=>{
+          const rc = r.getBoundingClientRect();
+          const cy = rc.top + rc.height/2, cx = rc.left + rc.width/2;
+          return ev.clientY < cy - rc.height/2 ? true
+               : (Math.abs(ev.clientY - cy) <= rc.height/2 && ev.clientX < cx);
+        });
+        if(after) box.insertBefore(row, after);
+        else box.appendChild(row);
+      };
+      const onUp = ()=>{
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointercancel', onUp);
+        row.style.opacity = ''; row.style.boxShadow = '';
+        onDrop();
+      };
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp, {once:true});
+      document.addEventListener('pointercancel', onUp);
+    });
+  });
+}
+const DRAG_H = '<span class="drag-h" title="Потягніть, щоб перемістити" style="flex:none;width:26px;height:32px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;color:var(--ink-soft);font-size:15px;user-select:none;">⠿</span>';
 
 function renderPhotoManager(){
   const gSel = document.getElementById('photo-garment');
@@ -2307,25 +2347,22 @@ function renderModelsTab(){
     return;
   }
   box.innerHTML = list.map((url,i)=>`
-    <div class="photo-cell">
-      <div class="pc-view">Фото ${i+1}</div>
-      <div class="pc-img"><img src="${escA(url)}" alt=""></div>
+    <div class="photo-cell" data-mi="${i}">
+      <div class="pc-view" style="display:flex;align-items:center;gap:6px;">${DRAG_H}Фото ${i+1}</div>
+      <div class="pc-img"><img src="${escA(url)}" alt="" style="pointer-events:none;"></div>
       <div class="pc-actions">
-        <button class="pc-btn reset" data-mmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>←</button>
-        <button class="pc-btn reset" data-mmove="1" data-i="${i}" ${i===list.length-1?'disabled style="opacity:.4;"':''}>→</button>
-        <button class="pc-btn reset" data-mdel="${i}">✕</button>
+        <button class="pc-btn reset" data-mdel="${i}">✕ Видалити</button>
       </div>
     </div>`).join('');
-  box.querySelectorAll('[data-mmove]').forEach(b=>b.addEventListener('click', async ()=>{
-    const i = Number(b.dataset.i), d = Number(b.dataset.mmove);
-    const arr = list.slice(); const t = arr[i]; arr[i] = arr[i+d]; arr[i+d] = t;
-    await saveModels(arr);
-  }));
   box.querySelectorAll('[data-mdel]').forEach(b=>b.addEventListener('click', async ()=>{
     if(!confirm('Видалити це фото моделі?')) return;
     const arr = list.slice(); arr.splice(Number(b.dataset.mdel),1);
     await saveModels(arr.length ? arr : null);
   }));
+  enableDrag(box, '.photo-cell', async ()=>{
+    const order = Array.from(box.querySelectorAll('.photo-cell')).map(c=>Number(c.dataset.mi));
+    await saveModels(order.map(i=>list[i]));
+  });
 }
 async function saveModels(arr){
   try{
@@ -2388,51 +2425,18 @@ async function renderReviewOrder(){
   box.innerHTML = revOrderWork.map((rid,i)=>{
     const r = byRid[rid]; if(!r) return '';
     return `<div class="rev-row" data-rid="${rid}" style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);background:#fff;">
-      <span class="rev-drag" title="Потягніть, щоб перемістити" style="flex:none;width:26px;height:34px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;color:var(--ink-soft);font-size:15px;user-select:none;">⠿</span>
+      ${DRAG_H}
       <span class="rev-num" style="font-family:var(--mono);font-size:11px;color:var(--ink-soft);width:22px;">${i+1}</span>
       ${r.photo?`<img src="${escA(r.photo)}" style="width:34px;height:34px;border-radius:7px;object-fit:cover;flex:none;pointer-events:none;">`:'<span style="width:34px;flex:none;"></span>'}
       <div style="flex:1;min-width:0;">
         <b style="font-size:13px;">${escA(r.name)}</b> <span style="font-size:11px;color:var(--ink-soft);">${escA(r.date)}</span>
         <div style="font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escA(r.text)}</div>
       </div>
-      <button class="pc-btn reset" data-rmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
-      <button class="pc-btn reset" data-rmove="1" data-i="${i}" ${i===revOrderWork.length-1?'disabled style="opacity:.4;"':''}>↓</button>
     </div>`;
   }).join('');
-  box.querySelectorAll('[data-rmove]').forEach(b=>b.addEventListener('click', ()=>{
-    const i = Number(b.dataset.i), d = Number(b.dataset.rmove);
-    const t = revOrderWork[i]; revOrderWork[i] = revOrderWork[i+d]; revOrderWork[i+d] = t;
+  enableDrag(box, '.rev-row', ()=>{
+    revOrderWork = Array.from(box.querySelectorAll('.rev-row')).map(r=>r.dataset.rid);
     renderReviewOrder();
-  }));
-  // Перетягування мишкою/пальцем за «ручку» ⠿
-  // (слухачі на document: переміщення рядка в DOM скидає pointer capture, тому capture не використовуємо)
-  box.querySelectorAll('.rev-row .rev-drag').forEach(h=>{
-    const row = h.closest('.rev-row');
-    h.addEventListener('pointerdown', e=>{
-      e.preventDefault();
-      row.style.opacity = '.55';
-      row.style.boxShadow = '0 4px 14px rgba(0,0,0,.15)';
-      const onMove = ev=>{
-        ev.preventDefault();
-        const others = Array.from(box.querySelectorAll('.rev-row')).filter(r=>r!==row);
-        const after = others.find(r=>{
-          const rect = r.getBoundingClientRect();
-          return ev.clientY < rect.top + rect.height/2;
-        });
-        if(after) box.insertBefore(row, after);
-        else box.appendChild(row);
-      };
-      const onUp = ()=>{
-        document.removeEventListener('pointermove', onMove);
-        document.removeEventListener('pointercancel', onUp);
-        row.style.opacity = ''; row.style.boxShadow = '';
-        revOrderWork = Array.from(box.querySelectorAll('.rev-row')).map(r=>r.dataset.rid);
-        renderReviewOrder();
-      };
-      document.addEventListener('pointermove', onMove);
-      document.addEventListener('pointerup', onUp, {once:true});
-      document.addEventListener('pointercancel', onUp);
-    });
   });
 }
 document.getElementById('rev-order-save').addEventListener('click', async ()=>{
@@ -2462,24 +2466,22 @@ function renderReviewPhotosAdmin(){
     revPhotosWork = (saved && saved.length) ? saved.slice() : DEFAULT_REVIEW_PHOTOS.slice();
   }
   box.innerHTML = revPhotosWork.map((v,i)=>`
-    <div class="photo-cell">
-      <div class="pc-view">№${i+1}</div>
-      <div class="pc-img"><img src="${escA(revPhotoSrc(v))}" alt=""></div>
+    <div class="photo-cell" data-pi="${i}">
+      <div class="pc-view" style="display:flex;align-items:center;gap:6px;">${DRAG_H}№${i+1}</div>
+      <div class="pc-img"><img src="${escA(revPhotoSrc(v))}" alt="" style="pointer-events:none;"></div>
       <div class="pc-actions">
-        <button class="pc-btn reset" data-pmove="-1" data-i="${i}" ${i===0?'disabled style="opacity:.4;"':''}>←</button>
-        <button class="pc-btn reset" data-pmove="1" data-i="${i}" ${i===revPhotosWork.length-1?'disabled style="opacity:.4;"':''}>→</button>
-        <button class="pc-btn reset" data-pdel="${i}">✕</button>
+        <button class="pc-btn reset" data-pdel="${i}">✕ Видалити</button>
       </div>
     </div>`).join('');
-  box.querySelectorAll('[data-pmove]').forEach(b=>b.addEventListener('click', ()=>{
-    const i = Number(b.dataset.i), d = Number(b.dataset.pmove);
-    const t = revPhotosWork[i]; revPhotosWork[i] = revPhotosWork[i+d]; revPhotosWork[i+d] = t;
-    renderReviewPhotosAdmin();
-  }));
   box.querySelectorAll('[data-pdel]').forEach(b=>b.addEventListener('click', ()=>{
     revPhotosWork.splice(Number(b.dataset.pdel),1);
     renderReviewPhotosAdmin();
   }));
+  enableDrag(box, '.photo-cell', ()=>{
+    const order = Array.from(box.querySelectorAll('.photo-cell')).map(c=>Number(c.dataset.pi));
+    revPhotosWork = order.map(i=>revPhotosWork[i]);
+    renderReviewPhotosAdmin();
+  });
 }
 document.getElementById('rev-photos-add').addEventListener('click', ()=>{
   const inp = document.createElement('input');
