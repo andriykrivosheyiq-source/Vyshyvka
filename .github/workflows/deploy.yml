@@ -1,10 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Публікація тепер іде напряму з гілки main (Settings → Pages → Deploy from a branch).
+# Цей workflow залишено лише для ручного запуску на випадок повернення на Actions-деплой.
 on:
-  push:
-    branches:
-      - claude/exciting-franklin-6gpae2
-      - main
   workflow_dispatch:
 
 permissions:
