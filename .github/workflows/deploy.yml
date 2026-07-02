@@ -39,3 +39,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Черга Pages буває повільною — чекаємо до 30 хв замість стандартних 10
+          timeout: 1800000
