@@ -299,6 +299,24 @@
   .t-step.done .step-dot{background:var(--good);}
   .t-step.active .step-dot{background:var(--accent);}
   .t-step .step-lbl{font-size:9px;color:var(--ink-soft);line-height:1.2;}
+  /* Фото товарів */
+  .photo-picker{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .photo-sel{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-soft);min-width:180px;flex:1;}
+  .photo-sel select{font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;}
+  .photo-sel select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .photo-cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
+  .photo-cell{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:9px;}
+  .photo-cell .pc-view{font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:capitalize;}
+  .photo-cell .pc-img{aspect-ratio:1;border-radius:10px;background:#f4f4f6 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22/>') center/contain no-repeat;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .photo-cell .pc-img img{width:100%;height:100%;object-fit:contain;}
+  .photo-cell .pc-badge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;}
+  .photo-cell .pc-actions{display:flex;gap:8px;}
+  .pc-btn{all:unset;cursor:pointer;flex:1;text-align:center;font-size:12.5px;font-weight:600;border-radius:8px;padding:9px 6px;transition:.15s;}
+  .pc-btn.up{background:var(--accent);color:#fff;}
+  .pc-btn.up:hover{filter:brightness(1.08);}
+  .pc-btn.up.busy{opacity:.6;cursor:default;}
+  .pc-btn.reset{background:#fff;border:1px solid var(--line);color:var(--ink-soft);}
+  .pc-btn.reset:hover{border-color:var(--bad,#d64550);color:var(--bad,#d64550);}
 </style>
 </head>
 <body>
@@ -339,6 +357,7 @@
         <button data-view="garments"><span class="num">02</span> Товари</button>
         <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
         <button data-view="reviews"><span class="num">04</span> Відгуки</button>
+        <button data-view="photos"><span class="num">05</span> Фото товарів</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -546,6 +565,26 @@
       <div id="rev-list"></div>
     </section>
 
+    <!-- ============ VIEW 5 — PRODUCT PHOTOS ============ -->
+    <section id="view-photos" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Каталог</div>
+        <h1>Фото товарів</h1>
+        <div class="sub">Оберіть товар і колір, потім завантажте власне фото або поверніть стандартне. Зміни одразу зʼявляються на сайті.</div>
+      </div>
+      <div class="photo-picker">
+        <label class="photo-sel">
+          <span>Товар</span>
+          <select id="photo-garment"></select>
+        </label>
+        <label class="photo-sel">
+          <span>Колір</span>
+          <select id="photo-color"></select>
+        </label>
+      </div>
+      <div id="photo-cells" class="photo-cells"></div>
+    </section>
+
   </main>
   </div><!-- /.main-wrap -->
 </div><!-- /.shell -->
@@ -572,6 +611,10 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 const STATE_DOC = fbDb.collection('loomiq').doc('state');
+const PHOTOS_DOC = fbDb.collection('loomiq').doc('photos');   // публічні фото товарів (читає сайт)
+
+/* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
+const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
 
 /* ============================================================
    ВХІД ДЛЯ МЕНЕДЖЕРІВ (Firebase Authentication, email+пароль)
@@ -718,12 +761,14 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки'};
+    document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Фото товарів'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
+    if(view==='photos') renderPhotoManager();
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -1382,6 +1427,144 @@ document.querySelectorAll('#rev-filter button').forEach(b=>{
 });
 
 /* ============================================================
+   ФОТО ТОВАРІВ — завантаження/заміна фото з адмінки
+   Ключ фото: <garment>-<color>-<view>  → файл images/<key>.webp
+   Перевизначення зберігаються у loomiq/photos { map: { key: url } }
+   ============================================================ */
+const PHOTO_CFG = [
+  {id:'tee', name:'Футболка базова', views:['front','back'], colors:[
+    {id:'black',name:'Чорний'},{id:'white',name:'Білий'},{id:'lgray',name:'Світло-сірий'},{id:'gray',name:'Сірий'},
+    {id:'navy',name:'Синій'},{id:'steelblue',name:'Блакитний'},{id:'green',name:'Зелений'},{id:'sand',name:'Пісочний'},
+    {id:'olive',name:'Хакі'},{id:'red',name:'Бордовий'},{id:'rose',name:'Рожевий'},{id:'wine',name:'Вишневий'},
+    {id:'plum',name:'Слива'},{id:'orange',name:'Помаранчевий'},{id:'yellow',name:'Жовтий'}]},
+  {id:'teeover', name:'Футболка оверсайз', views:['front','back'], colors:[
+    {id:'black',name:'Чорний'},{id:'white',name:'Білий'},{id:'cream',name:'Молочний'},{id:'greige',name:'Світло-сірий'},
+    {id:'sand',name:'Пісочний'},{id:'pink',name:'Рожевий'},{id:'lblue',name:'Блакитний'},{id:'slate',name:'Сіро-синій'},
+    {id:'brown',name:'Коричневий'}]},
+  {id:'hoodieover', name:'Худі оверсайз', views:['front','back'], colors:[
+    {id:'white',name:'Білий'},{id:'gray',name:'Світло-сірий'},{id:'khaki',name:'Тауп'},{id:'brown',name:'Капучино'},
+    {id:'coyote',name:'Койот'},{id:'fume',name:'Фюме'},{id:'black',name:'Чорний'}]},
+  {id:'hoodieoverfleece', name:'Худі оверсайз з флісом', views:['front','back'], colors:[
+    {id:'pink',name:'Рожевий'},{id:'blue',name:'Синій'},{id:'brown',name:'Шоколадний'}]},
+  {id:'hoodie', name:'Худі базове', views:['front','back'], colors:[
+    {id:'white',name:'Білий'},{id:'vanilla',name:'Ванільний'},{id:'skyblue',name:'Блакитний'},{id:'royalblue',name:'Синій'},
+    {id:'mint',name:'Мʼятний'},{id:'lavender',name:'Лавандовий'},{id:'purple',name:'Фіолетовий'},{id:'darkgreen',name:'Темно-зелений'},
+    {id:'sunyellow',name:'Жовтий'},{id:'bordo',name:'Бордовий'},{id:'chocolate',name:'Шоколадний'}]},
+  {id:'hoodiezip', name:'Худі на застібці', views:['front','back'], colors:[
+    {id:'black',name:'Чорний'},{id:'gray',name:'Сірий'},{id:'blue',name:'Синій'},{id:'navy',name:'Темно-синій'},{id:'red',name:'Червоний'}]},
+  {id:'sweat', name:'Світшот', views:['front','back'], colors:[
+    {id:'black',name:'Чорний'},{id:'white',name:'Білий'},{id:'gray',name:'Сірий'},{id:'graphite',name:'Графіт'},
+    {id:'navy',name:'Темно-синій'},{id:'blue',name:'Синій'},{id:'azure',name:'Блакитний'},{id:'darkgreen',name:'Темно-зелений'},
+    {id:'khaki',name:'Хакі'},{id:'bordo',name:'Бордовий'},{id:'red',name:'Червоний'},{id:'pink',name:'Рожевий'},
+    {id:'beige',name:'Бежевий'},{id:'purple',name:'Фіолетовий'},{id:'yellow',name:'Жовтий'}]},
+  {id:'cap', name:'Кепка', views:['front','back','left','right'], colors:[
+    {id:'black',name:'Чорний'},{id:'cream',name:'Білий'},{id:'beige',name:'Бежевий'},{id:'graphite',name:'Сірий'},
+    {id:'navy',name:'Темно-синій'},{id:'azure',name:'Блакитний'},{id:'darkgreen',name:'Темно-зелений'},{id:'brown',name:'Коричневий'},
+    {id:'red',name:'Червоний'},{id:'blue',name:'Електрик'}]},
+  {id:'tote', name:'Шопер', views:['front','back'], colors:[
+    {id:'beige',name:'Бежевий'},{id:'white',name:'Білий'},{id:'navy',name:'Темно-синій'},{id:'black',name:'Чорний'}]}
+];
+const VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
+let photosMap = {};
+let photoGarmentId = PHOTO_CFG[0].id, photoColorId = PHOTO_CFG[0].colors[0].id;
+
+function photoCfg(id){ return PHOTO_CFG.find(g=>g.id===id) || PHOTO_CFG[0]; }
+
+function renderPhotoManager(){
+  const gSel = document.getElementById('photo-garment');
+  const cSel = document.getElementById('photo-color');
+  if(!gSel || !cSel) return;
+  gSel.innerHTML = PHOTO_CFG.map(g=>`<option value="${g.id}"${g.id===photoGarmentId?' selected':''}>${g.name}</option>`).join('');
+  const g = photoCfg(photoGarmentId);
+  if(!g.colors.some(c=>c.id===photoColorId)) photoColorId = g.colors[0].id;
+  cSel.innerHTML = g.colors.map(c=>`<option value="${c.id}"${c.id===photoColorId?' selected':''}>${c.name}</option>`).join('');
+  renderPhotoCells();
+}
+
+function renderPhotoCells(){
+  const box = document.getElementById('photo-cells');
+  if(!box) return;
+  const g = photoCfg(photoGarmentId);
+  box.innerHTML = g.views.map(v=>{
+    const key = g.id+'-'+photoColorId+'-'+v;
+    const custom = photosMap[key];
+    const src = custom || ('images/'+key+'.webp');
+    return `<div class="photo-cell" data-key="${key}">
+      <div class="pc-view">${VIEW_LABEL[v]||v}</div>
+      <div class="pc-img"><img src="${src}" alt="" onerror="this.style.opacity=.25;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22></svg>'"></div>
+      ${custom?'<span class="pc-badge">Власне фото</span>':''}
+      <div class="pc-actions">
+        <button class="pc-btn up" data-key="${key}">${custom?'Замінити':'Завантажити'}</button>
+        ${custom?`<button class="pc-btn reset" data-key="${key}">Скинути</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.pc-btn.up').forEach(b=>b.addEventListener('click', ()=>pickPhoto(b.dataset.key, b)));
+  box.querySelectorAll('.pc-btn.reset').forEach(b=>b.addEventListener('click', ()=>resetPhoto(b.dataset.key)));
+}
+
+document.getElementById('photo-garment').addEventListener('change', e=>{ photoGarmentId=e.target.value; renderPhotoManager(); });
+document.getElementById('photo-color').addEventListener('change', e=>{ photoColorId=e.target.value; renderPhotoCells(); });
+
+function pickPhoto(key, btn){
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.addEventListener('change', async ()=>{
+    const file = inp.files && inp.files[0];
+    if(!file) return;
+    btn.classList.add('busy'); btn.textContent='Завантаження…';
+    try{
+      const blob = await shrinkImage(file);
+      const url = await uploadCloudinary(blob);
+      await PHOTOS_DOC.set({ map: { [key]: url } }, { merge:true });
+      photosMap[key] = url;
+      toast('Фото оновлено'); renderPhotoCells();
+    }catch(e){ console.error(e); toast('Не вдалось завантажити фото'); btn.classList.remove('busy'); btn.textContent='Завантажити'; }
+  });
+  inp.click();
+}
+
+async function resetPhoto(key){
+  if(!confirm('Повернути стандартне фото?')) return;
+  try{
+    await PHOTOS_DOC.set({ map: { [key]: firebase.firestore.FieldValue.delete() } }, { merge:true });
+    delete photosMap[key];
+    toast('Повернуто стандартне'); renderPhotoCells();
+  }catch(e){ console.error(e); toast('Помилка'); }
+}
+
+function shrinkImage(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const MAX = 1400;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if(Math.max(w,h) > MAX){ const s = MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+      const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      cv.toBlob(b=> b?resolve(b):reject(new Error('blob')), 'image/jpeg', 0.85);
+    };
+    img.onerror = ()=>reject(new Error('img'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function uploadCloudinary(blob){
+  return new Promise((resolve, reject)=>{
+    if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', CLOUDINARY.preset);
+    const ctrl = new AbortController();
+    const t = setTimeout(()=>ctrl.abort(), 30000);
+    fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY.cloud+'/image/upload', {method:'POST', body:fd, signal:ctrl.signal})
+      .then(r=>r.json())
+      .then(d=>{ clearTimeout(t); d && d.secure_url ? resolve(d.secure_url) : reject(new Error('no-url')); })
+      .catch(err=>{ clearTimeout(t); reject(err); });
+  });
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 async function init(){
@@ -1394,6 +1577,13 @@ async function init(){
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+
+  // Фото товарів — живо тримаємо мапу перевизначень і оновлюємо галерею
+  PHOTOS_DOC.onSnapshot(function(snap){
+    photosMap = (snap.exists && snap.data().map) ? snap.data().map : {};
+    const pv = document.getElementById('view-photos');
+    if(pv && pv.style.display!=='none') renderPhotoCells();
+  }, function(e){ console.warn('photos snapshot', e); });
 
   // Жива синхронізація: зміни з інших пристроїв одразу підтягуються
   STATE_DOC.onSnapshot(function(snap){

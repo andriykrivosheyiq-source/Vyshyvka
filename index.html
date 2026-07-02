@@ -1430,6 +1430,16 @@
 </head>
 <body>
 
+<script>
+  /* Фото товарів, які менеджер може міняти з адмінки (Firestore: loomiq/photos).
+     LQ_img() підміняє стандартний файл images/<garment>-<color>-<view>.webp на завантажене фото. */
+  window.PHOTO_OVERRIDES = window.PHOTO_OVERRIDES || {};
+  window.LQ_img = function(path){
+    var m = /images\/(.+)\.webp(?:\?.*)?$/.exec(path || '');
+    return (m && window.PHOTO_OVERRIDES[m[1]]) ? window.PHOTO_OVERRIDES[m[1]] : path;
+  };
+</script>
+
 <header>
   <div class="nav">
     <button class="logo" data-scroll-to="top">Loomiq</button>
@@ -3890,7 +3900,7 @@
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
         <div class="product-art">
           ${p.img
-            ? `<img src="${p.img}" alt="${p.name}" loading="lazy">`
+            ? `<img src="${window.LQ_img(p.img)}" alt="${p.name}" loading="lazy">`
             : `<svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>`}
         </div>
         <div class="product-info">
@@ -3900,6 +3910,7 @@
       </button>`).join('');
   }
   renderCatalogProducts(catalogProductGrid);
+  document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
@@ -4256,7 +4267,7 @@
       pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
       var usePhoto = !!GARMENT_COLORS[g.id];   // крій має реальні фото-мокапи по кольорах
       if(usePhoto){
-        var src = 'images/'+g.id+'-'+c.id+'-'+pm.side+'.webp';
+        var src = window.LQ_img('images/'+g.id+'-'+c.id+'-'+pm.side+'.webp');
         if(pmGarmentPhoto.getAttribute('src') !== src) pmGarmentPhoto.setAttribute('src', src);
         pmGarmentPhoto.style.display = '';
         pmGarmentSvg.style.display = 'none';
@@ -4292,6 +4303,12 @@
       else { updateModelLogos(); }
     }
     var lastModelGarment = null;
+
+    // Коли менеджер міняє фото товарів в адмінці — оновлюємо показ без перезавантаження
+    document.addEventListener('lq-photos', function(){
+      try{ renderGarment(); }catch(e){}
+      try{ if(pm.tab === 'garment' || pm.tab === 'color') renderTabPanel(); }catch(e){}
+    });
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     var HANDLE_ROTATE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
@@ -4495,7 +4512,7 @@
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
         GARMENTS.forEach(function(g){
           var sel = g.id === pm.garmentId;
-          var thumb = GARMENT_THUMB[g.id];
+          var thumb = window.LQ_img(GARMENT_THUMB[g.id]);
           var ic = thumb
             ? '<span class="pm-garment-item-ic"><img src="'+thumb+'" alt="" style="width:100%;height:100%;object-fit:contain;"></span>'
             : '<span class="pm-garment-item-ic"><svg viewBox="0 0 100 100" fill="none" stroke="'+(sel?'#111':'#aaa')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+g.path+'"/>'+(g.extra?'<path d="'+g.extra+'"/>':'')+'</svg></span>';
@@ -4944,7 +4961,7 @@
         ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
         var hasPhoto = !!GARMENT_COLORS[g.id];
         var garmentP = hasPhoto
-          ? loadImgEl('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp').then(function(img){
+          ? loadImgEl(window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp')).then(function(img){
               var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
               var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
               ctx.drawImage(img, (C-dw)/2, (C-dh)/2, dw, dh);
@@ -5666,6 +5683,19 @@ window.LOOMIQ_CONFIG = {
     }).catch(function(e){ console.warn('load reviews failed', e); });
   }
   loadReviews();
+
+  /* Підтягуємо фото товарів, які менеджер завантажив з адмінки, і слухаємо зміни наживо */
+  function applyPhotoOverrides(map){
+    window.PHOTO_OVERRIDES = map || {};
+    document.dispatchEvent(new Event('lq-photos'));
+  }
+  if(db){
+    try{
+      db.collection('loomiq').doc('photos').onSnapshot(function(snap){
+        applyPhotoOverrides(snap.exists ? (snap.data().map || {}) : {});
+      }, function(e){ console.warn('photo overrides failed', e); });
+    }catch(e){ console.warn('photo overrides failed', e); }
+  }
 
   // Свайп по горизонталі у модалці відгуків → повернутись на головну (закрити)
   var reviewsModal = document.getElementById('reviewsModal');
