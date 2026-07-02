@@ -452,6 +452,83 @@
 
       <div class="card">
         <div class="card-head">
+          <h2>Прорахунок на сайті — модель «від площі»</h2>
+          <span class="hint">ціна = (база виробу + Σ max(ставка×мм²×fill, мінімалка)) × коеф. кількості</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:14px;cursor:pointer;">
+          <input type="checkbox" id="sp-enabled"> Увімкнути нову модель на сайті (вимкнено = стара формула)
+        </label>
+        <div class="grid2">
+          <div class="technique-block">
+            <h3><span class="dot print"></span> Друк (DTF)</h3>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Ставка, грн/мм²
+                <input type="number" step="0.001" id="sp-dtf-rate">
+              </label>
+              <label class="field">Мін. ціна нанесення, грн
+                <input type="number" step="1" id="sp-dtf-min">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Базовий термін, дн
+                <input type="number" step="1" id="sp-dtf-days">
+              </label>
+              <label class="field">Потужність, мм²/день
+                <input type="number" step="1000" id="sp-dtf-cap">
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">Коеф. завантаження
+                <input type="number" step="0.05" id="sp-dtf-load">
+              </label>
+              <label class="field">Буфер, дн
+                <input type="number" step="1" id="sp-dtf-buf">
+              </label>
+            </div>
+          </div>
+          <div class="technique-block">
+            <h3><span class="dot emb"></span> Вишивка</h3>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Ставка, грн/мм²
+                <input type="number" step="0.001" id="sp-emb-rate">
+              </label>
+              <label class="field">Мін. ціна нанесення, грн
+                <input type="number" step="1" id="sp-emb-min">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Базовий термін, дн
+                <input type="number" step="1" id="sp-emb-days">
+              </label>
+              <label class="field">Потужність, мм²/день
+                <input type="number" step="1000" id="sp-emb-cap">
+              </label>
+            </div>
+            <div class="grid2">
+              <label class="field">Коеф. завантаження
+                <input type="number" step="0.05" id="sp-emb-load">
+              </label>
+              <label class="field">Буфер, дн
+                <input type="number" step="1" id="sp-emb-buf">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-divider" style="margin-top:16px;">Знижки за кількість (коеф. множить усю ціну за одиницю)</div>
+        <div id="sp-tiers"></div>
+        <div class="add-row-btn" id="sp-tier-add">+ Додати поріг</div>
+
+        <div class="tl-divider" style="margin-top:16px;">Базові ціни виробів і висота виробу (для перерахунку частки → мм)</div>
+        <div id="sp-products"></div>
+
+        <div style="margin-top:16px;">
+          <button class="btn btn-accent" id="sp-save">Зберегти прорахунок сайту</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
           <h2>Методи нанесення — собівартість і продажна ціна</h2>
           <span class="hint">формула: на замовлення + од. × на 1 од. + од. × стібки ÷ 1000 × ставка за 1000 стібків</span>
         </div>
@@ -1052,6 +1129,125 @@ function toast(msg){
 /* ============================================================
    SETTINGS VIEW
    ============================================================ */
+/* ============================================================
+   ПРОРАХУНОК САЙТУ «ВІД ПЛОЩІ» — зберігається в публічний документ
+   (loomiq/photos → pricing), його читає конфігуратор на сайті
+   ============================================================ */
+const DEFAULT_SITE_PRICING = {
+  enabled: false,
+  methods: {
+    dtf:   { ratePerMm2: 0.02, minPrice: 300, baseDays: 1, capacityPerDayMm2: 500000, loadCoef: 1, bufferDays: 1 },
+    embro: { ratePerMm2: 0.05, minPrice: 400, baseDays: 2, capacityPerDayMm2: 200000, loadCoef: 1, bufferDays: 1 }
+  },
+  tiers: [
+    {from:1,to:2,coef:1},{from:3,to:9,coef:0.85},{from:10,to:29,coef:0.81},
+    {from:30,to:49,coef:0.78},{from:50,to:99,coef:0.72},{from:100,to:199,coef:0.69},
+    {from:200,to:null,coef:0.65}
+  ],
+  basePrices: { tee:540, teeover:540, hoodie:790, hoodieover:790, hoodieoverfleece:840, hoodiezip:840, sweat:740, cap:630, tote:630 },
+  heights: { default:700, cap:150, tote:400 }
+};
+function curSitePricing(){
+  const p = contentData.pricing;
+  return p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING));
+}
+function paintSitePricing(){
+  if(!document.getElementById('sp-enabled')) return;
+  const p = curSitePricing();
+  document.getElementById('sp-enabled').checked = !!p.enabled;
+  [['dtf','dtf'],['emb','embro']].forEach(([pre,key])=>{
+    const m = p.methods[key] || {};
+    document.getElementById('sp-'+pre+'-rate').value = m.ratePerMm2 ?? '';
+    document.getElementById('sp-'+pre+'-min').value  = m.minPrice ?? '';
+    document.getElementById('sp-'+pre+'-days').value = m.baseDays ?? '';
+    document.getElementById('sp-'+pre+'-cap').value  = m.capacityPerDayMm2 ?? '';
+    document.getElementById('sp-'+pre+'-load').value = m.loadCoef ?? '';
+    document.getElementById('sp-'+pre+'-buf').value  = m.bufferDays ?? '';
+  });
+  paintSpTiers(p.tiers);
+  paintSpProducts(p);
+}
+function paintSpTiers(tiers){
+  document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`
+    <div class="sp-tier-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--ink-soft);">від</span>
+      <input data-sp-from type="number" min="1" value="${t.from}" style="width:80px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <span style="font-size:12px;color:var(--ink-soft);">до</span>
+      <input data-sp-to type="number" min="1" value="${t.to==null?'':t.to}" placeholder="∞" style="width:80px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <span style="font-size:12px;color:var(--ink-soft);">шт → коеф.</span>
+      <input data-sp-coef type="number" step="0.001" min="0.05" max="1" value="${t.coef}" style="width:90px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <span data-sp-pct style="font-size:12px;color:var(--good);min-width:44px;">${t.coef<1?('-'+Math.round((1-t.coef)*100)+'%'):'0%'}</span>
+      <button class="pc-btn reset" data-sp-tdel="${i}" style="flex:none;padding:7px 10px;">✕</button>
+    </div>`).join('');
+  document.querySelectorAll('#sp-tiers [data-sp-tdel]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows = readSpTiers(); rows.splice(Number(b.dataset.spTdel),1); paintSpTiers(rows);
+  }));
+}
+function readSpTiers(){
+  return Array.from(document.querySelectorAll('#sp-tiers .sp-tier-row')).map(r=>({
+    from: parseInt(r.querySelector('[data-sp-from]').value,10) || 1,
+    to: r.querySelector('[data-sp-to]').value === '' ? null : (parseInt(r.querySelector('[data-sp-to]').value,10) || null),
+    coef: parseFloat(r.querySelector('[data-sp-coef]').value) || 1
+  })).sort((a,b)=>a.from-b.from);
+}
+function paintSpProducts(p){
+  const items = goodsAllProducts();
+  document.getElementById('sp-products').innerHTML = items.map(it=>{
+    const bp = (p.basePrices||{})[it.id] ?? '';
+    const hh = (p.heights||{})[it.id] ?? '';
+    const dispName = (contentData.names && contentData.names[it.id]) || it.name;
+    return `<div class="sp-prod-row" data-gid="${it.id}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+      <b style="flex:1;min-width:140px;font-size:13px;">${escA(dispName)}</b>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);">база, грн
+        <input data-sp-bp type="number" step="1" value="${bp}" placeholder="540" style="width:90px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);">висота, мм
+        <input data-sp-h type="number" step="10" value="${hh}" placeholder="${(p.heights||{}).default||700}" style="width:90px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      </label>
+    </div>`;
+  }).join('');
+}
+document.getElementById('sp-tier-add').addEventListener('click', ()=>{
+  const rows = readSpTiers();
+  const last = rows[rows.length-1];
+  rows.push({from: last ? (last.to ? last.to+1 : last.from+100) : 1, to:null, coef: last ? last.coef : 1});
+  paintSpTiers(rows);
+});
+document.getElementById('sp-tiers').addEventListener('input', e=>{
+  const row = e.target.closest('.sp-tier-row');
+  if(!row) return;
+  const c = parseFloat(row.querySelector('[data-sp-coef]').value) || 1;
+  row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
+});
+document.getElementById('sp-save').addEventListener('click', async ()=>{
+  const g = (pre,key)=>({
+    ratePerMm2: parseFloat(document.getElementById('sp-'+pre+'-rate').value) || 0,
+    minPrice: parseFloat(document.getElementById('sp-'+pre+'-min').value) || 0,
+    baseDays: parseInt(document.getElementById('sp-'+pre+'-days').value,10) || 1,
+    capacityPerDayMm2: parseFloat(document.getElementById('sp-'+pre+'-cap').value) || 200000,
+    loadCoef: parseFloat(document.getElementById('sp-'+pre+'-load').value) || 1,
+    bufferDays: parseInt(document.getElementById('sp-'+pre+'-buf').value,10) || 1
+  });
+  const basePrices = {}, heights = { default: (curSitePricing().heights||{}).default || 700 };
+  document.querySelectorAll('#sp-products .sp-prod-row').forEach(r=>{
+    const id = r.dataset.gid;
+    const bp = parseFloat(r.querySelector('[data-sp-bp]').value);
+    const hh = parseFloat(r.querySelector('[data-sp-h]').value);
+    if(bp > 0) basePrices[id] = bp;
+    if(hh > 0) heights[id] = hh;
+  });
+  const pricing = {
+    enabled: document.getElementById('sp-enabled').checked,
+    methods: { dtf: g('dtf','dtf'), embro: g('emb','embro') },
+    tiers: readSpTiers(),
+    basePrices, heights
+  };
+  try{
+    await PHOTOS_DOC.set({ pricing }, { merge:true });
+    toast(pricing.enabled ? 'Збережено — нова модель АКТИВНА на сайті' : 'Збережено (модель вимкнена)');
+  }catch(e){ console.error(e); toast('Помилка збереження'); }
+});
+
 /* Методи нанесення: собівартість і продажна ціна (формула: order + units*unit + units*стібки/1000*k) */
 const DEFAULT_METHODS = [
   { name:'Опт вишивка',
@@ -1174,6 +1370,7 @@ function paintSettingsForm(){
   paintTierList('print');
   paintTierList('emb');
   paintMethods();
+  paintSitePricing();
 }
 
 function paintTierList(tech){
@@ -2747,6 +2944,10 @@ async function init(){
   PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     photosMap = contentData.map || {};
+    const a0 = document.activeElement;
+    const typing0 = a0 && (a0.tagName==='INPUT'||a0.tagName==='TEXTAREA');
+    const sv0 = document.getElementById('view-settings');
+    if(sv0 && sv0.style.display!=='none' && !typing0) paintSitePricing();
     const pv = document.getElementById('view-photos');
     if(!pv || pv.style.display==='none') return;
     const a = document.activeElement;
