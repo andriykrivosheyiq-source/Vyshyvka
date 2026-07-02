@@ -1441,7 +1441,7 @@
   /* Решта контенту, який менеджер редагує з адмінки (той самий документ):
      names — назви товарів, descriptions — описи, sizecharts — розмірні сітки,
      models — фото моделей, reviewOrder — порядок відгуків, reviewPhotos — карусель фото відгуків */
-  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, models:{}, reviewOrder:null, reviewPhotos:null};
+  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}};
   window.LQ_name = function(garmentId, fallback){
     return window.SITE_CONTENT.names[garmentId] || fallback;
   };
@@ -2751,6 +2751,9 @@
     <span class="pm-reviews-page-title" id="pmSizeChartTitle"><b style="color:#262626;">Розмірна сітка</b></span>
   </div>
 
+  <!-- Фото розмірної сітки (якщо менеджер завантажив в адмінці — показуємо замість таблиці) -->
+  <img id="pmSizeChartPhoto" alt="Розмірна сітка" style="display:none;width:calc(100% - 36px);margin:14px 18px 24px;border-radius:14px;">
+
   <div class="pm-sc-illust">
     <div class="pm-sc-dot-grid pm-sc-dot-grid--tl"></div>
     <div class="pm-sc-dot-grid pm-sc-dot-grid--br"></div>
@@ -3890,7 +3893,7 @@
   });
 
   // Catalog category tabs (Базовий / Спецодяг / Дитячий) — switch displayed products
-  const catalogProducts = [
+  const baseCatalogProducts = [
     {name:'Футболка базова', price:'від 99 грн', img:'images/tee-black-front.webp', garment:'tee'},
     {name:'Футболка оверсайз', price:'від 129 грн', img:'images/teeover-black-front.webp', garment:'teeover'},
     {name:'Худі базове', price:'від 299 грн', img:'images/thumb-hoodie.webp', garment:'hoodie'},
@@ -3901,9 +3904,36 @@
     {name:'Кепка', price:'від 149 грн', img:'images/cap-black-front.webp', garment:'cap'},
     {name:'Шопер', price:'від 89 грн', img:'images/tote-beige-front.webp', garment:'tote'}
   ];
+  // Каталог з урахуванням налаштувань адмінки: власні товари, приховані, ціни, порядок
+  function catalogProductsList(){
+    const prod = (window.SITE_CONTENT && window.SITE_CONTENT.products) || {};
+    const hidden = prod.hidden || [];
+    let list = baseCatalogProducts.slice();
+    (prod.custom || []).forEach(c=>{
+      const c0 = (c.colors && c.colors[0]) ? c.colors[0].id : null;
+      const key = c0 ? (c.id+'-'+c0+'-front') : null;
+      list.push({
+        name: c.name, price: c.price || '',
+        img: (key && window.PHOTO_OVERRIDES[key]) ? ('images/'+key+'.webp') : null,
+        vb: '0 0 100 100',
+        path: 'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z',
+        garment: c.id
+      });
+    });
+    list = list.filter(p=>hidden.indexOf(p.garment) === -1);
+    if(prod.priceLabels) list.forEach(p=>{ if(prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment]; });
+    if(prod.order && prod.order.length){
+      list.sort((a,b)=>{
+        let ia = prod.order.indexOf(a.garment), ib = prod.order.indexOf(b.garment);
+        if(ia === -1) ia = 999; if(ib === -1) ib = 999;
+        return ia - ib;
+      });
+    }
+    return list;
+  }
   const catalogProductGrid = document.getElementById('catalogProductGrid');
   function renderCatalogProducts(targetEl){
-    targetEl.innerHTML = catalogProducts.map(p=>{
+    targetEl.innerHTML = catalogProductsList().map(p=>{
       const pname = p.garment ? window.LQ_name(p.garment, p.name) : p.name;
       return `
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
@@ -4145,6 +4175,29 @@
     // Додаткові ракурси (сторони) для деяких виробів — теж можна наносити лого
     var GARMENT_ANGLES = { cap:['left','right'] };
     function getViews(){ return ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || []); }
+
+    // ---- Власні товари з адмінки (SITE_CONTENT.products) ----
+    var BASE_GARMENTS = GARMENTS.slice();
+    var CUSTOM_GARMENT_PATH = 'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z';
+    function applyCustomProducts(){
+      var prod = window.SITE_CONTENT.products || {};
+      var hidden = prod.hidden || [];
+      var custom = prod.custom || [];
+      // прибираємо старі кастомні записи і додаємо актуальні
+      GARMENTS = BASE_GARMENTS.filter(function(g){ return hidden.indexOf(g.id) === -1; });
+      custom.forEach(function(c){
+        if(hidden.indexOf(c.id) !== -1) return;
+        GARMENTS.push({id:c.id, name:c.name, price:(+c.surcharge||0), path:CUSTOM_GARMENT_PATH, custom:true});
+        GARMENT_COLORS[c.id] = (c.colors||[]).map(function(col){ return {id:col.id, name:col.name, hex:col.hex}; });
+        NAME_NO_SUFFIX[c.id] = 1;
+        // Мініатюра — лише якщо фото вже завантажене
+        var c0 = (c.colors && c.colors[0]) ? c.colors[0].id : null;
+        if(c0 && window.PHOTO_OVERRIDES[c.id+'-'+c0+'-front']) GARMENT_THUMB[c.id] = 'images/'+c.id+'-'+c0+'-front.webp';
+        else delete GARMENT_THUMB[c.id];
+      });
+      if(!GARMENTS.length) GARMENTS = BASE_GARMENTS.slice();
+    }
+    applyCustomProducts();
     function ensureLogoSides(){ getViews().forEach(function(v){ if(!pm.logos[v]) pm.logos[v] = []; }); }
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
@@ -4275,7 +4328,8 @@
       // на світлих футболках робимо текст пунктира темним (інакше зливається)
       var hx = c.hex.replace('#',''), lr = parseInt(hx.substr(0,2),16), lg = parseInt(hx.substr(2,2),16), lb = parseInt(hx.substr(4,2),16);
       pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
-      var usePhoto = !!GARMENT_COLORS[g.id];   // крій має реальні фото-мокапи по кольорах
+      // крій має реальні фото-мокапи по кольорах; для власних товарів — лише якщо фото цього боку завантажене
+      var usePhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+pm.side]);
       if(usePhoto){
         var src = window.LQ_img('images/'+g.id+'-'+c.id+'-'+pm.side+'.webp');
         if(pmGarmentPhoto.getAttribute('src') !== src) pmGarmentPhoto.setAttribute('src', src);
@@ -4319,11 +4373,18 @@
       try{ renderGarment(); }catch(e){}
       try{ if(pm.tab === 'garment' || pm.tab === 'color') renderTabPanel(); }catch(e){}
     });
-    // Назви/описи/моделі з адмінки — оновлюємо відповідні блоки
+    // Назви/описи/моделі/товари з адмінки — оновлюємо відповідні блоки
     document.addEventListener('lq-content', function(){
+      try{
+        applyCustomProducts();
+        if(!GARMENTS.some(function(g){ return g.id === pm.garmentId; })){ pm.garmentId = GARMENTS[0].id; pm.colorId = getColors()[0].id; }
+        if(!getColors().some(function(c){ return c.id === pm.colorId; })) pm.colorId = getColors()[0].id;
+      }catch(e){}
       try{ if(pmDetailPanel) renderDetailPanel(); }catch(e){}
       try{ renderModelPhotos(); }catch(e){}
       try{ updatePriceBar(); }catch(e){}
+      try{ if(pm.tab === 'garment') renderTabPanel(); }catch(e){}
+      try{ renderGarment(); }catch(e){}
     });
 
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
@@ -4976,7 +5037,7 @@
         var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
         var ctx = canvas.getContext('2d');
         ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
-        var hasPhoto = !!GARMENT_COLORS[g.id];
+        var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
         var garmentP = hasPhoto
           ? loadImgEl(window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp')).then(function(img){
               var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
@@ -5092,8 +5153,13 @@
           ? escHtml(customDesc).replace(/\n/g,'<br>')
           : productName()+' з якісних матеріалів. Крій вільний, плечовий шов спущений.';
         var html = '<p class="pm-about-text">'+descText+'</p>';
-        SPECS.forEach(function(row){
-          html += '<div class="pm-spec-row"><div class="pm-spec-label">'+row[0]+'</div><div class="pm-spec-value">'+row[1]+'</div></div>';
+        // Характеристики: якщо менеджер задав власні для товару — показуємо їх
+        var customSpecs = window.SITE_CONTENT.specs[pm.garmentId];
+        var specRows = (customSpecs && customSpecs.length)
+          ? customSpecs.map(function(r){ return [r.label, r.value]; })
+          : SPECS;
+        specRows.forEach(function(row){
+          html += '<div class="pm-spec-row"><div class="pm-spec-label">'+escHtml(row[0])+'</div><div class="pm-spec-value">'+escHtml(row[1])+'</div></div>';
         });
         pmDetailPanel.innerHTML = html;
       } else {
@@ -5163,8 +5229,20 @@
       document.getElementById('pmSizeChartTitle').innerHTML =
         '<b style="color:#262626;">Розмірна сітка</b> <span style="color:#888;font-weight:400;">('+productName()+')</span>';
     }
-    // Розмірна сітка: якщо менеджер задав власну для цього товару — показуємо її
+    // Розмірна сітка: фото від менеджера (пріоритет) або таблиця (власна чи стандартна)
     function renderSizeChart(){
+      var page = document.getElementById('pmSizeChartPage');
+      var photoEl = document.getElementById('pmSizeChartPhoto');
+      var photo = window.SITE_CONTENT.sizechartPhotos[pm.garmentId];
+      var tableEls = page.querySelectorAll('.pm-sc-illust, .pm-sc-legend, .pm-sc-table, .pm-sc-note');
+      if(photo){
+        photoEl.src = photo;
+        photoEl.style.display = '';
+        tableEls.forEach(function(el){ el.style.display = 'none'; });
+        return;
+      }
+      photoEl.style.display = 'none';
+      tableEls.forEach(function(el){ el.style.display = ''; });
       var custom = window.SITE_CONTENT.sizecharts[pm.garmentId];
       var rows = (custom && custom.length)
         ? custom.map(function(r){ return {sz:r.size, A:r.A, B:r.B}; })
@@ -5744,9 +5822,12 @@ window.LOOMIQ_CONFIG = {
       names: data.names || {},
       descriptions: data.descriptions || {},
       sizecharts: data.sizecharts || {},
+      sizechartPhotos: data.sizechartPhotos || {},
+      specs: data.specs || {},
       models: data.models || {},
       reviewOrder: data.reviewOrder || null,
-      reviewPhotos: data.reviewPhotos || null
+      reviewPhotos: data.reviewPhotos || null,
+      products: data.products || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
     document.dispatchEvent(new Event('lq-content'));
