@@ -450,6 +450,29 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-head">
+          <h2>Методи нанесення — собівартість і продажна ціна</h2>
+          <span class="hint">формула: на замовлення + од. × на 1 од. + од. × стібки ÷ 1000 × ставка за 1000 стібків</span>
+        </div>
+        <div id="methods-list"></div>
+        <div class="add-row-btn" id="method-add">+ Додати метод</div>
+
+        <div class="tl-divider" style="margin-top:18px;">🧮 Калькулятор прорахунку</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <label class="field" style="flex:1.4;min-width:170px;">Метод нанесення
+            <select id="mc-method"></select>
+          </label>
+          <label class="field" style="flex:1;min-width:120px;">Кількість одиниць
+            <input type="number" id="mc-units" min="1" step="1" value="10" inputmode="numeric">
+          </label>
+          <label class="field" style="flex:1;min-width:140px;">Стібків на 1 одиницю
+            <input type="number" id="mc-stitches" min="0" step="100" value="8000" inputmode="numeric">
+          </label>
+        </div>
+        <div id="mc-result" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+
       <div class="save-row">
         <span class="save-msg" id="settings-save-msg">Збережено</span>
         <button class="btn btn-accent" id="save-settings">Зберегти налаштування</button>
@@ -1029,6 +1052,111 @@ function toast(msg){
 /* ============================================================
    SETTINGS VIEW
    ============================================================ */
+/* Методи нанесення: собівартість і продажна ціна (формула: order + units*unit + units*стібки/1000*k) */
+const DEFAULT_METHODS = [
+  { name:'Опт вишивка',
+    cost:  { order:300, unit:27, k:0.4 },
+    price: { order:600, unit:80, k:3 } }
+];
+function ensureMethods(){
+  if(!Array.isArray(settings.methods)) settings.methods = structuredClone(DEFAULT_METHODS);
+}
+function paintMethods(){
+  ensureMethods();
+  const box = document.getElementById('methods-list');
+  if(!box) return;
+  box.innerHTML = settings.methods.map((m,i)=>`
+    <div class="technique-block method-block" data-mi="${i}" style="margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <input data-m-name value="${escA(m.name)}" maxlength="40" placeholder="Назва методу (напр. Опт вишивка)" style="flex:1;min-width:0;font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:9px 11px;">
+        <button class="pc-btn reset" data-m-del="${i}" title="Видалити метод" style="flex:none;padding:8px 12px;">✕</button>
+      </div>
+      <div class="grid2">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;">💼 СОБІВАРТІСТЬ (внутрішні витрати)</div>
+          <label class="field" style="margin-bottom:8px;">На замовлення, грн
+            <input type="number" step="0.01" data-m-f="cost.order" value="${m.cost.order}">
+          </label>
+          <label class="field" style="margin-bottom:8px;">На 1 одиницю, грн
+            <input type="number" step="0.01" data-m-f="cost.unit" value="${m.cost.unit}">
+          </label>
+          <label class="field">За 1000 стібків, грн
+            <input type="number" step="0.01" data-m-f="cost.k" value="${m.cost.k}">
+          </label>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;">💰 ПРОДАЖНА ЦІНА (для клієнта)</div>
+          <label class="field" style="margin-bottom:8px;">На замовлення, грн
+            <input type="number" step="0.01" data-m-f="price.order" value="${m.price.order}">
+          </label>
+          <label class="field" style="margin-bottom:8px;">На 1 одиницю, грн
+            <input type="number" step="0.01" data-m-f="price.unit" value="${m.price.unit}">
+          </label>
+          <label class="field">За 1000 стібків, грн
+            <input type="number" step="0.01" data-m-f="price.k" value="${m.price.k}">
+          </label>
+        </div>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-m-del]').forEach(b=>b.addEventListener('click', ()=>{
+    if(!confirm('Видалити цей метод?')) return;
+    settings.methods = readMethodsFromDom();
+    settings.methods.splice(Number(b.dataset.mDel),1);
+    paintMethods();
+  }));
+  paintMethodSelect();
+  recalcMethodCalc();
+}
+function readMethodsFromDom(){
+  return Array.from(document.querySelectorAll('#methods-list .method-block')).map(bl=>{
+    const g = f=>parseFloat(bl.querySelector(`[data-m-f="${f}"]`).value) || 0;
+    return {
+      name: bl.querySelector('[data-m-name]').value.trim() || 'Метод',
+      cost:  { order:g('cost.order'),  unit:g('cost.unit'),  k:g('cost.k') },
+      price: { order:g('price.order'), unit:g('price.unit'), k:g('price.k') }
+    };
+  });
+}
+function paintMethodSelect(){
+  const sel = document.getElementById('mc-method');
+  if(!sel) return;
+  const cur = sel.value;
+  const list = readMethodsFromDom();
+  sel.innerHTML = list.map((m,i)=>`<option value="${i}"${String(i)===cur?' selected':''}>${escA(m.name)}</option>`).join('');
+}
+function fmtUah(v){ return (Math.round(v*100)/100).toLocaleString('uk-UA', {maximumFractionDigits:2}) + ' грн'; }
+function recalcMethodCalc(){
+  const res = document.getElementById('mc-result');
+  if(!res) return;
+  const list = readMethodsFromDom();
+  const m = list[Number(document.getElementById('mc-method').value)] || list[0];
+  if(!m){ res.innerHTML = '<span class="sub">Додайте хоча б один метод</span>'; return; }
+  const units = parseFloat(document.getElementById('mc-units').value) || 0;
+  const st = parseFloat(document.getElementById('mc-stitches').value) || 0;
+  const cost  = m.cost.order  + units*m.cost.unit  + units*st/1000*m.cost.k;
+  const price = m.price.order + units*m.price.unit + units*st/1000*m.price.k;
+  const profit = price - cost;
+  const margin = price > 0 ? Math.round(profit/price*100) : 0;
+  const tile = (lbl,val,color)=>`<div style="flex:1;min-width:130px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;"><div style="font-size:11px;color:var(--ink-soft);margin-bottom:4px;">${lbl}</div><div style="font-size:18px;font-weight:800;color:${color};">${val}</div></div>`;
+  res.innerHTML =
+    tile('Собівартість', fmtUah(cost), 'var(--ink)') +
+    tile('Продажна ціна', fmtUah(price), 'var(--accent)') +
+    tile('Прибуток', fmtUah(profit), profit >= 0 ? 'var(--good)' : 'var(--bad)') +
+    tile('Маржа', margin + ' %', profit >= 0 ? 'var(--good)' : 'var(--bad)') +
+    `<div style="flex-basis:100%;font-size:11.5px;color:var(--ink-soft);margin-top:2px;">${escA(m.name)}: ${units} од. × ${st.toLocaleString('uk-UA')} стібків — ціна за одиницю для клієнта ≈ <b>${units>0?fmtUah(price/units):'—'}</b></div>`;
+}
+document.getElementById('method-add').addEventListener('click', ()=>{
+  settings.methods = readMethodsFromDom();
+  settings.methods.push({ name:'Новий метод', cost:{order:0,unit:0,k:0}, price:{order:0,unit:0,k:0} });
+  paintMethods();
+});
+// живий перерахунок: будь-який ввід у списку методів чи калькуляторі
+document.getElementById('methods-list').addEventListener('input', ()=>{ paintMethodSelect(); recalcMethodCalc(); });
+['mc-method','mc-units','mc-stitches'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', recalcMethodCalc);
+  document.getElementById(id).addEventListener('change', recalcMethodCalc);
+});
+
 function paintSettingsForm(){
   document.getElementById('print-price-px').value  = settings.print.pricePerPx;
   document.getElementById('print-cost-px').value   = settings.print.costPerPx;
@@ -1045,6 +1173,7 @@ function paintSettingsForm(){
   paintGarmentList();
   paintTierList('print');
   paintTierList('emb');
+  paintMethods();
 }
 
 function paintTierList(tech){
@@ -1202,6 +1331,7 @@ document.getElementById('save-settings').addEventListener('click', async ()=>{
   settings.emb.minPrice   = parseFloat(document.getElementById('emb-min-price').value||0);
   settings.emb.baseCost   = parseFloat(document.getElementById('emb-base-cost').value||0);
   settings.emb.baseDays   = parseInt(document.getElementById('emb-base-days').value||5);
+  settings.methods = readMethodsFromDom();
 
   await storeSet('settings', settings);
 
