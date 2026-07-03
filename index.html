@@ -3967,6 +3967,7 @@
     }).join('');
   }
   renderCatalogProducts(catalogProductGrid);
+  window.LQ_catalogList = catalogProductsList;   // доступ для блоку «Вам також може сподобатись»
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
@@ -5170,6 +5171,7 @@
       renderGarment();
       renderTabPanel();
       updatePriceBar();
+      try{ renderRecommended(); }catch(e){}
       requestAnimationFrame(fitGarmentStage);
     }
     document.getElementById('pmBackBtn').addEventListener('click', function(){ productModal.classList.remove('open'); });
@@ -5485,12 +5487,36 @@
       });
     });
 
-    // Recommended products — open configurator with that garment
-    document.querySelectorAll('.pm-rec-card').forEach(function(card){
-      card.addEventListener('click', function(){
-        openProductModal(card.dataset.recGarment);
+    // Блок «Вам також може сподобатись» — реальні фото/назви/ціни товарів каталогу
+    function renderRecommended(){
+      var track = document.getElementById('pmRecommendedScroll');
+      if(!track) return;
+      var list = (window.LQ_catalogList ? window.LQ_catalogList() : [])
+        .filter(function(p){ return p.garment && p.garment !== pm.garmentId; });
+      var html = list.map(function(p){
+        var nm = window.LQ_name(p.garment, p.name);
+        var src = p.img ? window.LQ_img(p.img) : null;
+        var cs = GARMENT_COLORS[p.garment];
+        var fallbackBg = (cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2';
+        var imgHtml = src
+          ? '<div class="pm-rec-img"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;background:#f3f3f4;"></div>'
+          : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
+        return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
+          '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
+          (p.price ? '<div class="pm-rec-price">'+p.price+'</div>' : '')+'</div></div>';
+      }).join('');
+      html += '<button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta"><span>Перейти в каталог</span></button>';
+      track.innerHTML = html;
+      track.querySelectorAll('.pm-rec-card[data-rec-garment]').forEach(function(card){
+        card.addEventListener('click', function(){ openProductModal(card.dataset.recGarment); });
       });
-    });
+      var cta = document.getElementById('pmRecCatalogCta');
+      if(cta) cta.addEventListener('click', function(){ catalogModalCtrl.open(); });
+      initRecCarousel();
+    }
+    window.__renderRecommended = renderRecommended;
+    document.addEventListener('lq-photos', function(){ try{ renderRecommended(); }catch(e){} });
+    document.addEventListener('lq-content', function(){ try{ renderRecommended(); }catch(e){} });
 
     document.getElementById('pmHelpConsultBtn').addEventListener('click', function(){
       document.getElementById('pmConsultModal').classList.add('open');
@@ -5604,30 +5630,32 @@
       }
     }
     renderModelPhotos();   // початковий рендер фото моделей (блок уже готовий)
-    var pmRecCatalogCta = document.getElementById('pmRecCatalogCta');
-    if(pmRecCatalogCta) pmRecCatalogCta.addEventListener('click', function(){ catalogModalCtrl.open(); });
-
     var pmRecTrack = document.getElementById('pmRecommendedScroll');
     var pmRecDotsEl = document.getElementById('pmRecDots');
     var pmRecNextBtn = document.getElementById('pmRecNext');
-    if(pmRecTrack && pmRecDotsEl){
-      var recCards = Array.prototype.slice.call(pmRecTrack.children);
+    var recDots = [], recCards = [];
+    function recClosestIndex(){
+      var center = pmRecTrack.scrollLeft + pmRecTrack.clientWidth/2;
+      var best=0, bestDist=Infinity;
+      recCards.forEach(function(c,idx){
+        var dist = Math.abs((c.offsetLeft + c.offsetWidth/2) - center);
+        if(dist<bestDist){bestDist=dist;best=idx;}
+      });
+      return best;
+    }
+    function recSetActive(i){ recDots.forEach(function(d,idx){ d.classList.toggle('active', idx===i); }); }
+    function initRecCarousel(){
+      if(!pmRecTrack || !pmRecDotsEl) return;
+      recCards = Array.prototype.slice.call(pmRecTrack.children);
       pmRecDotsEl.innerHTML = recCards.map(function(_,i){ return '<span class="dot'+(i===0?' active':'')+'" data-index="'+i+'"></span>'; }).join('');
-      var recDots = Array.prototype.slice.call(pmRecDotsEl.children);
-      function recSetActive(i){ recDots.forEach(function(d,idx){ d.classList.toggle('active', idx===i); }); }
-      function recClosestIndex(){
-        var center = pmRecTrack.scrollLeft + pmRecTrack.clientWidth/2;
-        var best=0, bestDist=Infinity;
-        recCards.forEach(function(c,idx){
-          var dist = Math.abs((c.offsetLeft + c.offsetWidth/2) - center);
-          if(dist<bestDist){bestDist=dist;best=idx;}
-        });
-        return best;
-      }
-      pmRecTrack.addEventListener('scroll', function(){ recSetActive(recClosestIndex()); }, {passive:true});
+      recDots = Array.prototype.slice.call(pmRecDotsEl.children);
       recDots.forEach(function(d,idx){
         d.addEventListener('click', function(){ recCards[idx].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); });
       });
+      pmRecTrack.scrollLeft = 0;
+    }
+    if(pmRecTrack && pmRecDotsEl){
+      pmRecTrack.addEventListener('scroll', function(){ recSetActive(recClosestIndex()); }, {passive:true});
       if(pmRecNextBtn){
         pmRecNextBtn.addEventListener('click', function(){
           var maxScroll = pmRecTrack.scrollWidth - pmRecTrack.clientWidth;
@@ -5640,6 +5668,7 @@
         });
       }
     }
+    renderRecommended();   // початковий рендер із реальними фото
   })();
 
   // ===== Cart =====
