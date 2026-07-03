@@ -4298,10 +4298,13 @@
         if(!m) m = rows[Math.floor(rows.length/2)];
         if(m && +m.A > 0) return +m.A * 10;
       }
-      // 3) дефолт з адмінки
+      // 3) малі вироби (без «довжини футболки»)
+      if(pm.garmentId === 'cap') return 180;
+      if(pm.garmentId === 'tote') return 400;
+      // 4) дефолт з адмінки
       if(+gh.default > 0) return +gh.default;
-      // 4) стандартна сітка сайту: розмір M, довжина A = 68 см
-      return (SIZE_CHART.M && SIZE_CHART.M.A) ? SIZE_CHART.M.A * 10 : 700;
+      // 5) стандартна сітка сайту: розмір M, довжина A = 68 см
+      return (SIZE_CHART.M && SIZE_CHART.M.A) ? SIZE_CHART.M.A * 10 : 680;
     }
     function basePriceNew(){
       var p = sitePricing(); var bp = (p && p.basePrices) || {};

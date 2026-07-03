@@ -1191,11 +1191,24 @@ function readSpTiers(){
     coef: parseFloat(r.querySelector('[data-sp-coef]').value) || 1
   })).sort((a,b)=>a.from-b.from);
 }
+// Авто-висота товару з його розмірної сітки: рядок M, довжина A (см → мм)
+function autoHeightMm(gid, defMm){
+  const rows = contentData.sizecharts && contentData.sizecharts[gid];
+  if(rows && rows.length){
+    let m = rows.find(r=>String(r.size).trim().toUpperCase()==='M') || rows[Math.floor(rows.length/2)];
+    if(m && +m.A > 0) return Math.round(+m.A * 10);
+  }
+  if(gid==='cap') return 180;
+  if(gid==='tote') return 400;
+  return defMm;   // базові товари використовують стандартну сітку сайту (M=68см=680мм)
+}
 function paintSpProducts(p){
   const items = goodsAllProducts();
+  const defMm = (p.heights||{}).default || 680;
   document.getElementById('sp-products').innerHTML = items.map(it=>{
     const bp = (p.basePrices||{})[it.id] ?? '';
     const hh = (p.heights||{})[it.id] ?? '';
+    const auto = autoHeightMm(it.id, defMm);
     const dispName = (contentData.names && contentData.names[it.id]) || it.name;
     return `<div class="sp-prod-row" data-gid="${it.id}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
       <b style="flex:1;min-width:140px;font-size:13px;">${escA(dispName)}</b>
@@ -1203,7 +1216,7 @@ function paintSpProducts(p){
         <input data-sp-bp type="number" step="1" value="${bp}" placeholder="540" style="width:90px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
       </label>
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);">висота, мм
-        <input data-sp-h type="number" step="10" value="${hh}" placeholder="${(p.heights||{}).default||700}" style="width:90px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+        <input data-sp-h type="number" step="10" value="${hh}" placeholder="авто ${auto}" title="Порожнє = ${auto} мм (з розмірної сітки цього товару, рядок M)" style="width:120px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
       </label>
     </div>`;
   }).join('');
