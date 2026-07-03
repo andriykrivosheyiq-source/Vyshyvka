@@ -520,6 +520,7 @@
         <div class="add-row-btn" id="sp-tier-add">+ Додати поріг</div>
 
         <div class="tl-divider" style="margin-top:16px;">Базові ціни виробів і висота виробу (для перерахунку частки → мм)</div>
+        <div class="sub" style="margin-bottom:10px;">Порожня «висота» = автоматично береться з розмірної сітки товару (довжина A розміру M). Стандарт M = 68 см = 680 мм.</div>
         <div id="sp-products"></div>
 
         <div style="margin-top:16px;">
@@ -1145,7 +1146,7 @@ const DEFAULT_SITE_PRICING = {
     {from:200,to:null,coef:0.65}
   ],
   basePrices: { tee:540, teeover:540, hoodie:790, hoodieover:790, hoodieoverfleece:840, hoodiezip:840, sweat:740, cap:630, tote:630 },
-  heights: { default:700, cap:150, tote:400 }
+  heights: { default:680, cap:180, tote:400 }
 };
 function curSitePricing(){
   const p = contentData.pricing;

@@ -2503,15 +2503,7 @@
         <span>Відгуки</span>
         <span class="pm-row-right"><span class="pm-row-sub">4.9 ★★★★★</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
       </button>
-      <div class="pm-row-swatches">
-        <div class="pm-row-swatch" style="background:#d0ccc8;"></div>
-        <div class="pm-row-swatch" style="background:#c9b99a;"></div>
-        <div class="pm-row-swatch" style="background:#5c5d45;"></div>
-        <div class="pm-row-swatch" style="background:#1e2d4a;"></div>
-        <div class="pm-row-swatch" style="background:#9a4a2a;"></div>
-        <div class="pm-row-swatch" style="background:#8a8a8a;"></div>
-        <div class="pm-row-swatch" style="background:#2d5a27;"></div>
-      </div>
+      <div class="pm-row-swatches" id="pmReviewSwatches"></div>
     </div>
 
     <!-- Про товар / Типи нанесення -->
@@ -4294,7 +4286,22 @@
     }
     function garmentHeightMm(){
       var p = sitePricing(); var gh = (p && p.heights) || {};
-      return +gh[pm.garmentId] || +gh.default || 700;
+      // 1) явне значення з адмінки для цього товару
+      if(+gh[pm.garmentId] > 0) return +gh[pm.garmentId];
+      // 2) з розмірної сітки товару: рядок «M» (або середній), колонка A «довжина», см → мм
+      var rows = window.SITE_CONTENT.sizecharts[pm.garmentId];
+      if(rows && rows.length){
+        var m = null;
+        for(var i = 0; i < rows.length; i++){
+          if(String(rows[i].size).trim().toUpperCase() === 'M'){ m = rows[i]; break; }
+        }
+        if(!m) m = rows[Math.floor(rows.length/2)];
+        if(m && +m.A > 0) return +m.A * 10;
+      }
+      // 3) дефолт з адмінки
+      if(+gh.default > 0) return +gh.default;
+      // 4) стандартна сітка сайту: розмір M, довжина A = 68 см
+      return (SIZE_CHART.M && SIZE_CHART.M.A) ? SIZE_CHART.M.A * 10 : 700;
     }
     function basePriceNew(){
       var p = sitePricing(); var bp = (p && p.basePrices) || {};
@@ -5380,6 +5387,22 @@
     renderReviewPhotosStrip();
     document.addEventListener('lq-content', renderReviewPhotosStrip);
     initScrollHint(document.getElementById('pmReviewsPhotos'));
+
+    // Маленькі квадратики-фото відгуків під рядком «Відгуки» (клік → відкрити відгуки)
+    function renderReviewSwatches(){
+      var box = document.getElementById('pmReviewSwatches');
+      if(!box) return;
+      var custom = window.SITE_CONTENT.reviewPhotos;
+      var srcs = (custom && custom.length)
+        ? custom.map(function(u){ return /^https?:/.test(u) ? u : 'images/'+u+'.webp'; })
+        : PM_REVIEW_PHOTOS.map(function(s){ return 'images/'+s+'.webp'; });
+      box.innerHTML = srcs.map(function(src){
+        return '<img class="pm-row-swatch" src="'+src+'" alt="Фото відгуку" loading="lazy" decoding="async" style="object-fit:cover;">';
+      }).join('');
+    }
+    renderReviewSwatches();
+    document.addEventListener('lq-content', renderReviewSwatches);
+    document.getElementById('pmReviewSwatches').addEventListener('click', function(){ reviewsModalCtrl.open(); });
     initScrollHint(document.getElementById('pmTierRow'));
 
     // Quick rows
