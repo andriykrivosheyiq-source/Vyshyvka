@@ -4787,7 +4787,16 @@
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
-      if(prevScroll){ var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll; }
+      if(prevScroll){
+        var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll;
+      } else if(pm.tab === 'garment' || pm.tab === 'color'){
+        // при поверненні на вкладку — центруємо вибраний товар/колір, а не скидаємо на початок
+        var list2 = pmTabPanel.querySelector('.pm-scroll-list');
+        var active = list2 && list2.querySelector('.active');
+        if(list2 && active){
+          list2.scrollLeft = Math.max(0, active.offsetLeft - (list2.clientWidth - active.clientWidth)/2);
+        }
+      }
     }
 
     function wireTabPanelEvents(){
