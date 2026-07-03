@@ -4189,6 +4189,36 @@
     ];
     var SIZES = ['XS','S','M','L','XL','XXL'];
     var SIZE_CHART = {XS:{A:64,B:47}, S:{A:66,B:50}, M:{A:68,B:53}, L:{A:72,B:56}, XL:{A:74,B:60}, XXL:{A:77,B:62}};
+    // Реальні розмірні сітки виробників (A — довжина, B — ширина, см)
+    var DEFAULT_GARMENT_CHARTS = {
+      teeover: [
+        {size:'S',A:66,B:50},{size:'M',A:68,B:53},{size:'L',A:72,B:56},
+        {size:'XL',A:74,B:60},{size:'2XL',A:77,B:62}
+      ],
+      hoodieover: [
+        {size:'S',A:70,B:64},{size:'M',A:71.5,B:66.5},{size:'L',A:74,B:68.5},
+        {size:'XL',A:76,B:71}
+      ],
+      sweat: [
+        {size:'XS',A:67,B:50},{size:'S',A:68,B:52},{size:'M',A:71,B:56},
+        {size:'L',A:74,B:60},{size:'XL',A:77,B:64},{size:'XXL',A:80,B:68},
+        {size:'3XL',A:83,B:72}
+      ]
+    };
+    // Сітка, збережена в адмінці як точна копія старого стандарту = не кастомізована
+    var GENERIC_CHART = [[64,47],[66,50],[68,53],[72,56],[74,60],[77,62]];
+    function isGenericChart(rows){
+      if(!rows || rows.length !== 6) return false;
+      for(var i = 0; i < 6; i++){
+        if(+rows[i].A !== GENERIC_CHART[i][0] || +rows[i].B !== GENERIC_CHART[i][1]) return false;
+      }
+      return true;
+    }
+    function effectiveChart(gid){
+      var custom = window.SITE_CONTENT.sizecharts[gid];
+      if(custom && custom.length && !isGenericChart(custom)) return custom;
+      return DEFAULT_GARMENT_CHARTS[gid] || null;
+    }
     var TIERS = [
       {min:1,max:2,price:540,label:'1-2 шт',badge:null},
       {min:3,max:9,price:460,label:'3-9 шт',badge:'-15%'},
@@ -4290,7 +4320,7 @@
       // 1) явне значення з адмінки для цього товару
       if(+gh[pm.garmentId] > 0) return +gh[pm.garmentId];
       // 2) з розмірної сітки товару: рядок «M» (або середній), колонка A «довжина», см → мм
-      var rows = window.SITE_CONTENT.sizecharts[pm.garmentId];
+      var rows = effectiveChart(pm.garmentId);
       if(rows && rows.length){
         var m = null;
         for(var i = 0; i < rows.length; i++){
@@ -5438,7 +5468,7 @@
       }
       photoEl.style.display = 'none';
       tableEls.forEach(function(el){ el.style.display = ''; });
-      var custom = window.SITE_CONTENT.sizecharts[pm.garmentId];
+      var custom = effectiveChart(pm.garmentId);
       var rows = (custom && custom.length)
         ? custom.map(function(r){ return {sz:r.size, A:r.A, B:r.B}; })
         : SIZES.map(function(sz){ var v = SIZE_CHART[sz]; return {sz:sz, A:v.A, B:v.B}; });

@@ -1193,7 +1193,8 @@ function readSpTiers(){
 }
 // Авто-висота товару з його розмірної сітки: рядок M, довжина A (см → мм)
 function autoHeightMm(gid, defMm){
-  const rows = contentData.sizecharts && contentData.sizecharts[gid];
+  let rows = contentData.sizecharts && contentData.sizecharts[gid];
+  if(!rows || !rows.length || isGenericChart(rows)) rows = DEFAULT_GARMENT_CHARTS[gid] || null;
   if(rows && rows.length){
     let m = rows.find(r=>String(r.size).trim().toUpperCase()==='M') || rows[Math.floor(rows.length/2)];
     if(m && +m.A > 0) return Math.round(+m.A * 10);
@@ -2433,6 +2434,27 @@ const DEFAULT_SIZE_CHART_ROWS = [
   {size:'XS',A:64,B:47},{size:'S',A:66,B:50},{size:'M',A:68,B:53},
   {size:'L',A:72,B:56},{size:'XL',A:74,B:60},{size:'XXL',A:77,B:62}
 ];
+/* Реальні сітки виробників по товарах (з фото постачальника) */
+const DEFAULT_GARMENT_CHARTS = {
+  teeover: [
+    {size:'S',A:66,B:50},{size:'M',A:68,B:53},{size:'L',A:72,B:56},
+    {size:'XL',A:74,B:60},{size:'2XL',A:77,B:62}
+  ],
+  hoodieover: [
+    {size:'S',A:70,B:64},{size:'M',A:71.5,B:66.5},{size:'L',A:74,B:68.5},
+    {size:'XL',A:76,B:71}
+  ],
+  sweat: [
+    {size:'XS',A:67,B:50},{size:'S',A:68,B:52},{size:'M',A:71,B:56},
+    {size:'L',A:74,B:60},{size:'XL',A:77,B:64},{size:'XXL',A:80,B:68},
+    {size:'3XL',A:83,B:72}
+  ]
+};
+function isGenericChart(rows){
+  const G = [[64,47],[66,50],[68,53],[72,56],[74,60],[77,62]];
+  if(!rows || rows.length !== 6) return false;
+  return rows.every((r,i)=>+r.A===G[i][0] && +r.B===G[i][1]);
+}
 const DEFAULT_REVIEW_PHOTOS = ['work-17','work-01','work-06','work-18','work-03','work-08','work-13','work-15','work-07','work-09','work-16','work-05','work-14'];
 
 let photosMap = {};          // фото товарів по кольорах (map)
@@ -2600,7 +2622,9 @@ document.getElementById('info-reset').addEventListener('click', async ()=>{
 /* ---------- Розмірна сітка ---------- */
 function currentScRows(){
   const custom = contentData.sizecharts && contentData.sizecharts[photoGarmentId];
-  return (custom && custom.length) ? custom.map(r=>({size:r.size,A:r.A,B:r.B})) : DEFAULT_SIZE_CHART_ROWS.map(r=>({...r}));
+  if(custom && custom.length && !isGenericChart(custom)) return custom.map(r=>({size:r.size,A:r.A,B:r.B}));
+  const perGarment = DEFAULT_GARMENT_CHARTS[photoGarmentId];
+  return (perGarment || DEFAULT_SIZE_CHART_ROWS).map(r=>({...r}));
 }
 function renderScPhoto(){
   const url = contentData.sizechartPhotos && contentData.sizechartPhotos[photoGarmentId];
