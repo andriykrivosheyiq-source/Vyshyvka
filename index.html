@@ -191,6 +191,11 @@
     opacity:0;transition:opacity .6s ease;pointer-events:none;
   }
   .hero-bg-video.active{opacity:1;}
+  /* ховаємо системну кнопку Play, яку iOS малює на відео до старту */
+  .hero-bg-video::-webkit-media-controls-start-playback-button{
+    display:none!important;-webkit-appearance:none;opacity:0;
+  }
+  .hero-bg-video::-webkit-media-controls{display:none!important;}
   .hero-overlay{
     position:absolute;inset:0;z-index:1;
     /* затемнення зверху, щоб білий текст читався на будь-якому кадрі відео */
@@ -3734,6 +3739,7 @@
           if(q && q.catch) q.catch(function(){});
         };
         v.addEventListener('canplay', retry, {once:true});
+        document.addEventListener('touchstart', retry, {once:true, passive:true});
         document.addEventListener('touchend', retry, {once:true, passive:true});
         document.addEventListener('click', retry, {once:true});
       });
@@ -3747,13 +3753,21 @@
     }, 2000);
     function show(idx){
       stopTick();
-      vids[cur].pause();
-      vids[cur].classList.remove('active');
+      var prev = vids[cur];
       cur = idx;
       ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
       try{ v.currentTime = 0; }catch(e){}
-      v.classList.add('active');
+      // показуємо відео лише коли воно РЕАЛЬНО грає: до того видно фото
+      // (або попередній ролик), тож запаузений кадр із системною кнопкою
+      // Play ніколи не з'являється
+      var reveal = function(){
+        if(vids[cur] !== v) return;
+        v.classList.add('active');
+        if(prev !== v){ prev.pause(); prev.classList.remove('active'); }
+      };
+      if(!v.paused){ reveal(); }
+      else { v.addEventListener('playing', reveal, {once:true}); }
       tryPlay(v);
       tick();
     }
