@@ -905,11 +905,7 @@
             <button class="pc-btn reset" id="pa-slot-toggle" style="width:100%;margin-top:8px;padding:9px;"></button>
             <div class="pa-lbl" style="margin-top:18px;">КОЛІР (ФОН)</div>
             <div id="pa-colors"></div>
-            <div class="pa-lbl" style="margin-top:18px;">РОЗМІР ДЛЯ МАСШТАБУ</div>
-            <select id="pa-size" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;"></select>
-            <label style="display:block;font-size:12px;color:var(--ink-soft);margin:10px 0 5px;">Реальна висота виробу, см</label>
-            <input id="pa-height" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
-            <button class="pc-btn reset" id="pa-color-default" style="width:100%;margin-top:14px;padding:9px;display:none;">↺ Прирівняти цей колір до дефолтного</button>
+            <button class="pc-btn reset" id="pa-color-default" style="width:100%;margin-top:18px;padding:9px;display:none;">↺ Прирівняти цей колір до дефолтного</button>
           </div>
           <div class="pa-stage-wrap">
             <div class="pa-stage" id="pa-stage">
@@ -919,9 +915,16 @@
           </div>
           <div class="pa-right">
             <div class="pa-lbl">ВЛАСТИВОСТІ</div>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:14px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:16px;">
               <input type="checkbox" id="pa-sym" checked> Симетричний полігон
             </label>
+            <div style="background:#f7f7f9;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;">
+              <div class="pa-lbl" style="margin-bottom:8px;">МАСШТАБ ВИРОБУ</div>
+              <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Розмір із сітки (підтягує висоту)</label>
+              <select id="pa-size" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;margin-bottom:10px;"></select>
+              <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Реальна висота виробу, см (можна змінити вручну)</label>
+              <input id="pa-height" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:15px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
+            </div>
             <div class="pa-area" id="pa-area"></div>
             <button class="pc-btn up" id="pa-save" style="width:100%;padding:10px;margin-bottom:8px;">Зберегти область</button>
             <button class="pc-btn reset" id="pa-reset" style="width:100%;padding:10px;color:var(--bad,#d64550);">Скасувати всі зміни</button>
