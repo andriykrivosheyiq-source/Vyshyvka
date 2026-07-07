@@ -9,6 +9,8 @@
 <title>Loomiq — мерч для команди за 1 хв</title>
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
 <link rel="dns-prefetch" href="https://res.cloudinary.com">
+<!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
+<link rel="preload" as="image" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
 
 <style>
   :root{
@@ -2869,9 +2871,11 @@
            f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
            data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
       <video class="hero-bg-video" autoplay muted playsinline preload="auto"
+        poster="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg"
         src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
       <video class="hero-bg-video" muted playsinline preload="auto"
+        poster="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.jpg"
         src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
     </div>
@@ -3758,16 +3762,17 @@
       ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
       try{ v.currentTime = 0; }catch(e){}
-      // показуємо відео лише коли воно РЕАЛЬНО грає: до того видно фото
-      // (або попередній ролик), тож запаузений кадр із системною кнопкою
-      // Play ніколи не з'являється
       var reveal = function(){
         if(vids[cur] !== v) return;
         v.classList.add('active');
         if(prev !== v){ prev.pause(); prev.classList.remove('active'); }
       };
-      if(!v.paused){ reveal(); }
-      else { v.addEventListener('playing', reveal, {once:true}); }
+      // Перший показ: відео (його постер = перший кадр) видно ОДРАЗУ, без фото.
+      // При перемиканні між роликами чекаємо 'playing', щоб кросфейд був
+      // безшовним і без застиглих кадрів.
+      var prevVisible = prev !== v && prev.classList.contains('active');
+      if(prevVisible && v.paused){ v.addEventListener('playing', reveal, {once:true}); }
+      else { reveal(); }
       tryPlay(v);
       tick();
     }
