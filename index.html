@@ -1104,7 +1104,8 @@
   .pm-check-ic{width:22px;height:22px;border-radius:11px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pm-card--help{display:flex;flex-direction:column;justify-content:space-between;gap:16px;}
   .pm-help-sub{font-size:15px;color:#999;line-height:1.5;margin-top:8px;}
-  .pm-help-btn{width:100%;padding:16px 16px;border-radius:10px;border:none;background:#111;color:#fff;font-size:17.5px;font-weight:700;cursor:pointer;font-family:var(--font-sf);}
+  .pm-help-btn{width:100%;padding:16px 16px;border-radius:10px;border:none;background:#111;color:#fff;font-size:17.5px;font-weight:700;cursor:pointer;font-family:var(--font-sf);display:flex;align-items:center;justify-content:center;gap:9px;}
+  .pm-help-btn svg{flex:none;}
 
   .pm-recommended{padding:20px 0;border-top:1px solid #f2f2f2;}
   .pm-section-title{font-size:16px;font-weight:700;color:#111;margin:0 18px 12px;letter-spacing:-0.3px;}
@@ -1132,18 +1133,22 @@
     background:linear-gradient(145deg,#0c1140,#2a3470);display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;gap:16px;
   }
-  .pm-cta-title{font-size:24px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.1;}
+  .pm-cta-icon{
+    width:52px;height:52px;border-radius:26px;background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center;
+    animation:pm-cta-pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pm-cta-pulse{
+    0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,197,61,.35);}
+    50%{transform:scale(1.06);box-shadow:0 0 0 10px rgba(255,197,61,0);}
+  }
+  @media (prefers-reduced-motion: reduce){ .pm-cta-icon{animation:none;} }
+  .pm-cta-title{font-size:23px;font-weight:800;color:#fff;letter-spacing:.02em;line-height:1.2;text-transform:uppercase;}
   .pm-cta-sub{font-size:14px;color:rgba(255,255,255,.5);line-height:1.5;}
   .pm-cta-btn{width:100%;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:#fff;color:#111;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-sf);}
 
-  .pm-footer{background:#111;padding:32px 18px 40px;}
-  .pm-footer--short{text-align:center;}
-  .pm-footer--short .pm-footer-logo{margin-bottom:14px;}
-  .pm-footer-short-link{
-    display:block;margin:0 auto 16px;background:none;border:1px solid rgba(255,255,255,.2);border-radius:20px;
-    padding:9px 18px;color:rgba(255,255,255,.7);font-size:13.5px;cursor:pointer;font-family:var(--font-sf);
-  }
-  .pm-footer--short .pm-footer-copy{margin-top:0;}
+  .pm-footer{background:#111;padding:32px 18px calc(100px + env(safe-area-inset-bottom,0px));}
   .pm-footer-logo{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:6px;}
   .pm-footer-tag{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;}
   .pm-footer-links{display:grid;grid-template-columns:1fr 1fr;gap:8px 0;margin-bottom:28px;}
@@ -2559,7 +2564,7 @@
           <div class="pm-card-title" style="margin-bottom:8px;font-size:21px;">Потрібна допомога?</div>
           <div class="pm-help-sub">Залиште номер — менеджер зв'яжеться за 5 хв.</div>
         </div>
-        <button class="pm-help-btn" id="pmHelpConsultBtn">Консультація</button>
+        <button class="pm-help-btn" id="pmHelpConsultBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Консультація</button>
       </div>
     </div>
 
@@ -2600,6 +2605,9 @@
         </div>
       </div>
       <div class="pm-cta-card">
+        <div class="pm-cta-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFC53D"><path d="M12 2.5l2.1 6.1a1.5 1.5 0 0 0 .93.93L21.5 12l-6.47 2.47a1.5 1.5 0 0 0-.93.93L12 21.5l-2.1-6.1a1.5 1.5 0 0 0-.93-.93L2.5 12l6.47-2.47a1.5 1.5 0 0 0 .93-.93L12 2.5z"/><path d="M19 2.8l.7 2a.8.8 0 0 0 .5.5l2 .7-2 .7a.8.8 0 0 0-.5.5l-.7 2-.7-2a.8.8 0 0 0-.5-.5l-2-.7 2-.7a.8.8 0 0 0 .5-.5l.7-2z"/></svg>
+        </div>
         <div class="pm-cta-title">Створіть свій<br>мерч</div>
         <div class="pm-cta-sub">Завантажте лого і отримайте мерч мрії</div>
         <button class="pm-cta-btn" id="pmCtaScrollTop">Створити дизайн →</button>
@@ -2607,10 +2615,23 @@
     </div>
 
     <!-- Footer -->
-    <div class="pm-footer pm-footer--short">
+    <div class="pm-footer">
       <div class="pm-footer-logo">Loomiq</div>
-      <button class="pm-footer-short-link" id="pmFooterFullInfoLink">Реквізити, оферта та контакти</button>
-      <div class="pm-footer-copy">© 2026 Loomiq. Усі права захищено.</div>
+      <div class="pm-footer-tag">Створюємо одяг для тих, хто змінює світ</div>
+      <div class="pm-footer-links">
+        <span data-legal="about">Про нас</span><span data-legal="delivery">Доставка</span><span data-legal="payment">Оплата</span><span data-legal="returns">Повернення</span>
+        <span data-legal="warranty">Гарантія</span><span data-legal="offer">Публічна оферта</span><span data-legal="privacy">Політика приватності</span><span data-legal="terms">Умови використання</span>
+      </div>
+      <div class="pm-footer-social">
+        <a href="#" class="pm-footer-social-ic" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="rgba(255,255,255,.65)"/></svg></a>
+        <a href="https://t.me/yourusername" target="_blank" rel="noopener" class="pm-footer-social-ic" aria-label="Telegram"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,.65)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.68 7.92c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.14-.26.26-.53.26l.19-2.66 4.84-4.37c.21-.19-.05-.29-.32-.1L7.9 14.49l-2.52-.79c-.55-.17-.56-.55.12-.81l9.85-3.8c.46-.17.86.11.69.71l.6-.02z"/></svg></a>
+        <a href="#" class="pm-footer-social-ic" aria-label="TikTok"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,.65)"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.17 8.17 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/></svg></a>
+      </div>
+      <div class="pm-footer-contacts">
+        <div>hello@loomiq.ua</div>
+        <div>+38 (067) 000-00-00</div>
+        <div class="pm-footer-copy">© 2026 Loomiq. Усі права захищено.</div>
+      </div>
     </div>
 
     <!-- Sticky cart bar (appears once the main add-to-cart button scrolls out of view) -->
@@ -3541,7 +3562,7 @@
   document.getElementById('legalPageBack').addEventListener('click', function(){
     document.getElementById('legalPageModal').classList.remove('open');
   });
-  document.querySelectorAll('.footer-links [data-legal]').forEach(function(span){
+  document.querySelectorAll('.footer-links [data-legal], .pm-footer-links [data-legal]').forEach(function(span){
     span.addEventListener('click', function(){ openLegalPage(span.dataset.legal); });
   });
 
@@ -5638,11 +5659,6 @@
     });
     document.getElementById('pmCtaScrollTop').addEventListener('click', function(){
       productModal.scrollTop = 0;
-    });
-    document.getElementById('pmFooterFullInfoLink').addEventListener('click', function(){
-      productModal.classList.remove('open');
-      var footerEl = document.querySelector('footer');
-      if(footerEl) footerEl.scrollIntoView({behavior:'smooth', block:'start'});
     });
 
     window.__openProductModal = openProductModal;
