@@ -1133,19 +1133,8 @@
     background:linear-gradient(145deg,#0c1140,#2a3470);display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;gap:16px;
   }
-  .pm-cta-icon{
-    width:52px;height:52px;border-radius:26px;background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.16);
-    display:flex;align-items:center;justify-content:center;
-    animation:pm-cta-pulse 2.6s ease-in-out infinite;
-  }
-  @keyframes pm-cta-pulse{
-    0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,197,61,.35);}
-    50%{transform:scale(1.06);box-shadow:0 0 0 10px rgba(255,197,61,0);}
-  }
-  @media (prefers-reduced-motion: reduce){ .pm-cta-icon{animation:none;} }
-  .pm-cta-title{font-size:23px;font-weight:800;color:#fff;letter-spacing:.02em;line-height:1.2;text-transform:uppercase;}
-  .pm-cta-sub{font-size:14px;color:rgba(255,255,255,.5);line-height:1.5;}
+  .pm-cta-title{font-size:20px;font-weight:800;color:#fff;letter-spacing:.02em;line-height:1.2;text-transform:uppercase;white-space:nowrap;}
+  .pm-cta-sub{font-size:16px;color:rgba(255,255,255,.7);line-height:1.5;}
   .pm-cta-btn{width:100%;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:#fff;color:#111;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-sf);}
 
   .pm-footer{background:#111;padding:32px 18px calc(100px + env(safe-area-inset-bottom,0px));}
@@ -2605,10 +2594,7 @@
         </div>
       </div>
       <div class="pm-cta-card">
-        <div class="pm-cta-icon" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="#FFC53D"><path d="M12 2.5l2.1 6.1a1.5 1.5 0 0 0 .93.93L21.5 12l-6.47 2.47a1.5 1.5 0 0 0-.93.93L12 21.5l-2.1-6.1a1.5 1.5 0 0 0-.93-.93L2.5 12l6.47-2.47a1.5 1.5 0 0 0 .93-.93L12 2.5z"/><path d="M19 2.8l.7 2a.8.8 0 0 0 .5.5l2 .7-2 .7a.8.8 0 0 0-.5.5l-.7 2-.7-2a.8.8 0 0 0-.5-.5l-2-.7 2-.7a.8.8 0 0 0 .5-.5l.7-2z"/></svg>
-        </div>
-        <div class="pm-cta-title">Створіть свій<br>мерч</div>
+        <div class="pm-cta-title">Створіть свій мерч</div>
         <div class="pm-cta-sub">Завантажте лого і отримайте мерч мрії</div>
         <button class="pm-cta-btn" id="pmCtaScrollTop">Створити дизайн →</button>
       </div>
