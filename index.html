@@ -249,6 +249,16 @@
   .strip-group{display:flex;align-items:center;gap:36px;padding:22px 24px;flex:none;}
   .strip .label{font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--muted);white-space:nowrap;}
   .strip .brandname{font-weight:700;font-family:var(--font-sf);white-space:nowrap;color:#999999;font-size:16px;}
+  /* Скляна стрічка поверх hero-фото */
+  .strip--hero{
+    position:absolute;left:0;right:0;bottom:0;z-index:2;
+    border:none;border-top:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(12,12,16,.20), rgba(12,12,16,.52));
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .strip--hero .label{color:rgba(255,255,255,.55);}
+  .strip--hero .brandname{color:rgba(255,255,255,.88);text-shadow:0 1px 8px rgba(0,0,0,.35);}
+  .strip--hero .strip-group{padding:15px 24px;}
   @keyframes strip-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
   @media (prefers-reduced-motion: reduce){.strip-track{animation:none;}}
 
@@ -891,14 +901,26 @@
   #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
   .pm-upload-zone{
     position:absolute;top:31%;left:36%;right:36%;bottom:40%;border-radius:9px;
-    border:2px dashed rgba(255,255,255,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:2px dashed rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:6px;cursor:pointer;text-align:center;
+    background:rgba(255,255,255,.13);overflow:hidden;
   }
+  /* Перелив, що підказує: сюди можна натиснути */
+  .pm-upload-zone::after{
+    content:'';position:absolute;top:-20%;bottom:-20%;left:-70%;width:55%;
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.30), transparent);
+    transform:skewX(-12deg);
+    animation:pm-shimmer 2.8s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes pm-shimmer{0%{left:-70%;}55%{left:115%;}100%{left:115%;}}
+  @media (prefers-reduced-motion: reduce){.pm-upload-zone::after{animation:none;display:none;}}
   .pm-upload-plus{width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
   .pm-upload-text{font-size:13.5px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);}
   .pm-upload-sub{font-size:11px;color:rgba(255,255,255,.65);}
   /* Темний варіант — для світлих футболок (білий/сірий/пісочний), щоб не зливалось */
-  .pm-upload-zone--dark{border-color:rgba(0,0,0,.4);}
+  .pm-upload-zone--dark{border-color:rgba(0,0,0,.4);background:rgba(0,0,0,.07);}
+  .pm-upload-zone--dark::after{background:linear-gradient(105deg, transparent, rgba(0,0,0,.10), transparent);}
   .pm-upload-zone--dark .pm-upload-plus{background:rgba(0,0,0,.12);}
   .pm-upload-zone--dark .pm-upload-plus svg,.pm-upload-zone--dark .pm-upload-plus svg line{stroke:#111;}
   .pm-upload-zone--dark .pm-upload-text{color:rgba(0,0,0,.82);text-shadow:none;}
@@ -1025,7 +1047,7 @@
   .pm-price-col .pm-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.5px;margin-right:4px;}
   .pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
   .pm-price-divider{display:none;}
-  .pm-qty-warning{display:flex;align-items:center;gap:5px;font-size:12.5px;color:#aaa;margin-bottom:8px;}
+  .pm-qty-warning{display:flex;align-items:center;gap:7px;font-size:15px;color:#8a6a15;font-weight:600;margin-bottom:10px;}
   .pm-add-btn{
     width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;
     background:linear-gradient(135deg,#1e2470,#4f5fd4);color:#fff;font-size:15px;font-weight:700;
@@ -1034,10 +1056,10 @@
   .pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
   .pm-tier-row{display:flex;gap:6px;margin:0 -18px;padding:10px 18px 0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-tier-row::after{content:'';flex:0 0 8px;}
-  .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:6px 6px;border-radius:10px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
+  .pm-tier-item{position:relative;flex:0 0 auto;min-width:96px;padding:9px 8px;border-radius:12px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
   .pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
-  .pm-tier-label{font-size:10.5px;color:#aaa;margin-bottom:2px;white-space:nowrap;}
-  .pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;}
+  .pm-tier-label{font-size:13.5px;color:#888;margin-bottom:3px;white-space:nowrap;}
+  .pm-tier-price{font-size:17px;font-weight:700;color:#111;letter-spacing:-0.3px;}
   .pm-tier-badge{
     position:absolute;top:-8px;right:-6px;background:#222;color:#fff;font-size:10px;font-weight:700;
     padding:2px 5px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
@@ -2481,7 +2503,7 @@
       </div>
       <div class="pm-print-size" id="pmPrintSize" style="font-size:12.5px;color:#888;text-align:center;margin-top:4px;min-height:15px;font-weight:600;"></div>
       <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         Для точної ціни та термінів — вкажіть кількість
       </div>
       <button class="pm-add-btn" id="pmAddToCartBtn">
@@ -2827,29 +2849,29 @@
         <span class="hero-rating-text">4.9 · 128 відгуків</span>
       </div>
     </div>
-  </section>
-
-  <!-- TRUST STRIP -->
-  <div class="strip">
-    <div class="strip-track">
-      <div class="strip-group">
-        <span class="label">НАМ ДОВІРЯЮТЬ</span>
-        <span class="brandname">ПроектАльфа</span>
-        <span class="brandname">DevTeam</span>
-        <span class="brandname">Startup Hub</span>
-        <span class="brandname">mycar TEAM</span>
-        <span class="brandname">AL-FARABI University</span>
-      </div>
-      <div class="strip-group" aria-hidden="true">
-        <span class="label">НАМ ДОВІРЯЮТЬ</span>
-        <span class="brandname">ПроектАльфа</span>
-        <span class="brandname">DevTeam</span>
-        <span class="brandname">Startup Hub</span>
-        <span class="brandname">mycar TEAM</span>
-        <span class="brandname">AL-FARABI University</span>
+  
+    <!-- TRUST STRIP — поверх фото знизу -->
+    <div class="strip strip--hero">
+      <div class="strip-track">
+        <div class="strip-group">
+          <span class="label">НАМ ДОВІРЯЮТЬ</span>
+          <span class="brandname">ПроектАльфа</span>
+          <span class="brandname">DevTeam</span>
+          <span class="brandname">Startup Hub</span>
+          <span class="brandname">mycar TEAM</span>
+          <span class="brandname">AL-FARABI University</span>
+        </div>
+        <div class="strip-group" aria-hidden="true">
+          <span class="label">НАМ ДОВІРЯЮТЬ</span>
+          <span class="brandname">ПроектАльфа</span>
+          <span class="brandname">DevTeam</span>
+          <span class="brandname">Startup Hub</span>
+          <span class="brandname">mycar TEAM</span>
+          <span class="brandname">AL-FARABI University</span>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- INDUSTRY STACK -->
   <section class="industry-stack">
