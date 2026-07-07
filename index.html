@@ -1027,16 +1027,16 @@
     display:inline-flex;align-items:center;gap:5px;background:none;border:1.5px solid #111;border-radius:20px;
     cursor:pointer;font-size:13px;font-weight:600;color:#111;padding:4px 12px;margin:0 18px 6px;font-family:var(--font-sf);
   }
-  .pm-size-list{display:flex;gap:4px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
-  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:60px;}
+  .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
+  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:66px;}
   .pm-size-btn{
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
   }
   .pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
-  .pm-size-qty{display:flex;align-items:center;gap:5px;height:0;opacity:0;overflow:hidden;}
+  .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:3px;height:0;opacity:0;overflow:hidden;}
   .pm-size-qty.show{height:24px;opacity:1;}
-  .pm-size-qty-btn{width:24px;height:24px;border-radius:12px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .pm-size-qty-btn{width:22px;height:22px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
   .pm-size-qty-btn.plus{border:none;background:#555;color:#fff;}
   .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
 
@@ -4986,8 +4986,12 @@
             t.classList.toggle('active', t.dataset.tab === 'size');
           });
           renderTabPanel();
-          var sheet = document.querySelector('.pm-sheet');
-          if(sheet) sheet.scrollIntoView({behavior:'smooth', block:'start'});
+          // прокручуємо конфігуратор так, щоб табки і вибір розмірів були зверху видимі
+          var tabsEl = document.getElementById('pmTabs');
+          if(tabsEl && productModal){
+            var y = tabsEl.offsetTop - 8;
+            productModal.scrollTo({top: Math.max(0, y), behavior:'smooth'});
+          }
         });
       });
       var activeEl = pmTierRow.querySelector('.pm-tier-item.active');
