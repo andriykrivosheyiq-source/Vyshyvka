@@ -747,6 +747,24 @@
           <h2 id="prod-detail-title" style="font-size:18px;margin:0 0 4px;"></h2>
           <div class="sub" id="prod-detail-sub" style="margin-bottom:18px;"></div>
 
+          <!-- Кольори -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Кольори товару</div>
+            <div class="sub" style="margin-bottom:10px;">Додайте або приберіть кольори. До кожного кольору можна завантажити фото у блоці «Фото товару» нижче.</div>
+            <div id="pcol-current" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
+            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Додати колір зі спектра (натисніть кружечок):</span>
+            <div id="pcol-palette" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+              <input type="color" id="pcol-hex" value="#888888" style="width:44px;height:36px;border:1px solid var(--line);border-radius:7px;padding:2px;background:#fff;cursor:pointer;">
+              <input id="pcol-name" maxlength="24" placeholder="Свій колір — назва" style="flex:1;min-width:140px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+              <button class="pc-btn reset" id="pcol-add" style="flex:none;padding:8px 14px;">+ Додати свій</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="pc-btn up" id="pcol-save" style="flex:none;padding:10px 22px;">Зберегти кольори</button>
+              <button class="pc-btn reset" id="pcol-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+            </div>
+          </section>
+
           <!-- Фото -->
           <section class="prod-sec">
             <div class="prod-sec-h">Фото товару</div>
@@ -2481,6 +2499,33 @@ const PHOTO_CFG = [
   {id:'tote', name:'Шопер', views:['front','back'], colors:[
     {id:'beige',name:'Бежевий'},{id:'white',name:'Білий'},{id:'navy',name:'Темно-синій'},{id:'black',name:'Чорний'}]}
 ];
+
+/* Hex базових кольорів (дзеркало GARMENT_COLORS із index.html) — для свотчів у редакторі кольорів */
+const GARMENT_COLOR_HEX = {
+  tee:{black:'#1a1a1a',white:'#eeebe4',lgray:'#d0d0d0',gray:'#8a8a8a',navy:'#1e2d4a',steelblue:'#6c7b99',green:'#2d5a27',sand:'#c9b99a',olive:'#5c5d45',red:'#8b1a1a',rose:'#d4607a',wine:'#48232a',plum:'#3d2a3d',orange:'#d4602d',yellow:'#d89f29'},
+  teeover:{black:'#1c1c1c',white:'#efeeee',cream:'#ece7e0',greige:'#d2cdc6',sand:'#d9c1b4',pink:'#f4b6d0',lblue:'#aec3dd',slate:'#6b6d79',brown:'#58382e'},
+  hoodieover:{white:'#eeedeb',gray:'#d4cec9',khaki:'#b7a69d',brown:'#8d6f63',coyote:'#7c5e45',fume:'#878792',black:'#2c2727'},
+  hoodieoverfleece:{pink:'#f2c8dd',blue:'#283c61',brown:'#3f2e2f'},
+  hoodie:{white:'#f5f5f5',vanilla:'#f0e7d2',skyblue:'#7f9fcc',royalblue:'#4f5e95',mint:'#99e2d9',lavender:'#b88fae',purple:'#412757',darkgreen:'#385343',sunyellow:'#f4d75f',bordo:'#6e2730',chocolate:'#392c2a'},
+  sweat:{black:'#242424',white:'#ededed',gray:'#cbcdcc',graphite:'#4d4d4b',navy:'#252839',blue:'#325080',azure:'#0e9fd0',darkgreen:'#375243',khaki:'#616e54',bordo:'#4f1b27',red:'#ba1d30',pink:'#f8e5e7',beige:'#dccbb3',purple:'#37274c',yellow:'#ecd048'},
+  cap:{black:'#1e1e1e',cream:'#f2f1f4',beige:'#bebab1',graphite:'#777779',navy:'#222a41',azure:'#929eb6',darkgreen:'#313b3c',brown:'#58463f',red:'#b22821',blue:'#2536cc'},
+  hoodiezip:{black:'#1d1d1d',gray:'#cdccd0',blue:'#2f59a0',navy:'#32314d',red:'#b6222f'},
+  tote:{beige:'#decec0',white:'#f0eeee',navy:'#242739',black:'#232323'}
+};
+/* Стандартні кольори товару (без урахування override) */
+function defaultColors(id){
+  const custom = ((contentData.products||{}).custom||[]).find(c=>c.id===id);
+  if(custom) return (custom.colors||[]).map(c=>({id:c.id,name:c.name,hex:c.hex}));
+  const base = PHOTO_CFG.find(g=>g.id===id);
+  if(base){ const hx = GARMENT_COLOR_HEX[id]||{}; return base.colors.map(c=>({id:c.id,name:c.name,hex:hx[c.id]||'#cccccc'})); }
+  return [];
+}
+/* Ефективні кольори товару: override з адмінки або стандартні */
+function effectiveColors(id){
+  const ov = (contentData.productColors||{})[id];
+  if(Array.isArray(ov) && ov.length) return ov.map(c=>({id:c.id,name:c.name,hex:c.hex}));
+  return defaultColors(id);
+}
 const VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
 /* Стандартні дані сайту (мають збігатися з index.html) */
 const DEFAULT_SIZE_CHART_ROWS = [
@@ -2525,13 +2570,15 @@ let contentData = {};        // повний документ loomiq/photos (nam
 let photoGarmentId = PHOTO_CFG[0].id, photoColorId = PHOTO_CFG[0].colors[0].id;
 let ctorTab = 'products';
 let prodDetailId = null;   // id відкритого товару в детальній панелі (null = сітка карток)
+let colorWork = null;      // робочий список кольорів відкритого товару
 
 /* Базові + власні (створені в адмінці) товари */
 function allPhotoCfg(){
   const custom = ((contentData.products || {}).custom || []).map(c=>({
     id: c.id, name: c.name + ' · свій', views: ['front','back'], colors: c.colors || [], custom: true
   }));
-  return PHOTO_CFG.concat(custom);
+  // колір-лист кожного товару = ефективний (з урахуванням додавання/прибирання кольорів)
+  return PHOTO_CFG.concat(custom).map(g=>Object.assign({}, g, { colors: effectiveColors(g.id) }));
 }
 function photoCfg(id){ const all = allPhotoCfg(); return all.find(g=>g.id===id) || all[0]; }
 function escA(s){ return String(s==null?'':s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
@@ -2619,6 +2666,8 @@ function renderProductsTab(){
     const dispName = (contentData.names && contentData.names[photoGarmentId]) || g.name.replace(' · свій','');
     const t = document.getElementById('prod-detail-title'); if(t) t.textContent = dispName;
     const sub = document.getElementById('prod-detail-sub'); if(sub) sub.textContent = g.custom ? 'Власний товар' : 'Товар каталогу';
+    if(!colorWork) colorWork = effectiveColors(photoGarmentId);
+    renderColorEditor();
     renderPhotoManager();   // фото + селект кольору
     renderInfoTab();
     renderSizesTab();
@@ -2692,13 +2741,76 @@ function renderProductGrid(){
 function openProduct(id){
   prodDetailId = id;
   photoGarmentId = id;
+  colorWork = effectiveColors(id);           // свіжий робочий список кольорів
   const g = photoCfg(id);
   photoColorId = (g.colors[0]||{}).id;
   renderProductsTab();
   const pv = document.getElementById('view-photos');
   if(pv) pv.scrollIntoView({block:'start'});
 }
-function closeProduct(){ prodDetailId = null; renderProductsTab(); }
+function closeProduct(){ prodDetailId = null; colorWork = null; renderProductsTab(); }
+
+/* ---------- Редактор кольорів товару ---------- */
+function renderColorEditor(){
+  const cur = document.getElementById('pcol-current');
+  const pal = document.getElementById('pcol-palette');
+  if(!cur || !pal) return;
+  if(!colorWork) colorWork = effectiveColors(photoGarmentId);
+  // поточні кольори товару (чипи з ✕)
+  cur.innerHTML = colorWork.length
+    ? colorWork.map((c,i)=>`<span style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 9px 4px 5px;font-size:12.5px;">
+        <span style="width:20px;height:20px;border-radius:50%;background:${escA(c.hex||'#ccc')};border:1px solid rgba(0,0,0,.15);flex:none;"></span>${escA(c.name)}
+        <button data-pcoldel="${i}" title="Прибрати колір" style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:14px;padding:0 2px;">✕</button>
+      </span>`).join('')
+    : '<span class="sub">Кольорів ще немає — додайте зі спектра нижче.</span>';
+  cur.querySelectorAll('[data-pcoldel]').forEach(b=>b.addEventListener('click', ()=>{
+    colorWork.splice(Number(b.dataset.pcoldel),1); renderColorEditor();
+  }));
+  // спектр для додавання
+  pal.innerHTML = NP_PALETTE.map((c,i)=>{
+    const sel = colorWork.some(s=>(s.hex||'').toLowerCase()===c.hex.toLowerCase());
+    return `<button type="button" data-pcoladd="${i}" title="${escA(c.name)}" style="width:32px;height:32px;border-radius:50%;background:${c.hex};border:2px solid ${sel?'var(--accent)':'rgba(0,0,0,.15)'};cursor:pointer;position:relative;flex:none;${sel?'box-shadow:0 0 0 3px var(--accent-soft);':''}">${sel?'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 0 4px rgba(0,0,0,.9);font-size:14px;font-weight:700;">✓</span>':''}</button>`;
+  }).join('');
+  pal.querySelectorAll('[data-pcoladd]').forEach(b=>b.addEventListener('click', ()=>{
+    const c = NP_PALETTE[Number(b.dataset.pcoladd)];
+    addColorToWork(c.name, c.hex);
+  }));
+}
+function colorIdFromHex(hex){ return 'h' + String(hex||'').replace('#','').toLowerCase(); }
+function addColorToWork(name, hex){
+  if(colorWork.some(s=>(s.hex||'').toLowerCase()===hex.toLowerCase())){ toast('Такий колір уже додано'); return; }
+  colorWork.push({ id: colorIdFromHex(hex), name: name, hex: hex });
+  renderColorEditor();
+}
+(function(){
+  const add = document.getElementById('pcol-add');
+  if(add) add.addEventListener('click', ()=>{
+    const name = document.getElementById('pcol-name').value.trim();
+    const hex = document.getElementById('pcol-hex').value;
+    if(!name){ toast('Вкажіть назву кольору'); return; }
+    addColorToWork(name, hex);
+    document.getElementById('pcol-name').value = '';
+  });
+  const save = document.getElementById('pcol-save');
+  if(save) save.addEventListener('click', async ()=>{
+    if(!colorWork.length){ toast('Додайте хоча б один колір'); return; }
+    try{
+      await PHOTOS_DOC.set({ productColors: { [photoGarmentId]: colorWork } }, { merge:true });
+      toast('Кольори збережено');
+    }catch(e){ console.error(e); toast('Помилка збереження'); }
+  });
+  const reset = document.getElementById('pcol-reset');
+  if(reset) reset.addEventListener('click', async ()=>{
+    if(!confirm('Повернути стандартні кольори цього товару?')) return;
+    try{
+      await PHOTOS_DOC.set({ productColors: { [photoGarmentId]: firebase.firestore.FieldValue.delete() } }, { merge:true });
+      if(contentData.productColors) delete contentData.productColors[photoGarmentId];
+      colorWork = defaultColors(photoGarmentId);
+      renderColorEditor(); renderPhotoManager();
+      toast('Повернуто стандартні кольори');
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+})();
 
 /* Ціна і собівартість одного товару */
 function renderPriceCost(){

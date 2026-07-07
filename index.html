@@ -1494,7 +1494,7 @@
   /* Решта контенту, який менеджер редагує з адмінки (той самий документ):
      names — назви товарів, descriptions — описи, sizecharts — розмірні сітки,
      models — фото моделей, reviewOrder — порядок відгуків, reviewPhotos — карусель фото відгуків */
-  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}, contacts:{}, faq:null, hero:{}, about:{}, stats:null, cases:null, promo:{}, pricing:null};
+  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}, contacts:{}, faq:null, hero:{}, about:{}, stats:null, cases:null, promo:{}, pricing:null, productColors:{}};
   window.LQ_name = function(garmentId, fallback){
     return window.SITE_CONTENT.names[garmentId] || fallback;
   };
@@ -4460,6 +4460,14 @@
         if(c0 && window.PHOTO_OVERRIDES[c.id+'-'+c0+'-front']) GARMENT_THUMB[c.id] = 'images/'+c.id+'-'+c0+'-front.webp';
         else delete GARMENT_THUMB[c.id];
       });
+      // Кольори, додані/прибрані в адмінці (перекривають стандартні для будь-якого товару)
+      var pcols = window.SITE_CONTENT.productColors || {};
+      Object.keys(pcols).forEach(function(id){
+        var list = pcols[id];
+        if(Array.isArray(list) && list.length){
+          GARMENT_COLORS[id] = list.map(function(col){ return {id:col.id, name:col.name, hex:col.hex}; });
+        }
+      });
       if(!GARMENTS.length) GARMENTS = BASE_GARMENTS.slice();
     }
     applyCustomProducts();
@@ -6347,7 +6355,8 @@ window.LOOMIQ_CONFIG = {
       stats: data.stats || null,
       cases: data.cases || null,
       promo: data.promo || {},
-      pricing: data.pricing || null
+      pricing: data.pricing || null,
+      productColors: data.productColors || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
     document.dispatchEvent(new Event('lq-content'));
