@@ -907,6 +907,9 @@
             <div id="pa-colors"></div>
             <div class="pa-lbl" style="margin-top:18px;">РОЗМІР ДЛЯ МАСШТАБУ</div>
             <select id="pa-size" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;"></select>
+            <label style="display:block;font-size:12px;color:var(--ink-soft);margin:10px 0 5px;">Реальна висота виробу, см</label>
+            <input id="pa-height" type="number" min="1" step="0.5" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;">
+            <button class="pc-btn reset" id="pa-color-default" style="width:100%;margin-top:14px;padding:9px;display:none;">↺ Прирівняти цей колір до дефолтного</button>
           </div>
           <div class="pa-stage-wrap">
             <div class="pa-stage" id="pa-stage">
@@ -923,11 +926,13 @@
             <button class="pc-btn up" id="pa-save" style="width:100%;padding:10px;margin-bottom:8px;">Зберегти область</button>
             <button class="pc-btn reset" id="pa-reset" style="width:100%;padding:10px;color:var(--bad,#d64550);">Скасувати всі зміни</button>
             <div class="pa-hint">
-              Координати у частках висоти виробу.<br>
+              <b style="color:#12b886;">Зелені лінії</b> — верх і низ виробу (задають висоту для масштабу). Перетягніть їх під фото.<br><br>
+              <b style="color:#3a50dc;">Синій полігон</b> — зона нанесення:<br>
               • перетягуйте точки мишею<br>
               • клік по контуру — додати точку<br>
               • клік по точці + <b>Delete</b> — видалити<br>
-              • <b>Ctrl+Z</b> — скасувати
+              • <b>Ctrl+Z</b> — скасувати<br><br>
+              Кожен колір можна підкоригувати окремо; без змін бере налаштування першого кольору.
             </div>
           </div>
         </div>
@@ -2896,90 +2901,138 @@ function updatePaSummary(id){
 
 /* ---------- Редактор «Області нанесення» ---------- */
 (function PA(){
-  const DEFAULT_HALF = [[0,0.12],[0.22,0.12],[0.22,0.62],[0,0.62]];
+  const DEFAULT_HALF = [[0,0.06],[0.30,0.06],[0.30,0.72],[0,0.72]];   // координати у частках відкаліброваної висоти
+  const DEF_CAL = {top:0.06, bottom:0.96};
   let paId=null, paSide='front', paColorId=null, paSize=null;
-  let data=null;      // {scaleSize, front:{symmetric,pts}|null, back:{symmetric,pts}|null}
-  let sym=true, pts=null;
-  let history=[], selIdx=-1, dragIdx=-1;
+  let data=null;      // {scaleSize, heightCm, front:{base,colors}|null, back:{base,colors}|null}
+  let sym=true, pts=null, calT=DEF_CAL.top, calB=DEF_CAL.bottom;
+  let history=[], selIdx=-1;
   const modal = ()=>document.getElementById('pa-modal');
+  const el = id=>document.getElementById(id);
 
   function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
-  function heightMmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68)*10; }
+  function cmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68); }
   function defaultSize(){ const rows=paChart(); const m=rows.find(x=>String(x.size).toUpperCase()==='M'); return m?m.size:((rows[Math.floor(rows.length/2)]||{size:''}).size); }
+  function firstColorId(){ const c=effectiveColors(paId); return (c[0]||{}).id; }
+  function isFirstColor(){ return paColorId===firstColorId(); }
+
+  function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
+  function migrateSide(s){ if(!s) return null; if(s.base) return s; /* стара плоска форма */ return { base:{symmetric:s.symmetric!==false, pts:(s.pts||DEFAULT_HALF).map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
+  function effCfg(){ const side=data[paSide]; if(!side) return null; return (side.colors&&side.colors[paColorId]) ? side.colors[paColorId] : side.base; }
+
+  function loadData(){
+    const all=(contentData.printAreas||{})[paId];
+    data = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0,front:null,back:null};
+    data.front=migrateSide(data.front); data.back=migrateSide(data.back);
+    if(!data.scaleSize) data.scaleSize=defaultSize();
+    if(!data.front) data.front=newSideCfg();
+    if(!(data.heightCm>0)) data.heightCm=cmForSize(data.scaleSize);
+  }
+  function loadSlotColor(){
+    const cfg=effCfg()||newSideCfg().base;
+    sym=cfg.symmetric!==false; pts=(cfg.pts||DEFAULT_HALF).map(p=>p.slice());
+    calT=cfg.calibTop!=null?cfg.calibTop:DEF_CAL.top; calB=cfg.calibBottom!=null?cfg.calibBottom:DEF_CAL.bottom;
+    history=[]; selIdx=-1; const sc=el('pa-sym'); if(sc) sc.checked=sym;
+  }
+  function saveWork(){
+    if(!data[paSide]) data[paSide]=newSideCfg();
+    const cfg={symmetric:sym, pts:pts.map(p=>p.slice()), calibTop:calT, calibBottom:calB};
+    if(isFirstColor()) data[paSide].base=cfg;
+    else { data[paSide].colors=data[paSide].colors||{}; data[paSide].colors[paColorId]=cfg; }
+  }
+  function colorHasOwn(){ const s=data[paSide]; return !isFirstColor() && s && s.colors && s.colors[paColorId]; }
+  function snapshot(){ history.push(JSON.stringify({pts,calT,calB})); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; render(); } }
 
   function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
   function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
   function areaFracOf(poly){ let s=0; for(let i=0;i<poly.length;i++){ const a=poly[i],b=poly[(i+1)%poly.length]; s+=a[0]*b[1]-b[0]*a[1]; } return Math.abs(s)/2; }
 
-  function loadData(){ const all=(contentData.printAreas||{})[paId]; data = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),front:null,back:null}; if(!data.scaleSize)data.scaleSize=defaultSize(); }
-  function loadSlot(){ const slot=data[paSide]; if(slot){ sym=slot.symmetric!==false; pts=slot.pts.map(p=>p.slice()); } else { sym=true; pts=DEFAULT_HALF.map(p=>p.slice()); } history=[]; selIdx=-1; const sc=document.getElementById('pa-sym'); if(sc) sc.checked=sym; }
-  function saveWork(){ data[paSide]={symmetric:sym, pts:pts.map(p=>p.slice())}; }
-  function snapshot(){ history.push(JSON.stringify(pts)); if(history.length>60) history.shift(); }
-  function undo(){ if(history.length){ pts=JSON.parse(history.pop()); render(); } }
+  function stageMetrics(){ const img=el('pa-img'); const w=img.clientWidth||400, h=img.clientHeight||500; return {w,h,cx:w/2}; }
+  function calHpx(m){ return (calB-calT)*m.h; }
+  function toPx(p){ const m=stageMetrics(); const ch=calHpx(m); return [m.cx+p[0]*ch, calT*m.h+p[1]*ch]; }
+  function toFracEvt(e){ const svg=el('pa-svg'); const r=svg.getBoundingClientRect(); const m=stageMetrics(); const ux=(e.clientX-r.left)/r.width*m.w, uy=(e.clientY-r.top)/r.height*m.h; const ch=calHpx(m)||1; return [(ux-m.cx)/ch, (uy-calT*m.h)/ch]; }
+  function evtYFrac(e){ const svg=el('pa-svg'); const r=svg.getBoundingClientRect(); const m=stageMetrics(); return ((e.clientY-r.top)/r.height*m.h)/m.h; }
 
-  function stageMetrics(){ const img=document.getElementById('pa-img'); const w=img.clientWidth||400, h=img.clientHeight||500; return {w,h,cx:w/2}; }
-  function toPx(p){ const m=stageMetrics(); return [m.cx+p[0]*m.h, p[1]*m.h]; }
-  function toFracEvt(e){ const svg=document.getElementById('pa-svg'); const r=svg.getBoundingClientRect(); const m=stageMetrics(); const ux=(e.clientX-r.left)/r.width*m.w, uy=(e.clientY-r.top)/r.height*m.h; return [(ux-m.cx)/m.h, uy/m.h]; }
-
-  function open(id){ paId=id; paSide='front'; loadData(); paSize=data.scaleSize; const cols=effectiveColors(id); paColorId=(cols[0]||{}).id; loadSlot(); modal().classList.add('open'); renderShell(); }
+  function open(id){ paId=id; paSide='front'; loadData(); paSize=data.scaleSize; paColorId=firstColorId(); loadSlotColor(); modal().classList.add('open'); renderShell(); }
   function close(){ modal().classList.remove('open'); }
 
   function renderShell(){
     const g=photoCfg(paId);
-    document.getElementById('pa-prodname').textContent = ((contentData.names&&contentData.names[paId])||g.name.replace(' · свій',''));
-    const slots=document.getElementById('pa-slots');
+    el('pa-prodname').textContent = ((contentData.names&&contentData.names[paId])||g.name.replace(' · свій',''));
+    const slots=el('pa-slots');
     slots.innerHTML=['front','back'].filter(s=>s==='front'||data.back).map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${s==='front'?'Груди':'Спина'}</button>`).join('');
-    slots.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{ saveWork(); paSide=b.dataset.side; loadSlot(); renderShell(); });
-    const tog=document.getElementById('pa-slot-toggle');
-    if(data.back){ tog.textContent='Видалити спину'; tog.onclick=()=>{ if(!confirm('Прибрати область для спини?'))return; data.back=null; if(paSide==='back')paSide='front'; loadSlot(); renderShell(); }; }
-    else { tog.textContent='Додати спину'; tog.onclick=()=>{ saveWork(); data.back={symmetric:true,pts:DEFAULT_HALF.map(p=>p.slice())}; paSide='back'; loadSlot(); renderShell(); }; }
+    slots.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{ saveWork(); paSide=b.dataset.side; loadSlotColor(); renderShell(); });
+    const tog=el('pa-slot-toggle');
+    if(data.back){ tog.textContent='Видалити спину'; tog.onclick=()=>{ if(!confirm('Прибрати область для спини?'))return; data.back=null; if(paSide==='back')paSide='front'; loadSlotColor(); renderShell(); }; }
+    else { tog.textContent='Додати спину'; tog.onclick=()=>{ saveWork(); data.back=newSideCfg(); paSide='back'; paColorId=firstColorId(); loadSlotColor(); renderShell(); }; }
     const cols=effectiveColors(paId);
-    const cbox=document.getElementById('pa-colors');
-    cbox.innerHTML=cols.map(c=>`<button class="pa-col${c.id===paColorId?' active':''}" data-cid="${c.id}"><span class="sw" style="background:${escA(c.hex||'#ccc')}"></span>${escA(c.name)}</button>`).join('');
-    cbox.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>{ paColorId=b.dataset.cid; renderShell(); });
-    const sizeSel=document.getElementById('pa-size');
+    const cbox=el('pa-colors');
+    cbox.innerHTML=cols.map(c=>{ const own=(data[paSide]&&data[paSide].colors&&data[paSide].colors[c.id]); return `<button class="pa-col${c.id===paColorId?' active':''}" data-cid="${c.id}"><span class="sw" style="background:${escA(c.hex||'#ccc')}"></span>${escA(c.name)}${own?' <span style="color:var(--accent);font-size:10px;font-weight:700;">●</span>':''}</button>`; }).join('');
+    cbox.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>{ saveWork(); paColorId=b.dataset.cid; loadSlotColor(); renderShell(); });
+    const sizeSel=el('pa-size');
     sizeSel.innerHTML=paChart().map(r=>`<option value="${escA(r.size)}"${r.size===paSize?' selected':''}>${escA(r.size)} — ${r.A} см</option>`).join('');
-    sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; renderArea(); };
+    sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; data.heightCm=cmForSize(paSize); el('pa-height').value=data.heightCm; renderArea(); };
+    const hEl=el('pa-height'); hEl.value=data.heightCm; hEl.oninput=()=>{ const v=parseFloat(hEl.value); data.heightCm=(v>0)?v:0; renderArea(); };
+    const cdef=el('pa-color-default');
+    if(cdef){ cdef.style.display=isFirstColor()?'none':''; cdef.onclick=()=>{ if(!confirm('Прирівняти цей колір до дефолтного (першого)?'))return; if(data[paSide]&&data[paSide].colors) delete data[paSide].colors[paColorId]; loadSlotColor(); renderShell(); }; }
     const key=paId+'-'+paColorId+'-'+paSide;
-    const img=document.getElementById('pa-img');
-    img.onload=render; img.onerror=render;
+    const img=el('pa-img'); img.onload=render; img.onerror=render;
     img.src=(photosMap&&photosMap[key])?photosMap[key]:('images/'+key+'.webp');
     render();
   }
 
   function render(){
-    const svg=document.getElementById('pa-svg'); if(!svg) return;
+    const svg=el('pa-svg'); if(!svg) return;
     const m=stageMetrics(); svg.setAttribute('viewBox','0 0 '+m.w+' '+m.h);
+    const yT=calT*m.h, yB=calB*m.h;
+    let h='';
+    // центральна вісь
+    h+='<line x1="'+m.cx+'" y1="0" x2="'+m.cx+'" y2="'+m.h+'" stroke="#9aa2b0" stroke-dasharray="5 5" stroke-width="1"/>';
+    // калібрувальні лінії висоти
+    h+='<line x1="0" y1="'+yT.toFixed(1)+'" x2="'+m.w+'" y2="'+yT.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
+    h+='<line x1="0" y1="'+yB.toFixed(1)+'" x2="'+m.w+'" y2="'+yB.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
+    h+='<rect x="'+(m.cx-16)+'" y="'+(yT-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="top"/>';
+    h+='<rect x="'+(m.cx-16)+'" y="'+(yB-6)+'" width="32" height="12" rx="4" fill="#12b886" style="cursor:ns-resize;" data-cal="bottom"/>';
+    // полігон
     const full=curFull().map(toPx);
     const dpath=full.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
-    const handles=pts.map(toPx);
-    let h='<line x1="'+m.cx+'" y1="0" x2="'+m.cx+'" y2="'+m.h+'" stroke="#9aa2b0" stroke-dasharray="5 5" stroke-width="1"/>';
     h+='<path d="'+dpath+'" fill="rgba(58,80,220,.14)" stroke="#3a50dc" stroke-width="2.5" pointer-events="stroke" style="cursor:copy;" data-contour/>';
-    handles.forEach((p,i)=>{ h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="7" fill="'+(i===selIdx?'#d64550':'#3a50dc')+'" stroke="#fff" stroke-width="2.5" style="cursor:grab;" data-h="'+i+'"/>'; });
+    pts.map(toPx).forEach((p,i)=>{ h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="7" fill="'+(i===selIdx?'#d64550':'#3a50dc')+'" stroke="#fff" stroke-width="2.5" style="cursor:grab;" data-h="'+i+'"/>'; });
     svg.innerHTML=h;
-    svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); dragIdx=+c.dataset.h; selIdx=dragIdx; startDrag(); render(); }));
+    svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); selIdx=+c.dataset.h; startDragPoint(+c.dataset.h); render(); }));
+    svg.querySelectorAll('[data-cal]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCal(c.dataset.cal); }));
     const contour=svg.querySelector('[data-contour]'); if(contour) contour.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); addPointAt(ev); });
     renderArea();
   }
 
-  function startDrag(){
-    const move=e=>{ const f=toFracEvt(e); let x=f[0], y=Math.max(0,Math.min(1.25,f[1])); if(sym){ if(dragIdx===0||dragIdx===pts.length-1) x=0; else x=Math.max(0,x); } pts[dragIdx]=[x,y]; render(); };
-    const up=()=>{ document.removeEventListener('pointermove',move); dragIdx=-1; };
-    document.addEventListener('pointermove',move);
-    document.addEventListener('pointerup',up,{once:true});
+  function startDragPoint(idx){
+    const move=e=>{ const f=toFracEvt(e); let x=f[0], y=f[1]; if(sym){ if(idx===0||idx===pts.length-1) x=0; else x=Math.max(0,x); } pts[idx]=[x,Math.max(-0.2,Math.min(1.5,y))]; render(); };
+    const up=()=>document.removeEventListener('pointermove',move);
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
+  }
+  function startDragCal(which){
+    const move=e=>{ let y=Math.max(0,Math.min(1,evtYFrac(e))); if(which==='top') calT=Math.min(y,calB-0.05); else calB=Math.max(y,calT+0.05); render(); };
+    const up=()=>document.removeEventListener('pointermove',move);
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
   }
   function segDist(p,a,b){ const vx=b[0]-a[0],vy=b[1]-a[1]; const t=Math.max(0,Math.min(1,((p[0]-a[0])*vx+(p[1]-a[1])*vy)/(vx*vx+vy*vy||1e-6))); return Math.hypot(p[0]-(a[0]+t*vx),p[1]-(a[1]+t*vy)); }
-  function addPointAt(ev){ const f=toFracEvt(ev); let best=1,bestD=Infinity; for(let i=0;i<pts.length-1;i++){ const d=segDist(f,pts[i],pts[i+1]); if(d<bestD){bestD=d;best=i+1;} } snapshot(); const x=sym?Math.max(0,f[0]):f[0], y=Math.max(0,Math.min(1.25,f[1])); pts.splice(best,0,[x,y]); selIdx=best; render(); }
+  function addPointAt(ev){ const f=toFracEvt(ev); let best=1,bestD=Infinity; for(let i=0;i<pts.length-1;i++){ const d=segDist(f,pts[i],pts[i+1]); if(d<bestD){bestD=d;best=i+1;} } snapshot(); const x=sym?Math.max(0,f[0]):f[0], y=Math.max(-0.2,Math.min(1.5,f[1])); pts.splice(best,0,[x,y]); selIdx=best; render(); }
 
-  function renderArea(){ const heightMm=heightMmForSize(paSize); const af=areaFracOf(curFull()); const mm2=af*heightMm*heightMm; const cm2=mm2/100; const el=document.getElementById('pa-area'); if(el) el.innerHTML='Площа поля («'+(paSide==='front'?'Груди':'Спина')+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">масштаб: '+escA(paSize)+' (висота '+(heightMm/10)+' см)</span>'; }
+  function renderArea(){
+    const heightCm=data.heightCm>0?data.heightCm:cmForSize(paSize);
+    const af=areaFracOf(curFull());
+    const cm2=af*heightCm*heightCm; const mm2=cm2*100;
+    const el2=el('pa-area');
+    if(el2) el2.innerHTML='Площа поля («'+(paSide==='front'?'Груди':'Спина')+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+(colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
+  }
 
   async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: data } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка'); } }
 
-  const el = id=>document.getElementById(id);
   el('pa-open')&&el('pa-open').addEventListener('click',()=>open(photoGarmentId));
   el('pa-close-x')&&el('pa-close-x').addEventListener('click',close);
   el('pa-save')&&el('pa-save').addEventListener('click',save);
-  el('pa-reset')&&el('pa-reset').addEventListener('click',()=>{ if(!confirm('Скасувати всі зміни цього слоту?'))return; loadSlot(); render(); });
+  el('pa-reset')&&el('pa-reset').addEventListener('click',()=>{ if(!confirm('Скасувати незбережені зміни цього слоту/кольору?'))return; loadSlotColor(); render(); });
   el('pa-sym')&&el('pa-sym').addEventListener('change',e=>{ const on=e.target.checked; snapshot(); if(on&&!sym){ const right=pts.filter(p=>p[0]>=-0.001); pts=right.length>=3?right.map(p=>[Math.max(0,p[0]),p[1]]):DEFAULT_HALF.map(p=>p.slice()); } else if(!on&&sym){ pts=curFull(); } sym=on; render(); });
   document.addEventListener('keydown',e=>{ if(!modal().classList.contains('open'))return; if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); } else if((e.key==='Delete'||e.key==='Backspace')&&selIdx>=0){ e.preventDefault(); if(pts.length>3){ snapshot(); pts.splice(selIdx,1); selIdx=-1; render(); } } });
   window.__paOpen=open;
