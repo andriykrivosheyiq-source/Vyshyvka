@@ -373,11 +373,10 @@
         <div class="brand-text"><b>Loomiq</b><span>Адмінка</span></div>
       </div>
       <nav class="nav">
-        <button data-view="settings"><span class="num">01</span> Формування цін</button>
-        <button data-view="garments"><span class="num">02</span> Товари</button>
-        <button data-view="board" class="active"><span class="num">03</span> Канбан</button>
+        <button data-view="board" class="active"><span class="num">01</span> Канбан</button>
+        <button data-view="settings"><span class="num">02</span> Формування цін</button>
+        <button data-view="photos"><span class="num">03</span> Конструктор сайту</button>
         <button data-view="reviews"><span class="num">04</span> Відгуки</button>
-        <button data-view="photos"><span class="num">05</span> Конструктор сайту</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -1639,9 +1638,28 @@ function countPixelsFromImage(img){
 /* ============================================================
    CALCULATOR VIEW
    ============================================================ */
+/* Заготовки для калькулятора замовлень = товари з Конструктора сайту.
+   Собівартість = products.cost[id], мін. ціна = pricing.basePrices[id]. */
+function orderGarments(){
+  const prod = contentData.products || {};
+  const costs = prod.cost || {};
+  const hidden = prod.hidden || [];
+  const bp = (contentData.pricing && contentData.pricing.basePrices) || {};
+  return goodsAllProducts()
+    .filter(p=>!hidden.includes(p.id))
+    .map(p=>({
+      id: p.id,
+      name: (contentData.names && contentData.names[p.id]) || p.name,
+      cost: Number(costs[p.id]) || 0,
+      minPrice: (bp[p.id] != null ? Number(bp[p.id]) : (DEFAULT_SITE_PRICING.basePrices[p.id] || 0))
+    }));
+}
 function refreshGarmentSelect(){
   const sel = document.getElementById('order-garment');
-  sel.innerHTML = garments.map(g=>`<option value="${g.id}">${escapeHtml(g.name)} — собів. ${g.cost}₴ / мін. ${g.minPrice}₴</option>`).join('');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = orderGarments().map(g=>`<option value="${g.id}">${escapeHtml(g.name)} — собів. ${g.cost}₴ / мін. ${g.minPrice}₴</option>`).join('');
+  if(prev && orderGarments().some(g=>g.id===prev)) sel.value = prev;
 }
 
 function addApp(){
@@ -1785,7 +1803,7 @@ function timelineSteps(qty){
 
 function recalc(){
   const garmentId = document.getElementById('order-garment').value;
-  const garment = garments.find(g=>g.id===garmentId) || {cost:0,minPrice:0,name:''};
+  const garment = orderGarments().find(g=>g.id===garmentId) || {cost:0,minPrice:0,name:''};
   const qty = Math.max(1, parseInt(document.getElementById('order-qty').value||1));
 
   const garmentPrice = garment.minPrice * qty;
