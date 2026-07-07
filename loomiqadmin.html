@@ -317,6 +317,26 @@
   .pc-btn.up.busy{opacity:.6;cursor:default;}
   .pc-btn.reset{background:#fff;border:1px solid var(--line);color:var(--ink-soft);}
   .pc-btn.reset:hover{border-color:var(--bad,#d64550);color:var(--bad,#d64550);}
+
+  /* Товари — сітка карток */
+  .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+  .prod-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;display:flex;flex-direction:column;position:relative;}
+  .prod-card:hover{box-shadow:0 6px 18px -8px rgba(0,0,0,.18);border-color:var(--accent);}
+  .prod-card .pcard-img{aspect-ratio:1/0.9;background:#f4f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .prod-card .pcard-img img{width:100%;height:100%;object-fit:contain;}
+  .prod-card .pcard-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px;}
+  .prod-card .pcard-name{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.25;}
+  .prod-card .pcard-price{font-size:12px;color:var(--ink-soft);}
+  .prod-card .pcard-drag{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.9);border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  .prod-card .pcard-badges{position:absolute;top:6px;right:6px;z-index:2;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+  .prod-card .pcard-badge{font-size:9.5px;font-weight:700;letter-spacing:.3px;border-radius:6px;padding:2px 7px;}
+  .prod-card .pcard-badge.own{color:var(--accent);background:var(--accent-soft);}
+  .prod-card .pcard-badge.hid{color:#fff;background:#8a8a8a;}
+  .prod-card.is-hidden{opacity:.55;}
+
+  /* Товари — детальна панель, секції */
+  .prod-sec{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;margin-bottom:14px;max-width:680px;}
+  .prod-sec-h{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
 </style>
 </head>
 <body>
@@ -674,91 +694,156 @@
         <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.</div>
       </div>
       <div class="seg" id="ctor-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
-        <button data-ct="photo" class="active print">Фото товарів</button>
-        <button data-ct="info">Назва й опис</button>
-        <button data-ct="sizes">Розмірна сітка</button>
-        <button data-ct="models">Моделі</button>
+        <button data-ct="products" class="active print">Товари</button>
         <button data-ct="reviews">Відгуки</button>
-        <button data-ct="goods">Товари й ціни</button>
         <button data-ct="site">Головна й контакти</button>
       </div>
 
-      <div class="photo-picker" id="ctor-garment-row">
-        <label class="photo-sel">
-          <span>Товар</span>
-          <select id="photo-garment"></select>
-        </label>
-        <label class="photo-sel" id="photo-color-wrap">
-          <span>Колір</span>
-          <select id="photo-color"></select>
-        </label>
-      </div>
+      <!-- ТОВАРИ: сітка карток + детальна панель одного товару -->
+      <div id="ctor-products">
 
-      <!-- Фото товарів -->
-      <div id="ctor-photo">
-        <div id="photo-cells" class="photo-cells"></div>
-      </div>
+        <!-- Сітка карток товарів -->
+        <div id="prod-master">
+          <div class="sub" style="margin-bottom:12px;">Натисніть на товар, щоб редагувати все в одному місці: фото, назву, опис, розмірну сітку, фото моделей, ціну й собівартість. Порядок карток — перетягуванням за ⠿.</div>
+          <div id="prod-grid" class="prod-grid"></div>
 
-      <!-- Назва й опис -->
-      <div id="ctor-info" style="display:none;">
-        <div class="card" style="max-width:640px;">
-          <label class="field" style="display:block;margin-bottom:12px;">
-            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Назва товару на сайті</span>
-            <input id="info-name" type="text" maxlength="60" style="width:100%;" placeholder="">
-          </label>
-          <label class="field" style="display:block;margin-bottom:14px;">
-            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Опис (вкладка «Про товар»)</span>
-            <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
-          </label>
-          <div style="margin-bottom:14px;">
-            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Характеристики (рядки блоку «Про товар»)</span>
-            <div id="spec-rows"></div>
-            <button class="pc-btn reset" id="spec-add" style="flex:none;padding:8px 16px;margin-top:8px;">+ Додати характеристику</button>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="pc-btn up" id="info-save" style="flex:none;padding:10px 22px;">Зберегти</button>
-            <button class="pc-btn reset" id="info-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Розмірна сітка -->
-      <div id="ctor-sizes" style="display:none;">
-        <div class="card" style="max-width:640px;margin-bottom:14px;">
-          <b style="font-size:14px;">Фото розмірної сітки</b>
-          <div class="sub" style="margin:6px 0 12px;">Якщо завантажити фото — на сайті воно показується замість таблиці нижче.</div>
-          <div id="sc-photo-box" style="margin-bottom:12px;"></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="pc-btn up" id="sc-photo-up" style="flex:none;padding:10px 22px;">Завантажити фото</button>
-            <button class="pc-btn reset" id="sc-photo-del" style="flex:none;padding:10px 22px;display:none;">Прибрати фото (повернути таблицю)</button>
+          <div class="card" style="max-width:640px;margin-top:16px;">
+            <div id="np-toggle" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;">
+              <b style="font-size:14px;">➕ Додати новий товар</b>
+              <span id="np-toggle-ic" style="font-size:16px;color:var(--ink-soft);">▾</span>
+            </div>
+            <div id="np-form" style="display:none;margin-top:14px;">
+              <label class="field" style="display:block;margin-bottom:10px;">
+                <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Назва</span>
+                <input id="np-name" type="text" maxlength="40" style="width:100%;" placeholder="Шорти">
+              </label>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                <label class="field" style="flex:1;min-width:150px;">
+                  <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Ціна в каталозі</span>
+                  <input id="np-price" type="text" maxlength="24" style="width:100%;" placeholder="від 199 грн">
+                </label>
+                <label class="field" style="flex:1;min-width:150px;">
+                  <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Надбавка до базової ціни, грн</span>
+                  <input id="np-surcharge" type="number" min="0" style="width:100%;" placeholder="0">
+                </label>
+              </div>
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Кольори — натисніть кружечки зі спектра (обрані позначаються ✓)</span>
+              <div id="np-palette" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+              <div id="np-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="color" id="np-cust-hex" value="#888888" style="width:44px;height:36px;border:1px solid var(--line);border-radius:7px;padding:2px;background:#fff;cursor:pointer;">
+                <input id="np-cust-name" maxlength="24" placeholder="Свій колір — назва" style="flex:1;min-width:140px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+                <button class="pc-btn reset" id="np-cust-add" style="flex:none;padding:8px 14px;">+ Додати свій</button>
+              </div>
+              <div style="margin-top:14px;">
+                <button class="pc-btn up" id="np-create" style="flex:none;padding:10px 22px;">Створити товар</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="card" style="max-width:640px;">
-          <div class="sub" style="margin-bottom:12px;">A — довжина (см), B — ширина (см). Порожня таблиця = стандартна сітка сайту.</div>
-          <table style="width:100%;border-collapse:collapse;" id="sc-table">
-            <thead><tr>
-              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">РОЗМІР</th>
-              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">A (см)</th>
-              <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">B (см)</th>
-              <th></th>
-            </tr></thead>
-            <tbody id="sc-body"></tbody>
-          </table>
-          <button class="pc-btn reset" id="sc-add" style="flex:none;padding:8px 16px;margin-top:10px;">+ Додати рядок</button>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-            <button class="pc-btn up" id="sc-save" style="flex:none;padding:10px 22px;">Зберегти</button>
-            <button class="pc-btn reset" id="sc-reset" style="flex:none;padding:10px 22px;">Повернути стандартну</button>
-          </div>
-        </div>
-      </div>
 
-      <!-- Моделі -->
-      <div id="ctor-models" style="display:none;">
-        <div class="sub" style="margin-bottom:12px;">Власні фото моделей замінюють стандартні для обраного товару. Порядок — стрілками. «Скинути все» повертає стандартні фото сайту.</div>
-        <div id="model-cells" class="photo-cells"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-          <button class="pc-btn up" id="model-add" style="flex:none;padding:10px 22px;">+ Додати фото моделі</button>
-          <button class="pc-btn reset" id="model-clear" style="flex:none;padding:10px 22px;">Скинути все (стандартні)</button>
+        <!-- Детальна панель одного товару -->
+        <div id="prod-detail" style="display:none;">
+          <button class="pc-btn reset" id="prod-back" style="flex:none;padding:8px 16px;margin-bottom:14px;">← Усі товари</button>
+          <h2 id="prod-detail-title" style="font-size:18px;margin:0 0 4px;"></h2>
+          <div class="sub" id="prod-detail-sub" style="margin-bottom:18px;"></div>
+
+          <!-- Фото -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Фото товару</div>
+            <label class="photo-sel" id="photo-color-wrap" style="margin-bottom:12px;">
+              <span>Колір</span>
+              <select id="photo-color"></select>
+            </label>
+            <select id="photo-garment" style="display:none;"></select>
+            <div id="photo-cells" class="photo-cells"></div>
+          </section>
+
+          <!-- Назва й опис -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Назва, опис і характеристики</div>
+            <label class="field" style="display:block;margin-bottom:12px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Назва товару на сайті</span>
+              <input id="info-name" type="text" maxlength="60" style="width:100%;" placeholder="">
+            </label>
+            <label class="field" style="display:block;margin-bottom:14px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Опис (вкладка «Про товар»)</span>
+              <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
+            </label>
+            <div style="margin-bottom:14px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Характеристики (рядки блоку «Про товар»)</span>
+              <div id="spec-rows"></div>
+              <button class="pc-btn reset" id="spec-add" style="flex:none;padding:8px 16px;margin-top:8px;">+ Додати характеристику</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="pc-btn up" id="info-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+              <button class="pc-btn reset" id="info-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+            </div>
+          </section>
+
+          <!-- Розмірна сітка -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Розмірна сітка</div>
+            <div style="margin-bottom:16px;">
+              <b style="font-size:13px;">Фото розмірної сітки</b>
+              <div class="sub" style="margin:6px 0 12px;">Якщо завантажити фото — на сайті воно показується замість таблиці нижче.</div>
+              <div id="sc-photo-box" style="margin-bottom:12px;"></div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="pc-btn up" id="sc-photo-up" style="flex:none;padding:10px 22px;">Завантажити фото</button>
+                <button class="pc-btn reset" id="sc-photo-del" style="flex:none;padding:10px 22px;display:none;">Прибрати фото (повернути таблицю)</button>
+              </div>
+            </div>
+            <div class="sub" style="margin-bottom:12px;">A — довжина (см), B — ширина (см). Порожня таблиця = стандартна сітка сайту.</div>
+            <table style="width:100%;border-collapse:collapse;" id="sc-table">
+              <thead><tr>
+                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">РОЗМІР</th>
+                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">A (см)</th>
+                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">B (см)</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="sc-body"></tbody>
+            </table>
+            <button class="pc-btn reset" id="sc-add" style="flex:none;padding:8px 16px;margin-top:10px;">+ Додати рядок</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+              <button class="pc-btn up" id="sc-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+              <button class="pc-btn reset" id="sc-reset" style="flex:none;padding:10px 22px;">Повернути стандартну</button>
+            </div>
+          </section>
+
+          <!-- Моделі -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Фото моделей</div>
+            <div class="sub" style="margin-bottom:12px;">Власні фото моделей замінюють стандартні. Порядок — перетягуванням. «Скинути все» повертає стандартні фото сайту.</div>
+            <div id="model-cells" class="photo-cells"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+              <button class="pc-btn up" id="model-add" style="flex:none;padding:10px 22px;">+ Додати фото моделі</button>
+              <button class="pc-btn reset" id="model-clear" style="flex:none;padding:10px 22px;">Скинути все (стандартні)</button>
+            </div>
+          </section>
+
+          <!-- Ціна і собівартість -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Ціна і собівартість</div>
+            <label class="field" style="display:block;margin-bottom:12px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Напис ціни на картці в каталозі</span>
+              <input id="pc-label" type="text" maxlength="24" style="width:100%;" placeholder="від 199 грн">
+            </label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+              <label class="field" style="flex:1;min-width:150px;">
+                <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Продажна ціна (базова), грн</span>
+                <input id="pc-baseprice" type="number" min="0" style="width:100%;" placeholder="0">
+              </label>
+              <label class="field" style="flex:1;min-width:150px;">
+                <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Собівартість товару, грн</span>
+                <input id="pc-cost" type="number" min="0" style="width:100%;" placeholder="0">
+              </label>
+            </div>
+            <div id="pc-margin" class="sub" style="margin-bottom:12px;"></div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:14px;cursor:pointer;">
+              <input type="checkbox" id="pc-hide"> Приховати товар з каталогу
+            </label>
+            <button class="pc-btn up" id="pc-save" style="flex:none;padding:10px 22px;">Зберегти ціну</button>
+          </section>
         </div>
       </div>
 
@@ -781,45 +866,6 @@
             <button class="pc-btn up" id="rev-photos-add" style="flex:none;padding:10px 22px;">+ Додати фото</button>
             <button class="pc-btn up" id="rev-photos-save" style="flex:none;padding:10px 22px;">Зберегти</button>
             <button class="pc-btn reset" id="rev-photos-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Товари й ціни -->
-      <div id="ctor-goods" style="display:none;">
-        <div class="card">
-          <b style="font-size:14px;">Товари в каталозі</b>
-          <div class="sub" style="margin:6px 0 12px;">Порядок — стрілками. «Приховати» — товар зникає з каталогу і конструктора (дані зберігаються). Ціна — напис на картці в каталозі.</div>
-          <div id="goods-list"></div>
-          <button class="pc-btn up" id="goods-save" style="flex:none;padding:10px 22px;margin-top:14px;">Зберегти зміни</button>
-        </div>
-        <div class="card" style="max-width:640px;">
-          <b style="font-size:14px;">Додати новий товар</b>
-          <div class="sub" style="margin:6px 0 12px;">Після створення завантажте фото кольорів у вкладці «Фото товарів» — товар зʼявиться в каталозі та конструкторі.</div>
-          <label class="field" style="display:block;margin-bottom:10px;">
-            <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Назва</span>
-            <input id="np-name" type="text" maxlength="40" style="width:100%;" placeholder="Шорти">
-          </label>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-            <label class="field" style="flex:1;min-width:150px;">
-              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Ціна в каталозі</span>
-              <input id="np-price" type="text" maxlength="24" style="width:100%;" placeholder="від 199 грн">
-            </label>
-            <label class="field" style="flex:1;min-width:150px;">
-              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Надбавка до базової ціни, грн</span>
-              <input id="np-surcharge" type="number" min="0" style="width:100%;" placeholder="0">
-            </label>
-          </div>
-          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Кольори — натисніть кружечки зі спектра (обрані позначаються ✓)</span>
-          <div id="np-palette" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
-          <div id="np-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="color" id="np-cust-hex" value="#888888" style="width:44px;height:36px;border:1px solid var(--line);border-radius:7px;padding:2px;background:#fff;cursor:pointer;">
-            <input id="np-cust-name" maxlength="24" placeholder="Свій колір — назва" style="flex:1;min-width:140px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
-            <button class="pc-btn reset" id="np-cust-add" style="flex:none;padding:8px 14px;">+ Додати свій</button>
-          </div>
-          <div style="margin-top:14px;">
-            <button class="pc-btn up" id="np-create" style="flex:none;padding:10px 22px;">Створити товар</button>
           </div>
         </div>
       </div>
@@ -2046,79 +2092,62 @@ function goodsAllProducts(){
   const custom = ((contentData.products || {}).custom || []).map(c=>({id:c.id, name:c.name, price:c.price || '', custom:true}));
   return BASE_PRODUCTS.concat(custom);
 }
-function renderGoodsTab(){
-  const prod = contentData.products || {};
-  if(!goodsWork){
-    goodsWork = {
-      hidden: (prod.hidden || []).slice(),
-      priceLabels: Object.assign({}, prod.priceLabels || {}),
-      order: (prod.order || []).slice()
-    };
-  }
-  let items = goodsAllProducts();
-  if(goodsWork.order.length){
-    items.sort((a,b)=>{
-      let ia = goodsWork.order.indexOf(a.id), ib = goodsWork.order.indexOf(b.id);
-      if(ia === -1) ia = 999; if(ib === -1) ib = 999;
-      return ia - ib;
-    });
-  }
-  const box = document.getElementById('goods-list');
-  box.innerHTML = items.map((p,i)=>{
-    const hiddenNow = goodsWork.hidden.includes(p.id);
-    const priceNow = goodsWork.priceLabels[p.id] !== undefined ? goodsWork.priceLabels[p.id] : p.price;
-    const dispName = (contentData.names && contentData.names[p.id]) || p.name;
-    return `<div class="goods-row" data-gid="${p.id}" style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);${hiddenNow?'opacity:.5;':''}">
-      ${DRAG_H}
-      <b style="flex:1;min-width:120px;font-size:13.5px;">${escA(dispName)}${p.custom?' <span style="font-size:10px;color:var(--accent);font-weight:700;">СВІЙ</span>':''}</b>
-      <input data-gprice value="${escA(priceNow)}" maxlength="24" style="width:120px;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:7px 9px;" placeholder="від … грн">
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;">
-        <input type="checkbox" data-ghide ${hiddenNow?'checked':''}> Приховати
-      </label>
-      ${p.custom?`<button class="pc-btn reset" data-gdel="${p.id}" title="Видалити товар">🗑</button>`:''}
-    </div>`;
-  }).join('');
-  enableDrag(box, '.goods-row', ()=>{
-    syncGoodsWorkFromDom();
-    goodsWork.order = Array.from(box.querySelectorAll('.goods-row')).map(r=>r.dataset.gid);
-    renderGoodsTab();
-  });
-  box.querySelectorAll('[data-gdel]').forEach(b=>b.addEventListener('click', async ()=>{
-    const id = b.dataset.gdel;
-    const c = ((contentData.products||{}).custom||[]).find(x=>x.id===id);
-    if(!confirm('Видалити товар «'+(c?c.name:id)+'» назавжди? Його фото і налаштування буде втрачено.')) return;
-    try{
-      const custom = ((contentData.products||{}).custom||[]).filter(x=>x.id!==id);
-      await PHOTOS_DOC.set({ products: { custom } }, { merge:true });
-      goodsWork = null;
-      toast('Товар видалено');
-    }catch(e){ console.error(e); toast('Помилка'); }
-  }));
-}
-function syncGoodsWorkFromDom(){
-  const box = document.getElementById('goods-list');
-  const defaults = Object.fromEntries(goodsAllProducts().map(p=>[p.id, p.price]));
-  const hidden = [], priceLabels = {};
-  box.querySelectorAll('.goods-row').forEach(r=>{
-    const id = r.dataset.gid;
-    if(r.querySelector('[data-ghide]').checked) hidden.push(id);
-    const v = r.querySelector('[data-gprice]').value.trim();
-    if(v && v !== defaults[id]) priceLabels[id] = v;
-  });
-  goodsWork.hidden = hidden;
-  goodsWork.priceLabels = priceLabels;
-}
-document.getElementById('goods-save').addEventListener('click', async ()=>{
-  if(!goodsWork){ toast('Немає змін'); return; }
-  syncGoodsWorkFromDom();
-  goodsWork.order = Array.from(document.querySelectorAll('#goods-list .goods-row')).map(r=>r.dataset.gid);
+/* Видалити власний товар */
+async function deleteCustomProduct(id){
+  const c = ((contentData.products||{}).custom||[]).find(x=>x.id===id);
+  if(!confirm('Видалити товар «'+(c?c.name:id)+'» назавжди? Його фото і налаштування буде втрачено.')) return;
   try{
-    await PHOTOS_DOC.set({ products: {
-      hidden: goodsWork.hidden,
-      priceLabels: goodsWork.priceLabels,
-      order: goodsWork.order
-    }}, { merge:true });
-    toast('Каталог збережено');
+    const custom = ((contentData.products||{}).custom||[]).filter(x=>x.id!==id);
+    await PHOTOS_DOC.set({ products: { custom } }, { merge:true });
+    prodDetailId = null;
+    toast('Товар видалено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+}
+
+/* Згорнути/розгорнути форму «Додати товар» */
+(function(){
+  const t = document.getElementById('np-toggle');
+  if(t) t.addEventListener('click', ()=>{
+    const f = document.getElementById('np-form');
+    const ic = document.getElementById('np-toggle-ic');
+    const open = f.style.display === 'none';
+    f.style.display = open ? '' : 'none';
+    if(ic) ic.textContent = open ? '▴' : '▾';
+    if(open) renderNpPalette();
+  });
+})();
+
+/* Назад до сітки товарів */
+(function(){
+  const b = document.getElementById('prod-back');
+  if(b) b.addEventListener('click', closeProduct);
+})();
+
+/* Живий перерахунок прибутку при вводі */
+['pc-baseprice','pc-cost'].forEach(function(id){
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', updateMarginHint);
+});
+
+/* Зберегти напис ціни + продажну ціну + собівартість + приховування */
+document.getElementById('pc-save').addEventListener('click', async ()=>{
+  const id = photoGarmentId;
+  const prod = contentData.products || {};
+  const base = goodsAllProducts().find(p=>p.id===id) || {price:''};
+  const label = document.getElementById('pc-label').value.trim();
+  const bp = parseFloat(document.getElementById('pc-baseprice').value);
+  const cost = parseFloat(document.getElementById('pc-cost').value);
+  const hide = document.getElementById('pc-hide').checked;
+  const DEL = firebase.firestore.FieldValue.delete();
+  let hidden = (prod.hidden || []).filter(x=>x!==id);
+  if(hide) hidden.push(id);
+  const upd = { products: { hidden, priceLabels:{}, cost:{} }, pricing: { basePrices:{} } };
+  upd.products.priceLabels[id] = (label && label !== base.price) ? label : DEL;
+  upd.products.cost[id]        = (cost>0) ? cost : DEL;
+  upd.pricing.basePrices[id]   = (bp>0) ? bp : DEL;
+  try{
+    await PHOTOS_DOC.set(upd, { merge:true });
+    toast('Збережено');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
 });
 
@@ -2190,7 +2219,13 @@ document.getElementById('np-create').addEventListener('click', async ()=>{
     document.getElementById('np-surcharge').value = '';
     npSelected = [];
     renderNpPalette();
-    toast('Товар створено! Завантажте фото у вкладці «Фото товарів»');
+    const npForm = document.getElementById('np-form');
+    if(npForm) npForm.style.display = 'none';
+    const npIc = document.getElementById('np-toggle-ic');
+    if(npIc) npIc.textContent = '▾';
+    contentData.products = Object.assign({}, contentData.products, { custom });
+    openProduct(id);   // одразу відкриваємо новий товар, щоб завантажити фото
+    toast('Товар створено! Тепер завантажте фото кольорів');
   }catch(e){ console.error(e); toast('Помилка створення'); }
 });
 
@@ -2470,7 +2505,8 @@ const DEFAULT_REVIEW_PHOTOS = ['work-17','work-01','work-06','work-18','work-03'
 let photosMap = {};          // фото товарів по кольорах (map)
 let contentData = {};        // повний документ loomiq/photos (names, descriptions, sizecharts, models, reviewOrder, reviewPhotos)
 let photoGarmentId = PHOTO_CFG[0].id, photoColorId = PHOTO_CFG[0].colors[0].id;
-let ctorTab = 'photo';
+let ctorTab = 'products';
+let prodDetailId = null;   // id відкритого товару в детальній панелі (null = сітка карток)
 
 /* Базові + власні (створені в адмінці) товари */
 function allPhotoCfg(){
@@ -2531,21 +2567,13 @@ function renderPhotoManager(){
 
 /* Перемикання підрозділів конструктора */
 function renderCtor(){
-  const panes = {photo:'ctor-photo', info:'ctor-info', sizes:'ctor-sizes', models:'ctor-models', reviews:'ctor-reviews', goods:'ctor-goods', site:'ctor-site'};
+  const panes = {products:'ctor-products', reviews:'ctor-reviews', site:'ctor-site'};
   Object.entries(panes).forEach(([k,id])=>{
     const el = document.getElementById(id);
     if(el) el.style.display = (k===ctorTab) ? '' : 'none';
   });
-  const colorWrap = document.getElementById('photo-color-wrap');
-  if(colorWrap) colorWrap.style.display = (ctorTab==='photo') ? '' : 'none';
-  const gRow = document.getElementById('ctor-garment-row');
-  if(gRow) gRow.style.display = (ctorTab==='reviews' || ctorTab==='goods' || ctorTab==='site') ? 'none' : '';
-  renderPhotoManager();  // заповнює селекти; для photo-таба малює і клітинки
-  if(ctorTab==='info') renderInfoTab();
-  else if(ctorTab==='sizes') renderSizesTab();
-  else if(ctorTab==='models') renderModelsTab();
+  if(ctorTab==='products') renderProductsTab();
   else if(ctorTab==='reviews'){ renderReviewOrder(); renderReviewPhotosAdmin(); }
-  else if(ctorTab==='goods') renderGoodsTab();
   else if(ctorTab==='site') renderSiteTab();
 }
 document.querySelectorAll('#ctor-tabs button').forEach(b=>{
@@ -2553,9 +2581,155 @@ document.querySelectorAll('#ctor-tabs button').forEach(b=>{
     document.querySelectorAll('#ctor-tabs button').forEach(x=>x.classList.remove('active','print'));
     b.classList.add('active','print');
     ctorTab = b.dataset.ct;
+    if(ctorTab==='products') prodDetailId = null;   // назад до сітки при вході у вкладку
     renderCtor();
   });
 });
+
+/* ---------- ТОВАРИ: сітка карток → детальна панель ---------- */
+function renderProductsTab(){
+  const master = document.getElementById('prod-master');
+  const detail = document.getElementById('prod-detail');
+  if(!master || !detail) return;
+  if(prodDetailId){
+    // товар відкрито — детальна панель
+    master.style.display = 'none';
+    detail.style.display = '';
+    photoGarmentId = prodDetailId;
+    const g = photoCfg(photoGarmentId);
+    if(!g.colors.some(c=>c.id===photoColorId)) photoColorId = (g.colors[0]||{}).id;
+    const dispName = (contentData.names && contentData.names[photoGarmentId]) || g.name.replace(' · свій','');
+    const t = document.getElementById('prod-detail-title'); if(t) t.textContent = dispName;
+    const sub = document.getElementById('prod-detail-sub'); if(sub) sub.textContent = g.custom ? 'Власний товар' : 'Товар каталогу';
+    renderPhotoManager();   // фото + селект кольору
+    renderInfoTab();
+    renderSizesTab();
+    renderModelsTab();
+    renderPriceCost();
+  } else {
+    master.style.display = '';
+    detail.style.display = 'none';
+    renderProductGrid();
+  }
+}
+
+/* Мініатюра товару = фронт-фото першого кольору (override або стандартне) */
+function prodThumb(g){
+  const c0 = (g.colors && g.colors[0]) ? g.colors[0].id : null;
+  if(!c0) return '';
+  const key = g.id + '-' + c0 + '-front';
+  return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
+}
+function renderProductGrid(){
+  const grid = document.getElementById('prod-grid');
+  if(!grid) return;
+  const prod = contentData.products || {};
+  const hidden = (prod.hidden || []);
+  const order = (prod.order || []);
+  const labels = prod.priceLabels || {};
+  let items = goodsAllProducts();   // {id,name,price,custom}
+  if(order.length){
+    items.sort((a,b)=>{
+      let ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+      if(ia===-1) ia = 999; if(ib===-1) ib = 999;
+      return ia - ib;
+    });
+  }
+  grid.innerHTML = items.map(p=>{
+    const g = photoCfg(p.id);
+    const img = prodThumb(g);
+    const dispName = (contentData.names && contentData.names[p.id]) || p.name;
+    const priceTxt = labels[p.id] !== undefined ? labels[p.id] : p.price;
+    const isHid = hidden.includes(p.id);
+    return `<div class="prod-card${isHid?' is-hidden':''}" data-pid="${p.id}">
+      <span class="pcard-drag">${DRAG_H}</span>
+      <div class="pcard-badges">
+        ${p.custom?'<span class="pcard-badge own">СВІЙ</span>':''}
+        ${isHid?'<span class="pcard-badge hid">ПРИХОВАНО</span>':''}
+      </div>
+      <div class="pcard-img">${img?`<img src="${escA(img)}" alt="" onerror="this.style.display='none'">`:''}</div>
+      <div class="pcard-body">
+        <div class="pcard-name">${escA(dispName)}</div>
+        <div class="pcard-price">${escA(priceTxt||'')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  // клік по картці (окрім ручки перетягування) → відкрити товар
+  let lastDrop = 0;
+  grid.querySelectorAll('.prod-card').forEach(card=>{
+    card.addEventListener('click', e=>{
+      if(e.target.closest('.drag-h')) return;
+      if(Date.now() - lastDrop < 350) return;   // щойно перетягнули — не відкривати
+      openProduct(card.dataset.pid);
+    });
+  });
+  // перетягування карток → зберегти порядок одразу
+  enableDrag(grid, '.prod-card', async ()=>{
+    lastDrop = Date.now();
+    const newOrder = Array.from(grid.querySelectorAll('.prod-card')).map(c=>c.dataset.pid);
+    try{ await PHOTOS_DOC.set({ products: { order: newOrder } }, { merge:true }); toast('Порядок збережено'); }
+    catch(e){ console.error(e); toast('Помилка'); }
+  });
+}
+function openProduct(id){
+  prodDetailId = id;
+  photoGarmentId = id;
+  const g = photoCfg(id);
+  photoColorId = (g.colors[0]||{}).id;
+  renderProductsTab();
+  const pv = document.getElementById('view-photos');
+  if(pv) pv.scrollIntoView({block:'start'});
+}
+function closeProduct(){ prodDetailId = null; renderProductsTab(); }
+
+/* Ціна і собівартість одного товару */
+function renderPriceCost(){
+  const id = photoGarmentId;
+  const prod = contentData.products || {};
+  const g = photoCfg(id);
+  const base = goodsAllProducts().find(p=>p.id===id) || {price:''};
+  const labels = prod.priceLabels || {};
+  const costs = prod.cost || {};
+  const pricing = curSitePricing();
+  const bp = (pricing.basePrices && pricing.basePrices[id] != null) ? pricing.basePrices[id]
+           : (DEFAULT_SITE_PRICING.basePrices[id] != null ? DEFAULT_SITE_PRICING.basePrices[id] : '');
+  const labEl = document.getElementById('pc-label');
+  const bpEl = document.getElementById('pc-baseprice');
+  const costEl = document.getElementById('pc-cost');
+  const hideEl = document.getElementById('pc-hide');
+  if(labEl) labEl.value = labels[id] !== undefined ? labels[id] : (base.price || '');
+  if(bpEl) bpEl.value = bp === '' ? '' : bp;
+  if(costEl) costEl.value = (costs[id] != null) ? costs[id] : '';
+  if(hideEl) hideEl.checked = (prod.hidden || []).includes(id);
+  // кнопка видалення — лише для власних товарів
+  const saveBtn = document.getElementById('pc-save');
+  let delBtn = document.getElementById('pc-del');
+  if(g.custom){
+    if(!delBtn && saveBtn){
+      delBtn = document.createElement('button');
+      delBtn.id = 'pc-del'; delBtn.className = 'pc-btn reset';
+      delBtn.style.cssText = 'flex:none;padding:10px 22px;margin-left:10px;';
+      delBtn.textContent = '🗑 Видалити товар';
+      delBtn.addEventListener('click', ()=>deleteCustomProduct(photoGarmentId));
+      saveBtn.after(delBtn);
+    }
+    if(delBtn) delBtn.style.display = '';
+  } else if(delBtn){ delBtn.style.display = 'none'; }
+  updateMarginHint();
+}
+function updateMarginHint(){
+  const el = document.getElementById('pc-margin');
+  if(!el) return;
+  const bp = parseFloat(document.getElementById('pc-baseprice').value);
+  const cost = parseFloat(document.getElementById('pc-cost').value);
+  if(bp>0 && cost>0){
+    const m = bp - cost;
+    const pct = Math.round(m/bp*100);
+    el.innerHTML = 'Прибуток з товару: <b style="color:'+(m>=0?'var(--accent)':'var(--bad,#d64550)')+';">'+m+' грн</b> ('+pct+'%)';
+  } else {
+    el.textContent = 'Вкажіть продажну ціну і собівартість, щоб побачити прибуток.';
+  }
+}
 
 /* ---------- Назва, опис і характеристики ---------- */
 const DEFAULT_SPECS = [
@@ -3000,11 +3174,10 @@ async function init(){
     if(!pv || pv.style.display==='none') return;
     const a = document.activeElement;
     const typing = a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA');
-    if(ctorTab==='photo') renderPhotoCells();
-    else if(ctorTab==='info' && !typing) renderInfoTab();
-    else if(ctorTab==='sizes' && !typing) renderSizesTab();
-    else if(ctorTab==='models') renderModelsTab();
-    else if(ctorTab==='goods' && !typing && !goodsWork) renderGoodsTab();
+    if(ctorTab==='products'){
+      if(!prodDetailId) renderProductGrid();
+      else if(!typing) renderProductsTab();
+    }
     else if(ctorTab==='site' && !typing) renderSiteTab();
   }, function(e){ console.warn('photos snapshot', e); });
 
