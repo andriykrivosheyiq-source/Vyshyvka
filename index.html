@@ -2866,16 +2866,17 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
-      <div class="hero-bg-slide active" style="background-image:url('images/hero-1.webp')"></div>
+      <!-- Базовий шар = перший кадр відео (маленька картинка, вантажиться миттєво).
+           Відео-елементи невидимі, доки реально не грають, тому системна кнопка
+           Play на iOS фізично не може з'явитись. hero-1.webp — аварійний фолбек. -->
+      <div class="hero-bg-slide active" style="background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg'),url('images/hero-1.webp')"></div>
       <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike.
            f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
            data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
       <video class="hero-bg-video" autoplay muted playsinline preload="auto"
-        poster="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg"
         src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
       <video class="hero-bg-video" muted playsinline preload="auto"
-        poster="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.jpg"
         src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
     </div>
@@ -3767,11 +3768,10 @@
         v.classList.add('active');
         if(prev !== v){ prev.pause(); prev.classList.remove('active'); }
       };
-      // Перший показ: відео (його постер = перший кадр) видно ОДРАЗУ, без фото.
-      // При перемиканні між роликами чекаємо 'playing', щоб кросфейд був
-      // безшовним і без застиглих кадрів.
-      var prevVisible = prev !== v && prev.classList.contains('active');
-      if(prevVisible && v.paused){ v.addEventListener('playing', reveal, {once:true}); }
+      // Відео стає видимим ЛИШЕ коли реально грає. До того видно базовий шар
+      // (перший кадр відео як картинка) або попередній ролик — тож запаузене
+      // відео з системною кнопкою Play ніколи не потрапляє на екран.
+      if(v.paused){ v.addEventListener('playing', reveal, {once:true}); }
       else { reveal(); }
       tryPlay(v);
       tick();
