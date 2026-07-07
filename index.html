@@ -4563,14 +4563,25 @@
       var hmm = wmm / ((l.ar || 1) || 1);
       return wmm * hmm;
     }
+    // Ціна одного нанесення. Рахуємо ЧИСТУ площу (непрозоре × заповнення).
+    // Вишивка (mode:'stitch'): стібки = чиста площа × щільність → ціна за 1000 стібків.
+    // Друк: ставка × чиста площа.
+    function placementPrice(m, l){
+      var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85);
+      var raw;
+      if(m.mode === 'stitch'){
+        var stitches = cleanMm2 * (+m.density || 1.6);
+        raw = stitches / 1000 * (+m.pricePer1000 || 0);
+      } else {
+        raw = (+m.ratePerMm2 || 0) * cleanMm2;
+      }
+      return Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
+    }
     function applicationCostNew(){
       var m = methodCfgNew(); if(!m) return 0;
       var total = 0;
       getViews().forEach(function(side){
-        (pm.logos[side] || []).forEach(function(l){
-          var raw = (+m.ratePerMm2 || 0) * layerAreaMm2(l) * (l.fill || 0.85);
-          total += Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
-        });
+        (pm.logos[side] || []).forEach(function(l){ total += placementPrice(m, l); });
       });
       return total;
     }
