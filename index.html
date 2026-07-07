@@ -4462,7 +4462,7 @@
       pmGarmentWrapEl.style.width = size + 'px';
       pmGarmentWrapEl.style.height = size + 'px';
     }
-    window.addEventListener('resize', fitGarmentStage);
+    (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitGarmentStage(); }); })();
     window.addEventListener('orientationchange', function(){ setTimeout(fitGarmentStage, 50); });
 
     function currentLayers(){ return pm.logos[pm.side]; }
@@ -5495,7 +5495,6 @@
     }
     renderReviewSwatches();
     document.addEventListener('lq-content', renderReviewSwatches);
-    document.getElementById('pmReviewSwatches').addEventListener('click', function(){ reviewsModalCtrl.open(); });
     initScrollHint(document.getElementById('pmTierRow'));
 
     // Quick rows
@@ -5534,8 +5533,24 @@
       document.getElementById('pmDeliveryModal').classList.add('open');
     });
     document.getElementById('pmRowReviews').addEventListener('click', function(){
-      reviewsModalCtrl.open();
+      // відкриваємо відгуки ПОВЕРХ картки товару (не закриваючи її), щоб «назад» повертало сюди
+      var rm = document.getElementById('reviewsModal');
+      closeMenu();
+      rm.style.zIndex = '230';
+      rm.dataset.overProduct = '1';
+      rm.classList.add('open');
+      rm.scrollTop = 0;
     });
+    // При закритті відгуків, відкритих поверх товару — прибираємо тимчасовий z-index
+    (function(){
+      var rm = document.getElementById('reviewsModal');
+      var clearOver = function(){ rm.style.zIndex = ''; delete rm.dataset.overProduct; };
+      var bk = document.getElementById('reviewsModalBack');
+      if(bk) bk.addEventListener('click', clearOver);
+      // свайп-назад теж очистить (обробник свайпу викликає remove('open') — слухаємо зміну класу)
+      var mo = new MutationObserver(function(){ if(!rm.classList.contains('open')) clearOver(); });
+      mo.observe(rm, {attributes:true, attributeFilter:['class']});
+    })();
     document.getElementById('pmDeliveryOkBtn').addEventListener('click', function(){
       document.getElementById('pmDeliveryModal').classList.remove('open');
     });
@@ -5605,6 +5620,30 @@
     window.__renderRecommended = renderRecommended;
     document.addEventListener('lq-photos', function(){ try{ renderRecommended(); }catch(e){} });
     document.addEventListener('lq-content', function(){ try{ renderRecommended(); }catch(e){} });
+
+    // iOS: скріншот/поява URL-бару фаєрить resize і збиває скрол модалки — відновлюємо його
+    (function(){
+      var modalIds = ['productModal','catalogModal','reviewsModal','cartModal','contactModal'];
+      var saved = {};
+      modalIds.forEach(function(id){
+        var el = document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('scroll', function(){ saved[id] = el.scrollTop; }, {passive:true});
+      });
+      var lastW = window.innerWidth;
+      window.addEventListener('resize', function(){
+        var widthChanged = window.innerWidth !== lastW;
+        lastW = window.innerWidth;
+        if(widthChanged) return;   // справжня зміна ширини/орієнтації — не заважаємо
+        modalIds.forEach(function(id){
+          var el = document.getElementById(id);
+          if(el && el.classList.contains('open') && saved[id] != null){
+            var y = saved[id];
+            requestAnimationFrame(function(){ el.scrollTop = y; });
+          }
+        });
+      });
+    })();
 
     document.getElementById('pmHelpConsultBtn').addEventListener('click', function(){
       document.getElementById('pmConsultModal').classList.add('open');
