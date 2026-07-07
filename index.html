@@ -7,6 +7,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Loomiq — мерч для команди за 1 хв</title>
+<link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+<link rel="dns-prefetch" href="https://res.cloudinary.com">
 
 <style>
   :root{
@@ -194,26 +196,18 @@
     background:none;
   }
   .hero-video-ui{
-    position:absolute;right:18px;bottom:64px;z-index:3;
-    display:flex;align-items:center;gap:9px;
-    padding:9px 13px;border-radius:999px;
-    background:rgba(12,12,16,.38);
+    position:absolute;right:16px;bottom:62px;z-index:3;
+    width:46px;height:46px;border-radius:50%;padding:0;cursor:pointer;
+    background:rgba(12,12,16,.35);border:none;
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,.14);
   }
   .hero-video-ui[hidden]{display:none;}
-  .hero-video-seg{
-    width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.32);
-    overflow:hidden;border:none;padding:0;cursor:pointer;position:relative;
-  }
-  .hero-video-seg::after{content:'';position:absolute;inset:-10px;}  /* більша зона тапу */
-  .hero-video-seg i{
-    display:block;height:100%;width:100%;background:#fff;border-radius:2px;
-    transform:scaleX(0);transform-origin:left;
-  }
-  .hero-video-timer{
-    font-size:13px;font-weight:700;color:#fff;letter-spacing:.02em;
-    font-variant-numeric:tabular-nums;min-width:34px;text-align:center;
+  .hero-video-ui svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+  .hvt-bg{stroke:rgba(255,255,255,.25);}
+  .hvt-fill{stroke:#fff;stroke-dasharray:119.4;stroke-dashoffset:119.4;}
+  #heroVideoTimer{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;
   }
   .hero-slide-controls{
     position:absolute;left:0;right:0;bottom:18px;z-index:3;
@@ -2859,20 +2853,26 @@
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
       <div class="hero-bg-slide active" style="background-image:url('images/hero-1.webp')"></div>
-      <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike -->
+      <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike.
+           f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
+           data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
       <video class="hero-bg-video" muted playsinline preload="auto"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
-      <video class="hero-bg-video" muted playsinline preload="metadata"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
+        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
+        data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
+      <video class="hero-bg-video" muted playsinline preload="auto"
+        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
+        data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
     </div>
     <div class="hero-overlay"></div>
 
-    <!-- Прогрес відео + таймер до наступного (стиль Nike) -->
-    <div class="hero-video-ui" id="heroVideoUi" hidden>
-      <button class="hero-video-seg" data-vid="0" aria-label="Відео 1"><i></i></button>
-      <button class="hero-video-seg" data-vid="1" aria-label="Відео 2"><i></i></button>
-      <span class="hero-video-timer" id="heroVideoTimer">0:00</span>
-    </div>
+    <!-- Круговий таймер відео (стиль Nike): кільце = прогрес, цифра = секунди до наступного -->
+    <button class="hero-video-ui" id="heroVideoUi" hidden aria-label="Наступне відео">
+      <svg viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="hvt-bg" cx="22" cy="22" r="19" fill="none" stroke-width="3"/>
+        <circle class="hvt-fill" id="heroVidRing" cx="22" cy="22" r="19" fill="none" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span id="heroVideoTimer">0</span>
+    </button>
 
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
@@ -3693,27 +3693,24 @@
     restartRing();
   })();
 
-  // Hero-відео: два ролики грають по колу (стиль Nike) — активний сегмент
-  // заповнюється за прогресом відео, таймер показує скільки лишилось до наступного.
+  // Hero-відео: два ролики грають по колу (стиль Nike) — кільце таймера
+  // заповнюється за прогресом відео, цифра показує секунди до наступного.
+  // Тап по таймеру перемикає на наступне відео.
   (function(){
     var vids = Array.prototype.slice.call(document.querySelectorAll('.hero-bg-video'));
     var ui = document.getElementById('heroVideoUi');
     if(!vids.length || !ui) return;
-    var segs = Array.prototype.slice.call(ui.querySelectorAll('.hero-video-seg'));
+    var ring = document.getElementById('heroVidRing');
+    var RING_LEN = 119.4;
     var timerEl = document.getElementById('heroVideoTimer');
     var cur = 0, raf = null, dead = {};
 
-    function fmt(sec){
-      sec = Math.max(0, Math.ceil(sec));
-      var m = Math.floor(sec/60), s = sec%60;
-      return m + ':' + (s<10?'0':'') + s;
-    }
     function tick(){
       var v = vids[cur];
       if(v.duration){
         var frac = Math.min(1, v.currentTime / v.duration);
-        segs[cur].firstElementChild.style.transform = 'scaleX(' + frac + ')';
-        timerEl.textContent = fmt(v.duration - v.currentTime);
+        ring.style.strokeDashoffset = (RING_LEN * (1 - frac)).toFixed(1);
+        timerEl.textContent = Math.max(0, Math.ceil(v.duration - v.currentTime));
       }
       raf = requestAnimationFrame(tick);
     }
@@ -3728,9 +3725,7 @@
       vids[cur].pause();
       vids[cur].classList.remove('active');
       cur = idx;
-      segs.forEach(function(s){
-        s.firstElementChild.style.transform = 'scaleX(0)';
-      });
+      ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
       try{ v.currentTime = 0; }catch(e){}
       v.classList.add('active');
@@ -3752,8 +3747,15 @@
         if(nx >= 0) show(nx);
       });
       v.addEventListener('error', function(){
+        // якщо оптимізований (f_auto/q_auto) URL не віддався — пробуємо оригінал
+        var orig = v.dataset.orig;
+        if(orig && v.src !== orig){
+          v.src = orig;
+          v.load();
+          if(idx === cur) tryPlay(v);
+          return;
+        }
         dead[idx] = true;
-        segs[idx].style.display = 'none';
         if(Object.keys(dead).length >= vids.length){
           // жодне відео не вантажиться — лишаємо фонове фото
           ui.hidden = true;
@@ -3767,11 +3769,9 @@
       });
     });
 
-    segs.forEach(function(s, idx){
-      s.addEventListener('click', function(){
-        if(dead[idx] || idx === cur) return;
-        show(idx);
-      });
+    ui.addEventListener('click', function(){
+      var nx = nextAlive(cur);
+      if(nx >= 0 && nx !== cur) show(nx);
     });
 
     // не палимо трафік у фоновій вкладці; повертаємось — граємо далі
