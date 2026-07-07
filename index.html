@@ -283,32 +283,33 @@
     position:relative;overflow:hidden;
     background:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-      #1f1f1f;
-    background-size:160px 160px, auto;
-    background-blend-mode:soft-light, normal;
+      radial-gradient(130% 100% at 88% -12%, rgba(112,102,255,.30) 0%, rgba(112,102,255,.08) 38%, transparent 62%),
+      radial-gradient(110% 90% at -8% 112%, rgba(58,116,255,.20) 0%, transparent 58%),
+      linear-gradient(155deg,#171821 0%,#0c0d12 52%,#12131c 100%);
+    background-size:160px 160px, auto, auto, auto;
+    background-blend-mode:soft-light, normal, normal, normal;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
   }
   .aurora-bg::before, .aurora-bg::after{
-    content:'';position:absolute;z-index:0;pointer-events:none;filter:blur(18px);
+    content:'';position:absolute;z-index:0;pointer-events:none;border-radius:50%;filter:blur(70px);
   }
   .aurora-bg::before{
-    width:180%;height:36%;top:2%;left:-40%;
-    background:radial-gradient(ellipse 50% 100% at 50% 50%, rgba(255,255,255,.85) 0%, rgba(255,255,255,.3) 40%, transparent 72%);
-    animation:ribbon-flow-1 9s ease-in-out infinite;
+    width:min(420px,72%);aspect-ratio:1/1;top:-32%;right:-14%;
+    background:radial-gradient(circle at 50% 50%, rgba(126,116,255,.36) 0%, transparent 68%);
+    animation:glow-drift-1 13s ease-in-out infinite;
   }
   .aurora-bg::after{
-    width:170%;height:34%;bottom:2%;right:-40%;
-    background:radial-gradient(ellipse 50% 100% at 50% 50%, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 40%, transparent 72%);
-    animation:ribbon-flow-2 11s ease-in-out infinite;
+    width:min(380px,64%);aspect-ratio:1/1;bottom:-30%;left:-12%;
+    background:radial-gradient(circle at 50% 50%, rgba(56,120,255,.24) 0%, transparent 68%);
+    animation:glow-drift-2 17s ease-in-out infinite;
   }
-  @keyframes ribbon-flow-1{
-    0%{transform:rotate(-22deg) translate(-12%,-10%) scale(1.05);}
-    50%{transform:rotate(-6deg) translate(16%,18%) scale(1.25);}
-    100%{transform:rotate(-22deg) translate(-12%,-10%) scale(1.05);}
+  @keyframes glow-drift-1{
+    0%,100%{transform:translate(0,0) scale(1);opacity:.9;}
+    50%{transform:translate(-9%,10%) scale(1.12);opacity:1;}
   }
-  @keyframes ribbon-flow-2{
-    0%{transform:rotate(22deg) translate(10%,8%) scale(1.05);}
-    50%{transform:rotate(4deg) translate(-18%,-16%) scale(1.25);}
-    100%{transform:rotate(22deg) translate(10%,8%) scale(1.05);}
+  @keyframes glow-drift-2{
+    0%,100%{transform:translate(0,0) scale(1);opacity:.85;}
+    50%{transform:translate(10%,-8%) scale(1.1);opacity:1;}
   }
   @media (prefers-reduced-motion: reduce){
     .aurora-bg::before, .aurora-bg::after{animation:none;}
@@ -399,16 +400,18 @@
 
   /* promo card — dark gradient banner, full-bleed, visual on the right, like the lamoda-style "info banner" */
   .promo-card{
-    margin-top:32px;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;
-    width:100%;
-    border:none;border-radius:0;
+    display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:16px;
+    margin:32px 12px 0;width:calc(100% - 24px);
+    border:1px solid rgba(255,255,255,.09);border-radius:24px;
     padding:30px 20px;color:#FFFFFF;
-    transition:box-shadow .15s ease;
+    box-shadow:0 18px 44px -24px rgba(10,12,30,.6);
+    transition:box-shadow .15s ease,transform .15s ease;
   }
-  .promo-card:hover{box-shadow:0 8px 22px -10px rgba(0,0,0,.4);}
+  .promo-card:hover{box-shadow:0 22px 50px -22px rgba(10,12,30,.7);}
+  .promo-card:active{transform:scale(.99);}
   .promo-left{display:flex;flex-direction:column;align-items:flex-start;gap:14px;flex:1 1 auto;min-width:0;}
   .promo-text{min-width:0;}
-  .promo-card h3{font-size:16px;font-weight:400;line-height:1.4;color:#FFFFFF;text-align:left;}
+  .promo-card h3{font-size:17px;font-weight:400;line-height:1.45;color:rgba(255,255,255,.92);text-align:left;}
   .promo-card h3 strong{font-weight:700;color:#FFFFFF;}
   .promo-card .btn-light{background:#FFFFFF;color:#000000;padding:11px 18px;font-size:14px;}
   .promo-card .btn-light:hover{box-shadow:0 4px 12px -4px rgba(255,255,255,.3);}
@@ -428,37 +431,26 @@
     font-size:15px;font-weight:700;color:#FFFFFF;letter-spacing:.01em;
     transform:translateX(3px);
   }
-  .promo-badge{
-    position:absolute;bottom:-6px;right:-6px;width:30px;height:30px;border-radius:50%;
-    background:conic-gradient(from 180deg, #ff7eb3, #ffd86f, #7afcff, #8e7bff, #ff7eb3);
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,.4);
-    border:2px solid rgba(255,255,255,.75);
-  }
   .promo-shield{position:relative;width:78px;height:78px;flex:0 0 78px;display:flex;align-items:center;justify-content:center;}
   .promo-shield svg{width:72%;height:72%;display:block;}
 
   /* Rich guarantee block */
   .guarantee-promo{
-    margin-top:32px;width:100%;
-    border:none;border-radius:0;padding:36px 24px;color:#FFFFFF;
+    margin:32px 12px 0;width:calc(100% - 24px);
+    border:1px solid rgba(255,255,255,.09);border-radius:24px;
+    padding:36px 24px;color:#FFFFFF;
+    box-shadow:0 18px 44px -24px rgba(10,12,30,.6);
   }
   .guarantee-promo > *{position:relative;z-index:1;}
-  .guarantee-promo-icon{
-    position:absolute;bottom:32px;right:24px;
-    width:96px;height:96px;
-    background:none;box-shadow:none;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .guarantee-promo-icon svg{width:52px;height:52px;}
-  .guarantee-promo h3{font-size:21px;font-weight:700;line-height:1.3;color:#FFFFFF;white-space:nowrap;}
-  .guarantee-promo p{font-size:15.5px;line-height:1.55;color:#FFFFFF;margin-top:14px;max-width:none;}
-  .guarantee-tags{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;}
+  .guarantee-promo h3{font-size:22px;font-weight:700;line-height:1.3;color:#FFFFFF;white-space:nowrap;letter-spacing:-.01em;}
+  .guarantee-promo p{font-size:15.5px;line-height:1.6;color:rgba(255,255,255,.84);margin-top:14px;max-width:none;}
+  .guarantee-promo p strong{color:#FFFFFF;}
+  .guarantee-tags{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;}
   .guarantee-tag .gt-check{flex:none;margin-right:7px;}
   .guarantee-tag{
-    display:inline-flex;align-items:center;background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.18);border-radius:999px;
-    padding:7px 14px;font-size:13.5px;font-weight:500;color:#FFFFFF;white-space:nowrap;
+    display:inline-flex;align-items:center;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.16);border-radius:999px;
+    padding:8px 14px;font-size:13.5px;font-weight:500;color:#FFFFFF;white-space:nowrap;
   }
   @keyframes ring-fill-once{
     from{stroke-dashoffset:264;}
@@ -1413,7 +1405,7 @@
   }
   .final-cta .wrap{position:relative;z-index:1;}
   .final-cta h2{font-size:clamp(28px,4.5vw,42px);margin-top:14px;line-height:1.15;color:#FFFFFF;}
-  .final-cta p{margin-top:14px;color:rgba(255,255,255,.65);font-size:17px;max-width:520px;margin-inline:auto;}
+  .final-cta p{margin-top:14px;color:rgba(255,255,255,.78);font-size:17px;max-width:520px;margin-inline:auto;}
   .final-cta .cta-row{display:flex;gap:14px;justify-content:center;margin-top:32px;flex-wrap:wrap;}
   .final-cta .btn-primary{background:#FFFFFF;color:#000000;}
   .final-cta .btn-ghost{background:transparent;color:#FFFFFF;border:1px solid rgba(255,255,255,.3);}
@@ -3005,9 +2997,6 @@
           <circle class="ring-fill" cx="50" cy="50" r="42" fill="none" stroke-width="8" stroke-linecap="round"/>
         </svg>
         <span class="promo-clock-label">1 хв</span>
-        <span class="promo-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-        </span>
       </div>
     </button>
   </section>
@@ -3103,20 +3092,6 @@
     </div>
 
     <div class="guarantee-promo aurora-bg reveal">
-      <div class="guarantee-promo-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
-          <defs>
-            <clipPath id="shieldClip" clipPathUnits="userSpaceOnUse">
-              <path d="M12 2 L21 6 V12 C21 17 17 21 12 22 C7 21 3 17 3 12 V6 Z"/>
-            </clipPath>
-          </defs>
-          <foreignObject x="0" y="0" width="24" height="24" clip-path="url(#shieldClip)">
-            <div xmlns="http://www.w3.org/1999/xhtml" style="width:24px;height:24px;background:conic-gradient(from 0deg, #ff7eb3, #ffd86f, #7afcff, #8e7bff, #ff7eb3);"></div>
-          </foreignObject>
-          <path d="M12 2 L21 6 V12 C21 17 17 21 12 22 C7 21 3 17 3 12 V6 Z"/>
-          <path d="M8.5 12.5 L11 15 L16 9.5"/>
-        </svg>
-      </div>
       <h3>Відповідаємо за результат</h3>
       <p>Якщо готовий виріб відрізняється від погодженого макета або заявлених характеристик — виправимо за власний рахунок або <strong>повернемо кошти</strong>.</p>
       <div class="guarantee-tags">
