@@ -561,9 +561,7 @@
         <div id="sp-tiers"></div>
         <div class="add-row-btn" id="sp-tier-add">+ Додати поріг</div>
 
-        <div class="tl-divider" style="margin-top:16px;">Базові ціни виробів і висота виробу (для перерахунку частки → мм)</div>
-        <div class="sub" style="margin-bottom:10px;">Порожня «висота» = автоматично береться з розмірної сітки товару (довжина A розміру M). Стандарт M = 68 см = 680 мм.</div>
-        <div id="sp-products"></div>
+        <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються тепер у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
         <div style="margin-top:16px;">
           <button class="btn btn-accent" id="sp-save">Зберегти прорахунок сайту</button>
@@ -1306,7 +1304,6 @@ function paintSitePricing(){
     document.getElementById('sp-'+pre+'-buf').value  = m.bufferDays ?? '';
   });
   paintSpTiers(p.tiers);
-  paintSpProducts(p);
 }
 function paintSpTiers(tiers){
   document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`
@@ -1383,19 +1380,12 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     loadCoef: parseFloat(document.getElementById('sp-'+pre+'-load').value) || 1,
     bufferDays: parseInt(document.getElementById('sp-'+pre+'-buf').value,10) || 1
   });
-  const basePrices = {}, heights = { default: (curSitePricing().heights||{}).default || 700 };
-  document.querySelectorAll('#sp-products .sp-prod-row').forEach(r=>{
-    const id = r.dataset.gid;
-    const bp = parseFloat(r.querySelector('[data-sp-bp]').value);
-    const hh = parseFloat(r.querySelector('[data-sp-h]').value);
-    if(bp > 0) basePrices[id] = bp;
-    if(hh > 0) heights[id] = hh;
-  });
+  // Базові ціни й висоти більше не редагуються тут — вони в картці товару.
+  // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
     enabled: document.getElementById('sp-enabled').checked,
     methods: { dtf: g('dtf','dtf'), embro: g('emb','embro') },
-    tiers: readSpTiers(),
-    basePrices, heights
+    tiers: readSpTiers()
   };
   try{
     await PHOTOS_DOC.set({ pricing }, { merge:true });
