@@ -337,6 +337,29 @@
   /* Товари — детальна панель, секції */
   .prod-sec{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;margin-bottom:14px;max-width:680px;}
   .prod-sec-h{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+
+  /* Модалка «Області нанесення» */
+  #pa-modal{display:none;position:fixed;inset:0;z-index:400;background:#fff;flex-direction:column;}
+  #pa-modal.open{display:flex;}
+  .pa-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line);}
+  .pa-head b{font-size:16px;}
+  .pa-x{all:unset;cursor:pointer;font-size:18px;color:var(--ink-soft);padding:4px 8px;}
+  .pa-body{flex:1;display:flex;min-height:0;}
+  .pa-left{width:230px;flex:none;padding:20px 18px;border-right:1px solid var(--line);overflow-y:auto;}
+  .pa-right{width:230px;flex:none;padding:20px 18px;border-left:1px solid var(--line);overflow-y:auto;}
+  .pa-stage-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;background:#fafafb;min-width:0;}
+  .pa-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
+  .pa-prodname{font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:16px;}
+  .pa-slot{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13.5px;margin-bottom:6px;font-family:inherit;}
+  .pa-slot.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+  .pa-col{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;margin-bottom:5px;font-family:inherit;}
+  .pa-col.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+  .pa-col .sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);flex:none;}
+  .pa-stage{position:relative;max-width:100%;max-height:100%;line-height:0;}
+  .pa-stage img{max-width:min(560px,60vw);max-height:70vh;display:block;user-select:none;-webkit-user-drag:none;}
+  .pa-stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none;}
+  .pa-area{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:9px;padding:10px 12px;margin-bottom:14px;line-height:1.5;}
+  .pa-hint{font-size:12px;color:var(--ink-soft);line-height:1.6;margin-top:16px;}
 </style>
 </head>
 <body>
@@ -774,6 +797,10 @@
             </label>
             <select id="photo-garment" style="display:none;"></select>
             <div id="photo-cells" class="photo-cells"></div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
+              <div class="sub" id="pa-summary" style="margin-bottom:10px;">Область нанесення (зона друку/вишивки) ще не задана.</div>
+              <button class="pc-btn up" id="pa-open" style="flex:none;padding:10px 22px;">Області нанесення</button>
+            </div>
           </section>
 
           <!-- Назва й опис -->
@@ -861,6 +888,48 @@
             </label>
             <button class="pc-btn up" id="pc-save" style="flex:none;padding:10px 22px;">Зберегти ціну</button>
           </section>
+        </div>
+      </div>
+
+      <!-- МОДАЛКА: Області нанесення (полігон друку/вишивки) -->
+      <div id="pa-modal">
+        <div class="pa-head">
+          <b>Області нанесення</b>
+          <button id="pa-close-x" class="pa-x" aria-label="Закрити">✕</button>
+        </div>
+        <div class="pa-body">
+          <div class="pa-left">
+            <div class="pa-prodname" id="pa-prodname"></div>
+            <div class="pa-lbl">СЛОТ</div>
+            <div id="pa-slots"></div>
+            <button class="pc-btn reset" id="pa-slot-toggle" style="width:100%;margin-top:8px;padding:9px;"></button>
+            <div class="pa-lbl" style="margin-top:18px;">КОЛІР (ФОН)</div>
+            <div id="pa-colors"></div>
+            <div class="pa-lbl" style="margin-top:18px;">РОЗМІР ДЛЯ МАСШТАБУ</div>
+            <select id="pa-size" style="width:100%;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;"></select>
+          </div>
+          <div class="pa-stage-wrap">
+            <div class="pa-stage" id="pa-stage">
+              <img id="pa-img" alt="">
+              <svg id="pa-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+          </div>
+          <div class="pa-right">
+            <div class="pa-lbl">ВЛАСТИВОСТІ</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:14px;">
+              <input type="checkbox" id="pa-sym" checked> Симетричний полігон
+            </label>
+            <div class="pa-area" id="pa-area"></div>
+            <button class="pc-btn up" id="pa-save" style="width:100%;padding:10px;margin-bottom:8px;">Зберегти область</button>
+            <button class="pc-btn reset" id="pa-reset" style="width:100%;padding:10px;color:var(--bad,#d64550);">Скасувати всі зміни</button>
+            <div class="pa-hint">
+              Координати у частках висоти виробу.<br>
+              • перетягуйте точки мишею<br>
+              • клік по контуру — додати точку<br>
+              • клік по точці + <b>Delete</b> — видалити<br>
+              • <b>Ctrl+Z</b> — скасувати
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2673,6 +2742,7 @@ function renderProductsTab(){
     renderSizesTab();
     renderModelsTab();
     renderPriceCost();
+    updatePaSummary(photoGarmentId);
   } else {
     master.style.display = '';
     detail.style.display = 'none';
@@ -2810,6 +2880,109 @@ function addColorToWork(name, hex){
       toast('Повернуто стандартні кольори');
     }catch(e){ console.error(e); toast('Помилка'); }
   });
+})();
+
+/* Підпис у картці про стан області нанесення */
+function updatePaSummary(id){
+  const el = document.getElementById('pa-summary'); if(!el) return;
+  const pa = (contentData.printAreas||{})[id];
+  if(pa && (pa.front || pa.back)){
+    const slots = [pa.front?'Груди':null, pa.back?'Спина':null].filter(Boolean).join(', ');
+    el.innerHTML = '✅ Область нанесення задана: <b>'+slots+'</b> (масштаб '+escA(pa.scaleSize||'M')+').';
+  } else {
+    el.textContent = 'Область нанесення (зона друку/вишивки) ще не задана.';
+  }
+}
+
+/* ---------- Редактор «Області нанесення» ---------- */
+(function PA(){
+  const DEFAULT_HALF = [[0,0.12],[0.22,0.12],[0.22,0.62],[0,0.62]];
+  let paId=null, paSide='front', paColorId=null, paSize=null;
+  let data=null;      // {scaleSize, front:{symmetric,pts}|null, back:{symmetric,pts}|null}
+  let sym=true, pts=null;
+  let history=[], selIdx=-1, dragIdx=-1;
+  const modal = ()=>document.getElementById('pa-modal');
+
+  function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
+  function heightMmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68)*10; }
+  function defaultSize(){ const rows=paChart(); const m=rows.find(x=>String(x.size).toUpperCase()==='M'); return m?m.size:((rows[Math.floor(rows.length/2)]||{size:''}).size); }
+
+  function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
+  function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
+  function areaFracOf(poly){ let s=0; for(let i=0;i<poly.length;i++){ const a=poly[i],b=poly[(i+1)%poly.length]; s+=a[0]*b[1]-b[0]*a[1]; } return Math.abs(s)/2; }
+
+  function loadData(){ const all=(contentData.printAreas||{})[paId]; data = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),front:null,back:null}; if(!data.scaleSize)data.scaleSize=defaultSize(); }
+  function loadSlot(){ const slot=data[paSide]; if(slot){ sym=slot.symmetric!==false; pts=slot.pts.map(p=>p.slice()); } else { sym=true; pts=DEFAULT_HALF.map(p=>p.slice()); } history=[]; selIdx=-1; const sc=document.getElementById('pa-sym'); if(sc) sc.checked=sym; }
+  function saveWork(){ data[paSide]={symmetric:sym, pts:pts.map(p=>p.slice())}; }
+  function snapshot(){ history.push(JSON.stringify(pts)); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ pts=JSON.parse(history.pop()); render(); } }
+
+  function stageMetrics(){ const img=document.getElementById('pa-img'); const w=img.clientWidth||400, h=img.clientHeight||500; return {w,h,cx:w/2}; }
+  function toPx(p){ const m=stageMetrics(); return [m.cx+p[0]*m.h, p[1]*m.h]; }
+  function toFracEvt(e){ const svg=document.getElementById('pa-svg'); const r=svg.getBoundingClientRect(); const m=stageMetrics(); const ux=(e.clientX-r.left)/r.width*m.w, uy=(e.clientY-r.top)/r.height*m.h; return [(ux-m.cx)/m.h, uy/m.h]; }
+
+  function open(id){ paId=id; paSide='front'; loadData(); paSize=data.scaleSize; const cols=effectiveColors(id); paColorId=(cols[0]||{}).id; loadSlot(); modal().classList.add('open'); renderShell(); }
+  function close(){ modal().classList.remove('open'); }
+
+  function renderShell(){
+    const g=photoCfg(paId);
+    document.getElementById('pa-prodname').textContent = ((contentData.names&&contentData.names[paId])||g.name.replace(' · свій',''));
+    const slots=document.getElementById('pa-slots');
+    slots.innerHTML=['front','back'].filter(s=>s==='front'||data.back).map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${s==='front'?'Груди':'Спина'}</button>`).join('');
+    slots.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{ saveWork(); paSide=b.dataset.side; loadSlot(); renderShell(); });
+    const tog=document.getElementById('pa-slot-toggle');
+    if(data.back){ tog.textContent='Видалити спину'; tog.onclick=()=>{ if(!confirm('Прибрати область для спини?'))return; data.back=null; if(paSide==='back')paSide='front'; loadSlot(); renderShell(); }; }
+    else { tog.textContent='Додати спину'; tog.onclick=()=>{ saveWork(); data.back={symmetric:true,pts:DEFAULT_HALF.map(p=>p.slice())}; paSide='back'; loadSlot(); renderShell(); }; }
+    const cols=effectiveColors(paId);
+    const cbox=document.getElementById('pa-colors');
+    cbox.innerHTML=cols.map(c=>`<button class="pa-col${c.id===paColorId?' active':''}" data-cid="${c.id}"><span class="sw" style="background:${escA(c.hex||'#ccc')}"></span>${escA(c.name)}</button>`).join('');
+    cbox.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>{ paColorId=b.dataset.cid; renderShell(); });
+    const sizeSel=document.getElementById('pa-size');
+    sizeSel.innerHTML=paChart().map(r=>`<option value="${escA(r.size)}"${r.size===paSize?' selected':''}>${escA(r.size)} — ${r.A} см</option>`).join('');
+    sizeSel.onchange=()=>{ paSize=sizeSel.value; data.scaleSize=paSize; renderArea(); };
+    const key=paId+'-'+paColorId+'-'+paSide;
+    const img=document.getElementById('pa-img');
+    img.onload=render; img.onerror=render;
+    img.src=(photosMap&&photosMap[key])?photosMap[key]:('images/'+key+'.webp');
+    render();
+  }
+
+  function render(){
+    const svg=document.getElementById('pa-svg'); if(!svg) return;
+    const m=stageMetrics(); svg.setAttribute('viewBox','0 0 '+m.w+' '+m.h);
+    const full=curFull().map(toPx);
+    const dpath=full.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+' Z';
+    const handles=pts.map(toPx);
+    let h='<line x1="'+m.cx+'" y1="0" x2="'+m.cx+'" y2="'+m.h+'" stroke="#9aa2b0" stroke-dasharray="5 5" stroke-width="1"/>';
+    h+='<path d="'+dpath+'" fill="rgba(58,80,220,.14)" stroke="#3a50dc" stroke-width="2.5" pointer-events="stroke" style="cursor:copy;" data-contour/>';
+    handles.forEach((p,i)=>{ h+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="7" fill="'+(i===selIdx?'#d64550':'#3a50dc')+'" stroke="#fff" stroke-width="2.5" style="cursor:grab;" data-h="'+i+'"/>'; });
+    svg.innerHTML=h;
+    svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); dragIdx=+c.dataset.h; selIdx=dragIdx; startDrag(); render(); }));
+    const contour=svg.querySelector('[data-contour]'); if(contour) contour.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); addPointAt(ev); });
+    renderArea();
+  }
+
+  function startDrag(){
+    const move=e=>{ const f=toFracEvt(e); let x=f[0], y=Math.max(0,Math.min(1.25,f[1])); if(sym){ if(dragIdx===0||dragIdx===pts.length-1) x=0; else x=Math.max(0,x); } pts[dragIdx]=[x,y]; render(); };
+    const up=()=>{ document.removeEventListener('pointermove',move); dragIdx=-1; };
+    document.addEventListener('pointermove',move);
+    document.addEventListener('pointerup',up,{once:true});
+  }
+  function segDist(p,a,b){ const vx=b[0]-a[0],vy=b[1]-a[1]; const t=Math.max(0,Math.min(1,((p[0]-a[0])*vx+(p[1]-a[1])*vy)/(vx*vx+vy*vy||1e-6))); return Math.hypot(p[0]-(a[0]+t*vx),p[1]-(a[1]+t*vy)); }
+  function addPointAt(ev){ const f=toFracEvt(ev); let best=1,bestD=Infinity; for(let i=0;i<pts.length-1;i++){ const d=segDist(f,pts[i],pts[i+1]); if(d<bestD){bestD=d;best=i+1;} } snapshot(); const x=sym?Math.max(0,f[0]):f[0], y=Math.max(0,Math.min(1.25,f[1])); pts.splice(best,0,[x,y]); selIdx=best; render(); }
+
+  function renderArea(){ const heightMm=heightMmForSize(paSize); const af=areaFracOf(curFull()); const mm2=af*heightMm*heightMm; const cm2=mm2/100; const el=document.getElementById('pa-area'); if(el) el.innerHTML='Площа поля («'+(paSide==='front'?'Груди':'Спина')+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">масштаб: '+escA(paSize)+' (висота '+(heightMm/10)+' см)</span>'; }
+
+  async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: data } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка'); } }
+
+  const el = id=>document.getElementById(id);
+  el('pa-open')&&el('pa-open').addEventListener('click',()=>open(photoGarmentId));
+  el('pa-close-x')&&el('pa-close-x').addEventListener('click',close);
+  el('pa-save')&&el('pa-save').addEventListener('click',save);
+  el('pa-reset')&&el('pa-reset').addEventListener('click',()=>{ if(!confirm('Скасувати всі зміни цього слоту?'))return; loadSlot(); render(); });
+  el('pa-sym')&&el('pa-sym').addEventListener('change',e=>{ const on=e.target.checked; snapshot(); if(on&&!sym){ const right=pts.filter(p=>p[0]>=-0.001); pts=right.length>=3?right.map(p=>[Math.max(0,p[0]),p[1]]):DEFAULT_HALF.map(p=>p.slice()); } else if(!on&&sym){ pts=curFull(); } sym=on; render(); });
+  document.addEventListener('keydown',e=>{ if(!modal().classList.contains('open'))return; if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); } else if((e.key==='Delete'||e.key==='Backspace')&&selIdx>=0){ e.preventDefault(); if(pts.length>3){ snapshot(); pts.splice(selIdx,1); selIdx=-1; render(); } } });
+  window.__paOpen=open;
 })();
 
 /* Ціна і собівартість одного товару */
