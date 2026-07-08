@@ -183,7 +183,7 @@
   }
   .hero-bg-slides{position:absolute;inset:0;z-index:0;background:#1c1c1c;}
   .hero-bg-slide{
-    position:absolute;inset:0;background-size:cover;background-position:center top;
+    position:absolute;inset:0;background-size:cover;background-position:center 40%;
     opacity:0;transition:opacity 1.4s ease;
     transform:scale(1.06) translateY(3%);transform-origin:center top;
   }
@@ -202,11 +202,12 @@
     position:absolute;inset:0;z-index:1;
     /* затемнення зверху, щоб білий текст читався на будь-якому кадрі відео */
     background:linear-gradient(180deg,
-      rgba(8,9,14,.66) 0%,
-      rgba(8,9,14,.45) 30%,
-      rgba(8,9,14,.16) 55%,
-      rgba(8,9,14,.10) 78%,
-      rgba(8,9,14,.42) 100%);
+      rgba(8,9,14,.74) 0%,
+      rgba(8,9,14,.66) 26%,
+      rgba(8,9,14,.44) 45%,
+      rgba(8,9,14,.14) 62%,
+      rgba(8,9,14,.10) 80%,
+      rgba(8,9,14,.44) 100%);
     pointer-events:none;
   }
   .hero-video-ui{
@@ -2906,12 +2907,13 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
-      <!-- HoReCa: фото персоналу/кухарів змінюються по таймеру (10с), з кільцем прогресу.
-           Порядок: зал → кухня → кухня → сервіс. Файли — оптимізований webp у /horeca/images/. -->
-      <div class="hero-bg-slide active" style="background-image:url('/horeca/images/hero-resto.webp')"></div>
-      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-chef1.webp')"></div>
-      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-chef2.webp')"></div>
-      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-serve.webp')"></div>
+      <!-- HoReCa: фото персоналу змінюються по таймеру (10с), з кільцем прогресу.
+           Порядок: кухар → бармен → офіціантка → бариста. Кадри вирівняні (голова ~38%),
+           щоб суб'єкт був на одному рівні й не налазив на текст. -->
+      <div class="hero-bg-slide active" style="background-image:url('/horeca/images/hero-chef2.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-bartender.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-waitress.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-barista.webp')"></div>
     </div>
     <div class="hero-overlay"></div>
 
