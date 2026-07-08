@@ -6536,6 +6536,22 @@ window.LOOMIQ_CONFIG = {
 
   /* Підтягуємо контент, який менеджер редагує з адмінки (фото, назви, описи,
      розмірні сітки, моделі, порядок відгуків), і слухаємо зміни наживо */
+  // Таблиця собівартості DTF зберігається як {rows,cols,flat} (або стара мапа рядків) → 2D-масив.
+  function normalizePricingIn(pr){
+    if(pr && pr.methods && pr.methods.dtf){
+      var c = pr.methods.dtf.cost;
+      if(c && !Array.isArray(c) && typeof c === 'object'){
+        if(Array.isArray(c.flat)){
+          var rows=+c.rows||0, cols=+c.cols||0, out=[];
+          for(var r=0;r<rows;r++) out.push(c.flat.slice(r*cols,(r+1)*cols));
+          pr.methods.dtf.cost = out;
+        } else {
+          pr.methods.dtf.cost = Object.keys(c).map(Number).sort(function(a,b){return a-b;}).map(function(k){return c[String(k)];});
+        }
+      }
+    }
+    return pr;
+  }
   function applySiteContent(data){
     data = data || {};
     window.PHOTO_OVERRIDES = data.map || {};
@@ -6556,7 +6572,7 @@ window.LOOMIQ_CONFIG = {
       stats: data.stats || null,
       cases: data.cases || null,
       promo: data.promo || {},
-      pricing: data.pricing || null,
+      pricing: normalizePricingIn(data.pricing || null),
       productColors: data.productColors || {},
       printAreas: data.printAreas || {}
     };

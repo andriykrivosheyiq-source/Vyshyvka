@@ -1285,6 +1285,29 @@ const DEFAULT_SITE_PRICING = {
   basePrices: { tee:540, teeover:540, hoodie:790, hoodieover:790, hoodieoverfleece:840, hoodiezip:840, sweat:740, cap:630, tote:630 },
   heights: { default:680, cap:180, tote:400 }
 };
+// Firestore не підтримує масив-у-масиві. Таблицю собівартості DTF (2D) зберігаємо
+// як плоский масив із розмірами {rows,cols,flat} — він повністю перезаписується щоразу
+// (жодних «залиплих» старих рядків при merge). У пам'яті працюємо зі звичайним 2D-масивом.
+function costTo(cost){
+  if(!Array.isArray(cost)) return cost;
+  const rows=cost.length, cols=cost.reduce((m,r)=>Math.max(m,(r||[]).length),0);
+  const flat=[];
+  for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){ flat.push((cost[r]&&cost[r][c]!=null)?cost[r][c]:0); } }
+  return { rows, cols, flat };
+}
+function costFrom(cost){
+  if(Array.isArray(cost)) return cost;
+  if(cost && typeof cost==='object'){
+    if(Array.isArray(cost.flat)){
+      const rows=+cost.rows||0, cols=+cost.cols||0, out=[];
+      for(let r=0;r<rows;r++) out.push(cost.flat.slice(r*cols,(r+1)*cols));
+      return out;
+    }
+    // сумісність зі старим форматом мапи рядків {'0':[...]}
+    return Object.keys(cost).map(Number).sort((a,b)=>a-b).map(k=>cost[String(k)]);
+  }
+  return [];
+}
 // Приводимо будь-яке (в т.ч. старе) збереження до актуальної структури.
 function normalizeSitePricing(p){
   if(!p || !p.methods) return JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING));
@@ -1304,6 +1327,8 @@ function normalizeSitePricing(p){
     }
     if(!m.lead.qtyTiers) m.lead.qtyTiers = [];
   });
+  // мапа рядків → 2D-масив
+  if(p.methods.dtf) p.methods.dtf.cost = costFrom(p.methods.dtf.cost);
   delete p.enabled; delete p.leadTime;
   return p;
 }
@@ -1491,6 +1516,7 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
     lead: readLead('dtf')
   });
+  dtf.cost = costTo(dtf.cost);   // 2D-масив → мапа рядків (Firestore не приймає масив-у-масиві)
   const embro = {
     pricePer1000mm2: numV('sp-emb-price1k'),
     costPer1000mm2: numV('sp-emb-cost1k'),
@@ -1503,15 +1529,13 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
   // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
     methods: { dtf, embro },
-    tiers: readSpTiers(),
-    // прибираємо застарілі поля зі збереження
-    enabled: firebase.firestore.FieldValue.delete(),
-    leadTime: firebase.firestore.FieldValue.delete()
+    tiers: readSpTiers()
   };
+  // застарілі поля (enabled / leadTime) більше не пишемо; на читанні вони ігноруються
   try{
     await PHOTOS_DOC.set({ pricing }, { merge:true });
     toast('Збережено — модель оновлено на сайті');
-  }catch(e){ console.error(e); toast('Помилка збереження'); }
+  }catch(e){ console.error(e); toast('Помилка збереження: '+((e&&e.message)||e)); }
 });
 
 function paintSettingsForm(){
