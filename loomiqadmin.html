@@ -503,62 +503,65 @@
         <div class="grid2">
           <div class="technique-block">
             <h3><span class="dot print"></span> Друк (DTF)</h3>
+            <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
             <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Ставка, грн/мм²
-                <input type="number" step="0.001" id="sp-dtf-rate">
+              <label class="field">Ціна за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-dtf-price1k" placeholder="20">
               </label>
+              <label class="field">Собівартість за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-dtf-cost1k" placeholder="8">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Мін. ціна нанесення, грн
                 <input type="number" step="1" id="sp-dtf-min">
               </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Базовий термін, дн
                 <input type="number" step="1" id="sp-dtf-days">
               </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Потужність, мм²/день
                 <input type="number" step="1000" id="sp-dtf-cap">
               </label>
-            </div>
-            <div class="grid2">
               <label class="field">Коеф. завантаження
                 <input type="number" step="0.05" id="sp-dtf-load">
               </label>
+            </div>
+            <div class="grid2">
               <label class="field">Буфер, дн
                 <input type="number" step="1" id="sp-dtf-buf">
               </label>
             </div>
           </div>
           <div class="technique-block">
-            <h3><span class="dot emb"></span> Вишивка (за стібками)</h3>
-            <div class="sub" style="margin-bottom:8px;">Стібки = чиста площа (мм²) × щільність. Прозорий фон не рахується.</div>
+            <h3><span class="dot emb"></span> Вишивка</h3>
+            <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
             <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Щільність, стібків на 1 мм²
-                <input type="number" step="0.1" id="sp-emb-density" placeholder="1.6">
+              <label class="field">Ціна за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-emb-price1k" placeholder="50">
               </label>
+              <label class="field">Собівартість за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-emb-cost1k" placeholder="20">
+              </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Мін. ціна нанесення, грн
                 <input type="number" step="1" id="sp-emb-min">
               </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Ціна за 1000 стібків, грн
-                <input type="number" step="1" id="sp-emb-price1k" placeholder="120">
-              </label>
-              <label class="field">Собівартість за 1000 стібків, грн
-                <input type="number" step="1" id="sp-emb-cost1k" placeholder="45">
-              </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Базовий термін, дн
                 <input type="number" step="1" id="sp-emb-days">
               </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Потужність, мм²/день
                 <input type="number" step="1000" id="sp-emb-cap">
               </label>
-            </div>
-            <div class="grid2">
               <label class="field">Коеф. завантаження
                 <input type="number" step="0.05" id="sp-emb-load">
               </label>
+            </div>
+            <div class="grid2">
               <label class="field">Буфер, дн
                 <input type="number" step="1" id="sp-emb-buf">
               </label>
@@ -1284,8 +1287,8 @@ function toast(msg){
 const DEFAULT_SITE_PRICING = {
   enabled: false,
   methods: {
-    dtf:   { ratePerMm2: 0.02, minPrice: 300, baseDays: 1, capacityPerDayMm2: 500000, loadCoef: 1, bufferDays: 1 },
-    embro: { mode:'stitch', density: 1.6, pricePer1000: 120, costPer1000: 45, minPrice: 400, baseDays: 2, capacityPerDayMm2: 200000, loadCoef: 1, bufferDays: 1 }
+    dtf:   { pricePer1000mm2: 20, costPer1000mm2: 8,  minPrice: 300, baseDays: 1, capacityPerDayMm2: 500000, loadCoef: 1, bufferDays: 1 },
+    embro: { pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400, baseDays: 2, capacityPerDayMm2: 200000, loadCoef: 1, bufferDays: 1 }
   },
   tiers: [
     {from:1,to:2,coef:1},{from:3,to:9,coef:0.85},{from:10,to:29,coef:0.81},
@@ -1303,24 +1306,16 @@ function paintSitePricing(){
   if(!document.getElementById('sp-enabled')) return;
   const p = curSitePricing();
   document.getElementById('sp-enabled').checked = !!p.enabled;
-  // Друк (DTF) — за мм²
-  const d = p.methods.dtf || {};
-  document.getElementById('sp-dtf-rate').value = d.ratePerMm2 ?? '';
-  document.getElementById('sp-dtf-min').value  = d.minPrice ?? '';
-  document.getElementById('sp-dtf-days').value = d.baseDays ?? '';
-  document.getElementById('sp-dtf-cap').value  = d.capacityPerDayMm2 ?? '';
-  document.getElementById('sp-dtf-load').value = d.loadCoef ?? '';
-  document.getElementById('sp-dtf-buf').value  = d.bufferDays ?? '';
-  // Вишивка — за стібками
-  const e = p.methods.embro || {};
-  document.getElementById('sp-emb-density').value = e.density ?? '';
-  document.getElementById('sp-emb-price1k').value = e.pricePer1000 ?? '';
-  document.getElementById('sp-emb-cost1k').value  = e.costPer1000 ?? '';
-  document.getElementById('sp-emb-min').value  = e.minPrice ?? '';
-  document.getElementById('sp-emb-days').value = e.baseDays ?? '';
-  document.getElementById('sp-emb-cap').value  = e.capacityPerDayMm2 ?? '';
-  document.getElementById('sp-emb-load').value = e.loadCoef ?? '';
-  document.getElementById('sp-emb-buf').value  = e.bufferDays ?? '';
+  // обидва методи — за мм²
+  [['dtf', p.methods.dtf||{}], ['emb', p.methods.embro||{}]].forEach(([pre,m])=>{
+    document.getElementById('sp-'+pre+'-price1k').value = m.pricePer1000mm2 ?? '';
+    document.getElementById('sp-'+pre+'-cost1k').value  = m.costPer1000mm2 ?? '';
+    document.getElementById('sp-'+pre+'-min').value  = m.minPrice ?? '';
+    document.getElementById('sp-'+pre+'-days').value = m.baseDays ?? '';
+    document.getElementById('sp-'+pre+'-cap').value  = m.capacityPerDayMm2 ?? '';
+    document.getElementById('sp-'+pre+'-load').value = m.loadCoef ?? '';
+    document.getElementById('sp-'+pre+'-buf').value  = m.bufferDays ?? '';
+  });
   paintSpTiers(p.tiers);
 }
 function paintSpTiers(tiers){
@@ -1390,25 +1385,20 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
   row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
 });
 document.getElementById('sp-save').addEventListener('click', async ()=>{
-  const lead = pre=>({
+  const mth = pre=>({
+    pricePer1000mm2: parseFloat(document.getElementById('sp-'+pre+'-price1k').value) || 0,
+    costPer1000mm2: parseFloat(document.getElementById('sp-'+pre+'-cost1k').value) || 0,
     minPrice: parseFloat(document.getElementById('sp-'+pre+'-min').value) || 0,
     baseDays: parseInt(document.getElementById('sp-'+pre+'-days').value,10) || 1,
     capacityPerDayMm2: parseFloat(document.getElementById('sp-'+pre+'-cap').value) || 200000,
     loadCoef: parseFloat(document.getElementById('sp-'+pre+'-load').value) || 1,
     bufferDays: parseInt(document.getElementById('sp-'+pre+'-buf').value,10) || 1
   });
-  const dtf = Object.assign({ ratePerMm2: parseFloat(document.getElementById('sp-dtf-rate').value) || 0 }, lead('dtf'));
-  const embro = Object.assign({
-    mode:'stitch',
-    density: parseFloat(document.getElementById('sp-emb-density').value) || 1.6,
-    pricePer1000: parseFloat(document.getElementById('sp-emb-price1k').value) || 0,
-    costPer1000: parseFloat(document.getElementById('sp-emb-cost1k').value) || 0
-  }, lead('emb'));
   // Базові ціни й висоти більше не редагуються тут — вони в картці товару.
   // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
     enabled: document.getElementById('sp-enabled').checked,
-    methods: { dtf, embro },
+    methods: { dtf: mth('dtf'), embro: mth('emb') },
     tiers: readSpTiers()
   };
   try{
