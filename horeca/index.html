@@ -15,13 +15,13 @@
 <style>
   :root{
     --ink:#000000;
-    --navy:#0369A1;
+    --navy:#6F4E37;
     --paper:#FFFFFF;
     --white:#FFFFFF;
-    --blue:#0369A1;
+    --blue:#6F4E37;
     --blue-light:#FFFFFF;
-    --accent-grad:#0369A1;
-    --cta:#2B696C;
+    --accent-grad:#6F4E37;
+    --cta:#6F4E37;
     --muted:#666666;
     --line:#EAEAEA;
     --light-grad:linear-gradient(180deg, #f7f8fc 0%, #ffffff 100%);
@@ -162,7 +162,7 @@
     width:46px;height:46px;border-radius:13px;background:var(--paper);flex:none;
     display:flex;align-items:center;justify-content:center;color:var(--ink);
   }
-  .menu-overlay-item.active .menu-overlay-ic{background:#EAF1FB;color:var(--blue);}
+  .menu-overlay-item.active .menu-overlay-ic{background:#F1E7DE;color:var(--blue);}
   .menu-overlay-cta{margin-top:auto;justify-content:center;padding:18px;font-size:17px;}
 
   section{padding:38px 0;background:var(--white);}
@@ -1418,7 +1418,7 @@
   .contact-ic{
     width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;
   }
-  .contact-ic.call{background:#EAF1FB;color:var(--blue);}
+  .contact-ic.call{background:#F1E7DE;color:var(--blue);}
   .contact-ic.tg{background:#27A7E7;color:#FFFFFF;}
   .contact-ic.viber{background:#7360F2;color:#FFFFFF;}
   .contact-card h3{font-size:17px;font-weight:700;}
@@ -1480,7 +1480,7 @@
     /* Каталог — ширша область і 3 колонки, щоб картки не тиснулись */
     #catalogModal .contact-modal-inner{ max-width:780px; }
     #catalogModal .catalog-grid{ grid-template-columns:repeat(3,1fr); }
-    /* Плаваюча кнопка "Створити мерч" — по центру контенту, не на всю ширину */
+    /* Плаваюча кнопка "Створити форму" — по центру контенту, не на всю ширину */
     .float-cta-bar .btn{ max-width:420px; margin-left:auto; margin-right:auto; }
   }
 </style>
@@ -1558,7 +1558,7 @@
       <span>Контакти</span>
     </button>
   </nav>
-  <button class="btn btn-primary menu-overlay-cta" data-open-catalog>Створити мерч
+  <button class="btn btn-primary menu-overlay-cta" data-open-catalog>Створити форму
     <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
   </button>
 </div>
@@ -1586,7 +1586,7 @@
     <div class="contact-section">
       <div class="contact-head">
         <span class="help-status js-online-status"><span class="status-dot"></span>Онлайн зараз</span>
-        <h2>Потрібна допомога з мерчем?</h2>
+        <h2>Потрібна допомога з формою?</h2>
         <p>Ми на зв'язку і готові допомогти вам з будь-яким питанням.</p>
       </div>
 
@@ -2867,7 +2867,7 @@
   <svg width="26" height="26" viewBox="0 0 240 240" fill="none"><path d="M180 60 L40 116 L80 130 L92 172 L116 148 L150 174 L180 60 Z" fill="#FFFFFF"/><path d="M92 172 L100 142 L150 110 L106 146 L92 172Z" fill="#bcdffb"/></svg>
 </a>
 <div class="float-cta-bar" id="floatCtaBar">
-  <button class="btn btn-primary" id="floatCta" data-open-catalog>Створити мерч
+  <button class="btn btn-primary" id="floatCta" data-open-catalog>Створити форму
     <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
   </button>
 </div>
@@ -2878,30 +2878,28 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
-      <!-- Базовий шар = перший кадр відео (маленька картинка, вантажиться миттєво).
-           Відео-елементи невидимі, доки реально не грають, тому системна кнопка
-           Play на iOS фізично не може з'явитись. hero-1.webp — аварійний фолбек. -->
-      <div class="hero-bg-slide active" style="background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg'),url('/images/hero-1.webp')"></div>
-      <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike.
-           f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
-           data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
-      <video class="hero-bg-video" autoplay muted playsinline preload="auto"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
-        data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
-      <video class="hero-bg-video" muted playsinline preload="auto"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
-        data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
+      <!-- HoReCa: фото персоналу/кухарів змінюються по таймеру (10с), з кільцем прогресу.
+           Порядок: зал → кухня → кухня → сервіс. Файли — оптимізований webp у /horeca/images/. -->
+      <div class="hero-bg-slide active" style="background-image:url('/horeca/images/hero-resto.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-chef1.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-chef2.webp')"></div>
+      <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-serve.webp')"></div>
     </div>
     <div class="hero-overlay"></div>
 
-    <!-- Круговий таймер відео (стиль Nike): кільце = прогрес, цифра = секунди до наступного -->
-    <button class="hero-video-ui" id="heroVideoUi" hidden aria-label="Наступне відео">
-      <svg viewBox="0 0 44 44" aria-hidden="true">
-        <circle class="hvt-bg" cx="22" cy="22" r="19" fill="none" stroke-width="3"/>
-        <circle class="hvt-fill" id="heroVidRing" cx="22" cy="22" r="19" fill="none" stroke-width="3" stroke-linecap="round"/>
-      </svg>
-      <span id="heroVideoTimer">0</span>
-    </button>
+    <!-- Контроли слайдера фото: точки + кнопка паузи з кільцем-таймером -->
+    <div class="hero-slide-controls">
+      <div class="hero-slide-dots" id="heroSlideDots"></div>
+      <button class="hero-pause-btn" id="heroPauseBtn" aria-label="Пауза">
+        <svg class="hero-pause-ring" viewBox="0 0 34 34">
+          <circle class="ring-bg" cx="17" cy="17" r="16"></circle>
+          <circle class="ring-fill animating" id="heroRingFill" cx="17" cy="17" r="16"></circle>
+        </svg>
+        <svg class="hero-pause-icon" id="heroPauseIcon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="5" y="4" width="5" height="16" rx="1"></rect><rect x="14" y="4" width="5" height="16" rx="1"></rect>
+        </svg>
+      </button>
+    </div>
 
     <div class="wrap hero-top reveal">
       <h1>Уніформа для вашого закладу <span class="accent">за 1 хв</span></h1>
@@ -3049,7 +3047,7 @@
         <div class="step-info">
           <span class="step-num">КРОК 03</span>
           <h3>Підтвердіть замовлення</h3>
-          <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
+          <p>Ми виготовимо та доставимо форму у зазначений термін.</p>
         </div>
         <div class="step-visual step-visual--box">
           <div class="box-slide"><img src="/images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false"></div>
@@ -3140,7 +3138,7 @@
     <div class="wrap">
       <div class="sec-head reveal">
         <span class="eyebrow">Переваги</span>
-        <h2>Loomiq — найкращий спосіб створювати мерч</h2>
+        <h2>Loomiq — найкращий спосіб одягнути заклад</h2>
         <p>Порівняйте можливості Loomiq з іншими рішеннями.</p>
       </div>
 
@@ -3184,43 +3182,44 @@
     <div class="wrap">
       <div class="sec-head reveal">
         <span class="eyebrow">Відгуки</span>
-        <h2>Компанії, які вже створюють мерч з нами</h2>
-        <p>Для щоденної роботи, корпоративних подій та подарунків співробітникам.</p>
+        <h2>Заклади, які вже одягли команду з нами</h2>
+        <p>Ресторани, кав'ярні, готелі та пекарні — форма для залу, кухні та сервісу.</p>
       </div>
     </div>
 
     <div class="story-track reveal" id="storyTrack">
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-riokan.webp" alt="Команда Riokan у мерчі Loomiq" decoding="async">
+          <img src="/images/review-riokan.webp" alt="Команда ресторану Trattoria Rustica у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Riokan</span>
-          <p class="story-quote">Будівельна компанія. Потрібен був єдиний стиль для монтажних бригад і офісу — одяг, що витримує роботу на об'єктах і гідно виглядає на зустрічах. Підібрали щільний трикотаж, лого нанесли вишивкою — не стирається від прання. Устигли за 8 днів до корпоративу.</p>
+          <span class="story-tag">Trattoria Rustica</span>
+          <p class="story-quote">Ресторан італійської кухні. Оновлювали форму залу й кухні перед сезоном. Потрібні були фартухи, що не бояться олії та вина, і кітелі для кухарів. Взяли щільну саржу, лого — шовкографія, стійка до прання на 60°. Устигли за 8 днів до відкриття тераси.</p>
           <div class="story-tags">
-            <span class="tag-pill">Худі — 50 шт</span>
-            <span class="tag-pill">Футболки — 70 шт</span>
-            <span class="tag-pill">Кепки — 40 шт</span>
+            <span class="tag-pill">Фартухи — 30 шт</span>
+            <span class="tag-pill">Кітелі — 12 шт</span>
+            <span class="tag-pill">Поло — 20 шт</span>
           </div>
         </div>
       </article>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-zendokai.webp" alt="Zendokai Karate у мерчі Loomiq" decoding="async">
+          <img src="/images/review-zendokai.webp" alt="Бариста Coffee Point у фартухах Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Zendokai Karate</span>
-          <p class="story-quote">Спортивна секція. Форма для тренерів і вихованців до відкритого турніру. Складність — 6 розмірів від дитячих до дорослих і дедлайн 10 днів. Звели все до одного макета, надрукували DTF: кольори лишаються яскравими навіть після сотні тренувань.</p>
+          <span class="story-tag">Coffee Point</span>
+          <p class="story-quote">Мережа кав'ярень. Потрібен був єдиний стиль для барист у 4 точках — фартухи й футболки у фірмовому кольорі. Складність: точний відтінок під бренд і дедлайн 10 днів. Підібрали тканину тон-у-тон, лого нанесли вишивкою — не стирається й виглядає дорого.</p>
           <div class="story-tags">
-            <span class="tag-pill">Футболки — 90 шт</span>
+            <span class="tag-pill">Фартухи — 40 шт</span>
+            <span class="tag-pill">Футболки — 60 шт</span>
           </div>
         </div>
       </article>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-resto.webp" alt="Персонал ресторану у формі Loomiq" decoding="async">
+          <img src="/images/review-resto.webp" alt="Персонал ресторану Osteria Verde у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Osteria Verde</span>
@@ -3235,41 +3234,42 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-danko.webp" alt="Мерч бренду DANKO від Loomiq" decoding="async">
+          <img src="/images/review-danko.webp" alt="Персонал Grand Hotel у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">DANKO</span>
-          <p class="story-quote">Локальний бренд одягу. Запускали лімітовану колекцію мерчу — критично важлива була якість друку та щільність футболки «як у преміумі». Зробили зразок за 2 дні, узгодили відтінок і посадку, віддрукували всю партію без жодного браку.</p>
+          <span class="story-tag">Grand Hotel</span>
+          <p class="story-quote">Готель на 80 номерів. Одягали рецепцію, покоївок і ресторан у єдиній лінійці — від сорочок до фартухів. Важлива була охайність відтінку та зносостійкість під щоденне прання. Лого — вишивка тон-у-тон, посадка під кожен відділ. Здали двома партіями за 3 тижні.</p>
           <div class="story-tags">
-            <span class="tag-pill">Футболки — 120 шт</span>
-            <span class="tag-pill">Худі — 40 шт</span>
+            <span class="tag-pill">Сорочки — 45 шт</span>
+            <span class="tag-pill">Фартухи — 30 шт</span>
           </div>
         </div>
       </article>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-masterlab.webp" alt="Сервісна команда Master Lab у формі Loomiq" decoding="async">
+          <img src="/images/review-masterlab.webp" alt="Команда Sushi Bar Umami у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Master Lab</span>
-          <p class="story-quote">Сервісний центр. Потрібне було поло з логотипом на груди й спину для майстрів у залі обслуговування. Обрали дихаючий піке, лого — вишивка: витримує щоденне прання й не вигорає. Здали партію за 6 днів, зараз готуємо другу.</p>
+          <span class="story-tag">Sushi Bar Umami</span>
+          <p class="story-quote">Суші-бар з відкритою кухнею. Гості бачать кухарів, тому форма мала виглядати бездоганно. Обрали чорні кітелі з контрастним кантом і бандани, лого — вишивка на грудях. Здали партію за 6 днів, зараз готуємо комплект для доставки.</p>
           <div class="story-tags">
-            <span class="tag-pill">Поло — 30 шт</span>
+            <span class="tag-pill">Кітелі — 14 шт</span>
+            <span class="tag-pill">Бандани — 14 шт</span>
           </div>
         </div>
       </article>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-sante.webp" alt="Studio Sante у мерчі Loomiq" decoding="async">
+          <img src="/images/review-sante.webp" alt="Пекарня La Panetteria у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Studio Sante</span>
-          <p class="story-quote">SPA-комплекс. Хотіли делікатну форму для адміністраторів і майстрів у фірмових кольорах. Підібрали дихаючу тканину, лого — тон-у-тон вишивкою, щоб виглядало дорого й спокійно. Другу партію замовили вже за місяць.</p>
+          <span class="story-tag">La Panetteria</span>
+          <p class="story-quote">Пекарня-кондитерська. Хотіли теплу, «домашню» форму для пекарів і продавців — фартухи в кавовому відтінку й футболки. Підібрали дихаючу тканину, лого — акуратна вишивка, щоб виглядало затишно й охайно за прилавком. Другу партію замовили вже за місяць.</p>
           <div class="story-tags">
-            <span class="tag-pill">Поло — 25 шт</span>
-            <span class="tag-pill">Халати — 15 шт</span>
+            <span class="tag-pill">Фартухи — 20 шт</span>
+            <span class="tag-pill">Футболки — 25 шт</span>
           </div>
         </div>
       </article>
@@ -3350,8 +3350,8 @@
       <div class="why-trust reveal">
         <div class="why-trust-left">
           <div>
-            <h4>500+ компаній<br>вже обрали Loomiq</h4>
-            <p>Від малих компаній до великих корпорацій.</p>
+            <h4>500+ закладів<br>вже обрали Loomiq</h4>
+            <p>Від сімейних кав'ярень до готельних мереж.</p>
           </div>
         </div>
         <div class="why-trust-logos">
@@ -3467,10 +3467,10 @@
   <!-- FINAL CTA -->
   <section class="final-cta aurora-bg">
     <div class="wrap">
-      <h2>Готовий зробити мерч для своєї команди?</h2>
+      <h2>Готові одягнути команду свого закладу?</h2>
       <p>Заходь у каталог і за кілька хвилин знатимеш точну ціну і дату готовності.</p>
       <div class="cta-row">
-        <button class="btn btn-primary" data-open-catalog>Створити мерч</button>
+        <button class="btn btn-primary" data-open-catalog>Створити форму</button>
       </div>
     </div>
   </section>
@@ -3554,7 +3554,7 @@
     });
   }
 
-  // Floating "Створити мерч" bar appears once hero is scrolled past
+  // Floating "Створити форму" bar appears once hero is scrolled past
   const floatCtaBar = document.getElementById('floatCtaBar');
   const heroSection = document.querySelector('.hero');
   if(floatCtaBar && heroSection){
@@ -3569,7 +3569,7 @@
   // Footer legal/info pages — generic placeholder content, wired to a single reusable page
   var LEGAL_PAGES = {
     about: {title:'Про нас', body:
-      '<p>Loomiq — українська майстерня кастомного мерчу. Друкуємо й шиємо футболки, худі, світшоти та іншу командну форму для бізнесів, спільнот і подій по всій Україні.</p>' +
+      '<p>Loomiq — українська майстерня форми для HoReCa. Шиємо й брендуємо фартухи, кітелі, поло та сорочки для ресторанів, кав\'ярень, готелів і пекарень по всій Україні.</p>' +
       '<p>Працюємо з 2022 року, виконали понад 1000 замовлень — від невеликих партій на 5–10 штук до корпоративних тиражів на сотні одиниць.</p>' +
       '<h3>Чому обирають нас</h3>' +
       '<ul><li>Виготовляємо лише після узгодження макета з клієнтом</li>' +
@@ -3987,7 +3987,7 @@
     return { open, close };
   }
   const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn');
-  // "Створити мерч" / "Перейти до каталогу" — відкривають повний каталог (модалку), а не просто скрол
+  // "Створити форму" / "Перейти до каталогу" — відкривають повний каталог (модалку), а не просто скрол
   document.querySelectorAll('[data-open-catalog]').forEach(function(btn){
     btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
   });
@@ -6471,7 +6471,7 @@ window.LOOMIQ_CONFIG = {
 
   // --- Форми із номером телефону → надсилання заявки ---
   function showSuccess(form){
-    form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
+    form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#6F4E37;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
   function sendLead(phone, form, btn, origText){
     var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
@@ -6746,7 +6746,7 @@ window.LOOMIQ_CONFIG = {
     btn.disabled=true; btn.textContent='Надсилаємо…'; msg.style.display='none';
 
     function fail(t){ msg.style.color='#c0392b'; msg.textContent=t||'Не вдалося надіслати. Спробуйте ще раз.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; }
-    function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }
+    function success(){ msg.style.color='#6F4E37'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }
 
     if(!db){ fail('Наразі не вдається зберегти відгук. Спробуйте пізніше.'); return; }
 
