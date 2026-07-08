@@ -4627,11 +4627,29 @@
       var key = getPrint().id === 'embro' ? 'embro' : 'dtf';
       return (p.methods || {})[key] || null;
     }
+    // Масштаб поля нанесення: скільки мм відповідає 1.0 частки контейнера,
+    // за калібруванням зони (heightCm + лінії калібрування). Прив'язує площу лого
+    // до реального поля: на кепці поле мале → мало мм², на худі велике → більше.
+    function zoneScaleMmPerFrac(){
+      if(typeof currentPrintCfg !== 'function') return null;
+      var cfg = currentPrintCfg(); if(!cfg) return null;
+      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none') return null;
+      var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
+      if(!(natW>0) || !(natH>0)) return null;
+      var pa = ((window.SITE_CONTENT||{}).printAreas || {})[pm.garmentId] || {};
+      var heightCm = (+pa.heightCm > 0) ? +pa.heightCm : (garmentHeightMm()/10);
+      var arImg = natW/natH, rh = (arImg >= 1) ? 1/arImg : 1;   // висота фото як частка квадратного контейнера
+      var calT = cfg.calibTop!=null?cfg.calibTop:0.06, calB = cfg.calibBottom!=null?cfg.calibBottom:0.96;
+      var ch = (calB - calT) * rh;   // калібрована висота як частка контейнера
+      if(!(ch > 0)) return null;
+      return (heightCm * 10) / ch;   // мм на 1.0 частки контейнера
+    }
     function layerDimsMm(l){
       var wrapEl = document.getElementById('pmGarmentWrap');
       var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-      var H = garmentHeightMm();
-      var wmm = (120 * (l.scale || 1)) / wrapW * H;   // ширина лого як частка виробу × висота виробу
+      var frac = (120 * (l.scale || 1)) / wrapW;    // ширина лого як частка контейнера
+      var mmPerFrac = zoneScaleMmPerFrac();          // масштаб від поля нанесення (якщо зона задана)
+      var wmm = (mmPerFrac != null) ? frac * mmPerFrac : frac * garmentHeightMm();   // фолбек — висота виробу
       var hmm = wmm / ((l.ar || 1) || 1);
       return { w: wmm, h: hmm };
     }
