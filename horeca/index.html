@@ -358,7 +358,16 @@
     color:#aaaaaa;font-size:12.5px;font-weight:600;line-height:1.5;background:#f0f0f2;
   }
   .industry-stack-photo:has(img){padding:0;}
+  .industry-stack-photo{position:relative;}
   .industry-stack-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  /* Слайдшоу фото в картці: шари, що плавно перетікають один в одного */
+  .industry-stack-photo .iss-img{
+    position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;will-change:opacity;
+  }
+  .industry-stack-photo .iss-img.is-active{opacity:1;}
+  @media (prefers-reduced-motion: reduce){
+    .industry-stack-photo .iss-img{transition:none;}
+  }
   .industry-stack-controls{padding:14px 18px 0;}
 
   /* PROCESS — Apple Trade-In style: centered headline + CTA, wide scene below */
@@ -2970,27 +2979,49 @@
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">🍳 Кухня</span></div>
         <div class="app-bottom"><h3>Кітелі, фартухи та ковпаки для кухарів і су-шефів.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="/images/ind-staff.webp" alt="Кухарі у брендованій формі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo" data-slideshow>
+          <img class="iss-img is-active" src="/horeca/images/niche-kitchen-1.webp" alt="Шеф готує страву" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-kitchen-2.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/hero-chef2.webp" alt="" loading="lazy">
+        </div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">🍽️ Зал і сервіс</span></div>
         <div class="app-bottom"><h3>Поло, сорочки та фартухи для офіціантів і хостес.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="/images/ind-events.webp" alt="Офіціанти у брендованій формі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo" data-slideshow>
+          <img class="iss-img is-active" src="/horeca/images/niche-hall-1.webp" alt="Офіціантка у формі" loading="lazy">
+          <img class="iss-img" src="/horeca/images/hero-resto.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/hero-serve.webp" alt="" loading="lazy">
+        </div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">☕ Бар і кав'ярня</span></div>
         <div class="app-bottom"><h3>Фартухи та футболки для барист і барменів.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="/images/ind-clients.webp" alt="Бариста у брендованому фартуху" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo" data-slideshow>
+          <img class="iss-img is-active" src="/horeca/images/niche-bar-1.webp" alt="Бармен готує коктейль" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-bar-2.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-bar-3.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-bar-4.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-bar-5.webp" alt="" loading="lazy">
+        </div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">🏨 Готель</span></div>
         <div class="app-bottom"><h3>Форма для рецепції, покоївок та обслуговування номерів.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="/images/ind-study.webp" alt="Персонал готелю у формі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo" data-slideshow>
+          <img class="iss-img is-active" src="/horeca/images/niche-hotel-1.webp" alt="Покоївка у формі" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-hotel-2.webp" alt="" loading="lazy">
+        </div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">🛵 Доставка</span></div>
         <div class="app-bottom"><h3>Футболки, худі та кепки для кур'єрів вашого закладу.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="/images/ind-team.webp" alt="Кур'єр у брендованій формі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo" data-slideshow>
+          <img class="iss-img is-active" src="/horeca/images/niche-delivery-1.webp" alt="Кур'єр із замовленням" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-delivery-2.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-delivery-3.webp" alt="" loading="lazy">
+          <img class="iss-img" src="/horeca/images/niche-delivery-4.webp" alt="" loading="lazy">
+        </div>
       </article>
     </div>
     <div class="wrap">
@@ -6832,6 +6863,33 @@ window.LOOMIQ_CONFIG = {
     }
   });
 })();
+</script>
+
+<!-- Секція ніш: спокійне авто-слайдшоу фото — за раз змінюється лише одна картка -->
+<script>
+  (function(){
+    var shows = Array.prototype.slice.call(document.querySelectorAll('.industry-stack-photo[data-slideshow]'));
+    if(!shows.length) return;
+    shows.forEach(function(s){ s._imgs = s.querySelectorAll('.iss-img'); s._i = 0; });
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduce) return;
+    // Кожні 3с просуваємо рівно ОДНУ картку (по колу) — ніколи не міняються всі одразу,
+    // тому виглядає як продуманий елемент дизайну, а не хаотичне блимання.
+    var c = 0;
+    setInterval(function(){
+      if(document.hidden) return;
+      for(var t = 0; t < shows.length; t++){
+        var s = shows[c % shows.length]; c++;
+        if(s._imgs.length > 1){
+          var cur = s._i, nxt = (s._i + 1) % s._imgs.length;
+          s._imgs[cur].classList.remove('is-active');
+          s._imgs[nxt].classList.add('is-active');
+          s._i = nxt;
+          break;
+        }
+      }
+    }, 3000);
+  })();
 </script>
 
 <!-- Каталог: перемикання кольору фартуха по свотчах -->
