@@ -4990,8 +4990,11 @@
       if(!g){ svg.style.display='none'; return; }
       var d = g.polyFrac.map(function(p,i){ return (i?'L':'M')+(p[0]*100).toFixed(2)+' '+(p[1]*100).toFixed(2); }).join(' ')+' Z';
       var over = anyLogoOutside(g.polyFrac, { wrapW:g.wrapW });
-      var col = over ? '#e5484d' : 'rgba(20,22,30,.5)';
-      svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(over?2:1.4)+'" stroke-dasharray="'+(over?'5 3':'5 4')+'"/>';
+      // контраст до кольору одягу: світла лінія на темному, темна — на світлому
+      var hx = getColor().hex.replace('#',''), lum = 0.299*parseInt(hx.substr(0,2),16)+0.587*parseInt(hx.substr(2,2),16)+0.114*parseInt(hx.substr(4,2),16);
+      var neutral = (lum > 170) ? 'rgba(20,22,30,.6)' : 'rgba(255,255,255,.8)';
+      var col = over ? '#ff4d4f' : neutral;
+      svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(over?2.2:1.6)+'" stroke-dasharray="'+(over?'5 3':'5 4')+'"/>';
       svg.style.display = '';
     }
     // перемальовуємо зону, коли фото-мокап довантажився
@@ -5384,9 +5387,8 @@
       } else {
         var fromPrice;
         if(sitePricing()){
-          var pt0 = pricingTiers();
-          var minCoef = pt0 ? Math.min.apply(null, pt0.map(function(t){return t.coef;})) : 1;
-          fromPrice = Math.round(unitPriceBeforeDiscount() * minCoef);
+          // «від» = базова ціна виробу, яку задали в конструкторі (як і в каталозі); знижки — у порогах нижче
+          fromPrice = Math.round(basePriceNew());
         } else {
           fromPrice = TIERS[TIERS.length-1].price + logoSurcharge();
         }

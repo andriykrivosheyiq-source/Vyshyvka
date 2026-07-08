@@ -625,7 +625,9 @@
             <h2>Підсумок замовлення</h2>
             <div class="sum-row"><span>Виріб × к-сть</span><span id="sum-garment-price">—</span></div>
             <div class="sum-row"><span>Нанесення (ціна)</span><span id="sum-apps-price">—</span></div>
-            <div class="sum-row total"><span>Ціна продажу</span><span id="sum-total-price">0 ₴</span></div>
+            <div class="sum-row"><span>Оплата за замовлення (разова)</span><span id="sum-order-fee">—</span></div>
+            <div class="sum-row"><span>Ціна за одиницю</span><span id="sum-unit-price">—</span></div>
+            <div class="sum-row total"><span>Ціна продажу (разом)</span><span id="sum-total-price">0 ₴</span></div>
 
             <div style="height:6px;"></div>
             <div class="sum-row"><span>Виріб (собівартість)</span><span id="sum-garment-cost">—</span></div>
@@ -1887,10 +1889,14 @@ function recalc(){
   const totalCost = garmentCost + appsCost;
   const margin = totalPrice - totalCost;
   const marginPct = totalPrice>0 ? (margin/totalPrice*100) : 0;
+  // Ціна за одиницю = все, крім разової оплати за замовлення, поділити на кількість
+  const unitPrice = qty>0 ? Math.round((totalPrice - fees.orderP)/qty) : 0;
   const dl = deadlineLabel(qty, new Date(), [...new Set(currentApps.map(a=>a.technique))]);
 
   document.getElementById('sum-garment-price').textContent = fmt(garmentPrice)+' ₴';
   document.getElementById('sum-apps-price').textContent = fmt(appsPrice)+' ₴';
+  const ofEl = document.getElementById('sum-order-fee'); if(ofEl) ofEl.textContent = fmt(fees.orderP)+' ₴';
+  const upEl = document.getElementById('sum-unit-price'); if(upEl) upEl.textContent = fmt(unitPrice)+' ₴/шт';
   document.getElementById('sum-total-price').textContent = fmt(totalPrice)+' ₴';
   document.getElementById('sum-garment-cost').textContent = fmt(garmentCost)+' ₴';
   document.getElementById('sum-apps-cost').textContent = fmt(appsCost)+' ₴';
