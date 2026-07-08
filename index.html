@@ -4127,7 +4127,12 @@
       });
     });
     list = list.filter(p=>hidden.indexOf(p.garment) === -1);
-    if(prod.priceLabels) list.forEach(p=>{ if(prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment]; });
+    // Ціна на картці = напис із адмінки, інакше «від [базова ціна товару]» (мінімум від пустого одягу)
+    var bp = (window.SITE_CONTENT.pricing && window.SITE_CONTENT.pricing.basePrices) || {};
+    list.forEach(function(p){
+      if(prod.priceLabels && prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment];
+      else if(+bp[p.garment] > 0) p.price = 'від ' + bp[p.garment] + ' грн';
+    });
     if(prod.order && prod.order.length){
       list.sort((a,b)=>{
         let ia = prod.order.indexOf(a.garment), ib = prod.order.indexOf(b.garment);

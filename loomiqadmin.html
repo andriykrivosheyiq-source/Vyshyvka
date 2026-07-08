@@ -729,7 +729,7 @@
 
           <!-- Розмірна сітка -->
           <section class="prod-sec">
-            <div class="prod-sec-h">Розмірна сітка</div>
+            <div class="prod-sec-h" id="sc-sec-title">Розмірна сітка</div>
             <div style="margin-bottom:16px;">
               <b style="font-size:13px;">Фото розмірної сітки</b>
               <div class="sub" style="margin:6px 0 12px;">Якщо завантажити фото — на сайті воно показується замість таблиці нижче.</div>
@@ -771,8 +771,8 @@
           <section class="prod-sec">
             <div class="prod-sec-h">Ціна і собівартість</div>
             <label class="field" style="display:block;margin-bottom:12px;">
-              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Напис ціни на картці в каталозі</span>
-              <input id="pc-label" type="text" maxlength="24" style="width:100%;" placeholder="від 199 грн">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Напис ціни в каталозі (порожнє = авто «від [базова ціна]»)</span>
+              <input id="pc-label" type="text" maxlength="24" style="width:100%;" placeholder="авто">
             </label>
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
               <label class="field" style="flex:1;min-width:150px;">
@@ -2064,7 +2064,7 @@ document.getElementById('pc-save').addEventListener('click', async ()=>{
   let hidden = (prod.hidden || []).filter(x=>x!==id);
   if(hide) hidden.push(id);
   const upd = { products: { hidden, priceLabels:{}, cost:{} }, pricing: { basePrices:{} } };
-  upd.products.priceLabels[id] = (label && label !== base.price) ? label : DEL;
+  upd.products.priceLabels[id] = label ? label : DEL;   // порожнє = авто «від [базова ціна]»
   upd.products.cost[id]        = (cost>0) ? cost : DEL;
   upd.pricing.basePrices[id]   = (bp>0) ? bp : DEL;
   try{
@@ -2552,6 +2552,7 @@ function renderProductsTab(){
     const dispName = (contentData.names && contentData.names[photoGarmentId]) || g.name.replace(' · свій','');
     const t = document.getElementById('prod-detail-title'); if(t) t.textContent = dispName;
     const sub = document.getElementById('prod-detail-sub'); if(sub) sub.textContent = g.custom ? 'Власний товар' : 'Товар каталогу';
+    const sct = document.getElementById('sc-sec-title'); if(sct) sct.textContent = 'Розмірна сітка — ' + dispName;
     if(!colorWork) colorWork = effectiveColors(photoGarmentId);
     renderColorEditor();
     renderPhotoManager();   // фото + селект кольору
@@ -2875,7 +2876,7 @@ function renderPriceCost(){
   const bpEl = document.getElementById('pc-baseprice');
   const costEl = document.getElementById('pc-cost');
   const hideEl = document.getElementById('pc-hide');
-  if(labEl) labEl.value = labels[id] !== undefined ? labels[id] : (base.price || '');
+  if(labEl){ labEl.value = labels[id] !== undefined ? labels[id] : ''; labEl.placeholder = (bp>0) ? ('авто: від '+bp+' грн') : 'авто'; }
   if(bpEl) bpEl.value = bp === '' ? '' : bp;
   if(costEl) costEl.value = (costs[id] != null) ? costs[id] : '';
   if(hideEl) hideEl.checked = (prod.hidden || []).includes(id);
@@ -3066,11 +3067,48 @@ document.getElementById('sc-reset').addEventListener('click', async ()=>{
 });
 
 /* ---------- Моделі ---------- */
+let standardModels = null;   // {garmentId:[src,...]} — стандартні фото моделей із index.html
+let standardModelsLoaded = false;
+async function loadStandardModels(){
+  if(standardModelsLoaded) return standardModels;
+  standardModelsLoaded = true;
+  standardModels = {};
+  try{
+    const res = await fetch('index.html', {cache:'no-store'});
+    const txt = await res.text();
+    const start = txt.indexOf('var MODEL_PHOTOS');
+    if(start >= 0){
+      const scope = txt.slice(start, start + 6000);
+      const end = scope.indexOf('};');
+      const body = scope.slice(scope.indexOf('{')+1, end>0?end:scope.length);
+      const re = /(\w+)\s*:\s*\[([\s\S]*?)\]/g; let m;
+      while((m = re.exec(body))){
+        const srcs = []; let sm; const sre = /src:\s*'([^']+)'/g;
+        while((sm = sre.exec(m[2]))) srcs.push(sm[1]);
+        if(srcs.length) standardModels[m[1]] = srcs;
+      }
+    }
+  }catch(e){ console.warn('model parse', e); }
+  return standardModels;
+}
 function renderModelsTab(){
   const box = document.getElementById('model-cells');
   const list = (contentData.models && contentData.models[photoGarmentId]) || [];
   if(!list.length){
-    box.innerHTML = '<div class="sub" style="padding:6px 2px;">Зараз на сайті показуються стандартні фото моделей. Додайте свої — вони їх замінять.</div>';
+    const std = (standardModels || {})[photoGarmentId];
+    if(std && std.length){
+      box.innerHTML = std.map((src,i)=>`
+        <div class="photo-cell" style="opacity:.9;">
+          <div class="pc-view">Стандартне ${i+1}</div>
+          <div class="pc-img"><img src="images/${escA(src)}.webp" alt="" onerror="this.style.opacity=.2" style="pointer-events:none;"></div>
+          <span class="pc-badge">із сайту</span>
+        </div>`).join('');
+    } else {
+      box.innerHTML = '<div class="sub" style="padding:6px 2px;">Зараз на сайті показуються стандартні фото моделей. Додайте свої — вони їх замінять.</div>';
+      if(!standardModelsLoaded){
+        loadStandardModels().then(()=>{ const d=document.getElementById('prod-detail'); if(d && d.style.display!=='none' && prodDetailId===photoGarmentId) renderModelsTab(); });
+      }
+    }
     return;
   }
   box.innerHTML = list.map((url,i)=>`
