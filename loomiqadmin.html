@@ -503,7 +503,7 @@
         <div class="grid2">
           <div class="technique-block" style="grid-column:1 / -1;">
             <h3><span class="dot print"></span> Друк (DTF) — сітка собівартості</h3>
-            <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — до N см² (габаритний прямокутник логотипа). Продажна ціна = собівартість × націнка. Логотип «стрибає» в категорію за розміром рамки, а не за кожним мм.</div>
+            <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. Продажна ціна = собівартість × націнка.</div>
             <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
             <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Націнка на собівартість (×)
@@ -1285,8 +1285,17 @@ const DEFAULT_SITE_PRICING = {
   methods: {
     dtf: {
       mode: 'grid',
-      areaBands: [25, 150, 315, 360, 630, 1230],   // до N см² (габарит логотипа)
-      qtyFrom:   [5, 10, 20, 50, 100, 250, 500, 1000],
+      // Кожна категорія = розмір листа (см). Логотип потрапляє в найменший лист,
+      // у який вписується прямокутник (з поворотом), а не просто за площею.
+      bands: [
+        { label:'5×5',  w:5,  h:5  },
+        { label:'A6',   w:10, h:15 },
+        { label:'A5',   w:21, h:15 },
+        { label:'30×12',w:30, h:12 },
+        { label:'A4',   w:21, h:30 },
+        { label:'A3',   w:41, h:30 }
+      ],
+      qtyFrom: [5, 10, 20, 50, 100, 250, 500, 1000],
       cost: [
         [65,75,95,115,140,260],
         [60,70,90,105,125,230],
@@ -1339,14 +1348,22 @@ function paintSitePricing(){
 }
 function paintDtfGrid(m){
   const box = document.getElementById('sp-dtf-grid'); if(!box) return;
-  const bands = m.areaBands||[], qf = m.qtyFrom||[], cost = m.cost||[];
-  const inS = 'width:52px;font-family:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 4px;text-align:center;';
-  let h = '<table style="border-collapse:collapse;font-size:12px;"><thead><tr><th style="padding:4px 6px;text-align:left;color:var(--ink-soft);font-weight:600;">від, шт \\ до см²</th>';
-  bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;"><input data-band="'+ci+'" value="'+escA(b)+'" title="верхня межа площі, см²" style="'+inS+'"></th>'; });
+  const bands = (m.bands && m.bands.length) ? m.bands : DEFAULT_SITE_PRICING.methods.dtf.bands;
+  const qf = m.qtyFrom||[], cost = m.cost||[];
+  const inS = 'width:50px;font-family:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 4px;text-align:center;';
+  const inD = 'width:38px;font-family:inherit;font-size:11px;border:1px solid var(--line);border-radius:5px;padding:4px 3px;text-align:center;';
+  let h = '<table style="border-collapse:collapse;font-size:12px;"><thead>';
+  // ряд 1 — назви категорій (A6/A5/A4…)
+  h += '<tr><th style="padding:4px 6px;text-align:left;color:var(--ink-soft);font-weight:600;">категорія →</th>';
+  bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;"><input data-band-label="'+ci+'" value="'+escA(b.label||'')+'" title="назва категорії" style="'+inS+'width:60px;font-weight:700;"></th>'; });
+  h += '</tr>';
+  // ряд 2 — розмір листа Ш×В (см)
+  h += '<tr><th style="padding:2px 6px;text-align:left;color:var(--ink-soft);font-weight:400;font-size:11px;">лист Ш×В, см</th>';
+  bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;white-space:nowrap;"><input data-band-w="'+ci+'" value="'+escA(b.w)+'" title="ширина листа, см" style="'+inD+'">×<input data-band-h="'+ci+'" value="'+escA(b.h)+'" title="висота листа, см" style="'+inD+'"></th>'; });
   h += '</tr></thead><tbody>';
   qf.forEach((q,ri)=>{
-    h += '<tr><td style="padding:2px 3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" style="'+inS+'width:56px;font-weight:600;"></td>';
-    bands.forEach((b,ci)=>{ const v=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:''; h += '<td style="padding:2px 3px;"><input data-cell="'+ri+'_'+ci+'" value="'+escA(v)+'" style="'+inS+'"></td>'; });
+    h += '<tr><td style="padding:2px 3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" title="тираж від, шт" style="'+inS+'width:56px;font-weight:700;"></td>';
+    bands.forEach((b,ci)=>{ const v=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:''; h += '<td style="padding:2px 3px;"><input data-cell="'+ri+'_'+ci+'" value="'+escA(v)+'" title="собівартість, грн/шт" style="'+inS+'"></td>'; });
     h += '</tr>';
   });
   h += '</tbody></table>';
@@ -1354,10 +1371,15 @@ function paintDtfGrid(m){
 }
 function readDtfGrid(){
   const box = document.getElementById('sp-dtf-grid');
-  const bands = Array.from(box.querySelectorAll('[data-band]')).map(i=>parseFloat(i.value)||0);
+  const labels = Array.from(box.querySelectorAll('[data-band-label]'));
+  const bands = labels.map((el,ci)=>({
+    label: el.value.trim(),
+    w: parseFloat(box.querySelector('[data-band-w="'+ci+'"]').value) || 0,
+    h: parseFloat(box.querySelector('[data-band-h="'+ci+'"]').value) || 0
+  }));
   const qtyFrom = Array.from(box.querySelectorAll('[data-qf]')).map(i=>parseInt(i.value,10)||0);
   const cost = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cell="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
-  return { areaBands:bands, qtyFrom, cost };
+  return { bands, qtyFrom, cost };
 }
 function paintSpTiers(tiers){
   document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`

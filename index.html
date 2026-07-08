@@ -4555,14 +4555,15 @@
       var key = getPrint().id === 'embro' ? 'embro' : 'dtf';
       return (p.methods || {})[key] || null;
     }
-    function layerAreaMm2(l){
+    function layerDimsMm(l){
       var wrapEl = document.getElementById('pmGarmentWrap');
       var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
       var H = garmentHeightMm();
       var wmm = (120 * (l.scale || 1)) / wrapW * H;   // ширина лого як частка виробу × висота виробу
       var hmm = wmm / ((l.ar || 1) || 1);
-      return wmm * hmm;
+      return { w: wmm, h: hmm };
     }
+    function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
     function placementPrice(m, l){
@@ -4577,13 +4578,26 @@
       }
       return Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
     }
-    // DTF — собівартість по сітці (габаритний прямокутник → діапазон площі × тираж),
-    // продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
+    // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
+    // в НАЙМЕНШИЙ лист, у який вписується (з урахуванням повороту), а не за площею.
+    // Продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
+    function dtfBandCol(m, l){
+      var d = layerDimsMm(l);
+      var lw = d.w / 10, lh = d.h / 10;   // см
+      if(m.bands && m.bands.length){
+        for(var i = 0; i < m.bands.length; i++){
+          var b = m.bands[i], SW = +b.w || 0, SH = +b.h || 0;
+          if((lw <= SW && lh <= SH) || (lw <= SH && lh <= SW)) return i;   // влазить (у будь-якому повороті)
+        }
+        return m.bands.length - 1;   // більше за найбільший лист → остання категорія
+      }
+      // сумісність зі старим форматом (за площею)
+      var areaCm2 = lw * lh, ab = m.areaBands || [];
+      for(var k = 0; k < ab.length; k++){ if(areaCm2 <= ab[k]) return k; }
+      return Math.max(0, ab.length - 1);
+    }
     function dtfGridSell(m, l){
-      var areaCm2 = layerAreaMm2(l) / 100;   // габарит логотипа, см² (без урахування прозорості)
-      var bands = m.areaBands || [];
-      var col = bands.length - 1;
-      for(var i = 0; i < bands.length; i++){ if(areaCm2 <= bands[i]){ col = i; break; } }
+      var col = dtfBandCol(m, l);
       var qf = m.qtyFrom || [];
       var u = Math.max(1, totalUnits());
       var row = 0;
