@@ -4995,7 +4995,7 @@
       var neutral = (lum > 170) ? 'rgba(20,22,30,.6)' : 'rgba(255,255,255,.8)';
       var col = over ? '#ff4d4f' : neutral;
       svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(over?2.2:1.6)+'" stroke-dasharray="'+(over?'5 3':'5 4')+'"/>';
-      svg.style.display = '';
+      svg.style.display = 'block';   // CSS-дефолт = none, тож показуємо явно
     }
     // перемальовуємо зону, коли фото-мокап довантажився
     pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} });
