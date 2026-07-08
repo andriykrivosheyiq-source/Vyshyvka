@@ -433,62 +433,120 @@
       <div class="card">
         <div class="card-head">
           <h2>Прорахунок на сайті — модель «від площі»</h2>
-          <span class="hint">DTF — по сітці (габарит × тираж); вишивка — за 1000 мм² чистої площі; + коеф. знижки за кількість</span>
+          <span class="hint">Одна модель на весь сайт і Канбан. У кожного методу — своя ставка, оплати (за замовлення / за штуку) і власні терміни по стадіях.</span>
         </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:14px;cursor:pointer;">
-          <input type="checkbox" id="sp-enabled"> Увімкнути нову модель на сайті (вимкнено = стара формула)
-        </label>
-        <div class="grid2">
-          <div class="technique-block" style="grid-column:1 / -1;">
-            <h3><span class="dot print"></span> Друк (DTF) — сітка собівартості</h3>
-            <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. Продажна ціна = собівартість × націнка.</div>
-            <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
-            <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Націнка на собівартість (×)
-                <input type="number" step="0.05" id="sp-dtf-markup" placeholder="2">
-              </label>
-              <label class="field">Мін. ціна нанесення, грн
-                <input type="number" step="1" id="sp-dtf-min">
-              </label>
-            </div>
+
+        <!-- ── ДРУК (DTF) ── -->
+        <div class="technique-block" style="margin-bottom:18px;">
+          <h3><span class="dot print"></span> Друк (DTF)</h3>
+          <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. Продажна ціна нанесення = собівартість × націнка.</div>
+          <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">Націнка на собівартість (×)
+              <input type="number" step="0.05" id="sp-dtf-markup" placeholder="2">
+            </label>
+            <label class="field">Мін. ціна нанесення, грн
+              <input type="number" step="1" id="sp-dtf-min">
+            </label>
           </div>
-          <div class="technique-block">
-            <h3><span class="dot emb"></span> Вишивка</h3>
-            <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
-            <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Ціна за 1000 мм², грн
-                <input type="number" step="0.5" id="sp-emb-price1k" placeholder="50">
-              </label>
-              <label class="field">Собівартість за 1000 мм², грн
-                <input type="number" step="0.5" id="sp-emb-cost1k" placeholder="20">
-              </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Мін. ціна нанесення, грн
-                <input type="number" step="1" id="sp-emb-min">
-              </label>
-            </div>
+          <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">За замовлення — ціна, грн
+              <input type="number" step="1" min="0" id="sp-dtf-orderfee" placeholder="250">
+            </label>
+            <label class="field">За замовлення — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-dtf-ordercost" placeholder="120">
+            </label>
           </div>
+          <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">За штуку — ціна, грн
+              <input type="number" step="1" min="0" id="sp-dtf-piecefee" placeholder="5">
+            </label>
+            <label class="field">За штуку — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-dtf-piececost" placeholder="2">
+            </label>
+          </div>
+          <div class="tl-divider">Терміни (робочі дні) — кожна стадія рахується окремо</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;">
+            <label class="field">Створення дизайну, дн
+              <input type="number" min="0" step="1" id="sp-dtf-d-design" placeholder="1">
+            </label>
+            <label class="field">Передача на виробництво, дн
+              <input type="number" min="0" step="1" id="sp-dtf-d-transfer" placeholder="1">
+            </label>
+            <label class="field">Виготовлення, дн
+              <input type="number" min="0" step="1" id="sp-dtf-d-prod" placeholder="2">
+            </label>
+            <label class="field">Відправка, дн
+              <input type="number" min="0" step="1" id="sp-dtf-d-ship" placeholder="1">
+            </label>
+          </div>
+          <div class="tl-tiers-label" style="margin-bottom:6px;">Надбавки по кількості (від N шт → +днів):</div>
+          <div id="sp-dtf-lt-tiers"></div>
+          <div class="add-row-btn" id="sp-dtf-lt-add">+ поріг</div>
+        </div>
+
+        <!-- ── ВИШИВКА ── -->
+        <div class="technique-block" style="margin-bottom:18px;">
+          <h3><span class="dot emb"></span> Вишивка</h3>
+          <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">Ціна за 1000 мм², грн
+              <input type="number" step="0.5" id="sp-emb-price1k" placeholder="50">
+            </label>
+            <label class="field">Собівартість за 1000 мм², грн
+              <input type="number" step="0.5" id="sp-emb-cost1k" placeholder="20">
+            </label>
+          </div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">Мін. ціна нанесення, грн
+              <input type="number" step="1" id="sp-emb-min">
+            </label>
+          </div>
+          <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">За замовлення — ціна, грн
+              <input type="number" step="1" min="0" id="sp-emb-orderfee" placeholder="250">
+            </label>
+            <label class="field">За замовлення — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-emb-ordercost" placeholder="120">
+            </label>
+          </div>
+          <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">За штуку — ціна, грн
+              <input type="number" step="1" min="0" id="sp-emb-piecefee" placeholder="5">
+            </label>
+            <label class="field">За штуку — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-emb-piececost" placeholder="2">
+            </label>
+          </div>
+          <div class="tl-divider">Терміни (робочі дні) — кожна стадія рахується окремо</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;">
+            <label class="field">Створення дизайну, дн
+              <input type="number" min="0" step="1" id="sp-emb-d-design" placeholder="1">
+            </label>
+            <label class="field">Передача на виробництво, дн
+              <input type="number" min="0" step="1" id="sp-emb-d-transfer" placeholder="1">
+            </label>
+            <label class="field">Виготовлення, дн
+              <input type="number" min="0" step="1" id="sp-emb-d-prod" placeholder="3">
+            </label>
+            <label class="field">Відправка, дн
+              <input type="number" min="0" step="1" id="sp-emb-d-ship" placeholder="1">
+            </label>
+          </div>
+          <div class="tl-tiers-label" style="margin-bottom:6px;">Надбавки по кількості (від N шт → +днів):</div>
+          <div id="sp-emb-lt-tiers"></div>
+          <div class="add-row-btn" id="sp-emb-lt-add">+ поріг</div>
         </div>
 
         <div class="tl-divider" style="margin-top:16px;">Знижки за кількість (коеф. множить ціну за одиницю)</div>
         <div id="sp-tiers"></div>
         <div class="add-row-btn" id="sp-tier-add">+ Додати поріг</div>
 
-        <div class="tl-divider" style="margin-top:16px;">Терміни виготовлення (робочі дні)</div>
-        <div class="grid2" style="margin-bottom:10px;">
-          <label class="field">Друк — базовий термін, дн
-            <input type="number" min="1" step="1" id="sp-lt-days-dtf" placeholder="2">
-          </label>
-          <label class="field">Вишивка — базовий термін, дн
-            <input type="number" min="1" step="1" id="sp-lt-days-emb" placeholder="3">
-          </label>
-        </div>
-        <div class="tl-tiers-label" style="margin-bottom:6px;">Надбавки по кількості (від N шт → +днів):</div>
-        <div id="sp-lt-tiers"></div>
-        <div class="add-row-btn" id="sp-lt-add">+ поріг</div>
-
-        <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються тепер у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
+        <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
         <div style="margin-top:16px;">
           <button class="btn btn-accent" id="sp-save">Зберегти прорахунок сайту</button>
@@ -1177,8 +1235,13 @@ function toast(msg){
    ПРОРАХУНОК САЙТУ «ВІД ПЛОЩІ» — зберігається в публічний документ
    (loomiq/photos → pricing), його читає конфігуратор на сайті
    ============================================================ */
+// Терміни по стадіях (робочі дні) — у кожного методу власні.
+// Надбавки по кількості (qtyTiers) додаються кумулятивно.
+const DEFAULT_LEAD_DTF = { design:1, transfer:1, production:2, shipping:1,
+  qtyTiers:[ {from:10,extraDays:1}, {from:50,extraDays:1}, {from:100,extraDays:1}, {from:300,extraDays:2} ] };
+const DEFAULT_LEAD_EMB = { design:1, transfer:1, production:3, shipping:1,
+  qtyTiers:[ {from:10,extraDays:1}, {from:50,extraDays:1}, {from:100,extraDays:1}, {from:300,extraDays:2} ] };
 const DEFAULT_SITE_PRICING = {
-  enabled: false,
   methods: {
     dtf: {
       mode: 'grid',
@@ -1203,48 +1266,83 @@ const DEFAULT_SITE_PRICING = {
         [25,35,45,55,85,160],
         [20,28,35,45,70,90]
       ],
-      markup: 2, minPrice: 20
+      markup: 2, minPrice: 20,
+      // Оплати: за замовлення (разова) і за штуку — ціна + собівартість
+      orderFee: 250, orderCost: 120, pieceFee: 5, pieceCost: 2,
+      lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_DTF))
     },
-    embro: { pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400 }
+    embro: {
+      pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400,
+      orderFee: 250, orderCost: 120, pieceFee: 5, pieceCost: 2,
+      lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_EMB))
+    }
   },
   tiers: [
     {from:1,to:2,coef:1},{from:3,to:9,coef:0.85},{from:10,to:29,coef:0.81},
     {from:30,to:49,coef:0.78},{from:50,to:99,coef:0.72},{from:100,to:199,coef:0.69},
     {from:200,to:null,coef:0.65}
   ],
-  // Терміни: базовий (окремо друк/вишивка) + надбавки по кількості (cumulative)
-  leadTime: { baseDaysDtf: 2, baseDaysEmbro: 3, tiers: [ {from:10,extraDays:1}, {from:50,extraDays:1}, {from:100,extraDays:1}, {from:300,extraDays:2} ] },
   basePrices: { tee:540, teeover:540, hoodie:790, hoodieover:790, hoodieoverfleece:840, hoodiezip:840, sweat:740, cap:630, tote:630 },
   heights: { default:680, cap:180, tote:400 }
 };
+// Приводимо будь-яке (в т.ч. старе) збереження до актуальної структури.
+function normalizeSitePricing(p){
+  if(!p || !p.methods) return JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING));
+  const def = DEFAULT_SITE_PRICING;
+  const old = p.leadTime || {};   // стара спільна структура термінів
+  ['dtf','embro'].forEach(k=>{
+    const m = p.methods[k] = p.methods[k] || JSON.parse(JSON.stringify(def.methods[k]));
+    if(m.orderFee  == null) m.orderFee  = def.methods[k].orderFee;
+    if(m.orderCost == null) m.orderCost = def.methods[k].orderCost;
+    if(m.pieceFee  == null) m.pieceFee  = def.methods[k].pieceFee;
+    if(m.pieceCost == null) m.pieceCost = def.methods[k].pieceCost;
+    if(!m.lead){
+      // міграція зі старого leadTime → стадії (базовий термін = виготовлення)
+      const base = k==='embro' ? (+old.baseDaysEmbro||3) : (+old.baseDaysDtf||2);
+      m.lead = { design:1, transfer:1, production:base, shipping:1,
+        qtyTiers: (old.tiers && old.tiers.length) ? JSON.parse(JSON.stringify(old.tiers)) : JSON.parse(JSON.stringify(def.methods[k].lead.qtyTiers)) };
+    }
+    if(!m.lead.qtyTiers) m.lead.qtyTiers = [];
+  });
+  delete p.enabled; delete p.leadTime;
+  return p;
+}
 function curSitePricing(){
   const p = contentData.pricing;
-  return p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING));
+  return normalizeSitePricing(p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING)));
 }
 function paintSitePricing(){
-  if(!document.getElementById('sp-enabled')) return;
+  if(!document.getElementById('sp-dtf-markup')) return;
   const p = curSitePricing();
   const meth = p.methods || {};
-  document.getElementById('sp-enabled').checked = !!p.enabled;
+  const setV = (id,v)=>{ const el=document.getElementById(id); if(el) el.value = (v==null?'':v); };
   // Друк (DTF) — сітка собівартості
   const dm = (meth.dtf && meth.dtf.mode==='grid') ? meth.dtf : DEFAULT_SITE_PRICING.methods.dtf;
   paintDtfGrid(dm);
-  document.getElementById('sp-dtf-markup').value = dm.markup ?? '';
-  document.getElementById('sp-dtf-min').value  = dm.minPrice ?? '';
+  setV('sp-dtf-markup', dm.markup);
+  setV('sp-dtf-min', dm.minPrice);
+  setV('sp-dtf-orderfee', dm.orderFee);  setV('sp-dtf-ordercost', dm.orderCost);
+  setV('sp-dtf-piecefee', dm.pieceFee);  setV('sp-dtf-piececost', dm.pieceCost);
+  const dl = dm.lead || {};
+  setV('sp-dtf-d-design', dl.design); setV('sp-dtf-d-transfer', dl.transfer);
+  setV('sp-dtf-d-prod', dl.production); setV('sp-dtf-d-ship', dl.shipping);
+  paintLeadTiers('dtf', dl.qtyTiers);
   // Вишивка — за 1000 мм²
   const e = meth.embro || {};
-  document.getElementById('sp-emb-price1k').value = e.pricePer1000mm2 ?? '';
-  document.getElementById('sp-emb-cost1k').value  = e.costPer1000mm2 ?? '';
-  document.getElementById('sp-emb-min').value  = e.minPrice ?? '';
-  // Терміни
-  const lt = p.leadTime || DEFAULT_SITE_PRICING.leadTime;
-  document.getElementById('sp-lt-days-dtf').value = lt.baseDaysDtf ?? '';
-  document.getElementById('sp-lt-days-emb').value = lt.baseDaysEmbro ?? '';
-  paintLtTiers(lt.tiers);
+  setV('sp-emb-price1k', e.pricePer1000mm2);
+  setV('sp-emb-cost1k', e.costPer1000mm2);
+  setV('sp-emb-min', e.minPrice);
+  setV('sp-emb-orderfee', e.orderFee);  setV('sp-emb-ordercost', e.orderCost);
+  setV('sp-emb-piecefee', e.pieceFee);  setV('sp-emb-piececost', e.pieceCost);
+  const el = e.lead || {};
+  setV('sp-emb-d-design', el.design); setV('sp-emb-d-transfer', el.transfer);
+  setV('sp-emb-d-prod', el.production); setV('sp-emb-d-ship', el.shipping);
+  paintLeadTiers('emb', el.qtyTiers);
   paintSpTiers(p.tiers);
 }
-function paintLtTiers(tiers){
-  const box = document.getElementById('sp-lt-tiers'); if(!box) return;
+// Надбавки термінів по кількості — генерик для методу ('dtf' | 'emb')
+function paintLeadTiers(key, tiers){
+  const box = document.getElementById('sp-'+key+'-lt-tiers'); if(!box) return;
   box.innerHTML = (tiers||[]).map((t,i)=>`
     <div class="sp-lt-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
       <span style="font-size:12px;color:var(--ink-soft);">від</span>
@@ -1255,14 +1353,24 @@ function paintLtTiers(tiers){
       <button class="pc-btn reset" data-lt-del="${i}" style="flex:none;padding:6px 10px;">✕</button>
     </div>`).join('');
   box.querySelectorAll('[data-lt-del]').forEach(b=>b.addEventListener('click', ()=>{
-    const rows = readLtTiers(); rows.splice(Number(b.dataset.ltDel),1); paintLtTiers(rows);
+    const rows = readLeadTiers(key); rows.splice(Number(b.dataset.ltDel),1); paintLeadTiers(key, rows);
   }));
 }
-function readLtTiers(){
-  return Array.from(document.querySelectorAll('#sp-lt-tiers .sp-lt-row')).map(r=>({
+function readLeadTiers(key){
+  return Array.from(document.querySelectorAll('#sp-'+key+'-lt-tiers .sp-lt-row')).map(r=>({
     from: parseInt(r.querySelector('[data-lt-from]').value,10)||1,
     extraDays: parseInt(r.querySelector('[data-lt-days]').value,10)||0
   }));
+}
+function readLead(key){
+  const g = id=>document.getElementById('sp-'+key+'-'+id);
+  return {
+    design:     parseInt(g('d-design').value,10)   || 0,
+    transfer:   parseInt(g('d-transfer').value,10) || 0,
+    production: parseInt(g('d-prod').value,10)      || 0,
+    shipping:   parseInt(g('d-ship').value,10)      || 0,
+    qtyTiers:   readLeadTiers(key)
+  };
 }
 function paintDtfGrid(m){
   const box = document.getElementById('sp-dtf-grid'); if(!box) return;
@@ -1365,38 +1473,44 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
   const c = parseFloat(row.querySelector('[data-sp-coef]').value) || 1;
   row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
 });
-document.getElementById('sp-lt-add').addEventListener('click', ()=>{
-  const rows = readLtTiers();
-  const last = rows[rows.length-1];
-  rows.push({ from: last ? last.from+50 : 10, extraDays: 1 });
-  paintLtTiers(rows);
+['dtf','emb'].forEach(key=>{
+  const btn = document.getElementById('sp-'+key+'-lt-add');
+  if(btn) btn.addEventListener('click', ()=>{
+    const rows = readLeadTiers(key);
+    const last = rows[rows.length-1];
+    rows.push({ from: last ? last.from+50 : 10, extraDays: 1 });
+    paintLeadTiers(key, rows);
+  });
 });
 document.getElementById('sp-save').addEventListener('click', async ()=>{
+  const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
     markup: parseFloat(document.getElementById('sp-dtf-markup').value) || 1,
-    minPrice: parseFloat(document.getElementById('sp-dtf-min').value) || 0
+    minPrice: numV('sp-dtf-min'),
+    orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
+    pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
+    lead: readLead('dtf')
   });
   const embro = {
-    pricePer1000mm2: parseFloat(document.getElementById('sp-emb-price1k').value) || 0,
-    costPer1000mm2: parseFloat(document.getElementById('sp-emb-cost1k').value) || 0,
-    minPrice: parseFloat(document.getElementById('sp-emb-min').value) || 0
-  };
-  const leadTime = {
-    baseDaysDtf: parseInt(document.getElementById('sp-lt-days-dtf').value,10) || 2,
-    baseDaysEmbro: parseInt(document.getElementById('sp-lt-days-emb').value,10) || 3,
-    tiers: readLtTiers()
+    pricePer1000mm2: numV('sp-emb-price1k'),
+    costPer1000mm2: numV('sp-emb-cost1k'),
+    minPrice: numV('sp-emb-min'),
+    orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
+    pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),
+    lead: readLead('emb')
   };
   // Базові ціни й висоти більше не редагуються тут — вони в картці товару.
   // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
-    enabled: document.getElementById('sp-enabled').checked,
     methods: { dtf, embro },
     tiers: readSpTiers(),
-    leadTime
+    // прибираємо застарілі поля зі збереження
+    enabled: firebase.firestore.FieldValue.delete(),
+    leadTime: firebase.firestore.FieldValue.delete()
   };
   try{
     await PHOTOS_DOC.set({ pricing }, { merge:true });
-    toast(pricing.enabled ? 'Збережено — нова модель АКТИВНА на сайті' : 'Збережено (модель вимкнена)');
+    toast('Збережено — модель оновлено на сайті');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
 });
 
@@ -1658,20 +1772,41 @@ function computeApp(app, qty){
 function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
 
 /* ============================================================
+   МОДЕЛЬ МЕТОДУ: оплати + терміни (спільні хелпери)
+   ============================================================ */
+function methodModel(technique){
+  const meth = curSitePricing().methods || {};
+  return (technique==='emb') ? (meth.embro||{}) : (meth.dtf||{});
+}
+// Сума днів по стадіях методу + надбавки по кількості.
+function leadDaysFor(technique, qty){
+  const l = (methodModel(technique).lead) || {};
+  let d = (+l.design||0)+(+l.transfer||0)+(+l.production||0)+(+l.shipping||0);
+  (l.qtyTiers||[]).forEach(t=>{ if(qty >= (+t.from||0)) d += (+t.extraDays||0); });
+  return d;
+}
+// Оплати замовлення від набору методів: за замовлення (разова) + за штуку × кількість.
+function orderFees(techniques, qty){
+  const uniq = [...new Set((techniques&&techniques.length?techniques:['print']).map(t=>t==='emb'?'emb':'print'))];
+  let orderP=0, orderC=0, pieceP=0, pieceC=0;
+  uniq.forEach(t=>{
+    const m = methodModel(t);
+    orderP += +m.orderFee||0;  orderC += +m.orderCost||0;
+    pieceP += +m.pieceFee||0;  pieceC += +m.pieceCost||0;
+  });
+  return { price: orderP + pieceP*qty, cost: orderC + pieceC*qty,
+           orderP, orderC, pieceP, pieceC };
+}
+
+/* ============================================================
    TIMELINE LOGIC
    ============================================================ */
-// Терміни — з єдиного блоку «Формування цін»: базовий (друк/вишивка) + надбавки по кількості.
+// Терміни — по стадіях кожного методу; для кількох методів беремо найдовший.
 function calcDays(qty, techniques){
   if(!techniques || techniques.length === 0) techniques = ['print'];
-  const lt = curSitePricing().leadTime || DEFAULT_SITE_PRICING.leadTime;
-  let base = 0;
-  techniques.forEach(tech=>{
-    const b = (tech==='emb') ? (+lt.baseDaysEmbro||3) : (+lt.baseDaysDtf||2);
-    if(b > base) base = b;
-  });
-  let extra = 0;
-  (lt.tiers || []).forEach(t=>{ if(qty >= (+t.from||0)) extra += (+t.extraDays||0); });
-  return base + extra;
+  let best = 0;
+  techniques.forEach(tech=>{ const d = leadDaysFor(tech==='emb'?'emb':'print', qty); if(d > best) best = d; });
+  return best;
 }
 
 function addWorkingDays(fromDate, days){
@@ -1719,6 +1854,10 @@ function recalc(){
     appsPrice += f.price * qty;
     appsCost += f.cost * qty;
   });
+  // Оплати: за замовлення (разова) + за штуку × кількість — від методів у замовленні
+  const fees = orderFees(currentApps.map(a=>a.technique), qty);
+  appsPrice += fees.price;
+  appsCost  += fees.cost;
 
   const totalPrice = garmentPrice + appsPrice;
   const totalCost = garmentCost + appsCost;

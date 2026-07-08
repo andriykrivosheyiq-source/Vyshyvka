@@ -4551,7 +4551,16 @@
        нанесення (кожне розміщення окремо) = max( ставка_грн_мм² × площа_мм² × fill_ratio, мін_ціна ) */
     function sitePricing(){
       var p = window.SITE_CONTENT && window.SITE_CONTENT.pricing;
-      return (p && p.enabled) ? p : null;
+      // Модель тепер завжди одна (перемикача «увімкнути» більше немає).
+      return (p && p.methods) ? p : null;
+    }
+    // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
+    function methodPieceFee(){ var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
+    function methodOrderFee(){ var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
+    // Повна вартість замовлення = ціна/шт × кількість + разова оплата за замовлення.
+    function orderTotal(){
+      var u = totalUnits();
+      return u > 0 ? (unitPrice() * u + methodOrderFee()) : 0;
     }
     function pricingTiers(){
       var p = sitePricing();
@@ -4673,13 +4682,14 @@
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ a += layerAreaMm2(l); }); });
       return a;
     }
-    function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart; }
+    function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
     function unitPrice(){
       if(sitePricing()){
         var t = activeCoefTier(); var coef = t ? t.coef : 1;
         var ap = applicationParts();
-        // коеф. кількості множить базу + лінійне нанесення; сітка DTF уже має тираж усередині
-        return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart;
+        // коеф. кількості множить базу + лінійне нанесення; сітка DTF уже має тираж усередині;
+        // оплата за штуку (пакет, менеджер) — фікс, без знижки
+        return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
       }
       return activeTier().price + getGarment().price + getPrint().price + logoSurcharge();
     }
@@ -4692,12 +4702,20 @@
     function deliveryTerm(){
       var p = sitePricing();
       if(p){
-        var lt = p.leadTime || {};
         var u = Math.max(1, totalUnits());
-        var base = (getPrint().id === 'embro') ? (+lt.baseDaysEmbro || 3) : (+lt.baseDaysDtf || 2);
-        var extra = 0;
-        (lt.tiers || []).forEach(function(t){ if(u >= (+t.from || 0)) extra += (+t.extraDays || 0); });
-        var dmin = base + extra;
+        var m = methodCfgNew() || {};
+        var l = m.lead;
+        var dmin, i;
+        if(l){
+          // сума стадій: дизайн + передача + виготовлення + відправка
+          dmin = (+l.design||0)+(+l.transfer||0)+(+l.production||0)+(+l.shipping||0);
+          (l.qtyTiers || []).forEach(function(t){ if(u >= (+t.from || 0)) dmin += (+t.extraDays || 0); });
+        } else {
+          // сумісність зі старим форматом leadTime
+          var lt = p.leadTime || {};
+          dmin = (getPrint().id === 'embro') ? (+lt.baseDaysEmbro || 3) : (+lt.baseDaysDtf || 2);
+          (lt.tiers || []).forEach(function(t){ if(u >= (+t.from || 0)) dmin += (+t.extraDays || 0); });
+        }
         return dmin + '-' + (dmin + 1);
       }
       var u2 = totalUnits();
@@ -5291,7 +5309,7 @@
         pmPriceText.innerHTML = '<span class="pm-num">від '+fromPrice+'</span><span class="pm-unit">грн/шт</span>';
       }
       pmDeliveryText.innerHTML = (u===0?'<span class="pm-unit">від </span>':'') + '<span class="pm-num">'+deliveryTerm()+'</span><span class="pm-unit">'+dayWord(parseInt(deliveryTerm().split('-')[1],10))+'</span>';
-      pmAddBtnSum.textContent = u>0 ? (unitPrice()*u)+' грн за '+u+' шт' : '';
+      pmAddBtnSum.textContent = u>0 ? (orderTotal())+' грн за '+u+' шт' : '';
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       pmQtyWarning.style.display = u===0 ? '' : 'none';
       renderTiers();
@@ -5302,7 +5320,7 @@
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
-        pmAddBtnSum.textContent = (unitPrice()*u)+' грн за '+u+' шт';
+        pmAddBtnSum.textContent = (orderTotal())+' грн за '+u+' шт';
       } else {
         pmPriceText.innerHTML = '<span class="pm-num">від '+(TIERS[TIERS.length-1].price + logoSurcharge())+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = '';
@@ -5610,7 +5628,7 @@
         color: getColor().name,
         print: getPrint().name,
         sizes: sizesStr,
-        price: unitPrice()*u,
+        price: orderTotal(),
         unitPrice: unitPrice(),
         qty: u,
         imgs: [],
