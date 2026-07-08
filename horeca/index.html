@@ -319,9 +319,9 @@
     position:relative;overflow:hidden;
     background:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-      radial-gradient(130% 100% at 88% -12%, rgba(112,102,255,.30) 0%, rgba(112,102,255,.08) 38%, transparent 62%),
-      radial-gradient(110% 90% at -8% 112%, rgba(58,116,255,.20) 0%, transparent 58%),
-      linear-gradient(155deg,#171821 0%,#0c0d12 52%,#12131c 100%);
+      radial-gradient(130% 100% at 88% -12%, rgba(198,146,92,.32) 0%, rgba(198,146,92,.09) 38%, transparent 62%),
+      radial-gradient(110% 90% at -8% 112%, rgba(150,96,58,.22) 0%, transparent 58%),
+      linear-gradient(155deg,#1b1512 0%,#0d0a08 52%,#17110c 100%);
     background-size:160px 160px, auto, auto, auto;
     background-blend-mode:soft-light, normal, normal, normal;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
@@ -331,12 +331,12 @@
   }
   .aurora-bg::before{
     width:min(420px,72%);aspect-ratio:1/1;top:-32%;right:-14%;
-    background:radial-gradient(circle at 50% 50%, rgba(126,116,255,.36) 0%, transparent 68%);
+    background:radial-gradient(circle at 50% 50%, rgba(205,150,95,.34) 0%, transparent 68%);
     animation:glow-drift-1 13s ease-in-out infinite;
   }
   .aurora-bg::after{
     width:min(380px,64%);aspect-ratio:1/1;bottom:-30%;left:-12%;
-    background:radial-gradient(circle at 50% 50%, rgba(56,120,255,.24) 0%, transparent 68%);
+    background:radial-gradient(circle at 50% 50%, rgba(150,96,58,.24) 0%, transparent 68%);
     animation:glow-drift-2 17s ease-in-out infinite;
   }
   @keyframes glow-drift-1{
@@ -1339,10 +1339,10 @@
   @keyframes sc-pop{to{opacity:1;transform:scale(1);}}
   .pm-sc-dot-grid{position:absolute;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:54px;opacity:.5;}
   .pm-sc-dot-grid span, .pm-sc-dot-grid::before{content:'';}
-  .pm-sc-dot-grid{background-image:radial-gradient(#aebdf2 2px, transparent 2.5px);background-size:14px 14px;height:54px;}
+  .pm-sc-dot-grid{background-image:radial-gradient(#d8c3a8 2px, transparent 2.5px);background-size:14px 14px;height:54px;}
   .pm-sc-dot-grid--tl{top:18px;left:14px;}
   .pm-sc-dot-grid--br{bottom:14px;right:14px;}
-  .pm-sc-x{position:absolute;color:#cfd8f5;font-size:18px;font-weight:700;}
+  .pm-sc-x{position:absolute;color:#e2d3bf;font-size:18px;font-weight:700;}
   .pm-sc-x--1{top:24px;right:30px;}
   .pm-sc-x--2{bottom:30px;left:26px;}
   .pm-sc-legend{padding:10px 18px 4px;display:flex;flex-direction:column;gap:6px;}
@@ -1358,7 +1358,7 @@
   .pm-sc-table td:first-child{text-align:left;padding-left:16px;font-weight:700;}
   .pm-sc-table tr:nth-child(even) td{background:#fafafe;}
   .pm-sc-note{display:flex;align-items:center;gap:12px;margin:18px 18px 28px;font-size:13.5px;color:#888;line-height:1.4;}
-  .pm-sc-note-badge{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #aebdf2;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;}
+  .pm-sc-note-badge{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #d8c3a8;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;}
   .pm-reviews-summary{padding:20px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;}
   .pm-reviews-summary-left{text-align:center;flex-shrink:0;}
   .pm-reviews-score{font-size:48px;font-weight:800;color:#111;line-height:1;}
@@ -1426,10 +1426,10 @@
   }
   .contact-card--call{background:#FFFFFF;border:1px solid var(--line);}
   .contact-card--tg{
-    background:#EEF5FC;border:1px solid #D5E6F7;display:block;color:var(--ink);
+    background:#F5EFE7;border:1px solid #E7DAC8;display:block;color:var(--ink);
     transition:box-shadow .15s ease;
   }
-  .contact-card--tg:hover{box-shadow:0 4px 14px -6px rgba(3,105,161,.18);}
+  .contact-card--tg:hover{box-shadow:0 4px 14px -6px rgba(111,78,55,.18);}
   .contact-card--viber{
     background:#F1EEFB;border:1px solid #DCD4F5;display:block;color:var(--ink);
     transition:box-shadow .15s ease;
@@ -1559,7 +1559,7 @@
   <div class="menu-overlay-header">
     <div>
       <div class="menu-overlay-title">Loomiq</div>
-      <div class="menu-overlay-tagline">Створюємо одяг для тих, хто змінює світ</div>
+      <div class="menu-overlay-tagline">Форма для ресторанів, кав'ярень і готелів</div>
     </div>
     <button class="menu-overlay-close" id="menuCloseBtn" aria-label="Закрити меню">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -1753,7 +1753,7 @@
           <h4>Оксана</h4>
           <span class="review-date">20 трав. 2026</span>
           <div class="review-stars">★★★★★</div>
-          <p>Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>
+          <p>Замовляла поло для офіціантів, усі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>
         </div>
       </div>
 
@@ -1828,7 +1828,7 @@
           <h4>Настя</h4>
           <span class="review-date">15 бер. 2026</span>
           <div class="review-stars">★★★★★</div>
-          <p>Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду</p>
+          <p>Замовляли худі для бариста кав'ярні — дуже задоволені! Якість просто вогонь 🔥 однозначно ще прийду</p>
         </div>
       </div>
 
@@ -1847,7 +1847,7 @@
           <h4>Артем В.</h4>
           <span class="review-date">27 лют. 2026</span>
           <div class="review-stars">★★★★★</div>
-          <p>Топ. Робили мерч на подію, встигли за тиждень 👍</p>
+          <p>Топ. Робили фартухи до відкриття кав'ярні, встигли за тиждень 👍</p>
         </div>
       </div>
 
@@ -2088,10 +2088,10 @@
       <div class="review-card" data-rid="r36">
         <div class="review-photo"><img src="/images/work-20.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
-          <h4>MoveUp Gym</h4>
+          <h4>Bistro Central</h4>
           <span class="review-date">27 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Спортивна форма для команди — яскраво, все рівно 💪</p>
+          <p>Форма для кухні — міцна тканина, шви рівні, лого чітке 💪</p>
         </div>
       </div>
 
@@ -2110,7 +2110,7 @@
           <h4>mycar</h4>
           <span class="review-date">30 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
-          <p>Брендовані сумки для компанії — міцні, лого чітке. Рекомендуємо!</p>
+          <p>Брендовані сумки для ресторану — міцні, лого чітке. Рекомендуємо!</p>
         </div>
       </div>
 
@@ -2408,7 +2408,7 @@
           <h4>Оля</h4>
           <span class="review-date">11 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
-          <p>мерч вийшов кращий ніж очікувала ❤️ дякую команді</p>
+          <p>форма вийшла краща ніж очікувала ❤️ дякую команді</p>
         </div>
       </div>
 
@@ -2637,14 +2637,14 @@
     <div class="pm-recommended">
       <div class="pm-section-title">Вам також може сподобатись</div>
       <div class="pm-recommended-scroll" id="pmRecommendedScroll">
-        <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі преміум</div><div class="pm-rec-price">890 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="sweat"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Світшот класик</div><div class="pm-rec-price">650 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка базова</div><div class="pm-rec-price">350 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="polo"><div class="pm-rec-img" style="background:#1e2d4a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Поло оверсайз</div><div class="pm-rec-price">720 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="long"><div class="pm-rec-img" style="background:#9a4a2a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Лонгслів дроп</div><div class="pm-rec-price">540 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="shorts"><div class="pm-rec-img" style="background:#8a8a8a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Шорти карго</div><div class="pm-rec-price">480 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="vest"><div class="pm-rec-img" style="background:#d0ccc8;"></div><div class="pm-rec-info"><div class="pm-rec-name">Безрукавка оверсайз</div><div class="pm-rec-price">420 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка преміум</div><div class="pm-rec-price">590 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="kitel"><div class="pm-rec-img" style="background:#1c1c1c;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кухарський кітель</div><div class="pm-rec-price">890 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="apron"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Фартух</div><div class="pm-rec-price">650 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="polo"><div class="pm-rec-img" style="background:#1e2d4a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Поло для залу</div><div class="pm-rec-price">720 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="long"><div class="pm-rec-img" style="background:#9a4a2a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Сорочка</div><div class="pm-rec-price">540 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка / ковпак</div><div class="pm-rec-price">350 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="vest"><div class="pm-rec-img" style="background:#d0ccc8;"></div><div class="pm-rec-info"><div class="pm-rec-name">Жилет офіціанта</div><div class="pm-rec-price">420 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка персоналу</div><div class="pm-rec-price">590 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі для бариста</div><div class="pm-rec-price">890 грн</div></div></div>
         <button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta">
           <span>Перейти в каталог</span>
         </button>
@@ -2670,8 +2670,8 @@
         </div>
       </div>
       <div class="pm-cta-card">
-        <div class="pm-cta-title">Створіть свій мерч</div>
-        <div class="pm-cta-sub">Завантажте лого і отримайте мерч мрії</div>
+        <div class="pm-cta-title">Створіть форму для закладу</div>
+        <div class="pm-cta-sub">Завантажте лого і отримайте уніформу мрії</div>
         <button class="pm-cta-btn" id="pmCtaScrollTop">Створити дизайн →</button>
       </div>
     </div>
@@ -2679,7 +2679,7 @@
     <!-- Footer -->
     <div class="pm-footer">
       <div class="pm-footer-logo">Loomiq</div>
-      <div class="pm-footer-tag">Створюємо одяг для тих, хто змінює світ</div>
+      <div class="pm-footer-tag">Форма для ресторанів, кав'ярень і готелів</div>
       <div class="pm-footer-links">
         <span data-legal="about">Про нас</span><span data-legal="delivery">Доставка</span><span data-legal="payment">Оплата</span><span data-legal="returns">Повернення</span>
         <span data-legal="warranty">Гарантія</span><span data-legal="offer">Публічна оферта</span><span data-legal="privacy">Політика приватності</span><span data-legal="terms">Умови використання</span>
@@ -3040,7 +3040,7 @@
   <section id="process">
     <div class="wrap">
       <div class="trade-block reveal">
-        <h2>Мерч <span class="accent">за 3 прості кроки</span></h2>
+        <h2>Уніформа <span class="accent">за 3 прості кроки</span></h2>
         <p>Усе онлайн — від вибору одягу до запуску у виробництво.</p>
       </div>
     </div>
@@ -3050,7 +3050,7 @@
         <div class="step-info">
           <span class="step-num">КРОК 01</span>
           <h3>Оберіть одяг</h3>
-          <p>Худі, футболки, світшоти, кепки та інші вироби для вашої команди.</p>
+          <p>Кітелі, фартухи, поло, сорочки та інші вироби для персоналу закладу.</p>
         </div>
         <div class="step-visual step-visual--carousel">
           <div class="wear-carousel" id="wearCarousel"><div class="wear-track" id="wearTrack"></div></div>
@@ -3061,7 +3061,7 @@
         <div class="step-info">
           <span class="step-num">КРОК 02</span>
           <h3>Додайте логотип</h3>
-          <p>Перетягуйте логотип по футболці та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
+          <p>Перетягуйте логотип по виробу та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
         </div>
         <div class="step-visual step-visual--designer">
           <div class="logo-designer" id="logoDesigner">
@@ -3112,7 +3112,7 @@
     <button class="promo-card aurora-bg reveal" data-scroll-to="catalog">
       <div class="promo-left">
         <div class="promo-text">
-          <h3>Дізнайтесь <strong>вартість та терміни</strong> свого мерчу за 1 хвилину</h3>
+          <h3>Дізнайтесь <strong>вартість та терміни</strong> форми для закладу за 1 хвилину</h3>
         </div>
         <span class="btn btn-light">Завантажити логотип
           <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
@@ -3473,7 +3473,7 @@
     <div class="wrap">
       <div class="about-stats reveal">
         <div class="item"><div class="num">120+</div><div class="lbl">працівників</div></div>
-        <div class="item"><div class="num">5+ років</div><div class="lbl">досвіду у сфері мерчу</div></div>
+        <div class="item"><div class="num">5+ років</div><div class="lbl">досвіду в пошитті форми</div></div>
         <div class="item"><div class="num">1000+</div><div class="lbl">успішних проєктів</div></div>
       </div>
     </div>
@@ -3494,7 +3494,7 @@
         </div>
         <div class="faq-item">
           <button class="faq-q"><span>Яка різниця між вишивкою та DTF-друком — що краще обрати?</span><span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
-          <div class="faq-a"><p>Вишивка довговічніша і виглядає преміально, добре тримається на щільних тканинах (худі, кепки). DTF-друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо оптимальний варіант під ваш дизайн і тканину.</p></div>
+          <div class="faq-a"><p>Вишивка довговічніша і виглядає преміально, добре тримається на щільних тканинах (кітелі, кепки). DTF-друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо оптимальний варіант під ваш дизайн і тканину.</p></div>
         </div>
         <div class="faq-item">
           <button class="faq-q"><span>Чи можна нанести власний дизайн, а не лише логотип?</span><span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
@@ -3505,7 +3505,7 @@
           <div class="faq-a"><p>Приймаємо оплату на рахунок ФОП або ТОВ, надаємо рахунок і закриваючі документи. Договір укладаємо за потреби.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q"><span>Що робити, якщо мерч прийшов з дефектом або не відповідає макету?</span><span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
+          <button class="faq-q"><span>Що робити, якщо форма прийшла з дефектом або не відповідає макету?</span><span class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span></button>
           <div class="faq-a"><p>Напишіть нам — безкоштовно переробимо виріб або повернемо кошти, якщо результат не відповідає погодженому макету.</p></div>
         </div>
         <div class="faq-item">
@@ -3531,7 +3531,7 @@
 
 <footer>
   <span class="logo">Loomiq</span>
-  <div class="footer-tag">Створюємо одяг для тих, хто змінює світ</div>
+  <div class="footer-tag">Форма для ресторанів, кав'ярень і готелів</div>
   <div class="footer-links">
     <span data-legal="about">Про нас</span><span data-legal="delivery">Доставка</span><span data-legal="payment">Оплата</span><span data-legal="returns">Повернення</span>
     <span data-legal="warranty">Гарантія</span><span data-legal="offer">Публічна оферта</span><span data-legal="privacy">Політика приватності</span><span data-legal="terms">Умови використання</span>
@@ -4199,6 +4199,8 @@
 
   // Catalog category tabs (Базовий / Спецодяг / Дитячий) — switch displayed products
   const baseCatalogProducts = [
+    {name:'Кухарський кітель', price:'від 349 грн', img:'/horeca/images/kitel.webp', garment:'kitel'},
+    {name:'Фартух', price:'від 249 грн', img:'/horeca/images/apron-paris-sa.webp', garment:'apron'},
     {name:'Футболка базова', price:'від 99 грн', img:'/images/tee-black-front.webp', garment:'tee'},
     {name:'Футболка оверсайз', price:'від 129 грн', img:'/images/teeover-black-front.webp', garment:'teeover'},
     {name:'Худі базове', price:'від 299 грн', img:'/images/thumb-hoodie.webp', garment:'hoodie'},
@@ -4357,7 +4359,11 @@
       {id:'cap', name:'Кепка', price:90,
         path:'M20 55Q20 30 50 28Q80 30 80 55z', extra:'M15 58h55a5 5 0 000-10H15a5 5 0 000 10zM50 28v-10'},
       {id:'tote', name:'Шопер', price:90,
-        path:'M25 35h50v55H25z', extra:'M35 35a15 15 0 0130 0'}
+        path:'M25 35h50v55H25z', extra:'M35 35a15 15 0 0130 0'},
+      {id:'kitel', name:'Кухарський кітель', price:0,
+        path:'M20 26L5 46h18v64h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M42 14q8 7 16 0 M46 22v58 M54 22v58'},
+      {id:'apron', name:'Фартух', price:0,
+        path:'M42 18q8 -5 16 0l-1 10h4l4 62H35l4-62h4z', extra:'M35 50h30'}
     ];
     var COLORS = [
       {id:'black',name:'Чорний',hex:'#1a1a1a'},{id:'white',name:'Білий',hex:'#eeebe4'},
@@ -4438,7 +4444,7 @@
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
     var GARMENT_THUMB = {teeover:'/images/teeover-black-front.webp', tee:'/images/tee-black-front.webp', hoodieover:'/images/hoodieover-black-front.webp', hoodieoverfleece:'/images/hoodieoverfleece-brown-front.webp', hoodie:'/images/thumb-hoodie.webp', hoodiezip:'/images/hoodiezip-black-front.webp', sweat:'/images/thumb-sweat.webp', cap:'/images/cap-black-front.webp', tote:'/images/tote-beige-front.webp'};
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
-    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1};
+    var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1, kitel:1, apron:1};
     function productName(){ var g = getGarment(); return window.LQ_name(g.id, g.name) + (NAME_NO_SUFFIX[g.id] ? '' : ' оверсайз'); }
     // Фото моделей по крою: /images/<src>.webp + позиції логотипа на грудях (% фото)
     // cx,cy — центр грудей (% фото); sw — ширина виробу на фото (% фото), щоб дзеркалити зсув/розмір лого з мокапа
@@ -5852,11 +5858,11 @@
     var pmDetailPanel = document.getElementById('pmDetailPanel');
     var detailTab = 'about';
     var SPECS = [
-      ['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','оверсайз'],
+      ['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','класичний'],
       ['Формат','унісекс'],['Нанесення','DTF друк та вишивка']
     ];
     var PRINT_COMPARE = [
-      {name:'DTF-друк', bg:'#f0f4ff', color:'#2d4ef5', price:'від 540 грн',
+      {name:'DTF-друк', bg:'#f4ede4', color:'#8B5E3C', price:'від 540 грн',
         desc:'Дозволяє точно передати складні дизайни без втрати деталей. Ідеально підходить для яскравих зображень, фотографій і логотипів із дрібними елементами.',
         pros:['Фото, ілюстрацій та градієнтів','Дизайнів, де важлива максимальна точність'],
         icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'},
@@ -5872,7 +5878,7 @@
         var customDesc = window.SITE_CONTENT.descriptions[pm.garmentId];
         var descText = customDesc
           ? escHtml(customDesc).replace(/\n/g,'<br>')
-          : productName()+' з якісних матеріалів. Крій вільний, плечовий шов спущений.';
+          : productName()+' з якісних матеріалів. Крій класичний, зручний для роботи цілу зміну.';
         var html = '<p class="pm-about-text">'+descText+'</p>';
         // Характеристики: якщо менеджер задав власні для товару — показуємо їх
         var customSpecs = window.SITE_CONTENT.specs[pm.garmentId];
@@ -5911,10 +5917,10 @@
 
     // Reviews data (shared content for the full reviews page)
     var PM_REVIEWS = [
-      {name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна футболка! Принт чіткий, колір не блякне.'},
+      {name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна форма! Логотип чіткий, колір не блякне.'},
       {name:'Марина В.', date:'тиждень тому', stars:5, text:'Дуже швидко зробили і доставили. Замовлятиму ще.'},
-      {name:'Дмитро С.', date:'2 тижні тому', stars:5, text:'Оверсайз крій — саме те. Тканина приємна, не тягнеться.'},
-      {name:'Ольга С.', date:'3 тижні тому', stars:5, text:'Замовляли корпоративні футболки. Всі задоволені, будемо знову.'},
+      {name:'Дмитро С.', date:'2 тижні тому', stars:5, text:'Форма сидить бездоганно — саме те. Тканина приємна, не тягнеться.'},
+      {name:'Ольга С.', date:'3 тижні тому', stars:5, text:'Замовляли форму для персоналу кафе. Всі задоволені, будемо знову.'},
       {name:'Андрій П.', date:'1 місяць тому', stars:5, text:'Все чітко і вчасно. Буду замовляти ще.'},
       {name:'Катерина М.', date:'1 місяць тому', stars:5, text:'Відмінна якість тканини і друку. Рекомендую!'}
     ];
@@ -6431,10 +6437,10 @@
   var track = document.getElementById('wearTrack');
   if(!car || !track) return;
   var base = [
-    {src:'/images/hoodie.webp',    alt:'Худі'},
-    {src:'/images/tshirt.webp',    alt:'Футболка'},
-    {src:'/images/sweatshirt.webp',alt:'Світшот'},
-    {src:'/images/cap.webp',       alt:'Кепка'}
+    {src:'/horeca/images/kitel.webp',         alt:'Кітель'},
+    {src:'/horeca/images/apron-paris-sa.webp',alt:'Фартух'},
+    {src:'/images/tshirt.webp',               alt:'Поло'},
+    {src:'/images/cap.webp',                  alt:'Кепка'}
   ];
   var N = base.length, reps = 5, items = [];
   for(var r=0;r<reps;r++) for(var i=0;i<N;i++) items.push(base[i]);
