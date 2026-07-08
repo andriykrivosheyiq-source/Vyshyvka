@@ -4535,11 +4535,22 @@
       for(var i=TIERS.length-1;i>=0;i--){ if(u>=TIERS[i].min) return TIERS[i]; }
       return TIERS[0];
     }
-    // Орієнтовна ширина друку логотипа у см (scale 1 ≈ 15 см)
-    function logoWidthCm(layer){ return Math.round(layer.scale * 15); }
+    // Ширина друку у см — рахуємо з ТІЄЇ Ж геометрії, що й ціна (layerDimsMm),
+    // щоб показана ширина збігалася з тим, за що клієнт платить.
+    function logoWidthCm(layer){
+      if(sitePricing()){ var d = layerDimsMm(layer); if(d && d.w>0) return Math.round(d.w/10); }
+      return Math.round(layer.scale * 15);   // фолбек для старої моделі
+    }
     function activeLogoWidthCm(){
       var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       return l ? logoWidthCm(l) : 0;
+    }
+    // Розмір друку W×H см (з тієї ж геометрії, що й ціна) — щоб було зрозуміло, за яку площу платимо
+    function activeLogoSizeLabel(){
+      var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
+      if(!l) return '';
+      if(sitePricing()){ var d = layerDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }
+      return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см';
     }
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
@@ -5377,22 +5388,24 @@
         pmTierRow.scrollLeft = activeEl.offsetLeft - (pmTierRow.clientWidth - activeEl.clientWidth)/2;
       }
     }
+    // Ціна «від X» (коли кількість не вибрана): без лого — база виробу (як у каталозі),
+    // з лого — база + нанесення + за штуку, щоб одразу було видно ефект лого/розміру/методу.
+    function fromPriceDisplay(){
+      if(sitePricing()){
+        var hasLogos = getViews().some(function(s){ return (pm.logos[s]||[]).length; });
+        return hasLogos ? Math.round(unitPriceBeforeDiscount()) : Math.round(basePriceNew());
+      }
+      return TIERS[TIERS.length-1].price + logoSurcharge();
+    }
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
       pmProductTitle.textContent = productName();
-      if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
+      if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
-        var fromPrice;
-        if(sitePricing()){
-          // «від» = базова ціна виробу, яку задали в конструкторі (як і в каталозі); знижки — у порогах нижче
-          fromPrice = Math.round(basePriceNew());
-        } else {
-          fromPrice = TIERS[TIERS.length-1].price + logoSurcharge();
-        }
-        pmPriceText.innerHTML = '<span class="pm-num">від '+fromPrice+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-num">від '+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
       }
       pmDeliveryText.innerHTML = (u===0?'<span class="pm-unit">від </span>':'') + '<span class="pm-num">'+deliveryTerm()+'</span><span class="pm-unit">'+dayWord(parseInt(deliveryTerm().split('-')[1],10))+'</span>';
       pmAddBtnSum.textContent = u>0 ? (orderTotal())+' грн за '+u+' шт' : '';
@@ -5409,11 +5422,11 @@
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = (orderTotal())+' грн за '+u+' шт';
       } else {
-        pmPriceText.innerHTML = '<span class="pm-num">від '+(TIERS[TIERS.length-1].price + logoSurcharge())+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-num">від '+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = '';
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
-      if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
+      if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
       renderPrintArea();
     }
 
