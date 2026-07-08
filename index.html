@@ -933,6 +933,8 @@
   .pm-side-arrow--right{right:8px;}
   #pmGarmentSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 40px rgba(0,0,0,.18));}
   #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
+  #pmPrintArea{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:11;overflow:visible;}
+  #pmPrintArea path{fill:none;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
   .pm-upload-zone{
     position:absolute;top:31%;left:36%;right:36%;bottom:40%;border-radius:9px;
     border:2px dashed rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -2502,6 +2504,7 @@
           <div class="pm-upload-sub">PNG · JPG · SVG</div>
         </label>
         <div class="pm-logo-layers" id="pmLogoLayers"></div>
+        <svg id="pmPrintArea" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
       </div>
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
@@ -4727,6 +4730,7 @@
 
     var pmGarmentSvg = document.getElementById('pmGarmentSvg');
     var pmGarmentPhoto = document.getElementById('pmGarmentPhoto');
+    var pmPrintAreaSvg = document.getElementById('pmPrintArea');
     var pmUploadZone = document.getElementById('pmUploadZone');
     var pmLogoLayers = document.getElementById('pmLogoLayers');
     var pmTabPanel = document.getElementById('pmTabPanel');
@@ -4849,6 +4853,7 @@
       }
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
+      renderPrintArea();
       if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); if(pmDetailPanel) renderDetailPanel(); }
       else { updateModelLogos(); }
     }
@@ -4915,12 +4920,90 @@
       });
     }
 
+    /* ===== Область нанесення на конструкторі ===== */
+    // Повний полігон: дзеркалимо симетричну половину (як fullPoly в адмінці).
+    function paFullPoly(cfg){
+      var pts = (cfg.pts||[]).map(function(p){ return Array.isArray(p) ? [p[0],p[1]] : [(p&&p.x)||0,(p&&p.y)||0]; });
+      if(cfg.symmetric === false) return pts;
+      var mir = pts.slice(1,-1).reverse().map(function(p){ return [-p[0], p[1]]; });
+      return pts.concat(mir);
+    }
+    // Конфіг зони для поточного товару / сторони / кольору (свій полігон кольору → base).
+    function currentPrintCfg(){
+      var pa = (window.SITE_CONTENT && window.SITE_CONTENT.printAreas) || {};
+      var area = pa[pm.garmentId]; if(!area) return null;
+      var side = area[pm.side]; if(!side) return null;
+      var cfg = (side.colors && side.colors[pm.colorId]) ? side.colors[pm.colorId] : side.base;
+      return (cfg && cfg.pts && cfg.pts.length >= 3) ? cfg : null;
+    }
+    function paPointInPoly(pt, poly){
+      var x=pt[0], y=pt[1], inside=false;
+      for(var i=0,j=poly.length-1;i<poly.length;j=i++){
+        var xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+        if(((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/((yj-yi)||1e-9)+xi)) inside=!inside;
+      }
+      return inside;
+    }
+    // Чи виходить якесь лого поточної сторони за межі зони (перевіряємо кути рамки з поворотом).
+    function anyLogoOutside(polyFrac, geo){
+      var layers = currentLayers();
+      for(var k=0;k<layers.length;k++){
+        var l=layers[k];
+        var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
+        if(ar>=1) bh=sz/ar; else bw=sz*ar;
+        var cxF=0.5+(l.x||0)/geo.wrapW, cyF=0.5+(l.y||0)/geo.wrapW;
+        var rot=(l.rot||0)*Math.PI/180, cs=Math.cos(rot), sn=Math.sin(rot);
+        var hw=bw/2, hh=bh/2, corners=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]];
+        for(var c=0;c<4;c++){
+          var rx=corners[c][0]*cs - corners[c][1]*sn, ry=corners[c][0]*sn + corners[c][1]*cs;
+          if(!paPointInPoly([cxF+rx/geo.wrapW, cyF+ry/geo.wrapW], polyFrac)) return true;
+        }
+      }
+      return false;
+    }
+    // Геометрія зони у частках контейнера: полігон + wrapW. null, якщо зони/фото немає.
+    function printAreaGeom(){
+      var cfg = currentPrintCfg();
+      if(!cfg || pmGarmentPhoto.style.display === 'none') return null;
+      var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
+      if(!(natW>0)||!(natH>0)) return null;
+      var wrapW = pmGarmentWrapEl.clientWidth || 1;
+      // прямокутник фото в квадратному контейнері (object-fit:contain), у частках контейнера
+      var arImg=natW/natH, rw, rh, ox, oy;
+      if(arImg>=1){ rw=1; rh=1/arImg; ox=0; oy=(1-rh)/2; } else { rh=1; rw=arImg; oy=0; ox=(1-rw)/2; }
+      var calT=cfg.calibTop!=null?cfg.calibTop:0.06, calB=cfg.calibBottom!=null?cfg.calibBottom:0.96;
+      var topCal=oy+calT*rh, ch=(calB-calT)*rh, cx=ox+rw/2;
+      var polyFrac = paFullPoly(cfg).map(function(p){ return [cx+p[0]*ch, topCal+p[1]*ch]; });
+      return { polyFrac: polyFrac, wrapW: wrapW };
+    }
+    // Центр зони у пікселях відносно центра контейнера (для стартового положення лого).
+    function printAreaAnchorPx(){
+      var g = printAreaGeom(); if(!g) return null;
+      var sx=0, sy=0, n=g.polyFrac.length;
+      g.polyFrac.forEach(function(p){ sx+=p[0]; sy+=p[1]; });
+      return { x:(sx/n - 0.5)*g.wrapW, y:(sy/n - 0.5)*g.wrapW };
+    }
+    // Малюємо пунктирну зону поверх мокапу; червоніє, коли лого виходить за край.
+    function renderPrintArea(){
+      var svg = pmPrintAreaSvg; if(!svg) return;
+      var g = printAreaGeom();
+      if(!g){ svg.style.display='none'; return; }
+      var d = g.polyFrac.map(function(p,i){ return (i?'L':'M')+(p[0]*100).toFixed(2)+' '+(p[1]*100).toFixed(2); }).join(' ')+' Z';
+      var over = anyLogoOutside(g.polyFrac, { wrapW:g.wrapW });
+      var col = over ? '#e5484d' : 'rgba(20,22,30,.5)';
+      svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(over?2:1.4)+'" stroke-dasharray="'+(over?'5 3':'5 4')+'"/>';
+      svg.style.display = '';
+    }
+    // перемальовуємо зону, коли фото-мокап довантажився
+    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} });
+
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
       var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
+      var anc = printAreaAnchorPx() || {x:0, y:0};   // нове лого лягає в центр зони нанесення
       var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
-        url:url, x:off, y:off, scale:1, rot:0, removeBg:hasClean, ar:1};
+        url:url, x:anc.x+off, y:anc.y+off, scale:1, rot:0, removeBg:hasClean, ar:1};
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
       renderGarment();
@@ -5035,6 +5118,7 @@
       }
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       updateModelLogos();                               // синхронізуємо лого на фото моделей наживо
+      try{ renderPrintArea(); }catch(e){}               // зона нанесення реагує наживо (червоніє за межами)
       if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
     function onDlUp(){ if(dlState.mode){ if(pmTabPanel) pmTabPanel.style.display = ''; renderLogoLayers(); renderTabPanel(); } dlState = {mode:null}; unlockScroll(); }
@@ -5313,6 +5397,7 @@
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       pmQtyWarning.style.display = u===0 ? '' : 'none';
       renderTiers();
+      renderPrintArea();
     }
     // Легке оновлення лише ціни/розміру під час жесту (без renderTiers/scrollIntoView — щоб не смикало інтерфейс)
     function updatePriceLive(){
@@ -5327,6 +5412,7 @@
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       if(pmPrintSize) pmPrintSize.textContent = cmW ? ('Ширина друку ≈ ' + cmW + ' см') : '';
+      renderPrintArea();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
@@ -6471,7 +6557,8 @@ window.LOOMIQ_CONFIG = {
       cases: data.cases || null,
       promo: data.promo || {},
       pricing: data.pricing || null,
-      productColors: data.productColors || {}
+      productColors: data.productColors || {},
+      printAreas: data.printAreas || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
     document.dispatchEvent(new Event('lq-content'));
