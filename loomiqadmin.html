@@ -624,7 +624,8 @@
           <div class="summary">
             <h2>Підсумок замовлення</h2>
             <div class="sum-row"><span>Виріб × к-сть</span><span id="sum-garment-price">—</span></div>
-            <div class="sum-row"><span>Нанесення (ціна)</span><span id="sum-apps-price">—</span></div>
+            <div class="sum-row"><span>Нанесення + за штуку</span><span id="sum-apps-price">—</span></div>
+            <div class="sum-row" id="sum-discount-row"><span>Знижка за кількість</span><span id="sum-discount">—</span></div>
             <div class="sum-row"><span>Оплата за замовлення (разова)</span><span id="sum-order-fee">—</span></div>
             <div class="sum-row"><span>Ціна за одиницю</span><span id="sum-unit-price">—</span></div>
             <div class="sum-row total"><span>Ціна продажу (разом)</span><span id="sum-total-price">0 ₴</span></div>
@@ -1866,35 +1867,52 @@ function timelineSteps(qty){
   ];
 }
 
+// Коефіцієнт знижки за кількість — точно як activeCoefTier() на сайті.
+function tierCoef(qty){
+  const tiers = (curSitePricing().tiers || []).slice().sort((a,b)=>(+a.from||0)-(+b.from||0));
+  if(!tiers.length) return 1;
+  let coef = +tiers[0].coef || 1;
+  for(let i=tiers.length-1;i>=0;i--){ if(qty >= (+tiers[i].from||0)){ coef = +tiers[i].coef||1; break; } }
+  return coef;
+}
 function recalc(){
   const garmentId = document.getElementById('order-garment').value;
   const garment = orderGarments().find(g=>g.id===garmentId) || {cost:0,minPrice:0,name:''};
   const qty = Math.max(1, parseInt(document.getElementById('order-qty').value||1));
+  const coef = tierCoef(qty);
 
-  const garmentPrice = garment.minPrice * qty;
-  const garmentCost = garment.cost * qty;
-
-  let appsPrice = 0, appsCost = 0;
+  // Розкладаємо нанесення: вишивка (лінійна — діє коеф.) vs DTF (сітка — тираж усередині, без коеф.)
+  let embroUnit=0, dtfUnit=0, embroCostU=0, dtfCostU=0;
   currentApps.forEach(app=>{
     const f = computeApp(app, qty);
-    appsPrice += f.price * qty;
-    appsCost += f.cost * qty;
+    if(app.technique==='emb'){ embroUnit+=f.price; embroCostU+=f.cost; }
+    else { dtfUnit+=f.price; dtfCostU+=f.cost; }
   });
   // Оплати: за замовлення (разова) + за штуку × кількість — від методів у замовленні
   const fees = orderFees(currentApps.map(a=>a.technique), qty);
-  appsPrice += fees.price;
-  appsCost  += fees.cost;
 
-  const totalPrice = garmentPrice + appsPrice;
-  const totalCost = garmentCost + appsCost;
+  // Ціна/собівартість за одиницю — ОДИН-В-ОДИН із формулою сайту (unitPrice):
+  // round((база + вишивка) × коеф) + DTF + за_штуку
+  const unitPrice = Math.round((garment.minPrice + embroUnit) * coef) + dtfUnit + fees.pieceP;
+  const unitCost  = garment.cost + embroCostU + dtfCostU + fees.pieceC;
+  const totalPrice = unitPrice*qty + fees.orderP;   // + разова оплата за замовлення
+  const totalCost  = unitCost*qty + fees.orderC;
   const margin = totalPrice - totalCost;
   const marginPct = totalPrice>0 ? (margin/totalPrice*100) : 0;
-  // Ціна за одиницю = все, крім разової оплати за замовлення, поділити на кількість
-  const unitPrice = qty>0 ? Math.round((totalPrice - fees.orderP)/qty) : 0;
+
+  // Розкладка для показу (реконсиляція з totalPrice)
+  const garmentPrice = garment.minPrice * qty;                    // база до знижки
+  const appsPrice = (embroUnit + dtfUnit + fees.pieceP) * qty;    // нанесення + за штуку (до знижки)
+  const discount = Math.max(0, (garment.minPrice + embroUnit)*qty - Math.round((garment.minPrice + embroUnit)*coef)*qty);
+  const garmentCost = garment.cost * qty;
+  const appsCost = totalCost - garmentCost;
   const dl = deadlineLabel(qty, new Date(), [...new Set(currentApps.map(a=>a.technique))]);
 
   document.getElementById('sum-garment-price').textContent = fmt(garmentPrice)+' ₴';
   document.getElementById('sum-apps-price').textContent = fmt(appsPrice)+' ₴';
+  const dRow = document.getElementById('sum-discount-row'), dEl = document.getElementById('sum-discount');
+  if(dEl) dEl.textContent = '−'+fmt(discount)+' ₴';
+  if(dRow) dRow.style.display = discount>0 ? '' : 'none';
   const ofEl = document.getElementById('sum-order-fee'); if(ofEl) ofEl.textContent = fmt(fees.orderP)+' ₴';
   const upEl = document.getElementById('sum-unit-price'); if(upEl) upEl.textContent = fmt(unitPrice)+' ₴/шт';
   document.getElementById('sum-total-price').textContent = fmt(totalPrice)+' ₴';
@@ -1909,7 +1927,7 @@ function recalc(){
   const dlEl = document.getElementById('sum-deadline');
   if(dlEl) dlEl.textContent = dl.label;
 
-  return {garment, qty, garmentPrice, garmentCost, appsPrice, appsCost, totalPrice, totalCost, margin, marginPct, deadline: dl.deadline.toISOString(), deadlineDays: dl.days};
+  return {garment, qty, coef, unitPrice, unitCost, garmentPrice, garmentCost, appsPrice, appsCost, discount, totalPrice, totalCost, margin, marginPct, deadline: dl.deadline.toISOString(), deadlineDays: dl.days};
 }
 
 document.getElementById('add-app').addEventListener('click', addApp);
