@@ -439,12 +439,9 @@
         <!-- ── ДРУК (DTF) ── -->
         <div class="technique-block" style="margin-bottom:18px;">
           <h3><span class="dot print"></span> Друк (DTF)</h3>
-          <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. Продажна ціна нанесення = собівартість × націнка.</div>
+          <div class="sub" style="margin-bottom:10px;">Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. У кожній клітинці два поля: <b>С</b> — собівартість від підрядника, <b>Ц</b> — продажна ціна для клієнта (вписуєш сам, без множників).</div>
           <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
           <div class="grid2" style="margin-bottom:10px;">
-            <label class="field">Націнка на собівартість (×)
-              <input type="number" step="0.05" id="sp-dtf-markup" placeholder="2">
-            </label>
             <label class="field">Мін. ціна нанесення, грн
               <input type="number" step="1" id="sp-dtf-min">
             </label>
@@ -1330,8 +1327,18 @@ function normalizeSitePricing(p){
     }
     if(!m.lead.qtyTiers) m.lead.qtyTiers = [];
   });
-  // мапа рядків → 2D-масив
-  if(p.methods.dtf) p.methods.dtf.cost = costFrom(p.methods.dtf.cost);
+  // DTF: собівартість + продажна ціна як 2D-масиви (мапа рядків → масив)
+  if(p.methods.dtf){
+    const dtf = p.methods.dtf;
+    dtf.cost = costFrom(dtf.cost);
+    dtf.price = dtf.price ? costFrom(dtf.price) : null;
+    // міграція зі старої моделі (собівартість × націнка) → окрема таблиця цін
+    if(!dtf.price || !dtf.price.length){
+      const mk = +dtf.markup || 2;
+      dtf.price = (dtf.cost||[]).map(row=>(row||[]).map(c=>Math.round((+c||0)*mk)));
+    }
+    delete dtf.markup;
+  }
   delete p.enabled; delete p.leadTime;
   return p;
 }
@@ -1340,14 +1347,13 @@ function curSitePricing(){
   return normalizeSitePricing(p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING)));
 }
 function paintSitePricing(){
-  if(!document.getElementById('sp-dtf-markup')) return;
+  if(!document.getElementById('sp-dtf-grid')) return;
   const p = curSitePricing();
   const meth = p.methods || {};
   const setV = (id,v)=>{ const el=document.getElementById(id); if(el) el.value = (v==null?'':v); };
   // Друк (DTF) — сітка собівартості
   const dm = (meth.dtf && meth.dtf.mode==='grid') ? meth.dtf : DEFAULT_SITE_PRICING.methods.dtf;
   paintDtfGrid(dm);
-  setV('sp-dtf-markup', dm.markup);
   setV('sp-dtf-min', dm.minPrice);
   setV('sp-dtf-orderfee', dm.orderFee);  setV('sp-dtf-ordercost', dm.orderCost);
   setV('sp-dtf-piecefee', dm.pieceFee);  setV('sp-dtf-piececost', dm.pieceCost);
@@ -1403,9 +1409,10 @@ function readLead(key){
 function paintDtfGrid(m){
   const box = document.getElementById('sp-dtf-grid'); if(!box) return;
   const bands = (m.bands && m.bands.length) ? m.bands : DEFAULT_SITE_PRICING.methods.dtf.bands;
-  const qf = m.qtyFrom||[], cost = m.cost||[];
+  const qf = m.qtyFrom||[], cost = m.cost||[], price = m.price||[];
   const inS = 'width:50px;font-family:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 4px;text-align:center;';
   const inD = 'width:38px;font-family:inherit;font-size:11px;border:1px solid var(--line);border-radius:5px;padding:4px 3px;text-align:center;';
+  const inC = 'width:46px;font-family:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:5px;padding:4px 3px;text-align:center;';
   let h = '<table style="border-collapse:collapse;font-size:12px;"><thead>';
   // ряд 1 — назви категорій (A6/A5/A4…)
   h += '<tr><th style="padding:4px 6px;text-align:left;color:var(--ink-soft);font-weight:600;">категорія →</th>';
@@ -1416,8 +1423,15 @@ function paintDtfGrid(m){
   bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;white-space:nowrap;"><input data-band-w="'+ci+'" value="'+escA(b.w)+'" title="ширина листа, см" style="'+inD+'">×<input data-band-h="'+ci+'" value="'+escA(b.h)+'" title="висота листа, см" style="'+inD+'"></th>'; });
   h += '</tr></thead><tbody>';
   qf.forEach((q,ri)=>{
-    h += '<tr><td style="padding:2px 3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" title="тираж від, шт" style="'+inS+'width:56px;font-weight:700;"></td>';
-    bands.forEach((b,ci)=>{ const v=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:''; h += '<td style="padding:2px 3px;"><input data-cell="'+ri+'_'+ci+'" value="'+escA(v)+'" title="собівартість, грн/шт" style="'+inS+'"></td>'; });
+    h += '<tr><td style="padding:3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" title="тираж від, шт" style="'+inS+'width:56px;font-weight:700;"></td>';
+    bands.forEach((b,ci)=>{
+      const cv=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:'';
+      const pv=(price[ri]&&price[ri][ci]!=null)?price[ri][ci]:'';
+      h += '<td style="padding:3px;"><div style="display:flex;flex-direction:column;gap:3px;align-items:center;">'
+         + '<label style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--ink-soft);">С<input data-cost="'+ri+'_'+ci+'" value="'+escA(cv)+'" title="собівартість, грн/шт" style="'+inC+'"></label>'
+         + '<label style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--accent);font-weight:700;">Ц<input data-price="'+ri+'_'+ci+'" value="'+escA(pv)+'" title="продажна ціна, грн/шт" style="'+inC+'border-color:var(--accent);"></label>'
+         + '</div></td>';
+    });
     h += '</tr>';
   });
   h += '</tbody></table>';
@@ -1432,8 +1446,9 @@ function readDtfGrid(){
     h: parseFloat(box.querySelector('[data-band-h="'+ci+'"]').value) || 0
   }));
   const qtyFrom = Array.from(box.querySelectorAll('[data-qf]')).map(i=>parseInt(i.value,10)||0);
-  const cost = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cell="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
-  return { bands, qtyFrom, cost };
+  const cost  = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cost="'+ri+'_'+ci+'"]');  return el?(parseFloat(el.value)||0):0; }));
+  const price = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-price="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
+  return { bands, qtyFrom, cost, price };
 }
 function paintSpTiers(tiers){
   document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`
@@ -1513,13 +1528,14 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
 document.getElementById('sp-save').addEventListener('click', async ()=>{
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
-    markup: parseFloat(document.getElementById('sp-dtf-markup').value) || 1,
     minPrice: numV('sp-dtf-min'),
     orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
     pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
     lead: readLead('dtf')
   });
-  dtf.cost = costTo(dtf.cost);   // 2D-масив → мапа рядків (Firestore не приймає масив-у-масиві)
+  // застарілий множник markup більше не пишемо; на читанні normalize його ігнорує
+  dtf.cost  = costTo(dtf.cost);   // 2D-масив → мапа рядків (Firestore не приймає масив-у-масиві)
+  dtf.price = costTo(dtf.price);  // продажні ціни — окрема таблиця
   const embro = {
     pricePer1000mm2: numV('sp-emb-price1k'),
     costPer1000mm2: numV('sp-emb-cost1k'),
@@ -1681,8 +1697,9 @@ function appCalc(technique, wCm, hCm, qty){
     const qf = m.qtyFrom || [];
     let row = 0;
     for(let j=qf.length-1;j>=0;j--){ if(qty>=qf[j]){ row=j; break; } }
-    const c = (m.cost && m.cost[row] && m.cost[row][col]!=null) ? +m.cost[row][col] : 0;
-    return { cost: c, price: Math.max(Math.round(c*(+m.markup||1)), Math.round(+m.minPrice||0)) };
+    const c  = (m.cost  && m.cost[row]  && m.cost[row][col]!=null)  ? +m.cost[row][col]  : 0;
+    const pr = (m.price && m.price[row] && m.price[row][col]!=null) ? +m.price[row][col] : 0;
+    return { cost: c, price: Math.max(Math.round(pr), Math.round(+m.minPrice||0)) };
   }
   const mm2 = (wCm*10) * (hCm*10);
   return {

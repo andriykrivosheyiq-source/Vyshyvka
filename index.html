@@ -4674,8 +4674,9 @@
       var u = Math.max(1, totalUnits());
       var row = 0;
       for(var j = qf.length - 1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
-      var cost = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
-      var sell = cost * (+m.markup || 1);
+      // продажна ціна — з таблиці цін (задається вручну в адмінці), не з націнки
+      var sell = (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
+               : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] * (+m.markup || 1) : 0);
       return Math.max(Math.round(sell), Math.round(+m.minPrice || 0));
     }
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
@@ -6551,18 +6552,26 @@ window.LOOMIQ_CONFIG = {
 
   /* Підтягуємо контент, який менеджер редагує з адмінки (фото, назви, описи,
      розмірні сітки, моделі, порядок відгуків), і слухаємо зміни наживо */
-  // Таблиця собівартості DTF зберігається як {rows,cols,flat} (або стара мапа рядків) → 2D-масив.
+  // Таблиці DTF (собівартість і продажна ціна) зберігаються як {rows,cols,flat}
+  // (або стара мапа рядків) → повертаємо 2D-масив.
+  function unflattenGrid(c){
+    if(!c || Array.isArray(c) || typeof c !== 'object') return c;
+    if(Array.isArray(c.flat)){
+      var rows=+c.rows||0, cols=+c.cols||0, out=[];
+      for(var r=0;r<rows;r++) out.push(c.flat.slice(r*cols,(r+1)*cols));
+      return out;
+    }
+    return Object.keys(c).map(Number).sort(function(a,b){return a-b;}).map(function(k){return c[String(k)];});
+  }
   function normalizePricingIn(pr){
     if(pr && pr.methods && pr.methods.dtf){
-      var c = pr.methods.dtf.cost;
-      if(c && !Array.isArray(c) && typeof c === 'object'){
-        if(Array.isArray(c.flat)){
-          var rows=+c.rows||0, cols=+c.cols||0, out=[];
-          for(var r=0;r<rows;r++) out.push(c.flat.slice(r*cols,(r+1)*cols));
-          pr.methods.dtf.cost = out;
-        } else {
-          pr.methods.dtf.cost = Object.keys(c).map(Number).sort(function(a,b){return a-b;}).map(function(k){return c[String(k)];});
-        }
+      var dtf = pr.methods.dtf;
+      dtf.cost  = unflattenGrid(dtf.cost);
+      dtf.price = dtf.price ? unflattenGrid(dtf.price) : null;
+      // міграція зі старої моделі (собівартість × націнка)
+      if(!dtf.price || !dtf.price.length){
+        var mk = +dtf.markup || 2;
+        dtf.price = (dtf.cost||[]).map(function(row){ return (row||[]).map(function(x){ return Math.round((+x||0)*mk); }); });
       }
     }
     return pr;
