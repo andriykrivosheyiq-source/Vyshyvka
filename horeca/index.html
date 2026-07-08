@@ -510,11 +510,19 @@
   }
   .product:hover{box-shadow:0 4px 14px -6px rgba(0,0,0,.1);}
   .product-art{
+    position:relative;
     aspect-ratio:1/0.85;display:flex;align-items:center;justify-content:center;
     background:#FFFFFF;
   }
   .product-art svg{width:48%;color:var(--ink);}
-  .product-art img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;}
+  .product-art img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;position:relative;z-index:1;}
+  /* М'яка тінь під виробом — для фото без вбудованої тіні (кітель, фартух) */
+  .product-art--shadow::after{
+    content:"";position:absolute;left:50%;bottom:7%;transform:translateX(-50%);
+    width:46%;height:16px;border-radius:50%;z-index:2;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.20) 0%, rgba(0,0,0,.10) 45%, rgba(0,0,0,0) 72%);
+    filter:blur(2px);
+  }
   .product-info{padding:18px 18px 22px;display:flex;align-items:center;justify-content:space-between;background:#FFFFFF;}
   .product-info h4{font-size:16px;font-weight:700;}
   .product-info .price{font-size:14px;color:var(--muted);margin-top:2px;}
@@ -3098,33 +3106,21 @@
 
       <div class="catalog-grid reveal">
         <div class="product">
-          <div class="product-art">
-            <img src="/horeca/images/kitel-bk.webp" alt="Кухарський кітель" loading="lazy" data-product-img>
-          </div>
-          <div class="product-swatches" aria-label="Кольори">
-            <button type="button" class="active" style="background:#1c1c1c" data-img="/horeca/images/kitel-bk.webp" aria-label="Чорний"></button>
-            <button type="button" style="background:#F0F0F0" data-img="/horeca/images/kitel-wh.webp" aria-label="Білий"></button>
+          <div class="product-art product-art--shadow">
+            <img src="/horeca/images/kitel.webp" alt="Кухарський кітель" loading="lazy">
           </div>
           <div class="product-info">
-            <div><h4>Кухарський кітель</h4><div class="price">від 349 грн · 2 кольори</div></div>
+            <div><h4>Кухарський кітель</h4><div class="price">від 349 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
 
         <div class="product">
-          <div class="product-art">
-            <img src="/horeca/images/apron-paris-sa.webp" alt="Фартух-нагрудник Paris" loading="lazy" data-product-img>
-          </div>
-          <div class="product-swatches" aria-label="Кольори">
-            <button type="button" class="active" style="background:#D9C9A3" data-img="/horeca/images/apron-paris-sa.webp" aria-label="Пісочний"></button>
-            <button type="button" style="background:#1c1c1c" data-img="/horeca/images/apron-paris-bk.webp" aria-label="Чорний"></button>
-            <button type="button" style="background:#F0F0F0" data-img="/horeca/images/apron-paris-wh.webp" aria-label="Білий"></button>
-            <button type="button" style="background:#8C837B" data-img="/horeca/images/apron-paris-gf.webp" aria-label="Сірий"></button>
-            <button type="button" style="background:#23293D" data-img="/horeca/images/apron-paris-ny.webp" aria-label="Синій"></button>
-            <button type="button" style="background:#B24743" data-img="/horeca/images/apron-paris-rd.webp" aria-label="Червоний"></button>
+          <div class="product-art product-art--shadow">
+            <img src="/horeca/images/apron-paris-sa.webp" alt="Фартух-нагрудник Paris" loading="lazy">
           </div>
           <div class="product-info">
-            <div><h4>Фартух-нагрудник «Paris»</h4><div class="price">від 249 грн · 6 кольорів</div></div>
+            <div><h4>Фартух-нагрудник «Paris»</h4><div class="price">від 249 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
