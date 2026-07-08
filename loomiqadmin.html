@@ -2729,15 +2729,27 @@ function updatePaSummary(id){
   function isFirstColor(){ return paColorId===firstColorId(); }
 
   function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
-  function migrateSide(s){ if(!s) return null; if(s.base) return s; /* стара плоска форма */ return { base:{symmetric:s.symmetric!==false, pts:(s.pts||DEFAULT_HALF).map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
+  function migrateSide(s){ if(!s) return null; if(s.base) return s; /* стара плоска форма */ return { base:{symmetric:s.symmetric!==false, pts:(s.pts||DEFAULT_HALF), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
   function effCfg(){ const side=data[paSide]; if(!side) return null; return (side.colors&&side.colors[paColorId]) ? side.colors[paColorId] : side.base; }
 
+  /* Firestore не підтримує масив у масиві, тож точки зберігаємо як {x,y}.
+     У пам'яті редактора працюємо з [x,y]. */
+  function ptsFrom(arr){ return (arr||[]).map(p=> Array.isArray(p) ? [p[0],p[1]] : [ (p&&p.x)||0, (p&&p.y)||0 ]); }
+  function ptsTo(arr){ return (arr||[]).map(p=> ({ x:p[0], y:p[1] }) ); }
+  function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, pts:ptsFrom(c.pts) } : c; }
+  function cfgTo(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, pts:ptsTo(c.pts) } : c; }
+  function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors }; }
+  function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k])); return { base:cfgTo(s.base), colors }; }
+  function toStore(d){ return { scaleSize:d.scaleSize, heightCm:d.heightCm, front:sideTo(d.front), back:sideTo(d.back) }; }
+
   function loadData(){
-    const all=(contentData.printAreas||{})[paId];
-    data = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0,front:null,back:null};
-    data.front=migrateSide(data.front); data.back=migrateSide(data.back);
+    let all=(contentData.printAreas||{})[paId];
+    all = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0,front:null,back:null};
+    all.front=migrateSide(all.front); all.back=migrateSide(all.back);
+    data = { scaleSize:all.scaleSize, heightCm:all.heightCm, front:sideFrom(all.front), back:sideFrom(all.back) };
     if(!data.scaleSize) data.scaleSize=defaultSize();
     if(!data.front) data.front=newSideCfg();
+    if(!data.back) data.back=newSideCfg();   // передня і задня сторони доступні одразу
     if(!(data.heightCm>0)) data.heightCm=cmForSize(data.scaleSize);
   }
   function loadSlotColor(){
@@ -2773,11 +2785,9 @@ function updatePaSummary(id){
     const g=photoCfg(paId);
     el('pa-prodname').textContent = ((contentData.names&&contentData.names[paId])||g.name.replace(' · свій',''));
     const slots=el('pa-slots');
-    slots.innerHTML=['front','back'].filter(s=>s==='front'||data.back).map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${s==='front'?'Груди':'Спина'}</button>`).join('');
+    slots.innerHTML=['front','back'].map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${s==='front'?'Перед (груди)':'Зад (спина)'}</button>`).join('');
     slots.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{ saveWork(); paSide=b.dataset.side; loadSlotColor(); renderShell(); });
-    const tog=el('pa-slot-toggle');
-    if(data.back){ tog.textContent='Видалити спину'; tog.onclick=()=>{ if(!confirm('Прибрати область для спини?'))return; data.back=null; if(paSide==='back')paSide='front'; loadSlotColor(); renderShell(); }; }
-    else { tog.textContent='Додати спину'; tog.onclick=()=>{ saveWork(); data.back=newSideCfg(); paSide='back'; paColorId=firstColorId(); loadSlotColor(); renderShell(); }; }
+    const tog=el('pa-slot-toggle'); if(tog) tog.style.display='none';   // перед і зад завжди доступні
     const cols=effectiveColors(paId);
     const cbox=el('pa-colors');
     cbox.innerHTML=cols.map(c=>{ const own=(data[paSide]&&data[paSide].colors&&data[paSide].colors[c.id]); return `<button class="pa-col${c.id===paColorId?' active':''}" data-cid="${c.id}"><span class="sw" style="background:${escA(c.hex||'#ccc')}"></span>${escA(c.name)}${own?' <span style="color:var(--accent);font-size:10px;font-weight:700;">●</span>':''}</button>`; }).join('');
@@ -2839,7 +2849,7 @@ function updatePaSummary(id){
     if(el2) el2.innerHTML='Площа поля («'+(paSide==='front'?'Груди':'Спина')+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+(colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
   }
 
-  async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: data } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка'); } }
+  async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: toStore(data) } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка збереження: '+(e&&e.message||e)); } }
 
   el('pa-open')&&el('pa-open').addEventListener('click',()=>open(photoGarmentId));
   el('pa-close-x')&&el('pa-close-x').addEventListener('click',close);
