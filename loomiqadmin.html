@@ -495,40 +495,36 @@
       <div class="card">
         <div class="card-head">
           <h2>Прорахунок на сайті — модель «від площі»</h2>
-          <span class="hint">ціна = (база виробу + Σ max(ставка×мм²×fill, мінімалка)) × коеф. кількості</span>
+          <span class="hint">DTF — по сітці (габарит × тираж); вишивка — за 1000 мм² чистої площі; + коеф. знижки за кількість</span>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:14px;cursor:pointer;">
           <input type="checkbox" id="sp-enabled"> Увімкнути нову модель на сайті (вимкнено = стара формула)
         </label>
         <div class="grid2">
-          <div class="technique-block">
-            <h3><span class="dot print"></span> Друк (DTF)</h3>
-            <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
+          <div class="technique-block" style="grid-column:1 / -1;">
+            <h3><span class="dot print"></span> Друк (DTF) — сітка собівартості</h3>
+            <div class="sub" style="margin-bottom:10px;">Собівартість за штуку від підрядника. Рядки — тираж, стовпці — до N см² (габаритний прямокутник логотипа). Продажна ціна = собівартість × націнка. Логотип «стрибає» в категорію за розміром рамки, а не за кожним мм.</div>
+            <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
             <div class="grid2" style="margin-bottom:10px;">
-              <label class="field">Ціна за 1000 мм², грн
-                <input type="number" step="0.5" id="sp-dtf-price1k" placeholder="20">
+              <label class="field">Націнка на собівартість (×)
+                <input type="number" step="0.05" id="sp-dtf-markup" placeholder="2">
               </label>
-              <label class="field">Собівартість за 1000 мм², грн
-                <input type="number" step="0.5" id="sp-dtf-cost1k" placeholder="8">
-              </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Мін. ціна нанесення, грн
                 <input type="number" step="1" id="sp-dtf-min">
               </label>
+            </div>
+            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Базовий термін, дн
                 <input type="number" step="1" id="sp-dtf-days">
               </label>
-            </div>
-            <div class="grid2" style="margin-bottom:10px;">
               <label class="field">Потужність, мм²/день
                 <input type="number" step="1000" id="sp-dtf-cap">
               </label>
+            </div>
+            <div class="grid2">
               <label class="field">Коеф. завантаження
                 <input type="number" step="0.05" id="sp-dtf-load">
               </label>
-            </div>
-            <div class="grid2">
               <label class="field">Буфер, дн
                 <input type="number" step="1" id="sp-dtf-buf">
               </label>
@@ -1287,7 +1283,22 @@ function toast(msg){
 const DEFAULT_SITE_PRICING = {
   enabled: false,
   methods: {
-    dtf:   { pricePer1000mm2: 20, costPer1000mm2: 8,  minPrice: 300, baseDays: 1, capacityPerDayMm2: 500000, loadCoef: 1, bufferDays: 1 },
+    dtf: {
+      mode: 'grid',
+      areaBands: [25, 150, 315, 360, 630, 1230],   // до N см² (габарит логотипа)
+      qtyFrom:   [5, 10, 20, 50, 100, 250, 500, 1000],
+      cost: [
+        [65,75,95,115,140,260],
+        [60,70,90,105,125,230],
+        [50,65,85,100,120,215],
+        [40,55,80,95,110,200],
+        [30,50,70,85,100,190],
+        [28,45,65,80,95,180],
+        [25,35,45,55,85,160],
+        [20,28,35,45,70,90]
+      ],
+      markup: 2, minPrice: 20, baseDays: 1, capacityPerDayMm2: 500000, loadCoef: 1, bufferDays: 1
+    },
     embro: { pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400, baseDays: 2, capacityPerDayMm2: 200000, loadCoef: 1, bufferDays: 1 }
   },
   tiers: [
@@ -1306,17 +1317,47 @@ function paintSitePricing(){
   if(!document.getElementById('sp-enabled')) return;
   const p = curSitePricing();
   document.getElementById('sp-enabled').checked = !!p.enabled;
-  // обидва методи — за мм²
-  [['dtf', p.methods.dtf||{}], ['emb', p.methods.embro||{}]].forEach(([pre,m])=>{
-    document.getElementById('sp-'+pre+'-price1k').value = m.pricePer1000mm2 ?? '';
-    document.getElementById('sp-'+pre+'-cost1k').value  = m.costPer1000mm2 ?? '';
-    document.getElementById('sp-'+pre+'-min').value  = m.minPrice ?? '';
-    document.getElementById('sp-'+pre+'-days').value = m.baseDays ?? '';
-    document.getElementById('sp-'+pre+'-cap').value  = m.capacityPerDayMm2 ?? '';
-    document.getElementById('sp-'+pre+'-load').value = m.loadCoef ?? '';
-    document.getElementById('sp-'+pre+'-buf').value  = m.bufferDays ?? '';
-  });
+  // Друк (DTF) — сітка собівартості
+  const dm = (p.methods.dtf && p.methods.dtf.mode==='grid') ? p.methods.dtf : DEFAULT_SITE_PRICING.methods.dtf;
+  paintDtfGrid(dm);
+  document.getElementById('sp-dtf-markup').value = dm.markup ?? '';
+  document.getElementById('sp-dtf-min').value  = dm.minPrice ?? '';
+  document.getElementById('sp-dtf-days').value = dm.baseDays ?? '';
+  document.getElementById('sp-dtf-cap').value  = dm.capacityPerDayMm2 ?? '';
+  document.getElementById('sp-dtf-load').value = dm.loadCoef ?? '';
+  document.getElementById('sp-dtf-buf').value  = dm.bufferDays ?? '';
+  // Вишивка — за 1000 мм²
+  const e = p.methods.embro || {};
+  document.getElementById('sp-emb-price1k').value = e.pricePer1000mm2 ?? '';
+  document.getElementById('sp-emb-cost1k').value  = e.costPer1000mm2 ?? '';
+  document.getElementById('sp-emb-min').value  = e.minPrice ?? '';
+  document.getElementById('sp-emb-days').value = e.baseDays ?? '';
+  document.getElementById('sp-emb-cap').value  = e.capacityPerDayMm2 ?? '';
+  document.getElementById('sp-emb-load').value = e.loadCoef ?? '';
+  document.getElementById('sp-emb-buf').value  = e.bufferDays ?? '';
   paintSpTiers(p.tiers);
+}
+function paintDtfGrid(m){
+  const box = document.getElementById('sp-dtf-grid'); if(!box) return;
+  const bands = m.areaBands||[], qf = m.qtyFrom||[], cost = m.cost||[];
+  const inS = 'width:52px;font-family:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 4px;text-align:center;';
+  let h = '<table style="border-collapse:collapse;font-size:12px;"><thead><tr><th style="padding:4px 6px;text-align:left;color:var(--ink-soft);font-weight:600;">від, шт \\ до см²</th>';
+  bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;"><input data-band="'+ci+'" value="'+escA(b)+'" title="верхня межа площі, см²" style="'+inS+'"></th>'; });
+  h += '</tr></thead><tbody>';
+  qf.forEach((q,ri)=>{
+    h += '<tr><td style="padding:2px 3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" style="'+inS+'width:56px;font-weight:600;"></td>';
+    bands.forEach((b,ci)=>{ const v=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:''; h += '<td style="padding:2px 3px;"><input data-cell="'+ri+'_'+ci+'" value="'+escA(v)+'" style="'+inS+'"></td>'; });
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+  box.innerHTML = h;
+}
+function readDtfGrid(){
+  const box = document.getElementById('sp-dtf-grid');
+  const bands = Array.from(box.querySelectorAll('[data-band]')).map(i=>parseFloat(i.value)||0);
+  const qtyFrom = Array.from(box.querySelectorAll('[data-qf]')).map(i=>parseInt(i.value,10)||0);
+  const cost = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cell="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
+  return { areaBands:bands, qtyFrom, cost };
 }
 function paintSpTiers(tiers){
   document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`
@@ -1385,20 +1426,23 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
   row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
 });
 document.getElementById('sp-save').addEventListener('click', async ()=>{
-  const mth = pre=>({
-    pricePer1000mm2: parseFloat(document.getElementById('sp-'+pre+'-price1k').value) || 0,
-    costPer1000mm2: parseFloat(document.getElementById('sp-'+pre+'-cost1k').value) || 0,
+  const lead = pre=>({
     minPrice: parseFloat(document.getElementById('sp-'+pre+'-min').value) || 0,
     baseDays: parseInt(document.getElementById('sp-'+pre+'-days').value,10) || 1,
     capacityPerDayMm2: parseFloat(document.getElementById('sp-'+pre+'-cap').value) || 200000,
     loadCoef: parseFloat(document.getElementById('sp-'+pre+'-load').value) || 1,
     bufferDays: parseInt(document.getElementById('sp-'+pre+'-buf').value,10) || 1
   });
+  const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), { markup: parseFloat(document.getElementById('sp-dtf-markup').value) || 1 }, lead('dtf'));
+  const embro = Object.assign({
+    pricePer1000mm2: parseFloat(document.getElementById('sp-emb-price1k').value) || 0,
+    costPer1000mm2: parseFloat(document.getElementById('sp-emb-cost1k').value) || 0
+  }, lead('emb'));
   // Базові ціни й висоти більше не редагуються тут — вони в картці товару.
   // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
     enabled: document.getElementById('sp-enabled').checked,
-    methods: { dtf: mth('dtf'), embro: mth('emb') },
+    methods: { dtf, embro },
     tiers: readSpTiers()
   };
   try{

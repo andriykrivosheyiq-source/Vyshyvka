@@ -4577,24 +4577,46 @@
       }
       return Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
     }
-    function applicationCostNew(){
-      var m = methodCfgNew(); if(!m) return 0;
-      var total = 0;
-      getViews().forEach(function(side){
-        (pm.logos[side] || []).forEach(function(l){ total += placementPrice(m, l); });
-      });
-      return total;
+    // DTF — собівартість по сітці (габаритний прямокутник → діапазон площі × тираж),
+    // продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
+    function dtfGridSell(m, l){
+      var areaCm2 = layerAreaMm2(l) / 100;   // габарит логотипа, см² (без урахування прозорості)
+      var bands = m.areaBands || [];
+      var col = bands.length - 1;
+      for(var i = 0; i < bands.length; i++){ if(areaCm2 <= bands[i]){ col = i; break; } }
+      var qf = m.qtyFrom || [];
+      var u = Math.max(1, totalUnits());
+      var row = 0;
+      for(var j = qf.length - 1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
+      var cost = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
+      var sell = cost * (+m.markup || 1);
+      return Math.max(Math.round(sell), Math.round(+m.minPrice || 0));
     }
+    // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
+    function applicationParts(){
+      var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0 };
+      var coefPart = 0, flatPart = 0;
+      getViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          if(m.mode === 'grid') flatPart += dtfGridSell(m, l);
+          else coefPart += placementPrice(m, l);
+        });
+      });
+      return { coefPart: coefPart, flatPart: flatPart };
+    }
+    function applicationCostNew(){ var ap = applicationParts(); return ap.coefPart + ap.flatPart; }
     function totalAreaMm2(){
       var a = 0;
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ a += layerAreaMm2(l); }); });
       return a;
     }
-    function unitPriceBeforeDiscount(){ return basePriceNew() + applicationCostNew(); }
+    function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart; }
     function unitPrice(){
       if(sitePricing()){
-        var t = activeCoefTier();
-        return Math.round(unitPriceBeforeDiscount() * (t ? t.coef : 1));
+        var t = activeCoefTier(); var coef = t ? t.coef : 1;
+        var ap = applicationParts();
+        // коеф. кількості множить базу + лінійне нанесення; сітка DTF уже має тираж усередині
+        return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart;
       }
       return activeTier().price + getGarment().price + getPrint().price + logoSurcharge();
     }
