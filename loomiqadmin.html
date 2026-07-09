@@ -440,7 +440,8 @@
         <div class="technique-block" style="margin-bottom:18px;">
           <h3><span class="dot print"></span> Друк (DTF)</h3>
           <div class="sub" style="margin-bottom:10px;">Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. У кожній клітинці два поля: <b>С</b> — собівартість від підрядника, <b>Ц</b> — продажна ціна для клієнта (вписуєш сам, без множників).</div>
-          <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:12px;"></div>
+          <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:8px;"></div>
+          <div class="add-row-btn" id="sp-dtf-row-add" style="margin-bottom:12px;">+ додати рядок (тираж)</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">Мін. ціна нанесення, грн
               <input type="number" step="1" id="sp-dtf-min">
@@ -1423,7 +1424,8 @@ function paintDtfGrid(m){
   bands.forEach((b,ci)=>{ h += '<th style="padding:2px 3px;white-space:nowrap;"><input data-band-w="'+ci+'" value="'+escA(b.w)+'" title="ширина листа, см" style="'+inD+'">×<input data-band-h="'+ci+'" value="'+escA(b.h)+'" title="висота листа, см" style="'+inD+'"></th>'; });
   h += '</tr></thead><tbody>';
   qf.forEach((q,ri)=>{
-    h += '<tr><td style="padding:3px;"><input data-qf="'+ri+'" value="'+escA(q)+'" title="тираж від, шт" style="'+inS+'width:56px;font-weight:700;"></td>';
+    h += '<tr><td style="padding:3px;white-space:nowrap;"><input data-qf="'+ri+'" value="'+escA(q)+'" title="тираж від, шт" style="'+inS+'width:52px;font-weight:700;">'
+       + '<button class="pc-btn reset" data-row-del="'+ri+'" title="видалити рядок" style="flex:none;padding:5px 7px;margin-left:4px;font-size:11px;">✕</button></td>';
     bands.forEach((b,ci)=>{
       const cv=(cost[ri]&&cost[ri][ci]!=null)?cost[ri][ci]:'';
       const pv=(price[ri]&&price[ri][ci]!=null)?price[ri][ci]:'';
@@ -1436,6 +1438,21 @@ function paintDtfGrid(m){
   });
   h += '</tbody></table>';
   box.innerHTML = h;
+  // видалення рядка тиражу
+  box.querySelectorAll('[data-row-del]').forEach(b=>b.addEventListener('click',()=>{
+    const g=readDtfGrid(), ri=+b.dataset.rowDel;
+    g.qtyFrom.splice(ri,1); g.cost.splice(ri,1); g.price.splice(ri,1);
+    paintDtfGrid(g);
+  }));
+}
+// Додати рядок тиражу (напр. «від 1 штуки», «від 5» тощо)
+function dtfAddRow(){
+  const g = readDtfGrid();
+  const last = g.qtyFrom.length ? g.qtyFrom[g.qtyFrom.length-1] : 0;
+  g.qtyFrom.push(last ? last+5 : 1);
+  g.cost.push(g.bands.map(()=>''));
+  g.price.push(g.bands.map(()=>''));
+  paintDtfGrid(g);
 }
 function readDtfGrid(){
   const box = document.getElementById('sp-dtf-grid');
@@ -1445,9 +1462,14 @@ function readDtfGrid(){
     w: parseFloat(box.querySelector('[data-band-w="'+ci+'"]').value) || 0,
     h: parseFloat(box.querySelector('[data-band-h="'+ci+'"]').value) || 0
   }));
-  const qtyFrom = Array.from(box.querySelectorAll('[data-qf]')).map(i=>parseInt(i.value,10)||0);
-  const cost  = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cost="'+ri+'_'+ci+'"]');  return el?(parseFloat(el.value)||0):0; }));
-  const price = qtyFrom.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-price="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
+  const qfRaw = Array.from(box.querySelectorAll('[data-qf]')).map(i=>parseInt(i.value,10)||0);
+  const costRaw  = qfRaw.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-cost="'+ri+'_'+ci+'"]');  return el?(parseFloat(el.value)||0):0; }));
+  const priceRaw = qfRaw.map((_,ri)=>bands.map((_,ci)=>{ const el=box.querySelector('[data-price="'+ri+'_'+ci+'"]'); return el?(parseFloat(el.value)||0):0; }));
+  // сортуємо рядки за тиражем — прорахунок обирає рядок по зростанню порогів
+  const order = qfRaw.map((_,i)=>i).sort((a,b)=>qfRaw[a]-qfRaw[b]);
+  const qtyFrom = order.map(i=>qfRaw[i]);
+  const cost = order.map(i=>costRaw[i]);
+  const price = order.map(i=>priceRaw[i]);
   return { bands, qtyFrom, cost, price };
 }
 function paintSpTiers(tiers){
@@ -1510,6 +1532,7 @@ document.getElementById('sp-tier-add').addEventListener('click', ()=>{
   rows.push({from: last ? (last.to ? last.to+1 : last.from+100) : 1, to:null, coef: last ? last.coef : 1});
   paintSpTiers(rows);
 });
+document.getElementById('sp-dtf-row-add').addEventListener('click', dtfAddRow);
 document.getElementById('sp-tiers').addEventListener('input', e=>{
   const row = e.target.closest('.sp-tier-row');
   if(!row) return;
