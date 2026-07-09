@@ -4180,11 +4180,15 @@
       });
     });
     list = list.filter(p=>hidden.indexOf(p.garment) === -1);
-    // Ціна на картці = напис із адмінки, інакше «від [базова ціна товару]» (мінімум від пустого одягу)
-    var bp = (window.SITE_CONTENT.pricing && window.SITE_CONTENT.pricing.basePrices) || {};
+    // Ціна на картці = напис із адмінки, інакше «від [база × макс. знижка]» (найдешевша, за макс. тираж)
+    var pr = window.SITE_CONTENT.pricing || {};
+    var bp = pr.basePrices || {};
+    var ctTiers = pr.tiers || [];
+    var minCoef = ctTiers.length ? Math.min.apply(null, ctTiers.map(function(t){ return +t.coef || 1; })) : 1;
+    var defPiece = (pr.methods && pr.methods.dtf && +pr.methods.dtf.pieceFee) || 0;   // оплата за штуку (метод за замовчуванням)
     list.forEach(function(p){
       if(prod.priceLabels && prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment];
-      else if(+bp[p.garment] > 0) p.price = 'від ' + bp[p.garment] + ' грн';
+      else if(+bp[p.garment] > 0) p.price = 'від ' + (Math.round(bp[p.garment] * minCoef) + defPiece) + ' грн';
     });
     if(prod.order && prod.order.length){
       list.sort((a,b)=>{
@@ -4692,10 +4696,10 @@
       for(var k = 0; k < ab.length; k++){ if(areaCm2 <= ab[k]) return k; }
       return Math.max(0, ab.length - 1);
     }
-    function dtfGridSell(m, l){
+    function dtfGridSell(m, l, uOverride){
       var col = dtfBandCol(m, l);
       var qf = m.qtyFrom || [];
-      var u = Math.max(1, totalUnits());
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
       var row = 0;
       for(var j = qf.length - 1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
       // продажна ціна — з таблиці цін (задається вручну в адмінці), не з націнки
@@ -4704,12 +4708,13 @@
       return Math.max(Math.round(sell), Math.round(+m.minPrice || 0));
     }
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
-    function applicationParts(){
+    // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
+    function applicationParts(uOverride){
       var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0 };
       var coefPart = 0, flatPart = 0;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(m.mode === 'grid') flatPart += dtfGridSell(m, l);
+          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride);
           else coefPart += placementPrice(m, l);
         });
       });
@@ -4722,15 +4727,27 @@
       return a;
     }
     function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
+    // Ціна за одиницю при заданому коеф. знижки і тиражі для DTF-сітки.
+    // Коеф множить базу + вишивку; DTF (сітка) і оплата за штуку — без коеф.
+    function unitPriceCoef(coef, uForGrid){
+      var ap = applicationParts(uForGrid);
+      return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
+    }
     function unitPrice(){
       if(sitePricing()){
-        var t = activeCoefTier(); var coef = t ? t.coef : 1;
-        var ap = applicationParts();
-        // коеф. кількості множить базу + лінійне нанесення; сітка DTF уже має тираж усередині;
-        // оплата за штуку (пакет, менеджер) — фікс, без знижки
-        return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
+        var t = activeCoefTier();
+        return unitPriceCoef(t ? t.coef : 1);   // фактичний тираж → totalUnits для DTF
       }
       return activeTier().price + getGarment().price + getPrint().price + logoSurcharge();
+    }
+    // Найдешевша ціна за одиницю (за максимальним тиражем) — для показу «від X».
+    function cheapestUnitPrice(){
+      var pt = pricingTiers();
+      if(pt && pt.length){
+        var prices = pt.map(function(t){ return unitPriceCoef(t.coef, t.min); });
+        return Math.min.apply(null, prices);
+      }
+      return unitPriceCoef(1);
     }
     function dayWord(n){
       var m10=n%10, m100=n%100;
@@ -5397,10 +5414,10 @@
       var pt = pricingTiers();
       var rows;
       if(pt){
-        var before = unitPriceBeforeDiscount();
         var actT = activeCoefTier();
         rows = pt.map(function(t){
-          return {label:t.label, badge:t.badge, price:Math.round(before*t.coef), isActive:t===actT};
+          // ціна порогу — за тією ж формулою, що й фактична (коеф на базу+вишивку, DTF за тираж порогу)
+          return {label:t.label, badge:t.badge, price:unitPriceCoef(t.coef, t.min), isActive:t===actT};
         });
       } else {
         var active = activeTier();
@@ -5440,8 +5457,8 @@
     // з лого — база + нанесення + за штуку, щоб одразу було видно ефект лого/розміру/методу.
     function fromPriceDisplay(){
       if(sitePricing()){
-        var hasLogos = getViews().some(function(s){ return (pm.logos[s]||[]).length; });
-        return hasLogos ? Math.round(unitPriceBeforeDiscount()) : Math.round(basePriceNew());
+        // «від» = найдешевша ціна за одиницю (за максимальним тиражем), поки кількість не вибрана
+        return cheapestUnitPrice();
       }
       return TIERS[TIERS.length-1].price + logoSurcharge();
     }
