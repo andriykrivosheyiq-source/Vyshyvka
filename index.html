@@ -4852,8 +4852,10 @@
     // and the available height of the stage (so it never overflows the screen sideways
     // the way pure-CSS height-based scaling did).
     // Per-товарний зум мокапа (фото+лого+зона масштабуються разом; краї кропляться overflow:hidden)
-    var GARMENT_ZOOM = { tote: 1.3, tee: 1.1, teeover: 1.1 };
-    function garmentZoom(){ return GARMENT_ZOOM[pm.garmentId] || 1; }
+    // Зум мокапа під фон-блок: футболки +10%, кепка/шопер лишаються як є,
+    // решта одягу — м'який дефолтний +10%, щоб гарно розтягувалось на всю зону.
+    var GARMENT_ZOOM = { tote: 1.3, tee: 1.2, teeover: 1.2, cap: 1.0 };
+    function garmentZoom(){ var z = GARMENT_ZOOM[pm.garmentId]; return z || 1.1; }
     function fitGarmentStage(){
       if(!pmSwipeWrapEl || !pmGarmentWrapEl) return;
       var cs = getComputedStyle(pmSwipeWrapEl);
