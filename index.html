@@ -3962,6 +3962,51 @@
     });
   }
 
+  // ===== Історія оверлеїв: «назад»/свайп повертають на попередню дію (а не одразу на головну) =====
+  // Модель: home → [каталог] → [товар] → … Кожне відкриття = запис в історію; back закриває верхній екран.
+  var _views = [{kind:'home'}];
+  var _navInternal = false;   // true, поки самі відтворюємо екран (щоб не пушити повторно)
+  function _persistNav(){ try{ sessionStorage.setItem('lq_nav', JSON.stringify(_views)); }catch(e){} }
+  function navGo(view){
+    if(_navInternal) return;
+    var top = _views[_views.length-1];
+    if(top && top.kind===view.kind && top.garmentId===view.garmentId) return;   // не дублюємо той самий екран
+    _views.push(view);
+    try{ history.pushState({d:_views.length}, ''); }catch(e){}
+    _persistNav();
+  }
+  function renderView(v){
+    _navInternal = true;
+    try{
+      closeMenu(); closeAllMainModals();
+      if(v.kind==='catalog'){ var m=document.getElementById('catalogModal'); if(m){ m.classList.add('open'); m.scrollTop=0; } }
+      else if(v.kind==='cart'){ var m2=document.getElementById('cartModal'); if(m2){ m2.classList.add('open'); m2.scrollTop=0; } try{ renderCart(); }catch(e){} }
+      else if(v.kind==='contact'){ var m3=document.getElementById('contactModal'); if(m3){ m3.classList.add('open'); m3.scrollTop=0; } }
+      else if(v.kind==='product' && v.garmentId && window.__openProductModal){ window.__openProductModal(v.garmentId); }
+      // home → усе закрито
+    }catch(e){}
+    _navInternal = false;
+  }
+  window.addEventListener('popstate', function(){
+    if(_views.length>1){ _views.pop(); _persistNav(); renderView(_views[_views.length-1]); }
+  });
+  // Відновлення після оновлення сторінки — де залишився, там і лишається (не кидає на головну)
+  var _navRestored = false;
+  function restoreNav(){
+    if(_navRestored) return; _navRestored = true;
+    var saved; try{ saved = JSON.parse(sessionStorage.getItem('lq_nav')||'null'); }catch(e){}
+    if(!saved || saved.length < 2) return;
+    var top = saved[saved.length-1];
+    if(!top || top.kind==='home') return;
+    if(top.kind==='product' && !(top.garmentId && window.__openProductModal)) return;
+    _views = saved.slice();
+    for(var i=1;i<_views.length;i++){ try{ history.pushState({d:i+1}, ''); }catch(e){} }
+    renderView(top);
+  }
+  // відновлюємо після завантаження контенту (товари/каталог готові), із фолбеком на load
+  document.addEventListener('lq-content', function _once(){ document.removeEventListener('lq-content', _once); setTimeout(restoreNav, 60); });
+  window.addEventListener('load', function(){ setTimeout(restoreNav, 500); });
+
   // Contact modal — opened from header phone button or menu "Контакти"
   const contactModal = document.getElementById('contactModal');
   const contactModalBack = document.getElementById('contactModalBack');
@@ -3972,9 +4017,11 @@
     closeAllMainModals();
     contactModal.classList.add('open');
     contactModal.scrollTop = 0;
+    navGo({kind:'contact'});
   };
   const closeContactModal = ()=>{
-    contactModal.classList.remove('open');
+    if(!_navInternal && contactModal.classList.contains('open')){ history.back(); }
+    else contactModal.classList.remove('open');
   };
   phoneBtn.addEventListener('click', openContactModal);
   document.getElementById('heroLeaveRequestBtn').addEventListener('click', openContactModal);
@@ -3982,17 +4029,18 @@
   contactModalBack.addEventListener('click', closeContactModal);
 
   // Generic helper for the other full-screen modals (catalog, reviews, cart)
-  function setupModal(modalId, backBtnId, menuBtnId){
+  function setupModal(modalId, backBtnId, menuBtnId, navKind){
     const modal = document.getElementById(modalId);
     const backBtn = document.getElementById(backBtnId);
     const menuBtn = document.getElementById(menuBtnId);
-    const open = ()=>{ closeMenu(); closeAllMainModals(); modal.classList.add('open'); modal.scrollTop = 0; };
-    const close = ()=>{ modal.classList.remove('open'); };
+    const rawOpen = ()=>{ closeMenu(); closeAllMainModals(); modal.classList.add('open'); modal.scrollTop = 0; };
+    const open = ()=>{ rawOpen(); if(navKind) navGo({kind:navKind}); };
+    const close = ()=>{ if(navKind && !_navInternal) history.back(); else modal.classList.remove('open'); };
     if(menuBtn) menuBtn.addEventListener('click', open);
     if(backBtn) backBtn.addEventListener('click', close);
-    return { open, close };
+    return { open, close, rawOpen };
   }
-  const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn');
+  const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn', 'catalog');
   // "Створити мерч" / "Перейти до каталогу" — відкривають повний каталог (модалку), а не просто скрол
   document.querySelectorAll('[data-open-catalog]').forEach(function(btn){
     btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
@@ -4222,7 +4270,7 @@
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
-  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
+  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
 
 
   // Call-back form: no backend, just confirm visually
@@ -5725,8 +5773,12 @@
       updatePriceBar();
       try{ renderRecommended(); }catch(e){}
       requestAnimationFrame(fitGarmentStage);
+      navGo({kind:'product', garmentId: pm.garmentId});
     }
-    document.getElementById('pmBackBtn').addEventListener('click', function(){ productModal.classList.remove('open'); });
+    document.getElementById('pmBackBtn').addEventListener('click', function(){
+      if(!_navInternal && productModal.classList.contains('open')){ history.back(); }
+      else productModal.classList.remove('open');
+    });
     document.getElementById('pmPhoneBtn').addEventListener('click', function(){ document.getElementById('pmPhoneModal').classList.add('open'); });
     document.getElementById('pmCartBtn').addEventListener('click', function(){ cartModalCtrl.open(); });
     document.getElementById('pmMenuBtn').addEventListener('click', function(){ toggleMenu(); });
