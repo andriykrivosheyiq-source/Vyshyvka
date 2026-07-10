@@ -1095,15 +1095,15 @@
     font-family:var(--font-sf);
   }
   .pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
-  .pm-tier-row{display:flex;gap:6px;margin:0 -18px;padding:16px 18px 0 18px;overflow-x:auto;scrollbar-width:none;}
+  .pm-tier-row{display:flex;gap:5px;margin:0 -18px;padding:12px 18px 0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-tier-row::after{content:'';flex:0 0 8px;}
-  .pm-tier-item{position:relative;flex:0 0 auto;min-width:96px;padding:9px 8px;border-radius:12px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
+  .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
   .pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
-  .pm-tier-label{font-size:13.5px;color:#888;margin-bottom:3px;white-space:nowrap;}
-  .pm-tier-price{font-size:17px;font-weight:700;color:#111;letter-spacing:-0.3px;}
+  .pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
+  .pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;}
   .pm-tier-badge{
-    position:absolute;top:-8px;right:-6px;background:#222;color:#fff;font-size:10px;font-weight:700;
-    padding:2px 5px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
+    position:absolute;top:-7px;right:-5px;background:#222;color:#fff;font-size:9px;font-weight:700;
+    padding:2px 4px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
   }
 
   .pm-rows{border-top:1px solid #f0f0f0;}
@@ -5411,6 +5411,7 @@
           pmTabPanel.querySelectorAll('.pm-color-swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === pm.colorId); });
           var nm = pmTabPanel.querySelector('.pm-color-name');
           if(nm) nm.textContent = getColor().name;
+          try{ renderRecommended(); }catch(e){}   // рекомендовані — у новому кольорі
         });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
@@ -5518,7 +5519,7 @@
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
-        pmPriceText.innerHTML = '<span class="pm-num">від '+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-unit">від </span><span class="pm-num">'+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
       }
       pmDeliveryText.innerHTML = (u===0?'<span class="pm-unit">від </span>':'') + '<span class="pm-num">'+deliveryTerm()+'</span><span class="pm-unit">'+dayWord(parseInt(deliveryTerm().split('-')[1],10))+'</span>';
       pmAddBtnSum.textContent = u>0 ? (orderTotal())+' грн за '+u+' шт' : '';
@@ -5542,7 +5543,7 @@
         pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = (orderTotal())+' грн за '+u+' шт';
       } else {
-        pmPriceText.innerHTML = '<span class="pm-num">від '+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-unit">від </span><span class="pm-num">'+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = '';
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
@@ -6108,18 +6109,30 @@
     });
 
     // Блок «Вам також може сподобатись» — реальні фото/назви/ціни товарів каталогу
+    // Найближчий колір палітри до вибраного (за RGB-відстанню)
+    function recHexRgb(h){ h=(h||'').replace('#',''); if(h.length<6) return null; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+    function recClosestColor(pal, hex){
+      var t=recHexRgb(hex); if(!t||!pal||!pal.length) return null;
+      var best=null, bd=Infinity;
+      pal.forEach(function(c){ var r=recHexRgb(c.hex); if(!r) return; var d=(r[0]-t[0])*(r[0]-t[0])+(r[1]-t[1])*(r[1]-t[1])+(r[2]-t[2])*(r[2]-t[2]); if(d<bd){bd=d;best=c;} });
+      return best;
+    }
     function renderRecommended(){
       var track = document.getElementById('pmRecommendedScroll');
       if(!track) return;
+      var selHex = (typeof getColor==='function' && getColor()) ? getColor().hex : null;   // колір з конструктора
       var list = (window.LQ_catalogList ? window.LQ_catalogList() : [])
         .filter(function(p){ return p.garment && p.garment !== pm.garmentId; });
       var html = list.map(function(p){
         var nm = window.LQ_name(p.garment, p.name);
-        var src = p.img ? window.LQ_img(p.img) : null;
         var cs = GARMENT_COLORS[p.garment];
-        var fallbackBg = (cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2';
+        // підбираємо колір товару, найближчий до вибраного в конструкторі
+        var match = selHex ? recClosestColor(cs, selHex) : null;
+        var fallbackBg = match ? match.hex : ((cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2');
+        var src = match ? window.LQ_img('images/'+p.garment+'-'+match.id+'-front.webp')
+                        : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
-          ? '<div class="pm-rec-img"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;background:#f3f3f4;"></div>'
+          ? '<div class="pm-rec-img" style="background:'+fallbackBg+';"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display=\'none\'"></div>'
           : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
         return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
           '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
@@ -6251,10 +6264,9 @@
           return '<div class="pm-model-photo"><img class="pm-model-img" src="'+url+'" alt="" loading="eager" decoding="async"></div>';
         }).join('');
       } else {
+      // Лого НЕ проєктуємо на фото моделей (за проханням) — показуємо фото як є
       pmModelTrack.innerHTML = set.map(function(slide){
-        return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high">' +
-          slide.logos.map(function(l){ return '<span class="pm-model-logo"'+(l.side==='back'?' data-side="back"':'')+' data-cx="'+l.cx+'" data-cy="'+l.cy+'" data-sw="'+l.sw+'"></span>'; }).join('') +
-          '</div>';
+        return '<div class="pm-model-photo"><img class="pm-model-img" src="images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high"></div>';
       }).join('');
       }
       modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
