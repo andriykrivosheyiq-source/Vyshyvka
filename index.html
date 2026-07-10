@@ -3975,6 +3975,12 @@
     try{ history.pushState({d:_views.length}, ''); }catch(e){}
     _persistNav();
   }
+  // При зміні одягу всередині картки — оновлюємо збережений товар (щоб reload повертав саме його)
+  function navSetProductGarment(gid){
+    if(_navInternal) return;
+    var top = _views[_views.length-1];
+    if(top && top.kind==='product' && gid){ top.garmentId = gid; _persistNav(); }
+  }
   function renderView(v){
     _navInternal = true;
     try{
@@ -5407,6 +5413,7 @@
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.garmentId = el.dataset.garment;
+          try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
           // новий виріб може мати іншу кількість ракурсів → скидаємо на «перед» і перебудовуємо крапки
