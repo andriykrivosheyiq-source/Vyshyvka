@@ -5136,9 +5136,16 @@
     // Фон блоку підлаштовуємо під фон КОЖНОГО фото окремо. object-fit:contain лишає пробіли
     // по боках (де фото вужче за блок), тож семплимо саме ті краї фото, що межують із пробілом,
     // і усереднюємо — щоб колір блоку співпав із фоном картинки без видимого шва/полос.
+    function setStageBg(col){
+      var stage = document.getElementById('pmStage');
+      if(stage) stage.style.background = col;
+      // ВАЖЛИВО: той самий колір і на самому фото-елементі — бо object-fit:contain
+      // лишає лeterбокс-смуги в межах фото, і саме вони давали «рамку» іншого кольору
+      if(pmGarmentPhoto) pmGarmentPhoto.style.background = col;
+    }
     function matchStageBg(){
       var stage = document.getElementById('pmStage'); if(!stage) return;
-      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ stage.style.background = STAGE_BG_FALLBACK; return; }
+      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ setStageBg(STAGE_BG_FALLBACK); return; }
       try{
         var nw = pmGarmentPhoto.naturalWidth, nh = pmGarmentPhoto.naturalHeight;
         var W = 64, H = Math.max(1, Math.round(64 * nh / nw));   // масштаб зі збереженням пропорцій
@@ -5146,20 +5153,16 @@
         var ctx = c.getContext('2d');
         ctx.drawImage(pmGarmentPhoto, 0, 0, nw, nh, 0, 0, W, H);
         var data = ctx.getImageData(0, 0, W, H).data;
-        // куди падають пробіли: якщо фото пропорційно ширше за блок → пробіли зверху/знизу, інакше — з боків
-        var sw = stage.clientWidth || 1, sh = stage.clientHeight || 1;
-        var gapsTopBottom = (nw / nh) > (sw / sh);
+        // семплимо всі 4 краї фото (це фон студії) й усереднюємо — щоб і фон блоку,
+        // і лeterбокс-смуги фото були одного кольору з фоном самої картинки
         var r = 0, g = 0, b = 0, n = 0;
         function acc(x, y){ var i = (y * W + x) * 4; if(data[i+3] > 200){ r += data[i]; g += data[i+1]; b += data[i+2]; n++; } }
-        if(gapsTopBottom){
-          for(var x = 0; x < W; x++){ acc(x, 0); acc(x, 1); acc(x, H-1); acc(x, H-2); }
-        } else {
-          for(var y = 0; y < H; y++){ acc(0, y); acc(1, y); acc(W-1, y); acc(W-2, y); }
-        }
-        stage.style.background = n > 0
+        for(var x = 0; x < W; x++){ acc(x, 0); acc(x, 1); acc(x, H-1); acc(x, H-2); }
+        for(var y = 0; y < H; y++){ acc(0, y); acc(1, y); acc(W-1, y); acc(W-2, y); }
+        setStageBg(n > 0
           ? ('rgb('+Math.round(r/n)+','+Math.round(g/n)+','+Math.round(b/n)+')')
-          : STAGE_BG_FALLBACK;
-      }catch(e){ stage.style.background = STAGE_BG_FALLBACK; }   // file:// / taint → беж
+          : STAGE_BG_FALLBACK);
+      }catch(e){ setStageBg(STAGE_BG_FALLBACK); }   // file:// / taint → беж
     }
     // перемальовуємо зону + підганяємо фон, коли фото-мокап довантажився
     pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
