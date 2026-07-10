@@ -906,7 +906,7 @@
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
-    position:relative;height:calc(56vh - 48px);background:#f3f3f4;
+    position:relative;height:calc(56vh - 48px);background:#fff;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .pm-pill{
@@ -932,7 +932,7 @@
   .pm-side-arrow--left{left:8px;}
   .pm-side-arrow--right{right:8px;}
   #pmGarmentSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 40px rgba(0,0,0,.18));}
-  #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
+  #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:#fff;}
   #pmPrintArea{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:11;overflow:visible;}
   #pmPrintArea path{fill:none;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
   #pmZoneWarn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
@@ -4960,6 +4960,7 @@
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
       renderPrintArea();
+      try{ matchStageBg(); }catch(e){}
       if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); if(pmDetailPanel) renderDetailPanel(); }
       else { updateModelLogos(); }
     }
@@ -5122,8 +5123,20 @@
         var b = document.getElementById(id); if(b) b.classList.toggle('is-blocked', out);
       });
     }
-    // перемальовуємо зону, коли фото-мокап довантажився
-    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} });
+    // Підлаштовуємо фон блоку-мокапа під фон самого фото (щоб сірого канту навколо не було)
+    function matchStageBg(){
+      var stage = document.getElementById('pmStage'); if(!stage) return;
+      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ stage.style.background = '#fff'; return; }
+      try{
+        var c = document.createElement('canvas'); c.width = c.height = 4;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(pmGarmentPhoto, 0, 0, 4, 4);   // все фото в 4×4; кут (0,0) = фон студії
+        var d = ctx.getImageData(0, 0, 1, 1).data;
+        stage.style.background = (d[3] > 200) ? ('rgb('+d[0]+','+d[1]+','+d[2]+')') : '#fff';
+      }catch(e){ stage.style.background = '#fff'; }   // file:// / taint → білий
+    }
+    // перемальовуємо зону + підганяємо фон, коли фото-мокап довантажився
+    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
 
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
