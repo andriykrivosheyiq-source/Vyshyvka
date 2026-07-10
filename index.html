@@ -5479,7 +5479,14 @@
       renderTiers();
       renderPrintArea();
     }
-    // Легке оновлення лише ціни/розміру під час жесту (без renderTiers/scrollIntoView — щоб не смикало інтерфейс)
+    // Легке оновлення цін порогів (лише текст, без перебудови DOM/скролу) — щоб не смикало під час жесту
+    function updateTierPricesLive(){
+      if(!pmTierRow) return;
+      var pt = pricingTiers(); if(!pt) return;
+      var priceEls = pmTierRow.querySelectorAll('.pm-tier-item .pm-tier-price');
+      pt.forEach(function(t, i){ if(priceEls[i]) priceEls[i].textContent = unitPriceCoef(t.coef, t.min) + ' грн'; });
+    }
+    // Легке оновлення лише ціни/розміру під час жесту (без повного renderTiers/scrollIntoView — щоб не смикало інтерфейс)
     function updatePriceLive(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
@@ -5492,6 +5499,7 @@
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
+      updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
     }
 
