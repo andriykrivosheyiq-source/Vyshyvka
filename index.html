@@ -4845,6 +4845,9 @@
     // Size the garment square to the largest size that fits BOTH the available width
     // and the available height of the stage (so it never overflows the screen sideways
     // the way pure-CSS height-based scaling did).
+    // Per-товарний зум мокапа (фото+лого+зона масштабуються разом; краї кропляться overflow:hidden)
+    var GARMENT_ZOOM = { tote: 1.3, tee: 1.1, teeover: 1.1 };
+    function garmentZoom(){ return GARMENT_ZOOM[pm.garmentId] || 1; }
     function fitGarmentStage(){
       if(!pmSwipeWrapEl || !pmGarmentWrapEl) return;
       var cs = getComputedStyle(pmSwipeWrapEl);
@@ -4855,6 +4858,8 @@
       var size = Math.max(0, Math.min(availW, availH, 680));
       pmGarmentWrapEl.style.width = size + 'px';
       pmGarmentWrapEl.style.height = size + 'px';
+      var z = garmentZoom();
+      pmGarmentWrapEl.style.transform = (z !== 1) ? ('scale(' + z + ')') : '';
     }
     (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitGarmentStage(); }); })();
     window.addEventListener('orientationchange', function(){ setTimeout(fitGarmentStage, 50); });
@@ -5229,8 +5234,9 @@
       var p = getXY(e);
       var layer = dlState.layer;
       if(dlState.mode === 'drag'){
-        layer.x = dlState.startLX + (p.x - dlState.startX);
-        layer.y = dlState.startLY + (p.y - dlState.startY);
+        var z = garmentZoom();   // компенсуємо зум мокапа, щоб лого рухалось за пальцем 1:1
+        layer.x = dlState.startLX + (p.x - dlState.startX)/z;
+        layer.y = dlState.startLY + (p.y - dlState.startY)/z;
       } else if(dlState.mode === 'scale'){
         var dy = p.y - dlState.startY;   // вниз = більше, вгору = менше
         layer.scale = Math.max(0.04, Math.min(5, dlState.startScale + dy/80));
