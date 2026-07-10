@@ -2502,7 +2502,7 @@
     <div class="pm-swipe-wrap" id="pmSwipeWrap">
       <div class="pm-garment-wrap" id="pmGarmentWrap">
         <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
-        <img id="pmGarmentPhoto" alt="" style="display:none;">
+        <img id="pmGarmentPhoto" alt="" crossorigin="anonymous" style="display:none;">
         <label class="pm-upload-zone" id="pmUploadZone" for="pmFileInput">
           <span class="pm-upload-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           <div class="pm-upload-text">Завантажте логотип</div>
@@ -5131,16 +5131,32 @@
     }
     // Підлаштовуємо фон блоку-мокапа під фон самого фото (щоб сірого канту навколо не було)
     var STAGE_BG_FALLBACK = 'rgb(233,230,231)';   // беж студії — щоб без білих пробілів, навіть якщо семпл не спрацює
+    // Фон блоку підлаштовуємо під фон КОЖНОГО фото окремо. object-fit:contain лишає пробіли
+    // по боках (де фото вужче за блок), тож семплимо саме ті краї фото, що межують із пробілом,
+    // і усереднюємо — щоб колір блоку співпав із фоном картинки без видимого шва/полос.
     function matchStageBg(){
       var stage = document.getElementById('pmStage'); if(!stage) return;
       if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ stage.style.background = STAGE_BG_FALLBACK; return; }
       try{
-        var c = document.createElement('canvas'); c.width = c.height = 2;
+        var nw = pmGarmentPhoto.naturalWidth, nh = pmGarmentPhoto.naturalHeight;
+        var W = 64, H = Math.max(1, Math.round(64 * nh / nw));   // масштаб зі збереженням пропорцій
+        var c = document.createElement('canvas'); c.width = W; c.height = H;
         var ctx = c.getContext('2d');
-        // беремо ІСТИННИЙ кут (2×2 px) у натуральній роздільній здатності — це фон студії, без усереднення з одягом
-        ctx.drawImage(pmGarmentPhoto, 0, 0, 2, 2, 0, 0, 2, 2);
-        var d = ctx.getImageData(0, 0, 1, 1).data;
-        stage.style.background = (d[3] > 200) ? ('rgb('+d[0]+','+d[1]+','+d[2]+')') : STAGE_BG_FALLBACK;
+        ctx.drawImage(pmGarmentPhoto, 0, 0, nw, nh, 0, 0, W, H);
+        var data = ctx.getImageData(0, 0, W, H).data;
+        // куди падають пробіли: якщо фото пропорційно ширше за блок → пробіли зверху/знизу, інакше — з боків
+        var sw = stage.clientWidth || 1, sh = stage.clientHeight || 1;
+        var gapsTopBottom = (nw / nh) > (sw / sh);
+        var r = 0, g = 0, b = 0, n = 0;
+        function acc(x, y){ var i = (y * W + x) * 4; if(data[i+3] > 200){ r += data[i]; g += data[i+1]; b += data[i+2]; n++; } }
+        if(gapsTopBottom){
+          for(var x = 0; x < W; x++){ acc(x, 0); acc(x, 1); acc(x, H-1); acc(x, H-2); }
+        } else {
+          for(var y = 0; y < H; y++){ acc(0, y); acc(1, y); acc(W-1, y); acc(W-2, y); }
+        }
+        stage.style.background = n > 0
+          ? ('rgb('+Math.round(r/n)+','+Math.round(g/n)+','+Math.round(b/n)+')')
+          : STAGE_BG_FALLBACK;
       }catch(e){ stage.style.background = STAGE_BG_FALLBACK; }   // file:// / taint → беж
     }
     // перемальовуємо зону + підганяємо фон, коли фото-мокап довантажився
