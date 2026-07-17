@@ -4787,6 +4787,13 @@
       var ap = applicationParts(uForGrid);
       return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
     }
+    // Разова оплата за замовлення (напр. дизайн) розподілена на 1 шт цього тиражу.
+    function orderFeePerUnit(qty){ var f = methodOrderFee(); return (qty > 0 && f > 0) ? Math.round(f / qty) : 0; }
+    // Ефективна ціна за штуку — саме її фактично платить клієнт: виробнича + частка
+    // разової оплати на тираж. Від неї рахуються і ціни, і знижки на картках порогів.
+    function effUnitPriceCoef(coef, qty){ return unitPriceCoef(coef, qty) + orderFeePerUnit(qty); }
+    // Ефективна ціна/шт для поточного вибору кількості (для рядка ціни та кошика).
+    function effUnitPrice(){ var u = totalUnits(); return unitPrice() + orderFeePerUnit(u > 0 ? u : 1); }
     function unitPrice(){
       if(sitePricing()){
         var t = activeCoefTier();
@@ -4798,10 +4805,10 @@
     function cheapestUnitPrice(){
       var pt = pricingTiers();
       if(pt && pt.length){
-        var prices = pt.map(function(t){ return unitPriceCoef(t.coef, t.min); });
+        var prices = pt.map(function(t){ return effUnitPriceCoef(t.coef, t.min); });
         return Math.min.apply(null, prices);
       }
-      return unitPriceCoef(1);
+      return effUnitPriceCoef(1, 1);
     }
     function dayWord(n){
       var m10=n%10, m100=n%100;
@@ -5516,9 +5523,13 @@
       var rows;
       if(pt){
         var actT = activeCoefTier();
+        // визначальна ціна = ефективна ціна за 1 шт (з повною разовою оплатою). Від неї — знижки.
+        var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min);
         rows = pt.map(function(t){
-          // ціна порогу — за тією ж формулою, що й фактична (коеф на базу+вишивку, DTF за тираж порогу)
-          return {label:t.label, badge:t.badge, price:unitPriceCoef(t.coef, t.min), isActive:t===actT};
+          // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
+          var price = effUnitPriceCoef(t.coef, t.min);
+          var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
+          return {label:t.label, badge: pct > 0 ? ('-'+pct+'%') : null, price:price, isActive:t===actT};
         });
       } else {
         var active = activeTier();
@@ -5569,7 +5580,7 @@
       pmProductTitle.textContent = productName();
       if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
       if(u>0){
-        pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-num">'+effUnitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
         pmPriceText.innerHTML = '<span class="pm-unit">від </span><span class="pm-num">'+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
       }
@@ -5585,14 +5596,14 @@
       if(!pmTierRow) return;
       var pt = pricingTiers(); if(!pt) return;
       var priceEls = pmTierRow.querySelectorAll('.pm-tier-item .pm-tier-price');
-      pt.forEach(function(t, i){ if(priceEls[i]) priceEls[i].textContent = unitPriceCoef(t.coef, t.min) + ' грн'; });
+      pt.forEach(function(t, i){ if(priceEls[i]) priceEls[i].textContent = effUnitPriceCoef(t.coef, t.min) + ' грн'; });
     }
     // Легке оновлення лише ціни/розміру під час жесту (без повного renderTiers/scrollIntoView — щоб не смикало інтерфейс)
     function updatePriceLive(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
       if(u>0){
-        pmPriceText.innerHTML = '<span class="pm-num">'+unitPrice()+'</span><span class="pm-unit">грн/шт</span>';
+        pmPriceText.innerHTML = '<span class="pm-num">'+effUnitPrice()+'</span><span class="pm-unit">грн/шт</span>';
         pmAddBtnSum.textContent = (orderTotal())+' грн за '+u+' шт';
       } else {
         pmPriceText.innerHTML = '<span class="pm-unit">від </span><span class="pm-num">'+fromPriceDisplay()+'</span><span class="pm-unit">грн/шт</span>';
@@ -5910,7 +5921,7 @@
         print: getPrint().name,
         sizes: sizesStr,
         price: orderTotal(),
-        unitPrice: unitPrice(),
+        unitPrice: effUnitPrice(),
         qty: u,
         imgs: [],
         config: {
