@@ -4599,10 +4599,17 @@
       for(var i=TIERS.length-1;i>=0;i--){ if(u>=TIERS[i].min) return TIERS[i]; }
       return TIERS[0];
     }
-    // Ширина друку у см — рахуємо з ТІЄЇ Ж геометрії, що й ціна (layerDimsMm),
-    // щоб показана ширина збігалася з тим, за що клієнт платить.
+    // Габарити НЕПРОЗОРОГО вмісту лого в мм (без прозорих полів) — саме це друкується/
+    // вишивається. Прозорі поля не рахуються ні в лист DTF, ні в розмір друку.
+    function layerOpaqueDimsMm(l){
+      var d = layerDimsMm(l);
+      var ob = l.opaqueBox || {x0:0,y0:0,x1:1,y1:1};
+      var fw = Math.max(0, (ob.x1 - ob.x0)) || 1, fh = Math.max(0, (ob.y1 - ob.y0)) || 1;
+      return { w: d.w * fw, h: d.h * fh };
+    }
+    // Ширина друку у см — з непрозорого вмісту (те, за що клієнт реально платить).
     function logoWidthCm(layer){
-      if(sitePricing()){ var d = layerDimsMm(layer); if(d && d.w>0) return Math.round(d.w/10); }
+      if(sitePricing()){ var d = layerOpaqueDimsMm(layer); if(d && d.w>0) return Math.round(d.w/10); }
       return Math.round(layer.scale * 15);   // фолбек для старої моделі
     }
     function activeLogoWidthCm(){
@@ -4613,7 +4620,7 @@
     function activeLogoSizeLabel(){
       var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       if(!l) return '';
-      if(sitePricing()){ var d = layerDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }
+      if(sitePricing()){ var d = layerOpaqueDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }
       return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см';
     }
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
@@ -4736,7 +4743,7 @@
     // в НАЙМЕНШИЙ лист, у який вписується (з урахуванням повороту), а не за площею.
     // Продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
     function dtfBandCol(m, l){
-      var d = layerDimsMm(l);
+      var d = layerOpaqueDimsMm(l);       // лист DTF підбираємо під непрозорий вміст, не під прозорі поля
       var lw = d.w / 10, lh = d.h / 10;   // см
       if(m.bands && m.bands.length){
         for(var i = 0; i < m.bands.length; i++){
