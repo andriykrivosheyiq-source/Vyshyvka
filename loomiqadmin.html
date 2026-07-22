@@ -443,11 +443,10 @@
           <div class="sub" style="margin-bottom:10px;">Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. У кожній клітинці два поля: <b>С</b> — собівартість від підрядника, <b>Ц</b> — продажна ціна для клієнта (вписуєш сам, без множників).</div>
           <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:8px;"></div>
           <div class="add-row-btn" id="sp-dtf-row-add" style="margin-bottom:12px;">+ додати рядок (тираж)</div>
-          <div class="grid2" style="margin-bottom:10px;">
-            <label class="field">Мін. ціна нанесення, грн
-              <input type="number" step="1" id="sp-dtf-min">
-            </label>
-          </div>
+          <div class="tl-divider">Мін. ціна нанесення — за кожним дизайном (1-й, 2-й…)</div>
+          <div class="sub" style="margin-bottom:8px;">Мінімум для 1-го дизайну, 2-го і т.д. Якщо дизайнів більше за список — діє останнє значення.</div>
+          <div id="sp-dtf-mins" style="margin-bottom:6px;"></div>
+          <div class="add-row-btn" id="sp-dtf-mins-add" style="margin-bottom:12px;">+ додати дизайн</div>
           <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За замовлення — ціна, грн
@@ -507,11 +506,10 @@
               <input type="number" step="0.5" id="sp-emb-cost1k" placeholder="20">
             </label>
           </div>
-          <div class="grid2" style="margin-bottom:10px;">
-            <label class="field">Мін. ціна нанесення, грн
-              <input type="number" step="1" id="sp-emb-min">
-            </label>
-          </div>
+          <div class="tl-divider">Мін. ціна нанесення — за кожним дизайном (1-й, 2-й…)</div>
+          <div class="sub" style="margin-bottom:8px;">Мінімум для 1-го дизайну, 2-го і т.д. Якщо дизайнів більше за список — діє останнє значення.</div>
+          <div id="sp-emb-mins" style="margin-bottom:6px;"></div>
+          <div class="add-row-btn" id="sp-emb-mins-add" style="margin-bottom:12px;">+ додати дизайн</div>
           <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За замовлення — ціна, грн
@@ -1352,6 +1350,7 @@ function normalizeSitePricing(p){
     if(m.orderCost == null) m.orderCost = def.methods[k].orderCost;
     if(m.sketchFee  == null) m.sketchFee  = 0;
     if(m.sketchCost == null) m.sketchCost = 0;
+    if(!Array.isArray(m.minPrices)) m.minPrices = (m.minPrice != null) ? [+m.minPrice || 0] : [def.methods[k].minPrice || 0];
     if(m.pieceFee  == null) m.pieceFee  = def.methods[k].pieceFee;
     if(m.pieceCost == null) m.pieceCost = def.methods[k].pieceCost;
     if(!m.lead){
@@ -1381,6 +1380,19 @@ function curSitePricing(){
   const p = contentData.pricing;
   return normalizeSitePricing(p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING)));
 }
+// Мін. ціна нанесення — список за дизайнами (1-й, 2-й…)
+function paintMins(key, arr){
+  const box = document.getElementById('sp-'+key+'-mins'); if(!box) return;
+  const list = (Array.isArray(arr) && arr.length) ? arr : [0];
+  box.innerHTML = list.map((v,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <span style="width:78px;font-size:13px;color:var(--ink-soft);flex:none;">Дизайн ${i+1}</span>
+    <input type="number" step="1" min="0" class="sp-min-inp" value="${v==null?'':v}" style="flex:1;">
+    ${list.length>1?`<button type="button" class="btn-ghost sp-min-del" data-i="${i}" style="padding:6px 11px;flex:none;">✕</button>`:''}
+  </div>`).join('');
+  box.querySelectorAll('.sp-min-del').forEach(b=>b.onclick=()=>{ const a=readMins(key); a.splice(+b.dataset.i,1); paintMins(key, a.length?a:[0]); });
+}
+function readMins(key){ const box=document.getElementById('sp-'+key+'-mins'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-min-inp')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
+['dtf','emb'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-mins-add'); if(b) b.addEventListener('click',()=>{ const a=readMins(key); a.push(a[a.length-1]||0); paintMins(key, a); }); });
 function paintSitePricing(){
   if(!document.getElementById('sp-dtf-grid')) return;
   const p = curSitePricing();
@@ -1389,7 +1401,7 @@ function paintSitePricing(){
   // Друк (DTF) — сітка собівартості
   const dm = (meth.dtf && meth.dtf.mode==='grid') ? meth.dtf : DEFAULT_SITE_PRICING.methods.dtf;
   paintDtfGrid(dm);
-  setV('sp-dtf-min', dm.minPrice);
+  paintMins('dtf', (dm.minPrices && dm.minPrices.length) ? dm.minPrices : (dm.minPrice!=null?[dm.minPrice]:[0]));
   setV('sp-dtf-orderfee', dm.orderFee);  setV('sp-dtf-ordercost', dm.orderCost);
   setV('sp-dtf-sketchfee', dm.sketchFee);  setV('sp-dtf-sketchcost', dm.sketchCost);
   setV('sp-dtf-piecefee', dm.pieceFee);  setV('sp-dtf-piececost', dm.pieceCost);
@@ -1401,7 +1413,7 @@ function paintSitePricing(){
   const e = meth.embro || {};
   setV('sp-emb-price1k', e.pricePer1000mm2);
   setV('sp-emb-cost1k', e.costPer1000mm2);
-  setV('sp-emb-min', e.minPrice);
+  paintMins('emb', (e.minPrices && e.minPrices.length) ? e.minPrices : (e.minPrice!=null?[e.minPrice]:[0]));
   setV('sp-emb-orderfee', e.orderFee);  setV('sp-emb-ordercost', e.orderCost);
   setV('sp-emb-sketchfee', e.sketchFee);  setV('sp-emb-sketchcost', e.sketchCost);
   setV('sp-emb-piecefee', e.pieceFee);  setV('sp-emb-piececost', e.pieceCost);
@@ -1587,7 +1599,7 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
 document.getElementById('sp-save').addEventListener('click', async ()=>{
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
-    minPrice: numV('sp-dtf-min'),
+    minPrices: readMins('dtf'), minPrice: (readMins('dtf')[0]||0),
     orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
     sketchFee: numV('sp-dtf-sketchfee'), sketchCost: numV('sp-dtf-sketchcost'),
     pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
@@ -1599,7 +1611,7 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
   const embro = {
     pricePer1000mm2: numV('sp-emb-price1k'),
     costPer1000mm2: numV('sp-emb-cost1k'),
-    minPrice: numV('sp-emb-min'),
+    minPrices: readMins('emb'), minPrice: (readMins('emb')[0]||0),
     orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
     sketchFee: numV('sp-emb-sketchfee'), sketchCost: numV('sp-emb-sketchcost'),
     pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),

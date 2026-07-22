@@ -4810,7 +4810,10 @@
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
-    function placementPrice(m, l){
+    // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
+    function methodMins(m){ if(m && Array.isArray(m.minPrices) && m.minPrices.length) return m.minPrices; if(m && m.minPrice != null) return [+m.minPrice || 0]; return [0]; }
+    function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function placementPrice(m, l, idx){
       var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85);
       var raw;
       if(m.pricePer1000mm2 != null){
@@ -4820,7 +4823,7 @@
       } else {
         raw = (+m.ratePerMm2 || 0) * cleanMm2;
       }
-      return Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
+      return Math.max(Math.round(raw), minForIndex(m, idx || 0));
     }
     // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
     // в НАЙМЕНШИЙ лист, у який вписується (з урахуванням повороту), а не за площею.
@@ -4840,7 +4843,7 @@
       for(var k = 0; k < ab.length; k++){ if(areaCm2 <= ab[k]) return k; }
       return Math.max(0, ab.length - 1);
     }
-    function dtfGridSell(m, l, uOverride){
+    function dtfGridSell(m, l, uOverride, idx){
       var col = dtfBandCol(m, l);
       var qf = m.qtyFrom || [];
       var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
@@ -4849,17 +4852,18 @@
       // продажна ціна — з таблиці цін (задається вручну в адмінці), не з націнки
       var sell = (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
                : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] * (+m.markup || 1) : 0);
-      return Math.max(Math.round(sell), Math.round(+m.minPrice || 0));
+      return Math.max(Math.round(sell), minForIndex(m, idx || 0));
     }
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
     // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
     function applicationParts(uOverride){
       var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0 };
-      var coefPart = 0, flatPart = 0;
+      var coefPart = 0, flatPart = 0, idx = 0;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride);
-          else coefPart += placementPrice(m, l);
+          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride, idx);
+          else coefPart += placementPrice(m, l, idx);
+          idx++;
         });
       });
       return { coefPart: coefPart, flatPart: flatPart };
@@ -5747,7 +5751,7 @@
       if(nLogos > 0){
         // рядки нанесення й оплати показуємо ЛИШЕ коли завантажено дизайн
         var appRaw = applicationRawSum();
-        var minVal = (+m.minPrice || 0) * nLogos;   // мінімалка нанесення (на всі нанесення)
+        var minVal = 0; for(var mi = 0; mi < nLogos; mi++) minVal += minForIndex(m, mi);   // сума мін. цін нанесення за дизайнами
         var minActive = appSell > appRaw + 0.5;      // мінімум «переважив» ціну за площею
         var mark = ' <span style="color:#c58a00;">◆ діє</span>';
         tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
