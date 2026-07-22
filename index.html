@@ -4711,12 +4711,17 @@
       var g = GARMENTS.find(function(x){ return x.id === gid; });
       return TIERS[0].price + (g ? g.price : 0);   // фолбек — стара базова
     }
-    // Ціна «від X» для каталогу = база × максимальна знижка за кількість (без нанесення).
+    // Ціна «від X» для каталогу — рахуємо ТІЄЮ Ж функцією, що й у конструкторі (без нанесення),
+    // щоб збігалось цифра-в-цифру. Найдешевша ціна за макс. знижкою автоматично береться з
+    // порогів адмінки (жодних зашитих коефіцієнтів). Тимчасово підставляємо виріб і порожні лого.
     window.__catalogPrice = function(gid){
-      var base = baseForGarment(gid);
-      var pt = pricingTiers(); var minCoef = 1;
-      if(pt && pt.length) pt.forEach(function(t){ if(t.coef < minCoef) minCoef = t.coef; });
-      return Math.round(base * minCoef);
+      var sg = pm.garmentId, sl = pm.logos, sp = pm.printId;
+      try{
+        pm.garmentId = gid; pm.printId = null;   // дефолтний метод (як при відкритті товару)
+        pm.logos = { front:[], back:[], left:[], right:[] };
+        return cheapestUnitPrice();               // = «від X» у конструкторі при 0 лого
+      } catch(e){ return null; }
+      finally { pm.garmentId = sg; pm.logos = sl; pm.printId = sp; }
     };
     function methodCfgNew(){
       var p = sitePricing(); if(!p) return null;
