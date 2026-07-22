@@ -4965,6 +4965,7 @@
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
     // Менеджерський режим (вбудований iframe в адмінці ?manager=1): макап + прорахунок собівартості
     var IS_MANAGER = /[?&]manager=1\b/.test(location.search);
+    var mgrDetailOpen = false;   // розгорнутий покроковий розклад нанесення (по кожному зображенню)
 
     // Size the garment square to the largest size that fits BOTH the available width
     // and the available height of the stage (so it never overflows the screen sideways
@@ -5764,15 +5765,21 @@
       tb += r('База виробу', money(base), money(gCost));
       var nLogos = logoCount();
       if(nLogos > 0){
-        // рядки нанесення й оплати показуємо ЛИШЕ коли завантажено дизайн
-        var appRaw = applicationRawSum();
-        var minVal = 0, minCostVal = 0;
-        for(var mi = 0; mi < nLogos; mi++){ minVal += minForIndex(m, mi); minCostVal += minCostForIndex(m, mi); }   // суми мін. цін/собівартостей за дизайнами
-        var minActive = appSell > appRaw + 0.5;      // мінімум «переважив» ціну за площею
-        var mark = ' <span style="color:#c58a00;">◆ діє</span>';
-        tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
-        tb += r('↳ мін. ціна нанесення'+(minActive?mark:''), money(minVal), minCostVal>0?money(minCostVal):dash, {muted:true});
-        tb += r('↳ ціна за площею'+(!minActive?mark:''), money(appRaw), money(appCost), {muted:true});
+        // рядок нанесення + розкривний розклад по кожному зображенню (як формується сума)
+        var caret = mgrDetailOpen ? '▾' : '▸';
+        tb += r('Нанесення ('+methodName+') <span data-mgr-toggle style="cursor:pointer;color:#4f5fd4;font-weight:600;">'+caret+' розклад</span>', money(appSell), money(appCost));
+        if(mgrDetailOpen){
+          var di = 0;
+          getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+            var idx = di++;
+            var sell = (m.mode === 'grid') ? dtfGridSell(m, l, undefined, idx) : placementPrice(m, l, idx);
+            var cost = (m.mode === 'grid') ? dtfGridCost(m, l, undefined, idx) : placementCost(m, l, idx);
+            var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, undefined, idx) : placementRaw(m, l);
+            var atMin = sell > raw + 0.5;
+            var note = atMin ? ' <span style="color:#c58a00;">(мін '+minForIndex(m, idx)+')</span>' : ' <span style="color:#1a7a3a;">(за площею '+Math.round(raw)+')</span>';
+            tb += r('↳ Зображення '+(idx+1)+note, money(sell), money(cost), {muted:true});
+          }); });
+        }
       }
       if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
       if(nLogos > 0){
@@ -5803,6 +5810,8 @@
       sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oM)+' ('+oMPct+'%)</b></div>';
       sum += '</div>';
       out.innerHTML = head + tb + sum;
+      var tog = out.querySelector('[data-mgr-toggle]');
+      if(tog) tog.onclick = function(e){ e.stopPropagation(); mgrDetailOpen = !mgrDetailOpen; renderManagerPanel(); };
     }
     // Легке оновлення цін порогів (лише текст, без перебудови DOM/скролу) — щоб не смикало під час жесту
     function updateTierPricesLive(){
