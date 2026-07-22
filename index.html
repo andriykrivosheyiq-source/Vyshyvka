@@ -5742,6 +5742,7 @@
       tb += r('База виробу', money(base), money(gCost));
       var nLogos = logoCount();
       if(nLogos > 0){
+        // рядки нанесення й оплати показуємо ЛИШЕ коли завантажено дизайн
         var appRaw = applicationRawSum();
         var minVal = (+m.minPrice || 0) * nLogos;   // мінімалка нанесення (на всі нанесення)
         var minActive = appSell > appRaw + 0.5;      // мінімум «переважив» ціну за площею
@@ -5749,13 +5750,14 @@
         tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
         tb += r('↳ мін. ціна нанесення'+(minActive?mark:''), money(minVal), dash, {muted:true});
         tb += r('↳ ціна за площею'+(!minActive?mark:''), money(appRaw), money(appCost), {muted:true});
-      } else {
-        tb += r('Нанесення ('+methodName+')', money(0), money(0));
       }
       if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
-      tb += r('Оплата за штуку', money(pFee), money(pCost));
-      tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+      if(nLogos > 0){
+        tb += r('Оплата за штуку', money(pFee), money(pCost));
+        tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+      }
       tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
+      if(nLogos === 0) tb += '<tr><td colspan="3" style="padding:6px 8px 0;color:#8a94a6;font-size:11px;">Дизайн не завантажено — рахується лише база виробу зі знижкою.</td></tr>';
       tb += '</table>';
       // ── підсумки: маржа + суми замовлення ──
       var marginU = uSell - fullUnitCost, marginUPct = uSell>0 ? Math.round(marginU/uSell*100) : 0;
