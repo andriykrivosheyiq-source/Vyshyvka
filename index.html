@@ -4662,11 +4662,13 @@
       return (p && p.methods) ? p : null;
     }
     // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
-    function methodPieceFee(){ var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
-    function methodOrderFee(){ var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
+    // Оплата за дизайн і за штуку — це оплата за НАНЕСЕННЯ. Без лого (дизайну немає) не беремо.
+    function hasAnyLogo(){ return logoCount() > 0; }
+    function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
+    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
     // ── Собівартість (лише для менеджерського прорахунку) ──
-    function methodPieceCost(){ var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
-    function methodOrderCost(){ var m = methodCfgNew(); return m ? (+m.orderCost || 0) : 0; }
+    function methodPieceCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
+    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.orderCost || 0) : 0; }
     function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
     // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
     function dtfGridCost(m, l, uOverride){
@@ -4683,6 +4685,23 @@
       }); });
       return c;
     }
+    // «Сира» продажна ціна нанесення — ДО застосування мінімалки (за площею / за сіткою DTF).
+    function placementRaw(m, l){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.round(cleanMm2/1000 * (+m.pricePer1000mm2 || 0)); }
+    function dtfGridRaw(m, l, uOverride){
+      var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
+      var row = 0; for(var j = qf.length-1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
+      return (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
+           : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? Math.round(+m.cost[row][col] * (+m.markup || 1)) : 0);
+    }
+    function applicationRawSum(uOverride){
+      var m = methodCfgNew(); if(!m) return 0; var s = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        s += (m.mode === 'grid') ? dtfGridRaw(m, l, uOverride) : placementRaw(m, l);
+      }); });
+      return s;
+    }
+    function logoCount(){ var n = 0; getViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
     // собівартість за штуку = одяг + нанесення + оплата за штуку
     function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
     // повна собівартість замовлення = за штуку × кількість + разова собівартість замовлення
@@ -5711,15 +5730,28 @@
       head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
       // ── таблиця ──
       function r(name, sell, cost, o){ o=o||{};
-        var trS = o.bold ? 'font-weight:800;color:#0f2034;background:#eef1f6;' : '';
-        return '<tr style="'+trS+'"><td style="padding:5px 8px;">'+name+'</td>'+
-          '<td style="padding:5px 8px;text-align:right;white-space:nowrap;">'+sell+'</td>'+
-          '<td style="padding:5px 8px;text-align:right;white-space:nowrap;color:'+(o.bold?'#0f2034':'#8a1f1f')+';">'+cost+'</td></tr>';
+        var pad = o.muted ? '2px 8px' : '5px 8px';
+        var trS = o.bold ? 'font-weight:800;color:#0f2034;background:#eef1f6;' : (o.muted ? 'color:#8a94a6;font-size:11px;' : '');
+        var cc = o.bold ? '#0f2034' : (o.muted ? '#b0a3a3' : '#8a1f1f');
+        return '<tr style="'+trS+'"><td style="padding:'+pad+';">'+name+'</td>'+
+          '<td style="padding:'+pad+';text-align:right;white-space:nowrap;">'+sell+'</td>'+
+          '<td style="padding:'+pad+';text-align:right;white-space:nowrap;color:'+cc+';">'+cost+'</td></tr>';
       }
       var tb = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
       tb += '<tr style="color:#8a94a6;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;"><td style="padding:0 8px 4px;">Назва</td><td style="padding:0 8px 4px;text-align:right;">Продажна</td><td style="padding:0 8px 4px;text-align:right;">Собівартість</td></tr>';
       tb += r('База виробу', money(base), money(gCost));
-      tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
+      var nLogos = logoCount();
+      if(nLogos > 0){
+        var appRaw = applicationRawSum();
+        var minVal = (+m.minPrice || 0) * nLogos;   // мінімалка нанесення (на всі нанесення)
+        var minActive = appSell > appRaw + 0.5;      // мінімум «переважив» ціну за площею
+        var mark = ' <span style="color:#c58a00;">◆ діє</span>';
+        tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
+        tb += r('↳ мін. ціна нанесення'+(minActive?mark:''), money(minVal), dash, {muted:true});
+        tb += r('↳ ціна за площею'+(!minActive?mark:''), money(appRaw), money(appCost), {muted:true});
+      } else {
+        tb += r('Нанесення ('+methodName+')', money(0), money(0));
+      }
       if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
       tb += r('Оплата за штуку', money(pFee), money(pCost));
       tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
