@@ -4664,8 +4664,19 @@
     // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
     // Оплата за дизайн і за штуку — це оплата за НАНЕСЕННЯ. Без лого (дизайну немає) не беремо.
     function hasAnyLogo(){ return logoCount() > 0; }
-    // Кожне ДОДАТКОВЕ лого (2-ге, 3-тє…) — окремий ескіз (перше входить в основну оплату дизайну).
-    function extraSketchCount(){ return Math.max(0, logoCount() - 1); }
+    // Унікальні дизайни: те саме зображення (на кількох сторонах чи завантажене двічі) — один дизайн.
+    // Ключ — origUrl (оригінальний завантажений файл), стабільний і при перемиканні фону.
+    function uniqueDesignCount(){
+      var seen = {}, n = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        var key = l.origUrl || l.url || '';
+        if(key && !seen[key]){ seen[key] = 1; n++; }
+      }); });
+      return n;
+    }
+    // Кожен ДОДАТКОВИЙ унікальний дизайн (2-й, 3-й…) — окремий ескіз (перший входить в основну оплату).
+    // Однакові зображення не рахуються повторно.
+    function extraSketchCount(){ return Math.max(0, uniqueDesignCount() - 1); }
     function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
     // Разова оплата за замовлення = основний дизайн + додаткові ескізи (за кожне зайве лого).
     function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderFee || 0) + extraSketchCount() * (+m.sketchFee || 0); }
