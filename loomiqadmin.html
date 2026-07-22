@@ -2950,6 +2950,9 @@ function updatePaSummary(id){
   const modal = ()=>document.getElementById('pa-modal');
   const el = id=>document.getElementById(id);
 
+  const PA_SIDE_LABELS={front:'Перед (груди)',back:'Зад (спина)',left:'Лівий бік',right:'Правий бік'};
+  const PA_SIDE_SHORT={front:'Груди',back:'Спина',left:'Лівий бік',right:'Правий бік'};
+  function paSideLabel(s){ return PA_SIDE_LABELS[s]||s; }
   function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
   function cmForSize(sz){ const rows=paChart(); const r=rows.find(x=>x.size===sz)||rows[Math.floor(rows.length/2)]||{A:68}; return (+r.A||68); }
   function defaultSize(){ const rows=paChart(); const m=rows.find(x=>String(x.size).toUpperCase()==='M'); return m?m.size:((rows[Math.floor(rows.length/2)]||{size:''}).size); }
@@ -2968,16 +2971,19 @@ function updatePaSummary(id){
   function cfgTo(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, pts:ptsTo(c.pts) } : c; }
   function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors }; }
   function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k])); return { base:cfgTo(s.base), colors }; }
-  function toStore(d){ return { scaleSize:d.scaleSize, heightCm:d.heightCm, front:sideTo(d.front), back:sideTo(d.back) }; }
+  function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; Object.keys(d).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&d[k]) out[k]=sideTo(d[k]); }); return out; }
 
   function loadData(){
     let all=(contentData.printAreas||{})[paId];
-    all = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0,front:null,back:null};
-    all.front=migrateSide(all.front); all.back=migrateSide(all.back);
-    data = { scaleSize:all.scaleSize, heightCm:all.heightCm, front:sideFrom(all.front), back:sideFrom(all.back) };
-    if(!data.scaleSize) data.scaleSize=defaultSize();
+    all = all?JSON.parse(JSON.stringify(all)):{scaleSize:defaultSize(),heightCm:0};
+    data = { scaleSize:all.scaleSize, heightCm:all.heightCm };
+    const g=photoCfg(paId); const sides=(g&&g.views&&g.views.length)?g.views.slice():['front','back'];
+    // усі сторони виробу (перед/зад + бокові) + будь-які вже збережені сторони
+    Object.keys(all).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&sides.indexOf(k)<0) sides.push(k); });
+    sides.forEach(s=>{ data[s]=sideFrom(migrateSide(all[s])); });
     if(!data.front) data.front=newSideCfg();
-    if(!data.back) data.back=newSideCfg();   // передня і задня сторони доступні одразу
+    if(!data.back) data.back=newSideCfg();   // перед і зад доступні одразу
+    if(!data.scaleSize) data.scaleSize=defaultSize();
     if(!(data.heightCm>0)) data.heightCm=cmForSize(data.scaleSize);
   }
   function loadSlotColor(){
@@ -3013,7 +3019,9 @@ function updatePaSummary(id){
     const g=photoCfg(paId);
     el('pa-prodname').textContent = ((contentData.names&&contentData.names[paId])||g.name.replace(' · свій',''));
     const slots=el('pa-slots');
-    slots.innerHTML=['front','back'].map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${s==='front'?'Перед (груди)':'Зад (спина)'}</button>`).join('');
+    // сторони беремо з самого виробу (перед/зад + бокові, якщо є) — щоб можна було задати зону на кожну
+    const sides=(g.views&&g.views.length)?g.views:['front','back'];
+    slots.innerHTML=sides.map(s=>`<button class="pa-slot${s===paSide?' active':''}" data-side="${s}">${paSideLabel(s)}</button>`).join('');
     slots.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{ saveWork(); paSide=b.dataset.side; loadSlotColor(); renderShell(); });
     const tog=el('pa-slot-toggle'); if(tog) tog.style.display='none';   // перед і зад завжди доступні
     const cols=effectiveColors(paId);
@@ -3074,7 +3082,7 @@ function updatePaSummary(id){
     const af=areaFracOf(curFull());
     const cm2=af*heightCm*heightCm; const mm2=cm2*100;
     const el2=el('pa-area');
-    if(el2) el2.innerHTML='Площа поля («'+(paSide==='front'?'Груди':'Спина')+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+(colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
+    if(el2) el2.innerHTML='Площа поля («'+(PA_SIDE_SHORT[paSide]||paSide)+'»):<br><b style="font-size:16px;">'+cm2.toFixed(1)+' см²</b> · '+Math.round(mm2)+' мм²<br><span style="color:var(--ink-soft);font-size:12px;">висота виробу: '+heightCm+' см'+(colorHasOwn()?' · <span style="color:var(--accent)">свій полігон</span>':'')+'</span>';
   }
 
   async function save(){ saveWork(); try{ await PHOTOS_DOC.set({ printAreas:{ [paId]: toStore(data) } }, {merge:true}); toast('Область збережено'); if(typeof updatePaSummary==='function') updatePaSummary(paId); }catch(e){ console.error(e); toast('Помилка збереження: '+(e&&e.message||e)); } }
