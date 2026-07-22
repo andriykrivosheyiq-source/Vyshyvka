@@ -5679,55 +5679,65 @@
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
     }
-    // Менеджерський прорахунок: собівартість + як формується ціна + кошторис замовлення
+    // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
     function renderManagerPanel(){
       var box = document.getElementById('pmManagerBox'), out = document.getElementById('pmMgrCalc');
       if(!box || !out) return;
       box.style.display = '';
       var u = totalUnits(), qty = u > 0 ? u : 1;
-      var m = methodCfgNew();
+      var m = methodCfgNew() || {};
       var methodName = getPrint().name;
-      var d = currentLayers().length ? (function(){ var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0]; return l ? layerOpaqueDimsMm(l) : null; })() : null;
-      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerAreaMm2(l) * (l.fill||0.85); }); });
+      var ap = applicationParts();
+      var coefPart = ap.coefPart, flatPart = ap.flatPart;   // coefPart (вишивка) — під знижкою; flatPart (DTF) — без
+      var appSell = coefPart + flatPart, appCost = applicationCostSum();
+      var base = basePriceNew(), gCost = garmentCost();
       var t = activeCoefTier(); var coef = t ? t.coef : 1;
-      var base = basePriceNew();
-      var ap = applicationParts(); var appSell = ap.coefPart + ap.flatPart;   // продажна вартість нанесення
-      var appCost = applicationCostSum();
-      var uSell = effUnitPrice(), uCost = unitCost();
-      var oSell = orderTotal(), oCost = orderCostTotal();
+      var discountable = base + coefPart;
+      var discountAmt = Math.round(discountable - Math.round(discountable * coef));
+      var pFee = methodPieceFee(), pCost = methodPieceCost();
+      var oFeePer = orderFeePerUnit(qty), oCostPer = qty > 0 ? Math.round(methodOrderCost()/qty) : 0;
+      var uSell = effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
+      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerAreaMm2(l) * (l.fill||0.85); }); });
+      var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
+      var dims = actL ? layerOpaqueDimsMm(actL) : null;
       var money = function(x){ return Math.round(x) + ' грн'; };
-      var rows = [];
-      rows.push('<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:#0f2034;">Прорахунок (для менеджера)</div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Метод</span><b>'+methodName+'</b></div>');
-      if(d) rows.push('<div style="display:flex;justify-content:space-between;"><span>Розмір друку</span><b>'+Math.round(d.w/10)+'×'+Math.round(d.h/10)+' см</b></div>');
-      if(areaMm2>0) rows.push('<div style="display:flex;justify-content:space-between;"><span>Площа нанесення</span><b>'+(areaMm2/100).toFixed(1)+' см² · '+Math.round(areaMm2)+' мм²</b></div>');
-      if(m && m.mode==='grid' && currentLayers().length){ var col=dtfBandCol(m,currentLayers()[0]); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; rows.push('<div style="display:flex;justify-content:space-between;"><span>Лист DTF</span><b>'+bl+'</b></div>'); }
-      rows.push('<div style="border-top:1px dashed #d5d8dd;margin:8px 0;"></div>');
-      rows.push('<div style="font-weight:700;margin-bottom:4px;">Як формується ціна за штуку:</div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>База виробу</span><b>'+money(base)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Нанесення (продаж)</span><b>'+money(appSell)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>× знижка за тираж</span><b>'+Math.round((1-coef)*100)+'% (×'+coef+')</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ оплата за штуку</span><b>'+money(methodPieceFee())+'</b></div>');
-      var oFeePer = orderFeePerUnit(qty), oCostPer = qty>0 ? Math.round(methodOrderCost()/qty) : 0;
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ дизайн на шт (÷'+qty+')</span><b>'+money(oFeePer)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#0f2034;"><span>= Ціна за штуку</span><b>'+money(uSell)+'</b></div>');
-      rows.push('<div style="border-top:1px dashed #d5d8dd;margin:8px 0;"></div>');
-      var fullUnitCost = uCost + oCostPer;
-      rows.push('<div style="font-weight:700;margin-bottom:4px;color:#8a1f1f;">Собівартість за штуку:</div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Одяг</span><b>'+money(garmentCost())+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Нанесення</span><b>'+money(appCost)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ собівартість/шт</span><b>'+money(methodPieceCost())+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ дизайн на шт (÷'+qty+')</span><b>'+money(oCostPer)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#8a1f1f;"><span>= Собівартість/шт</span><b>'+money(fullUnitCost)+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа/шт</span><b>'+money(uSell-fullUnitCost)+'</b></div>');
-      rows.push('<div style="border-top:1px solid #d5d8dd;margin:8px 0;"></div>');
-      rows.push('<div style="font-weight:800;margin-bottom:4px;">Кошторис замовлення ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Оплата за замовлення (дизайн)</span><b>'+money(methodOrderFee())+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(u>0?oSell:(uSell*qty+methodOrderFee()))+'</b></div>');
-      rows.push('<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b>'+money(u>0?oCost:(uCost*qty+methodOrderCost()))+'</b></div>');
-      var oS = u>0?oSell:(uSell*qty+methodOrderFee()), oC = u>0?oCost:(uCost*qty+methodOrderCost());
-      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oS-oC)+' ('+(oS>0?Math.round((oS-oC)/oS*100):0)+'%)</b></div>');
-      out.innerHTML = rows.join('');
+      var dash = '<span style="color:#c2c7cf;">—</span>';
+      // ── шапка: метод + деталі площі/листа ──
+      var head = '<div style="font-weight:800;font-size:14px;color:#0f2034;">Прорахунок (для менеджера)</div>';
+      var det = 'Метод: <b>'+methodName+'</b>';
+      if(m.mode==='grid' && actL){ var col=dtfBandCol(m,actL); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; det += ' · Лист: <b>'+bl+'</b>'; }
+      else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
+      if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
+      head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
+      // ── таблиця ──
+      function r(name, sell, cost, o){ o=o||{};
+        var trS = o.bold ? 'font-weight:800;color:#0f2034;background:#eef1f6;' : '';
+        return '<tr style="'+trS+'"><td style="padding:5px 8px;">'+name+'</td>'+
+          '<td style="padding:5px 8px;text-align:right;white-space:nowrap;">'+sell+'</td>'+
+          '<td style="padding:5px 8px;text-align:right;white-space:nowrap;color:'+(o.bold?'#0f2034':'#8a1f1f')+';">'+cost+'</td></tr>';
+      }
+      var tb = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+      tb += '<tr style="color:#8a94a6;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;"><td style="padding:0 8px 4px;">Назва</td><td style="padding:0 8px 4px;text-align:right;">Продажна</td><td style="padding:0 8px 4px;text-align:right;">Собівартість</td></tr>';
+      tb += r('База виробу', money(base), money(gCost));
+      tb += r('Нанесення ('+methodName+')', money(appSell), money(appCost));
+      if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
+      tb += r('Оплата за штуку', money(pFee), money(pCost));
+      tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+      tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
+      tb += '</table>';
+      // ── підсумки: маржа + суми замовлення ──
+      var marginU = uSell - fullUnitCost, marginUPct = uSell>0 ? Math.round(marginU/uSell*100) : 0;
+      var oS = u>0 ? orderTotal() : Math.round(uSell*qty);
+      var oC = u>0 ? orderCostTotal() : Math.round(fullUnitCost*qty);
+      var oM = oS - oC, oMPct = oS>0 ? Math.round(oM/oS*100) : 0;
+      var sum = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #d5d8dd;font-size:12.5px;">';
+      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа за штуку</span><b>'+money(marginU)+' ('+marginUPct+'%)</b></div>';
+      sum += '<div style="font-weight:800;margin:8px 0 4px;color:#0f2034;">Замовлення ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>';
+      sum += '<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(oS)+'</b></div>';
+      sum += '<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b style="color:#8a1f1f;">'+money(oC)+'</b></div>';
+      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oM)+' ('+oMPct+'%)</b></div>';
+      sum += '</div>';
+      out.innerHTML = head + tb + sum;
     }
     // Легке оновлення цін порогів (лише текст, без перебудови DOM/скролу) — щоб не смикало під час жесту
     function updateTierPricesLive(){
