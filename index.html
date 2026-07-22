@@ -2554,6 +2554,14 @@
         Додати в кошик<span class="pm-add-btn-sum" id="pmAddBtnSum"></span>
       </button>
       <div class="pm-tier-row" id="pmTierRow"></div>
+      <!-- Менеджерський блок (лише режим ?manager=1): завантаження макапа + прорахунок собівартості -->
+      <div id="pmManagerBox" style="display:none;margin-top:10px;">
+        <button id="pmDownloadMockup" style="width:100%;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Скачати макап
+        </button>
+        <div id="pmMgrCalc" style="margin-top:10px;background:#f6f7f9;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#1c2840;"></div>
+      </div>
     </div>
 
     <!-- Quick rows -->
@@ -4656,6 +4664,29 @@
     // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
     function methodPieceFee(){ var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
     function methodOrderFee(){ var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
+    // ── Собівартість (лише для менеджерського прорахунку) ──
+    function methodPieceCost(){ var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
+    function methodOrderCost(){ var m = methodCfgNew(); return m ? (+m.orderCost || 0) : 0; }
+    function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
+    // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
+    function dtfGridCost(m, l, uOverride){
+      var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
+      var row = 0; for(var j = qf.length-1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
+      return (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
+    }
+    function placementCost(m, l){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)); }
+    function applicationCostSum(uOverride){
+      var m = methodCfgNew(); if(!m) return 0; var c = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        c += (m.mode === 'grid') ? dtfGridCost(m, l, uOverride) : placementCost(m, l);
+      }); });
+      return c;
+    }
+    // собівартість за штуку = одяг + нанесення + оплата за штуку
+    function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
+    // повна собівартість замовлення = за штуку × кількість + разова собівартість замовлення
+    function orderCostTotal(){ var u = totalUnits(); return u > 0 ? (unitCost() * u + methodOrderCost()) : 0; }
     // Повна вартість замовлення = ціна/шт × кількість + разова оплата за замовлення.
     function orderTotal(){
       var u = totalUnits();
@@ -4891,6 +4922,8 @@
     var pmAddBtnSum = document.getElementById('pmAddBtnSum');
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
+    // Менеджерський режим (вбудований iframe в адмінці ?manager=1): макап + прорахунок собівартості
+    var IS_MANAGER = /[?&]manager=1\b/.test(location.search);
 
     // Size the garment square to the largest size that fits BOTH the available width
     // and the available height of the stage (so it never overflows the screen sideways
@@ -5644,6 +5677,57 @@
       pmQtyWarning.style.display = u===0 ? '' : 'none';
       renderTiers();
       renderPrintArea();
+      if(IS_MANAGER) renderManagerPanel();
+    }
+    // Менеджерський прорахунок: собівартість + як формується ціна + кошторис замовлення
+    function renderManagerPanel(){
+      var box = document.getElementById('pmManagerBox'), out = document.getElementById('pmMgrCalc');
+      if(!box || !out) return;
+      box.style.display = '';
+      var u = totalUnits(), qty = u > 0 ? u : 1;
+      var m = methodCfgNew();
+      var methodName = getPrint().name;
+      var d = currentLayers().length ? (function(){ var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0]; return l ? layerOpaqueDimsMm(l) : null; })() : null;
+      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerAreaMm2(l) * (l.fill||0.85); }); });
+      var t = activeCoefTier(); var coef = t ? t.coef : 1;
+      var base = basePriceNew();
+      var ap = applicationParts(); var appSell = ap.coefPart + ap.flatPart;   // продажна вартість нанесення
+      var appCost = applicationCostSum();
+      var uSell = effUnitPrice(), uCost = unitCost();
+      var oSell = orderTotal(), oCost = orderCostTotal();
+      var money = function(x){ return Math.round(x) + ' грн'; };
+      var rows = [];
+      rows.push('<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:#0f2034;">Прорахунок (для менеджера)</div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Метод</span><b>'+methodName+'</b></div>');
+      if(d) rows.push('<div style="display:flex;justify-content:space-between;"><span>Розмір друку</span><b>'+Math.round(d.w/10)+'×'+Math.round(d.h/10)+' см</b></div>');
+      if(areaMm2>0) rows.push('<div style="display:flex;justify-content:space-between;"><span>Площа нанесення</span><b>'+(areaMm2/100).toFixed(1)+' см² · '+Math.round(areaMm2)+' мм²</b></div>');
+      if(m && m.mode==='grid' && currentLayers().length){ var col=dtfBandCol(m,currentLayers()[0]); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; rows.push('<div style="display:flex;justify-content:space-between;"><span>Лист DTF</span><b>'+bl+'</b></div>'); }
+      rows.push('<div style="border-top:1px dashed #d5d8dd;margin:8px 0;"></div>');
+      rows.push('<div style="font-weight:700;margin-bottom:4px;">Як формується ціна за штуку:</div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>База виробу</span><b>'+money(base)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Нанесення (продаж)</span><b>'+money(appSell)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>× знижка за тираж</span><b>'+Math.round((1-coef)*100)+'% (×'+coef+')</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ оплата за штуку</span><b>'+money(methodPieceFee())+'</b></div>');
+      var oFeePer = orderFeePerUnit(qty), oCostPer = qty>0 ? Math.round(methodOrderCost()/qty) : 0;
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ дизайн на шт (÷'+qty+')</span><b>'+money(oFeePer)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#0f2034;"><span>= Ціна за штуку</span><b>'+money(uSell)+'</b></div>');
+      rows.push('<div style="border-top:1px dashed #d5d8dd;margin:8px 0;"></div>');
+      var fullUnitCost = uCost + oCostPer;
+      rows.push('<div style="font-weight:700;margin-bottom:4px;color:#8a1f1f;">Собівартість за штуку:</div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Одяг</span><b>'+money(garmentCost())+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Нанесення</span><b>'+money(appCost)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ собівартість/шт</span><b>'+money(methodPieceCost())+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>+ дизайн на шт (÷'+qty+')</span><b>'+money(oCostPer)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#8a1f1f;"><span>= Собівартість/шт</span><b>'+money(fullUnitCost)+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа/шт</span><b>'+money(uSell-fullUnitCost)+'</b></div>');
+      rows.push('<div style="border-top:1px solid #d5d8dd;margin:8px 0;"></div>');
+      rows.push('<div style="font-weight:800;margin-bottom:4px;">Кошторис замовлення ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Оплата за замовлення (дизайн)</span><b>'+money(methodOrderFee())+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(u>0?oSell:(uSell*qty+methodOrderFee()))+'</b></div>');
+      rows.push('<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b>'+money(u>0?oCost:(uCost*qty+methodOrderCost()))+'</b></div>');
+      var oS = u>0?oSell:(uSell*qty+methodOrderFee()), oC = u>0?oCost:(uCost*qty+methodOrderCost());
+      rows.push('<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oS-oC)+' ('+(oS>0?Math.round((oS-oC)/oS*100):0)+'%)</b></div>');
+      out.innerHTML = rows.join('');
     }
     // Легке оновлення цін порогів (лише текст, без перебудови DOM/скролу) — щоб не смикало під час жесту
     function updateTierPricesLive(){
@@ -5667,6 +5751,7 @@
       if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
       updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
+      if(IS_MANAGER) renderManagerPanel();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
@@ -5964,6 +6049,22 @@
     }
     document.getElementById('pmAddToCartBtn').addEventListener('click', triggerAddToCartFlow);
     document.getElementById('pmStickyCartBtn').addEventListener('click', triggerAddToCartFlow);
+    // Менеджер: завантаження макапа поточної сторони (перед/зад/бік) як PNG
+    (function(){
+      var btn = document.getElementById('pmDownloadMockup'); if(!btn) return;
+      btn.addEventListener('click', function(){
+        btn.disabled = true; var old = btn.innerHTML; btn.textContent = 'Готуємо…';
+        snapshotSide(pm.side).then(function(url){
+          if(url){
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'mockup-' + pm.garmentId + '-' + pm.colorId + '-' + pm.side + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
+          }
+          btn.disabled = false; btn.innerHTML = old;
+        }).catch(function(){ btn.disabled = false; btn.innerHTML = old; });
+      });
+    })();
 
     document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){
       var u = totalUnits();

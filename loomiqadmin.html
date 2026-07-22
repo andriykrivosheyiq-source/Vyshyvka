@@ -400,6 +400,7 @@
         <button data-view="settings"><span class="num">02</span> Формування цін</button>
         <button data-view="photos"><span class="num">03</span> Конструктор сайту</button>
         <button data-view="reviews"><span class="num">04</span> Відгуки</button>
+        <button data-view="calc"><span class="num">05</span> Прорахунок</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -1003,6 +1004,17 @@
       </div>
     </section>
 
+    <!-- Прорахунок: повна копія сайту в менеджерському режимі (iframe) -->
+    <section id="view-calc" style="display:none;">
+      <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
+        Повна копія сайту для менеджерів — завжди синхронна з клієнтським сайтом (нові товари з'являються тут автоматично).
+        Тут можна змонтувати логотип, <b>завантажити макап</b> і бачити <b>прорахунок собівартості</b> та як формується ціна.
+      </div>
+      <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;height:calc(100vh - 150px);min-height:560px;">
+        <iframe id="calc-frame" title="Прорахунок" style="width:100%;height:100%;border:0;display:block;"></iframe>
+      </div>
+    </section>
+
   </main>
   </div><!-- /.main-wrap -->
 </div><!-- /.shell -->
@@ -1195,7 +1207,8 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту'};
+    const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
@@ -1203,6 +1216,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
+    if(view==='calc'){ const fr=document.getElementById('calc-frame'); if(fr && !fr.src) fr.src='index.html?manager=1'; }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
