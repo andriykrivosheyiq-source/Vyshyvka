@@ -457,6 +457,15 @@
               <input type="number" step="1" min="0" id="sp-dtf-ordercost" placeholder="120">
             </label>
           </div>
+          <div class="tl-divider">Додатковий ескіз (за кожне ДОДАТКОВЕ лого, разово) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">Додатковий ескіз — ціна, грн
+              <input type="number" step="1" min="0" id="sp-dtf-sketchfee" placeholder="0">
+            </label>
+            <label class="field">Додатковий ескіз — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-dtf-sketchcost" placeholder="0">
+            </label>
+          </div>
           <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За штуку — ціна, грн
@@ -510,6 +519,15 @@
             </label>
             <label class="field">За замовлення — собівартість, грн
               <input type="number" step="1" min="0" id="sp-emb-ordercost" placeholder="120">
+            </label>
+          </div>
+          <div class="tl-divider">Додатковий ескіз (за кожне ДОДАТКОВЕ лого, разово) — ціна / собівартість</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <label class="field">Додатковий ескіз — ціна, грн
+              <input type="number" step="1" min="0" id="sp-emb-sketchfee" placeholder="0">
+            </label>
+            <label class="field">Додатковий ескіз — собівартість, грн
+              <input type="number" step="1" min="0" id="sp-emb-sketchcost" placeholder="0">
             </label>
           </div>
           <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
@@ -1283,12 +1301,12 @@ const DEFAULT_SITE_PRICING = {
       ],
       markup: 2, minPrice: 20,
       // Оплати: за замовлення (разова) і за штуку — ціна + собівартість
-      orderFee: 250, orderCost: 120, pieceFee: 5, pieceCost: 2,
+      orderFee: 250, orderCost: 120, sketchFee: 0, sketchCost: 0, pieceFee: 5, pieceCost: 2,
       lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_DTF))
     },
     embro: {
       pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400,
-      orderFee: 250, orderCost: 120, pieceFee: 5, pieceCost: 2,
+      orderFee: 250, orderCost: 120, sketchFee: 0, sketchCost: 0, pieceFee: 5, pieceCost: 2,
       lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_EMB))
     }
   },
@@ -1332,6 +1350,8 @@ function normalizeSitePricing(p){
     const m = p.methods[k] = p.methods[k] || JSON.parse(JSON.stringify(def.methods[k]));
     if(m.orderFee  == null) m.orderFee  = def.methods[k].orderFee;
     if(m.orderCost == null) m.orderCost = def.methods[k].orderCost;
+    if(m.sketchFee  == null) m.sketchFee  = 0;
+    if(m.sketchCost == null) m.sketchCost = 0;
     if(m.pieceFee  == null) m.pieceFee  = def.methods[k].pieceFee;
     if(m.pieceCost == null) m.pieceCost = def.methods[k].pieceCost;
     if(!m.lead){
@@ -1371,6 +1391,7 @@ function paintSitePricing(){
   paintDtfGrid(dm);
   setV('sp-dtf-min', dm.minPrice);
   setV('sp-dtf-orderfee', dm.orderFee);  setV('sp-dtf-ordercost', dm.orderCost);
+  setV('sp-dtf-sketchfee', dm.sketchFee);  setV('sp-dtf-sketchcost', dm.sketchCost);
   setV('sp-dtf-piecefee', dm.pieceFee);  setV('sp-dtf-piececost', dm.pieceCost);
   const dl = dm.lead || {};
   setV('sp-dtf-d-design', dl.design); setV('sp-dtf-d-transfer', dl.transfer);
@@ -1382,6 +1403,7 @@ function paintSitePricing(){
   setV('sp-emb-cost1k', e.costPer1000mm2);
   setV('sp-emb-min', e.minPrice);
   setV('sp-emb-orderfee', e.orderFee);  setV('sp-emb-ordercost', e.orderCost);
+  setV('sp-emb-sketchfee', e.sketchFee);  setV('sp-emb-sketchcost', e.sketchCost);
   setV('sp-emb-piecefee', e.pieceFee);  setV('sp-emb-piececost', e.pieceCost);
   const el = e.lead || {};
   setV('sp-emb-d-design', el.design); setV('sp-emb-d-transfer', el.transfer);
@@ -1567,6 +1589,7 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
     minPrice: numV('sp-dtf-min'),
     orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
+    sketchFee: numV('sp-dtf-sketchfee'), sketchCost: numV('sp-dtf-sketchcost'),
     pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
     lead: readLead('dtf')
   });
@@ -1578,6 +1601,7 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     costPer1000mm2: numV('sp-emb-cost1k'),
     minPrice: numV('sp-emb-min'),
     orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
+    sketchFee: numV('sp-emb-sketchfee'), sketchCost: numV('sp-emb-sketchcost'),
     pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),
     lead: readLead('emb')
   };

@@ -4664,11 +4664,14 @@
     // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
     // Оплата за дизайн і за штуку — це оплата за НАНЕСЕННЯ. Без лого (дизайну немає) не беремо.
     function hasAnyLogo(){ return logoCount() > 0; }
+    // Кожне ДОДАТКОВЕ лого (2-ге, 3-тє…) — окремий ескіз (перше входить в основну оплату дизайну).
+    function extraSketchCount(){ return Math.max(0, logoCount() - 1); }
     function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
-    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
+    // Разова оплата за замовлення = основний дизайн + додаткові ескізи (за кожне зайве лого).
+    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderFee || 0) + extraSketchCount() * (+m.sketchFee || 0); }
     // ── Собівартість (лише для менеджерського прорахунку) ──
     function methodPieceCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
-    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.orderCost || 0) : 0; }
+    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderCost || 0) + extraSketchCount() * (+m.sketchCost || 0); }
     function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
     // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
     function dtfGridCost(m, l, uOverride){
@@ -5754,7 +5757,15 @@
       if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
       if(nLogos > 0){
         tb += r('Оплата за штуку', money(pFee), money(pCost));
-        tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+        var nExtra = extraSketchCount();
+        if(nExtra > 0){
+          var mainFeePer = qty>0 ? Math.round((+m.orderFee||0)/qty) : 0;
+          var mainCostPer = qty>0 ? Math.round((+m.orderCost||0)/qty) : 0;
+          tb += r('Дизайн (÷'+qty+' шт)', money(mainFeePer), money(mainCostPer));
+          tb += r('Додаткові ескізи ('+nExtra+'× ÷'+qty+')', money(oFeePer-mainFeePer), money(oCostPer-mainCostPer));
+        } else {
+          tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+        }
       }
       tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
       if(nLogos === 0) tb += '<tr><td colspan="3" style="padding:6px 8px 0;color:#8a94a6;font-size:11px;">Дизайн не завантажено — рахується лише база виробу зі знижкою.</td></tr>';
