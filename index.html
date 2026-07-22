@@ -4260,6 +4260,12 @@
   function renderCatalogProducts(targetEl){
     targetEl.innerHTML = catalogProductsList().map(p=>{
       const pname = p.garment ? window.LQ_name(p.garment, p.name) : p.name;
+      // ціну в каталозі рахуємо авто: база виробу × макс. знижка (без нанесення)
+      let priceLabel = p.price;
+      if(p.garment && window.__catalogPrice){
+        const auto = window.__catalogPrice(p.garment);
+        if(auto && auto > 0) priceLabel = 'від ' + auto + ' грн';
+      }
       return `
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
         <div class="product-art">
@@ -4268,7 +4274,7 @@
             : `<svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>`}
         </div>
         <div class="product-info">
-          <div><h4>${pname}</h4><div class="price">${p.price}</div></div>
+          <div><h4>${pname}</h4><div class="price">${priceLabel}</div></div>
           <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </button>`;
@@ -4696,11 +4702,22 @@
       return (SIZE_CHART.M && SIZE_CHART.M.A) ? SIZE_CHART.M.A * 10 : 680;
     }
     function basePriceNew(){
-      var p = sitePricing(); var bp = (p && p.basePrices) || {};
-      var v = +bp[pm.garmentId];
-      if(v > 0) return v;
-      return TIERS[0].price + getGarment().price;   // фолбек — стара базова
+      return baseForGarment(pm.garmentId);
     }
+    // Базова ціна конкретного виробу (не залежить від поточного вибору) — для каталогу.
+    function baseForGarment(gid){
+      var p = sitePricing(); var bp = (p && p.basePrices) || {};
+      var v = +bp[gid]; if(v > 0) return v;
+      var g = GARMENTS.find(function(x){ return x.id === gid; });
+      return TIERS[0].price + (g ? g.price : 0);   // фолбек — стара базова
+    }
+    // Ціна «від X» для каталогу = база × максимальна знижка за кількість (без нанесення).
+    window.__catalogPrice = function(gid){
+      var base = baseForGarment(gid);
+      var pt = pricingTiers(); var minCoef = 1;
+      if(pt && pt.length) pt.forEach(function(t){ if(t.coef < minCoef) minCoef = t.coef; });
+      return Math.round(base * minCoef);
+    };
     function methodCfgNew(){
       var p = sitePricing(); if(!p) return null;
       var key = getPrint().id === 'embro' ? 'embro' : 'dtf';
