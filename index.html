@@ -6003,16 +6003,17 @@
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
     // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
-    function snapshotSide(side){
+    function snapshotSide(side, sizeOverride){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
         var layers = pm.logos[snapSide];
         var wrapEl = document.getElementById('pmGarmentWrap');
         var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-        var C = 500, k = C / wrapW;
+        var C = sizeOverride || 500, k = C / wrapW;
         var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
         var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // чіткіший макап
         ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
         var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
         var garmentP = hasPhoto
@@ -6054,7 +6055,7 @@
       var btn = document.getElementById('pmDownloadMockup'); if(!btn) return;
       btn.addEventListener('click', function(){
         btn.disabled = true; var old = btn.innerHTML; btn.textContent = 'Готуємо…';
-        snapshotSide(pm.side).then(function(url){
+        snapshotSide(pm.side, 2000).then(function(url){   // висока роздільна здатність для завантаження
           if(url){
             var a = document.createElement('a');
             a.href = url;
