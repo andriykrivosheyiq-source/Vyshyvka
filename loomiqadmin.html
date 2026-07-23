@@ -1175,6 +1175,7 @@ let orders = [];          // {id, phone, source, garmentId, garmentName, qty, ap
 let currentApps = [];     // apps being built in calculator before save
 
 const STATUSES = [
+  {key:'prorahunok', label:'Прорахунок'},
   {key:'new', label:'Нове'},
   {key:'paid', label:'Оплачено'},
   {key:'production', label:'На виробництві'},
@@ -2078,6 +2079,29 @@ document.getElementById('save-order').addEventListener('click', async ()=>{
 /* ============================================================
    KANBAN VIEW
    ============================================================ */
+// Створення картки клієнта з менеджерського кошика (викликається з iframe «Прорахунок»)
+window.__adminSaveClientOrder = async function(payload){
+  payload = payload || {};
+  const items = (payload.items || []).map(it=>({
+    name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
+    qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
+    unitCost: +it.unitCost||0, cost: +it.cost||0, imgs: it.imgs||[], config: it.config||null
+  }));
+  const totalPrice = items.reduce((a,i)=>a+i.price,0);
+  const totalCost  = items.reduce((a,i)=>a+i.cost,0);
+  const order = {
+    id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
+    instagram: (payload.instagram||'').trim(),
+    items,
+    totalPrice, totalCost, margin: totalPrice-totalCost,
+    marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
+    createdAt: new Date().toISOString()
+  };
+  orders.unshift(order);
+  await storeSet('orders', orders);
+  toast('Картку клієнта «'+order.instagram+'» створено в Канбані');
+  const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
+};
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -2112,6 +2136,7 @@ function renderBoard(){
 }
 
 function renderTicket(o){
+  if(o.type === 'client') return renderClientTicket(o);
   const el = document.createElement('div');
   el.className = 'ticket';
   el.draggable = true;
@@ -2193,6 +2218,47 @@ function renderTicket(o){
     if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
   });
 
+  return el;
+}
+
+// Картка клієнта (мульти-товар, з ніком інстаграма)
+function renderClientTicket(o){
+  const el = document.createElement('div');
+  el.className = 'ticket';
+  el.draggable = true;
+  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+  const goodMargin = (o.margin||0) >= 0;
+  const itemsHtml = (o.items||[]).map(it=>`<div class="t-brow"><span>${escapeHtml(it.name)} · ${it.qty} шт</span><span>${fmt(it.price)} ₴</span></div>`).join('');
+  el.innerHTML = `
+    <div class="t-top">
+      <div>
+        <div class="phone">${escapeHtml(o.instagram||'—')}</div>
+        <div class="t-date">${createdDate}</div>
+      </div>
+      <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>
+    </div>
+    <div class="t-garment-block">
+      <div class="t-garment-name">Замовлення клієнта</div>
+      <div class="t-garment-qty">${(o.items||[]).length} товар(ів)</div>
+    </div>
+    <div class="t-breakdown">
+      ${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}
+      <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+      <div class="t-brow t-brow-price"><span>Сума (продаж)</span><span>${fmt(o.totalPrice)} ₴</span></div>
+    </div>
+    <div class="t-margin ${goodMargin?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+    <button class="btn btn-ghost" data-act="estimate" style="width:100%;margin-top:8px;">Кошторис клієнта</button>
+    <div class="t-actions">
+      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
+      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+    </div>
+  `;
+  el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
+  el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
+  el.querySelector('[data-act="estimate"]').addEventListener('click', ()=>{ if(window.__openClientEstimate) window.__openClientEstimate(o.id); else toast('Кошторис — наступний етап'); });
   return el;
 }
 
