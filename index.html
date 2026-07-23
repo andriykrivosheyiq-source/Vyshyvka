@@ -5747,7 +5747,10 @@
       // ── шапка: метод + деталі площі/листа ──
       var head = '<div style="font-weight:800;font-size:14px;color:#0f2034;">Прорахунок (для менеджера)</div>';
       var det = 'Метод: <b>'+methodName+'</b>';
-      if(m.mode==='grid' && actL){ var col=dtfBandCol(m,actL); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; det += ' · Лист: <b>'+bl+'</b>'; }
+      if(m.mode==='grid' && logoCount()>0){
+        if(logoCount()===1){ var col=dtfBandCol(m,actL); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; det += ' · Лист: <b>'+bl+'</b>'; }
+        else det += ' · Листів: <b>'+logoCount()+'</b> (див. розклад)';
+      }
       else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
       if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
       head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
@@ -5776,7 +5779,13 @@
             var cost = (m.mode === 'grid') ? dtfGridCost(m, l, undefined, idx) : placementCost(m, l, idx);
             var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, undefined, idx) : placementRaw(m, l);
             var atMin = sell > raw + 0.5;
-            var note = atMin ? ' <span style="color:#c58a00;">(мін '+minForIndex(m, idx)+')</span>' : ' <span style="color:#1a7a3a;">(за площею '+Math.round(raw)+')</span>';
+            var note;
+            if(m.mode === 'grid'){
+              var bcol = dtfBandCol(m, l); var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
+              note = ' <span style="color:#5a6a80;">(лист '+blab+')</span>' + (atMin ? ' <span style="color:#c58a00;">(мін)</span>' : '');
+            } else {
+              note = atMin ? ' <span style="color:#c58a00;">(мін '+minForIndex(m, idx)+')</span>' : ' <span style="color:#1a7a3a;">(за площею '+Math.round(raw)+')</span>';
+            }
             tb += r('↳ Зображення '+(idx+1)+note, money(sell), money(cost), {muted:true});
           }); });
         }
