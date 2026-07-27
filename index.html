@@ -168,7 +168,7 @@
   .menu-overlay-cta{margin-top:auto;justify-content:center;padding:18px;font-size:17px;}
 
   section{padding:38px 0;background:var(--white);}
-  @media (max-width:640px){section{padding:24px 0;}}
+  @media (max-width:640px){section{padding:18px 0;}}
   #why{background:#f7f8fc;position:relative;overflow:hidden;}
   #why::before{
     content:'';position:absolute;top:-10%;right:-10%;width:60%;aspect-ratio:1/1;
@@ -180,7 +180,7 @@
   /* HERO — full-bleed background photo */
   .hero{
     position:relative;overflow:hidden;color:#FFFFFF;
-    padding-top:32px;padding-bottom:96px;
+    padding-top:32px;padding-bottom:40px;
     min-height:715px;display:flex;align-items:flex-start;
   }
   .hero-bg-slides{position:absolute;inset:0;z-index:0;background:#1c1c1c;}
@@ -262,6 +262,9 @@
   .hero h1 .accent{color:#FFFFFF;}
   .hero p.lead{font-size:18px;color:rgba(255,255,255,.92);margin-top:20px;line-height:1.55;text-shadow:0 1px 12px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.35);}
   .hero .cta-row{display:flex;gap:8px;margin-top:32px;flex-wrap:wrap;justify-content:center;align-items:center;}
+  /* кнопки героя одна під одною — зручніше влучати пальцем */
+  .hero .cta-row--stack{flex-direction:column;gap:10px;max-width:340px;margin-left:auto;margin-right:auto;}
+  .hero .cta-row--stack .btn{width:100%;justify-content:center;}
   .hero .cta-row .cta-or{color:#FFFFFF;font-size:14px;font-weight:600;opacity:.85;flex:none;}
   @media (max-width:480px){
     .hero .cta-row{flex-wrap:nowrap;gap:8px;}
@@ -2916,9 +2919,8 @@
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
       <p class="lead">Завантажте логотип і одразу побачите точну ціну та дату готовності.</p>
-      <div class="cta-row">
+      <div class="cta-row cta-row--stack">
         <button class="btn btn-primary" data-open-catalog>Створити мерч</button>
-        <span class="cta-or">або</span>
         <button class="btn btn-ghost hero-leave-request" id="heroLeaveRequestBtn">
           Залишити заявку
         </button>
@@ -2929,71 +2931,6 @@
       </div>
     </div>
   
-    <!-- TRUST STRIP — поверх фото знизу -->
-    <div class="strip strip--hero">
-      <div class="strip-track">
-        <div class="strip-group">
-          <span class="label">НАМ ДОВІРЯЮТЬ</span>
-          <span class="brandname">ПроектАльфа</span>
-          <span class="brandname">DevTeam</span>
-          <span class="brandname">Startup Hub</span>
-          <span class="brandname">mycar TEAM</span>
-          <span class="brandname">AL-FARABI University</span>
-        </div>
-        <div class="strip-group" aria-hidden="true">
-          <span class="label">НАМ ДОВІРЯЮТЬ</span>
-          <span class="brandname">ПроектАльфа</span>
-          <span class="brandname">DevTeam</span>
-          <span class="brandname">Startup Hub</span>
-          <span class="brandname">mycar TEAM</span>
-          <span class="brandname">AL-FARABI University</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- INDUSTRY STACK -->
-  <section class="industry-stack">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <h2 style="font-size:clamp(26px,4vw,34px);">Корпоративний мерч для будь-якої задачі</h2>
-      </div>
-    </div>
-    <div class="app-track" id="industryStackList">
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">👕 Для персоналу</span></div>
-        <div class="app-bottom"><h3>Форма для ресторанів, магазинів, клінік та сервісних компаній.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎤 Для подій</span></div>
-        <div class="app-bottom"><h3>Конференції, виставки, корпоративи та промоакції.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎁 Для клієнтів</span></div>
-        <div class="app-bottom"><h3>Подарунки, брендовані набори та корпоративний мерч.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎓 Для навчання та спорту</span></div>
-        <div class="app-bottom"><h3>Університети, школи, клуби, секції та спортивні команди.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🤝 Для команди</span></div>
-        <div class="app-bottom"><h3>Welcome Kit, онбординг, корпоративна культура та внутрішні заходи.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy"></div>
-      </article>
-    </div>
-    <div class="wrap">
-      <div class="story-controls industry-stack-controls">
-        <div class="story-dots" id="industryStackDots"></div>
-        <button class="story-next" id="industryStackNext" aria-label="Наступна категорія">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
   </section>
 
   <!-- PROCESS -->
@@ -3086,6 +3023,50 @@
         <span class="promo-clock-label">1 хв</span>
       </div>
     </button>
+  </section>
+
+  <!-- INDUSTRY STACK -->
+  <section class="industry-stack">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 style="font-size:clamp(26px,4vw,34px);">Корпоративний мерч для будь-якої задачі</h2>
+      </div>
+    </div>
+    <div class="app-track" id="industryStackList">
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">👕 Для персоналу</span></div>
+        <div class="app-bottom"><h3>Форма для ресторанів, магазинів, клінік та сервісних компаній.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎤 Для подій</span></div>
+        <div class="app-bottom"><h3>Конференції, виставки, корпоративи та промоакції.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎁 Для клієнтів</span></div>
+        <div class="app-bottom"><h3>Подарунки, брендовані набори та корпоративний мерч.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎓 Для навчання та спорту</span></div>
+        <div class="app-bottom"><h3>Університети, школи, клуби, секції та спортивні команди.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🤝 Для команди</span></div>
+        <div class="app-bottom"><h3>Welcome Kit, онбординг, корпоративна культура та внутрішні заходи.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy"></div>
+      </article>
+    </div>
+    <div class="wrap">
+      <div class="story-controls industry-stack-controls">
+        <div class="story-dots" id="industryStackDots"></div>
+        <button class="story-next" id="industryStackNext" aria-label="Наступна категорія">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- CATALOG -->
@@ -3412,7 +3393,7 @@
   </section>
 
   <!-- ABOUT -->
-  <section style="background:#FFFFFF;">
+  <section style="background:#FFFFFF;padding-top:8px;">
     <div class="wrap">
       <div class="about-text reveal">
         <span class="eyebrow">Про нас</span>
