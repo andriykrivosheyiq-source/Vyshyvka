@@ -689,17 +689,17 @@
   }
   .app-track::-webkit-scrollbar{display:none;}
   .app-card{
-    flex:0 0 54%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
+    flex:0 0 46%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
     background:#FFFFFF;border:1px solid var(--line);
     display:flex;flex-direction:column;
   }
-  @media (min-width:640px){.app-card{flex:0 0 205px;}}
+  @media (min-width:640px){.app-card{flex:0 0 178px;}}
   .app-top{padding:14px 14px 4px;}
   .app-eyebrow{
-    font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+    font-weight:700;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
   }
   .app-bottom{padding:8px 14px 14px;}
-  .app-bottom h3{font-size:15px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:-.01em;}
+  .app-bottom h3{font-size:13.5px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:-.01em;}
   .app-photo{width:100%;aspect-ratio:1/0.72;margin-top:auto;}
   .app-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -914,18 +914,24 @@
   .review-strip{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:2px 18px 6px;
     scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
   .review-strip::-webkit-scrollbar{display:none;}
-  .rs-card{flex:0 0 78%;scroll-snap-align:start;background:#FFFFFF;border:1px solid var(--line);
-    border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:9px;}
-  @media(min-width:740px){ .rs-card{flex:0 0 300px;} }
-  .rs-top{display:flex;align-items:center;gap:10px;}
-  .rs-photo{width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:#ececec;}
-  .rs-ava{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+  .rs-card{flex:0 0 66%;scroll-snap-align:start;background:#FFFFFF;border:1px solid var(--line);
+    border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden;}
+  @media(min-width:740px){ .rs-card{flex:0 0 248px;} }
+  /* фото відгуку — велике, вертикальне (висота більша за ширину) */
+  .rs-media{position:relative;width:100%;aspect-ratio:1/1.12;background:#ececec;flex:none;overflow:hidden;}
+  .rs-media--ph{display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg,#f3f4f7 0%,#e9ebf0 100%);color:#9aa0ab;font-weight:800;font-size:54px;}
+  .rs-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+  .rs-body{padding:12px 13px 14px;display:flex;flex-direction:column;gap:7px;}
+  .rs-top{display:flex;align-items:center;gap:9px;}
+  .rs-photo{width:42px;height:42px;border-radius:11px;object-fit:cover;flex:none;background:#ececec;}
+  .rs-ava{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;
     background:#f0f1f5;color:#555;font-weight:700;font-size:17px;}
   .rs-name{font-size:15px;font-weight:700;line-height:1.2;}
   .rs-date{font-size:12px;color:var(--muted);margin-top:2px;}
   .rs-stars{color:#f5b301;font-size:13px;letter-spacing:1px;}
-  .rs-text{font-size:14px;line-height:1.45;color:#333;
-    display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .rs-text{font-size:13.5px;line-height:1.45;color:#333;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
   .rs-more{flex:0 0 auto;align-self:stretch;display:flex;align-items:center;}
   .rs-more .btn{white-space:nowrap;}
 
@@ -3308,37 +3314,6 @@
     </div>
     <div class="review-strip reveal" id="reviewStrip"></div>
 
-      <div class="why-trust reveal">
-        <div class="why-trust-left">
-          <div>
-            <button class="btn btn-primary why-trust-cta" id="whyTrustReviewsBtn">Переглянути всі відгуки
-              <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="why-trust-logos">
-          <div class="why-trust-row">
-            <div class="why-trust-row-track">
-              <span class="logo-text">MONOBANK</span>
-              <span class="logo-pill">BRAINLY</span>
-              <span class="logo-badge"><span class="circ">П</span>ПУМБ</span>
-              <span class="logo-text">MONOBANK</span>
-              <span class="logo-pill">BRAINLY</span>
-              <span class="logo-badge"><span class="circ">П</span>ПУМБ</span>
-            </div>
-          </div>
-          <div class="why-trust-row">
-            <div class="why-trust-row-track reverse">
-              <span class="logo-text">AJAX</span>
-              <span class="logo-text">KNESS</span>
-              <span class="logo-badge"><span class="circ">S</span>Українські бренди</span>
-              <span class="logo-text">AJAX</span>
-              <span class="logo-text">KNESS</span>
-              <span class="logo-badge"><span class="circ">S</span>Українські бренди</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
     <div class="wrap">
       <div class="help-card reveal">
@@ -4174,9 +4149,6 @@
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
-  // кнопка «Переглянути всі відгуки» у блоці з логотипами клієнтів
-  var whyTrustBtn = document.getElementById('whyTrustReviewsBtn');
-  if(whyTrustBtn) whyTrustBtn.addEventListener('click', function(){ reviewsModalCtrl.open(); });
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
 
 
@@ -6849,13 +6821,18 @@ window.LOOMIQ_CONFIG = {
         var stars= (c.querySelector('.review-stars')||{}).textContent || '★★★★★';
         var text = (c.querySelector('p')||{}).textContent || '';
         var img  = c.querySelector('.review-photo img');
-        var ava  = img ? '<img class="rs-photo" src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy">'
-                       : '<span class="rs-ava">'+esc(name.trim().charAt(0)||'—')+'</span>';
-        html += '<article class="rs-card">'
-              +   '<div class="rs-top">'+ava+'<div><div class="rs-name">'+esc(name)+'</div>'
-              +   '<div class="rs-date">'+esc(date)+'</div></div></div>'
-              +   '<div class="rs-stars">'+esc(stars)+'</div>'
-              +   '<p class="rs-text">'+esc(text)+'</p>'
+        // медіа є завжди — так усі картки однакової висоти;
+        // без фото показуємо плитку з першою літерою імені
+        var media = img
+          ? '<div class="rs-media"><img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy"></div>'
+          : '<div class="rs-media rs-media--ph"><span>'+esc(name.trim().charAt(0)||'—')+'</span></div>';
+        var head  = '<div><div class="rs-name">'+esc(name)+'</div><div class="rs-date">'+esc(date)+'</div></div>';
+        html += '<article class="rs-card">'+media
+              +   '<div class="rs-body">'
+              +     '<div class="rs-top">'+head+'</div>'
+              +     '<div class="rs-stars">'+esc(stars)+'</div>'
+              +     '<p class="rs-text">'+esc(text)+'</p>'
+              +   '</div>'
               + '</article>';
       });
       if(!html) return;
