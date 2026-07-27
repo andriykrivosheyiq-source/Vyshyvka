@@ -114,7 +114,7 @@
   .float-cta-bar .btn{width:88%;max-width:440px;justify-content:center;}
   .float-telegram{
     position:fixed;bottom:100px;left:22px;z-index:80;
-    width:54px;height:54px;border-radius:50%;
+    width:64px;height:64px;border-radius:50%;
     background:#27A7E7;display:flex;align-items:center;justify-content:center;
     box-shadow:0 14px 28px -10px rgba(39,167,231,.55);
     opacity:0;transform:scale(.86);filter:blur(8px);
@@ -128,7 +128,7 @@
   }
   @media (max-width:480px){
     .float-cta-bar{padding:14px 20px calc(14px + env(safe-area-inset-bottom, 0px));}
-    .float-telegram{left:16px;bottom:92px;width:48px;height:48px;}
+    .float-telegram{left:16px;bottom:92px;width:58px;height:58px;}
   }
   /* Menu drawer — 2/3 width, slides in from the right, with backdrop */
   .menu-backdrop{
@@ -211,19 +211,26 @@
       rgba(8,9,14,.42) 100%);
     pointer-events:none;
   }
+  /* Зона перемикання роликів у стилі Nike: крапки по центру, таймер справа */
+  .hero-nike-bar{position:relative;display:flex;align-items:center;justify-content:center;
+    margin-top:16px;min-height:34px;}
+  .hero-nike-bar[hidden]{display:none;}
+  .hero-vid-dots{display:flex;align-items:center;gap:8px;}
+  .hero-vid-dots .vd{width:7px;height:7px;border-radius:50%;padding:0;border:none;cursor:pointer;
+    background:rgba(255,255,255,.45);transition:background .25s ease;}
+  .hero-vid-dots .vd.active{background:#FFFFFF;}
   .hero-video-ui{
-    position:absolute;right:16px;bottom:62px;z-index:3;
-    width:46px;height:46px;border-radius:50%;padding:0;cursor:pointer;
-    background:rgba(12,12,16,.35);border:none;
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:3;
+    width:34px;height:34px;border-radius:50%;padding:0;cursor:pointer;
+    background:transparent;border:none;
   }
   .hero-video-ui[hidden]{display:none;}
   .hero-video-ui svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
-  .hvt-bg{stroke:rgba(255,255,255,.25);}
+  .hvt-bg{stroke:rgba(255,255,255,.4);}
   .hvt-fill{stroke:#fff;stroke-dasharray:119.4;stroke-dashoffset:119.4;}
   #heroVideoTimer{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;
+    font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;
   }
   .hero-slide-controls{
     position:absolute;left:0;right:0;bottom:18px;z-index:3;
@@ -397,7 +404,7 @@
 
   /* Interactive logo designer (step 02) */
   .step-visual--designer{align-items:flex-start;}
-  .logo-designer{width:100%;max-width:160px;margin:0 auto;user-select:none;-webkit-user-select:none;}
+  .logo-designer{width:100%;max-width:126px;margin:0 auto;user-select:none;-webkit-user-select:none;}
   .ld-stage{position:relative;width:100%;aspect-ratio:1/1;pointer-events:none;}
   .ld-shirt{position:absolute;inset:0;}
   .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
@@ -423,7 +430,7 @@
 
   /* Step 03 — box slides in from the right */
   .step-visual--box{overflow:hidden;}
-  .box-slide{width:100%;max-width:225px;margin-left:auto;
+  .box-slide{width:100%;max-width:170px;margin-left:auto;
     transform:translateX(125%);opacity:0;
     transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
   .step-block.in .box-slide{transform:translateX(0);opacity:1;}
@@ -910,29 +917,15 @@
   .work-gallery img{flex:0 0 auto;width:156px;height:196px;object-fit:cover;border-radius:16px;scroll-snap-align:start;background:#ececec;}
   @media(min-width:740px){ .work-gallery img{width:190px;height:240px;} }
 
-  /* Стрічка відгуків на головній — та сама інформація, що й у модалці «Відгуки» */
-  .review-strip{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:2px 18px 6px;
-    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
-  .review-strip::-webkit-scrollbar{display:none;}
-  .rs-card{flex:0 0 66%;scroll-snap-align:start;background:#FFFFFF;border:1px solid var(--line);
-    border-radius:18px;padding:0;display:flex;flex-direction:column;overflow:hidden;}
-  @media(min-width:740px){ .rs-card{flex:0 0 248px;} }
-  /* фото відгуку — велике, вертикальне (висота більша за ширину) */
-  .rs-media{position:relative;width:100%;aspect-ratio:1/1.12;background:#ececec;flex:none;overflow:hidden;}
-  .rs-media--ph{display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(160deg,#f3f4f7 0%,#e9ebf0 100%);color:#9aa0ab;font-weight:800;font-size:54px;}
-  .rs-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
-  .rs-body{padding:12px 13px 14px;display:flex;flex-direction:column;gap:7px;}
-  .rs-top{display:flex;align-items:center;gap:9px;}
-  .rs-photo{width:42px;height:42px;border-radius:11px;object-fit:cover;flex:none;background:#ececec;}
-  .rs-ava{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;
-    background:#f0f1f5;color:#555;font-weight:700;font-size:17px;}
-  .rs-name{font-size:15px;font-weight:700;line-height:1.2;}
-  .rs-date{font-size:12px;color:var(--muted);margin-top:2px;}
-  .rs-stars{color:#f5b301;font-size:13px;letter-spacing:1px;}
-  .rs-text{font-size:13.5px;line-height:1.45;color:#333;
+  /* Відгуки на головній — ті самі картки, що й у блоці ніш (.app-card) */
+  .rs-eyebrow{display:flex;align-items:center;gap:6px;}
+  .rs-stars{color:#f5b301;font-size:12px;letter-spacing:.5px;}
+  .rs-name{font-weight:700;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .app-card .rs-text{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--ink);letter-spacing:-.01em;
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-  .rs-more{flex:0 0 auto;align-self:stretch;display:flex;align-items:center;}
+  .rs-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg,#f3f4f7 0%,#e9ebf0 100%);color:#a6acb7;font-weight:800;font-size:44px;}
+  .rs-more{flex:0 0 auto;display:flex;align-items:center;padding-right:6px;}
   .rs-more .btn{white-space:nowrap;}
 
   /* Product configurator modal */
@@ -2934,15 +2927,6 @@
     </div>
     <div class="hero-overlay"></div>
 
-    <!-- Круговий таймер відео (стиль Nike): кільце = прогрес, цифра = секунди до наступного -->
-    <button class="hero-video-ui" id="heroVideoUi" hidden aria-label="Наступне відео">
-      <svg viewBox="0 0 44 44" aria-hidden="true">
-        <circle class="hvt-bg" cx="22" cy="22" r="19" fill="none" stroke-width="3"/>
-        <circle class="hvt-fill" id="heroVidRing" cx="22" cy="22" r="19" fill="none" stroke-width="3" stroke-linecap="round"/>
-      </svg>
-      <span id="heroVideoTimer">0</span>
-    </button>
-
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
       <p class="lead">Завантажте логотип і одразу побачите точну ціну та дату готовності.</p>
@@ -2955,6 +2939,18 @@
       <div class="hero-rating">
         <span class="hero-rating-stars">★★★★★</span>
         <span class="hero-rating-text">4.9 · 128 відгуків</span>
+      </div>
+
+      <!-- Зона перемикання фонових роликів (стиль Nike): крапки по центру, таймер справа -->
+      <div class="hero-nike-bar" id="heroNikeBar" hidden>
+        <div class="hero-vid-dots" id="heroVidDots"></div>
+        <button class="hero-video-ui" id="heroVideoUi" aria-label="Наступне відео">
+          <svg viewBox="0 0 44 44" aria-hidden="true">
+            <circle class="hvt-bg" cx="22" cy="22" r="19" fill="none" stroke-width="2"/>
+            <circle class="hvt-fill" id="heroVidRing" cx="22" cy="22" r="19" fill="none" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span id="heroVideoTimer">0</span>
+        </button>
       </div>
     </div>
   
@@ -3312,7 +3308,7 @@
         <h3>Що кажуть наші клієнти</h3>
       </div>
     </div>
-    <div class="review-strip reveal" id="reviewStrip"></div>
+    <div class="app-track reveal" id="reviewStrip"></div>
 
 
     <div class="wrap">
@@ -3708,6 +3704,16 @@
     var vids = Array.prototype.slice.call(document.querySelectorAll('.hero-bg-video'));
     var ui = document.getElementById('heroVideoUi');
     if(!vids.length || !ui) return;
+    var bar = document.getElementById('heroNikeBar');
+    var dotsWrap = document.getElementById('heroVidDots');
+    var vdots = [];
+    if(dotsWrap){
+      dotsWrap.innerHTML = vids.map(function(_, i){
+        return '<button class="vd'+(i===0?' active':'')+'" data-i="'+i+'" aria-label="Ролик '+(i+1)+'"></button>';
+      }).join('');
+      vdots = [].slice.call(dotsWrap.querySelectorAll('.vd'));
+    }
+    function markDot(i){ vdots.forEach(function(d,k){ d.classList.toggle('active', k===i); }); }
     var ring = document.getElementById('heroVidRing');
     var RING_LEN = 119.4;
     var timerEl = document.getElementById('heroVideoTimer');
@@ -3751,6 +3757,7 @@
       stopTick();
       var prev = vids[cur];
       cur = idx;
+      markDot(cur);
       ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
       try{ v.currentTime = 0; }catch(e){}
@@ -3794,6 +3801,7 @@
         if(Object.keys(dead).length >= vids.length){
           // жодне відео не вантажиться — лишаємо фонове фото
           ui.hidden = true;
+          if(bar) bar.hidden = true;
           stopTick();
           return;
         }
@@ -3809,6 +3817,13 @@
       if(nx >= 0 && nx !== cur) show(nx);
     });
 
+    vdots.forEach(function(d){
+      d.addEventListener('click', function(){
+        var i = +d.dataset.i;
+        if(i !== cur && !dead[i]) show(i);
+      });
+    });
+
     // не палимо трафік у фоновій вкладці; повертаємось — граємо далі
     document.addEventListener('visibilitychange', function(){
       if(ui.hidden) return;
@@ -3817,6 +3832,7 @@
     });
 
     ui.hidden = false;
+    if(bar) bar.hidden = false;
     show(0);
   })();
 
@@ -6821,18 +6837,16 @@ window.LOOMIQ_CONFIG = {
         var stars= (c.querySelector('.review-stars')||{}).textContent || '★★★★★';
         var text = (c.querySelector('p')||{}).textContent || '';
         var img  = c.querySelector('.review-photo img');
-        // медіа є завжди — так усі картки однакової висоти;
-        // без фото показуємо плитку з першою літерою імені
-        var media = img
-          ? '<div class="rs-media"><img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy"></div>'
-          : '<div class="rs-media rs-media--ph"><span>'+esc(name.trim().charAt(0)||'—')+'</span></div>';
-        var head  = '<div><div class="rs-name">'+esc(name)+'</div><div class="rs-date">'+esc(date)+'</div></div>';
-        html += '<article class="rs-card">'+media
-              +   '<div class="rs-body">'
-              +     '<div class="rs-top">'+head+'</div>'
-              +     '<div class="rs-stars">'+esc(stars)+'</div>'
-              +     '<p class="rs-text">'+esc(text)+'</p>'
-              +   '</div>'
+        // будуємо ту саму картку, що й у блоці ніш: лейбл → текст → фото знизу
+        var photo = img
+          ? '<img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy">'
+          : '<div class="rs-ph">'+esc(name.trim().charAt(0)||'—')+'</div>';
+        html += '<article class="app-card">'
+              +   '<div class="app-top"><span class="app-eyebrow rs-eyebrow">'
+              +     '<span class="rs-stars">'+esc(stars)+'</span>'
+              +     '<span class="rs-name">'+esc(name)+'</span></span></div>'
+              +   '<div class="app-bottom"><h3 class="rs-text">'+esc(text)+'</h3></div>'
+              +   '<div class="app-photo">'+photo+'</div>'
               + '</article>';
       });
       if(!html) return;
