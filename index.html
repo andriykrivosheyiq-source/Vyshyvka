@@ -410,13 +410,13 @@
   .step-badge{flex:none;width:28px;height:28px;border-radius:50%;
     border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;
     font-size:14px;font-weight:700;color:var(--ink);line-height:1;}
-  .step-info h3{font-size:17px;margin-top:0;}
-  .step-info p{color:var(--muted);margin-top:7px;font-size:14px;line-height:1.5;max-width:320px;}
+  .step-info h3{font-size:20px;margin-top:0;}
+  .step-info p{color:var(--muted);margin-top:7px;font-size:17px;line-height:1.5;max-width:320px;}
   @media (max-width:480px){
     .step-block{grid-template-columns:1.15fr 1fr;gap:10px;padding:16px 14px;margin-top:12px;}
-    .step-info h3{font-size:15px;}
+    .step-info h3{font-size:18px;}
     .step-badge{width:25px;height:25px;font-size:13px;}
-    .step-info p{font-size:13px;}
+    .step-info p{font-size:15.5px;}
   }
   .step-visual{display:flex;justify-content:center;position:relative;}
   .step-visual svg{width:min(62%,130px);color:var(--ink);}
@@ -941,14 +941,11 @@
   .work-gallery img{flex:0 0 auto;width:156px;height:196px;object-fit:cover;border-radius:16px;scroll-snap-align:start;background:#ececec;}
   @media(min-width:740px){ .work-gallery img{width:190px;height:240px;} }
 
-  /* Відгуки на головній — ті самі картки, що й у блоці ніш (.app-card) */
-  .rs-eyebrow{display:flex;align-items:center;gap:6px;}
-  .rs-stars{color:#f5b301;font-size:12px;letter-spacing:.5px;}
-  .rs-name{font-weight:700;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-  .app-card .rs-text{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--ink);letter-spacing:-.01em;
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-  .rs-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(160deg,#f3f4f7 0%,#e9ebf0 100%);color:#a6acb7;font-weight:800;font-size:44px;}
+  /* Відгуки на головній: фото зверху, під ним імʼя; клік відкриває відгук повністю */
+  .app-card--rev{cursor:pointer;}
+  .app-card--rev .app-photo{margin-top:0;order:-1;}
+  .rs-name{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;}
+  .rs-date{font-size:12.5px;color:var(--muted);margin-top:3px;}
   .rs-more{flex:0 0 auto;display:flex;align-items:center;padding-right:6px;}
   .rs-more .btn{white-space:nowrap;}
 
@@ -6866,24 +6863,21 @@ window.LOOMIQ_CONFIG = {
       // спершу живі відгуки з бази, далі — вбудовані картки
       var cards = [].slice.call(modal.querySelectorAll('#userReviews .review-card'))
         .concat([].slice.call(modal.querySelectorAll('.review-card'))
-          .filter(function(c){ return !c.closest('#userReviews'); }));
+          .filter(function(c){ return !c.closest('#userReviews'); }))
+        // у стрічку беремо лише відгуки з фото — без заглушок
+        .filter(function(c){ return !!c.querySelector('.review-photo img'); });
       var html = '';
-      cards.slice(0, LIMIT).forEach(function(c){
+      cards.slice(0, LIMIT).forEach(function(c, n){
         var name = (c.querySelector('h4')||{}).textContent || '';
         var date = (c.querySelector('.review-date')||{}).textContent || '';
-        var stars= (c.querySelector('.review-stars')||{}).textContent || '★★★★★';
-        var text = (c.querySelector('p')||{}).textContent || '';
         var img  = c.querySelector('.review-photo img');
-        // будуємо ту саму картку, що й у блоці ніш: лейбл → текст → фото знизу
-        var photo = img
-          ? '<img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy">'
-          : '<div class="rs-ph">'+esc(name.trim().charAt(0)||'—')+'</div>';
-        html += '<article class="app-card">'
-              +   '<div class="app-top"><span class="app-eyebrow rs-eyebrow">'
-              +     '<span class="rs-stars">'+esc(stars)+'</span>'
-              +     '<span class="rs-name">'+esc(name)+'</span></span></div>'
-              +   '<div class="app-bottom"><h3 class="rs-text">'+esc(text)+'</h3></div>'
-              +   '<div class="app-photo">'+photo+'</div>'
+        c.setAttribute('data-rs-idx', n);
+        html += '<article class="app-card app-card--rev" data-rs-open="'+n+'">'
+              +   '<div class="app-photo"><img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy"></div>'
+              +   '<div class="app-bottom">'
+              +     '<div class="rs-name">'+esc(name)+'</div>'
+              +     '<div class="rs-date">'+esc(date)+'</div>'
+              +   '</div>'
               + '</article>';
       });
       if(!html) return;
@@ -6894,6 +6888,19 @@ window.LOOMIQ_CONFIG = {
       var more = document.getElementById('reviewStripMore');
       if(more) more.addEventListener('click', function(){
         var mb = document.getElementById('menuReviewsBtn'); if(mb) mb.click();
+      });
+
+      // клік по картці відкриває сторінку відгуків саме на цьому відгуку
+      strip.querySelectorAll('[data-rs-open]').forEach(function(card){
+        card.addEventListener('click', function(){
+          var idx = card.getAttribute('data-rs-open');
+          var mb = document.getElementById('menuReviewsBtn');
+          if(mb) mb.click();
+          setTimeout(function(){
+            var target = modal.querySelector('[data-rs-idx="'+idx+'"]');
+            if(target) target.scrollIntoView({block:'center'});
+          }, 350);
+        });
       });
     }
 
