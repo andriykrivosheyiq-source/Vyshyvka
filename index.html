@@ -910,6 +910,25 @@
   .work-gallery img{flex:0 0 auto;width:156px;height:196px;object-fit:cover;border-radius:16px;scroll-snap-align:start;background:#ececec;}
   @media(min-width:740px){ .work-gallery img{width:190px;height:240px;} }
 
+  /* Стрічка відгуків на головній — та сама інформація, що й у модалці «Відгуки» */
+  .review-strip{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:2px 18px 6px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+  .review-strip::-webkit-scrollbar{display:none;}
+  .rs-card{flex:0 0 78%;scroll-snap-align:start;background:#FFFFFF;border:1px solid var(--line);
+    border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:9px;}
+  @media(min-width:740px){ .rs-card{flex:0 0 300px;} }
+  .rs-top{display:flex;align-items:center;gap:10px;}
+  .rs-photo{width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:#ececec;}
+  .rs-ava{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:#f0f1f5;color:#555;font-weight:700;font-size:17px;}
+  .rs-name{font-size:15px;font-weight:700;line-height:1.2;}
+  .rs-date{font-size:12px;color:var(--muted);margin-top:2px;}
+  .rs-stars{color:#f5b301;font-size:13px;letter-spacing:1px;}
+  .rs-text{font-size:14px;line-height:1.45;color:#333;
+    display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+  .rs-more{flex:0 0 auto;align-self:stretch;display:flex;align-items:center;}
+  .rs-more .btn{white-space:nowrap;}
+
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
@@ -3302,62 +3321,11 @@
 
     <div class="wrap">
       <div class="work-gallery-head reveal">
-        <span class="eyebrow">Наші роботи</span>
-        <h3>Реальні замовлення наших клієнтів</h3>
+        <span class="eyebrow">Відгуки</span>
+        <h3>Що кажуть наші клієнти</h3>
       </div>
     </div>
-    <div class="work-gallery reveal" id="workGallery">
-      <img src="images/work-01.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-03.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-06.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-02.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-08.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-13.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-15.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-07.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-09.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-16.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-05.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-10.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-12.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-14.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-04.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-11.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-17.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-18.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-19.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-20.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-21.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-22.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-23.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-24.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-25.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-26.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-27.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-28.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-29.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-30.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-31.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-32.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-33.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-34.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-35.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-36.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-37.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-38.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-39.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-40.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-41.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-42.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-43.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-44.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-45.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-46.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-47.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-48.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-49.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="images/work-50.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-    </div>
+    <div class="review-strip reveal" id="reviewStrip"></div>
 
       <div class="why-trust reveal">
         <div class="why-trust-left">
@@ -7315,6 +7283,57 @@ window.LOOMIQ_CONFIG = {
     document.addEventListener('gestureend', function(){
       if(document.documentElement.style.zoom) document.documentElement.style.zoom = '';
     }, {passive:false});
+  })();
+</script>
+
+<!-- Стрічка відгуків на головній: береться з тих самих карток, що і в модалці «Відгуки» -->
+<script>
+  (function(){
+    var strip = document.getElementById('reviewStrip');
+    var modal = document.getElementById('reviewsModal');
+    if(!strip || !modal) return;
+    var LIMIT = 10;
+
+    function esc(t){ return (t||'').replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
+
+    function build(){
+      // спершу живі відгуки з бази, далі — вбудовані картки
+      var cards = [].slice.call(modal.querySelectorAll('#userReviews .review-card'))
+        .concat([].slice.call(modal.querySelectorAll('.review-card'))
+          .filter(function(c){ return !c.closest('#userReviews'); }));
+      var html = '';
+      cards.slice(0, LIMIT).forEach(function(c){
+        var name = (c.querySelector('h4')||{}).textContent || '';
+        var date = (c.querySelector('.review-date')||{}).textContent || '';
+        var stars= (c.querySelector('.review-stars')||{}).textContent || '★★★★★';
+        var text = (c.querySelector('p')||{}).textContent || '';
+        var img  = c.querySelector('.review-photo img');
+        var ava  = img ? '<img class="rs-photo" src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy">'
+                       : '<span class="rs-ava">'+esc(name.trim().charAt(0)||'—')+'</span>';
+        html += '<article class="rs-card">'
+              +   '<div class="rs-top">'+ava+'<div><div class="rs-name">'+esc(name)+'</div>'
+              +   '<div class="rs-date">'+esc(date)+'</div></div></div>'
+              +   '<div class="rs-stars">'+esc(stars)+'</div>'
+              +   '<p class="rs-text">'+esc(text)+'</p>'
+              + '</article>';
+      });
+      if(!html) return;
+      html += '<div class="rs-more"><button class="btn btn-primary" id="reviewStripMore">Усі відгуки'
+            + '<svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+            + '</button></div>';
+      strip.innerHTML = html;
+      var more = document.getElementById('reviewStripMore');
+      if(more) more.addEventListener('click', function(){
+        var mb = document.getElementById('menuReviewsBtn'); if(mb) mb.click();
+      });
+    }
+
+    build();
+    // живі відгуки підвантажуються з бази пізніше — перебудовуємо стрічку
+    var box = document.getElementById('userReviews');
+    if(box && window.MutationObserver){
+      new MutationObserver(function(){ build(); }).observe(box, {childList:true});
+    }
   })();
 </script>
 </body>
