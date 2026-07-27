@@ -32,8 +32,10 @@
   *{box-sizing:border-box;}
   button{font-family:inherit;}
   html{scroll-behavior:smooth;}
+  html{touch-action:manipulation;}   /* вимикає зум подвійним тапом */
   body{
     margin:0;
+    touch-action:manipulation;
     font-family:var(--font-sf);
     color:var(--ink);
     background:var(--white);
@@ -3115,7 +3117,7 @@
       </div>
 
       <div class="catalog-grid reveal">
-        <div class="product">
+        <div class="product" data-garment="hoodie">
           <div class="product-art">
             <img src="images/hoodie.webp" alt="Худі" loading="lazy">
           </div>
@@ -3125,7 +3127,7 @@
           </div>
         </div>
 
-        <div class="product">
+        <div class="product" data-garment="tee">
           <div class="product-art">
             <img src="images/tshirt.webp" alt="Футболка" loading="lazy">
           </div>
@@ -3135,7 +3137,7 @@
           </div>
         </div>
 
-        <div class="product">
+        <div class="product" data-garment="sweat">
           <div class="product-art">
             <img src="images/sweatshirt.webp" alt="Світшот" loading="lazy">
           </div>
@@ -3145,7 +3147,7 @@
           </div>
         </div>
 
-        <div class="product">
+        <div class="product" data-garment="cap">
           <div class="product-art">
             <img src="images/cap.webp" alt="Кепка" loading="lazy">
           </div>
@@ -6113,7 +6115,10 @@
       'Худі':'hoodie','Футболки':'tee','Світшоти':'sweat','Поло':'polo','Кепки':'cap','Шопери':'tee',
       'Фартухи':'tee','Робочі куртки':'hoodie','Жилети':'vest','Халати':'long',
       'Дитячі футболки':'tee','Дитячі худі':'hoodie','Боді':'tee','Дитячі шапки':'cap',
-      'Парасолі':'tee','Кружки':'tee','Брелоки':'tee'
+      'Парасолі':'tee','Кружки':'tee','Брелоки':'tee',
+      // назви в однині — саме так вони підписані на картках лендінгу
+      'Футболка':'tee','Світшот':'sweat','Кепка':'cap','Шопер':'tote','Поло':'polo',
+      'Лонгслів':'long','Жилет':'vest','Шорти':'shorts','Фартух':'apron','Кітель':'kitel'
     };
     document.addEventListener('click', function(e){
       var card = e.target.closest('.product');
@@ -7310,5 +7315,20 @@ window.LOOMIQ_CONFIG = {
 })();
 </script>
 
+
+<!-- Заборона зуму сторінки пальцями. iOS Safari ігнорує user-scalable=no у viewport,
+     тому блокуємо саме жести масштабування сторінки. Щипок для зміни розміру
+     логотипа в конфігураторі працює через власні touch-обробники і не зачіпається. -->
+<script>
+  (function(){
+    ['gesturestart','gesturechange','gestureend'].forEach(function(type){
+      document.addEventListener(type, function(e){ e.preventDefault(); }, {passive:false});
+    });
+    // сторінку, збільшену жестом до завантаження скрипта, повертаємо до 100%
+    document.addEventListener('gestureend', function(){
+      if(document.documentElement.style.zoom) document.documentElement.style.zoom = '';
+    }, {passive:false});
+  })();
+</script>
 </body>
 </html>
