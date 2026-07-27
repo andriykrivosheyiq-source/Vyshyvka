@@ -796,6 +796,7 @@
             <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
               <div class="sub" id="pa-summary" style="margin-bottom:10px;">Область нанесення (зона друку/вишивки) ще не задана.</div>
               <button class="pc-btn up" id="pa-open" style="flex:none;padding:10px 22px;">Області нанесення</button>
+              <button class="pc-btn up" id="prev-open" style="flex:none;padding:10px 22px;margin-left:8px;background:var(--ink);">Переглянути на сайті</button>
             </div>
           </section>
 
@@ -3672,16 +3673,31 @@ document.getElementById('rev-photos-reset').addEventListener('click', async ()=>
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 
+/* Порядок фото (перед / бік / зад) — менеджер задає перетягуванням, сайт його поважає */
+function viewOrderFor(gid, views){
+  const saved = ((contentData.viewOrder || {})[gid]) || [];
+  const known = saved.filter(v=>views.indexOf(v) !== -1);
+  return known.concat(views.filter(v=>known.indexOf(v) === -1));
+}
+async function saveViewOrder(gid, order){
+  try{
+    await PHOTOS_DOC.set({ viewOrder: { [gid]: order } }, { merge:true });
+    contentData.viewOrder = Object.assign({}, contentData.viewOrder, { [gid]: order });
+    toast('Порядок фото збережено');
+  }catch(e){ console.error(e); toast('Не вдалось зберегти порядок'); }
+}
+
 function renderPhotoCells(){
   const box = document.getElementById('photo-cells');
   if(!box) return;
   const g = photoCfg(photoGarmentId);
-  box.innerHTML = g.views.map(v=>{
+  const views = viewOrderFor(g.id, g.views);
+  box.innerHTML = views.map(v=>{
     const key = g.id+'-'+photoColorId+'-'+v;
     const custom = photosMap[key];
     const src = custom || ('images/'+key+'.webp');
-    return `<div class="photo-cell" data-key="${key}">
-      <div class="pc-view">${VIEW_LABEL[v]||v}</div>
+    return `<div class="photo-cell" data-key="${key}" data-view="${v}">
+      <div class="pc-view" style="display:flex;align-items:center;gap:4px;">${DRAG_H}<span>${VIEW_LABEL[v]||v}</span></div>
       <div class="pc-img"><img src="${src}" alt="" onerror="this.style.opacity=.25;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22></svg>'"></div>
       ${custom?'<span class="pc-badge">Власне фото</span>':''}
       <div class="pc-actions">
@@ -3692,10 +3708,62 @@ function renderPhotoCells(){
   }).join('');
   box.querySelectorAll('.pc-btn.up').forEach(b=>b.addEventListener('click', ()=>pickPhoto(b.dataset.key, b)));
   box.querySelectorAll('.pc-btn.reset').forEach(b=>b.addEventListener('click', ()=>resetPhoto(b.dataset.key)));
+  // перетягування карток фото — задає, яке фото перше, друге, третє
+  enableDrag(box, '.photo-cell', ()=>{
+    const order = Array.from(box.querySelectorAll('.photo-cell')).map(c=>c.dataset.view);
+    saveViewOrder(g.id, order);
+  });
 }
 
 document.getElementById('photo-garment').addEventListener('change', e=>{ photoGarmentId=e.target.value; renderCtor(); });
 document.getElementById('photo-color').addEventListener('change', e=>{ photoColorId=e.target.value; renderPhotoCells(); });
+
+/* ============================================================
+   ПЕРЕГЛЯД КАРТКИ НА РІЗНИХ ЕКРАНАХ
+   Відкриває справжній сайт того розділу, який зараз обрано у перемикачі,
+   одразу на потрібному товарі — у рамці телефона / планшета / комп'ютера.
+   ============================================================ */
+function siteUrlForPreview(){
+  const base = { main:'/', horeca:'/horeca/', build:'/build/' }[LQ_SITE] || '/';
+  // ?garment=<id> — сайт відкриє конфігуратор саме на цьому товарі
+  return base + '?preview=1&garment=' + encodeURIComponent(photoGarmentId) + '&t=' + Date.now();
+}
+function openPreview(w, h){
+  const modal = document.getElementById('prev-modal');
+  const frame = document.getElementById('prev-frame');
+  const wrap  = document.getElementById('prev-frame-wrap');
+  if(!modal || !frame) return;
+  const availW = Math.max(320, window.innerWidth - 80);
+  const availH = Math.max(320, window.innerHeight - 130);
+  const scale  = Math.min(1, availW / w, availH / h);
+  frame.style.width = w + 'px';
+  frame.style.height = h + 'px';
+  frame.style.transform = 'scale(' + scale + ')';
+  frame.style.transformOrigin = 'top left';
+  wrap.style.width  = Math.round(w * scale) + 'px';
+  wrap.style.height = Math.round(h * scale) + 'px';
+  const dim = document.getElementById('prev-dim');
+  if(dim) dim.textContent = w + '×' + h + (scale < 1 ? '  (масштаб ' + Math.round(scale*100) + '%)' : '');
+  const t = document.getElementById('prev-title');
+  if(t) t.textContent = 'Перегляд: ' + (photoCfg(photoGarmentId).name || '') + ' · ' + (lqSiteDef().label);
+  if(frame.dataset.loaded !== '1'){ frame.src = siteUrlForPreview(); frame.dataset.loaded = '1'; }
+  modal.style.display = 'block';
+  document.getElementById('prev-sizes').querySelectorAll('.prev-size').forEach(b=>{
+    b.style.background = (+b.dataset.w === w) ? 'var(--accent)' : '#243040';
+  });
+}
+document.addEventListener('click', e=>{
+  const open = e.target.closest('#prev-open');
+  if(open){ const f=document.getElementById('prev-frame'); if(f) f.dataset.loaded=''; openPreview(390, 844); return; }
+  const size = e.target.closest('.prev-size');
+  if(size){ openPreview(+size.dataset.w, +size.dataset.h); return; }
+  if(e.target.closest('#prev-close') || e.target.id === 'prev-modal'){
+    const m=document.getElementById('prev-modal'); if(m) m.style.display='none';
+  }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ const m=document.getElementById('prev-modal'); if(m && m.style.display==='block') m.style.display='none'; }
+});
 
 function pickPhoto(key, btn){
   const inp = document.createElement('input');
@@ -3724,16 +3792,30 @@ async function resetPhoto(key){
   }catch(e){ console.error(e); toast('Помилка'); }
 }
 
+/* Готує фото до завантаження, ЗБЕРІГАЮЧИ фон таким, яким він є у вихідному файлі.
+   Раніше все переганялось у JPEG — а JPEG не має прозорості, тому фон псувався.
+   Тепер: маленькі файли йдуть як є, великі зменшуються у формат з альфа-каналом. */
 function shrinkImage(file){
   return new Promise((resolve, reject)=>{
+    const MAX = 1400, MAX_BYTES = 1.5 * 1024 * 1024;
     const img = new Image();
     img.onload = ()=>{
-      const MAX = 1400;
-      let w = img.naturalWidth, h = img.naturalHeight;
-      if(Math.max(w,h) > MAX){ const s = MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
-      const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      cv.toBlob(b=> b?resolve(b):reject(new Error('blob')), 'image/jpeg', 0.85);
+      const w0 = img.naturalWidth, h0 = img.naturalHeight;
+      // Фото вже компактне — вантажимо оригінал без переробки (фон 1-в-1 як на файлі)
+      if(Math.max(w0, h0) <= MAX && file.size <= MAX_BYTES){ resolve(file); return; }
+      const sc = MAX / Math.max(w0, h0);
+      const w = Math.round(w0 * sc), h = Math.round(h0 * sc);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      // Є прозорі пікселі → зберігаємо формат з прозорістю, інакше фон став би чорним
+      let hasAlpha = false;
+      try{
+        const d = ctx.getImageData(0, 0, w, h).data;
+        for(let i = 3; i < d.length; i += 4){ if(d[i] < 250){ hasAlpha = true; break; } }
+      }catch(e){ hasAlpha = /png|webp|gif/i.test(file.type || ''); }
+      const type = hasAlpha ? 'image/webp' : 'image/jpeg';
+      cv.toBlob(b=> b?resolve(b):reject(new Error('blob')), type, hasAlpha ? 0.92 : 0.85);
     };
     img.onerror = ()=>reject(new Error('img'));
     img.src = URL.createObjectURL(file);
@@ -3836,5 +3918,26 @@ async function init(){
 }
 // init() запускається після успішного входу (див. onAuthStateChanged)
 </script>
+
+<!-- Прев'ю картки товару на різних екранах -->
+<div id="prev-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,14,20,.82);backdrop-filter:blur(3px);">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;">
+    <div style="flex:none;display:flex;align-items:center;gap:10px;padding:14px 18px;color:#E6EAF2;">
+      <b id="prev-title" style="font-size:15px;">Перегляд картки</b>
+      <div style="display:flex;gap:6px;margin-left:14px;" id="prev-sizes">
+        <button class="prev-size" data-w="390"  data-h="844" style="all:unset;cursor:pointer;padding:7px 13px;border-radius:9px;font-size:13px;font-weight:600;background:#243040;color:#E6EAF2;">📱 Телефон</button>
+        <button class="prev-size" data-w="820"  data-h="1080" style="all:unset;cursor:pointer;padding:7px 13px;border-radius:9px;font-size:13px;font-weight:600;background:#243040;color:#E6EAF2;">📲 Планшет</button>
+        <button class="prev-size" data-w="1280" data-h="850" style="all:unset;cursor:pointer;padding:7px 13px;border-radius:9px;font-size:13px;font-weight:600;background:#243040;color:#E6EAF2;">💻 Комп'ютер</button>
+      </div>
+      <span id="prev-dim" style="font-size:12px;color:#8893A6;margin-left:6px;"></span>
+      <button id="prev-close" style="all:unset;cursor:pointer;margin-left:auto;font-size:20px;color:#E6EAF2;padding:0 8px;">✕</button>
+    </div>
+    <div style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:0 18px 18px;">
+      <div id="prev-frame-wrap" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);flex:none;">
+        <iframe id="prev-frame" style="border:0;display:block;background:#fff;" title="Перегляд сайту"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
