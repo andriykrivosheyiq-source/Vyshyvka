@@ -165,6 +165,26 @@
     display:flex;align-items:center;justify-content:center;color:var(--ink);
   }
   .menu-overlay-item.active .menu-overlay-ic{background:#F1E7DE;color:var(--blue);}
+  .menu-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-radius:14px;
+    font-size:18px;font-weight:600;color:var(--ink);transition:background .15s ease;}
+  .menu-row:hover{background:var(--paper);}
+  .menu-row.active{background:#EAF1FB;color:var(--blue);}
+  .menu-row.active .menu-overlay-ic{background:#FFFFFF;color:var(--blue);}
+  .menu-chevron-btn{flex:none;width:38px;height:38px;border-radius:11px;border:none;background:none;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);}
+  .menu-chevron{transition:transform .22s ease;}
+  .menu-chevron-btn[aria-expanded="true"] .menu-chevron{transform:rotate(180deg);}
+  .menu-sub{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px 30px;
+    padding-left:16px;border-left:2px solid var(--line);}
+  .menu-sub[hidden]{display:none;}
+  .menu-sub-item{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;
+    font-size:15.5px;font-weight:600;color:var(--ink);transition:background .15s ease;}
+  .menu-sub-item:hover{background:var(--paper);}
+  .menu-sub-item.active{background:#EAF1FB;color:var(--blue);}
+  .menu-sub-item.active .menu-sub-ic{background:#FFFFFF;color:var(--blue);}
+  .menu-sub-ic{width:34px;height:34px;border-radius:10px;background:var(--paper);flex:none;
+    display:flex;align-items:center;justify-content:center;color:var(--ink);}
+
   .menu-overlay-cta{margin-top:auto;justify-content:center;padding:18px;font-size:17px;}
 
   section{padding:38px 0;background:var(--white);}
@@ -1568,10 +1588,23 @@
     </button>
   </div>
   <nav class="menu-overlay-list">
-    <button data-scroll-to="top" class="menu-overlay-item" id="menuHomeLink" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:var(--font-sf);">
-      <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
-      <span>Головна</span>
-    </button>
+    <div class="menu-row" data-site-row="main">
+      <a href="/" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
+        <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
+        <span>Головна</span>
+      </a>
+      <button class="menu-chevron-btn" id="menuHomeToggle" data-no-close aria-label="Показати сайти" aria-expanded="false">
+        <svg class="menu-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="menu-sub" id="menuHomeSub" hidden>
+      <a href="/horeca/" class="menu-sub-item" data-site-row="horeca">
+        <span class="menu-sub-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v7a3 3 0 0 0 6 0V3"/><path d="M10 10v11"/><path d="M18 3c-1.5 2-2 4-2 6v4h3V3z"/></svg></span><span>HoReCa</span>
+      </a>
+      <a href="/build/" class="menu-sub-item" data-site-row="build">
+        <span class="menu-sub-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></svg></span><span>Будівництво</span>
+      </a>
+    </div>
     <button id="menuCatalogBtn" class="menu-overlay-item" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:var(--font-sf);">
       <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
       <span>Каталог</span>
@@ -1584,14 +1617,6 @@
       <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 1-5.2 4.8L18 21l-6-3.5L6 21l1.2-6.7L2 9.5l7-1z"/></svg></span>
       <span>Відгуки</span>
     </button>
-    <a href="/" class="menu-overlay-item" style="width:100%;">
-      <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
-      <span>Головний сайт Loomiq</span>
-    </a>
-    <a href="/build/" class="menu-overlay-item" style="width:100%;">
-      <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></svg></span>
-      <span>Спецодяг для будівництва</span>
-    </a>
     <button id="menuContactsBtn" class="menu-overlay-item" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:var(--font-sf);">
       <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg></span>
       <span>Контакти</span>
@@ -4003,6 +4028,7 @@
   menuCloseBtn.addEventListener('click', closeMenu);
   menuBackdrop.addEventListener('click', closeMenu);
   menuOverlay.querySelectorAll('a, button').forEach(link=>{
+    if(link.hasAttribute('data-no-close')) return;   // галочка лише розкриває список
     link.addEventListener('click', closeMenu);
   });
 
@@ -6972,6 +6998,34 @@ window.LOOMIQ_CONFIG = {
     document.addEventListener('gestureend', function(){
       if(document.documentElement.style.zoom) document.documentElement.style.zoom = '';
     }, {passive:false});
+  })();
+</script>
+
+<!-- Меню однакове на всіх сайтах: «Головна» розкриває HoReCa / Будівництво,
+     активний розділ підсвічується, галочка не закриває меню -->
+<script>
+  (function(){
+    var toggle = document.getElementById('menuHomeToggle');
+    var sub = document.getElementById('menuHomeSub');
+    if(!toggle || !sub) return;
+
+    // який сайт зараз відкрито
+    var path = location.pathname;
+    var site = path.indexOf('/horeca') === 0 ? 'horeca'
+             : path.indexOf('/build') === 0 ? 'build' : 'main';
+
+    document.querySelectorAll('[data-site-row]').forEach(function(el){
+      el.classList.toggle('active', el.dataset.siteRow === site);
+    });
+    // на нішевому сайті список одразу розгорнутий — видно, де ти
+    if(site !== 'main'){ sub.hidden = false; toggle.setAttribute('aria-expanded','true'); }
+
+    toggle.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      var open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      sub.hidden = open;
+    });
   })();
 </script>
 </body>
