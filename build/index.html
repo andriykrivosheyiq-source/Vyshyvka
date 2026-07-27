@@ -32,8 +32,10 @@
   *{box-sizing:border-box;}
   button{font-family:inherit;}
   html{scroll-behavior:smooth;}
+  html{touch-action:manipulation;}   /* вимикає зум подвійним тапом */
   body{
     margin:0;
+    touch-action:manipulation;
     font-family:var(--font-sf);
     color:var(--ink);
     background:var(--white);
@@ -5750,7 +5752,10 @@
       'Худі':'hoodie','Футболки':'tee','Світшоти':'sweat','Поло':'polo','Кепки':'cap','Шопери':'tee',
       'Фартухи':'tee','Робочі куртки':'hoodie','Жилети':'vest','Халати':'long',
       'Дитячі футболки':'tee','Дитячі худі':'hoodie','Боді':'tee','Дитячі шапки':'cap',
-      'Парасолі':'tee','Кружки':'tee','Брелоки':'tee'
+      'Парасолі':'tee','Кружки':'tee','Брелоки':'tee',
+      // назви в однині — саме так вони підписані на картках лендінгу
+      'Футболка':'tee','Світшот':'sweat','Кепка':'cap','Шопер':'tote','Поло':'polo',
+      'Лонгслів':'long','Жилет':'vest','Шорти':'shorts','Фартух':'apron','Кітель':'kitel'
     };
     document.addEventListener('click', function(e){
       // Клік по кольоровому свотчу лише міняє фото товару — не відкриває конфігуратор
@@ -6942,5 +6947,20 @@ window.LOOMIQ_CONFIG = {
   })();
 </script>
 
+
+<!-- Заборона зуму сторінки пальцями. iOS Safari ігнорує user-scalable=no у viewport,
+     тому блокуємо саме жести масштабування сторінки. Щипок для зміни розміру
+     логотипа в конфігураторі працює через власні touch-обробники і не зачіпається. -->
+<script>
+  (function(){
+    ['gesturestart','gesturechange','gestureend'].forEach(function(type){
+      document.addEventListener(type, function(e){ e.preventDefault(); }, {passive:false});
+    });
+    // сторінку, збільшену жестом до завантаження скрипта, повертаємо до 100%
+    document.addEventListener('gestureend', function(){
+      if(document.documentElement.style.zoom) document.documentElement.style.zoom = '';
+    }, {passive:false});
+  })();
+</script>
 </body>
 </html>
