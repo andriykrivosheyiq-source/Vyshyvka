@@ -4206,14 +4206,10 @@
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
-<<<<<<< Updated upstream
-  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
-=======
   // кнопка «Переглянути всі відгуки» у блоці з логотипами клієнтів
   var whyTrustBtn = document.getElementById('whyTrustReviewsBtn');
   if(whyTrustBtn) whyTrustBtn.addEventListener('click', function(){ reviewsModalCtrl.open(); });
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
->>>>>>> Stashed changes
 
 
   // Call-back form: no backend, just confirm visually
