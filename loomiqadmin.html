@@ -395,6 +395,15 @@
         <div class="brand-mark">Lq</div>
         <div class="brand-text"><b>Loomiq</b><span>Адмінка</span></div>
       </div>
+      <div style="padding:0 14px 12px;">
+        <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8893A6;font-weight:700;margin-bottom:7px;">Сайт</div>
+        <select id="site-switch" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid #2b3444;background:#141a24;color:#E6EAF2;font-size:13.5px;font-weight:600;cursor:pointer;">
+          <option value="main">Головний — loomiq.net</option>
+          <option value="horeca">HoReCa — /horeca/</option>
+          <option value="build">Будівництво — /build/</option>
+        </select>
+        <div id="site-switch-hint" style="font-size:11px;color:#8893A6;margin-top:6px;line-height:1.35;">Товари, фото та відгуки — окремі для кожного сайту</div>
+      </div>
       <nav class="nav">
         <button data-view="board" class="active"><span class="num">01</span> Канбан</button>
         <button data-view="settings"><span class="num">02</span> Формування цін</button>
@@ -1066,7 +1075,21 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 const STATE_DOC = fbDb.collection('loomiq').doc('state');
-const PHOTOS_DOC = fbDb.collection('loomiq').doc('photos');   // публічні фото товарів (читає сайт)
+/* ============================================================
+   САЙТИ. Кожен сайт має власний документ контенту, тому товари,
+   фото, ціни, кейси й FAQ ніколи не змішуються між сайтами.
+   Канбан замовлень (STATE_DOC) лишається спільним для всіх.
+   ============================================================ */
+const LQ_SITES = [
+  { id:'main',   label:'Головний',    doc:'photos' },
+  { id:'horeca', label:'HoReCa',      doc:'photos_horeca' },
+  { id:'build',  label:'Будівництво', doc:'photos_build' },
+];
+let LQ_SITE = localStorage.getItem('lq_admin_site') || 'main';
+if(!LQ_SITES.some(x=>x.id===LQ_SITE)) LQ_SITE = 'main';
+function lqSiteDef(){ return LQ_SITES.find(x=>x.id===LQ_SITE) || LQ_SITES[0]; }
+// Змінна (не const) — усі збереження нижче автоматично пишуть у документ обраного сайту
+let PHOTOS_DOC = fbDb.collection('loomiq').doc(lqSiteDef().doc);   // публічні фото товарів (читає сайт)
 
 /* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
 const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
@@ -2275,7 +2298,12 @@ async function loadReviewsAdmin(){
   try{
     const snap = await fbDb.collection('reviews').orderBy('createdAt','desc').limit(300).get();
     let items = [];
-    snap.forEach(d=> items.push(Object.assign({id:d.id}, d.data())));
+    snap.forEach(d=>{
+      const data = d.data();
+      // відгуки розділені по сайтах; старі записи без поля site — головного сайту
+      const site = data.site || 'main';
+      if(site === LQ_SITE) items.push(Object.assign({id:d.id}, data));
+    });
     if(reviewFilter==='pending')  items = items.filter(r=> !r.approved);
     if(reviewFilter==='approved') items = items.filter(r=>  r.approved);
     if(!items.length){ wrap.innerHTML = '<div class="empty-col" style="padding:30px;">Порожньо</div>'; return; }
@@ -3742,7 +3770,10 @@ async function init(){
   renderBoard();
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
-  PHOTOS_DOC.onSnapshot(function(snap){
+  let photosUnsub = null;
+  function subscribePhotos(){
+    if(photosUnsub){ try{ photosUnsub(); }catch(e){} }
+    photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     photosMap = contentData.map || {};
     const a0 = document.activeElement;
@@ -3758,7 +3789,28 @@ async function init(){
       else if(!typing) renderProductsTab();
     }
     else if(ctorTab==='site' && !typing) renderSiteTab();
-  }, function(e){ console.warn('photos snapshot', e); });
+    }, function(e){ console.warn('photos snapshot', e); });
+  }
+  subscribePhotos();
+
+  /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
+     Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
+  (function(){
+    const sel = document.getElementById('site-switch');
+    if(!sel) return;
+    sel.value = LQ_SITE;
+    sel.addEventListener('change', function(){
+      LQ_SITE = sel.value;
+      localStorage.setItem('lq_admin_site', LQ_SITE);
+      PHOTOS_DOC = fbDb.collection('loomiq').doc(lqSiteDef().doc);
+      contentData = {}; photosMap = {};
+      prodDetailId = null;
+      subscribePhotos();
+      const rv = document.getElementById('view-reviews');
+      if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
+      toast('Сайт: ' + lqSiteDef().label);
+    });
+  })();
 
   // Жива синхронізація: зміни з інших пристроїв одразу підтягуються
   STATE_DOC.onSnapshot(function(snap){
