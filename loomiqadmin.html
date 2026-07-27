@@ -227,8 +227,10 @@
   .board::-webkit-scrollbar{height:5px;}
   .board::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;}
   .col{background:#EEF1F6;border-radius:12px;padding:12px;min-height:140px;flex:0 0 84%;scroll-snap-align:start;}
-  @media (min-width:680px){.board{display:grid;grid-template-columns:1fr 1fr;overflow:visible;margin:0;padding:0;}.col{flex:none;}}
-  @media (min-width:980px){.board{grid-template-columns:repeat(4,1fr);}}
+  /* Колонки завжди в один ряд: «Прорахунок» ліворуч → «Виконано» праворуч.
+     Якщо всі не влазять — гортаються свайпом вправо, а не переносяться вниз. */
+  @media (min-width:680px){.col{flex:0 0 46%;}}
+  @media (min-width:1100px){.col{flex:1 1 0;min-width:190px;}}
   .col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;}
   .col-head h3{font-size:12.5px;margin:0;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);}
   .col-count{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);padding:1px 7px;border-radius:20px;color:var(--ink-soft);}
@@ -613,10 +615,6 @@
         <div class="eyebrow">Замовлення</div>
         <h1>Канбан замовлень</h1>
         <div class="sub">Картка показує собівартість, ціну продажу і маржу по кожному замовленню.</div>
-      </div>
-
-      <div class="order-form-toggle">
-        <button class="btn btn-accent" id="open-new-order" style="width:100%;">+ Нове замовлення</button>
       </div>
 
       <div class="card new-order-card" id="new-order-card">
@@ -1283,8 +1281,13 @@ function toggleNewOrder(open){
     card.classList.remove('open');
   }
 }
-document.getElementById('open-new-order').addEventListener('click', ()=> toggleNewOrder(true));
-document.getElementById('close-new-order').addEventListener('click', ()=> toggleNewOrder(false));
+/* Ручне створення замовлення прибрано: картки потрапляють у Канбан лише
+   з сайту (кошик) або з розділу «Прорахунок». Форма лишається в розмітці,
+   але точки входу до неї немає, тому слухачі — захищені. */
+const _openNO = document.getElementById('open-new-order');
+if(_openNO) _openNO.addEventListener('click', ()=> toggleNewOrder(true));
+const _closeNO = document.getElementById('close-new-order');
+if(_closeNO) _closeNO.addEventListener('click', ()=> toggleNewOrder(false));
 
 function toast(msg){
   const t = document.getElementById('toast');
