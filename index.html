@@ -1553,6 +1553,14 @@
       <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 1-5.2 4.8L18 21l-6-3.5L6 21l1.2-6.7L2 9.5l7-1z"/></svg></span>
       <span>Відгуки</span>
     </button>
+    <a href="/horeca/" class="menu-overlay-item" style="width:100%;">
+      <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v7a3 3 0 0 0 6 0V3"/><path d="M10 10v11"/><path d="M18 3c-1.5 2-2 4-2 6v4h3V3z"/></svg></span>
+      <span>Форма для HoReCa</span>
+    </a>
+    <a href="/build/" class="menu-overlay-item" style="width:100%;">
+      <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></svg></span>
+      <span>Спецодяг для будівництва</span>
+    </a>
     <button id="menuContactsBtn" class="menu-overlay-item" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:var(--font-sf);">
       <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg></span>
       <span>Контакти</span>
@@ -6525,6 +6533,10 @@ window.LOOMIQ_CONFIG = {
   // ЗАПОВНИ ці два значення з панелі Cloudinary:
   var CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };  // cloud name + unsigned upload preset
 
+  /* Ідентифікатор сайту: контент кожного сайту зберігається окремо,
+     щоб головний, HoReCa та будівельний не змішувались. */
+  var LQ_SITE = 'main';
+  var LQ_PHOTOS_DOC = 'photos';
   var FB = {
     apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
     authDomain: "loomiq-admin.firebaseapp.com",
@@ -6561,7 +6573,13 @@ window.LOOMIQ_CONFIG = {
     var box = document.getElementById('userReviews');
     if(!box) return;
     db.collection('reviews').where('approved','==',true).limit(200).get().then(function(snap){
-      var arr=[]; snap.forEach(function(doc){ arr.push(doc.data()); });
+      var arr=[]; snap.forEach(function(doc){
+        var d = doc.data();
+        // відгук належить цьому сайту: поле site збігається,
+        // а старі відгуки без цього поля лишаються на головному сайті
+        var site = d.site || 'main';
+        if(site === LQ_SITE) arr.push(d);
+      });
       arr.sort(function(a,b){ var ta=(a.createdAt&&a.createdAt.toMillis)?a.createdAt.toMillis():0; var tb=(b.createdAt&&b.createdAt.toMillis)?b.createdAt.toMillis():0; return tb-ta; });
       box.innerHTML = arr.map(cardHtml).join('');
     }).catch(function(e){ console.warn('load reviews failed', e); });
@@ -6623,7 +6641,7 @@ window.LOOMIQ_CONFIG = {
   }
   if(db){
     try{
-      db.collection('loomiq').doc('photos').onSnapshot(function(snap){
+      db.collection('loomiq').doc(LQ_PHOTOS_DOC).onSnapshot(function(snap){
         applySiteContent(snap.exists ? snap.data() : {});
       }, function(e){ console.warn('site content failed', e); });
     }catch(e){ console.warn('site content failed', e); }
@@ -6764,6 +6782,7 @@ window.LOOMIQ_CONFIG = {
     }
     function saveDoc(photoUrl){
       db.collection('reviews').add({
+        site: LQ_SITE,
         name: name.slice(0,60), text: text.slice(0,800), rating: rating,
         phone: phone.slice(0,30), photo: photoUrl||'', approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
