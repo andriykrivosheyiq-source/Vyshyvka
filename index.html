@@ -406,12 +406,16 @@
     border:1px solid var(--line);border-radius:20px;background:#FFFFFF;
   }
   .step-info--top{align-self:flex-start;}
-  .step-info .step-num{font-weight:700;color:var(--muted);font-size:12px;letter-spacing:.08em;}
-  .step-info h3{font-size:17px;margin-top:6px;}
+  .step-head{display:flex;align-items:center;gap:10px;}
+  .step-badge{flex:none;width:28px;height:28px;border-radius:50%;
+    border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;color:var(--ink);line-height:1;}
+  .step-info h3{font-size:17px;margin-top:0;}
   .step-info p{color:var(--muted);margin-top:7px;font-size:14px;line-height:1.5;max-width:320px;}
   @media (max-width:480px){
     .step-block{grid-template-columns:1.15fr 1fr;gap:10px;padding:16px 14px;margin-top:12px;}
     .step-info h3{font-size:15px;}
+    .step-badge{width:25px;height:25px;font-size:13px;}
     .step-info p{font-size:13px;}
   }
   .step-visual{display:flex;justify-content:center;position:relative;}
@@ -423,8 +427,8 @@
   }
 
   /* Interactive logo designer (step 02) */
-  .step-visual--designer{align-items:flex-start;}
-  .logo-designer{width:100%;max-width:96px;margin:0 auto;user-select:none;-webkit-user-select:none;}
+  .step-visual--designer{align-items:center;justify-content:center;}
+  .logo-designer{width:100%;max-width:101px;margin:0 auto;user-select:none;-webkit-user-select:none;}
   .ld-stage{position:relative;width:100%;aspect-ratio:1/1;pointer-events:none;}
   .ld-shirt{position:absolute;inset:0;}
   .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
@@ -449,8 +453,8 @@
   .ld-hint{margin-top:9px;font-size:12px;color:var(--muted);text-align:center;line-height:1.4;}
 
   /* Step 03 — box slides in from the right */
-  .step-visual--box{overflow:hidden;}
-  .box-slide{width:100%;max-width:83px;margin-left:auto;
+  .step-visual--box{overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .box-slide{width:100%;max-width:95px;margin-left:auto;margin-right:auto;
     transform:translateX(125%);opacity:0;
     transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
   .step-block.in .box-slide{transform:translateX(0);opacity:1;}
@@ -3038,8 +3042,10 @@
     <div class="wrap">
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 01</span>
-          <h3>Оберіть одяг</h3>
+          <div class="step-head">
+            <span class="step-badge">1</span>
+            <h3>Оберіть одяг</h3>
+          </div>
           <p>Худі, футболки, світшоти, кепки та інші вироби для вашої команди.</p>
         </div>
         <div class="step-visual step-visual--carousel">
@@ -3049,8 +3055,10 @@
 
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 02</span>
-          <h3>Додайте логотип</h3>
+          <div class="step-head">
+            <span class="step-badge">2</span>
+            <h3>Додайте логотип</h3>
+          </div>
           <p>Перетягуйте логотип по футболці та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
         </div>
         <div class="step-visual step-visual--designer">
@@ -3087,8 +3095,10 @@
 
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 03</span>
-          <h3>Підтвердіть замовлення</h3>
+          <div class="step-head">
+            <span class="step-badge">3</span>
+            <h3>Підтвердіть замовлення</h3>
+          </div>
           <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
         </div>
         <div class="step-visual step-visual--box">
