@@ -158,19 +158,18 @@
     font-size:18px;font-weight:600;color:var(--ink);border-radius:14px;
     transition:background .15s ease;
   }
-  .menu-overlay-item:hover, .menu-overlay-item.active{background:var(--paper);}
-  .menu-overlay-item.active{color:var(--blue);}
+  .menu-overlay-item:hover{background:var(--paper);}
+  .menu-overlay-item.active{outline:1.5px solid #8a8f98;outline-offset:-2px;border-radius:14px;}
   .menu-overlay-ic{
     width:46px;height:46px;border-radius:13px;background:var(--paper);flex:none;
     display:flex;align-items:center;justify-content:center;color:var(--ink);
   }
-  .menu-overlay-item.active .menu-overlay-ic{background:#F1E7DE;color:var(--blue);}
   .menu-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-radius:14px;
-    font-size:18px;font-weight:600;color:var(--ink);border:1.5px solid transparent;
-    transition:background .15s ease,border-color .15s ease;}
+    font-size:18px;font-weight:600;color:var(--ink);
+    transition:background .15s ease;}
   .menu-row:hover{background:var(--paper);}
   /* поточний розділ — лише темна обводка, напис та іконка без змін */
-  .menu-row.active{border-color:#8a8f98;}
+  .menu-row.active{outline:1.5px solid #8a8f98;outline-offset:-2px;}
   .menu-home-label{font-size:inherit;font-weight:inherit;color:inherit;line-height:inherit;}
   .menu-chevron-btn{flex:none;width:38px;height:38px;border-radius:11px;border:none;background:none;
     display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);}
@@ -182,8 +181,7 @@
   .menu-sub-item{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;
     font-size:15.5px;font-weight:600;color:var(--ink);transition:background .15s ease;}
   .menu-sub-item:hover{background:var(--paper);}
-  .menu-sub-item{border:1.5px solid transparent;}
-  .menu-sub-item.active{border-color:#8a8f98;}
+  .menu-sub-item.active{outline:1.5px solid #8a8f98;outline-offset:-2px;}
   .menu-sub-ic{width:34px;height:34px;border-radius:10px;background:var(--paper);flex:none;
     display:flex;align-items:center;justify-content:center;color:var(--ink);}
 
@@ -203,7 +201,7 @@
   .hero{
     position:relative;overflow:hidden;color:#FFFFFF;
     padding-top:32px;padding-bottom:96px;
-    min-height:670px;display:flex;align-items:flex-start;
+    min-height:640px;display:flex;align-items:flex-start;
   }
   .hero-bg-slides{position:absolute;inset:0;z-index:0;background:#1c1c1c;}
   .hero-bg-slide{
@@ -7016,9 +7014,30 @@ window.LOOMIQ_CONFIG = {
     var site = path.indexOf('/horeca') === 0 ? 'horeca'
              : path.indexOf('/build') === 0 ? 'build' : 'main';
 
-    document.querySelectorAll('[data-site-row]').forEach(function(el){
-      el.classList.toggle('active', el.dataset.siteRow === site);
-    });
+    // який розділ зараз відкритий — той і обводимо
+    var MODALS = [
+      ['cartModal',    'menuCartBtn'],
+      ['reviewsModal', 'menuReviewsBtn'],
+      ['catalogModal', 'menuCatalogBtn'],
+      ['contactModal', 'menuContactsBtn'],
+      ['productModal', 'menuCatalogBtn'],
+    ];
+    function markActive(){
+      var openBtnId = null;
+      for(var i=0;i<MODALS.length;i++){
+        var m = document.getElementById(MODALS[i][0]);
+        if(m && m.classList.contains('open')){ openBtnId = MODALS[i][1]; break; }
+      }
+      document.querySelectorAll('.menu-overlay-item').forEach(function(el){
+        el.classList.toggle('active', !!openBtnId && el.id === openBtnId);
+      });
+      document.querySelectorAll('[data-site-row]').forEach(function(el){
+        el.classList.toggle('active', !openBtnId && el.dataset.siteRow === site);
+      });
+    }
+    markActive();
+    var burger = document.getElementById('burgerBtn');
+    if(burger) burger.addEventListener('click', function(){ setTimeout(markActive, 30); });
     // на нішевому сайті список одразу розгорнутий — видно, де ти
     if(site !== 'main'){ sub.hidden = false; toggle.setAttribute('aria-expanded','true'); }
 
