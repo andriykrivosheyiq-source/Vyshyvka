@@ -596,6 +596,8 @@
     display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none;
   }
   .why-trust-left h4{font-size:15.5px;font-weight:700;line-height:1.25;}
+  .why-trust-cta{padding:11px 16px;font-size:14px;white-space:nowrap;gap:7px;}
+  @media (max-width:420px){.why-trust-cta{padding:10px 13px;font-size:13px;}}
   .why-trust-left p{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.35;}
   .why-trust-logos{
     flex:1 1 150px;min-width:0;max-width:46%;display:flex;flex-direction:column;gap:8px;overflow:hidden;
@@ -687,18 +689,18 @@
   }
   .app-track::-webkit-scrollbar{display:none;}
   .app-card{
-    flex:0 0 64%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
+    flex:0 0 54%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
     background:#FFFFFF;border:1px solid var(--line);
     display:flex;flex-direction:column;
   }
-  @media (min-width:640px){.app-card{flex:0 0 240px;}}
-  .app-top{padding:20px 18px 6px;}
+  @media (min-width:640px){.app-card{flex:0 0 205px;}}
+  .app-top{padding:14px 14px 4px;}
   .app-eyebrow{
     font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
   }
-  .app-bottom{padding:10px 18px 18px;}
-  .app-bottom h3{font-size:16.5px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:-.01em;}
-  .app-photo{width:100%;aspect-ratio:1/0.85;margin-top:auto;}
+  .app-bottom{padding:8px 14px 14px;}
+  .app-bottom h3{font-size:15px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:-.01em;}
+  .app-photo{width:100%;aspect-ratio:1/0.72;margin-top:auto;}
   .app-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 
   .app-controls{display:flex;align-items:center;justify-content:space-between;margin-top:22px;}
@@ -2933,6 +2935,50 @@
   
   </section>
 
+  <!-- INDUSTRY STACK -->
+  <section class="industry-stack">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 style="font-size:clamp(26px,4vw,34px);">Корпоративний мерч для будь-якої задачі</h2>
+      </div>
+    </div>
+    <div class="app-track" id="industryStackList">
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">👕 Для персоналу</span></div>
+        <div class="app-bottom"><h3>Форма для ресторанів, магазинів, клінік та сервісних компаній.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎤 Для подій</span></div>
+        <div class="app-bottom"><h3>Конференції, виставки, корпоративи та промоакції.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎁 Для клієнтів</span></div>
+        <div class="app-bottom"><h3>Подарунки, брендовані набори та корпоративний мерч.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🎓 Для навчання та спорту</span></div>
+        <div class="app-bottom"><h3>Університети, школи, клуби, секції та спортивні команди.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy"></div>
+      </article>
+      <article class="app-card reveal">
+        <div class="app-top"><span class="app-eyebrow">🤝 Для команди</span></div>
+        <div class="app-bottom"><h3>Welcome Kit, онбординг, корпоративна культура та внутрішні заходи.</h3></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy"></div>
+      </article>
+    </div>
+    <div class="wrap">
+      <div class="story-controls industry-stack-controls">
+        <div class="story-dots" id="industryStackDots"></div>
+        <button class="story-next" id="industryStackNext" aria-label="Наступна категорія">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- PROCESS -->
   <section id="process">
     <div class="wrap">
@@ -3023,50 +3069,6 @@
         <span class="promo-clock-label">1 хв</span>
       </div>
     </button>
-  </section>
-
-  <!-- INDUSTRY STACK -->
-  <section class="industry-stack">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <h2 style="font-size:clamp(26px,4vw,34px);">Корпоративний мерч для будь-якої задачі</h2>
-      </div>
-    </div>
-    <div class="app-track" id="industryStackList">
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">👕 Для персоналу</span></div>
-        <div class="app-bottom"><h3>Форма для ресторанів, магазинів, клінік та сервісних компаній.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎤 Для подій</span></div>
-        <div class="app-bottom"><h3>Конференції, виставки, корпоративи та промоакції.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎁 Для клієнтів</span></div>
-        <div class="app-bottom"><h3>Подарунки, брендовані набори та корпоративний мерч.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🎓 Для навчання та спорту</span></div>
-        <div class="app-bottom"><h3>Університети, школи, клуби, секції та спортивні команди.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy"></div>
-      </article>
-      <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🤝 Для команди</span></div>
-        <div class="app-bottom"><h3>Welcome Kit, онбординг, корпоративна культура та внутрішні заходи.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy"></div>
-      </article>
-    </div>
-    <div class="wrap">
-      <div class="story-controls industry-stack-controls">
-        <div class="story-dots" id="industryStackDots"></div>
-        <button class="story-next" id="industryStackNext" aria-label="Наступна категорія">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
   </section>
 
   <!-- CATALOG -->
@@ -3341,8 +3343,9 @@
       <div class="why-trust reveal">
         <div class="why-trust-left">
           <div>
-            <h4>500+ компаній<br>вже обрали Loomiq</h4>
-            <p>Від малих компаній до великих корпорацій.</p>
+            <button class="btn btn-primary why-trust-cta" id="whyTrustReviewsBtn">Переглянути всі відгуки
+              <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </div>
         <div class="why-trust-logos">
@@ -3393,11 +3396,11 @@
   </section>
 
   <!-- ABOUT -->
-  <section style="background:#FFFFFF;padding-top:8px;">
+  <section style="background:#FFFFFF;padding-top:3px;">
     <div class="wrap">
       <div class="about-text reveal">
         <span class="eyebrow">Про нас</span>
-        <h2 style="margin-top:14px;font-size:clamp(26px,4vw,36px);">Контролюємо якість на кожному етапі</h2>
+        <h2 style="margin-top:9px;font-size:clamp(26px,4vw,36px);">Контролюємо якість на кожному етапі</h2>
         <p>Від макета до готового виробу, щоб ви отримали саме той результат, який очікуєте.</p>
       </div>
     </div>
@@ -4203,7 +4206,14 @@
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
+<<<<<<< Updated upstream
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
+=======
+  // кнопка «Переглянути всі відгуки» у блоці з логотипами клієнтів
+  var whyTrustBtn = document.getElementById('whyTrustReviewsBtn');
+  if(whyTrustBtn) whyTrustBtn.addEventListener('click', function(){ reviewsModalCtrl.open(); });
+  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
+>>>>>>> Stashed changes
 
 
   // Call-back form: no backend, just confirm visually
