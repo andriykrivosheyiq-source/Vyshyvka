@@ -804,6 +804,24 @@
   }
   .compare-cell--them .ck svg{width:11px;height:11px;color:#9b9b9b;margin:0;}
 
+  /* Оформлення замовлення */
+  .co-label{display:block;font-size:13px;font-weight:600;color:#666;margin:14px 0 6px;}
+  .co-input{
+    width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #e3e3e6;
+    background:#fff;font-family:var(--font-sf);font-size:16px;color:var(--ink);outline:none;
+  }
+  .co-input:focus{border-color:var(--ink);}
+  .co-input.is-bad{border-color:#d64545;}
+  .co-error{margin-top:10px;font-size:13px;color:#d64545;line-height:1.4;}
+  .co-note{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
+  .co-done{text-align:center;padding:8px 0 4px;}
+  .co-done-ic{
+    width:52px;height:52px;margin:0 auto 14px;border-radius:50%;
+    background:rgba(22,163,74,.1);display:flex;align-items:center;justify-content:center;
+  }
+  .co-done-title{font-size:19px;font-weight:700;color:var(--ink);}
+  .co-done-sub{margin:8px 0 18px;font-size:14.5px;color:var(--muted);line-height:1.45;}
+
   /* FAQ */
   .faq-item{border-bottom:1px solid var(--line);}
   .faq-q{
@@ -2555,6 +2573,33 @@
         Оформити замовлення
       </button>
       <button class="cart-footer-link" id="cartFooterInfoLink">Реквізити, оферта та контакти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Оформлення замовлення: ім'я + телефон, далі замовлення падає в Канбан -->
+<div class="pm-sheet-overlay" id="checkoutModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">Оформлення замовлення</div>
+    <div class="pm-sheet-sub">Залишіть контакти — менеджер підтвердить макет і терміни</div>
+    <form id="checkoutForm" novalidate>
+      <label class="co-label" for="checkoutName">Ім'я</label>
+      <input class="co-input" id="checkoutName" type="text" autocomplete="name" placeholder="Як до вас звертатися" required>
+      <label class="co-label" for="checkoutPhone">Телефон</label>
+      <input class="co-input" id="checkoutPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__" required>
+      <div class="co-error" id="checkoutError" hidden></div>
+      <button class="pm-form-submit" id="checkoutSubmit" type="submit">Надіслати замовлення</button>
+      <button class="pm-mockup-continue-btn" type="button" id="checkoutCancel">Повернутись у кошик</button>
+      <div class="co-note">Ми не передаємо ваш номер третім особам</div>
+    </form>
+    <div class="co-done" id="checkoutDone" hidden>
+      <div class="co-done-ic">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <div class="co-done-title">Замовлення прийнято</div>
+      <div class="co-done-sub">Менеджер зв'яжеться з вами найближчим часом і надішле макет на погодження.</div>
+      <button class="pm-form-submit" type="button" id="checkoutClose">Готово</button>
     </div>
   </div>
 </div>
@@ -6280,6 +6325,21 @@
           logos: JSON.parse(JSON.stringify(pm.logos))
         }
       };
+      // Розмір нанесення рахуємо тут, поки відкритий конструктор: далі, у кошику,
+      // масштабу зони вже немає. Менеджеру в Канбані потрібні саме міліметри.
+      item.prints = [];
+      getViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          var d = layerDimsMm(l);
+          item.prints.push({
+            side: side,
+            technique: getPrint().name,
+            widthMm: Math.round(d.w),
+            heightMm: Math.round(d.h),
+            file: l.url || null          // оригінал, як його завантажив клієнт
+          });
+        });
+      });
       cartItems.push(item);
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
       var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
@@ -6799,6 +6859,13 @@
 
   // ===== Cart =====
   var cartItems = [];
+  // Доступ для блоку оформлення замовлення (він живе в окремому скрипті)
+  window.__cartItems = cartItems;
+  window.__clearCart = function(){
+    cartItems.length = 0;
+    renderCart();
+    var cm = document.getElementById('cartModal'); if(cm) cm.classList.remove('open');
+  };
   var cartItemIconPath = 'M30 18 L20 8 L8 16 L14 34 L24 30 L24 100 L76 100 L76 30 L86 34 L92 16 L80 8 L70 18 Q62 26 50 26 Q38 26 30 18 Z';
   function editCartItem(idx){
     var it = cartItems[idx];
@@ -7134,6 +7201,7 @@ window.LOOMIQ_CONFIG = {
   /* Ідентифікатор сайту: контент кожного сайту зберігається окремо,
      щоб головний, HoReCa та будівельний не змішувались. */
   var LQ_SITE = 'main';
+  window.LQ_SITE = LQ_SITE;   // потрібен блоку оформлення замовлення
   var LQ_PHOTOS_DOC = 'photos';
   var FB = {
     apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
@@ -7571,6 +7639,143 @@ window.LOOMIQ_CONFIG = {
       sub.hidden = open;
     });
   })();
+</script>
+<script>
+/* ============================================================
+   ОФОРМЛЕННЯ ЗАМОВЛЕННЯ
+   Клієнт лишає ім'я і телефон → замовлення падає в Канбан як «Нове».
+   Разом із ним ідуть: розмір нанесення в мм, макети виробів і
+   оригінали завантажених файлів (без стиснення) — усе посиланнями.
+   ============================================================ */
+(function(){
+  var modal = document.getElementById('checkoutModal');
+  var form  = document.getElementById('checkoutForm');
+  if(!modal || !form) return;
+
+  var CLOUD = { cloud:'kmdoab3e', preset:'v8gljepg' };
+  var nameEl  = document.getElementById('checkoutName');
+  var phoneEl = document.getElementById('checkoutPhone');
+  var errEl   = document.getElementById('checkoutError');
+  var btn     = document.getElementById('checkoutSubmit');
+  var doneEl  = document.getElementById('checkoutDone');
+
+  function open(){
+    form.hidden = false; doneEl.hidden = true;
+    errEl.hidden = true; btn.disabled = false; btn.textContent = 'Надіслати замовлення';
+    modal.classList.add('open');
+    setTimeout(function(){ nameEl.focus(); }, 120);
+  }
+  function close(){ modal.classList.remove('open'); }
+  function fail(msg){
+    errEl.textContent = msg; errEl.hidden = false;
+    btn.disabled = false; btn.textContent = 'Надіслати замовлення';
+  }
+
+  // Телефон приймаємо в будь-якому записі, але зберігаємо в одному форматі.
+  function normPhone(v){
+    var d = String(v||'').replace(/\D/g,'');
+    if(d.length === 10 && d[0] === '0') d = '38' + d;
+    if(d.length === 9) d = '380' + d;
+    return d.length === 12 && d.slice(0,2) === '38' ? '+' + d : null;
+  }
+
+  // Завантажуємо як є: без ресайзу і без перекодування, щоб виробництво
+  // отримало той самий файл, який вибрав клієнт.
+  function upload(dataUrl){
+    var fd = new FormData();
+    fd.append('file', dataUrl);
+    fd.append('upload_preset', CLOUD.preset);
+    return fetch('https://api.cloudinary.com/v1_1/' + CLOUD.cloud + '/auto/upload', { method:'POST', body:fd })
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error('upload ' + r.status)); })
+      .then(function(j){ return j.secure_url || j.url || null; })
+      .catch(function(){ return null; });   // одне невдале фото не має валити замовлення
+  }
+
+  // Збираємо позиції: макети і файли лого йдуть у хмару, у замовленні лишаються посилання.
+  function packItems(items){
+    return Promise.all(items.map(function(it){
+      var mockups = (it.imgs || []).slice(0, 4);
+      var prints  = it.prints || [];
+      return Promise.all([
+        Promise.all(mockups.map(upload)),
+        Promise.all(prints.map(function(p){ return p.file ? upload(p.file) : Promise.resolve(null); }))
+      ]).then(function(res){
+        return {
+          name: it.name || '', color: it.color || '', print: it.print || '',
+          sizes: it.sizes || '', qty: +it.qty || 0,
+          unitPrice: +it.unitPrice || 0, price: +it.price || 0,
+          unitCost: +it.unitCost || 0, cost: +it.cost || 0,
+          mockups: res[0].filter(Boolean),
+          prints: prints.map(function(p, i){
+            return { side:p.side, technique:p.technique,
+                     widthMm:p.widthMm, heightMm:p.heightMm, file:res[1][i] || null };
+          }),
+          config: it.config || null
+        };
+      });
+    }));
+  }
+
+  document.querySelectorAll('.cart-checkout-btn').forEach(function(b){
+    b.removeAttribute('data-scroll-to');
+    b.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      var cart = window.__cartItems || [];
+      if(!cart.length){ alert('Кошик порожній — спершу додайте товар.'); return; }
+      open();
+    });
+  });
+  document.getElementById('checkoutCancel').addEventListener('click', close);
+  document.getElementById('checkoutClose').addEventListener('click', close);
+  modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var nm = (nameEl.value || '').trim();
+    var ph = normPhone(phoneEl.value);
+    nameEl.classList.toggle('is-bad', !nm);
+    phoneEl.classList.toggle('is-bad', !ph);
+    if(!nm){ return fail('Вкажіть імʼя.'); }
+    if(!ph){ return fail('Перевірте номер телефону — потрібні 10 цифр, наприклад 067 123 45 67.'); }
+
+    var cart = window.__cartItems || [];
+    if(!cart.length){ return fail('Кошик порожній.'); }
+
+    errEl.hidden = true;
+    btn.disabled = true; btn.textContent = 'Надсилаємо…';
+
+    packItems(cart).then(function(items){
+      var totalPrice = items.reduce(function(a,i){ return a + i.price; }, 0);
+      var totalCost  = items.reduce(function(a,i){ return a + i.cost;  }, 0);
+      var order = {
+        name: nm, phone: ph,
+        site: window.LQ_SITE || 'main',
+        items: items,
+        totalPrice: totalPrice, totalCost: totalCost,
+        page: location.pathname,
+        createdAt: new Date().toISOString(),
+        imported: false            // адмінка забере і поставить true
+      };
+      var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
+      var write = db ? db.collection('webOrders').add(order)
+                     : Promise.reject(new Error('no db'));
+      return write.then(function(){
+        // дублюємо в Telegram, щоб замовлення не загубилось, навіть якщо в Канбан не дійшло
+        var c = window.LOOMIQ_CONFIG || {};
+        if(c.leadEndpoint){
+          fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ phone: ph, page: location.pathname,
+              context: 'Замовлення з сайту: ' + nm + ', ' + items.length + ' поз., ' + totalPrice + ' грн' }) }).catch(function(){});
+        }
+        window.__clearCart && window.__clearCart();
+        form.hidden = true; doneEl.hidden = false;
+      });
+    }).catch(function(err){
+      console.warn('order failed', err);
+      fail('Не вдалося надіслати замовлення. Перевірте зв’язок і спробуйте ще раз — або напишіть нам у Telegram.');
+    });
+  });
+})();
 </script>
 </body>
 </html>

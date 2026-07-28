@@ -48,6 +48,21 @@
     padding:4px 11px;border-radius:999px;background:#0F2034;color:#7FC4FF;
     border:1px solid #24405f;font-size:13px;font-weight:700;letter-spacing:.01em;
   }
+  .t-web-item{border:1px solid #e8ebf0;border-radius:10px;padding:9px 10px;margin-bottom:7px;background:#fbfcfe;}
+  .t-web-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .t-web-name{font-size:12.5px;font-weight:700;color:#16202E;}
+  .t-web-price{font-size:12.5px;font-weight:700;color:#16202E;white-space:nowrap;}
+  .t-web-meta{font-size:11px;color:#7C8798;margin-top:2px;}
+  .t-web-mocks{display:flex;gap:6px;margin:7px 0 6px;flex-wrap:wrap;}
+  .t-web-mock{width:46px;height:46px;border-radius:8px;overflow:hidden;border:1px solid #e3e7ee;background:#fff;display:block;}
+  .t-web-mock img{width:100%;height:100%;object-fit:contain;display:block;}
+  .t-web-print{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:4px;}
+  .t-web-print-size{font-size:11.5px;font-weight:700;color:#0F2034;background:#eaf1fb;border-radius:6px;padding:2px 6px;}
+  .t-web-print-side{font-size:11px;color:#7C8798;}
+  .t-web-file{font-size:11px;font-weight:700;color:#1668c4;text-decoration:none;}
+  .t-web-file:hover{text-decoration:underline;}
+  .t-web-file--none{color:#AEB8C9;font-weight:500;}
+  .t-web-print--none{font-size:11px;color:#AEB8C9;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -2136,6 +2151,49 @@ window.__adminSaveClientOrder = async function(payload){
   toast('Картку клієнта «'+order.instagram+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
 };
+/* ============================================================
+   ЗАМОВЛЕННЯ З САЙТУ
+   Сайт пише кожне замовлення окремим документом у webOrders — так публічний
+   доступ обмежений створенням запису і не може зачепити всю дошку.
+   Адмінка забирає нові документи в Канбан і позначає їх як імпортовані.
+   ============================================================ */
+(function(){
+  if(typeof fbDb === 'undefined') return;
+  fbDb.collection('webOrders').where('imported','==',false).onSnapshot(async function(snap){
+    const fresh = [];
+    snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
+    if(!fresh.length) return;
+    let added = 0;
+    for(const rec of fresh){
+      if(orders.some(o => o.webId === rec.id)) continue;   // захист від повторного імпорту
+      const d = rec.data || {};
+      const items = (d.items || []).map(it => ({
+        name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
+        qty:+it.qty||0, unitPrice:+it.unitPrice||0, price:+it.price||0,
+        unitCost:+it.unitCost||0, cost:+it.cost||0,
+        mockups: it.mockups||[], prints: it.prints||[], config: it.config||null
+      }));
+      const totalPrice = +d.totalPrice || items.reduce((a,i)=>a+i.price,0);
+      const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
+      orders.unshift({
+        id: cryptoId(), webId: rec.id, type:'web', status:'new',
+        source: 'сайт' + (d.site && d.site !== 'main' ? ' · ' + d.site : ''),
+        name: d.name||'', phone: d.phone||'', items,
+        totalPrice, totalCost, margin: totalPrice-totalCost,
+        marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
+        createdAt: d.createdAt || new Date().toISOString()
+      });
+      added++;
+      try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('mark imported failed', e); }
+    }
+    if(added){
+      await storeSet('orders', orders);
+      renderBoard();
+      toast(added === 1 ? 'Нове замовлення з сайту' : added + ' нових замовлень із сайту');
+    }
+  }, function(e){ console.warn('webOrders listen failed', e); });
+})();
+
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -2170,6 +2228,7 @@ function renderBoard(){
 }
 
 function renderTicket(o){
+  if(o.type === 'web') return renderWebTicket(o);
   if(o.type === 'client') return renderClientTicket(o);
   const el = document.createElement('div');
   el.className = 'ticket';
@@ -2256,6 +2315,61 @@ function renderTicket(o){
 }
 
 // Картка клієнта (мульти-товар, з ніком інстаграма)
+function renderWebTicket(o){
+  const el = document.createElement('div');
+  el.className = 'ticket';
+  el.draggable = true;
+  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+
+  const itemsHtml = (o.items||[]).map(it=>{
+    // Розмір нанесення і файл оригіналу — те, з чим працює виробництво
+    const prints = (it.prints||[]).map(p=>`
+      <div class="t-web-print">
+        <span class="t-web-print-size">${p.widthMm||'?'} × ${p.heightMm||'?'} мм</span>
+        <span class="t-web-print-side">${escapeHtml(p.technique||'')}${p.side?' · '+escapeHtml(p.side):''}</span>
+        ${p.file?`<a href="${escapeHtml(p.file)}" target="_blank" rel="noopener" download class="t-web-file">файл ↓</a>`:'<span class="t-web-file t-web-file--none">без файлу</span>'}
+      </div>`).join('') || '<div class="t-web-print t-web-print--none">без нанесення</div>';
+    const mockups = (it.mockups||[]).map(u=>
+      `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="t-web-mock"><img src="${escapeHtml(u)}" alt="макет" loading="lazy"></a>`).join('');
+    return `
+      <div class="t-web-item">
+        <div class="t-web-head">
+          <span class="t-web-name">${escapeHtml(it.name||'—')}</span>
+          <span class="t-web-price">${fmt(it.price)} ₴</span>
+        </div>
+        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
+        ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
+        ${prints}
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="t-top">
+      <div>
+        <div class="phone">${escapeHtml(o.name||'—')} · ${escapeHtml(o.phone||'')}</div>
+        <div class="t-date">${createdDate}</div>
+      </div>
+      <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>
+    </div>
+    <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
+    <div class="t-breakdown">
+      <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+      <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
+    </div>
+    <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+    <div class="t-actions">
+      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
+      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+    </div>
+  `;
+  el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
+  el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
+  return el;
+}
+
 function renderClientTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket';
