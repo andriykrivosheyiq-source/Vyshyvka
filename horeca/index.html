@@ -201,7 +201,7 @@
   .hero{
     position:relative;overflow:hidden;color:#FFFFFF;
     padding-top:32px;padding-bottom:96px;
-    min-height:640px;display:flex;align-items:flex-start;
+    min-height:660px;display:flex;align-items:flex-start;
   }
   .hero-bg-slides{position:absolute;inset:0;z-index:0;background:#1c1c1c;}
   .hero-bg-slide{
@@ -407,8 +407,8 @@
   .trade-block .btn{margin-top:28px;}
 
   .step-block{
-    display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:16px;
-    padding:20px 20px;margin-top:16px;
+    display:grid;grid-template-columns:1.3fr 1fr;align-items:center;gap:12px;
+    padding:13px 14px 13px 20px;margin-top:14px;
     border:1px solid var(--line);border-radius:20px;background:#FFFFFF;
   }
   .step-info--top{align-self:flex-start;}
@@ -416,7 +416,7 @@
   .step-info h3{font-size:17px;margin-top:6px;}
   .step-info p{color:var(--muted);margin-top:7px;font-size:14px;line-height:1.5;max-width:320px;}
   @media (max-width:480px){
-    .step-block{grid-template-columns:1.15fr 1fr;gap:10px;padding:16px 14px;margin-top:12px;}
+    .step-block{grid-template-columns:1.15fr 1fr;gap:8px;padding:11px 11px 11px 16px;margin-top:11px;}
     .step-info h3{font-size:15px;}
     .step-info p{font-size:13px;}
   }
@@ -1229,7 +1229,7 @@
   .pm-faq-plus{font-size:20px;color:#aaa;line-height:1;transition:transform .2s;}
   .pm-faq-item.open .pm-faq-plus{transform:rotate(45deg);}
   .pm-faq-a{max-height:0;overflow:hidden;transition:max-height .2s;padding:0 20px;font-size:15px;color:#666;line-height:1.6;}
-  .pm-faq-item.open .pm-faq-a{max-height:160px;padding-bottom:14px;}
+  .pm-faq-item.open .pm-faq-a{max-height:420px;padding-bottom:14px;}
 
   .pm-cta-card{
     flex:1;padding:24px 20px;border-radius:16px;border:1.5px solid #eee;
@@ -2700,11 +2700,13 @@
       <div class="pm-card" style="padding:0;overflow:hidden;">
         <div class="pm-card-title" style="padding:20px 20px 14px;">Питання / відповіді</div>
         <div class="pm-faq-list" id="pmFaqList">
-          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Які розміри доступні?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">XS, S, M, L, XL, XXL.</div></div>
-          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Як замовити нанесення?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Завантажте дизайн та додайте в кошик.</div></div>
-          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Мінімальна кількість?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Від 1 штуки.</div></div>
-          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Чи можна повернути?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Так, протягом 14 днів.</div></div>
-          <div class="pm-faq-item pm-faq-item--last"><button class="pm-faq-q" data-faq>Як довго чекати?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">2–4 робочих дні.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Від чого залежить кінцева ціна?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Від виробу, тиражу, способу нанесення та розміру макета. Що більший тираж — то дешевша одиниця. Ціна і термін перераховуються тут же, щойно ви вкажете кількість.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Скільки штук треба замовляти мінімум?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Від 1 штуки — можна взяти один зразок, подивитись на якість тканини і нанесення, а вже потім запускати весь тираж.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Коли я побачу макет — до оплати чи після?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">До оплати. Ви бачите макет одразу тут, у конструкторі, а перед запуском тиражу ми надсилаємо фінальний варіант на погодження. У виробництво нічого не йде, поки ви не підтвердите.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Що робити, якщо немає готового логотипа у файлі?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Надішліть що є — фото візитки, скриншот, старий файл. Ми відмалюємо у векторі під друк. Якщо логотипа немає взагалі, підкажемо простий варіант із назви компанії.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Чи не злізе друк після прання?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Друк і вишивка витримують щонайменше 50 машинних прань за умови дотримання рекомендацій по догляду: до 40°, навиворіт, без відбілювача і без прасування по нанесенню.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Вишивка чи друк — що краще для мого логотипа?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Вишивка виглядає дорожче і служить довше, добре лягає на щільне: худі, світшоти, кепки. Друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо, що краще саме під ваш макет.</div></div>
+          <div class="pm-faq-item pm-faq-item--last"><button class="pm-faq-q" data-faq>Скільки часу займає замовлення і як доставляєте?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Стандартно 2–4 робочих дні на невеликий тираж, точний термін видно тут же після вибору кількості. Відправляємо Новою поштою по Україні, для великих замовлень — адресна доставка.</div></div>
         </div>
       </div>
       <div class="pm-cta-card">
@@ -3576,8 +3578,6 @@
     <a href="tel:+380670000000" class="footer-social-ic" aria-label="Подзвонити"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 3.07 9.81a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 2 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L6.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></a>
   </div>
   <div class="footer-contacts">
-    <div>hello@loomiq.ua</div>
-    <div>+38 (067) 000-00-00</div>
     <div class="footer-copy">© 2026 Loomiq. Усі права захищено.</div>
   </div>
 </footer>
@@ -6155,11 +6155,11 @@
         // колір: обраний клієнтом (найближчий у палітрі виробу) або популярний за замовчуванням
         var match = displayColorFor(p.garment);
         var cs = GARMENT_COLORS[p.garment];
-        var fallbackBg = match ? match.hex : ((cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2');
+        var fallbackBg = '#efedec';   // нейтральна підкладка; точний тон підставимо з фото після завантаження
         var src = match ? window.LQ_img(garmentThumbSrc(p.garment))
                         : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
-          ? '<div class="pm-rec-img"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;background:#f3f3f4;"></div>'
+          ? '<div class="pm-rec-img" style="background:'+fallbackBg+';"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display=\'none\'"></div>'
           : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
         return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
           '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
@@ -6172,8 +6172,50 @@
       });
       var cta = document.getElementById('pmRecCatalogCta');
       if(cta) cta.addEventListener('click', function(){ catalogModalCtrl.open(); });
+      tintRecImages(track);
       initRecCarousel();
     }
+
+    // Фон плашки під фото в стрічках беремо з самого фото (кути картинки), а не з
+    // кольору виробу — інакше під чорною футболкою була чорна плашка з видимим швом.
+    function tintFromPhoto(img){
+      try{
+        var nw = img.naturalWidth, nh = img.naturalHeight;
+        if(!nw || !nh) return null;
+        var S = 48;
+        var c = document.createElement('canvas'); c.width = S; c.height = S;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, S, S);
+        var d = ctx.getImageData(0, 0, S, S).data;
+        // Семплимо середини країв, а не кути: саме там проходить шов із плашкою,
+        // а в кутах у студійних фото часто темніша віньєтка.
+        var r=0,g=0,b=0,n=0;
+        function take(x,y){
+          var i=(y*S+x)*4;
+          if(d[i+3] < 200) return;              // прозорий піксель — не фон
+          r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++;
+        }
+        for(var k=Math.round(S*0.3); k<Math.round(S*0.7); k++){
+          take(k, 0); take(k, 1);               // верхній край
+          take(k, S-1); take(k, S-2);           // нижній
+          take(0, k); take(1, k);               // лівий
+          take(S-1, k); take(S-2, k);           // правий
+        }
+        if(!n) return null;
+        return 'rgb('+Math.round(r/n)+','+Math.round(g/n)+','+Math.round(b/n)+')';
+      } catch(e){ return null; }   // крос-доменне фото — canvas заблокує читання
+    }
+    function tintRecImages(root){
+      (root || document).querySelectorAll('.pm-rec-img img').forEach(function(img){
+        var apply = function(){
+          var col = tintFromPhoto(img);
+          if(col){ img.parentNode.style.background = col; img.style.background = col; }
+        };
+        if(img.complete && img.naturalWidth) apply();
+        else img.addEventListener('load', apply, {once:true});
+      });
+    }
+
     window.__renderRecommended = renderRecommended;
     document.addEventListener('lq-photos', function(){ try{ renderRecommended(); }catch(e){} });
     document.addEventListener('lq-content', function(){ try{ renderRecommended(); }catch(e){} });
