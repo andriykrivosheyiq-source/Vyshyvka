@@ -553,6 +553,10 @@
           <div class="tl-tiers-label" style="margin-bottom:6px;">Надбавки по кількості (від N шт → +днів):</div>
           <div id="sp-dtf-lt-tiers"></div>
           <div class="add-row-btn" id="sp-dtf-lt-add">+ поріг</div>
+          <h4 style="margin:18px 0 6px;font-size:13.5px;">Знижки за кількість — друк</h4>
+          <div class="sub" style="margin-bottom:8px;">Діють лише для цього способу нанесення. Коеф. множить ціну за одиницю.</div>
+          <div id="sp-tiers-dtf"></div>
+          <div class="add-row-btn" id="sp-tier-add-dtf">+ Додати поріг</div>
           </div><!-- /tb-body -->
         </div>
 
@@ -618,16 +622,11 @@
           <div class="tl-tiers-label" style="margin-bottom:6px;">Надбавки по кількості (від N шт → +днів):</div>
           <div id="sp-emb-lt-tiers"></div>
           <div class="add-row-btn" id="sp-emb-lt-add">+ поріг</div>
+          <h4 style="margin:18px 0 6px;font-size:13.5px;">Знижки за кількість — вишивка</h4>
+          <div class="sub" style="margin-bottom:8px;">Діють лише для цього способу нанесення. Коеф. множить ціну за одиницю.</div>
+          <div id="sp-tiers-emb"></div>
+          <div class="add-row-btn" id="sp-tier-add-emb">+ Додати поріг</div>
           </div><!-- /tb-body -->
-        </div>
-
-        <div class="technique-block" style="margin-top:16px;">
-          <h3 class="tb-toggle" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"><span class="tb-caret">▸</span> Знижки за кількість</h3>
-          <div class="tb-body" style="display:none;">
-            <div class="sub" style="margin-bottom:8px;">Коеф. множить ціну за одиницю.</div>
-            <div id="sp-tiers"></div>
-            <div class="add-row-btn" id="sp-tier-add">+ Додати поріг</div>
-          </div>
         </div>
 
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
@@ -1583,7 +1582,12 @@ function paintSitePricing(){
   setV('sp-emb-d-design', el.design); setV('sp-emb-d-transfer', el.transfer);
   setV('sp-emb-d-prod', el.production); setV('sp-emb-d-ship', el.shipping);
   paintLeadTiers('emb', el.qtyTiers);
-  paintSpTiers(p.tiers);
+  // Пороги знижок тепер належать способу нанесення. Старе спільне поле
+  // лишається запасним, щоб уже налаштовані знижки не зникли.
+  const mDtf = (p.methods && p.methods.dtf) || {};
+  const mEmb = (p.methods && p.methods.embro) || {};
+  paintSpTiers(mDtf.tiers && mDtf.tiers.length ? mDtf.tiers : p.tiers, 'dtf');
+  paintSpTiers(mEmb.tiers && mEmb.tiers.length ? mEmb.tiers : p.tiers, 'emb');
 }
 // Надбавки термінів по кількості — генерик для методу ('dtf' | 'emb')
 function paintLeadTiers(key, tiers){
@@ -1694,8 +1698,10 @@ function readDtfGrid(){
   const price = order.map(i=>priceRaw[i]);
   return { bands, qtyFrom, cost, price };
 }
-function paintSpTiers(tiers){
-  document.getElementById('sp-tiers').innerHTML = (tiers||[]).map((t,i)=>`
+function paintSpTiers(tiers, key){
+  const box = document.getElementById('sp-tiers-' + key);
+  if(!box) return;
+  box.innerHTML = (tiers||[]).map((t,i)=>`
     <div class="sp-tier-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
       <span style="font-size:12px;color:var(--ink-soft);">від</span>
       <input data-sp-from type="number" min="1" value="${t.from}" style="width:80px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
@@ -1706,12 +1712,14 @@ function paintSpTiers(tiers){
       <span data-sp-pct style="font-size:12px;color:var(--good);min-width:44px;">${t.coef<1?('-'+Math.round((1-t.coef)*100)+'%'):'0%'}</span>
       <button class="pc-btn reset" data-sp-tdel="${i}" style="flex:none;padding:7px 10px;">✕</button>
     </div>`).join('');
-  document.querySelectorAll('#sp-tiers [data-sp-tdel]').forEach(b=>b.addEventListener('click', ()=>{
-    const rows = readSpTiers(); rows.splice(Number(b.dataset.spTdel),1); paintSpTiers(rows);
+  box.querySelectorAll('[data-sp-tdel]').forEach(b=>b.addEventListener('click', ()=>{
+    const rows = readSpTiers(key); rows.splice(Number(b.dataset.spTdel),1); paintSpTiers(rows, key);
   }));
 }
-function readSpTiers(){
-  return Array.from(document.querySelectorAll('#sp-tiers .sp-tier-row')).map(r=>({
+function readSpTiers(key){
+  const box = document.getElementById('sp-tiers-' + key);
+  if(!box) return [];
+  return Array.from(box.querySelectorAll('.sp-tier-row')).map(r=>({
     from: parseInt(r.querySelector('[data-sp-from]').value,10) || 1,
     to: r.querySelector('[data-sp-to]').value === '' ? null : (parseInt(r.querySelector('[data-sp-to]').value,10) || null),
     coef: parseFloat(r.querySelector('[data-sp-coef]').value) || 1
@@ -1748,18 +1756,27 @@ function paintSpProducts(p){
     </div>`;
   }).join('');
 }
-document.getElementById('sp-tier-add').addEventListener('click', ()=>{
-  const rows = readSpTiers();
-  const last = rows[rows.length-1];
-  rows.push({from: last ? (last.to ? last.to+1 : last.from+100) : 1, to:null, coef: last ? last.coef : 1});
-  paintSpTiers(rows);
+['dtf','emb'].forEach(key=>{
+  const btn = document.getElementById('sp-tier-add-' + key);
+  if(!btn) return;
+  btn.addEventListener('click', ()=>{
+    const rows = readSpTiers(key);
+    const last = rows[rows.length-1];
+    rows.push({from: last ? (last.to ? last.to+1 : last.from+100) : 1, to:null, coef: last ? last.coef : 1});
+    paintSpTiers(rows, key);
+  });
 });
 document.getElementById('sp-dtf-row-add').addEventListener('click', dtfAddRow);
-document.getElementById('sp-tiers').addEventListener('input', e=>{
-  const row = e.target.closest('.sp-tier-row');
-  if(!row) return;
-  const c = parseFloat(row.querySelector('[data-sp-coef]').value) || 1;
-  row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
+// відсоток поруч із коефіцієнтом — оновлюємо в обох таблицях знижок
+['dtf','emb'].forEach(key=>{
+  const box = document.getElementById('sp-tiers-' + key);
+  if(!box) return;
+  box.addEventListener('input', e=>{
+    const row = e.target.closest('.sp-tier-row');
+    if(!row) return;
+    const c = parseFloat(row.querySelector('[data-sp-coef]').value) || 1;
+    row.querySelector('[data-sp-pct]').textContent = c < 1 ? ('-'+Math.round((1-c)*100)+'%') : '0%';
+  });
 });
 ['dtf','emb'].forEach(key=>{
   const btn = document.getElementById('sp-'+key+'-lt-add');
@@ -1773,6 +1790,7 @@ document.getElementById('sp-tiers').addEventListener('input', e=>{
 document.getElementById('sp-save').addEventListener('click', async ()=>{
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
+    tiers: readSpTiers('dtf'),     // знижки за кількість саме для друку
     minPrices: readMins('dtf'), minCosts: [], minPrice: (readMins('dtf')[0]||0),
     orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
     sketchFee: numV('sp-dtf-sketchfee'), sketchCost: numV('sp-dtf-sketchcost'),
@@ -1789,13 +1807,15 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
     sketchFee: numV('sp-emb-sketchfee'), sketchCost: numV('sp-emb-sketchcost'),
     pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),
-    lead: readLead('emb')
+    lead: readLead('emb'),
+    tiers: readSpTiers('emb')      // знижки за кількість саме для вишивки
   };
   // Базові ціни й висоти більше не редагуються тут — вони в картці товару.
   // merge:true зберігає наявні pricing.basePrices / pricing.heights недоторканими.
   const pricing = {
     methods: { dtf, embro },
-    tiers: readSpTiers()
+    // лишаємо і спільне поле — на випадок, якщо десь читається старий формат
+    tiers: readSpTiers('dtf')
   };
   // застарілі поля (enabled / leadTime) більше не пишемо; на читанні вони ігноруються
   try{

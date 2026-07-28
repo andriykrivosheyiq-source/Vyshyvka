@@ -4883,8 +4883,13 @@
     }
     function pricingTiers(){
       var p = sitePricing();
-      if(!p || !p.tiers || !p.tiers.length) return null;
-      return p.tiers.map(function(t){
+      if(!p) return null;
+      // Пороги знижок належать способу нанесення: у друку свої, у вишивки свої.
+      // Якщо для способу їх не задано — беремо старе спільне поле.
+      var m = methodCfgNew();
+      var list = (m && m.tiers && m.tiers.length) ? m.tiers : p.tiers;
+      if(!list || !list.length) return null;
+      return list.map(function(t){
         var from = +t.from || 1, to = (t.to == null || t.to === '' ) ? null : +t.to;
         var coef = +t.coef || 1;
         return {min:from, max:(to==null?99999:to), coef:coef,
