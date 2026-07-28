@@ -4623,6 +4623,16 @@
       var c = displayColorFor(gid);
       return c ? (IMG_BASE + '/images/' + gid + '-' + c.id + '-front.webp') : GARMENT_THUMB[gid];
     }
+    // назва виробу для каталогу на головній (в адмінці задається окремо)
+    window.LQ_titleFor = function(gid){
+      var g = GARMENTS.filter(function(x){ return x.id === gid; })[0];
+      return window.LQ_name(gid, g ? g.name : gid);
+    };
+    // потрібен блоку каталогу на головній, коли обгортку не задано в адмінці
+    window.LQ_thumbFor = function(gid){
+      try{ return window.LQ_img(garmentThumbSrc(gid) || GARMENT_THUMB[gid] || ''); }
+      catch(e){ return GARMENT_THUMB[gid] || ''; }
+    };
 
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
     var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1};
@@ -7386,6 +7396,7 @@ window.LOOMIQ_CONFIG = {
       productColors: data.productColors || {},
       printAreas: data.printAreas || {},
       landing: data.landing || null,
+      catalogPicks: data.catalogPicks || null,
       bgApi: data.bgApi || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
@@ -7958,6 +7969,45 @@ window.LOOMIQ_CONFIG = {
   }
   document.addEventListener('lq-content', applyLanding);
   document.addEventListener('lq-photos', applyLanding);
+})();
+</script>
+<script>
+/* ============================================================
+   КАТАЛОГ НА ГОЛОВНІЙ — чотири картки з адмінки (свої для кожного сайту)
+   Без налаштувань лишаються вбудовані картки з розмітки.
+   ============================================================ */
+(function(){
+  var grid = document.querySelector('#catalog .catalog-grid');
+  if(!grid) return;
+  var builtIn = grid.innerHTML;
+
+  function render(){
+    var picks = (window.SITE_CONTENT && window.SITE_CONTENT.catalogPicks) || null;
+    if(!picks || !picks.length){ if(grid.innerHTML !== builtIn) grid.innerHTML = builtIn; return; }
+    var html = picks.slice(0, 4).map(function(p){
+      if(!p || !p.garment) return '';
+      var name = window.LQ_titleFor ? window.LQ_titleFor(p.garment) : p.garment;
+      var price = '';
+      if(window.__catalogPrice){
+        var auto = window.__catalogPrice(p.garment);
+        if(auto && auto > 0) price = 'від ' + auto + ' грн';
+      }
+      // обгортка з адмінки, інакше стандартне фото виробу
+      var img = p.img || (window.LQ_thumbFor ? window.LQ_thumbFor(p.garment) : '');
+      return '<div class="product" data-garment="' + p.garment + '">'
+        +   '<div class="product-art">'
+        +     (img ? '<img src="' + img + '" alt="' + name + '" loading="lazy">' : '')
+        +   '</div>'
+        +   '<div class="product-info">'
+        +     '<div><h4>' + name + '</h4><div class="price">' + price + '</div></div>'
+        +     '<span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>'
+        +   '</div>'
+        + '</div>';
+    }).join('');
+    if(html) grid.innerHTML = html;
+  }
+  document.addEventListener('lq-content', render);
+  document.addEventListener('lq-photos', render);
 })();
 </script>
 </body>

@@ -85,6 +85,18 @@
   .rv-sites-lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8893A6;font-weight:700;}
   .rv-site{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink);cursor:pointer;}
   .rv-site input{cursor:pointer;}
+  .cp-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .cp-row:last-child{border-bottom:none;}
+  .cp-num{width:22px;font-family:var(--mono);font-size:12px;color:#8893A6;flex:none;}
+  .cp-thumb{width:52px;height:52px;border-radius:9px;border:1px solid var(--line);background:#fff;
+    flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+  .cp-thumb img{width:100%;height:100%;object-fit:contain;display:block;}
+  .cp-thumb span{font-size:10px;color:#8893A6;text-align:center;line-height:1.2;padding:3px;}
+  .cp-sel{flex:1;min-width:120px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;font-size:13px;color:var(--ink);}
+  .cp-move{display:flex;flex-direction:column;gap:3px;flex:none;}
+  .cp-move button{padding:2px 7px;font-size:11px;line-height:1.3;}
+  .cp-clear{flex:none;padding:5px 9px;font-size:11px;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -740,6 +752,17 @@
       <div class="page-head">
         <div class="eyebrow">Конструктор</div>
         <h1>Конструктор сайту <span class="site-badge" id="ctor-site-badge">Головний</span></h1>
+        <div class="calc-bar" style="margin:12px 0 0;">
+          <div class="calc-bar-site">
+            <span class="calc-bar-lbl">Сайт</span>
+            <select id="site-switch-2">
+              <option value="main">Головний — loomiq.net</option>
+              <option value="horeca">HoReCa — /horeca/</option>
+              <option value="build">Будівництво — /build/</option>
+            </select>
+          </div>
+          <span class="calc-bar-hint">Товари, фото, відгуки й каталог на головній — окремі для кожного сайту</span>
+        </div>
         <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.
           Редагується сайт, обраний угорі ліворуч, — інші сайти не зачіпаються.</div>
       </div>
@@ -995,6 +1018,16 @@
 
       <!-- Головна й контакти -->
       <div id="ctor-site" style="display:none;">
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Каталог на головній</b>
+          <div class="sub" style="margin:6px 0 12px;">Чотири картки в блоці «Одяг, який хочеться носити щодня». Оберіть товар, на який веде картка, завантажте обгортку і виставте порядок. Порожня обгортка = стандартне фото товару.</div>
+          <div id="cat-picks"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button class="pc-btn up" id="cat-picks-save" style="flex:none;padding:10px 22px;">Зберегти каталог</button>
+            <button class="pc-btn reset" id="cat-picks-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
+        </div>
+
         <div class="card" style="max-width:640px;">
           <b style="font-size:14px;">Контакти</b>
           <div class="sub" style="margin:6px 0 12px;">Підставляються в усі кнопки/посилання на сайті. Порожнє поле = без змін (стандартні).</div>
@@ -2729,7 +2762,100 @@ const DEFAULT_CASES = [
   {tag:'Studio Sante', quote:'SPA-комплекс. Задача — корпоративна форма для адміністраторів і майстрів.', img:'images/review-sante.webp', pills:['Поло — 25 шт','Халати — 15 шт']}
 ];
 
+/* ============================================================
+   КАТАЛОГ НА ГОЛОВНІЙ — чотири картки, окремі для кожного сайту
+   Для кожної: товар, на який веде, власна обгортка і порядок.
+   ============================================================ */
+const CAT_PICK_DEFAULT = [
+  {garment:'hoodie', img:''}, {garment:'tee', img:''},
+  {garment:'sweat',  img:''}, {garment:'cap', img:''}
+];
+let catPicks = null;
+
+function catPickProducts(){
+  // список, з якого обираємо: базові вироби + власні товари цього сайту
+  const base = [
+    ['teeover','Футболка оверсайз'],['tee','Футболка базова'],
+    ['hoodieover','Худі оверсайз'],['hoodieoverfleece','Худі оверсайз з флісом'],
+    ['hoodie','Худі базове'],['hoodiezip','Худі на застібці'],
+    ['sweat','Світшот'],['cap','Кепка'],['tote','Шопер']
+  ];
+  const custom = ((contentData.products || {}).custom || []).map(c=>[c.id, c.name || c.id]);
+  const names = (contentData.names || {});
+  return base.concat(custom).map(([id,label])=>[id, names[id] || label]);
+}
+
+function renderCatPicks(){
+  const wrap = document.getElementById('cat-picks');
+  if(!wrap) return;
+  if(!catPicks){
+    const saved = (contentData.catalogPicks || []).slice(0,4);
+    catPicks = saved.length ? saved.map(x=>({garment:x.garment||'', img:x.img||''}))
+                            : CAT_PICK_DEFAULT.map(x=>({...x}));
+  }
+  while(catPicks.length < 4) catPicks.push({garment:'', img:''});
+  const opts = catPickProducts();
+  wrap.innerHTML = catPicks.slice(0,4).map((p,i)=>`
+    <div class="cp-row" data-i="${i}">
+      <span class="cp-num">${i+1}</span>
+      <label class="cp-thumb" title="Завантажити обгортку">
+        ${p.img ? `<img src="${escapeHtml(p.img)}" alt="">` : '<span>обгортка</span>'}
+        <input type="file" accept="image/*" hidden>
+      </label>
+      <select class="cp-sel">
+        <option value="">— не показувати —</option>
+        ${opts.map(([id,label])=>`<option value="${escapeHtml(id)}"${p.garment===id?' selected':''}>${escapeHtml(label)}</option>`).join('')}
+      </select>
+      <div class="cp-move">
+        <button data-mv="up"${i===0?' disabled':''}>↑</button>
+        <button data-mv="down"${i===3?' disabled':''}>↓</button>
+      </div>
+      <button class="pc-btn reset cp-clear" data-clear>Скинути фото</button>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.cp-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('.cp-sel').addEventListener('change', e=>{ catPicks[i].garment = e.target.value; });
+    row.querySelector('.cp-thumb input').addEventListener('change', async e=>{
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      toast('Завантажуємо обгортку…');
+      try{ catPicks[i].img = await uploadCloudinary(f); renderCatPicks(); toast('Обгортку завантажено'); }
+      catch(err){ console.error(err); toast('Не вдалося завантажити'); }
+    });
+    row.querySelector('[data-clear]').addEventListener('click', ()=>{ catPicks[i].img = ''; renderCatPicks(); });
+    row.querySelectorAll('[data-mv]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const j = btn.dataset.mv === 'up' ? i-1 : i+1;
+        if(j < 0 || j > 3) return;
+        const t = catPicks[i]; catPicks[i] = catPicks[j]; catPicks[j] = t;
+        renderCatPicks();
+      });
+    });
+  });
+}
+
+document.addEventListener('click', async e=>{
+  if(e.target.id === 'cat-picks-save'){
+    const rows = catPicks.slice(0,4).filter(p=>p.garment);
+    try{
+      await PHOTOS_DOC.set({ catalogPicks: rows }, { merge:true });
+      toast('Каталог збережено · ' + lqSiteDef().label);
+    }catch(err){ console.error(err); toast('Помилка збереження'); }
+  }
+  if(e.target.id === 'cat-picks-reset'){
+    if(!confirm('Повернути стандартні чотири товари?')) return;
+    catPicks = CAT_PICK_DEFAULT.map(x=>({...x}));
+    renderCatPicks();
+    try{
+      await PHOTOS_DOC.set({ catalogPicks: firebase.firestore.FieldValue.delete() }, { merge:true });
+      toast('Повернуто стандартні');
+    }catch(err){ console.error(err); }
+  }
+});
+
 function renderSiteTab(){
+  catPicks = null;
+  renderCatPicks();
   const ct = contentData.contacts || {};
   document.getElementById('site-phone').value = ct.phone || '';
   document.getElementById('site-tg').value = ct.telegram || '';
@@ -4079,6 +4205,8 @@ async function init(){
     if(!sel) return;
     sel.value = LQ_SITE;
     syncSiteBadge();
+    const sel2 = document.getElementById('site-switch-2');
+    if(sel2){ sel2.value = LQ_SITE; sel2.addEventListener('change', function(){ sel.value = sel2.value; sel.dispatchEvent(new Event('change')); }); }
     sel.addEventListener('change', function(){
       LQ_SITE = sel.value;
       localStorage.setItem('lq_admin_site', LQ_SITE);
@@ -4089,6 +4217,8 @@ async function init(){
       const rv = document.getElementById('view-reviews');
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
       syncSiteBadge();
+      const s2 = document.getElementById('site-switch-2'); if(s2) s2.value = LQ_SITE;
+      catPicks = null;
       const vc = document.getElementById('view-calc');
       if(vc && vc.style.display !== 'none') loadCalcFrame(true);   // прев'ю показує обраний сайт
       toast('Сайт: ' + lqSiteDef().label);
