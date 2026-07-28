@@ -7259,7 +7259,8 @@ window.LOOMIQ_CONFIG = {
   }
 
   document.querySelectorAll('form').forEach(function(form){
-    if(form.id === 'reviewForm') return;   // форма відгуку має власний обробник
+    if(form.id === 'reviewForm') return;    // форма відгуку має власний обробник
+    if(form.id === 'checkoutForm') return;  // оформлення теж своє — інакше в Telegram летіли два повідомлення
     var tel = form.querySelector('input[type="tel"]');
     if(!tel) return;
     form.addEventListener('submit', function(e){
@@ -7881,14 +7882,48 @@ window.LOOMIQ_CONFIG = {
       // Раніше Telegram надсилався лише після успішного запису, тож блокування
       // бази губило замовлення повністю.
       var c = window.LOOMIQ_CONFIG || {};
-      var summary = (order.items || []).map(function(i){
-        var pr = (i.prints || []).map(function(p){ return p.widthMm + '×' + p.heightMm + ' мм'; }).join(', ');
-        return '• ' + i.name + ' — ' + i.sizes + ' (' + i.qty + ' шт)' + (pr ? ', нанесення ' + pr : '');
-      }).join('\n');
+      var SIDE_UA = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
+      var summary = (order.items || []).map(function(i, n){
+        var head = (n + 1) + ') ' + i.name
+          + (i.color ? ' · ' + i.color : '')
+          + (i.sizes ? ' · ' + i.sizes : '')
+          + ' · ' + i.qty + ' шт · ' + i.price + ' грн';
+        var lines = [head];
+        (i.prints || []).forEach(function(p, k){
+          lines.push('   Нанесення ' + (k + 1) + ': ' + (SIDE_UA[p.side] || p.side)
+            + ' · ' + (p.technique || '')
+            + ' · ' + p.widthMm + '×' + p.heightMm + ' мм');
+          if(p.file) lines.push('   Файл лого ' + (k + 1) + ': ' + p.file);
+        });
+        if(!(i.prints || []).length) lines.push('   Без нанесення');
+        (i.mockups || []).forEach(function(u, k){
+          lines.push('   Макет ' + (k + 1) + ' (погоджений клієнтом): ' + u);
+        });
+        return lines.join('\n');
+      }).join('\n\n');
       var toTelegram = c.leadEndpoint
         ? fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ phone: ph, page: location.pathname,
-              context: 'Замовлення з сайту\nІмʼя: ' + nm + '\nСума: ' + totalPrice + ' грн\n' + summary }) })
+              context: 'ЗАМОВЛЕННЯ З САЙТУ' + (order.site && order.site !== 'main' ? ' (' + order.site + ')' : '')
+                + '\nІмʼя: ' + nm
+                + '\nТелефон: ' + ph
+                + '\nСума: ' + totalPrice + ' грн'
+                + '\nПозицій: ' + items.length
+                + '\n\n' + summary,
+              files: (function(){
+                // окремим списком — щоб Worker міг надіслати їх вкладеннями
+                var out = [];
+                (order.items || []).forEach(function(i, n){
+                  (i.prints || []).forEach(function(p, k){
+                    if(p.file) out.push({ url:p.file, kind:'logo',
+                      caption:'Товар ' + (n+1) + ' · лого ' + (k+1) + ' · ' + (SIDE_UA[p.side] || p.side) + ' · ' + p.widthMm + '×' + p.heightMm + ' мм' });
+                  });
+                  (i.mockups || []).forEach(function(u, k){
+                    out.push({ url:u, kind:'mockup', caption:'Товар ' + (n+1) + ' · макет ' + (k+1) });
+                  });
+                });
+                return out;
+              })() }) })
             .then(function(r){ return r.ok ? true : Promise.reject(new Error('lead ' + r.status)); })
         : Promise.reject(new Error('no endpoint'));
       var toBoard = db ? db.collection('webOrders').add(order) : Promise.reject(new Error('no db'));
