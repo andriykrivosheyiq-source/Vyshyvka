@@ -1597,7 +1597,7 @@
   /* Решта контенту, який менеджер редагує з адмінки (той самий документ):
      names — назви товарів, descriptions — описи, sizecharts — розмірні сітки,
      models — фото моделей, reviewOrder — порядок відгуків, reviewPhotos — карусель фото відгуків */
-  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}, contacts:{}, faq:null, hero:{}, about:{}, stats:null, cases:null, promo:{}, pricing:null, productColors:{}, viewOrder:{}};
+  window.SITE_CONTENT = window.SITE_CONTENT || {names:{}, descriptions:{}, sizecharts:{}, sizechartPhotos:{}, specs:{}, models:{}, reviewOrder:null, reviewPhotos:null, products:{}, contacts:{}, faq:null, hero:{}, about:{}, stats:null, cases:null, promo:{}, pricing:null, productColors:{}, viewOrder:{}, bgApi:{}};
   window.LQ_name = function(garmentId, fallback){
     return window.SITE_CONTENT.names[garmentId] || fallback;
   };
@@ -6005,7 +6005,52 @@
         img.src = src;
       });
     }
+    // ── Видалення фону через Photoroom (ключ живе у Worker-проксі, не на сайті) ──
+    // Адреса проксі задається в адмінці; якщо її немає або сервіс не відповів —
+    // тихо відкочуємось на вбудований алгоритм, щоб конструктор ніколи не ламався.
+    function bgApiUrl(){
+      var c = (window.SITE_CONTENT && window.SITE_CONTENT.bgApi) || {};
+      var u = (c.proxyUrl || '').trim();
+      return /^https:\/\//i.test(u) ? u : '';
+    }
+    function dataUrlToBlob(dataUrl){
+      var parts = String(dataUrl).split(',');
+      var mime = (parts[0].match(/:(.*?);/) || [null, 'image/png'])[1];
+      var bin = atob(parts[1] || '');
+      var arr = new Uint8Array(bin.length);
+      for(var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    }
+    function blobToDataUrl(blob){
+      return new Promise(function(res, rej){
+        var fr = new FileReader();
+        fr.onload = function(){ res(fr.result); };
+        fr.onerror = rej;
+        fr.readAsDataURL(blob);
+      });
+    }
+    function removeBgViaApi(dataUrl){
+      var url = bgApiUrl();
+      if(!url) return Promise.reject(new Error('no-proxy'));
+      var blob = dataUrlToBlob(dataUrl);
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, 20000);
+      return fetch(url, { method:'POST', headers:{ 'Content-Type': blob.type || 'image/png' }, body: blob, signal: ctrl.signal })
+        .then(function(r){
+          clearTimeout(timer);
+          if(!r.ok) throw new Error('api-' + r.status);
+          return r.blob();
+        })
+        .then(function(out){
+          if(!out || !/^image\//.test(out.type || '')) throw new Error('api-bad-type');
+          return blobToDataUrl(out);
+        });
+    }
+    // Головна точка входу: спершу API (якщо налаштоване), інакше — власний алгоритм.
     function removeBgForUpload(dataUrl){
+      return removeBgViaApi(dataUrl).catch(function(){ return removeBgLocal(dataUrl); });
+    }
+    function removeBgLocal(dataUrl){
       return loadImgEl(dataUrl).then(function(img){
         var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
         var canvas = document.createElement('canvas');
@@ -7326,7 +7371,8 @@ window.LOOMIQ_CONFIG = {
       promo: data.promo || {},
       pricing: normalizePricingIn(data.pricing || null),
       productColors: data.productColors || {},
-      printAreas: data.printAreas || {}
+      printAreas: data.printAreas || {},
+      bgApi: data.bgApi || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
     document.dispatchEvent(new Event('lq-content'));
