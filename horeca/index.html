@@ -3464,7 +3464,7 @@
   </section>
 
   <!-- ABOUT -->
-  <section style="background:#FFFFFF;padding-top:3px;">
+  <section id="about" style="background:#FFFFFF;padding-top:3px;">
     <div class="wrap">
       <div class="about-text reveal">
         <span class="eyebrow">Про нас</span>
@@ -7397,6 +7397,7 @@ window.LOOMIQ_CONFIG = {
       pricing: normalizePricingIn(data.pricing || null),
       productColors: data.productColors || {},
       printAreas: data.printAreas || {},
+      landing: data.landing || null,
       bgApi: data.bgApi || {}
     };
     document.dispatchEvent(new Event('lq-photos'));
@@ -7872,6 +7873,89 @@ window.LOOMIQ_CONFIG = {
       fail('Не вдалося надіслати замовлення. Перевірте зв’язок і спробуйте ще раз — або напишіть нам у Telegram.');
     });
   });
+})();
+</script>
+<script>
+/* ============================================================
+   РЕДАГОВАНИЙ ЛЕНДІНГ
+   Кожен текст і фото в блоках лендінгу отримує стабільний ключ
+   («секція/тег.номер»). Адмінка редагує за цими ж ключами — таблиця
+   одна на сайт і на адмінку, тож розійтись вони не можуть.
+   Якщо блок колись зникне з розмітки, збережене значення просто
+   не застосується, а сайт покаже вбудований текст.
+   ============================================================ */
+(function(){
+  var SECTIONS = [
+    ['hero',     '.hero'],
+    ['industry', '.industry-stack'],
+    ['process',  '#process'],
+    ['catalog',  '#catalog'],
+    ['why',      '#why'],
+    ['cases',    '#cases'],
+    ['about',    '#about'],
+    ['reviews',  '#reviews'],
+    ['faq',      '#faq'],
+    ['cta',      '.final-cta'],
+    ['footer',   'footer']
+  ];
+  var TEXT_SEL = 'h1, h2, h3, p.lead, .eyebrow, .app-eyebrow, .sec-head p, .step-info p, .footer-tag, .faq-q span:first-child, .faq-a p';
+
+  function collect(){
+    var out = [];
+    SECTIONS.forEach(function(pair){
+      var root = document.querySelector(pair[1]);
+      if(!root) return;
+      var n = {};
+      [].slice.call(root.querySelectorAll(TEXT_SEL)).forEach(function(el){
+        var tag = el.tagName.toLowerCase();
+        var cls = el.className && typeof el.className === 'string' ? el.className.split(' ')[0] : '';
+        var kind = (cls === 'lead' || cls === 'eyebrow' || cls === 'app-eyebrow' || cls === 'footer-tag') ? cls : tag;
+        n[kind] = (n[kind] || 0) + 1;
+        out.push({ key: pair[0] + '/' + kind + '.' + n[kind], el: el, type: 'text' });
+      });
+      [].slice.call(root.querySelectorAll('img')).forEach(function(el, i){
+        out.push({ key: pair[0] + '/img.' + (i + 1), el: el, type: 'image' });
+      });
+      // кадри героя задані фоном, а не тегом <img> — тож окремим типом
+      [].slice.call(root.querySelectorAll('.hero-bg-slide')).forEach(function(el, i){
+        out.push({ key: pair[0] + '/slide.' + (i + 1), el: el, type: 'bg' });
+      });
+    });
+    return out;
+  }
+
+  var _map = null;
+  window.LQ_EDITABLE = function(){ if(!_map) _map = collect(); return _map; };
+
+  // Застосовуємо збережене наповнення
+  function applyLanding(){
+    var data = (window.SITE_CONTENT && window.SITE_CONTENT.landing) || null;
+    if(!data) return;
+    _map = collect();   // після оновлення каталогу склад елементів міг змінитись
+    _map.forEach(function(rec){
+      var v = data[rec.key];
+      if(v == null || v === '') return;
+      if(rec.type === 'text'){
+        if(typeof v === 'string') rec.el.textContent = v;
+      } else if(rec.type === 'bg'){
+        var url = (typeof v === 'string') ? v : v.src;
+        if(url) rec.el.style.backgroundImage = "url('" + url + "')";
+        if(v && v.zoom) rec.el.style.backgroundSize = (v.zoom * 100) + '%';
+      } else {
+        if(typeof v === 'string'){ rec.el.src = v; return; }
+        if(v.src) rec.el.src = v.src;
+        // масштаб усередині рамки: верстка не рухається, фото наближається
+        if(v.zoom){
+          rec.el.style.transform = 'scale(' + v.zoom + ')';
+          rec.el.style.transformOrigin = 'center center';
+          var p = rec.el.parentElement;
+          if(p && getComputedStyle(p).overflow === 'visible') p.style.overflow = 'hidden';
+        }
+      }
+    });
+  }
+  document.addEventListener('lq-content', applyLanding);
+  document.addEventListener('lq-photos', applyLanding);
 })();
 </script>
 </body>
