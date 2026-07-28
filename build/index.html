@@ -2683,10 +2683,7 @@
       <div class="pm-recommended-scroll" id="pmRecommendedScroll">
         <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#1c1c1c;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка щільна</div><div class="pm-rec-price">590 грн</div></div></div>
         <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі робоче</div><div class="pm-rec-price">890 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="polo"><div class="pm-rec-img" style="background:#1e2d4a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Поло</div><div class="pm-rec-price">720 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="long"><div class="pm-rec-img" style="background:#9a4a2a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Лонгслів</div><div class="pm-rec-price">540 грн</div></div></div>
         <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка</div><div class="pm-rec-price">350 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="vest"><div class="pm-rec-img" style="background:#d0ccc8;"></div><div class="pm-rec-info"><div class="pm-rec-name">Жилет робочий</div><div class="pm-rec-price">420 грн</div></div></div>
         <div class="pm-rec-card" data-rec-garment="sweat"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Світшот</div><div class="pm-rec-price">650 грн</div></div></div>
         <div class="pm-rec-card" data-rec-garment="tote"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Шопер</div><div class="pm-rec-price">250 грн</div></div></div>
         <button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta">
@@ -4378,14 +4375,6 @@
         path:'M20 28L5 48h18v42h54V48h18L80 28Q72 18 60 16Q56 28 50 28Q44 28 40 16Q28 18 20 28z', extra:'M50 28v62'},
       {id:'sweat', name:'Світшот', price:200,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M38 14Q40 22 50 22Q60 22 62 14'},
-      {id:'polo', name:'Поло', price:150,
-        path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z', extra:'M44 14Q46 28 56 28Q64 22 62 14'},
-      {id:'long', name:'Лонгслів', price:120,
-        path:'M20 26L5 46h18v64h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M50 14v8'},
-      {id:'vest', name:'Безрукавка', price:80,
-        path:'M30 14L15 40h20v50h30V40h20L70 14Q62 10 55 18L50 10L45 18Q38 10 30 14z'},
-      {id:'shorts', name:'Шорти', price:130,
-        path:'M10 20h80v10L75 85H55L50 55L45 85H25L10 30z', extra:'M10 20h80'},
       {id:'cap', name:'Кепка', price:90,
         path:'M20 55Q20 30 50 28Q80 30 80 55z', extra:'M15 58h55a5 5 0 000-10H15a5 5 0 000 10zM50 28v-10'},
       {id:'tote', name:'Шопер', price:90,
@@ -4469,6 +4458,43 @@
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
     var GARMENT_THUMB = {teeover:'/images/teeover-black-front.webp', tee:'/images/tee-black-front.webp', hoodieover:'/images/hoodieover-black-front.webp', hoodieoverfleece:'/images/hoodieoverfleece-brown-front.webp', hoodie:'/images/thumb-hoodie.webp', hoodiezip:'/images/hoodiezip-black-front.webp', sweat:'/images/thumb-sweat.webp', cap:'/images/cap-black-front.webp', tote:'/images/tote-beige-front.webp'};
+    var IMG_BASE = '/';
+    // Популярні кольори за замовчуванням: поки клієнт не обрав колір, стрічка
+    // одягу і рекомендовані показуються різнокольоровими — щоб було видно асортимент.
+    var POPULAR_COLOR = {teeover:'black', tee:'white', hoodieover:'khaki', hoodieoverfleece:'blue',
+      hoodie:'vanilla', hoodiezip:'gray', sweat:'khaki', cap:'black', tote:'beige'};
+    // Найближчий колір палітри до заданого (за RGB-відстанню)
+    function lqHexRgb(h){ h=(h||'').replace('#',''); if(h.length<6) return null;
+      return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+    function lqClosestColor(pal, hex){
+      var t=lqHexRgb(hex); if(!t||!pal||!pal.length) return null;
+      var best=null, bd=Infinity;
+      pal.forEach(function(c){ var r=lqHexRgb(c.hex); if(!r) return;
+        // «redmean» — зважена відстань, ближча до людського сприйняття, ніж проста RGB
+        var rm=(r[0]+t[0])/2, dR=r[0]-t[0], dG=r[1]-t[1], dB=r[2]-t[2];
+        var d=(2+rm/256)*dR*dR + 4*dG*dG + (2+(255-rm)/256)*dB*dB;
+        if(d<bd){bd=d;best=c;} });
+      return best;
+    }
+    // Який колір показувати для виробу gid у стрічках: вибраний клієнтом (або найближчий),
+    // а якщо колір ще не чіпали — популярний за замовчуванням.
+    function displayColorFor(gid){
+      var pal = GARMENT_COLORS[gid];
+      if(!pal || !pal.length) return null;
+      if(pm.colorPicked){
+        var sel = getColor();
+        var m = sel ? lqClosestColor(pal, sel.hex) : null;
+        if(m) return m;
+      }
+      var pop = POPULAR_COLOR[gid];
+      var hit = pop && pal.filter(function(c){ return c.id === pop; })[0];
+      return hit || pal[0];
+    }
+    function garmentThumbSrc(gid){
+      var c = displayColorFor(gid);
+      return c ? (IMG_BASE + 'images/' + gid + '-' + c.id + '-front.webp') : GARMENT_THUMB[gid];
+    }
+
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
     var NAME_NO_SUFFIX = {teeover:1, tee:1, hoodieover:1, hoodieoverfleece:1, hoodie:1, hoodiezip:1, sweat:1, cap:1, tote:1};
     function productName(){ var g = getGarment(); return window.LQ_name(g.id, g.name) + (NAME_NO_SUFFIX[g.id] ? '' : ' оверсайз'); }
@@ -4486,12 +4512,6 @@
         {src:'model-tee-man', logos:[{cx:50,cy:50,sw:30}]},
         {src:'model-tee-woman', logos:[{cx:50,cy:52,sw:28}]},
         {src:'model-tee-pair-back', logos:[{cx:30,cy:50,sw:18,side:'back'},{cx:63,cy:46,sw:20,side:'back'}]}
-      ],
-      polo: [
-        {src:'model-polo-pair-front', logos:[{cx:27,cy:55,sw:18},{cx:63,cy:52,sw:20}]},
-        {src:'model-polo-man', logos:[{cx:50,cy:52,sw:30}]},
-        {src:'model-polo-woman', logos:[{cx:48,cy:55,sw:26}]},
-        {src:'model-polo-pair-back', logos:[{cx:30,cy:55,sw:18,side:'back'},{cx:63,cy:50,sw:20,side:'back'}]}
       ],
       hoodieover: [
         {src:'model-hoodieover-pair-front', logos:[{cx:30,cy:44,sw:20},{cx:63,cy:48,sw:18}]},
@@ -4570,6 +4590,7 @@
 
     var pm = {
       tab:'photo', garmentId:'teeover', colorId:'black', printId:null, side:'front',
+      colorPicked:false,   // чи клієнт уже сам обирав колір
       qty:{XS:0,S:0,M:0,L:0,XL:0,XXL:0},
       logos:{front:[], back:[], left:[], right:[]}, activeLogoId:null
     };
@@ -5299,7 +5320,7 @@
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
         GARMENTS.forEach(function(g){
           var sel = g.id === pm.garmentId;
-          var thumb = window.LQ_img(GARMENT_THUMB[g.id]);
+          var thumb = window.LQ_img(garmentThumbSrc(g.id) || GARMENT_THUMB[g.id]);
           var ic = thumb
             ? '<span class="pm-garment-item-ic"><img src="'+thumb+'" alt="" style="width:100%;height:100%;object-fit:contain;"></span>'
             : '<span class="pm-garment-item-ic"><svg viewBox="0 0 100 100" fill="none" stroke="'+(sel?'#111':'#aaa')+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+g.path+'"/>'+(g.extra?'<path d="'+g.extra+'"/>':'')+'</svg></span>';
@@ -5402,6 +5423,7 @@
       pmTabPanel.querySelectorAll('[data-color]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.colorId = el.dataset.color;
+          pm.colorPicked = true;
           renderGarment();
           // оновлюємо активний колір та назву без перебудови панелі — щоб не скидалась прокрутка списку
           pmTabPanel.querySelectorAll('.pm-color-swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === pm.colorId); });
@@ -5754,8 +5776,11 @@
     })();
 
     function openProductModal(garmentId){
-      pm.garmentId = garmentId || 'teeover';
+      // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
+      if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
+      pm.garmentId = garmentId || GARMENTS[0].id;
       if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
+      pm.colorPicked = false;   // новий товар — колір ще не обирали
       pm.tab = 'photo';
       // перше фото = те, що менеджер поставив першим у порядку (перетягуванням в адмінці)
       pm.side = getViews()[0] || 'front';
@@ -5781,13 +5806,13 @@
 
     // Wire catalog product cards to open the configurator with the right garment preselected
     var cardGarmentMap = {
-      'Худі':'hoodie','Футболки':'tee','Світшоти':'sweat','Поло':'polo','Кепки':'cap','Шопери':'tee',
-      'Фартухи':'tee','Робочі куртки':'hoodie','Жилети':'vest','Халати':'long',
+      'Худі':'hoodie','Футболки':'tee','Світшоти':'sweat','Кепки':'cap','Шопери':'tee',
+      'Фартухи':'tee','Робочі куртки':'hoodie',
       'Дитячі футболки':'tee','Дитячі худі':'hoodie','Боді':'tee','Дитячі шапки':'cap',
       'Парасолі':'tee','Кружки':'tee','Брелоки':'tee',
       // назви в однині — саме так вони підписані на картках лендінгу
-      'Футболка':'tee','Світшот':'sweat','Кепка':'cap','Шопер':'tote','Поло':'polo',
-      'Лонгслів':'long','Жилет':'vest','Шорти':'shorts','Фартух':'apron','Кітель':'kitel'
+      'Футболка':'tee','Світшот':'sweat','Кепка':'cap','Шопер':'tote',
+      'Фартух':'apron','Кітель':'kitel'
     };
     document.addEventListener('click', function(e){
       // Клік по кольоровому свотчу лише міняє фото товару — не відкриває конфігуратор
@@ -6115,9 +6140,12 @@
         .filter(function(p){ return p.garment && p.garment !== pm.garmentId; });
       var html = list.map(function(p){
         var nm = window.LQ_name(p.garment, p.name);
-        var src = p.img ? window.LQ_img(p.img) : null;
+        // колір: обраний клієнтом (найближчий у палітрі виробу) або популярний за замовчуванням
+        var match = displayColorFor(p.garment);
         var cs = GARMENT_COLORS[p.garment];
-        var fallbackBg = (cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2';
+        var fallbackBg = match ? match.hex : ((cs && cs[0] && cs[0].hex) ? cs[0].hex : '#e6e4e2');
+        var src = match ? window.LQ_img(garmentThumbSrc(p.garment))
+                        : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
           ? '<div class="pm-rec-img"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;background:#f3f3f4;"></div>'
           : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
@@ -6188,6 +6216,9 @@
       pm.qty = Object.assign({XS:0,S:0,M:0,L:0,XL:0,XXL:0}, cfg.qty);
       pm.logos = JSON.parse(JSON.stringify(cfg.logos));
       openProductModal(cfg.garmentId);
+      pm.colorId = cfg.colorId;
+      pm.colorPicked = true;   // з кошика — колір уже обраний
+      try{ renderTabPanel(); renderRecommended(); }catch(e){}
     };
     renderGarment();
     updatePriceBar();
