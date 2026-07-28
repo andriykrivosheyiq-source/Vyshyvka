@@ -1618,7 +1618,7 @@
   </div>
   <nav class="menu-overlay-list">
     <div class="menu-row" data-site-row="main">
-      <button data-scroll-to="top" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
+      <button data-home="/" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
         <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
         <span>Головна</span>
       </button>
@@ -3301,7 +3301,7 @@
     <div class="story-track reveal" id="storyTrack">
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-riokan.webp" alt="Команда ресторану Trattoria Rustica у формі Loomiq" decoding="async">
+          <img src="/horeca/images/hero-resto.webp" alt="Команда ресторану Trattoria Rustica у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Trattoria Rustica</span>
@@ -3316,7 +3316,7 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-zendokai.webp" alt="Бариста Coffee Point у фартухах Loomiq" decoding="async">
+          <img src="/horeca/images/hero-barista.webp" alt="Бариста Coffee Point у фартухах Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Coffee Point</span>
@@ -3330,7 +3330,7 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-resto.webp" alt="Персонал ресторану Osteria Verde у формі Loomiq" decoding="async">
+          <img src="/horeca/images/hero-serve.webp" alt="Персонал ресторану Osteria Verde у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Osteria Verde</span>
@@ -3345,7 +3345,7 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-danko.webp" alt="Персонал Grand Hotel у формі Loomiq" decoding="async">
+          <img src="/horeca/images/niche-hotel-1.webp" alt="Персонал Grand Hotel у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Grand Hotel</span>
@@ -3359,7 +3359,7 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-masterlab.webp" alt="Команда Sushi Bar Umami у формі Loomiq" decoding="async">
+          <img src="/horeca/images/hero-chef1.webp" alt="Команда Sushi Bar Umami у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Sushi Bar Umami</span>
@@ -3373,7 +3373,7 @@
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="/images/review-sante.webp" alt="Пекарня La Panetteria у формі Loomiq" decoding="async">
+          <img src="/horeca/images/niche-kitchen-2.webp" alt="Пекарня La Panetteria у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">La Panetteria</span>
@@ -4134,8 +4134,12 @@
   document.querySelectorAll('.cart-header-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ cartModalCtrl.open(); });
   });
-  document.getElementById('menuHomeLink').addEventListener('click', ()=>{
+  document.getElementById('menuHomeLink').addEventListener('click', (e)=>{
     document.querySelectorAll('.contact-modal.open').forEach(m=>m.classList.remove('open'));
+    // На нішевому сайті «Головна» — це перехід на головний сайт, а не скрол угору.
+    // Куди саме вести, задає збірка через data-home; на головному атрибута немає.
+    var home = e.currentTarget.getAttribute('data-home');
+    if(home){ e.preventDefault(); e.stopPropagation(); location.href = home; }
   });
 
   // Item icon library — reused across all roles/industries

@@ -1618,7 +1618,7 @@
   </div>
   <nav class="menu-overlay-list">
     <div class="menu-row" data-site-row="main">
-      <button data-scroll-to="top" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
+      <button data-home="/" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
         <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
         <span>Головна</span>
       </button>
@@ -4124,8 +4124,12 @@
   document.querySelectorAll('.cart-header-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ cartModalCtrl.open(); });
   });
-  document.getElementById('menuHomeLink').addEventListener('click', ()=>{
+  document.getElementById('menuHomeLink').addEventListener('click', (e)=>{
     document.querySelectorAll('.contact-modal.open').forEach(m=>m.classList.remove('open'));
+    // На нішевому сайті «Головна» — це перехід на головний сайт, а не скрол угору.
+    // Куди саме вести, задає збірка через data-home; на головному атрибута немає.
+    var home = e.currentTarget.getAttribute('data-home');
+    if(home){ e.preventDefault(); e.stopPropagation(); location.href = home; }
   });
 
   // Item icon library — reused across all roles/industries
