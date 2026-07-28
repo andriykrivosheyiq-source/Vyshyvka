@@ -98,6 +98,9 @@
   .cp-move{display:flex;flex-direction:column;gap:3px;flex:none;}
   .cp-move button{padding:2px 7px;font-size:11px;line-height:1.3;}
   .cp-clear{flex:none;padding:5px 9px;font-size:11px;}
+  .wo-state{margin-top:8px;font-size:12.5px;color:#7C8798;padding:7px 11px;border-radius:9px;
+    background:var(--paper);border:1px solid var(--line);display:inline-block;}
+  .wo-state.is-bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft);font-weight:600;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -660,6 +663,7 @@
       <div class="page-head">
         <div class="eyebrow">Замовлення</div>
         <h1>Канбан замовлень</h1>
+        <div id="web-orders-state" class="wo-state">Замовлення з сайту: підключаюсь…</div>
         <div class="sub">Картка показує собівартість, ціну продажу і маржу по кожному замовленню.</div>
       </div>
 
@@ -2251,9 +2255,16 @@ window.__adminSaveClientOrder = async function(payload){
    доступ обмежений створенням запису і не може зачепити всю дошку.
    Адмінка забирає нові документи в Канбан і позначає їх як імпортовані.
    ============================================================ */
+function woState(text, bad){
+  const el = document.getElementById('web-orders-state');
+  if(!el) return;
+  el.textContent = text;
+  el.classList.toggle('is-bad', !!bad);
+}
 (function(){
   if(typeof fbDb === 'undefined') return;
   fbDb.collection('webOrders').where('imported','==',false).onSnapshot(async function(snap){
+    woState('Замовлення з сайту надходять у колонку «Нове»');
     const fresh = [];
     snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
     if(!fresh.length) return;
@@ -2285,7 +2296,12 @@ window.__adminSaveClientOrder = async function(payload){
       renderBoard();
       toast(added === 1 ? 'Нове замовлення з сайту' : added + ' нових замовлень із сайту');
     }
-  }, function(e){ console.warn('webOrders listen failed', e); });
+  }, function(e){
+    console.warn('webOrders listen failed', e);
+    // показуємо причину прямо в Канбані — інакше збій лишається невидимим
+    woState('Замовлення з сайту НЕ надходять: ' + (e && (e.code || e.message) || 'невідома помилка') +
+            '. Дозвольте колекцію webOrders у правилах Firestore.', true);
+  });
 })();
 
 function renderBoard(){
