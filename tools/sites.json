@@ -144,7 +144,7 @@
     "garmentsFirst": true,
     "cases": [
       {
-        "img": "/horeca/images/hero-resto.webp",
+        "img": "/images/review-riokan.webp",
         "alt": "Команда ресторану Trattoria Rustica у формі Loomiq",
         "tag": "Trattoria Rustica",
         "quote": "Ресторан італійської кухні. Оновлювали форму залу й кухні перед сезоном. Потрібні були фартухи, що не бояться олії та вина, і кітелі для кухарів. Взяли щільну саржу, лого — шовкографія, стійка до прання на 60°. Устигли за 8 днів до відкриття тераси.",
@@ -155,7 +155,7 @@
         ]
       },
       {
-        "img": "/horeca/images/hero-barista.webp",
+        "img": "/images/review-zendokai.webp",
         "alt": "Бариста Coffee Point у фартухах Loomiq",
         "tag": "Coffee Point",
         "quote": "Мережа кав'ярень. Потрібен був єдиний стиль для барист у 4 точках — фартухи й футболки у фірмовому кольорі. Складність: точний відтінок під бренд і дедлайн 10 днів. Підібрали тканину тон-у-тон, лого нанесли вишивкою — не стирається й виглядає дорого.",
@@ -165,7 +165,7 @@
         ]
       },
       {
-        "img": "/horeca/images/hero-serve.webp",
+        "img": "/images/review-resto.webp",
         "alt": "Персонал ресторану Osteria Verde у формі Loomiq",
         "tag": "Osteria Verde",
         "quote": "Ресторан. Оновлювали форму залу перед відкриттям нового простору. Треба були фартухи, що не бояться плям, і бейджі з іменами. Взяли щільну саржу, лого — шовкографія, імена — на знімних бейджах. Персонал у єдиному стилі з першого робочого дня.",
@@ -176,7 +176,7 @@
         ]
       },
       {
-        "img": "/horeca/images/niche-hotel-1.webp",
+        "img": "/images/review-danko.webp",
         "alt": "Персонал Grand Hotel у формі Loomiq",
         "tag": "Grand Hotel",
         "quote": "Готель на 80 номерів. Одягали рецепцію, покоївок і ресторан у єдиній лінійці — від сорочок до фартухів. Важлива була охайність відтінку та зносостійкість під щоденне прання. Лого — вишивка тон-у-тон, посадка під кожен відділ. Здали двома партіями за 3 тижні.",
@@ -186,7 +186,7 @@
         ]
       },
       {
-        "img": "/horeca/images/hero-chef1.webp",
+        "img": "/images/review-masterlab.webp",
         "alt": "Команда Sushi Bar Umami у формі Loomiq",
         "tag": "Sushi Bar Umami",
         "quote": "Суші-бар з відкритою кухнею. Гості бачать кухарів, тому форма мала виглядати бездоганно. Обрали чорні кітелі з контрастним кантом і бандани, лого — вишивка на грудях. Здали партію за 6 днів, зараз готуємо комплект для доставки.",
@@ -196,7 +196,7 @@
         ]
       },
       {
-        "img": "/horeca/images/niche-kitchen-2.webp",
+        "img": "/images/review-sante.webp",
         "alt": "Пекарня La Panetteria у формі Loomiq",
         "tag": "La Panetteria",
         "quote": "Пекарня-кондитерська. Хотіли теплу, «домашню» форму для пекарів і продавців — фартухи в кавовому відтінку й футболки. Підібрали дихаючу тканину, лого — акуратна вишивка, щоб виглядало затишно й охайно за прилавком. Другу партію замовили вже за місяць.",
@@ -205,7 +205,28 @@
           "Футболки — 25 шт"
         ]
       }
-    ]
+    ],
+    "css": {
+      ".hero-overlay": "\n    position:absolute;inset:0;z-index:1;\n    /* затемнення зверху, щоб білий текст читався на будь-якому кадрі відео */\n    background:linear-gradient(180deg,\n      rgba(8,9,14,.74) 0%,\n      rgba(8,9,14,.66) 26%,\n      rgba(8,9,14,.44) 45%,\n      rgba(8,9,14,.14) 62%,\n      rgba(8,9,14,.10) 80%,\n      rgba(8,9,14,.44) 100%);\n    pointer-events:none;\n  ",
+      ".hvt-bg": "stroke:rgba(255,255,255,.25);",
+      ".aurora-bg": "\n    position:relative;overflow:hidden;\n    background:\n      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\"),\n      radial-gradient(130% 100% at 88% -12%, rgba(198,146,92,.32) 0%, rgba(198,146,92,.09) 38%, transparent 62%),\n      radial-gradient(110% 90% at -8% 112%, rgba(150,96,58,.22) 0%, transparent 58%),\n      linear-gradient(155deg,#1b1512 0%,#0d0a08 52%,#17110c 100%);\n    background-size:160px 160px, auto, auto, auto;\n    background-blend-mode:soft-light, normal, normal, normal;\n    box-shadow:inset 0 1px 0 rgba(255,255,255,.07);\n  ",
+      ".aurora-bg::before": "\n    width:min(420px,72%);aspect-ratio:1/1;top:-32%;right:-14%;\n    background:radial-gradient(circle at 50% 50%, rgba(205,150,95,.34) 0%, transparent 68%);\n    animation:glow-drift-1 13s ease-in-out infinite;\n  ",
+      ".aurora-bg::after": "\n    width:min(380px,64%);aspect-ratio:1/1;bottom:-30%;left:-12%;\n    background:radial-gradient(circle at 50% 50%, rgba(150,96,58,.24) 0%, transparent 68%);\n    animation:glow-drift-2 17s ease-in-out infinite;\n  ",
+      ".help-card": "\n    margin-top:40px;background:linear-gradient(145deg,#3a2418,#5c3a26);border:none;border-radius:var(--radius);\n    padding:28px 26px;color:#FFFFFF;position:relative;overflow:hidden;\n  ",
+      ".pm-garment-item.active": "border:2px solid #8B5E3C;background:#FFFFFF;",
+      ".pm-color-swatch.active": "outline-color:#8B5E3C;",
+      ".pm-print-item.active": "border:2px solid #8B5E3C;background:#FFFFFF;",
+      ".pm-size-btn.active": "border:2.5px solid #8B5E3C;color:#8B5E3C;font-weight:700;",
+      ".pm-add-btn": "\n    width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;\n    background:linear-gradient(135deg,#5A3A28,#8B5E3C);color:#fff;font-size:15px;font-weight:700;\n    font-family:var(--font-sf);\n  ",
+      ".pm-card--help": "\n    display:flex;flex-direction:column;justify-content:space-between;gap:16px;\n    background:linear-gradient(145deg,#3a2418,#5c3a26);border:none;\n  ",
+      ".pm-cta-card": "\n    flex:1;padding:24px 20px;border-radius:16px;border:1.5px solid #eee;\n    background:linear-gradient(145deg,#3a2418,#5c3a26);display:flex;flex-direction:column;\n    align-items:center;justify-content:center;text-align:center;gap:16px;\n  ",
+      ".pm-sc-dot-grid": "background-image:radial-gradient(#d8c3a8 2px, transparent 2.5px);background-size:14px 14px;height:54px;",
+      ".pm-sc-x": "position:absolute;color:#e2d3bf;font-size:18px;font-weight:700;",
+      ".pm-sc-note-badge": "flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #d8c3a8;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;",
+      ".contact-card--tg": "\n    background:#F5EFE7;border:1px solid #E7DAC8;display:block;color:var(--ink);\n    transition:box-shadow .15s ease;\n  ",
+      ".contact-card--tg:hover": "box-shadow:0 4px 14px -6px rgba(111,78,55,.18);",
+      ".contact-ic.call": "background:#F1E7DE;color:var(--blue);"
+    }
   },
   "build": {
     "label": "Будівництво",
@@ -391,6 +412,29 @@
           "Комбінезони — 12 шт"
         ]
       }
-    ]
+    ],
+    "css": {
+      ".btn-primary": "background:var(--cta);color:#161616;box-shadow:0 4px 10px -4px rgba(0,0,0,.35);border:1.5px solid #FFFFFF;",
+      ".hero-overlay": "\n    position:absolute;inset:0;z-index:1;\n    /* затемнення зверху, щоб білий текст читався на будь-якому кадрі відео */\n    background:linear-gradient(180deg,\n      rgba(8,9,14,.74) 0%,\n      rgba(8,9,14,.66) 26%,\n      rgba(8,9,14,.44) 45%,\n      rgba(8,9,14,.14) 62%,\n      rgba(8,9,14,.10) 80%,\n      rgba(8,9,14,.44) 100%);\n    pointer-events:none;\n  ",
+      ".hvt-bg": "stroke:rgba(255,255,255,.25);",
+      ".aurora-bg": "\n    position:relative;overflow:hidden;\n    background:\n      url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\"),\n      repeating-linear-gradient(-45deg,#FFB300 0 14px,#171512 14px 28px),\n      radial-gradient(130% 100% at 88% -12%, rgba(255,179,0,.26) 0%, rgba(255,179,0,.07) 38%, transparent 62%),\n      radial-gradient(110% 90% at -8% 112%, rgba(201,79,30,.22) 0%, transparent 58%),\n      linear-gradient(155deg,#1b1a17 0%,#0e0d0b 52%,#161411 100%);\n    background-size:160px 160px, 100% 7px, auto, auto, auto;\n    background-repeat:repeat, no-repeat, no-repeat, no-repeat, no-repeat;\n    background-position:0 0, left top, center, center, center;\n    background-blend-mode:soft-light, normal, normal, normal, normal;\n    box-shadow:inset 0 1px 0 rgba(255,255,255,.07);\n  ",
+      ".aurora-bg::before": "\n    width:min(420px,72%);aspect-ratio:1/1;top:-32%;right:-14%;\n    background:radial-gradient(circle at 50% 50%, rgba(255,179,0,.30) 0%, transparent 68%);\n    animation:glow-drift-1 13s ease-in-out infinite;\n  ",
+      ".aurora-bg::after": "\n    width:min(380px,64%);aspect-ratio:1/1;bottom:-30%;left:-12%;\n    background:radial-gradient(circle at 50% 50%, rgba(201,79,30,.26) 0%, transparent 68%);\n    animation:glow-drift-2 17s ease-in-out infinite;\n  ",
+      ".help-card": "\n    margin-top:40px;background:linear-gradient(145deg,#2b2413,#54431a);border:none;border-radius:var(--radius);\n    padding:28px 26px;color:#FFFFFF;position:relative;overflow:hidden;\n  ",
+      ".pm-garment-item.active": "border:2px solid #C94F1E;background:#FFFFFF;",
+      ".pm-color-swatch.active": "outline-color:#C94F1E;",
+      ".pm-print-item.active": "border:2px solid #C94F1E;background:#FFFFFF;",
+      ".pm-size-btn.active": "border:2.5px solid #C94F1E;color:#C94F1E;font-weight:700;",
+      ".pm-add-btn": "\n    width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;\n    background:linear-gradient(135deg,#E08900,#FFB300);color:#161616;font-size:15px;font-weight:700;\n    font-family:var(--font-sf);\n  ",
+      ".pm-add-btn-sum": "font-size:13px;color:rgba(0,0,0,.55);margin-left:8px;font-weight:400;",
+      ".pm-card--help": "\n    display:flex;flex-direction:column;justify-content:space-between;gap:16px;\n    background:linear-gradient(145deg,#2b2413,#54431a);border:none;\n  ",
+      ".pm-cta-card": "\n    flex:1;padding:24px 20px;border-radius:16px;border:1.5px solid #eee;\n    background:linear-gradient(145deg,#2b2413,#54431a);display:flex;flex-direction:column;\n    align-items:center;justify-content:center;text-align:center;gap:16px;\n  ",
+      ".pm-sc-dot-grid": "background-image:radial-gradient(#e8d9a0 2px, transparent 2.5px);background-size:14px 14px;height:54px;",
+      ".pm-sc-x": "position:absolute;color:#e8dcb0;font-size:18px;font-weight:700;",
+      ".pm-sc-note-badge": "flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #e8d9a0;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;",
+      ".contact-card--tg": "\n    background:#FFF7E6;border:1px solid #F3E0AE;display:block;color:var(--ink);\n    transition:box-shadow .15s ease;\n  ",
+      ".contact-card--tg:hover": "box-shadow:0 4px 14px -6px rgba(201,79,30,.18);",
+      ".contact-ic.call": "background:#F1E7DE;color:var(--blue);"
+    }
   }
 }
