@@ -761,7 +761,7 @@
               <option value="build">Будівництво — /build/</option>
             </select>
           </div>
-          <span class="calc-bar-hint">Товари, фото, відгуки й каталог на головній — окремі для кожного сайту</span>
+          <span class="calc-bar-hint">Тут увесь асортимент цього сайту. Які саме чотири товари показуються на головній — у розділі «Прорахунок»</span>
         </div>
         <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.
           Редагується сайт, обраний угорі ліворуч, — інші сайти не зачіпаються.</div>
@@ -1019,16 +1019,6 @@
       <!-- Головна й контакти -->
       <div id="ctor-site" style="display:none;">
         <div class="card" style="max-width:640px;">
-          <b style="font-size:14px;">Каталог на головній</b>
-          <div class="sub" style="margin:6px 0 12px;">Чотири картки в блоці «Одяг, який хочеться носити щодня». Оберіть товар, на який веде картка, завантажте обгортку і виставте порядок. Порожня обгортка = стандартне фото товару.</div>
-          <div id="cat-picks"></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-            <button class="pc-btn up" id="cat-picks-save" style="flex:none;padding:10px 22px;">Зберегти каталог</button>
-            <button class="pc-btn reset" id="cat-picks-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
-          </div>
-        </div>
-
-        <div class="card" style="max-width:640px;">
           <b style="font-size:14px;">Контакти</b>
           <div class="sub" style="margin:6px 0 12px;">Підставляються в усі кнопки/посилання на сайті. Порожнє поле = без змін (стандартні).</div>
           <label class="field" style="display:block;margin-bottom:10px;">
@@ -1125,6 +1115,16 @@
         <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
         <span class="calc-bar-hint" id="edit-hint">Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.</span>
       </div>
+      <div class="card" style="max-width:640px;margin-bottom:12px;">
+        <b style="font-size:14px;">Каталог на головній — <span id="cat-picks-site">Головний</span></b>
+        <div class="sub" style="margin:6px 0 12px;">Чотири картки в блоці «Одяг, який хочеться носити щодня» саме цього сайту. Оберіть товар, на який веде картка, завантажте обгортку і виставте порядок. Порожня обгортка = стандартне фото товару.</div>
+        <div id="cat-picks"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <button class="pc-btn up" id="cat-picks-save" style="flex:none;padding:10px 22px;">Зберегти каталог</button>
+          <button class="pc-btn reset" id="cat-picks-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+        </div>
+      </div>
+
       <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
         Повна копія сайту для менеджерів — завжди синхронна з клієнтським сайтом (нові товари з'являються тут автоматично).
         Тут можна змонтувати логотип, <b>завантажити макап</b> і бачити <b>прорахунок собівартості</b> та як формується ціна.
@@ -1351,7 +1351,10 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
-    if(view==='calc' && window.loadCalcFrame) window.loadCalcFrame();
+    if(view==='calc'){
+      if(window.loadCalcFrame) window.loadCalcFrame();
+      catPicks = null; renderCatPicks();
+    }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -2788,6 +2791,7 @@ function catPickProducts(){
 function renderCatPicks(){
   const wrap = document.getElementById('cat-picks');
   if(!wrap) return;
+  const lbl = document.getElementById('cat-picks-site'); if(lbl) lbl.textContent = lqSiteDef().label;
   if(!catPicks){
     const saved = (contentData.catalogPicks || []).slice(0,4);
     catPicks = saved.length ? saved.map(x=>({garment:x.garment||'', img:x.img||''}))
@@ -2854,8 +2858,6 @@ document.addEventListener('click', async e=>{
 });
 
 function renderSiteTab(){
-  catPicks = null;
-  renderCatPicks();
   const ct = contentData.contacts || {};
   document.getElementById('site-phone').value = ct.phone || '';
   document.getElementById('site-tg').value = ct.telegram || '';
@@ -4218,7 +4220,7 @@ async function init(){
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
       syncSiteBadge();
       const s2 = document.getElementById('site-switch-2'); if(s2) s2.value = LQ_SITE;
-      catPicks = null;
+      catPicks = null; renderCatPicks();
       const vc = document.getElementById('view-calc');
       if(vc && vc.style.display !== 'none') loadCalcFrame(true);   // прев'ю показує обраний сайт
       toast('Сайт: ' + lqSiteDef().label);
@@ -4407,19 +4409,39 @@ async function init(){
         el.setAttribute('contenteditable', 'true');
         el.addEventListener('input', ()=>{ pending[rec.key] = el.textContent; scheduleSave(); });
         el.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el.blur(); } });
-      } else {
-        el.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); openImagePanel(rec, doc); }, true);
       }
     });
-    // у режимі правки кліки не мають відкривати модалки сайту
-    doc.addEventListener('click', e=>{
-      if(e.target.closest && e.target.closest('[data-lq-edit]')) e.stopPropagation();
+
+    /* Один обробник на весь документ, у фазі перехоплення. Раніше він лише
+       глушив подію, і через це клік не доходив до самої картинки — фото
+       не відкривало панель, а картка каталогу натомість відкривала товар.
+       Тепер тут і глушимо чужі обробники, і одразу відкриваємо панель. */
+    const byKey = {}; map.forEach(r=>{ byKey[r.key] = r; });
+    // вішаємо на window: перехоплення там спрацьовує раніше за обробники сайту,
+    // інакше клік по картці каталогу встигав відкрити товар
+    doc.defaultView.addEventListener('click', e=>{
+      let t = e.target.closest ? e.target.closest('[data-lq-edit]') : null;
+      // кадри героя лежать під затемненням, тож клік по ньому веде до активного кадру
+      if(!t && e.target.closest && e.target.closest('.hero')){
+        t = doc.querySelector('.hero-bg-slide.active[data-lq-edit]') || doc.querySelector('.hero-bg-slide[data-lq-edit]');
+      }
+      if(!t) return;
+      e.stopPropagation();
+      const type = t.getAttribute('data-lq-type');
+      if(type === 'image' || type === 'bg'){
+        e.preventDefault();
+        const rec = byKey[t.getAttribute('data-lq-edit')];
+        if(rec) openImagePanel(rec, doc);
+      }
     }, true);
     return true;
   }
 
   function disable(){
     const doc = frameDoc(); closePanel();
+    // прибрати перехоплювач не можна без посилання на функцію — тому просто
+    // перезавантажуємо прев'ю, це заодно показує сайт таким, яким його бачить клієнт
+    if(doc) setTimeout(()=>{ if(window.loadCalcFrame) window.loadCalcFrame(true); }, 400);
     if(!doc) return;
     const st = doc.getElementById('lq-edit-style'); if(st) st.remove();
     doc.querySelectorAll('[data-lq-edit]').forEach(el=>{
