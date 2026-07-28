@@ -7324,10 +7324,11 @@ window.LOOMIQ_CONFIG = {
     db.collection('reviews').where('approved','==',true).limit(200).get().then(function(snap){
       var arr=[]; snap.forEach(function(doc){
         var d = doc.data();
-        // відгук належить цьому сайту: поле site збігається,
-        // а старі відгуки без цього поля лишаються на головному сайті
-        var site = d.site || 'main';
-        if(site === LQ_SITE) arr.push(d);
+        // База відгуків спільна, а показ керується галочками в адмінці:
+        // sites — перелік сайтів. Старі записи мали одне поле site, тож
+        // вважаємо його єдиним сайтом; зовсім старі — головного.
+        var sites = Array.isArray(d.sites) ? d.sites : [d.site || 'main'];
+        if(sites.indexOf(LQ_SITE) !== -1) arr.push(d);
       });
       arr.sort(function(a,b){ var ta=(a.createdAt&&a.createdAt.toMillis)?a.createdAt.toMillis():0; var tb=(b.createdAt&&b.createdAt.toMillis)?b.createdAt.toMillis():0; return tb-ta; });
       box.innerHTML = arr.map(cardHtml).join('');
@@ -7534,6 +7535,7 @@ window.LOOMIQ_CONFIG = {
     function saveDoc(photoUrl){
       db.collection('reviews').add({
         site: LQ_SITE,
+        sites: [LQ_SITE],   // де показувати; далі керується галочками в адмінці
         name: name.slice(0,60), text: text.slice(0,800), rating: rating,
         phone: phone.slice(0,30), photo: photoUrl||'', approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
