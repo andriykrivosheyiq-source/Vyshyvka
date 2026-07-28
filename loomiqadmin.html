@@ -80,6 +80,7 @@
   .lq-img-zoom input{flex:1;}
   .lq-img-zoom b{color:var(--ink);font-size:11.5px;min-width:38px;text-align:right;}
   .lq-img-close{flex:none;padding:7px 14px;}
+  .lq-img-hint{font-size:11px;color:#8893A6;line-height:1.35;}
   .rv-sites{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px;
     padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--canvas);}
   .rv-sites-lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8893A6;font-weight:700;}
@@ -751,21 +752,7 @@
     <section id="view-photos" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Конструктор</div>
-        <h1>Конструктор сайту <span class="site-badge" id="ctor-site-badge">Головний</span></h1>
-        <div class="calc-bar" style="margin:12px 0 0;">
-          <div class="calc-bar-site">
-            <span class="calc-bar-lbl">Сайт</span>
-            <select id="site-switch-2">
-              <option value="main">Головний — loomiq.net</option>
-              <option value="horeca">HoReCa — /horeca/</option>
-              <option value="build">Будівництво — /build/</option>
-            </select>
-          </div>
-          <span class="calc-bar-hint">Тут увесь асортимент цього сайту. Які саме чотири товари показуються на головній — у розділі «Прорахунок»</span>
-        </div>
-        <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.
-          Редагується сайт, обраний угорі ліворуч, — інші сайти не зачіпаються.</div>
-      </div>
+        <h1>Конструктор сайту</h1>
       <div class="seg" id="ctor-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
         <button data-ct="products" class="active print">Товари</button>
         <button data-ct="reviews">Відгуки</button>
@@ -1115,16 +1102,6 @@
         <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
         <span class="calc-bar-hint" id="edit-hint">Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.</span>
       </div>
-      <div class="card" style="max-width:640px;margin-bottom:12px;">
-        <b style="font-size:14px;">Каталог на головній — <span id="cat-picks-site">Головний</span></b>
-        <div class="sub" style="margin:6px 0 12px;">Чотири картки в блоці «Одяг, який хочеться носити щодня» саме цього сайту. Оберіть товар, на який веде картка, завантажте обгортку і виставте порядок. Порожня обгортка = стандартне фото товару.</div>
-        <div id="cat-picks"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-          <button class="pc-btn up" id="cat-picks-save" style="flex:none;padding:10px 22px;">Зберегти каталог</button>
-          <button class="pc-btn reset" id="cat-picks-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
-        </div>
-      </div>
-
       <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
         Повна копія сайту для менеджерів — завжди синхронна з клієнтським сайтом (нові товари з'являються тут автоматично).
         Тут можна змонтувати логотип, <b>завантажити макап</b> і бачити <b>прорахунок собівартості</b> та як формується ціна.
@@ -1175,7 +1152,57 @@ if(!LQ_SITES.some(x=>x.id===LQ_SITE)) LQ_SITE = 'main';
 function lqSiteDef(){ return LQ_SITES.find(x=>x.id===LQ_SITE) || LQ_SITES[0]; }
 function syncSiteBadge(){ const b = document.getElementById('ctor-site-badge'); if(b) b.textContent = lqSiteDef().label; }
 // Змінна (не const) — усі збереження нижче автоматично пишуть у документ обраного сайту
-let PHOTOS_DOC = fbDb.collection('loomiq').doc(lqSiteDef().doc);   // публічні фото товарів (читає сайт)
+/* Дані розділені на два документи:
+   SHARED_DOC — Конструктор: асортимент, фото, назви, ціни, розмірні сітки,
+   моделі, зони нанесення, контакти. Одні на всі сайти.
+   PHOTOS_DOC — посадкова конкретного сайту: тексти, картинки, чотири картки
+   каталогу, кейси, FAQ, промо.
+   Куди писати — вирішує ключ, тому решта коду лишається без змін. */
+const SHARED_DOC = fbDb.collection('loomiq').doc('photos');
+const LANDING_KEYS = ['landing','catalogPicks','cases','faq','promo'];
+function docForPatch(patch){
+  const keys = Object.keys(patch || {});
+  const landing = keys.filter(k => LANDING_KEYS.indexOf(k) !== -1).length;
+  if(landing && landing !== keys.length){
+    console.warn('змішаний запис — розділяю', keys);
+  }
+  return landing === keys.length && keys.length ? SITE_DOC() : SHARED_DOC;
+}
+function SITE_DOC(){ return fbDb.collection('loomiq').doc(lqSiteDef().doc); }
+// Обгортка з тим самим інтерфейсом, що й раніше: .set(patch, opts)
+let PHOTOS_DOC = {
+  set: function(patch, opts){
+    const keys = Object.keys(patch || {});
+    const land = {}, share = {};
+    keys.forEach(k => { (LANDING_KEYS.indexOf(k) !== -1 ? land : share)[k] = patch[k]; });
+    const jobs = [];
+    if(Object.keys(share).length) jobs.push(SHARED_DOC.set(share, opts || {merge:true}));
+    if(Object.keys(land).length)  jobs.push(SITE_DOC().set(land, opts || {merge:true}));
+    return Promise.all(jobs);
+  },
+  get: function(){ return SHARED_DOC.get(); },
+  // читаємо обидва документи; посадкові ключі беремо з документа сайту,
+  // решту — зі спільного
+  onSnapshot: function(cb, err){
+    let shared = {}, own = {}, gotShared = false, gotOwn = false;
+    const siteDoc = lqSiteDef().doc;
+    const emit = ()=>{
+      if(!gotShared) return;
+      if(siteDoc !== 'photos' && !gotOwn) return;
+      const out = {};
+      Object.keys(shared).forEach(k=>{ if(LANDING_KEYS.indexOf(k) === -1) out[k] = shared[k]; });
+      const src = siteDoc === 'photos' ? shared : own;
+      Object.keys(src).forEach(k=>{ if(LANDING_KEYS.indexOf(k) !== -1) out[k] = src[k]; });
+      cb({ exists:true, data:()=>out });
+    };
+    const u1 = SHARED_DOC.onSnapshot(sn=>{ shared = sn.exists ? (sn.data()||{}) : {}; gotShared = true; emit(); }, err);
+    let u2 = null;
+    if(siteDoc !== 'photos'){
+      u2 = fbDb.collection('loomiq').doc(siteDoc).onSnapshot(sn=>{ own = sn.exists ? (sn.data()||{}) : {}; gotOwn = true; emit(); }, err);
+    }
+    return ()=>{ try{u1();}catch(e){} if(u2){ try{u2();}catch(e){} } };
+  }
+};
 
 /* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
 const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
@@ -1353,7 +1380,6 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='photos') renderCtor();
     if(view==='calc'){
       if(window.loadCalcFrame) window.loadCalcFrame();
-      catPicks = null; renderCatPicks();
     }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
@@ -4212,7 +4238,6 @@ async function init(){
     sel.addEventListener('change', function(){
       LQ_SITE = sel.value;
       localStorage.setItem('lq_admin_site', LQ_SITE);
-      PHOTOS_DOC = fbDb.collection('loomiq').doc(lqSiteDef().doc);
       contentData = {}; photosMap = {};
       prodDetailId = null;
       subscribePhotos();
@@ -4220,7 +4245,6 @@ async function init(){
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
       syncSiteBadge();
       const s2 = document.getElementById('site-switch-2'); if(s2) s2.value = LQ_SITE;
-      catPicks = null; renderCatPicks();
       const vc = document.getElementById('view-calc');
       if(vc && vc.style.display !== 'none') loadCalcFrame(true);   // прев'ю показує обраний сайт
       toast('Сайт: ' + lqSiteDef().label);
@@ -4384,6 +4408,53 @@ async function init(){
     panel.querySelector('.lq-img-close').addEventListener('click', closePanel);
   }
 
+  /* Картка каталогу на головній: обгортка і товар, на який вона веде.
+     Зберігається в документ саме цього сайту — асортимент при цьому спільний. */
+  function catalogPicksNow(){
+    const saved = (contentData.catalogPicks || []).slice(0, 4).map(x=>({garment:x.garment||'', img:x.img||''}));
+    while(saved.length < 4) saved.push({garment:'', img:''});
+    return saved;
+  }
+  async function saveCatalogPicks(rows){
+    try{
+      await PHOTOS_DOC.set({ catalogPicks: rows.filter(r=>r.garment) }, { merge:true });
+      hint.textContent = 'Каталог збережено · ' + lqSiteDef().label;
+    }catch(e){ console.error(e); hint.textContent = 'Не вдалося зберегти каталог'; }
+  }
+  function openCardPanel(i, cardEl, doc){
+    closePanel();
+    const rows = catalogPicksNow();
+    const box = cardEl.getBoundingClientRect();
+    const fr = document.getElementById('calc-frame').getBoundingClientRect();
+    const opts = catPickProducts();
+    panel = document.createElement('div');
+    panel.className = 'lq-img-panel';
+    panel.innerHTML = `
+      <div class="lq-img-panel-title">Картка ${i+1} на головній</div>
+      <label class="pc-btn up lq-img-replace">Завантажити обгортку<input type="file" accept="image/*" hidden></label>
+      <select class="cp-sel">
+        <option value="">— не показувати —</option>
+        ${opts.map(([id,label])=>`<option value="${escapeHtml(id)}"${rows[i].garment===id?' selected':''}>${escapeHtml(label)}</option>`).join('')}
+      </select>
+      <div class="lq-img-hint">Товар із загального асортименту, на який веде картка</div>
+      <button class="pc-btn reset lq-img-close">Готово</button>
+    `;
+    panel.style.top  = Math.max(8, fr.top + box.top + window.scrollY) + 'px';
+    panel.style.left = Math.min(window.innerWidth - 250, fr.left + box.right + 10) + 'px';
+    document.body.appendChild(panel);
+
+    panel.querySelector('.cp-sel').addEventListener('change', e=>{
+      rows[i].garment = e.target.value; saveCatalogPicks(rows);
+    });
+    panel.querySelector('input[type=file]').addEventListener('change', async e=>{
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      hint.textContent = 'Завантажуємо обгортку…';
+      try{ rows[i].img = await uploadCloudinary(f); await saveCatalogPicks(rows); }
+      catch(err){ console.error(err); hint.textContent = 'Не вдалося завантажити'; }
+    });
+    panel.querySelector('.lq-img-close').addEventListener('click', closePanel);
+  }
+
   function currentSrc(rec){
     if(rec.type === 'bg'){
       const m = /url\(['"]?([^'")]+)/.exec(rec.el.style.backgroundImage || '');
@@ -4417,6 +4488,8 @@ async function init(){
        не відкривало панель, а картка каталогу натомість відкривала товар.
        Тепер тут і глушимо чужі обробники, і одразу відкриваємо панель. */
     const byKey = {}; map.forEach(r=>{ byKey[r.key] = r; });
+    // чотири картки каталогу на головній редагуються як ціле: картинка + товар
+    doc.querySelectorAll('#catalog .product').forEach((card, i)=>{ if(i < 4) card.setAttribute('data-lq-card', i); });
     // вішаємо на window: перехоплення там спрацьовує раніше за обробники сайту,
     // інакше клік по картці каталогу встигав відкрити товар
     doc.defaultView.addEventListener('click', e=>{
@@ -4424,6 +4497,12 @@ async function init(){
       // кадри героя лежать під затемненням, тож клік по ньому веде до активного кадру
       if(!t && e.target.closest && e.target.closest('.hero')){
         t = doc.querySelector('.hero-bg-slide.active[data-lq-edit]') || doc.querySelector('.hero-bg-slide[data-lq-edit]');
+      }
+      const card = e.target.closest ? e.target.closest('[data-lq-card]') : null;
+      if(card){
+        e.preventDefault(); e.stopPropagation();
+        openCardPanel(+card.getAttribute('data-lq-card'), card, doc);
+        return;
       }
       if(!t) return;
       e.stopPropagation();
