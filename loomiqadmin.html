@@ -43,6 +43,11 @@
   .brand-text b{font-size:15px;color:#fff;letter-spacing:.2px;}
   .brand-text span{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:1.2px;}
 
+  .site-badge{
+    display:inline-block;vertical-align:middle;margin-left:10px;
+    padding:4px 11px;border-radius:999px;background:#0F2034;color:#7FC4FF;
+    border:1px solid #24405f;font-size:13px;font-weight:700;letter-spacing:.01em;
+  }
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -706,8 +711,9 @@
     <section id="view-photos" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Конструктор</div>
-        <h1>Конструктор сайту</h1>
-        <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.</div>
+        <h1>Конструктор сайту <span class="site-badge" id="ctor-site-badge">Головний</span></h1>
+        <div class="sub">Фото, назви, описи, розмірні сітки, моделі та відгуки. Зміни одразу зʼявляються на сайті.
+          Редагується сайт, обраний угорі ліворуч, — інші сайти не зачіпаються.</div>
       </div>
       <div class="seg" id="ctor-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
         <button data-ct="products" class="active print">Товари</button>
@@ -1087,6 +1093,7 @@ const LQ_SITES = [
 let LQ_SITE = localStorage.getItem('lq_admin_site') || 'main';
 if(!LQ_SITES.some(x=>x.id===LQ_SITE)) LQ_SITE = 'main';
 function lqSiteDef(){ return LQ_SITES.find(x=>x.id===LQ_SITE) || LQ_SITES[0]; }
+function syncSiteBadge(){ const b = document.getElementById('ctor-site-badge'); if(b) b.textContent = lqSiteDef().label; }
 // Змінна (не const) — усі збереження нижче автоматично пишуть у документ обраного сайту
 let PHOTOS_DOC = fbDb.collection('loomiq').doc(lqSiteDef().doc);   // публічні фото товарів (читає сайт)
 
@@ -3884,6 +3891,7 @@ async function init(){
     const sel = document.getElementById('site-switch');
     if(!sel) return;
     sel.value = LQ_SITE;
+    syncSiteBadge();
     sel.addEventListener('change', function(){
       LQ_SITE = sel.value;
       localStorage.setItem('lq_admin_site', LQ_SITE);
@@ -3893,6 +3901,7 @@ async function init(){
       subscribePhotos();
       const rv = document.getElementById('view-reviews');
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
+      syncSiteBadge();
       toast('Сайт: ' + lqSiteDef().label);
     });
   })();
