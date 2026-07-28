@@ -114,7 +114,7 @@
   .float-cta-bar .btn{width:88%;max-width:440px;justify-content:center;}
   .float-telegram{
     position:fixed;bottom:100px;left:22px;z-index:80;
-    width:54px;height:54px;border-radius:50%;
+    width:64px;height:64px;border-radius:50%;
     background:#27A7E7;display:flex;align-items:center;justify-content:center;
     box-shadow:0 14px 28px -10px rgba(39,167,231,.55);
     opacity:0;transform:scale(.86);filter:blur(8px);
@@ -128,7 +128,7 @@
   }
   @media (max-width:480px){
     .float-cta-bar{padding:14px 20px calc(14px + env(safe-area-inset-bottom, 0px));}
-    .float-telegram{left:16px;bottom:92px;width:48px;height:48px;}
+    .float-telegram{left:16px;bottom:92px;width:58px;height:58px;}
   }
   /* Menu drawer — 2/3 width, slides in from the right, with backdrop */
   .menu-backdrop{
@@ -188,7 +188,7 @@
   .menu-overlay-cta{margin-top:auto;justify-content:center;padding:18px;font-size:17px;}
 
   section{padding:38px 0;background:var(--white);}
-  @media (max-width:640px){section{padding:24px 0;}}
+  @media (max-width:640px){section{padding:18px 0;}}
   #why{background:#f7f8fc;position:relative;overflow:hidden;}
   #why::before{
     content:'';position:absolute;top:-10%;right:-10%;width:60%;aspect-ratio:1/1;
@@ -200,12 +200,12 @@
   /* HERO — full-bleed background photo */
   .hero{
     position:relative;overflow:hidden;color:#FFFFFF;
-    padding-top:32px;padding-bottom:96px;
+    padding-top:32px;padding-bottom:40px;
     min-height:660px;display:flex;align-items:flex-start;
   }
   .hero-bg-slides{position:absolute;inset:0;z-index:0;background:#1c1c1c;}
   .hero-bg-slide{
-    position:absolute;inset:0;background-size:cover;background-position:center 40%;
+    position:absolute;inset:0;background-size:cover;background-position:center top;
     opacity:0;transition:opacity 1.4s ease;
     transform:scale(1.06) translateY(3%);transform-origin:center top;
   }
@@ -224,27 +224,33 @@
     position:absolute;inset:0;z-index:1;
     /* затемнення зверху, щоб білий текст читався на будь-якому кадрі відео */
     background:linear-gradient(180deg,
-      rgba(8,9,14,.74) 0%,
-      rgba(8,9,14,.66) 26%,
-      rgba(8,9,14,.44) 45%,
-      rgba(8,9,14,.14) 62%,
-      rgba(8,9,14,.10) 80%,
-      rgba(8,9,14,.44) 100%);
+      rgba(8,9,14,.66) 0%,
+      rgba(8,9,14,.45) 30%,
+      rgba(8,9,14,.16) 55%,
+      rgba(8,9,14,.10) 78%,
+      rgba(8,9,14,.42) 100%);
     pointer-events:none;
   }
+  /* Зона перемикання роликів у стилі Nike: крапки по центру, таймер справа */
+  .hero-nike-bar{position:absolute;left:0;right:0;bottom:16px;z-index:3;
+    display:flex;align-items:center;justify-content:center;padding:0 18px;min-height:28px;}
+  .hero-nike-bar[hidden]{display:none;}
+  .hero-vid-dots{display:flex;align-items:center;gap:7px;}
+  .hero-vid-dots .vd{width:6px;height:6px;border-radius:50%;padding:0;border:none;cursor:pointer;
+    background:rgba(255,255,255,.45);transition:background .25s ease;}
+  .hero-vid-dots .vd.active{background:#FFFFFF;}
   .hero-video-ui{
-    position:absolute;right:16px;bottom:62px;z-index:3;
-    width:46px;height:46px;border-radius:50%;padding:0;cursor:pointer;
-    background:rgba(12,12,16,.35);border:none;
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    position:absolute;right:18px;top:50%;transform:translateY(-50%);z-index:3;
+    width:28px;height:28px;border-radius:50%;padding:0;cursor:pointer;
+    background:transparent;border:none;
   }
   .hero-video-ui[hidden]{display:none;}
   .hero-video-ui svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
-  .hvt-bg{stroke:rgba(255,255,255,.25);}
+  .hvt-bg{stroke:rgba(255,255,255,.4);}
   .hvt-fill{stroke:#fff;stroke-dasharray:119.4;stroke-dashoffset:119.4;}
   #heroVideoTimer{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-size:14px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;
+    font-size:10.5px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;
   }
   .hero-slide-controls{
     position:absolute;left:0;right:0;bottom:18px;z-index:3;
@@ -283,6 +289,9 @@
   .hero h1 .accent{color:#FFFFFF;}
   .hero p.lead{font-size:18px;color:rgba(255,255,255,.92);margin-top:20px;line-height:1.55;text-shadow:0 1px 12px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.35);}
   .hero .cta-row{display:flex;gap:8px;margin-top:32px;flex-wrap:wrap;justify-content:center;align-items:center;}
+  /* кнопки героя одна під одною — зручніше влучати пальцем */
+  .hero .cta-row--stack{flex-direction:column;gap:10px;max-width:340px;margin-left:auto;margin-right:auto;}
+  .hero .cta-row--stack .btn{width:100%;justify-content:center;}
   .hero .cta-row .cta-or{color:#FFFFFF;font-size:14px;font-weight:600;opacity:.85;flex:none;}
   @media (max-width:480px){
     .hero .cta-row{flex-wrap:nowrap;gap:8px;}
@@ -341,9 +350,9 @@
     position:relative;overflow:hidden;
     background:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-      radial-gradient(130% 100% at 88% -12%, rgba(198,146,92,.32) 0%, rgba(198,146,92,.09) 38%, transparent 62%),
-      radial-gradient(110% 90% at -8% 112%, rgba(150,96,58,.22) 0%, transparent 58%),
-      linear-gradient(155deg,#1b1512 0%,#0d0a08 52%,#17110c 100%);
+      radial-gradient(130% 100% at 88% -12%, rgba(112,102,255,.30) 0%, rgba(112,102,255,.08) 38%, transparent 62%),
+      radial-gradient(110% 90% at -8% 112%, rgba(58,116,255,.20) 0%, transparent 58%),
+      linear-gradient(155deg,#171821 0%,#0c0d12 52%,#12131c 100%);
     background-size:160px 160px, auto, auto, auto;
     background-blend-mode:soft-light, normal, normal, normal;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
@@ -353,12 +362,12 @@
   }
   .aurora-bg::before{
     width:min(420px,72%);aspect-ratio:1/1;top:-32%;right:-14%;
-    background:radial-gradient(circle at 50% 50%, rgba(205,150,95,.34) 0%, transparent 68%);
+    background:radial-gradient(circle at 50% 50%, rgba(126,116,255,.36) 0%, transparent 68%);
     animation:glow-drift-1 13s ease-in-out infinite;
   }
   .aurora-bg::after{
     width:min(380px,64%);aspect-ratio:1/1;bottom:-30%;left:-12%;
-    background:radial-gradient(circle at 50% 50%, rgba(150,96,58,.24) 0%, transparent 68%);
+    background:radial-gradient(circle at 50% 50%, rgba(56,120,255,.24) 0%, transparent 68%);
     animation:glow-drift-2 17s ease-in-out infinite;
   }
   @keyframes glow-drift-1{
@@ -381,11 +390,12 @@
     color:#aaaaaa;font-size:12.5px;font-weight:600;line-height:1.5;background:#f0f0f2;
   }
   .industry-stack-photo:has(img){padding:0;}
-  .industry-stack-photo{position:relative;}
   .industry-stack-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-  /* Слайдшоу фото в картці: шари, що плавно перетікають один в одного */
+  /* Слайдшоу фото в картці ніші: шари, що плавно перетікають один в одного.
+     Одне фото — картка статична, кілька — вмикається ротація. Вирішує контент. */
   .industry-stack-photo .iss-img{
-    position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;will-change:opacity;
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transition:opacity 1.2s ease;will-change:opacity;
   }
   .industry-stack-photo .iss-img.is-active{opacity:1;}
   @media (prefers-reduced-motion: reduce){
@@ -412,13 +422,17 @@
     border:1px solid var(--line);border-radius:20px;background:#FFFFFF;
   }
   .step-info--top{align-self:flex-start;}
-  .step-info .step-num{font-weight:700;color:var(--muted);font-size:12px;letter-spacing:.08em;}
-  .step-info h3{font-size:17px;margin-top:6px;}
-  .step-info p{color:var(--muted);margin-top:7px;font-size:14px;line-height:1.5;max-width:320px;}
+  .step-head{display:flex;align-items:center;gap:10px;}
+  .step-badge{flex:none;width:28px;height:28px;border-radius:50%;
+    border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;color:var(--ink);line-height:1;}
+  .step-info h3{font-size:18px;margin-top:0;}
+  .step-info p{color:var(--muted);margin-top:7px;font-size:15.5px;line-height:1.5;max-width:320px;}
   @media (max-width:480px){
     .step-block{grid-template-columns:1.15fr 1fr;gap:8px;padding:11px 11px 11px 16px;margin-top:11px;}
-    .step-info h3{font-size:15px;}
-    .step-info p{font-size:13px;}
+    .step-info h3{font-size:16.5px;}
+    .step-badge{width:25px;height:25px;font-size:13px;}
+    .step-info p{font-size:14.5px;}
   }
   .step-visual{display:flex;justify-content:center;position:relative;}
   .step-visual svg{width:min(62%,130px);color:var(--ink);}
@@ -429,8 +443,8 @@
   }
 
   /* Interactive logo designer (step 02) */
-  .step-visual--designer{align-items:flex-start;}
-  .logo-designer{width:100%;max-width:160px;margin:0 auto;user-select:none;-webkit-user-select:none;}
+  .step-visual--designer{align-items:center;justify-content:center;}
+  .logo-designer{width:100%;max-width:101px;margin:0 auto;user-select:none;-webkit-user-select:none;}
   .ld-stage{position:relative;width:100%;aspect-ratio:1/1;pointer-events:none;}
   .ld-shirt{position:absolute;inset:0;}
   .ld-shirt img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
@@ -455,8 +469,8 @@
   .ld-hint{margin-top:9px;font-size:12px;color:var(--muted);text-align:center;line-height:1.4;}
 
   /* Step 03 — box slides in from the right */
-  .step-visual--box{overflow:hidden;}
-  .box-slide{width:100%;max-width:225px;margin-left:auto;
+  .step-visual--box{overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .box-slide{width:100%;max-width:112px;margin-left:auto;margin-right:auto;
     transform:translateX(125%);opacity:0;
     transition:transform 1s cubic-bezier(.22,.85,.2,1),opacity .8s ease;}
   .step-block.in .box-slide{transform:translateX(0);opacity:1;}
@@ -548,19 +562,11 @@
   }
   .product:hover{box-shadow:0 4px 14px -6px rgba(0,0,0,.1);}
   .product-art{
-    position:relative;
     aspect-ratio:1/0.85;display:flex;align-items:center;justify-content:center;
     background:#FFFFFF;
   }
   .product-art svg{width:48%;color:var(--ink);}
-  .product-art img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;position:relative;z-index:1;}
-  /* М'яка тінь під виробом — для фото без вбудованої тіні (кітель, фартух) */
-  .product-art--shadow::after{
-    content:"";position:absolute;left:50%;bottom:7%;transform:translateX(-50%);
-    width:46%;height:16px;border-radius:50%;z-index:2;pointer-events:none;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,.20) 0%, rgba(0,0,0,.10) 45%, rgba(0,0,0,0) 72%);
-    filter:blur(2px);
-  }
+  .product-art img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;}
   .product-info{padding:18px 18px 22px;display:flex;align-items:center;justify-content:space-between;background:#FFFFFF;}
   .product-info h4{font-size:16px;font-weight:700;}
   .product-info .price{font-size:14px;color:var(--muted);margin-top:2px;}
@@ -574,17 +580,6 @@
     width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;flex:none;
   }
-
-  .product-swatches{
-    display:flex;gap:7px;justify-content:center;align-items:center;
-    padding:0 12px 14px;background:#FFFFFF;flex-wrap:wrap;
-  }
-  .product-swatches button{
-    width:18px;height:18px;border-radius:50%;padding:0;cursor:pointer;
-    border:1.5px solid var(--line);transition:transform .15s ease,border-color .15s ease;
-  }
-  .product-swatches button:hover{transform:scale(1.12);}
-  .product-swatches button.active{border-color:var(--ink);transform:scale(1.12);}
 
   .catalog-cta-btn{
     margin-top:22px;display:flex;justify-content:center;
@@ -648,6 +643,8 @@
     display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none;
   }
   .why-trust-left h4{font-size:15.5px;font-weight:700;line-height:1.25;}
+  .why-trust-cta{padding:11px 16px;font-size:14px;white-space:nowrap;gap:7px;}
+  @media (max-width:420px){.why-trust-cta{padding:10px 13px;font-size:13px;}}
   .why-trust-left p{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.35;}
   .why-trust-logos{
     flex:1 1 150px;min-width:0;max-width:46%;display:flex;flex-direction:column;gap:8px;overflow:hidden;
@@ -739,18 +736,18 @@
   }
   .app-track::-webkit-scrollbar{display:none;}
   .app-card{
-    flex:0 0 64%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
+    flex:0 0 46%;scroll-snap-align:center;border-radius:var(--radius);overflow:hidden;
     background:#FFFFFF;border:1px solid var(--line);
     display:flex;flex-direction:column;
   }
-  @media (min-width:640px){.app-card{flex:0 0 240px;}}
-  .app-top{padding:16px 16px 2px;}
+  @media (min-width:640px){.app-card{flex:0 0 178px;}}
+  .app-top{padding:14px 14px 2px;}
   .app-eyebrow{
     font-weight:700;font-size:16.5px;color:var(--ink);letter-spacing:-.015em;line-height:1.2;
   }
-  .app-bottom{padding:6px 16px 16px;}
+  .app-bottom{padding:6px 14px 14px;}
   .app-bottom h3{font-size:13px;font-weight:400;line-height:1.35;color:var(--muted);letter-spacing:0;}
-  .app-photo{width:100%;aspect-ratio:1/0.85;margin-top:auto;}
+  .app-photo{width:100%;aspect-ratio:1/0.72;margin-top:auto;}
   .app-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 
   .app-controls{display:flex;align-items:center;justify-content:space-between;margin-top:22px;}
@@ -824,7 +821,7 @@
 
   /* HELP CARD */
   .help-card{
-    margin-top:40px;background:linear-gradient(145deg,#3a2418,#5c3a26);border:none;border-radius:var(--radius);
+    margin-top:40px;background:linear-gradient(145deg,#0c1140,#2a3470);border:none;border-radius:var(--radius);
     padding:28px 26px;color:#FFFFFF;position:relative;overflow:hidden;
   }
   .help-top{display:flex;align-items:flex-start;gap:16px;position:relative;z-index:1;}
@@ -960,10 +957,28 @@
   .work-gallery img{flex:0 0 auto;width:156px;height:196px;object-fit:cover;border-radius:16px;scroll-snap-align:start;background:#ececec;}
   @media(min-width:740px){ .work-gallery img{width:190px;height:240px;} }
 
+  /* Відгуки на головній: фото зверху, під ним імʼя; клік відкриває відгук повністю */
+  .app-card--rev{cursor:pointer;}
+  .app-card--rev .app-photo{margin-top:0;order:-1;}
+  .rs-name{font-size:15px;font-weight:700;color:var(--ink);line-height:1.25;}
+  .rs-date{font-size:12.5px;color:var(--muted);margin-top:3px;}
+  .app-card--rev .rs-text{font-size:13.5px;line-height:1.4;color:#444;margin-top:7px;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  /* кнопку показуємо лише коли відгук реально не влазить у три рядки */
+  .rs-full{display:none;align-items:center;gap:5px;margin-top:8px;padding:0;
+    background:none;border:none;cursor:pointer;font-family:var(--font-sf);
+    font-size:13px;font-weight:600;color:#9aa0a6;}
+  .app-card--rev.is-clipped .rs-full{display:inline-flex;}
+  .rs-full svg{width:14px;height:14px;transition:transform .2s ease;}
+  .app-card--rev.is-open .rs-full svg{transform:rotate(180deg);}
+  .app-card--rev.is-open .rs-text{-webkit-line-clamp:unset;overflow:visible;}
+  .rs-more{flex:0 0 auto;display:flex;align-items:center;padding-right:6px;}
+  .rs-more .btn{white-space:nowrap;}
+
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
-    position:relative;height:calc(70vh - 60px);background:#f3f3f4;
+    position:relative;height:calc(62vh - 48px);background:rgb(233,230,231);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .pm-pill{
@@ -992,6 +1007,11 @@
   #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
   #pmPrintArea{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:11;overflow:visible;}
   #pmPrintArea path{fill:none;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+  #pmZoneWarn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
+    background:rgba(255,255,255,.94);color:#555;font-size:12.5px;font-weight:600;line-height:1;padding:8px 14px;border-radius:999px;
+    z-index:12;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.16);white-space:nowrap;}
+  #pmZoneWarn svg{flex:none;}
+  .pm-add-btn.is-blocked{opacity:.55;}
   .pm-upload-zone{
     position:absolute;top:31%;left:36%;right:36%;bottom:40%;border-radius:9px;
     border:2px dashed rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1076,7 +1096,7 @@
     border-radius:14px;cursor:pointer;border:1.5px solid #eaeaea;background:#f9f9f9;overflow:hidden;
     font-family:var(--font-sf);padding:0;
   }
-  .pm-garment-item.active{border:2px solid #8B5E3C;background:#FFFFFF;}
+  .pm-garment-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
   .pm-garment-item-ic{width:100%;height:56px;flex:0 0 56px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
   .pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
   .pm-garment-item-ic svg{width:80%;height:80%;}
@@ -1103,14 +1123,14 @@
     flex:0 0 auto;width:42px;height:42px;border-radius:21px;cursor:pointer;border:none;padding:0;
     outline:3px solid transparent;outline-offset:3px;box-shadow:0 1px 4px rgba(0,0,0,.14);
   }
-  .pm-color-swatch.active{outline-color:#8B5E3C;}
+  .pm-color-swatch.active{outline-color:#4f5fd4;}
 
   .pm-print-list{display:flex;gap:10px;padding:0 18px;}
   .pm-print-item{
     flex:1 1 0;text-align:left;padding:12px;border-radius:16px;cursor:pointer;border:1.5px solid #eaeaea;background:#f9f9f9;
     display:flex;align-items:center;gap:10px;font-family:var(--font-sf);
   }
-  .pm-print-item.active{border:2px solid #8B5E3C;background:#FFFFFF;}
+  .pm-print-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
   .pm-print-item-ic{width:32px;height:32px;flex:none;border-radius:8px;background:#efefef;display:flex;align-items:center;justify-content:center;color:#888;}
   .pm-print-item.active .pm-print-item-ic{background:#111;color:#fff;}
   .pm-print-item-name{font-size:14px;font-weight:700;color:#111;}
@@ -1126,7 +1146,10 @@
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
   }
-  .pm-size-btn.active{border:2.5px solid #8B5E3C;color:#8B5E3C;font-weight:700;}
+  .pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
+  .pm-size-list--os{justify-content:center;}
+  .pm-size-col--os{width:auto;}
+  .pm-size-btn--os{width:auto;min-width:120px;padding:0 22px;border-radius:23px;white-space:nowrap;}
   .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:3px;height:0;opacity:0;overflow:hidden;}
   .pm-size-qty.show{height:24px;opacity:1;}
   .pm-size-qty-btn{width:22px;height:22px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
@@ -1134,28 +1157,28 @@
   .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
 
   .pm-price-bar{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0f0f0;flex:none;}
-  .pm-product-title{font-size:17px;font-weight:700;letter-spacing:-0.4px;color:#111;margin-bottom:10px;}
-  .pm-price-row{display:flex;align-items:stretch;gap:8px;margin-bottom:12px;}
+  .pm-product-title{font-size:21px;font-weight:700;letter-spacing:-0.4px;color:#111;margin-bottom:8px;}
+  .pm-price-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px;}
   .pm-price-col{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;font-size:13px;color:#888;border:1.5px solid #e3e4ea;border-radius:12px;padding:10px 8px;background:#fff;}
   .pm-price-col .pm-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.5px;margin-right:4px;}
   .pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
   .pm-price-divider{display:none;}
-  .pm-qty-warning{display:flex;align-items:center;gap:7px;font-size:15px;color:#8a6a15;font-weight:600;margin:6px 0 16px;}
+  .pm-qty-warning{display:flex;align-items:center;gap:7px;font-size:15px;color:#8a6a15;font-weight:600;margin:6px 0 8px;}
   .pm-add-btn{
     width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;
-    background:linear-gradient(135deg,#5A3A28,#8B5E3C);color:#fff;font-size:15px;font-weight:700;
+    background:linear-gradient(135deg,#1e2470,#4f5fd4);color:#fff;font-size:15px;font-weight:700;
     font-family:var(--font-sf);
   }
   .pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
-  .pm-tier-row{display:flex;gap:6px;margin:0 -18px;padding:16px 18px 0 18px;overflow-x:auto;scrollbar-width:none;}
+  .pm-tier-row{display:flex;gap:5px;margin:0 -18px;padding:12px 18px 0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-tier-row::after{content:'';flex:0 0 8px;}
-  .pm-tier-item{position:relative;flex:0 0 auto;min-width:96px;padding:9px 8px;border-radius:12px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
+  .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
   .pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
-  .pm-tier-label{font-size:13.5px;color:#888;margin-bottom:3px;white-space:nowrap;}
-  .pm-tier-price{font-size:17px;font-weight:700;color:#111;letter-spacing:-0.3px;}
+  .pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
+  .pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;}
   .pm-tier-badge{
-    position:absolute;top:-8px;right:-6px;background:#222;color:#fff;font-size:10px;font-weight:700;
-    padding:2px 5px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
+    position:absolute;top:-7px;right:-5px;background:#222;color:#fff;font-size:9px;font-weight:700;
+    padding:2px 4px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
   }
 
   .pm-rows{border-top:1px solid #f0f0f0;}
@@ -1197,13 +1220,13 @@
 
   .pm-twocol{display:flex;flex-direction:column;gap:12px;margin:12px 18px;}
   .pm-card{flex:1;padding:20px;border-radius:16px;background:#FFFFFF;border:1.5px solid #eee;}
-  .pm-card-title{font-size:16px;font-weight:700;color:#111;margin-bottom:14px;letter-spacing:-0.3px;}
+  .pm-card-title{font-size:20px;font-weight:700;color:#111;margin-bottom:14px;letter-spacing:-0.3px;}
   .pm-check-list{display:flex;flex-direction:column;gap:10px;}
   .pm-check-item{display:flex;align-items:center;gap:10px;font-size:15px;color:#333;line-height:1.4;}
   .pm-check-ic{width:22px;height:22px;border-radius:11px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .pm-card--help{
     display:flex;flex-direction:column;justify-content:space-between;gap:16px;
-    background:linear-gradient(145deg,#3a2418,#5c3a26);border:none;
+    background:linear-gradient(145deg,#0c1140,#2a3470);border:none;
   }
   .pm-card--help .pm-card-title{color:#fff;}
   .pm-help-sub{font-size:15px;color:rgba(255,255,255,.7);line-height:1.5;margin-top:8px;}
@@ -1211,7 +1234,7 @@
   .pm-help-btn svg{flex:none;}
 
   .pm-recommended{padding:20px 0;border-top:1px solid #f2f2f2;}
-  .pm-section-title{font-size:16px;font-weight:700;color:#111;margin:0 18px 12px;letter-spacing:-0.3px;}
+  .pm-section-title{font-size:20px;font-weight:700;color:#111;margin:0 18px 12px;letter-spacing:-0.3px;}
   .pm-recommended-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:0 18px;}
   .pm-rec-card{flex:0 0 auto;width:165px;border-radius:16px;border:1.5px solid #eee;background:#fff;overflow:hidden;cursor:pointer;}
   .pm-rec-img{width:100%;height:200px;}
@@ -1233,7 +1256,7 @@
 
   .pm-cta-card{
     flex:1;padding:24px 20px;border-radius:16px;border:1.5px solid #eee;
-    background:linear-gradient(145deg,#3a2418,#5c3a26);display:flex;flex-direction:column;
+    background:linear-gradient(145deg,#0c1140,#2a3470);display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;gap:16px;
   }
   .pm-cta-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.2px;line-height:1.2;white-space:nowrap;}
@@ -1367,10 +1390,10 @@
   @keyframes sc-pop{to{opacity:1;transform:scale(1);}}
   .pm-sc-dot-grid{position:absolute;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:54px;opacity:.5;}
   .pm-sc-dot-grid span, .pm-sc-dot-grid::before{content:'';}
-  .pm-sc-dot-grid{background-image:radial-gradient(#d8c3a8 2px, transparent 2.5px);background-size:14px 14px;height:54px;}
+  .pm-sc-dot-grid{background-image:radial-gradient(#aebdf2 2px, transparent 2.5px);background-size:14px 14px;height:54px;}
   .pm-sc-dot-grid--tl{top:18px;left:14px;}
   .pm-sc-dot-grid--br{bottom:14px;right:14px;}
-  .pm-sc-x{position:absolute;color:#e2d3bf;font-size:18px;font-weight:700;}
+  .pm-sc-x{position:absolute;color:#cfd8f5;font-size:18px;font-weight:700;}
   .pm-sc-x--1{top:24px;right:30px;}
   .pm-sc-x--2{bottom:30px;left:26px;}
   .pm-sc-legend{padding:10px 18px 4px;display:flex;flex-direction:column;gap:6px;}
@@ -1386,7 +1409,7 @@
   .pm-sc-table td:first-child{text-align:left;padding-left:16px;font-weight:700;}
   .pm-sc-table tr:nth-child(even) td{background:#fafafe;}
   .pm-sc-note{display:flex;align-items:center;gap:12px;margin:18px 18px 28px;font-size:13.5px;color:#888;line-height:1.4;}
-  .pm-sc-note-badge{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #d8c3a8;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;}
+  .pm-sc-note-badge{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #aebdf2;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;}
   .pm-reviews-summary{padding:20px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;}
   .pm-reviews-summary-left{text-align:center;flex-shrink:0;}
   .pm-reviews-score{font-size:48px;font-weight:800;color:#111;line-height:1;}
@@ -1454,10 +1477,10 @@
   }
   .contact-card--call{background:#FFFFFF;border:1px solid var(--line);}
   .contact-card--tg{
-    background:#F5EFE7;border:1px solid #E7DAC8;display:block;color:var(--ink);
+    background:#EEF5FC;border:1px solid #D5E6F7;display:block;color:var(--ink);
     transition:box-shadow .15s ease;
   }
-  .contact-card--tg:hover{box-shadow:0 4px 14px -6px rgba(111,78,55,.18);}
+  .contact-card--tg:hover{box-shadow:0 4px 14px -6px rgba(3,105,161,.18);}
   .contact-card--viber{
     background:#F1EEFB;border:1px solid #DCD4F5;display:block;color:var(--ink);
     transition:box-shadow .15s ease;
@@ -1475,7 +1498,7 @@
   .contact-ic{
     width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;
   }
-  .contact-ic.call{background:#F1E7DE;color:var(--blue);}
+  .contact-ic.call{background:#EAF1FB;color:var(--blue);}
   .contact-ic.tg{background:#27A7E7;color:#FFFFFF;}
   .contact-ic.viber{background:#7360F2;color:#FFFFFF;}
   .contact-card h3{font-size:17px;font-weight:700;}
@@ -1537,7 +1560,7 @@
     /* Каталог — ширша область і 3 колонки, щоб картки не тиснулись */
     #catalogModal .contact-modal-inner{ max-width:780px; }
     #catalogModal .catalog-grid{ grid-template-columns:repeat(3,1fr); }
-    /* Плаваюча кнопка "Створити форму" — по центру контенту, не на всю ширину */
+    /* Плаваюча кнопка "Створити мерч" — по центру контенту, не на всю ширину */
     .float-cta-bar .btn{ max-width:420px; margin-left:auto; margin-right:auto; }
   }
 </style>
@@ -1595,10 +1618,10 @@
   </div>
   <nav class="menu-overlay-list">
     <div class="menu-row" data-site-row="main">
-      <a href="/" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
+      <button data-scroll-to="top" id="menuHomeLink" class="menu-home-label" style="flex:1;display:flex;align-items:center;gap:16px;background:none;border:none;cursor:pointer;font-family:var(--font-sf);text-align:left;padding:0;color:inherit;">
         <span class="menu-overlay-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
         <span>Головна</span>
-      </a>
+      </button>
       <button class="menu-chevron-btn" id="menuHomeToggle" data-no-close aria-label="Показати сайти" aria-expanded="false">
         <svg class="menu-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
@@ -2129,7 +2152,7 @@
       <div class="review-card" data-rid="r36">
         <div class="review-photo"><img src="/images/work-20.webp" loading="lazy" alt="Фото відгуку"></div>
         <div class="review-card-main">
-          <h4>Bistro Central</h4>
+          <h4>MoveUp Gym</h4>
           <span class="review-date">27 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Форма для кухні — міцна тканина, шви рівні, лого чітке 💪</p>
@@ -2525,6 +2548,8 @@
       </div>
 
       <button class="btn btn-ghost cart-add-btn" id="cartAddMoreBtn">+ Додати замовлення</button>
+      <!-- Менеджерська кнопка: створити картку клієнта в Канбані (лише в режимі ?manager=1) -->
+      <button class="btn btn-primary" id="cartCreateClientBtn" style="display:none;width:100%;justify-content:center;margin-top:12px;background:#0f2034;">Створити картку клієнта</button>
       <button class="btn btn-primary cart-checkout-btn" data-scroll-to="catalog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.6 13.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L23 6H6"/></svg>
         Оформити замовлення
@@ -2567,7 +2592,7 @@
     <div class="pm-swipe-wrap" id="pmSwipeWrap">
       <div class="pm-garment-wrap" id="pmGarmentWrap">
         <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
-        <img id="pmGarmentPhoto" alt="" style="display:none;">
+        <img id="pmGarmentPhoto" alt="" crossorigin="anonymous" style="display:none;">
         <label class="pm-upload-zone" id="pmUploadZone" for="pmFileInput">
           <span class="pm-upload-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           <div class="pm-upload-text">Завантажте логотип</div>
@@ -2575,6 +2600,7 @@
         </label>
         <div class="pm-logo-layers" id="pmLogoLayers"></div>
         <svg id="pmPrintArea" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
       </div>
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
@@ -2595,6 +2621,10 @@
 
     <div class="pm-price-bar">
       <div class="pm-product-title" id="pmProductTitle"></div>
+      <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Для точної ціни та термінів — вкажіть кількість
+      </div>
       <div class="pm-price-row">
         <div class="pm-price-col">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -2607,14 +2637,18 @@
         </div>
       </div>
       <div class="pm-print-size" id="pmPrintSize" style="font-size:12.5px;color:#888;text-align:center;margin-top:4px;min-height:15px;font-weight:600;"></div>
-      <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Для точної ціни та термінів — вкажіть кількість
-      </div>
       <button class="pm-add-btn" id="pmAddToCartBtn">
         Додати в кошик<span class="pm-add-btn-sum" id="pmAddBtnSum"></span>
       </button>
       <div class="pm-tier-row" id="pmTierRow"></div>
+      <!-- Менеджерський блок (лише режим ?manager=1): завантаження макапа + прорахунок собівартості -->
+      <div id="pmManagerBox" style="display:none;margin-top:10px;">
+        <button id="pmDownloadMockup" style="width:100%;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Скачати макап
+        </button>
+        <div id="pmMgrCalc" style="margin-top:10px;background:#f6f7f9;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#1c2840;"></div>
+      </div>
     </div>
 
     <!-- Quick rows -->
@@ -2678,11 +2712,10 @@
     <div class="pm-recommended">
       <div class="pm-section-title">Вам також може сподобатись</div>
       <div class="pm-recommended-scroll" id="pmRecommendedScroll">
-        <div class="pm-rec-card" data-rec-garment="kitel"><div class="pm-rec-img" style="background:#1c1c1c;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кухарський кітель</div><div class="pm-rec-price">890 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="apron"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Фартух</div><div class="pm-rec-price">650 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка / ковпак</div><div class="pm-rec-price">350 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка персоналу</div><div class="pm-rec-price">590 грн</div></div></div>
-        <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі для бариста</div><div class="pm-rec-price">890 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі преміум</div><div class="pm-rec-price">890 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="sweat"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Світшот класик</div><div class="pm-rec-price">650 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка базова</div><div class="pm-rec-price">350 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка преміум</div><div class="pm-rec-price">590 грн</div></div></div>
         <button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta">
           <span>Перейти в каталог</span>
         </button>
@@ -2710,8 +2743,8 @@
         </div>
       </div>
       <div class="pm-cta-card">
-        <div class="pm-cta-title">Створіть форму для закладу</div>
-        <div class="pm-cta-sub">Завантажте лого і отримайте уніформу мрії</div>
+        <div class="pm-cta-title">Створіть свій мерч</div>
+        <div class="pm-cta-sub">Завантажте лого і отримайте мерч мрії</div>
         <button class="pm-cta-btn" id="pmCtaScrollTop">Створити дизайн →</button>
       </div>
     </div>
@@ -2947,15 +2980,9 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg-slides" id="heroBgSlides">
-      <!-- HoReCa: фото персоналу змінюються по таймеру (10с), з кільцем прогресу.
-           Порядок: кухар → бармен → офіціантка → бариста. Кадри вирівняні (голова ~38%),
-           щоб суб'єкт був на одному рівні й не налазив на текст. -->
       <div class="hero-bg-slide active" style="background-image:url('/horeca/images/hero-chef2.webp')"></div>
       <div class="hero-bg-slide" style="background-image:url('/horeca/images/hero-bartender.webp')"></div>
     </div>
-    <div class="hero-overlay"></div>
-
-    <!-- Контроли слайдера фото: точки + кнопка паузи з кільцем-таймером -->
     <div class="hero-slide-controls">
       <div class="hero-slide-dots" id="heroSlideDots"></div>
       <button class="hero-pause-btn" id="heroPauseBtn" aria-label="Пауза">
@@ -2968,13 +2995,13 @@
         </svg>
       </button>
     </div>
+    <div class="hero-overlay"></div>
 
     <div class="wrap hero-top reveal">
       <h1>Уніформа для вашого закладу <span class="accent">за 1 хв</span></h1>
       <p class="lead">Фартухи, кітелі та поло з вашим логотипом. Завантажте лого — і одразу побачите точну ціну та дату готовності.</p>
-      <div class="cta-row">
+      <div class="cta-row cta-row--stack">
         <button class="btn btn-primary" data-open-catalog>Створити форму</button>
-        <span class="cta-or">або</span>
         <button class="btn btn-ghost hero-leave-request" id="heroLeaveRequestBtn">
           Залишити заявку
         </button>
@@ -2983,29 +3010,21 @@
         <span class="hero-rating-stars">★★★★★</span>
         <span class="hero-rating-text">4.9 · 128 відгуків</span>
       </div>
+
     </div>
-  
-    <!-- TRUST STRIP — поверх фото знизу -->
-    <div class="strip strip--hero">
-      <div class="strip-track">
-        <div class="strip-group">
-          <span class="label">НАМ ДОВІРЯЮТЬ</span>
-          <span class="brandname">Osteria Roma</span>
-          <span class="brandname">Coffee Point</span>
-          <span class="brandname">Grand Hotel</span>
-          <span class="brandname">Sushi Bar</span>
-          <span class="brandname">Bistro 24</span>
-        </div>
-        <div class="strip-group" aria-hidden="true">
-          <span class="label">НАМ ДОВІРЯЮТЬ</span>
-          <span class="brandname">Osteria Roma</span>
-          <span class="brandname">Coffee Point</span>
-          <span class="brandname">Grand Hotel</span>
-          <span class="brandname">Sushi Bar</span>
-          <span class="brandname">Bistro 24</span>
-        </div>
-      </div>
+
+    <!-- Зона перемикання фонових роликів (стиль Nike): крапки по центру, таймер справа -->
+    <div class="hero-nike-bar" id="heroNikeBar" hidden>
+      <div class="hero-vid-dots" id="heroVidDots"></div>
+      <button class="hero-video-ui" id="heroVideoUi" aria-label="Наступне відео">
+        <svg viewBox="0 0 44 44" aria-hidden="true">
+          <circle class="hvt-bg" cx="22" cy="22" r="19" fill="none" stroke-width="2"/>
+          <circle class="hvt-fill" id="heroVidRing" cx="22" cy="22" r="19" fill="none" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span id="heroVideoTimer">0</span>
+      </button>
     </div>
+
   </section>
 
   <!-- INDUSTRY STACK -->
@@ -3020,7 +3039,7 @@
         <div class="app-top"><span class="app-eyebrow">Кухня</span></div>
         <div class="app-bottom"><h3>Кітелі, фартухи та ковпаки для кухарів і су-шефів.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
-          <img class="iss-img is-active" src="/horeca/images/niche-kitchen-1.webp" alt="Шеф готує страву" loading="lazy">
+          <img class="iss-img is-active" src="/horeca/images/niche-kitchen-1.webp" alt="Кухня" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-kitchen-2.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/hero-chef2.webp" alt="" loading="lazy">
         </div>
@@ -3029,7 +3048,7 @@
         <div class="app-top"><span class="app-eyebrow">Зал і сервіс</span></div>
         <div class="app-bottom"><h3>Поло, сорочки та фартухи для офіціантів і хостес.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
-          <img class="iss-img is-active" src="/horeca/images/niche-hall-1.webp" alt="Офіціантка у формі" loading="lazy">
+          <img class="iss-img is-active" src="/horeca/images/niche-hall-1.webp" alt="Зал і сервіс" loading="lazy">
           <img class="iss-img" src="/horeca/images/hero-resto.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/hero-serve.webp" alt="" loading="lazy">
         </div>
@@ -3038,7 +3057,7 @@
         <div class="app-top"><span class="app-eyebrow">Бар і кав'ярня</span></div>
         <div class="app-bottom"><h3>Фартухи та футболки для барист і барменів.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
-          <img class="iss-img is-active" src="/horeca/images/niche-bar-1.webp" alt="Бармен готує коктейль" loading="lazy">
+          <img class="iss-img is-active" src="/horeca/images/niche-bar-1.webp" alt="Бар і кав'ярня" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-bar-3.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-bar-4.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-bar-5.webp" alt="" loading="lazy">
@@ -3047,15 +3066,13 @@
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Готель</span></div>
         <div class="app-bottom"><h3>Форма для рецепції, покоївок та обслуговування номерів.</h3></div>
-        <div class="app-photo industry-stack-photo" data-slideshow>
-          <img class="iss-img is-active" src="/horeca/images/niche-hotel-1.webp" alt="Покоївка у формі" loading="lazy">
-        </div>
+        <div class="app-photo industry-stack-photo"><img src="/horeca/images/niche-hotel-1.webp" alt="Готель" loading="lazy"></div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Доставка</span></div>
         <div class="app-bottom"><h3>Футболки, худі та кепки для кур'єрів вашого закладу.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
-          <img class="iss-img is-active" src="/horeca/images/niche-delivery-1.webp" alt="Кур'єр із замовленням" loading="lazy">
+          <img class="iss-img is-active" src="/horeca/images/niche-delivery-1.webp" alt="Доставка" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-delivery-2.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-delivery-3.webp" alt="" loading="lazy">
           <img class="iss-img" src="/horeca/images/niche-delivery-4.webp" alt="" loading="lazy">
@@ -3084,9 +3101,11 @@
     <div class="wrap">
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 01</span>
-          <h3>Оберіть одяг</h3>
-          <p>Кітелі, фартухи, поло, сорочки та інші вироби для персоналу закладу.</p>
+          <div class="step-head">
+            <span class="step-badge">1</span>
+            <h3>Оберіть одяг</h3>
+          </div>
+          <p>Худі, футболки, світшоти, кепки та інші вироби для вашої команди.</p>
         </div>
         <div class="step-visual step-visual--carousel">
           <div class="wear-carousel" id="wearCarousel"><div class="wear-track" id="wearTrack"></div></div>
@@ -3095,9 +3114,11 @@
 
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 02</span>
-          <h3>Додайте логотип</h3>
-          <p>Перетягуйте логотип по виробу та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
+          <div class="step-head">
+            <span class="step-badge">2</span>
+            <h3>Додайте логотип</h3>
+          </div>
+          <p>Перетягуйте логотип по футболці та змінюйте його розмір — ціна та терміни оновлюються миттєво.</p>
         </div>
         <div class="step-visual step-visual--designer">
           <div class="logo-designer" id="logoDesigner">
@@ -3133,9 +3154,11 @@
 
       <div class="step-block reveal">
         <div class="step-info">
-          <span class="step-num">КРОК 03</span>
-          <h3>Підтвердіть замовлення</h3>
-          <p>Ми виготовимо та доставимо форму у зазначений термін.</p>
+          <div class="step-head">
+            <span class="step-badge">3</span>
+            <h3>Підтвердіть замовлення</h3>
+          </div>
+          <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
         </div>
         <div class="step-visual step-visual--box">
           <div class="box-slide"><img src="/images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false"></div>
@@ -3169,27 +3192,17 @@
     <div class="wrap">
       <div class="sec-head reveal">
         <span class="eyebrow">Каталог</span>
-        <h2>Форма, у якій зручно працювати щозміни</h2>
-        <p>Міцні тканини, стійкі до плям і частого прання, та ваш логотип на кожному виробі.</p>
+        <h2>Одяг, який хочеться носити щодня</h2>
+        <p>Комфортні матеріали, продуманий крій та увага до кожної деталі.</p>
       </div>
 
       <div class="catalog-grid reveal">
-        <div class="product" data-garment="kitel">
-          <div class="product-art product-art--shadow">
+        <div class="product" data-garment="hoodie">
+          <div class="product-art">
             <img src="/horeca/images/kitel.webp" alt="Кухарський кітель" loading="lazy">
           </div>
           <div class="product-info">
-            <div><h4>Кухарський кітель</h4><div class="price">від 349 грн</div></div>
-            <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
-          </div>
-        </div>
-
-        <div class="product" data-garment="apron">
-          <div class="product-art product-art--shadow">
-            <img src="/horeca/images/apron-paris-sa.webp" alt="Фартух-нагрудник Paris" loading="lazy">
-          </div>
-          <div class="product-info">
-            <div><h4>Фартух-нагрудник «Paris»</h4><div class="price">від 249 грн</div></div>
+            <div><h4>Худі</h4><div class="price">від 299 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
@@ -3204,12 +3217,22 @@
           </div>
         </div>
 
-        <div class="product" data-garment="hoodie">
+        <div class="product" data-garment="sweat">
           <div class="product-art">
             <img src="/images/hoodie.webp" alt="Худі" loading="lazy">
           </div>
           <div class="product-info">
-            <div><h4>Худі</h4><div class="price">від 299 грн</div></div>
+            <div><h4>Світшот</h4><div class="price">від 199 грн</div></div>
+            <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+          </div>
+        </div>
+
+        <div class="product" data-garment="cap">
+          <div class="product-art">
+            <img src="/images/cap.webp" alt="Кепка" loading="lazy">
+          </div>
+          <div class="product-info">
+            <div><h4>Кепка</h4><div class="price">від 149 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
@@ -3270,8 +3293,8 @@
     <div class="wrap">
       <div class="sec-head reveal">
         <span class="eyebrow">Відгуки</span>
-        <h2>Заклади, які вже одягли команду з нами</h2>
-        <p>Ресторани, кав'ярні, готелі та пекарні — форма для залу, кухні та сервісу.</p>
+        <h2>Компанії, які вже створюють мерч з нами</h2>
+        <p>Для щоденної роботи, корпоративних подій та подарунків співробітникам.</p>
       </div>
     </div>
 
@@ -3281,12 +3304,12 @@
           <img src="/images/review-riokan.webp" alt="Команда ресторану Trattoria Rustica у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Trattoria Rustica</span>
+          <span class="story-tag">Riokan</span>
           <p class="story-quote">Ресторан італійської кухні. Оновлювали форму залу й кухні перед сезоном. Потрібні були фартухи, що не бояться олії та вина, і кітелі для кухарів. Взяли щільну саржу, лого — шовкографія, стійка до прання на 60°. Устигли за 8 днів до відкриття тераси.</p>
           <div class="story-tags">
-            <span class="tag-pill">Фартухи — 30 шт</span>
-            <span class="tag-pill">Кітелі — 12 шт</span>
-            <span class="tag-pill">Поло — 20 шт</span>
+            <span class="tag-pill">Худі — 50 шт</span>
+            <span class="tag-pill">Футболки — 70 шт</span>
+            <span class="tag-pill">Кепки — 40 шт</span>
           </div>
         </div>
       </article>
@@ -3296,11 +3319,10 @@
           <img src="/images/review-zendokai.webp" alt="Бариста Coffee Point у фартухах Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Coffee Point</span>
+          <span class="story-tag">Zendokai Karate</span>
           <p class="story-quote">Мережа кав'ярень. Потрібен був єдиний стиль для барист у 4 точках — фартухи й футболки у фірмовому кольорі. Складність: точний відтінок під бренд і дедлайн 10 днів. Підібрали тканину тон-у-тон, лого нанесли вишивкою — не стирається й виглядає дорого.</p>
           <div class="story-tags">
-            <span class="tag-pill">Фартухи — 40 шт</span>
-            <span class="tag-pill">Футболки — 60 шт</span>
+            <span class="tag-pill">Футболки — 90 шт</span>
           </div>
         </div>
       </article>
@@ -3325,11 +3347,11 @@
           <img src="/images/review-danko.webp" alt="Персонал Grand Hotel у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Grand Hotel</span>
+          <span class="story-tag">DANKO</span>
           <p class="story-quote">Готель на 80 номерів. Одягали рецепцію, покоївок і ресторан у єдиній лінійці — від сорочок до фартухів. Важлива була охайність відтінку та зносостійкість під щоденне прання. Лого — вишивка тон-у-тон, посадка під кожен відділ. Здали двома партіями за 3 тижні.</p>
           <div class="story-tags">
-            <span class="tag-pill">Сорочки — 45 шт</span>
-            <span class="tag-pill">Фартухи — 30 шт</span>
+            <span class="tag-pill">Футболки — 120 шт</span>
+            <span class="tag-pill">Худі — 40 шт</span>
           </div>
         </div>
       </article>
@@ -3339,11 +3361,10 @@
           <img src="/images/review-masterlab.webp" alt="Команда Sushi Bar Umami у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">Sushi Bar Umami</span>
+          <span class="story-tag">Master Lab</span>
           <p class="story-quote">Суші-бар з відкритою кухнею. Гості бачать кухарів, тому форма мала виглядати бездоганно. Обрали чорні кітелі з контрастним кантом і бандани, лого — вишивка на грудях. Здали партію за 6 днів, зараз готуємо комплект для доставки.</p>
           <div class="story-tags">
-            <span class="tag-pill">Кітелі — 14 шт</span>
-            <span class="tag-pill">Бандани — 14 шт</span>
+            <span class="tag-pill">Поло — 30 шт</span>
           </div>
         </div>
       </article>
@@ -3353,11 +3374,11 @@
           <img src="/images/review-sante.webp" alt="Пекарня La Panetteria у формі Loomiq" decoding="async">
         </div>
         <div class="story-content">
-          <span class="story-tag">La Panetteria</span>
+          <span class="story-tag">Studio Sante</span>
           <p class="story-quote">Пекарня-кондитерська. Хотіли теплу, «домашню» форму для пекарів і продавців — фартухи в кавовому відтінку й футболки. Підібрали дихаючу тканину, лого — акуратна вишивка, щоб виглядало затишно й охайно за прилавком. Другу партію замовили вже за місяць.</p>
           <div class="story-tags">
-            <span class="tag-pill">Фартухи — 20 шт</span>
-            <span class="tag-pill">Футболки — 25 шт</span>
+            <span class="tag-pill">Поло — 25 шт</span>
+            <span class="tag-pill">Халати — 15 шт</span>
           </div>
         </div>
       </article>
@@ -3376,95 +3397,7 @@
       </div>
     </div>
 
-    <div class="wrap">
-      <div class="work-gallery-head reveal">
-        <span class="eyebrow">Наші роботи</span>
-        <h3>Реальні замовлення наших клієнтів</h3>
-      </div>
-    </div>
-    <div class="work-gallery reveal" id="workGallery">
-      <img src="/images/work-01.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-03.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-06.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-02.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-08.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-13.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-15.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-07.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-09.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-16.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-05.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-10.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-12.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-14.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-04.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-11.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-17.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-18.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-19.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-20.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-21.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-22.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-23.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-24.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-25.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-26.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-27.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-28.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-29.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-30.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-31.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-32.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-33.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-34.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-35.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-36.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-37.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-38.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-39.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-40.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-41.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-42.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-43.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-44.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-45.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-46.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-47.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-48.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-49.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-      <img src="/images/work-50.webp" alt="Робота Loomiq" loading="lazy" decoding="async">
-    </div>
 
-      <div class="why-trust reveal">
-        <div class="why-trust-left">
-          <div>
-            <h4>500+ закладів<br>вже обрали Loomiq</h4>
-            <p>Від сімейних кав'ярень до готельних мереж.</p>
-          </div>
-        </div>
-        <div class="why-trust-logos">
-          <div class="why-trust-row">
-            <div class="why-trust-row-track">
-              <span class="logo-text">MONOBANK</span>
-              <span class="logo-pill">BRAINLY</span>
-              <span class="logo-badge"><span class="circ">П</span>ПУМБ</span>
-              <span class="logo-text">MONOBANK</span>
-              <span class="logo-pill">BRAINLY</span>
-              <span class="logo-badge"><span class="circ">П</span>ПУМБ</span>
-            </div>
-          </div>
-          <div class="why-trust-row">
-            <div class="why-trust-row-track reverse">
-              <span class="logo-text">AJAX</span>
-              <span class="logo-text">KNESS</span>
-              <span class="logo-badge"><span class="circ">S</span>Українські бренди</span>
-              <span class="logo-text">AJAX</span>
-              <span class="logo-text">KNESS</span>
-              <span class="logo-badge"><span class="circ">S</span>Українські бренди</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
     <div class="wrap">
       <div class="help-card reveal">
@@ -3490,7 +3423,7 @@
   </section>
 
   <!-- ABOUT -->
-  <section style="background:#FFFFFF;">
+  <section style="background:#FFFFFF;padding-top:3px;">
     <div class="wrap">
       <div class="about-text reveal">
         <span class="eyebrow">Про нас</span>
@@ -3513,6 +3446,17 @@
         <div class="item"><div class="num">1000+</div><div class="lbl">успішних проєктів</div></div>
       </div>
     </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <section id="reviews" style="padding-top:6px;">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">Відгуки</span>
+        <h2>Що кажуть наші клієнти</h2>
+      </div>
+    </div>
+    <div class="app-track reveal" id="reviewStrip"></div>
   </section>
 
   <!-- FAQ -->
@@ -3771,6 +3715,9 @@
     var ringFill = document.getElementById('heroRingFill');
     var pauseBtn = document.getElementById('heroPauseBtn');
     var pauseIcon = document.getElementById('heroPauseIcon');
+    // Герой працює у двох режимах: відео (головний сайт) або ротація фото (нішеві).
+    // Режим задає контент, а не код, тож керування фото може бути відсутнім у розмітці.
+    if(!dotsWrap || !ringFill || !pauseBtn || !pauseIcon) return;
     var PAUSE_ICON = '<rect x="5" y="4" width="5" height="16" rx="1"></rect><rect x="14" y="4" width="5" height="16" rx="1"></rect>';
     var PLAY_ICON = '<polygon points="6,4 20,12 6,20"></polygon>';
 
@@ -3857,6 +3804,16 @@
     var vids = Array.prototype.slice.call(document.querySelectorAll('.hero-bg-video'));
     var ui = document.getElementById('heroVideoUi');
     if(!vids.length || !ui) return;
+    var bar = document.getElementById('heroNikeBar');
+    var dotsWrap = document.getElementById('heroVidDots');
+    var vdots = [];
+    if(dotsWrap){
+      dotsWrap.innerHTML = vids.map(function(_, i){
+        return '<button class="vd'+(i===0?' active':'')+'" data-i="'+i+'" aria-label="Ролик '+(i+1)+'"></button>';
+      }).join('');
+      vdots = [].slice.call(dotsWrap.querySelectorAll('.vd'));
+    }
+    function markDot(i){ vdots.forEach(function(d,k){ d.classList.toggle('active', k===i); }); }
     var ring = document.getElementById('heroVidRing');
     var RING_LEN = 119.4;
     var timerEl = document.getElementById('heroVideoTimer');
@@ -3900,6 +3857,7 @@
       stopTick();
       var prev = vids[cur];
       cur = idx;
+      markDot(cur);
       ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
       try{ v.currentTime = 0; }catch(e){}
@@ -3943,6 +3901,7 @@
         if(Object.keys(dead).length >= vids.length){
           // жодне відео не вантажиться — лишаємо фонове фото
           ui.hidden = true;
+          if(bar) bar.hidden = true;
           stopTick();
           return;
         }
@@ -3958,6 +3917,13 @@
       if(nx >= 0 && nx !== cur) show(nx);
     });
 
+    vdots.forEach(function(d){
+      d.addEventListener('click', function(){
+        var i = +d.dataset.i;
+        if(i !== cur && !dead[i]) show(i);
+      });
+    });
+
     // не палимо трафік у фоновій вкладці; повертаємось — граємо далі
     document.addEventListener('visibilitychange', function(){
       if(ui.hidden) return;
@@ -3966,10 +3932,34 @@
     });
 
     ui.hidden = false;
+    if(bar) bar.hidden = false;
     show(0);
   })();
 
 
+
+  // Секція ніш: спокійне авто-слайдшоу фото — за раз змінюється лише ОДНА картка,
+  // тому це читається як елемент дизайну, а не хаотичне блимання.
+  (function(){
+    var shows = Array.prototype.slice.call(document.querySelectorAll('.industry-stack-photo[data-slideshow]'));
+    if(!shows.length) return;
+    shows.forEach(function(s){ s._imgs = s.querySelectorAll('.iss-img'); s._i = 0; });
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var c = 0;
+    setInterval(function(){
+      if(document.hidden) return;
+      for(var t = 0; t < shows.length; t++){
+        var s = shows[c % shows.length]; c++;
+        if(s._imgs.length > 1){
+          var cur = s._i, nxt = (s._i + 1) % s._imgs.length;
+          s._imgs[cur].classList.remove('is-active');
+          s._imgs[nxt].classList.add('is-active');
+          s._i = nxt;
+          break;
+        }
+      }
+    }, 3000);
+  })();
 
   // Industry-stack carousel: dot sync + next-button advances (same pattern as other carousels)
   (function(){
@@ -4043,6 +4033,57 @@
     });
   }
 
+  // ===== Історія оверлеїв: «назад»/свайп повертають на попередню дію (а не одразу на головну) =====
+  // Модель: home → [каталог] → [товар] → … Кожне відкриття = запис в історію; back закриває верхній екран.
+  var _views = [{kind:'home'}];
+  var _navInternal = false;   // true, поки самі відтворюємо екран (щоб не пушити повторно)
+  function _persistNav(){ try{ sessionStorage.setItem('lq_nav', JSON.stringify(_views)); }catch(e){} }
+  function navGo(view){
+    if(_navInternal) return;
+    var top = _views[_views.length-1];
+    if(top && top.kind===view.kind && top.garmentId===view.garmentId) return;   // не дублюємо той самий екран
+    _views.push(view);
+    try{ history.pushState({d:_views.length}, ''); }catch(e){}
+    _persistNav();
+  }
+  // При зміні одягу всередині картки — оновлюємо збережений товар (щоб reload повертав саме його)
+  function navSetProductGarment(gid){
+    if(_navInternal) return;
+    var top = _views[_views.length-1];
+    if(top && top.kind==='product' && gid){ top.garmentId = gid; _persistNav(); }
+  }
+  function renderView(v){
+    _navInternal = true;
+    try{
+      closeMenu(); closeAllMainModals();
+      if(v.kind==='catalog'){ var m=document.getElementById('catalogModal'); if(m){ m.classList.add('open'); m.scrollTop=0; } }
+      else if(v.kind==='cart'){ var m2=document.getElementById('cartModal'); if(m2){ m2.classList.add('open'); m2.scrollTop=0; } try{ renderCart(); }catch(e){} }
+      else if(v.kind==='contact'){ var m3=document.getElementById('contactModal'); if(m3){ m3.classList.add('open'); m3.scrollTop=0; } }
+      else if(v.kind==='product' && v.garmentId && window.__openProductModal){ window.__openProductModal(v.garmentId); }
+      // home → усе закрито
+    }catch(e){}
+    _navInternal = false;
+  }
+  window.addEventListener('popstate', function(){
+    if(_views.length>1){ _views.pop(); _persistNav(); renderView(_views[_views.length-1]); }
+  });
+  // Відновлення після оновлення сторінки — де залишився, там і лишається (не кидає на головну)
+  var _navRestored = false;
+  function restoreNav(){
+    if(_navRestored) return; _navRestored = true;
+    var saved; try{ saved = JSON.parse(sessionStorage.getItem('lq_nav')||'null'); }catch(e){}
+    if(!saved || saved.length < 2) return;
+    var top = saved[saved.length-1];
+    if(!top || top.kind==='home') return;
+    if(top.kind==='product' && !(top.garmentId && window.__openProductModal)) return;
+    _views = saved.slice();
+    for(var i=1;i<_views.length;i++){ try{ history.pushState({d:i+1}, ''); }catch(e){} }
+    renderView(top);
+  }
+  // відновлюємо після завантаження контенту (товари/каталог готові), із фолбеком на load
+  document.addEventListener('lq-content', function _once(){ document.removeEventListener('lq-content', _once); setTimeout(restoreNav, 60); });
+  window.addEventListener('load', function(){ setTimeout(restoreNav, 500); });
+
   // Contact modal — opened from header phone button or menu "Контакти"
   const contactModal = document.getElementById('contactModal');
   const contactModalBack = document.getElementById('contactModalBack');
@@ -4053,9 +4094,11 @@
     closeAllMainModals();
     contactModal.classList.add('open');
     contactModal.scrollTop = 0;
+    navGo({kind:'contact'});
   };
   const closeContactModal = ()=>{
-    contactModal.classList.remove('open');
+    if(!_navInternal && contactModal.classList.contains('open')){ history.back(); }
+    else contactModal.classList.remove('open');
   };
   phoneBtn.addEventListener('click', openContactModal);
   document.getElementById('heroLeaveRequestBtn').addEventListener('click', openContactModal);
@@ -4063,17 +4106,18 @@
   contactModalBack.addEventListener('click', closeContactModal);
 
   // Generic helper for the other full-screen modals (catalog, reviews, cart)
-  function setupModal(modalId, backBtnId, menuBtnId){
+  function setupModal(modalId, backBtnId, menuBtnId, navKind){
     const modal = document.getElementById(modalId);
     const backBtn = document.getElementById(backBtnId);
     const menuBtn = document.getElementById(menuBtnId);
-    const open = ()=>{ closeMenu(); closeAllMainModals(); modal.classList.add('open'); modal.scrollTop = 0; };
-    const close = ()=>{ modal.classList.remove('open'); };
+    const rawOpen = ()=>{ closeMenu(); closeAllMainModals(); modal.classList.add('open'); modal.scrollTop = 0; };
+    const open = ()=>{ rawOpen(); if(navKind) navGo({kind:navKind}); };
+    const close = ()=>{ if(navKind && !_navInternal) history.back(); else modal.classList.remove('open'); };
     if(menuBtn) menuBtn.addEventListener('click', open);
     if(backBtn) backBtn.addEventListener('click', close);
-    return { open, close };
+    return { open, close, rawOpen };
   }
-  const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn');
+  const catalogModalCtrl = setupModal('catalogModal', null, 'menuCatalogBtn', 'catalog');
   // "Створити форму" / "Перейти до каталогу" — відкривають повний каталог (модалку), а не просто скрол
   document.querySelectorAll('[data-open-catalog]').forEach(function(btn){
     btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
@@ -4264,10 +4308,15 @@
     });
     list = list.filter(p=>hidden.indexOf(p.garment) === -1);
     // Ціна на картці = напис із адмінки, інакше «від [базова ціна товару]» (мінімум від пустого одягу)
-    var bp = (window.SITE_CONTENT.pricing && window.SITE_CONTENT.pricing.basePrices) || {};
+    var pr = window.SITE_CONTENT.pricing || {};
+    var bp = pr.basePrices || {};
+    var ctTiers = pr.tiers || [];
+    var minCoef = ctTiers.length ? Math.min.apply(null, ctTiers.map(function(t){ return +t.coef || 1; })) : 1;
     list.forEach(function(p){
       if(prod.priceLabels && prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment];
-      else if(+bp[p.garment] > 0) p.price = 'від ' + bp[p.garment] + ' грн';
+      // «від X» = базова ціна виробу × максимальна знижка. Без нанесення, без оплати
+      // за штуку і без разової оплати — рівно те саме, що рахує __catalogPrice()
+      else if(+bp[p.garment] > 0) p.price = 'від ' + Math.round(bp[p.garment] * minCoef) + ' грн';
     });
     if(prod.order && prod.order.length){
       list.sort((a,b)=>{
@@ -4282,6 +4331,12 @@
   function renderCatalogProducts(targetEl){
     targetEl.innerHTML = catalogProductsList().map(p=>{
       const pname = p.garment ? window.LQ_name(p.garment, p.name) : p.name;
+      // ціну в каталозі рахуємо авто: база виробу × макс. знижка (без нанесення)
+      let priceLabel = p.price;
+      if(p.garment && window.__catalogPrice){
+        const auto = window.__catalogPrice(p.garment);
+        if(auto && auto > 0) priceLabel = 'від ' + auto + ' грн';
+      }
       return `
       <button class="product"${p.garment ? ` data-garment="${p.garment}"` : ''}>
         <div class="product-art">
@@ -4290,7 +4345,7 @@
             : `<svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>`}
         </div>
         <div class="product-info">
-          <div><h4>${pname}</h4><div class="price">${p.price}</div></div>
+          <div><h4>${pname}</h4><div class="price">${priceLabel}</div></div>
           <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </button>`;
@@ -4301,7 +4356,7 @@
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
-  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn');
+  var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
 
 
   // Call-back form: no backend, just confirm visually
@@ -4369,6 +4424,10 @@
   // ===== Product configurator =====
   (function(){
     var GARMENTS = [
+      {id:'kitel', name:'Кухарський кітель', price:0,
+        path:'M20 26L5 46h18v64h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M42 14q8 7 16 0 M46 22v58 M54 22v58'},
+      {id:'apron', name:'Фартух', price:0,
+        path:'M42 18q8 -5 16 0l-1 10h4l4 62H35l4-62h4z', extra:'M35 50h30'},
       {id:'teeover', name:'Футболка оверсайз', price:0,
         path:'M20 26L5 46h18v44h54V46h18L80 26Q72 16 62 14L54 22 50 16 46 22 38 14Q28 16 20 26z'},
       {id:'tee', name:'Футболка базова', price:0,
@@ -4386,11 +4445,7 @@
       {id:'cap', name:'Кепка', price:90,
         path:'M20 55Q20 30 50 28Q80 30 80 55z', extra:'M15 58h55a5 5 0 000-10H15a5 5 0 000 10zM50 28v-10'},
       {id:'tote', name:'Шопер', price:90,
-        path:'M25 35h50v55H25z', extra:'M35 35a15 15 0 0130 0'},
-      {id:'kitel', name:'Кухарський кітель', price:0,
-        path:'M20 26L5 46h18v64h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M42 14q8 7 16 0 M46 22v58 M54 22v58'},
-      {id:'apron', name:'Фартух', price:0,
-        path:'M42 18q8 -5 16 0l-1 10h4l4 62H35l4-62h4z', extra:'M35 50h30'}
+        path:'M25 35h50v55H25z', extra:'M35 35a15 15 0 0130 0'}
     ];
     var COLORS = [
       {id:'black',name:'Чорний',hex:'#1a1a1a'},{id:'white',name:'Білий',hex:'#eeebe4'},
@@ -4470,7 +4525,7 @@
     function getColors(){ return GARMENT_COLORS[pm.garmentId] || COLORS; }
     // Фото-мініатюри для списку одягу (поки є лише для футболок)
     var GARMENT_THUMB = {teeover:'/images/teeover-black-front.webp', tee:'/images/tee-black-front.webp', hoodieover:'/images/hoodieover-black-front.webp', hoodieoverfleece:'/images/hoodieoverfleece-brown-front.webp', hoodie:'/images/thumb-hoodie.webp', hoodiezip:'/images/hoodiezip-black-front.webp', sweat:'/images/thumb-sweat.webp', cap:'/images/cap-black-front.webp', tote:'/images/tote-beige-front.webp'};
-    var IMG_BASE = '/';
+    var IMG_BASE = '';
     // Популярні кольори за замовчуванням: поки клієнт не обрав колір, стрічка
     // одягу і рекомендовані показуються різнокольоровими — щоб було видно асортимент.
     var POPULAR_COLOR = {teeover:'black', tee:'white', hoodieover:'khaki', hoodieoverfleece:'blue',
@@ -4504,7 +4559,7 @@
     }
     function garmentThumbSrc(gid){
       var c = displayColorFor(gid);
-      return c ? (IMG_BASE + 'images/' + gid + '-' + c.id + '-front.webp') : GARMENT_THUMB[gid];
+      return c ? (IMG_BASE + '/images/' + gid + '-' + c.id + '-front.webp') : GARMENT_THUMB[gid];
     }
 
     // Назва товару з урахуванням крою (для тих, у кого крій уже в назві — без суфікса)
@@ -4545,6 +4600,11 @@
         icon:'<circle cx="17" cy="7" r="2"/><path d="M15.5 8.5L9 15M5 19s0-4 4-4"/>'}
     ];
     var SIZES = ['XS','S','M','L','XL','XXL'];
+    // Деякі вироби мають єдиний розмір (напр. кепка) — тоді замість сітки XS–XXL
+    // показуємо один «One Size» і просто обираємо кількість.
+    var GARMENT_SIZES = { cap: ['One Size'] };
+    function getSizes(){ return GARMENT_SIZES[pm.garmentId] || SIZES; }
+    function isOneSize(){ var s = getSizes(); return s.length === 1; }
     var SIZE_CHART = {XS:{A:64,B:47}, S:{A:66,B:50}, M:{A:68,B:53}, L:{A:72,B:56}, XL:{A:74,B:60}, XXL:{A:77,B:62}};
     // Реальні розмірні сітки виробників (A — довжина, B — ширина, см)
     var DEFAULT_GARMENT_CHARTS = {
@@ -4603,7 +4663,7 @@
     var pm = {
       tab:'photo', garmentId:'teeover', colorId:'black', printId:null, side:'front',
       colorPicked:false,   // чи клієнт уже сам обирав колір
-      qty:{XS:0,S:0,M:0,L:0,XL:0,XXL:0},
+      qty:{XS:0,S:0,M:0,L:0,XL:0,XXL:0,'One Size':0},
       logos:{front:[], back:[], left:[], right:[]}, activeLogoId:null
     };
     // Додаткові ракурси (сторони) для деяких виробів — теж можна наносити лого
@@ -4651,17 +4711,24 @@
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
     function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
     function getPrint(){ return PRINTS.find(function(p){return p.id===pm.printId;}) || PRINTS[0]; }
-    function totalUnits(){ return SIZES.reduce(function(a,s){return a+pm.qty[s];},0); }
+    function totalUnits(){ return getSizes().reduce(function(a,s){return a+(pm.qty[s]||0);},0); }
     function activeTier(){
       var u = totalUnits();
       if(u===0) return TIERS[0];
       for(var i=TIERS.length-1;i>=0;i--){ if(u>=TIERS[i].min) return TIERS[i]; }
       return TIERS[0];
     }
-    // Ширина друку у см — рахуємо з ТІЄЇ Ж геометрії, що й ціна (layerDimsMm),
-    // щоб показана ширина збігалася з тим, за що клієнт платить.
+    // Габарити НЕПРОЗОРОГО вмісту лого в мм (без прозорих полів) — саме це друкується/
+    // вишивається. Прозорі поля не рахуються ні в лист DTF, ні в розмір друку.
+    function layerOpaqueDimsMm(l){
+      var d = layerDimsMm(l);
+      var ob = l.opaqueBox || {x0:0,y0:0,x1:1,y1:1};
+      var fw = Math.max(0, (ob.x1 - ob.x0)) || 1, fh = Math.max(0, (ob.y1 - ob.y0)) || 1;
+      return { w: d.w * fw, h: d.h * fh };
+    }
+    // Ширина друку у см — з непрозорого вмісту (те, за що клієнт реально платить).
     function logoWidthCm(layer){
-      if(sitePricing()){ var d = layerDimsMm(layer); if(d && d.w>0) return Math.round(d.w/10); }
+      if(sitePricing()){ var d = layerOpaqueDimsMm(layer); if(d && d.w>0) return Math.round(d.w/10); }
       return Math.round(layer.scale * 15);   // фолбек для старої моделі
     }
     function activeLogoWidthCm(){
@@ -4692,8 +4759,66 @@
       return (p && p.methods) ? p : null;
     }
     // Оплати поточного методу: за штуку (в ціну/шт) і за замовлення (в підсумок).
-    function methodPieceFee(){ var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
-    function methodOrderFee(){ var m = methodCfgNew(); return m ? (+m.orderFee || 0) : 0; }
+    // Оплата за дизайн і за штуку — це оплата за НАНЕСЕННЯ. Без лого (дизайну немає) не беремо.
+    function hasAnyLogo(){ return logoCount() > 0; }
+    // Унікальні дизайни: те саме зображення (на кількох сторонах чи завантажене двічі) — один дизайн.
+    // Ключ — origUrl (оригінальний завантажений файл), стабільний і при перемиканні фону.
+    function uniqueDesignCount(){
+      var seen = {}, n = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        var key = l.origUrl || l.url || '';
+        if(key && !seen[key]){ seen[key] = 1; n++; }
+      }); });
+      return n;
+    }
+    // Кожен ДОДАТКОВИЙ унікальний дизайн (2-й, 3-й…) — окремий ескіз (перший входить в основну оплату).
+    // Однакові зображення не рахуються повторно.
+    function extraSketchCount(){ return Math.max(0, uniqueDesignCount() - 1); }
+    function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
+    // Разова оплата за замовлення = основний дизайн + додаткові ескізи (за кожне зайве лого).
+    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderFee || 0) + extraSketchCount() * (+m.sketchFee || 0); }
+    // ── Собівартість (лише для менеджерського прорахунку) ──
+    function methodPieceCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
+    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderCost || 0) + extraSketchCount() * (+m.sketchCost || 0); }
+    function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
+    // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
+    function dtfGridCost(m, l, uOverride, idx){
+      var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
+      var row = 0; for(var j = qf.length-1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
+      var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
+      return Math.max(Math.round(c), minCostForIndex(m, idx || 0));
+    }
+    function placementCost(m, l, idx){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
+    function applicationCostSum(uOverride){
+      var m = methodCfgNew(); if(!m) return 0; var c = 0, idx = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        c += (m.mode === 'grid') ? dtfGridCost(m, l, uOverride, idx) : placementCost(m, l, idx);
+        idx++;
+      }); });
+      return c;
+    }
+    // «Сира» продажна ціна нанесення — ДО застосування мінімалки (за площею / за сіткою DTF).
+    function placementRaw(m, l){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.round(cleanMm2/1000 * (+m.pricePer1000mm2 || 0)); }
+    function dtfGridRaw(m, l, uOverride){
+      var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
+      var row = 0; for(var j = qf.length-1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
+      return (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
+           : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? Math.round(+m.cost[row][col] * (+m.markup || 1)) : 0);
+    }
+    function applicationRawSum(uOverride){
+      var m = methodCfgNew(); if(!m) return 0; var s = 0;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        s += (m.mode === 'grid') ? dtfGridRaw(m, l, uOverride) : placementRaw(m, l);
+      }); });
+      return s;
+    }
+    function logoCount(){ var n = 0; getViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
+    // собівартість за штуку = одяг + нанесення + оплата за штуку
+    function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
+    // повна собівартість замовлення = за штуку × кількість + разова собівартість замовлення
+    function orderCostTotal(){ var u = totalUnits(); return u > 0 ? (unitCost() * u + methodOrderCost()) : 0; }
     // Повна вартість замовлення = ціна/шт × кількість + разова оплата за замовлення.
     function orderTotal(){
       var u = totalUnits();
@@ -4740,11 +4865,27 @@
       return (SIZE_CHART.M && SIZE_CHART.M.A) ? SIZE_CHART.M.A * 10 : 680;
     }
     function basePriceNew(){
-      var p = sitePricing(); var bp = (p && p.basePrices) || {};
-      var v = +bp[pm.garmentId];
-      if(v > 0) return v;
-      return TIERS[0].price + getGarment().price;   // фолбек — стара базова
+      return baseForGarment(pm.garmentId);
     }
+    // Базова ціна конкретного виробу (не залежить від поточного вибору) — для каталогу.
+    function baseForGarment(gid){
+      var p = sitePricing(); var bp = (p && p.basePrices) || {};
+      var v = +bp[gid]; if(v > 0) return v;
+      var g = GARMENTS.find(function(x){ return x.id === gid; });
+      return TIERS[0].price + (g ? g.price : 0);   // фолбек — стара базова
+    }
+    // Ціна «від X» для каталогу — рахуємо ТІЄЮ Ж функцією, що й у конструкторі (без нанесення),
+    // щоб збігалось цифра-в-цифру. Найдешевша ціна за макс. знижкою автоматично береться з
+    // порогів адмінки (жодних зашитих коефіцієнтів). Тимчасово підставляємо виріб і порожні лого.
+    window.__catalogPrice = function(gid){
+      var sg = pm.garmentId, sl = pm.logos, sp = pm.printId;
+      try{
+        pm.garmentId = gid; pm.printId = null;   // дефолтний метод (як при відкритті товару)
+        pm.logos = { front:[], back:[], left:[], right:[] };
+        return cheapestUnitPrice();               // = «від X» у конструкторі при 0 лого
+      } catch(e){ return null; }
+      finally { pm.garmentId = sg; pm.logos = sl; pm.printId = sp; }
+    };
     function methodCfgNew(){
       var p = sitePricing(); if(!p) return null;
       var key = getPrint().id === 'embro' ? 'embro' : 'dtf';
@@ -4779,7 +4920,12 @@
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
-    function placementPrice(m, l){
+    // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
+    function methodMins(m){ if(m && Array.isArray(m.minPrices) && m.minPrices.length) return m.minPrices; if(m && m.minPrice != null) return [+m.minPrice || 0]; return [0]; }
+    function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
+    function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function placementPrice(m, l, idx){
       var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85);
       var raw;
       if(m.pricePer1000mm2 != null){
@@ -4789,13 +4935,13 @@
       } else {
         raw = (+m.ratePerMm2 || 0) * cleanMm2;
       }
-      return Math.max(Math.round(raw), Math.round(+m.minPrice || 0));
+      return Math.max(Math.round(raw), minForIndex(m, idx || 0));
     }
     // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
     // в НАЙМЕНШИЙ лист, у який вписується (з урахуванням повороту), а не за площею.
     // Продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
     function dtfBandCol(m, l){
-      var d = layerDimsMm(l);
+      var d = layerOpaqueDimsMm(l);       // лист DTF підбираємо під непрозорий вміст, не під прозорі поля
       var lw = d.w / 10, lh = d.h / 10;   // см
       if(m.bands && m.bands.length){
         for(var i = 0; i < m.bands.length; i++){
@@ -4809,25 +4955,27 @@
       for(var k = 0; k < ab.length; k++){ if(areaCm2 <= ab[k]) return k; }
       return Math.max(0, ab.length - 1);
     }
-    function dtfGridSell(m, l){
+    function dtfGridSell(m, l, uOverride, idx){
       var col = dtfBandCol(m, l);
       var qf = m.qtyFrom || [];
-      var u = Math.max(1, totalUnits());
+      var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
       var row = 0;
       for(var j = qf.length - 1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
       // продажна ціна — з таблиці цін (задається вручну в адмінці), не з націнки
       var sell = (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
                : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] * (+m.markup || 1) : 0);
-      return Math.max(Math.round(sell), Math.round(+m.minPrice || 0));
+      return Math.max(Math.round(sell), minForIndex(m, idx || 0));
     }
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
-    function applicationParts(){
+    // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
+    function applicationParts(uOverride){
       var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0 };
-      var coefPart = 0, flatPart = 0;
+      var coefPart = 0, flatPart = 0, idx = 0;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(m.mode === 'grid') flatPart += dtfGridSell(m, l);
-          else coefPart += placementPrice(m, l);
+          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride, idx);
+          else coefPart += placementPrice(m, l, idx);
+          idx++;
         });
       });
       return { coefPart: coefPart, flatPart: flatPart };
@@ -4839,15 +4987,34 @@
       return a;
     }
     function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
+    // Ціна за одиницю при заданому коеф. знижки і тиражі для DTF-сітки.
+    // Коеф множить базу + вишивку; DTF (сітка) і оплата за штуку — без коеф.
+    function unitPriceCoef(coef, uForGrid){
+      var ap = applicationParts(uForGrid);
+      return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
+    }
+    // Разова оплата за замовлення (напр. дизайн) розподілена на 1 шт цього тиражу.
+    function orderFeePerUnit(qty){ var f = methodOrderFee(); return (qty > 0 && f > 0) ? Math.round(f / qty) : 0; }
+    // Ефективна ціна за штуку — саме її фактично платить клієнт: виробнича + частка
+    // разової оплати на тираж. Від неї рахуються і ціни, і знижки на картках порогів.
+    function effUnitPriceCoef(coef, qty){ return unitPriceCoef(coef, qty) + orderFeePerUnit(qty); }
+    // Ефективна ціна/шт для поточного вибору кількості (для рядка ціни та кошика).
+    function effUnitPrice(){ var u = totalUnits(); return unitPrice() + orderFeePerUnit(u > 0 ? u : 1); }
     function unitPrice(){
       if(sitePricing()){
-        var t = activeCoefTier(); var coef = t ? t.coef : 1;
-        var ap = applicationParts();
-        // коеф. кількості множить базу + лінійне нанесення; сітка DTF уже має тираж усередині;
-        // оплата за штуку (пакет, менеджер) — фікс, без знижки
-        return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
+        var t = activeCoefTier();
+        return unitPriceCoef(t ? t.coef : 1);   // фактичний тираж → totalUnits для DTF
       }
       return activeTier().price + getGarment().price + getPrint().price + logoSurcharge();
+    }
+    // Найдешевша ціна за одиницю (за максимальним тиражем) — для показу «від X».
+    function cheapestUnitPrice(){
+      var pt = pricingTiers();
+      if(pt && pt.length){
+        var prices = pt.map(function(t){ return effUnitPriceCoef(t.coef, t.min); });
+        return Math.min.apply(null, prices);
+      }
+      return effUnitPriceCoef(1, 1);
     }
     function dayWord(n){
       var m10=n%10, m100=n%100;
@@ -4893,10 +5060,18 @@
     var pmAddBtnSum = document.getElementById('pmAddBtnSum');
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
+    // Менеджерський режим (вбудований iframe в адмінці ?manager=1): макап + прорахунок собівартості
+    var IS_MANAGER = /[?&]manager=1\b/.test(location.search);
+    var mgrDetailOpen = false;   // розгорнутий покроковий розклад нанесення (по кожному зображенню)
 
     // Size the garment square to the largest size that fits BOTH the available width
     // and the available height of the stage (so it never overflows the screen sideways
     // the way pure-CSS height-based scaling did).
+    // Per-товарний зум мокапа (фото+лого+зона масштабуються разом; краї кропляться overflow:hidden)
+    // Зум мокапа під фон-блок: футболки +10%, кепка/шопер лишаються як є,
+    // решта одягу — м'який дефолтний +10%, щоб гарно розтягувалось на всю зону.
+    var GARMENT_ZOOM = { tote: 1.3, tee: 1.2, teeover: 1.2, cap: 1.0 };
+    function garmentZoom(){ var z = GARMENT_ZOOM[pm.garmentId]; return z || 1.1; }
     function fitGarmentStage(){
       if(!pmSwipeWrapEl || !pmGarmentWrapEl) return;
       var cs = getComputedStyle(pmSwipeWrapEl);
@@ -4907,6 +5082,8 @@
       var size = Math.max(0, Math.min(availW, availH, 680));
       pmGarmentWrapEl.style.width = size + 'px';
       pmGarmentWrapEl.style.height = size + 'px';
+      var z = garmentZoom();
+      pmGarmentWrapEl.style.transform = (z !== 1) ? ('scale(' + z + ')') : '';
     }
     (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitGarmentStage(); }); })();
     window.addEventListener('orientationchange', function(){ setTimeout(fitGarmentStage, 50); });
@@ -5007,6 +5184,7 @@
       pmUploadZone.style.display = currentLayers().length ? 'none' : '';
       renderLogoLayers();
       renderPrintArea();
+      try{ matchStageBg(); }catch(e){}
       if(g.id !== lastModelGarment){ lastModelGarment = g.id; renderModelPhotos(); if(pmDetailPanel) renderDetailPanel(); }
       else { updateModelLogos(); }
     }
@@ -5097,21 +5275,25 @@
       }
       return inside;
     }
-    // Чи виходить якесь лого поточної сторони за межі зони (перевіряємо кути рамки з поворотом).
+    // Чи виходить конкретне лого за межі зони — по НЕПРОЗОРИХ пікселях (не по квадратній рамці з фоном).
+    function logoOutside(l, polyFrac, wrapW){
+      var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
+      if(ar>=1) bh=sz/ar; else bw=sz*ar;
+      var ob=l.opaqueBox||{x0:0,y0:0,x1:1,y1:1};
+      // прямокутник непрозорих пікселів у локальних px відносно центра лого
+      var lx0=(ob.x0-0.5)*bw, lx1=(ob.x1-0.5)*bw, ly0=(ob.y0-0.5)*bh, ly1=(ob.y1-0.5)*bh;
+      var cxF=0.5+(l.x||0)/wrapW, cyF=0.5+(l.y||0)/wrapW;
+      var rot=(l.rot||0)*Math.PI/180, cs=Math.cos(rot), sn=Math.sin(rot);
+      var corners=[[lx0,ly0],[lx1,ly0],[lx1,ly1],[lx0,ly1]];
+      for(var c=0;c<4;c++){
+        var rx=corners[c][0]*cs - corners[c][1]*sn, ry=corners[c][0]*sn + corners[c][1]*cs;
+        if(!paPointInPoly([cxF+rx/wrapW, cyF+ry/wrapW], polyFrac)) return true;
+      }
+      return false;
+    }
     function anyLogoOutside(polyFrac, geo){
       var layers = currentLayers();
-      for(var k=0;k<layers.length;k++){
-        var l=layers[k];
-        var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
-        if(ar>=1) bh=sz/ar; else bw=sz*ar;
-        var cxF=0.5+(l.x||0)/geo.wrapW, cyF=0.5+(l.y||0)/geo.wrapW;
-        var rot=(l.rot||0)*Math.PI/180, cs=Math.cos(rot), sn=Math.sin(rot);
-        var hw=bw/2, hh=bh/2, corners=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]];
-        for(var c=0;c<4;c++){
-          var rx=corners[c][0]*cs - corners[c][1]*sn, ry=corners[c][0]*sn + corners[c][1]*cs;
-          if(!paPointInPoly([cxF+rx/geo.wrapW, cyF+ry/geo.wrapW], polyFrac)) return true;
-        }
-      }
+      for(var k=0;k<layers.length;k++){ if(logoOutside(layers[k], polyFrac, geo.wrapW)) return true; }
       return false;
     }
     // Геометрія зони у частках контейнера: полігон + wrapW. null, якщо зони/фото немає.
@@ -5136,39 +5318,78 @@
       g.polyFrac.forEach(function(p){ sx+=p[0]; sy+=p[1]; });
       return { x:(sx/n - 0.5)*g.wrapW, y:(sy/n - 0.5)*g.wrapW };
     }
-    // Малюємо пунктирну зону поверх мокапу; червоніє, коли лого виходить за край.
+    // Пунктирна зона — це ПОПЕРЕДЖЕННЯ: показується лише коли лого завантажене
+    // і його непрозорі пікселі виходять за межі поля. Якщо все в межах — зони не видно.
+    var zoneOutBySide = {};
     function renderPrintArea(){
       var svg = pmPrintAreaSvg; if(!svg) return;
       var g = printAreaGeom();
-      if(!g){ svg.style.display='none'; return; }
+      var hasLogos = currentLayers().length > 0;
+      var over = (g && hasLogos) ? anyLogoOutside(g.polyFrac, { wrapW:g.wrapW }) : false;
+      zoneOutBySide[pm.side] = over;
+      updateZoneWarn();
+      if(!over){ svg.style.display='none'; return; }
       var d = g.polyFrac.map(function(p,i){ return (i?'L':'M')+(p[0]*100).toFixed(2)+' '+(p[1]*100).toFixed(2); }).join(' ')+' Z';
-      var over = anyLogoOutside(g.polyFrac, { wrapW:g.wrapW });
       // контраст до кольору одягу: світла лінія на темному, темна — на світлому
       var hx = getColor().hex.replace('#',''), lum = 0.299*parseInt(hx.substr(0,2),16)+0.587*parseInt(hx.substr(2,2),16)+0.114*parseInt(hx.substr(4,2),16);
-      var neutral = (lum > 170) ? 'rgba(20,22,30,.6)' : 'rgba(255,255,255,.8)';
-      var col = over ? '#ff4d4f' : neutral;
-      svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(over?2.2:1.6)+'" stroke-dasharray="'+(over?'5 3':'5 4')+'"/>';
-      svg.style.display = 'block';   // CSS-дефолт = none, тож показуємо явно
+      var col = (lum > 170) ? 'rgba(20,22,30,.6)' : 'rgba(255,255,255,.85)';
+      svg.innerHTML = '<path d="'+d+'" stroke="'+col+'" stroke-width="1.8" stroke-dasharray="5 4"/>';
+      svg.style.display = 'block';
     }
-    // перемальовуємо зону, коли фото-мокап довантажився
-    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} });
+    // Чи виходить якесь лого за межі зони на будь-якій стороні (для блокування кошика).
+    function anyLogoOutsideAnySide(){ return Object.keys(zoneOutBySide).some(function(s){ return zoneOutBySide[s]; }); }
+    // Напис-попередження + блокування кнопок додавання.
+    function updateZoneWarn(){
+      var out = anyLogoOutsideAnySide();
+      var warn = document.getElementById('pmZoneWarn');
+      if(warn) warn.style.display = out ? 'flex' : 'none';
+      ['pmAddToCartBtn','pmStickyCartBtn'].forEach(function(id){
+        var b = document.getElementById(id); if(b) b.classList.toggle('is-blocked', out);
+      });
+    }
+    // Підлаштовуємо фон блоку-мокапа під фон самого фото (щоб сірого канту навколо не було)
+    var STAGE_BG_FALLBACK = 'rgb(233,230,231)';   // беж студії — щоб без білих пробілів, навіть якщо семпл не спрацює
+    // Фон блоку підлаштовуємо під фон КОЖНОГО фото окремо. object-fit:contain лишає пробіли
+    // по боках (де фото вужче за блок), тож семплимо саме ті краї фото, що межують із пробілом,
+    // і усереднюємо — щоб колір блоку співпав із фоном картинки без видимого шва/полос.
+    function setStageBg(col){
+      var stage = document.getElementById('pmStage');
+      if(stage) stage.style.background = col;
+      // ВАЖЛИВО: той самий колір і на самому фото-елементі — бо object-fit:contain
+      // лишає лeterбокс-смуги в межах фото, і саме вони давали «рамку» іншого кольору
+      if(pmGarmentPhoto) pmGarmentPhoto.style.background = col;
+    }
+    function matchStageBg(){
+      var stage = document.getElementById('pmStage'); if(!stage) return;
+      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ setStageBg(STAGE_BG_FALLBACK); return; }
+      try{
+        var nw = pmGarmentPhoto.naturalWidth, nh = pmGarmentPhoto.naturalHeight;
+        var W = 64, H = Math.max(1, Math.round(64 * nh / nw));   // масштаб зі збереженням пропорцій
+        var c = document.createElement('canvas'); c.width = W; c.height = H;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(pmGarmentPhoto, 0, 0, nw, nh, 0, 0, W, H);
+        var data = ctx.getImageData(0, 0, W, H).data;
+        // семплимо всі 4 краї фото (це фон студії) й усереднюємо — щоб і фон блоку,
+        // і лeterбокс-смуги фото були одного кольору з фоном самої картинки
+        var r = 0, g = 0, b = 0, n = 0;
+        function acc(x, y){ var i = (y * W + x) * 4; if(data[i+3] > 200){ r += data[i]; g += data[i+1]; b += data[i+2]; n++; } }
+        for(var x = 0; x < W; x++){ acc(x, 0); acc(x, 1); acc(x, H-1); acc(x, H-2); }
+        for(var y = 0; y < H; y++){ acc(0, y); acc(1, y); acc(W-1, y); acc(W-2, y); }
+        setStageBg(n > 0
+          ? ('rgb('+Math.round(r/n)+','+Math.round(g/n)+','+Math.round(b/n)+')')
+          : STAGE_BG_FALLBACK);
+      }catch(e){ setStageBg(STAGE_BG_FALLBACK); }   // file:// / taint → беж
+    }
+    // перемальовуємо зону + підганяємо фон, коли фото-мокап довантажився
+    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
 
-    function addLogo(origUrl, cleanUrl){
-      var hasClean = !!cleanUrl;
-      var url = hasClean?cleanUrl:origUrl;
-      var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
-      var anc = printAreaAnchorPx() || {x:0, y:0};   // нове лого лягає в центр зони нанесення
-      var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
-        url:url, x:anc.x+off, y:anc.y+off, scale:1, rot:0, removeBg:hasClean, ar:1};
-      pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
-      pm.activeLogoId = layer.id;
-      renderGarment();
-      renderTabPanel();
-      updatePriceBar();
-      // пропорції лого → рамка щільно облягає контур (зручне перетягування)
-      loadImgEl(url).then(function(img){
+    // Міряємо форму лого з КОНКРЕТНОГО url: пропорції, частку непрозорих пікселів (fill)
+    // і межі непрозорого (opaqueBox). Викликаємо і при завантаженні, і при перемиканні
+    // «З фоном / Без фону» — бо площа вишивки рахується саме з непрозорих пікселів,
+    // тож із фоном (весь прямокутник) і без фону (лише контур) ціна має відрізнятись.
+    function measureLayerShape(layer, url){
+      return loadImgEl(url).then(function(img){
         layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
-        // fill_ratio: частка прямокутника, реально вкрита картинкою (для прорахунку від площі)
         try{
           var S = 200, cw = Math.max(1, Math.min(S, img.naturalWidth)), ch = Math.max(1, Math.round(cw/layer.ar));
           var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
@@ -5181,9 +5402,32 @@
               if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
             }
           }
+          // fill = щільність непрозорих пікселів у їхньому bounding-box (щоб ціна лишалась
+          // «жвавою» при зміні розміру й ніколи не занижувалась). Різницю «з фоном / без фону»
+          // дає перерахунок opaqueBox: без фону лист DTF і габарит рахуються з контуру, а не з
+          // усього прямокутника (див. layerOpaqueDimsMm), тож ціна все одно відрізняється.
           var bbox = (maxX>=minX && maxY>=minY) ? (maxX-minX+1)*(maxY-minY+1) : 0;
           layer.fill = bbox > 0 ? Math.min(1, Math.max(0.05, opaque/bbox)) : 1;
-        }catch(e){ layer.fill = 0.85; }
+          layer.opaqueBox = (maxX>=minX && maxY>=minY)
+            ? { x0:minX/cw, y0:minY/ch, x1:(maxX+1)/cw, y1:(maxY+1)/ch }
+            : { x0:0, y0:0, x1:1, y1:1 };
+        }catch(e){ layer.fill = 0.85; layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 }; }
+      });
+    }
+    function addLogo(origUrl, cleanUrl){
+      var hasClean = !!cleanUrl;
+      var url = hasClean?cleanUrl:origUrl;
+      var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
+      var anc = printAreaAnchorPx() || {x:0, y:0};   // нове лого лягає в центр зони нанесення
+      var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
+        url:url, x:anc.x+off, y:anc.y+off, scale:1, rot:0, removeBg:hasClean, ar:1};
+      pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
+      pm.activeLogoId = layer.id;
+      renderGarment();
+      renderTabPanel();
+      updatePriceBar();
+      // пропорції лого + fill/opaqueBox → рамка облягає контур і площа вишивки коректна
+      measureLayerShape(layer, url).then(function(){
         renderLogoLayers();
         updatePriceBar();
       }).catch(function(){});
@@ -5258,8 +5502,9 @@
       var p = getXY(e);
       var layer = dlState.layer;
       if(dlState.mode === 'drag'){
-        layer.x = dlState.startLX + (p.x - dlState.startX);
-        layer.y = dlState.startLY + (p.y - dlState.startY);
+        var z = garmentZoom();   // компенсуємо зум мокапа, щоб лого рухалось за пальцем 1:1
+        layer.x = dlState.startLX + (p.x - dlState.startX)/z;
+        layer.y = dlState.startLY + (p.y - dlState.startY)/z;
       } else if(dlState.mode === 'scale'){
         var dy = p.y - dlState.startY;   // вниз = більше, вгору = менше
         layer.scale = Math.max(0.04, Math.min(5, dlState.startScale + dy/80));
@@ -5311,7 +5556,10 @@
       if(pm.tab === 'photo'){
         var layers = currentLayers();
         if(layers.length === 0){
-          html = '';
+          // порожній стан — зона завантаження в самій вкладці (не лише пунктир на фото)
+          html = '<div class="pm-photo-empty" id="pmPhotoEmptyTrigger">' +
+            '<span class="pm-photo-empty-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>' +
+            '<div><div class="pm-photo-empty-title">Завантажте логотип</div><div class="pm-photo-empty-sub">PNG · JPG · SVG</div></div></div>';
         } else {
           html = '<div class="pm-photo-filled">';
           layers.forEach(function(l){
@@ -5360,13 +5608,15 @@
         });
         html += '</div>';
       } else if(pm.tab === 'size'){
-        html = '<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button>' +
-          '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-size-list pm-scroll-list">';
-        SIZES.forEach(function(sz){
-          var v = pm.qty[sz], active = v>0;
-          html += '<div class="pm-size-col">' +
-            '<button class="pm-size-btn'+(active?' active':'')+'" data-size-select="'+sz+'">'+sz+'</button>' +
+        var oneSize = isOneSize();
+        // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
+        html = oneSize ? '' : ('<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button>');
+        html += '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-size-list pm-scroll-list'+(oneSize?' pm-size-list--os':'')+'">';
+        getSizes().forEach(function(sz){
+          var v = pm.qty[sz]||0, active = v>0;
+          html += '<div class="pm-size-col'+(oneSize?' pm-size-col--os':'')+'">' +
+            '<button class="pm-size-btn'+(oneSize?' pm-size-btn--os':'')+(active?' active':'')+'" data-size-select="'+sz+'">'+sz+'</button>' +
             '<div class="pm-size-qty'+(active?' show':'')+'">' +
               '<button class="pm-size-qty-btn minus" data-size-minus="'+sz+'">−</button>' +
               '<span class="pm-size-qty-val">'+v+'</span>' +
@@ -5411,12 +5661,18 @@
           e.stopPropagation();
           var id = Number(el.dataset.bgtoggle);
           var layer = currentLayers().find(function(l){return l.id===id;});
-          if(layer){ layer.removeBg = !layer.removeBg; layer.url = layer.removeBg ? layer.cleanUrl : layer.origUrl; renderGarment(); renderTabPanel(); }
+          if(layer){
+            layer.removeBg = !layer.removeBg;
+            layer.url = layer.removeBg ? layer.cleanUrl : layer.origUrl;
+            // перерахунок площі непрозорих пікселів під нову картинку → ціна вишивки міняється
+            measureLayerShape(layer, layer.url).then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
+          }
         });
       });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.garmentId = el.dataset.garment;
+          try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
           // новий виріб може мати іншу кількість ракурсів → скидаємо на «перед» і перебудовуємо крапки
@@ -5441,6 +5697,7 @@
           pmTabPanel.querySelectorAll('.pm-color-swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === pm.colorId); });
           var nm = pmTabPanel.querySelector('.pm-color-name');
           if(nm) nm.textContent = getColor().name;
+          try{ renderRecommended(); }catch(e){}   // рекомендовані — у новому кольорі
         });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
@@ -5449,14 +5706,14 @@
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
           var sz = el.dataset.sizeSelect;
-          if(pm.qty[sz]===0){ pm.qty[sz]=1; renderTabPanel(); updatePriceBar(); }
+          if((pm.qty[sz]||0)===0){ pm.qty[sz]=1; renderTabPanel(); updatePriceBar(); }
         });
       });
       pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,pm.qty[sz]-1); renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=pm.qty[sz]+1; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; renderTabPanel(); updatePriceBar(); });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -5492,10 +5749,14 @@
       var pt = pricingTiers();
       var rows;
       if(pt){
-        var before = unitPriceBeforeDiscount();
         var actT = activeCoefTier();
+        // визначальна ціна = ефективна ціна за 1 шт (з повною разовою оплатою). Від неї — знижки.
+        var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min);
         rows = pt.map(function(t){
-          return {label:t.label, badge:t.badge, price:Math.round(before*t.coef), isActive:t===actT};
+          // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
+          var price = effUnitPriceCoef(t.coef, t.min);
+          var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
+          return {label:t.label, badge: pct > 0 ? ('-'+pct+'%') : null, price:price, isActive:t===actT};
         });
       } else {
         var active = activeTier();
@@ -5535,8 +5796,8 @@
     // з лого — база + нанесення + за штуку, щоб одразу було видно ефект лого/розміру/методу.
     function fromPriceDisplay(){
       if(sitePricing()){
-        var hasLogos = getViews().some(function(s){ return (pm.logos[s]||[]).length; });
-        return hasLogos ? Math.round(unitPriceBeforeDiscount()) : Math.round(basePriceNew());
+        // «від» = найдешевша ціна за одиницю (за максимальним тиражем), поки кількість не вибрана
+        return cheapestUnitPrice();
       }
       return TIERS[TIERS.length-1].price + logoSurcharge();
     }
@@ -5556,8 +5817,117 @@
       pmQtyWarning.style.display = u===0 ? '' : 'none';
       renderTiers();
       renderPrintArea();
+      if(IS_MANAGER) renderManagerPanel();
     }
-    // Легке оновлення лише ціни/розміру під час жесту (без renderTiers/scrollIntoView — щоб не смикало інтерфейс)
+    // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
+    function renderManagerPanel(){
+      var box = document.getElementById('pmManagerBox'), out = document.getElementById('pmMgrCalc');
+      if(!box || !out) return;
+      box.style.display = '';
+      var u = totalUnits(), qty = u > 0 ? u : 1;
+      var m = methodCfgNew() || {};
+      var methodName = getPrint().name;
+      var ap = applicationParts();
+      var coefPart = ap.coefPart, flatPart = ap.flatPart;   // coefPart (вишивка) — під знижкою; flatPart (DTF) — без
+      var appSell = coefPart + flatPart, appCost = applicationCostSum();
+      var base = basePriceNew(), gCost = garmentCost();
+      var t = activeCoefTier(); var coef = t ? t.coef : 1;
+      var discountable = base + coefPart;
+      var discountAmt = Math.round(discountable - Math.round(discountable * coef));
+      var pFee = methodPieceFee(), pCost = methodPieceCost();
+      var oFeePer = orderFeePerUnit(qty), oCostPer = qty > 0 ? Math.round(methodOrderCost()/qty) : 0;
+      var uSell = effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
+      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerAreaMm2(l) * (l.fill||0.85); }); });
+      var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
+      var dims = actL ? layerOpaqueDimsMm(actL) : null;
+      var money = function(x){ return Math.round(x) + ' грн'; };
+      var dash = '<span style="color:#c2c7cf;">—</span>';
+      // ── шапка: метод + деталі площі/листа ──
+      var head = '<div style="font-weight:800;font-size:14px;color:#0f2034;">Прорахунок (для менеджера)</div>';
+      var det = 'Метод: <b>'+methodName+'</b>';
+      if(m.mode==='grid' && logoCount()>0){
+        if(logoCount()===1){ var col=dtfBandCol(m,actL); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; det += ' · Лист: <b>'+bl+'</b>'; }
+        else det += ' · Листів: <b>'+logoCount()+'</b> (див. розклад)';
+      }
+      else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
+      if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
+      head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
+      // ── таблиця ──
+      function r(name, sell, cost, o){ o=o||{};
+        var pad = o.muted ? '2px 8px' : '5px 8px';
+        var trS = o.bold ? 'font-weight:800;color:#0f2034;background:#eef1f6;' : (o.muted ? 'color:#8a94a6;font-size:11px;' : '');
+        var cc = o.bold ? '#0f2034' : (o.muted ? '#b0a3a3' : '#8a1f1f');
+        return '<tr style="'+trS+'"><td style="padding:'+pad+';">'+name+'</td>'+
+          '<td style="padding:'+pad+';text-align:right;white-space:nowrap;">'+sell+'</td>'+
+          '<td style="padding:'+pad+';text-align:right;white-space:nowrap;color:'+cc+';">'+cost+'</td></tr>';
+      }
+      var tb = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+      tb += '<tr style="color:#8a94a6;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;"><td style="padding:0 8px 4px;">Назва</td><td style="padding:0 8px 4px;text-align:right;">Продажна</td><td style="padding:0 8px 4px;text-align:right;">Собівартість</td></tr>';
+      tb += r('База виробу', money(base), money(gCost));
+      var nLogos = logoCount();
+      if(nLogos > 0){
+        // рядок нанесення + розкривний розклад по кожному зображенню (як формується сума)
+        var caret = mgrDetailOpen ? '▾' : '▸';
+        tb += r('Нанесення ('+methodName+') <span data-mgr-toggle style="cursor:pointer;color:#4f5fd4;font-weight:600;">'+caret+' розклад</span>', money(appSell), money(appCost));
+        if(mgrDetailOpen){
+          var di = 0;
+          getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+            var idx = di++;
+            var sell = (m.mode === 'grid') ? dtfGridSell(m, l, undefined, idx) : placementPrice(m, l, idx);
+            var cost = (m.mode === 'grid') ? dtfGridCost(m, l, undefined, idx) : placementCost(m, l, idx);
+            var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, undefined, idx) : placementRaw(m, l);
+            var atMin = sell > raw + 0.5;
+            var note;
+            if(m.mode === 'grid'){
+              var bcol = dtfBandCol(m, l); var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
+              note = ' <span style="color:#5a6a80;">(лист '+blab+')</span>' + (atMin ? ' <span style="color:#c58a00;">(мін)</span>' : '');
+            } else {
+              note = atMin ? ' <span style="color:#c58a00;">(мін '+minForIndex(m, idx)+')</span>' : ' <span style="color:#1a7a3a;">(за площею '+Math.round(raw)+')</span>';
+            }
+            tb += r('↳ Зображення '+(idx+1)+note, money(sell), money(cost), {muted:true});
+          }); });
+        }
+      }
+      if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
+      if(nLogos > 0){
+        tb += r('Оплата за штуку', money(pFee), money(pCost));
+        var nExtra = extraSketchCount();
+        if(nExtra > 0){
+          var mainFeePer = qty>0 ? Math.round((+m.orderFee||0)/qty) : 0;
+          var mainCostPer = qty>0 ? Math.round((+m.orderCost||0)/qty) : 0;
+          tb += r('Дизайн (÷'+qty+' шт)', money(mainFeePer), money(mainCostPer));
+          tb += r('Додаткові ескізи ('+nExtra+'× ÷'+qty+')', money(oFeePer-mainFeePer), money(oCostPer-mainCostPer));
+        } else {
+          tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+        }
+      }
+      tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
+      if(nLogos === 0) tb += '<tr><td colspan="3" style="padding:6px 8px 0;color:#8a94a6;font-size:11px;">Дизайн не завантажено — рахується лише база виробу зі знижкою.</td></tr>';
+      tb += '</table>';
+      // ── підсумки: маржа + суми замовлення ──
+      var marginU = uSell - fullUnitCost, marginUPct = uSell>0 ? Math.round(marginU/uSell*100) : 0;
+      var oS = u>0 ? orderTotal() : Math.round(uSell*qty);
+      var oC = u>0 ? orderCostTotal() : Math.round(fullUnitCost*qty);
+      var oM = oS - oC, oMPct = oS>0 ? Math.round(oM/oS*100) : 0;
+      var sum = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #d5d8dd;font-size:12.5px;">';
+      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа за штуку</span><b>'+money(marginU)+' ('+marginUPct+'%)</b></div>';
+      sum += '<div style="font-weight:800;margin:8px 0 4px;color:#0f2034;">Замовлення ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>';
+      sum += '<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(oS)+'</b></div>';
+      sum += '<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b style="color:#8a1f1f;">'+money(oC)+'</b></div>';
+      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oM)+' ('+oMPct+'%)</b></div>';
+      sum += '</div>';
+      out.innerHTML = head + tb + sum;
+      var tog = out.querySelector('[data-mgr-toggle]');
+      if(tog) tog.onclick = function(e){ e.stopPropagation(); mgrDetailOpen = !mgrDetailOpen; renderManagerPanel(); };
+    }
+    // Легке оновлення цін порогів (лише текст, без перебудови DOM/скролу) — щоб не смикало під час жесту
+    function updateTierPricesLive(){
+      if(!pmTierRow) return;
+      var pt = pricingTiers(); if(!pt) return;
+      var priceEls = pmTierRow.querySelectorAll('.pm-tier-item .pm-tier-price');
+      pt.forEach(function(t, i){ if(priceEls[i]) priceEls[i].textContent = effUnitPriceCoef(t.coef, t.min) + ' грн'; });
+    }
+    // Легке оновлення лише ціни/розміру під час жесту (без повного renderTiers/scrollIntoView — щоб не смикало інтерфейс)
     function updatePriceLive(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
@@ -5570,7 +5940,9 @@
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
+      updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
+      if(IS_MANAGER) renderManagerPanel();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
@@ -5788,6 +6160,7 @@
     })();
 
     function openProductModal(garmentId){
+      zoneOutBySide = {};   // скидаємо стан зони від попереднього товару
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
       pm.garmentId = garmentId || GARMENTS[0].id;
@@ -5810,8 +6183,12 @@
       updatePriceBar();
       try{ renderRecommended(); }catch(e){}
       requestAnimationFrame(fitGarmentStage);
+      navGo({kind:'product', garmentId: pm.garmentId});
     }
-    document.getElementById('pmBackBtn').addEventListener('click', function(){ productModal.classList.remove('open'); });
+    document.getElementById('pmBackBtn').addEventListener('click', function(){
+      if(!_navInternal && productModal.classList.contains('open')){ history.back(); }
+      else productModal.classList.remove('open');
+    });
     document.getElementById('pmPhoneBtn').addEventListener('click', function(){ document.getElementById('pmPhoneModal').classList.add('open'); });
     document.getElementById('pmCartBtn').addEventListener('click', function(){ cartModalCtrl.open(); });
     document.getElementById('pmMenuBtn').addEventListener('click', function(){ toggleMenu(); });
@@ -5827,8 +6204,6 @@
       'Фартух':'apron','Кітель':'kitel'
     };
     document.addEventListener('click', function(e){
-      // Клік по кольоровому свотчу лише міняє фото товару — не відкриває конфігуратор
-      if(e.target.closest('.product-swatches')) return;
       var card = e.target.closest('.product');
       if(!card) return;
       var nameEl = card.querySelector('h4');
@@ -5838,16 +6213,17 @@
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
     // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
-    function snapshotSide(side){
+    function snapshotSide(side, sizeOverride){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
         var layers = pm.logos[snapSide];
         var wrapEl = document.getElementById('pmGarmentWrap');
         var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-        var C = 500, k = C / wrapW;
+        var C = sizeOverride || 500, k = C / wrapW;
         var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
         var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // чіткіший макап
         ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
         var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
         var garmentP = hasPhoto
@@ -5879,14 +6255,31 @@
     function triggerAddToCartFlow(){
       var u = totalUnits();
       if(u===0){ alert('Оберіть розмір і кількість'); return; }
+      if(anyLogoOutsideAnySide()){ alert('Логотип виходить за зону друку. Посуньте його всередину пунктирної зони, щоб продовжити.'); return; }
       document.getElementById('pmMockupModal').classList.add('open');
     }
     document.getElementById('pmAddToCartBtn').addEventListener('click', triggerAddToCartFlow);
     document.getElementById('pmStickyCartBtn').addEventListener('click', triggerAddToCartFlow);
+    // Менеджер: завантаження макапа поточної сторони (перед/зад/бік) як PNG
+    (function(){
+      var btn = document.getElementById('pmDownloadMockup'); if(!btn) return;
+      btn.addEventListener('click', function(){
+        btn.disabled = true; var old = btn.innerHTML; btn.textContent = 'Готуємо…';
+        snapshotSide(pm.side, 2000).then(function(url){   // висока роздільна здатність для завантаження
+          if(url){
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'mockup-' + pm.garmentId + '-' + pm.colorId + '-' + pm.side + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
+          }
+          btn.disabled = false; btn.innerHTML = old;
+        }).catch(function(){ btn.disabled = false; btn.innerHTML = old; });
+      });
+    })();
 
     document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){
       var u = totalUnits();
-      var sizesStr = SIZES.filter(function(s){return pm.qty[s]>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
+      var sizesStr = getSizes().filter(function(s){return (pm.qty[s]||0)>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
       var nm = productName();
       var item = {
         name: nm,
@@ -5894,7 +6287,10 @@
         print: getPrint().name,
         sizes: sizesStr,
         price: orderTotal(),
-        unitPrice: unitPrice(),
+        unitPrice: effUnitPrice(),
+        // собівартість/маржа — для менеджерського кошторису (клієнту не показуємо)
+        unitCost: (unitCost() + (u>0?Math.round(methodOrderCost()/u):0)),
+        cost: orderCostTotal(),
         qty: u,
         imgs: [],
         config: {
@@ -6004,8 +6400,8 @@
     var PM_REVIEWS = [
       {name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна форма! Логотип чіткий, колір не блякне.'},
       {name:'Марина В.', date:'тиждень тому', stars:5, text:'Дуже швидко зробили і доставили. Замовлятиму ще.'},
-      {name:'Дмитро С.', date:'2 тижні тому', stars:5, text:'Форма сидить бездоганно — саме те. Тканина приємна, не тягнеться.'},
-      {name:'Ольга С.', date:'3 тижні тому', stars:5, text:'Замовляли форму для персоналу кафе. Всі задоволені, будемо знову.'},
+      {name:'Дмитро С.', date:'2 тижні тому', stars:5, text:'Оверсайз крій — саме те. Тканина приємна, не тягнеться.'},
+      {name:'Ольга С.', date:'3 тижні тому', stars:5, text:'Замовляли корпоративні футболки. Всі задоволені, будемо знову.'},
       {name:'Андрій П.', date:'1 місяць тому', stars:5, text:'Все чітко і вчасно. Буду замовляти ще.'},
       {name:'Катерина М.', date:'1 місяць тому', stars:5, text:'Відмінна якість тканини і друку. Рекомендую!'}
     ];
@@ -6145,25 +6541,43 @@
     });
 
     // Блок «Вам також може сподобатись» — реальні фото/назви/ціни товарів каталогу
+    // Найближчий колір палітри до вибраного (за RGB-відстанню)
+    function recHexRgb(h){ h=(h||'').replace('#',''); if(h.length<6) return null; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+    function recClosestColor(pal, hex){
+      var t=recHexRgb(hex); if(!t||!pal||!pal.length) return null;
+      var best=null, bd=Infinity;
+      pal.forEach(function(c){ var r=recHexRgb(c.hex); if(!r) return;
+        var rm=(r[0]+t[0])/2, dR=r[0]-t[0], dG=r[1]-t[1], dB=r[2]-t[2];
+        var d=(2+rm/256)*dR*dR + 4*dG*dG + (2+(255-rm)/256)*dB*dB;
+        if(d<bd){bd=d;best=c;} });
+      return best;
+    }
     function renderRecommended(){
       var track = document.getElementById('pmRecommendedScroll');
       if(!track) return;
+      var selHex = (pm.colorPicked && typeof getColor==='function' && getColor()) ? getColor().hex : null;   // колір з конструктора, лише якщо клієнт його обрав
       var list = (window.LQ_catalogList ? window.LQ_catalogList() : [])
         .filter(function(p){ return p.garment && p.garment !== pm.garmentId; });
       var html = list.map(function(p){
         var nm = window.LQ_name(p.garment, p.name);
-        // колір: обраний клієнтом (найближчий у палітрі виробу) або популярний за замовчуванням
-        var match = displayColorFor(p.garment);
         var cs = GARMENT_COLORS[p.garment];
+        // підбираємо колір товару, найближчий до вибраного в конструкторі
+        var match = selHex ? recClosestColor(cs, selHex) : displayColorFor(p.garment);
         var fallbackBg = '#efedec';   // нейтральна підкладка; точний тон підставимо з фото після завантаження
-        var src = match ? window.LQ_img(garmentThumbSrc(p.garment))
+        var src = match ? window.LQ_img('/images/'+p.garment+'-'+match.id+'-front.webp')
                         : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
           ? '<div class="pm-rec-img" style="background:'+fallbackBg+';"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display=\'none\'"></div>'
           : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
+        // ціну беремо тією ж функцією, що й картки каталогу, — щоб числа не розходились
+        var priceLabel = p.price;
+        if(window.__catalogPrice){
+          var auto = window.__catalogPrice(p.garment);
+          if(auto && auto > 0) priceLabel = 'від ' + auto + ' грн';
+        }
         return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
           '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
-          (p.price ? '<div class="pm-rec-price">'+p.price+'</div>' : '')+'</div></div>';
+          (priceLabel ? '<div class="pm-rec-price">'+priceLabel+'</div>' : '')+'</div></div>';
       }).join('');
       html += '<button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta"><span>Перейти в каталог</span></button>';
       track.innerHTML = html;
@@ -6215,7 +6629,6 @@
         else img.addEventListener('load', apply, {once:true});
       });
     }
-
     window.__renderRecommended = renderRecommended;
     document.addEventListener('lq-photos', function(){ try{ renderRecommended(); }catch(e){} });
     document.addEventListener('lq-content', function(){ try{ renderRecommended(); }catch(e){} });
@@ -6336,10 +6749,9 @@
           return '<div class="pm-model-photo"><img class="pm-model-img" src="'+url+'" alt="" loading="eager" decoding="async"></div>';
         }).join('');
       } else {
+      // Лого НЕ проєктуємо на фото моделей (за проханням) — показуємо фото як є
       pmModelTrack.innerHTML = set.map(function(slide){
-        return '<div class="pm-model-photo"><img class="pm-model-img" src="/images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high">' +
-          slide.logos.map(function(l){ return '<span class="pm-model-logo"'+(l.side==='back'?' data-side="back"':'')+' data-cx="'+l.cx+'" data-cy="'+l.cy+'" data-sw="'+l.sw+'"></span>'; }).join('') +
-          '</div>';
+        return '<div class="pm-model-photo"><img class="pm-model-img" src="/images/'+slide.src+'.webp" alt="" loading="eager" decoding="async" fetchpriority="high"></div>';
       }).join('');
       }
       modelPhotos = Array.prototype.slice.call(pmModelTrack.children);
@@ -6468,6 +6880,28 @@
     document.getElementById('cartModal').classList.remove('open');
     if(window.__openProductModal) window.__openProductModal('tee');
   });
+  // Менеджер: створити картку клієнта в Канбані з поточного кошика
+  (function(){
+    var b = document.getElementById('cartCreateClientBtn'); if(!b) return;
+    var isMgr = /[?&]manager=1\b/.test(location.search);
+    if(isMgr) b.style.display = '';
+    b.addEventListener('click', function(){
+      if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
+      var nick = prompt('Нік інстаграма клієнта:', '@');
+      if(nick == null) return;
+      nick = String(nick).trim();
+      if(!nick || nick === '@'){ alert('Вкажіть нік інстаграма.'); return; }
+      var payload = { instagram: nick, items: JSON.parse(JSON.stringify(cartItems)) };
+      var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
+      if(typeof saver === 'function'){
+        try{ saver(payload); }catch(e){ alert('Помилка збереження: ' + (e && e.message || e)); return; }
+        cartItems.length = 0; renderCart();
+        document.getElementById('cartModal').classList.remove('open');
+      } else {
+        alert('Картку клієнта можна створити лише з адмінки (вкладка «Прорахунок»).');
+      }
+    });
+  })();
   document.getElementById('cartFooterInfoLink').addEventListener('click', function(){
     document.getElementById('cartModal').classList.remove('open');
     var footerEl = document.querySelector('footer');
@@ -6570,10 +7004,10 @@
   var track = document.getElementById('wearTrack');
   if(!car || !track) return;
   var base = [
-    {src:'/horeca/images/kitel.webp',         alt:'Кітель'},
-    {src:'/horeca/images/apron-paris-sa.webp',alt:'Фартух'},
-    {src:'/images/tshirt.webp',               alt:'Поло'},
-    {src:'/images/cap.webp',                  alt:'Кепка'}
+    {src:'/images/hoodie.webp',    alt:'Худі'},
+    {src:'/images/tshirt.webp',    alt:'Футболка'},
+    {src:'/images/sweatshirt.webp',alt:'Світшот'},
+    {src:'/images/cap.webp',       alt:'Кепка'}
   ];
   var N = base.length, reps = 5, items = [];
   for(var r=0;r<reps;r++) for(var i=0;i<N;i++) items.push(base[i]);
@@ -7017,53 +7451,6 @@ window.LOOMIQ_CONFIG = {
 })();
 </script>
 
-<!-- Секція ніш: спокійне авто-слайдшоу фото — за раз змінюється лише одна картка -->
-<script>
-  (function(){
-    var shows = Array.prototype.slice.call(document.querySelectorAll('.industry-stack-photo[data-slideshow]'));
-    if(!shows.length) return;
-    shows.forEach(function(s){ s._imgs = s.querySelectorAll('.iss-img'); s._i = 0; });
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduce) return;
-    // Кожні 3с просуваємо рівно ОДНУ картку (по колу) — ніколи не міняються всі одразу,
-    // тому виглядає як продуманий елемент дизайну, а не хаотичне блимання.
-    var c = 0;
-    setInterval(function(){
-      if(document.hidden) return;
-      for(var t = 0; t < shows.length; t++){
-        var s = shows[c % shows.length]; c++;
-        if(s._imgs.length > 1){
-          var cur = s._i, nxt = (s._i + 1) % s._imgs.length;
-          s._imgs[cur].classList.remove('is-active');
-          s._imgs[nxt].classList.add('is-active');
-          s._i = nxt;
-          break;
-        }
-      }
-    }, 3000);
-  })();
-</script>
-
-<!-- Каталог: перемикання кольору фартуха по свотчах -->
-<script>
-  (function(){
-    document.querySelectorAll('.product-swatches').forEach(function(row){
-      var card = row.closest('.product');
-      var img = card && card.querySelector('[data-product-img]');
-      if(!img) return;
-      row.querySelectorAll('button[data-img]').forEach(function(btn){
-        btn.addEventListener('click', function(e){
-          e.stopPropagation();
-          e.preventDefault();
-          img.src = btn.getAttribute('data-img');
-          row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
-          btn.classList.add('active');
-        });
-      });
-    });
-  })();
-</script>
-
 
 <!-- Заборона зуму сторінки пальцями. iOS Safari ігнорує user-scalable=no у viewport,
      тому блокуємо саме жести масштабування сторінки. Щипок для зміни розміру
@@ -7077,6 +7464,83 @@ window.LOOMIQ_CONFIG = {
     document.addEventListener('gestureend', function(){
       if(document.documentElement.style.zoom) document.documentElement.style.zoom = '';
     }, {passive:false});
+  })();
+</script>
+
+<!-- Стрічка відгуків на головній: береться з тих самих карток, що і в модалці «Відгуки» -->
+<script>
+  (function(){
+    var strip = document.getElementById('reviewStrip');
+    var modal = document.getElementById('reviewsModal');
+    if(!strip || !modal) return;
+    var LIMIT = 10;
+
+    function esc(t){ return (t||'').replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
+
+    function build(){
+      // спершу живі відгуки з бази, далі — вбудовані картки
+      var cards = [].slice.call(modal.querySelectorAll('#userReviews .review-card'))
+        .concat([].slice.call(modal.querySelectorAll('.review-card'))
+          .filter(function(c){ return !c.closest('#userReviews'); }))
+        // у стрічку беремо лише відгуки з фото — без заглушок
+        .filter(function(c){ return !!c.querySelector('.review-photo img'); });
+      var html = '';
+      cards.slice(0, LIMIT).forEach(function(c, n){
+        var name = (c.querySelector('h4')||{}).textContent || '';
+        var date = (c.querySelector('.review-date')||{}).textContent || '';
+        var text = (c.querySelector('p')||{}).textContent || '';
+        var img  = c.querySelector('.review-photo img');
+        c.setAttribute('data-rs-idx', n);
+        html += '<article class="app-card app-card--rev" data-rs-open="'+n+'">'
+              +   '<div class="app-photo"><img src="'+esc(img.getAttribute('src'))+'" alt="" loading="lazy"></div>'
+              +   '<div class="app-bottom">'
+              +     '<div class="rs-name">'+esc(name)+'</div>'
+              +     '<div class="rs-date">'+esc(date)+'</div>'
+              +     '<p class="rs-text">'+esc(text)+'</p>'
+              +     '<button class="rs-full" type="button">Читати повністю'
+              +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>'
+              +     '</button>'
+              +   '</div>'
+              + '</article>';
+      });
+      if(!html) return;
+      html += '<div class="rs-more"><button class="btn btn-primary" id="reviewStripMore">Усі відгуки'
+            + '<svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+            + '</button></div>';
+      strip.innerHTML = html;
+      // кнопку «Читати повністю» лишаємо тільки там, де три рядки реально обрізали текст
+      function markClipped(){
+        strip.querySelectorAll('.app-card--rev').forEach(function(card){
+          if(card.classList.contains('is-open')) return;   // відкриту картку не переміряємо
+          var t = card.querySelector('.rs-text');
+          if(t) card.classList.toggle('is-clipped', t.scrollHeight > t.clientHeight + 1);
+        });
+      }
+      markClipped();
+      requestAnimationFrame(markClipped);   // після того, як шрифт остаточно застосувався
+      var more = document.getElementById('reviewStripMore');
+      if(more) more.addEventListener('click', function(){
+        var mb = document.getElementById('menuReviewsBtn'); if(mb) mb.click();
+      });
+
+      // відгук розгортається прямо в картці
+      strip.querySelectorAll('[data-rs-open]').forEach(function(card){
+        var btn = card.querySelector('.rs-full');
+        if(!btn) return;
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          var open = card.classList.toggle('is-open');
+          btn.childNodes[0].nodeValue = open ? 'Згорнути' : 'Читати повністю';
+        });
+      });
+    }
+
+    build();
+    // живі відгуки підвантажуються з бази пізніше — перебудовуємо стрічку
+    var box = document.getElementById('userReviews');
+    if(box && window.MutationObserver){
+      new MutationObserver(function(){ build(); }).observe(box, {childList:true});
+    }
   })();
 </script>
 
@@ -7110,6 +7574,7 @@ window.LOOMIQ_CONFIG = {
       document.querySelectorAll('.menu-overlay-item').forEach(function(el){
         el.classList.toggle('active', !!openBtnId && el.id === openBtnId);
       });
+      // жодного розділу не відкрито — активний сам сайт
       document.querySelectorAll('[data-site-row]').forEach(function(el){
         el.classList.toggle('active', !openBtnId && el.dataset.siteRow === site);
       });

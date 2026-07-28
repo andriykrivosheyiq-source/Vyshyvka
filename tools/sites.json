@@ -1,0 +1,255 @@
+{
+  "horeca": {
+    "label": "HoReCa",
+    "path": "/horeca/",
+    "photosDoc": "photos_horeca",
+    "title": "Loomiq HoReCa — уніформа та мерч для ресторанів, кафе й готелів",
+    "description": null,
+    "theme": {
+      "--navy": "#6F4E37",
+      "--blue": "#6F4E37",
+      "--accent-grad": "#6F4E37",
+      "--cta": "#6F4E37"
+    },
+    "hero": {
+      "slides": [
+        "/horeca/images/hero-chef2.webp",
+        "/horeca/images/hero-bartender.webp"
+      ],
+      "h1": "Уніформа для вашого закладу <span class=\"accent\">за 1 хв</span>",
+      "lead": "Фартухи, кітелі та поло з вашим логотипом. Завантажте лого — і одразу побачите точну ціну та дату готовності."
+    },
+    "niches": [
+      {
+        "title": "Кухня",
+        "text": "Кітелі, фартухи та ковпаки для кухарів і су-шефів.",
+        "photos": [
+          "/horeca/images/niche-kitchen-1.webp",
+          "/horeca/images/niche-kitchen-2.webp",
+          "/horeca/images/hero-chef2.webp"
+        ]
+      },
+      {
+        "title": "Зал і сервіс",
+        "text": "Поло, сорочки та фартухи для офіціантів і хостес.",
+        "photos": [
+          "/horeca/images/niche-hall-1.webp",
+          "/horeca/images/hero-resto.webp",
+          "/horeca/images/hero-serve.webp"
+        ]
+      },
+      {
+        "title": "Бар і кав'ярня",
+        "text": "Фартухи та футболки для барист і барменів.",
+        "photos": [
+          "/horeca/images/niche-bar-1.webp",
+          "/horeca/images/niche-bar-3.webp",
+          "/horeca/images/niche-bar-4.webp",
+          "/horeca/images/niche-bar-5.webp"
+        ]
+      },
+      {
+        "title": "Готель",
+        "text": "Форма для рецепції, покоївок та обслуговування номерів.",
+        "photos": [
+          "/horeca/images/niche-hotel-1.webp"
+        ]
+      },
+      {
+        "title": "Доставка",
+        "text": "Футболки, худі та кепки для кур'єрів вашого закладу.",
+        "photos": [
+          "/horeca/images/niche-delivery-1.webp",
+          "/horeca/images/niche-delivery-2.webp",
+          "/horeca/images/niche-delivery-3.webp",
+          "/horeca/images/niche-delivery-4.webp"
+        ]
+      }
+    ],
+    "texts": {
+      "LQ_img() підміняє стандартний файл images/<garment>-<color>-<view>.webp на завантажене фото. */": "LQ_img() підміняє стандартний файл /images/<garment>-<color>-<view>.webp на завантажене фото. */",
+      "<div class=\"menu-overlay-tagline\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"menu-overlay-tagline\">Форма для ресторанів, кав'ярень і готелів</div>",
+      "<button class=\"btn btn-primary menu-overlay-cta\" data-open-catalog>Створити мерч": "<button class=\"btn btn-primary menu-overlay-cta\" data-open-catalog>Створити форму",
+      "<h2>Потрібна допомога з мерчем?</h2>": "<h2>Потрібна допомога з формою?</h2>",
+      "<p>Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>": "<p>Замовляла поло для офіціантів, усі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>",
+      "<p>Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду</p>": "<p>Замовляли худі для бариста кав'ярні — дуже задоволені! Якість просто вогонь 🔥 однозначно ще прийду</p>",
+      "<p>Топ. Робили мерч на подію, встигли за тиждень 👍</p>": "<p>Топ. Робили фартухи до відкриття кав'ярні, встигли за тиждень 👍</p>",
+      "<p>Спортивна форма для команди — яскраво, все рівно 💪</p>": "<p>Форма для кухні — міцна тканина, шви рівні, лого чітке 💪</p>",
+      "<p>Брендовані сумки для компанії — міцні, лого чітке. Рекомендуємо!</p>": "<p>Брендовані сумки для ресторану — міцні, лого чітке. Рекомендуємо!</p>",
+      "<p>мерч вийшов кращий ніж очікувала ❤️ дякую команді</p>": "<p>форма вийшла краща ніж очікувала ❤️ дякую команді</p>",
+      "<div class=\"pm-footer-tag\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"pm-footer-tag\">Форма для ресторанів, кав'ярень і готелів</div>",
+      "<button class=\"btn btn-primary\" id=\"floatCta\" data-open-catalog>Створити мерч": "<button class=\"btn btn-primary\" id=\"floatCta\" data-open-catalog>Створити форму",
+      "<h2 style=\"font-size:clamp(26px,4vw,34px);\">Корпоративний мерч для будь-якої задачі</h2>": "<h2 style=\"font-size:clamp(26px,4vw,34px);\">Уніформа для будь-якого закладу HoReCa</h2>",
+      "<h2>Мерч <span class=\"accent\">за 3 прості кроки</span></h2>": "<h2>Уніформа <span class=\"accent\">за 3 прості кроки</span></h2>",
+      "<h3>Дізнайтесь <strong>вартість та терміни</strong> свого мерчу за 1 хвилину</h3>": "<h3>Дізнайтесь <strong>вартість та терміни</strong> форми для закладу за 1 хвилину</h3>",
+      "<img src=\"images/hoodie.webp\" alt=\"Худі\" loading=\"lazy\">": "<img src=\"/horeca/images/kitel.webp\" alt=\"Кухарський кітель\" loading=\"lazy\">",
+      "<div><h4>Футболка</h4><div class=\"price\">від 99 грн</div></div>": "<div><h4>Футболка</h4><div class=\"price\">від 129 грн</div></div>",
+      "<img src=\"images/sweatshirt.webp\" alt=\"Світшот\" loading=\"lazy\">": "<img src=\"images/hoodie.webp\" alt=\"Худі\" loading=\"lazy\">",
+      "<h2>Loomiq — найкращий спосіб створювати мерч</h2>": "<h2>Loomiq — найкращий спосіб одягнути заклад</h2>",
+      "<img src=\"images/review-riokan.webp\" alt=\"Команда Riokan у мерчі Loomiq\" decoding=\"async\">": "<img src=\"images/review-riokan.webp\" alt=\"Команда ресторану Trattoria Rustica у формі Loomiq\" decoding=\"async\">",
+      "<p class=\"story-quote\">Будівельна компанія. Потрібен був єдиний стиль для монтажних бригад і офісу — одяг, що витримує роботу на об'єктах і гідно виглядає на зустрічах. Підібрали щільний трикотаж, лого нанесли вишивкою — не стирається від прання. Устигли за 8 днів до корпоративу.</p>": "<p class=\"story-quote\">Ресторан італійської кухні. Оновлювали форму залу й кухні перед сезоном. Потрібні були фартухи, що не бояться олії та вина, і кітелі для кухарів. Взяли щільну саржу, лого — шовкографія, стійка до прання на 60°. Устигли за 8 днів до відкриття тераси.</p>",
+      "<img src=\"images/review-zendokai.webp\" alt=\"Zendokai Karate у мерчі Loomiq\" decoding=\"async\">": "<img src=\"images/review-zendokai.webp\" alt=\"Бариста Coffee Point у фартухах Loomiq\" decoding=\"async\">",
+      "<p class=\"story-quote\">Спортивна секція. Форма для тренерів і вихованців до відкритого турніру. Складність — 6 розмірів від дитячих до дорослих і дедлайн 10 днів. Звели все до одного макета, надрукували DTF: кольори лишаються яскравими навіть після сотні тренувань.</p>": "<p class=\"story-quote\">Мережа кав'ярень. Потрібен був єдиний стиль для барист у 4 точках — фартухи й футболки у фірмовому кольорі. Складність: точний відтінок під бренд і дедлайн 10 днів. Підібрали тканину тон-у-тон, лого нанесли вишивкою — не стирається й виглядає дорого.</p>",
+      "<img src=\"images/review-resto.webp\" alt=\"Персонал ресторану у формі Loomiq\" decoding=\"async\">": "<img src=\"images/review-resto.webp\" alt=\"Персонал ресторану Osteria Verde у формі Loomiq\" decoding=\"async\">",
+      "<img src=\"images/review-danko.webp\" alt=\"Мерч бренду DANKO від Loomiq\" decoding=\"async\">": "<img src=\"images/review-danko.webp\" alt=\"Персонал Grand Hotel у формі Loomiq\" decoding=\"async\">",
+      "<p class=\"story-quote\">Локальний бренд одягу. Запускали лімітовану колекцію мерчу — критично важлива була якість друку та щільність футболки «як у преміумі». Зробили зразок за 2 дні, узгодили відтінок і посадку, віддрукували всю партію без жодного браку.</p>": "<p class=\"story-quote\">Готель на 80 номерів. Одягали рецепцію, покоївок і ресторан у єдиній лінійці — від сорочок до фартухів. Важлива була охайність відтінку та зносостійкість під щоденне прання. Лого — вишивка тон-у-тон, посадка під кожен відділ. Здали двома партіями за 3 тижні.</p>",
+      "<img src=\"images/review-masterlab.webp\" alt=\"Сервісна команда Master Lab у формі Loomiq\" decoding=\"async\">": "<img src=\"images/review-masterlab.webp\" alt=\"Команда Sushi Bar Umami у формі Loomiq\" decoding=\"async\">",
+      "<p class=\"story-quote\">Сервісний центр. Потрібне було поло з логотипом на груди й спину для майстрів у залі обслуговування. Обрали дихаючий піке, лого — вишивка: витримує щоденне прання й не вигорає. Здали партію за 6 днів, зараз готуємо другу.</p>": "<p class=\"story-quote\">Суші-бар з відкритою кухнею. Гості бачать кухарів, тому форма мала виглядати бездоганно. Обрали чорні кітелі з контрастним кантом і бандани, лого — вишивка на грудях. Здали партію за 6 днів, зараз готуємо комплект для доставки.</p>",
+      "<img src=\"images/review-sante.webp\" alt=\"Studio Sante у мерчі Loomiq\" decoding=\"async\">": "<img src=\"images/review-sante.webp\" alt=\"Пекарня La Panetteria у формі Loomiq\" decoding=\"async\">",
+      "<p class=\"story-quote\">SPA-комплекс. Хотіли делікатну форму для адміністраторів і майстрів у фірмових кольорах. Підібрали дихаючу тканину, лого — тон-у-тон вишивкою, щоб виглядало дорого й спокійно. Другу партію замовили вже за місяць.</p>": "<p class=\"story-quote\">Пекарня-кондитерська. Хотіли теплу, «домашню» форму для пекарів і продавців — фартухи в кавовому відтінку й футболки. Підібрали дихаючу тканину, лого — акуратна вишивка, щоб виглядало затишно й охайно за прилавком. Другу партію замовили вже за місяць.</p>",
+      "<h2 style=\"margin-top:9px;font-size:clamp(26px,4vw,36px);\">Контролюємо якість на кожному етапі</h2>": "<h2 style=\"margin-top:14px;font-size:clamp(26px,4vw,36px);\">Контролюємо якість на кожному етапі</h2>",
+      "<div class=\"item\"><div class=\"num\">5+ років</div><div class=\"lbl\">досвіду у сфері мерчу</div></div>": "<div class=\"item\"><div class=\"num\">5+ років</div><div class=\"lbl\">досвіду в пошитті форми</div></div>",
+      "<div class=\"faq-a\"><p>Вишивка довговічніша і виглядає преміально, добре тримається на щільних тканинах (худі, кепки). DTF-друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо оптимальний варіант під ваш дизайн і тканину.</p></div>": "<div class=\"faq-a\"><p>Вишивка довговічніша і виглядає преміально, добре тримається на щільних тканинах (кітелі, кепки). DTF-друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо оптимальний варіант під ваш дизайн і тканину.</p></div>",
+      "<button class=\"faq-q\"><span>Що робити, якщо мерч прийшов з дефектом або не відповідає макету?</span><span class=\"plus\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button>": "<button class=\"faq-q\"><span>Що робити, якщо форма прийшла з дефектом або не відповідає макету?</span><span class=\"plus\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button>",
+      "<h2>Готовий зробити мерч для своєї команди?</h2>": "<h2>Готові одягнути команду свого закладу?</h2>",
+      "<button class=\"btn btn-primary\" data-open-catalog>Створити мерч</button>": "<button class=\"btn btn-primary\" data-open-catalog>Створити форму</button>",
+      "<div class=\"footer-tag\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"footer-tag\">Форма для ресторанів, кав'ярень і готелів</div>",
+      "// Floating \"Створити мерч\" bar appears once hero is scrolled past": "// Floating \"Створити форму\" bar appears once hero is scrolled past",
+      "'<p>Loomiq — українська майстерня кастомного мерчу. Друкуємо й шиємо футболки, худі, світшоти та іншу командну форму для бізнесів, спільнот і подій по всій Україні.</p>' +": "'<p>Loomiq — українська майстерня форми для HoReCa. Шиємо й брендуємо фартухи, кітелі, поло та сорочки для ресторанів, кав\\'ярень, готелів і пекарень по всій Україні.</p>' +",
+      "// \"Створити мерч\" / \"Перейти до каталогу\" — відкривають повний каталог (модалку), а не просто скрол": "// \"Створити форму\" / \"Перейти до каталогу\" — відкривають повний каталог (модалку), а не просто скрол",
+      "// Ціна на картці = напис із адмінки, інакше «від [база × макс. знижка]» (найдешевша, за макс. тираж)": "// Ціна на картці = напис із адмінки, інакше «від [базова ціна товару]» (мінімум від пустого одягу)",
+      "// Кольори з реальними фото (перед/зад): файли images/<garment>-<colorId>-<side>.webp": "// Кольори з реальними фото (перед/зад): файли /images/<garment>-<colorId>-<side>.webp",
+      "// Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)": "// Фото моделей по крою: /images/<src>.webp + позиції логотипа на грудях (% фото)",
+      "if(sitePricing()){ var d = layerOpaqueDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }": "if(sitePricing()){ var d = layerDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }",
+      "pmPriceText.innerHTML = '<span class=\"pm-num\">'+effUnitPrice()+'</span><span class=\"pm-unit\">грн/шт</span>';": "pmPriceText.innerHTML = '<span class=\"pm-num\">'+unitPrice()+'</span><span class=\"pm-unit\">грн/шт</span>';",
+      "pmPriceText.innerHTML = '<span class=\"pm-unit\">від </span><span class=\"pm-num\">'+fromPriceDisplay()+'</span><span class=\"pm-unit\">грн/шт</span>';": "pmPriceText.innerHTML = '<span class=\"pm-num\">від '+fromPriceDisplay()+'</span><span class=\"pm-unit\">грн/шт</span>';",
+      "['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','оверсайз'],": "['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','класичний'],",
+      "{name:'DTF-друк', bg:'#f0f4ff', color:'#2d4ef5', price:'від 540 грн',": "{name:'DTF-друк', bg:'#f4ede4', color:'#8B5E3C', price:'від 540 грн',",
+      ": productName()+' з якісних матеріалів. Крій вільний, плечовий шов спущений.';": ": productName()+' з якісних матеріалів. Крій класичний, зручний для роботи цілу зміну.';",
+      "{name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна футболка! Принт чіткий, колір не блякне.'},": "{name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна форма! Логотип чіткий, колір не блякне.'},",
+      "form.innerHTML = '<div style=\"text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;\">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';": "form.innerHTML = '<div style=\"text-align:center;padding:16px 6px;font-weight:700;color:#6F4E37;line-height:1.5;\">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';",
+      "function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }": "function success(){ msg.style.color='#6F4E37'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }"
+    },
+    "garments": [
+      {
+        "id": "kitel",
+        "code": "      {id:'kitel', name:'Кухарський кітель', price:0,\n        path:'M20 26L5 46h18v64h54V46h18L80 26Q72 16 60 14L50 14L40 14Q28 16 20 26z', extra:'M42 14q8 7 16 0 M46 22v58 M54 22v58'},",
+        "catalog": "{name:'Кухарський кітель', price:'від 349 грн', img:'/horeca/images/kitel.webp', garment:'kitel'}"
+      },
+      {
+        "id": "apron",
+        "code": "      {id:'apron', name:'Фартух', price:0,\n        path:'M42 18q8 -5 16 0l-1 10h4l4 62H35l4-62h4z', extra:'M35 50h30'},",
+        "catalog": "{name:'Фартух', price:'від 249 грн', img:'/horeca/images/apron-paris-sa.webp', garment:'apron'}"
+      }
+    ],
+    "garmentsFirst": true
+  },
+  "build": {
+    "label": "Будівництво",
+    "path": "/build/",
+    "photosDoc": "photos_build",
+    "title": "Loomiq Build — спецодяг для будівельних компаній і бригад",
+    "description": null,
+    "theme": {
+      "--navy": "#C94F1E",
+      "--blue": "#C94F1E",
+      "--accent-grad": "#C94F1E",
+      "--cta": "#FFB300"
+    },
+    "hero": {
+      "slides": [
+        "/build/images/hero-alfabud.webp",
+        "/build/images/hero-novabud.webp"
+      ],
+      "h1": "Одяг для вашої бригади <span class=\"accent\">за 1 хв</span>",
+      "lead": "Футболки, худі та жилети з вашим логотипом. Завантажте лого — і одразу побачите точну ціну та дату готовності."
+    },
+    "niches": [
+      {
+        "title": "Будмайданчик",
+        "text": "Футболки, худі та жилети для монтажників і різноробочих.",
+        "photos": [
+          "/build/images/build-site-1.webp",
+          "/build/images/build-site-2.webp"
+        ]
+      },
+      {
+        "title": "Ремонт і демонтаж",
+        "text": "Практичний одяг для ремонтних та демонтажних бригад.",
+        "photos": [
+          "/build/images/build-remont-1.webp"
+        ]
+      },
+      {
+        "title": "Інженери та виконроби",
+        "text": "Поло, софтшели та кепки для ІТП і керівників ділянок.",
+        "photos": [
+          "/build/images/build-eng-1.webp",
+          "/build/images/build-eng-2.webp"
+        ]
+      },
+      {
+        "title": "Сервісні бригади",
+        "text": "Форма для електриків, сантехніків і монтажних служб.",
+        "photos": [
+          "/build/images/build-serv-1.webp",
+          "/build/images/build-serv-2.webp"
+        ]
+      },
+      {
+        "title": "Майстерня і склад",
+        "text": "Зносостійкий одяг для майстерень, складів і виробництв.",
+        "photos": [
+          "/build/images/build-sklad-1.webp"
+        ]
+      }
+    ],
+    "texts": {
+      "LQ_img() підміняє стандартний файл images/<garment>-<color>-<view>.webp на завантажене фото. */": "LQ_img() підміняє стандартний файл /images/<garment>-<color>-<view>.webp на завантажене фото. */",
+      "<div class=\"menu-overlay-tagline\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"menu-overlay-tagline\">Спецодяг для будівельних компаній</div>",
+      "<button class=\"btn btn-primary menu-overlay-cta\" data-open-catalog>Створити мерч": "<button class=\"btn btn-primary menu-overlay-cta\" data-open-catalog>Створити форму",
+      "<h2>Потрібна допомога з мерчем?</h2>": "<h2>Потрібна допомога з формою?</h2>",
+      "<p>Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>": "<p>Замовляла футболки для бригади, усі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>",
+      "<p>Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду</p>": "<p>Замовляли худі для наших монтажників — дуже задоволені! Якість просто вогонь 🔥 однозначно ще прийду</p>",
+      "<p>Топ. Робили мерч на подію, встигли за тиждень 👍</p>": "<p>Топ. Робили жилети до старту об'єкта, встигли за тиждень 👍</p>",
+      "<h4>Босс Бургер</h4>": "<h4>БудСервіс</h4>",
+      "<p>Спортивна форма для команди — яскраво, все рівно 💪</p>": "<p>Спецодяг для майданчика — міцна тканина, шви рівні, лого чітке 💪</p>",
+      "<p>Брендовані сумки для компанії — міцні, лого чітке. Рекомендуємо!</p>": "<p>Брендовані худі для бригади — міцні, лого чітке. Рекомендуємо!</p>",
+      "<p>Брендована форма для закладу — швидко, якісно. Будемо співпрацювати.</p>": "<p>Брендований одяг для компанії — швидко, якісно. Будемо співпрацювати.</p>",
+      "<p>Кепки для готелю у фірмових кольорах — стильно, гості оцінили.</p>": "<p>Кепки для бригади у фірмових кольорах — стильно, замовники оцінили.</p>",
+      "<p>Замовляли футболки для ресторану. Лого акуратне, тканина приємна. Персонал у захваті!</p>": "<p>Замовляли футболки для будкомпанії. Лого акуратне, тканина приємна. Хлопці в захваті!</p>",
+      "<p>мерч вийшов кращий ніж очікувала ❤️ дякую команді</p>": "<p>форма вийшла краща ніж очікувала ❤️ дякую команді</p>",
+      "<div class=\"pm-footer-tag\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"pm-footer-tag\">Спецодяг для будівельних компаній</div>",
+      "<button class=\"btn btn-primary\" id=\"floatCta\" data-open-catalog>Створити мерч": "<button class=\"btn btn-primary\" id=\"floatCta\" data-open-catalog>Створити форму",
+      "<h2 style=\"font-size:clamp(26px,4vw,34px);\">Корпоративний мерч для будь-якої задачі</h2>": "<h2 style=\"font-size:clamp(26px,4vw,34px);\">Одяг для будь-якої будівельної команди</h2>",
+      "<h2>Мерч <span class=\"accent\">за 3 прості кроки</span></h2>": "<h2>Спецодяг <span class=\"accent\">за 3 прості кроки</span></h2>",
+      "<h3>Дізнайтесь <strong>вартість та терміни</strong> свого мерчу за 1 хвилину</h3>": "<h3>Дізнайтесь <strong>вартість та терміни</strong> спецодягу для бригади за 1 хвилину</h3>",
+      "<img src=\"images/hoodie.webp\" alt=\"Худі\" loading=\"lazy\">": "<img src=\"images/tshirt.webp\" alt=\"Футболка щільна\" loading=\"lazy\">",
+      "<div><h4>Худі</h4><div class=\"price\">від 299 грн</div></div>": "<div><h4>Футболка щільна</h4><div class=\"price\">від 129 грн</div></div>",
+      "<img src=\"images/tshirt.webp\" alt=\"Футболка\" loading=\"lazy\">": "<img src=\"images/hoodie.webp\" alt=\"Худі робоче\" loading=\"lazy\">",
+      "<div><h4>Футболка</h4><div class=\"price\">від 99 грн</div></div>": "<div><h4>Худі робоче</h4><div class=\"price\">від 299 грн</div></div>",
+      "<h2>Loomiq — найкращий спосіб створювати мерч</h2>": "<h2>Loomiq — найкращий спосіб одягнути бригаду</h2>",
+      "<img src=\"images/review-riokan.webp\" alt=\"Команда Riokan у мерчі Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-site-1.webp\" alt=\"Бригада АльфаБуд у брендованих футболках\" decoding=\"async\">",
+      "<img src=\"images/review-zendokai.webp\" alt=\"Zendokai Karate у мерчі Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-eng-1.webp\" alt=\"Інженер NOVABUD у брендованому поло\" decoding=\"async\">",
+      "<p class=\"story-quote\">Спортивна секція. Форма для тренерів і вихованців до відкритого турніру. Складність — 6 розмірів від дитячих до дорослих і дедлайн 10 днів. Звели все до одного макета, надрукували DTF: кольори лишаються яскравими навіть після сотні тренувань.</p>": "<p class=\"story-quote\">Генпідрядник. Форма для ІТП та виконробів — поло з вишивкою на грудях і кепки під колір касок. Важливо було виглядати охайно і на нараді з замовником, і на майданчику. Вишивка тримається після сезону щоденного носіння.</p>",
+      "<img src=\"images/review-resto.webp\" alt=\"Персонал ресторану у формі Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-site-2.webp\" alt=\"Виконроб VEKTOR GROUP на об'єкті\" decoding=\"async\">",
+      "<p class=\"story-quote\">Ресторан. Оновлювали форму залу перед відкриттям нового простору. Треба були фартухи, що не бояться плям, і бейджі з іменами. Взяли щільну саржу, лого — шовкографія, імена — на знімних бейджах. Персонал у єдиному стилі з першого робочого дня.</p>": "<p class=\"story-quote\">Котеджне будівництво. Жилети та футболки для бригад на кількох ділянках. Складність — точний відтінок під фірмовий стиль і стійкість друку до сонця. Лого — вишивка та DTF, за пів року жодних відшарувань.</p>",
+      "<img src=\"images/review-danko.webp\" alt=\"Мерч бренду DANKO від Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-remont-1.webp\" alt=\"Працівник SKYBUILD UA на демонтажі\" decoding=\"async\">",
+      "<p class=\"story-quote\">Локальний бренд одягу. Запускали лімітовану колекцію мерчу — критично важлива була якість друку та щільність футболки «як у преміумі». Зробили зразок за 2 дні, узгодили відтінок і посадку, віддрукували всю партію без жодного браку.</p>": "<p class=\"story-quote\">Демонтаж і реконструкція. Одяг тут живе в пилюці та бетоні, тому обрали щільні поло світлого кольору з великим друком на спині — читається з іншого кінця об'єкта. Другу партію замовили одразу на нову бригаду.</p>",
+      "<img src=\"images/review-masterlab.webp\" alt=\"Сервісна команда Master Lab у формі Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-eng-2.webp\" alt=\"Керівник ділянки БудПроект Груп\" decoding=\"async\">",
+      "<img src=\"images/review-sante.webp\" alt=\"Studio Sante у мерчі Loomiq\" decoding=\"async\">": "<img src=\"/build/images/build-serv-1.webp\" alt=\"Майстер Baseline Build у комбінезоні\" decoding=\"async\">",
+      "<p class=\"story-quote\">SPA-комплекс. Хотіли делікатну форму для адміністраторів і майстрів у фірмових кольорах. Підібрали дихаючу тканину, лого — тон-у-тон вишивкою, щоб виглядало дорого й спокійно. Другу партію замовили вже за місяць.</p>": "<p class=\"story-quote\">Сервісно-монтажна служба. Комбінезони й поло для майстрів, які працюють у квартирах клієнтів — охайний вигляд тут частина сервісу. Лого на грудях і спині, plus іменні бейджі. Клієнти впізнають майстра з порога.</p>",
+      "<h2 style=\"margin-top:9px;font-size:clamp(26px,4vw,36px);\">Контролюємо якість на кожному етапі</h2>": "<h2 style=\"margin-top:14px;font-size:clamp(26px,4vw,36px);\">Контролюємо якість на кожному етапі</h2>",
+      "<div class=\"item\"><div class=\"num\">5+ років</div><div class=\"lbl\">досвіду у сфері мерчу</div></div>": "<div class=\"item\"><div class=\"num\">5+ років</div><div class=\"lbl\">досвіду в пошитті форми</div></div>",
+      "<button class=\"faq-q\"><span>Що робити, якщо мерч прийшов з дефектом або не відповідає макету?</span><span class=\"plus\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button>": "<button class=\"faq-q\"><span>Що робити, якщо форма прийшла з дефектом або не відповідає макету?</span><span class=\"plus\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"><path d=\"M12 5v14M5 12h14\"/></svg></span></button>",
+      "<h2>Готовий зробити мерч для своєї команди?</h2>": "<h2>Готові одягнути свою бригаду?</h2>",
+      "<button class=\"btn btn-primary\" data-open-catalog>Створити мерч</button>": "<button class=\"btn btn-primary\" data-open-catalog>Створити форму</button>",
+      "<div class=\"footer-tag\">Створюємо одяг для тих, хто змінює світ</div>": "<div class=\"footer-tag\">Спецодяг для будівельних компаній</div>",
+      "// Floating \"Створити мерч\" bar appears once hero is scrolled past": "// Floating \"Створити форму\" bar appears once hero is scrolled past",
+      "// \"Створити мерч\" / \"Перейти до каталогу\" — відкривають повний каталог (модалку), а не просто скрол": "// \"Створити форму\" / \"Перейти до каталогу\" — відкривають повний каталог (модалку), а не просто скрол",
+      "// Ціна на картці = напис із адмінки, інакше «від [база × макс. знижка]» (найдешевша, за макс. тираж)": "// Ціна на картці = напис із адмінки, інакше «від [базова ціна товару]» (мінімум від пустого одягу)",
+      "// Кольори з реальними фото (перед/зад): файли images/<garment>-<colorId>-<side>.webp": "// Кольори з реальними фото (перед/зад): файли /images/<garment>-<colorId>-<side>.webp",
+      "// Фото моделей по крою: images/<src>.webp + позиції логотипа на грудях (% фото)": "// Фото моделей по крою: /images/<src>.webp + позиції логотипа на грудях (% фото)",
+      "if(sitePricing()){ var d = layerOpaqueDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }": "if(sitePricing()){ var d = layerDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }",
+      "pmPriceText.innerHTML = '<span class=\"pm-num\">'+effUnitPrice()+'</span><span class=\"pm-unit\">грн/шт</span>';": "pmPriceText.innerHTML = '<span class=\"pm-num\">'+unitPrice()+'</span><span class=\"pm-unit\">грн/шт</span>';",
+      "pmPriceText.innerHTML = '<span class=\"pm-unit\">від </span><span class=\"pm-num\">'+fromPriceDisplay()+'</span><span class=\"pm-unit\">грн/шт</span>';": "pmPriceText.innerHTML = '<span class=\"pm-num\">від '+fromPriceDisplay()+'</span><span class=\"pm-unit\">грн/шт</span>';",
+      "['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','оверсайз'],": "['Матеріал','100% бавовна'],['Щільність','240 г/м²'],['Крій','класичний'],",
+      "{name:'DTF-друк', bg:'#f0f4ff', color:'#2d4ef5', price:'від 540 грн',": "{name:'DTF-друк', bg:'#FFF3D6', color:'#C94F1E', price:'від 540 грн',",
+      ": productName()+' з якісних матеріалів. Крій вільний, плечовий шов спущений.';": ": productName()+' з якісних матеріалів. Крій класичний, зручний для роботи цілу зміну.';",
+      "{name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна футболка! Принт чіткий, колір не блякне.'},": "{name:'Олексій К.', date:'2 дні тому', stars:5, text:'Дуже якісна форма! Логотип чіткий, колір не блякне.'},",
+      "form.innerHTML = '<div style=\"text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;\">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';": "form.innerHTML = '<div style=\"text-align:center;padding:16px 6px;font-weight:700;color:#C94F1E;line-height:1.5;\">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';",
+      "function success(){ msg.style.color='#2B696C'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }": "function success(){ msg.style.color='#C94F1E'; msg.textContent='✅ Дякуємо! Відгук зʼявиться на сайті після перевірки.'; msg.style.display='block'; btn.disabled=false; btn.textContent='Надіслати відгук'; resetForm(); setTimeout(closeForm,2400); }"
+    },
+    "garments": []
+  }
+}
