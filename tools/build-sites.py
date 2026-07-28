@@ -88,6 +88,26 @@ def apply_theme(html, cfg):
     return html[:m.start(1)] + block + html[m.end(1):]
 
 
+def apply_css(html, cfg):
+    """Стилізація ніші: темні блоки, затемнення героя, акценти в конструкторі.
+
+    Замінюємо лише тіло правила. Розміри й відступи лишаються з головного —
+    у налаштування потрапляють тільки правила, що відрізняються палітрою.
+    """
+    css = cfg.get('css') or {}
+    if not css:
+        return html
+    head, sep, rest = html.partition('</style>')
+    if not sep:
+        raise BuildError('не знайшов блок стилів')
+    for selector, body in css.items():
+        pat = re.compile(r'(\n  ' + re.escape(selector) + r'\{)[^{}]*(\})')
+        if not pat.search(head):
+            raise BuildError('правило %s зникло з головного — онови tools/sites.json' % selector)
+        head = pat.sub(lambda m: m.group(1) + body + m.group(2), head, count=1)
+    return head + sep + rest
+
+
 def apply_hero(html, cfg):
     hero = cfg.get('hero') or {}
     slides = hero.get('slides') or []
@@ -237,6 +257,7 @@ def build(site, cfg, base_html):
     html = apply_identity(html, site, cfg)
     html = apply_theme(html, cfg)
     html = apply_home_link(html, cfg)
+    html = apply_css(html, cfg)
     html = apply_hero(html, cfg)
     html = apply_niches(html, cfg)
     html = apply_cases(html, cfg)
