@@ -67,6 +67,14 @@ def apply_identity(html, site, cfg):
     return html
 
 
+def apply_home_link(html, cfg):
+    """«Головна» в меню ніші веде на головний сайт, а не гортає поточну сторінку."""
+    old = '<button data-scroll-to="top" id="menuHomeLink"'
+    if old not in html:
+        raise BuildError('не знайшов кнопку «Головна» в меню')
+    return html.replace(old, '<button data-home="/" id="menuHomeLink"', 1)
+
+
 def apply_theme(html, cfg):
     m = re.search(r':root\{(.*?)\n  \}', html, re.S)
     if not m:
@@ -228,6 +236,7 @@ def build(site, cfg, base_html):
     html = absolutise_images(html)
     html = apply_identity(html, site, cfg)
     html = apply_theme(html, cfg)
+    html = apply_home_link(html, cfg)
     html = apply_hero(html, cfg)
     html = apply_niches(html, cfg)
     html = apply_cases(html, cfg)

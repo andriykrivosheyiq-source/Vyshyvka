@@ -4113,8 +4113,12 @@
   document.querySelectorAll('.cart-header-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ cartModalCtrl.open(); });
   });
-  document.getElementById('menuHomeLink').addEventListener('click', ()=>{
+  document.getElementById('menuHomeLink').addEventListener('click', (e)=>{
     document.querySelectorAll('.contact-modal.open').forEach(m=>m.classList.remove('open'));
+    // На нішевому сайті «Головна» — це перехід на головний сайт, а не скрол угору.
+    // Куди саме вести, задає збірка через data-home; на головному атрибута немає.
+    var home = e.currentTarget.getAttribute('data-home');
+    if(home){ e.preventDefault(); e.stopPropagation(); location.href = home; }
   });
 
   // Item icon library — reused across all roles/industries
