@@ -4255,10 +4255,11 @@
     var bp = pr.basePrices || {};
     var ctTiers = pr.tiers || [];
     var minCoef = ctTiers.length ? Math.min.apply(null, ctTiers.map(function(t){ return +t.coef || 1; })) : 1;
-    var defPiece = (pr.methods && pr.methods.dtf && +pr.methods.dtf.pieceFee) || 0;   // оплата за штуку (метод за замовчуванням)
     list.forEach(function(p){
       if(prod.priceLabels && prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment];
-      else if(+bp[p.garment] > 0) p.price = 'від ' + (Math.round(bp[p.garment] * minCoef) + defPiece) + ' грн';
+      // «від X» = базова ціна виробу × максимальна знижка. Без нанесення, без оплати
+      // за штуку і без разової оплати — рівно те саме, що рахує __catalogPrice()
+      else if(+bp[p.garment] > 0) p.price = 'від ' + Math.round(bp[p.garment] * minCoef) + ' грн';
     });
     if(prod.order && prod.order.length){
       list.sort((a,b)=>{
@@ -6507,9 +6508,15 @@
         var imgHtml = src
           ? '<div class="pm-rec-img" style="background:'+fallbackBg+';"><img src="'+src+'" alt="'+nm+'" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display=\'none\'"></div>'
           : '<div class="pm-rec-img" style="background:'+fallbackBg+';"></div>';
+        // ціну беремо тією ж функцією, що й картки каталогу, — щоб числа не розходились
+        var priceLabel = p.price;
+        if(window.__catalogPrice){
+          var auto = window.__catalogPrice(p.garment);
+          if(auto && auto > 0) priceLabel = 'від ' + auto + ' грн';
+        }
         return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
           '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
-          (p.price ? '<div class="pm-rec-price">'+p.price+'</div>' : '')+'</div></div>';
+          (priceLabel ? '<div class="pm-rec-price">'+priceLabel+'</div>' : '')+'</div></div>';
       }).join('');
       html += '<button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta"><span>Перейти в каталог</span></button>';
       track.innerHTML = html;
