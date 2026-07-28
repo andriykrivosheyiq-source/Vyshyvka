@@ -80,6 +80,11 @@
   .lq-img-zoom input{flex:1;}
   .lq-img-zoom b{color:var(--ink);font-size:11.5px;min-width:38px;text-align:right;}
   .lq-img-close{flex:none;padding:7px 14px;}
+  .rv-sites{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px;
+    padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--canvas);}
+  .rv-sites-lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8893A6;font-weight:700;}
+  .rv-site{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink);cursor:pointer;}
+  .rv-site input{cursor:pointer;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -2441,6 +2446,11 @@ function renderClientTicket(o){
    REVIEWS MODERATION
    ============================================================ */
 let reviewFilter = 'pending';
+// Де показувати відгук. Старі записи мали одне поле site — вважаємо його єдиним сайтом.
+function reviewSites(r){
+  if(Array.isArray(r.sites)) return r.sites;
+  return [r.site || 'main'];
+}
 const UA_M = ['','січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
 function revDate(ts){ const d = (ts && ts.toDate) ? ts.toDate() : new Date(); return d.getDate()+' '+UA_M[d.getMonth()+1]+' '+d.getFullYear(); }
 
@@ -2450,12 +2460,8 @@ async function loadReviewsAdmin(){
   try{
     const snap = await fbDb.collection('reviews').orderBy('createdAt','desc').limit(300).get();
     let items = [];
-    snap.forEach(d=>{
-      const data = d.data();
-      // відгуки розділені по сайтах; старі записи без поля site — головного сайту
-      const site = data.site || 'main';
-      if(site === LQ_SITE) items.push(Object.assign({id:d.id}, data));
-    });
+    // База відгуків спільна: показуємо всі, а галочками обираємо, де саме показувати
+    snap.forEach(d=>{ items.push(Object.assign({id:d.id}, d.data())); });
     if(reviewFilter==='pending')  items = items.filter(r=> !r.approved);
     if(reviewFilter==='approved') items = items.filter(r=>  r.approved);
     if(!items.length){ wrap.innerHTML = '<div class="empty-col" style="padding:30px;">Порожньо</div>'; return; }
@@ -2479,6 +2485,10 @@ async function loadReviewsAdmin(){
           </div>
           ${r.phone ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:5px;">📞 ${escapeHtml(r.phone)}</div>` : ''}
           <div style="margin-top:6px;"><span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:6px;background:${r.approved?'var(--good-soft)':'var(--warn-soft)'};color:${r.approved?'var(--good)':'var(--warn)'};">${r.approved?'Опубліковано':'На перевірці'}</span></div>
+          <div class="rv-sites">
+            <span class="rv-sites-lbl">Показувати на</span>
+            ${LQ_SITES.map(st=>`<label class="rv-site"><input type="checkbox" data-site="${st.id}" data-id="${r.id}"${reviewSites(r).indexOf(st.id)!==-1?' checked':''}>${escapeHtml(st.label)}</label>`).join('')}
+          </div>
           <div class="t-actions" style="margin-top:12px;">
             ${r.approved
               ? `<button data-act="hide" data-id="${r.id}">Прибрати з сайту</button>`
@@ -2488,6 +2498,17 @@ async function loadReviewsAdmin(){
           </div>
         </div>
       </div>`).join('');
+    wrap.querySelectorAll('.rv-site input[data-site]').forEach(cb=>{
+      cb.addEventListener('change', async ()=>{
+        const id = cb.dataset.id;
+        const box = cb.closest('.rv-sites');
+        const sites = [...box.querySelectorAll('input[data-site]')].filter(x=>x.checked).map(x=>x.dataset.site);
+        try{
+          await fbDb.collection('reviews').doc(id).update({ sites });
+          toast(sites.length ? 'Показується на: ' + sites.length : 'Прихований на всіх сайтах');
+        }catch(e){ console.error(e); toast('Не вдалося зберегти'); cb.checked = !cb.checked; }
+      });
+    });
     wrap.querySelectorAll('button[data-act]').forEach(b=>{
       b.addEventListener('click', async ()=>{
         const id=b.dataset.id, act=b.dataset.act;
