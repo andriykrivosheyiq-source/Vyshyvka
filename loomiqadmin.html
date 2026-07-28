@@ -71,6 +71,15 @@
     background:#fff;color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;}
   .calc-bar-hint{font-size:12px;color:#8893A6;line-height:1.35;flex:1;min-width:180px;}
   .calc-bar.is-editing{border-color:#16A34A;background:#f2fbf5;}
+  .lq-img-panel{position:absolute;z-index:60;width:230px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 12px 30px -10px rgba(0,0,0,.25);padding:12px;display:flex;
+    flex-direction:column;gap:9px;}
+  .lq-img-panel-title{font-size:12px;font-weight:700;color:var(--ink);}
+  .lq-img-replace{flex:none;padding:8px 14px;text-align:center;cursor:pointer;}
+  .lq-img-zoom{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#7C8798;}
+  .lq-img-zoom input{flex:1;}
+  .lq-img-zoom b{color:var(--ink);font-size:11.5px;min-width:38px;text-align:right;}
+  .lq-img-close{flex:none;padding:7px 14px;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -4110,5 +4119,188 @@ async function init(){
     </div>
   </div>
 </div>
+<script>
+/* ============================================================
+   РЕДАГУВАННЯ НАПОВНЕННЯ ПРЯМО В ПРЕВʼЮ
+   Прев'ю — той самий сайт із того ж домену, тож дотягуємось до його
+   елементів. Ключі беремо з таблиці, яку віддає сам сайт (LQ_EDITABLE),
+   тому адмінка й сайт не можуть розійтись.
+   ============================================================ */
+(function(){
+  const btn = document.getElementById('edit-toggle');
+  const bar = document.querySelector('.calc-bar');
+  const hint = document.getElementById('edit-hint');
+  if(!btn) return;
+
+  let editing = false;
+  let pending = {};      // ключ → значення, ще не збережене
+  let saveTimer = null;
+  let panel = null;
+
+  const EDIT_CSS = `
+    [data-lq-edit]{outline:1.5px dashed rgba(22,163,74,.55);outline-offset:2px;cursor:text;}
+    [data-lq-edit]:hover{outline-color:#16A34A;background:rgba(22,163,74,.06);}
+    [data-lq-edit][data-lq-type="image"],[data-lq-edit][data-lq-type="bg"]{cursor:pointer;}
+    [data-lq-edit]:focus{outline:2px solid #16A34A;background:#fff;}
+  `;
+
+  function frameDoc(){
+    const fr = document.getElementById('calc-frame');
+    try{ return fr && fr.contentDocument; }catch(e){ return null; }
+  }
+
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 900);
+  }
+  async function flush(){
+    if(!Object.keys(pending).length) return;
+    const patch = {}; 
+    Object.keys(pending).forEach(k=>{ patch['landing.'+k] = pending[k]; });
+    const batch = pending; pending = {};
+    try{
+      // крапка в ключі — це вкладене поле, тому пишемо мапою через merge
+      const landing = {}; Object.keys(batch).forEach(k=>{ landing[k] = batch[k]; });
+      await PHOTOS_DOC.set({ landing }, { merge:true });
+      hint.textContent = 'Збережено · ' + lqSiteDef().label;
+    }catch(e){
+      console.warn('landing save failed', e);
+      hint.textContent = 'Не вдалося зберегти — спробуйте ще раз';
+      Object.assign(pending, batch);
+    }
+  }
+
+  function closePanel(){ if(panel){ panel.remove(); panel = null; } }
+
+  function openImagePanel(rec, doc){
+    closePanel();
+    const el = rec.el;
+    const box = el.getBoundingClientRect();
+    const fr = document.getElementById('calc-frame').getBoundingClientRect();
+    panel = document.createElement('div');
+    panel.className = 'lq-img-panel';
+    panel.innerHTML = `
+      <div class="lq-img-panel-title">Фото</div>
+      <label class="pc-btn up lq-img-replace">Замінити<input type="file" accept="image/*" hidden></label>
+      <div class="lq-img-zoom">
+        <span>Масштаб</span>
+        <input type="range" min="100" max="220" step="5" value="100">
+        <b>100%</b>
+      </div>
+      <button class="pc-btn reset lq-img-close">Готово</button>
+    `;
+    panel.style.top  = Math.max(8, fr.top + box.top + window.scrollY) + 'px';
+    panel.style.left = Math.min(window.innerWidth - 250, fr.left + box.right + 10) + 'px';
+    document.body.appendChild(panel);
+
+    const cur = (pending[rec.key] && pending[rec.key].zoom) || 1;
+    const range = panel.querySelector('input[type=range]');
+    const label = panel.querySelector('.lq-img-zoom b');
+    range.value = Math.round(cur * 100); label.textContent = range.value + '%';
+
+    const applyZoom = z=>{
+      if(rec.type === 'bg'){ el.style.backgroundSize = (z*100) + '%'; }
+      else {
+        el.style.transform = 'scale(' + z + ')';
+        el.style.transformOrigin = 'center center';
+        const p = el.parentElement;
+        if(p && doc.defaultView.getComputedStyle(p).overflow === 'visible') p.style.overflow = 'hidden';
+      }
+    };
+    range.addEventListener('input', ()=>{
+      const z = +range.value / 100;
+      label.textContent = range.value + '%';
+      applyZoom(z);
+      const v = pending[rec.key] || {};
+      pending[rec.key] = { src: v.src || currentSrc(rec), zoom: z };
+      scheduleSave();
+    });
+    const file = panel.querySelector('input[type=file]');
+    file.addEventListener('change', async ()=>{
+      const f = file.files && file.files[0]; if(!f) return;
+      hint.textContent = 'Завантажуємо фото…';
+      try{
+        const url = await uploadCloudinary(f);
+        if(rec.type === 'bg') el.style.backgroundImage = "url('" + url + "')";
+        else el.src = url;
+        const v = pending[rec.key] || {};
+        pending[rec.key] = { src: url, zoom: v.zoom || (+range.value/100) };
+        scheduleSave();
+      }catch(e){ hint.textContent = 'Фото не завантажилось'; }
+    });
+    panel.querySelector('.lq-img-close').addEventListener('click', closePanel);
+  }
+
+  function currentSrc(rec){
+    if(rec.type === 'bg'){
+      const m = /url\(['"]?([^'")]+)/.exec(rec.el.style.backgroundImage || '');
+      return m ? m[1] : '';
+    }
+    return rec.el.getAttribute('src') || '';
+  }
+
+  function enable(){
+    const doc = frameDoc();
+    if(!doc || !doc.defaultView || typeof doc.defaultView.LQ_EDITABLE !== 'function'){
+      toast('Прев’ю ще вантажиться — спробуйте за секунду'); return false;
+    }
+    const map = doc.defaultView.LQ_EDITABLE();
+    const st = doc.createElement('style'); st.id = 'lq-edit-style'; st.textContent = EDIT_CSS;
+    doc.head.appendChild(st);
+
+    map.forEach(rec=>{
+      const el = rec.el;
+      el.setAttribute('data-lq-edit', rec.key);
+      el.setAttribute('data-lq-type', rec.type);
+      if(rec.type === 'text'){
+        el.setAttribute('contenteditable', 'true');
+        el.addEventListener('input', ()=>{ pending[rec.key] = el.textContent; scheduleSave(); });
+        el.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el.blur(); } });
+      } else {
+        el.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); openImagePanel(rec, doc); }, true);
+      }
+    });
+    // у режимі правки кліки не мають відкривати модалки сайту
+    doc.addEventListener('click', e=>{
+      if(e.target.closest && e.target.closest('[data-lq-edit]')) e.stopPropagation();
+    }, true);
+    return true;
+  }
+
+  function disable(){
+    const doc = frameDoc(); closePanel();
+    if(!doc) return;
+    const st = doc.getElementById('lq-edit-style'); if(st) st.remove();
+    doc.querySelectorAll('[data-lq-edit]').forEach(el=>{
+      el.removeAttribute('contenteditable');
+      el.removeAttribute('data-lq-edit');
+      el.removeAttribute('data-lq-type');
+    });
+    flush();
+  }
+
+  btn.addEventListener('click', ()=>{
+    if(!editing){
+      if(!enable()) return;
+      editing = true;
+      btn.textContent = 'Завершити редагування';
+      bar.classList.add('is-editing');
+      hint.textContent = 'Клікніть по тексту, щоб змінити. По фото — щоб замінити або наблизити.';
+    } else {
+      disable(); editing = false;
+      btn.textContent = 'Редагувати наповнення';
+      bar.classList.remove('is-editing');
+      hint.textContent = 'Зміни збережені й уже на сайті.';
+    }
+  });
+
+  // перезавантаження прев’ю (інший сайт) скидає режим
+  const fr = document.getElementById('calc-frame');
+  if(fr) fr.addEventListener('load', ()=>{
+    if(editing){ editing = false; btn.textContent = 'Редагувати наповнення'; bar.classList.remove('is-editing'); closePanel(); }
+  });
+})();
+</script>
+
 </body>
 </html>
