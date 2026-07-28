@@ -137,6 +137,33 @@ def apply_niches(html, cfg):
     return html
 
 
+def apply_cases(html, cfg):
+    """Кейси («Компанії, які вже…»): у кожної ніші свої клієнти й свої позиції."""
+    cases = cfg.get('cases') or []
+    if not cases:
+        return html
+    blocks = re.findall(r'      <article class="story-card">\n.*?      </article>\n', html, re.S)
+    blocks = [b for b in blocks if 'story-quote' in b and '${' not in b]
+    if len(blocks) != len(cases):
+        raise BuildError('кейсів у шаблоні %d, у налаштуваннях %d' % (len(blocks), len(cases)))
+    for block, c in zip(blocks, cases):
+        pills = '\n'.join('            <span class="tag-pill">%s</span>' % p for p in c.get('pills', []))
+        new_block = (
+            '      <article class="story-card">\n'
+            '        <div class="story-photo">\n'
+            '          <img src="%s" alt="%s" decoding="async">\n'
+            '        </div>\n'
+            '        <div class="story-content">\n'
+            '          <span class="story-tag">%s</span>\n'
+            '          <p class="story-quote">%s</p>\n'
+            '          <div class="story-tags">\n%s\n          </div>\n'
+            '        </div>\n'
+            '      </article>\n' % (absolutise_images(c['img']), c['alt'], c['tag'], c['quote'], pills)
+        )
+        html = html.replace(block, new_block, 1)
+    return html
+
+
 def apply_garments(html, cfg):
     """Власні вироби ніші (кітель, фартух) — додаються до спільного списку."""
     items = cfg.get('garments') or []
@@ -203,6 +230,7 @@ def build(site, cfg, base_html):
     html = apply_theme(html, cfg)
     html = apply_hero(html, cfg)
     html = apply_niches(html, cfg)
+    html = apply_cases(html, cfg)
     html = apply_garments(html, cfg)
     html = apply_texts(html, cfg)
     return html
