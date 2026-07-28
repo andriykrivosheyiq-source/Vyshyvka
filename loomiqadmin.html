@@ -63,6 +63,14 @@
   .t-web-file:hover{text-decoration:underline;}
   .t-web-file--none{color:#AEB8C9;font-weight:500;}
   .t-web-print--none{font-size:11px;color:#AEB8C9;}
+  .calc-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;
+    padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);}
+  .calc-bar-site{display:flex;align-items:center;gap:9px;}
+  .calc-bar-lbl{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8893A6;font-weight:700;}
+  .calc-bar select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;}
+  .calc-bar-hint{font-size:12px;color:#8893A6;line-height:1.35;flex:1;min-width:180px;}
+  .calc-bar.is-editing{border-color:#16A34A;background:#f2fbf5;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -416,15 +424,6 @@
       <div class="brand">
         <div class="brand-mark">Lq</div>
         <div class="brand-text"><b>Loomiq</b><span>Адмінка</span></div>
-      </div>
-      <div style="padding:0 14px 12px;">
-        <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8893A6;font-weight:700;margin-bottom:7px;">Сайт</div>
-        <select id="site-switch" style="width:100%;padding:9px 10px;border-radius:10px;border:1px solid #2b3444;background:#141a24;color:#E6EAF2;font-size:13.5px;font-weight:600;cursor:pointer;">
-          <option value="main">Головний — loomiq.net</option>
-          <option value="horeca">HoReCa — /horeca/</option>
-          <option value="build">Будівництво — /build/</option>
-        </select>
-        <div id="site-switch-hint" style="font-size:11px;color:#8893A6;margin-top:6px;line-height:1.35;">Товари, фото та відгуки — окремі для кожного сайту</div>
       </div>
       <nav class="nav">
         <button data-view="board" class="active"><span class="num">01</span> Канбан</button>
@@ -1067,6 +1066,18 @@
 
     <!-- Прорахунок: повна копія сайту в менеджерському режимі (iframe) -->
     <section id="view-calc" style="display:none;">
+      <div class="calc-bar">
+        <div class="calc-bar-site">
+          <span class="calc-bar-lbl">Сайт</span>
+          <select id="site-switch">
+            <option value="main">Головний — loomiq.net</option>
+            <option value="horeca">HoReCa — /horeca/</option>
+            <option value="build">Будівництво — /build/</option>
+          </select>
+        </div>
+        <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
+        <span class="calc-bar-hint" id="edit-hint">Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.</span>
+      </div>
       <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
         Повна копія сайту для менеджерів — завжди синхронна з клієнтським сайтом (нові товари з'являються тут автоматично).
         Тут можна змонтувати логотип, <b>завантажити макап</b> і бачити <b>прорахунок собівартості</b> та як формується ціна.
@@ -1293,7 +1304,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
-    if(view==='calc'){ const fr=document.getElementById('calc-frame'); if(fr && !fr.src) fr.src='index.html?manager=1'; }
+    if(view==='calc' && window.loadCalcFrame) window.loadCalcFrame();
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -4020,6 +4031,19 @@ async function init(){
 
   /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
      Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
+  function calcFrameUrl(){
+    const p = lqSiteDef().id;
+    const base = p === 'main' ? 'index.html' : p + '/index.html';
+    return base + '?manager=1&edit=1';
+  }
+  function loadCalcFrame(force){
+    const fr = document.getElementById('calc-frame');
+    if(!fr) return;
+    const url = calcFrameUrl();
+    if(force || !fr.src || fr.src.indexOf(url) === -1) fr.src = url;
+  }
+  // визначення лежить усередині блоку — виносимо назовні для обробника меню
+  window.loadCalcFrame = loadCalcFrame;
   (function(){
     const sel = document.getElementById('site-switch');
     if(!sel) return;
@@ -4035,6 +4059,8 @@ async function init(){
       const rv = document.getElementById('view-reviews');
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
       syncSiteBadge();
+      const vc = document.getElementById('view-calc');
+      if(vc && vc.style.display !== 'none') loadCalcFrame(true);   // прев'ю показує обраний сайт
       toast('Сайт: ' + lqSiteDef().label);
     });
   })();
