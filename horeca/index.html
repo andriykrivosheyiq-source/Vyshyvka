@@ -391,6 +391,12 @@
   @media (prefers-reduced-motion: reduce){
     .industry-stack-photo .iss-img{transition:none;}
   }
+  /* однакова висота тексту → фото в усіх картках одного розміру і на одній лінії */
+  .industry-stack .app-photo{flex:none;position:relative;overflow:hidden;aspect-ratio:1/1.15;}
+  .industry-stack .app-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .industry-stack .app-bottom h3{
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
   .industry-stack-controls{padding:14px 18px 0;}
 
   /* PROCESS — Apple Trade-In style: centered headline + CTA, wide scene below */
@@ -738,12 +744,12 @@
     display:flex;flex-direction:column;
   }
   @media (min-width:640px){.app-card{flex:0 0 240px;}}
-  .app-top{padding:20px 18px 6px;}
+  .app-top{padding:16px 16px 2px;}
   .app-eyebrow{
-    font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+    font-weight:700;font-size:16.5px;color:var(--ink);letter-spacing:-.015em;line-height:1.2;
   }
-  .app-bottom{padding:10px 18px 18px;}
-  .app-bottom h3{font-size:16.5px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:-.01em;}
+  .app-bottom{padding:6px 16px 16px;}
+  .app-bottom h3{font-size:13px;font-weight:400;line-height:1.35;color:var(--muted);letter-spacing:0;}
   .app-photo{width:100%;aspect-ratio:1/0.85;margin-top:auto;}
   .app-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -3012,7 +3018,7 @@
     </div>
     <div class="app-track" id="industryStackList">
       <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🍳 Кухня</span></div>
+        <div class="app-top"><span class="app-eyebrow">Кухня</span></div>
         <div class="app-bottom"><h3>Кітелі, фартухи та ковпаки для кухарів і су-шефів.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
           <img class="iss-img is-active" src="/horeca/images/niche-kitchen-1.webp" alt="Шеф готує страву" loading="lazy">
@@ -3021,7 +3027,7 @@
         </div>
       </article>
       <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🍽️ Зал і сервіс</span></div>
+        <div class="app-top"><span class="app-eyebrow">Зал і сервіс</span></div>
         <div class="app-bottom"><h3>Поло, сорочки та фартухи для офіціантів і хостес.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
           <img class="iss-img is-active" src="/horeca/images/niche-hall-1.webp" alt="Офіціантка у формі" loading="lazy">
@@ -3030,7 +3036,7 @@
         </div>
       </article>
       <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">☕ Бар і кав'ярня</span></div>
+        <div class="app-top"><span class="app-eyebrow">Бар і кав'ярня</span></div>
         <div class="app-bottom"><h3>Фартухи та футболки для барист і барменів.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
           <img class="iss-img is-active" src="/horeca/images/niche-bar-1.webp" alt="Бармен готує коктейль" loading="lazy">
@@ -3040,14 +3046,14 @@
         </div>
       </article>
       <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🏨 Готель</span></div>
+        <div class="app-top"><span class="app-eyebrow">Готель</span></div>
         <div class="app-bottom"><h3>Форма для рецепції, покоївок та обслуговування номерів.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
           <img class="iss-img is-active" src="/horeca/images/niche-hotel-1.webp" alt="Покоївка у формі" loading="lazy">
         </div>
       </article>
       <article class="app-card reveal">
-        <div class="app-top"><span class="app-eyebrow">🛵 Доставка</span></div>
+        <div class="app-top"><span class="app-eyebrow">Доставка</span></div>
         <div class="app-bottom"><h3>Футболки, худі та кепки для кур'єрів вашого закладу.</h3></div>
         <div class="app-photo industry-stack-photo" data-slideshow>
           <img class="iss-img is-active" src="/horeca/images/niche-delivery-1.webp" alt="Кур'єр із замовленням" loading="lazy">
