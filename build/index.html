@@ -4070,7 +4070,16 @@
   // Модель: home → [каталог] → [товар] → … Кожне відкриття = запис в історію; back закриває верхній екран.
   var _views = [{kind:'home'}];
   var _navInternal = false;   // true, поки самі відтворюємо екран (щоб не пушити повторно)
-  function _persistNav(){ try{ sessionStorage.setItem('lq_nav', JSON.stringify(_views)); }catch(e){} }
+  /* Ключ стану — свій у кожного сайту. Памʼять браузера спільна на весь домен,
+     тому раніше картка товару, відкрита на /horeca/, відновлювалась на головній:
+     обидва сайти читали один і той самий запис. */
+  var _navKey = (function(){
+    var p = location.pathname;
+    if(p.indexOf('/horeca') === 0) return 'lq_nav_horeca';
+    if(p.indexOf('/build') === 0)  return 'lq_nav_build';
+    return 'lq_nav_main';
+  })();
+  function _persistNav(){ try{ sessionStorage.setItem(_navKey, JSON.stringify(_views)); }catch(e){} }
   function navGo(view){
     if(_navInternal) return;
     var top = _views[_views.length-1];
@@ -4120,7 +4129,7 @@
 
   function restoreNav(){
     if(_navRestored) return; _navRestored = true;
-    var saved; try{ saved = JSON.parse(sessionStorage.getItem('lq_nav')||'null'); }catch(e){}
+    var saved; try{ saved = JSON.parse(sessionStorage.getItem(_navKey)||'null'); }catch(e){}
     if(!saved || saved.length < 2) return;
     var top = saved[saved.length-1];
     if(!top || top.kind==='home') return;
@@ -4186,7 +4195,13 @@
     // На нішевому сайті «Головна» — це перехід на головний сайт, а не скрол угору.
     // Куди саме вести, задає збірка через data-home; на головному атрибута немає.
     var home = e.currentTarget.getAttribute('data-home');
-    if(home){ e.preventDefault(); e.stopPropagation(); location.href = home; }
+    if(home){
+      e.preventDefault(); e.stopPropagation();
+      // натиснули «Головна» — це запит саме головної сторінки, а не продовження
+      // того, що було відкрито, тож знімаємо збережений екран цільового сайту
+      try{ sessionStorage.removeItem('lq_nav_main'); }catch(err){}
+      location.href = home;
+    }
   });
 
   // Item icon library — reused across all roles/industries
