@@ -1,0 +1,11 @@
+name = "loomiq-photoroom"
+main = "photoroom-proxy.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Домени, яким дозволено користуватись проксі (через кому).
+# Додайте сюди свій домен, якщо він інший.
+ALLOWED_ORIGINS = "https://loomiq.net,https://www.loomiq.net"
+
+# ⚠️ Ключ Photoroom СЮДИ НЕ ПИШЕМО. Він задається окремо як секрет:
+#    npx wrangler secret put PHOTOROOM_API_KEY
