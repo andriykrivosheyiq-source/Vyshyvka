@@ -1,0 +1,47 @@
+// ПРАВИЛА ДОСТУПУ ДО БАЗИ (Firestore)
+//
+// Куди вставити: Firebase Console → проєкт loomiq-admin → Firestore Database
+// → вкладка Rules → замінити весь вміст цим файлом → Publish.
+//
+// Що тут описано — рівно те, що використовує сайт і адмінка, нічого зайвого:
+//
+//   loomiq/*     контент сайту: асортимент, фото, ціни, тексти посадкових.
+//                Читає кожен відвідувач (інакше сайт порожній),
+//                змінює лише той, хто увійшов в адмінку.
+//
+//   reviews/*    відгуки. Відвідувач може лишити свій (одразу неопублікований),
+//                читати може кожен, публікувати й видаляти — лише адмінка.
+//
+//   webOrders/*  замовлення з сайту. Відвідувач може створити замовлення,
+//                але не може його прочитати чи змінити чуже.
+//                Адмінка забирає їх у Канбан і позначає обробленими.
+//
+// Усе, що не описано нижче, за замовчуванням заборонено.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Контент сайту
+    match /loomiq/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Відгуки
+    match /reviews/{id} {
+      allow read: if true;
+      // новий відгук завжди приходить неопублікованим — публікує менеджер
+      allow create: if request.resource.data.approved == false;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Замовлення з сайту
+    match /webOrders/{id} {
+      // нове замовлення ще не потрапило в Канбан
+      allow create: if request.resource.data.imported == false;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}
