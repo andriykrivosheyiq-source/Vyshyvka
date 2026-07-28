@@ -391,6 +391,16 @@
   }
   .industry-stack-photo:has(img){padding:0;}
   .industry-stack-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  /* Слайдшоу фото в картці ніші: шари, що плавно перетікають один в одного.
+     Одне фото — картка статична, кілька — вмикається ротація. Вирішує контент. */
+  .industry-stack-photo .iss-img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transition:opacity 1.2s ease;will-change:opacity;
+  }
+  .industry-stack-photo .iss-img.is-active{opacity:1;}
+  @media (prefers-reduced-motion: reduce){
+    .industry-stack-photo .iss-img{transition:none;}
+  }
   /* однакова висота тексту → фото в усіх картках одного розміру і на одній лінії */
   .industry-stack .app-photo{flex:none;position:relative;overflow:hidden;aspect-ratio:1/1.15;}
   .industry-stack .app-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
@@ -3686,6 +3696,9 @@
     var ringFill = document.getElementById('heroRingFill');
     var pauseBtn = document.getElementById('heroPauseBtn');
     var pauseIcon = document.getElementById('heroPauseIcon');
+    // Герой працює у двох режимах: відео (головний сайт) або ротація фото (нішеві).
+    // Режим задає контент, а не код, тож керування фото може бути відсутнім у розмітці.
+    if(!dotsWrap || !ringFill || !pauseBtn || !pauseIcon) return;
     var PAUSE_ICON = '<rect x="5" y="4" width="5" height="16" rx="1"></rect><rect x="14" y="4" width="5" height="16" rx="1"></rect>';
     var PLAY_ICON = '<polygon points="6,4 20,12 6,20"></polygon>';
 
@@ -3905,6 +3918,29 @@
   })();
 
 
+
+  // Секція ніш: спокійне авто-слайдшоу фото — за раз змінюється лише ОДНА картка,
+  // тому це читається як елемент дизайну, а не хаотичне блимання.
+  (function(){
+    var shows = Array.prototype.slice.call(document.querySelectorAll('.industry-stack-photo[data-slideshow]'));
+    if(!shows.length) return;
+    shows.forEach(function(s){ s._imgs = s.querySelectorAll('.iss-img'); s._i = 0; });
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var c = 0;
+    setInterval(function(){
+      if(document.hidden) return;
+      for(var t = 0; t < shows.length; t++){
+        var s = shows[c % shows.length]; c++;
+        if(s._imgs.length > 1){
+          var cur = s._i, nxt = (s._i + 1) % s._imgs.length;
+          s._imgs[cur].classList.remove('is-active');
+          s._imgs[nxt].classList.add('is-active');
+          s._i = nxt;
+          break;
+        }
+      }
+    }, 3000);
+  })();
 
   // Industry-stack carousel: dot sync + next-button advances (same pattern as other carousels)
   (function(){
