@@ -7417,9 +7417,30 @@ window.LOOMIQ_CONFIG = {
   }
   if(db){
     try{
-      db.collection('loomiq').doc(LQ_PHOTOS_DOC).onSnapshot(function(snap){
-        applySiteContent(snap.exists ? snap.data() : {});
+      /* Дані розділені на два документи:
+         'photos' — спільний асортимент, ціни, розмірні сітки, контакти (Конструктор);
+         'photos_<сайт>' — тільки посадкова: тексти, картинки, чотири картки
+         каталогу, кейси, FAQ, промо. Для головного сайту це один і той самий
+         документ, тож зайвого читання немає. */
+      var LANDING_KEYS = ['landing','catalogPicks','cases','faq','promo'];
+      var shared = {}, own = {};
+      function merge(){
+        var out = {};
+        Object.keys(shared).forEach(function(k){ if(LANDING_KEYS.indexOf(k) === -1) out[k] = shared[k]; });
+        Object.keys(own).forEach(function(k){ if(LANDING_KEYS.indexOf(k) !== -1) out[k] = own[k]; });
+        applySiteContent(out);
+      }
+      db.collection('loomiq').doc('photos').onSnapshot(function(snap){
+        shared = snap.exists ? snap.data() : {};
+        if(LQ_PHOTOS_DOC === 'photos') own = shared;
+        merge();
       }, function(e){ console.warn('site content failed', e); });
+      if(LQ_PHOTOS_DOC !== 'photos'){
+        db.collection('loomiq').doc(LQ_PHOTOS_DOC).onSnapshot(function(snap){
+          own = snap.exists ? snap.data() : {};
+          merge();
+        }, function(e){ console.warn('landing content failed', e); });
+      }
     }catch(e){ console.warn('site content failed', e); }
   }
 
