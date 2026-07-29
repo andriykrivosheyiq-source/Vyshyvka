@@ -6136,6 +6136,35 @@
     function removeBgForUpload(dataUrl){
       return removeBgViaApi(dataUrl).catch(function(){ return removeBgLocal(dataUrl); });
     }
+    // ── Генерація логотипа через Gemini (ключ живе у Worker-проксі, не на сайті) ──
+    var AI_API_DEFAULT = 'https://loomiq-gemini.stvory.workers.dev';
+    function aiApiUrl(){
+      var c = (window.SITE_CONTENT && window.SITE_CONTENT.bgApi) || {};
+      var u = (c.geminiUrl || '').trim();
+      return /^https:\/\//i.test(u) ? u : AI_API_DEFAULT;
+    }
+    function generateLogoViaAi(prompt){
+      var ctrl = new AbortController();
+      var timer = setTimeout(function(){ ctrl.abort(); }, 60000);
+      return fetch(aiApiUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt }),
+        signal: ctrl.signal
+      }).then(function(r){
+        clearTimeout(timer);
+        var type = r.headers.get('Content-Type') || '';
+        // Помилку воркер віддає як JSON — витягуємо причину, щоб показати зрозумілий текст.
+        if(!r.ok || !/^image\//.test(type)){
+          return r.text().then(function(t){
+            var reason = '';
+            try{ reason = (JSON.parse(t) || {}).error || ''; }catch(e){}
+            throw new Error(reason || ('ai-' + r.status));
+          });
+        }
+        return r.blob().then(blobToDataUrl);
+      }, function(){ clearTimeout(timer); throw new Error('ai-network'); });
+    }
     function removeBgLocal(dataUrl){
       return loadImgEl(dataUrl).then(function(img){
         var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
@@ -6302,13 +6331,43 @@
         n.textContent = 'Опишіть, який логотип потрібен — і натисніть «Згенерувати».';
         setTimeout(function(){ document.getElementById('pmAiPrompt').focus(); }, 60);
       });
-      // ЗАГЛУШКА: інтерфейс готовий, лишається під'єднати Gemini API
+      // Генерація: Gemini малює зображення, далі Photoroom прибирає фон —
+      // рівно той самий шлях, що й у завантаженого файлу.
+      var aiBusy = false;
       document.getElementById('pmAiGo').addEventListener('click', function(){
+        var go = this;
         var prompt = (document.getElementById('pmAiPrompt').value || '').trim();
         var n = document.getElementById('pmAiNote');
+        if(aiBusy) return;
         if(!prompt){ n.className = 'pm-ai-note is-soon'; n.textContent = 'Спершу опишіть логотип.'; return; }
-        n.className = 'pm-ai-note is-soon';
-        n.textContent = 'Генерація через Gemini ще не підключена — скоро запрацює. Поки завантажте файл.';
+        aiBusy = true;
+        go.disabled = true;
+        go.style.opacity = '.6';
+        n.className = 'pm-ai-note';
+        n.textContent = 'Малюємо… це може зайняти до хвилини.';
+        generateLogoViaAi(prompt).then(function(src){
+          n.textContent = 'Прибираємо фон…';
+          return removeBgForUpload(src).then(function(clean){ addLogo(src, clean); },
+                                            function(){ addLogo(src, null); });
+        }).then(function(){
+          closeAll();
+          document.getElementById('pmAiPrompt').value = '';
+          n.className = 'pm-ai-note';
+          n.textContent = 'Опишіть, який логотип потрібен — і натисніть «Згенерувати».';
+        }).catch(function(err){
+          var m = String((err && err.message) || '');
+          n.className = 'pm-ai-note is-soon';
+          n.textContent =
+            m === 'ai-network'      ? 'Сервіс генерації не відповів. Спробуйте ще раз або завантажте файл.' :
+            m === 'no-image'        ? 'Gemini не намалював зображення за цим описом — сформулюйте інакше.' :
+            m === 'empty-prompt'    ? 'Спершу опишіть логотип.' :
+            m === 'gemini-failed'   ? 'Gemini відхилив запит. Спробуйте змінити опис.' :
+            'Не вдалося згенерувати (' + (m || 'помилка') + '). Поки завантажте файл.';
+        }).then(function(){
+          aiBusy = false;
+          go.disabled = false;
+          go.style.opacity = '';
+        });
       });
     })();
 

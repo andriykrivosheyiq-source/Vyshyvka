@@ -1109,6 +1109,13 @@
         </div>
 
         <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Генерація логотипів (Gemini)</b>
+          <div class="sub" style="margin:6px 0 12px;">Адреса Worker-проксі до Gemini — потрібна для кнопки «Згенерувати через Gemini» у прорахунку. <b>Ключ Google сюди НЕ вставляти</b> — він лише в секретах Worker. Якщо поле порожнє, використовується адреса за замовчуванням.</div>
+          <input id="aiapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-gemini.ВАШ-АКАУНТ.workers.dev">
+          <button class="pc-btn up" id="aiapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
           <b style="font-size:14px;">Промо-банер угорі сайту</b>
           <div class="sub" style="margin:6px 0 12px;">Темна смужка над шапкою, напр. «-15% до кінця тижня 🔥».</div>
           <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:10px;cursor:pointer;">
@@ -3599,6 +3606,7 @@ function renderSiteTab(){
   document.getElementById('site-viber').value = ct.viber || '';
   const bgApi = contentData.bgApi || {};
   const bgEl = document.getElementById('bgapi-url'); if(bgEl) bgEl.value = bgApi.proxyUrl || '';
+  const aiEl = document.getElementById('aiapi-url'); if(aiEl) aiEl.value = bgApi.geminiUrl || '';
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
   document.getElementById('promo-text').value = promo.text || '';
@@ -3638,6 +3646,16 @@ document.getElementById('bgapi-save').addEventListener('click', async ()=>{
   try{
     await PHOTOS_DOC.set({ bgApi: { proxyUrl: url } }, { merge:true });
     toast(url ? 'Адресу збережено — фон прибирає Photoroom' : 'Очищено — працює вбудований алгоритм');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('aiapi-save').addEventListener('click', async ()=>{
+  const url = document.getElementById('aiapi-url').value.trim();
+  if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
+  // Захист від помилки: ключ Google не має потрапити в базу (він лише в секретах Worker)
+  if(/[?&](api[_-]?key|key|token)=/i.test(url)){ toast('Не вставляйте ключ у посилання — лише адресу Worker'); return; }
+  try{
+    await PHOTOS_DOC.set({ bgApi: { geminiUrl: url } }, { merge:true });
+    toast(url ? 'Адресу збережено — генерація через Gemini' : 'Очищено — буде адреса за замовчуванням');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 document.getElementById('promo-save').addEventListener('click', async ()=>{
