@@ -286,6 +286,68 @@
   </div>
 </div>
 
+<!-- Підтвердження замовлення -->
+<div class="ov no-print" id="ovConfirm">
+  <div class="sheet">
+    <div id="cfForm">
+      <h3>Підтвердження замовлення</h3>
+      <p class="sec-sub">Перевірте склад — далі ми звіримо деталі та надішлемо рахунок.</p>
+      <div class="sum-box" id="cfSummary"></div>
+      <div class="fld"><label for="cfName">Ім'я</label>
+        <input id="cfName" type="text" autocomplete="name" placeholder="Як до вас звертатися"></div>
+      <div class="fld"><label for="cfPhone">Телефон</label>
+        <input id="cfPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__"></div>
+      <div class="fld"><label for="cfContact">Email або месенджер</label>
+        <input id="cfContact" type="text" placeholder="Необов'язково"></div>
+      <div class="fld"><label for="cfNote">Коментар</label>
+        <textarea id="cfNote" maxlength="600" placeholder="Побажання, терміни, деталі"></textarea></div>
+      <div class="err" id="cfErr" hidden></div>
+      <div class="sheet-btns">
+        <button class="btn" id="cfSend">Підтвердити замовлення</button>
+        <button class="btn btn-ghost" data-close>Назад</button>
+      </div>
+    </div>
+    <div id="cfDone" hidden style="text-align:center;">
+      <div class="done-ic">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E"
+          stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3>Дякуємо, замовлення прийнято</h3>
+      <p class="sec-sub">Менеджер звірить деталі й напише вам найближчим часом.</p>
+      <button class="btn" data-close>Готово</button>
+    </div>
+  </div>
+</div>
+
+<!-- Запит на зміни -->
+<div class="ov no-print" id="ovChange">
+  <div class="sheet">
+    <div id="chForm">
+      <h3>Що потрібно змінити?</h3>
+      <p class="sec-sub">Оберіть, що саме — менеджер перерахує й надішле оновлену пропозицію.</p>
+      <div class="chips" id="chChips"></div>
+      <div class="fld"><label for="chNote">Деталі</label>
+        <textarea id="chNote" maxlength="600" placeholder="Опишіть, що змінити"></textarea></div>
+      <div class="fld"><label for="chContact">Як з вами звʼязатися</label>
+        <input id="chContact" type="text" placeholder="Телефон, email або месенджер"></div>
+      <div class="err" id="chErr" hidden></div>
+      <div class="sheet-btns">
+        <button class="btn" id="chSend">Надіслати запит</button>
+        <button class="btn btn-ghost" data-close>Назад</button>
+      </div>
+    </div>
+    <div id="chDone" hidden style="text-align:center;">
+      <div class="done-ic">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E"
+          stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3>Запит передано менеджеру</h3>
+      <p class="sec-sub">Ми звʼяжемося з вами й надішлемо оновлену пропозицію.</p>
+      <button class="btn" data-close>Готово</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -322,7 +384,9 @@
     if(!iso) return '';
     var d = new Date(iso);
     if(isNaN(d)) return '';
-    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long', year:'numeric' });
+    // «р.» наприкінці зайве: воно збігається з крапкою речення й дає «2026 р..»
+    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long', year:'numeric' })
+            .replace(/\s*р\.$/, '');
   }
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
@@ -353,6 +417,22 @@
              base: baseUnit * t.qty, save: Math.max(0, baseUnit * t.qty - t.sum),
              changed: t.qty !== it.qty };
   }
+  // Термін залежить від тиражу, тож при зміні кількості він теж змінюється.
+  // Правила прийшли з адмінки, щоб сторінка й Канбан рахували однаково.
+  function daysFor(qty){
+    var rules = OFFER.leadRules || [];
+    if(!rules.length) return OFFER.terms.deadlineDays || 0;
+    var best = 0;
+    rules.forEach(function(r){
+      var d = +r.base || 0;
+      (r.qtyTiers || []).forEach(function(t){ if(qty >= (+t.from || 0)) d += (+t.extraDays || 0); });
+      if(d > best) best = d;
+    });
+    return best || OFFER.terms.deadlineDays || 0;
+  }
+  function curDays(){ return daysFor(totals().qty || 1); }
+  function daysWord(n){ return n + ' ' + plural(n, 'робочий день', 'робочі дні', 'робочих днів'); }
+
   function totals(){
     var qty = 0, sum = 0, base = 0;
     OFFER.items.forEach(function(it, i){
@@ -388,8 +468,7 @@
         '<div class="hero-facts">' +
           '<span class="fact">' + kinds + ' ' + plural(kinds,'вид товару','види товарів','видів товарів') + '</span>' +
           '<span class="fact" id="heroQty">' + t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів') + '</span>' +
-          '<span class="fact">виготовлення від ' + OFFER.terms.deadlineDays + ' ' +
-            plural(OFFER.terms.deadlineDays,'робочого дня','робочих днів','робочих днів') + '</span>' +
+          '<span class="fact" id="heroDays">виготовлення від ' + daysWord(curDays()) + '</span>' +
         '</div>' +
         '<div class="hero-money">' +
           '<div><div class="hm-label">Загальна сума</div>' +
@@ -447,7 +526,7 @@
     // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
     if(it.sizes) rows.push(['Розмірний ряд',
       itemState(i).changed ? 'узгодимо з вами' : it.sizes]);
-    rows.push(['Термін', OFFER.terms.deadlineDays + ' роб. днів']);
+    rows.push(['Термін', curDays() + ' роб. днів']);
     return '<div class="specs" data-specs="' + i + '">' +
       rows.filter(function(r){ return r[1]; }).map(function(r){
         return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
@@ -617,7 +696,8 @@
         '<h2 class="sec-title">Умови замовлення</h2>' +
         '<div class="terms">' +
           '<div><div class="term-k">Термін виготовлення</div>' +
-            '<div class="term-v">' + OFFER.terms.deadlineDays + ' робочих днів після погодження макета</div></div>' +
+            '<div class="term-v" id="termDays">' + daysWord(curDays()) +
+            ' після погодження макета</div></div>' +
           '<div><div class="term-k">Оплата</div>' +
             '<div class="term-v">' + esc(OFFER.terms.payment) + '</div></div>' +
           '<div><div class="term-k">Для запуску</div>' +
@@ -629,6 +709,12 @@
   }
 
   function finalHtml(){
+    if(OFFER.state === 'confirmed'){
+      var who = (OFFER.clientAction || {}).at;
+      return '<section><div class="locked">Замовлення підтверджено' +
+             (who ? ' ' + esc(dateUa(who)) : '') + '. Менеджер звірить деталі ' +
+             'й звʼяжеться з вами. Щоб щось змінити — напишіть йому напряму.</div></section>';
+    }
     if(expired()){
       return '<section><div class="locked">Термін дії пропозиції минув. ' +
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
@@ -699,7 +785,7 @@
         '<div class="foot">Loomiq · виробництво мерчу · ' +
           '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
       '</div>' +
-      (expired() ? '' : barHtml());
+      ((expired() || OFFER.state === 'confirmed') ? '' : barHtml());
     wire();
   }
 
@@ -711,6 +797,8 @@
     set('heroSave', money(t.save));
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('barSum', money(t.sum));
+    set('heroDays', 'виготовлення від ' + daysWord(curDays()));
+    set('termDays', daysWord(curDays()) + ' після погодження макета');
     OFFER.items.forEach(function(it, i){
       var sp = document.querySelector('[data-specs="' + i + '"]');
       if(sp) sp.outerHTML = specsHtml(it, i);
@@ -732,32 +820,199 @@
     wire();
   }
 
+  /* ═══════════ дії клієнта ═══════════ */
+  // Вибір клієнта живе в базі, інакше менеджер його не побачить, а сам клієнт
+  // втратить при оновленні сторінки. Пишемо лише свої поля — решту правила
+  // Firestore не пускають, тож зіпсувати ціни зі сторінки неможливо.
+  var offerRef = null, saveTimer = null, pendingEvent = null;
+
+  function selectionData(){
+    var t = totals();
+    var qty = {};
+    Object.keys(pick.qty).forEach(function(i){ qty[i] = pick.qty[i]; });
+    return {
+      qty: qty,
+      reco: Object.keys(pick.reco).filter(function(i){ return pick.reco[i]; }).map(Number),
+      total: t.sum, count: t.qty, days: curDays()
+    };
+  }
+  function withEvent(type, note){
+    var ev = { type: type, at: new Date().toISOString() };
+    if(note) ev.note = String(note).slice(0, 300);
+    OFFER.events = (OFFER.events || []).concat([ev]).slice(-40);
+    return OFFER.events;
+  }
+  function saveClient(extra, evType, evNote){
+    if(!offerRef) return Promise.resolve();
+    var data = Object.assign({ selection: selectionData(), clientAt: new Date().toISOString() },
+                             extra || {});
+    if(evType) data.events = withEvent(evType, evNote);
+    return offerRef.update(data);
+  }
+  // Клієнт клацає тиражі — не пишемо на кожен клік, чекаємо, поки визначиться
+  function queueSave(type, note){
+    pendingEvent = { type: type, note: note };
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      var p = pendingEvent; pendingEvent = null;
+      saveClient({ state: 'changed' }, p.type, p.note).catch(function(e){
+        console.warn('selection save failed', e);
+      });
+    }, 1000);
+  }
+
+  var CHANGE_KINDS = ['кількість', 'колір', 'модель', 'нанесення',
+                      'прибрати товар', 'додати інший товар', 'інше'];
+  var chosenKinds = {};
+
+  function openSheet(id){ document.getElementById(id).classList.add('open'); }
+  function closeSheet(id){ document.getElementById(id).classList.remove('open'); }
+
+  function confirmSummaryHtml(){
+    var t = totals();
+    var lines = OFFER.items.map(function(it, i){
+      var s = itemState(i);
+      return '<div class="sum-line"><span>' + esc(it.name) + ' · ' + s.qty + ' шт</span>' +
+             '<span>' + money(s.sum) + '</span></div>';
+    });
+    OFFER.reco.forEach(function(r, i){
+      if(!pick.reco[i]) return;
+      lines.push('<div class="sum-line"><span>' + esc(r.name) + ' · ' + r.qty + ' шт</span>' +
+                 '<span>' + money(r.price) + '</span></div>');
+    });
+    lines.push('<div class="sum-line"><span>Термін виготовлення</span><span>' +
+               daysWord(curDays()) + '</span></div>');
+    lines.push('<div class="sum-line big"><span>До сплати</span><span>' + money(t.sum) + '</span></div>');
+    return lines.join('');
+  }
+
+  function lockAfterConfirm(){
+    OFFER.state = 'confirmed';
+    var bar = document.getElementById('bar');
+    if(bar){ bar.remove(); document.body.classList.remove('has-bar'); }
+    render();
+  }
+
+  function wireSheets(){
+    document.querySelectorAll('[data-close]').forEach(function(b){
+      b.onclick = function(){
+        closeSheet('ovConfirm'); closeSheet('ovChange');
+      };
+    });
+    ['ovConfirm','ovChange'].forEach(function(id){
+      var ov = document.getElementById(id);
+      ov.onclick = function(e){ if(e.target === ov) closeSheet(id); };
+    });
+
+    // ── підтвердження ──
+    document.getElementById('cfSend').onclick = function(){
+      var btn = this;
+      var name = document.getElementById('cfName').value.trim();
+      var phone = document.getElementById('cfPhone').value.trim();
+      var err = document.getElementById('cfErr');
+      if(name.length < 2){ err.hidden = false; err.textContent = 'Вкажіть, як до вас звертатися.'; return; }
+      if(phone.replace(/\D/g,'').length < 9){ err.hidden = false; err.textContent = 'Перевірте номер телефону.'; return; }
+      err.hidden = true;
+      btn.disabled = true; btn.textContent = 'Надсилаємо…';
+      var t = totals();
+      saveClient({
+        state: 'confirmed',
+        clientAction: {
+          kind: 'confirm', name: name, phone: phone,
+          contact: document.getElementById('cfContact').value.trim().slice(0, 200),
+          comment: document.getElementById('cfNote').value.trim().slice(0, 600),
+          total: t.sum, count: t.qty, days: curDays(),
+          at: new Date().toISOString()
+        }
+      }, 'confirmed').then(function(){
+        document.getElementById('cfForm').hidden = true;
+        document.getElementById('cfDone').hidden = false;
+        lockAfterConfirm();
+      }).catch(function(e){
+        console.error(e);
+        err.hidden = false;
+        err.textContent = 'Не вдалося надіслати. Спробуйте ще раз або напишіть менеджеру.';
+        btn.disabled = false; btn.textContent = 'Підтвердити замовлення';
+      });
+    };
+
+    // ── запит на зміни ──
+    var chips = document.getElementById('chChips');
+    chips.innerHTML = CHANGE_KINDS.map(function(k, i){
+      return '<button class="chip" data-kind="' + i + '">' + esc(k) + '</button>';
+    }).join('');
+    chips.querySelectorAll('[data-kind]').forEach(function(b){
+      b.onclick = function(){
+        var i = b.dataset.kind;
+        chosenKinds[i] = !chosenKinds[i];
+        b.classList.toggle('on', !!chosenKinds[i]);
+      };
+    });
+    document.getElementById('chSend').onclick = function(){
+      var btn = this;
+      var kinds = Object.keys(chosenKinds).filter(function(i){ return chosenKinds[i]; })
+                        .map(function(i){ return CHANGE_KINDS[i]; });
+      var note = document.getElementById('chNote').value.trim();
+      var err = document.getElementById('chErr');
+      if(!kinds.length && !note){
+        err.hidden = false; err.textContent = 'Оберіть, що змінити, або опишіть словами.'; return;
+      }
+      err.hidden = true;
+      btn.disabled = true; btn.textContent = 'Надсилаємо…';
+      saveClient({
+        state: 'changes',
+        clientAction: {
+          kind: 'changes', kinds: kinds, comment: note.slice(0, 600),
+          contact: document.getElementById('chContact').value.trim().slice(0, 200),
+          at: new Date().toISOString()
+        }
+      }, 'changes', kinds.join(', ')).then(function(){
+        document.getElementById('chForm').hidden = true;
+        document.getElementById('chDone').hidden = false;
+      }).catch(function(e){
+        console.error(e);
+        err.hidden = false;
+        err.textContent = 'Не вдалося надіслати. Напишіть менеджеру — контакти внизу сторінки.';
+        btn.disabled = false; btn.textContent = 'Надіслати запит';
+      });
+    };
+  }
+
   function wire(){
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
       if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
     };
+    var frozen = OFFER.state === 'confirmed';
     document.querySelectorAll('[data-tier]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
       b.onclick = function(){
-        pick.qty[+b.dataset.tier] = +b.dataset.qty;
+        var i = +b.dataset.tier, q = +b.dataset.qty;
+        pick.qty[i] = q;
         refresh();
+        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + q + ' шт');
       };
     });
     document.querySelectorAll('[data-reco]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
       b.onclick = function(){
         var i = +b.dataset.reco;
         pick.reco[i] = !pick.reco[i];
         refresh();
+        queueSave(pick.reco[i] ? 'reco-add' : 'reco-remove', (OFFER.reco[i] || {}).name);
       };
     });
-    // Дії клієнта під'єднаємо наступним кроком — поки чесно про це кажемо
-    ['confirmBtn','changeBtn','barConfirm','barChange'].forEach(function(id){
+    ['confirmBtn','barConfirm'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
-        alert('Підтвердження з сайту ще підключається. ' +
-              'Поки напишіть менеджеру — контакти внизу сторінки.');
+        document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
+        openSheet('ovConfirm');
       };
+    });
+    ['changeBtn','barChange'].forEach(function(id){
+      var b = document.getElementById(id);
+      if(b) b.onclick = function(){ openSheet('ovChange'); };
     });
   }
 
@@ -809,8 +1064,26 @@
     }
     document.title = 'Комерційна пропозиція' +
       (OFFER.client.company ? ' для ' + OFFER.client.company : '') + ' · Loomiq';
+
+    offerRef = db.collection('offers').doc(token);
+    // Клієнт міг закрити вкладку й повернутись — показуємо те, що він уже обрав
+    var sel = OFFER.selection || {};
+    Object.keys(sel.qty || {}).forEach(function(i){ pick.qty[+i] = +sel.qty[i]; });
+    (sel.reco || []).forEach(function(i){ pick.reco[+i] = true; });
+
     render();
+    wireSheets();
     watchBar();
+
+    // «Клієнт відкрив КП» — один раз на сеанс, щоб не засмічувати стрічку
+    try{
+      var seenKey = 'lq_offer_seen_' + token;
+      if(OFFER.state !== 'confirmed' && !sessionStorage.getItem(seenKey)){
+        sessionStorage.setItem(seenKey, '1');
+        saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state }, 'opened')
+          .catch(function(e){ console.warn('open event failed', e); });
+      }
+    }catch(e){}
     // ?print=1 — менеджер натиснув «PDF» у Канбані: та сама сторінка, одразу на друк.
     // Чекаємо на макети, інакше в PDF будуть порожні місця замість фото.
     if(new URLSearchParams(location.search).get('print') === '1'){

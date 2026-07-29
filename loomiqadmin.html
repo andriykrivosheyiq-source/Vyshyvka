@@ -354,6 +354,20 @@
 
   /* Документи для клієнта на картці Канбану */
   .t-docs{border-top:1px dashed #E3E8EF;margin-top:9px;padding-top:9px;}
+  /* Що клієнт робить у своїй пропозиції */
+  .t-offer-state{margin-top:10px;padding:9px 10px;border:1px solid #E3E8EF;border-radius:9px;background:#FBFCFE;}
+  .t-os-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .t-os-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+    padding:2px 8px;border-radius:20px;background:#EEF2F7;color:#64748B;}
+  .t-os-tag.os-open{background:#EEF3FB;color:#31517F;}
+  .t-os-tag.os-warn{background:#FEF3E2;color:#A65D07;}
+  .t-os-tag.os-ok{background:#E7F6EF;color:#0B6B4A;}
+  .t-os-sum{font-family:var(--mono);font-size:11.5px;font-weight:700;color:#0F2034;}
+  .t-os-pick{font-size:11px;color:#3E4E65;margin-top:5px;line-height:1.45;}
+  .t-os-note{font-size:11px;color:#64748B;margin-top:4px;line-height:1.45;}
+  .t-evs{margin-top:7px;padding-top:6px;border-top:1px dashed #E3E8EF;display:grid;gap:3px;}
+  .t-ev{display:flex;gap:7px;font-size:10.5px;color:#7C8798;}
+  .t-ev-t{font-family:var(--mono);flex:none;color:#AEB8C9;}
   .t-docs-head{font-size:10.5px;font-weight:700;color:#9AA5B5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
   /* Персональна сторінка клієнта */
   .t-offer{margin-bottom:8px;}
@@ -2839,8 +2853,20 @@ function offerBuild(order){
     [...new Set(main.flatMap(i => i.techniques))]);
   const valid = new Date();
   valid.setDate(valid.getDate() + OFFER_DEFAULTS.validDays);
+  // Правила термінів — щоб сторінка клієнта перерахувала строк, коли він
+  // обере більший тираж, і не показувала неправду.
+  const methods = [...new Set((order.items || []).filter(i => i.kind !== 'reco')
+    .map(i => (i.calc && i.calc.method === 'dtf') ? 'print' : 'emb'))];
+  const leadRules = (methods.length ? methods : ['print']).map(t=>{
+    const l = (methodModel(t).lead) || {};
+    return {
+      base: (+l.design||0) + (+l.transfer||0) + (+l.production||0) + (+l.shipping||0),
+      qtyTiers: (l.qtyTiers || []).map(x=>({ from:+x.from||0, extraDays:+x.extraDays||0 }))
+    };
+  });
   const now = new Date().toISOString();
   return {
+    leadRules,
     token: order.offerToken, orderId: order.orderId || '',
     createdAt: order.createdAt || now, updatedAt: now,
     client: {
@@ -2879,8 +2905,73 @@ function offerClean(v){
 async function offerSave(order){
   if(!order || !order.offerToken) return null;
   const doc = offerClean(offerBuild(order));
+  // Стан і вибір належать клієнту — перезаписом менеджера їх стерти не можна.
+  if(offersByToken[order.offerToken]) delete doc.state;
   await fbDb.collection('offers').doc(order.offerToken).set(doc, { merge: true });
   return doc;
+}
+
+/* ── Що робить клієнт у своїй пропозиції ─────────────────────────────── */
+let offersByToken = {};
+let offersWatching = false;
+function watchOffers(){
+  if(offersWatching) return;
+  offersWatching = true;
+  fbDb.collection('offers').onSnapshot(function(snap){
+    const map = {};
+    snap.forEach(d=>{ const o = d.data() || {}; map[d.id] = o; });
+    offersByToken = map;
+    reactToClientActions();
+    const board = document.getElementById('view-board');
+    if(board && board.style.display !== 'none') renderBoard();
+  }, function(e){
+    offersWatching = false;
+    console.error('offers listen failed', e);
+  });
+}
+// Підтвердив — картка сама переходить у «Нове», і про це приходить Telegram.
+// Виробництво не запускається: менеджер спершу звіряє замовлення.
+async function reactToClientActions(){
+  let dirty = false;
+  for(const o of (orders || [])){
+    const off = o.offerToken && offersByToken[o.offerToken];
+    if(!off || !off.state) continue;
+    if(o.offerState === off.state) continue;         // уже опрацьовано
+    o.offerState = off.state;
+    dirty = true;
+    if(off.state === 'confirmed' && o.status === 'prorahunok') o.status = 'new';
+    if(off.state === 'confirmed' || off.state === 'changes') notifyClientAction(o, off);
+  }
+  if(dirty){ try{ await saveOrders({ quiet:true }); renderBoard(); }catch(e){ console.warn(e); } }
+}
+function notifyClientAction(o, off){
+  const a = off.clientAction || {};
+  const L = [];
+  L.push(off.state === 'confirmed'
+    ? '✅ Клієнт ПІДТВЕРДИВ пропозицію ' + (o.orderId || '')
+    : '✏️ Клієнт просить ЗМІНИ у пропозиції ' + (o.orderId || ''));
+  const who = [a.name || o.name, o.instagram, a.phone || o.phone].filter(Boolean).join(' · ');
+  if(who) L.push('👤 ' + who);
+  if(a.contact) L.push('✉️ ' + a.contact);
+  if(off.state === 'confirmed'){
+    L.push('💰 Сума: ' + fmt(a.total != null ? a.total : (off.totals||{}).total) + ' грн');
+    if(a.count) L.push('📦 Виробів: ' + a.count);
+    if(a.days)  L.push('⏱ Термін: ' + a.days + ' роб. днів');
+    const sel = off.selection || {};
+    (sel.reco || []).forEach(i=>{
+      const r = (off.reco || [])[i];
+      if(r) L.push('➕ Додав: ' + r.name + ' · ' + r.qty + ' шт · ' + fmt(r.price) + ' грн');
+    });
+  }else if((a.kinds || []).length){
+    L.push('🔧 Що змінити: ' + a.kinds.join(', '));
+  }
+  if(a.comment) L.push('💬 ' + a.comment);
+  L.push('🔗 ' + offerUrl(o));
+  fetch(LEAD_ENDPOINT, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone: a.phone || o.phone || o.instagram || '—',
+                           page: 'персональна КП', message: L.join('\n') })
+  }).catch(e=> console.warn('client action telegram failed', e));
 }
 
 function docLoadImg(src){
@@ -3275,6 +3366,57 @@ function recoNoteHtml(it){
   return (it && it.kind === 'reco' && it.recoNote)
     ? `<div class="t-reco-note">${escapeHtml(it.recoNote)}</div>` : '';
 }
+// Що відбувається з пропозицією на боці клієнта — прямо в картці,
+// щоб менеджер не мусив відкривати сторінку, аби це побачити.
+const OFFER_STATE_UA = {
+  created:   { label:'КП сформовано',      cls:'os-idle' },
+  opened:    { label:'Клієнт відкрив',     cls:'os-open' },
+  changed:   { label:'Клієнт змінив вибір',cls:'os-open' },
+  changes:   { label:'Потрібні зміни',     cls:'os-warn' },
+  confirmed: { label:'Підтверджено',       cls:'os-ok'   }
+};
+const OFFER_EVENT_UA = {
+  opened:'відкрив КП', qty:'змінив кількість', 'reco-add':'додав рекомендацію',
+  'reco-remove':'прибрав рекомендацію', changes:'просить зміни', confirmed:'підтвердив'
+};
+function offerTimeLabel(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return '';
+  return d.toLocaleString('uk-UA', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+function offerBlockHtml(o){
+  const off = o.offerToken && offersByToken[o.offerToken];
+  if(!off) return '';
+  const st = OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created;
+  const sel = off.selection || {};
+  const bits = [];
+  Object.keys(sel.qty || {}).forEach(i=>{
+    const it = (off.items || [])[+i];
+    if(it && +sel.qty[i] !== it.qty) bits.push(escapeHtml(it.name) + ' → ' + (+sel.qty[i]) + ' шт');
+  });
+  (sel.reco || []).forEach(i=>{
+    const r = (off.reco || [])[+i];
+    if(r) bits.push('+ ' + escapeHtml(r.name) + ' (' + r.qty + ' шт)');
+  });
+  const a = off.clientAction || {};
+  const events = (off.events || []).slice(-6).reverse().map(e=>
+    `<div class="t-ev"><span class="t-ev-t">${escapeHtml(offerTimeLabel(e.at))}</span>
+       <span>${escapeHtml(OFFER_EVENT_UA[e.type] || e.type)}${e.note ? ' · ' + escapeHtml(e.note) : ''}</span></div>`
+  ).join('');
+  return `
+    <div class="t-offer-state">
+      <div class="t-os-head">
+        <span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>
+        ${sel.total != null ? `<span class="t-os-sum">${fmt(sel.total)} ₴ · ${sel.count||0} шт</span>` : ''}
+      </div>
+      ${bits.length ? `<div class="t-os-pick">${bits.join(' · ')}</div>` : ''}
+      ${(a.kinds||[]).length ? `<div class="t-os-pick">Змінити: ${escapeHtml(a.kinds.join(', '))}</div>` : ''}
+      ${a.comment ? `<div class="t-os-note">«${escapeHtml(a.comment)}»</div>` : ''}
+      ${a.name || a.phone || a.contact
+        ? `<div class="t-os-note">${escapeHtml([a.name, a.phone, a.contact].filter(Boolean).join(' · '))}</div>` : ''}
+      ${events ? `<div class="t-evs">${events}</div>` : ''}
+    </div>`;
+}
 // Блок документів на картці: КП по кожній позиції, загальний кошторис, макети
 function docsBlockHtml(o){
   const items = o.items || [];
@@ -3549,6 +3691,7 @@ function renderWebTicket(o){
       <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
     </div>
     <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+    ${offerBlockHtml(o)}
     ${docsBlockHtml(o)}
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
@@ -3609,6 +3752,7 @@ function renderClientTicket(o){
       <div class="t-brow t-brow-price"><span>Сума (продаж)</span><span>${fmt(o.totalPrice)} ₴</span></div>
     </div>
     <div class="t-margin ${goodMargin?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+    ${offerBlockHtml(o)}
     ${docsBlockHtml(o)}
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
@@ -5322,6 +5466,7 @@ async function init(){
   renderApps();
   renderBoard();
   watchOrders();      // жива синхронізація карток між пристроями
+  watchOffers();      // дії клієнтів у персональних пропозиціях
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
