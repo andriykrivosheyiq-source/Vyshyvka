@@ -48,21 +48,29 @@
     padding:4px 11px;border-radius:999px;background:#0F2034;color:#7FC4FF;
     border:1px solid #24405f;font-size:13px;font-weight:700;letter-spacing:.01em;
   }
-  .t-web-item{border:1px solid #e8ebf0;border-radius:10px;padding:9px 10px;margin-bottom:7px;background:#fbfcfe;}
+  .t-web-item{border:1px solid #e8ebf0;border-radius:12px;padding:10px 11px;margin-bottom:8px;background:#fff;}
   .t-web-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
-  .t-web-name{font-size:12.5px;font-weight:700;color:#16202E;}
-  .t-web-price{font-size:12.5px;font-weight:700;color:#16202E;white-space:nowrap;}
-  .t-web-meta{font-size:11px;color:#7C8798;margin-top:2px;}
-  .t-web-mocks{display:flex;gap:6px;margin:7px 0 6px;flex-wrap:wrap;}
-  .t-web-mock{width:46px;height:46px;border-radius:8px;overflow:hidden;border:1px solid #e3e7ee;background:#fff;display:block;}
+  .t-web-name{font-size:13px;font-weight:700;color:#16202E;}
+  .t-web-price{font-size:13px;font-weight:700;color:#16202E;white-space:nowrap;}
+  .t-web-meta{font-size:11.5px;color:#7C8798;margin-top:3px;}
+  /* Макети — головне, що дивиться менеджер: показуємо великими, у сітці */
+  .t-web-mocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:7px;margin:9px 0 8px;}
+  .t-web-mock{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid #e3e7ee;
+    background:#f4f5f7;display:block;transition:transform .12s,box-shadow .12s;}
+  .t-web-mock:hover{transform:scale(1.03);box-shadow:0 6px 18px rgba(15,32,52,.16);border-color:#c9d4e4;}
   .t-web-mock img{width:100%;height:100%;object-fit:contain;display:block;}
-  .t-web-print{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:4px;}
-  .t-web-print-size{font-size:11.5px;font-weight:700;color:#0F2034;background:#eaf1fb;border-radius:6px;padding:2px 6px;}
-  .t-web-print-side{font-size:11px;color:#7C8798;}
-  .t-web-file{font-size:11px;font-weight:700;color:#1668c4;text-decoration:none;}
-  .t-web-file:hover{text-decoration:underline;}
-  .t-web-file--none{color:#AEB8C9;font-weight:500;}
-  .t-web-print--none{font-size:11px;color:#AEB8C9;}
+  .t-web-mock::after{content:'⤢';position:absolute;right:5px;bottom:4px;font-size:11px;color:#fff;
+    background:rgba(15,32,52,.55);border-radius:5px;padding:0 4px;line-height:15px;opacity:0;transition:opacity .12s;}
+  .t-web-mock:hover::after{opacity:1;}
+  .t-web-print{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;
+    background:#f7f9fc;border-radius:8px;padding:5px 7px;}
+  .t-web-print-size{font-size:11.5px;font-weight:700;color:#0F2034;background:#e4edfa;border-radius:6px;padding:2px 7px;}
+  .t-web-print-side{font-size:11.5px;color:#5B6879;font-weight:600;}
+  .t-web-file{font-size:11.5px;font-weight:700;color:#1668c4;text-decoration:none;margin-left:auto;
+    background:#eaf1fb;border-radius:6px;padding:3px 8px;}
+  .t-web-file:hover{background:#dbe8fa;}
+  .t-web-file--none{color:#AEB8C9;font-weight:500;background:none;}
+  .t-web-print--none{font-size:11.5px;color:#AEB8C9;background:#fafbfc;}
   .calc-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;
     padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);}
   .calc-bar-site{display:flex;align-items:center;gap:9px;}
@@ -288,18 +296,23 @@
   /* Колонки завжди в один ряд: «Прорахунок» ліворуч → «Виконано» праворуч.
      Якщо всі не влазять — гортаються свайпом вправо, а не переносяться вниз. */
   @media (min-width:680px){.col{flex:0 0 46%;}}
-  @media (min-width:1100px){.col{flex:1 1 0;min-width:190px;}}
+  @media (min-width:1100px){.col{flex:1 1 0;min-width:250px;}}
   .col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;}
   .col-head h3{font-size:12.5px;margin:0;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);}
   .col-count{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);padding:1px 7px;border-radius:20px;color:var(--ink-soft);}
   .col.drag-over{background:#E2E9F2;outline:2px dashed var(--accent);}
 
-  .ticket{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;display:flex;flex-direction:column;gap:9px;}
+  .ticket{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px;cursor:grab;
+    display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 3px rgba(15,32,52,.05);transition:box-shadow .15s,border-color .15s;}
+  .ticket:hover{box-shadow:0 4px 14px rgba(15,32,52,.10);border-color:#d5dce6;}
   .ticket:active{cursor:grabbing;}
 
   .t-top{display:flex;justify-content:space-between;align-items:flex-start;}
   .phone{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);}
-  .t-date{font-size:10.5px;color:#9AA5B5;margin-top:2px;}
+  .t-date{font-size:10.5px;color:#9AA5B5;margin-top:3px;display:flex;align-items:center;gap:6px;}
+  /* Номер замовлення — щоб швидко знайти в CRM, тому виділений */
+  .t-oid{font-family:var(--mono);font-size:10.5px;font-weight:700;color:#0F2034;
+    background:#e8eefa;border:1px solid #d3e0f5;border-radius:5px;padding:1px 6px;letter-spacing:.3px;}
   .src-tag{font-size:10px;background:var(--canvas);color:var(--ink-soft);padding:3px 7px;border-radius:5px;flex:none;margin-top:1px;}
 
   .t-garment-block{background:var(--canvas);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;}
@@ -2558,7 +2571,7 @@ function renderWebTicket(o){
     <div class="t-top">
       <div>
         <div class="phone">${escapeHtml(o.name||'—')} · ${escapeHtml(o.phone||'')}</div>
-        <div class="t-date">${o.orderId?'<b style="color:#0F2034;">'+escapeHtml(o.orderId)+'</b> · ':''}${createdDate}</div>
+        <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
       </div>
       <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>
     </div>
@@ -2615,7 +2628,7 @@ function renderClientTicket(o){
     <div class="t-top">
       <div>
         <div class="phone">${escapeHtml(who)}</div>
-        <div class="t-date">${o.orderId?'<b style="color:#0F2034;">'+escapeHtml(o.orderId)+'</b> · ':''}${createdDate}</div>
+        <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
       </div>
       <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>
     </div>

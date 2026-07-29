@@ -6445,7 +6445,8 @@
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
       var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
       if(!snapSides.length) snapSides = ['front'];
-      Promise.all(snapSides.map(function(s){ return snapshotSide(s); }))
+      // 1600px — макет іде у замовлення й Канбан, тож має лишатись чітким
+      Promise.all(snapSides.map(function(s){ return snapshotSide(s, 1600); }))
         .then(function(imgs){ item.imgs = imgs.filter(Boolean); renderCart(); }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
