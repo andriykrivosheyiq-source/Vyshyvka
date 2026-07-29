@@ -1491,6 +1491,17 @@
   }
   .cart-item-check svg{width:13px;height:13px;}
   .cart-item-price-row{margin-top:14px;font-size:15px;font-weight:700;}
+  /* Менеджерський кошик: заголовки блоків «основні / рекомендовані» */
+  .cart-group-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+    margin:22px 0 10px;font-size:13px;font-weight:800;letter-spacing:.4px;
+    text-transform:uppercase;color:#0f2034;}
+  .cart-group-head:first-child{margin-top:14px;}
+  .cart-group-hint{font-size:11.5px;font-weight:500;letter-spacing:0;
+    text-transform:none;color:var(--muted);}
+  .cart-group-empty{color:var(--muted);font-size:14px;margin:0 0 4px;}
+  .cart-reco-note{width:100%;margin-top:10px;border:1px solid #e4e8ef;border-radius:10px;
+    padding:9px 11px;font:inherit;font-size:13.5px;resize:vertical;background:#fbfcfe;}
+  .cart-reco-note:focus{outline:none;border-color:#4f5fd4;background:#fff;}
   .cart-item-price-row span{font-weight:400;color:var(--muted);font-size:14px;}
   .cart-item-actions{display:flex;align-items:center;gap:10px;margin-top:14px;}
   .cart-edit-btn{
@@ -2585,10 +2596,18 @@
 
       <div class="cart-totals">
         <div class="cart-totals-row"><span>Загальна сума</span><strong id="cartTotalSum">0 грн</strong></div>
+        <div class="cart-totals-row" id="cartRecoRow" style="display:none;">
+          <span>Рекомендовані (окремо)</span><strong id="cartRecoSum">0 грн</strong>
+        </div>
         <div class="cart-totals-row"><span>Термін виготовлення</span><strong id="cartTotalTerm">—</strong></div>
       </div>
 
       <button class="btn btn-ghost cart-add-btn" id="cartAddMoreBtn">+ Додати замовлення</button>
+      <!-- Менеджер додає позиції у два різні блоки кошика (лише в режимі ?manager=1) -->
+      <div id="cartAddMgr" style="display:none;flex-direction:column;gap:8px;">
+        <button class="btn btn-ghost cart-add-btn" id="cartAddMain" style="margin:0;">+ Основний товар</button>
+        <button class="btn btn-ghost cart-add-btn" id="cartAddReco" style="margin:0;">+ Рекомендований товар</button>
+      </div>
       <!-- Менеджерська кнопка: створити картку клієнта в Канбані (лише в режимі ?manager=1) -->
       <button class="btn btn-primary" id="cartCreateClientBtn" style="display:none;width:100%;justify-content:center;margin-top:12px;background:#0f2034;">Створити картку клієнта</button>
       <button class="btn btn-primary cart-checkout-btn" data-scroll-to="catalog">
@@ -2965,6 +2984,12 @@
       <div class="pm-mockup-step"><span class="pm-mockup-step-n">3</span>Виробництво починається після вашого ОК</div>
     </div>
     <button class="pm-form-submit" id="pmMockupConfirmBtn" style="margin-bottom:10px;">Оформити замовлення</button>
+    <!-- Менеджер одразу вирішує, це позиція, яку клієнт просив, чи наша рекомендація -->
+    <div id="pmMockupMgr" style="display:none;">
+      <button class="pm-form-submit" id="pmAddMain" style="margin-bottom:10px;">Додати як основний товар</button>
+      <button class="pm-form-submit" id="pmAddReco"
+        style="margin-bottom:10px;background:#fff;color:#0f2034;border:1.5px solid #0f2034;">Додати як рекомендований</button>
+    </div>
     <button class="pm-mockup-continue-btn" id="pmMockupContinueBtn">Продовжити налаштовувати</button>
   </div>
 </div>
@@ -6543,6 +6568,7 @@
       if(u===0){ alert('Оберіть розмір і кількість'); return; }
       if(anyLogoOutsideAnySide()){ alert('Логотип виходить за зону друку. Посуньте його всередину пунктирної зони, щоб продовжити.'); return; }
       document.getElementById('pmMockupModal').classList.add('open');
+      if(window.__markAddKind) window.__markAddKind();
     }
     document.getElementById('pmAddToCartBtn').addEventListener('click', triggerAddToCartFlow);
     document.getElementById('pmStickyCartBtn').addEventListener('click', triggerAddToCartFlow);
@@ -6563,11 +6589,17 @@
       });
     })();
 
-    document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){
+    // Позиція кошика буває двох видів: 'main' — те, що клієнт просив прорахувати,
+    // 'reco' — наша рекомендація, яка не входить у суму, доки клієнт сам її не додасть.
+    // Клієнт на сайті завжди додає 'main'; вибір є лише в менеджера.
+    window.__pmAddKind = 'main';
+    function addCurrentToCart(kind){
       var u = totalUnits();
       var sizesStr = getSizes().filter(function(s){return (pm.qty[s]||0)>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
       var nm = productName();
       var item = {
+        kind: (kind === 'reco' ? 'reco' : 'main'),
+        recoNote: '',                          // пояснення рекомендації — менеджер вписує в кошику
         name: nm,
         color: getColor().name,
         print: getPrint().name,
@@ -6630,7 +6662,28 @@
       document.getElementById('pmMockupModal').classList.remove('open');
       productModal.classList.remove('open');
       cartModalCtrl.open();
-    });
+      window.__pmAddKind = 'main';            // наступна позиція знову вважається основною
+    }
+    document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){ addCurrentToCart('main'); });
+    // Менеджерський режим: замість однієї кнопки — вибір, у який блок кошика класти
+    (function(){
+      if(!IS_MANAGER) return;
+      document.getElementById('pmMockupConfirmBtn').style.display = 'none';
+      var mgr = document.getElementById('pmMockupMgr');
+      mgr.style.display = '';
+      document.getElementById('pmAddMain').addEventListener('click', function(){ addCurrentToCart('main'); });
+      document.getElementById('pmAddReco').addEventListener('click', function(){ addCurrentToCart('reco'); });
+      // Підсвічуємо той варіант, який менеджер обрав, натиснувши кнопку в кошику
+      window.__markAddKind = markAddKind;
+      function markAddKind(){
+        var reco = window.__pmAddKind === 'reco';
+        var a = document.getElementById('pmAddMain'), b = document.getElementById('pmAddReco');
+        [[a, !reco], [b, reco]].forEach(function(pair){
+          pair[0].style.background = pair[1] ? '#0f2034' : '#fff';
+          pair[0].style.color      = pair[1] ? '#fff'    : '#0f2034';
+        });
+      }
+    })();
     document.getElementById('pmMockupContinueBtn').addEventListener('click', function(){
       document.getElementById('pmMockupModal').classList.remove('open');
     });
@@ -7151,18 +7204,15 @@
     var it = cartItems[idx];
     if(!it || !it.config){ return; }
     var cfg = it.config;
+    window.__pmAddKind = it.kind === 'reco' ? 'reco' : 'main';   // повертаємо позицію в той самий блок
     cartItems.splice(idx, 1);               // приберемо стару позицію — користувач додасть оновлену
     renderCart();
     document.getElementById('cartModal').classList.remove('open');
     if(window.__editProduct) window.__editProduct(cfg);  // відновлює одяг/колір/принт/розміри/лого
   }
 
-  function renderCart(){
-    var container = document.getElementById('cartItemsContainer');
-    if(cartItems.length === 0){
-      container.innerHTML = '<p style="color:var(--muted);font-size:15px;margin-top:18px;">Корзина порожня. Налаштуйте товар у каталозі, щоб додати його тут.</p>';
-    } else {
-      container.innerHTML = cartItems.map(function(item, idx){
+  function cartItemCardHtml(item, idx){
+        var isReco = item.kind === 'reco';
         return '<div class="cart-item-card">' +
           '<div class="cart-item-top">' +
             ((item.imgs && item.imgs.length)
@@ -7177,16 +7227,53 @@
             '<span class="cart-item-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>' +
           '</div>' +
           '<div class="cart-item-price-row">Ціна: '+item.price+' грн <span>('+item.unitPrice+' грн/шт)</span></div>' +
+          (isReco
+            ? '<textarea class="cart-reco-note" data-cart-note="'+idx+'" rows="2" maxlength="180" ' +
+              'placeholder="Чому радимо — клієнт побачить цей текст">'+escHtml(item.recoNote||'')+'</textarea>'
+            : '') +
           '<div class="cart-item-actions">' +
             '<button class="cart-edit-btn" data-cart-edit="'+idx+'">Редагувати</button>' +
             '<button class="cart-icon-btn" data-cart-del="'+idx+'" aria-label="Видалити"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>' +
           '</div>' +
         '</div>';
-      }).join('');
+  }
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderCart(){
+    var container = document.getElementById('cartItemsContainer');
+    // Індекси беремо з повного масиву: кнопки «видалити/редагувати» мають
+    // потрапляти в ту саму позицію незалежно від того, у якому блоці вона показана.
+    var main = [], reco = [];
+    cartItems.forEach(function(it, i){ (it.kind === 'reco' ? reco : main).push({ it: it, i: i }); });
+
+    if(!cartItems.length){
+      container.innerHTML = '<p style="color:var(--muted);font-size:15px;margin-top:18px;">Корзина порожня. Налаштуйте товар у каталозі, щоб додати його тут.</p>';
+    } else if(!reco.length){
+      // Звичайний вигляд для клієнта — без зайвих заголовків
+      container.innerHTML = main.map(function(r){ return cartItemCardHtml(r.it, r.i); }).join('');
+    } else {
+      container.innerHTML =
+        '<div class="cart-group-head">Основні товари</div>' +
+        (main.length
+          ? main.map(function(r){ return cartItemCardHtml(r.it, r.i); }).join('')
+          : '<p class="cart-group-empty">Ще немає жодної основної позиції.</p>') +
+        '<div class="cart-group-head">Рекомендовані товари' +
+          '<span class="cart-group-hint">не входять у суму, доки клієнт сам їх не додасть</span></div>' +
+        reco.map(function(r){ return cartItemCardHtml(r.it, r.i); }).join('');
     }
-    var totalSum = cartItems.reduce(function(a,i){return a+i.price;},0);
+
+    var totalSum = main.reduce(function(a, r){ return a + r.it.price; }, 0);
+    var recoSum  = reco.reduce(function(a, r){ return a + r.it.price; }, 0);
     document.getElementById('cartTotalSum').textContent = totalSum + ' грн';
     document.getElementById('cartTotalTerm').textContent = cartItems.length ? '2–4 робочих дні' : '—';
+    var recoRow = document.getElementById('cartRecoRow');
+    if(recoRow){
+      recoRow.style.display = reco.length ? '' : 'none';
+      document.getElementById('cartRecoSum').textContent = recoSum + ' грн';
+    }
     document.querySelectorAll('.pm-cart-badge').forEach(function(badge){
       var count = cartItems.length;
       badge.textContent = count;
@@ -7201,11 +7288,31 @@
     container.querySelectorAll('[data-cart-edit]').forEach(function(btn){
       btn.addEventListener('click', function(){ editCartItem(Number(btn.dataset.cartEdit)); });
     });
+    // Пояснення рекомендації зберігаємо на льоту, без перемальовування кошика
+    container.querySelectorAll('[data-cart-note]').forEach(function(ta){
+      ta.addEventListener('input', function(){
+        var it = cartItems[Number(ta.dataset.cartNote)];
+        if(it) it.recoNote = ta.value;
+      });
+    });
   }
   document.getElementById('cartAddMoreBtn').addEventListener('click', function(){
     document.getElementById('cartModal').classList.remove('open');
     if(window.__openProductModal) window.__openProductModal('tee');
   });
+  // Менеджер: дві окремі кнопки — одразу видно, у який блок кошика піде позиція
+  (function(){
+    if(!/[?&]manager=1\b/.test(location.search)) return;
+    document.getElementById('cartAddMoreBtn').style.display = 'none';
+    document.getElementById('cartAddMgr').style.display = 'flex';
+    function openWith(kind){
+      window.__pmAddKind = kind;
+      document.getElementById('cartModal').classList.remove('open');
+      if(window.__openProductModal) window.__openProductModal('tee');
+    }
+    document.getElementById('cartAddMain').addEventListener('click', function(){ openWith('main'); });
+    document.getElementById('cartAddReco').addEventListener('click', function(){ openWith('reco'); });
+  })();
   // Менеджер: створити картку клієнта в Канбані з поточного кошика
   (function(){
     var b = document.getElementById('cartCreateClientBtn'); if(!b) return;
@@ -7213,13 +7320,18 @@
     if(isMgr) b.style.display = '';
     b.addEventListener('click', function(){
       if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
+      if(!cartItems.some(function(i){ return i.kind !== 'reco'; })){
+        alert('У кошику лише рекомендації. Додайте хоча б один основний товар.'); return;
+      }
       var nick = prompt('Нік інстаграма клієнта:', '@');
       if(nick == null) return;
       nick = String(nick).trim();
       if(!nick || nick === '@'){ alert('Вкажіть нік інстаграма.'); return; }
       var cname = prompt('Імʼя клієнта (можна пропустити):', '') || '';
+      var ccomp = prompt('Компанія клієнта (для заголовка пропозиції, можна пропустити):', '') || '';
       var cphone = prompt('Телефон клієнта (можна пропустити):', '') || '';
-      var payload = { instagram: nick, name: String(cname).trim(), phone: String(cphone).trim(),
+      var payload = { instagram: nick, name: String(cname).trim(),
+                      company: String(ccomp).trim(), phone: String(cphone).trim(),
                       items: JSON.parse(JSON.stringify(cartItems)) };
       var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
       if(typeof saver === 'function'){
@@ -8053,6 +8165,8 @@ window.LOOMIQ_CONFIG = {
         Promise.all(prints.map(function(p){ return p.file ? upload(p.file) : Promise.resolve(null); }))
       ]).then(function(res){
         return {
+          kind: it.kind === 'reco' ? 'reco' : 'main',
+          recoNote: it.recoNote || '',
           name: it.name || '', color: it.color || '', print: it.print || '',
           sizes: it.sizes || '', qty: +it.qty || 0,
           unitPrice: +it.unitPrice || 0, price: +it.price || 0,
@@ -8098,8 +8212,10 @@ window.LOOMIQ_CONFIG = {
     btn.disabled = true; btn.textContent = 'Надсилаємо…';
 
     packItems(cart).then(function(items){
-      var totalPrice = items.reduce(function(a,i){ return a + i.price; }, 0);
-      var totalCost  = items.reduce(function(a,i){ return a + i.cost;  }, 0);
+      // Рекомендації в суму не входять — їх клієнт додає сам на сторінці пропозиції
+      var paid = items.filter(function(i){ return i.kind !== 'reco'; });
+      var totalPrice = paid.reduce(function(a,i){ return a + i.price; }, 0);
+      var totalCost  = paid.reduce(function(a,i){ return a + i.cost;  }, 0);
       var order = {
         orderId: makeOrderId(),    // короткий номер для CRM/Канбану і Telegram
         name: nm, phone: ph,

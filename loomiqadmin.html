@@ -355,6 +355,15 @@
   /* Документи для клієнта на картці Канбану */
   .t-docs{border-top:1px dashed #E3E8EF;margin-top:9px;padding-top:9px;}
   .t-docs-head{font-size:10.5px;font-weight:700;color:#9AA5B5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+  /* Персональна сторінка клієнта */
+  .t-offer{margin-bottom:8px;}
+  .t-offer-url{font-family:var(--mono);font-size:10.5px;color:#64748B;background:#F1F5F9;
+    border-radius:6px;padding:5px 7px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Позначка рекомендованого товару */
+  .t-reco-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:20px;
+    background:#EEF2FF;color:#4338CA;font-size:9.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.4px;vertical-align:middle;}
+  .t-reco-note{font-size:11px;color:#64748B;font-style:italic;margin:4px 0 2px;line-height:1.4;}
   .t-docs-kps{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
   .t-doc-kp{border:1px solid #D9E2F0;background:#F4F8FE;color:#1668c4;font:inherit;font-size:11.5px;font-weight:700;
     padding:5px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;}
@@ -2349,20 +2358,29 @@ window.__adminSaveClientOrder = async function(payload){
       catch(e){ console.warn('mockup upload failed', e); }
     }
     items.push({
+      kind: it.kind === 'reco' ? 'reco' : 'main',
+      recoNote: it.recoNote || '',
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
       mockups, prints: it.prints||[], calc: it.calc||null, config: it.config||null
     });
   }
-  const totalPrice = items.reduce((a,i)=>a+i.price,0);
-  const totalCost  = items.reduce((a,i)=>a+i.cost,0);
+  // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
+  // і додаються до кошторису тільки тоді, коли клієнт сам їх обере на сторінці КП.
+  const paid = items.filter(i => i.kind !== 'reco');
+  const totalPrice = paid.reduce((a,i)=>a+i.price,0);
+  const totalCost  = paid.reduce((a,i)=>a+i.cost,0);
   const order = {
     id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
     site: 'main',                    // прорахунок працює з основним сайтом
     orderId: makeOrderId(),
+    offerToken: makeOfferToken(),    // адреса персональної сторінки клієнта
+    offerState: 'created',           // створено · відкрито · змінено · підтверджено
+    offerEvents: [],                 // стрічка дій клієнта для картки Канбану
     instagram: (payload.instagram||'').trim(),
     name: (payload.name||'').trim(), phone: (payload.phone||'').trim(),
+    company: (payload.company||'').trim(),
     items,
     totalPrice, totalCost, margin: totalPrice-totalCost,
     marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
@@ -2374,6 +2392,20 @@ window.__adminSaveClientOrder = async function(payload){
   toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
 };
+// Токен персональної сторінки клієнта. Він же — уся охорона доступу до пропозиції:
+// сторінка відкривається без пароля, тож токен має бути таким, щоб його не підібрали.
+function makeOfferToken(){
+  const abc = 'abcdefghijkmnpqrstuvwxyz23456789';   // без схожих символів (l/1, o/0)
+  const buf = new Uint8Array(12);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => abc[b % abc.length]).join('');
+}
+// Адреса персональної пропозиції. Сайт статичний, тож розбір адреси —
+// через параметр: гарантовано працює і нормально показує прев'ю в месенджерах.
+const OFFER_BASE = 'https://loomiq.net/offer.html';
+function offerUrl(o){
+  return o && o.offerToken ? OFFER_BASE + '?o=' + o.offerToken : '';
+}
 // Короткий номер замовлення (той самий формат, що й на сайті)
 // Номер замовлення — лише цифри (той самий формат, що й на сайті): ддммрр + 3 випадкові
 function makeOrderId(){
@@ -2391,7 +2423,8 @@ function notifyTelegram(o){
   L.push('💰 Сума: ' + o.totalPrice + ' грн');
   L.push('');
   (o.items||[]).forEach((it,i)=>{
-    L.push('— ' + (i+1) + '. ' + it.name + (it.color ? ' · ' + it.color : ''));
+    L.push('— ' + (i+1) + '. ' + it.name + (it.color ? ' · ' + it.color : '')
+           + (it.kind === 'reco' ? '  [рекомендація]' : ''));
     L.push('   Розміри: ' + (it.sizes||'—') + ' (всього ' + it.qty + ' шт)');
     L.push('   Ціна: ' + it.unitPrice + ' грн/шт · ' + it.price + ' грн');
     const pr = it.prints||[];
@@ -2725,7 +2758,8 @@ async function renderKP(order, item){
 
 // ── Загальний кошторис по всьому замовленню ──
 async function renderEstimate(order){
-  const items = order.items || [];
+  // Рекомендації в кошторис не потрапляють — вони ще не є частиною замовлення
+  const items = (order.items || []).filter(i => i.kind !== 'reco');
   const thumbs = await Promise.all(items.map(it=> docLoadImg((it.mockups||[])[0])));
   const logoUrl = (items.flatMap(i=>i.prints||[]).find(p=>p.file) || {}).file || null;
   const logo = await docLoadImg(logoUrl);
@@ -2913,6 +2947,19 @@ function siteLinkHtml(o){
   return `<a class="t-site" href="${si.url}" target="_blank" rel="noopener"
            title="Замовлення з цієї сторінки: ${si.url}">${escapeHtml(si.label)} ↗</a>`;
 }
+// Рекомендації показуємо після основних позицій і позначаємо — щоб менеджер
+// з першого погляду бачив, що входить у суму, а що клієнт ще має обрати сам.
+function orderedItems(items){
+  const list = items || [];
+  return list.filter(i => i.kind !== 'reco').concat(list.filter(i => i.kind === 'reco'));
+}
+function recoBadgeHtml(it){
+  return it && it.kind === 'reco' ? '<span class="t-reco-tag">рекомендація</span>' : '';
+}
+function recoNoteHtml(it){
+  return (it && it.kind === 'reco' && it.recoNote)
+    ? `<div class="t-reco-note">${escapeHtml(it.recoNote)}</div>` : '';
+}
 // Блок документів на картці: КП по кожній позиції, загальний кошторис, макети
 function docsBlockHtml(o){
   const items = o.items || [];
@@ -2921,9 +2968,17 @@ function docsBlockHtml(o){
     `<button class="t-doc-kp" data-kp="${i}" title="Комерційна пропозиція: ${escapeHtml(it.name||'')}">
        ${escapeHtml((it.name||'Товар').length>18 ? (it.name||'').slice(0,17)+'…' : (it.name||'Товар'))}
      </button>`).join('');
+  // Персональна сторінка клієнта: посилання, яке менеджер шле в месенджер
+  const link = offerUrl(o);
+  const offerRow = link ? `
+      <div class="t-offer">
+        <div class="t-offer-url" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
+        <button class="t-doc-main" data-doc="copylink">Скопіювати посилання на КП</button>
+      </div>` : '';
   return `
     <div class="t-docs">
       <div class="t-docs-head">Документи для клієнта</div>
+      ${offerRow}
       <div class="t-docs-kps">${kps}</div>
       <div class="t-docs-row">
         <button class="t-doc-main" data-doc="estimate">Загальний кошторис</button>
@@ -2932,6 +2987,19 @@ function docsBlockHtml(o){
     </div>`;
 }
 function wireDocsBlock(el, o){
+  const cp = el.querySelector('[data-doc="copylink"]');
+  if(cp) cp.addEventListener('click', async ()=>{
+    const link = offerUrl(o);
+    try{ await navigator.clipboard.writeText(link); toast('Посилання скопійовано'); }
+    catch(e){
+      // Буфер обміну недоступний (старий браузер, немає дозволу) — даємо скопіювати вручну
+      const inp = document.createElement('input');
+      inp.value = link; document.body.appendChild(inp); inp.select();
+      try{ document.execCommand('copy'); toast('Посилання скопійовано'); }
+      catch(e2){ prompt('Скопіюйте посилання вручну:', link); }
+      inp.remove();
+    }
+  });
   el.querySelectorAll('[data-kp]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       b.disabled = true;
@@ -3111,7 +3179,7 @@ function renderWebTicket(o){
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
   const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
 
-  const itemsHtml = (o.items||[]).map(it=>{
+  const itemsHtml = orderedItems(o.items).map(it=>{
     // Розмір нанесення і файл оригіналу — те, з чим працює виробництво
     const prints = (it.prints||[]).map(p=>`
       <div class="t-web-print">
@@ -3124,10 +3192,11 @@ function renderWebTicket(o){
     return `
       <div class="t-web-item">
         <div class="t-web-head">
-          <span class="t-web-name">${escapeHtml(it.name||'—')}</span>
+          <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
         <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
+        ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
         ${prints}
       </div>`;
@@ -3171,7 +3240,7 @@ function renderClientTicket(o){
   const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
   const goodMargin = (o.margin||0) >= 0;
   // Повні деталі позиції: розміри, нанесення, макети і файл клієнта — як у замовленнях із сайту
-  const itemsHtml = (o.items||[]).map(it=>{
+  const itemsHtml = orderedItems(o.items).map(it=>{
     const prints = (it.prints||[]).map(p=>`
       <div class="t-web-print">
         <span class="t-web-print-size">${p.widthMm?Math.round(p.widthMm):'?'} × ${p.heightMm?Math.round(p.heightMm):'?'} мм</span>
@@ -3183,10 +3252,11 @@ function renderClientTicket(o){
     return `
       <div class="t-web-item">
         <div class="t-web-head">
-          <span class="t-web-name">${escapeHtml(it.name||'—')}</span>
+          <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
         <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
+        ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
         ${prints}
       </div>`;
