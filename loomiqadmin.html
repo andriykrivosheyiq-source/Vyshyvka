@@ -327,6 +327,9 @@
   .t-oid{font-family:var(--mono);font-size:10.5px;font-weight:700;color:#0F2034;
     background:#e8eefa;border:1px solid #d3e0f5;border-radius:5px;padding:1px 6px;letter-spacing:.3px;}
   .src-tag{font-size:10px;background:var(--canvas);color:var(--ink-soft);padding:3px 7px;border-radius:5px;flex:none;margin-top:1px;}
+  .t-site{font-size:10px;font-weight:700;color:#1668c4;background:#EAF1FB;border:1px solid #D9E2F0;
+    padding:3px 7px;border-radius:5px;flex:none;margin-top:1px;margin-left:4px;text-decoration:none;white-space:nowrap;}
+  .t-site:hover{background:#DBE8FA;}
 
   .t-garment-block{background:var(--canvas);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;}
   .t-garment-name{font-size:13px;font-weight:600;color:var(--ink);}
@@ -2349,6 +2352,7 @@ window.__adminSaveClientOrder = async function(payload){
   const totalCost  = items.reduce((a,i)=>a+i.cost,0);
   const order = {
     id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
+    site: 'main',                    // прорахунок працює з основним сайтом
     orderId: makeOrderId(),
     instagram: (payload.instagram||'').trim(),
     name: (payload.name||'').trim(), phone: (payload.phone||'').trim(),
@@ -2364,10 +2368,11 @@ window.__adminSaveClientOrder = async function(payload){
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
 };
 // Короткий номер замовлення (той самий формат, що й на сайті)
+// Номер замовлення — лише цифри (той самий формат, що й на сайті): ддммрр + 3 випадкові
 function makeOrderId(){
-  const A = 'ACDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = ''; for(let i=0;i<4;i++) s += A[Math.floor(Math.random()*A.length)];
-  return 'LQ-' + s;
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return p(d.getDate()) + p(d.getMonth()+1) + p(d.getFullYear()%100)
+       + String(Math.floor(Math.random()*900) + 100);
 }
 // Сповіщення в Telegram через той самий воркер, що й заявки з сайту (без собівартості).
 const LEAD_ENDPOINT = 'https://loomiq-lead.stvory.workers.dev';
@@ -2441,7 +2446,8 @@ function watchWebOrders(){
       orders.unshift({
         id: cryptoId(), webId: rec.id, type:'web', status:'new',
         orderId: d.orderId || '',        // короткий номер для пошуку в CRM
-        source: 'сайт' + (d.site && d.site !== 'main' ? ' · ' + d.site : ''),
+        source: 'сайт',
+        site: d.site || 'main',        // з якої посадкової прийшло замовлення
         name: d.name||'', phone: d.phone||'', items,
         totalPrice, totalCost, margin: totalPrice-totalCost,
         marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
@@ -2888,6 +2894,18 @@ async function docMockupsForOrder(order){
   toast(n ? ('Завантажено макетів: ' + n) : 'У цьому замовленні ще немає макетів');
 }
 
+// Посадкова, з якої прийшло замовлення — з клікабельним посиланням
+const ORDER_SITE_INFO = {
+  main:   { label:'Основний',    url:'https://loomiq.net/' },
+  horeca: { label:'HoReCa',      url:'https://loomiq.net/horeca/' },
+  build:  { label:'Будівництво', url:'https://loomiq.net/build/' }
+};
+function siteLinkHtml(o){
+  const si = ORDER_SITE_INFO[o.site || 'main'];
+  if(!si) return '';
+  return `<a class="t-site" href="${si.url}" target="_blank" rel="noopener"
+           title="Замовлення з цієї сторінки: ${si.url}">${escapeHtml(si.label)} ↗</a>`;
+}
 // Блок документів на картці: КП по кожній позиції, загальний кошторис, макети
 function docsBlockHtml(o){
   const items = o.items || [];
@@ -3114,7 +3132,7 @@ function renderWebTicket(o){
         <div class="phone">${escapeHtml(o.name||'—')} · ${escapeHtml(o.phone||'')}</div>
         <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
       </div>
-      <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>
+      <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>${siteLinkHtml(o)}
     </div>
     <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
     <div class="t-breakdown">
@@ -3173,7 +3191,7 @@ function renderClientTicket(o){
         <div class="phone">${escapeHtml(who)}</div>
         <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
       </div>
-      <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>
+      <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>${o.site?siteLinkHtml(o):''}
     </div>
     <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
     <div class="t-breakdown">

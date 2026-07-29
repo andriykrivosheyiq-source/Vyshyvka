@@ -7330,6 +7330,12 @@ window.LOOMIQ_CONFIG = {
      щоб головний, HoReCa та будівельний не змішувались. */
   var LQ_SITE = 'main';
   window.LQ_SITE = LQ_SITE;   // потрібен блоку оформлення замовлення
+  // Назва й адреса посадкової — щоб у Канбані й Telegram було видно, звідки замовлення
+  window.LQ_SITE_INFO = {
+    main:   { label:'Основний',    url:'https://loomiq.net/' },
+    horeca: { label:'HoReCa',      url:'https://loomiq.net/horeca/' },
+    build:  { label:'Будівництво', url:'https://loomiq.net/build/' }
+  };
   var LQ_PHOTOS_DOC = 'photos';
   var FB = {
     apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
@@ -7826,11 +7832,13 @@ window.LOOMIQ_CONFIG = {
   }
 
   // Короткий читабельний номер замовлення — щоб швидко знайти його в CRM/Канбані.
+  // Номер замовлення — лише цифри: ддммрр + 3 випадкові.
+  // Один і той самий номер іде і в Канбан, і в Telegram.
   function makeOrderId(){
-    var A = 'ACDEFGHJKLMNPQRSTUVWXYZ23456789';   // без схожих символів (0/O, 1/I)
-    var s = '';
-    for(var i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)];
-    return 'LQ-' + s;
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2, '0'); };
+    return p(d.getDate()) + p(d.getMonth()+1) + p(d.getFullYear()%100)
+         + String(Math.floor(Math.random()*900) + 100);
   }
   // Телефон приймаємо в будь-якому записі, але зберігаємо в одному форматі.
   function normPhone(v){
@@ -7974,8 +7982,12 @@ window.LOOMIQ_CONFIG = {
       var toTelegram = c.leadEndpoint
         ? fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ phone: ph, page: location.pathname,
-              context: 'ЗАМОВЛЕННЯ З САЙТУ' + (order.site && order.site !== 'main' ? ' (' + order.site + ')' : '')
+              context: 'ЗАМОВЛЕННЯ З САЙТУ'
                 + '\n№ ' + order.orderId          // короткий номер для пошуку в CRM/Канбані
+                + (function(){                     // з якої посадкової прийшло
+                    var si = (window.LQ_SITE_INFO || {})[order.site] || null;
+                    return si ? ('\nСайт: ' + si.label + ' — ' + si.url) : '';
+                  })()
                 + '\nІмʼя: ' + nm
                 + '\nТелефон: ' + ph
                 + '\nСума: ' + totalPrice + ' грн'
