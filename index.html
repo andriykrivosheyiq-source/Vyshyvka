@@ -7831,6 +7831,33 @@ window.LOOMIQ_CONFIG = {
   }
 
   // Збираємо позиції: макети і файли лого йдуть у хмару, у замовленні лишаються посилання.
+  // У config лежать шари лого разом із самими картинками (base64 data URL) — це
+  // мегабайти, а Firestore не приймає документ більший за 1 МБ, тож замовлення
+  // мовчки не зберігалось. Лишаємо тільки геометрію: самі файли вже у хмарі
+  // (prints[].file і mockups), а цього досить, щоб відтворити розкладку.
+  function slimConfig(cfg){
+    if(!cfg) return null;
+    var out = { garmentId:cfg.garmentId, colorId:cfg.colorId, printId:cfg.printId,
+                qty: cfg.qty || null, logos:{} };
+    Object.keys(cfg.logos || {}).forEach(function(side){
+      out.logos[side] = (cfg.logos[side] || []).map(function(l){
+        return { x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
+                 fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null };
+      });
+    });
+    return out;
+  }
+  // Firestore кидає помилку на БУДЬ-ЯКОМУ полі зі значенням undefined і не зберігає
+  // документ узагалі. Через це замовлення мовчки не потрапляло в Канбан (у Telegram
+  // при цьому йшло, бо там просто текст). Тому перед записом чистимо все дерево.
+  function stripUndefined(v){
+    if(v === undefined) return null;
+    if(v === null || typeof v !== 'object') return v;
+    if(Array.isArray(v)) return v.map(stripUndefined);
+    var out = {};
+    Object.keys(v).forEach(function(k){ out[k] = stripUndefined(v[k]); });
+    return out;
+  }
   function packItems(items){
     return Promise.all(items.map(function(it){
       var mockups = (it.imgs || []).slice(0, 4);
@@ -7849,7 +7876,7 @@ window.LOOMIQ_CONFIG = {
             return { side:p.side, technique:p.technique,
                      widthMm:p.widthMm, heightMm:p.heightMm, file:res[1][i] || null };
           }),
-          config: it.config || null
+          config: slimConfig(it.config)
         };
       });
     }));
@@ -7947,12 +7974,23 @@ window.LOOMIQ_CONFIG = {
               })() }) })
             .then(function(r){ return r.ok ? true : Promise.reject(new Error('lead ' + r.status)); })
         : Promise.reject(new Error('no endpoint'));
-      var toBoard = db ? db.collection('webOrders').add(order) : Promise.reject(new Error('no db'));
+      var toBoard = db ? db.collection('webOrders').add(stripUndefined(order)) : Promise.reject(new Error('no db'));
 
       return Promise.allSettled([toBoard, toTelegram]).then(function(res){
         var boardOk = res[0].status === 'fulfilled';
         var leadOk  = res[1].status === 'fulfilled';
-        if(!boardOk) console.warn('канбан не прийняв замовлення:', res[0].reason);
+        if(!boardOk){
+          console.warn('канбан не прийняв замовлення:', res[0].reason);
+          // дублюємо причину в Telegram — інакше збій лишається невидимим:
+          // клієнт бачить «прийнято», а картки в Канбані немає
+          if(c.leadEndpoint){
+            var why = (res[0].reason && (res[0].reason.code || res[0].reason.message)) || 'невідома причина';
+            fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ phone: ph, page: 'збій запису в Канбан',
+                context: '⚠️ Замовлення № ' + order.orderId + ' НЕ потрапило в Канбан (' + why + ').\n'
+                       + 'Дані замовлення — у повідомленні вище, заведіть картку вручну.' }) }).catch(function(){});
+          }
+        }
         if(!leadOk)  console.warn('telegram не прийняв заявку:', res[1].reason);
         if(!boardOk && !leadOk) throw (res[0].reason || new Error('both failed'));
         window.__clearCart && window.__clearCart();
