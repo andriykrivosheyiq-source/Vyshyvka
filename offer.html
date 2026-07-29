@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Комерційна пропозиція · Loomiq</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0F2034">
+<meta property="og:title" content="Персональна комерційна пропозиція · Loomiq">
+<meta property="og:description" content="Візуалізація, розрахунок вартості та персональні умови для вашого замовлення.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F2034; --ink-2:#3E4E65; --muted:#7C8798; --line:#E8ECF1;
+    --bg:#fff; --soft:#F6F8FA; --accent:#0F2034; --good:#0E9F6E;
+    --pad:20px; --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.5;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  img{max-width:100%; display:block;}
+  button{font:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 var(--pad);}
+
+  /* ── стани завантаження ── */
+  .state{min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:40px 24px; gap:12px;}
+  .state h1{font-size:22px; margin:0;}
+  .state p{color:var(--muted); font-size:15px; margin:0; max-width:340px;}
+  .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--ink);
+    border-radius:50%;animation:sp .8s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* ── шапка ── */
+  .top{display:flex; align-items:center; justify-content:space-between;
+    padding:18px var(--pad); border-bottom:1px solid var(--line);}
+  .brand{font-size:19px; font-weight:800; letter-spacing:-0.4px;}
+  .top-no{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
+
+  /* ── перший екран ── */
+  .hero{padding:34px 0 30px;}
+  .hero-eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.9px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:12px;}
+  .hero h1{font-size:31px; line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:800;}
+  .hero-sub{font-size:15.5px; color:var(--ink-2); margin:0 0 20px;}
+  .hero-logo{max-height:52px; width:auto; margin-bottom:18px;}
+  .hero-shot{background:var(--soft); border-radius:var(--radius); padding:14px; margin-bottom:20px;}
+  .hero-shot img{width:100%; aspect-ratio:1/1; object-fit:contain;}
+  .hero-facts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;}
+  .fact{background:var(--soft); border-radius:999px; padding:7px 13px; font-size:13px;
+    color:var(--ink-2); font-weight:500;}
+  .hero-money{display:flex; gap:26px; flex-wrap:wrap; margin-bottom:22px;}
+  .hm-label{font-size:11.5px; font-weight:700; letter-spacing:.7px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:3px;}
+  .hm-val{font-size:26px; font-weight:800; letter-spacing:-0.7px;}
+  .hm-val.save{color:var(--good);}
+
+  .btn{display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:15px 20px; border-radius:12px; font-size:15.5px; font-weight:700;
+    background:var(--ink); color:#fff; transition:opacity .15s;}
+  .btn:active{opacity:.85;}
+  .btn-ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+  .btn:disabled{opacity:.45; cursor:default;}
+
+  /* ── секції ── */
+  section{padding:34px 0; border-top:1px solid var(--line);}
+  .sec-title{font-size:22px; font-weight:800; letter-spacing:-0.6px; margin:0 0 6px;}
+  .sec-sub{font-size:14.5px; color:var(--muted); margin:0 0 20px;}
+
+  /* ── WOW-блок ── */
+  .wow-grid{display:grid; gap:10px; grid-template-columns:1fr;}
+  .wow-grid.n2,.wow-grid.n4{grid-template-columns:1fr 1fr;}
+  .wow-cell{background:var(--soft); border-radius:14px; padding:10px;}
+  .wow-cell img{width:100%; aspect-ratio:1/1; object-fit:contain;}
+
+  /* ── товар ── */
+  .item{padding-top:6px;}
+  .item + .item{margin-top:36px; padding-top:32px; border-top:1px solid var(--line);}
+  .item-name{font-size:21px; font-weight:800; letter-spacing:-0.5px; margin:0 0 14px;}
+  .mocks{display:grid; gap:10px; margin-bottom:18px;}
+  .mocks.n1{grid-template-columns:1fr;}
+  .mocks.n2,.mocks.n4{grid-template-columns:1fr 1fr;}
+  .mocks.n3{grid-template-columns:1fr 1fr;}
+  .mocks.n3 > :first-child{grid-column:1/-1;}
+  .mock{background:var(--soft); border-radius:14px; padding:10px; position:relative;}
+  .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}
+  .mock-side{position:absolute; left:14px; top:14px; background:rgba(255,255,255,.9);
+    border-radius:999px; padding:3px 9px; font-size:11px; font-weight:700; color:var(--ink-2);}
+  .specs{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; margin-bottom:18px;}
+  .spec-k{font-size:11px; font-weight:700; letter-spacing:.6px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:2px;}
+  .spec-v{font-size:14.5px; font-weight:600;}
+  .price-box{background:var(--soft); border-radius:14px; padding:16px 18px;}
+  .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
+  .pb-row + .pb-row{margin-top:8px;}
+  .pb-k{font-size:14px; color:var(--ink-2);}
+  .pb-v{font-size:15px; font-weight:600; font-variant-numeric:tabular-nums;}
+  .pb-strike{color:var(--muted); text-decoration:line-through;}
+  .pb-save{color:var(--good); font-weight:700;}
+  .pb-total{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .pb-total .pb-k{font-weight:700; color:var(--ink); font-size:15px;}
+  .pb-total .pb-v{font-size:21px; font-weight:800; letter-spacing:-0.4px;}
+
+  /* ── тиражі ── */
+  .tiers{margin-top:20px;}
+  .tiers-h{font-size:15px; font-weight:700; margin:0 0 4px;}
+  .tiers-note{font-size:13px; color:var(--muted); margin:0 0 12px;}
+  .tier{display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center;
+    width:100%; text-align:left; padding:12px 14px; border-radius:12px;
+    border:1.5px solid var(--line); background:#fff; margin-bottom:8px; transition:.15s;}
+  .tier:active{transform:scale(.995);}
+  .tier.on{border-color:var(--ink); background:#F7F9FC;}
+  .tier-q{font-size:15px; font-weight:700;}
+  .tier-tag{display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
+    background:#E7F6EF; color:var(--good); font-size:10px; font-weight:800;
+    letter-spacing:.4px; text-transform:uppercase; vertical-align:middle;}
+  .tier-tag.cur{background:#EEF3FB; color:#31517F;}
+  .tier-u{font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .tier-s{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; min-width:96px; text-align:right;}
+  .tier-hint{font-size:12.5px; color:var(--muted); margin:2px 0 0;}
+
+  /* ── списки ── */
+  .ticks{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
+  .ticks li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink-2);}
+  .ticks svg{flex:none; margin-top:3px;}
+
+  /* ── кошторис ── */
+  .est-row{display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);}
+  .est-th{width:52px; height:52px; flex:none; background:var(--soft); border-radius:10px; padding:4px;}
+  .est-th img{width:100%; height:100%; object-fit:contain;}
+  .est-info{flex:1; min-width:0;}
+  .est-name{font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .est-meta{font-size:12.5px; color:var(--muted);}
+  .est-sum{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right;}
+  .est-tot{margin-top:16px; background:var(--soft); border-radius:14px; padding:16px 18px;}
+  .et-row{display:flex; justify-content:space-between; align-items:baseline; font-size:14px; color:var(--ink-2);}
+  .et-row + .et-row{margin-top:7px;}
+  .et-row.save span:last-child{color:var(--good); font-weight:700;}
+  .et-grand{margin-top:13px; padding-top:13px; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:baseline;}
+  .et-grand span:first-child{font-size:15px; font-weight:700;}
+  .et-grand span:last-child{font-size:27px; font-weight:800; letter-spacing:-0.7px;}
+
+  /* ── рекомендації ── */
+  .reco{border:1.5px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; transition:.15s;}
+  .reco.on{border-color:var(--ink); background:#F7F9FC;}
+  .reco-top{display:flex; gap:13px;}
+  .reco-th{width:88px; height:88px; flex:none; background:var(--soft); border-radius:12px; padding:6px;}
+  .reco-th img{width:100%; height:100%; object-fit:contain;}
+  .reco-name{font-size:16px; font-weight:700; margin-bottom:3px;}
+  .reco-why{font-size:13.5px; color:var(--muted); line-height:1.45; margin-bottom:6px;}
+  .reco-price{font-size:14px; font-weight:600;}
+  .reco-btn{display:flex; align-items:center; gap:10px; width:100%; margin-top:12px;
+    padding:11px 13px; border-radius:11px; background:var(--soft); font-size:14.5px; font-weight:600;}
+  .reco.on .reco-btn{background:var(--ink); color:#fff;}
+  .reco-box{width:20px;height:20px;flex:none;border:2px solid #C3CBD6;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;background:#fff;}
+  .reco.on .reco-box{background:#fff;border-color:#fff;}
+  .reco-box svg{opacity:0;}
+  .reco.on .reco-box svg{opacity:1;}
+
+  /* ── умови ── */
+  .terms{display:grid; gap:14px;}
+  .term-k{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--muted); margin-bottom:2px;}
+  .term-v{font-size:14.5px;}
+
+  /* ── менеджер ── */
+  .mgr{display:flex; gap:14px; align-items:center; background:var(--soft);
+    border-radius:16px; padding:16px;}
+  .mgr-ava{width:56px;height:56px;flex:none;border-radius:50%;background:#DDE3EA;
+    display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;
+    color:#6B7789;overflow:hidden;}
+  .mgr-ava img{width:100%;height:100%;object-fit:cover;}
+  .mgr-role{font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+  .mgr-name{font-size:17px;font-weight:700;}
+  .mgr-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .mgr-links a{flex:1; min-width:120px; text-align:center; padding:11px 12px; border-radius:11px;
+    background:#fff; border:1.5px solid var(--line); font-size:14px; font-weight:600;
+    color:var(--ink); text-decoration:none;}
+
+  /* ── фінальні дії ── */
+  .final{display:grid; gap:10px; padding-bottom:14px;}
+
+  /* ── фіксована панель ── */
+  .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
+    backdrop-filter:blur(10px); border-top:1px solid var(--line);
+    padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
+    transform:translateY(110%); transition:transform .25s ease;}
+  .bar.show{transform:none;}
+  .bar-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px;}
+  .bar-k{font-size:12.5px; color:var(--muted);}
+  .bar-v{font-size:20px; font-weight:800; letter-spacing:-0.5px; font-variant-numeric:tabular-nums;}
+  .bar-btns{display:flex; gap:8px;}
+  .bar-btns .btn{padding:12px 14px; font-size:14.5px;}
+  body.has-bar{padding-bottom:132px;}
+
+  /* ── підтверджено ── */
+  .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:14px;
+    padding:14px 16px; font-size:14.5px; color:#0B6B4A; margin-bottom:18px;}
+
+  .foot{padding:26px 0 40px; text-align:center; color:var(--muted); font-size:12.5px;}
+  .foot a{color:var(--muted);}
+  .updated{font-size:12px; color:var(--muted); margin-top:6px;}
+
+  @media (min-width:640px){
+    :root{--pad:28px;}
+    .hero h1{font-size:38px;}
+    .specs{grid-template-columns:repeat(3,1fr);}
+  }
+
+  /* ── друк = PDF: та сама сторінка, без інтерактиву ── */
+  @media print{
+    @page{size:A4; margin:14mm 12mm;}
+    body{padding-bottom:0 !important;}
+    .bar, .no-print, .btn, .reco-btn, .tier-hint, .tiers-note{display:none !important;}
+    .wrap{max-width:none; padding:0;}
+    section{break-inside:avoid; padding:14px 0;}
+    /* На папері макети не мають з'їдати сторінку — тримаємо їх компактними */
+    .mocks, .wow-grid{grid-template-columns:1fr 1fr !important;}
+    .mock img, .wow-cell img{aspect-ratio:auto; height:52mm; object-fit:contain;}
+    .hero-shot img{aspect-ratio:auto; height:64mm; object-fit:contain;}
+    .hero{padding:10px 0 16px;}
+    .hero h1{font-size:26px;}
+    .item + .item{margin-top:20px; padding-top:18px;}
+    .specs{grid-template-columns:repeat(3,1fr);}
+    .item, .mock, .price-box, .est-tot, .reco, .mgr{break-inside:avoid;}
+    .tier{border-color:#ccc;}
+    .tier.on{background:#f2f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .hero-shot, .mock, .wow-cell, .est-th, .reco-th, .price-box, .est-tot, .mgr{
+      background:#F6F8FA !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .hm-val.save, .pb-save, .et-row.save span:last-child{color:#0E9F6E !important;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .print-only{display:block !important;}
+  }
+  .print-only{display:none;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="state">
+    <div class="spin"></div>
+    <p>Готуємо вашу пропозицію…</p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  firebase.initializeApp({
+    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+    authDomain: "loomiq-admin.firebaseapp.com",
+    projectId: "loomiq-admin",
+    storageBucket: "loomiq-admin.firebasestorage.app",
+    messagingSenderId: "828527183830",
+    appId: "1:828527183830:web:69895ce3f3c5505d014677"
+  });
+  var db = firebase.firestore();
+
+  var app = document.getElementById('app');
+
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function money(n){
+    return Math.round(+n || 0).toLocaleString('uk-UA').replace(/ /g,' ') + ' грн';
+  }
+  function plural(n, one, few, many){
+    var m10 = n % 10, m100 = n % 100;
+    if(m10 === 1 && m100 !== 11) return one;
+    if(m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
+  function dateUa(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long', year:'numeric' });
+  }
+  var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
+  var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
+             'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var TICK_W = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0F2034" ' +
+               'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  function fail(title, text){
+    app.innerHTML = '<div class="state"><h1>' + esc(title) + '</h1><p>' + esc(text) + '</p></div>';
+  }
+
+  // ── стан сторінки: вибір клієнта живе тут, суми рахуються з нього ──
+  var OFFER = null;
+  var pick = { qty: {}, reco: {} };   // індекс позиції → обраний тираж / увімкнена рекомендація
+
+  function itemState(i){
+    var it = OFFER.items[i];
+    var chosen = pick.qty[i];
+    if(chosen == null) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
+                                base: it.basePrice, save: it.save, changed: false };
+    var t = it.tiers.filter(function(x){ return x.qty === chosen; })[0];
+    if(!t) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
+                    base: it.basePrice, save: it.save, changed: false };
+    // Ціна без знижки масштабується від початкової — відсоток вигоди лишається чесним
+    var baseUnit = it.qty ? (it.basePrice / it.qty) : t.unit;
+    return { qty: t.qty, unit: t.unit, sum: t.sum,
+             base: baseUnit * t.qty, save: Math.max(0, baseUnit * t.qty - t.sum),
+             changed: t.qty !== it.qty };
+  }
+  function totals(){
+    var qty = 0, sum = 0, base = 0;
+    OFFER.items.forEach(function(it, i){
+      var s = itemState(i);
+      qty += s.qty; sum += s.sum; base += s.base;
+    });
+    OFFER.reco.forEach(function(r, i){
+      if(!pick.reco[i]) return;
+      qty += r.qty; sum += r.price; base += r.basePrice;
+    });
+    return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
+  }
+
+  /* ═══════════ розмітка ═══════════ */
+
+  function heroHtml(){
+    var t = totals();
+    var kinds = OFFER.items.length;
+    var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
+    var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
+    return '' +
+      '<div class="hero">' +
+        (OFFER.clientLogo
+          ? '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
+            'onerror="this.style.display=\'none\'">' : '') +
+        '<div class="hero-eyebrow">Комерційна пропозиція' +
+          (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</div>' +
+        '<h1>' + (who ? 'Для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
+        '<p class="hero-sub">Ми підготували візуалізацію, розрахунок вартості ' +
+          'та персональні умови для вашого замовлення.</p>' +
+        (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
+                'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+        '<div class="hero-facts">' +
+          '<span class="fact">' + kinds + ' ' + plural(kinds,'вид товару','види товарів','видів товарів') + '</span>' +
+          '<span class="fact" id="heroQty">' + t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів') + '</span>' +
+          '<span class="fact">виготовлення від ' + OFFER.terms.deadlineDays + ' ' +
+            plural(OFFER.terms.deadlineDays,'робочого дня','робочих днів','робочих днів') + '</span>' +
+        '</div>' +
+        '<div class="hero-money">' +
+          '<div><div class="hm-label">Загальна сума</div>' +
+            '<div class="hm-val" id="heroSum">' + money(t.sum) + '</div></div>' +
+          (t.save > 0
+            ? '<div><div class="hm-label">Ваша економія</div>' +
+              '<div class="hm-val save" id="heroSave">' + money(t.save) + '</div></div>' : '') +
+        '</div>' +
+        '<button class="btn no-print" id="goOffer">Переглянути пропозицію</button>' +
+        '<div class="updated">Оновлено: ' + esc(dateUa(OFFER.updatedAt)) + '</div>' +
+      '</div>';
+  }
+
+  function wowHtml(){
+    var shots = [];
+    OFFER.items.forEach(function(it){ if(it.mockups[0]) shots.push(it.mockups[0]); });
+    if(!shots.length) return '';
+    shots = shots.slice(0, 4);
+    return '' +
+      '<section id="offerStart">' +
+        '<h2 class="sec-title">Ось як може виглядати ваш готовий комплект</h2>' +
+        '<p class="sec-sub">Візуалізація на реальних виробах — з вашим логотипом.</p>' +
+        '<div class="wow-grid n' + shots.length + '">' +
+          shots.map(function(s){
+            return '<div class="wow-cell"><img src="' + esc(s) + '" alt="Макет" loading="lazy" ' +
+                   'onerror="this.parentNode.style.display=\'none\'"></div>';
+          }).join('') +
+        '</div>' +
+      '</section>';
+  }
+
+  function mocksHtml(it){
+    var m = it.mockups.slice(0, 4);
+    if(!m.length) return '';
+    return '<div class="mocks n' + m.length + '">' + m.map(function(src, i){
+      var side = (it.sides[i] || {}).side;
+      return '<div class="mock">' +
+        (side && SIDE_UA[side] ? '<span class="mock-side">' + esc(SIDE_UA[side]) + '</span>' : '') +
+        '<img src="' + esc(src) + '" alt="Макет" loading="lazy" ' +
+        'onerror="this.parentNode.style.display=\'none\'"></div>';
+    }).join('') + '</div>';
+  }
+
+  function specsHtml(it){
+    var rows = [['Колір', it.color]];
+    var tech = it.techniques.length ? it.techniques.join(', ') : it.print;
+    if(tech) rows.push(['Нанесення', tech]);
+    var sides = it.sides.filter(function(s){ return s.side; })
+                        .map(function(s){ return SIDE_UA[s.side] || s.side; });
+    if(sides.length) rows.push(['Сторони', [...new Set(sides)].join(', ')]);
+    var sizeList = it.sides.filter(function(s){ return s.widthMm && s.heightMm; })
+      .map(function(s){ return Math.round(s.widthMm/10) + ' × ' + Math.round(s.heightMm/10) + ' см'; });
+    if(sizeList.length) rows.push(['Розмір нанесення', sizeList.join(', ')]);
+    if(it.sizes) rows.push(['Розмірний ряд', it.sizes]);
+    rows.push(['Термін', OFFER.terms.deadlineDays + ' роб. днів']);
+    return '<div class="specs">' + rows.filter(function(r){ return r[1]; }).map(function(r){
+      return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
+             '<div class="spec-v">' + esc(r[1]) + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  function priceBoxHtml(i){
+    var s = itemState(i);
+    return '' +
+      '<div class="price-box" data-price-box="' + i + '">' +
+        '<div class="pb-row"><span class="pb-k">Ціна за одиницю</span>' +
+          '<span class="pb-v">' + money(s.unit) + '</span></div>' +
+        '<div class="pb-row"><span class="pb-k">Кількість</span>' +
+          '<span class="pb-v">' + s.qty + ' шт</span></div>' +
+        (s.save > 0
+          ? '<div class="pb-row"><span class="pb-k">Без знижки за тираж</span>' +
+              '<span class="pb-v pb-strike">' + money(s.base) + '</span></div>' +
+            '<div class="pb-row"><span class="pb-k">Ваша економія</span>' +
+              '<span class="pb-v pb-save">' + money(s.save) + '</span></div>'
+          : '') +
+        '<div class="pb-row pb-total"><span class="pb-k">Сума позиції</span>' +
+          '<span class="pb-v">' + money(s.sum) + '</span></div>' +
+      '</div>';
+  }
+
+  function tiersHtml(i){
+    var it = OFFER.items[i];
+    if(it.tiers.length < 2) return '';
+    var cur = itemState(i).qty;
+    // «Оптимальний» — найбільший крок вигоди на одиницю відносно поточного тиражу
+    var best = null, bestGain = 0;
+    it.tiers.forEach(function(t){
+      var gain = it.unitPrice - t.unit;
+      if(t.qty > it.qty && gain > bestGain){ bestGain = gain; best = t.qty; }
+    });
+    return '' +
+      '<div class="tiers">' +
+        '<div class="tiers-h">Ціна при більшому тиражі</div>' +
+        '<p class="tiers-note">Оберіть кількість — кошторис перерахується одразу.</p>' +
+        it.tiers.map(function(t){
+          var on = t.qty === cur;
+          var gain = (it.unitPrice - t.unit) * t.qty;
+          return '<button class="tier' + (on ? ' on' : '') + '" data-tier="' + i + '" ' +
+                   'data-qty="' + t.qty + '">' +
+            '<span class="tier-q">' + t.qty + ' шт' +
+              (t.qty === it.qty ? '<span class="tier-tag cur">ваш тираж</span>' : '') +
+              (t.qty === best ? '<span class="tier-tag">оптимальний</span>' : '') +
+              (gain > 0 ? '<div class="tier-hint">вигода ' + money(gain) + '</div>' : '') +
+            '</span>' +
+            '<span class="tier-u">' + money(t.unit) + '/шт</span>' +
+            '<span class="tier-s">' + money(t.sum) + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div>';
+  }
+
+  function itemsHtml(){
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Ваше замовлення</h2>' +
+        '<p class="sec-sub">Кожна позиція — з розрахунком і візуалізацією.</p>' +
+        OFFER.items.map(function(it, i){
+          return '<div class="item">' +
+            '<h3 class="item-name">' + esc(it.name) + '</h3>' +
+            mocksHtml(it) + specsHtml(it) + priceBoxHtml(i) +
+            '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</section>';
+  }
+
+  function includesHtml(){
+    if(!OFFER.includes || !OFFER.includes.length) return '';
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">У вартість уже входить</h2>' +
+        '<ul class="ticks">' + OFFER.includes.map(function(t){
+          return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</section>';
+  }
+
+  function estimateHtml(){
+    var rows = OFFER.items.map(function(it, i){
+      var s = itemState(i);
+      return { name: it.name, meta: [it.color, s.qty + ' шт'].filter(Boolean).join(' · '),
+               unit: s.unit, sum: s.sum, th: it.mockups[0] };
+    });
+    OFFER.reco.forEach(function(r, i){
+      if(!pick.reco[i]) return;
+      rows.push({ name: r.name + ' (додано вами)',
+                  meta: [r.color, r.qty + ' шт'].filter(Boolean).join(' · '),
+                  unit: r.unitPrice, sum: r.price, th: r.mockups[0] });
+    });
+    var t = totals();
+    return '' +
+      '<section id="estimate">' +
+        '<h2 class="sec-title">Загальний кошторис</h2>' +
+        '<p class="sec-sub">Усе замовлення однією таблицею.</p>' +
+        rows.map(function(r){
+          return '<div class="est-row">' +
+            '<div class="est-th">' + (r.th
+              ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+              : '') + '</div>' +
+            '<div class="est-info"><div class="est-name">' + esc(r.name) + '</div>' +
+              '<div class="est-meta">' + esc(r.meta) + ' · ' + money(r.unit) + '/шт</div></div>' +
+            '<div class="est-sum">' + money(r.sum) + '</div>' +
+          '</div>';
+        }).join('') +
+        '<div class="est-tot">' +
+          '<div class="et-row"><span>Загальна кількість</span><span>' + t.qty + ' шт</span></div>' +
+          (t.save > 0
+            ? '<div class="et-row"><span>Вартість без знижки</span><span>' + money(t.base) + '</span></div>' +
+              '<div class="et-row save"><span>Ваша економія</span><span>' + money(t.save) + '</span></div>'
+            : '') +
+          '<div class="et-grand"><span>До сплати</span><span>' + money(t.sum) + '</span></div>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function recoHtml(){
+    if(!OFFER.reco.length) return '';
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Доповніть свій комплект</h2>' +
+        '<p class="sec-sub">Ми вже підготували для них макети — ці позиції ' +
+          'можна додати до замовлення.</p>' +
+        OFFER.reco.slice(0, 3).map(function(r, i){
+          var on = !!pick.reco[i];
+          return '<div class="reco' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
+            '<div class="reco-top">' +
+              '<div class="reco-th">' + (r.mockups[0]
+                ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+                : '') + '</div>' +
+              '<div>' +
+                '<div class="reco-name">' + esc(r.name) + '</div>' +
+                (r.recoNote ? '<div class="reco-why">' + esc(r.recoNote) + '</div>' : '') +
+                '<div class="reco-price">' + r.qty + ' шт × ' + money(r.unitPrice) +
+                  ' = ' + money(r.price) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<button class="reco-btn" data-reco="' + i + '">' +
+              '<span class="reco-box">' + TICK_W + '</span>' +
+              '<span>' + (on ? 'Додано до пропозиції' : 'Додати до пропозиції') + '</span>' +
+            '</button>' +
+          '</div>';
+        }).join('') +
+      '</section>';
+  }
+
+  function trustHtml(){
+    if(!OFFER.trust || !OFFER.trust.length) return '';
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Чому нам довіряють</h2>' +
+        '<ul class="ticks">' + OFFER.trust.slice(0, 5).map(function(t){
+          return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</section>';
+  }
+
+  function termsHtml(){
+    var v = dateUa(OFFER.terms.validUntil);
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Умови замовлення</h2>' +
+        '<div class="terms">' +
+          '<div><div class="term-k">Термін виготовлення</div>' +
+            '<div class="term-v">' + OFFER.terms.deadlineDays + ' робочих днів після погодження макета</div></div>' +
+          '<div><div class="term-k">Оплата</div>' +
+            '<div class="term-v">' + esc(OFFER.terms.payment) + '</div></div>' +
+          '<div><div class="term-k">Для запуску</div>' +
+            '<div class="term-v">' + esc(OFFER.terms.startWith) + '</div></div>' +
+          (v ? '<div><div class="term-k">Пропозиція актуальна до</div>' +
+               '<div class="term-v">' + esc(v) + '</div></div>' : '') +
+        '</div>' +
+      '</section>';
+  }
+
+  function finalHtml(){
+    if(expired()){
+      return '<section><div class="locked">Термін дії пропозиції минув. ' +
+             'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
+    }
+    return '' +
+      '<section class="no-print">' +
+        '<h2 class="sec-title">Готові замовити?</h2>' +
+        '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
+          'Виробництво починається лише після вашого підтвердження макета.</p>' +
+        '<div class="final">' +
+          '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
+          '<button class="btn btn-ghost" id="changeBtn">Потрібні зміни</button>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function mgrHtml(){
+    var m = OFFER.manager || {};
+    var links = [];
+    if(m.phone)    links.push('<a href="tel:' + esc(m.phone.replace(/[^\d+]/g,'')) + '">Подзвонити</a>');
+    if(m.telegram) links.push('<a href="' + esc(m.telegram) + '" target="_blank" rel="noopener">Telegram</a>');
+    if(m.viber)    links.push('<a href="' + esc(m.viber) + '">Viber</a>');
+    if(m.email)    links.push('<a href="mailto:' + esc(m.email) + '">Email</a>');
+    return '' +
+      '<section>' +
+        '<div class="mgr">' +
+          '<div class="mgr-ava">' + (m.photo
+            ? '<img src="' + esc(m.photo) + '" alt="" onerror="this.style.display=\'none\'">'
+            : esc((m.name || 'L').slice(0,1))) + '</div>' +
+          '<div><div class="mgr-role">' + esc(m.role || 'Ваш менеджер') + '</div>' +
+            '<div class="mgr-name">' + esc(m.name || 'Loomiq') + '</div>' +
+            (m.phone ? '<div class="est-meta">' + esc(m.phone) + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        (links.length ? '<div class="mgr-links">' + links.join('') + '</div>' : '') +
+      '</section>';
+  }
+
+  function barHtml(){
+    var t = totals();
+    return '' +
+      '<div class="bar" id="bar">' +
+        '<div class="bar-top"><span class="bar-k">Підсумкова сума</span>' +
+          '<span class="bar-v" id="barSum">' + money(t.sum) + '</span></div>' +
+        '<div class="bar-btns">' +
+          '<button class="btn" id="barConfirm">Підтвердити</button>' +
+          '<button class="btn btn-ghost" id="barChange">Потрібні зміни</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function expired(){
+    var v = OFFER.terms && OFFER.terms.validUntil;
+    return !!v && new Date(v) < new Date();
+  }
+
+  /* ═══════════ рендер і події ═══════════ */
+
+  function render(){
+    app.innerHTML =
+      '<div class="top"><span class="brand">Loomiq</span>' +
+        '<span class="top-no">' + (OFFER.orderId ? '№ ' + esc(OFFER.orderId) : '') +
+        ' · ' + esc(dateUa(OFFER.createdAt)) + '</span></div>' +
+      '<div class="wrap">' +
+        heroHtml() + wowHtml() + itemsHtml() + includesHtml() +
+        estimateHtml() + recoHtml() + trustHtml() + termsHtml() +
+        finalHtml() + mgrHtml() +
+        '<div class="foot">Loomiq · виробництво мерчу · ' +
+          '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
+      '</div>' +
+      (expired() ? '' : barHtml());
+    wire();
+  }
+
+  // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
+  function refresh(){
+    var t = totals();
+    var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
+    set('heroSum', money(t.sum));
+    set('heroSave', money(t.save));
+    set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
+    set('barSum', money(t.sum));
+    OFFER.items.forEach(function(it, i){
+      var box = document.querySelector('[data-price-box="' + i + '"]');
+      if(box) box.outerHTML = priceBoxHtml(i);
+      var tw = document.querySelector('[data-tiers="' + i + '"]');
+      if(tw) tw.innerHTML = tiersHtml(i);
+    });
+    var est = document.getElementById('estimate');
+    if(est) est.outerHTML = estimateHtml();
+    OFFER.reco.forEach(function(r, i){
+      var card = document.querySelector('[data-reco-card="' + i + '"]');
+      if(!card) return;
+      var on = !!pick.reco[i];
+      card.classList.toggle('on', on);
+      var lbl = card.querySelector('.reco-btn span:last-child');
+      if(lbl) lbl.textContent = on ? 'Додано до пропозиції' : 'Додати до пропозиції';
+    });
+    wire();
+  }
+
+  function wire(){
+    var go = document.getElementById('goOffer');
+    if(go) go.onclick = function(){
+      var t = document.getElementById('offerStart') || document.getElementById('estimate');
+      if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
+    };
+    document.querySelectorAll('[data-tier]').forEach(function(b){
+      b.onclick = function(){
+        pick.qty[+b.dataset.tier] = +b.dataset.qty;
+        refresh();
+      };
+    });
+    document.querySelectorAll('[data-reco]').forEach(function(b){
+      b.onclick = function(){
+        var i = +b.dataset.reco;
+        pick.reco[i] = !pick.reco[i];
+        refresh();
+      };
+    });
+    // Дії клієнта під'єднаємо наступним кроком — поки чесно про це кажемо
+    ['confirmBtn','changeBtn','barConfirm','barChange'].forEach(function(id){
+      var b = document.getElementById(id);
+      if(b) b.onclick = function(){
+        alert('Підтвердження з сайту ще підключається. ' +
+              'Поки напишіть менеджеру — контакти внизу сторінки.');
+      };
+    });
+  }
+
+  // Нижня панель з'являється, щойно клієнт погортав до товарів
+  function watchBar(){
+    var bar = document.getElementById('bar');
+    if(!bar) return;
+    document.body.classList.add('has-bar');
+    var onScroll = function(){ bar.classList.toggle('show', window.scrollY > 420); };
+    window.addEventListener('scroll', onScroll, { passive:true });
+    onScroll();
+  }
+
+  // Чекаємо, поки завантажаться всі макети (або впадуть) — потрібно перед друком
+  function imagesReady(){
+    var imgs = [].slice.call(document.images).filter(function(im){ return !im.complete; });
+    if(!imgs.length) return Promise.resolve();
+    return Promise.all(imgs.map(function(im){
+      return new Promise(function(res){
+        im.addEventListener('load', res, { once:true });
+        im.addEventListener('error', res, { once:true });
+        setTimeout(res, 6000);       // не зависаємо через одну «мертву» картинку
+      });
+    }));
+  }
+
+  /* ═══════════ завантаження ═══════════ */
+
+  var token = (new URLSearchParams(location.search).get('o') || '').trim();
+  if(!/^[a-z0-9]{6,40}$/.test(token)){
+    fail('Пропозицію не знайдено', 'Перевірте, чи повністю скопійовано посилання з повідомлення.');
+    return;
+  }
+
+  db.collection('offers').doc(token).get().then(function(snap){
+    if(!snap.exists){
+      fail('Пропозицію не знайдено',
+           'Можливо, посилання застаріло. Напишіть менеджеру — надішлемо нове.');
+      return;
+    }
+    OFFER = snap.data() || {};
+    OFFER.items = OFFER.items || [];
+    OFFER.reco  = OFFER.reco  || [];
+    OFFER.terms = OFFER.terms || { deadlineDays: 4 };
+    OFFER.client = OFFER.client || {};
+    if(!OFFER.items.length){
+      fail('Пропозиція ще готується', 'Менеджер завершує розрахунок. Спробуйте трохи пізніше.');
+      return;
+    }
+    document.title = 'Комерційна пропозиція' +
+      (OFFER.client.company ? ' для ' + OFFER.client.company : '') + ' · Loomiq';
+    render();
+    watchBar();
+    // ?print=1 — менеджер натиснув «PDF» у Канбані: та сама сторінка, одразу на друк.
+    // Чекаємо на макети, інакше в PDF будуть порожні місця замість фото.
+    if(new URLSearchParams(location.search).get('print') === '1'){
+      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 200); });
+    }
+  }).catch(function(e){
+    console.error(e);
+    fail('Не вдалося відкрити пропозицію',
+         'Перевірте зв\'язок і оновіть сторінку. Якщо не допоможе — напишіть менеджеру.');
+  });
+})();
+</script>
+</body>
+</html>

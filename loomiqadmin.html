@@ -2388,6 +2388,10 @@ window.__adminSaveClientOrder = async function(payload){
   };
   orders.unshift(order);
   await storeSet('orders', orders);
+  // Персональна сторінка створюється одразу — щоб посилання працювало
+  // ще до того, як менеджер відкриє Канбан.
+  try{ await offerSave(order); }
+  catch(e){ console.error('offer save failed', e); toast('Картку створено, але сторінку КП не збережено'); }
   notifyTelegram(order);   // дублюємо в Telegram, як і замовлення з сайту
   toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
@@ -2518,7 +2522,8 @@ function watchWebOrders(){
 const DOC_W = 1240;
 
 // Точна ціна за одиницю при будь-якому тиражі — за тією ж формулою, що й на сайті.
-function docPriceAt(item, qty){
+// coefOverride — щоб порахувати ту саму позицію без знижки за тираж («ціна без знижки»).
+function docPriceAt(item, qty, coefOverride){
   const c = item.calc;
   const p = curSitePricing();
   const tiers = (p && p.tiers) || [];
@@ -2526,6 +2531,7 @@ function docPriceAt(item, qty){
   for(let i = tiers.length - 1; i >= 0; i--){
     if(qty >= (+tiers[i].from || 1)){ coef = +tiers[i].coef || 1; break; }
   }
+  if(coefOverride != null) coef = coefOverride;
   if(!c){
     // старі замовлення без розкладу — масштабуємо від відомої ціни
     let curCoef = 1;
@@ -2566,6 +2572,129 @@ function docTierRows(item){
     if(q > cur && out.length < 5) out.push({ qty: q, price: Math.round(docPriceAt(item, q) * k) });
   });
   return out;
+}
+
+/* ============================================================
+   ПЕРСОНАЛЬНА КОМЕРЦІЙНА ПРОПОЗИЦІЯ (offer.html)
+   Документ offers/{token} — єдине джерело даних і для сторінки, і для PDF.
+   Усі суми рахуємо ТУТ, тим самим калькулятором, що й адмінка,
+   щоб сторінка клієнта ніколи не розійшлася з Канбаном.
+   ============================================================ */
+
+// Базові тексти пропозиції. Поки зашиті; згодом винесемо в налаштування адмінки.
+const OFFER_DEFAULTS = {
+  includes: ['Виріб', 'Нанесення', 'Підготовка макета', 'Візуалізація',
+             'Перевірка якості перед відправкою', 'Пакування'],
+  trust: ['Власне виробництво в Україні',
+          'Макет погоджуємо до запуску у виробництво',
+          'Перевірка якості кожної партії',
+          'Працюємо з ФОП і ТОВ, надаємо документи'],
+  payment: 'Передоплата 50%, решта — після погодження готової партії',
+  startWith: 'Підтвердити пропозицію та внести передоплату',
+  validDays: 7,
+  // Заглушка менеджера: контакти підставляться справжні, коли зробимо довідник
+  manager: { name:'Марія', role:'Ваш менеджер', photo:'',
+             phone:'+38 (063) 804-78-18', telegram:'https://t.me/loomiq',
+             viber:'', email:'hello@loomiq.net' }
+};
+
+// Найменший коефіцієнт зі шкали тиражів = ціна без знижки за обсяг.
+// Порівнюємо однакову кількість, тож «економія» — це рівно те, що клієнт
+// виграє від тиражу, а не вигаданий відсоток від ціни однієї штуки.
+function offerBaseCoef(){
+  const tiers = (curSitePricing() || {}).tiers || [];
+  if(!tiers.length) return 1;
+  let base = +tiers[0].coef || 1;
+  tiers.forEach(t => { if((+t.coef || 1) > base) base = +t.coef || 1; });
+  return base;
+}
+function offerItemNumbers(item){
+  const qty  = +item.qty || 0;
+  const unit = +item.unitPrice || 0;
+  const baseUnit = Math.max(docPriceAt(item, qty, offerBaseCoef()), unit);
+  return {
+    qty, unit, sum: +item.price || 0,
+    baseUnit, baseSum: baseUnit * qty,
+    save: Math.max(0, baseUnit * qty - (+item.price || 0))
+  };
+}
+// Варіанти тиражу, які клієнт зможе обрати на сторінці.
+function offerTiers(item){
+  return docTierRows(item).map(t => ({
+    qty: t.qty, unit: t.price, sum: t.price * t.qty, now: !!t.now
+  }));
+}
+function offerItem(it){
+  const n = offerItemNumbers(it);
+  return {
+    kind: it.kind === 'reco' ? 'reco' : 'main',
+    recoNote: it.recoNote || '',
+    name: it.name || '', color: it.color || '',
+    sizes: it.sizes || '', qty: n.qty,
+    print: it.print || '',
+    techniques: [...new Set((it.prints||[]).map(p=>p.technique).filter(Boolean))],
+    sides: (it.prints||[]).map(p => ({
+      side: p.side || '', technique: p.technique || '',
+      widthMm: Math.round(+p.widthMm || 0), heightMm: Math.round(+p.heightMm || 0)
+    })),
+    mockups: (it.mockups || []).slice(0, 4),
+    unitPrice: n.unit, price: n.sum,
+    baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
+    tiers: offerTiers(it)
+  };
+}
+function offerBuild(order){
+  const items = (order.items || []).map(offerItem);
+  const main  = items.filter(i => i.kind !== 'reco');
+  const reco  = items.filter(i => i.kind === 'reco');
+  const logo  = ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
+  const totalQty = main.reduce((a,i) => a + i.qty, 0);
+  const dl = deadlineLabel(totalQty || 1, new Date(),
+    [...new Set(main.flatMap(i => i.techniques))]);
+  const valid = new Date();
+  valid.setDate(valid.getDate() + OFFER_DEFAULTS.validDays);
+  const now = new Date().toISOString();
+  return {
+    token: order.offerToken, orderId: order.orderId || '',
+    createdAt: order.createdAt || now, updatedAt: now,
+    client: {
+      name: order.name || '', company: order.company || '',
+      instagram: order.instagram || '', phone: order.phone || ''
+    },
+    clientLogo: logo,
+    manager: OFFER_DEFAULTS.manager,
+    items: main, reco,
+    totals: {
+      qty: totalQty,
+      base: main.reduce((a,i) => a + i.basePrice, 0),
+      save: main.reduce((a,i) => a + i.save, 0),
+      total: main.reduce((a,i) => a + i.price, 0)
+    },
+    includes: OFFER_DEFAULTS.includes,
+    trust: OFFER_DEFAULTS.trust,
+    terms: {
+      deadlineDays: dl.days,
+      payment: OFFER_DEFAULTS.payment,
+      startWith: OFFER_DEFAULTS.startWith,
+      validUntil: valid.toISOString()
+    },
+    state: order.offerState || 'created'
+  };
+}
+// Firestore не приймає undefined — через одне поле не збережеться весь документ.
+function offerClean(v){
+  if(v === undefined) return null;
+  if(v === null || typeof v !== 'object') return v;
+  if(Array.isArray(v)) return v.map(offerClean);
+  const out = {};
+  Object.keys(v).forEach(k => { out[k] = offerClean(v[k]); });
+  return out;
+}
+async function offerSave(order){
+  if(!order || !order.offerToken) return null;
+  const doc = offerClean(offerBuild(order));
+  await fbDb.collection('offers').doc(order.offerToken).set(doc, { merge: true });
+  return doc;
 }
 
 function docLoadImg(src){
@@ -2974,6 +3103,10 @@ function docsBlockHtml(o){
       <div class="t-offer">
         <div class="t-offer-url" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
         <button class="t-doc-main" data-doc="copylink">Скопіювати посилання на КП</button>
+        <div class="t-docs-row" style="margin-top:6px;">
+          <button class="t-doc-sec" data-doc="openoffer">Відкрити КП</button>
+          <button class="t-doc-sec" data-doc="offerpdf">PDF пропозиції</button>
+        </div>
       </div>` : '';
   return `
     <div class="t-docs">
@@ -2990,6 +3123,8 @@ function wireDocsBlock(el, o){
   const cp = el.querySelector('[data-doc="copylink"]');
   if(cp) cp.addEventListener('click', async ()=>{
     const link = offerUrl(o);
+    // Перед копіюванням оновлюємо сторінку — щоб клієнт відкрив свіжі дані
+    try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
     try{ await navigator.clipboard.writeText(link); toast('Посилання скопійовано'); }
     catch(e){
       // Буфер обміну недоступний (старий браузер, немає дозволу) — даємо скопіювати вручну
@@ -2999,6 +3134,18 @@ function wireDocsBlock(el, o){
       catch(e2){ prompt('Скопіюйте посилання вручну:', link); }
       inp.remove();
     }
+  });
+  // Перегляд і PDF — це та сама сторінка клієнта, тож розбіжностей не буває.
+  const openOffer = async (print)=>{
+    try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
+    window.open(offerUrl(o) + (print ? '&print=1' : ''), '_blank', 'noopener');
+  };
+  const ov = el.querySelector('[data-doc="openoffer"]');
+  if(ov) ov.addEventListener('click', ()=> openOffer(false));
+  const op = el.querySelector('[data-doc="offerpdf"]');
+  if(op) op.addEventListener('click', ()=>{
+    toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
+    openOffer(true);
   });
   el.querySelectorAll('[data-kp]').forEach(b=>{
     b.addEventListener('click', async ()=>{
