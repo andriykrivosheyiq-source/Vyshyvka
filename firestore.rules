@@ -3,45 +3,63 @@
 // Куди вставити: Firebase Console → проєкт loomiq-admin → Firestore Database
 // → вкладка Rules → замінити весь вміст цим файлом → Publish.
 //
-// Що тут описано — рівно те, що використовує сайт і адмінка, нічого зайвого:
+// Що тут описано — рівно те, що використовує сайт і адмінка:
 //
-//   loomiq/*     контент сайту: асортимент, фото, ціни, тексти посадкових.
+//   reviews/*    відгуки. Відвідувач може лишити свій (одразу неопублікований)
+//                і бачить лише схвалені. Публікує й видаляє — адмінка.
+//
+//   loomiq/photos  контент сайту: асортимент, фото, ціни, тексти.
 //                Читає кожен відвідувач (інакше сайт порожній),
 //                змінює лише той, хто увійшов в адмінку.
 //
-//   reviews/*    відгуки. Відвідувач може лишити свій (одразу неопублікований),
-//                читати може кожен, публікувати й видаляти — лише адмінка.
+//   webOrders/*  замовлення з сайту. Відвідувач може лише СТВОРИТИ замовлення
+//                (прочитати чи змінити чуже — ні). Адмінка забирає їх у Канбан
+//                і позначає обробленими.
 //
-//   webOrders/*  замовлення з сайту. Відвідувач може створити замовлення,
-//                але не може його прочитати чи змінити чуже.
-//                Адмінка забирає їх у Канбан і позначає обробленими.
-//
-// Усе, що не описано нижче, за замовчуванням заборонено.
+//   Усе інше (loomiq/state тощо) — лише авторизованим.
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Контент сайту
-    match /loomiq/{doc} {
+    match /reviews/{doc} {
+      allow read: if resource.data.approved == true;
+      allow create: if request.resource.data.approved == false
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() <= 800
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Фото товарів: сайт читає публічно, змінює лише менеджер (під паролем)
+    match /loomiq/photos {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Відгуки
-    match /reviews/{id} {
-      allow read: if true;
-      // новий відгук завжди приходить неопублікованим — публікує менеджер
-      allow create: if request.resource.data.approved == false;
-      allow update, delete: if request.auth != null;
+    // Замовлення з сайту: клієнт лише створює, читає й обробляє тільки адмінка.
+    // Перевірки нижче — щоб через відкритий create не засипали базу сміттям.
+    match /webOrders/{doc} {
+      allow create: if request.resource.data.imported == false
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 100
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 10
+                    && request.resource.data.phone.size() <= 20
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0
+                    && request.resource.data.items.size() <= 50;
+      allow read, update, delete: if request.auth != null;
     }
 
-    // Замовлення з сайту
-    match /webOrders/{id} {
-      // нове замовлення ще не потрапило в Канбан
-      allow create: if request.resource.data.imported == false;
-      allow read, update, delete: if request.auth != null;
+    // Все інше (ціни, стан Канбану) — лише авторизованим
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
