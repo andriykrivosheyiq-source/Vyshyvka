@@ -1221,6 +1221,12 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 const STATE_DOC = fbDb.collection('loomiq').doc('state');
+// Замовлення живуть окремими документами. Раніше весь Канбан лежав одним
+// документом, а Firestore відхиляє документ, більший за 1 МБ, ЦІЛКОМ — тому
+// після кількох замовлень із логотипами нові картки переставали зберігатись.
+// Одне замовлення = один документ: ліміт більше недосяжний, і збій однієї
+// картки не забирає з собою решту.
+const ORDERS_COL = fbDb.collection('kanbanOrders');
 /* ============================================================
    САЙТИ. Кожен сайт має власний документ контенту, тому товари,
    фото, ціни, кейси й FAQ ніколи не змішуються між сайтами.
@@ -1371,12 +1377,13 @@ function jsonBytes(v){
   try{ return new Blob([JSON.stringify(v)]).size; }catch(e){ return 0; }
 }
 async function storeSet(key, value){
+  if(key === 'orders') return saveOrders();      // замовлення пишуться подокументно
   const prev = cloud[key];
   cloud[key] = value;
   const bytes = jsonBytes(cloud);
   if(bytes > STATE_SOFT_LIMIT){
     console.warn('state doc too big', bytes);
-    toast('База переповнена (' + Math.round(bytes/1024) + ' КБ з 1024). Зверніться до розробника.');
+    toast('Налаштування близькі до ліміту (' + Math.round(bytes/1024) + ' КБ з 1024).');
   }
   try{ await STATE_DOC.set({ [key]: value }, { merge:true }); }
   catch(e){
@@ -1387,6 +1394,78 @@ async function storeSet(key, value){
           'зробіть скриншот і покажіть розробнику.');
     throw e;
   }
+}
+
+/* ── Замовлення: по документу на картку ───────────────────────────────── */
+// Пам'ятаємо, що вже лежить у базі, щоб писати лише те, що справді змінилось.
+let ordersSaved = new Map();
+function ordersSortDesc(list){
+  return list.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+}
+// Жива синхронізація Канбану між вкладками й пристроями.
+let ordersWatching = false;
+function watchOrders(){
+  if(ordersWatching) return;
+  ordersWatching = true;
+  ORDERS_COL.onSnapshot(function(snap){
+    const list = [];
+    const seen = new Map();
+    snap.forEach(d=>{
+      const o = d.data() || {};
+      o.id = o.id || d.id;
+      list.push(o);
+      seen.set(o.id, JSON.stringify(o));
+    });
+    orders = ordersSortDesc(list);
+    ordersSaved = seen;
+    const board = document.getElementById('view-board');
+    if(board && board.style.display !== 'none') renderBoard();
+  }, function(e){
+    ordersWatching = false;
+    console.error('orders listen failed', e);
+  });
+}
+async function loadOrders(){
+  const snap = await ORDERS_COL.get();
+  const list = [];
+  ordersSaved = new Map();
+  snap.forEach(d=>{
+    const o = d.data() || {};
+    o.id = o.id || d.id;
+    list.push(o);
+    ordersSaved.set(o.id, JSON.stringify(o));
+  });
+  return ordersSortDesc(list);
+}
+// Повертає список карток, які не вдалося зберегти (порожній — усе гаразд).
+async function saveOrders(opts){
+  const quiet = !!(opts && opts.quiet);
+  const cur = new Map();
+  (orders || []).forEach(o=>{ if(o && o.id) cur.set(o.id, JSON.stringify(o)); });
+  const failed = [];
+  for(const [id, json] of cur){
+    if(ordersSaved.get(id) === json) continue;
+    const size = new Blob([json]).size;
+    try{
+      await ORDERS_COL.doc(id).set(JSON.parse(json));
+      ordersSaved.set(id, json);
+    }catch(e){
+      console.error('order save failed', id, size, e);
+      failed.push({ id, size, e });
+    }
+  }
+  for(const id of [...ordersSaved.keys()]){
+    if(cur.has(id)) continue;
+    try{ await ORDERS_COL.doc(id).delete(); ordersSaved.delete(id); }
+    catch(e){ console.error('order delete failed', id, e); failed.push({ id, e }); }
+  }
+  if(failed.length && !quiet){
+    const f = failed[0];
+    alert('НЕ ЗБЕРЕЖЕНО замовлення: ' + ((f.e && (f.e.code || f.e.message)) || 'невідома помилка') +
+          (f.size ? '\nРозмір картки: ' + Math.round(f.size/1024) + ' КБ (ліміт 1024)' : '') +
+          '\n\nЗробіть скриншот і покажіть розробнику.');
+  }
+  return failed;
 }
 
 const DEFAULT_SETTINGS = {
@@ -2364,9 +2443,9 @@ document.getElementById('save-order').addEventListener('click', async ()=>{
 /* ============================================================
    KANBAN VIEW
    ============================================================ */
-// Разове прибирання: у вже збережених замовленнях логотипи лежать як base64
-// і роздувають документ до ліміту, через що нові картки переставали зберігатись.
-// Переносимо картинки в хмару, у базі лишаємо посилання.
+// Прибирання: у старих замовленнях логотипи лежать як base64 і роздувають
+// картку. Переносимо картинки в хмару, у базі лишаємо посилання.
+// Тільки змінює масив у пам'яті — записом займається той, хто викликав.
 async function slimStoredOrders(){
   const isData = v => typeof v === 'string' && /^data:/i.test(v);
   const heavy = (orders || []).filter(o =>
@@ -2374,8 +2453,8 @@ async function slimStoredOrders(){
       (it.prints || []).some(p => isData(p.file)) ||
       (it.mockups || []).some(isData) ||
       jsonBytes(it.config) > 4096));
-  if(!heavy.length) return;
-  toast('Прибираємо старі файли з бази (' + heavy.length + ')…');
+  if(!heavy.length) return 0;
+  toast('Переносимо файли зі старих замовлень (' + heavy.length + ')…');
   let moved = 0, lost = 0;
   for(const o of heavy){
     for(const it of (o.items || [])){
@@ -2396,12 +2475,31 @@ async function slimStoredOrders(){
       it.config = slimOrderConfig(it.config);
     }
   }
+  toast('Файлів перенесено: ' + moved + (lost ? ', не вдалось ' + lost : ''));
+  return moved;
+}
+
+// Перехід зі старого сховища: увесь Канбан лежав одним полем у loomiq/state.
+// Розкладаємо його на окремі документи й звільняємо старе поле — саме воно
+// впиралось у ліміт 1 МБ і глушило збереження нових карток.
+async function migrateOrdersToCollection(){
+  const legacy = Array.isArray(cloud.orders) ? cloud.orders : [];
+  if(!legacy.length) return;
+  toast('Переносимо ' + legacy.length + ' замовлень у нове сховище…');
+  orders = ordersSortDesc(legacy.filter(o => o && o.id));
+  await slimStoredOrders();                     // спершу вивантажуємо base64 у хмару
+  const failed = await saveOrders({ quiet:true });
+  if(failed.length){
+    alert('Перенесено не все: ' + failed.length + ' із ' + orders.length + ' карток завеликі.\n' +
+          'Решта вже в новому сховищі й далі працюватиме нормально.\n' +
+          'Покажіть це повідомлення розробнику.');
+    return;                                     // старе поле не чіпаємо, поки не перенесли все
+  }
   try{
-    await storeSet('orders', orders);
-    renderBoard();
-    toast('Готово: файлів перенесено ' + moved + (lost ? ', не вдалось ' + lost : '') +
-          '. Розмір бази: ' + Math.round(jsonBytes(cloud)/1024) + ' КБ');
-  }catch(e){ console.error('slim save failed', e); }
+    await STATE_DOC.set({ orders: firebase.firestore.FieldValue.delete() }, { merge:true });
+    delete cloud.orders;
+    toast('Готово: ' + orders.length + ' замовлень у новому сховищі');
+  }catch(e){ console.warn('legacy orders cleanup failed', e); }
 }
 
 // Розкладка логотипів потрібна лише для повторного редагування позиції —
@@ -5215,13 +5313,15 @@ async function init(){
   await loadCloud();
   settings = await storeGet('settings', structuredClone(DEFAULT_SETTINGS));
   garments = await storeGet('garments', structuredClone(DEFAULT_GARMENTS));
-  orders   = await storeGet('orders', []);
+  orders   = await loadOrders();
+  // Перший запуск після оновлення: забираємо картки зі старого сховища
+  if(!orders.length) await migrateOrdersToCollection();
 
   paintSettingsForm();
   refreshGarmentSelect();
   renderApps();
   renderBoard();
-  await slimStoredOrders();   // разово чистимо base64, який роздув документ
+  watchOrders();      // жива синхронізація карток між пристроями
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
@@ -5311,7 +5411,7 @@ async function init(){
     cloud = Object.assign({settings:null,garments:null,orders:null}, data);
     if(data.settings) settings = data.settings;
     if(data.garments) garments = data.garments;
-    orders = data.orders || [];
+    // замовлення сюди більше не входять — у них власна колекція і власний слухач
     // не перемальовуємо поля, поки користувач щось вводить (щоб не збити введення)
     const a = document.activeElement;
     const typing = a && (a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA');
