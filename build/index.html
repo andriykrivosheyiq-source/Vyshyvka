@@ -5956,8 +5956,18 @@
             var atMin = sell > raw + 0.5;
             var note;
             if(m.mode === 'grid'){
+              // Показуємо, з якої саме клітинки таблиці взята сума: розмір листа,
+              // рядок тиражу і габарит логотипа. Інакше сума виглядає нізвідки.
               var bcol = dtfBandCol(m, l); var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
-              note = ' <span style="color:#5a6a80;">(лист '+blab+')</span>' + (atMin ? ' <span style="color:#c58a00;">(мін)</span>' : '');
+              var qfa = m.qtyFrom || [], uNow = Math.max(1, totalUnits()), qrow = 0;
+              for(var jj = qfa.length - 1; jj >= 0; jj--){ if(uNow >= qfa[jj]){ qrow = jj; break; } }
+              var dmm = layerOpaqueDimsMm(l);
+              var calcG = 'лист ' + blab
+                + (qfa.length ? ' · рядок «від ' + qfa[qrow] + ' шт»' : '')
+                + (dmm ? ' · лого ' + Math.round(dmm.w/10) + '×' + Math.round(dmm.h/10) + ' см' : '')
+                + ' · з таблиці ' + Math.round(raw);
+              note = ' <span style="color:#8a94a6;">' + calcG + '</span>'
+                + (atMin ? ' <span style="color:#c58a00;">(мін ' + minForIndex(m, idx) + ')</span>' : '');
             } else {
               // показуємо, з чого склалась сума: площа × ставка з адмінки
               var mm2 = layerAreaMm2(l) * (l.fill || 0.85);
