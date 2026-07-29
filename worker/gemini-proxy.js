@@ -15,7 +15,14 @@
 const DEFAULT_ALLOWED = ['https://loomiq.net', 'https://www.loomiq.net'];
 
 // Моделі пробуються по черзі: якщо перша недоступна на акаунті — береться наступна.
-const MODELS = ['gemini-2.5-flash-image', 'gemini-2.0-flash-preview-image-generation'];
+// Різні моделі вимагають різного набору responseModalities, тож перебираємо пари.
+const ATTEMPTS = [
+  { model: 'gemini-2.5-flash-image', modalities: ['IMAGE'] },
+  { model: 'gemini-2.5-flash-image', modalities: ['TEXT', 'IMAGE'] },
+  { model: 'gemini-2.5-flash-image-preview', modalities: ['IMAGE'] },
+  { model: 'gemini-2.0-flash-preview-image-generation', modalities: ['TEXT', 'IMAGE'] },
+  { model: 'gemini-2.5-flash-image', modalities: null }   // без явного налаштування
+];
 
 function allowedOrigins(env) {
   const raw = (env && env.ALLOWED_ORIGINS) || '';
@@ -120,13 +127,12 @@ export default {
       'clean flat solid white background, no shadow, no mockup, no text watermark, ' +
       'crisp edges, high contrast, vector-like look. Subject: ';
 
-    const payload = {
-      contents: [{ role: 'user', parts: [{ text: guide + prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE'] }
-    };
-
     let lastErr = null;
-    for (const model of MODELS) {
+    for (const attempt of ATTEMPTS) {
+      const model = attempt.model;
+      const payload = { contents: [{ role: 'user', parts: [{ text: guide + prompt }] }] };
+      if (attempt.modalities) payload.generationConfig = { responseModalities: attempt.modalities };
+
       const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
         model + ':generateContent';
       let resp;
@@ -143,8 +149,10 @@ export default {
 
       const text = await resp.text();
       if (!resp.ok) {
-        // Ключ назовні не віддаємо — лише статус, щоб сайт показав зрозуміле повідомлення.
-        lastErr = { error: 'gemini-failed', model, status: resp.status, detail: text.slice(0, 300) };
+        // Ключ назовні не віддаємо — лише статус і пояснення Google, щоб було видно причину.
+        let msg = '';
+        try { msg = ((JSON.parse(text) || {}).error || {}).message || ''; } catch (e) {}
+        lastErr = { error: 'gemini-failed', model, status: resp.status, detail: (msg || text).slice(0, 300) };
         continue;
       }
 

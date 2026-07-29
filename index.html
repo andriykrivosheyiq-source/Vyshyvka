@@ -6163,6 +6163,7 @@
             // Список імен змінних воркера (без значень) — щоб було видно,
             // чи взагалі долетів секрет, коли налаштування не спрацювало.
             if(j.vars && j.vars.length) err.vars = j.vars.join(', ');
+            err.status = j.status; err.detail = j.detail;
             throw err;
           });
         }
@@ -6365,8 +6366,10 @@
             m === 'ai-network'      ? 'Сервіс генерації не відповів. Спробуйте ще раз або завантажте файл.' :
             m === 'no-image'        ? 'Gemini не намалював зображення за цим описом — сформулюйте інакше.' :
             m === 'empty-prompt'    ? 'Спершу опишіть логотип.' :
-            m === 'gemini-failed'   ? 'Gemini відхилив запит. Спробуйте змінити опис.' :
+            m === 'gemini-failed'   ? 'Gemini відхилив запит' + (err.status ? ' (код ' + err.status + ')' : '') + '.' :
             'Не вдалося згенерувати (' + (m || 'помилка') + '). Поки завантажте файл.';
+          // Пояснення Google показуємо як є — без нього причину не вгадати.
+          if(err && err.detail) n.textContent += ' ' + err.detail;
           if(err && err.vars) n.textContent += ' Змінні воркера: ' + err.vars + '.';
         }).then(function(){
           aiBusy = false;
