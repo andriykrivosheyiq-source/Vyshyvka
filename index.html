@@ -5944,7 +5944,15 @@
               var bcol = dtfBandCol(m, l); var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
               note = ' <span style="color:#5a6a80;">(лист '+blab+')</span>' + (atMin ? ' <span style="color:#c58a00;">(мін)</span>' : '');
             } else {
-              note = atMin ? ' <span style="color:#c58a00;">(мін '+minForIndex(m, idx)+')</span>' : ' <span style="color:#1a7a3a;">(за площею '+Math.round(raw)+')</span>';
+              // показуємо, з чого склалась сума: площа × ставка з адмінки
+              var mm2 = layerAreaMm2(l) * (l.fill || 0.85);
+              var rate = +m.pricePer1000mm2 || 0;               // грн за 1000 мм²
+              var calc = (mm2/100).toFixed(1) + ' см² × ' + (rate/10) + ' грн/см² = ' + Math.round(raw);
+              note = atMin
+                ? ' <span style="color:#c58a00;">(мін ' + minForIndex(m, idx) + ')</span>'
+                  + ' <span style="color:#8a94a6;">' + calc + '</span>'
+                : ' <span style="color:#1a7a3a;">(за площею)</span>'
+                  + ' <span style="color:#8a94a6;">' + calc + '</span>';
             }
             tb += r('↳ Зображення '+(idx+1)+note, money(sell), money(cost), {muted:true});
           }); });
