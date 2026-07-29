@@ -1394,7 +1394,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
-    if(view==='board'){ refreshGarmentSelect(); renderBoard(); }
+    if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); }
     if(view==='settings') paintSitePricing();
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
@@ -2364,8 +2364,16 @@ function woState(text, bad){
   el.textContent = text;
   el.classList.toggle('is-bad', !!bad);
 }
-(function(){
+// Слухач нових замовлень із сайту.
+// ВАЖЛИВО: чіпляти його можна лише ПІСЛЯ входу — правила бази вимагають
+// авторизацію на читання webOrders. Якщо підписатись до входу, Firestore
+// відхиляє запит, слухач «вмирає» назавжди і нові замовлення не приходять.
+let webOrdersWatching = false;
+function watchWebOrders(){
+  if(webOrdersWatching) return;
   if(typeof fbDb === 'undefined') return;
+  if(!(fbAuth && fbAuth.currentUser)) return;   // ще не увійшли — спробуємо після входу
+  webOrdersWatching = true;
   fbDb.collection('webOrders').where('imported','==',false).onSnapshot(async function(snap){
     woState('Замовлення з сайту надходять у колонку «Нове»');
     const fresh = [];
@@ -2402,11 +2410,12 @@ function woState(text, bad){
     }
   }, function(e){
     console.warn('webOrders listen failed', e);
+    webOrdersWatching = false;   // дамо шанс перепідписатись (напр. після входу)
     // показуємо причину прямо в Канбані — інакше збій лишається невидимим
     woState('Замовлення з сайту НЕ надходять: ' + (e && (e.code || e.message) || 'невідома помилка') +
             '. Дозвольте колекцію webOrders у правилах Firestore.', true);
   });
-})();
+}
 
 function renderBoard(){
   const board = document.getElementById('board');
@@ -4341,6 +4350,7 @@ async function init(){
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+  watchWebOrders();   // підписуємось на нові замовлення вже після входу
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
   let photosUnsub = null;
