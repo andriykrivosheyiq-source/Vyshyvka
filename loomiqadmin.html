@@ -1363,10 +1363,30 @@ async function storeGet(key, fallback){
   const v = cloud[key];
   return (v !== undefined && v !== null) ? v : fallback;
 }
+// Firestore не приймає документ, більший за 1 МБ, і відхиляє його ЦІЛКОМ.
+// Через це раніше нові замовлення мовчки зникали після перезавантаження:
+// запис падав, а в базі лишалась остання вдала версія.
+const STATE_SOFT_LIMIT = 900 * 1024;
+function jsonBytes(v){
+  try{ return new Blob([JSON.stringify(v)]).size; }catch(e){ return 0; }
+}
 async function storeSet(key, value){
+  const prev = cloud[key];
   cloud[key] = value;
+  const bytes = jsonBytes(cloud);
+  if(bytes > STATE_SOFT_LIMIT){
+    console.warn('state doc too big', bytes);
+    toast('База переповнена (' + Math.round(bytes/1024) + ' КБ з 1024). Зверніться до розробника.');
+  }
   try{ await STATE_DOC.set({ [key]: value }, { merge:true }); }
-  catch(e){ console.error('cloud set failed', e); toast('Не вдалось зберегти у хмару'); }
+  catch(e){
+    cloud[key] = prev;              // локально теж відкочуємо, щоб не показувати неправду
+    console.error('cloud set failed', e);
+    alert('НЕ ЗБЕРЕЖЕНО у хмару: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+          '\n\nДані показані на екрані, але в базі їх немає. Не закривайте вкладку — ' +
+          'зробіть скриншот і покажіть розробнику.');
+    throw e;
+  }
 }
 
 const DEFAULT_SETTINGS = {
@@ -2344,6 +2364,60 @@ document.getElementById('save-order').addEventListener('click', async ()=>{
 /* ============================================================
    KANBAN VIEW
    ============================================================ */
+// Разове прибирання: у вже збережених замовленнях логотипи лежать як base64
+// і роздувають документ до ліміту, через що нові картки переставали зберігатись.
+// Переносимо картинки в хмару, у базі лишаємо посилання.
+async function slimStoredOrders(){
+  const isData = v => typeof v === 'string' && /^data:/i.test(v);
+  const heavy = (orders || []).filter(o =>
+    (o.items || []).some(it =>
+      (it.prints || []).some(p => isData(p.file)) ||
+      (it.mockups || []).some(isData) ||
+      jsonBytes(it.config) > 4096));
+  if(!heavy.length) return;
+  toast('Прибираємо старі файли з бази (' + heavy.length + ')…');
+  let moved = 0, lost = 0;
+  for(const o of heavy){
+    for(const it of (o.items || [])){
+      // Якщо хмара не відповіла — лишаємо оригінал як є. Краще великий документ,
+      // ніж втрачений макет: наступний запуск спробує ще раз.
+      const mk = [];
+      for(const m of (it.mockups || [])){
+        if(!isData(m)){ mk.push(m); continue; }
+        try{ const u = await uploadCloudinary(m); mk.push(u || m); u ? moved++ : lost++; }
+        catch(e){ mk.push(m); lost++; }
+      }
+      it.mockups = mk;
+      for(const p of (it.prints || [])){
+        if(!isData(p.file)) continue;
+        try{ const u = await uploadCloudinary(p.file); if(u){ p.file = u; moved++; } else lost++; }
+        catch(e){ lost++; }
+      }
+      it.config = slimOrderConfig(it.config);
+    }
+  }
+  try{
+    await storeSet('orders', orders);
+    renderBoard();
+    toast('Готово: файлів перенесено ' + moved + (lost ? ', не вдалось ' + lost : '') +
+          '. Розмір бази: ' + Math.round(jsonBytes(cloud)/1024) + ' КБ');
+  }catch(e){ console.error('slim save failed', e); }
+}
+
+// Розкладка логотипів потрібна лише для повторного редагування позиції —
+// самі картинки в ній зайві. Викидаємо base64, лишаємо геометрію.
+function slimOrderConfig(cfg){
+  if(!cfg) return null;
+  const out = { garmentId: cfg.garmentId || null, colorId: cfg.colorId || null,
+                printId: cfg.printId || null, qty: cfg.qty || {}, logos: {} };
+  Object.keys(cfg.logos || {}).forEach(side=>{
+    out.logos[side] = (cfg.logos[side] || []).map(l=>({
+      x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
+      fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null
+    }));
+  });
+  return out;
+}
 // Створення картки клієнта з менеджерського кошика (викликається з iframe «Прорахунок»)
 window.__adminSaveClientOrder = async function(payload){
   payload = payload || {};
@@ -2357,13 +2431,27 @@ window.__adminSaveClientOrder = async function(payload){
       try{ const u = await uploadCloudinary(img); if(u) mockups.push(u); }
       catch(e){ console.warn('mockup upload failed', e); }
     }
+    // Оригінали логотипів теж ідуть у хмару. Раніше вони лягали в базу як base64
+    // і одне замовлення могло саме по собі перевищити ліміт документа.
+    const prints = [];
+    for(const p of (it.prints || [])){
+      let file = p.file || null;
+      if(file && /^data:/i.test(file)){
+        // при збої лишаємо оригінал: втратити файл клієнта гірше, ніж роздути документ
+        try{ file = (await uploadCloudinary(file)) || file; }
+        catch(e){ console.warn('logo upload failed', e); }
+      }
+      prints.push({ side: p.side||'', technique: p.technique||'',
+                    widthMm: Math.round(+p.widthMm||0), heightMm: Math.round(+p.heightMm||0),
+                    file: file || null });
+    }
     items.push({
       kind: it.kind === 'reco' ? 'reco' : 'main',
       recoNote: it.recoNote || '',
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, prints: it.prints||[], calc: it.calc||null, config: it.config||null
+      mockups, prints, calc: it.calc||null, config: slimOrderConfig(it.config)
     });
   }
   // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
@@ -5133,6 +5221,7 @@ async function init(){
   refreshGarmentSelect();
   renderApps();
   renderBoard();
+  await slimStoredOrders();   // разово чистимо base64, який роздув документ
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
