@@ -397,7 +397,7 @@
     }).join('') + '</div>';
   }
 
-  function specsHtml(it){
+  function specsHtml(it, i){
     var rows = [['Колір', it.color]];
     var tech = it.techniques.length ? it.techniques.join(', ') : it.print;
     if(tech) rows.push(['Нанесення', tech]);
@@ -407,12 +407,16 @@
     var sizeList = it.sides.filter(function(s){ return s.widthMm && s.heightMm; })
       .map(function(s){ return Math.round(s.widthMm/10) + ' × ' + Math.round(s.heightMm/10) + ' см'; });
     if(sizeList.length) rows.push(['Розмір нанесення', sizeList.join(', ')]);
-    if(it.sizes) rows.push(['Розмірний ряд', it.sizes]);
+    // Обраний клієнтом тираж уже не збігається з початковою розкладкою по розмірах —
+    // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
+    if(it.sizes) rows.push(['Розмірний ряд',
+      itemState(i).changed ? 'узгодимо з вами' : it.sizes]);
     rows.push(['Термін', OFFER.terms.deadlineDays + ' роб. днів']);
-    return '<div class="specs">' + rows.filter(function(r){ return r[1]; }).map(function(r){
-      return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
-             '<div class="spec-v">' + esc(r[1]) + '</div></div>';
-    }).join('') + '</div>';
+    return '<div class="specs" data-specs="' + i + '">' +
+      rows.filter(function(r){ return r[1]; }).map(function(r){
+        return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
+               '<div class="spec-v">' + esc(r[1]) + '</div></div>';
+      }).join('') + '</div>';
   }
 
   function priceBoxHtml(i){
@@ -473,7 +477,7 @@
         OFFER.items.map(function(it, i){
           return '<div class="item">' +
             '<h3 class="item-name">' + esc(it.name) + '</h3>' +
-            mocksHtml(it) + specsHtml(it) + priceBoxHtml(i) +
+            mocksHtml(it) + specsHtml(it, i) + priceBoxHtml(i) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
           '</div>';
         }).join('') +
@@ -672,6 +676,8 @@
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('barSum', money(t.sum));
     OFFER.items.forEach(function(it, i){
+      var sp = document.querySelector('[data-specs="' + i + '"]');
+      if(sp) sp.outerHTML = specsHtml(it, i);
       var box = document.querySelector('[data-price-box="' + i + '"]');
       if(box) box.outerHTML = priceBoxHtml(i);
       var tw = document.querySelector('[data-tiers="' + i + '"]');
