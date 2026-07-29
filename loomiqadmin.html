@@ -83,6 +83,14 @@
   .calc-bar select{padding:8px 11px;border-radius:9px;border:1px solid var(--line);
     background:#fff;color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer;}
   .calc-bar-hint{font-size:12px;color:#8893A6;line-height:1.35;flex:1;min-width:180px;}
+  /* Перегляд посадкової на різних пристроях */
+  .dev-switch{display:flex;gap:2px;background:#EEF1F6;border:1px solid var(--line);border-radius:9px;padding:3px;flex:none;}
+  .dev-switch button{border:none;background:none;font:inherit;font-size:12px;color:var(--ink-soft);
+    padding:6px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+  .dev-switch button:hover{color:var(--ink);}
+  .dev-switch button.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(15,32,52,.10);}
+  #landing-stage.is-framed{padding:14px;}
+  #landing-stage.is-framed #calc-frame{border-radius:12px;box-shadow:0 6px 26px rgba(15,32,52,.16);}
   .calc-bar.is-editing{border-color:#16A34A;background:#f2fbf5;}
   .lq-img-panel{position:absolute;z-index:60;width:230px;background:#fff;border:1px solid var(--line);
     border-radius:12px;box-shadow:0 12px 30px -10px rgba(0,0,0,.25);padding:12px;display:flex;
@@ -1014,13 +1022,20 @@
             </select>
           </div>
           <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
+          <!-- Перегляд на різних пристроях: як у конструкторах сайтів -->
+          <div class="dev-switch" id="dev-switch">
+            <button data-dev="mobile" title="Мобільний (390px)">📱 Мобільний</button>
+            <button data-dev="tablet" title="Планшет (820px)">▭ Планшет</button>
+            <button data-dev="desktop" class="active" title="Компʼютер (на всю ширину)">🖥 Компʼютер</button>
+          </div>
           <span class="calc-bar-hint" id="edit-hint">Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.</span>
         </div>
         <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
           Оберіть посадкову сторінку і редагуйте її наповнення просто на самій сторінці: тексти, фото, кейси, блоки з питаннями.
         </div>
-        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;height:calc(100vh - 210px);min-height:520px;">
-          <iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;"></iframe>
+        <div id="landing-stage" style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef1f6;
+             height:calc(100vh - 210px);min-height:520px;display:flex;justify-content:center;align-items:stretch;padding:0;">
+          <iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;background:#fff;transition:width .18s;"></iframe>
         </div>
       </div>
 
@@ -1416,7 +1431,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
       // посадкові сторінки редагуються в Конструкторі сайту.
       const fr = document.getElementById('calc-only-frame');
-      if(fr && !fr.src) fr.src = 'index.html?manager=1';
+      if(fr && !fr.src) fr.src = 'index.html?manager=1&start=catalog';
     }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
@@ -4408,6 +4423,24 @@ async function init(){
   }
   // визначення лежить усередині блоку — виносимо назовні для обробника меню
   window.loadCalcFrame = loadCalcFrame;
+  // Перегляд посадкової як на телефоні / планшеті / компʼютері.
+  // Просто змінюємо ширину фрейма — сторінка сама перебудовується своїми медіа-запитами.
+  (function(){
+    const box = document.getElementById('dev-switch');
+    if(!box) return;
+    const WIDTHS = { mobile:'390px', tablet:'820px', desktop:'100%' };
+    function apply(dev){
+      const fr = document.getElementById('calc-frame');
+      const stage = document.getElementById('landing-stage');
+      if(!fr || !stage) return;
+      fr.style.width = WIDTHS[dev] || '100%';
+      stage.classList.toggle('is-framed', dev !== 'desktop');
+      box.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.dev === dev));
+      localStorage.setItem('lq_admin_dev', dev);
+    }
+    box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> apply(b.dataset.dev)));
+    apply(localStorage.getItem('lq_admin_dev') || 'desktop');
+  })();
   (function(){
     const sel = document.getElementById('site-switch');
     if(!sel) return;

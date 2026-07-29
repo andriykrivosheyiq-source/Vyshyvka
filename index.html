@@ -4165,6 +4165,11 @@
   document.querySelectorAll('[data-open-catalog]').forEach(function(btn){
     btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
   });
+  // ?start=catalog — одразу відкриваємо каталог (використовує «Прорахунок» в адмінці:
+  // менеджеру не потрібна посадкова, він одразу обирає товар)
+  if(/[?&]start=catalog\b/.test(location.search)){
+    setTimeout(function(){ try{ catalogModalCtrl.open(); }catch(e){} }, 250);
+  }
   document.getElementById('catalogPhoneBtn').addEventListener('click', openContactModal);
   document.getElementById('catalogBurgerBtn').addEventListener('click', toggleMenu);
   document.getElementById('contactBurgerBtn').addEventListener('click', toggleMenu);
