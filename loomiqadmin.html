@@ -2263,16 +2263,30 @@ document.getElementById('save-order').addEventListener('click', async ()=>{
 // Створення картки клієнта з менеджерського кошика (викликається з iframe «Прорахунок»)
 window.__adminSaveClientOrder = async function(payload){
   payload = payload || {};
-  const items = (payload.items || []).map(it=>({
-    name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
-    qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
-    unitCost: +it.unitCost||0, cost: +it.cost||0, imgs: it.imgs||[], config: it.config||null
-  }));
+  toast('Зберігаємо макети…');
+  // Макети вивантажуємо у хмару: у Канбані лишаються ПОСИЛАННЯ, а не data URL
+  // (інакше документ Firestore швидко перевищить ліміт 1 МБ і дошка зламається).
+  const items = [];
+  for(const it of (payload.items || [])){
+    const mockups = [];
+    for(const img of (it.imgs || []).slice(0, 4)){
+      try{ const u = await uploadCloudinary(img); if(u) mockups.push(u); }
+      catch(e){ console.warn('mockup upload failed', e); }
+    }
+    items.push({
+      name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
+      qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
+      unitCost: +it.unitCost||0, cost: +it.cost||0,
+      mockups, prints: it.prints||[], config: it.config||null
+    });
+  }
   const totalPrice = items.reduce((a,i)=>a+i.price,0);
   const totalCost  = items.reduce((a,i)=>a+i.cost,0);
   const order = {
     id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
+    orderId: makeOrderId(),
     instagram: (payload.instagram||'').trim(),
+    name: (payload.name||'').trim(), phone: (payload.phone||'').trim(),
     items,
     totalPrice, totalCost, margin: totalPrice-totalCost,
     marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
@@ -2280,9 +2294,46 @@ window.__adminSaveClientOrder = async function(payload){
   };
   orders.unshift(order);
   await storeSet('orders', orders);
-  toast('Картку клієнта «'+order.instagram+'» створено в Канбані');
+  notifyTelegram(order);   // дублюємо в Telegram, як і замовлення з сайту
+  toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
 };
+// Короткий номер замовлення (той самий формат, що й на сайті)
+function makeOrderId(){
+  const A = 'ACDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = ''; for(let i=0;i<4;i++) s += A[Math.floor(Math.random()*A.length)];
+  return 'LQ-' + s;
+}
+// Сповіщення в Telegram через той самий воркер, що й заявки з сайту (без собівартості).
+const LEAD_ENDPOINT = 'https://loomiq-lead.stvory.workers.dev';
+function notifyTelegram(o){
+  const L = [];
+  L.push('🆕 Замовлення ' + (o.orderId||''));
+  if(o.name) L.push('👤 ' + o.name);
+  if(o.instagram) L.push('📷 ' + o.instagram);
+  L.push('💰 Сума: ' + o.totalPrice + ' грн');
+  L.push('');
+  (o.items||[]).forEach((it,i)=>{
+    L.push('— ' + (i+1) + '. ' + it.name + (it.color ? ' · ' + it.color : ''));
+    L.push('   Розміри: ' + (it.sizes||'—') + ' (всього ' + it.qty + ' шт)');
+    L.push('   Ціна: ' + it.unitPrice + ' грн/шт · ' + it.price + ' грн');
+    const pr = it.prints||[];
+    if(pr.length){
+      pr.forEach(p=>{
+        const size = (p.widthMm && p.heightMm) ? ' · ' + Math.round(p.widthMm) + '×' + Math.round(p.heightMm) + ' мм' : '';
+        L.push('   Нанесення: ' + (p.technique||'') + (p.side?' · '+p.side:'') + size);
+        if(p.file) L.push('   Файл клієнта: ' + p.file);
+      });
+    } else if(it.print){
+      L.push('   Нанесення: ' + it.print);
+    }
+    (it.mockups||[]).forEach((u,k)=> L.push('   Макет ' + (k+1) + ': ' + u));
+    L.push('');
+  });
+  fetch(LEAD_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ phone: o.phone || o.instagram || '—', page: 'адмінка · менеджер',
+      context: L.join('\n') }) }).catch(e=>console.warn('telegram failed', e));
+}
 /* ============================================================
    ЗАМОВЛЕННЯ З САЙТУ
    Сайт пише кожне замовлення окремим документом у webOrders — так публічний
@@ -2316,6 +2367,7 @@ function woState(text, bad){
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
       orders.unshift({
         id: cryptoId(), webId: rec.id, type:'web', status:'new',
+        orderId: d.orderId || '',        // короткий номер для пошуку в CRM
         source: 'сайт' + (d.site && d.site !== 'main' ? ' · ' + d.site : ''),
         name: d.name||'', phone: d.phone||'', items,
         totalPrice, totalCost, margin: totalPrice-totalCost,
@@ -2494,7 +2546,7 @@ function renderWebTicket(o){
     <div class="t-top">
       <div>
         <div class="phone">${escapeHtml(o.name||'—')} · ${escapeHtml(o.phone||'')}</div>
-        <div class="t-date">${createdDate}</div>
+        <div class="t-date">${o.orderId?'<b style="color:#0F2034;">'+escapeHtml(o.orderId)+'</b> · ':''}${createdDate}</div>
       </div>
       <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>
     </div>
@@ -2523,21 +2575,38 @@ function renderClientTicket(o){
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
   const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
   const goodMargin = (o.margin||0) >= 0;
-  const itemsHtml = (o.items||[]).map(it=>`<div class="t-brow"><span>${escapeHtml(it.name)} · ${it.qty} шт</span><span>${fmt(it.price)} ₴</span></div>`).join('');
+  // Повні деталі позиції: розміри, нанесення, макети і файл клієнта — як у замовленнях із сайту
+  const itemsHtml = (o.items||[]).map(it=>{
+    const prints = (it.prints||[]).map(p=>`
+      <div class="t-web-print">
+        <span class="t-web-print-size">${p.widthMm?Math.round(p.widthMm):'?'} × ${p.heightMm?Math.round(p.heightMm):'?'} мм</span>
+        <span class="t-web-print-side">${escapeHtml(p.technique||'')}${p.side?' · '+escapeHtml(p.side):''}</span>
+        ${p.file?`<a href="${escapeHtml(p.file)}" target="_blank" rel="noopener" download class="t-web-file">файл ↓</a>`:'<span class="t-web-file t-web-file--none">без файлу</span>'}
+      </div>`).join('') || `<div class="t-web-print t-web-print--none">${escapeHtml(it.print||'без нанесення')}</div>`;
+    const mockups = (it.mockups||[]).map(u=>
+      `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="t-web-mock"><img src="${escapeHtml(u)}" alt="макет" loading="lazy"></a>`).join('');
+    return `
+      <div class="t-web-item">
+        <div class="t-web-head">
+          <span class="t-web-name">${escapeHtml(it.name||'—')}</span>
+          <span class="t-web-price">${fmt(it.price)} ₴</span>
+        </div>
+        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
+        ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
+        ${prints}
+      </div>`;
+  }).join('');
+  const who = [o.instagram, o.name, o.phone].filter(Boolean).join(' · ') || '—';
   el.innerHTML = `
     <div class="t-top">
       <div>
-        <div class="phone">${escapeHtml(o.instagram||'—')}</div>
-        <div class="t-date">${createdDate}</div>
+        <div class="phone">${escapeHtml(who)}</div>
+        <div class="t-date">${o.orderId?'<b style="color:#0F2034;">'+escapeHtml(o.orderId)+'</b> · ':''}${createdDate}</div>
       </div>
       <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>
     </div>
-    <div class="t-garment-block">
-      <div class="t-garment-name">Замовлення клієнта</div>
-      <div class="t-garment-qty">${(o.items||[]).length} товар(ів)</div>
-    </div>
+    <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
     <div class="t-breakdown">
-      ${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}
       <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
       <div class="t-brow t-brow-price"><span>Сума (продаж)</span><span>${fmt(o.totalPrice)} ₴</span></div>
     </div>

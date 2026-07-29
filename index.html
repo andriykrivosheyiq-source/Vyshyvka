@@ -7038,7 +7038,10 @@
       if(nick == null) return;
       nick = String(nick).trim();
       if(!nick || nick === '@'){ alert('Вкажіть нік інстаграма.'); return; }
-      var payload = { instagram: nick, items: JSON.parse(JSON.stringify(cartItems)) };
+      var cname = prompt('Імʼя клієнта (можна пропустити):', '') || '';
+      var cphone = prompt('Телефон клієнта (можна пропустити):', '') || '';
+      var payload = { instagram: nick, name: String(cname).trim(), phone: String(cphone).trim(),
+                      items: JSON.parse(JSON.stringify(cartItems)) };
       var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
       if(typeof saver === 'function'){
         try{ saver(payload); }catch(e){ alert('Помилка збереження: ' + (e && e.message || e)); return; }
@@ -7799,6 +7802,13 @@ window.LOOMIQ_CONFIG = {
     btn.disabled = false; btn.textContent = 'Надіслати замовлення';
   }
 
+  // Короткий читабельний номер замовлення — щоб швидко знайти його в CRM/Канбані.
+  function makeOrderId(){
+    var A = 'ACDEFGHJKLMNPQRSTUVWXYZ23456789';   // без схожих символів (0/O, 1/I)
+    var s = '';
+    for(var i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)];
+    return 'LQ-' + s;
+  }
   // Телефон приймаємо в будь-якому записі, але зберігаємо в одному форматі.
   function normPhone(v){
     var d = String(v||'').replace(/\D/g,'');
@@ -7876,6 +7886,7 @@ window.LOOMIQ_CONFIG = {
       var totalPrice = items.reduce(function(a,i){ return a + i.price; }, 0);
       var totalCost  = items.reduce(function(a,i){ return a + i.cost;  }, 0);
       var order = {
+        orderId: makeOrderId(),    // короткий номер для CRM/Канбану і Telegram
         name: nm, phone: ph,
         site: window.LQ_SITE || 'main',
         items: items,
@@ -7913,6 +7924,7 @@ window.LOOMIQ_CONFIG = {
         ? fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ phone: ph, page: location.pathname,
               context: 'ЗАМОВЛЕННЯ З САЙТУ' + (order.site && order.site !== 'main' ? ' (' + order.site + ')' : '')
+                + '\n№ ' + order.orderId          // короткий номер для пошуку в CRM/Канбані
                 + '\nІмʼя: ' + nm
                 + '\nТелефон: ' + ph
                 + '\nСума: ' + totalPrice + ' грн'
