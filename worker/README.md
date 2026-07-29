@@ -98,3 +98,45 @@ npx wrangler secret put TELEGRAM_CHAT_ID  --name loomiq-lead
 
 Якщо якийсь файл не прикріпиться, воркер напише про це окремим рядком —
 посилання на нього все одно є в тексті замовлення.
+
+---
+
+# Генерація логотипів через Gemini
+
+Файл `gemini-proxy.js` — воркер `loomiq-gemini`. Менеджер в адмінці пише опис,
+воркер просить Gemini намалювати зображення й віддає готовий PNG.
+Ключ Google живе лише в секретах Cloudflare — у коді сайту його немає.
+
+## Розгортання
+
+```bash
+cd worker
+npx wrangler deploy gemini-proxy.js --name loomiq-gemini
+npx wrangler secret put GEMINI_API_KEY --name loomiq-gemini
+```
+
+Або через сайт Cloudflare: Workers & Pages → воркер `loomiq-gemini` →
+**Edit code** → вставити вміст `gemini-proxy.js` → **Deploy**; далі
+Settings → Variables and secrets → Add → тип **Secret**, ім'я `GEMINI_API_KEY`.
+
+> Ім'я секрету має бути саме `GEMINI_API_KEY` — без пробілів. Воркер вміє
+> підхопити ключ і під іншим ім'ям (шукає значення виду `AIza…`), але це
+> запасний варіант, а не норма.
+
+## Як користуватись
+
+Адмінка → **Прорахунок** → додати нанесення → «Згенерувати через Gemini» →
+описати логотип. Згенероване зображення далі проходить через
+`loomiq-photoroom`, щоб фон став прозорим.
+
+## Перевірка
+
+```bash
+curl -X POST "https://loomiq-gemini.stvory.workers.dev" \
+  -H "Origin: https://loomiq.net" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"minimal line-art mountain logo"}' -o out.png
+```
+
+Якщо замість картинки прийшов JSON — у полі `error` буде причина
+(`no-image`, `gemini-failed` зі статусом тощо).
