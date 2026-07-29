@@ -6157,9 +6157,13 @@
         // Помилку воркер віддає як JSON — витягуємо причину, щоб показати зрозумілий текст.
         if(!r.ok || !/^image\//.test(type)){
           return r.text().then(function(t){
-            var reason = '';
-            try{ reason = (JSON.parse(t) || {}).error || ''; }catch(e){}
-            throw new Error(reason || ('ai-' + r.status));
+            var j = {};
+            try{ j = JSON.parse(t) || {}; }catch(e){}
+            var err = new Error(j.error || ('ai-' + r.status));
+            // Список імен змінних воркера (без значень) — щоб було видно,
+            // чи взагалі долетів секрет, коли налаштування не спрацювало.
+            if(j.vars && j.vars.length) err.vars = j.vars.join(', ');
+            throw err;
           });
         }
         return r.blob().then(blobToDataUrl);
@@ -6363,6 +6367,7 @@
             m === 'empty-prompt'    ? 'Спершу опишіть логотип.' :
             m === 'gemini-failed'   ? 'Gemini відхилив запит. Спробуйте змінити опис.' :
             'Не вдалося згенерувати (' + (m || 'помилка') + '). Поки завантажте файл.';
+          if(err && err.vars) n.textContent += ' Змінні воркера: ' + err.vars + '.';
         }).then(function(){
           aiBusy = false;
           go.disabled = false;

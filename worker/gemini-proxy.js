@@ -63,16 +63,29 @@ function pickImage(data) {
 }
 
 // Правильне ім'я секрету — GEMINI_API_KEY. Але якщо секрет назвали інакше
-// (напр. іменем воркера), беремо будь-яке значення, схоже на ключ Google (AIza…),
+// (напр. іменем воркера), беремо будь-яке значення, схоже на ключ,
 // щоб через одну описку не падала генерація. Значення нікуди не віддається.
 function apiKey(env) {
-  if (env.GEMINI_API_KEY) return env.GEMINI_API_KEY;
-  if (env.GEMINI_KEY) return env.GEMINI_KEY;
+  const direct = env.GEMINI_API_KEY || env.GEMINI_KEY;
+  if (typeof direct === 'string' && direct.trim()) return direct.trim();
+  const skip = new Set(['ALLOWED_ORIGINS']);
   for (const k of Object.keys(env || {})) {
+    if (skip.has(k)) continue;
     const v = env[k];
-    if (typeof v === 'string' && /^AIza[\w-]{20,}$/.test(v.trim())) return v.trim();
+    if (typeof v !== 'string') continue;
+    const s = v.trim();
+    // Ключ Google — суцільний рядок без пробілів; адреси й списки доменів відсіюємо.
+    if (s.length < 20 || s.length > 200) continue;
+    if (/\s/.test(s) || /^https?:\/\//i.test(s) || s.includes(',')) continue;
+    return s;
   }
   return null;
+}
+
+// Діагностика без витоку: показуємо лише ІМЕНА змінних і чи це рядок,
+// щоб було видно, чи секрет узагалі долетів до воркера. Значень тут немає ніколи.
+function envReport(env) {
+  return Object.keys(env || {}).map(k => k + ':' + (typeof env[k] === 'string' ? 'string' : typeof env[k]));
 }
 
 export default {
@@ -89,7 +102,9 @@ export default {
     }
 
     const key = apiKey(env);
-    if (!key) return json({ error: 'GEMINI_API_KEY не налаштовано' }, 500, cors);
+    if (!key) {
+      return json({ error: 'GEMINI_API_KEY не налаштовано', vars: envReport(env) }, 500, cors);
+    }
 
     let body;
     try { body = await request.json(); }
