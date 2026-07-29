@@ -295,8 +295,9 @@
   var TICK_W = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0F2034" ' +
                'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
-  function fail(title, text){
-    app.innerHTML = '<div class="state"><h1>' + esc(title) + '</h1><p>' + esc(text) + '</p></div>';
+  function fail(title, text, code){
+    app.innerHTML = '<div class="state"><h1>' + esc(title) + '</h1><p>' + esc(text) + '</p>' +
+      (code ? '<p style="font-size:12px;opacity:.6;">Код: ' + esc(code) + '</p>' : '') + '</div>';
   }
 
   // ── стан сторінки: вибір клієнта живе тут, суми рахуються з нього ──
@@ -782,8 +783,13 @@
     }
   }).catch(function(e){
     console.error(e);
-    fail('Не вдалося відкрити пропозицію',
-         'Перевірте зв\'язок і оновіть сторінку. Якщо не допоможе — напишіть менеджеру.');
+    var code = (e && (e.code || e.message)) || '';
+    // Найчастіша причина — у правилах Firestore не відкрито колекцію offers.
+    // Пишемо це прямо, інакше причину доводиться вгадувати.
+    var hint = /permission|insufficient/i.test(code)
+      ? 'Доступ до пропозиції закритий налаштуваннями бази. Напишіть менеджеру — це полагодять швидко.'
+      : 'Перевірте зв\'язок і оновіть сторінку. Якщо не допоможе — напишіть менеджеру.';
+    fail('Не вдалося відкрити пропозицію', hint, code);
   });
 })();
 </script>
