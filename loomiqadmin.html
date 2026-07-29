@@ -2497,6 +2497,7 @@ function renderTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
     </div>
   `;
 
@@ -2506,8 +2507,19 @@ function renderTicket(o){
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
     if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
   });
+  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
 
   return el;
+}
+
+// Видалення картки із Канбану (тестові, скасовані, дублі).
+async function deleteOrderCard(o){
+  const who = o.orderId || o.name || o.instagram || o.phone || 'замовлення';
+  if(!confirm('Видалити «'+who+'» із Канбану назавжди?')) return;
+  orders = orders.filter(x=>x.id !== o.id);
+  await storeSet('orders', orders);
+  renderBoard();
+  toast('Видалено');
 }
 
 // Картка клієнта (мульти-товар, з ніком інстаграма)
@@ -2559,10 +2571,12 @@ function renderWebTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
     </div>
   `;
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
+  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   return el;
 }
 
@@ -2615,10 +2629,12 @@ function renderClientTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
     </div>
   `;
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
+  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   el.querySelector('[data-act="estimate"]').addEventListener('click', ()=>{ if(window.__openClientEstimate) window.__openClientEstimate(o.id); else toast('Кошторис — наступний етап'); });
   return el;
 }
