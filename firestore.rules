@@ -65,6 +65,23 @@ service cloud.firestore {
     match /offers/{token} {
       allow get: if true;
       allow write: if request.auth != null;
+
+      // Клієнт зі своїм посиланням фіксує лише власний вибір: обраний тираж,
+      // додані рекомендації, підтвердження або запит на зміни. Ціни, товари
+      // й макети він змінити не може — правило пускає тільки ці поля.
+      // Після підтвердження сторінка замикається: далі працює менеджер.
+      allow update: if request.auth == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['selection', 'state', 'clientAction', 'events', 'clientAt'])
+        && resource.data.state != 'confirmed'
+        && (!('events' in request.resource.data)
+            || request.resource.data.events.size() <= 60);
+    }
+
+    // Картки Канбану: одна картка = один документ (ліміт 1 МБ на весь Канбан
+    // раніше глушив збереження). Доступ лише з адмінки.
+    match /kanbanOrders/{id} {
+      allow read, write: if request.auth != null;
     }
 
     // Все інше (ціни, стан Канбану) — лише авторизованим
