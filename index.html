@@ -6422,6 +6422,23 @@
         unitCost: (unitCost() + (u>0?Math.round(methodOrderCost()/u):0)),
         cost: orderCostTotal(),
         qty: u,
+        // Розклад ціни — щоб комерційна пропозиція могла точно порахувати вартість
+        // за будь-якого тиражу («при більшому тиражі»), а не приблизно.
+        calc: (function(){
+          var m = methodCfgNew();
+          var ap = applicationParts();
+          var firstLogo = (function(){ var l = null; getViews().forEach(function(s){ if(!l && (pm.logos[s]||[]).length) l = pm.logos[s][0]; }); return l; })();
+          return {
+            base: basePriceNew(),
+            coefPart: ap.coefPart,                 // вишивка — під знижкою за тираж
+            pieceFee: methodPieceFee(),
+            orderFee: methodOrderFee(),            // разова, ділиться на тираж
+            method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
+            dtfCols: (m && m.mode === 'grid' && firstLogo)
+              ? (function(){ var cols = []; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); }); return cols; })()
+              : []
+          };
+        })(),
         imgs: [],
         config: {
           garmentId: pm.garmentId,
@@ -7881,6 +7898,7 @@ window.LOOMIQ_CONFIG = {
             return { side:p.side, technique:p.technique,
                      widthMm:p.widthMm, heightMm:p.heightMm, file:res[1][i] || null };
           }),
+          calc: it.calc || null,          // розклад ціни для комерційної пропозиції
           config: slimConfig(it.config)
         };
       });

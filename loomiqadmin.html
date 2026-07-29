@@ -349,6 +349,22 @@
   .t-margin.good{background:var(--good-soft);color:var(--good);}
   .t-margin.bad{background:var(--bad-soft);color:var(--bad);}
 
+  /* Документи для клієнта на картці Канбану */
+  .t-docs{border-top:1px dashed #E3E8EF;margin-top:9px;padding-top:9px;}
+  .t-docs-head{font-size:10.5px;font-weight:700;color:#9AA5B5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
+  .t-docs-kps{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+  .t-doc-kp{border:1px solid #D9E2F0;background:#F4F8FE;color:#1668c4;font:inherit;font-size:11.5px;font-weight:700;
+    padding:5px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+  .t-doc-kp:hover{background:#E6F0FC;}
+  .t-doc-kp:disabled{opacity:.55;cursor:default;}
+  .t-docs-row{display:flex;gap:6px;}
+  .t-doc-main{flex:1;border:none;background:#0F2034;color:#fff;font:inherit;font-size:12px;font-weight:700;
+    padding:8px 10px;border-radius:9px;cursor:pointer;}
+  .t-doc-main:hover{background:#1c2840;}
+  .t-doc-sec{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:12px;
+    font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer;}
+  .t-doc-sec:hover{background:var(--canvas);}
+  .t-doc-main:disabled,.t-doc-sec:disabled{opacity:.55;cursor:default;}
   .t-actions{display:flex;gap:6px;}
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -2326,7 +2342,7 @@ window.__adminSaveClientOrder = async function(payload){
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, prints: it.prints||[], config: it.config||null
+      mockups, prints: it.prints||[], calc: it.calc||null, config: it.config||null
     });
   }
   const totalPrice = items.reduce((a,i)=>a+i.price,0);
@@ -2418,7 +2434,7 @@ function watchWebOrders(){
         name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
         qty:+it.qty||0, unitPrice:+it.unitPrice||0, price:+it.price||0,
         unitCost:+it.unitCost||0, cost:+it.cost||0,
-        mockups: it.mockups||[], prints: it.prints||[], config: it.config||null
+        mockups: it.mockups||[], prints: it.prints||[], calc: it.calc||null, config: it.config||null
       }));
       const totalPrice = +d.totalPrice || items.reduce((a,i)=>a+i.price,0);
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
@@ -2448,6 +2464,485 @@ function watchWebOrders(){
   });
 }
 
+/* ============================================================
+   КОМЕРЦІЙНА ПРОПОЗИЦІЯ І КОШТОРИС
+   Малюємо на canvas → PNG, PDF робимо з того самого зображення,
+   тож вигляд гарантовано однаковий скрізь.
+   ============================================================ */
+const DOC_W = 1240;
+
+// Точна ціна за одиницю при будь-якому тиражі — за тією ж формулою, що й на сайті.
+function docPriceAt(item, qty){
+  const c = item.calc;
+  const p = curSitePricing();
+  const tiers = (p && p.tiers) || [];
+  let coef = 1;
+  for(let i = tiers.length - 1; i >= 0; i--){
+    if(qty >= (+tiers[i].from || 1)){ coef = +tiers[i].coef || 1; break; }
+  }
+  if(!c){
+    // старі замовлення без розкладу — масштабуємо від відомої ціни
+    let curCoef = 1;
+    for(let i = tiers.length - 1; i >= 0; i--){
+      if((item.qty||1) >= (+tiers[i].from || 1)){ curCoef = +tiers[i].coef || 1; break; }
+    }
+    return Math.round((+item.unitPrice || 0) * (coef / (curCoef || 1)));
+  }
+  const m = ((p && p.methods) || {})[c.method === 'dtf' ? 'dtf' : 'embro'] || {};
+  let flat = 0;
+  if(c.method === 'dtf' && (c.dtfCols || []).length){
+    const qf = m.qtyFrom || [];
+    let row = 0;
+    for(let j = qf.length - 1; j >= 0; j--){ if(qty >= qf[j]){ row = j; break; } }
+    const grid = m.price || [];
+    c.dtfCols.forEach(col=>{
+      const v = (grid[row] && grid[row][col] != null) ? +grid[row][col] : 0;
+      flat += Math.max(Math.round(v), Math.round(+m.minPrice || 0));
+    });
+  }
+  return Math.round((c.base + c.coefPart) * coef) + flat
+       + (+c.pieceFee || 0) + (qty > 0 ? Math.round((+c.orderFee || 0) / qty) : 0);
+}
+
+// Пороги для блоку «при більшому тиражі» — беремо наступні після поточного.
+// Прив'язуємо до фактичної ціни позиції, щоб документ не суперечив сам собі:
+// рядок «ваш тираж» має збігатися з блоком вартості вище.
+function docTierRows(item){
+  const p = curSitePricing();
+  const tiers = (p && p.tiers) || [];
+  const cur = item.qty || 1;
+  const real = +item.unitPrice || 0;
+  const calcCur = docPriceAt(item, cur) || real || 1;
+  const k = real ? (real / calcCur) : 1;          // коефіцієнт прив'язки до реальної ціни
+  const out = [{ qty: cur, price: real || calcCur, now: true }];
+  tiers.forEach(t=>{
+    const q = +t.from || 1;
+    if(q > cur && out.length < 5) out.push({ qty: q, price: Math.round(docPriceAt(item, q) * k) });
+  });
+  return out;
+}
+
+function docLoadImg(src){
+  return new Promise(res=>{
+    if(!src) return res(null);
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = ()=>res(im);
+    im.onerror = ()=>res(null);
+    im.src = src;
+  });
+}
+// Акцентний колір беремо з логотипа клієнта — пропозиція виглядає його брендом
+function docAccentFrom(img){
+  const FALLBACK = '#0F2034';
+  if(!img) return FALLBACK;
+  try{
+    const c = document.createElement('canvas'); c.width = c.height = 24;
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0, 24, 24);
+    const d = x.getImageData(0, 0, 24, 24).data;
+    let r=0,g=0,b=0,n=0;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i+3] < 128) continue;
+      const mx = Math.max(d[i],d[i+1],d[i+2]), mn = Math.min(d[i],d[i+1],d[i+2]);
+      if(mx > 240 && mn > 240) continue;          // майже білий — не акцент
+      if(mx < 25) continue;                        // майже чорний — теж
+      r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++;
+    }
+    if(!n) return FALLBACK;
+    return 'rgb('+Math.round(r/n)+','+Math.round(g/n)+','+Math.round(b/n)+')';
+  }catch(e){ return FALLBACK; }
+}
+
+function docRound(x, X, Y, W, H, R){
+  x.beginPath();
+  x.moveTo(X+R, Y); x.arcTo(X+W, Y, X+W, Y+H, R); x.arcTo(X+W, Y+H, X, Y+H, R);
+  x.arcTo(X, Y+H, X, Y, R); x.arcTo(X, Y, X+W, Y, R); x.closePath();
+}
+function docFit(x, img, X, Y, W, H){
+  if(!img) return;
+  const s = Math.min(W/img.naturalWidth, H/img.naturalHeight);
+  const w = img.naturalWidth*s, h = img.naturalHeight*s;
+  x.drawImage(img, X+(W-w)/2, Y+(H-h)/2, w, h);
+}
+function docMoney(n){ return Math.round(n).toLocaleString('uk-UA').replace(/ /g,' ') + ' грн'; }
+
+// Шапка з логотипом клієнта і нашими контактами
+function docHeader(x, logo, accent, title){
+  x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, 168);
+  if(logo){
+    docFit(x, logo, 64, 44, 150, 80);
+  } else {
+    x.fillStyle = accent; x.font = '700 34px Inter, system-ui, sans-serif';
+    x.textAlign = 'left'; x.fillText('Loomiq', 64, 96);
+  }
+  const ct = (contentData && contentData.contacts) || {};
+  const lines = [];
+  if(ct.phone) lines.push(ct.phone);
+  if(ct.email) lines.push(ct.email);
+  if(ct.telegram) lines.push('Telegram: ' + String(ct.telegram).replace(/^https?:\/\//,''));
+  if(ct.viber) lines.push('Viber');
+  lines.push('loomiq.net');
+  x.textAlign = 'right';
+  x.fillStyle = '#0F2034'; x.font = '700 15px Inter, system-ui, sans-serif';
+  x.fillText('Loomiq · виробництво мерчу', DOC_W-64, 56);
+  x.fillStyle = '#7C8798'; x.font = '400 13px Inter, system-ui, sans-serif';
+  lines.slice(0, 4).forEach((t,i)=> x.fillText(t, DOC_W-64, 80 + i*19));
+  x.textAlign = 'left';
+  x.fillStyle = accent; x.fillRect(64, 148, DOC_W-128, 3);
+  x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+  x.fillText(title.toUpperCase(), 64, 140);
+}
+
+// ── Комерційна пропозиція для однієї позиції ──
+async function renderKP(order, item){
+  const mockups = (item.mockups || []).slice(0, 4);
+  const imgs = await Promise.all(mockups.map(docLoadImg));
+  const shown = imgs.filter(Boolean);                       // порожні сторони не показуємо
+  const logoUrl = ((item.prints || []).find(p=>p.file) || {}).file || null;
+  const logo = await docLoadImg(logoUrl);
+  const accent = docAccentFrom(logo);
+  const tiers = docTierRows(item);
+
+  // висота під кількість мокапів
+  const cols = shown.length >= 2 ? 2 : 1;
+  const rows = Math.ceil(Math.max(shown.length,1) / cols);
+  const cellH = shown.length === 1 ? 520 : 420;
+  const mockH = rows * cellH + (rows-1)*18;
+  const H = 168 + 92 + mockH + 40 + 132 + 128 + (tiers.length*44 + 78) + 90;
+
+  const cv = document.createElement('canvas');
+  cv.width = DOC_W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
+  docHeader(x, logo, accent, 'Комерційна пропозиція');
+
+  let y = 168 + 58;
+  x.fillStyle = '#0F2034'; x.font = '700 40px Inter, system-ui, sans-serif';
+  x.fillText(item.name || 'Товар', 64, y);
+  y += 34;
+
+  // мокапи — сітка підлаштовується під кількість (1–4)
+  const gridW = DOC_W - 128;
+  const cellW = cols === 1 ? gridW : (gridW - 18) / 2;
+  shown.forEach((im, i)=>{
+    const cx = 64 + (i % cols) * (cellW + 18);
+    const cy = y + Math.floor(i / cols) * (cellH + 18);
+    x.fillStyle = '#F5F6F8'; docRound(x, cx, cy, cellW, cellH, 18); x.fill();
+    docFit(x, im, cx+24, cy+24, cellW-48, cellH-48);
+  });
+  if(!shown.length){
+    x.fillStyle = '#F5F6F8'; docRound(x, 64, y, gridW, cellH, 18); x.fill();
+    x.fillStyle = '#AEB8C9'; x.font = '600 18px Inter, system-ui, sans-serif';
+    x.textAlign = 'center'; x.fillText('Макет буде додано', DOC_W/2, y + cellH/2); x.textAlign = 'left';
+  }
+  y += mockH + 44;
+
+  // характеристики
+  const specs = [
+    ['Модель', item.name || '—'],
+    ['Колір', item.color || '—'],
+    ['Нанесення', (item.prints||[]).map(p=>p.technique).filter(Boolean).join(', ') || item.print || '—'],
+    ['Кількість', (item.qty||0) + ' шт'],
+  ];
+  if(item.sizes) specs.push(['Розмірний ряд', item.sizes]);
+  const colW = (DOC_W - 128) / Math.min(specs.length, 5);
+  specs.forEach((s, i)=>{
+    const sx = 64 + i*colW;
+    x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+    x.fillText(String(s[0]).toUpperCase(), sx, y);
+    x.fillStyle = '#0F2034'; x.font = '600 16px Inter, system-ui, sans-serif';
+    // обрізаємо рівно по ширині колонки, щоб сусідні значення не налазили
+    let t = String(s[1]); const maxW = colW - 18;
+    if(x.measureText(t).width > maxW){
+      while(t.length > 1 && x.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+      t += '…';
+    }
+    x.fillText(t, sx, y+26);
+  });
+  y += 62;
+  x.strokeStyle = '#ECEFF3'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(64, y); x.lineTo(DOC_W-64, y); x.stroke();
+  y += 44;
+
+  // вартість
+  x.fillStyle = '#F7F9FC'; docRound(x, 64, y, DOC_W-128, 108, 16); x.fill();
+  x.fillStyle = '#7C8798'; x.font = '600 13px Inter, system-ui, sans-serif';
+  x.fillText('ЦІНА ЗА ОДИНИЦЮ', 96, y+38);
+  x.fillText('КІЛЬКІСТЬ', 96 + 330, y+38);
+  x.fillStyle = '#0F2034'; x.font = '700 30px Inter, system-ui, sans-serif';
+  x.fillText(docMoney(item.unitPrice||0), 96, y+78);
+  x.fillText((item.qty||0) + ' шт', 96 + 330, y+78);
+  x.textAlign = 'right';
+  x.fillStyle = '#7C8798'; x.font = '600 13px Inter, system-ui, sans-serif';
+  x.fillText('ЗАГАЛЬНА СУМА', DOC_W-96, y+38);
+  x.fillStyle = accent; x.font = '700 34px Inter, system-ui, sans-serif';
+  x.fillText(docMoney(item.price||0), DOC_W-96, y+80);
+  x.textAlign = 'left';
+  y += 108 + 46;
+
+  // при більшому тиражі
+  x.fillStyle = '#0F2034'; x.font = '700 20px Inter, system-ui, sans-serif';
+  x.fillText('При більшому тиражі', 64, y);
+  y += 30;
+  x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+  x.fillText('КІЛЬКІСТЬ', 96, y+16);
+  x.textAlign = 'right'; x.fillText('ЦІНА ЗА ШТУКУ', DOC_W-96, y+16);
+  x.fillText('СУМА', DOC_W-300, y+16); x.textAlign = 'left';
+  y += 30;
+  tiers.forEach(t=>{
+    if(t.now){ x.fillStyle = '#EEF3FB'; docRound(x, 78, y, DOC_W-156, 40, 10); x.fill(); }
+    x.fillStyle = t.now ? '#0F2034' : '#3E4E65';
+    x.font = (t.now ? '700 ' : '500 ') + '16px Inter, system-ui, sans-serif';
+    x.fillText(t.qty + ' шт' + (t.now ? '  · ваш тираж' : ''), 96, y+26);
+    x.textAlign = 'right';
+    x.fillText(docMoney(t.price), DOC_W-96, y+26);
+    x.fillStyle = '#7C8798'; x.font = '500 15px Inter, system-ui, sans-serif';
+    x.fillText(docMoney(t.price * t.qty), DOC_W-300, y+26);
+    x.textAlign = 'left';
+    y += 44;
+  });
+
+  y = H - 52;
+  x.fillStyle = '#9AA5B5'; x.font = '400 13px Inter, system-ui, sans-serif';
+  x.fillText('Пропозиція № ' + (order.orderId || '—') + ' · ціни дійсні 14 днів', 64, y);
+  x.textAlign = 'right'; x.fillText('loomiq.net', DOC_W-64, y); x.textAlign = 'left';
+  return cv.toDataURL('image/png');
+}
+
+// ── Загальний кошторис по всьому замовленню ──
+async function renderEstimate(order){
+  const items = order.items || [];
+  const thumbs = await Promise.all(items.map(it=> docLoadImg((it.mockups||[])[0])));
+  const logoUrl = (items.flatMap(i=>i.prints||[]).find(p=>p.file) || {}).file || null;
+  const logo = await docLoadImg(logoUrl);
+  const accent = docAccentFrom(logo);
+
+  const rowH = 92;
+  const H = 168 + 96 + 44 + items.length*rowH + 150 + 90;
+  const cv = document.createElement('canvas');
+  cv.width = DOC_W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, DOC_W, H);
+  docHeader(x, logo, accent, 'Кошторис замовлення');
+
+  let y = 168 + 58;
+  x.fillStyle = '#0F2034'; x.font = '700 38px Inter, system-ui, sans-serif';
+  x.fillText('Кошторис', 64, y);
+  x.fillStyle = '#7C8798'; x.font = '400 15px Inter, system-ui, sans-serif';
+  x.fillText('№ ' + (order.orderId || '—') + (order.name ? ' · ' + order.name : ''), 64, y+26);
+  y += 62;
+
+  x.fillStyle = '#9AA5B5'; x.font = '600 12px Inter, system-ui, sans-serif';
+  x.fillText('ТОВАР', 148, y);
+  x.textAlign = 'right';
+  x.fillText('К-СТЬ', DOC_W-460, y);
+  x.fillText('ЦІНА', DOC_W-260, y);
+  x.fillText('СУМА', DOC_W-64, y);
+  x.textAlign = 'left';
+  y += 16;
+  x.strokeStyle = '#ECEFF3'; x.beginPath(); x.moveTo(64, y); x.lineTo(DOC_W-64, y); x.stroke();
+  y += 12;
+
+  items.forEach((it, i)=>{
+    const th = thumbs[i];
+    x.fillStyle = '#F5F6F8'; docRound(x, 64, y, 68, 68, 12); x.fill();
+    if(th) docFit(x, th, 68, y+4, 60, 60);
+    x.fillStyle = '#0F2034'; x.font = '600 17px Inter, system-ui, sans-serif';
+    x.fillText(it.name || '—', 148, y+30);
+    x.fillStyle = '#7C8798'; x.font = '400 13px Inter, system-ui, sans-serif';
+    const sub = [it.color, it.sizes].filter(Boolean).join(' · ');
+    if(sub) x.fillText(sub.length>52?sub.slice(0,51)+'…':sub, 148, y+52);
+    x.fillStyle = '#3E4E65'; x.font = '500 16px Inter, system-ui, sans-serif';
+    x.textAlign = 'right';
+    x.fillText((it.qty||0) + ' шт', DOC_W-460, y+34);
+    x.fillText(docMoney(it.unitPrice||0), DOC_W-260, y+34);
+    x.fillStyle = '#0F2034'; x.font = '700 17px Inter, system-ui, sans-serif';
+    x.fillText(docMoney(it.price||0), DOC_W-64, y+34);
+    x.textAlign = 'left';
+    y += rowH - 12;
+    x.strokeStyle = '#F2F4F7'; x.beginPath(); x.moveTo(64, y); x.lineTo(DOC_W-64, y); x.stroke();
+    y += 12;
+  });
+
+  const totalQty = items.reduce((a,i)=>a+(+i.qty||0),0);
+  const totalSum = items.reduce((a,i)=>a+(+i.price||0),0);
+  y += 18;
+  x.fillStyle = '#F7F9FC'; docRound(x, 64, y, DOC_W-128, 104, 16); x.fill();
+  x.fillStyle = '#7C8798'; x.font = '600 13px Inter, system-ui, sans-serif';
+  x.fillText('ЗАГАЛЬНА КІЛЬКІСТЬ', 96, y+38);
+  x.fillStyle = '#0F2034'; x.font = '700 28px Inter, system-ui, sans-serif';
+  x.fillText(totalQty + ' шт', 96, y+76);
+  x.textAlign = 'right';
+  x.fillStyle = '#7C8798'; x.font = '600 13px Inter, system-ui, sans-serif';
+  x.fillText('ЗАГАЛЬНА СУМА', DOC_W-96, y+38);
+  x.fillStyle = accent; x.font = '700 34px Inter, system-ui, sans-serif';
+  x.fillText(docMoney(totalSum), DOC_W-96, y+78);
+  x.textAlign = 'left';
+
+  y = H - 52;
+  x.fillStyle = '#9AA5B5'; x.font = '400 13px Inter, system-ui, sans-serif';
+  x.fillText('Кошторис № ' + (order.orderId || '—') + ' · ціни дійсні 14 днів', 64, y);
+  x.textAlign = 'right'; x.fillText('loomiq.net', DOC_W-64, y); x.textAlign = 'left';
+  return cv.toDataURL('image/png');
+}
+
+// PNG → PDF (одна сторінка з тим самим зображенням, без сторонніх бібліотек)
+function docPngToPdf(dataUrl, w, h){
+  const bin = atob(dataUrl.split(',')[1]);
+  const img = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) img[i] = bin.charCodeAt(i);
+  const parts = [], offsets = [];
+  let len = 0;
+  const push = s => { const b = (typeof s === 'string') ? new TextEncoder().encode(s) : s; parts.push(b); len += b.length; };
+  const mark = () => offsets.push(len);
+  push('%PDF-1.4\n');
+  mark(); push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  mark(); push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+  mark(); push('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+w+' '+h+']'
+              +' /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n');
+  mark(); push('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+w+' /Height '+h
+              +' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n');
+  push(img); push('\nendstream\nendobj\n');
+  const content = 'q '+w+' 0 0 '+h+' 0 0 cm /Im0 Do Q';
+  mark(); push('5 0 obj\n<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream\nendobj\n');
+  const xref = len;
+  let t = 'xref\n0 6\n0000000000 65535 f \n';
+  offsets.forEach(o=>{ t += String(o).padStart(10,'0') + ' 00000 n \n'; });
+  t += 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+  push(t);
+  const all = new Uint8Array(len); let p = 0;
+  parts.forEach(b=>{ all.set(b, p); p += b.length; });
+  return new Blob([all], { type:'application/pdf' });
+}
+
+function docDownload(href, filename){
+  // data: URL перетворюємо на blob — інакше браузер може зберегти файл
+  // під іменем «download» замість нашого
+  if(href.startsWith('data:')){
+    const [head, b64] = href.split(',');
+    const mime = (head.match(/:(.*?);/) || [null,'application/octet-stream'])[1];
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+    href = URL.createObjectURL(new Blob([arr], { type:mime }));
+  }
+  const a = document.createElement('a');
+  a.href = href; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); if(href.startsWith('blob:')) URL.revokeObjectURL(href); }, 1200);
+}
+function docSafeName(s){ return String(s||'').replace(/[^\wа-яіїєґА-ЯІЇЄҐ\- ]+/gi,'').trim().replace(/\s+/g,'-') || 'doc'; }
+
+// PNG у PDF кладемо як JPEG (DCTDecode) — так файл менший і без зайвих залежностей
+function docPngToJpegDataUrl(pngDataUrl){
+  return new Promise(res=>{
+    const im = new Image();
+    im.onload = ()=>{
+      const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0);
+      res({ url: c.toDataURL('image/jpeg', 0.92), w: c.width, h: c.height });
+    };
+    im.src = pngDataUrl;
+  });
+}
+async function docSavePair(pngDataUrl, baseName){
+  docDownload(pngDataUrl, baseName + '.png');
+  const j = await docPngToJpegDataUrl(pngDataUrl);
+  docDownload(URL.createObjectURL(docPngToPdf(j.url, j.w, j.h)), baseName + '.pdf');
+}
+
+async function docKPForItem(order, item, idx){
+  toast('Готуємо пропозицію…');
+  const png = await renderKP(order, item);
+  await docSavePair(png, 'КП-' + (order.orderId||'') + '-' + docSafeName(item.name) );
+  toast('Пропозицію завантажено');
+}
+async function docEstimateForOrder(order){
+  toast('Готуємо кошторис…');
+  const png = await renderEstimate(order);
+  await docSavePair(png, 'Кошторис-' + (order.orderId||'') + '-' + docSafeName(order.name||order.instagram));
+  toast('Кошторис завантажено');
+}
+// Мокапи — окремими PNG, без обʼєднання в документ
+const DOC_SIDE_UA = { front:'перед', back:'спина', left:'лівий-бік', right:'правий-бік' };
+async function docMockupsForOrder(order){
+  const items = order.items || [];
+  let n = 0;
+  for(const it of items){
+    const list = it.mockups || [];
+    for(let i = 0; i < list.length; i++){
+      const im = await docLoadImg(list[i]);
+      if(!im) continue;
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth; c.height = im.naturalHeight;
+      c.getContext('2d').drawImage(im, 0, 0);
+      const side = ((it.prints||[])[i] || {}).side;
+      docDownload(c.toDataURL('image/png'),
+        'Макет-' + docSafeName(it.name) + '-' + (DOC_SIDE_UA[side] || ('сторона-'+(i+1))) + '.png');
+      n++;
+      await new Promise(r=>setTimeout(r, 350));   // щоб браузер не блокував пакетне завантаження
+    }
+  }
+  toast(n ? ('Завантажено макетів: ' + n) : 'У цьому замовленні ще немає макетів');
+}
+
+// Блок документів на картці: КП по кожній позиції, загальний кошторис, макети
+function docsBlockHtml(o){
+  const items = o.items || [];
+  if(!items.length) return '';
+  const kps = items.map((it,i)=>
+    `<button class="t-doc-kp" data-kp="${i}" title="Комерційна пропозиція: ${escapeHtml(it.name||'')}">
+       ${escapeHtml((it.name||'Товар').length>18 ? (it.name||'').slice(0,17)+'…' : (it.name||'Товар'))}
+     </button>`).join('');
+  return `
+    <div class="t-docs">
+      <div class="t-docs-head">Документи для клієнта</div>
+      <div class="t-docs-kps">${kps}</div>
+      <div class="t-docs-row">
+        <button class="t-doc-main" data-doc="estimate">Загальний кошторис</button>
+        <button class="t-doc-sec" data-doc="mockups">Макети</button>
+      </div>
+    </div>`;
+}
+function wireDocsBlock(el, o){
+  el.querySelectorAll('[data-kp]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      b.disabled = true;
+      try{ await docKPForItem(o, (o.items||[])[+b.dataset.kp], +b.dataset.kp); }
+      catch(e){ console.error(e); toast('Не вдалося зробити пропозицію'); }
+      b.disabled = false;
+    });
+  });
+  const est = el.querySelector('[data-doc="estimate"]');
+  if(est) est.addEventListener('click', async ()=>{
+    est.disabled = true;
+    try{ await docEstimateForOrder(o); }
+    catch(e){ console.error(e); toast('Не вдалося зробити кошторис'); }
+    est.disabled = false;
+  });
+  const mk = el.querySelector('[data-doc="mockups"]');
+  if(mk) mk.addEventListener('click', async ()=>{
+    mk.disabled = true;
+    try{ await docMockupsForOrder(o); }
+    catch(e){ console.error(e); toast('Не вдалося завантажити макети'); }
+    mk.disabled = false;
+  });
+}
+// Авто-підготовка на статусі «Прорахунок»: рендеримо документи заздалегідь,
+// щоб натискання кнопки віддавало файл миттєво.
+const docsPrepared = new Set();
+async function docsAutoPrepare(o){
+  if(!o || o.status !== 'prorahunok' || docsPrepared.has(o.id)) return;
+  if(!(o.items||[]).length) return;
+  docsPrepared.add(o.id);
+  try{
+    for(const it of o.items) await renderKP(o, it);
+    await renderEstimate(o);
+  }catch(e){ console.warn('docs prepare failed', e); docsPrepared.delete(o.id); }
+}
+
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
@@ -2464,7 +2959,7 @@ function renderBoard(){
     if(list.length===0){
       body.innerHTML = `<div class="empty-col">Порожньо</div>`;
     } else {
-      list.forEach(o=> body.appendChild(renderTicket(o)));
+      list.forEach(o=>{ body.appendChild(renderTicket(o)); docsAutoPrepare(o); });
     }
 
     col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over'); });
@@ -2566,6 +3061,7 @@ function renderTicket(o){
     if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
+  wireDocsBlock(el, o);
 
   return el;
 }
@@ -2626,6 +3122,7 @@ function renderWebTicket(o){
       <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
     </div>
     <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+    ${docsBlockHtml(o)}
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
@@ -2635,6 +3132,7 @@ function renderWebTicket(o){
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
+  wireDocsBlock(el, o);
   return el;
 }
 
@@ -2683,7 +3181,7 @@ function renderClientTicket(o){
       <div class="t-brow t-brow-price"><span>Сума (продаж)</span><span>${fmt(o.totalPrice)} ₴</span></div>
     </div>
     <div class="t-margin ${goodMargin?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
-    <button class="btn btn-ghost" data-act="estimate" style="width:100%;margin-top:8px;">Кошторис клієнта</button>
+    ${docsBlockHtml(o)}
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
@@ -2693,7 +3191,7 @@ function renderClientTicket(o){
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
-  el.querySelector('[data-act="estimate"]').addEventListener('click', ()=>{ if(window.__openClientEstimate) window.__openClientEstimate(o.id); else toast('Кошторис — наступний етап'); });
+  wireDocsBlock(el, o);
   return el;
 }
 
