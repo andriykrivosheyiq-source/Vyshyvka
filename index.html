@@ -1147,10 +1147,22 @@
   .pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
-  .pm-side-dots{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;z-index:5;}
-  .pm-side-dot{background:none;border:none;cursor:pointer;padding:4px 2px;}
-  .pm-side-dot span{display:block;width:7px;height:7px;border-radius:4px;background:rgba(0,0,0,.22);transition:all .25s;}
-  .pm-side-dot.active span{width:22px;background:rgba(0,0,0,.7);}
+  /* Перемикач сторін. Лежить ПОВЕРХ фото виробу (absolute), тож підписи не
+     додають сторінці жодного пікселя висоти — на місці колишніх крапок.
+     Підкладка напівпрозора: працює і на білій футболці, і на чорній. */
+  .pm-side-dots{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;
+    display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;
+    background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    box-shadow:0 1px 6px rgba(0,0,0,.10);max-width:calc(100% - 76px);overflow-x:auto;scrollbar-width:none;}
+  .pm-side-dots::-webkit-scrollbar{display:none;}
+  .pm-side-dot{flex:0 0 auto;background:none;border:none;cursor:pointer;padding:5px 11px;border-radius:999px;
+    font-family:var(--font-sf);font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;
+    display:flex;align-items:center;gap:5px;transition:background .2s,color .2s;}
+  .pm-side-dot.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  /* Крапка = «на цьому боці вже є лого». Видно, що ціна рахується за обидва. */
+  .pm-side-dot span{display:none;width:5px;height:5px;border-radius:3px;background:#c7ccd4;}
+  .pm-side-dot.has-logo span{display:block;}
+  .pm-side-dot.has-logo.active span{background:#4f5fd4;}
 
   .pm-sheet{
     background:#FFFFFF;border-radius:28px 28px 0 0;
@@ -1193,7 +1205,6 @@
   .pm-photo-group{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
   .pm-photo-group-row{display:flex;gap:10px;align-items:flex-start;}
   .pm-photo-group.is-other .pm-photo-thumb img{opacity:.6;}
-  .pm-photo-sep{flex:0 0 auto;width:1px;height:72px;background:#ececec;margin:0 2px;}
 
   .pm-garment-list{display:flex;gap:8px;padding:0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-garment-item{
@@ -1269,6 +1280,8 @@
   .pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
   .pm-price-divider{display:none;}
   .pm-qty-warning{display:flex;align-items:center;gap:7px;font-size:15px;color:#8a6a15;font-weight:600;margin:6px 0 8px;}
+  /* Той самий рядок у ролі підказки: ціна за кілька нанесень. Нового ряду не додаємо. */
+  .pm-qty-warning.is-info{color:#6b7280;font-size:13.5px;font-weight:500;}
   .pm-add-btn{
     width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;
     background:linear-gradient(135deg,#1e2470,#4f5fd4);color:#fff;font-size:15px;font-weight:700;
@@ -2839,8 +2852,8 @@
     <div class="pm-price-bar">
       <div class="pm-product-title" id="pmProductTitle"></div>
       <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Для точної ціни та термінів — вкажіть кількість
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="pmQtyWarnText">Для точної ціни та термінів — вкажіть кількість</span>
       </div>
       <div class="pm-price-row">
         <div class="pm-price-col">
@@ -5428,6 +5441,12 @@
         return (pm.logos[v] || []).length > 0 || v === pm.side;
       }).map(function(v){ return { side: v, layers: (pm.logos[v] || []).slice() }; });
     }
+    function logoWordUa(n){
+      var d = n % 10, dd = n % 100;
+      if(d === 1 && dd !== 11) return 'нанесення';
+      if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return 'нанесення';
+      return 'нанесень';
+    }
 
     // Накладаємо логотип на фото моделей, дзеркалячи позицію/розмір/поворот із головного мокапа.
     // Спина: показуємо лого беку; якщо його немає — показуємо передній (як прев'ю).
@@ -5481,6 +5500,7 @@
 
     function renderGarment(){
       fitGarmentStage();
+      updateSideMarks();
       var g = getGarment(), c = getColor();
       // Реальні фото базової футболки (перед/зад) для кольорів, де вони є; решта — силуети.
       // на світлих футболках робимо текст пунктира темним (інакше зливається)
@@ -5965,8 +5985,7 @@
           var multi = groups.length > 1;
           html = '<div class="pm-photo-filled">';
           groups.forEach(function(gr, gi){
-            if(multi && gi > 0) html += '<div class="pm-photo-sep"></div>';
-            var isCur = gr.side === pm.side;
+            var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
             html += '<div class="pm-photo-group-row">';
             gr.layers.forEach(function(l){
@@ -6233,6 +6252,7 @@
 
     var pmProductTitle = document.getElementById('pmProductTitle');
     var pmQtyWarning = document.getElementById('pmQtyWarning');
+    var pmQtyWarnText = document.getElementById('pmQtyWarnText');
     var pmTierRow = document.getElementById('pmTierRow');
     function renderTiers(){
       var pt = pricingTiers();
@@ -6303,7 +6323,22 @@
       pmDeliveryText.innerHTML = (u===0?'<span class="pm-unit">від </span>':'') + '<span class="pm-num">'+deliveryTerm()+'</span><span class="pm-unit">'+dayWord(parseInt(deliveryTerm().split('-')[1],10))+'</span>';
       pmAddBtnSum.textContent = u>0 ? (orderTotal())+' грн за '+u+' шт' : '';
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
-      pmQtyWarning.style.display = u===0 ? '' : 'none';
+      // Рядок під назвою: спершу нагадує вказати кількість, далі — пояснює,
+      // що ціна зібрана з кількох нанесень. Окремого ряду для цього не заводимо.
+      var sidesWithLogo = getViews().filter(function(v){ return (pm.logos[v] || []).length > 0; });
+      var nLogos2 = logoCount();
+      if(u === 0){
+        pmQtyWarning.style.display = '';
+        pmQtyWarning.classList.remove('is-info');
+        pmQtyWarnText.textContent = 'Для точної ціни та термінів — вкажіть кількість';
+      } else if(sidesWithLogo.length > 1){
+        pmQtyWarning.style.display = '';
+        pmQtyWarning.classList.add('is-info');
+        pmQtyWarnText.textContent = 'Ціна за ' + nLogos2 + ' ' + logoWordUa(nLogos2) + ': ' +
+          sidesWithLogo.map(function(v){ return (VIEW_SHORT[v] || v).toLowerCase(); }).join(' + ');
+      } else {
+        pmQtyWarning.style.display = 'none';
+      }
       renderTiers();
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
@@ -7104,14 +7139,28 @@
     });
 
     var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
+    // Короткий підпис для пігулки — щоб у кепки всі чотири ракурси влізли в рядок.
+    var VIEW_SHORT = {front:'Перед', back:'Спина', left:'Лівий', right:'Правий'};
     function renderSideDots(){
       var views = getViews();
       var wrap = document.getElementById('pmSideDots');
       if(!wrap) return;
       wrap.innerHTML = views.map(function(v){
-        return '<button class="pm-side-dot'+(v===pm.side?' active':'')+'" data-side="'+v+'" aria-label="'+(VIEW_LABEL[v]||v)+'"><span></span></button>';
+        return '<button class="pm-side-dot'+(v===pm.side?' active':'')+'" data-side="'+v+'" aria-label="'+(VIEW_LABEL[v]||v)+'">' +
+          (VIEW_SHORT[v] || v) + '<span></span></button>';
       }).join('');
       wrap.querySelectorAll('[data-side]').forEach(function(b){ b.addEventListener('click', function(){ setSide(b.dataset.side); }); });
+      updateSideMarks();
+    }
+    // Крапка на пігулці = на цьому боці вже є лого. Перебудовувати розмітку не треба —
+    // renderGarment() смикається під час перетягування, тож тут лише перемикаємо класи.
+    function updateSideMarks(){
+      var wrap = document.getElementById('pmSideDots');
+      if(!wrap) return;
+      wrap.querySelectorAll('[data-side]').forEach(function(b){
+        b.classList.toggle('has-logo', ((pm.logos[b.dataset.side] || []).length > 0));
+        b.classList.toggle('active', b.dataset.side === pm.side);
+      });
     }
     function updateSideArrows(){
       var views = getViews(), i = views.indexOf(pm.side);
@@ -7124,13 +7173,13 @@
       ensureLogoSides();
       pm.side = side;
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
-      document.querySelectorAll('#pmSideDots .pm-side-dot').forEach(function(d){ d.classList.toggle('active', d.dataset.side===side); });
+      updateSideMarks();
       updateSideArrows();
       renderGarment();
       if(pm.tab==='photo') renderTabPanel();
     }
     // Свайп для перемикання сторін прибрано — він заважав перетягувати/масштабувати лого.
-    // Перемикання передня/задня лишається через стрілки та крапки.
+    // Перемикання передня/задня лишається через стрілки та підписаний перемикач.
     var pmStage = document.getElementById('pmStage');
 
     // Open/close modal
