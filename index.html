@@ -1296,12 +1296,14 @@
   .pm-photo-group.is-other .pm-photo-thumb img{opacity:.6;}
 
   .pm-garment-list{display:flex;gap:8px;padding:0 18px;overflow-x:auto;scrollbar-width:none;}
+  /* Товщина рамки однакова в обох станах: інакше активна плитка ставала на
+     пів пікселя ширшою і сусідні смикались при кожному виборі. */
   .pm-garment-item{
     flex:0 0 auto;width:78px;display:flex;flex-direction:column;align-items:center;gap:0;
-    border-radius:14px;cursor:pointer;border:1.5px solid #eaeaea;background:#f9f9f9;overflow:hidden;
+    border-radius:14px;cursor:pointer;border:2px solid #eaeaea;background:#f9f9f9;overflow:hidden;
     font-family:var(--font-sf);padding:0;
   }
-  .pm-garment-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
+  .pm-garment-item.active{border-color:#4f5fd4;background:#FFFFFF;}
   .pm-garment-item-ic{width:100%;height:62px;flex:0 0 62px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
   .pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
   .pm-garment-item-ic svg{width:80%;height:80%;}
@@ -6392,10 +6394,10 @@
           renderSideDots();
           updateSideArrows();
           renderGarment();
-          // оновлюємо активний стан без перебудови панелі — щоб не скидалась прокрутка списку
-          pmTabPanel.querySelectorAll('.pm-garment-item').forEach(function(it){
-            it.classList.toggle('active', it.dataset.garment === pm.garmentId);
-          });
+          // Кольори живуть у цій самій вкладці, тож панель треба перебудувати —
+          // інакше під новим виробом лишались кольори попереднього. Горизонтальну
+          // прокрутку списку renderTabPanel() відновлює сам, тож вона не скидається.
+          renderTabPanel();
           updatePriceBar();
         });
       });
