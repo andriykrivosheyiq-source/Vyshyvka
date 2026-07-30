@@ -1186,18 +1186,19 @@
   .pm-tab-panel.is-two{height:auto;min-height:118px;max-height:34vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
-  /* Підписи всередині вкладки: без них чіпи «DTF принт / Вишивка» висіли
-     самі по собі й було незрозуміло, до чого вони. */
+  /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-    color:#9aa0ab;flex:none;min-width:46px;}
-  .pm-row{padding:8px 18px 0;display:flex;align-items:center;gap:9px;}
-  /* Напис як логотип */
+    color:#9aa0ab;flex:none;}
+  /* Плитки додавання — рівно того ж розміру, що й мініатюри лого */
   .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
   .pm-photo-add--text:hover{border-color:#111;color:#111;}
-  .pm-photo-add-ab{font-size:17px;font-weight:800;line-height:1;color:inherit;}
-  .pm-text-open{padding:7px 13px;border-radius:999px;border:1.5px dashed #d8d8d8;
-    background:#fff;color:#666;font-family:var(--font-sf);font-size:12px;font-weight:600;cursor:pointer;}
-  .pm-text-open:hover{border-color:#111;color:#111;}
+  .pm-photo-add-ab{font-size:19px;font-weight:800;line-height:1;color:inherit;}
+  /* «Прибрати фон» — значком у куті мініатюри, щоб не займати рядок під нею */
+  .pm-bg-dot{position:absolute;left:4px;bottom:4px;width:19px;height:19px;border-radius:10px;
+    border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
+  .pm-bg-dot.on{background:#111;color:#fff;}
+  /* Напис як логотип */
   .pm-text-add{padding:8px 18px 0;display:flex;flex-direction:column;gap:6px;}
   #pmTextInput{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #e6e6e6;
     font-family:var(--font-sf);font-size:14px;font-weight:600;color:#111;background:#fff;}
@@ -1208,14 +1209,16 @@
   .pm-text-sw.on{outline-color:#111;}
   .pm-text-go{margin-left:auto;border:none;background:#111;color:#fff;border-radius:999px;
     padding:8px 16px;font-family:var(--font-sf);font-size:12px;font-weight:700;cursor:pointer;}
-  .pm-way{padding:8px 18px 0;display:flex;flex-direction:column;gap:3px;}
-  .pm-way-chips{display:flex;align-items:center;gap:7px;}
-  .pm-way-chip{display:flex;align-items:center;gap:5px;border:1.5px solid #e6e6e6;background:#fff;
-    border-radius:999px;padding:6px 12px;font-family:var(--font-sf);font-size:12px;font-weight:600;
-    color:#666;cursor:pointer;transition:all .18s;}
-  .pm-way-chip.on{border-color:#111;color:#111;background:#fafafa;}
-  .pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:4px;line-height:1;}
-  .pm-way-size{font-size:11.5px;color:#888;font-weight:600;min-height:0;padding-left:55px;}
+  /* Спосіб нанесення: заголовок + розмір у тому самому рядку, під ним сегментна смуга */
+  .pm-way-head{padding:9px 18px 5px;display:flex;align-items:center;gap:6px;}
+  .pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
+  .pm-seg{margin:0 18px;display:flex;background:#f1f2f4;border-radius:11px;padding:3px;gap:3px;}
+  .pm-seg-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+    border:none;background:none;border-radius:9px;padding:9px 6px;cursor:pointer;
+    font-family:var(--font-sf);font-size:12.5px;font-weight:600;color:#6b7280;
+    transition:background .18s,color .18s,box-shadow .18s;}
+  .pm-seg-btn.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  .pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;}
   .pm-way-note{padding:2px 18px 0;font-size:11px;color:#8a94a6;line-height:1.5;}
   /* Колір — другий ряд вкладки «Товар» */
   .pm-color-row{padding:6px 18px 0;display:flex;flex-direction:column;gap:4px;}
@@ -2893,7 +2896,7 @@
 
   <div class="pm-sheet">
     <div class="pm-tabs" id="pmTabs">
-      <button class="pm-tab active" data-tab="photo">Логотип</button>
+      <button class="pm-tab active" data-tab="photo">Дизайн</button>
       <button class="pm-tab" data-tab="garment">Товар</button>
       <button class="pm-tab" data-tab="size">Розмір і кількість</button>
     </div>
@@ -4962,7 +4965,7 @@
     // Три кроки замість пʼяти: що наносимо → на що → скільки. Спосіб нанесення
     // живе біля логотипа, колір — біля крою: це не окремі рішення.
     var TABS = [
-      {id:'photo',label:'Логотип'},{id:'garment',label:'Товар'},{id:'size',label:'Розмір і кількість'}
+      {id:'photo',label:'Дизайн'},{id:'garment',label:'Товар'},{id:'size',label:'Розмір і кількість'}
     ];
 
     var pm = {
@@ -5440,7 +5443,8 @@
     function syncPrintSizeLabel(){
       var el = document.getElementById('pmPrintSize');
       if(!el) return;
-      el.textContent = activeLayer() ? activeLogoSizeLabel() : '';
+      // Стоїть у рядку «Нанесення», тож слова «Розмір друку» тут зайві — лишаємо цифри
+      el.textContent = activeLayer() ? activeLogoSizeLabel().replace(/^[^≈]*≈\s*/, '') : '';
     }
     var pmAddBtnSum = document.getElementById('pmAddBtnSum');
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
@@ -6070,12 +6074,7 @@
       var html = '';
       if(pm.tab === 'photo'){
         var layers = currentLayers();
-        if(logoCount() === 0){
-          // порожній стан — зона завантаження в самій вкладці (не лише пунктир на фото)
-          html = '<div class="pm-photo-empty" id="pmPhotoEmptyTrigger">' +
-            '<span class="pm-photo-empty-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>' +
-            '<div><div class="pm-photo-empty-title">Завантажте логотип</div><div class="pm-photo-empty-sub">PNG · JPG · SVG</div></div></div>';
-        } else {
+        {
           // Показуємо лого з УСІХ сторін одразу. Інакше клієнт бачить одну картинку
           // і не розуміє, за що саме ціна: перемикати сторони, щоб порахувати
           // нанесення, він не буде. Сторони розділяє риска, підписів немає —
@@ -6092,16 +6091,22 @@
               html += '<div class="pm-photo-col">' +
                 '<div class="pm-photo-thumb" data-id="'+l.id+'" data-side="'+gr.side+'" style="border-color:'+(isActive?'#111':'#eee')+';">' +
                   '<img src="'+l.url+'">' + (isActive ? '<div class="pm-photo-thumb-del" data-del="'+l.id+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>' : '') +
-                '</div>' +
-                '<div class="pm-bg-toggle" data-bgtoggle="'+l.id+'">' +
-                  '<span class="pm-bg-toggle-pill'+(l.removeBg?' on':'')+'"><span class="pm-bg-toggle-knob"></span></span>' +
-                  '<span class="pm-bg-toggle-label">'+(l.removeBg?'Без фону':'З фоном')+'</span>' +
+                  '<button class="pm-bg-dot'+(l.removeBg?' on':'')+'" data-bgtoggle="'+l.id+'" title="'+(l.removeBg?'Фон прибрано — повернути':'Прибрати фон')+'" aria-label="Прибрати фон">' +
+                    (l.removeBg
+                      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+                      : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 20 20 4M4 4l16 16"/></svg>') +
+                  '</button>' +
                 '</div>' +
               '</div>';
             });
             // «Додати лого» живе в групі поточної сторони — щоб було видно, куди саме додається
-            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div>' +
-              '<div class="pm-photo-add pm-photo-add--text" id="pmTextOpenTile"><span class="pm-photo-add-ab">Aa</span><span>Напис</span></div>';
+            // Обидва способи додати — плитки того ж розміру, що й мініатюри.
+            // Раніше велика зона завантаження й дрібна кнопка тексту читались
+            // як дві різні функції, хоча дія одна: покласти щось на виріб.
+            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore">' +
+                '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L6 20"/></svg>' +
+                '<span>Фото</span></div>' +
+              '<div class="pm-photo-add pm-photo-add--text" id="pmTextOpenTile"><span class="pm-photo-add-ab">Aa</span><span>Текст</span></div>';
             html += '</div></div>';
           });
           html += '</div>';
@@ -6137,27 +6142,29 @@
               }).join('') +
               '<button class="pm-text-go" id="pmTextGo">Додати</button>' +
             '</div></div>';
-        } else if(logoCount() === 0){
-          html += '<div class="pm-row"><span class="pm-lbl">Напис</span>' +
-            '<button class="pm-text-open" id="pmTextOpen">+ Додати текст</button></div>';
         }
         // Спосіб нанесення — властивість логотипа, тож і зʼявляється разом із ним.
         // Обирати друк чи вишивку, коли наносити ще нічого, немає сенсу — і рядок
         // дарма займав би висоту на першому екрані.
+        // Спосіб нанесення — вибір ОДНОГО з двох, тож сегментна смуга, а не плитки:
+        // плитками він читався б як «додай ще щось», а це інша дія. Заголовок
+        // відділяє його від дизайну, розмір друку йде в той самий рядок справа,
+        // щоб не займати окремий.
         if(logoCount() > 0){
-        html += '<div class="pm-way"><div class="pm-way-chips">' +
-          '<span class="pm-lbl">Спосіб</span>' +
-          PRINTS.map(function(pr){
-            return '<button class="pm-way-chip'+(pr.id===pm.printId?' on':'')+'" data-print="'+pr.id+'">' +
-              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+pr.icon+'</svg>' +
-              pr.name + '</button>';
-          }).join('') +
-          '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
-          '</div><div class="pm-way-size" id="pmPrintSize"></div></div>';
-        if(pm.wayInfo){
-          html += '<div class="pm-way-note">' +
-            PRINTS.map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') + '</div>';
-        }
+          html += '<div class="pm-way-head"><span class="pm-lbl">Нанесення</span>' +
+            '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
+            '<span class="pm-way-size" id="pmPrintSize"></span></div>' +
+            '<div class="pm-seg">' +
+              PRINTS.map(function(pr){
+                return '<button class="pm-seg-btn'+(pr.id===getPrint().id?' on':'')+'" data-print="'+pr.id+'">' +
+                  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+pr.icon+'</svg>' +
+                  pr.name + '</button>';
+              }).join('') +
+            '</div>';
+          if(pm.wayInfo){
+            html += '<div class="pm-way-note">' +
+              PRINTS.map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') + '</div>';
+          }
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
