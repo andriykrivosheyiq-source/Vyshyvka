@@ -1183,13 +1183,22 @@
     .pm-garment-list .pm-garment-item-ic{height:44px;flex:0 0 44px;}
     .pm-color-row .pm-color-list .pm-color-swatch{width:32px;height:32px;border-radius:16px;}
   }
-  .pm-tab-panel.is-two{height:auto;min-height:118px;max-height:34vh;align-items:flex-start;
-    overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;}
+  /* Висоту диктує вміст: коли у вкладці лише два ряди плиток, тримати
+     порожні 118px немає сенсу — блок просто підтягується знизу. */
+  .pm-tab-panel.is-two{height:auto;min-height:0;max-height:34vh;align-items:flex-start;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:10px;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
     color:#9aa0ab;flex:none;}
   /* Плитки додавання — рівно того ж розміру, що й мініатюри лого */
+  .pm-photo-filled.is-empty{padding-right:18px;}
+  .pm-photo-filled.is-empty .pm-photo-group,
+  .pm-photo-filled.is-empty .pm-photo-group-row{flex:1;width:100%;}
+  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;gap:5px;}
+  .pm-photo-filled.is-empty .pm-photo-add svg{width:22px;height:22px;}
+  .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:22px;}
+  .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:12px;font-weight:600;}
   .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
   .pm-photo-add--text:hover{border-color:#111;color:#111;}
   .pm-photo-add-ab{font-size:19px;font-weight:800;line-height:1;color:inherit;}
@@ -6081,7 +6090,10 @@
           // панель має лишатись тієї самої висоти.
           var groups = photoGroups();
           var multi = groups.length > 1;
-          html = '<div class="pm-photo-filled">';
+          // Поки нічого не додано, дві плитки розтягуються на всю ширину по
+          // половині: інакше вони тулились дрібними квадратиками зліва, а
+          // праворуч зяяла порожнеча. Щойно щось є — стають компактними.
+          html = '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">';
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
