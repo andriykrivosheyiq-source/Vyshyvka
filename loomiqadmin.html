@@ -2778,8 +2778,11 @@ function docPriceAt(item, qty, coefOverride){
       flat += Math.max(Math.round(v), Math.round(+m.minPrice || 0));
     });
   }
-  let gc = docGarmentCoef(qty);
-  if(gc == null || coefOverride != null) gc = coef;   // без окремої шкали — як було
+  // Знижки не накладаються: шкала виробу діє лише на позицію БЕЗ нанесення.
+  // Якщо нанесення є — виріб іде під знижку того способу, як і раніше.
+  const bare = !((item.prints || []).length) && !((c && c.dtfCols || []).length);
+  let gc = bare ? docGarmentCoef(qty) : null;
+  if(gc == null || coefOverride != null) gc = coef;
   return Math.round((+c.base || 0) * gc + (+c.coefPart || 0) * coef) + flat
        + (+c.pieceFee || 0) + (qty > 0 ? Math.round((+c.orderFee || 0) / qty) : 0);
 }

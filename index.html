@@ -5282,8 +5282,11 @@
     function unitPriceCoef(coef, uForGrid){
       var ap = applicationParts(uForGrid);
       var qty = Math.max(1, (uForGrid != null ? uForGrid : totalUnits()) || 1);
-      var gc = garmentCoefFor(qty);
-      if(gc == null) gc = coef;                  // окремої шкали немає — як було
+      // Знижки не накладаються одна на одну: шкала виробу діє ЛИШЕ на голий виріб.
+      // Щойно є нанесення — виріб іде під знижку того способу (друк або вишивка),
+      // рівно як було до появи цієї шкали.
+      var gc = (logoCount() === 0) ? garmentCoefFor(qty) : null;
+      if(gc == null) gc = coef;
       return Math.round(basePriceNew() * gc + ap.coefPart * coef) + ap.flatPart + methodPieceFee();
     }
     // Разова оплата за замовлення (напр. дизайн) розподілена на 1 шт цього тиражу.
@@ -5307,7 +5310,8 @@
         // Пороги знижки на виріб можуть не збігатися з порогами нанесення —
         // перевіряємо і ті, і ті, інакше «від X» буде завищене.
         var qtys = pt.map(function(t){ return t.min; });
-        var gts = garmentTiersList();
+        // Пороги виробу враховуємо тільки там, де вони справді діють — без нанесення
+        var gts = (logoCount() === 0) ? garmentTiersList() : null;
         if(gts) gts.forEach(function(g){ if(qtys.indexOf(g.from) < 0) qtys.push(g.from); });
         var prices = qtys.map(function(q){
           var t = pt[0];
