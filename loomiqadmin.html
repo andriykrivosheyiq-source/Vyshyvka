@@ -436,9 +436,21 @@
   .od-foot button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
   .od-foot button[disabled]{opacity:.35;cursor:not-allowed;}
   .od-foot .od-del{flex:none;padding:9px 14px;background:var(--bad-soft);color:var(--bad);}
-  .t-docs-kp1{display:flex;gap:6px;margin-top:6px;}
-  .t-doc-pick{flex:1;min-width:0;font-size:11.5px;padding:6px 8px;border-radius:7px;
-    border:1px solid var(--line);background:#fff;color:var(--ink);font-family:var(--font,inherit);}
+  .od-item-edit{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
+    border-top:1px dashed var(--line);}
+  .od-qty{width:62px;font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:6px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .od-qty-unit{font-size:11px;color:var(--ink-soft);}
+  .od-item-del{all:unset;cursor:pointer;font-size:12px;color:#AEB8C9;padding:4px 8px;border-radius:6px;}
+  .od-item-del:hover{background:var(--bad-soft);color:var(--bad);}
+  .od-add{display:flex;gap:6px;align-items:center;margin-top:6px;}
+  .od-add-pick{flex:1;min-width:0;font-size:11.5px;padding:7px 8px;border-radius:7px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .od-add-qty{width:56px;font-family:var(--mono);font-size:12px;padding:6px 7px;border-radius:7px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .od-add-go{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;
+    padding:7px 11px;border-radius:7px;background:var(--canvas);color:var(--ink-soft);}
+  .od-add-go:hover{background:var(--accent-soft);color:var(--accent-deep);}
   @media (max-width:640px){ .od-panel{width:100%;} }
 
   .t-actions{display:flex;gap:6px;}
@@ -3495,15 +3507,13 @@ function offerBlockHtml(o){
       ${events ? `<div class="t-evs">${events}</div>` : ''}
     </div>`;
 }
-// Документи для клієнта — уже в панелі, тож усе вміщується в один ряд.
-// Повного URL текстом тут немає навмисно: його ніхто не читає, його копіюють,
-// а рядок він займав цілий. КП по позиціях — списком, а не стовпчиком кнопок.
+// Документи для клієнта. Кошторису й «КП на позицію» тут немає навмисно:
+// пропозиція будується з самого складу замовлення, тож окремі документи по
+// позиціях лише плодили б версії, які розходяться зі сторінкою клієнта.
+// Повного URL текстом теж немає — його не читають, його копіюють.
 function docsBlockHtml(o){
-  const items = o.items || [];
-  if(!items.length) return '';
   const link = offerUrl(o);
-  const kpOpts = items.map((it,i)=>
-    `<option value="${i}">${escapeHtml(it.name||('Товар '+(i+1)))}</option>`).join('');
+  if(!link && !(o.items||[]).length) return '';
   return `
     <div class="od-sec">Документи для клієнта</div>
     <div class="t-docs">
@@ -3511,14 +3521,7 @@ function docsBlockHtml(o){
         ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`:''}
         ${link?`<button class="t-doc-sec" data-doc="openoffer">Відкрити</button>`:''}
         ${link?`<button class="t-doc-sec" data-doc="offerpdf">PDF</button>`:''}
-      </div>
-      <div class="t-docs-row">
-        <button class="t-doc-sec" data-doc="estimate">Кошторис</button>
-        <button class="t-doc-sec" data-doc="mockups">Макети</button>
-      </div>
-      <div class="t-docs-kp1">
-        <select class="t-doc-pick" data-kp-pick>${kpOpts}</select>
-        <button class="t-doc-sec" data-kp-go>КП на позицію</button>
+        <button class="t-doc-sec" data-doc="mockups">Макети ↓</button>
       </div>
     </div>`;
 }
@@ -3549,22 +3552,6 @@ function wireDocsBlock(el, o){
   if(op) op.addEventListener('click', ()=>{
     toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
     openOffer(true);
-  });
-  const kpGo = el.querySelector('[data-kp-go]');
-  if(kpGo) kpGo.addEventListener('click', async ()=>{
-    const pick = el.querySelector('[data-kp-pick]');
-    const i = pick ? +pick.value : 0;
-    kpGo.disabled = true;
-    try{ await docKPForItem(o, (o.items||[])[i], i); }
-    catch(e){ console.error(e); toast('Не вдалося зробити пропозицію'); }
-    kpGo.disabled = false;
-  });
-  const est = el.querySelector('[data-doc="estimate"]');
-  if(est) est.addEventListener('click', async ()=>{
-    est.disabled = true;
-    try{ await docEstimateForOrder(o); }
-    catch(e){ console.error(e); toast('Не вдалося зробити кошторис'); }
-    est.disabled = false;
   });
   const mk = el.querySelector('[data-doc="mockups"]');
   if(mk) mk.addEventListener('click', async ()=>{
@@ -3745,12 +3732,111 @@ function orderItemsHtml(o){
           <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
-        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
+        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''}</div>
         ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
         ${prints}
+        <div class="od-item-edit">
+          <input class="od-qty" type="number" min="1" step="1" value="${+it.qty||1}" data-i="${(o.items||[]).indexOf(it)}" aria-label="Кількість">
+          <span class="od-qty-unit">шт</span>
+          <span class="tc-spacer"></span>
+          <button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>
+        </div>
       </div>`;
   }).join('');
+}
+
+// ── Редагування складу замовлення просто в панелі ────────────────────────
+// Менеджер щодня чує «а додайте ще шопери» або «зробіть не 50, а 80». Раніше
+// заради цього треба було перескладати замовлення в Прорахунку. Тепер склад
+// правиться на місці, а сторінка КП клієнта перезбирається одразу.
+
+// Ціна голого виробу на цей тираж: база × шкала знижок на виріб.
+function bareUnitPrice(gid, qty){
+  const g = orderGarments().find(x=>x.id === gid);
+  if(!g) return { price:0, cost:0 };
+  const c = docGarmentCoef(qty);
+  return { price: Math.round(g.minPrice * (c == null ? 1 : c)), cost: Math.round(g.cost) };
+}
+function itemSums(o){
+  const paid = (o.items||[]).filter(i => i.kind !== 'reco');
+  return { p: paid.reduce((a,i)=> a + (+i.price || 0), 0),
+           c: paid.reduce((a,i)=> a + (+i.cost  || 0), 0) };
+}
+// Замовлення можуть містити разову оплату за замовлення, якої немає в цінах
+// позицій. Запам'ятовуємо цю різницю ДО першої правки — інакше перерахунок
+// складу мовчки з'їв би її. Викликається на відкритті панелі.
+function ensureFeeAdj(o){
+  if(o.feeAdj != null) return;
+  const s = itemSums(o);
+  o.feeAdj  = Math.round((+o.totalPrice || s.p) - s.p);
+  o.feeAdjC = Math.round((+o.totalCost  || s.c) - s.c);
+}
+// У суму замовлення входять лише основні позиції — рекомендації клієнт обирає сам.
+function recalcOrderTotals(o){
+  ensureFeeAdj(o);
+  const s = itemSums(o);
+  o.totalPrice = s.p + (+o.feeAdj  || 0);
+  o.totalCost  = s.c + (+o.feeAdjC || 0);
+  o.margin = o.totalPrice - o.totalCost;
+  o.marginPct = o.totalPrice > 0 ? (o.margin / o.totalPrice * 100) : 0;
+}
+async function saveOrderEdit(o){
+  recalcOrderTotals(o);
+  await storeSet('orders', orders);
+  // Сторінка клієнта має показувати те саме, що бачить менеджер
+  try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
+  renderBoard();
+  renderOrderDrawer();
+}
+async function orderAddItem(o, gid, qty, kind){
+  const g = orderGarments().find(x=>x.id === gid);
+  if(!g){ toast('Оберіть товар'); return; }
+  const q = Math.max(1, +qty || 1);
+  const u = bareUnitPrice(gid, q);
+  (o.items = o.items || []).push({
+    kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
+    name: g.name, color:'', print:'', sizes:'',
+    qty: q, unitPrice: u.price, price: u.price * q,
+    unitCost: u.cost, cost: u.cost * q,
+    mockups: [], prints: [], calc: null, config: null, garmentId: gid
+  });
+  await saveOrderEdit(o);
+  toast(kind === 'reco' ? 'Рекомендацію додано' : 'Товар додано');
+}
+async function orderSetQty(o, idx, qty){
+  const it = (o.items||[])[idx];
+  if(!it) return;
+  const q = Math.max(1, +qty || 1);
+  if(q === it.qty) return;
+  it.qty = q;
+  // Для позицій із нанесенням ціна за штуку рахована конструктором — її не чіпаємо,
+  // інакше загубився б друк. Для голого виробу перераховуємо за шкалою тиражу.
+  if(!(it.prints||[]).length && it.garmentId){
+    const u = bareUnitPrice(it.garmentId, q);
+    it.unitPrice = u.price; it.unitCost = u.cost;
+  }
+  it.price = Math.round((+it.unitPrice || 0) * q);
+  it.cost  = Math.round((+it.unitCost  || 0) * q);
+  await saveOrderEdit(o);
+}
+async function orderRemoveItem(o, idx){
+  const it = (o.items||[])[idx];
+  if(!it) return;
+  if(!confirm('Прибрати «' + (it.name||'позицію') + '» із замовлення?')) return;
+  o.items.splice(idx, 1);
+  await saveOrderEdit(o);
+}
+function addItemRowHtml(kind){
+  const opts = orderGarments().map(g=>
+    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)} — ${fmt(g.minPrice)} ₴</option>`).join('');
+  if(!opts) return '<div class="od-empty">У каталозі немає товарів</div>';
+  return `
+    <div class="od-add" data-add-kind="${kind}">
+      <select class="od-add-pick">${opts}</select>
+      <input class="od-add-qty" type="number" min="1" step="1" value="1" aria-label="Кількість">
+      <button class="od-add-go">+ ${kind === 'reco' ? 'рекомендацію' : 'товар'}</button>
+    </div>`;
 }
 
 function orderWho(o){
@@ -3793,7 +3879,6 @@ function ticketSummaryHtml(o){
     <div class="tc-meta">${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт' : 'без товарів'}</div>
     <div class="tc-money">
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
-      <span class="tc-marg ${(o.margin||0)>=0?'good':'bad'}">${(o.marginPct||0).toFixed(0)} %</span>
     </div>
     <div class="tc-acts">
       ${offerUrl(o)?`<button class="tc-act" data-doc="copylink" title="Скопіювати посилання на КП">🔗</button>`:''}
@@ -3861,6 +3946,7 @@ async function openOrderDrawer(o){
     o.offerSeen = off.state;
     try{ await saveOrders({ quiet:true }); }catch(e){ console.warn(e); }
   }
+  ensureFeeAdj(o);   // до будь-якої правки складу
   const d = orderDrawerEl();
   d.classList.add('open');
   renderOrderDrawer();
@@ -3889,6 +3975,8 @@ function renderOrderDrawer(){
 
       <div class="od-sec">Склад замовлення</div>
       <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
+      ${addItemRowHtml('main')}
+      ${addItemRowHtml('reco')}
 
       <div class="od-sec">Гроші</div>
       <div class="t-breakdown">
@@ -3913,6 +4001,17 @@ function renderOrderDrawer(){
     if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
+  panel.querySelectorAll('.od-add').forEach(row=>{
+    row.querySelector('.od-add-go').addEventListener('click', ()=>
+      orderAddItem(o, row.querySelector('.od-add-pick').value,
+                      row.querySelector('.od-add-qty').value, row.dataset.addKind));
+  });
+  panel.querySelectorAll('.od-qty').forEach(inp=>{
+    inp.addEventListener('change', ()=> orderSetQty(o, +inp.dataset.i, inp.value));
+  });
+  panel.querySelectorAll('[data-del-i]').forEach(b=>{
+    b.addEventListener('click', ()=> orderRemoveItem(o, +b.dataset.delI));
+  });
   wireDocsBlock(panel, o);
 }
 
