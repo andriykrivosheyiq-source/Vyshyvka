@@ -1164,19 +1164,18 @@
   }
   /* space-evenly + нульові поля: відстань від краю до слова дорівнює відстані
      між словами. З space-between поля були фіксовані, а проміжки — великі. */
-  .pm-tabs{display:flex;justify-content:space-evenly;padding:0;border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
-  /* Вага однакова для всіх: якби активна була жирнішою, її ширина мінялась би
-     і весь ряд смикався б при кожному перемиканні. Відрізняємо кольором. */
+  .pm-tabs{display:flex;justify-content:space-evenly;align-items:center;padding:7px 0;
+    border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
+  /* Активна вкладка — м'яка пігулка, а не підкреслення. Дві риски (індикатор
+     і лінія стрічки) весь час сперечались між собою; тепер лінія одна, і
+     нічого під нею не малюється. Вага однакова для всіх, щоб ряд не смикався
+     при перемиканні — активну видно кольором і підкладкою. */
   .pm-tab{
-    flex:0 0 auto;position:relative;padding:13px 0 12px;background:none;border:none;cursor:pointer;
-    font-family:var(--font-sf);font-size:14px;color:#9aa0ab;font-weight:600;white-space:nowrap;
-    transition:color .18s;
+    flex:0 0 auto;position:relative;padding:7px 13px;background:none;border:none;cursor:pointer;
+    border-radius:999px;font-family:var(--font-sf);font-size:14px;color:#9aa0ab;font-weight:600;
+    white-space:nowrap;transition:background .18s,color .18s;
   }
-  .pm-tab.active{color:#111;}
-  /* Індикатор лягає НА сіру лінію (bottom:-1px), а не над нею — інакше видно
-     дві паралельні риски, які сперечаються одна з одною. */
-  .pm-tab.active::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
-    width:100%;height:2px;border-radius:2px 2px 0 0;background:#111;}
+  .pm-tab.active{color:#111;background:#f1f2f4;}
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
   /* Обʼєднані вкладки мають два ряди — даємо їм рівно стільки, скільки треба */
@@ -1201,7 +1200,11 @@
   .pm-photo-filled.is-empty{padding-right:18px;}
   .pm-photo-filled.is-empty .pm-photo-group,
   .pm-photo-filled.is-empty .pm-photo-group-row{flex:1;width:100%;}
-  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;gap:5px;}
+  /* Порожній стан — це головний заклик до дії, тож контраст вищий за
+     звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
+  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;gap:6px;
+    border-color:#cfd3da;color:#5a6472;background:#fcfcfd;}
+  .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
   .pm-photo-filled.is-empty .pm-photo-add svg{width:22px;height:22px;}
   .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:22px;}
   .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:12px;font-weight:600;}
@@ -6122,10 +6125,15 @@
             // Обидва способи додати — плитки того ж розміру, що й мініатюри.
             // Раніше велика зона завантаження й дрібна кнопка тексту читались
             // як дві різні функції, хоча дія одна: покласти щось на виріб.
-            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore">' +
+            if(isCur){
+              var big = logoCount() === 0;   // плитки на всю ширину — там доречний заклик
+              html += '<div class="pm-photo-add" id="pmPhotoAddMore">' +
                 '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L6 20"/></svg>' +
-                '<span>Фото</span></div>' +
-              '<div class="pm-photo-add pm-photo-add--text" id="pmTextOpenTile"><span class="pm-photo-add-ab">Aa</span><span>Текст</span></div>';
+                '<span>' + (big ? 'Додайте фото' : 'Фото') + '</span></div>' +
+              '<div class="pm-photo-add pm-photo-add--text" id="pmTextOpenTile">' +
+                '<span class="pm-photo-add-ab">Aa</span>' +
+                '<span>' + (big ? 'Додайте текст' : 'Текст') + '</span></div>';
+            }
             html += '</div></div>';
           });
           html += '</div>';
