@@ -371,8 +371,12 @@
   .t-docs-head{font-size:10.5px;font-weight:700;color:#9AA5B5;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
   /* Персональна сторінка клієнта */
   .t-offer{margin-bottom:8px;}
-  .t-offer-url{font-family:var(--mono);font-size:10.5px;color:#64748B;background:#F1F5F9;
-    border-radius:6px;padding:5px 7px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Адреса окремим рядком — запасний, найнадійніший шлях: її видно, її можна
+     виділити пальцем і відкрити довгим натисканням, навіть якщо буфер підвів. */
+  .t-offer-url{display:block;font-family:var(--mono);font-size:10.5px;color:#4f5fd4;background:#F1F5F9;
+    border-radius:6px;padding:6px 8px;margin-top:7px;text-decoration:none;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all;-webkit-user-select:all;}
+  .t-offer-url:hover{background:#E6EAF3;text-decoration:underline;}
   /* Позначка рекомендованого товару */
   .t-reco-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:20px;
     background:#EEF2FF;color:#4338CA;font-size:9.5px;font-weight:700;
@@ -388,7 +392,8 @@
     padding:8px 10px;border-radius:9px;cursor:pointer;}
   .t-doc-main:hover{background:#1c2840;}
   .t-doc-sec{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:12px;
-    font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer;}
+    font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer;text-decoration:none;
+    display:inline-flex;align-items:center;justify-content:center;}
   .t-doc-sec:hover{background:var(--canvas);}
   .t-doc-main:disabled,.t-doc-sec:disabled{opacity:.55;cursor:default;}
   /* ── Згорнута картка Канбану ── */
@@ -3529,7 +3534,11 @@ function offerBlockHtml(o){
 // Документи для клієнта. Кошторису й «КП на позицію» тут немає навмисно:
 // пропозиція будується з самого складу замовлення, тож окремі документи по
 // позиціях лише плодили б версії, які розходяться зі сторінкою клієнта.
-// Повного URL текстом теж немає — його не читають, його копіюють.
+//
+// «Відкрити» і «PDF» — справжні посилання, а не кнопки з window.open: перехід
+// за <a> браузер не блокує ніколи, а спливаюче вікно на телефоні глушиться
+// мовчки. Адреса показана окремим рядком, щоб її завжди можна було виділити
+// пальцем або відкрити довгим натисканням, навіть якщо буфер обміну підвів.
 function docsBlockHtml(o){
   const link = offerUrl(o);
   if(!link && !(o.items||[]).length) return '';
@@ -3538,51 +3547,54 @@ function docsBlockHtml(o){
     <div class="t-docs">
       <div class="t-docs-row">
         ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`:''}
-        ${link?`<button class="t-doc-sec" data-doc="openoffer">Відкрити</button>`:''}
-        ${link?`<button class="t-doc-sec" data-doc="offerpdf">PDF</button>`:''}
+        ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}" target="_blank" rel="noopener" data-doc="openoffer">Відкрити</a>`:''}
+        ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}&print=1" target="_blank" rel="noopener" data-doc="offerpdf">PDF</a>`:''}
         <button class="t-doc-sec" data-doc="mockups">Макети ↓</button>
       </div>
+      ${link?`<a class="t-offer-url" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(link)}</a>`:''}
     </div>`;
 }
 function wireDocsBlock(el, o){
+  // Копіюємо СИНХРОННО, прямо в обробнику: після await браузер на телефоні вже
+  // не вважає це дією користувача і мовчки відмовляє в доступі до буфера.
+  // Саме через це посилання «копіювалось», але в буфері нічого не зʼявлялось.
+  function copyFallback(text){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+      document.body.appendChild(ta);
+      const range = document.createRange();
+      range.selectNodeContents(ta);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      ta.setSelectionRange(0, text.length);      // iOS не копіює без цього
+      const ok = document.execCommand('copy');
+      sel.removeAllRanges(); ta.remove();
+      return ok;
+    }catch(e){ return false; }
+  }
   const cp = el.querySelector('[data-doc="copylink"]');
-  if(cp) cp.addEventListener('click', async ()=>{
+  if(cp) cp.addEventListener('click', ()=>{
     const link = offerUrl(o);
-    // Перед копіюванням оновлюємо сторінку — щоб клієнт відкрив свіжі дані
-    try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
-    try{ await navigator.clipboard.writeText(link); toast('Посилання скопійовано'); }
-    catch(e){
-      // Буфер обміну недоступний (старий браузер, немає дозволу) — даємо скопіювати вручну
-      const inp = document.createElement('input');
-      inp.value = link; document.body.appendChild(inp); inp.select();
-      try{ document.execCommand('copy'); toast('Посилання скопійовано'); }
-      catch(e2){ prompt('Скопіюйте посилання вручну:', link); }
-      inp.remove();
-    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(
+        ()=> toast('Посилання скопійовано'),
+        ()=>{ if(copyFallback(link)) toast('Посилання скопійовано');
+              else prompt('Скопіюйте посилання вручну:', link); });
+    } else if(copyFallback(link)) toast('Посилання скопійовано');
+    else prompt('Скопіюйте посилання вручну:', link);
+    // Сторінку клієнта оновлюємо вже після копіювання — воно не має чекати
+    offerSave(o).catch(e=> console.warn('offer refresh failed', e));
   });
-  // Перегляд і PDF — це та сама сторінка клієнта, тож розбіжностей не буває.
-  // Вкладку відкриваємо СИНХРОННО, ще в обробнику кліку: після await браузер на
-  // телефоні вже не вважає це дією користувача і глушить вікно без попередження.
-  // Тому спершу порожня вкладка, і лише потім, коли пропозиція збережеться,
-  // переводимо її на адресу.
-  const openOffer = async (print)=>{
-    const w = window.open('', '_blank');
-    try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
-    const url = offerUrl(o) + (print ? '&print=1' : '');
-    if(w && !w.closed){ w.opener = null; w.location.replace(url); }
-    else {
-      // блокувальник спливаючих вікон усе-таки спрацював — даємо звичайне посилання
-      toast('Дозвольте спливаючі вікна або відкрийте посилання вручну');
-      try{ await navigator.clipboard.writeText(url); toast('Посилання скопійовано'); }catch(e){}
-      window.location.href = url;
-    }
-  };
-  const ov = el.querySelector('[data-doc="openoffer"]');
-  if(ov) ov.addEventListener('click', ()=> openOffer(false));
-  const op = el.querySelector('[data-doc="offerpdf"]');
-  if(op) op.addEventListener('click', ()=>{
-    toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
-    openOffer(true);
+  // «Відкрити» і «PDF» — звичайні посилання. Клік лишаємо браузеру, а самі
+  // лише освіжаємо сторінку клієнта у фоні, щоб він побачив актуальні дані.
+  el.querySelectorAll('[data-doc="openoffer"], [data-doc="offerpdf"]').forEach(a=>{
+    a.addEventListener('click', ()=>{
+      if(a.dataset.doc === 'offerpdf') toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
+      offerSave(o).catch(e=> console.warn('offer refresh failed', e));
+    });
   });
   const mk = el.querySelector('[data-doc="mockups"]');
   if(mk) mk.addEventListener('click', async ()=>{
