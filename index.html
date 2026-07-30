@@ -1162,9 +1162,11 @@
     box-shadow:0 -2px 24px rgba(0,0,0,.08);position:relative;z-index:2;
     margin-top:-20px;
   }
-  .pm-tabs{display:flex;justify-content:space-between;padding:0 20px;border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
+  /* space-evenly + нульові поля: відстань від краю до слова дорівнює відстані
+     між словами. З space-between поля були фіксовані, а проміжки — великі. */
+  .pm-tabs{display:flex;justify-content:space-evenly;padding:0;border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
   .pm-tab{
-    flex:0 0 auto;position:relative;padding:12px 8px 13px;background:none;border:none;cursor:pointer;
+    flex:0 0 auto;position:relative;padding:12px 0 13px;background:none;border:none;cursor:pointer;
     font-family:var(--font-sf);font-size:14px;color:#8e8e93;font-weight:400;white-space:nowrap;
   }
   .pm-tab.active{color:#111;font-weight:700;}
@@ -1175,25 +1177,51 @@
   /* На низьких екранах (SE, старі Android) фото віддає ще трохи висоти —
      краще менший мокап, ніж схована кнопка «в кошик». */
   @media (max-height:720px){
-    .pm-stage{height:calc(40vh - 36px);}
-    .pm-garment-item-ic{height:44px;flex:0 0 44px;}
-    .pm-color-row .pm-color-swatch{width:32px;height:32px;border-radius:16px;}
+    .pm-stage{height:calc(36vh - 32px);}
+    /* специфічність вища за базові правила: медіазапит стоїть у файлі раніше
+       за них, тож при однаковій вазі базові правила перемагали б */
+    .pm-garment-list .pm-garment-item-ic{height:44px;flex:0 0 44px;}
+    .pm-color-row .pm-color-list .pm-color-swatch{width:32px;height:32px;border-radius:16px;}
   }
-  .pm-tab-panel.is-two{height:auto;min-height:118px;align-items:flex-start;padding-bottom:8px;}
+  .pm-tab-panel.is-two{height:auto;min-height:118px;max-height:34vh;align-items:flex-start;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
-  .pm-way{padding:9px 18px 0;display:flex;flex-direction:column;gap:4px;}
+  /* Підписи всередині вкладки: без них чіпи «DTF принт / Вишивка» висіли
+     самі по собі й було незрозуміло, до чого вони. */
+  .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:#9aa0ab;flex:none;min-width:46px;}
+  .pm-row{padding:8px 18px 0;display:flex;align-items:center;gap:9px;}
+  /* Напис як логотип */
+  .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
+  .pm-photo-add--text:hover{border-color:#111;color:#111;}
+  .pm-photo-add-ab{font-size:17px;font-weight:800;line-height:1;color:inherit;}
+  .pm-text-open{padding:7px 13px;border-radius:999px;border:1.5px dashed #d8d8d8;
+    background:#fff;color:#666;font-family:var(--font-sf);font-size:12px;font-weight:600;cursor:pointer;}
+  .pm-text-open:hover{border-color:#111;color:#111;}
+  .pm-text-add{padding:8px 18px 0;display:flex;flex-direction:column;gap:6px;}
+  #pmTextInput{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #e6e6e6;
+    font-family:var(--font-sf);font-size:14px;font-weight:600;color:#111;background:#fff;}
+  #pmTextInput:focus{outline:none;border-color:#111;}
+  .pm-text-row{display:flex;align-items:center;gap:8px;}
+  .pm-text-sw{width:26px;height:26px;border-radius:13px;border:1px solid rgba(0,0,0,.12);cursor:pointer;
+    padding:0;flex:none;outline:2px solid transparent;outline-offset:2px;}
+  .pm-text-sw.on{outline-color:#111;}
+  .pm-text-go{margin-left:auto;border:none;background:#111;color:#fff;border-radius:999px;
+    padding:8px 16px;font-family:var(--font-sf);font-size:12px;font-weight:700;cursor:pointer;}
+  .pm-way{padding:8px 18px 0;display:flex;flex-direction:column;gap:3px;}
   .pm-way-chips{display:flex;align-items:center;gap:7px;}
   .pm-way-chip{display:flex;align-items:center;gap:5px;border:1.5px solid #e6e6e6;background:#fff;
     border-radius:999px;padding:6px 12px;font-family:var(--font-sf);font-size:12px;font-weight:600;
     color:#666;cursor:pointer;transition:all .18s;}
   .pm-way-chip.on{border-color:#111;color:#111;background:#fafafa;}
   .pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:4px;line-height:1;}
-  .pm-way-size{font-size:11.5px;color:#888;font-weight:600;min-height:14px;}
+  .pm-way-size{font-size:11.5px;color:#888;font-weight:600;min-height:0;padding-left:55px;}
   .pm-way-note{padding:2px 18px 0;font-size:11px;color:#8a94a6;line-height:1.5;}
   /* Колір — другий ряд вкладки «Товар» */
   .pm-color-row{padding:6px 18px 0;display:flex;flex-direction:column;gap:4px;}
   .pm-color-row .pm-color-name{margin:0;text-align:left;}
-  .pm-color-row .pm-color-list{display:flex;gap:9px;overflow-x:auto;scrollbar-width:none;padding:2px 0;}
+  .pm-color-row .pm-color-list{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;
+    scrollbar-width:none;padding:6px 6px;margin:-6px -6px;}
   .pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
   .pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
   /* Знижка за тираж — один рядок замість смуги на пів екрана */
@@ -1238,10 +1266,11 @@
     font-family:var(--font-sf);padding:0;
   }
   .pm-garment-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
-  .pm-garment-item-ic{width:100%;height:50px;flex:0 0 50px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
+  .pm-garment-item-ic{width:100%;height:62px;flex:0 0 62px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
   .pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
   .pm-garment-item-ic svg{width:80%;height:80%;}
-  .pm-garment-item-name{font-size:12px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:3px 4px 6px;}
+  .pm-garment-item-name{font-size:12px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:3px 4px 6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.4em;}
   .pm-garment-item.active .pm-garment-item-name{font-weight:700;color:#111;}
   .pm-catalog-cta-item{justify-content:center;background:#f5f5f5;border-color:#eaeaea;}
   .pm-catalog-cta-item .pm-garment-item-name{font-size:11.5px;line-height:1.25;color:#555;font-weight:600;padding:0 6px;}
@@ -5858,6 +5887,37 @@
       if(!wrapW) return 1;
       return Math.round((DEFAULT_LOGO_FRAC * wrapW / 120) * 1000) / 1000;
     }
+    // Напис малюємо в canvas із прозорим фоном — далі він живе як звичайний шар:
+    // тягнеться, масштабується, рахується за площею. Photoroom тут не потрібен.
+    var TEXT_COLORS = ['#111111', '#ffffff', '#c8a24a', '#c0392b', '#1f4e8c'];
+    function escAttr(v){ return String(v||'').replace(/[&<>"]/g, function(m){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
+    function textToPng(text, color){
+      var t = String(text || '').trim();
+      if(!t) return null;
+      var FS = 200, PAD = 24;
+      var font = '800 ' + FS + 'px ' + getComputedStyle(document.body).fontFamily;
+      var m = document.createElement('canvas').getContext('2d');
+      m.font = font;
+      var w = Math.ceil(m.measureText(t).width);
+      var c = document.createElement('canvas');
+      c.width = Math.max(2, w + PAD * 2);
+      c.height = Math.ceil(FS * 1.32) + PAD * 2;
+      var x = c.getContext('2d');
+      x.font = font; x.fillStyle = color || TEXT_COLORS[0];
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(t, c.width / 2, c.height / 2);
+      return c.toDataURL('image/png');
+    }
+    function addTextLayer(){
+      var inp = document.getElementById('pmTextInput');
+      var t = inp ? inp.value : (pm.textDraft || '');
+      var url = textToPng(t, pm.textColor || TEXT_COLORS[0]);
+      if(!url){ if(inp) inp.focus(); return; }
+      addLogo(url, url);           // фон уже прозорий — видаляти нічого
+      pm.textDraft = ''; pm.textOpen = false;
+      renderTabPanel();
+    }
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
@@ -6040,7 +6100,8 @@
               '</div>';
             });
             // «Додати лого» живе в групі поточної сторони — щоб було видно, куди саме додається
-            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div>';
+            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div>' +
+              '<div class="pm-photo-add pm-photo-add--text" id="pmTextOpenTile"><span class="pm-photo-add-ab">Aa</span><span>Напис</span></div>';
             html += '</div></div>';
           });
           html += '</div>';
@@ -6065,9 +6126,27 @@
             }
           }
         }
-        // Спосіб нанесення — не окремий крок, а властивість логотипа. Вибір із двох,
-        // тож два чіпи; пояснення під ⓘ, щоб не займати рядок описами.
+        // Текст — той самий логотип, лише намальований нами. Тому йде тим самим
+        // шляхом: стає шаром, тягнеться, масштабується й рахується за площею.
+        if(pm.textOpen){
+          html += '<div class="pm-text-add">' +
+            '<input type="text" id="pmTextInput" maxlength="24" placeholder="Ваш напис" value="'+escAttr(pm.textDraft||'')+'">' +
+            '<div class="pm-text-row">' +
+              TEXT_COLORS.map(function(c){
+                return '<button class="pm-text-sw'+(c===(pm.textColor||TEXT_COLORS[0])?' on':'')+'" data-textcolor="'+c+'" style="background:'+c+'" title="'+c+'"></button>';
+              }).join('') +
+              '<button class="pm-text-go" id="pmTextGo">Додати</button>' +
+            '</div></div>';
+        } else if(logoCount() === 0){
+          html += '<div class="pm-row"><span class="pm-lbl">Напис</span>' +
+            '<button class="pm-text-open" id="pmTextOpen">+ Додати текст</button></div>';
+        }
+        // Спосіб нанесення — властивість логотипа, тож і зʼявляється разом із ним.
+        // Обирати друк чи вишивку, коли наносити ще нічого, немає сенсу — і рядок
+        // дарма займав би висоту на першому екрані.
+        if(logoCount() > 0){
         html += '<div class="pm-way"><div class="pm-way-chips">' +
+          '<span class="pm-lbl">Спосіб</span>' +
           PRINTS.map(function(pr){
             return '<button class="pm-way-chip'+(pr.id===pm.printId?' on':'')+'" data-print="'+pr.id+'">' +
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+pr.icon+'</svg>' +
@@ -6078,6 +6157,7 @@
         if(pm.wayInfo){
           html += '<div class="pm-way-note">' +
             PRINTS.map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') + '</div>';
+        }
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
@@ -6224,6 +6304,23 @@
           }
         });
       });
+      var tOpen = document.getElementById('pmTextOpen') || document.getElementById('pmTextOpenTile');
+      if(tOpen) tOpen.addEventListener('click', function(){ pm.textOpen = true; renderTabPanel();
+        var i = document.getElementById('pmTextInput'); if(i) i.focus(); });
+      var tGo = document.getElementById('pmTextGo');
+      if(tGo) tGo.addEventListener('click', addTextLayer);
+      var tInp = document.getElementById('pmTextInput');
+      if(tInp){
+        tInp.addEventListener('input', function(){ pm.textDraft = tInp.value; });
+        tInp.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addTextLayer(); } });
+      }
+      pmTabPanel.querySelectorAll('[data-textcolor]').forEach(function(el){
+        el.addEventListener('click', function(){
+          pm.textColor = el.dataset.textcolor;
+          pm.textDraft = (document.getElementById('pmTextInput')||{}).value || pm.textDraft;
+          renderTabPanel();
+        });
+      });
       var wayInfo = document.getElementById('pmWayInfo');
       if(wayInfo) wayInfo.addEventListener('click', function(){ pm.wayInfo = !pm.wayInfo; renderTabPanel(); });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
@@ -6262,8 +6359,11 @@
       });
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
+          // Кожен дотик по розміру = ще одна штука. Раніше перший клік давав 1,
+          // а далі доводилось цілитись у маленький «+».
           var sz = el.dataset.sizeSelect;
-          if((pm.qty[sz]||0)===0){ pm.qty[sz]=1; renderTabPanel(); updatePriceBar(); }
+          pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          renderTabPanel(); updatePriceBar();
         });
       });
       pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
