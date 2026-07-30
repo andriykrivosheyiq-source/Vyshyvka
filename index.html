@@ -5558,7 +5558,9 @@
           // дає перерахунок opaqueBox: без фону лист DTF і габарит рахуються з контуру, а не з
           // усього прямокутника (див. layerOpaqueDimsMm), тож ціна все одно відрізняється.
           var bbox = (maxX>=minX && maxY>=minY) ? (maxX-minX+1)*(maxY-minY+1) : 0;
-          layer.fill = bbox > 0 ? Math.min(1, Math.max(0.05, opaque/bbox)) : 1;
+          // Нижня межа лише щоб не отримати нуль на порожній картинці. Раніше 0.05
+          // завищувало тонкі контурні лого, де реальне заповнення менше.
+          layer.fill = bbox > 0 ? Math.min(1, Math.max(0.01, opaque/bbox)) : 1;
           layer.opaqueBox = (maxX>=minX && maxY>=minY)
             ? { x0:minX/cw, y0:minY/ch, x1:(maxX+1)/cw, y1:(maxY+1)/ch }
             : { x0:0, y0:0, x1:1, y1:1 };
