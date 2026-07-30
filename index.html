@@ -996,7 +996,7 @@
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
-    position:relative;height:calc(56vh - 48px);background:rgb(233,230,231);
+    position:relative;height:calc(54vh - 48px);background:rgb(233,230,231);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .pm-pill{
@@ -1177,13 +1177,13 @@
      дві паралельні риски, які сперечаються одна з одною. */
   .pm-tab.active::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
     width:100%;height:2px;border-radius:2px 2px 0 0;background:#111;}
-  .pm-tab-panel{height:118px;display:flex;align-items:center;padding:3px 0;flex:none;overflow:hidden;}
+  .pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
   /* Обʼєднані вкладки мають два ряди — даємо їм рівно стільки, скільки треба */
   /* На низьких екранах (SE, старі Android) фото віддає ще трохи висоти —
      краще менший мокап, ніж схована кнопка «в кошик». */
   @media (max-height:720px){
-    .pm-stage{height:calc(42vh - 32px);}
+    .pm-stage{height:calc(37vh - 28px);}
     /* специфічність вища за базові правила: медіазапит стоїть у файлі раніше
        за них, тож при однаковій вазі базові правила перемагали б */
     .pm-garment-list .pm-garment-item-ic{height:44px;flex:0 0 44px;}
@@ -1192,7 +1192,7 @@
   /* Висоту диктує вміст: коли у вкладці лише два ряди плиток, тримати
      порожні 118px немає сенсу — блок просто підтягується знизу. */
   .pm-tab-panel.is-two{height:auto;min-height:0;max-height:34vh;align-items:flex-start;
-    overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:10px;}
+    overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 0;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
@@ -1225,7 +1225,7 @@
   .pm-text-go{margin-left:auto;border:none;background:#111;color:#fff;border-radius:999px;
     padding:8px 16px;font-family:var(--font-sf);font-size:12px;font-weight:700;cursor:pointer;}
   /* Спосіб нанесення: заголовок + розмір у тому самому рядку, під ним сегментна смуга */
-  .pm-way-head{padding:9px 18px 5px;display:flex;align-items:center;gap:6px;}
+  .pm-way-head{padding:14px 18px 6px;display:flex;align-items:center;gap:6px;}
   .pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
   .pm-seg{margin:0 18px;display:flex;background:#f1f2f4;border-radius:11px;padding:3px;gap:3px;}
   .pm-seg-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
@@ -1345,13 +1345,14 @@
   .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
 
   .pm-price-bar{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0f0f0;flex:none;}
-  .pm-product-title{font-size:21px;font-weight:700;letter-spacing:-0.4px;color:#111;margin-bottom:8px;}
+  .pm-product-title{font-size:17px;font-weight:700;letter-spacing:-0.2px;color:#111;margin-bottom:10px;}
   .pm-price-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px;}
   .pm-price-col{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;font-size:13px;color:#888;border:1.5px solid #e3e4ea;border-radius:12px;padding:10px 8px;background:#fff;}
   .pm-price-col .pm-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.5px;margin-right:4px;}
   .pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
   .pm-price-divider{display:none;}
-  .pm-qty-warning{display:flex;align-items:center;gap:7px;font-size:15px;color:#8a6a15;font-weight:600;margin:6px 0 8px;}
+  .pm-qty-warning{display:flex;align-items:center;gap:6px;font-size:13px;color:#8a6a15;font-weight:600;
+    margin:0 0 9px;line-height:1.3;}
   /* Той самий рядок у ролі підказки: ціна за кілька нанесень. Нового ряду не додаємо. */
   .pm-qty-warning.is-info{color:#6b7280;font-size:13.5px;font-weight:500;}
   .pm-add-btn{
@@ -2922,7 +2923,7 @@
       <div class="pm-product-title" id="pmProductTitle"></div>
       <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span id="pmQtyWarnText">Для точної ціни та термінів — вкажіть кількість</span>
+        <span id="pmQtyWarnText">Вкажіть кількість — покажемо точну ціну</span>
       </div>
       <div class="pm-price-row">
         <div class="pm-price-col">
@@ -6513,7 +6514,7 @@
       if(u === 0){
         pmQtyWarning.style.display = '';
         pmQtyWarning.classList.remove('is-info');
-        pmQtyWarnText.textContent = 'Для точної ціни та термінів — вкажіть кількість';
+        pmQtyWarnText.textContent = 'Вкажіть кількість — покажемо точну ціну';
       } else if(sidesWithLogo.length > 1){
         pmQtyWarning.style.display = '';
         pmQtyWarning.classList.add('is-info');
