@@ -1141,21 +1141,21 @@
   .pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
-  /* Перемикач сторін: назва + крапки «тут кілька фото» + стрілка. Лежить
-     ПОВЕРХ фото (absolute), тож висоти сторінці не додає, а ширина майже не
-     залежить від кількості ракурсів — крапки додають по 9px. */
-  .pm-side-nav{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:8;
-    display:flex;align-items:center;gap:9px;padding:6px 8px 6px 13px;border-radius:999px;
-    border:none;cursor:pointer;font-family:var(--font-sf);
-    background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    box-shadow:0 1px 6px rgba(0,0,0,.10);transition:background .18s;}
-  .pm-side-nav:hover{background:rgba(255,255,255,.9);}
-  .pm-side-nav-name{font-size:12.5px;font-weight:600;color:#111;white-space:nowrap;
-    min-width:44px;text-align:left;user-select:none;}
-  .pm-side-nav-dots{display:flex;align-items:center;gap:4px;}
-  .pm-side-nav-dots i{width:5px;height:5px;border-radius:3px;background:rgba(0,0,0,.22);transition:all .22s;}
-  .pm-side-nav-dots i.on{width:14px;background:rgba(0,0,0,.62);}
-  .pm-side-nav svg{color:rgba(0,0,0,.5);display:block;}
+  /* Стрілки — по краях фото, як і були: саме вони перемикають. */
+  .pm-side-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;
+    background:none;border:none;cursor:pointer;padding:4px;color:rgba(0,0,0,.5);}
+  .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
+  .pm-side-arrow--left{left:8px;}
+  .pm-side-arrow--right{right:8px;}
+  /* Назва сторони й крапки — покажчик, а не кнопка: без плашки, без фону.
+     Назва каже, який це бік, крапки — що фото тут не одне. */
+  .pm-side-mark{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:5;
+    display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;user-select:none;}
+  .pm-side-mark-name{font-family:var(--font-sf);font-size:12px;font-weight:600;color:rgba(0,0,0,.62);
+    letter-spacing:.2px;text-shadow:0 1px 3px rgba(255,255,255,.85);}
+  .pm-side-mark-dots{display:flex;align-items:center;gap:5px;}
+  .pm-side-mark-dots i{width:6px;height:6px;border-radius:3px;background:rgba(0,0,0,.22);transition:all .25s;}
+  .pm-side-mark-dots i.on{width:18px;background:rgba(0,0,0,.62);}
 
   .pm-sheet{
     background:#FFFFFF;border-radius:28px 28px 0 0;
@@ -2821,7 +2821,13 @@
       </div>
     </div>
 
-    <button class="pm-side-nav" id="pmSideNav" aria-label="Наступна сторона"></button>
+    <button class="pm-side-arrow pm-side-arrow--left" id="pmArrowLeft" style="display:none;" aria-label="Попередня сторона">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="pm-side-arrow pm-side-arrow--right" id="pmArrowRight" aria-label="Наступна сторона">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="pm-side-mark" id="pmSideMark"></div>
   </div>
 
   <div class="pm-sheet">
@@ -6173,6 +6179,7 @@
           ensureLogoSides();
           if(getViews().indexOf(pm.side) === -1) pm.side = 'front';
           renderSideDots();
+          updateSideArrows();
           renderGarment();
           // оновлюємо активний стан без перебудови панелі — щоб не скидалась прокрутка списку
           pmTabPanel.querySelectorAll('.pm-garment-item').forEach(function(it){
@@ -7126,46 +7133,55 @@
     var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
     var VIEW_SHORT = {front:'Перед', back:'Спина', left:'Лівий', right:'Правий'};
 
-    // Назва сторони + крапки, скільки ракурсів усього, + стрілка. Одне натискання
-    // на весь блок гортає далі по колу. Крапки лишаються звичним індикатором
-    // «тут кілька фото», а назва прибирає здогадки, який саме це бік.
+    // Підпис і крапки — покажчик стану, кнопкою він не є. Перемикають стрілки
+    // по краях фото: вони на своєму звичному місці, а плашка більше не лежить
+    // поверх товару.
     function renderSideDots(){
-      var nav = document.getElementById('pmSideNav');
-      if(!nav) return;
+      var box = document.getElementById('pmSideMark');
+      if(!box) return;
       var views = getViews();
-      nav.innerHTML = '<span class="pm-side-nav-name" id="pmSideNavName"></span>' +
-        '<span class="pm-side-nav-dots" id="pmSideNavDots">' +
-          views.map(function(){ return '<i></i>'; }).join('') +
-        '</span>' +
-        '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
-      nav.onclick = function(){
-        var v = getViews(), i = v.indexOf(pm.side);
-        setSide(v[(i + 1) % v.length]);      // по колу — щоб не було глухого кута на останньому
-      };
+      box.innerHTML = '<span class="pm-side-mark-name" id="pmSideMarkName"></span>' +
+        (views.length > 1
+          ? '<span class="pm-side-mark-dots" id="pmSideMarkDots">' +
+              views.map(function(){ return '<i></i>'; }).join('') + '</span>'
+          : '');
       updateSideMarks();
     }
     // renderGarment() смикається під час перетягування — тут лише текст і класи.
     function updateSideMarks(){
-      var nav = document.getElementById('pmSideNav');
-      if(!nav) return;
+      var box = document.getElementById('pmSideMark');
+      if(!box) return;
       var views = getViews(), i = views.indexOf(pm.side);
-      var dots = nav.querySelectorAll('#pmSideNavDots i');
-      if(dots.length !== views.length){ renderSideDots(); return; }
-      var nm = nav.querySelector('#pmSideNavName');
+      var dots = box.querySelectorAll('#pmSideMarkDots i');
+      if(views.length > 1 && dots.length !== views.length){ renderSideDots(); return; }
+      var nm = box.querySelector('#pmSideMarkName');
       if(nm) nm.textContent = VIEW_SHORT[pm.side] || pm.side;
       dots.forEach(function(d, j){ d.classList.toggle('on', j === i); });
-      nav.setAttribute('aria-label', 'Сторона: ' + (VIEW_SHORT[pm.side] || pm.side) + '. Натисніть, щоб показати наступну');
     }
+    // Крайні стрілки ховаються на межах списку — як було до плашки.
+    function updateSideArrows(){
+      var views = getViews(), i = views.indexOf(pm.side);
+      var l = document.getElementById('pmArrowLeft'), r = document.getElementById('pmArrowRight');
+      if(l) l.style.display = i > 0 ? '' : 'none';
+      if(r) r.style.display = i < views.length - 1 ? '' : 'none';
+    }
+    document.getElementById('pmArrowRight').addEventListener('click', function(){
+      var v = getViews(), i = v.indexOf(pm.side); if(i < v.length - 1) setSide(v[i+1]);
+    });
+    document.getElementById('pmArrowLeft').addEventListener('click', function(){
+      var v = getViews(), i = v.indexOf(pm.side); if(i > 0) setSide(v[i-1]);
+    });
     function setSide(side){
       ensureLogoSides();
       pm.side = side;
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
       updateSideMarks();
+      updateSideArrows();
       renderGarment();
       if(pm.tab==='photo') renderTabPanel();
     }
     // Свайп для перемикання сторін прибрано — він заважав перетягувати/масштабувати лого.
-    // Перемикання передня/задня лишається через стрілки та підписаний перемикач.
+    // Перемикання сторін — стрілками по краях фото.
     var pmStage = document.getElementById('pmStage');
 
     // Open/close modal
@@ -7196,6 +7212,7 @@
       pm.activeLogoId = (pm.logos[pm.side] && pm.logos[pm.side].length) ? pm.logos[pm.side][0].id : null;
       document.getElementById('pmTabs').querySelectorAll('.pm-tab').forEach(function(t,i){t.classList.toggle('active', i===0);});
       renderSideDots();
+      updateSideArrows();
       closeMenu();
       closeAllMainModals();
       productModal.classList.add('open');
