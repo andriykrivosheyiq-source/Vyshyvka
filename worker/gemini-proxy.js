@@ -121,16 +121,34 @@ export default {
     if (!prompt) return json({ error: 'empty-prompt' }, 400, cors);
     if (prompt.length > 2000) return json({ error: 'prompt-too-long' }, 400, cors);
 
+    // Референс від клієнта: фото логотипа, з якого треба зробити нормальний макет.
+    // Приходить як data URL; віддаємо Gemini окремою частиною запиту.
+    let refPart = null;
+    const ref = (body && typeof body.image === 'string') ? body.image : '';
+    if (ref) {
+      const m = ref.match(/^data:(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/i);
+      if (!m) return json({ error: 'bad-image' }, 400, cors);
+      if (m[2].length > 8 * 1024 * 1024) return json({ error: 'image-too-big' }, 413, cors);
+      refPart = { inlineData: { mimeType: m[1], data: m[2] } };
+    }
+
     // Просимо саме те, що потрібно для друку: чіткий об'єкт на однорідному тлі,
     // без тіней і фотофону — далі фон прибирає Photoroom.
-    const guide = 'Logo/graphic artwork for apparel printing. Single centered subject, ' +
-      'clean flat solid white background, no shadow, no mockup, no text watermark, ' +
-      'crisp edges, high contrast, vector-like look. Subject: ';
+    // З референсом задача інша: не вигадати нове, а витягти й вичистити наявне.
+    const guide = refPart
+      ? 'You are preparing artwork for apparel printing from a customer photo. ' +
+        'Output a single clean image of the artwork alone, centred, on a plain flat white ' +
+        'background, no shadow, no mockup, no garment, no watermark, crisp edges. Task: '
+      : 'Logo/graphic artwork for apparel printing. Single centered subject, ' +
+        'clean flat solid white background, no shadow, no mockup, no text watermark, ' +
+        'crisp edges, high contrast, vector-like look. Subject: ';
 
     let lastErr = null;
     for (const attempt of ATTEMPTS) {
       const model = attempt.model;
-      const payload = { contents: [{ role: 'user', parts: [{ text: guide + prompt }] }] };
+      // Картинка йде першою частиною — так модель бере її за основу, а не за приклад стилю.
+      const parts = refPart ? [refPart, { text: guide + prompt }] : [{ text: guide + prompt }];
+      const payload = { contents: [{ role: 'user', parts }] };
       if (attempt.modalities) payload.generationConfig = { responseModalities: attempt.modalities };
 
       const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +

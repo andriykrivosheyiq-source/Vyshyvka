@@ -1046,6 +1046,22 @@
   .pm-ai-prompt{width:100%;border:1px solid #e4e8ef;border-radius:12px;padding:11px 12px;font:inherit;
     font-size:14px;resize:vertical;margin-bottom:8px;color:#0f2034;}
   .pm-ai-prompt:focus{outline:none;border-color:#4f5fd4;}
+  /* Швидкі промти */
+  .pm-ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .pm-ai-chip{border:1px solid #e4e8ef;background:#fff;color:#0f2034;font:inherit;font-size:12.5px;
+    font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;line-height:1.2;}
+  .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
+  .pm-ai-chip:disabled{opacity:.5;cursor:default;}
+  /* Прикріплений референс */
+  .pm-ai-attach{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .pm-ai-clip{display:inline-flex;align-items:center;gap:7px;border:1px solid #e4e8ef;background:#fff;
+    color:#5a6a80;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
+  .pm-ai-clip:hover{border-color:#0f2034;color:#0f2034;}
+  .pm-ai-thumb{position:relative;width:44px;height:44px;border-radius:9px;overflow:hidden;
+    border:1px solid #e4e8ef;background:#f5f6f8;flex:none;}
+  .pm-ai-thumb img{width:100%;height:100%;object-fit:contain;display:block;}
+  .pm-ai-thumb button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+    border:none;background:#0f2034;color:#fff;font-size:14px;line-height:18px;cursor:pointer;padding:0;}
   .pm-ai-note{font-size:12.5px;color:#8893a6;line-height:1.45;margin-bottom:12px;}
   .pm-ai-note.is-soon{color:#8a6a15;background:#fff8e6;border:1px solid #f3e0ab;border-radius:10px;padding:9px 11px;}
   #pmZoneWarn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
@@ -2708,12 +2724,29 @@
       </div>
     </div>
 
-    <!-- Заглушка генерації: інтерфейс готовий, API підключимо пізніше -->
     <div id="pmAiModal" class="pm-src-modal">
       <div class="pm-src-box">
         <div class="pm-src-title">Згенерувати логотип</div>
+        <!-- Швидкі промти: один дотик — і генерація вже пішла -->
+        <div class="pm-ai-chips" id="pmAiChips"></div>
         <textarea id="pmAiPrompt" class="pm-ai-prompt" rows="3"
           placeholder="Напр.: мінімалістичний логотип кавʼярні, чорний контур чашки, без тексту"></textarea>
+        <!-- Референс: фото клієнта, від якого відштовхується генерація -->
+        <div class="pm-ai-attach">
+          <button class="pm-ai-clip" id="pmAiClip" type="button" title="Прикріпити фото-референс">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+            <span>Прикріпити фото</span>
+          </button>
+          <div class="pm-ai-thumb" id="pmAiThumb" hidden>
+            <img id="pmAiThumbImg" alt="">
+            <button type="button" id="pmAiThumbDel" aria-label="Прибрати фото">×</button>
+          </div>
+        </div>
+        <input type="file" id="pmAiFile" accept="image/*"
+          style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
         <div class="pm-ai-note" id="pmAiNote">Опишіть, який логотип потрібен — і натисніть «Згенерувати».</div>
         <button class="pm-src-opt pm-src-opt--go" id="pmAiGo"><span class="pm-src-ic">✨</span><span><b>Згенерувати</b></span></button>
         <button class="pm-src-cancel" id="pmAiCancel">Назад</button>
@@ -6233,13 +6266,63 @@
       var u = (c.geminiUrl || '').trim();
       return /^https:\/\//i.test(u) ? u : AI_API_DEFAULT;
     }
-    function generateLogoViaAi(prompt){
+    // Швидкі промти. Клієнти часто кидають референс поганої якості — фото логотипа
+    // на спині, під кутом, з тінями. Дві перші кнопки саме для цього.
+    var AI_QUICK = [
+      { photo: true, label: 'Витягнути логотип із фото',
+        prompt: 'Extract ONLY the logo/emblem from the attached photo and redraw it as clean, ' +
+          'flat, perfectly front-facing artwork. Remove perspective distortion, fabric folds, ' +
+          'wrinkles, shadows, lighting, reflections and background. Keep the original shapes, ' +
+          'proportions, lettering and colours exactly as they are — do not invent new elements. ' +
+          'Sharp edges, print-ready, logo alone on a plain flat white background.' },
+      { photo: true, label: 'Векторизувати і стилізувати',
+        prompt: 'Redraw the logo from the attached photo as clean vector-style artwork: smooth even ' +
+          'curves, flat solid colours, crisp edges, no gradients, no noise, no photo texture. ' +
+          'Keep the original composition and lettering readable and recognisable. ' +
+          'Plain flat white background, print-ready.' },
+      { photo: true, label: 'Одноколірний для вишивки',
+        prompt: 'Redraw the logo from the attached photo as a single-colour silhouette suitable for ' +
+          'machine embroidery: one solid colour on white, simplified fine details, no thin hairlines, ' +
+          'no gradients, no shading, clean closed shapes.' },
+      { photo: false, label: 'Мінімалістична емблема',
+        prompt: 'minimalist emblem, simple geometric shapes, single accent colour, no text' },
+      { photo: false, label: 'Монограма з літер',
+        prompt: 'elegant monogram made of intertwined letters, thin refined lines, one colour' },
+      { photo: false, label: 'Значок у колі',
+        prompt: 'round badge emblem with a symbol in the centre and text along the circle' }
+    ];
+    var aiRefImage = null;         // прикріплений референс як data URL
+
+    // Зменшуємо референс перед відправкою: повнорозмірне фото з телефона
+    // важить кілька мегабайтів і просто не долетить.
+    function prepRefImage(file){
+      return new Promise(function(res, rej){
+        var fr = new FileReader();
+        fr.onerror = rej;
+        fr.onload = function(ev){
+          loadImgEl(ev.target.result).then(function(img){
+            var MAX = 1400;
+            var w = img.naturalWidth || 1, h = img.naturalHeight || 1;
+            var k = Math.min(1, MAX / Math.max(w, h));
+            var cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+            var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+            var x = c.getContext('2d');
+            x.fillStyle = '#fff'; x.fillRect(0, 0, cw, ch);   // прозорість → білий, бо далі JPEG
+            x.drawImage(img, 0, 0, cw, ch);
+            res(c.toDataURL('image/jpeg', 0.92));
+          }).catch(rej);
+        };
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function generateLogoViaAi(prompt, image){
       var ctrl = new AbortController();
-      var timer = setTimeout(function(){ ctrl.abort(); }, 60000);
+      var timer = setTimeout(function(){ ctrl.abort(); }, 90000);
       return fetch(aiApiUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt }),
+        body: JSON.stringify({ prompt: prompt, image: image || null }),
         signal: ctrl.signal
       }).then(function(r){
         clearTimeout(timer);
@@ -6421,34 +6504,97 @@
       ai.addEventListener('click', function(e){ if(e.target === ai) closeAll(); });
       document.getElementById('pmSrcAi').addEventListener('click', function(){
         src.classList.remove('open'); ai.classList.add('open');
-        var n = document.getElementById('pmAiNote');
-        n.className = 'pm-ai-note';
-        n.textContent = 'Опишіть, який логотип потрібен — і натисніть «Згенерувати».';
+        resetAiNote();
+        renderAiChips();
         setTimeout(function(){ document.getElementById('pmAiPrompt').focus(); }, 60);
       });
+
+      function resetAiNote(){
+        var n = document.getElementById('pmAiNote');
+        n.className = 'pm-ai-note';
+        n.textContent = aiRefImage
+          ? 'Фото прикріплено. Оберіть, що з ним зробити, — або опишіть словами.'
+          : 'Опишіть логотип або прикріпіть фото клієнта — тоді зʼявляться швидкі кнопки.';
+      }
+      // Показуємо ті кнопки, які мають сенс: із фото — обробка референсу,
+      // без фото — генерація з нуля.
+      function renderAiChips(){
+        var box = document.getElementById('pmAiChips');
+        var list = AI_QUICK.filter(function(q){ return q.photo === !!aiRefImage; });
+        box.innerHTML = list.map(function(q, i){
+          return '<button type="button" class="pm-ai-chip" data-quick="' +
+            AI_QUICK.indexOf(q) + '">' + q.label + '</button>';
+        }).join('');
+        box.querySelectorAll('[data-quick]').forEach(function(b){
+          b.addEventListener('click', function(){
+            var q = AI_QUICK[+b.dataset.quick];
+            document.getElementById('pmAiPrompt').value = q.label;   // менеджеру видно, що обрано
+            runAiGeneration(q.prompt);
+          });
+        });
+      }
+      function setRefImage(dataUrl){
+        aiRefImage = dataUrl || null;
+        var t = document.getElementById('pmAiThumb');
+        if(aiRefImage){
+          document.getElementById('pmAiThumbImg').src = aiRefImage;
+          t.hidden = false;
+        } else {
+          t.hidden = true;
+          document.getElementById('pmAiFile').value = '';
+        }
+        renderAiChips();
+        resetAiNote();
+      }
+      document.getElementById('pmAiClip').addEventListener('click', function(){
+        document.getElementById('pmAiFile').click();
+      });
+      document.getElementById('pmAiThumbDel').addEventListener('click', function(){ setRefImage(null); });
+      document.getElementById('pmAiFile').addEventListener('change', function(e){
+        var f = e.target.files && e.target.files[0];
+        if(!f) return;
+        var n = document.getElementById('pmAiNote');
+        n.className = 'pm-ai-note'; n.textContent = 'Готуємо фото…';
+        prepRefImage(f).then(setRefImage).catch(function(){
+          n.className = 'pm-ai-note is-soon';
+          n.textContent = 'Не вдалося прочитати це фото. Спробуйте інший файл.';
+        });
+      });
+
       // Генерація: Gemini малює зображення, далі Photoroom прибирає фон —
       // рівно той самий шлях, що й у завантаженого файлу.
       var aiBusy = false;
       document.getElementById('pmAiGo').addEventListener('click', function(){
-        var go = this;
         var prompt = (document.getElementById('pmAiPrompt').value || '').trim();
+        if(!prompt){
+          var n0 = document.getElementById('pmAiNote');
+          n0.className = 'pm-ai-note is-soon';
+          n0.textContent = aiRefImage
+            ? 'Оберіть кнопку вище або опишіть, що зробити з фото.'
+            : 'Спершу опишіть логотип.';
+          return;
+        }
+        runAiGeneration(prompt);
+      });
+      function runAiGeneration(prompt){
+        var go = document.getElementById('pmAiGo');
         var n = document.getElementById('pmAiNote');
         if(aiBusy) return;
-        if(!prompt){ n.className = 'pm-ai-note is-soon'; n.textContent = 'Спершу опишіть логотип.'; return; }
         aiBusy = true;
         go.disabled = true;
         go.style.opacity = '.6';
+        document.querySelectorAll('#pmAiChips .pm-ai-chip').forEach(function(b){ b.disabled = true; });
         n.className = 'pm-ai-note';
-        n.textContent = 'Малюємо… це може зайняти до хвилини.';
-        generateLogoViaAi(prompt).then(function(src){
+        n.textContent = aiRefImage ? 'Обробляємо фото… це може зайняти до хвилини.'
+                                   : 'Малюємо… це може зайняти до хвилини.';
+        generateLogoViaAi(prompt, aiRefImage).then(function(src){
           n.textContent = 'Прибираємо фон…';
           return removeBgForUpload(src).then(function(clean){ addLogo(src, clean); },
                                             function(){ addLogo(src, null); });
         }).then(function(){
           closeAll();
           document.getElementById('pmAiPrompt').value = '';
-          n.className = 'pm-ai-note';
-          n.textContent = 'Опишіть, який логотип потрібен — і натисніть «Згенерувати».';
+          setRefImage(null);
         }).catch(function(err){
           var m = String((err && err.message) || '');
           n.className = 'pm-ai-note is-soon';
@@ -6465,8 +6611,10 @@
           aiBusy = false;
           go.disabled = false;
           go.style.opacity = '';
+          document.querySelectorAll('#pmAiChips .pm-ai-chip').forEach(function(b){ b.disabled = false; });
         });
-      });
+      }
+      renderAiChips();
     })();
 
     document.getElementById('pmFileInput').addEventListener('change', function(e){
