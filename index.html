@@ -1028,7 +1028,6 @@
   .pm-src-title{font-size:17px;font-weight:800;color:#0f2034;margin-bottom:14px;}
   .pm-src-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
     border:1px solid #e4e8ef;background:#fff;border-radius:13px;padding:13px 14px;margin-bottom:9px;font:inherit;}
-  .pm-src-opt:hover{border-color:#4f5fd4;background:#f7f9ff;}
   .pm-src-opt b{display:block;font-size:14.5px;color:#0f2034;}
   .pm-src-opt small{display:block;font-size:12px;color:#8893a6;margin-top:2px;}
   .pm-src-opt--go{justify-content:center;background:#0f2034;border-color:#0f2034;}
@@ -1036,7 +1035,6 @@
   .pm-src-ic{font-size:20px;flex:none;}
   .pm-src-cancel{width:100%;border:none;background:none;color:#8893a6;font:inherit;font-size:13.5px;
     padding:9px;cursor:pointer;border-radius:10px;}
-  .pm-src-cancel:hover{background:#f4f5f7;color:#0f2034;}
   .pm-ai-prompt{width:100%;border:1px solid #e4e8ef;border-radius:12px;padding:11px 12px;font:inherit;
     font-size:14px;resize:vertical;margin-bottom:8px;color:#0f2034;}
   .pm-ai-prompt:focus{outline:none;border-color:#4f5fd4;}
@@ -1044,7 +1042,6 @@
   .pm-ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
   .pm-ai-chip{border:1px solid #e4e8ef;background:#fff;color:#0f2034;font:inherit;font-size:12.5px;
     font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;line-height:1.2;}
-  .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
   .pm-ai-chip:disabled{opacity:.5;cursor:default;}
   /* Вище вікна генерації (z-index 120) — обрізання відкривається поверх нього */
   .pm-crop-ov{position:fixed;inset:0;z-index:140;background:rgba(15,32,52,.92);
@@ -1078,7 +1075,6 @@
   .pm-mgr-tools{display:flex;gap:8px;margin:12px 0 0;padding:0 18px;flex-wrap:wrap;}
   .pm-mgr-tool{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4e8ef;background:#fff;
     color:#0f2034;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
-  .pm-mgr-tool:hover{border-color:#0f2034;background:#f7f9fc;}
   .pm-recolor{margin:10px 18px 0;padding:11px;border:1px solid #e4e8ef;border-radius:12px;background:#fbfcfe;}
   .pm-recolor-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .pm-sw{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8dee7;
@@ -1090,7 +1086,6 @@
   .pm-ai-attach{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
   .pm-ai-clip{display:inline-flex;align-items:center;gap:7px;border:1px solid #e4e8ef;background:#fff;
     color:#5a6a80;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
-  .pm-ai-clip:hover{border-color:#0f2034;color:#0f2034;}
   .pm-ai-thumb{position:relative;width:44px;height:44px;border-radius:9px;overflow:hidden;
     border:1px solid #e4e8ef;background:#f5f6f8;flex:none;}
   .pm-ai-thumb img{width:100%;height:100%;object-fit:contain;display:block;}
@@ -1144,7 +1139,6 @@
   /* Стрілки — по краях фото, як і були: саме вони перемикають. */
   .pm-side-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;
     background:none;border:none;cursor:pointer;padding:4px;color:rgba(0,0,0,.5);}
-  .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
   .pm-side-arrow--left{left:8px;}
   .pm-side-arrow--right{right:8px;}
   /* Назва сторони й крапки — покажчик, а не кнопка: без плашки, без фону.
@@ -1176,6 +1170,24 @@
     white-space:nowrap;transition:background .18s,color .18s;
   }
   .pm-tab.active{color:#111;background:#f1f2f4;}
+  /* Дотик не має лишати темного відблиску: браузер малює його ДО того, як
+     застосується наш стан — виходило «спершу темно-сіре, потім світло-сіре».
+     І ховер лишаємо тільки там, де є справжній курсор: на телефоні він
+     залипає після тапу й виглядає як застряглий стан. */
+  #productModal button, #productModal .pm-tab, #productModal .pm-photo-add,
+  #productModal .pm-photo-thumb, #productModal .pm-seg-btn, #productModal a{
+    -webkit-tap-highlight-color:transparent;}
+  @media (hover:hover){
+    .pm-src-opt:hover{border-color:#4f5fd4;background:#f7f9ff;}
+    .pm-src-cancel:hover{background:#f4f5f7;color:#0f2034;}
+    .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
+    .pm-mgr-tool:hover{border-color:#0f2034;background:#f7f9fc;}
+    .pm-ai-clip:hover{border-color:#0f2034;color:#0f2034;}
+    .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
+    .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
+    .pm-photo-add--text:hover{border-color:#111;color:#111;}
+    .pm-tier-line:hover{background:#eef0f4;}
+  }
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
   /* Обʼєднані вкладки мають два ряди — даємо їм рівно стільки, скільки треба */
@@ -1204,12 +1216,10 @@
      звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
   .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;gap:6px;
     border-color:#cfd3da;color:#5a6472;background:#fcfcfd;}
-  .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
   .pm-photo-filled.is-empty .pm-photo-add svg{width:22px;height:22px;}
   .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:22px;}
   .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:12px;font-weight:600;}
   .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
-  .pm-photo-add--text:hover{border-color:#111;color:#111;}
   .pm-photo-add-ab{font-size:19px;font-weight:800;line-height:1;color:inherit;}
   /* «Прибрати фон» — значком у куті мініатюри, щоб не займати рядок під нею */
   .pm-bg-dot{position:absolute;left:4px;bottom:4px;width:19px;height:19px;border-radius:10px;
@@ -1250,11 +1260,13 @@
     cursor:pointer;font-family:var(--font-sf);font-size:12.5px;color:#5a6472;
     background:#f6f7f9;border-radius:10px;padding:9px 12px;}
   .pm-tier-line b{color:#111;font-weight:800;}
-  .pm-tier-line:hover{background:#eef0f4;}
   .pm-tier-go{margin-left:auto;color:#4f5fd4;font-weight:700;white-space:nowrap;}
   .pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   .pm-tab-panel-inner{width:100%;}
+  .pm-tab-panel-inner.is-swap{animation:pmSwap .16s ease-out;}
+  @keyframes pmSwap{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .pm-tab-panel-inner.is-swap{animation:none;} }
 
   .pm-photo-empty{
     margin:0 18px;padding:16px 18px;border-radius:16px;cursor:pointer;border:2px dashed #ddd;background:#fafafa;
@@ -6238,7 +6250,9 @@
         });
         html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
       }
-      pmTabPanel.innerHTML = '<div class="pm-tab-panel-inner">'+html+'</div>';
+      // Плавно підміняємо вміст ЛИШЕ коли справді змінили вкладку. На кожен
+      // перерендер (додали лого, змінили кількість) анімація тільки б заважала.
+      pmTabPanel.innerHTML = '<div class="pm-tab-panel-inner'+(sameTab?'':' is-swap')+'">'+html+'</div>';
       pmTabPanel.classList.toggle('is-tall',
         pm.tab === 'photo' && IS_MANAGER && logoCount() > 0);
       // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
