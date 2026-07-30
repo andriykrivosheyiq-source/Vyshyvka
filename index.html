@@ -1177,7 +1177,7 @@
   .pm-photo-empty-ic{width:40px;height:40px;border-radius:20px;flex:none;background:#111;display:flex;align-items:center;justify-content:center;}
   .pm-photo-empty-title{font-size:14px;font-weight:700;}
   .pm-photo-empty-sub{font-size:12px;color:#bbb;margin-top:2px;}
-  .pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;}
+  .pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;align-items:flex-start;}
   .pm-photo-thumb{flex:0 0 auto;width:72px;height:72px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
   .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:#f0f0f0;display:block;}
   .pm-photo-thumb-del{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;}
@@ -1189,6 +1189,13 @@
   .pm-bg-toggle-pill.on .pm-bg-toggle-knob{left:12px;}
   .pm-bg-toggle-label{font-size:10.5px;color:#666;font-weight:500;}
   .pm-photo-add{flex:0 0 auto;width:72px;height:72px;border-radius:12px;border:2px dashed #ccc;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#bbb;font-size:10px;}
+  /* Вкладка «Фото» показує лого з усіх сторін одразу — групи з підписами */
+  .pm-photo-group{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
+  .pm-photo-group-lab{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9aa0ab;padding-left:2px;}
+  .pm-photo-group-row{display:flex;gap:10px;align-items:flex-start;}
+  .pm-photo-group.is-other .pm-photo-thumb img{opacity:.6;}
+  .pm-photo-sep{flex:0 0 auto;width:1px;height:72px;background:#ececec;margin:16px 2px 0;}
+  .pm-photo-note{padding:9px 18px 0;font-size:11px;color:#8a94a6;}
 
   .pm-garment-list{display:flex;gap:8px;padding:0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-garment-item{
@@ -5400,6 +5407,35 @@
 
     function currentLayers(){ return pm.logos[pm.side]; }
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
+    // Логотип за id, у якій би стороні він не лежав — вкладка «Фото» показує всі сторони,
+    // тож перемикачі й інструменти мають знаходити лого поза поточним ракурсом.
+    function findLayerAnySide(id){
+      var found = null;
+      getViews().forEach(function(v){
+        (pm.logos[v] || []).forEach(function(l){ if(l.id === id) found = l; });
+      });
+      return found;
+    }
+    // Сторона, на якій лежить лого — потрібна, щоб клік по чужій мініатюрі перемкнув ракурс.
+    function sideOfLayer(id){
+      var side = null;
+      getViews().forEach(function(v){
+        (pm.logos[v] || []).forEach(function(l){ if(l.id === id) side = v; });
+      });
+      return side;
+    }
+    // Групи для вкладки «Фото»: сторони, де є лого, плюс поточна (щоб було куди додавати).
+    function photoGroups(){
+      return getViews().filter(function(v){
+        return (pm.logos[v] || []).length > 0 || v === pm.side;
+      }).map(function(v){ return { side: v, layers: (pm.logos[v] || []).slice() }; });
+    }
+    function logoWordUa(n){
+      var d = n % 10, dd = n % 100;
+      if(d === 1 && dd !== 11) return 'нанесення';
+      if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return 'нанесення';
+      return 'нанесень';
+    }
 
     // Накладаємо логотип на фото моделей, дзеркалячи позицію/розмір/поворот із головного мокапа.
     // Спина: показуємо лого беку; якщо його немає — показуємо передній (як прев'ю).
@@ -5923,28 +5959,48 @@
       var html = '';
       if(pm.tab === 'photo'){
         var layers = currentLayers();
-        if(layers.length === 0){
+        if(logoCount() === 0){
           // порожній стан — зона завантаження в самій вкладці (не лише пунктир на фото)
           html = '<div class="pm-photo-empty" id="pmPhotoEmptyTrigger">' +
             '<span class="pm-photo-empty-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>' +
             '<div><div class="pm-photo-empty-title">Завантажте логотип</div><div class="pm-photo-empty-sub">PNG · JPG · SVG</div></div></div>';
         } else {
+          // Показуємо лого з УСІХ сторін одразу, згруповані з підписами. Інакше
+          // клієнт бачить одну картинку і не розуміє, за що саме ціна: перемикати
+          // сторони, щоб порахувати нанесення, він не буде.
+          var groups = photoGroups();
+          var multi = groups.length > 1;
           html = '<div class="pm-photo-filled">';
-          layers.forEach(function(l){
-            var isActive = pm.activeLogoId === l.id;
-            html += '<div class="pm-photo-col">' +
-              '<div class="pm-photo-thumb" data-id="'+l.id+'" style="border-color:'+(isActive?'#111':'#eee')+';">' +
-                '<img src="'+l.url+'">' + (isActive ? '<div class="pm-photo-thumb-del" data-del="'+l.id+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>' : '') +
-              '</div>' +
-              '<div class="pm-bg-toggle" data-bgtoggle="'+l.id+'">' +
-                '<span class="pm-bg-toggle-pill'+(l.removeBg?' on':'')+'"><span class="pm-bg-toggle-knob"></span></span>' +
-                '<span class="pm-bg-toggle-label">'+(l.removeBg?'Без фону':'З фоном')+'</span>' +
-              '</div>' +
-            '</div>';
+          groups.forEach(function(gr, gi){
+            if(multi && gi > 0) html += '<div class="pm-photo-sep"></div>';
+            var isCur = gr.side === pm.side;
+            html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
+            if(multi) html += '<div class="pm-photo-group-lab">'+(VIEW_LABEL[gr.side]||gr.side)+'</div>';
+            html += '<div class="pm-photo-group-row">';
+            gr.layers.forEach(function(l){
+              var isActive = isCur && pm.activeLogoId === l.id;
+              html += '<div class="pm-photo-col">' +
+                '<div class="pm-photo-thumb" data-id="'+l.id+'" data-side="'+gr.side+'" style="border-color:'+(isActive?'#111':'#eee')+';">' +
+                  '<img src="'+l.url+'">' + (isActive ? '<div class="pm-photo-thumb-del" data-del="'+l.id+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>' : '') +
+                '</div>' +
+                '<div class="pm-bg-toggle" data-bgtoggle="'+l.id+'">' +
+                  '<span class="pm-bg-toggle-pill'+(l.removeBg?' on':'')+'"><span class="pm-bg-toggle-knob"></span></span>' +
+                  '<span class="pm-bg-toggle-label">'+(l.removeBg?'Без фону':'З фоном')+'</span>' +
+                '</div>' +
+              '</div>';
+            });
+            // «Додати лого» живе в групі поточної сторони — щоб було видно, куди саме додається
+            if(isCur) html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div>';
+            html += '</div></div>';
           });
-          html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div></div>';
+          html += '</div>';
+          if(multi){
+            var nAll = logoCount();
+            html += '<div class="pm-photo-note">' + nAll + ' ' + logoWordUa(nAll) + ' на ' +
+              groups.filter(function(g){ return g.layers.length; }).length + ' сторонах — ціна врахує всі</div>';
+          }
           // Менеджеру — доробити вже наявний логотип: перегенерувати або перефарбувати
-          var actL = layers.find(function(l){ return l.id === pm.activeLogoId; }) || layers[0];
+          var actL = findLayerAnySide(pm.activeLogoId) || layers[0];
           if(IS_MANAGER && actL){
             html += '<div class="pm-mgr-tools">' +
               '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
@@ -6015,7 +6071,7 @@
       }
       pmTabPanel.innerHTML = '<div class="pm-tab-panel-inner">'+html+'</div>';
       pmTabPanel.classList.toggle('is-tall',
-        pm.tab === 'photo' && IS_MANAGER && currentLayers().length > 0);
+        pm.tab === 'photo' && IS_MANAGER && logoCount() > 0);
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
@@ -6040,7 +6096,14 @@
       if(addMore) addMore.addEventListener('click', function(){ window.__pmPickLogoSource(); });
       pmTabPanel.querySelectorAll('.pm-photo-thumb').forEach(function(el){
         el.addEventListener('click', function(){
-          var id = Number(el.dataset.id);
+          var id = Number(el.dataset.id), side = el.dataset.side;
+          if(side && side !== pm.side){
+            // мініатюра з іншої сторони — показуємо ту сторону і беремо це лого в роботу
+            setSide(side);
+            pm.activeLogoId = id;
+            renderGarment(); renderTabPanel();
+            return;
+          }
           var isActive = pm.activeLogoId === id;
           if(isActive){ openDeleteConfirm(id); }
           else { pm.activeLogoId = id; renderGarment(); renderTabPanel(); }
@@ -6049,14 +6112,14 @@
       pmTabPanel.querySelectorAll('[data-ai-regen]').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.aiRegen);
-          var layer = currentLayers().find(function(l){ return l.id === id; });
+          var layer = findLayerAnySide(id);
           if(layer && window.__pmOpenAi) window.__pmOpenAi(layer);
         });
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.crop);
-          var layer = currentLayers().find(function(l){ return l.id === id; });
+          var layer = findLayerAnySide(id);
           if(!layer) return;
           openCropper(layer.url).then(function(res){
             if(!res) return;
@@ -6077,13 +6140,13 @@
       pmTabPanel.querySelectorAll('[data-recolor-reset]').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.recolorReset);
-          var layer = currentLayers().find(function(l){ return l.id === id; });
+          var layer = findLayerAnySide(id);
           if(layer) resetRecolor(layer);
         });
       });
       pmTabPanel.querySelectorAll('[data-sw]').forEach(function(el){
         el.addEventListener('click', function(){
-          var layer = currentLayers().find(function(l){ return l.id === pm.recolorFor; });
+          var layer = findLayerAnySide(pm.recolorFor);
           if(layer) recolorLogo(layer, el.dataset.sw);
         });
       });
@@ -6091,7 +6154,7 @@
         var pick = pmTabPanel.querySelector('#pmRecolorPick');
         if(!pick) return;
         pick.addEventListener('change', function(){
-          var layer = currentLayers().find(function(l){ return l.id === pm.recolorFor; });
+          var layer = findLayerAnySide(pm.recolorFor);
           if(layer) recolorLogo(layer, pick.value);
         });
       })();
@@ -6099,7 +6162,7 @@
         el.addEventListener('click', function(e){
           e.stopPropagation();
           var id = Number(el.dataset.bgtoggle);
-          var layer = currentLayers().find(function(l){return l.id===id;});
+          var layer = findLayerAnySide(id);
           if(layer){
             layer.removeBg = !layer.removeBg;
             layer.url = layer.removeBg ? layer.cleanUrl : layer.origUrl;
@@ -7053,7 +7116,7 @@
       });
     });
 
-    var VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
+    var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
     function renderSideDots(){
       var views = getViews();
       var wrap = document.getElementById('pmSideDots');
