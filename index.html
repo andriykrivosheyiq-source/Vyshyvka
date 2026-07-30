@@ -1141,23 +1141,21 @@
   .pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
-  /* Стрічка превʼю сторін — як галерея товару в інтернет-магазині: не називає
-     сторону, а показує її разом із нанесеним лого. Лежить поверх фото (absolute),
-     тож висоти сторінці не додає, і росте вниз, а не вшир. */
-  .pm-view-rail{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:8;
-    display:flex;flex-direction:column;gap:6px;max-height:calc(100% - 24px);overflow-y:auto;
-    scrollbar-width:none;}
-  .pm-view-rail::-webkit-scrollbar{display:none;}
-  .pm-view-thumb{flex:0 0 auto;width:44px;height:52px;padding:0;cursor:pointer;position:relative;
-    border-radius:8px;overflow:hidden;background:rgba(255,255,255,.55);
-    border:1.5px solid rgba(0,0,0,.08);opacity:.75;transition:opacity .18s,border-color .18s;}
-  .pm-view-thumb:hover{opacity:1;}
-  .pm-view-thumb.active{opacity:1;border-color:rgba(0,0,0,.55);background:rgba(255,255,255,.85);}
-  .pm-view-thumb-in{position:absolute;inset:0;pointer-events:none;}
-  .pm-view-thumb-in > img,.pm-view-thumb-in > svg{position:absolute;inset:0;width:100%;height:100%;
-    object-fit:contain;display:block;}
-  .pm-view-lay{position:absolute;top:50%;left:50%;transform-origin:center;}
-  .pm-view-lay img{width:100%;height:100%;object-fit:contain;display:block;}
+  /* Перемикач сторін: назва + крапки «тут кілька фото» + стрілка. Лежить
+     ПОВЕРХ фото (absolute), тож висоти сторінці не додає, а ширина майже не
+     залежить від кількості ракурсів — крапки додають по 9px. */
+  .pm-side-nav{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:8;
+    display:flex;align-items:center;gap:9px;padding:6px 8px 6px 13px;border-radius:999px;
+    border:none;cursor:pointer;font-family:var(--font-sf);
+    background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    box-shadow:0 1px 6px rgba(0,0,0,.10);transition:background .18s;}
+  .pm-side-nav:hover{background:rgba(255,255,255,.9);}
+  .pm-side-nav-name{font-size:12.5px;font-weight:600;color:#111;white-space:nowrap;
+    min-width:44px;text-align:left;user-select:none;}
+  .pm-side-nav-dots{display:flex;align-items:center;gap:4px;}
+  .pm-side-nav-dots i{width:5px;height:5px;border-radius:3px;background:rgba(0,0,0,.22);transition:all .22s;}
+  .pm-side-nav-dots i.on{width:14px;background:rgba(0,0,0,.62);}
+  .pm-side-nav svg{color:rgba(0,0,0,.5);display:block;}
 
   .pm-sheet{
     background:#FFFFFF;border-radius:28px 28px 0 0;
@@ -2823,7 +2821,7 @@
       </div>
     </div>
 
-    <div class="pm-view-rail" id="pmViewRail"></div>
+    <button class="pm-side-nav" id="pmSideNav" aria-label="Наступна сторона"></button>
   </div>
 
   <div class="pm-sheet">
@@ -7126,111 +7124,37 @@
     });
 
     var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
-    // Превʼю сторони — зменшена копія того самого мокапа: те саме фото виробу
-    // і ті самі лого в тих самих місцях. Тому клієнт бачить, що саме на спині,
-    // не перемикаючи ракурс, — і не треба підписувати сторони словами.
     var VIEW_SHORT = {front:'Перед', back:'Спина', left:'Лівий', right:'Правий'};
-    var railSig = null, railBox = null;
 
-    // Силует обрізається по bbox так само, як на великому фото. Форма не залежить
-    // від сторони й кольору, тож рахуємо один раз на виріб і кешуємо.
-    var svgBoxCache = {};
-    function garmentViewBox(g){
-      if(svgBoxCache[g.id] != null) return svgBoxCache[g.id];
-      var box = '0 0 100 100';
-      try{
-        var tmp = document.createElementNS('http://www.w3.org/2000/svg','svg');
-        tmp.setAttribute('viewBox','0 0 100 100');
-        tmp.style.cssText = 'position:absolute;width:100px;height:100px;opacity:0;pointer-events:none;';
-        tmp.innerHTML = '<path d="'+g.path+'"/>' + (g.extra ? '<path d="'+g.extra+'" fill="none" stroke-width="2.5"/>' : '');
-        document.body.appendChild(tmp);
-        var minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-        tmp.querySelectorAll('path').forEach(function(p){
-          var b = p.getBBox();
-          minX=Math.min(minX,b.x); minY=Math.min(minY,b.y);
-          maxX=Math.max(maxX,b.x+b.width); maxY=Math.max(maxY,b.y+b.height);
-        });
-        document.body.removeChild(tmp);
-        if(isFinite(minX) && maxX>minX){
-          var pad=2.5, w=maxX-minX, h=maxY-minY, size=Math.max(w,h)+pad*2;
-          var cx=minX+w/2, cy=minY+h/2;
-          box = (cx-size/2).toFixed(2)+' '+(cy-size/2).toFixed(2)+' '+size.toFixed(2)+' '+size.toFixed(2);
-        }
-      }catch(e){}
-      svgBoxCache[g.id] = box;
-      return box;
-    }
-
-    // Підпис зображення виробу для конкретної сторони — та сама логіка, що й у renderGarment.
-    function sideArtHtml(g, c, v){
-      var usePhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+v]);
-      if(usePhoto) return '<img src="'+window.LQ_img('images/'+g.id+'-'+c.id+'-'+v+'.webp')+'" alt="">';
-      return '<svg viewBox="'+garmentViewBox(g)+'" fill="currentColor" style="color:'+c.hex+';">' +
-        '<path d="'+g.path+'" stroke="rgba(0,0,0,.12)" stroke-width="1"/>' +
-        (g.extra ? '<path d="'+g.extra+'" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2.5" stroke-linecap="round"/>' : '') +
-        '</svg>';
-    }
-
-    function railSignature(){
-      var g = getGarment(), c = getColor();
-      return g.id + '|' + c.id + '|' + getViews().map(function(v){
-        return v + ':' + (pm.logos[v] || []).map(function(l){ return l.id + '@' + (l.url || '').slice(-24); }).join(',');
-      }).join('|');
-    }
-
+    // Назва сторони + крапки, скільки ракурсів усього, + стрілка. Одне натискання
+    // на весь блок гортає далі по колу. Крапки лишаються звичним індикатором
+    // «тут кілька фото», а назва прибирає здогадки, який саме це бік.
     function renderSideDots(){
-      var rail = document.getElementById('pmViewRail');
-      if(!rail) return;
-      var g = getGarment(), c = getColor(), views = getViews();
-      rail.innerHTML = views.map(function(v){
-        return '<button class="pm-view-thumb'+(v===pm.side?' active':'')+'" data-side="'+v+'" ' +
-          'aria-label="'+(VIEW_SHORT[v]||v)+'"><span class="pm-view-thumb-in">' +
-          sideArtHtml(g, c, v) + '</span></button>';
-      }).join('');
-      rail.querySelectorAll('[data-side]').forEach(function(b){
-        b.addEventListener('click', function(){ setSide(b.dataset.side); });
-      });
-      railSig = railSignature();
-      layoutRailLogos();
+      var nav = document.getElementById('pmSideNav');
+      if(!nav) return;
+      var views = getViews();
+      nav.innerHTML = '<span class="pm-side-nav-name" id="pmSideNavName"></span>' +
+        '<span class="pm-side-nav-dots" id="pmSideNavDots">' +
+          views.map(function(){ return '<i></i>'; }).join('') +
+        '</span>' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      nav.onclick = function(){
+        var v = getViews(), i = v.indexOf(pm.side);
+        setSide(v[(i + 1) % v.length]);      // по колу — щоб не було глухого кута на останньому
+      };
+      updateSideMarks();
     }
-
-    // Лого на превʼю масштабуємо тим самим коефіцієнтом, що й саме фото:
-    // k = ширина превʼю / ширина великого мокапа. Тоді композиція збігається точно.
-    function layoutRailLogos(){
-      var rail = document.getElementById('pmViewRail');
-      if(!rail) return;
-      var wrapEl = document.getElementById('pmGarmentWrap');
-      var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-      rail.querySelectorAll('[data-side]').forEach(function(btn){
-        var inner = btn.querySelector('.pm-view-thumb-in');
-        if(!inner) return;
-        var k = (inner.clientWidth || 44) / wrapW;
-        inner.querySelectorAll('.pm-view-lay').forEach(function(n){ n.remove(); });
-        (pm.logos[btn.dataset.side] || []).forEach(function(l){
-          var sz = 120 * (l.scale || 1), ar = l.ar || 1;
-          var bw = sz, bh = sz;
-          if(ar >= 1) bh = sz/ar; else bw = sz*ar;
-          var el = document.createElement('span');
-          el.className = 'pm-view-lay';
-          el.style.width  = (bw*k).toFixed(2) + 'px';
-          el.style.height = (bh*k).toFixed(2) + 'px';
-          el.style.transform = 'translate(calc(-50% + '+((l.x||0)*k).toFixed(2)+'px), calc(-50% + '+((l.y||0)*k).toFixed(2)+'px)) rotate('+(l.rot||0)+'deg)';
-          el.innerHTML = '<img src="'+l.url+'" alt="">';
-          inner.appendChild(el);
-        });
-      });
-    }
-
-    // renderGarment() смикається під час перетягування: якщо склад лого не змінився,
-    // лише пересуваємо копії, а картинки не перезавантажуємо.
+    // renderGarment() смикається під час перетягування — тут лише текст і класи.
     function updateSideMarks(){
-      var rail = document.getElementById('pmViewRail');
-      if(!rail || !rail.children.length) return;
-      if(railSignature() !== railSig){ renderSideDots(); return; }
-      rail.querySelectorAll('[data-side]').forEach(function(b){
-        b.classList.toggle('active', b.dataset.side === pm.side);
-      });
-      layoutRailLogos();
+      var nav = document.getElementById('pmSideNav');
+      if(!nav) return;
+      var views = getViews(), i = views.indexOf(pm.side);
+      var dots = nav.querySelectorAll('#pmSideNavDots i');
+      if(dots.length !== views.length){ renderSideDots(); return; }
+      var nm = nav.querySelector('#pmSideNavName');
+      if(nm) nm.textContent = VIEW_SHORT[pm.side] || pm.side;
+      dots.forEach(function(d, j){ d.classList.toggle('on', j === i); });
+      nav.setAttribute('aria-label', 'Сторона: ' + (VIEW_SHORT[pm.side] || pm.side) + '. Натисніть, щоб показати наступну');
     }
     function setSide(side){
       ensureLogoSides();
