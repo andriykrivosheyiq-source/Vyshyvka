@@ -1052,6 +1052,24 @@
     font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;line-height:1.2;}
   .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
   .pm-ai-chip:disabled{opacity:.5;cursor:default;}
+  .pm-ai-bases{display:flex;gap:8px;margin-bottom:10px;}
+  .pm-ai-base{flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #e4e8ef;background:#fff;
+    border-radius:11px;padding:7px 9px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
+    color:#5a6a80;text-align:left;}
+  .pm-ai-base.on{border-color:#0f2034;color:#0f2034;background:#f7f9fc;}
+  .pm-ai-base img{width:30px;height:30px;object-fit:contain;border-radius:6px;background:#f5f6f8;flex:none;}
+  /* Менеджерські інструменти під списком лого */
+  .pm-mgr-tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .pm-mgr-tool{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4e8ef;background:#fff;
+    color:#0f2034;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
+  .pm-mgr-tool:hover{border-color:#0f2034;background:#f7f9fc;}
+  .pm-recolor{margin-top:10px;padding:11px;border:1px solid #e4e8ef;border-radius:12px;background:#fbfcfe;}
+  .pm-recolor-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pm-sw{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8dee7;
+    cursor:pointer;padding:0;}
+  .pm-recolor input[type=color]{width:34px;height:30px;border:1px solid #d8dee7;border-radius:8px;
+    background:#fff;padding:2px;cursor:pointer;}
+  .pm-recolor-hint{font-size:11.5px;color:#8893a6;margin-top:8px;line-height:1.4;}
   /* Прикріплений референс */
   .pm-ai-attach{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
   .pm-ai-clip{display:inline-flex;align-items:center;gap:7px;border:1px solid #e4e8ef;background:#fff;
@@ -2727,6 +2745,8 @@
     <div id="pmAiModal" class="pm-src-modal">
       <div class="pm-src-box">
         <div class="pm-src-title">Згенерувати логотип</div>
+        <!-- Від чого відштовхуватись: фото клієнта чи вже згенерований логотип -->
+        <div class="pm-ai-bases" id="pmAiBases" hidden></div>
         <!-- Швидкі промти: один дотик — і генерація вже пішла -->
         <div class="pm-ai-chips" id="pmAiChips"></div>
         <textarea id="pmAiPrompt" class="pm-ai-prompt" rows="3"
@@ -5673,6 +5693,17 @@
         updatePriceBar();
       }).catch(function(){});
     }
+    // Перегенерація: той самий шар, нова картинка. Позиція, розмір і поворот
+    // лишаються — менеджеру не треба вкотре вирівнювати логотип.
+    function replaceLayerImage(layer, origUrl, cleanUrl){
+      layer.origUrl = origUrl;
+      layer.cleanUrl = cleanUrl || origUrl;
+      layer.url = layer.removeBg ? layer.cleanUrl : layer.origUrl;
+      layer.recolorFrom = null;                // після перегенерації фарбувати нічого повертати
+      return measureLayerShape(layer, layer.url).then(function(){
+        renderGarment(); renderTabPanel(); updatePriceBar();
+      });
+    }
     function removeLogo(id){
       pm.logos[pm.side] = pm.logos[pm.side].filter(function(l){return l.id!==id;});
       pm.activeLogoId = null;
@@ -5816,6 +5847,25 @@
             '</div>';
           });
           html += '<div class="pm-photo-add" id="pmPhotoAddMore"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Додати лого</span></div></div>';
+          // Менеджеру — доробити вже наявний логотип: перегенерувати або перефарбувати
+          var actL = layers.find(function(l){ return l.id === pm.activeLogoId; }) || layers[0];
+          if(IS_MANAGER && actL){
+            html += '<div class="pm-mgr-tools">' +
+              '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
+              '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Змінити колір</button>' +
+              (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
+            '</div>';
+            if(pm.recolorFor === actL.id){
+              html += '<div class="pm-recolor"><div class="pm-recolor-row">' +
+                RECOLOR_SWATCHES.map(function(c){
+                  return '<button class="pm-sw" data-sw="'+c+'" style="background:'+c+'" title="'+c+'"></button>';
+                }).join('') +
+                '<input type="color" id="pmRecolorPick" value="#ffffff">' +
+              '</div>' +
+              '<div class="pm-recolor-hint">Перефарбовує весь малюнок в один колір — для одноколірної вишивки чи друку. Форма й прозорість лишаються.</div>' +
+              '</div>';
+            }
+          }
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
@@ -5897,6 +5947,41 @@
           else { pm.activeLogoId = id; renderGarment(); renderTabPanel(); }
         });
       });
+      pmTabPanel.querySelectorAll('[data-ai-regen]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var id = Number(el.dataset.aiRegen);
+          var layer = currentLayers().find(function(l){ return l.id === id; });
+          if(layer && window.__pmOpenAi) window.__pmOpenAi(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-recolor]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var id = Number(el.dataset.recolor);
+          pm.recolorFor = (pm.recolorFor === id) ? null : id;
+          renderTabPanel();
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-recolor-reset]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var id = Number(el.dataset.recolorReset);
+          var layer = currentLayers().find(function(l){ return l.id === id; });
+          if(layer) resetRecolor(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-sw]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var layer = currentLayers().find(function(l){ return l.id === pm.recolorFor; });
+          if(layer) recolorLogo(layer, el.dataset.sw);
+        });
+      });
+      (function(){
+        var pick = pmTabPanel.querySelector('#pmRecolorPick');
+        if(!pick) return;
+        pick.addEventListener('change', function(){
+          var layer = currentLayers().find(function(l){ return l.id === pm.recolorFor; });
+          if(layer) recolorLogo(layer, pick.value);
+        });
+      })();
       pmTabPanel.querySelectorAll('[data-bgtoggle]').forEach(function(el){
         el.addEventListener('click', function(e){
           e.stopPropagation();
@@ -6292,6 +6377,43 @@
         prompt: 'round badge emblem with a symbol in the centre and text along the circle' }
     ];
     var aiRefImage = null;         // прикріплений референс як data URL
+    var aiTargetLayer = null;      // якщо задано — перегенеровуємо цей шар, а не додаємо новий
+
+    // Часті кольори для одноколірного нанесення
+    var RECOLOR_SWATCHES = ['#ffffff', '#000000', '#c8a24a', '#c0392b', '#1f4e8c', '#0e7a4a', '#8e8e93'];
+
+    // Перефарбовує весь малюнок в один колір, зберігаючи прозорість.
+    // Для одноколірної вишивки це рівно те, що треба: форма та сама, нитка інша.
+    function recolorLogo(layer, color){
+      var srcUrl = layer.recolorFrom || layer.url;
+      return loadImgEl(srcUrl).then(function(img){
+        var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+        var c = document.createElement('canvas'); c.width = W; c.height = H;
+        var x = c.getContext('2d');
+        x.drawImage(img, 0, 0);
+        var d = x.getImageData(0, 0, W, H);
+        var p = d.data;
+        var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color) || [];
+        var R = parseInt(m[1], 16) || 0, G = parseInt(m[2], 16) || 0, B = parseInt(m[3], 16) || 0;
+        for(var i = 0; i < p.length; i += 4){
+          if(p[i+3] === 0) continue;              // прозоре лишаємо прозорим
+          p[i] = R; p[i+1] = G; p[i+2] = B;
+        }
+        x.putImageData(d, 0, 0);
+        if(!layer.recolorFrom) layer.recolorFrom = srcUrl;   // щоб можна було повернути як було
+        var out = c.toDataURL('image/png');
+        layer.url = out; layer.cleanUrl = out;
+        return measureLayerShape(layer, out);
+      }).then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
+    }
+    function resetRecolor(layer){
+      if(!layer.recolorFrom) return Promise.resolve();
+      var back = layer.recolorFrom;
+      layer.recolorFrom = null;
+      layer.url = back; layer.cleanUrl = back;
+      return measureLayerShape(layer, back)
+        .then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
+    }
 
     // Зменшуємо референс перед відправкою: повнорозмірне фото з телефона
     // важить кілька мегабайтів і просто не долетить.
@@ -6509,11 +6631,44 @@
       src.addEventListener('click', function(e){ if(e.target === src) closeAll(); });
       ai.addEventListener('click', function(e){ if(e.target === ai) closeAll(); });
       document.getElementById('pmSrcAi').addEventListener('click', function(){
-        src.classList.remove('open'); ai.classList.add('open');
-        resetAiNote();
-        renderAiChips();
-        setTimeout(function(){ document.getElementById('pmAiPrompt').focus(); }, 60);
+        src.classList.remove('open');
+        openAi(null);
       });
+      // Перегенерація вже наявного логотипа — з вкладки «Фото»
+      window.__pmOpenAi = function(layer){ openAi(layer || null); };
+
+      function openAi(layer){
+        aiTargetLayer = layer;
+        aiRefImage = layer ? (layer.aiRef || layer.url) : null;
+        setRefImage(aiRefImage);
+        renderAiBases();
+        document.getElementById('pmAiPrompt').value = '';
+        document.getElementById('pmAiModal').classList.add('open');
+        setTimeout(function(){ document.getElementById('pmAiPrompt').focus(); }, 60);
+      }
+      // Від чого відштовхуватись: від фото клієнта чи від того, що вже намалював Gemini
+      function renderAiBases(){
+        var box = document.getElementById('pmAiBases');
+        var l = aiTargetLayer;
+        if(!l){ box.hidden = true; box.innerHTML = ''; return; }
+        var opts = [];
+        if(l.aiRef) opts.push({ key:'ref',  label:'Фото клієнта',     url:l.aiRef });
+        opts.push({ key:'now', label:'Поточний логотип', url:l.url });
+        if(opts.length < 2){ box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = opts.map(function(o){
+          return '<button type="button" class="pm-ai-base' + (aiRefImage === o.url ? ' on' : '') +
+            '" data-base="' + o.key + '"><img src="' + o.url + '" alt=""><span>' + o.label + '</span></button>';
+        }).join('');
+        box.querySelectorAll('[data-base]').forEach(function(b){
+          b.addEventListener('click', function(){
+            var o = opts.filter(function(x){ return x.key === b.dataset.base; })[0];
+            if(!o) return;
+            setRefImage(o.url);
+            renderAiBases();
+          });
+        });
+      }
 
       function resetAiNote(){
         var n = document.getElementById('pmAiNote');
@@ -6552,6 +6707,18 @@
         renderAiChips();
         resetAiNote();
       }
+      // Підказка в режимі перегенерації інша: тут не малюють з нуля, а правлять
+      var _resetNote = resetAiNote;
+      resetAiNote = function(){
+        if(aiTargetLayer){
+          var n = document.getElementById('pmAiNote');
+          n.className = 'pm-ai-note';
+          n.textContent = 'Напишіть, що змінити — напр. «зробити білим», «прибрати нижній напис», ' +
+                          '«товщі лінії». Або оберіть кнопку вище.';
+          return;
+        }
+        _resetNote();
+      };
       document.getElementById('pmAiClip').addEventListener('click', function(){
         document.getElementById('pmAiFile').click();
       });
@@ -6593,14 +6760,25 @@
         n.className = 'pm-ai-note';
         n.textContent = aiRefImage ? 'Обробляємо фото… це може зайняти до хвилини.'
                                    : 'Малюємо… це може зайняти до хвилини.';
+        var usedRef = aiRefImage;
+        var target = aiTargetLayer;
         generateLogoViaAi(prompt, aiRefImage).then(function(src){
           n.textContent = 'Прибираємо фон…';
-          return removeBgForUpload(src).then(function(clean){ addLogo(src, clean); },
-                                            function(){ addLogo(src, null); });
+          return removeBgForUpload(src).then(function(clean){ return clean; },
+                                            function(){ return src; })
+            .then(function(clean){
+              if(target) return replaceLayerImage(target, src, clean);
+              addLogo(src, clean);
+              // запамʼятовуємо референс — щоб потім можна було перегенерувати від нього
+              var last = currentLayers()[currentLayers().length - 1];
+              if(last) last.aiRef = usedRef || null;
+            });
         }).then(function(){
           closeAll();
           document.getElementById('pmAiPrompt').value = '';
+          aiTargetLayer = null;
           setRefImage(null);
+          renderAiBases();
         }).catch(function(err){
           var m = String((err && err.message) || '');
           n.className = 'pm-ai-note is-soon';
