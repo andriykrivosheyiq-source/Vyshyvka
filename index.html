@@ -5032,18 +5032,19 @@
     function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderCost || 0) + extraSketchCount() * (+m.sketchCost || 0); }
     function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
     // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
-    function dtfGridCost(m, l, uOverride, idx){
+    // У сітці мінімалок немає: таблиця вже задає всі розміри й тиражі поіменно.
+    function dtfGridCost(m, l, uOverride){
       var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
       var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
       var row = 0; for(var j = qf.length-1; j >= 0; j--){ if(u >= qf[j]){ row = j; break; } }
       var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
-      return Math.max(Math.round(c), minCostForIndex(m, idx || 0));
+      return Math.round(c);
     }
     function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
     function applicationCostSum(uOverride){
       var m = methodCfgNew(); if(!m) return 0; var c = 0, idx = 0;
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        c += (m.mode === 'grid') ? dtfGridCost(m, l, uOverride, idx) : placementCost(m, l, idx);
+        c += (m.mode === 'grid') ? dtfGridCost(m, l, uOverride) : placementCost(m, l, idx);
         idx++;
       }); });
       return c;
@@ -5228,7 +5229,10 @@
       for(var k = 0; k < ab.length; k++){ if(areaCm2 <= ab[k]) return k; }
       return Math.max(0, ab.length - 1);
     }
-    function dtfGridSell(m, l, uOverride, idx){
+    // Мінімальної ціни в сітці немає навмисно: кожен розмір і кожен тираж уже
+    // мають власну клітинку. Мінімалка тут лише підняла б нижні клітинки й
+    // зіпсувала знижку за тираж. Вона лишається тільки у вишивці (ціна за площею).
+    function dtfGridSell(m, l, uOverride){
       var col = dtfBandCol(m, l);
       var qf = m.qtyFrom || [];
       var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
@@ -5237,7 +5241,7 @@
       // продажна ціна — з таблиці цін (задається вручну в адмінці), не з націнки
       var sell = (m.price && m.price[row] && m.price[row][col] != null) ? +m.price[row][col]
                : ((m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] * (+m.markup || 1) : 0);
-      return Math.max(Math.round(sell), minForIndex(m, idx || 0));
+      return Math.round(sell);
     }
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
     // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
@@ -5246,7 +5250,7 @@
       var coefPart = 0, flatPart = 0, idx = 0;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride, idx);
+          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride);
           else coefPart += placementPrice(m, l, idx);
           idx++;
         });
@@ -6308,8 +6312,8 @@
           var di = 0;
           getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
             var idx = di++;
-            var sell = (m.mode === 'grid') ? dtfGridSell(m, l, undefined, idx) : placementPrice(m, l, idx);
-            var cost = (m.mode === 'grid') ? dtfGridCost(m, l, undefined, idx) : placementCost(m, l, idx);
+            var sell = (m.mode === 'grid') ? dtfGridSell(m, l) : placementPrice(m, l, idx);
+            var cost = (m.mode === 'grid') ? dtfGridCost(m, l) : placementCost(m, l, idx);
             var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, undefined, idx) : placementRaw(m, l);
             var atMin = sell > raw + 0.5;
             var note;
@@ -6324,8 +6328,8 @@
                 + (qfa.length ? ' · рядок «від ' + qfa[qrow] + ' шт»' : '')
                 + (dmm ? ' · лого ' + Math.round(dmm.w/10) + '×' + Math.round(dmm.h/10) + ' см' : '')
                 + ' · з таблиці ' + Math.round(raw);
-              note = ' <span style="color:#8a94a6;">' + calcG + '</span>'
-                + (atMin ? ' <span style="color:#c58a00;">(мін ' + minForIndex(m, idx) + ')</span>' : '');
+              // мінімалки в сітці немає — сума завжди рівно з клітинки таблиці
+              note = ' <span style="color:#8a94a6;">' + calcG + '</span>';
             } else {
               // показуємо, з чого склалась сума: площа × ставка з адмінки
               var mm2 = layerInkMm2(l);
