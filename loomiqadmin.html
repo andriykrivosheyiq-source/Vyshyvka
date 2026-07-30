@@ -436,6 +436,23 @@
   .od-foot button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
   .od-foot button[disabled]{opacity:.35;cursor:not-allowed;}
   .od-foot .od-del{flex:none;padding:9px 14px;background:var(--bad-soft);color:var(--bad);}
+  .tc-meta{display:flex;align-items:center;gap:7px;}
+  .tc-due{font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:20px;
+    background:var(--canvas);color:var(--ink-soft);}
+  .tc-due.due-soon{background:#FFF4DE;color:#8A6A15;}
+  .tc-due.due-late{background:var(--bad-soft);color:var(--bad);}
+  .tc-note{font-size:11px;cursor:help;}
+  .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .od-f{font-size:12px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);font-family:inherit;min-width:0;}
+  .od-f:focus{outline:none;border-color:var(--accent);}
+  .od-due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  .od-due-lab{font-size:11.5px;color:var(--ink-soft);}
+  .od-due-inp{width:auto;font-family:var(--mono);}
+  .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
+  .od-due-left.due-soon{background:#FFF4DE;color:#8A6A15;}
+  .od-due-left.due-late{background:var(--bad-soft);color:var(--bad);}
+  .od-note{width:100%;resize:vertical;line-height:1.45;}
   .od-item-edit{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
     border-top:1px dashed var(--line);}
   .od-qty{width:62px;font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:6px;
@@ -443,7 +460,9 @@
   .od-qty-unit{font-size:11px;color:var(--ink-soft);}
   .od-item-del{all:unset;cursor:pointer;font-size:12px;color:#AEB8C9;padding:4px 8px;border-radius:6px;}
   .od-item-del:hover{background:var(--bad-soft);color:var(--bad);}
-  .od-add{display:flex;gap:6px;align-items:center;margin-top:6px;}
+  .od-add{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;}
+  .od-add-color{width:74px;font-size:11.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .od-add-sizes{flex:1;min-width:110px;font-size:11.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);}
   .od-add-pick{flex:1;min-width:0;font-size:11.5px;padding:7px 8px;border-radius:7px;
     border:1px solid var(--line);background:#fff;color:var(--ink);}
   .od-add-qty{width:56px;font-family:var(--mono);font-size:12px;padding:6px 7px;border-radius:7px;
@@ -3781,6 +3800,23 @@ function recalcOrderTotals(o){
   o.margin = o.totalPrice - o.totalCost;
   o.marginPct = o.totalPrice > 0 ? (o.margin / o.totalPrice * 100) : 0;
 }
+// Контакти, дедлайн і нотатка не міняють склад — панель не перемальовуємо,
+// інакше поле губило б фокус прямо під час набору.
+async function saveOrderMeta(o){
+  await storeSet('orders', orders);
+  try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
+  renderBoard();
+}
+// Дедлайн: скільки днів лишилось. Використовується і на картці, і в панелі.
+function dueInfo(o){
+  if(!o.dueAt) return null;
+  const d = new Date(o.dueAt + 'T00:00:00');
+  if(isNaN(d)) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((d - today) / 86400000);
+  return { label: d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}),
+           days, cls: days < 0 ? 'due-late' : (days <= 2 ? 'due-soon' : '') };
+}
 async function saveOrderEdit(o){
   recalcOrderTotals(o);
   await storeSet('orders', orders);
@@ -3789,14 +3825,14 @@ async function saveOrderEdit(o){
   renderBoard();
   renderOrderDrawer();
 }
-async function orderAddItem(o, gid, qty, kind){
+async function orderAddItem(o, gid, qty, kind, color, sizes){
   const g = orderGarments().find(x=>x.id === gid);
   if(!g){ toast('Оберіть товар'); return; }
   const q = Math.max(1, +qty || 1);
   const u = bareUnitPrice(gid, q);
   (o.items = o.items || []).push({
     kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
-    name: g.name, color:'', print:'', sizes:'',
+    name: g.name, color:(color||'').trim(), print:'', sizes:(sizes||'').trim(),
     qty: q, unitPrice: u.price, price: u.price * q,
     unitCost: u.cost, cost: u.cost * q,
     mockups: [], prints: [], calc: null, config: null, garmentId: gid
@@ -3835,6 +3871,8 @@ function addItemRowHtml(kind){
     <div class="od-add" data-add-kind="${kind}">
       <select class="od-add-pick">${opts}</select>
       <input class="od-add-qty" type="number" min="1" step="1" value="1" aria-label="Кількість">
+      <input class="od-add-color" type="text" placeholder="колір" aria-label="Колір">
+      <input class="od-add-sizes" type="text" placeholder="розміри — M×20, L×30" aria-label="Розміри">
       <button class="od-add-go">+ ${kind === 'reco' ? 'рекомендацію' : 'товар'}</button>
     </div>`;
 }
@@ -3865,6 +3903,7 @@ function ticketSummaryHtml(o){
   const date = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
   const units = orderUnits(o), pos = (o.items||[]).length;
+  const due = dueInfo(o);
   const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
   return `
@@ -3876,7 +3915,11 @@ function ticketSummaryHtml(o){
            : `<span class="src-tag">${escapeHtml(o.source||'сайт')}</span>`}
     </div>
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
-    <div class="tc-meta">${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт' : 'без товарів'}</div>
+    <div class="tc-meta">
+      <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт' : 'без товарів'}</span>
+      ${due ? `<span class="tc-due ${due.cls}">до ${escapeHtml(due.label)}</span>` : ''}
+      ${o.note ? `<span class="tc-note" title="${escapeHtml(o.note)}">📝</span>` : ''}
+    </div>
     <div class="tc-money">
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
     </div>
@@ -3962,6 +4005,7 @@ function renderOrderDrawer(){
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
   const created = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const due = dueInfo(o);
   panel.innerHTML = `
     <div class="od-head">
       <div>
@@ -3971,7 +4015,19 @@ function renderOrderDrawer(){
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
-      <div class="od-who">${escapeHtml(orderWho(o))}${siteLinkHtml(o)}</div>
+      <div class="od-sec">Клієнт</div>
+      <div class="od-fields">
+        <input class="od-f" data-f="instagram" type="text" placeholder="інстаграм" value="${escapeHtml(o.instagram||'')}">
+        <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
+        <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
+        <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
+      </div>
+      <div class="od-due">
+        <span class="od-due-lab">Здати до</span>
+        <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
+        ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено на ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : 'лишилось ' + due.days + ' дн')}</span>` : ''}
+        ${siteLinkHtml(o)}
+      </div>
 
       <div class="od-sec">Склад замовлення</div>
       <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
@@ -3987,6 +4043,10 @@ function renderOrderDrawer(){
 
       ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
       ${docsBlockHtml(o)}
+
+      <div class="od-sec">Нотатка менеджера</div>
+      <textarea class="od-note od-f" data-f="note" rows="3"
+        placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
     </div>
     <div class="od-foot">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
@@ -4004,7 +4064,18 @@ function renderOrderDrawer(){
   panel.querySelectorAll('.od-add').forEach(row=>{
     row.querySelector('.od-add-go').addEventListener('click', ()=>
       orderAddItem(o, row.querySelector('.od-add-pick').value,
-                      row.querySelector('.od-add-qty').value, row.dataset.addKind));
+                      row.querySelector('.od-add-qty').value, row.dataset.addKind,
+                      row.querySelector('.od-add-color').value,
+                      row.querySelector('.od-add-sizes').value));
+  });
+  panel.querySelectorAll('.od-f').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const f = inp.dataset.f;
+      o[f] = inp.value.trim();
+      await saveOrderMeta(o);
+      // дедлайн змінює підпис «лишилось N днів» — його показує сама панель
+      if(f === 'dueAt') renderOrderDrawer();
+    });
   });
   panel.querySelectorAll('.od-qty').forEach(inp=>{
     inp.addEventListener('change', ()=> orderSetQty(o, +inp.dataset.i, inp.value));
