@@ -1191,11 +1191,9 @@
   .pm-photo-add{flex:0 0 auto;width:72px;height:72px;border-radius:12px;border:2px dashed #ccc;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#bbb;font-size:10px;}
   /* Вкладка «Фото» показує лого з усіх сторін одразу — групи з підписами */
   .pm-photo-group{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
-  .pm-photo-group-lab{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9aa0ab;padding-left:2px;}
   .pm-photo-group-row{display:flex;gap:10px;align-items:flex-start;}
   .pm-photo-group.is-other .pm-photo-thumb img{opacity:.6;}
-  .pm-photo-sep{flex:0 0 auto;width:1px;height:72px;background:#ececec;margin:16px 2px 0;}
-  .pm-photo-note{padding:9px 18px 0;font-size:11px;color:#8a94a6;}
+  .pm-photo-sep{flex:0 0 auto;width:1px;height:72px;background:#ececec;margin:0 2px;}
 
   .pm-garment-list{display:flex;gap:8px;padding:0 18px;overflow-x:auto;scrollbar-width:none;}
   .pm-garment-item{
@@ -5430,12 +5428,6 @@
         return (pm.logos[v] || []).length > 0 || v === pm.side;
       }).map(function(v){ return { side: v, layers: (pm.logos[v] || []).slice() }; });
     }
-    function logoWordUa(n){
-      var d = n % 10, dd = n % 100;
-      if(d === 1 && dd !== 11) return 'нанесення';
-      if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return 'нанесення';
-      return 'нанесень';
-    }
 
     // Накладаємо логотип на фото моделей, дзеркалячи позицію/розмір/поворот із головного мокапа.
     // Спина: показуємо лого беку; якщо його немає — показуємо передній (як прев'ю).
@@ -5965,9 +5957,10 @@
             '<span class="pm-photo-empty-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>' +
             '<div><div class="pm-photo-empty-title">Завантажте логотип</div><div class="pm-photo-empty-sub">PNG · JPG · SVG</div></div></div>';
         } else {
-          // Показуємо лого з УСІХ сторін одразу, згруповані з підписами. Інакше
-          // клієнт бачить одну картинку і не розуміє, за що саме ціна: перемикати
-          // сторони, щоб порахувати нанесення, він не буде.
+          // Показуємо лого з УСІХ сторін одразу. Інакше клієнт бачить одну картинку
+          // і не розуміє, за що саме ціна: перемикати сторони, щоб порахувати
+          // нанесення, він не буде. Сторони розділяє риска, підписів немає —
+          // панель має лишатись тієї самої висоти.
           var groups = photoGroups();
           var multi = groups.length > 1;
           html = '<div class="pm-photo-filled">';
@@ -5975,7 +5968,6 @@
             if(multi && gi > 0) html += '<div class="pm-photo-sep"></div>';
             var isCur = gr.side === pm.side;
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
-            if(multi) html += '<div class="pm-photo-group-lab">'+(VIEW_LABEL[gr.side]||gr.side)+'</div>';
             html += '<div class="pm-photo-group-row">';
             gr.layers.forEach(function(l){
               var isActive = isCur && pm.activeLogoId === l.id;
@@ -5994,11 +5986,6 @@
             html += '</div></div>';
           });
           html += '</div>';
-          if(multi){
-            var nAll = logoCount();
-            html += '<div class="pm-photo-note">' + nAll + ' ' + logoWordUa(nAll) + ' на ' +
-              groups.filter(function(g){ return g.layers.length; }).length + ' сторонах — ціна врахує всі</div>';
-          }
           // Менеджеру — доробити вже наявний логотип: перегенерувати або перефарбувати
           var actL = findLayerAnySide(pm.activeLogoId) || layers[0];
           if(IS_MANAGER && actL){
