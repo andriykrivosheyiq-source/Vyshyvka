@@ -1052,6 +1052,28 @@
     font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;line-height:1.2;}
   .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
   .pm-ai-chip:disabled{opacity:.5;cursor:default;}
+  /* Вище вікна генерації (z-index 120) — обрізання відкривається поверх нього */
+  .pm-crop-ov{position:fixed;inset:0;z-index:140;background:rgba(15,32,52,.92);
+    display:none;flex-direction:column;}
+  .pm-crop-ov.open{display:flex;}
+  .pm-crop-head{color:#fff;font-size:15px;font-weight:700;text-align:center;padding:16px 16px 4px;}
+  .pm-crop-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0;}
+  .pm-crop-wrap{position:relative;display:inline-block;max-width:100%;max-height:100%;}
+  .pm-crop-wrap img{display:block;max-width:100%;max-height:64vh;user-select:none;-webkit-user-drag:none;
+    background:#fff;border-radius:6px;}
+  .pm-crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);
+    cursor:move;touch-action:none;}
+  .pm-crop-h{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 5px rgba(0,0,0,.35);touch-action:none;}
+  .pm-crop-h[data-h="nw"]{left:-12px;top:-12px;cursor:nwse-resize;}
+  .pm-crop-h[data-h="ne"]{right:-12px;top:-12px;cursor:nesw-resize;}
+  .pm-crop-h[data-h="sw"]{left:-12px;bottom:-12px;cursor:nesw-resize;}
+  .pm-crop-h[data-h="se"]{right:-12px;bottom:-12px;cursor:nwse-resize;}
+  .pm-crop-bar{display:flex;gap:10px;padding:0 16px calc(20px + env(safe-area-inset-bottom));}
+  .pm-crop-btn{flex:1;padding:14px;border-radius:12px;border:none;background:#fff;color:#0f2034;
+    font:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+  .pm-crop-btn--ghost{background:rgba(255,255,255,.16);color:#fff;}
+  .pm-ai-chip.on{background:#0f2034;color:#fff;border-color:#0f2034;}
   .pm-ai-bases{display:flex;gap:8px;margin-bottom:10px;}
   .pm-ai-base{flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #e4e8ef;background:#fff;
     border-radius:11px;padding:7px 9px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
@@ -2745,6 +2767,24 @@
       </div>
     </div>
 
+    <!-- Обрізання: і референсу клієнта, і того, що намалював Gemini -->
+    <div id="pmCropModal" class="pm-crop-ov">
+      <div class="pm-crop-head">Обріжте зображення</div>
+      <div class="pm-crop-stage">
+        <div class="pm-crop-wrap" id="pmCropWrap">
+          <img id="pmCropImg" alt="">
+          <div class="pm-crop-rect" id="pmCropRect">
+            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="ne"></span>
+            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="se"></span>
+          </div>
+        </div>
+      </div>
+      <div class="pm-crop-bar">
+        <button type="button" id="pmCropCancel" class="pm-crop-btn pm-crop-btn--ghost">Скасувати</button>
+        <button type="button" id="pmCropOk" class="pm-crop-btn">Обрізати</button>
+      </div>
+    </div>
+
     <div id="pmAiModal" class="pm-src-modal">
       <div class="pm-src-box">
         <div class="pm-src-title">Згенерувати логотип</div>
@@ -2767,6 +2807,7 @@
             <img id="pmAiThumbImg" alt="">
             <button type="button" id="pmAiThumbDel" aria-label="Прибрати фото">×</button>
           </div>
+          <button class="pm-ai-clip" id="pmAiCrop" type="button" hidden>✂ Обрізати</button>
         </div>
         <input type="file" id="pmAiFile" accept="image/*"
           style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
@@ -5855,6 +5896,7 @@
           if(IS_MANAGER && actL){
             html += '<div class="pm-mgr-tools">' +
               '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
+              '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
               '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Змінити колір</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
             '</div>';
@@ -5957,6 +5999,20 @@
           var id = Number(el.dataset.aiRegen);
           var layer = currentLayers().find(function(l){ return l.id === id; });
           if(layer && window.__pmOpenAi) window.__pmOpenAi(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var id = Number(el.dataset.crop);
+          var layer = currentLayers().find(function(l){ return l.id === id; });
+          if(!layer) return;
+          openCropper(layer.url).then(function(res){
+            if(!res) return;
+            // Ту саму рамку застосовуємо і до версії з фоном, і до версії без —
+            // інакше перемикач «З фоном / Без фону» показував би різні кадри.
+            return Promise.all([cropImage(layer.origUrl, res.box), cropImage(layer.cleanUrl, res.box)])
+              .then(function(p){ return replaceLayerImage(layer, p[0] || res.url, p[1] || res.url); });
+          });
         });
       });
       pmTabPanel.querySelectorAll('[data-recolor]').forEach(function(el){
@@ -6377,6 +6433,102 @@
     ];
     var aiRefImage = null;         // прикріплений референс як data URL
     var aiTargetLayer = null;      // якщо задано — перегенеровуємо цей шар, а не додаємо новий
+    var aiChosen = null;           // обрана швидка кнопка (генерація йде окремим натисканням)
+
+    /* ── Обрізання зображень ─────────────────────────────────────────────
+       Клієнт кидає фото цілком — з людиною, столом і рештою кадру.
+       Обрізавши до самого логотипа, Gemini отримує рівно те, що треба,
+       і результат виходить точнішим. Тим самим інструментом підрізаємо
+       й готовий логотип, якщо модель домалювала зайве. */
+    function cropImage(url, box){
+      if(!url) return Promise.resolve(null);
+      return loadImgEl(url).then(function(img){
+        var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+        var sx = Math.max(0, Math.round(box.x0 * W)), sy = Math.max(0, Math.round(box.y0 * H));
+        var sw = Math.max(1, Math.min(W - sx, Math.round((box.x1 - box.x0) * W)));
+        var sh = Math.max(1, Math.min(H - sy, Math.round((box.y1 - box.y0) * H)));
+        var c = document.createElement('canvas'); c.width = sw; c.height = sh;
+        c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        return c.toDataURL('image/png');       // PNG — щоб не втратити прозорість
+      });
+    }
+    // Повертає { url, box } або null, якщо скасували
+    function openCropper(url){
+      return new Promise(function(resolve){
+        var ov = document.getElementById('pmCropModal');
+        var img = document.getElementById('pmCropImg');
+        var rect = document.getElementById('pmCropRect');
+        var box = { x0:0.06, y0:0.06, x1:0.94, y1:0.94 };
+        var MIN = 0.06;                        // менше не даємо, щоб не зникло
+
+        function paint(){
+          var w = img.clientWidth || 1, h = img.clientHeight || 1;
+          rect.style.left   = (box.x0 * w) + 'px';
+          rect.style.top    = (box.y0 * h) + 'px';
+          rect.style.width  = ((box.x1 - box.x0) * w) + 'px';
+          rect.style.height = ((box.y1 - box.y0) * h) + 'px';
+        }
+        function onLoad(){ paint(); }
+        img.addEventListener('load', onLoad);
+        img.src = url;
+        ov.classList.add('open');
+        if(img.complete) paint();
+
+        var drag = null;
+        function pos(e){
+          var r = img.getBoundingClientRect();
+          return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1))),
+                   y: Math.min(1, Math.max(0, (e.clientY - r.top)  / (r.height || 1))) };
+        }
+        function down(e, mode){
+          e.preventDefault(); e.stopPropagation();
+          drag = { mode: mode, start: pos(e), box: Object.assign({}, box) };
+          e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+        }
+        function move(e){
+          if(!drag) return;
+          var p = pos(e), dx = p.x - drag.start.x, dy = p.y - drag.start.y, b = drag.box;
+          if(drag.mode === 'move'){
+            var w = b.x1 - b.x0, h = b.y1 - b.y0;
+            var nx = Math.min(1 - w, Math.max(0, b.x0 + dx));
+            var ny = Math.min(1 - h, Math.max(0, b.y0 + dy));
+            box = { x0:nx, y0:ny, x1:nx + w, y1:ny + h };
+          } else {
+            var n = Object.assign({}, b);
+            if(drag.mode.indexOf('w') >= 0) n.x0 = Math.min(b.x1 - MIN, Math.max(0, b.x0 + dx));
+            if(drag.mode.indexOf('e') >= 0) n.x1 = Math.max(b.x0 + MIN, Math.min(1, b.x1 + dx));
+            if(drag.mode.indexOf('n') >= 0) n.y0 = Math.min(b.y1 - MIN, Math.max(0, b.y0 + dy));
+            if(drag.mode.indexOf('s') >= 0) n.y1 = Math.max(b.y0 + MIN, Math.min(1, b.y1 + dy));
+            box = n;
+          }
+          paint();
+        }
+        function up(){ drag = null; }
+
+        rect.onpointerdown = function(e){ down(e, 'move'); };
+        rect.querySelectorAll('[data-h]').forEach(function(h){
+          h.onpointerdown = function(e){ down(e, h.dataset.h); };
+        });
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+
+        function finish(res){
+          img.removeEventListener('load', onLoad);
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          window.removeEventListener('pointercancel', up);
+          ov.classList.remove('open');
+          resolve(res);
+        }
+        document.getElementById('pmCropCancel').onclick = function(){ finish(null); };
+        document.getElementById('pmCropOk').onclick = function(){
+          var b = box;
+          cropImage(url, b).then(function(out){ finish({ url: out, box: b }); })
+                           .catch(function(){ finish(null); });
+        };
+      });
+    }
 
     // Часті кольори для одноколірного нанесення
     var RECOLOR_SWATCHES = ['#ffffff', '#000000', '#c8a24a', '#c0392b', '#1f4e8c', '#0e7a4a', '#8e8e93'];
@@ -6638,6 +6790,7 @@
 
       function openAi(layer){
         aiTargetLayer = layer;
+        aiChosen = null;
         aiRefImage = layer ? (layer.aiRef || layer.url) : null;
         setRefImage(aiRefImage);
         renderAiBases();
@@ -6672,6 +6825,11 @@
       function resetAiNote(){
         var n = document.getElementById('pmAiNote');
         n.className = 'pm-ai-note';
+        if(aiChosen){
+          n.textContent = 'Обрано: «' + aiChosen.label + '». Можна дописати уточнення нижче — ' +
+                          'і натиснути «Згенерувати».';
+          return;
+        }
         n.textContent = aiRefImage
           ? 'Фото прикріплено. Оберіть, що з ним зробити, — або опишіть словами.'
           : 'Прикріпіть фото клієнта — зʼявляться швидкі кнопки. Або опишіть логотип словами.';
@@ -6681,26 +6839,34 @@
       function renderAiChips(){
         var box = document.getElementById('pmAiChips');
         var list = AI_QUICK.filter(function(q){ return q.photo === !!aiRefImage; });
-        box.innerHTML = list.map(function(q, i){
-          return '<button type="button" class="pm-ai-chip" data-quick="' +
-            AI_QUICK.indexOf(q) + '">' + q.label + '</button>';
+        if(aiChosen && list.indexOf(aiChosen) < 0) aiChosen = null;
+        box.innerHTML = list.map(function(q){
+          return '<button type="button" class="pm-ai-chip' + (q === aiChosen ? ' on' : '') +
+            '" data-quick="' + AI_QUICK.indexOf(q) + '">' + q.label + '</button>';
         }).join('');
         box.querySelectorAll('[data-quick]').forEach(function(b){
           b.addEventListener('click', function(){
             var q = AI_QUICK[+b.dataset.quick];
-            document.getElementById('pmAiPrompt').value = q.label;   // менеджеру видно, що обрано
-            runAiGeneration(q.prompt);
+            aiChosen = (aiChosen === q) ? null : q;   // повторний клік знімає вибір
+            renderAiChips();
+            resetAiNote();
+            var ta = document.getElementById('pmAiPrompt');
+            ta.placeholder = aiChosen
+              ? 'Що ще уточнити — напр. «зробити білим», «прибрати нижній напис». Необовʼязково.'
+              : 'Напр.: мінімалістичний логотип кавʼярні, чорний контур чашки, без тексту';
+            if(aiChosen) ta.focus();
           });
         });
       }
       function setRefImage(dataUrl){
         aiRefImage = dataUrl || null;
         var t = document.getElementById('pmAiThumb');
+        var cropBtn = document.getElementById('pmAiCrop');
         if(aiRefImage){
           document.getElementById('pmAiThumbImg').src = aiRefImage;
-          t.hidden = false;
+          t.hidden = false; cropBtn.hidden = false;
         } else {
-          t.hidden = true;
+          t.hidden = true; cropBtn.hidden = true;
           document.getElementById('pmAiFile').value = '';
         }
         renderAiChips();
@@ -6722,6 +6888,12 @@
         document.getElementById('pmAiFile').click();
       });
       document.getElementById('pmAiThumbDel').addEventListener('click', function(){ setRefImage(null); });
+      document.getElementById('pmAiCrop').addEventListener('click', function(){
+        if(!aiRefImage) return;
+        openCropper(aiRefImage).then(function(res){
+          if(res && res.url){ setRefImage(res.url); renderAiBases(); }
+        });
+      });
       document.getElementById('pmAiFile').addEventListener('change', function(e){
         var f = e.target.files && e.target.files[0];
         if(!f) return;
@@ -6737,7 +6909,11 @@
       // рівно той самий шлях, що й у завантаженого файлу.
       var aiBusy = false;
       document.getElementById('pmAiGo').addEventListener('click', function(){
-        var prompt = (document.getElementById('pmAiPrompt').value || '').trim();
+        var extra = (document.getElementById('pmAiPrompt').value || '').trim();
+        // Обрана кнопка задає основну задачу, поле — уточнення до неї
+        var prompt = aiChosen
+          ? aiChosen.prompt + (extra ? ' Additionally: ' + extra : '')
+          : extra;
         if(!prompt){
           var n0 = document.getElementById('pmAiNote');
           n0.className = 'pm-ai-note is-soon';
@@ -6776,6 +6952,7 @@
           closeAll();
           document.getElementById('pmAiPrompt').value = '';
           aiTargetLayer = null;
+          aiChosen = null;
           setRefImage(null);
           renderAiBases();
         }).catch(function(err){
