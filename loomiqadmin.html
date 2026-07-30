@@ -697,6 +697,18 @@
           </div><!-- /tb-body -->
         </div>
 
+        <!-- ── ЗНИЖКА НА САМ ВИРІБ ── -->
+        <div class="technique-block" style="margin-bottom:18px;">
+          <h4 style="margin:0 0 6px;font-size:13.5px;">Знижки за кількість — сам виріб</h4>
+          <div class="sub" style="margin-bottom:8px;">
+            Діють на вартість виробу незалежно від нанесення — працюють і тоді, коли клієнт
+            бере просто футболки чи кепки без логотипа. Якщо не задати жодного порогу,
+            на виріб діятиме знижка обраного способу нанесення, як було раніше.
+          </div>
+          <div id="sp-tiers-gar"></div>
+          <div class="add-row-btn" id="sp-tier-add-gar">+ Додати поріг</div>
+        </div>
+
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
         <div style="margin-top:16px;">
@@ -1785,6 +1797,7 @@ function paintSitePricing(){
   const mEmb = (p.methods && p.methods.embro) || {};
   paintSpTiers(mDtf.tiers && mDtf.tiers.length ? mDtf.tiers : p.tiers, 'dtf');
   paintSpTiers(mEmb.tiers && mEmb.tiers.length ? mEmb.tiers : p.tiers, 'emb');
+  paintSpTiers(p.garmentTiers || [], 'gar');     // порожньо = знижки на виріб не задані
 }
 // Надбавки термінів по кількості — генерик для методу ('dtf' | 'emb')
 function paintLeadTiers(key, tiers){
@@ -1953,7 +1966,7 @@ function paintSpProducts(p){
     </div>`;
   }).join('');
 }
-['dtf','emb'].forEach(key=>{
+['dtf','emb','gar'].forEach(key=>{
   const btn = document.getElementById('sp-tier-add-' + key);
   if(!btn) return;
   btn.addEventListener('click', ()=>{
@@ -2012,7 +2025,9 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
   const pricing = {
     methods: { dtf, embro },
     // лишаємо і спільне поле — на випадок, якщо десь читається старий формат
-    tiers: readSpTiers('dtf')
+    tiers: readSpTiers('dtf'),
+    // окрема шкала на сам виріб; порожня = діє знижка нанесення (як було)
+    garmentTiers: readSpTiers('gar')
   };
   // застарілі поля (enabled / leadTime) більше не пишемо; на читанні вони ігноруються
   try{
@@ -2723,6 +2738,17 @@ const DOC_W = 1240;
 
 // Точна ціна за одиницю при будь-якому тиражі — за тією ж формулою, що й на сайті.
 // coefOverride — щоб порахувати ту саму позицію без знижки за тираж («ціна без знижки»).
+// Знижка на сам виріб — окрема шкала (клієнт може взяти вироби без нанесення).
+// Якщо її не задано, діє коефіцієнт нанесення, як було раніше.
+function docGarmentCoef(qty){
+  const p = curSitePricing();
+  const l = p && p.garmentTiers;
+  if(!Array.isArray(l) || !l.length) return null;
+  const rows = l.map(t=>({ from:+t.from||1, coef:+t.coef||1 })).sort((a,b)=>a.from-b.from);
+  let c = 1;
+  for(let i = rows.length - 1; i >= 0; i--){ if(qty >= rows[i].from){ c = rows[i].coef; break; } }
+  return c;
+}
 function docPriceAt(item, qty, coefOverride){
   const c = item.calc;
   const p = curSitePricing();
@@ -2752,7 +2778,9 @@ function docPriceAt(item, qty, coefOverride){
       flat += Math.max(Math.round(v), Math.round(+m.minPrice || 0));
     });
   }
-  return Math.round((c.base + c.coefPart) * coef) + flat
+  let gc = docGarmentCoef(qty);
+  if(gc == null || coefOverride != null) gc = coef;   // без окремої шкали — як було
+  return Math.round((+c.base || 0) * gc + (+c.coefPart || 0) * coef) + flat
        + (+c.pieceFee || 0) + (qty > 0 ? Math.round((+c.orderFee || 0) / qty) : 0);
 }
 

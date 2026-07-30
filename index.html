@@ -4539,7 +4539,8 @@
     // Ціна на картці = напис із адмінки, інакше «від [база × макс. знижка]» (найдешевша, за макс. тираж)
     var pr = window.SITE_CONTENT.pricing || {};
     var bp = pr.basePrices || {};
-    var ctTiers = pr.tiers || [];
+    // Для голого виробу знижка своя, якщо її задано; інакше — спільна
+    var ctTiers = (Array.isArray(pr.garmentTiers) && pr.garmentTiers.length) ? pr.garmentTiers : (pr.tiers || []);
     var minCoef = ctTiers.length ? Math.min.apply(null, ctTiers.map(function(t){ return +t.coef || 1; })) : 1;
     list.forEach(function(p){
       if(prod.priceLabels && prod.priceLabels[p.garment]) p.price = prod.priceLabels[p.garment];
@@ -4938,6 +4939,20 @@
           GARMENT_COLORS[id] = list.map(function(col){ return {id:col.id, name:col.name, hex:col.hex}; });
         }
       });
+      // Каталог — єдине джерело правди. У конструкторі показуємо рівно ті вироби
+      // і в тому ж порядку, що й у каталозі: інакше в «Одязі» спливали позиції,
+      // яких у продажу немає, а порядок не збігався з тим, що налаштовано в адмінці.
+      try{
+        var catIds = (window.LQ_catalogList ? window.LQ_catalogList() : [])
+          .map(function(p){ return p.garment; });
+        if(catIds.length){
+          var byId = {};
+          GARMENTS.forEach(function(g){ byId[g.id] = g; });
+          var ordered = [];
+          catIds.forEach(function(id){ if(byId[id]) ordered.push(byId[id]); });
+          if(ordered.length) GARMENTS = ordered;
+        }
+      }catch(e){}
       if(!GARMENTS.length) GARMENTS = BASE_GARMENTS.slice();
     }
     applyCustomProducts();
@@ -5247,9 +5262,29 @@
     function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
     // Ціна за одиницю при заданому коеф. знижки і тиражі для DTF-сітки.
     // Коеф множить базу + вишивку; DTF (сітка) і оплата за штуку — без коеф.
+    // Знижка на сам виріб — окрема шкала, незалежна від нанесення. Потрібна тому,
+    // що клієнт може взяти просто футболки чи кепки без жодного логотипа.
+    // Якщо шкалу не задано в адмінці — усе працює як раніше (діє коеф. нанесення).
+    function garmentTiersList(){
+      var p = sitePricing();
+      var l = p && p.garmentTiers;
+      if(!Array.isArray(l) || !l.length) return null;
+      return l.map(function(t){ return { from: +t.from || 1, coef: +t.coef || 1 }; })
+              .sort(function(a, b){ return a.from - b.from; });
+    }
+    function garmentCoefFor(qty){
+      var l = garmentTiersList();
+      if(!l) return null;
+      var c = 1;
+      for(var i = l.length - 1; i >= 0; i--){ if(qty >= l[i].from){ c = l[i].coef; break; } }
+      return c;
+    }
     function unitPriceCoef(coef, uForGrid){
       var ap = applicationParts(uForGrid);
-      return Math.round((basePriceNew() + ap.coefPart) * coef) + ap.flatPart + methodPieceFee();
+      var qty = Math.max(1, (uForGrid != null ? uForGrid : totalUnits()) || 1);
+      var gc = garmentCoefFor(qty);
+      if(gc == null) gc = coef;                  // окремої шкали немає — як було
+      return Math.round(basePriceNew() * gc + ap.coefPart * coef) + ap.flatPart + methodPieceFee();
     }
     // Разова оплата за замовлення (напр. дизайн) розподілена на 1 шт цього тиражу.
     function orderFeePerUnit(qty){ var f = methodOrderFee(); return (qty > 0 && f > 0) ? Math.round(f / qty) : 0; }
@@ -5269,7 +5304,16 @@
     function cheapestUnitPrice(){
       var pt = pricingTiers();
       if(pt && pt.length){
-        var prices = pt.map(function(t){ return effUnitPriceCoef(t.coef, t.min); });
+        // Пороги знижки на виріб можуть не збігатися з порогами нанесення —
+        // перевіряємо і ті, і ті, інакше «від X» буде завищене.
+        var qtys = pt.map(function(t){ return t.min; });
+        var gts = garmentTiersList();
+        if(gts) gts.forEach(function(g){ if(qtys.indexOf(g.from) < 0) qtys.push(g.from); });
+        var prices = qtys.map(function(q){
+          var t = pt[0];
+          for(var i = pt.length - 1; i >= 0; i--){ if(q >= pt[i].min){ t = pt[i]; break; } }
+          return effUnitPriceCoef(t.coef, q);
+        });
         return Math.min.apply(null, prices);
       }
       return effUnitPriceCoef(1, 1);
@@ -7504,7 +7548,10 @@
       if(!track) return;
       var selHex = (pm.colorPicked && typeof getColor==='function' && getColor()) ? getColor().hex : null;   // колір з конструктора, лише якщо клієнт його обрав
       var list = (window.LQ_catalogList ? window.LQ_catalogList() : [])
-        .filter(function(p){ return p.garment && p.garment !== pm.garmentId; });
+        .filter(function(p){
+          return p.garment && p.garment !== pm.garmentId
+                 && GARMENTS.some(function(g){ return g.id === p.garment; });
+        });
       var html = list.map(function(p){
         var nm = window.LQ_name(p.garment, p.name);
         var cs = GARMENT_COLORS[p.garment];
