@@ -5051,14 +5051,20 @@
       if(!(ch > 0)) return null;
       return (heightCm * 10) / ch;   // мм на 1.0 частки контейнера
     }
+    // Габарити картинки в мм — рівно ті, що видно на екрані. Лого вписується
+    // у квадрат 120×scale пікселів: у горизонтального менша висота, у вертикального —
+    // менша ширина. Раніше ширина завжди бралася як повна сторона квадрата, тож
+    // вертикальні файли рахувались більшими, ніж вони є (площа завищувалась у 1/ar²).
     function layerDimsMm(l){
       var wrapEl = document.getElementById('pmGarmentWrap');
       var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-      var frac = (120 * (l.scale || 1)) / wrapW;    // ширина лого як частка контейнера
+      var ar = (l.ar || 1) || 1;
+      var frac = (120 * (l.scale || 1)) / wrapW;    // сторона квадрата як частка контейнера
       var mmPerFrac = zoneScaleMmPerFrac();          // масштаб від поля нанесення (якщо зона задана)
-      var wmm = (mmPerFrac != null) ? frac * mmPerFrac : frac * garmentHeightMm();   // фолбек — висота виробу
-      var hmm = wmm / ((l.ar || 1) || 1);
-      return { w: wmm, h: hmm };
+      var szMm = (mmPerFrac != null) ? frac * mmPerFrac : frac * garmentHeightMm();  // фолбек — висота виробу
+      return (ar >= 1)
+        ? { w: szMm,      h: szMm / ar }
+        : { w: szMm * ar, h: szMm };
     }
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
     // Площа, за яку клієнт платить. Береться ГАБАРИТ НЕПРОЗОРОГО вмісту, а не весь
