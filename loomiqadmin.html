@@ -308,8 +308,8 @@
   .col{background:#EEF1F6;border-radius:12px;padding:12px;min-height:140px;flex:0 0 84%;scroll-snap-align:start;}
   /* Колонки завжди в один ряд: «Прорахунок» ліворуч → «Виконано» праворуч.
      Якщо всі не влазять — гортаються свайпом вправо, а не переносяться вниз. */
-  @media (min-width:680px){.col{flex:0 0 46%;}}
-  @media (min-width:1100px){.col{flex:1 1 0;min-width:250px;}}
+  @media (min-width:680px){.col{flex:0 0 55%;}}
+  @media (min-width:1100px){.col{flex:1 1 0;min-width:300px;}}
   .col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;}
   .col-head h3{font-size:12.5px;margin:0;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);}
   .col-count{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);padding:1px 7px;border-radius:20px;color:var(--ink-soft);}
@@ -391,6 +391,56 @@
     font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer;}
   .t-doc-sec:hover{background:var(--canvas);}
   .t-doc-main:disabled,.t-doc-sec:disabled{opacity:.55;cursor:default;}
+  /* ── Згорнута картка Канбану ── */
+  .ticket--compact{padding:11px 12px;display:flex;flex-direction:column;gap:5px;}
+  .ticket--eye{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+  .tc-top{display:flex;align-items:center;gap:6px;}
+  .tc-spacer{flex:1;}
+  .tc-date{font-size:10.5px;color:#9AA5B5;}
+  .tc-who{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--ink);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tc-meta{font-size:11px;color:var(--ink-soft);}
+  .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
+  .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
+  .tc-marg{font-family:var(--mono);font-size:11.5px;font-weight:700;}
+  .tc-marg.good{color:var(--good);}
+  .tc-marg.bad{color:var(--bad);}
+  .tc-acts{display:flex;align-items:center;gap:4px;margin-top:2px;}
+  .tc-act{all:unset;cursor:pointer;font-size:12px;line-height:1;padding:5px 8px;border-radius:6px;
+    background:var(--canvas);color:var(--ink-soft);text-align:center;}
+  .tc-act:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
+  .tc-act[disabled]{opacity:.3;cursor:not-allowed;}
+  .tc-act--del:hover{background:var(--bad-soft);color:var(--bad);}
+
+  /* ── Панель замовлення ── */
+  .od-wrap{position:fixed;inset:0;z-index:200;display:none;}
+  .od-wrap.open{display:block;}
+  .od-back{position:absolute;inset:0;background:rgba(15,32,52,.38);}
+  .od-panel{position:absolute;top:0;right:0;bottom:0;width:min(460px,100%);background:#fff;
+    display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(15,32,52,.18);}
+  .od-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  .od-oid{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
+  .od-sub{font-size:11px;color:#9AA5B5;margin-top:3px;}
+  .od-x{all:unset;cursor:pointer;font-size:15px;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
+  .od-x:hover{background:var(--canvas);}
+  .od-body{flex:1;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:9px;}
+  .od-who{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .od-sec{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:#9AA5B5;margin-top:6px;}
+  .od-empty{font-size:11px;color:#AEB8C9;}
+  .od-foot{display:flex;gap:6px;padding:12px 18px;border-top:1px solid var(--line);}
+  .od-foot button{all:unset;flex:1;text-align:center;font-size:12px;cursor:pointer;
+    background:var(--canvas);padding:9px 0;border-radius:8px;color:var(--ink-soft);font-weight:600;}
+  .od-foot button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
+  .od-foot button[disabled]{opacity:.35;cursor:not-allowed;}
+  .od-foot .od-del{flex:none;padding:9px 14px;background:var(--bad-soft);color:var(--bad);}
+  .t-docs-kp1{display:flex;gap:6px;margin-top:6px;}
+  .t-doc-pick{flex:1;min-width:0;font-size:11.5px;padding:6px 8px;border-radius:7px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);font-family:var(--font,inherit);}
+  @media (max-width:640px){ .od-panel{width:100%;} }
+
   .t-actions{display:flex;gap:6px;}
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -739,7 +789,7 @@
         <div class="eyebrow">Замовлення</div>
         <h1>Канбан замовлень</h1>
         <div id="web-orders-state" class="wo-state">Замовлення з сайту: підключаюсь…</div>
-        <div class="sub">Картка показує собівартість, ціну продажу і маржу по кожному замовленню.</div>
+        <div class="sub">Натисніть на картку — відкриється склад замовлення, макети, гроші й документи для клієнта.</div>
       </div>
 
       <div class="card new-order-card" id="new-order-card">
@@ -3445,33 +3495,30 @@ function offerBlockHtml(o){
       ${events ? `<div class="t-evs">${events}</div>` : ''}
     </div>`;
 }
-// Блок документів на картці: КП по кожній позиції, загальний кошторис, макети
+// Документи для клієнта — уже в панелі, тож усе вміщується в один ряд.
+// Повного URL текстом тут немає навмисно: його ніхто не читає, його копіюють,
+// а рядок він займав цілий. КП по позиціях — списком, а не стовпчиком кнопок.
 function docsBlockHtml(o){
   const items = o.items || [];
   if(!items.length) return '';
-  const kps = items.map((it,i)=>
-    `<button class="t-doc-kp" data-kp="${i}" title="Комерційна пропозиція: ${escapeHtml(it.name||'')}">
-       ${escapeHtml((it.name||'Товар').length>18 ? (it.name||'').slice(0,17)+'…' : (it.name||'Товар'))}
-     </button>`).join('');
-  // Персональна сторінка клієнта: посилання, яке менеджер шле в месенджер
   const link = offerUrl(o);
-  const offerRow = link ? `
-      <div class="t-offer">
-        <div class="t-offer-url" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
-        <button class="t-doc-main" data-doc="copylink">Скопіювати посилання на КП</button>
-        <div class="t-docs-row" style="margin-top:6px;">
-          <button class="t-doc-sec" data-doc="openoffer">Відкрити КП</button>
-          <button class="t-doc-sec" data-doc="offerpdf">PDF пропозиції</button>
-        </div>
-      </div>` : '';
+  const kpOpts = items.map((it,i)=>
+    `<option value="${i}">${escapeHtml(it.name||('Товар '+(i+1)))}</option>`).join('');
   return `
+    <div class="od-sec">Документи для клієнта</div>
     <div class="t-docs">
-      <div class="t-docs-head">Документи для клієнта</div>
-      ${offerRow}
-      <div class="t-docs-kps">${kps}</div>
       <div class="t-docs-row">
-        <button class="t-doc-main" data-doc="estimate">Загальний кошторис</button>
+        ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`:''}
+        ${link?`<button class="t-doc-sec" data-doc="openoffer">Відкрити</button>`:''}
+        ${link?`<button class="t-doc-sec" data-doc="offerpdf">PDF</button>`:''}
+      </div>
+      <div class="t-docs-row">
+        <button class="t-doc-sec" data-doc="estimate">Кошторис</button>
         <button class="t-doc-sec" data-doc="mockups">Макети</button>
+      </div>
+      <div class="t-docs-kp1">
+        <select class="t-doc-pick" data-kp-pick>${kpOpts}</select>
+        <button class="t-doc-sec" data-kp-go>КП на позицію</button>
       </div>
     </div>`;
 }
@@ -3503,13 +3550,14 @@ function wireDocsBlock(el, o){
     toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
     openOffer(true);
   });
-  el.querySelectorAll('[data-kp]').forEach(b=>{
-    b.addEventListener('click', async ()=>{
-      b.disabled = true;
-      try{ await docKPForItem(o, (o.items||[])[+b.dataset.kp], +b.dataset.kp); }
-      catch(e){ console.error(e); toast('Не вдалося зробити пропозицію'); }
-      b.disabled = false;
-    });
+  const kpGo = el.querySelector('[data-kp-go]');
+  if(kpGo) kpGo.addEventListener('click', async ()=>{
+    const pick = el.querySelector('[data-kp-pick]');
+    const i = pick ? +pick.value : 0;
+    kpGo.disabled = true;
+    try{ await docKPForItem(o, (o.items||[])[i], i); }
+    catch(e){ console.error(e); toast('Не вдалося зробити пропозицію'); }
+    kpGo.disabled = false;
   });
   const est = el.querySelector('[data-doc="estimate"]');
   if(est) est.addEventListener('click', async ()=>{
@@ -3570,6 +3618,8 @@ function renderBoard(){
 
     board.appendChild(col);
   });
+  // Відкрита панель має показувати свіжі дані — Канбан оновлюється і з вебхуків
+  try{ renderOrderDrawer(); }catch(e){}
 }
 
 function renderTicket(o){
@@ -3672,79 +3722,15 @@ async function deleteOrderCard(o){
   toast('Видалено');
 }
 
-// Картка клієнта (мульти-товар, з ніком інстаграма)
-function renderWebTicket(o){
-  const el = document.createElement('div');
-  el.className = 'ticket';
-  el.draggable = true;
-  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
-  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
-  const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+// ── Картка Канбану ────────────────────────────────────────────────────────
+// У стрічці картка має скануватись очима: хто, скільки грошей, на якій стадії
+// і чи клієнт щось зробив. Усе решта — склад, макети, файли, собівартість,
+// документи, журнал подій — живе в бічній панелі, яка відкривається кліком.
 
-  const itemsHtml = orderedItems(o.items).map(it=>{
-    // Розмір нанесення і файл оригіналу — те, з чим працює виробництво
-    const prints = (it.prints||[]).map(p=>`
-      <div class="t-web-print">
-        <span class="t-web-print-size">${p.widthMm||'?'} × ${p.heightMm||'?'} мм</span>
-        <span class="t-web-print-side">${escapeHtml(p.technique||'')}${p.side?' · '+escapeHtml(p.side):''}</span>
-        ${p.file?`<a href="${escapeHtml(p.file)}" target="_blank" rel="noopener" download class="t-web-file">файл ↓</a>`:'<span class="t-web-file t-web-file--none">без файлу</span>'}
-      </div>`).join('') || '<div class="t-web-print t-web-print--none">без нанесення</div>';
-    const mockups = (it.mockups||[]).map(u=>
-      `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="t-web-mock"><img src="${escapeHtml(u)}" alt="макет" loading="lazy" onerror="this.style.display='none';this.parentNode.classList.add('t-web-mock--miss')"></a>`).join('');
-    return `
-      <div class="t-web-item">
-        <div class="t-web-head">
-          <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
-          <span class="t-web-price">${fmt(it.price)} ₴</span>
-        </div>
-        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''} · ${it.qty} шт</div>
-        ${recoNoteHtml(it)}
-        ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
-        ${prints}
-      </div>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="t-top">
-      <div>
-        <div class="phone">${escapeHtml(o.name||'—')} · ${escapeHtml(o.phone||'')}</div>
-        <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
-      </div>
-      <span class="src-tag">${escapeHtml(o.source||'сайт')}</span>${siteLinkHtml(o)}
-    </div>
-    <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
-    <div class="t-breakdown">
-      <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
-      <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
-    </div>
-    <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
-    ${offerBlockHtml(o)}
-    ${docsBlockHtml(o)}
-    <div class="t-actions">
-      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
-      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
-      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
-    </div>
-  `;
-  el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
-  el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
-  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
-  wireDocsBlock(el, o);
-  return el;
-}
-
-function renderClientTicket(o){
-  const el = document.createElement('div');
-  el.className = 'ticket';
-  el.draggable = true;
-  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
-  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
-  const createdDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-  const goodMargin = (o.margin||0) >= 0;
-  // Повні деталі позиції: розміри, нанесення, макети і файл клієнта — як у замовленнях із сайту
-  const itemsHtml = orderedItems(o.items).map(it=>{
+// Позиції замовлення з макетами, розмірами нанесення й файлами для друку.
+// Спільні для обох типів карток — раніше цей код був продубльований двічі.
+function orderItemsHtml(o){
+  return orderedItems(o.items).map(it=>{
     const prints = (it.prints||[]).map(p=>`
       <div class="t-web-print">
         <span class="t-web-print-size">${p.widthMm?Math.round(p.widthMm):'?'} × ${p.heightMm?Math.round(p.heightMm):'?'} мм</span>
@@ -3765,34 +3751,169 @@ function renderClientTicket(o){
         ${prints}
       </div>`;
   }).join('');
-  const who = [o.instagram, o.name, o.phone].filter(Boolean).join(' · ') || '—';
-  el.innerHTML = `
-    <div class="t-top">
-      <div>
-        <div class="phone">${escapeHtml(who)}</div>
-        <div class="t-date">${o.orderId?'<span class="t-oid">'+escapeHtml(o.orderId)+'</span> ':''}${createdDate}</div>
-      </div>
-      <span class="src-tag">${escapeHtml(o.source||'менеджер')}</span>${o.site?siteLinkHtml(o):''}
+}
+
+function orderWho(o){
+  return [o.instagram, o.name, o.phone].filter(Boolean).join(' · ') || '—';
+}
+function orderUnits(o){
+  return (o.items||[]).reduce((a,it)=> a + (+it.qty || 0), 0);
+}
+function posWordUa(n){
+  const d = n % 10, dd = n % 100;
+  if(d === 1 && dd !== 11) return 'позиція';
+  if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return 'позиції';
+  return 'позицій';
+}
+// Клієнт підтвердив або попросив зміни, а менеджер ще не відкривав картку.
+function orderNeedsEye(o){
+  const off = o.offerToken && offersByToken[o.offerToken];
+  if(!off) return false;
+  return (off.state === 'confirmed' || off.state === 'changes') && o.offerSeen !== off.state;
+}
+
+// Згорнута картка: чотири рядки й ряд дрібних дій.
+function ticketSummaryHtml(o){
+  const off = o.offerToken && offersByToken[o.offerToken];
+  const st  = off ? (OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created) : null;
+  const date = o.createdAt
+    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
+  const units = orderUnits(o), pos = (o.items||[]).length;
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  return `
+    <div class="tc-top">
+      ${o.orderId?`<span class="t-oid">${escapeHtml(o.orderId)}</span>`:''}
+      <span class="tc-date">${escapeHtml(date)}</span>
+      <span class="tc-spacer"></span>
+      ${st ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>`
+           : `<span class="src-tag">${escapeHtml(o.source||'сайт')}</span>`}
     </div>
-    <div class="t-web-items">${itemsHtml || '<div style="font-size:11px;color:#AEB8C9;">без товарів</div>'}</div>
-    <div class="t-breakdown">
-      <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
-      <div class="t-brow t-brow-price"><span>Сума (продаж)</span><span>${fmt(o.totalPrice)} ₴</span></div>
+    <div class="tc-who">${escapeHtml(orderWho(o))}</div>
+    <div class="tc-meta">${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт' : 'без товарів'}</div>
+    <div class="tc-money">
+      <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
+      <span class="tc-marg ${(o.margin||0)>=0?'good':'bad'}">${(o.marginPct||0).toFixed(0)} %</span>
     </div>
-    <div class="t-margin ${goodMargin?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
-    ${offerBlockHtml(o)}
-    ${docsBlockHtml(o)}
-    <div class="t-actions">
-      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
-      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
-      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
-    </div>
-  `;
-  el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{ if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); } });
-  el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{ if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); } });
+    <div class="tc-acts">
+      ${offerUrl(o)?`<button class="tc-act" data-doc="copylink" title="Скопіювати посилання на КП">🔗</button>`:''}
+      <span class="tc-spacer"></span>
+      <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
+      <button class="tc-act" data-act="next" ${canNext?'':'disabled'} title="На крок далі">→</button>
+      <button class="tc-act tc-act--del" data-act="del" title="Видалити замовлення">🗑</button>
+    </div>`;
+}
+
+function buildTicket(o){
+  const el = document.createElement('div');
+  el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
+  el.draggable = true;
+  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+  el.innerHTML = ticketSummaryHtml(o);
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  // Клік по картці відкриває панель; кліки по кнопках усередині — ні.
+  el.addEventListener('click', e=>{
+    if(e.target.closest('button')) return;
+    openOrderDrawer(o);
+  });
+  const nx = el.querySelector('[data-act="next"]');
+  if(nx) nx.addEventListener('click', async ()=>{
+    if(statusIdx < STATUSES.length-1){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); }
+  });
+  const pv = el.querySelector('[data-act="prev"]');
+  if(pv) pv.addEventListener('click', async ()=>{
+    if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
+  });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
   return el;
+}
+// Обидва джерела дають однакову картку — різниця лише в даних усередині.
+function renderWebTicket(o){ return buildTicket(o); }
+function renderClientTicket(o){ return buildTicket(o); }
+
+/* ── Бічна панель замовлення ─────────────────────────────────────────────
+   Розкривати картку на місці не можна: колонка стрибає і Канбан перестає
+   бути Канбаном. Тому деталі — у панелі справа, де є місце під макети. */
+let drawerOrderId = null;
+function orderDrawerEl(){
+  let d = document.getElementById('orderDrawer');
+  if(d) return d;
+  d = document.createElement('div');
+  d.id = 'orderDrawer';
+  d.className = 'od-wrap';
+  d.innerHTML = '<div class="od-back" data-od-close></div><aside class="od-panel"></aside>';
+  document.body.appendChild(d);
+  d.querySelector('[data-od-close]').addEventListener('click', closeOrderDrawer);
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeOrderDrawer(); });
+  return d;
+}
+function closeOrderDrawer(){
+  const d = document.getElementById('orderDrawer');
+  if(d) d.classList.remove('open');
+  drawerOrderId = null;
+}
+async function openOrderDrawer(o){
+  drawerOrderId = o.id;
+  const off = o.offerToken && offersByToken[o.offerToken];
+  // Побачив — значить опрацював: підсвітка картки гасне.
+  if(off && o.offerSeen !== off.state){
+    o.offerSeen = off.state;
+    try{ await saveOrders({ quiet:true }); }catch(e){ console.warn(e); }
+  }
+  const d = orderDrawerEl();
+  d.classList.add('open');
+  renderOrderDrawer();
+  renderBoard();
+}
+function renderOrderDrawer(){
+  const d = document.getElementById('orderDrawer');
+  if(!d || !d.classList.contains('open')) return;
+  const o = (orders || []).find(x=>x.id === drawerOrderId);
+  if(!o){ closeOrderDrawer(); return; }
+  const panel = d.querySelector('.od-panel');
+  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  const created = o.createdAt
+    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  panel.innerHTML = `
+    <div class="od-head">
+      <div>
+        <div class="od-oid">${o.orderId?escapeHtml(o.orderId):'Замовлення'}</div>
+        <div class="od-sub">${escapeHtml(created)} · ${escapeHtml(o.source||'сайт')}${(STATUSES[statusIdx]||{}).label?' · '+escapeHtml(STATUSES[statusIdx].label):''}</div>
+      </div>
+      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+    </div>
+    <div class="od-body">
+      <div class="od-who">${escapeHtml(orderWho(o))}${siteLinkHtml(o)}</div>
+
+      <div class="od-sec">Склад замовлення</div>
+      <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
+
+      <div class="od-sec">Гроші</div>
+      <div class="t-breakdown">
+        <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+        <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
+      </div>
+      <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+
+      ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
+      ${docsBlockHtml(o)}
+    </div>
+    <div class="od-foot">
+      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
+      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+      <button data-act="del" title="Видалити замовлення" class="od-del">🗑</button>
+    </div>`;
+  panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
+  panel.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
+    if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+  });
+  panel.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
+    if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+  });
+  panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
+  wireDocsBlock(panel, o);
 }
 
 /* ============================================================
