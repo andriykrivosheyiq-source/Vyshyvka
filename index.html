@@ -4927,7 +4927,7 @@
       var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
       return Math.max(Math.round(c), minCostForIndex(m, idx || 0));
     }
-    function placementCost(m, l, idx){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
+    function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
     function applicationCostSum(uOverride){
       var m = methodCfgNew(); if(!m) return 0; var c = 0, idx = 0;
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
@@ -4937,7 +4937,7 @@
       return c;
     }
     // «Сира» продажна ціна нанесення — ДО застосування мінімалки (за площею / за сіткою DTF).
-    function placementRaw(m, l){ var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85); return Math.round(cleanMm2/1000 * (+m.pricePer1000mm2 || 0)); }
+    function placementRaw(m, l){ var cleanMm2 = layerInkMm2(l); return Math.round(cleanMm2/1000 * (+m.pricePer1000mm2 || 0)); }
     function dtfGridRaw(m, l, uOverride){
       var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
       var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
@@ -5061,6 +5061,14 @@
       return { w: wmm, h: hmm };
     }
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
+    // Площа, за яку клієнт платить. Береться ГАБАРИТ НЕПРОЗОРОГО вмісту, а не весь
+    // прямокутник картинки: прозорі поля навколо лого нічого не коштують. Раніше
+    // рахувалось від усього прямокутника, тож один і той самий логотип у файлі
+    // з великими полями коштував у рази дорожче, ніж обрізаний упритул.
+    function layerInkMm2(l){
+      var d = layerOpaqueDimsMm(l);
+      return d.w * d.h * (l.fill || 0.85);
+    }
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
     // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
@@ -5069,7 +5077,7 @@
     // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
     function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
     function placementPrice(m, l, idx){
-      var cleanMm2 = layerAreaMm2(l) * (l.fill || 0.85);
+      var cleanMm2 = layerInkMm2(l);
       var raw;
       if(m.pricePer1000mm2 != null){
         raw = cleanMm2 / 1000 * (+m.pricePer1000mm2 || 0);
@@ -5980,7 +5988,7 @@
       var pFee = methodPieceFee(), pCost = methodPieceCost();
       var oFeePer = orderFeePerUnit(qty), oCostPer = qty > 0 ? Math.round(methodOrderCost()/qty) : 0;
       var uSell = effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
-      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerAreaMm2(l) * (l.fill||0.85); }); });
+      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
       var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       var dims = actL ? layerOpaqueDimsMm(actL) : null;
       var money = function(x){ return Math.round(x) + ' грн'; };
@@ -6036,7 +6044,7 @@
                 + (atMin ? ' <span style="color:#c58a00;">(мін ' + minForIndex(m, idx) + ')</span>' : '');
             } else {
               // показуємо, з чого склалась сума: площа × ставка з адмінки
-              var mm2 = layerAreaMm2(l) * (l.fill || 0.85);
+              var mm2 = layerInkMm2(l);
               var rate = +m.pricePer1000mm2 || 0;               // грн за 1000 мм²
               var calc = (mm2/100).toFixed(1) + ' см² × ' + (rate/10) + ' грн/см² = ' + Math.round(raw);
               note = atMin
