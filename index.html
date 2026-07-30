@@ -1015,12 +1015,11 @@
     padding:6px 6px 56px;overflow:hidden;
   }
   .pm-garment-wrap{position:relative;}
-  .pm-side-arrow{
-    position:absolute;top:50%;transform:translateY(-50%);z-index:8;background:none;border:none;cursor:pointer;
-    padding:4px;color:rgba(0,0,0,.55);
-  }
-  .pm-side-arrow--left{left:8px;}
-  .pm-side-arrow--right{right:8px;}
+  /* Навігація сторонами — один компактний блок «‹ Перед ›». Не залежить від
+     кількості сторін: додасться рукав чи капюшон — вигляд той самий. */
+  .pm-side-arrow{background:none;border:none;cursor:pointer;padding:4px 6px;color:rgba(0,0,0,.5);
+    display:flex;align-items:center;border-radius:999px;transition:color .18s;}
+  .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
   #pmGarmentSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 40px rgba(0,0,0,.18));}
   #pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
   #pmPrintArea{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:11;overflow:visible;}
@@ -1147,22 +1146,18 @@
   .pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
-  /* Перемикач сторін. Лежить ПОВЕРХ фото виробу (absolute), тож підписи не
-     додають сторінці жодного пікселя висоти — на місці колишніх крапок.
-     Підкладка напівпрозора: працює і на білій футболці, і на чорній. */
-  .pm-side-dots{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;
-    display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;
+  /* Лежить ПОВЕРХ фото виробу (absolute) — сторінці не додається жодного пікселя
+     висоти. Підкладка напівпрозора: читається і на білому виробі, і на чорному. */
+  .pm-side-dots{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:8;
+    display:flex;align-items:center;gap:2px;padding:3px 5px;border-radius:999px;
     background:rgba(255,255,255,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    box-shadow:0 1px 6px rgba(0,0,0,.10);max-width:calc(100% - 76px);overflow-x:auto;scrollbar-width:none;}
-  .pm-side-dots::-webkit-scrollbar{display:none;}
-  .pm-side-dot{flex:0 0 auto;background:none;border:none;cursor:pointer;padding:5px 11px;border-radius:999px;
-    font-family:var(--font-sf);font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;
-    display:flex;align-items:center;gap:5px;transition:background .2s,color .2s;}
-  .pm-side-dot.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.12);}
-  /* Крапка = «на цьому боці вже є лого». Видно, що ціна рахується за обидва. */
-  .pm-side-dot span{display:none;width:5px;height:5px;border-radius:3px;background:#c7ccd4;}
-  .pm-side-dot.has-logo span{display:block;}
-  .pm-side-dot.has-logo.active span{background:#4f5fd4;}
+    box-shadow:0 1px 6px rgba(0,0,0,.10);}
+  .pm-side-name{font-family:var(--font-sf);font-size:12.5px;font-weight:600;color:#111;
+    min-width:58px;text-align:center;white-space:nowrap;user-select:none;
+    display:flex;align-items:center;justify-content:center;gap:5px;}
+  /* Крапка = «на цьому боці вже є лого» */
+  .pm-side-name i{width:5px;height:5px;border-radius:3px;background:#4f5fd4;display:none;}
+  .pm-side-name.has-logo i{display:block;}
 
   .pm-sheet{
     background:#FFFFFF;border-radius:28px 28px 0 0;
@@ -2746,13 +2741,6 @@
     </div>
   </div>
   <div class="pm-stage" id="pmStage">
-    <button class="pm-side-arrow pm-side-arrow--left" id="pmArrowLeft" style="display:none;" aria-label="Передня сторона">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <button class="pm-side-arrow pm-side-arrow--right" id="pmArrowRight" aria-label="Задня сторона">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
-
     <div class="pm-swipe-wrap" id="pmSwipeWrap">
       <div class="pm-garment-wrap" id="pmGarmentWrap">
         <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
@@ -7141,40 +7129,44 @@
     var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
     // Короткий підпис для пігулки — щоб у кепки всі чотири ракурси влізли в рядок.
     var VIEW_SHORT = {front:'Перед', back:'Спина', left:'Лівий', right:'Правий'};
+    // Навігація сторонами — один блок «‹ Перед ›» замість ряду кнопок. Скільки б
+    // сторін не мав виріб (рукави, капюшон, боки кепки), елемент лишається один:
+    // картка товару має читатись як картка, а не як конструктор.
     function renderSideDots(){
-      var views = getViews();
       var wrap = document.getElementById('pmSideDots');
       if(!wrap) return;
-      wrap.innerHTML = views.map(function(v){
-        return '<button class="pm-side-dot'+(v===pm.side?' active':'')+'" data-side="'+v+'" aria-label="'+(VIEW_LABEL[v]||v)+'">' +
-          (VIEW_SHORT[v] || v) + '<span></span></button>';
-      }).join('');
-      wrap.querySelectorAll('[data-side]').forEach(function(b){ b.addEventListener('click', function(){ setSide(b.dataset.side); }); });
+      var arrow = function(id, lab, pts){
+        return '<button class="pm-side-arrow" id="'+id+'" aria-label="'+lab+'">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="'+pts+'"/></svg></button>';
+      };
+      wrap.innerHTML = arrow('pmArrowLeft', 'Попередня сторона', '15 18 9 12 15 6') +
+        '<span class="pm-side-name" id="pmSideName"></span>' +
+        arrow('pmArrowRight', 'Наступна сторона', '9 18 15 12 9 6');
+      // Перегортання по колу — щоб обидві стрілки завжди працювали і підпис
+      // не стрибав через те, що одна з них зникла на краю списку.
+      var step = function(d){
+        var v = getViews(), i = v.indexOf(pm.side);
+        setSide(v[(i + d + v.length) % v.length]);
+      };
+      wrap.querySelector('#pmArrowLeft').addEventListener('click', function(){ step(-1); });
+      wrap.querySelector('#pmArrowRight').addEventListener('click', function(){ step(1); });
       updateSideMarks();
     }
-    // Крапка на пігулці = на цьому боці вже є лого. Перебудовувати розмітку не треба —
-    // renderGarment() смикається під час перетягування, тож тут лише перемикаємо класи.
+    // Підпис і крапка «тут уже є лого». renderGarment() смикається під час
+    // перетягування, тож тут лише текст і клас — без перебудови розмітки.
     function updateSideMarks(){
-      var wrap = document.getElementById('pmSideDots');
-      if(!wrap) return;
-      wrap.querySelectorAll('[data-side]').forEach(function(b){
-        b.classList.toggle('has-logo', ((pm.logos[b.dataset.side] || []).length > 0));
-        b.classList.toggle('active', b.dataset.side === pm.side);
-      });
+      var el = document.getElementById('pmSideName');
+      if(!el) return;
+      el.innerHTML = (VIEW_SHORT[pm.side] || pm.side) + '<i></i>';
+      el.classList.toggle('has-logo', (pm.logos[pm.side] || []).length > 0);
     }
-    function updateSideArrows(){
-      var views = getViews(), i = views.indexOf(pm.side);
-      document.getElementById('pmArrowLeft').style.display = i>0 ? '' : 'none';
-      document.getElementById('pmArrowRight').style.display = i<views.length-1 ? '' : 'none';
-    }
-    document.getElementById('pmArrowRight').addEventListener('click', function(){ var v=getViews(), i=v.indexOf(pm.side); if(i<v.length-1) setSide(v[i+1]); });
-    document.getElementById('pmArrowLeft').addEventListener('click', function(){ var v=getViews(), i=v.indexOf(pm.side); if(i>0) setSide(v[i-1]); });
+    // Стрілки тепер завжди на місці (перегортання циклічне) — ховати нічого не треба.
+    function updateSideArrows(){}
     function setSide(side){
       ensureLogoSides();
       pm.side = side;
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
       updateSideMarks();
-      updateSideArrows();
       renderGarment();
       if(pm.tab==='photo') renderTabPanel();
     }
