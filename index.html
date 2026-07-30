@@ -996,7 +996,7 @@
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
-    position:relative;height:calc(62vh - 48px);background:rgb(233,230,231);
+    position:relative;height:calc(50vh - 48px);background:rgb(233,230,231);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .pm-pill{
@@ -1171,6 +1171,38 @@
   .pm-tab.active::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;height:2.5px;border-radius:2px;background:#111;}
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:3px 0;flex:none;overflow:hidden;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
+  /* Обʼєднані вкладки мають два ряди — даємо їм рівно стільки, скільки треба */
+  /* На низьких екранах (SE, старі Android) фото віддає ще трохи висоти —
+     краще менший мокап, ніж схована кнопка «в кошик». */
+  @media (max-height:720px){
+    .pm-stage{height:calc(40vh - 36px);}
+    .pm-garment-item-ic{height:44px;flex:0 0 44px;}
+    .pm-color-row .pm-color-swatch{width:32px;height:32px;border-radius:16px;}
+  }
+  .pm-tab-panel.is-two{height:auto;min-height:118px;align-items:flex-start;padding-bottom:8px;}
+  /* Спосіб нанесення — властивість логотипа, а не окремий крок */
+  .pm-way{padding:9px 18px 0;display:flex;flex-direction:column;gap:4px;}
+  .pm-way-chips{display:flex;align-items:center;gap:7px;}
+  .pm-way-chip{display:flex;align-items:center;gap:5px;border:1.5px solid #e6e6e6;background:#fff;
+    border-radius:999px;padding:6px 12px;font-family:var(--font-sf);font-size:12px;font-weight:600;
+    color:#666;cursor:pointer;transition:all .18s;}
+  .pm-way-chip.on{border-color:#111;color:#111;background:#fafafa;}
+  .pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:4px;line-height:1;}
+  .pm-way-size{font-size:11.5px;color:#888;font-weight:600;min-height:14px;}
+  .pm-way-note{padding:2px 18px 0;font-size:11px;color:#8a94a6;line-height:1.5;}
+  /* Колір — другий ряд вкладки «Товар» */
+  .pm-color-row{padding:6px 18px 0;display:flex;flex-direction:column;gap:4px;}
+  .pm-color-row .pm-color-name{margin:0;text-align:left;}
+  .pm-color-row .pm-color-list{display:flex;gap:9px;overflow-x:auto;scrollbar-width:none;padding:2px 0;}
+  .pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
+  .pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
+  /* Знижка за тираж — один рядок замість смуги на пів екрана */
+  .pm-tier-line{all:unset;display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;
+    cursor:pointer;font-family:var(--font-sf);font-size:12.5px;color:#5a6472;
+    background:#f6f7f9;border-radius:10px;padding:9px 12px;}
+  .pm-tier-line b{color:#111;font-weight:800;}
+  .pm-tier-line:hover{background:#eef0f4;}
+  .pm-tier-go{margin-left:auto;color:#4f5fd4;font-weight:700;white-space:nowrap;}
   .pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   .pm-tab-panel-inner{width:100%;}
@@ -1206,10 +1238,10 @@
     font-family:var(--font-sf);padding:0;
   }
   .pm-garment-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
-  .pm-garment-item-ic{width:100%;height:56px;flex:0 0 56px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
+  .pm-garment-item-ic{width:100%;height:50px;flex:0 0 50px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
   .pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
   .pm-garment-item-ic svg{width:80%;height:80%;}
-  .pm-garment-item-name{font-size:12px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:4px 4px 8px;}
+  .pm-garment-item-name{font-size:12px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:3px 4px 6px;}
   .pm-garment-item.active .pm-garment-item-name{font-weight:700;color:#111;}
   .pm-catalog-cta-item{justify-content:center;background:#f5f5f5;border-color:#eaeaea;}
   .pm-catalog-cta-item .pm-garment-item-name{font-size:11.5px;line-height:1.25;color:#555;font-weight:600;padding:0 6px;}
@@ -2832,11 +2864,9 @@
 
   <div class="pm-sheet">
     <div class="pm-tabs" id="pmTabs">
-      <button class="pm-tab active" data-tab="photo">Фото</button>
-      <button class="pm-tab" data-tab="garment">Одяг</button>
-      <button class="pm-tab" data-tab="color">Колір</button>
-      <button class="pm-tab" data-tab="print">Нанесення</button>
-      <button class="pm-tab" data-tab="size">Розмір і кіл-ть</button>
+      <button class="pm-tab active" data-tab="photo">Логотип</button>
+      <button class="pm-tab" data-tab="garment">Товар</button>
+      <button class="pm-tab" data-tab="size">Розмір і кількість</button>
     </div>
 
     <div class="pm-tab-panel" id="pmTabPanel"></div>
@@ -2858,7 +2888,6 @@
           <span id="pmDeliveryText"></span>
         </div>
       </div>
-      <div class="pm-print-size" id="pmPrintSize" style="font-size:12.5px;color:#888;text-align:center;margin-top:4px;min-height:15px;font-weight:600;"></div>
       <button class="pm-add-btn" id="pmAddToCartBtn">
         Додати в кошик<span class="pm-add-btn-sum" id="pmAddBtnSum"></span>
       </button>
@@ -4901,9 +4930,10 @@
       {min:100,max:199,price:370,label:'100-199 шт',badge:'-31%'},
       {min:200,max:99999,price:350,label:'200+ шт',badge:'-35%'}
     ];
+    // Три кроки замість пʼяти: що наносимо → на що → скільки. Спосіб нанесення
+    // живе біля логотипа, колір — біля крою: це не окремі рішення.
     var TABS = [
-      {id:'photo',label:'Фото'},{id:'garment',label:'Одяг'},{id:'color',label:'Колір'},
-      {id:'print',label:'Нанесення'},{id:'size',label:'Розмір і кіл-ть'}
+      {id:'photo',label:'Логотип'},{id:'garment',label:'Товар'},{id:'size',label:'Розмір і кількість'}
     ];
 
     var pm = {
@@ -5376,7 +5406,13 @@
     var pmTabPanel = document.getElementById('pmTabPanel');
     var pmPriceText = document.getElementById('pmPriceText');
     var pmDeliveryText = document.getElementById('pmDeliveryText');
-    var pmPrintSize = document.getElementById('pmPrintSize');
+    // Рядок розміру нанесення живе у вкладці «Логотип», а вона перебудовується —
+    // тож елемент шукаємо щоразу, а не кешуємо при завантаженні.
+    function syncPrintSizeLabel(){
+      var el = document.getElementById('pmPrintSize');
+      if(!el) return;
+      el.textContent = activeLayer() ? activeLogoSizeLabel() : '';
+    }
     var pmAddBtnSum = document.getElementById('pmAddBtnSum');
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
@@ -5543,7 +5579,7 @@
     // Коли менеджер міняє фото товарів в адмінці — оновлюємо показ без перезавантаження
     document.addEventListener('lq-photos', function(){
       try{ renderGarment(); }catch(e){}
-      try{ if(pm.tab === 'garment' || pm.tab === 'color') renderTabPanel(); }catch(e){}
+      try{ if(pm.tab === 'garment') renderTabPanel(); }catch(e){}
     });
     // Назви/описи/моделі/товари з адмінки — оновлюємо відповідні блоки
     document.addEventListener('lq-content', function(){
@@ -5811,13 +5847,24 @@
         }catch(e){ layer.fill = 0.85; layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 }; }
       });
     }
+    // Розмір лого зберігається в пікселях (120 × scale), а фізичні міліметри
+    // рахуються від ЧАСТКИ ширини виробу. Тому фіксований scale давав різний
+    // розмір друку на різних екранах: на низькому мокапі ті самі 120px — це
+    // більша частка футболки. Прив'язуємо до частки, і розмір стає однаковим.
+    var DEFAULT_LOGO_FRAC = 0.32;
+    function defaultLogoScale(){
+      var wrapEl = document.getElementById('pmGarmentWrap');
+      var wrapW = (wrapEl && wrapEl.clientWidth) || 0;
+      if(!wrapW) return 1;
+      return Math.round((DEFAULT_LOGO_FRAC * wrapW / 120) * 1000) / 1000;
+    }
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
       var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
       var anc = printAreaAnchorPx() || {x:0, y:0};   // нове лого лягає в центр зони нанесення
       var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
-        url:url, x:anc.x+off, y:anc.y+off, scale:1, rot:0, removeBg:hasClean, ar:1};
+        url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1};
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
       renderGarment();
@@ -6018,6 +6065,20 @@
             }
           }
         }
+        // Спосіб нанесення — не окремий крок, а властивість логотипа. Вибір із двох,
+        // тож два чіпи; пояснення під ⓘ, щоб не займати рядок описами.
+        html += '<div class="pm-way"><div class="pm-way-chips">' +
+          PRINTS.map(function(pr){
+            return '<button class="pm-way-chip'+(pr.id===pm.printId?' on':'')+'" data-print="'+pr.id+'">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+pr.icon+'</svg>' +
+              pr.name + '</button>';
+          }).join('') +
+          '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
+          '</div><div class="pm-way-size" id="pmPrintSize"></div></div>';
+        if(pm.wayInfo){
+          html += '<div class="pm-way-note">' +
+            PRINTS.map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') + '</div>';
+        }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
         GARMENTS.forEach(function(g){
@@ -6033,22 +6094,13 @@
         html += '<button class="pm-garment-item pm-catalog-cta-item" id="pmGarmentCatalogCta">' +
           '<span class="pm-garment-item-name">Перейти в каталог</span></button>';
         html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
-      } else if(pm.tab === 'color'){
-        html = '<div class="pm-color-name">'+getColor().name+'</div><div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-color-list pm-scroll-list">';
-        getColors().forEach(function(c){
-          var sel = c.id === pm.colorId;
-          html += '<button class="pm-color-swatch'+(sel?' active':'')+'" data-color="'+c.id+'" style="background:'+c.hex+';" title="'+c.name+'"></button>';
-        });
-        html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
-      } else if(pm.tab === 'print'){
-        html = '<div class="pm-print-list">';
-        PRINTS.forEach(function(p){
-          var sel = p.id === pm.printId;
-          html += '<button class="pm-print-item'+(sel?' active':'')+'" data-print="'+p.id+'">' +
-            '<span class="pm-print-item-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p.icon+'</svg></span>' +
-            '<span><div class="pm-print-item-name">'+p.name+'</div><div class="pm-print-item-desc">'+p.desc+'</div></span></button>';
-        });
-        html += '</div>';
+        // Колір — другий ряд тієї самої вкладки: «хочу чорне худі» це одне рішення,
+        // а не два кроки. Назву лишаємо — «Пісочний» продає, безіменна крапка ні.
+        html += '<div class="pm-color-row"><div class="pm-color-name">'+getColor().name+'</div>' +
+          '<div class="pm-color-list">' +
+          getColors().map(function(c){
+            return '<button class="pm-color-swatch'+(c.id===pm.colorId?' active':'')+'" data-color="'+c.id+'" style="background:'+c.hex+';" title="'+c.name+'"></button>';
+          }).join('') + '</div></div>';
       } else if(pm.tab === 'size'){
         var oneSize = isOneSize();
         // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
@@ -6070,12 +6122,15 @@
       pmTabPanel.innerHTML = '<div class="pm-tab-panel-inner">'+html+'</div>';
       pmTabPanel.classList.toggle('is-tall',
         pm.tab === 'photo' && IS_MANAGER && logoCount() > 0);
+      // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
+      pmTabPanel.classList.toggle('is-two', pm.tab === 'garment' || pm.tab === 'photo');
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
+      syncPrintSizeLabel();
       if(prevScroll){
         var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll;
-      } else if(pm.tab === 'garment' || pm.tab === 'color'){
+      } else if(pm.tab === 'garment'){
         // при поверненні на вкладку — центруємо вибраний товар/колір, а не скидаємо на початок
         var list2 = pmTabPanel.querySelector('.pm-scroll-list');
         var active = list2 && list2.querySelector('.active');
@@ -6169,6 +6224,8 @@
           }
         });
       });
+      var wayInfo = document.getElementById('pmWayInfo');
+      if(wayInfo) wayInfo.addEventListener('click', function(){ pm.wayInfo = !pm.wayInfo; renderTabPanel(); });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.garmentId = el.dataset.garment;
@@ -6257,21 +6314,27 @@
           // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
           var price = effUnitPriceCoef(t.coef, t.min);
           var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
-          return {label:t.label, badge: pct > 0 ? ('-'+pct+'%') : null, price:price, isActive:t===actT};
+          // Порівнюємо за порогом, а не за посиланням: activeCoefTier() будує свій
+          // масив, тож t===actT не збігалося ніколи й активний поріг не визначався.
+          return {label:t.label, badge: pct > 0 ? ('-'+pct+'%') : null, price:price,
+                  isActive: !!actT && t.min === actT.min};
         });
       } else {
         var active = activeTier();
-        rows = TIERS.map(function(t){ return {label:t.label, badge:t.badge, price:t.price, isActive:t===active}; });
+        rows = TIERS.map(function(t){ return {label:t.label, badge:t.badge, price:t.price, isActive: !!active && t.min === active.min}; });
       }
-      pmTierRow.innerHTML = rows.map(function(t){
-        return '<div class="pm-tier-item'+(t.isActive?' active':'')+'" style="cursor:pointer;">' +
-          (t.badge ? '<span class="pm-tier-badge">'+t.badge+'</span>' : '') +
-          '<div class="pm-tier-label">'+t.label+'</div>' +
-          '<div class="pm-tier-price">'+t.price+' грн</div>' +
-        '</div>';
-      }).join('');
+      // Смуга з усіма порогами займала 58px першого екрана й відсувала кнопку
+      // за згин. Лишаємо один рядок: наступна вигода або «максимальна знижка».
+      var actI = rows.findIndex(function(t){ return t.isActive; });
+      var next = rows.slice(Math.max(0, actI) + 1).find(function(t){ return t.badge; });
+      var line;
+      if(next) line = '<b>' + next.badge + '</b> від ' + next.label.replace(/\s*шт.*$/, '') + ' шт · ' + next.price + ' грн/шт';
+      else if(actI > 0 && rows[actI] && rows[actI].badge) line = 'Максимальна знижка <b>' + rows[actI].badge + '</b>';
+      else line = 'Чим більший тираж — тим дешевша штука';
+      pmTierRow.innerHTML = '<button class="pm-tier-line" type="button">' + line +
+        '<span class="pm-tier-go">Порахувати ›</span></button>';
       // Тап по порогу → відкриваємо вкладку «Розмір і кіл-ть»
-      pmTierRow.querySelectorAll('.pm-tier-item').forEach(function(item){
+      pmTierRow.querySelectorAll('.pm-tier-line').forEach(function(item){
         item.addEventListener('click', function(){
           pm.tab = 'size';
           document.getElementById('pmTabs').querySelectorAll('.pm-tab').forEach(function(t){
@@ -6286,12 +6349,6 @@
           }
         });
       });
-      var activeEl = pmTierRow.querySelector('.pm-tier-item.active');
-      if(activeEl){
-        // Центруємо активний тариф ГОРИЗОНТАЛЬНО лише всередині списку — без прокрутки сторінки
-        // (scrollIntoView кидав увесь екран вниз під час перетягування/масштабування).
-        pmTierRow.scrollLeft = activeEl.offsetLeft - (pmTierRow.clientWidth - activeEl.clientWidth)/2;
-      }
     }
     // Ціна «від X» (коли кількість не вибрана): без лого — база виробу (як у каталозі),
     // з лого — база + нанесення + за штуку, щоб одразу було видно ефект лого/розміру/методу.
@@ -6306,7 +6363,7 @@
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
       pmProductTitle.textContent = productName();
-      if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
+      syncPrintSizeLabel();
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+effUnitPrice()+'</span><span class="pm-unit">грн/шт</span>';
       } else {
@@ -6473,7 +6530,7 @@
         pmAddBtnSum.textContent = '';
       }
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
-      if(pmPrintSize) pmPrintSize.textContent = cmW ? activeLogoSizeLabel() : '';
+      syncPrintSizeLabel();
       updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
