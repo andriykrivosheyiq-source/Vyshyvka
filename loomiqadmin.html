@@ -3561,9 +3561,21 @@ function wireDocsBlock(el, o){
     }
   });
   // Перегляд і PDF — це та сама сторінка клієнта, тож розбіжностей не буває.
+  // Вкладку відкриваємо СИНХРОННО, ще в обробнику кліку: після await браузер на
+  // телефоні вже не вважає це дією користувача і глушить вікно без попередження.
+  // Тому спершу порожня вкладка, і лише потім, коли пропозиція збережеться,
+  // переводимо її на адресу.
   const openOffer = async (print)=>{
+    const w = window.open('', '_blank');
     try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
-    window.open(offerUrl(o) + (print ? '&print=1' : ''), '_blank', 'noopener');
+    const url = offerUrl(o) + (print ? '&print=1' : '');
+    if(w && !w.closed){ w.opener = null; w.location.replace(url); }
+    else {
+      // блокувальник спливаючих вікон усе-таки спрацював — даємо звичайне посилання
+      toast('Дозвольте спливаючі вікна або відкрийте посилання вручну');
+      try{ await navigator.clipboard.writeText(url); toast('Посилання скопійовано'); }catch(e){}
+      window.location.href = url;
+    }
   };
   const ov = el.querySelector('[data-doc="openoffer"]');
   if(ov) ov.addEventListener('click', ()=> openOffer(false));

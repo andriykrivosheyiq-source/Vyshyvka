@@ -1311,9 +1311,9 @@
     cursor:pointer;font-size:13px;font-weight:600;color:#111;padding:4px 12px;margin:0 18px 6px;font-family:var(--font-sf);
   }
   .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
-  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:66px;}
+  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;width:70px;padding-top:6px;}
   .pm-size-btn{
-    width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
+    width:54px;height:54px;border-radius:27px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
   }
   .pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
@@ -1321,8 +1321,8 @@
   .pm-size-col--os{width:auto;}
   .pm-size-btn--os{width:auto;min-width:120px;padding:0 22px;border-radius:23px;white-space:nowrap;}
   .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:3px;height:0;opacity:0;overflow:hidden;}
-  .pm-size-qty.show{height:24px;opacity:1;}
-  .pm-size-qty-btn{width:22px;height:22px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .pm-size-qty.show{height:28px;opacity:1;}
+  .pm-size-qty-btn{width:26px;height:26px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
   .pm-size-qty-btn.plus{border:none;background:#555;color:#fff;}
   .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
 
@@ -6161,7 +6161,12 @@
         }
       } else if(pm.tab === 'garment'){
         html = '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-garment-list pm-scroll-list">';
-        GARMENTS.forEach(function(g){
+        GARMENTS.filter(function(g){
+          // У плитку 78px влазить назва до ~18 символів у два рядки. Довші назви
+          // або обрізались, або розпирали ряд — такі товари лишаються тільки в
+          // каталозі (кнопка «Перейти в каталог» у кінці стрічки).
+          return g.id === pm.garmentId || window.LQ_name(g.id, g.name).length <= 18;
+        }).forEach(function(g){
           var sel = g.id === pm.garmentId;
           var thumb = window.LQ_img(garmentThumbSrc(g.id) || GARMENT_THUMB[g.id]);
           var ic = thumb
@@ -6176,7 +6181,7 @@
         html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
         // Колір — другий ряд тієї самої вкладки: «хочу чорне худі» це одне рішення,
         // а не два кроки. Назву лишаємо — «Пісочний» продає, безіменна крапка ні.
-        html += '<div class="pm-color-row"><div class="pm-color-name">'+getColor().name+'</div>' +
+        html += '<div class="pm-color-row">' +
           '<div class="pm-color-list">' +
           getColors().map(function(c){
             return '<button class="pm-color-swatch'+(c.id===pm.colorId?' active':'')+'" data-color="'+c.id+'" style="background:'+c.hex+';" title="'+c.name+'"></button>';
@@ -6203,7 +6208,8 @@
       pmTabPanel.classList.toggle('is-tall',
         pm.tab === 'photo' && IS_MANAGER && logoCount() > 0);
       // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
-      pmTabPanel.classList.toggle('is-two', pm.tab === 'garment' || pm.tab === 'photo');
+      pmTabPanel.classList.toggle('is-two',
+        pm.tab === 'garment' || pm.tab === 'photo' || pm.tab === 'size');
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
@@ -6462,7 +6468,10 @@
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
-      pmProductTitle.textContent = productName();
+      // Колір у дужках біля назви — так він не займає окремого рядка у вкладці
+      // «Товар», а стоїть там, де людина й так читає, що саме вона купує.
+      var cNow = getColor();
+      pmProductTitle.textContent = productName() + (cNow && cNow.name ? ' (' + cNow.name + ')' : '');
       syncPrintSizeLabel();
       if(u>0){
         pmPriceText.innerHTML = '<span class="pm-num">'+effUnitPrice()+'</span><span class="pm-unit">грн/шт</span>';
