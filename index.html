@@ -996,7 +996,7 @@
   /* Product configurator modal */
   #productModal{display:block;}
   .pm-stage{
-    position:relative;height:calc(50vh - 48px);background:rgb(233,230,231);
+    position:relative;height:calc(56vh - 48px);background:rgb(233,230,231);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .pm-pill{
@@ -1165,19 +1165,25 @@
   /* space-evenly + нульові поля: відстань від краю до слова дорівнює відстані
      між словами. З space-between поля були фіксовані, а проміжки — великі. */
   .pm-tabs{display:flex;justify-content:space-evenly;padding:0;border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
+  /* Вага однакова для всіх: якби активна була жирнішою, її ширина мінялась би
+     і весь ряд смикався б при кожному перемиканні. Відрізняємо кольором. */
   .pm-tab{
-    flex:0 0 auto;position:relative;padding:12px 0 13px;background:none;border:none;cursor:pointer;
-    font-family:var(--font-sf);font-size:14px;color:#8e8e93;font-weight:400;white-space:nowrap;
+    flex:0 0 auto;position:relative;padding:13px 0 12px;background:none;border:none;cursor:pointer;
+    font-family:var(--font-sf);font-size:14px;color:#9aa0ab;font-weight:600;white-space:nowrap;
+    transition:color .18s;
   }
-  .pm-tab.active{color:#111;font-weight:700;}
-  .pm-tab.active::after{content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;height:2.5px;border-radius:2px;background:#111;}
+  .pm-tab.active{color:#111;}
+  /* Індикатор лягає НА сіру лінію (bottom:-1px), а не над нею — інакше видно
+     дві паралельні риски, які сперечаються одна з одною. */
+  .pm-tab.active::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+    width:100%;height:2px;border-radius:2px 2px 0 0;background:#111;}
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:3px 0;flex:none;overflow:hidden;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
   /* Обʼєднані вкладки мають два ряди — даємо їм рівно стільки, скільки треба */
   /* На низьких екранах (SE, старі Android) фото віддає ще трохи висоти —
      краще менший мокап, ніж схована кнопка «в кошик». */
   @media (max-height:720px){
-    .pm-stage{height:calc(36vh - 32px);}
+    .pm-stage{height:calc(42vh - 32px);}
     /* специфічність вища за базові правила: медіазапит стоїть у файлі раніше
        за них, тож при однаковій вазі базові правила перемагали б */
     .pm-garment-list .pm-garment-item-ic{height:44px;flex:0 0 44px;}
