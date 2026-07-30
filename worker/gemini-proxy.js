@@ -38,6 +38,8 @@ function corsHeaders(origin, env) {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
+    // Щоб сайт міг перевірити, чи цей воркер узагалі вміє приймати фото-референс
+    'Access-Control-Expose-Headers': 'X-Loomiq-Ref',
     'Vary': 'Origin'
   };
 }
@@ -183,7 +185,14 @@ export default {
 
       return new Response(b64ToBytes(img.b64), {
         status: 200,
-        headers: { ...cors, 'Content-Type': img.mime, 'Cache-Control': 'no-store' }
+        headers: {
+          ...cors,
+          'Content-Type': img.mime,
+          'Cache-Control': 'no-store',
+          // Прямо кажемо, чи фото пішло в модель. Старий воркер такого заголовка
+          // не має — і сайт одразу побачить, що його не оновили.
+          'X-Loomiq-Ref': refPart ? 'used' : 'none'
+        }
       });
     }
 
