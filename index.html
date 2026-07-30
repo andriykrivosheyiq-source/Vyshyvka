@@ -6373,13 +6373,7 @@
       { photo: true, label: 'Одноколірний для вишивки',
         prompt: 'Redraw the logo from the attached photo as a single-colour silhouette suitable for ' +
           'machine embroidery: one solid colour on white, simplified fine details, no thin hairlines, ' +
-          'no gradients, no shading, clean closed shapes.' },
-      { photo: false, label: 'Мінімалістична емблема',
-        prompt: 'minimalist emblem, simple geometric shapes, single accent colour, no text' },
-      { photo: false, label: 'Монограма з літер',
-        prompt: 'elegant monogram made of intertwined letters, thin refined lines, one colour' },
-      { photo: false, label: 'Значок у колі',
-        prompt: 'round badge emblem with a symbol in the centre and text along the circle' }
+          'no gradients, no shading, clean closed shapes.' }
     ];
     var aiRefImage = null;         // прикріплений референс як data URL
     var aiTargetLayer = null;      // якщо задано — перегенеровуємо цей шар, а не додаємо новий
@@ -6680,7 +6674,7 @@
         n.className = 'pm-ai-note';
         n.textContent = aiRefImage
           ? 'Фото прикріплено. Оберіть, що з ним зробити, — або опишіть словами.'
-          : 'Опишіть логотип або прикріпіть фото клієнта — тоді зʼявляться швидкі кнопки.';
+          : 'Прикріпіть фото клієнта — зʼявляться швидкі кнопки. Або опишіть логотип словами.';
       }
       // Показуємо ті кнопки, які мають сенс: із фото — обробка референсу,
       // без фото — генерація з нуля.
