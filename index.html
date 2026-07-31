@@ -8576,6 +8576,55 @@
 
   // ===== Cart =====
   var cartItems = [];
+
+  /* ── Кошик переживає перезавантаження ──────────────────────────────────
+     Тримаємо в IndexedDB, а не в localStorage: макети й логотипи лежать як
+     data URL і легко дають десятки мегабайт — у localStorage (≈5 МБ) вони
+     просто не влізуть, і збереження мовчки провалиться саме на великих
+     замовленнях, тобто там, де воно найпотрібніше. */
+  var CART_DB = 'loomiq', CART_STORE = 'cart', CART_KEY = 'items';
+  var CART_TTL = 7 * 24 * 3600 * 1000;      // тиждень: старіший кошик уже не актуальний
+  function cartIdb(){
+    return new Promise(function(res, rej){
+      var idb; try{ idb = window.indexedDB; }catch(e){ idb = null; }
+      if(!idb){ rej(new Error('no-idb')); return; }
+      var r;
+      try{ r = idb.open(CART_DB, 1); }catch(e){ rej(e); return; }
+      r.onupgradeneeded = function(){
+        try{ r.result.createObjectStore(CART_STORE); }catch(e){}
+      };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror   = function(){ rej(r.error || new Error('idb-open')); };
+      r.onblocked = function(){ rej(new Error('idb-blocked')); };
+    });
+  }
+  var cartSaveTimer = null;
+  function cartPersist(){
+    clearTimeout(cartSaveTimer);
+    cartSaveTimer = setTimeout(function(){
+      cartIdb().then(function(db){
+        var tx = db.transaction(CART_STORE, 'readwrite');
+        // структурне клонування не переварює функції та DOM-вузли — кладемо чисті дані
+        tx.objectStore(CART_STORE).put({ at: Date.now(), items: JSON.parse(JSON.stringify(cartItems)) }, CART_KEY);
+      }).catch(function(){});
+    }, 300);
+  }
+  function cartRestore(){
+    return cartIdb().then(function(db){
+      return new Promise(function(res){
+        var q = db.transaction(CART_STORE, 'readonly').objectStore(CART_STORE).get(CART_KEY);
+        q.onsuccess = function(){ res(q.result || null); };
+        q.onerror   = function(){ res(null); };
+      });
+    }).then(function(rec){
+      if(!rec || !Array.isArray(rec.items) || !rec.items.length) return;
+      if(Date.now() - (+rec.at || 0) > CART_TTL){ cartPersist(); return; }
+      cartItems.length = 0;
+      rec.items.forEach(function(i){ cartItems.push(i); });
+      renderCart();
+    }).catch(function(){});
+  }
+  window.__cartRestore = cartRestore;
   // Доступ для блоку оформлення замовлення (він живе в окремому скрипті)
   window.__cartItems = cartItems;
   window.__clearCart = function(){
@@ -8812,9 +8861,10 @@
     container.querySelectorAll('[data-cart-note]').forEach(function(ta){
       ta.addEventListener('input', function(){
         var it = cartItems[Number(ta.dataset.cartNote)];
-        if(it) it.recoNote = ta.value;
+        if(it){ it.recoNote = ta.value; cartPersist(); }
       });
     });
+    cartPersist();
   }
   document.getElementById('cartAddMoreBtn').addEventListener('click', function(){
     document.getElementById('cartModal').classList.remove('open');
@@ -8892,6 +8942,7 @@
       // вивантаженні макетів, замовлення зникало безслідно.
       ccShowErr('');
       ccGo.disabled = true; ccGo.textContent = 'Зберігаємо…';
+      window.__cartSaving = true;
       Promise.resolve()
         .then(function(){ return saver(payload); })
         .then(function(){
@@ -8906,13 +8957,16 @@
           ccShowErr('Не збережено: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
                     '. Кошик на місці — перевірте звʼязок і спробуйте ще раз.');
         })
-        .then(function(){ ccGo.disabled = false; ccGo.textContent = 'Створити картку'; });
+        .then(function(){
+          window.__cartSaving = false;
+          ccGo.disabled = false; ccGo.textContent = 'Створити картку';
+        });
     });
   })();
-  // Непорожній кошик — не даємо закрити вкладку мовчки. Втратити зібране
-  // замовлення дорожче, ніж показати зайве попередження браузера.
+  // Попереджаємо лише поки запис у базу справді триває. Сам кошик закриття
+  // вкладки переживе, тож лякати людину на кожен вихід немає за що.
   window.addEventListener('beforeunload', function(e){
-    if(!cartItems.length) return;
+    if(!window.__cartSaving) return;
     e.preventDefault();
     e.returnValue = '';
   });
@@ -8922,6 +8976,7 @@
     if(footerEl) footerEl.scrollIntoView({behavior:'smooth', block:'start'});
   });
   renderCart();
+  cartRestore();      // повертаємо те, що людина зібрала до перезавантаження
 
   // Scroll reveal
   const reveals = document.querySelectorAll('.reveal');

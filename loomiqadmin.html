@@ -2729,7 +2729,9 @@ window.__adminSaveClientOrder = async function(payload){
   // ще до того, як менеджер відкриє Канбан.
   try{ await offerSave(order); }
   catch(e){ console.error('offer save failed', e); toast('Картку створено, але сторінку КП не збережено'); }
-  notifyTelegram(order);   // дублюємо в Telegram, як і замовлення з сайту
+  // Telegram НЕ чіпаємо: сповіщення потрібне, коли замовлення прийшло з сайту
+  // саме по собі. Картку тут завів менеджер — він і так її бачить, а зайве
+  // повідомлення в чаті виглядає як нове замовлення від клієнта.
   toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
   return order;
