@@ -1778,6 +1778,12 @@
   @media (min-width:900px){
     /* Конструктор товару — компактна центрована колонка, а не на весь екран */
     #productModal > *:not(.nav){ max-width:720px; margin-left:auto; margin-right:auto; }
+    /* Прорахунок в адмінці: мокап обмежувала висота сцени — у кадрі 1000×760 він
+       виходив 300×300 усередині смуги 720×362. Тут менеджер монтує логотип, тож
+       фото важливіше за те, щоб кнопка лишалась над згином: її видно після
+       невеликої прокрутки. На клієнтському сайті нічого не змінюється. */
+    .is-mgr #productModal .pm-stage{ height:calc(72vh - 40px); }
+    .is-mgr #productModal > *:not(.nav){ max-width:860px; }
     #productModal .pm-tab-panel-inner{ max-width:100%; }
     /* Каталог — ширша область і 3 колонки, щоб картки не тиснулись */
     #catalogModal .contact-modal-inner{ max-width:780px; }
@@ -5487,6 +5493,9 @@
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
     // Менеджерський режим (вбудований iframe в адмінці ?manager=1): макап + прорахунок собівартості
     var IS_MANAGER = /[?&]manager=1\b/.test(location.search);
+    // Позначка для CSS: у прорахунку інші пріоритети, ніж на сайті —
+    // менеджеру важливий великий мокап, а не кнопка «в кошик» над згином.
+    if(IS_MANAGER) document.documentElement.classList.add('is-mgr');
     var mgrDetailOpen = false;   // розгорнутий покроковий розклад нанесення (по кожному зображенню)
 
     // Size the garment square to the largest size that fits BOTH the available width
