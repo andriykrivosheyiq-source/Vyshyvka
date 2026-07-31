@@ -1553,6 +1553,9 @@
     width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid #eee;font-size:15px;font-family:var(--font-sf);
     outline:none;box-sizing:border-box;
   }
+  .cc-err{background:#fdecea;border:1px solid #f5c2bd;color:#a03127;border-radius:10px;
+    padding:10px 12px;font-size:13.5px;line-height:1.45;margin:4px 0 10px;}
+  .pm-form-submit[disabled]{opacity:.6;cursor:default;}
   .pm-form-submit{
     width:100%;padding:15px;border-radius:12px;border:none;background:#111;color:#fff;font-size:15px;font-weight:700;
     cursor:pointer;margin-top:4px;font-family:var(--font-sf);
@@ -3186,6 +3189,39 @@
 </div>
 
 <!-- Phone popup -->
+<!-- Менеджер: картка клієнта одним блоком. Раніше тут було чотири prompt()
+     підряд — на кожне поле окреме вікно, і жодного шансу щось виправити. -->
+<div class="pm-sheet-overlay" id="cartClientModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">Картка клієнта</div>
+    <div class="pm-sheet-sub">Кошик поїде в Канбан разом із цими даними</div>
+    <div class="pm-form-field">
+      <label for="ccInstagram">Інстаграм <b style="color:#c0392b;">*</b></label>
+      <input id="ccInstagram" type="text" placeholder="@nickname" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccName">Імʼя</label>
+      <input id="ccName" type="text" placeholder="Андрій" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccCompany">Компанія</label>
+      <input id="ccCompany" type="text" placeholder="Lumen Clinic — піде в заголовок пропозиції" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccPhone">Телефон</label>
+      <input id="ccPhone" type="tel" placeholder="+380…" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccDue">Здати до</label>
+      <input id="ccDue" type="date">
+    </div>
+    <div class="cc-err" id="ccErr" hidden></div>
+    <button class="pm-form-submit" id="ccSubmit">Створити картку</button>
+    <button class="pm-contact-callback-btn" id="ccCancel" style="width:100%;margin-top:8px;">Скасувати</button>
+  </div>
+</div>
+
 <div class="pm-sheet-overlay" id="pmPhoneModal">
   <div class="pm-sheet-card">
     <div class="pm-sheet-handle"></div>
@@ -8817,31 +8853,69 @@
     var b = document.getElementById('cartCreateClientBtn'); if(!b) return;
     var isMgr = /[?&]manager=1\b/.test(location.search);
     if(isMgr) b.style.display = '';
+    var cm     = document.getElementById('cartClientModal');
+    var ccErr  = document.getElementById('ccErr');
+    var ccGo   = document.getElementById('ccSubmit');
+    var fields = { instagram:'ccInstagram', name:'ccName', company:'ccCompany', phone:'ccPhone', dueAt:'ccDue' };
+    function ccShowErr(msg){
+      if(!ccErr) return;
+      ccErr.textContent = msg || '';
+      ccErr.hidden = !msg;
+    }
     b.addEventListener('click', function(){
       if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
       if(!cartItems.some(function(i){ return i.kind !== 'reco'; })){
         alert('У кошику лише рекомендації. Додайте хоча б один основний товар.'); return;
       }
-      var nick = prompt('Нік інстаграма клієнта:', '@');
-      if(nick == null) return;
-      nick = String(nick).trim();
-      if(!nick || nick === '@'){ alert('Вкажіть нік інстаграма.'); return; }
-      var cname = prompt('Імʼя клієнта (можна пропустити):', '') || '';
-      var ccomp = prompt('Компанія клієнта (для заголовка пропозиції, можна пропустити):', '') || '';
-      var cphone = prompt('Телефон клієнта (можна пропустити):', '') || '';
-      var payload = { instagram: nick, name: String(cname).trim(),
-                      company: String(ccomp).trim(), phone: String(cphone).trim(),
-                      items: JSON.parse(JSON.stringify(cartItems)) };
+      ccShowErr('');
+      cm.classList.add('open');
+      var ig = document.getElementById('ccInstagram');
+      if(ig){ if(!ig.value) ig.value = '@'; setTimeout(function(){ ig.focus(); }, 60); }
+    });
+    document.getElementById('ccCancel').addEventListener('click', function(){ cm.classList.remove('open'); });
+    cm.addEventListener('click', function(e){ if(e.target === cm) cm.classList.remove('open'); });
+
+    ccGo.addEventListener('click', function(){
+      var v = {};
+      Object.keys(fields).forEach(function(k){
+        var el = document.getElementById(fields[k]);
+        v[k] = el ? String(el.value || '').trim() : '';
+      });
+      if(!v.instagram || v.instagram === '@'){ ccShowErr('Вкажіть нік інстаграма — за ним картка шукається в Канбані.'); return; }
       var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
-      if(typeof saver === 'function'){
-        try{ saver(payload); }catch(e){ alert('Помилка збереження: ' + (e && e.message || e)); return; }
-        cartItems.length = 0; renderCart();
-        document.getElementById('cartModal').classList.remove('open');
-      } else {
-        alert('Картку клієнта можна створити лише з адмінки (вкладка «Прорахунок»).');
+      if(typeof saver !== 'function'){
+        ccShowErr('Картку клієнта можна створити лише з адмінки (вкладка «Прорахунок»).'); return;
       }
+      var payload = Object.assign({}, v, { items: JSON.parse(JSON.stringify(cartItems)) });
+      // Кошик чистимо ЛИШЕ після підтвердженого запису. Раніше він очищався
+      // одразу, не чекаючи на збереження: якщо запис падав або зависав на
+      // вивантаженні макетів, замовлення зникало безслідно.
+      ccShowErr('');
+      ccGo.disabled = true; ccGo.textContent = 'Зберігаємо…';
+      Promise.resolve()
+        .then(function(){ return saver(payload); })
+        .then(function(){
+          cartItems.length = 0; renderCart();
+          cm.classList.remove('open');
+          document.getElementById('cartModal').classList.remove('open');
+          Object.keys(fields).forEach(function(k){
+            var el = document.getElementById(fields[k]); if(el) el.value = '';
+          });
+        })
+        .catch(function(e){
+          ccShowErr('Не збережено: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+                    '. Кошик на місці — перевірте звʼязок і спробуйте ще раз.');
+        })
+        .then(function(){ ccGo.disabled = false; ccGo.textContent = 'Створити картку'; });
     });
   })();
+  // Непорожній кошик — не даємо закрити вкладку мовчки. Втратити зібране
+  // замовлення дорожче, ніж показати зайве попередження браузера.
+  window.addEventListener('beforeunload', function(e){
+    if(!cartItems.length) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
   document.getElementById('cartFooterInfoLink').addEventListener('click', function(){
     document.getElementById('cartModal').classList.remove('open');
     var footerEl = document.querySelector('footer');

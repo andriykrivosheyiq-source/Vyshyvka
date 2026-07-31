@@ -2649,7 +2649,15 @@ function slimOrderConfig(cfg){
 // Створення картки клієнта з менеджерського кошика (викликається з iframe «Прорахунок»)
 window.__adminSaveClientOrder = async function(payload){
   payload = payload || {};
-  toast('Зберігаємо макети…');
+  // Скільки файлів узагалі треба відправити — щоб тост показував рух, а не
+  // завмерлий напис. Кожен файл має свій таймаут 30 с, тож на поганому звʼязку
+  // очікування без прогресу виглядало як «зависло назавжди».
+  let done = 0;
+  const total = (payload.items || []).reduce((a, it)=>
+    a + Math.min(4, (it.imgs || []).length)
+      + (it.prints || []).filter(p => p.file && /^data:/i.test(p.file)).length, 0);
+  const step = () => { done++; if(total) toast('Зберігаємо макети… ' + done + ' з ' + total); };
+  toast(total ? ('Зберігаємо макети… 0 з ' + total) : 'Зберігаємо…');
   // Макети вивантажуємо у хмару: у Канбані лишаються ПОСИЛАННЯ, а не data URL
   // (інакше документ Firestore швидко перевищить ліміт 1 МБ і дошка зламається).
   const items = [];
@@ -2658,6 +2666,7 @@ window.__adminSaveClientOrder = async function(payload){
     for(const img of (it.imgs || []).slice(0, 4)){
       try{ const u = await uploadCloudinary(img); if(u) mockups.push(u); }
       catch(e){ console.warn('mockup upload failed', e); }
+      step();
     }
     // Оригінали логотипів теж ідуть у хмару. Раніше вони лягали в базу як base64
     // і одне замовлення могло саме по собі перевищити ліміт документа.
@@ -2668,6 +2677,7 @@ window.__adminSaveClientOrder = async function(payload){
         // при збої лишаємо оригінал: втратити файл клієнта гірше, ніж роздути документ
         try{ file = (await uploadCloudinary(file)) || file; }
         catch(e){ console.warn('logo upload failed', e); }
+        step();
       }
       prints.push({ side: p.side||'', technique: p.technique||'',
                     widthMm: Math.round(+p.widthMm||0), heightMm: Math.round(+p.heightMm||0),
@@ -2702,8 +2712,19 @@ window.__adminSaveClientOrder = async function(payload){
     marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
     createdAt: new Date().toISOString()
   };
+  if(payload.dueAt) order.dueAt = String(payload.dueAt).trim();
   orders.unshift(order);
-  await storeSet('orders', orders);
+  // Запис має бути ПІДТВЕРДЖЕНИЙ. Раніше результат saveOrders ігнорувався:
+  // картка лишалась у пам'яті вкладки, тост казав «створено», а в базі її не
+  // було — і після перезавантаження замовлення зникало.
+  let failed = [];
+  try{ failed = await storeSet('orders', orders) || []; }
+  catch(e){ orders.shift(); throw e; }
+  if(Array.isArray(failed) && failed.some(f => f && f.id === order.id)){
+    orders.shift();                       // не показуємо на дошці те, чого немає в базі
+    const f = failed.find(x => x && x.id === order.id) || {};
+    throw new Error((f.e && (f.e.code || f.e.message)) || 'запис у базу не пройшов');
+  }
   // Персональна сторінка створюється одразу — щоб посилання працювало
   // ще до того, як менеджер відкриє Канбан.
   try{ await offerSave(order); }
@@ -2711,6 +2732,7 @@ window.__adminSaveClientOrder = async function(payload){
   notifyTelegram(order);   // дублюємо в Telegram, як і замовлення з сайту
   toast('Картку «'+(order.instagram||order.name||order.orderId)+'» створено в Канбані');
   const boardBtn = document.querySelector('.nav button[data-view="board"]'); if(boardBtn) boardBtn.click();
+  return order;
 };
 // Токен персональної сторінки клієнта. Він же — уся охорона доступу до пропозиції:
 // сторінка відкривається без пароля, тож токен має бути таким, щоб його не підібрали.
