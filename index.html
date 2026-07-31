@@ -6166,7 +6166,6 @@
       if(!url){ if(inp) inp.focus(); return; }
       addLogo(url, url);           // фон уже прозорий — видаляти нічого
       pm.textDraft = ''; pm.textOpen = false;
-      renderTabPanel();
     }
     function addLogo(origUrl, cleanUrl){
       var hasClean = !!cleanUrl;
@@ -6177,6 +6176,9 @@
         url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1};
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
+      // Завантажив дизайн — маєш його побачити. Інакше людина лишалась на
+      // вкладці «Товар» і не розуміла, чи взагалі щось додалось.
+      goTab('photo');
       renderGarment();
       renderTabPanel();
       updatePriceBar();
@@ -6705,10 +6707,7 @@
       // Тап по порогу → відкриваємо вкладку «Розмір і кіл-ть»
       pmTierRow.querySelectorAll('.pm-tier-line').forEach(function(item){
         item.addEventListener('click', function(){
-          pm.tab = 'size';
-          document.getElementById('pmTabs').querySelectorAll('.pm-tab').forEach(function(t){
-            t.classList.toggle('active', t.dataset.tab === 'size');
-          });
+          goTab('size');
           renderTabPanel();
           // прокручуємо конфігуратор так, щоб табки і вибір розмірів були зверху видимі
           var tabsEl = document.getElementById('pmTabs');
@@ -7565,6 +7564,16 @@
     // Підпис і крапки — покажчик стану, кнопкою він не є. Перемикають стрілки
     // по краях фото: вони на своєму звичному місці, а плашка більше не лежить
     // поверх товару.
+    // Перемикання вкладки з коду: стан і смужка мають мінятись разом, інакше
+    // панель показує одне, а підсвічена вкладка — інше.
+    function goTab(id){
+      if(pm.tab === id) return;
+      pm.tab = id;
+      var tabs = document.getElementById('pmTabs');
+      if(tabs) tabs.querySelectorAll('.pm-tab').forEach(function(t){
+        t.classList.toggle('active', t.dataset.tab === id);
+      });
+    }
     function renderSideDots(){
       var box = document.getElementById('pmSideMark');
       if(!box) return;
