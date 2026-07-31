@@ -53,9 +53,16 @@
   .hero-shot{background:var(--soft); border-radius:var(--radius); padding:14px; margin-bottom:20px;}
   .hero-shot img{width:100%; aspect-ratio:1/1; object-fit:contain;}
   /* Статуси в Hero: короткі підтвердження, що робота вже зроблена */
-  .hero-checks{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin:4px 0 20px;}
-  .hcheck{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--ink);}
+  .hero-body{display:flex; align-items:flex-start; gap:10px; margin:6px 0 22px;}
+  .hero-checks{flex:1 1 auto; display:grid; gap:11px; align-content:start; padding-top:4px;}
+  .hcheck{display:flex; align-items:center; gap:9px; font-size:14px; color:var(--ink);}
   .hcheck svg{flex:none;}
+  /* Фото виходить за правий край — так воно виглядає як частина сторінки,
+     а не як картинка, вставлена в рамку. */
+  .hero-photo{flex:0 0 44%; max-width:230px; margin-right:calc(var(--pad) * -1);
+    border-radius:20px 0 0 20px; overflow:hidden; background:var(--soft);}
+  .hero-photo img{width:100%; aspect-ratio:1/1; object-fit:cover;}
+  @media (min-width:560px){ .hero-photo{flex:0 0 38%; margin-right:0; border-radius:20px;} }
   .btn-ghost-lg{display:block; width:100%; padding:15px; border-radius:14px; cursor:pointer;
     border:1px solid var(--line); background:#fff; color:var(--ink);
     font:inherit; font-size:15px; font-weight:600;}
@@ -158,6 +165,129 @@
   .wow-grid.n2,.wow-grid.n4{grid-template-columns:1fr 1fr;}
   .wow-cell{background:var(--soft); border-radius:14px; padding:10px;}
   .wow-cell img{width:100%; aspect-ratio:1/1; object-fit:contain;}
+
+  /* ══ Картка товару: фото ліворуч, суть праворуч, ракурси знизу ══
+     Раніше кожна позиція займала майже екран: велике фото, сітка
+     характеристик, окремий блок ціни. Клієнт гортав і не бачив, скільки
+     всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
+  .pcard{border:1px solid var(--line); border-radius:18px; padding:14px; background:#fff;
+    margin-bottom:12px;}
+  .pcard-main{display:flex; gap:14px;}
+  .pcard-shot{flex:0 0 118px; height:118px; border-radius:14px; overflow:hidden;
+    background:var(--soft); display:flex; align-items:center; justify-content:center;}
+  .pcard-shot img{width:100%; height:100%; object-fit:cover;}
+  .pcard-info{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .pcard-name{font-size:19px; font-weight:800; letter-spacing:-0.4px; margin:0 0 5px;}
+  .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
+  .pcard-money{display:flex; align-items:baseline; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .pcard-price{border:1.5px solid var(--good); color:var(--ink); border-radius:10px;
+    padding:5px 11px; font-size:16px; font-weight:800; letter-spacing:-0.3px;
+    font-variant-numeric:tabular-nums;}
+  .pcard-per{font-size:13px; color:var(--muted);}
+  .pcard-term{font-size:12.5px; color:var(--muted); margin-top:8px;}
+  .pcard-views{display:flex; gap:8px; margin-top:14px;}
+  /* Розмір плитки не залежить від їх кількості: два ракурси не мають
+     розповзатися на пів картки, як це виходило при flex:1. */
+  .pv{flex:0 0 84px; max-width:84px; background:none; border:none; padding:0; cursor:pointer;
+    font:inherit; text-align:center;}
+  /* span за замовчуванням рядковий — на ньому не працюють ні aspect-ratio,
+     ні overflow, і плитка розповзалась на всю картку. Тому block і фікс висота. */
+  .pv-ph{display:block; width:100%; height:74px; border-radius:12px; overflow:hidden;
+    background:var(--soft); border:1.5px solid transparent; transition:border-color .15s;}
+  .pv-ph img{width:100%; height:100%; object-fit:cover; display:block;}
+  .pv.on .pv-ph{border-color:var(--ink);}
+  .pv-l{display:block; margin-top:5px; font-size:11px; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pv.on .pv-l{color:var(--ink); font-weight:600;}
+  .qrow{display:flex; align-items:center; gap:9px; margin-top:13px;}
+  .qrow-l{flex:none; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted);}
+  /* Бейдж відсотка стирчить за межі чіпа, а контейнер гортається й тому ріже —
+     віддаємо йому запас зверху й з боків і забираємо його ж відступами. */
+  .qchips{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
+    padding:9px 6px 2px; margin:-9px -6px -2px;}
+  .qchips::-webkit-scrollbar{display:none;}
+  .qchip{position:relative; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    gap:0; padding:6px 11px; border-radius:11px; border:1.5px solid var(--line);
+    background:#fff; font:inherit; cursor:pointer; transition:.15s;}
+  .qchip.on{border-color:var(--ink); background:#F7F9FC;}
+  .qc-q{font-size:12.5px; font-weight:700; white-space:nowrap;}
+  .qc-u{font-size:11px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .qc-b{position:absolute; top:-7px; right:-5px; background:var(--good); color:#fff;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:999px; line-height:1.3;}
+  .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
+  .pcard-more>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
+    gap:6px; font-size:13.5px; font-weight:600; color:var(--ink-2);}
+  .pcard-more>summary::-webkit-details-marker{display:none;}
+  .pcard-more>summary::after{content:''; width:7px; height:7px; border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted); transform:rotate(45deg) translateY(-2px);
+    transition:transform .18s;}
+  .pcard-more[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
+  .pcard-more-body{padding-top:12px;}
+
+  /* ══ Рекомендації: ряд компактних карток із плюсиком ══ */
+  .rrow{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  @media (min-width:520px){ .rrow{grid-template-columns:repeat(4,1fr);} }
+  .rc{position:relative; border:1px solid var(--line); border-radius:16px; padding:10px;
+    background:#fff; transition:.15s;}
+  .rc.on{border-color:var(--good); background:#F6FDF9;}
+  .rc-ph{border-radius:11px; overflow:hidden; background:var(--soft); aspect-ratio:1/1;
+    margin-bottom:9px; display:block;}
+  .rc-ph img{width:100%; height:100%; object-fit:cover;}
+  .rc-n{font-size:14.5px; font-weight:700; letter-spacing:-0.2px;}
+  .rc-t{font-size:12px; color:var(--muted); margin-top:1px;}
+  .rc-p{font-size:12.5px; color:var(--ink-2); margin-top:5px; font-variant-numeric:tabular-nums;}
+  .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
+  .rc-add{position:absolute; right:10px; bottom:10px; width:28px; height:28px; border-radius:50%;
+    border:1.5px solid var(--line); background:#fff; display:flex; align-items:center;
+    justify-content:center; font-size:17px; line-height:1; color:var(--ink); font-weight:600;
+    transition:.15s;}
+  .rc.on .rc-add{background:var(--good); border-color:var(--good); color:#fff;}
+  .rc-add svg{display:block;}
+
+  /* ══ Кошторис: темний блок, як фінальний документ ══ */
+  .est{background:#14171B; color:#fff; border-radius:22px; padding:22px 18px 20px; margin-top:4px;}
+  .est-h{font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 0 16px;}
+  /* Колонки цифр тримаємо вузькими: на 390px ширший «Ціна за шт» з'їдав назву
+     до «Ф…». Назві дозволено переноситись у два рядки — це краще, ніж трикрапка. */
+  .est-head{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
+    font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+    color:rgba(255,255,255,.42); padding-bottom:9px;}
+  .est-head span:not(:first-child){text-align:right;}
+  .est-r{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
+    align-items:center; padding:11px 0; border-top:1px solid rgba(255,255,255,.09);
+    font-size:12.5px; font-variant-numeric:tabular-nums;}
+  .est-r>span:not(:first-child){text-align:right; color:rgba(255,255,255,.72);}
+  .est-r .est-s{color:#fff; font-weight:700;}
+  .est-nm{display:flex; align-items:center; gap:8px; min-width:0;}
+  .est-nm i{flex:none; width:26px; height:26px; border-radius:7px; overflow:hidden;
+    background:rgba(255,255,255,.08); display:block;}
+  .est-nm i img{width:100%; height:100%; object-fit:cover;}
+  .est-nm b{font-weight:600; font-size:12.5px; line-height:1.25; min-width:0;}
+  .est-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.4px; color:#7FE0B0; margin-left:6px;}
+  .est-sum{margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
+  .est-l{display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px;
+    color:rgba(255,255,255,.72); margin-bottom:8px; font-variant-numeric:tabular-nums;}
+  .est-l b{font-weight:600; color:#fff;}
+  .est-l.disc, .est-l.disc b{color:#4ADE80;}
+  .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
+  .est-pay span{font-size:15px; font-weight:600;}
+  .est-pay b{font-size:27px; font-weight:800; letter-spacing:-0.8px; font-variant-numeric:tabular-nums;}
+  .est-save{margin-top:14px; font-size:13px; font-weight:600; color:#4ADE80; text-align:center;
+    line-height:1.45;}
+
+  /* ══ Що входить у вартість: іконки в ряд ══ */
+  /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
+     як обірваний список, а не як набір того, що входить у ціну. */
+  .incl{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-items:start;}
+  .incl-i{text-align:center; min-width:0;}
+  .incl-ic{width:100%; aspect-ratio:1/1; max-width:58px; margin:0 auto 7px;
+    border:1px solid var(--line); border-radius:14px; display:flex; align-items:center;
+    justify-content:center; background:#fff;}
+  .incl-l{font-size:10.5px; color:var(--ink-2); line-height:1.3; word-break:break-word;}
+  @media (min-width:480px){ .incl{gap:10px;} .incl-l{font-size:11.5px;} }
 
   /* ── товар ── */
   .item{padding-top:6px;}
@@ -471,8 +601,14 @@
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
              'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  var TICK_W = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0F2034" ' +
+  var TICK_W = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" ' +
                'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  // Зелений кружечок із галочкою — статуси на першому екрані читаються як
+  // «це вже зроблено», а не як список того, що ще належить зробити.
+  var TICK_ROUND = '<svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="11" fill="#0E9F6E"/>' +
+    '<path d="m7.4 12.3 3 3 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function fail(title, text, code){
     app.innerHTML = '<div class="state"><h1>' + esc(title) + '</h1><p>' + esc(text) + '</p>' +
@@ -557,12 +693,14 @@
         '<h1>' + (who ? 'Колекція корпоративного одягу для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
         '<p class="hero-sub">Ми підготували персональну пропозицію з урахуванням ' +
           'вашого логотипа, побажань та кількості виробів.</p>' +
-        (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
-                'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
-        '<div class="hero-checks">' +
-          heroStatuses().map(function(x){
-            return '<div class="hcheck">' + TICK + '<span>' + esc(x) + '</span></div>';
-          }).join('') +
+        '<div class="hero-body">' +
+          '<div class="hero-checks">' +
+            heroStatuses().map(function(x){
+              return '<div class="hcheck">' + TICK_ROUND + '<span>' + esc(x) + '</span></div>';
+            }).join('') +
+          '</div>' +
+          (shot ? '<div class="hero-photo"><img src="' + esc(shot) + '" alt="Макет" ' +
+                  'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
         '</div>' +
         '<div class="hero-facts">' +
           '<span class="fact">' + kinds + ' ' + plural(kinds,'вид товару','види товарів','видів товарів') + '</span>' +
@@ -574,36 +712,27 @@
       '</div>';
   }
 
-  // Велике фото + міні-прев'ю під ним, як у магазинах одягу. Сітка з усіх
-  // макетів одразу змушувала вгадувати, що де; тут одразу видно, скільки
-  // ракурсів є, і головне фото міняється натисканням.
-  function mocksHtml(it, idx){
-    var m = (it.mockups || []).slice(0, 6);
-    if(!m.length) return '';
+  // Ракурси під карткою: три плитки з підписом, головне фото міняється дотиком.
+  function viewsHtml(it, idx){
+    var m = (it.mockups || []).slice(0, 4);
+    if(m.length < 2) return '';
     var label = function(k){
       var sd = (it.sides || [])[k];
-      return (sd && SIDE_UA[sd.side]) ? SIDE_UA[sd.side] : ('Вигляд ' + (k + 1));
+      return (sd && SIDE_UA[sd.side]) ? SIDE_UA[sd.side] : (k === 0 ? 'Перед' : 'Вигляд ' + (k + 1));
     };
-    return '' +
-      '<div class="shot" data-shot="' + idx + '">' +
-        '<img id="shotImg' + idx + '" src="' + esc(m[0]) + '" alt="Макет" ' +
-          'onerror="this.parentNode.style.display=\'none\'">' +
-      '</div>' +
-      (m.length > 1
-        ? '<div class="thumbs">' + m.map(function(src, k){
-            return '<button class="thumb' + (k === 0 ? ' on' : '') + '" ' +
-                     'data-thumb="' + idx + '" data-src="' + esc(src) + '">' +
-              '<img src="' + esc(src) + '" alt="" loading="lazy" ' +
-                'onerror="this.parentNode.style.display=\'none\'">' +
-              '<span>' + esc(label(k)) + '</span></button>';
-          }).join('') + '</div>'
-        : '');
+    return '<div class="pcard-views">' + m.map(function(src, k){
+      return '<button class="pv' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
+               'data-src="' + esc(src) + '">' +
+        '<span class="pv-ph"><img src="' + esc(src) + '" alt="" loading="lazy" ' +
+          'onerror="this.parentNode.parentNode.style.visibility=\'hidden\'"></span>' +
+        '<span class="pv-l">' + esc(label(k)) + '</span></button>';
+    }).join('') + '</div>';
   }
 
+  // Подробиці — під розкриттям: у картці лишається те, що вирішує, а розмір
+  // нанесення й вибір тиражу потрібні не всім і не одразу.
   function specsHtml(it, i){
-    var rows = [['Колір', it.color]];
-    var tech = it.techniques.length ? it.techniques.join(', ') : it.print;
-    if(tech) rows.push(['Нанесення', tech]);
+    var rows = [];
     var sides = it.sides.filter(function(s){ return s.side; })
                         .map(function(s){ return SIDE_UA[s.side] || s.side; });
     if(sides.length) rows.push(['Сторони', [...new Set(sides)].join(', ')]);
@@ -614,9 +743,9 @@
     // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
     if(it.sizes) rows.push(['Розмірний ряд',
       itemState(i).changed ? 'узгодимо з вами' : it.sizes]);
-    rows.push(['Термін', curDays() + ' роб. днів']);
+    if(!rows.length) return '';
     return '<div class="specs" data-specs="' + i + '">' +
-      rows.filter(function(r){ return r[1]; }).map(function(r){
+      rows.map(function(r){
         return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
                '<div class="spec-v">' + esc(r[1]) + '</div></div>';
       }).join('') + '</div>';
@@ -641,60 +770,94 @@
       '</div>';
   }
 
+  // Вибір тиражу — це апсел, і він має бути видимим. Ховати його під
+  // розкриттям означало віддати вигоду, про яку клієнт просто не дізнається.
+  // Тому компактні чіпи прямо в картці: тираж, ціна за штуку і виграш.
   function tiersHtml(i){
     var it = OFFER.items[i];
-    if(it.tiers.length < 2) return '';
+    if(!it.tiers || it.tiers.length < 2) return '';
     var cur = itemState(i).qty;
-    // «Оптимальний» — найбільший крок вигоди на одиницю відносно поточного тиражу
-    var best = null, bestGain = 0;
-    it.tiers.forEach(function(t){
-      var gain = it.unitPrice - t.unit;
-      if(t.qty > it.qty && gain > bestGain){ bestGain = gain; best = t.qty; }
-    });
+    var base = it.unitPrice || (it.tiers[0] && it.tiers[0].unit) || 0;
     return '' +
-      '<div class="tiers">' +
-        '<div class="tiers-h">Ціна при більшому тиражі</div>' +
-        '<p class="tiers-note">Оберіть кількість — кошторис перерахується одразу.</p>' +
-        it.tiers.map(function(t){
-          var on = t.qty === cur;
-          var gain = (it.unitPrice - t.unit) * t.qty;
-          return '<button class="tier' + (on ? ' on' : '') + '" data-tier="' + i + '" ' +
-                   'data-qty="' + t.qty + '">' +
-            '<span class="tier-q">' + t.qty + ' шт' +
-              (t.qty === it.qty ? '<span class="tier-tag cur">ваш тираж</span>' : '') +
-              (t.qty === best ? '<span class="tier-tag">оптимальний</span>' : '') +
-              (gain > 0 ? '<div class="tier-hint">вигода ' + money(gain) + '</div>' : '') +
-            '</span>' +
-            '<span class="tier-u">' + money(t.unit) + '/шт</span>' +
-            '<span class="tier-s">' + money(t.sum) + '</span>' +
+      '<div class="qrow">' +
+        '<span class="qrow-l">Тираж</span>' +
+        '<div class="qchips">' + it.tiers.map(function(t){
+          var pct = base > 0 && t.unit < base ? Math.round((1 - t.unit / base) * 100) : 0;
+          return '<button class="qchip' + (t.qty === cur ? ' on' : '') + '" ' +
+                   'data-tier="' + i + '" data-qty="' + t.qty + '">' +
+            '<span class="qc-q">' + t.qty + ' шт</span>' +
+            '<span class="qc-u">' + money(t.unit) + '</span>' +
+            (pct > 0 ? '<span class="qc-b">−' + pct + '%</span>' : '') +
           '</button>';
-        }).join('') +
+        }).join('') + '</div>' +
       '</div>';
   }
 
   function itemsHtml(){
     return '' +
       '<section id="offerStart">' +
-        '<h2 class="sec-title">Ваша колекція</h2>' +
-        '<p class="sec-sub">Кожна позиція — з візуалізацією та розрахунком.</p>' +
+        '<h2 class="sec-title">Підготовлена для вас колекція</h2>' +
+        '<p class="sec-sub">Логотип уже адаптовано під кожен виріб.</p>' +
         OFFER.items.map(function(it, i){
-          return '<div class="item">' +
-            '<h3 class="item-name">' + esc(it.name) + '</h3>' +
-            mocksHtml(it, i) + specsHtml(it, i) + priceBoxHtml(i) +
+          var st = itemState(i);
+          var tech = (it.techniques || []).join(', ') || it.print || '';
+          var main = (it.mockups || [])[0] || '';
+          return '<div class="pcard">' +
+            '<div class="pcard-main">' +
+              '<div class="pcard-shot" data-shot="' + i + '">' + (main
+                ? '<img id="shotImg' + i + '" src="' + esc(main) + '" alt="Макет" ' +
+                  'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
+              '<div class="pcard-info">' +
+                '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
+                (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+                // колір приходить у різних формах («чорна», «чорний») — ставимо його
+                // після двокрапки, інакше виходить «чорна колір»
+                (it.color ? '<div class="pcard-meta">Колір: ' + esc(it.color) + '</div>' : '') +
+                '<div class="pcard-money" data-unit="' + i + '">' +
+                  '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                  '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>' +
+                '</div>' +
+                '<div class="pcard-term">Виготовлення ' + curDays() + ' роб. днів</div>' +
+              '</div>' +
+            '</div>' +
+            viewsHtml(it, i) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
+            '<details class="pcard-more">' +
+              '<summary>Деталі позиції</summary>' +
+              '<div class="pcard-more-body">' + specsHtml(it, i) + priceBoxHtml(i) + '</div>' +
+            '</details>' +
           '</div>';
         }).join('') +
       '</section>';
   }
 
+  // Іконка підбирається за змістом рядка: список редагується менеджером, тож
+  // прив'язуватись до порядку не можна — зміниться склад і поїдуть усі картинки.
+  var INCL_ICONS = [
+    [/одяг|виріб|футбол|товар/i, '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>'],
+    [/нанесен|друк|вишив|принт/i, '<circle cx="6.5" cy="7" r="2.2"/><circle cx="6.5" cy="17" r="2.2"/><path d="M8.4 8.6 20 19M8.4 15.4 20 5"/>'],
+    [/макет|дизайн|візуал|ескіз/i, '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h5M8 16h6"/>'],
+    [/якіст|перевір|контрол/i, '<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>'],
+    [/пакув|доставк|логіст/i, '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5V20.5"/>']
+  ];
+  function inclIcon(text){
+    var d = null;
+    for(var i = 0; i < INCL_ICONS.length; i++){
+      if(INCL_ICONS[i][0].test(text)){ d = INCL_ICONS[i][1]; break; }
+    }
+    if(!d) d = '<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.4 2.4 4.6-4.8"/>';
+    return '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F2034" ' +
+      'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  }
   function includesHtml(){
     if(!OFFER.includes || !OFFER.includes.length) return '';
     return '' +
       '<section>' +
-        '<h2 class="sec-title">У вартість уже входить</h2>' +
-        '<ul class="ticks">' + OFFER.includes.map(function(t){
-          return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
-        }).join('') + '</ul>' +
+        '<h2 class="sec-title">Що входить у вартість</h2>' +
+        '<div class="incl">' + OFFER.includes.slice(0, 5).map(function(t){
+          return '<div class="incl-i"><div class="incl-ic">' + inclIcon(t) + '</div>' +
+                 '<div class="incl-l">' + esc(t) + '</div></div>';
+        }).join('') + '</div>' +
       '</section>';
   }
 
@@ -703,47 +866,46 @@
     var rows = [];
     OFFER.items.forEach(function(it, i){
       var st = itemState(i);
-      rows.push({ th:(it.mockups||[])[0], name:it.name,
-        color:it.color, tech:(it.techniques||[]).join(', ') || it.print,
-        qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
+      rows.push({ th:(it.mockups||[])[0], name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
-      rows.push({ th:(r.mockups||[])[0], name:r.name,
-        color:r.color, tech:(r.techniques||[]).join(', ') || r.print,
-        qty:r.qty, unit:r.unitPrice, sum:r.price, reco:true });
+      rows.push({ th:(r.mockups||[])[0], name:r.name, qty:r.qty, unit:r.unitPrice, sum:r.price, reco:true });
     });
+    var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     return '' +
       '<section id="estimate">' +
-        '<h2 class="sec-title">Кошторис</h2>' +
-        '<p class="sec-sub">Усе, що входить у замовлення, і підсумок.</p>' +
-        rows.map(function(r){
-          var meta = [r.color, r.tech].filter(Boolean).join(' · ');
-          return '<div class="ecard">' +
-            '<div class="ec-th">' + (r.th
-              ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
-              : '') + '</div>' +
-            '<div class="ec-body">' +
-              '<div class="ec-name">' + esc(r.name) +
-                (r.reco ? '<span class="ec-tag">додано вами</span>' : '') + '</div>' +
-              (meta ? '<div class="ec-meta">' + esc(meta) + '</div>' : '') +
-              '<div class="ec-calc">' + r.qty + ' шт × ' + money(r.unit) + '</div>' +
-            '</div>' +
-            '<div class="ec-sum">' + money(r.sum) + '</div>' +
-          '</div>';
-        }).join('') +
-        '<div class="etot">' +
+        '<div class="est">' +
+          '<h2 class="est-h">Кошторис</h2>' +
+          // «Кількість» і «Ціна за шт» у вузьких колонках налазять одне на одне —
+          // у шапці лишаємо скорочення, самі цифри від цього не страждають
+          '<div class="est-head"><span>Товар</span><span>К-сть</span>' +
+            '<span>За шт</span><span>Сума</span></div>' +
+          rows.map(function(r){
+            return '<div class="est-r">' +
+              '<span class="est-nm">' +
+                '<i>' + (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
+                  'onerror="this.style.display=\'none\'">' : '') + '</i>' +
+                '<b>' + esc(r.name) + '</b>' +
+                (r.reco ? '<em>додано</em>' : '') +
+              '</span>' +
+              '<span>' + r.qty + ' шт</span>' +
+              '<span>' + num(r.unit) + ' грн</span>' +
+              '<span class="est-s">' + num(r.sum) + ' грн</span>' +
+            '</div>';
+          }).join('') +
+          '<div class="est-sum">' +
+            '<div class="est-l"><span>Товари</span><b>' + num(t.save > 0 ? t.base : t.sum) + ' грн</b></div>' +
+            (t.save > 0
+              ? '<div class="est-l disc"><span>Оптова знижка</span><b>−' + num(t.save) + ' грн</b></div>'
+              : '') +
+          '</div>' +
+          '<div class="est-pay"><span>До оплати</span><b>' + num(t.sum) + ' грн</b></div>' +
           (t.save > 0
-            ? '<div class="et-line"><span>Було</span><span class="et-was">' + money(t.base) + '</span></div>' +
-              '<div class="et-line et-disc"><span>Оптова знижка</span><span>−' + money(t.save) + '</span></div>'
+            ? '<div class="est-save">Ви економите ' + num(t.save) +
+              ' грн завдяки оптовому замовленню</div>'
             : '') +
-          '<div class="et-pay"><span>До оплати</span><span>' + money(t.sum) + '</span></div>' +
         '</div>' +
-        (t.save > 0
-          ? '<div class="save-badge">' + TICK +
-            '<div><b>Ви економите ' + money(t.save) + '</b>' +
-            '<span>завдяки оптовому замовленню</span></div></div>'
-          : '') +
       '</section>';
   }
 
@@ -753,26 +915,22 @@
       '<section>' +
         '<h2 class="sec-title">Можливо, вам також підійде</h2>' +
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
-        OFFER.reco.slice(0, 3).map(function(r, i){
+        '<div class="rrow">' + OFFER.reco.slice(0, 4).map(function(r, i){
           var on = !!pick.reco[i];
-          return '<div class="reco' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
-            '<div class="reco-top">' +
-              '<div class="reco-th">' + (r.mockups[0]
-                ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
-                : '') + '</div>' +
-              '<div>' +
-                '<div class="reco-name">' + esc(r.name) + '</div>' +
-                (r.recoNote ? '<div class="reco-why">' + esc(r.recoNote) + '</div>' : '') +
-                '<div class="reco-price">' + r.qty + ' шт × ' + money(r.unitPrice) +
-                  ' = ' + money(r.price) + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<button class="reco-btn" data-reco="' + i + '">' +
-              '<span class="reco-box">' + (on ? TICK_W : '+') + '</span>' +
-              '<span>' + (on ? 'Додано до замовлення' : 'Додати до замовлення') + '</span>' +
-            '</button>' +
+          var tech = (r.techniques || []).join(', ') || r.print || '';
+          return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
+            '<div class="rc-ph">' + (r.mockups[0]
+              ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
+                'onerror="this.style.display=\'none\'">' : '') + '</div>' +
+            '<div class="rc-n">' + esc(r.name) + '</div>' +
+            (tech ? '<div class="rc-t">' + esc(tech) + '</div>' : '') +
+            '<div class="rc-p">' + money(r.unitPrice) + ' · ' + r.qty + ' шт</div>' +
+            (r.recoNote ? '<div class="rc-why">' + esc(r.recoNote) + '</div>' : '') +
+            '<button class="rc-add" data-reco="' + i + '" ' +
+              'aria-label="' + (on ? 'Прибрати з пропозиції' : 'Додати до пропозиції') + '">' +
+              (on ? TICK_W : '+') + '</button>' +
           '</div>';
-        }).join('') +
+        }).join('') + '</div>' +
       '</section>';
   }
 
@@ -994,6 +1152,14 @@
     set('heroDays', 'виготовлення від ' + daysWord(curDays()));
     set('termDays', daysWord(curDays()) + ' після погодження макета');
     OFFER.items.forEach(function(it, i){
+      // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
+      // а в кошторисі нижче інше.
+      var un = document.querySelector('[data-unit="' + i + '"]');
+      if(un){
+        var st = itemState(i);
+        un.innerHTML = '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                       '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>';
+      }
       var sp = document.querySelector('[data-specs="' + i + '"]');
       if(sp) sp.outerHTML = specsHtml(it, i);
       var box = document.querySelector('[data-price-box="' + i + '"]');
@@ -1008,8 +1174,11 @@
       if(!card) return;
       var on = !!pick.reco[i];
       card.classList.toggle('on', on);
-      var lbl = card.querySelector('.reco-btn span:last-child');
-      if(lbl) lbl.textContent = on ? 'Додано до пропозиції' : 'Додати до пропозиції';
+      var add = card.querySelector('.rc-add');
+      if(add){
+        add.innerHTML = on ? TICK_W : '+';
+        add.setAttribute('aria-label', on ? 'Прибрати з пропозиції' : 'Додати до пропозиції');
+      }
     });
     wire();
   }
