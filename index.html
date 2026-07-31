@@ -5483,7 +5483,10 @@
 
     // list: [{ method, units, base, coefPart, pieceFee, dtfCols:[], designs:[fp], bare }]
     // Повертає ціну за штуку й суму для кожної позиції в тому ж порядку.
-    function priceOrder(list){
+    // opts.noVolume — порахувати те саме замовлення так, ніби знижки за тираж
+    // немає: потрібно для рядка «Було» в комерційній пропозиції.
+    function priceOrder(list, opts){
+      opts = opts || {};
       var p = sitePricing();
       if(!p) return list.map(function(){ return { unit:0, sum:0, feeShare:0 }; });
 
@@ -5492,11 +5495,12 @@
         var u = Math.max(0, +it.units || 0);
         if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
       });
-      var coef  = { dtf: tierCoefFor('dtf', U.dtf || 1), embro: tierCoefFor('embro', U.embro || 1) };
+      var coef  = { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (U.dtf || 1)),
+                    embro: tierCoefFor('embro', opts.noVolume ? 1 : (U.embro || 1)) };
       // Шкала на голий виріб може бути не задана — тоді, як і раніше, діє шкала
       // способу нанесення від кількості голих виробів. Без цього запасного шляху
       // товари без друку залишились би зовсім без знижки за тираж.
-      var gcoefSet = garmentCoefFor(U.bare || 1);
+      var gcoefSet = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
 
       // Разові оплати по кожному методу
       var fees = {};
@@ -5528,7 +5532,8 @@
         var u = Math.max(0, +it.units || 0);
         if(it.bare){
           var gc = (gcoefSet != null) ? gcoefSet
-                 : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf', U.bare || 1);
+                 : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf',
+                               opts.noVolume ? 1 : (U.bare || 1));
           var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
           return { unit: ub, sum: ub * u, feeShare: 0, parts: {
             bare: true, coef: gc, groupQty: U.bare,
@@ -5543,7 +5548,8 @@
         var flat = 0;
         if(mk === 'dtf' && (it.dtfCols || []).length){
           var cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [], row = 0;
-          for(var j = qf.length - 1; j >= 0; j--){ if((U.dtf || 1) >= qf[j]){ row = j; break; } }
+          var qRow = opts.noVolume ? 1 : (U.dtf || 1);
+          for(var j = qf.length - 1; j >= 0; j--){ if(qRow >= qf[j]){ row = j; break; } }
           var grid = cfg.price || [];
           it.dtfCols.forEach(function(col){
             flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
@@ -7943,6 +7949,10 @@
       productModal.classList.remove('open');
       cartModalCtrl.open();
       window.__pmAddKind = 'main';            // наступна позиція знову вважається основною
+      // Кількість не переносимо на наступну позицію: людина вже «витратила» ці
+      // штуки, і мовчки успадкований тираж — це замовлення на 22 футболки замість
+      // 10. Логотипи лишаємо: те саме лого на кепці й футболці — звичайна річ.
+      pm.qty = {XS:0,S:0,M:0,L:0,XL:0,XXL:0};
       pm.editing = false;
       try{ syncAddLabels(); }catch(e){}
     }

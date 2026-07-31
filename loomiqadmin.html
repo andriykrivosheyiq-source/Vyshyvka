@@ -2877,7 +2877,9 @@ function tierCoefFor(methodKey, qty){
   for(let i = rows.length - 1; i >= 0; i--){ if(qty >= rows[i].from){ c = rows[i].coef; break; } }
   return c;
 }
-function priceOrder(list){
+// opts.noVolume — те саме замовлення без знижки за тираж (рядок «Було» в КП)
+function priceOrder(list, opts){
+  opts = opts || {};
   const p = curSitePricing();
   if(!p) return list.map(()=>({ unit:0, sum:0, feeShare:0 }));
   const U = { dtf:0, embro:0, bare:0 };
@@ -2885,8 +2887,9 @@ function priceOrder(list){
     const u = Math.max(0, +it.units || 0);
     if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
   });
-  const coef = { dtf: tierCoefFor('dtf', U.dtf || 1), embro: tierCoefFor('embro', U.embro || 1) };
-  const gcoefSet = docGarmentCoef(U.bare || 1);
+  const coef = { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (U.dtf || 1)),
+                 embro: tierCoefFor('embro', opts.noVolume ? 1 : (U.embro || 1)) };
+  const gcoefSet = docGarmentCoef(opts.noVolume ? 1 : (U.bare || 1));
 
   const fees = {};
   ['dtf','embro'].forEach(mk=>{
@@ -2916,7 +2919,8 @@ function priceOrder(list){
     const u = Math.max(0, +it.units || 0);
     if(it.bare){
       const gc = (gcoefSet != null) ? gcoefSet
-               : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf', U.bare || 1);
+               : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf',
+                             opts.noVolume ? 1 : (U.bare || 1));
       const ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
       return { unit: ub, sum: ub * u, feeShare: 0, parts: {
         bare:true, coef:gc, groupQty:U.bare,
@@ -2931,7 +2935,8 @@ function priceOrder(list){
     if(mk === 'dtf' && (it.dtfCols || []).length){
       const cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [];
       let row = 0;
-      for(let j = qf.length - 1; j >= 0; j--){ if((U.dtf || 1) >= qf[j]){ row = j; break; } }
+      const qRow = opts.noVolume ? 1 : (U.dtf || 1);
+      for(let j = qf.length - 1; j >= 0; j--){ if(qRow >= qf[j]){ row = j; break; } }
       const grid = cfg.price || [];
       it.dtfCols.forEach(col=>{
         flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
@@ -3134,10 +3139,25 @@ function offerBaseCoef(){
   tiers.forEach(t => { if((+t.coef || 1) > base) base = +t.coef || 1; });
   return base;
 }
-function offerItemNumbers(item){
+// Ціна позиції при іншому тиражі — рахуємо ВСІМ замовленням, бо вона від нього
+// залежить: спільний макет ділиться на всі вироби, а знижка йде від сумарної
+// кількості в межах способу нанесення. Рахувати позицію окремо — це та сама
+// помилка, через яку кошик і Канбан колись розходились.
+function sharedPriceAt(order, itemIdx, qty, opts){
+  const { idx, list } = orderDescriptors(order);
+  const k = idx.indexOf(itemIdx);
+  if(k < 0) return null;
+  const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: Math.max(1, +qty || 1) }) : d);
+  const res = priceOrder(clone, opts);
+  return (res[k] && res[k].unit) || null;
+}
+function offerItemNumbers(order, itemIdx){
+  const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
   const unit = +item.unitPrice || 0;
-  const baseUnit = Math.max(docPriceAt(item, qty, offerBaseCoef()), unit);
+  // «Було» — той самий тираж, але без знижки за обсяг
+  const shared = sharedPriceAt(order, itemIdx, qty, { noVolume:true });
+  const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, qty, offerBaseCoef()), unit);
   return {
     qty, unit, sum: +item.price || 0,
     baseUnit, baseSum: baseUnit * qty,
@@ -3145,13 +3165,36 @@ function offerItemNumbers(item){
   };
 }
 // Варіанти тиражу, які клієнт зможе обрати на сторінці.
-function offerTiers(item){
-  return docTierRows(item).map(t => ({
-    qty: t.qty, unit: t.price, sum: t.price * t.qty, now: !!t.now
-  }));
+function offerTiers(order, itemIdx){
+  const item = order.items[itemIdx];
+  const p = curSitePricing();
+  const cur = item.qty || 1;
+  const real = +item.unitPrice || 0;
+  // пороги збираємо з усіх шкал, які реально впливають на цю позицію
+  const src = [];
+  const push = l => (l || []).forEach(t => { const q = +t.from || 1; if(src.indexOf(q) < 0) src.push(q); });
+  if(p){
+    const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
+    const m = (p.methods || {})[mk] || {};
+    push((m.tiers && m.tiers.length) ? m.tiers : p.tiers);
+    if(item.desc && item.desc.bare) push(p.garmentTiers);
+    if(mk === 'dtf') (m.qtyFrom || []).forEach(q => { if(src.indexOf(+q) < 0) src.push(+q); });
+  }
+  const rows = [{ qty: cur, unit: real, sum: real * cur, now: true }];
+  src.sort((a,b)=>a-b).forEach(q=>{
+    if(q <= cur || rows.length >= 5) return;
+    const u = sharedPriceAt(order, itemIdx, q);
+    if(u == null) return;
+    rows.push({ qty: q, unit: u, sum: u * q, now: false });
+  });
+  if(rows.length === 1){
+    // Старе замовлення без розкладу — лишається попередній спосіб
+    return docTierRows(item).map(t => ({ qty:t.qty, unit:t.price, sum:t.price * t.qty, now:!!t.now }));
+  }
+  return rows;
 }
-function offerItem(it){
-  const n = offerItemNumbers(it);
+function offerItem(it, order, itemIdx){
+  const n = offerItemNumbers(order, itemIdx);
   return {
     kind: it.kind === 'reco' ? 'reco' : 'main',
     recoNote: it.recoNote || '',
@@ -3166,11 +3209,11 @@ function offerItem(it){
     mockups: (it.mockups || []).slice(0, 4),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
-    tiers: offerTiers(it)
+    tiers: offerTiers(order, itemIdx)
   };
 }
 function offerBuild(order){
-  const items = (order.items || []).map(offerItem);
+  const items = (order.items || []).map((it, i) => offerItem(it, order, i));
   const main  = items.filter(i => i.kind !== 'reco');
   const reco  = items.filter(i => i.kind === 'reco');
   const logo  = ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
