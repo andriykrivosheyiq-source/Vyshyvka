@@ -52,6 +52,86 @@
   .hero-logo{max-height:52px; width:auto; margin-bottom:18px;}
   .hero-shot{background:var(--soft); border-radius:var(--radius); padding:14px; margin-bottom:20px;}
   .hero-shot img{width:100%; aspect-ratio:1/1; object-fit:contain;}
+  /* Статуси в Hero: короткі підтвердження, що робота вже зроблена */
+  .hero-checks{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin:4px 0 20px;}
+  .hcheck{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--ink);}
+  .hcheck svg{flex:none;}
+  .btn-ghost-lg{display:block; width:100%; padding:15px; border-radius:14px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    font:inherit; font-size:15px; font-weight:600;}
+  .btn-ghost-lg:hover{background:#F8FAFC;}
+  /* Товар: велике фото + ряд міні-прев'ю */
+  .shot{border-radius:18px; overflow:hidden; background:#F1F4F8; margin-bottom:10px;}
+  .shot img{width:100%; display:block;}
+  .thumbs{display:flex; gap:8px; overflow-x:auto; margin-bottom:18px; padding-bottom:2px;
+    scrollbar-width:none;}
+  .thumbs::-webkit-scrollbar{display:none;}
+  .thumb{flex:0 0 auto; width:78px; border:1.5px solid var(--line); background:#fff;
+    border-radius:12px; padding:0; cursor:pointer; overflow:hidden; font:inherit;}
+  .thumb img{width:100%; height:62px; object-fit:cover; display:block; background:#F1F4F8;}
+  .thumb span{display:block; padding:5px 4px 6px; font-size:10.5px; color:var(--muted);
+    text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .thumb.on{border-color:var(--ink);}
+  .thumb.on span{color:var(--ink); font-weight:600;}
+  /* Кошторис картками */
+  .ecard{display:flex; gap:12px; align-items:center; padding:12px; border:1px solid var(--line);
+    border-radius:14px; margin-bottom:10px; background:#fff;}
+  .ec-th{width:56px; height:56px; flex:none; border-radius:10px; overflow:hidden; background:#F1F4F8;}
+  .ec-th img{width:100%; height:100%; object-fit:cover; display:block;}
+  .ec-body{flex:1; min-width:0;}
+  .ec-name{font-weight:700; font-size:15px;}
+  .ec-tag{display:inline-block; margin-left:7px; padding:1px 7px; border-radius:20px;
+    background:#EEF2FF; color:#4338CA; font-size:9.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.4px; vertical-align:middle;}
+  .ec-meta{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .ec-calc{font-size:12.5px; color:var(--muted); margin-top:3px;}
+  .ec-sum{font-weight:800; font-size:15px; white-space:nowrap;}
+  .etot{border-top:1px solid var(--line); margin-top:14px; padding-top:14px;}
+  .et-line{display:flex; justify-content:space-between; font-size:14px; color:var(--muted);
+    margin-bottom:8px;}
+  .et-was{text-decoration:line-through;}
+  .et-disc{color:#0E9F6E; font-weight:600;}
+  .et-pay{display:flex; justify-content:space-between; align-items:baseline;
+    font-size:19px; font-weight:800; margin-top:4px;}
+  .save-badge{display:flex; align-items:center; gap:12px; margin-top:16px; padding:16px 18px;
+    border-radius:16px; background:#ECFDF5; border:1px solid #A7F3D0;}
+  .save-badge b{display:block; font-size:16px; color:#065F46;}
+  .save-badge span{display:block; font-size:13px; color:#047857; margin-top:2px;}
+  /* Як проходитиме замовлення */
+  .tl{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;}
+  .tl::-webkit-scrollbar{display:none;}
+  .tl-step{flex:1 0 auto; min-width:104px; border:1px solid var(--line); border-radius:14px;
+    padding:14px 12px; background:#fff;}
+  .tl-n{display:flex; align-items:center; justify-content:center; width:24px; height:24px;
+    border-radius:12px; background:var(--ink); color:#fff; font-size:12px; font-weight:700;
+    margin-bottom:8px;}
+  .tl-t{font-size:13px; font-weight:600;}
+  /* Проєкти */
+  .cases{display:grid; grid-template-columns:1fr; gap:12px;}
+  .case{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff;}
+  .case-ph{height:132px; background:#F1F4F8;}
+  .case-ph img{width:100%; height:100%; object-fit:cover; display:block;}
+  .case-n{font-weight:700; font-size:15px; padding:12px 14px 0;}
+  .case-q{font-size:12.5px; color:var(--muted); padding:2px 14px 0;}
+  .case-t{font-size:13px; color:var(--ink); padding:6px 14px 14px;}
+  /* Гарантії */
+  .gcards{display:grid; grid-template-columns:1fr; gap:10px;}
+  .gcard{display:flex; align-items:center; gap:10px; padding:14px; border:1px solid var(--line);
+    border-radius:14px; background:#fff; font-size:14px;}
+  .gcard svg{flex:none;}
+  /* FAQ */
+  .fq{border:1px solid var(--line); border-radius:14px; background:#fff; margin-bottom:8px;
+    overflow:hidden;}
+  .fq summary{padding:14px 16px; font-size:14.5px; font-weight:600; cursor:pointer;
+    list-style:none; display:flex; justify-content:space-between; gap:10px;}
+  .fq summary::-webkit-details-marker{display:none;}
+  .fq summary::after{content:"+"; color:var(--muted); font-weight:400; font-size:18px; line-height:1;}
+  .fq[open] summary::after{content:"–";}
+  .fq-a{padding:0 16px 14px; font-size:13.5px; color:var(--muted); line-height:1.55;}
+  @media (min-width:560px){
+    .cases{grid-template-columns:1fr 1fr 1fr;}
+    .gcards{grid-template-columns:1fr 1fr;}
+  }
   .hero-facts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;}
   .fact{background:var(--soft); border-radius:999px; padding:7px 13px; font-size:13px;
     color:var(--ink-2); font-weight:500;}
@@ -448,11 +528,25 @@
 
   /* ═══════════ розмітка ═══════════ */
 
+  // Зміст пропозиції визначає, які саме статуси показуємо: обіцяти «макети
+  // підготовлено», коли макетів немає, — гірше, ніж не обіцяти нічого.
+  function heroStatuses(){
+    var hasMock = OFFER.items.some(function(it){ return (it.mockups||[]).length; });
+    var hasPrint = OFFER.items.some(function(it){ return (it.sides||[]).length; });
+    var st = [];
+    if(OFFER.clientLogo || hasPrint) st.push('Логотип адаптовано');
+    if(hasMock) st.push('Макети підготовлено');
+    st.push('Ціни розраховано');
+    st.push('Готово до погодження');
+    return st;
+  }
+
   function heroHtml(){
-    var t = totals();
     var kinds = OFFER.items.length;
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
     var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
+    // Суми на першому екрані немає навмисно: ціну можна оцінити лише після того,
+    // як людина побачила, що саме входить у пропозицію.
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
@@ -460,56 +554,50 @@
             'onerror="this.style.display=\'none\'">' : '') +
         '<div class="hero-eyebrow">Комерційна пропозиція' +
           (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</div>' +
-        '<h1>' + (who ? 'Для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
-        '<p class="hero-sub">Ми підготували візуалізацію, розрахунок вартості ' +
-          'та персональні умови для вашого замовлення.</p>' +
+        '<h1>' + (who ? 'Колекція корпоративного одягу для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
+        '<p class="hero-sub">Ми підготували персональну пропозицію з урахуванням ' +
+          'вашого логотипа, побажань та кількості виробів.</p>' +
         (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
                 'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+        '<div class="hero-checks">' +
+          heroStatuses().map(function(x){
+            return '<div class="hcheck">' + TICK + '<span>' + esc(x) + '</span></div>';
+          }).join('') +
+        '</div>' +
         '<div class="hero-facts">' +
           '<span class="fact">' + kinds + ' ' + plural(kinds,'вид товару','види товарів','видів товарів') + '</span>' +
-          '<span class="fact" id="heroQty">' + t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів') + '</span>' +
+          '<span class="fact" id="heroQty">' + totals().qty + ' ' + plural(totals().qty,'виріб','вироби','виробів') + '</span>' +
           '<span class="fact" id="heroDays">виготовлення від ' + daysWord(curDays()) + '</span>' +
         '</div>' +
-        '<div class="hero-money">' +
-          '<div><div class="hm-label">Загальна сума</div>' +
-            '<div class="hm-val" id="heroSum">' + money(t.sum) + '</div></div>' +
-          (t.save > 0
-            ? '<div><div class="hm-label">Ваша економія</div>' +
-              '<div class="hm-val save" id="heroSave">' + money(t.save) + '</div></div>' : '') +
-        '</div>' +
-        '<button class="btn no-print" id="goOffer">Переглянути пропозицію</button>' +
+        '<button class="btn-ghost-lg no-print" id="goOffer">Переглянути пропозицію ↓</button>' +
         '<div class="updated">Оновлено: ' + esc(dateUa(OFFER.updatedAt)) + '</div>' +
       '</div>';
   }
 
-  function wowHtml(){
-    var shots = [];
-    OFFER.items.forEach(function(it){ if(it.mockups[0]) shots.push(it.mockups[0]); });
-    if(!shots.length) return '';
-    shots = shots.slice(0, 4);
-    return '' +
-      '<section id="offerStart">' +
-        '<h2 class="sec-title">Ось як може виглядати ваш готовий комплект</h2>' +
-        '<p class="sec-sub">Візуалізація на реальних виробах — з вашим логотипом.</p>' +
-        '<div class="wow-grid n' + shots.length + '">' +
-          shots.map(function(s){
-            return '<div class="wow-cell"><img src="' + esc(s) + '" alt="Макет" loading="lazy" ' +
-                   'onerror="this.parentNode.style.display=\'none\'"></div>';
-          }).join('') +
-        '</div>' +
-      '</section>';
-  }
-
-  function mocksHtml(it){
-    var m = it.mockups.slice(0, 4);
+  // Велике фото + міні-прев'ю під ним, як у магазинах одягу. Сітка з усіх
+  // макетів одразу змушувала вгадувати, що де; тут одразу видно, скільки
+  // ракурсів є, і головне фото міняється натисканням.
+  function mocksHtml(it, idx){
+    var m = (it.mockups || []).slice(0, 6);
     if(!m.length) return '';
-    return '<div class="mocks n' + m.length + '">' + m.map(function(src, i){
-      var side = (it.sides[i] || {}).side;
-      return '<div class="mock">' +
-        (side && SIDE_UA[side] ? '<span class="mock-side">' + esc(SIDE_UA[side]) + '</span>' : '') +
-        '<img src="' + esc(src) + '" alt="Макет" loading="lazy" ' +
-        'onerror="this.parentNode.style.display=\'none\'"></div>';
-    }).join('') + '</div>';
+    var label = function(k){
+      var sd = (it.sides || [])[k];
+      return (sd && SIDE_UA[sd.side]) ? SIDE_UA[sd.side] : ('Вигляд ' + (k + 1));
+    };
+    return '' +
+      '<div class="shot" data-shot="' + idx + '">' +
+        '<img id="shotImg' + idx + '" src="' + esc(m[0]) + '" alt="Макет" ' +
+          'onerror="this.parentNode.style.display=\'none\'">' +
+      '</div>' +
+      (m.length > 1
+        ? '<div class="thumbs">' + m.map(function(src, k){
+            return '<button class="thumb' + (k === 0 ? ' on' : '') + '" ' +
+                     'data-thumb="' + idx + '" data-src="' + esc(src) + '">' +
+              '<img src="' + esc(src) + '" alt="" loading="lazy" ' +
+                'onerror="this.parentNode.style.display=\'none\'">' +
+              '<span>' + esc(label(k)) + '</span></button>';
+          }).join('') + '</div>'
+        : '');
   }
 
   function specsHtml(it, i){
@@ -586,13 +674,13 @@
 
   function itemsHtml(){
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Ваше замовлення</h2>' +
-        '<p class="sec-sub">Кожна позиція — з розрахунком і візуалізацією.</p>' +
+      '<section id="offerStart">' +
+        '<h2 class="sec-title">Ваша колекція</h2>' +
+        '<p class="sec-sub">Кожна позиція — з візуалізацією та розрахунком.</p>' +
         OFFER.items.map(function(it, i){
           return '<div class="item">' +
             '<h3 class="item-name">' + esc(it.name) + '</h3>' +
-            mocksHtml(it) + specsHtml(it, i) + priceBoxHtml(i) +
+            mocksHtml(it, i) + specsHtml(it, i) + priceBoxHtml(i) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
           '</div>';
         }).join('') +
@@ -611,40 +699,51 @@
   }
 
   function estimateHtml(){
-    var rows = OFFER.items.map(function(it, i){
-      var s = itemState(i);
-      return { name: it.name, meta: [it.color, s.qty + ' шт'].filter(Boolean).join(' · '),
-               unit: s.unit, sum: s.sum, th: it.mockups[0] };
+    var t = totals();
+    var rows = [];
+    OFFER.items.forEach(function(it, i){
+      var st = itemState(i);
+      rows.push({ th:(it.mockups||[])[0], name:it.name,
+        color:it.color, tech:(it.techniques||[]).join(', ') || it.print,
+        qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
-      rows.push({ name: r.name + ' (додано вами)',
-                  meta: [r.color, r.qty + ' шт'].filter(Boolean).join(' · '),
-                  unit: r.unitPrice, sum: r.price, th: r.mockups[0] });
+      rows.push({ th:(r.mockups||[])[0], name:r.name,
+        color:r.color, tech:(r.techniques||[]).join(', ') || r.print,
+        qty:r.qty, unit:r.unitPrice, sum:r.price, reco:true });
     });
-    var t = totals();
     return '' +
       '<section id="estimate">' +
-        '<h2 class="sec-title">Загальний кошторис</h2>' +
-        '<p class="sec-sub">Усе замовлення однією таблицею.</p>' +
+        '<h2 class="sec-title">Кошторис</h2>' +
+        '<p class="sec-sub">Усе, що входить у замовлення, і підсумок.</p>' +
         rows.map(function(r){
-          return '<div class="est-row">' +
-            '<div class="est-th">' + (r.th
+          var meta = [r.color, r.tech].filter(Boolean).join(' · ');
+          return '<div class="ecard">' +
+            '<div class="ec-th">' + (r.th
               ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
               : '') + '</div>' +
-            '<div class="est-info"><div class="est-name">' + esc(r.name) + '</div>' +
-              '<div class="est-meta">' + esc(r.meta) + ' · ' + money(r.unit) + '/шт</div></div>' +
-            '<div class="est-sum">' + money(r.sum) + '</div>' +
+            '<div class="ec-body">' +
+              '<div class="ec-name">' + esc(r.name) +
+                (r.reco ? '<span class="ec-tag">додано вами</span>' : '') + '</div>' +
+              (meta ? '<div class="ec-meta">' + esc(meta) + '</div>' : '') +
+              '<div class="ec-calc">' + r.qty + ' шт × ' + money(r.unit) + '</div>' +
+            '</div>' +
+            '<div class="ec-sum">' + money(r.sum) + '</div>' +
           '</div>';
         }).join('') +
-        '<div class="est-tot">' +
-          '<div class="et-row"><span>Загальна кількість</span><span>' + t.qty + ' шт</span></div>' +
+        '<div class="etot">' +
           (t.save > 0
-            ? '<div class="et-row"><span>Вартість без знижки</span><span>' + money(t.base) + '</span></div>' +
-              '<div class="et-row save"><span>Ваша економія</span><span>' + money(t.save) + '</span></div>'
+            ? '<div class="et-line"><span>Було</span><span class="et-was">' + money(t.base) + '</span></div>' +
+              '<div class="et-line et-disc"><span>Оптова знижка</span><span>−' + money(t.save) + '</span></div>'
             : '') +
-          '<div class="et-grand"><span>До сплати</span><span>' + money(t.sum) + '</span></div>' +
+          '<div class="et-pay"><span>До оплати</span><span>' + money(t.sum) + '</span></div>' +
         '</div>' +
+        (t.save > 0
+          ? '<div class="save-badge">' + TICK +
+            '<div><b>Ви економите ' + money(t.save) + '</b>' +
+            '<span>завдяки оптовому замовленню</span></div></div>'
+          : '') +
       '</section>';
   }
 
@@ -652,9 +751,8 @@
     if(!OFFER.reco.length) return '';
     return '' +
       '<section>' +
-        '<h2 class="sec-title">Доповніть свій комплект</h2>' +
-        '<p class="sec-sub">Ми вже підготували для них макети — ці позиції ' +
-          'можна додати до замовлення.</p>' +
+        '<h2 class="sec-title">Можливо, вам також підійде</h2>' +
+        '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
         OFFER.reco.slice(0, 3).map(function(r, i){
           var on = !!pick.reco[i];
           return '<div class="reco' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
@@ -670,11 +768,105 @@
               '</div>' +
             '</div>' +
             '<button class="reco-btn" data-reco="' + i + '">' +
-              '<span class="reco-box">' + TICK_W + '</span>' +
-              '<span>' + (on ? 'Додано до пропозиції' : 'Додати до пропозиції') + '</span>' +
+              '<span class="reco-box">' + (on ? TICK_W : '+') + '</span>' +
+              '<span>' + (on ? 'Додано до замовлення' : 'Додати до замовлення') + '</span>' +
             '</button>' +
           '</div>';
         }).join('') +
+      '</section>';
+  }
+
+  /* ═══════════ блоки довіри ═══════════
+     Тексти поки типові — менеджер зможе замінити їх своїми, коли ми
+     винесемо їх у налаштування. Кожен блок ховається, якщо даних немає:
+     порожній заголовок гірший за його відсутність. */
+
+  var TIMELINE = ['Погодження', 'Підготовка', 'Виробництво', 'Контроль якості', 'Доставка'];
+  var GUARANTEES = [
+    'Макет погоджуємо до початку виробництва',
+    'Безкоштовно вносимо необхідні правки',
+    'Зберігаємо дизайн для повторних замовлень',
+    'Перевіряємо якість кожного виробу'
+  ];
+  // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
+  var CASES = [
+    { name:'Компанія А', qty:'120 виробів', note:'Футболки й кепки для команди' },
+    { name:'Компанія Б', qty:'60 виробів',  note:'Худі з вишивкою для офісу' },
+    { name:'Компанія В', qty:'300 виробів', note:'Мерч для конференції' }
+  ];
+  // ЗАГЛУШКА: замінити своїми формулюваннями
+  var FAQ = [
+    ['Який мінімальний тираж?', 'Від 5 виробів на один макет. Менші тиражі теж робимо — вартість одиниці буде вищою.'],
+    ['Скільки триває виробництво?', 'Термін указано у пропозиції. Відлік починається після погодження макета.'],
+    ['Чи можна внести правки в макет?', 'Так. Правки до початку виробництва — безкоштовні.'],
+    ['Як відбувається оплата?', 'Умови вказані в розділі «Умови замовлення» нижче.'],
+    ['Чи можна замовити повтор?', 'Так. Ми зберігаємо ваш дизайн, тож повторне замовлення не потребує нової підготовки.']
+  ];
+
+  function timelineHtml(){
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Як проходитиме замовлення</h2>' +
+        '<div class="tl">' + TIMELINE.map(function(x, i){
+          return '<div class="tl-step"><span class="tl-n">' + (i + 1) + '</span>' +
+                 '<span class="tl-t">' + esc(x) + '</span></div>';
+        }).join('') + '</div>' +
+      '</section>';
+  }
+
+  // Персональний коментар менеджера. Без нього блоку немає — загальні слова
+  // тут зашкодили б більше, ніж допомогли.
+  function whyHtml(){
+    var list = OFFER.why;
+    if(typeof list === 'string') list = list.split(/\r?\n/);
+    list = (list || []).map(function(x){ return String(x).trim(); }).filter(Boolean);
+    if(!list.length) return '';
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Чому ми рекомендуємо саме цей варіант</h2>' +
+        '<ul class="ticks why">' + list.slice(0, 5).map(function(x){
+          return '<li>' + TICK + '<span>' + esc(x) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</section>';
+  }
+
+  function casesHtml(){
+    if(!CASES.length) return '';
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Реалізовані корпоративні проєкти</h2>' +
+        '<div class="cases">' + CASES.map(function(c){
+          return '<div class="case">' +
+            '<div class="case-ph">' + (c.photo
+              ? '<img src="' + esc(c.photo) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+              : '') + '</div>' +
+            '<div class="case-n">' + esc(c.name) + '</div>' +
+            '<div class="case-q">' + esc(c.qty) + '</div>' +
+            '<div class="case-t">' + esc(c.note) + '</div>' +
+          '</div>';
+        }).join('') + '</div>' +
+      '</section>';
+  }
+
+  function guaranteesHtml(){
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Гарантії</h2>' +
+        '<div class="gcards">' + GUARANTEES.map(function(g){
+          return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
+        }).join('') + '</div>' +
+      '</section>';
+  }
+
+  function faqHtml(){
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Часті питання</h2>' +
+        '<div class="faq">' + FAQ.map(function(q, i){
+          return '<details class="fq"' + (i === 0 ? ' open' : '') + '>' +
+            '<summary>' + esc(q[0]) + '</summary>' +
+            '<div class="fq-a">' + esc(q[1]) + '</div></details>';
+        }).join('') + '</div>' +
       '</section>';
   }
 
@@ -779,8 +971,12 @@
         '<span class="top-no">' + (OFFER.orderId ? '№ ' + esc(OFFER.orderId) : '') +
         ' · ' + esc(dateUa(OFFER.createdAt)) + '</span></div>' +
       '<div class="wrap">' +
-        heroHtml() + wowHtml() + itemsHtml() + includesHtml() +
-        estimateHtml() + recoHtml() + trustHtml() + termsHtml() +
+        // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
+        // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
+        // самі макети, що й колекція нижче, тільки дрібніше.
+        heroHtml() + itemsHtml() + recoHtml() + estimateHtml() +
+        includesHtml() + timelineHtml() + whyHtml() + casesHtml() +
+        guaranteesHtml() + trustHtml() + faqHtml() + termsHtml() +
         finalHtml() + mgrHtml() +
         '<div class="foot">Loomiq · виробництво мерчу · ' +
           '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
@@ -793,8 +989,6 @@
   function refresh(){
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
-    set('heroSum', money(t.sum));
-    set('heroSave', money(t.save));
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('barSum', money(t.sum));
     set('heroDays', 'виготовлення від ' + daysWord(curDays()));
@@ -984,6 +1178,16 @@
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
       if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
     };
+    document.querySelectorAll('[data-thumb]').forEach(function(b){
+      b.onclick = function(){
+        var i = b.dataset.thumb;
+        var big = document.getElementById('shotImg' + i);
+        if(big) big.src = b.dataset.src;
+        document.querySelectorAll('[data-thumb="' + i + '"]').forEach(function(x){
+          x.classList.toggle('on', x === b);
+        });
+      };
+    });
     var frozen = OFFER.state === 'confirmed';
     document.querySelectorAll('[data-tier]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
@@ -1021,7 +1225,13 @@
     var bar = document.getElementById('bar');
     if(!bar) return;
     document.body.classList.add('has-bar');
-    var onScroll = function(){ bar.classList.toggle('show', window.scrollY > 420); };
+    // Показуємо лише коли людина вже дійшла до колекції: на першому екрані
+    // жодних дій бути не повинно, поки не зрозуміло, що саме пропонують.
+    var anchor = document.getElementById('offerStart');
+    var onScroll = function(){
+      var y = anchor ? (anchor.getBoundingClientRect().top + window.scrollY) : 420;
+      bar.classList.toggle('show', window.scrollY > y - 80);
+    };
     window.addEventListener('scroll', onScroll, { passive:true });
     onScroll();
   }
