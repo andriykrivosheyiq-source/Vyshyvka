@@ -1186,7 +1186,7 @@
     .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
     .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
     .pm-photo-add--text:hover{border-color:#111;color:#111;}
-    .pm-tier-line:hover{background:#eef0f4;}
+    .pm-tier-cell:hover{background:#eceef2;}
   }
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
@@ -1256,11 +1256,17 @@
   .pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
   .pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
   /* Знижка за тираж — один рядок замість смуги на пів екрана */
-  .pm-tier-line{all:unset;display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;
-    cursor:pointer;font-family:var(--font-sf);font-size:12.5px;color:#5a6472;
-    background:#f6f7f9;border-radius:10px;padding:9px 12px;}
-  .pm-tier-line b{color:#111;font-weight:800;}
-  .pm-tier-go{margin-left:auto;color:#4f5fd4;font-weight:700;white-space:nowrap;}
+  /* Градація знижок: самі пороги, а не речення про них */
+  .pm-tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .pm-tier-cell{all:unset;cursor:pointer;box-sizing:border-box;display:flex;flex-direction:column;
+    align-items:center;gap:2px;padding:9px 4px;border-radius:11px;background:#f6f7f9;
+    font-family:var(--font-sf);text-align:center;transition:background .16s;}
+  .pm-tier-cell .tc-q{font-size:12px;font-weight:700;color:#111;}
+  .pm-tier-cell .tc-b{font-size:12.5px;font-weight:800;color:#0E9F6E;}
+  .pm-tier-cell .tc-p{font-size:10.5px;color:#8a94a6;}
+  .pm-tier-max{font-family:var(--font-sf);font-size:12.5px;color:#5a6472;
+    background:#f6f7f9;border-radius:11px;padding:10px 12px;text-align:center;}
+  .pm-tier-max b{color:#0E9F6E;font-weight:800;}
   .pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   .pm-tab-panel-inner{width:100%;}
@@ -1673,6 +1679,21 @@
     padding:9px 11px;font:inherit;font-size:13.5px;resize:vertical;background:#fbfcfe;}
   .cart-reco-note:focus{outline:none;border-color:#4f5fd4;background:#fff;}
   .cart-item-price-row span{font-weight:400;color:var(--muted);font-size:14px;}
+  /* Розклад ціни — згорнутий, щоб кошик не розтягувався */
+  .cart-calc{margin-top:8px;}
+  .cart-calc>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    font-size:13px;font-weight:600;color:#5b6470;padding:4px 0;-webkit-tap-highlight-color:transparent;}
+  .cart-calc>summary::-webkit-details-marker{display:none;}
+  .cart-calc>summary::after{content:'';width:7px;height:7px;border-right:2px solid #9aa3ad;
+    border-bottom:2px solid #9aa3ad;transform:rotate(45deg) translateY(-2px);transition:transform .18s;}
+  .cart-calc[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
+  .cart-calc-body{margin-top:6px;padding:10px 12px;background:#f7f8fa;border-radius:10px;}
+  .cart-calc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    font-size:13px;line-height:1.45;padding:3px 0;color:#4a525c;}
+  .cart-calc-row b{font-weight:600;color:#222;white-space:nowrap;}
+  .cart-calc-row.is-disc,.cart-calc-row.is-disc b{color:#128a4a;}
+  .cart-calc-row.is-note{color:#8a929b;font-size:12px;}
+  .cart-calc-total{border-top:1px solid #e3e6ea;margin-top:6px;padding-top:7px;font-weight:600;color:#222;}
   .cart-item-actions{display:flex;align-items:center;gap:10px;margin-top:14px;}
   .cart-edit-btn{
     flex:1;text-align:center;background:var(--ink);color:#FFFFFF;border:none;border-radius:12px;
@@ -5509,7 +5530,12 @@
           var gc = (gcoefSet != null) ? gcoefSet
                  : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf', U.bare || 1);
           var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
-          return { unit: ub, sum: ub * u, feeShare: 0 };
+          return { unit: ub, sum: ub * u, feeShare: 0, parts: {
+            bare: true, coef: gc, groupQty: U.bare,
+            garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gc),
+            appBase: 0, app: 0, pieceFee: +it.pieceFee || 0,
+            feeShare: 0, feeTotal: 0, feeUnits: 0, sketches: []
+          } };
         }
         var mk = it.method === 'embro' ? 'embro' : 'dtf';
         var c = coef[mk], f = fees[mk];
@@ -5525,7 +5551,7 @@
         }
         // Частка разових: базова оплата методу — на всі вироби методу,
         // додатковий ескіз — лише на вироби свого дизайну.
-        var feeShare = 0;
+        var feeShare = 0, sketches = [];
         if(f){
           feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
           var seen = {};
@@ -5535,11 +5561,21 @@
             if(seen[gi] || gi === 0) return;         // перший дизайн входить у разову оплату
             seen[gi] = 1;
             feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
+            sketches.push({ fee: +f.cfg.sketchFee || 0, units: f.unitsOf[gi] || 1 });
           });
         }
         var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                    (+it.pieceFee || 0) + Math.round(feeShare);
-        return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare) };
+        return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
+          bare: false, method: mk, coef: c, groupQty: U[mk] || u,
+          garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * c),
+          appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
+          gridPriced: mk === 'dtf' && flat > 0,
+          pieceFee: +it.pieceFee || 0,
+          feeShare: Math.round(feeShare),
+          feeTotal: f ? (+f.cfg.orderFee || 0) : 0, feeUnits: f ? (f.total || 1) : 0,
+          sketches: sketches
+        } };
       });
     }
 
@@ -5565,10 +5601,24 @@
       };
     }
     window.__priceOrder = priceOrder;   // кошик живе в іншій області видимості
+    // Індекс позиції, яку зараз редагують. Конструктор закрили — редагування скасоване.
+    function editIndex(){
+      if(window.__pmEditIndex == null) return -1;
+      var pmEl = document.getElementById('productModal');
+      if(!pmEl || !pmEl.classList.contains('open')){
+        window.__pmEditIndex = null; pm.editing = false;
+        try{ syncAddLabels(); }catch(e){}
+        return -1;
+      }
+      return window.__pmEditIndex;
+    }
     // Дескриптори того, що вже лежить у кошику
     function cartDescriptors(){
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
-      return list.filter(function(it){ return it.kind !== 'reco'; })
+      // Позицію, яку зараз редагують, не рахуємо двічі: у списку вона є як чернетка.
+      // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
+      var skip = editIndex();
+      return list.filter(function(it, i){ return it.kind !== 'reco' && i !== skip; })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
 
@@ -6674,6 +6724,26 @@
     var pmQtyWarning = document.getElementById('pmQtyWarning');
     var pmQtyWarnText = document.getElementById('pmQtyWarnText');
     var pmTierRow = document.getElementById('pmTierRow');
+    // Поставити сумарний тираж рівно N: якщо розміри вже обрані — множимо їх
+    // пропорційно, якщо ще ні — кладемо все в перший розмір.
+    function setTotalUnits(n){
+      var sizes = getSizes(), cur = totalUnits();
+      if(n <= 0 || !sizes.length) return;
+      if(cur > 0){
+        var left = n;
+        sizes.forEach(function(sz, i){
+          var share = (pm.qty[sz] || 0) / cur;
+          var v = (i === sizes.length - 1) ? left : Math.round(n * share);
+          v = Math.max(0, Math.min(left, v));
+          pm.qty[sz] = v; left -= v;
+        });
+        if(left > 0) pm.qty[sizes[0]] = (pm.qty[sizes[0]] || 0) + left;
+      } else {
+        sizes.forEach(function(sz){ pm.qty[sz] = 0; });
+        pm.qty[sizes[0]] = n;
+      }
+      renderTabPanel(); updatePriceBar();
+    }
     function renderTiers(){
       var pt = pricingTiers();
       var rows;
@@ -6687,26 +6757,38 @@
           var pct = base1 > 0 ? Math.round((1 - price / base1) * 100) : 0;
           // Порівнюємо за порогом, а не за посиланням: activeCoefTier() будує свій
           // масив, тож t===actT не збігалося ніколи й активний поріг не визначався.
-          return {label:t.label, badge: pct > 0 ? ('-'+pct+'%') : null, price:price,
+          return {label:t.label, min:t.min, badge: pct > 0 ? ('-'+pct+'%') : null, price:price,
                   isActive: !!actT && t.min === actT.min};
         });
       } else {
         var active = activeTier();
-        rows = TIERS.map(function(t){ return {label:t.label, badge:t.badge, price:t.price, isActive: !!active && t.min === active.min}; });
+        rows = TIERS.map(function(t){ return {label:t.label, min:t.min, badge:t.badge, price:t.price, isActive: !!active && t.min === active.min}; });
       }
-      // Смуга з усіма порогами займала 58px першого екрана й відсувала кнопку
-      // за згин. Лишаємо один рядок: наступна вигода або «максимальна знижка».
+      // Показуємо саму градацію, а не речення про неї: три найближчі пороги
+      // з відсотком і ціною за штуку. Так одразу видно, наскільки дешевшає
+      // виріб і на скільки треба збільшити тираж. Тап — ставить цей тираж.
       var actI = rows.findIndex(function(t){ return t.isActive; });
-      var next = rows.slice(Math.max(0, actI) + 1).find(function(t){ return t.badge; });
-      var line;
-      if(next) line = '<b>' + next.badge + '</b> від ' + next.label.replace(/\s*шт.*$/, '') + ' шт · ' + next.price + ' грн/шт';
-      else if(actI > 0 && rows[actI] && rows[actI].badge) line = 'Максимальна знижка <b>' + rows[actI].badge + '</b>';
-      else line = 'Чим більший тираж — тим дешевша штука';
-      pmTierRow.innerHTML = '<button class="pm-tier-line" type="button">' + line +
-        '<span class="pm-tier-go">Порахувати ›</span></button>';
-      // Тап по порогу → відкриваємо вкладку «Розмір і кіл-ть»
-      pmTierRow.querySelectorAll('.pm-tier-line').forEach(function(item){
+      var next = rows.filter(function(t, i){ return i > actI && t.badge; }).slice(0, 3);
+      if(!next.length){
+        var cur = rows[actI] || rows[0];
+        pmTierRow.innerHTML = '<div class="pm-tier-max">' +
+          (cur && cur.badge ? 'Максимальна знижка <b>' + cur.badge + '</b>' : 'Ціна за штуку вже мінімальна') +
+          '</div>';
+      } else {
+        pmTierRow.innerHTML = '<div class="pm-tier-grid">' +
+          next.map(function(t){
+            return '<button class="pm-tier-cell" data-tier-qty="' + t.min + '">' +
+              '<span class="tc-q">' + t.min + ' шт</span>' +
+              '<span class="tc-b">' + t.badge + '</span>' +
+              '<span class="tc-p">' + t.price + ' грн/шт</span>' +
+            '</button>';
+          }).join('') + '</div>';
+      }
+      pmTierRow.querySelectorAll('.pm-tier-cell').forEach(function(item){
         item.addEventListener('click', function(){
+          // ставимо цей тираж одразу — щоб не шукати, де його вписати
+          var q = +item.dataset.tierQty || 0;
+          if(q > 0) setTotalUnits(q);
           goTab('size');
           renderTabPanel();
           // прокручуємо конфігуратор так, щоб табки і вибір розмірів були зверху видимі
@@ -7564,6 +7646,23 @@
     // Підпис і крапки — покажчик стану, кнопкою він не є. Перемикають стрілки
     // по краях фото: вони на своєму звичному місці, а плашка більше не лежить
     // поверх товару.
+    // Кнопка має казати, що станеться: при поверненні позиції з кошика це не
+    // «додати ще одну», а «оновити ту саму». Інакше люди додавали дубль.
+    function syncAddLabels(){
+      var edit = !!pm.editing;
+      var main = document.getElementById('pmAddMain');
+      var t1 = document.querySelector('.pm-add-btn'), t2 = document.getElementById('pmStickyCartBtn');
+      [t1, t2].forEach(function(b){
+        if(!b) return;
+        var sum = b.querySelector('.pm-add-btn-sum');
+        b.childNodes[0].nodeValue = edit ? 'Оновити в кошику' : 'Додати в кошик';
+        if(sum) b.appendChild(sum);
+      });
+      if(main) main.textContent = edit ? 'Оновити як основний товар' : 'Додати як основний товар';
+      var reco = document.getElementById('pmAddReco');
+      if(reco && edit) reco.textContent = 'Оновити як рекомендований';
+    }
+    window.__syncAddLabels = syncAddLabels;
     // Перемикання вкладки з коду: стан і смужка мають мінятись разом, інакше
     // панель показує одне, а підсвічена вкладка — інше.
     function goTab(id){
@@ -7644,6 +7743,9 @@
       if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
       pm.colorPicked = false;   // новий товар — колір ще не обирали
       pm.tab = 'photo';
+      pm.editing = false;      // звичайне відкриття картки — не редагування
+      window.__pmEditIndex = null;
+      try{ syncAddLabels(); }catch(e){}
       // перше фото = те, що менеджер поставив першим у порядку (перетягуванням в адмінці)
       pm.side = getViews()[0] || 'front';
       ensureLogoSides();
@@ -7820,7 +7922,16 @@
           });
         });
       });
-      cartItems.push(item);
+      // Редагування з кошика — перезаписуємо ту саму позицію на її місці,
+      // щоб порядок не стрибав і не з'являвся дубль.
+      var ei = window.__pmEditIndex;
+      if(ei != null && cartItems[ei]){
+        item.recoNote = cartItems[ei].recoNote || '';
+        cartItems[ei] = item;
+      } else {
+        cartItems.push(item);
+      }
+      window.__pmEditIndex = null;
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
       var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
       if(!snapSides.length) snapSides = ['front'];
@@ -7832,6 +7943,8 @@
       productModal.classList.remove('open');
       cartModalCtrl.open();
       window.__pmAddKind = 'main';            // наступна позиція знову вважається основною
+      pm.editing = false;
+      try{ syncAddLabels(); }catch(e){}
     }
     document.getElementById('pmMockupConfirmBtn').addEventListener('click', function(){ addCurrentToCart('main'); });
     // Менеджерський режим: замість однієї кнопки — вибір, у який блок кошика класти
@@ -8221,7 +8334,7 @@
 
     window.__openProductModal = openProductModal;
     // Відновлення товару з кошика для редагування (доступ до pm/openProductModal лише тут, усередині IIFE)
-    window.__editProduct = function(cfg){
+    window.__editProduct = function(cfg, editIdx){
       pm.colorId = cfg.colorId;
       pm.printId = cfg.printId;
       pm.qty = Object.assign({XS:0,S:0,M:0,L:0,XL:0,XXL:0}, cfg.qty);
@@ -8229,7 +8342,12 @@
       openProductModal(cfg.garmentId);
       pm.colorId = cfg.colorId;
       pm.colorPicked = true;   // з кошика — колір уже обраний
-      try{ renderTabPanel(); renderRecommended(); }catch(e){}
+      pm.editing = true;       // позицію повернули з кошика: кнопка каже «Оновити»
+      // Індекс ставимо ДО перерахунку: інакше та сама позиція порахується двічі —
+      // і як чернетка, і як те, що лежить у кошику, — і ціна вийде завищена.
+      window.__pmEditIndex = (editIdx == null) ? null : editIdx;
+      try{ syncAddLabels(); }catch(e){}
+      try{ renderTabPanel(); renderRecommended(); updatePriceBar(); }catch(e){}
     };
     renderGarment();
     updatePriceBar();
@@ -8377,10 +8495,10 @@
     if(!it || !it.config){ return; }
     var cfg = it.config;
     window.__pmAddKind = it.kind === 'reco' ? 'reco' : 'main';   // повертаємо позицію в той самий блок
-    cartItems.splice(idx, 1);               // приберемо стару позицію — користувач додасть оновлену
-    renderCart();
     document.getElementById('cartModal').classList.remove('open');
-    if(window.__editProduct) window.__editProduct(cfg);  // відновлює одяг/колір/принт/розміри/лого
+    // Позицію з кошика НЕ видаляємо: якщо користувач передумає й закриє конструктор,
+    // стара версія має лишитись. «Оновити» перезапише її на місці.
+    if(window.__editProduct) window.__editProduct(cfg, idx);  // відновлює одяг/колір/принт/розміри/лого
   }
 
   function cartItemCardHtml(item, idx){
@@ -8399,6 +8517,7 @@
             '<span class="cart-item-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>' +
           '</div>' +
           '<div class="cart-item-price-row">Ціна: '+item.price+' грн <span>('+item.unitPrice+' грн/шт)</span></div>' +
+          priceBreakdownHtml(item, idx) +
           (isReco
             ? '<textarea class="cart-reco-note" data-cart-note="'+idx+'" rows="2" maxlength="180" ' +
               'placeholder="Чому радимо — клієнт побачить цей текст">'+escHtml(item.recoNote||'')+'</textarea>'
@@ -8429,10 +8548,52 @@
     idx.forEach(function(i, k){
       var it = cartItems[i], r = res[k];
       if(!r) return;
+      // Прайс не підвантажився — краще лишити стару ціну, ніж показати 0.
+      if(!r.unit && it.unitPrice > 0) return;
       it.unitPrice = r.unit;
       it.price = r.sum;
       it.feeShare = r.feeShare;
+      it.parts = r.parts || null;
     });
+  }
+
+  // Розклад ціни: клієнт має бачити, з чого склалась цифра, і чому вона впала,
+  // коли він додав другу позицію з тим самим макетом. Блок згорнутий, щоб
+  // кошик не розтягувався.
+  function priceBreakdownHtml(item, idx){
+    var b = item.parts;
+    if(!b) return '';
+    var rows = [];
+    var pre = b.garmentBase + b.appBase;
+    var post = b.garment + b.app;
+    rows.push(['Виріб · ' + item.name, b.garmentBase + ' грн']);
+    if(b.appBase) rows.push(['Нанесення · ' + item.print, b.appBase + ' грн']);
+    if(pre > post){
+      rows.push(['Знижка за тираж — ' + Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)',
+                 '−' + (pre - post) + ' грн', 'disc']);
+    }
+    if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
+    if(b.feeShare){
+      var lbl = 'Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт';
+      rows.push([lbl, b.feeShare + ' грн']);
+      if(b.sketches && b.sketches.length){
+        b.sketches.forEach(function(s){
+          rows.push(['Додатковий ескіз · ' + s.fee + ' грн на ' + s.units + ' шт',
+                     Math.round(s.fee / (s.units || 1)) + ' грн']);
+        });
+      }
+    }
+    if(b.gridPriced) rows.push(['Ціна друку вже за тираж ' + b.groupQty + ' шт', '', 'note']);
+    return '<details class="cart-calc"><summary>Як склалась ціна</summary>' +
+      '<div class="cart-calc-body">' +
+        rows.map(function(r){
+          return '<div class="cart-calc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
+                 (r[2] === 'note' ? ' is-note' : '') + '">' +
+                 '<span>' + escHtml(r[0]) + '</span><b>' + escHtml(r[1]) + '</b></div>';
+        }).join('') +
+        '<div class="cart-calc-row cart-calc-total"><span>Ціна за штуку</span><b>' + item.unitPrice + ' грн</b></div>' +
+        '<div class="cart-calc-row cart-calc-total"><span>' + item.qty + ' шт</span><b>' + item.price + ' грн</b></div>' +
+      '</div></details>';
   }
 
   function renderCart(){

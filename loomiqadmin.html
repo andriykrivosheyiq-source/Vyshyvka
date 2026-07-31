@@ -348,6 +348,24 @@
   .t-brow-total{font-weight:600;color:var(--ink);margin-top:3px;padding-top:5px;border-top:1px dashed var(--line);}
   .t-brow-price{font-weight:600;color:var(--accent);}
 
+  /* Розклад ціни — згорнутий, щоб панель не розтягувалась */
+  .t-calc{margin:8px 0 2px;}
+  .t-calc>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:600;color:var(--muted);padding:3px 0;}
+  .t-calc>summary::-webkit-details-marker{display:none;}
+  .t-calc>summary::after{content:'';width:6px;height:6px;border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .18s;}
+  .t-calc[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
+  .t-calc-body{padding:8px 10px;background:var(--bg-soft,#f7f8fa);border-radius:9px;}
+  .t-calc-item + .t-calc-item{margin-top:9px;padding-top:8px;border-top:1px solid var(--line-soft);}
+  .t-calc-name{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--muted);margin-bottom:3px;}
+  .t-calc-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+    font-size:12px;line-height:1.45;padding:2px 0;}
+  .t-calc-row b{font-family:var(--mono);font-weight:600;white-space:nowrap;}
+  .t-calc-row.is-disc,.t-calc-row.is-disc b{color:#128a4a;}
+  .t-calc-row.is-note{color:var(--muted);font-size:11.5px;}
+  .t-calc-row.is-sum{font-weight:700;}
   .t-margin{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12.5px;font-weight:700;border-radius:7px;padding:7px 10px;}
   .t-margin.good{background:var(--good-soft);color:var(--good);}
   .t-margin.bad{background:var(--bad-soft);color:var(--bad);}
@@ -2661,7 +2679,7 @@ window.__adminSaveClientOrder = async function(payload){
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, prints, calc: it.calc||null, config: slimOrderConfig(it.config)
+      mockups, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config)
     });
   }
   // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
@@ -2823,6 +2841,199 @@ const DOC_W = 1240;
 // coefOverride — щоб порахувати ту саму позицію без знижки за тираж («ціна без знижки»).
 // Знижка на сам виріб — окрема шкала (клієнт може взяти вироби без нанесення).
 // Якщо її не задано, діє коефіцієнт нанесення, як було раніше.
+/* ═══════════ Спільний розрахунок замовлення ═══════════
+   Дослівна копія рушія з index.html. Тримати два різні розрахунки не можна:
+   клієнт побачить одну суму, менеджер іншу. Опис правил — там же.
+
+   • Знижка за тираж — від сумарної кількості в межах способу нанесення.
+   • Голий одяг має власну суму й власну шкалу.
+   • Разова оплата методу ділиться на всі вироби методу, додатковий ескіз —
+     на вироби свого дизайну. Однаковий малюнок = один макет.                */
+
+const FP_SAME = 0.03;
+function fpDistance(a, b){
+  if(!a || !b || a.length !== b.length || !a.length) return 1;
+  let n = 0;
+  for(let i = 0; i < a.length; i++) n += Math.abs((+a[i]||0) - (+b[i]||0));
+  return n / (a.length * 4);
+}
+function designGroups(fps){
+  const reps = [], index = [];
+  fps.forEach(fp=>{
+    let k = -1;
+    for(let i = 0; i < reps.length; i++){ if(fpDistance(reps[i], fp) <= FP_SAME){ k = i; break; } }
+    if(k < 0){ reps.push(fp); k = reps.length - 1; }
+    index.push(k);
+  });
+  return { count: reps.length, index, reps };
+}
+function tierCoefFor(methodKey, qty){
+  const p = curSitePricing(); if(!p) return 1;
+  const m = (p.methods || {})[methodKey] || {};
+  const list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
+  if(!list || !list.length) return 1;
+  const rows = list.map(t=>({ from:+t.from||1, coef:+t.coef||1 })).sort((a,b)=>a.from-b.from);
+  let c = 1;
+  for(let i = rows.length - 1; i >= 0; i--){ if(qty >= rows[i].from){ c = rows[i].coef; break; } }
+  return c;
+}
+function priceOrder(list){
+  const p = curSitePricing();
+  if(!p) return list.map(()=>({ unit:0, sum:0, feeShare:0 }));
+  const U = { dtf:0, embro:0, bare:0 };
+  list.forEach(it=>{
+    const u = Math.max(0, +it.units || 0);
+    if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
+  });
+  const coef = { dtf: tierCoefFor('dtf', U.dtf || 1), embro: tierCoefFor('embro', U.embro || 1) };
+  const gcoefSet = docGarmentCoef(U.bare || 1);
+
+  const fees = {};
+  ['dtf','embro'].forEach(mk=>{
+    const mine = list.filter(it=> !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk);
+    if(!mine.length){ fees[mk] = null; return; }
+    const cfg = (p.methods || {})[mk] || {};
+    const flat = [];
+    mine.forEach(it=> (it.designs || []).forEach(fp=>{ if(fp) flat.push(fp); }));
+    const g = designGroups(flat);
+    const unitsOf = new Array(g.count).fill(0);
+    let k = 0;
+    mine.forEach(it=>{
+      const seen = {};
+      (it.designs || []).forEach(fp=>{
+        if(!fp) return;
+        const gi = g.index[k++];
+        if(seen[gi]) return;
+        seen[gi] = 1;
+        unitsOf[gi] += Math.max(0, +it.units || 0);
+      });
+    });
+    fees[mk] = { cfg, groups:g, unitsOf, total: U[mk] || 1 };
+  });
+
+  const cursor = { dtf:0, embro:0 };
+  return list.map(it=>{
+    const u = Math.max(0, +it.units || 0);
+    if(it.bare){
+      const gc = (gcoefSet != null) ? gcoefSet
+               : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf', U.bare || 1);
+      const ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
+      return { unit: ub, sum: ub * u, feeShare: 0, parts: {
+        bare:true, coef:gc, groupQty:U.bare,
+        garmentBase:+it.base || 0, garment:Math.round((+it.base || 0) * gc),
+        appBase:0, app:0, pieceFee:+it.pieceFee || 0,
+        feeShare:0, feeTotal:0, feeUnits:0, sketches:[]
+      } };
+    }
+    const mk = it.method === 'embro' ? 'embro' : 'dtf';
+    const c = coef[mk], f = fees[mk];
+    let flat = 0;
+    if(mk === 'dtf' && (it.dtfCols || []).length){
+      const cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [];
+      let row = 0;
+      for(let j = qf.length - 1; j >= 0; j--){ if((U.dtf || 1) >= qf[j]){ row = j; break; } }
+      const grid = cfg.price || [];
+      it.dtfCols.forEach(col=>{
+        flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
+      });
+    }
+    let feeShare = 0; const sketches = [];
+    if(f){
+      feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+      const seen = {};
+      (it.designs || []).forEach(fp=>{
+        if(!fp) return;
+        const gi = f.groups.index[cursor[mk]++];
+        if(seen[gi] || gi === 0) return;
+        seen[gi] = 1;
+        feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
+        sketches.push({ fee:+f.cfg.sketchFee || 0, units:f.unitsOf[gi] || 1 });
+      });
+    }
+    const unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
+                 (+it.pieceFee || 0) + Math.round(feeShare);
+    return { unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
+      bare:false, method:mk, coef:c, groupQty:U[mk] || u,
+      garmentBase:+it.base || 0, garment:Math.round((+it.base || 0) * c),
+      appBase:(+it.coefPart || 0) + flat, app:Math.round((+it.coefPart || 0) * c) + flat,
+      gridPriced: mk === 'dtf' && flat > 0,
+      pieceFee:+it.pieceFee || 0, feeShare:Math.round(feeShare),
+      feeTotal: f ? (+f.cfg.orderFee || 0) : 0, feeUnits: f ? (f.total || 1) : 0,
+      sketches
+    } };
+  });
+}
+// Розклад ціни під сумою: менеджер має бачити, з чого склалась цифра,
+// і чому вона змінилась, коли додали другу позицію з тим самим макетом.
+function fillOrderParts(o){
+  const { idx, list } = orderDescriptors(o);
+  if(!list.length) return;
+  const res = priceOrder(list);
+  idx.forEach((i, k)=>{ if(o.items[i] && res[k]) o.items[i].parts = res[k].parts || null; });
+}
+function priceCalcHtml(o){
+  fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
+  const rows = [];
+  (o.items || []).forEach(it=>{
+    if(it.kind === 'reco' || !it.parts) return;
+    const b = it.parts;
+    const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+    const lines = [];
+    lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
+    if(b.appBase) lines.push(['Нанесення · ' + (it.print || '—'), b.appBase + ' ₴']);
+    if(pre > post) lines.push(['Знижка за тираж — ' + Math.round((1 - b.coef) * 100) +
+      '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
+    if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);
+    if(b.feeShare){
+      lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', b.feeShare + ' ₴']);
+      (b.sketches || []).forEach(sk=>{
+        lines.push(['Додатковий ескіз · ' + sk.fee + ' ₴ на ' + sk.units + ' шт',
+          Math.round(sk.fee / (sk.units || 1)) + ' ₴']);
+      });
+    }
+    if(b.gridPriced) lines.push(['Ціна друку вже за тираж ' + b.groupQty + ' шт', '', 'note']);
+    lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
+    lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
+    rows.push('<div class="t-calc-item"><div class="t-calc-name">' + escapeHtml(it.name || '—') + '</div>' +
+      lines.map(l=>'<div class="t-calc-row' + (l[2] === 'disc' ? ' is-disc' : '') +
+        (l[2] === 'note' ? ' is-note' : '') + (l[2] === 'sum' ? ' is-sum' : '') +
+        '"><span>' + escapeHtml(l[0]) + '</span><b>' + escapeHtml(l[1]) + '</b></div>').join('') +
+      '</div>');
+  });
+  if(!rows.length) return '';
+  const adj = +o.feeAdj || 0;
+  return '<details class="t-calc"><summary>Як склалась ціна</summary><div class="t-calc-body">' +
+    rows.join('') +
+    (adj ? '<div class="t-calc-row is-note"><span>Ручна поправка до суми</span><b>' +
+      (adj > 0 ? '+' : '') + adj + ' ₴</b></div>' : '') +
+    '</div></details>';
+}
+// Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
+function orderDescriptors(o){
+  const idx = [], list = [];
+  (o.items || []).forEach((it, i)=>{
+    if(it.kind === 'reco' || !it.desc) return;
+    idx.push(i); list.push(it.desc);
+  });
+  return { idx, list };
+}
+// Перерахунок цін позицій замовлення спільним рушієм. Повертає true, якщо
+// замовлення взагалі має розклад (старі замовлення його не мають).
+function repriceOrder(o){
+  const { idx, list } = orderDescriptors(o);
+  if(!list.length) return false;
+  const res = priceOrder(list);
+  idx.forEach((i, k)=>{
+    const it = o.items[i], r = res[k];
+    if(!it || !r) return;
+    it.unitPrice = r.unit;
+    it.price = r.sum;
+    it.feeShare = r.feeShare;
+    it.parts = r.parts || null;
+  });
+  return true;
+}
+
 function docGarmentCoef(qty){
   const p = curSitePricing();
   const l = p && p.garmentTiers;
@@ -3842,6 +4053,10 @@ function dueInfo(o){
            days, cls: days < 0 ? 'due-late' : (days <= 2 ? 'due-soon' : '') };
 }
 async function saveOrderEdit(o){
+  // Спершу перераховуємо позиції спільним рушієм (спільний макет і спільний
+  // тираж), і лише потім складаємо підсумки — інакше сума в Канбані розійшлася
+  // б із тим, що бачив клієнт у кошику.
+  repriceOrder(o);
   recalcOrderTotals(o);
   await storeSet('orders', orders);
   // Сторінка клієнта має показувати те саме, що бачить менеджер
@@ -3859,7 +4074,11 @@ async function orderAddItem(o, gid, qty, kind, color, sizes){
     name: g.name, color:(color||'').trim(), print:'', sizes:(sizes||'').trim(),
     qty: q, unitPrice: u.price, price: u.price * q,
     unitCost: u.cost, cost: u.cost * q,
-    mockups: [], prints: [], calc: null, config: null, garmentId: gid
+    mockups: [], prints: [], calc: null, garmentId: gid,
+    // Голий виріб без нанесення — теж учасник спільної шкали на одяг
+    desc: { method:'dtf', units:q, base:g.minPrice, coefPart:0, pieceFee:0,
+            dtfCols:[], designs:[], bare:true },
+    config: null
   });
   await saveOrderEdit(o);
   toast(kind === 'reco' ? 'Рекомендацію додано' : 'Товар додано');
@@ -3878,6 +4097,7 @@ async function orderSetQty(o, idx, qty){
   }
   it.price = Math.round((+it.unitPrice || 0) * q);
   it.cost  = Math.round((+it.unitCost  || 0) * q);
+  if(it.desc) it.desc.units = q;    // щоб спільний перерахунок побачив новий тираж
   await saveOrderEdit(o);
 }
 async function orderRemoveItem(o, idx){
@@ -4063,6 +4283,7 @@ function renderOrderDrawer(){
         <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
         <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
       </div>
+      ${priceCalcHtml(o)}
       <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
 
       ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
