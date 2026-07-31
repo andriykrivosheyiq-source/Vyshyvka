@@ -1186,7 +1186,7 @@
     .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
     .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
     .pm-photo-add--text:hover{border-color:#111;color:#111;}
-    .pm-tier-step[data-tier-qty]:hover{background:#eceef2;}
+    .pm-tier-item:hover{background:#eceef2;}
   }
   .pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
   /* Менеджерські інструменти додають ще два ряди — даємо панелі вирости й прокручуватись */
@@ -1255,28 +1255,17 @@
     scrollbar-width:none;padding:6px 6px;margin:-6px -6px;}
   .pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
   .pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
-  /* Градація знижок. Шкала починається з поточного стану, тож відсоток має від
-     чого відштовхуватись: видно і «зараз 2450», і «10 шт — 2032, −17%». */
-  .pm-tier-head{font-family:var(--font-sf);font-size:11px;font-weight:700;letter-spacing:.03em;
-    text-transform:uppercase;color:#9aa3ad;margin-bottom:4px;display:flex;gap:8px;align-items:baseline;}
-  .pm-tier-note{font-weight:600;letter-spacing:0;text-transform:none;color:#0E9F6E;font-size:11.5px;}
-  .pm-tier-scale{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;padding:1px;margin:-1px;}
-  .pm-tier-scale::-webkit-scrollbar{display:none;}
-  .pm-tier-step{all:unset;box-sizing:border-box;flex:1 1 0;min-width:70px;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 5px;
-    border-radius:11px;background:#f6f7f9;font-family:var(--font-sf);text-align:center;
-    transition:background .16s;}
-  .pm-tier-step .ts-q{font-size:11.5px;font-weight:600;color:#8a94a6;}
-  .pm-tier-step .ts-p{font-size:13.5px;font-weight:800;color:#111;letter-spacing:-.01em;}
-  .pm-tier-step .ts-b{font-size:11.5px;font-weight:800;color:#0E9F6E;}
-  /* Поточний крок — не сірий фон, а обведення: він орієнтир, а не пропозиція */
-  .pm-tier-step.is-now{cursor:default;background:#fff;box-shadow:inset 0 0 0 1.5px #dfe3e8;}
-  .pm-tier-step.is-now .ts-q{color:#111;}
-  .pm-tier-step.is-now .ts-b{color:#9aa3ad;font-weight:600;}
-  /* Пройдені пороги — приглушені: це вже позаду, а не пропозиція */
-  .pm-tier-step.is-back .ts-p{color:#9aa3ad;font-weight:600;}
-  .pm-tier-step.is-back .ts-b{color:#b9c0c8;font-weight:600;}
+  /* Смуга порогів: усі рівні одразу, горизонтальним гортанням. Стоїть ПІД
+     кнопкою «в кошик», тож на її видимість не впливає. */
+  .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;
+    text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
+  .pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
+  .pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;white-space:nowrap;}
+  .pm-tier-badge{position:absolute;top:-7px;right:-5px;background:#222;color:#fff;font-size:9px;
+    font-weight:700;padding:2px 4px;border-radius:999px;line-height:1.2;white-space:nowrap;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);}
   .pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
   .pm-tab-panel-inner{width:100%;}
@@ -1399,7 +1388,10 @@
   .pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
   /* Контейнер градації: колонка (підпис + шкала). Горизонтальне гортання живе
      всередині самої шкали, інакше підпис ставав окремою колонкою збоку. */
-  .pm-tier-row{display:block;padding:8px 0 0;}
+  .pm-tier-row{display:flex;gap:5px;margin:0 -18px;padding:12px 18px 0 18px;
+    overflow-x:auto;scrollbar-width:none;}
+  .pm-tier-row::-webkit-scrollbar{display:none;}
+  .pm-tier-row::after{content:'';flex:0 0 8px;}
   .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
   .pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
   .pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
@@ -6830,54 +6822,18 @@
       // Показуємо саму градацію, а не речення про неї: три найближчі пороги
       // з відсотком і ціною за штуку. Так одразу видно, наскільки дешевшає
       // виріб і на скільки треба збільшити тираж. Тап — ставить цей тираж.
-      // Відсоток без бази нічого не каже: «-17%» — від чого? Тому шкала починається
-      // з того, що клієнт має ЗАРАЗ, і далі йдуть пороги з реальною ціною за штуку.
-      // Видно і перехід (2450 → 2032), і скільки треба докласти штук.
-      var actI = rows.findIndex(function(t){ return t.isActive; });
-      if(actI < 0) actI = 0;
-      var cur = rows[actI] || rows[0];
-      var curQty = totalUnits() || (cur ? cur.min : 1);
-      var curPrice = cur ? cur.price : 0;
-      // Відсоток рахуємо від ТОГО, ЩО КЛІЄНТ ПЛАТИТЬ ЗАРАЗ. «−12%» має означати
-      // «на 12% дешевше за твою нинішню ціну», а не за ціну однієї штуки, яку
-      // він уже не бере.
-      function rel(price){
-        if(!(curPrice > 0) || price >= curPrice) return null;
-        var pct = Math.round((1 - price / curPrice) * 100);
-        return pct > 0 ? ('−' + pct + '%') : null;
-      }
-      var next = rows.filter(function(t, i){ return i > actI && t.badge; }).slice(0, 3);
-      var steps;
-      if(next.length){
-        steps = [{ qty: curQty, price: curPrice, now: true }].concat(
-          next.map(function(t){ return { qty: t.min, price: t.price, badge: rel(t.price), now: false }; }));
-      } else {
-        // Далі знижок немає — показуємо пройдений шлях, щоб шкала не лишалась
-        // з однією карткою і було видно, скільки вже виграно.
-        // Без відсотків: самі ціни вже показують спуск 1994 → 1062 → 953 → 877,
-        // а «+127%» на пройденому порозі читається як пропозиція подорожчати.
-        var prev = rows.filter(function(t, i){ return i < actI; }).slice(-3)
-          .map(function(t){ return { qty: t.min, price: t.price, badge: '', now: false, back: true }; });
-        steps = prev.concat([{ qty: curQty, price: curPrice, now: true }]);
-      }
-      pmTierRow.innerHTML =
-        '<div class="pm-tier-head">Знижка за тираж' +
-          (next.length ? '' : '<span class="pm-tier-note">' +
-            (cur && cur.badge ? 'максимальна — ' + cur.badge : 'мінімальна ціна за штуку') + '</span>') +
-        '</div>' +
-        '<div class="pm-tier-scale">' + steps.map(function(st){
-          return '<button class="pm-tier-step' + (st.now ? ' is-now' : '') +
-            (st.back ? ' is-back' : '') + '" type="button"' +
-            ' data-step-qty="' + st.qty + '"' +
-            (st.now ? '' : ' data-tier-qty="' + st.qty + '"') + '>' +
-            '<span class="ts-q">' + st.qty + ' шт</span>' +
-            '<span class="ts-p">' + st.price + ' грн</span>' +
-            '<span class="ts-b">' + (st.now ? 'зараз' : (st.badge || '')) + '</span>' +
-          '</button>';
-        }).join('') + '</div>';
-      pmTierRow.querySelectorAll('.pm-tier-step[data-tier-qty]').forEach(function(item){
+      // Смуга з усіма порогами: одразу видно всю градацію, а не один наступний
+      // крок. Гортається вбік, активний поріг центрується сам.
+      pmTierRow.innerHTML = rows.map(function(t){
+        return '<div class="pm-tier-item' + (t.isActive ? ' active' : '') + '" data-tier-qty="' + t.min + '">' +
+          (t.badge ? '<span class="pm-tier-badge">' + t.badge + '</span>' : '') +
+          '<div class="pm-tier-label">' + t.label + '</div>' +
+          '<div class="pm-tier-price">' + t.price + ' грн</div>' +
+        '</div>';
+      }).join('');
+      // Тап по порогу → ставимо цей тираж і відкриваємо вкладку «Розмір і кількість»
+      pmTierRow.querySelectorAll('.pm-tier-item').forEach(function(item){
         item.addEventListener('click', function(){
-          // ставимо цей тираж одразу — щоб не шукати, де його вписати
           var q = +item.dataset.tierQty || 0;
           if(q > 0) setTotalUnits(q);
           goTab('size');
@@ -6890,6 +6846,12 @@
           }
         });
       });
+      // Активний поріг центруємо ГОРИЗОНТАЛЬНО всередині смуги — без прокрутки
+      // сторінки: scrollIntoView кидав увесь екран під час перетягування лого.
+      var activeEl = pmTierRow.querySelector('.pm-tier-item.active');
+      if(activeEl){
+        pmTierRow.scrollLeft = activeEl.offsetLeft - (pmTierRow.clientWidth - activeEl.clientWidth) / 2;
+      }
     }
     // Ціна «від X» (коли кількість не вибрана): без лого — база виробу (як у каталозі),
     // з лого — база + нанесення + за штуку, щоб одразу було видно ефект лого/розміру/методу.
@@ -7060,13 +7022,8 @@
     function updateTierPricesLive(){
       if(!pmTierRow) return;
       var pt = pricingTiers(); if(!pt) return;
-      pmTierRow.querySelectorAll('.pm-tier-step').forEach(function(el){
-        var q = +el.dataset.stepQty || 0; if(!q) return;
-        var t = pt[0];
-        for(var i = pt.length - 1; i >= 0; i--){ if(q >= pt[i].min){ t = pt[i]; break; } }
-        var pe = el.querySelector('.ts-p');
-        if(pe) pe.textContent = effUnitPriceCoef(t.coef, q) + ' грн';
-      });
+      var priceEls = pmTierRow.querySelectorAll('.pm-tier-item .pm-tier-price');
+      pt.forEach(function(t, i){ if(priceEls[i]) priceEls[i].textContent = effUnitPriceCoef(t.coef, t.min) + ' грн'; });
     }
     // Легке оновлення лише ціни/розміру під час жесту (без повного renderTiers/scrollIntoView — щоб не смикало інтерфейс)
     function updatePriceLive(){
@@ -8200,8 +8157,7 @@
     }
     renderReviewSwatches();
     document.addEventListener('lq-content', renderReviewSwatches);
-    // Шкала знижок не гортається стрілками: чотири кроки вміщаються навіть на 360px,
-    // а сам блок перемальовується щоразу — обгортка зі стрілками до нього не липне.
+    initScrollHint(document.getElementById('pmTierRow'));
 
     // Quick rows
     function setSizeChartTitle(){
