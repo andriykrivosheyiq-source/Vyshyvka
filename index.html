@@ -5187,7 +5187,10 @@
     // Повна вартість замовлення = ціна/шт × кількість + разова оплата за замовлення.
     function orderTotal(){
       var u = totalUnits();
-      return u > 0 ? (unitPrice() * u + methodOrderFee()) : 0;
+      if(u <= 0) return 0;
+      var sh = sharedUnitPrice(u);
+      // Разові оплати вже враховані в ціні за штуку — окремо не додаємо
+      return sh != null ? sh * u : (unitPrice() * u + methodOrderFee());
     }
     function pricingTiers(){
       var p = sitePricing();
@@ -5411,9 +5414,164 @@
     function orderFeePerUnit(qty){ var f = methodOrderFee(); return (qty > 0 && f > 0) ? Math.round(f / qty) : 0; }
     // Ефективна ціна за штуку — саме її фактично платить клієнт: виробнича + частка
     // разової оплати на тираж. Від неї рахуються і ціни, і знижки на картках порогів.
-    function effUnitPriceCoef(coef, qty){ return unitPriceCoef(coef, qty) + orderFeePerUnit(qty); }
+    // Ціна за штуку при заданому тиражі ЦІЄЇ позиції — з урахуванням того,
+    // що вже лежить у кошику: спільні макети й спільна знижка за тираж.
+    function sharedUnitPrice(qtyOverride){
+      if(!sitePricing()) return null;
+      var d = draftDescriptor();
+      if(qtyOverride != null) d.units = Math.max(1, qtyOverride);
+      var list = cartDescriptors().concat([d]);
+      var r = priceOrder(list);
+      return r[r.length - 1].unit;
+    }
+    function effUnitPriceCoef(coef, qty){
+      var sh = sharedUnitPrice(qty);
+      return sh != null ? sh : (unitPriceCoef(coef, qty) + orderFeePerUnit(qty));
+    }
     // Ефективна ціна/шт для поточного вибору кількості (для рядка ціни та кошика).
-    function effUnitPrice(){ var u = totalUnits(); return unitPrice() + orderFeePerUnit(u > 0 ? u : 1); }
+    function effUnitPrice(){
+      var u = totalUnits();
+      var sh = sharedUnitPrice(u > 0 ? u : 1);
+      return sh != null ? sh : (unitPrice() + orderFeePerUnit(u > 0 ? u : 1));
+    }
+    /* ═══════════ Спільний розрахунок замовлення ═══════════
+       Ціна позиції залежить не лише від неї самої, а від усього замовлення:
+
+       • Знижка за тираж рахується від СУМАРНОЇ кількості в межах способу
+         нанесення. 5 кепок + 5 футболок із вишивкою — це 10 виробів, а не
+         двічі по 5. Скільки там дизайнів — байдуже.
+       • Голий одяг (без нанесення) має свою шкалу й свою суму.
+       • Підготовка макета платиться ОДИН раз: разова оплата методу ділиться
+         на всі вироби цього методу, а кожен додатковий ескіз — на вироби
+         саме свого дизайну. Однакове лого на кепці й футболці — один макет.
+
+       Тому ціну не можна порахувати «всередині картки»: потрібен весь список.
+       Дескриптор нижче — це все, що потрібно про позицію, щоб її порахувати. */
+
+    function tierCoefFor(methodKey, qty){
+      var p = sitePricing(); if(!p) return 1;
+      var m = (p.methods || {})[methodKey] || {};
+      var list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
+      if(!list || !list.length) return 1;
+      var c = 1;
+      var rows = list.map(function(t){ return { from:+t.from || 1, coef:+t.coef || 1 }; })
+                     .sort(function(a,b){ return a.from - b.from; });
+      for(var i = rows.length - 1; i >= 0; i--){ if(qty >= rows[i].from){ c = rows[i].coef; break; } }
+      return c;
+    }
+
+    // list: [{ method, units, base, coefPart, pieceFee, dtfCols:[], designs:[fp], bare }]
+    // Повертає ціну за штуку й суму для кожної позиції в тому ж порядку.
+    function priceOrder(list){
+      var p = sitePricing();
+      if(!p) return list.map(function(){ return { unit:0, sum:0, feeShare:0 }; });
+
+      var U = { dtf:0, embro:0, bare:0 };
+      list.forEach(function(it){
+        var u = Math.max(0, +it.units || 0);
+        if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
+      });
+      var coef  = { dtf: tierCoefFor('dtf', U.dtf || 1), embro: tierCoefFor('embro', U.embro || 1) };
+      // Шкала на голий виріб може бути не задана — тоді, як і раніше, діє шкала
+      // способу нанесення від кількості голих виробів. Без цього запасного шляху
+      // товари без друку залишились би зовсім без знижки за тираж.
+      var gcoefSet = garmentCoefFor(U.bare || 1);
+
+      // Разові оплати по кожному методу
+      var fees = {};
+      ['dtf','embro'].forEach(function(mk){
+        var mine = list.filter(function(it){ return !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk; });
+        if(!mine.length){ fees[mk] = null; return; }
+        var cfg = (p.methods || {})[mk] || {};
+        var flat = [];                       // усі відбитки, у порядку появи
+        mine.forEach(function(it){ (it.designs || []).forEach(function(fp){ if(fp) flat.push(fp); }); });
+        var g = designGroups(flat);
+        // скільки виробів припадає на кожен дизайн
+        var unitsOf = new Array(g.count).fill(0), k = 0;
+        mine.forEach(function(it){
+          var seen = {};
+          (it.designs || []).forEach(function(fp){
+            if(!fp) return;
+            var gi = g.index[k++];
+            if(seen[gi]) return;             // те саме лого двічі на одному виробі — один дизайн
+            seen[gi] = 1;
+            unitsOf[gi] += Math.max(0, +it.units || 0);
+          });
+        });
+        fees[mk] = { cfg: cfg, groups: g, unitsOf: unitsOf, total: U[mk] || 1 };
+      });
+
+      // Для кожної позиції — її частка разових
+      var cursor = { dtf:0, embro:0 };
+      return list.map(function(it){
+        var u = Math.max(0, +it.units || 0);
+        if(it.bare){
+          var gc = (gcoefSet != null) ? gcoefSet
+                 : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf', U.bare || 1);
+          var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
+          return { unit: ub, sum: ub * u, feeShare: 0 };
+        }
+        var mk = it.method === 'embro' ? 'embro' : 'dtf';
+        var c = coef[mk], f = fees[mk];
+        // DTF: рядок сітки береться за СУМАРНИМ тиражем методу
+        var flat = 0;
+        if(mk === 'dtf' && (it.dtfCols || []).length){
+          var cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [], row = 0;
+          for(var j = qf.length - 1; j >= 0; j--){ if((U.dtf || 1) >= qf[j]){ row = j; break; } }
+          var grid = cfg.price || [];
+          it.dtfCols.forEach(function(col){
+            flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
+          });
+        }
+        // Частка разових: базова оплата методу — на всі вироби методу,
+        // додатковий ескіз — лише на вироби свого дизайну.
+        var feeShare = 0;
+        if(f){
+          feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+          var seen = {};
+          (it.designs || []).forEach(function(fp){
+            if(!fp) return;
+            var gi = f.groups.index[cursor[mk]++];
+            if(seen[gi] || gi === 0) return;         // перший дизайн входить у разову оплату
+            seen[gi] = 1;
+            feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
+          });
+        }
+        var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
+                   (+it.pieceFee || 0) + Math.round(feeShare);
+        return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare) };
+      });
+    }
+
+    // Дескриптор поточної позиції конструктора
+    function draftDescriptor(){
+      var m = methodCfgNew();
+      var ap = applicationParts();
+      var fps = [];
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ fps.push(l.fp || ''); }); });
+      var cols = [];
+      if(m && m.mode === 'grid'){
+        getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
+      }
+      return {
+        method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
+        units: totalUnits(),
+        base: basePriceNew(),
+        coefPart: ap.coefPart,
+        pieceFee: methodPieceFee(),
+        dtfCols: cols,
+        designs: fps,
+        bare: logoCount() === 0
+      };
+    }
+    window.__priceOrder = priceOrder;   // кошик живе в іншій області видимості
+    // Дескриптори того, що вже лежить у кошику
+    function cartDescriptors(){
+      var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      return list.filter(function(it){ return it.kind !== 'reco'; })
+        .map(function(it){ return it.desc || null; }).filter(Boolean);
+    }
+
     function unitPrice(){
       if(sitePricing()){
         var t = activeCoefTier();
@@ -5915,9 +6073,52 @@
         fill: Math.min(1, Math.max(0.01, opaque / (boxW * boxH)))
       };
     }
+    // Відбиток зображення. Те саме лого, завантажене окремо для кепки й окремо
+    // для футболки, отримує різні адреси — порівнювати URL марно.
+    //
+    // Беремо сітку 12×12, у кожній клітинці — колір, огрублений до 5 рівнів на
+    // канал. Колір обовʼязково: без нього червоне коло й синє коло виходили
+    // однаковими. Порівнюємо не на точний збіг, а за відстанню — масштабування
+    // й перезбереження трохи міняють краї.
+    //
+    // Заміряно на тестових малюнках: той самий дизайн у різному розмірі — 0…0.1%,
+    // різні дизайни — 11…23%. Поріг 3% розділяє їх із запасом.
+    var FP_N = 12, FP_SAME = 0.03;
+    function imageFingerprint(img){
+      try{
+        var c = document.createElement('canvas'); c.width = FP_N; c.height = FP_N;
+        var x = c.getContext('2d', { willReadFrequently:true });
+        x.fillStyle = '#fff'; x.fillRect(0, 0, FP_N, FP_N);   // прозоре → біле
+        x.drawImage(img, 0, 0, FP_N, FP_N);
+        var d = x.getImageData(0, 0, FP_N, FP_N).data, out = '';
+        for(var i = 0; i < d.length; i += 4){
+          out += Math.round(d[i]/64) + '' + Math.round(d[i+1]/64) + '' + Math.round(d[i+2]/64);
+        }
+        return out;
+      }catch(e){ return ''; }
+    }
+    function fpDistance(a, b){
+      if(!a || !b || a.length !== b.length || !a.length) return 1;
+      var n = 0;
+      for(var i = 0; i < a.length; i++) n += Math.abs((+a[i]||0) - (+b[i]||0));
+      return n / (a.length * 4);
+    }
+    function sameFingerprint(a, b){ return fpDistance(a, b) <= FP_SAME; }
+    // Розкладаємо список відбитків по групах: однакові малюнки — одна група.
+    function designGroups(fps){
+      var reps = [], index = [];
+      fps.forEach(function(fp){
+        var k = -1;
+        for(var i = 0; i < reps.length; i++){ if(sameFingerprint(reps[i], fp)){ k = i; break; } }
+        if(k < 0){ reps.push(fp); k = reps.length - 1; }
+        index.push(k);
+      });
+      return { count: reps.length, index: index, reps: reps };
+    }
     function measureLayerShape(layer, url){
       return loadImgEl(url).then(function(img){
         layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
+        try{ layer.fp = imageFingerprint(img); }catch(e){ layer.fp = ''; }
         try{
           var m = measureShape(img);
           layer.opaqueBox = m ? m.opaqueBox : { x0:0, y0:0, x1:1, y1:1 };
@@ -7566,6 +7767,9 @@
         unitCost: (unitCost() + (u>0?Math.round(methodOrderCost()/u):0)),
         cost: orderCostTotal(),
         qty: u,
+        // Дескриптор для спільного розрахунку: кошик перераховує ціни щоразу,
+        // бо вони залежать від інших позицій (спільний макет, спільний тираж).
+        desc: draftDescriptor(),
         // Розклад ціни — щоб комерційна пропозиція могла точно порахувати вартість
         // за будь-якого тиражу («при більшому тиражі»), а не приблизно.
         calc: (function(){
@@ -8201,7 +8405,29 @@
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // Ціни в кошику залежать одна від одної: спільний макет ділиться на всі
+  // вироби, де він стоїть, а знижка рахується від сумарного тиражу методу.
+  // Тому перед кожним показом перераховуємо все замовлення заново.
+  function recalcCart(){
+    if(!window.__priceOrder) return;
+    var idx = [], list = [];
+    cartItems.forEach(function(it, i){
+      if(it.kind === 'reco' || !it.desc) return;
+      idx.push(i); list.push(it.desc);
+    });
+    if(!list.length) return;
+    var res = window.__priceOrder(list);
+    idx.forEach(function(i, k){
+      var it = cartItems[i], r = res[k];
+      if(!r) return;
+      it.unitPrice = r.unit;
+      it.price = r.sum;
+      it.feeShare = r.feeShare;
+    });
+  }
+
   function renderCart(){
+    recalcCart();
     var container = document.getElementById('cartItemsContainer');
     // Індекси беремо з повного масиву: кнопки «видалити/редагувати» мають
     // потрапляти в ту саму позицію незалежно від того, у якому блоці вона показана.
