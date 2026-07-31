@@ -4963,11 +4963,13 @@
         {src:'model-hoodie-pair-back', logos:[{cx:33,cy:44,sw:20,side:'back'},{cx:62,cy:47,sw:18,side:'back'}]}
       ]
     };
+    // Порядок тут задає і порядок кнопок у перемикачі, і спосіб за замовчуванням:
+    // getPrint() бере PRINTS[0], поки клієнт не обрав сам. Вишивка перша й типова.
     var PRINTS = [
-      {id:'dtf', name:'DTF принт', desc:'Яскраві кольори та складні дизайни', price:0,
-        icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'},
       {id:'embro', name:'Вишивка', desc:"Преміум вигляд та об'ємна фактура", price:120,
-        icon:'<circle cx="17" cy="7" r="2"/><path d="M15.5 8.5L9 15M5 19s0-4 4-4"/>'}
+        icon:'<circle cx="17" cy="7" r="2"/><path d="M15.5 8.5L9 15M5 19s0-4 4-4"/>'},
+      {id:'dtf', name:'DTF принт', desc:'Яскраві кольори та складні дизайни', price:0,
+        icon:'<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V4h12v3"/><circle cx="18" cy="12" r="1" fill="currentColor"/><path d="M6 17v3h12v-3"/>'}
     ];
     var SIZES = ['XS','S','M','L','XL','XXL'];
     // Деякі вироби мають єдиний розмір (напр. кепка) — тоді замість сітки XS–XXL
@@ -5500,6 +5502,10 @@
       // Шкала на голий виріб може бути не задана — тоді, як і раніше, діє шкала
       // способу нанесення від кількості голих виробів. Без цього запасного шляху
       // товари без друку залишились би зовсім без знижки за тираж.
+      // Голий виріб не має стосунку до способу нанесення, тож коли власної шкали
+      // виробу не задано, він іде за ЗАГАЛЬНОЮ шкалою сайту, а не за шкалою того
+      // способу, який зараз вибраний у конструкторі. Інакше зміна типового
+      // способу мовчки міняла б ціни на футболки без друку.
       var gcoefSet = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
 
       // Разові оплати по кожному методу
@@ -5532,8 +5538,7 @@
         var u = Math.max(0, +it.units || 0);
         if(it.bare){
           var gc = (gcoefSet != null) ? gcoefSet
-                 : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf',
-                               opts.noVolume ? 1 : (U.bare || 1));
+                 : tierCoefFor(null, opts.noVolume ? 1 : (U.bare || 1));
           var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
           return { unit: ub, sum: ub * u, feeShare: 0, parts: {
             bare: true, coef: gc, groupQty: U.bare,

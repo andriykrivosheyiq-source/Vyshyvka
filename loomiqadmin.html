@@ -2889,6 +2889,8 @@ function priceOrder(list, opts){
   });
   const coef = { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (U.dtf || 1)),
                  embro: tierCoefFor('embro', opts.noVolume ? 1 : (U.embro || 1)) };
+  // Голий виріб не прив'язаний до способу нанесення: без власної шкали виробу
+  // він іде за загальною шкалою сайту (див. index.html — рушій той самий).
   const gcoefSet = docGarmentCoef(opts.noVolume ? 1 : (U.bare || 1));
 
   const fees = {};
@@ -2919,8 +2921,7 @@ function priceOrder(list, opts){
     const u = Math.max(0, +it.units || 0);
     if(it.bare){
       const gc = (gcoefSet != null) ? gcoefSet
-               : tierCoefFor(it.method === 'embro' ? 'embro' : 'dtf',
-                             opts.noVolume ? 1 : (U.bare || 1));
+               : tierCoefFor(null, opts.noVolume ? 1 : (U.bare || 1));
       const ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
       return { unit: ub, sum: ub * u, feeShare: 0, parts: {
         bare:true, coef:gc, groupQty:U.bare,
