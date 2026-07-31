@@ -225,6 +225,30 @@
   .pcard-more[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
   .pcard-more-body{padding-top:12px;}
 
+  /* ══ Пакети: три варіанти замість одного «так або ні» ══ */
+  .packs{display:grid; grid-template-columns:1fr; gap:10px;}
+  @media (min-width:560px){ .packs{grid-template-columns:repeat(3,1fr);} }
+  .pack{position:relative; display:grid; gap:3px; text-align:left; padding:15px 16px;
+    border:1.5px solid var(--line); border-radius:16px; background:#fff; font:inherit;
+    cursor:pointer; transition:.15s;}
+  .pack.best{border-color:#CBD5E1;}
+  .pack.on{border-color:var(--ink); background:#F7F9FC;}
+  .pack-rib{position:absolute; top:-9px; left:16px; background:var(--good); color:#fff;
+    font-size:10px; font-weight:800; letter-spacing:.5px; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px;}
+  .pack-n{font-size:12px; font-weight:800; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--muted);}
+  .pack-u{font-size:25px; font-weight:800; letter-spacing:-0.8px; line-height:1.15;
+    font-variant-numeric:tabular-nums;}
+  .pack-s{font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums;}
+  .pack-gain{margin-top:6px; align-self:start; background:#ECFDF5; color:#047857;
+    border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700;}
+  .pack-note{font-size:12.5px; color:var(--muted); line-height:1.4; margin-top:4px;}
+  .pack-cta{margin-top:10px; text-align:center; padding:9px; border-radius:10px;
+    background:var(--soft); font-size:13.5px; font-weight:700;}
+  .pack.on .pack-cta{background:var(--ink); color:#fff;}
+  .pack-own{font-size:13px; color:var(--muted); margin:12px 0 0;}
+
   /* ══ Рекомендації: ряд компактних карток із плюсиком ══ */
   .rrow{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
   @media (min-width:520px){ .rrow{grid-template-columns:repeat(4,1fr);} }
@@ -660,6 +684,112 @@
       qty += r.qty; sum += r.price; base += r.basePrice;
     });
     return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
+  }
+
+  /* ═══════════ Пакети ═══════════
+     Один варіант — це «так або ні». Три варіанти — це «який саме», і людина
+     майже завжди бере не найдешевший. Пакети складаємо з того, що вже є в
+     пропозиції, нічого не вигадуючи: тираж, який порахував менеджер;
+     рекомендовані позиції, під які він уже зробив макети; наступний поріг
+     тиражу зі спільного розрахунку. Тому будь-яка цифра тут — справжня. */
+
+  // Наступний поріг тиражу для позиції (перший, що більший за поточний)
+  function nextTierQty(i){
+    var it = OFFER.items[i];
+    var cur = itemState(i).qty;
+    var up = (it.tiers || []).filter(function(t){ return t.qty > cur; })
+                             .sort(function(a,b){ return a.qty - b.qty; })[0];
+    return up ? up.qty : null;
+  }
+  // Порахувати суму для довільного вибору, не чіпаючи поточний стан сторінки
+  function totalsFor(sel){
+    var keep = { qty: pick.qty, reco: pick.reco };
+    pick.qty = sel.qty; pick.reco = sel.reco;
+    var t;
+    try{ t = totals(); } finally { pick.qty = keep.qty; pick.reco = keep.reco; }
+    return t;
+  }
+  function packages(){
+    var baseQty = {}, allReco = {}, upQty = {};
+    OFFER.items.forEach(function(it, i){
+      baseQty[i] = it.qty;
+      var up = (it.tiers || []).filter(function(t){ return t.qty > it.qty; })
+                               .sort(function(a,b){ return a.qty - b.qty; })[0];
+      upQty[i] = up ? up.qty : it.qty;
+    });
+    OFFER.reco.forEach(function(r, i){ allReco[i] = true; });
+
+    var nReco = OFFER.reco.length;
+    var list = [
+      { id:'base', name:'Стандарт',
+        note:'Те, що ви просили порахувати',
+        sel:{ qty: baseQty, reco: {} } },
+      { id:'plus', name:'Оптимальний', best:true,
+        note:'Позиції, які ми радимо додати — макети вже готові',
+        gain: nReco ? '+' + nReco + ' ' + plural(nReco,'позиція','позиції','позицій') + ' без нових макетів' : '',
+        sel:{ qty: baseQty, reco: allReco } },
+      { id:'max', name:'Максимальний',
+        note:'Більший тираж — найнижча ціна за виріб',
+        sel:{ qty: upQty, reco: allReco } }
+    ];
+    // Пакет без власного змісту не потрібен: якщо рекомендацій немає або
+    // тираж уже максимальний, два варіанти зійдуться в один і однакові
+    // картки поруч виглядатимуть як помилка.
+    var seen = {}, out = [];
+    list.forEach(function(p){
+      var t = totalsFor(p.sel);
+      var key = t.sum + '/' + t.qty;
+      if(seen[key]) return;
+      seen[key] = 1;
+      p.sum = t.sum; p.qty = t.qty;
+      p.unit = t.qty > 0 ? Math.round(t.sum / t.qty) : 0;
+      out.push(p);
+    });
+    // Вигоду рахуємо ВІД ПЕРШОГО пакета, і лише коли вона справді є.
+    // Порівнювати пакети за ціною за виріб не можна: у ширшому складі інші
+    // вироби, і «оптимальний» вийде дорожчим за штуку, хоч він і вигідніший.
+    var b0 = out[0];
+    out.forEach(function(p){
+      if(p === b0 || p.gain) return;
+      if(b0 && p.unit && p.unit < b0.unit){
+        p.gain = '−' + money(b0.unit - p.unit) + ' на кожному виробі';
+      }
+    });
+    return out.length > 1 ? out : [];
+  }
+  function activePackage(list){
+    var cur = JSON.stringify([totals().sum, totals().qty]);
+    for(var i = 0; i < list.length; i++){
+      if(JSON.stringify([list[i].sum, list[i].qty]) === cur) return list[i].id;
+    }
+    return null;
+  }
+  function packagesHtml(){
+    var list = packages();
+    if(!list.length) return '';
+    var act = activePackage(list);
+    var from = Math.min.apply(null, list.map(function(p){ return p.unit; }));
+    return '' +
+      '<section id="packs">' +
+        '<h2 class="sec-title">Оберіть варіант</h2>' +
+        '<p class="sec-sub">Від ' + money(from) + ' за виріб. Усе вже прораховано — ' +
+          'натисніть, і кошторис нижче перебудується.</p>' +
+        '<div class="packs">' + list.map(function(p){
+          var on = act === p.id;
+          return '<button class="pack' + (on ? ' on' : '') + (p.best ? ' best' : '') + '" ' +
+                   'data-pack="' + p.id + '">' +
+            (p.best ? '<span class="pack-rib">Радимо</span>' : '') +
+            '<span class="pack-n">' + esc(p.name) + '</span>' +
+            '<span class="pack-u">' + money(p.sum) + '</span>' +
+            '<span class="pack-s">' + p.qty + ' ' + plural(p.qty,'виріб','вироби','виробів') +
+              ' · ' + money(p.unit) + ' за шт</span>' +
+            (p.gain ? '<span class="pack-gain">' + esc(p.gain) + '</span>' : '') +
+            '<span class="pack-note">' + esc(p.note) + '</span>' +
+            '<span class="pack-cta">' + (on ? 'Обрано' : 'Обрати') + '</span>' +
+          '</button>';
+        }).join('') + '</div>' +
+        (act ? '' : '<p class="pack-own">Ви налаштували свій варіант — суми нижче враховують ваш вибір.</p>') +
+      '</section>';
   }
 
   /* ═══════════ розмітка ═══════════ */
@@ -1132,7 +1262,7 @@
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
         // самі макети, що й колекція нижче, тільки дрібніше.
-        heroHtml() + itemsHtml() + recoHtml() + estimateHtml() +
+        heroHtml() + packagesHtml() + itemsHtml() + recoHtml() + estimateHtml() +
         includesHtml() + timelineHtml() + whyHtml() + casesHtml() +
         guaranteesHtml() + trustHtml() + faqHtml() + termsHtml() +
         finalHtml() + mgrHtml() +
@@ -1167,6 +1297,8 @@
       var tw = document.querySelector('[data-tiers="' + i + '"]');
       if(tw) tw.innerHTML = tiersHtml(i);
     });
+    var packs = document.getElementById('packs');
+    if(packs) packs.outerHTML = packagesHtml();
     var est = document.getElementById('estimate');
     if(est) est.outerHTML = estimateHtml();
     OFFER.reco.forEach(function(r, i){
@@ -1358,6 +1490,19 @@
       };
     });
     var frozen = OFFER.state === 'confirmed';
+    document.querySelectorAll('[data-pack]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      b.onclick = function(){
+        var p = packages().filter(function(x){ return x.id === b.dataset.pack; })[0];
+        if(!p) return;
+        pick.qty = Object.assign({}, p.sel.qty);
+        pick.reco = Object.assign({}, p.sel.reco);
+        refresh();
+        var est = document.getElementById('estimate');
+        if(est) est.scrollIntoView({ behavior:'smooth', block:'center' });
+        queueSave('pack', 'Обрано пакет «' + p.name + '» — ' + money(p.sum));
+      };
+    });
     document.querySelectorAll('[data-tier]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
       b.onclick = function(){
