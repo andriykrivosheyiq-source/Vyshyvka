@@ -2685,7 +2685,7 @@ window.__adminSaveClientOrder = async function(payload){
     }
     items.push({
       kind: it.kind === 'reco' ? 'reco' : 'main',
-      recoNote: it.recoNote || '',
+      recoNote: it.recoNote || '', recoTag: it.recoTag || '',
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
@@ -3223,7 +3223,7 @@ function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
     kind: it.kind === 'reco' ? 'reco' : 'main',
-    recoNote: it.recoNote || '',
+    recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     name: it.name || '', color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
     print: it.print || '',

@@ -252,15 +252,21 @@
   /* ══ Рекомендації: ряд компактних карток із плюсиком ══ */
   .rrow{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
   @media (min-width:520px){ .rrow{grid-template-columns:repeat(4,1fr);} }
-  .rc{position:relative; border:1px solid var(--line); border-radius:16px; padding:10px;
-    background:#fff; transition:.15s;}
+  /* Картки в ряду різної висоти (у частини є привід, у частини ні) — тому
+     колонка з ціною, притиснутою донизу: ціни вирівняні, ряд читається. */
+  .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
+    border-radius:16px; padding:10px; background:#fff; transition:.15s;}
   .rc.on{border-color:var(--good); background:#F6FDF9;}
   .rc-ph{border-radius:11px; overflow:hidden; background:var(--soft); aspect-ratio:1/1;
     margin-bottom:9px; display:block;}
   .rc-ph img{width:100%; height:100%; object-fit:cover;}
+  .rc-tag{display:inline-block; align-self:flex-start; background:#EEF2FF; color:#4338CA; border-radius:999px;
+    padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.3px;
+    text-transform:uppercase; margin-bottom:5px;}
   .rc-n{font-size:14.5px; font-weight:700; letter-spacing:-0.2px;}
   .rc-t{font-size:12px; color:var(--muted); margin-top:1px;}
-  .rc-p{font-size:12.5px; color:var(--ink-2); margin-top:5px; font-variant-numeric:tabular-nums;}
+  .rc-p{font-size:12.5px; color:var(--ink-2); margin-top:auto; padding-top:5px;
+    font-variant-numeric:tabular-nums;}
   .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
   .rc-add{position:absolute; right:10px; bottom:10px; width:28px; height:28px; border-radius:50%;
     border:1.5px solid var(--line); background:#fff; display:flex; align-items:center;
@@ -301,6 +307,29 @@
   .est-pay b{font-size:27px; font-weight:800; letter-spacing:-0.8px; font-variant-numeric:tabular-nums;}
   .est-save{margin-top:14px; font-size:13px; font-weight:600; color:#4ADE80; text-align:center;
     line-height:1.45;}
+
+  /* ══ Зняття ризику одразу під сумою ══ */
+  .rea{display:grid; gap:10px; margin-top:18px;}
+  @media (min-width:560px){ .rea{grid-template-columns:1fr 1fr;} }
+  .rea-i{display:flex; gap:10px; align-items:flex-start; padding:12px 14px;
+    border:1px solid var(--line); border-radius:13px; background:#fff;}
+  .rea-i svg{flex:none; margin-top:1px;}
+  .rea-i b{display:block; font-size:13.5px; font-weight:700;}
+  .rea-i span{display:block; font-size:12.5px; color:var(--muted); line-height:1.45; margin-top:1px;}
+  .rea-ask{font-size:13px; color:var(--muted); margin:12px 0 0; text-align:center;}
+
+  /* ══ Згорнутий хвіст сторінки ══ */
+  .det{border:1px solid var(--line); border-radius:16px; background:#fff; overflow:hidden;}
+  .det>summary{list-style:none; cursor:pointer; padding:16px 18px; font-size:15px;
+    font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .det>summary::-webkit-details-marker{display:none;}
+  .det>summary::after{content:''; width:8px; height:8px; border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted); transform:rotate(45deg) translateY(-2px);
+    transition:transform .18s;}
+  .det[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
+  .det-body{padding:0 18px 18px;}
+  .det-h{font-size:15px; font-weight:800; margin:18px 0 10px;}
+  .det-body>.det-h:first-child{margin-top:0;}
 
   /* ══ Що входить у вартість: іконки в ряд ══ */
   /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
@@ -789,6 +818,8 @@
           '</button>';
         }).join('') + '</div>' +
         (act ? '' : '<p class="pack-own">Ви налаштували свій варіант — суми нижче враховують ваш вибір.</p>') +
+        '<p class="pack-own">Радимо закладати невеликий запас — на новачків і на заміну ' +
+          'пошкоджених виробів. Дозамовляти малим тиражем завжди дорожче за штуку.</p>' +
       '</section>';
   }
 
@@ -1036,7 +1067,37 @@
               ' грн завдяки оптовому замовленню</div>'
             : '') +
         '</div>' +
+        reassureHtml() +
       '</section>';
+  }
+
+  // Найбільший страх корпоративного клієнта — не ціна, а «раптом зроблять не те»
+  // і «як я це проведу». Обидва питання виникають рівно в момент, коли він
+  // побачив суму, тому відповіді стоять тут, а не в розділі внизу сторінки.
+  function reassureHtml(){
+    var rows = [
+      ['shield', 'Макет погоджуємо до запуску', 'До вашого «так» виробництво не починається.'],
+      ['repeat', 'Підготовка макета — один раз', 'Повторні замовлення вже без неї.']
+    ];
+    // Про документи кажемо лише якщо це справді ваша заявлена умова
+    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
+    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
+    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
+    var IC = {
+      shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+      repeat:'<path d="M4 9a8 8 0 0 1 13.7-5.7L20 5.5"/><path d="M20 15a8 8 0 0 1-13.7 5.7L4 18.5"/><path d="M20 3v3h-3M4 21v-3h3"/>',
+      doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
+      card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
+    };
+    return '' +
+      '<div class="rea">' + rows.map(function(r){
+        return '<div class="rea-i">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
+            'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + IC[r[0]] + '</svg>' +
+          '<div><b>' + esc(r[1]) + '</b><span>' + esc(r[2]) + '</span></div>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<p class="rea-ask">Потрібен зразок перед тиражем — напишіть менеджеру, узгодимо.</p>';
   }
 
   function recoHtml(){
@@ -1052,6 +1113,7 @@
             '<div class="rc-ph">' + (r.mockups[0]
               ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
                 'onerror="this.style.display=\'none\'">' : '') + '</div>' +
+            (r.recoTag ? '<div class="rc-tag">' + esc(r.recoTag) + '</div>' : '') +
             '<div class="rc-n">' + esc(r.name) + '</div>' +
             (tech ? '<div class="rc-t">' + esc(tech) + '</div>' : '') +
             '<div class="rc-p">' + money(r.unitPrice) + ' · ' + r.qty + ' шт</div>' +
@@ -1077,29 +1139,26 @@
     'Перевіряємо якість кожного виробу'
   ];
   // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
-  var CASES = [
-    { name:'Компанія А', qty:'120 виробів', note:'Футболки й кепки для команди' },
-    { name:'Компанія Б', qty:'60 виробів',  note:'Худі з вишивкою для офісу' },
-    { name:'Компанія В', qty:'300 виробів', note:'Мерч для конференції' }
-  ];
-  // ЗАГЛУШКА: замінити своїми формулюваннями
-  var FAQ = [
-    ['Який мінімальний тираж?', 'Від 5 виробів на один макет. Менші тиражі теж робимо — вартість одиниці буде вищою.'],
-    ['Скільки триває виробництво?', 'Термін указано у пропозиції. Відлік починається після погодження макета.'],
-    ['Чи можна внести правки в макет?', 'Так. Правки до початку виробництва — безкоштовні.'],
-    ['Як відбувається оплата?', 'Умови вказані в розділі «Умови замовлення» нижче.'],
-    ['Чи можна замовити повтор?', 'Так. Ми зберігаємо ваш дизайн, тож повторне замовлення не потребує нової підготовки.']
-  ];
+  // Кейси і часті питання беремо ЛИШЕ з документа пропозиції. Вигадані
+  // «Компанія А · 120 виробів» читаються як шаблон із інтернету, і недовіра
+  // переноситься на всю пропозицію разом із цінами. Порожньо краще за фальшиве:
+  // поки менеджер не заповнив — блоки просто не показуються.
+  // Функціями, а не змінними: на момент розбору скрипта OFFER ще null, і
+  // константи назавжди лишились би порожніми навіть після заповнення в адмінці.
+  function casesList(){ return (OFFER && OFFER.cases) || []; }
+  function faqList(){
+    return ((OFFER && OFFER.faq) || []).map(function(q){
+      return Array.isArray(q) ? q : [q && q.q, q && q.a];
+    }).filter(function(q){ return q[0] && q[1]; });
+  }
 
   function timelineHtml(){
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Як проходитиме замовлення</h2>' +
+      '<h3 class="det-h">Як проходитиме замовлення</h3>' +
         '<div class="tl">' + TIMELINE.map(function(x, i){
           return '<div class="tl-step"><span class="tl-n">' + (i + 1) + '</span>' +
                  '<span class="tl-t">' + esc(x) + '</span></div>';
-        }).join('') + '</div>' +
-      '</section>';
+        }).join('') + '</div>';
   }
 
   // Персональний коментар менеджера. Без нього блоку немає — загальні слова
@@ -1119,6 +1178,7 @@
   }
 
   function casesHtml(){
+    var CASES = casesList();
     if(!CASES.length) return '';
     return '' +
       '<section>' +
@@ -1138,42 +1198,37 @@
 
   function guaranteesHtml(){
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Гарантії</h2>' +
-        '<div class="gcards">' + GUARANTEES.map(function(g){
-          return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
-        }).join('') + '</div>' +
-      '</section>';
+      '<h3 class="det-h">Гарантії</h3>' +
+      '<div class="gcards">' + GUARANTEES.map(function(g){
+        return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
+      }).join('') + '</div>';
   }
 
   function faqHtml(){
+    var FAQ = faqList();
+    if(!FAQ.length) return '';
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Часті питання</h2>' +
+      '<h3 class="det-h">Часті питання</h3>' +
         '<div class="faq">' + FAQ.map(function(q, i){
           return '<details class="fq"' + (i === 0 ? ' open' : '') + '>' +
             '<summary>' + esc(q[0]) + '</summary>' +
             '<div class="fq-a">' + esc(q[1]) + '</div></details>';
-        }).join('') + '</div>' +
-      '</section>';
+        }).join('') + '</div>';
   }
 
   function trustHtml(){
     if(!OFFER.trust || !OFFER.trust.length) return '';
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Чому нам довіряють</h2>' +
-        '<ul class="ticks">' + OFFER.trust.slice(0, 5).map(function(t){
-          return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
-        }).join('') + '</ul>' +
-      '</section>';
+      '<h3 class="det-h">Чому нам довіряють</h3>' +
+      '<ul class="ticks">' + OFFER.trust.slice(0, 5).map(function(t){
+        return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
+      }).join('') + '</ul>';
   }
 
   function termsHtml(){
     var v = dateUa(OFFER.terms.validUntil);
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Умови замовлення</h2>' +
+      '<h3 class="det-h">Умови замовлення</h3>' +
         '<div class="terms">' +
           '<div><div class="term-k">Термін виготовлення</div>' +
             '<div class="term-v" id="termDays">' + daysWord(curDays()) +
@@ -1184,7 +1239,19 @@
             '<div class="term-v">' + esc(OFFER.terms.startWith) + '</div></div>' +
           (v ? '<div><div class="term-k">Пропозиція актуальна до</div>' +
                '<div class="term-v">' + esc(v) + '</div></div>' : '') +
-        '</div>' +
+        '</div>';
+  }
+  // Хвіст сторінки — в одне розкриття. Кожен екран між сумою і кнопкою це шанс
+  // передумати; хто вагається — розгорне, хто готовий — не гортатиме мимо.
+  function detailsHtml(){
+    var body = timelineHtml() + guaranteesHtml() + faqHtml() + trustHtml() + termsHtml();
+    if(!body) return '';
+    return '' +
+      '<section>' +
+        '<details class="det">' +
+          '<summary>Терміни, гарантії та умови</summary>' +
+          '<div class="det-body">' + body + '</div>' +
+        '</details>' +
       '</section>';
   }
 
@@ -1263,9 +1330,8 @@
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
         // самі макети, що й колекція нижче, тільки дрібніше.
         heroHtml() + packagesHtml() + itemsHtml() + recoHtml() + estimateHtml() +
-        includesHtml() + timelineHtml() + whyHtml() + casesHtml() +
-        guaranteesHtml() + trustHtml() + faqHtml() + termsHtml() +
-        finalHtml() + mgrHtml() +
+        includesHtml() + whyHtml() + casesHtml() +
+        finalHtml() + mgrHtml() + detailsHtml() +
         '<div class="foot">Loomiq · виробництво мерчу · ' +
           '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
       '</div>' +
@@ -1337,10 +1403,32 @@
     OFFER.events = (OFFER.events || []).concat([ev]).slice(-40);
     return OFFER.events;
   }
+  /* Поведінка клієнта. Далі правити сторінку треба за фактом, а не за
+     здогадками: видно, до якого місця людина догортала і скільки часу минуло
+     до першої дії. Пишемо тільки разом з іншими записами — окремий запис на
+     прокрутку і смикав би базу, і помилково позначав пропозицію як «змінену». */
+  var seenAt = Date.now(), firstActionMs = null, maxDepth = 0;
+  (function(){
+    var tick = function(){
+      var h = document.documentElement;
+      var full = Math.max(1, h.scrollHeight - window.innerHeight);
+      var d = Math.round(Math.min(1, (window.scrollY || 0) / full) * 100);
+      if(d > maxDepth) maxDepth = d;
+    };
+    window.addEventListener('scroll', tick, { passive:true });
+    window.addEventListener('resize', tick);
+    tick();
+  })();
+  function behaviourData(){
+    if(firstActionMs == null) firstActionMs = Date.now() - seenAt;
+    return { depthPct: maxDepth, firstActionSec: Math.round(firstActionMs / 1000),
+             totalSec: Math.round((Date.now() - seenAt) / 1000) };
+  }
+
   function saveClient(extra, evType, evNote){
     if(!offerRef) return Promise.resolve();
-    var data = Object.assign({ selection: selectionData(), clientAt: new Date().toISOString() },
-                             extra || {});
+    var data = Object.assign({ selection: selectionData(), behaviour: behaviourData(),
+                               clientAt: new Date().toISOString() }, extra || {});
     if(evType) data.events = withEvent(evType, evNote);
     return offerRef.update(data);
   }

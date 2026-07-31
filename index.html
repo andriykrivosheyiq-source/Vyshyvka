@@ -1684,6 +1684,7 @@
   .cart-reco-note{width:100%;margin-top:10px;border:1px solid #e4e8ef;border-radius:10px;
     padding:9px 11px;font:inherit;font-size:13.5px;resize:vertical;background:#fbfcfe;}
   .cart-reco-note:focus{outline:none;border-color:#4f5fd4;background:#fff;}
+  .cart-reco-tag{margin-bottom:-2px;}
   .cart-item-price-row span{font-weight:400;color:var(--muted);font-size:14px;}
   /* Прорахунок замовлення — окреме вікно для менеджера.
      Лягає ПОВЕРХ кошика: у розмітці воно стоїть раніше, тож без свого z-index
@@ -8661,7 +8662,9 @@
           '</div>' +
           '<div class="cart-item-price-row">Ціна: '+item.price+' грн <span>('+item.unitPrice+' грн/шт)</span></div>' +
           (isReco
-            ? '<textarea class="cart-reco-note" data-cart-note="'+idx+'" rows="2" maxlength="180" ' +
+            ? '<input class="cart-reco-note cart-reco-tag" data-cart-tag="'+idx+'" type="text" maxlength="40" ' +
+                'placeholder="Привід: «клієнтам у подарунок», «на виставку»" value="'+escHtml(item.recoTag||'')+'">' +
+              '<textarea class="cart-reco-note" data-cart-note="'+idx+'" rows="2" maxlength="180" ' +
               'placeholder="Чому радимо — клієнт побачить цей текст">'+escHtml(item.recoNote||'')+'</textarea>'
             : '') +
           '<div class="cart-item-actions">' +
@@ -8862,6 +8865,15 @@
       ta.addEventListener('input', function(){
         var it = cartItems[Number(ta.dataset.cartNote)];
         if(it){ it.recoNote = ta.value; cartPersist(); }
+      });
+    });
+    // Привід — короткий ярлик на картці в КП. Корпоративний клієнт мислить
+    // бюджетами під приводи, а не категоріями товарів: «шопер» це ще одна
+    // позиція, а «клієнтам у подарунок» — окрема задача з окремими грішми.
+    container.querySelectorAll('[data-cart-tag]').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var it = cartItems[Number(inp.dataset.cartTag)];
+        if(it){ it.recoTag = inp.value; cartPersist(); }
       });
     });
     cartPersist();
