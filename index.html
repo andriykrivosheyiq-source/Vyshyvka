@@ -1679,21 +1679,40 @@
     padding:9px 11px;font:inherit;font-size:13.5px;resize:vertical;background:#fbfcfe;}
   .cart-reco-note:focus{outline:none;border-color:#4f5fd4;background:#fff;}
   .cart-item-price-row span{font-weight:400;color:var(--muted);font-size:14px;}
-  /* Розклад ціни — згорнутий, щоб кошик не розтягувався */
-  .cart-calc{margin-top:8px;}
-  .cart-calc>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    font-size:13px;font-weight:600;color:#5b6470;padding:4px 0;-webkit-tap-highlight-color:transparent;}
-  .cart-calc>summary::-webkit-details-marker{display:none;}
-  .cart-calc>summary::after{content:'';width:7px;height:7px;border-right:2px solid #9aa3ad;
-    border-bottom:2px solid #9aa3ad;transform:rotate(45deg) translateY(-2px);transition:transform .18s;}
-  .cart-calc[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
-  .cart-calc-body{margin-top:6px;padding:10px 12px;background:#f7f8fa;border-radius:10px;}
-  .cart-calc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+  /* Прорахунок замовлення — окреме вікно для менеджера.
+     Лягає ПОВЕРХ кошика: у розмітці воно стоїть раніше, тож без свого z-index
+     кошик малювався б зверху і вікно було б відкрите, але невидиме. */
+  #cartCalcModal{z-index:240;}
+  .cart-calc-open{display:none;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px;}
+  #cartCalcBody{padding-bottom:24px;}
+  .cc-empty{color:var(--muted);font-size:15px;margin-top:18px;}
+  .cc-groups{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px;}
+  .cc-group{display:flex;align-items:baseline;gap:7px;padding:7px 11px;background:#f1f3f5;
+    border-radius:9px;font-size:13px;color:#4a525c;}
+  .cc-group b{font-weight:700;color:#111;}
+  .cc-hint{font-size:12.5px;line-height:1.5;color:#8a929b;margin:0 0 14px;}
+  .cc-sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:#8a929b;margin:20px 0 8px;}
+  .cc-item{border:1px solid #e6e9ed;border-radius:12px;padding:13px 14px;margin-bottom:10px;background:#fff;}
+  .cc-item.is-reco{border-style:dashed;}
+  .cc-name{font-size:15px;font-weight:700;color:#111;}
+  .cc-name em{font-style:normal;font-size:11.5px;font-weight:600;color:#8a929b;
+    text-transform:uppercase;letter-spacing:.04em;}
+  .cc-meta{font-size:12.5px;color:#8a929b;margin-top:2px;}
+  .cc-rows{margin-top:9px;padding:9px 11px;background:#f7f8fa;border-radius:9px;}
+  .cc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
     font-size:13px;line-height:1.45;padding:3px 0;color:#4a525c;}
-  .cart-calc-row b{font-weight:600;color:#222;white-space:nowrap;}
-  .cart-calc-row.is-disc,.cart-calc-row.is-disc b{color:#128a4a;}
-  .cart-calc-row.is-note{color:#8a929b;font-size:12px;}
-  .cart-calc-total{border-top:1px solid #e3e6ea;margin-top:6px;padding-top:7px;font-weight:600;color:#222;}
+  .cc-row b{font-weight:600;color:#222;white-space:nowrap;}
+  .cc-row.is-disc,.cc-row.is-disc b{color:#128a4a;}
+  .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:5px;padding-top:6px;font-weight:700;color:#111;}
+  .cc-money{display:flex;gap:10px;margin-top:9px;}
+  .cc-money>div{flex:1;display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+    font-size:12.5px;color:#8a929b;padding:6px 10px;background:#f7f8fa;border-radius:8px;}
+  .cc-money b{font-weight:700;color:#222;white-space:nowrap;}
+  .cc-money b.good{color:#128a4a;}
+  .cc-money b.bad{color:#c0392b;}
+  .cc-total{margin-top:16px;padding:12px 14px;border:1px solid #dfe3e8;border-radius:12px;background:#fbfcfd;}
+  .cc-total .cc-row.is-sum{font-size:15px;}
   .cart-item-actions{display:flex;align-items:center;gap:10px;margin-top:14px;}
   .cart-edit-btn{
     flex:1;text-align:center;background:var(--ink);color:#FFFFFF;border:none;border-radius:12px;
@@ -2768,6 +2787,23 @@
 </div>
 
 <!-- Cart modal -->
+<!-- Прорахунок замовлення для менеджера: повний розклад кожної позиції -->
+<div class="contact-modal" id="cartCalcModal">
+  <div class="nav catalog-modal-topbar">
+    <div class="catalog-modal-topbar-left">
+      <button class="catalog-back-btn" id="cartCalcBack" aria-label="Назад">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="logo">Прорахунок</span>
+    </div>
+  </div>
+  <div class="contact-modal-inner">
+    <div class="contact-section">
+      <div id="cartCalcBody"></div>
+    </div>
+  </div>
+</div>
+
 <div class="contact-modal" id="cartModal">
   <div class="nav catalog-modal-topbar">
     <div class="catalog-modal-topbar-left">
@@ -2799,6 +2835,11 @@
         <div class="cart-totals-row"><span>Термін виготовлення</span><strong id="cartTotalTerm">—</strong></div>
       </div>
 
+      <!-- Менеджерський прорахунок: як склалась кожна цифра (лише в режимі ?manager=1) -->
+      <button class="btn btn-ghost cart-calc-open" id="cartCalcBtn" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h3M13 11h3M8 15h3M13 15v4M8 19h3"/></svg>
+        Прорахунок
+      </button>
       <button class="btn btn-ghost cart-add-btn" id="cartAddMoreBtn">+ Додати замовлення</button>
       <!-- Менеджер додає позиції у два різні блоки кошика (лише в режимі ?manager=1) -->
       <div id="cartAddMgr" style="display:none;flex-direction:column;gap:8px;">
@@ -8532,7 +8573,6 @@
             '<span class="cart-item-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>' +
           '</div>' +
           '<div class="cart-item-price-row">Ціна: '+item.price+' грн <span>('+item.unitPrice+' грн/шт)</span></div>' +
-          priceBreakdownHtml(item, idx) +
           (isReco
             ? '<textarea class="cart-reco-note" data-cart-note="'+idx+'" rows="2" maxlength="180" ' +
               'placeholder="Чому радимо — клієнт побачить цей текст">'+escHtml(item.recoNote||'')+'</textarea>'
@@ -8575,9 +8615,11 @@
   // Розклад ціни: клієнт має бачити, з чого склалась цифра, і чому вона впала,
   // коли він додав другу позицію з тим самим макетом. Блок згорнутий, щоб
   // кошик не розтягувався.
-  function priceBreakdownHtml(item, idx){
+  // Рядки розкладу однієї позиції. Той самий набір, що в Канбані — щоб менеджер
+  // бачив одне й те саме число з обох боків.
+  function priceRows(item){
     var b = item.parts;
-    if(!b) return '';
+    if(!b) return null;
     var rows = [];
     var pre = b.garmentBase + b.appBase;
     var post = b.garment + b.app;
@@ -8595,25 +8637,90 @@
     }
     if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
     if(b.feeShare){
-      var lbl = 'Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт';
-      rows.push([lbl, b.feeShare + ' грн']);
-      if(b.sketches && b.sketches.length){
-        b.sketches.forEach(function(s){
-          rows.push(['Додатковий ескіз · ' + s.fee + ' грн на ' + s.units + ' шт',
-                     Math.round(s.fee / (s.units || 1)) + ' грн']);
-        });
-      }
+      // feeShare — уся разова частка разом з ескізами. Базову підготовку показуємо
+      // як залишок, інакше ескізи порахувались би двічі й рядки не зійшлись би з
+      // ціною за штуку.
+      var sk = (b.sketches || []).map(function(s){
+        return { s: s, share: Math.round(s.fee / (s.units || 1)) };
+      });
+      var base = b.feeShare - sk.reduce(function(a, x){ return a + x.share; }, 0);
+      if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт', base + ' грн']);
+      sk.forEach(function(x){
+        rows.push(['Додатковий ескіз · ' + x.s.fee + ' грн на ' + x.s.units + ' шт', x.share + ' грн']);
+      });
     }
-    return '<details class="cart-calc"><summary>Як склалась ціна</summary>' +
-      '<div class="cart-calc-body">' +
-        rows.map(function(r){
-          return '<div class="cart-calc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
-                 (r[2] === 'note' ? ' is-note' : '') + '">' +
-                 '<span>' + escHtml(r[0]) + '</span><b>' + escHtml(r[1]) + '</b></div>';
-        }).join('') +
-        '<div class="cart-calc-row cart-calc-total"><span>Ціна за штуку</span><b>' + item.unitPrice + ' грн</b></div>' +
-        '<div class="cart-calc-row cart-calc-total"><span>' + item.qty + ' шт</span><b>' + item.price + ' грн</b></div>' +
-      '</div></details>';
+    rows.push(['Ціна за штуку', item.unitPrice + ' грн', 'sum']);
+    rows.push([item.qty + ' шт', item.price + ' грн', 'sum']);
+    return rows;
+  }
+  // ── Прорахунок замовлення (менеджер) ──────────────────────────────────
+  // Одне вікно, у якому видно все: групи нанесення, з чого склалась ціна
+  // кожної позиції, собівартість і маржа. Клієнту цього не показуємо.
+  function renderCartCalc(){
+    var box = document.getElementById('cartCalcBody');
+    if(!box) return;
+    var main = cartItems.filter(function(it){ return it.kind !== 'reco'; });
+    var reco = cartItems.filter(function(it){ return it.kind === 'reco'; });
+    if(!cartItems.length){
+      box.innerHTML = '<p class="cc-empty">Кошик порожній — рахувати нічого.</p>';
+      return;
+    }
+    // Групи: саме від них рахуються знижки й ділиться підготовка макета
+    var g = {};
+    main.forEach(function(it){
+      if(!it.desc) return;
+      var k = it.desc.bare ? 'Без нанесення' : (it.desc.method === 'embro' ? 'Вишивка' : 'DTF принт');
+      g[k] = (g[k] || 0) + (+it.desc.units || 0);
+    });
+    var gKeys = Object.keys(g);
+    var head = gKeys.length
+      ? '<div class="cc-groups">' + gKeys.map(function(k){
+          return '<div class="cc-group"><span>' + escHtml(k) + '</span><b>' + g[k] + ' шт</b></div>';
+        }).join('') + '</div>' +
+        '<p class="cc-hint">Знижка за тираж і підготовка макета рахуються всередині групи, ' +
+        'а не по одній позиції. Однаковий ескіз на різних виробах — один макет.</p>'
+      : '';
+
+    function itemHtml(it, isReco){
+      var rows = priceRows(it);
+      var margin = (+it.price || 0) - (+it.cost || 0);
+      var pct = it.price > 0 ? (margin / it.price * 100) : 0;
+      return '<div class="cc-item' + (isReco ? ' is-reco' : '') + '">' +
+        '<div class="cc-name">' + escHtml(it.name) + (isReco ? ' <em>рекомендований</em>' : '') + '</div>' +
+        '<div class="cc-meta">' + escHtml([it.color, it.print, it.sizes].filter(Boolean).join(' · ')) + '</div>' +
+        (rows
+          ? '<div class="cc-rows">' + rows.map(function(r){
+              return '<div class="cc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
+                     (r[2] === 'sum' ? ' is-sum' : '') + '">' +
+                     '<span>' + escHtml(r[0]) + '</span><b>' + escHtml(r[1]) + '</b></div>';
+            }).join('') + '</div>'
+          : '<p class="cc-hint">Позиція без розкладу — ціна прийшла зі старого кошика.</p>') +
+        '<div class="cc-money">' +
+          '<div><span>Собівартість</span><b>' + (+it.cost || 0) + ' грн</b></div>' +
+          '<div><span>Маржа</span><b class="' + (margin >= 0 ? 'good' : 'bad') + '">' +
+            margin + ' грн · ' + pct.toFixed(1) + '%</b></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var sum  = main.reduce(function(a, it){ return a + (+it.price || 0); }, 0);
+    var cost = main.reduce(function(a, it){ return a + (+it.cost  || 0); }, 0);
+    var qty  = main.reduce(function(a, it){ return a + (+it.qty   || 0); }, 0);
+    var mrg  = sum - cost;
+
+    box.innerHTML = head +
+      main.map(function(it){ return itemHtml(it, false); }).join('') +
+      (reco.length
+        ? '<div class="cc-sec">Рекомендовані — у суму не входять</div>' +
+          reco.map(function(it){ return itemHtml(it, true); }).join('')
+        : '') +
+      '<div class="cc-total">' +
+        '<div class="cc-row"><span>Виробів у замовленні</span><b>' + qty + ' шт</b></div>' +
+        '<div class="cc-row"><span>Собівартість</span><b>' + cost + ' грн</b></div>' +
+        '<div class="cc-row is-sum"><span>Сума замовлення</span><b>' + sum + ' грн</b></div>' +
+        '<div class="cc-row ' + (mrg >= 0 ? 'is-disc' : '') + '"><span>Маржа</span><b>' +
+          mrg + ' грн · ' + (sum > 0 ? (mrg / sum * 100).toFixed(1) : '0.0') + '%</b></div>' +
+      '</div>';
   }
 
   function renderCart(){
@@ -8687,6 +8794,21 @@
     }
     document.getElementById('cartAddMain').addEventListener('click', function(){ openWith('main'); });
     document.getElementById('cartAddReco').addEventListener('click', function(){ openWith('reco'); });
+    // Прорахунок: окреме вікно поверх кошика, кошик під ним лишається відкритим
+    var calcBtn = document.getElementById('cartCalcBtn');
+    var calcModal = document.getElementById('cartCalcModal');
+    if(calcBtn && calcModal){
+      calcBtn.style.display = 'flex';
+      calcBtn.addEventListener('click', function(){
+        recalcCart();            // цифри мають бути свіжі на момент відкриття
+        renderCartCalc();
+        calcModal.classList.add('open');
+        calcModal.scrollTop = 0;
+      });
+      document.getElementById('cartCalcBack').addEventListener('click', function(){
+        calcModal.classList.remove('open');
+      });
+    }
   })();
   // Менеджер: створити картку клієнта в Канбані з поточного кошика
   (function(){

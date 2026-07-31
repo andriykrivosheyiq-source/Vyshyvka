@@ -2993,11 +2993,12 @@ function priceCalcHtml(o){
       Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
     if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);
     if(b.feeShare){
-      lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', b.feeShare + ' ₴']);
-      (b.sketches || []).forEach(sk=>{
-        lines.push(['Додатковий ескіз · ' + sk.fee + ' ₴ на ' + sk.units + ' шт',
-          Math.round(sk.fee / (sk.units || 1)) + ' ₴']);
-      });
+      // feeShare містить і базову разову, і ескізи. Базову показуємо як залишок,
+      // щоб рядки сходились із ціною за штуку, а ескізи не рахувались двічі.
+      const sk = (b.sketches || []).map(s=>({ s, share: Math.round(s.fee / (s.units || 1)) }));
+      const base = b.feeShare - sk.reduce((a,x)=>a + x.share, 0);
+      if(base > 0) lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', base + ' ₴']);
+      sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
     lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
