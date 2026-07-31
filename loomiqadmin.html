@@ -2980,9 +2980,11 @@ function priceCalcHtml(o){
     const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
     const lines = [];
     lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
-    if(b.appBase) lines.push(['Нанесення · ' + (it.print || '—'), b.appBase + ' ₴']);
-    if(pre > post) lines.push(['Знижка за тираж — ' + Math.round((1 - b.coef) * 100) +
-      '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
+    // DTF: знижка за тираж уже в ціні аркуша — окремим рядком не дублюємо
+    if(b.appBase) lines.push(['Нанесення · ' + (it.print || '—') +
+      (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' ₴']);
+    if(pre > post) lines.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
+      Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
     if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);
     if(b.feeShare){
       lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', b.feeShare + ' ₴']);
@@ -2991,7 +2993,6 @@ function priceCalcHtml(o){
           Math.round(sk.fee / (sk.units || 1)) + ' ₴']);
       });
     }
-    if(b.gridPriced) lines.push(['Ціна друку вже за тираж ' + b.groupQty + ' шт', '', 'note']);
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
     lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
     rows.push('<div class="t-calc-item"><div class="t-calc-name">' + escapeHtml(it.name || '—') + '</div>' +

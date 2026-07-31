@@ -8567,9 +8567,15 @@
     var pre = b.garmentBase + b.appBase;
     var post = b.garment + b.app;
     rows.push(['Виріб · ' + item.name, b.garmentBase + ' грн']);
-    if(b.appBase) rows.push(['Нанесення · ' + item.print, b.appBase + ' грн']);
+    // DTF: знижка за тираж уже всередині ціни аркуша, окремим рядком її не показуємо —
+    // інакше здається, що відсоток порахували не від тієї суми.
+    if(b.appBase){
+      rows.push(['Нанесення · ' + item.print +
+        (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' грн']);
+    }
     if(pre > post){
-      rows.push(['Знижка за тираж — ' + Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)',
+      rows.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
+                 Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)',
                  '−' + (pre - post) + ' грн', 'disc']);
     }
     if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
@@ -8583,7 +8589,6 @@
         });
       }
     }
-    if(b.gridPriced) rows.push(['Ціна друку вже за тираж ' + b.groupQty + ' шт', '', 'note']);
     return '<details class="cart-calc"><summary>Як склалась ціна</summary>' +
       '<div class="cart-calc-body">' +
         rows.map(function(r){
