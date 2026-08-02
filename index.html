@@ -1205,10 +1205,12 @@
     .pm-garment-list .pm-garment-item-ic{height:44px;flex:0 0 44px;}
     .pm-color-row .pm-color-list .pm-color-swatch{width:32px;height:32px;border-radius:16px;}
   }
-  /* Висоту диктує вміст: коли у вкладці лише два ряди плиток, тримати
-     порожні 118px немає сенсу — блок просто підтягується знизу. */
-  .pm-tab-panel.is-two{height:auto;min-height:0;max-height:34vh;align-items:flex-start;
-    overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 0;}
+  /* Висота однакова на всіх вкладках. Раніше її диктував вміст — і блок
+     стрибав щоразу, коли міняли виріб чи брали напис: «худі на застібці»
+     робить список довшим, і все під ним їхало. Ціна цього — трохи порожнього
+     місця на коротких вкладках; воно того варте. */
+  .pm-tab-panel.is-two{height:clamp(150px,20vh,176px);min-height:0;max-height:none;
+    align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 0;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
@@ -1257,8 +1259,9 @@
     -webkit-tap-highlight-color:transparent;}
   .pm-ts-sel.on{border-color:#111;}
   .pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-ts-selcol{width:auto;flex:none;padding:0 7px 0 6px;gap:5px;}
-  .pm-ts-selcol .pm-ts-sw{width:22px;height:22px;border-radius:11px;pointer-events:none;}
+  .pm-ts-selcol{width:auto;flex:0 1 auto;max-width:124px;padding:0 7px 0 6px;gap:5px;}
+  .pm-ts-selcol .pm-ts-sw{width:22px;height:22px;border-radius:11px;pointer-events:none;flex:none;}
+  .pm-ts-selcol span{font-size:13px;}
   .pm-ts-tog{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #e6e6e6;
     background:#fff;color:#111;font-size:16px;line-height:1;cursor:pointer;padding:0;
     font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
@@ -1277,18 +1280,13 @@
     overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;}
   .pm-ts-opt.on{background:#f2f3f5;}
   /* Кольори: свій екран замість смуги — базові зразки й палітра під пальцем */
-  .pm-ts-head{display:flex;align-items:center;gap:8px;}
-  .pm-ts-head b{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-    color:#a4abb5;}
-  .pm-ts-pal{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;
-    padding:4px 3px 0;margin-top:2px;}
-  .pm-ts-pal::-webkit-scrollbar{display:none;}
-  .pm-ts-pal .pm-ts-sw{width:26px;height:26px;border-radius:13px;}
-  .pm-ts-hex{flex:none;width:88px;height:26px;border:1px solid #e6e6e6;border-radius:8px;
-    padding:0 8px;font-size:12.5px;font-weight:600;color:#111;background:#fff;margin-left:auto;
-    font-family:"SFMono-Regular",Menlo,monospace;text-transform:uppercase;}
-  .pm-ts-hex:focus{outline:none;border-color:#111;}
-  .pm-ts-sv{position:relative;margin-top:6px;height:clamp(40px,6.4vh,68px);border-radius:10px;
+  .pm-ts-head{display:flex;align-items:center;gap:6px;}
+  /* Зразки стоять у тому самому рядку, що й стрілка: окремий ряд з'їдав висоту,
+     а прокрутка різала обвідку вибраного кружечка. */
+  .pm-ts-pal{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;
+    gap:4px;padding:4px 3px;}
+  .pm-ts-pal .pm-ts-sw{width:clamp(22px,7vw,28px);height:clamp(22px,7vw,28px);border-radius:14px;}
+  .pm-ts-sv{position:relative;margin-top:7px;height:clamp(56px,8.5vh,92px);border-radius:10px;
     cursor:crosshair;touch-action:none;}
   .pm-ts-dot{position:absolute;width:16px;height:16px;border-radius:9px;border:2px solid #fff;
     box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);
@@ -6483,10 +6481,29 @@
 
     // Кольори — реальні нитки й плівка, а не вільна палітра: клієнт обере
     // #7F3FBF, а такої нитки не існує, і замовлення стане на узгодженні.
-    var TEXT_COLORS = ['#ffffff', '#111111', '#8e8e93', '#c8102e', '#7a1220',
-                       '#f26b21', '#ffd400', '#0b3d91', '#1e88e5', '#00a3ad',
-                       '#1b7a43', '#7cb342', '#6a3da8', '#e75480', '#c9a227',
-                       '#6b4423'];
+    // Дев'ять зразків — рівно стільки, скільки стає в один рядок біля стрілки.
+    // Решта відтінків береться палітрою: гортати кружечки незручно.
+    var TEXT_COLORS = ['#ffffff', '#111111', '#8e8e93', '#c8102e', '#0b3d91',
+                       '#1e88e5', '#1b7a43', '#ffd400', '#c9a227'];
+    // Назви — щоб у панелі стояло «Червоний», а не «#C8102E». Для відтінку з
+    // палітри беремо найближчу назву: людині важливо, який це колір, а не код.
+    var COLOR_NAMES = [
+      ['#ffffff','Білий'], ['#f2f2f2','Молочний'], ['#111111','Чорний'],
+      ['#8e8e93','Сірий'], ['#4a4a4a','Графіт'], ['#c8102e','Червоний'],
+      ['#7a1220','Бордовий'], ['#f26b21','Помаранчевий'], ['#ffd400','Жовтий'],
+      ['#c9a227','Золотий'], ['#0b3d91','Темно-синій'], ['#1e88e5','Синій'],
+      ['#00a3ad','Бірюзовий'], ['#1b7a43','Зелений'], ['#7cb342','Салатовий'],
+      ['#6a3da8','Фіолетовий'], ['#e75480','Рожевий'], ['#6b4423','Коричневий']
+    ];
+    function colorName(hex){
+      var h = String(hex || '').toLowerCase(), best = COLOR_NAMES[0], bd = 1e9;
+      for(var i = 0; i < COLOR_NAMES.length; i++){
+        if(COLOR_NAMES[i][0] === h) return COLOR_NAMES[i][1];
+        var d = hexDist(h, COLOR_NAMES[i][0]);
+        if(d < bd){ bd = d; best = COLOR_NAMES[i]; }
+      }
+      return best[1];
+    }
     // Справжні гарнітури під власними назвами: «Montserrat» людина впізнає з
     // макета, «Гротеск» — ні. Кожна в списку намальована сама собою.
     // Усі — з кирилицею, інакше український напис посипався б на латиницю.
@@ -6686,12 +6703,14 @@
     // цілком — перша ж літера її замінює, як у звичних конструкторах.
     function startTextEdit(layer){
       if(!layer || !layer.text) return;
+      var again = pm.textEdit === layer.id;
       pm.textEdit = layer.id;
       renderLogoLayers();
       var el = pmLogoLayers.querySelector('.pm-dl-text[data-tid="'+layer.id+'"]');
       if(!el) return;
       el.classList.add('is-edit');
       el.focus({ preventScroll:true });
+      if(again) return;          // уже правимо — каретку не чіпаємо
       if(layer.textPristine){
         try{ var r = document.createRange(); r.selectNodeContents(el);
              var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(e){}
@@ -6776,7 +6795,8 @@
         '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
           'style="font-style:italic" aria-label="Курсив">I</button>' +
         '<button class="pm-ts-sel pm-ts-selcol" id="pmTsColor" aria-label="Колір напису">' +
-          '<b class="pm-ts-sw" style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b>' + TS_CHEV +
+          '<b class="pm-ts-sw" style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b>' +
+          '<span>' + colorName(sp.color || TEXT_COLORS[0]) + '</span>' + TS_CHEV +
         '</button>' +
       '</div>';
       if(msg) h += '<div class="pm-ts-warn">' + msg + '</div>';
@@ -6790,14 +6810,11 @@
       return '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts-head">' +
           '<button class="pm-ts-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '</button>' +
-          '<b>Колір напису</b>' +
-          '<input class="pm-ts-hex" id="pmTsHex" value="' + cur.toUpperCase() + '" maxlength="7" ' +
-            'autocomplete="off" spellcheck="false" aria-label="HEX">' +
+          '<div class="pm-ts-pal">' + TEXT_COLORS.map(function(c){
+            return '<button class="pm-ts-sw' + (c === cur ? ' on' : '') + '" data-tc="' + c + '" ' +
+                   'style="background:' + c + '" aria-label="' + colorName(c) + '"></button>';
+          }).join('') + '</div>' +
         '</div>' +
-        '<div class="pm-ts-pal">' + TEXT_COLORS.map(function(c){
-          return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
-                 'style="background:' + c + '" aria-label="Колір"></button>';
-        }).join('') + '</div>' +
         '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
           '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
             ((1-hsv.v)*100).toFixed(1) + '%;background:' + cur + '"></i>' +
@@ -6823,11 +6840,11 @@
       }).join('');
       document.body.appendChild(d);
       var r = trig.getBoundingClientRect();
-      var w = Math.min(window.innerWidth - 20, Math.max(230, r.width));
+      var w = Math.min(window.innerWidth - 20, 208);   // назви короткі — ширше ні до чого
       d.style.left = Math.round(Math.min(Math.max(10, r.left), window.innerWidth - w - 10)) + 'px';
       d.style.width = Math.round(w) + 'px';
       d.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
-      d.style.maxHeight = Math.max(150, Math.min(360, r.top - 74)) + 'px';
+      d.style.maxHeight = Math.max(150, Math.min(300, r.top - 74)) + 'px';
       d.querySelectorAll('[data-tf]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.textDrop = null;                 // обрали шрифт — список закривається сам
@@ -7042,7 +7059,7 @@
       // після зміни розміру напис міг стати замалим для вишивки — попередження
       // рахується від міліметрів, тож має перерахуватись саме тут
       try{ syncTextBar(); }catch(e){}
-      if(edit && pm.textEdit !== edit.id) startTextEdit(edit); }
+      if(edit) startTextEdit(edit); }
       dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
@@ -7083,9 +7100,12 @@
     var pmLastTab = null;
     var tsLock = 0;
     function renderTabPanel(){
-      // Екран палітри під пальцем перебудовувати не можна — див. tsLock нижче
-      if(tsLock && pm.textScreen === 'colors') return;
+      // Екран палітри під пальцем перебудовувати не можна — див. tsLock нижче.
+      // Але тільки поки лишаємось на тій самій вкладці: кнопки вкладок ставлять
+      // pm.tab напряму, і без цієї умови «Товар» просто не малювався.
+      if(tsLock && pm.textScreen === 'colors' && pmLastTab === pm.tab) return;
       tsLock = 0;
+      if(pm.tab !== 'photo'){ pm.textScreen = null; pm.textDrop = null; }
       // зберігаємо позицію горизонтальної прокрутки списку, якщо вкладка не змінилась
       var sameTab = (pmLastTab === pm.tab);
       var prevList = sameTab ? pmTabPanel.querySelector('.pm-scroll-list') : null;
@@ -7367,6 +7387,9 @@
       });
       var tsCol = document.getElementById('pmTsColor');
       if(tsCol) tsCol.addEventListener('click', function(){
+        // Фокус із напису однаково злітає — знімаємо режим правки чесно,
+        // інакше повернення в набір потім не спрацьовувало.
+        stopTextEdit();
         pm.textDrop = null; pm.textScreen = 'colors';
         pm.pickColor = textSpec().color; renderTabPanel();
       });
@@ -7379,7 +7402,7 @@
       (function(){
         var sv = document.getElementById('pmTsSv');
         if(!sv) return;
-        var H = document.getElementById('pmTsH'), hx = document.getElementById('pmTsHex');
+        var H = document.getElementById('pmTsH');
         var dot = sv.querySelector('.pm-ts-dot');
         var cur = hexToHsv(pm.pickColor || textSpec().color || TEXT_COLORS[0]);
         var st = { h: +H.value, s: cur.s, v: cur.v };
@@ -7393,7 +7416,9 @@
           dot.style.left = (st.s*100).toFixed(1) + '%';
           dot.style.top = ((1-st.v)*100).toFixed(1) + '%';
           dot.style.background = hex;
-          hx.value = hex.toUpperCase();
+          pmTabPanel.querySelectorAll('.pm-ts-pal [data-tc]').forEach(function(b){
+            b.classList.toggle('on', b.dataset.tc === hex);
+          });
           textApply({ color: hex });      // видно одразу на виробі
         }
         function pick(e){
@@ -7421,24 +7446,19 @@
         sv.addEventListener('mousedown', down);
         sv.addEventListener('touchstart', down, {passive:false});
         H.addEventListener('input', function(){ st.h = +H.value; paint(); });
-        hx.addEventListener('input', function(){
-          var v = hx.value.trim();
-          if(v && v[0] !== '#') v = '#' + v;
-          if(!isHex(v)) return;
-          var c = hexToHsv(v);
-          st.h = c.h; st.s = c.s; st.v = c.v;
-          H.value = Math.round(c.h);
-          paint();
+        // Зразок не виводить з екрана: колір лягає на напис, а далі його ще
+        // можна довести палітрою — саме так люди й підбирають відтінок.
+        pmTabPanel.querySelectorAll('.pm-ts-pal [data-tc]').forEach(function(b){
+          b.addEventListener('click', function(){
+            var c = hexToHsv(b.dataset.tc);
+            st.h = c.h; st.s = c.s; st.v = c.v;
+            H.value = Math.round(c.h);
+            paint();
+          });
         });
       })();
       renderFontList();
-      pmTabPanel.querySelectorAll('[data-tc]').forEach(function(el){
-        el.addEventListener('click', function(){
-          tsLock = 0; pm.textScreen = null;        // обрали колір — вертаємось на основну панель
-          pm.pickColor = el.dataset.tc;
-          textApply({ color: el.dataset.tc }); renderTabPanel();
-        });
-      });
+
       var wayInfo = document.getElementById('pmWayInfo');
       if(wayInfo) wayInfo.addEventListener('click', function(){ pm.wayInfo = !pm.wayInfo; renderTabPanel(); });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
@@ -8463,6 +8483,10 @@
     // панель показує одне, а підсвічена вкладка — інше.
     function goTab(id){
       if(pm.tab === id) return;
+      // Пішли з «Дизайну» — екран кольору закривається разом із замком на
+      // перемальовування. Інакше панель лишалась замкненою на палітрі й інші
+      // вкладки просто не малювались.
+      tsLock = 0; pm.textScreen = null; pm.textDrop = null;
       pm.tab = id;
       var tabs = document.getElementById('pmTabs');
       if(tabs) tabs.querySelectorAll('.pm-tab').forEach(function(t){
