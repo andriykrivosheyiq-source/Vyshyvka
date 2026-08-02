@@ -8,6 +8,11 @@
 <meta http-equiv="Expires" content="0">
 <title>Loomiq — мерч для команди за 1 хв</title>
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+<!-- Шрифти для написів на виробі. Беремо ті, що реально впізнають на макетах,
+     і лише з кирилицею — інакше українські написи сипались би на латиницю. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@400;700&family=Lobster&family=Montserrat:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Roboto:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Rubik:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap">
 <link rel="dns-prefetch" href="https://res.cloudinary.com">
 <!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
 <link rel="preload" as="image" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
@@ -1226,66 +1231,64 @@
     border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
   .pm-bg-dot.on{background:#111;color:#fff;}
-  /* Напис як логотип */
-  /* Поле набору на макеті — тільки поле, нічого зайвого */
-  /* Поле стоїть унизу макета, а не вгорі: зверху його накриває шапка сайту,
-     а знизу воно ще й сусідить зі смугою оформлення — читається як одне ціле. */
-  .pm-textbar{position:absolute;left:12px;right:12px;bottom:52px;z-index:6;}
-  .pm-textbar[hidden]{display:none;}
-  .pm-textbar textarea{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:11px;
-    border:1.5px solid rgba(0,0,0,.14);background:rgba(255,255,255,.94);backdrop-filter:blur(6px);
-    font-family:var(--font-sf);font-size:15px;font-weight:600;color:#111;
-    resize:none;line-height:1.3;max-height:58px;overflow:hidden;
-    box-shadow:0 4px 14px rgba(0,0,0,.10);}
-  .pm-textbar textarea:focus{outline:none;border-color:#111;}
+  /* ═══ Напис ═══
+     Набір іде прямо в рамці на виробі: окремого поля під макетом немає,
+     щоб той самий текст не стояв у двох місцях. */
+  .pm-dl-text{position:absolute;inset:0;box-sizing:border-box;display:block;text-align:center;
+    white-space:pre;overflow:hidden;outline:none;
+    pointer-events:none;-webkit-user-select:text;user-select:text;
+    paint-order:stroke fill;}
+  .pm-dl-text.is-edit{pointer-events:auto;cursor:text;}
+  .pm-dl-text:empty::before{content:attr(data-ph);opacity:.45;}
 
   /* Смуга оформлення в блоці «Дизайн» — замість плиток, у ту саму висоту */
-  .pm-text-strip{padding:0 18px;}
-  .pm-ts{position:relative;display:flex;align-items:center;gap:7px;}
-  .pm-ts-back{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
-    background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  .pm-text-strip{padding:0 14px;}
+  .pm-ts-card{position:relative;background:#fff;border:1px solid #ececec;border-radius:14px;
+    padding:5px 7px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+  .pm-ts{display:flex;align-items:stretch;gap:4px;}
+  .pm-ts-div{flex:none;width:1px;background:#ededed;margin:2px 2px;}
+  .pm-ts-grp{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;}
+  .pm-ts-grp--font{flex:1;min-width:0;}
+  .pm-ts-row{display:flex;align-items:center;gap:4px;}
+  .pm-ts-cap{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.3px;
+    text-transform:uppercase;color:#a4abb5;white-space:nowrap;line-height:1;}
+  /* Попередження стає замість підписів: два додаткові рядки поспіль уже
+     виштовхували «Додати в кошик» за перший екран. */
+  .pm-ts-card.has-warn .pm-ts-cap{display:none;}
+  .pm-ts-back{flex:none;width:28px;height:28px;border-radius:9px;border:none;background:#f4f5f7;
+    color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    align-self:flex-start;-webkit-tap-highlight-color:transparent;padding:0;}
+  .pm-ts-sel{width:100%;min-width:0;height:28px;border-radius:9px;border:1px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:4px;
+    padding:0 8px;cursor:pointer;font-size:13.5px;color:#111;
     -webkit-tap-highlight-color:transparent;}
-  .pm-ts-sel{flex:1;min-width:0;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
-    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;
-    padding:0 10px;cursor:pointer;font-size:13.5px;-webkit-tap-highlight-color:transparent;}
   .pm-ts-sel.on{border-color:#111;}
   .pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-ts-sel i{flex:none;font-style:normal;color:#9aa3ad;font-size:11px;}
-  .pm-ts-tog{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
-    background:#fff;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;
-    font-family:var(--font-sf);}
+  .pm-ts-tog{flex:none;width:28px;height:28px;border-radius:9px;border:1px solid #e6e6e6;
+    background:#fff;color:#111;font-size:15px;line-height:1;cursor:pointer;padding:0;
+    font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
   .pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
-  .pm-ts-col{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
-    background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;}
-  .pm-ts-col.on{border-color:#111;}
-  .pm-ts-col b{display:block;width:18px;height:18px;border-radius:9px;border:1px solid rgba(0,0,0,.16);}
-  /* Другий ряд: список шрифтів або палітра — рівно на місці, де були плитки */
-  .pm-ts-drop{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:8;
-    display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;
-    padding:7px 8px;background:#fff;border:1.5px solid #ececec;border-radius:12px;
-    box-shadow:0 10px 26px rgba(0,0,0,.14);}
-  .pm-ts-drop::-webkit-scrollbar{display:none;}
-  .pm-ts-opt{flex:0 0 auto;border:1.5px solid #e6e6e6;background:#fff;border-radius:9px;
-    padding:6px 11px;font-size:13px;cursor:pointer;white-space:nowrap;
-    -webkit-tap-highlight-color:transparent;}
-  .pm-ts-opt.on{border-color:#111;background:#f5f6f8;font-weight:700;}
-  .pm-ts-sw{flex:0 0 auto;width:26px;height:26px;border-radius:13px;cursor:pointer;
-    border:1px solid rgba(0,0,0,.14);outline:2px solid transparent;outline-offset:2px;
+  .pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
+    border:1px solid rgba(0,0,0,.16);outline:2px solid transparent;outline-offset:2px;
     -webkit-tap-highlight-color:transparent;}
   .pm-ts-sw.on{outline-color:#111;}
-  .pm-ts-warn{margin-top:6px;font-size:11px;line-height:1.3;color:#8a5a00;
-    background:#fff6e0;border-radius:8px;padding:4px 9px;}
-  .pm-text-add{padding:8px 18px 0;display:flex;flex-direction:column;gap:6px;}
-  #pmTextInput{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #e6e6e6;
-    font-family:var(--font-sf);font-size:14px;font-weight:600;color:#111;background:#fff;}
-  #pmTextInput:focus{outline:none;border-color:#111;}
-  .pm-text-row{display:flex;align-items:center;gap:8px;}
-  .pm-text-sw{width:26px;height:26px;border-radius:13px;border:1px solid rgba(0,0,0,.12);cursor:pointer;
-    padding:0;flex:none;outline:2px solid transparent;outline-offset:2px;}
-  .pm-text-sw.on{outline-color:#111;}
-  .pm-text-go{margin-left:auto;border:none;background:#111;color:#fff;border-radius:999px;
-    padding:8px 16px;font-family:var(--font-sf);font-size:12px;font-weight:700;cursor:pointer;}
+  .pm-ts-more{flex:none;width:22px;height:22px;border-radius:11px;border:none;background:none;
+    color:#8b93a0;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-ts-more.on{color:#111;}
+  /* Список шрифтів / повна палітра спливають поверх панелі, а не розсувають її:
+     інакше «Додати в кошик» ішла за перший екран. */
+  .pm-ts-drop{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:8;
+    display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;
+    padding:7px 8px;background:#fff;border:1px solid #ececec;border-radius:12px;
+    box-shadow:0 10px 26px rgba(0,0,0,.14);}
+  .pm-ts-drop::-webkit-scrollbar{display:none;}
+  .pm-ts-opt{flex:0 0 auto;border:1px solid #e6e6e6;background:#fff;border-radius:9px;
+    padding:5px 11px;font-size:15px;line-height:1.25;cursor:pointer;white-space:nowrap;color:#111;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-ts-opt.on{border-color:#111;background:#f5f6f8;}
+  .pm-ts-warn{margin-top:4px;font-size:10.5px;line-height:1.25;color:#8a5a00;
+    background:#fff6e0;border-radius:7px;padding:3px 8px;}
   /* Спосіб нанесення: заголовок + розмір у тому самому рядку, під ним сегментна смуга */
   .pm-way-head{padding:14px 18px 6px;display:flex;align-items:center;gap:6px;}
   .pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
@@ -2979,9 +2982,6 @@
         <!-- На макеті — тільки поле для набору: людина друкує там, де бачить
              результат. Оформлення живе внизу, у блоці «Дизайн», щоб панель не
              закривала виріб і не питала «а в яке з двох полів писати». -->
-        <div class="pm-textbar" id="pmTextBar" hidden>
-          <textarea id="pmTextInput" rows="1" maxlength="56" placeholder="Ваш напис&#10;можна другим рядком" autocomplete="off"></textarea>
-        </div>
         <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
       </div>
     </div>
@@ -6105,15 +6105,63 @@
     var HANDLE_ROTATE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
     var HANDLE_SCALE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
 
+    // Розміри рамки шару — в одному місці: їх треба і при побудові, і при
+    // правці на місці, коли шар перебудовувати не можна (загубиться каретка).
+    function layerBox(layer){
+      var sz = Math.round(120 * layer.scale);
+      var ar = layer.ar || 1, bw = sz, bh = sz;
+      if(ar >= 1){ bh = Math.round(sz/ar); } else { bw = Math.round(sz*ar); }
+      return { w:bw, h:bh };
+    }
+    // Кегль живого напису рахується з тієї самої геометрії, що й PNG, тож
+    // текст у рамці стоїть точно там, де він буде на виробі.
+    function styleTextEl(el, sp, bh){
+      var lines = textLines(sp.t).length || 1;
+      var e = textEdge(sp);
+      var pngH = Math.ceil(TXT_FS * TXT_LH * lines) + TXT_PAD * 2 + e.w * 2;
+      var k = bh / pngH;
+      el.style.fontFamily = textFontCss(sp.font);
+      el.style.fontSize   = (TXT_FS * k).toFixed(2) + 'px';
+      el.style.lineHeight = TXT_LH;
+      el.style.fontWeight = sp.bold === false ? '600' : '800';
+      el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
+      el.style.color      = sp.color || TEXT_COLORS[0];
+      el.style.padding    = ((TXT_PAD + e.w) * k).toFixed(2) + 'px';
+      el.style.webkitTextStroke = e.w * k > 0.4 ? (e.w * k).toFixed(2) + 'px ' + e.color : '';
+      // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
+      // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
+      // що на екрані, збігається з тим, що піде у виробництво.
+      if(el.isConnected){
+        var cw = el.clientWidth, ch = el.clientHeight;
+        var sw = el.scrollWidth, sh = el.scrollHeight;
+        if(cw > 0 && ch > 0 && sw > 0 && sh > 0){
+          var fit = Math.min(cw / sw, ch / sh);
+          if(fit < 0.995) el.style.fontSize = (TXT_FS * k * fit).toFixed(2) + 'px';
+        }
+      }
+    }
     function renderLogoLayers(){
-      pmLogoLayers.innerHTML = '';
+      // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
+      // фокус і на телефоні згортає клавіатуру просто посеред набору.
+      var keepId = pm.textEdit;
+      Array.prototype.slice.call(pmLogoLayers.children).forEach(function(c){
+        if(keepId == null || Number(c.dataset.layerId) !== keepId) c.remove();
+      });
       currentLayers().forEach(function(layer){
         var active = pm.activeLogoId === layer.id;
         var rot = layer.rot || 0;
-        var sz = Math.round(120 * layer.scale);
-        var ar = layer.ar || 1;
-        var bw = sz, bh = sz;
-        if(ar >= 1){ bh = Math.round(sz/ar); } else { bw = Math.round(sz*ar); }
+        var box = layerBox(layer), bw = box.w, bh = box.h;
+        if(keepId != null && layer.id === keepId){
+          var ex = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
+          if(ex){
+            ex.style.width = bw + 'px'; ex.style.height = bh + 'px';
+            ex.style.zIndex = active ? 10 : 1;
+            ex.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
+            var tx = ex.querySelector('.pm-dl-text');
+            if(tx && layer.text) styleTextEl(tx, layer.text, bh);
+            return;
+          }
+        }
         var el = document.createElement('div');
         el.className = 'pm-draggable-layer';
         el.dataset.layerId = layer.id;
@@ -6121,14 +6169,21 @@
         el.style.height = bh + 'px';
         el.style.zIndex = active ? 10 : 1;
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
+        var inner = layer.text
+          ? '<div class="pm-dl-text' + (keepId === layer.id ? ' is-edit' : '') + '" data-tid="' + layer.id + '" ' +
+            'data-ph="Ваш напис" spellcheck="false" contenteditable="plaintext-only">' +
+            escAttr(layer.text.t || '') + '</div>'
+          : '<img src="'+layer.url+'" alt="">';
         el.innerHTML =
-          '<div class="pm-dl-img"><img src="'+layer.url+'" alt="">' + (active ? '<div class="pm-dl-outline"></div>' : '') + '</div>' +
+          '<div class="pm-dl-img">' + inner + (active ? '<div class="pm-dl-outline"></div>' : '') + '</div>' +
           (active ?
             '<div class="pm-dl-handle pm-dl-handle--delete" data-handle="delete">'+HANDLE_DELETE_SVG+'</div>' +
             '<div class="pm-dl-handle pm-dl-handle--rotate" data-handle="rotate">'+HANDLE_ROTATE_SVG+'</div>' +
             '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>'
           : '');
         pmLogoLayers.appendChild(el);
+        var te = el.querySelector('.pm-dl-text');
+        if(te){ styleTextEl(te, layer.text, bh); bindTextEl(te, layer); }
 
         el.querySelector('.pm-dl-img').addEventListener('mousedown', function(e){ onImgDown(e, layer); });
         el.querySelector('.pm-dl-img').addEventListener('touchstart', function(e){ onImgDown(e, layer); }, {passive:false});
@@ -6420,18 +6475,39 @@
     var TEXT_COLORS = ['#111111', '#ffffff', '#c8a24a', '#b8912f', '#c0392b',
                        '#8b1a1a', '#1f4e8c', '#2d5a27', '#5a9e8a', '#d4607a',
                        '#8a8a8a', '#5c4a34'];
-    // Назви за характером, а не за гарнітурою: «Inter» клієнту нічого не каже.
+    // Справжні гарнітури під власними назвами: «Montserrat» людина впізнає з
+    // макета, «Гротеск» — ні. Кожна в списку намальована сама собою.
+    // Усі — з кирилицею, інакше український напис посипався б на латиницю.
     var TEXT_FONTS = [
-      { id:'grotesk', name:'Гротеск',    css:'var(--font-sf)' },
-      { id:'serif',   name:'Класичний',  css:'Georgia,"Times New Roman",serif' },
-      { id:'poster',  name:'Плакатний',  css:'"Arial Black","Helvetica Neue",Impact,sans-serif' },
-      { id:'mono',    name:'Моно',       css:'"Courier New",monospace' },
-      { id:'hand',    name:'Рукописний', css:'"Caveat","Segoe Script","Brush Script MT",cursive' }
+      { id:'montserrat', name:'Montserrat',       web:'Montserrat',        css:'"Montserrat",__SF__' },
+      { id:'oswald',     name:'Oswald',           web:'Oswald',            css:'"Oswald",__SF__' },
+      { id:'bebas',      name:'Bebas Neue',       web:'Bebas Neue',        css:'"Bebas Neue",Impact,__SF__' },
+      { id:'roboto',     name:'Roboto',           web:'Roboto',            css:'"Roboto",__SF__' },
+      { id:'playfair',   name:'Playfair Display', web:'Playfair Display',  css:'"Playfair Display",Georgia,serif' },
+      { id:'rubik',      name:'Rubik',            web:'Rubik',             css:'"Rubik",__SF__' },
+      { id:'lobster',    name:'Lobster',          web:'Lobster',           css:'"Lobster",cursive' },
+      { id:'caveat',     name:'Caveat',           web:'Caveat',            css:'"Caveat","Segoe Script",cursive' }
     ];
+    function textFont(id){
+      return TEXT_FONTS.filter(function(x){ return x.id === id; })[0] || TEXT_FONTS[0];
+    }
     function textFontCss(id){
-      var f = TEXT_FONTS.filter(function(x){ return x.id === id; })[0] || TEXT_FONTS[0];
-      return f.css === 'var(--font-sf)'
-        ? getComputedStyle(document.body).fontFamily : f.css;
+      return textFont(id).css.replace('__SF__', getComputedStyle(document.body).fontFamily);
+    }
+    // Canvas міряє напис ДО того, як шрифт доїхав, і бере запасну гарнітуру —
+    // тоді рамка не збігається з тим, що видно. Тому чекаємо на завантаження.
+    var TEXT_FONTS_READY = false;
+    function loadTextFonts(){
+      if(TEXT_FONTS_READY || !document.fonts) return Promise.resolve();
+      var jobs = [];
+      TEXT_FONTS.forEach(function(f){
+        if(!f.web) return;
+        ['400 200px ', '800 200px ', 'italic 800 200px '].forEach(function(pre){
+          try{ jobs.push(document.fonts.load(pre + '"' + f.web + '"', 'Абв Abc')); }catch(e){}
+        });
+      });
+      return Promise.all(jobs).then(function(){ TEXT_FONTS_READY = true; })
+        .catch(function(){ TEXT_FONTS_READY = true; });
     }
     // Яскравість кольору 0..1 — за нею вирішуємо, темний текст чи світлий
     function hexLum(hex){
@@ -6456,12 +6532,26 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
     // Малюємо напис у canvas. До двох рядків: найчастіший корпоративний напис —
     // назва плюс дрібніший підпис під нею, одним рядком це не зробити.
+    // Геометрію напису тримаємо в одному місці: за нею і canvas малює PNG,
+    // і жива рамка на виробі рахує кегль. Розійдуться — текст «поїде».
+    var TXT_FS = 200, TXT_PAD = 28, TXT_LH = 1.18;
+    function textLines(t){
+      return String(t || '').split('\n').map(function(x){ return x.trim(); })
+               .filter(Boolean).slice(0, 2);
+    }
+    // Обводка потрібна лише коли колір напису зливається з виробом. Чорний
+    // текст на білій футболці в обводці виглядає дешево — тому не завжди.
+    function textEdge(sp){
+      var col = (sp && sp.color) || TEXT_COLORS[0];
+      var g = (getColor() || {}).hex || '#ffffff';
+      if(hexDist(col, g) >= 0.22) return { w:0, color:'' };
+      return { w: Math.round(TXT_FS * 0.055), color: hexLum(col) > 0.55 ? '#1a1a1a' : '#ffffff' };
+    }
     function textToPng(sp){
       sp = sp || {};
-      var lines = String(sp.t || '').split('\n').map(function(x){ return x.trim(); })
-                    .filter(Boolean).slice(0, 2);
+      var lines = textLines(sp.t);
       if(!lines.length) return null;
-      var FS = 200, PAD = 28, LH = 1.18;
+      var FS = TXT_FS, PAD = TXT_PAD, LH = TXT_LH;
       var weight = sp.bold === false ? '600' : '800';
       var style = sp.italic ? 'italic ' : '';
       var font = style + weight + ' ' + FS + 'px ' + textFontCss(sp.font);
@@ -6469,13 +6559,8 @@
       m.font = font;
       var w = 0;
       lines.forEach(function(l){ w = Math.max(w, Math.ceil(m.measureText(l).width)); });
-      // Обводка потрібна лише коли колір напису зливається з виробом. Чорний
-      // текст на білій футболці в обводці виглядає дешево — тому не завжди.
       var col = sp.color || TEXT_COLORS[0];
-      var g = (getColor() || {}).hex || '#ffffff';
-      var needEdge = hexDist(col, g) < 0.22;
-      var edge = hexLum(col) > 0.55 ? '#1a1a1a' : '#ffffff';
-      var lw = needEdge ? Math.round(FS * 0.055) : 0;
+      var e = textEdge(sp), edge = e.color, lw = e.w;
 
       var c = document.createElement('canvas');
       c.width  = Math.max(2, w + PAD * 2 + lw * 2);
@@ -6493,27 +6578,32 @@
       return c.toDataURL('image/png');
     }
     // Створити напис як шар. Колір підбирається під виріб, далі його можна змінити.
-    function addTextLayer(){
-      var inp = document.getElementById('pmTextInput');
-      var t = inp ? inp.value : (pm.textDraft || '');
-      if(!String(t || '').trim()){ if(inp) inp.focus(); return; }
-      var sp = { t: t, font: pm.textFont || TEXT_FONTS[0].id,
+    // Напис одразу стає на виріб із зразком тексту — його ж і правлять на місці.
+    var TEXT_PLACEHOLDER = 'Ваш напис';
+    function addTextLayer(initial){
+      var sp = { t: initial || TEXT_PLACEHOLDER, font: pm.textFont || TEXT_FONTS[0].id,
                  color: pm.textColor || autoTextColor(), bold: true, italic: false };
       var url = textToPng(sp);
-      if(!url) return;
+      if(!url) return null;
       addLogo(url, url, sp);       // фон уже прозорий — видаляти нічого
+      var l = findLayerAnySide(pm.activeLogoId);
+      // Поки напис не чіпали — це заготовка: підеш назад, і вона зникне сама,
+      // щоб «Ваш напис» не поїхав у виробництво.
+      if(l) l.textPristine = !initial;
       pm.textDraft = ''; pm.textOpen = false;
+      return l;
     }
     // Змінили напис/шрифт/колір — перемальовуємо ту саму картинку на місці.
     // Позиція, масштаб і поворот лишаються: людина вже поставила напис як хотіла.
     function updateTextLayer(layer, patch){
       if(!layer || !layer.text) return;
       Object.keys(patch || {}).forEach(function(k){ layer.text[k] = patch[k]; });
+      if(patch && patch.t != null) layer.textPristine = false;
       var url = textToPng(layer.text);
       if(!url) return;
       layer.origUrl = layer.cleanUrl = layer.url = url;
       measureLayerShape(layer, url).then(function(){
-        renderGarment(); renderTabPanel(); updatePriceBar(); syncTextBar();
+        renderLogoLayers(); renderTabPanel(); updatePriceBar();
       }).catch(function(){});
       renderLogoLayers(); updatePriceBar();
     }
@@ -6522,10 +6612,98 @@
       return (l && l.text) ? l : null;
     }
 
+    /* ── Правка напису прямо в рамці ──────────────────────────────────── */
+    function bindTextEl(el, layer){
+      el.addEventListener('input', function(){
+        var t = el.innerText.replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
+        // Два рядки — стеля: третій уже не напис, а абзац, і на виробі не читається
+        var ls = t.split('\n');
+        if(ls.length > 2){
+          t = ls.slice(0, 2).join('\n');
+          el.textContent = t;
+          textSetCaret(el, t.length);
+        }
+        layer.text.t = t; layer.textPristine = false;
+        var url = textToPng(layer.text);
+        if(!url) return;
+        layer.origUrl = layer.cleanUrl = layer.url = url;
+        measureLayerShape(layer, url).then(function(){
+          var host = el.closest('.pm-draggable-layer');
+          if(host){
+            var b = layerBox(layer);
+            host.style.width = b.w + 'px'; host.style.height = b.h + 'px';
+            styleTextEl(el, layer.text, b.h);
+          }
+          renderTabPanel(); updatePriceBar();
+        }).catch(function(){});
+      });
+      el.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter') return;
+        e.preventDefault();
+        // Другий рядок — стеля: третій уже не напис, а абзац
+        if(el.innerText.replace(/[\n\u200b]+$/, '').indexOf('\n') >= 0) return;
+        // Порожній другий рядок браузер не малює, і каретка зістрибує назад
+        // — тримаємо його невидимим символом, який у текст напису не йде.
+        try{ document.execCommand('insertText', false, '\n\u200b'); }catch(err){}
+      });
+      el.addEventListener('mousedown', function(e){ if(pm.textEdit === layer.id) e.stopPropagation(); });
+      el.addEventListener('touchstart', function(e){ if(pm.textEdit === layer.id) e.stopPropagation(); });
+    }
+    function textSetCaret(el, pos){
+      try{
+        var walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, left = pos, r = document.createRange();
+        while((n = walk.nextNode())){
+          if(left <= n.nodeValue.length){ r.setStart(n, left); r.collapse(true); break; }
+          left -= n.nodeValue.length;
+          r = null;
+        }
+        if(!r){ r = document.createRange(); r.selectNodeContents(el); r.collapse(false); }
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      }catch(e){}
+    }
+    // Взяти напис у правку: клавіатура, каретка в кінці. Заготовку виділяємо
+    // цілком — перша ж літера її замінює, як у звичних конструкторах.
+    function startTextEdit(layer){
+      if(!layer || !layer.text) return;
+      pm.textEdit = layer.id;
+      renderLogoLayers();
+      var el = pmLogoLayers.querySelector('.pm-dl-text[data-tid="'+layer.id+'"]');
+      if(!el) return;
+      el.classList.add('is-edit');
+      el.focus({ preventScroll:true });
+      if(layer.textPristine){
+        try{ var r = document.createRange(); r.selectNodeContents(el);
+             var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }catch(e){}
+      } else {
+        textSetCaret(el, (layer.text.t || '').length);
+      }
+    }
+    function stopTextEdit(){
+      if(pm.textEdit == null) return;
+      pm.textEdit = null;
+      var el = pmLogoLayers.querySelector('.pm-dl-text.is-edit');
+      if(el){ el.classList.remove('is-edit'); el.blur(); }
+    }
+    // Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
+    // нікому не потрібен, а платити за нього тим більше.
+    function dropPristineText(){
+      var out = false;
+      getViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          if(l.text && l.textPristine){ out = true; }
+        });
+      });
+      if(!out) return false;
+      getViews().forEach(function(side){
+        pm.logos[side] = (pm.logos[side] || []).filter(function(l){ return !(l.text && l.textPristine); });
+      });
+      if(!findLayerAnySide(pm.activeLogoId)) pm.activeLogoId = null;
+      return true;
+    }
+
     /* ── Панель напису над макетом ─────────────────────────────────────── */
     // Одна панель на два випадки: створення нового напису і правка наявного.
     // Різниця лише в тому, куди йдуть зміни — у чернетку чи одразу в шар.
-    var pmTextBar = document.getElementById('pmTextBar');
     function textSpec(){
       var l = activeTextLayer();
       if(l) return l.text;
@@ -6533,14 +6711,11 @@
                color: pm.textColor || autoTextColor(), bold: true, italic: false };
     }
     function textApply(patch){
-      var l = activeTextLayer();
-      if(l){ updateTextLayer(l, patch); return; }
-      if(patch.t != null) pm.textDraft = patch.t;
+      // Вибір запам'ятовуємо: наступний напис має початись там само, де скінчився попередній
       if(patch.font) pm.textFont = patch.font;
       if(patch.color) pm.textColor = patch.color;
-      if(patch.bold != null) pm.textBold = patch.bold;
-      if(patch.italic != null) pm.textItalic = patch.italic;
-      syncTextBar();
+      var l = activeTextLayer();
+      if(l) updateTextLayer(l, patch);
     }
     // Вишивка не бере дрібний текст: нижче ~5 мм літера збивається в кашу.
     // Краще сказати про це тут, ніж переробляти партію за свій рахунок.
@@ -6556,93 +6731,85 @@
              EMB_MIN_LETTER_MM + ' мм. Збільште напис.';
     }
     function textMode(){ return !!(pm.textOpen || activeTextLayer()); }
-    // Смуга оформлення в блоці «Дизайн»: шрифт, жирність, нахил, колір.
-    // Другий ряд відкривається лише за потреби — щоб смуга влізла у ту саму
-    // висоту, що й плитки, і кнопка «В кошик» не пішла нижче першого екрана.
+    var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+    var TS_MORE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+    // Смуга оформлення в блоці «Дизайн»: шрифт, накреслення, колір — з підписами,
+    // щоб було видно, що саме тут міняють. Набір іде в самій рамці на виробі.
     function textStripHtml(){
       var sp = textSpec();
-      var f = TEXT_FONTS.filter(function(x){ return x.id === sp.font; })[0] || TEXT_FONTS[0];
-      var h = '<div class="pm-text-strip"><div class="pm-ts">' +
-        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' +
-          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' +
-        '</button>' +
-        '<button class="pm-ts-sel' + (pm.textDrop === 'font' ? ' on' : '') + '" data-tsdrop="font" ' +
-          'style="font-family:' + f.css + '"><span>' + f.name + '</span><i>▾</i></button>' +
-        '<button class="pm-ts-tog' + (sp.bold !== false ? ' on' : '') + '" id="pmTsBold" ' +
-          'style="font-weight:800" aria-label="Жирний">Ж</button>' +
-        '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
-          'style="font-style:italic" aria-label="Нахил">К</button>' +
-        '<button class="pm-ts-col' + (pm.textDrop === 'color' ? ' on' : '') + '" data-tsdrop="color" ' +
-          'aria-label="Колір напису"><b style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b></button>';
+      var f = textFont(sp.font);
+      function sw(c){
+        return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
+               'style="background:' + c + '" aria-label="Колір"></button>';
+      }
+      // Два кольори напохваті — чорний і білий: на 9 із 10 виробів беруть саме їх.
+      var quick = ['#111111', '#ffffff'];
+      if(quick.indexOf(sp.color) === -1) quick = [sp.color, '#111111'];
+      var msg = textWarnHtml();
+      var h = '<div class="pm-text-strip"><div class="pm-ts-card' + (msg ? ' has-warn' : '') + '">' +
+        '<div class="pm-ts">' +
+        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK + '</button>' +
+        '<div class="pm-ts-div"></div>' +
+        '<div class="pm-ts-grp pm-ts-grp--font">' +
+          '<button class="pm-ts-sel' + (pm.textDrop === 'font' ? ' on' : '') + '" data-tsdrop="font" ' +
+            'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
+            '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
+          '<i class="pm-ts-cap">Шрифт</i>' +
+        '</div>' +
+        '<div class="pm-ts-div"></div>' +
+        '<div class="pm-ts-grp"><div class="pm-ts-row">' +
+          '<button class="pm-ts-tog' + (sp.bold !== false ? ' on' : '') + '" id="pmTsBold" ' +
+            'style="font-weight:700" aria-label="Жирний">B</button>' +
+          '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
+            'style="font-style:italic" aria-label="Курсив">I</button>' +
+        '</div><i class="pm-ts-cap">Накреслення</i></div>' +
+        '<div class="pm-ts-div"></div>' +
+        '<div class="pm-ts-grp"><div class="pm-ts-row">' + quick.map(sw).join('') +
+          '<button class="pm-ts-more' + (pm.textDrop === 'color' ? ' on' : '') + '" data-tsdrop="color" ' +
+            'aria-label="Більше кольорів">' + TS_MORE + '</button>' +
+        '</div><i class="pm-ts-cap">Колір</i></div>' +
+      '</div>';
       if(pm.textDrop === 'font'){
         h += '<div class="pm-ts-drop">' + TEXT_FONTS.map(function(x){
           return '<button class="pm-ts-opt' + (x.id === sp.font ? ' on' : '') + '" data-tf="' + x.id + '" ' +
-                 'style="font-family:' + x.css + '">' + x.name + '</button>';
+                 'style="font-family:' + x.css.replace('__SF__', 'inherit') + '">' + x.name + '</button>';
         }).join('') + '</div>';
       } else if(pm.textDrop === 'color'){
-        h += '<div class="pm-ts-drop">' + TEXT_COLORS.map(function(c){
-          return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
-                 'style="background:' + c + '"></button>';
-        }).join('') + '</div>';
+        h += '<div class="pm-ts-drop">' + TEXT_COLORS.map(sw).join('') + '</div>';
       }
-      h += '</div>';
-      var msg = textWarnHtml();
       if(msg) h += '<div class="pm-ts-warn">' + msg + '</div>';
-      return h + '</div>';
+      return h + '</div></div>';
     }
-    // На макеті лишається тільки поле набору — решта живе у смузі «Дизайну»,
-    // щоб напис не був підписаний двічі й не закривав сам виріб.
+    // Від поля під макетом лишилась тільки перевірка режиму: вийшли з «Дизайну»
+    // або з напису — правку в рамці треба закрити, щоб каретка не зависла.
     function syncTextBar(){
-      if(!pmTextBar) return;
-      var open = textMode() && pm.tab === 'photo';
-      pmTextBar.hidden = !open;
-      if(!open) return;
-      var sp = textSpec();
-      var inp = document.getElementById('pmTextInput');
-      if(inp && inp.value !== sp.t){
-        inp.value = sp.t || '';
-        inp.rows = inp.value.indexOf('\n') >= 0 ? 2 : 1;
-      }
+      if(pm.textEdit != null && (!textMode() || pm.tab !== 'photo')) stopTextEdit();
     }
     function openTextBar(layer){
-      if(layer){ pm.activeLogoId = layer.id; pm.textOpen = false; }
-      else { pm.textOpen = true; pm.activeLogoId = null; }
       pm.textDrop = null;
       goTab('photo');
-      renderTabPanel(); syncTextBar();
-      var i = document.getElementById('pmTextInput');
-      if(i) setTimeout(function(){ i.focus(); }, 40);
+      if(!layer) layer = addTextLayer();      // напис одразу на виробі
+      if(!layer) return;
+      pm.activeLogoId = layer.id; pm.textOpen = false;
+      renderTabPanel();
+      startTextEdit(layer);
+      // Шрифт міг ще не доїхати — тоді canvas міряв запасну гарнітуру.
+      loadTextFonts().then(function(){
+        var l = findLayerAnySide(pm.activeLogoId);
+        if(l && l.text) updateTextLayer(l, {});
+      });
     }
     function closeTextBar(){
+      stopTextEdit();
       pm.textOpen = false; pm.textDrop = null;
+      var dropped = dropPristineText();
       if(activeTextLayer()) pm.activeLogoId = null;
-      renderGarment(); renderTabPanel(); syncTextBar();
-    }
-    if(pmTextBar){
-      var tIn = document.getElementById('pmTextInput');
-      tIn.addEventListener('input', function(){
-        // Два рядки — стеля: третій уже не напис, а абзац, і на виробі не читається
-        var lines = tIn.value.split('\n');
-        if(lines.length > 2){ tIn.value = lines.slice(0, 2).join('\n'); }
-        tIn.rows = tIn.value.indexOf('\n') >= 0 ? 2 : 1;
-        var has = !!tIn.value.trim(), l = activeTextLayer();
-        // Кнопки «Додати» більше немає: напис стає шаром із першої ж літери,
-        // і людина одразу бачить його на виробі, а не після зайвого кроку.
-        if(!l && has){ pm.textDraft = tIn.value; addTextLayer(); return; }
-        // Стерли все — прибираємо шар, але з режиму не виходимо: можливо,
-        // просто переписують напис заново.
-        if(l && !has){
-          removeLogo(l.id);
-          pm.textOpen = true; pm.textDraft = '';
-          renderTabPanel(); syncTextBar();
-          return;
-        }
-        textApply({ t: tIn.value });
-      });
-      tIn.addEventListener('keydown', function(e){
-        // Enter дає другий рядок, поки він вільний; далі — нічого
-        if(e.key === 'Enter' && tIn.value.indexOf('\n') >= 0) e.preventDefault();
-      });
+      renderGarment(); renderTabPanel();
+      if(dropped) updatePriceBar();
     }
     function addLogo(origUrl, cleanUrl, textSpec){
       var hasClean = !!cleanUrl;
@@ -6723,7 +6890,8 @@
         dlState = {mode:'pinch', layer:layer, el:el, startDist:touchDist(e), startScale:layer.scale};
       } else {
         var p = getXY(e);
-        dlState = {mode:'drag', layer:layer, el:el, startX:p.x, startY:p.y, startLX:layer.x, startLY:layer.y};
+        dlState = {mode:'drag', layer:layer, el:el, startX:p.x, startY:p.y,
+                   startLX:layer.x, startLY:layer.y, moved:false, wasActive:wasActive};
       }
     }
     function onScaleDown(e, layer){
@@ -6748,6 +6916,7 @@
       var p = getXY(e);
       var layer = dlState.layer;
       if(dlState.mode === 'drag'){
+        if(Math.abs(p.x - dlState.startX) > 5 || Math.abs(p.y - dlState.startY) > 5) dlState.moved = true;
         var z = garmentZoom();   // компенсуємо зум мокапа, щоб лого рухалось за пальцем 1:1
         layer.x = dlState.startLX + (p.x - dlState.startX)/z;
         layer.y = dlState.startLY + (p.y - dlState.startY)/z;
@@ -6768,11 +6937,19 @@
       try{ renderPrintArea(); }catch(e){}               // зона нанесення реагує наживо (червоніє за межами)
       if(dlState.mode === 'scale' || dlState.mode === 'pinch') updatePriceLive();   // легке оновлення ціни наживо
     }
+    var dlGuard = 0;
     function onDlUp(){ if(dlState.mode){ if(pmTabPanel) pmTabPanel.style.display = '';
+      // Палець відривається вже поза рамкою — і клік летить у фон, знімаючи
+      // виділення. Після жесту фон коротко не слухає.
+      dlGuard = 1; setTimeout(function(){ dlGuard = 0; }, 350);
+      // Тап без руху по вже виділеному напису — це намір його переписати.
+      var edit = (dlState.mode === 'drag' && !dlState.moved && dlState.wasActive &&
+                  dlState.layer && dlState.layer.text) ? dlState.layer : null;
       renderLogoLayers(); renderTabPanel();
       // після зміни розміру напис міг стати замалим для вишивки — попередження
       // рахується від міліметрів, тож має перерахуватись саме тут
-      try{ syncTextBar(); }catch(e){} }
+      try{ syncTextBar(); }catch(e){}
+      if(edit && pm.textEdit !== edit.id) startTextEdit(edit); }
       dlState = {mode:null}; unlockScroll(); }
     window.addEventListener('mousemove', onDlMove, {passive:false});
     window.addEventListener('touchmove', onDlMove, {passive:false});
@@ -6782,16 +6959,20 @@
     // Deselect active layer when tapping the garment background
     document.getElementById('pmGarmentWrap').addEventListener('click', function(e){
       if(e.target.closest('.pm-draggable-layer')) return;
-      // Панель напису лежить усередині макета, тож клік по шрифту чи кольору
-      // теж спливає сюди. Без цієї перевірки редагування знімало виділення
-      // шару на першому ж дотику — і правити ставало нічого.
-      if(e.target.closest('.pm-textbar')) return;
+      if(dlGuard) return;
       if(pm.activeLogoId !== null){
         var wasText = !!activeTextLayer();
-        pm.activeLogoId = null; renderLogoLayers(); syncTextBar();
+        stopTextEdit();
         // Знявши виділення з напису, виходимо і з режиму оформлення — інакше
         // у «Дизайні» лишалась смуга без напису, до якого вона належала.
-        if(wasText){ pm.textDrop = null; renderTabPanel(); }
+        if(wasText){
+          pm.textDrop = null;
+          var dropped = dropPristineText();
+          pm.activeLogoId = null; renderLogoLayers(); renderTabPanel();
+          if(dropped) updatePriceBar();
+          return;
+        }
+        pm.activeLogoId = null; renderLogoLayers();
       }
     });
 
@@ -8191,7 +8372,7 @@
       pm.colorPicked = false;   // новий товар — колір ще не обирали
       pm.tab = 'photo';
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
-      pm.textDrop = null;
+      pm.textDrop = null; pm.textEdit = null;
       pm.editing = false;      // звичайне відкриття картки — не редагування
       window.__pmEditIndex = null;
       try{ syncAddLabels(); }catch(e){}
