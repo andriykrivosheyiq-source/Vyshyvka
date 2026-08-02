@@ -195,6 +195,13 @@
 
   .technique-block{border:1px solid var(--line);border-radius:12px;padding:14px;}
   .technique-block h3{font-size:13.5px;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .sp-kindbar{display:flex;align-items:center;gap:8px;margin:16px 0 12px;padding-top:14px;
+    border-top:1px dashed var(--line);flex-wrap:wrap;}
+  .sp-kb-lab{font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-right:2px;}
+  .sp-kb{border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:6px 14px;
+    font:inherit;font-size:13px;cursor:pointer;}
+  .sp-kb.on{border-color:var(--ink,#111);background:#f4f5f7;font-weight:700;}
+  .sp-kind[hidden]{display:none;}
   .tl-divider{font-size:11.5px;font-weight:600;color:var(--ink-soft);margin:14px 0 10px;padding-top:12px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:6px;}
   .tl-tiers-label{font-size:11px;color:#9AA5B5;margin-bottom:8px;}
   .dot{width:8px;height:8px;border-radius:50%;}
@@ -676,6 +683,12 @@
           <div class="sub" style="margin-bottom:10px;">Рядки — тираж, стовпці — розмір листа (Ш×В, см). Логотип потрапляє в найменший лист, у який вписується його прямокутник (з поворотом): напр. 10×40 см не влазить в A4 (30 см), тож іде в A3. У кожній клітинці два поля: <b>С</b> — собівартість від підрядника, <b>Ц</b> — продажна ціна для клієнта (вписуєш сам, без множників).</div>
           <div id="sp-dtf-grid" style="overflow-x:auto;margin-bottom:8px;"></div>
           <div class="add-row-btn" id="sp-dtf-row-add" style="margin-bottom:12px;">+ додати рядок (тираж)</div>
+          <div class="sp-kindbar" data-for="dtf">
+            <span class="sp-kb-lab">Ціни за видом нанесення</span>
+            <button type="button" class="sp-kb on" data-kb="dtf:img">Картинка</button>
+            <button type="button" class="sp-kb" data-kb="dtf:txt">Текст</button>
+          </div>
+          <div class="sp-kind" data-kind="dtf:img">
           <div class="tl-divider">Оплата за замовлення (разова: дизайн, відправка) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">За замовлення — ціна, грн
@@ -693,6 +706,28 @@
             <label class="field">Додатковий ескіз — собівартість, грн
               <input type="number" step="1" min="0" id="sp-dtf-sketchcost" placeholder="0">
             </label>
+          </div>
+          </div>
+          <div class="sp-kind" data-kind="dtf:txt" hidden>
+            <div class="sub" style="margin-bottom:10px;">Порожнє поле = «як у картинки». Заповнюйте лише те, що для написів справді інше.</div>
+            <div class="tl-divider">Оплата за замовлення (разова) — ціна / собівартість</div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">За замовлення — ціна, грн
+                <input type="number" step="1" min="0" id="sp-dtftxt-orderfee" placeholder="як у картинки">
+              </label>
+              <label class="field">За замовлення — собівартість, грн
+                <input type="number" step="1" min="0" id="sp-dtftxt-ordercost" placeholder="як у картинки">
+              </label>
+            </div>
+            <div class="tl-divider">Додатковий ескіз (за кожен ДОДАТКОВИЙ напис) — ціна / собівартість</div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Додатковий ескіз — ціна, грн
+                <input type="number" step="1" min="0" id="sp-dtftxt-sketchfee" placeholder="як у картинки">
+              </label>
+              <label class="field">Додатковий ескіз — собівартість, грн
+                <input type="number" step="1" min="0" id="sp-dtftxt-sketchcost" placeholder="як у картинки">
+              </label>
+            </div>
           </div>
           <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
@@ -732,6 +767,12 @@
         <div class="technique-block" style="margin-bottom:18px;">
           <h3 class="tb-toggle" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;"><span class="tb-caret">▸</span><span class="dot emb"></span> Вишивка</h3>
           <div class="tb-body" style="display:none;">
+          <div class="sp-kindbar" data-for="emb">
+            <span class="sp-kb-lab">Ціни за видом нанесення</span>
+            <button type="button" class="sp-kb on" data-kb="emb:img">Картинка</button>
+            <button type="button" class="sp-kb" data-kb="emb:txt">Текст</button>
+          </div>
+          <div class="sp-kind" data-kind="emb:img">
           <div class="sub" style="margin-bottom:8px;">Ціна від чистої площі (мм²). Прозорий фон не рахується.</div>
           <div class="grid2" style="margin-bottom:10px;">
             <label class="field">Ціна за 1000 мм², грн
@@ -766,6 +807,42 @@
             <label class="field">Додатковий ескіз — собівартість, грн
               <input type="number" step="1" min="0" id="sp-emb-sketchcost" placeholder="0">
             </label>
+          </div>
+          </div>
+          <div class="sp-kind" data-kind="emb:txt" hidden>
+            <div class="sub" style="margin-bottom:10px;">Порожнє поле = «як у картинки». Напис це менше стібків на ту саму площу, а програмування напису дешевше — заповнюйте лише різницю.</div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Ціна за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-embtxt-price1k" placeholder="як у картинки">
+              </label>
+              <label class="field">Собівартість за 1000 мм², грн
+                <input type="number" step="0.5" id="sp-embtxt-cost1k" placeholder="як у картинки">
+              </label>
+            </div>
+            <div class="tl-divider">Оплата за замовлення (разова) — ціна / собівартість</div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">За замовлення — ціна, грн
+                <input type="number" step="1" min="0" id="sp-embtxt-orderfee" placeholder="як у картинки">
+              </label>
+              <label class="field">За замовлення — собівартість, грн
+                <input type="number" step="1" min="0" id="sp-embtxt-ordercost" placeholder="як у картинки">
+              </label>
+            </div>
+            <div class="tl-divider">Стартова ціна — за кожним написом (1-й, 2-й…)</div>
+            <div id="sp-embtxt-bases" style="margin-bottom:6px;"></div>
+            <div class="add-row-btn" id="sp-embtxt-bases-add" style="margin-bottom:12px;">+ додати напис</div>
+            <div class="tl-divider">Мін. ціна нанесення — за кожним написом (1-й, 2-й…)</div>
+            <div id="sp-embtxt-mins" style="margin-bottom:6px;"></div>
+            <div class="add-row-btn" id="sp-embtxt-mins-add" style="margin-bottom:12px;">+ додати напис</div>
+            <div class="tl-divider">Додатковий ескіз (за кожен ДОДАТКОВИЙ напис) — ціна / собівартість</div>
+            <div class="grid2" style="margin-bottom:10px;">
+              <label class="field">Додатковий ескіз — ціна, грн
+                <input type="number" step="1" min="0" id="sp-embtxt-sketchfee" placeholder="як у картинки">
+              </label>
+              <label class="field">Додатковий ескіз — собівартість, грн
+                <input type="number" step="1" min="0" id="sp-embtxt-sketchcost" placeholder="як у картинки">
+              </label>
+            </div>
           </div>
           <div class="tl-divider">Оплата за штуку (пакет, менеджер) — ціна / собівартість</div>
           <div class="grid2" style="margin-bottom:10px;">
@@ -1857,6 +1934,8 @@ function normalizeSitePricing(p){
         qtyTiers: (old.tiers && old.tiers.length) ? JSON.parse(JSON.stringify(old.tiers)) : JSON.parse(JSON.stringify(def.methods[k].lead.qtyTiers)) };
     }
     if(!m.lead.qtyTiers) m.lead.qtyTiers = [];
+    // Переозначення для написів необов'язкове: немає — текст рахується як картинка
+    if(!m.text || typeof m.text !== 'object') m.text = {};
   });
   // DTF: собівартість + продажна ціна як 2D-масиви (мапа рядків → масив)
   if(p.methods.dtf){
@@ -1883,7 +1962,7 @@ function paintMins(key, prices){
   const pr = (Array.isArray(prices) && prices.length) ? prices : [0];
   box.innerHTML = pr.map((v,i)=>`<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
     <label class="field" style="flex:1;margin:0;">Дизайн ${i+1} — мін. ціна нанесення, грн
-      <input type="number" step="1" min="0" class="sp-min-p" value="${v==null?'':v}">
+      <input type="number" step="1" min="0" class="sp-min-p" value="${v==null||v===''?'':v}">
     </label>
     ${pr.length>1?`<button type="button" class="btn-ghost sp-min-del" data-i="${i}" style="padding:9px 12px;flex:none;">✕</button>`:''}
   </div>`).join('');
@@ -1891,6 +1970,19 @@ function paintMins(key, prices){
 }
 function readMins(key){ const box=document.getElementById('sp-'+key+'-mins'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-min-p')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
 ['emb'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-mins-add'); if(b) b.addEventListener('click',()=>{ const a=readMins(key); a.push(a[a.length-1]||0); paintMins(key, a); }); });
+// Вкладки «Картинка / Текст» перемикають лише ті поля, що залежать від виду
+// нанесення. Спільне (сітка, знижки, терміни, за штуку) лишається на місці —
+// ховати його теж означало б змушувати шукати те, що не роздвоюється.
+document.addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('.sp-kb');
+  if(!b) return;
+  var key = b.dataset.kb, meth = key.split(':')[0];
+  document.querySelectorAll('.sp-kindbar[data-for="' + meth + '"] .sp-kb')
+    .forEach(function(x){ x.classList.toggle('on', x === b); });
+  document.querySelectorAll('.sp-kind').forEach(function(x){
+    if(x.dataset.kind && x.dataset.kind.split(':')[0] === meth) x.hidden = (x.dataset.kind !== key);
+  });
+});
 // Стартова ціна вишивки — той самий список за дизайнами, що й мінімалка:
 // перше лого може стартувати з однієї суми, друге з іншої.
 function paintBases(key, prices){
@@ -1898,14 +1990,36 @@ function paintBases(key, prices){
   const pr = (Array.isArray(prices) && prices.length) ? prices : [0];
   box.innerHTML = pr.map((v,i)=>`<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
     <label class="field" style="flex:1;margin:0;">Дизайн ${i+1} — стартова ціна, грн
-      <input type="number" step="1" min="0" class="sp-base-p" value="${v==null?'':v}">
+      <input type="number" step="1" min="0" class="sp-base-p" value="${v==null||v===''?'':v}" placeholder="як у картинки">
     </label>
     ${pr.length>1?`<button type="button" class="btn-ghost sp-base-del" data-i="${i}" style="padding:9px 12px;flex:none;">✕</button>`:''}
   </div>`).join('');
   box.querySelectorAll('.sp-base-del').forEach(b=>b.onclick=()=>{ const a=readBases(key); a.splice(+b.dataset.i,1); paintBases(key, a.length?a:[0]); });
 }
+// Порожнє поле — це не нуль, а «як у картинки». Тому читаємо тільки те, де
+// щось справді вписано: інакше «текст» мовчки обнулив би всі ціни.
+const KIND_FIELD_MAP = { price1k:'pricePer1000mm2', cost1k:'costPer1000mm2',
+  orderfee:'orderFee', ordercost:'orderCost', sketchfee:'sketchFee', sketchcost:'sketchCost' };
+function kindOverrides(prefix, fields, withLists){
+  const out = {};
+  fields.forEach(f=>{
+    const el = document.getElementById('sp-'+prefix+'-'+f);
+    if(!el || String(el.value).trim() === '') return;
+    out[KIND_FIELD_MAP[f]] = parseFloat(el.value) || 0;
+  });
+  if(withLists){
+    const box = document.getElementById('sp-'+prefix+'-bases');
+    if(box && [...box.querySelectorAll('.sp-base-p')].some(i=>String(i.value).trim() !== ''))
+      out.basePrices = readBases(prefix);
+    const mb = document.getElementById('sp-'+prefix+'-mins');
+    if(mb && [...mb.querySelectorAll('.sp-min-p')].some(i=>String(i.value).trim() !== ''))
+      out.minPrices = readMins(prefix);
+  }
+  return out;
+}
 function readBases(key){ const box=document.getElementById('sp-'+key+'-bases'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-base-p')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
-['emb'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-bases-add'); if(b) b.addEventListener('click',()=>{ const a=readBases(key); a.push(a[a.length-1]||0); paintBases(key, a); }); });
+['emb','embtxt'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-bases-add'); if(b) b.addEventListener('click',()=>{ const a=readBases(key); a.push(a[a.length-1]||0); paintBases(key, a); }); });
+['embtxt'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-mins-add'); if(b) b.addEventListener('click',()=>{ const a=readMins(key); a.push(a[a.length-1]||0); paintMins(key, a); }); });
 // Згортні секції методів (DTF / Вишивка)
 document.querySelectorAll('.tb-toggle').forEach(h=>{ h.addEventListener('click',()=>{ const body=h.nextElementSibling; if(!body||!body.classList.contains('tb-body')) return; const open=body.style.display!=='none'; body.style.display=open?'none':''; const c=h.querySelector('.tb-caret'); if(c) c.textContent=open?'▸':'▾'; }); });
 function paintSitePricing(){
@@ -1929,6 +2043,18 @@ function paintSitePricing(){
   setV('sp-emb-cost1k', e.costPer1000mm2);
   paintMins('emb', (e.minPrices && e.minPrices.length) ? e.minPrices : (e.minPrice!=null?[e.minPrice]:[0]));
   paintBases('emb', (e.basePrices && e.basePrices.length) ? e.basePrices : [0]);
+  // Переозначення для написів: показуємо лише те, що справді задано —
+  // порожнє поле з підказкою «як у картинки» чесніше за продубльоване число.
+  var et = e.text || {};
+  var setT = function(id, v){ var el = document.getElementById(id); if(el) el.value = (v == null ? '' : v); };
+  setT('sp-embtxt-price1k', et.pricePer1000mm2); setT('sp-embtxt-cost1k', et.costPer1000mm2);
+  setT('sp-embtxt-orderfee', et.orderFee);       setT('sp-embtxt-ordercost', et.orderCost);
+  setT('sp-embtxt-sketchfee', et.sketchFee);     setT('sp-embtxt-sketchcost', et.sketchCost);
+  paintBases('embtxt', (et.basePrices && et.basePrices.length) ? et.basePrices : ['']);
+  paintMins('embtxt',  (et.minPrices  && et.minPrices.length)  ? et.minPrices  : ['']);
+  var dt = dm.text || {};
+  setT('sp-dtftxt-orderfee', dt.orderFee);   setT('sp-dtftxt-ordercost', dt.orderCost);
+  setT('sp-dtftxt-sketchfee', dt.sketchFee); setT('sp-dtftxt-sketchcost', dt.sketchCost);
   setV('sp-emb-orderfee', e.orderFee);  setV('sp-emb-ordercost', e.orderCost);
   setV('sp-emb-sketchfee', e.sketchFee);  setV('sp-emb-sketchcost', e.sketchCost);
   setV('sp-emb-piecefee', e.pieceFee);  setV('sp-emb-piececost', e.pieceCost);
@@ -2160,7 +2286,8 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     orderFee: numV('sp-dtf-orderfee'), orderCost: numV('sp-dtf-ordercost'),
     sketchFee: numV('sp-dtf-sketchfee'), sketchCost: numV('sp-dtf-sketchcost'),
     pieceFee: numV('sp-dtf-piecefee'), pieceCost: numV('sp-dtf-piececost'),
-    lead: readLead('dtf')
+    lead: readLead('dtf'),
+    text: kindOverrides('dtftxt', ['orderfee','ordercost','sketchfee','sketchcost'], false)
   });
   // застарілий множник markup більше не пишемо; на читанні normalize його ігнорує
   dtf.cost  = costTo(dtf.cost);   // 2D-масив → мапа рядків (Firestore не приймає масив-у-масиві)
@@ -2170,6 +2297,9 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     costPer1000mm2: numV('sp-emb-cost1k'),
     minPrices: readMins('emb'), minCosts: [], minPrice: (readMins('emb')[0]||0),
     basePrices: readBases('emb'),   // старт, до якого додається площа
+    // Переозначення для написів: пишемо лише заповнені поля, решта підставиться
+    // з картинки. Порожній об'єкт означає «текст рахується як картинка».
+    text: kindOverrides('embtxt', ['price1k','cost1k','orderfee','ordercost','sketchfee','sketchcost'], true),
     orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
     sketchFee: numV('sp-emb-sketchfee'), sketchCost: numV('sp-emb-sketchcost'),
     pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),
@@ -2340,6 +2470,19 @@ function escapeHtml(s){
    ============================================================ */
 // Ціна і собівартість нанесення — за тією ж моделлю, що й на сайті (Конструктор → Формування цін):
 // друк — по сітці листів (габарит Ш×В → категорія × тираж), вишивка — за 1000 мм².
+// Текст переозначує лише те, що справді інше; порожнє поле = «як у картинки».
+// Той самий контракт, що на сайті (index.html → methodCfgKind).
+function methodCfgKind(m, isText){
+  if(!m || !isText || !m.text) return m || {};
+  const t = m.text, out = Object.assign({}, m);
+  Object.keys(t).forEach(k=>{
+    const v = t[k];
+    if(v === null || v === undefined || v === '') return;
+    if(Array.isArray(v) && !v.length) return;
+    out[k] = v;
+  });
+  return out;
+}
 function embBase(m, idx){
   const a = Array.isArray(m && m.basePrices) ? m.basePrices : null;
   if(!a || !a.length) return 0;
@@ -2350,10 +2493,10 @@ function embMin(m, idx){
   if(!a) return Math.round(+((m || {}).minPrice) || 0);
   return Math.round(+a[Math.min(idx || 0, a.length - 1)] || 0);
 }
-function appCalc(technique, wCm, hCm, qty, idx){
+function appCalc(technique, wCm, hCm, qty, idx, isText){
   const p = curSitePricing();
   const meth = p.methods || {};
-  const m = (technique==='emb') ? (meth.embro||{}) : (meth.dtf||{});
+  const m = methodCfgKind((technique==='emb') ? (meth.embro||{}) : (meth.dtf||{}), !!isText);
   wCm = +wCm||0; hCm = +hCm||0; qty = Math.max(1, +qty||1);
   if(!(wCm>0) || !(hCm>0)) return { price:0, cost:0 };
   if(m.mode==='grid'){
@@ -2436,6 +2579,11 @@ function renderApps(){
             <button data-tech="print" class="${app.technique==='print'?'active print':''}">Друк</button>
             <button data-tech="emb" class="${app.technique==='emb'?'active emb':''}">Вишивка</button>
           </div>
+          <!-- Вид нанесення: у написа своя ставка, свій старт і своя разова -->
+          <div class="seg" style="margin-top:8px;">
+            <button data-kindsw="img" class="${app.isText?'':'active'}">Картинка</button>
+            <button data-kindsw="txt" class="${app.isText?'active':''}">Текст</button>
+          </div>
           <div style="display:flex;gap:8px;margin:12px 0;">
             <label class="field" style="flex:1;">Ширина нанесення, см
               <input type="number" min="0" step="0.5" data-app-w value="${app.wCm}">
@@ -2453,8 +2601,14 @@ function renderApps(){
     `;
     wrap.appendChild(card);
 
+    // Одна смуга перемикає спосіб, друга — вид. Раніше обробник ловив усі
+    // кнопки .seg і другий перемикач стирав би technique у undefined.
     card.querySelectorAll('.seg button').forEach(b=>{
-      b.addEventListener('click', ()=>{ app.technique = b.dataset.tech; renderApps(); });
+      b.addEventListener('click', ()=>{
+        if(b.dataset.tech) app.technique = b.dataset.tech;
+        else if(b.dataset.kindsw) app.isText = (b.dataset.kindsw === 'txt');
+        renderApps();
+      });
     });
     card.querySelector('[data-app-w]').addEventListener('input', e=>{ app.wCm = parseFloat(e.target.value)||0; recalcAppFigures(); });
     card.querySelector('[data-app-h]').addEventListener('input', e=>{ app.hCm = parseFloat(e.target.value)||0; recalcAppFigures(); });
@@ -2483,7 +2637,7 @@ function computeApp(app, qty, idx){
   if(qty==null) qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   // idx — порядковий номер нанесення: від нього залежать старт і мінімалка
   if(idx == null) idx = Math.max(0, currentApps.indexOf(app));
-  return appCalc(app.technique, app.wCm, app.hCm, qty, idx);
+  return appCalc(app.technique, app.wCm, app.hCm, qty, idx, app.isText);
 }
 
 function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
@@ -3010,30 +3164,36 @@ function priceOrder(list, opts){
   // він іде за загальною шкалою сайту (див. index.html — рушій той самий).
   const gcoefSet = docGarmentCoef(opts.noVolume ? 1 : (U.bare || 1));
 
+  // Разові — окремо на картинки й окремо на написи (див. index.html)
+  const kindOf = (it, i) => (Array.isArray(it.designKinds) && it.designKinds[i] === 'txt') ? 'txt' : 'img';
   const fees = {};
   ['dtf','embro'].forEach(mk=>{
     const mine = list.filter(it=> !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk);
-    if(!mine.length){ fees[mk] = null; return; }
-    const cfg = (p.methods || {})[mk] || {};
-    const flat = [];
-    mine.forEach(it=> (it.designs || []).forEach(fp=>{ if(fp) flat.push(fp); }));
-    const g = designGroups(flat);
-    const unitsOf = new Array(g.count).fill(0);
-    let k = 0;
-    mine.forEach(it=>{
-      const seen = {};
-      (it.designs || []).forEach(fp=>{
-        if(!fp) return;
-        const gi = g.index[k++];
-        if(seen[gi]) return;
-        seen[gi] = 1;
-        unitsOf[gi] += Math.max(0, +it.units || 0);
+    ['img','txt'].forEach(kind=>{
+      const flat = [];
+      mine.forEach(it=> (it.designs || []).forEach((fp,i)=>{ if(fp && kindOf(it,i)===kind) flat.push(fp); }));
+      if(!flat.length){ fees[mk+':'+kind] = null; return; }
+      const cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
+      const g = designGroups(flat);
+      const unitsOf = new Array(g.count).fill(0);
+      let k = 0, total = 0;
+      mine.forEach(it=>{
+        const seen = {}; let has = false;
+        (it.designs || []).forEach((fp,i)=>{
+          if(!fp || kindOf(it,i) !== kind) return;
+          has = true;
+          const gi = g.index[k++];
+          if(seen[gi]) return;
+          seen[gi] = 1;
+          unitsOf[gi] += Math.max(0, +it.units || 0);
+        });
+        if(has) total += Math.max(0, +it.units || 0);
       });
+      fees[mk+':'+kind] = { cfg, groups:g, unitsOf, total: total || 1 };
     });
-    fees[mk] = { cfg, groups:g, unitsOf, total: U[mk] || 1 };
   });
 
-  const cursor = { dtf:0, embro:0 };
+  const cursor = {};
   return list.map(it=>{
     const u = Math.max(0, +it.units || 0);
     if(it.bare){
@@ -3048,7 +3208,7 @@ function priceOrder(list, opts){
       } };
     }
     const mk = it.method === 'embro' ? 'embro' : 'dtf';
-    const c = coef[mk], f = fees[mk];
+    const c = coef[mk];
     let flat = 0;
     if(mk === 'dtf' && (it.dtfCols || []).length){
       const cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [];
@@ -3060,19 +3220,23 @@ function priceOrder(list, opts){
         flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
       });
     }
-    let feeShare = 0; const sketches = [];
-    if(f){
-      feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
-      const seen = {};
-      (it.designs || []).forEach(fp=>{
-        if(!fp) return;
-        const gi = f.groups.index[cursor[mk]++];
-        if(seen[gi] || gi === 0) return;
-        seen[gi] = 1;
-        feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
-        sketches.push({ fee:+f.cfg.sketchFee || 0, units:f.unitsOf[gi] || 1 });
-      });
-    }
+    let feeShare = 0, feeTotal = 0, feeUnits = 0; const sketches = []; const paid = {};
+    (it.designs || []).forEach((fp,i)=>{
+      if(!fp) return;
+      const kind = kindOf(it,i), key = mk+':'+kind, f = fees[key];
+      if(!f) return;
+      if(cursor[key] == null) cursor[key] = 0;
+      const gi = f.groups.index[cursor[key]++];
+      if(!paid[kind]){
+        paid[kind] = {};
+        feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+        feeTotal += (+f.cfg.orderFee || 0); feeUnits = f.total || 1;
+      }
+      if(paid[kind][gi] || gi === 0) return;
+      paid[kind][gi] = 1;
+      feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
+      sketches.push({ fee:+f.cfg.sketchFee || 0, units:f.unitsOf[gi] || 1 });
+    });
     const unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                  (+it.pieceFee || 0) + Math.round(feeShare);
     return { unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
@@ -3082,7 +3246,7 @@ function priceOrder(list, opts){
       basePart:+it.basePart || 0, minPart:+it.minPart || 0,
       gridPriced: mk === 'dtf' && flat > 0,
       pieceFee:+it.pieceFee || 0, feeShare:Math.round(feeShare),
-      feeTotal: f ? (+f.cfg.orderFee || 0) : 0, feeUnits: f ? (f.total || 1) : 0,
+      feeTotal, feeUnits,
       sketches
     } };
   });

@@ -5468,6 +5468,28 @@
     // неї додається площа. Не плутати з мінімалкою: мінімалка — це підлога
     // (підтягує результат угору), старт — це доданок. Список за дизайнами:
     // перше лого може стартувати з однієї суми, друге з іншої.
+    /* ═══════════ Ціни: текст і картинка окремо ═══════════
+       Друк однаково лягає на плівку, що текст, що логотип — там відрізняється
+       лише підготовка. У вишивці відрізняється й саме виробництво: напис це
+       набагато менше стібків на ту саму площу, а програмування напису дешевше
+       за програмування картинки.
+
+       Тому текст не має власної повної моделі — він переозначує лише те, що
+       справді інше. Порожнє поле означає «як у картинки», тож заповнювати
+       треба тільки різницю, а старі прайси працюють без змін. */
+    function methodCfgKind(m, isText){
+      if(!m || !isText || !m.text) return m || {};
+      var t = m.text, out = {};
+      Object.keys(m).forEach(function(k){ out[k] = m[k]; });
+      Object.keys(t).forEach(function(k){
+        var v = t[k];
+        if(v === null || v === undefined || v === '') return;
+        if(Array.isArray(v) && !v.length) return;
+        out[k] = v;
+      });
+      return out;
+    }
+    function isTextLayer(l){ return !!(l && l.text); }
     function baseForIndex(m, idx){
       var a = (m && Array.isArray(m.basePrices)) ? m.basePrices : null;
       if(!a || !a.length) return 0;
@@ -5476,7 +5498,8 @@
     // Повертає нанесення по частинах, щоб розклад не доводилось відновлювати
     // відніманням: коли спрацьовує мінімалка, різниця «разом мінус старт» уже
     // не дорівнює площі, і рядок «за площею» показував би неправду.
-    function placementDetail(m, l, idx){
+    function placementDetail(m0, l, idx){
+      var m = methodCfgKind(m0, isTextLayer(l));
       var cleanMm2 = layerInkMm2(l);
       var raw;
       if(m.pricePer1000mm2 != null){
@@ -5654,32 +5677,46 @@
       // способу мовчки міняла б ціни на футболки без друку.
       var gcoefSet = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
 
-      // Разові оплати по кожному методу
+      // Разові оплати рахуються окремо для картинок і окремо для написів:
+      // підготовка напису дешевша за підготовку логотипа, тож змішувати їх в
+      // одну суму означало б переплату на одному й недоплату на іншому.
+      // Ключ відра — спосіб + вид: dtf:img, dtf:txt, embro:img, embro:txt.
+      function kindOf(it, i){
+        var ks = it.designKinds;
+        return (Array.isArray(ks) && ks[i] === 'txt') ? 'txt' : 'img';
+      }
       var fees = {};
       ['dtf','embro'].forEach(function(mk){
         var mine = list.filter(function(it){ return !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk; });
-        if(!mine.length){ fees[mk] = null; return; }
-        var cfg = (p.methods || {})[mk] || {};
-        var flat = [];                       // усі відбитки, у порядку появи
-        mine.forEach(function(it){ (it.designs || []).forEach(function(fp){ if(fp) flat.push(fp); }); });
-        var g = designGroups(flat);
-        // скільки виробів припадає на кожен дизайн
-        var unitsOf = new Array(g.count).fill(0), k = 0;
-        mine.forEach(function(it){
-          var seen = {};
-          (it.designs || []).forEach(function(fp){
-            if(!fp) return;
-            var gi = g.index[k++];
-            if(seen[gi]) return;             // те саме лого двічі на одному виробі — один дизайн
-            seen[gi] = 1;
-            unitsOf[gi] += Math.max(0, +it.units || 0);
+        ['img','txt'].forEach(function(kind){
+          var flat = [];                     // відбитки цього виду, у порядку появи
+          mine.forEach(function(it){
+            (it.designs || []).forEach(function(fp, i){ if(fp && kindOf(it, i) === kind) flat.push(fp); });
           });
+          if(!flat.length){ fees[mk + ':' + kind] = null; return; }
+          var cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
+          var g = designGroups(flat);
+          // скільки виробів припадає на кожен дизайн і на весь вид загалом
+          var unitsOf = new Array(g.count).fill(0), k = 0, total = 0;
+          mine.forEach(function(it){
+            var seen = {}, has = false;
+            (it.designs || []).forEach(function(fp, i){
+              if(!fp || kindOf(it, i) !== kind) return;
+              has = true;
+              var gi = g.index[k++];
+              if(seen[gi]) return;           // те саме лого двічі на одному виробі — один дизайн
+              seen[gi] = 1;
+              unitsOf[gi] += Math.max(0, +it.units || 0);
+            });
+            if(has) total += Math.max(0, +it.units || 0);
+          });
+          fees[mk + ':' + kind] = { cfg: cfg, groups: g, unitsOf: unitsOf, total: total || 1 };
         });
-        fees[mk] = { cfg: cfg, groups: g, unitsOf: unitsOf, total: U[mk] || 1 };
       });
 
-      // Для кожної позиції — її частка разових
-      var cursor = { dtf:0, embro:0 };
+      // Для кожної позиції — її частка разових. Курсор свій на кожне відро,
+      // бо дизайни всередині відра нумеруються окремо.
+      var cursor = {};
       return list.map(function(it){
         var u = Math.max(0, +it.units || 0);
         if(it.bare){
@@ -5694,7 +5731,7 @@
           } };
         }
         var mk = it.method === 'embro' ? 'embro' : 'dtf';
-        var c = coef[mk], f = fees[mk];
+        var c = coef[mk];
         // DTF: рядок сітки береться за СУМАРНИМ тиражем методу
         var flat = 0;
         if(mk === 'dtf' && (it.dtfCols || []).length){
@@ -5708,19 +5745,24 @@
         }
         // Частка разових: базова оплата методу — на всі вироби методу,
         // додатковий ескіз — лише на вироби свого дизайну.
-        var feeShare = 0, sketches = [];
-        if(f){
-          feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
-          var seen = {};
-          (it.designs || []).forEach(function(fp){
-            if(!fp) return;
-            var gi = f.groups.index[cursor[mk]++];
-            if(seen[gi] || gi === 0) return;         // перший дизайн входить у разову оплату
-            seen[gi] = 1;
-            feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
-            sketches.push({ fee: +f.cfg.sketchFee || 0, units: f.unitsOf[gi] || 1 });
-          });
-        }
+        var feeShare = 0, sketches = [], feeTotal = 0, feeUnits = 0;
+        var paid = {};
+        (it.designs || []).forEach(function(fp, i){
+          if(!fp) return;
+          var kind = kindOf(it, i), key = mk + ':' + kind, f = fees[key];
+          if(!f) return;
+          if(cursor[key] == null) cursor[key] = 0;
+          var gi = f.groups.index[cursor[key]++];
+          if(!paid[kind]){                            // разова за вид — один раз на позицію
+            paid[kind] = {};
+            feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+            feeTotal += (+f.cfg.orderFee || 0); feeUnits = f.total || 1;
+          }
+          if(paid[kind][gi] || gi === 0) return;      // перший дизайн виду входить у разову
+          paid[kind][gi] = 1;
+          feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
+          sketches.push({ fee: +f.cfg.sketchFee || 0, units: f.unitsOf[gi] || 1 });
+        });
         var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                    (+it.pieceFee || 0) + Math.round(feeShare);
         return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
@@ -5731,7 +5773,7 @@
           gridPriced: mk === 'dtf' && flat > 0,
           pieceFee: +it.pieceFee || 0,
           feeShare: Math.round(feeShare),
-          feeTotal: f ? (+f.cfg.orderFee || 0) : 0, feeUnits: f ? (f.total || 1) : 0,
+          feeTotal: feeTotal, feeUnits: feeUnits,
           sketches: sketches
         } };
       });
@@ -5741,8 +5783,9 @@
     function draftDescriptor(){
       var m = methodCfgNew();
       var ap = applicationParts();
-      var fps = [];
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ fps.push(l.fp || ''); }); });
+      var fps = [], kinds = [];
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img'); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
         getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
@@ -5757,6 +5800,9 @@
         pieceFee: methodPieceFee(),
         dtfCols: cols,
         designs: fps,
+        // Вид кожного дизайну — за ним разові оплати діляться на текст і картинку.
+        // Старі замовлення цього поля не мають, там усе рахується як картинка.
+        designKinds: kinds,
         bare: logoCount() === 0
       };
     }
