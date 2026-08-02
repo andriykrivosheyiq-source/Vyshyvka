@@ -816,6 +816,27 @@
         </div>
       </div>
 
+      <!-- Тексти комерційної пропозиції: поки порожні — відповідні блоки в КП
+           просто не показуються. Вигаданий кейс гірший за відсутній. -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Тексти пропозиції</h2>
+          <span class="hint">Кейси й часті питання показуються клієнту на сторінці КП. Поки поле порожнє — блоку в пропозиції немає.</span>
+        </div>
+        <label class="field" style="display:block;margin-bottom:14px;">Реалізовані проєкти — по одному в рядок
+          <textarea id="of-cases" rows="5" placeholder="Мережа кав'ярень | 120 виробів | Футболки й фартухи для бариста
+IT-компанія | 60 виробів | Худі з вишивкою для команди
+Конференція | 300 виробів | Мерч для учасників"></textarea>
+        </label>
+        <div class="sub" style="margin:-6px 0 16px;">Формат: <b>назва | кількість | що робили</b>. Якщо назву компанії не можна вказувати — пишіть «мережа кав'ярень», «IT-компанія».</div>
+        <label class="field" style="display:block;margin-bottom:14px;">Часті питання — по одному в рядок
+          <textarea id="of-faq" rows="5" placeholder="Який мінімальний тираж? | Від 5 виробів на один макет.
+Скільки триває виробництво? | Термін указано у пропозиції, відлік після погодження макета."></textarea>
+        </label>
+        <div class="sub" style="margin:-6px 0 16px;">Формат: <b>питання | відповідь</b>.</div>
+        <div><button class="btn btn-accent" id="of-save">Зберегти тексти пропозиції</button></div>
+      </div>
+
       <div class="save-row">
         <span class="save-msg" id="settings-save-msg">Збережено</span>
         <button class="btn btn-accent" id="save-settings">Зберегти налаштування</button>
@@ -2097,6 +2118,16 @@ document.getElementById('sp-dtf-row-add').addEventListener('click', dtfAddRow);
     paintLeadTiers(key, rows);
   });
 });
+document.getElementById('of-save').addEventListener('click', async ()=>{
+  const t = {
+    cases: parseLines((document.getElementById('of-cases')||{}).value, ['name','qty','note']),
+    faq:   parseLines((document.getElementById('of-faq')||{}).value,   ['q','a'])
+  };
+  await storeSet('offerTexts', t);
+  toast('Тексти пропозиції збережено' +
+        (t.cases.length || t.faq.length ? '' : ' — блоки в КП не показуватимуться'));
+});
+
 document.getElementById('sp-save').addEventListener('click', async ()=>{
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
@@ -2139,6 +2170,28 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
 function paintSettingsForm(){
   paintGarmentList();
   paintSitePricing();
+  paintOfferTexts();
+}
+
+/* ── Тексти пропозиції ────────────────────────────────────────────────
+   Рядковий формат навмисно: менеджеру швидше вписати три рядки, ніж
+   клацати «+ додати» і заповнювати три поля на кожен кейс. Порожній рядок
+   і рядок без роздільника просто ігноруються. */
+function offerTexts(){ return cloud.offerTexts || { cases:[], faq:[] }; }
+function parseLines(text, keys){
+  return String(text || '').split('\n').map(function(l){
+    var p = l.split('|').map(function(x){ return x.trim(); });
+    if(!p[0] || !p[1]) return null;
+    var o = {};
+    keys.forEach(function(k, i){ o[k] = p[i] || ''; });
+    return o;
+  }).filter(Boolean);
+}
+function paintOfferTexts(){
+  const t = offerTexts();
+  const c = document.getElementById('of-cases'), f = document.getElementById('of-faq');
+  if(c) c.value = (t.cases || []).map(x => [x.name, x.qty, x.note].filter(Boolean).join(' | ')).join('\n');
+  if(f) f.value = (t.faq || []).map(x => [x.q, x.a].filter(Boolean).join(' | ')).join('\n');
 }
 
 function paintGarmentList(){
@@ -3279,6 +3332,9 @@ function offerBuild(order){
     },
     includes: OFFER_DEFAULTS.includes,
     trust: OFFER_DEFAULTS.trust,
+    // Порожні — і сторінка КП просто не покаже ці блоки
+    cases: (offerTexts().cases || []),
+    faq: (offerTexts().faq || []),
     terms: {
       deadlineDays: dl.days,
       payment: OFFER_DEFAULTS.payment,
