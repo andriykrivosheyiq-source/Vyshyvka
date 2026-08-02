@@ -12,7 +12,7 @@
      і лише з кирилицею — інакше українські написи сипались би на латиницю. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@400;700&family=Lobster&family=Montserrat:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Roboto:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Rubik:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Alumni+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Lobster&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Slab:wght@400;700&family=Rubik:ital,wght@0,400;0,700;1,400;1,700&family=Russo+One&family=Ubuntu:ital,wght@0,400;0,700;1,400;1,700&family=Unbounded:wght@400;700&display=swap">
 <link rel="dns-prefetch" href="https://res.cloudinary.com">
 <!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
 <link rel="preload" as="image" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
@@ -1243,81 +1243,64 @@
 
   /* Смуга оформлення в блоці «Дизайн» — замість плиток, у ту саму висоту */
   .pm-text-strip{padding:0 14px;}
-  .pm-ts-card{position:relative;background:#fff;border:1px solid #ececec;border-radius:14px;
-    padding:5px 7px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
-  .pm-ts{display:flex;align-items:stretch;gap:4px;}
-  .pm-ts-div{flex:none;width:1px;background:#ededed;margin:2px 2px;}
-  .pm-ts-grp{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;}
+  .pm-ts-card{position:relative;}
+  .pm-ts{display:flex;align-items:center;gap:6px;}
+  .pm-ts-grp{display:flex;align-items:center;gap:5px;min-width:0;}
   .pm-ts-grp--font{flex:1;min-width:0;position:relative;}
-  .pm-ts-row{display:flex;align-items:center;gap:4px;}
-  .pm-ts-cap{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.3px;
-    text-transform:uppercase;color:#a4abb5;white-space:nowrap;line-height:1;}
-  /* Попередження стає замість підписів: два додаткові рядки поспіль уже
-     виштовхували «Додати в кошик» за перший екран. */
-  .pm-ts-card.has-warn .pm-ts-cap{display:none;}
-  .pm-ts-back{flex:none;width:28px;height:28px;border-radius:9px;border:none;background:#f4f5f7;
+  .pm-ts-row{display:flex;align-items:center;gap:5px;}
+  .pm-ts-back{flex:none;width:32px;height:32px;border-radius:10px;border:none;background:#f4f5f7;
     color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    align-self:flex-start;-webkit-tap-highlight-color:transparent;padding:0;}
-  .pm-ts-sel{width:100%;min-width:0;height:28px;border-radius:9px;border:1px solid #e6e6e6;
-    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:4px;
-    padding:0 8px;cursor:pointer;font-size:13.5px;color:#111;
+    -webkit-tap-highlight-color:transparent;padding:0;}
+  .pm-ts-sel{width:100%;min-width:0;height:32px;border-radius:10px;border:1px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:5px;
+    padding:0 9px;cursor:pointer;font-size:14px;color:#111;
     -webkit-tap-highlight-color:transparent;}
   .pm-ts-sel.on{border-color:#111;}
-  .pm-ts-selcol{width:auto;padding:0 6px 0 5px;gap:5px;}
-  .pm-ts-selcol .pm-ts-sw{width:18px;height:18px;border-radius:9px;pointer-events:none;}
   .pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-ts-tog{flex:none;width:28px;height:28px;border-radius:9px;border:1px solid #e6e6e6;
-    background:#fff;color:#111;font-size:15px;line-height:1;cursor:pointer;padding:0;
+  .pm-ts-selcol{width:auto;flex:none;padding:0 7px 0 6px;gap:5px;}
+  .pm-ts-selcol .pm-ts-sw{width:22px;height:22px;border-radius:11px;pointer-events:none;}
+  .pm-ts-tog{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #e6e6e6;
+    background:#fff;color:#111;font-size:16px;line-height:1;cursor:pointer;padding:0;
     font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
   .pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
   .pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
     border:1px solid rgba(0,0,0,.16);outline:2px solid transparent;outline-offset:2px;
     -webkit-tap-highlight-color:transparent;}
   .pm-ts-sw.on{outline-color:#111;}
-  .pm-ts-more{flex:none;width:22px;height:22px;border-radius:11px;border:none;background:none;
-    color:#8b93a0;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
-    -webkit-tap-highlight-color:transparent;}
-  .pm-ts-more.on{color:#111;}
-  /* Звичайний випадаючий список під полем шрифту — спливає поверх панелі,
-     щоб не розсувати її й не виштовхувати «Додати в кошик» за перший екран. */
-  .pm-ts-drop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:9;
-    max-height:132px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    padding:5px;background:#fff;border:1px solid #ececec;border-radius:11px;
-    box-shadow:0 12px 28px rgba(0,0,0,.16);}
-  .pm-ts-drop::-webkit-scrollbar{display:none;}
-  .pm-ts-opt{display:block;width:100%;text-align:left;border:none;background:none;border-radius:8px;
-    padding:7px 9px;font-size:15px;line-height:1.2;cursor:pointer;white-space:nowrap;color:#111;
-    -webkit-tap-highlight-color:transparent;}
+  /* Список шрифтів лягає ПОВЕРХ макета, а не тулиться у смузі: двадцять
+     гарнітур у панель не влізуть, а гортати куценьке віконце незручно. */
+  .pm-ts-fonts{position:fixed;z-index:400;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:6px;background:#fff;border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.22);}
+  .pm-ts-fonts::-webkit-scrollbar{display:none;}
+  .pm-ts-opt{display:block;width:100%;text-align:left;border:none;background:none;border-radius:9px;
+    padding:9px 10px;font-size:17px;line-height:1.15;cursor:pointer;white-space:nowrap;color:#111;
+    overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;}
   .pm-ts-opt.on{background:#f2f3f5;}
-  /* Кольори: кожен наступний екран повністю заміняє попередній — без модалок */
+  /* Кольори: свій екран замість смуги — базові зразки й палітра під пальцем */
   .pm-ts-head{display:flex;align-items:center;gap:8px;}
   .pm-ts-head b{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
     color:#a4abb5;}
-  .pm-ts-pal{display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none;
-    padding:3px 2px 0;margin-top:3px;}
+  .pm-ts-pal{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;
+    padding:4px 3px 0;margin-top:2px;}
   .pm-ts-pal::-webkit-scrollbar{display:none;}
-  .pm-ts-all{flex:0 0 auto;margin-left:auto;border:1px solid #e6e6e6;background:#fff;border-radius:9px;
-    padding:5px 10px;font-size:12px;font-weight:600;color:#111;white-space:nowrap;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;}
-  .pm-ts-hex{flex:1;min-width:0;height:26px;border:1px solid #e6e6e6;border-radius:8px;
-    padding:0 8px;font-size:13px;font-weight:600;color:#111;background:#fff;
+  .pm-ts-pal .pm-ts-sw{width:26px;height:26px;border-radius:13px;}
+  .pm-ts-hex{flex:none;width:88px;height:26px;border:1px solid #e6e6e6;border-radius:8px;
+    padding:0 8px;font-size:12.5px;font-weight:600;color:#111;background:#fff;margin-left:auto;
     font-family:"SFMono-Regular",Menlo,monospace;text-transform:uppercase;}
   .pm-ts-hex:focus{outline:none;border-color:#111;}
-  .pm-ts-prev{flex:none;width:26px;height:26px;border-radius:8px;border:1px solid rgba(0,0,0,.16);}
-  .pm-ts-ok{flex:none;height:26px;border:none;border-radius:8px;background:#111;color:#fff;
-    padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;}
-  .pm-ts-sl{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:4px;
-    outline:none;padding:0;margin:4px 0 0;cursor:pointer;}
-  .pm-ts-sl::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:8px;
+  .pm-ts-sv{position:relative;margin-top:6px;height:clamp(40px,6.4vh,68px);border-radius:10px;
+    cursor:crosshair;touch-action:none;}
+  .pm-ts-dot{position:absolute;width:16px;height:16px;border-radius:9px;border:2px solid #fff;
+    box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);
+    pointer-events:none;}
+  .pm-ts-sl{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:5px;
+    outline:none;padding:0;margin:6px 0 0;cursor:pointer;}
+  .pm-ts-sl::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:9px;
     background:#fff;border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
-  .pm-ts-sl::-moz-range-thumb{width:15px;height:15px;border-radius:8px;background:#fff;
+  .pm-ts-sl::-moz-range-thumb{width:17px;height:17px;border-radius:9px;background:#fff;
     border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
-  .pm-ts-sl2{display:flex;gap:8px;}
-  .pm-ts-sl2 .pm-ts-sl{flex:1;min-width:0;}
-  .pm-ts-warn{margin-top:4px;font-size:10.5px;line-height:1.25;color:#8a5a00;
+  .pm-ts-warn{margin-top:6px;font-size:10.5px;line-height:1.25;color:#8a5a00;
     background:#fff6e0;border-radius:7px;padding:3px 8px;}
-  /* Спосіб нанесення: заголовок + розмір у тому самому рядку, під ним сегментна смуга */
   .pm-way-head{padding:14px 18px 6px;display:flex;align-items:center;gap:6px;}
   .pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
   .pm-seg{margin:0 18px;display:flex;background:#f1f2f4;border-radius:11px;padding:3px;gap:3px;}
@@ -6151,7 +6134,7 @@
       el.style.fontFamily = textFontCss(sp.font);
       el.style.fontSize   = (TXT_FS * k).toFixed(2) + 'px';
       el.style.lineHeight = TXT_LH;
-      el.style.fontWeight = sp.bold === false ? '600' : '800';
+      el.style.fontWeight = sp.bold ? '700' : '400';
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
       el.style.padding    = ((TXT_PAD + e.w) * k).toFixed(2) + 'px';
@@ -6500,20 +6483,33 @@
 
     // Кольори — реальні нитки й плівка, а не вільна палітра: клієнт обере
     // #7F3FBF, а такої нитки не існує, і замовлення стане на узгодженні.
-    var TEXT_COLORS = ['#111111', '#ffffff', '#c8a24a', '#b8912f', '#c0392b',
-                       '#8b1a1a', '#1f4e8c', '#2d5a27', '#5a9e8a', '#d4607a',
-                       '#8a8a8a', '#5c4a34'];
+    var TEXT_COLORS = ['#ffffff', '#111111', '#8e8e93', '#c8102e', '#7a1220',
+                       '#f26b21', '#ffd400', '#0b3d91', '#1e88e5', '#00a3ad',
+                       '#1b7a43', '#7cb342', '#6a3da8', '#e75480', '#c9a227',
+                       '#6b4423'];
     // Справжні гарнітури під власними назвами: «Montserrat» людина впізнає з
     // макета, «Гротеск» — ні. Кожна в списку намальована сама собою.
     // Усі — з кирилицею, інакше український напис посипався б на латиницю.
     var TEXT_FONTS = [
       { id:'montserrat', name:'Montserrat',       web:'Montserrat',        css:'"Montserrat",__SF__' },
+      { id:'robotocond', name:'Roboto Condensed', web:'Roboto Condensed',  css:'"Roboto Condensed",__SF__' },
       { id:'oswald',     name:'Oswald',           web:'Oswald',            css:'"Oswald",__SF__' },
-      { id:'bebas',      name:'Bebas Neue',       web:'Bebas Neue',        css:'"Bebas Neue",Impact,__SF__' },
       { id:'roboto',     name:'Roboto',           web:'Roboto',            css:'"Roboto",__SF__' },
-      { id:'playfair',   name:'Playfair Display', web:'Playfair Display',  css:'"Playfair Display",Georgia,serif' },
+      { id:'opensans',   name:'Open Sans',        web:'Open Sans',         css:'"Open Sans",__SF__' },
+      { id:'inter',      name:'Inter',            web:'Inter',             css:'"Inter",__SF__' },
+      { id:'russo',      name:'Russo One',        web:'Russo One',         css:'"Russo One",__SF__' },
+      { id:'alumni',     name:'Alumni Sans',      web:'Alumni Sans',       css:'"Alumni Sans",__SF__' },
       { id:'rubik',      name:'Rubik',            web:'Rubik',             css:'"Rubik",__SF__' },
+      { id:'raleway',    name:'Raleway',          web:'Raleway',           css:'"Raleway",__SF__' },
+      { id:'nunito',     name:'Nunito',           web:'Nunito',            css:'"Nunito",__SF__' },
+      { id:'ubuntu',     name:'Ubuntu',           web:'Ubuntu',            css:'"Ubuntu",__SF__' },
+      { id:'ptsans',     name:'PT Sans',          web:'PT Sans',           css:'"PT Sans",__SF__' },
+      { id:'playfair',   name:'Playfair Display', web:'Playfair Display',  css:'"Playfair Display",Georgia,serif' },
+      { id:'slab',       name:'Roboto Slab',      web:'Roboto Slab',       css:'"Roboto Slab",Georgia,serif' },
+      { id:'merri',      name:'Merriweather',     web:'Merriweather',      css:'"Merriweather",Georgia,serif' },
+      { id:'unbounded',  name:'Unbounded',        web:'Unbounded',         css:'"Unbounded",__SF__' },
       { id:'lobster',    name:'Lobster',          web:'Lobster',           css:'"Lobster",cursive' },
+      { id:'pacifico',   name:'Pacifico',         web:'Pacifico',          css:'"Pacifico",cursive' },
       { id:'caveat',     name:'Caveat',           web:'Caveat',            css:'"Caveat","Segoe Script",cursive' }
     ];
     function textFont(id){
@@ -6530,7 +6526,7 @@
       var jobs = [];
       TEXT_FONTS.forEach(function(f){
         if(!f.web) return;
-        ['400 200px ', '800 200px ', 'italic 800 200px '].forEach(function(pre){
+        ['400 200px ', '700 200px ', 'italic 400 200px ', 'italic 700 200px '].forEach(function(pre){
           try{ jobs.push(document.fonts.load(pre + '"' + f.web + '"', 'Абв Abc')); }catch(e){}
         });
       });
@@ -6567,20 +6563,17 @@
       return String(t || '').split('\n').map(function(x){ return x.trim(); })
                .filter(Boolean).slice(0, 2);
     }
-    // Обводка потрібна лише коли колір напису зливається з виробом. Чорний
-    // текст на білій футболці в обводці виглядає дешево — тому не завжди.
-    function textEdge(sp){
-      var col = (sp && sp.color) || TEXT_COLORS[0];
-      var g = (getColor() || {}).hex || '#ffffff';
-      if(hexDist(col, g) >= 0.22) return { w:0, color:'' };
-      return { w: Math.round(TXT_FS * 0.055), color: hexLum(col) > 0.55 ? '#1a1a1a' : '#ffffff' };
-    }
+    // Обводки немає: на виробі її ніхто не вишиває й не друкує задарма, а на
+    // макеті вона робила напис схожим на наліпку. Контраст тримає сам колір —
+    // на темному виробі напис світлий, на світлому темний. Функція лишилась,
+    // бо з неї рахується геометрія і PNG, і живої рамки.
+    function textEdge(sp){ return { w:0, color:'' }; }
     function textToPng(sp){
       sp = sp || {};
       var lines = textLines(sp.t);
       if(!lines.length) return null;
       var FS = TXT_FS, PAD = TXT_PAD, LH = TXT_LH;
-      var weight = sp.bold === false ? '600' : '800';
+      var weight = sp.bold ? '700' : '400';
       var style = sp.italic ? 'italic ' : '';
       var font = style + weight + ' ' + FS + 'px ' + textFontCss(sp.font);
       var m = document.createElement('canvas').getContext('2d');
@@ -6610,7 +6603,7 @@
     var TEXT_PLACEHOLDER = 'Ваш напис';
     function addTextLayer(initial){
       var sp = { t: initial || TEXT_PLACEHOLDER, font: pm.textFont || TEXT_FONTS[0].id,
-                 color: pm.textColor || autoTextColor(), bold: true, italic: false };
+                 color: pm.textColor || autoTextColor(), bold: false, italic: false };
       var url = textToPng(sp);
       if(!url) return null;
       addLogo(url, url, sp);       // фон уже прозорий — видаляти нічого
@@ -6736,7 +6729,7 @@
       var l = activeTextLayer();
       if(l) return l.text;
       return { t: pm.textDraft || '', font: pm.textFont || TEXT_FONTS[0].id,
-               color: pm.textColor || autoTextColor(), bold: true, italic: false };
+               color: pm.textColor || autoTextColor(), bold: false, italic: false };
     }
     function textApply(patch){
       // Вибір запам'ятовуємо: наступний напис має початись там само, де скінчився попередній
@@ -6763,112 +6756,119 @@
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
-    var TS_MORE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
-    // Смуга оформлення в блоці «Дизайн»: шрифт, накреслення, колір — з підписами,
-    // щоб було видно, що саме тут міняють. Набір іде в самій рамці на виробі.
+    // Панель форматування: назад · шрифт · B · I · колір. Без рамки й підписів —
+    // що роблять ці кнопки, видно з них самих, а висота на першому екрані дорога.
     function textStripHtml(){
       var sp = textSpec();
       if(pm.textScreen === 'colors') return textColorsHtml(sp);
-      if(pm.textScreen === 'picker') return textPickerHtml(sp);
       var f = textFont(sp.font);
       var msg = textWarnHtml();
-      var h = '<div class="pm-text-strip"><div class="pm-ts-card' + (msg ? ' has-warn' : '') + '">' +
+      var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts">' +
         '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK + '</button>' +
-        '<div class="pm-ts-div"></div>' +
         '<div class="pm-ts-grp pm-ts-grp--font">' +
           '<button class="pm-ts-sel' + (pm.textDrop === 'font' ? ' on' : '') + '" data-tsdrop="font" ' +
             'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
             '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
-          '<i class="pm-ts-cap">Шрифт</i>' +
-          (pm.textDrop === 'font'
-            ? '<div class="pm-ts-drop">' + TEXT_FONTS.map(function(x){
-                return '<button class="pm-ts-opt' + (x.id === sp.font ? ' on' : '') + '" data-tf="' + x.id + '" ' +
-                       'style="font-family:' + x.css.replace('__SF__', 'inherit') + '">' + x.name + '</button>';
-              }).join('') + '</div>'
-            : '') +
         '</div>' +
-        '<div class="pm-ts-div"></div>' +
-        '<div class="pm-ts-grp"><div class="pm-ts-row">' +
-          '<button class="pm-ts-tog' + (sp.bold !== false ? ' on' : '') + '" id="pmTsBold" ' +
-            'style="font-weight:700" aria-label="Жирний">B</button>' +
-          '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
-            'style="font-style:italic" aria-label="Курсив">I</button>' +
-        '</div><i class="pm-ts-cap">Накреслення</i></div>' +
-        '<div class="pm-ts-div"></div>' +
-        '<div class="pm-ts-grp"><div class="pm-ts-row">' +
-          '<button class="pm-ts-sel pm-ts-selcol" id="pmTsColor" aria-label="Колір напису">' +
-            '<b class="pm-ts-sw" style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b>' + TS_CHEV +
-          '</button>' +
-        '</div><i class="pm-ts-cap">Колір</i></div>' +
+        '<button class="pm-ts-tog' + (sp.bold ? ' on' : '') + '" id="pmTsBold" ' +
+          'style="font-weight:700" aria-label="Жирний">B</button>' +
+        '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
+          'style="font-style:italic" aria-label="Курсив">I</button>' +
+        '<button class="pm-ts-sel pm-ts-selcol" id="pmTsColor" aria-label="Колір напису">' +
+          '<b class="pm-ts-sw" style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b>' + TS_CHEV +
+        '</button>' +
       '</div>';
       if(msg) h += '<div class="pm-ts-warn">' + msg + '</div>';
       return h + '</div></div>';
     }
-    // Екран популярних кольорів — повністю замість основної панелі
+    // Екран кольору — повністю замість панелі. Базові зразки плюс палітра,
+    // по якій водять пальцем: назвати потрібний відтінок словами неможливо.
     function textColorsHtml(sp){
+      var cur = pm.pickColor || sp.color || TEXT_COLORS[0];
+      var hsv = hexToHsv(cur);
       return '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts-head">' +
           '<button class="pm-ts-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '</button>' +
           '<b>Колір напису</b>' +
-          '<button class="pm-ts-all" data-tsnav="picker">Усі кольори</button>' +
+          '<input class="pm-ts-hex" id="pmTsHex" value="' + cur.toUpperCase() + '" maxlength="7" ' +
+            'autocomplete="off" spellcheck="false" aria-label="HEX">' +
         '</div>' +
         '<div class="pm-ts-pal">' + TEXT_COLORS.map(function(c){
           return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
                  'style="background:' + c + '" aria-label="Колір"></button>';
         }).join('') + '</div>' +
+        '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
+          '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
+            ((1-hsv.v)*100).toFixed(1) + '%;background:' + cur + '"></i>' +
+        '</div>' +
+        '<input type="range" class="pm-ts-sl" id="pmTsH" min="0" max="360" value="' + Math.round(hsv.h) + '" ' +
+          'style="background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" aria-label="Відтінок">' +
       '</div></div>';
     }
-    // RGB/HEX — третій рівень, замість екрана популярних кольорів
-    function textPickerHtml(sp){
-      var hsl = hexToHsl(pm.pickColor || sp.color || TEXT_COLORS[0]);
-      var cur = hslToHex(hsl.h, hsl.s, hsl.l);
-      var hue = 'linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)';
-      var sat = 'linear-gradient(90deg,' + hslToHex(hsl.h, 0, hsl.l) + ',' + hslToHex(hsl.h, 100, hsl.l) + ')';
-      var lig = 'linear-gradient(90deg,#000,' + hslToHex(hsl.h, hsl.s, 50) + ',#fff)';
-      return '<div class="pm-text-strip"><div class="pm-ts-card">' +
-        '<div class="pm-ts-head">' +
-          '<button class="pm-ts-back" data-tsnav="colors" aria-label="Назад">' + TS_BACK + '</button>' +
-          '<input class="pm-ts-hex" id="pmTsHex" value="' + cur + '" maxlength="7" ' +
-            'autocomplete="off" spellcheck="false" aria-label="HEX">' +
-          '<span class="pm-ts-prev" style="background:' + cur + '"></span>' +
-          '<button class="pm-ts-ok" id="pmTsOk">Готово</button>' +
-        '</div>' +
-        '<input type="range" class="pm-ts-sl" id="pmTsH" min="0" max="360" value="' + Math.round(hsl.h) + '" ' +
-          'style="background:' + hue + '" aria-label="Відтінок">' +
-        '<div class="pm-ts-sl2">' +
-          '<input type="range" class="pm-ts-sl" id="pmTsS" min="0" max="100" value="' + Math.round(hsl.s) + '" ' +
-            'style="background:' + sat + '" aria-label="Насиченість">' +
-          '<input type="range" class="pm-ts-sl" id="pmTsL" min="0" max="100" value="' + Math.round(hsl.l) + '" ' +
-            'style="background:' + lig + '" aria-label="Світлість">' +
-        '</div>' +
-      '</div></div>';
+    // Список гарнітур живе поза панеллю, у body: інакше його ріже прокрутка
+    // вкладки, і з двадцяти шрифтів було б видно три.
+    function renderFontList(){
+      var old = document.getElementById('pmTsFonts');
+      if(old) old.remove();
+      if(pm.textDrop !== 'font' || !textMode() || pm.textScreen) return;
+      var trig = pmTabPanel.querySelector('[data-tsdrop="font"]');
+      if(!trig) return;
+      var sp = textSpec();
+      var d = document.createElement('div');
+      d.id = 'pmTsFonts'; d.className = 'pm-ts-fonts';
+      d.innerHTML = TEXT_FONTS.map(function(x){
+        return '<button class="pm-ts-opt' + (x.id === sp.font ? ' on' : '') + '" data-tf="' + x.id + '" ' +
+               'style="font-family:' + x.css.replace('__SF__', 'inherit') + '">' + x.name + '</button>';
+      }).join('');
+      document.body.appendChild(d);
+      var r = trig.getBoundingClientRect();
+      var w = Math.min(window.innerWidth - 20, Math.max(230, r.width));
+      d.style.left = Math.round(Math.min(Math.max(10, r.left), window.innerWidth - w - 10)) + 'px';
+      d.style.width = Math.round(w) + 'px';
+      d.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
+      d.style.maxHeight = Math.max(150, Math.min(360, r.top - 74)) + 'px';
+      d.querySelectorAll('[data-tf]').forEach(function(el){
+        el.addEventListener('click', function(){
+          pm.textDrop = null;                 // обрали шрифт — список закривається сам
+          textApply({ font: el.dataset.tf });
+          renderTabPanel();
+        });
+      });
+      setTimeout(function(){
+        document.addEventListener('click', function off(e){
+          if(e.target.closest('#pmTsFonts') || e.target.closest('[data-tsdrop="font"]')) return;
+          document.removeEventListener('click', off);
+          if(pm.textDrop === 'font'){ pm.textDrop = null; renderTabPanel(); }
+        });
+      }, 0);
     }
-    function hexToHsl(hex){
-      var h = String(hex || '').replace('#','');
-      if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-      var r = (parseInt(h.slice(0,2),16)||0)/255, g = (parseInt(h.slice(2,4),16)||0)/255,
-          b = (parseInt(h.slice(4,6),16)||0)/255;
-      var mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn, hh = 0;
-      if(d){
-        if(mx === r) hh = ((g-b)/d + (g < b ? 6 : 0));
-        else if(mx === g) hh = (b-r)/d + 2;
-        else hh = (r-g)/d + 4;
-        hh *= 60;
-      }
-      var l = (mx + mn) / 2;
-      var ss = d ? d / (1 - Math.abs(2*l - 1)) : 0;
-      return { h: hh, s: ss*100, l: l*100 };
+    function svBg(h){
+      return 'linear-gradient(to top,#000,rgba(0,0,0,0)),' +
+             'linear-gradient(to right,#fff,' + hsvToHex(h, 1, 1) + ')';
     }
-    function hslToHex(h, s, l){
-      h = ((h % 360) + 360) % 360; s = Math.min(100, Math.max(0, s))/100; l = Math.min(100, Math.max(0, l))/100;
-      var c = (1 - Math.abs(2*l - 1)) * s, x = c * (1 - Math.abs((h/60) % 2 - 1)), m = l - c/2;
-      var r = 0, g = 0, b = 0;
+    function hsvToHex(h, sv, v){
+      h = ((h % 360) + 360) % 360;
+      sv = Math.min(1, Math.max(0, sv)); v = Math.min(1, Math.max(0, v));
+      var c = v * sv, x = c * (1 - Math.abs((h/60) % 2 - 1)), m = v - c, r = 0, g = 0, b = 0;
       if(h < 60){ r=c; g=x; } else if(h < 120){ r=x; g=c; } else if(h < 180){ g=c; b=x; }
       else if(h < 240){ g=x; b=c; } else if(h < 300){ r=x; b=c; } else { r=c; b=x; }
-      var f = function(v){ return ('0' + Math.round((v+m)*255).toString(16)).slice(-2); };
+      var f = function(z){ return ('0' + Math.round((z+m)*255).toString(16)).slice(-2); };
       return '#' + f(r) + f(g) + f(b);
+    }
+    function hexToHsv(hex){
+      var q = String(hex || '').replace('#','');
+      if(q.length === 3) q = q[0]+q[0]+q[1]+q[1]+q[2]+q[2];
+      var r = (parseInt(q.slice(0,2),16)||0)/255, g = (parseInt(q.slice(2,4),16)||0)/255,
+          b = (parseInt(q.slice(4,6),16)||0)/255;
+      var mx = Math.max(r,g,b), mn = Math.min(r,g,b), d = mx - mn, h = 0;
+      if(d){
+        if(mx === r) h = ((g-b)/d + (g < b ? 6 : 0));
+        else if(mx === g) h = (b-r)/d + 2;
+        else h = (r-g)/d + 4;
+        h *= 60;
+      }
+      return { h: h, s: mx ? d/mx : 0, v: mx };
     }
     function isHex(v){ return /^#[0-9a-fA-F]{6}$/.test(String(v || '')); }
     // Від поля під макетом лишилась тільки перевірка режиму: вийшли з «Дизайну»
@@ -6877,7 +6877,7 @@
       if(pm.textEdit != null && (!textMode() || pm.tab !== 'photo')) stopTextEdit();
     }
     function openTextBar(layer){
-      pm.textDrop = null; pm.textScreen = null;
+      pm.textDrop = null; pm.textScreen = null; tsLock = 0;
       goTab('photo');
       if(!layer) layer = addTextLayer();      // напис одразу на виробі
       if(!layer) return;
@@ -6891,7 +6891,7 @@
       });
     }
     function closeTextBar(){
-      stopTextEdit();
+      stopTextEdit(); tsLock = 0;
       pm.textOpen = false; pm.textDrop = null; pm.textScreen = null;
       var dropped = dropPristineText();
       if(activeTextLayer()) pm.activeLogoId = null;
@@ -6963,6 +6963,12 @@
       el.style.width = bw + 'px';
       el.style.height = bh + 'px';
       el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+(layer.rot||0)+'deg)';
+      // Кегль напису має тягнутись за пальцем разом із рамкою. Інакше текст
+      // лишався старого розміру й стрибав аж коли палець відпускали.
+      if(layer.text){
+        var tx = el.querySelector('.pm-dl-text');
+        if(tx) styleTextEl(tx, layer.text, bh);
+      }
     }
 
     function onImgDown(e, layer){
@@ -7053,7 +7059,7 @@
         // Знявши виділення з напису, виходимо і з режиму оформлення — інакше
         // у «Дизайні» лишалась смуга без напису, до якого вона належала.
         if(wasText){
-          pm.textDrop = null; pm.textScreen = null;
+          tsLock = 0; pm.textDrop = null; pm.textScreen = null;
           var dropped = dropPristineText();
           pm.activeLogoId = null; renderLogoLayers(); renderTabPanel();
           if(dropped) updatePriceBar();
@@ -7075,7 +7081,11 @@
     });
 
     var pmLastTab = null;
+    var tsLock = 0;
     function renderTabPanel(){
+      // Екран палітри під пальцем перебудовувати не можна — див. tsLock нижче
+      if(tsLock && pm.textScreen === 'colors') return;
+      tsLock = 0;
       // зберігаємо позицію горизонтальної прокрутки списку, якщо вкладка не змінилась
       var sameTab = (pmLastTab === pm.tab);
       var prevList = sameTab ? pmTabPanel.querySelector('.pm-scroll-list') : null;
@@ -7165,7 +7175,9 @@
         // плитками він читався б як «додай ще щось», а це інша дія. Заголовок
         // відділяє його від дизайну, розмір друку йде в той самий рядок справа,
         // щоб не займати окремий.
-        if(logoCount() > 0){
+        // У режимі напису спосіб нанесення не показуємо: він стосується всього
+        // виробу й обирається на основному екрані, а тут лише оформлюють текст.
+        if(logoCount() > 0 && !textMode()){
           html += '<div class="pm-way-head"><span class="pm-lbl">Нанесення</span>' +
             '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
             '<span class="pm-way-size" id="pmPrintSize"></span></div>' +
@@ -7338,58 +7350,25 @@
       if(tOpen) tOpen.addEventListener('click', function(){ openTextBar(null); });
       var tsBack = document.getElementById('pmTsBack');
       if(tsBack) tsBack.addEventListener('click', function(){ closeTextBar(); });
-      // Один рівень інтерфейсу за раз: кожен екран заміняє попередній
+      var tsBold = document.getElementById('pmTsBold');
+      if(tsBold) tsBold.addEventListener('click', function(){
+        textApply({ bold: !textSpec().bold }); renderTabPanel();
+      });
+      var tsItal = document.getElementById('pmTsItal');
+      if(tsItal) tsItal.addEventListener('click', function(){
+        textApply({ italic: !textSpec().italic }); renderTabPanel();
+      });
+      // Один рівень інтерфейсу за раз: екран кольору заміняє панель цілком
       pmTabPanel.querySelectorAll('[data-tsnav]').forEach(function(el){
         el.addEventListener('click', function(){
-          var to = el.dataset.tsnav;
-          pm.textScreen = to === 'main' ? null : to;
-          if(to === 'picker') pm.pickColor = textSpec().color;
+          tsLock = 0; pm.textScreen = el.dataset.tsnav === 'main' ? null : el.dataset.tsnav;
           renderTabPanel();
         });
       });
       var tsCol = document.getElementById('pmTsColor');
       if(tsCol) tsCol.addEventListener('click', function(){
-        pm.textDrop = null; pm.textScreen = 'colors'; renderTabPanel();
-      });
-      (function(){
-        var hx = document.getElementById('pmTsHex');
-        if(!hx) return;
-        var H = document.getElementById('pmTsH'), S = document.getElementById('pmTsS'),
-            L = document.getElementById('pmTsL'), ok = document.getElementById('pmTsOk');
-        function live(){
-          pm.pickColor = hslToHex(+H.value, +S.value, +L.value);
-          hx.value = pm.pickColor;
-          var pv = pmTabPanel.querySelector('.pm-ts-prev');
-          if(pv) pv.style.background = pm.pickColor;
-          S.style.background = 'linear-gradient(90deg,' + hslToHex(+H.value, 0, +L.value) + ',' +
-                               hslToHex(+H.value, 100, +L.value) + ')';
-          L.style.background = 'linear-gradient(90deg,#000,' + hslToHex(+H.value, +S.value, 50) + ',#fff)';
-          textApply({ color: pm.pickColor });   // видно одразу на виробі
-        }
-        [H, S, L].forEach(function(r){ r.addEventListener('input', live); });
-        hx.addEventListener('input', function(){
-          var v = hx.value.trim();
-          if(v && v[0] !== '#') v = '#' + v;
-          if(!isHex(v)) return;
-          pm.pickColor = v.toLowerCase();
-          textApply({ color: pm.pickColor });
-          var hsl = hexToHsl(pm.pickColor);
-          H.value = Math.round(hsl.h); S.value = Math.round(hsl.s); L.value = Math.round(hsl.l);
-          var pv = pmTabPanel.querySelector('.pm-ts-prev');
-          if(pv) pv.style.background = pm.pickColor;
-        });
-        hx.addEventListener('keydown', function(e){
-          if(e.key === 'Enter'){ e.preventDefault(); pm.textScreen = null; renderTabPanel(); }
-        });
-        if(ok) ok.addEventListener('click', function(){ pm.textScreen = null; renderTabPanel(); });
-      })();
-      var tsBold = document.getElementById('pmTsBold');
-      if(tsBold) tsBold.addEventListener('click', function(){
-        textApply({ bold: textSpec().bold === false }); renderTabPanel();
-      });
-      var tsItal = document.getElementById('pmTsItal');
-      if(tsItal) tsItal.addEventListener('click', function(){
-        textApply({ italic: !textSpec().italic }); renderTabPanel();
+        pm.textDrop = null; pm.textScreen = 'colors';
+        pm.pickColor = textSpec().color; renderTabPanel();
       });
       pmTabPanel.querySelectorAll('[data-tsdrop]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -7397,15 +7376,66 @@
           renderTabPanel();
         });
       });
-      pmTabPanel.querySelectorAll('[data-tf]').forEach(function(el){
-        el.addEventListener('click', function(){
-          pm.textDrop = null;                      // обрали шрифт — список закривається сам
-          textApply({ font: el.dataset.tf }); renderTabPanel();
+      (function(){
+        var sv = document.getElementById('pmTsSv');
+        if(!sv) return;
+        var H = document.getElementById('pmTsH'), hx = document.getElementById('pmTsHex');
+        var dot = sv.querySelector('.pm-ts-dot');
+        var cur = hexToHsv(pm.pickColor || textSpec().color || TEXT_COLORS[0]);
+        var st = { h: +H.value, s: cur.s, v: cur.v };
+        // Поки водять пальцем, панель перебудовувати не можна: вузол палітри
+        // замінився б новим, а жест лишився б на старому — і колір зривався в чорний.
+        tsLock = 1;
+        function paint(){
+          var hex = hsvToHex(st.h, st.s, st.v);
+          pm.pickColor = hex;
+          sv.style.background = svBg(st.h);
+          dot.style.left = (st.s*100).toFixed(1) + '%';
+          dot.style.top = ((1-st.v)*100).toFixed(1) + '%';
+          dot.style.background = hex;
+          hx.value = hex.toUpperCase();
+          textApply({ color: hex });      // видно одразу на виробі
+        }
+        function pick(e){
+          var r = sv.getBoundingClientRect();
+          if(!r.width || !r.height) return;
+          var t = (e.touches && e.touches[0]) || e;
+          st.s = Math.min(1, Math.max(0, (t.clientX - r.left) / r.width));
+          st.v = 1 - Math.min(1, Math.max(0, (t.clientY - r.top) / r.height));
+          paint();
+        }
+        function move(e){ if(e.cancelable) e.preventDefault(); pick(e); }
+        function up(){
+          window.removeEventListener('mousemove', move);
+          window.removeEventListener('touchmove', move);
+          window.removeEventListener('mouseup', up);
+          window.removeEventListener('touchend', up);
+        }
+        function down(e){
+          e.preventDefault(); pick(e);
+          window.addEventListener('mousemove', move);
+          window.addEventListener('touchmove', move, {passive:false});
+          window.addEventListener('mouseup', up);
+          window.addEventListener('touchend', up);
+        }
+        sv.addEventListener('mousedown', down);
+        sv.addEventListener('touchstart', down, {passive:false});
+        H.addEventListener('input', function(){ st.h = +H.value; paint(); });
+        hx.addEventListener('input', function(){
+          var v = hx.value.trim();
+          if(v && v[0] !== '#') v = '#' + v;
+          if(!isHex(v)) return;
+          var c = hexToHsv(v);
+          st.h = c.h; st.s = c.s; st.v = c.v;
+          H.value = Math.round(c.h);
+          paint();
         });
-      });
+      })();
+      renderFontList();
       pmTabPanel.querySelectorAll('[data-tc]').forEach(function(el){
         el.addEventListener('click', function(){
-          pm.textScreen = null;                    // обрали колір — вертаємось на основну панель
+          tsLock = 0; pm.textScreen = null;        // обрали колір — вертаємось на основну панель
+          pm.pickColor = el.dataset.tc;
           textApply({ color: el.dataset.tc }); renderTabPanel();
         });
       });
