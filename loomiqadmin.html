@@ -750,6 +750,10 @@
               <input type="number" step="1" min="0" id="sp-emb-ordercost" placeholder="120">
             </label>
           </div>
+          <div class="tl-divider">Стартова ціна вишивки — за кожним дизайном (1-й, 2-й…)</div>
+          <div class="sub" style="margin-bottom:8px;">Фіксована сума, з якої стартує нанесення. До неї ДОДАЄТЬСЯ ціна за площу: <b>старт + мм² ÷ 1000 × ставка</b>. Знижка за тираж діє і на старт. Якщо дизайнів більше за список — діє останнє значення.</div>
+          <div id="sp-emb-bases" style="margin-bottom:6px;"></div>
+          <div class="add-row-btn" id="sp-emb-bases-add" style="margin-bottom:12px;">+ додати дизайн</div>
           <div class="tl-divider">Мін. ціна нанесення — за кожним дизайном (1-й, 2-й…)</div>
           <div class="sub" style="margin-bottom:8px;">Мінімум для 1-го дизайну, 2-го і т.д. Якщо дизайнів більше за список — діє останнє значення.</div>
           <div id="sp-emb-mins" style="margin-bottom:6px;"></div>
@@ -1838,8 +1842,12 @@ function normalizeSitePricing(p){
     if(m.orderCost == null) m.orderCost = def.methods[k].orderCost;
     if(m.sketchFee  == null) m.sketchFee  = 0;
     if(m.sketchCost == null) m.sketchCost = 0;
-    if(k === 'dtf'){ m.minPrices = []; m.minPrice = 0; }   // друк рахується виключно по сітці
-    else if(!Array.isArray(m.minPrices)) m.minPrices = (m.minPrice != null) ? [+m.minPrice || 0] : [def.methods[k].minPrice || 0];
+    if(k === 'dtf'){ m.minPrices = []; m.minPrice = 0; m.basePrices = []; }   // друк рахується виключно по сітці
+    else {
+      if(!Array.isArray(m.minPrices)) m.minPrices = (m.minPrice != null) ? [+m.minPrice || 0] : [def.methods[k].minPrice || 0];
+      // Стартова ціна вишивки — новий показник, у старих прайсах його немає
+      if(!Array.isArray(m.basePrices)) m.basePrices = [];
+    }
     if(m.pieceFee  == null) m.pieceFee  = def.methods[k].pieceFee;
     if(m.pieceCost == null) m.pieceCost = def.methods[k].pieceCost;
     if(!m.lead){
@@ -1883,6 +1891,21 @@ function paintMins(key, prices){
 }
 function readMins(key){ const box=document.getElementById('sp-'+key+'-mins'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-min-p')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
 ['emb'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-mins-add'); if(b) b.addEventListener('click',()=>{ const a=readMins(key); a.push(a[a.length-1]||0); paintMins(key, a); }); });
+// Стартова ціна вишивки — той самий список за дизайнами, що й мінімалка:
+// перше лого може стартувати з однієї суми, друге з іншої.
+function paintBases(key, prices){
+  const box = document.getElementById('sp-'+key+'-bases'); if(!box) return;
+  const pr = (Array.isArray(prices) && prices.length) ? prices : [0];
+  box.innerHTML = pr.map((v,i)=>`<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
+    <label class="field" style="flex:1;margin:0;">Дизайн ${i+1} — стартова ціна, грн
+      <input type="number" step="1" min="0" class="sp-base-p" value="${v==null?'':v}">
+    </label>
+    ${pr.length>1?`<button type="button" class="btn-ghost sp-base-del" data-i="${i}" style="padding:9px 12px;flex:none;">✕</button>`:''}
+  </div>`).join('');
+  box.querySelectorAll('.sp-base-del').forEach(b=>b.onclick=()=>{ const a=readBases(key); a.splice(+b.dataset.i,1); paintBases(key, a.length?a:[0]); });
+}
+function readBases(key){ const box=document.getElementById('sp-'+key+'-bases'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-base-p')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
+['emb'].forEach(key=>{ const b=document.getElementById('sp-'+key+'-bases-add'); if(b) b.addEventListener('click',()=>{ const a=readBases(key); a.push(a[a.length-1]||0); paintBases(key, a); }); });
 // Згортні секції методів (DTF / Вишивка)
 document.querySelectorAll('.tb-toggle').forEach(h=>{ h.addEventListener('click',()=>{ const body=h.nextElementSibling; if(!body||!body.classList.contains('tb-body')) return; const open=body.style.display!=='none'; body.style.display=open?'none':''; const c=h.querySelector('.tb-caret'); if(c) c.textContent=open?'▸':'▾'; }); });
 function paintSitePricing(){
@@ -1905,6 +1928,7 @@ function paintSitePricing(){
   setV('sp-emb-price1k', e.pricePer1000mm2);
   setV('sp-emb-cost1k', e.costPer1000mm2);
   paintMins('emb', (e.minPrices && e.minPrices.length) ? e.minPrices : (e.minPrice!=null?[e.minPrice]:[0]));
+  paintBases('emb', (e.basePrices && e.basePrices.length) ? e.basePrices : [0]);
   setV('sp-emb-orderfee', e.orderFee);  setV('sp-emb-ordercost', e.orderCost);
   setV('sp-emb-sketchfee', e.sketchFee);  setV('sp-emb-sketchcost', e.sketchCost);
   setV('sp-emb-piecefee', e.pieceFee);  setV('sp-emb-piececost', e.pieceCost);
@@ -2145,6 +2169,7 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     pricePer1000mm2: numV('sp-emb-price1k'),
     costPer1000mm2: numV('sp-emb-cost1k'),
     minPrices: readMins('emb'), minCosts: [], minPrice: (readMins('emb')[0]||0),
+    basePrices: readBases('emb'),   // старт, до якого додається площа
     orderFee: numV('sp-emb-orderfee'), orderCost: numV('sp-emb-ordercost'),
     sketchFee: numV('sp-emb-sketchfee'), sketchCost: numV('sp-emb-sketchcost'),
     pieceFee: numV('sp-emb-piecefee'), pieceCost: numV('sp-emb-piececost'),
@@ -3039,6 +3064,7 @@ function priceOrder(list, opts){
       bare:false, method:mk, coef:c, groupQty:U[mk] || u,
       garmentBase:+it.base || 0, garment:Math.round((+it.base || 0) * c),
       appBase:(+it.coefPart || 0) + flat, app:Math.round((+it.coefPart || 0) * c) + flat,
+      basePart:+it.basePart || 0, minPart:+it.minPart || 0,
       gridPriced: mk === 'dtf' && flat > 0,
       pieceFee:+it.pieceFee || 0, feeShare:Math.round(feeShare),
       feeTotal: f ? (+f.cfg.orderFee || 0) : 0, feeUnits: f ? (f.total || 1) : 0,
@@ -3064,8 +3090,18 @@ function priceCalcHtml(o){
     const lines = [];
     lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
     // DTF: знижка за тираж уже в ціні аркуша — окремим рядком не дублюємо
-    if(b.appBase) lines.push(['Нанесення · ' + (it.print || '—') +
-      (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' ₴']);
+    if(b.appBase){
+      // Старт вишивки — окремим рядком від площі (див. index.html, той самий розклад)
+      const area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
+      if((b.basePart > 0 || b.minPart > 0) && area > 0){
+        lines.push(['Нанесення · ' + (it.print || '—') + ' — за площею', area + ' ₴']);
+        if(b.basePart > 0) lines.push(['Нанесення · ' + (it.print || '—') + ' — старт', b.basePart + ' ₴']);
+        if(b.minPart > 0) lines.push(['Доплата до мінімальної ціни нанесення', b.minPart + ' ₴']);
+      } else {
+        lines.push(['Нанесення · ' + (it.print || '—') +
+          (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' ₴']);
+      }
+    }
     if(pre > post) lines.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
       Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
     if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);

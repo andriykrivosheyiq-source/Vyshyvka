@@ -5420,7 +5420,19 @@
     function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
     // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
     function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
-    function placementPrice(m, l, idx){
+    // Стартова ціна вишивки: фіксована сума, з якої нанесення СТАРТУЄ, а вже до
+    // неї додається площа. Не плутати з мінімалкою: мінімалка — це підлога
+    // (підтягує результат угору), старт — це доданок. Список за дизайнами:
+    // перше лого може стартувати з однієї суми, друге з іншої.
+    function baseForIndex(m, idx){
+      var a = (m && Array.isArray(m.basePrices)) ? m.basePrices : null;
+      if(!a || !a.length) return 0;
+      return Math.round(+a[Math.min(idx, a.length - 1)] || 0);
+    }
+    // Повертає нанесення по частинах, щоб розклад не доводилось відновлювати
+    // відніманням: коли спрацьовує мінімалка, різниця «разом мінус старт» уже
+    // не дорівнює площі, і рядок «за площею» показував би неправду.
+    function placementDetail(m, l, idx){
       var cleanMm2 = layerInkMm2(l);
       var raw;
       if(m.pricePer1000mm2 != null){
@@ -5430,8 +5442,12 @@
       } else {
         raw = (+m.ratePerMm2 || 0) * cleanMm2;
       }
-      return Math.max(Math.round(raw), minForIndex(m, idx || 0));
+      var area = Math.round(raw), base = baseForIndex(m, idx || 0);
+      // Старт + площа, і лише потім підлога: мінімалка страхує знизу весь доданок
+      var minAdd = Math.max(0, minForIndex(m, idx || 0) - (area + base));
+      return { area: area, base: base, minAdd: minAdd, total: area + base + minAdd };
     }
+    function placementPrice(m, l, idx){ return placementDetail(m, l, idx).total; }
     // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
     // в НАЙМЕНШИЙ лист, у який вписується (з урахуванням повороту), а не за площею.
     // Продажна = собівартість × націнка. Знижка за кількість УЖЕ в сітці.
@@ -5467,16 +5483,21 @@
     // Розкладаємо нанесення на дві частини: лінійні (діє коеф. кількості) і «сітка» (свій тираж).
     // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
     function applicationParts(uOverride){
-      var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0 };
-      var coefPart = 0, flatPart = 0, idx = 0;
+      var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0, basePart:0, minPart:0 };
+      var coefPart = 0, flatPart = 0, basePart = 0, minPart = 0, idx = 0;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
           if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride);
-          else coefPart += placementPrice(m, l, idx);
+          else {
+            var d = placementDetail(m, l, idx);
+            coefPart += d.total; basePart += d.base; minPart += d.minAdd;
+          }
           idx++;
         });
       });
-      return { coefPart: coefPart, flatPart: flatPart };
+      // basePart і minPart уже ВСЕРЕДИНІ coefPart — тримаємо окремо лише щоб
+      // показати менеджеру, скільки з нанесення це старт, площа й доплата до мінімуму.
+      return { coefPart: coefPart, flatPart: flatPart, basePart: basePart, minPart: minPart };
     }
     function applicationCostNew(){ var ap = applicationParts(); return ap.coefPart + ap.flatPart; }
     function totalAreaMm2(){
@@ -5662,6 +5683,7 @@
           bare: false, method: mk, coef: c, groupQty: U[mk] || u,
           garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * c),
           appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
+          basePart: +it.basePart || 0, minPart: +it.minPart || 0,
           gridPriced: mk === 'dtf' && flat > 0,
           pieceFee: +it.pieceFee || 0,
           feeShare: Math.round(feeShare),
@@ -5686,6 +5708,8 @@
         units: totalUnits(),
         base: basePriceNew(),
         coefPart: ap.coefPart,
+        basePart: ap.basePart || 0,
+        minPart: ap.minPart || 0,
         pieceFee: methodPieceFee(),
         dtfCols: cols,
         designs: fps,
@@ -8717,8 +8741,17 @@
     // DTF: знижка за тираж уже всередині ціни аркуша, окремим рядком її не показуємо —
     // інакше здається, що відсоток порахували не від тієї суми.
     if(b.appBase){
-      rows.push(['Нанесення · ' + item.print +
-        (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' грн']);
+      // Старт вишивки показуємо окремо від площі: інакше «нанесення 436» ні про
+      // що не каже, а менеджеру треба бачити, що з цього фікс, а що за розмір.
+      var area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
+      if((b.basePart > 0 || b.minPart > 0) && area > 0){
+        rows.push(['Нанесення · ' + item.print + ' — за площею', area + ' грн']);
+        if(b.basePart > 0) rows.push(['Нанесення · ' + item.print + ' — старт', b.basePart + ' грн']);
+        if(b.minPart > 0) rows.push(['Доплата до мінімальної ціни нанесення', b.minPart + ' грн']);
+      } else {
+        rows.push(['Нанесення · ' + item.print +
+          (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' грн']);
+      }
     }
     if(pre > post){
       rows.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
