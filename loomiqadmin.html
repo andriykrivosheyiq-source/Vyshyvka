@@ -1795,7 +1795,7 @@ const DEFAULT_SITE_PRICING = {
       lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_DTF))
     },
     embro: {
-      pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400,
+      pricePer1000mm2: 50, costPer1000mm2: 20, minPrice: 400, basePrices: [],
       orderFee: 250, orderCost: 120, sketchFee: 0, sketchCost: 0, pieceFee: 5, pieceCost: 2,
       lead: JSON.parse(JSON.stringify(DEFAULT_LEAD_EMB))
     }
@@ -2340,7 +2340,17 @@ function escapeHtml(s){
    ============================================================ */
 // Ціна і собівартість нанесення — за тією ж моделлю, що й на сайті (Конструктор → Формування цін):
 // друк — по сітці листів (габарит Ш×В → категорія × тираж), вишивка — за 1000 мм².
-function appCalc(technique, wCm, hCm, qty){
+function embBase(m, idx){
+  const a = Array.isArray(m && m.basePrices) ? m.basePrices : null;
+  if(!a || !a.length) return 0;
+  return Math.round(+a[Math.min(idx || 0, a.length - 1)] || 0);
+}
+function embMin(m, idx){
+  const a = Array.isArray(m && m.minPrices) && m.minPrices.length ? m.minPrices : null;
+  if(!a) return Math.round(+((m || {}).minPrice) || 0);
+  return Math.round(+a[Math.min(idx || 0, a.length - 1)] || 0);
+}
+function appCalc(technique, wCm, hCm, qty, idx){
   const p = curSitePricing();
   const meth = p.methods || {};
   const m = (technique==='emb') ? (meth.embro||{}) : (meth.dtf||{});
@@ -2359,9 +2369,12 @@ function appCalc(technique, wCm, hCm, qty){
     // Мінімалки в сітці немає: розмір і тираж уже мають власну клітинку.
     return { cost: c, price: Math.round(pr) };
   }
+  // Вишивка — та сама формула, що на сайті: старт + площа, і лише потім
+  // підлога-мінімалка. Мінімалку беремо за дизайном, а не одну на всіх.
   const mm2 = (wCm*10) * (hCm*10);
+  const area = Math.round(mm2/1000*(+m.pricePer1000mm2||0));
   return {
-    price: Math.max(Math.round(mm2/1000*(+m.pricePer1000mm2||0)), Math.round(+m.minPrice||0)),
+    price: Math.max(area + embBase(m, idx), embMin(m, idx)),
     cost:  Math.round(mm2/1000*(+m.costPer1000mm2||0))
   };
 }
@@ -2409,7 +2422,7 @@ function renderApps(){
   const qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   wrap.innerHTML = '';
   currentApps.forEach((app, idx)=>{
-    const fig = computeApp(app, qty);
+    const fig = computeApp(app, qty, idx);
     const card = document.createElement('div');
     card.className = 'app-card';
     card.innerHTML = `
@@ -2458,7 +2471,7 @@ function recalcAppFigures(){
   const qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   document.querySelectorAll('#apps-container .app-card').forEach((card,idx)=>{
     const app = currentApps[idx]; if(!app) return;
-    const fig = computeApp(app, qty);
+    const fig = computeApp(app, qty, idx);
     const figs = card.querySelectorAll('.app-figures .figure .v');
     if(figs[0]) figs[0].textContent = fmt(fig.price)+' ₴';
     if(figs[1]) figs[1].textContent = fmt(fig.cost)+' ₴';
@@ -2466,9 +2479,11 @@ function recalcAppFigures(){
   recalc();
 }
 
-function computeApp(app, qty){
+function computeApp(app, qty, idx){
   if(qty==null) qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
-  return appCalc(app.technique, app.wCm, app.hCm, qty);
+  // idx — порядковий номер нанесення: від нього залежать старт і мінімалка
+  if(idx == null) idx = Math.max(0, currentApps.indexOf(app));
+  return appCalc(app.technique, app.wCm, app.hCm, qty, idx);
 }
 
 function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
@@ -2558,8 +2573,8 @@ function recalc(){
 
   // Розкладаємо нанесення: вишивка (лінійна — діє коеф.) vs DTF (сітка — тираж усередині, без коеф.)
   let embroUnit=0, dtfUnit=0, embroCostU=0, dtfCostU=0;
-  currentApps.forEach(app=>{
-    const f = computeApp(app, qty);
+  currentApps.forEach((app, idx)=>{
+    const f = computeApp(app, qty, idx);
     if(app.technique==='emb'){ embroUnit+=f.price; embroCostU+=f.cost; }
     else { dtfUnit+=f.price; dtfCostU+=f.cost; }
   });
