@@ -1227,37 +1227,55 @@
     background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
   .pm-bg-dot.on{background:#111;color:#fff;}
   /* Напис як логотип */
-  /* Панель напису поверх макета */
-  .pm-textbar{position:absolute;left:8px;right:8px;top:8px;z-index:6;
-    background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-radius:14px;
-    padding:9px 10px;display:flex;flex-direction:column;gap:7px;
-    box-shadow:0 6px 20px rgba(0,0,0,.13);}
+  /* Поле набору на макеті — тільки поле, нічого зайвого */
+  /* Поле стоїть унизу макета, а не вгорі: зверху його накриває шапка сайту,
+     а знизу воно ще й сусідить зі смугою оформлення — читається як одне ціле. */
+  .pm-textbar{position:absolute;left:12px;right:12px;bottom:52px;z-index:6;}
   .pm-textbar[hidden]{display:none;}
-  .pm-textbar textarea{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;
-    border:1.5px solid #e6e6e6;font-family:var(--font-sf);font-size:15px;font-weight:600;
-    resize:none;line-height:1.3;max-height:60px;overflow:hidden;}
+  .pm-textbar textarea{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:11px;
+    border:1.5px solid rgba(0,0,0,.14);background:rgba(255,255,255,.94);backdrop-filter:blur(6px);
+    font-family:var(--font-sf);font-size:15px;font-weight:600;color:#111;
+    resize:none;line-height:1.3;max-height:58px;overflow:hidden;
+    box-shadow:0 4px 14px rgba(0,0,0,.10);}
   .pm-textbar textarea:focus{outline:none;border-color:#111;}
-  .pm-tb-row{display:flex;align-items:center;gap:6px;}
-  .pm-tb-row#pmTextFonts{overflow-x:auto;scrollbar-width:none;padding:1px;margin:-1px;}
-  .pm-tb-row#pmTextFonts::-webkit-scrollbar{display:none;}
-  .pm-tb-font{flex:0 0 auto;border:1.5px solid #e6e6e6;background:#fff;border-radius:9px;
-    padding:5px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap;
+
+  /* Смуга оформлення в блоці «Дизайн» — замість плиток, у ту саму висоту */
+  .pm-text-strip{padding:0 18px;}
+  .pm-ts{position:relative;display:flex;align-items:center;gap:7px;}
+  .pm-ts-back{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
     -webkit-tap-highlight-color:transparent;}
-  .pm-tb-font.on{border-color:#111;background:#f5f6f8;font-weight:700;}
-  .pm-tb-cols{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;flex:1;padding:2px;margin:-2px;}
-  .pm-tb-cols::-webkit-scrollbar{display:none;}
-  .pm-tb-col{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;
+  .pm-ts-sel{flex:1;min-width:0;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:6px;
+    padding:0 10px;cursor:pointer;font-size:13.5px;-webkit-tap-highlight-color:transparent;}
+  .pm-ts-sel.on{border-color:#111;}
+  .pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pm-ts-sel i{flex:none;font-style:normal;color:#9aa3ad;font-size:11px;}
+  .pm-ts-tog{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
+    background:#fff;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    font-family:var(--font-sf);}
+  .pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
+  .pm-ts-col{flex:none;width:34px;height:34px;border-radius:10px;border:1.5px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-ts-col.on{border-color:#111;}
+  .pm-ts-col b{display:block;width:18px;height:18px;border-radius:9px;border:1px solid rgba(0,0,0,.16);}
+  /* Другий ряд: список шрифтів або палітра — рівно на місці, де були плитки */
+  .pm-ts-drop{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:8;
+    display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;
+    padding:7px 8px;background:#fff;border:1.5px solid #ececec;border-radius:12px;
+    box-shadow:0 10px 26px rgba(0,0,0,.14);}
+  .pm-ts-drop::-webkit-scrollbar{display:none;}
+  .pm-ts-opt{flex:0 0 auto;border:1.5px solid #e6e6e6;background:#fff;border-radius:9px;
+    padding:6px 11px;font-size:13px;cursor:pointer;white-space:nowrap;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-ts-opt.on{border-color:#111;background:#f5f6f8;font-weight:700;}
+  .pm-ts-sw{flex:0 0 auto;width:26px;height:26px;border-radius:13px;cursor:pointer;
     border:1px solid rgba(0,0,0,.14);outline:2px solid transparent;outline-offset:2px;
     -webkit-tap-highlight-color:transparent;}
-  .pm-tb-col.on{outline-color:#111;}
-  .pm-tb-tog{flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid #e6e6e6;
-    background:#fff;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-  .pm-tb-tog.on{border-color:#111;background:#111;color:#fff;}
-  .pm-tb-done{flex:none;border:none;background:#111;color:#fff;border-radius:9px;
-    padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-sf);}
-  .pm-tb-warn{font-size:11.5px;line-height:1.4;color:#8a5a00;background:#fff6e0;
-    border-radius:8px;padding:6px 9px;}
-  .pm-tb-warn[hidden]{display:none;}
+  .pm-ts-sw.on{outline-color:#111;}
+  .pm-ts-warn{margin-top:6px;font-size:11px;line-height:1.3;color:#8a5a00;
+    background:#fff6e0;border-radius:8px;padding:4px 9px;}
   .pm-text-add{padding:8px 18px 0;display:flex;flex-direction:column;gap:6px;}
   #pmTextInput{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #e6e6e6;
     font-family:var(--font-sf);font-size:14px;font-weight:600;color:#111;background:#fff;}
@@ -2958,16 +2976,11 @@
         <svg id="pmPrintArea" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
         <!-- Панель напису лежить ПОВЕРХ виробу: людина друкує і одразу бачить
              результат на футболці, не бігаючи очима вниз до форми. -->
+        <!-- На макеті — тільки поле для набору: людина друкує там, де бачить
+             результат. Оформлення живе внизу, у блоці «Дизайн», щоб панель не
+             закривала виріб і не питала «а в яке з двох полів писати». -->
         <div class="pm-textbar" id="pmTextBar" hidden>
           <textarea id="pmTextInput" rows="1" maxlength="56" placeholder="Ваш напис&#10;можна другим рядком" autocomplete="off"></textarea>
-          <div class="pm-tb-row" id="pmTextFonts"></div>
-          <div class="pm-tb-row">
-            <div class="pm-tb-cols" id="pmTextCols"></div>
-            <button class="pm-tb-tog" id="pmTextBold" title="Жирний"><b>Ж</b></button>
-            <button class="pm-tb-tog" id="pmTextItal" title="Нахилений"><i>К</i></button>
-            <button class="pm-tb-done" id="pmTextGo">Готово</button>
-          </div>
-          <div class="pm-tb-warn" id="pmTextWarn" hidden></div>
         </div>
         <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
       </div>
@@ -6539,12 +6552,49 @@
       var lines = String(l.text.t || '').split('\n').filter(function(x){ return x.trim(); }).length || 1;
       var letterMm = d.h / lines / 1.35;      // висота літери без міжрядкового просвіту
       if(letterMm >= EMB_MIN_LETTER_MM) return '';
-      return 'Для вишивки літери замалі (' + Math.round(letterMm) + ' мм). Збільште напис ' +
-             'приблизно до ' + EMB_MIN_LETTER_MM + ' мм на літеру — інакше нитка збиватиметься.';
+      return 'Літери ~' + Math.round(letterMm) + ' мм — для вишивки треба від ' +
+             EMB_MIN_LETTER_MM + ' мм. Збільште напис.';
     }
+    function textMode(){ return !!(pm.textOpen || activeTextLayer()); }
+    // Смуга оформлення в блоці «Дизайн»: шрифт, жирність, нахил, колір.
+    // Другий ряд відкривається лише за потреби — щоб смуга влізла у ту саму
+    // висоту, що й плитки, і кнопка «В кошик» не пішла нижче першого екрана.
+    function textStripHtml(){
+      var sp = textSpec();
+      var f = TEXT_FONTS.filter(function(x){ return x.id === sp.font; })[0] || TEXT_FONTS[0];
+      var h = '<div class="pm-text-strip"><div class="pm-ts">' +
+        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' +
+          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</button>' +
+        '<button class="pm-ts-sel' + (pm.textDrop === 'font' ? ' on' : '') + '" data-tsdrop="font" ' +
+          'style="font-family:' + f.css + '"><span>' + f.name + '</span><i>▾</i></button>' +
+        '<button class="pm-ts-tog' + (sp.bold !== false ? ' on' : '') + '" id="pmTsBold" ' +
+          'style="font-weight:800" aria-label="Жирний">Ж</button>' +
+        '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
+          'style="font-style:italic" aria-label="Нахил">К</button>' +
+        '<button class="pm-ts-col' + (pm.textDrop === 'color' ? ' on' : '') + '" data-tsdrop="color" ' +
+          'aria-label="Колір напису"><b style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b></button>';
+      if(pm.textDrop === 'font'){
+        h += '<div class="pm-ts-drop">' + TEXT_FONTS.map(function(x){
+          return '<button class="pm-ts-opt' + (x.id === sp.font ? ' on' : '') + '" data-tf="' + x.id + '" ' +
+                 'style="font-family:' + x.css + '">' + x.name + '</button>';
+        }).join('') + '</div>';
+      } else if(pm.textDrop === 'color'){
+        h += '<div class="pm-ts-drop">' + TEXT_COLORS.map(function(c){
+          return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
+                 'style="background:' + c + '"></button>';
+        }).join('') + '</div>';
+      }
+      h += '</div>';
+      var msg = textWarnHtml();
+      if(msg) h += '<div class="pm-ts-warn">' + msg + '</div>';
+      return h + '</div>';
+    }
+    // На макеті лишається тільки поле набору — решта живе у смузі «Дизайну»,
+    // щоб напис не був підписаний двічі й не закривав сам виріб.
     function syncTextBar(){
       if(!pmTextBar) return;
-      var open = pm.textOpen || !!activeTextLayer();
+      var open = textMode() && pm.tab === 'photo';
       pmTextBar.hidden = !open;
       if(!open) return;
       var sp = textSpec();
@@ -6553,35 +6603,20 @@
         inp.value = sp.t || '';
         inp.rows = inp.value.indexOf('\n') >= 0 ? 2 : 1;
       }
-      var fb = document.getElementById('pmTextFonts');
-      if(fb) fb.innerHTML = TEXT_FONTS.map(function(f){
-        return '<button class="pm-tb-font' + (f.id === sp.font ? ' on' : '') + '" data-tf="' + f.id + '" ' +
-               'style="font-family:' + f.css + '">' + f.name + '</button>';
-      }).join('');
-      var cb = document.getElementById('pmTextCols');
-      if(cb) cb.innerHTML = TEXT_COLORS.map(function(c){
-        return '<button class="pm-tb-col' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
-               'style="background:' + c + '"></button>';
-      }).join('');
-      var bB = document.getElementById('pmTextBold'), bI = document.getElementById('pmTextItal');
-      if(bB) bB.classList.toggle('on', sp.bold !== false);
-      if(bI) bI.classList.toggle('on', !!sp.italic);
-      var w = document.getElementById('pmTextWarn'), msg = textWarnHtml();
-      if(w){ w.textContent = msg; w.hidden = !msg; }
-      var go = document.getElementById('pmTextGo');
-      if(go) go.textContent = activeTextLayer() ? 'Готово' : 'Додати';
     }
     function openTextBar(layer){
       if(layer){ pm.activeLogoId = layer.id; pm.textOpen = false; }
       else { pm.textOpen = true; pm.activeLogoId = null; }
-      syncTextBar();
+      pm.textDrop = null;
+      goTab('photo');
+      renderTabPanel(); syncTextBar();
       var i = document.getElementById('pmTextInput');
       if(i) setTimeout(function(){ i.focus(); }, 40);
     }
     function closeTextBar(){
-      pm.textOpen = false;
+      pm.textOpen = false; pm.textDrop = null;
       if(activeTextLayer()) pm.activeLogoId = null;
-      syncTextBar(); renderGarment(); renderTabPanel();
+      renderGarment(); renderTabPanel(); syncTextBar();
     }
     if(pmTextBar){
       var tIn = document.getElementById('pmTextInput');
@@ -6590,26 +6625,23 @@
         var lines = tIn.value.split('\n');
         if(lines.length > 2){ tIn.value = lines.slice(0, 2).join('\n'); }
         tIn.rows = tIn.value.indexOf('\n') >= 0 ? 2 : 1;
+        var has = !!tIn.value.trim(), l = activeTextLayer();
+        // Кнопки «Додати» більше немає: напис стає шаром із першої ж літери,
+        // і людина одразу бачить його на виробі, а не після зайвого кроку.
+        if(!l && has){ pm.textDraft = tIn.value; addTextLayer(); return; }
+        // Стерли все — прибираємо шар, але з режиму не виходимо: можливо,
+        // просто переписують напис заново.
+        if(l && !has){
+          removeLogo(l.id);
+          pm.textOpen = true; pm.textDraft = '';
+          renderTabPanel(); syncTextBar();
+          return;
+        }
         textApply({ t: tIn.value });
       });
       tIn.addEventListener('keydown', function(e){
-        // Enter дає другий рядок, поки він вільний; на другому — завершує
-        if(e.key === 'Enter' && tIn.value.indexOf('\n') >= 0){
-          e.preventDefault(); activeTextLayer() ? closeTextBar() : addTextLayer();
-        }
-      });
-      pmTextBar.addEventListener('click', function(e){
-        var f = e.target.closest('[data-tf]'); if(f){ textApply({ font: f.dataset.tf }); return; }
-        var c = e.target.closest('[data-tc]'); if(c){ textApply({ color: c.dataset.tc }); return; }
-      });
-      document.getElementById('pmTextBold').addEventListener('click', function(){
-        textApply({ bold: textSpec().bold === false });
-      });
-      document.getElementById('pmTextItal').addEventListener('click', function(){
-        textApply({ italic: !textSpec().italic });
-      });
-      document.getElementById('pmTextGo').addEventListener('click', function(){
-        activeTextLayer() ? closeTextBar() : addTextLayer();
+        // Enter дає другий рядок, поки він вільний; далі — нічого
+        if(e.key === 'Enter' && tIn.value.indexOf('\n') >= 0) e.preventDefault();
       });
     }
     function addLogo(origUrl, cleanUrl, textSpec){
@@ -6754,7 +6786,13 @@
       // теж спливає сюди. Без цієї перевірки редагування знімало виділення
       // шару на першому ж дотику — і правити ставало нічого.
       if(e.target.closest('.pm-textbar')) return;
-      if(pm.activeLogoId !== null){ pm.activeLogoId = null; renderLogoLayers(); syncTextBar(); }
+      if(pm.activeLogoId !== null){
+        var wasText = !!activeTextLayer();
+        pm.activeLogoId = null; renderLogoLayers(); syncTextBar();
+        // Знявши виділення з напису, виходимо і з режиму оформлення — інакше
+        // у «Дизайні» лишалась смуга без напису, до якого вона належала.
+        if(wasText){ pm.textDrop = null; renderTabPanel(); }
+      }
     });
 
     // Delete confirmation popup
@@ -6775,10 +6813,17 @@
       var prevList = sameTab ? pmTabPanel.querySelector('.pm-scroll-list') : null;
       var prevScroll = prevList ? prevList.scrollLeft : 0;
       pmLastTab = pm.tab;
+      // Поле набору живе на макеті, але належить вкладці «Дизайн»: пішли на
+      // «Розмір» — поле ховається разом зі смугою оформлення.
+      try{ syncTextBar(); }catch(e){}
       var html = '';
       if(pm.tab === 'photo'){
         var layers = currentLayers();
-        {
+        if(textMode()){
+          // Режим напису: замість плиток — смуга оформлення. Поле набору
+          // лишається на макеті, тут лише те, чим напис оформлюють.
+          html = textStripHtml();
+        } else {
           // Показуємо лого з УСІХ сторін одразу. Інакше клієнт бачить одну картинку
           // і не розуміє, за що саме ціна: перемикати сторони, щоб порахувати
           // нанесення, він не буде. Сторони розділяє риска, підписів немає —
@@ -7023,6 +7068,28 @@
       });
       var tOpen = document.getElementById('pmTextOpen') || document.getElementById('pmTextOpenTile');
       if(tOpen) tOpen.addEventListener('click', function(){ openTextBar(null); });
+      var tsBack = document.getElementById('pmTsBack');
+      if(tsBack) tsBack.addEventListener('click', function(){ closeTextBar(); });
+      var tsBold = document.getElementById('pmTsBold');
+      if(tsBold) tsBold.addEventListener('click', function(){
+        textApply({ bold: textSpec().bold === false }); renderTabPanel();
+      });
+      var tsItal = document.getElementById('pmTsItal');
+      if(tsItal) tsItal.addEventListener('click', function(){
+        textApply({ italic: !textSpec().italic }); renderTabPanel();
+      });
+      pmTabPanel.querySelectorAll('[data-tsdrop]').forEach(function(el){
+        el.addEventListener('click', function(){
+          pm.textDrop = pm.textDrop === el.dataset.tsdrop ? null : el.dataset.tsdrop;
+          renderTabPanel();
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-tf]').forEach(function(el){
+        el.addEventListener('click', function(){ textApply({ font: el.dataset.tf }); renderTabPanel(); });
+      });
+      pmTabPanel.querySelectorAll('[data-tc]').forEach(function(el){
+        el.addEventListener('click', function(){ textApply({ color: el.dataset.tc }); renderTabPanel(); });
+      });
       var wayInfo = document.getElementById('pmWayInfo');
       if(wayInfo) wayInfo.addEventListener('click', function(){ pm.wayInfo = !pm.wayInfo; renderTabPanel(); });
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
@@ -8124,6 +8191,7 @@
       pm.colorPicked = false;   // новий товар — колір ще не обирали
       pm.tab = 'photo';
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
+      pm.textDrop = null;
       pm.editing = false;      // звичайне відкриття картки — не редагування
       window.__pmEditIndex = null;
       try{ syncAddLabels(); }catch(e){}
