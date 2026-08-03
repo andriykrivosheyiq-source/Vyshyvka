@@ -1217,7 +1217,9 @@
     background:#fff;cursor:pointer;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
   .pm-gp-card.on{border-color:#111;border-width:2px;padding:5px 4px 7px;}
-  .pm-gp-card img,.pm-gp-card svg{width:112%;height:64px;object-fit:contain;margin-bottom:1px;}
+  /* Фон із фото знято, картинку обрізано по виробу — тож він розтягується
+     на всю картку й не висить дрібним прямокутником посередині. */
+  .pm-gp-card img,.pm-gp-card svg{width:100%;height:66px;object-fit:contain;margin-bottom:1px;}
   .pm-gp-nm{font-size:12.5px;font-weight:700;color:#111;line-height:1.15;text-align:center;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-gp-fit{font-size:10.5px;color:#9aa0ab;line-height:1.15;text-align:center;min-height:12px;
@@ -1397,8 +1399,10 @@
   .pm-seg-btn.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12);}
   .pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;}
   .pm-way-note{padding:2px 18px 0;font-size:11px;color:#8a94a6;line-height:1.5;}
-  /* Колір — другий ряд вкладки «Товар» */
-  .pm-color-row{padding:6px 18px 0;display:flex;flex-direction:column;gap:4px;}
+  /* Колір — другий ряд вкладки «Товар». Риска відділяє його від типу одягу:
+     без неї «Змінити» читалось так, ніби змінює і колір теж. */
+  .pm-color-row{padding:7px 18px 0;display:flex;flex-direction:column;gap:4px;
+    border-top:1px solid #e0e4ea;}
   .pm-color-row .pm-color-name{margin:0;text-align:left;}
   /* Від'ємні поля виносили крайній кружечок за межі ряду — він визирав
      з-під стрілки прокрутки. Тепер ряд лишається в своїх межах, а праворуч
@@ -1509,29 +1513,37 @@
     font-family:var(--font-sf);align-self:flex-start;flex:none;
   }
   .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
-  /* Підказка поруч із «Розмірною сіткою»: без неї не видно, що по кружечку
-     треба тапнути, щоб з'явився лічильник. */
-  .pm-size-top{display:flex;align-items:center;gap:8px;padding:0 18px 4px;}
+  /* Один великий лічильник на всю вкладку замість шести дрібних під кожним
+     розміром. Дотик по кружечку додає штуку — як і було; лічильник потрібен
+     лише щоб зняти зайве або швидко долити, і тепер у нього нормальні кнопки. */
+  .pm-size-top{display:flex;align-items:center;gap:8px;padding:0 18px 5px;min-height:34px;}
   .pm-size-top .pm-size-chart-btn{margin:0;}
-  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:74px;padding-top:2px;}
+  .pm-size-step{margin-left:auto;display:flex;align-items:center;gap:5px;flex:none;}
+  .pm-size-step-sz{font-size:13px;font-weight:800;color:#111;letter-spacing:-.2px;
+    min-width:24px;text-align:right;}
+  .pm-size-step-btn{width:32px;height:32px;flex:none;border-radius:11px;border:1.5px solid #e2e4e9;
+    background:#fff;color:#111;font-size:19px;line-height:1;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;font-family:var(--font-sf);padding:0;}
+  .pm-size-step-btn.plus{border-color:#111;background:#111;color:#fff;}
+  .pm-size-step-btn[disabled]{opacity:.32;cursor:default;}
+  .pm-size-step-val{min-width:26px;text-align:center;font-size:16px;font-weight:800;color:#111;
+    font-variant-numeric:tabular-nums;}
+  .pm-size-hint{margin-left:auto;font-size:12px;color:#9aa0ab;}
+  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:54px;padding-top:2px;}
   .pm-size-btn{
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
   }
   .pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
-  .pm-size-list--os{justify-content:center;}
-  .pm-size-col--os{width:auto;}
-  .pm-size-btn--os{width:auto;min-width:120px;padding:0 22px;border-radius:23px;white-space:nowrap;}
-  /* Лічильник видно завжди: підкреслене поле під розміром і «+» поруч.
-     Раніше він з'являвся тільки після тапу — ряд стрибав, і було незрозуміло,
-     куди взагалі вписувати кількість. */
-  .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:2px;height:26px;}
-  .pm-size-qty-val{min-width:20px;text-align:center;font-size:13.5px;font-weight:700;color:#c2c6cd;
-    border-bottom:1.5px solid #e2e4e9;line-height:19px;}
-  .pm-size-qty.show .pm-size-qty-val{color:#111;border-bottom-color:#111;}
-  .pm-size-qty-btn[disabled]{opacity:.3;cursor:default;}
-  .pm-size-qty-btn{width:22px;height:22px;flex:none;border-radius:9px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
-  .pm-size-qty-btn.plus{border:none;background:#111;color:#fff;}
+  /* Розмір, яким зараз керує лічильник, — заливкою: інакше незрозуміло,
+     до чого саме застосується «−». */
+  .pm-size-btn.focus{border-color:#4f5fd4;background:#4f5fd4;color:#fff;font-weight:700;}
+  .pm-size-cnt{font-size:11.5px;font-weight:700;color:#4f5fd4;line-height:14px;height:14px;}
+  /* One-size (кепка, шопер): розмір один, тож кнопка і лічильник стоять
+     в одному ряду по центру — окремий верхній ряд тут ні до чого. */
+  .pm-size-os{display:flex;align-items:center;justify-content:center;gap:12px;padding:0 18px;}
+  .pm-size-os .pm-size-step{margin-left:0;}
+  .pm-size-btn--os{width:auto;min-width:118px;height:46px;padding:0 22px;border-radius:23px;white-space:nowrap;}
 
   .pm-price-bar{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0f0f0;flex:none;}
   .pm-product-title{font-size:17px;font-weight:700;letter-spacing:-0.2px;color:#111;margin-bottom:10px;}
@@ -7229,6 +7241,72 @@
       var fit = full.slice(i + 1).trim();
       return { title: full.slice(0, i), fit: fit ? fit[0].toUpperCase() + fit.slice(1) : '' };
     }
+    // Маленькі картки вибору одягу: фото приходять на світло-сірому тлі, і в
+    // білій картці воно читалось як зайва рамка. Заливкою від кутів прибираємо
+    // саме фон (він плаский і зв'язний) і обрізаємо по виробу — тоді одяг
+    // займає всю картку. Тільки тут: на макеті й у каталозі фон потрібен.
+    var GP_CUT = {};                       // url → dataURL (або сам url, якщо не вийшло)
+    function gpCutBg(url){
+      if(!url) return Promise.resolve(url);
+      if(GP_CUT[url]) return Promise.resolve(GP_CUT[url]);
+      return new Promise(function(res){
+        var im = new Image();
+        im.onerror = function(){ GP_CUT[url] = url; res(url); };
+        im.onload = function(){
+          try{
+            // Картка ~82 px, тож повнорозмірне фото (900×800) перебирати нема
+            // сенсу: на слабкому телефоні десять таких заливок — помітний стопор.
+            var W = im.naturalWidth, H = im.naturalHeight;
+            if(!W || !H){ GP_CUT[url] = url; return res(url); }
+            var k = Math.min(1, 280 / Math.max(W, H));
+            W = Math.max(1, Math.round(W * k)); H = Math.max(1, Math.round(H * k));
+            var c = document.createElement('canvas'); c.width = W; c.height = H;
+            var x = c.getContext('2d', { willReadFrequently:true });
+            x.drawImage(im, 0, 0, W, H);
+            var d = x.getImageData(0, 0, W, H), a = d.data;
+            // Поріг 28 знімає і мʼяку тінь під виробом. Вище — заливка
+            // проривається крізь край білої футболки і зʼїдає її.
+            var br = a[0], bg = a[1], bb = a[2], TOL = 28;
+            var seen = new Uint8Array(W * H);
+            var st = [0, W - 1, (H - 1) * W, H * W - 1];
+            st.forEach(function(i){ seen[i] = 1; });
+            while(st.length){
+              var i = st.pop(), o = i * 4;
+              if(Math.abs(a[o] - br) + Math.abs(a[o+1] - bg) + Math.abs(a[o+2] - bb) > TOL) continue;
+              a[o+3] = 0;
+              var xx = i % W, yy = (i - xx) / W;
+              if(xx > 0     && !seen[i-1]){ seen[i-1] = 1; st.push(i-1); }
+              if(xx < W - 1 && !seen[i+1]){ seen[i+1] = 1; st.push(i+1); }
+              if(yy > 0     && !seen[i-W]){ seen[i-W] = 1; st.push(i-W); }
+              if(yy < H - 1 && !seen[i+W]){ seen[i+W] = 1; st.push(i+W); }
+            }
+            x.putImageData(d, 0, 0);
+            var mnx = W, mny = H, mxx = 0, mxy = 0;
+            for(var p = 0; p < W * H; p++){
+              if(a[p*4+3] < 25) continue;
+              var px = p % W, py = (p - px) / W;
+              if(px < mnx) mnx = px; if(px > mxx) mxx = px;
+              if(py < mny) mny = py; if(py > mxy) mxy = py;
+            }
+            var out = c;
+            if(mxx > mnx && mxy > mny){
+              var cw = mxx - mnx + 1, ch = mxy - mny + 1;
+              out = document.createElement('canvas'); out.width = cw; out.height = ch;
+              out.getContext('2d').drawImage(c, mnx, mny, cw, ch, 0, 0, cw, ch);
+            }
+            GP_CUT[url] = out.toDataURL('image/png');
+          }catch(e){ GP_CUT[url] = url; }   // локальний file:// «псує» полотно — лишаємо як є
+          res(GP_CUT[url]);
+        };
+        im.src = url;
+      });
+    }
+    function applyGpCut(){
+      pmTabPanel.querySelectorAll('.pm-gp-card img[data-raw]').forEach(function(el){
+        var raw = el.dataset.raw;
+        gpCutBg(raw).then(function(u){ if(el.isConnected && u) el.src = u; });
+      });
+    }
     function renderTabPanel(){
       // Екран палітри під пальцем перебудовувати не можна — див. tsLock нижче.
       // Але тільки поки лишаємось на тій самій вкладці: кнопки вкладок ставлять
@@ -7359,7 +7437,7 @@
             var sel = g.id === pm.garmentId;
             var thumb = window.LQ_img(garmentThumbSrc(g.id) || GARMENT_THUMB[g.id]);
             var ic = thumb
-              ? '<img src="' + thumb + '" alt="">'
+              ? '<img src="' + (GP_CUT[thumb] || thumb) + '" data-raw="' + escAttr(thumb) + '" alt="">'
               : '<svg viewBox="0 0 100 100" fill="none" stroke="' + (sel ? '#111' : '#aaa') + '" ' +
                 'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="' + g.path + '"/>' +
                 (g.extra ? '<path d="' + g.extra + '"/>' : '') + '</svg>';
@@ -7408,21 +7486,44 @@
         }
       } else if(pm.tab === 'size'){
         var oneSize = isOneSize();
-        // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
-        html = oneSize ? '' : ('<div class="pm-size-top"><button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button></div>');
-        html += '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-size-list pm-scroll-list'+(oneSize?' pm-size-list--os':'')+'">';
-        getSizes().forEach(function(sz){
-          var v = pm.qty[sz]||0, active = v>0;
-          html += '<div class="pm-size-col'+(oneSize?' pm-size-col--os':'')+'">' +
-            '<button class="pm-size-btn'+(oneSize?' pm-size-btn--os':'')+(active?' active':'')+'" data-size-select="'+sz+'">'+sz+'</button>' +
-            '<div class="pm-size-qty'+(active?' show':'')+'">' +
-              '<button class="pm-size-qty-btn minus"'+(active?'':' disabled')+' data-size-minus="'+sz+'">−</button>' +
-              '<span class="pm-size-qty-val">'+v+'</span>' +
-              '<button class="pm-size-qty-btn plus" data-size-plus="'+sz+'">+</button>' +
-            '</div></div>';
-        });
-        html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
+        var sizes = getSizes();
+        // Лічильник керує ОДНИМ розміром — тим, якого торкались востаннє.
+        // Якщо ще не торкались, беремо перший набраний, інакше показуємо підказку.
+        var foc = sizes.indexOf(pm.sizeFocus) >= 0 ? pm.sizeFocus : null;
+        if(!foc) for(var fi = 0; fi < sizes.length; fi++){ if(pm.qty[sizes[fi]] > 0){ foc = sizes[fi]; break; } }
+        if(oneSize) foc = sizes[0];
+        var fv = foc ? (pm.qty[foc] || 0) : 0;
+        var step = foc
+          ? ('<div class="pm-size-step">' +
+              '<span class="pm-size-step-sz">' + (oneSize ? 'шт' : escAttr(foc)) + '</span>' +
+              '<button class="pm-size-step-btn minus"' + (fv > 0 ? '' : ' disabled') +
+                ' data-size-minus="' + escAttr(foc) + '" aria-label="Менше">−</button>' +
+              '<span class="pm-size-step-val">' + fv + '</span>' +
+              '<button class="pm-size-step-btn plus" data-size-plus="' + escAttr(foc) + '" aria-label="Більше">+</button>' +
+            '</div>')
+          : '<span class="pm-size-hint">Тапніть розмір</span>';
+        if(oneSize){
+          // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
+          html = '<div class="pm-size-os">' +
+            '<button class="pm-size-btn pm-size-btn--os' + (pm.qty[sizes[0]] > 0 ? ' active' : '') +
+              '" data-size-select="' + escAttr(sizes[0]) + '">' + escAttr(sizes[0]) + '</button>' +
+            step + '</div>';
+        } else {
+          html = '<div class="pm-size-top">' +
+            '<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button>' +
+            step + '</div>';
+          html += '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-size-list pm-scroll-list">';
+          sizes.forEach(function(sz){
+            var v = pm.qty[sz]||0, active = v>0;
+            html += '<div class="pm-size-col">' +
+              '<button class="pm-size-btn'+(active?' active':'')+(sz === foc ? ' focus':'')+
+                '" data-size-select="'+escAttr(sz)+'">'+escAttr(sz)+'</button>' +
+              '<span class="pm-size-cnt">'+(active ? '×'+v : '')+'</span>' +
+            '</div>';
+          });
+          html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
+        }
       }
       // Плавно підміняємо вміст ЛИШЕ коли справді змінили вкладку. На кожен
       // перерендер (додали лого, змінили кількість) анімація тільки б заважала.
@@ -7435,6 +7536,7 @@
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
+      applyGpCut();
       syncPrintSizeLabel();
       if(prevScroll){
         var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll;
@@ -7634,6 +7736,7 @@
         el.addEventListener('click', function(){
           pm.garmentPick = false;      // обрали — згортаємось назад у рядок
           pm.garmentId = el.dataset.garment;
+          pm.sizeFocus = null;         // у нового виробу може бути інша сітка розмірів
           try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
@@ -7679,14 +7782,15 @@
           // а далі доводилось цілитись у маленький «+».
           var sz = el.dataset.sizeSelect;
           pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          pm.sizeFocus = sz;                     // великий лічильник переходить на цей розмір
           renderTabPanel(); updatePriceBar();
         });
       });
       pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -8758,6 +8862,7 @@
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
       pm.textDrop = null; pm.textEdit = null; pm.textScreen = null;
       pm.garmentPick = false;
+      pm.sizeFocus = null;
       pm.editing = false;      // звичайне відкриття картки — не редагування
       window.__pmEditIndex = null;
       try{ syncAddLabels(); }catch(e){}
