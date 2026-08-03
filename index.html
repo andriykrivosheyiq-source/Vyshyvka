@@ -1200,7 +1200,11 @@
   .pm-grow-k{display:block;font-size:11.5px;color:#9aa0ab;line-height:1.2;}
   .pm-grow-v{display:block;font-size:17px;font-weight:800;color:#111;line-height:1.25;
     letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-grow-ch{flex:none;color:#b6bcc5;display:flex;}
+  /* Замість стрілки — слово. Стрілка обіцяла «перейти», а тут міняють поточний
+     вибір; до того ж вона плуталась зі стрілкою гортання кольорів під нею. */
+  .pm-grow-btn{flex:none;border:1.5px solid #dcdfe5;border-radius:999px;padding:5px 13px;
+    font-size:12.5px;font-weight:600;color:#111;line-height:1.15;background:#fff;}
+  .pm-grow:active .pm-grow-btn{background:#f1f2f4;}
   .pm-gp-head{display:flex;align-items:center;gap:9px;padding:0 18px 6px;}
   .pm-gp-head b{font-size:15px;font-weight:600;letter-spacing:-.2px;color:#111;}
   /* Картки типу одягу: фото, назва, крій. Стрічка гортається — вертикальна
@@ -7383,9 +7387,7 @@
                 '<span class="pm-grow-v">' + escAttr(gName) +
                   (cNow2.name ? ' (' + escAttr(cNow2.name) + ')' : '') + '</span>' +
               '</span>' +
-              '<span class="pm-grow-ch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" ' +
-                'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-                '<path d="M9 6l6 6-6 6"/></svg></span>' +
+              '<span class="pm-grow-btn">Змінити</span>' +
             '</button>';
           // Колір лишається кружечками в рядку: провалюватись заради нього
           // немає сенсу — вибір видно й так, і робиться одним тапом.
