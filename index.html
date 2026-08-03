@@ -1200,7 +1200,11 @@
   .pm-grow-k{display:block;font-size:11.5px;color:#9aa0ab;line-height:1.2;}
   .pm-grow-v{display:block;font-size:17px;font-weight:800;color:#111;line-height:1.25;
     letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-grow-ch{flex:none;color:#b6bcc5;display:flex;}
+  /* Замість стрілки — слово. Стрілка обіцяла «перейти», а тут міняють поточний
+     вибір; до того ж вона плуталась зі стрілкою гортання кольорів під нею. */
+  .pm-grow-btn{flex:none;border:1.5px solid #dcdfe5;border-radius:999px;padding:5px 13px;
+    font-size:12.5px;font-weight:600;color:#111;line-height:1.15;background:#fff;}
+  .pm-grow:active .pm-grow-btn{background:#f1f2f4;}
   .pm-gp-head{display:flex;align-items:center;gap:9px;padding:0 18px 6px;}
   .pm-gp-head b{font-size:15px;font-weight:600;letter-spacing:-.2px;color:#111;}
   /* Картки типу одягу: фото, назва, крій. Стрічка гортається — вертикальна
@@ -1208,15 +1212,15 @@
   .pm-gp-list{display:flex;gap:9px;padding:2px 2px 4px;overflow-x:auto;scrollbar-width:none;
     -webkit-overflow-scrolling:touch;}
   .pm-gp-list::-webkit-scrollbar{display:none;}
-  .pm-gp-card{position:relative;flex:0 0 auto;width:90px;display:flex;flex-direction:column;
-    align-items:center;gap:2px;padding:7px 6px 8px;border:1.5px solid #ededed;border-radius:13px;
+  .pm-gp-card{position:relative;flex:0 0 auto;width:82px;display:flex;flex-direction:column;
+    align-items:center;gap:0;padding:6px 5px 8px;border:1.5px solid #ededed;border-radius:14px;
     background:#fff;cursor:pointer;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
-  .pm-gp-card.on{border-color:#111;border-width:2px;padding:6px 5px 7px;}
-  .pm-gp-card img,.pm-gp-card svg{width:100%;height:46px;object-fit:contain;}
-  .pm-gp-nm{font-size:13px;font-weight:700;color:#111;line-height:1.2;text-align:center;
+  .pm-gp-card.on{border-color:#111;border-width:2px;padding:5px 4px 7px;}
+  .pm-gp-card img,.pm-gp-card svg{width:112%;height:64px;object-fit:contain;margin-bottom:1px;}
+  .pm-gp-nm{font-size:12.5px;font-weight:700;color:#111;line-height:1.15;text-align:center;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .pm-gp-fit{font-size:11px;color:#9aa0ab;line-height:1.2;text-align:center;min-height:13px;
+  .pm-gp-fit{font-size:10.5px;color:#9aa0ab;line-height:1.15;text-align:center;min-height:12px;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-gp-ok{position:absolute;top:5px;right:5px;width:19px;height:19px;border-radius:10px;
     background:#111;color:#fff;display:flex;align-items:center;justify-content:center;}
@@ -1256,7 +1260,7 @@
      стрибав щоразу, коли міняли виріб чи брали напис: «худі на застібці»
      робить список довшим, і все під ним їхало. Ціна цього — трохи порожнього
      місця на коротких вкладках; воно того варте. */
-  .pm-tab-panel.is-two{height:clamp(108px,13vh,118px);min-height:0;max-height:none;
+  .pm-tab-panel.is-two{height:clamp(124px,15vh,136px);min-height:0;max-height:none;
     align-items:stretch;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 0;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
@@ -1368,13 +1372,15 @@
      читалась як кнопка поверх кольору, а не як «тут ще є». */
   /* Стрілка прокрутки — не кнопка поверх кружечка, а білий розмив із шевроном:
      так видно, що ряд триває далі, і нічого не накрито. */
-  #pmTabPanel .pm-scroll-arrow{width:50px;height:100%;top:0;transform:none;box-shadow:none;
-    border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;color:#3a3f47;}
-  #pmTabPanel .pm-scroll-arrow--right{right:0;padding-left:16px;justify-content:flex-end;
-    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 42%);}
-  #pmTabPanel .pm-scroll-arrow--left{left:0;padding-right:16px;justify-content:flex-start;
-    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 42%);}
-  #pmTabPanel .pm-scroll-arrow svg{width:20px;height:20px;stroke-width:2.4;}
+  /* Стрілка прокрутки стоїть скраю й на щільному розмиві: раніше крізь неї
+     просвічувався кружечок, і виходила каша замість підказки. */
+  #pmTabPanel .pm-scroll-arrow{width:58px;height:100%;top:0;transform:none;box-shadow:none;
+    border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;color:#8b929c;}
+  #pmTabPanel .pm-scroll-arrow--right{right:-2px;padding-left:26px;justify-content:flex-end;
+    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 46%);}
+  #pmTabPanel .pm-scroll-arrow--left{left:-2px;padding-right:26px;justify-content:flex-start;
+    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 46%);}
+  #pmTabPanel .pm-scroll-arrow svg{width:17px;height:17px;}
   .pm-tsc-list{display:flex;align-items:center;gap:9px;overflow-x:auto;scrollbar-width:none;
     padding:6px 40px 6px 5px;}
   .pm-tsc-list::-webkit-scrollbar{display:none;}
@@ -1394,8 +1400,11 @@
   /* Колір — другий ряд вкладки «Товар» */
   .pm-color-row{padding:6px 18px 0;display:flex;flex-direction:column;gap:4px;}
   .pm-color-row .pm-color-name{margin:0;text-align:left;}
+  /* Від'ємні поля виносили крайній кружечок за межі ряду — він визирав
+     з-під стрілки прокрутки. Тепер ряд лишається в своїх межах, а праворуч
+     є місце, щоб останній зразок не ховався під стрілкою. */
   .pm-color-row .pm-color-list{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;
-    scrollbar-width:none;padding:6px 6px;margin:-6px -6px;}
+    scrollbar-width:none;padding:6px 46px 6px 6px;margin:0;}
   .pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
   .pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
   /* Смуга порогів: усі рівні одразу, горизонтальним гортанням. Стоїть ПІД
@@ -1423,7 +1432,9 @@
   .pm-photo-empty-ic{width:40px;height:40px;border-radius:20px;flex:none;background:#111;display:flex;align-items:center;justify-content:center;}
   .pm-photo-empty-title{font-size:14px;font-weight:700;}
   .pm-photo-empty-sub{font-size:12px;color:#bbb;margin-top:2px;}
-  .pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;align-items:flex-start;}
+  .pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;
+    align-items:center;flex:none;}
+  .pm-photo-filled .pm-photo-add,.pm-photo-filled .pm-photo-thumb{flex:0 0 auto;}
   .pm-photo-thumb{flex:0 0 auto;width:50px;height:50px;border-radius:11px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
   .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:#f0f0f0;display:block;}
   .pm-photo-thumb-del{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;}
@@ -1498,7 +1509,11 @@
     font-family:var(--font-sf);align-self:flex-start;flex:none;
   }
   .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
-  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;padding-top:2px;}
+  /* Підказка поруч із «Розмірною сіткою»: без неї не видно, що по кружечку
+     треба тапнути, щоб з'явився лічильник. */
+  .pm-size-top{display:flex;align-items:center;gap:8px;padding:0 18px 4px;}
+  .pm-size-top .pm-size-chart-btn{margin:0;}
+  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:74px;padding-top:2px;}
   .pm-size-btn{
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
@@ -1507,11 +1522,16 @@
   .pm-size-list--os{justify-content:center;}
   .pm-size-col--os{width:auto;}
   .pm-size-btn--os{width:auto;min-width:120px;padding:0 22px;border-radius:23px;white-space:nowrap;}
-  .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:3px;height:0;opacity:0;overflow:hidden;}
-  .pm-size-qty.show{height:26px;opacity:1;}
-  .pm-size-qty-btn{width:26px;height:26px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
-  .pm-size-qty-btn.plus{border:none;background:#555;color:#fff;}
-  .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
+  /* Лічильник видно завжди: підкреслене поле під розміром і «+» поруч.
+     Раніше він з'являвся тільки після тапу — ряд стрибав, і було незрозуміло,
+     куди взагалі вписувати кількість. */
+  .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:2px;height:26px;}
+  .pm-size-qty-val{min-width:20px;text-align:center;font-size:13.5px;font-weight:700;color:#c2c6cd;
+    border-bottom:1.5px solid #e2e4e9;line-height:19px;}
+  .pm-size-qty.show .pm-size-qty-val{color:#111;border-bottom-color:#111;}
+  .pm-size-qty-btn[disabled]{opacity:.3;cursor:default;}
+  .pm-size-qty-btn{width:22px;height:22px;flex:none;border-radius:9px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+  .pm-size-qty-btn.plus{border:none;background:#111;color:#fff;}
 
   .pm-price-bar{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0f0f0;flex:none;}
   .pm-product-title{font-size:17px;font-weight:700;letter-spacing:-0.2px;color:#111;margin-bottom:10px;}
@@ -6855,6 +6875,15 @@
              EMB_MIN_LETTER_MM + ' мм. Збільште напис.';
     }
     function textMode(){ return !!(pm.textOpen || activeTextLayer()); }
+    // Подвійний шеврон був потрібен, поки поруч жила стрілка «відкрити».
+    // Її замінила кнопка «Змінити», тож гортання лишилось саме — і читається
+    // спокійніше одинарним.
+    var SCROLL_R = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M9 6l6 6-6 6"/></svg>';
+    var SCROLL_L = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M15 6l-6 6 6 6"/></svg>';
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -7324,7 +7353,7 @@
             '<button class="pm-scr-back" id="pmGpBack" aria-label="Назад">' + TS_BACK + '</button>' +
             '<div class="pm-scr-body">' +
             '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+            SCROLL_L +
             '</button><div class="pm-gp-list pm-scroll-list">';
           GARMENTS.forEach(function(g){
             var sel = g.id === pm.garmentId;
@@ -7350,7 +7379,7 @@
               '<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>' +
             '</svg><span class="pm-gp-nm">Каталог</span><span class="pm-gp-fit">усі вироби</span></button>';
           html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі">' +
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+            SCROLL_R +
             '</button></div></div></div>';
         } else {
           html = '<button class="pm-grow" id="pmGarmentRow">' +
@@ -7359,31 +7388,36 @@
                 '<span class="pm-grow-v">' + escAttr(gName) +
                   (cNow2.name ? ' (' + escAttr(cNow2.name) + ')' : '') + '</span>' +
               '</span>' +
-              '<span class="pm-grow-ch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" ' +
-                'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
-                '<path d="M9 6l6 6-6 6"/></svg></span>' +
+              '<span class="pm-grow-btn">Змінити</span>' +
             '</button>';
           // Колір лишається кружечками в рядку: провалюватись заради нього
           // немає сенсу — вибір видно й так, і робиться одним тапом.
-          html += '<div class="pm-color-row">' +
-            '<div class="pm-color-list">' +
+          // Кольорів більше, ніж влазить у рядок. Без стрілки ніхто не здогадувався,
+          // що ряд гортається, і бачив лише перші сім.
+          html += '<div class="pm-color-row"><div class="pm-scroll-wrap">' +
+            '<button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад">' +
+              SCROLL_L +
+            '</button><div class="pm-color-list pm-scroll-list">' +
             getColors().map(function(c){
               return '<button class="pm-color-swatch' + (c.id === pm.colorId ? ' active' : '') + '" ' +
                      'data-color="' + c.id + '" style="background:' + c.hex + ';" title="' + c.name + '"></button>';
-            }).join('') + '</div></div>';
+            }).join('') +
+            '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі">' +
+              SCROLL_R +
+            '</button></div></div>';
         }
       } else if(pm.tab === 'size'){
         var oneSize = isOneSize();
         // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
-        html = oneSize ? '' : ('<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button>');
+        html = oneSize ? '' : ('<div class="pm-size-top"><button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Розмірна сітка</button></div>');
         html += '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="pm-size-list pm-scroll-list'+(oneSize?' pm-size-list--os':'')+'">';
         getSizes().forEach(function(sz){
           var v = pm.qty[sz]||0, active = v>0;
           html += '<div class="pm-size-col'+(oneSize?' pm-size-col--os':'')+'">' +
             '<button class="pm-size-btn'+(oneSize?' pm-size-btn--os':'')+(active?' active':'')+'" data-size-select="'+sz+'">'+sz+'</button>' +
             '<div class="pm-size-qty'+(active?' show':'')+'">' +
-              '<button class="pm-size-qty-btn minus" data-size-minus="'+sz+'">−</button>' +
+              '<button class="pm-size-qty-btn minus"'+(active?'':' disabled')+' data-size-minus="'+sz+'">−</button>' +
               '<span class="pm-size-qty-val">'+v+'</span>' +
               '<button class="pm-size-qty-btn plus" data-size-plus="'+sz+'">+</button>' +
             '</div></div>';
@@ -9349,11 +9383,11 @@
       var leftBtn = document.createElement('button');
       leftBtn.className = 'pm-scroll-arrow pm-scroll-arrow--left';
       leftBtn.setAttribute('aria-label','Назад');
-      leftBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+      leftBtn.innerHTML = SCROLL_L;
       var rightBtn = document.createElement('button');
       rightBtn.className = 'pm-scroll-arrow pm-scroll-arrow--right';
       rightBtn.setAttribute('aria-label','Далі');
-      rightBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      rightBtn.innerHTML = SCROLL_R;
       wrap.appendChild(leftBtn);
       wrap.appendChild(rightBtn);
       function update(){
