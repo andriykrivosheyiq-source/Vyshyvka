@@ -1179,25 +1179,25 @@
   .pm-qty-warning.is-tap:active{opacity:.6;}
   /* Вкладка «Товар»: рядок типу одягу — назва плюс поточний колір у дужках.
      Тап розгортає вибір на все поле панелі, як екран кольору в написі. */
-  .pm-grow{width:100%;display:flex;align-items:center;gap:10px;padding:4px 18px 12px;
+  .pm-grow{width:100%;display:flex;align-items:center;gap:10px;padding:1px 18px 7px;
     background:none;border:none;cursor:pointer;text-align:left;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
   .pm-grow-txt{flex:1;min-width:0;}
   .pm-grow-k{display:block;font-size:11.5px;color:#9aa0ab;line-height:1.2;}
-  .pm-grow-v{display:block;font-size:19px;font-weight:800;color:#111;line-height:1.25;
+  .pm-grow-v{display:block;font-size:17px;font-weight:800;color:#111;line-height:1.25;
     letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-grow-ch{flex:none;color:#b6bcc5;display:flex;}
-  .pm-gp-head{display:flex;align-items:center;gap:9px;padding:0 18px 8px;}
+  .pm-gp-head{display:flex;align-items:center;gap:9px;padding:0 18px 6px;}
   .pm-gp-head b{font-size:15px;font-weight:600;letter-spacing:-.2px;color:#111;}
   /* Картки типу одягу: фото, назва, крій. Стрічка гортається — вертикальна
      сітка на 150px панелі показувала півтора ряди й нічого не пояснювала. */
   .pm-gp-list{display:flex;gap:9px;padding:2px 18px 4px;}
-  .pm-gp-card{position:relative;flex:0 0 auto;width:98px;display:flex;flex-direction:column;
-    align-items:center;gap:3px;padding:9px 7px 10px;border:1.5px solid #ededed;border-radius:14px;
+  .pm-gp-card{position:relative;flex:0 0 auto;width:90px;display:flex;flex-direction:column;
+    align-items:center;gap:2px;padding:7px 6px 8px;border:1.5px solid #ededed;border-radius:13px;
     background:#fff;cursor:pointer;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
-  .pm-gp-card.on{border-color:#111;border-width:2px;padding:8px 6px 9px;}
-  .pm-gp-card img,.pm-gp-card svg{width:100%;height:70px;object-fit:contain;}
+  .pm-gp-card.on{border-color:#111;border-width:2px;padding:6px 5px 7px;}
+  .pm-gp-card img,.pm-gp-card svg{width:100%;height:46px;object-fit:contain;}
   .pm-gp-nm{font-size:13px;font-weight:700;color:#111;line-height:1.2;text-align:center;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-gp-fit{font-size:11px;color:#9aa0ab;line-height:1.2;text-align:center;min-height:13px;
@@ -1240,9 +1240,9 @@
      стрибав щоразу, коли міняли виріб чи брали напис: «худі на застібці»
      робить список довшим, і все під ним їхало. Ціна цього — трохи порожнього
      місця на коротких вкладках; воно того варте. */
-  .pm-tab-panel.is-two{height:clamp(150px,20vh,176px);min-height:0;max-height:none;
-    align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 0;}
-  .pm-tab-panel.is-two.is-pick{height:clamp(178px,23vh,212px);}
+  .pm-tab-panel.is-two{height:clamp(120px,14.5vh,128px);min-height:0;max-height:none;
+    align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 0;}
+  .pm-tab-panel.is-two.is-pick{height:clamp(150px,19vh,172px);}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
@@ -1253,13 +1253,13 @@
   .pm-photo-filled.is-empty .pm-photo-group-row{flex:1;width:100%;}
   /* Порожній стан — це головний заклик до дії, тож контраст вищий за
      звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
-  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;gap:6px;
+  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;height:76px;gap:7px;
     border-color:#cfd3da;color:#5a6472;background:#fcfcfd;}
-  .pm-photo-filled.is-empty .pm-photo-add svg{width:22px;height:22px;}
-  .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:22px;}
-  .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:12px;font-weight:600;}
+  .pm-photo-filled.is-empty .pm-photo-add svg{width:24px;height:24px;}
+  .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:24px;}
+  .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:13px;font-weight:600;}
   .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
-  .pm-photo-add-ab{font-size:19px;font-weight:800;line-height:1;color:inherit;}
+  .pm-photo-add-ab{font-size:16px;font-weight:800;line-height:1;color:inherit;}
   /* «Прибрати фон» — значком у куті мініатюри, щоб не займати рядок під нею */
   .pm-bg-dot{position:absolute;left:4px;bottom:4px;width:19px;height:19px;border-radius:10px;
     border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -1282,20 +1282,20 @@
   .pm-ts-grp{display:flex;align-items:center;gap:5px;min-width:0;}
   .pm-ts-grp--font{flex:1;min-width:0;position:relative;}
   .pm-ts-row{display:flex;align-items:center;gap:5px;}
-  .pm-ts-back{flex:none;width:32px;height:32px;border-radius:10px;border:none;background:#f4f5f7;
+  .pm-ts-back{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f4f5f7;
     color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;
     -webkit-tap-highlight-color:transparent;padding:0;}
-  .pm-ts-sel{width:100%;min-width:0;height:32px;border-radius:10px;border:1px solid #e6e6e6;
+  .pm-ts-sel{flex:1;width:100%;min-width:0;height:34px;border-radius:10px;border:1px solid #e6e6e6;
     background:#fff;display:flex;align-items:center;justify-content:space-between;gap:5px;
-    padding:0 9px;cursor:pointer;font-size:14px;color:#111;
+    padding:0 10px;cursor:pointer;font-size:15px;color:#111;
     -webkit-tap-highlight-color:transparent;}
   .pm-ts-sel.on{border-color:#111;}
   .pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-ts-selcol{width:auto;flex:0 1 auto;max-width:124px;padding:0 7px 0 6px;gap:5px;}
   .pm-ts-selcol .pm-ts-sw{width:22px;height:22px;border-radius:11px;pointer-events:none;flex:none;}
   .pm-ts-selcol span{font-size:13px;}
-  .pm-ts-tog{flex:none;width:32px;height:32px;border-radius:10px;border:1px solid #e6e6e6;
-    background:#fff;color:#111;font-size:16px;line-height:1;cursor:pointer;padding:0;
+  .pm-ts-tog{flex:none;width:40px;height:34px;border-radius:10px;border:1px solid #e6e6e6;
+    background:#fff;color:#111;font-size:17px;line-height:1;cursor:pointer;padding:0;
     font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
   .pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
   .pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
@@ -1315,10 +1315,7 @@
   .pm-ts-head{display:flex;align-items:center;gap:6px;}
   /* Зразки стоять у тому самому рядку, що й стрілка: окремий ряд з'їдав висоту,
      а прокрутка різала обвідку вибраного кружечка. */
-  .pm-ts-pal{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;
-    gap:4px;padding:4px 3px;}
-  .pm-ts-pal .pm-ts-sw{width:clamp(22px,7vw,28px);height:clamp(22px,7vw,28px);border-radius:14px;}
-  .pm-ts-sv{position:relative;margin-top:7px;height:clamp(56px,8.5vh,92px);border-radius:10px;
+  .pm-ts-sv{position:relative;margin-top:6px;height:clamp(40px,6vh,66px);border-radius:10px;
     cursor:crosshair;touch-action:none;}
   .pm-ts-dot{position:absolute;width:16px;height:16px;border-radius:9px;border:2px solid #fff;
     box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);
@@ -1329,13 +1326,35 @@
     background:#fff;border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
   .pm-ts-sl::-moz-range-thumb{width:17px;height:17px;border-radius:9px;background:#fff;
     border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
+  /* Кольори прямо в панелі: перший кружечок — палітра, далі зразки, справа
+     стрілка. Раніше за кольором треба було провалюватись окремим заходом. */
+  .pm-tsc{display:flex;align-items:center;gap:8px;padding:8px 0 0 14px;}
+  .pm-tsc-pal{flex:none;width:30px;height:30px;border-radius:15px;border:none;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;
+    background:conic-gradient(#f43f5e,#f59e0b,#facc15,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#f43f5e);}
+  .pm-tsc-pal i{width:11px;height:11px;border-radius:6px;background:#fff;
+    box-shadow:0 0 0 1.5px rgba(0,0,0,.12);}
+  .pm-tsc-wrap{flex:1;min-width:0;}
+  /* Стрілка стоїть на білому розмиві: інакше вона накривала кружечок і
+     читалась як кнопка поверх кольору, а не як «тут ще є». */
+  .pm-tsc-wrap .pm-scroll-arrow{width:24px;height:24px;box-shadow:none;background:none;}
+  .pm-tsc-wrap .pm-scroll-arrow--right{padding-left:8px;
+    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 45%);
+    width:40px;border-radius:0;justify-content:flex-end;}
+  .pm-tsc-wrap .pm-scroll-arrow--left{padding-right:8px;
+    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 45%);
+    width:40px;border-radius:0;justify-content:flex-start;}
+  .pm-tsc-list{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;
+    padding:3px 30px 3px 2px;}
+  .pm-tsc-list::-webkit-scrollbar{display:none;}
+  .pm-tsc-list .pm-ts-sw{width:28px;height:28px;border-radius:14px;}
   .pm-ts-warn{margin-top:6px;font-size:10.5px;line-height:1.25;color:#8a5a00;
     background:#fff6e0;border-radius:7px;padding:3px 8px;}
-  .pm-way-head{padding:14px 18px 6px;display:flex;align-items:center;gap:6px;}
+  .pm-way-head{padding:3px 18px 2px;display:flex;align-items:center;gap:6px;}
   .pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
   .pm-seg{margin:0 18px;display:flex;background:#f1f2f4;border-radius:11px;padding:3px;gap:3px;}
   .pm-seg-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-    border:none;background:none;border-radius:9px;padding:9px 6px;cursor:pointer;
+    border:none;background:none;border-radius:9px;padding:5px 6px;cursor:pointer;
     font-family:var(--font-sf);font-size:12.5px;font-weight:600;color:#6b7280;
     transition:background .18s,color .18s,box-shadow .18s;}
   .pm-seg-btn.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12);}
@@ -1374,7 +1393,7 @@
   .pm-photo-empty-title{font-size:14px;font-weight:700;}
   .pm-photo-empty-sub{font-size:12px;color:#bbb;margin-top:2px;}
   .pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;align-items:flex-start;}
-  .pm-photo-thumb{flex:0 0 auto;width:72px;height:72px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
+  .pm-photo-thumb{flex:0 0 auto;width:50px;height:50px;border-radius:11px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
   .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:#f0f0f0;display:block;}
   .pm-photo-thumb-del{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;}
   .pm-photo-col{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center;}
@@ -1384,7 +1403,7 @@
   .pm-bg-toggle-knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:6px;background:#fff;transition:left .18s;}
   .pm-bg-toggle-pill.on .pm-bg-toggle-knob{left:12px;}
   .pm-bg-toggle-label{font-size:10.5px;color:#666;font-weight:500;}
-  .pm-photo-add{flex:0 0 auto;width:72px;height:72px;border-radius:12px;border:2px dashed #ccc;
+  .pm-photo-add{flex:0 0 auto;width:50px;height:50px;border-radius:11px;border:2px dashed #ccc;
     background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:3px;cursor:pointer;color:#bbb;font-size:10px;line-height:1.2;text-align:center;
     padding:0 4px;box-sizing:border-box;}
@@ -1444,12 +1463,12 @@
 
   .pm-size-chart-btn{
     display:inline-flex;align-items:center;gap:5px;background:none;border:1.5px solid #111;border-radius:20px;
-    cursor:pointer;font-size:13px;font-weight:600;color:#111;padding:4px 12px;margin:0 18px 6px;font-family:var(--font-sf);
+    cursor:pointer;font-size:12.5px;font-weight:600;color:#111;padding:3px 11px;margin:0 18px 4px;font-family:var(--font-sf);
   }
   .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
-  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;width:70px;padding-top:6px;}
+  .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;padding-top:2px;}
   .pm-size-btn{
-    width:54px;height:54px;border-radius:27px;border:1.5px solid #ddd;background:#fff;color:#444;
+    width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
     font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
   }
   .pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
@@ -1457,7 +1476,7 @@
   .pm-size-col--os{width:auto;}
   .pm-size-btn--os{width:auto;min-width:120px;padding:0 22px;border-radius:23px;white-space:nowrap;}
   .pm-size-qty{display:flex;align-items:center;justify-content:center;gap:3px;height:0;opacity:0;overflow:hidden;}
-  .pm-size-qty.show{height:28px;opacity:1;}
+  .pm-size-qty.show{height:26px;opacity:1;}
   .pm-size-qty-btn{width:26px;height:26px;flex:none;border-radius:11px;border:1.5px solid #e4e4e4;background:#fff;color:#111;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
   .pm-size-qty-btn.plus{border:none;background:#555;color:#fff;}
   .pm-size-qty-val{min-width:14px;text-align:center;font-size:14px;font-weight:700;}
@@ -6512,10 +6531,12 @@
 
     // Кольори — реальні нитки й плівка, а не вільна палітра: клієнт обере
     // #7F3FBF, а такої нитки не існує, і замовлення стане на узгодженні.
-    // Дев'ять зразків — рівно стільки, скільки стає в один рядок біля стрілки.
-    // Решта відтінків береться палітрою: гортати кружечки незручно.
-    var TEXT_COLORS = ['#ffffff', '#111111', '#8e8e93', '#c8102e', '#0b3d91',
-                       '#1e88e5', '#1b7a43', '#ffd400', '#c9a227'];
+    // Двадцять зразків прямо в панелі: ряд гортається, а найтонше підбирання
+    // лишається палітрі — вона перша в ряду.
+    var TEXT_COLORS = ['#ffffff', '#111111', '#8e8e93', '#c9ccd1', '#c8102e',
+                       '#7a1220', '#f26b21', '#ffd400', '#c9a227', '#0b3d91',
+                       '#1e88e5', '#00a3ad', '#7fd1c1', '#1b7a43', '#14532d',
+                       '#7cb342', '#6a3da8', '#e75480', '#6b4423', '#d8c3a5'];
     // Назви — щоб у панелі стояло «Червоний», а не «#C8102E». Для відтінку з
     // палітри беремо найближчу назву: людині важливо, який це колір, а не код.
     var COLOR_NAMES = [
@@ -6524,7 +6545,9 @@
       ['#7a1220','Бордовий'], ['#f26b21','Помаранчевий'], ['#ffd400','Жовтий'],
       ['#c9a227','Золотий'], ['#0b3d91','Темно-синій'], ['#1e88e5','Синій'],
       ['#00a3ad','Бірюзовий'], ['#1b7a43','Зелений'], ['#7cb342','Салатовий'],
-      ['#6a3da8','Фіолетовий'], ['#e75480','Рожевий'], ['#6b4423','Коричневий']
+      ['#6a3da8','Фіолетовий'], ['#e75480','Рожевий'], ['#6b4423','Коричневий'],
+      ['#c9ccd1','Сріблястий'], ['#d8c3a5','Бежевий'], ['#7fd1c1','Мʼятний'],
+      ['#14532d','Темно-зелений']
     ];
     function colorName(hex){
       var h = String(hex || '').toLowerCase(), best = COLOR_NAMES[0], bd = 1e9;
@@ -6715,8 +6738,6 @@
         // — тримаємо його невидимим символом, який у текст напису не йде.
         try{ document.execCommand('insertText', false, '\n\u200b'); }catch(err){}
       });
-      el.addEventListener('mousedown', function(e){ if(pm.textEdit === layer.id) e.stopPropagation(); });
-      el.addEventListener('touchstart', function(e){ if(pm.textEdit === layer.id) e.stopPropagation(); });
     }
     function textSetCaret(el, pos){
       try{
@@ -6816,35 +6837,40 @@
       var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts">' +
         '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK + '</button>' +
-        '<div class="pm-ts-grp pm-ts-grp--font">' +
-          '<button class="pm-ts-sel' + (pm.textDrop === 'font' ? ' on' : '') + '" data-tsdrop="font" ' +
-            'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
-            '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
-        '</div>' +
+        '<button class="pm-ts-sel" data-tsdrop="font" ' +
+          'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
+          '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
         '<button class="pm-ts-tog' + (sp.bold ? ' on' : '') + '" id="pmTsBold" ' +
           'style="font-weight:700" aria-label="Жирний">B</button>' +
         '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
           'style="font-style:italic" aria-label="Курсив">I</button>' +
-        '<button class="pm-ts-sel pm-ts-selcol" id="pmTsColor" aria-label="Колір напису">' +
-          '<b class="pm-ts-sw" style="background:' + (sp.color || TEXT_COLORS[0]) + '"></b>' +
-          '<span>' + colorName(sp.color || TEXT_COLORS[0]) + '</span>' + TS_CHEV +
-        '</button>' +
-      '</div>';
+        '</div>';
+      // Кольори — прямо тут, а не за окремим заходом. Перший кружечок веде в
+      // палітру: точний фірмовий відтінок зразками не вгадаєш.
+      h += '<div class="pm-tsc"><button class="pm-tsc-pal" data-tsnav="colors" ' +
+          'aria-label="Своя палітра"><i></i></button>' +
+        '<div class="pm-scroll-wrap pm-tsc-wrap">' +
+        '<button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
+        '</button><div class="pm-tsc-list pm-scroll-list">' +
+        TEXT_COLORS.map(function(c){
+          return '<button class="pm-ts-sw' + (c === sp.color ? ' on' : '') + '" data-tc="' + c + '" ' +
+                 'style="background:' + c + '" aria-label="' + colorName(c) + '"></button>';
+        }).join('') +
+        '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+        '</button></div></div>';
       if(msg) h += '<div class="pm-ts-warn">' + msg + '</div>';
       return h + '</div></div>';
     }
-    // Екран кольору — повністю замість панелі. Базові зразки плюс палітра,
-    // по якій водять пальцем: назвати потрібний відтінок словами неможливо.
+    // Екран палітри: зразки лишились у панелі, тут — лише точний підбір.
     function textColorsHtml(sp){
       var cur = pm.pickColor || sp.color || TEXT_COLORS[0];
       var hsv = hexToHsv(cur);
       return '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts-head">' +
           '<button class="pm-ts-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '</button>' +
-          '<div class="pm-ts-pal">' + TEXT_COLORS.map(function(c){
-            return '<button class="pm-ts-sw' + (c === cur ? ' on' : '') + '" data-tc="' + c + '" ' +
-                   'style="background:' + c + '" aria-label="' + colorName(c) + '"></button>';
-          }).join('') + '</div>' +
+          '<b>' + escAttr(colorName(cur)) + '</b>' +
         '</div>' +
         '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
           '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
@@ -7020,7 +7046,11 @@
     }
 
     function onImgDown(e, layer){
-      e.stopPropagation(); e.preventDefault();
+      e.stopPropagation();
+      // Поки напис правлять, дотик не блокуємо: інакше браузер не поставить
+      // каретку й не відкриє клавіатуру. Перетягування все одно працює —
+      // onDlMove перехопить рух і зупинить прокрутку сам.
+      if(!(layer.text && pm.textEdit === layer.id)) e.preventDefault();
       var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;
       if(!wasActive) renderLogoLayers();   // показати рамку/маркери лише при першому виділенні
@@ -7444,6 +7474,15 @@
       if(tOpen) tOpen.addEventListener('click', function(){ openTextBar(null); });
       var tsBack = document.getElementById('pmTsBack');
       if(tsBack) tsBack.addEventListener('click', function(){ closeTextBar(); });
+      pmTabPanel.querySelectorAll('.pm-tsc [data-tc]').forEach(function(el){
+        el.addEventListener('click', function(){
+          pm.pickColor = el.dataset.tc;
+          textApply({ color: el.dataset.tc });
+          pmTabPanel.querySelectorAll('.pm-tsc [data-tc]').forEach(function(b){
+            b.classList.toggle('on', b === el);
+          });
+        });
+      });
       var tsBold = document.getElementById('pmTsBold');
       if(tsBold) tsBold.addEventListener('click', function(){
         textApply({ bold: !textSpec().bold }); renderTabPanel();
@@ -7490,9 +7529,8 @@
           dot.style.left = (st.s*100).toFixed(1) + '%';
           dot.style.top = ((1-st.v)*100).toFixed(1) + '%';
           dot.style.background = hex;
-          pmTabPanel.querySelectorAll('.pm-ts-pal [data-tc]').forEach(function(b){
-            b.classList.toggle('on', b.dataset.tc === hex);
-          });
+          var hd = pmTabPanel.querySelector('.pm-ts-head b');
+          if(hd) hd.textContent = colorName(hex);
           textApply({ color: hex });      // видно одразу на виробі
         }
         function pick(e){
@@ -7520,16 +7558,6 @@
         sv.addEventListener('mousedown', down);
         sv.addEventListener('touchstart', down, {passive:false});
         H.addEventListener('input', function(){ st.h = +H.value; paint(); });
-        // Зразок не виводить з екрана: колір лягає на напис, а далі його ще
-        // можна довести палітрою — саме так люди й підбирають відтінок.
-        pmTabPanel.querySelectorAll('.pm-ts-pal [data-tc]').forEach(function(b){
-          b.addEventListener('click', function(){
-            var c = hexToHsv(b.dataset.tc);
-            st.h = c.h; st.s = c.s; st.v = c.v;
-            H.value = Math.round(c.h);
-            paint();
-          });
-        });
       })();
       renderFontList();
 
