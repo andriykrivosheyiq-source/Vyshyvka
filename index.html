@@ -6875,14 +6875,15 @@
              EMB_MIN_LETTER_MM + ' мм. Збільште напис.';
     }
     function textMode(){ return !!(pm.textOpen || activeTextLayer()); }
-    // Гортання і «відкрити» мали однакову стрілку, тож ніхто не розумів, де
-    // що станеться. Тепер прокрутка — подвійний шеврон, відкриття — одинарний.
-    var SCROLL_R = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    // Подвійний шеврон був потрібен, поки поруч жила стрілка «відкрити».
+    // Її замінила кнопка «Змінити», тож гортання лишилось саме — і читається
+    // спокійніше одинарним.
+    var SCROLL_R = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M7 6l6 6-6 6"/><path d="M14 6l6 6-6 6"/></svg>';
-    var SCROLL_L = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      '<path d="M9 6l6 6-6 6"/></svg>';
+    var SCROLL_L = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
-      '<path d="M17 6l-6 6 6 6"/><path d="M10 6l-6 6 6 6"/></svg>';
+      '<path d="M15 6l-6 6 6 6"/></svg>';
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
