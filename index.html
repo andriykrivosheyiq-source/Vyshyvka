@@ -1205,7 +1205,9 @@
   .pm-gp-head b{font-size:15px;font-weight:600;letter-spacing:-.2px;color:#111;}
   /* Картки типу одягу: фото, назва, крій. Стрічка гортається — вертикальна
      сітка на 150px панелі показувала півтора ряди й нічого не пояснювала. */
-  .pm-gp-list{display:flex;gap:9px;padding:2px 18px 4px;}
+  .pm-gp-list{display:flex;gap:9px;padding:2px 2px 4px;overflow-x:auto;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;}
+  .pm-gp-list::-webkit-scrollbar{display:none;}
   .pm-gp-card{position:relative;flex:0 0 auto;width:90px;display:flex;flex-direction:column;
     align-items:center;gap:2px;padding:7px 6px 8px;border:1.5px solid #ededed;border-radius:13px;
     background:#fff;cursor:pointer;font-family:var(--font-sf);
@@ -1254,20 +1256,21 @@
      стрибав щоразу, коли міняли виріб чи брали напис: «худі на застібці»
      робить список довшим, і все під ним їхало. Ціна цього — трохи порожнього
      місця на коротких вкладках; воно того варте. */
-  .pm-tab-panel.is-two{height:clamp(120px,14.5vh,128px);min-height:0;max-height:none;
-    align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 0;}
-  .pm-tab-panel.is-two.is-pick{height:clamp(150px,19vh,172px);}
+  .pm-tab-panel.is-two{height:clamp(108px,13vh,118px);min-height:0;max-height:none;
+    align-items:stretch;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 0;}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
     color:#9aa0ab;flex:none;}
   /* Плитки додавання — рівно того ж розміру, що й мініатюри лого */
-  .pm-photo-filled.is-empty{padding-right:18px;}
+  .pm-photo-filled.is-empty{padding-right:18px;height:100%;align-items:stretch;}
+  .pm-photo-filled.is-empty .pm-photo-group,
+  .pm-photo-filled.is-empty .pm-photo-group-row{height:100%;}
   .pm-photo-filled.is-empty .pm-photo-group,
   .pm-photo-filled.is-empty .pm-photo-group-row{flex:1;width:100%;}
   /* Порожній стан — це головний заклик до дії, тож контраст вищий за
      звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
-  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;height:76px;gap:7px;
+  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;height:100%;gap:7px;
     border-color:#cfd3da;color:#5a6472;background:#fcfcfd;}
   .pm-photo-filled.is-empty .pm-photo-add svg{width:24px;height:24px;}
   .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:24px;}
@@ -1290,8 +1293,8 @@
   .pm-dl-text:empty::before{content:attr(data-ph);opacity:.45;}
 
   /* Смуга оформлення в блоці «Дизайн» — замість плиток, у ту саму висоту */
-  .pm-text-strip{padding:0 14px;}
-  .pm-ts-card{position:relative;}
+  .pm-text-strip{padding:0 14px;height:100%;}
+  .pm-ts-card{position:relative;height:100%;display:flex;flex-direction:column;}
   .pm-ts{display:flex;align-items:center;gap:6px;}
   .pm-ts-grp{display:flex;align-items:center;gap:5px;min-width:0;}
   .pm-ts-grp--font{flex:1;min-width:0;position:relative;}
@@ -1326,10 +1329,20 @@
     overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;}
   .pm-ts-opt.on{background:#f2f3f5;}
   /* Кольори: свій екран замість смуги — базові зразки й палітра під пальцем */
+  /* Підекрани (палітра, тип одягу): велика кнопка «назад» зліва на всю
+     висоту, решта простору — під сам вибір. Заголовки прибрані: вони
+     з'їдали рядок, а що саме обирають, видно й так. */
+  .pm-scr{display:flex;align-items:stretch;gap:10px;padding:0 14px;height:100%;}
+  .pm-scr-back{flex:none;width:46px;border:none;border-radius:13px;background:#f1f2f4;
+    color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+    -webkit-tap-highlight-color:transparent;}
+  .pm-scr-back:active{background:#e6e7ea;}
+  .pm-scr-back svg{width:22px;height:22px;}
+  .pm-scr-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
   .pm-ts-head{display:flex;align-items:center;gap:6px;}
   /* Зразки стоять у тому самому рядку, що й стрілка: окремий ряд з'їдав висоту,
      а прокрутка різала обвідку вибраного кружечка. */
-  .pm-ts-sv{position:relative;margin-top:6px;height:clamp(40px,6vh,66px);border-radius:10px;
+  .pm-ts-sv{position:relative;flex:1;min-height:38px;border-radius:11px;
     cursor:crosshair;touch-action:none;}
   .pm-ts-dot{position:absolute;width:16px;height:16px;border-radius:9px;border:2px solid #fff;
     box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);
@@ -1342,7 +1355,9 @@
     border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
   /* Кольори прямо в панелі: перший кружечок — палітра, далі зразки, справа
      стрілка. Раніше за кольором треба було провалюватись окремим заходом. */
-  .pm-tsc{display:flex;align-items:center;gap:8px;padding:8px 0 0 14px;}
+  /* Кольори стоять по центру простору, що лишився під рядком шрифтів —
+     інакше вони тулились одразу під ним, а низ панелі зіяв порожнечею. */
+  .pm-tsc{flex:1;display:flex;align-items:center;gap:9px;padding:0 0 0 12px;min-height:0;}
   .pm-tsc-pal{flex:none;width:30px;height:30px;border-radius:15px;border:none;padding:0;cursor:pointer;
     display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;
     background:conic-gradient(#f43f5e,#f59e0b,#facc15,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#f43f5e);}
@@ -1351,15 +1366,17 @@
   .pm-tsc-wrap{flex:1;min-width:0;}
   /* Стрілка стоїть на білому розмиві: інакше вона накривала кружечок і
      читалась як кнопка поверх кольору, а не як «тут ще є». */
-  .pm-tsc-wrap .pm-scroll-arrow{width:24px;height:24px;box-shadow:none;background:none;}
-  .pm-tsc-wrap .pm-scroll-arrow--right{padding-left:8px;
-    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 45%);
-    width:40px;border-radius:0;justify-content:flex-end;}
-  .pm-tsc-wrap .pm-scroll-arrow--left{padding-right:8px;
-    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 45%);
-    width:40px;border-radius:0;justify-content:flex-start;}
-  .pm-tsc-list{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;
-    padding:3px 30px 3px 2px;}
+  /* Стрілка прокрутки — не кнопка поверх кружечка, а білий розмив із шевроном:
+     так видно, що ряд триває далі, і нічого не накрито. */
+  #pmTabPanel .pm-scroll-arrow{width:50px;height:100%;top:0;transform:none;box-shadow:none;
+    border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;color:#3a3f47;}
+  #pmTabPanel .pm-scroll-arrow--right{right:0;padding-left:16px;justify-content:flex-end;
+    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 42%);}
+  #pmTabPanel .pm-scroll-arrow--left{left:0;padding-right:16px;justify-content:flex-start;
+    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 42%);}
+  #pmTabPanel .pm-scroll-arrow svg{width:20px;height:20px;stroke-width:2.4;}
+  .pm-tsc-list{display:flex;align-items:center;gap:9px;overflow-x:auto;scrollbar-width:none;
+    padding:6px 40px 6px 5px;}
   .pm-tsc-list::-webkit-scrollbar{display:none;}
   .pm-tsc-list .pm-ts-sw{width:28px;height:28px;border-radius:14px;}
   .pm-ts-warn{margin-top:6px;font-size:10.5px;line-height:1.25;color:#8a5a00;
@@ -1394,7 +1411,7 @@
     box-shadow:0 1px 3px rgba(0,0,0,.15);}
   .pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
     overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
-  .pm-tab-panel-inner{width:100%;}
+  .pm-tab-panel-inner{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;}
   .pm-tab-panel-inner.is-swap{animation:pmSwap .16s ease-out;}
   @keyframes pmSwap{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
   @media (prefers-reduced-motion:reduce){ .pm-tab-panel-inner.is-swap{animation:none;} }
@@ -1477,7 +1494,8 @@
 
   .pm-size-chart-btn{
     display:inline-flex;align-items:center;gap:5px;background:none;border:1.5px solid #111;border-radius:20px;
-    cursor:pointer;font-size:12.5px;font-weight:600;color:#111;padding:3px 11px;margin:0 18px 4px;font-family:var(--font-sf);
+    cursor:pointer;font-size:12.5px;font-weight:600;color:#111;padding:3px 11px;margin:0 18px 4px;
+    font-family:var(--font-sf);align-self:flex-start;flex:none;
   }
   .pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
   .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;padding-top:2px;}
@@ -6878,21 +6896,20 @@
       return h + '</div></div>';
     }
     // Екран палітри: зразки лишились у панелі, тут — лише точний підбір.
+    // Назви кольору немає: вона займала рядок, а що обирають — і так видно.
     function textColorsHtml(sp){
       var cur = pm.pickColor || sp.color || TEXT_COLORS[0];
       var hsv = hexToHsv(cur);
-      return '<div class="pm-text-strip"><div class="pm-ts-card">' +
-        '<div class="pm-ts-head">' +
-          '<button class="pm-ts-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '</button>' +
-          '<b>' + escAttr(colorName(cur)) + '</b>' +
-        '</div>' +
-        '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
-          '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
-            ((1-hsv.v)*100).toFixed(1) + '%;background:' + cur + '"></i>' +
-        '</div>' +
-        '<input type="range" class="pm-ts-sl" id="pmTsH" min="0" max="360" value="' + Math.round(hsv.h) + '" ' +
-          'style="background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" aria-label="Відтінок">' +
-      '</div></div>';
+      return '<div class="pm-scr">' +
+        '<button class="pm-scr-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '</button>' +
+        '<div class="pm-scr-body">' +
+          '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
+            '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
+              ((1-hsv.v)*100).toFixed(1) + '%;background:' + cur + '"></i>' +
+          '</div>' +
+          '<input type="range" class="pm-ts-sl" id="pmTsH" min="0" max="360" value="' + Math.round(hsv.h) + '" ' +
+            'style="background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" aria-label="Відтінок">' +
+        '</div></div>';
     }
     // Список гарнітур живе поза панеллю, у body: інакше його ріже прокрутка
     // вкладки, і з двадцяти шрифтів було б видно три.
@@ -7303,9 +7320,9 @@
         if(pm.garmentPick){
           // Вибір типу одягу розгортається на все поле панелі й закриває собою
           // рядок: одночасно на екрані лишається один рівень, як у кольорі напису.
-          html = '<div class="pm-gp-head">' +
-            '<button class="pm-ts-back" id="pmGpBack" aria-label="Назад">' + TS_BACK + '</button>' +
-            '<b>Оберіть тип одягу</b></div>' +
+          html = '<div class="pm-scr">' +
+            '<button class="pm-scr-back" id="pmGpBack" aria-label="Назад">' + TS_BACK + '</button>' +
+            '<div class="pm-scr-body">' +
             '<div class="pm-scroll-wrap"><button class="pm-scroll-arrow pm-scroll-arrow--left" aria-label="Назад">' +
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>' +
             '</button><div class="pm-gp-list pm-scroll-list">';
@@ -7334,7 +7351,7 @@
             '</svg><span class="pm-gp-nm">Каталог</span><span class="pm-gp-fit">усі вироби</span></button>';
           html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі">' +
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
-            '</button></div>';
+            '</button></div></div></div>';
         } else {
           html = '<button class="pm-grow" id="pmGarmentRow">' +
               '<span class="pm-grow-txt">' +
@@ -7381,9 +7398,6 @@
       // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
       pmTabPanel.classList.toggle('is-two',
         pm.tab === 'garment' || pm.tab === 'photo' || pm.tab === 'size');
-      // Вибір типу одягу — єдиний випадок, коли панель стає вищою: це свідомий
-      // захід у список, і два повні ряди карток мають бути видні одразу.
-      pmTabPanel.classList.toggle('is-pick', pm.tab === 'garment' && !!pm.garmentPick);
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
@@ -7543,8 +7557,6 @@
           dot.style.left = (st.s*100).toFixed(1) + '%';
           dot.style.top = ((1-st.v)*100).toFixed(1) + '%';
           dot.style.background = hex;
-          var hd = pmTabPanel.querySelector('.pm-ts-head b');
-          if(hd) hd.textContent = colorName(hex);
           textApply({ color: hex });      // видно одразу на виробі
         }
         function pick(e){
