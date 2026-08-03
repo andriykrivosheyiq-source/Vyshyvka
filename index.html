@@ -838,10 +838,14 @@
   .co-done-sub{margin:8px 0 18px;font-size:14.5px;color:var(--muted);line-height:1.45;}
 
   /* FAQ */
+  /* Питання — білий блок на сірому тлі секції, всередині розділені рисками */
+  .faq-list{background:#FFFFFF;border-radius:20px;padding:0 18px;
+    border:1px solid var(--line);overflow:hidden;}
   .faq-item{border-bottom:1px solid var(--line);}
+  .faq-item:last-child{border-bottom:none;}
   .faq-q{
     width:100%;background:none;border:none;text-align:left;cursor:pointer;
-    padding:22px 0;display:flex;align-items:center;justify-content:space-between;
+    padding:20px 0;display:flex;align-items:center;justify-content:space-between;
     font-size:17px;font-weight:600;color:var(--ink);font-family:var(--font-sf);
   }
   .faq-q .plus{
@@ -3971,7 +3975,7 @@
     </div>
   </section>
 
-  <section style="padding-top:0;">
+  <section style="padding-top:0;background:var(--silver);">
     <div class="wrap">
       <div class="about-stats reveal">
         <div class="item"><div class="num">120+</div><div class="lbl">працівників</div></div>
@@ -3993,7 +3997,7 @@
   </section>
 
   <!-- FAQ -->
-  <section id="faq" style="padding-top:8px;">
+  <section id="faq" style="padding-top:8px;background:var(--silver);">
     <div class="wrap">
       <div class="sec-head reveal">
         <h2 style="font-size:clamp(26px,4vw,34px);">Маєш питання? Ми вже відповіли</h2>
