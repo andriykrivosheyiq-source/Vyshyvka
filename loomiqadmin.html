@@ -89,8 +89,19 @@
     padding:6px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;}
   .dev-switch button:hover{color:var(--ink);}
   .dev-switch button.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(15,32,52,.10);}
-  #landing-stage.is-framed{padding:14px;}
-  #landing-stage.is-framed #calc-frame{border-radius:12px;box-shadow:0 6px 26px rgba(15,32,52,.16);}
+  #landing-fit{width:100%;height:100%;transform-origin:top center;transition:transform .16s;}
+  #landing-stage.is-framed{padding:14px;align-items:flex-start;}
+  #landing-stage.is-framed #landing-fit{width:auto;height:auto;}
+  #landing-stage.is-framed #calc-frame{border-radius:14px;box-shadow:0 10px 34px rgba(15,32,52,.22);
+    border:1px solid rgba(15,32,52,.10);}
+  .dev-dim{font-size:11.5px;color:#8893A6;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .dev-rotate{all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink);flex:none;}
+  .dev-rotate:hover{background:#F4F6FA;}
+  .dev-open{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap;}
+  .dev-open:hover{text-decoration:underline;}
+  #dev-model{padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    font:inherit;font-size:12.5px;color:var(--ink);max-width:190px;}
   .calc-bar.is-editing{border-color:#16A34A;background:#f2fbf5;}
   .lq-img-panel{position:absolute;z-index:60;width:230px;background:#fff;border:1px solid var(--line);
     border-radius:12px;box-shadow:0 12px 30px -10px rgba(0,0,0,.25);padding:12px;display:flex;
@@ -1280,10 +1291,14 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
           <!-- Перегляд на різних пристроях: як у конструкторах сайтів -->
           <div class="dev-switch" id="dev-switch">
-            <button data-dev="mobile" title="Мобільний (390px)">📱 Мобільний</button>
-            <button data-dev="tablet" title="Планшет (820px)">▭ Планшет</button>
-            <button data-dev="desktop" class="active" title="Компʼютер (на всю ширину)">🖥 Компʼютер</button>
+            <button data-dev="phone"   title="Телефон">📱 Телефон</button>
+            <button data-dev="tablet"  title="Планшет">▭ Планшет</button>
+            <button data-dev="desktop" class="active" title="Компʼютер">🖥 Компʼютер</button>
           </div>
+          <select id="dev-model" style="display:none;"></select>
+          <button class="dev-rotate" id="dev-rotate" style="display:none;" title="Повернути екран">⟳</button>
+          <span class="dev-dim" id="dev-dim"></span>
+          <a class="dev-open" id="dev-open" target="_blank" rel="noopener">Відкрити в новій вкладці ↗</a>
           <span class="calc-bar-hint" id="edit-hint">Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.</span>
         </div>
         <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
@@ -1291,7 +1306,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
         <div id="landing-stage" style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef1f6;
              height:calc(100vh - 210px);min-height:520px;display:flex;justify-content:center;align-items:stretch;padding:0;">
-          <iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;background:#fff;transition:width .18s;"></iframe>
+          <div id="landing-fit"><iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;background:#fff;"></iframe></div>
         </div>
       </div>
 
@@ -5467,7 +5482,12 @@ function renderCtor(){
     if(el) el.style.display = (k===ctorTab) ? '' : 'none';
   });
   if(ctorTab==='products') renderProductsTab();
-  else if(ctorTab==='landings'){ if(typeof loadCalcFrame==='function') loadCalcFrame(); }
+  else if(ctorTab==='landings'){
+    if(typeof loadCalcFrame==='function') loadCalcFrame();
+    // сцену щойно показали — до цього її ширина була нульовою, тож масштаб
+    // рамки пристрою рахуємо саме тепер
+    if(window.__devPreviewApply) requestAnimationFrame(window.__devPreviewApply);
+  }
   else if(ctorTab==='reviews'){ renderReviewOrder(); renderReviewPhotosAdmin(); }
   else if(ctorTab==='site') renderSiteTab();
 }
@@ -6455,23 +6475,97 @@ async function init(){
   }
   // визначення лежить усередині блоку — виносимо назовні для обробника меню
   window.loadCalcFrame = loadCalcFrame;
-  // Перегляд посадкової як на телефоні / планшеті / компʼютері.
-  // Просто змінюємо ширину фрейма — сторінка сама перебудовується своїми медіа-запитами.
+  // Перегляд посадкової як на справжньому пристрої. Раніше мінялась лише
+  // ширина, а висота лишалась як у вікна адмінки — і «телефон» показував
+  // неправдивий перший екран. Тепер задаємо обидва боки й зменшуємо рамку
+  // рівно настільки, щоб пристрій влазив цілком.
   (function(){
     const box = document.getElementById('dev-switch');
     if(!box) return;
-    const WIDTHS = { mobile:'390px', tablet:'820px', desktop:'100%' };
-    function apply(dev){
-      const fr = document.getElementById('calc-frame');
-      const stage = document.getElementById('landing-stage');
-      if(!fr || !stage) return;
-      fr.style.width = WIDTHS[dev] || '100%';
-      stage.classList.toggle('is-framed', dev !== 'desktop');
-      box.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.dev === dev));
-      localStorage.setItem('lq_admin_dev', dev);
+    const sel = document.getElementById('dev-model');
+    const rot = document.getElementById('dev-rotate');
+    const dim = document.getElementById('dev-dim');
+    const open = document.getElementById('dev-open');
+    const MODELS = {
+      phone: [
+        { id:'se',    name:'iPhone SE · 375×667',        w:375,  h:667 },
+        { id:'i13',   name:'iPhone 13 mini · 375×812',   w:375,  h:812 },
+        { id:'i15',   name:'iPhone 15 · 393×852',        w:393,  h:852 },
+        { id:'i15pm', name:'iPhone 15 Pro Max · 430×932',w:430,  h:932 },
+        { id:'a54',   name:'Samsung A54 · 360×800',      w:360,  h:800 },
+        { id:'s24u',  name:'Galaxy S24 Ultra · 412×915', w:412,  h:915 }
+      ],
+      tablet: [
+        { id:'ipad',   name:'iPad · 820×1180',        w:820,  h:1180 },
+        { id:'ipadm',  name:'iPad mini · 744×1133',   w:744,  h:1133 },
+        { id:'ipadpro',name:'iPad Pro 12.9 · 1024×1366', w:1024, h:1366 }
+      ],
+      desktop: [
+        { id:'full',  name:'На всю ширину вікна',   w:0,    h:0 },
+        { id:'lap',   name:'Ноутбук · 1440×900',    w:1440, h:900 },
+        { id:'hd',    name:'Монітор · 1920×1080',   w:1920, h:1080 }
+      ]
+    };
+    let dev = localStorage.getItem('lq_admin_dev') || 'desktop';
+    if(!MODELS[dev]) dev = 'desktop';
+    let model = {}, land = false;
+    try{ model = JSON.parse(localStorage.getItem('lq_admin_devmodel') || '{}'); }catch(e){}
+    function cur(){
+      const list = MODELS[dev];
+      return list.filter(m => m.id === model[dev])[0] || list[0];
     }
-    box.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=> apply(b.dataset.dev)));
-    apply(localStorage.getItem('lq_admin_dev') || 'desktop');
+    function apply(){
+      const fr = document.getElementById('calc-frame');
+      const fit = document.getElementById('landing-fit');
+      const stage = document.getElementById('landing-stage');
+      if(!fr || !stage || !fit) return;
+      // Поки розділ не відкрили, сцена нульової ширини — порахований тоді
+      // масштаб був би сміттям. Перерахуємо, щойно вона справді зʼявиться.
+      if(!stage.clientWidth || !stage.clientHeight) return;
+      const m = cur();
+      const framed = !!(m.w && m.h);
+      stage.classList.toggle('is-framed', framed);
+      sel.style.display = 'block';
+      rot.style.display = framed ? 'flex' : 'none';
+      sel.innerHTML = MODELS[dev].map(x =>
+        '<option value="' + x.id + '"' + (x.id === m.id ? ' selected' : '') + '>' + x.name + '</option>').join('');
+      box.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.dev === dev));
+      if(open) open.href = calcFrameUrl();
+      if(!framed){
+        fit.style.transform = '';
+        fr.style.width = '100%'; fr.style.height = '100%';
+        dim.textContent = 'ширина вікна';
+        return;
+      }
+      const w = land ? m.h : m.w, h = land ? m.w : m.h;
+      fr.style.width = w + 'px'; fr.style.height = h + 'px';
+      // 28 px — внутрішні поля сцени, щоб рамка не торкалась країв
+      const availW = Math.max(200, stage.clientWidth - 28);
+      const availH = Math.max(200, stage.clientHeight - 28);
+      const k = Math.min(1, availW / w, availH / h);
+      fit.style.transform = k < 1 ? 'scale(' + k.toFixed(3) + ')' : '';
+      dim.textContent = w + ' × ' + h + (k < 1 ? ' · ' + Math.round(k * 100) + '%' : '');
+    }
+    box.querySelectorAll('button').forEach(b => b.addEventListener('click', function(){
+      dev = b.dataset.dev; land = false;
+      localStorage.setItem('lq_admin_dev', dev);
+      apply();
+    }));
+    sel.addEventListener('change', function(){
+      model[dev] = sel.value;
+      localStorage.setItem('lq_admin_devmodel', JSON.stringify(model));
+      land = false; apply();
+    });
+    rot.addEventListener('click', function(){ land = !land; apply(); });
+    window.addEventListener('resize', apply);
+    // Сцена змінює розмір і коли відкривають розділ, і коли ховається меню —
+    // стежимо за нею самою, щоб масштаб ніколи не лишався застарілим.
+    try{
+      const stage = document.getElementById('landing-stage');
+      if(stage && window.ResizeObserver) new ResizeObserver(apply).observe(stage);
+    }catch(e){}
+    window.__devPreviewApply = apply;
+    apply();
   })();
   (function(){
     const sel = document.getElementById('site-switch');
