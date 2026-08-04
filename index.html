@@ -1353,13 +1353,13 @@
   .pm-scr{display:flex;align-items:stretch;gap:10px;padding:0 14px;height:100%;}
   /* Стрілок на екрані кілька (гортання зразків, гортання карток), тож голу
      стрілку тут ніхто не читав як «вийти». Пишемо словом. */
-  .pm-scr-back{flex:none;width:58px;border:none;border-radius:13px;background:#f1f2f4;
-    color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:1px;cursor:pointer;padding:0;font-family:var(--font-sf);
+  .pm-scr-back{flex:none;width:62px;border:none;border-radius:14px;background:#111;
+    color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;cursor:pointer;padding:0;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
-  .pm-scr-back:active{background:#e6e7ea;}
-  .pm-scr-back svg{width:20px;height:20px;}
-  .pm-scr-back b{font-size:11px;font-weight:600;letter-spacing:-.1px;line-height:1;}
+  .pm-scr-back:active{background:#333;}
+  .pm-scr-back svg{width:22px;height:22px;}
+  .pm-scr-back b{font-size:12px;font-weight:700;letter-spacing:-.1px;line-height:1;}
   .pm-scr-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
   .pm-ts-head{display:flex;align-items:center;gap:6px;}
   /* Зразки стоять у тому самому рядку, що й стрілка: окремий ряд з'їдав висоту,
@@ -5202,8 +5202,25 @@
       var hit = pop && pal.filter(function(c){ return c.id === pop; })[0];
       return hit || pal[0];
     }
-    function garmentThumbSrc(gid){
+    // Для власного виробу з адмінки фото існує лише там, куди менеджер його
+    // залив. Стокові кольори завжди мають файл у репозиторії.
+    function garmentPhotoExists(gid, cid){
+      var g = GARMENTS.filter(function(x){ return x.id === gid; })[0];
+      if(!g) return false;
+      if(!g.custom) return true;
+      return !!(window.PHOTO_OVERRIDES && window.PHOTO_OVERRIDES[gid + '-' + cid + '-front']);
+    }
+    // Колір мініатюри: бажаний, а якщо для нього фото ще не залито — перший
+    // із тих, у якого воно є. Інакше картка лишалась порожньою.
+    function garmentThumbColor(gid){
       var c = displayColorFor(gid);
+      if(c && garmentPhotoExists(gid, c.id)) return c;
+      var pal = GARMENT_COLORS[gid] || [];
+      for(var i = 0; i < pal.length; i++) if(garmentPhotoExists(gid, pal[i].id)) return pal[i];
+      return null;
+    }
+    function garmentThumbSrc(gid){
+      var c = garmentThumbColor(gid);
       return c ? (IMG_BASE + 'images/' + gid + '-' + c.id + '-front.webp') : GARMENT_THUMB[gid];
     }
     // назва виробу для каталогу на головній (в адмінці задається окремо)
@@ -9289,6 +9306,7 @@
     // Блок «Вам також може сподобатись» — реальні фото/назви/ціни товарів каталогу
     // Найближчий колір палітри до вибраного (за RGB-відстанню)
     function recHexRgb(h){ h=(h||'').replace('#',''); if(h.length<6) return null; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+    function recLum(rgb){ return 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]; }
     function recClosestColor(pal, hex){
       var t=recHexRgb(hex); if(!t||!pal||!pal.length) return null;
       var best=null, bd=Infinity;
@@ -9296,6 +9314,13 @@
         var rm=(r[0]+t[0])/2, dR=r[0]-t[0], dG=r[1]-t[1], dB=r[2]-t[2];
         var d=(2+rm/256)*dR*dR + 4*dG*dG + (2+(255-rm)/256)*dB*dB;
         if(d<bd){bd=d;best=c;} });
+      if(best){
+        // Скільки не шукай, у деяких кроїв просто немає нічого близького:
+        // у худі з флісом лише рожеве, синє й шоколадне. Тоді чесніше не
+        // показувати цей виріб, ніж вішати рожеве під чорну футболку.
+        var bl = recLum(recHexRgb(best.hex) || [0,0,0]), tl = recLum(t);
+        best = Object.assign({}, best, { далеко: Math.abs(bl - tl) > 90 });
+      }
       return best;
     }
     // Рекомендувати те саме, що людина зараз і дивиться, немає сенсу: футболка
@@ -9313,9 +9338,9 @@
       hoodie:   {cx:.50, cy:.42, w:.28, heart:.37},
       hoodieover:{cx:.50, cy:.42, w:.28, heart:.37},
       hoodieoverfleece:{cx:.50, cy:.42, w:.28, heart:.37},
-      hoodiezip:{cx:.38, cy:.40, w:.15, fixed:1},              // по центру блискавка — лише серце
-      cap:      {cx:.50, cy:.45, w:.26, fixed:1},              // кепка завжди по центру
-      tote:     {cx:.50, cy:.58, w:.30, fixed:1}               // шопер завжди по центру
+      hoodiezip:{cx:.30, cy:.34, w:.30, fixed:1},              // по центру блискавка — лише серце
+      cap:      {cx:.50, cy:.46, w:.42, fixed:1},              // кепка завжди по центру
+      tote:     {cx:.50, cy:.56, w:.62, fixed:1}               // шопер завжди по центру
     };
     // УСІ шари з лицьової сторони — і картинки, і написи — у частках ФОТО
     // макета (не квадратного контейнера): фото лежить у ньому по object-fit,
@@ -9329,6 +9354,9 @@
       var ar = natW / natH, rw, rh, ox, oy;
       if(ar >= 1){ rw = 1; rh = 1 / ar; ox = 0; oy = (1 - rh) / 2; }
       else       { rh = 1; rw = ar;     oy = 0; ox = (1 - rw) / 2; }
+      // cx і w — у частках ШИРИНИ кадру, cy — висоти. Висоту шару не міряємо
+      // в частках кадру взагалі: тримаємо співвідношення сторін, інакше на
+      // фото з іншими пропорціями лого розтягувало б.
       return front.filter(function(l){ return l.url; }).map(function(l){
         var box = layerBox(l);
         return {
@@ -9337,14 +9365,52 @@
           cx: ((0.5 + (l.x || 0) / wrapW) - ox) / rw,
           cy: ((0.5 + (l.y || 0) / wrapW) - oy) / rh,
           w:  (box.w / wrapW) / rw,
-          h:  (box.h / wrapW) / rh
+          ar: box.h ? (box.w / box.h) : 1
         };
       });
+    }
+    // Рамка виробу на макеті — те саме, але для фото, яке зараз під логотипом.
+    function recSourceBox(){
+      if(!pmGarmentPhoto || !pmGarmentPhoto.naturalWidth) return { x0:0, y0:0, x1:1, y1:1 };
+      return recGarmentBox(pmGarmentPhoto, pmGarmentPhoto.src);
     }
     // Кепка й шопер — окрема історія: там немає ані грудей, ані «серця», тож
     // хай куди клієнт поклав лого на футболці, тут воно стає по центру.
     // Худі на застібці — навпаки: по центру там блискавка, тож завжди на серці.
     function recIsAccessory(gid){ return gid === 'cap' || gid === 'tote' || gid === 'hoodiezip'; }
+    // Рамка виробу на фото. Кадри в різних кроїв різні: у худі капюшон з'їдає
+    // верх, у шопера виріб вузький. Без цієї міри «та сама частка кадру» падала
+    // на груди футболки й на живіт худі. Заливка тут не потрібна — вистачає
+    // порахувати, де рядки й стовпці перестають бути кольором кута.
+    var REC_BOX = {};
+    function recGarmentBox(img, key){
+      if(REC_BOX[key]) return REC_BOX[key];
+      var box = { x0:0, y0:0, x1:1, y1:1 };
+      try{
+        var W0 = img.naturalWidth, H0 = img.naturalHeight;
+        if(!W0 || !H0) return box;
+        var k = Math.min(1, 120 / Math.max(W0, H0));
+        var W = Math.max(1, Math.round(W0*k)), H = Math.max(1, Math.round(H0*k));
+        var c = document.createElement('canvas'); c.width = W; c.height = H;
+        var x = c.getContext('2d', { willReadFrequently:true });
+        x.drawImage(img, 0, 0, W, H);
+        var a = x.getImageData(0, 0, W, H).data;
+        var br = a[0], bg = a[1], bb = a[2], TOL = 26;
+        var rows = new Uint16Array(H), cols = new Uint16Array(W);
+        for(var i = 0; i < W*H; i++){
+          var o = i*4;
+          if(Math.abs(a[o]-br) + Math.abs(a[o+1]-bg) + Math.abs(a[o+2]-bb) <= TOL) continue;
+          var px = i % W; rows[(i-px)/W]++; cols[px]++;
+        }
+        var minR = Math.max(2, Math.round(W * 0.02)), minC = Math.max(2, Math.round(H * 0.02));
+        var y0 = -1, y1 = -1, x0 = -1, x1 = -1;
+        for(var r = 0; r < H; r++) if(rows[r] > minR){ if(y0 < 0) y0 = r; y1 = r; }
+        for(var q = 0; q < W; q++) if(cols[q] > minC){ if(x0 < 0) x0 = q; x1 = q; }
+        if(y1 > y0 && x1 > x0) box = { x0:x0/W, y0:y0/H, x1:(x1+1)/W, y1:(y1+1)/H };
+      }catch(e){}   // локальний file:// «псує» полотно — лишаємо весь кадр
+      REC_BOX[key] = box;
+      return box;
+    }
     // Фон із фото НЕ знімаємо — фото просто вписується в картку (object-fit:cover).
     // Через це видно не весь кадр, тож частки треба перерахувати під те, що
     // реально показано, інакше лого поїде тим сильніше, чим більший обріз.
@@ -9354,34 +9420,48 @@
       var img = ph.querySelector('.pm-rec-g');
       var gid = ph.dataset.recG;
       if(!img || !img.naturalWidth) return;
-      var ls = recLayers();
-      if(!ls.length) return;
+      var src = recLayers();
+      if(!src.length) return;
       var BW = ph.clientWidth, BH = ph.clientHeight;
       if(!BW || !BH) return;
       var sc = Math.max(BW / img.naturalWidth, BH / img.naturalHeight);   // cover
       var IW = img.naturalWidth * sc, IH = img.naturalHeight * sc;
       var offX = (BW - IW) / 2, offY = (BH - IH) / 2;
+      // Переводимо з рамки виробу на макеті в рамку виробу на цьому фото:
+      // «на серці» лишається на серці, і жоден крій не занижує лого.
+      var sb = recSourceBox(), tb = recGarmentBox(img, ph.dataset.recSrc || img.src);
+      var sw = Math.max(1e-4, sb.x1 - sb.x0), sh = Math.max(1e-4, sb.y1 - sb.y0);
+      var tw = Math.max(1e-4, tb.x1 - tb.x0), th = Math.max(1e-4, tb.y1 - tb.y0);
+      var ls = src.map(function(l){
+        return { url:l.url, rot:l.rot, ar:l.ar,
+          cx: tb.x0 + (l.cx - sb.x0) / sw * tw,
+          cy: tb.y0 + (l.cy - sb.y0) / sh * th,
+          w:  l.w / sw * tw };
+      });
       var sp = REC_SPOT[gid] || {};
       var acc = recIsAccessory(gid) || recIsAccessory(pm.garmentId);
       // Кілька шарів переносимо однією групою, інакше напис і картинка розїдуться
-      var gx0 = 1e9, gy0 = 1e9, gx1 = -1e9, gy1 = -1e9;
+      var gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gy1 = -1e9;
       ls.forEach(function(l){
+        var hh = l.w / (l.ar || 1) * (IW / IH);          // висота в частках висоти кадру
         gx0 = Math.min(gx0, l.cx - l.w/2); gx1 = Math.max(gx1, l.cx + l.w/2);
-        gy0 = Math.min(gy0, l.cy - l.h/2); gy1 = Math.max(gy1, l.cy + l.h/2);
+        gy0 = Math.min(gy0, l.cy - hh/2);  gy1 = Math.max(gy1, l.cy + hh/2);
       });
       var mx = (gx0 + gx1) / 2, my = (gy0 + gy1) / 2;
       var zoom = 1, dx = 0, dy = 0;
       if(acc){
-        zoom = Math.min(1.6, Math.max(0.45, (sp.w || 0.34) / Math.max(gx1 - gx0, 1e-4)));
-        dx = (sp.cx != null ? sp.cx : 0.5) - mx;
-        dy = (sp.cy != null ? sp.cy : 0.5) - my;
+        // sp.* — частки САМОГО виробу: група має зайняти sp.w його ширини
+        // і стати в задану точку. Інакше на вузькому шопері вона губиться.
+        zoom = Math.min(1.8, Math.max(0.5, (sp.w || 0.34) * tw / Math.max(gx1 - gx0, 1e-4)));
+        dx = (tb.x0 + (sp.cx != null ? sp.cx : 0.5) * tw) - mx;
+        dy = (tb.y0 + (sp.cy != null ? sp.cy : 0.5) * th) - my;
       }
       var out = ls.map(function(l){
         var cx = mx + (l.cx - mx) * zoom + dx, cy = my + (l.cy - my) * zoom + dy;
-        var w = l.w * zoom, h = l.h * zoom;
+        var wpx = l.w * zoom * IW, hpx = wpx / (l.ar || 1);
         return '<img class="pm-rec-logo" src="' + l.url + '" alt="" style="' +
           'left:' + (offX + cx * IW).toFixed(1) + 'px;top:' + (offY + cy * IH).toFixed(1) + 'px;' +
-          'width:' + (w * IW).toFixed(1) + 'px;height:' + (h * IH).toFixed(1) + 'px;' +
+          'width:' + wpx.toFixed(1) + 'px;height:' + hpx.toFixed(1) + 'px;' +
           (l.rot ? 'transform:translate(-50%,-50%) rotate(' + l.rot + 'deg);' : '') + '">';
       }).join('');
       ph.insertAdjacentHTML('beforeend', out);
@@ -9398,11 +9478,19 @@
           return p.garment && (REC_FAMILY[p.garment] || p.garment) !== fam
                  && GARMENTS.some(function(g){ return g.id === p.garment; });
         });
+      // Вироби, у яких немає нічого схожого на обраний колір, прибираємо —
+      // але лишаємо щонайменше три картки, щоб стрічка не спорожніла.
+      var fits = list.filter(function(p){
+        var m = selHex ? recClosestColor(GARMENT_COLORS[p.garment], selHex) : null;
+        return !m || !m.далеко;
+      });
+      if(fits.length >= 3) list = fits;
       var html = list.map(function(p){
         var nm = window.LQ_name(p.garment, p.name);
         var cs = GARMENT_COLORS[p.garment];
         // підбираємо колір товару, найближчий до вибраного в конструкторі
         var match = selHex ? recClosestColor(cs, selHex) : displayColorFor(p.garment);
+        if(match && !garmentPhotoExists(p.garment, match.id)) match = garmentThumbColor(p.garment);
         var src = match ? window.LQ_img('images/'+p.garment+'-'+match.id+'-front.webp')
                         : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
