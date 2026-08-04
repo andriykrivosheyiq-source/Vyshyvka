@@ -1434,6 +1434,30 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+/* Якщо бібліотека Firebase не долетіла (мобільний інтернет, блокувальник
+   реклами, корпоративний Wi-Fi, офлайн), наступний скрипт падає на першому
+   ж рядку — і форма входу лишається без обробника: кнопка «Увійти»
+   просто нічого не робить, і людина не розуміє чому. Кажемо прямо. */
+(function(){
+  if(window.firebase && firebase.initializeApp && firebase.auth && firebase.firestore) return;
+  function say(){
+    var box = document.getElementById('auth-err');
+    var btn = document.getElementById('auth-submit');
+    if(btn){ btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = 'Немає звʼязку'; }
+    if(box){
+      box.style.display = 'block';
+      box.style.textAlign = 'left';
+      box.style.lineHeight = '1.5';
+      box.innerHTML = 'Не завантажилась бібліотека Google Firebase, тож увійти зараз неможливо.' +
+        '<br><br>Що спробувати: інша мережа (мобільний інтернет замість Wi-Fi), ' +
+        'вимкнути блокувальник реклами чи VPN для цього сайту, відкрити в іншому браузері.';
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', say);
+  else say();
+})();
+</script>
+<script>
 /* ============================================================
    FIREBASE — спільна хмарна база (синхронізація між пристроями)
    ============================================================ */
@@ -1536,6 +1560,13 @@ const authErrText = {
   'auth/invalid-credential': 'Невірний email або пароль',
   'auth/too-many-requests': 'Забагато спроб. Спробуйте пізніше',
   'auth/network-request-failed': 'Немає звʼязку з мережею',
+  // Домен сайту змінився — його треба додати у Firebase: Authentication →
+  // Settings → Authorized domains. Без цього вхід відмовляє саме так.
+  'auth/unauthorized-domain': 'Цей домен не дозволено у Firebase. Додайте loomiq.net у Authentication → Settings → Authorized domains',
+  'auth/operation-not-allowed': 'Вхід за email вимкнено у Firebase → Authentication → Sign-in method',
+  'auth/api-key-not-valid': 'Ключ Firebase не дійсний для цього домену',
+  'auth/user-disabled': 'Цей користувач заблокований',
+  'auth/internal-error': 'Firebase відхилив запит. Часта причина — обмеження ключа за доменом у Google Cloud',
 };
 document.getElementById('auth-form').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -1553,7 +1584,9 @@ document.getElementById('auth-form').addEventListener('submit', async (e)=>{
     await fbAuth.signInWithEmailAndPassword(email, pass);
     // onAuthStateChanged розблокує інтерфейс
   }catch(err){
-    errEl.textContent = authErrText[err.code] || ('Помилка входу: ' + (err.message||err.code));
+    // Код лишаємо на видноті: без нього не зрозуміти, це пароль чи налаштування
+    errEl.textContent = (authErrText[err.code] || ('Помилка входу: ' + (err.message || ''))) +
+      (err.code ? ' [' + err.code + ']' : '');
     errEl.style.display = 'block';
   }finally{
     btn.disabled = false; btn.textContent = 'Увійти';
