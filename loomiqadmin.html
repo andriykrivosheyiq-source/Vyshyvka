@@ -1577,11 +1577,20 @@ document.getElementById('auth-form').addEventListener('submit', async (e)=>{
   errEl.style.display = 'none';
   btn.disabled = true; btn.textContent = 'Вхід…';
   try{
-    const persistence = document.getElementById('auth-remember').checked
-      ? firebase.auth.Auth.Persistence.LOCAL
-      : firebase.auth.Auth.Persistence.SESSION;
-    await fbAuth.setPersistence(persistence);
+    // «Запамʼятати» тримається на IndexedDB. У приватному вікні, при
+    // заблокованому сховищі чи ввімкненому «Prevent cross-site tracking»
+    // цей виклик відмовляє — і вхід падав ще до перевірки пароля. Тепер
+    // спускаємось на слабше сховище й усе одно пускаємо.
+    const P = firebase.auth.Auth.Persistence;
+    const want = document.getElementById('auth-remember').checked ? P.LOCAL : P.SESSION;
+    let usedNone = false;
+    try{ await fbAuth.setPersistence(want); }
+    catch(e1){
+      try{ await fbAuth.setPersistence(P.SESSION); }
+      catch(e2){ try{ await fbAuth.setPersistence(P.NONE); usedNone = true; }catch(e3){} }
+    }
     await fbAuth.signInWithEmailAndPassword(email, pass);
+    if(usedNone) console.warn('Сховище браузера недоступне — вхід лише на цю вкладку');
     // onAuthStateChanged розблокує інтерфейс
   }catch(err){
     // Код лишаємо на видноті: без нього не зрозуміти, це пароль чи налаштування
