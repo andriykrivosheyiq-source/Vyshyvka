@@ -617,15 +617,23 @@
 (function(){
   'use strict';
 
-  firebase.initializeApp({
-    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
-    authDomain: "loomiq-admin.firebaseapp.com",
-    projectId: "loomiq-admin",
-    storageBucket: "loomiq-admin.firebasestorage.app",
-    messagingSenderId: "828527183830",
-    appId: "1:828527183830:web:69895ce3f3c5505d014677"
-  });
-  var db = firebase.firestore();
+  // Бібліотека може не долетіти (мобільна мережа, блокувальник, VPN). Раніше
+  // сторінка мовчки падала на цьому рядку й лишалась порожньою; тепер каже,
+  // що сталось, а тестова пропозиція взагалі не залежить від бази.
+  var db = null;
+  try{
+    if(window.firebase && firebase.initializeApp){
+      firebase.initializeApp({
+        apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+        authDomain: "loomiq-admin.firebaseapp.com",
+        projectId: "loomiq-admin",
+        storageBucket: "loomiq-admin.firebasestorage.app",
+        messagingSenderId: "828527183830",
+        appId: "1:828527183830:web:69895ce3f3c5505d014677"
+      });
+      db = firebase.firestore();
+    }
+  }catch(e){ console.warn('Firebase init failed', e); }
 
   var app = document.getElementById('app');
 
@@ -1652,6 +1660,117 @@
   }
 
   /* ═══════════ завантаження ═══════════ */
+
+  /* ── дані тестової пропозиції ──────────────────────────────────────────
+     Два основні вироби і чотири рекомендовані — рівно те, що бачить клієнт.
+     Фото беремо з каталогу сайту, лого — намальоване тут же, тож нічого
+     завантажувати не треба і посилання не залежить від бази. */
+  function demoOffer(){
+    var LOGO = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="120">' +
+      '<circle cx="58" cy="60" r="42" fill="#D2560B"/>' +
+      '<text x="118" y="82" font-family="Helvetica,Arial,sans-serif" font-size="58" ' +
+      'font-weight="700" fill="#0F2034">NOVA</text></svg>')));
+    var day = 24 * 60 * 60 * 1000;
+    var mk = function(o){ return o; };
+    return {
+      token: 'demo', orderId: 'TEST-001',
+      createdAt: new Date(Date.now() - day).toISOString(),
+      updatedAt: new Date().toISOString(),
+      client: { name: 'Олександр', company: 'NOVA Digital', instagram: '@nova.digital', phone: '' },
+      clientLogo: LOGO,
+      manager: { name: 'Марія', role: 'Ваш менеджер', photo: '',
+                 phone: '+38 (063) 804-78-18', telegram: 'https://t.me/loomiq',
+                 viber: '', email: 'hello@loomiq.net' },
+      leadRules: [{ base: 5, qtyTiers: [{ from: 50, extraDays: 2 }, { from: 150, extraDays: 4 }] }],
+      items: [
+        mk({ kind:'main', name:'Худі оверсайз', color:'Чорний', sizes:'S–XXL', qty:30,
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:90, heightMm:60 }],
+          mockups:['images/hoodieover-black-front.webp','images/hoodieover-black-back.webp'],
+          unitPrice:1180, price:35400, baseUnitPrice:1390, basePrice:41700, save:6300,
+          tiers:[{ qty:30, unit:1180, sum:35400, now:true },
+                 { qty:50, unit:1090, sum:54500, now:false },
+                 { qty:100, unit:990, sum:99000, now:false }] }),
+        mk({ kind:'main', name:'Футболка базова', color:'Білий', sizes:'S–XXL', qty:60,
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:220, heightMm:150 }],
+          mockups:['images/tee-white-front.webp','images/tee-white-back.webp'],
+          unitPrice:520, price:31200, baseUnitPrice:610, basePrice:36600, save:5400,
+          tiers:[{ qty:60, unit:520, sum:31200, now:true },
+                 { qty:100, unit:480, sum:48000, now:false },
+                 { qty:200, unit:445, sum:89000, now:false }] })
+      ],
+      reco: [
+        mk({ kind:'reco', name:'Кепка', color:'Чорний', sizes:'One size', qty:30,
+          recoTag:'Хіт', recoNote:'Найчастіше беруть у пару до худі',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:70, heightMm:40 }],
+          mockups:['images/cap-black-front.webp'],
+          unitPrice:430, price:12900, baseUnitPrice:480, basePrice:14400, save:1500, tiers:[] }),
+        mk({ kind:'reco', name:'Шопер', color:'Бежевий', sizes:'One size', qty:50,
+          recoTag:'Подарунок клієнтам', recoNote:'Добре працює на івентах',
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:200, heightMm:200 }],
+          mockups:['images/tote-beige-front.webp'],
+          unitPrice:295, price:14750, baseUnitPrice:340, basePrice:17000, save:2250, tiers:[] }),
+        mk({ kind:'reco', name:'Світшот', color:'Сірий', sizes:'S–XXL', qty:20,
+          recoTag:'Для офісу', recoNote:'Тепліший за футболку, легший за худі',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:90, heightMm:60 }],
+          mockups:['images/sweat-gray-front.webp'],
+          unitPrice:880, price:17600, baseUnitPrice:990, basePrice:19800, save:2200, tiers:[] }),
+        mk({ kind:'reco', name:'Футболка оверсайз', color:'Молочний', sizes:'S–XXL', qty:30,
+          recoTag:'Новинка', recoNote:'Вільний крій, щільна тканина',
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:220, heightMm:150 }],
+          mockups:['images/teeover-cream-front.webp'],
+          unitPrice:690, price:20700, baseUnitPrice:780, basePrice:23400, save:2700, tiers:[] })
+      ],
+      totals: { qty: 90, base: 78300, save: 11700, total: 66600 },
+      includes: ['Виріб', 'Нанесення', 'Підготовка макета', 'Візуалізація',
+                 'Перевірка якості перед відправкою', 'Пакування'],
+      trust: ['Власне виробництво в Україні',
+              'Макет погоджуємо до запуску у виробництво',
+              'Перевірка якості кожної партії',
+              'Працюємо з ФОП і ТОВ, надаємо документи'],
+      cases: [], faq: [],
+      terms: { deadlineDays: 7,
+               payment: 'Передоплата 50%, решта — після погодження готової партії',
+               startWith: 'Підтвердити пропозицію та внести передоплату',
+               validUntil: new Date(Date.now() + 6 * day).toISOString() },
+      state: 'created'
+    };
+  }
+
+  /* ═══════════ тестова пропозиція ═══════════
+     offer.html?demo=1 — та сама сторінка на вигаданому замовленні. Нічого
+     не читає й не пише в базу, тож посилання живе завжди: його можна
+     відкрити, показати й обговорити правки, не створюючи замовлення в
+     Канбані. Кнопки клієнта працюють, але нікуди не відправляють. */
+  if(new URLSearchParams(location.search).get('demo') === '1'){
+    OFFER = demoOffer();
+    document.title = 'Тестова КП · Loomiq';
+    render(); wireSheets(); watchBar();
+    var note = document.createElement('div');
+    note.textContent = 'Тестова пропозиція — нічого не зберігається';
+    note.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99;' +
+      'background:#D2560B;color:#fff;font:600 11px/1 -apple-system,sans-serif;' +
+      'padding:7px 12px;border-radius:999px;letter-spacing:.2px;opacity:.92;' +
+      'box-shadow:0 4px 14px rgba(0,0,0,.2);pointer-events:none;';
+    document.body.appendChild(note);
+    if(new URLSearchParams(location.search).get('print') === '1'){
+      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 200); });
+    }
+    return;
+  }
+
+  if(!db){
+    fail('Не вдалося відкрити пропозицію',
+         'Не завантажилась бібліотека Google Firebase. Спробуйте іншу мережу, ' +
+         'вимкніть блокувальник реклами або VPN — і оновіть сторінку.');
+    return;
+  }
 
   var token = (new URLSearchParams(location.search).get('o') || '').trim();
   if(!/^[a-z0-9]{6,40}$/.test(token)){
