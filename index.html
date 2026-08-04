@@ -1217,9 +1217,11 @@
     background:#fff;cursor:pointer;font-family:var(--font-sf);
     -webkit-tap-highlight-color:transparent;}
   .pm-gp-card.on{border-color:#111;border-width:2px;padding:5px 4px 7px;}
-  /* Фон із фото знято, картинку обрізано по виробу — тож він розтягується
-     на всю картку й не висить дрібним прямокутником посередині. */
-  .pm-gp-card img,.pm-gp-card svg{width:100%;height:66px;object-fit:contain;margin-bottom:1px;}
+  /* Плитка фото на всю ширину картки: тло фото доходить до країв, тож
+     всередині немає окремого сірого прямокутника. */
+  .pm-gp-card img{width:100%;height:66px;object-fit:cover;border-radius:10px;
+    margin-bottom:2px;background:#f3f3f5;}
+  .pm-gp-card svg{width:100%;height:66px;object-fit:contain;margin-bottom:2px;}
   .pm-gp-nm{font-size:12.5px;font-weight:700;color:#111;line-height:1.15;text-align:center;
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pm-gp-fit{font-size:10.5px;color:#9aa0ab;line-height:1.15;text-align:center;min-height:12px;
@@ -1305,9 +1307,13 @@
   .pm-ts-grp{display:flex;align-items:center;gap:5px;min-width:0;}
   .pm-ts-grp--font{flex:1;min-width:0;position:relative;}
   .pm-ts-row{display:flex;align-items:center;gap:5px;}
-  .pm-ts-back{flex:none;width:34px;height:34px;border-radius:10px;border:none;background:#f4f5f7;
-    color:#111;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;padding:0;}
+  /* Такий самий підписаний вихід, як на підекранах: гола стрілка тут губилась
+     серед стрілки гортання зразків кольору просто під нею. */
+  .pm-ts-back{flex:none;height:34px;border-radius:10px;border:none;background:#f1f2f4;
+    color:#111;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;padding:0 9px 0 6px;font-family:var(--font-sf);}
+  .pm-ts-back:active{background:#e6e7ea;}
+  .pm-ts-back b{font-size:12px;font-weight:600;letter-spacing:-.1px;}
   .pm-ts-sel{flex:1;width:100%;min-width:0;height:34px;border-radius:10px;border:1px solid #e6e6e6;
     background:#fff;display:flex;align-items:center;justify-content:space-between;gap:5px;
     padding:0 10px;cursor:pointer;font-size:15px;color:#111;
@@ -1642,18 +1648,16 @@
   .pm-recommended{padding:20px 0;border-top:1px solid #f2f2f2;}
   .pm-section-title{font-size:20px;font-weight:700;color:#111;margin:0 18px 12px;letter-spacing:-0.3px;}
   .pm-recommended-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:0 18px;}
-  /* Фон із фото знято тим самим різаком, що й у каталозі одягу, тож плашка
-     під картинкою більше не потрібна — картка біла наскрізь. Обгортка
-     обтискається рівно по виробу: тоді відсотки, якими ставимо лого,
-     рахуються від самого виробу, а не від порожнього поля навколо. */
+  /* Фон із фото не чіпаємо: автообрізка на частині світлих виробів давала
+     рвані краї. Замість неї фото заповнює всю плитку картки — тоді тло
+     доходить до країв і не читається як зайвий прямокутник усередині. */
   .pm-rec-card{--recH:148px;flex:0 0 auto;width:152px;border-radius:16px;border:1.5px solid #eee;
     background:#fff;overflow:hidden;cursor:pointer;}
-  .pm-rec-img{width:100%;height:var(--recH);display:flex;align-items:center;justify-content:center;
-    padding:6px;box-sizing:border-box;background:#fff;}
-  .pm-rec-ph{position:relative;display:inline-block;line-height:0;}
-  .pm-rec-g{display:block;width:auto;height:auto;max-width:100%;max-height:calc(var(--recH) - 12px);}
+  .pm-rec-img{width:100%;height:var(--recH);}
+  .pm-rec-ph{position:relative;display:block;width:100%;height:100%;overflow:hidden;line-height:0;}
+  .pm-rec-g{display:block;width:100%;height:100%;object-fit:cover;}
   .pm-rec-logo{position:absolute;transform:translate(-50%,-50%);object-fit:contain;
-    pointer-events:none;image-rendering:auto;}
+    pointer-events:none;}
   .pm-rec-info{padding:8px 11px 11px;}
   .pm-rec-name{font-size:14px;font-weight:500;color:#111;margin-bottom:3px;}
   .pm-rec-price{font-size:16px;font-weight:700;color:#111;}
@@ -6929,7 +6933,8 @@
       var msg = textWarnHtml();
       var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts">' +
-        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK + '</button>' +
+        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK +
+          '<b>Назад</b></button>' +
         '<button class="pm-ts-sel" data-tsdrop="font" ' +
           'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
           '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
@@ -7271,183 +7276,6 @@
       var fit = full.slice(i + 1).trim();
       return { title: full.slice(0, i), fit: fit ? fit[0].toUpperCase() + fit.slice(1) : '' };
     }
-    // Маленькі картки вибору одягу: фото приходять на світло-сірому тлі, і в
-    // білій картці воно читалось як зайва рамка. Заливкою від кутів прибираємо
-    // саме фон (він плаский і зв'язний) і обрізаємо по виробу — тоді одяг
-    // займає всю картку. Тільки тут: на макеті й у каталозі фон потрібен.
-    var GP_CUT = {};                       // url → dataURL (або сам url, якщо не вийшло)
-    // Один прохід заливки. mode 'abs' — порівнюємо з кольором кута (працює на
-    // рівному тлі), 'loc' — із сусіднім пікселем (проходить плавний градієнт,
-    // але спиняється на різкому краї виробу). Жоден із них сам по собі не
-    // покриває всі фото: у світлих виробів тканина за кольором майже як тло.
-    // mode: 'abs' — рівняємось на колір кута (працює на рівному тлі);
-    //       'loc' — на сусідній піксель (проходить плавний градієнт, спиняється
-    //               на різкому краї); 'up' — тло і тінь ТЕМНІШІ за кут, тож усе,
-    //               що світліше, вважаємо тканиною (рятує білі вироби).
-    function gpFlood(src, W, H, tol, mode){
-      var a = new Uint8ClampedArray(src), br = a[0], bg = a[1], bb = a[2];
-      var L0 = (br + bg + bb) / 3, loc = mode === 'loc', up = mode === 'up';
-      var seen = new Uint8Array(W * H), st = [0, W - 1, (H - 1) * W, H * W - 1], n = 0;
-      st.forEach(function(i){ seen[i] = 1; });
-      while(st.length){
-        var i = st.pop(), o = i * 4;
-        var dif = Math.abs(a[o] - br) + Math.abs(a[o+1] - bg) + Math.abs(a[o+2] - bb);
-        if(up){ if((a[o] + a[o+1] + a[o+2]) / 3 > L0 + 2 || dif > tol) continue; }
-        else if(!loc && dif > tol) continue;
-        n++; a[o+3] = 0;
-        var xx = i % W, yy = (i - xx) / W;
-        var push = function(j){
-          if(seen[j]) return;
-          if(loc){
-            var q = j * 4;
-            if(Math.abs(a[q] - a[o]) + Math.abs(a[q+1] - a[o+1]) + Math.abs(a[q+2] - a[o+2]) > tol) return;
-          }
-          seen[j] = 1; st.push(j);
-        };
-        if(xx > 0)     push(i - 1);
-        if(xx < W - 1) push(i + 1);
-        if(yy > 0)     push(i - W);
-        if(yy < H - 1) push(i + W);
-      }
-      return { a:a, cut:n / (W * H) };
-    }
-    // Три ознаки того, що заливка не залізла у виріб:
-    // core — середина картинки (там завжди тканина) лишилась цілою;
-    // holes — мало прибраного ВСЕРЕДИНІ силуету;
-    // perim — контур не «пошматований» (об'їдений край різко роздуває периметр).
-    function gpMetrics(a, W, H){
-      var ok = 0, tot = 0;
-      for(var y = Math.round(H * 0.38); y < H * 0.62; y += 2)
-        for(var x = Math.round(W * 0.38); x < W * 0.62; x += 2){
-          tot++; if(a[(y * W + x) * 4 + 3] > 200) ok++;
-        }
-      var holes = 0, body = 0;
-      for(var y2 = 0; y2 < H; y2++){
-        var l = -1, r = -1;
-        for(var x2 = 0; x2 < W; x2++) if(a[(y2*W+x2)*4+3] >= 25){ if(l < 0) l = x2; r = x2; }
-        if(l < 0) continue;
-        body += r - l + 1;
-        for(var x3 = l; x3 <= r; x3++) if(a[(y2*W+x3)*4+3] < 25) holes++;
-      }
-      var per = 0, area = 0;
-      for(var i = 0; i < W * H; i++){
-        if(a[i*4+3] < 25) continue;
-        area++;
-        var px = i % W, py = (i - px) / W;
-        if(px === 0 || py === 0 || px === W-1 || py === H-1){ per++; continue; }
-        if(a[(i-1)*4+3] < 25 || a[(i+1)*4+3] < 25 || a[(i-W)*4+3] < 25 || a[(i+W)*4+3] < 25) per++;
-      }
-      return { core: tot ? ok/tot : 0, holes: body ? holes/body : 1, perim: area ? per/Math.sqrt(area) : 99 };
-    }
-    // Виріб — одна суцільна пляма. Дрібні клапті тла, до яких заливка не
-    // дотяглась, лишаються окремими острівцями — прибираємо їх.
-    function gpKeepBiggest(a, W, H){
-      var lab = new Int32Array(W * H).fill(-1), best = -1, bestN = 0, cur = 0;
-      for(var s = 0; s < W * H; s++){
-        if(a[s*4+3] < 25 || lab[s] >= 0) continue;
-        var st = [s]; lab[s] = cur; var n = 0;
-        while(st.length){
-          var i = st.pop(); n++;
-          var xx = i % W, yy = (i - xx) / W;
-          if(xx > 0     && a[(i-1)*4+3] >= 25 && lab[i-1] < 0){ lab[i-1] = cur; st.push(i-1); }
-          if(xx < W - 1 && a[(i+1)*4+3] >= 25 && lab[i+1] < 0){ lab[i+1] = cur; st.push(i+1); }
-          if(yy > 0     && a[(i-W)*4+3] >= 25 && lab[i-W] < 0){ lab[i-W] = cur; st.push(i-W); }
-          if(yy < H - 1 && a[(i+W)*4+3] >= 25 && lab[i+W] < 0){ lab[i+W] = cur; st.push(i+W); }
-        }
-        if(n > bestN){ bestN = n; best = cur; }
-        cur++;
-      }
-      if(best >= 0) for(var q = 0; q < W * H; q++) if(lab[q] >= 0 && lab[q] !== best) a[q*4+3] = 0;
-    }
-    // Поріг у кожного фото свій: на білій футболці все, що вище 11, зʼїдає саму
-    // футболку, а на чорній і 40 замало. Тому переберемо всі варіанти й
-    // візьмемо той, що зняв найбільше тла, не зачепивши виріб.
-    var GP_TRY = [['abs',40],['abs',32],['abs',26],['abs',20],['abs',15],['abs',11],['abs',8],['abs',6],
-                  ['loc',13],['loc',9],['loc',6],['loc',4],['loc',3],['loc',2],
-                  ['up',40],['up',60],['up',90],['up',130]];
-    function gpCutBg(url){
-      if(!url) return Promise.resolve(url);
-      if(GP_CUT[url]) return Promise.resolve(GP_CUT[url]);
-      return new Promise(function(res){
-        var im = new Image();
-        im.onerror = function(){ GP_CUT[url] = url; res(url); };
-        im.onload = function(){
-          try{
-            // Картка ~82 px, тож повнорозмірне фото (900×800) перебирати нема
-            // сенсу: на слабкому телефоні десять таких заливок — помітний стопор.
-            var W = im.naturalWidth, H = im.naturalHeight;
-            if(!W || !H){ GP_CUT[url] = url; return res(url); }
-            var k = Math.min(1, 240 / Math.max(W, H));
-            W = Math.max(1, Math.round(W * k)); H = Math.max(1, Math.round(H * k));
-            var c = document.createElement('canvas'); c.width = W; c.height = H;
-            var x = c.getContext('2d', { willReadFrequently:true });
-            x.drawImage(im, 0, 0, W, H);
-            var d = x.getImageData(0, 0, W, H);
-            var cands = [];
-            GP_TRY.forEach(function(t){
-              var r = gpFlood(d.data, W, H, t[1], t[0]);
-              if(r.cut < 0.12) return;
-              gpKeepBiggest(r.a, W, H);      // клапті тла заважають міряти силует
-              var m = gpMetrics(r.a, W, H);
-              if(m.core < 0.95 || m.holes > 0.15) return;
-              r.m = m; cands.push(r);
-            });
-            if(!cands.length){ GP_CUT[url] = url; return res(url); }
-            // Спершу відсіюємо пошматовані контури, і лише потім серед рівних
-            // беремо той, що зняв найбільше: інакше «зняв тінь разом із рукавом»
-            // виграє в «лишив трохи тіні».
-            var minP = Math.min.apply(null, cands.map(function(z){ return z.m.perim; }));
-            var best = null;
-            cands.forEach(function(z){
-              if(z.m.perim > minP * 1.10) return;
-              if(!best || z.cut > best.cut) best = z;
-            });
-            if(!best){ GP_CUT[url] = url; return res(url); }
-            d.data.set(best.a); x.putImageData(d, 0, 0);
-            var a = best.a, mnx = W, mny = H, mxx = 0, mxy = 0;
-            for(var p = 0; p < W * H; p++){
-              if(a[p*4+3] < 25) continue;
-              var px = p % W, py = (p - px) / W;
-              if(px < mnx) mnx = px; if(px > mxx) mxx = px;
-              if(py < mny) mny = py; if(py > mxy) mxy = py;
-            }
-            var out = c;
-            if(mxx > mnx && mxy > mny){
-              var cw = mxx - mnx + 1, ch = mxy - mny + 1;
-              out = document.createElement('canvas'); out.width = cw; out.height = ch;
-              out.getContext('2d').drawImage(c, mnx, mny, cw, ch, 0, 0, cw, ch);
-            }
-            GP_CUT[url] = out.toDataURL('image/png');
-          }catch(e){ GP_CUT[url] = url; }   // локальний file:// «псує» полотно — лишаємо як є
-          res(GP_CUT[url]);
-        };
-        im.src = url;
-      });
-    }
-    // По одному фото за раз і на простої: чотирнадцять заливок × десять карток
-    // одним шматком — це помітне підвисання на телефоні.
-    var gpQueue = [], gpBusy = false;
-    var gpIdle = window.requestIdleCallback || function(f){ return setTimeout(function(){ f(); }, 16); };
-    function gpPump(){
-      if(gpBusy) return;
-      var job = gpQueue.shift();
-      if(!job) return;
-      gpBusy = true;
-      gpIdle(function(){
-        gpCutBg(job.raw).then(function(u){
-          if(job.el.isConnected && u) job.el.src = u;
-          gpBusy = false; gpPump();
-        });
-      });
-    }
-    function applyGpCut(root){
-      (root || pmTabPanel).querySelectorAll('img[data-raw]').forEach(function(el){
-        var raw = el.dataset.raw;
-        if(GP_CUT[raw]){ el.src = GP_CUT[raw]; return; }
-        gpQueue.push({ el:el, raw:raw });
-      });
-      gpPump();
-    }
     function renderTabPanel(){
       // Екран палітри під пальцем перебудовувати не можна — див. tsLock нижче.
       // Але тільки поки лишаємось на тій самій вкладці: кнопки вкладок ставлять
@@ -7578,7 +7406,7 @@
             var sel = g.id === pm.garmentId;
             var thumb = window.LQ_img(garmentThumbSrc(g.id) || GARMENT_THUMB[g.id]);
             var ic = thumb
-              ? '<img src="' + (GP_CUT[thumb] || thumb) + '" data-raw="' + escAttr(thumb) + '" alt="">'
+              ? '<img src="' + escAttr(thumb) + '" alt="">'
               : '<svg viewBox="0 0 100 100" fill="none" stroke="' + (sel ? '#111' : '#aaa') + '" ' +
                 'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="' + g.path + '"/>' +
                 (g.extra ? '<path d="' + g.extra + '"/>' : '') + '</svg>';
@@ -7677,7 +7505,6 @@
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
-      applyGpCut();
       syncPrintSizeLabel();
       if(prevScroll){
         var newList = pmTabPanel.querySelector('.pm-scroll-list'); if(newList) newList.scrollLeft = prevScroll;
@@ -9486,31 +9313,78 @@
       hoodie:   {cx:.50, cy:.42, w:.28, heart:.37},
       hoodieover:{cx:.50, cy:.42, w:.28, heart:.37},
       hoodieoverfleece:{cx:.50, cy:.42, w:.28, heart:.37},
-      hoodiezip:{cx:.36, cy:.38, w:.15, heart:.36, fixed:1},   // застібка по центру — тільки на серці
-      cap:      {cx:.50, cy:.42, w:.30, fixed:1},              // кепка завжди по центру
-      tote:     {cx:.50, cy:.52, w:.44, fixed:1}               // шопер завжди по центру
+      hoodiezip:{cx:.38, cy:.40, w:.15, fixed:1},              // по центру блискавка — лише серце
+      cap:      {cx:.50, cy:.45, w:.26, fixed:1},              // кепка завжди по центру
+      tote:     {cx:.50, cy:.58, w:.30, fixed:1}               // шопер завжди по центру
     };
-    // Лого клієнта з лицьової сторони + як воно там стоїть (по центру чи на серці).
-    function recLogo(){
+    // УСІ шари з лицьової сторони — і картинки, і написи — у частках ФОТО
+    // макета (не квадратного контейнера): фото лежить у ньому по object-fit,
+    // тож без цього перерахунку лого поїхало б і по місцю, і по розміру.
+    function recLayers(){
       var front = (pm.logos && pm.logos.front) || [];
-      var l = null;
-      for(var i = 0; i < front.length; i++){ if(front[i].url){ l = front[i]; break; } }
-      if(!l) return null;
       var wrapW = (pmGarmentWrapEl && pmGarmentWrapEl.clientWidth) || 0;
-      var xF = wrapW ? (l.x || 0) / wrapW : 0;
-      var sizeF = wrapW ? (120 * (l.scale || 1)) / wrapW : 0.28;
-      return { url:l.url, ar:l.ar || 1, лівіше: xF < -0.06, розмір:sizeF };
+      var natW = pmGarmentPhoto ? pmGarmentPhoto.naturalWidth : 0;
+      var natH = pmGarmentPhoto ? pmGarmentPhoto.naturalHeight : 0;
+      if(!wrapW || !natW || !natH) return [];
+      var ar = natW / natH, rw, rh, ox, oy;
+      if(ar >= 1){ rw = 1; rh = 1 / ar; ox = 0; oy = (1 - rh) / 2; }
+      else       { rh = 1; rw = ar;     oy = 0; ox = (1 - rw) / 2; }
+      return front.filter(function(l){ return l.url; }).map(function(l){
+        var box = layerBox(l);
+        return {
+          url: l.url,
+          rot: l.rot || 0,
+          cx: ((0.5 + (l.x || 0) / wrapW) - ox) / rw,
+          cy: ((0.5 + (l.y || 0) / wrapW) - oy) / rh,
+          w:  (box.w / wrapW) / rw,
+          h:  (box.h / wrapW) / rh
+        };
+      });
     }
-    function recLogoHtml(gid){
-      var sp = REC_SPOT[gid], lg = recLogo();
-      if(!sp || !lg) return '';
-      var cx = (!sp.fixed && lg.лівіше && sp.heart) ? sp.heart : sp.cx;
-      if(gid === 'hoodiezip') cx = sp.cx;                 // на застібці — завжди серце
-      var k = Math.max(0.75, Math.min(1.35, lg.розмір / 0.28));
-      var w = sp.w * k;
-      return '<img class="pm-rec-logo" src="' + lg.url + '" alt="" ' +
-        'style="left:' + (cx*100).toFixed(1) + '%;top:' + (sp.cy*100).toFixed(1) + '%;' +
-        'width:' + (w*100).toFixed(1) + '%;">';
+    // Кепка й шопер — окрема історія: там немає ані грудей, ані «серця», тож
+    // хай куди клієнт поклав лого на футболці, тут воно стає по центру.
+    // Худі на застібці — навпаки: по центру там блискавка, тож завжди на серці.
+    function recIsAccessory(gid){ return gid === 'cap' || gid === 'tote' || gid === 'hoodiezip'; }
+    // Фон із фото НЕ знімаємо — фото просто вписується в картку (object-fit:cover).
+    // Через це видно не весь кадр, тож частки треба перерахувати під те, що
+    // реально показано, інакше лого поїде тим сильніше, чим більший обріз.
+    function placeRecLayers(ph){
+      if(!ph) return;
+      ph.querySelectorAll('.pm-rec-logo').forEach(function(n){ n.remove(); });
+      var img = ph.querySelector('.pm-rec-g');
+      var gid = ph.dataset.recG;
+      if(!img || !img.naturalWidth) return;
+      var ls = recLayers();
+      if(!ls.length) return;
+      var BW = ph.clientWidth, BH = ph.clientHeight;
+      if(!BW || !BH) return;
+      var sc = Math.max(BW / img.naturalWidth, BH / img.naturalHeight);   // cover
+      var IW = img.naturalWidth * sc, IH = img.naturalHeight * sc;
+      var offX = (BW - IW) / 2, offY = (BH - IH) / 2;
+      var sp = REC_SPOT[gid] || {};
+      var acc = recIsAccessory(gid) || recIsAccessory(pm.garmentId);
+      // Кілька шарів переносимо однією групою, інакше напис і картинка розїдуться
+      var gx0 = 1e9, gy0 = 1e9, gx1 = -1e9, gy1 = -1e9;
+      ls.forEach(function(l){
+        gx0 = Math.min(gx0, l.cx - l.w/2); gx1 = Math.max(gx1, l.cx + l.w/2);
+        gy0 = Math.min(gy0, l.cy - l.h/2); gy1 = Math.max(gy1, l.cy + l.h/2);
+      });
+      var mx = (gx0 + gx1) / 2, my = (gy0 + gy1) / 2;
+      var zoom = 1, dx = 0, dy = 0;
+      if(acc){
+        zoom = Math.min(1.6, Math.max(0.45, (sp.w || 0.34) / Math.max(gx1 - gx0, 1e-4)));
+        dx = (sp.cx != null ? sp.cx : 0.5) - mx;
+        dy = (sp.cy != null ? sp.cy : 0.5) - my;
+      }
+      var out = ls.map(function(l){
+        var cx = mx + (l.cx - mx) * zoom + dx, cy = my + (l.cy - my) * zoom + dy;
+        var w = l.w * zoom, h = l.h * zoom;
+        return '<img class="pm-rec-logo" src="' + l.url + '" alt="" style="' +
+          'left:' + (offX + cx * IW).toFixed(1) + 'px;top:' + (offY + cy * IH).toFixed(1) + 'px;' +
+          'width:' + (w * IW).toFixed(1) + 'px;height:' + (h * IH).toFixed(1) + 'px;' +
+          (l.rot ? 'transform:translate(-50%,-50%) rotate(' + l.rot + 'deg);' : '') + '">';
+      }).join('');
+      ph.insertAdjacentHTML('beforeend', out);
     }
     function renderRecommended(){
       var track = document.getElementById('pmRecommendedScroll');
@@ -9532,10 +9406,9 @@
         var src = match ? window.LQ_img('images/'+p.garment+'-'+match.id+'-front.webp')
                         : (p.img ? window.LQ_img(p.img) : null);
         var imgHtml = src
-          ? '<div class="pm-rec-img"><span class="pm-rec-ph">' +
-              '<img class="pm-rec-g" src="' + (GP_CUT[src] || src) + '" data-raw="' + escAttr(src) + '" ' +
-                'alt="' + nm + '" decoding="async" onerror="this.style.display=\'none\'">' +
-              recLogoHtml(p.garment) +
+          ? '<div class="pm-rec-img"><span class="pm-rec-ph" data-rec-g="' + p.garment + '">' +
+              '<img class="pm-rec-g" src="' + escAttr(src) + '" alt="' + nm + '" ' +
+                'decoding="async" onerror="this.style.display=\'none\'">' +
             '</span></div>'
           : '<div class="pm-rec-img"></div>';
         // ціну беремо тією ж функцією, що й картки каталогу, — щоб числа не розходились
@@ -9555,7 +9428,14 @@
       });
       var cta = document.getElementById('pmRecCatalogCta');
       if(cta) cta.addEventListener('click', function(){ catalogModalCtrl.open(); });
-      applyGpCut(track);     // фон знімаємо тим самим різаком — плашка не потрібна
+      // Лого лягає лише коли фото справді виміряне: без naturalWidth
+      // перерахувати обріз неможливо.
+      track.querySelectorAll('.pm-rec-ph').forEach(function(ph){
+        var img = ph.querySelector('.pm-rec-g');
+        if(!img) return;
+        if(img.complete && img.naturalWidth) placeRecLayers(ph);
+        else img.addEventListener('load', function(){ placeRecLayers(ph); }, {once:true});
+      });
       initRecCarousel();
     }
 
