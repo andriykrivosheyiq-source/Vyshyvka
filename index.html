@@ -1574,9 +1574,10 @@
   .pm-qty-warning.is-info{color:#6b7280;font-size:13.5px;font-weight:500;}
   .pm-add-btn{
     width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;
-    background:linear-gradient(135deg,#1e2470,#4f5fd4);color:#fff;font-size:15px;font-weight:700;
+    background:var(--cta);color:#fff;font-size:15px;font-weight:700;
     font-family:var(--font-sf);
   }
+  .pm-add-btn:active{background:var(--cta-dark);}
   .pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
   /* Контейнер градації: колонка (підпис + шкала). Горизонтальне гортання живе
      всередині самої шкали, інакше підпис ставав окремою колонкою збоку. */
@@ -8848,8 +8849,15 @@
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
       pm.garmentId = garmentId || GARMENTS[0].id;
-      if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
-      pm.colorPicked = false;   // новий товар — колір ще не обирали
+      // Прийшли з рекомендованої картки — беремо саме той колір, який на ній
+      // показали. Інакше картка обіцяє шоколадне худі, а відкривається біле.
+      if(carry && carry.colorId && getColors().some(function(c){ return c.id === carry.colorId; })){
+        pm.colorId = carry.colorId;
+        pm.colorPicked = true;
+      } else {
+        if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
+        pm.colorPicked = false;   // новий товар — колір ще не обирали
+      }
       pm.tab = 'photo';
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
       pm.textDrop = null; pm.textEdit = null; pm.textScreen = null;
@@ -8876,7 +8884,7 @@
       requestAnimationFrame(fitGarmentStage);
       // Перенесений із рекомендованих дизайн ставимо, коли фото нового виробу
       // вже завантажене: без його розмірів зону нанесення не порахувати.
-      if(carry && carry.layers && carry.layers.length){
+      if(carry && carry.ctx && carry.ctx.layers && carry.ctx.layers.length){
         var put = function(){ try{ recApplyCarry(carry); }catch(e){} };
         if(pmGarmentPhoto && pmGarmentPhoto.complete && pmGarmentPhoto.naturalWidth)
           requestAnimationFrame(function(){ requestAnimationFrame(put); });
@@ -9457,158 +9465,143 @@
     // Фон із фото НЕ знімаємо — фото просто вписується в картку (object-fit:cover).
     // Через це видно не весь кадр, тож частки треба перерахувати під те, що
     // реально показано, інакше лого поїде тим сильніше, чим більший обріз.
+    // Де саме опиниться дизайн на конкретному виробі — у частках ЙОГО фото.
+    // Одна функція і для картки, і для переходу на товар: інакше картка
+    // обіцяє одне, а на виробі виходить інше.
+    // Знімок того, що зараз на макеті: шари плюс рамки, від яких рахуємо.
+    // Потрібен, щоб перенести дизайн на інший виріб уже після того, як
+    // поточний зник з екрана.
+    function recSnapshot(){
+      var ls = recLayers();
+      if(!ls.length || !pmGarmentPhoto || !pmGarmentPhoto.naturalWidth) return null;
+      var sg = recSourceBox();
+      return {
+        layers: ls,
+        sb: recPrintBox(pm.garmentId, pm.colorId, pmGarmentPhoto.naturalWidth, pmGarmentPhoto.naturalHeight),
+        sg: sg,
+        raw: ((pm.logos && pm.logos.front) || []).filter(function(x){ return x.url; })
+      };
+    }
+    function recPlaceOn(gid, colorId, img, ctx){
+      ctx = ctx || recSnapshot();
+      var natW = img && img.naturalWidth, natH = img && img.naturalHeight;
+      if(!ctx || !ctx.layers.length || !natW || !natH) return null;
+      var arFrame = natW / natH;
+      var src = ctx.layers;
+      // МІСЦЕ беремо із зони нанесення: тільки вона знає, де в цього крою
+      // груди, а де серце. Якщо зони ще не намалювали — з рамки виробу.
+      var sb = ctx.sb;
+      var tb = recPrintBox(gid, colorId || '', natW, natH);
+      var byZone = !!(sb && tb);
+      var sg = ctx.sg;
+      var tg = recGarmentBox(img, img.src);
+      if(!byZone){ sb = sg; tb = tg; }
+      // Худі на застібці: по центру там блискавка, друкують на серці. На фото
+      // спереду серце — праворуч від центру. Якщо зону намалювали з іншого
+      // боку, дзеркалимо її: виріб симетричний, друк там такий самий.
+      if(gid === 'hoodiezip' && byZone){
+        var mid0 = (tg.x0 + tg.x1) / 2;
+        if((tb.x0 + tb.x1) / 2 < mid0) tb = { x0: 2*mid0 - tb.x1, y0: tb.y0, x1: 2*mid0 - tb.x0, y1: tb.y1 };
+      }
+      var sw = Math.max(1e-4, sb.x1 - sb.x0), sh = Math.max(1e-4, sb.y1 - sb.y0);
+      var tw = Math.max(1e-4, tb.x1 - tb.x0), th = Math.max(1e-4, tb.y1 - tb.y0);
+      // РОЗМІР — від самого виробу, а не від зони. Зони в кроїв різної
+      // ширини, і через них та сама наліпка на худі виходила помітно
+      // більшою, ніж на футболці. Виріб до виробу — і виглядає однаково.
+      var kw = Math.max(1e-4, tg.x1 - tg.x0) / Math.max(1e-4, sg.x1 - sg.x0);
+      var ls = src.map(function(l){
+        return { url:l.url, rot:l.rot, ar:l.ar,
+          cx: tb.x0 + (l.cx - sb.x0) / sw * tw,
+          cy: tb.y0 + (l.cy - sb.y0) / sh * th,
+          w:  l.w * kw };
+      });
+      var gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gy1 = -1e9;
+      ls.forEach(function(l){
+        var hh = l.w / (l.ar || 1) * arFrame;            // висота в частках висоти кадру
+        gx0 = Math.min(gx0, l.cx - l.w/2); gx1 = Math.max(gx1, l.cx + l.w/2);
+        gy0 = Math.min(gy0, l.cy - hh/2);  gy1 = Math.max(gy1, l.cy + hh/2);
+      });
+      var mx = (gx0 + gx1) / 2, my = (gy0 + gy1) / 2;
+      // Кепка й шопер — завжди по центру: збоку на них друкувати ніде.
+      var dx = 0, dy = 0;
+      if(gid === 'cap' || gid === 'tote') dx = (tg.x0 + tg.x1) / 2 - mx;
+      // Худі на застібці — завжди на серці, і саме з того боку, з якого воно
+      // на фото: по центру там блискавка. Дзеркалимо, якщо промахнулись.
+      if(gid === 'hoodiezip') dx = (tb.x0 + tb.x1) / 2 - mx;   // центр серцевої зони
+      var zoom = 1;
+      if(byZone){
+        // Не влазить у зону — зменшуємо групу цілком і підсуваємо всередину,
+        // щоб клієнт не бачив першим ділом «за межами зони друку».
+        zoom = Math.min(1, tw / Math.max(1e-4, gx1 - gx0), th / Math.max(1e-4, gy1 - gy0));
+        var nx0 = mx + (gx0 - mx) * zoom + dx, nx1 = mx + (gx1 - mx) * zoom + dx;
+        var ny0 = my + (gy0 - my) * zoom + dy, ny1 = my + (gy1 - my) * zoom + dy;
+        dx += Math.min(0, tb.x1 - nx1) + Math.max(0, tb.x0 - nx0);
+        dy += Math.min(0, tb.y1 - ny1) + Math.max(0, tb.y0 - ny0);
+      }
+      return ls.map(function(l){
+        return { url:l.url, rot:l.rot, ar:l.ar,
+          cx: mx + (l.cx - mx) * zoom + dx,
+          cy: my + (l.cy - my) * zoom + dy,
+          w:  l.w * zoom };
+      });
+    }
     function placeRecLayers(ph){
       if(!ph) return;
       ph.querySelectorAll('.pm-rec-logo').forEach(function(n){ n.remove(); });
       var img = ph.querySelector('.pm-rec-g');
       var gid = ph.dataset.recG;
       if(!img || !img.naturalWidth) return;
-      var src = recLayers();
-      if(!src.length) return;
       var BW = ph.clientWidth, BH = ph.clientHeight;
       if(!BW || !BH) return;
       var sc = Math.min(BW / img.naturalWidth, BH / img.naturalHeight);   // contain
       var IW = img.naturalWidth * sc, IH = img.naturalHeight * sc;
       var offX = (BW - IW) / 2, offY = (BH - IH) / 2;
-      // Переводимо з рамки виробу на макеті в рамку виробу на цьому фото:
-      // «на серці» лишається на серці, і жоден крій не занижує лого.
-      // Зона нанесення з адмінки — головна опора. Якщо для якогось виробу її
-      // ще не намалювали, падаємо на рамку самого виробу.
-      var sb = null, tb = null, byZone = false;
-      var sNat = pmGarmentPhoto ? { w:pmGarmentPhoto.naturalWidth, h:pmGarmentPhoto.naturalHeight } : null;
-      if(sNat){
-        var sp0 = recPrintBox(pm.garmentId, pm.colorId, sNat.w, sNat.h);
-        var tp0 = recPrintBox(gid, ph.dataset.recColor || '', img.naturalWidth, img.naturalHeight);
-        if(sp0 && tp0){ sb = sp0; tb = tp0; byZone = true; }
-      }
-      if(!sb || !tb){ sb = recSourceBox(); tb = recGarmentBox(img, ph.dataset.recSrc || img.src); }
-      var sw = Math.max(1e-4, sb.x1 - sb.x0), sh = Math.max(1e-4, sb.y1 - sb.y0);
-      var tw = Math.max(1e-4, tb.x1 - tb.x0), th = Math.max(1e-4, tb.y1 - tb.y0);
-      var ls = src.map(function(l){
-        return { url:l.url, rot:l.rot, ar:l.ar,
-          cx: tb.x0 + (l.cx - sb.x0) / sw * tw,
-          cy: tb.y0 + (l.cy - sb.y0) / sh * th,
-          w:  l.w / sw * tw };
-      });
-      var sp = REC_SPOT[gid] || {};
-      // Коли зони намальовані в адмінці, переносити «в зону» вже достатньо:
-      // ручні поправки для кепки й шопера тут тільки зіпсували б результат.
-      var acc = !byZone && (recIsAccessory(gid) || recIsAccessory(pm.garmentId));
-      // Кілька шарів переносимо однією групою, інакше напис і картинка розїдуться
-      var gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gy1 = -1e9;
-      ls.forEach(function(l){
-        var hh = l.w / (l.ar || 1) * (IW / IH);          // висота в частках висоти кадру
-        gx0 = Math.min(gx0, l.cx - l.w/2); gx1 = Math.max(gx1, l.cx + l.w/2);
-        gy0 = Math.min(gy0, l.cy - hh/2);  gy1 = Math.max(gy1, l.cy + hh/2);
-      });
-      var mx = (gx0 + gx1) / 2, my = (gy0 + gy1) / 2;
-      var zoom = 1, dx = 0, dy = 0;
-      if(acc){
-        // sp.* — частки САМОГО виробу: група має зайняти sp.w його ширини
-        // і стати в задану точку. Інакше на вузькому шопері вона губиться.
-        zoom = Math.min(1.8, Math.max(0.5, (sp.w || 0.34) * tw / Math.max(gx1 - gx0, 1e-4)));
-        dx = (tb.x0 + (sp.cx != null ? sp.cx : 0.5) * tw) - mx;
-        dy = (tb.y0 + (sp.cy != null ? sp.cy : 0.5) * th) - my;
-      } else if(byZone){
-        // Той самий підгін під зону друку, що й при переході на товар: інакше
-        // картка обіцяла б розміщення, якого на виробі не буде.
-        zoom = Math.min(1, (tb.x1 - tb.x0) / Math.max(1e-4, gx1 - gx0),
-                           (tb.y1 - tb.y0) / Math.max(1e-4, gy1 - gy0));
-        var nx0 = mx + (gx0 - mx) * zoom, nx1 = mx + (gx1 - mx) * zoom;
-        var ny0 = my + (gy0 - my) * zoom, ny1 = my + (gy1 - my) * zoom;
-        dx = Math.min(0, tb.x1 - nx1) + Math.max(0, tb.x0 - nx0);
-        dy = Math.min(0, tb.y1 - ny1) + Math.max(0, tb.y0 - ny0);
-      }
-      var out = ls.map(function(l){
-        var cx = mx + (l.cx - mx) * zoom + dx, cy = my + (l.cy - my) * zoom + dy;
-        var wpx = l.w * zoom * IW, hpx = wpx / (l.ar || 1);
+      var put = recPlaceOn(gid, ph.dataset.recColor || '', img);
+      if(!put || !put.length) return;
+      ph.insertAdjacentHTML('beforeend', put.map(function(l){
+        var wpx = l.w * IW, hpx = wpx / (l.ar || 1);
         return '<img class="pm-rec-logo" src="' + l.url + '" alt="" style="' +
-          'left:' + (offX + cx * IW).toFixed(1) + 'px;top:' + (offY + cy * IH).toFixed(1) + 'px;' +
+          'left:' + (offX + l.cx * IW).toFixed(1) + 'px;top:' + (offY + l.cy * IH).toFixed(1) + 'px;' +
           'width:' + wpx.toFixed(1) + 'px;height:' + hpx.toFixed(1) + 'px;' +
           (l.rot ? 'transform:translate(-50%,-50%) rotate(' + l.rot + 'deg);' : '') + '">';
-      }).join('');
-      ph.insertAdjacentHTML('beforeend', out);
+      }).join(''));
     }
     // Дизайн, який клієнт зібрав, перенесений у зону нанесення нового виробу.
     // Рахуємо ЗАРАЗ, поки на екрані ще старий виріб: після відкриття нової
     // картки геометрії попереднього вже не буде.
     function recCarryLayers(gid, colorId){
-      var ls = recLayers();
-      if(!ls.length || !pmGarmentPhoto || !pmGarmentPhoto.naturalWidth) return null;
-      var sNat = { w:pmGarmentPhoto.naturalWidth, h:pmGarmentPhoto.naturalHeight };
-      var sb = recPrintBox(pm.garmentId, pm.colorId, sNat.w, sNat.h);
-      if(!sb) sb = recSourceBox();
-      var src = (pm.logos && pm.logos.front) || [];
-      return {
-        // частки зони: 0..1 всередині рамки, з якої переносимо
-        box: sb, gid: gid, colorId: colorId,
-        layers: ls.map(function(l, i){
-          var o = src.filter(function(x){ return x.url; })[i] || {};
-          return {
-            url: o.url, origUrl: o.origUrl || o.url, cleanUrl: o.cleanUrl || o.url,
-            removeBg: !!o.removeBg, rot: o.rot || 0, ar: o.ar || 1,
-            text: o.text ? JSON.parse(JSON.stringify(o.text)) : null,
-            nx: (l.cx - sb.x0) / Math.max(1e-4, sb.x1 - sb.x0),
-            ny: (l.cy - sb.y0) / Math.max(1e-4, sb.y1 - sb.y0),
-            nw: l.w / Math.max(1e-4, sb.x1 - sb.x0)
-          };
-        })
-      };
+      var snap = recSnapshot();
+      if(!snap) return null;
+      return { gid:gid, colorId:colorId, ctx:snap };
     }
     // Ставимо перенесений дизайн на новий виріб, коли його фото вже виміряне.
+    // Рахуємо тією самою функцією, що й картку, тож вигляд збігається точно.
     function recApplyCarry(carry){
-      if(!carry || !carry.layers || !carry.layers.length) return;
+      if(!carry || !carry.ctx) return;
       var im = pmGarmentPhoto;
       if(!im || !im.naturalWidth) return;
-      var tb = recPrintBox(pm.garmentId, pm.colorId, im.naturalWidth, im.naturalHeight)
-            || recGarmentBox(im, im.src);
       var wrapW = (pmGarmentWrapEl && pmGarmentWrapEl.clientWidth) || 0;
       if(!wrapW) return;
+      var put = recPlaceOn(pm.garmentId, pm.colorId, im, carry.ctx);
+      if(!put || !put.length) return;
       var ar = im.naturalWidth / im.naturalHeight, rw, rh, ox, oy;
       if(ar >= 1){ rw = 1; rh = 1 / ar; ox = 0; oy = (1 - rh) / 2; }
       else       { rh = 1; rw = ar;     oy = 0; ox = (1 - rw) / 2; }
-      var tw = Math.max(1e-4, tb.x1 - tb.x0), th = Math.max(1e-4, tb.y1 - tb.y0);
-      // Спершу рахуємо, де все опиниться, потім — чи влазить у зону друку.
-      var put = carry.layers.map(function(l){
-        var cxP = tb.x0 + l.nx * tw, cyP = tb.y0 + l.ny * th;   // частки фото
-        var boxW = (l.nw * tw) * rw * wrapW;
+      var raw = carry.ctx.raw || [];
+      pm.logos.front = put.map(function(o, i){
+        var src = raw[i] || {};
+        // частки фото → пікселі квадратного контейнера
+        var x = ((ox + o.cx * rw) - 0.5) * wrapW;
+        var y = ((oy + o.cy * rh) - 0.5) * wrapW;
+        var boxW = o.w * rw * wrapW;
+        var scale = Math.max(0.15, Math.min(3, (o.ar >= 1 ? boxW : boxW / o.ar) / 120));
         return {
-          l: l,
-          x: ((ox + cxP * rw) - 0.5) * wrapW,
-          y: ((oy + cyP * rh) - 0.5) * wrapW,
-          w: boxW, h: boxW / (l.ar || 1)
+          id: Date.now() + i,
+          origUrl: src.origUrl || o.url, cleanUrl: src.cleanUrl || o.url, url: o.url,
+          x: Math.round(x), y: Math.round(y), scale: scale, rot: o.rot || 0,
+          removeBg: !!src.removeBg, ar: o.ar || 1,
+          text: src.text ? JSON.parse(JSON.stringify(src.text)) : null
         };
-      });
-      // Зона друку в пікселях контейнера — те саме поле, що бачить клієнт
-      var zx = (ox + tb.x0 * rw - 0.5) * wrapW, zw = tw * rw * wrapW;
-      var zy = (oy + tb.y0 * rh - 0.5) * wrapW, zh = th * rh * wrapW;
-      var gx0 = 1e9, gy0 = 1e9, gx1 = -1e9, gy1 = -1e9;
-      put.forEach(function(o){
-        gx0 = Math.min(gx0, o.x - o.w/2); gx1 = Math.max(gx1, o.x + o.w/2);
-        gy0 = Math.min(gy0, o.y - o.h/2); gy1 = Math.max(gy1, o.y + o.h/2);
-      });
-      // Не влазить — зменшуємо ГРУПУ цілком, щоб не роз'їхались частини,
-      // і підсуваємо всередину. Інакше перше, що бачить клієнт на новому
-      // виробі, — попередження «за межами зони друку».
-      var k = Math.min(1, zw / Math.max(1e-3, gx1 - gx0), zh / Math.max(1e-3, gy1 - gy0));
-      var gcx = (gx0 + gx1) / 2, gcy = (gy0 + gy1) / 2;
-      put.forEach(function(o){
-        o.x = gcx + (o.x - gcx) * k; o.y = gcy + (o.y - gcy) * k;
-        o.w *= k; o.h *= k;
-      });
-      var nx0 = gcx + (gx0 - gcx) * k, nx1 = gcx + (gx1 - gcx) * k;
-      var ny0 = gcy + (gy0 - gcy) * k, ny1 = gcy + (gy1 - gcy) * k;
-      var dx = Math.min(0, zx + zw - nx1) + Math.max(0, zx - nx0);
-      var dy = Math.min(0, zy + zh - ny1) + Math.max(0, zy - ny0);
-      pm.logos.front = [];
-      put.forEach(function(o, i){
-        var l = o.l;
-        var scale = Math.max(0.15, Math.min(3, (l.ar >= 1 ? o.w : o.w / l.ar) / 120));
-        pm.logos.front.push({
-          id: Date.now() + i, origUrl: l.origUrl, cleanUrl: l.cleanUrl, url: l.url,
-          x: Math.round(o.x + dx), y: Math.round(o.y + dy), scale: scale, rot: l.rot,
-          removeBg: l.removeBg, ar: l.ar, text: l.text
-        });
       });
       pm.activeLogoId = pm.logos.front[0].id;
       pm.logos.front.forEach(function(l){
@@ -9681,7 +9674,8 @@
           var auto = window.__catalogPrice(p.garment);
           if(auto && auto > 0) priceLabel = 'від ' + auto + ' грн';
         }
-        return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'">'+imgHtml+
+        return '<div class="pm-rec-card" data-rec-garment="'+p.garment+'" ' +
+          'data-rec-color="'+escAttr((match && match.id) || '')+'">'+imgHtml+
           '<div class="pm-rec-info"><div class="pm-rec-name">'+nm+'</div>'+
           (priceLabel ? '<div class="pm-rec-price">'+priceLabel+'</div>' : '')+'</div></div>';
       }).join('');
