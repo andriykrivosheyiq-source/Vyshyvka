@@ -1284,6 +1284,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      місця на коротких вкладках; воно того варте. */
   .pm-tab-panel.is-two{height:clamp(124px,15vh,136px);min-height:0;max-height:none;
     align-items:stretch;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 0;}
+  /* Три ряди: сітка, розміри і швидкі кількості. Мокап сам віддасть цю
+     висоту — кнопка «в кошик» лишається на екрані. */
+  .pm-tab-panel.is-three{height:clamp(166px,20vh,182px);}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
@@ -1567,6 +1570,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-size-step-val{min-width:26px;text-align:center;font-size:16px;font-weight:800;color:#111;
     font-variant-numeric:tabular-nums;}
   .pm-size-hint{margin-left:auto;font-size:12px;color:#9aa0ab;}
+  /* Швидкі кількості. Замовляють десятками, а не по одній штуці — тиснути
+     «+» тридцять разів ніхто не буде. Зʼявляються після дотику по розміру,
+     щоб було зрозуміло, до якого саме розміру вони додаються. */
+  .pm-size-quick{display:flex;align-items:center;gap:7px;padding:9px 18px 0;flex-wrap:nowrap;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .pm-size-quick::-webkit-scrollbar{display:none;}
+  .pm-size-quick-k{flex:none;font-size:11.5px;color:#9aa0ab;font-weight:600;}
+  .pm-size-quick-btn{flex:none;height:30px;padding:0 13px;border-radius:15px;border:1.5px solid #dcdfe5;
+    background:#fff;color:#111;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-sf);
+    font-variant-numeric:tabular-nums;}
+  .pm-size-quick-btn:active{background:#111;border-color:#111;color:#fff;}
   .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:54px;padding-top:2px;}
   .pm-size-btn{
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
@@ -7165,6 +7179,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(dropped) updatePriceBar();
     }
     function addLogo(origUrl, cleanUrl, textSpec){
+      if(window.lqAn){
+        window.lqAn.step('design');
+        window.lqAn.track(textSpec ? 'text_add' : 'logo_upload', { garment: pm.garmentId, side: pm.side });
+      }
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
       var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
@@ -7567,12 +7585,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '<button class="pm-size-step-btn plus" data-size-plus="' + escAttr(foc) + '" aria-label="Більше">+</button>' +
             '</div>')
           : '<span class="pm-size-hint">Тапніть розмір</span>';
+        // Ряд швидких кількостей — до того розміру, яким зараз керує лічильник.
+        var quick = foc
+          ? ('<div class="pm-size-quick"><span class="pm-size-quick-k">Додати одразу</span>' +
+              [5, 10, 25, 50].map(function(n){
+                return '<button class="pm-size-quick-btn" data-size-add="' + n +
+                  '" data-size-for="' + escAttr(foc) + '">+' + n + '</button>';
+              }).join('') + '</div>')
+          : '';
         if(oneSize){
           // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
           html = '<div class="pm-size-os">' +
             '<button class="pm-size-btn pm-size-btn--os' + (pm.qty[sizes[0]] > 0 ? ' active' : '') +
               '" data-size-select="' + escAttr(sizes[0]) + '">' + escAttr(sizes[0]) + '</button>' +
-            step + '</div>';
+            step + '</div>' +
+            (quick ? quick.replace('class="pm-size-quick"', 'class="pm-size-quick" style="justify-content:center;"') : '');
         } else {
           html = '<div class="pm-size-top">' +
             '<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
@@ -7588,6 +7615,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>';
           });
           html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
+          html += quick;
         }
       }
       // Плавно підміняємо вміст ЛИШЕ коли справді змінили вкладку. На кожен
@@ -7598,6 +7626,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
       pmTabPanel.classList.toggle('is-two',
         pm.tab === 'garment' || pm.tab === 'photo' || pm.tab === 'size');
+      // На вкладці розмірів зʼявився третій ряд — швидкі кількості
+      pmTabPanel.classList.toggle('is-three', pm.tab === 'size' && !!quick);
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
@@ -7846,7 +7876,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // а далі доводилось цілитись у маленький «+».
           var sz = el.dataset.sizeSelect;
           pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
           pm.sizeFocus = sz;                     // великий лічильник переходить на цей розмір
+          renderTabPanel(); updatePriceBar();
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-size-add]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var sz = el.dataset.sizeFor, n = +el.dataset.sizeAdd || 0;
+          if(!sz || !n) return;
+          pm.qty[sz] = (pm.qty[sz] || 0) + n;
+          pm.sizeFocus = sz;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
           renderTabPanel(); updatePriceBar();
         });
       });
@@ -7854,7 +7895,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; pm.sizeFocus=sz;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
+          renderTabPanel(); updatePriceBar(); });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -8929,6 +8972,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
         pm.colorPicked = false;   // новий товар — колір ще не обирали
       }
+      if(window.lqAn){
+        window.lqAn.step('ctor');
+        window.lqAn.track('open_ctor', { garment: pm.garmentId, from: carry ? 'reco' : 'catalog' });
+      }
       pm.tab = 'photo';
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
       pm.textDrop = null; pm.textEdit = null; pm.textScreen = null;
@@ -9129,8 +9176,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(ei != null && cartItems[ei]){
         item.recoNote = cartItems[ei].recoNote || '';
         cartItems[ei] = item;
+        if(window.lqAn) window.lqAn.track('cart_edit', { garment: pm.garmentId });
       } else {
         cartItems.push(item);
+        if(window.lqAn){
+          window.lqAn.step('cart');
+          window.lqAn.track('add_cart', { garment: pm.garmentId, qty: item.qty,
+            sum: item.price, print: (getPrint() || {}).name || '' });
+        }
       }
       window.__pmEditIndex = null;
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
@@ -9759,6 +9812,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // лишитись. Інакше людина бачить кепку з лого, тапає, і потрапляє
           // на порожню кепку: обіцянка не виконана.
           var keep = recCarryLayers(card.dataset.recGarment, card.dataset.recColor || '');
+          if(window.lqAn) window.lqAn.track('rec_click', { from: pm.garmentId, to: card.dataset.recGarment });
           openProductModal(card.dataset.recGarment, keep);
         });
       });
@@ -10585,6 +10639,7 @@ window.LOOMIQ_CONFIG = {
     form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
   function sendLead(phone, form, btn, origText){
+    if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
     var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
@@ -11232,6 +11287,10 @@ window.LOOMIQ_CONFIG = {
       e.preventDefault(); e.stopPropagation();
       var cart = window.__cartItems || [];
       if(!cart.length){ alert('Кошик порожній — спершу додайте товар.'); return; }
+      if(window.lqAn){
+        window.lqAn.step('checkout');
+        window.lqAn.track('checkout_open', { items: cart.length });
+      }
       open();
     });
   });
@@ -11267,6 +11326,9 @@ window.LOOMIQ_CONFIG = {
         totalPrice: totalPrice, totalCost: totalCost,
         page: location.pathname,
         createdAt: new Date().toISOString(),
+        // Звідки прийшов клієнт. Без цього поля виручку неможливо розкласти
+        // по рекламі — у Канбані видно суму, але не видно, що її принесло.
+        an: (window.lqAn && window.lqAn.attribution()) || null,
         imported: false            // адмінка забере і поставить true
       };
       var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
@@ -11343,10 +11405,13 @@ window.LOOMIQ_CONFIG = {
         }
         if(!leadOk)  console.warn('telegram не прийняв заявку:', res[1].reason);
         if(!boardOk && !leadOk) throw (res[0].reason || new Error('both failed'));
+        if(window.lqAn) window.lqAn.order({ orderId: order.orderId, sum: totalPrice, cost: totalCost,
+          qty: paid.reduce(function(a, i){ return a + (+i.qty || 0); }, 0), items: paid.length });
         window.__clearCart && window.__clearCart();
         form.hidden = true; doneEl.hidden = false;
       });
     }).catch(function(err){
+      if(window.lqAn) window.lqAn.track('order_fail');
       console.warn('order failed', err);
       fail('Не вдалося надіслати замовлення. Перевірте зв’язок і спробуйте ще раз — або напишіть нам у Telegram.');
     });
@@ -11519,5 +11584,7 @@ window.LOOMIQ_CONFIG = {
   document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
 })();
 </script>
+<!-- Аналітика Loomiq: своя воронка + події в GTM/GA4 -->
+<script src="an.js"></script>
 </body>
 </html>

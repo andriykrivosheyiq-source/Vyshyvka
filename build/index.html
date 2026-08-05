@@ -5505,6 +5505,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     }
     function addLogo(origUrl, cleanUrl){
+      if(window.lqAn){ window.lqAn.step('design'); window.lqAn.track('logo_upload', { garment: pm.garmentId, side: pm.side }); }
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
       var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
@@ -5796,6 +5797,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
           var sz = el.dataset.sizeSelect;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
           if((pm.qty[sz]||0)===0){ pm.qty[sz]=1; renderTabPanel(); updatePriceBar(); }
         });
       });
@@ -5803,7 +5805,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
+          renderTabPanel(); updatePriceBar(); });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -6313,6 +6317,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     })();
 
     function openProductModal(garmentId){
+      if(window.lqAn){ window.lqAn.step('ctor'); window.lqAn.track('open_ctor', { garment: garmentId || '' }); }
       zoneOutBySide = {};   // скидаємо стан зони від попереднього товару
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
@@ -6470,6 +6475,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         });
       });
       cartItems.push(item);
+      if(window.lqAn){
+        window.lqAn.step('cart');
+        window.lqAn.track('add_cart', { garment: pm.garmentId, qty: item.qty, sum: item.price });
+      }
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
       var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
       if(!snapSides.length) snapSides = ['front'];
@@ -7276,6 +7285,7 @@ window.LOOMIQ_CONFIG = {
     form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#C94F1E;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
   function sendLead(phone, form, btn, origText){
+    if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
     var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
@@ -7878,6 +7888,10 @@ window.LOOMIQ_CONFIG = {
       e.preventDefault(); e.stopPropagation();
       var cart = window.__cartItems || [];
       if(!cart.length){ alert('Кошик порожній — спершу додайте товар.'); return; }
+      if(window.lqAn){
+        window.lqAn.step('checkout');
+        window.lqAn.track('checkout_open', { items: cart.length });
+      }
       open();
     });
   });
@@ -7910,6 +7924,9 @@ window.LOOMIQ_CONFIG = {
         totalPrice: totalPrice, totalCost: totalCost,
         page: location.pathname,
         createdAt: new Date().toISOString(),
+        // Звідки прийшов клієнт. Без цього поля виручку неможливо розкласти
+        // по рекламі — у Канбані видно суму, але не видно, що її принесло.
+        an: (window.lqAn && window.lqAn.attribution()) || null,
         imported: false            // адмінка забере і поставить true
       };
       var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
@@ -7970,10 +7987,13 @@ window.LOOMIQ_CONFIG = {
         if(!boardOk) console.warn('канбан не прийняв замовлення:', res[0].reason);
         if(!leadOk)  console.warn('telegram не прийняв заявку:', res[1].reason);
         if(!boardOk && !leadOk) throw (res[0].reason || new Error('both failed'));
+        if(window.lqAn) window.lqAn.order({ orderId: order.orderId, sum: totalPrice, cost: totalCost,
+          qty: paid.reduce(function(a, i){ return a + (+i.qty || 0); }, 0), items: paid.length });
         window.__clearCart && window.__clearCart();
         form.hidden = true; doneEl.hidden = false;
       });
     }).catch(function(err){
+      if(window.lqAn) window.lqAn.track('order_fail');
       console.warn('order failed', err);
       fail('Не вдалося надіслати замовлення. Перевірте зв’язок і спробуйте ще раз — або напишіть нам у Telegram.');
     });
@@ -8146,5 +8166,7 @@ window.LOOMIQ_CONFIG = {
   document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
 })();
 </script>
+<!-- Аналітика Loomiq: своя воронка + події в GTM/GA4 -->
+<script src="../an.js"></script>
 </body>
 </html>

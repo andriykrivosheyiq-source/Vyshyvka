@@ -1529,6 +1529,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           at: new Date().toISOString()
         }
       }, 'confirmed').then(function(){
+        if(window.lqAn) window.lqAn.order({ orderId: 'КП ' + token, sum: t.sum, qty: t.qty, items: 1 });
         document.getElementById('cfForm').hidden = true;
         document.getElementById('cfDone').hidden = false;
         lockAfterConfirm();
@@ -1824,6 +1825,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var seenKey = 'lq_offer_seen_' + token;
       if(OFFER.state !== 'confirmed' && !sessionStorage.getItem(seenKey)){
         sessionStorage.setItem(seenKey, '1');
+        if(window.lqAn) window.lqAn.track('offer_open', { token: token });
         saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state }, 'opened')
           .catch(function(e){ console.warn('open event failed', e); });
       }
@@ -1889,5 +1891,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
 })();
 </script>
+<!-- Аналітика Loomiq: своя воронка + події в GTM/GA4 -->
+<script src="an.js"></script>
 </body>
 </html>

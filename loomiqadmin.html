@@ -243,6 +243,41 @@
   .save-msg{font-size:12px;color:var(--good);align-self:center;opacity:0;transition:opacity .25s;}
   .save-msg.show{opacity:1;}
 
+  /* ── Аналітика ─────────────────────────────────────────────────────── */
+  .an-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+  .an-kpis{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-bottom:16px;}
+  @media (min-width:680px){.an-kpis{grid-template-columns:repeat(4,1fr);gap:12px;}}
+  .an-kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:13px 14px;}
+  .an-kpi .k{font-size:11px;color:var(--ink-soft);letter-spacing:.2px;line-height:1.3;}
+  .an-kpi .v{font-size:21px;font-weight:700;margin-top:5px;line-height:1.1;font-variant-numeric:tabular-nums;}
+  @media (min-width:680px){.an-kpi .v{font-size:24px;}}
+  .an-kpi .n{font-size:11px;color:var(--ink-soft);margin-top:3px;}
+  .an-kpi.good .v{color:var(--good);} .an-kpi.bad .v{color:var(--bad);}
+
+  .an-step{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .an-step .nm{width:118px;flex:none;font-size:12.5px;font-weight:600;}
+  @media (max-width:560px){.an-step .nm{width:92px;font-size:11.5px;}}
+  .an-step .bar{flex:1;height:22px;border-radius:6px;background:var(--canvas);overflow:hidden;}
+  .an-step .bar i{display:block;height:100%;background:var(--accent);border-radius:6px;}
+  .an-step .vv{width:112px;flex:none;text-align:right;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  @media (max-width:560px){.an-step .vv{width:86px;font-size:11px;}}
+  .an-drop{font-size:11.5px;color:var(--bad);margin:-3px 0 8px 128px;}
+  @media (max-width:560px){.an-drop{margin-left:102px;}}
+
+  .an-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .an-tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:460px;}
+  .an-tbl th{text-align:left;font-weight:600;color:var(--ink-soft);font-size:11px;
+    text-transform:uppercase;letter-spacing:.5px;padding:0 10px 8px 0;white-space:nowrap;}
+  .an-tbl td{padding:8px 10px 8px 0;border-top:1px solid var(--line);vertical-align:top;}
+  .an-tbl td.num,.an-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .an-tbl tr.tot td{font-weight:700;border-top:2px solid var(--line);}
+  .an-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0;}
+
+  .an-spend-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .an-spend-row input{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;background:var(--paper);color:var(--ink);min-width:130px;flex:1;}
+  @media (min-width:560px){.an-spend-row input{flex:none;}}
+
   /* garment cards grid */
   .garment-cards{display:grid;grid-template-columns:1fr;gap:12px;}
   @media (min-width:560px){.garment-cards{grid-template-columns:1fr 1fr;}}
@@ -662,6 +697,7 @@
         <button data-view="settings"><span class="num">03</span> Формування цін</button>
         <button data-view="photos"><span class="num">04</span> Конструктор сайту</button>
         <button data-view="reviews"><span class="num">05</span> Відгуки</button>
+        <button data-view="analytics"><span class="num">06</span> Аналітика</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -1450,6 +1486,84 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
     </section>
 
+    <!-- ============ VIEW 6 — ANALYTICS ============ -->
+    <section id="view-analytics" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Аналітика</div>
+        <h1>Що відбувається на сайтах</h1>
+        <div class="sub">Свої заходи не рахуються: превʼю в адмінці, режим менеджера
+          і будь-який пристрій, відкритий за посиланням <code>?staff=1</code>.</div>
+      </div>
+
+      <div class="an-bar">
+        <div class="seg" id="an-period">
+          <button data-d="7" class="active">7 днів</button>
+          <button data-d="30">30 днів</button>
+          <button data-d="90">90 днів</button>
+        </div>
+        <div class="seg" id="an-site">
+          <button data-s="" class="active">Усі сайти</button>
+          <button data-s="main">Головний</button>
+          <button data-s="horeca">HoReCa</button>
+          <button data-s="build">Будівництво</button>
+          <button data-s="offer">КП</button>
+        </div>
+        <button class="btn btn-ghost" id="an-reload">Оновити</button>
+      </div>
+      <div class="sub" id="an-state" style="margin:0 0 14px;"></div>
+
+      <div class="an-kpis" id="an-kpis"></div>
+
+      <div class="card">
+        <div class="card-head"><h2>Воронка конструктора</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Скільки людей дійшло до кожного кроку і де відвалюються найбільше.</div>
+        <div id="an-funnel"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Звідки прийшли</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Виручка й замовлення підтягуються з Канбану за міткою джерела в картці.</div>
+        <div id="an-src"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Гроші й Канбан</h2></div>
+        <div id="an-money"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Кліки по кнопках</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Рахуються всі контакти, переходи меню й дії в конструкторі.</div>
+        <div id="an-clicks"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Пристрої та сторінки входу</h2></div>
+        <div id="an-dev"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Комерційні пропозиції</h2></div>
+        <div id="an-offers"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Витрати на рекламу</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Введіть суму за день — і у верхньому блоці зʼявляться ціна замовлення та окупність.</div>
+        <div class="an-spend-row">
+          <input type="date" id="an-spend-date">
+          <input type="number" id="an-spend-sum" placeholder="грн за день" min="0" step="1">
+          <button class="btn btn-accent" id="an-spend-save">Зберегти</button>
+        </div>
+        <div id="an-spend-list" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>По днях</h2></div>
+        <div id="an-days"></div>
+      </div>
+    </section>
+
   </main>
   </div><!-- /.main-wrap -->
 </div><!-- /.shell -->
@@ -1793,6 +1907,15 @@ let garments = structuredClone(DEFAULT_GARMENTS);
 let orders = [];          // {id, phone, source, garmentId, garmentName, qty, apps:[{technique,pixels,priceImg}], createdAt, status}
 let currentApps = [];     // apps being built in calculator before save
 
+/* Історія етапів. Без неї не порахувати ні «скільки днів картка стоїть у
+   роботі», ні конверсію прорахунок→оплата: у картці видно лише поточний
+   статус, а коли він змінився — ніде. Пишемо коротко: етап і час. */
+function setStatus(o, key){
+  if(!o || o.status === key) return;
+  o.status = key;
+  o.hist = (o.hist || []).concat([{ s:key, at:new Date().toISOString() }]).slice(-40);
+}
+
 const STATUSES = [
   {key:'prorahunok', label:'Прорахунок'},
   {key:'new', label:'Нове'},
@@ -1852,8 +1975,9 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
+    const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок'};
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', analytics:'Аналітика'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); }
@@ -1861,6 +1985,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
+    if(view==='analytics' && window.__anOpen) window.__anOpen();
     if(view==='calc'){
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
       // посадкові сторінки редагуються в Конструкторі сайту.
@@ -3154,6 +3279,8 @@ function watchWebOrders(){
         name: d.name||'', phone: d.phone||'', items,
         totalPrice, totalCost, margin: totalPrice-totalCost,
         marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
+        an: d.an || null,               // джерело трафіку — для звіту з реклами
+        hist: [{ s:'new', at:(d.createdAt || new Date().toISOString()) }],
         createdAt: d.createdAt || new Date().toISOString()
       });
       added++;
@@ -3677,7 +3804,7 @@ async function reactToClientActions(){
     if(o.offerState === off.state) continue;         // уже опрацьовано
     o.offerState = off.state;
     dirty = true;
-    if(off.state === 'confirmed' && o.status === 'prorahunok') o.status = 'new';
+    if(off.state === 'confirmed' && o.status === 'prorahunok') setStatus(o, 'new');
     if(off.state === 'confirmed' || off.state === 'changes') notifyClientAction(o, off);
   }
   if(dirty){ try{ await saveOrders({ quiet:true }); renderBoard(); }catch(e){ console.warn(e); } }
@@ -4267,7 +4394,7 @@ function renderBoard(){
       col.classList.remove('drag-over');
       const id = e.dataTransfer.getData('text/plain');
       const o = orders.find(x=>x.id===id);
-      if(o){ o.status = st.key; await storeSet('orders', orders); renderBoard(); }
+      if(o){ setStatus(o, st.key); await storeSet('orders', orders); renderBoard(); }
     });
 
     board.appendChild(col);
@@ -4355,10 +4482,10 @@ function renderTicket(o){
   `;
 
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
-    if(statusIdx < STATUSES.length-1){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); }
+    if(statusIdx < STATUSES.length-1){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
-    if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
+    if(statusIdx > 0){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -4603,11 +4730,11 @@ function buildTicket(o){
   });
   const nx = el.querySelector('[data-act="next"]');
   if(nx) nx.addEventListener('click', async ()=>{
-    if(statusIdx < STATUSES.length-1){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); }
+    if(statusIdx < STATUSES.length-1){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
   });
   const pv = el.querySelector('[data-act="prev"]');
   if(pv) pv.addEventListener('click', async ()=>{
-    if(statusIdx > 0){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); }
+    if(statusIdx > 0){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -4713,10 +4840,10 @@ function renderOrderDrawer(){
     </div>`;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
   panel.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
-    if(canNext){ o.status = STATUSES[statusIdx+1].key; await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+    if(canNext){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
-    if(canPrev){ o.status = STATUSES[statusIdx-1].key; await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+    if(canPrev){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
   panel.querySelectorAll('.od-add').forEach(row=>{
@@ -6967,6 +7094,459 @@ async function init(){
   if(fr) fr.addEventListener('load', ()=>{
     if(editing){ editing = false; btn.textContent = 'Редагувати наповнення'; bar.classList.remove('is-editing'); closePanel(); }
   });
+})();
+</script>
+
+<script>
+/* ============================================================
+   АНАЛІТИКА
+   ------------------------------------------------------------
+   Три джерела, кожне відповідає за своє:
+
+   an_sessions — поведінка відвідувачів. Пише сайт анонімно.
+   an_days     — денні підсумки. Рахуємо тут, з сесій, один раз на добу.
+                 Без цього звіт за 90 днів витягав би десятки тисяч
+                 документів і впирався б у ліміт читання.
+   Канбан      — гроші. Виручка, собівартість і маржа беруться ЛИШЕ звідси:
+                 сесія знає суму на момент оформлення, а картка — фактичну.
+
+   Реклама зводиться з грошима через поле an у картці: сайт кладе туди
+   джерело переходу, і виручку стає видно в розрізі кампаній.
+   ============================================================ */
+(function(){
+  var AN = { days:7, site:'', cache:{}, spend:null, busy:false, opened:false };
+
+  function kyivDay(d){
+    try{ return d.toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
+    catch(e){ return d.toISOString().slice(0,10); }
+  }
+  function dayList(n){
+    var out = [], t = Date.now(), seen = {};
+    for(var i = 0; i < n; i++){
+      var k = kyivDay(new Date(t - i*86400000));
+      if(!seen[k]){ seen[k] = 1; out.unshift(k); }
+    }
+    return out;
+  }
+  var TODAY = function(){ return kyivDay(new Date()); };
+
+  function state(msg){ var el = document.getElementById('an-state'); if(el) el.textContent = msg || ''; }
+
+  /* ── Підсумки ─────────────────────────────────────────────── */
+  function emptyAgg(){
+    return { visits:0, engaged:0, newVis:0, sec:0, depth:0, orders:0,
+             steps:{}, ev:{}, src:{}, dev:{}, land:{} };
+  }
+  function bump(map, k, n){ if(!k) return; map[k] = (map[k] || 0) + (n == null ? 1 : n); }
+
+  function addSession(a, d){
+    a.visits++;
+    if(d.engaged) a.engaged++;
+    if(d.newVisitor) a.newVis++;
+    a.sec += +d.sec || 0;
+    a.depth += +d.depth || 0;
+    if(d.order && d.order.id) a.orders++;
+    var st = d.steps || {}; Object.keys(st).forEach(function(k){ bump(a.steps, k); });
+    var ev = d.ev || {};    Object.keys(ev).forEach(function(k){ bump(a.ev, k, +ev[k] || 0); });
+    bump(a.src, srcKey(d.src));
+    bump(a.dev, (d.dev && d.dev.type) || 'невідомо');
+    bump(a.land, d.land || '/');
+  }
+  function srcKey(s){
+    s = s || {};
+    var k = (s.source || 'невідомо') + ' / ' + (s.medium || '—');
+    if(s.campaign) k += ' / ' + s.campaign;
+    return k;
+  }
+  function mergeInto(a, b){
+    if(!b) return a;
+    ['visits','engaged','newVis','sec','depth','orders'].forEach(function(k){ a[k] += (+b[k] || 0); });
+    ['steps','ev','src','dev','land'].forEach(function(g){
+      Object.keys(b[g] || {}).forEach(function(k){ bump(a[g], k, +b[g][k] || 0); });
+    });
+    return a;
+  }
+
+  /* День: спершу готовий підсумок, і лише якщо його немає — сирі сесії.
+     Позавчорашній день уже не змінюється, тож підсумок одразу зберігаємо. */
+  async function dayData(day){
+    var recent = day >= dayList(2)[0];        // сьогодні й учора ще живі
+    if(AN.cache[day] && !recent) return AN.cache[day];
+    if(!recent){
+      try{
+        var doc = await fbDb.collection('an_days').doc(day).get();
+        if(doc.exists){
+          var v = doc.data() || {};
+          if(v.sites){ AN.cache[day] = v.sites; return v.sites; }
+        }
+      }catch(e){ console.warn('an_days', day, e && e.code); }
+    }
+    var sites = {};
+    var snap = await fbDb.collection('an_sessions').where('day','==',day).get();
+    snap.forEach(function(s){
+      var d = s.data() || {}, k = d.site || 'main';
+      if(!sites[k]) sites[k] = emptyAgg();
+      addSession(sites[k], d);
+    });
+    AN.cache[day] = sites;
+    if(!recent){
+      try{ await fbDb.collection('an_days').doc(day)
+             .set({ day:day, at:new Date().toISOString(), sites:sites }); }
+      catch(e){ console.warn('підсумок дня не збережено', day, e && e.code); }
+    }
+    return sites;
+  }
+
+  /* ── Гроші з Канбану ──────────────────────────────────────── */
+  function inRange(iso, from, to){
+    if(!iso) return false;
+    var d = kyivDay(new Date(iso));
+    return d >= from && d <= to;
+  }
+  function periodOrders(from, to){
+    return (orders || []).filter(function(o){
+      if(!inRange(o.createdAt, from, to)) return false;
+      if(AN.site && (o.site || 'main') !== AN.site) return false;
+      return true;
+    });
+  }
+
+  /* ── Витрати на рекламу ───────────────────────────────────── */
+  async function loadSpend(){
+    if(AN.spend) return AN.spend;
+    try{
+      var d = await fbDb.collection('loomiq').doc('adspend').get();
+      AN.spend = (d.exists && (d.data() || {}).days) || {};
+    }catch(e){ AN.spend = {}; }
+    return AN.spend;
+  }
+  function spendIn(days){
+    var s = AN.spend || {}, t = 0;
+    days.forEach(function(d){ t += +s[d] || 0; });
+    return t;
+  }
+
+  /* ── Малюємо ──────────────────────────────────────────────── */
+  function pct(a, b){ return b > 0 ? (a / b * 100) : 0; }
+  function p1(v){ return (Math.round(v * 10) / 10).toLocaleString('uk-UA') + '%'; }
+  function dur(sec){
+    sec = Math.round(sec || 0);
+    if(sec < 60) return sec + ' с';
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ' хв' + (s ? ' ' + s + ' с' : '');
+  }
+  function kpi(k, v, note, cls){
+    return '<div class="an-kpi' + (cls ? ' ' + cls : '') + '"><div class="k">' + escapeHtml(k) +
+      '</div><div class="v">' + v + '</div>' +
+      (note ? '<div class="n">' + note + '</div>' : '') + '</div>';
+  }
+  function tbl(head, rows, empty){
+    if(!rows.length) return '<div class="an-empty">' + escapeHtml(empty || 'Поки що порожньо.') + '</div>';
+    var h = head.map(function(c){
+      return '<th' + (c.num ? ' class="num"' : '') + '>' + escapeHtml(c.t) + '</th>'; }).join('');
+    var b = rows.map(function(r){
+      return '<tr' + (r.tot ? ' class="tot"' : '') + '>' + r.c.map(function(c, i){
+        return '<td' + (head[i] && head[i].num ? ' class="num"' : '') + '>' + c + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<div class="an-tbl-wrap"><table class="an-tbl"><thead><tr>' + h +
+           '</tr></thead><tbody>' + b + '</tbody></table></div>';
+  }
+  function top(map, n){
+    return Object.keys(map || {}).map(function(k){ return { k:k, v:map[k] }; })
+      .sort(function(a, b){ return b.v - a.v; }).slice(0, n || 12);
+  }
+
+  var STEP_UA = { visit:'Зайшли на сайт', ctor:'Відкрили конструктор', design:'Додали лого/напис',
+                  size:'Обрали розмір', cart:'Поклали в кошик', checkout:'Почали оформлення',
+                  order:'Залишили замовлення' };
+  var STEP_ORDER = ['visit','ctor','design','size','cart','checkout','order'];
+
+  var EV_UA = {
+    open_ctor:'Відкрили конструктор', logo_upload:'Завантажили логотип', text_add:'Додали напис',
+    add_cart:'Додали в кошик', cart_edit:'Змінили позицію в кошику', checkout_open:'Відкрили оформлення',
+    order_fail:'Замовлення не пройшло', rec_click:'Клік по рекомендації', lead_submit:'Заявка з форми',
+    offer_open:'Відкрили КП', contact_phone:'Клік по телефону', contact_telegram:'Telegram',
+    contact_viber:'Viber', contact_whatsapp:'WhatsApp', contact_mail:'Пошта',
+    social_instagram:'Instagram', link_out:'Зовнішнє посилання'
+  };
+  function evName(k){
+    if(EV_UA[k]) return EV_UA[k];
+    if(k.indexOf('nav_') === 0) return 'Перехід у меню → ' + k.slice(4);
+    if(k.indexOf('step_') === 0) return 'Крок ' + k.slice(5);
+    return k;
+  }
+  var SITE_UA = { main:'Головний', horeca:'HoReCa', build:'Будівництво', offer:'КП' };
+
+  function render(A, days, ords){
+    var spend = spendIn(days);
+    var revenue = ords.reduce(function(a, o){ return a + (+o.totalPrice || 0); }, 0);
+    var cost    = ords.reduce(function(a, o){ return a + (+o.totalCost  || 0); }, 0);
+    var margin  = revenue - cost;
+    var avg     = ords.length ? revenue / ords.length : 0;
+    var conv    = pct(ords.length, A.visits);
+
+    /* ---- KPI ---- */
+    var K = [];
+    K.push(kpi('Візити', fmt(A.visits), fmt(A.newVis) + ' вперше'));
+    K.push(kpi('Середній час', dur(A.visits ? A.sec / A.visits : 0),
+               'догортують до ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%'));
+    K.push(kpi('Затримались', p1(pct(A.engaged, A.visits)),
+               'решта пішла одразу'));
+    K.push(kpi('Конверсія в замовлення', p1(conv), fmt(ords.length) + ' з ' + fmt(A.visits),
+               conv >= 1 ? 'good' : ''));
+    K.push(kpi('Виручка', fmt(revenue) + ' грн', fmt(ords.length) + ' замовлень'));
+    K.push(kpi('Середній чек', fmt(avg) + ' грн'));
+    K.push(kpi('Маржа', fmt(margin) + ' грн', p1(pct(margin, revenue)) + ' від виручки',
+               margin > 0 ? 'good' : (revenue ? 'bad' : '')));
+    if(spend > 0){
+      var cpo = ords.length ? spend / ords.length : 0;
+      K.push(kpi('Реклама', fmt(spend) + ' грн',
+        'замовлення по ' + (ords.length ? fmt(cpo) : '—') + ' грн'));
+      K.push(kpi('Окупність реклами', revenue ? (Math.round(revenue / spend * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
+        'маржа мінус реклама: ' + fmt(margin - spend) + ' грн',
+        (margin - spend) > 0 ? 'good' : 'bad'));
+    } else {
+      K.push(kpi('Реклама', '—', 'внесіть витрати нижче'));
+    }
+    document.getElementById('an-kpis').innerHTML = K.join('');
+
+    /* ---- Воронка ---- */
+    var base = A.steps.visit || A.visits || 0;
+    var F = [];
+    STEP_ORDER.forEach(function(s, i){
+      var v = A.steps[s] || 0;
+      var prev = i ? (A.steps[STEP_ORDER[i-1]] || 0) : v;
+      F.push('<div class="an-step"><span class="nm">' + escapeHtml(STEP_UA[s]) + '</span>' +
+        '<span class="bar"><i style="width:' + Math.max(0, Math.min(100, pct(v, base))).toFixed(1) + '%"></i></span>' +
+        '<span class="vv">' + fmt(v) + ' · ' + p1(pct(v, base)) + '</span></div>');
+      if(i && prev > 0 && v < prev){
+        F.push('<div class="an-drop">тут пішло ' + fmt(prev - v) + ' — це ' +
+          p1(100 - pct(v, prev)) + ' тих, хто дійшов до попереднього кроку</div>');
+      }
+    });
+    if(!base) F = ['<div class="an-empty">Даних поки немає — зачекайте перших відвідувачів.</div>'];
+    document.getElementById('an-funnel').innerHTML = F.join('');
+
+    /* ---- Джерела ---- */
+    var ordBySrc = {};
+    ords.forEach(function(o){
+      var k = srcKey((o.an || {}).src);
+      if(!ordBySrc[k]) ordBySrc[k] = { n:0, sum:0 };
+      ordBySrc[k].n++; ordBySrc[k].sum += +o.totalPrice || 0;
+    });
+    var srcKeys = {};
+    Object.keys(A.src).forEach(function(k){ srcKeys[k] = 1; });
+    Object.keys(ordBySrc).forEach(function(k){ srcKeys[k] = 1; });
+    var srcRows = Object.keys(srcKeys).map(function(k){
+      var v = A.src[k] || 0, o = ordBySrc[k] || { n:0, sum:0 };
+      return { k:k, v:v, n:o.n, sum:o.sum };
+    }).sort(function(a, b){ return (b.sum - a.sum) || (b.v - a.v); }).slice(0, 20)
+      .map(function(r){
+        return { c:[escapeHtml(r.k), fmt(r.v), fmt(r.n), fmt(r.sum) + ' грн', p1(pct(r.n, r.v))] };
+      });
+    document.getElementById('an-src').innerHTML = tbl(
+      [{t:'Джерело'},{t:'Візити',num:1},{t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Конверсія',num:1}],
+      srcRows, 'Джерел поки немає.');
+
+    /* ---- Гроші й Канбан ---- */
+    var byStatus = {};
+    (orders || []).forEach(function(o){
+      if(AN.site && (o.site || 'main') !== AN.site) return;
+      var s = o.status || 'new';
+      if(!byStatus[s]) byStatus[s] = { n:0, sum:0, marg:0 };
+      byStatus[s].n++; byStatus[s].sum += +o.totalPrice || 0; byStatus[s].marg += +o.margin || 0;
+    });
+    var stRows = STATUSES.map(function(st){
+      var v = byStatus[st.key] || { n:0, sum:0, marg:0 };
+      return { c:[escapeHtml(st.label), fmt(v.n), fmt(v.sum) + ' грн', fmt(v.marg) + ' грн'] };
+    });
+    /* Скільки днів минає від появи картки до оплати — головний показник
+       швидкості менеджера, і його ніде більше не видно. */
+    var toPaid = [];
+    ords.forEach(function(o){
+      var h = o.hist || [];
+      var paid = h.filter(function(x){ return x.s === 'paid'; })[0];
+      if(paid && o.createdAt){
+        var d = (new Date(paid.at) - new Date(o.createdAt)) / 86400000;
+        if(d >= 0 && d < 400) toPaid.push(d);
+      }
+    });
+    var avgPaid = toPaid.length ? toPaid.reduce(function(a, b){ return a + b; }, 0) / toPaid.length : null;
+
+    var byItem = {}, byTech = {};
+    ords.forEach(function(o){
+      (o.items || []).forEach(function(i){
+        var nm = i.name || 'без назви';
+        if(!byItem[nm]) byItem[nm] = { qty:0, sum:0, marg:0 };
+        byItem[nm].qty += +i.qty || 0;
+        byItem[nm].sum += +i.price || 0;
+        byItem[nm].marg += (+i.price || 0) - (+i.cost || 0);
+        var seen = {};
+        (i.prints || []).forEach(function(p){
+          var t = p.technique || 'без нанесення';
+          if(seen[t]) return; seen[t] = 1;
+          if(!byTech[t]) byTech[t] = { n:0, sum:0 };
+          byTech[t].n += +i.qty || 0; byTech[t].sum += +i.price || 0;
+        });
+      });
+    });
+    var itemRows = top(Object.keys(byItem).reduce(function(m, k){ m[k] = byItem[k].sum; return m; }, {}), 10)
+      .map(function(r){
+        var v = byItem[r.k];
+        return { c:[escapeHtml(r.k), fmt(v.qty), fmt(v.sum) + ' грн', fmt(v.marg) + ' грн'] };
+      });
+    var techRows = Object.keys(byTech).sort(function(a, b){ return byTech[b].sum - byTech[a].sum; })
+      .map(function(k){ return { c:[escapeHtml(k), fmt(byTech[k].n), fmt(byTech[k].sum) + ' грн'] }; });
+
+    document.getElementById('an-money').innerHTML =
+      '<div class="sub" style="margin-bottom:10px;">Етапи Канбану — за весь час, решта — за обраний період.' +
+        (avgPaid != null ? ' Від заявки до оплати: <b>' + (Math.round(avgPaid * 10) / 10).toLocaleString('uk-UA') + ' дн.</b>' : '') + '</div>' +
+      tbl([{t:'Етап'},{t:'Карток',num:1},{t:'Сума',num:1},{t:'Маржа',num:1}], stRows) +
+      '<div class="card-head" style="margin:18px 0 8px;"><h2>Топ товарів за виручкою</h2></div>' +
+      tbl([{t:'Товар'},{t:'Штук',num:1},{t:'Виручка',num:1},{t:'Маржа',num:1}], itemRows, 'Замовлень за період немає.') +
+      '<div class="card-head" style="margin:18px 0 8px;"><h2>Спосіб нанесення</h2></div>' +
+      tbl([{t:'Спосіб'},{t:'Виробів',num:1},{t:'Виручка',num:1}], techRows, 'Замовлень за період немає.');
+
+    /* ---- Кліки ---- */
+    var clickRows = top(A.ev, 25)
+      .filter(function(r){ return r.k.indexOf('step_') !== 0; })
+      .map(function(r){ return { c:[escapeHtml(evName(r.k)), fmt(r.v)] }; });
+    document.getElementById('an-clicks').innerHTML =
+      tbl([{t:'Дія'},{t:'Разів',num:1}], clickRows, 'Кліків поки немає.');
+
+    /* ---- Пристрої та входи ---- */
+    var devRows = top(A.dev, 6).map(function(r){
+      var ua = { mobile:'Телефон', tablet:'Планшет', desktop:'Компʼютер' }[r.k] || r.k;
+      return { c:[escapeHtml(ua), fmt(r.v), p1(pct(r.v, A.visits))] };
+    });
+    var landRows = top(A.land, 10).map(function(r){
+      return { c:[escapeHtml(r.k), fmt(r.v), p1(pct(r.v, A.visits))] };
+    });
+    document.getElementById('an-dev').innerHTML =
+      tbl([{t:'Пристрій'},{t:'Візити',num:1},{t:'Частка',num:1}], devRows) +
+      '<div class="card-head" style="margin:18px 0 8px;"><h2>Сторінки входу</h2></div>' +
+      tbl([{t:'Сторінка'},{t:'Візити',num:1},{t:'Частка',num:1}], landRows);
+
+    /* ---- КП ---- */
+    var offs = ords.filter(function(o){ return o.offerToken && offersByToken[o.offerToken]; })
+      .map(function(o){ return { o:o, f:offersByToken[o.offerToken] }; });
+    var opened = offs.filter(function(x){ return x.f.state && x.f.state !== 'created'; });
+    var confirmed = offs.filter(function(x){ return x.f.state === 'confirmed'; });
+    var confSum = confirmed.reduce(function(a, x){
+      return a + (+(x.f.clientAction || {}).total || +x.o.totalPrice || 0); }, 0);
+    var views = offs.map(function(x){ return +(x.f.behaviour || {}).totalSec || 0; }).filter(function(v){ return v > 0; });
+    var avgView = views.length ? views.reduce(function(a, b){ return a + b; }, 0) / views.length : 0;
+    document.getElementById('an-offers').innerHTML = offs.length
+      ? '<div class="an-kpis" style="margin-bottom:0;">' +
+          kpi('Відправлено', fmt(offs.length)) +
+          kpi('Відкрито', fmt(opened.length), p1(pct(opened.length, offs.length))) +
+          kpi('Підтверджено', fmt(confirmed.length), fmt(confSum) + ' грн',
+              confirmed.length ? 'good' : '') +
+          kpi('Дивляться в середньому', avgView ? dur(avgView) : '—') +
+        '</div>'
+      : '<div class="an-empty">За період пропозицій не відправляли.</div>';
+
+    /* ---- Витрати ---- */
+    var sp = AN.spend || {};
+    var spRows = days.slice().reverse().filter(function(d){ return +sp[d] > 0; })
+      .map(function(d){ return { c:[escapeHtml(d), fmt(+sp[d]) + ' грн'] }; });
+    if(spRows.length) spRows.push({ tot:1, c:['Разом', fmt(spend) + ' грн'] });
+    document.getElementById('an-spend-list').innerHTML =
+      tbl([{t:'День'},{t:'Витрачено',num:1}], spRows, 'За обраний період витрат не вносили.');
+  }
+
+  /* ---- Розбивка по днях ---- */
+  function renderDays(perDay, days, ords){
+    var ordDay = {};
+    ords.forEach(function(o){
+      var d = kyivDay(new Date(o.createdAt));
+      if(!ordDay[d]) ordDay[d] = { n:0, sum:0 };
+      ordDay[d].n++; ordDay[d].sum += +o.totalPrice || 0;
+    });
+    var rows = days.slice().reverse().map(function(d){
+      var a = perDay[d] || emptyAgg(), o = ordDay[d] || { n:0, sum:0 }, s = +(AN.spend || {})[d] || 0;
+      return { c:[escapeHtml(d), fmt(a.visits), fmt(a.steps.ctor || 0), fmt(a.steps.cart || 0),
+                  fmt(o.n), fmt(o.sum) + ' грн', s ? fmt(s) + ' грн' : '—'] };
+    });
+    document.getElementById('an-days').innerHTML = tbl(
+      [{t:'День'},{t:'Візити',num:1},{t:'Конструктор',num:1},{t:'Кошик',num:1},
+       {t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Реклама',num:1}],
+      rows, 'Даних немає.');
+  }
+
+  /* ── Завантаження ─────────────────────────────────────────── */
+  async function load(){
+    if(AN.busy) return;
+    AN.busy = true;
+    var days = dayList(AN.days);
+    state('Рахуємо за ' + days.length + ' дн…');
+    try{
+      await loadSpend();
+      var perDay = {}, A = emptyAgg();
+      for(var i = 0; i < days.length; i++){
+        var sites = await dayData(days[i]);
+        var d = emptyAgg();
+        Object.keys(sites || {}).forEach(function(k){
+          if(AN.site && k !== AN.site) return;
+          mergeInto(d, sites[k]);
+        });
+        perDay[days[i]] = d;
+        mergeInto(A, d);
+      }
+      var ords = periodOrders(days[0], days[days.length - 1]);
+      render(A, days, ords);
+      renderDays(perDay, days, ords);
+      state('Період: ' + days[0] + ' — ' + days[days.length - 1] +
+            (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти'));
+    }catch(e){
+      console.error('analytics', e);
+      state('Не вдалось прочитати аналітику: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+            '. Опублікуйте оновлені правила Firestore (файл firestore.rules).');
+    }
+    AN.busy = false;
+  }
+
+  /* ── Кнопки ───────────────────────────────────────────────── */
+  function seg(id, attr, apply){
+    var box = document.getElementById(id);
+    if(!box) return;
+    box.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        box.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        apply(b.dataset[attr]);
+        load();
+      });
+    });
+  }
+  seg('an-period', 'd', function(v){ AN.days = +v || 7; });
+  seg('an-site', 's', function(v){ AN.site = v || ''; });
+
+  var rl = document.getElementById('an-reload');
+  if(rl) rl.addEventListener('click', function(){ AN.cache = {}; AN.spend = null; load(); });
+
+  var save = document.getElementById('an-spend-save');
+  if(save) save.addEventListener('click', async function(){
+    var d = (document.getElementById('an-spend-date') || {}).value || '';
+    var v = +((document.getElementById('an-spend-sum') || {}).value || 0);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return toast('Оберіть день');
+    if(!(v >= 0)) return toast('Вкажіть суму');
+    try{
+      await loadSpend();
+      AN.spend[d] = v;
+      await fbDb.collection('loomiq').doc('adspend').set({ days: AN.spend }, { merge:true });
+      document.getElementById('an-spend-sum').value = '';
+      toast('Витрати за ' + d + ' збережено');
+      load();
+    }catch(e){ toast('Не збереглось: ' + ((e && e.code) || 'помилка')); }
+  });
+
+  window.__anOpen = function(){
+    var el = document.getElementById('an-spend-date');
+    if(el && !el.value) el.value = TODAY();
+    if(!AN.opened){ AN.opened = true; load(); }
+    else load();
+  };
 })();
 </script>
 
