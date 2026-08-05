@@ -1279,14 +1279,14 @@
   /* Порожній стан — це головний заклик до дії, тож контраст вищий за
      звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
   .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;height:100%;gap:7px;
-    border-color:#cfd3da;color:#5a6472;background:#fcfcfd;}
+    border-color:#9aa3b0;color:#3d4757;background:#eceff3;}
   .pm-photo-filled.is-empty .pm-photo-add svg{width:24px;height:24px;}
   .pm-photo-filled.is-empty .pm-photo-add-ab{font-size:24px;}
   .pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:13px;font-weight:600;}
-  .pm-photo-add--text{border-style:solid;border-color:#e4e4e4;color:#8a8a8a;}
+  .pm-photo-add--text{border-style:solid;border-color:#c3c9d2;color:#5a6472;}
   .pm-photo-add-ab{font-size:16px;font-weight:800;line-height:1;color:inherit;}
   /* «Прибрати фон» — значком у куті мініатюри, щоб не займати рядок під нею */
-  .pm-bg-dot{position:absolute;left:4px;bottom:4px;width:19px;height:19px;border-radius:10px;
+  .pm-bg-dot{position:absolute;left:3px;bottom:3px;width:16px;height:16px;border-radius:8px;
     border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
   .pm-bg-dot.on{background:#111;color:#fff;}
@@ -1456,7 +1456,11 @@
     align-items:center;flex:none;}
   .pm-photo-filled .pm-photo-add,.pm-photo-filled .pm-photo-thumb{flex:0 0 auto;}
   .pm-photo-thumb{flex:0 0 auto;width:50px;height:50px;border-radius:11px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
-  .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:#f0f0f0;display:block;}
+  /* Плитка бере колір виробу: світлий друк на білій плитці був невидимий,
+     а на чорній футболці він і має читатись так само, як на самому виробі. */
+  .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:transparent;display:block;}
+  .pm-photo-thumb.on-dark{border-color:#fff;box-shadow:0 0 0 1.5px #111;}
+  .pm-photo-thumb.on-dark .pm-bg-dot{background:rgba(255,255,255,.92);color:#111;}
   .pm-photo-thumb-del{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;}
   .pm-photo-col{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center;}
   .pm-bg-toggle{display:flex;align-items:center;gap:4px;cursor:pointer;}
@@ -1465,10 +1469,10 @@
   .pm-bg-toggle-knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:6px;background:#fff;transition:left .18s;}
   .pm-bg-toggle-pill.on .pm-bg-toggle-knob{left:12px;}
   .pm-bg-toggle-label{font-size:10.5px;color:#666;font-weight:500;}
-  .pm-photo-add{flex:0 0 auto;width:50px;height:50px;border-radius:11px;border:2px dashed #ccc;
-    background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;cursor:pointer;color:#bbb;font-size:10px;line-height:1.2;text-align:center;
-    padding:0 4px;box-sizing:border-box;}
+  .pm-photo-add{flex:0 0 auto;width:50px;height:50px;border-radius:11px;border:2px dashed #a9b0bb;
+    background:#eceff3;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;cursor:pointer;color:#5a6472;font-size:10px;line-height:1.2;text-align:center;
+    padding:0 4px;box-sizing:border-box;font-weight:600;}
   /* Вкладка «Фото» показує лого з усіх сторін одразу — групи з підписами */
   .pm-photo-group{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
   .pm-photo-group-row{display:flex;gap:10px;align-items:flex-start;}
@@ -1568,7 +1572,7 @@
   .pm-price-col .pm-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.5px;margin-right:4px;}
   .pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
   .pm-price-divider{display:none;}
-  .pm-qty-warning{display:flex;align-items:center;gap:6px;font-size:13px;color:#8a6a15;font-weight:600;
+  .pm-qty-warning{display:flex;align-items:center;gap:6px;font-size:13px;color:#A9700A;font-weight:600;
     margin:0 0 9px;line-height:1.3;}
   /* Той самий рядок у ролі підказки: ціна за кілька нанесень. Нового ряду не додаємо. */
   .pm-qty-warning.is-info{color:#6b7280;font-size:13.5px;font-weight:500;}
@@ -6115,8 +6119,36 @@
       var z = garmentZoom();
       pmGarmentWrapEl.style.transform = (z !== 1) ? ('scale(' + z + ')') : '';
     }
-    (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitGarmentStage(); }); })();
-    window.addEventListener('orientationchange', function(){ setTimeout(fitGarmentStage, 50); });
+    // Висота сцени була в відсотках екрана (54vh, а на низьких — 37vh). На моєму
+    // телефоні виходило добре, а на чужому з іншою висотою вікна й іншою панеллю
+    // браузера мокап ставав удвічі меншим. Тепер міряємо, скільки місця реально
+    // лишається під кнопкою «в кошик», і віддаємо його мокапу — на будь-якому
+    // екрані виріб виходить настільки великим, наскільки дозволяє кнопка.
+    var STAGE_GAP = 22;          // просвіт під кнопкою, щоб вона не липла до краю
+    function fitStageHeight(){
+      if(window.innerWidth >= 900) return;        // на десктопі діють свої правила
+      if(!productModal || !productModal.classList.contains('open')) return;
+      var stage = productModal.querySelector('.pm-stage');
+      var btn = productModal.querySelector('.pm-add-btn');
+      if(!stage || !btn) return;
+      var keep = productModal.scrollTop;
+      productModal.scrollTop = 0;                  // кнопку міряємо від верху сторінки
+      var h = stage.getBoundingClientRect().height;
+      var slack = window.innerHeight - btn.getBoundingClientRect().bottom - STAGE_GAP;
+      var lo = 230, hi = Math.round(window.innerHeight * 0.60);
+      var next = Math.max(lo, Math.min(hi, Math.round(h + slack)));
+      if(Math.abs(next - h) >= 6) stage.style.height = next + 'px';
+      productModal.scrollTop = keep;
+      fitGarmentStage();
+    }
+    // Два проходи: після першого міняється висота, і запас треба переміряти.
+    function fitStageTwice(){
+      requestAnimationFrame(function(){ fitStageHeight();
+        requestAnimationFrame(fitStageHeight); });
+    }
+    window.__fitStage = fitStageTwice;
+    (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitStageTwice(); }); })();
+    window.addEventListener('orientationchange', function(){ setTimeout(fitStageTwice, 60); });
 
     function currentLayers(){ return pm.logos[pm.side]; }
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
@@ -6933,6 +6965,14 @@
              EMB_MIN_LETTER_MM + ' мм. Збільште напис.';
     }
     function textMode(){ return !!(pm.textOpen || activeTextLayer()); }
+    // Темний виріб — світла рамка і світлий значок, інакше вони зникають.
+    function hexIsDark(hex){
+      var h = String(hex || '').replace('#', '');
+      if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      if(h.length < 6) return false;
+      var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+      return (0.299*r + 0.587*g + 0.114*b) < 140;
+    }
     // Подвійний шеврон був потрібен, поки поруч жила стрілка «відкрити».
     // Її замінила кнопка «Змінити», тож гортання лишилось саме — і читається
     // спокійніше одинарним.
@@ -7330,6 +7370,11 @@
           // панель має лишатись тієї самої висоти.
           var groups = photoGroups();
           var multi = groups.length > 1;
+          // Плитка дизайну — того ж кольору, що й виріб: інакше світлий друк
+          // на білому тлі просто не видно, і клієнт не розуміє, що там лежить.
+          var cThumb = (typeof getColor === 'function' && getColor()) || {};
+          var thumbBg = cThumb.hex || '#f0f0f0';
+          var thumbDark = hexIsDark(thumbBg);
           // Поки нічого не додано, дві плитки розтягуються на всю ширину по
           // половині: інакше вони тулились дрібними квадратиками зліва, а
           // праворуч зяяла порожнеча. Щойно щось є — стають компактними.
@@ -7341,7 +7386,8 @@
             gr.layers.forEach(function(l){
               var isActive = isCur && pm.activeLogoId === l.id;
               html += '<div class="pm-photo-col">' +
-                '<div class="pm-photo-thumb" data-id="'+l.id+'" data-side="'+gr.side+'" style="border-color:'+(isActive?'#111':'#eee')+';">' +
+                '<div class="pm-photo-thumb'+(thumbDark?' on-dark':'')+'" data-id="'+l.id+'" data-side="'+gr.side+'" ' +
+                  'style="background:'+thumbBg+';border-color:'+(isActive?(thumbDark?'#fff':'#111'):'rgba(0,0,0,.12)')+';">' +
                   '<img src="'+l.url+'">' + (isActive ? '<div class="pm-photo-thumb-del" data-del="'+l.id+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>' : '') +
                   '<button class="pm-bg-dot'+(l.removeBg?' on':'')+'" data-bgtoggle="'+l.id+'" title="'+(l.removeBg?'Фон прибрано — повернути':'Прибрати фон')+'" aria-label="Прибрати фон">' +
                     (l.removeBg
@@ -8882,6 +8928,7 @@
       updatePriceBar();
       try{ renderRecommended(); }catch(e){}
       requestAnimationFrame(fitGarmentStage);
+      fitStageTwice();
       // Перенесений із рекомендованих дизайн ставимо, коли фото нового виробу
       // вже завантажене: без його розмірів зону нанесення не порахувати.
       if(carry && carry.ctx && carry.ctx.layers && carry.ctx.layers.length){
