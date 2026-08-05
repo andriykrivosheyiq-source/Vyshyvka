@@ -1125,10 +1125,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     z-index:12;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.16);white-space:nowrap;}
   #pmZoneWarn svg{flex:none;}
   .pm-add-btn.is-blocked{opacity:.55;}
+  /* Розміри рахуємо від ширини самого макета (--pmw), а не фіксованими
+     пікселями: мокап на кожному телефоні різний, і на меншому напис
+     «Завантажте логотип» просто не влазив — його різало по буквах, а плюс
+     виштовхувало за межі рамки. */
   .pm-upload-zone{
-    position:absolute;top:31%;left:36%;right:36%;bottom:40%;border-radius:9px;
+    position:absolute;top:30%;left:27%;right:27%;bottom:38%;border-radius:calc(var(--pmw,320px) * .028);
     border:2px dashed rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:6px;cursor:pointer;text-align:center;
+    gap:calc(var(--pmw,320px) * .016);cursor:pointer;text-align:center;
+    padding:calc(var(--pmw,320px) * .012);box-sizing:border-box;
     background:rgba(255,255,255,.13);overflow:hidden;
   }
   /* Перелив, що підказує: сюди можна натиснути */
@@ -1141,9 +1146,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   @keyframes pm-shimmer{0%{left:-70%;}55%{left:115%;}100%{left:115%;}}
   @media (prefers-reduced-motion: reduce){.pm-upload-zone::after{animation:none;display:none;}}
-  .pm-upload-plus{width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
-  .pm-upload-text{font-size:13.5px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);}
-  .pm-upload-sub{font-size:11px;color:rgba(255,255,255,.65);}
+  .pm-upload-plus{width:calc(var(--pmw,320px) * .105);height:calc(var(--pmw,320px) * .105);
+    min-width:24px;min-height:24px;max-width:44px;max-height:44px;border-radius:50%;flex:none;
+    background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
+  .pm-upload-plus svg{width:52%;height:52%;}
+  .pm-upload-text{font-size:clamp(10px, calc(var(--pmw,320px) * .048), 15px);font-weight:700;
+    color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);line-height:1.15;max-width:100%;}
+  .pm-upload-sub{font-size:clamp(8.5px, calc(var(--pmw,320px) * .037), 12px);
+    color:rgba(255,255,255,.65);line-height:1.1;}
   /* Темний варіант — для світлих футболок (білий/сірий/пісочний), щоб не зливалось */
   .pm-upload-zone--dark{border-color:rgba(0,0,0,.4);background:rgba(0,0,0,.07);}
   .pm-upload-zone--dark::after{background:linear-gradient(105deg, transparent, rgba(0,0,0,.10), transparent);}
@@ -6129,6 +6139,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var size = Math.max(0, Math.min(availW, availH, 680));
       pmGarmentWrapEl.style.width = size + 'px';
       pmGarmentWrapEl.style.height = size + 'px';
+      // від цієї ширини рахується все, що лежить на макеті
+      pmGarmentWrapEl.style.setProperty('--pmw', size + 'px');
       var z = garmentZoom();
       pmGarmentWrapEl.style.transform = (z !== 1) ? ('scale(' + z + ')') : '';
     }
@@ -11461,6 +11473,50 @@ window.LOOMIQ_CONFIG = {
   }
   document.addEventListener('lq-content', render);
   document.addEventListener('lq-photos', render);
+})();
+</script>
+<script>
+/* Поле телефону починається з +380: на цифровій клавіатурі айфона плюса
+   немає, і люди застрягали на першому символі. Щойно ставлять курсор —
+   код країни вже стоїть, лишається дописати дев'ять цифр. Префікс не
+   стирається; якщо нічого не дописали, поле знову порожнє, щоб перевірка
+   «обов'язкове» працювала як раніше. */
+(function(){
+  var PFX = '+380';
+  function tidy(el){
+    var v = el.value, rest;
+    if(v.indexOf(PFX) === 0) rest = v.slice(PFX.length);
+    else if(v.length <= PFX.length) rest = '';      // затерли префікс — відновлюємо
+    else rest = v;                                   // вставили номер цілком
+    var d = rest.replace(/\D/g, '');
+    // Код країни прибираємо ЛИШЕ коли цифр більше, ніж треба: інакше він
+    // з'їдав би те, що людина щойно набрала по одній цифрі.
+    if(d.length > 9){
+      if(d.indexOf('380') === 0) d = d.slice(3);
+      else if(d.indexOf('80') === 0) d = d.slice(2);
+      else if(d.indexOf('0') === 0) d = d.slice(1);
+    }
+    var next = PFX + d.slice(0, 9);
+    if(el.value !== next) el.value = next;
+  }
+  function toEnd(el){
+    try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){}
+  }
+  function bind(el){
+    if(el.dataset.uaPfx) return;
+    el.dataset.uaPfx = '1';
+    el.addEventListener('focus', function(){
+      if(!el.value.trim()) el.value = PFX;
+      requestAnimationFrame(function(){ toEnd(el); });
+    });
+    el.addEventListener('input', function(){ tidy(el); });
+    el.addEventListener('blur', function(){ if(el.value === PFX) el.value = ''; });
+  }
+  function scan(){ document.querySelectorAll('input[type="tel"]').forEach(bind); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+  else scan();
+  // Форми відкриваються з модалок, тож поля з'являються пізніше
+  document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
 })();
 </script>
 </body>
