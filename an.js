@@ -99,8 +99,9 @@
 
   /* Нова рекламна мітка серед сесії = нова сесія: інакше замовлення
      припишеться першому джерелу, і оцінити другу рекламу буде нічим. */
-  var savedSrc = null;
+  var savedSrc = null, firstSrc = null;
   try{ savedSrc = JSON.parse(lsGet('lq_src') || 'null'); }catch(e){}
+  try{ firstSrc = JSON.parse(lsGet('lq_src_first') || 'null'); }catch(e){}
   var freshUtm = !!Q.get('utm_source');
   if(!newSession && freshUtm && savedSrc && savedSrc.source !== Q.get('utm_source')) newSession = true;
 
@@ -111,8 +112,19 @@
   } else {
     src = savedSrc;
   }
+  /* Перший дотик запамʼятовується назавжди. Реклама зазвичай не продає з
+     першого заходу: людина приходить з Instagram, а замовляє через тиждень
+     «прямим» візитом. Без першого джерела вся виручка припишеться прямим
+     заходам, і рекламу визнають збитковою помилково. */
+  if(!firstSrc){ firstSrc = src; lsSet('lq_src_first', JSON.stringify(firstSrc)); }
+
   if(newSession){ sid = rnd(16); lsSet('lq_sid', sid); }
   lsSet('lq_sid_at', String(Date.now()));
+
+  /* Котрий це візит цього відвідувача — видно, з якого разу починають купувати. */
+  var visitNo = +lsGet('lq_visits') || 0;
+  if(newSession){ visitNo++; lsSet('lq_visits', String(visitNo)); }
+  if(!visitNo) visitNo = 1;
 
   /* Скільки сторінок людина подивилась за сесію — лічильник спільний
      для всіх вкладок, бо сесія одна. */
@@ -140,6 +152,37 @@
     try{ return new Date().toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
     catch(e){ return new Date().toISOString().slice(0, 10); }
   }
+  /* Година й день тижня — теж за Києвом: за ними вирішують, коли вмикати
+     рекламу і коли менеджеру бути на звʼязку. */
+  function kyivHour(){
+    try{
+      return +new Date().toLocaleString('en-GB', { timeZone:'Europe/Kyiv', hour:'2-digit', hour12:false }).slice(0, 2);
+    }catch(e){ return new Date().getHours(); }
+  }
+  function kyivDow(){
+    var names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    try{
+      var s = new Date().toLocaleDateString('en-US', { timeZone:'Europe/Kyiv', weekday:'short' });
+      var i = names.indexOf(s);
+      return i < 0 ? new Date().getDay() : i;
+    }catch(e){ return new Date().getDay(); }
+  }
+
+  /* Швидкість сторінки. Повільний сайт зливає рекламний бюджет мовчки:
+     людина йде ще до того, як побачила перший екран, і в звіті це виглядає
+     як «поганий трафік», хоча трафік нормальний. */
+  var perf = {};
+  try{
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation') || [])[0];
+    if(nav && nav.responseStart) perf.ttfb = Math.round(nav.responseStart);
+    if(W.PerformanceObserver){
+      var po = new PerformanceObserver(function(list){
+        var e = list.getEntries(); if(!e.length) return;
+        perf.lcp = Math.round(e[e.length - 1].startTime);
+      });
+      po.observe({ type:'largest-contentful-paint', buffered:true });
+    }
+  }catch(e){}
 
   /* ---------- 5. Стан сесії ------------------------------------------- */
   var S = {
@@ -147,11 +190,21 @@
     site: W.LQ_SITE || (/\/offer\.html/.test(location.pathname) ? 'offer' : 'main'),
     newVisitor: newVisitor,
     startAt: new Date().toISOString(),
-    day: dayKey(),
+    day: dayKey(), hour: kyivHour(), dow: kyivDow(),
+    visitNo: visitNo,
     land: (location.pathname || '/').slice(0, 120),
-    src: src, dev: device(),
+    exit: (location.pathname || '/').slice(0, 120),
+    src: src, first: firstSrc, dev: device(),
     steps: {}, ev: {},
+    /* Що саме дивились у конструкторі: виріб, колір, спосіб нанесення.
+       Звідси видно, який товар возити на склад і які кольори тримати. */
+    pick: {},
+    /* Найбільша сума, яку людина набрала в кошику. Якщо замовлення не
+       сталось — це і є вартість покинутого кошика, найдорожча втрата. */
+    cart: { sum:0, qty:0 },
+    firstActionSec: null,
     depth: 0, pages: pages,
+    perf: perf,
     order: null
   };
 
@@ -192,14 +245,19 @@
   function snapshot(){
     return {
       sid: S.sid, vid: S.vid, site: S.site, day: S.day,
+      hour: S.hour, dow: S.dow, visitNo: S.visitNo,
       newVisitor: S.newVisitor,
       startAt: S.startAt, endAt: new Date().toISOString(),
       sec: activeSec, depth: S.depth, pages: (+lsGet('lq_pages') || S.pages),
-      /* «Залучена» сесія за міркою GA4: або довше десяти секунд, або
-         більше однієї сторінки, або дійшла хоч до якоїсь дії. */
+      /* Сесія вважається «живою», якщо або довше десяти секунд, або більше
+         однієї сторінки, або людина дійшла хоч до якоїсь дії. Решта — люди,
+         що відкрили й одразу пішли. */
       engaged: activeSec >= 10 || (+lsGet('lq_pages') || 1) > 1 || !!S.steps.ctor,
-      land: S.land, src: S.src, dev: S.dev,
-      steps: S.steps, ev: S.ev,
+      firstActionSec: S.firstActionSec,
+      land: S.land, exit: S.exit,
+      src: S.src, first: S.first, dev: S.dev,
+      steps: S.steps, ev: S.ev, pick: S.pick,
+      cart: S.cart, perf: S.perf,
       order: S.order
     };
   }
@@ -243,12 +301,38 @@
     }catch(e){}
   }
 
+  var born = Date.now();
+  function markAction(){
+    if(S.firstActionSec == null) S.firstActionSec = Math.round((Date.now() - born) / 1000);
+  }
+
   function track(name, params){
     if(!name) return;
     name = String(name).slice(0, 40);
     if(OFF) return;
     toGtm(name, params);
     S.ev[name] = (S.ev[name] || 0) + 1;
+    markAction();
+    schedule();
+  }
+
+  /* Вибір усередині конструктора: виріб, колір, спосіб нанесення, шрифт.
+     Один спільний словник із префіксом — у звіті групується по префіксу,
+     і новий вид вибору не потребує нового поля в базі. */
+  function pick(kind, value){
+    if(OFF || !kind || !value) return;
+    var k = String(kind).slice(0, 12) + ':' + String(value).slice(0, 28);
+    S.pick[k] = (S.pick[k] || 0) + 1;
+    markAction();
+    schedule();
+  }
+
+  /* Найдорожчий кошик за сесію. Якщо замовлення не буде — саме ця сума
+     і є втратою, яку видно у звіті про покинуті кошики. */
+  function cart(sum, qty){
+    if(OFF) return;
+    sum = Math.round(+sum || 0); qty = Math.round(+qty || 0);
+    if(sum > (S.cart.sum || 0)) S.cart = { sum:sum, qty:qty };
     schedule();
   }
 
@@ -284,9 +368,9 @@
   /* Те, що сайт чіпляє до замовлення, щоб у Канбані було видно джерело. */
   function attribution(){
     return {
-      vid: S.vid, sid: S.sid, day: S.day,
-      src: S.src, land: S.land,
-      dev: S.dev.type, sec: activeSec, depth: S.depth
+      vid: S.vid, sid: S.sid, day: S.day, hour: S.hour, dow: S.dow,
+      src: S.src, first: S.first, land: S.land,
+      visitNo: S.visitNo, dev: S.dev.type, sec: activeSec, depth: S.depth
     };
   }
 
@@ -322,6 +406,7 @@
   /* ---------- 10. Старт ----------------------------------------------- */
   W.lqAn = {
     track: track, step: step, order: order, attribution: attribution,
+    pick: pick, cart: cart,
     flush: function(){ if(timer){ clearTimeout(timer); timer = null; } flush(); },
     state: function(){ return snapshot(); },
     off: OFF, sid: S.sid, vid: S.vid

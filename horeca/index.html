@@ -5776,6 +5776,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       pmTabPanel.querySelectorAll('[data-garment]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.garmentId = el.dataset.garment;
+          if(window.lqAn) window.lqAn.pick('garment', pm.garmentId);
           try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
@@ -5796,6 +5797,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){
           pm.colorId = el.dataset.color;
           pm.colorPicked = true;
+          if(window.lqAn) window.lqAn.pick('color', (getColor() || {}).name || pm.colorId);
           renderGarment();
           // оновлюємо активний колір та назву без перебудови панелі — щоб не скидалась прокрутка списку
           pmTabPanel.querySelectorAll('.pm-color-swatch').forEach(function(s){ s.classList.toggle('active', s.dataset.color === pm.colorId); });
@@ -5805,7 +5807,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
-        el.addEventListener('click', function(){ pm.printId = el.dataset.print; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ pm.printId = el.dataset.print;
+          if(window.lqAn) window.lqAn.pick('print', (getPrint() || {}).name || pm.printId);
+          renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -7056,6 +7060,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).join('');
     }
     var totalSum = cartItems.reduce(function(a,i){return a+i.price;},0);
+    // Найбільша сума кошика за сесію — щоб було видно вартість покинутих кошиків
+    if(window.lqAn) window.lqAn.cart(totalSum, cartItems.reduce(function(a,i){return a+(+i.qty||0);},0));
     document.getElementById('cartTotalSum').textContent = totalSum + ' грн';
     document.getElementById('cartTotalTerm').textContent = cartItems.length ? '2–4 робочих дні' : '—';
     document.querySelectorAll('.pm-cart-badge').forEach(function(badge){

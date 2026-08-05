@@ -1284,9 +1284,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      місця на коротких вкладках; воно того варте. */
   .pm-tab-panel.is-two{height:clamp(124px,15vh,136px);min-height:0;max-height:none;
     align-items:stretch;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 0;}
-  /* Три ряди: сітка, розміри і швидкі кількості. Мокап сам віддасть цю
-     висоту — кнопка «в кошик» лишається на екрані. */
-  .pm-tab-panel.is-three{height:clamp(166px,20vh,182px);}
   /* Спосіб нанесення — властивість логотипа, а не окремий крок */
   /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
   .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
@@ -1566,21 +1563,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff;color:#111;font-size:19px;line-height:1;cursor:pointer;display:flex;
     align-items:center;justify-content:center;font-family:var(--font-sf);padding:0;}
   .pm-size-step-btn.plus{border-color:#111;background:#111;color:#fff;}
+  /* Кнопку тримають натиснутою — браузер не має ні гортати сторінку,
+     ні виділяти текст, ні показувати меню «копіювати». */
+  .pm-size-step-btn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
   .pm-size-step-btn[disabled]{opacity:.32;cursor:default;}
   .pm-size-step-val{min-width:26px;text-align:center;font-size:16px;font-weight:800;color:#111;
     font-variant-numeric:tabular-nums;}
   .pm-size-hint{margin-left:auto;font-size:12px;color:#9aa0ab;}
-  /* Швидкі кількості. Замовляють десятками, а не по одній штуці — тиснути
-     «+» тридцять разів ніхто не буде. Зʼявляються після дотику по розміру,
-     щоб було зрозуміло, до якого саме розміру вони додаються. */
-  .pm-size-quick{display:flex;align-items:center;gap:7px;padding:9px 18px 0;flex-wrap:nowrap;
-    overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-  .pm-size-quick::-webkit-scrollbar{display:none;}
-  .pm-size-quick-k{flex:none;font-size:11.5px;color:#9aa0ab;font-weight:600;}
-  .pm-size-quick-btn{flex:none;height:30px;padding:0 13px;border-radius:15px;border:1.5px solid #dcdfe5;
-    background:#fff;color:#111;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-sf);
-    font-variant-numeric:tabular-nums;}
-  .pm-size-quick-btn:active{background:#111;border-color:#111;color:#fff;}
   .pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:54px;padding-top:2px;}
   .pm-size-btn{
     width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
@@ -7585,21 +7574,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '<button class="pm-size-step-btn plus" data-size-plus="' + escAttr(foc) + '" aria-label="Більше">+</button>' +
             '</div>')
           : '<span class="pm-size-hint">Тапніть розмір</span>';
-        // Ряд швидких кількостей — до того розміру, яким зараз керує лічильник.
-        var quick = foc
-          ? ('<div class="pm-size-quick"><span class="pm-size-quick-k">Додати одразу</span>' +
-              [5, 10, 25, 50].map(function(n){
-                return '<button class="pm-size-quick-btn" data-size-add="' + n +
-                  '" data-size-for="' + escAttr(foc) + '">+' + n + '</button>';
-              }).join('') + '</div>')
-          : '';
         if(oneSize){
           // розмірна сітка XS–XXL не має сенсу для one-size виробів (кепка) — ховаємо кнопку
           html = '<div class="pm-size-os">' +
             '<button class="pm-size-btn pm-size-btn--os' + (pm.qty[sizes[0]] > 0 ? ' active' : '') +
               '" data-size-select="' + escAttr(sizes[0]) + '">' + escAttr(sizes[0]) + '</button>' +
-            step + '</div>' +
-            (quick ? quick.replace('class="pm-size-quick"', 'class="pm-size-quick" style="justify-content:center;"') : '');
+            step + '</div>';
         } else {
           html = '<div class="pm-size-top">' +
             '<button class="pm-size-chart-btn" id="pmSizeChartBtn">' +
@@ -7615,7 +7595,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>';
           });
           html += '</div><button class="pm-scroll-arrow pm-scroll-arrow--right" aria-label="Далі"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>';
-          html += quick;
         }
       }
       // Плавно підміняємо вміст ЛИШЕ коли справді змінили вкладку. На кожен
@@ -7626,8 +7605,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Обʼєднані вкладки мають по два ряди — даємо їм рівно стільки, скільки треба.
       pmTabPanel.classList.toggle('is-two',
         pm.tab === 'garment' || pm.tab === 'photo' || pm.tab === 'size');
-      // На вкладці розмірів зʼявився третій ряд — швидкі кількості
-      pmTabPanel.classList.toggle('is-three', pm.tab === 'size' && !!quick);
       pmTabPanel.style.display = html ? '' : 'none';   // порожня вкладка не займає місця — одразу йде блок ціни
       wireTabPanelEvents();
       setupScrollArrows();
@@ -7830,6 +7807,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){
           pm.garmentPick = false;      // обрали — згортаємось назад у рядок
           pm.garmentId = el.dataset.garment;
+          if(window.lqAn) window.lqAn.pick('garment', pm.garmentId);
           pm.sizeFocus = null;         // у нового виробу може бути інша сітка розмірів
           try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
@@ -7851,6 +7829,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){
           pm.colorId = el.dataset.color;
           pm.colorPicked = true;
+          if(window.lqAn) window.lqAn.pick('color', (getColor() || {}).name || pm.colorId);
           renderGarment();
           // панель тут не перебудовується (щоб не скидалась прокрутка кольорів),
           // тож назву з кольором у дужках оновлюємо на місці
@@ -7868,7 +7847,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
-        el.addEventListener('click', function(){ pm.printId = el.dataset.print; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ pm.printId = el.dataset.print;
+          if(window.lqAn) window.lqAn.pick('print', (getPrint() || {}).name || pm.printId);
+          renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -7881,23 +7862,78 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           renderTabPanel(); updatePriceBar();
         });
       });
-      pmTabPanel.querySelectorAll('[data-size-add]').forEach(function(el){
+      /* Тираж набирають десятками, тож «+» і «−» тримають натиснутими:
+         лічильник розганяється сам. Під час утримання панель НЕ перебудовуємо
+         — інакше кнопка зникла б з-під пальця; оновлюємо лише цифри, а повний
+         перерендер робимо, коли палець відпустили. */
+      function sizeLight(sz){
+        var v = pm.qty[sz] || 0;
+        var val = pmTabPanel.querySelector('.pm-size-step-val');
+        if(val) val.textContent = v;
+        var minus = pmTabPanel.querySelector('[data-size-minus]');
+        if(minus) minus.disabled = v <= 0;
+        var chip = pmTabPanel.querySelector('.pm-size-btn[data-size-select="' + sz + '"]');
+        if(chip){
+          chip.classList.toggle('active', v > 0);
+          var col = chip.parentNode, cnt = col && col.querySelector('.pm-size-cnt');
+          if(cnt) cnt.textContent = v > 0 ? '×' + v : '';
+        }
+        updatePriceBar();
+      }
+      function bindHold(el, apply){
+        var wait = null, rep = null, gap = 0, held = false, lastDown = 0;
+        function stop(){
+          if(wait) clearTimeout(wait);
+          if(rep) clearTimeout(rep);
+          wait = rep = null;
+          if(held){ held = false; renderTabPanel(); }
+        }
+        function tick(){
+          held = true;
+          apply();
+          gap = Math.max(32, Math.round(gap * 0.84));   // що довше тримають, то швидше
+          rep = setTimeout(tick, gap);
+        }
+        el.addEventListener('pointerdown', function(e){
+          if(e.button) return;
+          e.preventDefault();
+          lastDown = Date.now();
+          apply();                                       // перший крок — одразу
+          gap = 150;
+          try{ el.setPointerCapture(e.pointerId); }catch(err){}
+          wait = setTimeout(tick, 420);                  // пауза, щоб звичайний тап не розганявся
+        });
+        ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+          el.addEventListener(ev, stop);
+        });
+        /* Клавіатура (Enter/Пробіл) і програмний виклик теж мають працювати.
+           Вони дають click, якому НЕ передував дотик — на відміну від миші й
+           пальця, після яких браузер шле click слідом за pointerup. Дивимось
+           саме на це, а не на e.detail: різні браузери проставляють його
+           по-різному, і тап рахувався б двічі. */
         el.addEventListener('click', function(){
-          var sz = el.dataset.sizeFor, n = +el.dataset.sizeAdd || 0;
-          if(!sz || !n) return;
-          pm.qty[sz] = (pm.qty[sz] || 0) + n;
+          if(Date.now() - lastDown < 1000) return;
+          apply(); renderTabPanel();
+        });
+        el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+      }
+      pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
+        var sz = el.dataset.sizeMinus;
+        bindHold(el, function(){
+          if((pm.qty[sz] || 0) <= 0) return;
+          pm.qty[sz] = Math.max(0, (pm.qty[sz] || 0) - 1);
           pm.sizeFocus = sz;
-          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
-          renderTabPanel(); updatePriceBar();
+          sizeLight(sz);
         });
       });
-      pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
-      });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; pm.sizeFocus=sz;
+        var sz = el.dataset.sizePlus;
+        bindHold(el, function(){
+          pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          pm.sizeFocus = sz;
           if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
-          renderTabPanel(); updatePriceBar(); });
+          sizeLight(sz);
+        });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -10296,6 +10332,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     var totalSum = main.reduce(function(a, r){ return a + r.it.price; }, 0);
     var recoSum  = reco.reduce(function(a, r){ return a + r.it.price; }, 0);
+    // Найбільша сума кошика за сесію — щоб було видно вартість покинутих кошиків
+    if(window.lqAn) window.lqAn.cart(totalSum, main.reduce(function(a, r){ return a + (+r.it.qty || 0); }, 0));
     document.getElementById('cartTotalSum').textContent = totalSum + ' грн';
     document.getElementById('cartTotalTerm').textContent = cartItems.length ? '2–4 робочих дні' : '—';
     var recoRow = document.getElementById('cartRecoRow');

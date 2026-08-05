@@ -244,6 +244,18 @@
   .save-msg.show{opacity:1;}
 
   /* ── Аналітика ─────────────────────────────────────────────────────── */
+  .an-blocks{margin-bottom:16px;}
+  .an-blocks button.active{background:var(--ink);color:#fff;}
+  .an-alert{font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:9px;margin-bottom:8px;}
+  .an-alert:last-child{margin-bottom:0;}
+  .an-alert.bad{background:var(--bad-soft);color:var(--bad);}
+  .an-alert.warn{background:#FDF3E0;color:#96601A;}
+  .an-alert.info{background:var(--canvas);color:var(--ink-soft);}
+  .an-alert.good{background:#E8F5EC;color:#1E6B37;}
+  .an-up{color:var(--good);font-weight:600;}
+  .an-down{color:var(--bad);font-weight:600;}
+  .an-flat{color:var(--ink-soft);}
+
   .an-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
   .an-kpis{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-bottom:16px;}
   @media (min-width:680px){.an-kpis{grid-template-columns:repeat(4,1fr);gap:12px;}}
@@ -1491,12 +1503,14 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="page-head">
         <div class="eyebrow">Аналітика</div>
         <h1>Що відбувається на сайтах</h1>
-        <div class="sub">Свої заходи не рахуються: превʼю в адмінці, режим менеджера
+        <div class="sub">Власний облік: рахуємо все самі, ні від кого не залежимо.
+          Свої заходи не потрапляють у статистику — превʼю в адмінці, режим менеджера
           і будь-який пристрій, відкритий за посиланням <code>?staff=1</code>.</div>
       </div>
 
       <div class="an-bar">
         <div class="seg" id="an-period">
+          <button data-d="1">Сьогодні</button>
           <button data-d="7" class="active">7 днів</button>
           <button data-d="30">30 днів</button>
           <button data-d="90">90 днів</button>
@@ -1512,55 +1526,107 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
       <div class="sub" id="an-state" style="margin:0 0 14px;"></div>
 
-      <div class="an-kpis" id="an-kpis"></div>
-
-      <div class="card">
-        <div class="card-head"><h2>Воронка конструктора</h2></div>
-        <div class="sub" style="margin-bottom:12px;">Скільки людей дійшло до кожного кроку і де відвалюються найбільше.</div>
-        <div id="an-funnel"></div>
+      <div class="seg an-blocks" id="an-block">
+        <button data-b="main" class="active">1 · Головне</button>
+        <button data-b="traffic">2 · Трафік</button>
+        <button data-b="behav">3 · Поведінка</button>
+        <button data-b="sales">4 · Продажі</button>
       </div>
 
-      <div class="card">
-        <div class="card-head"><h2>Звідки прийшли</h2></div>
-        <div class="sub" style="margin-bottom:12px;">Виручка й замовлення підтягуються з Канбану за міткою джерела в картці.</div>
-        <div id="an-src"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Гроші й Канбан</h2></div>
-        <div id="an-money"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Кліки по кнопках</h2></div>
-        <div class="sub" style="margin-bottom:12px;">Рахуються всі контакти, переходи меню й дії в конструкторі.</div>
-        <div id="an-clicks"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Пристрої та сторінки входу</h2></div>
-        <div id="an-dev"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Комерційні пропозиції</h2></div>
-        <div id="an-offers"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Витрати на рекламу</h2></div>
-        <div class="sub" style="margin-bottom:12px;">Введіть суму за день — і у верхньому блоці зʼявляться ціна замовлення та окупність.</div>
-        <div class="an-spend-row">
-          <input type="date" id="an-spend-date">
-          <input type="number" id="an-spend-sum" placeholder="грн за день" min="0" step="1">
-          <button class="btn btn-accent" id="an-spend-save">Зберегти</button>
+      <!-- ── 1. ГОЛОВНЕ ─────────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-main">
+        <div id="an-alerts"></div>
+        <div class="an-kpis" id="an-kpis"></div>
+        <div class="card">
+          <div class="card-head"><h2>Воронка</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Скільки людей дійшло до кожного кроку і де відвалюються найбільше.</div>
+          <div id="an-funnel"></div>
         </div>
-        <div id="an-spend-list" style="margin-top:12px;"></div>
+        <div class="card">
+          <div class="card-head"><h2>По днях</h2></div>
+          <div id="an-days"></div>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="card-head"><h2>По днях</h2></div>
-        <div id="an-days"></div>
+      <!-- ── 2. ТРАФІК ──────────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-traffic" hidden>
+        <div class="card">
+          <div class="card-head"><h2>Звідки прийшли — останній перехід</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Джерело того візиту, у якому людина замовила.</div>
+          <div id="an-src"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Хто привів уперше</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Реклама рідко продає з першого заходу: людина приходить з Instagram,
+            а замовляє через тиждень «прямим» візитом. Тут виручка записана тому, хто привів клієнта вперше — саме за цією
+            таблицею оцінюйте рекламу.</div>
+          <div id="an-first"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Коли приходять</h2></div>
+          <div class="sub" style="margin-bottom:12px;">За київським часом. Показує, коли вмикати рекламу і коли менеджеру бути на звʼязку.</div>
+          <div id="an-hour"></div>
+          <div class="card-head" style="margin:18px 0 8px;"><h2>Дні тижня</h2></div>
+          <div id="an-dow"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Пристрої, входи й виходи</h2></div>
+          <div id="an-dev"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Швидкість сайту</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Повільна сторінка зливає рекламу мовчки: людина йде ще до першого екрана.</div>
+          <div id="an-perf"></div>
+        </div>
+      </div>
+
+      <!-- ── 3. ПОВЕДІНКА ───────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-behav" hidden>
+        <div class="card">
+          <div class="card-head"><h2>Наскільки залучені</h2></div>
+          <div id="an-engage"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Покинуті кошики</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Люди набрали товар і пішли. Це найдорожча втрата — вони вже все обрали.</div>
+          <div id="an-aband"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Що обирають у конструкторі</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Не замовлення, а саме перегляди — що возити на склад і які кольори тримати.</div>
+          <div id="an-pick"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Кліки по кнопках</h2></div>
+          <div id="an-clicks"></div>
+        </div>
+      </div>
+
+      <!-- ── 4. ПРОДАЖІ ─────────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-sales" hidden>
+        <div class="card">
+          <div class="card-head"><h2>Гроші й Канбан</h2></div>
+          <div id="an-money"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Клієнти</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Рахуються за номером телефону, за весь час роботи.</div>
+          <div id="an-repeat"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Комерційні пропозиції</h2></div>
+          <div id="an-offers"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Витрати на рекламу</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Введіть суму за день — і в «Головному» зʼявляться ціна замовлення та окупність.</div>
+          <div class="an-spend-row">
+            <input type="date" id="an-spend-date">
+            <input type="number" id="an-spend-sum" placeholder="грн за день" min="0" step="1">
+            <button class="btn btn-accent" id="an-spend-save">Зберегти</button>
+          </div>
+          <div id="an-spend-list" style="margin-top:12px;"></div>
+        </div>
       </div>
     </section>
 
@@ -7099,69 +7165,94 @@ async function init(){
 
 <script>
 /* ============================================================
-   АНАЛІТИКА
+   АНАЛІТИКА — власний облік
    ------------------------------------------------------------
+   Рахуємо все самі. Google Analytics лишається окремо для
+   таргетолога; жоден показник тут від нього не залежить.
+
    Три джерела, кожне відповідає за своє:
 
    an_sessions — поведінка відвідувачів. Пише сайт анонімно.
-   an_days     — денні підсумки. Рахуємо тут, з сесій, один раз на добу.
-                 Без цього звіт за 90 днів витягав би десятки тисяч
-                 документів і впирався б у ліміт читання.
-   Канбан      — гроші. Виручка, собівартість і маржа беруться ЛИШЕ звідси:
-                 сесія знає суму на момент оформлення, а картка — фактичну.
+   an_days     — денні підсумки. Рахуємо тут, з сесій, один раз
+                 на добу. Без цього звіт за 90 днів витягав би
+                 десятки тисяч документів і впирався б у ліміт.
+   Канбан      — гроші. Виручка, собівартість і маржа беруться
+                 ЛИШЕ звідси: сесія знає суму на момент оформлення,
+                 а картка — фактичну.
 
-   Реклама зводиться з грошима через поле an у картці: сайт кладе туди
-   джерело переходу, і виручку стає видно в розрізі кампаній.
+   Реклама зводиться з грошима через поле an у картці замовлення.
    ============================================================ */
 (function(){
-  var AN = { days:7, site:'', cache:{}, spend:null, busy:false, opened:false };
+  var ROLLUP_V = 2;          // зміна набору полів = старі підсумки перерахувати
+  var AN = { days:7, site:'', block:'main', cache:{}, spend:null, busy:false, opened:false };
 
   function kyivDay(d){
     try{ return d.toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
     catch(e){ return d.toISOString().slice(0,10); }
   }
-  function dayList(n){
-    var out = [], t = Date.now(), seen = {};
+  function dayList(n, back){
+    var out = [], t = Date.now() - (back || 0) * 86400000, seen = {};
     for(var i = 0; i < n; i++){
       var k = kyivDay(new Date(t - i*86400000));
       if(!seen[k]){ seen[k] = 1; out.unshift(k); }
     }
     return out;
   }
-  var TODAY = function(){ return kyivDay(new Date()); };
-
+  function today(){ return kyivDay(new Date()); }
   function state(msg){ var el = document.getElementById('an-state'); if(el) el.textContent = msg || ''; }
 
   /* ── Підсумки ─────────────────────────────────────────────── */
+  var NUMS = ['visits','engaged','newVis','ret','sec','depth','orders',
+              'actSum','actN','ttfb','lcp','perfN','abandN','abandSum','pagesSum'];
+  var MAPS = ['steps','ev','src','first','dev','land','exit','pick','hour','dow'];
   function emptyAgg(){
-    return { visits:0, engaged:0, newVis:0, sec:0, depth:0, orders:0,
-             steps:{}, ev:{}, src:{}, dev:{}, land:{} };
+    var a = { v:ROLLUP_V };
+    NUMS.forEach(function(k){ a[k] = 0; });
+    MAPS.forEach(function(k){ a[k] = {}; });
+    return a;
   }
-  function bump(map, k, n){ if(!k) return; map[k] = (map[k] || 0) + (n == null ? 1 : n); }
+  function bump(map, k, n){ if(k == null || k === '') return; map[k] = (map[k] || 0) + (n == null ? 1 : n); }
 
-  function addSession(a, d){
-    a.visits++;
-    if(d.engaged) a.engaged++;
-    if(d.newVisitor) a.newVis++;
-    a.sec += +d.sec || 0;
-    a.depth += +d.depth || 0;
-    if(d.order && d.order.id) a.orders++;
-    var st = d.steps || {}; Object.keys(st).forEach(function(k){ bump(a.steps, k); });
-    var ev = d.ev || {};    Object.keys(ev).forEach(function(k){ bump(a.ev, k, +ev[k] || 0); });
-    bump(a.src, srcKey(d.src));
-    bump(a.dev, (d.dev && d.dev.type) || 'невідомо');
-    bump(a.land, d.land || '/');
-  }
   function srcKey(s){
     s = s || {};
     var k = (s.source || 'невідомо') + ' / ' + (s.medium || '—');
     if(s.campaign) k += ' / ' + s.campaign;
     return k;
   }
+
+  function addSession(a, d){
+    a.visits++;
+    if(d.engaged) a.engaged++;
+    if(d.newVisitor) a.newVis++;
+    if((+d.visitNo || 1) > 1) a.ret++;
+    a.sec += +d.sec || 0;
+    a.depth += +d.depth || 0;
+    a.pagesSum += +d.pages || 1;
+    if(d.firstActionSec != null){ a.actSum += +d.firstActionSec || 0; a.actN++; }
+    var pf = d.perf || {};
+    if(pf.lcp || pf.ttfb){ a.ttfb += +pf.ttfb || 0; a.lcp += +pf.lcp || 0; a.perfN++; }
+    var hasOrder = !!(d.order && d.order.id);
+    if(hasOrder) a.orders++;
+    /* Покинутий кошик: товар набрали, замовлення не сталось. Саме сума
+       такого кошика — те, що ми реально втратили. */
+    var cs = (d.cart && +d.cart.sum) || 0;
+    if(!hasOrder && cs > 0){ a.abandN++; a.abandSum += cs; }
+
+    var st = d.steps || {}; Object.keys(st).forEach(function(k){ bump(a.steps, k); });
+    var ev = d.ev || {};    Object.keys(ev).forEach(function(k){ bump(a.ev, k, +ev[k] || 0); });
+    var pk = d.pick || {};  Object.keys(pk).forEach(function(k){ bump(a.pick, k, +pk[k] || 0); });
+    bump(a.src, srcKey(d.src));
+    bump(a.first, srcKey(d.first || d.src));
+    bump(a.dev, (d.dev && d.dev.type) || 'невідомо');
+    bump(a.land, d.land || '/');
+    bump(a.exit, d.exit || d.land || '/');
+    if(d.hour != null) bump(a.hour, String(d.hour));
+    if(d.dow  != null) bump(a.dow,  String(d.dow));
+  }
   function mergeInto(a, b){
     if(!b) return a;
-    ['visits','engaged','newVis','sec','depth','orders'].forEach(function(k){ a[k] += (+b[k] || 0); });
-    ['steps','ev','src','dev','land'].forEach(function(g){
+    NUMS.forEach(function(k){ a[k] += (+b[k] || 0); });
+    MAPS.forEach(function(g){
       Object.keys(b[g] || {}).forEach(function(k){ bump(a[g], k, +b[g][k] || 0); });
     });
     return a;
@@ -7176,8 +7267,8 @@ async function init(){
       try{
         var doc = await fbDb.collection('an_days').doc(day).get();
         if(doc.exists){
-          var v = doc.data() || {};
-          if(v.sites){ AN.cache[day] = v.sites; return v.sites; }
+          var val = doc.data() || {};
+          if(val.sites && val.v === ROLLUP_V){ AN.cache[day] = val.sites; return val.sites; }
         }
       }catch(e){ console.warn('an_days', day, e && e.code); }
     }
@@ -7191,10 +7282,24 @@ async function init(){
     AN.cache[day] = sites;
     if(!recent){
       try{ await fbDb.collection('an_days').doc(day)
-             .set({ day:day, at:new Date().toISOString(), sites:sites }); }
+             .set({ day:day, v:ROLLUP_V, at:new Date().toISOString(), sites:sites }); }
       catch(e){ console.warn('підсумок дня не збережено', day, e && e.code); }
     }
     return sites;
+  }
+  async function rangeAgg(days){
+    var perDay = {}, A = emptyAgg();
+    for(var i = 0; i < days.length; i++){
+      var sites = await dayData(days[i]);
+      var d = emptyAgg();
+      Object.keys(sites || {}).forEach(function(k){
+        if(AN.site && k !== AN.site) return;
+        mergeInto(d, sites[k]);
+      });
+      perDay[days[i]] = d;
+      mergeInto(A, d);
+    }
+    return { A:A, perDay:perDay };
   }
 
   /* ── Гроші з Канбану ──────────────────────────────────────── */
@@ -7203,13 +7308,15 @@ async function init(){
     var d = kyivDay(new Date(iso));
     return d >= from && d <= to;
   }
-  function periodOrders(from, to){
+  function periodOrders(days){
+    var from = days[0], to = days[days.length - 1];
     return (orders || []).filter(function(o){
       if(!inRange(o.createdAt, from, to)) return false;
       if(AN.site && (o.site || 'main') !== AN.site) return false;
       return true;
     });
   }
+  function sum(list, f){ return list.reduce(function(a, x){ return a + (+f(x) || 0); }, 0); }
 
   /* ── Витрати на рекламу ───────────────────────────────────── */
   async function loadSpend(){
@@ -7226,7 +7333,7 @@ async function init(){
     return t;
   }
 
-  /* ── Малюємо ──────────────────────────────────────────────── */
+  /* ── Дрібні помічники малювання ───────────────────────────── */
   function pct(a, b){ return b > 0 ? (a / b * 100) : 0; }
   function p1(v){ return (Math.round(v * 10) / 10).toLocaleString('uk-UA') + '%'; }
   function dur(sec){
@@ -7235,32 +7342,50 @@ async function init(){
     var m = Math.floor(sec / 60), s = sec % 60;
     return m + ' хв' + (s ? ' ' + s + ' с' : '');
   }
+  /* Порівняння з попереднім таким самим періодом. Якщо порівнювати нема з
+     чим (перший тиждень роботи) — краще не показувати нічого, ніж малювати
+     фальшиве зростання «на 100%». */
+  function delta(now, was){
+    if(!was) return '';
+    var d = (now - was) / was * 100;
+    if(Math.abs(d) < 1) return '<span class="an-flat">без змін</span>';
+    return '<span class="' + (d > 0 ? 'an-up' : 'an-down') + '">' +
+      (d > 0 ? '▲ ' : '▼ ') + p1(Math.abs(d)) + '</span>';
+  }
+  function note(){
+    return Array.prototype.slice.call(arguments).filter(Boolean).join(' · ');
+  }
   function kpi(k, v, note, cls){
     return '<div class="an-kpi' + (cls ? ' ' + cls : '') + '"><div class="k">' + escapeHtml(k) +
-      '</div><div class="v">' + v + '</div>' +
-      (note ? '<div class="n">' + note + '</div>' : '') + '</div>';
+      '</div><div class="v">' + v + '</div>' + (note ? '<div class="n">' + note + '</div>' : '') + '</div>';
   }
   function tbl(head, rows, empty){
     if(!rows.length) return '<div class="an-empty">' + escapeHtml(empty || 'Поки що порожньо.') + '</div>';
-    var h = head.map(function(c){
-      return '<th' + (c.num ? ' class="num"' : '') + '>' + escapeHtml(c.t) + '</th>'; }).join('');
+    var h = head.map(function(c){ return '<th' + (c.num ? ' class="num"' : '') + '>' + escapeHtml(c.t) + '</th>'; }).join('');
     var b = rows.map(function(r){
       return '<tr' + (r.tot ? ' class="tot"' : '') + '>' + r.c.map(function(c, i){
         return '<td' + (head[i] && head[i].num ? ' class="num"' : '') + '>' + c + '</td>'; }).join('') + '</tr>';
     }).join('');
-    return '<div class="an-tbl-wrap"><table class="an-tbl"><thead><tr>' + h +
-           '</tr></thead><tbody>' + b + '</tbody></table></div>';
+    return '<div class="an-tbl-wrap"><table class="an-tbl"><thead><tr>' + h + '</tr></thead><tbody>' + b + '</tbody></table></div>';
   }
   function top(map, n){
     return Object.keys(map || {}).map(function(k){ return { k:k, v:map[k] }; })
       .sort(function(a, b){ return b.v - a.v; }).slice(0, n || 12);
+  }
+  function bars(pairs, empty){
+    if(!pairs.length) return '<div class="an-empty">' + escapeHtml(empty || 'Даних немає.') + '</div>';
+    var mx = pairs.reduce(function(m, p){ return Math.max(m, p.v); }, 0) || 1;
+    return pairs.map(function(p){
+      return '<div class="an-step"><span class="nm">' + escapeHtml(p.k) + '</span>' +
+        '<span class="bar"><i style="width:' + (p.v / mx * 100).toFixed(1) + '%"></i></span>' +
+        '<span class="vv">' + fmt(p.v) + (p.note ? ' · ' + p.note : '') + '</span></div>';
+    }).join('');
   }
 
   var STEP_UA = { visit:'Зайшли на сайт', ctor:'Відкрили конструктор', design:'Додали лого/напис',
                   size:'Обрали розмір', cart:'Поклали в кошик', checkout:'Почали оформлення',
                   order:'Залишили замовлення' };
   var STEP_ORDER = ['visit','ctor','design','size','cart','checkout','order'];
-
   var EV_UA = {
     open_ctor:'Відкрили конструктор', logo_upload:'Завантажили логотип', text_add:'Додали напис',
     add_cart:'Додали в кошик', cart_edit:'Змінили позицію в кошику', checkout_open:'Відкрили оформлення',
@@ -7275,42 +7400,90 @@ async function init(){
     if(k.indexOf('step_') === 0) return 'Крок ' + k.slice(5);
     return k;
   }
+  var PICK_UA = { garment:'Вироби', color:'Кольори', print:'Спосіб нанесення' };
+  /* Людські назви виробів беремо з того самого списку, що й Конструктор
+     сайту — інакше у звіті стояло б технічне «teeover». */
+  function garmentName(id){
+    try{
+      var found = catPickProducts().filter(function(p){ return p[0] === id; })[0];
+      if(found) return found[1];
+    }catch(e){}
+    return id;
+  }
+  var DOW_UA = ['Неділя','Понеділок','Вівторок','Середа','Четвер','Пʼятниця','Субота'];
   var SITE_UA = { main:'Головний', horeca:'HoReCa', build:'Будівництво', offer:'КП' };
 
-  function render(A, days, ords){
+  /* ── 1. ГОЛОВНЕ ───────────────────────────────────────────── */
+  function renderMain(A, P, days, ords, prevOrds){
     var spend = spendIn(days);
-    var revenue = ords.reduce(function(a, o){ return a + (+o.totalPrice || 0); }, 0);
-    var cost    = ords.reduce(function(a, o){ return a + (+o.totalCost  || 0); }, 0);
+    var revenue = sum(ords, function(o){ return o.totalPrice; });
+    var cost    = sum(ords, function(o){ return o.totalCost;  });
     var margin  = revenue - cost;
     var avg     = ords.length ? revenue / ords.length : 0;
     var conv    = pct(ords.length, A.visits);
+    var prevRev = sum(prevOrds, function(o){ return o.totalPrice; });
+    var prevConv = pct(prevOrds.length, P.visits);
 
-    /* ---- KPI ---- */
     var K = [];
-    K.push(kpi('Візити', fmt(A.visits), fmt(A.newVis) + ' вперше'));
-    K.push(kpi('Середній час', dur(A.visits ? A.sec / A.visits : 0),
-               'догортують до ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%'));
-    K.push(kpi('Затримались', p1(pct(A.engaged, A.visits)),
-               'решта пішла одразу'));
-    K.push(kpi('Конверсія в замовлення', p1(conv), fmt(ords.length) + ' з ' + fmt(A.visits),
-               conv >= 1 ? 'good' : ''));
-    K.push(kpi('Виручка', fmt(revenue) + ' грн', fmt(ords.length) + ' замовлень'));
-    K.push(kpi('Середній чек', fmt(avg) + ' грн'));
+    K.push(kpi('Візити', fmt(A.visits), note(delta(A.visits, P.visits), fmt(A.newVis) + ' вперше')));
+    K.push(kpi('Замовлення', fmt(ords.length), delta(ords.length, prevOrds.length)));
+    K.push(kpi('Виручка', fmt(revenue) + ' грн', delta(revenue, prevRev)));
     K.push(kpi('Маржа', fmt(margin) + ' грн', p1(pct(margin, revenue)) + ' від виручки',
                margin > 0 ? 'good' : (revenue ? 'bad' : '')));
+    K.push(kpi('Конверсія в замовлення', p1(conv), delta(conv, prevConv), conv >= 1 ? 'good' : ''));
+    K.push(kpi('Середній чек', fmt(avg) + ' грн'));
+    K.push(kpi('Середній час на сайті', dur(A.visits ? A.sec / A.visits : 0),
+               'догортують до ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%'));
+    K.push(kpi('Затримались', p1(pct(A.engaged, A.visits)), 'решта пішла одразу'));
     if(spend > 0){
-      var cpo = ords.length ? spend / ords.length : 0;
-      K.push(kpi('Реклама', fmt(spend) + ' грн',
-        'замовлення по ' + (ords.length ? fmt(cpo) : '—') + ' грн'));
+      K.push(kpi('Витрачено на рекламу', fmt(spend) + ' грн',
+        'замовлення по ' + (ords.length ? fmt(spend / ords.length) : '—') + ' грн'));
       K.push(kpi('Окупність реклами', revenue ? (Math.round(revenue / spend * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
-        'маржа мінус реклама: ' + fmt(margin - spend) + ' грн',
-        (margin - spend) > 0 ? 'good' : 'bad'));
+        'маржа мінус реклама: ' + fmt(margin - spend) + ' грн', (margin - spend) > 0 ? 'good' : 'bad'));
     } else {
-      K.push(kpi('Реклама', '—', 'внесіть витрати нижче'));
+      K.push(kpi('Реклама', '—', 'внесіть витрати в розділі «Продажі»'));
     }
+    K.push(kpi('Покинуті кошики', fmt(A.abandN), A.abandSum ? 'на ' + fmt(A.abandSum) + ' грн' : '',
+               A.abandN ? 'bad' : ''));
     document.getElementById('an-kpis').innerHTML = K.join('');
 
-    /* ---- Воронка ---- */
+    /* На що звернути увагу — щоб не треба було вичитувати всі таблиці */
+    var AL = [];
+    function alert(kind, text){ AL.push('<div class="an-alert ' + kind + '">' + text + '</div>'); }
+    if((A.ev.order_fail || 0) > 0)
+      alert('bad', '<b>Замовлення не проходять.</b> ' + fmt(A.ev.order_fail) +
+        ' спроб завершились помилкою — перевірте, чи приймає база нові замовлення.');
+    if(spend > 0 && !ords.length)
+      alert('bad', '<b>Реклама йде, замовлень немає.</b> Витрачено ' + fmt(spend) +
+        ' грн за період без жодного замовлення.');
+    if(P.visits > 20 && conv < prevConv * 0.6 && prevConv > 0)
+      alert('warn', '<b>Конверсія просіла.</b> Було ' + p1(prevConv) + ', стало ' + p1(conv) + '.');
+    if(A.visits > 30 && pct(A.engaged, A.visits) < 40)
+      alert('warn', '<b>Більшість іде одразу.</b> Затримується лише ' + p1(pct(A.engaged, A.visits)) +
+        ' — схоже, трафік приходить не за тим, що на сторінці.');
+    if(A.perfN > 5 && A.lcp / A.perfN > 4000)
+      alert('warn', '<b>Сайт показує перший екран за ' + (Math.round(A.lcp / A.perfN / 100) / 10) +
+        ' с.</b> Понад 2,5 с уже втрачає людей.');
+    if(A.abandSum > 0 && A.abandSum > revenue)
+      alert('warn', '<b>У покинутих кошиках більше грошей, ніж у замовленнях</b> — ' +
+        fmt(A.abandSum) + ' грн проти ' + fmt(revenue) + ' грн. Найбільший запас зростання саме тут.');
+    var worst = null;
+    STEP_ORDER.forEach(function(s, i){
+      if(!i) return;
+      var prev = A.steps[STEP_ORDER[i-1]] || 0, v = A.steps[s] || 0;
+      if(prev < 10) return;
+      var lost = prev - v;
+      if(!worst || lost > worst.lost) worst = { lost:lost, from:STEP_ORDER[i-1], to:s, prev:prev };
+    });
+    if(worst && worst.lost > 0)
+      alert('info', 'Найбільша втрата у воронці: <b>' + escapeHtml(STEP_UA[worst.from]) + ' → ' +
+        escapeHtml(STEP_UA[worst.to]) + '</b>, пішло ' + fmt(worst.lost) + ' з ' + fmt(worst.prev) + '.');
+    if(!AL.length && A.visits)
+      alert('good', 'Нічого тривожного за період не видно.');
+    document.getElementById('an-alerts').innerHTML = AL.length
+      ? '<div class="card"><div class="card-head"><h2>На що звернути увагу</h2></div>' + AL.join('') + '</div>' : '';
+
+    /* Воронка */
     var base = A.steps.visit || A.visits || 0;
     var F = [];
     STEP_ORDER.forEach(function(s, i){
@@ -7319,39 +7492,161 @@ async function init(){
       F.push('<div class="an-step"><span class="nm">' + escapeHtml(STEP_UA[s]) + '</span>' +
         '<span class="bar"><i style="width:' + Math.max(0, Math.min(100, pct(v, base))).toFixed(1) + '%"></i></span>' +
         '<span class="vv">' + fmt(v) + ' · ' + p1(pct(v, base)) + '</span></div>');
-      if(i && prev > 0 && v < prev){
+      if(i && prev > 0 && v < prev)
         F.push('<div class="an-drop">тут пішло ' + fmt(prev - v) + ' — це ' +
           p1(100 - pct(v, prev)) + ' тих, хто дійшов до попереднього кроку</div>');
-      }
     });
-    if(!base) F = ['<div class="an-empty">Даних поки немає — зачекайте перших відвідувачів.</div>'];
-    document.getElementById('an-funnel').innerHTML = F.join('');
+    document.getElementById('an-funnel').innerHTML = base
+      ? F.join('') : '<div class="an-empty">Даних поки немає — зачекайте перших відвідувачів.</div>';
 
-    /* ---- Джерела ---- */
-    var ordBySrc = {};
+    /* По днях */
+    var ordDay = {};
     ords.forEach(function(o){
-      var k = srcKey((o.an || {}).src);
-      if(!ordBySrc[k]) ordBySrc[k] = { n:0, sum:0 };
-      ordBySrc[k].n++; ordBySrc[k].sum += +o.totalPrice || 0;
+      var d = kyivDay(new Date(o.createdAt));
+      if(!ordDay[d]) ordDay[d] = { n:0, sum:0 };
+      ordDay[d].n++; ordDay[d].sum += +o.totalPrice || 0;
     });
-    var srcKeys = {};
-    Object.keys(A.src).forEach(function(k){ srcKeys[k] = 1; });
-    Object.keys(ordBySrc).forEach(function(k){ srcKeys[k] = 1; });
-    var srcRows = Object.keys(srcKeys).map(function(k){
-      var v = A.src[k] || 0, o = ordBySrc[k] || { n:0, sum:0 };
-      return { k:k, v:v, n:o.n, sum:o.sum };
-    }).sort(function(a, b){ return (b.sum - a.sum) || (b.v - a.v); }).slice(0, 20)
-      .map(function(r){
-        return { c:[escapeHtml(r.k), fmt(r.v), fmt(r.n), fmt(r.sum) + ' грн', p1(pct(r.n, r.v))] };
-      });
-    document.getElementById('an-src').innerHTML = tbl(
-      [{t:'Джерело'},{t:'Візити',num:1},{t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Конверсія',num:1}],
-      srcRows, 'Джерел поки немає.');
+    var rows = days.slice().reverse().map(function(d){
+      var a = (renderMain.perDay || {})[d] || emptyAgg();
+      var o = ordDay[d] || { n:0, sum:0 }, s = +(AN.spend || {})[d] || 0;
+      return { c:[escapeHtml(d), fmt(a.visits), fmt(a.steps.ctor || 0), fmt(a.steps.cart || 0),
+                  fmt(o.n), fmt(o.sum) + ' грн', s ? fmt(s) + ' грн' : '—'] };
+    });
+    document.getElementById('an-days').innerHTML = tbl(
+      [{t:'День'},{t:'Візити',num:1},{t:'Конструктор',num:1},{t:'Кошик',num:1},
+       {t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Реклама',num:1}], rows, 'Даних немає.');
+  }
 
-    /* ---- Гроші й Канбан ---- */
+  /* ── 2. ТРАФІК ────────────────────────────────────────────── */
+  function srcTable(map, ords, getSrc){
+    var byOrd = {};
+    ords.forEach(function(o){
+      var k = srcKey(getSrc(o.an || {}));
+      if(!byOrd[k]) byOrd[k] = { n:0, sum:0 };
+      byOrd[k].n++; byOrd[k].sum += +o.totalPrice || 0;
+    });
+    var keys = {};
+    Object.keys(map).forEach(function(k){ keys[k] = 1; });
+    Object.keys(byOrd).forEach(function(k){ keys[k] = 1; });
+    var rows = Object.keys(keys).map(function(k){
+      var v = map[k] || 0, o = byOrd[k] || { n:0, sum:0 };
+      return { k:k, v:v, n:o.n, sum:o.sum };
+    }).sort(function(a, b){ return (b.sum - a.sum) || (b.v - a.v); }).slice(0, 25);
+    var tot = rows.reduce(function(a, r){
+      a.v += r.v; a.n += r.n; a.sum += r.sum; return a; }, { v:0, n:0, sum:0 });
+    var out = rows.map(function(r){
+      return { c:[escapeHtml(r.k), fmt(r.v), fmt(r.n), fmt(r.sum) + ' грн', p1(pct(r.n, r.v))] };
+    });
+    if(out.length) out.push({ tot:1, c:['Разом', fmt(tot.v), fmt(tot.n), fmt(tot.sum) + ' грн', p1(pct(tot.n, tot.v))] });
+    return tbl([{t:'Джерело'},{t:'Візити',num:1},{t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Конверсія',num:1}],
+      out, 'Джерел поки немає.');
+  }
+
+  function renderTraffic(A, ords){
+    document.getElementById('an-src').innerHTML   = srcTable(A.src,   ords, function(an){ return an.src; });
+    document.getElementById('an-first').innerHTML = srcTable(A.first, ords, function(an){ return an.first || an.src; });
+
+    var hOrd = {}, dOrd = {};
+    ords.forEach(function(o){
+      var an = o.an || {};
+      if(an.hour != null) hOrd[String(an.hour)] = (hOrd[String(an.hour)] || 0) + 1;
+      if(an.dow  != null) dOrd[String(an.dow)]  = (dOrd[String(an.dow)]  || 0) + 1;
+    });
+    var hours = [];
+    for(var h = 0; h < 24; h++){
+      var v = A.hour[String(h)] || 0;
+      if(!v && !hOrd[String(h)]) continue;
+      hours.push({ k:(h < 10 ? '0' + h : h) + ':00', v:v,
+        note:(hOrd[String(h)] ? fmt(hOrd[String(h)]) + ' зам.' : '') });
+    }
+    document.getElementById('an-hour').innerHTML = bars(hours, 'Візитів ще не було.');
+    var dows = [];
+    for(var i = 1; i <= 7; i++){
+      var d = i % 7, v = A.dow[String(d)] || 0;
+      dows.push({ k:DOW_UA[d], v:v, note:(dOrd[String(d)] ? fmt(dOrd[String(d)]) + ' зам.' : '') });
+    }
+    document.getElementById('an-dow').innerHTML = bars(dows, 'Візитів ще не було.');
+
+    var devRows = top(A.dev, 6).map(function(r){
+      var ua = { mobile:'Телефон', tablet:'Планшет', desktop:'Компʼютер' }[r.k] || r.k;
+      return { c:[escapeHtml(ua), fmt(r.v), p1(pct(r.v, A.visits))] };
+    });
+    var landRows = top(A.land, 10).map(function(r){ return { c:[escapeHtml(r.k), fmt(r.v), p1(pct(r.v, A.visits))] }; });
+    var exitRows = top(A.exit, 10).map(function(r){ return { c:[escapeHtml(r.k), fmt(r.v), p1(pct(r.v, A.visits))] }; });
+    document.getElementById('an-dev').innerHTML =
+      tbl([{t:'Пристрій'},{t:'Візити',num:1},{t:'Частка',num:1}], devRows) +
+      '<div class="card-head" style="margin:18px 0 8px;"><h2>Сторінки входу</h2></div>' +
+      tbl([{t:'Сторінка'},{t:'Візити',num:1},{t:'Частка',num:1}], landRows) +
+      '<div class="card-head" style="margin:18px 0 8px;"><h2>Сторінки виходу</h2></div>' +
+      tbl([{t:'Сторінка'},{t:'Візити',num:1},{t:'Частка',num:1}], exitRows);
+
+    var lcp = A.perfN ? A.lcp / A.perfN : 0, ttfb = A.perfN ? A.ttfb / A.perfN : 0;
+    document.getElementById('an-perf').innerHTML = A.perfN
+      ? '<div class="an-kpis" style="margin-bottom:0;">' +
+          kpi('Перший екран', (Math.round(lcp / 100) / 10).toLocaleString('uk-UA') + ' с',
+              lcp <= 2500 ? 'добре' : (lcp <= 4000 ? 'можна краще' : 'повільно'),
+              lcp <= 2500 ? 'good' : (lcp > 4000 ? 'bad' : '')) +
+          kpi('Відповідь сервера', Math.round(ttfb) + ' мс') +
+          kpi('Замірів', fmt(A.perfN)) +
+        '</div>'
+      : '<div class="an-empty">Замірів ще немає.</div>';
+  }
+
+  /* ── 3. ПОВЕДІНКА ─────────────────────────────────────────── */
+  function renderBehav(A, ords){
+    document.getElementById('an-engage').innerHTML =
+      '<div class="an-kpis" style="margin-bottom:0;">' +
+        kpi('Нові', fmt(A.newVis), p1(pct(A.newVis, A.visits))) +
+        kpi('Повернулись', fmt(A.ret), p1(pct(A.ret, A.visits)), A.ret ? 'good' : '') +
+        kpi('Сторінок за візит', A.visits ? (Math.round(A.pagesSum / A.visits * 10) / 10).toLocaleString('uk-UA') : '—') +
+        kpi('Глибина прокрутки', Math.round(A.visits ? A.depth / A.visits : 0) + '%') +
+        kpi('Час на сайті', dur(A.visits ? A.sec / A.visits : 0)) +
+        kpi('До першої дії', A.actN ? dur(A.actSum / A.actN) : '—', 'скільки думають, перш ніж щось натиснути') +
+      '</div>';
+
+    var lost = A.abandSum, got = sum(ords, function(o){ return o.totalPrice; });
+    document.getElementById('an-aband').innerHTML = (A.steps.cart || A.abandN)
+      ? '<div class="an-kpis" style="margin-bottom:0;">' +
+          kpi('Набрали кошик', fmt(A.steps.cart || 0)) +
+          kpi('З них замовили', fmt(A.steps.order || 0), p1(pct(A.steps.order || 0, A.steps.cart || 0)),
+              (A.steps.order || 0) ? 'good' : '') +
+          kpi('Покинули', fmt(A.abandN), 'не дійшли до замовлення', A.abandN ? 'bad' : '') +
+          kpi('Втрачено грошей', fmt(lost) + ' грн',
+              got ? 'проти ' + fmt(got) + ' грн виручки' : '', lost ? 'bad' : '') +
+        '</div>'
+      : '<div class="an-empty">Кошик за період ще не наповнювали.</div>';
+
+    var groups = {};
+    Object.keys(A.pick).forEach(function(k){
+      var i = k.indexOf(':'); if(i < 0) return;
+      var g = k.slice(0, i), v = k.slice(i + 1);
+      if(!groups[g]) groups[g] = {};
+      groups[g][v] = A.pick[k];
+    });
+    var gk = Object.keys(groups);
+    document.getElementById('an-pick').innerHTML = gk.length
+      ? gk.map(function(g){
+          var rows = top(groups[g], 15).map(function(r){
+            var nm = g === 'garment' ? garmentName(r.k) : r.k;
+            return { c:[escapeHtml(nm), fmt(r.v)] };
+          });
+          return '<div class="card-head" style="margin:0 0 8px;"><h2>' +
+            escapeHtml(PICK_UA[g] || g) + '</h2></div>' + tbl([{t:'Що'},{t:'Разів',num:1}], rows);
+        }).join('<div style="height:18px"></div>')
+      : '<div class="an-empty">У конструкторі ще нічого не перемикали.</div>';
+
+    var clickRows = top(A.ev, 30).filter(function(r){ return r.k.indexOf('step_') !== 0; })
+      .map(function(r){ return { c:[escapeHtml(evName(r.k)), fmt(r.v)] }; });
+    document.getElementById('an-clicks').innerHTML =
+      tbl([{t:'Дія'},{t:'Разів',num:1}], clickRows, 'Кліків поки немає.');
+  }
+
+  /* ── 4. ПРОДАЖІ ───────────────────────────────────────────── */
+  function renderSales(days, ords){
+    var mine = (orders || []).filter(function(o){ return !AN.site || (o.site || 'main') === AN.site; });
+
     var byStatus = {};
-    (orders || []).forEach(function(o){
-      if(AN.site && (o.site || 'main') !== AN.site) return;
+    mine.forEach(function(o){
       var s = o.status || 'new';
       if(!byStatus[s]) byStatus[s] = { n:0, sum:0, marg:0 };
       byStatus[s].n++; byStatus[s].sum += +o.totalPrice || 0; byStatus[s].marg += +o.margin || 0;
@@ -7360,12 +7655,10 @@ async function init(){
       var v = byStatus[st.key] || { n:0, sum:0, marg:0 };
       return { c:[escapeHtml(st.label), fmt(v.n), fmt(v.sum) + ' грн', fmt(v.marg) + ' грн'] };
     });
-    /* Скільки днів минає від появи картки до оплати — головний показник
-       швидкості менеджера, і його ніде більше не видно. */
+
     var toPaid = [];
-    ords.forEach(function(o){
-      var h = o.hist || [];
-      var paid = h.filter(function(x){ return x.s === 'paid'; })[0];
+    mine.forEach(function(o){
+      var paid = (o.hist || []).filter(function(x){ return x.s === 'paid'; })[0];
       if(paid && o.createdAt){
         var d = (new Date(paid.at) - new Date(o.createdAt)) / 86400000;
         if(d >= 0 && d < 400) toPaid.push(d);
@@ -7382,18 +7675,19 @@ async function init(){
         byItem[nm].sum += +i.price || 0;
         byItem[nm].marg += (+i.price || 0) - (+i.cost || 0);
         var seen = {};
-        (i.prints || []).forEach(function(p){
-          var t = p.technique || 'без нанесення';
+        (i.prints || []).forEach(function(pr){
+          var t = pr.technique || 'без нанесення';
           if(seen[t]) return; seen[t] = 1;
           if(!byTech[t]) byTech[t] = { n:0, sum:0 };
           byTech[t].n += +i.qty || 0; byTech[t].sum += +i.price || 0;
         });
       });
     });
-    var itemRows = top(Object.keys(byItem).reduce(function(m, k){ m[k] = byItem[k].sum; return m; }, {}), 10)
+    var itemRows = top(Object.keys(byItem).reduce(function(m, k){ m[k] = byItem[k].sum; return m; }, {}), 12)
       .map(function(r){
         var v = byItem[r.k];
-        return { c:[escapeHtml(r.k), fmt(v.qty), fmt(v.sum) + ' грн', fmt(v.marg) + ' грн'] };
+        return { c:[escapeHtml(r.k), fmt(v.qty), fmt(v.sum) + ' грн', fmt(v.marg) + ' грн',
+                    p1(pct(v.marg, v.sum))] };
       });
     var techRows = Object.keys(byTech).sort(function(a, b){ return byTech[b].sum - byTech[a].sum; })
       .map(function(k){ return { c:[escapeHtml(k), fmt(byTech[k].n), fmt(byTech[k].sum) + ' грн'] }; });
@@ -7403,31 +7697,35 @@ async function init(){
         (avgPaid != null ? ' Від заявки до оплати: <b>' + (Math.round(avgPaid * 10) / 10).toLocaleString('uk-UA') + ' дн.</b>' : '') + '</div>' +
       tbl([{t:'Етап'},{t:'Карток',num:1},{t:'Сума',num:1},{t:'Маржа',num:1}], stRows) +
       '<div class="card-head" style="margin:18px 0 8px;"><h2>Топ товарів за виручкою</h2></div>' +
-      tbl([{t:'Товар'},{t:'Штук',num:1},{t:'Виручка',num:1},{t:'Маржа',num:1}], itemRows, 'Замовлень за період немає.') +
+      tbl([{t:'Товар'},{t:'Штук',num:1},{t:'Виручка',num:1},{t:'Маржа',num:1},{t:'Маржа %',num:1}],
+          itemRows, 'Замовлень за період немає.') +
       '<div class="card-head" style="margin:18px 0 8px;"><h2>Спосіб нанесення</h2></div>' +
       tbl([{t:'Спосіб'},{t:'Виробів',num:1},{t:'Виручка',num:1}], techRows, 'Замовлень за період немає.');
 
-    /* ---- Кліки ---- */
-    var clickRows = top(A.ev, 25)
-      .filter(function(r){ return r.k.indexOf('step_') !== 0; })
-      .map(function(r){ return { c:[escapeHtml(evName(r.k)), fmt(r.v)] }; });
-    document.getElementById('an-clicks').innerHTML =
-      tbl([{t:'Дія'},{t:'Разів',num:1}], clickRows, 'Кліків поки немає.');
-
-    /* ---- Пристрої та входи ---- */
-    var devRows = top(A.dev, 6).map(function(r){
-      var ua = { mobile:'Телефон', tablet:'Планшет', desktop:'Компʼютер' }[r.k] || r.k;
-      return { c:[escapeHtml(ua), fmt(r.v), p1(pct(r.v, A.visits))] };
+    /* Клієнти — за телефоном, за весь час: скільки повертаються і скільки
+       приносить один клієнт за життя. */
+    var byPhone = {};
+    mine.forEach(function(o){
+      var ph = String(o.phone || '').replace(/\D/g, '').slice(-9);
+      if(!ph) return;
+      if(!byPhone[ph]) byPhone[ph] = { n:0, sum:0, name:o.name || '' };
+      byPhone[ph].n++; byPhone[ph].sum += +o.totalPrice || 0;
     });
-    var landRows = top(A.land, 10).map(function(r){
-      return { c:[escapeHtml(r.k), fmt(r.v), p1(pct(r.v, A.visits))] };
-    });
-    document.getElementById('an-dev').innerHTML =
-      tbl([{t:'Пристрій'},{t:'Візити',num:1},{t:'Частка',num:1}], devRows) +
-      '<div class="card-head" style="margin:18px 0 8px;"><h2>Сторінки входу</h2></div>' +
-      tbl([{t:'Сторінка'},{t:'Візити',num:1},{t:'Частка',num:1}], landRows);
+    var ppl = Object.keys(byPhone).map(function(k){ return byPhone[k]; });
+    var again = ppl.filter(function(x){ return x.n > 1; });
+    var totalRev = ppl.reduce(function(a, x){ return a + x.sum; }, 0);
+    var topRows = ppl.sort(function(a, b){ return b.sum - a.sum; }).slice(0, 10)
+      .map(function(x){ return { c:[escapeHtml(x.name || 'без імені'), fmt(x.n), fmt(x.sum) + ' грн'] }; });
+    document.getElementById('an-repeat').innerHTML = ppl.length
+      ? '<div class="an-kpis" style="margin-bottom:14px;">' +
+          kpi('Клієнтів', fmt(ppl.length)) +
+          kpi('Замовили більше разу', fmt(again.length), p1(pct(again.length, ppl.length)),
+              again.length ? 'good' : '') +
+          kpi('Один клієнт приносить', fmt(ppl.length ? totalRev / ppl.length : 0) + ' грн', 'за весь час') +
+          kpi('Замовлень на клієнта', ppl.length ? (Math.round(mine.length / ppl.length * 10) / 10).toLocaleString('uk-UA') : '—') +
+        '</div>' + tbl([{t:'Клієнт'},{t:'Замовлень',num:1},{t:'Разом',num:1}], topRows)
+      : '<div class="an-empty">Замовлень ще немає.</div>';
 
-    /* ---- КП ---- */
     var offs = ords.filter(function(o){ return o.offerToken && offersByToken[o.offerToken]; })
       .map(function(o){ return { o:o, f:offersByToken[o.offerToken] }; });
     var opened = offs.filter(function(x){ return x.f.state && x.f.state !== 'created'; });
@@ -7436,18 +7734,19 @@ async function init(){
       return a + (+(x.f.clientAction || {}).total || +x.o.totalPrice || 0); }, 0);
     var views = offs.map(function(x){ return +(x.f.behaviour || {}).totalSec || 0; }).filter(function(v){ return v > 0; });
     var avgView = views.length ? views.reduce(function(a, b){ return a + b; }, 0) / views.length : 0;
+    var depth = offs.map(function(x){ return +(x.f.behaviour || {}).depthPct || 0; }).filter(function(v){ return v > 0; });
+    var avgDepth = depth.length ? depth.reduce(function(a, b){ return a + b; }, 0) / depth.length : 0;
     document.getElementById('an-offers').innerHTML = offs.length
       ? '<div class="an-kpis" style="margin-bottom:0;">' +
           kpi('Відправлено', fmt(offs.length)) +
           kpi('Відкрито', fmt(opened.length), p1(pct(opened.length, offs.length))) +
-          kpi('Підтверджено', fmt(confirmed.length), fmt(confSum) + ' грн',
-              confirmed.length ? 'good' : '') +
-          kpi('Дивляться в середньому', avgView ? dur(avgView) : '—') +
+          kpi('Підтверджено', fmt(confirmed.length), fmt(confSum) + ' грн', confirmed.length ? 'good' : '') +
+          kpi('Дивляться в середньому', avgView ? dur(avgView) : '—',
+              avgDepth ? 'догортують до ' + Math.round(avgDepth) + '%' : '') +
         '</div>'
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
-    /* ---- Витрати ---- */
-    var sp = AN.spend || {};
+    var sp = AN.spend || {}, spend = spendIn(days);
     var spRows = days.slice().reverse().filter(function(d){ return +sp[d] > 0; })
       .map(function(d){ return { c:[escapeHtml(d), fmt(+sp[d]) + ' грн'] }; });
     if(spRows.length) spRows.push({ tot:1, c:['Разом', fmt(spend) + ' грн'] });
@@ -7455,49 +7754,26 @@ async function init(){
       tbl([{t:'День'},{t:'Витрачено',num:1}], spRows, 'За обраний період витрат не вносили.');
   }
 
-  /* ---- Розбивка по днях ---- */
-  function renderDays(perDay, days, ords){
-    var ordDay = {};
-    ords.forEach(function(o){
-      var d = kyivDay(new Date(o.createdAt));
-      if(!ordDay[d]) ordDay[d] = { n:0, sum:0 };
-      ordDay[d].n++; ordDay[d].sum += +o.totalPrice || 0;
-    });
-    var rows = days.slice().reverse().map(function(d){
-      var a = perDay[d] || emptyAgg(), o = ordDay[d] || { n:0, sum:0 }, s = +(AN.spend || {})[d] || 0;
-      return { c:[escapeHtml(d), fmt(a.visits), fmt(a.steps.ctor || 0), fmt(a.steps.cart || 0),
-                  fmt(o.n), fmt(o.sum) + ' грн', s ? fmt(s) + ' грн' : '—'] };
-    });
-    document.getElementById('an-days').innerHTML = tbl(
-      [{t:'День'},{t:'Візити',num:1},{t:'Конструктор',num:1},{t:'Кошик',num:1},
-       {t:'Замовлень',num:1},{t:'Виручка',num:1},{t:'Реклама',num:1}],
-      rows, 'Даних немає.');
-  }
-
   /* ── Завантаження ─────────────────────────────────────────── */
   async function load(){
     if(AN.busy) return;
     AN.busy = true;
     var days = dayList(AN.days);
+    var prevDays = dayList(AN.days, AN.days);
     state('Рахуємо за ' + days.length + ' дн…');
     try{
       await loadSpend();
-      var perDay = {}, A = emptyAgg();
-      for(var i = 0; i < days.length; i++){
-        var sites = await dayData(days[i]);
-        var d = emptyAgg();
-        Object.keys(sites || {}).forEach(function(k){
-          if(AN.site && k !== AN.site) return;
-          mergeInto(d, sites[k]);
-        });
-        perDay[days[i]] = d;
-        mergeInto(A, d);
-      }
-      var ords = periodOrders(days[0], days[days.length - 1]);
-      render(A, days, ords);
-      renderDays(perDay, days, ords);
+      var cur = await rangeAgg(days);
+      var prv = await rangeAgg(prevDays);
+      var ords = periodOrders(days), prevOrds = periodOrders(prevDays);
+      renderMain.perDay = cur.perDay;
+      renderMain(cur.A, prv.A, days, ords, prevOrds);
+      renderTraffic(cur.A, ords);
+      renderBehav(cur.A, ords);
+      renderSales(days, ords);
       state('Період: ' + days[0] + ' — ' + days[days.length - 1] +
-            (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти'));
+            (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти') +
+            ' · порівняння з ' + prevDays[0] + ' — ' + prevDays[prevDays.length - 1]);
     }catch(e){
       console.error('analytics', e);
       state('Не вдалось прочитати аналітику: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
@@ -7507,7 +7783,7 @@ async function init(){
   }
 
   /* ── Кнопки ───────────────────────────────────────────────── */
-  function seg(id, attr, apply){
+  function seg(id, attr, apply, reload){
     var box = document.getElementById(id);
     if(!box) return;
     box.querySelectorAll('button').forEach(function(b){
@@ -7515,12 +7791,20 @@ async function init(){
         box.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
         b.classList.add('active');
         apply(b.dataset[attr]);
-        load();
+        if(reload !== false) load();
       });
     });
   }
   seg('an-period', 'd', function(v){ AN.days = +v || 7; });
   seg('an-site', 's', function(v){ AN.site = v || ''; });
+  seg('an-block', 'b', function(v){
+    AN.block = v || 'main';
+    ['main','traffic','behav','sales'].forEach(function(k){
+      var el = document.getElementById('an-pane-' + k);
+      if(el) el.hidden = (k !== AN.block);
+    });
+    window.scrollTo({ top:0, behavior:'instant' });
+  }, false);
 
   var rl = document.getElementById('an-reload');
   if(rl) rl.addEventListener('click', function(){ AN.cache = {}; AN.spend = null; load(); });
@@ -7543,9 +7827,9 @@ async function init(){
 
   window.__anOpen = function(){
     var el = document.getElementById('an-spend-date');
-    if(el && !el.value) el.value = TODAY();
-    if(!AN.opened){ AN.opened = true; load(); }
-    else load();
+    if(el && !el.value) el.value = today();
+    AN.opened = true;
+    load();
   };
 })();
 </script>
