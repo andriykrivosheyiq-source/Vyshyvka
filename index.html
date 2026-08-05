@@ -1563,6 +1563,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff;color:#111;font-size:19px;line-height:1;cursor:pointer;display:flex;
     align-items:center;justify-content:center;font-family:var(--font-sf);padding:0;}
   .pm-size-step-btn.plus{border-color:#111;background:#111;color:#fff;}
+  /* Кнопку тримають натиснутою — браузер не має ні гортати сторінку,
+     ні виділяти текст, ні показувати меню «копіювати». */
+  .pm-size-step-btn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
   .pm-size-step-btn[disabled]{opacity:.32;cursor:default;}
   .pm-size-step-val{min-width:26px;text-align:center;font-size:16px;font-weight:800;color:#111;
     font-variant-numeric:tabular-nums;}
@@ -7165,6 +7168,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(dropped) updatePriceBar();
     }
     function addLogo(origUrl, cleanUrl, textSpec){
+      if(window.lqAn){
+        window.lqAn.step('design');
+        window.lqAn.track(textSpec ? 'text_add' : 'logo_upload', { garment: pm.garmentId, side: pm.side });
+      }
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
       var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
@@ -7800,6 +7807,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){
           pm.garmentPick = false;      // обрали — згортаємось назад у рядок
           pm.garmentId = el.dataset.garment;
+          if(window.lqAn) window.lqAn.pick('garment', pm.garmentId);
           pm.sizeFocus = null;         // у нового виробу може бути інша сітка розмірів
           try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
@@ -7821,6 +7829,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener('click', function(){
           pm.colorId = el.dataset.color;
           pm.colorPicked = true;
+          if(window.lqAn) window.lqAn.pick('color', (getColor() || {}).name || pm.colorId);
           renderGarment();
           // панель тут не перебудовується (щоб не скидалась прокрутка кольорів),
           // тож назву з кольором у дужках оновлюємо на місці
@@ -7838,7 +7847,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         });
       });
       pmTabPanel.querySelectorAll('[data-print]').forEach(function(el){
-        el.addEventListener('click', function(){ pm.printId = el.dataset.print; renderTabPanel(); updatePriceBar(); });
+        el.addEventListener('click', function(){ pm.printId = el.dataset.print;
+          if(window.lqAn) window.lqAn.pick('print', (getPrint() || {}).name || pm.printId);
+          renderTabPanel(); updatePriceBar(); });
       });
       pmTabPanel.querySelectorAll('[data-size-select]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -7846,15 +7857,83 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // а далі доводилось цілитись у маленький «+».
           var sz = el.dataset.sizeSelect;
           pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
           pm.sizeFocus = sz;                     // великий лічильник переходить на цей розмір
           renderTabPanel(); updatePriceBar();
         });
       });
+      /* Тираж набирають десятками, тож «+» і «−» тримають натиснутими:
+         лічильник розганяється сам. Під час утримання панель НЕ перебудовуємо
+         — інакше кнопка зникла б з-під пальця; оновлюємо лише цифри, а повний
+         перерендер робимо, коли палець відпустили. */
+      function sizeLight(sz){
+        var v = pm.qty[sz] || 0;
+        var val = pmTabPanel.querySelector('.pm-size-step-val');
+        if(val) val.textContent = v;
+        var minus = pmTabPanel.querySelector('[data-size-minus]');
+        if(minus) minus.disabled = v <= 0;
+        var chip = pmTabPanel.querySelector('.pm-size-btn[data-size-select="' + sz + '"]');
+        if(chip){
+          chip.classList.toggle('active', v > 0);
+          var col = chip.parentNode, cnt = col && col.querySelector('.pm-size-cnt');
+          if(cnt) cnt.textContent = v > 0 ? '×' + v : '';
+        }
+        updatePriceBar();
+      }
+      function bindHold(el, apply){
+        var wait = null, rep = null, gap = 0, held = false, lastDown = 0;
+        function stop(){
+          if(wait) clearTimeout(wait);
+          if(rep) clearTimeout(rep);
+          wait = rep = null;
+          if(held){ held = false; renderTabPanel(); }
+        }
+        function tick(){
+          held = true;
+          apply();
+          gap = Math.max(32, Math.round(gap * 0.84));   // що довше тримають, то швидше
+          rep = setTimeout(tick, gap);
+        }
+        el.addEventListener('pointerdown', function(e){
+          if(e.button) return;
+          e.preventDefault();
+          lastDown = Date.now();
+          apply();                                       // перший крок — одразу
+          gap = 150;
+          try{ el.setPointerCapture(e.pointerId); }catch(err){}
+          wait = setTimeout(tick, 420);                  // пауза, щоб звичайний тап не розганявся
+        });
+        ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+          el.addEventListener(ev, stop);
+        });
+        /* Клавіатура (Enter/Пробіл) і програмний виклик теж мають працювати.
+           Вони дають click, якому НЕ передував дотик — на відміну від миші й
+           пальця, після яких браузер шле click слідом за pointerup. Дивимось
+           саме на це, а не на e.detail: різні браузери проставляють його
+           по-різному, і тап рахувався б двічі. */
+        el.addEventListener('click', function(){
+          if(Date.now() - lastDown < 1000) return;
+          apply(); renderTabPanel();
+        });
+        el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+      }
       pmTabPanel.querySelectorAll('[data-size-minus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizeMinus; pm.qty[sz]=Math.max(0,(pm.qty[sz]||0)-1); pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
+        var sz = el.dataset.sizeMinus;
+        bindHold(el, function(){
+          if((pm.qty[sz] || 0) <= 0) return;
+          pm.qty[sz] = Math.max(0, (pm.qty[sz] || 0) - 1);
+          pm.sizeFocus = sz;
+          sizeLight(sz);
+        });
       });
       pmTabPanel.querySelectorAll('[data-size-plus]').forEach(function(el){
-        el.addEventListener('click', function(){ var sz=el.dataset.sizePlus; pm.qty[sz]=(pm.qty[sz]||0)+1; pm.sizeFocus=sz; renderTabPanel(); updatePriceBar(); });
+        var sz = el.dataset.sizePlus;
+        bindHold(el, function(){
+          pm.qty[sz] = (pm.qty[sz] || 0) + 1;
+          pm.sizeFocus = sz;
+          if(window.lqAn) window.lqAn.step('size', { garment: pm.garmentId });
+          sizeLight(sz);
+        });
       });
       var chartBtn = document.getElementById('pmSizeChartBtn');
       if(chartBtn) chartBtn.addEventListener('click', function(){
@@ -8929,6 +9008,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
         pm.colorPicked = false;   // новий товар — колір ще не обирали
       }
+      if(window.lqAn){
+        window.lqAn.step('ctor');
+        window.lqAn.track('open_ctor', { garment: pm.garmentId, from: carry ? 'reco' : 'catalog' });
+      }
       pm.tab = 'photo';
       pm.textOpen = false;     // панель напису не тягнемо з попереднього товару
       pm.textDrop = null; pm.textEdit = null; pm.textScreen = null;
@@ -9129,8 +9212,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(ei != null && cartItems[ei]){
         item.recoNote = cartItems[ei].recoNote || '';
         cartItems[ei] = item;
+        if(window.lqAn) window.lqAn.track('cart_edit', { garment: pm.garmentId });
       } else {
         cartItems.push(item);
+        if(window.lqAn){
+          window.lqAn.step('cart');
+          window.lqAn.track('add_cart', { garment: pm.garmentId, qty: item.qty,
+            sum: item.price, print: (getPrint() || {}).name || '' });
+        }
       }
       window.__pmEditIndex = null;
       // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
@@ -9759,6 +9848,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // лишитись. Інакше людина бачить кепку з лого, тапає, і потрапляє
           // на порожню кепку: обіцянка не виконана.
           var keep = recCarryLayers(card.dataset.recGarment, card.dataset.recColor || '');
+          if(window.lqAn) window.lqAn.track('rec_click', { from: pm.garmentId, to: card.dataset.recGarment });
           openProductModal(card.dataset.recGarment, keep);
         });
       });
@@ -10242,6 +10332,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     var totalSum = main.reduce(function(a, r){ return a + r.it.price; }, 0);
     var recoSum  = reco.reduce(function(a, r){ return a + r.it.price; }, 0);
+    // Найбільша сума кошика за сесію — щоб було видно вартість покинутих кошиків
+    if(window.lqAn) window.lqAn.cart(totalSum, main.reduce(function(a, r){ return a + (+r.it.qty || 0); }, 0));
     document.getElementById('cartTotalSum').textContent = totalSum + ' грн';
     document.getElementById('cartTotalTerm').textContent = cartItems.length ? '2–4 робочих дні' : '—';
     var recoRow = document.getElementById('cartRecoRow');
@@ -10585,6 +10677,7 @@ window.LOOMIQ_CONFIG = {
     form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
   function sendLead(phone, form, btn, origText){
+    if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
     var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
@@ -11232,6 +11325,10 @@ window.LOOMIQ_CONFIG = {
       e.preventDefault(); e.stopPropagation();
       var cart = window.__cartItems || [];
       if(!cart.length){ alert('Кошик порожній — спершу додайте товар.'); return; }
+      if(window.lqAn){
+        window.lqAn.step('checkout');
+        window.lqAn.track('checkout_open', { items: cart.length });
+      }
       open();
     });
   });
@@ -11267,6 +11364,9 @@ window.LOOMIQ_CONFIG = {
         totalPrice: totalPrice, totalCost: totalCost,
         page: location.pathname,
         createdAt: new Date().toISOString(),
+        // Звідки прийшов клієнт. Без цього поля виручку неможливо розкласти
+        // по рекламі — у Канбані видно суму, але не видно, що її принесло.
+        an: (window.lqAn && window.lqAn.attribution()) || null,
         imported: false            // адмінка забере і поставить true
       };
       var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
@@ -11343,10 +11443,13 @@ window.LOOMIQ_CONFIG = {
         }
         if(!leadOk)  console.warn('telegram не прийняв заявку:', res[1].reason);
         if(!boardOk && !leadOk) throw (res[0].reason || new Error('both failed'));
+        if(window.lqAn) window.lqAn.order({ orderId: order.orderId, sum: totalPrice, cost: totalCost,
+          qty: paid.reduce(function(a, i){ return a + (+i.qty || 0); }, 0), items: paid.length });
         window.__clearCart && window.__clearCart();
         form.hidden = true; doneEl.hidden = false;
       });
     }).catch(function(err){
+      if(window.lqAn) window.lqAn.track('order_fail');
       console.warn('order failed', err);
       fail('Не вдалося надіслати замовлення. Перевірте зв’язок і спробуйте ще раз — або напишіть нам у Telegram.');
     });
@@ -11519,5 +11622,7 @@ window.LOOMIQ_CONFIG = {
   document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
 })();
 </script>
+<!-- Аналітика Loomiq: своя воронка + події в GTM/GA4 -->
+<script src="an.js"></script>
 </body>
 </html>

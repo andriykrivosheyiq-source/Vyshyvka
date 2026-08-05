@@ -84,6 +84,37 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Аналітика: один ПЕРЕГЛЯД СТОРІНКИ = один документ. Сесію звіт збирає
+    // назад за полем sid. Окремі документи потрібні тому, що друга вкладка
+    // або перехід на іншу сторінку інакше затирали б час, накопичений раніше.
+    // Пише сайт анонімно, читає й підсумовує лише адмінка. Перевірки нижче —
+    // щоб через відкритий запис не залили базу сміттям: сайт лише зі списку,
+    // а час і глибина — в межах здорового глузду.
+    // Персональних даних тут немає, лише випадковий ідентифікатор пристрою.
+    match /an_sessions/{doc} {
+      allow read: if request.auth != null;
+      allow create, update: if request.resource.data.sid is string
+                    && request.resource.data.sid.size() <= 32
+                    && request.resource.data.vid is string
+                    && request.resource.data.vid.size() <= 32
+                    && request.resource.data.site in ['main', 'horeca', 'build', 'offer']
+                    && request.resource.data.day is string
+                    && request.resource.data.day.size() == 10
+                    && request.resource.data.sec is int
+                    && request.resource.data.sec >= 0
+                    && request.resource.data.sec <= 86400
+                    && request.resource.data.depth is int
+                    && request.resource.data.depth >= 0
+                    && request.resource.data.depth <= 100;
+      allow delete: if request.auth != null;
+    }
+
+    // Денні підсумки. Рахує їх адмінка з сесій за добу — далі звіт відкривається
+    // з десятка документів замість тисяч, і читання не впирається в ліміт.
+    match /an_days/{day} {
+      allow read, write: if request.auth != null;
+    }
+
     // Все інше (ціни, стан Канбану) — лише авторизованим
     match /{document=**} {
       allow read, write: if request.auth != null;
