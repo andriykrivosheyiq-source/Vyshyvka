@@ -8148,6 +8148,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
       if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
       head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
+      /* Найчастіше питання менеджера: «чому при одній штуці вже знижка?».
+         Тому що в кошику лежать позиції з попереднього прорахунку, а знижка
+         й підготовка макета рахуються на все замовлення разом — так само, як
+         для клієнта. Пишемо це прямо і даємо кнопку почати з нуля. */
+      var inCart = (window.__cartItems || []).reduce(function(a, i){ return a + (+i.qty || 0); }, 0);
+      if(inCart > 0){
+        head += '<div style="font-size:11.5px;line-height:1.5;margin:-4px 0 10px;padding:7px 9px;' +
+          'border-radius:8px;background:#fff5e0;color:#8a5b00;">' +
+          'У кошику вже <b>' + inCart + ' шт</b> — знижка за тираж і підготовка макета ' +
+          'рахуються на все замовлення разом. ' +
+          '<button data-mgr-clear style="all:unset;cursor:pointer;color:#8a1f1f;font-weight:700;' +
+          'text-decoration:underline;">Почати з нуля</button></div>';
+      }
       // ── таблиця ──
       function r(name, sell, cost, o){ o=o||{};
         var pad = o.muted ? '2px 8px' : '5px 8px';
@@ -8244,6 +8257,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       out.innerHTML = head + tb + sum;
       var tog = out.querySelector('[data-mgr-toggle]');
       if(tog) tog.onclick = function(e){ e.stopPropagation(); mgrDetailOpen = !mgrDetailOpen; renderManagerPanel(); };
+      var clr = out.querySelector('[data-mgr-clear]');
+      if(clr) clr.onclick = function(e){
+        e.stopPropagation();
+        if(!confirm('Прибрати з кошика всі позиції й рахувати цю з нуля?')) return;
+        if(window.__clearCart) window.__clearCart();
+        updatePriceBar();
+      };
     }
     // Легке оновлення цін на шкалі (лише текст, без перебудови DOM/скролу) — щоб
     // не смикало під час жесту масштабування логотипа, коли ціна їде за площею.
@@ -9533,8 +9553,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Найближчий колір палітри до вибраного (за RGB-відстанню)
     function recHexRgb(h){ h=(h||'').replace('#',''); if(h.length<6) return null; return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
     function recLum(rgb){ return 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]; }
-    function recClosestColor(pal, hex){
-      var t=recHexRgb(hex); if(!t||!pal||!pal.length) return null;
+    function recNormName(s){ return String(s || '').trim().toLowerCase().replace(/['ʼ’`]/g, ''); }
+    function recClosestColor(pal, hex, name){
+      if(!pal || !pal.length) return null;
+      /* Спершу шукаємо колір з ТІЄЮ САМОЮ назвою. Відтінки «білого» в різних
+         кроїв різні: у футболки #eeebe4, у худі #f5f5f5, а ванільний
+         #f0e7d2 за числами виявляється ближчим до теплого білого футболки,
+         ніж власний білий худі. За назвою такої плутанини немає. */
+      var n = recNormName(name);
+      if(n){
+        for(var i = 0; i < pal.length; i++){
+          if(recNormName(pal[i].name) === n) return Object.assign({}, pal[i], { далеко:false });
+        }
+      }
+      var t=recHexRgb(hex); if(!t) return null;
       var best=null, bd=Infinity;
       pal.forEach(function(c){ var r=recHexRgb(c.hex); if(!r) return;
         var rm=(r[0]+t[0])/2, dR=r[0]-t[0], dG=r[1]-t[1], dB=r[2]-t[2];
@@ -9560,6 +9592,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       hoodiezip:'hoodiezip', sweat:'sweat', cap:'cap', tote:'tote'};
     // Куди лягає лого на кожному крої: частка від самого виробу (обрізаного
     // по контуру), тому не залежить від полів фото. w — ширина лого.
+    // Аксесуари: друкують строго по центру поля, а сáме поле в них зовсім
+    // іншого розміру, ніж на одязі. Тому пропорція з одягу сюди не переноситься.
+    var REC_ACCESSORY = { cap:1, tote:1 };
     var REC_SPOT = {
       tee:      {cx:.50, cy:.34, w:.30, heart:.36},
       teeover:  {cx:.50, cy:.34, w:.30, heart:.36},
@@ -9707,10 +9742,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       var sw = Math.max(1e-4, sb.x1 - sb.x0), sh = Math.max(1e-4, sb.y1 - sb.y0);
       var tw = Math.max(1e-4, tb.x1 - tb.x0), th = Math.max(1e-4, tb.y1 - tb.y0);
-      // РОЗМІР — від самого виробу, а не від зони. Зони в кроїв різної
-      // ширини, і через них та сама наліпка на худі виходила помітно
-      // більшою, ніж на футболці. Виріб до виробу — і виглядає однаково.
-      var kw = Math.max(1e-4, tg.x1 - tg.x0) / Math.max(1e-4, sg.x1 - sg.x0);
+      /* РОЗМІР — часткою ЗОНИ нанесення. Займав чверть поля на футболці —
+         займе чверть поля й на худі, і на світшоті. Саме це людина й бачить
+         як «однаково»: не однакові сантиметри, а однакова частка того місця,
+         куди друкують. Якщо зони ще не намалювали — запасний шлях по габариту
+         виробу, як було раніше. */
+      var kw = byZone
+        ? Math.max(1e-4, tb.x1 - tb.x0) / Math.max(1e-4, sb.x1 - sb.x0)
+        : Math.max(1e-4, tg.x1 - tg.x0) / Math.max(1e-4, sg.x1 - sg.x0);
       var ls = src.map(function(l){
         return { url:l.url, rot:l.rot, ar:l.ar,
           cx: tb.x0 + (l.cx - sb.x0) / sw * tw,
@@ -9724,21 +9763,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         gy0 = Math.min(gy0, l.cy - hh/2);  gy1 = Math.max(gy1, l.cy + hh/2);
       });
       var mx = (gx0 + gx1) / 2, my = (gy0 + gy1) / 2;
-      // Кепка й шопер — завжди по центру: збоку на них друкувати ніде.
-      var dx = 0, dy = 0;
-      if(gid === 'cap' || gid === 'tote') dx = (tg.x0 + tg.x1) / 2 - mx;
-      // Худі на застібці — завжди на серці, і саме з того боку, з якого воно
-      // на фото: по центру там блискавка. Дзеркалимо, якщо промахнулись.
-      if(gid === 'hoodiezip') dx = (tb.x0 + tb.x1) / 2 - mx;   // центр серцевої зони
-      var zoom = 1;
-      if(byZone){
+      var gw = Math.max(1e-4, gx1 - gx0), gh = Math.max(1e-4, gy1 - gy0);
+      var dx = 0, dy = 0, zoom = 1;
+      if(byZone && REC_ACCESSORY[gid]){
+        /* Аксесуар. Поле в кепки маленьке, у шопера велике — тягнути на них
+           пропорцію з одягу немає сенсу. Тому кладемо строго в центр поля і
+           підганяємо під нього, лишаючи поля з боків: так і кепка, і шопер
+           виглядають однаково охайно, хоч розміри в них різні. */
+        var ACC_FILL = 0.78;
+        zoom = Math.min(ACC_FILL * tw / gw, ACC_FILL * th / gh);
+        dx = (tb.x0 + tb.x1) / 2 - mx;
+        dy = (tb.y0 + tb.y1) / 2 - my;
+      } else if(byZone){
+        // Худі на застібці — завжди на серці, і саме з того боку, з якого воно
+        // на фото: по центру там блискавка. Дзеркалимо, якщо промахнулись.
+        if(gid === 'hoodiezip') dx = (tb.x0 + tb.x1) / 2 - mx;   // центр серцевої зони
         // Не влазить у зону — зменшуємо групу цілком і підсуваємо всередину,
         // щоб клієнт не бачив першим ділом «за межами зони друку».
-        zoom = Math.min(1, tw / Math.max(1e-4, gx1 - gx0), th / Math.max(1e-4, gy1 - gy0));
+        zoom = Math.min(1, tw / gw, th / gh);
         var nx0 = mx + (gx0 - mx) * zoom + dx, nx1 = mx + (gx1 - mx) * zoom + dx;
         var ny0 = my + (gy0 - my) * zoom + dy, ny1 = my + (gy1 - my) * zoom + dy;
         dx += Math.min(0, tb.x1 - nx1) + Math.max(0, tb.x0 - nx0);
         dy += Math.min(0, tb.y1 - ny1) + Math.max(0, tb.y0 - ny0);
+      } else {
+        // Зони немає — центруємо по самому виробу, як і раніше
+        if(REC_ACCESSORY[gid]) dx = (tg.x0 + tg.x1) / 2 - mx;
+        if(gid === 'hoodiezip') dx = (tb.x0 + tb.x1) / 2 - mx;
       }
       return ls.map(function(l){
         return { url:l.url, rot:l.rot, ar:l.ar,
@@ -9817,7 +9867,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!track) return;
       // Колір беремо той, що зараз на макеті, навіть якщо його не міняли:
       // людина дивиться на білу футболку — рекомендовані теж мають бути білі.
-      var selHex = (typeof getColor === 'function' && getColor()) ? getColor().hex : null;
+      var selC = (typeof getColor === 'function' && getColor()) || null;
+      var selHex = selC ? selC.hex : null, selName = selC ? selC.name : null;
       var fam = REC_FAMILY[pm.garmentId] || pm.garmentId;
       // Чотири худі поспіль — не вибір, а повтор: «оверсайз» і «оверсайз із
       // флісом» на картці не відрізнити. Тому по одному виробу з кожного
@@ -9851,7 +9902,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Вироби, у яких немає нічого схожого на обраний колір, прибираємо —
       // але лишаємо щонайменше три картки, щоб стрічка не спорожніла.
       var fits = list.filter(function(p){
-        var m = selHex ? recClosestColor(GARMENT_COLORS[p.garment], selHex) : null;
+        var pal = (GARMENT_COLORS[p.garment] || []).filter(function(c){ return garmentPhotoExists(p.garment, c.id); });
+        if(!pal.length) pal = GARMENT_COLORS[p.garment];
+        var m = selHex ? recClosestColor(pal, selHex, selName) : null;
         return !m || !m.далеко;
       });
       if(fits.length >= 3) list = fits;
@@ -9859,7 +9912,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var nm = window.LQ_name(p.garment, p.name);
         var cs = GARMENT_COLORS[p.garment];
         // підбираємо колір товару, найближчий до вибраного в конструкторі
-        var match = selHex ? recClosestColor(cs, selHex) : displayColorFor(p.garment);
+        /* Шукаємо лише серед кольорів, для яких є фото. Інакше збіг за
+           назвою знаходив «Білий», фото не було, і замість нього ставав
+           колір-візитівка виробу — під білою футболкою могло вийти чорне
+           худі. Тепер береться найближчий із наявних: у худі на застібці
+           білого фото немає, і чесно показується сіре. */
+        var csHave = (cs || []).filter(function(c){ return garmentPhotoExists(p.garment, c.id); });
+        if(!csHave.length) csHave = cs;
+        var match = selHex ? recClosestColor(csHave, selHex, selName) : displayColorFor(p.garment);
         if(match && !garmentPhotoExists(p.garment, match.id)) match = garmentThumbColor(p.garment);
         var src = match ? window.LQ_img('images/'+p.garment+'-'+match.id+'-front.webp')
                         : (p.img ? window.LQ_img(p.img) : null);

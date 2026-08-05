@@ -2091,7 +2091,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
       // посадкові сторінки редагуються в Конструкторі сайту.
       const fr = document.getElementById('calc-only-frame');
-      if(fr && !fr.src) fr.src = 'index.html?manager=1&start=catalog';
+      if(fr && !fr.src) fr.src = 'index.html?manager=1&start=catalog&v=' + LQ_BUILD;
     }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
@@ -6703,15 +6703,22 @@ async function init(){
   }
   subscribePhotos();
 
+  /* Мітка завантаження адмінки. Конструктор і КП відкриваються всередині
+     iframe, а браузер тримає їх у кеші окремо від самої адмінки — через це
+     після оновлення сайту менеджер ще довго бачив стару версію прорахунку
+     і не міг зрозуміти, чому виправлене досі не виправлене. Мітка міняється
+     з кожним перезавантаженням адмінки, тож достатньо оновити сторінку. */
+  const LQ_BUILD = Date.now().toString(36);
+
   /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
      Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
   function calcFrameUrl(){
     // КП — не посадкова: у неї немає редагування наповнення, зате є тестове
     // замовлення, на якому видно всі блоки, зокрема кейси й питання.
-    if(LQ_SITE === 'offer') return 'offer.html?demo=1';
+    if(LQ_SITE === 'offer') return 'offer.html?demo=1&v=' + LQ_BUILD;
     const p = lqSiteDef().id;
     const base = p === 'main' ? 'index.html' : p + '/index.html';
-    return base + '?manager=1&edit=1';
+    return base + '?manager=1&edit=1&v=' + LQ_BUILD;
   }
   function loadCalcFrame(force){
     const fr = document.getElementById('calc-frame');
