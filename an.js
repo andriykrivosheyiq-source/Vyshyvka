@@ -126,11 +126,15 @@
   if(newSession){ visitNo++; lsSet('lq_visits', String(visitNo)); }
   if(!visitNo) visitNo = 1;
 
-  /* Скільки сторінок людина подивилась за сесію — лічильник спільний
-     для всіх вкладок, бо сесія одна. */
-  var pages = 1;
-  if(newSession) lsSet('lq_pages', '1');
-  else { pages = (+lsGet('lq_pages') || 1) + 1; lsSet('lq_pages', String(pages)); }
+  /* Котра це сторінка в межах сесії. Кожне відкриття сторінки пише СВІЙ
+     документ, а не дописує спільний: інакше друга сторінка затирала б час,
+     накопичений на першій, і кожен перехід всередині сайту з'їдав би
+     хвилини. Дві вкладки одночасно — та сама історія. Звіт збирає сесію
+     назад по полю sid. */
+  var pv = 1;
+  if(newSession) lsSet('lq_pv', '1');
+  else { pv = (+lsGet('lq_pv') || 1) + 1; lsSet('lq_pv', String(pv)); }
+  var docId = sid + '.' + rnd(5);
 
   /* ---------- 4. З чого дивиться -------------------------------------- */
   function device(){
@@ -203,7 +207,7 @@
        сталось — це і є вартість покинутого кошика, найдорожча втрата. */
     cart: { sum:0, qty:0 },
     firstActionSec: null,
-    depth: 0, pages: pages,
+    depth: 0, pv: pv,
     perf: perf,
     order: null
   };
@@ -248,11 +252,11 @@
       hour: S.hour, dow: S.dow, visitNo: S.visitNo,
       newVisitor: S.newVisitor,
       startAt: S.startAt, endAt: new Date().toISOString(),
-      sec: activeSec, depth: S.depth, pages: (+lsGet('lq_pages') || S.pages),
-      /* Сесія вважається «живою», якщо або довше десяти секунд, або більше
-         однієї сторінки, або людина дійшла хоч до якоїсь дії. Решта — люди,
-         що відкрили й одразу пішли. */
-      engaged: activeSec >= 10 || (+lsGet('lq_pages') || 1) > 1 || !!S.steps.ctor,
+      sec: activeSec, depth: S.depth, pv: S.pv,
+      /* Сторінка вважається «живою», якщо або довше десяти секунд, або це вже
+         не перша сторінка сесії, або людина дійшла хоч до якоїсь дії. Решта —
+         ті, хто відкрив і одразу пішов. */
+      engaged: activeSec >= 10 || S.pv > 1 || !!S.steps.ctor,
       firstActionSec: S.firstActionSec,
       land: S.land, exit: S.exit,
       src: S.src, first: S.first, dev: S.dev,
@@ -263,17 +267,34 @@
   }
 
   var dirty = true, lastWrite = 0, timer = null, MIN_GAP = 30000;
+  var retries = 0, MAX_RETRY = 6;
+
+  /* Невдалий запис МАЄ повторитись сам. Раніше після збою прапорець
+     «є що писати» лишався піднятим, але наступний запис планувався лише
+     з чергової дії користувача — якщо людина більше нічого не натискала,
+     весь візит зникав безслідно. Те саме, коли база ще не піднялась на
+     момент першого запису. */
+  function retry(){
+    if(OFF || retries >= MAX_RETRY) return;
+    retries++;
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(function(){ timer = null; flush(); }, Math.min(30000, 1500 * retries));
+  }
 
   function flush(){
     if(OFF) return;
     var db = getDb();
-    if(!db) return;                 // база ще не піднялась — спробуємо наступного разу
+    if(!db){ retry(); return; }      // база ще не піднялась — спробуємо ще раз
     dirty = false;
     lastWrite = Date.now();
     try{
-      db.collection('an_sessions').doc(S.sid).set(snapshot(), { merge:true })
-        .catch(function(e){ dirty = true; if(W.console) console.warn('an: запис не пройшов', e && (e.code || e.message)); });
-    }catch(e){ dirty = true; }
+      db.collection('an_sessions').doc(docId).set(snapshot(), { merge:true })
+        .then(function(){ retries = 0; })
+        .catch(function(e){
+          dirty = true; retry();
+          if(W.console) console.warn('an: запис не пройшов', e && (e.code || e.message));
+        });
+    }catch(e){ dirty = true; retry(); }
   }
 
   function schedule(now){
@@ -311,6 +332,9 @@
     name = String(name).slice(0, 40);
     if(OFF) return;
     toGtm(name, params);
+    /* Стеля на кількість різних ключів. Документ у базі не безмежний, а
+       відкритий на запис — значить, хтось може спробувати його роздути. */
+    if(S.ev[name] == null && Object.keys(S.ev).length >= 60) return;
     S.ev[name] = (S.ev[name] || 0) + 1;
     markAction();
     schedule();
@@ -322,6 +346,7 @@
   function pick(kind, value){
     if(OFF || !kind || !value) return;
     var k = String(kind).slice(0, 12) + ':' + String(value).slice(0, 28);
+    if(S.pick[k] == null && Object.keys(S.pick).length >= 80) return;
     S.pick[k] = (S.pick[k] || 0) + 1;
     markAction();
     schedule();

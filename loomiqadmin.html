@@ -286,9 +286,15 @@
   .an-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0;}
 
   .an-spend-row{display:flex;flex-wrap:wrap;gap:8px;}
-  .an-spend-row input{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
+  .an-spend-row input,.an-spend-row select{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
     border-radius:8px;background:var(--paper);color:var(--ink);min-width:130px;flex:1;}
-  @media (min-width:560px){.an-spend-row input{flex:none;}}
+  @media (min-width:560px){.an-spend-row input,.an-spend-row select{flex:none;}}
+  .an-attr{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:12px;
+    color:var(--ink-soft);margin-bottom:12px;}
+  .an-attr-btn{all:unset;cursor:pointer;font-size:12px;padding:5px 11px;border-radius:999px;
+    border:1px solid var(--line);color:var(--ink-soft);}
+  .an-attr-btn.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600;}
+  .an-tbl tr.bad td{background:var(--bad-soft);}
 
   /* garment cards grid */
   .garment-cards{display:grid;grid-template-columns:1fr;gap:12px;}
@@ -1531,12 +1537,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <button data-b="traffic">2 · Трафік</button>
         <button data-b="behav">3 · Поведінка</button>
         <button data-b="sales">4 · Продажі</button>
+        <button data-b="ads">5 · Реклама</button>
       </div>
 
       <!-- ── 1. ГОЛОВНЕ ─────────────────────────────────────────── -->
       <div class="an-pane" id="an-pane-main">
         <div id="an-alerts"></div>
         <div class="an-kpis" id="an-kpis"></div>
+        <div class="card">
+          <div class="card-head"><h2>Канали трафіку — все в одній таблиці</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Скільки вклали в кожен канал, скільки він привів людей,
+            замовлень і грошей — і що лишилось після реклами. Витрати вносяться в розділі «Реклама»,
+            виручка підтягується з Канбану.</div>
+          <div id="an-channels"></div>
+        </div>
         <div class="card">
           <div class="card-head"><h2>Воронка</h2></div>
           <div class="sub" style="margin-bottom:12px;">Скільки людей дійшло до кожного кроку і де відвалюються найбільше.</div>
@@ -1617,15 +1631,36 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="card-head"><h2>Комерційні пропозиції</h2></div>
           <div id="an-offers"></div>
         </div>
+      </div>
+
+      <!-- ── 5. РЕКЛАМА ─────────────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-ads" hidden>
         <div class="card">
-          <div class="card-head"><h2>Витрати на рекламу</h2></div>
-          <div class="sub" style="margin-bottom:12px;">Введіть суму за день — і в «Головному» зʼявляться ціна замовлення та окупність.</div>
+          <div class="card-head"><h2>Рекламний бюджет</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Єдине, що не підтягується саме: рекламні кабінети назовні нічого не віддають.
+            Вносьте суму за день по кожному каналу — і в «Головному» одразу зійдеться ціна замовлення,
+            окупність і чистий прибуток по кожному напрямку.</div>
           <div class="an-spend-row">
             <input type="date" id="an-spend-date">
+            <select id="an-spend-ch"></select>
             <input type="number" id="an-spend-sum" placeholder="грн за день" min="0" step="1">
             <button class="btn btn-accent" id="an-spend-save">Зберегти</button>
           </div>
-          <div id="an-spend-list" style="margin-top:12px;"></div>
+          <div class="sub" style="margin-top:10px;">Щоб перезаписати вже внесену суму — оберіть той самий день і канал ще раз.
+            Нуль прибирає запис.</div>
+          <div id="an-spend-list" style="margin-top:14px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Як розмічати рекламу</h2></div>
+          <div class="sub" style="line-height:1.6;">
+            Щоб канал упізнався сам, посилання в рекламі має нести мітки. Формат:<br>
+            <code>loomiq.net/?utm_source=instagram&amp;utm_medium=cpc&amp;utm_campaign=merch&amp;utm_content=banner1</code><br><br>
+            <b>utm_source</b> — звідки: <code>google</code>, <code>facebook</code>, <code>instagram</code>,
+            <code>telegram</code>, <code>novaposhta</code>.<br>
+            <b>utm_medium</b> — обовʼязково <code>cpc</code> для платного. Без цього перехід зарахується
+            як безкоштовний, і бюджет не зійдеться з результатом.<br>
+            <b>utm_campaign</b> і <b>utm_content</b> — кампанія та конкретний банер.
+          </div>
         </div>
       </div>
     </section>
@@ -7183,8 +7218,10 @@ async function init(){
    Реклама зводиться з грошима через поле an у картці замовлення.
    ============================================================ */
 (function(){
-  var ROLLUP_V = 2;          // зміна набору полів = старі підсумки перерахувати
-  var AN = { days:7, site:'', block:'main', cache:{}, spend:null, busy:false, opened:false };
+  var ROLLUP_V = 3;          // зміна набору полів = старі підсумки перерахувати
+  var RAW_LIMIT = 8000;      // запобіжник на випадок сплеску трафіку
+  var AN = { days:7, site:'', block:'main', attr:'first',
+             cache:{}, spend:null, busy:false, opened:false, truncated:0 };
 
   function kyivDay(d){
     try{ return d.toLocaleDateString('sv-SE', { timeZone:'Europe/Kyiv' }); }
@@ -7204,7 +7241,7 @@ async function init(){
   /* ── Підсумки ─────────────────────────────────────────────── */
   var NUMS = ['visits','engaged','newVis','ret','sec','depth','orders',
               'actSum','actN','ttfb','lcp','perfN','abandN','abandSum','pagesSum'];
-  var MAPS = ['steps','ev','src','first','dev','land','exit','pick','hour','dow'];
+  var MAPS = ['steps','ev','src','first','dev','land','exit','pick','hour','dow','ch','chFirst'];
   function emptyAgg(){
     var a = { v:ROLLUP_V };
     NUMS.forEach(function(k){ a[k] = 0; });
@@ -7213,6 +7250,42 @@ async function init(){
   }
   function bump(map, k, n){ if(k == null || k === '') return; map[k] = (map[k] || 0) + (n == null ? 1 : n); }
 
+  /* ── Канали трафіку ────────────────────────────────────────
+     Рекламний бюджет ведеться по каналах, тож і трафік треба звести до тих
+     самих каналів. Головне тут — відрізнити платне від безкоштовного:
+     органічний пошук Google не має списувати бюджет Google Ads. */
+  var CHANNELS = [
+    { k:'google',     ua:'Google Ads',   paid:1 },
+    { k:'facebook',   ua:'Facebook',     paid:1 },
+    { k:'instagram',  ua:'Instagram',    paid:1 },
+    { k:'telegram',   ua:'Telegram Ads', paid:1 },
+    { k:'np',         ua:'Нова Пошта',   paid:1 },
+    { k:'other_paid', ua:'Інша реклама', paid:1 },
+    { k:'seo',        ua:'Пошук (безкоштовно)' },
+    { k:'social',     ua:'Соцмережі (безкоштовно)' },
+    { k:'referral',   ua:'Переходи з сайтів' },
+    { k:'direct',     ua:'Прямі заходи' }
+  ];
+  var CH_UA = {}; CHANNELS.forEach(function(c){ CH_UA[c.k] = c.ua; });
+  var PAID_CH = CHANNELS.filter(function(c){ return c.paid; });
+
+  function channelOf(s){
+    s = s || {};
+    var src = String(s.source || '').toLowerCase();
+    var med = String(s.medium || '').toLowerCase();
+    var paid = /cpc|ppc|paid|ads|display|banner|cpm/.test(med) || !!s.click;
+    if(/google/.test(src))                        return paid ? 'google'    : 'seo';
+    if(/instagram/.test(src) || src === 'ig')     return paid ? 'instagram' : 'social';
+    if(/facebook|meta/.test(src) || src === 'fb') return paid ? 'facebook'  : 'social';
+    if(/telegram|t\.me/.test(src))                return paid ? 'telegram'  : 'social';
+    if(/nova|poshta/.test(src) || src === 'np')   return 'np';
+    if(/tiktok|youtube|viber|whatsapp/.test(src)) return paid ? 'other_paid' : 'social';
+    if(/bing|duckduckgo|yahoo|ecosia/.test(src))  return 'seo';
+    if(src === 'direct' || med === 'none')        return 'direct';
+    if(paid) return 'other_paid';
+    return 'referral';
+  }
+
   function srcKey(s){
     s = s || {};
     var k = (s.source || 'невідомо') + ' / ' + (s.medium || '—');
@@ -7220,34 +7293,59 @@ async function init(){
     return k;
   }
 
-  function addSession(a, d){
+  /* Сесія збирається з КІЛЬКОХ документів — по одному на кожен перегляд
+     сторінки. Так зроблено навмисне: інакше друга вкладка або перехід на
+     іншу сторінку затирали б час, накопичений раніше. Тут навпаки: час
+     додається, кроки обʼєднуються, події сумуються, а джерело й пристрій
+     беруться з найпершого документа сесії. */
+  function addGroup(a, docs){
+    docs.sort(function(x, y){ return String(x.startAt || '').localeCompare(String(y.startAt || '')); });
+    var first = docs[0], last = docs[docs.length - 1];
     a.visits++;
-    if(d.engaged) a.engaged++;
-    if(d.newVisitor) a.newVis++;
-    if((+d.visitNo || 1) > 1) a.ret++;
-    a.sec += +d.sec || 0;
-    a.depth += +d.depth || 0;
-    a.pagesSum += +d.pages || 1;
-    if(d.firstActionSec != null){ a.actSum += +d.firstActionSec || 0; a.actN++; }
-    var pf = d.perf || {};
-    if(pf.lcp || pf.ttfb){ a.ttfb += +pf.ttfb || 0; a.lcp += +pf.lcp || 0; a.perfN++; }
-    var hasOrder = !!(d.order && d.order.id);
-    if(hasOrder) a.orders++;
+    if(first.newVisitor) a.newVis++;
+    if((+first.visitNo || 1) > 1) a.ret++;
+
+    var sec = 0, depth = 0, engaged = false, order = null, cartMax = 0, act = null;
+    var steps = {}, ev = {}, pick = {}, perf = null;
+    docs.forEach(function(d){
+      sec += +d.sec || 0;
+      if((+d.depth || 0) > depth) depth = +d.depth || 0;
+      if(d.engaged) engaged = true;
+      if(!order && d.order && d.order.id) order = d.order;
+      var cs = (d.cart && +d.cart.sum) || 0;
+      if(cs > cartMax) cartMax = cs;
+      if(d.firstActionSec != null && (act == null || +d.firstActionSec < act)) act = +d.firstActionSec;
+      if(!perf && d.perf && (d.perf.lcp || d.perf.ttfb)) perf = d.perf;
+      Object.keys(d.steps || {}).forEach(function(k){ steps[k] = 1; });
+      Object.keys(d.ev   || {}).forEach(function(k){ ev[k]   = (ev[k]   || 0) + (+d.ev[k]   || 0); });
+      Object.keys(d.pick || {}).forEach(function(k){ pick[k] = (pick[k] || 0) + (+d.pick[k] || 0); });
+    });
+
+    if(engaged || sec >= 10 || docs.length > 1) a.engaged++;
+    a.sec += sec;
+    a.depth += depth;
+    a.pagesSum += docs.length;
+    if(act != null){ a.actSum += act; a.actN++; }
+    if(perf){ a.ttfb += +perf.ttfb || 0; a.lcp += +perf.lcp || 0; a.perfN++; }
+    if(order) a.orders++;
     /* Покинутий кошик: товар набрали, замовлення не сталось. Саме сума
        такого кошика — те, що ми реально втратили. */
-    var cs = (d.cart && +d.cart.sum) || 0;
-    if(!hasOrder && cs > 0){ a.abandN++; a.abandSum += cs; }
+    if(!order && cartMax > 0){ a.abandN++; a.abandSum += cartMax; }
 
-    var st = d.steps || {}; Object.keys(st).forEach(function(k){ bump(a.steps, k); });
-    var ev = d.ev || {};    Object.keys(ev).forEach(function(k){ bump(a.ev, k, +ev[k] || 0); });
-    var pk = d.pick || {};  Object.keys(pk).forEach(function(k){ bump(a.pick, k, +pk[k] || 0); });
-    bump(a.src, srcKey(d.src));
-    bump(a.first, srcKey(d.first || d.src));
-    bump(a.dev, (d.dev && d.dev.type) || 'невідомо');
-    bump(a.land, d.land || '/');
-    bump(a.exit, d.exit || d.land || '/');
-    if(d.hour != null) bump(a.hour, String(d.hour));
-    if(d.dow  != null) bump(a.dow,  String(d.dow));
+    Object.keys(steps).forEach(function(k){ bump(a.steps, k); });
+    Object.keys(ev).forEach(function(k){ bump(a.ev, k, ev[k]); });
+    Object.keys(pick).forEach(function(k){ bump(a.pick, k, pick[k]); });
+
+    var fSrc = first.first || first.src;
+    bump(a.src, srcKey(first.src));
+    bump(a.first, srcKey(fSrc));
+    bump(a.ch, channelOf(first.src));
+    bump(a.chFirst, channelOf(fSrc));
+    bump(a.dev, (first.dev && first.dev.type) || 'невідомо');
+    bump(a.land, first.land || '/');
+    bump(a.exit, last.exit || last.land || '/');
+    if(first.hour != null) bump(a.hour, String(first.hour));
+    if(first.dow  != null) bump(a.dow,  String(first.dow));
   }
   function mergeInto(a, b){
     if(!b) return a;
@@ -7256,6 +7354,29 @@ async function init(){
       Object.keys(b[g] || {}).forEach(function(k){ bump(a[g], k, +b[g][k] || 0); });
     });
     return a;
+  }
+
+  /* Підсумок дня їде в базу одним документом, а Firestore не приймає документ
+     більший за мегабайт. Довгі хвости (сотні різних посилань чи кампаній) у
+     звіті все одно не потрібні — лишаємо найпомітніше. */
+  var MAP_KEEP = 300;
+  function trimSites(sites){
+    var out = {};
+    Object.keys(sites).forEach(function(site){
+      var a = sites[site], o = {};
+      NUMS.forEach(function(k){ o[k] = a[k]; });
+      o.v = a.v;
+      MAPS.forEach(function(g){
+        var keys = Object.keys(a[g] || {});
+        if(keys.length <= MAP_KEEP){ o[g] = a[g]; return; }
+        var m = {};
+        keys.sort(function(x, y){ return a[g][y] - a[g][x]; }).slice(0, MAP_KEEP)
+            .forEach(function(k){ m[k] = a[g][k]; });
+        o[g] = m;
+      });
+      out[site] = o;
+    });
+    return out;
   }
 
   /* День: спершу готовий підсумок, і лише якщо його немає — сирі сесії.
@@ -7273,16 +7394,32 @@ async function init(){
       }catch(e){ console.warn('an_days', day, e && e.code); }
     }
     var sites = {};
-    var snap = await fbDb.collection('an_sessions').where('day','==',day).get();
+    var snap = await fbDb.collection('an_sessions').where('day','==',day).limit(RAW_LIMIT).get();
+    var cut = snap.size >= RAW_LIMIT;
+    if(cut) AN.truncated++;
+    var bySid = {};
     snap.forEach(function(s){
-      var d = s.data() || {}, k = d.site || 'main';
-      if(!sites[k]) sites[k] = emptyAgg();
-      addSession(sites[k], d);
+      var d = s.data() || {};
+      var k = d.sid || s.id;
+      if(!bySid[k]) bySid[k] = [];
+      bySid[k].push(d);
     });
+    Object.keys(bySid).forEach(function(k){
+      var docs = bySid[k];
+      docs.sort(function(x, y){ return String(x.startAt || '').localeCompare(String(y.startAt || '')); });
+      /* Сесію відносимо до того сайту, з якого людина ЗАЙШЛА: інакше перехід
+         з головної на посадкову подвоїв би візит. */
+      var site = docs[0].site || 'main';
+      if(!sites[site]) sites[site] = emptyAgg();
+      addGroup(sites[site], docs);
+    });
+    /* Обрізаний день не можна ні кешувати, ні зберігати як готовий підсумок:
+       він осів би в базі назавжди, і частина трафіку зникла б безслідно. */
+    if(cut) return sites;
     AN.cache[day] = sites;
     if(!recent){
       try{ await fbDb.collection('an_days').doc(day)
-             .set({ day:day, v:ROLLUP_V, at:new Date().toISOString(), sites:sites }); }
+             .set({ day:day, v:ROLLUP_V, at:new Date().toISOString(), sites:trimSites(sites) }); }
       catch(e){ console.warn('підсумок дня не збережено', day, e && e.code); }
     }
     return sites;
@@ -7327,11 +7464,23 @@ async function init(){
     }catch(e){ AN.spend = {}; }
     return AN.spend;
   }
-  function spendIn(days){
-    var s = AN.spend || {}, t = 0;
-    days.forEach(function(d){ t += +s[d] || 0; });
-    return t;
+  /* Старий формат — одне число за день. Читаємо його як «інша реклама»,
+     щоб уже внесені суми не зникли. */
+  function spendDay(d){
+    var v = (AN.spend || {})[d];
+    if(v == null) return {};
+    if(typeof v === 'number') return { other_paid: v };
+    return v;
   }
+  function spendByChannel(days){
+    var m = {}, total = 0;
+    days.forEach(function(d){
+      var v = spendDay(d);
+      Object.keys(v).forEach(function(c){ var n = +v[c] || 0; m[c] = (m[c] || 0) + n; total += n; });
+    });
+    return { m:m, total:total };
+  }
+  function spendIn(days){ return spendByChannel(days).total; }
 
   /* ── Дрібні помічники малювання ───────────────────────────── */
   function pct(a, b){ return b > 0 ? (a / b * 100) : 0; }
@@ -7363,7 +7512,8 @@ async function init(){
     if(!rows.length) return '<div class="an-empty">' + escapeHtml(empty || 'Поки що порожньо.') + '</div>';
     var h = head.map(function(c){ return '<th' + (c.num ? ' class="num"' : '') + '>' + escapeHtml(c.t) + '</th>'; }).join('');
     var b = rows.map(function(r){
-      return '<tr' + (r.tot ? ' class="tot"' : '') + '>' + r.c.map(function(c, i){
+      var cls = (r.tot ? 'tot ' : '') + (r.bad ? 'bad' : '');
+      return '<tr' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + '>' + r.c.map(function(c, i){
         return '<td' + (head[i] && head[i].num ? ' class="num"' : '') + '>' + c + '</td>'; }).join('') + '</tr>';
     }).join('');
     return '<div class="an-tbl-wrap"><table class="an-tbl"><thead><tr>' + h + '</tr></thead><tbody>' + b + '</tbody></table></div>';
@@ -7413,6 +7563,80 @@ async function init(){
   var DOW_UA = ['Неділя','Понеділок','Вівторок','Середа','Четвер','Пʼятниця','Субота'];
   var SITE_UA = { main:'Головний', horeca:'HoReCa', build:'Будівництво', offer:'КП' };
 
+  /* ── Зведення по каналах ───────────────────────────────────
+     Одна таблиця, у якій усе сходиться: скільки вклали в кожен канал,
+     скільки він привів людей, замовлень і грошей, і що з того лишилось
+     після реклами. Виручка береться з Канбану, витрати — з того, що ви
+     внесли вручну; звести їх інакше неможливо, бо рекламні кабінети
+     назовні нічого не віддають. */
+  function renderChannels(A, days, ords){
+    var sp = spendByChannel(days);
+    var visits = AN.attr === 'first' ? A.chFirst : A.ch;
+    var byCh = {};
+    ords.forEach(function(o){
+      var an = o.an || {};
+      var c = channelOf(AN.attr === 'first' ? (an.first || an.src) : an.src);
+      if(!byCh[c]) byCh[c] = { n:0, sum:0, marg:0 };
+      byCh[c].n++;
+      byCh[c].sum  += +o.totalPrice || 0;
+      byCh[c].marg += +o.margin || 0;
+    });
+
+    var keys = {};
+    CHANNELS.forEach(function(c){ if(sp.m[c.k] || visits[c.k] || byCh[c.k]) keys[c.k] = 1; });
+    Object.keys(visits).forEach(function(k){ keys[k] = 1; });
+    Object.keys(byCh).forEach(function(k){ keys[k] = 1; });
+    Object.keys(sp.m).forEach(function(k){ keys[k] = 1; });
+
+    var list = Object.keys(keys).map(function(k){
+      var o = byCh[k] || { n:0, sum:0, marg:0 };
+      return { k:k, spend:+sp.m[k] || 0, v:visits[k] || 0, n:o.n, sum:o.sum, marg:o.marg };
+    }).sort(function(a, b){ return (b.spend - a.spend) || (b.sum - a.sum) || (b.v - a.v); });
+
+    var T = { spend:0, v:0, n:0, sum:0, marg:0 };
+    list.forEach(function(r){ T.spend += r.spend; T.v += r.v; T.n += r.n; T.sum += r.sum; T.marg += r.marg; });
+
+    function row(r, isTot){
+      var cpo   = r.n ? r.spend / r.n : 0;
+      var roas  = r.spend ? r.sum / r.spend : 0;
+      var profit = r.marg - r.spend;
+      var bad = r.spend > 0 && !r.n;
+      return { tot:isTot, c:[
+        (isTot ? 'Разом' : escapeHtml(CH_UA[r.k] || r.k)),
+        r.spend ? fmt(r.spend) + ' грн' : '—',
+        fmt(r.v),
+        fmt(r.n),
+        fmt(r.sum) + ' грн',
+        fmt(r.marg) + ' грн',
+        r.spend ? (r.n ? fmt(cpo) + ' грн' : '<span class="an-down">немає замовлень</span>') : '—',
+        r.spend ? (Math.round(roas * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
+        (r.spend || r.marg)
+          ? '<b class="' + (profit >= 0 ? 'an-up' : 'an-down') + '">' + fmt(profit) + ' грн</b>'
+          : '—'
+      ], bad:bad };
+    }
+    var rows = list.map(function(r){ return row(r); });
+    if(rows.length) rows.push(row(T, true));
+
+    document.getElementById('an-channels').innerHTML =
+      '<div class="an-attr">Виручку зараховуємо: ' +
+        '<button class="an-attr-btn' + (AN.attr === 'first' ? ' on' : '') + '" data-attr="first">тому, хто привів уперше</button>' +
+        '<button class="an-attr-btn' + (AN.attr === 'last'  ? ' on' : '') + '" data-attr="last">останньому переходу</button>' +
+      '</div>' +
+      tbl([{t:'Канал'},{t:'Витрати',num:1},{t:'Візити',num:1},{t:'Замовлень',num:1},
+           {t:'Виручка',num:1},{t:'Маржа',num:1},{t:'Ціна замовлення',num:1},
+           {t:'Окупність',num:1},{t:'Прибуток',num:1}],
+          rows, 'Даних за період немає.');
+
+    document.getElementById('an-channels').querySelectorAll('[data-attr]').forEach(function(b){
+      b.addEventListener('click', function(){
+        AN.attr = b.dataset.attr;
+        renderChannels(A, days, ords);
+      });
+    });
+    return { spend:T.spend, profit:T.marg - T.spend };
+  }
+
   /* ── 1. ГОЛОВНЕ ───────────────────────────────────────────── */
   function renderMain(A, P, days, ords, prevOrds){
     var spend = spendIn(days);
@@ -7439,9 +7663,11 @@ async function init(){
       K.push(kpi('Витрачено на рекламу', fmt(spend) + ' грн',
         'замовлення по ' + (ords.length ? fmt(spend / ords.length) : '—') + ' грн'));
       K.push(kpi('Окупність реклами', revenue ? (Math.round(revenue / spend * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
-        'маржа мінус реклама: ' + fmt(margin - spend) + ' грн', (margin - spend) > 0 ? 'good' : 'bad'));
+        'на кожну вкладену гривню', revenue >= spend ? 'good' : 'bad'));
+      K.push(kpi('Чистий прибуток', fmt(margin - spend) + ' грн', 'маржа мінус реклама',
+        (margin - spend) > 0 ? 'good' : 'bad'));
     } else {
-      K.push(kpi('Реклама', '—', 'внесіть витрати в розділі «Продажі»'));
+      K.push(kpi('Реклама', '—', 'внесіть бюджет у розділі «Реклама»'));
     }
     K.push(kpi('Покинуті кошики', fmt(A.abandN), A.abandSum ? 'на ' + fmt(A.abandSum) + ' грн' : '',
                A.abandN ? 'bad' : ''));
@@ -7450,6 +7676,18 @@ async function init(){
     /* На що звернути увагу — щоб не треба було вичитувати всі таблиці */
     var AL = [];
     function alert(kind, text){ AL.push('<div class="an-alert ' + kind + '">' + text + '</div>'); }
+    /* Звірка двох незалежних лічильників. Сайт рахує замовлення у себе,
+       Канбан — у себе. Якщо сайт нарахував більше, значить частина замовлень
+       не доїхала до Канбану, і про це треба знати ОДРАЗУ, а не з дзвінка
+       клієнта «а де моє замовлення». */
+    var webOrds = ords.filter(function(o){ return o.type === 'web'; }).length;
+    if(A.orders > webOrds)
+      alert('bad', '<b>Замовлення губляться.</b> Сайт зафіксував ' + fmt(A.orders) +
+        ', у Канбані з сайту — ' + fmt(webOrds) + '. Перевірте правила бази й колекцію webOrders.');
+    if(AN.truncated > 0)
+      alert('warn', '<b>Показано не всі дані.</b> За ' + fmt(AN.truncated) +
+        ' дн. кількість переглядів перевищила ' + fmt(RAW_LIMIT) +
+        ' — у звіт увійшла лише частина. Звузьте період.');
     if((A.ev.order_fail || 0) > 0)
       alert('bad', '<b>Замовлення не проходять.</b> ' + fmt(A.ev.order_fail) +
         ' спроб завершились помилкою — перевірте, чи приймає база нові замовлення.');
@@ -7508,7 +7746,9 @@ async function init(){
     });
     var rows = days.slice().reverse().map(function(d){
       var a = (renderMain.perDay || {})[d] || emptyAgg();
-      var o = ordDay[d] || { n:0, sum:0 }, s = +(AN.spend || {})[d] || 0;
+      var o = ordDay[d] || { n:0, sum:0 };
+      var sv = spendDay(d);
+      var s = Object.keys(sv).reduce(function(t, k){ return t + (+sv[k] || 0); }, 0);
       return { c:[escapeHtml(d), fmt(a.visits), fmt(a.steps.ctor || 0), fmt(a.steps.cart || 0),
                   fmt(o.n), fmt(o.sum) + ' грн', s ? fmt(s) + ' грн' : '—'] };
     });
@@ -7746,12 +7986,30 @@ async function init(){
         '</div>'
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
-    var sp = AN.spend || {}, spend = spendIn(days);
-    var spRows = days.slice().reverse().filter(function(d){ return +sp[d] > 0; })
-      .map(function(d){ return { c:[escapeHtml(d), fmt(+sp[d]) + ' грн'] }; });
-    if(spRows.length) spRows.push({ tot:1, c:['Разом', fmt(spend) + ' грн'] });
+    renderSpend(days);
+  }
+
+  /* Витрати: рядок на день, колонка на канал. */
+  function renderSpend(days){
+    var sp = spendByChannel(days);
+    var cols = PAID_CH.filter(function(c){ return sp.m[c.k] > 0; });
+    if(!cols.length) cols = PAID_CH.slice(0, 5);
+    var head = [{ t:'День' }].concat(cols.map(function(c){ return { t:c.ua, num:1 }; }))
+                             .concat([{ t:'Разом', num:1 }]);
+    var rows = [];
+    days.slice().reverse().forEach(function(d){
+      var v = spendDay(d);
+      var tot = Object.keys(v).reduce(function(a, k){ return a + (+v[k] || 0); }, 0);
+      if(!tot) return;
+      rows.push({ c:[escapeHtml(d)]
+        .concat(cols.map(function(c){ return v[c.k] ? fmt(+v[c.k]) + ' грн' : '—'; }))
+        .concat(['<b>' + fmt(tot) + ' грн</b>']) });
+    });
+    if(rows.length) rows.push({ tot:1, c:['Разом']
+      .concat(cols.map(function(c){ return sp.m[c.k] ? fmt(sp.m[c.k]) + ' грн' : '—'; }))
+      .concat([fmt(sp.total) + ' грн']) });
     document.getElementById('an-spend-list').innerHTML =
-      tbl([{t:'День'},{t:'Витрачено',num:1}], spRows, 'За обраний період витрат не вносили.');
+      tbl(head, rows, 'За обраний період бюджет не вносили.');
   }
 
   /* ── Завантаження ─────────────────────────────────────────── */
@@ -7763,11 +8021,13 @@ async function init(){
     state('Рахуємо за ' + days.length + ' дн…');
     try{
       await loadSpend();
+      AN.truncated = 0;
       var cur = await rangeAgg(days);
       var prv = await rangeAgg(prevDays);
       var ords = periodOrders(days), prevOrds = periodOrders(prevDays);
       renderMain.perDay = cur.perDay;
       renderMain(cur.A, prv.A, days, ords, prevOrds);
+      renderChannels(cur.A, days, ords);
       renderTraffic(cur.A, ords);
       renderBehav(cur.A, ords);
       renderSales(days, ords);
@@ -7799,7 +8059,7 @@ async function init(){
   seg('an-site', 's', function(v){ AN.site = v || ''; });
   seg('an-block', 'b', function(v){
     AN.block = v || 'main';
-    ['main','traffic','behav','sales'].forEach(function(k){
+    ['main','traffic','behav','sales','ads'].forEach(function(k){
       var el = document.getElementById('an-pane-' + k);
       if(el) el.hidden = (k !== AN.block);
     });
@@ -7809,18 +8069,27 @@ async function init(){
   var rl = document.getElementById('an-reload');
   if(rl) rl.addEventListener('click', function(){ AN.cache = {}; AN.spend = null; load(); });
 
+  var chSel = document.getElementById('an-spend-ch');
+  if(chSel) chSel.innerHTML = PAID_CH.map(function(c){
+    return '<option value="' + c.k + '">' + escapeHtml(c.ua) + '</option>'; }).join('');
+
   var save = document.getElementById('an-spend-save');
   if(save) save.addEventListener('click', async function(){
-    var d = (document.getElementById('an-spend-date') || {}).value || '';
-    var v = +((document.getElementById('an-spend-sum') || {}).value || 0);
+    var d  = (document.getElementById('an-spend-date') || {}).value || '';
+    var ch = (document.getElementById('an-spend-ch') || {}).value || '';
+    var v  = +((document.getElementById('an-spend-sum') || {}).value || 0);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return toast('Оберіть день');
+    if(!ch) return toast('Оберіть канал');
     if(!(v >= 0)) return toast('Вкажіть суму');
     try{
       await loadSpend();
-      AN.spend[d] = v;
+      var day = spendDay(d);
+      day[ch] = v;
+      if(!v) delete day[ch];
+      AN.spend[d] = day;
       await fbDb.collection('loomiq').doc('adspend').set({ days: AN.spend }, { merge:true });
       document.getElementById('an-spend-sum').value = '';
-      toast('Витрати за ' + d + ' збережено');
+      toast((CH_UA[ch] || ch) + ' за ' + d + ': ' + fmt(v) + ' грн');
       load();
     }catch(e){ toast('Не збереглось: ' + ((e && e.code) || 'помилка')); }
   });

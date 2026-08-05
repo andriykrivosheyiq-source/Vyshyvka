@@ -84,14 +84,17 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Аналітика: одна сесія відвідувача = один документ. Пише сайт анонімно,
-    // читає й підсумовує лише адмінка. Перевірки нижче — щоб через відкритий
-    // запис не залили базу сміттям: ім'я документа має збігатись із полем sid,
-    // сайт лише зі списку, а час і глибина — в межах здорового глузду.
+    // Аналітика: один ПЕРЕГЛЯД СТОРІНКИ = один документ. Сесію звіт збирає
+    // назад за полем sid. Окремі документи потрібні тому, що друга вкладка
+    // або перехід на іншу сторінку інакше затирали б час, накопичений раніше.
+    // Пише сайт анонімно, читає й підсумовує лише адмінка. Перевірки нижче —
+    // щоб через відкритий запис не залили базу сміттям: сайт лише зі списку,
+    // а час і глибина — в межах здорового глузду.
     // Персональних даних тут немає, лише випадковий ідентифікатор пристрою.
-    match /an_sessions/{sid} {
+    match /an_sessions/{doc} {
       allow read: if request.auth != null;
-      allow create, update: if request.resource.data.sid == sid
+      allow create, update: if request.resource.data.sid is string
+                    && request.resource.data.sid.size() <= 32
                     && request.resource.data.vid is string
                     && request.resource.data.vid.size() <= 32
                     && request.resource.data.site in ['main', 'horeca', 'build', 'offer']
