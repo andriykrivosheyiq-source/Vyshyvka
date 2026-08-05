@@ -89,7 +89,18 @@
     padding:6px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;}
   .dev-switch button:hover{color:var(--ink);}
   .dev-switch button.active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(15,32,52,.10);}
-  #landing-fit{width:100%;height:100%;transform-origin:top center;transition:transform .16s;}
+  #landing-fit{position:relative;width:100%;height:100%;transform-origin:top center;transition:transform .16s;}
+  /* Смужка на краю рамки: тягнеш — і бачиш будь-яку ширину, а не лише три
+     заготовки. Телефонів і планшетів надто багато, щоб перелічити всі. */
+  #landing-grip{position:absolute;top:0;right:0;width:22px;height:100%;cursor:ew-resize;
+    display:flex;align-items:center;justify-content:center;touch-action:none;z-index:3;}
+  #landing-grip span{width:5px;height:56px;border-radius:3px;background:#B7C0CE;
+    box-shadow:0 1px 4px rgba(15,32,52,.25);transition:background .15s,height .15s;}
+  #landing-grip:hover span,#landing-grip.on span{background:var(--accent);height:76px;}
+  #landing-stage.is-free{padding:14px;align-items:flex-start;}
+  #landing-stage.is-free #landing-fit{width:auto;height:auto;}
+  #landing-stage.is-free #calc-frame{border-radius:14px;box-shadow:0 10px 34px rgba(15,32,52,.22);
+    border:1px solid rgba(15,32,52,.10);}
   #landing-stage.is-framed{padding:14px;align-items:flex-start;}
   #landing-stage.is-framed #landing-fit{width:auto;height:auto;}
   #landing-stage.is-framed #calc-frame{border-radius:14px;box-shadow:0 10px 34px rgba(15,32,52,.22);
@@ -1286,6 +1297,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <option value="main">Головний — loomiq.net</option>
               <option value="horeca">HoReCa — /horeca/</option>
               <option value="build">Будівництво — /build/</option>
+              <option value="offer">КП — тестова пропозиція</option>
             </select>
           </div>
           <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
@@ -1306,7 +1318,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
         <div id="landing-stage" style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef1f6;
              height:calc(100vh - 210px);min-height:520px;display:flex;justify-content:center;align-items:stretch;padding:0;">
-          <div id="landing-fit"><iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;background:#fff;"></iframe></div>
+          <div id="landing-fit"><iframe id="calc-frame" title="Посадкова сторінка" style="width:100%;height:100%;border:0;display:block;background:#fff;"></iframe><div id="landing-grip" title="Потягніть, щоб звузити"><span></span></div></div>
         </div>
       </div>
 
@@ -1506,7 +1518,10 @@ const LQ_SITES = [
 ];
 let LQ_SITE = localStorage.getItem('lq_admin_site') || 'main';
 if(!LQ_SITES.some(x=>x.id===LQ_SITE)) LQ_SITE = 'main';
+// КП — не окремий сайт, а лише режим перегляду. Документ контенту в неї той
+// самий, що в головної, тож дані нікуди не зміщуються.
 function lqSiteDef(){ return LQ_SITES.find(x=>x.id===LQ_SITE) || LQ_SITES[0]; }
+function lqIsOffer(){ return LQ_SITE === 'offer'; }
 function syncSiteBadge(){ const b = document.getElementById('ctor-site-badge'); if(b) b.textContent = lqSiteDef().label; }
 // Змінна (не const) — усі збереження нижче автоматично пишуть у документ обраного сайту
 /* Дані розділені на два документи:
@@ -6463,6 +6478,9 @@ async function init(){
   /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
      Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
   function calcFrameUrl(){
+    // КП — не посадкова: у неї немає редагування наповнення, зате є тестове
+    // замовлення, на якому видно всі блоки, зокрема кейси й питання.
+    if(LQ_SITE === 'offer') return 'offer.html?demo=1';
     const p = lqSiteDef().id;
     const base = p === 'main' ? 'index.html' : p + '/index.html';
     return base + '?manager=1&edit=1';
@@ -6508,7 +6526,7 @@ async function init(){
     };
     let dev = localStorage.getItem('lq_admin_dev') || 'desktop';
     if(!MODELS[dev]) dev = 'desktop';
-    let model = {}, land = false;
+    let model = {}, land = false, free = 0;   // free — ширина, задана смужкою
     try{ model = JSON.parse(localStorage.getItem('lq_admin_devmodel') || '{}'); }catch(e){}
     function cur(){
       const list = MODELS[dev];
@@ -6523,6 +6541,20 @@ async function init(){
       // масштаб був би сміттям. Перерахуємо, щойно вона справді зʼявиться.
       if(!stage.clientWidth || !stage.clientHeight) return;
       const m = cur();
+      // Вільна ширина головніша за пресет: людина щойно її задала рукою
+      if(free){
+        stage.classList.remove('is-framed');
+        stage.classList.add('is-free');
+        fit.style.transform = '';
+        fr.style.width = free + 'px';
+        fr.style.height = Math.max(200, stage.clientHeight - 28) + 'px';
+        sel.style.display = 'block'; rot.style.display = 'none';
+        box.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        dim.textContent = free + ' px — вільна ширина';
+        if(open) open.href = calcFrameUrl();
+        return;
+      }
+      stage.classList.remove('is-free');
       const framed = !!(m.w && m.h);
       stage.classList.toggle('is-framed', framed);
       sel.style.display = 'block';
@@ -6547,10 +6579,36 @@ async function init(){
       dim.textContent = w + ' × ' + h + (k < 1 ? ' · ' + Math.round(k * 100) + '%' : '');
     }
     box.querySelectorAll('button').forEach(b => b.addEventListener('click', function(){
-      dev = b.dataset.dev; land = false;
+      dev = b.dataset.dev; land = false; free = 0;
       localStorage.setItem('lq_admin_dev', dev);
       apply();
     }));
+    // Вільна ширина: тягнемо смужку на краю рамки. Пресети лишаються — але
+    // між ними можна стати будь-де і подивитись, де саме верстка ламається.
+    (function(){
+      const grip = document.getElementById('landing-grip');
+      const stage = document.getElementById('landing-stage');
+      if(!grip || !stage) return;
+      let startX = 0, startW = 0;
+      grip.addEventListener('pointerdown', function(e){
+        const fr = document.getElementById('calc-frame');
+        if(!fr) return;
+        e.preventDefault();
+        grip.classList.add('on');
+        grip.setPointerCapture(e.pointerId);
+        startX = e.clientX;
+        startW = fr.getBoundingClientRect().width || fr.clientWidth;
+      });
+      grip.addEventListener('pointermove', function(e){
+        if(!grip.classList.contains('on')) return;
+        const max = Math.max(320, stage.clientWidth - 28);
+        free = Math.round(Math.max(300, Math.min(max, startW + (e.clientX - startX) * 2)));
+        apply();
+      });
+      const stop = function(){ grip.classList.remove('on'); };
+      grip.addEventListener('pointerup', stop);
+      grip.addEventListener('pointercancel', stop);
+    })();
     sel.addEventListener('change', function(){
       model[dev] = sel.value;
       localStorage.setItem('lq_admin_devmodel', JSON.stringify(model));
@@ -6577,6 +6635,22 @@ async function init(){
     sel.addEventListener('change', function(){
       LQ_SITE = sel.value;
       localStorage.setItem('lq_admin_site', LQ_SITE);
+      const lp = document.getElementById('ctor-landings');
+      // КП — лише перегляд: документ контенту не перемикаємо й нічого не
+      // перезавантажуємо, інакше товари й фото поїхали б у порожнечу.
+      if(lqIsOffer()){
+        const et = document.getElementById('edit-toggle');
+        if(et){ et.style.display = 'none'; }
+        const eh = document.getElementById('edit-hint');
+        if(eh) eh.textContent = 'Тестова пропозиція — так її бачить клієнт. Тексти кейсів і питань беруться з «Головна й контакти».';
+        if(lp && lp.style.display !== 'none') loadCalcFrame(true);
+        toast('Перегляд КП');
+        return;
+      }
+      const et2 = document.getElementById('edit-toggle');
+      if(et2) et2.style.display = '';
+      const eh2 = document.getElementById('edit-hint');
+      if(eh2) eh2.textContent = 'Клікніть по тексту, щоб змінити його. По фото — щоб замінити або наблизити.';
       contentData = {}; photosMap = {};
       prodDetailId = null;
       subscribePhotos();
@@ -6584,10 +6658,13 @@ async function init(){
       if(rv && rv.style.display!=='none' && typeof loadReviewsAdmin==='function') loadReviewsAdmin();
       syncSiteBadge();
       const s2 = document.getElementById('site-switch-2'); if(s2) s2.value = LQ_SITE;
-      const lp = document.getElementById('ctor-landings');
       if(lp && lp.style.display !== 'none') loadCalcFrame(true);   // показуємо обрану посадкову
       toast('Сайт: ' + lqSiteDef().label);
     });
+    if(lqIsOffer()){
+      // сторінка відкрилась одразу на КП — вимикаємо редагування наповнення
+      const et = document.getElementById('edit-toggle'); if(et) et.style.display = 'none';
+    }
   })();
 
   // Жива синхронізація: зміни з інших пристроїв одразу підтягуються
