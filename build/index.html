@@ -8102,5 +8102,49 @@ window.LOOMIQ_CONFIG = {
   document.addEventListener('lq-photos', render);
 })();
 </script>
+<script>
+/* Поле телефону починається з +380: на цифровій клавіатурі айфона плюса
+   немає, і люди застрягали на першому символі. Щойно ставлять курсор —
+   код країни вже стоїть, лишається дописати дев'ять цифр. Префікс не
+   стирається; якщо нічого не дописали, поле знову порожнє, щоб перевірка
+   «обов'язкове» працювала як раніше. */
+(function(){
+  var PFX = '+380';
+  function tidy(el){
+    var v = el.value, rest;
+    if(v.indexOf(PFX) === 0) rest = v.slice(PFX.length);
+    else if(v.length <= PFX.length) rest = '';      // затерли префікс — відновлюємо
+    else rest = v;                                   // вставили номер цілком
+    var d = rest.replace(/\D/g, '');
+    // Код країни прибираємо ЛИШЕ коли цифр більше, ніж треба: інакше він
+    // з'їдав би те, що людина щойно набрала по одній цифрі.
+    if(d.length > 9){
+      if(d.indexOf('380') === 0) d = d.slice(3);
+      else if(d.indexOf('80') === 0) d = d.slice(2);
+      else if(d.indexOf('0') === 0) d = d.slice(1);
+    }
+    var next = PFX + d.slice(0, 9);
+    if(el.value !== next) el.value = next;
+  }
+  function toEnd(el){
+    try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){}
+  }
+  function bind(el){
+    if(el.dataset.uaPfx) return;
+    el.dataset.uaPfx = '1';
+    el.addEventListener('focus', function(){
+      if(!el.value.trim()) el.value = PFX;
+      requestAnimationFrame(function(){ toEnd(el); });
+    });
+    el.addEventListener('input', function(){ tidy(el); });
+    el.addEventListener('blur', function(){ if(el.value === PFX) el.value = ''; });
+  }
+  function scan(){ document.querySelectorAll('input[type="tel"]').forEach(bind); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+  else scan();
+  // Форми відкриваються з модалок, тож поля з'являються пізніше
+  document.addEventListener('click', function(){ setTimeout(scan, 60); }, true);
+})();
+</script>
 </body>
 </html>
