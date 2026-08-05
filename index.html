@@ -5832,6 +5832,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var sh = sharedUnitPrice(qty);
       return sh != null ? sh : (unitPriceCoef(coef, qty) + orderFeePerUnit(qty));
     }
+    /* Розклад ціни поточної позиції ОЧИМА СПІЛЬНОГО РУШІЯ — того самого, що
+       рахує кошик, Канбан і комерційну пропозицію. Потрібен менеджерському
+       прорахунку: ціна позиції залежить не лише від неї, а від усього
+       замовлення (знижка йде від сумарного тиражу способу, підготовка макета
+       ділиться на всі вироби цього способу). Рахувати рядки окремо від
+       позиції — це і є та розбіжність, коли стовпчик не сходиться з підсумком. */
+    function sharedDraftParts(qtyOverride){
+      if(!sitePricing()) return null;
+      var d = draftDescriptor();
+      if(qtyOverride != null) d.units = Math.max(1, qtyOverride);
+      var list = cartDescriptors().concat([d]);
+      var r = priceOrder(list);
+      var last = r[r.length - 1];
+      return (last && last.parts) ? { unit: last.unit, parts: last.parts } : null;
+    }
     // Ефективна ціна/шт для поточного вибору кількості (для рядка ціни та кошика).
     function effUnitPrice(){
       var u = totalUnits();
@@ -8093,16 +8108,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var u = totalUnits(), qty = u > 0 ? u : 1;
       var m = methodCfgNew() || {};
       var methodName = getPrint().name;
-      var ap = applicationParts();
+      /* Усі рядки беремо зі спільного рушія, а не рахуємо тут заново. Інакше
+         стовпчик не сходиться з підсумком: знижка йде від сумарного тиражу
+         способу по всьому замовленню, а підготовка макета ділиться на всі
+         вироби цього способу, а не лише на цю позицію. */
+      var sd = sharedDraftParts(qty);
+      var P = sd ? sd.parts : null;
+      // Скільки виробів цього способу в замовленні — від цього залежить і
+      // знижка, і рядок сітки DTF, і на скільки ділиться макет.
+      var groupQty = (P && P.groupQty) ? P.groupQty : qty;
+      var ap = applicationParts(groupQty);
       var coefPart = ap.coefPart, flatPart = ap.flatPart;   // coefPart (вишивка) — під знижкою; flatPart (DTF) — без
-      var appSell = coefPart + flatPart, appCost = applicationCostSum();
-      var base = basePriceNew(), gCost = garmentCost();
-      var t = activeCoefTier(); var coef = t ? t.coef : 1;
-      var discountable = base + coefPart;
-      var discountAmt = Math.round(discountable - Math.round(discountable * coef));
-      var pFee = methodPieceFee(), pCost = methodPieceCost();
-      var oFeePer = orderFeePerUnit(qty), oCostPer = qty > 0 ? Math.round(methodOrderCost()/qty) : 0;
-      var uSell = effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
+      var appCost = applicationCostSum(groupQty);
+      var appSell = P ? P.appBase : (coefPart + flatPart);
+      var base = P ? P.garmentBase : basePriceNew(), gCost = garmentCost();
+      var t = activeCoefTier();
+      var coef = P ? P.coef : (t ? t.coef : 1);
+      var pFee = P ? P.pieceFee : methodPieceFee(), pCost = methodPieceCost();
+      // Разова оплата ділиться так само, як у рушії: на всі вироби способу
+      var feeUnits = (P && P.feeUnits) ? P.feeUnits : qty;
+      var oFeePer = P ? P.feeShare : orderFeePerUnit(qty);
+      var oCostPer = feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0;
+      var uSell = sd ? sd.unit : effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
+      /* Знижку показуємо як РІЗНИЦЮ, а не рахуємо окремою формулою: так
+         стовпчик сходиться з підсумком до гривні при будь-яких округленнях. */
+      var discountAmt = Math.round(base + appSell + pFee + oFeePer - uSell);
       var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
       var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       var dims = actL ? layerOpaqueDimsMm(actL) : null;
@@ -8139,16 +8169,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var di = 0;
           getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
             var idx = di++;
-            var sell = (m.mode === 'grid') ? dtfGridSell(m, l) : placementPrice(m, l, idx);
-            var cost = (m.mode === 'grid') ? dtfGridCost(m, l) : placementCost(m, l, idx);
-            var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, undefined, idx) : placementRaw(m, l);
+            // Рядок сітки DTF беремо за СУМАРНИМ тиражем способу — так само,
+            // як його бере спільний рушій. Інакше деталізація не сходиться.
+            var sell = (m.mode === 'grid') ? dtfGridSell(m, l, groupQty) : placementPrice(m, l, idx);
+            var cost = (m.mode === 'grid') ? dtfGridCost(m, l, groupQty) : placementCost(m, l, idx);
+            var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, groupQty, idx) : placementRaw(m, l);
             var atMin = sell > raw + 0.5;
             var note;
             if(m.mode === 'grid'){
               // Показуємо, з якої саме клітинки таблиці взята сума: розмір листа,
               // рядок тиражу і габарит логотипа. Інакше сума виглядає нізвідки.
               var bcol = dtfBandCol(m, l); var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
-              var qfa = m.qtyFrom || [], uNow = Math.max(1, totalUnits()), qrow = 0;
+              var qfa = m.qtyFrom || [], uNow = Math.max(1, groupQty), qrow = 0;
               for(var jj = qfa.length - 1; jj >= 0; jj--){ if(uNow >= qfa[jj]){ qrow = jj; break; } }
               var dmm = layerOpaqueDimsMm(l);
               var calcG = 'лист ' + blab
@@ -8172,17 +8204,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           }); });
         }
       }
-      if(discountAmt>0) tb += r('Знижка за тираж −'+Math.round((1-coef)*100)+'%', '−'+money(discountAmt), dash);
+      if(discountAmt>0){
+        // Коли в замовленні є ще вироби цього способу — показуємо, від якого
+        // саме тиражу йде знижка. Інакше −20% на 6 шт виглядають помилкою.
+        var dLbl = 'Знижка за тираж −'+Math.round((1-coef)*100)+'%' +
+          (groupQty > qty ? ' <span style="color:#8a94a6;">(від '+groupQty+' шт у замовленні)</span>' : '');
+        tb += r(dLbl, '−'+money(discountAmt), dash);
+      }
       if(nLogos > 0){
         tb += r('Оплата за штуку', money(pFee), money(pCost));
-        var nExtra = extraSketchCount();
-        if(nExtra > 0){
-          var mainFeePer = qty>0 ? Math.round((+m.orderFee||0)/qty) : 0;
-          var mainCostPer = qty>0 ? Math.round((+m.orderCost||0)/qty) : 0;
-          tb += r('Дизайн (÷'+qty+' шт)', money(mainFeePer), money(mainCostPer));
-          tb += r('Додаткові ескізи ('+nExtra+'× ÷'+qty+')', money(oFeePer-mainFeePer), money(oCostPer-mainCostPer));
-        } else {
-          tb += r('Дизайн (÷'+qty+' шт)', money(oFeePer), money(oCostPer));
+        var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
+        var mainFeePer = feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0;
+        var mainCostPer = feeUnits > 0 ? Math.round((+m.orderCost||0)/feeUnits) : 0;
+        // Решта разових — додаткові ескізи. Беремо різницею, щоб сума рядків
+        // збігалась із часткою, яку порахував спільний рушій.
+        var extraFee = oFeePer - mainFeePer;
+        tb += r('Підготовка макета (÷'+feeDiv+')', money(mainFeePer), money(mainCostPer));
+        if(extraFee !== 0){
+          var nExtra = extraSketchCount();
+          tb += r('Додаткові ескізи'+(nExtra>0 ? ' ('+nExtra+'×)' : ''),
+                  money(extraFee), money(Math.max(0, oCostPer-mainCostPer)));
         }
       }
       tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});
