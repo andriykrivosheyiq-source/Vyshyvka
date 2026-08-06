@@ -52,6 +52,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .top{display:flex; align-items:center; justify-content:space-between;
     padding:18px var(--pad); border-bottom:1px solid var(--line);}
   .brand{font-size:19px; font-weight:800; letter-spacing:-0.4px;}
+  .brand i{display:block; font-style:normal; font-size:10.5px; font-weight:500;
+    letter-spacing:.2px; color:var(--muted); margin-top:2px; white-space:nowrap;}
   .top-no{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
 
   /* ── перший екран ── */
@@ -221,7 +223,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
-  .band{background:var(--soft); border-radius:20px; padding:24px 18px; margin:26px 0;}
+  /* Контраст між блоками. Раніше всі секції лежали на білому й розділялись
+     тонкою лінією — сторінка читалась як одна довга простиня. Тепер блоки
+     «про нас» стоять на темному, «про товар» — на світлому тлі. */
+  .band{background:var(--ink); color:#fff; border-radius:22px;
+    padding:28px 20px; margin:26px 0; border:none;}
+  .band .sec-title{color:#fff;}
+  .band .sec-sub{color:rgba(255,255,255,.66);}
+  .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
+  .band .review-card{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12);}
+  .band .review-card-main h4{color:#fff;}
+  .band .review-card p, .band .review-date{color:rgba(255,255,255,.7);}
+  .band .stub{background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); color:#fff;}
+  .band .stub b{color:#fff;}
+  /* «Це вже в ціні» — світлі картки на темному, максимальний контраст */
+  .band .incl-i{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.13);}
+  .band .incl-ic{background:rgba(255,255,255,.1);}
+  .band .incl-ic svg{stroke:#fff;}
+  .band .incl-l{color:#fff;}
+  .band .incl-w{color:rgba(255,255,255,.66);}
   .band .sec-title{margin-top:0;}
 
   /* Заглушка — видно лише в тестовому режимі */
@@ -500,12 +520,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ══ Що входить у вартість: іконки в ряд ══ */
   /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
      як обірваний список, а не як набір того, що входить у ціну. */
-  .incl{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-items:start;}
-  .incl-i{text-align:center; min-width:0;}
-  .incl-ic{width:100%; aspect-ratio:1/1; max-width:58px; margin:0 auto 7px;
-    border:1px solid var(--line); border-radius:14px; display:flex; align-items:center;
-    justify-content:center; background:#fff;}
-  .incl-l{font-size:10.5px; color:var(--ink-2); line-height:1.3; word-break:break-word;}
+  /* Стара сітка з пʼяти колонок прибрана: вона перебивала новий вигляд
+     і стискала текст у стовпчики по одній літері. */
   @media (min-width:480px){ .incl{gap:10px;} .incl-l{font-size:11.5px;} }
 
   /* ── товар ── */
@@ -1755,7 +1771,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function render(){
     app.innerHTML =
-      '<div class="top"><span class="brand">Loomiq</span>' +
+      '<div class="top"><span class="brand">Loomiq<i>Створюємо одяг для тих, хто змінює світ</i></span>' +
         '<span class="top-no">' + (OFFER.orderId ? '№ ' + esc(OFFER.orderId) : '') +
         ' · ' + esc(dateUa(OFFER.createdAt)) + '</span></div>' +
       '<div class="wrap">' +
