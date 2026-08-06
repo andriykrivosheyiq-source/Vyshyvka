@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Тестова зона · Loomiq</title>
+<!--
+  Постійне посилання для перевірки.
+
+  Навіщо: браузер тримає сторінки в кеші, і після оновлення сайту ще довго
+  показує стару версію — здається, що «нічого не змінилось». Ця сторінка
+  відкриває будь-який розділ із міткою часу в адресі, тож браузеру нічого
+  взяти з кешу і він завжди тягне свіже.
+
+  Поруч з кожним рядком видно, коли файл справді оновився на сервері.
+  Якщо час не змінився після заливки — значить, ще не розкотилось, і
+  оновлювати сторінку немає сенсу.
+-->
+<style>
+  :root{
+    --ink:#0F2034; --ink-2:#3A4A5F; --muted:#7B8798; --line:#E4E8EF;
+    --paper:#fff; --canvas:#F4F6FA; --accent:#C2410C; --good:#1E7A45;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--canvas); color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding:22px 16px 48px; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:620px; margin:0 auto;}
+  h1{font-size:23px; letter-spacing:-.5px; margin:0 0 6px;}
+  .sub{color:var(--muted); font-size:13.5px; line-height:1.6; margin:0 0 18px;}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:16px;
+    padding:6px 4px; margin-bottom:14px;}
+  .row{display:flex; align-items:center; gap:12px; padding:12px 12px; border-radius:12px;
+    text-decoration:none; color:inherit;}
+  .row + .row{border-top:1px solid var(--line);}
+  .row:active{background:var(--canvas);}
+  .nm{flex:1; min-width:0;}
+  .nm b{display:block; font-size:15px; font-weight:700; letter-spacing:-.2px;}
+  .nm span{display:block; font-size:12px; color:var(--muted); margin-top:2px;}
+  .when{flex:none; font-size:11.5px; color:var(--muted); text-align:right;
+    font-variant-numeric:tabular-nums; line-height:1.35;}
+  .when b{display:block; color:var(--good); font-weight:700;}
+  .when.old b{color:var(--muted);}
+  .go{flex:none; width:28px; height:28px; border-radius:50%; background:var(--canvas);
+    display:flex; align-items:center; justify-content:center; color:var(--ink-2);}
+  .note{background:#FDF7EC; color:#7A5410; border-radius:14px; padding:13px 15px;
+    font-size:12.5px; line-height:1.65;}
+  .note b{color:#5E4009;}
+  .foot{margin-top:16px; font-size:11.5px; color:var(--muted); text-align:center;}
+  button.rf{all:unset; cursor:pointer; color:var(--accent); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Тестова зона</h1>
+  <p class="sub">Постійне посилання. Кожен перехід звідси відкриває сторінку в обхід кешу —
+    ви завжди бачите те, що зараз залито на сайт.</p>
+
+  <div class="card" id="list"></div>
+
+  <div class="note">
+    <b>Якщо здається, що нічого не змінилось</b> — подивіться на час праворуч.
+    Це момент, коли файл востаннє оновився на сервері. Час не змінився після заливки —
+    значить, ще не розкотилось: зачекайте хвилину і <button class="rf" id="again">перевірте ще раз</button>.
+  </div>
+
+  <div class="foot">Сторінку не індексують пошуковики · <span id="now"></span></div>
+</div>
+
+<script>
+(function(){
+  var TARGETS = [
+    { url:'index.html',        nm:'Головний сайт',      d:'лендінг і конструктор' },
+    { url:'index.html?start=catalog', nm:'Конструктор', d:'одразу каталог товарів' },
+    { url:'offer.html?demo=1', nm:'Комерційна пропозиція', d:'тестове замовлення, нічого не зберігається' },
+    { url:'horeca/index.html', nm:'HoReCa',             d:'посадкова для закладів' },
+    { url:'build/index.html',  nm:'Будівництво',        d:'посадкова для будівельників' },
+    { url:'loomiqadmin.html',  nm:'Адмінка',            d:'Канбан, ціни, аналітика' }
+  ];
+
+  /* Мітка часу в адресі — єдиний спосіб гарантовано обійти кеш на GitHub Pages:
+     заголовками ми там не керуємо, а браузер тримає HTML до десяти хвилин. */
+  function fresh(url){
+    return url + (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + Date.now();
+  }
+  function fileOf(url){ return url.split('?')[0]; }
+
+  function ago(d){
+    var s = Math.round((Date.now() - d) / 1000);
+    if(s < 90) return 'щойно';
+    var m = Math.round(s / 60);
+    if(m < 60) return m + ' хв тому';
+    var h = Math.round(m / 60);
+    if(h < 36) return h + ' год тому';
+    return Math.round(h / 24) + ' дн тому';
+  }
+  function stamp(d){
+    try{
+      return d.toLocaleString('uk-UA', { timeZone:'Europe/Kyiv',
+        day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }catch(e){ return ''; }
+  }
+
+  var ARROW = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+
+  var box = document.getElementById('list');
+  box.innerHTML = TARGETS.map(function(t, i){
+    return '<a class="row" href="' + fresh(t.url) + '" data-i="' + i + '">' +
+      '<span class="nm"><b>' + t.nm + '</b><span>' + t.d + '</span></span>' +
+      '<span class="when" id="w' + i + '">…</span>' +
+      '<span class="go">' + ARROW + '</span>' +
+    '</a>';
+  }).join('');
+
+  /* Коли файл востаннє змінився на сервері. Запит із no-store, інакше
+     відповідь прийшла б із того самого кешу, який ми й перевіряємо. */
+  function check(){
+    TARGETS.forEach(function(t, i){
+      var el = document.getElementById('w' + i);
+      if(el) el.textContent = '…';
+      fetch(fresh(fileOf(t.url)), { method:'HEAD', cache:'no-store' })
+        .then(function(r){
+          var lm = r.headers.get('last-modified');
+          if(!lm) throw new Error('no header');
+          var d = new Date(lm);
+          if(isNaN(d)) throw new Error('bad date');
+          var recent = (Date.now() - d) < 3600000;   // менше години — щойно залито
+          el.className = 'when' + (recent ? '' : ' old');
+          el.innerHTML = '<b>' + ago(d) + '</b>' + stamp(d);
+        })
+        .catch(function(){ if(el){ el.className = 'when old'; el.innerHTML = '<b>—</b>час невідомий'; } });
+    });
+    var n = document.getElementById('now');
+    if(n) n.textContent = 'перевірено ' + stamp(new Date());
+  }
+
+  // Посилання перегенеровуємо перед переходом: сторінка може провисіти
+  // відкритою годину, і стара мітка вже нічого не обходила б.
+  box.addEventListener('click', function(e){
+    var a = e.target.closest('a[data-i]');
+    if(!a) return;
+    a.href = fresh(TARGETS[+a.dataset.i].url);
+  });
+
+  document.getElementById('again').addEventListener('click', check);
+  check();
+  // Повернулись на вкладку — час міг змінитись
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') check();
+  });
+})();
+</script>
+</body>
+</html>
