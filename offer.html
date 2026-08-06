@@ -208,7 +208,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .mgr-a{display:inline-flex; align-items:center; justify-content:center; gap:6px;
     text-decoration:none; border-radius:999px; font-size:13px; font-weight:600;}
   .mgr-a.call{padding:9px 15px; background:var(--ink); color:#fff;}
-  .mgr-a.tg, .mgr-a.vb{width:38px; height:38px; color:#fff;}
+  .mgr-a.tg, .mgr-a.vb{width:44px; height:44px; color:#fff; flex:none; gap:0; overflow:visible;}
+  .mgr-a.tg svg, .mgr-a.vb svg{width:22px !important; height:22px !important; flex:none; display:block;}
   .mgr-a.tg{background:#2AABEE;}
   .mgr-a.vb{background:#7360F2;}
   .mgr-a.tg span, .mgr-a.vb span{display:none;}
@@ -238,19 +239,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-size:11.5px; line-height:1.35;}
 
   /* Відгуки */
-  .revs{display:grid; gap:12px;}
-  @media (min-width:720px){ .revs{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));} }
-  .rev{margin:0; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 18px;}
-  .rev blockquote{margin:0; font-size:14.5px; line-height:1.65; color:var(--ink-2);}
-  .rev blockquote::before{content:'“'; font-size:30px; line-height:0; color:var(--muted);
-    vertical-align:-8px; margin-right:3px;}
-  .rev figcaption{margin-top:11px; font-size:13px; font-weight:700;}
-  .rev figcaption span{display:block; font-weight:400; font-size:12px; color:var(--muted); margin-top:2px;}
+  /* Картка відгуку — та сама, що на головній: клієнт бачить знайомий
+     вигляд, а не «щось схоже». Стилі перенесені зі сторінки один в один. */
+  .review-card{background:#fff; border:1px solid var(--line); border-radius:18px;
+    padding:16px; margin-top:14px; display:flex; gap:14px; align-items:flex-start;}
+  .review-card:first-child{margin-top:0;}
+  .review-photo{width:96px; height:144px; border-radius:12px; overflow:hidden;
+    flex:none; background:var(--soft);}
+  .review-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .review-card-main{flex:1; min-width:0;}
+  .review-card-main h4{font-size:16px; font-weight:700; margin:0;}
+  .review-date{font-size:13.5px; color:var(--muted);}
+  .review-card .review-stars{margin-top:8px; font-size:15px; color:#FFC53D; letter-spacing:1px;}
+  .review-card p{font-size:15px; color:var(--muted); margin:6px 0 0; line-height:1.5;}
 
-  .save-badge{display:flex; align-items:center; gap:12px; margin-top:16px; padding:16px 18px;
-    border-radius:16px; background:#ECFDF5; border:1px solid #A7F3D0;}
-  .save-badge b{display:block; font-size:16px; color:#065F46;}
-  .save-badge span{display:block; font-size:13px; color:#047857; margin-top:2px;}
   /* Як проходитиме замовлення */
   .tl{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;}
   .tl::-webkit-scrollbar{display:none;}
@@ -1557,14 +1559,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Тут вони служать основою, а все, що менеджер опублікує в адмінці,
      стає попереду них. */
   var SITE_BUILTIN = [
-    { name:"Оксана", date:"20 трав. 2026", rating:5, text:"Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко" },
-    { name:"Соф.", date:"4 трав. 2026", rating:5, text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
-    { name:"ShopHopp", date:"11 квіт. 2026", rating:5, text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
-    { name:"Євгенія", date:"3 квіт. 2026", rating:5, text:"Трохи переживала за терміни, але все прийшло навіть раніше 👍" },
-    { name:"Настя", date:"15 бер. 2026", rating:5, text:"Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду" },
-    { name:"Поліна", date:"7 бер. 2026", rating:5, text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
-    { name:"Юрій", date:"26 січ. 2026", rating:5, text:"Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер." },
-    { name:"Вікторія Л.", date:"2 груд. 2025", rating:5, text:"Нашивки вийшли просто топ — рівні, щільні, лого читається. Дуже задоволені!" }
+    { name:"Соф.", date:"4 трав. 2026", rating:5, photo:"images/work-50.webp", text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
+    { name:"Кирило", date:"27 квіт. 2026", rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. Дуже сподобались." },
+    { name:"ShopHopp", date:"11 квіт. 2026", rating:5, photo:"images/work-25.webp", text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
+    { name:"Поліна", date:"7 бер. 2026", rating:5, photo:"images/work-29.webp", text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
+    { name:"Захар", date:"24 лют. 2026", rating:5, photo:"images/work-30.webp", text:"Футболки з лого — друк чіткий, тканина щільна. Рекомендую." },
+    { name:"Босс Бургер", date:"11 лют. 2026", rating:5, photo:"images/work-45.webp", text:"Футболки з великим принтом — друк насичений, не тріснув 🍔" }
   ];
   var SITE_REVIEWS = null;
   function loadReviews(){
@@ -1596,15 +1596,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function revsInner(){
     var list = SITE_REVIEWS || SITE_BUILTIN.slice(0, 3);
     if(!list.length) return '<div id="revsBox">' +
-      stub('Відгуки', 'Підтягуються з розділу «Відгуки» в адмінці — ті, що позначені як опубліковані. Тут порожньо, бо схвалених відгуків ще немає.') + '</div>';
-    return '<div class="revs" id="revsBox">' + list.map(function(r){
-      return '<figure class="rev">' + STARS(r.rating) +
-        '<blockquote>' + esc(r.text) + '</blockquote>' +
-        '<figcaption>' + esc(r.name || 'Клієнт') +
-        (r.company ? '<span>' + esc(r.company) + '</span>'
-                   : (r.date ? '<span>' + esc(r.date) + '</span>' : '')) + '</figcaption></figure>';
+      stub('Відгуки', 'Підтягуються з розділу «Відгуки» в адмінці — ті, що позначені як опубліковані.') + '</div>';
+    return '<div id="revsBox">' + list.map(function(r){
+      var n = Math.max(0, Math.min(5, Math.round(r.rating || 5)));
+      return '<div class="review-card">' +
+        (r.photo ? '<div class="review-photo"><img src="' + esc(r.photo) + '" alt="" loading="lazy" ' +
+                   'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+        '<div class="review-card-main">' +
+          '<h4>' + esc(r.name || 'Клієнт') + '</h4>' +
+          (r.date ? '<span class="review-date">' + esc(r.date) + '</span>' : '') +
+          '<div class="review-stars">' + new Array(n + 1).join('★') + '</div>' +
+          '<p>' + esc(r.text) + '</p>' +
+        '</div>' +
+      '</div>';
     }).join('') + '</div>';
   }
+
   function reviewsSection(){
 
     return '' +
