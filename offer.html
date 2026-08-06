@@ -1526,6 +1526,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Відгуки беремо з тієї самої бази, що й сайт: колекція reviews, лише
      схвалені. Дублювати їх у документі пропозиції означало б два місця, де
      треба стежити за одним і тим самим. */
+  /* Ті самі відгуки, що на головній: там вони вшиті в розмітку сторінки, а
+     не лише в базі — саме тому «схвалених немає», а на сайті вони видно.
+     Тут вони служать основою, а все, що менеджер опублікує в адмінці,
+     стає попереду них. */
+  var SITE_BUILTIN = [
+    { name:"Оксана", date:"20 трав. 2026", rating:5, text:"Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко" },
+    { name:"Соф.", date:"4 трав. 2026", rating:5, text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
+    { name:"ShopHopp", date:"11 квіт. 2026", rating:5, text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
+    { name:"Євгенія", date:"3 квіт. 2026", rating:5, text:"Трохи переживала за терміни, але все прийшло навіть раніше 👍" },
+    { name:"Настя", date:"15 бер. 2026", rating:5, text:"Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду" },
+    { name:"Поліна", date:"7 бер. 2026", rating:5, text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
+    { name:"Юрій", date:"26 січ. 2026", rating:5, text:"Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер." },
+    { name:"Вікторія Л.", date:"2 груд. 2025", rating:5, text:"Нашивки вийшли просто топ — рівні, щільні, лого читається. Дуже задоволені!" }
+  ];
   var SITE_REVIEWS = null;
   function loadReviews(){
     if(!db || SITE_REVIEWS) return;
@@ -1539,7 +1553,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    at:(v.createdAt && v.createdAt.toMillis) ? v.createdAt.toMillis() : 0 });
       });
       arr.sort(function(a, b){ return (b.rating - a.rating) || (b.at - a.at); });
-      SITE_REVIEWS = arr.slice(0, 3);
+      SITE_REVIEWS = arr.concat(SITE_BUILTIN).slice(0, 3);
       var box = document.getElementById('revsBox');
       if(box && SITE_REVIEWS.length) box.outerHTML = revsInner();
     }).catch(function(e){ console.warn('відгуки не прочитались', e && e.code); });
@@ -1554,18 +1568,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '<div class="rev-st">' + out + '</div>';
   };
   function revsInner(){
-    var list = SITE_REVIEWS || [];
+    var list = SITE_REVIEWS || SITE_BUILTIN.slice(0, 3);
     if(!list.length) return '<div id="revsBox">' +
       stub('Відгуки', 'Підтягуються з розділу «Відгуки» в адмінці — ті, що позначені як опубліковані. Тут порожньо, бо схвалених відгуків ще немає.') + '</div>';
     return '<div class="revs" id="revsBox">' + list.map(function(r){
       return '<figure class="rev">' + STARS(r.rating) +
         '<blockquote>' + esc(r.text) + '</blockquote>' +
         '<figcaption>' + esc(r.name || 'Клієнт') +
-        (r.company ? '<span>' + esc(r.company) + '</span>' : '') + '</figcaption></figure>';
+        (r.company ? '<span>' + esc(r.company) + '</span>'
+                   : (r.date ? '<span>' + esc(r.date) + '</span>' : '')) + '</figcaption></figure>';
     }).join('') + '</div>';
   }
   function reviewsSection(){
-    if(!DEMO && !(SITE_REVIEWS && SITE_REVIEWS.length) && !db) return '';
+
     return '' +
       '<section class="band">' +
         '<h2 class="sec-title">Що кажуть клієнти</h2>' +
