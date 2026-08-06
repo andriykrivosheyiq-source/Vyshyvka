@@ -108,6 +108,37 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .et-disc{color:#0E9F6E; font-weight:600;}
   .et-pay{display:flex; justify-content:space-between; align-items:baseline;
     font-size:19px; font-weight:800; margin-top:4px;}
+  /* ── Ритм сторінки ─────────────────────────────────────────────────
+     Усе на білому робить блоки однаково важливими, і сторінка читається як
+     таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
+     зачепитись під час прокрутки. */
+  .band{background:var(--soft); border-radius:20px; padding:24px 18px; margin:26px 0;}
+  .band .sec-title{margin-top:0;}
+
+  /* Заглушка — видно лише в тестовому режимі */
+  .stub{border:2px dashed #D8C08A; background:#FDF7EC; color:#7A5410;
+    border-radius:14px; padding:14px 16px; font-size:12.5px; line-height:1.6;}
+  .stub b{display:block; font-size:13.5px; color:#5E4009; margin-bottom:4px;}
+
+  /* Наші роботи */
+  .works{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
+  .work{position:relative; border-radius:14px; overflow:hidden; background:var(--soft);
+    aspect-ratio:1/1;}
+  .work img{width:100%; height:100%; object-fit:cover; display:block;}
+  .work span{position:absolute; left:0; right:0; bottom:0; padding:8px 10px;
+    background:linear-gradient(transparent,rgba(0,0,0,.62)); color:#fff;
+    font-size:11.5px; line-height:1.35;}
+
+  /* Відгуки */
+  .revs{display:grid; gap:12px;}
+  @media (min-width:720px){ .revs{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));} }
+  .rev{margin:0; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 18px;}
+  .rev blockquote{margin:0; font-size:14.5px; line-height:1.65; color:var(--ink-2);}
+  .rev blockquote::before{content:'“'; font-size:30px; line-height:0; color:var(--muted);
+    vertical-align:-8px; margin-right:3px;}
+  .rev figcaption{margin-top:11px; font-size:13px; font-weight:700;}
+  .rev figcaption span{display:block; font-weight:400; font-size:12px; color:var(--muted); margin-top:2px;}
+
   .save-badge{display:flex; align-items:center; gap:12px; margin-top:16px; padding:16px 18px;
     border-radius:16px; background:#ECFDF5; border:1px solid #A7F3D0;}
   .save-badge b{display:block; font-size:16px; color:#065F46;}
@@ -686,6 +717,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long', year:'numeric' })
             .replace(/\s*р\.$/, '');
   }
+  // Тестовий режим — за ним показуються заглушки блоків довіри
+  var DEMO = /[?&]demo=1/.test(location.search);
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
              'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -1259,12 +1292,69 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
+  /* Гарантії лежали в загальному розкритті «Терміни, гарантії та умови» —
+     тобто найсильніший аргумент проти страху передоплати не бачив ніхто.
+     Тепер це окрема видима секція на темному тлі. */
   function guaranteesHtml(){
     return '' +
-      '<h3 class="det-h">Гарантії</h3>' +
       '<div class="gcards">' + GUARANTEES.map(function(g){
         return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
       }).join('') + '</div>';
+  }
+  function guaranteesSection(){
+    return '' +
+      '<section class="band">' +
+        '<h2 class="sec-title">Що ми гарантуємо</h2>' +
+        '<p class="sec-sub">Виробництво починається лише після того, як ви підтвердите макет.</p>' +
+        guaranteesHtml() +
+      '</section>';
+  }
+
+  /* ── Заглушки ──────────────────────────────────────────────────────
+     Блоки довіри без справжнього наповнення шкодять більше, ніж їх
+     відсутність: вигадані відгуки й стокові «команди» зчитуються миттєво.
+     Тому замість тексту — видима рамка з підказкою, що саме сюди покласти.
+     Клієнт її не побачить: заглушки показуються ЛИШЕ в тестовому режимі. */
+  function stub(title, what){
+    if(!DEMO) return '';
+    return '<div class="stub"><b>' + esc(title) + '</b>' + esc(what) + '</div>';
+  }
+
+  // Реальні роботи. Найсильніший доказ — фото того, що вже зробили.
+  function worksSection(){
+    var list = (OFFER.works || []).filter(Boolean).slice(0, 6);
+    if(!list.length){
+      var st = stub('Наші роботи', 'Покладіть сюди 4–6 фото реальних замовлень: готовий виріб із логотипом клієнта. Це найсильніший доказ, що ми вже це робили.');
+      return st ? '<section><h2 class="sec-title">Наші роботи</h2>' + st + '</section>' : '';
+    }
+    return '' +
+      '<section>' +
+        '<h2 class="sec-title">Наші роботи</h2>' +
+        '<p class="sec-sub">Замовлення, які ми вже випустили.</p>' +
+        '<div class="works">' + list.map(function(w){
+          return '<div class="work"><img src="' + esc(typeof w === 'string' ? w : w.photo) +
+            '" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'">' +
+            (w && w.caption ? '<span>' + esc(w.caption) + '</span>' : '') + '</div>';
+        }).join('') + '</div>' +
+      '</section>';
+  }
+
+  // Відгуки. Ім'я й компанія обовʼязкові: анонімний відгук нічого не важить.
+  function reviewsSection(){
+    var list = (OFFER.reviews || []).filter(function(r){ return r && r.text; }).slice(0, 3);
+    if(!list.length){
+      var st = stub('Відгуки', 'Два-три відгуки з іменем і компанією. Без імені відгук не працює — його читають як вигаданий.');
+      return st ? '<section><h2 class="sec-title">Що кажуть клієнти</h2>' + st + '</section>' : '';
+    }
+    return '' +
+      '<section class="band">' +
+        '<h2 class="sec-title">Що кажуть клієнти</h2>' +
+        '<div class="revs">' + list.map(function(r){
+          return '<figure class="rev"><blockquote>' + esc(r.text) + '</blockquote>' +
+            '<figcaption>' + esc(r.name || '') +
+            (r.company ? '<span>' + esc(r.company) + '</span>' : '') + '</figcaption></figure>';
+        }).join('') + '</div>' +
+      '</section>';
   }
 
   function faqHtml(){
@@ -1359,7 +1449,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             (m.phone ? '<div class="est-meta">' + esc(m.phone) + '</div>' : '') +
           '</div>' +
         '</div>' +
-        (links.length ? '<div class="mgr-links">' + links.join('') + '</div>' : '') +
+        (links.length ? '<div class="mgr-links">' + links.join('') + '</div>'
+                      : stub('Контакти менеджера', 'Фото, ім\'я, телефон і Telegram. На пропозиції в десятки тисяч клієнт має бачити людину, а не сайт.')) +
       '</section>';
   }
 
@@ -1392,9 +1483,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
         // самі макети, що й колекція нижче, тільки дрібніше.
-        heroHtml() + packagesHtml() + itemsHtml() + recoHtml() + estimateHtml() +
-        includesHtml() + whyHtml() + casesHtml() +
-        finalHtml() + mgrHtml() + detailsHtml() +
+        /* Порядок: спершу товар, потім гроші, потім довіра, і лише в кінці
+           заклик. Пакети підняті ПІСЛЯ колекції — обирати тираж, ще нічого
+           не побачивши, немає сенсу. Гарантії, роботи й відгуки витягнуті
+           з розкриття назовні: там їх не бачив ніхто. */
+        heroHtml() + itemsHtml() + recoHtml() + packagesHtml() + estimateHtml() +
+        includesHtml() + whyHtml() +
+        guaranteesSection() + worksSection() + casesHtml() + reviewsSection() +
+        mgrHtml() + finalHtml() + detailsHtml() +
         '<div class="foot">Loomiq · виробництво мерчу · ' +
           '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
       '</div>' +
