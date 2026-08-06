@@ -123,14 +123,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     aspect-ratio:4/3;}
   .hero-shot img{width:100%; height:100%; object-fit:contain; display:block;}
   .hero-made{font-size:15px; color:var(--ink-2); line-height:1.6; margin-bottom:16px;}
-  .hero-sum{display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
-    padding:16px 18px; border-radius:16px; background:var(--soft);}
-  .hs-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+  .hero-sum{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    padding:14px 18px; border-radius:16px; background:var(--soft);}
+  .hs-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
     text-transform:uppercase; color:var(--muted);}
-  .hs-v{display:block; font-size:28px; font-weight:800; letter-spacing:-.8px;
-    font-variant-numeric:tabular-nums; line-height:1.1; margin-top:3px;}
-  .hs-r{text-align:right;}
-  .hs-d{display:block; font-size:15px; font-weight:700; margin-top:5px; white-space:nowrap;}
+  .hs-d{font-size:17px; font-weight:800; letter-spacing:-.3px; white-space:nowrap;}
   .hero-till{margin-top:12px; font-size:13px; font-weight:600; color:var(--cta-dark);}
   .hero .btn{margin-top:16px;}
 
@@ -1084,11 +1081,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
                 'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
+        /* Суми на першому екрані немає: вона нічого не значить, поки людина
+           не побачила склад і не покрутила кількість. Термін виготовлення —
+           навпаки, вирішує одразу: встигаємо до дати чи ні. */
         '<div class="hero-sum">' +
-          '<div class="hs-l"><span class="hs-k">До сплати</span>' +
-            '<span class="hs-v" id="heroSum">' + money(totals().sum) + '</span></div>' +
-          '<div class="hs-r"><span class="hs-k">Виготовлення</span>' +
-            '<span class="hs-d" id="heroDays">' + daysWord(curDays()) + '</span></div>' +
+          '<span class="hs-k">Термін виготовлення</span>' +
+          '<span class="hs-d" id="heroDays">' + daysWord(curDays()) + '</span>' +
         '</div>' +
         (till ? '<div class="hero-till">Ціни діють до ' + esc(till) + '</div>' : '') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
@@ -1723,7 +1721,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
-    set('heroSum', money(t.sum));
     set('heroDays', daysWord(curDays()));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = OFFER.items.map(function(it, i){
