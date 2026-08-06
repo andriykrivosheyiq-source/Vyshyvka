@@ -150,7 +150,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      обводка з галочкою: дію вже зроблено, привертати увагу нема чого.
      Раніше було навпаки, і обрана позиція виглядала як заклик натиснути. */
   .pbuy{background:var(--cta); border-color:var(--cta); color:#fff;}
-  .pbuy.on{background:#fff; border-color:var(--line); color:var(--good); font-weight:600;}
+  .pbuy.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:700;}
   .pbuy.on svg{stroke:var(--good);}
   .pbuy:active{transform:scale(.99);}
 
@@ -166,14 +166,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff; display:flex; align-items:center; justify-content:center;}
   .pchk.on .pchk-b{background:var(--ink); border-color:var(--ink);}
   .pchk-l{font-size:14px; font-weight:700;}
-  .pstep{display:flex; align-items:center; gap:6px; margin-top:10px;}
-  .pstep-b{flex:none; width:42px; height:42px; border-radius:13px; border:1.5px solid var(--line);
-    background:#fff; font:inherit; font-size:20px; line-height:1; color:var(--ink);
+  /* Степер на всю ширину виглядав як окрема панель керування. Кількість —
+     маленьке число, і місця їй треба стільки ж. */
+  .pstep{display:inline-flex; align-items:center; gap:4px; margin-top:10px;
+    border:1.5px solid var(--line); border-radius:14px; padding:3px;}
+  .pstep-b{flex:none; width:36px; height:36px; border-radius:11px; border:none;
+    background:var(--soft); font:inherit; font-size:19px; line-height:1; color:var(--ink);
     cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none;}
-  .pstep-b.plus{background:var(--ink); border-color:var(--ink); color:#fff;}
-  .pstep-v{flex:1; text-align:center; font-size:15px; color:var(--muted);
+  .pstep-b.plus{background:var(--ink); color:#fff;}
+  .pstep-v{min-width:74px; text-align:center; font-size:13px; color:var(--muted);
     font-variant-numeric:tabular-nums;}
-  .pstep-v b{font-size:19px; color:var(--ink); margin-right:5px;}
+  .pstep-v b{font-size:18px; color:var(--ink); margin-right:4px;}
   .pqty-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
 
   /* Менеджер: обличчя ліворуч, контакти праворуч. Кружечок з літерою
@@ -190,13 +193,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .mgr-name{font-size:20px; font-weight:800; letter-spacing:-.4px; margin-top:2px;}
   .mgr-phone{font-size:15px; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums;}
   .mgr-note{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.5;}
-  .mgr-acts{display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;}
-  .mgr-a{display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:999px;
-    font-size:13px; font-weight:600; text-decoration:none; border:1.5px solid var(--line);
-    color:var(--ink); background:#fff;}
-  .mgr-a.call{background:var(--ink); border-color:var(--ink); color:#fff;}
-  .mgr-a.tg{color:#2AABEE; border-color:#BFE6FA;}
-  .mgr-a.vb{color:#7360F2; border-color:#D5CFFB;}
+  /* Месенджери — кружечками у фірмовому кольорі: їх упізнають за іконкою,
+     підпис лише додає ширини. Дзвінок лишається словом — це головна дія. */
+  .mgr-acts{display:flex; align-items:center; gap:8px; margin-top:12px;}
+  .mgr-a{display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    text-decoration:none; border-radius:999px; font-size:13px; font-weight:600;}
+  .mgr-a.call{padding:9px 15px; background:var(--ink); color:#fff;}
+  .mgr-a.tg, .mgr-a.vb{width:38px; height:38px; color:#fff;}
+  .mgr-a.tg{background:#2AABEE;}
+  .mgr-a.vb{background:#7360F2;}
+  .mgr-a.tg span, .mgr-a.vb span{display:none;}
   @media (max-width:400px){ .mgr-ph{flex-basis:78px; width:78px; height:78px;} }
 
   .rev-st{display:flex; gap:2px; margin-bottom:8px;}
@@ -410,7 +416,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc-p{font-size:12.5px; color:var(--ink-2); margin-top:auto; padding-top:5px;
     font-variant-numeric:tabular-nums;}
   .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
-  .rc-add{position:absolute; right:10px; bottom:10px; width:28px; height:28px; border-radius:50%;
+  .rc-add{display:flex; align-items:center; justify-content:center; gap:7px; width:100%;
+    margin-top:10px; padding:11px 10px; border-radius:12px; border:1.5px solid var(--cta);
+    background:var(--cta); color:#fff; font:inherit; font-size:13.5px; font-weight:700;
+    cursor:pointer; transition:.15s; position:static;}
+  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good);}
+  .rc-s{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .rc-s b{color:var(--ink); font-weight:800;}
+  .rc-add-old{
     border:1.5px solid var(--line); background:#fff; display:flex; align-items:center;
     justify-content:center; font-size:17px; line-height:1; color:var(--ink); font-weight:600;
     transition:.15s;}
@@ -872,7 +885,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '">' +
             esc(p.name) + '</button>';
         }).join('') + '</div>' +
-        (cur.note ? '<div class="ppack-n">' + esc(cur.note) + '</div>' : '') +
+        // Опис пакета не пишемо: що саме нанесено, видно на самому макеті
       '</div>';
   }
 
@@ -1170,12 +1183,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '<span class="pb-v">' + money(s.unit) + '</span></div>' +
         '<div class="pb-row"><span class="pb-k">Кількість</span>' +
           '<span class="pb-v">' + s.qty + ' шт</span></div>' +
-        (s.save > 0
-          ? '<div class="pb-row"><span class="pb-k">Без знижки за тираж</span>' +
-              '<span class="pb-v pb-strike">' + money(s.base) + '</span></div>' +
-            '<div class="pb-row"><span class="pb-k">Ваша економія</span>' +
-              '<span class="pb-v pb-save">' + money(s.save) + '</span></div>'
-          : '') +
+        /* Ні «без знижки за тираж», ні «ваша економія». Знижка вже сидить у
+           ціні за штуку, і показувати її ще раз означає рахувати двічі —
+           кошик на сайті так само показує лише те, що клієнт платить. */
         '<div class="pb-row pb-total"><span class="pb-k">Сума позиції</span>' +
           '<span class="pb-v">' + money(s.sum) + '</span></div>' +
       '</div>';
@@ -1377,11 +1387,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             (r.recoTag ? '<div class="rc-tag">' + esc(r.recoTag) + '</div>' : '') +
             '<div class="rc-n">' + esc(r.name) + '</div>' +
             (tech ? '<div class="rc-t">' + esc(tech) + '</div>' : '') +
-            '<div class="rc-p">' + money(r.unitPrice) + ' · ' + r.qty + ' шт</div>' +
+            '<div class="rc-p">' + money(r.unitPrice) + ' за штуку</div>' +
+            '<div class="rc-s">' + r.qty + ' шт · <b>' + money(r.price) + '</b></div>' +
             (r.recoNote ? '<div class="rc-why">' + esc(r.recoNote) + '</div>' : '') +
-            '<button class="rc-add" data-reco="' + i + '" ' +
-              'aria-label="' + (on ? 'Прибрати з пропозиції' : 'Додати до пропозиції') + '">' +
-              (on ? TICK_W : '+') + '</button>' +
+            '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
+              'aria-pressed="' + (on ? 'true' : 'false') + '">' +
+              (on ? TICK + 'У кошторисі' : 'Додати в кошторис') + '</button>' +
           '</div>';
         }).join('') + '</div>' +
       '</section>';
@@ -1629,9 +1640,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<h2 class="sec-title">Готові замовити?</h2>' +
         '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
           'Виробництво починається лише після вашого підтвердження макета.</p>' +
+        /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
+           привід не вирішувати — а написати менеджеру він може з блоку
+           контактів вище, де для цього є і телефон, і месенджери. */
         '<div class="final">' +
           '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
-          '<button class="btn btn-ghost" id="changeBtn">Потрібні зміни</button>' +
         '</div>' +
       '</section>';
   }
@@ -1660,7 +1673,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="mgr-role">' + esc(m.role || 'Ваш менеджер') + '</div>' +
             '<div class="mgr-name">' + esc(m.name || 'Loomiq') + '</div>' +
             (m.phone ? '<div class="mgr-phone">' + esc(m.phone) + '</div>' : '') +
-            '<div class="mgr-note">Відповім на будь-яке питання по цій пропозиції</div>' +
+            '<div class="mgr-note">Відповім на будь-які питання щодо замовлення</div>' +
             (acts.length ? '<div class="mgr-acts">' + acts.join('') + '</div>' : '') +
           '</div>' +
         '</div>' +
@@ -1754,7 +1767,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       card.classList.toggle('on', on);
       var add = card.querySelector('.rc-add');
       if(add){
-        add.innerHTML = on ? TICK_W : '+';
+        /* Раніше тут кнопку переписувало назад у «+» на кожному перерахунку —
+           через це плюсик повертався, скільки б я не міняв розмітку. */
+        add.innerHTML = on ? TICK + 'У кошторисі' : 'Додати в кошторис';
+        add.classList.toggle('on', on);
         add.setAttribute('aria-label', on ? 'Прибрати з пропозиції' : 'Додати до пропозиції');
       }
     });
