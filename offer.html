@@ -108,6 +108,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .et-disc{color:#0E9F6E; font-weight:600;}
   .et-pay{display:flex; justify-content:space-between; align-items:baseline;
     font-size:19px; font-weight:800; margin-top:4px;}
+  /* Пакет — що саме наносимо. Стоїть перед кількістю: спершу «який варіант»,
+     потім «скільки». */
+  .ppack{margin-top:16px;}
+  .ppack-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
+  .ppack-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
+
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
      зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
   .pqty{margin-top:16px;}
@@ -789,14 +796,61 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
-  var pick = { qty: {}, reco: {}, on: {} };
+  var pick = { qty: {}, reco: {}, on: {}, pack: {} };
   function isOn(i){ return pick.on[i] !== false; }
+
+  /* Пакети позиції: що саме наносимо. Ціни задає менеджер у пропозиції
+     (it.packs). Якщо не задав — у бойовій пропозиції пакетів просто немає:
+     вигадана ціна в комерційній пропозиції коштує дорожче, ніж її брак.
+     У тестовому режимі показуємо приклад, щоб було видно вигляд блоку. */
+  function packsOf(i){
+    var it = OFFER.items[i];
+    if(Array.isArray(it.packs) && it.packs.length) return it.packs;
+    if(!DEMO) return null;
+    var u = it.unitPrice || 0;
+    return [
+      { id:'eco',  name:'Економ',  note:'DTF друк спереду',          unit:Math.round(u * 0.62) },
+      { id:'base', name:'База',    note:'Вишивка спереду',           unit:u },
+      { id:'prem', name:'Преміум', note:'Вишивка збільшена + спина', unit:Math.round(u * 1.35) }
+    ];
+  }
+  function packOf(i){
+    var list = packsOf(i);
+    if(!list || !list.length) return null;
+    var id = pick.pack[i];
+    return list.filter(function(p){ return p.id === id; })[0]
+        || list.filter(function(p){ return p.id === 'base'; })[0]
+        || list[0];
+  }
+  function packsHtml(i){
+    var list = packsOf(i);
+    if(!list || list.length < 2) return '';
+    var cur = packOf(i) || {};
+    return '' +
+      '<div class="ppack">' +
+        '<div class="ppack-k">Пакет</div>' +
+        '<div class="pseg">' + list.map(function(p){
+          return '<button class="pseg-b' + (p.id === cur.id ? ' on' : '') + '" ' +
+                   'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '">' +
+            esc(p.name) + '</button>';
+        }).join('') + '</div>' +
+        (cur.note ? '<div class="ppack-n">' + esc(cur.note) + '</div>' : '') +
+      '</div>';
+  }
 
   function itemState(i){
     var it = OFFER.items[i];
     var q = pick.qty[i];
-    if(q == null || q === it.qty) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
-                                           base: it.basePrice, save: it.save, changed: false };
+    /* Пакет міняє ціну за штуку пропорційно: знижка за тираж лишається тією
+       самою, змінюється лише те, що наносимо. */
+    var pk = packOf(i);
+    var kp = (pk && it.unitPrice) ? (pk.unit / it.unitPrice) : 1;
+    if(q == null || q === it.qty){
+      var u0 = Math.round(it.unitPrice * kp);
+      return { qty: it.qty, unit: u0, sum: u0 * it.qty,
+               base: Math.round(it.basePrice * kp),
+               save: Math.max(0, Math.round(it.basePrice * kp) - u0 * it.qty), changed: kp !== 1 };
+    }
     q = Math.max(1, Math.round(q));
     /* Ціна за штуку — з того порогу, у який потрапила кількість: беремо
        найбільший поріг, що не перевищує обрану кількість. Так 40 шт коштують
@@ -804,10 +858,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var unit = it.unitPrice;
     (it.tiers || []).slice().sort(function(a, b){ return a.qty - b.qty; })
       .forEach(function(t){ if(q >= t.qty) unit = t.unit; });
-    var baseUnit = it.qty ? (it.basePrice / it.qty) : unit;
+    unit = Math.round(unit * kp);
+    var baseUnit = it.qty ? (it.basePrice * kp / it.qty) : unit;
     return { qty: q, unit: unit, sum: unit * q,
              base: baseUnit * q, save: Math.max(0, baseUnit * q - unit * q),
-             changed: q !== it.qty };
+             changed: q !== it.qty || kp !== 1 };
   }
   // Термін залежить від тиражу, тож при зміні кількості він теж змінюється.
   // Правила прийшли з адмінки, щоб сторінка й Канбан рахували однаково.
@@ -1138,7 +1193,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '</div>' +
               '<div class="pcard-term">Виготовлення ' + curDays() + ' роб. днів</div>' +
             '</div>' +
-            '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
+            '<div data-tiers="' + i + '">' + packsHtml(i) + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + priceBoxHtml(i) + '</div>' +
@@ -1625,7 +1680,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var box = document.querySelector('[data-price-box="' + i + '"]');
       if(box) box.outerHTML = priceBoxHtml(i);
       var tw = document.querySelector('[data-tiers="' + i + '"]');
-      if(tw) tw.innerHTML = tiersHtml(i);
+      if(tw) tw.innerHTML = packsHtml(i) + tiersHtml(i);
     });
     var packs = document.getElementById('packs');
     if(packs) packs.outerHTML = packagesHtml();
@@ -1876,6 +1931,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var est = document.getElementById('estimate');
         if(est) est.scrollIntoView({ behavior:'smooth', block:'center' });
         queueSave('pack', 'Обрано пакет «' + p.name + '» — ' + money(p.sum));
+      };
+    });
+    // Вибір пакета
+    document.querySelectorAll('[data-pack-of]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      b.onclick = function(){
+        var i = +b.dataset.packOf;
+        pick.pack[i] = b.dataset.packId;
+        refresh();
+        queueSave('pack', (OFFER.items[i] || {}).name + ' → пакет ' + b.textContent.trim());
       };
     });
     // Галочка «беру цю позицію»
