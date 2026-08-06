@@ -115,6 +115,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
   .ppack-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
 
+  /* Ціна ліворуч, термін праворуч — два числа, які клієнт звіряє між собою */
+  .prow{display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+    margin-top:14px;}
+  .prow-l{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
+  .prow-r{text-align:right; flex:none;}
+  .prow-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted);}
+  .prow-v{display:block; font-size:14px; font-weight:700; margin-top:2px; white-space:nowrap;}
+  .psum{margin-top:9px; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .psum b{color:var(--ink); font-size:16px; font-weight:800;}
+  /* Кнопка замість галочки: дія має виглядати як дія */
+  .pbuy{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
+    background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
+    cursor:pointer; transition:.15s;}
+  .pbuy.on{background:var(--ink); color:#fff;}
+  .pbuy:active{transform:scale(.99);}
+
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
      зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
   .pqty{margin-top:16px;}
@@ -1048,7 +1066,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '<span class="fact" id="heroDays">виготовлення від ' + daysWord(curDays()) + '</span>' +
         '</div>' +
         '<button class="btn-ghost-lg no-print" id="goOffer">Переглянути пропозицію ↓</button>' +
-        '<div class="updated">Оновлено: ' + esc(dateUa(OFFER.updatedAt)) + '</div>' +
       '</div>';
   }
 
@@ -1144,6 +1161,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      власна кількість: клієнту потрібно 43 футболки, а не 30 або 50. Ціна за
      штуку показується поруч і перераховується сама, коли кількість переходить
      наступний поріг. */
+  /* Порядок читання: скільки → почому → коли буде → і аж потім дія.
+     Кількість стоїть НАД ціною, бо саме вона керує ціною: людина клацає
+     кількість і бачить, як міняється сума. Кнопка внизу, коли всі числа
+     вже перед очима. */
   function tiersHtml(i){
     var st = itemState(i);
     var on = isOn(i);
@@ -1152,18 +1173,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                .sort(function(a, b){ return a.qty - b.qty; })[0];
     return '' +
       '<div class="pqty' + (on ? '' : ' off') + '">' +
-        '<button class="pchk' + (on ? ' on' : '') + '" data-on="' + i + '" ' +
-          'aria-pressed="' + (on ? 'true' : 'false') + '">' +
-          '<span class="pchk-b">' + (on ? TICK_W : '') + '</span>' +
-          '<span class="pchk-l">' + (on ? 'У кошторисі' : 'Додати в кошторис') + '</span>' +
-        '</button>' +
         '<div class="pstep">' +
           '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
           '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
           '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
         '</div>' +
+        '<div class="prow">' +
+          '<div class="prow-l">' +
+            '<span class="pcard-price">' + money(st.unit) + '</span>' +
+            '<span class="pcard-per">за штуку</span>' +
+          '</div>' +
+          '<div class="prow-r">' +
+            '<span class="prow-k">Виготовлення</span>' +
+            '<span class="prow-v">' + curDays() + ' роб. днів</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="psum">' + st.qty + ' × ' + money(st.unit) +
+          ' = <b>' + money(st.sum) + '</b></div>' +
         (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
                 ' за штуку</div>' : '') +
+        '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
+          (on ? TICK_W + 'У кошторисі' : 'Додати в кошторис') + '</button>' +
       '</div>';
   }
 
@@ -1187,11 +1217,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
               '<div class="pcard-meta">' +
                 [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
-              '<div class="pcard-money" data-unit="' + i + '">' +
-                '<span class="pcard-price">' + money(st.unit) + '</span>' +
-                '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>' +
-              '</div>' +
-              '<div class="pcard-term">Виготовлення ' + curDays() + ' роб. днів</div>' +
             '</div>' +
             '<div data-tiers="' + i + '">' + packsHtml(i) + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
