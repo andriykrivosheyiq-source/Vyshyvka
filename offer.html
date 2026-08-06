@@ -116,8 +116,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Пакет — що саме наносимо. Стоїть перед кількістю: спершу «який варіант»,
      потім «скільки». */
   .ppack{margin-top:16px;}
-  .ppack-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
+
   .ppack-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
 
   /* Перший екран */
@@ -136,9 +135,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin-top:14px;}
   .prow-l{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap;}
   .prow-r{text-align:right; flex:none;}
-  .prow-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted);}
-  .prow-v{display:block; font-size:14px; font-weight:700; margin-top:2px; white-space:nowrap;}
+  /* Один стиль для всіх підписів у картці: раніше «Пакет», «Виготовлення»
+     і підказка про тираж були трьома різними шрифтами. */
+  .prow-k, .ppack-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted); margin:0 0 6px;}
+  .prow-v{display:block; font-size:15px; font-weight:700; white-space:nowrap;}
   .psum{margin-top:9px; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
   .psum b{color:var(--ink); font-size:16px; font-weight:800;}
   /* Кнопка замість галочки: дія має виглядати як дія */
@@ -177,7 +178,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pstep-v{min-width:74px; text-align:center; font-size:13px; color:var(--muted);
     font-variant-numeric:tabular-nums;}
   .pstep-v b{font-size:18px; color:var(--ink); margin-right:4px;}
-  .pqty-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
+  .pqty-n{margin-top:8px; font-size:13px; color:var(--muted);}
 
   /* «Це вже в ціні» — рядки, а не сітка дрібних іконок */
   .incl{display:grid; gap:8px;}
@@ -206,15 +207,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .mgr-note{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.5;}
   /* Месенджери — кружечками у фірмовому кольорі: їх упізнають за іконкою,
      підпис лише додає ширини. Дзвінок лишається словом — це головна дія. */
-  .mgr-acts{display:flex; align-items:center; gap:8px; margin-top:12px;}
-  .mgr-a{display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    text-decoration:none; border-radius:999px; font-size:13px; font-weight:600;}
-  .mgr-a.call{padding:9px 15px; background:var(--ink); color:#fff;}
-  .mgr-a.tg, .mgr-a.vb{width:44px; height:44px; color:#fff; flex:none; gap:0; overflow:visible;}
-  .mgr-a.tg svg, .mgr-a.vb svg{width:22px !important; height:22px !important; flex:none; display:block;}
-  .mgr-a.tg{background:#2AABEE;}
-  .mgr-a.vb{background:#7360F2;}
-  .mgr-a.tg span, .mgr-a.vb span{display:none;}
+  /* Кружечки з іконкою обрізались і не читались. Звичайні кнопки з підписом
+     у фірмовому кольорі — зрозуміло без здогадок. */
+  .mgr-acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .mgr-a{display:inline-flex; align-items:center; gap:7px; padding:10px 15px;
+    border-radius:999px; text-decoration:none; font-size:13.5px; font-weight:700;
+    line-height:1; white-space:nowrap;}
+  .mgr-a svg{flex:none; width:17px; height:17px;}
+  .mgr-a.call{background:var(--ink); color:#fff;}
+  .mgr-a.tg{background:#2AABEE; color:#fff;}
+  .mgr-a.vb{background:#7360F2; color:#fff;}
   @media (max-width:400px){ .mgr-ph{flex-basis:78px; width:78px; height:78px;} }
 
   .rev-st{display:flex; gap:2px; margin-bottom:8px;}
@@ -223,6 +225,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
+  .rmore{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    margin-top:14px; padding:13px; border-radius:13px; border:1.5px solid var(--line);
+    background:#fff; font:inherit; font-size:14px; font-weight:700; color:var(--ink);
+    cursor:pointer;}
+  .rmore-c{font-size:10px; color:var(--muted);}
+
   /* Контраст між блоками. Раніше всі секції лежали на білому й розділялись
      тонкою лінією — сторінка читалась як одна довга простиня. Тепер блоки
      «про нас» стоять на темному, «про товар» — на світлому тлі. */
@@ -261,9 +269,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Відгуки */
   /* Картка відгуку — та сама, що на головній: клієнт бачить знайомий
      вигляд, а не «щось схоже». Стилі перенесені зі сторінки один в один. */
-  .review-card{background:#fff; border:1px solid var(--line); border-radius:18px;
-    padding:16px; margin-top:14px; display:flex; gap:14px; align-items:flex-start;}
-  .review-card:first-child{margin-top:0;}
+  /* Відгуки їдуть убік, як на головній: три картки поспіль займали пів
+     екрана, а горизонтальна стрічка показує, що їх багато. */
+  #revsBox{display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory;
+    scrollbar-width:none; padding-bottom:4px; margin:0 -18px; padding-left:18px;
+    padding-right:18px;}
+  #revsBox::-webkit-scrollbar{display:none;}
+  .review-card{flex:0 0 86%; scroll-snap-align:start; background:#fff;
+    border:1px solid var(--line); border-radius:18px; padding:16px; margin:0;
+    display:flex; gap:14px; align-items:flex-start;}
+  @media (min-width:640px){ .review-card{flex-basis:44%;} }
   .review-photo{width:96px; height:144px; border-radius:12px; overflow:hidden;
     flex:none; background:var(--soft);}
   .review-photo img{width:100%; height:100%; object-fit:cover; display:block;}
@@ -391,7 +406,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font:inherit; font-size:14.5px; font-weight:700; color:var(--ink-2); cursor:pointer;
     font-variant-numeric:tabular-nums; transition:.15s;}
   .pseg-b.on{background:var(--ink); color:#fff;}
-  .pqty-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
+  .pqty-n{margin-top:8px; font-size:13px; color:var(--muted);}
   .pqty-n b{color:var(--good);}
 
   .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
@@ -875,6 +890,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
   var pick = { qty: {}, reco: {}, on: {}, pack: {} };
+  var recoOpen = false;   // «показати ще» в блоці рекомендацій
   function isOn(i){ return pick.on[i] !== false; }
 
   /* Пакети позиції: що саме наносимо. Ціни задає менеджер у пропозиції
@@ -1322,7 +1338,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function includesHtml(){
     if(!OFFER.includes || !OFFER.includes.length) return '';
     return '' +
-      '<section class="band">' +
+      '<section>' +
         '<h2 class="sec-title">Це вже в ціні</h2>' +
         '<p class="sec-sub">Жодного з цих пунктів не буде окремим рядком у рахунку.</p>' +
         '<div class="incl">' + OFFER.includes.slice(0, 5).map(function(t){
@@ -1371,16 +1387,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>';
           }).join('') +
           '<div class="est-sum">' +
-            '<div class="est-l"><span>Товари</span><b>' + num(t.save > 0 ? t.base : t.sum) + ' грн</b></div>' +
-            (t.save > 0
-              ? '<div class="est-l disc"><span>Оптова знижка</span><b>−' + num(t.save) + ' грн</b></div>'
-              : '') +
+            /* Кошторис — це кошик: перелік того, що клієнт платить, і сума.
+               Знижка вже сидить у ціні кожної позиції, тож окремих рядків
+               «оптова знижка» і «ви економите» тут немає — інакше та сама
+               вигода рахується двічі. */
+            '<div class="est-l"><span>Товари</span><b>' + num(t.sum) + ' грн</b></div>' +
           '</div>' +
           '<div class="est-pay"><span>До оплати</span><b>' + num(t.sum) + ' грн</b></div>' +
-          (t.save > 0
-            ? '<div class="est-save">Ви економите ' + num(t.save) +
-              ' грн завдяки оптовому замовленню</div>'
-            : '') +
         '</div>' +
         reassureHtml() +
       '</section>';
@@ -1418,10 +1431,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function recoHtml(){
     if(!OFFER.reco.length) return '';
     return '' +
-      '<section>' +
+      '<section id="recoSec">' +
         '<h2 class="sec-title">Можливо, вам також підійде</h2>' +
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
-        '<div class="rrow">' + OFFER.reco.slice(0, 4).map(function(r, i){
+        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 12 : 3).map(function(r, i){
           var on = !!pick.reco[i];
           var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
@@ -1439,6 +1452,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (on ? TICK + 'У кошторисі' : 'Додати в кошторис') + '</button>' +
           '</div>';
         }).join('') + '</div>' +
+        (OFFER.reco.length > 3
+          ? '<button class="rmore" id="recoMore">' +
+              (recoOpen ? 'Згорнути' : 'Показати ще ' + (OFFER.reco.length - 3)) +
+              '<span class="rmore-c">' + (recoOpen ? '▲' : '▼') + '</span></button>'
+          : '') +
       '</section>';
   }
 
@@ -1631,7 +1649,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function reviewsSection(){
 
     return '' +
-      '<section class="band">' +
+      '<section>' +
         '<h2 class="sec-title">Що кажуть клієнти</h2>' +
         revsInner() +
       '</section>';
@@ -1822,6 +1840,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     var packs = document.getElementById('packs');
     if(packs) packs.outerHTML = packagesHtml();
+    var rsec = document.getElementById('recoSec');
+    if(rsec) rsec.outerHTML = recoHtml();
     var est = document.getElementById('estimate');
     if(est) est.outerHTML = estimateHtml();
     OFFER.reco.forEach(function(r, i){
@@ -2137,6 +2157,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         queueSave(pick.reco[i] ? 'reco-add' : 'reco-remove', (OFFER.reco[i] || {}).name);
       };
     });
+    var rmore = document.getElementById('recoMore');
+    if(rmore) rmore.onclick = function(){ recoOpen = !recoOpen; refresh(); };
     var estB = document.getElementById('barEstimate');
     if(estB) estB.onclick = function(){
       var t = document.getElementById('estimate');
