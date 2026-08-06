@@ -22,7 +22,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <style>
   :root{
     --ink:#0F2034; --ink-2:#3E4E65; --muted:#7C8798; --line:#E8ECF1;
+    /* Помаранчевий — колір дії на всьому сайті. Раніше кнопки в пропозиції
+       були темно-синіми й нічим не відрізнялись від тексту заголовків. */
     --bg:#fff; --soft:#F6F8FA; --accent:#0F2034; --good:#0E9F6E;
+    --cta:#E8590C; --cta-dark:#C2410C;
     --pad:20px; --radius:16px;
   }
   *{box-sizing:border-box;}
@@ -130,7 +133,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
     background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
     cursor:pointer; transition:.15s;}
-  .pbuy.on{background:var(--ink); color:#fff;}
+  .pbuy{border-color:var(--cta); color:var(--cta-dark);}
+  .pbuy.on{background:var(--cta); border-color:var(--cta); color:#fff;}
   .pbuy:active{transform:scale(.99);}
 
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
@@ -261,8 +265,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   .btn{display:flex; align-items:center; justify-content:center; gap:8px;
     width:100%; padding:15px 20px; border-radius:12px; font-size:15.5px; font-weight:700;
-    background:var(--ink); color:#fff; transition:opacity .15s;}
-  .btn:active{opacity:.85;}
+    background:var(--cta); color:#fff; transition:.15s; border:1.5px solid var(--cta);}
+  .btn:active{background:var(--cta-dark); border-color:var(--cta-dark);}
   .btn-ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
   .btn:disabled{opacity:.45; cursor:default;}
 
@@ -582,11 +586,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
     transform:translateY(110%); transition:transform .25s ease;}
   .bar.show{transform:none;}
-  .bar-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:9px;}
-  .bar-k{font-size:12.5px; color:var(--muted);}
-  .bar-v{font-size:20px; font-weight:800; letter-spacing:-0.5px; font-variant-numeric:tabular-nums;}
-  .bar-btns{display:flex; gap:8px;}
-  .bar-btns .btn{padding:12px 14px; font-size:14.5px;}
+  .bar{display:flex; align-items:center; gap:12px;}
+  .bar-l{flex:none; min-width:96px;}
+  .bar-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted);}
+  .bar-v{display:block; font-size:20px; font-weight:800; letter-spacing:-0.5px;
+    font-variant-numeric:tabular-nums; line-height:1.15;}
+  .bar-q{display:block; font-size:11.5px; color:var(--muted);}
+  .bar-btns{flex:1; display:flex; gap:8px; min-width:0;}
+  .bar-btns .btn{padding:13px 12px; font-size:14.5px;}
+  .bar-est{flex:0 0 auto; padding-left:16px; padding-right:16px;}
+  @media (max-width:360px){ .bar-est{display:none;} }
   body.has-bar{padding-bottom:132px;}
 
   /* ── підтверджено ── */
@@ -1639,15 +1649,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
+  /* Нижня панель. Раніше вона повторювала підсумкову суму, яка й так є в
+     кошторисі, і давала «Підтвердити» ще до того, як людина той кошторис
+     побачила. Тепер це навігація: сума маленьким рядком, а поруч — куди
+     піти. «Кошторис» веде до розкладки, «Підтвердити» — до форми. */
   function barHtml(){
     var t = totals();
     return '' +
       '<div class="bar" id="bar">' +
-        '<div class="bar-top"><span class="bar-k">Підсумкова сума</span>' +
-          '<span class="bar-v" id="barSum">' + money(t.sum) + '</span></div>' +
+        '<div class="bar-l">' +
+          '<span class="bar-k">До сплати</span>' +
+          '<span class="bar-v" id="barSum">' + money(t.sum) + '</span>' +
+          '<span class="bar-q" id="barQty">' + t.qty + ' виробів</span>' +
+        '</div>' +
         '<div class="bar-btns">' +
+          '<button class="btn btn-ghost bar-est" id="barEstimate">Кошторис</button>' +
           '<button class="btn" id="barConfirm">Підтвердити</button>' +
-          '<button class="btn btn-ghost" id="barChange">Потрібні зміни</button>' +
         '</div>' +
       '</div>';
   }
@@ -1689,6 +1706,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('barSum', money(t.sum));
+    set('barQty', t.qty + ' виробів');
     set('heroDays', 'виготовлення від ' + daysWord(curDays()));
     set('termDays', daysWord(curDays()) + ' після погодження макета');
     OFFER.items.forEach(function(it, i){
@@ -2021,6 +2039,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         queueSave(pick.reco[i] ? 'reco-add' : 'reco-remove', (OFFER.reco[i] || {}).name);
       };
     });
+    var estB = document.getElementById('barEstimate');
+    if(estB) estB.onclick = function(){
+      var t = document.getElementById('estimate');
+      if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
+    };
     ['confirmBtn','barConfirm'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
