@@ -118,6 +118,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
   .ppack-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
 
+  /* Перший екран */
+  .hero-shot{margin:18px 0 16px; border-radius:20px; overflow:hidden; background:var(--soft);
+    aspect-ratio:4/3;}
+  .hero-shot img{width:100%; height:100%; object-fit:contain; display:block;}
+  .hero-made{font-size:15px; color:var(--ink-2); line-height:1.6; margin-bottom:16px;}
+  .hero-sum{display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+    padding:16px 18px; border-radius:16px; background:var(--soft);}
+  .hs-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted);}
+  .hs-v{display:block; font-size:28px; font-weight:800; letter-spacing:-.8px;
+    font-variant-numeric:tabular-nums; line-height:1.1; margin-top:3px;}
+  .hs-r{text-align:right;}
+  .hs-d{display:block; font-size:15px; font-weight:700; margin-top:5px; white-space:nowrap;}
+  .hero-till{margin-top:12px; font-size:13px; font-weight:600; color:var(--cta-dark);}
+  .hero .btn{margin-top:16px;}
+
   /* Ціна ліворуч, термін праворуч — два числа, які клієнт звіряє між собою */
   .prow{display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
     margin-top:14px;}
@@ -133,8 +149,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
     background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
     cursor:pointer; transition:.15s;}
-  .pbuy{border-color:var(--cta); color:var(--cta-dark);}
-  .pbuy.on{background:var(--cta); border-color:var(--cta); color:#fff;}
+  /* Не обрана — горить помаранчевим і кличе натиснути. Обрана — тонка
+     обводка з галочкою: дію вже зроблено, привертати увагу нема чого.
+     Раніше було навпаки, і обрана позиція виглядала як заклик натиснути. */
+  .pbuy{background:var(--cta); border-color:var(--cta); color:#fff;}
+  .pbuy.on{background:#fff; border-color:var(--line); color:var(--good); font-weight:600;}
+  .pbuy.on svg{stroke:var(--good);}
   .pbuy:active{transform:scale(.99);}
 
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
@@ -586,17 +606,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
     transform:translateY(110%); transition:transform .25s ease;}
   .bar.show{transform:none;}
-  .bar{display:flex; align-items:center; gap:12px;}
-  .bar-l{flex:none; min-width:96px;}
-  .bar-k{display:block; font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted);}
-  .bar-v{display:block; font-size:20px; font-weight:800; letter-spacing:-0.5px;
-    font-variant-numeric:tabular-nums; line-height:1.15;}
-  .bar-q{display:block; font-size:11.5px; color:var(--muted);}
-  .bar-btns{flex:1; display:flex; gap:8px; min-width:0;}
-  .bar-btns .btn{padding:13px 12px; font-size:14.5px;}
-  .bar-est{flex:0 0 auto; padding-left:16px; padding-right:16px;}
-  @media (max-width:360px){ .bar-est{display:none;} }
+  .bar-btns{display:flex; gap:8px;}
+  .bar-btns .btn{padding:14px 12px; font-size:14.5px;}
+  .bar-btns #barEstimate{flex:0 0 34%;}
+  .bar-btns #barConfirm{flex:1;}
   body.has-bar{padding-bottom:132px;}
 
   /* ── підтверджено ── */
@@ -1045,12 +1058,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return st;
   }
 
+  /* Перший екран. Раніше він розповідав, що МИ зробили — «логотип адаптовано,
+     ціни розраховано». Клієнту з цього нічого: він хоче знати, що отримає,
+     коли і за скільки. Тому склад замість наших галочок, велике фото
+     колекції замість дрібного збоку, і термін дії замість дати правки
+     документа. Економії тут немає навмисно — знижка вже сидить у ціні
+     кожної позиції, і виносити її окремо означало б рахувати двічі. */
   function heroHtml(){
-    var kinds = OFFER.items.length;
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
     var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
-    // Суми на першому екрані немає навмисно: ціну можна оцінити лише після того,
-    // як людина побачила, що саме входить у пропозицію.
+    /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
+       відповідь на «що мені пропонують», на відміну від «2 види товарів». */
+    var made = OFFER.items.map(function(it, i){
+      return itemState(i).qty + ' ' + String(it.name || '').toLowerCase();
+    }).join(' · ');
+    var till = dateUa((OFFER.terms || {}).validUntil);
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
@@ -1058,24 +1080,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             'onerror="this.style.display=\'none\'">' : '') +
         '<div class="hero-eyebrow">Комерційна пропозиція' +
           (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</div>' +
-        '<h1>' + (who ? 'Колекція корпоративного одягу для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
-        '<p class="hero-sub">Ми підготували персональну пропозицію з урахуванням ' +
-          'вашого логотипа, побажань та кількості виробів.</p>' +
-        '<div class="hero-body">' +
-          '<div class="hero-checks">' +
-            heroStatuses().map(function(x){
-              return '<div class="hcheck">' + TICK_ROUND + '<span>' + esc(x) + '</span></div>';
-            }).join('') +
-          '</div>' +
-          (shot ? '<div class="hero-photo"><img src="' + esc(shot) + '" alt="Макет" ' +
-                  'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+        '<h1>' + (who ? 'Мерч для ' + esc(who) + ' готовий до запуску' : 'Ваша пропозиція') + '</h1>' +
+        (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
+                'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+        (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
+        '<div class="hero-sum">' +
+          '<div class="hs-l"><span class="hs-k">До сплати</span>' +
+            '<span class="hs-v" id="heroSum">' + money(totals().sum) + '</span></div>' +
+          '<div class="hs-r"><span class="hs-k">Виготовлення</span>' +
+            '<span class="hs-d" id="heroDays">' + daysWord(curDays()) + '</span></div>' +
         '</div>' +
-        '<div class="hero-facts">' +
-          '<span class="fact">' + kinds + ' ' + plural(kinds,'вид товару','види товарів','видів товарів') + '</span>' +
-          '<span class="fact" id="heroQty">' + totals().qty + ' ' + plural(totals().qty,'виріб','вироби','виробів') + '</span>' +
-          '<span class="fact" id="heroDays">виготовлення від ' + daysWord(curDays()) + '</span>' +
-        '</div>' +
-        '<button class="btn-ghost-lg no-print" id="goOffer">Переглянути пропозицію ↓</button>' +
+        (till ? '<div class="hero-till">Ціни діють до ' + esc(till) + '</div>' : '') +
+        '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
       '</div>';
   }
 
@@ -1203,7 +1219,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
                 ' за штуку</div>' : '') +
         '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
-          (on ? TICK_W + 'У кошторисі' : 'Додати в кошторис') + '</button>' +
+          (on ? TICK + 'У кошторисі' : 'Додати в кошторис') + '</button>' +
       '</div>';
   }
 
@@ -1662,14 +1678,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     return '' +
       '<div class="bar" id="bar">' +
-        '<div class="bar-l">' +
-          '<span class="bar-k">До сплати</span>' +
-          '<span class="bar-v" id="barSum">' + money(t.sum) + '</span>' +
-          '<span class="bar-q" id="barQty">' + t.qty + ' виробів</span>' +
-        '</div>' +
+        /* Суми тут немає навмисно: вона є в кошторисі й на першому екрані,
+           а поруч із кнопкою читалась як «стільки списати зараз». */
         '<div class="bar-btns">' +
-          '<button class="btn btn-ghost bar-est" id="barEstimate">Кошторис</button>' +
-          '<button class="btn" id="barConfirm">Підтвердити</button>' +
+          '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
+          '<button class="btn" id="barConfirm">Підтвердити замовлення</button>' +
         '</div>' +
       '</div>';
   }
@@ -1710,9 +1723,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
-    set('barSum', money(t.sum));
-    set('barQty', t.qty + ' виробів');
-    set('heroDays', 'виготовлення від ' + daysWord(curDays()));
+    set('heroSum', money(t.sum));
+    set('heroDays', daysWord(curDays()));
+    var hm = document.getElementById('heroMade');
+    if(hm) hm.textContent = OFFER.items.map(function(it, i){
+      return itemState(i).qty + ' ' + String(it.name || '').toLowerCase();
+    }).join(' · ');
     set('termDays', daysWord(curDays()) + ' після погодження макета');
     OFFER.items.forEach(function(it, i){
       // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
