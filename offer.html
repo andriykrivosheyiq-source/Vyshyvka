@@ -108,6 +108,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .et-disc{color:#0E9F6E; font-weight:600;}
   .et-pay{display:flex; justify-content:space-between; align-items:baseline;
     font-size:19px; font-weight:800; margin-top:4px;}
+  /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
+     зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
+  .pqty{margin-top:16px;}
+  .pqty.off{opacity:.55;}
+  .pchk{display:flex; align-items:center; gap:9px; width:100%; padding:11px 13px;
+    border:1.5px solid var(--line); border-radius:13px; background:#fff;
+    font:inherit; cursor:pointer; transition:.15s; text-align:left;}
+  .pchk.on{border-color:var(--ink); background:#F7F9FC;}
+  .pchk-b{flex:none; width:21px; height:21px; border-radius:7px; border:1.5px solid var(--line);
+    background:#fff; display:flex; align-items:center; justify-content:center;}
+  .pchk.on .pchk-b{background:var(--ink); border-color:var(--ink);}
+  .pchk-l{font-size:14px; font-weight:700;}
+  .pstep{display:flex; align-items:center; gap:6px; margin-top:10px;}
+  .pstep-b{flex:none; width:42px; height:42px; border-radius:13px; border:1.5px solid var(--line);
+    background:#fff; font:inherit; font-size:20px; line-height:1; color:var(--ink);
+    cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none;}
+  .pstep-b.plus{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .pstep-v{flex:1; text-align:center; font-size:15px; color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  .pstep-v b{font-size:19px; color:var(--ink); margin-right:5px;}
+  .pqty-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
+
   /* ── Ритм сторінки ─────────────────────────────────────────────────
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
@@ -738,21 +760,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // ── стан сторінки: вибір клієнта живе тут, суми рахуються з нього ──
   var OFFER = null;
-  var pick = { qty: {}, reco: {} };   // індекс позиції → обраний тираж / увімкнена рекомендація
+  /* Вибір клієнта. on — чи входить позиція в кошторис (галочка), qty — скільки
+     штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
+     потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
+     береться з того порогу, у який кількість потрапляє. */
+  var pick = { qty: {}, reco: {}, on: {} };
+  function isOn(i){ return pick.on[i] !== false; }
 
   function itemState(i){
     var it = OFFER.items[i];
-    var chosen = pick.qty[i];
-    if(chosen == null) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
-                                base: it.basePrice, save: it.save, changed: false };
-    var t = it.tiers.filter(function(x){ return x.qty === chosen; })[0];
-    if(!t) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
-                    base: it.basePrice, save: it.save, changed: false };
-    // Ціна без знижки масштабується від початкової — відсоток вигоди лишається чесним
-    var baseUnit = it.qty ? (it.basePrice / it.qty) : t.unit;
-    return { qty: t.qty, unit: t.unit, sum: t.sum,
-             base: baseUnit * t.qty, save: Math.max(0, baseUnit * t.qty - t.sum),
-             changed: t.qty !== it.qty };
+    var q = pick.qty[i];
+    if(q == null || q === it.qty) return { qty: it.qty, unit: it.unitPrice, sum: it.price,
+                                           base: it.basePrice, save: it.save, changed: false };
+    q = Math.max(1, Math.round(q));
+    /* Ціна за штуку — з того порогу, у який потрапила кількість: беремо
+       найбільший поріг, що не перевищує обрану кількість. Так 40 шт коштують
+       як 30, а не як 50 — це чесно й збігається з тим, що порахує Канбан. */
+    var unit = it.unitPrice;
+    (it.tiers || []).slice().sort(function(a, b){ return a.qty - b.qty; })
+      .forEach(function(t){ if(q >= t.qty) unit = t.unit; });
+    var baseUnit = it.qty ? (it.basePrice / it.qty) : unit;
+    return { qty: q, unit: unit, sum: unit * q,
+             base: baseUnit * q, save: Math.max(0, baseUnit * q - unit * q),
+             changed: q !== it.qty };
   }
   // Термін залежить від тиражу, тож при зміні кількості він теж змінюється.
   // Правила прийшли з адмінки, щоб сторінка й Канбан рахували однаково.
@@ -773,6 +803,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function totals(){
     var qty = 0, sum = 0, base = 0;
     OFFER.items.forEach(function(it, i){
+      if(!isOn(i)) return;              // знята галочка = позиції в кошторисі немає
       var s = itemState(i);
       qty += s.qty; sum += s.sum; base += s.base;
     });
@@ -1029,26 +1060,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>';
   }
 
-  /* Тираж — сегментом, а не картками. Картки з трьома рядками тексту важать
-     візуально стільки ж, скільки саме фото товару; сегмент читається як одна
-     дія, а вигода підписана під ним одним рядком. */
+  /* Керування позицією. Замість трьох фіксованих тиражів — галочка «беру» і
+     власна кількість: клієнту потрібно 43 футболки, а не 30 або 50. Ціна за
+     штуку показується поруч і перераховується сама, коли кількість переходить
+     наступний поріг. */
   function tiersHtml(i){
+    var st = itemState(i);
+    var on = isOn(i);
     var it = OFFER.items[i];
-    if(!it.tiers || it.tiers.length < 2) return '';
-    var cur = itemState(i).qty;
-    var base = it.unitPrice || (it.tiers[0] && it.tiers[0].unit) || 0;
-    var act = it.tiers.filter(function(t){ return t.qty === cur; })[0];
-    var pctNow = (act && base > 0 && act.unit < base) ? Math.round((1 - act.unit / base) * 100) : 0;
+    var next = (it.tiers || []).filter(function(t){ return t.qty > st.qty; })
+                               .sort(function(a, b){ return a.qty - b.qty; })[0];
     return '' +
-      '<div class="pqty">' +
-        '<div class="pqty-k">Тираж</div>' +
-        '<div class="pseg">' + it.tiers.map(function(t){
-          return '<button class="pseg-b' + (t.qty === cur ? ' on' : '') + '" ' +
-                   'data-tier="' + i + '" data-qty="' + t.qty + '">' + t.qty + '</button>';
-        }).join('') + '</div>' +
-        '<div class="pqty-n">' + (pctNow > 0
-          ? '<b>Економія ' + pctNow + '%</b> · ' + money(act.unit) + ' за штуку'
-          : money((act && act.unit) || base) + ' за штуку') + '</div>' +
+      '<div class="pqty' + (on ? '' : ' off') + '">' +
+        '<button class="pchk' + (on ? ' on' : '') + '" data-on="' + i + '" ' +
+          'aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          '<span class="pchk-b">' + (on ? TICK_W : '') + '</span>' +
+          '<span class="pchk-l">' + (on ? 'У кошторисі' : 'Додати в кошторис') + '</span>' +
+        '</button>' +
+        '<div class="pstep">' +
+          '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
+          '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
+          '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
+        '</div>' +
+        (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
+                ' за штуку</div>' : '') +
       '</div>';
   }
 
@@ -1122,6 +1157,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var rows = [];
     OFFER.items.forEach(function(it, i){
+      if(!isOn(i)) return;
       var st = itemState(i);
       rows.push({ th:(it.mockups||[])[0], name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
     });
@@ -1487,7 +1523,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            заклик. Пакети підняті ПІСЛЯ колекції — обирати тираж, ще нічого
            не побачивши, немає сенсу. Гарантії, роботи й відгуки витягнуті
            з розкриття назовні: там їх не бачив ніхто. */
-        heroHtml() + itemsHtml() + recoHtml() + packagesHtml() + estimateHtml() +
+        heroHtml() + itemsHtml() + recoHtml() + estimateHtml() +
         includesHtml() + whyHtml() +
         guaranteesSection() + worksSection() + casesHtml() + reviewsSection() +
         mgrHtml() + finalHtml() + detailsHtml() +
@@ -1772,14 +1808,49 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         queueSave('pack', 'Обрано пакет «' + p.name + '» — ' + money(p.sum));
       };
     });
-    document.querySelectorAll('[data-tier]').forEach(function(b){
+    // Галочка «беру цю позицію»
+    document.querySelectorAll('[data-on]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
       b.onclick = function(){
-        var i = +b.dataset.tier, q = +b.dataset.qty;
-        pick.qty[i] = q;
+        var i = +b.dataset.on;
+        pick.on[i] = !isOn(i);
         refresh();
-        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + q + ' шт');
+        queueSave('pick', (OFFER.items[i] || {}).name + (pick.on[i] ? ' — беру' : ' — прибрано'));
       };
+    });
+    /* Кількість. Крок росте, коли тримають кнопку: набирати сотню поштучно
+       ніхто не буде, а фіксовані пороги клієнту не підходять. */
+    document.querySelectorAll('[data-q]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      var wait = null, rep = null, gap = 0, held = false;
+      var step = function(){
+        var i = +b.dataset.q, d = +b.dataset.d;
+        var cur = itemState(i).qty;
+        var by = held && cur >= 20 ? 5 : 1;
+        var next = Math.max(1, cur + d * by);
+        if(next === cur) return;
+        pick.qty[i] = next;
+        var el = b.parentNode.querySelector('.pstep-v b');
+        if(el) el.textContent = next;      // під час утримання не перебудовуємо картку
+      };
+      var stop = function(){
+        if(wait) clearTimeout(wait);
+        if(rep) clearTimeout(rep);
+        wait = rep = null; held = false;
+        var i = +b.dataset.q;
+        refresh();
+        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + itemState(i).qty + ' шт');
+      };
+      var tick = function(){ held = true; step();
+        gap = Math.max(45, Math.round(gap * 0.85)); rep = setTimeout(tick, gap); };
+      b.addEventListener('pointerdown', function(e){
+        if(e.button) return;
+        e.preventDefault();
+        step(); gap = 160;
+        try{ b.setPointerCapture(e.pointerId); }catch(err){}
+        wait = setTimeout(tick, 420);
+      });
+      ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ b.addEventListener(ev, stop); });
     });
     document.querySelectorAll('[data-reco]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
