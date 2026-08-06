@@ -180,49 +180,59 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
   .pcard{border:1px solid var(--line); border-radius:18px; padding:14px; background:#fff;
     margin-bottom:12px;}
-  .pcard-main{display:flex; gap:14px;}
-  .pcard-shot{flex:0 0 118px; height:118px; border-radius:14px; overflow:hidden;
+  /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
+     людина має встигнути захотіти виріб, перш ніж читатиме ціну. Раніше фото
+     займало 118 px збоку і важило рівно стільки ж, скільки будь-який рядок
+     тексту поруч, — картка виглядала як таблиця, а не як вітрина. */
+  .pshot{width:100%; aspect-ratio:1/1; max-height:62vh; border-radius:16px; overflow:hidden;
     background:var(--soft); display:flex; align-items:center; justify-content:center;}
-  .pcard-shot img{width:100%; height:100%; object-fit:cover;}
-  .pcard-info{flex:1; min-width:0; display:flex; flex-direction:column;}
-  .pcard-name{font-size:19px; font-weight:800; letter-spacing:-0.4px; margin:0 0 5px;}
+  .pshot img{width:100%; height:100%; object-fit:contain; display:block;
+    transition:opacity .18s ease;}
+  .pshot img.swap{opacity:0;}
+
+  /* Ракурси — рядок вкладок під фото */
+  .pviews{display:flex; gap:6px; margin-top:12px; overflow-x:auto; scrollbar-width:none;}
+  .pviews::-webkit-scrollbar{display:none;}
+  .pview{flex:0 0 auto; background:none; border:none; cursor:pointer; font:inherit;
+    font-size:13px; color:var(--muted); padding:7px 13px; border-radius:999px;
+    white-space:nowrap; transition:.15s;}
+  .pview.on{background:var(--ink); color:#fff; font-weight:600;}
+
+  /* Примітка — згорнута, щоб не сперечатися з товаром за увагу */
+  .pnote-t{display:flex; align-items:center; gap:7px; margin-top:10px; padding:0;
+    background:none; border:none; cursor:pointer; font:inherit; font-size:12.5px;
+    color:var(--muted);}
+  .pnote-i{flex:none; width:16px; height:16px; border-radius:50%; background:#F0E2C4;
+    color:#8A5B00; font-size:11px; font-weight:800; display:flex;
+    align-items:center; justify-content:center; line-height:1;}
+  .pnote-c{transition:transform .18s;}
+  .pnote-t.on .pnote-c{transform:rotate(180deg);}
+  .pnote{margin-top:8px; padding:11px 13px; border-radius:12px; background:#FDF7EC;
+    color:#7A5410; font-size:12.5px; line-height:1.6;}
+
+  /* Назва й ціна — без рамок. Рамка навколо ціни робила з неї кнопку,
+     якою вона не є, і сперечалася за увагу з реальними кнопками. */
+  .pcard-info{margin-top:16px;}
+  .pcard-name{font-size:22px; font-weight:800; letter-spacing:-0.5px; margin:0 0 4px;}
   .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
-  .pcard-money{display:flex; align-items:baseline; gap:8px; margin-top:10px; flex-wrap:wrap;}
-  .pcard-price{border:1.5px solid var(--good); color:var(--ink); border-radius:10px;
-    padding:5px 11px; font-size:16px; font-weight:800; letter-spacing:-0.3px;
-    font-variant-numeric:tabular-nums;}
+  .pcard-money{display:flex; align-items:baseline; gap:9px; margin-top:9px; flex-wrap:wrap;}
+  .pcard-price{font-size:26px; font-weight:800; letter-spacing:-0.6px;
+    font-variant-numeric:tabular-nums; color:var(--ink);}
   .pcard-per{font-size:13px; color:var(--muted);}
-  .pcard-term{font-size:12.5px; color:var(--muted); margin-top:8px;}
-  .pcard-views{display:flex; gap:8px; margin-top:14px;}
-  /* Розмір плитки не залежить від їх кількості: два ракурси не мають
-     розповзатися на пів картки, як це виходило при flex:1. */
-  .pv{flex:0 0 84px; max-width:84px; background:none; border:none; padding:0; cursor:pointer;
-    font:inherit; text-align:center;}
-  /* span за замовчуванням рядковий — на ньому не працюють ні aspect-ratio,
-     ні overflow, і плитка розповзалась на всю картку. Тому block і фікс висота. */
-  .pv-ph{display:block; width:100%; height:74px; border-radius:12px; overflow:hidden;
-    background:var(--soft); border:1.5px solid transparent; transition:border-color .15s;}
-  .pv-ph img{width:100%; height:100%; object-fit:cover; display:block;}
-  .pv.on .pv-ph{border-color:var(--ink);}
-  .pv-l{display:block; margin-top:5px; font-size:11px; color:var(--muted);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .pv.on .pv-l{color:var(--ink); font-weight:600;}
-  .qrow{display:flex; align-items:center; gap:9px; margin-top:13px;}
-  .qrow-l{flex:none; font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted);}
-  /* Бейдж відсотка стирчить за межі чіпа, а контейнер гортається й тому ріже —
-     віддаємо йому запас зверху й з боків і забираємо його ж відступами. */
-  .qchips{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
-    padding:9px 6px 2px; margin:-9px -6px -2px;}
-  .qchips::-webkit-scrollbar{display:none;}
-  .qchip{position:relative; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
-    gap:0; padding:6px 11px; border-radius:11px; border:1.5px solid var(--line);
-    background:#fff; font:inherit; cursor:pointer; transition:.15s;}
-  .qchip.on{border-color:var(--ink); background:#F7F9FC;}
-  .qc-q{font-size:12.5px; font-weight:700; white-space:nowrap;}
-  .qc-u{font-size:11px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums;}
-  .qc-b{position:absolute; top:-7px; right:-5px; background:var(--good); color:#fff;
-    font-size:9px; font-weight:800; padding:1px 5px; border-radius:999px; line-height:1.3;}
+  .pcard-term{font-size:12.5px; color:var(--muted); margin-top:7px;}
+
+  /* Тираж — один сегмент замість трьох карток */
+  .pqty{margin-top:16px;}
+  .pqty-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
+  .pseg{display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--soft);}
+  .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:10px; background:none;
+    font:inherit; font-size:14.5px; font-weight:700; color:var(--ink-2); cursor:pointer;
+    font-variant-numeric:tabular-nums; transition:.15s;}
+  .pseg-b.on{background:var(--ink); color:#fff;}
+  .pqty-n{margin-top:8px; font-size:12.5px; color:var(--muted);}
+  .pqty-n b{color:var(--good);}
+
   .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
   .pcard-more>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
     gap:6px; font-size:13.5px; font-weight:600; color:var(--ink-2);}
@@ -363,10 +373,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}
   .mock-side{position:absolute; left:14px; top:14px; background:rgba(255,255,255,.9);
     border-radius:999px; padding:3px 9px; font-size:11px; font-weight:700; color:var(--ink-2);}
-  .specs{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px; margin-bottom:18px;}
-  .spec-k{font-size:11px; font-weight:700; letter-spacing:.6px;
-    text-transform:uppercase; color:var(--muted); margin-bottom:2px;}
-  .spec-v{font-size:14.5px; font-weight:600;}
+  .specs{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:8px; margin-bottom:18px;}
+  .spec{display:flex; flex-direction:column; gap:3px; padding:11px 12px;
+    border-radius:12px; background:var(--soft);}
+  .spec-ic{color:var(--muted); line-height:0;}
+  .spec-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; color:var(--muted);}
+  .spec-v{font-size:14.5px; font-weight:700;}
   .price-box{background:var(--soft); border-radius:14px; padding:16px 18px;}
   .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .pb-row + .pb-row{margin-top:8px;}
@@ -894,21 +908,42 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>';
   }
 
-  // Ракурси під карткою: три плитки з підписом, головне фото міняється дотиком.
+  /* Ракурси — вкладками, а не плитками. Чотири маленькі фото поруч із великим
+     конкурують із ним за увагу і роблять картку рябою; підписи ж читаються
+     миттєво, а фото лишається одне й головне. */
   function viewsHtml(it, idx){
     var m = (it.mockups || []).slice(0, 4);
     if(m.length < 2) return '';
+    /* Підпис ракурсу. Якщо менеджер не позначив сторону, «Вигляд 2» нічого не
+       каже клієнту — а другий макет майже завжди спина. Далі вже нумеруємо. */
+    var FALLBACK = ['Перед', 'Спина', 'Лівий бік', 'Правий бік'];
     var label = function(k){
       var sd = (it.sides || [])[k];
-      return (sd && SIDE_UA[sd.side]) ? SIDE_UA[sd.side] : (k === 0 ? 'Перед' : 'Вигляд ' + (k + 1));
+      if(sd && SIDE_UA[sd.side]) return SIDE_UA[sd.side];
+      return FALLBACK[k] || ('Вигляд ' + (k + 1));
     };
-    return '<div class="pcard-views">' + m.map(function(src, k){
-      return '<button class="pv' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
-               'data-src="' + esc(src) + '">' +
-        '<span class="pv-ph"><img src="' + esc(src) + '" alt="" loading="lazy" ' +
-          'onerror="this.parentNode.parentNode.style.visibility=\'hidden\'"></span>' +
-        '<span class="pv-l">' + esc(label(k)) + '</span></button>';
+    return '<div class="pviews">' + m.map(function(src, k){
+      return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
+               'data-src="' + esc(src) + '">' + esc(label(k)) + '</button>';
     }).join('') + '</div>';
+  }
+
+  /* Примітка про кольори й розмір нанесення. Клієнт бачить макет на екрані і
+     чекає на 1:1 — а екрани показують колір по-різному, і нанесення
+     масштабується під розмір виробу. Сказати це ДО замовлення дешевше, ніж
+     розбиратися після. Згорнута, щоб не забирати увагу в товару. */
+  function noteHtml(i){
+    return '' +
+      '<button class="pnote-t" data-note="' + i + '" aria-expanded="false">' +
+        '<span class="pnote-i">!</span>Про кольори та розмір нанесення' +
+        '<span class="pnote-c">▾</span>' +
+      '</button>' +
+      '<div class="pnote" data-note-body="' + i + '" hidden>' +
+        'Кольори одягу, принтів і вишивки можуть трохи відрізнятися від того, ' +
+        'що ви бачите на екрані: кожен монітор і телефон передає колір по-своєму.<br>' +
+        'Розмір нанесення масштабується під розмір виробу — крок між сусідніми ' +
+        'розмірами приблизно 0,5–1 см на грудях і 1–2 см на спині.' +
+      '</div>';
   }
 
   // Подробиці — під розкриттям: у картці лишається те, що вирішує, а розмір
@@ -926,10 +961,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(it.sizes) rows.push(['Розмірний ряд',
       itemState(i).changed ? 'узгодимо з вами' : it.sizes]);
     if(!rows.length) return '';
+    var ICO = {
+      'Сторони':          '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>',
+      'Розмір нанесення': '<path d="M3 8h18v8H3z"/><path d="M7 8v3M12 8v4M17 8v3"/>',
+      'Розмірний ряд':    '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5V20.5"/>'
+    };
     return '<div class="specs" data-specs="' + i + '">' +
       rows.map(function(r){
-        return '<div><div class="spec-k">' + esc(r[0]) + '</div>' +
-               '<div class="spec-v">' + esc(r[1]) + '</div></div>';
+        return '<div class="spec"><span class="spec-ic">' +
+          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+          (ICO[r[0]] || '<circle cx="12" cy="12" r="8.5"/>') + '</svg></span>' +
+          '<span class="spec-k">' + esc(r[0]) + '</span>' +
+          '<span class="spec-v">' + esc(r[1]) + '</span></div>';
       }).join('') + '</div>';
   }
 
@@ -952,26 +996,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>';
   }
 
-  // Вибір тиражу — це апсел, і він має бути видимим. Ховати його під
-  // розкриттям означало віддати вигоду, про яку клієнт просто не дізнається.
-  // Тому компактні чіпи прямо в картці: тираж, ціна за штуку і виграш.
+  /* Тираж — сегментом, а не картками. Картки з трьома рядками тексту важать
+     візуально стільки ж, скільки саме фото товару; сегмент читається як одна
+     дія, а вигода підписана під ним одним рядком. */
   function tiersHtml(i){
     var it = OFFER.items[i];
     if(!it.tiers || it.tiers.length < 2) return '';
     var cur = itemState(i).qty;
     var base = it.unitPrice || (it.tiers[0] && it.tiers[0].unit) || 0;
+    var act = it.tiers.filter(function(t){ return t.qty === cur; })[0];
+    var pctNow = (act && base > 0 && act.unit < base) ? Math.round((1 - act.unit / base) * 100) : 0;
     return '' +
-      '<div class="qrow">' +
-        '<span class="qrow-l">Тираж</span>' +
-        '<div class="qchips">' + it.tiers.map(function(t){
-          var pct = base > 0 && t.unit < base ? Math.round((1 - t.unit / base) * 100) : 0;
-          return '<button class="qchip' + (t.qty === cur ? ' on' : '') + '" ' +
-                   'data-tier="' + i + '" data-qty="' + t.qty + '">' +
-            '<span class="qc-q">' + t.qty + ' шт</span>' +
-            '<span class="qc-u">' + money(t.unit) + '</span>' +
-            (pct > 0 ? '<span class="qc-b">−' + pct + '%</span>' : '') +
-          '</button>';
+      '<div class="pqty">' +
+        '<div class="pqty-k">Тираж</div>' +
+        '<div class="pseg">' + it.tiers.map(function(t){
+          return '<button class="pseg-b' + (t.qty === cur ? ' on' : '') + '" ' +
+                   'data-tier="' + i + '" data-qty="' + t.qty + '">' + t.qty + '</button>';
         }).join('') + '</div>' +
+        '<div class="pqty-n">' + (pctNow > 0
+          ? '<b>Економія ' + pctNow + '%</b> · ' + money(act.unit) + ' за штуку'
+          : money((act && act.unit) || base) + ' за штуку') + '</div>' +
       '</div>';
   }
 
@@ -985,24 +1029,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var tech = (it.techniques || []).join(', ') || it.print || '';
           var main = (it.mockups || [])[0] || '';
           return '<div class="pcard">' +
-            '<div class="pcard-main">' +
-              '<div class="pcard-shot" data-shot="' + i + '">' + (main
-                ? '<img id="shotImg' + i + '" src="' + esc(main) + '" alt="Макет" ' +
-                  'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
-              '<div class="pcard-info">' +
-                '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
-                (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
-                // колір приходить у різних формах («чорна», «чорний») — ставимо його
-                // після двокрапки, інакше виходить «чорна колір»
-                (it.color ? '<div class="pcard-meta">Колір: ' + esc(it.color) + '</div>' : '') +
-                '<div class="pcard-money" data-unit="' + i + '">' +
-                  '<span class="pcard-price">' + money(st.unit) + '</span>' +
-                  '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>' +
-                '</div>' +
-                '<div class="pcard-term">Виготовлення ' + curDays() + ' роб. днів</div>' +
-              '</div>' +
-            '</div>' +
+            // Спершу товар, і лише потім цифри: людина має встигнути захотіти
+            '<div class="pshot" data-shot="' + i + '">' + (main
+              ? '<img id="shotImg' + i + '" src="' + esc(main) + '" alt="Макет" ' +
+                'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
             viewsHtml(it, i) +
+            noteHtml(i) +
+            '<div class="pcard-info">' +
+              '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
+              '<div class="pcard-meta">' +
+                [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
+              '<div class="pcard-money" data-unit="' + i + '">' +
+                '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>' +
+              '</div>' +
+              '<div class="pcard-term">Виготовлення ' + curDays() + ' роб. днів</div>' +
+            '</div>' +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
@@ -1589,14 +1631,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
       if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
     };
+    /* Зміна ракурсу — з коротким згасанням. Різка підміна кадру читається як
+       збій; 180 мс дають відчуття, що фото саме перегорнулось. Нове фото
+       чекаємо в пам'яті й показуємо тільки коли воно готове, інакше на
+       повільному звʼязку між кадрами блимає порожнеча. */
     document.querySelectorAll('[data-thumb]').forEach(function(b){
       b.onclick = function(){
-        var i = b.dataset.thumb;
+        var i = b.dataset.thumb, src = b.dataset.src;
         var big = document.getElementById('shotImg' + i);
-        if(big) big.src = b.dataset.src;
         document.querySelectorAll('[data-thumb="' + i + '"]').forEach(function(x){
           x.classList.toggle('on', x === b);
         });
+        if(!big || big.getAttribute('src') === src) return;
+        var pre = new Image();
+        var show = function(){
+          big.classList.add('swap');
+          setTimeout(function(){ big.src = src; big.classList.remove('swap'); }, 180);
+        };
+        pre.onload = show; pre.onerror = show; pre.src = src;
+      };
+    });
+    // Примітка про кольори — розкривається дотиком
+    document.querySelectorAll('[data-note]').forEach(function(b){
+      b.onclick = function(){
+        var body = document.querySelector('[data-note-body="' + b.dataset.note + '"]');
+        if(!body) return;
+        var open = body.hidden;
+        body.hidden = !open;
+        b.classList.toggle('on', open);
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
       };
     });
     var frozen = OFFER.state === 'confirmed';
