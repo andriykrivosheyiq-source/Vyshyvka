@@ -23,7 +23,7 @@
 const FIELDS = 'https://firestore.googleapis.com/v1/projects/';
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method !== 'POST') return new Response('ok');
 
     // Адресу вебхука видно у логах Cloudflare, тож самої лише секретної
@@ -33,8 +33,33 @@ export default {
       return new Response('forbidden', { status: 403 });
     }
 
+    // Тіло читаємо текстом, бо його ще треба переслати далі байт у байт.
+    const raw = await request.text();
+
+    /* Telegram тримає ЛИШЕ ОДИН вебхук на бота. Якщо ботом уже керує ManyChat
+       (чи інший конструктор), поставити сюди свою адресу означає його вимкнути:
+       перестануть працювати автовідповіді й воронки.
+
+       Тому воркер стає передпокоєм. Він забирає з повідомлення мітку для
+       аналітики й одразу пересилає запит далі, у ManyChat — той навіть не
+       помічає різниці. Адресу ManyChat кладемо в змінну FORWARD_URL.
+
+       Пересилаємо ДО запису в базу і не чекаємо відповіді: чат живої людини
+       не має пригальмовувати через нашу статистику. */
+    if (env.FORWARD_URL) {
+      const relay = fetch(env.FORWARD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: raw,
+      }).then(
+        r => { if (!r.ok) console.log('forward: далі не прийняли', r.status); },
+        e => console.log('forward: не переслалось', String(e).slice(0, 200))
+      );
+      if (ctx && ctx.waitUntil) ctx.waitUntil(relay);
+    }
+
     let update;
-    try { update = await request.json(); } catch { return ok(); }
+    try { update = JSON.parse(raw); } catch { return ok(); }
 
     const msg = update.message || update.edited_message;
     if (!msg || !msg.from || msg.from.is_bot) return ok();
@@ -95,7 +120,8 @@ export default {
 
     // Перше повідомлення з міткою вітаємо, щоб людина не дивилась у порожній
     // чат після «/start». Без мітки — мовчимо: пише вже знайомий співрозмовник.
-    if (m && env.TELEGRAM_BOT_TOKEN) {
+    // Коли ботом керує ManyChat, вітається він — двох привітань не треба.
+    if (m && env.TELEGRAM_BOT_TOKEN && !env.FORWARD_URL) {
       try {
         await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
           method: 'POST',
