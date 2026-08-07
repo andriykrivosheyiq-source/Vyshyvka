@@ -284,6 +284,7 @@
   .an-tbl td.num,.an-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .an-tbl tr.tot td{font-weight:700;border-top:2px solid var(--line);}
   .an-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0;}
+  .an-dim{color:var(--ink-soft);font-size:11.5px;}
 
   .an-spend-row{display:flex;flex-wrap:wrap;gap:8px;}
   .an-spend-row input,.an-spend-row select{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
@@ -1586,6 +1587,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div class="card">
           <div class="card-head"><h2>Пристрої, входи й виходи</h2></div>
           <div id="an-dev"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Діалоги з Telegram</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Хто написав боту й з якої реклами прийшов. Сайт кладе мітку пристрою
+            в посилання, бот отримує її першим повідомленням — тож видно не просто «написали в Telegram», а який саме канал
+            привів цю людину. Порожньо — значить вебхук бота ще не підключений (файл <code>worker/telegram-webhook.js</code>).</div>
+          <div id="an-tg"></div>
         </div>
         <div class="card">
           <div class="card-head"><h2>Швидкість сайту</h2></div>
@@ -7839,6 +7847,56 @@ async function init(){
       : '<div class="an-empty">Замірів ще немає.</div>';
   }
 
+  /* Telegram: діалог + канал, який його привів.
+     Бот знає лише мітку пристрою (vid) — джерело дописуємо тут, знайшовши
+     найраніший візит цього пристрою. Дзвінків у Telegram небагато, тож
+     кілька десятків точкових запитів дешевші за окреме сховище. */
+  async function renderTg(days){
+    var box = document.getElementById('an-tg');
+    if(!box) return;
+    var from = days[0], to = days[days.length - 1];
+    var rows = [];
+    try{
+      var snap = await fbDb.collection('an_tg')
+        .where('day', '>=', from).where('day', '<=', to).limit(200).get();
+      var list = [];
+      snap.forEach(function(s){ list.push(s.data() || {}); });
+      list.sort(function(a, b){ return String(b.at || '').localeCompare(String(a.at || '')); });
+      list = list.slice(0, 60);
+
+      for(var i = 0; i < list.length; i++){
+        var t = list[i], ch = '—', src = '';
+        if(t.vid){
+          try{
+            var vs = await fbDb.collection('an_sessions').where('vid', '==', t.vid).limit(10).get();
+            var docs = [];
+            vs.forEach(function(s){ docs.push(s.data() || {}); });
+            docs.sort(function(x, y){ return String(x.startAt || '').localeCompare(String(y.startAt || '')); });
+            if(docs.length){
+              var s0 = docs[0].first || docs[0].src;
+              ch = CH_UA[channelOf(s0)] || channelOf(s0);
+              src = srcKey(s0);
+            }
+          }catch(e){ /* немає індексу або доступу — лишаємо прочерк */ }
+        }
+        var who = escapeHtml(String(t.name || 'Без імені').slice(0, 40));
+        if(t.user) who += ' <span class="an-dim">@' + escapeHtml(String(t.user).slice(0, 32)) + '</span>';
+        rows.push({ c:[
+          escapeHtml(String(t.at || '').slice(0, 16).replace('T', ' ')),
+          who,
+          escapeHtml(ch) + (src ? '<div class="an-dim">' + escapeHtml(src) + '</div>' : ''),
+          fmt(+t.msgs || 1)
+        ]});
+      }
+    }catch(e){
+      box.innerHTML = '<div class="an-empty">Не вдалось прочитати діалоги: ' +
+        escapeHtml((e && (e.code || e.message)) || 'помилка') + '</div>';
+      return;
+    }
+    box.innerHTML = tbl([{t:'Коли'},{t:'Хто'},{t:'Звідки прийшов'},{t:'Повідомлень',num:1}], rows,
+      'Діалогів ще немає. Або боту ще ніхто не писав, або вебхук не підключений.');
+  }
+
   /* ── 3. ПОВЕДІНКА ─────────────────────────────────────────── */
   function renderBehav(A, ords){
     document.getElementById('an-engage').innerHTML =
@@ -8036,6 +8094,7 @@ async function init(){
       renderMain(cur.A, prv.A, days, ords, prevOrds);
       renderChannels(cur.A, days, ords);
       renderTraffic(cur.A, ords);
+      renderTg(days);            // діалоги тягнуться окремо, звіт їх не чекає
       renderBehav(cur.A, ords);
       renderSales(days, ords);
       // Порожньо — це не помилка читання, тож окремим повідомленням пояснюємо,

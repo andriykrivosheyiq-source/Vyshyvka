@@ -109,6 +109,33 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // Діалоги з Telegram: один документ на співрозмовника. Пише Cloudflare
+    // Worker, який приймає вебхук від Telegram — він звертається до бази без
+    // входу, тож правило описує рівно ту форму запису, яку він робить.
+    //
+    // Читання дозволено точковим (get, без list): Worker перечитує документ,
+    // щоб не загубити мітку пристрою з першого повідомлення. Імʼя документа —
+    // числовий id чату; списком колекція не віддається, а самі поля — це те,
+    // що в Telegram і так публічне (імʼя й @нік). Переписки тут немає.
+    match /an_tg/{chat} {
+      allow get: if true;
+      allow list: if request.auth != null;
+      allow create, update: if request.resource.data.uid is string
+                    && request.resource.data.uid.size() <= 24
+                    && request.resource.data.vid is string
+                    && request.resource.data.vid.size() <= 32
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() <= 60
+                    && request.resource.data.user is string
+                    && request.resource.data.user.size() <= 40
+                    && request.resource.data.day is string
+                    && request.resource.data.day.size() == 10
+                    && request.resource.data.msgs is int
+                    && request.resource.data.msgs >= 0
+                    && request.resource.data.msgs <= 9999;
+      allow delete: if request.auth != null;
+    }
+
     // Денні підсумки. Рахує їх адмінка з сесій за добу — далі звіт відкривається
     // з десятка документів замість тисяч, і читання не впирається в ліміт.
     match /an_days/{day} {
