@@ -132,10 +132,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      а не виглядає як одна залита area. */
   .hero::before{content:''; position:absolute; inset:-30% -25% -10% -25%;
     background:
-      radial-gradient(42% 38% at 18% 6%,  rgba(232,89,12,.55), transparent 68%),
-      radial-gradient(38% 34% at 88% 18%, rgba(42,171,238,.32), transparent 70%),
-      radial-gradient(52% 44% at 62% 96%, rgba(124,58,237,.30), transparent 72%),
-      radial-gradient(30% 26% at 45% 42%, rgba(255,255,255,.06), transparent 70%);
+      radial-gradient(46% 40% at 50% -4%,  rgba(232,89,12,.72), transparent 66%),
+      radial-gradient(40% 36% at 12% 26%,  rgba(124,58,237,.46), transparent 70%),
+      radial-gradient(42% 36% at 92% 22%,  rgba(42,171,238,.44), transparent 70%),
+      radial-gradient(60% 48% at 50% 104%, rgba(14,159,110,.28), transparent 72%),
+      radial-gradient(34% 28% at 50% 46%,  rgba(255,255,255,.08), transparent 70%);
     pointer-events:none;}
   /* Ледь помітна сітка згори — дає відчуття матеріалу, а не плоскої заливки */
   .hero::after{content:''; position:absolute; inset:0; pointer-events:none;
@@ -145,6 +146,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);
     -webkit-mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);}
   .hero > *{position:relative;}
+  /* Все по центру: коротка колонка читається за один погляд, а не змушує
+     очі бігати від краю до краю. */
+  .hero{text-align:center;}
+  .hero .hero-logo{margin-left:auto; margin-right:auto;}
+  .hero .hero-sum{display:inline-block;}
+  .hero .btn{max-width:420px; margin-left:auto; margin-right:auto;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
   .hero-made{color:rgba(255,255,255,.78) !important;}
   .hero-till{color:rgba(255,255,255,.6) !important;}
@@ -179,6 +186,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .psum{margin-top:9px; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
   .psum b{color:var(--ink); font-size:16px; font-weight:800;}
   /* Кнопка замість галочки: дія має виглядати як дія */
+  .pcard-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    flex-wrap:wrap;}
+  .pcard-head .pcard-meta{text-align:right;}
+  .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
+  .pbuy-row .pstep{margin-top:0; flex:none;}
+  .pbuy-row .pbuy{margin-top:0; flex:1;}
   .pbuy{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
     background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
@@ -990,7 +1003,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var cur = packOf(i) || {};
     return '' +
       '<div class="ppack">' +
-        '<div class="ppack-k">Варіант нанесення</div>' +
+        
         '<div class="pseg">' + list.map(function(p){
           return '<button class="pseg-b' + (p.id === cur.id ? ' on' : '') + '" ' +
                    'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '">' +
@@ -1318,11 +1331,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                .sort(function(a, b){ return a.qty - b.qty; })[0];
     return '' +
       '<div class="pqty' + (on ? '' : ' off') + '">' +
-        '<div class="pstep">' +
-          '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
-          '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
-          '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
-        '</div>' +
         '<div class="prow">' +
           '<div class="prow-l">' +
             '<span class="pcard-price">' + money(st.unit) + '</span>' +
@@ -1336,8 +1344,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Множення тут не робимо: підсумок по позиції рахує кошторис
         (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
                 ' за штуку</div>' : '') +
-        '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
-          (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
+        /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
+           дії в одному рядку, у зоні великого пальця, і не треба шукати
+           лічильник десь вище. */
+        '<div class="pbuy-row">' +
+          '<div class="pstep">' +
+            '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
+            '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
+            '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
+          '</div>' +
+          '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
+            (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
+        '</div>' +
       '</div>';
   }
 
@@ -1361,9 +1379,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>' +
             viewsHtml(it, i) +
             '<div class="pcard-info">' +
-              '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
-              '<div class="pcard-meta">' +
-                [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
+              '<div class="pcard-head">' +
+                '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
+                '<div class="pcard-meta">' +
+                  [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
+              '</div>' +
             '</div>' +
             '<div data-tiers="' + i + '">' + packsHtml(i) + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
@@ -2389,7 +2409,49 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           print:'DTF принт', techniques:['DTF принт'],
           sides:[{ side:'Перед', technique:'DTF принт', widthMm:220, heightMm:150 }],
           mockups:['images/teeover-cream-front.webp'],
-          unitPrice:690, price:20700, baseUnitPrice:780, basePrice:23400, save:2700, tiers:[] })
+          unitPrice:690, price:20700, baseUnitPrice:780, basePrice:23400, save:2700, tiers:[] }),
+        mk({ kind:'reco', name:'Світшот', color:'Сірий', sizes:'S–XXL', qty:20,
+          recoNote:'Тепліший за футболку, легший за худі',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:90, heightMm:60 }],
+          mockups:['images/sweat-gray-front.webp'],
+          unitPrice:740, price:14800, baseUnitPrice:820, basePrice:16400, save:1600, tiers:[] }),
+        mk({ kind:'reco', name:'Футболка оверсайз', color:'Молочний', sizes:'S–XXL', qty:30,
+          recoNote:'Вільний крій, добре сидить на всіх',
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:200, heightMm:140 }],
+          mockups:['images/teeover-cream-front.webp'],
+          unitPrice:560, price:16800, baseUnitPrice:620, basePrice:18600, save:1800, tiers:[] }),
+        mk({ kind:'reco', name:'Худі на застібці', color:'Сірий', sizes:'S–XXL', qty:15,
+          recoNote:'Зручно вдягати поверх сорочки',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:80, heightMm:50 }],
+          mockups:['images/hoodiezip-gray-front.webp'],
+          unitPrice:1240, price:18600, baseUnitPrice:1380, basePrice:20700, save:2100, tiers:[] }),
+        mk({ kind:'reco', name:'Шопер', color:'Білий', sizes:'One size', qty:50,
+          recoTag:'Дешево', recoNote:'Найдешевший спосіб додати логотип',
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:220, heightMm:220 }],
+          mockups:['images/tote-white-front.webp'],
+          unitPrice:290, price:14500, baseUnitPrice:330, basePrice:16500, save:2000, tiers:[] }),
+        mk({ kind:'reco', name:'Футболка базова', color:'Білий', sizes:'S–XXL', qty:40,
+          recoNote:'База, яку носять найчастіше',
+          print:'DTF принт', techniques:['DTF принт'],
+          sides:[{ side:'Перед', technique:'DTF принт', widthMm:180, heightMm:120 }],
+          mockups:['images/tee-white-front.webp'],
+          unitPrice:470, price:18800, baseUnitPrice:520, basePrice:20800, save:2000, tiers:[] }),
+        mk({ kind:'reco', name:'Кепка', color:'Бежевий', sizes:'One size', qty:25,
+          recoNote:'Світлий варіант під літо',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:70, heightMm:40 }],
+          mockups:['images/cap-beige-front.webp'],
+          unitPrice:450, price:11250, baseUnitPrice:500, basePrice:12500, save:1250, tiers:[] }),
+        mk({ kind:'reco', name:'Худі базове', color:'Білий', sizes:'S–XXL', qty:20,
+          recoNote:'Класика без оверсайзу',
+          print:'Вишивка', techniques:['Вишивка'],
+          sides:[{ side:'Перед', technique:'Вишивка', widthMm:90, heightMm:60 }],
+          mockups:['images/hoodie-white-front.webp'],
+          unitPrice:1120, price:22400, baseUnitPrice:1240, basePrice:24800, save:2400, tiers:[] })
       ],
       totals: { qty: 90, base: 78300, save: 11700, total: 66600 },
       includes: ['Виріб', 'Нанесення', 'Підготовка макета', 'Візуалізація',
