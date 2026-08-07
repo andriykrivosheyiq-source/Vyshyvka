@@ -5043,6 +5043,11 @@ function renderOrderDrawer(){
   const o = (orders || []).find(x=>x.id === drawerOrderId);
   if(!o){ closeOrderDrawer(); return; }
   const panel = d.querySelector('.od-panel');
+  /* Панель перемальовується цілком, а разом із нею обнуляється прокрутка —
+     і менеджера викидало нагору щоразу, коли він щось натискав унизу картки
+     (найпомітніше на діалозі з клієнтом). Запамʼятовуємо позицію і повертаємо
+     після перемальовування. */
+  const keepScroll = (panel.querySelector('.od-body') || {}).scrollTop || 0;
   const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
   const created = o.createdAt
@@ -5099,6 +5104,8 @@ function renderOrderDrawer(){
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
       <button data-act="del" title="Видалити замовлення" class="od-del">🗑</button>
     </div>`;
+  const bodyEl = panel.querySelector('.od-body');
+  if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
   panel.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
     if(canNext){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
@@ -5182,7 +5189,7 @@ function crmBlockHtml(o){
     <div class="od-crm-top">
       <input class="od-f od-crm-num" data-f="crmOrder" type="text" inputmode="numeric"
              placeholder="номер замовлення в Sitniks" value="${escapeHtml(num)}">
-      <button class="od-crm-load" ${num ? '' : 'disabled'}>${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
+      <button class="od-crm-load">${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
     </div>`;
 
   if(!crmBase()){
@@ -5237,9 +5244,13 @@ function crmNormMsgs(data){
   }).filter(m => m.text);
 }
 
-async function crmLoad(o){
-  const num = String(o.crmOrder || '').trim();
-  if(!num) return;
+async function crmLoad(o, numFromInput){
+  /* Номер беремо з поля, а не з картки: якщо менеджер вписав його і одразу
+     натиснув кнопку, до картки він ще не встиг зберегтись. Раніше в такому
+     разі кнопка просто мовчала. */
+  const num = String(numFromInput != null ? numFromInput : (o.crmOrder || '')).trim();
+  if(!num){ toast('Впишіть номер замовлення з Sitniks'); return; }
+  if(o.crmOrder !== num){ o.crmOrder = num; saveOrderMeta(o).catch(function(){}); }
   crmChat[o.id] = { loading: true };
   renderOrderDrawer();
   try{
@@ -5291,7 +5302,8 @@ async function crmSend(o, text){
 
 function wireCrmBlock(panel, o){
   const load = panel.querySelector('.od-crm-load');
-  if(load) load.addEventListener('click', ()=> crmLoad(o));
+  const numEl = panel.querySelector('.od-crm-num');
+  if(load) load.addEventListener('click', ()=> crmLoad(o, numEl ? numEl.value : null));
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){
