@@ -62,7 +62,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted); margin-bottom:12px;}
   .hero h1{font-size:31px; line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:800;}
   .hero-sub{font-size:15.5px; color:var(--ink-2); margin:0 0 20px;}
-  .hero-logo{max-height:52px; width:auto; margin-bottom:18px;}
+  .hero-logo{max-height:56px; width:auto; margin-bottom:20px; border-radius:12px;
+    display:block; background:rgba(255,255,255,.9); padding:6px 10px;}
   .hero-shot{background:var(--soft); border-radius:var(--radius); padding:14px; margin-bottom:20px;}
   .hero-shot img{width:100%; aspect-ratio:1/1; object-fit:contain;}
   /* Статуси в Hero: короткі підтвердження, що робота вже зроблена */
@@ -122,15 +123,29 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Перший екран — єдине темне місце вгорі сторінки. Світлий герой нічим не
      відрізнявся від решти й не тримав увагу; темний з мʼяким переливом читається
      як обкладинка, а не як черговий блок тексту. */
-  .hero{position:relative; overflow:hidden; background:var(--ink); color:#fff;
-    border-radius:24px; padding:26px 20px 22px; margin:14px 0 8px; border:none;}
-  .hero::before{content:''; position:absolute; inset:-40% -20% auto -20%; height:150%;
-    background:radial-gradient(60% 55% at 25% 0%, rgba(232,89,12,.42), transparent 70%),
-               radial-gradient(50% 45% at 90% 15%, rgba(42,171,238,.28), transparent 70%);
+  /* Обкладинка на всю ширину екрана: рамка з заокругленням робила з неї
+     ще одну картку серед карток, а вона має бути тлом, у яке входиш. */
+  .hero{position:relative; overflow:hidden; background:#0B1826; color:#fff;
+    border:none; border-radius:0; padding:34px var(--pad) 30px;
+    margin:0 calc(var(--pad) * -1) 10px;}
+  /* Кілька плям світла різного кольору й розміру — так тло має глибину,
+     а не виглядає як одна залита area. */
+  .hero::before{content:''; position:absolute; inset:-30% -25% -10% -25%;
+    background:
+      radial-gradient(42% 38% at 18% 6%,  rgba(232,89,12,.55), transparent 68%),
+      radial-gradient(38% 34% at 88% 18%, rgba(42,171,238,.32), transparent 70%),
+      radial-gradient(52% 44% at 62% 96%, rgba(124,58,237,.30), transparent 72%),
+      radial-gradient(30% 26% at 45% 42%, rgba(255,255,255,.06), transparent 70%);
     pointer-events:none;}
+  /* Ледь помітна сітка згори — дає відчуття матеріалу, а не плоскої заливки */
+  .hero::after{content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);
+    -webkit-mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);}
   .hero > *{position:relative;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
-  .hero-logo{filter:brightness(0) invert(1); opacity:.9;}
   .hero-made{color:rgba(255,255,255,.78) !important;}
   .hero-till{color:rgba(255,255,255,.6) !important;}
   .hero .hero-sum{background:rgba(255,255,255,.1) !important; color:rgba(255,255,255,.78) !important;
@@ -1163,8 +1178,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
         '<h1>' + (who ? 'Корпоративний одяг для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
-        (shot ? '<div class="hero-shot"><img src="' + esc(shot) + '" alt="Макет" ' +
-                'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
         /* Суми на першому екрані немає: вона нічого не значить, поки людина
            не побачила склад і не покрутила кількість. Термін виготовлення —
@@ -1404,13 +1418,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '<span class="est-s">' + num(r.sum) + ' грн</span>' +
             '</div>';
           }).join('') +
-          '<div class="est-sum">' +
-            /* Кошторис — це кошик: перелік того, що клієнт платить, і сума.
-               Знижка вже сидить у ціні кожної позиції, тож окремих рядків
-               «оптова знижка» і «ви економите» тут немає — інакше та сама
-               вигода рахується двічі. */
-
-          '</div>' +
+          /* Кошторис — це кошик: перелік того, що клієнт платить, і сума.
+             Знижка вже сидить у ціні кожної позиції, тож окремих рядків
+             «оптова знижка» і «ви економите» тут немає. Порожня обгортка
+             est-sum давала другу лінію поспіль — прибрана. */
           '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
         '</div>' +
         reassureHtml() +
