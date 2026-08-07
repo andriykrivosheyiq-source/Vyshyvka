@@ -5515,12 +5515,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return Math.round(c);
     }
     function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
+    /* ═══════════ Порядок нанесень для мінімалок ═══════════
+       Мінімальна ціна задана списком: перше нанесення 200, друге 150, далі
+       менше. «Перше» раніше означало «те, що лежить на передній стороні» —
+       і дорога мінімалка могла впасти на маленький значок на грудях, а великий
+       друк на спині брав дешеву. Виходило, що ціна залежала від того, в якому
+       порядку менеджер клікав.
+
+       Тепер номер дає РОЗМІР: найбільше нанесення отримує найдорожчу мінімалку,
+       наступні за ним — дешевші. Так дорога підлога завжди страхує ту роботу,
+       якої більше, а не випадкову. Для DTF розмір визначає лист, а не чиста
+       площа: два однакові за площею макети можуть лягти на різні листи. */
+    function orderedLayers(){
+      var m = methodCfgNew() || {};
+      var grid = m.mode === 'grid';
+      var out = [];
+      getViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          out.push({ side: side, l: l,
+            band: grid ? dtfBandCol(m, l) : 0,
+            mm2: layerInkMm2(l) });
+        });
+      });
+      out.sort(function(a, b){ return (b.band - a.band) || (b.mm2 - a.mm2); });
+      out.forEach(function(x, i){ x.idx = i; });
+      return out;
+    }
     function applicationCostSum(uOverride){
-      var m = methodCfgNew(); if(!m) return 0; var c = 0, idx = 0;
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        c += (m.mode === 'grid') ? dtfGridCost(m, l, uOverride) : placementCost(m, l, idx);
-        idx++;
-      }); });
+      var m = methodCfgNew(); if(!m) return 0; var c = 0;
+      orderedLayers().forEach(function(x){
+        c += (m.mode === 'grid') ? dtfGridCost(m, x.l, uOverride) : placementCost(m, x.l, x.idx);
+      });
       return c;
     }
     // «Сира» продажна ціна нанесення — ДО застосування мінімалки (за площею / за сіткою DTF).
@@ -5763,16 +5788,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // uOverride — тираж для рядка DTF-сітки (для показу порогів/«від»).
     function applicationParts(uOverride){
       var m = methodCfgNew(); if(!m) return { coefPart:0, flatPart:0, basePart:0, minPart:0 };
-      var coefPart = 0, flatPart = 0, basePart = 0, minPart = 0, idx = 0;
-      getViews().forEach(function(side){
-        (pm.logos[side] || []).forEach(function(l){
-          if(m.mode === 'grid') flatPart += dtfGridSell(m, l, uOverride);
-          else {
-            var d = placementDetail(m, l, idx);
-            coefPart += d.total; basePart += d.base; minPart += d.minAdd;
-          }
-          idx++;
-        });
+      var coefPart = 0, flatPart = 0, basePart = 0, minPart = 0;
+      // Порядок — за розміром: найбільше нанесення бере найдорожчу мінімалку.
+      orderedLayers().forEach(function(x){
+        if(m.mode === 'grid') flatPart += dtfGridSell(m, x.l, uOverride);
+        else {
+          var d = placementDetail(m, x.l, x.idx);
+          coefPart += d.total; basePart += d.base; minPart += d.minAdd;
+        }
       });
       // basePart і minPart уже ВСЕРЕДИНІ coefPart — тримаємо окремо лише щоб
       // показати менеджеру, скільки з нанесення це старт, площа й доплата до мінімуму.
@@ -8194,9 +8217,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var caret = mgrDetailOpen ? '▾' : '▸';
         tb += r('Нанесення ('+methodName+') <span data-mgr-toggle style="cursor:pointer;color:#4f5fd4;font-weight:600;">'+caret+' розклад</span>', money(appSell), money(appCost));
         if(mgrDetailOpen){
-          var di = 0;
-          getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-            var idx = di++;
+          // Той самий порядок, що і в розрахунку: спершу найбільше нанесення.
+          // Інакше «Нанесення 1» у розкладі і «перша мінімалка» у прайсі
+          // означали б різні речі.
+          var imgN = 0, txtN = 0;
+          orderedLayers().forEach(function(x){
+            var l = x.l, idx = x.idx;
+            var isTxt = isTextLayer(l);
+            var kindLabel = isTxt ? ('Текст ' + (++txtN)) : ('Зображення ' + (++imgN));
             // Рядок сітки DTF беремо за СУМАРНИМ тиражем способу — так само,
             // як його бере спільний рушій. Інакше деталізація не сходиться.
             var sell = (m.mode === 'grid') ? dtfGridSell(m, l, groupQty) : placementPrice(m, l, idx);
@@ -8218,18 +8246,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               // мінімалки в сітці немає — сума завжди рівно з клітинки таблиці
               note = ' <span style="color:#8a94a6;">' + calcG + '</span>';
             } else {
-              // показуємо, з чого склалась сума: площа × ставка з адмінки
+              // показуємо, з чого склалась сума: площа × ставка з адмінки.
+              // Ставку й мінімалку беремо для потрібного виду: у написа вони
+              // свої, і показувати тут цифри з картинки означало б брехати.
+              var mk = methodCfgKind(m, isTxt);
               var mm2 = layerInkMm2(l);
-              var rate = +m.pricePer1000mm2 || 0;               // грн за 1000 мм²
+              var rate = +mk.pricePer1000mm2 || 0;              // грн за 1000 мм²
               var calc = (mm2/100).toFixed(1) + ' см² × ' + (rate/10) + ' грн/см² = ' + Math.round(raw);
               note = atMin
-                ? ' <span style="color:#c58a00;">(мін ' + minForIndex(m, idx) + ')</span>'
+                ? ' <span style="color:#c58a00;">(мін ' + minForIndex(mk, idx) + ')</span>'
                   + ' <span style="color:#8a94a6;">' + calc + '</span>'
                 : ' <span style="color:#1a7a3a;">(за площею)</span>'
                   + ' <span style="color:#8a94a6;">' + calc + '</span>';
             }
-            tb += r('↳ Зображення '+(idx+1)+note, money(sell), money(cost), {muted:true});
-          }); });
+            tb += r('↳ ' + kindLabel + note, money(sell), money(cost), {muted:true});
+          });
         }
       }
       if(discountAmt>0){

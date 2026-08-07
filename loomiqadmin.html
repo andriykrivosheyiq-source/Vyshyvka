@@ -341,7 +341,8 @@
 
   .app-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;position:relative;}
   @media (min-width:560px){.app-card{padding:16px;margin-bottom:14px;}}
-  .app-card .app-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .app-card .app-head{display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+  .app-card .app-head .remove-app{margin-left:auto;}
   .app-head .tag{font-family:var(--mono);font-size:11px;background:var(--accent-soft);color:var(--accent-deep);padding:3px 8px;border-radius:6px;}
   .app-body{display:grid;grid-template-columns:1fr;gap:14px;}
   @media (min-width:560px){.app-body{grid-template-columns:140px 1fr;gap:16px;}}
@@ -869,12 +870,14 @@
               <input type="number" step="1" min="0" id="sp-emb-ordercost" placeholder="120">
             </label>
           </div>
-          <div class="tl-divider">Стартова ціна вишивки — за кожним дизайном (1-й, 2-й…)</div>
-          <div class="sub" style="margin-bottom:8px;">Фіксована сума, з якої стартує нанесення. До неї ДОДАЄТЬСЯ ціна за площу: <b>старт + мм² ÷ 1000 × ставка</b>. Знижка за тираж діє і на старт. Якщо дизайнів більше за список — діє останнє значення.</div>
+          <div class="tl-divider">Стартова ціна вишивки — за розміром (найбільше, друге…)</div>
+          <div class="sub" style="margin-bottom:8px;">Фіксована сума, з якої стартує нанесення. До неї ДОДАЄТЬСЯ ціна за площу: <b>старт + мм² ÷ 1000 × ставка</b>. Знижка за тираж діє і на старт. Якщо нанесень більше за список — діє останнє значення.</div>
           <div id="sp-emb-bases" style="margin-bottom:6px;"></div>
           <div class="add-row-btn" id="sp-emb-bases-add" style="margin-bottom:12px;">+ додати дизайн</div>
-          <div class="tl-divider">Мін. ціна нанесення — за кожним дизайном (1-й, 2-й…)</div>
-          <div class="sub" style="margin-bottom:8px;">Мінімум для 1-го дизайну, 2-го і т.д. Якщо дизайнів більше за список — діє останнє значення.</div>
+          <div class="tl-divider">Мін. ціна нанесення — за розміром (найбільше, друге…)</div>
+          <div class="sub" style="margin-bottom:8px;">Рядки застосовуються <b>за розміром нанесення</b>, а не за порядком додавання:
+            найбільше отримує перший рядок, наступне за площею — другий. Тож дорожча мінімалка завжди страхує більшу роботу,
+            а не той макет, який менеджер клікнув першим. Якщо нанесень більше за список — діє останнє значення.</div>
           <div id="sp-emb-mins" style="margin-bottom:6px;"></div>
           <div class="add-row-btn" id="sp-emb-mins-add" style="margin-bottom:12px;">+ додати дизайн</div>
           <div class="tl-divider">Додатковий ескіз (за кожне ДОДАТКОВЕ лого, разово) — ціна / собівартість</div>
@@ -2337,11 +2340,20 @@ function curSitePricing(){
   return normalizeSitePricing(p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING)));
 }
 // Мін. ціна нанесення — список за дизайнами (1-й, 2-й…): лише ціна, у стилі решти полів
+/* Номер рядка = місце нанесення за РОЗМІРОМ, а не порядок додавання.
+   Найбільше нанесення бере перший рядок, наступне за площею — другий.
+   Так найдорожча мінімалка завжди страхує найбільшу роботу. */
+function sizeRowLabel(i){
+  if(i === 0) return 'Найбільше нанесення';
+  if(i === 1) return 'Друге за розміром';
+  if(i === 2) return 'Третє за розміром';
+  return (i + 1) + '-е за розміром';
+}
 function paintMins(key, prices){
   const box = document.getElementById('sp-'+key+'-mins'); if(!box) return;
   const pr = (Array.isArray(prices) && prices.length) ? prices : [0];
   box.innerHTML = pr.map((v,i)=>`<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
-    <label class="field" style="flex:1;margin:0;">Дизайн ${i+1} — мін. ціна нанесення, грн
+    <label class="field" style="flex:1;margin:0;">${sizeRowLabel(i)} — мін. ціна нанесення, грн
       <input type="number" step="1" min="0" class="sp-min-p" value="${v==null||v===''?'':v}">
     </label>
     ${pr.length>1?`<button type="button" class="btn-ghost sp-min-del" data-i="${i}" style="padding:9px 12px;flex:none;">✕</button>`:''}
@@ -2369,7 +2381,7 @@ function paintBases(key, prices){
   const box = document.getElementById('sp-'+key+'-bases'); if(!box) return;
   const pr = (Array.isArray(prices) && prices.length) ? prices : [0];
   box.innerHTML = pr.map((v,i)=>`<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">
-    <label class="field" style="flex:1;margin:0;">Дизайн ${i+1} — стартова ціна, грн
+    <label class="field" style="flex:1;margin:0;">${sizeRowLabel(i)} — стартова ціна, грн
       <input type="number" step="1" min="0" class="sp-base-p" value="${v==null||v===''?'':v}" placeholder="як у картинки">
     </label>
     ${pr.length>1?`<button type="button" class="btn-ghost sp-base-del" data-i="${i}" style="padding:9px 12px;flex:none;">✕</button>`:''}
@@ -2945,12 +2957,17 @@ function renderApps(){
   const qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   wrap.innerHTML = '';
   currentApps.forEach((app, idx)=>{
-    const fig = computeApp(app, qty, idx);
+    const fig = computeApp(app, qty);
     const card = document.createElement('div');
     card.className = 'app-card';
     card.innerHTML = `
       <div class="app-head">
-        <span class="tag">Нанесення ${idx+1}</span>
+        <span class="tag">${app.isText ? 'Текст' : 'Зображення'} ${idx+1}</span>
+        ${currentApps.length > 1
+          ? `<span class="tag" style="background:#EEF2FF;color:#3B4A9E;"
+               title="Старт і мінімалка беруться за розміром нанесення, а не за порядком додавання"
+             >${escapeHtml(sizeRowLabel(appSizeIndex(app)).toLowerCase())}</span>`
+          : ''}
         <button class="icon-btn remove-app" title="Видалити">✕</button>
       </div>
       <div class="app-body">
@@ -3005,7 +3022,7 @@ function recalcAppFigures(){
   const qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   document.querySelectorAll('#apps-container .app-card').forEach((card,idx)=>{
     const app = currentApps[idx]; if(!app) return;
-    const fig = computeApp(app, qty, idx);
+    const fig = computeApp(app, qty);
     const figs = card.querySelectorAll('.app-figures .figure .v');
     if(figs[0]) figs[0].textContent = fmt(fig.price)+' ₴';
     if(figs[1]) figs[1].textContent = fmt(fig.cost)+' ₴';
@@ -3013,11 +3030,36 @@ function recalcAppFigures(){
   recalc();
 }
 
-function computeApp(app, qty, idx){
+/* Місце нанесення за РОЗМІРОМ — від нього залежать старт і мінімалка.
+   Раніше брався порядок додавання, і мінімалка 200 могла впасти на дрібний
+   значок лише тому, що менеджер додав його першим. Сайт рахує за розміром,
+   тож адмінка мусить так само — інакше та сама позиція коштувала б різне
+   в конструкторі й у картці. */
+function appSizeIndex(app){
+  const list = currentApps || [];
+  function key(a){
+    const m = methodModel(a.technique === 'emb' ? 'emb' : 'print');
+    const w = +a.wCm || 0, h = +a.hCm || 0;
+    let band = 0;
+    if(m.mode === 'grid'){
+      const bands = m.bands || [];
+      band = Math.max(0, bands.length - 1);
+      for(let i = 0; i < bands.length; i++){
+        const b = bands[i];
+        if((w <= b.w && h <= b.h) || (w <= b.h && h <= b.w)){ band = i; break; }
+      }
+    }
+    return { band: band, area: w * h };
+  }
+  const sorted = list.slice().sort((x, y) => {
+    const a = key(x), b = key(y);
+    return (b.band - a.band) || (b.area - a.area);
+  });
+  return Math.max(0, sorted.indexOf(app));
+}
+function computeApp(app, qty){
   if(qty==null) qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
-  // idx — порядковий номер нанесення: від нього залежать старт і мінімалка
-  if(idx == null) idx = Math.max(0, currentApps.indexOf(app));
-  return appCalc(app.technique, app.wCm, app.hCm, qty, idx, app.isText);
+  return appCalc(app.technique, app.wCm, app.hCm, qty, appSizeIndex(app), app.isText);
 }
 
 function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
@@ -3108,7 +3150,7 @@ function recalc(){
   // Розкладаємо нанесення: вишивка (лінійна — діє коеф.) vs DTF (сітка — тираж усередині, без коеф.)
   let embroUnit=0, dtfUnit=0, embroCostU=0, dtfCostU=0;
   currentApps.forEach((app, idx)=>{
-    const f = computeApp(app, qty, idx);
+    const f = computeApp(app, qty);
     if(app.technique==='emb'){ embroUnit+=f.price; embroCostU+=f.cost; }
     else { dtfUnit+=f.price; dtfCostU+=f.cost; }
   });
