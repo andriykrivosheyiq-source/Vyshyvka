@@ -565,7 +565,7 @@
     border-radius:10px;padding:10px 12px;}
   .od-crm-note{font-size:12.5px;line-height:1.55;color:#7A5410;background:#FDF7EC;
     border-radius:10px;padding:10px 12px;}
-  .od-crm-feed{height:min(46vh,340px);overflow-y:auto;display:flex;flex-direction:column;
+  .od-crm-feed{height:min(40vh,300px);overflow-y:auto;display:flex;flex-direction:column;
     gap:6px;padding:10px;margin-bottom:10px;background:var(--canvas);border-radius:12px;
     border:1px solid var(--line);}
   .od-crm-day{align-self:center;font-size:10.5px;color:var(--ink-soft);background:var(--paper);
@@ -5038,6 +5038,7 @@ function closeOrderDrawer(){
   const d = document.getElementById('orderDrawer');
   if(d) d.classList.remove('open');
   drawerOrderId = null;
+  if(typeof crmStopPoll === 'function') crmStopPoll();
 }
 async function openOrderDrawer(o){
   drawerOrderId = o.id;
@@ -5257,7 +5258,7 @@ function crmBlockHtml(o){
 
   return wrap(head + `<div class="od-crm-bar">${who || '<span></span>'}${count}</div>` + feed + `
     <div class="od-crm-send">
-      <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…"></textarea>
+      <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…">${escapeHtml(st.draft || '')}</textarea>
       <button class="od-crm-go" title="Ctrl+Enter">Надіслати</button>
     </div>`);
 }
@@ -5299,6 +5300,24 @@ function crmLongestString(o){
   });
   return best.length >= 2 ? best : '';
 }
+/* Хто автор повідомлення. Поля Sitniks нам невідомі, тож перебираємо все,
+   що зустрічається в подібних API — і прямі ознаки «вихідне», і зворотні
+   «вхідне», бо буває задано лише одне з двох.
+
+   Останній рубіж — памʼять про те, що ми самі відправили з цієї картки.
+   Вона рятує, поки справжня назва поля не зʼясована: свої повідомлення
+   праворуч, і менеджер бачить розмову правильно. */
+const crmSent = new Set();
+function crmIsMine(m, text){
+  if(m.isOutgoing || m.outgoing || m.fromManager || m.isManager || m.isMine || m.mine) return true;
+  if(m.isIncoming === true || m.incoming === true || m.fromClient === true) return false;
+  if(m.isIncoming === false || m.incoming === false) return true;
+  const words = [m.direction, m.type, m.senderType, m.sender, m.author, m.from, m.side, m.who]
+    .filter(v => typeof v === 'string').join(' ').toLowerCase();
+  if(/\b(out|outgoing|manager|operator|admin|shop|company|staff)\b/.test(words)) return true;
+  if(/\b(in|incoming|client|customer|contact|lead)\b/.test(words)) return false;
+  return crmSent.has(String(text).trim());
+}
 function crmNormMsgs(data){
   let arr = Array.isArray(data) ? data
           : (Array.isArray(data && data.items) ? data.items
@@ -5311,12 +5330,15 @@ function crmNormMsgs(data){
     const text = crmPick(m, CRM_TXT_KEYS) || crmLongestString(m);
     const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
-    const mine = !!(m.isOutgoing || m.outgoing || m.fromManager || m.isManager ||
-                    (m.direction && /out/i.test(m.direction)) ||
-                    (m.type && /out|manager|operator/i.test(m.type)));
+    const mine = crmIsMine(m, text);
     return { text: String(text), mine: mine,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text);
+  /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
+     Розвертаємо за датами; якщо дат немає — за самим порядком віддачі. */
+  const withAt = list.filter(m => m.at);
+  if(withAt.length > 1 && withAt[0].at > withAt[withAt.length - 1].at) list.reverse();
+  else if(!withAt.length && list.length > 1) list.reverse();
   list.rawCount = arr.length;
   list.rawKeys = (arr.length && typeof arr[0] === 'object')
     ? Object.keys(arr[0]).slice(0, 14) : [];
@@ -5371,8 +5393,12 @@ async function crmSend(o, text){
       body: JSON.stringify({ text: text.trim() })
     });
     toast('Надіслано');
+    crmSent.add(text.trim());
+    // Показуємо одразу, щоб не було відчуття, що повідомлення провалилось,
+    // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
     if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '' });
     renderOrderDrawer();
+    setTimeout(function(){ if(crmChat[o.id]) crmLoad(o, o.crmOrder); }, 1800);
   }catch(e){
     // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
     // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
@@ -5381,19 +5407,53 @@ async function crmSend(o, text){
   }
 }
 
+/* Нове повідомлення від клієнта має зʼявлятись саме, поки картка відкрита —
+   інакше менеджер сидить і тисне «Оновити», щоб перевірити, чи не відповіли.
+
+   Тягнемо лише стрічку й перемальовуємо ТІЛЬКИ якщо вона змінилась: зайве
+   перемальовування збиває фокус і виглядає як смикання. */
+let crmTimer = null;
+function crmStopPoll(){ if(crmTimer){ clearInterval(crmTimer); crmTimer = null; } }
+function crmStartPoll(o){
+  crmStopPoll();
+  crmTimer = setInterval(async function(){
+    const d = document.getElementById('orderDrawer');
+    if(!d || !d.classList.contains('open') || drawerOrderId !== o.id){ crmStopPoll(); return; }
+    const st = crmChat[o.id];
+    if(!st || !st.chatId || st.loading) return;
+    try{
+      const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
+      const msgs = crmNormMsgs(data);
+      if(!msgs) return;
+      const was = (st.msgs || []).map(m => m.text).join('\u0000');
+      const now = msgs.map(m => m.text).join('\u0000');
+      if(was === now) return;
+      st.msgs = msgs;
+      renderOrderDrawer();
+    }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
+  }, 20000);
+}
+
 function wireCrmBlock(panel, o){
   // Розмова читається знизу вгору: показуємо останнє повідомлення, а не перше.
   const feedEl = panel.querySelector('.od-crm-feed');
   if(feedEl) feedEl.scrollTop = feedEl.scrollHeight;
+  if((crmChat[o.id] || {}).chatId){ if(!crmTimer) crmStartPoll(o); }
+  else crmStopPoll();
   const load = panel.querySelector('.od-crm-load');
   const numEl = panel.querySelector('.od-crm-num');
   if(load) load.addEventListener('click', ()=> crmLoad(o, numEl ? numEl.value : null));
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){
-    go.addEventListener('click', ()=>{ const t = inp.value; inp.value = ''; crmSend(o, t); });
+    // Панель перемальовується від оновлення стрічки — недописане повідомлення
+    // не має від цього зникати.
+    inp.addEventListener('input', ()=>{ if(crmChat[o.id]) crmChat[o.id].draft = inp.value; });
+    const send = ()=>{ const t = inp.value; inp.value = '';
+      if(crmChat[o.id]) crmChat[o.id].draft = ''; crmSend(o, t); };
+    go.addEventListener('click', send);
     inp.addEventListener('keydown', e=>{
-      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ const t = inp.value; inp.value = ''; crmSend(o, t); }
+      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send();
     });
   }
 }
