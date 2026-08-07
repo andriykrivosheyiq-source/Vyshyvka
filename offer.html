@@ -980,7 +980,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
-  var pick = { qty: {}, reco: {}, on: {}, pack: {} };
+  var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {} };
   var recoOpen = false;   // «показати ще» в блоці рекомендацій
   function isOn(i){ return pick.on[i] !== false; }
 
@@ -1021,6 +1021,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }).join('') + '</div>' +
         // Опис пакета не пишемо: що саме нанесено, видно на самому макеті
       '</div>';
+  }
+
+  /* Додана рекомендація живе далі як звичайна позиція: своя кількість,
+     свій підсумок. Тому в неї такий самий стан, як у основного товару. */
+  function recoState(i){
+    var r = OFFER.reco[i] || {};
+    var q = pick.recoQty[i];
+    if(q == null) q = +r.qty || 1;
+    q = Math.max(1, Math.round(q));
+    var unit = +r.unitPrice || 0;
+    return { qty:q, unit:unit, sum:unit * q };
   }
 
   function itemState(i){
@@ -1074,7 +1085,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
-      qty += r.qty; sum += r.price; base += r.basePrice;
+      var rs = recoState(i);
+      qty += rs.qty; sum += rs.sum; base += rs.sum;
     });
     return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
   }
@@ -1403,6 +1415,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</details>' +
           '</div>';
         }).join('') +
+        /* Додана рекомендація переїжджає сюди повноцінною карткою: людина
+           бачить її поруч з рештою замовлення, а не тільки рядком у сумі. */
+        OFFER.reco.map(function(r, i){
+          if(!pick.reco[i]) return '';
+          var rs = recoState(i);
+          var m = (r.mockups || [])[0] || '';
+          return '<div class="pcard" data-recocard="' + i + '">' +
+            '<div class="pshot">' + (m ? '<img src="' + esc(m) + '" alt="' + esc(r.name) + '" ' +
+              'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
+            '<div class="pcard-info">' +
+              '<div class="pcard-head">' +
+                '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
+                '<div class="pcard-meta">' +
+                  [(r.techniques || []).join(', ') || r.print, r.color].filter(Boolean).map(esc).join(' · ') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="pqty">' +
+              '<div class="prow">' +
+                '<div class="prow-l"><span class="pcard-price">' + money(rs.unit) + '</span>' +
+                  '<span class="pcard-per">за штуку</span></div>' +
+                '<div class="prow-r"><span class="prow-k">Виготовлення</span>' +
+                  '<span class="prow-v">' + curDays() + ' роб. днів</span></div>' +
+              '</div>' +
+              '<div class="pbuy-row">' +
+                '<div class="pstep">' +
+                  '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
+                  '<span class="pstep-v"><b>' + rs.qty + '</b>шт</span>' +
+                  '<button class="pstep-b plus" data-rq="' + i + '" data-d="1" aria-label="Більше">+</button>' +
+                '</div>' +
+                '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'У замовленні</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
       '</section>';
   }
 
@@ -1456,7 +1503,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
-      rows.push({ th:(r.mockups||[])[0], name:r.name, qty:r.qty, unit:r.unitPrice, sum:r.price, reco:true });
+      var rs = recoState(i);
+      rows.push({ th:(r.mockups||[])[0], name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     return '' +
@@ -1531,12 +1579,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="rc-ph">' + (r.mockups[0]
               ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
                 'onerror="this.style.display=\'none\'">' : '') + '</div>' +
-            (r.recoTag ? '<div class="rc-tag">' + esc(r.recoTag) + '</div>' : '') +
+            /* Тільки назва і ціна за штуку. Спосіб нанесення, тираж і сума —
+               це вже подробиці замовлення: вони зʼявляться у великій картці,
+               коли товар додадуть. Тут завдання простіше — зацікавити. */
             '<div class="rc-n">' + esc(r.name) + '</div>' +
-            (tech ? '<div class="rc-t">' + esc(tech) + '</div>' : '') +
             '<div class="rc-p">' + money(r.unitPrice) + ' за штуку</div>' +
-            '<div class="rc-s">' + r.qty + ' шт · <b>' + money(r.price) + '</b></div>' +
-            (r.recoNote ? '<div class="rc-why">' + esc(r.recoNote) + '</div>' : '') +
             '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
               (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
@@ -1987,6 +2034,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     var packs = document.getElementById('packs');
     if(packs) packs.outerHTML = packagesHtml();
+    var isec = document.getElementById('offerStart');
+    if(isec) isec.outerHTML = itemsHtml();
     var rsec = document.getElementById('recoSec');
     if(rsec) rsec.outerHTML = recoHtml();
     var est = document.getElementById('estimate');
@@ -2279,6 +2328,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         pick.pack[i] = b.dataset.packId;
         refresh();
         queueSave('pack', (OFFER.items[i] || {}).name + ' → пакет ' + b.textContent.trim());
+      };
+    });
+    document.querySelectorAll('[data-rq]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      b.onclick = function(){
+        var i = +b.dataset.rq, d = +b.dataset.d;
+        pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
+        refresh();
       };
     });
     // Галочка «беру цю позицію»
