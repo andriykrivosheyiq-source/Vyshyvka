@@ -306,6 +306,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      «про нас» стоять на темному, «про товар» — на світлому тлі. */
   /* Темні блоки теж від краю до краю: заокруглена картка серед карток
      виглядала як ще один елемент, а це має бути смуга. */
+  /* Секція на всю ширину — без бічних полів сторінки */
+  section.full{padding-left:var(--pad); padding-right:var(--pad);
+    margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
+    background:var(--soft); border-top:none;}
   .band{background:var(--ink); color:#fff; border-radius:0; border:none;
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1);}
   .band .sec-title{color:#fff;}
@@ -1508,7 +1512,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     return '' +
-      '<section id="estimate">' +
+      '<section id="estimate" class="full">' +
         '<div class="est">' +
           '<h2 class="est-h">Кошторис</h2>' +
           // «Кількість» і «Ціна за шт» у вузьких колонках налазять одне на одне —
@@ -1617,10 +1621,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      чотири однакові щити перетворювали список на орнамент — око перестає
      розрізняти рядки й читає їх як один. */
   var GUARANTEES = [
-    ['ok',    'Виготовляємо лише після вашого підтвердження макета'],
     ['photo', 'Надсилаємо фото готового виробу перед відправкою'],
     ['back',  'Виріб не відповідає погодженому макету — виправимо безкоштовно або повернемо кошти'],
-    ['wash',  'Друк і вишивка не вицвітають і не відклеюються за звичайного носіння та прання'],
     ['time',  'Звертайтесь протягом 14 днів після отримання — розберемось з будь-яким питанням']
   ];
 
