@@ -267,6 +267,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
+  .gcards{display:grid; gap:8px;}
+  .gcard{display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
+    border-radius:14px; background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.13); color:#fff;}
+  .gc-ic{flex:none; width:34px; height:34px; border-radius:10px; color:#7FE0B0;
+    background:rgba(255,255,255,.09); display:flex; align-items:center; justify-content:center;}
+  .gc-tx{min-width:0;}
+  .gc-tx b{display:block; font-size:14px; font-weight:700; line-height:1.4;}
+  .gc-tx i{display:block; font-style:normal; font-size:12.5px; line-height:1.5;
+    color:rgba(255,255,255,.66); margin-top:3px;}
+
   .rmore{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:13px; border-radius:13px; border:1.5px solid var(--line);
     background:#fff; font:inherit; font-size:14px; font-weight:700; color:var(--ink);
@@ -1424,7 +1435,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              est-sum давала другу лінію поспіль — прибрана. */
           '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
         '</div>' +
-        reassureHtml() +
       '</section>';
   }
 
@@ -1575,6 +1585,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
       }).join('') + '</div>';
   }
+  var G_IC = {
+    shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+    doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
+    card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
+  };
+  function gcard(ic, title, note){
+    return '<div class="gcard">' +
+      '<span class="gc-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+        (G_IC[ic] || G_IC.shield) + '</svg></span>' +
+      '<span class="gc-tx"><b>' + esc(title) + '</b>' +
+        (note ? '<i>' + esc(note) + '</i>' : '') + '</span></div>';
+  }
+  // Документи й оплата — це теж зобовʼязання, тож живуть у блоці гарантій
+  function reassureRows(){
+    var rows = [];
+    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
+    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
+    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
+    return rows;
+  }
+
   function guaranteesSection(){
     var extra = (OFFER.includes || []).filter(function(t){ return /якіст|перевір|контрол/i.test(t); });
     return '' +
@@ -1582,9 +1614,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<h2 class="sec-title">Що ми гарантуємо</h2>' +
         '<p class="sec-sub">Ті самі умови, що й у публічній гарантії на loomiq.net — ' +
           'нічого окремого «для цієї пропозиції».</p>' +
-        '<div class="gcards">' + GUARANTEES.concat(extra).map(function(g){
-          return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
-        }).join('') + '</div>' +
+        /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
+           той самий вигляд, що був у документів і оплати. Галочки в рядок
+           виглядали як список справ, а не як зобовʼязання. */
+        '<div class="gcards">' +
+          GUARANTEES.concat(extra).map(function(g){
+            return gcard('shield', g, '');
+          }).join('') +
+          reassureRows().map(function(r){
+            return gcard(r[0], r[1], r[2]);
+          }).join('') +
+        '</div>' +
       '</section>';
   }
 
@@ -1824,7 +1864,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function render(){
     app.innerHTML =
       '<div class="top"><span class="brand">Loomiq</span>' +
-        '<span class="top-no">' + (OFFER.orderId ? '№ ' + esc(OFFER.orderId) : '') + '</span></div>' +
+        '<span class="top-no">Комерційна пропозиція' + (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</span></div>' +
       '<div class="wrap">' +
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
