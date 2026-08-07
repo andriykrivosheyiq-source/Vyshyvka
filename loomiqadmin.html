@@ -578,6 +578,12 @@
   .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
     color:var(--ink);}
   .od-crm-msg.mine .od-crm-txt{color:#fff;}
+  .od-crm-img{display:block;max-width:100%;width:220px;border-radius:9px;margin-top:5px;
+    cursor:pointer;background:var(--canvas);}
+  .od-crm-audio{display:block;width:220px;max-width:100%;margin-top:5px;height:34px;}
+  .od-crm-link{display:inline-block;margin-top:5px;font-size:12px;color:var(--accent);
+    text-decoration:none;font-weight:600;word-break:break-all;}
+  .od-crm-msg.mine .od-crm-link{color:#9DB4FF;}
   .od-crm-at{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
   .od-crm-msg.mine .od-crm-at{color:rgba(255,255,255,.55);}
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
@@ -5247,7 +5253,8 @@ function crmBlockHtml(o){
       const time = (m.at || '').slice(11, 16);
       return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
-        <div class="od-crm-txt">${escapeHtml(m.text)}</div>
+        ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
+        ${crmFilesHtml(m.files)}
         ${time ? `<div class="od-crm-at">${escapeHtml(time)}</div>` : ''}
       </div>`;
     }).join('') + `</div>`;
@@ -5261,6 +5268,25 @@ function crmBlockHtml(o){
       <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…">${escapeHtml(st.draft || '')}</textarea>
       <button class="od-crm-go" title="Ctrl+Enter">Надіслати</button>
     </div>`);
+}
+
+function crmFilesHtml(files){
+  if(!files || !files.length) return '';
+  return files.map(f => {
+    const u = escapeHtml(f.url);
+    if(f.kind === 'audio')
+      return `<audio controls preload="none" class="od-crm-audio" src="${u}"></audio>`;
+    if(f.kind === 'video')
+      return `<video controls preload="metadata" class="od-crm-img" src="${u}"></video>`;
+    // Розширення відоме — картинка або нічого. Тип невідомий («media») —
+    // пробуємо картинкою, далі аудіо: голосові з Instagram приходять саме так.
+    if(f.kind === 'img' || f.kind === 'media')
+      return `<img class="od-crm-img" src="${u}" loading="lazy" alt="вкладення"
+                   onclick="window.open(this.src,'_blank')"
+                   onerror="window.crmMediaFallback(this, this.src, '${f.kind === 'media' ? 'audio' : 'link'}')">`;
+    return `<a class="od-crm-link" href="${u}" target="_blank" rel="noopener">
+              ${f.kind === 'file' ? 'Файл' : 'Посилання'} — відкрити ↗</a>`;
+  }).join('');
 }
 
 /* «Сьогодні» й «вчора» читаються швидше за дату — саме їх менеджер шукає очима. */
@@ -5318,6 +5344,53 @@ function crmIsMine(m, text){
   if(/\b(in|incoming|client|customer|contact|lead)\b/.test(words)) return false;
   return crmSent.has(String(text).trim());
 }
+/* Вкладення приходять голим посиланням просто в тексті — і повідомлення
+   перетворювалось на простирадло з двохсот символів адреси. Витягуємо їх
+   і показуємо тим, чим вони є: фото — фотографією, голосове — плеєром.
+
+   Тип часто не вгадати: CDN Instagram віддає адреси взагалі без розширення.
+   Тому пробуємо показати картинкою, а якщо браузер не зміг — перемикаємось
+   на аудіо, і лише потім на звичайне посилання. */
+const CRM_URL_RE = /https?:\/\/[^\s<>"']+/g;
+
+function crmFileKind(u){
+  const clean = String(u).split('?')[0].toLowerCase();
+  if(/\.(jpe?g|png|webp|gif|bmp|heic|avif)$/.test(clean)) return 'img';
+  if(/\.(mp3|ogg|oga|m4a|wav|opus|aac)$/.test(clean))     return 'audio';
+  if(/\.(mp4|mov|webm|m4v)$/.test(clean))                  return 'video';
+  if(/\.(pdf|docx?|xlsx?|pptx?|zip|rar|ai|psd|cdr|svg|eps)$/.test(clean)) return 'file';
+  // Медіа-сховища месенджерів: розширення немає, тип зʼясується при показі
+  if(/lookaside\.fbsbx\.com|cdninstagram|fbcdn\.net|scontent|t\.me\/|telegram|viber/.test(u)) return 'media';
+  return 'link';
+}
+function crmSplitFiles(text){
+  const urls = String(text).match(CRM_URL_RE) || [];
+  if(!urls.length) return { text: text, files: [] };
+  let rest = String(text);
+  urls.forEach(u => { rest = rest.replace(u, ' '); });
+  return {
+    text: rest.replace(/\s+/g, ' ').trim(),
+    files: urls.map(u => ({ url: u, kind: crmFileKind(u) }))
+  };
+}
+/* Показ картинкою не вдався — пробуємо аудіо, далі просте посилання.
+   Ланцюжок потрібен саме тому, що тип наперед невідомий. */
+window.crmMediaFallback = function(el, url, step){
+  const box = document.createElement('div');
+  if(step === 'audio'){
+    box.innerHTML = '<audio controls preload="none" class="od-crm-audio" src="' +
+      url.replace(/"/g, '&quot;') + '"></audio>';
+    box.firstChild.addEventListener('error', function(){
+      window.crmMediaFallback(box.firstChild, url, 'link');
+    });
+  } else {
+    box.innerHTML = '<a class="od-crm-link" href="' + url.replace(/"/g, '&quot;') +
+      '" target="_blank" rel="noopener">Вкладення — відкрити ↗</a>';
+  }
+  const node = box.firstChild;
+  if(el && el.parentNode) el.parentNode.replaceChild(node, el);
+};
+
 function crmNormMsgs(data){
   let arr = Array.isArray(data) ? data
           : (Array.isArray(data && data.items) ? data.items
@@ -5326,14 +5399,33 @@ function crmNormMsgs(data){
           : (Array.isArray(data && data.results) ? data.results : null))));
   if(!arr) return null;
   const list = arr.map(m => {
-    if(typeof m === 'string') return { text: m, mine: false, at: '' };
-    const text = crmPick(m, CRM_TXT_KEYS) || crmLongestString(m);
+    if(typeof m === 'string'){
+      const sp = crmSplitFiles(m);
+      return { text: sp.text, files: sp.files, mine: false, at: '' };
+    }
+    const rawText = crmPick(m, CRM_TXT_KEYS) || crmLongestString(m);
+    const split = crmSplitFiles(rawText);
+    const text = split.text;
+    // Вкладення можуть приїхати і окремим полем, не лише в тексті
+    const extra = [];
+    ['attachments','files','media','photos'].forEach(k => {
+      const v = m[k];
+      if(Array.isArray(v)) v.forEach(x => {
+        const u = (typeof x === 'string') ? x : (x && (x.url || x.link || x.src || x.path));
+        if(u) extra.push({ url: String(u), kind: crmFileKind(u) });
+      });
+    });
+    ['url','fileUrl','imageUrl','photo','image','file'].forEach(k => {
+      const v = m[k];
+      if(typeof v === 'string' && /^https?:/.test(v)) extra.push({ url: v, kind: crmFileKind(v) });
+    });
+    const files = split.files.concat(extra);
     const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
     const mine = crmIsMine(m, text);
-    return { text: String(text), mine: mine,
+    return { text: String(text), files: files, mine: mine,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
-  }).filter(m => m.text);
+  }).filter(m => m.text || (m.files && m.files.length));
   /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
      Розвертаємо за датами; якщо дат немає — за самим порядком віддачі. */
   const withAt = list.filter(m => m.at);
