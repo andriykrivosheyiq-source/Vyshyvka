@@ -548,22 +548,38 @@
     background:var(--canvas);color:var(--ink-soft);}
   .tc-due.due-soon{background:#FFF4DE;color:#8A6A15;}
   .tc-due.due-late{background:var(--bad-soft);color:var(--bad);}
+  /* Панель картки — колонка на flex, і будь-який прямий нащадок у ній
+     стискається до нуля. Через це стрічка діалогу перетворювалась на смужку.
+     Тому весь блок — один нащадок, який не стискається. */
+  .od-crm{flex:none;display:block;}
   .od-crm-top{display:flex;gap:8px;margin-bottom:10px;}
   .od-crm-num{flex:1;}
   .od-crm-load{flex:none;padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--paper);
     font:inherit;font-size:13px;cursor:pointer;}
   .od-crm-load[disabled]{opacity:.45;cursor:default;}
-  .od-crm-who{font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
+  .od-crm-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;}
+  .od-crm-who{font-size:12.5px;font-weight:600;color:var(--ink);}
+  .od-crm-cnt{font-size:10.5px;color:var(--ink-soft);background:var(--canvas);
+    border-radius:20px;padding:2px 8px;flex:none;}
   .od-crm-err{font-size:12.5px;line-height:1.55;color:var(--bad);background:var(--bad-soft);
     border-radius:10px;padding:10px 12px;}
   .od-crm-note{font-size:12.5px;line-height:1.55;color:#7A5410;background:#FDF7EC;
     border-radius:10px;padding:10px 12px;}
-  .od-crm-feed{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;
-    padding:4px 2px;margin-bottom:10px;}
-  .od-crm-msg{max-width:82%;background:var(--canvas);border-radius:12px;padding:8px 11px;align-self:flex-start;}
-  .od-crm-msg.mine{align-self:flex-end;background:#EEF2FF;}
-  .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
-  .od-crm-at{font-size:10.5px;color:var(--ink-soft);margin-top:3px;}
+  .od-crm-feed{height:min(46vh,340px);overflow-y:auto;display:flex;flex-direction:column;
+    gap:6px;padding:10px;margin-bottom:10px;background:var(--canvas);border-radius:12px;
+    border:1px solid var(--line);}
+  .od-crm-day{align-self:center;font-size:10.5px;color:var(--ink-soft);background:var(--paper);
+    border-radius:20px;padding:2px 10px;margin:4px 0 2px;flex:none;}
+  .od-crm-msg{max-width:84%;background:var(--paper);border:1px solid var(--line);
+    border-radius:14px 14px 14px 4px;padding:8px 11px;align-self:flex-start;flex:none;
+    box-shadow:0 1px 2px rgba(15,32,52,.04);}
+  .od-crm-msg.mine{align-self:flex-end;background:#1F2C44;border-color:#1F2C44;
+    border-radius:14px 14px 4px 14px;}
+  .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+    color:var(--ink);}
+  .od-crm-msg.mine .od-crm-txt{color:#fff;}
+  .od-crm-at{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
+  .od-crm-msg.mine .od-crm-at{color:rgba(255,255,255,.55);}
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
   .od-crm-inp{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;
     padding:9px 11px;resize:vertical;}
@@ -5191,15 +5207,16 @@ function crmBlockHtml(o){
              placeholder="номер замовлення в Sitniks" value="${escapeHtml(num)}">
       <button class="od-crm-load">${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
     </div>`;
+  const wrap = (inner) => `<div class="od-crm">${inner}</div>`;
 
   if(!crmBase()){
-    return head + `<div class="od-empty">Спершу вкажіть адресу воркера Sitniks:
-      Конструктор сайту → «Sitniks CRM».</div>`;
+    return wrap(head + `<div class="od-empty">Спершу вкажіть адресу воркера Sitniks:
+      Конструктор сайту → «Sitniks CRM».</div>`);
   }
-  if(!num) return head + `<div class="od-empty">Впишіть номер замовлення з Sitniks — підтягнемо переписку.</div>`;
-  if(st.loading) return head + `<div class="od-empty">Завантажуємо…</div>`;
-  if(st.err) return head + `<div class="od-crm-err">${escapeHtml(st.err)}</div>`;
-  if(!st.chatId) return head + `<div class="od-empty">Натисніть «Підтягнути».</div>`;
+  if(!num) return wrap(head + `<div class="od-empty">Впишіть номер замовлення з Sitniks — підтягнемо переписку.</div>`);
+  if(st.loading) return wrap(head + `<div class="od-empty">Завантажуємо…</div>`);
+  if(st.err) return wrap(head + `<div class="od-crm-err">${escapeHtml(st.err)}</div>`);
+  if(!st.chatId) return wrap(head + `<div class="od-empty">Натисніть «Підтягнути».</div>`);
 
   const who = st.clientName ? `<div class="od-crm-who">${escapeHtml(st.clientName)}</div>` : '';
   let feed;
@@ -5219,18 +5236,41 @@ function crmBlockHtml(o){
            Надішліть цей рядок розробнику — і стрічка запрацює.</div>`
       : `<div class="od-empty">Повідомлень поки немає.</div>`;
   } else {
-    feed = `<div class="od-crm-feed">` + st.msgs.map(m => `
+    // Найновіше внизу — як у будь-якому месенджері. Дату показуємо смужкою
+    // між днями, а не біля кожного рядка: інакше вона з'їдає саму розмову.
+    let lastDay = '';
+    feed = `<div class="od-crm-feed">` + st.msgs.map(m => {
+      const day = (m.at || '').slice(0, 10);
+      let sep = '';
+      if(day && day !== lastDay){ lastDay = day; sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`; }
+      const time = (m.at || '').slice(11, 16);
+      return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
         <div class="od-crm-txt">${escapeHtml(m.text)}</div>
-        ${m.at ? `<div class="od-crm-at">${escapeHtml(m.at)}</div>` : ''}
-      </div>`).join('') + `</div>`;
+        ${time ? `<div class="od-crm-at">${escapeHtml(time)}</div>` : ''}
+      </div>`;
+    }).join('') + `</div>`;
   }
 
-  return head + who + feed + `
+  const count = (st.msgs && st.msgs.length)
+    ? `<span class="od-crm-cnt">${st.msgs.length}</span>` : '';
+
+  return wrap(head + `<div class="od-crm-bar">${who || '<span></span>'}${count}</div>` + feed + `
     <div class="od-crm-send">
       <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…"></textarea>
-      <button class="od-crm-go">Надіслати</button>
-    </div>`;
+      <button class="od-crm-go" title="Ctrl+Enter">Надіслати</button>
+    </div>`);
+}
+
+/* «Сьогодні» й «вчора» читаються швидше за дату — саме їх менеджер шукає очима. */
+function crmDayLabel(day){
+  const d = new Date(day + 'T00:00:00');
+  if(isNaN(d)) return day;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((today - d) / 86400000);
+  if(diff === 0) return 'сьогодні';
+  if(diff === 1) return 'вчора';
+  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'long' });
 }
 
 /* Форма повідомлення в Sitniks достеменно не відома — документація закрита.
@@ -5342,6 +5382,9 @@ async function crmSend(o, text){
 }
 
 function wireCrmBlock(panel, o){
+  // Розмова читається знизу вгору: показуємо останнє повідомлення, а не перше.
+  const feedEl = panel.querySelector('.od-crm-feed');
+  if(feedEl) feedEl.scrollTop = feedEl.scrollHeight;
   const load = panel.querySelector('.od-crm-load');
   const numEl = panel.querySelector('.od-crm-num');
   if(load) load.addEventListener('click', ()=> crmLoad(o, numEl ? numEl.value : null));
