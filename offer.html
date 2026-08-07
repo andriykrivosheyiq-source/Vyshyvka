@@ -125,26 +125,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      як обкладинка, а не як черговий блок тексту. */
   /* Обкладинка на всю ширину екрана: рамка з заокругленням робила з неї
      ще одну картку серед карток, а вона має бути тлом, у яке входиш. */
-  .hero{position:relative; overflow:hidden; background:#0B1826; color:#fff;
-    border:none; border-radius:0; padding:34px var(--pad) 30px;
-    margin:0 calc(var(--pad) * -1) 10px;}
-  /* Кілька плям світла різного кольору й розміру — так тло має глибину,
-     а не виглядає як одна залита area. */
-  .hero::before{content:''; position:absolute; inset:-30% -25% -10% -25%;
+  /* Обкладинка. Кольорова веселка виглядала дешево — прибрано. Дорого
+     читається стриманість: майже чорна база з ледь помітним нахилом, одне
+     тепле світло знизу під кнопкою і тонка світла лінія по верхньому краю,
+     як фаска на металі. */
+  .hero{position:relative; overflow:hidden; color:#fff; border:none; border-radius:0;
+    padding:40px var(--pad) 36px; margin:0 calc(var(--pad) * -1) 10px;
+    background:linear-gradient(168deg, #131A22 0%, #0A0F15 55%, #0D141C 100%);}
+  .hero::before{content:''; position:absolute; inset:0; pointer-events:none;
     background:
-      radial-gradient(46% 40% at 50% -4%,  rgba(232,89,12,.72), transparent 66%),
-      radial-gradient(40% 36% at 12% 26%,  rgba(124,58,237,.46), transparent 70%),
-      radial-gradient(42% 36% at 92% 22%,  rgba(42,171,238,.44), transparent 70%),
-      radial-gradient(60% 48% at 50% 104%, rgba(14,159,110,.28), transparent 72%),
-      radial-gradient(34% 28% at 50% 46%,  rgba(255,255,255,.08), transparent 70%);
-    pointer-events:none;}
-  /* Ледь помітна сітка згори — дає відчуття матеріалу, а не плоскої заливки */
-  .hero::after{content:''; position:absolute; inset:0; pointer-events:none;
-    background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-                     linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
-    background-size:34px 34px;
-    mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);
-    -webkit-mask-image:radial-gradient(70% 60% at 50% 0%, #000, transparent 75%);}
+      radial-gradient(58% 34% at 50% 116%, rgba(232,89,12,.34), transparent 68%),
+      radial-gradient(46% 30% at 50% -12%, rgba(255,255,255,.07), transparent 66%);}
+  .hero::after{content:''; position:absolute; left:0; right:0; top:0; height:1px;
+    pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);}
   .hero > *{position:relative;}
   /* Все по центру: коротка колонка читається за один погляд, а не змушує
      очі бігати від краю до краю. */
@@ -540,20 +534,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
     border-radius:16px; padding:10px; background:#fff; transition:.15s;}
   .rc.on{border-color:var(--good); background:#F6FDF9;}
-  /* Фон картки має бути НЕ білий. У фото виробу власне тло біле, і на білій
-     картці воно зливається — виріб ніби висить у повітрі, наче з нього зняли
-     фон. На світло-сірому видно межу фотографії, і все читається як фото. */
-  .rc-ph{border-radius:11px; overflow:hidden; background:#EAEFF4; aspect-ratio:1/1;
+  /* Точно як у каталозі сайту: фото заповнює плитку від краю до краю
+     (object-fit: cover), тож усередині картки немає окремого прямокутника
+     з іншим тлом. Саме він і читався як «фон прибрали». */
+  .rc-ph{border-radius:11px; overflow:hidden; background:#f3f3f5; aspect-ratio:1/1;
     margin-bottom:9px; display:block;}
-  /* Було cover — фото обрізалось по краях, і здавалось, що з шопера й кепки
-     зняли фон. У каталозі виріб показується цілком, тут має бути так само. */
-  .rc-ph img{width:100%; height:100%; object-fit:contain; display:block;}
+  .rc-ph img{width:100%; height:100%; object-fit:cover; display:block;}
   .rc-tag{display:inline-block; align-self:flex-start; background:#EEF2FF; color:#4338CA; border-radius:999px;
     padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.3px;
     text-transform:uppercase; margin-bottom:5px;}
   .rc-n{font-size:14.5px; font-weight:700; letter-spacing:-0.2px;}
   .rc-t{font-size:12px; color:var(--muted); margin-top:1px;}
-  .rc-p{font-size:12.5px; color:var(--ink-2); margin-top:auto; padding-top:5px;
+  .rc-p{font-size:17px; font-weight:800; color:var(--ink); letter-spacing:-.3px;
+    margin-top:3px; font-variant-numeric:tabular-nums;}
+  .rc-p-old{
     font-variant-numeric:tabular-nums;}
   .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
   .rc-add{display:flex; align-items:center; justify-content:center; gap:7px; width:100%;
@@ -2036,12 +2030,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     var packs = document.getElementById('packs');
     if(packs) packs.outerHTML = packagesHtml();
+    /* Перемальовуємо колекцію, але лишаємо людину там, де вона була.
+       Тримаємось за блок рекомендацій: запамʼятовуємо, на якій висоті екрана
+       він стояв, і після перемальовування ставимо його туди ж. */
+    var anchor = document.getElementById('recoSec');
+    var anchorTop = anchor ? anchor.getBoundingClientRect().top : null;
     var isec = document.getElementById('offerStart');
     if(isec) isec.outerHTML = itemsHtml();
     var rsec = document.getElementById('recoSec');
     if(rsec) rsec.outerHTML = recoHtml();
+
     var est = document.getElementById('estimate');
     if(est) est.outerHTML = estimateHtml();
+    /* Компенсуємо зсув після того, як перемальовані всі блоки: інакше
+       сторінка стрибала на висоту нової картки. */
+    if(anchorTop != null) requestAnimationFrame(function(){
+      var back = document.getElementById('recoSec');
+      if(back) window.scrollTo(0, window.scrollY + back.getBoundingClientRect().top - anchorTop);
+    });
     OFFER.reco.forEach(function(r, i){
       var card = document.querySelector('[data-reco-card="' + i + '"]');
       if(!card) return;
