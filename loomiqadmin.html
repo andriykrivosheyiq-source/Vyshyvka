@@ -548,6 +548,27 @@
     background:var(--canvas);color:var(--ink-soft);}
   .tc-due.due-soon{background:#FFF4DE;color:#8A6A15;}
   .tc-due.due-late{background:var(--bad-soft);color:var(--bad);}
+  .od-crm-top{display:flex;gap:8px;margin-bottom:10px;}
+  .od-crm-num{flex:1;}
+  .od-crm-load{flex:none;padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--paper);
+    font:inherit;font-size:13px;cursor:pointer;}
+  .od-crm-load[disabled]{opacity:.45;cursor:default;}
+  .od-crm-who{font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;}
+  .od-crm-err{font-size:12.5px;line-height:1.55;color:var(--bad);background:var(--bad-soft);
+    border-radius:10px;padding:10px 12px;}
+  .od-crm-note{font-size:12.5px;line-height:1.55;color:#7A5410;background:#FDF7EC;
+    border-radius:10px;padding:10px 12px;}
+  .od-crm-feed{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;
+    padding:4px 2px;margin-bottom:10px;}
+  .od-crm-msg{max-width:82%;background:var(--canvas);border-radius:12px;padding:8px 11px;align-self:flex-start;}
+  .od-crm-msg.mine{align-self:flex-end;background:#EEF2FF;}
+  .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  .od-crm-at{font-size:10.5px;color:var(--ink-soft);margin-top:3px;}
+  .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
+  .od-crm-inp{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;
+    padding:9px 11px;resize:vertical;}
+  .od-crm-go{flex:none;padding:10px 16px;border:none;border-radius:10px;background:var(--ink);
+    color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
@@ -1429,6 +1450,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="sub" style="margin:6px 0 12px;">Вставте адресу вашого Worker-проксі (див. <code>worker/README.md</code>). <b>Ключ Photoroom сюди НЕ вставляти</b> — він зберігається лише в секретах Worker. Якщо поле порожнє або сервіс не відповідає, сайт використовує вбудований алгоритм.</div>
           <input id="bgapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-photoroom.ВАШ-АКАУНТ.workers.dev">
           <button class="pc-btn up" id="bgapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Sitniks CRM — переписка в картці замовлення</b>
+          <div class="sub" style="margin:6px 0 12px;">Адреса Worker-проксі до Sitniks (див. <code>worker/README.md</code>). Тоді в картці Канбану зʼявиться блок «Діалог з клієнтом»: підтягне переписку за номером замовлення в Sitniks і дасть відповісти, не виходячи з адмінки. <b>Ключ Sitniks сюди НЕ вставляти</b> — він лише в секретах Worker.</div>
+          <input id="crmapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-sitniks.ВАШ-АКАУНТ.workers.dev">
+          <button class="pc-btn up" id="crmapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
         </div>
 
         <div class="card" style="max-width:640px;">
@@ -5059,6 +5087,9 @@ function renderOrderDrawer(){
       ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
       ${docsBlockHtml(o)}
 
+      <div class="od-sec">Діалог з клієнтом (Sitniks)</div>
+      ${crmBlockHtml(o)}
+
       <div class="od-sec">Нотатка менеджера</div>
       <textarea class="od-note od-f" data-f="note" rows="3"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
@@ -5099,6 +5130,176 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=> orderRemoveItem(o, +b.dataset.delI));
   });
   wireDocsBlock(panel, o);
+  wireCrmBlock(panel, o);
+}
+
+/* ============================================================
+   SITNIKS CRM — переписка з клієнтом усередині картки
+
+   Менеджер весь час стрибав між двома вікнами: тут прорахунок і макети,
+   там розмова. Половина домовленостей губилась саме на цьому переході.
+
+   Ключ Sitniks у браузер не потрапляє: усі запити йдуть через воркер-проксі
+   (worker/sitniks-proxy.js), його адреса зберігається в налаштуваннях сайту.
+
+   Документація Sitniks закрита, і достеменно відомо лише три ендпоінти.
+   Чи існує читання історії — невідомо, тому код пробує його і чесно каже,
+   якщо сервер відповів «немає такого». Гадати за користувача тут не можна:
+   порожня стрічка й «історія недоступна» — різні речі.
+   ============================================================ */
+let crmChat = {};   // orderId → { chatId, clientName, msgs, err, loading, raw }
+
+function crmBase(){
+  const u = ((contentData || {}).bgApi || {}).sitniksUrl || '';
+  return String(u).replace(/\/+$/, '');
+}
+async function crmFetch(path, options){
+  const base = crmBase();
+  if(!base) throw new Error('Адресу воркера Sitniks не задано (Конструктор сайту → Sitniks CRM)');
+  const res = await fetch(base + path, Object.assign(
+    { headers: { 'Content-Type': 'application/json' } }, options || {}));
+  const text = await res.text().catch(()=> '');
+  if(!res.ok){
+    // Текст помилки від Sitniks — єдине, що пояснює 400. Витягуємо його з
+    // будь-якого поля, у якому він може приїхати, і не ховаємо за «Помилка».
+    let detail = '';
+    try{
+      const j = JSON.parse(text);
+      detail = j.message || j.error || j.title ||
+               (j.errors && (typeof j.errors === 'string' ? j.errors : JSON.stringify(j.errors))) || '';
+    }catch(e){ detail = text.slice(0, 200); }
+    const err = new Error(detail ? ('HTTP ' + res.status + ': ' + detail) : ('HTTP ' + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  try{ return JSON.parse(text); }catch(e){ return {}; }
+}
+
+function crmBlockHtml(o){
+  const st = crmChat[o.id] || {};
+  const num = o.crmOrder || '';
+  const head = `
+    <div class="od-crm-top">
+      <input class="od-f od-crm-num" data-f="crmOrder" type="text" inputmode="numeric"
+             placeholder="номер замовлення в Sitniks" value="${escapeHtml(num)}">
+      <button class="od-crm-load" ${num ? '' : 'disabled'}>${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
+    </div>`;
+
+  if(!crmBase()){
+    return head + `<div class="od-empty">Спершу вкажіть адресу воркера Sitniks:
+      Конструктор сайту → «Sitniks CRM».</div>`;
+  }
+  if(!num) return head + `<div class="od-empty">Впишіть номер замовлення з Sitniks — підтягнемо переписку.</div>`;
+  if(st.loading) return head + `<div class="od-empty">Завантажуємо…</div>`;
+  if(st.err) return head + `<div class="od-crm-err">${escapeHtml(st.err)}</div>`;
+  if(!st.chatId) return head + `<div class="od-empty">Натисніть «Підтягнути».</div>`;
+
+  const who = st.clientName ? `<div class="od-crm-who">${escapeHtml(st.clientName)}</div>` : '';
+  let feed;
+  if(st.noHistory){
+    // Найчастіший і найнеприємніший випадок: писати можна, читати — ні.
+    feed = `<div class="od-crm-note">Sitniks не віддає історію листування (${escapeHtml(st.noHistory)}).
+      Написати клієнту звідси можна, а прочитати попередні повідомлення — лише в самому Sitniks.</div>`;
+  } else if(!(st.msgs || []).length){
+    feed = `<div class="od-empty">Повідомлень поки немає.</div>`;
+  } else {
+    feed = `<div class="od-crm-feed">` + st.msgs.map(m => `
+      <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
+        <div class="od-crm-txt">${escapeHtml(m.text)}</div>
+        ${m.at ? `<div class="od-crm-at">${escapeHtml(m.at)}</div>` : ''}
+      </div>`).join('') + `</div>`;
+  }
+
+  return head + who + feed + `
+    <div class="od-crm-send">
+      <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…"></textarea>
+      <button class="od-crm-go">Надіслати</button>
+    </div>`;
+}
+
+/* Форма повідомлення в Sitniks нам достеменно не відома, тому читаємо
+   обережно: беремо перше поле з тих, які трапляються в подібних API, і не
+   падаємо, якщо жодного немає. */
+function crmNormMsgs(data){
+  let arr = Array.isArray(data) ? data
+          : (Array.isArray(data && data.items) ? data.items
+          : (Array.isArray(data && data.data) ? data.data
+          : (Array.isArray(data && data.messages) ? data.messages : null)));
+  if(!arr) return null;
+  return arr.map(m => {
+    const text = m.text || m.message || m.body || m.content || '';
+    const at = m.createdAt || m.created_at || m.date || m.time || '';
+    // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
+    const mine = !!(m.isOutgoing || m.outgoing || m.fromManager || m.isManager ||
+                    (m.direction && /out/i.test(m.direction)));
+    return { text: String(text), mine: mine,
+             at: at ? String(at).replace('T',' ').slice(0,16) : '' };
+  }).filter(m => m.text);
+}
+
+async function crmLoad(o){
+  const num = String(o.crmOrder || '').trim();
+  if(!num) return;
+  crmChat[o.id] = { loading: true };
+  renderOrderDrawer();
+  try{
+    const ord = await crmFetch('/orders/' + encodeURIComponent(num));
+    const st = {
+      chatId: ord.chatId || '',
+      clientName: ord.clientName || '',
+      raw: ord            // весь обʼєкт лишаємо: у ньому шукати поле каналу
+    };
+    if(!st.chatId){
+      st.err = 'Замовлення знайдено, але в ньому немає chatId — переписки для нього Sitniks не веде.';
+      crmChat[o.id] = st; renderOrderDrawer(); return;
+    }
+    try{
+      const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
+      const msgs = crmNormMsgs(data);
+      if(msgs) st.msgs = msgs;
+      else st.noHistory = 'відповідь без списку повідомлень';
+    }catch(e){
+      // 404/405 означають «такого читання немає» — це не поломка, а межа API
+      st.noHistory = (e.status === 404 || e.status === 405)
+        ? ('код ' + e.status) : (e.message || 'не вдалось');
+    }
+    crmChat[o.id] = st;
+  }catch(e){
+    crmChat[o.id] = { err: e.message || 'не вдалось звʼязатись із Sitniks' };
+  }
+  renderOrderDrawer();
+}
+
+async function crmSend(o, text){
+  const st = crmChat[o.id];
+  if(!st || !st.chatId || !text.trim()) return;
+  try{
+    await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
+      method: 'POST',
+      body: JSON.stringify({ text: text.trim() })
+    });
+    toast('Надіслано');
+    if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '' });
+    renderOrderDrawer();
+  }catch(e){
+    // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
+    // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
+    toast('Не надіслалось: ' + (e.message || ''));
+    console.warn('sitniks send', e, 'обʼєкт замовлення:', st.raw);
+  }
+}
+
+function wireCrmBlock(panel, o){
+  const load = panel.querySelector('.od-crm-load');
+  if(load) load.addEventListener('click', ()=> crmLoad(o));
+  const go = panel.querySelector('.od-crm-go');
+  const inp = panel.querySelector('.od-crm-inp');
+  if(go && inp){
+    go.addEventListener('click', ()=>{ const t = inp.value; inp.value = ''; crmSend(o, t); });
+    inp.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ const t = inp.value; inp.value = ''; crmSend(o, t); }
+    });
+  }
 }
 
 /* ============================================================
@@ -5488,6 +5689,7 @@ function renderSiteTab(){
   const bgApi = contentData.bgApi || {};
   const bgEl = document.getElementById('bgapi-url'); if(bgEl) bgEl.value = bgApi.proxyUrl || '';
   const aiEl = document.getElementById('aiapi-url'); if(aiEl) aiEl.value = bgApi.geminiUrl || '';
+  const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
   document.getElementById('promo-text').value = promo.text || '';
@@ -5537,6 +5739,16 @@ document.getElementById('aiapi-save').addEventListener('click', async ()=>{
   try{
     await PHOTOS_DOC.set({ bgApi: { geminiUrl: url } }, { merge:true });
     toast(url ? 'Адресу збережено — генерація через Gemini' : 'Очищено — буде адреса за замовчуванням');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('crmapi-save').addEventListener('click', async ()=>{
+  const url = document.getElementById('crmapi-url').value.trim();
+  if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
+  // Захист від помилки: ключ Sitniks не має потрапити в базу (він лише в секретах Worker)
+  if(/[?&](api[_-]?key|key|token)=/i.test(url)){ toast('Не вставляйте ключ у посилання — лише адресу Worker'); return; }
+  try{
+    await PHOTOS_DOC.set({ bgApi: { sitniksUrl: url } }, { merge:true });
+    toast(url ? 'Адресу збережено — переписка тягнеться в картку' : 'Очищено — блок діалогу вимкнено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 document.getElementById('promo-save').addEventListener('click', async ()=>{
