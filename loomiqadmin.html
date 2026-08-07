@@ -5368,6 +5368,15 @@ async function crmLoad(o, numFromInput){
     try{
       const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
       console.log('Sitniks: замовлення', ord, '· повідомлення', data);
+      // Окремим рядком і без розгортання: назви полів потрібні, щоб точно
+      // визначати автора повідомлення, а не вгадувати його за ознаками.
+      try{
+        const one = Array.isArray(data) ? data[0]
+                  : (data && (data.items || data.data || data.messages || data.results) || [])[0];
+        if(one && typeof one === 'object')
+          console.log('Sitniks: поля повідомлення →', Object.keys(one).join(', '));
+        console.log('Sitniks: поля замовлення →', Object.keys(ord || {}).join(', '));
+      }catch(e){}
       st.rawMsgs = data;
       const msgs = crmNormMsgs(data);
       if(msgs) st.msgs = msgs;
@@ -5398,7 +5407,7 @@ async function crmSend(o, text){
     // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
     if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '' });
     renderOrderDrawer();
-    setTimeout(function(){ if(crmChat[o.id]) crmLoad(o, o.crmOrder); }, 1800);
+    setTimeout(function(){ crmPollOnce(o); }, 1200);
   }catch(e){
     // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
     // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
@@ -5412,26 +5421,44 @@ async function crmSend(o, text){
 
    Тягнемо лише стрічку й перемальовуємо ТІЛЬКИ якщо вона змінилась: зайве
    перемальовування збиває фокус і виглядає як смикання. */
-let crmTimer = null;
+let crmTimer = null, crmVisWired = false;
+const CRM_POLL_MS = 4000;      // жива розмова — відповідь має зʼявлятись одразу
+
 function crmStopPoll(){ if(crmTimer){ clearInterval(crmTimer); crmTimer = null; } }
+
+async function crmPollOnce(o){
+  const d = document.getElementById('orderDrawer');
+  if(!d || !d.classList.contains('open') || drawerOrderId !== o.id){ crmStopPoll(); return; }
+  const st = crmChat[o.id];
+  if(!st || !st.chatId || st.loading) return;
+  try{
+    const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
+    const msgs = crmNormMsgs(data);
+    if(!msgs) return;
+    const was = (st.msgs || []).map(m => m.text).join('\u0000');
+    const now = msgs.map(m => m.text).join('\u0000');
+    if(was === now) return;
+    st.msgs = msgs;
+    renderOrderDrawer();
+  }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
+}
+
 function crmStartPoll(o){
   crmStopPoll();
-  crmTimer = setInterval(async function(){
-    const d = document.getElementById('orderDrawer');
-    if(!d || !d.classList.contains('open') || drawerOrderId !== o.id){ crmStopPoll(); return; }
-    const st = crmChat[o.id];
-    if(!st || !st.chatId || st.loading) return;
-    try{
-      const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
-      const msgs = crmNormMsgs(data);
-      if(!msgs) return;
-      const was = (st.msgs || []).map(m => m.text).join('\u0000');
-      const now = msgs.map(m => m.text).join('\u0000');
-      if(was === now) return;
-      st.msgs = msgs;
-      renderOrderDrawer();
-    }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
-  }, 20000);
+  crmTimer = setInterval(function(){
+    // У прихованій вкладці питати нема сенсу: ніхто не дивиться, а запити
+    // йдуть. Повернулись на вкладку — оновлюємо одразу, не чекаючи такту.
+    if(document.hidden) return;
+    crmPollOnce(o);
+  }, CRM_POLL_MS);
+  if(!crmVisWired){
+    crmVisWired = true;
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden || !drawerOrderId) return;
+      const cur = (orders || []).find(x => x.id === drawerOrderId);
+      if(cur) crmPollOnce(cur);
+    });
+  }
 }
 
 function wireCrmBlock(panel, o){
