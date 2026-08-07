@@ -5208,7 +5208,16 @@ function crmBlockHtml(o){
     feed = `<div class="od-crm-note">Sitniks не віддає історію листування (${escapeHtml(st.noHistory)}).
       Написати клієнту звідси можна, а прочитати попередні повідомлення — лише в самому Sitniks.</div>`;
   } else if(!(st.msgs || []).length){
-    feed = `<div class="od-empty">Повідомлень поки немає.</div>`;
+    // Порожньо з двох різних причин, і плутати їх не можна: або чат справді
+    // порожній, або повідомлення прийшли, але текст лежить у полі, якого ми
+    // не знаємо. У другому випадку одразу показуємо, які там поля.
+    const n = (st.msgs && st.msgs.rawCount) || 0;
+    feed = n
+      ? `<div class="od-crm-note">Sitniks повернув ${n} ${n===1?'повідомлення':'повідомлень'},
+           але текст лежить у незнайомому полі. Поля запису:
+           <b>${escapeHtml(((st.msgs.rawKeys)||[]).join(', ') || '—')}</b>.
+           Надішліть цей рядок розробнику — і стрічка запрацює.</div>`
+      : `<div class="od-empty">Повідомлень поки немає.</div>`;
   } else {
     feed = `<div class="od-crm-feed">` + st.msgs.map(m => `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
@@ -5224,24 +5233,54 @@ function crmBlockHtml(o){
     </div>`;
 }
 
-/* Форма повідомлення в Sitniks нам достеменно не відома, тому читаємо
-   обережно: беремо перше поле з тих, які трапляються в подібних API, і не
-   падаємо, якщо жодного немає. */
+/* Форма повідомлення в Sitniks достеменно не відома — документація закрита.
+   Тому спершу пробуємо звичні назви полів, а якщо жодна не підійшла, беремо
+   найдовший рядок в обʼєкті: у повідомленні це майже завжди сам текст.
+
+   Повертаємо і список, і сирі елементи. Без сирих не можна пояснити випадок
+   «прийшло десять повідомлень, а на екрані порожньо» — а саме він найгірший:
+   виглядає як зламане, хоча дані є. */
+const CRM_TXT_KEYS = ['text','message','body','content','messageText','msg','value','caption'];
+const CRM_AT_KEYS  = ['createdAt','created_at','date','time','sentAt','dateCreated','timestamp'];
+
+function crmPick(o, keys){
+  for(const k of keys){
+    const v = o && o[k];
+    if(typeof v === 'string' && v.trim()) return v;
+    if(typeof v === 'number' && v) return String(v);
+  }
+  return '';
+}
+function crmLongestString(o){
+  let best = '';
+  Object.keys(o || {}).forEach(k => {
+    const v = o[k];
+    if(typeof v === 'string' && v.trim().length > best.length) best = v;
+  });
+  return best.length >= 2 ? best : '';
+}
 function crmNormMsgs(data){
   let arr = Array.isArray(data) ? data
           : (Array.isArray(data && data.items) ? data.items
           : (Array.isArray(data && data.data) ? data.data
-          : (Array.isArray(data && data.messages) ? data.messages : null)));
+          : (Array.isArray(data && data.messages) ? data.messages
+          : (Array.isArray(data && data.results) ? data.results : null))));
   if(!arr) return null;
-  return arr.map(m => {
-    const text = m.text || m.message || m.body || m.content || '';
-    const at = m.createdAt || m.created_at || m.date || m.time || '';
+  const list = arr.map(m => {
+    if(typeof m === 'string') return { text: m, mine: false, at: '' };
+    const text = crmPick(m, CRM_TXT_KEYS) || crmLongestString(m);
+    const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
     const mine = !!(m.isOutgoing || m.outgoing || m.fromManager || m.isManager ||
-                    (m.direction && /out/i.test(m.direction)));
+                    (m.direction && /out/i.test(m.direction)) ||
+                    (m.type && /out|manager|operator/i.test(m.type)));
     return { text: String(text), mine: mine,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text);
+  list.rawCount = arr.length;
+  list.rawKeys = (arr.length && typeof arr[0] === 'object')
+    ? Object.keys(arr[0]).slice(0, 14) : [];
+  return list;
 }
 
 async function crmLoad(o, numFromInput){
@@ -5266,6 +5305,8 @@ async function crmLoad(o, numFromInput){
     }
     try{
       const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
+      console.log('Sitniks: замовлення', ord, '· повідомлення', data);
+      st.rawMsgs = data;
       const msgs = crmNormMsgs(data);
       if(msgs) st.msgs = msgs;
       else st.noHistory = 'відповідь без списку повідомлень';
