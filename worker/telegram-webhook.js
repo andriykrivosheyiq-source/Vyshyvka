@@ -74,13 +74,24 @@ export default {
       msgs: Math.min(9999, ((prev && +prev.msgs) || 0) + 1),
     };
 
+    // Запис міг не пройти — найчастіше через неопубліковані правила бази.
+    // Мовчазна відмова тут коштувала б днів здогадок, тож причину пишемо
+    // в лог воркера: Cloudflare → цей воркер → Observability → Logs.
     try {
-      await fetch(url, {
+      const w = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: toFields(doc) }),
       });
-    } catch { /* аналітика не має ламати діалог */ }
+      if (!w.ok) {
+        const body = await w.text().catch(() => '');
+        console.log('an_tg: база відхилила запис', w.status, body.slice(0, 400));
+      } else {
+        console.log('an_tg: записано', chatId, doc.vid ? 'мітка ' + doc.vid : 'без мітки');
+      }
+    } catch (e) {
+      console.log('an_tg: не достукались до бази', String(e).slice(0, 200));
+    }
 
     // Перше повідомлення з міткою вітаємо, щоб людина не дивилась у порожній
     // чат після «/start». Без мітки — мовчимо: пише вже знайомий співрозмовник.
