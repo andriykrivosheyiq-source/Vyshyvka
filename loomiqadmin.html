@@ -8038,9 +8038,18 @@ async function init(){
       renderTraffic(cur.A, ords);
       renderBehav(cur.A, ords);
       renderSales(days, ords);
-      state('Період: ' + days[0] + ' — ' + days[days.length - 1] +
-            (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти') +
-            ' · порівняння з ' + prevDays[0] + ' — ' + prevDays[prevDays.length - 1]);
+      // Порожньо — це не помилка читання, тож окремим повідомленням пояснюємо,
+      // де шукати причину. Інакше нуль виглядає як «просто ніхто не заходив».
+      if(!cur.A.visits && !AN.site)
+        state('Жодного візиту не записано за ' + days.length + ' дн. ' +
+              'Найчастіша причина — не опубліковані правила Firestore ' +
+              '(файл firestore.rules → Firebase Console → Firestore Database → Rules → Publish): ' +
+              'сайт рахує візит, але база відхиляє запис. ' +
+              'Перевірка: відкрийте сайт у приватному вікні, погортайте 15 сек — і оновіть цей звіт.');
+      else
+        state('Період: ' + days[0] + ' — ' + days[days.length - 1] +
+              (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти') +
+              ' · порівняння з ' + prevDays[0] + ' — ' + prevDays[prevDays.length - 1]);
     }catch(e){
       console.error('analytics', e);
       state('Не вдалось прочитати аналітику: ' + ((e && (e.code || e.message)) || 'невідома помилка') +

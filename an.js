@@ -292,7 +292,15 @@
         .then(function(){ retries = 0; })
         .catch(function(e){
           dirty = true; retry();
-          if(W.console) console.warn('an: запис не пройшов', e && (e.code || e.message));
+          var code = (e && (e.code || e.message)) || '';
+          if(W.console){
+            // Найчастіша причина — правила бази ще не оновили, і тоді жоден
+            // візит не запишеться. Кажемо це прямо, а не кодом помилки.
+            if(/permission/i.test(code))
+              console.warn('Аналітика не пишеться: база відхиляє запис (' + code +
+                '). Опублікуйте firestore.rules у Firebase Console → Firestore → Rules.');
+            else console.warn('an: запис не пройшов', code);
+          }
         });
     }catch(e){ dirty = true; retry(); }
   }
