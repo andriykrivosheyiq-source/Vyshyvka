@@ -1364,22 +1364,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     for(var i = 0; i < INCL_WHY.length; i++) if(INCL_WHY[i][0].test(text)) return INCL_WHY[i][1];
     return '';
   }
-  function includesHtml(){
-    if(!OFFER.includes || !OFFER.includes.length) return '';
-    return '' +
-      '<section>' +
-        '<h2 class="sec-title">Це вже в ціні</h2>' +
-        '<p class="sec-sub">Жодного з цих пунктів не буде окремим рядком у рахунку.</p>' +
-        '<div class="incl">' + OFFER.includes.slice(0, 5).map(function(t){
-          var why = inclWhy(t);
-          return '<div class="incl-i">' +
-            '<div class="incl-ic">' + inclIcon(t) + '</div>' +
-            '<div class="incl-tx"><div class="incl-l">' + esc(t) + '</div>' +
-            (why ? '<div class="incl-w">' + esc(why) + '</div>' : '') + '</div>' +
-          '</div>';
-        }).join('') + '</div>' +
-      '</section>';
-  }
+  /* «Що входить» і «Гарантії» були двома блоками про одне й те саме, і в
+     кожному половина рядків проговорювала очевидне: що виріб у ціні, що
+     нанесення в ціні, що макет готуємо. Лишилось те, чого клієнт не знає
+     наперед, — і все в одному блоці разом із гарантіями. */
+  function includesHtml(){ return ''; }
 
   function estimateHtml(){
     var t = totals();
@@ -1432,10 +1421,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // і «як я це проведу». Обидва питання виникають рівно в момент, коли він
   // побачив суму, тому відповіді стоять тут, а не в розділі внизу сторінки.
   function reassureHtml(){
-    var rows = [
-      ['shield', 'Макет погоджуємо до запуску', 'До вашого «так» виробництво не починається.'],
-      ['repeat', 'Підготовка макета — один раз', 'Повторні замовлення вже без неї.']
-    ];
+    /* Тут лишається тільки те, чого клієнт сам не бачить: умови оплати й
+       документи. «Макет погоджуємо до запуску» і «підготовка макета — один
+       раз» він і так розуміє, а поруч із гарантіями це просто повтор. */
+    var rows = [];
     // Про документи кажемо лише якщо це справді ваша заявлена умова
     var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
     if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
@@ -1576,12 +1565,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).join('') + '</div>';
   }
   function guaranteesSection(){
+    var extra = (OFFER.includes || []).filter(function(t){ return /якіст|перевір|контрол/i.test(t); });
     return '' +
       '<section class="band">' +
         '<h2 class="sec-title">Що ми гарантуємо</h2>' +
         '<p class="sec-sub">Ті самі умови, що й у публічній гарантії на loomiq.net — ' +
           'нічого окремого «для цієї пропозиції».</p>' +
-        guaranteesHtml() +
+        '<div class="gcards">' + GUARANTEES.concat(extra).map(function(g){
+          return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
+        }).join('') + '</div>' +
       '</section>';
   }
 
@@ -1679,7 +1671,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     return '' +
       '<section>' +
-        '<h2 class="sec-title">Що кажуть клієнти</h2>' +
+        '<h2 class="sec-title">Відгуки</h2>' +
         revsInner() +
       '</section>';
   }
