@@ -304,8 +304,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Контраст між блоками. Раніше всі секції лежали на білому й розділялись
      тонкою лінією — сторінка читалась як одна довга простиня. Тепер блоки
      «про нас» стоять на темному, «про товар» — на світлому тлі. */
-  .band{background:var(--ink); color:#fff; border-radius:22px;
-    padding:28px 20px; margin:26px 0; border:none;}
+  /* Темні блоки теж від краю до краю: заокруглена картка серед карток
+     виглядала як ще один елемент, а це має бути смуга. */
+  .band{background:var(--ink); color:#fff; border-radius:0; border:none;
+    padding:30px var(--pad); margin:26px calc(var(--pad) * -1);}
   .band .sec-title{color:#fff;}
   .band .sec-sub{color:rgba(255,255,255,.66);}
   .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
@@ -445,11 +447,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pview.on{background:var(--ink); width:20px; border-radius:4px;}
   /* Стрілки — поверх фото, ледь помітні, доки не наводиш */
   .pshot{position:relative;}
-  .pnav{position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px;
-    border:none; border-radius:50%; background:rgba(255,255,255,.86); color:var(--ink);
-    font:inherit; font-size:22px; line-height:1; cursor:pointer; display:flex;
-    align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.1);}
-  .pnav.prev{left:10px;} .pnav.next{right:10px;}
+  /* Просто стрілка, без кола: на білому фоні кружечок виглядав як наліпка.
+     І тільки та, куди справді є куди гортати. */
+  .pnav{position:absolute; top:50%; transform:translateY(-50%); width:40px; height:52px;
+    border:none; background:none; color:#9AA6B4; font:inherit; font-size:34px;
+    line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .pnav:active{color:var(--ink);}
+  .pnav[hidden]{display:none;}
+  .pnav.prev{left:0;} .pnav.next{right:0;}
+  .pvlabel{text-align:center; font-size:12.5px; font-weight:700; color:var(--ink-2);
+    margin-top:12px;}
+  .pviews{margin-top:7px;}
 
   /* Примітка — згорнута, щоб не сперечатися з товаром за увагу */
   .pnote-t{display:flex; align-items:center; gap:7px; margin-top:10px; padding:0;
@@ -683,7 +691,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-name{font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .est-meta{font-size:12.5px; color:var(--muted);}
   .est-sum{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right;}
-  .est-tot{margin-top:16px; background:var(--soft); border-radius:14px; padding:16px 18px;}
+  .est-tot{margin-top:16px; background:var(--soft); border-radius:0; padding:24px var(--pad);
+    margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);}
   .et-row{display:flex; justify-content:space-between; align-items:baseline; font-size:14px; color:var(--ink-2);}
   .et-row + .et-row{margin-top:7px;}
   .et-row.save span:last-child{color:var(--good); font-weight:700;}
@@ -1243,11 +1252,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     };
     /* Пігулки «Перед · Спина» тягнули на себе увагу поруч із фото. Галерея
        зі стрілками й крапками, як на сайті: керування є, але воно тихе. */
-    return '<div class="pviews">' + m.map(function(src, k){
-      return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
-               'data-src="' + esc(src) + '" title="' + esc(label(k)) + '" ' +
-               'aria-label="' + esc(label(k)) + '"></button>';
-    }).join('') + '</div>';
+    return '<div class="pvlabel" data-vlabel="' + idx + '">' + esc(label(0)) + '</div>' +
+      '<div class="pviews">' + m.map(function(src, k){
+        return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
+                 'data-src="' + esc(src) + '" data-label="' + esc(label(k)) + '" ' +
+                 'aria-label="' + esc(label(k)) + '"></button>';
+      }).join('') + '</div>';
   }
 
   /* Примітка про кольори й розмір нанесення. Клієнт бачить макет на екрані і
@@ -2184,6 +2194,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         document.querySelectorAll('[data-thumb="' + i + '"]').forEach(function(x){
           x.classList.toggle('on', x === b);
         });
+        syncNav(i);
         if(!big || big.getAttribute('src') === src) return;
         var pre = new Image();
         var show = function(){
@@ -2193,6 +2204,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         pre.onload = show; pre.onerror = show; pre.src = src;
       };
     });
+    /* Підпис ракурсу і доступні напрямки. На першому фото ліва стрілка
+       нічого не робить, на останньому — права; показувати їх означає
+       обіцяти дію, якої немає. */
+    function syncNav(i){
+      var dots = [].slice.call(document.querySelectorAll('[data-thumb="' + i + '"]'));
+      if(!dots.length) return;
+      var cur = dots.findIndex(function(x){ return x.classList.contains('on'); });
+      if(cur < 0) cur = 0;
+      var lab = document.querySelector('[data-vlabel="' + i + '"]');
+      if(lab) lab.textContent = dots[cur].dataset.label || '';
+      var prev = document.querySelector('.pnav.prev[data-nav="' + i + '"]');
+      var next = document.querySelector('.pnav.next[data-nav="' + i + '"]');
+      if(prev) prev.hidden = cur === 0;
+      if(next) next.hidden = cur === dots.length - 1;
+    }
+    document.querySelectorAll('[data-vlabel]').forEach(function(l){ syncNav(l.dataset.vlabel); });
     // Стрілки галереї — перемикають на сусідній ракурс
     document.querySelectorAll('[data-nav]').forEach(function(b){
       b.onclick = function(){
@@ -2201,7 +2228,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(dots.length < 2) return;
         var cur = dots.findIndex(function(x){ return x.classList.contains('on'); });
         if(cur < 0) cur = 0;
-        var next = (cur + d + dots.length) % dots.length;
+        var next = cur + d;
+        if(next < 0 || next >= dots.length) return;
         dots[next].click();
       };
     });
