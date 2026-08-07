@@ -8148,6 +8148,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
       if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
       head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
+      /* Дані з адмінки могли не прийти — тоді сайт малює запасні ціни, а
+         менеджер бачить правдоподібні, але чужі цифри й не розуміє чому.
+         Кажемо це прямо: мовчазний прорахунок гірший за жодного. */
+      function warnBox(txt){
+        return '<div style="font-size:11.5px;line-height:1.5;margin:-4px 0 10px;padding:8px 10px;' +
+          'border-radius:8px;background:#fdecec;color:#8a1f1f;">' + txt + '</div>';
+      }
+      if(window.__lqContentErr){
+        head += warnBox('<b>Дані з адмінки не завантажились</b> (' + window.__lqContentErr + '). ' +
+          'Ціни й товари нижче — запасні, не ваші. Найчастіша причина — правила Firestore: ' +
+          'потрібен доступ на читання до <code>loomiq/photos</code>.');
+      } else if(!sitePricing()){
+        head += warnBox('<b>Модель цін не налаштована.</b> Прорахунок працює за старою формулою, ' +
+          'а не за тією, що в розділі «Формування цін». Перевірте, чи збережені методи нанесення.');
+      }
       /* Найчастіше питання менеджера: «чому при одній штуці вже знижка?».
          Тому що в кошику лежать позиції з попереднього прорахунку, а знижка
          й підготовка макета рахуються на все замовлення разом — так само, як
@@ -10965,9 +10980,16 @@ window.LOOMIQ_CONFIG = {
       }
       db.collection('loomiq').doc('photos').onSnapshot(function(snap){
         shared = snap.exists ? snap.data() : {};
+        window.__lqContentErr = null;
         if(LQ_PHOTOS_DOC === 'photos') own = shared;
         merge();
-      }, function(e){ console.warn('site content failed', e); });
+      }, function(e){
+        // Дані з адмінки не прийшли — сайт малює запасні ціни й товари, і
+        // збоку це виглядає як «прорахунок бреше». Запамʼятовуємо причину,
+        // менеджерська панель покаже її прямо (див. renderManagerPanel).
+        window.__lqContentErr = (e && (e.code || e.message)) || 'помилка';
+        console.warn('site content failed', e);
+      });
       if(LQ_PHOTOS_DOC !== 'photos'){
         db.collection('loomiq').doc(LQ_PHOTOS_DOC).onSnapshot(function(snap){
           own = snap.exists ? snap.data() : {};
