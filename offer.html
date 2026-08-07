@@ -420,12 +420,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pshot img.swap{opacity:0;}
 
   /* Ракурси — рядок вкладок під фото */
-  .pviews{display:flex; gap:6px; margin-top:12px; overflow-x:auto; scrollbar-width:none;}
-  .pviews::-webkit-scrollbar{display:none;}
-  .pview{flex:0 0 auto; background:none; border:none; cursor:pointer; font:inherit;
-    font-size:13px; color:var(--muted); padding:7px 13px; border-radius:999px;
-    white-space:nowrap; transition:.15s;}
-  .pview.on{background:var(--ink); color:#fff; font-weight:600;}
+  /* Крапки замість підписів: скільки ракурсів і де ти зараз — видно, а
+     текст поруч із фото не сперечається з ним за увагу. */
+  .pviews{display:flex; justify-content:center; gap:7px; margin-top:12px;}
+  .pview{width:7px; height:7px; padding:0; border:none; border-radius:50%;
+    background:#D6DBE3; cursor:pointer; transition:.15s;}
+  .pview.on{background:var(--ink); width:20px; border-radius:4px;}
+  /* Стрілки — поверх фото, ледь помітні, доки не наводиш */
+  .pshot{position:relative;}
+  .pnav{position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px;
+    border:none; border-radius:50%; background:rgba(255,255,255,.86); color:var(--ink);
+    font:inherit; font-size:22px; line-height:1; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.1);}
+  .pnav.prev{left:10px;} .pnav.next{right:10px;}
 
   /* Примітка — згорнута, щоб не сперечатися з товаром за увагу */
   .pnote-t{display:flex; align-items:center; gap:7px; margin-top:10px; padding:0;
@@ -504,7 +511,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
     border-radius:16px; padding:10px; background:#fff; transition:.15s;}
   .rc.on{border-color:var(--good); background:#F6FDF9;}
-  .rc-ph{border-radius:11px; overflow:hidden; background:var(--soft); aspect-ratio:1/1;
+  /* Біле тло, як у каталозі. На сірому фото виробу з білим фоном виглядало
+     так, ніби з нього зняли фон і поклали на підкладку. */
+  .rc-ph{border-radius:11px; overflow:hidden; background:#fff; aspect-ratio:1/1;
     margin-bottom:9px; display:block;}
   /* Було cover — фото обрізалось по краях, і здавалось, що з шопера й кепки
      зняли фон. У каталозі виріб показується цілком, тут має бути так само. */
@@ -1215,9 +1224,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(sd && SIDE_UA[sd.side]) return SIDE_UA[sd.side];
       return FALLBACK[k] || ('Вигляд ' + (k + 1));
     };
+    /* Пігулки «Перед · Спина» тягнули на себе увагу поруч із фото. Галерея
+       зі стрілками й крапками, як на сайті: керування є, але воно тихе. */
     return '<div class="pviews">' + m.map(function(src, k){
       return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
-               'data-src="' + esc(src) + '">' + esc(label(k)) + '</button>';
+               'data-src="' + esc(src) + '" title="' + esc(label(k)) + '" ' +
+               'aria-label="' + esc(label(k)) + '"></button>';
     }).join('') + '</div>';
   }
 
@@ -1337,9 +1349,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
             '<div class="pshot" data-shot="' + i + '">' + (main
               ? '<img id="shotImg' + i + '" src="' + esc(main) + '" alt="Макет" ' +
-                'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
+                'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') +
+              ((it.mockups || []).length > 1
+                ? '<button class="pnav prev" data-nav="' + i + '" data-d="-1" aria-label="Назад">‹</button>' +
+                  '<button class="pnav next" data-nav="' + i + '" data-d="1" aria-label="Далі">›</button>'
+                : '') +
+            '</div>' +
             viewsHtml(it, i) +
-            noteHtml(i) +
             '<div class="pcard-info">' +
               '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
               '<div class="pcard-meta">' +
@@ -1348,7 +1364,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div data-tiers="' + i + '">' + packsHtml(i) + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
-              '<div class="pcard-more-body">' + specsHtml(it, i) + priceBoxHtml(i) + '</div>' +
+              '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) + priceBoxHtml(i) + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
@@ -1473,7 +1489,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<section id="recoSec">' +
         '<h2 class="sec-title">Часто беруть разом</h2>' +
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
-        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 99 : 3).map(function(r, i){
+        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 12 : 4).map(function(r, i){
           var on = !!pick.reco[i];
           var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
@@ -1491,9 +1507,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
           '</div>';
         }).join('') + '</div>' +
-        (OFFER.reco.length > 3
+        (OFFER.reco.length > 4
           ? '<button class="rmore" id="recoMore">' +
-              (recoOpen ? 'Згорнути' : 'Показати ще ' + (OFFER.reco.length - 3)) +
+              (recoOpen ? 'Згорнути' : 'Показати ще ' + Math.min(8, OFFER.reco.length - 4)) +
               '<span class="rmore-c">' + (recoOpen ? '▲' : '▼') + '</span></button>'
           : '') +
       '</section>';
@@ -1512,11 +1528,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      суті, лише коротше. Обіцяти в пропозиції одне, а в публічній гарантії
      інше не можна: клієнт порівняє, і це коштуватиме довіри дорожче за
      будь-який гарний рядок. */
+  /* Лишаємо тільки те, що клієнт не може перевірити сам до отримання.
+     «Виготовляємо після підтвердження макета» він і так бачить з процесу,
+     а обіцянка про стійкість друку без строку нічого не важить. */
   var GUARANTEES = [
-    'Виготовляємо лише після того, як ви підтвердите макет',
     'Надсилаємо фото готового виробу перед відправкою',
-    'Виріб не відповідає погодженому макету — виправимо безкоштовно або повернемо кошти',
-    'Друк і вишивка не вицвітають і не відклеюються за звичайного носіння та прання'
+    'Виріб не відповідає погодженому макету — виправимо безкоштовно або повернемо кошти'
   ];
   // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
   // Кейси і часті питання беремо ЛИШЕ з документа пропозиції. Вигадані
@@ -1767,7 +1784,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // Хвіст сторінки — в одне розкриття. Кожен екран між сумою і кнопкою це шанс
   // передумати; хто вагається — розгорне, хто готовий — не гортатиме мимо.
   function detailsHtml(){
-    var body = timelineHtml() + guaranteesHtml() + faqHtml() + trustHtml() + termsHtml();
+    /* Гарантії тут більше не дублюються: вони окремою секцією вище, з
+       іконками. Саме цей список і показував галочки, які ви бачили. */
+    var body = timelineHtml() + faqHtml() + trustHtml() + termsHtml();
     if(!body) return '';
     return '' +
       '<section>' +
@@ -2142,6 +2161,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           setTimeout(function(){ big.src = src; big.classList.remove('swap'); }, 180);
         };
         pre.onload = show; pre.onerror = show; pre.src = src;
+      };
+    });
+    // Стрілки галереї — перемикають на сусідній ракурс
+    document.querySelectorAll('[data-nav]').forEach(function(b){
+      b.onclick = function(){
+        var i = b.dataset.nav, d = +b.dataset.d;
+        var dots = [].slice.call(document.querySelectorAll('[data-thumb="' + i + '"]'));
+        if(dots.length < 2) return;
+        var cur = dots.findIndex(function(x){ return x.classList.contains('on'); });
+        if(cur < 0) cur = 0;
+        var next = (cur + d + dots.length) % dots.length;
+        dots[next].click();
       };
     });
     // Примітка про кольори — розкривається дотиком
