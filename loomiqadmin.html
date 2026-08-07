@@ -547,6 +547,7 @@
     background:var(--canvas);color:var(--ink-soft);}
   .tc-due.due-soon{background:#FFF4DE;color:#8A6A15;}
   .tc-due.due-late{background:var(--bad-soft);color:var(--bad);}
+  .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
   .od-f{font-size:12px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);
@@ -4872,6 +4873,10 @@ function ticketSummaryHtml(o){
   const due = dueInfo(o);
   const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
   const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  /* Звідки прийшов клієнт — те, що записала аналітика в момент замовлення.
+     Без цього канал видно лише в зведеній таблиці, а по конкретній заявці
+     доводиться згадувати. Прямі заходи не підписуємо: це не інформація. */
+  const chLabel = (window.lqChannel && window.lqChannel.label(o.an)) || null;
   return `
     <div class="tc-top">
       ${o.orderId?`<span class="t-oid">${escapeHtml(o.orderId)}</span>`:''}
@@ -4883,6 +4888,7 @@ function ticketSummaryHtml(o){
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
     <div class="tc-meta">
       <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт' : 'без товарів'}</span>
+      ${chLabel ? `<span class="tc-ch" title="Канал, який привів цього клієнта">${escapeHtml(chLabel)}</span>` : ''}
       ${due ? `<span class="tc-due ${due.cls}">до ${escapeHtml(due.label)}</span>` : ''}
       ${o.note ? `<span class="tc-note" title="${escapeHtml(o.note)}">📝</span>` : ''}
     </div>
@@ -8240,6 +8246,21 @@ async function init(){
     if(el && !el.value) el.value = today();
     AN.opened = true;
     load();
+  };
+
+  /* Канбану теж треба знати канал, щоб підписати картку «звідки цей клієнт».
+     Віддаємо ту саму функцію, а не другу таку ж: розбіжність між підписом на
+     картці і рядком у звіті — найгірше, що тут може статись. */
+  window.lqChannel = {
+    of: channelOf,
+    ua: function(k){ return CH_UA[k] || k; },
+    label: function(an){
+      if(!an) return null;
+      var s = an.first || an.src;
+      if(!s) return null;
+      var k = channelOf(s);
+      return k === 'direct' ? null : (CH_UA[k] || k);   // «прямий захід» нічого не пояснює
+    }
   };
 })();
 </script>
