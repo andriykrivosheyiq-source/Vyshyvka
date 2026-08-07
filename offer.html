@@ -536,9 +536,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
     border-radius:16px; padding:10px; background:#fff; transition:.15s;}
   .rc.on{border-color:var(--good); background:#F6FDF9;}
-  /* Біле тло, як у каталозі. На сірому фото виробу з білим фоном виглядало
-     так, ніби з нього зняли фон і поклали на підкладку. */
-  .rc-ph{border-radius:11px; overflow:hidden; background:#fff; aspect-ratio:1/1;
+  /* Фон картки має бути НЕ білий. У фото виробу власне тло біле, і на білій
+     картці воно зливається — виріб ніби висить у повітрі, наче з нього зняли
+     фон. На світло-сірому видно межу фотографії, і все читається як фото. */
+  .rc-ph{border-radius:11px; overflow:hidden; background:#EAEFF4; aspect-ratio:1/1;
     margin-bottom:9px; display:block;}
   /* Було cover — фото обрізалось по краях, і здавалось, що з шопера й кепки
      зняли фон. У каталозі виріб показується цілком, тут має бути так само. */
