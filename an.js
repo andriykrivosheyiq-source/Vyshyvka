@@ -431,7 +431,26 @@
     if(s) return 'nav_' + String(s.getAttribute('data-scroll-to') || '').slice(0, 24);
     return null;
   }
+  /* Перехід у Telegram обриває ланцюжок: далі людина пише боту, і зв'язок
+     з візитом губиться — не видно, з якої реклами прийшов той, хто написав.
+     Telegram уміє передати боту довільний рядок через ?start=, тож кладемо
+     туди ідентифікатор пристрою. Бот отримує його першим повідомленням і
+     повертає нам разом із діалогом.
+
+     Чому не для всіх посилань: у запрошення в групу (t.me/+…, /joinchat/)
+     параметр не передається, а вже наявний start чіпати не можна. */
+  function tagTelegram(a){
+    if(!a || OFF) return;
+    var h = a.getAttribute('href') || '';
+    if(!/^https?:\/\/(t\.me|telegram\.me)\//i.test(h)) return;
+    if(/[?&]start(group)?=/.test(h)) return;
+    if(/t\.me\/(\+|joinchat\/|s\/)/i.test(h)) return;
+    a.setAttribute('href', h + (h.indexOf('?') < 0 ? '?' : '&') + 'start=v' + S.vid);
+  }
+
   D.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if(a) tagTelegram(a);
     var n = clickName(e.target);
     if(n) track(n);
   }, true);
