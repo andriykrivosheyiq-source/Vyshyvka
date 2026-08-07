@@ -1708,6 +1708,43 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 })();
 </script>
 <script>
+/* Мітка завантаження адмінки. Конструктор, Прорахунок і КП відкриваються
+   всередині iframe, а браузер тримає їх у кеші окремо від самої адмінки —
+   через це після оновлення сайту менеджер ще довго бачив стару версію
+   і не міг зрозуміти, чому виправлене досі не виправлене. Мітка міняється
+   з кожним перезавантаженням адмінки, тож достатньо оновити сторінку.
+
+   Стоїть найпершим рядком навмисне. Раніше мітка оголошувалась усередині
+   файлу — і будь-яка помилка вище лишала її неоголошеною. Тоді «Прорахунок»
+   мовчки відкривався порожнім білим прямокутником: адреса сторінки просто
+   не підставлялась, а причини не було видно ніде. */
+var LQ_BUILD = Date.now().toString(36);
+
+/* Помилка в коді зупиняє виконання решти файлу — і далі частина адмінки
+   просто не працює, без жодного знаку. Саме так «Прорахунок» перетворився
+   на білий прямокутник. Тепер перша помилка видно одразу, з файлом і рядком:
+   зрозуміти, що зламалось, можна не відкриваючи консоль. */
+window.addEventListener('error', function(e){
+  if(document.getElementById('lq-jserr')) return;      // вистачить першої
+  var bar = document.createElement('div');
+  bar.id = 'lq-jserr';
+  bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;' +
+    'background:#8a1f1f;color:#fff;padding:11px 44px 11px 16px;font:12.5px/1.5 ' +
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+  var where = e.filename ? (String(e.filename).split('/').pop() + ':' + e.lineno) : '';
+  bar.textContent = 'Помилка в адмінці: ' + (e.message || 'невідома') +
+    (where ? ' (' + where + ')' : '') +
+    '. Частина розділів може не працювати — оновіть сторінку (Ctrl+Shift+R) ' +
+    'і покажіть цей текст розробнику.';
+  var x = document.createElement('button');
+  x.textContent = '×';
+  x.style.cssText = 'position:absolute;right:10px;top:6px;all:unset;cursor:pointer;' +
+    'color:#fff;font-size:20px;line-height:1;padding:4px 8px;';
+  x.onclick = function(){ bar.remove(); };
+  bar.appendChild(x);
+  (document.body || document.documentElement).appendChild(bar);
+});
+
 /* ============================================================
    FIREBASE — спільна хмарна база (синхронізація між пристроями)
    ============================================================ */
@@ -2099,12 +2136,48 @@ document.querySelectorAll('.nav button').forEach(btn=>{
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
       // посадкові сторінки редагуються в Конструкторі сайту.
       const fr = document.getElementById('calc-only-frame');
-      if(fr && !fr.src) fr.src = 'index.html?manager=1&start=catalog&v=' + LQ_BUILD;
+      if(fr && !fr.src) openCalcFrame(fr);
+      else if(fr && fr.dataset.failed) openCalcFrame(fr);   // не вийшло — пробуємо ще раз
     }
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
 });
+
+/* Прорахунок живе в iframe. Якщо сторінка не відкриється, менеджер бачить
+   білий прямокутник і жодного пояснення — саме так виглядала помилка, через
+   яку адреса не підставлялась. Тому: пробуємо, стежимо за завантаженням і,
+   якщо його не сталось, пишемо це словами й даємо повторити. */
+function openCalcFrame(fr){
+  const box = fr.parentNode;
+  let note = box.querySelector('.calc-frame-note');
+  if(note) note.remove();
+  delete fr.dataset.failed;
+
+  let loaded = false;
+  fr.addEventListener('load', function(){ loaded = true; }, { once:true });
+  try{
+    fr.src = 'index.html?manager=1&start=catalog&v=' + LQ_BUILD;
+  }catch(e){
+    fail('Не вдалось скласти адресу сторінки: ' + (e && e.message || e));
+    return;
+  }
+  setTimeout(function(){ if(!loaded) fail('Сторінка прорахунку не відповіла.'); }, 12000);
+
+  function fail(msg){
+    fr.dataset.failed = '1';
+    fr.removeAttribute('src');
+    note = document.createElement('div');
+    note.className = 'calc-frame-note';
+    note.style.cssText = 'padding:26px 22px;font-size:13.5px;line-height:1.6;color:var(--ink-soft);';
+    note.innerHTML = '<b style="color:var(--ink);">' + escapeHtml(msg) + '</b><br>' +
+      'Спробуйте оновити сторінку (Ctrl+Shift+R). Якщо не допоможе — відкрийте прорахунок ' +
+      'напряму: <a href="index.html?manager=1&start=catalog" target="_blank" ' +
+      'style="color:var(--accent);">index.html?manager=1&amp;start=catalog</a>. ' +
+      'Так буде видно, це адмінка чи сам сайт.';
+    box.appendChild(note);
+  }
+}
 
 function toggleNewOrder(open){
   const card = document.getElementById('new-order-card');
@@ -6710,13 +6783,6 @@ async function init(){
     }, function(e){ console.warn('photos snapshot', e); });
   }
   subscribePhotos();
-
-  /* Мітка завантаження адмінки. Конструктор і КП відкриваються всередині
-     iframe, а браузер тримає їх у кеші окремо від самої адмінки — через це
-     після оновлення сайту менеджер ще довго бачив стару версію прорахунку
-     і не міг зрозуміти, чому виправлене досі не виправлене. Мітка міняється
-     з кожним перезавантаженням адмінки, тож достатньо оновити сторінку. */
-  const LQ_BUILD = Date.now().toString(36);
 
   /* Перемикач сайту: міняємо цільовий документ і перечитуємо контент.
      Канбан і ціни-налаштування у STATE_DOC спільні, тому їх не чіпаємо. */
