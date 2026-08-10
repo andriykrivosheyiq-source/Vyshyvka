@@ -49,7 +49,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })();
 </script>
 <!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
-<link rel="preload" as="image" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
+<!-- Постер = перший кадр відео, і саме він визначає, коли зʼявиться перший
+     екран. Телефону віддаємо меншу версію: висота 1440 там нікому не
+     потрібна — картинка ще й лежить під затемненням і текстом. -->
+<link rel="preload" as="image" fetchpriority="high" media="(max-width:700px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1000/v1783438743/202607071831_p63gha.jpg">
+<link rel="preload" as="image" fetchpriority="high" media="(min-width:701px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
 
 <style>
   :root{
@@ -259,6 +263,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transform:scale(1.06) translateY(3%);transform-origin:center top;
   }
   .hero-bg-slide.active{opacity:1;}
+  /* Один шар, а не два: раніше під постером лежала ще й локальна
+     картинка-фолбек, і браузер щоразу качав обидві. Тепер запасна
+     підставляється лише коли постер справді не завантажився. */
+  #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1000/v1783438743/202607071831_p63gha.jpg');}
+  @media (min-width:701px){ #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg');} }
+
   .hero-bg-video{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
     opacity:0;transition:opacity .6s ease;pointer-events:none;
@@ -3674,7 +3684,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <!-- Базовий шар = перший кадр відео (маленька картинка, вантажиться миттєво).
            Відео-елементи невидимі, доки реально не грають, тому системна кнопка
            Play на iOS фізично не може з'явитись. hero-1.webp — аварійний фолбек. -->
-      <div class="hero-bg-slide active" style="background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg'),url('images/hero-1.webp')"></div>
+      <div class="hero-bg-slide active" id="heroPoster"></div>
       <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike.
            f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
            data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
@@ -3685,7 +3695,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         data-src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
     </div>
-    <div class="hero-overlay"></div>
+    <script>
+/* Cloudinary може бути недоступний (корпоративна мережа, збій) — тоді hero
+   лишився б чорним. Перевіряємо тихо, у фоні, і лише в такому разі ставимо
+   локальну картинку. У звичайному житті цей файл не вантажиться взагалі. */
+(function(){
+  var el = document.getElementById('heroPoster');
+  if(!el) return;
+  var url = getComputedStyle(el).backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+  if(!url || url === 'none') return;
+  var probe = new Image();
+  probe.onerror = function(){ el.style.backgroundImage = "url('images/hero-1.webp')"; };
+  probe.src = url;
+})();
+</script>
+<div class="hero-overlay"></div>
 
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
