@@ -66,7 +66,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     --accent-grad:#0369A1;
     /* Помаранчевий узятий темніший за «соковитий»: на ньому білий текст дає
        контраст 4.2:1, тобто читається і на сонці, і людям зі слабким зором. */
-    --cta:#D2560B;
+    --cta:#C64F08;
     --cta-dark:#B84A08;
     /* Сірий — це заднє тло секцій, а не карток. Картки й кнопки лишаються
        білими: вони мають виступати з фону, а не зливатись із ним. Один токен
@@ -328,12 +328,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     position:absolute;left:0;right:0;bottom:18px;z-index:3;
     display:flex;align-items:center;justify-content:center;padding:0 20px;
   }
-  .hero-slide-dots{display:flex;align-items:center;gap:6px;}
+  .hero-slide-dots{display:flex;align-items:center;gap:0;}
   .hero-slide-dots .dot{
     width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);
-    transition:all .25s ease;cursor:pointer;border:none;padding:0;
+    transition:all .25s ease;cursor:pointer;border:none;
+    /* Видима крапка лишається 6 px, а натиснути можна по 24 — прозорі поля
+       не видно, зате палець влучає з першого разу. */
+    box-sizing:content-box;padding:9px;background-clip:content-box;
   }
-  .hero-slide-dots .dot.active{background:#FFFFFF;width:18px;border-radius:3px;}
+  .hero-slide-dots .dot.active{background:#FFFFFF;width:18px;border-radius:3px;
+    background-clip:content-box;}
   .hero-pause-btn{
     position:absolute;right:20px;bottom:0;width:34px;height:34px;border-radius:50%;
     background:rgba(0,0,0,.32);border:none;display:flex;align-items:center;justify-content:center;
@@ -640,11 +644,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .product-art svg{width:48%;color:var(--ink);}
   .product-art img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;}
   .product-info{padding:18px 18px 22px;display:flex;align-items:center;justify-content:space-between;background:#FFFFFF;}
-  .product-info h4{font-size:16px;font-weight:700;}
+  .product-info h3,.product-info h4{font-size:16px;font-weight:700;}
   .product-info .price{font-size:14px;color:var(--muted);margin-top:2px;}
   @media (max-width:420px){
     .product-info{padding:12px 12px 16px;gap:6px;}
-    .product-info h4{font-size:15px;}
+    .product-info h3,.product-info h4{font-size:15px;}
     .product-info .price{font-size:12px;}
     .product-info .go{width:30px;height:30px;}
   }
@@ -940,7 +944,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (prefers-reduced-motion: reduce){
     .status-dot{animation:none;}
   }
-  .help-text h4{font-size:19px;font-weight:700;margin-top:4px;color:#FFFFFF;}
+  .help-text h3,.help-text h4{font-size:19px;font-weight:700;margin-top:4px;color:#FFFFFF;}
   .help-text p{margin-top:6px;color:rgba(255,255,255,.7);font-size:15px;}
   .help-card .btn-primary{background:#FFFFFF;color:#111111;}
   .help-card .btn-primary:hover{box-shadow:0 4px 14px -4px rgba(255,255,255,.35);}
@@ -1037,7 +1041,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .review-photo img{width:100%;height:100%;object-fit:cover;display:block;}
   .review-card-main{flex:1;min-width:0;}
-  .review-card-main h4{font-size:16px;font-weight:700;}
+  .review-card-main h3,.review-card-main h4{font-size:16px;font-weight:700;}
   .review-date{font-size:13.5px;color:var(--muted);}
   .review-card .review-stars{margin-top:8px;font-size:15px;color:#FFC53D;}
   .review-card p{font-size:15px;color:var(--muted);margin-top:6px;line-height:1.5;}
@@ -1061,7 +1065,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* кнопку показуємо лише коли відгук реально не влазить у три рядки */
   .rs-full{display:none;align-items:center;gap:5px;margin-top:8px;padding:0;
     background:none;border:none;cursor:pointer;font-family:var(--font-sf);
-    font-size:13px;font-weight:600;color:#9aa0a6;}
+    font-size:13px;font-weight:600;color:#6B7280;}
   .app-card--rev.is-clipped .rs-full{display:inline-flex;}
   .rs-full svg{width:14px;height:14px;transition:transform .2s ease;}
   .app-card--rev.is-open .rs-full svg{transform:rotate(180deg);}
@@ -2016,7 +2020,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cart-footer-link{
     display:block;width:100%;margin-top:14px;background:none;border:none;cursor:pointer;
     font-size:13.5px;color:var(--muted);text-decoration:underline;font-family:var(--font-sf);text-align:center;
-  }
+  padding:6px 0;min-height:24px;display:inline-flex;align-items:center;}
   .contact-head .help-status{margin-bottom:10px;}
   .contact-head h2{font-size:clamp(24px,4vw,32px);}
   .contact-head p{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.5;}
@@ -2083,14 +2087,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   footer{background:#f4f4f6;color:#666666;padding:20px 24px calc(110px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(0,0,0,.06);}
   footer .logo{color:#111111;font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;}
-  .footer-tag{font-size:13px;color:rgba(0,0,0,.45);margin-bottom:28px;}
+  .footer-tag{font-size:13px;color:#6A6A6C;margin-bottom:28px;}
   .footer-links{display:grid;grid-template-columns:1fr 1fr;gap:8px 0;margin-bottom:28px;max-width:var(--maxw);margin-left:auto;margin-right:auto;}
   .footer-links span{font-size:14px;color:rgba(0,0,0,.6);cursor:pointer;padding-bottom:4px;}
   .footer-social{display:flex;gap:12px;margin-bottom:14px;max-width:var(--maxw);margin-left:auto;margin-right:auto;}
   .footer-social-ic{width:40px;height:40px;border-radius:20px;background:rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;text-decoration:none;}
   .footer-contacts{padding-top:12px;border-top:1px solid rgba(0,0,0,.08);max-width:var(--maxw);margin-left:auto;margin-right:auto;}
   .footer-contacts div{font-size:14px;color:rgba(0,0,0,.55);margin-bottom:4px;}
-  .footer-copy{font-size:12px;color:rgba(0,0,0,.4)!important;margin-top:12px;margin-bottom:0!important;}
+  .footer-copy{font-size:12px;color:#6A6A6C!important;margin-top:12px;margin-bottom:0!important;}
 
   .reveal{opacity:1;transform:none;}
   .reveal.in{opacity:1;transform:none;}
@@ -2373,7 +2377,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r01">
         <div class="review-card-main">
-          <h4>Оксана</h4>
+          <h3>Оксана</h3>
           <span class="review-date">20 трав. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляла світшоти для команди, всі в захваті ❤️ приємно, що на всі питання відповідали швидко</p>
@@ -2383,7 +2387,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r02">
         <div class="review-photo"><img src="images/work-50.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Соф.</h4>
+          <h3>Соф.</h3>
           <span class="review-date">4 трав. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую.</p>
@@ -2392,7 +2396,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r03">
         <div class="review-card-main">
-          <h4>Богдана</h4>
+          <h3>Богдана</h3>
           <span class="review-date">2 трав. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляла вперше, трохи хвилювалась, але вийшло ідеально!</p>
@@ -2402,7 +2406,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r04">
         <div class="review-photo"><img src="images/work-35.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Кирило</h4>
+          <h3>Кирило</h3>
           <span class="review-date">27 квіт. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки вийшли класні, вишивка акуратна. Дуже сподобались.</p>
@@ -2411,7 +2415,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r05">
         <div class="review-card-main">
-          <h4>Дмитро К.</h4>
+          <h3>Дмитро К.</h3>
           <span class="review-date">22 квіт. 2026</span>
           <div class="review-stars">★★★★☆</div>
           <p>Загалом все добре. Один розмір трохи не вгадали, але швидко допомогли з обміном.</p>
@@ -2420,7 +2424,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r06">
         <div class="review-card-main">
-          <h4>Влад</h4>
+          <h3>Влад</h3>
           <span class="review-date">20 квіт. 2026</span>
           <div class="review-stars">★★★★☆</div>
           <p>все ок, прийшло вчасно, претензій нема</p>
@@ -2430,7 +2434,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r07">
         <div class="review-photo"><img src="images/work-25.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>ShopHopp</h4>
+          <h3>ShopHopp</h3>
           <span class="review-date">11 квіт. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляли футболки та світшоти — лого рівне на всіх. Молодці!</p>
@@ -2439,7 +2443,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r08">
         <div class="review-card-main">
-          <h4>Євгенія</h4>
+          <h3>Євгенія</h3>
           <span class="review-date">3 квіт. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Трохи переживала за терміни, але все прийшло навіть раніше 👍</p>
@@ -2448,7 +2452,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r09">
         <div class="review-card-main">
-          <h4>Настя</h4>
+          <h3>Настя</h3>
           <span class="review-date">15 бер. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляла худі собі та хлопцю — дуже задоволена! Якість просто вогонь 🔥 однозначно ще прийду</p>
@@ -2458,7 +2462,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r10">
         <div class="review-photo"><img src="images/work-29.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Поліна</h4>
+          <h3>Поліна</h3>
           <span class="review-date">7 бер. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Робили шеврони та нашивки — деталізація супер, кольори яскраві.</p>
@@ -2467,7 +2471,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r11">
         <div class="review-card-main">
-          <h4>Артем В.</h4>
+          <h3>Артем В.</h3>
           <span class="review-date">27 лют. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Топ. Робили мерч на подію, встигли за тиждень 👍</p>
@@ -2477,7 +2481,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r12">
         <div class="review-photo"><img src="images/work-30.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Захар</h4>
+          <h3>Захар</h3>
           <span class="review-date">24 лют. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки з лого — друк чіткий, тканина щільна. Рекомендую.</p>
@@ -2487,7 +2491,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r13">
         <div class="review-photo"><img src="images/work-45.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Босс Бургер</h4>
+          <h3>Босс Бургер</h3>
           <span class="review-date">11 лют. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки з великим принтом — друк насичений, не тріснув 🍔</p>
@@ -2497,7 +2501,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r14">
         <div class="review-photo"><img src="images/work-43.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Юрій</h4>
+          <h3>Юрій</h3>
           <span class="review-date">26 січ. 2026</span>
           <div class="review-stars">★★★★★</div>
           <p>Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер.</p>
@@ -2506,7 +2510,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r15">
         <div class="review-card-main">
-          <h4>Віталій</h4>
+          <h3>Віталій</h3>
           <span class="review-date">21 січ. 2026</span>
           <div class="review-stars">★★★★☆</div>
           <p>швидко, зрозуміло, ціна одразу видно. загалом рекомендую</p>
@@ -2516,7 +2520,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r16">
         <div class="review-photo"><img src="images/work-40.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Владислав</h4>
+          <h3>Владислав</h3>
           <span class="review-date">31 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — рівно, тримають форму. Всім раджу.</p>
@@ -2525,7 +2529,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r17">
         <div class="review-card-main">
-          <h4>Артур</h4>
+          <h3>Артур</h3>
           <span class="review-date">15 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Друге замовлення роблю, все стабільно якісно. Рекомендую.</p>
@@ -2535,7 +2539,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r18">
         <div class="review-photo"><img src="images/work-21.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Каміла</h4>
+          <h3>Каміла</h3>
           <span class="review-date">9 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — акуратно і швидко. Рекомендую!</p>
@@ -2545,7 +2549,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r19">
         <div class="review-photo"><img src="images/work-16.webp" loading="lazy" alt="Фото відгуку" width="589" height="1000"></div>
         <div class="review-card-main">
-          <h4>Вікторія Л.</h4>
+          <h3>Вікторія Л.</h3>
           <span class="review-date">2 груд. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Нашивки вийшли просто топ — рівні, щільні, лого читається. Дуже задоволені!</p>
@@ -2555,7 +2559,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r20">
         <div class="review-photo"><img src="images/work-38.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Артем</h4>
+          <h3>Артем</h3>
           <span class="review-date">29 лист. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з лаконічним лого — саме те, що хотіли 👍</p>
@@ -2565,7 +2569,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r21">
         <div class="review-photo"><img src="images/work-44.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Ілона</h4>
+          <h3>Ілона</h3>
           <span class="review-date">23 лист. 2025</span>
           <div class="review-stars">★★★★☆</div>
           <p>Замовляли кепки на весь відділ, всі підійшли. Трохи чекали, але результат вартий.</p>
@@ -2574,7 +2578,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r22">
         <div class="review-card-main">
-          <h4>Настя К.</h4>
+          <h3>Настя К.</h3>
           <span class="review-date">16 лист. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Якість вогонь, ціна норм, менеджери відповідають швидко 🔥</p>
@@ -2583,7 +2587,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r23">
         <div class="review-card-main">
-          <h4>Каріна</h4>
+          <h3>Каріна</h3>
           <span class="review-date">14 лист. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Все супер, дякую! Замовлятиму ще 😊</p>
@@ -2592,7 +2596,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r24">
         <div class="review-card-main">
-          <h4>Аліна Р.</h4>
+          <h3>Аліна Р.</h3>
           <span class="review-date">6 лист. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Дуже приємні в спілкуванні, все розжували по поличках 🙏</p>
@@ -2602,7 +2606,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r25">
         <div class="review-photo"><img src="images/work-39.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Валерія</h4>
+          <h3>Валерія</h3>
           <span class="review-date">16 жовт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки на команду — всі однакові за якістю. Задоволені.</p>
@@ -2612,7 +2616,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r26">
         <div class="review-photo"><img src="images/work-15.webp" loading="lazy" alt="Фото відгуку" width="592" height="1000"></div>
         <div class="review-card-main">
-          <h4>SI</h4>
+          <h3>SI</h3>
           <span class="review-date">13 жовт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Рушники з вишивкою — акуратно, вишивка рівна. Дуже гарно.</p>
@@ -2622,7 +2626,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r27">
         <div class="review-photo"><img src="images/work-24.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Христина</h4>
+          <h3>Христина</h3>
           <span class="review-date">9 жовт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Рушники з вишитим лого — вишивка акуратна, зроблено солідно.</p>
@@ -2631,7 +2635,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r28">
         <div class="review-card-main">
-          <h4>Юрій П.</h4>
+          <h3>Юрій П.</h3>
           <span class="review-date">4 жовт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Ціни адекватні, якість відповідає. Що ще треба.</p>
@@ -2641,7 +2645,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r29">
         <div class="review-photo"><img src="images/work-34.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Денис</h4>
+          <h3>Денис</h3>
           <span class="review-date">15 вер. 2025</span>
           <div class="review-stars">★★★★☆</div>
           <p>Футболки з лого — контраст супер. Доставка трохи затрималась, але не критично.</p>
@@ -2651,7 +2655,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r30">
         <div class="review-photo"><img src="images/work-26.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Микита</h4>
+          <h3>Микита</h3>
           <span class="review-date">12 вер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Худі щільне, шов рівний, лого лягло ідеально.</p>
@@ -2661,7 +2665,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r31">
         <div class="review-photo"><img src="images/work-22.webp" loading="lazy" alt="Фото відгуку" width="520" height="1000"></div>
         <div class="review-card-main">
-          <h4>Соломія</h4>
+          <h3>Соломія</h3>
           <span class="review-date">10 вер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Світшоти з вишивкою — мила деталь, вийшло дуже ніжно ❤️</p>
@@ -2671,7 +2675,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r32">
         <div class="review-photo"><img src="images/work-28.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Даша</h4>
+          <h3>Даша</h3>
           <span class="review-date">8 вер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки з незвичним принтом — виглядають ефектно, дуже задоволена 🌙</p>
@@ -2681,7 +2685,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r33">
         <div class="review-photo"><img src="images/work-37.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Олег</h4>
+          <h3>Олег</h3>
           <span class="review-date">30 серп. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки — вишивка рівна, форма тримається. Топ.</p>
@@ -2691,7 +2695,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r34">
         <div class="review-photo"><img src="images/work-03.webp" loading="lazy" alt="Фото відгуку" width="591" height="1000"></div>
         <div class="review-card-main">
-          <h4>Ірина К.</h4>
+          <h3>Ірина К.</h3>
           <span class="review-date">9 серп. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляли сорочки з лого — виглядають стильно, вишивка чиста.</p>
@@ -2701,7 +2705,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r35">
         <div class="review-photo"><img src="images/work-23.webp" loading="lazy" alt="Фото відгуку" width="573" height="1000"></div>
         <div class="review-card-main">
-          <h4>Тарас</h4>
+          <h3>Тарас</h3>
           <span class="review-date">31 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Вишивали лого на одязі — вийшло чисто й акуратно, нитка рівна. Клас!</p>
@@ -2711,7 +2715,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r36">
         <div class="review-photo"><img src="images/work-20.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>MoveUp Gym</h4>
+          <h3>MoveUp Gym</h3>
           <span class="review-date">27 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Спортивна форма для команди — яскраво, все рівно 💪</p>
@@ -2720,7 +2724,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r37">
         <div class="review-card-main">
-          <h4>Марʼяна</h4>
+          <h3>Марʼяна</h3>
           <span class="review-date">11 лип. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Все пояснили, показали макет наперед, нічого не нав’язували. Прийшло рівно як домовлялись.</p>
@@ -2730,7 +2734,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r38">
         <div class="review-photo"><img src="images/work-06.webp" loading="lazy" alt="Фото відгуку" width="589" height="1000"></div>
         <div class="review-card-main">
-          <h4>mycar</h4>
+          <h3>mycar</h3>
           <span class="review-date">30 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Брендовані сумки для компанії — міцні, лого чітке. Рекомендуємо!</p>
@@ -2740,7 +2744,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r39">
         <div class="review-photo"><img src="images/work-08.webp" loading="lazy" alt="Фото відгуку" width="596" height="1000"></div>
         <div class="review-card-main">
-          <h4>Туржан</h4>
+          <h3>Туржан</h3>
           <span class="review-date">25 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляли худі — пошили швидко, вишивка акуратна, лого чітке.</p>
@@ -2750,7 +2754,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r40">
         <div class="review-photo"><img src="images/work-41.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Надія</h4>
+          <h3>Надія</h3>
           <span class="review-date">16 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Світшот з вишивкою — мʼякий, теплий, лого рівне.</p>
@@ -2760,7 +2764,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r41">
         <div class="review-photo"><img src="images/work-01.webp" loading="lazy" alt="Фото відгуку" width="585" height="1000"></div>
         <div class="review-card-main">
-          <h4>Олена Т.</h4>
+          <h3>Олена Т.</h3>
           <span class="review-date">5 черв. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Робили нашивки для бренду — вийшло дуже акуратно. Задоволені!</p>
@@ -2769,7 +2773,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r42">
         <div class="review-card-main">
-          <h4>Богдан</h4>
+          <h3>Богдан</h3>
           <span class="review-date">31 трав. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Ціну й терміни побачив одразу в конфігураторі, без зайвих дзвінків. Прийшло точно у строк.</p>
@@ -2779,7 +2783,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r43">
         <div class="review-photo"><img src="images/work-18.webp" loading="lazy" alt="Фото відгуку" width="462" height="1000"></div>
         <div class="review-card-main">
-          <h4>Хата Смаку</h4>
+          <h3>Хата Смаку</h3>
           <span class="review-date">12 трав. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Брендована форма для закладу — швидко, якісно. Будемо співпрацювати.</p>
@@ -2788,7 +2792,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r44">
         <div class="review-card-main">
-          <h4>Юлія</h4>
+          <h3>Юлія</h3>
           <span class="review-date">21 квіт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Дякую велике!! Футболки вийшли навіть кращі ніж на макеті 😍 всім раджу</p>
@@ -2797,7 +2801,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r45">
         <div class="review-card-main">
-          <h4>Ірина М.</h4>
+          <h3>Ірина М.</h3>
           <span class="review-date">17 квіт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Допомогли з макетом, підказали кращий варіант. Дуже вдячна!</p>
@@ -2807,7 +2811,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r46">
         <div class="review-photo"><img src="images/work-49.webp" loading="lazy" alt="Фото відгуку" width="906" height="1000"></div>
         <div class="review-card-main">
-          <h4>Аня</h4>
+          <h3>Аня</h3>
           <span class="review-date">9 квіт. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки для готелю у фірмових кольорах — стильно, гості оцінили.</p>
@@ -2816,7 +2820,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r47">
         <div class="review-card-main">
-          <h4>Ліля</h4>
+          <h3>Ліля</h3>
           <span class="review-date">24 бер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>щиро раджу! робота на совість, і по-людськи спілкуються 🙂</p>
@@ -2826,7 +2830,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r48">
         <div class="review-photo"><img src="images/work-33.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Євген</h4>
+          <h3>Євген</h3>
           <span class="review-date">16 бер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — рівно, чисто, швидко. 5/5</p>
@@ -2836,7 +2840,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r49">
         <div class="review-photo"><img src="images/work-46.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Павло</h4>
+          <h3>Павло</h3>
           <span class="review-date">13 бер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — акуратно, швидко, дякую.</p>
@@ -2846,7 +2850,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r50">
         <div class="review-photo"><img src="images/work-05.webp" loading="lazy" alt="Фото відгуку" width="581" height="1000"></div>
         <div class="review-card-main">
-          <h4>Роман</h4>
+          <h3>Роман</h3>
           <span class="review-date">5 бер. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки на команду — тканина приємна, лого рівне. Молодці!</p>
@@ -2855,7 +2859,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r51">
         <div class="review-card-main">
-          <h4>Дмитро</h4>
+          <h3>Дмитро</h3>
           <span class="review-date">25 лют. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляв на подарунок, встигли швидко, врятували 🙏</p>
@@ -2864,7 +2868,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r52">
         <div class="review-card-main">
-          <h4>Сергій</h4>
+          <h3>Сергій</h3>
           <span class="review-date">20 лют. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>все чітко, прийшло вчасно, претензій нема. дякую</p>
@@ -2873,7 +2877,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r53">
         <div class="review-card-main">
-          <h4>Ігор</h4>
+          <h3>Ігор</h3>
           <span class="review-date">18 лют. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Нормальні ціни, адекватні люди, роблять якісно. Що ще треба) Замовлятиму ще.</p>
@@ -2883,7 +2887,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r54">
         <div class="review-photo"><img src="images/work-42.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Милана</h4>
+          <h3>Милана</h3>
           <span class="review-date">12 лют. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — акуратно, вийшло класно!</p>
@@ -2893,7 +2897,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r55">
         <div class="review-photo"><img src="images/work-09.webp" loading="lazy" alt="Фото відгуку" width="592" height="1000"></div>
         <div class="review-card-main">
-          <h4>Максим Д.</h4>
+          <h3>Максим Д.</h3>
           <span class="review-date">22 січ. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Велика партія футболок, усе спаковане поштучно. Зручно роздавати.</p>
@@ -2903,7 +2907,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r56">
         <div class="review-photo"><img src="images/work-17.webp" loading="lazy" alt="Фото відгуку" width="462" height="1000"></div>
         <div class="review-card-main">
-          <h4>Галерея Смаків</h4>
+          <h3>Галерея Смаків</h3>
           <span class="review-date">9 січ. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Замовляли футболки для ресторану. Лого акуратне, тканина приємна. Персонал у захваті!</p>
@@ -2913,7 +2917,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r57">
         <div class="review-photo"><img src="images/work-27.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Аліна</h4>
+          <h3>Аліна</h3>
           <span class="review-date">3 січ. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки з обʼємним принтом — вийшло вогонь 🔥</p>
@@ -2923,7 +2927,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r58">
         <div class="review-photo"><img src="images/work-36.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Станіслав</h4>
+          <h3>Станіслав</h3>
           <span class="review-date">1 січ. 2025</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепки з вишивкою — стильно і якісно. Дякую!</p>
@@ -2933,7 +2937,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r59">
         <div class="review-photo"><img src="images/work-13.webp" loading="lazy" alt="Фото відгуку" width="734" height="1000"></div>
         <div class="review-card-main">
-          <h4>Богдан Р.</h4>
+          <h3>Богдан Р.</h3>
           <span class="review-date">27 груд. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки з принтом — друк яскравий і рівний. Клас!</p>
@@ -2943,7 +2947,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r60">
         <div class="review-photo"><img src="images/work-19.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Назар</h4>
+          <h3>Назар</h3>
           <span class="review-date">23 груд. 2024</span>
           <div class="review-stars">★★★★☆</div>
           <p>Футболки з принтом — чітко навіть у дрібних деталях. Хотілось трохи швидше, але вклались.</p>
@@ -2952,7 +2956,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r61">
         <div class="review-card-main">
-          <h4>Тетяна</h4>
+          <h3>Тетяна</h3>
           <span class="review-date">15 груд. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>замовляла вперше, трохи переживала, але все супер вийшло) дякую за терпіння з моїми правками 🙏</p>
@@ -2962,7 +2966,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r62">
         <div class="review-photo"><img src="images/work-47.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Руслан</h4>
+          <h3>Руслан</h3>
           <span class="review-date">2 груд. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Кепка сидить ідеально, вишивка рівна. Задоволений на 100%.</p>
@@ -2972,7 +2976,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r63">
         <div class="review-photo"><img src="images/work-48.webp" loading="lazy" alt="Фото відгуку" width="580" height="1000"></div>
         <div class="review-card-main">
-          <h4>Людмила В.</h4>
+          <h3>Людмила В.</h3>
           <span class="review-date">16 лист. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Рушники з золотою вишивкою — ошатні, вишивка акуратна.</p>
@@ -2981,7 +2985,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r64">
         <div class="review-card-main">
-          <h4>Роман С.</h4>
+          <h3>Роман С.</h3>
           <span class="review-date">3 лист. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Все чітко по строках. Ніяких сюрпризів у рахунку. Топ.</p>
@@ -2991,7 +2995,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r65">
         <div class="review-photo"><img src="images/work-31.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
-          <h4>Zara Coffee</h4>
+          <h3>Zara Coffee</h3>
           <span class="review-date">31 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Футболки для кавʼярні — лого акуратне, не блякне після прання ☕</p>
@@ -3001,7 +3005,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="review-card" data-rid="r66">
         <div class="review-photo"><img src="images/work-32.webp" loading="lazy" alt="Фото відгуку" width="669" height="1000"></div>
         <div class="review-card-main">
-          <h4>Гліб</h4>
+          <h3>Гліб</h3>
           <span class="review-date">29 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Бафи з принтом класні, тканина приємна. дякую</p>
@@ -3010,7 +3014,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r67">
         <div class="review-card-main">
-          <h4>Софія</h4>
+          <h3>Софія</h3>
           <span class="review-date">25 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Приємно, що можна порахувати ціну самому на сайті. Зручно!</p>
@@ -3019,7 +3023,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r68">
         <div class="review-card-main">
-          <h4>Тарас М.</h4>
+          <h3>Тарас М.</h3>
           <span class="review-date">20 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>Нормальні хлопці, зробили як треба, без нервів.</p>
@@ -3028,7 +3032,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r69">
         <div class="review-card-main">
-          <h4>Оля</h4>
+          <h3>Оля</h3>
           <span class="review-date">11 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>мерч вийшов кращий ніж очікувала ❤️ дякую команді</p>
@@ -3037,7 +3041,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <div class="review-card" data-rid="r70">
         <div class="review-card-main">
-          <h4>Максим</h4>
+          <h3>Максим</h3>
           <span class="review-date">5 жовт. 2024</span>
           <div class="review-stars">★★★★★</div>
           <p>нормальна контора, роблять що обіцяють. без проблем</p>
@@ -3721,8 +3725,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   probe.onerror = function(){ el.style.backgroundImage = "url('images/hero-1.webp')"; };
   probe.src = url;
 })();
-</script>
-<div class="hero-overlay"></div>
+    </script>
+    <div class="hero-overlay"></div>
 
     <div class="wrap hero-top reveal">
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
@@ -3911,7 +3915,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <img src="images/hoodie.webp" alt="Худі" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
-            <div><h4>Худі</h4><div class="price">від 299 грн</div></div>
+            <div><h3>Худі</h3><div class="price">від 299 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
@@ -3921,7 +3925,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <img src="images/tshirt.webp" alt="Футболка" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
-            <div><h4>Футболка</h4><div class="price">від 99 грн</div></div>
+            <div><h3>Футболка</h3><div class="price">від 99 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
@@ -3931,7 +3935,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <img src="images/sweatshirt.webp" alt="Світшот" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
-            <div><h4>Світшот</h4><div class="price">від 199 грн</div></div>
+            <div><h3>Світшот</h3><div class="price">від 199 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
@@ -3941,14 +3945,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <img src="images/cap.webp" alt="Кепка" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
-            <div><h4>Кепка</h4><div class="price">від 149 грн</div></div>
+            <div><h3>Кепка</h3><div class="price">від 149 грн</div></div>
             <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
           </div>
         </div>
       </div>
 
       <div class="catalog-cta-btn reveal">
-        <button class="btn btn-primary" data-open-catalog style="justify-content:center;background:#000000;">Перейти до каталогу</button>
+        <button class="btn btn-primary" data-open-catalog style="justify-content:center;background:#000000;color:#FFFFFF;">Перейти до каталогу</button>
       </div>
     </div>
   </section>
@@ -4116,7 +4120,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           </span>
           <div class="help-text">
             <span class="help-status js-online-status"><span class="status-dot"></span>Онлайн зараз</span>
-            <h4>Потрібна допомога?</h4>
+            <h3>Потрібна допомога?</h3>
             <p>Залиште номер — менеджер зв'яжеться за 5 хв.</p>
           </div>
         </div>
@@ -5013,7 +5017,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>
         </div>
         <div class="product-info">
-          <div><h4>${p.name}</h4></div>
+          <div><h3>${p.name}</h3></div>
           <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </button>`).join('');
@@ -5130,7 +5134,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             : `<svg viewBox="${p.vb}" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="${p.path}"/>${p.extraRect ? '<rect x="20" y="38" width="48" height="46" rx="6"/>' : ''}</svg>`}
         </div>
         <div class="product-info">
-          <div><h4>${pname}</h4><div class="price">${priceLabel}</div></div>
+          <div><h3>${pname}</h3><div class="price">${priceLabel}</div></div>
           <span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </div>
       </button>`;
@@ -11352,7 +11356,7 @@ window.LOOMIQ_CONFIG = {
         .filter(function(c){ return !!c.querySelector('.review-photo img'); });
       var html = '';
       cards.slice(0, LIMIT).forEach(function(c, n){
-        var name = (c.querySelector('h4')||{}).textContent || '';
+        var name = (c.querySelector('h3,h4')||{}).textContent || '';
         var date = (c.querySelector('.review-date')||{}).textContent || '';
         var text = (c.querySelector('p')||{}).textContent || '';
         var img  = c.querySelector('.review-photo img');
@@ -11822,7 +11826,7 @@ window.LOOMIQ_CONFIG = {
         +     (img ? '<img src="' + img + '" alt="' + name + '" loading="lazy">' : '')
         +   '</div>'
         +   '<div class="product-info">'
-        +     '<div><h4>' + name + '</h4><div class="price">' + price + '</div></div>'
+        +     '<div><h3>' + name + '</h3><div class="price">' + price + '</div></div>'
         +     '<span class="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>'
         +   '</div>'
         + '</div>';
