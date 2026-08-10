@@ -1584,6 +1584,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button data-s="offer">КП</button>
         </div>
         <button class="btn btn-ghost" id="an-reload">Оновити</button>
+        <button class="btn btn-ghost" id="an-copy" title="Скопіювати цифри текстом — щоб переслати чи розібрати">Зведення текстом</button>
       </div>
       <div class="sub" id="an-state" style="margin:0 0 14px;"></div>
 
@@ -8692,6 +8693,7 @@ async function init(){
       var prv = await rangeAgg(prevDays);
       var ords = periodOrders(days), prevOrds = periodOrders(prevDays);
       renderMain.perDay = cur.perDay;
+      AN.last = { A: cur.A, prev: prv.A, days: days, ords: ords, perDay: cur.perDay };
       renderMain(cur.A, prv.A, days, ords, prevOrds);
       renderChannels(cur.A, days, ords);
       renderTraffic(cur.A, ords);
@@ -8744,6 +8746,88 @@ async function init(){
 
   var rl = document.getElementById('an-reload');
   if(rl) rl.addEventListener('click', function(){ AN.cache = {}; AN.spend = null; load(); });
+
+  /* Звіт живе на екрані, а розібратись у ньому часто треба не тут: переслати
+     таргетологу, порівняти з минулим тижнем, показати комусь. Тому цифри
+     збираються в звичайний текст — його можна вставити куди завгодно. */
+  var cp = document.getElementById('an-copy');
+  if(cp) cp.addEventListener('click', function(){
+    var t = digest();
+    if(!t){ toast('Спершу дочекайтесь розрахунку'); return; }
+    navigator.clipboard.writeText(t).then(function(){ toast('Зведення скопійовано'); },
+      function(){
+        // Буфер може бути недоступний (немає дозволу) — тоді хоч покажемо текст
+        window.prompt('Скопіюйте вручну:', t);
+      });
+  });
+
+  function pctS(a, b){ return b ? (Math.round(a / b * 1000) / 10).toLocaleString('uk-UA') + '%' : '—'; }
+  function topLine(map, n){
+    return top(map, n || 6).map(function(r){ return r.k + ' — ' + fmt(r.v); }).join('; ') || '—';
+  }
+  function digest(){
+    var L = AN.last;
+    if(!L) return '';
+    var A = L.A, P = L.prev, days = L.days, ords = L.ords;
+    var rev = sum(ords, function(o){ return o.totalPrice; });
+    var cost = sum(ords, function(o){ return o.totalCost; });
+    var marg = rev - cost;
+    var sp = spendByChannel(days);
+    var out = [];
+    out.push('LOOMIQ · АНАЛІТИКА');
+    out.push('Період: ' + days[0] + ' — ' + days[days.length - 1] +
+             (AN.site ? ' · сайт: ' + (SITE_UA[AN.site] || AN.site) : ' · усі сайти'));
+    out.push('Порівняння з попереднім таким самим періодом у дужках.');
+    out.push('');
+    out.push('ЛЮДИ');
+    out.push('Візити: ' + fmt(A.visits) + ' (' + fmt(P.visits) + ')');
+    out.push('Нові: ' + fmt(A.newVis) + ' · повернулись: ' + fmt(A.ret));
+    out.push('Затримались (не пішли одразу): ' + fmt(A.engaged) + ' — ' + pctS(A.engaged, A.visits));
+    out.push('Час на сайті: ' + dur(A.visits ? A.sec / A.visits : 0) +
+             ' · сторінок за візит: ' + (A.visits ? Math.round(A.pagesSum / A.visits * 10) / 10 : 0) +
+             ' · глибина: ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%');
+    out.push('До першої дії: ' + (A.actN ? dur(A.actSum / A.actN) : '—'));
+    out.push('');
+    out.push('ГРОШІ (з Канбану)');
+    out.push('Замовлень: ' + fmt(ords.length) + ' · виручка: ' + fmt(rev) + ' грн');
+    out.push('Собівартість: ' + fmt(cost) + ' грн · маржа: ' + fmt(marg) + ' грн (' + pctS(marg, rev) + ')');
+    out.push('Середній чек: ' + fmt(ords.length ? rev / ords.length : 0) + ' грн');
+    out.push('Конверсія візит → замовлення: ' + pctS(ords.length, A.visits));
+    out.push('Покинуті кошики: ' + fmt(A.abandN) + ' на ' + fmt(A.abandSum) + ' грн');
+    out.push('Рекламний бюджет: ' + fmt(sp.total) + ' грн' +
+             (sp.total ? ' · окупність: ' + (Math.round(rev / sp.total * 10) / 10) + '×' : ' (не вносили)'));
+    out.push('');
+    out.push('ЗВІДКИ (перший дотик)');
+    out.push(topLine(A.first, 8));
+    out.push('Канали: ' + Object.keys(A.chFirst || {}).map(function(k){
+      return (CH_UA[k] || k) + ' — ' + fmt(A.chFirst[k]); }).join('; '));
+    out.push('');
+    out.push('ЛІЙКА');
+    out.push(['visit','ctor','design','size','cart','checkout','order'].map(function(k){
+      return k + ': ' + fmt(A.steps[k] || 0); }).join(' → '));
+    out.push('');
+    out.push('ЩО НАТИСКАЮТЬ');
+    out.push(topLine(A.ev, 12));
+    out.push('ЩО ОБИРАЮТЬ');
+    out.push(topLine(A.pick, 12));
+    out.push('');
+    out.push('ТЕХНІКА');
+    out.push('Пристрої: ' + topLine(A.dev, 4));
+    out.push('Входи: ' + topLine(A.land, 6));
+    out.push('Виходи: ' + topLine(A.exit, 6));
+    out.push('Перший екран: ' + (A.perfN ? (Math.round(A.lcp / 100) / 10) + ' с' : '—') +
+             ' · відповідь сервера: ' + (A.perfN ? Math.round(A.ttfb / A.perfN) + ' мс' : '—') +
+             ' · замірів: ' + fmt(A.perfN));
+    out.push('');
+    out.push('ПО ДНЯХ (візити / замовлення / виручка)');
+    days.forEach(function(d){
+      var da = (L.perDay || {})[d] || { visits:0 };
+      var dOrd = ords.filter(function(o){ return kyivDay(new Date(o.createdAt)) === d; });
+      out.push(d + ': ' + fmt(da.visits) + ' / ' + fmt(dOrd.length) + ' / ' +
+               fmt(sum(dOrd, function(o){ return o.totalPrice; })) + ' грн');
+    });
+    return out.join('\n');
+  }
 
   var chSel = document.getElementById('an-spend-ch');
   if(chSel) chSel.innerHTML = PAID_CH.map(function(c){
