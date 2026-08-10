@@ -10,11 +10,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- End Google Tag Manager -->
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Loomiq — мерч для команди за 1 хв</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="description" content="Корпоративний мерч і брендований одяг: худі, футболки, кепки з вашим логотипом. Конструктор із миттєвим прорахунком ціни, вишивка та DTF-друк, від 1 виробу. Доставка по Україні.">
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
 <!-- Шрифти для написів на виробі. Беремо ті, що реально впізнають на макетах,
      і лише з кирилицею — інакше українські написи сипались би на латиницю. -->
@@ -50,10 +49,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </script>
 <!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
 <!-- Постер = перший кадр відео, і саме він визначає, коли зʼявиться перший
-     екран. Телефону віддаємо меншу версію: висота 1440 там нікому не
-     потрібна — картинка ще й лежить під затемненням і текстом. -->
-<link rel="preload" as="image" fetchpriority="high" media="(max-width:700px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1000/v1783438743/202607071831_p63gha.jpg">
-<link rel="preload" as="image" fetchpriority="high" media="(min-width:701px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
+     екран (LCP). Він лежить під темним затемненням і текстом, тож висока
+     якість тут не помітна взагалі — телефону віддаємо 760 px і q_auto:eco.
+     Це найдешевший спосіб зрізати найдорожчу секунду завантаження. -->
+<link rel="preload" as="image" fetchpriority="high" media="(max-width:700px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:eco,c_limit,h_760/v1783438743/202607071831_p63gha.jpg">
+<link rel="preload" as="image" fetchpriority="high" media="(min-width:701px)" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1200/v1783438743/202607071831_p63gha.jpg">
 
 <style>
   :root{
@@ -279,8 +279,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Один шар, а не два: раніше під постером лежала ще й локальна
      картинка-фолбек, і браузер щоразу качав обидві. Тепер запасна
      підставляється лише коли постер справді не завантажився. */
-  #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1000/v1783438743/202607071831_p63gha.jpg');}
-  @media (min-width:701px){ #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg');} }
+  #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:eco,c_limit,h_760/v1783438743/202607071831_p63gha.jpg');}
+  @media (min-width:701px){ #heroPoster{background-image:url('https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1200/v1783438743/202607071831_p63gha.jpg');} }
 
   .hero-bg-video{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
@@ -2381,7 +2381,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r02">
-        <div class="review-photo"><img src="images/work-50.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-50.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Соф.</h4>
           <span class="review-date">4 трав. 2026</span>
@@ -2400,7 +2400,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r04">
-        <div class="review-photo"><img src="images/work-35.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-35.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Кирило</h4>
           <span class="review-date">27 квіт. 2026</span>
@@ -2428,7 +2428,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r07">
-        <div class="review-photo"><img src="images/work-25.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-25.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>ShopHopp</h4>
           <span class="review-date">11 квіт. 2026</span>
@@ -2456,7 +2456,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r10">
-        <div class="review-photo"><img src="images/work-29.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-29.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Поліна</h4>
           <span class="review-date">7 бер. 2026</span>
@@ -2475,7 +2475,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r12">
-        <div class="review-photo"><img src="images/work-30.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-30.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Захар</h4>
           <span class="review-date">24 лют. 2026</span>
@@ -2485,7 +2485,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r13">
-        <div class="review-photo"><img src="images/work-45.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-45.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Босс Бургер</h4>
           <span class="review-date">11 лют. 2026</span>
@@ -2495,7 +2495,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r14">
-        <div class="review-photo"><img src="images/work-43.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-43.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Юрій</h4>
           <span class="review-date">26 січ. 2026</span>
@@ -2514,7 +2514,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r16">
-        <div class="review-photo"><img src="images/work-40.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-40.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Владислав</h4>
           <span class="review-date">31 груд. 2025</span>
@@ -2533,7 +2533,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r18">
-        <div class="review-photo"><img src="images/work-21.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-21.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Каміла</h4>
           <span class="review-date">9 груд. 2025</span>
@@ -2543,7 +2543,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r19">
-        <div class="review-photo"><img src="images/work-16.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-16.webp" loading="lazy" alt="Фото відгуку" width="589" height="1000"></div>
         <div class="review-card-main">
           <h4>Вікторія Л.</h4>
           <span class="review-date">2 груд. 2025</span>
@@ -2553,7 +2553,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r20">
-        <div class="review-photo"><img src="images/work-38.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-38.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Артем</h4>
           <span class="review-date">29 лист. 2025</span>
@@ -2563,7 +2563,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r21">
-        <div class="review-photo"><img src="images/work-44.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-44.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Ілона</h4>
           <span class="review-date">23 лист. 2025</span>
@@ -2600,7 +2600,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r25">
-        <div class="review-photo"><img src="images/work-39.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-39.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Валерія</h4>
           <span class="review-date">16 жовт. 2025</span>
@@ -2610,7 +2610,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r26">
-        <div class="review-photo"><img src="images/work-15.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-15.webp" loading="lazy" alt="Фото відгуку" width="592" height="1000"></div>
         <div class="review-card-main">
           <h4>SI</h4>
           <span class="review-date">13 жовт. 2025</span>
@@ -2620,7 +2620,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r27">
-        <div class="review-photo"><img src="images/work-24.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-24.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Христина</h4>
           <span class="review-date">9 жовт. 2025</span>
@@ -2639,7 +2639,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r29">
-        <div class="review-photo"><img src="images/work-34.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-34.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Денис</h4>
           <span class="review-date">15 вер. 2025</span>
@@ -2649,7 +2649,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r30">
-        <div class="review-photo"><img src="images/work-26.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-26.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Микита</h4>
           <span class="review-date">12 вер. 2025</span>
@@ -2659,7 +2659,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r31">
-        <div class="review-photo"><img src="images/work-22.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-22.webp" loading="lazy" alt="Фото відгуку" width="520" height="1000"></div>
         <div class="review-card-main">
           <h4>Соломія</h4>
           <span class="review-date">10 вер. 2025</span>
@@ -2669,7 +2669,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r32">
-        <div class="review-photo"><img src="images/work-28.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-28.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Даша</h4>
           <span class="review-date">8 вер. 2025</span>
@@ -2679,7 +2679,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r33">
-        <div class="review-photo"><img src="images/work-37.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-37.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Олег</h4>
           <span class="review-date">30 серп. 2025</span>
@@ -2689,7 +2689,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r34">
-        <div class="review-photo"><img src="images/work-03.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-03.webp" loading="lazy" alt="Фото відгуку" width="591" height="1000"></div>
         <div class="review-card-main">
           <h4>Ірина К.</h4>
           <span class="review-date">9 серп. 2025</span>
@@ -2699,7 +2699,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r35">
-        <div class="review-photo"><img src="images/work-23.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-23.webp" loading="lazy" alt="Фото відгуку" width="573" height="1000"></div>
         <div class="review-card-main">
           <h4>Тарас</h4>
           <span class="review-date">31 лип. 2025</span>
@@ -2709,7 +2709,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r36">
-        <div class="review-photo"><img src="images/work-20.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-20.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>MoveUp Gym</h4>
           <span class="review-date">27 лип. 2025</span>
@@ -2728,7 +2728,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r38">
-        <div class="review-photo"><img src="images/work-06.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-06.webp" loading="lazy" alt="Фото відгуку" width="589" height="1000"></div>
         <div class="review-card-main">
           <h4>mycar</h4>
           <span class="review-date">30 черв. 2025</span>
@@ -2738,7 +2738,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r39">
-        <div class="review-photo"><img src="images/work-08.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-08.webp" loading="lazy" alt="Фото відгуку" width="596" height="1000"></div>
         <div class="review-card-main">
           <h4>Туржан</h4>
           <span class="review-date">25 черв. 2025</span>
@@ -2748,7 +2748,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r40">
-        <div class="review-photo"><img src="images/work-41.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-41.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Надія</h4>
           <span class="review-date">16 черв. 2025</span>
@@ -2758,7 +2758,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r41">
-        <div class="review-photo"><img src="images/work-01.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-01.webp" loading="lazy" alt="Фото відгуку" width="585" height="1000"></div>
         <div class="review-card-main">
           <h4>Олена Т.</h4>
           <span class="review-date">5 черв. 2025</span>
@@ -2777,7 +2777,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r43">
-        <div class="review-photo"><img src="images/work-18.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-18.webp" loading="lazy" alt="Фото відгуку" width="462" height="1000"></div>
         <div class="review-card-main">
           <h4>Хата Смаку</h4>
           <span class="review-date">12 трав. 2025</span>
@@ -2805,7 +2805,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r46">
-        <div class="review-photo"><img src="images/work-49.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-49.webp" loading="lazy" alt="Фото відгуку" width="906" height="1000"></div>
         <div class="review-card-main">
           <h4>Аня</h4>
           <span class="review-date">9 квіт. 2025</span>
@@ -2824,7 +2824,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r48">
-        <div class="review-photo"><img src="images/work-33.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-33.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Євген</h4>
           <span class="review-date">16 бер. 2025</span>
@@ -2834,7 +2834,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r49">
-        <div class="review-photo"><img src="images/work-46.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-46.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Павло</h4>
           <span class="review-date">13 бер. 2025</span>
@@ -2844,7 +2844,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r50">
-        <div class="review-photo"><img src="images/work-05.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-05.webp" loading="lazy" alt="Фото відгуку" width="581" height="1000"></div>
         <div class="review-card-main">
           <h4>Роман</h4>
           <span class="review-date">5 бер. 2025</span>
@@ -2881,7 +2881,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r54">
-        <div class="review-photo"><img src="images/work-42.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-42.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Милана</h4>
           <span class="review-date">12 лют. 2025</span>
@@ -2891,7 +2891,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r55">
-        <div class="review-photo"><img src="images/work-09.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-09.webp" loading="lazy" alt="Фото відгуку" width="592" height="1000"></div>
         <div class="review-card-main">
           <h4>Максим Д.</h4>
           <span class="review-date">22 січ. 2025</span>
@@ -2901,7 +2901,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r56">
-        <div class="review-photo"><img src="images/work-17.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-17.webp" loading="lazy" alt="Фото відгуку" width="462" height="1000"></div>
         <div class="review-card-main">
           <h4>Галерея Смаків</h4>
           <span class="review-date">9 січ. 2025</span>
@@ -2911,7 +2911,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r57">
-        <div class="review-photo"><img src="images/work-27.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-27.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Аліна</h4>
           <span class="review-date">3 січ. 2025</span>
@@ -2921,7 +2921,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r58">
-        <div class="review-photo"><img src="images/work-36.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-36.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Станіслав</h4>
           <span class="review-date">1 січ. 2025</span>
@@ -2931,7 +2931,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r59">
-        <div class="review-photo"><img src="images/work-13.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-13.webp" loading="lazy" alt="Фото відгуку" width="734" height="1000"></div>
         <div class="review-card-main">
           <h4>Богдан Р.</h4>
           <span class="review-date">27 груд. 2024</span>
@@ -2941,7 +2941,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r60">
-        <div class="review-photo"><img src="images/work-19.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-19.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Назар</h4>
           <span class="review-date">23 груд. 2024</span>
@@ -2960,7 +2960,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r62">
-        <div class="review-photo"><img src="images/work-47.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-47.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Руслан</h4>
           <span class="review-date">2 груд. 2024</span>
@@ -2970,7 +2970,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r63">
-        <div class="review-photo"><img src="images/work-48.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-48.webp" loading="lazy" alt="Фото відгуку" width="580" height="1000"></div>
         <div class="review-card-main">
           <h4>Людмила В.</h4>
           <span class="review-date">16 лист. 2024</span>
@@ -2989,7 +2989,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r65">
-        <div class="review-photo"><img src="images/work-31.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-31.webp" loading="lazy" alt="Фото відгуку" width="461" height="1000"></div>
         <div class="review-card-main">
           <h4>Zara Coffee</h4>
           <span class="review-date">31 жовт. 2024</span>
@@ -2999,7 +2999,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
 
       <div class="review-card" data-rid="r66">
-        <div class="review-photo"><img src="images/work-32.webp" loading="lazy" alt="Фото відгуку"></div>
+        <div class="review-photo"><img src="images/work-32.webp" loading="lazy" alt="Фото відгуку" width="669" height="1000"></div>
         <div class="review-card-main">
           <h4>Гліб</h4>
           <span class="review-date">29 жовт. 2024</span>
@@ -3765,27 +3765,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Для персоналу</span></div>
         <div class="app-bottom"><h3>Форма для ресторанів, магазинів, клінік та сервісних компаній.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-staff.webp" alt="Персонал у брендованій формі" loading="lazy" width="720" height="1280"></div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Для подій</span></div>
         <div class="app-bottom"><h3>Конференції, виставки, корпоративи та промоакції.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-events.webp" alt="Команда на події у брендованому мерчі" loading="lazy" width="720" height="1080"></div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Для клієнтів</span></div>
         <div class="app-bottom"><h3>Подарунки, брендовані набори та корпоративний мерч.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-clients.webp" alt="Брендований подарунковий набір" loading="lazy" width="720" height="1080"></div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Для навчання та спорту</span></div>
         <div class="app-bottom"><h3>Університети, школи, клуби, секції та спортивні команди.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-study.webp" alt="Спортивна команда у брендованому мерчі" loading="lazy" width="720" height="480"></div>
       </article>
       <article class="app-card reveal">
         <div class="app-top"><span class="app-eyebrow">Для команди</span></div>
         <div class="app-bottom"><h3>Welcome Kit, онбординг, корпоративна культура та внутрішні заходи.</h3></div>
-        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy"></div>
+        <div class="app-photo industry-stack-photo"><img src="images/ind-team.webp" alt="Корпоративна команда святкує" loading="lazy" width="720" height="481"></div>
       </article>
     </div>
     <div class="wrap">
@@ -3833,7 +3833,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="logo-designer" id="logoDesigner">
             <div class="ld-stage" id="ldStage">
               <div class="ld-shirt">
-                <img src="images/tshirt.webp" alt="Футболка" draggable="false" loading="lazy" decoding="async">
+                <img src="images/tshirt.webp" alt="Футболка" draggable="false" loading="lazy" decoding="async" width="1200" height="1200">
               </div>
               <div class="ld-print" id="ldPrint">
                 <div class="ld-logo">
@@ -3870,7 +3870,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
         </div>
         <div class="step-visual step-visual--box">
-          <div class="box-slide"><img src="images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false" loading="lazy" decoding="async"></div>
+          <div class="box-slide"><img src="images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false" loading="lazy" decoding="async" width="1076" height="633"></div>
         </div>
       </div>
     </div>
@@ -3908,7 +3908,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="catalog-grid reveal">
         <div class="product" data-garment="hoodie">
           <div class="product-art">
-            <img src="images/hoodie.webp" alt="Худі" loading="lazy">
+            <img src="images/hoodie.webp" alt="Худі" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
             <div><h4>Худі</h4><div class="price">від 299 грн</div></div>
@@ -3918,7 +3918,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div class="product" data-garment="tee">
           <div class="product-art">
-            <img src="images/tshirt.webp" alt="Футболка" loading="lazy">
+            <img src="images/tshirt.webp" alt="Футболка" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
             <div><h4>Футболка</h4><div class="price">від 99 грн</div></div>
@@ -3928,7 +3928,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div class="product" data-garment="sweat">
           <div class="product-art">
-            <img src="images/sweatshirt.webp" alt="Світшот" loading="lazy">
+            <img src="images/sweatshirt.webp" alt="Світшот" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
             <div><h4>Світшот</h4><div class="price">від 199 грн</div></div>
@@ -3938,7 +3938,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
         <div class="product" data-garment="cap">
           <div class="product-art">
-            <img src="images/cap.webp" alt="Кепка" loading="lazy">
+            <img src="images/cap.webp" alt="Кепка" loading="lazy" width="1200" height="1200">
           </div>
           <div class="product-info">
             <div><h4>Кепка</h4><div class="price">від 149 грн</div></div>
@@ -4010,7 +4010,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="story-track reveal" id="storyTrack">
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-riokan.webp" alt="Команда Riokan у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-riokan.webp" alt="Команда Riokan у мерчі Loomiq" decoding="async" loading="lazy" decoding="async" width="900" height="600">
         </div>
         <div class="story-content">
           <span class="story-tag">Riokan</span>
@@ -4025,7 +4025,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-zendokai.webp" alt="Zendokai Karate у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-zendokai.webp" alt="Zendokai Karate у мерчі Loomiq" decoding="async" loading="lazy" decoding="async" width="900" height="600">
         </div>
         <div class="story-content">
           <span class="story-tag">Zendokai Karate</span>
@@ -4038,7 +4038,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-resto.webp" alt="Персонал ресторану у формі Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-resto.webp" alt="Персонал ресторану у формі Loomiq" decoding="async" loading="lazy" decoding="async" width="720" height="1080">
         </div>
         <div class="story-content">
           <span class="story-tag">Osteria Verde</span>
@@ -4053,7 +4053,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-danko.webp" alt="Мерч бренду DANKO від Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-danko.webp" alt="Мерч бренду DANKO від Loomiq" decoding="async" loading="lazy" decoding="async" width="720" height="480">
         </div>
         <div class="story-content">
           <span class="story-tag">DANKO</span>
@@ -4067,7 +4067,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-masterlab.webp" alt="Сервісна команда Master Lab у формі Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-masterlab.webp" alt="Сервісна команда Master Lab у формі Loomiq" decoding="async" loading="lazy" decoding="async" width="720" height="1281">
         </div>
         <div class="story-content">
           <span class="story-tag">Master Lab</span>
@@ -4080,7 +4080,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-sante.webp" alt="Studio Sante у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
+          <img src="images/review-sante.webp" alt="Studio Sante у мерчі Loomiq" decoding="async" loading="lazy" decoding="async" width="900" height="720">
         </div>
         <div class="story-content">
           <span class="story-tag">Studio Sante</span>
@@ -4142,7 +4142,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     </div>
     <div class="wrap">
       <div class="about-photo-placeholder reveal" style="padding:0;overflow:hidden;background:#f0f0f2;">
-        <img src="images/team-loomiq.webp" alt="Команда Loomiq" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <img src="images/team-loomiq.webp" alt="Команда Loomiq" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" width="1100" height="732">
       </div>
     </div>
   </section>
@@ -4521,17 +4521,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Поки сторінка не домалювалась, ролики не чіпаємо взагалі: інакше вони
     // забирають канал саме тоді, коли він потрібен першому екрану.
     var canArm = (document.readyState === 'complete');
+    // Ролик на 1440 px по мобільному інтернету — це мегабайти заради фону,
+    // який іде під затемненням. Телефону віддаємо вдвічі меншу висоту.
+    var SMALL = (window.innerWidth || 1024) <= 700;
     function armSrc(v){
       if(!canArm || !v || v.src || !v.dataset.src) return;
-      v.src = v.dataset.src;
+      v.src = SMALL ? v.dataset.src.replace('h_1440', 'h_720') : v.dataset.src;
       v.preload = 'auto';
       v.load();
     }
     function armAll(){
       canArm = true;
       armSrc(vids[cur]);
-      armSrc(vids[(cur + 1) % vids.length]);
       tryPlay(vids[cur]);
+      // наступний ролик підключаємо, лише коли поточний уже пішов: інакше
+      // два відео знову качаються одночасно й ділять канал навпіл
+      if(vids.length > 1) vids[cur].addEventListener('playing', function(){
+        setTimeout(function(){ armSrc(vids[(cur + 1) % vids.length]); }, 3000);
+      }, { once:true });
     }
     function armLater(){
       if(window.requestIdleCallback) requestIdleCallback(armAll, { timeout: 1500 });
