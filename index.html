@@ -262,6 +262,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     opacity:0;transition:opacity 1.4s ease;
     transform:scale(1.06) translateY(3%);transform-origin:center top;
   }
+  /* Браузер рахує розкладку всієї сторінки одразу, хоча людина бачить лише
+     перший екран. На довгому лендінгу зі сотнею фото й карток це помітна
+     затримка перед першим показом і ривки при прокрутці.
+
+     content-visibility каже: поки секція за екраном — не рахуй її взагалі.
+     contain-intrinsic-size — приблизна висота-заглушка, щоб смуга прокрутки
+     не стрибала: точність тут не потрібна, браузер уточнить, коли дійде.
+
+     Hero не чіпаємо: він і є перший екран. */
+  #process, #catalog, #why, #cases, #about, #reviews, #faq, footer{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 700px;
+  }
   .hero-bg-slide.active{opacity:1;}
   /* Один шар, а не два: раніше під постером лежала ще й локальна
      картинка-фолбек, і браузер щоразу качав обидві. Тепер запасна
@@ -3820,7 +3833,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <div class="logo-designer" id="logoDesigner">
             <div class="ld-stage" id="ldStage">
               <div class="ld-shirt">
-                <img src="images/tshirt.webp" alt="Футболка" draggable="false">
+                <img src="images/tshirt.webp" alt="Футболка" draggable="false" loading="lazy" decoding="async">
               </div>
               <div class="ld-print" id="ldPrint">
                 <div class="ld-logo">
@@ -3857,7 +3870,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           <p>Ми виготовимо та доставимо мерч у зазначений термін.</p>
         </div>
         <div class="step-visual step-visual--box">
-          <div class="box-slide"><img src="images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false"></div>
+          <div class="box-slide"><img src="images/box-loomiq.webp" alt="Коробка Loomiq" draggable="false" loading="lazy" decoding="async"></div>
         </div>
       </div>
     </div>
@@ -3997,7 +4010,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="story-track reveal" id="storyTrack">
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-riokan.webp" alt="Команда Riokan у мерчі Loomiq" decoding="async">
+          <img src="images/review-riokan.webp" alt="Команда Riokan у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Riokan</span>
@@ -4012,7 +4025,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-zendokai.webp" alt="Zendokai Karate у мерчі Loomiq" decoding="async">
+          <img src="images/review-zendokai.webp" alt="Zendokai Karate у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Zendokai Karate</span>
@@ -4025,7 +4038,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-resto.webp" alt="Персонал ресторану у формі Loomiq" decoding="async">
+          <img src="images/review-resto.webp" alt="Персонал ресторану у формі Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Osteria Verde</span>
@@ -4040,7 +4053,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-danko.webp" alt="Мерч бренду DANKO від Loomiq" decoding="async">
+          <img src="images/review-danko.webp" alt="Мерч бренду DANKO від Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">DANKO</span>
@@ -4054,7 +4067,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-masterlab.webp" alt="Сервісна команда Master Lab у формі Loomiq" decoding="async">
+          <img src="images/review-masterlab.webp" alt="Сервісна команда Master Lab у формі Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Master Lab</span>
@@ -4067,7 +4080,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       <article class="story-card">
         <div class="story-photo">
-          <img src="images/review-sante.webp" alt="Studio Sante у мерчі Loomiq" decoding="async">
+          <img src="images/review-sante.webp" alt="Studio Sante у мерчі Loomiq" decoding="async" loading="lazy" decoding="async">
         </div>
         <div class="story-content">
           <span class="story-tag">Studio Sante</span>
