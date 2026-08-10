@@ -20,8 +20,34 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      і лише з кирилицею — інакше українські написи сипались би на латиницю. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Alumni+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Lobster&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Slab:wght@400;700&family=Rubik:ital,wght@0,400;0,700;1,400;1,700&family=Russo+One&family=Ubuntu:ital,wght@0,400;0,700;1,400;1,700&family=Unbounded:wght@400;700&display=swap">
+<!-- Двадцять сімей шрифтів потрібні ЛИШЕ конструктору написів, а стояли
+     блокувальним стилем у head — браузер не малював сторінку, доки їх усі
+     не завантажить. Тепер підвантажуємо після першого показу: сама
+     посадкова малюється системним шрифтом і зʼявляється одразу. -->
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Alumni+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Lobster&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Slab:wght@400;700&family=Rubik:ital,wght@0,400;0,700;1,400;1,700&family=Russo+One&family=Ubuntu:ital,wght@0,400;0,700;1,400;1,700&family=Unbounded:wght@400;700&display=swap"></noscript>
 <link rel="dns-prefetch" href="https://res.cloudinary.com">
+<script>
+/* Вантажимо шрифти, щойно сторінка перестала бути зайнятою — або одразу,
+   якщо людина вже щось натиснула (значить, іде в конструктор). Три входи,
+   спрацьовує перший; повторний виклик нічого не робить. */
+(function(){
+  var FONTS = "https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Alumni+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Lobster&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Raleway:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Slab:wght@400;700&family=Rubik:ital,wght@0,400;0,700;1,400;1,700&family=Russo+One&family=Ubuntu:ital,wght@0,400;0,700;1,400;1,700&family=Unbounded:wght@400;700&display=swap";
+  var done = false;
+  function go(){
+    if(done) return; done = true;
+    var l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = FONTS;
+    document.head.appendChild(l);
+  }
+  window.lqEnsureFonts = go;
+  if(window.requestIdleCallback) requestIdleCallback(go, { timeout: 2500 });
+  else setTimeout(go, 1500);
+  ['pointerdown','keydown','touchstart'].forEach(function(ev){
+    document.addEventListener(ev, go, { once:true, passive:true });
+  });
+  window.addEventListener('load', go);
+})();
+</script>
 <!-- постер = перший кадр відео: вантажиться миттєво, тож глядач одразу бачить «відео» -->
 <link rel="preload" as="image" href="https://res.cloudinary.com/kmdoab3e/video/upload/so_0,f_auto,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.jpg">
 
@@ -3652,11 +3678,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <!-- Hero-відео (Cloudinary) — грають по черзі, як у Nike.
            f_auto,q_auto:good = менший файл у сучасному кодеку без втрати якості,
            data-orig = оригінальний URL як запасний, якщо трансформація недоступна -->
-      <video class="hero-bg-video" autoplay muted playsinline preload="auto"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
+      <video class="hero-bg-video" autoplay muted playsinline preload="none"
+        data-src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438743/202607071831_p63gha.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438743/202607071831_p63gha.mp4"></video>
-      <video class="hero-bg-video" muted playsinline preload="auto"
-        src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
+      <video class="hero-bg-video" muted playsinline preload="none"
+        data-src="https://res.cloudinary.com/kmdoab3e/video/upload/f_auto:video,q_auto:good,c_limit,h_1440/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"
         data-orig="https://res.cloudinary.com/kmdoab3e/video/upload/v1783438767/AQPYwJavQsvxBS4oqV20ZnEKBlBlErf0TtyQbK_Ghx6TiCGLVaV3ZlnvYBXt0TecMY02GFxubbrQGL_xegvch.mp4"></video>
     </div>
     <div class="hero-overlay"></div>
@@ -4449,6 +4475,33 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var vids = Array.prototype.slice.call(document.querySelectorAll('.hero-bg-video'));
     var ui = document.getElementById('heroVideoUi');
     if(!vids.length || !ui) return;
+
+    /* Адреса ролика лежить у data-src, а не в src. Раніше обидва відео
+       з preload="auto" починали качатись одночасно з першим показом і
+       з'їдали весь канал — перший екран чекав на них. Тепер відео
+       підключається тоді, коли справді має грати, а до того видно
+       перший кадр картинкою: візуально різниці немає, чекати не треба. */
+    // Поки сторінка не домалювалась, ролики не чіпаємо взагалі: інакше вони
+    // забирають канал саме тоді, коли він потрібен першому екрану.
+    var canArm = (document.readyState === 'complete');
+    function armSrc(v){
+      if(!canArm || !v || v.src || !v.dataset.src) return;
+      v.src = v.dataset.src;
+      v.preload = 'auto';
+      v.load();
+    }
+    function armAll(){
+      canArm = true;
+      armSrc(vids[cur]);
+      armSrc(vids[(cur + 1) % vids.length]);
+      tryPlay(vids[cur]);
+    }
+    function armLater(){
+      if(window.requestIdleCallback) requestIdleCallback(armAll, { timeout: 1500 });
+      else setTimeout(armAll, 800);
+    }
+    if(canArm) armLater();
+    else window.addEventListener('load', armLater);
     var bar = document.getElementById('heroNikeBar');
     var dotsWrap = document.getElementById('heroVidDots');
     var vdots = [];
@@ -4494,8 +4547,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // страховка: якщо поточне відео готове, але чомусь стоїть на паузі — запускаємо
     setInterval(function(){
       var v = vids[cur];
-      if(!ui.hidden && !document.hidden && v.paused && !v.ended && v.readyState >= 3){
-        tryPlay(v);
+      if(!ui.hidden && !document.hidden && v.paused && !v.ended){
+        armSrc(v);
+        if(v.readyState >= 3) tryPlay(v);
       }
     }, 2000);
     function show(idx){
@@ -4505,6 +4559,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       markDot(cur);
       ring.style.strokeDashoffset = RING_LEN;
       var v = vids[cur];
+      armSrc(v);
+      // наступний готуємо заздалегідь, щоб перемикання не мало паузи
+      armSrc(vids[(cur + 1) % vids.length]);
       try{ v.currentTime = 0; }catch(e){}
       var reveal = function(){
         if(vids[cur] !== v) return;
