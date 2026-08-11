@@ -3959,15 +3959,27 @@ function watchTelegramLeads(){
   tgLeadsWatching = true;
   fbDb.collection('an_tg').onSnapshot(async function(snap){
     const fresh = [];
+    const remark = [];
     let touched = false;
     snap.forEach(function(d){
       const v = d.data() || {};
-      if(!v.kb){ fresh.push({ ref:d.ref, id:d.id, data:v }); return; }
+      /* Спершу шукаємо картку, і лише потім дивимось на позначку kb.
+         Порядок саме такий через давню пастку: воркер писав документ
+         PATCH-ом без маски полів, а такий запис ВИДАЛЯЄ поля, яких немає в
+         запиті — тобто щоразу стирав нашу позначку. Далі гілка «нової»
+         картки бачила існуючу й мовчки виходила, і підпис на картці не
+         оновлювався ніколи. Воркер полагоджено, але адмінка більше не
+         покладається на позначку в цьому місці. */
+      const o = orders.find(x => x.webId === 'tg:' + d.id);
+      if(!o){
+        if(!v.kb) fresh.push({ ref:d.ref, id:d.id, data:v });
+        // kb стоїть, а картки немає — менеджер її видалив. Не воскрешаємо.
+        return;
+      }
+      if(!v.kb) remark.push(d.ref);   // позначку загубили — ставимо назад
       /* Картка вже є — оновлюємо на ній підпис останнього повідомлення.
          Без цього картка назавжди лишалась би такою, якою була в мить
          створення: людина написала ще п'ять разів, а в Канбані тиша. */
-      const o = orders.find(x => x.webId === 'tg:' + d.id);
-      if(!o) return;
       const last = String(v.last || '').slice(0, 80);
       // Поле wrote зʼявилось пізніше за саму переписку. Якщо воркер ще старий,
       // рахуємо за підписом останнього повідомлення: він у нього вже є.
@@ -3985,6 +3997,9 @@ function watchTelegramLeads(){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn(e); }
       renderBoard();
       if(drawerOrderId) renderOrderDrawer();
+    }
+    for(const ref of remark){
+      try{ await ref.update({ kb: true }); }catch(e){ console.warn('tg re-mark failed', e && e.code); }
     }
     if(!fresh.length) return;
     let added = 0;
