@@ -523,6 +523,11 @@
   .tc-tg{font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;}
   .tc-tg.quiet{color:var(--ink-soft);font-style:italic;}
+  /* Непрочитане: жирним і з крапкою. Колір лишаємо той самий — картка не має
+     кричати, вона має відрізнятись. */
+  .tc-tg.unread{font-weight:700;color:var(--ink);font-style:normal;}
+  .tc-tg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:#D2560B;margin-right:5px;vertical-align:middle;}
   .tc-meta{font-size:11px;color:var(--ink-soft);}
   .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
   .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
@@ -3909,6 +3914,21 @@ function firstStatusKey(){
   const f = statusFlow();
   return (f[0] || STATUSES[0] || { key:'new' }).key;
 }
+/* Непрочитане. «Прочитано» = менеджер відкривав картку ПІСЛЯ останнього
+   повідомлення. Власні відповіді непрочитаними не рахуємо: воркер підписує
+   їх «Ви: …», і без цієї перевірки картка світилась би після кожної
+   власної ж репліки. */
+function tgUnread(o){
+  if(!o || !o.tgAt || !o.tgWrote) return false;   // «відкрив і мовчить» — не повідомлення
+  if(String(o.tgLast || '').slice(0, 4) === 'Ви: ') return false;
+  return String(o.tgAt) > String(o.tgSeen || '');
+}
+/* Коли картка востаннє «ожила». Нове повідомлення піднімає її нагору колонки:
+   інакше свіжа розмова тонула під замовленнями, заведеними раніше. */
+function orderActivityAt(o){
+  const a = String((o && o.tgAt) || ''), b = String((o && o.createdAt) || '');
+  return a > b ? a : b;
+}
 function watchTelegramLeads(){
   if(tgLeadsWatching) return;
   if(typeof fbDb === 'undefined') return;
@@ -3926,9 +3946,15 @@ function watchTelegramLeads(){
       const o = orders.find(x => x.webId === 'tg:' + d.id);
       if(!o) return;
       const last = String(v.last || '').slice(0, 80);
-      const wrote = +v.wrote || 0;
+      // Поле wrote зʼявилось пізніше за саму переписку. Якщо воркер ще старий,
+      // рахуємо за підписом останнього повідомлення: він у нього вже є.
+      const wrote = (v.wrote != null) ? (+v.wrote || 0)
+                  : ((last && last !== 'почав діалог') ? (+v.msgs || 1) : 0);
       if(o.tgLast !== last || o.tgWrote !== wrote){
         o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
+        // Картка відкрита просто зараз — менеджер це вже читає, підсвічувати
+        // непрочитаним немає сенсу.
+        if(drawerOrderId === o.id) o.tgSeen = o.tgAt;
         touched = true;
       }
     });
@@ -3953,7 +3979,8 @@ function watchTelegramLeads(){
         // оновленні. Стан діалогу живе в окремих полях.
         note: '',
         tgLast: String(d.last || '').slice(0, 80),
-        tgWrote: +d.wrote || 0,
+        tgWrote: (d.wrote != null) ? (+d.wrote || 0)
+               : ((d.last && d.last !== 'почав діалог') ? (+d.msgs || 1) : 0),
         tgAt: d.lastAt || d.at || '',
         items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
         an: d.vid ? { vid: d.vid } : null,
@@ -5301,7 +5328,10 @@ function renderBoard(){
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
     col.style.background = c.bg;
-    const list = orders.filter(o=>o.status===st.key);
+    // Свіжа розмова — нагору колонки. Порівнюємо ISO-рядки як текст:
+    // вони для того й придумані, щоб сортуватись без розбору дати.
+    const list = orders.filter(o=>o.status===st.key)
+      .sort((a,b)=> orderActivityAt(b).localeCompare(orderActivityAt(a)));
     col.innerHTML = `
       <div class="col-head"><h3 style="color:${c.head};">${escapeHtml(st.label)}</h3><span class="col-count">${list.length}</span></div>
       <div class="col-body"></div>
@@ -5679,8 +5709,12 @@ function orderNeedsEye(o){
 function ticketSummaryHtml(o){
   const off = o.offerToken && offersByToken[o.offerToken];
   const st  = off ? (OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created) : null;
-  const date = o.createdAt
-    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
+  /* Дата — коли картка востаннє ожила, а не коли зʼявилась. Інакше поруч зі
+     свіжим повідомленням стояло б «07.08», і картка вгорі колонки виглядала
+     б помилкою сортування. */
+  const dateSrc = orderActivityAt(o);
+  const date = dateSrc
+    ? new Date(dateSrc).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
   const units = orderUnits(o), pos = (o.items||[]).length;
   const due = dueInfo(o);
   const flow = statusFlow();
@@ -5699,7 +5733,8 @@ function ticketSummaryHtml(o){
            : `<span class="src-tag">${escapeHtml(o.source||'сайт')}</span>`}
     </div>
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
-    ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}">${
+    ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}${tgUnread(o) ? ' unread' : ''}">${
+        tgUnread(o) ? '<span class="tc-tg-dot"></span>' : ''}${
         o.tgWrote ? '💬 ' + escapeHtml(o.tgLast || '')
                   : 'відкрив бота, ще не писав'}</div>` : ''}
     <div class="tc-meta">
@@ -5784,7 +5819,15 @@ async function openOrderDrawer(o){
   const d = orderDrawerEl();
   d.classList.add('open');
   renderOrderDrawer();
-  if(tgChatOf(o)) tgWatch(o);   // жива підписка лише на відкриту картку
+  if(tgChatOf(o)){
+    tgWatch(o);                 // жива підписка лише на відкриту картку
+    // Відкрив картку — значить, прочитав. Позначку ставимо тим самим часом,
+    // що й останнє повідомлення: усе, що прийде далі, знову підсвітиться.
+    if(tgUnread(o)){
+      o.tgSeen = o.tgAt;
+      saveOrders({ quiet:true }).catch(e=> console.warn(e));
+    }
+  }
   renderBoard();
 }
 function renderOrderDrawer(){
