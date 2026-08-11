@@ -680,6 +680,33 @@
 
   /* Товари — сітка карток */
   .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+  .sup-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .sup-row:last-child{border-bottom:none;}
+  .sup-row input{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;}
+  .sup-row .s-nm{flex:1;min-width:120px;}
+  .sup-row .s-url{flex:1.3;min-width:140px;}
+  .sup-row .s-cnt{flex:none;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .sup-row .s-go{flex:none;color:var(--accent);text-decoration:none;font-size:13px;}
+  .sup-row .s-del{all:unset;cursor:pointer;flex:none;color:var(--bad);padding:6px 8px;font-size:15px;}
+  .sup-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .sup-add input{flex:1;min-width:150px;font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;}
+  .sup-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .sup-pick select{flex:1;min-width:170px;font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;background:#fff;}
+  .sup-pick button{all:unset;cursor:pointer;color:var(--accent);font-size:13px;font-weight:600;}
+  /* Що і в кого замовити — блок у картці замовлення */
+  .od-buy-grp{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+  .od-buy-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .od-buy-top b{font-size:13.5px;color:var(--ink);}
+  .od-buy-top a{color:var(--accent);font-size:12px;text-decoration:none;}
+  .od-buy-top .tc-spacer{flex:1;}
+  .od-buy-copy{all:unset;cursor:pointer;font-size:12px;color:var(--ink-soft);
+    border:1px solid var(--line);border-radius:7px;padding:4px 9px;}
+  .od-buy-li{font-size:12.5px;color:var(--ink-soft);line-height:1.55;}
+  .od-buy-li b{color:var(--ink);font-weight:600;}
+  .od-buy-none{border-color:var(--bad);background:var(--bad-soft);}
+  .t-web-sup{font-size:11px;color:var(--ink-soft);margin-top:2px;}
   .sec-picks{display:flex;flex-wrap:wrap;gap:7px;}
   .sec-pick{all:unset;cursor:pointer;border:1.5px solid var(--line);border-radius:20px;
     padding:6px 13px;font-size:13px;color:var(--ink-soft);}
@@ -785,7 +812,8 @@
         <button data-view="settings"><span class="num">03</span> Формування цін</button>
         <button data-view="photos"><span class="num">04</span> Конструктор сайту</button>
         <button data-view="reviews"><span class="num">05</span> Відгуки</button>
-        <button data-view="analytics"><span class="num">06</span> Аналітика</button>
+        <button data-view="suppliers"><span class="num">06</span> Підрядники</button>
+        <button data-view="analytics"><span class="num">07</span> Аналітика</button>
       </nav>
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
@@ -1298,6 +1326,14 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
             </label>
             <div style="margin-bottom:14px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Підрядник — у кого замовляємо цей товар</span>
+              <div class="sup-pick">
+                <select id="info-sup"></select>
+                <button type="button" id="info-sup-new">+ новий</button>
+              </div>
+              <div class="sub" style="margin-top:6px;">Один товар — один підрядник; усі його кольори йдуть за ним. Клієнт цього не бачить.</div>
+            </div>
+            <div style="margin-bottom:14px;">
               <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Розділи каталогу — де показувати цей товар</span>
               <div id="info-sections" class="sec-picks"></div>
               <div class="sub" style="margin-top:6px;">Нічого не позначено — товар видно в «Усіх товарах», але в жодному розділі. Можна позначити кілька.</div>
@@ -1608,6 +1644,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     </section>
 
     <!-- ============ VIEW 6 — ANALYTICS ============ -->
+    <!-- ПІДРЯДНИКИ: довідник + що зараз треба замовити -->
+    <section id="view-suppliers" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Підрядники</div>
+        <h1>У кого замовляємо</h1>
+        <p class="sub">Один товар — один підрядник; кольори всередині товару йдуть за ним. Прив'язка робиться
+          в картці товару, вкладка «Інформація». Тут — сам перелік і що зараз у роботі.</p>
+      </div>
+
+      <div class="card" style="max-width:760px;">
+        <div class="card-head"><h2>Перелік</h2></div>
+        <div id="sup-list"></div>
+        <div class="sup-add">
+          <input id="sup-name" type="text" maxlength="60" placeholder="Назва підрядника">
+          <input id="sup-url" type="text" maxlength="200" placeholder="сайт (необовʼязково)">
+          <button class="btn btn-accent" id="sup-add">Додати</button>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:760px;">
+        <div class="card-head"><h2>Зараз у роботі</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Скільки виробів по кожному підряднику лежить у замовленнях,
+          які ще не завершені. Це те, що треба замовити найближчим часом.</div>
+        <div id="sup-load"></div>
+      </div>
+    </section>
+
     <section id="view-analytics" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Аналітика</div>
@@ -2226,7 +2289,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
     const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', analytics:'Аналітика'};
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); }
@@ -2234,6 +2297,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
+    if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
     if(view==='calc'){
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -3457,7 +3521,11 @@ window.__adminSaveClientOrder = async function(payload){
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config)
+      mockups, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config),
+      // Товар і підрядник фіксуються тут-і-зараз. Якщо товар потім переведуть
+      // на іншого підрядника, це замовлення має лишитись зі своїм.
+      garmentId: (it.config && it.config.garmentId) || it.garmentId || null,
+      sup: supOfGarment((it.config && it.config.garmentId) || it.garmentId || '') || ''
     });
   }
   // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
@@ -3591,7 +3659,11 @@ function watchWebOrders(){
         name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
         qty:+it.qty||0, unitPrice:+it.unitPrice||0, price:+it.price||0,
         unitCost:+it.unitCost||0, cost:+it.cost||0,
-        mockups: it.mockups||[], prints: it.prints||[], calc: it.calc||null, config: it.config||null
+        mockups: it.mockups||[], prints: it.prints||[], calc: it.calc||null, config: it.config||null,
+        // Підрядник фіксується в момент імпорту: пізніше товар можуть
+        // перевести на іншого, а це замовлення має лишитись зі своїм
+        garmentId: (it.config && it.config.garmentId) || it.garmentId || null,
+        sup: supOfGarment((it.config && it.config.garmentId) || it.garmentId || '') || ''
       }));
       const totalPrice = +d.totalPrice || items.reduce((a,i)=>a+i.price,0);
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
@@ -4834,6 +4906,59 @@ async function deleteOrderCard(o){
 
 // Позиції замовлення з макетами, розмірами нанесення й файлами для друку.
 // Спільні для обох типів карток — раніше цей код був продубльований двічі.
+/* Підрядник позиції: спершу той, що зафіксували при створенні замовлення,
+   і лише потім поточний із картки товару. Якщо товар потім перевели на
+   іншого, старе замовлення має лишитись зі своїм — інакше історія
+   перепишеться заднім числом. */
+function itemSup(it){
+  const id = it.sup || supOfGarment(it.garmentId) || '';
+  return id ? supById(id) : null;
+}
+function itemSupHtml(it){
+  const s = itemSup(it);
+  if(!s) return '<div class="t-web-sup" style="color:var(--bad);">підрядник не вказаний</div>';
+  return '<div class="t-web-sup">замовляємо: ' + escapeHtml(s.name) + '</div>';
+}
+/* Що і в кого замовити — згруповано, з кнопкою «скопіювати». Менеджер
+   щодня переписує це в повідомлення підряднику; хай копіює одним кліком. */
+function orderBuyHtml(o){
+  const grp = {};
+  (o.items || []).forEach(it => {
+    const s = itemSup(it);
+    const k = s ? s.id : '—';
+    if(!grp[k]) grp[k] = { sup: s, lines: [], units: 0 };
+    grp[k].lines.push({
+      name: it.name || 'товар',
+      color: it.color || '',
+      sizes: it.sizes || '',
+      qty: +it.qty || 0
+    });
+    grp[k].units += (+it.qty || 0);
+  });
+  const keys = Object.keys(grp);
+  if(!keys.length) return '';
+  return keys.map(k => {
+    const g = grp[k];
+    const head = g.sup
+      ? '<b>' + escapeHtml(g.sup.name) + '</b>' +
+        (g.sup.url ? ' <a href="' + escapeHtml(g.sup.url) + '" target="_blank" rel="noopener">сайт ↗</a>' : '')
+      : '<b style="color:var(--bad);">Підрядник не вказаний</b>';
+    const lines = g.lines.map(l =>
+      '<div class="od-buy-li"><b>' + escapeHtml(l.name) + '</b>' +
+        (l.color ? ', ' + escapeHtml(l.color) : '') +
+        (l.sizes ? ' — ' + escapeHtml(l.sizes) : '') +
+        ' · ' + l.qty + ' шт</div>').join('');
+    const plain = (g.sup ? g.sup.name : 'Без підрядника') + ':\n' +
+      g.lines.map(l => '· ' + l.name + (l.color ? ', ' + l.color : '') +
+        (l.sizes ? ' — ' + l.sizes : '') + ' · ' + l.qty + ' шт').join('\n');
+    return '<div class="od-buy-grp' + (g.sup ? '' : ' od-buy-none') + '">' +
+      '<div class="od-buy-top">' + head + '<span class="tc-spacer"></span>' +
+        '<span class="s-cnt">' + g.units + ' шт</span>' +
+        '<button class="od-buy-copy" data-buy="' + escapeHtml(plain) + '">копіювати</button>' +
+      '</div>' + lines + '</div>';
+  }).join('');
+}
+
 function orderItemsHtml(o){
   return orderedItems(o.items).map(it=>{
     const prints = (it.prints||[]).map(p=>`
@@ -4851,6 +4976,7 @@ function orderItemsHtml(o){
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
         <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''}</div>
+        ${itemSupHtml(it)}
         ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
         ${prints}
@@ -5164,6 +5290,8 @@ function renderOrderDrawer(){
       ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
       ${docsBlockHtml(o)}
 
+      ${orderBuyHtml(o) ? '<div class="od-sec">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
+
       <div class="od-sec">Діалог з клієнтом (Sitniks)</div>
       ${crmBlockHtml(o)}
 
@@ -5209,6 +5337,13 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=> orderRemoveItem(o, +b.dataset.delI));
   });
   wireDocsBlock(panel, o);
+  panel.querySelectorAll('[data-buy]').forEach(b => {
+    b.addEventListener('click', () => {
+      navigator.clipboard.writeText(b.dataset.buy).then(
+        () => toast('Скопійовано — можна вставляти підряднику'),
+        () => window.prompt('Скопіюйте вручну:', b.dataset.buy));
+    });
+  });
   wireCrmBlock(panel, o);
 }
 
@@ -7045,6 +7180,166 @@ function readSecPicks(){
   return [].slice.call(box.querySelectorAll('.sec-pick.on')).map(b => b.dataset.sec);
 }
 
+/* ============================================================
+   ПІДРЯДНИКИ
+
+   Клієнт цього не бачить — для нього все наше. Але коли приходить
+   замовлення, менеджер має одразу знати: тридцять футболок замовляємо
+   в одного, тридцять кепок в іншого.
+
+   Один товар — один підрядник, кольори всередині товару йдуть за ним.
+   Тому прив'язка живе в картці товару, а не в позиції замовлення.
+
+   Список зберігаємо окремим довідником, а не текстом у картці: інакше
+   через місяць буде «Текстиль-Юг», «Текстиль Юг» і «текстиль юг» —
+   три різні підрядники з погляду звіту.
+   ============================================================ */
+function supAll(){
+  const a = contentData.suppliers;
+  return Array.isArray(a) ? a : [];
+}
+function supById(id){
+  const a = supAll();
+  for(let i = 0; i < a.length; i++) if(a[i].id === id) return a[i];
+  return null;
+}
+function supOfGarment(gid){
+  const m = (contentData.products || {}).supplier || {};
+  return m[gid] || '';
+}
+/* Порівнюємо назви без регістру, пробілів і лапок — саме на цьому
+   народжуються двійники. */
+function supNorm(v){
+  return String(v || '').toLowerCase().replace(/[\s'"«»ʼ`’-]/g, '');
+}
+function supNewId(name, taken){
+  let base = supNorm(name).replace(/[^a-z0-9а-яіїєґ]/gi, '').slice(0, 16) || 'sup';
+  let id = base, i = 2;
+  while(taken.indexOf(id) >= 0) id = base + (i++);
+  return id;
+}
+
+/* Скільки виробів кожного підрядника лежить у незавершених замовленнях.
+   Це і є «що замовити найближчим часом». */
+function supLoad(){
+  const done = ['done', 'shipped', 'cancel'];
+  const out = {};
+  (orders || []).forEach(o => {
+    if(done.indexOf(o.status) >= 0) return;
+    (o.items || []).forEach(it => {
+      const sid = it.sup || supOfGarment(it.garmentId) || '';
+      const k = sid || '—';
+      if(!out[k]) out[k] = { units: 0, items: [] };
+      out[k].units += (+it.qty || 0);
+      out[k].items.push((it.name || 'товар') + ' × ' + (+it.qty || 0));
+    });
+  });
+  return out;
+}
+
+function renderSuppliers(){
+  const box = document.getElementById('sup-list');
+  if(!box) return;
+  const list = supAll();
+  const prodMap = (contentData.products || {}).supplier || {};
+  const counts = {};
+  Object.keys(prodMap).forEach(g => { counts[prodMap[g]] = (counts[prodMap[g]] || 0) + 1; });
+
+  box.innerHTML = list.map(x =>
+    '<div class="sup-row" data-sid="' + escA(x.id) + '">' +
+      '<input class="s-nm" type="text" maxlength="60" value="' + escA(x.name) + '">' +
+      '<input class="s-url" type="text" maxlength="200" placeholder="сайт" value="' + escA(x.url || '') + '">' +
+      '<span class="s-cnt">' + (counts[x.id] || 0) + ' тов.</span>' +
+      (x.url ? '<a class="s-go" href="' + escA(x.url) + '" target="_blank" rel="noopener">↗</a>' : '') +
+      '<button class="s-del" title="Видалити">✕</button>' +
+    '</div>').join('') ||
+    '<div class="sub">Підрядників ще немає. Додайте перший — і він зʼявиться у виборі всередині картки товару.</div>';
+
+  box.querySelectorAll('.sup-row').forEach(row => {
+    const id = row.dataset.sid;
+    const save = () => {
+      const nm = row.querySelector('.s-nm').value.trim();
+      const url = row.querySelector('.s-url').value.trim();
+      const next = supAll().map(x => x.id === id ? Object.assign({}, x, { name: nm, url: url }) : x);
+      PHOTOS_DOC.set({ suppliers: next }, { merge:true })
+        .then(() => toast('Збережено')).catch(e => { console.error(e); toast('Помилка'); });
+    };
+    row.querySelector('.s-nm').addEventListener('change', save);
+    row.querySelector('.s-url').addEventListener('change', save);
+    row.querySelector('.s-del').addEventListener('click', async () => {
+      const n = counts[id] || 0;
+      if(n && !confirm('До цього підрядника прив’язано ' + n + ' товар(ів). Після видалення вони лишаться без підрядника. Видаляємо?')) return;
+      try{
+        await PHOTOS_DOC.set({ suppliers: supAll().filter(x => x.id !== id) }, { merge:true });
+        toast('Видалено');
+      }catch(e){ console.error(e); toast('Помилка'); }
+    });
+  });
+
+  // Що зараз у роботі
+  const lb = document.getElementById('sup-load');
+  if(lb){
+    const load = supLoad();
+    const keys = Object.keys(load).sort((a, b) => load[b].units - load[a].units);
+    lb.innerHTML = keys.length ? keys.map(k => {
+      const s = k === '—' ? null : supById(k);
+      const nm = s ? escA(s.name) : '<span style="color:var(--bad);">Підрядник не вказаний</span>';
+      return '<div class="sup-row"><span class="s-nm" style="font-size:13.5px;">' + nm + '</span>' +
+        '<span class="s-cnt">' + load[k].units + ' шт · ' + load[k].items.length + ' ' + posWordUa(load[k].items.length) + '</span>' +
+        (s && s.url ? '<a class="s-go" href="' + escA(s.url) + '" target="_blank" rel="noopener">↗</a>' : '') +
+      '</div>';
+    }).join('') : '<div class="sub">Активних замовлень немає.</div>';
+  }
+}
+
+/* Додавання з перевіркою на двійника — і тут, і з картки товару. */
+async function supAdd(name, url){
+  name = String(name || '').trim();
+  if(!name){ toast('Введіть назву'); return null; }
+  const list = supAll();
+  const same = list.filter(x => supNorm(x.name) === supNorm(name))[0];
+  if(same){
+    toast('Такий підрядник уже є: ' + same.name);
+    return same.id;
+  }
+  const near = list.filter(x => supNorm(x.name).indexOf(supNorm(name)) >= 0 ||
+                                supNorm(name).indexOf(supNorm(x.name)) >= 0)[0];
+  if(near && !confirm('Схоже на «' + near.name + '». Це інший підрядник?')) return near.id;
+  const id = supNewId(name, list.map(x => x.id));
+  try{
+    await PHOTOS_DOC.set({ suppliers: list.concat([{ id: id, name: name, url: String(url || '').trim() }]) }, { merge:true });
+    toast('Додано');
+    return id;
+  }catch(e){ console.error(e); toast('Помилка'); return null; }
+}
+
+(function wireSupPick(){
+  const b = document.getElementById('info-sup-new');
+  if(!b) return;
+  b.addEventListener('click', async () => {
+    const nm = prompt('Назва підрядника:');
+    if(!nm) return;
+    const url = prompt('Сайт (необовʼязково):') || '';
+    const id = await supAdd(nm, url);
+    if(!id) return;
+    // Дочекатись оновлення з бази — і одразу обрати щойно створеного
+    setTimeout(() => {
+      renderSupPick();
+      const sel = document.getElementById('info-sup');
+      if(sel) sel.value = id;
+    }, 400);
+  });
+})();
+
+(function wireSuppliers(){
+  const b = document.getElementById('sup-add');
+  if(b) b.addEventListener('click', async () => {
+    const n = document.getElementById('sup-name'), u = document.getElementById('sup-url');
+    const id = await supAdd(n.value, u.value);
+    if(id){ n.value = ''; u.value = ''; }
+  });
+})();
+
 wireSections();
 
 function renderInfoTab(){
@@ -7057,6 +7352,15 @@ function renderInfoTab(){
   descEl.placeholder = g.name + ' з якісних матеріалів. Крій вільний, плечовий шов спущений. (стандартний)';
   renderSpecRows();
   renderSecPicks();
+  renderSupPick();
+}
+function renderSupPick(){
+  const sel = document.getElementById('info-sup');
+  if(!sel) return;
+  const cur = supOfGarment(photoGarmentId);
+  sel.innerHTML = '<option value="">— не вказано —</option>' +
+    supAll().map(x => '<option value="' + escA(x.id) + '"' + (x.id === cur ? ' selected' : '') + '>' +
+      escA(x.name) + '</option>').join('');
 }
 document.getElementById('info-save').addEventListener('click', async ()=>{
   const g = photoCfg(photoGarmentId);
@@ -7064,6 +7368,8 @@ document.getElementById('info-save').addEventListener('click', async ()=>{
   const desc = document.getElementById('info-desc').value.trim();
   const specs = readSpecRows();
   const picks = readSecPicks();
+  const supEl = document.getElementById('info-sup');
+  const sup = supEl ? supEl.value : '';
   // якщо характеристики збігаються зі стандартними — не зберігаємо перевизначення
   const isDefaultSpecs = specs.length === DEFAULT_SPECS.length && specs.every((r,i)=>r.label===DEFAULT_SPECS[i].label && r.value===DEFAULT_SPECS[i].value);
   try{
@@ -7071,7 +7377,10 @@ document.getElementById('info-save').addEventListener('click', async ()=>{
       names: { [g.id]: name ? name : firebase.firestore.FieldValue.delete() },
       descriptions: { [g.id]: desc ? desc : firebase.firestore.FieldValue.delete() },
       specs: { [g.id]: (specs.length && !isDefaultSpecs) ? specs : firebase.firestore.FieldValue.delete() },
-      products: { inSections: { [g.id]: (picks && picks.length) ? picks : firebase.firestore.FieldValue.delete() } }
+      products: {
+        inSections: { [g.id]: (picks && picks.length) ? picks : firebase.firestore.FieldValue.delete() },
+        supplier:   { [g.id]: sup ? sup : firebase.firestore.FieldValue.delete() }
+      }
     }, { merge:true });
     toast('Збережено');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
