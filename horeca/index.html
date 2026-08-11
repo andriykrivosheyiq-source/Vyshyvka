@@ -672,15 +672,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .lqs-bar button{all:unset;cursor:pointer;color:var(--cta);font-weight:600;
     text-decoration:underline;text-underline-offset:3px;}
   /* Логотип на картці каталогу */
-  /* Вкладки розділів каталогу. Горизонтальна стрічка, бо розділів може бути
-     шість, а на телефоні в рядок влізе три. */
-  .cat-secs{display:flex;gap:7px;overflow-x:auto;margin-top:16px;padding-bottom:2px;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none;}
-  .cat-secs::-webkit-scrollbar{display:none;}
-  .cat-sec{all:unset;cursor:pointer;flex:none;border:1.5px solid var(--line);border-radius:20px;
-    padding:8px 15px;font-size:13.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;
-    transition:border-color .15s ease,background .15s ease,color .15s ease;}
-  .cat-sec.on{border-color:var(--ink);background:var(--ink);color:#fff;}
+  /* Розділи каталогу — ті самі плитки, що були раніше: дві в рядок, з фото.
+     Заходиш у HoReCa — там Зал, Кухня, Рецепшн; заходиш у Зал — товари. */
+  .cat-crumbs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:14px;
+    font-size:13px;color:var(--muted);}
+  .cat-crumbs button{all:unset;cursor:pointer;color:var(--cta);font-weight:600;}
+  .cat-crumbs span.sep{color:#c8ccd4;}
+  .cat-crumbs b{color:var(--ink);font-weight:700;}
+  .industry-chip .cat-thumb{position:absolute;right:0;top:0;bottom:0;width:38%;
+    object-fit:cover;opacity:.95;}
   .cat-sec-empty{font-size:13.5px;color:var(--ink-soft);padding:18px 2px;}
   .product-art{position:relative;}
   .lqs-logo{position:absolute;pointer-events:none;transform:translate(-50%,-50%);
@@ -2367,7 +2367,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="contact-section" id="catalogStep1" style="margin-top:0;">
       <h2 style="margin-top:4px;font-size:19px;">Оберіть одяг, який вам подобається</h2>
 
-      <div class="cat-secs" id="catalogSections" hidden></div>
+      <div class="cat-crumbs" id="catalogCrumbs" hidden></div>
+      <div class="industry-chip-row" id="catalogSections" hidden></div>
+      <h3 class="catalog-modal-subhead" id="catalogGridHead" hidden>Усі товари</h3>
       <div class="catalog-grid" id="catalogProductGrid" style="margin-top:18px;"></div>
       <div class="cat-sec-empty" id="catalogSecEmpty" hidden>У цьому розділі товарів поки немає.</div>
     </div>
@@ -5514,8 +5516,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function renderCatalogProducts(targetEl){
     let list = catalogProductsList();
     // Фільтр діє лише в головній сітці — інші місця показують усе
-    if(catSec && targetEl === catalogProductGrid)
-      list = list.filter(p => p.garment && catInSection(p.garment, catSec));
+    if(catSec && targetEl === catalogProductGrid){
+      const ids = catBranch(catSec);
+      list = list.filter(p => p.garment && ids.some(i => catInSection(p.garment, i)));
+    }
     const emptyEl = document.getElementById('catalogSecEmpty');
     if(emptyEl && targetEl === catalogProductGrid) emptyEl.hidden = list.length > 0;
     targetEl.innerHTML = list.map(p=>{
@@ -5562,31 +5566,104 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var a = m[gid];
     return Array.isArray(a) && a.indexOf(secId) >= 0;
   }
+  function catChildren(parent){
+    return catSections().filter(function(x){ return (x.parent || '') === (parent || ''); });
+  }
+  /* Товари розділу — разом із усіма вкладеними. Інакше «HoReCa» показувала б
+     порожньо тільки тому, що все розкладено по «Залу» й «Кухні». */
+  function catBranch(id){
+    var out = [id];
+    (function walk(p){ catChildren(p).forEach(function(c){ out.push(c.id); walk(c.id); }); })(id);
+    return out;
+  }
+  function catNode(id){
+    var l = catSections();
+    for(var i = 0; i < l.length; i++) if(l[i].id === id) return l[i];
+    return null;
+  }
+  function catTrail(id){
+    var out = [], cur = catNode(id), guard = 0;
+    while(cur && guard++ < 6){ out.unshift(cur); cur = cur.parent ? catNode(cur.parent) : null; }
+    return out;
+  }
+  /* Фото на плитку беремо в першого товару розділу: окремо заводити картинки
+     не треба, а плитка одразу показує, про що вона. */
+  function catTile(secId){
+    var ids = catBranch(secId);
+    var p = catalogProductsList().filter(function(x){
+      return x.garment && ids.some(function(i){ return catInSection(x.garment, i); }) && x.img;
+    })[0];
+    return p ? window.LQ_img(p.img) : '';
+  }
+  var TILE_STUB = '<span class="img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/>' +
+    '<circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>';
+
   function renderCatalogSections(){
     var box = document.getElementById('catalogSections');
+    var crumbs = document.getElementById('catalogCrumbs');
+    var head = document.getElementById('catalogGridHead');
     if(!box) return;
-    var list = catSections();
-    // Показуємо лише ті розділи, у яких справді щось є: порожня вкладка —
-    // це обіцянка, яку сторінка не виконує.
-    var all = catalogProductsList();
-    list = list.filter(function(x){
-      return all.some(function(p){ return p.garment && catInSection(p.garment, x.id); });
-    });
-    if(!list.length){ box.hidden = true; box.innerHTML = ''; catSec = ''; return; }
-    box.hidden = false;
-    box.innerHTML = '<button class="cat-sec' + (catSec ? '' : ' on') + '" data-sec="">Усі товари</button>' +
-      list.map(function(x){
-        return '<button class="cat-sec' + (catSec === x.id ? ' on' : '') + '" data-sec="' +
-               catEsc(x.id) + '">' + catEsc(x.name) + '</button>';
-      }).join('');
-    box.querySelectorAll('[data-sec]').forEach(function(b){
-      b.addEventListener('click', function(){
-        catSec = b.dataset.sec || '';
-        renderCatalogSections();
-        renderCatalogProducts(catalogProductGrid);
-        if(window.lqAn && catSec) window.lqAn.track('catalog_section', { sec: catSec });
+    var all = catSections();
+    if(!all.length){
+      box.hidden = true; box.innerHTML = '';
+      if(crumbs) crumbs.hidden = true;
+      if(head) head.hidden = true;
+      catSec = '';
+      return;
+    }
+    // Показуємо лише ті папки, де щось є: порожня плитка — обіцянка,
+    // якої сторінка не виконує.
+    var goods = catalogProductsList();
+    var has = function(secId){
+      var ids = catBranch(secId);
+      return goods.some(function(p){
+        return p.garment && ids.some(function(i){ return catInSection(p.garment, i); });
       });
+    };
+    var kids = catChildren(catSec).filter(function(x){ return has(x.id); });
+
+    box.hidden = !kids.length;
+    box.innerHTML = kids.map(function(x){
+      var img = catTile(x.id);
+      return '<button class="industry-chip" data-sec="' + catEsc(x.id) + '">' +
+        '<span>' + catEsc(x.name) + '</span>' +
+        (img ? '<img class="cat-thumb" src="' + catEsc(img) + '" alt="" loading="lazy">' : TILE_STUB) +
+      '</button>';
+    }).join('');
+    box.querySelectorAll('[data-sec]').forEach(function(b){
+      b.addEventListener('click', function(){ catGo(b.dataset.sec); });
     });
+
+    // Хлібні крихти — щоб було зрозуміло, де ти, і як повернутись
+    if(crumbs){
+      var trail = catSec ? catTrail(catSec) : [];
+      crumbs.hidden = !trail.length;
+      if(trail.length){
+        crumbs.innerHTML = '<button data-up="">Усі товари</button>' +
+          trail.map(function(n, i){
+            var last = i === trail.length - 1;
+            return '<span class="sep">›</span>' +
+              (last ? '<b>' + catEsc(n.name) + '</b>'
+                    : '<button data-up="' + catEsc(n.id) + '">' + catEsc(n.name) + '</button>');
+          }).join('');
+        crumbs.querySelectorAll('[data-up]').forEach(function(b){
+          b.addEventListener('click', function(){ catGo(b.dataset.up || ''); });
+        });
+      }
+    }
+    if(head){
+      head.hidden = !catSec && !kids.length;
+      head.textContent = catSec ? (catNode(catSec) || {}).name || 'Товари' : 'Усі товари';
+    }
+  }
+  function catGo(id){
+    catSec = id || '';
+    renderCatalogSections();
+    renderCatalogProducts(catalogProductGrid);
+    var m = document.getElementById('catalogModal');
+    if(m) m.scrollTop = 0;
+    if(window.lqAn && catSec) window.lqAn.track('catalog_section', { sec: catSec });
   }
   window.LQ_renderCatalogSections = renderCatalogSections;
 

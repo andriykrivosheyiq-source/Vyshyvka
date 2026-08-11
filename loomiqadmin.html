@@ -685,6 +685,11 @@
     padding:6px 13px;font-size:13px;color:var(--ink-soft);}
   .sec-pick.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:600;}
   .sec-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .sec-tick{color:var(--ink-soft);font-size:13px;flex:none;}
+  .sec-sub{all:unset;cursor:pointer;flex:none;font-size:12px;color:var(--accent);
+    padding:6px 9px;white-space:nowrap;}
+  .sec-del{all:unset;cursor:pointer;flex:none;color:var(--bad);padding:6px 9px;font-size:15px;}
+  .sec-picks-tree{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
   .sec-row input{flex:1;font:inherit;font-size:14px;border:1px solid var(--line);
     border-radius:8px;padding:8px 11px;}
   .sec-row button{all:unset;cursor:pointer;color:var(--bad);padding:6px 9px;font-size:15px;}
@@ -1184,7 +1189,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="prod-master">
           <div class="card" style="margin-bottom:16px;">
             <b style="font-size:14px;">Розділи каталогу</b>
-            <div class="sub" style="margin:6px 0 12px;">Групи, за якими каталог на сайті ділиться на вкладки: HoReCa, Офіс, Медицина… Товар можна покласти одразу в кілька — це робиться в самій картці товару, вкладка «Інформація». Порожній перелік = каталог показує просто всі товари, як зараз.</div>
+            <div class="sub" style="margin:6px 0 12px;">Групи, за якими каталог на сайті ділиться на вкладки: HoReCa, Офіс, Медицина… Усередині розділу можна створити підпапки: HoReCa → Зал, Кухня, Рецепшн. Товар кладеться в будь-який рівень і одразу в кілька — це робиться в картці товару, вкладка «Інформація». Порожній перелік = каталог показує просто всі товари, як зараз.</div>
             <div id="sec-list"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
               <input id="sec-new" type="text" maxlength="30" placeholder="Назва розділу" style="flex:1;min-width:180px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;">
@@ -6836,6 +6841,32 @@ function secList(){
   const p = (contentData.products || {});
   return Array.isArray(p.sections) ? p.sections : [];
 }
+/* Розділи — дерево: HoReCa → Зал, Кухня. Зберігаємо плоским списком із
+   посиланням на батька, а не вкладеними обʼєктами: так простіше і
+   перейменувати, і перенести, і не зламати зв'язок із товарами. */
+function secChildren(list, parent){
+  return (list || []).filter(x => (x.parent || '') === (parent || ''));
+}
+function secDepth(list, id){
+  let d = 0, cur = (list || []).find(x => x.id === id);
+  while(cur && cur.parent){ d++; cur = list.find(x => x.id === cur.parent); if(d > 6) break; }
+  return d;
+}
+/* Плаский список у порядку показу: батько, далі його діти, і так углиб. */
+function secFlat(list, parent, out, depth){
+  out = out || []; depth = depth || 0;
+  secChildren(list, parent).forEach(x => {
+    out.push({ node:x, depth:depth });
+    secFlat(list, x.id, out, depth + 1);
+  });
+  return out;
+}
+function secPath(list, id){
+  const names = [];
+  let cur = (list || []).find(x => x.id === id), guard = 0;
+  while(cur && guard++ < 6){ names.unshift(cur.name); cur = list.find(x => x.id === cur.parent); }
+  return names.join(' › ');
+}
 function secOf(gid){
   const m = (contentData.products || {}).inSections || {};
   return Array.isArray(m[gid]) ? m[gid] : [];
@@ -6854,18 +6885,41 @@ let secWork = null;
 function renderSecList(){
   const box = document.getElementById('sec-list');
   if(!box) return;
-  if(secWork === null) secWork = secList().slice();
-  box.innerHTML = secWork.map((x, i) =>
-    '<div class="sec-row">' +
-      '<input type="text" maxlength="30" value="' + escA(x.name) + '" data-si="' + i + '">' +
-      '<button data-sdel="' + i + '" title="Видалити розділ">✕</button>' +
+  if(secWork === null) secWork = secList().map(x => Object.assign({}, x));
+  const rows = secFlat(secWork, '');
+  box.innerHTML = rows.map(r =>
+    '<div class="sec-row" style="margin-left:' + (r.depth * 22) + 'px;">' +
+      (r.depth ? '<span class="sec-tick">└</span>' : '') +
+      '<input type="text" maxlength="30" value="' + escA(r.node.name) + '" data-sid="' + escA(r.node.id) + '">' +
+      (r.depth < 2 ? '<button class="sec-sub" data-ssub="' + escA(r.node.id) + '" title="Додати підпапку">+ підпапка</button>' : '') +
+      '<button class="sec-del" data-sdel="' + escA(r.node.id) + '" title="Видалити">✕</button>' +
     '</div>').join('') ||
     '<div class="sub">Розділів немає — каталог показує всі товари одним списком.</div>';
-  box.querySelectorAll('[data-si]').forEach(inp => {
-    inp.addEventListener('input', () => { secWork[+inp.dataset.si].name = inp.value; });
+
+  box.querySelectorAll('[data-sid]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const n = secWork.find(x => x.id === inp.dataset.sid);
+      if(n) n.name = inp.value;
+    });
+  });
+  box.querySelectorAll('[data-ssub]').forEach(b => {
+    b.addEventListener('click', () => {
+      const nm = prompt('Назва підпапки:');
+      if(!nm || !nm.trim()) return;
+      secWork.push({ id: secSlug(nm, secWork.map(x => x.id)), name: nm.trim(), parent: b.dataset.ssub });
+      renderSecList();
+    });
   });
   box.querySelectorAll('[data-sdel]').forEach(b => {
-    b.addEventListener('click', () => { secWork.splice(+b.dataset.sdel, 1); renderSecList(); });
+    b.addEventListener('click', () => {
+      const id = b.dataset.sdel;
+      // Разом із папкою зникають її підпапки — питаємо, бо це не очевидно
+      const kids = secFlat(secWork, id).length;
+      if(kids && !confirm('Разом із цією папкою зникнуть і ' + kids + ' вкладених. Видаляємо?')) return;
+      const doomed = [id].concat(secFlat(secWork, id).map(r => r.node.id));
+      secWork = secWork.filter(x => doomed.indexOf(x.id) < 0);
+      renderSecList();
+    });
   });
 }
 function wireSections(){
@@ -6881,7 +6935,8 @@ function wireSections(){
   const save = document.getElementById('sec-save');
   if(save) save.addEventListener('click', async () => {
     const clean = (secWork || []).filter(x => (x.name || '').trim())
-      .map(x => ({ id: x.id, name: x.name.trim() }));
+      .map(x => x.parent ? { id: x.id, name: x.name.trim(), parent: x.parent }
+                         : { id: x.id, name: x.name.trim() });
     try{
       await PHOTOS_DOC.set({ products: { sections: clean } }, { merge:true });
       secWork = null;
@@ -6901,9 +6956,12 @@ function renderSecPicks(){
     return;
   }
   const mine = secOf(photoGarmentId);
-  box.innerHTML = list.map(x =>
-    '<button class="sec-pick' + (mine.indexOf(x.id) >= 0 ? ' on' : '') + '" data-sec="' + escA(x.id) + '">' +
-      escA(x.name) + '</button>').join('');
+  // Показуємо деревом: видно, що «Зал» лежить усередині «HoReCa»
+  box.innerHTML = '<div class="sec-picks-tree">' + secFlat(list, '').map(r =>
+    '<button class="sec-pick' + (mine.indexOf(r.node.id) >= 0 ? ' on' : '') + '"' +
+      ' style="margin-left:' + (r.depth * 18) + 'px;"' +
+      ' data-sec="' + escA(r.node.id) + '">' +
+      (r.depth ? '└ ' : '') + escA(r.node.name) + '</button>').join('') + '</div>';
   box.querySelectorAll('[data-sec]').forEach(b => {
     b.addEventListener('click', () => b.classList.toggle('on'));
   });
