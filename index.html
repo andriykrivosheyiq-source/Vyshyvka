@@ -637,6 +637,43 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid var(--line);transition:box-shadow .2s ease;
   }
   .product:hover{box-shadow:0 4px 14px -6px rgba(0,0,0,.1);}
+  /* ═══════════ Стартер: сфера + логотип ═══════════
+     Порожній конструктор — це завдання, а не пропозиція. Людина приходить
+     подивитись, а їй дають полотно. Тому спершу два питання, після яких
+     каталог одразу показує ЇЇ логотип на товарах ЇЇ сфери. */
+  .lqs-back{position:fixed;inset:0;z-index:400;background:rgba(12,18,28,.55);
+    backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;}
+  .lqs-back.open{display:flex;}
+  @media (min-width:700px){ .lqs-back{align-items:center;} }
+  .lqs{background:#fff;width:100%;max-width:520px;border-radius:20px 20px 0 0;
+    padding:22px 20px 24px;max-height:92vh;overflow-y:auto;}
+  @media (min-width:700px){ .lqs{border-radius:20px;} }
+  .lqs-step{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#6B7280;}
+  .lqs h2{font-size:21px;letter-spacing:-.4px;margin:6px 0 4px;}
+  .lqs-sub{font-size:13.5px;line-height:1.55;color:#5A6A80;margin-bottom:16px;}
+  .lqs-tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .lqs-tile{all:unset;box-sizing:border-box;cursor:pointer;border:1.5px solid var(--line);
+    border-radius:14px;padding:14px 13px;font-size:14px;font-weight:600;line-height:1.3;
+    color:var(--ink);min-height:64px;display:flex;align-items:center;transition:border-color .15s ease;}
+  .lqs-tile:hover,.lqs-tile:focus-visible{border-color:var(--ink);}
+  .lqs-drop{margin-top:2px;border:1.5px dashed var(--line);border-radius:14px;padding:22px 16px;
+    text-align:center;cursor:pointer;display:block;}
+  .lqs-drop b{display:block;font-size:15px;margin-bottom:4px;}
+  .lqs-drop span{font-size:12.5px;color:#5A6A80;}
+  .lqs-prev{max-width:150px;max-height:90px;object-fit:contain;margin:0 auto 10px;display:block;}
+  .lqs-skip{all:unset;cursor:pointer;display:block;margin:14px auto 0;font-size:13px;
+    color:#6B7280;text-decoration:underline;text-underline-offset:3px;}
+  .lqs-busy{font-size:13px;color:#5A6A80;text-align:center;margin-top:12px;}
+  /* Рядок «показуємо для…» над каталогом */
+  .lqs-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;
+    color:#5A6A80;margin:0 0 12px;}
+  .lqs-bar b{color:var(--ink);}
+  .lqs-bar button{all:unset;cursor:pointer;color:var(--cta);font-weight:600;
+    text-decoration:underline;text-underline-offset:3px;}
+  /* Логотип на картці каталогу */
+  .product-art{position:relative;}
+  .lqs-logo{position:absolute;pointer-events:none;transform:translate(-50%,-50%);
+    object-fit:contain;}
   .product-art{
     aspect-ratio:1/0.85;display:flex;align-items:center;justify-content:center;
     background:#FFFFFF;
@@ -4222,6 +4259,298 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 </main>
 
+<!-- Стартер: два питання перед каталогом. Розмітка тут порожня — вміст
+     малює скрипт, бо кроки різні. -->
+<div class="lqs-back" id="lqsBack" aria-hidden="true">
+  <div class="lqs" id="lqsSheet" role="dialog" aria-modal="true" aria-label="Підбір мерчу"></div>
+</div>
+<input type="file" id="lqsFile" accept="image/*" aria-label="Файл логотипа" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+
+<script>
+/* ============================================================
+   СТАРТЕР — два питання замість порожнього конструктора
+
+   Навіщо. З лійки видно: конструктор відкриває половина відвідувачів, лого
+   вантажать шістдесят відсотків із них — а до кошика доходять одиниці.
+   Порожнє полотно ставить перед людиною задачу саме тоді, коли вона ще
+   тільки придивляється.
+
+   Тому спершу два питання: сфера і логотип. Після них каталог показує
+   ЇЇ логотип на товарах ЇЇ сфери — не «зроби собі», а «ось як це виглядає».
+
+   Ховати нічого не ховаємо: сфера лише піднімає доречні товари нагору.
+   ============================================================ */
+(function(){
+  var W = window, D = document;
+  var KEY = 'lq_start';
+
+  W.LQ_SPHERES = [
+    { id:'cafe',  name:'Кавʼярня, ресторан, бар',   g:['tee','teeover','cap','tote'] },
+    { id:'build', name:'Будівництво, виробництво',  g:['tee','hoodie','sweat','cap'] },
+    { id:'it',    name:'IT та офіс',                g:['hoodie','hoodiezip','teeover','tote'] },
+    { id:'sport', name:'Спорт і команда',           g:['tee','hoodieover','cap'] },
+    { id:'event', name:'Школа, курси, івент',       g:['tee','hoodie','tote','cap'] },
+    { id:'other', name:'Інше',                      g:[] }
+  ];
+  function sphere(id){ for(var i=0;i<W.LQ_SPHERES.length;i++) if(W.LQ_SPHERES[i].id===id) return W.LQ_SPHERES[i]; return null; }
+
+  /* Зберігаємо між візитами: людина повернулась — каталог уже її.
+     Логотип тримаємо зменшеним: у сховищі браузера мало місця, а для
+     показу на картці 512 px вистачає з запасом. */
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || 'null') || {}; }catch(e){ return {}; }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(W.LQ_START)); }catch(e){}
+  }
+  W.LQ_START = load();
+
+  var Q = new URLSearchParams(location.search);
+  if(Q.get('s') && sphere(Q.get('s'))) W.LQ_START.s = Q.get('s');
+  /* На нішевих посадкових питати про сферу безглуздо — людина вже прийшла
+     за конкретним. Ставимо її самі, лишається одне питання про логотип. */
+  if(!W.LQ_START.s){
+    if(/\/horeca\//.test(location.pathname)) W.LQ_START.s = 'cafe';
+    else if(/\/build\//.test(location.pathname)) W.LQ_START.s = 'build';
+  }
+
+  /* ---------- зменшення логотипа ---------- */
+  function shrink(dataUrl){
+    return new Promise(function(res){
+      var im = new Image();
+      im.onload = function(){
+        var MAX = 512, k = Math.min(1, MAX / Math.max(im.width, im.height));
+        if(k >= 1){ res({ url: dataUrl, ar: im.width / im.height }); return; }
+        var c = D.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        res({ url: c.toDataURL('image/png'), ar: im.width / im.height });
+      };
+      im.onerror = function(){ res(null); };
+      im.src = dataUrl;
+    });
+  }
+
+  /* ---------- лист із питаннями ---------- */
+  var back = D.getElementById('lqsBack'), sheet = D.getElementById('lqsSheet');
+  var fileInp = D.getElementById('lqsFile');
+  var step = 1, busy = false;
+
+  function open(st){ step = st || 1; render(); back.classList.add('open'); back.setAttribute('aria-hidden','false'); }
+  function close(){ back.classList.remove('open'); back.setAttribute('aria-hidden','true'); }
+
+  function render(){
+    if(step === 1){
+      sheet.innerHTML =
+        '<div class="lqs-step">Крок 1 з 2</div>' +
+        '<h2>Для якої сфери мерч?</h2>' +
+        '<div class="lqs-sub">Покажемо те, що замовляють найчастіше — і одразу з вашим логотипом.</div>' +
+        '<div class="lqs-tiles">' +
+          W.LQ_SPHERES.map(function(x){
+            return '<button class="lqs-tile" data-s="' + x.id + '">' + x.name + '</button>';
+          }).join('') +
+        '</div>' +
+        '<button class="lqs-skip" data-skip>Просто подивитись каталог</button>';
+      sheet.querySelectorAll('[data-s]').forEach(function(b){
+        b.addEventListener('click', function(){
+          W.LQ_START.s = b.dataset.s; save();
+          track('start_sphere', { sphere: b.dataset.s });
+          step = 2; render(); apply();
+        });
+      });
+    } else {
+      var L = W.LQ_START.logo;
+      sheet.innerHTML =
+        '<div class="lqs-step">Крок 2 з 2</div>' +
+        '<h2>Завантажте логотип</h2>' +
+        '<div class="lqs-sub">Побачите його на товарах одразу — нічого налаштовувати не треба. ' +
+          'Фон приберемо самі.</div>' +
+        (L ? '<img class="lqs-prev" src="' + L.url + '" alt="Ваш логотип">' : '') +
+        '<label class="lqs-drop" for="lqsFile">' +
+          '<b>' + (L ? 'Обрати інший файл' : 'Обрати файл') + '</b>' +
+          '<span>PNG, JPG або SVG</span>' +
+        '</label>' +
+        (busy ? '<div class="lqs-busy">Прибираємо фон…</div>' : '') +
+        '<button class="lqs-skip" data-skip>' + (L ? 'Готово' : 'Поки без логотипа') + '</button>';
+    }
+    var sk = sheet.querySelector('[data-skip]');
+    if(sk) sk.addEventListener('click', function(){
+      track(step === 1 ? 'start_skip' : 'start_done');
+      close(); apply();
+    });
+  }
+
+  fileInp.addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!f) return;
+    var rd = new FileReader();
+    rd.onload = function(ev){
+      var raw = ev.target.result;
+      busy = true; render();
+      var done = function(clean){
+        // Сервіс міг повернути щось, що браузер не покаже. Тоді мовчки беремо
+        // оригінал: краще логотип із фоном, ніж жодного.
+        shrink(clean || raw).then(function(v){ return v || shrink(raw); }).then(function(small){
+          busy = false;
+          if(small){
+            W.LQ_START.logo = { url: small.url, ar: small.ar, raw: null };
+            // Оригінал тримаємо лише в памʼяті сторінки: у сховище він не влізе,
+            // а конструктору потрібна повна якість, поки вкладка відкрита.
+            W.LQ_START.logo.raw = raw;
+            save();
+            track('start_logo');
+          }
+          render(); apply();
+        });
+      };
+      /* Прибирання фону йде через зовнішній сервіс і може затягнутись або
+         не відповісти взагалі. Людина не має на це чекати: через шість
+         секунд беремо оригінал і йдемо далі. */
+      if(W.LQ_removeBg){
+        var settled = false;
+        var once = function(v){ if(settled) return; settled = true; done(v); };
+        setTimeout(function(){ once(null); }, 6000);
+        W.LQ_removeBg(raw).then(once, function(){ once(null); });
+      } else done(null);
+    };
+    rd.readAsDataURL(f);
+  });
+
+  back.addEventListener('click', function(e){ if(e.target === back){ close(); apply(); } });
+
+  function track(name, extra){ try{ if(W.lqAn) W.lqAn.track(name, extra); }catch(e){} }
+
+  /* ---------- застосування вибору до сторінки ---------- */
+  function barHtml(){
+    var sp = sphere(W.LQ_START.s);
+    if(!sp && !W.LQ_START.logo) return '';
+    var bits = [];
+    if(sp) bits.push('<b>' + sp.name + '</b>');
+    if(W.LQ_START.logo) bits.push('з вашим логотипом');
+    return '<div class="lqs-bar">Показуємо: ' + bits.join(' · ') +
+           ' <button data-lqs-edit>змінити</button></div>';
+  }
+  function paintBar(){
+    var grid = D.getElementById('catalogProductGrid');
+    if(!grid) return;
+    var old = D.querySelector('.lqs-bar');
+    if(old) old.remove();
+    var html = barHtml();
+    if(html) grid.insertAdjacentHTML('beforebegin', html);
+    var b = D.querySelector('[data-lqs-edit]');
+    if(b) b.addEventListener('click', function(){ open(1); });
+  }
+
+  /* Логотип на картці: беремо ту саму механіку, що й рекомендації, тож
+     розміщення на картці і в конструкторі збігається. Чекаємо, поки фото
+     справді завантажиться — без розмірів рахувати нічого. */
+  /* Малюємо не одразу, а коли картка справді зʼявилась на екрані. Причин дві:
+     каталог живе в закритій модалці, а секції нижче першого екрана браузер
+     навмисне не рахує. В обох випадках розміри дорівнюють нулю, і покласти
+     логотип у потрібне місце неможливо. */
+  var seenObs = null;
+  function paintCards(){
+    var L = W.LQ_START.logo;
+    D.querySelectorAll('.lqs-logo').forEach(function(x){ x.remove(); });
+    if(seenObs){ seenObs.disconnect(); seenObs = null; }
+    if(!L || !W.LQ_placeLogo) return;
+    var cards = D.querySelectorAll('#catalogProductGrid .product[data-garment], .catalog-grid .product[data-garment]');
+    if(!cards.length) return;
+    if(W.IntersectionObserver){
+      seenObs = new IntersectionObserver(function(ents){
+        ents.forEach(function(en){ if(en.isIntersecting) putOn(en.target); });
+      }, { rootMargin: '200px' });
+      cards.forEach(function(c){ seenObs.observe(c); putOn(c); });
+    } else {
+      cards.forEach(putOn);
+    }
+  }
+  function putOn(card){
+    var L = W.LQ_START.logo;
+    if(!L || !W.LQ_placeLogo) return;
+        var art = card.querySelector('.product-art');
+        var img = art && art.querySelector('img');
+        if(!art || !img) return;
+        var go = function(){
+          if(art.querySelector('.lqs-logo')) return;
+          var r = img.getBoundingClientRect();
+          if(!r.width || !img.naturalWidth) return;
+          var put = W.LQ_placeLogo(card.dataset.garment, img, L);
+          if(!put || !put.length) return;
+          // фото вписане в картку через object-fit — рахуємо реальний кадр
+          var sc = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight);
+          var IW = img.naturalWidth * sc, IH = img.naturalHeight * sc;
+          var ox = (r.width - IW) / 2, oy = (r.height - IH) / 2;
+          art.insertAdjacentHTML('beforeend', put.map(function(l){
+            var w = l.w * IW, h = w / (l.ar || 1);
+            return '<img class="lqs-logo" src="' + l.url + '" alt="" style="' +
+              'left:' + (ox + l.cx * IW).toFixed(1) + 'px;top:' + (oy + l.cy * IH).toFixed(1) + 'px;' +
+              'width:' + w.toFixed(1) + 'px;height:' + h.toFixed(1) + 'px;">';
+          }).join(''));
+        };
+        if(img.complete && img.naturalWidth) go();
+        else img.addEventListener('load', go, { once:true });
+  }
+
+  var applyT = null;
+  function apply(){
+    if(W.LQ_renderCatalog) W.LQ_renderCatalog();
+    paintBar();
+    if(applyT) clearTimeout(applyT);
+    applyT = setTimeout(paintCards, 60);
+  }
+  W.LQ_applyStart = apply;
+
+  // Каталог відкривається модалкою — доти його картки не мають розмірів
+  D.addEventListener('click', function(e){
+    if(e.target.closest('[data-open-catalog], #menuCatalogBtn, [data-scroll-to="catalog"]'))
+      setTimeout(paintCards, 350);
+  }, true);
+
+  // Каталог перемальовується і сам (нові фото з адмінки) — логотип має повертатись
+  D.addEventListener('lq-photos', function(){ setTimeout(apply, 80); });
+  W.addEventListener('resize', function(){ if(applyT) clearTimeout(applyT); applyT = setTimeout(paintCards, 200); });
+
+  /* Логотип зі стартера кладемо в конструктор, коли відкрили товар. Робимо це
+     один раз на відкриття: далі людина сама вирішує, що з ним робити. */
+  D.addEventListener('click', function(e){
+    if(!W.LQ_START.logo) return;
+    if(!e.target.closest('.product')) return;
+    setTimeout(function(){
+      var m = D.getElementById('productModal');
+      if(!m || !m.classList.contains('open')) return;
+      if(m.dataset.lqsLogo === '1') return;
+      m.dataset.lqsLogo = '1';
+      if(W.LQ_addLogoFromStart) W.LQ_addLogoFromStart(W.LQ_START.logo);
+    }, 420);
+  }, true);
+
+  /* ---------- перший показ ---------- */
+  // Не чіпаємо тих, хто прийшов за конкретним, і не заважаємо менеджеру
+  var OFF = /[?&](manager|edit)=1\b/.test(location.search) || Q.get('q') === '0';
+  try{ if(W.top !== W.self) OFF = true; }catch(e){ OFF = true; }
+
+  apply();
+  if(!OFF && !W.LQ_START.logo){
+    // Даємо побачити перший екран, а тоді питаємо: інакше це двері перед дверима.
+    // Сферу вже знаємо (ніша або посилання з реклами) — питаємо лише логотип.
+    var firstStep = W.LQ_START.s ? 2 : 1;
+    setTimeout(function(){
+      if(W.LQ_START.logo) return;
+      open(firstStep); track('start_open', { step: firstStep });
+    }, 2600);
+  }
+  // Кнопки «Створити мерч» ведуть у стартер, якщо він ще не пройдений
+  D.addEventListener('click', function(e){
+    var b = e.target.closest('[data-open-catalog]');
+    if(!b || OFF || W.LQ_START.logo) return;
+    e.preventDefault(); e.stopPropagation();
+    open(W.LQ_START.s ? 2 : 1); track('start_open_cta');
+  }, true);
+})();
+</script>
+
 <footer>
   <span class="logo">Loomiq</span>
   <div class="footer-tag">Створюємо одяг для тих, хто змінює світ</div>
@@ -5095,6 +5424,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     });
     list = list.filter(p=>hidden.indexOf(p.garment) === -1);
+    /* Обрана сфера не ХОВАЄ решту — лише піднімає доречне нагору. Ховати
+       небезпечно: людина шукала конкретну річ, не знайшла й пішла. */
+    var sph = window.LQ_START && window.LQ_START.s;
+    var pref = (window.LQ_SPHERES || []).filter(function(x){ return x.id === sph; })[0];
+    if(pref && pref.g && pref.g.length){
+      list.sort(function(a, b){
+        var ia = pref.g.indexOf(a.garment), ib = pref.g.indexOf(b.garment);
+        return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+      });
+    }
     // Ціна на картці = напис із адмінки, інакше «від [база × макс. знижка]» (найдешевша, за макс. тираж)
     var pr = window.SITE_CONTENT.pricing || {};
     var bp = pr.basePrices || {};
@@ -5141,6 +5480,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }).join('');
   }
   renderCatalogProducts(catalogProductGrid);
+  // Стартер перемальовує каталог, коли людина обрала сферу або лого
+  window.LQ_renderCatalog = function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} };
   window.LQ_catalogList = catalogProductsList;   // доступ для блоку «Вам також може сподобатись»
   document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
 
@@ -9281,7 +9622,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.addEventListener('click', function(e){
       var card = e.target.closest('.product');
       if(!card) return;
-      var nameEl = card.querySelector('h4');
+      var nameEl = card.querySelector('h3,h4');
       var name = nameEl ? nameEl.textContent.trim() : '';
       openProductModal(card.dataset.garment || cardGarmentMap[name] || 'tee');
     }, true);
@@ -9870,6 +10211,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         raw: ((pm.logos && pm.logos.front) || []).filter(function(x){ return x.url; })
       };
     }
+    /* Стартеру потрібне те саме розміщення, що й рекомендаціям, але в нього
+       ще немає зібраного дизайну — лише щойно завантажений логотип. Тому
+       складаємо синтетичний контекст: один шар по центру умовної зони,
+       шириною 55% від неї. Далі працює та сама механіка, тож логотип на
+       картці каталогу стоятиме точно там, де стане в конструкторі. */
+    window.LQ_placeLogo = function(gid, img, logo){
+      if(!logo || !logo.url || !img || !img.naturalWidth) return null;
+      var ctx = {
+        layers: [{ url: logo.url, rot: 0, ar: logo.ar || 1, cx: 0.5, cy: 0.5, w: 0.55 }],
+        sb: { x0:0, y0:0, x1:1, y1:1 },
+        sg: { x0:0, y0:0, x1:1, y1:1 },
+        raw: []
+      };
+      try{ return recPlaceOn(gid, '', img, ctx); }catch(e){ return null; }
+    };
+    // Логотип зі стартера має потрапити в конструктор тим самим шляхом,
+    // що й звичайне завантаження — інакше поведінка розійдеться.
+    window.LQ_addLogoFromStart = function(logo){
+      if(!logo || !logo.url) return;
+      try{ addLogo(logo.raw || logo.url, logo.url); }catch(e){}
+    };
+    window.LQ_removeBg = function(src){
+      try{ return removeBgForUpload(src); }catch(e){ return Promise.reject(e); }
+    };
     function recPlaceOn(gid, colorId, img, ctx){
       ctx = ctx || recSnapshot();
       var natW = img && img.naturalWidth, natH = img && img.naturalHeight;
