@@ -303,6 +303,10 @@
   @media (min-width:1100px){.garment-cards{grid-template-columns:1fr 1fr 1fr;}}
 
   .gcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px;}
+  /* Бренди пропозиції */
+  .brand-row{border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:12px;}
+  .brand-row-h{font-size:13px;font-weight:800;margin-bottom:9px;}
+  .brand-row-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
   .gcard-name-inp{font-size:15px;font-weight:600;color:var(--ink);background:transparent;border:none;border-bottom:1.5px solid var(--line);outline:none;padding:3px 0;width:100%;}
   .gcard-name-inp:focus{border-color:var(--accent);}
   .gcard-name-inp::placeholder{color:#B0BAC8;font-weight:400;}
@@ -489,6 +493,14 @@
     padding:5px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;}
   .t-doc-kp:hover{background:#E6F0FC;}
   .t-doc-kp:disabled{opacity:.55;cursor:default;}
+  /* Вибір бренду: від Loomiq чи від Stvory виглядатиме сторінка клієнта */
+  .t-brand{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .t-brand-lab{font-size:10.5px;font-weight:700;color:#9AA5B5;text-transform:uppercase;
+    letter-spacing:.5px;margin-right:2px;}
+  .t-brand-b{border:1px solid var(--line);background:#fff;color:var(--ink-2);font:inherit;
+    font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;cursor:pointer;}
+  .t-brand-b:hover{background:var(--canvas);}
+  .t-brand-b.on{background:#0F2034;border-color:#0F2034;color:#fff;}
   .t-docs-row{display:flex;gap:6px;}
   .t-doc-main{flex:1;border:none;background:#0F2034;color:#fff;font:inherit;font-size:12px;font-weight:700;
     padding:8px 10px;border-radius:9px;cursor:pointer;}
@@ -1104,6 +1116,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </label>
         <div class="sub" style="margin:-6px 0 16px;">Формат: <b>питання | відповідь</b>.</div>
         <div><button class="btn btn-accent" id="of-save">Зберегти тексти пропозиції</button></div>
+      </div>
+
+      <!-- Бренди пропозиції. Шапка й підвал сторінки КП беруться звідси,
+           а який саме бренд — обирається в самій картці замовлення. -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Бренди пропозиції</h2>
+          <span class="hint">Від якого бренду виглядає сторінка КП. Бренд обирається в картці замовлення — тут задаються назва, підпис, сайт і логотип.</span>
+        </div>
+        <div id="brand-list"></div>
+        <div class="sub" style="margin:2px 0 16px;">Логотип — пряме посилання на картинку (PNG або SVG на прозорому тлі, висотою від 80&nbsp;px). Порожнє поле — у шапці буде назва текстом.</div>
+        <div><button class="btn btn-accent" id="brand-save">Зберегти бренди</button></div>
       </div>
 
       <div class="save-row">
@@ -2912,6 +2936,50 @@ document.getElementById('of-save').addEventListener('click', async ()=>{
         (t.cases.length || t.faq.length ? '' : ' — блоки в КП не показуватимуться'));
 });
 
+/* ── Бренди пропозиції ────────────────────────────────────────────────
+   Правки тут діють на НОВІ й на переписані пропозиції: бренд лягає в
+   документ КП знімком, тож уже надіслані сторінки лишаються такими, якими
+   їх побачив клієнт, поки менеджер не відкриє картку й не збереже її. */
+function paintOfferBrands(){
+  const wrap = document.getElementById('brand-list');
+  if(!wrap) return;
+  const all = brandAll();
+  wrap.innerHTML = BRAND_KEYS.map(k=>{
+    const b = all[k];
+    return `
+      <div class="brand-row" data-brand-row="${k}">
+        <div class="brand-row-h">${escapeHtml(BRAND_DEFAULTS[k].name)}</div>
+        <div class="brand-row-f">
+          <label class="field">Назва в шапці
+            <input type="text" data-bf="name" value="${escapeHtml(b.name||'')}" placeholder="${escapeHtml(BRAND_DEFAULTS[k].name)}">
+          </label>
+          <label class="field">Підпис у підвалі
+            <input type="text" data-bf="tagline" value="${escapeHtml(b.tagline||'')}" placeholder="виробництво мерчу">
+          </label>
+          <label class="field">Сайт
+            <input type="url" data-bf="site" value="${escapeHtml(b.site||'')}" placeholder="https://example.com">
+          </label>
+          <label class="field">Логотип (посилання на картинку)
+            <input type="url" data-bf="logo" value="${escapeHtml(b.logo||'')}" placeholder="https://…/logo.svg">
+          </label>
+        </div>
+      </div>`;
+  }).join('');
+}
+document.getElementById('brand-save').addEventListener('click', async ()=>{
+  const out = {};
+  BRAND_KEYS.forEach(k=>{
+    const row = document.querySelector('[data-brand-row="'+k+'"]');
+    if(!row) return;
+    const v = f => { const el = row.querySelector('[data-bf="'+f+'"]'); return el ? el.value.trim() : ''; };
+    out[k] = { name: v('name') || BRAND_DEFAULTS[k].name, tagline: v('tagline'),
+               site: v('site'), logo: v('logo') };
+  });
+  await storeSet('offerBrands', out);
+  paintOfferBrands();
+  toast('Бренди збережено');
+});
+
 document.getElementById('sp-save').addEventListener('click', async ()=>{
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
@@ -2960,6 +3028,7 @@ function paintSettingsForm(){
   paintGarmentList();
   paintSitePricing();
   paintOfferTexts();
+  paintOfferBrands();
 }
 
 /* ── Тексти пропозиції ────────────────────────────────────────────────
@@ -4296,6 +4365,40 @@ const OFFER_DEFAULTS = {
              viber:'', email:'hello@loomiq.net' }
 };
 
+/* ── Бренд пропозиції ──────────────────────────────────────────────────
+   Одне виробництво працює під двома вивісками, і частину пропозицій треба
+   надсилати від Stvory, а не від Loomiq. Тому шапка й підвал сторінки КП
+   беруться з бренду, а не зашиті в розмітку.
+
+   Бренд лягає в документ пропозиції ЗНІМКОМ, а не посиланням на довідник:
+   сторінка клієнта живе місяцями, і зміна назви чи логотипа в налаштуваннях
+   не має заднім числом переписувати вже надіслані пропозиції.
+
+   Назви, сайт і логотип редагуються в Налаштуваннях; тут — лише запасні
+   значення на випадок, коли в базі ще нічого немає. */
+const BRAND_KEYS = ['loomiq', 'stvory'];
+const BRAND_DEFAULTS = {
+  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'' },
+  stvory: { name:'Stvory', tagline:'виробництво мерчу', site:'', logo:'' }
+};
+function brandAll(){
+  const saved = cloud.offerBrands || {};
+  const out = {};
+  BRAND_KEYS.forEach(k => { out[k] = Object.assign({}, BRAND_DEFAULTS[k], saved[k] || {}); });
+  return out;
+}
+function brandKeyOf(o){
+  const k = o && o.brand;
+  return BRAND_KEYS.indexOf(k) >= 0 ? k : BRAND_KEYS[0];
+}
+// Те, що записуємо в offers/{token}: рівно ті поля, які малює сторінка клієнта.
+function brandSnap(key){
+  const k = BRAND_KEYS.indexOf(key) >= 0 ? key : BRAND_KEYS[0];
+  const b = brandAll()[k];
+  return { key: k, name: b.name || BRAND_DEFAULTS[k].name,
+           tagline: b.tagline || '', site: b.site || '', logo: b.logo || '' };
+}
+
 // Найменший коефіцієнт зі шкали тиражів = ціна без знижки за обсяг.
 // Порівнюємо однакову кількість, тож «економія» — це рівно те, що клієнт
 // виграє від тиражу, а не вигаданий відсоток від ціни однієї штуки.
@@ -4410,6 +4513,7 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    brand: brandSnap(order.brand),
     manager: OFFER_DEFAULTS.manager,
     items: main, reco,
     totals: {
@@ -4967,9 +5071,15 @@ function offerBlockHtml(o){
 function docsBlockHtml(o){
   const link = offerUrl(o);
   if(!link && !(o.items||[]).length) return '';
+  const brands = brandAll();
+  const cur = brandKeyOf(o);
   return `
     <div class="od-sec">Документи для клієнта</div>
     <div class="t-docs">
+      <div class="t-brand" title="Від якого бренду виглядає сторінка пропозиції">
+        <span class="t-brand-lab">Бренд КП</span>
+        ${BRAND_KEYS.map(k=>`<button class="t-brand-b${k===cur?' on':''}" data-brand="${k}">${escapeHtml(brands[k].name)}</button>`).join('')}
+      </div>
       <div class="t-docs-row">
         ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`:''}
         ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}" target="_blank" rel="noopener" data-doc="openoffer">Відкрити</a>`:''}
@@ -5000,6 +5110,22 @@ function wireDocsBlock(el, o){
       return ok;
     }catch(e){ return false; }
   }
+  // Перемикач бренду. Зберігаємо в картку і одразу переписуємо сторінку
+  // клієнта: посилання вже може бути надіслане, і чекати наступного
+  // збереження не можна — клієнт побачив би чужу вивіску.
+  el.querySelectorAll('[data-brand]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const key = b.dataset.brand;
+      if(brandKeyOf(o) === key) return;
+      o.brand = key;
+      el.querySelectorAll('[data-brand]').forEach(x=> x.classList.toggle('on', x === b));
+      try{
+        await storeSet('orders', orders);
+        await offerSave(o);
+        toast('Пропозиція від ' + brandSnap(key).name);
+      }catch(e){ console.warn('brand switch failed', e); toast('Не вдалося зберегти бренд'); }
+    });
+  });
   const cp = el.querySelector('[data-doc="copylink"]');
   if(cp) cp.addEventListener('click', ()=>{
     const link = offerUrl(o);
