@@ -6088,6 +6088,27 @@ function tgWatch(o){
 }
 function tgUnwatch(){ if(tgUnsub){ try{ tgUnsub(); }catch(e){} tgUnsub = null; } }
 
+/* Помилки воркера людською мовою. Кожен рядок — не діагноз, а дія: без
+   цього менеджер бачив «not-configured» і йшов питати розробника. */
+const TG_ERR_UA = {
+  'not-configured': 'у воркері немає змінної FIREBASE_API_KEY. Cloudflare → loomiq-tg → Settings → Variables → Add → Text',
+  'no-bot-token': 'у воркері немає TELEGRAM_BOT_TOKEN',
+  'no-auth': 'сесія адмінки застаріла — вийдіть і зайдіть знову',
+  'auth-failed': 'сесія адмінки застаріла — вийдіть і зайдіть знову',
+  'auth-unreachable': 'воркер не достукався до Google. Спробуйте ще раз',
+  'telegram-unreachable': 'воркер не достукався до Telegram. Спробуйте ще раз',
+  'bad-chat': 'у картці немає ідентифікатора чату',
+  'bad-json': 'воркер не зрозумів запит — напевно, стара версія воркера',
+  'method': 'стара версія воркера: перевикладіть telegram-webhook.js',
+  'empty': 'порожнє повідомлення'
+};
+function tgErrUa(j, status){
+  if(!j || !j.error) return 'код ' + status;
+  // Відмову самого Telegram показуємо як є: «bot was blocked by the user»
+  // пояснює ситуацію краще за будь-який наш переказ.
+  if(j.error === 'telegram') return j.detail || 'Telegram відмовив';
+  return TG_ERR_UA[j.error] || (j.error + (j.detail ? ' · ' + j.detail : ''));
+}
 async function tgSend(o, text){
   const chat = tgChatOf(o), body = String(text || '').trim();
   if(!chat || !body) return;
@@ -6102,9 +6123,9 @@ async function tgSend(o, text){
       body: JSON.stringify({ chat, text: body, idToken })
     });
     const j = await r.json().catch(()=>({}));
-    // Причину показуємо словами: «bot was blocked by the user» менеджеру
-    // пояснює все, а «не надіслалось» — нічого.
-    if(!r.ok || !j.ok){ toast('Не надіслалось: ' + (j.detail || j.error || r.status)); return; }
+    // Причину показуємо словами. Код на кшталт «not-configured» чесний, але
+    // менеджеру не каже нічого — а тут кожна причина має конкретну дію.
+    if(!r.ok || !j.ok){ toast('Не надіслалось: ' + tgErrUa(j, r.status)); return; }
     // Стрічку не чіпаємо: воркер записав повідомлення в базу, і підписка
     // принесе його сама — інакше воно з'явилося б двічі.
   }catch(e){
