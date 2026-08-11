@@ -7169,7 +7169,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var arImg=natW/natH, rw, rh, ox, oy;
       if(arImg>=1){ rw=1; rh=1/arImg; ox=0; oy=(1-rh)/2; } else { rh=1; rw=arImg; oy=0; ox=(1-rw)/2; }
       var calT=cfg.calibTop!=null?cfg.calibTop:0.06, calB=cfg.calibBottom!=null?cfg.calibBottom:0.96;
-      var topCal=oy+calT*rh, ch=(calB-calT)*rh, cx=ox+rw/2;
+      // Вісь задає адмінка: виріб на фото рідко стоїть точно по центру
+      var calX=cfg.calibCx!=null?cfg.calibCx:0.5;
+      var topCal=oy+calT*rh, ch=(calB-calT)*rh, cx=ox+rw*calX;
       var polyFrac = paFullPoly(cfg).map(function(p){ return [cx+p[0]*ch, topCal+p[1]*ch]; });
       return { polyFrac: polyFrac, wrapW: wrapW };
     }
@@ -10350,10 +10352,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!natW || !natH) return null;
       var calT = cfg.calibTop != null ? cfg.calibTop : 0.06;
       var calB = cfg.calibBottom != null ? cfg.calibBottom : 0.96;
+      var calX = cfg.calibCx != null ? cfg.calibCx : 0.5;
       var span = calB - calT, kx = span * (natH / natW);
       var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
       paFullPoly(cfg).forEach(function(p){
-        var x = 0.5 + p[0] * kx, y = calT + p[1] * span;
+        var x = calX + p[0] * kx, y = calT + p[1] * span;
         if(x < x0) x0 = x; if(x > x1) x1 = x;
         if(y < y0) y0 = y; if(y > y1) y1 = y;
       });

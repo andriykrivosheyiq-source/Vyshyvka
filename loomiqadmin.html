@@ -6589,7 +6589,7 @@ function updatePaSummary(id){
   const DEF_CAL = {top:0.06, bottom:0.96};
   let paId=null, paSide='front', paColorId=null, paSize=null;
   let data=null;      // {scaleSize, heightCm, front:{base,colors}|null, back:{base,colors}|null}
-  let sym=true, pts=null, calT=DEF_CAL.top, calB=DEF_CAL.bottom;
+  let sym=true, pts=null, calT=DEF_CAL.top, calB=DEF_CAL.bottom, calX=0.5;
   let history=[], selIdx=-1;
   const modal = ()=>document.getElementById('pa-modal');
   const el = id=>document.getElementById(id);
@@ -6603,7 +6603,7 @@ function updatePaSummary(id){
   function firstColorId(){ const c=effectiveColors(paId); return (c[0]||{}).id; }
   function isFirstColor(){ return paColorId===firstColorId(); }
 
-  function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
+  function newSideCfg(){ return { base:{symmetric:true, pts:DEFAULT_HALF.map(p=>p.slice()), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom, calibCx:0.5}, colors:{} }; }
   function migrateSide(s){ if(!s) return null; if(s.base) return s; /* стара плоска форма */ return { base:{symmetric:s.symmetric!==false, pts:(s.pts||DEFAULT_HALF), calibTop:DEF_CAL.top, calibBottom:DEF_CAL.bottom}, colors:{} }; }
   function effCfg(){ const side=data[paSide]; if(!side) return null; return (side.colors&&side.colors[paColorId]) ? side.colors[paColorId] : side.base; }
 
@@ -6611,8 +6611,8 @@ function updatePaSummary(id){
      У пам'яті редактора працюємо з [x,y]. */
   function ptsFrom(arr){ return (arr||[]).map(p=> Array.isArray(p) ? [p[0],p[1]] : [ (p&&p.x)||0, (p&&p.y)||0 ]); }
   function ptsTo(arr){ return (arr||[]).map(p=> ({ x:p[0], y:p[1] }) ); }
-  function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, pts:ptsFrom(c.pts) } : c; }
-  function cfgTo(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, pts:ptsTo(c.pts) } : c; }
+  function cfgFrom(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop!=null?c.calibTop:DEF_CAL.top, calibBottom:c.calibBottom!=null?c.calibBottom:DEF_CAL.bottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsFrom(c.pts) } : c; }
+  function cfgTo(c){ return c ? { symmetric:c.symmetric!==false, calibTop:c.calibTop, calibBottom:c.calibBottom, calibCx:c.calibCx!=null?c.calibCx:0.5, pts:ptsTo(c.pts) } : c; }
   function sideFrom(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgFrom(s.colors[k])); return { base:cfgFrom(s.base), colors }; }
   function sideTo(s){ if(!s) return null; const colors={}; Object.keys(s.colors||{}).forEach(k=>colors[k]=cfgTo(s.colors[k])); return { base:cfgTo(s.base), colors }; }
   function toStore(d){ const out={ scaleSize:d.scaleSize, heightCm:d.heightCm }; Object.keys(d).forEach(k=>{ if(k!=='scaleSize'&&k!=='heightCm'&&d[k]) out[k]=sideTo(d[k]); }); return out; }
@@ -6634,23 +6634,29 @@ function updatePaSummary(id){
     const cfg=effCfg()||newSideCfg().base;
     sym=cfg.symmetric!==false; pts=(cfg.pts||DEFAULT_HALF).map(p=>p.slice());
     calT=cfg.calibTop!=null?cfg.calibTop:DEF_CAL.top; calB=cfg.calibBottom!=null?cfg.calibBottom:DEF_CAL.bottom;
+    calX=cfg.calibCx!=null?cfg.calibCx:0.5;
     history=[]; selIdx=-1; const sc=el('pa-sym'); if(sc) sc.checked=sym;
   }
   function saveWork(){
     if(!data[paSide]) data[paSide]=newSideCfg();
-    const cfg={symmetric:sym, pts:pts.map(p=>p.slice()), calibTop:calT, calibBottom:calB};
+    const cfg={symmetric:sym, pts:pts.map(p=>p.slice()), calibTop:calT, calibBottom:calB, calibCx:calX};
     if(isFirstColor()) data[paSide].base=cfg;
     else { data[paSide].colors=data[paSide].colors||{}; data[paSide].colors[paColorId]=cfg; }
   }
   function colorHasOwn(){ const s=data[paSide]; return !isFirstColor() && s && s.colors && s.colors[paColorId]; }
-  function snapshot(){ history.push(JSON.stringify({pts,calT,calB})); if(history.length>60) history.shift(); }
-  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; render(); } }
+  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX})); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; render(); } }
 
   function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
   function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
   function areaFracOf(poly){ let s=0; for(let i=0;i<poly.length;i++){ const a=poly[i],b=poly[(i+1)%poly.length]; s+=a[0]*b[1]-b[0]*a[1]; } return Math.abs(s)/2; }
 
-  function stageMetrics(){ const img=el('pa-img'); const w=img.clientWidth||400, h=img.clientHeight||500; return {w,h,cx:w/2}; }
+  /* Центральна вісь. Раніше вона стояла рівно посередині кадру — але виріб
+     на фото рідко стоїть точно по центру: худі на застібці зняте боком,
+     шопер зміщений, у частини фото просто нерівні поля. Через це зона
+     нанесення будувалась відносно неправильної середини, і логотип на
+     сайті з'їжджав. Тепер вісь пересувається, а полігон рахується від неї. */
+  function stageMetrics(){ const img=el('pa-img'); const w=img.clientWidth||400, h=img.clientHeight||500; return {w,h,cx:calX*w}; }
   function calHpx(m){ return (calB-calT)*m.h; }
   function toPx(p){ const m=stageMetrics(); const ch=calHpx(m); return [m.cx+p[0]*ch, calT*m.h+p[1]*ch]; }
   function toFracEvt(e){ const svg=el('pa-svg'); const r=svg.getBoundingClientRect(); const m=stageMetrics(); const ux=(e.clientX-r.left)/r.width*m.w, uy=(e.clientY-r.top)/r.height*m.h; const ch=calHpx(m)||1; return [(ux-m.cx)/ch, (uy-calT*m.h)/ch]; }
@@ -6691,6 +6697,10 @@ function updatePaSummary(id){
     let h='';
     // центральна вісь
     h+='<line x1="'+m.cx+'" y1="0" x2="'+m.cx+'" y2="'+m.h+'" stroke="#9aa2b0" stroke-dasharray="5 5" stroke-width="1"/>';
+    // Ручка осі: тягнеться вбік, зона будується вже від нового центра
+    h+='<rect x="'+(m.cx-7)+'" y="'+(m.h*0.5-18)+'" width="14" height="36" rx="6" fill="#4f5fd4" ' +
+       'style="cursor:ew-resize;" data-calx="1"/>';
+    h+='<path d="M'+(m.cx-13)+' '+(m.h*0.5)+' l4 -4 v8 z M'+(m.cx+13)+' '+(m.h*0.5)+' l-4 -4 v8 z" fill="#4f5fd4"/>';
     // калібрувальні лінії висоти
     h+='<line x1="0" y1="'+yT.toFixed(1)+'" x2="'+m.w+'" y2="'+yT.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
     h+='<line x1="0" y1="'+yB.toFixed(1)+'" x2="'+m.w+'" y2="'+yB.toFixed(1)+'" stroke="#12b886" stroke-width="1.5" stroke-dasharray="7 4"/>';
@@ -6704,6 +6714,8 @@ function updatePaSummary(id){
     svg.innerHTML=h;
     svg.querySelectorAll('[data-h]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); selIdx=+c.dataset.h; startDragPoint(+c.dataset.h); render(); }));
     svg.querySelectorAll('[data-cal]').forEach(c=>c.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCal(c.dataset.cal); }));
+    const cxh=svg.querySelector('[data-calx]');
+    if(cxh) cxh.addEventListener('pointerdown',ev=>{ ev.preventDefault(); ev.stopPropagation(); snapshot(); startDragCx(); });
     const contour=svg.querySelector('[data-contour]'); if(contour) contour.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); addPointAt(ev); });
     renderArea();
   }
@@ -6715,6 +6727,18 @@ function updatePaSummary(id){
   }
   function startDragCal(which){
     const move=e=>{ let y=Math.max(0,Math.min(1,evtYFrac(e))); if(which==='top') calT=Math.min(y,calB-0.05); else calB=Math.max(y,calT+0.05); render(); };
+    const up=()=>document.removeEventListener('pointermove',move);
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
+  }
+  /* Вісь ходить у межах кадру, але не впритул до краю: інакше половина
+     полігона опинилась би за межами фото й редагувати стало б нічим. */
+  function startDragCx(){
+    const move=e=>{
+      const svg=el('pa-svg'); const r=svg.getBoundingClientRect();
+      let x=(e.clientX-r.left)/r.width;
+      calX=Math.max(0.15,Math.min(0.85,x));
+      render();
+    };
     const up=()=>document.removeEventListener('pointermove',move);
     document.addEventListener('pointermove',move); document.addEventListener('pointerup',up,{once:true});
   }
