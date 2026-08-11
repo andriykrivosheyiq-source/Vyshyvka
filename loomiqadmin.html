@@ -596,6 +596,9 @@
   .od-crm-link{display:inline-block;margin-top:5px;font-size:12px;color:var(--accent);
     text-decoration:none;font-weight:600;word-break:break-all;}
   .od-crm-msg.mine .od-crm-link{color:#9DB4FF;}
+  /* Помітка «фото / голосове»: сам файл лишився в Telegram */
+  .od-crm-kind{font-size:11.5px;font-style:italic;color:var(--ink-soft);}
+  .od-crm-msg.mine .od-crm-kind{color:rgba(255,255,255,.7);}
   .od-crm-at{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
   .od-crm-msg.mine .od-crm-at{color:rgba(255,255,255,.55);}
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
@@ -1631,6 +1634,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="sub" style="margin:6px 0 12px;">Адреса Worker-проксі до Sitniks (див. <code>worker/README.md</code>). Тоді в картці Канбану зʼявиться блок «Діалог з клієнтом»: підтягне переписку за номером замовлення в Sitniks і дасть відповісти, не виходячи з адмінки. <b>Ключ Sitniks сюди НЕ вставляти</b> — він лише в секретах Worker.</div>
           <input id="crmapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-sitniks.ВАШ-АКАУНТ.workers.dev">
           <button class="pc-btn up" id="crmapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Telegram — діалог у картці Канбану</b>
+          <div class="sub" style="margin:6px 0 12px;">Адреса воркера вебхука Telegram (<code>worker/telegram-webhook.js</code>). Звернення з бота вже стають картками; з цією адресою в картці зʼявиться сама переписка й поле відповіді. <b>Токен бота сюди НЕ вставляти</b> — він лише в секретах Worker. У воркері має бути змінна <code>FIREBASE_API_KEY</code>, інакше відповідь не надсилатиметься.</div>
+          <input id="tgapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-tg.ВАШ-АКАУНТ.workers.dev">
+          <button class="pc-btn up" id="tgapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
         </div>
 
         <div class="card" style="max-width:640px;">
@@ -5729,6 +5739,7 @@ function closeOrderDrawer(){
   if(d) d.classList.remove('open');
   drawerOrderId = null;
   if(typeof crmStopPoll === 'function') crmStopPoll();
+  if(typeof tgUnwatch === 'function') tgUnwatch();
 }
 async function openOrderDrawer(o){
   drawerOrderId = o.id;
@@ -5742,6 +5753,7 @@ async function openOrderDrawer(o){
   const d = orderDrawerEl();
   d.classList.add('open');
   renderOrderDrawer();
+  if(tgChatOf(o)) tgWatch(o);   // жива підписка лише на відкриту картку
   renderBoard();
 }
 function renderOrderDrawer(){
@@ -5802,6 +5814,8 @@ function renderOrderDrawer(){
 
       ${orderBuyHtml(o) ? '<div class="od-sec">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
 
+      ${tgChatOf(o) ? '<div class="od-sec">Діалог у Telegram</div>' + tgBlockHtml(o) : ''}
+
       <div class="od-sec">Діалог з клієнтом (Sitniks)</div>
       ${crmBlockHtml(o)}
 
@@ -5855,6 +5869,147 @@ function renderOrderDrawer(){
     });
   });
   wireCrmBlock(panel, o);
+  wireTgBlock(panel, o);
+}
+
+/* ============================================================
+   TELEGRAM — діалог просто в картці Канбану
+
+   Звернення з бота вже ставали картками, але всередині картки не було
+   найголовнішого — самої розмови. Менеджер відкривав картку, бачив «Звернення
+   з Telegram · 4 повідомл.» і йшов читати їх в іншому застосунку; половина
+   сенсу картки на цьому губилась.
+
+   Тепер повідомлення пише той самий воркер вебхука (worker/telegram-webhook.js)
+   в an_tg/{чат}/msgs, а звідси вони читаються живою підпискою — без опитувань
+   і без затримки. Відповідь іде назад через /send того ж воркера: токен бота
+   в браузер не потрапляє ніколи, а право написати підтверджується входом
+   у Firebase.
+
+   Чого тут НЕ буде, і це важливо розуміти: повідомлень, які бот або менеджер
+   надіслали повз нас — із SendPulse чи з самого Telegram. Через вебхук
+   проходить лише те, що пише КЛІЄНТ, і те, що надсилаємо ми звідси.
+   ============================================================ */
+function tgBase(){
+  const u = ((contentData || {}).bgApi || {}).tgUrl || '';
+  return String(u).replace(/\/+$/, '');
+}
+// Картка звернення з Telegram зберігає ідентифікатор чату у webId («tg:123»).
+function tgChatOf(o){
+  const w = String((o && o.webId) || '');
+  return w.slice(0, 3) === 'tg:' ? w.slice(3) : '';
+}
+let tgChat = {};      // orderId → { msgs, draft, err, loading }
+let tgUnsub = null;   // жива підписка активної картки
+
+function tgBlockHtml(o){
+  const chat = tgChatOf(o);
+  if(!chat) return '';
+  const st = tgChat[o.id] || {};
+  const wrap = inner => `<div class="od-crm">${inner}</div>`;
+  let feed;
+  if(st.err) feed = `<div class="od-crm-err">${escapeHtml(st.err)}</div>`;
+  else if(st.loading) feed = `<div class="od-empty">Завантажуємо…</div>`;
+  else if(!(st.msgs || []).length)
+    feed = `<div class="od-empty">Повідомлень ще немає. Тут зʼявляється те, що пише клієнт боту.</div>`;
+  else {
+    let lastDay = '';
+    feed = `<div class="od-crm-feed">` + st.msgs.map(m=>{
+      const day = (m.at || '').slice(0, 10);
+      let sep = '';
+      if(day && day !== lastDay){ lastDay = day; sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`; }
+      const time = (m.at || '').slice(11, 16);
+      // Файл лишився в Telegram — показуємо помітку, а не мовчазний порожній
+      // рядок: інакше здається, що клієнт надіслав щось, а воно загубилось.
+      const mark = (m.kind && m.kind !== 'text')
+        ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
+      return sep + `
+        <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
+          ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
+          ${mark}
+          ${time ? `<div class="od-crm-at">${escapeHtml(time)}${m.mine && m.by ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
+        </div>`;
+    }).join('') + `</div>`;
+  }
+  const send = tgBase()
+    ? `<div class="od-crm-send">
+         <textarea class="od-tg-inp" rows="2" placeholder="Відповісти в Telegram…">${escapeHtml(st.draft || '')}</textarea>
+         <button class="od-tg-go" title="Ctrl+Enter">Надіслати</button>
+       </div>`
+    : `<div class="od-crm-note">Щоб відповідати звідси, вкажіть адресу воркера Telegram:
+        Конструктор сайту → «Telegram — діалог у картці».</div>`;
+  const who = (o.instagram || '').trim();
+  return wrap(
+    `<div class="od-crm-bar"><span class="od-crm-who">${escapeHtml(who || 'Telegram')}</span>` +
+    `${(st.msgs || []).length ? `<span class="od-crm-cnt">${st.msgs.length}</span>` : ''}</div>` +
+    feed + send);
+}
+const TG_KIND_UA = { photo:'📷 фото', voice:'🎤 голосове', video:'🎬 відео',
+  doc:'📎 файл', sticker:'стікер', contact:'📇 контакт', location:'📍 локація' };
+
+/* Жива підписка на розмову відкритої картки. Рівно одна: закрили картку —
+   відписались, інакше кожне відкриття лишало б за собою ще один канал. */
+function tgWatch(o){
+  tgUnwatch();
+  const chat = tgChatOf(o);
+  if(!chat || typeof fbDb === 'undefined') return;
+  if(!tgChat[o.id]) tgChat[o.id] = { loading: true };
+  tgUnsub = fbDb.collection('an_tg').doc(chat).collection('msgs').orderBy('at')
+    .limit(300).onSnapshot(function(snap){
+      const msgs = [];
+      snap.forEach(d=>{ const v = d.data() || {}; msgs.push({
+        at: v.at || '', text: v.text || '', kind: v.kind || 'text',
+        mine: !!v.mine, by: v.by || '' }); });
+      const st = tgChat[o.id] || {};
+      st.msgs = msgs; st.loading = false; st.err = null;
+      tgChat[o.id] = st;
+      if(drawerOrderId === o.id) renderOrderDrawer();
+    }, function(e){
+      tgChat[o.id] = Object.assign(tgChat[o.id] || {}, { loading:false,
+        err: 'Не читається переписка: ' + (e && (e.code || e.message) || '') +
+             '. Найчастіше це неопубліковані правила бази.' });
+      if(drawerOrderId === o.id) renderOrderDrawer();
+    });
+}
+function tgUnwatch(){ if(tgUnsub){ try{ tgUnsub(); }catch(e){} tgUnsub = null; } }
+
+async function tgSend(o, text){
+  const chat = tgChatOf(o), body = String(text || '').trim();
+  if(!chat || !body) return;
+  const base = tgBase();
+  if(!base){ toast('Спершу вкажіть адресу воркера Telegram'); return; }
+  let idToken = '';
+  try{ idToken = await fbAuth.currentUser.getIdToken(); }
+  catch(e){ toast('Сесія застаріла — увійдіть ще раз'); return; }
+  try{
+    const r = await fetch(base + '/send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat, text: body, idToken })
+    });
+    const j = await r.json().catch(()=>({}));
+    // Причину показуємо словами: «bot was blocked by the user» менеджеру
+    // пояснює все, а «не надіслалось» — нічого.
+    if(!r.ok || !j.ok){ toast('Не надіслалось: ' + (j.detail || j.error || r.status)); return; }
+    // Стрічку не чіпаємо: воркер записав повідомлення в базу, і підписка
+    // принесе його сама — інакше воно з'явилося б двічі.
+  }catch(e){
+    toast('Не надіслалось: ' + ((e && e.message) || 'немає звʼязку з воркером'));
+  }
+}
+
+function wireTgBlock(panel, o){
+  if(!tgChatOf(o)) return;
+  const feedEl = panel.querySelector('.od-crm-feed');
+  if(feedEl) feedEl.scrollTop = feedEl.scrollHeight;
+  const go = panel.querySelector('.od-tg-go');
+  const inp = panel.querySelector('.od-tg-inp');
+  if(go && inp){
+    inp.addEventListener('input', ()=>{ if(tgChat[o.id]) tgChat[o.id].draft = inp.value; });
+    const send = ()=>{ const t = inp.value; inp.value = '';
+      if(tgChat[o.id]) tgChat[o.id].draft = ''; tgSend(o, t); };
+    go.addEventListener('click', send);
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); });
+  }
 }
 
 /* ============================================================
@@ -6659,6 +6814,7 @@ function renderSiteTab(){
   const bgEl = document.getElementById('bgapi-url'); if(bgEl) bgEl.value = bgApi.proxyUrl || '';
   const aiEl = document.getElementById('aiapi-url'); if(aiEl) aiEl.value = bgApi.geminiUrl || '';
   const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
+  const tgEl = document.getElementById('tgapi-url'); if(tgEl) tgEl.value = bgApi.tgUrl || '';
   const clEl = document.getElementById('clarity-id'); if(clEl) clEl.value = bgApi.clarityId || '';
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
@@ -6719,6 +6875,17 @@ document.getElementById('crmapi-save').addEventListener('click', async ()=>{
   try{
     await PHOTOS_DOC.set({ bgApi: { sitniksUrl: url } }, { merge:true });
     toast(url ? 'Адресу збережено — переписка тягнеться в картку' : 'Очищено — блок діалогу вимкнено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('tgapi-save').addEventListener('click', async ()=>{
+  const url = document.getElementById('tgapi-url').value.trim();
+  if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
+  // Захист від помилки: токен бота не має потрапити в базу (він лише в секретах Worker)
+  if(/[?&:]?\d{8,}:[A-Za-z0-9_-]{20,}/.test(url) || /[?&](api[_-]?key|key|token)=/i.test(url)){
+    toast('Не вставляйте токен у посилання — лише адресу Worker'); return; }
+  try{
+    await PHOTOS_DOC.set({ bgApi: { tgUrl: url } }, { merge:true });
+    toast(url ? 'Адресу збережено — діалог Telegram у картці' : 'Очищено — відповідати з картки не можна');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 document.getElementById('clarity-save').addEventListener('click', async ()=>{

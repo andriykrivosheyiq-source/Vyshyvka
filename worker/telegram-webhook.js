@@ -1,5 +1,5 @@
 /**
- * Telegram → аналітика.
+ * Telegram → аналітика і Канбан.
  *
  * Проблема, яку це вирішує. Людина клікає «Написати в Telegram» — і зникає.
  * Далі вона пише боту, менеджер домовляється, замовлення оформлюється руками.
@@ -10,20 +10,38 @@
  * Telegram передає цей рядок боту першим повідомленням — бот повертає його
  * сюди, і в адмінці діалог зшивається з візитом за тією ж міткою.
  *
- * Що НЕ зберігаємо: тексти листування. Тільки хто, коли і скільки разів
- * написав — цього достатньо для оцінки реклами, а переписка лишається
- * там, де їй і місце.
+ * Переписка. Спочатку воркер тексти НЕ зберігав — рахував лише дотики. Тепер
+ * зберігає: звернення з Telegram стають картками Канбану, і картка без самої
+ * розмови марна — менеджер однаково йшов читати її в інший застосунок.
+ * Кожне повідомлення лягає окремим документом у an_tg/{чат}/msgs. Файли —
+ * лише поміткою «фото», «голосове»: посилання Telegram дійсне тільки з
+ * токеном бота, а токен не має жити ніде, крім секретів.
+ *
+ * Відповідь із адмінки — POST /send. Він відкритий в інтернет, тож пускає
+ * лише за дійсним входом у Firebase: адмінка додає свій idToken, воркер
+ * перевіряє його в Google і аж тоді звертається до Telegram. Без ключа
+ * FIREBASE_API_KEY endpoint не працює взагалі — краще мовчазна відмова,
+ * ніж відкритий на весь світ ретранслятор нашого бота.
  *
  * Налаштування (worker/README.md, розділ «Telegram-вебхук»):
  *   TELEGRAM_BOT_TOKEN — секрет, той самий бот, що і для заявок
  *   TG_WEBHOOK_SECRET  — секрет, будь-який довгий випадковий рядок
  *   FIREBASE_PROJECT   — звичайна змінна, ідентифікатор проєкту
+ *   FIREBASE_API_KEY   — звичайна змінна, вебключ проєкту (він і так у коді
+ *                        сторінки). Потрібен лише для перевірки входу в /send.
  */
 
 const FIELDS = 'https://firestore.googleapis.com/v1/projects/';
 
 export default {
   async fetch(request, env, ctx) {
+    const reqUrl = new URL(request.url);
+
+    // Відповідь менеджера з адмінки. Перевіряємо ДО секрету Telegram: цей
+    // запит приходить із браузера, підпису Telegram у нього немає й бути не може.
+    if (reqUrl.pathname === '/send') return handleSend(request, env);
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
     if (request.method !== 'POST') return new Response('ok');
 
     // Адресу вебхука видно у логах Cloudflare, тож самої лише секретної
@@ -88,6 +106,23 @@ export default {
       if (r.ok) prev = parseDoc(await r.json());
     } catch { /* немає — створимо */ }
 
+    /* Що саме прийшло. Файл сам по собі не зберігаємо: пряме посилання
+       Telegram дійсне лише разом із токеном бота, а токен живе тільки в
+       секретах. Тому в стрічці буде помітка й підпис — менеджер бачить, що
+       фото є, і відкриває його в Telegram. */
+    const kind = msg.photo ? 'photo'
+      : msg.voice ? 'voice'
+      : msg.video || msg.video_note ? 'video'
+      : msg.document ? 'doc'
+      : msg.sticker ? 'sticker'
+      : msg.contact ? 'contact'
+      : msg.location ? 'location'
+      : 'text';
+    // «/start v…» — це технічна мітка з посилання, а не слова людини.
+    // У стрічці менеджера їй робити нічого.
+    const isStart = /^\/start(\s|$)/i.test(text);
+    const body = isStart ? '' : (text || String(msg.caption || ''));
+
     const doc = {
       vid: vid || (prev && prev.vid) || '',
       uid: String(msg.from.id),
@@ -96,6 +131,7 @@ export default {
       at: (prev && prev.at) || now.toISOString(),
       day: (prev && prev.day) || day,
       lastAt: now.toISOString(),
+      last: (body || (isStart ? 'почав діалог' : KIND_UA[kind]) || '').slice(0, 80),
       msgs: Math.min(9999, ((prev && +prev.msgs) || 0) + 1),
     };
 
@@ -109,13 +145,20 @@ export default {
         body: JSON.stringify({ fields: toFields(doc) }),
       });
       if (!w.ok) {
-        const body = await w.text().catch(() => '');
-        console.log('an_tg: база відхилила запис', w.status, body.slice(0, 400));
+        const errText = await w.text().catch(() => '');
+        console.log('an_tg: база відхилила запис', w.status, errText.slice(0, 400));
       } else {
         console.log('an_tg: записано', chatId, doc.vid ? 'мітка ' + doc.vid : 'без мітки');
       }
     } catch (e) {
       console.log('an_tg: не достукались до бази', String(e).slice(0, 200));
+    }
+
+    // Саме повідомлення — окремим документом. Окремим, а не полем-масивом:
+    // масив довелось би щоразу перечитувати цілком, а два повідомлення
+    // підряд затирали б одне одного.
+    if (!isStart) {
+      await saveMsg(env, chatId, { at: now.toISOString(), text: body, kind, mine: false });
     }
 
     // Перше повідомлення з міткою вітаємо, щоб людина не дивилась у порожній
@@ -140,6 +183,124 @@ export default {
 
 function ok() { return new Response('ok'); }
 
+/* Заголовки для браузера. Ключів тут немає: право написати дає idToken у тілі
+   запиту, а не сам факт звернення, тож обмежувати джерело нічого не додає. */
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
+const KIND_UA = {
+  photo: '📷 фото', voice: '🎤 голосове', video: '🎬 відео',
+  doc: '📎 файл', sticker: 'стікер', contact: '📇 контакт', location: '📍 локація',
+};
+
+function jsonRes(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: Object.assign({ 'Content-Type': 'application/json' }, CORS),
+  });
+}
+
+/* POST /send {chat, text, idToken} — відповідь менеджера з адмінки.
+   Порядок навмисний: спершу перевірка входу, потім Telegram, і лише потім
+   запис. Якщо Telegram відмовив (людина заблокувала бота), у стрічці не
+   зʼявиться повідомлення, якого клієнт не отримував. */
+async function handleSend(request, env) {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+  if (request.method !== 'POST') return jsonRes({ error: 'method' }, 405);
+
+  if (!env.TELEGRAM_BOT_TOKEN) return jsonRes({ error: 'no-bot-token' }, 500);
+  // Без ключа перевірити вхід нічим — відмовляємо. Інакше це був би
+  // відкритий ретранслятор: будь-хто писав би нашим ботом кому завгодно.
+  if (!env.FIREBASE_API_KEY) return jsonRes({ error: 'not-configured' }, 500);
+
+  let body;
+  try { body = await request.json(); } catch { return jsonRes({ error: 'bad-json' }, 400); }
+
+  const chat = String(body.chat || '').trim();
+  const text = String(body.text || '').trim().slice(0, 3500);
+  const idToken = String(body.idToken || '');
+  if (!/^-?\d{3,20}$/.test(chat)) return jsonRes({ error: 'bad-chat' }, 400);
+  if (!text) return jsonRes({ error: 'empty' }, 400);
+  if (!idToken) return jsonRes({ error: 'no-auth' }, 401);
+
+  let who = '';
+  try {
+    const v = await fetch(
+      'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + env.FIREBASE_API_KEY,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }) });
+    if (!v.ok) return jsonRes({ error: 'auth-failed' }, 401);
+    const j = await v.json();
+    who = (j.users && j.users[0] && (j.users[0].email || j.users[0].localId)) || '';
+    if (!who) return jsonRes({ error: 'auth-failed' }, 401);
+  } catch (e) {
+    return jsonRes({ error: 'auth-unreachable', detail: String(e).slice(0, 120) }, 502);
+  }
+
+  let tg;
+  try {
+    tg = await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text }),
+    });
+  } catch (e) {
+    return jsonRes({ error: 'telegram-unreachable', detail: String(e).slice(0, 120) }, 502);
+  }
+  const tgBody = await tg.json().catch(() => ({}));
+  if (!tg.ok || !tgBody.ok) {
+    // Текст Telegram лишаємо як є: «bot was blocked by the user» пояснює
+    // менеджеру ситуацію, а «помилка надсилання» — ні.
+    return jsonRes({ error: 'telegram', detail: String(tgBody.description || tg.status).slice(0, 200) }, 502);
+  }
+
+  const at = new Date().toISOString();
+  await saveMsg(env, chat, { at, text, kind: 'text', mine: true, by: who.slice(0, 60) });
+  await patchDoc(env, 'an_tg/' + encodeURIComponent(chat),
+                 { lastAt: at, last: ('Ви: ' + text).slice(0, 80) });
+  return jsonRes({ ok: true, at });
+}
+
+/* Одне повідомлення = один документ в an_tg/{чат}/msgs. Ідентифікатор —
+   час у мілісекундах плюс хвіст: два повідомлення в одну мілісекунду не
+   мають затирати одне одного, а сортуємо ми все одно за полем at. */
+async function saveMsg(env, chatId, m) {
+  const project = env.FIREBASE_PROJECT || 'loomiq-admin';
+  const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  const url = FIELDS + project + '/databases/(default)/documents/an_tg/' +
+              encodeURIComponent(chatId) + '/msgs?documentId=' + id;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: toFields(m) }),
+    });
+    if (!r.ok) {
+      const b = await r.text().catch(() => '');
+      console.log('msgs: база відхилила запис', r.status, b.slice(0, 300));
+    }
+  } catch (e) {
+    console.log('msgs: не достукались до бази', String(e).slice(0, 200));
+  }
+}
+
+// Точкове оновлення полів документа — решта полів лишається як була.
+async function patchDoc(env, path, fields) {
+  const project = env.FIREBASE_PROJECT || 'loomiq-admin';
+  const mask = Object.keys(fields).map(k => 'updateMask.fieldPaths=' + k).join('&');
+  try {
+    await fetch(FIELDS + project + '/databases/(default)/documents/' + path + '?' + mask, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: toFields(fields) }),
+    });
+  } catch (e) {
+    console.log('patch: не достукались до бази', String(e).slice(0, 200));
+  }
+}
+
 function kyivDay(d) {
   try { return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Kyiv' }); }
   catch { return d.toISOString().slice(0, 10); }
@@ -150,7 +311,9 @@ function toFields(o) {
   const f = {};
   for (const k of Object.keys(o)) {
     const v = o[k];
-    f[k] = typeof v === 'number' ? { integerValue: String(v) } : { stringValue: String(v) };
+    f[k] = typeof v === 'number' ? { integerValue: String(v) }
+         : typeof v === 'boolean' ? { booleanValue: v }
+         : { stringValue: String(v) };
   }
   return f;
 }
