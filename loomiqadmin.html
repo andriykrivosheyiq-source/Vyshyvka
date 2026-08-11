@@ -1314,6 +1314,25 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             </div>
           </section>
 
+          <!-- Підрядник і розділи -->
+          <section class="prod-sec">
+            <div class="prod-sec-h">Підрядник і розділи каталогу</div>
+            <div style="margin-bottom:16px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">У кого замовляємо цей товар</span>
+              <div class="sup-pick">
+                <select id="info-sup"></select>
+                <button type="button" id="info-sup-new">+ новий підрядник</button>
+              </div>
+              <div class="sub" style="margin-top:6px;">Один товар — один підрядник; усі його кольори йдуть за ним. Клієнт цього не бачить, це видно лише в картці замовлення.</div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Розділи каталогу — де показувати цей товар</span>
+              <div id="info-sections" class="sec-picks"></div>
+              <div class="sub" style="margin-top:6px;">Нічого не позначено — товар видно в «Усіх товарах», але в жодному розділі. Можна позначити кілька.</div>
+            </div>
+            <button class="pc-btn up" id="sup-sec-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+          </section>
+
           <!-- Назва й опис -->
           <section class="prod-sec">
             <div class="prod-sec-h">Назва, опис і характеристики</div>
@@ -1325,19 +1344,6 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Опис (вкладка «Про товар»)</span>
               <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
             </label>
-            <div style="margin-bottom:14px;">
-              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Підрядник — у кого замовляємо цей товар</span>
-              <div class="sup-pick">
-                <select id="info-sup"></select>
-                <button type="button" id="info-sup-new">+ новий</button>
-              </div>
-              <div class="sub" style="margin-top:6px;">Один товар — один підрядник; усі його кольори йдуть за ним. Клієнт цього не бачить.</div>
-            </div>
-            <div style="margin-bottom:14px;">
-              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Розділи каталогу — де показувати цей товар</span>
-              <div id="info-sections" class="sec-picks"></div>
-              <div class="sub" style="margin-top:6px;">Нічого не позначено — товар видно в «Усіх товарах», але в жодному розділі. Можна позначити кілька.</div>
-            </div>
             <div style="margin-bottom:14px;">
               <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Характеристики (рядки блоку «Про товар»)</span>
               <div id="spec-rows"></div>
@@ -2287,6 +2293,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
     document.getElementById('view-photos').style.display    = view==='photos'    ? 'block':'none';
+    const vSup = document.getElementById('view-suppliers'); if(vSup) vSup.style.display = view==='suppliers' ? 'block':'none';
     const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
     const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика'};
@@ -7313,6 +7320,24 @@ async function supAdd(name, url){
   }catch(e){ console.error(e); toast('Помилка'); return null; }
 }
 
+(function wireSupSecSave(){
+  const b = document.getElementById('sup-sec-save');
+  if(!b) return;
+  b.addEventListener('click', async () => {
+    const g = photoCfg(photoGarmentId);
+    const picks = readSecPicks();
+    const supEl = document.getElementById('info-sup');
+    const sup = supEl ? supEl.value : '';
+    try{
+      await PHOTOS_DOC.set({ products: {
+        inSections: { [g.id]: (picks && picks.length) ? picks : firebase.firestore.FieldValue.delete() },
+        supplier:   { [g.id]: sup ? sup : firebase.firestore.FieldValue.delete() }
+      } }, { merge:true });
+      toast('Збережено');
+    }catch(e){ console.error(e); toast('Помилка збереження'); }
+  });
+})();
+
 (function wireSupPick(){
   const b = document.getElementById('info-sup-new');
   if(!b) return;
@@ -7892,6 +7917,10 @@ async function init(){
     const typing0 = a0 && (a0.tagName==='INPUT'||a0.tagName==='TEXTAREA');
     const sv0 = document.getElementById('view-settings');
     if(sv0 && sv0.style.display!=='none' && !typing0) paintSitePricing();
+    // Довідник підрядників редагується просто в списку — після збереження
+    // він має оновитись сам, а не після переходу в інший розділ і назад.
+    const sup0 = document.getElementById('view-suppliers');
+    if(sup0 && sup0.style.display!=='none' && !typing0 && typeof renderSuppliers==='function') renderSuppliers();
     const pv = document.getElementById('view-photos');
     if(!pv || pv.style.display==='none') return;
     const a = document.activeElement;
