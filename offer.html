@@ -183,9 +183,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .psum{margin-top:9px; font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
   .psum b{color:var(--ink); font-size:16px; font-weight:800;}
   /* Кнопка замість галочки: дія має виглядати як дія */
-  .pcard-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px;
-    flex-wrap:wrap;}
-  .pcard-head .pcard-meta{text-align:right;}
+  .pcard-head{display:block;}
+  .pcard-head .pcard-meta{margin-top:2px;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
   .pbuy-row .pstep{margin-top:0; flex:none;}
   .pbuy-row .pbuy{margin-top:0; flex:1;}
@@ -736,12 +735,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border-radius:999px; padding:3px 9px; font-size:11px; font-weight:700; color:var(--ink-2);}
   .specs{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
     gap:8px; margin-bottom:18px;}
-  .spec{display:flex; flex-direction:column; gap:3px; padding:11px 12px;
-    border-radius:12px; background:var(--soft);}
+  .spec{display:grid; grid-template-columns:auto 1fr; gap:2px 7px; padding:10px 12px;
+    border-radius:12px; background:var(--soft); align-items:center;}
   .spec-ic{color:var(--muted); line-height:0;}
   .spec-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted);}
-  .spec-v{font-size:14.5px; font-weight:700;}
+    text-transform:uppercase; color:var(--muted); align-self:center;}
+  .spec-v{grid-column:2; font-size:14.5px; font-weight:600;}
   .price-box{background:var(--soft); border-radius:14px; padding:16px 18px;}
   .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .pb-row + .pb-row{margin-top:8px;}
@@ -1165,14 +1164,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         
         '<div class="pseg">' + list.map(function(p){
           return '<button class="pseg-b' + (p.id === cur.id ? ' on' : '') + '" ' +
-                   'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '">' +
+                   'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '" ' +
+                   (p.note ? 'title="' + esc(p.note) + '"' : '') + '>' +
             esc(p.name) + '</button>';
         }).join('') + '</div>' +
-        /* Що саме входить у пакет — словами. Раніше ми покладались на макет:
-           мовляв, видно й так. Не видно: різниця між «вишивка на грудях» і
-           «вишивка на грудях + спині» на дрібному фото не читається, а це
-           рівно те, за що людина доплачує. */
-        (cur.note ? '<div class="pseg-note">' + TICK_SM + esc(cur.note) + '</div>' : '') +
       '</div>';
   }
 
@@ -1412,6 +1407,48 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      цього досить, щоб зрозуміти: стрічку можна гортати.
 
      Знімки лишаються клікабельними: клік відкриває на весь екран. */
+  /* Колір рамки береться з самої світлини.
+     Фон у фото буває який завгодно: одні зняті на білому, інші на сірому —
+     і будь-яка наша фіксована підкладка давала смуги над і під знімком.
+     Тому колір не вгадуємо: після завантаження читаємо кути картинки й
+     фарбуємо рамку рівно в той самий відтінок. Стик стає непомітним.
+
+     Якщо картинка з чужого домену й полотно «отруєне» — просто лишаємо біле:
+     краще рівний білий, ніж помилка в консолі. */
+  function frameTint(img){
+    if(!img || img.dataset.tinted) return;
+    img.dataset.tinted = '1';
+    var go = function(){
+      try{
+        var c = document.createElement('canvas'), n = 12;
+        c.width = n; c.height = n;
+        var g = c.getContext('2d');
+        g.drawImage(img, 0, 0, n, n);
+        var d = g.getImageData(0, 0, n, n).data;
+        // Беремо рамку в один піксель по периметру — там майже завжди фон
+        var pts = [], i, x, y;
+        for(x = 0; x < n; x++){ pts.push([x, 0], [x, n - 1]); }
+        for(y = 1; y < n - 1; y++){ pts.push([0, y], [n - 1, y]); }
+        var rs = [], gs = [], bs = [];
+        pts.forEach(function(p){
+          i = (p[1] * n + p[0]) * 4;
+          if(d[i + 3] < 200) return;      // прозорий край — не колір
+          rs.push(d[i]); gs.push(d[i + 1]); bs.push(d[i + 2]);
+        });
+        if(rs.length < 8) return;
+        var mid = function(a){ a.sort(function(x, y){ return x - y; }); return a[a.length >> 1]; };
+        var r = mid(rs), gg = mid(gs), b = mid(bs);
+        // Строкатий край означає, що виріб торкається країв — тоді не фарбуємо
+        if(Math.max(r, gg, b) - Math.min(r, gg, b) > 26) return;
+        if(img.parentNode) img.parentNode.style.background = 'rgb(' + r + ',' + gg + ',' + b + ')';
+      }catch(e){ /* полотно з чужого домену — лишаємо як є */ }
+    };
+    if(img.complete && img.naturalWidth) go();
+    else img.addEventListener('load', go, { once:true });
+  }
+  function tintAll(){
+    document.querySelectorAll('.pgal-i img, .rc-ph img').forEach(frameTint);
+  }
   function galleryHtml(it, idx){
     var m = (it.mockups || []).filter(Boolean);
     if(!m.length) return '';
@@ -1543,7 +1580,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '<span class="pcard-off">−' +
                   Math.round((1 - st.sum / st.base) * 100) + '%</span>'
               : '') +
-            '<span class="pcard-per">за штуку</span>' +
           '</div>' +
         '</div>' +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
@@ -1579,8 +1615,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
-                '<div class="pcard-meta">' +
-                  [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
+                (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
               '</div>' +
             '</div>' +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
@@ -2026,7 +2061,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           /* Посилання лише тоді, коли в бренду є сайт: вести клієнта Stvory
              на чужий домен гірше, ніж не показати рядок узагалі. */
           (brand().site
-            ? '<a class="rev-all" href="' + esc(brand().site.replace(/\/+$/, '')) + '/#reviews" target="_blank" rel="noopener">' +
+            ? '<a class="rev-all" href="' + esc(brand().site.replace(/\/+$/, '')) + '/?start=reviews" target="_blank" rel="noopener">' +
                 'Усі відгуки ›</a>'
             : '') +
         '</div>' +
@@ -2666,6 +2701,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   function wire(){
+    tintAll();   // рамки фото беруть колір із самих світлин
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
       var t = document.getElementById('offerStart') || document.getElementById('estimate');

@@ -5688,6 +5688,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
+  /* ?start=reviews — одразу відкриваємо ПОВНИЙ список відгуків.
+     Із комерційної пропозиції ведуть саме сюди: посилання на #reviews кидало
+     людину на стрічку «Що кажуть наші клієнти» — три картки боком, — а вона
+     йшла читати всі відгуки й оцінку. */
+  if(/[?&]start=reviews\b/.test(location.search)){
+    setTimeout(function(){ try{ reviewsModalCtrl.open(); }catch(e){} }, 250);
+  }
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');
 
 
