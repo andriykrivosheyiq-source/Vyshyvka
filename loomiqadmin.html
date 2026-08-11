@@ -626,6 +626,14 @@
     background:#fff;color:var(--ink);font-family:inherit;min-width:0;}
   .od-f:focus{outline:none;border-color:var(--accent);}
   .od-due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  /* Слід відвідувача: канал і мітка пристрою для пошуку запису екрана */
+  .od-trace{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;}
+  .od-trace-ch{font-size:11.5px;font-weight:700;color:#1668c4;background:#F4F8FE;
+    border:1px solid #D9E2F0;border-radius:7px;padding:3px 8px;}
+  .od-trace-vid{font:inherit;font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+    background:var(--canvas);border:1px solid var(--line);border-radius:7px;
+    padding:3px 8px;cursor:pointer;}
+  .od-trace-vid:hover{color:var(--ink);background:#fff;}
   .od-due-lab{font-size:11.5px;color:var(--ink-soft);}
   .od-due-inp{width:auto;font-family:var(--mono);}
   .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
@@ -5179,6 +5187,23 @@ const ORDER_SITE_INFO = {
   horeca: { label:'HoReCa',      url:'https://loomiq.net/horeca/' },
   build:  { label:'Будівництво', url:'https://loomiq.net/build/' }
 };
+/* Слід відвідувача: канал і мітка пристрою.
+   Мітка потрібна, щоб знайти ЗАПИС ЕКРАНА цієї людини в Clarity — там вона
+   лежить у полі lq_vid. Без неї доводилось перебирати сеанси за часом і
+   вгадувати, який із них наш. Клік копіює: у Clarity її просто вставляють
+   у фільтр за користувацькою міткою. */
+function anTraceHtml(o){
+  const an = o && o.an;
+  const vid = an && (an.vid || (an.an && an.an.vid));
+  const ch = (window.lqChannel && window.lqChannel.label(an)) || '';
+  if(!vid && !ch) return '';
+  return `<div class="od-trace">
+    ${ch ? `<span class="od-trace-ch">${escapeHtml(ch)}</span>` : ''}
+    ${vid ? `<button class="od-trace-vid" data-vid="${escapeHtml(vid)}"
+        title="Мітка пристрою. Клік — копіювати, щоб знайти запис екрана в Clarity (фільтр lq_vid)">
+        мітка ${escapeHtml(vid)}</button>` : ''}
+  </div>`;
+}
 function siteLinkHtml(o){
   const si = ORDER_SITE_INFO[o.site || 'main'];
   if(!si) return '';
@@ -5907,6 +5932,7 @@ function renderOrderDrawer(){
         ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено на ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : 'лишилось ' + due.days + ' дн')}</span>` : ''}
         ${siteLinkHtml(o)}
       </div>
+      ${anTraceHtml(o)}
 
       <div class="od-sec">Склад замовлення</div>
       <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
@@ -5979,6 +6005,14 @@ function renderOrderDrawer(){
         () => toast('Скопійовано — можна вставляти підряднику'),
         () => window.prompt('Скопіюйте вручну:', b.dataset.buy));
     });
+  });
+  const vidBtn = panel.querySelector('.od-trace-vid');
+  if(vidBtn) vidBtn.addEventListener('click', ()=>{
+    const v = vidBtn.dataset.vid;
+    const done = ()=> toast('Мітка скопійована — вставте у фільтр lq_vid у Clarity');
+    if(navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(v).then(done, ()=> window.prompt('Скопіюйте вручну:', v));
+    else window.prompt('Скопіюйте вручну:', v);
   });
   wireCrmBlock(panel, o);
   wireTgBlock(panel, o);
