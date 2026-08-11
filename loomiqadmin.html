@@ -4660,6 +4660,19 @@ function offerTiers(order, itemIdx){
   }
   return rows;
 }
+/* Характеристики конкретного виробу. Беремо ті, що менеджер задав у картці
+   товару; якщо не задавав — стандартні, ті самі, що показує сайт. Порожній
+   список краще за вигаданий: у пропозиції «100% бавовна» на поліестері
+   коштує дорожче за будь-який гарний рядок. */
+function itemSpecs(it){
+  const gid = it && it.garmentId;
+  const custom = gid && contentData.specs && contentData.specs[gid];
+  const rows = (custom && custom.length) ? custom : null;
+  if(!rows) return [];
+  return rows.filter(r => r && r.label && r.value)
+             .slice(0, 6)
+             .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 80) }));
+}
 function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
@@ -4674,6 +4687,11 @@ function offerItem(it, order, itemIdx){
       widthMm: Math.round(+p.widthMm || 0), heightMm: Math.round(+p.heightMm || 0)
     })),
     mockups: (it.mockups || []).slice(0, 4),
+    /* Характеристики виробу — ті самі, що на сторінці товару сайту
+       (Конструктор → Товари → «Характеристики»). Клієнт у пропозиції питає
+       рівно про це: з чого пошито, яка щільність, який крій. Досі йому
+       доводилось вірити на слово або лізти на сайт. */
+    specs: itemSpecs(it),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
     tiers: offerTiers(order, itemIdx)
