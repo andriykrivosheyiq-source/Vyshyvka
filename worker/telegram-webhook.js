@@ -139,11 +139,18 @@ export default {
       wrote: Math.min(9999, ((prev && +prev.wrote) || 0) + (isStart ? 0 : 1)),
     };
 
-    // Запис міг не пройти — найчастіше через неопубліковані правила бази.
-    // Мовчазна відмова тут коштувала б днів здогадок, тож причину пишемо
-    // в лог воркера: Cloudflare → цей воркер → Observability → Logs.
+    /* Запис міг не пройти — найчастіше через неопубліковані правила бази.
+       Мовчазна відмова тут коштувала б днів здогадок, тож причину пишемо
+       в лог воркера: Cloudflare → цей воркер → Observability → Logs.
+
+       updateMask обовʼязковий. PATCH без нього не «доповнює» документ, а
+       замінює його цілком: усе, чого немає в запиті, Firestore ВИДАЛЯЄ.
+       Через це кожне нове повідомлення стирало позначку kb, яку ставить
+       адмінка, — і картка в Канбані переставала оновлюватись, бо адмінка
+       вважала діалог новим. */
+    const mask = Object.keys(doc).map(k => 'updateMask.fieldPaths=' + k).join('&');
     try {
-      const w = await fetch(url, {
+      const w = await fetch(url + '?' + mask, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: toFields(doc) }),
