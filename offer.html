@@ -318,9 +318,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Темні блоки теж від краю до краю: заокруглена картка серед карток
      виглядала як ще один елемент, а це має бути смуга. */
   /* Секція на всю ширину — без бічних полів сторінки */
-  section.full{padding-left:var(--pad); padding-right:var(--pad);
+  section.full{padding-left:0; padding-right:0;
     margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
-    background:var(--soft); border-top:none;}
+    background:transparent; border-top:none;}
   .band{background:var(--ink); color:#fff; border-radius:0; border:none;
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1);}
   .band .sec-title{color:#fff;}
@@ -483,7 +483,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     aspect-ratio:3/4; overflow:hidden; background:#fff;}
   .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
-  .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;}
+  .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;
+    transform:scale(1.16); transform-origin:center 46%;}
 
 
   /* ── Фото на весь екран ──────────────────────────────────────────────
@@ -632,7 +633,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin-bottom:9px; display:flex; align-items:center; justify-content:center;
     padding:10px; cursor:zoom-in;}
   .rc-ph img{max-width:100%; max-height:100%; width:auto; height:auto;
-    object-fit:contain; display:block;}
+    object-fit:contain; display:block; transform:scale(1.1);}
   .rc-tag{display:inline-block; align-self:flex-start; background:#EEF2FF; color:#4338CA; border-radius:999px;
     padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.3px;
     text-transform:uppercase; margin-bottom:5px;}
@@ -658,7 +659,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc-add svg{display:block;}
 
   /* ══ Кошторис: темний блок, як фінальний документ ══ */
-  .est{background:#14171B; color:#fff; border-radius:22px; padding:22px 18px 20px; margin-top:4px;}
+  .est{background:#14171B; color:#fff; border-radius:0;
+    padding:26px var(--pad) 24px; margin-top:4px;}
   .est-h{font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 0 16px;}
   /* Колонки цифр тримаємо вузькими: на 390px ширший «Ціна за шт» з'їдав назву
      до «Ф…». Назві дозволено переноситись у два рядки — це краще, ніж трикрапка. */
@@ -835,12 +837,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .final{display:grid; gap:10px; padding-bottom:14px;}
   /* Заклик: вузька колонка на власній підкладці. Довгий рядок на всю ширину
      читається найгірше саме там, де має читатися найкраще. */
-  .cta-box{max-width:520px; margin:0 auto; background:var(--soft);
-    border:1px solid var(--line); border-radius:20px; padding:22px 20px 8px;
-    text-align:center;}
-  .cta-box .sec-title{margin-bottom:8px;}
-  .cta-box .sec-sub{margin:0 auto 18px; max-width:40ch;}
-  .cta-box .final{padding-bottom:0;}
+  .cta-box{background:#14171B; color:#fff; border:none; border-radius:0;
+    padding:32px var(--pad) 30px; text-align:center;
+    margin:8px calc(var(--pad) * -1) 0;}
+  .cta-box .sec-title{margin-bottom:8px; color:#fff;}
+  /* Текст усередині лишається вузьким — довгий рядок на всю ширину
+     читається найгірше саме там, де має читатися найкраще. */
+  .cta-box .sec-sub{margin:0 auto 20px; max-width:34ch; color:rgba(255,255,255,.7);}
+  .cta-box .final{padding-bottom:0; max-width:420px; margin:0 auto;}
 
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
@@ -1987,16 +1991,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      не лише в базі — саме тому «схвалених немає», а на сайті вони видно.
      Тут вони служать основою, а все, що менеджер опублікує в адмінці,
      стає попереду них. */
+  var UA_MON = ['січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+  function dateShort(ms){
+    var d = new Date(ms);
+    if(isNaN(d)) return '';
+    return d.getDate() + ' ' + UA_MON[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  var DAY_MS = 24 * 60 * 60 * 1000;
   var SITE_BUILTIN = [
-    { name:"Соф.", date:"4 трав. 2026", rating:5, photo:"images/work-50.webp", text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
-    { name:"Кирило", date:"27 квіт. 2026", rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. Дуже сподобались." },
-    { name:"ShopHopp", date:"11 квіт. 2026", rating:5, photo:"images/work-25.webp", text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
-    { name:"Поліна", date:"7 бер. 2026", rating:5, photo:"images/work-29.webp", text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
-    { name:"Захар", date:"24 лют. 2026", rating:5, photo:"images/work-30.webp", text:"Футболки з лого — друк чіткий, тканина щільна. Рекомендую." },
-    { name:"Босс Бургер", date:"11 лют. 2026", rating:5, photo:"images/work-45.webp", text:"Футболки з великим принтом — друк насичений, не тріснув 🍔" },
-    { name:"Юрій", date:"26 січ. 2026", rating:5, photo:"images/work-43.webp", text:"Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер." },
-    { name:"Владислав", date:"31 груд. 2025", rating:5, photo:"images/work-40.webp", text:"Кепки з вишивкою — рівно, тримають форму. Всім раджу." }
-  ];
+    { name:"Соф.", ago:6, rating:5, photo:"images/work-50.webp", text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
+    { name:"Кирило", ago:13, rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. Дуже сподобались." },
+    { name:"ShopHopp", ago:24, rating:5, photo:"images/work-25.webp", text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
+    { name:"Поліна", ago:38, rating:5, photo:"images/work-29.webp", text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
+    { name:"Захар", ago:52, rating:5, photo:"images/work-30.webp", text:"Футболки з лого — друк чіткий, тканина щільна. Рекомендую." },
+    { name:"Босс Бургер", ago:67, rating:5, photo:"images/work-45.webp", text:"Футболки з великим принтом — друк насичений, не тріснув 🍔" },
+    { name:"Юрій", ago:85, rating:5, photo:"images/work-43.webp", text:"Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер." },
+    { name:"Владислав", ago:104, rating:5, photo:"images/work-40.webp", text:"Кепки з вишивкою — рівно, тримають форму. Всім раджу." }
+  ].map(function(r){
+    var ts = Date.now() - r.ago * DAY_MS;
+    return { name:r.name, rating:r.rating, photo:r.photo, text:r.text, at:ts, date:dateShort(ts) };
+  });
   var SITE_REVIEWS = null;
   function loadReviews(){
     if(!db || SITE_REVIEWS) return;
@@ -2005,11 +2019,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       snap.forEach(function(d){
         var v = d.data() || {};
         if(!v.text) return;
+        var at = (v.createdAt && v.createdAt.toMillis) ? v.createdAt.toMillis() : 0;
         arr.push({ text:String(v.text), name:v.name || '', company:v.company || '',
-                   rating:+v.rating || 0,
-                   at:(v.createdAt && v.createdAt.toMillis) ? v.createdAt.toMillis() : 0 });
+                   rating:+v.rating || 0, photo:v.photo || '',
+                   at:at, date:at ? dateShort(at) : '' });
       });
-      arr.sort(function(a, b){ return (b.rating - a.rating) || (b.at - a.at); });
+      /* Спершу найсвіжіші. Оцінка більше не головний ключ сортування: усі
+         відгуки пʼятизіркові, тож вона нічого не впорядковувала, а нагору
+         випадково потрапляли торішні. */
+      arr.sort(function(a, b){ return b.at - a.at; });
       SITE_REVIEWS = arr.concat(SITE_BUILTIN).slice(0, 8);
       var box = document.getElementById('revsBox');
       if(box && SITE_REVIEWS.length) box.outerHTML = revsInner();
@@ -2026,11 +2044,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   };
   function revsInner(){
     var list = SITE_REVIEWS || SITE_BUILTIN.slice(0, 8);
-    /* Спершу ті, де є фото. Фото реальної роботи — єдиний доказ у цьому
-       блоці, який не можна написати текстом; відгук без нього читається як
-       вигаданий, і якщо такі стоять першими, то й наступні знецінюються. */
+    /* Порядок: спершу свіжі, і серед однаково свіжих — ті, що з фото.
+       Фото реальної роботи — єдиний доказ у цьому блоці, який не можна
+       написати текстом; але торішній відгук угорі знецінює всю добірку. */
     list = list.slice().sort(function(a, b){
-      return (b && b.photo ? 1 : 0) - (a && a.photo ? 1 : 0);
+      var ph = (b && b.photo ? 1 : 0) - (a && a.photo ? 1 : 0);
+      var age = (+(b && b.at) || 0) - (+(a && a.at) || 0);
+      return age || ph;
     });
     if(!list.length) return '<div id="revsBox">' +
       stub('Відгуки', 'Підтягуються з розділу «Відгуки» в адмінці — ті, що позначені як опубліковані.') + '</div>';
@@ -2135,6 +2155,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     return '' +
       '<section class="no-print">' +
+        // Умови — перед рішенням: спершу відповідаємо на «а що як», і лише
+        // потім просимо натиснути.
+        detailsHtml() +
         /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
            екрана рядок виходив задовгим — око губить початок наступного, і
            найважливіший абзац сторінки читається найгірше. */
@@ -2149,8 +2172,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
           '</div>' +
         '</div>' +
-        // Умови — тут, поруч із рішенням, а не в самому низу сторінки
-        detailsHtml() +
       '</section>';
   }
 
@@ -2178,9 +2199,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function mgrStatusHtml(){
     return mgrOnline()
-      ? '<div class="mgr-st on"><span class="mgr-dot"></span>Онлайн — відповім найближчим часом</div>'
-      : '<div class="mgr-st"><span class="mgr-dot"></span>Не в мережі — відповім зранку, після ' +
-        MGR_FROM + ':00</div>';
+      ? '<div class="mgr-st on"><span class="mgr-dot"></span>Менеджер онлайн</div>'
+      : '';
   }
   function mgrHtml(){
     var m = OFFER.manager || {};
