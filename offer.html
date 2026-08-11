@@ -250,6 +250,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted);}
   .mgr-name{font-size:20px; font-weight:800; letter-spacing:-.4px; margin-top:2px;}
   .mgr-phone{font-size:15px; font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums;}
+  /* Статус менеджера. Зелена крапка «дихає» — саме вона й читається як
+     «там жива людина»; поза робочими годинами крапка сіра й не блимає. */
+  .mgr-st{display:flex; align-items:center; gap:7px; margin-top:7px;
+    font-size:12.5px; font-weight:600; color:var(--muted);}
+  .mgr-st .mgr-dot{width:8px; height:8px; border-radius:50%; background:#C3C9D2; flex:none;}
+  .mgr-st.on{color:#0E9F6E;}
+  .mgr-st.on .mgr-dot{background:#0E9F6E; box-shadow:0 0 0 0 rgba(14,159,110,.55);
+    animation:mgrPulse 2.2s infinite;}
+  @keyframes mgrPulse{
+    70%{box-shadow:0 0 0 7px rgba(14,159,110,0);}
+    100%{box-shadow:0 0 0 0 rgba(14,159,110,0);}
+  }
+  @media (prefers-reduced-motion:reduce){ .mgr-st.on .mgr-dot{animation:none;} }
   .mgr-note{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.5;}
   /* Месенджери — кружечками у фірмовому кольорі: їх упізнають за іконкою,
      підпис лише додає ширини. Дзвінок лишається словом — це головна дія. */
@@ -276,6 +289,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rev-head .sec-title{margin-bottom:14px;}
   .rev-all{flex:none; font-size:13.5px; font-weight:700; color:var(--cta-dark);
     text-decoration:none; white-space:nowrap;}
+  .rev-note{flex:none; font-size:12.5px; color:var(--muted); white-space:nowrap;}
+  @media (max-width:479px){ .rev-note{display:none;} }
 
   /* ── Ритм сторінки ─────────────────────────────────────────────────
      Усе на білому робить блоки однаково важливими, і сторінка читається як
@@ -352,8 +367,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid var(--line); border-radius:18px; padding:16px; margin:0;
     display:flex; gap:14px; align-items:flex-start;}
   @media (min-width:640px){ .review-card{flex-basis:44%;} }
-  .review-photo{width:96px; height:144px; border-radius:12px; overflow:hidden;
-    flex:none; background:var(--soft);}
+  /* Відгук із фото — це доказ, а не цитата. Тому фото зверху й на всю
+     ширину картки: смужка 96 px збоку читалась як аватарка, і люди її
+     просто не помічали. Клік відкриває на весь екран. */
+  .review-card.has-ph{flex-direction:column; padding:0; overflow:hidden;}
+  .review-card.has-ph .review-card-main{padding:14px 16px 16px;}
+  .review-photo{width:100%; aspect-ratio:4/3; border-radius:0; overflow:hidden;
+    flex:none; background:var(--soft); cursor:zoom-in;}
   .review-photo img{width:100%; height:100%; object-fit:cover; display:block;}
   .review-card-main{flex:1; min-width:0;}
   .review-card-main h4{font-size:16px; font-weight:700; margin:0;}
@@ -438,42 +458,58 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pshot img{width:100%; height:100%; object-fit:contain; display:block;
     transition:opacity .18s ease; cursor:zoom-in;}
 
+  /* ── Стрічка фото позиції ────────────────────────────────────────────
+     Два кадри в ряд на всю ширину, третій визирає з краю — саме цей край і
+     каже, що стрічку можна гортати. Прокрутка з прилипанням, як у
+     магазинах: палець відпустив — кадр став на місце. */
+  .pgal{display:flex; gap:6px; overflow-x:auto; scroll-snap-type:x mandatory;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    margin:0 -4px; padding:0 4px;}
+  .pgal::-webkit-scrollbar{display:none;}
+  .pgal-i{position:relative; flex:0 0 calc(50% - 3px); scroll-snap-align:start;
+    aspect-ratio:3/4; border-radius:14px; overflow:hidden; background:var(--soft);}
+  .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
+  .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;}
+  /* Підпис ракурсу — на самому кадрі: окремий рядок під фото забирав місце
+     і читався як заголовок наступного блоку. */
+  .pgal-l{position:absolute; left:8px; bottom:8px; background:rgba(255,255,255,.92);
+    border-radius:999px; padding:3px 9px; font-size:11.5px; font-weight:700;
+    color:var(--ink-2); pointer-events:none;}
+
   /* ── Фото на весь екран ──────────────────────────────────────────────
      Макет — головний аргумент пропозиції, а розглянути вишивку на картинці
      в 300 px неможливо. Тут вона на весь екран, з наближенням: колесо або
      щипок, подвійний дотик — швидко наблизити. */
-  .zoom{position:fixed; inset:0; z-index:120; background:rgba(10,13,18,.97);
+  .zoom{position:fixed; inset:0; z-index:120; background:#000;
     display:none; align-items:center; justify-content:center; touch-action:none;
     overscroll-behavior:contain;}
   .zoom.open{display:flex;}
   .zoom img{max-width:100%; max-height:100%; object-fit:contain; display:block;
     transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none;}
-  .zoom-x{position:absolute; top:14px; right:14px; width:42px; height:42px; border:none;
-    border-radius:50%; background:rgba(255,255,255,.14); color:#fff; font-size:22px;
-    line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
-  .zoom-x:hover{background:rgba(255,255,255,.24);}
-  .zoom-hint{position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
-    color:rgba(255,255,255,.75); font-size:12px; letter-spacing:.2px; pointer-events:none;
-    background:rgba(0,0,0,.35); padding:6px 12px; border-radius:999px;}
+  /* Шапка як у галереях магазинів: посередині «1 з 5», праворуч хрестик.
+     Лічильник важливіший за будь-яку підказку — він каже, що є ще фото. */
+  .zoom-top{position:absolute; top:0; left:0; right:0; height:56px; display:flex;
+    align-items:center; justify-content:center; color:#fff; z-index:2;
+    padding:0 8px calc(env(safe-area-inset-top) * 0);}
+  .zoom-count{font-size:14px; font-weight:600; letter-spacing:.2px; opacity:.9;
+    font-variant-numeric:tabular-nums;}
+  .zoom-x{position:absolute; right:6px; top:7px; width:42px; height:42px; border:none;
+    background:none; color:#fff; font-size:26px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; opacity:.85;}
+  .zoom-x:hover{opacity:1;}
+  /* Стрілки — для миші. На телефоні гортають пальцем, і кнопки лише
+     перекривають фото. */
   .zoom-nav{position:absolute; top:50%; transform:translateY(-50%); width:48px; height:64px;
     border:none; background:none; color:#fff; font-size:34px; line-height:1; cursor:pointer;
-    opacity:.65;}
+    opacity:.55; z-index:2;}
   .zoom-nav:hover{opacity:1;}
   .zoom-nav.prev{left:4px;} .zoom-nav.next{right:4px;}
+  @media (max-width:899px){ .zoom-nav{display:none !important;} }
   .pshot img.swap{opacity:0;}
 
   /* Ракурси — рядок вкладок під фото */
   /* Крапки замість підписів: скільки ракурсів і де ти зараз — видно, а
      текст поруч із фото не сперечається з ним за увагу. */
-  /* Ракурси підписані словами. Крапки під фото були тихі, але й німі:
-     клієнт не розумів, що там ще спина, і другий макет часто не бачив
-     узагалі — а саме за нього в дорожчому пакеті й доплачують. */
-  .pviews{display:flex; justify-content:center; flex-wrap:wrap; gap:6px; margin-top:10px;}
-  .pview{padding:6px 12px; border:1px solid var(--line); border-radius:999px;
-    background:#fff; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink-2);
-    cursor:pointer; transition:.15s;}
-  .pview:hover{background:var(--soft);}
-  .pview.on{background:var(--ink); border-color:var(--ink); color:#fff;}
   /* Стрілки — поверх фото, ледь помітні, доки не наводиш */
   .pshot{position:relative;}
   /* Просто стрілка, без кола: на білому фоні кружечок виглядав як наліпка.
@@ -484,7 +520,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pnav:active{color:var(--ink);}
   .pnav[hidden]{display:none;}
   .pnav.prev{left:0;} .pnav.next{right:0;}
-  .pvlabel{display:none;}
 
   /* Примітка — згорнута, щоб не сперечатися з товаром за увагу */
   .pnote-t{display:flex; align-items:center; gap:7px; margin-top:10px; padding:0;
@@ -506,6 +541,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-money{display:flex; align-items:baseline; gap:9px; margin-top:9px; flex-wrap:wrap;}
   .pcard-price{font-size:26px; font-weight:800; letter-spacing:-0.6px;
     font-variant-numeric:tabular-nums; color:var(--ink);}
+  /* Ціна без знижки за тираж — перекресленою поруч, і поруч розмір вигоди.
+     Це не прикраса: клієнт має бачити, що тираж уже здешевив кожну штуку. */
+  .pcard-old{font-size:16px; font-weight:600; color:var(--muted);
+    text-decoration:line-through; font-variant-numeric:tabular-nums;}
+  .pcard-off{font-size:12.5px; font-weight:800; color:#fff; background:var(--cta);
+    border-radius:6px; padding:2px 6px; letter-spacing:.2px;}
   .pcard-per{font-size:13px; color:var(--muted);}
   .pcard-term{font-size:12.5px; color:var(--muted); margin-top:7px;}
 
@@ -782,6 +823,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* ── фінальні дії ── */
   .final{display:grid; gap:10px; padding-bottom:14px;}
+  /* Заклик: вузька колонка на власній підкладці. Довгий рядок на всю ширину
+     читається найгірше саме там, де має читатися найкраще. */
+  .cta-box{max-width:520px; margin:0 auto; background:var(--soft);
+    border:1px solid var(--line); border-radius:20px; padding:22px 20px 8px;
+    text-align:center;}
+  .cta-box .sec-title{margin-bottom:8px;}
+  .cta-box .sec-sub{margin:0 auto 18px; max-width:40ch;}
+  .cta-box .final{padding-bottom:0;}
 
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
@@ -886,12 +935,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <!-- Фото на весь екран -->
-<div class="zoom no-print" id="ovZoom" role="dialog" aria-label="Перегляд макета">
+<div class="zoom no-print" id="ovZoom" role="dialog" aria-label="Перегляд фото">
+  <div class="zoom-top">
+    <span class="zoom-count" id="zoomCount"></span>
+    <button class="zoom-x" id="zoomX" aria-label="Закрити">✕</button>
+  </div>
   <button class="zoom-nav prev" id="zoomPrev" aria-label="Попереднє фото">‹</button>
-  <img id="zoomImg" alt="Макет">
+  <img id="zoomImg" alt="Фото">
   <button class="zoom-nav next" id="zoomNext" aria-label="Наступне фото">›</button>
-  <button class="zoom-x" id="zoomX" aria-label="Закрити">✕</button>
-  <div class="zoom-hint" id="zoomHint">Наблизити — колесо, щипок або подвійний дотик</div>
 </div>
 
 <!-- Підтвердження замовлення -->
@@ -1343,27 +1394,36 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Ракурси — вкладками, а не плитками. Чотири маленькі фото поруч із великим
      конкурують із ним за увагу і роблять картку рябою; підписи ж читаються
      миттєво, а фото лишається одне й головне. */
-  function viewsHtml(it, idx){
-    var m = (it.mockups || []).slice(0, 4);
-    if(m.length < 2) return '';
-    /* Підпис ракурсу. Якщо менеджер не позначив сторону, «Вигляд 2» нічого не
-       каже клієнту — а другий макет майже завжди спина. Далі вже нумеруємо. */
+  /* Галерея позиції: фото стрічкою, по два в кадрі.
+     Раніше було одне фото зі стрілками — і другий ракурс (спина, а саме за
+     неї доплачують у дорожчому пакеті) бачив хіба що той, хто здогадався
+     натиснути стрілку. Тепер видно одразу два, а третє визирає з краю —
+     цього досить, щоб зрозуміти: стрічку можна гортати.
+
+     Знімки лишаються клікабельними: клік відкриває на весь екран. */
+  function galleryHtml(it, idx){
+    var m = (it.mockups || []).filter(Boolean);
+    if(!m.length) return '';
+    var label = viewLabel(it);
+    return '<div class="pgal' + (m.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
+      m.map(function(src, k){
+        return '<div class="pgal-i">' +
+          '<img src="' + esc(src) + '" alt="' + esc(label(k)) + '" ' +
+          (k > 1 ? 'loading="lazy" ' : '') +
+          'onerror="this.parentNode.style.visibility=\'hidden\'">' +
+          (m.length > 1 ? '<span class="pgal-l">' + esc(label(k)) + '</span>' : '') +
+        '</div>';
+      }).join('') + '</div>';
+  }
+  // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку
+  function viewLabel(it){
     var FALLBACK = ['Перед', 'Спина', 'Лівий бік', 'Правий бік'];
-    var label = function(k){
+    return function(k){
       var sd = (it.sides || [])[k];
       if(sd && SIDE_UA[sd.side]) return SIDE_UA[sd.side];
       return FALLBACK[k] || ('Вигляд ' + (k + 1));
     };
-    /* Пігулки «Перед · Спина» тягнули на себе увагу поруч із фото. Галерея
-       зі стрілками й крапками, як на сайті: керування є, але воно тихе. */
-    return '<div class="pvlabel" data-vlabel="' + idx + '">' + esc(label(0)) + '</div>' +
-      '<div class="pviews">' + m.map(function(src, k){
-        return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
-                 'data-src="' + esc(src) + '" data-label="' + esc(label(k)) + '" ' +
-                 'aria-label="' + esc(label(k)) + '">' + esc(label(k)) + '</button>';
-      }).join('') + '</div>';
   }
-
   /* Примітка про кольори й розмір нанесення. Клієнт бачить макет на екрані і
      чекає на 1:1 — а екрани показують колір по-різному, і нанесення
      масштабується під розмір виробу. Сказати це ДО замовлення дешевше, ніж
@@ -1446,8 +1506,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '' +
       '<div class="pqty' + (on ? '' : ' off') + '">' +
         '<div class="prow">' +
+          /* Ціна з перекресленою роздрібною поруч — так само, як у магазинах.
+             «Було» тут не вигадане: це та сама позиція без знижки за тираж,
+             і саме її людина заплатила б, замовивши штуку. Показуємо, лише
+             коли різниця справді є — перекреслення без вигоди дратує. */
           '<div class="prow-l">' +
             '<span class="pcard-price">' + money(st.unit) + '</span>' +
+            (st.qty && st.base > st.sum
+              ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
+                '<span class="pcard-off">−' +
+                  Math.round((1 - st.sum / st.base) * 100) + '%</span>'
+              : '') +
             '<span class="pcard-per">за штуку</span>' +
           '</div>' +
           '<div class="prow-r">' +
@@ -1483,15 +1552,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var main = (it.mockups || [])[0] || '';
           return '<div class="pcard">' +
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
-            '<div class="pshot" data-shot="' + i + '">' + (main
-              ? '<img id="shotImg' + i + '" src="' + esc(main) + '" alt="Макет" ' +
-                'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') +
-              ((it.mockups || []).length > 1
-                ? '<button class="pnav prev" data-nav="' + i + '" data-d="-1" aria-label="Назад">‹</button>' +
-                  '<button class="pnav next" data-nav="' + i + '" data-d="1" aria-label="Далі">›</button>'
-                : '') +
-            '</div>' +
-            viewsHtml(it, i) +
+            galleryHtml(it, i) +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
@@ -1816,12 +1877,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '' +
       '<section class="band">' +
         '<h2 class="sec-title">Гарантії</h2>' +
-        /* Раніше тут стояло «ті самі умови, що й у публічній гарантії на
-           loomiq.net». Клієнт читав це як службову примітку й не розумів,
-           обіцянка це йому чи наша внутрішня довідка. Пишемо прямо: що ми
-           зробимо, якщо щось піде не так. */
-        '<p class="sec-sub">Якщо щось піде не так — ось що ми зробимо. ' +
-          'Ці умови діють для всіх наших замовлень, не тільки для цієї пропозиції.</p>' +
+        /* Підзаголовка тут немає навмисно. Спершу він пояснював, звідки ці
+           умови, потім — що вони означають; і те, й те виявилось переказом
+           самих пунктів. Три рядки нижче говорять за себе. */
         /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
            той самий вигляд, що був у документів і оплати. Галочки в рядок
            виглядали як список справ, а не як зобовʼязання. */
@@ -1910,13 +1968,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   };
   function revsInner(){
     var list = SITE_REVIEWS || SITE_BUILTIN.slice(0, 8);
+    /* Спершу ті, де є фото. Фото реальної роботи — єдиний доказ у цьому
+       блоці, який не можна написати текстом; відгук без нього читається як
+       вигаданий, і якщо такі стоять першими, то й наступні знецінюються. */
+    list = list.slice().sort(function(a, b){
+      return (b && b.photo ? 1 : 0) - (a && a.photo ? 1 : 0);
+    });
     if(!list.length) return '<div id="revsBox">' +
       stub('Відгуки', 'Підтягуються з розділу «Відгуки» в адмінці — ті, що позначені як опубліковані.') + '</div>';
     return '<div id="revsBox">' + list.map(function(r){
       var n = Math.max(0, Math.min(5, Math.round(r.rating || 5)));
-      return '<div class="review-card">' +
-        (r.photo ? '<div class="review-photo"><img src="' + esc(r.photo) + '" alt="" loading="lazy" ' +
-                   'onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
+      return '<div class="review-card' + (r.photo ? ' has-ph' : '') + '">' +
+        (r.photo ? '<div class="review-photo"><img src="' + esc(r.photo) + '" alt="Робота для клієнта" ' +
+                   'loading="lazy" onerror="this.parentNode.style.display=\'none\'"></div>' : '') +
         '<div class="review-card-main">' +
           '<h4>' + esc(r.name || 'Клієнт') + '</h4>' +
           (r.date ? '<span class="review-date">' + esc(r.date) + '</span>' : '') +
@@ -1933,6 +1997,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<section>' +
         '<div class="rev-head">' +
           '<h2 class="sec-title">Відгуки</h2>' +
+          // Кажемо, що на фото — справжні замовлення. Без цього рядка їх
+          // читають як стокові картинки й пропускають.
+          '<span class="rev-note">Фото — з реальних замовлень</span>' +
           /* Посилання лише тоді, коли в бренду є сайт: вести клієнта Stvory
              на чужий домен гірше, ніж не показати рядок узагалі. */
           (brand().site
@@ -2010,14 +2077,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     return '' +
       '<section class="no-print">' +
-        '<h2 class="sec-title">Готові замовити?</h2>' +
-        '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
-          'Виробництво починається лише після вашого підтвердження макета.</p>' +
-        /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
-           привід не вирішувати — а написати менеджеру він може з блоку
-           контактів вище, де для цього є і телефон, і месенджери. */
-        '<div class="final">' +
-          '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
+        /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
+           екрана рядок виходив задовгим — око губить початок наступного, і
+           найважливіший абзац сторінки читається найгірше. */
+        '<div class="cta-box">' +
+          '<h2 class="sec-title">Готові замовити?</h2>' +
+          '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
+            'Виробництво починається лише після вашого підтвердження макета.</p>' +
+          /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
+             привід не вирішувати — а написати менеджеру він може з блоку
+             контактів вище, де для цього є і телефон, і месенджери. */
+          '<div class="final">' +
+            '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
+          '</div>' +
         '</div>' +
         // Умови — тут, поруч із рішенням, а не в самому низу сторінки
         detailsHtml() +
@@ -2027,6 +2099,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Менеджер. Кружечок з літерою не викликає довіри — потрібне обличчя.
      Фото ліворуч великим планом, контакти праворуч, під ними дії. Email
      прибрано: на пропозицію відповідають дзвінком або в месенджері. */
+  /* «Менеджер онлайн» — зелена крапка біля контактів.
+     Обіцяти «відповідаю за 15 хвилин» на сторінці, яку відкриють і о другій
+     ночі, не можна: невиконана обіцянка коштує більше, ніж її відсутність.
+     Тому показуємо просте й правдиве: у робочі години — онлайн, поза ними —
+     коли будемо. Години рахуємо за КИЄВОМ, а не за годинником пристрою:
+     клієнт може дивитися з іншої країни, і тоді статус брехав би.
+
+     MGR_FROM/MGR_TO — 8:00–24:00, як домовились. */
+  var MGR_FROM = 8, MGR_TO = 24;
+  function kyivHour(){
+    try{
+      return +new Intl.DateTimeFormat('uk-UA', { timeZone:'Europe/Kyiv', hour:'numeric',
+        hour12:false }).format(new Date());
+    }catch(e){ return new Date().getHours(); }
+  }
+  function mgrOnline(){
+    var h = kyivHour();
+    return h >= MGR_FROM && h < MGR_TO;
+  }
+  function mgrStatusHtml(){
+    return mgrOnline()
+      ? '<div class="mgr-st on"><span class="mgr-dot"></span>Онлайн — відповім найближчим часом</div>'
+      : '<div class="mgr-st"><span class="mgr-dot"></span>Не в мережі — відповім зранку, після ' +
+        MGR_FROM + ':00</div>';
+  }
   function mgrHtml(){
     var m = OFFER.manager || {};
     var acts = [];
@@ -2048,6 +2145,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="mgr-role">' + esc(m.role || 'Ваш менеджер') + '</div>' +
             '<div class="mgr-name">' + esc(m.name || brand().name) + '</div>' +
             (m.phone ? '<div class="mgr-phone">' + esc(m.phone) + '</div>' : '') +
+            mgrStatusHtml() +
             '<div class="mgr-note">Відповім на будь-які питання щодо замовлення</div>' +
             (acts.length ? '<div class="mgr-acts">' + acts.join('') + '</div>' : '') +
           '</div>' +
@@ -2338,6 +2436,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     ['zoomPrev','zoomNext'].forEach(function(id){
       var b = document.getElementById(id); if(b) b.style.display = nav ? '' : 'none';
     });
+    var cnt = document.getElementById('zoomCount');
+    if(cnt) cnt.textContent = nav ? ((ZM.i + 1) + ' з ' + ZM.list.length) : '';
   }
   function openZoom(list, idx){
     ZM.list = (list || []).filter(Boolean);
@@ -2346,8 +2446,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     e.ov.classList.add('open');
     document.body.style.overflow = 'hidden';
     zoomShow(idx || 0);
-    var hint = document.getElementById('zoomHint');
-    if(hint){ hint.style.opacity = '1'; setTimeout(function(){ hint.style.opacity = '0'; }, 2600); }
   }
   function closeZoom(){
     var e = zoomEls();
@@ -2380,9 +2478,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Перетягування і щипок на одному наборі подій: pointer-події дають і
        мишу, і палець. Двома пальцями — масштаб, одним (коли вже наближено) —
        рух. Подвійний дотик ловимо самі: dblclick на тачскрині не приходить. */
-    var pts = {}, startDist = 0, startS = 1, startMid = null, lastTap = 0;
+    var pts = {}, startDist = 0, startS = 1, startMid = null, lastTap = 0, swipe = null;
     e.ov.addEventListener('pointerdown', function(ev){
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      // Запамʼятовуємо початок, щоб відрізнити гортання від перетягування
+      if(Object.keys(pts).length === 1) swipe = { x: ev.clientX, y: ev.clientY, id: ev.pointerId };
       var ids = Object.keys(pts);
       if(ids.length === 2){
         var a = pts[ids[0]], b = pts[ids[1]];
@@ -2417,16 +2517,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
     });
     ['pointerup','pointercancel','pointerleave'].forEach(function(t){
-      e.ov.addEventListener(t, function(ev){ delete pts[ev.pointerId]; startMid = null; });
+      e.ov.addEventListener(t, function(ev){
+        /* Гортання пальцем — тільки поки фото не наближене: інакше
+           перетягування збільшеної картинки щоразу перекидало б на сусідню.
+           Вертикальний рух ігноруємо: це спроба закрити або просто промах. */
+        if(t === 'pointerup' && swipe && swipe.id === ev.pointerId &&
+           ZM.s <= 1.001 && ZM.list.length > 1){
+          var dx = ev.clientX - swipe.x, dy = ev.clientY - swipe.y;
+          if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) zoomShow(ZM.i + (dx < 0 ? 1 : -1));
+        }
+        if(swipe && swipe.id === ev.pointerId) swipe = null;
+        delete pts[ev.pointerId]; startMid = null;
+      });
     });
 
     /* Що саме відкривати — вирішуємо на кліку по сторінці, а не навішуванням
        обробників: картки перемальовуються, і кожне перемальовування
        залишало б за собою мертві обробники. */
     document.addEventListener('click', function(ev){
-      var img = ev.target.closest && ev.target.closest('.pshot img, .rc-ph img');
+      var img = ev.target.closest && ev.target.closest('.pgal-i img, .pshot img, .rc-ph img, .review-photo img');
       if(!img) return;
-      var shot = img.closest('.pshot');
+      var shot = img.closest('.pgal, .pshot');
       var idxAttr = shot && shot.getAttribute('data-shot');
       if(idxAttr != null){
         var it = OFFER.items[+idxAttr] || {};
@@ -2537,56 +2648,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
       if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
     };
-    /* Зміна ракурсу — з коротким згасанням. Різка підміна кадру читається як
-       збій; 180 мс дають відчуття, що фото саме перегорнулось. Нове фото
-       чекаємо в пам'яті й показуємо тільки коли воно готове, інакше на
-       повільному звʼязку між кадрами блимає порожнеча. */
-    document.querySelectorAll('[data-thumb]').forEach(function(b){
-      b.onclick = function(){
-        var i = b.dataset.thumb, src = b.dataset.src;
-        var big = document.getElementById('shotImg' + i);
-        document.querySelectorAll('[data-thumb="' + i + '"]').forEach(function(x){
-          x.classList.toggle('on', x === b);
-        });
-        syncNav(i);
-        if(!big || big.getAttribute('src') === src) return;
-        var pre = new Image();
-        var show = function(){
-          big.classList.add('swap');
-          setTimeout(function(){ big.src = src; big.classList.remove('swap'); }, 180);
-        };
-        pre.onload = show; pre.onerror = show; pre.src = src;
-      };
-    });
-    /* Підпис ракурсу і доступні напрямки. На першому фото ліва стрілка
-       нічого не робить, на останньому — права; показувати їх означає
-       обіцяти дію, якої немає. */
-    function syncNav(i){
-      var dots = [].slice.call(document.querySelectorAll('[data-thumb="' + i + '"]'));
-      if(!dots.length) return;
-      var cur = dots.findIndex(function(x){ return x.classList.contains('on'); });
-      if(cur < 0) cur = 0;
-      var lab = document.querySelector('[data-vlabel="' + i + '"]');
-      if(lab) lab.textContent = dots[cur].dataset.label || '';
-      var prev = document.querySelector('.pnav.prev[data-nav="' + i + '"]');
-      var next = document.querySelector('.pnav.next[data-nav="' + i + '"]');
-      if(prev) prev.hidden = cur === 0;
-      if(next) next.hidden = cur === dots.length - 1;
-    }
-    document.querySelectorAll('[data-vlabel]').forEach(function(l){ syncNav(l.dataset.vlabel); });
-    // Стрілки галереї — перемикають на сусідній ракурс
-    document.querySelectorAll('[data-nav]').forEach(function(b){
-      b.onclick = function(){
-        var i = b.dataset.nav, d = +b.dataset.d;
-        var dots = [].slice.call(document.querySelectorAll('[data-thumb="' + i + '"]'));
-        if(dots.length < 2) return;
-        var cur = dots.findIndex(function(x){ return x.classList.contains('on'); });
-        if(cur < 0) cur = 0;
-        var next = cur + d;
-        if(next < 0 || next >= dots.length) return;
-        dots[next].click();
-      };
-    });
+    /* Стрілки й крапки-ракурси прибрані разом зі старою галереєю: тепер
+       усі фото позиції видно стрічкою, а гортання робить сам браузер. */
     // Примітка про кольори — розкривається дотиком
     document.querySelectorAll('[data-note]').forEach(function(b){
       b.onclick = function(){
