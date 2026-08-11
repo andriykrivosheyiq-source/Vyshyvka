@@ -680,6 +680,18 @@
 
   /* Товари — сітка карток */
   .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+  .st-row{display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:7px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .st-row.drag{opacity:.45;}
+  .st-grab{cursor:grab;color:var(--ink-soft);flex:none;font-size:15px;line-height:1;user-select:none;}
+  .st-row input[type=text]{flex:1;min-width:110px;font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;}
+  .st-col{display:flex;gap:4px;flex:none;}
+  .st-c{width:19px;height:19px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+  .st-c.on{border-color:var(--ink);}
+  .st-off{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-soft);
+    flex:none;white-space:nowrap;cursor:pointer;}
+  .st-del{all:unset;cursor:pointer;flex:none;color:var(--bad);padding:5px 7px;font-size:15px;}
   .sup-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);}
   .sup-row:last-child{border-bottom:none;}
   .sup-row input{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;}
@@ -1122,6 +1134,21 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>Канбан замовлень</h1>
         <div id="web-orders-state" class="wo-state">Замовлення з сайту: підключаюсь…</div>
         <div class="sub">Натисніть на картку — відкриється склад замовлення, макети, гроші й документи для клієнта.</div>
+        <button class="btn btn-ghost" id="st-toggle" style="margin-top:10px;">Налаштувати етапи</button>
+      </div>
+
+      <div class="card" id="st-card" style="display:none;max-width:640px;">
+        <div class="card-head"><h2>Етапи воронки</h2></div>
+        <div class="sub" style="margin-bottom:12px;">Перетягніть за ручку, щоб змінити порядок. Колір допомагає розрізняти
+          колонки з півпогляду. Позначка «осторонь» — етап є, але стрілками «далі/назад» у нього не потрапиш,
+          лише перетягуванням; так зроблено для «Відмови».</div>
+        <div id="st-list"></div>
+        <div class="sup-add">
+          <input id="st-new" type="text" maxlength="28" placeholder="Назва нового етапу">
+          <button class="pc-btn reset" id="st-add" style="flex:none;padding:9px 16px;">+ Додати</button>
+          <button class="pc-btn up" id="st-save" style="flex:none;padding:9px 18px;">Зберегти</button>
+          <button class="pc-btn reset" id="st-reset" style="flex:none;padding:9px 16px;">Стандартні</button>
+        </div>
       </div>
 
       <div class="card new-order-card" id="new-order-card">
@@ -2234,13 +2261,58 @@ function setStatus(o, key){
   o.hist = (o.hist || []).concat([{ s:key, at:new Date().toISOString() }]).slice(-40);
 }
 
-const STATUSES = [
-  {key:'prorahunok', label:'Прорахунок'},
-  {key:'new', label:'Нове'},
-  {key:'paid', label:'Оплачено'},
-  {key:'production', label:'На виробництві'},
-  {key:'done', label:'Виконано'},
+/* ============================================================
+   ЕТАПИ ВОРОНКИ
+
+   Раніше список був зашитий у код. Але воронка в кожного своя і міняється:
+   комусь потрібен «Погодження макета», комусь «Чекаємо передоплату». Тому
+   етапи редагуються в самому Канбані — назва, порядок, колір.
+
+   Ключ етапу не міняється при перейменуванні: до нього прив'язані картки.
+
+   Етап із позначкою off стоїть осторонь воронки — стрілками «далі/назад»
+   у нього не потрапиш, лише перетягуванням. Це для «Відмови»: вона не
+   наступний крок після «Виконано».
+   ============================================================ */
+const STATUS_DEFAULTS = [
+  {key:'lead',       label:'Звернення',      color:'gray'},
+  {key:'prorahunok', label:'Прорахунок',     color:'blue'},
+  {key:'new',        label:'Нове замовлення',color:'violet'},
+  {key:'paid',       label:'Оплачено',       color:'green'},
+  {key:'production', label:'На виробництві', color:'amber'},
+  {key:'done',       label:'Виконано',       color:'teal'},
+  {key:'cancel',     label:'Відмова',        color:'rose', off:true}
 ];
+const STATUS_COLORS = {
+  gray:   { bg:'#EEF1F6', head:'#5A6A80' },
+  blue:   { bg:'#E8F0FE', head:'#2B5CB8' },
+  violet: { bg:'#F0EAFB', head:'#6B45B8' },
+  green:  { bg:'#E7F6EC', head:'#1E7A45' },
+  amber:  { bg:'#FDF3E0', head:'#8A6A15' },
+  teal:   { bg:'#E4F4F3', head:'#1F6E6A' },
+  rose:   { bg:'#FBEAEC', head:'#A32C3E' }
+};
+const STATUS_COLOR_UA = { gray:'сірий', blue:'синій', violet:'фіолетовий', green:'зелений',
+                          amber:'жовтий', teal:'бірюзовий', rose:'рожевий' };
+let STATUSES = STATUS_DEFAULTS.map(x => Object.assign({}, x));
+/* Стрілки «далі/назад» ходять лише по основній лінії воронки. */
+function statusFlow(){ return STATUSES.filter(s => !s.off); }
+function statusColor(key){
+  const st = STATUSES.filter(s => s.key === key)[0];
+  return STATUS_COLORS[(st && st.color) || 'gray'] || STATUS_COLORS.gray;
+}
+function loadStatuses(){
+  const a = contentData.kanbanStatuses;
+  if(Array.isArray(a) && a.length){
+    STATUSES = a.filter(x => x && x.key).map(x => ({
+      key: String(x.key), label: String(x.label || x.key),
+      color: STATUS_COLORS[x.color] ? x.color : 'gray',
+      off: !!x.off
+    }));
+  } else {
+    STATUSES = STATUS_DEFAULTS.map(x => Object.assign({}, x));
+  }
+}
 
 /* ============================================================
    NAV
@@ -2299,7 +2371,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
-    if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); }
+    if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
     if(view==='settings') paintSitePricing();
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
@@ -3653,7 +3725,162 @@ let webOrdersWatching = false;
    тиждень ніхто не пам'ятав, чи передзвонили. Тепер це така сама картка,
    просто без складу замовлення: телефон, звідки прийшла людина і з якої
    сторінки писала. Менеджер веде її колонками так само, як усе інше. */
+/* Діалоги з Telegram теж стають картками — у першому етапі воронки.
+   Клієнт написав боту, і це вже звернення: далі його або прораховують,
+   або відмовляють. Досі така людина існувала тільки в аналітиці.
+
+   Створюємо одну картку на співрозмовника, не на повідомлення. Позначаємо
+   документ у базі, щоб не завести другу картку на того самого.
+
+   Перший етап беремо не за назвою, а за порядком: менеджер міг назвати
+   його як завгодно. */
+let tgLeadsWatching = false;
+function firstStatusKey(){
+  const f = statusFlow();
+  return (f[0] || STATUSES[0] || { key:'new' }).key;
+}
+function watchTelegramLeads(){
+  if(tgLeadsWatching) return;
+  if(typeof fbDb === 'undefined') return;
+  if(!(fbAuth && fbAuth.currentUser)) return;
+  tgLeadsWatching = true;
+  fbDb.collection('an_tg').onSnapshot(async function(snap){
+    const fresh = [];
+    snap.forEach(function(d){
+      const v = d.data() || {};
+      if(!v.kb) fresh.push({ ref:d.ref, id:d.id, data:v });
+    });
+    if(!fresh.length) return;
+    let added = 0;
+    for(const rec of fresh){
+      if(orders.some(o => o.webId === 'tg:' + rec.id)) continue;
+      const d = rec.data || {};
+      const who = (d.name || '').trim() || (d.user ? '@' + d.user : 'Telegram');
+      orders.unshift({
+        id: cryptoId(), webId: 'tg:' + rec.id, type:'lead', status: firstStatusKey(),
+        orderId: '', source: 'Telegram', site: 'main',
+        name: who, phone: '',
+        instagram: d.user ? '@' + d.user : '',
+        note: 'Звернення з Telegram' + (d.msgs ? ' · ' + d.msgs + ' повідомл.' : ''),
+        items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
+        an: d.vid ? { vid: d.vid } : null,
+        createdAt: d.at || new Date().toISOString(),
+        hist: [{ s: firstStatusKey(), at: new Date().toISOString() }]
+      });
+      added++;
+      try{ await rec.ref.update({ kb: true }); }catch(e){ console.warn('tg mark failed', e && e.code); }
+    }
+    if(added){
+      await storeSet('orders', orders);
+      renderBoard();
+      toast(added === 1 ? 'Нове звернення з Telegram' : ('Звернень з Telegram: ' + added));
+    }
+  }, function(e){ console.warn('an_tg → канбан', e && e.code); });
+}
+
 let webLeadsWatching = false;
+/* Редактор етапів. Працює з чернеткою, а не з живим списком: поки менеджер
+   тягає рядки й тисне хрестики, Канбан не має перебудовуватись під руками. */
+let stWork = null;
+function stDraft(){
+  if(stWork === null) stWork = STATUSES.map(x => Object.assign({}, x));
+  return stWork;
+}
+function stSlug(name, taken){
+  let base = String(name || '').toLowerCase().replace(/[^a-z0-9а-яіїєґ]+/gi, '').slice(0, 14) || 'st';
+  let id = base, i = 2;
+  while(taken.indexOf(id) >= 0) id = base + (i++);
+  return id;
+}
+function renderStatusEditor(){
+  const box = document.getElementById('st-list');
+  if(!box) return;
+  const d = stDraft();
+  const counts = {};
+  (orders || []).forEach(o => { counts[o.status] = (counts[o.status] || 0) + 1; });
+  box.innerHTML = d.map((x, i) =>
+    '<div class="st-row" draggable="true" data-i="' + i + '">' +
+      '<span class="st-grab" title="Перетягніть, щоб змінити порядок">⋮⋮</span>' +
+      '<input type="text" maxlength="28" value="' + escA(x.label) + '" data-lab="' + i + '">' +
+      '<span class="st-col">' + Object.keys(STATUS_COLORS).map(c =>
+        '<span class="st-c' + (x.color === c ? ' on' : '') + '" data-col="' + i + '" data-c="' + c + '"' +
+        ' title="' + STATUS_COLOR_UA[c] + '" style="background:' + STATUS_COLORS[c].bg + ';"></span>').join('') +
+      '</span>' +
+      '<label class="st-off"><input type="checkbox" data-off="' + i + '"' + (x.off ? ' checked' : '') + '> осторонь</label>' +
+      '<span class="s-cnt">' + (counts[x.key] || 0) + '</span>' +
+      '<button class="st-del" data-del="' + i + '" title="Видалити етап">✕</button>' +
+    '</div>').join('');
+
+  box.querySelectorAll('[data-lab]').forEach(inp =>
+    inp.addEventListener('input', () => { d[+inp.dataset.lab].label = inp.value; }));
+  box.querySelectorAll('[data-col]').forEach(b =>
+    b.addEventListener('click', () => { d[+b.dataset.col].color = b.dataset.c; renderStatusEditor(); }));
+  box.querySelectorAll('[data-off]').forEach(c =>
+    c.addEventListener('change', () => { d[+c.dataset.off].off = c.checked; }));
+  box.querySelectorAll('[data-del]').forEach(b =>
+    b.addEventListener('click', () => {
+      const i = +b.dataset.del, n = counts[d[i].key] || 0;
+      if(d.length <= 1){ toast('Має лишитись хоча б один етап'); return; }
+      if(n && !confirm('На цьому етапі ' + n + ' картк(и). Після видалення вони опиняться в колонці «Без етапу». Видаляємо?')) return;
+      d.splice(i, 1); renderStatusEditor();
+    }));
+
+  // Перетягування рядків — порядок колонок і є воронка
+  let from = -1;
+  box.querySelectorAll('.st-row').forEach(row => {
+    row.addEventListener('dragstart', e => { from = +row.dataset.i; row.classList.add('drag');
+      try{ e.dataTransfer.setData('text/plain', String(from)); }catch(err){} });
+    row.addEventListener('dragend', () => row.classList.remove('drag'));
+    row.addEventListener('dragover', e => e.preventDefault());
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const to = +row.dataset.i;
+      if(from < 0 || from === to) return;
+      const moved = d.splice(from, 1)[0];
+      d.splice(to, 0, moved);
+      from = -1; renderStatusEditor();
+    });
+  });
+}
+(function wireStatusEditor(){
+  const t = document.getElementById('st-toggle');
+  if(t) t.addEventListener('click', () => {
+    const c = document.getElementById('st-card');
+    const open = c.style.display === 'none';
+    c.style.display = open ? '' : 'none';
+    t.textContent = open ? 'Згорнути етапи' : 'Налаштувати етапи';
+    if(open){ stWork = null; renderStatusEditor(); }
+  });
+  const add = document.getElementById('st-add');
+  if(add) add.addEventListener('click', () => {
+    const el = document.getElementById('st-new');
+    const nm = (el.value || '').trim();
+    if(!nm){ toast('Введіть назву етапу'); return; }
+    const d = stDraft();
+    d.push({ key: stSlug(nm, d.map(x => x.key)), label: nm, color: 'gray', off: false });
+    el.value = ''; renderStatusEditor();
+  });
+  const save = document.getElementById('st-save');
+  if(save) save.addEventListener('click', async () => {
+    const clean = stDraft().filter(x => (x.label || '').trim())
+      .map(x => ({ key: x.key, label: x.label.trim(), color: x.color || 'gray', off: !!x.off }));
+    if(!clean.length){ toast('Має лишитись хоча б один етап'); return; }
+    try{
+      await PHOTOS_DOC.set({ kanbanStatuses: clean }, { merge:true });
+      stWork = null;
+      toast('Етапи збережено');
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+  const rst = document.getElementById('st-reset');
+  if(rst) rst.addEventListener('click', async () => {
+    if(!confirm('Повернути стандартні етапи? Ваші назви й кольори зникнуть.')) return;
+    try{
+      await PHOTOS_DOC.set({ kanbanStatuses: STATUS_DEFAULTS.map(x => Object.assign({}, x)) }, { merge:true });
+      stWork = null; toast('Повернуто');
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+})();
+
 function watchWebLeads(){
   if(webLeadsWatching) return;
   if(typeof fbDb === 'undefined') return;
@@ -4822,9 +5049,11 @@ function renderBoard(){
     const col = document.createElement('div');
     col.className = 'col';
     col.dataset.status = st.key;
+    const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
+    col.style.background = c.bg;
     const list = orders.filter(o=>o.status===st.key);
     col.innerHTML = `
-      <div class="col-head"><h3>${st.label}</h3><span class="col-count">${list.length}</span></div>
+      <div class="col-head"><h3 style="color:${c.head};">${escapeHtml(st.label)}</h3><span class="col-count">${list.length}</span></div>
       <div class="col-body"></div>
     `;
     const body = col.querySelector('.col-body');
@@ -4846,6 +5075,20 @@ function renderBoard(){
 
     board.appendChild(col);
   });
+  /* Картка могла лишитись на етапі, який прибрали. Мовчки ховати її не можна:
+     це втрачене замовлення. Показуємо окремою колонкою в кінці. */
+  const known = STATUSES.map(s=>s.key);
+  const lost = orders.filter(o => known.indexOf(o.status) < 0);
+  if(lost.length){
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.style.background = '#FBEAEC';
+    col.innerHTML = '<div class="col-head"><h3 style="color:#A32C3E;">Без етапу</h3>' +
+      '<span class="col-count">' + lost.length + '</span></div><div class="col-body"></div>';
+    const body = col.querySelector('.col-body');
+    lost.forEach(o=>{ body.appendChild(renderTicket(o)); });
+    board.appendChild(col);
+  }
   // Відкрита панель має показувати свіжі дані — Канбан оновлюється і з вебхуків
   try{ renderOrderDrawer(); }catch(e){}
 }
@@ -4859,9 +5102,10 @@ function renderTicket(o){
   el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
 
   const goodMargin = o.margin >= 0;
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const flow = statusFlow();
+  const statusIdx = flow.findIndex(s=>s.key===o.status);
   const canPrev = statusIdx > 0;
-  const canNext = statusIdx < STATUSES.length - 1;
+  const canNext = statusIdx >= 0 && statusIdx < flow.length - 1;
 
   const appTechIcon = {print:'🖨', emb:'🧵'};
   const appsList = o.apps.length
@@ -4929,10 +5173,10 @@ function renderTicket(o){
   `;
 
   el.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
-    if(statusIdx < STATUSES.length-1){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
+    if(canNext){ setStatus(o, statusFlow()[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
-    if(statusIdx > 0){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
+    if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -5189,8 +5433,9 @@ function ticketSummaryHtml(o){
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
   const units = orderUnits(o), pos = (o.items||[]).length;
   const due = dueInfo(o);
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
-  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  const flow = statusFlow();
+  const statusIdx = flow.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx >= 0 && statusIdx < flow.length-1;
   /* Звідки прийшов клієнт — те, що записала аналітика в момент замовлення.
      Без цього канал видно лише в зведеній таблиці, а по конкретній заявці
      доводиться згадувати. Прямі заходи не підписуємо: це не інформація. */
@@ -5229,7 +5474,7 @@ function buildTicket(o){
   el.draggable = true;
   el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
   el.innerHTML = ticketSummaryHtml(o);
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
+  const statusIdx = statusFlow().findIndex(s=>s.key===o.status);
   // Клік по картці відкриває панель; кліки по кнопках усередині — ні.
   el.addEventListener('click', e=>{
     if(e.target.closest('button')) return;
@@ -5237,11 +5482,11 @@ function buildTicket(o){
   });
   const nx = el.querySelector('[data-act="next"]');
   if(nx) nx.addEventListener('click', async ()=>{
-    if(statusIdx < STATUSES.length-1){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
+    if(canNext){ setStatus(o, statusFlow()[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); }
   });
   const pv = el.querySelector('[data-act="prev"]');
   if(pv) pv.addEventListener('click', async ()=>{
-    if(statusIdx > 0){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
+    if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -5298,8 +5543,9 @@ function renderOrderDrawer(){
      (найпомітніше на діалозі з клієнтом). Запамʼятовуємо позицію і повертаємо
      після перемальовування. */
   const keepScroll = (panel.querySelector('.od-body') || {}).scrollTop || 0;
-  const statusIdx = STATUSES.findIndex(s=>s.key===o.status);
-  const canPrev = statusIdx > 0, canNext = statusIdx < STATUSES.length-1;
+  const flow = statusFlow();
+  const statusIdx = flow.findIndex(s=>s.key===o.status);
+  const canPrev = statusIdx > 0, canNext = statusIdx >= 0 && statusIdx < flow.length-1;
   const created = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const due = dueInfo(o);
@@ -5307,7 +5553,7 @@ function renderOrderDrawer(){
     <div class="od-head">
       <div>
         <div class="od-oid">${o.orderId?escapeHtml(o.orderId):'Замовлення'}</div>
-        <div class="od-sub">${escapeHtml(created)} · ${escapeHtml(o.source||'сайт')}${(STATUSES[statusIdx]||{}).label?' · '+escapeHtml(STATUSES[statusIdx].label):''}</div>
+        <div class="od-sub">${escapeHtml(created)} · ${escapeHtml(o.source||'сайт')}${(statusFlow()[statusIdx]||{}).label?' · '+escapeHtml(statusFlow()[statusIdx].label):''}</div>
       </div>
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
@@ -5360,10 +5606,10 @@ function renderOrderDrawer(){
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
   panel.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
-    if(canNext){ setStatus(o, STATUSES[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+    if(canNext){ setStatus(o, statusFlow()[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
-    if(canPrev){ setStatus(o, STATUSES[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+    if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
   panel.querySelectorAll('.od-add').forEach(row=>{
@@ -7951,6 +8197,7 @@ async function init(){
   watchOffers();      // дії клієнтів у персональних пропозиціях
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
   watchWebLeads();    // і на заявки без товару
+  watchTelegramLeads(); // і на звернення з Telegram
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
   let photosUnsub = null;
@@ -7965,6 +8212,14 @@ async function init(){
     if(sv0 && sv0.style.display!=='none' && !typing0) paintSitePricing();
     // Довідник підрядників редагується просто в списку — після збереження
     // він має оновитись сам, а не після переходу в інший розділ і назад.
+    // Етапи воронки живуть у тому ж документі — перечитуємо й перемальовуємо
+    loadStatuses();
+    const bv = document.getElementById('view-board');
+    if(bv && bv.style.display !== 'none' && !typing0){
+      renderBoard();
+      const sc = document.getElementById('st-card');
+      if(sc && sc.style.display !== 'none'){ stWork = null; renderStatusEditor(); }
+    }
     const sup0 = document.getElementById('view-suppliers');
     if(sup0 && sup0.style.display!=='none' && !typing0 && typeof renderSuppliers==='function') renderSuppliers();
     const pv = document.getElementById('view-photos');
