@@ -32,10 +32,38 @@
  */
 
 const FIELDS = 'https://firestore.googleapis.com/v1/projects/';
+/* Мітка версії. Міняється разом зі змістом файлу — і /health одразу каже,
+   чи в Cloudflare лежить те, що ми зараз обговорюємо, чи копія тижневої
+   давнини. Рівно на цьому ми вже двічі втратили по півгодини. */
+const BUILD = '2026-08-11 діалог у Канбані';
 
 export default {
   async fetch(request, env, ctx) {
     const reqUrl = new URL(request.url);
+
+    /* Самоперевірка: відкрити в браузері /health і побачити, ЯКА версія коду
+       зараз працює і які змінні до неї реально долетіли. Без цього «немає
+       змінної» і «стара версія коду» виглядають однаково, а перевірити
+       можна лише навпомацки.
+
+       Значень не показуємо — тільки так/ні. Секрет із логів чи чужого
+       скріншота не витягнеш. */
+    if (reqUrl.pathname === '/health') {
+      return jsonRes({
+        ok: true,
+        build: BUILD,
+        vars: {
+          TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN,
+          TG_WEBHOOK_SECRET: !!env.TG_WEBHOOK_SECRET,
+          FIREBASE_PROJECT: env.FIREBASE_PROJECT || '(за замовчуванням loomiq-admin)',
+          FIREBASE_API_KEY: !!env.FIREBASE_API_KEY,
+          FORWARD_URL: !!env.FORWARD_URL,
+        },
+        send: env.FIREBASE_API_KEY && env.TELEGRAM_BOT_TOKEN
+          ? 'відповідь із адмінки працює'
+          : 'відповідь із адмінки НЕ працюватиме: бракує змінної',
+      }, 200);
+    }
 
     // Відповідь менеджера з адмінки. Перевіряємо ДО секрету Telegram: цей
     // запит приходить із браузера, підпису Telegram у нього немає й бути не може.
