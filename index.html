@@ -4306,6 +4306,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   W.LQ_START = load();
 
   var Q = new URLSearchParams(location.search);
+
+  /* ⚠️ Поки тільки для перевірки. На бойовому сайті стартер вимкнений:
+     клієнти не мають натрапляти на недотестоване. Вмикається адресою
+     ?quiz=1 (лишається увімкненим на цьому пристрої), вимикається ?quiz=0.
+     Коли перевіримо — прибрати цю умову й лишити стартер завжди. */
+  var TEST = false;
+  try{
+    if(Q.get('quiz') === '1') lsSet('lq_quiz', '1');
+    if(Q.get('quiz') === '0') localStorage.removeItem('lq_quiz');
+    TEST = localStorage.getItem('lq_quiz') === '1';
+  }catch(e){}
+  function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  if(!TEST){
+    // Нічого не вмикаємо і нічого не чіпаємо: сайт поводиться як раніше.
+    W.LQ_START = {};
+    W.LQ_applyStart = function(){};
+    return;
+  }
+
   if(Q.get('s') && sphere(Q.get('s'))) W.LQ_START.s = Q.get('s');
   /* На нішевих посадкових питати про сферу безглуздо — людина вже прийшла
      за конкретним. Ставимо її самі, лишається одне питання про логотип. */
