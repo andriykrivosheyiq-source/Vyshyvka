@@ -154,6 +154,9 @@
   .nav button.active{background:#0F2034;color:#fff;border-left:3px solid var(--accent);padding-left:10px;}
   .nav button.active .num{color:var(--accent);}
   .sidebar-foot{margin-top:auto;font-size:11px;color:#334155;line-height:1.5;padding-top:16px;border-top:1px solid #1E293B;}
+  #side-build{all:unset;cursor:pointer;display:block;margin-top:9px;font-size:10.5px;
+    color:#475569;letter-spacing:.2px;}
+  #side-build:hover{color:#94A3B8;text-decoration:underline;}
 
   /* mobile: sidebar hidden off-screen, toggled by hamburger */
   @media (max-width:767px){
@@ -855,6 +858,11 @@
       <div class="sidebar-foot">
         <button id="logout-btn" style="all:unset;cursor:pointer;color:#8893A6;font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:12px;">↩ Вийти</button>
         <div>Loomiq · прорахунок<br>та керування замовленнями</div>
+        <!-- Яку саме версію віддав браузер. Тричі поспіль ми ловили те саме:
+             код на сайті новий, а у вкладці стара копія з кешу, і півгодини
+             йшло на пошук неіснуючої помилки. Клік — перезавантаження в обхід
+             кешу. -->
+        <button id="side-build" title="Натисніть, щоб завантажити свіжу версію"></button>
       </div>
     </div>
   </aside>
@@ -2148,6 +2156,21 @@ document.getElementById('auth-form').addEventListener('submit', async (e)=>{
 document.getElementById('logout-btn').addEventListener('click', function(){
   fbAuth.signOut();
 });
+
+/* Версія сторінки, яку віддав браузер. document.lastModified для статичного
+   файлу — це заголовок Last-Modified, тобто час випуску саме цієї копії.
+   Клік перезавантажує з новою адресою: браузер не має з чого взяти кеш. */
+(function(){
+  const el = document.getElementById('side-build');
+  if(!el) return;
+  const d = new Date(document.lastModified);
+  el.textContent = isNaN(d) ? 'оновити версію'
+    : 'версія від ' + d.toLocaleString('uk-UA',
+        { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+  el.addEventListener('click', function(){
+    location.href = location.pathname + '?v=' + Date.now();
+  });
+})();
 fbAuth.onAuthStateChanged(function(user){
   const gate = document.getElementById('auth-gate');
   if(user){
