@@ -151,6 +151,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero .btn{max-width:420px; margin-left:auto; margin-right:auto;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
   .hero-made{color:rgba(255,255,255,.78) !important;}
+  /* Сума на першому екрані — найбільше число сторінки */
+  .hero-price{margin:14px 0 10px; color:#fff; line-height:1.2;}
+  .hero-price b{font-size:clamp(30px,8vw,42px); font-weight:600; letter-spacing:-1px;
+    font-variant-numeric:tabular-nums;}
+  .hero-price span{font-size:14.5px; color:rgba(255,255,255,.7);}
   .hero-till{color:rgba(255,255,255,.6) !important;}
   .hero .hero-sum{background:rgba(255,255,255,.1) !important; color:rgba(255,255,255,.78) !important;
     backdrop-filter:blur(6px);}
@@ -845,6 +850,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      читається найгірше саме там, де має читатися найкраще. */
   .cta-box .sec-sub{margin:0 auto 20px; max-width:34ch; color:rgba(255,255,255,.7);}
   .cta-box .final{padding-bottom:0; max-width:420px; margin:0 auto;}
+  /* Три кроки перед кнопкою — на темному, у стовпчик і зліва: нумерований
+     список читається лише коли цифри стоять одна під одною. */
+  .nsteps{list-style:none; margin:0 auto 22px; padding:0; max-width:420px; text-align:left;
+    counter-reset:ns;}
+  .nsteps li{position:relative; padding:0 0 0 38px; margin-bottom:14px; counter-increment:ns;}
+  .nsteps li:last-child{margin-bottom:0;}
+  .nsteps li::before{content:counter(ns); position:absolute; left:0; top:0;
+    width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.12);
+    color:#fff; font-size:12.5px; font-weight:700; display:flex; align-items:center;
+    justify-content:center;}
+  .nsteps b{display:block; font-size:15px; font-weight:600; color:#fff; line-height:1.35;}
+  .nsteps span{display:block; font-size:13px; color:rgba(255,255,255,.65); line-height:1.45;
+    margin-top:2px;}
 
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
@@ -1391,9 +1409,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<h1>' + (who ? 'Корпоративний одяг для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
-        /* Суми на першому екрані немає: вона нічого не значить, поки людина
-           не побачила склад і не покрутила кількість. Термін виготовлення —
-           навпаки, вирішує одразу: встигаємо до дати чи ні. */
+        /* Сума одразу. Раніше її тут не було з міркування «вона нічого не
+           значить, поки не побачив склад» — але людина відкриває пропозицію
+           саме заради «скільки», і змушувати її гортати заради цього —
+           неповага до її часу. Сума жива: змінить тираж — зміниться й тут. */
+        '<div class="hero-price"><b id="heroSum">' + money(totals().sum) + '</b>' +
+          '<span id="heroQtyLine"> за ' + totals().qty + ' ' +
+          plural(totals().qty, 'виріб', 'вироби', 'виробів') + '</span></div>' +
         '<div class="hero-sum">Термін виготовлення — ' +
           '<b id="heroDays">' + daysWord(curDays()) + '</b></div>' +
         (till ? '<div class="hero-till">Ціни діють до ' + esc(till) + '</div>' : '') +
@@ -1784,9 +1806,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!OFFER.reco.length) return '';
     return '' +
       '<section id="recoSec">' +
-        '<h2 class="sec-title">Часто беруть разом</h2>' +
+        '<h2 class="sec-title">Клієнти з такими замовленнями зазвичай додають</h2>' +
+        /* Три картки замість чотирьох і назва замість «часто беруть разом».
+           Ряд однакових плиток із кнопками робив з пропозиції на десятки
+           тисяч сторінку інтернет-магазину, а «часто беруть разом» — це
+           фраза кошика, і в іменній пропозиції вона звучить як автопідбір. */
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
-        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 12 : 4).map(function(r, i){
+        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 12 : 3).map(function(r, i){
           var on = !!pick.reco[i];
           var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
@@ -1807,9 +1833,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
           '</div>';
         }).join('') + '</div>' +
-        (OFFER.reco.length > 4
+        (OFFER.reco.length > 3
           ? '<button class="rmore" id="recoMore">' +
-              (recoOpen ? 'Згорнути' : 'Показати ще ' + Math.min(8, OFFER.reco.length - 4)) +
+              (recoOpen ? 'Згорнути' : 'Показати ще ' + Math.min(9, OFFER.reco.length - 3)) +
               '<span class="rmore-c">' + (recoOpen ? '▲' : '▼') + '</span></button>'
           : '') +
       '</section>';
@@ -2142,6 +2168,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
+  /* Що буде після натискання. Головний страх на цьому місці — «а що з мене
+     зараз спишуть» і «а раптом одразу запустять у виробництво не те». Три
+     короткі кроки знімають обидва, і найважливіше в них — друге речення
+     третього кроку: до погодження макета не платять нічого. */
+  function nextStepsHtml(){
+    return '<ol class="nsteps">' +
+      '<li><b>Рахунок</b><span>Надішлемо сьогодні, разом зі звіркою деталей</span></li>' +
+      '<li><b>Макет на погодження</b><span>Виробництво починається лише після вашого «так»</span></li>' +
+      '<li><b>Виготовлення</b><span>' + daysWord(curDays()) + ' — і надсилаємо фото готової партії</span></li>' +
+      '</ol>';
+  }
   function finalHtml(){
     if(OFFER.state === 'confirmed'){
       var who = (OFFER.clientAction || {}).at;
@@ -2168,6 +2205,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
              привід не вирішувати — а написати менеджеру він може з блоку
              контактів вище, де для цього є і телефон, і месенджери. */
+          nextStepsHtml() +
           '<div class="final">' +
             '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
           '</div>' +
@@ -2271,9 +2309,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         /* Кошторис одразу після колекції: людина подивилась товар — і бачить
            суму. Рекомендації після нього: це вже додаток до готового
            рішення, а не частина вибору. */
-        heroHtml() + itemsHtml() + estimateHtml() + recoHtml() +
-        includesHtml() + whyHtml() +
-        guaranteesSection() + casesHtml() + reviewsSection() +
+        /* Порядок: спершу товар, потім що до нього беруть, потім наші
+           зобовʼязання — і лише тоді гроші. Раніше кошторис стояв одразу
+           після колекції, і виходило «ось рахунок, а тепер вам ще щось
+           допродадуть»; гарантії ж читались уже після найтривожнішого
+           моменту, коли вони потрібні до нього. */
+        heroHtml() + itemsHtml() + recoHtml() +
+        includesHtml() + whyHtml() + guaranteesSection() +
+        estimateHtml() +
+        casesHtml() + reviewsSection() +
         mgrHtml() + finalHtml() +
         '<div class="foot">' + esc(brand().name) +
           (brand().tagline ? ' · ' + esc(brand().tagline) : '') +
@@ -2289,6 +2333,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
+    // Сума на першому екрані жива: клієнт змінив тираж — вона перерахувалась
+    set('heroSum', money(t.sum));
+    set('heroQtyLine', ' за ' + t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('heroDays', daysWord(curDays()));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = OFFER.items.map(function(it, i){
