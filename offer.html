@@ -52,6 +52,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .top{display:flex; align-items:center; justify-content:space-between;
     padding:18px var(--pad); border-bottom:1px solid var(--line);}
   .brand{font-size:19px; font-weight:800; letter-spacing:-0.4px;}
+  /* Логотип бренду. Висота фіксована, ширина вільна: логотипи в різних
+     пропорціях не мають смикати висоту шапки. */
+  .brand-img{height:26px; width:auto; max-width:190px; object-fit:contain; display:block;}
   .brand i{display:block; font-style:normal; font-size:10.5px; font-weight:500;
     letter-spacing:.2px; color:var(--muted); margin-top:2px; white-space:nowrap;}
   .top-no{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
@@ -974,6 +977,43 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // ── стан сторінки: вибір клієнта живе тут, суми рахуються з нього ──
   var OFFER = null;
+
+  /* ── бренд пропозиції ──────────────────────────────────────────────
+     Виробництво одне, вивіски дві: частину пропозицій надсилають від
+     Stvory, частину від Loomiq. Менеджер обирає бренд у картці замовлення,
+     а адмінка кладе його в документ ЗНІМКОМ — назвою, підписом, сайтом і
+     логотипом. Тому сторінка нічого не шукає в довіднику: що записано в
+     пропозиції, те клієнт і бачить навіть через півроку.
+
+     У старих пропозиціях поля brand немає — там показуємо Loomiq, як і
+     було. Порожній сайт чи підпис у НОВОГО бренду — це свідомий вибір
+     менеджера, тож просто не малюємо ці рядки, а не підставляємо чуже. */
+  var BRAND_FALLBACK = { name:'Loomiq', tagline:'виробництво мерчу',
+                         site:'https://loomiq.net', logo:'' };
+  function brand(){
+    var b = (OFFER && OFFER.brand) || null;
+    if(!b || !b.name) return BRAND_FALLBACK;
+    return { name: b.name, tagline: b.tagline || '', site: b.site || '', logo: b.logo || '' };
+  }
+  // Домен без протоколу й кінцевої скісної: у підвалі це підпис, а не адреса
+  function brandSiteLabel(){
+    return brand().site.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  }
+  // Логотип може не завантажитись (видалили файл, заблокували домен) —
+  // тоді в шапці має лишитись назва, а не порожнє місце.
+  window.brandImgFail = function(img){
+    var s = document.createElement('span');
+    s.className = 'brand';
+    s.textContent = img.getAttribute('alt') || BRAND_FALLBACK.name;
+    if(img.parentNode) img.parentNode.replaceChild(s, img);
+  };
+  function brandMarkHtml(){
+    var b = brand();
+    return b.logo
+      ? '<img class="brand-img" src="' + esc(b.logo) + '" alt="' + esc(b.name) + '" ' +
+        'onerror="brandImgFail(this)">'
+      : '<span class="brand">' + esc(b.name) + '</span>';
+  }
   /* Вибір клієнта. on — чи входить позиція в кошторис (галочка), qty — скільки
      штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
@@ -1719,8 +1759,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '' +
       '<section class="band">' +
         '<h2 class="sec-title">Гарантії</h2>' +
-        '<p class="sec-sub">Ті самі умови, що й у публічній гарантії на loomiq.net — ' +
-          'нічого окремого «для цієї пропозиції».</p>' +
+        '<p class="sec-sub">Ті самі умови, що й у публічній гарантії' +
+          (brandSiteLabel() ? ' на ' + esc(brandSiteLabel()) : '') +
+          ' — нічого окремого «для цієї пропозиції».</p>' +
         /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
            той самий вигляд, що був у документів і оплати. Галочки в рядок
            виглядали як список справ, а не як зобовʼязання. */
@@ -1832,8 +1873,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<section>' +
         '<div class="rev-head">' +
           '<h2 class="sec-title">Відгуки</h2>' +
-          '<a class="rev-all" href="https://loomiq.net/#reviews" target="_blank" rel="noopener">' +
-            'Усі відгуки ›</a>' +
+          /* Посилання лише тоді, коли в бренду є сайт: вести клієнта Stvory
+             на чужий домен гірше, ніж не показати рядок узагалі. */
+          (brand().site
+            ? '<a class="rev-all" href="' + esc(brand().site.replace(/\/+$/, '')) + '/#reviews" target="_blank" rel="noopener">' +
+                'Усі відгуки ›</a>'
+            : '') +
         '</div>' +
         revsInner() +
       '</section>';
@@ -1941,7 +1986,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             : '') + '</div>' +
           '<div class="mgr-txt">' +
             '<div class="mgr-role">' + esc(m.role || 'Ваш менеджер') + '</div>' +
-            '<div class="mgr-name">' + esc(m.name || 'Loomiq') + '</div>' +
+            '<div class="mgr-name">' + esc(m.name || brand().name) + '</div>' +
             (m.phone ? '<div class="mgr-phone">' + esc(m.phone) + '</div>' : '') +
             '<div class="mgr-note">Відповім на будь-які питання щодо замовлення</div>' +
             (acts.length ? '<div class="mgr-acts">' + acts.join('') + '</div>' : '') +
@@ -1977,7 +2022,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function render(){
     app.innerHTML =
-      '<div class="top"><span class="brand">Loomiq</span>' +
+      '<div class="top">' + brandMarkHtml() +
         '<span class="top-no">Комерційна пропозиція' + (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</span></div>' +
       '<div class="wrap">' +
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
@@ -1994,8 +2039,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         includesHtml() + whyHtml() +
         guaranteesSection() + casesHtml() + reviewsSection() +
         mgrHtml() + finalHtml() +
-        '<div class="foot">Loomiq · виробництво мерчу · ' +
-          '<a href="https://loomiq.net" target="_blank" rel="noopener">loomiq.net</a></div>' +
+        '<div class="foot">' + esc(brand().name) +
+          (brand().tagline ? ' · ' + esc(brand().tagline) : '') +
+          (brand().site ? ' · <a href="' + esc(brand().site) + '" target="_blank" rel="noopener">' +
+            esc(brandSiteLabel()) + '</a>' : '') + '</div>' +
       '</div>' +
       ((expired() || OFFER.state === 'confirmed') ? '' : barHtml());
     wire();
@@ -2581,7 +2628,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Канбані. Кнопки клієнта працюють, але нікуди не відправляють. */
   if(new URLSearchParams(location.search).get('demo') === '1'){
     OFFER = demoOffer();
-    document.title = 'Тестова КП · Loomiq';
+    /* ?demo=1&brand=Stvory&logo=… — подивитись, як шапка виглядатиме під
+       іншою вивіскою, не створюючи замовлення. Довідник брендів живе в
+       адмінці й сюди не читається, тож у тесті бренд задається адресою. */
+    var qb = new URLSearchParams(location.search);
+    if(qb.get('brand') || qb.get('logo')){
+      OFFER.brand = { key:'demo', name: qb.get('brand') || 'Loomiq',
+                      tagline: 'виробництво мерчу', site: '', logo: qb.get('logo') || '' };
+    }
+    document.title = 'Тестова КП · ' + brand().name;
     render(); wireSheets(); watchBar();
     var note = document.createElement('div');
     note.textContent = 'Тестова пропозиція — нічого не зберігається';
@@ -2625,7 +2680,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return;
     }
     document.title = 'Комерційна пропозиція' +
-      (OFFER.client.company ? ' для ' + OFFER.client.company : '') + ' · Loomiq';
+      (OFFER.client.company ? ' для ' + OFFER.client.company : '') + ' · ' + brand().name;
 
     offerRef = db.collection('offers').doc(token);
     // Клієнт міг закрити вкладку й повернутись — показуємо те, що він уже обрав
