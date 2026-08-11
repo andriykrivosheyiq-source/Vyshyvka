@@ -671,6 +671,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .lqs-bar button{all:unset;cursor:pointer;color:var(--cta);font-weight:600;
     text-decoration:underline;text-underline-offset:3px;}
   /* Логотип на картці каталогу */
+  /* Вкладки розділів каталогу. Горизонтальна стрічка, бо розділів може бути
+     шість, а на телефоні в рядок влізе три. */
+  .cat-secs{display:flex;gap:7px;overflow-x:auto;margin-top:16px;padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .cat-secs::-webkit-scrollbar{display:none;}
+  .cat-sec{all:unset;cursor:pointer;flex:none;border:1.5px solid var(--line);border-radius:20px;
+    padding:8px 15px;font-size:13.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;
+    transition:border-color .15s ease,background .15s ease,color .15s ease;}
+  .cat-sec.on{border-color:var(--ink);background:var(--ink);color:#fff;}
+  .cat-sec-empty{font-size:13.5px;color:var(--ink-soft);padding:18px 2px;}
   .product-art{position:relative;}
   .lqs-logo{position:absolute;pointer-events:none;transform:translate(-50%,-50%);
     object-fit:contain;}
@@ -2356,7 +2366,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div class="contact-section" id="catalogStep1" style="margin-top:0;">
       <h2 style="margin-top:4px;font-size:19px;">Оберіть одяг, який вам подобається</h2>
 
+      <div class="cat-secs" id="catalogSections" hidden></div>
       <div class="catalog-grid" id="catalogProductGrid" style="margin-top:18px;"></div>
+      <div class="cat-sec-empty" id="catalogSecEmpty" hidden>У цьому розділі товарів поки немає.</div>
     </div>
 
     <div class="contact-section" id="catalogStep2" style="display:none;margin-top:0;">
@@ -5476,7 +5488,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   const catalogProductGrid = document.getElementById('catalogProductGrid');
   function renderCatalogProducts(targetEl){
-    targetEl.innerHTML = catalogProductsList().map(p=>{
+    let list = catalogProductsList();
+    // Фільтр діє лише в головній сітці — інші місця показують усе
+    if(catSec && targetEl === catalogProductGrid)
+      list = list.filter(p => p.garment && catInSection(p.garment, catSec));
+    const emptyEl = document.getElementById('catalogSecEmpty');
+    if(emptyEl && targetEl === catalogProductGrid) emptyEl.hidden = list.length > 0;
+    targetEl.innerHTML = list.map(p=>{
       const pname = p.garment ? window.LQ_name(p.garment, p.name) : p.name;
       // ціну в каталозі рахуємо авто: база виробу × макс. знижка (без нанесення)
       let priceLabel = p.price;
@@ -5498,11 +5516,64 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </button>`;
     }).join('');
   }
+  /* ═══════════ Розділи каталогу ═══════════
+     Каталог показував один довгий список: людині зі сфери HoReCa доводилось
+     гортати худі й шопери, щоб дійти до фартуха. Тепер зверху вкладки, і
+     товар може лежати одразу в кількох — фартух потрібен і кухні, і майстерні.
+
+     Перелік задає адмінка. Немає розділів — немає й вкладок: сторінка
+     виглядає рівно як раніше. */
+  var catSec = '';   // '' = усі товари
+  function catEsc(v){
+    return String(v == null ? '' : v).replace(/[&<>"]/g, function(m){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[m];
+    });
+  }
+  function catSections(){
+    var pr = (window.SITE_CONTENT && window.SITE_CONTENT.products) || {};
+    return Array.isArray(pr.sections) ? pr.sections : [];
+  }
+  function catInSection(gid, secId){
+    var m = ((window.SITE_CONTENT && window.SITE_CONTENT.products) || {}).inSections || {};
+    var a = m[gid];
+    return Array.isArray(a) && a.indexOf(secId) >= 0;
+  }
+  function renderCatalogSections(){
+    var box = document.getElementById('catalogSections');
+    if(!box) return;
+    var list = catSections();
+    // Показуємо лише ті розділи, у яких справді щось є: порожня вкладка —
+    // це обіцянка, яку сторінка не виконує.
+    var all = catalogProductsList();
+    list = list.filter(function(x){
+      return all.some(function(p){ return p.garment && catInSection(p.garment, x.id); });
+    });
+    if(!list.length){ box.hidden = true; box.innerHTML = ''; catSec = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<button class="cat-sec' + (catSec ? '' : ' on') + '" data-sec="">Усі товари</button>' +
+      list.map(function(x){
+        return '<button class="cat-sec' + (catSec === x.id ? ' on' : '') + '" data-sec="' +
+               catEsc(x.id) + '">' + catEsc(x.name) + '</button>';
+      }).join('');
+    box.querySelectorAll('[data-sec]').forEach(function(b){
+      b.addEventListener('click', function(){
+        catSec = b.dataset.sec || '';
+        renderCatalogSections();
+        renderCatalogProducts(catalogProductGrid);
+        if(window.lqAn && catSec) window.lqAn.track('catalog_section', { sec: catSec });
+      });
+    });
+  }
+  window.LQ_renderCatalogSections = renderCatalogSections;
+
+  renderCatalogSections();
   renderCatalogProducts(catalogProductGrid);
   // Стартер перемальовує каталог, коли людина обрала сферу або лого
-  window.LQ_renderCatalog = function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} };
+  window.LQ_renderCatalog = function(){ try{ renderCatalogSections(); renderCatalogProducts(catalogProductGrid); }catch(e){} };
   window.LQ_catalogList = catalogProductsList;   // доступ для блоку «Вам також може сподобатись»
-  document.addEventListener('lq-photos', function(){ try{ renderCatalogProducts(catalogProductGrid); }catch(e){} });
+  document.addEventListener('lq-photos', function(){
+    try{ renderCatalogSections(); renderCatalogProducts(catalogProductGrid); }catch(e){}
+  });
 
   var reviewsModalCtrl = setupModal('reviewsModal', 'reviewsModalBack', 'menuReviewsBtn');
   var cartModalCtrl = setupModal('cartModal', 'cartModalBack', 'menuCartBtn', 'cart');

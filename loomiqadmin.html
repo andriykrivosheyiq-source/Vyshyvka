@@ -680,6 +680,14 @@
 
   /* Товари — сітка карток */
   .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+  .sec-picks{display:flex;flex-wrap:wrap;gap:7px;}
+  .sec-pick{all:unset;cursor:pointer;border:1.5px solid var(--line);border-radius:20px;
+    padding:6px 13px;font-size:13px;color:var(--ink-soft);}
+  .sec-pick.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:600;}
+  .sec-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .sec-row input{flex:1;font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;}
+  .sec-row button{all:unset;cursor:pointer;color:var(--bad);padding:6px 9px;font-size:15px;}
   .prod-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;display:flex;flex-direction:column;position:relative;}
   .prod-card:hover{box-shadow:0 6px 18px -8px rgba(0,0,0,.18);border-color:var(--accent);}
   .prod-card .pcard-img{aspect-ratio:1/0.9;background:#f4f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -1174,6 +1182,16 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
         <!-- Сітка карток товарів -->
         <div id="prod-master">
+          <div class="card" style="margin-bottom:16px;">
+            <b style="font-size:14px;">Розділи каталогу</b>
+            <div class="sub" style="margin:6px 0 12px;">Групи, за якими каталог на сайті ділиться на вкладки: HoReCa, Офіс, Медицина… Товар можна покласти одразу в кілька — це робиться в самій картці товару, вкладка «Інформація». Порожній перелік = каталог показує просто всі товари, як зараз.</div>
+            <div id="sec-list"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+              <input id="sec-new" type="text" maxlength="30" placeholder="Назва розділу" style="flex:1;min-width:180px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;">
+              <button class="pc-btn reset" id="sec-add" style="flex:none;padding:9px 16px;">+ Додати</button>
+              <button class="pc-btn up" id="sec-save" style="flex:none;padding:9px 18px;">Зберегти</button>
+            </div>
+          </div>
           <div class="sub" style="margin-bottom:12px;">Натисніть на товар, щоб редагувати все в одному місці: фото, назву, опис, розмірну сітку, фото моделей, ціну й собівартість. Порядок карток — перетягуванням за ⠿.</div>
           <div id="prod-grid" class="prod-grid"></div>
 
@@ -1263,6 +1281,11 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Опис (вкладка «Про товар»)</span>
               <textarea id="info-desc" rows="5" maxlength="1000" style="width:100%;font-family:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none;resize:vertical;" placeholder=""></textarea>
             </label>
+            <div style="margin-bottom:14px;">
+              <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Розділи каталогу — де показувати цей товар</span>
+              <div id="info-sections" class="sec-picks"></div>
+              <div class="sub" style="margin-top:6px;">Нічого не позначено — товар видно в «Усіх товарах», але в жодному розділі. Можна позначити кілька.</div>
+            </div>
             <div style="margin-bottom:14px;">
               <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">Характеристики (рядки блоку «Про товар»)</span>
               <div id="spec-rows"></div>
@@ -6406,6 +6429,7 @@ function renderProductsTab(){
   } else {
     master.style.display = '';
     detail.style.display = 'none';
+    renderSecList();
     renderProductGrid();
   }
 }
@@ -6792,6 +6816,106 @@ function readSpecRows(){
 document.getElementById('spec-add').addEventListener('click', ()=>{
   const rows = readSpecRows(); rows.push({label:'', value:''}); renderSpecRows(rows);
 });
+/* ============================================================
+   РОЗДІЛИ КАТАЛОГУ
+
+   Каталог показував один довгий список. Людині зі сфери HoReCa доводилось
+   переглядати худі й шопери, щоб знайти фартух. Тепер каталог ділиться на
+   вкладки, а товар може лежати одразу в кількох — фартух потрібен і кухні,
+   і майстерні.
+
+   Перелік розділів живе в одному місці, поруч із товарами, і редагується
+   тут же. Порожній перелік означає «як було»: просто всі товари.
+   ============================================================ */
+const SEC_SEED = [
+  { id:'horeca',   name:'HoReCa' },
+  { id:'office',   name:'Офіс' },
+  { id:'med',      name:'Медицина та бʼюті' }
+];
+function secList(){
+  const p = (contentData.products || {});
+  return Array.isArray(p.sections) ? p.sections : [];
+}
+function secOf(gid){
+  const m = (contentData.products || {}).inSections || {};
+  return Array.isArray(m[gid]) ? m[gid] : [];
+}
+function secSlug(name, taken){
+  let base = String(name || '').toLowerCase()
+    .replace(/[^a-z0-9а-яіїєґ]+/gi, '-').replace(/^-|-$/g, '').slice(0, 20) || 'sec';
+  let id = base, i = 2;
+  while(taken.indexOf(id) >= 0){ id = base + '-' + (i++); }
+  return id;
+}
+
+/* Перелік розділів — рядки з назвою і хрестиком. Ідентифікатор не міняємо
+   при перейменуванні: інакше всі товари відвʼязались би від розділу. */
+let secWork = null;
+function renderSecList(){
+  const box = document.getElementById('sec-list');
+  if(!box) return;
+  if(secWork === null) secWork = secList().slice();
+  box.innerHTML = secWork.map((x, i) =>
+    '<div class="sec-row">' +
+      '<input type="text" maxlength="30" value="' + escA(x.name) + '" data-si="' + i + '">' +
+      '<button data-sdel="' + i + '" title="Видалити розділ">✕</button>' +
+    '</div>').join('') ||
+    '<div class="sub">Розділів немає — каталог показує всі товари одним списком.</div>';
+  box.querySelectorAll('[data-si]').forEach(inp => {
+    inp.addEventListener('input', () => { secWork[+inp.dataset.si].name = inp.value; });
+  });
+  box.querySelectorAll('[data-sdel]').forEach(b => {
+    b.addEventListener('click', () => { secWork.splice(+b.dataset.sdel, 1); renderSecList(); });
+  });
+}
+function wireSections(){
+  const add = document.getElementById('sec-add');
+  if(add) add.addEventListener('click', () => {
+    const el = document.getElementById('sec-new');
+    const nm = (el.value || '').trim();
+    if(!nm){ toast('Введіть назву розділу'); return; }
+    if(secWork === null) secWork = secList().slice();
+    secWork.push({ id: secSlug(nm, secWork.map(x => x.id)), name: nm });
+    el.value = ''; renderSecList();
+  });
+  const save = document.getElementById('sec-save');
+  if(save) save.addEventListener('click', async () => {
+    const clean = (secWork || []).filter(x => (x.name || '').trim())
+      .map(x => ({ id: x.id, name: x.name.trim() }));
+    try{
+      await PHOTOS_DOC.set({ products: { sections: clean } }, { merge:true });
+      secWork = null;
+      toast(clean.length ? 'Розділи збережено' : 'Розділи прибрано');
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+}
+
+/* Позначки розділів у картці товару. Зберігаються разом із рештою вкладки
+   «Інформація» — окрема кнопка тут була б зайвим кліком. */
+function renderSecPicks(){
+  const box = document.getElementById('info-sections');
+  if(!box) return;
+  const list = secList();
+  if(!list.length){
+    box.innerHTML = '<div class="sub">Спершу створіть розділи — у переліку товарів, блок «Розділи каталогу».</div>';
+    return;
+  }
+  const mine = secOf(photoGarmentId);
+  box.innerHTML = list.map(x =>
+    '<button class="sec-pick' + (mine.indexOf(x.id) >= 0 ? ' on' : '') + '" data-sec="' + escA(x.id) + '">' +
+      escA(x.name) + '</button>').join('');
+  box.querySelectorAll('[data-sec]').forEach(b => {
+    b.addEventListener('click', () => b.classList.toggle('on'));
+  });
+}
+function readSecPicks(){
+  const box = document.getElementById('info-sections');
+  if(!box) return null;
+  return [].slice.call(box.querySelectorAll('.sec-pick.on')).map(b => b.dataset.sec);
+}
+
+wireSections();
+
 function renderInfoTab(){
   const g = photoCfg(photoGarmentId);
   const nameEl = document.getElementById('info-name');
@@ -6801,19 +6925,22 @@ function renderInfoTab(){
   descEl.value = (contentData.descriptions && contentData.descriptions[g.id]) || '';
   descEl.placeholder = g.name + ' з якісних матеріалів. Крій вільний, плечовий шов спущений. (стандартний)';
   renderSpecRows();
+  renderSecPicks();
 }
 document.getElementById('info-save').addEventListener('click', async ()=>{
   const g = photoCfg(photoGarmentId);
   const name = document.getElementById('info-name').value.trim();
   const desc = document.getElementById('info-desc').value.trim();
   const specs = readSpecRows();
+  const picks = readSecPicks();
   // якщо характеристики збігаються зі стандартними — не зберігаємо перевизначення
   const isDefaultSpecs = specs.length === DEFAULT_SPECS.length && specs.every((r,i)=>r.label===DEFAULT_SPECS[i].label && r.value===DEFAULT_SPECS[i].value);
   try{
     await PHOTOS_DOC.set({
       names: { [g.id]: name ? name : firebase.firestore.FieldValue.delete() },
       descriptions: { [g.id]: desc ? desc : firebase.firestore.FieldValue.delete() },
-      specs: { [g.id]: (specs.length && !isDefaultSpecs) ? specs : firebase.firestore.FieldValue.delete() }
+      specs: { [g.id]: (specs.length && !isDefaultSpecs) ? specs : firebase.firestore.FieldValue.delete() },
+      products: { inSections: { [g.id]: (picks && picks.length) ? picks : firebase.firestore.FieldValue.delete() } }
     }, { merge:true });
     toast('Збережено');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
