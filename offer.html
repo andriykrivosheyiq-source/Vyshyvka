@@ -481,7 +481,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Рівно половина ширини на кадр і жодного проміжку: два фото змикаються
      в один знімок від краю до краю, а третє видно лише коли гортаєш. */
   .pgal-i{position:relative; flex:0 0 50%; scroll-snap-align:start;
-    aspect-ratio:3/4; overflow:hidden; background:#F2F3F5;}
+    aspect-ratio:3/4; overflow:hidden; background:#fff;}
   .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
   .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;}
@@ -1518,6 +1518,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Кількість стоїть НАД ціною, бо саме вона керує ціною: людина клацає
      кількість і бачить, як міняється сума. Кнопка внизу, коли всі числа
      вже перед очима. */
+  /* Порядок у картці: назва → ЦІНА → пакет → кількість і кнопка.
+     Раніше між назвою і ціною стояв перемикач пакетів, і людина спершу
+     обирала комплектацію, ще не знаючи, скільки коштує базова. У магазинах
+     ціна стоїть одразу під назвою — і саме її шукає око. Пакет після неї
+     читається як «а можна інакше», і ціна тут же перераховується. */
   function tiersHtml(i){
     var st = itemState(i);
     var on = isOn(i);
@@ -1544,6 +1549,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Множення тут не робимо: підсумок по позиції рахує кошторис
         (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
                 '</div>' : '') +
+        packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
            лічильник десь вище. */
@@ -1577,7 +1583,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   [tech, it.color].filter(Boolean).map(esc).join(' · ') + '</div>' +
               '</div>' +
             '</div>' +
-            '<div data-tiers="' + i + '">' + packsHtml(i) + tiersHtml(i) + '</div>' +
+            '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) + priceBoxHtml(i) + '</div>' +
@@ -2248,7 +2254,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var box = document.querySelector('[data-price-box="' + i + '"]');
       if(box) box.outerHTML = priceBoxHtml(i);
       var tw = document.querySelector('[data-tiers="' + i + '"]');
-      if(tw) tw.innerHTML = packsHtml(i) + tiersHtml(i);
+      if(tw) tw.innerHTML = tiersHtml(i);
     });
     var packs = document.getElementById('packs');
     if(packs) packs.outerHTML = packagesHtml();
