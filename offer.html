@@ -434,7 +434,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* ── секції ── */
   section{padding:34px 0; border-top:1px solid var(--line);}
-  .sec-title{font-size:22px; font-weight:800; letter-spacing:-0.6px; margin:0 0 6px;}
+  .sec-title{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 6px;}
   .sec-sub{font-size:14.5px; color:var(--muted); margin:0 0 20px;}
 
   /* ── WOW-блок ── */
@@ -447,8 +447,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Раніше кожна позиція займала майже екран: велике фото, сітка
      характеристик, окремий блок ціни. Клієнт гортав і не бачив, скільки
      всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
-  .pcard{border:1px solid var(--line); border-radius:18px; padding:14px; background:#fff;
-    margin-bottom:12px;}
+  /* Фото має йти від краю до краю картки, тож відступ живе не на самій
+     картці, а на її вмісті — окрім стрічки фото. */
+  .pcard{border:1px solid var(--line); border-radius:18px; padding:14px 0 0; background:#fff;
+    margin-bottom:12px; overflow:hidden;}
+  .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
+  .pcard > .pcard-more{padding-bottom:14px;}
+  /* На телефоні картка виходить за поля сторінки: фото мають торкатися
+     країв екрана, як на сторінці товару в магазині. Бічної рамки й
+     заокруглень тут немає — вони й перетворювали фото на «наліпку». */
+  @media (max-width:639px){
+    .pcard{margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
+      border-left:0; border-right:0; border-radius:0; padding-top:0;}
+    .pcard > *:not(.pgal){padding-left:var(--pad); padding-right:var(--pad);}
+    .pcard > .pcard-more{padding-bottom:var(--pad);}
+  }
   /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
      людина має встигнути захотіти виріб, перш ніж читатиме ціну. Раніше фото
      займало 118 px збоку і важило рівно стільки ж, скільки будь-який рядок
@@ -462,12 +475,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Два кадри в ряд на всю ширину, третій визирає з краю — саме цей край і
      каже, що стрічку можна гортати. Прокрутка з прилипанням, як у
      магазинах: палець відпустив — кадр став на місце. */
-  .pgal{display:flex; gap:6px; overflow-x:auto; scroll-snap-type:x mandatory;
-    scrollbar-width:none; -webkit-overflow-scrolling:touch;
-    margin:0 -4px; padding:0 4px;}
+  .pgal{display:flex; gap:0; overflow-x:auto; scroll-snap-type:x mandatory;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; margin:0 0 2px;}
   .pgal::-webkit-scrollbar{display:none;}
-  .pgal-i{position:relative; flex:0 0 calc(50% - 3px); scroll-snap-align:start;
-    aspect-ratio:3/4; border-radius:14px; overflow:hidden; background:var(--soft);}
+  /* Рівно половина ширини на кадр і жодного проміжку: два фото змикаються
+     в один знімок від краю до краю, а третє видно лише коли гортаєш. */
+  .pgal-i{position:relative; flex:0 0 50%; scroll-snap-align:start;
+    aspect-ratio:3/4; overflow:hidden; background:#fff;}
+  .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 var(--line);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
   .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;}
   /* Підпис ракурсу — на самому кадрі: окремий рядок під фото забирав місце
@@ -536,14 +551,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Назва й ціна — без рамок. Рамка навколо ціни робила з неї кнопку,
      якою вона не є, і сперечалася за увагу з реальними кнопками. */
   .pcard-info{margin-top:16px;}
-  .pcard-name{font-size:22px; font-weight:800; letter-spacing:-0.5px; margin:0 0 4px;}
+  .pcard-name{font-size:22px; font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
   .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
   .pcard-money{display:flex; align-items:baseline; gap:9px; margin-top:9px; flex-wrap:wrap;}
-  .pcard-price{font-size:26px; font-weight:800; letter-spacing:-0.6px;
+  .pcard-price{font-size:28px; font-weight:600; letter-spacing:-0.7px;
     font-variant-numeric:tabular-nums; color:var(--ink);}
   /* Ціна без знижки за тираж — перекресленою поруч, і поруч розмір вигоди.
      Це не прикраса: клієнт має бачити, що тираж уже здешевив кожну штуку. */
-  .pcard-old{font-size:16px; font-weight:600; color:var(--muted);
+  .pcard-old{font-size:17px; font-weight:400; color:var(--muted);
     text-decoration:line-through; font-variant-numeric:tabular-nums;}
   .pcard-off{font-size:12.5px; font-weight:800; color:#fff; background:var(--cta);
     border-radius:6px; padding:2px 6px; letter-spacing:.2px;}
