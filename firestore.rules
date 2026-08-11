@@ -109,6 +109,23 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // Заявки без товару: «передзвоніть мені», консультація, запит із форми.
+    // Раніше вони жили лише повідомленням у Telegram — у Канбані їх не було,
+    // і за тиждень ніхто не пам'ятав, чи передзвонили. Клієнт лише створює,
+    // читає й обробляє тільки адмінка. Перевірки — щоб через відкритий
+    // create не залили базу сміттям.
+    match /webLeads/{doc} {
+      allow create: if request.resource.data.imported == false
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 5
+                    && request.resource.data.phone.size() <= 20
+                    && request.resource.data.page is string
+                    && request.resource.data.page.size() <= 200
+                    && request.resource.data.context is string
+                    && request.resource.data.context.size() <= 200;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // Діалоги з Telegram: один документ на співрозмовника. Пише Cloudflare
     // Worker, який приймає вебхук від Telegram — він звертається до бази без
     // входу, тож правило описує рівно ту форму запису, яку він робить.

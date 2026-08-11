@@ -11516,6 +11516,25 @@ window.LOOMIQ_CONFIG = {
   function sendLead(phone, form, btn, origText){
     if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
     var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
+
+    /* Заявка має потрапити не лише в Telegram, а й у базу — інакше вона
+       живе тільки в чаті. Менеджер бачить її в потоці повідомлень, у
+       Канбані її немає, і за тиждень ніхто не згадає, чи передзвонили.
+       Пишемо тихо, у фоні: якщо не вийде, людині все одно скажемо «дякуємо»,
+       бо повідомлення в Telegram уже пішло. */
+    try{
+      var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
+      if(db) db.collection('webLeads').add({
+        phone: String(phone || '').slice(0, 20),
+        page: String(location.pathname || '/').slice(0, 120),
+        context: String(document.title || '').slice(0, 120),
+        site: (window.LQ_SITE || 'main'),
+        createdAt: new Date().toISOString(),
+        imported: false,
+        an: (window.lqAn && window.lqAn.attribution()) || null
+      }).catch(function(e){ console.warn('заявка не записалась у базу', e && e.code); });
+    }catch(e){ console.warn('заявка не записалась у базу', e); }
+
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
       showSuccess(form);
