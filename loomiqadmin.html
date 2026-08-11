@@ -729,6 +729,17 @@
   .pa-col.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
   .pa-col .sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);flex:none;}
   .pa-stage{position:relative;max-width:100%;max-height:100%;line-height:0;}
+  /* Замок стоїть над самим фото, а не в бічній колонці: рішення про симетрію
+     ухвалюється, коли дивишся на зону, а не на список властивостей. */
+  .pa-lock{position:absolute;top:10px;right:10px;z-index:3;display:flex;align-items:center;
+    gap:7px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.94);cursor:pointer;font:inherit;font-size:12.5px;
+    font-weight:600;color:var(--ink);line-height:1;box-shadow:0 2px 8px rgba(15,32,52,.10);}
+  .pa-lock svg{width:15px;height:15px;flex:none;}
+  .pa-lock.is-open{color:var(--accent-deep);border-color:var(--accent);background:var(--accent-soft);}
+  .pa-hint{font-size:12.5px;line-height:1.55;color:var(--ink-soft);background:#f7f7f9;
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .pa-hint b{color:var(--ink);}
   .pa-stage img{max-width:min(560px,60vw);max-height:70vh;display:block;user-select:none;-webkit-user-drag:none;}
   .pa-stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none;}
   .pa-area{font-size:13px;color:var(--ink);background:var(--accent-soft);border-radius:9px;padding:10px 12px;margin-bottom:14px;line-height:1.5;}
@@ -1388,13 +1399,15 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <div class="pa-stage" id="pa-stage">
               <img id="pa-img" alt="">
               <svg id="pa-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+              <button type="button" class="pa-lock" id="pa-lock"></button>
             </div>
           </div>
           <div class="pa-right">
             <div class="pa-lbl">ВЛАСТИВОСТІ</div>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;margin-bottom:16px;">
-              <input type="checkbox" id="pa-sym" checked> Симетричний полігон
-            </label>
+            <div class="pa-hint" style="margin-bottom:16px;">
+              Замок над фото: <b>закритий</b> — ліва сторона повторює праву, <b>відкритий</b> —
+              кожна сторона окремо. Відкривайте, коли виріб несиметричний або фото знято під кутом.
+            </div>
             <div style="background:#f7f7f9;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;">
               <div class="pa-lbl" style="margin-bottom:8px;">МАСШТАБ ВИРОБУ</div>
               <label style="display:block;font-size:11.5px;color:var(--ink-soft);margin-bottom:4px;">Розмір із сітки (підтягує висоту)</label>
@@ -6635,7 +6648,7 @@ function updatePaSummary(id){
     sym=cfg.symmetric!==false; pts=(cfg.pts||DEFAULT_HALF).map(p=>p.slice());
     calT=cfg.calibTop!=null?cfg.calibTop:DEF_CAL.top; calB=cfg.calibBottom!=null?cfg.calibBottom:DEF_CAL.bottom;
     calX=cfg.calibCx!=null?cfg.calibCx:0.5;
-    history=[]; selIdx=-1; const sc=el('pa-sym'); if(sc) sc.checked=sym;
+    history=[]; selIdx=-1; renderLock();
   }
   function saveWork(){
     if(!data[paSide]) data[paSide]=newSideCfg();
@@ -6644,8 +6657,8 @@ function updatePaSummary(id){
     else { data[paSide].colors=data[paSide].colors||{}; data[paSide].colors[paColorId]=cfg; }
   }
   function colorHasOwn(){ const s=data[paSide]; return !isFirstColor() && s && s.colors && s.colors[paColorId]; }
-  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX})); if(history.length>60) history.shift(); }
-  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; render(); } }
+  function snapshot(){ history.push(JSON.stringify({pts,calT,calB,calX,sym})); if(history.length>60) history.shift(); }
+  function undo(){ if(history.length){ const s=JSON.parse(history.pop()); pts=s.pts; calT=s.calT; calB=s.calB; if(s.calX!=null) calX=s.calX; if(s.sym!=null) sym=s.sym; render(); } }
 
   function fullPoly(half){ const mir=half.slice(1,-1).reverse().map(p=>[-p[0],p[1]]); return half.concat(mir); }
   function curFull(){ return sym ? fullPoly(pts) : pts.slice(); }
@@ -6692,6 +6705,7 @@ function updatePaSummary(id){
 
   function render(){
     const svg=el('pa-svg'); if(!svg) return;
+    renderLock();   // скасування правки могло змінити режим — замок має це показати
     const m=stageMetrics(); svg.setAttribute('viewBox','0 0 '+m.w+' '+m.h);
     const yT=calT*m.h, yB=calB*m.h;
     let h='';
@@ -6759,7 +6773,42 @@ function updatePaSummary(id){
   el('pa-close-x')&&el('pa-close-x').addEventListener('click',close);
   el('pa-save')&&el('pa-save').addEventListener('click',save);
   el('pa-reset')&&el('pa-reset').addEventListener('click',()=>{ if(!confirm('Скасувати незбережені зміни цього слоту/кольору?'))return; loadSlotColor(); render(); });
-  el('pa-sym')&&el('pa-sym').addEventListener('change',e=>{ const on=e.target.checked; snapshot(); if(on&&!sym){ const right=pts.filter(p=>p[0]>=-0.001); pts=right.length>=3?right.map(p=>[Math.max(0,p[0]),p[1]]):DEFAULT_HALF.map(p=>p.slice()); } else if(!on&&sym){ pts=curFull(); } sym=on; render(); });
+  /* Закритий замок = малюємо половину, друга дзеркалиться. Відкритий = дві
+     сторони живуть окремо.
+
+     При відкриванні розгортаємо половину в повний контур, щоб було що
+     редагувати. При закриванні лишаємо праву половину: зліва все одно
+     з'явиться її дзеркало, а питати «яку з двох лишити» — зайвий крок,
+     і скасування правки поруч. */
+  const LOCK_SHUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/>' +
+    '<path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  const LOCK_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/>' +
+    '<path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>';
+  function renderLock(){
+    const b = el('pa-lock'); if(!b) return;
+    b.classList.toggle('is-open', !sym);
+    b.innerHTML = (sym ? LOCK_SHUT : LOCK_OPEN) +
+      '<span>' + (sym ? 'Сторони разом' : 'Сторони окремо') + '</span>';
+    b.title = sym ? 'Ліва сторона повторює праву. Натисніть, щоб редагувати кожну окремо.'
+                  : 'Сторони редагуються окремо. Натисніть, щоб знову звʼязати їх.';
+  }
+  el('pa-lock') && el('pa-lock').addEventListener('click', () => {
+    snapshot();
+    if(sym){
+      // розмикаємо: половина стає повним контуром
+      pts = curFull();
+      sym = false;
+    } else {
+      // змикаємо: лишаємо праву половину, ліва стане її дзеркалом
+      const right = pts.filter(p => p[0] >= -0.001);
+      pts = right.length >= 3 ? right.map(p => [Math.max(0, p[0]), p[1]])
+                              : DEFAULT_HALF.map(p => p.slice());
+      sym = true;
+    }
+    render();
+  });
   document.addEventListener('keydown',e=>{ if(!modal().classList.contains('open'))return; if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); } else if((e.key==='Delete'||e.key==='Backspace')&&selIdx>=0){ e.preventDefault(); if(pts.length>3){ snapshot(); pts.splice(selIdx,1); selIdx=-1; render(); } } });
   window.__paOpen=open;
 })();
