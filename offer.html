@@ -436,16 +436,44 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pshot{width:100%; aspect-ratio:1/1; max-height:62vh; border-radius:16px; overflow:hidden;
     background:var(--soft); display:flex; align-items:center; justify-content:center;}
   .pshot img{width:100%; height:100%; object-fit:contain; display:block;
-    transition:opacity .18s ease;}
+    transition:opacity .18s ease; cursor:zoom-in;}
+
+  /* ── Фото на весь екран ──────────────────────────────────────────────
+     Макет — головний аргумент пропозиції, а розглянути вишивку на картинці
+     в 300 px неможливо. Тут вона на весь екран, з наближенням: колесо або
+     щипок, подвійний дотик — швидко наблизити. */
+  .zoom{position:fixed; inset:0; z-index:120; background:rgba(10,13,18,.97);
+    display:none; align-items:center; justify-content:center; touch-action:none;
+    overscroll-behavior:contain;}
+  .zoom.open{display:flex;}
+  .zoom img{max-width:100%; max-height:100%; object-fit:contain; display:block;
+    transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none;}
+  .zoom-x{position:absolute; top:14px; right:14px; width:42px; height:42px; border:none;
+    border-radius:50%; background:rgba(255,255,255,.14); color:#fff; font-size:22px;
+    line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .zoom-x:hover{background:rgba(255,255,255,.24);}
+  .zoom-hint{position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    color:rgba(255,255,255,.75); font-size:12px; letter-spacing:.2px; pointer-events:none;
+    background:rgba(0,0,0,.35); padding:6px 12px; border-radius:999px;}
+  .zoom-nav{position:absolute; top:50%; transform:translateY(-50%); width:48px; height:64px;
+    border:none; background:none; color:#fff; font-size:34px; line-height:1; cursor:pointer;
+    opacity:.65;}
+  .zoom-nav:hover{opacity:1;}
+  .zoom-nav.prev{left:4px;} .zoom-nav.next{right:4px;}
   .pshot img.swap{opacity:0;}
 
   /* Ракурси — рядок вкладок під фото */
   /* Крапки замість підписів: скільки ракурсів і де ти зараз — видно, а
      текст поруч із фото не сперечається з ним за увагу. */
-  .pviews{display:flex; justify-content:center; gap:7px; margin-top:12px;}
-  .pview{width:7px; height:7px; padding:0; border:none; border-radius:50%;
-    background:#D6DBE3; cursor:pointer; transition:.15s;}
-  .pview.on{background:var(--ink); width:20px; border-radius:4px;}
+  /* Ракурси підписані словами. Крапки під фото були тихі, але й німі:
+     клієнт не розумів, що там ще спина, і другий макет часто не бачив
+     узагалі — а саме за нього в дорожчому пакеті й доплачують. */
+  .pviews{display:flex; justify-content:center; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .pview{padding:6px 12px; border:1px solid var(--line); border-radius:999px;
+    background:#fff; font:inherit; font-size:12.5px; font-weight:600; color:var(--ink-2);
+    cursor:pointer; transition:.15s;}
+  .pview:hover{background:var(--soft);}
+  .pview.on{background:var(--ink); border-color:var(--ink); color:#fff;}
   /* Стрілки — поверх фото, ледь помітні, доки не наводиш */
   .pshot{position:relative;}
   /* Просто стрілка, без кола: на білому фоні кружечок виглядав як наліпка.
@@ -456,9 +484,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pnav:active{color:var(--ink);}
   .pnav[hidden]{display:none;}
   .pnav.prev{left:0;} .pnav.next{right:0;}
-  .pvlabel{text-align:center; font-size:12.5px; font-weight:700; color:var(--ink-2);
-    margin-top:12px;}
-  .pviews{margin-top:7px;}
+  .pvlabel{display:none;}
 
   /* Примітка — згорнута, щоб не сперечатися з товаром за увагу */
   .pnote-t{display:flex; align-items:center; gap:7px; margin-top:10px; padding:0;
@@ -492,6 +518,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font:inherit; font-size:14.5px; font-weight:700; color:var(--ink-2); cursor:pointer;
     font-variant-numeric:tabular-nums; transition:.15s;}
   .pseg-b.on{background:var(--ink); color:#fff;}
+  /* Що входить у пакет — рядком під перемикачем */
+  .pseg-note{display:flex; align-items:center; gap:7px; margin-top:9px;
+    font-size:13.5px; color:var(--ink-2); line-height:1.45;}
+  /* Кому ми оформлюємо замовлення — у вікні підтвердження */
+  .cf-who{background:var(--soft); border-radius:12px; padding:12px 14px; margin-bottom:14px;
+    font-size:14px; color:var(--ink-2); line-height:1.5;}
+  .cf-who b{display:block; color:var(--ink); font-size:15px; margin-top:2px;}
+  .cf-who-note{display:block; margin-top:6px; font-size:12px; color:var(--muted);}
   .pqty-n{margin-top:8px; font-size:13px; color:var(--muted);}
   .pqty-n b{color:var(--good);}
 
@@ -540,9 +574,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Точно як у каталозі сайту: фото заповнює плитку від краю до краю
      (object-fit: cover), тож усередині картки немає окремого прямокутника
      з іншим тлом. Саме він і читався як «фон прибрали». */
-  .rc-ph{border-radius:11px; overflow:hidden; background:#f3f3f5; aspect-ratio:1/1;
-    margin-bottom:9px; display:block;}
-  .rc-ph img{width:100%; height:100%; object-fit:cover; display:block;}
+  /* Однакова рамка й ВПИСУВАННЯ, а не обрізання. З обрізанням кепка займала
+     весь квадрат, а шопер — половину, і поруч вони виглядали різного
+     калібру. Тепер усі товари в однаковій рамці й однаково дихають. */
+  .rc-ph{border-radius:11px; overflow:hidden; background:#fff; aspect-ratio:1/1;
+    margin-bottom:9px; display:flex; align-items:center; justify-content:center;
+    padding:10px; cursor:zoom-in;}
+  .rc-ph img{max-width:100%; max-height:100%; width:auto; height:auto;
+    object-fit:contain; display:block;}
   .rc-tag{display:inline-block; align-self:flex-start; background:#EEF2FF; color:#4338CA; border-radius:999px;
     padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.3px;
     text-transform:uppercase; margin-bottom:5px;}
@@ -846,21 +885,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
+<!-- Фото на весь екран -->
+<div class="zoom no-print" id="ovZoom" role="dialog" aria-label="Перегляд макета">
+  <button class="zoom-nav prev" id="zoomPrev" aria-label="Попереднє фото">‹</button>
+  <img id="zoomImg" alt="Макет">
+  <button class="zoom-nav next" id="zoomNext" aria-label="Наступне фото">›</button>
+  <button class="zoom-x" id="zoomX" aria-label="Закрити">✕</button>
+  <div class="zoom-hint" id="zoomHint">Наблизити — колесо, щипок або подвійний дотик</div>
+</div>
+
 <!-- Підтвердження замовлення -->
 <div class="ov no-print" id="ovConfirm">
   <div class="sheet">
     <div id="cfForm">
       <h3>Підтвердження замовлення</h3>
-      <p class="sec-sub">Перевірте склад — далі ми звіримо деталі та надішлемо рахунок.</p>
+      <p class="sec-sub">Ми звіримо деталі та надішлемо рахунок.</p>
+      <!-- Кошторис тут НЕ повторюємо: клієнт щойно його бачив, і другий
+           список перед кнопкою читається як «ще щось порахували». Лишається
+           один рядок — сума й термін. -->
       <div class="sum-box" id="cfSummary"></div>
-      <div class="fld"><label for="cfName">Ім'я</label>
-        <input id="cfName" type="text" autocomplete="name" placeholder="Як до вас звертатися"></div>
-      <div class="fld"><label for="cfPhone">Телефон</label>
-        <input id="cfPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__"></div>
-      <div class="fld"><label for="cfContact">Email або месенджер</label>
-        <input id="cfContact" type="text" placeholder="Необов'язково"></div>
-      <div class="fld"><label for="cfNote">Коментар</label>
-        <textarea id="cfNote" maxlength="600" placeholder="Побажання, терміни, деталі"></textarea></div>
+      <!-- Контакти не питаємо: пропозиція іменна, ми знаємо, кому її
+           надіслали. Поле зʼявляється лише тоді, коли даних справді немає. -->
+      <div id="cfWho"></div>
       <div class="err" id="cfErr" hidden></div>
       <div class="sheet-btns">
         <button class="btn" id="cfSend">Підтвердити замовлення</button>
@@ -961,6 +1007,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
              'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var TICK_SM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
+                'stroke-width="3" stroke-linecap="round" stroke-linejoin="round" ' +
+                'style="flex:none;"><path d="M20 6 9 17l-5-5"/></svg>';
   var TICK_W = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" ' +
                'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   // Зелений кружечок із галочкою — статуси на першому екрані читаються як
@@ -1057,7 +1106,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    'data-pack-of="' + i + '" data-pack-id="' + esc(p.id) + '">' +
             esc(p.name) + '</button>';
         }).join('') + '</div>' +
-        // Опис пакета не пишемо: що саме нанесено, видно на самому макеті
+        /* Що саме входить у пакет — словами. Раніше ми покладались на макет:
+           мовляв, видно й так. Не видно: різниця між «вишивка на грудях» і
+           «вишивка на грудях + спині» на дрібному фото не читається, а це
+           рівно те, за що людина доплачує. */
+        (cur.note ? '<div class="pseg-note">' + TICK_SM + esc(cur.note) + '</div>' : '') +
       '</div>';
   }
 
@@ -1307,7 +1360,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<div class="pviews">' + m.map(function(src, k){
         return '<button class="pview' + (k === 0 ? ' on' : '') + '" data-thumb="' + idx + '" ' +
                  'data-src="' + esc(src) + '" data-label="' + esc(label(k)) + '" ' +
-                 'aria-label="' + esc(label(k)) + '"></button>';
+                 'aria-label="' + esc(label(k)) + '">' + esc(label(k)) + '</button>';
       }).join('') + '</div>';
   }
 
@@ -1621,7 +1674,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                це вже подробиці замовлення: вони зʼявляться у великій картці,
                коли товар додадуть. Тут завдання простіше — зацікавити. */
             '<div class="rc-n">' + esc(r.name) + '</div>' +
-            '<div class="rc-p">' + money(r.unitPrice) + ' за штуку</div>' +
+            /* Просто ціна. «За штуку» тут зайве: у блоці «часто беруть
+               разом» ніхто не рахує тираж — людина дивиться, скільки коштує
+               річ. Кількість і сума зʼявляться у великій картці, коли товар
+               додадуть у замовлення. */
+            '<div class="rc-p">' + money(r.unitPrice) + '</div>' +
             '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
               (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
@@ -1759,9 +1816,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '' +
       '<section class="band">' +
         '<h2 class="sec-title">Гарантії</h2>' +
-        '<p class="sec-sub">Ті самі умови, що й у публічній гарантії' +
-          (brandSiteLabel() ? ' на ' + esc(brandSiteLabel()) : '') +
-          ' — нічого окремого «для цієї пропозиції».</p>' +
+        /* Раніше тут стояло «ті самі умови, що й у публічній гарантії на
+           loomiq.net». Клієнт читав це як службову примітку й не розумів,
+           обіцянка це йому чи наша внутрішня довідка. Пишемо прямо: що ми
+           зробимо, якщо щось піде не так. */
+        '<p class="sec-sub">Якщо щось піде не так — ось що ми зробимо. ' +
+          'Ці умови діють для всіх наших замовлень, не тільки для цієї пропозиції.</p>' +
         /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
            той самий вигляд, що був у документів і оплати. Галочки в рядок
            виглядали як список справ, а не як зобовʼязання. */
@@ -2182,22 +2242,43 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function openSheet(id){ document.getElementById(id).classList.add('open'); }
   function closeSheet(id){ document.getElementById(id).classList.remove('open'); }
 
+  /* Один рядок замість повторного кошторису. Розкладку клієнт щойно бачив
+     на сторінці; повторити її перед кнопкою — це не «переконатись», а
+     змусити читати те саме вдруге і засумніватись. */
   function confirmSummaryHtml(){
     var t = totals();
-    var lines = OFFER.items.map(function(it, i){
-      var s = itemState(i);
-      return '<div class="sum-line"><span>' + esc(it.name) + ' · ' + s.qty + ' шт</span>' +
-             '<span>' + money(s.sum) + '</span></div>';
-    });
-    OFFER.reco.forEach(function(r, i){
-      if(!pick.reco[i]) return;
-      lines.push('<div class="sum-line"><span>' + esc(r.name) + ' · ' + r.qty + ' шт</span>' +
-                 '<span>' + money(r.price) + '</span></div>');
-    });
-    lines.push('<div class="sum-line"><span>Термін виготовлення</span><span>' +
-               daysWord(curDays()) + '</span></div>');
-    lines.push('<div class="sum-line big"><span>До сплати</span><span>' + money(t.sum) + '</span></div>');
-    return lines.join('');
+    return '<div class="sum-line big"><span>Разом</span><span>' + money(t.sum) + '</span></div>' +
+           '<div class="sum-line"><span>' + t.qty + ' ' +
+             plural(t.qty, 'виріб', 'вироби', 'виробів') + '</span><span>' +
+             daysWord(curDays()) + '</span></div>';
+  }
+
+  /* Кого ми знаємо. Пропозиція іменна: імʼя й телефон приїхали з картки
+     замовлення разом із цінами. Питати їх удруге — це і зайвий крок перед
+     кнопкою, і натяк, що ми не памʼятаємо, кому пишемо. Поле показуємо
+     рівно тоді, коли даних справді бракує. */
+  function clientKnown(){
+    var c = OFFER.client || {};
+    return { name: String(c.name || '').trim(), phone: String(c.phone || '').trim() };
+  }
+  function confirmWhoHtml(){
+    var k = clientKnown();
+    var out = '';
+    if(k.name || k.phone){
+      out += '<div class="cf-who">Оформлюємо на ' +
+        '<b>' + esc([k.name, k.phone].filter(Boolean).join(' · ')) + '</b>' +
+        '<span class="cf-who-note">Не ви? Напишіть менеджеру — виправимо.</span></div>';
+    }
+    if(!k.name){
+      out += '<div class="fld"><label for="cfName">Ім\'я</label>' +
+        '<input id="cfName" type="text" autocomplete="name" placeholder="Як до вас звертатися"></div>';
+    }
+    if(!k.phone){
+      out += '<div class="fld"><label for="cfPhone">Телефон</label>' +
+        '<input id="cfPhone" type="tel" inputmode="tel" autocomplete="tel" ' +
+        'placeholder="+38 (0__) ___-__-__"></div>';
+    }
+    return out;
   }
 
   function lockAfterConfirm(){
@@ -2207,7 +2288,159 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     render();
   }
 
+  /* ═══════════ Фото на весь екран ═══════════
+     Клієнт вирішує за макетом, а розглянути вишивку на картинці в 300 px
+     неможливо — доводилось вірити на слово. Тут те саме фото на весь екран
+     і з наближенням: колесо, щипок або подвійний дотик.
+
+     Масштабуємо самі, а не через браузерний зум сторінки: сторінка з
+     фіксованою нижньою панеллю від нього розповзається. */
+  var ZM = { list: [], i: 0, s: 1, tx: 0, ty: 0, box: null };
+  function zoomEls(){
+    return { ov: document.getElementById('ovZoom'), img: document.getElementById('zoomImg') };
+  }
+  function zoomApply(){
+    var img = zoomEls().img;
+    if(img) img.style.transform = 'translate(' + ZM.tx + 'px,' + ZM.ty + 'px) scale(' + ZM.s + ')';
+  }
+  // Не даємо картинці «поїхати» за край: при масштабі 1 вона рівно по центру.
+  function zoomClamp(){
+    if(ZM.s <= 1.001){ ZM.s = 1; ZM.tx = 0; ZM.ty = 0; return; }
+    var b = ZM.box;
+    if(!b) return;
+    var maxX = 0, minX = b.width - b.width * ZM.s;
+    var maxY = 0, minY = b.height - b.height * ZM.s;
+    ZM.tx = Math.min(maxX, Math.max(minX, ZM.tx));
+    ZM.ty = Math.min(maxY, Math.max(minY, ZM.ty));
+  }
+  function zoomTo(px, py, s2){
+    var b = ZM.box; if(!b) return;
+    s2 = Math.min(5, Math.max(1, s2));
+    var lx = (px - b.left - ZM.tx) / ZM.s;
+    var ly = (py - b.top - ZM.ty) / ZM.s;
+    ZM.tx = px - b.left - lx * s2;
+    ZM.ty = py - b.top - ly * s2;
+    ZM.s = s2;
+    zoomClamp(); zoomApply();
+  }
+  function zoomShow(i){
+    var e = zoomEls();
+    if(!e.img || !ZM.list.length) return;
+    ZM.i = (i + ZM.list.length) % ZM.list.length;
+    ZM.s = 1; ZM.tx = 0; ZM.ty = 0;
+    e.img.style.transform = '';
+    e.img.src = ZM.list[ZM.i];
+    // Рамку міряємо ПІСЛЯ завантаження: до нього розміри ще нульові,
+    // і перше ж наближення стрибало б у кут.
+    var measure = function(){ ZM.box = e.img.getBoundingClientRect(); };
+    if(e.img.complete) setTimeout(measure, 0); else e.img.onload = measure;
+    var nav = ZM.list.length > 1;
+    ['zoomPrev','zoomNext'].forEach(function(id){
+      var b = document.getElementById(id); if(b) b.style.display = nav ? '' : 'none';
+    });
+  }
+  function openZoom(list, idx){
+    ZM.list = (list || []).filter(Boolean);
+    if(!ZM.list.length) return;
+    var e = zoomEls();
+    e.ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    zoomShow(idx || 0);
+    var hint = document.getElementById('zoomHint');
+    if(hint){ hint.style.opacity = '1'; setTimeout(function(){ hint.style.opacity = '0'; }, 2600); }
+  }
+  function closeZoom(){
+    var e = zoomEls();
+    if(e.ov) e.ov.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function wireZoom(){
+    var e = zoomEls();
+    if(!e.ov || e.ov.dataset.wired) return;
+    e.ov.dataset.wired = '1';
+    document.getElementById('zoomX').onclick = closeZoom;
+    document.getElementById('zoomPrev').onclick = function(ev){ ev.stopPropagation(); zoomShow(ZM.i - 1); };
+    document.getElementById('zoomNext').onclick = function(ev){ ev.stopPropagation(); zoomShow(ZM.i + 1); };
+    // Клік по темному тлу закриває; по самій картинці — ні (там перетягують)
+    e.ov.addEventListener('click', function(ev){ if(ev.target === e.ov) closeZoom(); });
+    document.addEventListener('keydown', function(ev){
+      if(!e.ov.classList.contains('open')) return;
+      if(ev.key === 'Escape') closeZoom();
+      if(ev.key === 'ArrowLeft') zoomShow(ZM.i - 1);
+      if(ev.key === 'ArrowRight') zoomShow(ZM.i + 1);
+    });
+    e.ov.addEventListener('wheel', function(ev){
+      ev.preventDefault();
+      zoomTo(ev.clientX, ev.clientY, ZM.s * (ev.deltaY < 0 ? 1.18 : 1 / 1.18));
+    }, { passive:false });
+    e.img.addEventListener('dblclick', function(ev){
+      zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 2.5);
+    });
+
+    /* Перетягування і щипок на одному наборі подій: pointer-події дають і
+       мишу, і палець. Двома пальцями — масштаб, одним (коли вже наближено) —
+       рух. Подвійний дотик ловимо самі: dblclick на тачскрині не приходить. */
+    var pts = {}, startDist = 0, startS = 1, startMid = null, lastTap = 0;
+    e.ov.addEventListener('pointerdown', function(ev){
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+      var ids = Object.keys(pts);
+      if(ids.length === 2){
+        var a = pts[ids[0]], b = pts[ids[1]];
+        startDist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        startS = ZM.s;
+        startMid = { x:(a.x + b.x) / 2, y:(a.y + b.y) / 2 };
+      }
+      if(ev.target === e.img && ids.length === 1){
+        var now = Date.now();
+        if(now - lastTap < 320) zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 2.5);
+        lastTap = now;
+      }
+      if(e.ov.setPointerCapture) try{ e.ov.setPointerCapture(ev.pointerId); }catch(err){}
+    });
+    e.ov.addEventListener('pointermove', function(ev){
+      var p = pts[ev.pointerId];
+      if(!p) return;
+      var ids = Object.keys(pts);
+      if(ids.length >= 2 && startMid){
+        var a = pts[ids[0]], b = pts[ids[1]];
+        pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+        a = pts[ids[0]]; b = pts[ids[1]];
+        var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        zoomTo(startMid.x, startMid.y, startS * (d / startDist));
+        return;
+      }
+      if(ZM.s > 1.001){
+        ZM.tx += ev.clientX - p.x;
+        ZM.ty += ev.clientY - p.y;
+        zoomClamp(); zoomApply();
+      }
+      pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(t){
+      e.ov.addEventListener(t, function(ev){ delete pts[ev.pointerId]; startMid = null; });
+    });
+
+    /* Що саме відкривати — вирішуємо на кліку по сторінці, а не навішуванням
+       обробників: картки перемальовуються, і кожне перемальовування
+       залишало б за собою мертві обробники. */
+    document.addEventListener('click', function(ev){
+      var img = ev.target.closest && ev.target.closest('.pshot img, .rc-ph img');
+      if(!img) return;
+      var shot = img.closest('.pshot');
+      var idxAttr = shot && shot.getAttribute('data-shot');
+      if(idxAttr != null){
+        var it = OFFER.items[+idxAttr] || {};
+        var list = (it.mockups || []).filter(Boolean);
+        var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
+        openZoom(list.length ? list : [img.src], cur);
+      } else {
+        openZoom([img.getAttribute('src')], 0);
+      }
+    });
+  }
+
   function wireSheets(){
+    wireZoom();
     document.querySelectorAll('[data-close]').forEach(function(b){
       b.onclick = function(){
         closeSheet('ovConfirm'); closeSheet('ovChange');
@@ -2221,11 +2454,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // ── підтвердження ──
     document.getElementById('cfSend').onclick = function(){
       var btn = this;
-      var name = document.getElementById('cfName').value.trim();
-      var phone = document.getElementById('cfPhone').value.trim();
+      var k = clientKnown();
+      // Поля існують лише тоді, коли даних не було: беремо або їх, або те,
+      // що вже відоме з пропозиції.
+      var nameEl = document.getElementById('cfName');
+      var phoneEl = document.getElementById('cfPhone');
+      var name = nameEl ? nameEl.value.trim() : k.name;
+      var phone = phoneEl ? phoneEl.value.trim() : k.phone;
       var err = document.getElementById('cfErr');
-      if(name.length < 2){ err.hidden = false; err.textContent = 'Вкажіть, як до вас звертатися.'; return; }
-      if(phone.replace(/\D/g,'').length < 9){ err.hidden = false; err.textContent = 'Перевірте номер телефону.'; return; }
+      if(nameEl && name.length < 2){ err.hidden = false; err.textContent = 'Вкажіть, як до вас звертатися.'; return; }
+      if(phoneEl && phone.replace(/\D/g,'').length < 9){ err.hidden = false; err.textContent = 'Перевірте номер телефону.'; return; }
       err.hidden = true;
       btn.disabled = true; btn.textContent = 'Надсилаємо…';
       var t = totals();
@@ -2233,8 +2471,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         state: 'confirmed',
         clientAction: {
           kind: 'confirm', name: name, phone: phone,
-          contact: document.getElementById('cfContact').value.trim().slice(0, 200),
-          comment: document.getElementById('cfNote').value.trim().slice(0, 600),
+          contact: String((OFFER.client || {}).instagram || '').slice(0, 200),
+          comment: '',
           total: t.sum, count: t.qty, days: curDays(),
           at: new Date().toISOString()
         }
@@ -2457,6 +2695,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
         document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
+        document.getElementById('cfWho').innerHTML = confirmWhoHtml();
         openSheet('ovConfirm');
       };
     });
