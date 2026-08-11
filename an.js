@@ -336,6 +336,7 @@
   }
 
   function track(name, params){
+    clarityMark(name);
     if(!name) return;
     name = String(name).slice(0, 40);
     if(OFF) return;
@@ -455,6 +456,53 @@
     if(n) track(n);
   }, true);
 
+  /* ---------- 9б. Запис екрана (Microsoft Clarity) --------------------- */
+  /* Цифри показують, ДЕ люди відвалюються. Запис показує ЧОМУ: що тиснули,
+     куди дивились, де інтерфейс не відповів. На малому трафіку це цінніше
+     за будь-яку статистику — десять переглядів пояснюють більше, ніж сто
+     візитів у таблиці.
+
+     Вантажимо після завантаження сторінки: запис не має коштувати першого
+     екрана. Ідентифікатор проєкту приходить із адмінки — поки його немає,
+     нічого не вмикається.
+
+     Своїми мітками звʼязуємо запис із нашою аналітикою: за міткою пристрою
+     з картки замовлення можна знайти саме той сеанс. */
+  function clarityStart(id){
+    if(!id || OFF || W.clarity) return;
+    (function(c, l, a, r, i, t, y){
+      c[a] = c[a] || function(){ (c[a].q = c[a].q || []).push(arguments); };
+      t = l.createElement(r); t.async = 1;
+      t.src = 'https://www.clarity.ms/tag/' + i;
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(W, D, 'clarity', 'script', id);
+    try{
+      W.clarity('identify', S.vid);
+      W.clarity('set', 'lq_vid', S.vid);
+      W.clarity('set', 'lq_sid', S.sid);
+      W.clarity('set', 'site', S.site);
+      if(S.src && S.src.source) W.clarity('set', 'source', String(S.src.source));
+    }catch(e){}
+  }
+  function clarityWhenKnown(){
+    if(OFF) return;
+    var go = function(){
+      var c = (W.SITE_CONTENT && W.SITE_CONTENT.bgApi) || {};
+      if(c.clarityId) clarityStart(String(c.clarityId).trim());
+    };
+    // Налаштування приходять із бази пізніше за скрипт — чекаємо на подію,
+    // але й пробуємо одразу, якщо вони вже на місці.
+    go();
+    D.addEventListener('lq-content', go);
+    D.addEventListener('lq-photos', go);
+  }
+  /* Позначаємо важливі моменти прямо в записі: у списку сеансів видно, хто
+     дійшов до кошика, а хто спіткнувся — не треба передивлятись усе. */
+  function clarityMark(name){
+    if(OFF || !W.clarity) return;
+    try{ W.clarity('event', name); }catch(e){}
+  }
+
   /* ---------- 10. Старт ----------------------------------------------- */
   W.lqAn = {
     track: track, step: step, order: order, attribution: attribution,
@@ -471,5 +519,8 @@
     });
     S.steps.visit = 1;
     setTimeout(function(){ schedule(true); }, 2000);
+    // Після завантаження сторінки: запис не має коштувати першого екрана
+    if(D.readyState === 'complete') setTimeout(clarityWhenKnown, 1200);
+    else W.addEventListener('load', function(){ setTimeout(clarityWhenKnown, 1200); });
   }
 })();

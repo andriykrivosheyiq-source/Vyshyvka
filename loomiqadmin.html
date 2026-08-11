@@ -1475,6 +1475,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
 
         <div class="card" style="max-width:640px;">
+          <b style="font-size:14px;">Запис екрана відвідувачів (Microsoft Clarity)</b>
+          <div class="sub" style="margin:6px 0 12px;">Ідентифікатор проєкту з <a href="https://clarity.microsoft.com" target="_blank" rel="noopener" style="color:var(--accent);">clarity.microsoft.com</a> — рядок на 10 символів із адреси проєкту. Тоді видно записи екрана, теплові карти кліків, «злі кліки» і помилки, через які людина не може оформити замовлення. Безкоштовно й без обмежень. Порожнє поле = запис вимкнено.</div>
+          <input id="clarity-id" type="text" maxlength="40" style="width:100%;margin-bottom:12px;font-family:var(--mono);font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="напр. abcd1234ef">
+          <button class="pc-btn up" id="clarity-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+        </div>
+
+        <div class="card" style="max-width:640px;">
           <b style="font-size:14px;">Sitniks CRM — переписка в картці замовлення</b>
           <div class="sub" style="margin:6px 0 12px;">Адреса Worker-проксі до Sitniks (див. <code>worker/README.md</code>). Тоді в картці Канбану зʼявиться блок «Діалог з клієнтом»: підтягне переписку за номером замовлення в Sitniks і дасть відповісти, не виходячи з адмінки. <b>Ключ Sitniks сюди НЕ вставляти</b> — він лише в секретах Worker.</div>
           <input id="crmapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-sitniks.ВАШ-АКАУНТ.workers.dev">
@@ -5966,6 +5973,7 @@ function renderSiteTab(){
   const bgEl = document.getElementById('bgapi-url'); if(bgEl) bgEl.value = bgApi.proxyUrl || '';
   const aiEl = document.getElementById('aiapi-url'); if(aiEl) aiEl.value = bgApi.geminiUrl || '';
   const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
+  const clEl = document.getElementById('clarity-id'); if(clEl) clEl.value = bgApi.clarityId || '';
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
   document.getElementById('promo-text').value = promo.text || '';
@@ -6025,6 +6033,16 @@ document.getElementById('crmapi-save').addEventListener('click', async ()=>{
   try{
     await PHOTOS_DOC.set({ bgApi: { sitniksUrl: url } }, { merge:true });
     toast(url ? 'Адресу збережено — переписка тягнеться в картку' : 'Очищено — блок діалогу вимкнено');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+document.getElementById('clarity-save').addEventListener('click', async ()=>{
+  const id = document.getElementById('clarity-id').value.trim();
+  // Ідентифікатор проєкту — не секрет: він і так видно в коді сторінки.
+  // Але хай буде схожий на ідентифікатор, а не на вставлений цілий скрипт.
+  if(id && !/^[a-z0-9]{6,20}$/i.test(id)){ toast('Це має бути короткий рядок з адреси проєкту Clarity'); return; }
+  try{
+    await PHOTOS_DOC.set({ bgApi: { clarityId: id } }, { merge:true });
+    toast(id ? 'Запис екрана увімкнено' : 'Запис екрана вимкнено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 document.getElementById('promo-save').addEventListener('click', async ()=>{
