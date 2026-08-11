@@ -146,6 +146,25 @@
     a.href = fresh(TARGETS[+a.dataset.i].url);
   });
 
+  /* Сторінка обходила кеш для всіх, крім себе — і показувала власний старий
+     список, поки браузер тримав копію. Тому перевіряємо і себе: якщо на
+     сервері лежить свіжіша версія, перезавантажуємось один раз. */
+  (function selfFresh(){
+    var KEY = 'lq_test_reloaded';
+    fetch('test.html?v=' + Date.now(), { method:'HEAD', cache:'no-store' })
+      .then(function(r){
+        var lm = r.headers.get('last-modified');
+        if(!lm) return;
+        var server = new Date(lm), mine = new Date(document.lastModified);
+        if(isNaN(server) || isNaN(mine)) return;
+        if(server - mine < 30000) { sessionStorage.removeItem(KEY); return; }
+        if(sessionStorage.getItem(KEY)) return;   // один раз, щоб не зациклитись
+        sessionStorage.setItem(KEY, '1');
+        location.replace('test.html?v=' + Date.now());
+      })
+      .catch(function(){});
+  })();
+
   document.getElementById('again').addEventListener('click', check);
   check();
   // Повернулись на вкладку — час міг змінитись
