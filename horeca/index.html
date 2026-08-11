@@ -6190,7 +6190,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
       return Math.round(c);
     }
-    function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(cleanMm2/1000 * (+m.costPer1000mm2 || 0)), minCostForIndex(m, idx || 0)); }
+    function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(areaSum(m, cleanMm2, true)), minCostForIndex(m, idx || 0)); }
     /* ═══════════ Порядок нанесень для мінімалок ═══════════
        Мінімальна ціна задана списком: перше нанесення 200, друге 150, далі
        менше. «Перше» раніше означало «те, що лежить на передній стороні» —
@@ -6225,7 +6225,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return c;
     }
     // «Сира» продажна ціна нанесення — ДО застосування мінімалки (за площею / за сіткою DTF).
-    function placementRaw(m, l){ var cleanMm2 = layerInkMm2(l); return Math.round(cleanMm2/1000 * (+m.pricePer1000mm2 || 0)); }
+    function placementRaw(m, l){ var cleanMm2 = layerInkMm2(l); return Math.round(areaSum(m, cleanMm2, false)); }
     function dtfGridRaw(m, l, uOverride){
       var col = dtfBandCol(m, l); var qf = m.qtyFrom || [];
       var u = Math.max(1, (uOverride != null ? uOverride : totalUnits()));
@@ -6375,6 +6375,48 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
     function methodMins(m){ if(m && Array.isArray(m.minPrices) && m.minPrices.length) return m.minPrices; if(m && m.minPrice != null) return [+m.minPrice || 0]; return [0]; }
     function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+
+    /* ═══════════ Градація ціни за площею ═══════════
+       Ставка за 1000 мм² більше не одна на будь-який розмір: великий макет
+       має виходити дешевшим за квадратний сантиметр, інакше клієнту невигідно
+       замовляти більше.
+
+       Шкала ПРОГРЕСИВНА, як податкова: пороги ділять площу на шматки, і
+       кожен шматок рахується своєю ставкою. Пороги — це «від скількох мм²
+       починає діяти дешевша ставка», а не «якщо більше — усе за дешевшою».
+       Це принципово: при плоскому порозі 10 000 мм² по 35 грн коштували б
+       350, а 10 001 мм² по 30 — уже 300, і збільшення макета ЗМЕНШУВАЛО б
+       рахунок. Прогресивна шкала такого не допускає ніколи.
+
+       Порожній список порогів = стара поведінка: одна ставка на всю площу.
+       Порогів немає й у собівартості, поки їх не задали окремо — тоді
+       cost1k просто не змінюється на цьому порозі. */
+    function areaTiersOf(m, isCost){
+      var a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
+      return a.map(function(t){
+          return { from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) };
+        })
+        .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate >= 0
+                                    && (isCost ? t.rate > 0 : true); })
+        .sort(function(a, b){ return a.from - b.from; });
+    }
+    // Шматки площі зі своїми ставками — щоб розклад для менеджера показував
+    // не «площа × ставка», а справжню сходинку.
+    function areaParts(m, mm2, isCost){
+      mm2 = Math.max(0, +mm2 || 0);
+      var rate = +(isCost ? (m || {}).costPer1000mm2 : (m || {}).pricePer1000mm2) || 0;
+      var tiers = areaTiersOf(m, isCost), out = [], prev = 0;
+      for(var i = 0; i < tiers.length; i++){
+        if(mm2 <= tiers[i].from) break;
+        out.push({ mm2: tiers[i].from - prev, rate: rate });
+        prev = tiers[i].from; rate = tiers[i].rate;
+      }
+      out.push({ mm2: mm2 - prev, rate: rate });
+      return out;
+    }
+    function areaSum(m, mm2, isCost){
+      return areaParts(m, mm2, isCost).reduce(function(s, p){ return s + p.mm2 * p.rate / 1000; }, 0);
+    }
     // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
     function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
     // Стартова ціна вишивки: фіксована сума, з якої нанесення СТАРТУЄ, а вже до
@@ -6416,7 +6458,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var cleanMm2 = layerInkMm2(l);
       var raw;
       if(m.pricePer1000mm2 != null){
-        raw = cleanMm2 / 1000 * (+m.pricePer1000mm2 || 0);
+        raw = areaSum(m, cleanMm2, false);
       } else if(m.mode === 'stitch'){
         raw = cleanMm2 * (+m.density || 1.6) / 1000 * (+m.pricePer1000 || 0);
       } else {
@@ -8846,7 +8888,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(logoCount()===1){ var col=dtfBandCol(m,actL); var bl=(m.bands&&m.bands[col])?m.bands[col].label:''; det += ' · Лист: <b>'+bl+'</b>'; }
         else det += ' · Листів: <b>'+logoCount()+'</b> (див. розклад)';
       }
-      else if(areaMm2>0){ det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+((+m.pricePer1000mm2||0)/10)+' грн/см²</b>'; }
+      else if(areaMm2>0){
+        // За градації ставка не одна — показуємо середню по цій площі, а поруч
+        // позначку, щоб менеджер не шукав цю цифру в налаштуваннях.
+        var aParts = areaParts(m, areaMm2, false);
+        var aRate = areaMm2 > 0 ? (areaSum(m, areaMm2, false) / areaMm2 * 1000) : 0;
+        det += ' · Площа: <b>'+(areaMm2/100).toFixed(1)+' см²</b> ('+Math.round(areaMm2)+' мм²) · <b>'+
+          (Math.round(aRate*10)/100)+' грн/см²</b>' + (aParts.length > 1 ? ' <span style="color:#8a94a6;">(градація)</span>' : '');
+      }
       if(dims) det += ' · '+Math.round(dims.w/10)+'×'+Math.round(dims.h/10)+' см';
       head += '<div style="font-size:11.5px;color:#5a6a80;margin:3px 0 10px;line-height:1.5;">'+det+'</div>';
       /* Дані з адмінки могли не прийти — тоді сайт малює запасні ціни, а
@@ -8929,8 +8978,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               // свої, і показувати тут цифри з картинки означало б брехати.
               var mk = methodCfgKind(m, isTxt);
               var mm2 = layerInkMm2(l);
-              var rate = +mk.pricePer1000mm2 || 0;              // грн за 1000 мм²
-              var calc = (mm2/100).toFixed(1) + ' см² × ' + (rate/10) + ' грн/см² = ' + Math.round(raw);
+              // Ставок може бути кілька: велика площа ділиться порогами на
+              // шматки, і кожен рахується своєю. Показуємо саме так, інакше
+              // «площа × ставка» не сходилось би із сумою.
+              var parts = areaParts(mk, mm2, false);
+              var calc = parts.map(function(p){
+                  return (p.mm2/100).toFixed(1) + ' см² × ' + (p.rate/10);
+                }).join(' + ') + ' грн/см² = ' + Math.round(raw);
               note = atMin
                 ? ' <span style="color:#c58a00;">(мін ' + minForIndex(mk, idx) + ')</span>'
                   + ' <span style="color:#8a94a6;">' + calc + '</span>'
