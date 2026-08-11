@@ -137,6 +137,8 @@ service cloud.firestore {
     match /an_tg/{chat} {
       allow get: if true;
       allow list: if request.auth != null;
+      // Адмінка позначає діалог полем kb, коли завела на нього картку —
+      // без цього кожне оновлення створювало б нову картку на ту саму людину.
       allow create, update: if request.resource.data.uid is string
                     && request.resource.data.uid.size() <= 24
                     && request.resource.data.vid is string
