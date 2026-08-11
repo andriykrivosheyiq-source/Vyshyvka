@@ -518,6 +518,11 @@
   .tc-date{font-size:10.5px;color:#9AA5B5;}
   .tc-who{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--ink);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Останнє повідомлення з Telegram прямо на картці — щоб не відкривати
+     кожну заради одного рядка. Один рядок і три крапки: картка не має рости. */
+  .tc-tg{font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .tc-tg.quiet{color:var(--ink-soft);font-style:italic;}
   .tc-meta{font-size:11px;color:var(--ink-soft);}
   .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
   .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
@@ -3911,10 +3916,27 @@ function watchTelegramLeads(){
   tgLeadsWatching = true;
   fbDb.collection('an_tg').onSnapshot(async function(snap){
     const fresh = [];
+    let touched = false;
     snap.forEach(function(d){
       const v = d.data() || {};
-      if(!v.kb) fresh.push({ ref:d.ref, id:d.id, data:v });
+      if(!v.kb){ fresh.push({ ref:d.ref, id:d.id, data:v }); return; }
+      /* Картка вже є — оновлюємо на ній підпис останнього повідомлення.
+         Без цього картка назавжди лишалась би такою, якою була в мить
+         створення: людина написала ще п'ять разів, а в Канбані тиша. */
+      const o = orders.find(x => x.webId === 'tg:' + d.id);
+      if(!o) return;
+      const last = String(v.last || '').slice(0, 80);
+      const wrote = +v.wrote || 0;
+      if(o.tgLast !== last || o.tgWrote !== wrote){
+        o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
+        touched = true;
+      }
     });
+    if(touched){
+      try{ await saveOrders({ quiet:true }); }catch(e){ console.warn(e); }
+      renderBoard();
+      if(drawerOrderId) renderOrderDrawer();
+    }
     if(!fresh.length) return;
     let added = 0;
     for(const rec of fresh){
@@ -3926,7 +3948,13 @@ function watchTelegramLeads(){
         orderId: '', source: 'Telegram', site: 'main',
         name: who, phone: '',
         instagram: d.user ? '@' + d.user : '',
-        note: 'Звернення з Telegram' + (d.msgs ? ' · ' + d.msgs + ' повідомл.' : ''),
+        // note лишаємо порожньою: це поле менеджера, і зайняти його
+        // службовим рядком означало б стерти чужу нотатку при першому ж
+        // оновленні. Стан діалогу живе в окремих полях.
+        note: '',
+        tgLast: String(d.last || '').slice(0, 80),
+        tgWrote: +d.wrote || 0,
+        tgAt: d.lastAt || d.at || '',
         items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
         an: d.vid ? { vid: d.vid } : null,
         createdAt: d.at || new Date().toISOString(),
@@ -5671,6 +5699,9 @@ function ticketSummaryHtml(o){
            : `<span class="src-tag">${escapeHtml(o.source||'сайт')}</span>`}
     </div>
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
+    ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}">${
+        o.tgWrote ? '💬 ' + escapeHtml(o.tgLast || '')
+                  : 'відкрив бота, ще не писав'}</div>` : ''}
     <div class="tc-meta">
       <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт'
               : (o.type === 'lead' ? 'заявка · без товару' : 'без товарів')}</span>
@@ -5911,7 +5942,10 @@ function tgBlockHtml(o){
   if(st.err) feed = `<div class="od-crm-err">${escapeHtml(st.err)}</div>`;
   else if(st.loading) feed = `<div class="od-empty">Завантажуємо…</div>`;
   else if(!(st.msgs || []).length)
-    feed = `<div class="od-empty">Повідомлень ще немає. Тут зʼявляється те, що пише клієнт боту.</div>`;
+    // Людина натиснула «Запустити» й мовчить — це найчастіший випадок
+    // порожньої стрічки, і найкращий момент написати першим.
+    feed = `<div class="od-empty">Людина відкрила бота, але ще нічого не написала.
+      Можна написати першим — вона отримає повідомлення в Telegram.</div>`;
   else {
     let lastDay = '';
     feed = `<div class="od-crm-feed">` + st.msgs.map(m=>{
