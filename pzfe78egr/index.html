@@ -143,7 +143,7 @@
 
 <div class="wrap">
   <h1>Запрошення для Лери</h1>
-  <p class="sub" id="sub">Оновлюється автоматично, кожні 10 секунд</p>
+  <p class="sub" id="sub">Оновлюється автоматично, кожні 10 секунд. Події зберігаються 12 годин, фото — близько 3 годин.</p>
 
   <div class="cards">
     <div class="stat"><span class="key">Відкрила</span><span class="val off" id="s-open">ще ні</span></div>
@@ -168,24 +168,22 @@
 </div>
 
 <script>
-  // Події лежать у Firestore за випадковим токеном. Правила дозволяють
-  // читати лише тому, хто цей токен знає, а списком колекція не віддається.
-  var PROJECT = 'loomiq-admin';
-  var API_KEY = 'AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc';
-  var TOKEN = 'gmrx94e9g8dszu';
+  // Події лежать у стрічці ntfy.sh — безкоштовно, без акаунтів і ключів.
+  // Тема має випадкову назву, тож сторонній її не вгадає. Ті самі
+  // повідомлення падають пушем у застосунок ntfy, якщо підписатися.
+  var HOST = 'https://ntfy.sh';
+  var TOPIC = 'lera-75m2bg';
+  var SOURCE = HOST + '/' + TOPIC + '/json?poll=1&since=all';
 
-  var SOURCE = 'https://firestore.googleapis.com/v1/projects/' + PROJECT +
-    '/databases/(default)/documents/dateInvite/' + TOKEN +
-    '/events?key=' + API_KEY + '&pageSize=300';
-
-  var ICONS = {
-    open: '👀',
-    no: '🙅',
-    yes: '💚',
-    time: '🕕',
-    plan: '✨',
-    done: '🎉',
-    kiss: '💋'
+  // Мітка ntfy -> як показуємо подію в стрічці
+  var KIND = {
+    eyes:        { type: 'open', icon: '👀' },
+    no_entry:    { type: 'no',   icon: '🙅' },
+    green_heart: { type: 'yes',  icon: '💚' },
+    clock6:      { type: 'time', icon: '🕕' },
+    sparkles:    { type: 'plan', icon: '✨' },
+    tada:        { type: 'done', icon: '🎉' },
+    kiss:        { type: 'kiss', icon: '💋' }
   };
 
   function clock(ms) {
@@ -222,7 +220,7 @@
       var row = document.createElement('div');
       row.className = 'event';
       row.innerHTML = '<span class="ico"></span><span class="what"></span><span class="when"></span>';
-      row.children[0].textContent = ICONS[e.type] || '•';
+      row.children[0].textContent = e.icon || '•';
       row.children[1].textContent = e.info || e.type;
       row.children[2].textContent = clock(e.ts);
       feed.appendChild(row);
@@ -251,27 +249,36 @@
     var kiss = events.filter(function (e) { return e.type === 'kiss'; }).pop();
     setStat('s-kiss', kiss ? stamp(kiss.ts) : 'ще ні', !!kiss);
 
-    var device = events.filter(function (e) { return e.ua; })[0];
-    document.getElementById('device').textContent = device ? 'Пристрій: ' + device.ua : '';
+    document.getElementById('device').textContent =
+      'Стрічка ntfy: ' + TOPIC + ' — підпишись у застосунку ntfy, щоб події падали пушем.';
   }
 
   function load() {
     fetch(SOURCE, { cache: 'no-store' })
       .then(function (response) {
-        if (!response.ok) throw new Error('Firestore відповів ' + response.status);
-        return response.json();
+        if (!response.ok) throw new Error('ntfy відповів ' + response.status);
+        return response.text();
       })
-      .then(function (data) {
-        var events = (data.documents || []).map(function (doc) {
-          var f = doc.fields || {};
-          return {
-            type: f.type && f.type.stringValue,
-            info: f.info && f.info.stringValue,
-            ua: f.ua && f.ua.stringValue,
-            photo: f.photo && f.photo.stringValue,
-            ts: Number(f.ts && f.ts.integerValue) || Date.parse(doc.createTime)
-          };
-        }).sort(function (a, b) { return a.ts - b.ts; });
+      .then(function (text) {
+        // ntfy віддає по одному JSON на рядок, а не масивом.
+        var events = text.split('\n')
+          .filter(function (line) { return line.trim(); })
+          .map(function (line) {
+            try { return JSON.parse(line); } catch (e) { return null; }
+          })
+          .filter(function (m) { return m && m.event === 'message'; })
+          .map(function (m) {
+            var tag = (m.tags || [])[0];
+            var kind = KIND[tag] || { type: tag || 'message', icon: '•' };
+            return {
+              type: kind.type,
+              icon: kind.icon,
+              info: m.message || m.title,
+              photo: m.attachment && m.attachment.url,
+              ts: (m.time || 0) * 1000
+            };
+          })
+          .sort(function (a, b) { return a.ts - b.ts; });
 
         render(events);
         document.getElementById('updated').textContent = 'Оновлено о ' + clock(Date.now());
@@ -279,8 +286,8 @@
       .catch(function (error) {
         var fail = document.getElementById('fail');
         fail.hidden = false;
-        fail.textContent = 'Не вдалося прочитати події: ' + error.message +
-          '. Якщо це 403 — у Firestore ще не опубліковані правила для колекції dateInvite.';
+        fail.textContent = 'Не вдалося прочитати стрічку: ' + error.message +
+          '. Перевір інтернет — сторінка сама спробує ще раз за 10 секунд.';
       });
   }
 
