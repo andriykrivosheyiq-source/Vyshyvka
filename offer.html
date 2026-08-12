@@ -341,8 +341,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   section.full{padding-left:0; padding-right:0;
     margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
     background:transparent; border-top:none;}
-  .band{background:var(--ink); color:#fff; border-radius:0; border:none;
-    padding:30px var(--pad); margin:26px calc(var(--pad) * -1);}
+  /* Темні блоки йдуть підряд (гарантії → кошторис), і між ними лишалась
+     біла щілина: дві однакові смуги з розривом читались як помилка вёрстки.
+     Тепер це одна темна зона з волосяним розділювачем, і тон у них спільний. */
+  .band{background:#14171B; color:#fff; border-radius:0; border:none;
+    padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
+  .band + section.full{margin-bottom:26px; padding-top:0; border-top:none;}
+  .band + section.full .est{border-top:1px solid rgba(255,255,255,.12);}
   .band .sec-title{color:#fff;}
   .band .sec-sub{color:rgba(255,255,255,.66);}
   .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
@@ -470,7 +475,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      картці, а на її вмісті — окрім стрічки фото. */
   .pcard{border:1px solid var(--line); border-radius:18px; padding:14px 0 0; background:#fff;
     margin-bottom:12px; overflow:hidden;}
-  .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
+  .pcard > *:not(.pgal):not(.pgal-bar){padding-left:14px; padding-right:14px;}
   .pcard > .pcard-more{padding-bottom:14px;}
   /* На телефоні картка виходить за поля сторінки: фото мають торкатися
      країв екрана, як на сторінці товару в магазині. Бічної рамки й
@@ -478,7 +483,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (max-width:639px){
     .pcard{margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
       border-left:0; border-right:0; border-radius:0; padding-top:0;}
-    .pcard > *:not(.pgal){padding-left:var(--pad); padding-right:var(--pad);}
+    .pcard > *:not(.pgal):not(.pgal-bar){padding-left:var(--pad); padding-right:var(--pad);}
     .pcard > .pcard-more{padding-bottom:var(--pad);}
   }
   /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
@@ -659,9 +664,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (min-width:520px){ .rrow{grid-template-columns:repeat(4,1fr);} }
   /* Картки в ряду різної висоти (у частини є привід, у частини ні) — тому
      колонка з ціною, притиснутою донизу: ціни вирівняні, ряд читається. */
+  /* Картка-рекомендація більше не кричить. Помаранчева кнопка на всю ширину
+     в кожній із чотирьох плиток перетягувала на себе всю сторінку — а головна
+     дія тут одна, і вона внизу. Тепер це тихий блок: фото, назва, ціна й
+     стримана кнопка, яка стає зеленою, коли товар уже в замовленні. */
   .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
-    border-radius:16px; padding:10px; background:#fff; transition:.15s;}
-  .rc.on{border-color:var(--good); background:#F6FDF9;}
+    border-radius:14px; padding:10px 10px 12px; background:#fff; transition:.15s;}
+  .rc:hover{border-color:#C9D2DE;}
+  .rc.on{border-color:#9BD9BA; background:#F7FCF9;}
   /* Точно як у каталозі сайту: фото заповнює плитку від краю до краю
      (object-fit: cover), тож усередині картки немає окремого прямокутника
      з іншим тлом. Саме він і читався як «фон прибрали». */
@@ -676,18 +686,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc-tag{display:inline-block; align-self:flex-start; background:#EEF2FF; color:#4338CA; border-radius:999px;
     padding:2px 8px; font-size:10px; font-weight:800; letter-spacing:.3px;
     text-transform:uppercase; margin-bottom:5px;}
-  .rc-n{font-size:14.5px; font-weight:700; letter-spacing:-0.2px;}
+  .rc-n{font-size:14px; font-weight:500; letter-spacing:-0.1px; line-height:1.3;}
   .rc-t{font-size:12px; color:var(--muted); margin-top:1px;}
-  .rc-p{font-size:17px; font-weight:800; color:var(--ink); letter-spacing:-.3px;
-    margin-top:3px; font-variant-numeric:tabular-nums;}
+  .rc-p{font-size:18px; font-weight:600; color:var(--ink); letter-spacing:-.4px;
+    margin-top:4px; font-variant-numeric:tabular-nums;}
   .rc-p-old{
     font-variant-numeric:tabular-nums;}
   .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
-  .rc-add{display:flex; align-items:center; justify-content:center; gap:7px; width:100%;
-    margin-top:10px; padding:11px 10px; border-radius:12px; border:1.5px solid var(--cta);
-    background:var(--cta); color:#fff; font:inherit; font-size:13.5px; font-weight:700;
+  .rc-add{display:flex; align-items:center; justify-content:center; gap:6px; width:100%;
+    margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--line);
+    background:#fff; color:var(--ink); font:inherit; font-size:13px; font-weight:600;
     cursor:pointer; transition:.15s; position:static;}
-  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good);}
+  .rc-add:hover{background:var(--soft); border-color:var(--ink-2);}
+  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:700;}
   .rc-s{font-size:12.5px; color:var(--muted); margin-top:2px;}
   .rc-s b{color:var(--ink); font-weight:800;}
   .rc-add-old{
@@ -699,8 +710,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* ══ Кошторис: темний блок, як фінальний документ ══ */
   .est{background:#14171B; color:#fff; border-radius:0;
-    padding:26px var(--pad) 24px; margin-top:4px;}
-  .est-h{font-size:20px; font-weight:800; letter-spacing:-0.4px; margin:0 0 16px;}
+    padding:26px var(--pad) 24px; margin-top:0;}
+  /* Той самий заголовок, що й у решти блоків: раніше кожен розділ мав свою
+     вагу й розмір — 800 тут, 600 там, 15px у деталях, — і сторінка виглядала
+     зібраною з різних сайтів. */
+  .est-h{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 16px;}
   /* Колонки цифр тримаємо вузькими: на 390px ширший «Ціна за шт» з'їдав назву
      до «Ф…». Назві дозволено переноситись у два рядки — це краще, ніж трикрапка. */
   .est-head{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
@@ -751,7 +765,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transition:transform .18s;}
   .det[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
   .det-body{padding:0 18px 18px;}
-  .det-h{font-size:15px; font-weight:800; margin:18px 0 10px;}
+  .det-h{font-size:17px; font-weight:600; letter-spacing:-0.2px; margin:20px 0 10px;}
   .det-body>.det-h:first-child{margin-top:0;}
 
   /* ══ Що входить у вартість: іконки в ряд ══ */
@@ -1186,7 +1200,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
   var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {} };
-  var recoOpen = false;   // «показати ще» в блоці рекомендацій
   function isOn(i){ return pick.on[i] !== false; }
 
   /* Пакети позиції: що саме наносимо. Ціни задає менеджер у пропозиції
@@ -1897,7 +1910,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            тисяч сторінку інтернет-магазину, а «часто беруть разом» — це
            фраза кошика, і в іменній пропозиції вона звучить як автопідбір. */
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
-        '<div class="rrow">' + OFFER.reco.slice(0, recoOpen ? 12 : 3).map(function(r, i){
+        '<div class="rrow">' + OFFER.reco.slice(0, 4).map(function(r, i){
           var on = !!pick.reco[i];
           var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
@@ -1915,14 +1928,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="rc-p">' + money(r.unitPrice) + '</div>' +
             '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
-              (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
+              (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
           '</div>';
         }).join('') + '</div>' +
-        (OFFER.reco.length > 3
-          ? '<button class="rmore" id="recoMore">' +
-              (recoOpen ? 'Згорнути' : 'Показати ще ' + Math.min(9, OFFER.reco.length - 3)) +
-              '<span class="rmore-c">' + (recoOpen ? '▲' : '▼') + '</span></button>'
-          : '') +
+        /* Показуємо рівно чотири. «Показати ще вісім» перетворювало
+           пропозицію на каталог: людина йшла обирати замість того, щоб
+           підтвердити замовлення. Що саме радимо — вирішує менеджер. */
       '</section>';
   }
 
@@ -2964,8 +2975,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         queueSave(pick.reco[i] ? 'reco-add' : 'reco-remove', (OFFER.reco[i] || {}).name);
       };
     });
-    var rmore = document.getElementById('recoMore');
-    if(rmore) rmore.onclick = function(){ recoOpen = !recoOpen; refresh(); };
     var estB = document.getElementById('barEstimate');
     if(estB) estB.onclick = function(){
       var t = document.getElementById('estimate');
