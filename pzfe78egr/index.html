@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Запрошення — що відбувається</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>👀</text></svg>">
+<style>
+  :root {
+    --ink: #17161a;
+    --muted: #8d8b95;
+    --brand: #e0104b;
+    --line: #ece7ea;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+    color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f7f5f7;
+  }
+
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+  }
+
+  .sub { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat {
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  .stat .key {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .stat .val { font-size: 18px; font-weight: 800; }
+  .stat .val.off { color: var(--muted); font-weight: 600; }
+  .stat .val.on { color: var(--brand); }
+
+  .panel {
+    padding: 6px 18px 18px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+  }
+
+  .panel h2 {
+    margin: 16px 0 12px;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .event {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .event:first-of-type { border-top: 0; }
+  .event .ico { font-size: 18px; }
+  .event .what { font-weight: 600; }
+  .event .when { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+  .empty { padding: 26px 0; color: var(--muted); text-align: center; }
+
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  button {
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--brand);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .device {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  .fail {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff2f5;
+    color: #a3123f;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Запрошення для Лери</h1>
+  <p class="sub" id="sub">Оновлюється автоматично, кожні 10 секунд</p>
+
+  <div class="cards">
+    <div class="stat"><span class="key">Відкрила</span><span class="val off" id="s-open">ще ні</span></div>
+    <div class="stat"><span class="key">Погодилась</span><span class="val off" id="s-yes">ще ні</span></div>
+    <div class="stat"><span class="key">Час</span><span class="val off" id="s-time">—</span></div>
+    <div class="stat"><span class="key">Що робимо</span><span class="val off" id="s-plan">—</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Що відбувалося</h2>
+    <div id="feed"><p class="empty">Поки нічого — запрошення ще не відкривали.</p></div>
+    <p class="device" id="device"></p>
+  </div>
+
+  <div class="foot">
+    <span id="updated">—</span>
+    <button id="reload" type="button">Оновити</button>
+  </div>
+
+  <div class="fail" id="fail" hidden></div>
+</div>
+
+<script>
+  // Події лежать у Firestore за випадковим токеном. Правила дозволяють
+  // читати лише тому, хто цей токен знає, а списком колекція не віддається.
+  var PROJECT = 'loomiq-admin';
+  var API_KEY = 'AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc';
+  var TOKEN = 'gmrx94e9g8dszu';
+
+  var SOURCE = 'https://firestore.googleapis.com/v1/projects/' + PROJECT +
+    '/databases/(default)/documents/dateInvite/' + TOKEN +
+    '/events?key=' + API_KEY + '&pageSize=300';
+
+  var ICONS = {
+    open: '👀',
+    no: '🙅',
+    yes: '💚',
+    time: '🕕',
+    plan: '✨',
+    done: '🎉'
+  };
+
+  function clock(ms) {
+    var d = new Date(ms);
+    return String(d.getHours()).padStart(2, '0') + ':' +
+      String(d.getMinutes()).padStart(2, '0') + ':' +
+      String(d.getSeconds()).padStart(2, '0');
+  }
+
+  function stamp(ms) {
+    var d = new Date(ms);
+    return String(d.getDate()).padStart(2, '0') + '.' +
+      String(d.getMonth() + 1).padStart(2, '0') + ' ' + clock(ms);
+  }
+
+  function setStat(id, text, active) {
+    var node = document.getElementById(id);
+    node.textContent = text;
+    node.className = 'val ' + (active ? 'on' : 'off');
+  }
+
+  function render(events) {
+    var feed = document.getElementById('feed');
+    var fail = document.getElementById('fail');
+    fail.hidden = true;
+
+    if (!events.length) {
+      feed.innerHTML = '<p class="empty">Поки нічого — запрошення ще не відкривали.</p>';
+      return;
+    }
+
+    feed.innerHTML = '';
+    events.forEach(function (e) {
+      var row = document.createElement('div');
+      row.className = 'event';
+      row.innerHTML = '<span class="ico"></span><span class="what"></span><span class="when"></span>';
+      row.children[0].textContent = ICONS[e.type] || '•';
+      row.children[1].textContent = e.info || e.type;
+      row.children[2].textContent = clock(e.ts);
+      feed.appendChild(row);
+    });
+
+    var first = events[0];
+    var yes = events.filter(function (e) { return e.type === 'yes'; })[0];
+    var time = events.filter(function (e) { return e.type === 'time'; }).pop();
+    var plan = events.filter(function (e) { return e.type === 'plan'; }).pop();
+    var noCount = events.filter(function (e) { return e.type === 'no'; }).length;
+
+    setStat('s-open', stamp(first.ts), true);
+    setStat('s-yes', yes ? stamp(yes.ts) : (noCount ? 'тікає від «Нет» (' + noCount + ')' : 'ще ні'), !!yes);
+    setStat('s-time', time ? (time.info || '').replace('выбрала время ', '') : '—', !!time);
+    setStat('s-plan', plan ? (plan.info || '').replace('выбрала ', '') : '—', !!plan);
+
+    var device = events.filter(function (e) { return e.ua; })[0];
+    document.getElementById('device').textContent = device ? 'Пристрій: ' + device.ua : '';
+  }
+
+  function load() {
+    fetch(SOURCE, { cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Firestore відповів ' + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        var events = (data.documents || []).map(function (doc) {
+          var f = doc.fields || {};
+          return {
+            type: f.type && f.type.stringValue,
+            info: f.info && f.info.stringValue,
+            ua: f.ua && f.ua.stringValue,
+            ts: Number(f.ts && f.ts.integerValue) || Date.parse(doc.createTime)
+          };
+        }).sort(function (a, b) { return a.ts - b.ts; });
+
+        render(events);
+        document.getElementById('updated').textContent = 'Оновлено о ' + clock(Date.now());
+      })
+      .catch(function (error) {
+        var fail = document.getElementById('fail');
+        fail.hidden = false;
+        fail.textContent = 'Не вдалося прочитати події: ' + error.message +
+          '. Якщо це 403 — у Firestore ще не опубліковані правила для колекції dateInvite.';
+      });
+  }
+
+  document.getElementById('reload').addEventListener('click', load);
+  setInterval(load, 10000);
+  load();
+</script>
+
+</body>
+</html>

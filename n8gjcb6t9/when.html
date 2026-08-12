@@ -37,6 +37,7 @@
 </main>
 
 <script src="app.js"></script>
+<script src="track.js"></script>
 <script>
   var hh = document.getElementById('hh');
   var mm = document.getElementById('mm');
@@ -82,6 +83,10 @@
 
   [hh, mm].forEach(function (field) {
     field.addEventListener('change', refresh);
+  });
+
+  next.addEventListener('click', function () {
+    if (next.getAttribute('href')) Track.send('time', 'выбрала время ' + hh.value + ':' + mm.value);
   });
 
   refresh();
