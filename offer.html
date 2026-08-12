@@ -219,6 +219,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pchk-l{font-size:14px; font-weight:700;}
   /* Степер на всю ширину виглядав як окрема панель керування. Кількість —
      маленьке число, і місця їй треба стільки ж. */
+  /* Кількість — просто число, і кнопка переходу на вигідніший поріг */
+  .pstep-fix{flex:none; font-size:13px; color:var(--muted); padding:9px 14px;
+    border:1px solid var(--line); border-radius:12px;}
+  .pstep-fix b{font-size:18px; font-weight:600; color:var(--ink); margin-right:3px;
+    font-variant-numeric:tabular-nums;}
+  .pqty-up{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    width:100%; margin-top:9px; padding:10px 13px; border:1px dashed #CFD6E0;
+    border-radius:12px; background:#fff; font:inherit; font-size:13px;
+    color:var(--ink-2); cursor:pointer; text-align:left;}
+  .pqty-up:hover{background:var(--soft); border-color:var(--ink-2);}
+  .pqty-up i{flex:none; font-style:normal; font-size:12.5px; font-weight:700;
+    color:var(--cta-dark);}
+  /* Обраний варіант комплектації — тихим рядком, без вибору */
+  .ppick{display:flex; align-items:center; gap:7px; margin-top:10px;
+    font-size:13.5px; color:var(--ink-2);}
   .pstep{display:inline-flex; align-items:center; gap:4px; margin-top:10px;
     border:1.5px solid var(--line); border-radius:14px; padding:3px;}
   .pstep-b{flex:none; width:36px; height:36px; border-radius:11px; border:none;
@@ -487,6 +502,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pgal-i{position:relative; flex:0 0 50%; scroll-snap-align:start;
     aspect-ratio:3/4; overflow:hidden; background:#fff;}
   .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
+  /* Смужка позиції: відрізків стільки ж, скільки кадрів, і разом вони
+     займають усю ширину — видно і «скільки всього», і «де я зараз». */
+  .pgal-bar{display:flex; gap:2px; margin:0 0 2px;}
+  .pgal-bar span{flex:1; height:3px; background:#E4E6EA; transition:background .2s ease;}
+  .pgal-bar span.on{background:var(--ink);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
   .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;
     transform:scale(1.16); transform-origin:center 46%;}
@@ -500,6 +520,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     display:none; align-items:center; justify-content:center; touch-action:none;
     overscroll-behavior:contain;}
   .zoom.open{display:flex;}
+  .zoom.has-thumbs img{max-height:calc(100% - 150px);}
   .zoom img{max-width:100%; max-height:100%; object-fit:contain; display:block;
     transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none;}
   /* Шапка як у галереях магазинів: посередині «1 з 5», праворуч хрестик.
@@ -520,7 +541,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     opacity:.55; z-index:2;}
   .zoom-nav:hover{opacity:1;}
   .zoom-nav.prev{left:4px;} .zoom-nav.next{right:4px;}
-  @media (max-width:899px){ .zoom-nav{display:none !important;} }
+  /* Стрілку лишаємо й на телефоні: підказка «тут є ще» важливіша за
+     кілька пікселів чистого фото. */
+  @media (max-width:899px){ .zoom-nav{width:40px; font-size:30px; opacity:.5;} }
+  /* Мініатюри внизу: скільки кадрів і який відкритий зараз */
+  .zoom-thumbs{position:absolute; left:0; right:0; bottom:0; z-index:2;
+    display:flex; gap:8px; justify-content:center; padding:14px 12px
+    calc(14px + env(safe-area-inset-bottom)); overflow-x:auto; scrollbar-width:none;}
+  .zoom-thumbs::-webkit-scrollbar{display:none;}
+  .zoom-thumbs button{flex:none; width:46px; height:56px; padding:0; border:none;
+    border-radius:8px; overflow:hidden; background:rgba(255,255,255,.1); cursor:pointer;
+    opacity:.5; transition:opacity .15s ease, box-shadow .15s ease;}
+  .zoom-thumbs button.on{opacity:1; box-shadow:0 0 0 2px #fff;}
+  .zoom-thumbs img{width:100%; height:100%; object-fit:contain; display:block; background:#fff;}
+  .zoom-thumbs:empty{display:none;}
   .pshot img.swap{opacity:0;}
 
   /* Ракурси — рядок вкладок під фото */
@@ -975,6 +1009,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <button class="zoom-nav prev" id="zoomPrev" aria-label="Попереднє фото">‹</button>
   <img id="zoomImg" alt="Фото">
   <button class="zoom-nav next" id="zoomNext" aria-label="Наступне фото">›</button>
+  <div class="zoom-thumbs" id="zoomThumbs"></div>
 </div>
 
 <!-- Підтвердження замовлення -->
@@ -1177,7 +1212,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         || list.filter(function(p){ return p.id === 'base'; })[0]
         || list[0];
   }
+  /* Варіанти комплектації клієнту більше не пропонуємо.
+     Пропозиція іменна: людина вже сказала менеджеру, що їй потрібно, і три
+     рівноправні вкладки просять її передумати вирішене. Кожен зайвий вибір —
+     привід відкласти. Тому показуємо ОДИН варіант — той, який зібрав
+     менеджер, — і тихо називаємо, що в нього входить.
+     Механізм пакетів лишається в коді: менеджер обирає варіант, коли
+     формує КП, а клієнт бачить готове рішення. */
   function packsHtml(i){
+    var list = packsOf(i);
+    if(!list || !list.length) return '';
+    var cur = packOf(i) || {};
+    if(!cur.note) return '';
+    return '<div class="ppick">' + TICK_SM + esc(cur.note) + '</div>';
+  }
+  function packsSwitchHtml(i){
     var list = packsOf(i);
     if(!list || list.length < 2) return '';
     var cur = packOf(i) || {};
@@ -1418,7 +1467,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           plural(totals().qty, 'виріб', 'вироби', 'виробів') + '</span></div>' +
         '<div class="hero-sum">Термін виготовлення — ' +
           '<b id="heroDays">' + daysWord(curDays()) + '</b></div>' +
-        (till ? '<div class="hero-till">Ціни діють до ' + esc(till) + '</div>' : '') +
+        (till ? '<div class="hero-till">Ціни зафіксовані до ' + esc(till) +
+          ' — далі перераховуємо за актуальною закупівлею тканини</div>' : '') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
       '</div>';
   }
@@ -1479,6 +1529,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var m = (it.mockups || []).filter(Boolean);
     if(!m.length) return '';
     var label = viewLabel(it);
+    /* Смужка під стрічкою — як у застосунках магазинів: скільки всього
+       кадрів і на якому ми зараз. Два кадри = дві половини на всю ширину,
+       три = три відрізки. Без неї людина не знала, що стрічку взагалі є
+       куди гортати: край третього фото помічають не всі. */
+    var bar = m.length > 1
+      ? '<div class="pgal-bar" data-bar="' + idx + '">' +
+          m.map(function(_, k){
+            return '<span class="' + (k === 0 ? 'on' : '') + '"></span>';
+          }).join('') + '</div>'
+      : '';
     return '<div class="pgal' + (m.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
       m.map(function(src, k){
         return '<div class="pgal-i">' +
@@ -1486,7 +1546,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (k > 1 ? 'loading="lazy" ' : '') +
           'onerror="this.parentNode.style.visibility=\'hidden\'">' +
         '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>' + bar;
+  }
+  /* Підсвічуємо відрізок під час гортання. Слухаємо саму прокрутку, а не
+     кнопки: гортають пальцем, і жодного кліку при цьому немає. */
+  function wireGalBars(){
+    document.querySelectorAll('.pgal[data-shot]').forEach(function(g){
+      if(g.dataset.barWired) return;
+      g.dataset.barWired = '1';
+      var bar = document.querySelector('.pgal-bar[data-bar="' + g.dataset.shot + '"]');
+      if(!bar) return;
+      var segs = bar.querySelectorAll('span');
+      var sync = function(){
+        var one = g.scrollWidth / segs.length;
+        if(!(one > 0)) return;
+        var from = g.scrollLeft, to = from + g.clientWidth;
+        segs.forEach(function(x, k){
+          var a0 = k * one, b0 = a0 + one;
+          var seen = Math.min(b0, to) - Math.max(a0, from);
+          x.classList.toggle('on', seen > one * 0.5);
+        });
+      };
+      g.addEventListener('scroll', sync, { passive:true });
+      sync();
+    });
   }
   // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку
   function viewLabel(it){
@@ -1609,18 +1692,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '</div>' +
         '</div>' +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
-        (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) +
-                '</div>' : '') +
+        (next ? '<button class="pqty-up" data-up="' + i + '" data-upq="' + next.qty + '">' +
+                  '<span>Від ' + next.qty + ' шт — ' + money(next.unit) + ' за штуку</span>' +
+                  '<i>взяти ' + next.qty + ' ›</i></button>' : '') +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
            лічильник десь вище. */
+        /* Кількість — факт, а не поле для гри. Тираж уже узгоджений з
+           менеджером, а кожен клік по «плюс/мінус» — це нагода передумати.
+           Лишаємо число текстом, а поруч — одну кнопку вигоди: перейти на
+           наступний поріг. Це не тертя, це апсейл в один дотик. */
         '<div class="pbuy-row">' +
-          '<div class="pstep">' +
-            '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
-            '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
-            '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
-          '</div>' +
+          '<div class="pstep-fix"><b>' + st.qty + '</b> шт</div>' +
           '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
             (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
         '</div>' +
@@ -2563,6 +2647,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     var cnt = document.getElementById('zoomCount');
     if(cnt) cnt.textContent = nav ? ((ZM.i + 1) + ' з ' + ZM.list.length) : '';
+    zoomThumbs();
+  }
+  /* Мініатюри внизу. Малюємо один раз на відкриття, далі лише переставляємо
+     підсвітку: перемальовування списку на кожному кадрі скидало б прокрутку
+     стрічки, коли знімків багато. */
+  function zoomThumbs(){
+    var box = document.getElementById('zoomThumbs');
+    if(!box) return;
+    var ov = document.getElementById('ovZoom');
+    if(ov) ov.classList.toggle('has-thumbs', ZM.list.length > 1);
+    if(ZM.list.length < 2){ box.innerHTML = ''; box.dataset.key = ''; return; }
+    if(box.dataset.key !== ZM.list.join('|')){
+      box.dataset.key = ZM.list.join('|');
+      box.innerHTML = ZM.list.map(function(src, k){
+        return '<button data-zt="' + k + '"><img src="' + esc(src) + '" alt=""></button>';
+      }).join('');
+      box.querySelectorAll('[data-zt]').forEach(function(b){
+        b.addEventListener('click', function(ev){ ev.stopPropagation(); zoomShow(+b.dataset.zt); });
+      });
+    }
+    box.querySelectorAll('[data-zt]').forEach(function(b){
+      b.classList.toggle('on', +b.dataset.zt === ZM.i);
+    });
   }
   function openZoom(list, idx){
     ZM.list = (list || []).filter(Boolean);
@@ -2620,7 +2727,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(now - lastTap < 320) zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 2.5);
         lastTap = now;
       }
-      if(e.ov.setPointerCapture) try{ e.ov.setPointerCapture(ev.pointerId); }catch(err){}
+      if(ev.target === e.img && e.ov.setPointerCapture)
+        try{ e.ov.setPointerCapture(ev.pointerId); }catch(err){}
     });
     e.ov.addEventListener('pointermove', function(ev){
       var p = pts[ev.pointerId];
@@ -2769,6 +2877,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function wire(){
     tintAll();   // рамки фото беруть колір із самих світлин
+    wireGalBars();
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
@@ -2832,37 +2941,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     /* Кількість. Крок росте, коли тримають кнопку: набирати сотню поштучно
        ніхто не буде, а фіксовані пороги клієнту не підходять. */
-    document.querySelectorAll('[data-q]').forEach(function(b){
+    /* Перехід на вигідніший поріг — один дотик. Крутилки «−/+» більше
+       немає: тираж узгоджений з менеджером, а її єдиним ефектом було
+       відкладене рішення. */
+    document.querySelectorAll('[data-up]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
-      var wait = null, rep = null, gap = 0, held = false;
-      var step = function(){
-        var i = +b.dataset.q, d = +b.dataset.d;
-        var cur = itemState(i).qty;
-        var by = held && cur >= 20 ? 5 : 1;
-        var next = Math.max(1, cur + d * by);
-        if(next === cur) return;
-        pick.qty[i] = next;
-        var el = b.parentNode.querySelector('.pstep-v b');
-        if(el) el.textContent = next;      // під час утримання не перебудовуємо картку
-      };
-      var stop = function(){
-        if(wait) clearTimeout(wait);
-        if(rep) clearTimeout(rep);
-        wait = rep = null; held = false;
-        var i = +b.dataset.q;
+      b.onclick = function(){
+        var i = +b.dataset.up, q = +b.dataset.upq;
+        if(!q) return;
+        pick.qty[i] = q;
         refresh();
-        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + itemState(i).qty + ' шт');
+        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + q + ' шт');
       };
-      var tick = function(){ held = true; step();
-        gap = Math.max(45, Math.round(gap * 0.85)); rep = setTimeout(tick, gap); };
-      b.addEventListener('pointerdown', function(e){
-        if(e.button) return;
-        e.preventDefault();
-        step(); gap = 160;
-        try{ b.setPointerCapture(e.pointerId); }catch(err){}
-        wait = setTimeout(tick, 420);
-      });
-      ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ b.addEventListener(ev, stop); });
     });
     document.querySelectorAll('[data-reco]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
