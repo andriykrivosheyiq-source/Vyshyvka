@@ -11,6 +11,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Атрибут hidden має вимикати елемент завжди. Без цього рядка будь-який
+   наш display: block (наприклад у .btn) перебиває його, і прихована
+   кнопка лишається на екрані. */
+[hidden] { display: none !important; }
+
 html, body { margin: 0; padding: 0; }
 
 body {
