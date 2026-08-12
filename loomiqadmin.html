@@ -725,6 +725,16 @@
   .photo-cell .pc-img img{width:100%;height:100%;object-fit:contain;}
   .photo-cell .pc-badge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;}
   .photo-cell .pc-actions{display:flex;gap:8px;}
+  /* Ракурси товару: назви редагуються, зайві прибираються */
+  .photo-sides{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
+  .sides-h{font-size:13px;font-weight:800;margin-bottom:4px;}
+  .side-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .side-row input{flex:1;min-width:0;font-family:inherit;font-size:14px;
+    border:1px solid var(--line);border-radius:8px;padding:9px 11px;}
+  .side-id{font-family:var(--mono);font-size:11px;color:var(--ink-soft);flex:none;}
+  .side-lock{font-size:11px;color:var(--ink-soft);flex:none;}
+  .side-del{flex:none;border:1px solid var(--line);background:#fff;color:var(--bad);
+    font:inherit;font-size:13px;padding:7px 11px;border-radius:8px;cursor:pointer;}
   .pc-btn{all:unset;cursor:pointer;flex:1;text-align:center;font-size:12.5px;font-weight:600;border-radius:8px;padding:9px 6px;transition:.15s;}
   .pc-btn.up{background:var(--accent);color:#fff;}
   .pc-btn.up:hover{filter:brightness(1.08);}
@@ -1416,6 +1426,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             </label>
             <select id="photo-garment" style="display:none;"></select>
             <div id="photo-cells" class="photo-cells"></div>
+            <!-- Які взагалі ракурси має цей товар. Фото для них — у клітинках вище. -->
+            <div id="photo-sides" class="photo-sides"></div>
             <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
               <div class="sub" id="pa-summary" style="margin-bottom:10px;">Область нанесення (зона друку/вишивки) ще не задана.</div>
               <button class="pc-btn up" id="pa-open" style="flex:none;padding:10px 22px;">Області нанесення</button>
@@ -3897,7 +3909,7 @@ window.__adminSaveClientOrder = async function(payload){
         catch(e){ console.warn('logo upload failed', e); }
         step();
       }
-      prints.push({ side: p.side||'', technique: p.technique||'',
+      prints.push({ side: p.side||'', sideLabel: p.sideLabel||'', technique: p.technique||'',
                     widthMm: Math.round(+p.widthMm||0), heightMm: Math.round(+p.heightMm||0),
                     file: file || null });
     }
@@ -4822,7 +4834,7 @@ function offerItem(it, order, itemIdx){
     print: it.print || '',
     techniques: [...new Set((it.prints||[]).map(p=>p.technique).filter(Boolean))],
     sides: (it.prints||[]).map(p => ({
-      side: p.side || '', technique: p.technique || '',
+      side: p.side || '', sideLabel: p.sideLabel || '', technique: p.technique || '',
       widthMm: Math.round(+p.widthMm || 0), heightMm: Math.round(+p.heightMm || 0)
     })),
     mockups: (it.mockups || []).slice(0, 4),
@@ -8733,6 +8745,80 @@ document.getElementById('rev-photos-reset').addEventListener('click', async ()=>
 });
 
 /* Порядок фото (перед / бік / зад) — менеджер задає перетягуванням, сайт його поважає */
+/* ── Ракурси товару ───────────────────────────────────────────────────
+   Перед і зад є завжди — це каркас конструктора. Решту заводить менеджер:
+   рукав, бік, козирок, спинка кепки. Підпис теж його: на кепці «зад» — це
+   не спина, і клієнта такий підпис лише плутає.
+
+   Зберігаємо як sides:{товар:[{id,label}]}. Сайт покаже ракурс лише тоді,
+   коли для нього справді завантажене фото цього кольору. */
+function customSides(gid){
+  const list = (contentData.sides || {})[gid];
+  return Array.isArray(list) ? list.filter(x => x && x.id) : [];
+}
+function sidesFor(g){
+  const base = (g.views || ['front','back']).map(v => ({ id:v, label:VIEW_LABEL[v] || v }));
+  const own = customSides(g.id);
+  const out = base.map(b => {
+    const o = own.find(x => x.id === b.id);
+    return { id: b.id, label: (o && o.label) || b.label, base: true };
+  });
+  own.forEach(o => { if(!out.some(x => x.id === o.id)) out.push({ id:o.id, label:o.label || o.id }); });
+  return out;
+}
+function sideNewId(taken){
+  let i = 2;
+  while(taken.indexOf('view' + i) >= 0) i++;
+  return 'view' + i;
+}
+async function saveSides(gid, list){
+  try{
+    await PHOTOS_DOC.set({ sides: { [gid]: list } }, { merge:true });
+    contentData.sides = Object.assign({}, contentData.sides, { [gid]: list });
+  }catch(e){ console.error(e); toast('Не збереглось: ' + ((e && e.message) || '')); }
+}
+function renderSidesEditor(){
+  const box = document.getElementById('photo-sides');
+  if(!box) return;
+  const g = photoCfg(photoGarmentId);
+  const list = sidesFor(g);
+  box.innerHTML =
+    '<div class="sides-h">Ракурси товару</div>' +
+    '<div class="sub" style="margin:-2px 0 10px;">Перед і зад є завжди. Решту додайте самі — ' +
+      'рукав, бік, козирок. Назву можна змінити: на кепці «зад» це не спина. ' +
+      'Ракурс показується на сайті лише тоді, коли для нього завантажене фото.</div>' +
+    list.map(sd => `
+      <div class="side-row" data-side="${escA(sd.id)}">
+        <input type="text" maxlength="28" value="${escA(sd.label)}" data-side-lab>
+        <span class="side-id">${escA(sd.id)}</span>
+        ${sd.base ? '<span class="side-lock" title="Базовий ракурс — його не прибрати">завжди</span>'
+                  : '<button class="side-del" title="Прибрати ракурс">✕</button>'}
+      </div>`).join('') +
+    '<div class="add-row-btn" id="side-add">+ Додати ракурс</div>';
+
+  const collect = () => Array.from(box.querySelectorAll('.side-row')).map(r => ({
+    id: r.dataset.side,
+    label: (r.querySelector('[data-side-lab]').value || '').trim() || r.dataset.side
+  }));
+  box.querySelectorAll('[data-side-lab]').forEach(inp => {
+    inp.addEventListener('change', async ()=>{ await saveSides(g.id, collect()); renderPhotoCells(); });
+  });
+  box.querySelectorAll('.side-del').forEach(b => {
+    b.addEventListener('click', async ()=>{
+      const id = b.closest('.side-row').dataset.side;
+      if(!confirm('Прибрати ракурс? Завантажене для нього фото лишиться в базі, але на сайті не показуватиметься.')) return;
+      await saveSides(g.id, collect().filter(x => x.id !== id));
+      renderSidesEditor(); renderPhotoCells();
+    });
+  });
+  const add = document.getElementById('side-add');
+  if(add) add.addEventListener('click', async ()=>{
+    const cur = collect();
+    cur.push({ id: sideNewId(cur.map(x => x.id)), label: 'Новий ракурс' });
+    await saveSides(g.id, cur);
+    renderSidesEditor(); renderPhotoCells();
+  });
+}
 function viewOrderFor(gid, views){
   const saved = ((contentData.viewOrder || {})[gid]) || [];
   const known = saved.filter(v=>views.indexOf(v) !== -1);
@@ -8750,13 +8836,15 @@ function renderPhotoCells(){
   const box = document.getElementById('photo-cells');
   if(!box) return;
   const g = photoCfg(photoGarmentId);
-  const views = viewOrderFor(g.id, g.views);
+  const sides = sidesFor(g);
+  const views = viewOrderFor(g.id, sides.map(x=>x.id));
+  const labelOf = id => (sides.find(x=>x.id===id) || {}).label || VIEW_LABEL[id] || id;
   box.innerHTML = views.map(v=>{
     const key = g.id+'-'+photoColorId+'-'+v;
     const custom = photosMap[key];
     const src = custom || ('images/'+key+'.webp');
     return `<div class="photo-cell" data-key="${key}" data-view="${v}">
-      <div class="pc-view" style="display:flex;align-items:center;gap:4px;">${DRAG_H}<span>${VIEW_LABEL[v]||v}</span></div>
+      <div class="pc-view" style="display:flex;align-items:center;gap:4px;">${DRAG_H}<span>${escA(labelOf(v))}</span></div>
       <div class="pc-img"><img src="${src}" alt="" onerror="this.style.opacity=.25;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22></svg>'"></div>
       ${custom?'<span class="pc-badge">Власне фото</span>':''}
       <div class="pc-actions">
@@ -8772,6 +8860,7 @@ function renderPhotoCells(){
     const order = Array.from(box.querySelectorAll('.photo-cell')).map(c=>c.dataset.view);
     saveViewOrder(g.id, order);
   });
+  renderSidesEditor();
 }
 
 document.getElementById('photo-garment').addEventListener('change', e=>{ photoGarmentId=e.target.value; renderCtor(); });

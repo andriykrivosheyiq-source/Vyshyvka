@@ -6065,8 +6065,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     };
     // Додаткові ракурси (сторони) для деяких виробів — теж можна наносити лого
     var GARMENT_ANGLES = { cap:['left','right'] };
+    /* Додаткові ракурси заводить менеджер в адмінці (Товари → Фото товару):
+       рукав, бік, козирок — що завгодно. Показуємо лише ті, для яких є фото
+       саме цього кольору: порожня вкладка «Лівий рукав» гірша за її
+       відсутність. Перед і зад лишаються завжди — це каркас конструктора. */
+    function adminSides(gid){
+      var list = ((window.SITE_CONTENT && window.SITE_CONTENT.sides) || {})[gid];
+      return Array.isArray(list) ? list : [];
+    }
+    function extraViews(gid, colorId){
+      return adminSides(gid)
+        .filter(function(s){ return s && s.id && s.id !== 'front' && s.id !== 'back'; })
+        .filter(function(s){
+          return !!(window.PHOTO_OVERRIDES || {})[gid + '-' + colorId + '-' + s.id];
+        })
+        .map(function(s){ return s.id; });
+    }
+    // Підпис ракурсу: спершу той, що задав менеджер, потім стандартний
+    function sideLabelOf(gid, id){
+      var f = adminSides(gid).filter(function(s){ return s && s.id === id; })[0];
+      if(f && f.label) return f.label;
+      return { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік' }[id] || id;
+    }
+    window.__sideLabel = sideLabelOf;
     function getViews(){
-      var base = ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || []);
+      var base = ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || [])
+                 .concat(extraViews(pm.garmentId, pm.colorId));
       // порядок фото, заданий перетягуванням в адмінці (viewOrder)
       var saved = ((window.SITE_CONTENT.viewOrder || {})[pm.garmentId]) || [];
       var known = saved.filter(function(v){ return base.indexOf(v) !== -1; });
@@ -9745,8 +9769,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     })();
 
-    var VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
-    var VIEW_SHORT = {front:'Перед', back:'Спина', left:'Лівий', right:'Правий'};
+    /* Підписи ракурсів. Стандартні — запасний варіант: менеджер може назвати
+       сторону як завгодно («Козирок», «Спинка кепки»), бо на кепці «зад» — це
+       не спина, і клієнта такий підпис лише плутає. */
+    var VIEW_LABEL_DEF = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
+    var VIEW_LABEL = new Proxy({}, { get:function(_, k){
+      try{ return sideLabelOf(pm.garmentId, String(k)); }
+      catch(e){ return VIEW_LABEL_DEF[k] || String(k); }
+    }});
+    var VIEW_SHORT = new Proxy({}, { get:function(_, k){
+      var full = VIEW_LABEL[k];
+      return ({front:'Перед', back:'Спина', left:'Лівий', right:'Правий'})[k] || full;
+    }});
 
     // Підпис і крапки — покажчик стану, кнопкою він не є. Перемикають стрілки
     // по краях фото: вони на своєму звичному місці, а плашка більше не лежить
@@ -10049,6 +10083,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var d = layerDimsMm(l);
           item.prints.push({
             side: side,
+            sideLabel: sideLabelOf(pm.garmentId, side),
             technique: getPrint().name,
             widthMm: Math.round(d.w),
             heightMm: Math.round(d.h),
