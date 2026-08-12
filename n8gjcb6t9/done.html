@@ -6,7 +6,7 @@
 <title>Договорились! 🛸</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💌</text></svg>">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -32,16 +32,23 @@
   <a class="btn" href="kiss.html">Жду встречи, Вовочка 💋</a>
 </main>
 
-<script src="app.js"></script>
-<script src="track.js"></script>
+<script src="app.js?v=4"></script>
+<script src="track.js?v=4"></script>
 <script>
   var data = DateInvite.read();
-  var picks = DateInvite.chosen(data.plan);
+
+  // Підстраховка: якщо браузер підсунув старий app.js із кешу, сторінка все
+  // одно має показати деталі, а не порожній квиток.
+  var picks = DateInvite.chosen
+    ? DateInvite.chosen(data.plan)
+    : [DateInvite.plan(data.plan)].filter(Boolean);
 
   // Прямий захід без деталей — назад на початок.
   if (!data.date || !data.time || !picks.length) location.replace('index.html');
 
-  var what = DateInvite.listNames(picks);
+  var what = DateInvite.listNames
+    ? DateInvite.listNames(picks)
+    : picks.map(function (item) { return item.name; }).join(', ');
 
   var day = DateInvite.humanDate(data.date);
   var isToday = data.date === DateInvite.today();
