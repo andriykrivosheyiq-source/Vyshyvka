@@ -151,11 +151,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero .btn{max-width:420px; margin-left:auto; margin-right:auto;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
   .hero-made{color:rgba(255,255,255,.78) !important;}
-  /* Сума на першому екрані — найбільше число сторінки */
-  .hero-price{margin:14px 0 10px; color:#fff; line-height:1.2;}
-  .hero-price b{font-size:clamp(30px,8vw,42px); font-weight:600; letter-spacing:-1px;
-    font-variant-numeric:tabular-nums;}
-  .hero-price span{font-size:14.5px; color:rgba(255,255,255,.7);}
   .hero-till{color:rgba(255,255,255,.6) !important;}
   .hero .hero-sum{background:rgba(255,255,255,.1) !important; color:rgba(255,255,255,.78) !important;
     backdrop-filter:blur(6px);}
@@ -219,18 +214,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pchk-l{font-size:14px; font-weight:700;}
   /* Степер на всю ширину виглядав як окрема панель керування. Кількість —
      маленьке число, і місця їй треба стільки ж. */
-  /* Кількість — просто число, і кнопка переходу на вигідніший поріг */
-  .pstep-fix{flex:none; font-size:13px; color:var(--muted); padding:9px 14px;
-    border:1px solid var(--line); border-radius:12px;}
-  .pstep-fix b{font-size:18px; font-weight:600; color:var(--ink); margin-right:3px;
-    font-variant-numeric:tabular-nums;}
-  .pqty-up{display:flex; align-items:center; justify-content:space-between; gap:10px;
-    width:100%; margin-top:9px; padding:10px 13px; border:1px dashed #CFD6E0;
-    border-radius:12px; background:#fff; font:inherit; font-size:13px;
-    color:var(--ink-2); cursor:pointer; text-align:left;}
-  .pqty-up:hover{background:var(--soft); border-color:var(--ink-2);}
-  .pqty-up i{flex:none; font-style:normal; font-size:12.5px; font-weight:700;
-    color:var(--cta-dark);}
   /* Обраний варіант комплектації — тихим рядком, без вибору */
   .ppick{display:flex; align-items:center; gap:7px; margin-top:10px;
     font-size:13.5px; color:var(--ink-2);}
@@ -415,14 +398,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .review-card p{font-size:15px; color:var(--muted); margin:6px 0 0; line-height:1.5;}
 
   /* Як проходитиме замовлення */
-  .tl{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;}
-  .tl::-webkit-scrollbar{display:none;}
-  .tl-step{flex:1 0 auto; min-width:104px; border:1px solid var(--line); border-radius:14px;
-    padding:14px 12px; background:#fff;}
-  .tl-n{display:flex; align-items:center; justify-content:center; width:24px; height:24px;
-    border-radius:12px; background:var(--ink); color:#fff; font-size:12px; font-weight:700;
-    margin-bottom:8px;}
-  .tl-t{font-size:13px; font-weight:600;}
+  /* Етапи замовлення: одна лінія з кружечками, а не пʼять окремих карток.
+     Картки читались як пʼять різних блоків і не показували головного —
+     що це послідовність. Тепер лінія проходить крізь усі кружечки, і
+     останній підсвічено: видно, куди веде шлях. */
+  .tl{display:flex; gap:0; position:relative; padding:4px 0 2px;}
+  .tl-step{flex:1; position:relative; text-align:center; min-width:0;}
+  .tl-step::before{content:''; position:absolute; top:15px; left:0; right:50%; height:2px;
+    background:var(--line);}
+  .tl-step::after{content:''; position:absolute; top:15px; left:50%; right:0; height:2px;
+    background:var(--line);}
+  .tl-step:first-child::before, .tl-step:last-child::after{display:none;}
+  .tl-n{position:relative; z-index:1; display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px; margin:0 auto 8px; border-radius:50%; background:#fff;
+    border:2px solid var(--line); color:var(--ink-2); font-size:12px; font-weight:700;}
+  .tl-step:last-child .tl-n{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .tl-t{display:block; font-size:11.5px; font-weight:600; color:var(--ink-2); line-height:1.3;
+    padding:0 2px;}
+  @media (max-width:420px){ .tl-t{font-size:10.5px;} .tl-n{width:26px; height:26px;}
+    .tl-step::before, .tl-step::after{top:13px;} }
   /* Проєкти */
   .cases{display:grid; grid-template-columns:1fr; gap:12px;}
   .case{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff;}
@@ -743,9 +737,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-r>span:not(:first-child){text-align:right; color:rgba(255,255,255,.72);}
   .est-r .est-s{color:#fff; font-weight:700;}
   .est-nm{display:flex; align-items:center; gap:8px; min-width:0;}
-  .est-nm i{flex:none; width:26px; height:26px; border-radius:7px; overflow:hidden;
-    background:rgba(255,255,255,.08); display:block;}
-  .est-nm i img{width:100%; height:100%; object-fit:cover;}
+  /* Мініатюра товару в кошторисі: раніше 26 px — на ній не було видно
+     нічого, крім плями. Тепер це впізнаваний знімок, і по ньому можна
+     відкрити макет на весь екран. */
+  .est-nm i{flex:none; width:46px; height:46px; border-radius:9px; overflow:hidden;
+    background:#fff; display:block; cursor:zoom-in;}
+  .est-nm i img{width:100%; height:100%; object-fit:contain; display:block;}
   .est-nm b{font-weight:600; font-size:12.5px; line-height:1.25; min-width:0;}
   .est-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
     letter-spacing:.4px; color:#7FE0B0; margin-left:6px;}
@@ -1491,13 +1488,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<h1>' + (who ? 'Корпоративний одяг для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
-        /* Сума одразу. Раніше її тут не було з міркування «вона нічого не
-           значить, поки не побачив склад» — але людина відкриває пропозицію
-           саме заради «скільки», і змушувати її гортати заради цього —
-           неповага до її часу. Сума жива: змінить тираж — зміниться й тут. */
-        '<div class="hero-price"><b id="heroSum">' + money(totals().sum) + '</b>' +
-          '<span id="heroQtyLine"> за ' + totals().qty + ' ' +
-          plural(totals().qty, 'виріб', 'вироби', 'виробів') + '</span></div>' +
+        /* Суми на першому екрані немає: поки людина не побачила склад, вона
+           нічого не означає, а велике число на вході читається як цінник
+           замість пропозиції. Сума є в кошторисі й у нижній панелі. */
         '<div class="hero-sum">Термін виготовлення — ' +
           '<b id="heroDays">' + daysWord(curDays()) + '</b></div>' +
         (till ? '<div class="hero-till">Ціни зафіксовані до ' + esc(till) +
@@ -1696,19 +1689,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '</div>' +
         '</div>' +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
-        (next ? '<button class="pqty-up" data-up="' + i + '" data-upq="' + next.qty + '">' +
-                  '<span>Від ' + next.qty + ' шт — ' + money(next.unit) + ' за штуку</span>' +
-                  '<i>взяти ' + next.qty + ' ›</i></button>' : '') +
+        (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '</div>' : '') +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
            лічильник десь вище. */
-        /* Кількість — факт, а не поле для гри. Тираж уже узгоджений з
-           менеджером, а кожен клік по «плюс/мінус» — це нагода передумати.
-           Лишаємо число текстом, а поруч — одну кнопку вигоди: перейти на
-           наступний поріг. Це не тертя, це апсейл в один дотик. */
+        /* Кількість редагується: клієнт має право уточнити тираж, а поріг
+           поруч підказує, з якої кількості ціна нижча. */
         '<div class="pbuy-row">' +
-          '<div class="pstep-fix"><b>' + st.qty + '</b> шт</div>' +
+          '<div class="pstep">' +
+            '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
+            '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
+            '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
+          '</div>' +
           '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
             (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
         '</div>' +
@@ -1823,12 +1816,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     OFFER.items.forEach(function(it, i){
       if(!isOn(i)) return;
       var st = itemState(i);
-      rows.push({ th:(it.mockups||[])[0], name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
+      rows.push({ th:(it.mockups||[])[0], all:(it.mockups||[]).filter(Boolean),
+                  name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
       var rs = recoState(i);
-      rows.push({ th:(r.mockups||[])[0], name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
+      rows.push({ th:(r.mockups||[])[0], all:(r.mockups||[]).filter(Boolean),
+                  name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     return '' +
@@ -1842,7 +1837,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           rows.map(function(r){
             return '<div class="est-r">' +
               '<span class="est-nm">' +
-                '<i>' + (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
+                '<i class="est-th"' + (r.all && r.all.length ? ' data-estzoom="' +
+                    esc(r.all.join('|')) + '"' : '') + '>' +
+                  (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
                   'onerror="this.style.display=\'none\'">' : '') + '</i>' +
                 '<b>' + esc(r.name) + '</b>' +
                 (r.reco ? '<em>додано</em>' : '') +
@@ -2399,8 +2396,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         heroHtml() + itemsHtml() + recoHtml() +
         includesHtml() + whyHtml() + guaranteesSection() +
         estimateHtml() +
-        casesHtml() + reviewsSection() +
-        mgrHtml() + finalHtml() +
+        /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
+           потім чужі слова про нас. Після відгуків його майже не гортали. */
+        casesHtml() + mgrHtml() + reviewsSection() + finalHtml() +
         '<div class="foot">' + esc(brand().name) +
           (brand().tagline ? ' · ' + esc(brand().tagline) : '') +
           (brand().site ? ' · <a href="' + esc(brand().site) + '" target="_blank" rel="noopener">' +
@@ -2415,9 +2413,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
-    // Сума на першому екрані жива: клієнт змінив тираж — вона перерахувалась
-    set('heroSum', money(t.sum));
-    set('heroQtyLine', ' за ' + t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     set('heroDays', daysWord(curDays()));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = OFFER.items.map(function(it, i){
@@ -2766,6 +2761,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        обробників: картки перемальовуються, і кожне перемальовування
        залишало б за собою мертві обробники. */
     document.addEventListener('click', function(ev){
+      var est = ev.target.closest && ev.target.closest('[data-estzoom]');
+      if(est){ openZoom(String(est.dataset.estzoom).split('|'), 0); return; }
       var img = ev.target.closest && ev.target.closest('.pgal-i img, .pshot img, .rc-ph img, .review-photo img');
       if(!img) return;
       var shot = img.closest('.pgal, .pshot');
@@ -2938,18 +2935,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     /* Кількість. Крок росте, коли тримають кнопку: набирати сотню поштучно
        ніхто не буде, а фіксовані пороги клієнту не підходять. */
-    /* Перехід на вигідніший поріг — один дотик. Крутилки «−/+» більше
-       немає: тираж узгоджений з менеджером, а її єдиним ефектом було
-       відкладене рішення. */
-    document.querySelectorAll('[data-up]').forEach(function(b){
+    /* Кількість: −/+ з утриманням. Тримаєш палець — крок росте, бо набирати
+       120 штук по одній нікому. Перебудовуємо картку лише коли відпустили:
+       інакше під час утримання все стрибало б. */
+    document.querySelectorAll('[data-q]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
-      b.onclick = function(){
-        var i = +b.dataset.up, q = +b.dataset.upq;
-        if(!q) return;
-        pick.qty[i] = q;
-        refresh();
-        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + q + ' шт');
+      var wait = null, rep = null, gap = 0, held = false;
+      var step = function(){
+        var i = +b.dataset.q, d = +b.dataset.d;
+        var cur = itemState(i).qty;
+        var by = held && cur >= 20 ? 5 : 1;
+        var next = Math.max(1, cur + d * by);
+        if(next === cur) return;
+        pick.qty[i] = next;
+        var el = b.parentNode.querySelector('.pstep-v b');
+        if(el) el.textContent = next;
       };
+      var stop = function(){
+        if(wait) clearTimeout(wait);
+        if(rep) clearTimeout(rep);
+        wait = rep = null; held = false;
+        var i = +b.dataset.q;
+        refresh();
+        queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + itemState(i).qty + ' шт');
+      };
+      var tick = function(){ held = true; step();
+        gap = Math.max(45, Math.round(gap * 0.85)); rep = setTimeout(tick, gap); };
+      b.addEventListener('pointerdown', function(e){
+        if(e.button) return;
+        e.preventDefault();
+        step(); gap = 160;
+        try{ b.setPointerCapture(e.pointerId); }catch(err){}
+        wait = setTimeout(tick, 420);
+      });
+      ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ b.addEventListener(ev, stop); });
     });
     document.querySelectorAll('[data-reco]').forEach(function(b){
       if(frozen){ b.disabled = true; return; }
