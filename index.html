@@ -11736,6 +11736,16 @@ window.LOOMIQ_CONFIG = {
   /* Ідентифікатор сайту: контент кожного сайту зберігається окремо,
      щоб головний, HoReCa та будівельний не змішувались. */
   var LQ_SITE = 'main';
+  /* ?site=<ключ> — посадкова, створена копією просто в адмінці.
+     Ніші horeca та build зібрані в окремі теки заздалегідь, і кожна нова
+     теж потребувала б збірки й викладення. Але весь її вміст — тексти,
+     фото, кейси — і так живе в базі, у власному документі. Тому нова
+     сторінка вмикається адресою: та сама розмітка, інший документ вмісту.
+     Захист простий: ключ має бути схожим на ключ, інакше ігноруємо. */
+  try{
+    var qSite = (new URLSearchParams(location.search).get('site') || '').trim().toLowerCase();
+    if(/^[a-z0-9][a-z0-9-]{1,23}$/.test(qSite) && qSite !== 'main') LQ_SITE = qSite;
+  }catch(e){}
   window.LQ_SITE = LQ_SITE;   // потрібен блоку оформлення замовлення
   // Назва й адреса посадкової — щоб у Канбані й Telegram було видно, звідки замовлення
   window.LQ_SITE_INFO = {
@@ -11744,6 +11754,17 @@ window.LOOMIQ_CONFIG = {
     build:  { label:'Будівництво', url:'https://loomiq.net/build/' }
   };
   var LQ_PHOTOS_DOC = 'photos';
+  // Сайт із адреси читає свій документ вмісту; складені ніші лишаються як були
+  if(LQ_SITE !== 'main' && LQ_PHOTOS_DOC === 'photos') LQ_PHOTOS_DOC = 'photos_' + LQ_SITE;
+  if(!window.LQ_SITE_INFO_PATCHED && LQ_SITE !== 'main'){
+    window.LQ_SITE_INFO_PATCHED = true;
+    setTimeout(function(){
+      if(window.LQ_SITE_INFO && !window.LQ_SITE_INFO[LQ_SITE]){
+        window.LQ_SITE_INFO[LQ_SITE] = { label: LQ_SITE,
+          url: location.origin + '/?site=' + LQ_SITE };
+      }
+    }, 0);
+  }
   var FB = {
     apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
     authDomain: "loomiq-admin.firebaseapp.com",

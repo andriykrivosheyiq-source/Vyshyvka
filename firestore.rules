@@ -91,13 +91,18 @@ service cloud.firestore {
     // щоб через відкритий запис не залили базу сміттям: сайт лише зі списку,
     // а час і глибина — в межах здорового глузду.
     // Персональних даних тут немає, лише випадковий ідентифікатор пристрою.
+    //
+    // Список сайтів більше не зашитий: посадкові створюються копією прямо в
+    // адмінці (loomiq.net/?site=<ключ>), і новий ключ не має мовчки ламати
+    // аналітику. Обмежуємо довжиною, а не переліком.
     match /an_sessions/{doc} {
       allow read: if request.auth != null;
       allow create, update: if request.resource.data.sid is string
                     && request.resource.data.sid.size() <= 32
                     && request.resource.data.vid is string
                     && request.resource.data.vid.size() <= 32
-                    && request.resource.data.site in ['main', 'horeca', 'build', 'offer']
+                    && request.resource.data.site is string
+                    && request.resource.data.site.size() <= 24
                     && request.resource.data.day is string
                     && request.resource.data.day.size() == 10
                     && request.resource.data.sec is int

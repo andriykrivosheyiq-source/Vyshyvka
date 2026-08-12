@@ -726,6 +726,19 @@
   .photo-cell .pc-badge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;}
   .photo-cell .pc-actions{display:flex;gap:8px;}
   /* Ракурси товару: назви редагуються, зайві прибираються */
+  /* Копія посадкової сторінки */
+  .site-copy{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px 18px;margin-bottom:14px;max-width:860px;}
+  .site-copy[hidden]{display:none;}
+  .site-copy-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .site-copy-row .photo-sel{min-width:200px;}
+  .site-copy-row input{font-family:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:10px 11px;}
+  .site-copy-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    border-top:1px solid var(--line);padding:10px 0;font-size:13px;}
+  .site-copy-item a{color:var(--accent);font-family:var(--mono);font-size:12px;}
+  .site-copy-item .scd{margin-left:auto;border:1px solid var(--line);background:#fff;
+    color:var(--bad);font:inherit;font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer;}
   .photo-sides{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
   .sides-h{font-size:13px;font-weight:800;margin-bottom:4px;}
   .side-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -1607,6 +1620,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             </select>
           </div>
           <button class="pc-btn up" id="edit-toggle" style="flex:none;padding:9px 18px;">Редагувати наповнення</button>
+          <button class="pc-btn" id="site-copy-open" style="flex:none;padding:9px 16px;">⧉ Зробити копію</button>
           <!-- Перегляд на різних пристроях: як у конструкторах сайтів -->
           <div class="dev-switch" id="dev-switch">
             <button data-dev="phone"   title="Телефон">📱 Телефон</button>
@@ -1621,6 +1635,30 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
         <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
           Оберіть посадкову сторінку і редагуйте її наповнення просто на самій сторінці: тексти, фото, кейси, блоки з питаннями.
+        </div>
+        <!-- Копія сторінки: та сама розмітка, свій вміст. Нову нішу можна
+             запустити за хвилину, не чекаючи на розробника. -->
+        <div id="site-copy" class="site-copy" hidden>
+          <div class="sides-h">Нова сторінка — копією наявної</div>
+          <div class="sub" style="margin:-2px 0 12px;">Скопіюємо тексти, фото, кейси й питання обраної сторінки в нову.
+            Товари, ціни й контакти спільні для всіх сторінок — вони не копіюються, бо й так одні.</div>
+          <div class="site-copy-row">
+            <label class="photo-sel"><span>Копіювати з</span>
+              <select id="site-copy-from"></select>
+            </label>
+            <label class="photo-sel"><span>Назва (для вас)</span>
+              <input id="site-copy-label" type="text" maxlength="30" placeholder="Будівництво преміум">
+            </label>
+            <label class="photo-sel"><span>Ключ в адресі</span>
+              <input id="site-copy-id" type="text" maxlength="24" placeholder="stroyka">
+            </label>
+          </div>
+          <div class="sub" id="site-copy-url" style="margin:8px 0 12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="pc-btn up" id="site-copy-go" style="flex:none;padding:10px 22px;">Створити сторінку</button>
+            <button class="pc-btn reset" id="site-copy-cancel" style="flex:none;padding:10px 18px;">Скасувати</button>
+          </div>
+          <div id="site-copy-list" style="margin-top:16px;"></div>
         </div>
         <div id="landing-stage" style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#eef1f6;
              height:calc(100vh - 210px);min-height:520px;display:flex;justify-content:center;align-items:stretch;padding:0;">
@@ -2078,11 +2116,36 @@ const ORDERS_COL = fbDb.collection('kanbanOrders');
    фото, ціни, кейси й FAQ ніколи не змішуються між сайтами.
    Канбан замовлень (STATE_DOC) лишається спільним для всіх.
    ============================================================ */
-const LQ_SITES = [
-  { id:'main',   label:'Головний',    doc:'photos' },
-  { id:'horeca', label:'HoReCa',      doc:'photos_horeca' },
-  { id:'build',  label:'Будівництво', doc:'photos_build' },
+/* Базові сайти зібрані в окремі теки (tools/build-sites.py) і мають свої
+   адреси. Копії, зроблені прямо тут, живуть на тій самій розмітці й
+   вмикаються адресою ?site=<ключ> — окремої збірки не потребують. */
+const LQ_SITES_BASE = [
+  { id:'main',   label:'Головний',    doc:'photos',        path:'/' },
+  { id:'horeca', label:'HoReCa',      doc:'photos_horeca', path:'/horeca/' },
+  { id:'build',  label:'Будівництво', doc:'photos_build',  path:'/build/' },
 ];
+let LQ_SITES = LQ_SITES_BASE.slice();
+// Копії зберігаються у спільному документі: їх має бачити і адмінка, і сайт
+function siteCopies(){
+  const list = (typeof contentData !== 'undefined' && contentData.siteList) || [];
+  return Array.isArray(list) ? list.filter(x => x && x.id) : [];
+}
+function refreshSiteList(){
+  const extra = siteCopies().map(x => ({
+    id: x.id, label: x.label || x.id, doc: 'photos_' + x.id,
+    path: '/?site=' + x.id, copy: true
+  })).filter(x => !LQ_SITES_BASE.some(b => b.id === x.id));
+  LQ_SITES = LQ_SITES_BASE.concat(extra);
+  const sel = document.getElementById('site-switch');
+  if(sel){
+    const cur = sel.value;
+    sel.innerHTML = LQ_SITES.map(x =>
+      '<option value="' + x.id + '">' + escapeHtml(x.label) + ' — ' + escapeHtml(x.path) + '</option>'
+    ).join('') + '<option value="offer">КП — тестова пропозиція</option>';
+    sel.value = LQ_SITES.some(x => x.id === cur) || cur === 'offer' ? cur : 'main';
+  }
+  if(typeof renderSiteCopies === 'function') renderSiteCopies();
+}
 let LQ_SITE = localStorage.getItem('lq_admin_site') || 'main';
 if(!LQ_SITES.some(x=>x.id===LQ_SITE)) LQ_SITE = 'main';
 // КП — не окремий сайт, а лише режим перегляду. Документ контенту в неї той
@@ -5351,11 +5414,22 @@ async function docMockupsForOrder(order){
 }
 
 // Посадкова, з якої прийшло замовлення — з клікабельним посиланням
-const ORDER_SITE_INFO = {
+const ORDER_SITE_INFO_BASE = {
   main:   { label:'Основний',    url:'https://loomiq.net/' },
   horeca: { label:'HoReCa',      url:'https://loomiq.net/horeca/' },
   build:  { label:'Будівництво', url:'https://loomiq.net/build/' }
 };
+/* Сторінки, створені копією в адмінці, теж мають підписуватись у картці:
+   інакше замовлення з нової ніші виглядає як «звідкись». */
+const ORDER_SITE_INFO = new Proxy(ORDER_SITE_INFO_BASE, {
+  get(t, k){
+    if(t[k]) return t[k];
+    const id = String(k);
+    if(!/^[a-z0-9][a-z0-9-]{1,23}$/.test(id)) return undefined;
+    const s = (typeof LQ_SITES !== 'undefined' ? LQ_SITES : []).find(x => x.id === id);
+    return { label: (s && s.label) || id, url: 'https://loomiq.net/?site=' + id };
+  }
+});
 /* Слід відвідувача: канал і мітка пристрою.
    Мітка потрібна, щоб знайти ЗАПИС ЕКРАНА цієї людини в Clarity — там вона
    лежить у полі lq_vid. Без неї доводилось перебирати сеанси за часом і
@@ -9013,6 +9087,7 @@ async function init(){
     photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     photosMap = contentData.map || {};
+    refreshSiteList();   // копії сайтів живуть у тому ж документі
     const a0 = document.activeElement;
     const typing0 = a0 && (a0.tagName==='INPUT'||a0.tagName==='TEXTAREA');
     const sv0 = document.getElementById('view-settings');
@@ -9048,10 +9123,106 @@ async function init(){
     // КП — не посадкова: у неї немає редагування наповнення, зате є тестове
     // замовлення, на якому видно всі блоки, зокрема кейси й питання.
     if(LQ_SITE === 'offer') return 'offer.html?demo=1&v=' + LQ_BUILD;
-    const p = lqSiteDef().id;
+    const def = lqSiteDef();
+    // Копія живе на спільній розмітці — сайт розрізняє її за ключем в адресі
+    if(def.copy) return 'index.html?site=' + def.id + '&manager=1&edit=1&v=' + LQ_BUILD;
+    const p = def.id;
     const base = p === 'main' ? 'index.html' : p + '/index.html';
     return base + '?manager=1&edit=1&v=' + LQ_BUILD;
   }
+  /* ── Копія посадкової сторінки ─────────────────────────────────────
+     Ніші horeca й build зібрані в окремі теки заздалегідь. Але весь вміст
+     посадкової — тексти, фото, кейси, питання — і так лежить у власному
+     документі бази. Тому нова сторінка це просто новий документ плюс ключ
+     в адресі: /?site=stroyka. Розмітка та сама, вміст свій.
+
+     Копіюємо ЛИШЕ посадкові ключі. Товари, ціни, розмірні сітки й контакти
+     спільні для всіх сторінок — дублювати їх означало б розвести дві правди
+     про той самий асортимент. */
+  function renderSiteCopies(){
+    const from = document.getElementById('site-copy-from');
+    if(from){
+      const cur = from.value;
+      from.innerHTML = LQ_SITES.map(x =>
+        '<option value="' + x.id + '">' + escapeHtml(x.label) + '</option>').join('');
+      if(cur) from.value = cur;
+    }
+    const box = document.getElementById('site-copy-list');
+    if(!box) return;
+    const list = siteCopies();
+    box.innerHTML = list.length
+      ? '<div class="sides-h">Створені сторінки</div>' + list.map(x => `
+          <div class="site-copy-item" data-sc="${escapeHtml(x.id)}">
+            <b>${escapeHtml(x.label || x.id)}</b>
+            <a href="/?site=${escapeHtml(x.id)}" target="_blank" rel="noopener">/?site=${escapeHtml(x.id)}</a>
+            <button class="scd">Видалити</button>
+          </div>`).join('')
+      : '';
+    box.querySelectorAll('.scd').forEach(b2 => b2.addEventListener('click', async ()=>{
+      const id = b2.closest('[data-sc]').dataset.sc;
+      if(!confirm('Прибрати сторінку «' + id + '» зі списку?\n\nСам вміст лишиться в базі — сторінку можна буде повернути, ' +
+                  'створивши копію з тим самим ключем.')) return;
+      const next = siteCopies().filter(x => x.id !== id);
+      try{
+        await SHARED_DOC.set({ siteList: next }, { merge:true });
+        contentData.siteList = next;
+        if(LQ_SITE === id){ LQ_SITE = 'main'; localStorage.setItem('lq_admin_site', 'main'); }
+        refreshSiteList();
+        toast('Сторінку прибрано зі списку');
+      }catch(e){ console.error(e); toast('Не вдалось: ' + ((e && e.message) || '')); }
+    }));
+  }
+  (function(){
+    const box = document.getElementById('site-copy');
+    const openB = document.getElementById('site-copy-open');
+    if(!box || !openB) return;
+    const idEl = document.getElementById('site-copy-id');
+    const urlEl = document.getElementById('site-copy-url');
+    const slug = v => String(v || '').toLowerCase().trim()
+      .replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+    const showUrl = ()=>{
+      const v = slug(idEl.value);
+      urlEl.innerHTML = v
+        ? 'Адреса сторінки: <b>loomiq.net/?site=' + escapeHtml(v) + '</b>. ' +
+          'Коли схочете окрему адресу виду loomiq.net/' + escapeHtml(v) + '/ — скажіть, її додають збіркою.'
+        : 'Ключ — латиницею, без пробілів: stroyka, medicine, auto.';
+    };
+    openB.addEventListener('click', ()=>{ box.hidden = !box.hidden; if(!box.hidden){ renderSiteCopies(); showUrl(); } });
+    document.getElementById('site-copy-cancel').addEventListener('click', ()=>{ box.hidden = true; });
+    idEl.addEventListener('input', showUrl);
+    document.getElementById('site-copy-go').addEventListener('click', async ()=>{
+      const id = slug(idEl.value);
+      const label = String(document.getElementById('site-copy-label').value || '').trim() || id;
+      const fromId = document.getElementById('site-copy-from').value;
+      if(!/^[a-z0-9][a-z0-9-]{1,23}$/.test(id)){ toast('Ключ — латиницею, від 2 символів'); return; }
+      if(LQ_SITES.some(x => x.id === id) || id === 'offer' || id === 'photos'){
+        toast('Такий ключ уже зайнятий'); return; }
+      const src = LQ_SITES.find(x => x.id === fromId) || LQ_SITES[0];
+      const btn = document.getElementById('site-copy-go');
+      btn.disabled = true; btn.textContent = 'Копіюємо…';
+      try{
+        const snap = await fbDb.collection('loomiq').doc(src.doc).get();
+        const data = snap.exists ? (snap.data() || {}) : {};
+        const copy = {};
+        LANDING_KEYS.forEach(k => { if(data[k] !== undefined) copy[k] = data[k]; });
+        await fbDb.collection('loomiq').doc('photos_' + id).set(copy, { merge:true });
+        const next = siteCopies().concat([{ id, label, from: fromId, at: new Date().toISOString() }]);
+        await SHARED_DOC.set({ siteList: next }, { merge:true });
+        contentData.siteList = next;
+        refreshSiteList();
+        box.hidden = true;
+        idEl.value = ''; document.getElementById('site-copy-label').value = '';
+        // одразу перемикаємось на нову сторінку — далі її редагують як будь-яку
+        const sel = document.getElementById('site-switch');
+        if(sel){ sel.value = id; sel.dispatchEvent(new Event('change')); }
+        toast('Сторінку створено: /?site=' + id);
+      }catch(e){
+        console.error(e); toast('Не вдалось скопіювати: ' + ((e && (e.code || e.message)) || ''));
+      }
+      btn.disabled = false; btn.textContent = 'Створити сторінку';
+    });
+  })();
+
   function loadCalcFrame(force){
     const fr = document.getElementById('calc-frame');
     if(!fr) return;
