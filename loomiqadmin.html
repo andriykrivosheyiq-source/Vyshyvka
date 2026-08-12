@@ -307,6 +307,13 @@
 
   .gcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:11px;}
   /* Бренди пропозиції */
+  /* Менеджер у пропозиції */
+  .mgr-edit{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  .mgr-edit-ph{flex:none;width:104px;height:104px;border-radius:14px;overflow:hidden;
+    background:var(--canvas);border:1px solid var(--line);display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:var(--ink-soft);}
+  .mgr-edit-ph img{width:100%;height:100%;object-fit:cover;}
+  .mgr-edit-f{flex:1;min-width:260px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
   .brand-row{border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:12px;}
   .brand-row-h{font-size:13px;font-weight:800;margin-bottom:9px;}
   .brand-row-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
@@ -567,6 +574,7 @@
     border-radius:11px;background:#F7FAFF;color:#1668c4;font:inherit;font-size:13px;
     font-weight:700;cursor:pointer;}
   .od-build:hover{background:#EDF4FF;border-color:#1668c4;}
+  .od-hint{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin:-4px 0 8px;}
   .od-item-edit-b{border:1px solid #D9E2F0;background:#F4F8FE;color:#1668c4;font:inherit;
     font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;
     margin-right:6px;white-space:nowrap;}
@@ -1208,6 +1216,32 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </label>
         <div class="sub" style="margin:-6px 0 16px;">Формат: <b>питання | відповідь</b>.</div>
         <div><button class="btn btn-accent" id="of-save">Зберегти тексти пропозиції</button></div>
+      </div>
+
+      <!-- Менеджер, від імені якого йдуть пропозиції -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Менеджер у пропозиції</h2>
+          <span class="hint">Його фото, імʼя й контакти бачить клієнт у КП. Поки менеджер один на всі пропозиції. Без імені блок у КП не показується — вигадане імʼя гірше за його відсутність.</span>
+        </div>
+        <div class="mgr-edit">
+          <div class="mgr-edit-ph">
+            <img id="mgr-photo-img" alt="" style="display:none;">
+            <span id="mgr-photo-empty">без фото</span>
+          </div>
+          <div class="mgr-edit-f">
+            <label class="field">Імʼя<input id="mgr-name" type="text" maxlength="40" placeholder="Марія"></label>
+            <label class="field">Підпис<input id="mgr-role" type="text" maxlength="40" placeholder="Ваш менеджер"></label>
+            <label class="field">Телефон<input id="mgr-phone" type="text" maxlength="30" placeholder="+38 (063) 000-00-00"></label>
+            <label class="field">Telegram<input id="mgr-tg" type="url" maxlength="120" placeholder="https://t.me/nick"></label>
+            <label class="field">Viber<input id="mgr-viber" type="text" maxlength="120" placeholder="viber://chat?number=%2B380..."></label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button class="pc-btn up" id="mgr-photo-up" style="flex:none;padding:10px 20px;">Завантажити фото</button>
+          <button class="pc-btn reset" id="mgr-photo-del" style="flex:none;padding:10px 20px;">Прибрати фото</button>
+          <button class="btn btn-accent" id="mgr-save" style="flex:none;">Зберегти менеджера</button>
+        </div>
       </div>
 
       <!-- Бренди пропозиції. Шапка й підвал сторінки КП беруться звідси,
@@ -3234,6 +3268,68 @@ document.getElementById('of-save').addEventListener('click', async ()=>{
         (t.cases.length || t.faq.length ? '' : ' — блоки в КП не показуватимуться'));
 });
 
+/* ── Менеджер у пропозиції ────────────────────────────────────────────
+   Досі імʼя й телефон були зашиті в код: кожен клієнт бачив «Марію» й
+   порожній кружечок замість обличчя. Для іменної пропозиції на десятки
+   тисяч це найшвидший спосіб втратити довіру, яку набудували всі інші
+   блоки. Тепер це звичайні поля; поки імені немає — блок у КП не
+   зʼявляється взагалі. */
+let mgrPhotoWork = null;   // фото, ще не збережене
+function paintOfferManager(){
+  const m = (contentData.offerManager) || {};
+  const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.value = v || ''; };
+  set('mgr-name', m.name); set('mgr-role', m.role); set('mgr-phone', m.phone);
+  set('mgr-tg', m.telegram); set('mgr-viber', m.viber);
+  const url = (mgrPhotoWork !== null) ? mgrPhotoWork : (m.photo || '');
+  const img = document.getElementById('mgr-photo-img');
+  const empty = document.getElementById('mgr-photo-empty');
+  if(img){ img.src = url || ''; img.style.display = url ? '' : 'none'; }
+  if(empty) empty.style.display = url ? 'none' : '';
+}
+(function(){
+  const up = document.getElementById('mgr-photo-up');
+  if(!up) return;
+  up.addEventListener('click', ()=>{
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.addEventListener('change', async ()=>{
+      const f = inp.files && inp.files[0];
+      if(!f) return;
+      up.disabled = true; up.textContent = 'Завантажуємо…';
+      try{
+        // Фото йде в хмару: у базі лишається посилання, інакше документ
+        // швидко впреться в ліміт 1 МБ.
+        mgrPhotoWork = await uploadCloudinary(f);
+        paintOfferManager();
+        toast('Фото завантажено — не забудьте зберегти');
+      }catch(e){ console.error(e); toast('Не вдалось завантажити фото'); }
+      up.disabled = false; up.textContent = 'Завантажити фото';
+    });
+    inp.click();
+  });
+  document.getElementById('mgr-photo-del').addEventListener('click', ()=>{
+    mgrPhotoWork = '';
+    paintOfferManager();
+    toast('Фото прибрано — не забудьте зберегти');
+  });
+  document.getElementById('mgr-save').addEventListener('click', async ()=>{
+    const v = id => (document.getElementById(id) || {}).value || '';
+    const cur = contentData.offerManager || {};
+    const data = {
+      name: v('mgr-name').trim(), role: v('mgr-role').trim(),
+      phone: v('mgr-phone').trim(), telegram: v('mgr-tg').trim(),
+      viber: v('mgr-viber').trim(),
+      photo: (mgrPhotoWork !== null) ? mgrPhotoWork : (cur.photo || '')
+    };
+    try{
+      await PHOTOS_DOC.set({ offerManager: data }, { merge:true });
+      contentData.offerManager = data;
+      mgrPhotoWork = null;
+      toast(data.name ? 'Менеджера збережено' : 'Збережено — без імені блок у КП не показується');
+    }catch(e){ console.error(e); toast('Помилка збереження'); }
+  });
+})();
+
 /* ── Бренди пропозиції ────────────────────────────────────────────────
    Правки тут діють на НОВІ й на переписані пропозиції: бренд лягає в
    документ КП знімком, тож уже надіслані сторінки лишаються такими, якими
@@ -3328,6 +3424,7 @@ function paintSettingsForm(){
   paintSitePricing();
   paintOfferTexts();
   paintOfferBrands();
+  paintOfferManager();
 }
 
 /* ── Тексти пропозиції ────────────────────────────────────────────────
@@ -4782,11 +4879,27 @@ const OFFER_DEFAULTS = {
   payment: 'Передоплата 50%, решта — після погодження готової партії',
   startWith: 'Підтвердити пропозицію та внести передоплату',
   validDays: 7,
-  // Заглушка менеджера: контакти підставляться справжні, коли зробимо довідник
-  manager: { name:'Марія', role:'Ваш менеджер', photo:'',
-             phone:'+38 (063) 804-78-18', telegram:'https://t.me/loomiq',
-             viber:'', email:'hello@loomiq.net' }
+  // Запасні контакти на випадок, коли менеджера ще не заповнили в
+  // Налаштуваннях. Показувати вигадане імʼя клієнту не можна, тож у КП
+  // блок просто не зʼявиться, поки немає справжніх даних (див. offerManager).
+  manager: { name:'', role:'Ваш менеджер', photo:'',
+             phone:'', telegram:'', viber:'', email:'' }
 };
+/* Менеджер, від імені якого йдуть пропозиції. Один на всі КП — так
+   домовились; коли їх стане кілька, тут зʼявиться вибір у картці.
+   Живе у спільному документі, бо це не властивість сайту, а наша команда. */
+function offerManager(){
+  const m = (typeof contentData !== 'undefined' && contentData.offerManager) || {};
+  return {
+    name: String(m.name || '').trim(),
+    role: String(m.role || '').trim() || 'Ваш менеджер',
+    photo: String(m.photo || '').trim(),
+    phone: String(m.phone || '').trim(),
+    telegram: String(m.telegram || '').trim(),
+    viber: String(m.viber || '').trim(),
+    email: ''
+  };
+}
 
 /* ── Бренд пропозиції ──────────────────────────────────────────────────
    Одне виробництво працює під двома вивісками, і частину пропозицій треба
@@ -4955,7 +5068,11 @@ function offerBuild(order){
     },
     clientLogo: logo,
     brand: brandSnap(order.brand),
-    manager: OFFER_DEFAULTS.manager,
+    manager: offerManager(),
+    /* Особистий коментар менеджера: чому зібрано саме такий варіант. Усе
+       інше в пропозиції конкурент може скопіювати за годину, а три рядки
+       про конкретне замовлення — ні. Порожньо — блоку в КП немає. */
+    why: String(order.why || '').trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0, 5),
     items: main, reco,
     totals: {
       qty: totalQty,
@@ -6219,7 +6336,14 @@ function renderOrderDrawer(){
       <div class="od-sec">Діалог з клієнтом (Sitniks)</div>
       ${crmBlockHtml(o)}
 
-      <div class="od-sec">Нотатка менеджера</div>
+      <!-- Це БАЧИТЬ клієнт — на відміну від нотатки нижче -->
+      <div class="od-sec">Чому саме такий варіант · у пропозиції</div>
+      <div class="od-hint">Кілька рядків живою мовою: чому ця тканина, чому вишивка, чому такий тираж.
+        Кожен рядок стане окремим пунктом у КП. Порожньо — блоку в пропозиції не буде.</div>
+      <textarea class="od-note od-f" data-f="why" rows="3"
+        placeholder="Щільність 320, бо носитимуть щодня всю зиму&#10;Вишивка замість друку — не тріскається на швах капюшона&#10;Спину лишили чистою: на корпоративі стриманіше">${escapeHtml(o.why||'')}</textarea>
+
+      <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="3"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
     </div>

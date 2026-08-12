@@ -151,6 +151,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero .btn{max-width:420px; margin-left:auto; margin-right:auto;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
   .hero-made{color:rgba(255,255,255,.78) !important;}
+  .hero-sum-x{opacity:.62; font-weight:500;}
   .hero-till{color:rgba(255,255,255,.6) !important;}
   .hero .hero-sum{background:rgba(255,255,255,.1) !important; color:rgba(255,255,255,.78) !important;
     backdrop-filter:blur(6px);}
@@ -915,6 +916,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      читається найгірше саме там, де має читатися найкраще. */
   .cta-box .sec-sub{margin:0 auto 20px; max-width:34ch; color:rgba(255,255,255,.7);}
   .cta-box .final{padding-bottom:0; max-width:420px; margin:0 auto;}
+  /* Друга дія — тиха: поділитися можна, але головне тут підтвердити */
+  .btn-share{display:flex; align-items:center; justify-content:center; gap:8px;
+    background:transparent; color:rgba(255,255,255,.82);
+    border:1px solid rgba(255,255,255,.28); font-weight:600;}
+  .btn-share:hover{background:rgba(255,255,255,.08); color:#fff;}
+  .btn-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
+  .btn-share svg{flex:none;}
   /* Три кроки перед кнопкою — на темному, у стовпчик і зліва: нумерований
      список читається лише коли цифри стоять одна під одною. */
   .nsteps{list-style:none; margin:0 auto 22px; padding:0; max-width:420px; text-align:left;
@@ -1156,6 +1164,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
              'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var SHARE_IC = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3"/>' +
+    '<path d="m8 7 4-4 4 4"/></svg>';
   var TICK_SM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
                 'stroke-width="3" stroke-linecap="round" stroke-linejoin="round" ' +
                 'style="flex:none;"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -1324,6 +1336,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function curDays(){ return daysFor(totals().qty || 1); }
   function daysWord(n){ return n + ' ' + plural(n, 'робочий день', 'робочі дні', 'робочих днів'); }
+  /* Конкретна дата, а не тільки «7 робочих днів». Формулу клієнт мусив
+     рахувати сам — і завжди лишався сумнів, чи встигаємо до його події.
+     Рахуємо РОБОЧІ дні від сьогодні: субота й неділя не рахуються, бо
+     виробництво в них не працює, а обіцяти інакше — обманювати. */
+  function workdayAfter(days){
+    var d = new Date(), left = Math.max(0, days | 0);
+    while(left > 0){
+      d.setDate(d.getDate() + 1);
+      var w = d.getDay();
+      if(w !== 0 && w !== 6) left--;
+    }
+    return d;
+  }
+  function readyDate(){
+    var d = workdayAfter(curDays());
+    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  }
 
   function totals(){
     var qty = 0, sum = 0, base = 0;
@@ -1491,8 +1520,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         /* Суми на першому екрані немає: поки людина не побачила склад, вона
            нічого не означає, а велике число на вході читається як цінник
            замість пропозиції. Сума є в кошторисі й у нижній панелі. */
-        '<div class="hero-sum">Термін виготовлення — ' +
-          '<b id="heroDays">' + daysWord(curDays()) + '</b></div>' +
+        '<div class="hero-sum">Готово <b id="heroReady">до ' + readyDate() + '</b>' +
+          '<span id="heroDays" class="hero-sum-x"> · ' + daysWord(curDays()) + '</span></div>' +
         (till ? '<div class="hero-till">Ціни зафіксовані до ' + esc(till) +
           ' — далі перераховуємо за актуальною закупівлею тканини</div>' : '') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
@@ -1891,7 +1920,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!OFFER.reco.length) return '';
     return '' +
       '<section id="recoSec">' +
-        '<h2 class="sec-title">Клієнти з такими замовленнями зазвичай додають</h2>' +
+        '<h2 class="sec-title">Часто беруть разом</h2>' +
         /* Три картки замість чотирьох і назва замість «часто беруть разом».
            Ряд однакових плиток із кнопками робив з пропозиції на десятки
            тисяч сторінку інтернет-магазину, а «часто беруть разом» — це
@@ -2226,7 +2255,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<div class="terms">' +
           '<div><div class="term-k">Термін виготовлення</div>' +
             '<div class="term-v" id="termDays">' + daysWord(curDays()) +
-            ' після погодження макета</div></div>' +
+            ' після погодження макета — орієнтовно до ' + readyDate() + '</div></div>' +
           '<div><div class="term-k">Оплата</div>' +
             '<div class="term-v">' + esc(OFFER.terms.payment) + '</div></div>' +
           '<div><div class="term-k">Для запуску</div>' +
@@ -2287,6 +2316,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           nextStepsHtml() +
           '<div class="final">' +
             '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
+            /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
+               партнеру. Досі це означало «скопіюй адресу з рядка браузера»
+               або скріншот. Тепер поруч своя кнопка: рідне «поділитися» на
+               телефоні, збереження в PDF на компʼютері. */
+            '<button class="btn btn-ghost btn-share" id="shareBtn">' + SHARE_IC +
+              'Поділитися або зберегти PDF</button>' +
           '</div>' +
         '</div>' +
       '</section>';
@@ -2321,6 +2356,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function mgrHtml(){
     var m = OFFER.manager || {};
+    /* Немає імені — немає блоку. Порожній кружечок із вигаданою «Марією»
+       коштує дорожче, ніж відсутність контактів: людина одразу відчуває
+       шаблон. Заповнюється в адмінці: Формування цін → «Менеджер у
+       пропозиції». */
+    if(!String(m.name || '').trim()) return '';
     var acts = [];
     if(m.phone) acts.push('<a class="mgr-a call" href="tel:' + esc(m.phone.replace(/[^\d+]/g,'')) + '">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
@@ -2413,12 +2453,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
-    set('heroDays', daysWord(curDays()));
+    set('heroReady', 'до ' + readyDate());
+    set('heroDays', ' · ' + daysWord(curDays()));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = OFFER.items.map(function(it, i){
       return itemState(i).qty + ' ' + String(it.name || '').toLowerCase();
     }).join(' · ');
-    set('termDays', daysWord(curDays()) + ' після погодження макета');
+    set('termDays', daysWord(curDays()) + ' після погодження макета — орієнтовно до ' + readyDate());
     OFFER.items.forEach(function(it, i){
       // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
       // а в кошторисі нижче інше.
@@ -2984,6 +3025,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var t = document.getElementById('estimate');
       if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
     };
+    /* Поділитися. На телефоні — системне вікно (Telegram, пошта, «зберегти
+       в файли»); на компʼютері такого немає, тож там це друк у PDF плюс
+       скопійована адреса. Обидва шляхи ведуть до одного: пропозицію можна
+       переслати, не роблячи скріншот. */
+    var shareB = document.getElementById('shareBtn');
+    if(shareB) shareB.onclick = function(){
+      var url = location.href;
+      var title = document.title;
+      if(window.lqAn) window.lqAn.track('offer_share', {});
+      if(navigator.share){
+        navigator.share({ title: title, text: 'Комерційна пропозиція', url: url })
+          .catch(function(){ /* закрив вікно — це не помилка */ });
+        return;
+      }
+      var done = function(msg){
+        shareB.classList.add('done');
+        var old = shareB.innerHTML;
+        shareB.innerHTML = TICK + msg;
+        setTimeout(function(){ shareB.innerHTML = old; shareB.classList.remove('done'); }, 2200);
+      };
+      var copy = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(url).then(function(){ done('Посилання скопійовано'); },
+              function(){ window.prompt('Скопіюйте посилання:', url); });
+            return;
+          }
+        }catch(e){}
+        window.prompt('Скопіюйте посилання:', url);
+      };
+      copy();
+      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
+    };
     ['confirmBtn','barConfirm'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
@@ -3008,7 +3082,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var anchor = document.getElementById('offerStart');
     var onScroll = function(){
       var y = anchor ? (anchor.getBoundingClientRect().top + window.scrollY) : 420;
-      bar.classList.toggle('show', window.scrollY > y - 80);
+      /* Ховаємо панель, коли на екрані вже є справжня кнопка «Підтвердити»:
+         інакше під нею стоїть друга така сама, впритул, і людина не розуміє,
+         яка з них головна. */
+      var cta = document.getElementById('confirmBtn');
+      var ctaVisible = false;
+      if(cta){
+        var r = cta.getBoundingClientRect();
+        ctaVisible = r.top < window.innerHeight - 40 && r.bottom > 0;
+      }
+      bar.classList.toggle('show', window.scrollY > y - 80 && !ctaVisible);
     };
     window.addEventListener('scroll', onScroll, { passive:true });
     onScroll();
@@ -3051,6 +3134,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                  phone: '+38 (063) 804-78-18', telegram: 'https://t.me/loomiq',
                  viber: 'viber://chat?number=+380638047818' },
       leadRules: [{ base: 5, qtyTiers: [{ from: 50, extraDays: 2 }, { from: 150, extraDays: 4 }] }],
+      // так виглядатиме особистий коментар менеджера з картки замовлення
+      why: ['Щільність 320 г/м² — худі носитимуть щодня всю зиму, 240 витягнеться за місяць',
+            'Вишивка замість друку: на швах капюшона друк тріскається вже після кількох прань',
+            'Спину лишили чистою — на корпоративних фото так виглядає стриманіше'],
       items: [
         mk({ kind:'main', name:'Худі оверсайз', color:'Чорний', sizes:'S–XXL', qty:30,
           print:'Вишивка', techniques:['Вишивка'],
