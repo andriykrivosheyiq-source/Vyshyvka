@@ -567,6 +567,10 @@
     border-radius:11px;background:#F7FAFF;color:#1668c4;font:inherit;font-size:13px;
     font-weight:700;cursor:pointer;}
   .od-build:hover{background:#EDF4FF;border-color:#1668c4;}
+  .od-item-edit-b{border:1px solid #D9E2F0;background:#F4F8FE;color:#1668c4;font:inherit;
+    font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;
+    margin-right:6px;white-space:nowrap;}
+  .od-item-edit-b:hover{background:#E6F0FC;}
   /* Смужка «для кого збираємо» над конструктором */
   .calc-target{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
     background:#FFF6E9;border:1px solid #F0D3A6;border-radius:12px;
@@ -2512,6 +2516,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
    памʼятає, для кого збирає, і збережене лягає в цю саму картку. Клієнтські
    поля в модалці підставляються з неї ж — переписувати їх не треба. */
 let calcTarget = null;
+let calcEdit = null;      // індекс позиції, яку зараз редагують (null = додаємо нову)
 function calcTargetWho(o){
   return (o.instagram || o.name || o.phone || o.orderId || 'клієнта');
 }
@@ -2528,11 +2533,31 @@ function paintCalcTarget(){
   window.__adminOfferTarget = o ? {
     id: o.id, instagram: o.instagram || '', name: o.name || '',
     company: o.company || '', phone: o.phone || '', dueAt: o.dueAt || '',
-    hasItems: (o.items || []).length > 0
+    hasItems: (o.items || []).length > 0,
+    replaceIndex: calcEdit
   } : null;
+  if(!o){ window.__adminSeedItem = null; calcEdit = null; }
+  const t = box && box.querySelector('.calc-target-t');
+  if(t && o) t.innerHTML = calcEdit != null
+    ? 'Редагуємо позицію в картці <b>' + escapeHtml(calcTargetWho(o)) + '</b>'
+    : 'Збираємо пропозицію для <b>' + escapeHtml(calcTargetWho(o)) + '</b>';
 }
-function openCalcFor(o){
+function openCalcFor(o, editIdx){
   calcTarget = o.id;
+  calcEdit = (editIdx == null) ? null : +editIdx;
+  /* Позицію віддаємо конструктору цілком: він відновить із неї виріб, колір,
+     розміри й логотипи, а після «Оновити» поверне нову версію на те саме
+     місце. Макети передаємо посиланнями — вони вже в хмарі. */
+  const it = (calcEdit != null) ? (o.items || [])[calcEdit] : null;
+  window.__adminSeedItem = it ? {
+    kind: it.kind === 'reco' ? 'reco' : 'main',
+    name: it.name || '', color: it.color || '', print: it.print || '', sizes: it.sizes || '',
+    qty: +it.qty || 0, unitPrice: +it.unitPrice || 0, price: +it.price || 0,
+    unitCost: +it.unitCost || 0, cost: +it.cost || 0,
+    recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
+    calc: it.calc || null, desc: it.desc || null, config: it.config || null
+  } : null;
   closeOrderDrawer();
   paintCalcTarget();
   const btn = document.querySelector('.nav button[data-view="calc"]');
@@ -2541,7 +2566,9 @@ function openCalcFor(o){
   // сторінку наново, щоб менеджер не додав чужі позиції в цю картку.
   const fr = document.getElementById('calc-only-frame');
   if(fr){ fr.removeAttribute('src'); delete fr.dataset.failed; openCalcFrame(fr); }
-  toast('Конструктор відкрито для ' + calcTargetWho(o));
+  toast(calcEdit != null
+    ? ('Редагуємо «' + ((it && it.name) || 'позицію') + '»')
+    : ('Конструктор відкрито для ' + calcTargetWho(o)));
 }
 document.addEventListener('click', function(e){
   if(!e.target.closest || !e.target.closest('#calc-target-off')) return;
@@ -2558,7 +2585,12 @@ function openCalcFrame(fr){
   let loaded = false;
   fr.addEventListener('load', function(){ loaded = true; }, { once:true });
   try{
-    fr.src = 'index.html?manager=1&start=catalog&v=' + LQ_BUILD;
+    /* cart=new — конструктор стартує з порожнім кошиком. Він зберігає кошик
+       у IndexedDB і відновлює після перезавантаження; без цього прапорця
+       в картку клієнта могли потрапити позиції з попереднього прорахунку.
+       seed=1 — у кошик одразу кладеться позиція, яку відкрили на редагування. */
+    fr.src = 'index.html?manager=1&start=catalog&cart=new' +
+      (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
   }catch(e){
     fail('Не вдалось скласти адресу сторінки: ' + (e && e.message || e));
     return;
@@ -3893,7 +3925,14 @@ window.__adminSaveClientOrder = async function(payload){
      втрачав звернення: одна картка з діалогом, друга з товаром. */
   const target = payload.targetId && (orders || []).find(x => x.id === payload.targetId);
   if(target){
-    target.items = (target.items || []).concat(items);
+    const ri = payload.replaceIndex;
+    if(ri != null && (target.items || [])[ri]){
+      // Редагували наявну позицію — кладемо нову версію на її ж місце,
+      // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
+      target.items.splice(ri, 1, ...items);
+    } else {
+      target.items = (target.items || []).concat(items);
+    }
     ['instagram','name','company','phone'].forEach(k=>{
       const v = String(payload[k] || '').trim();
       if(v) target[k] = v;              // порожнім полем нічого не затираємо
@@ -5740,6 +5779,8 @@ function orderItemsHtml(o){
           <input class="od-qty" type="number" min="1" step="1" value="${+it.qty||1}" data-i="${(o.items||[]).indexOf(it)}" aria-label="Кількість">
           <span class="od-qty-unit">шт</span>
           <span class="tc-spacer"></span>
+          ${it.config ? `<button class="od-item-edit-b" data-edit-i="${(o.items||[]).indexOf(it)}"
+            title="Відкрити позицію в конструкторі: логотип, розмір нанесення, кольори">✎ Змінити</button>` : ''}
           <button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>
         </div>
       </div>`;
@@ -6101,6 +6142,9 @@ function renderOrderDrawer(){
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
   const build = panel.querySelector('[data-act="build"]');
   if(build) build.addEventListener('click', ()=> openCalcFor(o));
+  panel.querySelectorAll('[data-edit-i]').forEach(b2=>{
+    b2.addEventListener('click', ()=> openCalcFor(o, +b2.dataset.editI));
+  });
   panel.querySelectorAll('.od-add').forEach(row=>{
     row.querySelector('.od-add-go').addEventListener('click', ()=>
       orderAddItem(o, row.querySelector('.od-add-pick').value,
