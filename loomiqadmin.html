@@ -512,6 +512,7 @@
   .t-brand-b:hover{background:var(--canvas);}
   .t-brand-b.on{background:#0F2034;border-color:#0F2034;color:#fff;}
   .t-docs-row{display:flex;gap:6px;}
+  .t-docs-hint{font-size:11px;line-height:1.5;color:#8A94A6;margin:7px 0 0;}
   .t-doc-main{flex:1;border:none;background:#0F2034;color:#fff;font:inherit;font-size:12px;font-weight:700;
     padding:8px 10px;border-radius:9px;cursor:pointer;}
   .t-doc-main:hover{background:#1c2840;}
@@ -665,7 +666,32 @@
   .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
   .od-due-left.due-soon{background:#FFF4DE;color:#8A6A15;}
   .od-due-left.due-late{background:var(--bad-soft);color:var(--bad);}
-  .od-note{width:100%;resize:vertical;line-height:1.45;}
+  /* Нотатка — те, що менеджер перечитує найчастіше. Два рядки її ховали:
+     доводилось скролити всередині крихітного віконця. Тепер поле відразу
+     на кілька рядків і саме росте під текст. */
+  .od-note{width:100%;resize:vertical;line-height:1.5;font-size:13px;
+    min-height:104px;padding:10px 12px;border-radius:9px;}
+  /* Пошук діалогу в Sitniks — коли Telegram у клієнта немає */
+  .od-igrow{display:flex;gap:6px;align-items:stretch;min-width:0;}
+  .od-igrow .od-f{flex:1;min-width:0;}
+  .od-ig-find{flex:none;width:32px;border:1px solid var(--line);border-radius:7px;
+    background:var(--canvas);color:var(--ink-soft);font-size:13px;cursor:pointer;line-height:1;}
+  .od-ig-find:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .od-seek{margin-top:8px;border:1px solid var(--line);border-radius:10px;
+    background:var(--canvas);padding:9px 10px;}
+  .od-seek-h{font-size:11.5px;color:var(--ink-soft);margin-bottom:7px;}
+  .od-seek-r{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:7px 9px;margin-top:5px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink);}
+  .od-seek-r:hover{border-color:var(--accent);}
+  .od-seek-r[disabled]{opacity:.55;cursor:default;}
+  .od-seek-nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-ch{flex:none;font-size:10.5px;padding:1px 7px;border-radius:20px;
+    background:#EEF2FF;color:#3B4A9E;}
+  .od-crm-linked{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .od-crm-unlink{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
+    padding:3px 8px;border-radius:7px;background:var(--canvas);}
+  .od-crm-unlink:hover{color:var(--bad);background:var(--bad-soft);}
   .od-item-edit{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
     border-top:1px dashed var(--line);}
   .od-qty{width:62px;font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:6px;
@@ -5667,12 +5693,16 @@ function docsBlockHtml(o){
         ${BRAND_KEYS.map(k=>`<button class="t-brand-b${k===cur?' on':''}" data-brand="${k}">${escapeHtml(brands[k].name)}</button>`).join('')}
       </div>
       <div class="t-docs-row">
-        ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`:''}
+        ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`
+              :`<button class="t-doc-main" data-doc="makeoffer">✦ Створити КП</button>`}
         ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}" target="_blank" rel="noopener" data-doc="openoffer">Відкрити</a>`:''}
         ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}&print=1" target="_blank" rel="noopener" data-doc="offerpdf">PDF</a>`:''}
         <button class="t-doc-sec" data-doc="mockups">Макети ↓</button>
       </div>
       ${link?`<a class="t-offer-url" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(link)}</a>`:''}
+      <div class="t-docs-hint">${link
+        ? 'Сторінка жива: будь-яка правка в картці одразу видно клієнту за цим посиланням. Окремо перезберігати не треба.'
+        : 'Зберемо персональну сторінку з того, що зараз у картці, і дамо посилання для клієнта. Далі правки підхоплюються самі.'}</div>
     </div>`;
 }
 function wireDocsBlock(el, o){
@@ -5711,6 +5741,32 @@ function wireDocsBlock(el, o){
         toast('Пропозиція від ' + brandSnap(key).name);
       }catch(e){ console.warn('brand switch failed', e); toast('Не вдалося зберегти бренд'); }
     });
+  });
+  /* Явна кнопка «Створити КП». Раніше персональна сторінка зʼявлялась сама
+     лише в тих карток, які менеджер зібрав у конструкторі, — а заявка з сайту
+     чи з Telegram лишалась без посилання, і як його отримати, було невідомо.
+     Тепер із будь-якої картки з позиціями робиться сторінка, і одразу
+     копіюється адреса: наступна дія все одно «надіслати клієнту». */
+  const mo = el.querySelector('[data-doc="makeoffer"]');
+  if(mo) mo.addEventListener('click', async ()=>{
+    if(o.offerToken) return;
+    mo.disabled = true;
+    o.offerToken = makeOfferToken();
+    o.offerState = 'created';
+    try{
+      await storeSet('orders', orders);
+      await offerSave(o);
+      const link = offerUrl(o);
+      if(copyFallback(link)) toast('КП створено, посилання скопійовано');
+      else toast('КП створено');
+      renderBoard();
+      renderOrderDrawer();
+    }catch(e){
+      console.error('offer create failed', e);
+      delete o.offerToken; delete o.offerState;
+      mo.disabled = false;
+      toast('Не вдалося створити КП');
+    }
   });
   const cp = el.querySelector('[data-doc="copylink"]');
   if(cp) cp.addEventListener('click', ()=>{
@@ -6265,6 +6321,9 @@ async function openOrderDrawer(o){
       saveOrders({ quiet:true }).catch(e=> console.warn(e));
     }
   }
+  // Діалог у Sitniks уже привʼязаний — не змушуємо тиснути «Оновити»,
+  // розмова має бути на екрані разом із карткою.
+  if(o.crmChatId && !crmChat[o.id]) crmLoadChat(o);
   renderBoard();
 }
 function renderOrderDrawer(){
@@ -6295,11 +6354,15 @@ function renderOrderDrawer(){
     <div class="od-body">
       <div class="od-sec">Клієнт</div>
       <div class="od-fields">
-        <input class="od-f" data-f="instagram" type="text" placeholder="інстаграм" value="${escapeHtml(o.instagram||'')}">
+        <div class="od-igrow">
+          <input class="od-f" data-f="instagram" type="text" placeholder="інстаграм" value="${escapeHtml(o.instagram||'')}">
+          ${crmSeekBtnHtml(o)}
+        </div>
         <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
         <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
         <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
       </div>
+      ${crmSeekHtml(o)}
       <div class="od-due">
         <span class="od-due-lab">Здати до</span>
         <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
@@ -6333,8 +6396,7 @@ function renderOrderDrawer(){
 
       ${tgChatOf(o) ? '<div class="od-sec">Діалог у Telegram</div>' + tgBlockHtml(o) : ''}
 
-      <div class="od-sec">Діалог з клієнтом (Sitniks)</div>
-      ${crmBlockHtml(o)}
+      ${crmShow(o) ? '<div class="od-sec">Діалог з клієнтом (Sitniks)</div>' + crmBlockHtml(o) : ''}
 
       <!-- Це БАЧИТЬ клієнт — на відміну від нотатки нижче -->
       <div class="od-sec">Чому саме такий варіант · у пропозиції</div>
@@ -6344,7 +6406,7 @@ function renderOrderDrawer(){
         placeholder="Щільність 320, бо носитимуть щодня всю зиму&#10;Вишивка замість друку — не тріскається на швах капюшона&#10;Спину лишили чистою: на корпоративі стриманіше">${escapeHtml(o.why||'')}</textarea>
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
-      <textarea class="od-note od-f" data-f="note" rows="3"
+      <textarea class="od-note od-f" data-f="note" rows="5"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
     </div>
     <div class="od-foot">
@@ -6382,6 +6444,14 @@ function renderOrderDrawer(){
       // дедлайн змінює підпис «лишилось N днів» — його показує сама панель
       if(f === 'dueAt') renderOrderDrawer();
     });
+  });
+  /* Нотатка росте під текст: домовленості пишуть абзацами, а прокрутка
+     всередині крихітного поля ховає рівно те, заради чого його читають. */
+  panel.querySelectorAll('.od-note').forEach(ta=>{
+    const grow = ()=>{ ta.style.height = 'auto';
+                       ta.style.height = Math.min(ta.scrollHeight + 2, 420) + 'px'; };
+    grow();
+    ta.addEventListener('input', grow);
   });
   panel.querySelectorAll('.od-qty').forEach(inp=>{
     inp.addEventListener('change', ()=> orderSetQty(o, +inp.dataset.i, inp.value));
@@ -6615,22 +6685,182 @@ async function crmFetch(path, options){
   try{ return JSON.parse(text); }catch(e){ return {}; }
 }
 
+/* ── Пошук діалогу за інстаграмом ─────────────────────────────────────────
+   Половина звернень приходить не в Telegram, а в Instagram — там номера
+   замовлення ще немає, тільки нік. Менеджер ішов шукати людину в Sitniks
+   руками, і саме на цьому переході губився контекст картки.
+
+   Тому пошук стоїть угорі, біля поля «інстаграм», а не внизу біля стрічки:
+   спершу знаходимо співрозмовника, і аж тоді зʼявляється розмова. Якщо
+   Telegram у клієнта є — кнопки немає взагалі, там розмова вже своя.
+
+   Документація Sitniks закрита, назва ендпоінта пошуку невідома. Тому
+   пробуємо кілька звичних варіантів підряд і чесно показуємо, що відповів
+   сервер: мовчазна порожнеча тут гірша за будь-яку помилку. */
+let crmSeek = {};   // orderId → { q, loading, err, tried, results }
+
+function crmShow(o){
+  // Є Telegram — Sitniks у картці лише заважає. Крім випадку, коли діалог
+  // у Sitniks до цієї картки вже привʼязали руками.
+  return !!(o.crmChatId || o.crmOrder || !tgChatOf(o));
+}
+function crmSeekQuery(o){
+  const ig = String(o.instagram || '').trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/[/?].*$/, '').replace(/^@/, '');
+  if(ig) return ig;
+  if(String(o.name || '').trim()) return String(o.name).trim();
+  return String(o.phone || '').replace(/[^\d+]/g, '');
+}
+function crmSeekBtnHtml(o){
+  if(tgChatOf(o) || o.crmChatId || !crmBase()) return '';
+  return `<button class="od-ig-find" title="Знайти діалог із цим клієнтом у Sitniks">🔍</button>`;
+}
+function crmSeekHtml(o){
+  const s = crmSeek[o.id];
+  if(!s) return '';
+  const head = `<div class="od-seek-h">Пошук у Sitniks: «${escapeHtml(s.q || '')}»</div>`;
+  if(s.loading) return `<div class="od-seek">${head}<div class="od-empty">Шукаємо…</div></div>`;
+  if(s.err) return `<div class="od-seek">${head}<div class="od-crm-err">${escapeHtml(s.err)}</div></div>`;
+  if(!(s.results || []).length){
+    return `<div class="od-seek">${head}<div class="od-crm-note">Нічого не знайшлось.
+      Спробуйте інший нік або імʼя. Перевірені адреси: <b>${escapeHtml((s.tried||[]).join(', ') || '—')}</b>.</div></div>`;
+  }
+  const rows = s.results.map((r, i) => r.chatId
+    ? `<button class="od-seek-r" data-seek="${i}">
+         <span class="od-seek-nm">${escapeHtml(r.name || ('чат ' + r.chatId))}</span>
+         ${r.channel ? `<span class="od-seek-ch">${escapeHtml(r.channel)}</span>` : ''}
+       </button>`
+    // Запис без ідентифікатора чату відкрити нічим. Показуємо його поля —
+    // із них видно, як у цьому акаунті Sitniks називається потрібне.
+    : `<button class="od-seek-r" disabled title="У записі немає ідентифікатора чату. Поля: ${escapeHtml((r.keys||[]).join(', '))}">
+         <span class="od-seek-nm">${escapeHtml(r.name || 'без імені')}</span>
+         <span class="od-seek-ch">без чату</span>
+       </button>`).join('');
+  return `<div class="od-seek">${head}${rows}</div>`;
+}
+
+/* Порядок навмисний: спершу чати (у них одразу є ідентифікатор розмови),
+   далі довідники людей — там нік теж зустрічається, але чат ще треба знайти. */
+const CRM_SEEK_PATHS = [
+  { p: '/chats?search=',     chats: true  },
+  { p: '/chats?query=',      chats: true  },
+  { p: '/chats?phrase=',     chats: true  },
+  { p: '/clients?search=',   chats: false },
+  { p: '/contacts?search=',  chats: false },
+  { p: '/customers?search=', chats: false }
+];
+function crmChannelOf(r){
+  const raw = [r.channel, r.source, r.messenger, r.type, r.channelType,
+               r.chat && r.chat.channel].filter(v => typeof v === 'string').join(' ').toLowerCase();
+  if(/insta/.test(raw)) return 'Instagram';
+  if(/telegram|tg/.test(raw)) return 'Telegram';
+  if(/viber/.test(raw)) return 'Viber';
+  if(/whats/.test(raw)) return 'WhatsApp';
+  if(/facebook|messenger|fb/.test(raw)) return 'Facebook';
+  return '';
+}
+function crmNormFound(data, isChats){
+  const arr = Array.isArray(data) ? data
+    : (data && (data.items || data.data || data.results || data.chats ||
+                data.clients || data.contacts || data.list)) || [];
+  if(!Array.isArray(arr)) return [];
+  return arr.slice(0, 12).map(r => ({
+    // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
+    // людей це id людини, і розмова за ним не відкриється.
+    chatId: String(r.chatId || r.chat_id || (r.chat && (r.chat.id || r.chat.chatId)) ||
+                   (isChats ? (r.id || '') : '') || ''),
+    name: r.clientName || r.name || r.fullName || r.title || r.username || r.login || '',
+    channel: crmChannelOf(r),
+    keys: Object.keys(r || {}).slice(0, 14)
+  })).filter(r => r.chatId || r.name);
+}
+
+async function crmDoSearch(o, qFromInput){
+  const q = String(qFromInput || crmSeekQuery(o)).trim();
+  if(!q){ toast('Впишіть інстаграм, імʼя або телефон — за ними й шукаємо'); return; }
+  crmSeek[o.id] = { q, loading: true };
+  renderOrderDrawer();
+  const tried = [];
+  let results = [], lastErr = '';
+  for(const cand of CRM_SEEK_PATHS){
+    try{
+      const data = await crmFetch(cand.p + encodeURIComponent(q));
+      tried.push(cand.p.replace(/[?&].*$/, '') + ' ✓');
+      const found = crmNormFound(data, cand.chats);
+      if(found.length){ results = found; break; }
+    }catch(e){
+      // 404/405 — такого ендпоінта просто немає, це не поломка. Решту помилок
+      // запамʼятовуємо: якщо не спрацює жоден шлях, покажемо останню.
+      if(e.status === 404 || e.status === 405) tried.push(cand.p.replace(/[?&].*$/, '') + ' —');
+      else { tried.push(cand.p.replace(/[?&].*$/, '') + ' ' + (e.status || '')); lastErr = e.message || ''; }
+    }
+  }
+  crmSeek[o.id] = { q, results, tried,
+    err: (!results.length && lastErr) ? lastErr : '' };
+  renderOrderDrawer();
+}
+
+async function crmPickChat(o, r){
+  o.crmChatId = String(r.chatId);
+  o.crmChatName = r.name || '';
+  delete crmSeek[o.id];
+  try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
+  crmLoadChat(o);
+}
+async function crmUnlink(o){
+  delete o.crmChatId; delete o.crmChatName;
+  delete crmChat[o.id];
+  crmStopPoll();
+  try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
+  renderOrderDrawer();
+}
+/* Читання стрічки привʼязаного чату — без пошуку замовлення за номером:
+   у діалогу з Instagram номера ще немає. */
+async function crmLoadChat(o){
+  const chatId = o.crmChatId;
+  if(!chatId) return;
+  crmChat[o.id] = { chatId, clientName: o.crmChatName || '', loading: true };
+  renderOrderDrawer();
+  const st = { chatId, clientName: o.crmChatName || '' };
+  try{
+    const data = await crmFetch('/chats/' + encodeURIComponent(chatId) + '/messages');
+    st.rawMsgs = data;
+    const msgs = crmNormMsgs(data);
+    if(msgs) st.msgs = msgs;
+    else st.noHistory = 'відповідь без списку повідомлень';
+  }catch(e){
+    st.noHistory = (e.status === 404 || e.status === 405)
+      ? ('код ' + e.status) : (e.message || 'не вдалось');
+  }
+  crmChat[o.id] = st;
+  renderOrderDrawer();
+}
+
 function crmBlockHtml(o){
   const st = crmChat[o.id] || {};
   const num = o.crmOrder || '';
-  const head = `
-    <div class="od-crm-top">
-      <input class="od-f od-crm-num" data-f="crmOrder" type="text" inputmode="numeric"
-             placeholder="номер замовлення в Sitniks" value="${escapeHtml(num)}">
-      <button class="od-crm-load">${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
-    </div>`;
+  // Чат привʼязали пошуком за інстаграмом — номер замовлення тут уже ні до
+  // чого, показуємо самого співрозмовника і спосіб відчепити його від картки.
+  const head = o.crmChatId
+    ? `<div class="od-crm-linked">
+         <span class="od-crm-who">${escapeHtml(o.crmChatName || ('чат ' + o.crmChatId))}</span>
+         <button class="od-crm-load">Оновити</button>
+         <button class="od-crm-unlink">Відвʼязати</button>
+       </div>`
+    : `<div class="od-crm-top">
+         <input class="od-f od-crm-num" data-f="crmOrder" type="text" inputmode="numeric"
+                placeholder="номер замовлення в Sitniks" value="${escapeHtml(num)}">
+         <button class="od-crm-load">${st.chatId ? 'Оновити' : 'Підтягнути'}</button>
+       </div>`;
   const wrap = (inner) => `<div class="od-crm">${inner}</div>`;
 
   if(!crmBase()){
     return wrap(head + `<div class="od-empty">Спершу вкажіть адресу воркера Sitniks:
       Конструктор сайту → «Sitniks CRM».</div>`);
   }
-  if(!num) return wrap(head + `<div class="od-empty">Впишіть номер замовлення з Sitniks — підтягнемо переписку.</div>`);
+  if(!num && !o.crmChatId) return wrap(head + `<div class="od-empty">Знайдіть клієнта пошуком 🔍
+    біля поля «інстаграм» — або впишіть номер замовлення з Sitniks.</div>`);
   if(st.loading) return wrap(head + `<div class="od-empty">Завантажуємо…</div>`);
   if(st.err) return wrap(head + `<div class="od-crm-err">${escapeHtml(st.err)}</div>`);
   if(!st.chatId) return wrap(head + `<div class="od-empty">Натисніть «Підтягнути».</div>`);
@@ -6971,7 +7201,26 @@ function wireCrmBlock(panel, o){
   else crmStopPoll();
   const load = panel.querySelector('.od-crm-load');
   const numEl = panel.querySelector('.od-crm-num');
-  if(load) load.addEventListener('click', ()=> crmLoad(o, numEl ? numEl.value : null));
+  if(load) load.addEventListener('click', ()=>
+    o.crmChatId ? crmLoadChat(o) : crmLoad(o, numEl ? numEl.value : null));
+  const unlink = panel.querySelector('.od-crm-unlink');
+  if(unlink) unlink.addEventListener('click', ()=> crmUnlink(o));
+  // Пошук живе вгорі картки, біля поля «інстаграм» — але вмикається звідси,
+  // разом з рештою Sitniks: усе про цю CRM в одному місці.
+  const find = panel.querySelector('.od-ig-find');
+  if(find) find.addEventListener('click', ()=>{
+    const ig = panel.querySelector('[data-f="instagram"]');
+    // Нік могли щойно вписати й не зняти фокус — беремо просто з поля.
+    if(ig && ig.value.trim() && ig.value.trim() !== (o.instagram || '')) o.instagram = ig.value.trim();
+    crmDoSearch(o);
+  });
+  panel.querySelectorAll('[data-seek]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const s = crmSeek[o.id] || {};
+      const r = (s.results || [])[+b.dataset.seek];
+      if(r) crmPickChat(o, r);
+    });
+  });
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){
