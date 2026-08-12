@@ -561,6 +561,12 @@
   .od-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
     padding:16px 18px 12px;border-bottom:1px solid var(--line);}
   .od-oid{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
+  /* Номер майже завжди звідси й переїжджає — у Sitniks, у Нову пошту,
+     у повідомлення клієнту. Тому він копіюється натисканням. */
+  .od-oid.copyable{cursor:pointer;border-radius:6px;margin:-2px -6px;padding:2px 6px;
+    transition:background .12s;}
+  .od-oid.copyable:hover{background:var(--canvas);}
+  .od-oid.copyable:active{background:#E8EDF5;}
   .od-sub{font-size:11px;color:#9AA5B5;margin-top:3px;}
   .od-x{all:unset;cursor:pointer;font-size:15px;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
   .od-x:hover{background:var(--canvas);}
@@ -5710,27 +5716,41 @@ function docsBlockHtml(o){
         : 'Зберемо персональну сторінку з того, що зараз у картці, і дамо посилання для клієнта. Далі правки підхоплюються самі.'}</div>
     </div>`;
 }
-function wireDocsBlock(el, o){
-  // Копіюємо СИНХРОННО, прямо в обробнику: після await браузер на телефоні вже
-  // не вважає це дією користувача і мовчки відмовляє в доступі до буфера.
-  // Саме через це посилання «копіювалось», але в буфері нічого не зʼявлялось.
-  function copyFallback(text){
-    try{
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
-      document.body.appendChild(ta);
-      const range = document.createRange();
-      range.selectNodeContents(ta);
-      const sel = window.getSelection();
-      sel.removeAllRanges(); sel.addRange(range);
-      ta.setSelectionRange(0, text.length);      // iOS не копіює без цього
-      const ok = document.execCommand('copy');
-      sel.removeAllRanges(); ta.remove();
-      return ok;
-    }catch(e){ return false; }
+/* Копіюємо СИНХРОННО, прямо в обробнику: після await браузер на телефоні вже
+   не вважає це дією користувача і мовчки відмовляє в доступі до буфера.
+   Саме через це посилання «копіювалось», але в буфері нічого не зʼявлялось. */
+function copyFallback(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(ta);
+    const range = document.createRange();
+    range.selectNodeContents(ta);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    ta.setSelectionRange(0, text.length);      // iOS не копіює без цього
+    const ok = document.execCommand('copy');
+    sel.removeAllRanges(); ta.remove();
+    return ok;
+  }catch(e){ return false; }
+}
+/* Один спосіб копіювати на всю адмінку: сучасний буфер, надійний запасний
+   шлях, і лише в найгіршому разі — вікно «скопіюйте вручну». */
+function copyText(text, msg){
+  const t = String(text || '');
+  if(!t) return;
+  const done = ()=> toast(msg || 'Скопійовано');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done, ()=>{
+      if(copyFallback(t)) done(); else window.prompt('Скопіюйте вручну:', t);
+    });
+    return;
   }
+  if(copyFallback(t)) done(); else window.prompt('Скопіюйте вручну:', t);
+}
+function wireDocsBlock(el, o){
   // Перемикач бренду. Зберігаємо в картку і одразу переписуємо сторінку
   // клієнта: посилання вже може бути надіслане, і чекати наступного
   // збереження не можна — клієнт побачив би чужу вивіску.
@@ -5775,14 +5795,7 @@ function wireDocsBlock(el, o){
   });
   const cp = el.querySelector('[data-doc="copylink"]');
   if(cp) cp.addEventListener('click', ()=>{
-    const link = offerUrl(o);
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(link).then(
-        ()=> toast('Посилання скопійовано'),
-        ()=>{ if(copyFallback(link)) toast('Посилання скопійовано');
-              else prompt('Скопіюйте посилання вручну:', link); });
-    } else if(copyFallback(link)) toast('Посилання скопійовано');
-    else prompt('Скопіюйте посилання вручну:', link);
+    copyText(offerUrl(o), 'Посилання скопійовано');
     // Сторінку клієнта оновлюємо вже після копіювання — воно не має чекати
     offerSave(o).catch(e=> console.warn('offer refresh failed', e));
   });
@@ -6351,7 +6364,8 @@ function renderOrderDrawer(){
   panel.innerHTML = `
     <div class="od-head">
       <div>
-        <div class="od-oid">${o.orderId?escapeHtml(o.orderId):'Замовлення'}</div>
+        <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
+          ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${o.orderId?escapeHtml(o.orderId):'Замовлення'}</div>
         <div class="od-sub">${escapeHtml(created)} · ${escapeHtml(o.source||'сайт')}${(statusFlow()[statusIdx]||{}).label?' · '+escapeHtml(statusFlow()[statusIdx].label):''}</div>
       </div>
       ${anTraceHtml(o)}
@@ -6473,13 +6487,11 @@ function renderOrderDrawer(){
     });
   });
   const vidBtn = panel.querySelector('.od-trace-vid');
-  if(vidBtn) vidBtn.addEventListener('click', ()=>{
-    const v = vidBtn.dataset.vid;
-    const done = ()=> toast('Мітка скопійована — вставте у фільтр lq_vid у Clarity');
-    if(navigator.clipboard && navigator.clipboard.writeText)
-      navigator.clipboard.writeText(v).then(done, ()=> window.prompt('Скопіюйте вручну:', v));
-    else window.prompt('Скопіюйте вручну:', v);
-  });
+  if(vidBtn) vidBtn.addEventListener('click', ()=>
+    copyText(vidBtn.dataset.vid, 'Мітка скопійована — вставте у фільтр lq_vid у Clarity'));
+  const oidEl = panel.querySelector('[data-copy-oid]');
+  if(oidEl) oidEl.addEventListener('click', ()=>
+    copyText(o.orderId, 'Номер ' + o.orderId + ' скопійовано'));
   wireCrmBlock(panel, o);
   wireTgBlock(panel, o);
 }
