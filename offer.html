@@ -346,8 +346,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Тепер це одна темна зона з волосяним розділювачем, і тон у них спільний. */
   .band{background:#14171B; color:#fff; border-radius:0; border:none;
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
-  .band + section.full{margin-bottom:26px; padding-top:0; border-top:none;}
-  .band + section.full .est{border-top:1px solid rgba(255,255,255,.12);}
+  /* Гарантії — світла смуга, кошторис — темна. Дві темні поспіль зливались
+     в одну зону, і людина читала гарантії як шапку рахунку. Тепер це різні
+     блоки й за кольором. */
+  .guar{background:#F2F4F7; color:var(--ink); border:none; border-radius:0;
+    padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
+  .guar .sec-title{color:var(--ink); margin-top:0;}
+  .guar .gcard{background:#fff; border:1px solid #E3E7EE; color:var(--ink);}
+  .guar .gc-ic{background:#EAF6F0; color:#0E9F6E;}
+  .guar .gc-tx b{color:var(--ink);}
+  .guar .gc-tx i{color:var(--muted);}
+  .guar + section.full{margin-bottom:26px; padding-top:0; border-top:none;}
   .band .sec-title{color:#fff;}
   .band .sec-sub{color:rgba(255,255,255,.66);}
   .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
@@ -475,7 +484,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      картці, а на її вмісті — окрім стрічки фото. */
   .pcard{border:1px solid var(--line); border-radius:18px; padding:14px 0 0; background:#fff;
     margin-bottom:12px; overflow:hidden;}
-  .pcard > *:not(.pgal):not(.pgal-bar){padding-left:14px; padding-right:14px;}
+  .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
   .pcard > .pcard-more{padding-bottom:14px;}
   /* На телефоні картка виходить за поля сторінки: фото мають торкатися
      країв екрана, як на сторінці товару в магазині. Бічної рамки й
@@ -483,7 +492,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (max-width:639px){
     .pcard{margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
       border-left:0; border-right:0; border-radius:0; padding-top:0;}
-    .pcard > *:not(.pgal):not(.pgal-bar){padding-left:var(--pad); padding-right:var(--pad);}
+    .pcard > *:not(.pgal){padding-left:var(--pad); padding-right:var(--pad);}
     .pcard > .pcard-more{padding-bottom:var(--pad);}
   }
   /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
@@ -507,11 +516,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pgal-i{position:relative; flex:0 0 50%; scroll-snap-align:start;
     aspect-ratio:3/4; overflow:hidden; background:#fff;}
   .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
-  /* Смужка позиції: відрізків стільки ж, скільки кадрів, і разом вони
-     займають усю ширину — видно і «скільки всього», і «де я зараз». */
-  .pgal-bar{display:flex; gap:2px; margin:0 0 2px;}
-  .pgal-bar span{flex:1; height:3px; background:#E4E6EA; transition:background .2s ease;}
-  .pgal-bar span.on{background:var(--ink);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
   .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;
     transform:scale(1.16); transform-origin:center 46%;}
@@ -525,8 +529,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     display:none; align-items:center; justify-content:center; touch-action:none;
     overscroll-behavior:contain;}
   .zoom.open{display:flex;}
-  .zoom.has-thumbs img{max-height:calc(100% - 150px);}
-  .zoom img{max-width:100%; max-height:100%; object-fit:contain; display:block;
+  /* Правила саме для великого знімка. Раніше вони писались як «.zoom img» і
+     діставали мініатюри теж: max-height:calc(100% − 150px) у комірці 56 px
+     давав відʼємну висоту, і замість фото лишався порожній квадрат. */
+  .zoom.has-thumbs #zoomImg{max-height:calc(100% - 168px);}
+  #zoomImg{max-width:100%; max-height:100%; object-fit:contain; display:block;
     transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none;}
   /* Шапка як у галереях магазинів: посередині «1 з 5», праворуч хрестик.
      Лічильник важливіший за будь-яку підказку — він каже, що є ще фото. */
@@ -541,24 +548,31 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .zoom-x:hover{opacity:1;}
   /* Стрілки — для миші. На телефоні гортають пальцем, і кнопки лише
      перекривають фото. */
-  .zoom-nav{position:absolute; top:50%; transform:translateY(-50%); width:48px; height:64px;
-    border:none; background:none; color:#fff; font-size:34px; line-height:1; cursor:pointer;
-    opacity:.55; z-index:2;}
-  .zoom-nav:hover{opacity:1;}
-  .zoom-nav.prev{left:4px;} .zoom-nav.next{right:4px;}
-  /* Стрілку лишаємо й на телефоні: підказка «тут є ще» важливіша за
-     кілька пікселів чистого фото. */
-  @media (max-width:899px){ .zoom-nav{width:40px; font-size:30px; opacity:.5;} }
+  /* Стрілки — круглі кнопки на підкладці. Тонкий символ на чорному тлі
+     просто не читався: люди не бачили, що є куди гортати. */
+  .zoom-nav{position:absolute; top:50%; transform:translateY(-50%);
+    width:52px; height:52px; border-radius:50%; border:1px solid rgba(255,255,255,.4);
+    background:rgba(18,20,24,.62); backdrop-filter:blur(8px);
+    box-shadow:0 2px 14px rgba(0,0,0,.4);
+    color:#fff; font-size:30px; line-height:1; cursor:pointer; z-index:3;
+    display:flex; align-items:center; justify-content:center; padding:0 0 3px;
+    transition:background .15s ease;}
+  .zoom-nav:hover{background:rgba(18,20,24,.8);}
+  .zoom-nav:active{background:rgba(18,20,24,.9);}
+  .zoom-nav.prev{left:10px;} .zoom-nav.next{right:10px;}
+  @media (max-width:899px){ .zoom-nav{width:44px; height:44px; font-size:26px;} }
   /* Мініатюри внизу: скільки кадрів і який відкритий зараз */
   .zoom-thumbs{position:absolute; left:0; right:0; bottom:0; z-index:2;
     display:flex; gap:8px; justify-content:center; padding:14px 12px
     calc(14px + env(safe-area-inset-bottom)); overflow-x:auto; scrollbar-width:none;}
   .zoom-thumbs::-webkit-scrollbar{display:none;}
-  .zoom-thumbs button{flex:none; width:46px; height:56px; padding:0; border:none;
-    border-radius:8px; overflow:hidden; background:rgba(255,255,255,.1); cursor:pointer;
-    opacity:.5; transition:opacity .15s ease, box-shadow .15s ease;}
-  .zoom-thumbs button.on{opacity:1; box-shadow:0 0 0 2px #fff;}
-  .zoom-thumbs img{width:100%; height:100%; object-fit:contain; display:block; background:#fff;}
+  .zoom-thumbs button{flex:none; width:56px; height:68px; padding:0;
+    border:1px solid rgba(255,255,255,.25); border-radius:10px; overflow:hidden;
+    background:#fff; cursor:pointer; opacity:.55;
+    transition:opacity .15s ease, box-shadow .15s ease, border-color .15s ease;}
+  .zoom-thumbs button:hover{opacity:.85;}
+  .zoom-thumbs button.on{opacity:1; border-color:#fff; box-shadow:0 0 0 2px #fff;}
+  .zoom-thumbs button img{width:100%; height:100%; object-fit:contain; display:block; background:#fff;}
   .zoom-thumbs:empty{display:none;}
   .pshot img.swap{opacity:0;}
 
@@ -693,11 +707,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc-p-old{
     font-variant-numeric:tabular-nums;}
   .rc-why{font-size:12px; color:var(--muted); line-height:1.4; margin-top:5px;}
+  /* Кнопка яскрава, але маленька: дію видно, а вагу головного заклику вона
+     не перебиває — саме тому не на всю ширину й не така висока, як раніше. */
   .rc-add{display:flex; align-items:center; justify-content:center; gap:6px; width:100%;
-    margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--line);
-    background:#fff; color:var(--ink); font:inherit; font-size:13px; font-weight:600;
+    margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--cta);
+    background:var(--cta); color:#fff; font:inherit; font-size:13px; font-weight:700;
     cursor:pointer; transition:.15s; position:static;}
-  .rc-add:hover{background:var(--soft); border-color:var(--ink-2);}
+  .rc-add:hover{filter:brightness(1.06);}
   .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:700;}
   .rc-s{font-size:12.5px; color:var(--muted); margin-top:2px;}
   .rc-s b{color:var(--ink); font-weight:800;}
@@ -765,6 +781,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transition:transform .18s;}
   .det[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
   .det-body{padding:0 18px 18px;}
+  /* Розгорнутий розділ: без рамки й відступів акордеона, підзаголовки
+     тримають ритм самі. */
+  .det-open .det-body{padding:0;}
+  .det-open .det-h:first-child{margin-top:0;}
   .det-h{font-size:17px; font-weight:600; letter-spacing:-0.2px; margin:20px 0 10px;}
   .det-body>.det-h:first-child{margin-top:0;}
 
@@ -1542,16 +1562,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var m = (it.mockups || []).filter(Boolean);
     if(!m.length) return '';
     var label = viewLabel(it);
-    /* Смужка під стрічкою — як у застосунках магазинів: скільки всього
-       кадрів і на якому ми зараз. Два кадри = дві половини на всю ширину,
-       три = три відрізки. Без неї людина не знала, що стрічку взагалі є
-       куди гортати: край третього фото помічають не всі. */
-    var bar = m.length > 1
-      ? '<div class="pgal-bar" data-bar="' + idx + '">' +
-          m.map(function(_, k){
-            return '<span class="' + (k === 0 ? 'on' : '') + '"></span>';
-          }).join('') + '</div>'
-      : '';
+    // Смужку-покажчик прибрано: край наступного кадру й так каже, що
+    // стрічку можна гортати, а темна лінія під фото читалась як частина
+    // знімка.
     return '<div class="pgal' + (m.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
       m.map(function(src, k){
         return '<div class="pgal-i">' +
@@ -1559,30 +1572,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (k > 1 ? 'loading="lazy" ' : '') +
           'onerror="this.parentNode.style.visibility=\'hidden\'">' +
         '</div>';
-      }).join('') + '</div>' + bar;
-  }
-  /* Підсвічуємо відрізок під час гортання. Слухаємо саму прокрутку, а не
-     кнопки: гортають пальцем, і жодного кліку при цьому немає. */
-  function wireGalBars(){
-    document.querySelectorAll('.pgal[data-shot]').forEach(function(g){
-      if(g.dataset.barWired) return;
-      g.dataset.barWired = '1';
-      var bar = document.querySelector('.pgal-bar[data-bar="' + g.dataset.shot + '"]');
-      if(!bar) return;
-      var segs = bar.querySelectorAll('span');
-      var sync = function(){
-        var one = g.scrollWidth / segs.length;
-        if(!(one > 0)) return;
-        var from = g.scrollLeft, to = from + g.clientWidth;
-        segs.forEach(function(x, k){
-          var a0 = k * one, b0 = a0 + one;
-          var seen = Math.min(b0, to) - Math.max(a0, from);
-          x.classList.toggle('on', seen > one * 0.5);
-        });
-      };
-      g.addEventListener('scroll', sync, { passive:true });
-      sync();
-    });
+      }).join('') + '</div>';
   }
   // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку
   function viewLabel(it){
@@ -2059,7 +2049,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function guaranteesSection(){
     var extra = (OFFER.includes || []).filter(function(t){ return /якіст|перевір|контрол/i.test(t); });
     return '' +
-      '<section class="band">' +
+      '<section class="guar">' +
         '<h2 class="sec-title">Гарантії</h2>' +
         /* Підзаголовка тут немає навмисно. Спершу він пояснював, звідки ці
            умови, потім — що вони означають; і те, й те виявилось переказом
@@ -2250,18 +2240,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   // Хвіст сторінки — в одне розкриття. Кожен екран між сумою і кнопкою це шанс
   // передумати; хто вагається — розгорне, хто готовий — не гортатиме мимо.
+  /* Терміни, питання й умови більше не сховані під «розгорнути». Людина
+     ухвалює рішення на десятки тисяч — і саме тут у неї останні питання;
+     ховати відповіді за клік означало залишити їх без відповіді. Замість
+     акордеона — звичайний розділ, розбитий на підзаголовки. */
   function detailsHtml(){
-    /* Гарантії тут більше не дублюються: вони окремою секцією вище, з
-       іконками. Саме цей список і показував галочки, які ви бачили. */
     var body = timelineHtml() + faqHtml() + trustHtml() + termsHtml();
     if(!body) return '';
-    return '' +
-      '<section>' +
-        '<details class="det">' +
-          '<summary>Терміни, гарантії та умови</summary>' +
-          '<div class="det-body">' + body + '</div>' +
-        '</details>' +
-      '</section>';
+    return '<section class="det-open"><div class="det-body">' + body + '</div></section>';
   }
 
   /* Що буде після натискання. Головний страх на цьому місці — «а що з мене
@@ -2634,7 +2620,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function zoomTo(px, py, s2){
     var b = ZM.box; if(!b) return;
-    s2 = Math.min(5, Math.max(1, s2));
+    s2 = Math.min(8, Math.max(1, s2));   // 8× — щоб роздивитись стібок вишивки
     var lx = (px - b.left - ZM.tx) / ZM.s;
     var ly = (py - b.top - ZM.ty) / ZM.s;
     ZM.tx = px - b.left - lx * s2;
@@ -2716,7 +2702,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       zoomTo(ev.clientX, ev.clientY, ZM.s * (ev.deltaY < 0 ? 1.18 : 1 / 1.18));
     }, { passive:false });
     e.img.addEventListener('dblclick', function(ev){
-      zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 2.5);
+      zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 3);
     });
 
     /* Перетягування і щипок на одному наборі подій: pointer-події дають і
@@ -2736,7 +2722,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       if(ev.target === e.img && ids.length === 1){
         var now = Date.now();
-        if(now - lastTap < 320) zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 2.5);
+        if(now - lastTap < 320) zoomTo(ev.clientX, ev.clientY, ZM.s > 1.05 ? 1 : 3);
         lastTap = now;
       }
       if(ev.target === e.img && e.ov.setPointerCapture)
@@ -2889,7 +2875,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function wire(){
     tintAll();   // рамки фото беруть колір із самих світлин
-    wireGalBars();
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
       var t = document.getElementById('offerStart') || document.getElementById('estimate');
