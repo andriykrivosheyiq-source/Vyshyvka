@@ -11359,7 +11359,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       var tgt = ccTarget();
       var payload = Object.assign({}, v, { items: JSON.parse(JSON.stringify(cartItems)) });
-      if(tgt && tgt.id) payload.targetId = tgt.id;
+      if(tgt && tgt.id){
+        payload.targetId = tgt.id;
+        // Редагували наявну позицію — вона має лягти на своє місце, а не в кінець
+        if(tgt.replaceIndex != null) payload.replaceIndex = tgt.replaceIndex;
+      }
       // Кошик чистимо ЛИШЕ після підтвердженого запису. Раніше він очищався
       // одразу, не чекаючи на збереження: якщо запис падав або зависав на
       // вивантаженні макетів, замовлення зникало безслідно.
@@ -11400,7 +11404,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(footerEl) footerEl.scrollIntoView({behavior:'smooth', block:'start'});
   });
   renderCart();
-  cartRestore();      // повертаємо те, що людина зібрала до перезавантаження
+  /* ?cart=new — стартуємо з порожнім кошиком.
+     Так адмінка відкриває конструктор із картки клієнта: кошик зберігається в
+     IndexedDB і переживає перезавантаження, тож без цього прапорця в чужу
+     картку могли б потрапити позиції з попереднього прорахунку.
+
+     ?seed=1 — позицію, яку відкрили на редагування, кладемо в кошик і одразу
+     розгортаємо в конструкторі: виріб, колір, розміри й логотипи відновляться
+     з її ж конфігурації, а «Оновити» поверне нову версію на те саме місце. */
+  if(/[?&]cart=new\b/.test(location.search)){
+    cartItems.length = 0; renderCart(); cartPersist();
+    var seed = null;
+    try{ seed = (window.parent && window.parent.__adminSeedItem) || null; }catch(e){}
+    if(seed && /[?&]seed=1\b/.test(location.search)){
+      cartItems.push(JSON.parse(JSON.stringify(seed)));
+      renderCart();
+      setTimeout(function(){
+        try{
+          if(seed.config && window.__editProduct){
+            window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
+            var cm = document.getElementById('catalogModal');
+            if(cm) cm.classList.remove('open');
+            window.__editProduct(seed.config, 0);
+          }
+        }catch(e){ console.warn('не вдалось відкрити позицію на редагування', e); }
+      }, 700);
+    }
+  } else {
+    cartRestore();    // повертаємо те, що людина зібрала до перезавантаження
+  }
 
   // Scroll reveal
   const reveals = document.querySelectorAll('.reveal');
