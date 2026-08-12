@@ -330,6 +330,18 @@ select:focus {
   background: #ffecf1;
 }
 
+/* Спільне фото на квитку — замість емодзі */
+.pair {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  margin: 4px auto 16px;
+  border: 4px solid #fff;
+  border-radius: 20px;
+  object-fit: cover;
+  box-shadow: 0 16px 32px -18px rgba(90, 20, 45, .8), 0 0 0 2px #ffdbe4;
+}
+
 /* Знімок, який вона надсилає */
 .shot {
   display: block;

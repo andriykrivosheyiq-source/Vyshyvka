@@ -13,8 +13,8 @@
 <main class="card">
   <span class="notch"></span>
   <div class="art" id="art">💋</div>
-  <h1 id="title">Пошли поцелуй</h1>
-  <p class="lead" id="lead">Сделай селфи или выбери фото — Вовочка увидит</p>
+  <h1 id="title">Мне нравится твоё молодое тело и поцелуи</h1>
+  <p class="lead" id="lead">Отправь поцелуй 💋</p>
 
   <img class="shot" id="shot" alt="" hidden>
 
@@ -41,7 +41,8 @@
   var send = document.getElementById('send');
   var pickers = document.getElementById('pickers');
   var status = document.getElementById('status');
-  var picture = '';
+  var picture = '';   // для прев'ю
+  var file = null;    // сам знімок, який полетить
 
   document.getElementById('camera').addEventListener('click', function () {
     document.getElementById('fromCamera').click();
@@ -53,13 +54,16 @@
 
   ['fromCamera', 'fromGallery'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', function (event) {
-      var file = event.target.files && event.target.files[0];
-      if (file) shrink(file);
+      var picked = event.target.files && event.target.files[0];
+      if (picked) shrink(picked);
     });
   });
 
-  // Фото стискаємо прямо в браузері: інакше воно не влізе в документ бази.
-  function shrink(file) {
+  // Стискаємо прямо в браузері: з телефона знімок буває 5 МБ, стільки гнати
+  // через мобільний інтернет немає сенсу.
+  // Параметр навмисно НЕ зветься file — інакше він перекрив би змінну вище,
+  // і кнопці «Отправить» не було б чого відправляти.
+  function shrink(source) {
     status.textContent = 'Готовлю фото…';
 
     var reader = new FileReader();
@@ -73,36 +77,33 @@
         canvas.height = Math.round(image.height * scale);
         canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        var quality = 0.6;
-        picture = canvas.toDataURL('image/jpeg', quality);
-        while (picture.length > 200000 && quality > 0.25) {
-          quality -= 0.1;
-          picture = canvas.toDataURL('image/jpeg', quality);
-        }
-
-        shot.src = picture;
-        shot.hidden = false;
-        send.hidden = false;
-        status.textContent = '';
+        canvas.toBlob(function (blob) {
+          file = blob;
+          picture = URL.createObjectURL(blob);
+          shot.src = picture;
+          shot.hidden = false;
+          send.hidden = false;
+          status.textContent = '';
+        }, 'image/jpeg', 0.7);
       };
       image.onerror = function () { status.textContent = 'Это фото не открылось, попробуй другое'; };
       image.src = reader.result;
     };
     reader.onerror = function () { status.textContent = 'Не получилось прочитать файл'; };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(source);
   }
 
   send.addEventListener('click', function () {
-    if (!picture) return;
+    if (!file) return;
 
     send.setAttribute('aria-disabled', 'true');
     status.textContent = 'Отправляю…';
 
-    Track.sendPhoto(picture)
+    Track.sendPhoto(file)
       .then(function () {
         document.getElementById('art').textContent = '💌';
-        document.getElementById('title').textContent = 'Улетело!';
-        document.getElementById('lead').textContent = 'Вовочка уже увидел';
+        document.getElementById('title').textContent = 'Тогда до встречи!';
+        document.getElementById('lead').textContent = 'Поцелуй улетел, Вовочка уже увидел';
         pickers.hidden = true;
         send.hidden = true;
         status.textContent = '';
