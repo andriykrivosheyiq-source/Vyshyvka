@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Домовились! 🛸</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💌</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main class="card">
+  <span class="notch"></span>
+
+  <div class="ticket">
+    <div class="art">🛸</div>
+    <h1>Домовились!</h1>
+    <p class="lead" id="summary"></p>
+
+    <div class="perf"></div>
+
+    <div class="row"><i class="ico">📅</i><span id="row-date"></span></div>
+    <div class="row"><i class="ico">🕕</i><span id="row-time"></span></div>
+    <div class="row"><i class="ico">✨</i><span id="row-plan"></span></div>
+
+    <p class="hint">Скриншоть і збережи 📸</p>
+  </div>
+
+  <button class="btn" id="ics" type="button">Додати в календар 📅</button>
+
+  <p class="foot">Хочеш так само покликати? <a href="index.html">Створи своє</a></p>
+</main>
+
+<script src="app.js"></script>
+<script>
+  var data = DateInvite.read();
+  var plan = DateInvite.plan(data.plan);
+
+  // Прямий захід без деталей — назад на початок.
+  if (!data.date || !data.time || !plan) location.replace('index.html');
+
+  var day = DateInvite.humanDate(data.date);
+
+  document.getElementById('summary').textContent =
+    'Зустрічаємось ' + day + ' о ' + data.time + '. У планах: ' + plan.name + '.';
+  document.getElementById('row-date').textContent = day;
+  document.getElementById('row-time').textContent = data.time;
+  document.getElementById('row-plan').textContent = plan.name;
+
+  // Файл події готується прямо в браузері й одразу завантажується.
+  document.getElementById('ics').addEventListener('click', function () {
+    var file = new Blob([DateInvite.calendarFile(data)], { type: 'text/calendar;charset=utf-8' });
+    var url = URL.createObjectURL(file);
+    var save = document.createElement('a');
+
+    save.href = url;
+    save.download = 'pobachennya.ics';
+    document.body.appendChild(save);
+    save.click();
+    save.remove();
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+</body>
+</html>
