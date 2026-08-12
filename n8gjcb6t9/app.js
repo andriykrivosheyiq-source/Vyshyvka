@@ -7,18 +7,19 @@
 
   var KEY = 'date-invite';
 
+  /* Тексти на сторінках — російською, як просив замовник. */
   var MONTHS = [
-    'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
-    'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
   ];
 
   var PLANS = {
-    pizza:   { emoji: '🍕', name: 'Піца' },
-    sushi:   { emoji: '🍣', name: 'Суші' },
-    burger:  { emoji: '🍔', name: 'Бургери' },
-    cinema:  { emoji: '🎬', name: 'Кіно' },
-    walk:    { emoji: '🌃', name: 'Прогулянка' },
-    bowling: { emoji: '🎳', name: 'Боулінг' }
+    pizza:  { emoji: '🍕', name: 'Пицца' },
+    sushi:  { emoji: '🍣', name: 'Суши' },
+    burger: { emoji: '🍔', name: 'Бургеры' },
+    hookah: { emoji: '💨', name: 'Кальян' },
+    cinema: { emoji: '🎬', name: 'Кино' },
+    wine:   { emoji: '🍷', name: 'Вино' }
   };
 
   function stored() {
@@ -83,6 +84,12 @@
     return PLANS[code] || null;
   }
 
+  /* Сьогоднішня дата у форматі '2026-08-12' */
+  function today() {
+    var now = new Date();
+    return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  }
+
   function pad(value) {
     return String(value).padStart(2, '0');
   }
@@ -110,8 +117,8 @@
       'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
       'DTSTART:' + stamp(start),
       'DTEND:' + stamp(end),
-      'SUMMARY:' + (pick ? 'Побачення — ' + pick.name : 'Побачення'),
-      'DESCRIPTION:Домовились!',
+      'SUMMARY:' + (pick ? 'Свидание — ' + pick.name : 'Свидание'),
+      'DESCRIPTION:Договорились!',
       'END:VEVENT',
       'END:VCALENDAR'
     ].join('\r\n');
@@ -123,6 +130,7 @@
     forget: forget,
     plan: plan,
     plans: PLANS,
+    today: today,
     humanDate: humanDate,
     calendarFile: calendarFile
   };
