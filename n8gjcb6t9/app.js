@@ -84,6 +84,22 @@
     return PLANS[code] || null;
   }
 
+  /* 'sushi,wine' -> [{emoji,name}, {emoji,name}] */
+  function chosen(codes) {
+    return String(codes || '').split(',').map(function (code) {
+      return PLANS[code];
+    }).filter(Boolean);
+  }
+
+  /* [Пицца, Суши, Вино] -> 'Пицца, суши и вино' */
+  function listNames(items) {
+    var names = items.map(function (item, index) {
+      return index === 0 ? item.name : item.name.toLowerCase();
+    });
+    if (names.length < 2) return names.join('');
+    return names.slice(0, -1).join(', ') + ' и ' + names[names.length - 1];
+  }
+
   /* Сьогоднішня дата у форматі '2026-08-12' */
   function today() {
     var now = new Date();
@@ -100,6 +116,8 @@
     forget: forget,
     plan: plan,
     plans: PLANS,
+    chosen: chosen,
+    listNames: listNames,
     today: today,
     humanDate: humanDate
   };

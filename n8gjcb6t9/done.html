@@ -29,28 +29,30 @@
     <p class="hint">Скриншоть и сохрани 📸</p>
   </div>
 
-  <a class="sign" href="kiss.html">Жду встречи, Вовочка 💋</a>
+  <a class="btn" href="kiss.html">Жду встречи, Вовочка 💋</a>
 </main>
 
 <script src="app.js"></script>
 <script src="track.js"></script>
 <script>
   var data = DateInvite.read();
-  var plan = DateInvite.plan(data.plan);
+  var picks = DateInvite.chosen(data.plan);
 
   // Прямий захід без деталей — назад на початок.
-  if (!data.date || !data.time || !plan) location.replace('index.html');
+  if (!data.date || !data.time || !picks.length) location.replace('index.html');
+
+  var what = DateInvite.listNames(picks);
 
   var day = DateInvite.humanDate(data.date);
   var isToday = data.date === DateInvite.today();
 
   document.getElementById('summary').textContent = 'Встречаемся ' +
-    (isToday ? 'сегодня' : day) + ' в ' + data.time + '. В планах: ' + plan.name + '.';
+    (isToday ? 'сегодня' : day) + ' в ' + data.time + '. В планах: ' + what + '.';
   document.getElementById('row-date').textContent = isToday ? 'Сегодня, ' + day : day;
   document.getElementById('row-time').textContent = data.time;
-  document.getElementById('row-plan').textContent = plan.name;
+  document.getElementById('row-plan').textContent = what;
 
-  Track.send('done', day + ' · ' + data.time + ' · ' + plan.name);
+  Track.send('done', day + ' · ' + data.time + ' · ' + what);
 </script>
 
 </body>
