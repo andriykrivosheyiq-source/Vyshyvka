@@ -186,6 +186,28 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // Особисте запрошення на побачення (сторінка за випадковою адресою).
+    // Той, хто відкрив запрошення, лише додає події: відкрила, погодилась,
+    // обрала час, обрала план. Читає їх сторінка-адмінка, знаючи токен —
+    // рівно той самий підхід, що й у offers вище: доступ є тільки за точною
+    // адресою гілки, а перебрати токен на 14 символів неможливо.
+    // Правила для самого документа dateInvite/{token} немає навмисно —
+    // колекція не віддається списком, видно лише свою гілку подій.
+    // Змінювати й видаляти написане може лише адмін.
+    match /dateInvite/{token}/events/{event} {
+      allow read: if true;
+      allow create: if request.resource.data.type is string
+                    && request.resource.data.type.size() <= 24
+                    && request.resource.data.ts is int
+                    && (!('info' in request.resource.data)
+                        || (request.resource.data.info is string
+                            && request.resource.data.info.size() <= 120))
+                    && (!('ua' in request.resource.data)
+                        || (request.resource.data.ua is string
+                            && request.resource.data.ua.size() <= 200));
+      allow update, delete: if request.auth != null;
+    }
+
     // Все інше (ціни, стан Канбану) — лише авторизованим
     match /{document=**} {
       allow read, write: if request.auth != null;

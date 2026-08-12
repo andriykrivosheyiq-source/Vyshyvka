@@ -94,36 +94,6 @@
     return String(value).padStart(2, '0');
   }
 
-  /* Дата й час у форматі .ics: 20260729T183000 */
-  function stamp(moment) {
-    return moment.getFullYear() + pad(moment.getMonth() + 1) + pad(moment.getDate()) +
-      'T' + pad(moment.getHours()) + pad(moment.getMinutes()) + '00';
-  }
-
-  /* Файл .ics збирається у браузері — жодного сервера й зовнішнього домену. */
-  function calendarFile(data) {
-    var day = data.date.split('-');
-    var clock = data.time.split(':');
-    var start = new Date(+day[0], +day[1] - 1, +day[2], +clock[0], +clock[1]);
-    var end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
-    var pick = plan(data.plan);
-
-    return [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//date-invite//UA',
-      'BEGIN:VEVENT',
-      'UID:' + Date.now() + '@date-invite',
-      'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
-      'DTSTART:' + stamp(start),
-      'DTEND:' + stamp(end),
-      'SUMMARY:' + (pick ? 'Свидание — ' + pick.name : 'Свидание'),
-      'DESCRIPTION:Договорились!',
-      'END:VEVENT',
-      'END:VCALENDAR'
-    ].join('\r\n');
-  }
-
   global.DateInvite = {
     read: read,
     link: link,
@@ -131,7 +101,6 @@
     plan: plan,
     plans: PLANS,
     today: today,
-    humanDate: humanDate,
-    calendarFile: calendarFile
+    humanDate: humanDate
   };
 })(window);

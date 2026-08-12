@@ -27,12 +27,11 @@
     <p class="hint">Скриншоть и сохрани 📸</p>
   </div>
 
-  <button class="btn" id="ics" type="button">Добавить в календарь 📅</button>
-
   <p class="sign">Жду встречи, Вовочка</p>
 </main>
 
 <script src="app.js"></script>
+<script src="track.js"></script>
 <script>
   var data = DateInvite.read();
   var plan = DateInvite.plan(data.plan);
@@ -49,19 +48,7 @@
   document.getElementById('row-time').textContent = data.time;
   document.getElementById('row-plan').textContent = plan.name;
 
-  // Файл події готується прямо в браузері й одразу завантажується.
-  document.getElementById('ics').addEventListener('click', function () {
-    var file = new Blob([DateInvite.calendarFile(data)], { type: 'text/calendar;charset=utf-8' });
-    var url = URL.createObjectURL(file);
-    var save = document.createElement('a');
-
-    save.href = url;
-    save.download = 'svidanie.ics';
-    document.body.appendChild(save);
-    save.click();
-    save.remove();
-    URL.revokeObjectURL(url);
-  });
+  Track.send('done', day + ' · ' + data.time + ' · ' + plan.name);
 </script>
 
 </body>

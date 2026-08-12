@@ -20,6 +20,7 @@
 </main>
 
 <script src="app.js"></script>
+<script src="track.js"></script>
 <script>
   var picked = DateInvite.read();
 
@@ -42,6 +43,7 @@
     tile.addEventListener('click', function (event) {
       event.preventDefault();
       tile.classList.add('is-picked');
+      Track.send('plan', 'выбрала ' + plan.name.toLowerCase());
       setTimeout(function () { location.href = tile.href; }, 180);
     });
 

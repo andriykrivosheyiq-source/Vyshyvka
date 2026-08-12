@@ -13,24 +13,30 @@
 
 <main class="card">
   <span class="notch"></span>
-  <div class="art">🧸</div>
+
+  <!-- Поки файлу photo.jpg немає — показуємо ведмедика. Щойно покладеш
+       фото в цю папку, воно з'явиться саме, правити нічого не треба. -->
+  <img class="avatar" src="photo.jpg" alt="" onerror="this.outerHTML='&lt;div class=&quot;art&quot;&gt;🧸&lt;/div&gt;'">
+
   <p class="eyebrow">Приглашение</p>
   <h1>Лера, пойдёшь<br>со мной на свидание?</h1>
 
-  <a class="btn" href="yes.html">Да, конечно</a>
+  <a class="btn" id="yes" href="yes.html">Да, конечно</a>
   <div class="ghost-slot">
     <button class="btn-ghost" id="no" type="button">Нет</button>
   </div>
 </main>
 
 <script src="app.js"></script>
+<script src="track.js"></script>
 <script>
   // Нова спроба — старі відповіді не потрібні.
   DateInvite.forget();
+  Track.send('open', 'открыла приглашение');
 
   // Кнопка «Нет» тікає по всьому екрану й ніколи не дається натиснути.
   var no = document.getElementById('no');
-  var yes = document.querySelector('a.btn');
+  var yes = document.getElementById('yes');
   var excuses = [
     'Нет',
     'Точно нет?',
@@ -38,19 +44,48 @@
     'Ну пожалуйста 🥺',
     'Серьёзно?',
     'Эта кнопка сломана',
-    'Я сейчас разозлюсь 😤',
     'Не поймаешь 😏',
-    'Последняя попытка',
+    'Промах!',
+    'Опять мимо 🙈',
+    'Я сейчас разозлюсь 😤',
+    'Даже не пытайся',
+    'Ты быстрая, но я быстрее',
+    'Кнопка ушла на обед 🍕',
+    'Тут нельзя',
+    'Ой, не туда 😅',
+    'Может, всё-таки да?',
+    'Я устала убегать 🥵',
     'Жми красную 😌',
-    'Ну всё, по кругу 🙃'
+    'Последняя попытка',
+    'Всё, я ухожу 😮‍💨',
+    'Убегаю последний раз — и меня больше нет!'
   ];
   var tries = 0;
+  var gone = false;
+
+  // Фрази скінчилися — кнопка прощається й вилітає геть.
+  function flyAway() {
+    gone = true;
+    no.style.transition = 'left .8s ease-in, top .8s ease-in, transform .8s ease-in, opacity .8s ease-in';
+    no.style.left = (window.innerWidth + 320) + 'px';
+    no.style.top = (-260) + 'px';
+    no.style.transform = 'rotate(540deg) scale(.35)';
+    no.style.opacity = '0';
+    setTimeout(function () { no.remove(); }, 900);
+    Track.send('no', 'кнопка «Нет» улетела совсем');
+  }
 
   function dodge(event) {
     if (event) event.preventDefault();
+    if (gone) return;
+
+    if (tries >= excuses.length - 1) {
+      flyAway();
+      return;
+    }
 
     // Спершу текст — від нього залежить ширина, а вже потім рахуємо, куди стрибати.
-    no.textContent = excuses[++tries % excuses.length];
+    no.textContent = excuses[++tries];
     no.classList.add('is-loose');
 
     var pad = 12;
@@ -77,11 +112,18 @@
 
     no.style.left = x + 'px';
     no.style.top = y + 'px';
+
+    // В адмінку — перші десять спроб, далі це вже не новина.
+    if (tries <= 10) Track.send('no', 'жала «Нет» — попытка ' + tries);
   }
 
   no.addEventListener('pointerenter', dodge);
   no.addEventListener('pointerdown', dodge);
   no.addEventListener('click', dodge);
+
+  yes.addEventListener('click', function () {
+    Track.send('yes', 'согласилась');
+  });
 </script>
 
 </body>
