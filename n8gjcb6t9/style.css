@@ -11,6 +11,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Атрибут hidden має вимикати елемент завжди. Без цього рядка будь-який
+   наш display: block (наприклад у .btn) перебиває його, і прихована
+   кнопка лишається на екрані. */
+[hidden] { display: none !important; }
+
 html, body { margin: 0; padding: 0; }
 
 body {
@@ -226,7 +231,11 @@ select:focus {
 
 .tile {
   display: block;
+  width: 100%;
   padding: 18px 10px;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: #fff;
@@ -308,26 +317,6 @@ select:focus {
   color: #b3aeb4;
   font-size: 13px;
   font-weight: 600;
-}
-
-/* Підпис у самому кінці підсумку — він же кнопка на сторінку з поцілунком */
-.sign {
-  display: block;
-  margin: 22px 0 0;
-  padding: 14px 20px;
-  border: 1px solid #ffd0dd;
-  border-radius: 999px;
-  background: #fff5f8;
-  color: var(--brand);
-  font-size: 16px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: transform .15s ease, background .15s ease;
-}
-
-.sign:hover {
-  transform: translateY(-1px);
-  background: #ffecf1;
 }
 
 /* Спільне фото на квитку — замість емодзі */
