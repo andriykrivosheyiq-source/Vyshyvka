@@ -14,24 +14,20 @@
   <span class="notch"></span>
   <div class="art" id="art">💋</div>
   <h1 id="title">Мне нравится твоё молодое тело и поцелуи</h1>
-  <p class="lead" id="lead">Отправь поцелуй 💋</p>
+  <p class="lead" id="lead">Сфоткайся и отправь поцелуй 💋</p>
 
   <img class="shot" id="shot" alt="" hidden>
 
   <div id="pickers">
     <button class="btn" id="camera" type="button">Сделать фото 📸</button>
-    <div class="ghost-slot">
-      <button class="btn-ghost" id="gallery" type="button">Выбрать из галереи 🖼</button>
-    </div>
   </div>
 
   <button class="btn" id="send" type="button" hidden>Отправить поцелуй 💋</button>
   <p class="hint" id="status"></p>
 
-  <!-- capture="user" відкриває фронтальну камеру на телефоні,
-       без нього — звичайний вибір файлу. -->
+  <!-- capture="user" відкриває фронтальну камеру телефона одразу.
+       На комп'ютері без камери браузер запропонує вибрати файл. -->
   <input type="file" id="fromCamera" accept="image/*" capture="user" hidden>
-  <input type="file" id="fromGallery" accept="image/*" hidden>
 </main>
 
 <script src="app.js"></script>
@@ -48,15 +44,9 @@
     document.getElementById('fromCamera').click();
   });
 
-  document.getElementById('gallery').addEventListener('click', function () {
-    document.getElementById('fromGallery').click();
-  });
-
-  ['fromCamera', 'fromGallery'].forEach(function (id) {
-    document.getElementById(id).addEventListener('change', function (event) {
-      var picked = event.target.files && event.target.files[0];
-      if (picked) shrink(picked);
-    });
+  document.getElementById('fromCamera').addEventListener('change', function (event) {
+    var picked = event.target.files && event.target.files[0];
+    if (picked) shrink(picked);
   });
 
   // Стискаємо прямо в браузері: з телефона знімок буває 5 МБ, стільки гнати
