@@ -1576,6 +1576,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var FALLBACK = ['Перед', 'Спина', 'Лівий бік', 'Правий бік'];
     return function(k){
       var sd = (it.sides || [])[k];
+      if(sd && sd.sideLabel) return sd.sideLabel;
       if(sd && SIDE_UA[sd.side]) return SIDE_UA[sd.side];
       return FALLBACK[k] || ('Вигляд ' + (k + 1));
     };
@@ -1613,7 +1614,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(s.technique) val.push(s.technique);
       if(s.widthMm && s.heightMm)
         val.push(Math.round(s.widthMm/10) + ' × ' + Math.round(s.heightMm/10) + ' см');
-      rows.push(['Нанесення · ' + (SIDE_UA[s.side] || s.side || 'виріб'),
+      rows.push(['Нанесення · ' + (s.sideLabel || SIDE_UA[s.side] || s.side || 'виріб'),
                  val.join(', ') || '—', 'print']);
     });
     // Обраний клієнтом тираж уже не збігається з початковою розкладкою по розмірах —
