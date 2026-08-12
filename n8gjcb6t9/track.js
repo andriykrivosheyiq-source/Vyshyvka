@@ -47,5 +47,25 @@
     } catch (e) { /* так само мовчки */ }
   }
 
-  global.Track = { send: send };
+  /* Фото їде окремо: на відміну від решти подій, тут важливо знати,
+     дійшло воно чи ні — сторінка показує результат. */
+  function sendPhoto(dataUrl) {
+    return fetch(URL_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          type: { stringValue: 'kiss' },
+          ts: { integerValue: String(Date.now()) },
+          info: { stringValue: 'прислала поцелуй' },
+          photo: { stringValue: String(dataUrl).slice(0, 220000) }
+        }
+      })
+    }).then(function (response) {
+      if (!response.ok) throw new Error('Firestore ' + response.status);
+      return response;
+    });
+  }
+
+  global.Track = { send: send, sendPhoto: sendPhoto };
 })(window);

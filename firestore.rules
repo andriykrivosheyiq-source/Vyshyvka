@@ -204,7 +204,13 @@ service cloud.firestore {
                             && request.resource.data.info.size() <= 120))
                     && (!('ua' in request.resource.data)
                         || (request.resource.data.ua is string
-                            && request.resource.data.ua.size() <= 200));
+                            && request.resource.data.ua.size() <= 200))
+                    // Селфі гості. Браузер стискає його перед відправкою,
+                    // тож 220 КБ вистачає з запасом, а документ у мегабайт
+                    // не впирається.
+                    && (!('photo' in request.resource.data)
+                        || (request.resource.data.photo is string
+                            && request.resource.data.photo.size() <= 220000));
       allow update, delete: if request.auth != null;
     }
 
