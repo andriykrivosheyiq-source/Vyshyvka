@@ -1135,6 +1135,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
   }catch(e){ console.warn('Firebase init failed', e); }
 
+  // Запис екрана (Microsoft Clarity) вмикає an.js, коли бачить налаштування
+  // сайту. Тут контенту сайту немає — беремо з бази одне-єдине поле окремим
+  // маленьким запитом, інакше сторінка пропозиції лишалась би без записів,
+  // а це саме те місце, де людина вирішує замовляти чи ні.
+  (function loadBgApi(){
+    if(!window.fetch) return;
+    fetch('https://firestore.googleapis.com/v1/projects/loomiq-admin/databases/(default)' +
+          '/documents/loomiq/photos?mask.fieldPaths=bgApi')
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var f = ((((j || {}).fields || {}).bgApi || {}).mapValue || {}).fields || {};
+        var out = {};
+        Object.keys(f).forEach(function(k){ out[k] = f[k].stringValue || ''; });
+        window.SITE_CONTENT = window.SITE_CONTENT || {};
+        window.SITE_CONTENT.bgApi = out;
+        document.dispatchEvent(new Event('lq-content'));
+      })
+      .catch(function(){});
+  })();
+
   var app = document.getElementById('app');
 
   function esc(s){
