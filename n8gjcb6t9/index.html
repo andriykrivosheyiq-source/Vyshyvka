@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тобі прийшло запрошення 💌</title>
+<meta name="description" content="Маленьке запрошення на побачення: погодься, обери дату й що робимо.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💌</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main class="card">
+  <span class="notch"></span>
+  <div class="art">🧸</div>
+  <p class="eyebrow">Запрошення</p>
+  <h1>Підеш зі мною<br>на побачення?</h1>
+
+  <a class="btn" href="yes.html">Так, звісно</a>
+  <div class="ghost-slot">
+    <button class="btn-ghost" id="no" type="button">Ні</button>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+  // Нова спроба — старі відповіді не потрібні.
+  DateInvite.forget();
+
+  // Кнопка «Ні» тікає від курсора й ніколи не дається натиснути.
+  var no = document.getElementById('no');
+  var card = document.querySelector('.card');
+  var excuses = ['Ні', 'Точно ні?', 'Подумай ще', 'Ну будь ласка 🥺', 'Остання спроба', 'Тисни зелену 😌'];
+  var tries = 0;
+
+  function dodge(event) {
+    if (event) event.preventDefault();
+    no.classList.add('is-loose');
+
+    var box = card.getBoundingClientRect();
+    var self = no.getBoundingClientRect();
+    var edge = 14;
+    var maxLeft = Math.max(edge, box.width - self.width - edge);
+    var maxTop = Math.max(edge, box.height - self.height - edge);
+
+    no.style.left = (edge + Math.random() * (maxLeft - edge)) + 'px';
+    no.style.top = (edge + Math.random() * (maxTop - edge)) + 'px';
+    no.textContent = excuses[Math.min(++tries, excuses.length - 1)];
+  }
+
+  no.addEventListener('pointerenter', dodge);
+  no.addEventListener('pointerdown', dodge);
+  no.addEventListener('click', dodge);
+</script>
+
+</body>
+</html>
