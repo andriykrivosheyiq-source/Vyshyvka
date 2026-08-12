@@ -3562,8 +3562,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <div class="pm-sheet-overlay" id="cartClientModal">
   <div class="pm-sheet-card">
     <div class="pm-sheet-handle"></div>
-    <div class="pm-sheet-title">Картка клієнта</div>
+    <div class="pm-sheet-title" id="ccTitle">Картка клієнта</div>
     <div class="pm-sheet-sub">Кошик поїде в Канбан разом із цими даними</div>
+    <!-- Коли конструктор відкрито з наявної картки — кажемо це прямо, щоб
+         менеджер не думав, що зараз створиться друга картка на ту саму людину. -->
+    <div class="pm-sheet-sub" id="ccBound" hidden
+      style="color:#1668c4;font-weight:600;"></div>
     <div class="pm-form-field">
       <label for="ccInstagram">Інстаграм <b style="color:#c0392b;">*</b></label>
       <input id="ccInstagram" type="text" placeholder="@nickname" autocomplete="off">
@@ -11317,12 +11321,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       ccErr.textContent = msg || '';
       ccErr.hidden = !msg;
     }
+    /* Конструктор могли відкрити з наявної картки клієнта (адмінка → картка →
+       «Зібрати пропозицію в конструкторі»). Тоді контакти вже відомі: не
+       питаємо їх удруге, а показуємо, у чию картку ляжуть позиції. */
+    function ccTarget(){
+      try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
+      catch(e){ return null; }   // інший домен — просто немає прив'язки
+    }
     b.addEventListener('click', function(){
       if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
       if(!cartItems.some(function(i){ return i.kind !== 'reco'; })){
         alert('У кошику лише рекомендації. Додайте хоча б один основний товар.'); return;
       }
       ccShowErr('');
+      var t = ccTarget();
+      var head = document.getElementById('ccTitle');
+      var note = document.getElementById('ccBound');
+      if(t){
+        Object.keys(fields).forEach(function(k){
+          var el = document.getElementById(fields[k]);
+          if(el && t[k] != null && String(t[k]).trim()) el.value = t[k];
+        });
+        if(head) head.textContent = 'Додати позиції в картку';
+        if(note){ note.hidden = false;
+          note.textContent = 'Позиції ляжуть у картку ' +
+            (t.instagram || t.name || t.phone || 'клієнта') + ' — нову не створюємо.'; }
+        if(ccGo) ccGo.textContent = 'Додати в картку';
+      } else {
+        if(head) head.textContent = 'Картка клієнта';
+        if(note) note.hidden = true;
+        if(ccGo) ccGo.textContent = 'Створити картку';
+      }
       cm.classList.add('open');
       var ig = document.getElementById('ccInstagram');
       if(ig){ if(!ig.value) ig.value = '@'; setTimeout(function(){ ig.focus(); }, 60); }
@@ -11336,16 +11365,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var el = document.getElementById(fields[k]);
         v[k] = el ? String(el.value || '').trim() : '';
       });
-      if(!v.instagram || v.instagram === '@'){ ccShowErr('Вкажіть нік інстаграма — за ним картка шукається в Канбані.'); return; }
+      var bound = ccTarget();
+      if(!bound && (!v.instagram || v.instagram === '@')){
+        ccShowErr('Вкажіть нік інстаграма — за ним картка шукається в Канбані.'); return; }
       var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
       if(typeof saver !== 'function'){
         ccShowErr('Картку клієнта можна створити лише з адмінки (вкладка «Прорахунок»).'); return;
       }
+      var tgt = ccTarget();
       var payload = Object.assign({}, v, { items: JSON.parse(JSON.stringify(cartItems)) });
+      if(tgt && tgt.id) payload.targetId = tgt.id;
       // Кошик чистимо ЛИШЕ після підтвердженого запису. Раніше він очищався
       // одразу, не чекаючи на збереження: якщо запис падав або зависав на
       // вивантаженні макетів, замовлення зникало безслідно.
       ccShowErr('');
+      var goLabel = ccGo.textContent;
       ccGo.disabled = true; ccGo.textContent = 'Зберігаємо…';
       window.__cartSaving = true;
       Promise.resolve()
@@ -11364,7 +11398,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         })
         .then(function(){
           window.__cartSaving = false;
-          ccGo.disabled = false; ccGo.textContent = 'Створити картку';
+          ccGo.disabled = false; ccGo.textContent = goLabel;
         });
     });
   })();

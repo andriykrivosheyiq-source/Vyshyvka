@@ -562,6 +562,20 @@
   .od-sec{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
     color:#9AA5B5;margin-top:6px;}
   .od-empty{font-size:11px;color:#AEB8C9;}
+  /* «Зібрати в конструкторі» — головна дія в складі замовлення */
+  .od-build{width:100%;margin:10px 0 4px;padding:11px 12px;border:1px dashed #C7D2E0;
+    border-radius:11px;background:#F7FAFF;color:#1668c4;font:inherit;font-size:13px;
+    font-weight:700;cursor:pointer;}
+  .od-build:hover{background:#EDF4FF;border-color:#1668c4;}
+  /* Смужка «для кого збираємо» над конструктором */
+  .calc-target{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    background:#FFF6E9;border:1px solid #F0D3A6;border-radius:12px;
+    padding:10px 14px;margin-bottom:12px;font-size:13px;color:#7A4B00;}
+  .calc-target[hidden]{display:none;}
+  .calc-target b{font-family:var(--mono);}
+  .calc-target button{margin-left:auto;border:1px solid #E2C083;background:#fff;
+    color:#7A4B00;font:inherit;font-size:12px;font-weight:700;padding:6px 12px;
+    border-radius:8px;cursor:pointer;}
   .od-foot{display:flex;gap:6px;padding:12px 18px;border-top:1px solid var(--line);}
   .od-foot button{all:unset;flex:1;text-align:center;font-size:12px;cursor:pointer;
     background:var(--canvas);padding:9px 0;border-radius:8px;color:var(--ink-soft);font-weight:600;}
@@ -1737,6 +1751,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     <!-- Прорахунок: лише каталог → товар → прорахунок → замовлення.
          Наповнення посадкових редагується в Конструкторі сайту. -->
     <section id="view-calc" style="display:none;">
+      <!-- Коли конструктор відкрито з картки клієнта — тут видно, для кого
+           збираємо. Без цієї смужки менеджер за пʼять хвилин у каталозі вже
+           не памʼятає, чи прив'язав він прорахунок до картки. -->
+      <div id="calc-target" class="calc-target" hidden>
+        <span class="calc-target-t">Збираємо пропозицію для <b id="calc-target-who"></b></span>
+        <button type="button" id="calc-target-off">Відв'язати</button>
+      </div>
       <div style="margin-bottom:12px;color:var(--ink-soft);font-size:13px;line-height:1.5;">
         Оберіть товар у каталозі — відкриється його сторінка. Тут можна змонтувати логотип,
         <b>завантажити макап</b> і бачити <b>прорахунок собівартості</b> та як формується ціна,
@@ -2465,6 +2486,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
     if(view==='calc'){
+      paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
       // посадкові сторінки редагуються в Конструкторі сайту.
       const fr = document.getElementById('calc-only-frame');
@@ -2480,6 +2502,53 @@ document.querySelectorAll('.nav button').forEach(btn=>{
    білий прямокутник і жодного пояснення — саме так виглядала помилка, через
    яку адреса не підставлялась. Тому: пробуємо, стежимо за завантаженням і,
    якщо його не сталось, пишемо це словами й даємо повторити. */
+/* ── Конструктор, прив'язаний до картки клієнта ───────────────────────
+   Раніше шлях був один: зібрати кошик у «Прорахунку» → створити НОВУ картку.
+   Але звернення вже приходять самі — з форми, з Telegram, — і на них картка
+   вже є. Менеджеру доводилось або заводити другу, або складати позиції
+   руками, без макета й собівартості.
+
+   Тепер із будь-якої картки можна відкрити той самий конструктор: він
+   памʼятає, для кого збирає, і збережене лягає в цю саму картку. Клієнтські
+   поля в модалці підставляються з неї ж — переписувати їх не треба. */
+let calcTarget = null;
+function calcTargetWho(o){
+  return (o.instagram || o.name || o.phone || o.orderId || 'клієнта');
+}
+function paintCalcTarget(){
+  const box = document.getElementById('calc-target');
+  if(!box) return;
+  const o = calcTarget && (orders || []).find(x => x.id === calcTarget);
+  box.hidden = !o;
+  if(o){
+    const who = document.getElementById('calc-target-who');
+    if(who) who.textContent = calcTargetWho(o);
+  }
+  // Той самий обʼєкт читає сторінка конструктора в iframe
+  window.__adminOfferTarget = o ? {
+    id: o.id, instagram: o.instagram || '', name: o.name || '',
+    company: o.company || '', phone: o.phone || '', dueAt: o.dueAt || '',
+    hasItems: (o.items || []).length > 0
+  } : null;
+}
+function openCalcFor(o){
+  calcTarget = o.id;
+  closeOrderDrawer();
+  paintCalcTarget();
+  const btn = document.querySelector('.nav button[data-view="calc"]');
+  if(btn) btn.click();
+  // Кошик у конструкторі міг лишитись від попереднього прорахунку — відкриваємо
+  // сторінку наново, щоб менеджер не додав чужі позиції в цю картку.
+  const fr = document.getElementById('calc-only-frame');
+  if(fr){ fr.removeAttribute('src'); delete fr.dataset.failed; openCalcFrame(fr); }
+  toast('Конструктор відкрито для ' + calcTargetWho(o));
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest || !e.target.closest('#calc-target-off')) return;
+  calcTarget = null; paintCalcTarget();
+  toast('Відвʼязано — наступний прорахунок створить нову картку');
+});
+
 function openCalcFrame(fr){
   const box = fr.parentNode;
   let note = box.querySelector('.calc-frame-note');
@@ -3818,6 +3887,37 @@ window.__adminSaveClientOrder = async function(payload){
   const paid = items.filter(i => i.kind !== 'reco');
   const totalPrice = paid.reduce((a,i)=>a+i.price,0);
   const totalCost  = paid.reduce((a,i)=>a+i.cost,0);
+
+  /* Конструктор відкрили з наявної картки — дописуємо позиції в неї, а не
+     заводимо другу на ту саму людину. Саме через це роздвоєння менеджер і
+     втрачав звернення: одна картка з діалогом, друга з товаром. */
+  const target = payload.targetId && (orders || []).find(x => x.id === payload.targetId);
+  if(target){
+    target.items = (target.items || []).concat(items);
+    ['instagram','name','company','phone'].forEach(k=>{
+      const v = String(payload[k] || '').trim();
+      if(v) target[k] = v;              // порожнім полем нічого не затираємо
+    });
+    if(payload.dueAt) target.dueAt = String(payload.dueAt).trim();
+    if(!target.orderId) target.orderId = makeOrderId();
+    if(!target.offerToken){ target.offerToken = makeOfferToken(); target.offerState = 'created'; }
+    if(target.type === 'lead') target.type = 'client';
+    // Заявка стає прорахунком: етап рухаємо лише вперед і лише з першого
+    if(target.status === firstStatusKey()) setStatus(target, 'prorahunok');
+    recalcOrderTotals(target);
+    const bad = await storeSet('orders', orders) || [];
+    if(Array.isArray(bad) && bad.some(f => f && f.id === target.id))
+      throw new Error('запис у базу не пройшов');
+    try{ await offerSave(target); }
+    catch(e){ console.error('offer save failed', e); toast('Позиції додано, але сторінку КП не збережено'); }
+    calcTarget = null; paintCalcTarget();
+    toast('Позиції додано в картку ' + (target.instagram || target.name || target.orderId));
+    const boardBtn = document.querySelector('.nav button[data-view="board"]');
+    if(boardBtn) boardBtn.click();
+    renderBoard();
+    openOrderDrawer(target);
+    return target;
+  }
   const order = {
     id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
     site: 'main',                    // прорахунок працює з основним сайтом
@@ -5954,6 +6054,11 @@ function renderOrderDrawer(){
 
       <div class="od-sec">Склад замовлення</div>
       <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
+      <!-- Головний шлях: зібрати позиції в конструкторі, з логотипом на макеті
+           й собівартістю. Рядки нижче лишаються для дрібних правок руками. -->
+      <button class="od-build" data-act="build">
+        ${(o.items||[]).length ? '＋ Додати позиції в конструкторі' : '＋ Зібрати пропозицію в конструкторі'}
+      </button>
       ${addItemRowHtml('main')}
       ${addItemRowHtml('reco')}
 
@@ -5994,6 +6099,8 @@ function renderOrderDrawer(){
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
   });
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
+  const build = panel.querySelector('[data-act="build"]');
+  if(build) build.addEventListener('click', ()=> openCalcFor(o));
   panel.querySelectorAll('.od-add').forEach(row=>{
     row.querySelector('.od-add-go').addEventListener('click', ()=>
       orderAddItem(o, row.querySelector('.od-add-pick').value,
