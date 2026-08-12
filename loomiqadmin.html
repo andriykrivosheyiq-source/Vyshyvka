@@ -6699,10 +6699,12 @@ async function crmFetch(path, options){
    сервер: мовчазна порожнеча тут гірша за будь-яку помилку. */
 let crmSeek = {};   // orderId → { q, loading, err, tried, results }
 
+/* Блок зʼявляється лише тоді, коли розмову вже знайдено. Порожня форма
+   «впишіть номер замовлення» стояла в кожній картці й нічого не давала:
+   вхід у Sitniks тепер один — лупа біля інстаграма вгорі. Поле з номером
+   лишається тільки в тих картках, де його колись уже заповнили. */
 function crmShow(o){
-  // Є Telegram — Sitniks у картці лише заважає. Крім випадку, коли діалог
-  // у Sitniks до цієї картки вже привʼязали руками.
-  return !!(o.crmChatId || o.crmOrder || !tgChatOf(o));
+  return !!(o.crmChatId || o.crmOrder);
 }
 function crmSeekQuery(o){
   const ig = String(o.instagram || '').trim()
@@ -6859,8 +6861,7 @@ function crmBlockHtml(o){
     return wrap(head + `<div class="od-empty">Спершу вкажіть адресу воркера Sitniks:
       Конструктор сайту → «Sitniks CRM».</div>`);
   }
-  if(!num && !o.crmChatId) return wrap(head + `<div class="od-empty">Знайдіть клієнта пошуком 🔍
-    біля поля «інстаграм» — або впишіть номер замовлення з Sitniks.</div>`);
+  if(!num && !o.crmChatId) return '';
   if(st.loading) return wrap(head + `<div class="od-empty">Завантажуємо…</div>`);
   if(st.err) return wrap(head + `<div class="od-crm-err">${escapeHtml(st.err)}</div>`);
   if(!st.chatId) return wrap(head + `<div class="od-empty">Натисніть «Підтягнути».</div>`);
