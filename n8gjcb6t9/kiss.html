@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пошли поцелуй 💋</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💌</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main class="card">
+  <span class="notch"></span>
+  <div class="art" id="art">💋</div>
+  <h1 id="title">Пошли поцелуй</h1>
+  <p class="lead" id="lead">Сделай селфи или выбери фото — Вовочка увидит</p>
+
+  <img class="shot" id="shot" alt="" hidden>
+
+  <div id="pickers">
+    <button class="btn" id="camera" type="button">Сделать фото 📸</button>
+    <div class="ghost-slot">
+      <button class="btn-ghost" id="gallery" type="button">Выбрать из галереи 🖼</button>
+    </div>
+  </div>
+
+  <button class="btn" id="send" type="button" hidden>Отправить 💋</button>
+  <p class="hint" id="status"></p>
+
+  <!-- capture="user" відкриває фронтальну камеру на телефоні,
+       без нього — звичайний вибір файлу. -->
+  <input type="file" id="fromCamera" accept="image/*" capture="user" hidden>
+  <input type="file" id="fromGallery" accept="image/*" hidden>
+</main>
+
+<script src="app.js"></script>
+<script src="track.js"></script>
+<script>
+  var shot = document.getElementById('shot');
+  var send = document.getElementById('send');
+  var pickers = document.getElementById('pickers');
+  var status = document.getElementById('status');
+  var picture = '';
+
+  document.getElementById('camera').addEventListener('click', function () {
+    document.getElementById('fromCamera').click();
+  });
+
+  document.getElementById('gallery').addEventListener('click', function () {
+    document.getElementById('fromGallery').click();
+  });
+
+  ['fromCamera', 'fromGallery'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function (event) {
+      var file = event.target.files && event.target.files[0];
+      if (file) shrink(file);
+    });
+  });
+
+  // Фото стискаємо прямо в браузері: інакше воно не влізе в документ бази.
+  function shrink(file) {
+    status.textContent = 'Готовлю фото…';
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      var image = new Image();
+      image.onload = function () {
+        var side = 720;
+        var scale = Math.min(1, side / Math.max(image.width, image.height));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        var quality = 0.6;
+        picture = canvas.toDataURL('image/jpeg', quality);
+        while (picture.length > 200000 && quality > 0.25) {
+          quality -= 0.1;
+          picture = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        shot.src = picture;
+        shot.hidden = false;
+        send.hidden = false;
+        status.textContent = '';
+      };
+      image.onerror = function () { status.textContent = 'Это фото не открылось, попробуй другое'; };
+      image.src = reader.result;
+    };
+    reader.onerror = function () { status.textContent = 'Не получилось прочитать файл'; };
+    reader.readAsDataURL(file);
+  }
+
+  send.addEventListener('click', function () {
+    if (!picture) return;
+
+    send.setAttribute('aria-disabled', 'true');
+    status.textContent = 'Отправляю…';
+
+    Track.sendPhoto(picture)
+      .then(function () {
+        document.getElementById('art').textContent = '💌';
+        document.getElementById('title').textContent = 'Улетело!';
+        document.getElementById('lead').textContent = 'Вовочка уже увидел';
+        pickers.hidden = true;
+        send.hidden = true;
+        status.textContent = '';
+      })
+      .catch(function () {
+        send.removeAttribute('aria-disabled');
+        status.textContent = 'Не получилось отправить. Попробуй ещё раз';
+      });
+  });
+</script>
+
+</body>
+</html>

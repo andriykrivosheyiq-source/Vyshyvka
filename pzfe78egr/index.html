@@ -93,6 +93,14 @@
 
   .empty { padding: 26px 0; color: var(--muted); text-align: center; }
 
+  .shot {
+    display: block;
+    max-width: 240px;
+    margin: 10px 0 4px 40px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+  }
+
   .foot {
     display: flex;
     align-items: center;
@@ -142,6 +150,7 @@
     <div class="stat"><span class="key">Погодилась</span><span class="val off" id="s-yes">ще ні</span></div>
     <div class="stat"><span class="key">Час</span><span class="val off" id="s-time">—</span></div>
     <div class="stat"><span class="key">Що робимо</span><span class="val off" id="s-plan">—</span></div>
+    <div class="stat"><span class="key">Поцілунок</span><span class="val off" id="s-kiss">ще ні</span></div>
   </div>
 
   <div class="panel">
@@ -175,7 +184,8 @@
     yes: '💚',
     time: '🕕',
     plan: '✨',
-    done: '🎉'
+    done: '🎉',
+    kiss: '💋'
   };
 
   function clock(ms) {
@@ -216,6 +226,15 @@
       row.children[1].textContent = e.info || e.type;
       row.children[2].textContent = clock(e.ts);
       feed.appendChild(row);
+
+      // Селфі-поцілунок показуємо прямо у стрічці.
+      if (e.photo) {
+        var shot = document.createElement('img');
+        shot.className = 'shot';
+        shot.src = e.photo;
+        shot.alt = 'Фото від Лери';
+        feed.appendChild(shot);
+      }
     });
 
     var first = events[0];
@@ -228,6 +247,9 @@
     setStat('s-yes', yes ? stamp(yes.ts) : (noCount ? 'тікає від «Нет» (' + noCount + ')' : 'ще ні'), !!yes);
     setStat('s-time', time ? (time.info || '').replace('выбрала время ', '') : '—', !!time);
     setStat('s-plan', plan ? (plan.info || '').replace('выбрала ', '') : '—', !!plan);
+
+    var kiss = events.filter(function (e) { return e.type === 'kiss'; }).pop();
+    setStat('s-kiss', kiss ? stamp(kiss.ts) : 'ще ні', !!kiss);
 
     var device = events.filter(function (e) { return e.ua; })[0];
     document.getElementById('device').textContent = device ? 'Пристрій: ' + device.ua : '';
@@ -246,6 +268,7 @@
             type: f.type && f.type.stringValue,
             info: f.info && f.info.stringValue,
             ua: f.ua && f.ua.stringValue,
+            photo: f.photo && f.photo.stringValue,
             ts: Number(f.ts && f.ts.integerValue) || Date.parse(doc.createTime)
           };
         }).sort(function (a, b) { return a.ts - b.ts; });
