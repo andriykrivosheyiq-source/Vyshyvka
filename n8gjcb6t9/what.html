@@ -14,9 +14,11 @@
   <span class="notch"></span>
   <div class="art">💕</div>
   <h1>Что будем<br>делать?</h1>
-  <p class="lead">Выбери то, что хочется больше всего</p>
+  <p class="lead">Выбирай всё, что хочется — можно несколько</p>
 
   <div class="grid" id="grid"></div>
+
+  <a class="btn" id="next" aria-disabled="true">Выбери хотя бы одно 🤍</a>
 </main>
 
 <script src="app.js"></script>
@@ -28,27 +30,55 @@
   if (!picked.date || !picked.time) location.replace('index.html');
 
   var grid = document.getElementById('grid');
+  var next = document.getElementById('next');
+  var chosen = [];
 
   Object.keys(DateInvite.plans).forEach(function (code) {
     var plan = DateInvite.plans[code];
-    var tile = document.createElement('a');
+    var tile = document.createElement('button');
 
     tile.className = 'tile';
-    // Внутрішнє посилання без домена: done.html?d=…&t=…&p=…
-    tile.href = DateInvite.link('done.html', { p: code });
+    tile.type = 'button';
+    tile.setAttribute('aria-pressed', 'false');
     tile.innerHTML = '<span class="emoji">' + plan.emoji + '</span>' +
       '<span class="name">' + plan.name + '</span>';
 
-    // Коротка підсвітка вибору, і аж тоді перехід.
-    tile.addEventListener('click', function (event) {
-      event.preventDefault();
-      tile.classList.add('is-picked');
-      Track.send('plan', 'выбрала ' + plan.name.toLowerCase());
-      setTimeout(function () { location.href = tile.href; }, 180);
+    // Плитка перемикається: тиснеш ще раз — знімається вибір.
+    tile.addEventListener('click', function () {
+      var at = chosen.indexOf(code);
+      var on = at === -1;
+
+      if (on) chosen.push(code); else chosen.splice(at, 1);
+
+      tile.classList.toggle('is-picked', on);
+      tile.setAttribute('aria-pressed', String(on));
+      refresh();
     });
 
     grid.appendChild(tile);
   });
+
+  function refresh() {
+    if (chosen.length) {
+      next.setAttribute('aria-disabled', 'false');
+      next.textContent = 'Дальше 🤍';
+      // Внутрішнє посилання без домена: done.html?d=…&t=…&p=sushi,wine
+      next.href = DateInvite.link('done.html', { p: chosen.join(',') });
+    } else {
+      next.setAttribute('aria-disabled', 'true');
+      next.textContent = 'Выбери хотя бы одно 🤍';
+      next.removeAttribute('href');
+    }
+  }
+
+  next.addEventListener('click', function () {
+    if (!chosen.length) return;
+    var names = DateInvite.listNames(DateInvite.chosen(chosen.join(',')));
+    // Через двокрапку, бо «выбрала пицца и вино» звучало б криво.
+    Track.send('plan', 'выбрала: ' + names.toLowerCase());
+  });
+
+  refresh();
 </script>
 
 </body>
