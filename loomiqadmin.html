@@ -739,6 +739,17 @@
   .site-copy-item a{color:var(--accent);font-family:var(--mono);font-size:12px;}
   .site-copy-item .scd{margin-left:auto;border:1px solid var(--line);background:#fff;
     color:var(--bad);font:inherit;font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer;}
+  /* Мірки розмірної сітки */
+  .sc-cols{display:flex;flex-direction:column;gap:8px;}
+  .sc-col{display:flex;align-items:center;gap:8px;}
+  .sc-col-k{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;
+    font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .sc-col input{font-family:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;min-width:0;}
+  .sc-col input[data-cl]{flex:0 0 200px;}
+  .sc-col input[data-ch]{flex:1;}
+  .sc-col-del{flex:none;border:1px solid var(--line);background:#fff;color:var(--bad);
+    font:inherit;font-size:13px;padding:7px 11px;border-radius:8px;cursor:pointer;}
   .photo-sides{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
   .sides-h{font-size:13px;font-weight:800;margin-bottom:4px;}
   .side-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
@@ -1493,22 +1504,23 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <section class="prod-sec">
             <div class="prod-sec-h" id="sc-sec-title">Розмірна сітка</div>
             <div style="margin-bottom:16px;">
-              <b style="font-size:13px;">Фото розмірної сітки</b>
-              <div class="sub" style="margin:6px 0 12px;">Якщо завантажити фото — на сайті воно показується замість таблиці нижче.</div>
+              <b style="font-size:13px;">Схема з позначками</b>
+              <div class="sub" style="margin:6px 0 12px;">Малюнок виробу, де показано, звідки куди міряти. На сайті стоїть
+                поруч із таблицею: на компʼютері ліворуч від неї, на телефоні — зверху. Без нього показується
+                стандартна схема футболки, а якщо мірки не стандартні — сама таблиця.</div>
               <div id="sc-photo-box" style="margin-bottom:12px;"></div>
               <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button class="pc-btn up" id="sc-photo-up" style="flex:none;padding:10px 22px;">Завантажити фото</button>
-                <button class="pc-btn reset" id="sc-photo-del" style="flex:none;padding:10px 22px;display:none;">Прибрати фото (повернути таблицю)</button>
+                <button class="pc-btn up" id="sc-photo-up" style="flex:none;padding:10px 22px;">Завантажити схему</button>
+                <button class="pc-btn reset" id="sc-photo-del" style="flex:none;padding:10px 22px;display:none;">Прибрати схему</button>
               </div>
             </div>
-            <div class="sub" style="margin-bottom:12px;">A — довжина (см), B — ширина (см). Порожня таблиця = стандартна сітка сайту.</div>
+            <b style="font-size:13px;">Які мірки показуємо</b>
+            <div class="sub" style="margin:6px 0 10px;">У футболки це довжина й ширина, у кітеля — обхват грудей і стегон.
+              Назвіть мірки так, як на схемі, і поясніть, як міряти: це побачить клієнт.</div>
+            <div id="sc-cols" class="sc-cols"></div>
+            <div class="sub" style="margin:12px 0 10px;">Порожня таблиця = стандартна сітка сайту.</div>
             <table style="width:100%;border-collapse:collapse;" id="sc-table">
-              <thead><tr>
-                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">РОЗМІР</th>
-                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">A (см)</th>
-                <th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">B (см)</th>
-                <th></th>
-              </tr></thead>
+              <thead><tr id="sc-head"></tr></thead>
               <tbody id="sc-body"></tbody>
             </table>
             <button class="pc-btn reset" id="sc-add" style="flex:none;padding:8px 16px;margin-top:10px;">+ Додати рядок</button>
@@ -8520,11 +8532,80 @@ document.getElementById('info-reset').addEventListener('click', async ()=>{
 });
 
 /* ---------- Розмірна сітка ---------- */
+/* Мірки залежать від виробу: у футболки це довжина й ширина, у жіночого
+   кітеля — обхват грудей і стегон. Тому колонки не зашиті: у кожного товару
+   свій набір (до чотирьох), із власним підписом і поясненням. Товар, де
+   нічого не міняли, лишається на стандартних A-довжина / B-ширина. */
+const SC_KEYS = ['A','B','C','D'];
+const SC_COLS_DEFAULT = [
+  { key:'A', label:'Довжина', hint:'Вимірюється від найвищої точки на плечі до низу' },
+  { key:'B', label:'Ширина',  hint:'Вимірюється від шва під рукавом до іншого рукава' }
+];
+function scColsOf(gid){
+  const saved = (contentData.sizechartCols || {})[gid];
+  const list = Array.isArray(saved) ? saved.filter(c => c && SC_KEYS.indexOf(c.key) >= 0) : [];
+  return list.length ? list.map(c => ({ key:c.key, label:c.label || c.key, hint:c.hint || '' }))
+                     : SC_COLS_DEFAULT.map(c => ({...c}));
+}
+// Те, що зараз у полях. Поки не збережено — джерело правди саме воно.
+function readScCols(){
+  const box = document.getElementById('sc-cols');
+  const rows = box ? Array.from(box.querySelectorAll('[data-sc-col]')) : [];
+  if(!rows.length) return scColsOf(photoGarmentId);
+  return rows.map(r => ({
+    key: r.dataset.scCol,
+    label: (r.querySelector('[data-cl]').value || '').trim(),
+    hint: (r.querySelector('[data-ch]').value || '').trim()
+  }));
+}
+function renderScCols(cols){
+  const box = document.getElementById('sc-cols');
+  if(!box) return;
+  const list = (cols && cols.length) ? cols : scColsOf(photoGarmentId);
+  box.innerHTML = list.map(c => `
+    <div class="sc-col" data-sc-col="${c.key}">
+      <span class="sc-col-k">${c.key}</span>
+      <input type="text" maxlength="28" data-cl value="${escA(c.label || '')}" placeholder="Обхват грудей">
+      <input type="text" maxlength="90" data-ch value="${escA(c.hint || '')}" placeholder="Як міряти — це побачить клієнт">
+      ${list.length > 1 ? '<button class="sc-col-del" title="Прибрати мірку">✕</button>' : ''}
+    </div>`).join('') +
+    (list.length < SC_KEYS.length
+      ? '<div class="add-row-btn" id="sc-col-add" style="margin-top:8px;">+ Додати мірку</div>' : '');
+  box.querySelectorAll('.sc-col-del').forEach(b => b.addEventListener('click', ()=>{
+    const key = b.closest('[data-sc-col]').dataset.scCol;
+    const rows = readScRows();
+    renderScCols(readScCols().filter(c => c.key !== key));
+    renderScBody(rows);
+  }));
+  box.querySelectorAll('input').forEach(i => i.addEventListener('input', renderScHead));
+  const add = document.getElementById('sc-col-add');
+  if(add) add.addEventListener('click', ()=>{
+    const cur = readScCols();
+    const free = SC_KEYS.find(k => !cur.some(c => c.key === k));
+    if(!free) return;
+    const rows = readScRows();
+    cur.push({ key: free, label:'', hint:'' });
+    renderScCols(cur);
+    renderScBody(rows);
+  });
+  renderScHead();
+}
+function renderScHead(){
+  const head = document.getElementById('sc-head');
+  if(!head) return;
+  head.innerHTML =
+    '<th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">РОЗМІР</th>' +
+    readScCols().map(c => '<th style="text-align:left;font-size:11px;color:var(--ink-soft);padding:4px 6px;">' +
+      escA(c.key + (c.label ? ' · ' + c.label : '')) + ', см</th>').join('') +
+    '<th></th>';
+}
 function currentScRows(){
+  const cols = scColsOf(photoGarmentId);
+  const pick = r => { const o = { size:r.size }; cols.forEach(c => { o[c.key] = r[c.key]; }); return o; };
   const custom = contentData.sizecharts && contentData.sizecharts[photoGarmentId];
-  if(custom && custom.length && !isGenericChart(custom)) return custom.map(r=>({size:r.size,A:r.A,B:r.B}));
+  if(custom && custom.length && !isGenericChart(custom)) return custom.map(pick);
   const perGarment = DEFAULT_GARMENT_CHARTS[photoGarmentId];
-  return (perGarment || DEFAULT_SIZE_CHART_ROWS).map(r=>({...r}));
+  return (perGarment || DEFAULT_SIZE_CHART_ROWS).map(pick);
 }
 function renderScPhoto(){
   const url = contentData.sizechartPhotos && contentData.sizechartPhotos[photoGarmentId];
@@ -8563,42 +8644,60 @@ document.getElementById('sc-photo-del').addEventListener('click', async ()=>{
 });
 function renderSizesTab(rows){
   renderScPhoto();
-  rows = rows || currentScRows();
+  renderScCols();
+  renderScBody(rows || currentScRows());
+}
+function renderScBody(rows){
   const body = document.getElementById('sc-body');
+  if(!body) return;
+  const cols = readScCols();
+  const cell = (f, v, w) => '<td style="padding:3px 4px;"><input data-f="' + f + '" value="' + escA(v == null ? '' : v) +
+    '" inputmode="decimal" style="width:' + w + 'px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>';
   body.innerHTML = rows.map((r,i)=>`
     <tr data-i="${i}">
       <td style="padding:3px 4px;"><input data-f="size" value="${escA(r.size)}" maxlength="8" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
-      <td style="padding:3px 4px;"><input data-f="A" value="${escA(r.A)}" inputmode="decimal" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
-      <td style="padding:3px 4px;"><input data-f="B" value="${escA(r.B)}" inputmode="decimal" style="width:70px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;"></td>
+      ${cols.map(c => cell(c.key, r[c.key], 74)).join('')}
       <td style="padding:3px 4px;"><button class="pc-btn reset" data-scdel="${i}" style="flex:none;padding:7px 10px;">✕</button></td>
     </tr>`).join('');
   body.querySelectorAll('[data-scdel]').forEach(b=>b.addEventListener('click', ()=>{
-    const rows2 = readScRows(); rows2.splice(Number(b.dataset.scdel),1); renderSizesTab(rows2);
+    const rows2 = readScRows(); rows2.splice(Number(b.dataset.scdel),1); renderScBody(rows2);
   }));
 }
 function readScRows(){
-  return Array.from(document.querySelectorAll('#sc-body tr')).map(tr=>({
-    size: tr.querySelector('[data-f="size"]').value.trim(),
-    A: parseFloat(tr.querySelector('[data-f="A"]').value.replace(',','.')) || 0,
-    B: parseFloat(tr.querySelector('[data-f="B"]').value.replace(',','.')) || 0
-  })).filter(r=>r.size);
+  const cols = readScCols();
+  return Array.from(document.querySelectorAll('#sc-body tr')).map(tr=>{
+    const o = { size: tr.querySelector('[data-f="size"]').value.trim() };
+    cols.forEach(c => {
+      const el = tr.querySelector('[data-f="' + c.key + '"]');
+      o[c.key] = el ? (parseFloat(String(el.value).replace(',','.')) || 0) : 0;
+    });
+    return o;
+  }).filter(r=>r.size);
 }
 document.getElementById('sc-add').addEventListener('click', ()=>{
-  const rows = readScRows(); rows.push({size:'',A:'',B:''}); renderSizesTab(rows);
+  const rows = readScRows();
+  const empty = { size:'' };
+  readScCols().forEach(c2 => { empty[c2.key] = ''; });
+  rows.push(empty);
+  renderScBody(rows);
 });
 document.getElementById('sc-save').addEventListener('click', async ()=>{
   const rows = readScRows();
   if(!rows.length){ toast('Додайте хоча б один розмір'); return; }
+  const cols = readScCols().map(c => ({ key:c.key, label:c.label || c.key, hint:c.hint || '' }));
   try{
-    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: rows } }, { merge:true });
+    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: rows },
+                           sizechartCols: { [photoGarmentId]: cols } }, { merge:true });
     toast('Сітку збережено');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
 });
 document.getElementById('sc-reset').addEventListener('click', async ()=>{
   if(!confirm('Повернути стандартну розмірну сітку?')) return;
   try{
-    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: firebase.firestore.FieldValue.delete() } }, { merge:true });
+    await PHOTOS_DOC.set({ sizecharts: { [photoGarmentId]: firebase.firestore.FieldValue.delete() },
+                           sizechartCols: { [photoGarmentId]: firebase.firestore.FieldValue.delete() } }, { merge:true });
     toast('Повернуто стандартну');
+    if(contentData.sizechartCols) delete contentData.sizechartCols[photoGarmentId];
     renderSizesTab(DEFAULT_SIZE_CHART_ROWS.map(r=>({...r})));
   }catch(e){ console.error(e); toast('Помилка'); }
 });
