@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Коли тобі буде зручно? 🛸</title>
+<title>Когда тебе будет удобно? 🛸</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>💌</text></svg>">
 <link rel="stylesheet" href="style.css">
@@ -13,78 +13,75 @@
 <main class="card">
   <span class="notch"></span>
   <div class="art">🛸</div>
-  <h1>Коли тобі<br>буде зручно?</h1>
+  <h1>Когда тебе<br>будет удобно?</h1>
 
   <div class="field">
-    <label class="label" for="day">Дата</label>
-    <input type="date" id="day">
+    <span class="label">Дата</span>
+    <p class="fixed" id="day-text">Сегодня</p>
   </div>
 
   <div class="field">
-    <span class="label">Час</span>
+    <span class="label">Время</span>
     <div class="time">
-      <select id="hh" aria-label="Години">
-        <option value="">ГГ</option>
+      <select id="hh" aria-label="Часы">
+        <option value="">ЧЧ</option>
       </select>
       <span class="colon">:</span>
-      <select id="mm" aria-label="Хвилини">
-        <option value="">ХВ</option>
+      <select id="mm" aria-label="Минуты">
+        <option value="">ММ</option>
       </select>
     </div>
   </div>
 
-  <a class="btn" id="next" aria-disabled="true">Обери дату 🤍</a>
+  <a class="btn" id="next" aria-disabled="true">Выбери время 🤍</a>
 </main>
 
 <script src="app.js"></script>
 <script>
-  var day = document.getElementById('day');
   var hh = document.getElementById('hh');
   var mm = document.getElementById('mm');
   var next = document.getElementById('next');
 
-  function fill(select, count, step) {
-    for (var value = 0; value < count; value += step) {
+  // Дата — тільки сьогодні, змінити не можна.
+  var today = DateInvite.today();
+
+  document.getElementById('day-text').textContent =
+    '📅 Сегодня, ' + DateInvite.humanDate(today);
+
+  function fill(select, from, to, step) {
+    for (var value = from; value <= to; value += step) {
       var option = document.createElement('option');
       option.value = option.textContent = String(value).padStart(2, '0');
       select.appendChild(option);
     }
   }
 
-  fill(hh, 24, 1);
-  fill(mm, 60, 5);
+  fill(hh, 21, 23, 1);   // тільки пізній вечір
+  fill(mm, 0, 55, 5);
 
-  // Раніше за сьогодні побачення не призначиш.
-  var today = new Date();
-  day.min = today.getFullYear() + '-' +
-    String(today.getMonth() + 1).padStart(2, '0') + '-' +
-    String(today.getDate()).padStart(2, '0');
-
-  // Якщо повернулися назад — підставляємо вже обране.
+  // Якщо повернулися назад — підставляємо вже обраний час.
   var saved = DateInvite.read();
-  if (saved.date) day.value = saved.date;
   if (saved.time) {
     hh.value = saved.time.split(':')[0];
     mm.value = saved.time.split(':')[1];
   }
 
   function refresh() {
-    var ready = day.value && hh.value && mm.value;
+    var ready = hh.value && mm.value;
     next.setAttribute('aria-disabled', ready ? 'false' : 'true');
-    next.textContent = ready ? 'Далі 🤍' : 'Обери дату 🤍';
+    next.textContent = ready ? 'Дальше 🤍' : 'Выбери время 🤍';
 
     if (ready) {
       // Внутрішнє посилання без домена — тільки ім'я файлу й параметри.
-      next.href = 'what.html?d=' + encodeURIComponent(day.value) +
+      next.href = 'what.html?d=' + encodeURIComponent(today) +
         '&t=' + encodeURIComponent(hh.value + ':' + mm.value);
     } else {
       next.removeAttribute('href');
     }
   }
 
-  [day, hh, mm].forEach(function (field) {
+  [hh, mm].forEach(function (field) {
     field.addEventListener('change', refresh);
-    field.addEventListener('input', refresh);
   });
 
   refresh();

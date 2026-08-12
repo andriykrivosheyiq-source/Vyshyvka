@@ -141,10 +141,12 @@ h1 {
   transition: transform .18s ease;
 }
 
+/* Утекла з картки — тепер координати від вікна, тож бігає по всьому екрану */
 .btn-ghost.is-loose {
-  position: absolute;
+  position: fixed;
   margin: 0;
-  z-index: 2;
+  z-index: 5;
+  transition: left .18s ease, top .18s ease;
 }
 
 /* Поля дати й часу */
@@ -176,6 +178,17 @@ input[type="date"]:focus,
 select:focus {
   outline: 2px solid #ffbdcf;
   outline-offset: 1px;
+}
+
+/* Дата, яку не змінюють — виглядає як поле, але це просто текст */
+.fixed {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbf5f7;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .time {
@@ -285,17 +298,12 @@ select:focus {
   font-weight: 600;
 }
 
-.foot {
-  margin: 18px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.foot a {
+/* Підпис у самому кінці підсумку */
+.sign {
+  margin: 20px 0 0;
   color: var(--brand);
+  font-size: 16px;
   font-weight: 700;
-  text-decoration: none;
-  border-bottom: 1px solid #ffc6d5;
 }
 
 .sr-only {
