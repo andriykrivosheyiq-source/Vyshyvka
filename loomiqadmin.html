@@ -703,6 +703,71 @@
   .od-crm-unlink{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
     padding:3px 8px;border-radius:7px;background:var(--canvas);}
   .od-crm-unlink:hover{color:var(--bad);background:var(--bad-soft);}
+  .od-open-chat{flex:none;border:none;border-radius:8px;background:var(--ink);color:#fff;
+    font:inherit;font-size:12px;font-weight:700;padding:7px 13px;cursor:pointer;}
+  .od-open-chat:hover{background:#1c2840;}
+
+  /* ── Вікно діалогу ──────────────────────────────────────────────────────
+     Переписуватись у вузькій колонці картки незручно: рядок на два слова,
+     стрічка на пів екрана. Тому розмова відкривається окремим вікном у
+     пропорціях телефона — так, як менеджер звик у месенджері, і без
+     розтягування на весь монітор, де рядок стає нечитабельно довгим. */
+  .cw-wrap{position:fixed;inset:0;z-index:1200;display:none;align-items:center;
+    justify-content:center;background:rgba(15,32,52,.45);padding:16px;}
+  .cw-wrap.open{display:flex;}
+  .cw{width:100%;max-width:420px;height:min(760px,92vh);background:#fff;border-radius:18px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.4);}
+  .cw-head{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#1F2C44;
+    color:#fff;flex:none;}
+  .cw-av{width:36px;height:36px;border-radius:50%;background:#3B4A6B;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;}
+  .cw-who{flex:1;min-width:0;}
+  .cw-nm{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cw-sub{font-size:11px;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;margin-top:1px;}
+  .cw-x{all:unset;cursor:pointer;font-size:15px;color:rgba(255,255,255,.7);padding:6px 9px;
+    border-radius:8px;flex:none;}
+  .cw-x:hover{background:rgba(255,255,255,.12);color:#fff;}
+  .cw-feed{flex:1;min-height:0;overflow-y:auto;padding:12px 12px 6px;display:flex;
+    flex-direction:column;gap:5px;background:#EDF0F5;}
+  .cw-feed .od-crm-img{width:100%;max-width:240px;}
+  .cw-empty{margin:auto;max-width:250px;text-align:center;font-size:12.5px;line-height:1.55;
+    color:#8A94A6;}
+  .cw-bar{flex:none;background:#fff;border-top:1px solid var(--line);padding:8px 9px;}
+  .cw-row{display:flex;align-items:flex-end;gap:7px;}
+  .cw-inp{flex:1;min-width:0;font:inherit;font-size:13.5px;line-height:1.45;border:1px solid var(--line);
+    border-radius:16px;padding:9px 13px;resize:none;max-height:130px;background:var(--canvas);}
+  .cw-inp:focus{outline:none;border-color:var(--accent);background:#fff;}
+  .cw-ic{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink-soft);}
+  .cw-ic:hover{background:var(--canvas);color:var(--ink);}
+  .cw-ic.on{background:var(--accent-soft);color:var(--accent-deep);}
+  .cw-go{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:50%;
+    background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:14px;}
+  .cw-go:hover{background:#1c2840;}
+  .cw-go[disabled]{opacity:.4;cursor:default;}
+  .cw-qr{max-height:190px;overflow-y:auto;border-bottom:1px solid var(--line);
+    padding:8px 9px;background:var(--canvas);}
+  .cw-qr-b{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;
+    line-height:1.45;color:var(--ink);background:#fff;border:1px solid var(--line);
+    border-radius:9px;padding:7px 10px;margin-bottom:5px;cursor:pointer;}
+  .cw-qr-b:hover{border-color:var(--accent);}
+  .cw-qr-t{font-weight:700;display:block;margin-bottom:2px;}
+  .cw-qr-m{color:var(--ink-soft);display:block;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .cw-qr-none{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+  .cw-note{font-size:11.5px;color:#7A5410;background:#FDF7EC;border-radius:8px;
+    padding:7px 10px;margin-bottom:7px;line-height:1.45;}
+  @media(max-width:520px){ .cw-wrap{padding:0;} .cw{max-width:none;height:100%;border-radius:0;} }
+  /* Рядки з готовими відповідями в налаштуваннях */
+  .qr-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
+  .qr-row input{width:150px;flex:none;font-size:13px;padding:8px 10px;border-radius:8px;
+    border:1px solid var(--line);font-family:inherit;}
+  .qr-row textarea{flex:1;min-width:0;font-size:13px;padding:8px 10px;border-radius:8px;
+    border:1px solid var(--line);font-family:inherit;line-height:1.45;resize:vertical;}
+  .qr-del{all:unset;cursor:pointer;flex:none;color:#AEB8C9;padding:8px;border-radius:7px;}
+  .qr-del:hover{background:var(--bad-soft);color:var(--bad);}
   .od-item-edit{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
     border-top:1px dashed var(--line);}
   .od-qty{width:62px;font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:6px;
@@ -1818,6 +1883,17 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="sub" style="margin:6px 0 12px;">Адреса воркера вебхука Telegram (<code>worker/telegram-webhook.js</code>). Звернення з бота вже стають картками; з цією адресою в картці зʼявиться сама переписка й поле відповіді. <b>Токен бота сюди НЕ вставляти</b> — він лише в секретах Worker. У воркері має бути змінна <code>FIREBASE_API_KEY</code>, інакше відповідь не надсилатиметься.</div>
           <input id="tgapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-tg.ВАШ-АКАУНТ.workers.dev">
           <button class="pc-btn up" id="tgapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
+        </div>
+
+        <div class="card" style="max-width:760px;">
+          <b style="font-size:14px;">Готові відповіді у вікні діалогу</b>
+          <div class="sub" style="margin:6px 0 12px;">Заготовки, які менеджер вставляє кнопкою ⚡ під час переписки. Ліворуч — коротка назва (її видно у списку), праворуч — сам текст. Підстановки: <code>{імʼя}</code>, <code>{бренд}</code>, <code>{номер}</code>, <code>{кп}</code> — замінюються на дані з картки. Вставляється в поле введення, а не надсилається одразу.</div>
+          <div id="qr-list"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+            <button class="pc-btn up" id="qr-add" style="flex:none;padding:10px 22px;">+ Додати</button>
+            <button class="pc-btn up" id="qr-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+            <button class="pc-btn reset" id="qr-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
         </div>
 
         <div class="card" style="max-width:640px;">
@@ -6308,13 +6384,18 @@ function orderDrawerEl(){
   d.innerHTML = '<div class="od-back" data-od-close></div><aside class="od-panel"></aside>';
   document.body.appendChild(d);
   d.querySelector('[data-od-close]').addEventListener('click', closeOrderDrawer);
-  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeOrderDrawer(); });
+  // Escape закриває верхнє вікно, а не все одразу: коли відкрито діалог,
+  // перша клавіша має прибрати саме його.
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape' && !chatWin) closeOrderDrawer();
+  });
   return d;
 }
 function closeOrderDrawer(){
   const d = document.getElementById('orderDrawer');
   if(d) d.classList.remove('open');
   drawerOrderId = null;
+  if(typeof chatClose === 'function') chatClose();
   if(typeof crmStopPoll === 'function') crmStopPoll();
   if(typeof tgUnwatch === 'function') tgUnwatch();
 }
@@ -6492,8 +6573,15 @@ function renderOrderDrawer(){
   const oidEl = panel.querySelector('[data-copy-oid]');
   if(oidEl) oidEl.addEventListener('click', ()=>
     copyText(o.orderId, 'Номер ' + o.orderId + ' скопійовано'));
+  panel.querySelectorAll('[data-chat]').forEach(b=>{
+    b.addEventListener('click', ()=> chatOpen(o, b.dataset.chat));
+  });
   wireCrmBlock(panel, o);
   wireTgBlock(panel, o);
+  // Вікно діалогу живиться з тих самих даних, що й картка: перемалювалась
+  // картка — перемальовується й воно, інакше нове повідомлення видно лише
+  // в одному з двох місць.
+  if(chatWin && chatWin.id === o.id) renderChatWin();
 }
 
 /* ============================================================
@@ -6539,25 +6627,7 @@ function tgBlockHtml(o){
     // порожньої стрічки, і найкращий момент написати першим.
     feed = `<div class="od-empty">Людина відкрила бота, але ще нічого не написала.
       Можна написати першим — вона отримає повідомлення в Telegram.</div>`;
-  else {
-    let lastDay = '';
-    feed = `<div class="od-crm-feed">` + st.msgs.map(m=>{
-      const day = (m.at || '').slice(0, 10);
-      let sep = '';
-      if(day && day !== lastDay){ lastDay = day; sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`; }
-      const time = (m.at || '').slice(11, 16);
-      // Файл лишився в Telegram — показуємо помітку, а не мовчазний порожній
-      // рядок: інакше здається, що клієнт надіслав щось, а воно загубилось.
-      const mark = (m.kind && m.kind !== 'text')
-        ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
-      return sep + `
-        <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
-          ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
-          ${mark}
-          ${time ? `<div class="od-crm-at">${escapeHtml(time)}${m.mine && m.by ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
-        </div>`;
-    }).join('') + `</div>`;
-  }
+  else feed = `<div class="od-crm-feed">${chatRowsHtml(chatMsgs(o, 'tg'))}</div>`;
   const send = tgBase()
     ? `<div class="od-crm-send">
          <textarea class="od-tg-inp" rows="2" placeholder="Відповісти в Telegram…">${escapeHtml(st.draft || '')}</textarea>
@@ -6568,7 +6638,7 @@ function tgBlockHtml(o){
   const who = (o.instagram || '').trim();
   return wrap(
     `<div class="od-crm-bar"><span class="od-crm-who">${escapeHtml(who || 'Telegram')}</span>` +
-    `${(st.msgs || []).length ? `<span class="od-crm-cnt">${st.msgs.length}</span>` : ''}</div>` +
+    `<button class="od-open-chat" data-chat="tg">Відкрити діалог</button></div>` +
     feed + send);
 }
 const TG_KIND_UA = { photo:'📷 фото', voice:'🎤 голосове', video:'🎬 відео',
@@ -6586,7 +6656,9 @@ function tgWatch(o){
       const msgs = [];
       snap.forEach(d=>{ const v = d.data() || {}; msgs.push({
         at: v.at || '', text: v.text || '', kind: v.kind || 'text',
-        mine: !!v.mine, by: v.by || '' }); });
+        // file зʼявляється, коли воркер зміг перекласти фото в Cloudinary.
+        // Старі повідомлення його не мають — там лишиться сама помітка.
+        file: v.file || '', mine: !!v.mine, by: v.by || '' }); });
       const st = tgChat[o.id] || {};
       st.msgs = msgs; st.loading = false; st.err = null;
       tgChat[o.id] = st;
@@ -6610,6 +6682,7 @@ const TG_ERR_UA = {
   'auth-unreachable': 'воркер не достукався до Google. Спробуйте ще раз',
   'telegram-unreachable': 'воркер не достукався до Telegram. Спробуйте ще раз',
   'bad-chat': 'у картці немає ідентифікатора чату',
+  'bad-photo': 'фото не завантажилось — спробуйте ще раз',
   'bad-json': 'воркер не зрозумів запит — напевно, стара версія воркера',
   'method': 'стара версія воркера: перевикладіть telegram-webhook.js',
   'empty': 'порожнє повідомлення'
@@ -6621,9 +6694,10 @@ function tgErrUa(j, status){
   if(j.error === 'telegram') return j.detail || 'Telegram відмовив';
   return TG_ERR_UA[j.error] || (j.error + (j.detail ? ' · ' + j.detail : ''));
 }
-async function tgSend(o, text){
+async function tgSend(o, text, photo){
   const chat = tgChatOf(o), body = String(text || '').trim();
-  if(!chat || !body) return;
+  const pic = String(photo || '').trim();
+  if(!chat || (!body && !pic)) return;
   const base = tgBase();
   if(!base){ toast('Спершу вкажіть адресу воркера Telegram'); return; }
   let idToken = '';
@@ -6632,9 +6706,15 @@ async function tgSend(o, text){
   try{
     const r = await fetch(base + '/send', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat, text: body, idToken })
+      body: JSON.stringify({ chat, text: body, photo: pic, idToken })
     });
     const j = await r.json().catch(()=>({}));
+    /* Старий воркер про фото не знає: поле photo він просто проігнорує, а
+       порожній текст поверне як «empty». Тоді надсилаємо картинку
+       посиланням — клієнт усе одно її отримає, а не лишиться ні з чим. */
+    if(pic && !j.ok && (j.error === 'empty' || j.error === 'bad-json' || j.error === 'method')){
+      return tgSend(o, (body ? body + '\n' : '') + pic);
+    }
     // Причину показуємо словами. Код на кшталт «not-configured» чесний, але
     // менеджеру не каже нічого — а тут кожна причина має конкретну дію.
     if(!r.ok || !j.ok){ toast('Не надіслалось: ' + tgErrUa(j, r.status)); return; }
@@ -6903,25 +6983,11 @@ function crmBlockHtml(o){
   } else {
     // Найновіше внизу — як у будь-якому месенджері. Дату показуємо смужкою
     // між днями, а не біля кожного рядка: інакше вона з'їдає саму розмову.
-    let lastDay = '';
-    feed = `<div class="od-crm-feed">` + st.msgs.map(m => {
-      const day = (m.at || '').slice(0, 10);
-      let sep = '';
-      if(day && day !== lastDay){ lastDay = day; sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`; }
-      const time = (m.at || '').slice(11, 16);
-      return sep + `
-      <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
-        ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
-        ${crmFilesHtml(m.files)}
-        ${time ? `<div class="od-crm-at">${escapeHtml(time)}</div>` : ''}
-      </div>`;
-    }).join('') + `</div>`;
+    feed = `<div class="od-crm-feed">${chatRowsHtml(chatMsgs(o, 'crm'))}</div>`;
   }
 
-  const count = (st.msgs && st.msgs.length)
-    ? `<span class="od-crm-cnt">${st.msgs.length}</span>` : '';
-
-  return wrap(head + `<div class="od-crm-bar">${who || '<span></span>'}${count}</div>` + feed + `
+  return wrap(head + `<div class="od-crm-bar">${who || '<span></span>'}` +
+    `<button class="od-open-chat" data-chat="crm">Відкрити діалог</button></div>` + feed + `
     <div class="od-crm-send">
       <textarea class="od-crm-inp" rows="2" placeholder="Написати клієнту…">${escapeHtml(st.draft || '')}</textarea>
       <button class="od-crm-go" title="Ctrl+Enter">Надіслати</button>
@@ -7251,6 +7317,265 @@ function wireCrmBlock(panel, o){
     inp.addEventListener('keydown', e=>{
       if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send();
     });
+  }
+}
+
+/* ============================================================
+   ВІКНО ДІАЛОГУ — спільне для Telegram і Sitniks
+
+   Переписуватись у вузькій колонці картки незручно: рядок на два слова,
+   стрічка на пів екрана, і кожне перемальовування картки збиває місце.
+   Тому розмова відкривається окремим вікном у пропорціях телефона — так,
+   як менеджер звик у месенджері. На весь монітор не розтягуємо навмисно:
+   довгий рядок у переписці читається гірше за вузький.
+
+   Джерело даних лишається тим самим — жива підписка Telegram або опитування
+   Sitniks. Вікно тільки показує; воно нічого не знає про те, звідки взялись
+   повідомлення, крім однієї літери в chatWin.kind.
+   ============================================================ */
+let chatWin = null;   // { id, kind:'tg'|'crm', draft, qr, busy }
+
+/* Одна форма повідомлення на обидва джерела — інакше кожну дрібницю
+   (час, підпис автора, картинку) довелось би правити у двох місцях. */
+function chatMsgs(o, kind){
+  if(kind === 'tg'){
+    return ((tgChat[o.id] || {}).msgs || []).map(m => ({
+      at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by,
+      files: m.file ? [{ url: m.file, kind: 'img' }] : []
+    }));
+  }
+  return ((crmChat[o.id] || {}).msgs || []).map(m => ({
+    at: m.at, text: m.text, mine: m.mine, kind: 'text', files: m.files || []
+  }));
+}
+function chatRowsHtml(msgs){
+  let lastDay = '';
+  return (msgs || []).map(m => {
+    const day = (m.at || '').slice(0, 10);
+    let sep = '';
+    if(day && day !== lastDay){
+      lastDay = day;
+      sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`;
+    }
+    const time = (m.at || '').slice(11, 16);
+    // Помітка лише тоді, коли самого файлу немає. Фото, яке воркер переклав
+    // у Cloudinary, показуємо картинкою — «відкрийте в Telegram» тут було б
+    // неправдою.
+    const mark = (m.kind && m.kind !== 'text' && !(m.files || []).length)
+      ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
+    return sep + `
+      <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
+        ${crmFilesHtml(m.files)}
+        ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
+        ${mark}
+        ${time ? `<div class="od-crm-at">${escapeHtml(time)}${
+          m.mine && m.by ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+/* ── Готові відповіді ─────────────────────────────────────────────────────
+   Менеджер щодня пише те саме: привітання, питання про тираж, реквізити.
+   Набирати це вручну — і довго, і щоразу трохи інакше. Тексти живуть у
+   налаштуваннях, а не в коді: правити їх має менеджер, не розробник.
+
+   Підстановки роблять заготовку живою — інакше в чат летіло б «Вітаю,
+   {імʼя}» буквально. */
+const QR_DEFAULT = [
+  { t:'Вітання', m:'Вітаю! Це {бренд}. Підкажіть, будь ласка, що плануєте нанести і на який одяг — підберемо і порахуємо.' },
+  { t:'Тираж',   m:'Підкажіть орієнтовну кількість і розмірний ряд — від тиражу суттєво залежить ціна.' },
+  { t:'Надсилаю КП', m:'Підготували для вас пропозицію: {кп}\nТам можна змінити кількість і подивитись, як усе виглядатиме.' },
+  { t:'Оплата',  m:'Працюємо за передоплатою 50%, решта — перед відправкою. Рахунок виставляємо на ФОП.' },
+  { t:'Макет',   m:'Надішліть, будь ласка, логотип у векторі (.ai, .eps, .pdf або .svg). Якщо вектора немає — надішліть що є, підготуємо самі.' }
+];
+function quickReplies(){
+  const q = (contentData || {}).quickReplies;
+  return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
+}
+function qrFill(text, o){
+  const first = String(o.name || '').trim().split(/\s+/)[0] || '';
+  return String(text || '')
+    .replace(/\{імʼя\}|\{ім'я\}|\{імя\}/g, first)
+    .replace(/\{бренд\}/g, brandSnap(o.brand).name)
+    .replace(/\{номер\}/g, o.orderId || '')
+    .replace(/\{кп\}/g, offerUrl(o) || '');
+}
+
+function chatWinEl(){
+  let d = document.getElementById('chatWin');
+  if(d) return d;
+  d = document.createElement('div');
+  d.id = 'chatWin';
+  d.className = 'cw-wrap';
+  d.innerHTML = '<div class="cw"></div>';
+  document.body.appendChild(d);
+  // Клік повз вікно закриває — як у будь-якому модальному вікні
+  d.addEventListener('click', e=>{ if(e.target === d) chatClose(); });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && chatWin) chatClose(); });
+  return d;
+}
+function msgWord(n){
+  const m10 = n % 10, m100 = n % 100;
+  if(m10 === 1 && m100 !== 11) return 'повідомлення';
+  if(m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'повідомлення';
+  return 'повідомлень';
+}
+function chatOrder(){ return chatWin && (orders || []).find(x => x.id === chatWin.id); }
+function chatOpen(o, kind){
+  chatWin = { id: o.id, kind, draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
+                                                    : (crmChat[o.id] || {}).draft) || '' };
+  chatWinEl().classList.add('open');
+  renderChatWin(true);
+}
+function chatClose(){
+  chatWin = null;
+  const d = document.getElementById('chatWin');
+  if(d) d.classList.remove('open');
+}
+
+function renderChatWin(toBottom){
+  const d = document.getElementById('chatWin');
+  if(!d || !chatWin) return;
+  const o = chatOrder();
+  if(!o){ chatClose(); return; }
+  const box = d.querySelector('.cw');
+  const feedOld = box.querySelector('.cw-feed');
+  /* Липке дно: поки менеджер унизу стрічки, нові повідомлення підтягують
+     її за собою. Але якщо він читає давню переписку вгорі — не смикаємо. */
+  const stick = toBottom || !feedOld ||
+    (feedOld.scrollHeight - feedOld.scrollTop - feedOld.clientHeight < 60);
+  const oldTop = feedOld ? feedOld.scrollTop : 0;
+
+  const msgs = chatMsgs(o, chatWin.kind);
+  const isTg = chatWin.kind === 'tg';
+  const nm = (o.name || o.instagram || (isTg ? 'Telegram' : 'Клієнт')).trim();
+  const sub = [isTg ? (o.instagram || 'Telegram') : ((crmChat[o.id] || {}).clientName || 'Sitniks'),
+               msgs.length ? (msgs.length + ' ' + msgWord(msgs.length)) : '']
+              .filter(Boolean).join(' · ');
+
+  let feed;
+  if(!msgs.length){
+    feed = `<div class="cw-empty">${isTg
+      ? 'Людина відкрила бота, але ще нічого не написала. Можна написати першим — вона отримає повідомлення в Telegram.'
+      : 'Повідомлень поки немає.'}</div>`;
+  } else feed = chatRowsHtml(msgs);
+
+  const qr = chatWin.qr ? `<div class="cw-qr">${
+    quickReplies().length
+      ? quickReplies().map((q, i)=>`<button class="cw-qr-b" data-qr="${i}">
+           <span class="cw-qr-t">${escapeHtml(q.t || 'Заготовка')}</span>
+           <span class="cw-qr-m">${escapeHtml(qrFill(q.m, o).replace(/\n/g, ' '))}</span></button>`).join('')
+      : `<div class="cw-qr-none">Заготовок ще немає. Додати: Конструктор сайту → «Готові відповіді».</div>`
+  }</div>` : '';
+
+  // Sitniks приймає від нас лише текст — чесно попереджаємо, що фото туди
+  // піде посиланням, а не картинкою в чаті.
+  const note = (!isTg && chatWin.note)
+    ? `<div class="cw-note">Фото в Sitniks надсилається посиланням: клієнт отримає адресу картинки.</div>` : '';
+
+  box.innerHTML = `
+    <div class="cw-head">
+      <div class="cw-av">${escapeHtml((nm || '?').trim().charAt(0).toUpperCase())}</div>
+      <div class="cw-who">
+        <div class="cw-nm">${escapeHtml(nm)}</div>
+        <div class="cw-sub">${escapeHtml(sub)}</div>
+      </div>
+      <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
+    </div>
+    <div class="cw-feed">${feed}</div>
+    <div class="cw-bar">
+      ${note}${qr}
+      <div class="cw-row">
+        <button class="cw-ic${chatWin.qr ? ' on' : ''}" data-cw-qr title="Готові відповіді">⚡</button>
+        <button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>
+        <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
+          isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
+        <button class="cw-go" data-cw-go title="Enter — надіслати">➤</button>
+      </div>
+      <input type="file" accept="image/*" data-cw-file hidden>
+    </div>`;
+
+  const feedEl = box.querySelector('.cw-feed');
+  if(feedEl) feedEl.scrollTop = stick ? feedEl.scrollHeight : oldTop;
+  wireChatWin(box, o);
+}
+
+function wireChatWin(box, o){
+  box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
+  const inp = box.querySelector('.cw-inp');
+  const grow = ()=>{ inp.style.height = 'auto';
+                     inp.style.height = Math.min(inp.scrollHeight, 130) + 'px'; };
+  grow();
+  inp.addEventListener('input', ()=>{ chatWin.draft = inp.value; grow(); });
+  const send = ()=>{
+    const t = inp.value.trim();
+    if(!t) return;
+    inp.value = ''; chatWin.draft = ''; grow();
+    chatSend(o, t);
+  };
+  // Enter надсилає, Shift+Enter — новий рядок. Саме так у месенджерах, і
+  // саме цього менеджер очікує пальцями.
+  inp.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+  box.querySelector('[data-cw-go]').addEventListener('click', send);
+  box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
+    chatWin.qr = !chatWin.qr; renderChatWin();
+  });
+  box.querySelectorAll('[data-qr]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const q = quickReplies()[+b.dataset.qr];
+      if(!q) return;
+      // Вставляємо, а не надсилаємо: заготовку майже завжди дописують під
+      // конкретну людину, і випадкове «надіслалось саме» тут неприпустиме.
+      const cur = inp.value.trim();
+      chatWin.draft = (cur ? cur + '\n' : '') + qrFill(q.m, o);
+      chatWin.qr = false;
+      renderChatWin();
+      const el = document.querySelector('.cw-inp');
+      if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    });
+  });
+  const file = box.querySelector('[data-cw-file]');
+  box.querySelector('[data-cw-clip]').addEventListener('click', ()=> file.click());
+  file.addEventListener('change', ()=>{
+    const f = file.files && file.files[0];
+    file.value = '';
+    if(f) chatPhoto(o, f, inp.value.trim());
+  });
+  inp.focus();
+}
+
+async function chatSend(o, text){
+  if(chatWin.kind === 'tg') await tgSend(o, text);
+  else await crmSend(o, text);
+}
+
+/* Фото: спершу в Cloudinary, і вже посилання — у месенджер. Інакше довелось
+   би гнати байти через воркер, а він для цього не потрібен: картинка й так
+   має жити за публічною адресою, щоб Telegram її забрав. */
+async function chatPhoto(o, fileObj, caption){
+  if(!/^image\//.test(fileObj.type || '')){ toast('Можна прикріплювати лише фото'); return; }
+  toast('Завантажуємо фото…');
+  let url = '';
+  try{
+    url = await uploadCloudinary(await shrinkImage(fileObj));
+  }catch(e){
+    console.warn('chat photo', e);
+    toast('Фото не завантажилось — спробуйте ще раз');
+    return;
+  }
+  if(chatWin.kind === 'tg'){
+    const inp = document.querySelector('.cw-inp');
+    if(inp && inp.value.trim() === caption){ inp.value = ''; chatWin.draft = ''; }
+    await tgSend(o, caption || '', url);
+  }else{
+    // Sitniks приймає від нас лише текст — фото йде посиланням.
+    chatWin.note = true;
+    await crmSend(o, (caption ? caption + '\n' : '') + url);
+    const inp = document.querySelector('.cw-inp');
+    if(inp && inp.value.trim() === caption){ inp.value = ''; chatWin.draft = ''; }
+    renderChatWin(true);
   }
 }
 
@@ -7644,6 +7969,9 @@ function renderSiteTab(){
   const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
   const tgEl = document.getElementById('tgapi-url'); if(tgEl) tgEl.value = bgApi.tgUrl || '';
   const clEl = document.getElementById('clarity-id'); if(clEl) clEl.value = bgApi.clarityId || '';
+  // Чернетку заготовок скидаємо: дані приїхали з бази, і показувати треба їх
+  qrDraft = null;
+  renderQrList();
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
   document.getElementById('promo-text').value = promo.text || '';
@@ -7714,6 +8042,50 @@ document.getElementById('tgapi-save').addEventListener('click', async ()=>{
   try{
     await PHOTOS_DOC.set({ bgApi: { tgUrl: url } }, { merge:true });
     toast(url ? 'Адресу збережено — діалог Telegram у картці' : 'Очищено — відповідати з картки не можна');
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
+/* Готові відповіді. Список живе в тому ж документі, що й решта контенту, —
+   тож він однаковий у всіх, хто заходить в адмінку, і не губиться разом із
+   браузером менеджера. */
+let qrDraft = null;
+function qrList(){
+  if(!qrDraft) qrDraft = quickReplies().map(q => ({ t: q.t || '', m: q.m || '' }));
+  return qrDraft;
+}
+function renderQrList(){
+  const box = document.getElementById('qr-list');
+  if(!box) return;
+  box.innerHTML = qrList().map((q, i)=>`
+    <div class="qr-row" data-i="${i}">
+      <input type="text" maxlength="40" placeholder="назва" value="${escapeHtml(q.t)}">
+      <textarea rows="2" maxlength="900" placeholder="текст повідомлення">${escapeHtml(q.m)}</textarea>
+      <button class="qr-del" title="Видалити">🗑</button>
+    </div>`).join('') ||
+    '<div class="sub">Заготовок немає. Натисніть «+ Додати».</div>';
+  box.querySelectorAll('.qr-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('input').addEventListener('input', e=> qrList()[i].t = e.target.value);
+    row.querySelector('textarea').addEventListener('input', e=> qrList()[i].m = e.target.value);
+    row.querySelector('.qr-del').addEventListener('click', ()=>{
+      qrList().splice(i, 1); renderQrList();
+    });
+  });
+}
+document.getElementById('qr-add').addEventListener('click', ()=>{
+  qrList().push({ t:'', m:'' }); renderQrList();
+});
+document.getElementById('qr-reset').addEventListener('click', ()=>{
+  if(!confirm('Повернути стандартний набір заготовок?')) return;
+  qrDraft = QR_DEFAULT.map(q => ({ t:q.t, m:q.m })); renderQrList();
+});
+document.getElementById('qr-save').addEventListener('click', async ()=>{
+  const list = qrList().map(q => ({ t: String(q.t || '').trim(), m: String(q.m || '').trim() }))
+                       .filter(q => q.m);
+  try{
+    await PHOTOS_DOC.set({ quickReplies: list }, { merge:true });
+    qrDraft = list.map(q => ({ t:q.t, m:q.m }));
+    renderQrList();
+    toast(list.length ? ('Збережено: ' + list.length) : 'Заготовки очищено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
 document.getElementById('clarity-save').addEventListener('click', async ()=>{

@@ -35,7 +35,7 @@ const FIELDS = 'https://firestore.googleapis.com/v1/projects/';
 /* Мітка версії. Міняється разом зі змістом файлу — і /health одразу каже,
    чи в Cloudflare лежить те, що ми зараз обговорюємо, чи копія тижневої
    давнини. Рівно на цьому ми вже двічі втратили по півгодини. */
-const BUILD = '2026-08-11 діалог у Канбані';
+const BUILD = '2026-08-13 фото в діалозі';
 
 export default {
   async fetch(request, env, ctx) {
@@ -197,7 +197,10 @@ export default {
     // масив довелось би щоразу перечитувати цілком, а два повідомлення
     // підряд затирали б одне одного.
     if (!isStart) {
-      await saveMsg(env, chatId, { at: now.toISOString(), text: body, kind, mine: false });
+      const file = await mirrorPhoto(env, msg);
+      await saveMsg(env, chatId, {
+        at: now.toISOString(), text: body, kind, mine: false, file,
+      });
     }
 
     // Перше повідомлення з міткою вітаємо, щоб людина не дивилась у порожній
@@ -260,9 +263,13 @@ async function handleSend(request, env) {
 
   const chat = String(body.chat || '').trim();
   const text = String(body.text || '').trim().slice(0, 3500);
+  // Фото приймаємо лише посиланням, і лише на чужий бік: файл уже лежить у
+  // Cloudinary, куди його поклала адмінка. Воркеру нема чого приймати байти.
+  const photo = String(body.photo || '').trim();
   const idToken = String(body.idToken || '');
   if (!/^-?\d{3,20}$/.test(chat)) return jsonRes({ error: 'bad-chat' }, 400);
-  if (!text) return jsonRes({ error: 'empty' }, 400);
+  if (photo && !/^https:\/\/[a-z0-9.-]+\/\S+$/i.test(photo)) return jsonRes({ error: 'bad-photo' }, 400);
+  if (!text && !photo) return jsonRes({ error: 'empty' }, 400);
   if (!idToken) return jsonRes({ error: 'no-auth' }, 401);
 
   let who = '';
@@ -281,9 +288,15 @@ async function handleSend(request, env) {
 
   let tg;
   try {
-    tg = await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
+    // Фото з підписом — один сендПхото, а не два повідомлення поспіль:
+    // у клієнта в чаті це має виглядати так само, як пише звичайна людина.
+    const method = photo ? 'sendPhoto' : 'sendMessage';
+    const payload = photo
+      ? { chat_id: chat, photo, caption: text.slice(0, 1000) || undefined }
+      : { chat_id: chat, text };
+    tg = await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN + '/' + method, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text }),
+      body: JSON.stringify(payload),
     });
   } catch (e) {
     return jsonRes({ error: 'telegram-unreachable', detail: String(e).slice(0, 120) }, 502);
@@ -296,10 +309,54 @@ async function handleSend(request, env) {
   }
 
   const at = new Date().toISOString();
-  await saveMsg(env, chat, { at, text, kind: 'text', mine: true, by: who.slice(0, 60) });
+  await saveMsg(env, chat, { at, text, kind: photo ? 'photo' : 'text',
+                             file: photo, mine: true, by: who.slice(0, 60) });
   await patchDoc(env, 'an_tg/' + encodeURIComponent(chat),
-                 { lastAt: at, last: ('Ви: ' + text).slice(0, 80) });
+                 { lastAt: at, last: ('Ви: ' + (text || '📷 фото')).slice(0, 80) });
   return jsonRes({ ok: true, at });
+}
+
+/* Фото з Telegram — у стрічку адмінки.
+
+   Пряме посилання Telegram дійсне лише разом із токеном бота, тож у базу
+   його класти не можна: база читається сайтом. Тому воркер сам забирає файл
+   і перекладає його в Cloudinary — звідти вже звичайна публічна адреса.
+
+   Без змінних CLOUDINARY_CLOUD і CLOUDINARY_PRESET нічого не робимо і
+   поводимось як раніше: у стрічці лишиться помітка «фото — відкрийте в
+   Telegram». Це свідомо необовʼязкова можливість, а не поломка.
+
+   Беремо тільки фото: голосові й відео важкі, а користі з них у картці
+   менше — їх слухають і дивляться в самому Telegram. */
+async function mirrorPhoto(env, msg) {
+  if (!env.CLOUDINARY_CLOUD || !env.CLOUDINARY_PRESET || !env.TELEGRAM_BOT_TOKEN) return '';
+  // Останній розмір у масиві — найбільший. Документ-картинку теж беремо:
+  // фото, надіслане «як файл», для менеджера таке саме фото.
+  const ph = msg.photo && msg.photo.length ? msg.photo[msg.photo.length - 1] : null;
+  const asDoc = (!ph && msg.document && /^image\//.test(String(msg.document.mime_type || '')))
+    ? msg.document : null;
+  const fileId = (ph && ph.file_id) || (asDoc && asDoc.file_id) || '';
+  if (!fileId) return '';
+  try {
+    const g = await fetch('https://api.telegram.org/bot' + env.TELEGRAM_BOT_TOKEN +
+                          '/getFile?file_id=' + encodeURIComponent(fileId));
+    const gj = await g.json().catch(() => ({}));
+    const path = gj && gj.ok && gj.result && gj.result.file_path;
+    if (!path) return '';
+    const src = await fetch('https://api.telegram.org/file/bot' + env.TELEGRAM_BOT_TOKEN + '/' + path);
+    if (!src.ok) return '';
+    const fd = new FormData();
+    fd.append('file', await src.blob());
+    fd.append('upload_preset', env.CLOUDINARY_PRESET);
+    const up = await fetch('https://api.cloudinary.com/v1_1/' + env.CLOUDINARY_CLOUD + '/image/upload',
+                           { method: 'POST', body: fd });
+    const uj = await up.json().catch(() => ({}));
+    return String(uj.secure_url || '');
+  } catch (e) {
+    // Фото не переклалось — не привід губити саме повідомлення
+    console.log('photo: не перенеслось', String(e).slice(0, 200));
+    return '';
+  }
 }
 
 /* Одне повідомлення = один документ в an_tg/{чат}/msgs. Ідентифікатор —
