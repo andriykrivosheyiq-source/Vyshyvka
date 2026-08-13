@@ -4597,11 +4597,14 @@ function watchWebLeads(){
       if(orders.some(o => o.webId === rec.id)) continue;
       const d = rec.data || {};
       orders.unshift({
-        id: cryptoId(), webId: rec.id, type:'lead', status:'new',
+        /* Етап беремо перший у потоці, а не зашитий 'new'. Заявка без товару
+           — це звернення, а не «Нове замовлення»; до того ж етапи можна
+           перейменувати, і зашитий ключ повів би картку в «Без етапу». */
+        id: cryptoId(), webId: rec.id, type:'lead', status: firstStatusKey(),
         orderId: '',
         source: 'заявка',
         site: d.site || 'main',
-        name: '', phone: d.phone || '',
+        name: d.name || '', phone: d.phone || '',
         note: 'Заявка без товару' + (d.context ? ' · ' + d.context : '') +
               (d.page ? ' · сторінка ' + d.page : ''),
         items: [],
