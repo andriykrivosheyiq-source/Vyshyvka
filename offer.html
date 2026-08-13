@@ -1023,6 +1023,30 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .print-only{display:block !important;}
   }
   .print-only{display:none;}
+
+  /* ── Режим редагування ────────────────────────────────────────────────
+     Керування навмисно виглядає чужорідно щодо сторінки: менеджер має
+     бачити, де закінчується пропозиція і починається інструмент. */
+  .edbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 14px 0;
+    padding:8px;border:1px dashed #B9C4D4;border-radius:10px;background:#F4F7FB;}
+  .edb{font:inherit;font-size:12px;font-weight:700;color:#3D4C61;background:#fff;
+    border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
+  .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
+  .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
+  .edqty{display:flex;align-items:center;gap:6px;font-size:12px;color:#3D4C61;}
+  .edqty b{min-width:52px;text-align:center;font-variant-numeric:tabular-nums;}
+  .edadd{display:block;width:100%;margin-top:12px;font:inherit;font-size:13.5px;
+    font-weight:700;color:#3D4C61;background:#fff;border:1.5px dashed #B9C4D4;
+    border-radius:12px;padding:14px;cursor:pointer;}
+  .edadd:hover{border-color:#4F5FD4;color:#3A48A8;}
+  .edwhy{white-space:pre-wrap;font-size:16px;line-height:1.65;color:#1B2430;
+    border:1.5px dashed #B9C4D4;border-radius:12px;padding:14px 16px;min-height:90px;
+    background:#fff;outline:none;}
+  .edwhy:focus{border-color:#4F5FD4;border-style:solid;}
+  .edwhy:empty::before{content:attr(data-ph);color:#98A2B3;}
+  .is-edit .rc{position:relative;}
+  /* Плаваюча смуга дій клієнта в редагуванні лише заважає */
+  .is-edit .bar{display:none !important;}
 </style>
 </head>
 <body>
@@ -1181,6 +1205,79 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   // Тестовий режим — за ним показуються заглушки блоків довіри
   var DEMO = /[?&]demo=1/.test(location.search);
+
+  /* ── Режим редагування ────────────────────────────────────────────────
+     Менеджер править пропозицію на ній самій, а не в окремій формі: те,
+     що він бачить, і є те, що побачить клієнт. Складати наосліп і бігати
+     звіряти в іншу вкладку більше не треба.
+
+     Сама сторінка при цьому НІЧОГО не зберігає. Вона лише повідомляє
+     адмінці, що змінилось, а записує адмінка — у неї є вхід і права.
+     Тому режим вмикається не адресою, а рукостисканням від батьківського
+     вікна: відкрити ?edit=1 самому й щось поправити не вийде.
+
+     Правляться тільки товари й особиста рекомендація. Ціни, суми й
+     терміни рахуються самі — інакше пропозиція розійшлась би з Канбаном. */
+  var EDIT = false;
+  function edSend(msg){
+    if(window.parent === window) return;
+    try{ window.parent.postMessage(Object.assign({ lqEdit:true }, msg), '*'); }catch(e){}
+  }
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if(!d || !d.lqEditInit || window.parent === window) return;
+    if(EDIT) return;
+    EDIT = true;
+    document.documentElement.classList.add('is-edit');
+    if(OFFER) render();
+  });
+  // Панель дій над позицією. Кількість тут же: це найчастіша правка, а ціна
+  // від неї перерахується сама, спільним калькулятором.
+  function edBar(kind, i, qty){
+    if(!EDIT) return '';
+    return '<div class="edbar">' +
+      '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
+      '<button class="edb" data-ed="down" data-k="' + kind + '" data-i="' + i + '" title="Нижче">↓</button>' +
+      (qty != null
+        ? '<span class="edqty">' +
+            '<button class="edb" data-ed="qm" data-k="' + kind + '" data-i="' + i + '">−</button>' +
+            '<b>' + qty + ' шт</b>' +
+            '<button class="edb" data-ed="qp" data-k="' + kind + '" data-i="' + i + '">+</button>' +
+          '</span>' : '') +
+      '<button class="edb" data-ed="swap" data-k="' + kind + '" data-i="' + i + '">' +
+        (kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
+      '<button class="edb edb-del" data-ed="del" data-k="' + kind + '" data-i="' + i + '" title="Прибрати">🗑</button>' +
+    '</div>';
+  }
+  function edAdd(kind){
+    if(!EDIT) return '';
+    return '<button class="edadd" data-ed="add" data-k="' + kind + '">＋ ' +
+      (kind === 'reco' ? 'Додати рекомендований товар' : 'Додати товар') + '</button>';
+  }
+  /* Кнопки редагування не мають запускати звичайну поведінку сторінки:
+     клік по «прибрати» всередині картки інакше ще й відкрив би галерею. */
+  function wireEdit(){
+    if(!EDIT) return;
+    document.querySelectorAll('[data-ed]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i });
+      });
+      // Галерея й тиражі слухають натискання, а не клік
+      ['pointerdown','mousedown','touchstart'].forEach(function(t){
+        b.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
+    var why = document.querySelector('[data-ed-why]');
+    if(why){
+      // Зберігаємо, коли людина відвела погляд: на кожній літері писати в
+      // базу — це десятки записів на один абзац.
+      why.addEventListener('blur', function(){
+        edSend({ act:'why', text: why.innerText.replace(/ /g, ' ') });
+      });
+      why.addEventListener('keydown', function(e){ e.stopPropagation(); });
+    }
+  }
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
              'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -1774,6 +1871,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
               '</div>' +
             '</div>' +
+            edBar('main', i, it.qty) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
@@ -1816,6 +1914,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>' +
           '</div>';
         }).join('') +
+        edAdd('main') +
       '</section>';
   }
 
@@ -1937,7 +2036,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   function recoHtml(){
-    if(!OFFER.reco.length) return '';
+    // У редагуванні розділ показуємо навіть порожнім — інакше нема куди
+    // натиснути, щоб додати першу рекомендацію.
+    if(!OFFER.reco.length && !EDIT) return '';
     return '' +
       '<section id="recoSec">' +
         '<h2 class="sec-title">Часто беруть разом</h2>' +
@@ -1965,8 +2066,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
               (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
+            edBar('reco', i, null) +
           '</div>';
         }).join('') + '</div>' +
+        edAdd('reco') +
         /* Показуємо рівно чотири. «Показати ще вісім» перетворювало
            пропозицію на каталог: людина йшла обирати замість того, щоб
            підтвердити замовлення. Що саме радимо — вирішує менеджер. */
@@ -2027,7 +2130,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var list = OFFER.why;
     if(typeof list === 'string') list = list.split(/\r?\n/);
     list = (list || []).map(function(x){ return String(x).trim(); }).filter(Boolean);
-    if(!list.length) return '';
+    /* У редагуванні блок є завжди, навіть порожній: це головне, що менеджер
+       дописує від себе, і сховати його означало б сховати саму можливість.
+       Клієнту порожній блок не показуємо — обіцянка без змісту гірша за
+       відсутність обіцянки. */
+    if(!list.length && !EDIT) return '';
+    if(EDIT){
+      return '' +
+        '<section>' +
+          '<h2 class="sec-title">Чому ми рекомендуємо саме цей варіант</h2>' +
+          '<div class="edwhy" contenteditable="plaintext-only" data-ed-why="1" ' +
+            'data-ph="Кожен рядок — окремий пункт. Чому ця тканина, чому вишивка, чому такий тираж.">' +
+            esc(list.join('\n')) + '</div>' +
+        '</section>';
+    }
     return '' +
       '<section>' +
         '<h2 class="sec-title">Чому ми рекомендуємо саме цей варіант</h2>' +
@@ -2932,6 +3048,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   function wire(){
+    wireEdit();
     tintAll();   // рамки фото беруть колір із самих світлин
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){

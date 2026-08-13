@@ -763,47 +763,13 @@
   .oe-btn:hover{border-color:var(--accent);color:var(--accent-deep);}
   .oe-btn--main{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;}
   .oe-btn--main:hover{background:#1c2840;color:#fff;}
-  .oe-body{flex:1;min-height:0;display:flex;}
-  .oe-form{flex:0 0 45%;max-width:520px;overflow-y:auto;padding:16px 18px 40px;}
-  .oe-prev{flex:1;min-width:0;background:#E9EDF3;border-left:1px solid var(--line);}
-  .oe-prev iframe{width:100%;height:100%;border:0;display:block;background:#fff;}
-  .oe-sec{font-size:10.5px;font-weight:800;color:#9AA5B5;text-transform:uppercase;
-    letter-spacing:.5px;margin:20px 0 8px;}
-  .oe-sec:first-child{margin-top:0;}
-  .oe-hint{font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin:-3px 0 8px;}
-  .oe-i{width:100%;font:inherit;font-size:13px;padding:9px 11px;border-radius:8px;
-    border:1px solid var(--line);background:#fff;color:var(--ink);min-width:0;}
-  .oe-i:focus{outline:none;border-color:var(--accent);}
-  .oe-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-  .oe-brands{display:flex;gap:7px;}
-  .oe-brand{flex:1;border:1px solid var(--line);border-radius:9px;background:#fff;
-    font:inherit;font-size:13px;font-weight:700;padding:10px;cursor:pointer;color:var(--ink-soft);}
+  .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
+  .oe-body iframe{flex:1;width:100%;height:100%;border:0;display:block;background:#fff;}
+  .oe-head .oe-brands{flex:none;display:flex;gap:5px;}
+  .oe-brand{border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;
+    font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:8px 13px;cursor:pointer;}
   .oe-brand.on{border-color:var(--ink);background:var(--ink);color:#fff;}
-  .oe-item{border:1px solid var(--line);border-radius:11px;padding:9px;margin-bottom:8px;
-    background:var(--canvas);}
-  .oe-item-r{display:flex;gap:7px;align-items:center;margin-bottom:7px;}
-  .oe-item-nm{font-weight:700;}
-  .oe-lab{flex:1;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);}
-  .oe-num{width:82px;flex:none;font-family:var(--mono);}
-  .oe-sum{flex:none;font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink);}
-  .oe-kind{flex:none;border:1px solid var(--line);border-radius:7px;background:#fff;
-    font:inherit;font-size:11px;font-weight:700;color:var(--ink-soft);padding:7px 9px;cursor:pointer;}
-  .oe-kind.on{background:#FFF4DE;border-color:#E7C989;color:#8A6A15;}
-  .oe-del{all:unset;cursor:pointer;flex:none;color:#AEB8C9;padding:7px;border-radius:7px;}
-  .oe-del:hover{background:var(--bad-soft);color:var(--bad);}
-  .oe-note{font-size:12px;}
-  .oe-add{width:100%;border:1px dashed var(--line);border-radius:10px;background:#fff;
-    font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:11px;cursor:pointer;}
-  .oe-add:hover{border-color:var(--accent);color:var(--accent-deep);}
-  .oe-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0 10px;}
-  .oe-why{line-height:1.5;resize:vertical;}
-  .oe-url{margin-top:16px;font-family:var(--mono);font-size:10.5px;color:#4f5fd4;
-    background:#F1F5F9;border-radius:7px;padding:8px 10px;word-break:break-all;}
-  @media(max-width:900px){
-    .oe-body{flex-direction:column;}
-    .oe-form{flex:none;max-width:none;}
-    .oe-prev{flex:none;height:50vh;border-left:none;border-top:1px solid var(--line);}
-  }
+  @media(max-width:900px){ .oe-head{flex-wrap:wrap;} .oe-head .oe-title{width:100%;} }
 
   /* ── Вікно діалогу ──────────────────────────────────────────────────────
      Переписуватись у вузькій колонці картки незручно: рядок на два слова,
@@ -4339,7 +4305,8 @@ window.__adminSaveClientOrder = async function(payload){
     const boardBtn = document.querySelector('.nav button[data-view="board"]');
     if(boardBtn) boardBtn.click();
     renderBoard();
-    openOrderDrawer(target);
+    if(offerEdBack === target.id){ offerEdBack = null; openOfferEditor(target); }
+    else openOrderDrawer(target);
     return target;
   }
   const order = {
@@ -7555,6 +7522,7 @@ function wireCrmBlock(panel, o){
    бачить те саме, але лише читає: редагування живе тільки тут.
    ============================================================ */
 let offerEd = null;        // { id, timer }
+let offerEdBack = null;    // куди повернутись після конструктора
 
 function offerEdEl(){
   let d = document.getElementById('offerEd');
@@ -7563,8 +7531,8 @@ function offerEdEl(){
   d.id = 'offerEd';
   d.className = 'oe-wrap';
   d.innerHTML = '<div class="oe"><div class="oe-head"></div>' +
-                '<div class="oe-body"><div class="oe-form"></div>' +
-                '<div class="oe-prev"><iframe title="Перегляд пропозиції"></iframe></div></div></div>';
+                '<div class="oe-body"><iframe title="Пропозиція" ' +
+                'sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div></div>';
   document.body.appendChild(d);
   document.addEventListener('keydown', e=>{
     if(e.key === 'Escape' && offerEd && !chatWin) offerEdClose();
@@ -7609,7 +7577,10 @@ function offerEdPreview(now){
   const go = ()=>{
     const f = d.querySelector('iframe');
     if(!f) return;
-    f.src = offerUrl(o) + '&t=' + Date.now();
+    /* Рукостискання після завантаження: сторінка вмикає редагування лише
+       почувши батьківське вікно, а не за параметром в адресі. */
+    f.onload = ()=>{ try{ f.contentWindow.postMessage({ lqEditInit:true }, '*'); }catch(e){} };
+    f.src = offerUrl(o) + '&edit=1&t=' + Date.now();
   };
   if(offerEd.timer) clearTimeout(offerEd.timer);
   if(now){ go(); return; }
@@ -7628,6 +7599,82 @@ async function offerEdSave(o, opts){
   offerEdPreview();
 }
 
+/* Індекс у пропозиції → індекс у складі замовлення. Сторінка КП показує
+   основні позиції й рекомендації двома окремими списками, а в картці вони
+   лежать одним масивом із позначкою kind — без цього перекладу «прибрати
+   другу рекомендацію» прибирало б зовсім не те. */
+function offerIdxToOrder(o, kind, i){
+  let n = -1;
+  const list = o.items || [];
+  for(let k = 0; k < list.length; k++){
+    if((kind === 'reco') === (list[k].kind === 'reco')){
+      n++;
+      if(n === i) return k;
+    }
+  }
+  return -1;
+}
+// Сусід того ж роду — щоб «вище» переставляло позицію через рекомендацію,
+// а не мінялося з нею місцями
+function offerNeighbor(o, from, dir){
+  const list = o.items || [], kind = list[from].kind === 'reco' ? 'reco' : 'main';
+  for(let k = from + dir; k >= 0 && k < list.length; k += dir){
+    if((list[k].kind === 'reco' ? 'reco' : 'main') === kind) return k;
+  }
+  return -1;
+}
+// Крок кількості під тираж: на 500 футболках кнопка «+1» безглузда
+function offerQtyStep(q){ return q >= 100 ? 10 : (q >= 20 ? 5 : 1); }
+
+async function offerEdApply(msg){
+  const o = offerEdOrder();
+  if(!o) return;
+  const act = msg.act;
+  if(act === 'why'){
+    o.why = String(msg.text || '').trim();
+    try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
+    renderBoard();
+    return;                       // текст уже на екрані — перемальовувати нема чого
+  }
+  if(act === 'add'){
+    // Повертаємось саме сюди, а не на дошку: додавання товару — крок
+    // усередині складання пропозиції, а не окрема справа.
+    offerEdBack = o.id;
+    offerEdClose();
+    openCalcFor(o);
+    return;
+  }
+  const k = offerIdxToOrder(o, msg.kind, msg.i);
+  const it = (o.items || [])[k];
+  if(!it) return;
+  if(act === 'del'){
+    if(!confirm('Прибрати «' + (it.name || 'позицію') + '» з пропозиції?')) return;
+    o.items.splice(k, 1);
+  } else if(act === 'swap'){
+    it.kind = it.kind === 'reco' ? 'main' : 'reco';
+  } else if(act === 'up' || act === 'down'){
+    const n = offerNeighbor(o, k, act === 'up' ? -1 : 1);
+    if(n < 0) return;
+    o.items.splice(n, 0, o.items.splice(k, 1)[0]);
+  } else if(act === 'qm' || act === 'qp'){
+    const cur = +it.qty || 1;
+    const step = offerQtyStep(cur);
+    const q = Math.max(1, act === 'qp' ? cur + step : cur - step);
+    if(q === cur) return;
+    it.qty = q;
+    if(it.desc) it.desc.units = q;
+  } else return;
+  /* Ціни рахує спільний рушій, а не редактор: змінили тираж — і собівартість,
+     і сума, і знижка за обсяг перерахуються самі, тими самими правилами, що
+     й у кошику. Саме тому ціну руками тут не правлять. */
+  repriceOrder(o);
+  recalcOrderTotals(o);
+  try{ await storeSet('orders', orders); await offerSave(o); }
+  catch(e){ console.error('offer edit', e); toast('Не збереглось'); return; }
+  renderBoard();
+  offerEdPreview(true);           // структура змінилась — сторінку перечитуємо
+}
+
 function renderOfferEd(){
   const d = document.getElementById('offerEd');
   if(!d || !offerEd) return;
@@ -7635,131 +7682,49 @@ function renderOfferEd(){
   if(!o){ offerEdClose(); return; }
   const brands = brandAll(), curBrand = brandKeyOf(o);
   const link = offerUrl(o);
-  const items = o.items || [];
 
+  /* Над сторінкою — тільки те, чого на ній немає й бути не може: від якого
+     бренду пропозиція і посилання для клієнта. Усе решта правиться на самій
+     сторінці, там, де воно й видно. */
   d.querySelector('.oe-head').innerHTML = `
     <div class="oe-title">
       <b>КП ${escapeHtml(o.orderId || '')}</b>
       <span>${escapeHtml(o.company || o.name || o.instagram || 'клієнт')}</span>
     </div>
-    <button class="oe-btn" data-oe="copy">🔗 Скопіювати посилання</button>
-    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">Відкрити ↗</a>
-    <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
-
-  d.querySelector('.oe-form').innerHTML = `
-    <div class="oe-sec">Від якого бренду</div>
     <div class="oe-brands">
       ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
         escapeHtml(brands[k].name)}</button>`).join('')}
     </div>
+    <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
+    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">Відкрити ↗</a>
+    <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
 
-    <div class="oe-sec">Кому</div>
-    <div class="oe-grid">
-      <input class="oe-i" data-of="name" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
-      <input class="oe-i" data-of="company" placeholder="компанія" value="${escapeHtml(o.company||'')}">
-      <input class="oe-i" data-of="phone" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
-      <input class="oe-i" data-of="dueAt" type="date" title="Здати до" value="${escapeHtml(o.dueAt||'')}">
-    </div>
-
-    <div class="oe-sec">Позиції</div>
-    ${items.length ? items.map((it, i)=>`
-      <div class="oe-item" data-i="${i}">
-        <div class="oe-item-r">
-          <input class="oe-i oe-item-nm" data-oi="name" value="${escapeHtml(it.name||'')}" placeholder="назва позиції">
-          <button class="oe-kind${it.kind==='reco'?' on':''}" data-oi="kind"
-            title="Рекомендація — клієнт додає її сам, у суму вона не входить">реко</button>
-          <button class="oe-del" data-oi="del" title="Прибрати позицію">🗑</button>
-        </div>
-        <div class="oe-item-r">
-          <label class="oe-lab">к-сть<input class="oe-i oe-num" data-oi="qty" type="number" min="1" value="${+it.qty||1}"></label>
-          <label class="oe-lab">ціна/шт<input class="oe-i oe-num" data-oi="unit" type="number" min="0" value="${Math.round(+it.unitPrice||0)}"></label>
-          <span class="oe-sum">${fmt(it.price)} ₴</span>
-        </div>
-        <input class="oe-i oe-note" data-oi="recoNote" placeholder="підпис під позицією у КП (необовʼязково)"
-               value="${escapeHtml(it.recoNote||'')}">
-      </div>`).join('')
-      : '<div class="oe-empty">Позицій ще немає.</div>'}
-    <button class="oe-add" data-oe="add">＋ Додати товар у конструкторі</button>
-
-    <div class="oe-sec">Чому саме такий варіант</div>
-    <div class="oe-hint">Кілька рядків живою мовою: чому ця тканина, чому вишивка, чому такий
-      тираж. Кожен рядок стане окремим пунктом у КП. Порожньо — блоку не буде.</div>
-    <textarea class="oe-i oe-why" data-of="why" rows="4"
-      placeholder="Щільність 320, бо носитимуть щодня всю зиму&#10;Вишивка замість друку — не тріскається на швах капюшона">${escapeHtml(o.why||'')}</textarea>
-
-    <div class="oe-sec">Спільне для всіх пропозицій</div>
-    <div class="oe-hint">Менеджер, гарантії, кейси й відгуки однакові в кожному КП —
-      вони редагуються в Налаштуваннях (Формування цін → «Менеджер у пропозиції»)
-      і в Конструкторі сайту. Тут їх навмисно немає, щоб не правити те саме двічі.</div>
-
-    <div class="oe-url">${escapeHtml(link)}</div>`;
-
-  wireOfferEd(d, o);
-}
-
-function wireOfferEd(d, o){
-  const head = d.querySelector('.oe-head'), form = d.querySelector('.oe-form');
+  const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
   head.querySelector('[data-oe="copy"]').addEventListener('click', ()=>
     copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту'));
-  form.querySelectorAll('[data-brand]').forEach(b=>{
-    b.addEventListener('click', ()=>{
+  head.querySelectorAll('[data-brand]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
       if(brandKeyOf(o) === b.dataset.brand) return;
       o.brand = b.dataset.brand;
-      offerEdSave(o, { repaint:true });
-    });
-  });
-  form.querySelectorAll('[data-of]').forEach(inp=>{
-    inp.addEventListener('change', ()=>{
-      o[inp.dataset.of] = inp.value.trim();
-      offerEdSave(o);
-    });
-  });
-  form.querySelector('[data-oe="add"]').addEventListener('click', ()=>{
-    // Конструктор — окремий екран; редактор ховаємо, щоб не лишався за спиною
-    offerEdClose();
-    openCalcFor(o);
-  });
-  form.querySelectorAll('.oe-item').forEach(row=>{
-    const i = +row.dataset.i, it = (o.items || [])[i];
-    if(!it) return;
-    row.querySelectorAll('[data-oi]').forEach(el=>{
-      const f = el.dataset.oi;
-      if(f === 'del'){
-        el.addEventListener('click', ()=>{
-          if(!confirm('Прибрати «' + (it.name || 'позицію') + '» з пропозиції?')) return;
-          o.items.splice(i, 1);
-          offerEdSave(o, { repaint:true });
-        });
-        return;
-      }
-      if(f === 'kind'){
-        el.addEventListener('click', ()=>{
-          it.kind = it.kind === 'reco' ? 'main' : 'reco';
-          offerEdSave(o, { repaint:true });
-        });
-        return;
-      }
-      el.addEventListener('change', ()=>{
-        if(f === 'qty'){
-          const q = Math.max(1, +el.value || 1);
-          it.qty = q;
-          if(it.desc) it.desc.units = q;
-        } else if(f === 'unit'){
-          it.unitPrice = Math.max(0, +el.value || 0);
-        } else {
-          it[f] = el.value.trim();
-        }
-        // Кількість і ціна міняють суму позиції — перерахунок обовʼязковий
-        if(f === 'qty' || f === 'unit'){
-          it.price = Math.round((+it.unitPrice || 0) * (+it.qty || 1));
-          it.cost  = Math.round((+it.unitCost  || 0) * (+it.qty || 1));
-        }
-        offerEdSave(o, { repaint: f === 'qty' || f === 'unit' });
-      });
+      try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
+      renderBoard(); renderOfferEd(); offerEdPreview(true);
     });
   });
 }
+
+/* Сторінка КП живе в кадрі й нічого не зберігає сама: у неї немає ні входу,
+   ні прав. Вона лише каже, що змінилось, — записує адмінка. Тому клієнт зі
+   своїм посиланням не може відредагувати нічого, навіть дописавши ?edit=1:
+   поруч просто немає нікого, хто б це прийняв. */
+window.addEventListener('message', function(e){
+  const m = e.data;
+  if(!m || !m.lqEdit || !offerEd) return;
+  const f = document.querySelector('#offerEd iframe');
+  if(!f || e.source !== f.contentWindow) return;   // чуже вікно не слухаємо
+  offerEdApply(m);
+});
+
 
 /* ============================================================
    ВІКНО ДІАЛОГУ — спільне для Telegram і Sitniks
