@@ -2095,6 +2095,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cart-totals-row strong{color:var(--ink);font-weight:700;}
   .cart-add-btn{width:100%;justify-content:center;margin-top:26px;}
   .cart-checkout-btn{width:100%;justify-content:center;margin-top:12px;}
+  /* Вибір товару перед завантаженням логотипа: ті самі картки каталогу,
+     тільки в два стовпці і з прокруткою — вікно не має рости на весь екран */
+  .pm-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    max-height:min(56vh,440px);overflow-y:auto;margin-top:4px;padding:2px;}
+  .pm-pick-grid .product{margin:0;cursor:pointer;}
+  .pm-pick-grid .product .go{display:none;}
+  @media(max-width:380px){ .pm-pick-grid{grid-template-columns:1fr;} }
   .cart-footer-link{
     display:block;width:100%;margin-top:14px;background:none;border:none;cursor:pointer;
     font-size:13.5px;color:var(--muted);text-decoration:underline;font-family:var(--font-sf);text-align:center;
@@ -3227,7 +3234,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button class="btn btn-primary" id="cartCreateClientBtn" style="display:none;width:100%;justify-content:center;margin-top:12px;background:#0f2034;">Створити картку клієнта</button>
       <button class="btn btn-primary cart-checkout-btn" data-scroll-to="catalog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.6 13.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L23 6H6"/></svg>
-        Оформити замовлення
+        Залишити заявку
       </button>
       <button class="cart-footer-link" id="cartFooterInfoLink">Реквізити, оферта та контакти</button>
     </div>
@@ -3238,15 +3245,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <div class="pm-sheet-overlay" id="checkoutModal">
   <div class="pm-sheet-card">
     <div class="pm-sheet-handle"></div>
-    <div class="pm-sheet-title">Оформлення замовлення</div>
-    <div class="pm-sheet-sub">Залишіть контакти — менеджер підтвердить макет і терміни</div>
+    <div class="pm-sheet-title">Залишити заявку</div>
+    <div class="pm-sheet-sub">Залишіть контакти — менеджер порахує точну ціну, підтвердить макет і терміни</div>
     <form id="checkoutForm" novalidate>
       <label class="co-label" for="checkoutName">Ім'я</label>
       <input class="co-input" id="checkoutName" type="text" autocomplete="name" placeholder="Як до вас звертатися" required>
       <label class="co-label" for="checkoutPhone">Телефон</label>
       <input class="co-input" id="checkoutPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__" required>
       <div class="co-error" id="checkoutError" hidden></div>
-      <button class="pm-form-submit" id="checkoutSubmit" type="submit">Надіслати замовлення</button>
+      <button class="pm-form-submit" id="checkoutSubmit" type="submit">Залишити заявку</button>
       <button class="pm-mockup-continue-btn" type="button" id="checkoutCancel">Повернутись у кошик</button>
       <div class="co-note">Ми не передаємо ваш номер третім особам</div>
     </form>
@@ -3254,7 +3261,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="co-done-ic">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
-      <div class="co-done-title">Замовлення прийнято</div>
+      <div class="co-done-title">Заявку прийнято</div>
       <div class="co-done-sub">Менеджер зв'яжеться з вами найближчим часом і надішле макет на погодження.</div>
       <button class="pm-form-submit" type="button" id="checkoutClose">Готово</button>
     </div>
@@ -3638,6 +3645,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
+<!-- Вибір товару перед завантаженням логотипа -->
+<div class="pm-sheet-overlay" id="pmPickModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">На чому друкуємо?</div>
+    <div class="pm-sheet-sub">Оберіть товар — далі одразу завантажите логотип і побачите ціну.</div>
+    <div class="pm-pick-grid" id="pmPickGrid"></div>
+  </div>
+</div>
+
 <!-- Delivery popup -->
 <div class="pm-sheet-overlay" id="pmDeliveryModal">
   <div class="pm-sheet-card">
@@ -3965,7 +3982,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     </div>
 
-    <button class="promo-card aurora-bg reveal" data-scroll-to="catalog">
+    <!-- Кнопка обіцяє завантаження логотипа, тож і вести має туди. Каталог
+         під нею й так є: людина, яка натиснула саме цю кнопку, хоче почати
+         з макета, а не гортати список. -->
+    <button class="promo-card aurora-bg reveal" id="promoUploadBtn">
       <div class="promo-left">
         <div class="promo-text">
           <h3>Дізнайтесь <strong>вартість та терміни</strong> свого мерчу за 1 хвилину</h3>
@@ -10400,8 +10420,67 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       document.getElementById('pmPhoneModal').classList.remove('open');
       document.getElementById('pmConsultModal').classList.add('open');
     });
+    /* Заявка з вікна консультації. Кнопка колись просто закривала вікно —
+       ім'я й номер зникали безслідно. Тепер вони йдуть тим самим шляхом,
+       що й заявки зі звичайних форм: у Telegram і в базу, звідки адмінка
+       забирає їх у Канбан. */
     document.getElementById('pmConsultSubmitBtn').addEventListener('click', function(){
-      document.getElementById('pmConsultModal').classList.remove('open');
+      var box = document.getElementById('pmConsultModal');
+      var tel = box.querySelector('input[type="tel"]');
+      var nm  = box.querySelector('input[type="text"]');
+      var raw = (tel.value || '').trim();
+      if(raw.replace(/\D/g, '').length < 7){
+        tel.focus(); tel.style.borderColor = '#e4572e'; return;
+      }
+      var btn = this, orig = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Надсилаємо…';
+      var done = function(ok){
+        if(!ok){
+          btn.disabled = false; btn.textContent = orig;
+          alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
+          return;
+        }
+        btn.textContent = '✅ Дякуємо — передзвонимо';
+        setTimeout(function(){
+          box.classList.remove('open');
+          btn.disabled = false; btn.textContent = orig;
+          tel.value = ''; if(nm) nm.value = '';
+        }, 1800);
+      };
+      if(window.__lqLead) window.__lqLead(raw, nm ? nm.value : '').then(done);
+      else done(false);
+    });
+
+    /* «Завантажити логотип» → вибір товару. Кнопка обіцяла макет, а вела в
+       каталог: людина опинялась перед списком і мусила сама здогадатись, що
+       робити далі. Тепер одразу питаємо, на чому друкуємо, — і після вибору
+       відкривається конструктор, де зона завантаження перша на екрані.
+
+       Картки не дублюємо, а копіюємо з каталогу: назви, ціни й фото там
+       приходять з адмінки, і другий список одразу почав би розходитись. */
+    var promoBtn = document.getElementById('promoUploadBtn');
+    if(promoBtn) promoBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      var src = document.querySelectorAll('#catalog .catalog-grid .product');
+      var grid = document.getElementById('pmPickGrid');
+      if(!src.length || !grid){
+        var cat = document.getElementById('catalog');
+        if(cat) cat.scrollIntoView({ behavior:'smooth' });
+        return;
+      }
+      grid.innerHTML = '';
+      src.forEach(function(card){
+        var cl = card.cloneNode(true);
+        cl.removeAttribute('id');
+        grid.appendChild(cl);
+      });
+      document.getElementById('pmPickModal').classList.add('open');
+      if(window.lqAn) window.lqAn.track('pick_open');
+    });
+    // Товар обрано — конструктор уже відкривається, вікно вибору зайве
+    var pickGrid = document.getElementById('pmPickGrid');
+    if(pickGrid) pickGrid.addEventListener('click', function(){
+      document.getElementById('pmPickModal').classList.remove('open');
     });
 
     // FAQ accordion
@@ -11729,9 +11808,21 @@ window.LOOMIQ_CONFIG = {
   function showSuccess(form){
     form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#2B696C;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
-  function sendLead(phone, form, btn, origText){
+  /* Заявку відправляють два різні місця: звичайні форми з полем телефону і
+     вікно «Отримати консультацію», у якого форми немає взагалі. Спільне —
+     тут, а що показати людині, кожен вирішує сам. Повертає обіцянку з
+     ознакою «дійшло»: без неї викликач не знає, чи можна казати «дякуємо».
+
+     Раніше цієї функції не існувало, і кнопка в тому вікні просто ЗАКРИВАЛА
+     його. Ім'я й номер, які людина щойно вписала, зникали безслідно:
+     ні в Telegram, ні в базі, ні в Канбані. */
+  function postLead(phone, name){
     if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
-    var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
+    var who = String(name || '').trim().slice(0, 60);
+    // Ім'я домішуємо в контекст: воркер заявок приймає вільний рядок, і
+    // міняти його заради одного поля не варто.
+    var label = (document.title || 'Заявка з сайту') + (who ? ' · ' + who : '');
+    var payload = { phone: phone, page: location.href, context: label, ts: new Date().toISOString() };
 
     /* Заявка має потрапити не лише в Telegram, а й у базу — інакше вона
        живе тільки в чаті. Менеджер бачить її в потоці повідомлень, у
@@ -11742,6 +11833,7 @@ window.LOOMIQ_CONFIG = {
       var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
       if(db) db.collection('webLeads').add({
         phone: String(phone || '').slice(0, 20),
+        name: who,
         page: String(location.pathname || '/').slice(0, 120),
         context: String(document.title || '').slice(0, 120),
         site: (window.LQ_SITE || 'main'),
@@ -11753,19 +11845,23 @@ window.LOOMIQ_CONFIG = {
 
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
-      showSuccess(form);
-      return;
+      return Promise.resolve(true);
     }
-    fetch(c.leadEndpoint, {
+    return fetch(c.leadEndpoint, {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
-    }).then(function(r){ return r.ok; }).catch(function(){ return false; })
-      .then(function(ok){
-        if(ok){ showSuccess(form); }
-        else {
-          if(btn){ btn.disabled=false; btn.textContent=origText; }
-          alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
-        }
-      });
+    }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+  }
+  // Вікно консультації живе в іншому скрипті — даємо йому цю ж дорогу
+  window.__lqLead = postLead;
+
+  function sendLead(phone, form, btn, origText){
+    postLead(phone, '').then(function(ok){
+      if(ok){ showSuccess(form); }
+      else {
+        if(btn){ btn.disabled=false; btn.textContent=origText; }
+        alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
+      }
+    });
   }
 
   document.querySelectorAll('form').forEach(function(form){
