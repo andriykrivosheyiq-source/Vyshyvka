@@ -539,6 +539,15 @@
   .tc-tg.unread{font-weight:700;color:var(--ink);font-style:normal;}
   .tc-tg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
     background:#D2560B;margin-right:5px;vertical-align:middle;}
+  /* Число замість крапки: одне питання і пʼять підряд — різні за
+     терміновістю картки, і це має бути видно з колонки */
+  .tc-tg-n{display:inline-block;min-width:16px;height:16px;padding:0 4px;border-radius:20px;
+    background:#D2560B;color:#fff;font-size:10px;font-weight:800;line-height:16px;
+    text-align:center;margin-right:5px;vertical-align:middle;}
+  .tc-tg-at{font-size:10px;color:var(--ink-soft);margin-left:5px;font-weight:400;}
+  .tc-reply{all:unset;cursor:pointer;font-size:11px;font-weight:700;color:#fff;
+    background:#1F2C44;border-radius:7px;padding:4px 10px;}
+  .tc-reply:hover{background:#2c3b58;}
   .tc-meta{font-size:11px;color:var(--ink-soft);}
   .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
   .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
@@ -4390,6 +4399,18 @@ function tgUnread(o){
   if(String(o.tgLast || '').slice(0, 4) === 'Ви: ') return false;
   return String(o.tgAt) > String(o.tgSeen || '');
 }
+/* Скільки повідомлень пропущено. Сама крапка казала «щось є», але не
+   казала «тут одне питання, а тут людина написала пʼять разів і чекає» —
+   а це різні за терміновістю картки.
+
+   Рахуємо різницею лічильників: скільки клієнт написав усього мінус
+   скільки було на момент, коли картку востаннє відкривали. Старі картки
+   такої мітки не мають — тоді чесно показуємо крапку без числа. */
+function tgUnreadCount(o){
+  if(!tgUnread(o)) return 0;
+  if(o.tgSeenWrote == null) return 0;
+  return Math.max(0, (+o.tgWrote || 0) - (+o.tgSeenWrote || 0));
+}
 /* Коли картка востаннє «ожила». Нове повідомлення піднімає її нагору колонки:
    інакше свіжа розмова тонула під замовленнями, заведеними раніше. */
 function orderActivityAt(o){
@@ -6047,6 +6068,8 @@ function renderTicket(o){
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
+  const reply = el.querySelector('[data-chat]');
+  if(reply) reply.addEventListener('click', ()=> chatOpen(o, reply.dataset.chat));
   wireDocsBlock(el, o);
 
   return el;
@@ -6302,9 +6325,20 @@ function ticketSummaryHtml(o){
   /* Дата — коли картка востаннє ожила, а не коли зʼявилась. Інакше поруч зі
      свіжим повідомленням стояло б «07.08», і картка вгорі колонки виглядала
      б помилкою сортування. */
-  const dateSrc = orderActivityAt(o);
-  const date = dateSrc
-    ? new Date(dateSrc).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
+  /* Показуємо, коли картка ЗʼЯВИЛАСЬ, з точністю до хвилини: менеджеру
+     важливо, скільки людина вже чекає. Сортування лишається за останньою
+     активністю — це різні речі, і плутати їх не можна. Свіжість розмови
+     видно поруч, у рядку останнього повідомлення. */
+  const date = o.createdAt
+    ? new Date(o.createdAt).toLocaleString('uk-UA',
+        { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(',', '')
+    : '';
+  const unread = tgUnreadCount(o);
+  const actAt = orderActivityAt(o);
+  const actTime = actAt ? new Date(actAt).toLocaleTimeString('uk-UA',
+        { hour:'2-digit', minute:'2-digit' }) : '';
+  // Кнопка «Відповісти» має сенс лише там, де є куди відповідати
+  const chatKind = tgChatOf(o) ? 'tg' : (o.crmChatId ? 'crm' : '');
   const units = orderUnits(o), pos = (o.items||[]).length;
   const due = dueInfo(o);
   const flow = statusFlow();
@@ -6324,9 +6358,11 @@ function ticketSummaryHtml(o){
     </div>
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
     ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}${tgUnread(o) ? ' unread' : ''}">${
-        tgUnread(o) ? '<span class="tc-tg-dot"></span>' : ''}${
+        unread ? `<span class="tc-tg-n" title="Пропущено повідомлень">${unread}</span>`
+               : (tgUnread(o) ? '<span class="tc-tg-dot"></span>' : '')}${
         o.tgWrote ? '💬 ' + escapeHtml(o.tgLast || '')
-                  : 'відкрив бота, ще не писав'}</div>` : ''}
+                  : 'відкрив бота, ще не писав'}${
+        tgUnread(o) && actTime ? `<span class="tc-tg-at">${escapeHtml(actTime)}</span>` : ''}</div>` : ''}
     <div class="tc-meta">
       <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт'
               : (o.type === 'lead' ? 'заявка · без товару' : 'без товарів')}</span>
@@ -6338,6 +6374,8 @@ function ticketSummaryHtml(o){
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
     </div>
     <div class="tc-acts">
+      ${chatKind ? `<button class="tc-reply" data-chat="${chatKind}"
+          title="Відкрити діалог, не заходячи в картку">Відповісти</button>` : ''}
       ${offerUrl(o)?`<button class="tc-act" data-doc="copylink" title="Скопіювати посилання на КП">🔗</button>`:''}
       <span class="tc-spacer"></span>
       <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
@@ -6418,8 +6456,9 @@ async function openOrderDrawer(o){
     tgWatch(o);                 // жива підписка лише на відкриту картку
     // Відкрив картку — значить, прочитав. Позначку ставимо тим самим часом,
     // що й останнє повідомлення: усе, що прийде далі, знову підсвітиться.
-    if(tgUnread(o)){
+    if(tgUnread(o) || o.tgSeenWrote == null){
       o.tgSeen = o.tgAt;
+      o.tgSeenWrote = +o.tgWrote || 0;   // від цієї позначки рахуємо пропущені
       saveOrders({ quiet:true }).catch(e=> console.warn(e));
     }
   }
@@ -6430,7 +6469,10 @@ async function openOrderDrawer(o){
 }
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
-  if(!d || !d.classList.contains('open')) return;
+  /* Діалог можна відкрити просто з дошки, кнопкою «Відповісти» — тоді картки
+     поруч немає, а оновлювати вікно все одно треба. Усі, хто кличе цю
+     функцію після зміни даних, потрапляють сюди, тож перехоплюємо тут. */
+  if(!d || !d.classList.contains('open')){ if(chatWin) renderChatWin(); return; }
   const o = (orders || []).find(x=>x.id === drawerOrderId);
   if(!o){ closeOrderDrawer(); return; }
   const panel = d.querySelector('.od-panel');
@@ -6665,12 +6707,12 @@ function tgWatch(o){
       const st = tgChat[o.id] || {};
       st.msgs = msgs; st.loading = false; st.err = null;
       tgChat[o.id] = st;
-      if(drawerOrderId === o.id) renderOrderDrawer();
+      if(drawerOrderId === o.id || (chatWin && chatWin.id === o.id)) renderOrderDrawer();
     }, function(e){
       tgChat[o.id] = Object.assign(tgChat[o.id] || {}, { loading:false,
         err: 'Не читається переписка: ' + (e && (e.code || e.message) || '') +
              '. Найчастіше це неопубліковані правила бази.' });
-      if(drawerOrderId === o.id) renderOrderDrawer();
+      if(drawerOrderId === o.id || (chatWin && chatWin.id === o.id)) renderOrderDrawer();
     });
 }
 function tgUnwatch(){ if(tgUnsub){ try{ tgUnsub(); }catch(e){} tgUnsub = null; } }
@@ -7247,7 +7289,10 @@ function crmStopPoll(){ if(crmTimer){ clearInterval(crmTimer); crmTimer = null; 
 
 async function crmPollOnce(o){
   const d = document.getElementById('orderDrawer');
-  if(!d || !d.classList.contains('open') || drawerOrderId !== o.id){ crmStopPoll(); return; }
+  // Розмова жива, поки відкрита картка АБО саме вікно діалогу
+  const live = (d && d.classList.contains('open') && drawerOrderId === o.id) ||
+               (chatWin && chatWin.id === o.id && chatWin.kind === 'crm');
+  if(!live){ crmStopPoll(); return; }
   const st = crmChat[o.id];
   if(!st || !st.chatId || st.loading) return;
   try{
@@ -7425,15 +7470,35 @@ function msgWord(n){
 }
 function chatOrder(){ return chatWin && (orders || []).find(x => x.id === chatWin.id); }
 function chatOpen(o, kind){
-  chatWin = { id: o.id, kind, draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
-                                                    : (crmChat[o.id] || {}).draft) || '' };
+  // solo — вікно відкрили з дошки, без картки. Тоді підписку на розмову й
+  // позначку «прочитано» бере на себе воно саме: інакше стрічка була б
+  // мертвою, а лічильник пропущених не гаснув би ніколи.
+  const solo = drawerOrderId !== o.id;
+  chatWin = { id: o.id, kind, solo,
+              draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
+                                    : (crmChat[o.id] || {}).draft) || '' };
+  if(solo){
+    if(kind === 'tg'){
+      tgWatch(o);
+      if(tgUnread(o) || o.tgSeenWrote == null){
+        o.tgSeen = o.tgAt;
+        o.tgSeenWrote = +o.tgWrote || 0;
+        saveOrders({ quiet:true }).then(renderBoard).catch(e=> console.warn(e));
+      }
+    } else if(!((crmChat[o.id] || {}).msgs)){
+      crmLoadChat(o).then(()=> crmStartPoll(o));
+    } else crmStartPoll(o);
+  }
   chatWinEl().classList.add('open');
   renderChatWin(true);
 }
 function chatClose(){
+  const solo = chatWin && chatWin.solo;
   chatWin = null;
   const d = document.getElementById('chatWin');
   if(d) d.classList.remove('open');
+  // Підписку, яку відкривало саме вікно, воно ж і згортає
+  if(solo){ tgUnwatch(); crmStopPoll(); }
 }
 
 function renderChatWin(toBottom){
