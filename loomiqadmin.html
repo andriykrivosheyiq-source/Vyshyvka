@@ -670,6 +670,8 @@
   .od-chan{flex:none;width:112px;font-size:12px;padding:7px 6px;border-radius:7px;
     border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;}
   .od-chan-h{flex:1;min-width:0;}
+  .od-chan-ok{flex:none;display:flex;align-items:center;justify-content:center;width:26px;
+    border-radius:7px;background:#E7F6EF;color:#0E9F6E;font-size:13px;font-weight:800;}
   .od-chat-open{width:100%;margin-bottom:8px;border:none;border-radius:9px;
     background:#1F2C44;color:#fff;font:inherit;font-size:12.5px;font-weight:700;
     padding:9px 12px;cursor:pointer;}
@@ -6529,6 +6531,36 @@ function chanMigrate(o){
   if(tgChatOf(o)){ o.tgUser = v; o.ig = ''; }
   else { o.ig = v; o.tgUser = ''; }
 }
+/* Буває, що розмова є, а ніка немає: у Telegram @нік узагалі не
+   обовʼязковий, а діалог Sitniks ми привʼязували пошуком за імʼям. Поле
+   лишалось порожнім, і картка виглядала так, ніби контакту немає зовсім —
+   хоча писати цій людині можна просто зараз.
+
+   Тому підставляємо те, що знаємо: імʼя зі співрозмовника, а як і його
+   немає — сам номер чату. Це не вигадка, а те саме, чим ми його
+   розрізняємо. */
+function chanFallback(o, k){
+  if(k === 'tg'){
+    return String(o.name || '').trim() || (tgChatOf(o) ? 'чат ' + tgChatOf(o) : '');
+  }
+  if(k === 'ig'){
+    return String(o.crmChatName || '').trim() || (o.crmChatId ? 'чат ' + o.crmChatId : '');
+  }
+  return '';
+}
+function chanFill(o){
+  let changed = false;
+  if(tgChatOf(o) && !String(o.tgUser || '').trim()){
+    const v = chanFallback(o, 'tg');
+    if(v){ o.tgUser = v; changed = true; }
+  }
+  if(o.crmChatId && !String(o.ig || '').trim()){
+    const v = chanFallback(o, 'ig');
+    if(v){ o.ig = v; changed = true; }
+  }
+  if(changed) o.instagram = chanHandle(o, chanActive(o));
+  return changed;
+}
 function chanSet(o, k, v){
   const val = String(v || '').trim();
   if(k === 'tg') o.tgUser = val;
@@ -6616,6 +6648,8 @@ function renderOrderDrawer(){
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const due = dueInfo(o);
   chanMigrate(o);
+  // Порожнє поле там, де розмова вже є, читається як «контакту немає»
+  if(chanFill(o)) saveOrderMeta(o).catch(e=> console.warn(e));
   const ch = chanActive(o);
   const hasChat = chanHasChat(o, ch);
   panel.innerHTML = `
@@ -6639,6 +6673,7 @@ function renderOrderDrawer(){
         </select>
         <input class="od-f od-chan-h" type="text" placeholder="${escapeHtml(CHAN[ch].ph)}"
                value="${escapeHtml(chanHandle(o, ch))}">
+        ${hasChat ? '<span class="od-chan-ok" title="Діалог привʼязаний — можна писати звідси">✓</span>' : ''}
         ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
       </div>
       ${crmSeekHtml(o)}
