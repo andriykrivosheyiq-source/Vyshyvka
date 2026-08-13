@@ -664,6 +664,31 @@
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  /* Канал звʼязку — перший рядок картки: головне не «як звати», а «де ми
+     з цією людиною розмовляємо» */
+  .od-contact{display:flex;gap:6px;align-items:stretch;margin-bottom:6px;}
+  .od-chan{flex:none;width:112px;font-size:12px;padding:7px 6px;border-radius:7px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;}
+  .od-chan-h{flex:1;min-width:0;}
+  .od-chat-open{width:100%;margin-bottom:8px;border:none;border-radius:9px;
+    background:#1F2C44;color:#fff;font:inherit;font-size:12.5px;font-weight:700;
+    padding:9px 12px;cursor:pointer;}
+  .od-chat-open:hover{background:#2c3b58;}
+  /* Головна дія картки — зібрати пропозицію. Тому вона й виглядає головною */
+  .od-kp{width:100%;margin:14px 0 4px;border:none;border-radius:10px;
+    background:var(--accent);color:#fff;font:inherit;font-size:13.5px;font-weight:800;
+    padding:12px 14px;cursor:pointer;}
+  .od-kp:hover{background:var(--accent-deep);}
+  /* Склад і гроші потрібні не щоразу, а місця займали пів панелі */
+  .od-fold{margin-top:14px;border:1px solid var(--line);border-radius:10px;
+    background:var(--canvas);padding:0 11px;}
+  .od-fold>summary{cursor:pointer;list-style:none;padding:11px 0;font-size:12px;
+    font-weight:700;color:var(--ink-soft);}
+  .od-fold>summary::-webkit-details-marker{display:none;}
+  .od-fold>summary::before{content:'▸ ';color:var(--ink-soft);}
+  .od-fold[open]>summary::before{content:'▾ ';}
+  .od-fold[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px;}
+  .od-fold>*:last-child{margin-bottom:11px;}
   .od-f{font-size:12px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);
     background:#fff;color:var(--ink);font-family:inherit;min-width:0;}
   .od-f:focus{outline:none;border-color:var(--accent);}
@@ -715,6 +740,68 @@
   .od-open-chat{flex:none;border:none;border-radius:8px;background:var(--ink);color:#fff;
     font:inherit;font-size:12px;font-weight:700;padding:7px 13px;cursor:pointer;}
   .od-open-chat:hover{background:#1c2840;}
+
+  /* ── Редактор пропозиції ────────────────────────────────────────────────
+     Документ: ліворуч поля, праворуч жива сторінка клієнта. Складати КП
+     наосліп і бігати перевіряти в іншу вкладку більше не треба. */
+  .oe-wrap{position:fixed;inset:0;z-index:1300;display:none;align-items:center;
+    justify-content:center;background:rgba(15,32,52,.55);padding:14px;}
+  .oe-wrap.open{display:flex;}
+  .oe{width:100%;max-width:1240px;height:94vh;background:#fff;border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.4);}
+  .oe-head{flex:none;display:flex;align-items:center;gap:8px;padding:11px 13px;
+    border-bottom:1px solid var(--line);background:var(--canvas);}
+  .oe-title{flex:1;min-width:0;display:flex;align-items:baseline;gap:9px;overflow:hidden;}
+  .oe-title b{font-family:var(--mono);font-size:15px;color:var(--ink);}
+  .oe-title span{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  .oe-btn{flex:none;border:1px solid var(--line);border-radius:8px;background:#fff;
+    color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;padding:8px 13px;
+    cursor:pointer;text-decoration:none;}
+  .oe-btn:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .oe-btn--main{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;}
+  .oe-btn--main:hover{background:#1c2840;color:#fff;}
+  .oe-body{flex:1;min-height:0;display:flex;}
+  .oe-form{flex:0 0 45%;max-width:520px;overflow-y:auto;padding:16px 18px 40px;}
+  .oe-prev{flex:1;min-width:0;background:#E9EDF3;border-left:1px solid var(--line);}
+  .oe-prev iframe{width:100%;height:100%;border:0;display:block;background:#fff;}
+  .oe-sec{font-size:10.5px;font-weight:800;color:#9AA5B5;text-transform:uppercase;
+    letter-spacing:.5px;margin:20px 0 8px;}
+  .oe-sec:first-child{margin-top:0;}
+  .oe-hint{font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin:-3px 0 8px;}
+  .oe-i{width:100%;font:inherit;font-size:13px;padding:9px 11px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);min-width:0;}
+  .oe-i:focus{outline:none;border-color:var(--accent);}
+  .oe-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .oe-brands{display:flex;gap:7px;}
+  .oe-brand{flex:1;border:1px solid var(--line);border-radius:9px;background:#fff;
+    font:inherit;font-size:13px;font-weight:700;padding:10px;cursor:pointer;color:var(--ink-soft);}
+  .oe-brand.on{border-color:var(--ink);background:var(--ink);color:#fff;}
+  .oe-item{border:1px solid var(--line);border-radius:11px;padding:9px;margin-bottom:8px;
+    background:var(--canvas);}
+  .oe-item-r{display:flex;gap:7px;align-items:center;margin-bottom:7px;}
+  .oe-item-nm{font-weight:700;}
+  .oe-lab{flex:1;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);}
+  .oe-num{width:82px;flex:none;font-family:var(--mono);}
+  .oe-sum{flex:none;font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink);}
+  .oe-kind{flex:none;border:1px solid var(--line);border-radius:7px;background:#fff;
+    font:inherit;font-size:11px;font-weight:700;color:var(--ink-soft);padding:7px 9px;cursor:pointer;}
+  .oe-kind.on{background:#FFF4DE;border-color:#E7C989;color:#8A6A15;}
+  .oe-del{all:unset;cursor:pointer;flex:none;color:#AEB8C9;padding:7px;border-radius:7px;}
+  .oe-del:hover{background:var(--bad-soft);color:var(--bad);}
+  .oe-note{font-size:12px;}
+  .oe-add{width:100%;border:1px dashed var(--line);border-radius:10px;background:#fff;
+    font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:11px;cursor:pointer;}
+  .oe-add:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .oe-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0 10px;}
+  .oe-why{line-height:1.5;resize:vertical;}
+  .oe-url{margin-top:16px;font-family:var(--mono);font-size:10.5px;color:#4f5fd4;
+    background:#F1F5F9;border-radius:7px;padding:8px 10px;word-break:break-all;}
+  @media(max-width:900px){
+    .oe-body{flex-direction:column;}
+    .oe-form{flex:none;max-width:none;}
+    .oe-prev{flex:none;height:50vh;border-left:none;border-top:1px solid var(--line);}
+  }
 
   /* ── Вікно діалогу ──────────────────────────────────────────────────────
      Переписуватись у вузькій колонці картки незручно: рядок на два слова,
@@ -784,16 +871,6 @@
   .od-qty-unit{font-size:11px;color:var(--ink-soft);}
   .od-item-del{all:unset;cursor:pointer;font-size:12px;color:#AEB8C9;padding:4px 8px;border-radius:6px;}
   .od-item-del:hover{background:var(--bad-soft);color:var(--bad);}
-  .od-add{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;}
-  .od-add-color{width:74px;font-size:11.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);}
-  .od-add-sizes{flex:1;min-width:110px;font-size:11.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);}
-  .od-add-pick{flex:1;min-width:0;font-size:11.5px;padding:7px 8px;border-radius:7px;
-    border:1px solid var(--line);background:#fff;color:var(--ink);}
-  .od-add-qty{width:56px;font-family:var(--mono);font-size:12px;padding:6px 7px;border-radius:7px;
-    border:1px solid var(--line);background:#fff;color:var(--ink);}
-  .od-add-go{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;white-space:nowrap;
-    padding:7px 11px;border-radius:7px;background:var(--canvas);color:var(--ink-soft);}
-  .od-add-go:hover{background:var(--accent-soft);color:var(--accent-deep);}
   @media (max-width:640px){ .od-panel{width:100%;} }
 
   .t-actions{display:flex;gap:6px;}
@@ -4318,10 +4395,46 @@ function offerUrl(o){
 }
 // Короткий номер замовлення (той самий формат, що й на сайті)
 // Номер замовлення — лише цифри (той самий формат, що й на сайті): ддммрр + 3 випадкові
+/* Номер замовлення — наскрізний лічильник із 1000001.
+
+   Був складений із дати й трьох випадкових цифр: дев'ять знаків, які не
+   можна ні продиктувати телефоном, ні впорядкувати, ні перевірити на
+   помилку. Тепер сім цифр підряд: короткі, зростають, і за номером одразу
+   видно, що раніше, а що пізніше.
+
+   Номер отримує КОЖНА картка, навіть якщо людина ще нічого не замовила:
+   без нього немає про що говорити з клієнтом і нічого шукати в CRM.
+
+   Наступний беремо від найбільшого наявного. Старі дев'ятизначні номери в
+   рахунок не йдуть — інакше лічильник одразу стрибнув би за сто мільйонів. */
+const ORDER_ID_MIN = 1000001;
+let orderSeq = 0;
+function orderIdNum(v){
+  const s = String(v || '');
+  return /^\d{7}$/.test(s) ? +s : 0;
+}
 function makeOrderId(){
-  const d = new Date(), p = n => String(n).padStart(2,'0');
-  return p(d.getDate()) + p(d.getMonth()+1) + p(d.getFullYear()%100)
-       + String(Math.floor(Math.random()*900) + 100);
+  if(!orderSeq){
+    (orders || []).forEach(o => { const n = orderIdNum(o.orderId); if(n > orderSeq) orderSeq = n; });
+    if(orderSeq < ORDER_ID_MIN - 1) orderSeq = ORDER_ID_MIN - 1;
+  }
+  orderSeq += 1;
+  return String(orderSeq);
+}
+/* Картки, заведені до цієї зміни, номера не мають. Проставляємо разом і в
+   тому ж порядку, у якому вони зʼявлялись, — щоб нумерація читалась як
+   історія, а не як випадковий набір. */
+async function backfillOrderIds(){
+  const need = (orders || []).filter(o => !String(o.orderId || '').trim());
+  if(!need.length) return;
+  need.sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+  need.forEach(o => { o.orderId = makeOrderId(); });
+  try{
+    await storeSet('orders', orders);
+    // Пропозиції, які вже надіслані, мають показувати той самий номер
+    for(const o of need){ if(o.offerToken) await offerSave(o).catch(()=>{}); }
+    console.log('номери проставлено:', need.length);
+  }catch(e){ console.warn('нумерація не збереглась', e); }
 }
 // Сповіщення в Telegram через той самий воркер, що й заявки з сайту (без собівартості).
 const LEAD_ENDPOINT = 'https://loomiq-lead.stvory.workers.dev';
@@ -4474,7 +4587,7 @@ function watchTelegramLeads(){
       const who = (d.name || '').trim() || (d.user ? '@' + d.user : 'Telegram');
       orders.unshift({
         id: cryptoId(), webId: 'tg:' + rec.id, type:'lead', status: firstStatusKey(),
-        orderId: '', source: 'Telegram', site: 'main',
+        orderId: makeOrderId(), source: 'Telegram', site: 'main',
         name: who, phone: '',
         instagram: d.user ? '@' + d.user : '',
         // note лишаємо порожньою: це поле менеджера, і зайняти його
@@ -4622,7 +4735,7 @@ function watchWebLeads(){
            — це звернення, а не «Нове замовлення»; до того ж етапи можна
            перейменувати, і зашитий ключ повів би картку в «Без етапу». */
         id: cryptoId(), webId: rec.id, type:'lead', status: firstStatusKey(),
-        orderId: '',
+        orderId: makeOrderId(),
         source: 'заявка',
         site: d.site || 'main',
         name: d.name || '', phone: d.phone || '',
@@ -4673,7 +4786,7 @@ function watchWebOrders(){
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
       orders.unshift({
         id: cryptoId(), webId: rec.id, type:'web', status:'new',
-        orderId: d.orderId || '',        // короткий номер для пошуку в CRM
+        orderId: d.orderId || makeOrderId(),   // короткий номер для пошуку в CRM
         source: 'сайт',
         site: d.site || 'main',        // з якої посадкової прийшло замовлення
         name: d.name||'', phone: d.phone||'', items,
@@ -6242,25 +6355,6 @@ async function saveOrderEdit(o){
   renderBoard();
   renderOrderDrawer();
 }
-async function orderAddItem(o, gid, qty, kind, color, sizes){
-  const g = orderGarments().find(x=>x.id === gid);
-  if(!g){ toast('Оберіть товар'); return; }
-  const q = Math.max(1, +qty || 1);
-  const u = bareUnitPrice(gid, q);
-  (o.items = o.items || []).push({
-    kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
-    name: g.name, color:(color||'').trim(), print:'', sizes:(sizes||'').trim(),
-    qty: q, unitPrice: u.price, price: u.price * q,
-    unitCost: u.cost, cost: u.cost * q,
-    mockups: [], prints: [], calc: null, garmentId: gid,
-    // Голий виріб без нанесення — теж учасник спільної шкали на одяг
-    desc: { method:'dtf', units:q, base:g.minPrice, coefPart:0, pieceFee:0,
-            dtfCols:[], designs:[], bare:true },
-    config: null
-  });
-  await saveOrderEdit(o);
-  toast(kind === 'reco' ? 'Рекомендацію додано' : 'Товар додано');
-}
 async function orderSetQty(o, idx, qty){
   const it = (o.items||[])[idx];
   if(!it) return;
@@ -6285,20 +6379,6 @@ async function orderRemoveItem(o, idx){
   o.items.splice(idx, 1);
   await saveOrderEdit(o);
 }
-function addItemRowHtml(kind){
-  const opts = orderGarments().map(g=>
-    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)} — ${fmt(g.minPrice)} ₴</option>`).join('');
-  if(!opts) return '<div class="od-empty">У каталозі немає товарів</div>';
-  return `
-    <div class="od-add" data-add-kind="${kind}">
-      <select class="od-add-pick">${opts}</select>
-      <input class="od-add-qty" type="number" min="1" step="1" value="1" aria-label="Кількість">
-      <input class="od-add-color" type="text" placeholder="колір" aria-label="Колір">
-      <input class="od-add-sizes" type="text" placeholder="розміри — M×20, L×30" aria-label="Розміри">
-      <button class="od-add-go">+ ${kind === 'reco' ? 'рекомендацію' : 'товар'}</button>
-    </div>`;
-}
-
 function orderWho(o){
   return [o.instagram, o.name, o.phone].filter(Boolean).join(' · ') || '—';
 }
@@ -6412,6 +6492,54 @@ function buildTicket(o){
 function renderWebTicket(o){ return buildTicket(o); }
 function renderClientTicket(o){ return buildTicket(o); }
 
+/* ── Канали звʼязку в картці ──────────────────────────────────────────────
+   Одна людина пише туди, куди їй зручно: сьогодні в Instagram, завтра з
+   телефону в Telegram. Досі в картці було одне поле «інстаграм», і другий
+   канал ніде було записати — менеджер тримав це в голові або заводив другу
+   картку на ту саму людину.
+
+   Тепер канали живуть поруч, а перемикач каже головне: де ми ведемо цю
+   розмову зараз. Від нього ж залежить, який діалог відкриє кнопка. */
+const CHAN = {
+  tg:    { label:'Telegram',  ph:'@нік у Telegram' },
+  ig:    { label:'Instagram', ph:'нік в Instagram' },
+  viber: { label:'Viber',     ph:'+380…' }
+};
+const CHAN_KEYS = ['tg', 'ig', 'viber'];
+function chanHandle(o, k){
+  return String((k === 'tg' ? o.tgUser : k === 'ig' ? o.ig : o.viberNum) || '');
+}
+function chanHasChat(o, k){
+  return k === 'tg' ? !!tgChatOf(o) : k === 'ig' ? !!o.crmChatId : false;
+}
+function chanFilled(o, k){ return !!chanHandle(o, k) || chanHasChat(o, k); }
+function chanActive(o){
+  if(o.chan && CHAN[o.chan]) return o.chan;
+  // Не обирали вручну — вгадуємо за тим, де вже є розмова
+  if(tgChatOf(o)) return 'tg';
+  if(o.crmChatId || o.ig) return 'ig';
+  return o.tgUser ? 'tg' : 'ig';
+}
+/* Старі картки мають одне поле instagram, у якому лежить то нік Instagram,
+   то @нік Telegram — залежно від того, звідки прийшла людина. Розкладаємо
+   його по каналах один раз, при першому відкритті картки. */
+function chanMigrate(o){
+  if(o.tgUser != null || o.ig != null) return;
+  const v = String(o.instagram || '').trim();
+  if(tgChatOf(o)){ o.tgUser = v; o.ig = ''; }
+  else { o.ig = v; o.tgUser = ''; }
+}
+function chanSet(o, k, v){
+  const val = String(v || '').trim();
+  if(k === 'tg') o.tgUser = val;
+  else if(k === 'ig') o.ig = val;
+  else o.viberNum = val;
+  /* instagram лишається дзеркалом активного каналу: на ньому тримаються
+     підпис картки, пропозиція клієнту й пошук — переписувати їх усі заради
+     перейменування поля означало б рознести правку по десятку місць. */
+  o.instagram = chanHandle(o, chanActive(o));
+}
+
 /* ── Бічна панель замовлення ─────────────────────────────────────────────
    Розкривати картку на місці не можна: колонка стрибає і Канбан перестає
    бути Канбаном. Тому деталі — у панелі справа, де є місце під макети. */
@@ -6487,28 +6615,40 @@ function renderOrderDrawer(){
   const created = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const due = dueInfo(o);
+  chanMigrate(o);
+  const ch = chanActive(o);
+  const hasChat = chanHasChat(o, ch);
   panel.innerHTML = `
     <div class="od-head">
       <div>
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
-          ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${o.orderId?escapeHtml(o.orderId):'Замовлення'}</div>
-        <div class="od-sub">${escapeHtml(created)} · ${escapeHtml(o.source||'сайт')}${(statusFlow()[statusIdx]||{}).label?' · '+escapeHtml(statusFlow()[statusIdx].label):''}</div>
+          ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
+        <div class="od-sub">${escapeHtml(created)}${(statusFlow()[statusIdx]||{}).label?' · '+escapeHtml(statusFlow()[statusIdx].label):''}</div>
       </div>
       ${anTraceHtml(o)}
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
       <div class="od-sec">Клієнт</div>
+      <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
+           а «де ми з цією людиною розмовляємо» -->
+      <div class="od-contact">
+        <select class="od-chan" title="Де ведемо розмову">
+          ${CHAN_KEYS.map(k=>`<option value="${k}"${k===ch?' selected':''}>${
+            CHAN[k].label}${chanFilled(o,k)?' •':''}</option>`).join('')}
+        </select>
+        <input class="od-f od-chan-h" type="text" placeholder="${escapeHtml(CHAN[ch].ph)}"
+               value="${escapeHtml(chanHandle(o, ch))}">
+        ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
+      </div>
+      ${crmSeekHtml(o)}
+      ${hasChat ? `<button class="od-chat-open" data-chat="${ch === 'tg' ? 'tg' : 'crm'}">
+          Відкрити чат у ${escapeHtml(CHAN[ch].label)}</button>` : ''}
       <div class="od-fields">
-        <div class="od-igrow">
-          <input class="od-f" data-f="instagram" type="text" placeholder="інстаграм" value="${escapeHtml(o.instagram||'')}">
-          ${crmSeekBtnHtml(o)}
-        </div>
         <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
         <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
         <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
       </div>
-      ${crmSeekHtml(o)}
       <div class="od-due">
         <span class="od-due-lab">Здати до</span>
         <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
@@ -6516,23 +6656,26 @@ function renderOrderDrawer(){
         ${siteLinkHtml(o)}
       </div>
 
-      <div class="od-sec">Склад замовлення</div>
-      <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
-      <!-- Головний шлях: зібрати позиції в конструкторі, з логотипом на макеті
-           й собівартістю. Рядки нижче лишаються для дрібних правок руками. -->
-      <button class="od-build" data-act="build">
-        ${(o.items||[]).length ? '＋ Додати позиції в конструкторі' : '＋ Зібрати пропозицію в конструкторі'}
-      </button>
-      ${addItemRowHtml('main')}
-      ${addItemRowHtml('reco')}
+      <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
 
-      <div class="od-sec">Гроші</div>
-      <div class="t-breakdown">
-        <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
-        <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
-      </div>
-      ${priceCalcHtml(o)}
-      <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+      <div class="od-sec">Нотатка менеджера · тільки для нас</div>
+      <textarea class="od-note od-f" data-f="note" rows="4"
+        placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
+
+      <!-- Склад і гроші потрібні не щоразу, а місця займали пів панелі -->
+      <details class="od-fold"${(o.items||[]).length ? '' : ' open'}>
+        <summary>Склад замовлення та гроші${(o.items||[]).length
+          ? ' · ' + (o.items||[]).length + ' ' + posWordUa((o.items||[]).length) +
+            ' · ' + fmt(o.totalPrice) + ' ₴' : ''}</summary>
+        <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
+        <button class="od-build" data-act="build">＋ Додати товар</button>
+        <div class="t-breakdown">
+          <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+          <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
+        </div>
+        ${priceCalcHtml(o)}
+        <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+      </details>
 
       ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
       ${docsBlockHtml(o)}
@@ -6542,17 +6685,6 @@ function renderOrderDrawer(){
       ${tgChatOf(o) ? '<div class="od-sec">Діалог у Telegram</div>' + tgBlockHtml(o) : ''}
 
       ${crmShow(o) ? '<div class="od-sec">Діалог з клієнтом (Sitniks)</div>' + crmBlockHtml(o) : ''}
-
-      <!-- Це БАЧИТЬ клієнт — на відміну від нотатки нижче -->
-      <div class="od-sec">Чому саме такий варіант · у пропозиції</div>
-      <div class="od-hint">Кілька рядків живою мовою: чому ця тканина, чому вишивка, чому такий тираж.
-        Кожен рядок стане окремим пунктом у КП. Порожньо — блоку в пропозиції не буде.</div>
-      <textarea class="od-note od-f" data-f="why" rows="3"
-        placeholder="Щільність 320, бо носитимуть щодня всю зиму&#10;Вишивка замість друку — не тріскається на швах капюшона&#10;Спину лишили чистою: на корпоративі стриманіше">${escapeHtml(o.why||'')}</textarea>
-
-      <div class="od-sec">Нотатка менеджера · тільки для нас</div>
-      <textarea class="od-note od-f" data-f="note" rows="5"
-        placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
     </div>
     <div class="od-foot">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
@@ -6571,15 +6703,23 @@ function renderOrderDrawer(){
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
   const build = panel.querySelector('[data-act="build"]');
   if(build) build.addEventListener('click', ()=> openCalcFor(o));
+  const kp = panel.querySelector('[data-act="offered"]');
+  if(kp) kp.addEventListener('click', ()=> openOfferEditor(o));
+  const chanSel = panel.querySelector('.od-chan');
+  if(chanSel) chanSel.addEventListener('change', async ()=>{
+    o.chan = chanSel.value;
+    chanSet(o, o.chan, chanHandle(o, o.chan));   // оновлюємо дзеркало instagram
+    await saveOrderMeta(o);
+    renderOrderDrawer();
+  });
+  const chanInp = panel.querySelector('.od-chan-h');
+  if(chanInp) chanInp.addEventListener('change', async ()=>{
+    chanSet(o, chanActive(o), chanInp.value);
+    await saveOrderMeta(o);
+    renderOrderDrawer();
+  });
   panel.querySelectorAll('[data-edit-i]').forEach(b2=>{
     b2.addEventListener('click', ()=> openCalcFor(o, +b2.dataset.editI));
-  });
-  panel.querySelectorAll('.od-add').forEach(row=>{
-    row.querySelector('.od-add-go').addEventListener('click', ()=>
-      orderAddItem(o, row.querySelector('.od-add-pick').value,
-                      row.querySelector('.od-add-qty').value, row.dataset.addKind,
-                      row.querySelector('.od-add-color').value,
-                      row.querySelector('.od-add-sizes').value));
   });
   panel.querySelectorAll('.od-f').forEach(inp=>{
     inp.addEventListener('change', async ()=>{
@@ -7366,6 +7506,224 @@ function wireCrmBlock(panel, o){
       if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send();
     });
   }
+}
+
+/* ============================================================
+   РЕДАКТОР КОМЕРЦІЙНОЇ ПРОПОЗИЦІЇ
+
+   Досі КП збиралась із картки: тексти правились в одному місці, позиції в
+   другому, а побачити результат можна було, лише відкривши посилання в
+   новій вкладці. Виходило складання наосліп.
+
+   Тут — документ: ліворуч поля, праворуч жива сторінка клієнта. Правка
+   зберігається сама й одразу перемальовує перегляд. Клієнт за посиланням
+   бачить те саме, але лише читає: редагування живе тільки тут.
+   ============================================================ */
+let offerEd = null;        // { id, timer }
+
+function offerEdEl(){
+  let d = document.getElementById('offerEd');
+  if(d) return d;
+  d = document.createElement('div');
+  d.id = 'offerEd';
+  d.className = 'oe-wrap';
+  d.innerHTML = '<div class="oe"><div class="oe-head"></div>' +
+                '<div class="oe-body"><div class="oe-form"></div>' +
+                '<div class="oe-prev"><iframe title="Перегляд пропозиції"></iframe></div></div></div>';
+  document.body.appendChild(d);
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape' && offerEd && !chatWin) offerEdClose();
+  });
+  return d;
+}
+function offerEdOrder(){ return offerEd && (orders || []).find(x => x.id === offerEd.id); }
+
+async function openOfferEditor(o){
+  // Без токена немає ні сторінки, ні перегляду — створюємо мовчки, це вже
+  // не окрема дія менеджера, а просто «відкрити документ».
+  if(!o.offerToken){
+    o.offerToken = makeOfferToken();
+    o.offerState = 'created';
+    if(!o.orderId) o.orderId = makeOrderId();
+    try{ await storeSet('orders', orders); await offerSave(o); }
+    catch(e){ console.error(e); toast('Не вдалося створити КП'); return; }
+    renderBoard();
+  }
+  offerEd = { id: o.id };
+  offerEdEl().classList.add('open');
+  renderOfferEd();
+  offerEdPreview(true);
+}
+function offerEdClose(){
+  offerEd = null;
+  const d = document.getElementById('offerEd');
+  if(d){
+    d.classList.remove('open');
+    // Порожнимо кадр: інакше сторінка КП лишається жити у фоні
+    const f = d.querySelector('iframe');
+    if(f) f.removeAttribute('src');
+  }
+  renderOrderDrawer();
+}
+/* Перегляд перезавантажуємо не на кожну літеру, а коли людина спинилась:
+   інакше кадр блимав би щосимвола і читати його було б неможливо. */
+function offerEdPreview(now){
+  const d = document.getElementById('offerEd');
+  const o = offerEdOrder();
+  if(!d || !o) return;
+  const go = ()=>{
+    const f = d.querySelector('iframe');
+    if(!f) return;
+    f.src = offerUrl(o) + '&t=' + Date.now();
+  };
+  if(offerEd.timer) clearTimeout(offerEd.timer);
+  if(now){ go(); return; }
+  offerEd.timer = setTimeout(go, 1100);
+}
+/* Одна дорога для всіх правок редактора: перерахувати, зберегти, оновити
+   перегляд. Кожне поле лише міняє значення й кличе це. */
+async function offerEdSave(o, opts){
+  recalcOrderTotals(o);
+  try{
+    await storeSet('orders', orders);
+    await offerSave(o);
+  }catch(e){ console.error('offer save', e); toast('Не збереглось'); return; }
+  renderBoard();
+  if(opts && opts.repaint) renderOfferEd();
+  offerEdPreview();
+}
+
+function renderOfferEd(){
+  const d = document.getElementById('offerEd');
+  if(!d || !offerEd) return;
+  const o = offerEdOrder();
+  if(!o){ offerEdClose(); return; }
+  const brands = brandAll(), curBrand = brandKeyOf(o);
+  const link = offerUrl(o);
+  const items = o.items || [];
+
+  d.querySelector('.oe-head').innerHTML = `
+    <div class="oe-title">
+      <b>КП ${escapeHtml(o.orderId || '')}</b>
+      <span>${escapeHtml(o.company || o.name || o.instagram || 'клієнт')}</span>
+    </div>
+    <button class="oe-btn" data-oe="copy">🔗 Скопіювати посилання</button>
+    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">Відкрити ↗</a>
+    <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
+
+  d.querySelector('.oe-form').innerHTML = `
+    <div class="oe-sec">Від якого бренду</div>
+    <div class="oe-brands">
+      ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
+        escapeHtml(brands[k].name)}</button>`).join('')}
+    </div>
+
+    <div class="oe-sec">Кому</div>
+    <div class="oe-grid">
+      <input class="oe-i" data-of="name" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
+      <input class="oe-i" data-of="company" placeholder="компанія" value="${escapeHtml(o.company||'')}">
+      <input class="oe-i" data-of="phone" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
+      <input class="oe-i" data-of="dueAt" type="date" title="Здати до" value="${escapeHtml(o.dueAt||'')}">
+    </div>
+
+    <div class="oe-sec">Позиції</div>
+    ${items.length ? items.map((it, i)=>`
+      <div class="oe-item" data-i="${i}">
+        <div class="oe-item-r">
+          <input class="oe-i oe-item-nm" data-oi="name" value="${escapeHtml(it.name||'')}" placeholder="назва позиції">
+          <button class="oe-kind${it.kind==='reco'?' on':''}" data-oi="kind"
+            title="Рекомендація — клієнт додає її сам, у суму вона не входить">реко</button>
+          <button class="oe-del" data-oi="del" title="Прибрати позицію">🗑</button>
+        </div>
+        <div class="oe-item-r">
+          <label class="oe-lab">к-сть<input class="oe-i oe-num" data-oi="qty" type="number" min="1" value="${+it.qty||1}"></label>
+          <label class="oe-lab">ціна/шт<input class="oe-i oe-num" data-oi="unit" type="number" min="0" value="${Math.round(+it.unitPrice||0)}"></label>
+          <span class="oe-sum">${fmt(it.price)} ₴</span>
+        </div>
+        <input class="oe-i oe-note" data-oi="recoNote" placeholder="підпис під позицією у КП (необовʼязково)"
+               value="${escapeHtml(it.recoNote||'')}">
+      </div>`).join('')
+      : '<div class="oe-empty">Позицій ще немає.</div>'}
+    <button class="oe-add" data-oe="add">＋ Додати товар у конструкторі</button>
+
+    <div class="oe-sec">Чому саме такий варіант</div>
+    <div class="oe-hint">Кілька рядків живою мовою: чому ця тканина, чому вишивка, чому такий
+      тираж. Кожен рядок стане окремим пунктом у КП. Порожньо — блоку не буде.</div>
+    <textarea class="oe-i oe-why" data-of="why" rows="4"
+      placeholder="Щільність 320, бо носитимуть щодня всю зиму&#10;Вишивка замість друку — не тріскається на швах капюшона">${escapeHtml(o.why||'')}</textarea>
+
+    <div class="oe-sec">Спільне для всіх пропозицій</div>
+    <div class="oe-hint">Менеджер, гарантії, кейси й відгуки однакові в кожному КП —
+      вони редагуються в Налаштуваннях (Формування цін → «Менеджер у пропозиції»)
+      і в Конструкторі сайту. Тут їх навмисно немає, щоб не правити те саме двічі.</div>
+
+    <div class="oe-url">${escapeHtml(link)}</div>`;
+
+  wireOfferEd(d, o);
+}
+
+function wireOfferEd(d, o){
+  const head = d.querySelector('.oe-head'), form = d.querySelector('.oe-form');
+  head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
+  head.querySelector('[data-oe="copy"]').addEventListener('click', ()=>
+    copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту'));
+  form.querySelectorAll('[data-brand]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(brandKeyOf(o) === b.dataset.brand) return;
+      o.brand = b.dataset.brand;
+      offerEdSave(o, { repaint:true });
+    });
+  });
+  form.querySelectorAll('[data-of]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      o[inp.dataset.of] = inp.value.trim();
+      offerEdSave(o);
+    });
+  });
+  form.querySelector('[data-oe="add"]').addEventListener('click', ()=>{
+    // Конструктор — окремий екран; редактор ховаємо, щоб не лишався за спиною
+    offerEdClose();
+    openCalcFor(o);
+  });
+  form.querySelectorAll('.oe-item').forEach(row=>{
+    const i = +row.dataset.i, it = (o.items || [])[i];
+    if(!it) return;
+    row.querySelectorAll('[data-oi]').forEach(el=>{
+      const f = el.dataset.oi;
+      if(f === 'del'){
+        el.addEventListener('click', ()=>{
+          if(!confirm('Прибрати «' + (it.name || 'позицію') + '» з пропозиції?')) return;
+          o.items.splice(i, 1);
+          offerEdSave(o, { repaint:true });
+        });
+        return;
+      }
+      if(f === 'kind'){
+        el.addEventListener('click', ()=>{
+          it.kind = it.kind === 'reco' ? 'main' : 'reco';
+          offerEdSave(o, { repaint:true });
+        });
+        return;
+      }
+      el.addEventListener('change', ()=>{
+        if(f === 'qty'){
+          const q = Math.max(1, +el.value || 1);
+          it.qty = q;
+          if(it.desc) it.desc.units = q;
+        } else if(f === 'unit'){
+          it.unitPrice = Math.max(0, +el.value || 0);
+        } else {
+          it[f] = el.value.trim();
+        }
+        // Кількість і ціна міняють суму позиції — перерахунок обовʼязковий
+        if(f === 'qty' || f === 'unit'){
+          it.price = Math.round((+it.unitPrice || 0) * (+it.qty || 1));
+          it.cost  = Math.round((+it.unitCost  || 0) * (+it.qty || 1));
+        }
+        offerEdSave(o, { repaint: f === 'qty' || f === 'unit' });
+      });
+    });
+  });
 }
 
 /* ============================================================
@@ -9999,6 +10357,7 @@ async function init(){
   orders   = await loadOrders();
   // Перший запуск після оновлення: забираємо картки зі старого сховища
   if(!orders.length) await migrateOrdersToCollection();
+  await backfillOrderIds();   // номер має бути в кожної картки, зокрема старої
 
   paintSettingsForm();
   refreshGarmentSelect();
