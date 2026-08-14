@@ -9037,7 +9037,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             var sell = (m.mode === 'grid') ? dtfGridSell(m, l, groupQty) : placementPrice(m, l, idx);
             var cost = (m.mode === 'grid') ? dtfGridCost(m, l, groupQty) : placementCost(m, l, idx);
             var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, groupQty, idx) : placementRaw(m, l);
-            var atMin = sell > raw + 0.5;
             var note;
             if(m.mode === 'grid'){
               // Показуємо, з якої саме клітинки таблиці взята сума: розмір листа,
@@ -9064,12 +9063,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               var parts = areaParts(mk, mm2, false);
               var calc = parts.map(function(p){
                   return (p.mm2/100).toFixed(1) + ' см² × ' + (p.rate/10);
-                }).join(' + ') + ' грн/см² = ' + Math.round(raw);
-              note = atMin
-                ? ' <span style="color:#c58a00;">(мін ' + minForIndex(mk, idx) + ')</span>'
-                  + ' <span style="color:#8a94a6;">' + calc + '</span>'
-                : ' <span style="color:#1a7a3a;">(за площею)</span>'
-                  + ' <span style="color:#8a94a6;">' + calc + '</span>';
+                }).join(' + ') + ' грн/см²';
+              /* Сума нанесення складається з трьох речей, і всі три треба
+                 назвати вголос: старт за це нанесення, площа за ставками і —
+                 лише якщо перших двох не вистачило — добивка до мінімалки.
+
+                 Раніше тут писалось «(мін 200)» і показувалась сама лише
+                 площа. Мінімалка при цьому майже ніколи не спрацьовувала:
+                 позначка зʼявлялась щоразу, коли є старт, бо порівнювалась
+                 повна сума з голою площею. Виходило, що рядок називав
+                 старт мінімалкою, а арифметика не сходилась із сумою. */
+              var det = placementDetail(m, l, idx);
+              note = ' <span style="color:#8a94a6;">' +
+                (det.base ? 'старт ' + det.base + ' + ' : '') +
+                'площа (' + calc + ') = ' + det.area +
+                (det.minAdd
+                  ? ' <span style="color:#c58a00;">+ ' + det.minAdd +
+                    ' до мінімалки ' + minForIndex(mk, idx) + '</span>' : '') +
+                '</span>';
             }
             tb += r('↳ ' + kindLabel + note, money(sell), money(cost), {muted:true});
           });
