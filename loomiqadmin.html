@@ -1002,6 +1002,14 @@
   .prod-card .pcard-name{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.25;}
   .prod-card .pcard-price{font-size:12px;color:var(--ink-soft);}
   .prod-card .pcard-drag{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.9);border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  .prod-card .pcard-x{position:absolute;top:36px;left:6px;z-index:3;width:24px;height:24px;
+    border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#8A94A6;
+    font:inherit;font-size:13px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s;
+    box-shadow:0 1px 4px rgba(15,32,52,.18);}
+  .prod-card:hover .pcard-x,.prod-card.is-hidden .pcard-x{opacity:1;}
+  .prod-card .pcard-x:hover{background:var(--bad);color:#fff;}
+  .prod-card.is-hidden .pcard-x:hover{background:var(--good,#0E9F6E);color:#fff;}
+  @media(hover:none){ .prod-card .pcard-x{opacity:1;} }
   .prod-card .pcard-badges{position:absolute;top:6px;right:6px;z-index:2;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
   .prod-card .pcard-badge{font-size:9.5px;font-weight:700;letter-spacing:.3px;border-radius:6px;padding:2px 7px;}
   .prod-card .pcard-badge.own{color:var(--accent);background:var(--accent-soft);}
@@ -9142,6 +9150,9 @@ function renderProductGrid(){
     const isHid = hidden.includes(p.id);
     return `<div class="prod-card${isHid?' is-hidden':''}" data-pid="${p.id}">
       <span class="pcard-drag">${DRAG_H}</span>
+      <button class="pcard-x" data-del="${p.id}" title="${p.custom
+        ? 'Видалити товар назавжди'
+        : (isHid ? 'Повернути в каталог' : 'Прибрати з каталогу')}">${isHid ? '↺' : '✕'}</button>
       <div class="pcard-badges">
         ${p.custom?'<span class="pcard-badge own">СВІЙ</span>':''}
         ${isHid?'<span class="pcard-badge hid">ПРИХОВАНО</span>':''}
@@ -9153,6 +9164,29 @@ function renderProductGrid(){
       </div>
     </div>`;
   }).join('');
+  /* Хрестик на картці. Свій товар видаляється назавжди, вбудований —
+     ховається: він приходить зі списку в коді, і «видалити» його можна
+     хіба що з каталогу. Приховане повертається тим самим значком, тож
+     помилковий клік не коштує нічого. */
+  grid.querySelectorAll('[data-del]').forEach(b=>{
+    b.addEventListener('click', async e=>{
+      e.stopPropagation();
+      const pid = b.dataset.del;
+      const item = items.find(x => x.id === pid) || {};
+      if(item.custom){ deleteCustomProduct(pid); return; }
+      const nowHidden = (contentData.products || {}).hidden || [];
+      const isOff = nowHidden.includes(pid);
+      const nm = (contentData.names && contentData.names[pid]) || item.name || pid;
+      if(!isOff && !confirm('Прибрати «' + nm + '» з каталогу?\n\n' +
+        'Товар зникне з сайту й з вибору в прорахунку. Замовлення, де він уже є, ' +
+        'не зміняться. Повернути можна тим самим значком.')) return;
+      const next = isOff ? nowHidden.filter(x => x !== pid) : nowHidden.concat([pid]);
+      try{
+        await PHOTOS_DOC.set({ products: { hidden: next } }, { merge:true });
+        toast(isOff ? 'Повернуто в каталог' : 'Прибрано з каталогу');
+      }catch(err){ console.error(err); toast('Помилка'); }
+    });
+  });
   // клік по картці (окрім ручки перетягування) → відкрити товар
   let lastDrop = 0;
   grid.querySelectorAll('.prod-card').forEach(card=>{
