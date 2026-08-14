@@ -538,16 +538,22 @@
      кричати, вона має відрізнятись. */
   .tc-tg.unread{font-weight:700;color:var(--ink);font-style:normal;}
   .tc-tg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
-    background:#D2560B;margin-right:5px;vertical-align:middle;}
+    background:#DC2626;margin-right:5px;vertical-align:middle;}
   /* Число замість крапки: одне питання і пʼять підряд — різні за
      терміновістю картки, і це має бути видно з колонки */
   .tc-tg-n{display:inline-block;min-width:16px;height:16px;padding:0 4px;border-radius:20px;
-    background:#D2560B;color:#fff;font-size:10px;font-weight:800;line-height:16px;
+    background:#DC2626;color:#fff;font-size:10px;font-weight:800;line-height:16px;
     text-align:center;margin-right:5px;vertical-align:middle;}
   .tc-tg-at{font-size:10px;color:var(--ink-soft);margin-left:5px;font-weight:400;}
-  .tc-reply{all:unset;cursor:pointer;font-size:11px;font-weight:700;color:#fff;
-    background:#1F2C44;border-radius:7px;padding:4px 10px;}
-  .tc-reply:hover{background:#2c3b58;}
+  /* Канали клієнта: кожен своїм кольором, щоб було видно з колонки */
+  .tc-ch-b{all:unset;cursor:pointer;font-size:10.5px;font-weight:700;color:#fff;
+    border-radius:7px;padding:4px 9px;margin-right:5px;white-space:nowrap;}
+  .tc-ch-b.ch-tg{background:#229ED9;}
+  .tc-ch-b.ch-ig{background:linear-gradient(45deg,#F09433,#DC2743 45%,#BC1888);}
+  .tc-ch-b.ch-viber{background:#7360F2;}
+  .tc-ch-b:hover{filter:brightness(1.12);}
+  /* Каналу без привʼязаної розмови — блідіше: туди можна лише перейти */
+  .tc-ch-b.off{opacity:.5;}
   .tc-meta{font-size:11px;color:var(--ink-soft);}
   .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
   .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
@@ -6215,8 +6221,21 @@ function renderTicket(o){
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
-  const reply = el.querySelector('[data-chat]');
-  if(reply) reply.addEventListener('click', ()=> chatOpen(o, reply.dataset.chat));
+  el.querySelectorAll('[data-ch]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      e.stopPropagation();
+      const k = b.dataset.ch;
+      if(k === 'tg' && tgChatOf(o)) return chatOpen(o, 'tg');
+      if(k === 'ig' && o.crmChatId) return chatOpen(o, 'crm');
+      // Розмови немає — відкриваємо застосунок за ніком
+      const h = chanHandle(o, k).replace(/^@/, '').trim();
+      if(!h){ toast('Контакт у цьому каналі не вписано'); return; }
+      const url = k === 'tg' ? 'https://t.me/' + encodeURIComponent(h)
+                : k === 'ig' ? 'https://instagram.com/' + encodeURIComponent(h)
+                : 'viber://chat?number=' + encodeURIComponent(h.replace(/[^\d+]/g, ''));
+      window.open(url, '_blank', 'noopener');
+    });
+  });
   wireDocsBlock(el, o);
 
   return el;
@@ -6435,6 +6454,23 @@ function orderNeedsEye(o){
 }
 
 // Згорнута картка: чотири рядки й ряд дрібних дій.
+/* Канали клієнта просто на картці. Одна кнопка «Відповісти» не казала
+   головного: у Telegram ця людина чи в Instagram, і чи є вона деінде ще.
+   Тепер видно всі канали одразу, кожен своїм кольором — і клік веде саме
+   в той діалог. Кнопка без розмови (є лише нік) відкриває сам застосунок:
+   писати звідти ми не можемо, але знайти людину — так. */
+function chanBtnsHtml(o){
+  const out = [];
+  CHAN_KEYS.forEach(k => {
+    if(!chanFilled(o, k)) return;
+    const live = chanHasChat(o, k);
+    const h = chanHandle(o, k);
+    out.push(`<button class="tc-ch-b ch-${k}${live ? '' : ' off'}" data-ch="${k}"
+      title="${live ? 'Відкрити діалог · ' : 'Відкрити застосунок · '}${escapeHtml(h || CHAN[k].label)}"
+      >${escapeHtml(CHAN[k].label)}</button>`);
+  });
+  return out.join('');
+}
 function ticketSummaryHtml(o){
   const off = o.offerToken && offersByToken[o.offerToken];
   const st  = off ? (OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created) : null;
@@ -6453,8 +6489,7 @@ function ticketSummaryHtml(o){
   const actAt = orderActivityAt(o);
   const actTime = actAt ? new Date(actAt).toLocaleTimeString('uk-UA',
         { hour:'2-digit', minute:'2-digit' }) : '';
-  // Кнопка «Відповісти» має сенс лише там, де є куди відповідати
-  const chatKind = tgChatOf(o) ? 'tg' : (o.crmChatId ? 'crm' : '');
+  chanMigrate(o);   // старе поле instagram розкладаємо по каналах
   const units = orderUnits(o), pos = (o.items||[]).length;
   const due = dueInfo(o);
   const flow = statusFlow();
@@ -6469,12 +6504,14 @@ function ticketSummaryHtml(o){
       ${o.orderId?`<span class="t-oid">${escapeHtml(o.orderId)}</span>`:''}
       <span class="tc-date">${escapeHtml(date)}</span>
       <span class="tc-spacer"></span>
-      ${st ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>`
-           : `<span class="src-tag">${escapeHtml(o.source||'сайт')}</span>`}
+      ${/* «КП сформовано» нічого не додає: сам факт, що пропозиція є, видно
+            з посилання нижче. Показуємо лише те, що ВІДБУЛОСЬ у клієнта. */
+        (st && off.state !== 'created')
+          ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>` : ''}
     </div>
     <div class="tc-who">${escapeHtml(orderWho(o))}</div>
     ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}${tgUnread(o) ? ' unread' : ''}">${
-        unread ? `<span class="tc-tg-n" title="Пропущено повідомлень">${unread}</span>`
+        unread ? `<span class="tc-tg-n" title="Непрочитаних повідомлень від клієнта">${unread}</span>`
                : (tgUnread(o) ? '<span class="tc-tg-dot"></span>' : '')}${
         o.tgWrote ? '💬 ' + escapeHtml(o.tgLast || '')
                   : 'відкрив бота, ще не писав'}${
@@ -6490,8 +6527,7 @@ function ticketSummaryHtml(o){
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
     </div>
     <div class="tc-acts">
-      ${chatKind ? `<button class="tc-reply" data-chat="${chatKind}"
-          title="Відкрити діалог, не заходячи в картку">Відповісти</button>` : ''}
+      ${chanBtnsHtml(o)}
       ${offerUrl(o)?`<button class="tc-act" data-doc="copylink" title="Скопіювати посилання на КП">🔗</button>`:''}
       <span class="tc-spacer"></span>
       <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
