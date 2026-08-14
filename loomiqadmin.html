@@ -426,6 +426,10 @@
     display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 3px rgba(15,32,52,.05);transition:box-shadow .15s,border-color .15s;}
   .ticket:hover{box-shadow:0 4px 14px rgba(15,32,52,.10);border-color:#d5dce6;}
   .ticket:active{cursor:grabbing;}
+  /* Картка, яку тягнуть, трохи піднімається й хилиться — рух каже «взяв»
+     краще за будь-яку рамку */
+  .ticket.dragging{transform:rotate(1.5deg) scale(1.02);box-shadow:0 14px 34px rgba(15,32,52,.18);
+    opacity:.92;}
 
   .t-top{display:flex;justify-content:space-between;align-items:flex-start;}
   .phone{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);}
@@ -536,7 +540,9 @@
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
     .tc-date{font-size:11px;color:#A3ACBA;}
-  .tc-who{font-size:15px;font-weight:650;letter-spacing:-.1px;color:var(--ink);
+  .tc-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:12px;font-weight:800;letter-spacing:0;}
+  .tc-who{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650;letter-spacing:-.1px;color:var(--ink);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* Останнє повідомлення з Telegram прямо на картці — щоб не відкривати
      кожну заради одного рядка. Один рядок і три крапки: картка не має рости. */
@@ -550,6 +556,13 @@
     background:#DC2626;margin-right:5px;vertical-align:middle;}
   /* Число замість крапки: одне питання і пʼять підряд — різні за
      терміновістю картки, і це має бути видно з колонки */
+/* Непрочитане тихо дихає — око ловить рух швидше за колір, а картка при
+     цьому не блимає й не смикається. Для тих, хто просив менше руху в
+     системі, анімацію вимикаємо. */
+  @keyframes tcPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.45);}
+                     70%{box-shadow:0 0 0 6px rgba(220,38,38,0);}}
+  .tc-tg-n{animation:tcPulse 2.4s ease-out infinite;}
+  @media(prefers-reduced-motion:reduce){ .tc-tg-n{animation:none;} }
   .tc-tg-n{display:inline-block;min-width:16px;height:16px;padding:0 4px;border-radius:20px;
     background:#DC2626;color:#fff;font-size:10px;font-weight:800;line-height:16px;
     text-align:center;margin-right:5px;vertical-align:middle;}
@@ -604,10 +617,10 @@
   .od-sub{font-size:11px;color:#9AA5B5;margin-top:3px;}
   .od-x{all:unset;cursor:pointer;font-size:15px;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
   .od-x:hover{background:var(--canvas);}
-  .od-body{flex:1;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:9px;}
+  .od-body{flex:1;overflow-y:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:10px;}
   .od-who{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .od-sec{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  .od-sec{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
     color:#9AA5B5;margin-top:6px;}
   .od-empty{font-size:11px;color:#AEB8C9;}
   /* «Зібрати в конструкторі» — головна дія в складі замовлення */
@@ -667,6 +680,9 @@
     box-shadow:0 1px 2px rgba(15,32,52,.04);}
   .od-crm-msg.mine{align-self:flex-end;background:#1F2C44;border-color:#1F2C44;
     border-radius:14px 14px 4px 14px;}
+  /* Усередині групи кути зрізані менше, і бульбашки стоять щільніше */
+  .od-crm-msg.grouped{border-radius:14px 14px 14px 10px;margin-bottom:-3px;}
+  .od-crm-msg.mine.grouped{border-radius:14px 14px 10px 14px;}
   .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
     color:var(--ink);}
   .od-crm-msg.mine .od-crm-txt{color:#fff;}
@@ -688,11 +704,11 @@
     color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
-  .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   /* Канал звʼязку — перший рядок картки: головне не «як звати», а «де ми
      з цією людиною розмовляємо» */
   .od-contact{display:flex;gap:6px;align-items:stretch;margin-bottom:6px;}
-  .od-chan{flex:none;width:112px;font-size:12px;padding:7px 6px;border-radius:7px;
+  .od-chan{flex:none;width:126px;font-size:13.5px;padding:10px 8px;border-radius:9px;
     border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;}
   .od-chan-h{flex:1;min-width:0;}
   .od-chan-ok{flex:none;display:flex;align-items:center;justify-content:center;width:26px;
@@ -721,9 +737,18 @@
   .od-fold[open]>summary::before{content:'▾ ';}
   .od-fold[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px;}
   .od-fold>*:last-child{margin-bottom:11px;}
-  .od-f{font-size:12px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);
+/* Поля були 12px із 7px відступу — у них важко влучити пальцем і важко
+     читати, коли в полі довга назва компанії. 14px тексту й 40px висоти —
+     мінімум, на якому працюють щодня, не мружачись. */
+  .od-f{font-size:14px;padding:10px 12px;min-height:40px;border-radius:9px;border:1px solid var(--line);
     background:#fff;color:var(--ink);font-family:inherit;min-width:0;}
-  .od-f:focus{outline:none;border-color:var(--accent);}
+/* Рамка фокуса — не прикраса: без неї клавіатурою не зрозуміти, де ти.
+     Робимо помітною і однаковою на всіх полях і кнопках. */
+  .od-f:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .od-kp:focus-visible,.od-kp-link:focus-visible,.od-chat-open:focus-visible,
+  .tc-ch-b:focus-visible,.tc-act:focus-visible,.od-foot button:focus-visible,
+  .cw-go:focus-visible,.cw-ic:focus-visible,.oe-btn:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;}
   .od-due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;}
   /* Слід відвідувача: канал і мітка пристрою для пошуку запису екрана.
      Місце — у шапці картки, праворуч від номера: звідки прийшов клієнт,
@@ -823,8 +848,8 @@
     display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.4);}
   .cw-head{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#1F2C44;
     color:#fff;flex:none;}
-  .cw-av{width:36px;height:36px;border-radius:50%;background:#3B4A6B;flex:none;
-    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;}
+  .cw-av{width:36px;height:36px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;}
   .cw-who{flex:1;min-width:0;}
   .cw-nm{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cw-sub{font-size:11px;color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;
@@ -839,14 +864,14 @@
     color:#8A94A6;}
   .cw-bar{flex:none;background:#fff;border-top:1px solid var(--line);padding:8px 9px;}
   .cw-row{display:flex;align-items:flex-end;gap:7px;}
-  .cw-inp{flex:1;min-width:0;font:inherit;font-size:13.5px;line-height:1.45;border:1px solid var(--line);
-    border-radius:16px;padding:9px 13px;resize:none;max-height:130px;background:var(--canvas);}
+  .cw-inp{flex:1;min-width:0;font:inherit;font-size:14px;line-height:1.45;border:1px solid var(--line);
+    border-radius:18px;padding:11px 15px;resize:none;max-height:130px;background:var(--canvas);}
   .cw-inp:focus{outline:none;border-color:var(--accent);background:#fff;}
-  .cw-ic{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:50%;
+  .cw-ic{all:unset;cursor:pointer;flex:none;width:38px;height:38px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink-soft);}
   .cw-ic:hover{background:var(--canvas);color:var(--ink);}
   .cw-ic.on{background:var(--accent-soft);color:var(--accent-deep);}
-  .cw-go{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:50%;
+  .cw-go{all:unset;cursor:pointer;flex:none;width:40px;height:40px;border-radius:50%;
     background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
     font-size:14px;}
   .cw-go:hover{background:#1c2840;}
@@ -885,7 +910,8 @@
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
   .t-actions button[disabled]{opacity:.35;cursor:not-allowed;}
-    .empty-col{font-size:12px;color:#B6BECC;text-align:center;padding:26px 6px;}
+    .empty-col{font-size:12.5px;color:#9AA5B5;text-align:center;padding:30px 10px;line-height:1.55;
+    border:1px dashed #DDE3EC;border-radius:12px;background:rgba(255,255,255,.5);}
 
   .order-form-toggle{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
   .new-order-card{display:none;}
@@ -6056,7 +6082,12 @@ function renderBoard(){
     `;
     const body = col.querySelector('.col-body');
     if(list.length===0){
-      body.innerHTML = `<div class="empty-col">Порожньо</div>`;
+      /* «Порожньо» нічого не каже. Перша колонка — це те, що менеджер
+         бачить щоранку, тож вона має пояснювати, чого чекати. */
+      body.innerHTML = `<div class="empty-col">${
+        st.key === firstStatusKey()
+          ? 'Тут зʼявляться нові звернення —<br>із сайту, Telegram та Instagram'
+          : 'Перетягніть сюди картку'}</div>`;
     } else {
       list.forEach(o=>{ body.appendChild(renderTicket(o)); docsAutoPrepare(o); });
     }
@@ -6097,7 +6128,11 @@ function renderTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket';
   el.draggable = true;
-  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+  el.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', o.id);
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
 
   const goodMargin = o.margin >= 0;
   const flow = statusFlow();
@@ -6415,6 +6450,20 @@ function orderNeedsEye(o){
    Тепер видно всі канали одразу, кожен своїм кольором — і клік веде саме
    в той діалог. Кнопка без розмови (є лише нік) відкриває сам застосунок:
    писати звідти ми не можемо, але знайти людину — так. */
+/* Аватар клієнта. Дошка зі списку тексту перетворюється на щось, що око
+   впізнає з відстані: колір і літера читаються швидше за рядок. Колір беремо
+   з самого імені — тоді один клієнт завжди того самого кольору, і памʼять
+   починає працювати на менеджера. */
+const AV_HUES = [210, 262, 340, 24, 150, 190, 300, 45];
+function avatarHtml(name, cls){
+  const t = String(name || '').trim();
+  const ch = t ? t[0].toUpperCase() : '?';
+  let h = 0;
+  for(let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+  const hue = AV_HUES[h % AV_HUES.length];
+  return `<span class="${cls || 'tc-av'}" aria-hidden="true"
+    style="background:hsl(${hue} 62% 92%);color:hsl(${hue} 55% 34%);">${escapeHtml(ch)}</span>`;
+}
 function chanBtnsHtml(o){
   const out = [];
   CHAN_KEYS.forEach(k => {
@@ -6465,7 +6514,7 @@ function ticketSummaryHtml(o){
         (st && off.state !== 'created')
           ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>` : ''}
     </div>
-    <div class="tc-who">${escapeHtml(orderWho(o))}</div>
+    <div class="tc-who">${avatarHtml(orderWho(o))}<span>${escapeHtml(orderWho(o))}</span></div>
     ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}${tgUnread(o) ? ' unread' : ''}">${
         unread ? `<span class="tc-tg-n" title="Непрочитаних повідомлень від клієнта">${unread}</span>`
                : (tgUnread(o) ? '<span class="tc-tg-dot"></span>' : '')}${
@@ -7987,9 +8036,14 @@ function chatMsgs(o, kind){
     at: m.at, text: m.text, mine: m.mine, kind: 'text', files: m.files || []
   }));
 }
+/* Повідомлення підряд від однієї сторони — одна «репліка»: час і підпис
+   лише під останнім, кути між ними зрізані менше. Без цього стрічка з десяти
+   коротких фраз перетворюється на десять однакових бульбашок із десятьма
+   однаковими часами, і розмову доводиться вичитувати, а не переглядати. */
 function chatRowsHtml(msgs){
   let lastDay = '';
-  return (msgs || []).map(m => {
+  const list = msgs || [];
+  return list.map((m, i) => {
     const day = (m.at || '').slice(0, 10);
     let sep = '';
     if(day && day !== lastDay){
@@ -8002,12 +8056,16 @@ function chatRowsHtml(msgs){
     // неправдою.
     const mark = (m.kind && m.kind !== 'text' && !(m.files || []).length)
       ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
+    // Час показуємо лише під останнім повідомленням у групі
+    const nxt = list[i + 1];
+    const grouped = nxt && !!nxt.mine === !!m.mine &&
+                    (nxt.at || '').slice(0, 10) === day;
     return sep + `
-      <div class="od-crm-msg ${m.mine ? 'mine' : ''}">
+      <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}">
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
-        ${time ? `<div class="od-crm-at">${escapeHtml(time)}${
+        ${(time && !grouped) ? `<div class="od-crm-at">${escapeHtml(time)}${
           m.mine && m.by ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
       </div>`;
   }).join('');
@@ -8134,7 +8192,7 @@ function renderChatWin(toBottom){
 
   box.innerHTML = `
     <div class="cw-head">
-      <div class="cw-av">${escapeHtml((nm || '?').trim().charAt(0).toUpperCase())}</div>
+      ${avatarHtml(nm, 'cw-av')}
       <div class="cw-who">
         <div class="cw-nm">${escapeHtml(nm)}</div>
         <div class="cw-sub">${escapeHtml(sub)}</div>
