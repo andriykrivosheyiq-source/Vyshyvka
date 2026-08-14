@@ -154,6 +154,13 @@
   .nav button.active{background:#0F2034;color:#fff;border-left:3px solid var(--accent);padding-left:10px;}
   .nav button.active .num{color:var(--accent);}
   .sidebar-foot{margin-top:auto;font-size:11px;color:#334155;line-height:1.5;padding-top:16px;border-top:1px solid #1E293B;}
+  /* Смужка про нову версію. Внизу зліва, під рукою, але не поверх роботи. */
+  .upd-bar{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;
+    gap:12px;padding:11px 12px 11px 16px;border-radius:12px;background:#0F2034;color:#fff;
+    font-size:12.5px;box-shadow:0 8px 26px rgba(15,32,52,.32);}
+  .upd-bar button{all:unset;cursor:pointer;padding:7px 14px;border-radius:8px;
+    background:#fff;color:#0F2034;font-size:12.5px;font-weight:800;}
+  .upd-bar button:hover{background:#E8EDF5;}
   #side-build{all:unset;cursor:pointer;display:block;margin-top:9px;font-size:10.5px;
     color:#475569;letter-spacing:.2px;}
   #side-build:hover{color:#94A3B8;text-decoration:underline;}
@@ -795,24 +802,17 @@
     background:var(--accent);color:#fff;font:inherit;font-size:13.5px;font-weight:800;
     padding:12px 14px;cursor:pointer;}
   .od-kp:hover{background:var(--accent-deep);}
-  /* Головна зона картки: товари, собівартість, маржа. Заголовок навмисне
-     кольоровий — коли він був сірим, згорнутий блок читався як підпис, і
-     менеджер вирішував, що зону з товарами прибрали зовсім. */
+  /* Головна зона картки: товари, собівартість, маржа. Заголовок кольоровий —
+     сірим він читався як підпис, а не як розділ, і зону просто не помічали. */
   .od-fold{margin-top:16px;border:1px solid var(--accent-soft);border-radius:12px;
     background:#fff;overflow:hidden;}
-  .od-fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;
+  .od-fold-h{display:flex;align-items:center;gap:10px;
     padding:14px 16px;font-size:14px;font-weight:750;color:var(--accent-deep);
-    background:var(--accent-soft);transition:background .12s;}
-  .od-fold>summary:hover{filter:brightness(.97);}
-  .od-fold>summary::-webkit-details-marker{display:none;}
-  .od-fold>summary::after{content:'';flex:none;width:8px;height:8px;margin-left:auto;
-    border-right:2px solid currentColor;border-bottom:2px solid currentColor;
-    transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s;}
-  .od-fold[open]>summary::after{transform:rotate(-135deg) translate(-2px,-2px);}
-  .od-fold[open]>summary{border-bottom:1px solid var(--line);}
+    background:var(--accent-soft);border-bottom:1px solid var(--line);}
   .od-fold-t{flex:none;}
-  .od-fold-n{font-size:12px;font-weight:600;color:var(--accent-deep);opacity:.75;}
-  .od-fold>*:not(summary){margin-left:16px;margin-right:16px;}
+  .od-fold-n{font-size:12px;font-weight:600;color:var(--accent-deep);opacity:.75;
+    margin-left:auto;}
+  .od-fold>*:not(.od-fold-h){margin-left:16px;margin-right:16px;}
   .od-fold>*:nth-child(2){margin-top:14px;}
   .od-fold>*:last-child{margin-bottom:16px;}
   /* У кнопки width:100%, а бічні відступи їй дає правило вище — сто відсотків
@@ -2658,9 +2658,35 @@ document.getElementById('logout-btn').addEventListener('click', function(){
   el.textContent = isNaN(d) ? 'оновити версію'
     : 'версія від ' + d.toLocaleString('uk-UA',
         { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-  el.addEventListener('click', function(){
-    location.href = location.pathname + '?v=' + Date.now();
-  });
+  el.addEventListener('click', reloadFresh);
+})();
+function reloadFresh(){ location.href = location.pathname + '?v=' + Date.now(); }
+
+/* GitHub Pages віддає HTML із кешем, і браузер тримає стару копію ще довго
+   після публікації. Менеджер цього не бачить: сторінка відкривається, кнопки
+   на місці — просто вони вчорашні, а нових немає. Тому раз на відкриття
+   питаємо сервер, чи не свіжіший там файл, і пропонуємо оновитись.
+   Запит із випадковим хвостом — інакше відповідь прийде з того самого кешу,
+   який ми й перевіряємо. */
+(function watchForUpdate(){
+  if(!window.fetch) return;
+  const mine = Date.parse(document.lastModified);
+  if(isNaN(mine)) return;
+  setTimeout(function(){
+    fetch(location.pathname + '?freshcheck=' + Date.now(), { method:'HEAD', cache:'no-store' })
+      .then(function(r){
+        const there = Date.parse(r.headers.get('last-modified') || '');
+        // Хвилина запасу: у різних вузлах CDN час трохи розходиться
+        if(isNaN(there) || there <= mine + 60000) return;
+        const bar = document.createElement('div');
+        bar.className = 'upd-bar';
+        bar.innerHTML = '<span>Вийшла новіша версія адмінки</span>' +
+          '<button type="button">Оновити</button>';
+        bar.querySelector('button').addEventListener('click', reloadFresh);
+        document.body.appendChild(bar);
+      })
+      .catch(function(){ /* немає звʼязку — не заважаємо працювати */ });
+  }, 4000);
 })();
 fbAuth.onAuthStateChanged(function(user){
   const gate = document.getElementById('auth-gate');
@@ -6886,11 +6912,6 @@ function chanSet(o, k, v){
    Розкривати картку на місці не можна: колонка стрибає і Канбан перестає
    бути Канбаном. Тому деталі — у панелі справа, де є місце під макети. */
 let drawerOrderId = null;
-/* Склад замовлення згорнутим за замовчуванням читався як «зона зникла»:
-   менеджер відкриває картку саме заради товарів і собівартості. Тепер
-   розгорнуто завжди, а хто згорнув руками — тому лишається згорнутим,
-   поки не перезавантажить адмінку (панель перемальовується постійно). */
-let odFoldOpen = true;
 function orderDrawerEl(){
   let d = document.getElementById('orderDrawer');
   if(d) return d;
@@ -7028,14 +7049,17 @@ function renderOrderDrawer(){
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
-      <!-- Товари, собівартість і маржа — те, заради чого картку відкривають.
-           Згортається лише вручну, і то не назавжди. -->
-      <details class="od-fold"${odFoldOpen ? ' open' : ''}>
-        <summary>
+      ${/* Звичайний блок, а не <details>. Згортання тут коштувало дорожче,
+           ніж давало: у частині браузерів вміст details у flex-колонці не
+           показувався взагалі, і менеджер бачив картку без товарів, без
+           собівартості й без кнопки «Додати товар» — тобто без того, заради
+           чого картку й відкривають. */''}
+      <div class="od-fold">
+        <div class="od-fold-h">
           <span class="od-fold-t">Склад замовлення та гроші</span>
           <span class="od-fold-n">${(o.items||[]).length
             ? (o.items||[]).length + ' ' + posWordUa((o.items||[]).length) : 'порожньо'}</span>
-        </summary>
+        </div>
         <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
         <button class="od-build" data-act="build">＋ Додати товар</button>
         <div class="t-breakdown">
@@ -7045,7 +7069,7 @@ function renderOrderDrawer(){
         ${priceCalcHtml(o)}
         <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
         ${orderBuyHtml(o) ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
-      </details>
+      </div>
 
       ${/* Що було тут раніше і чому пішло:
             «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
@@ -7090,8 +7114,6 @@ function renderOrderDrawer(){
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
-  const fold = panel.querySelector('.od-fold');
-  if(fold) fold.addEventListener('toggle', ()=>{ odFoldOpen = fold.open; });
   const stg = panel.querySelector('.od-stage');
   if(stg) stg.addEventListener('change', async ()=>{
     if(o.status === stg.value) return;
