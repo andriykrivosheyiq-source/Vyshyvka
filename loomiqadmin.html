@@ -618,8 +618,15 @@
   .od-back{position:absolute;inset:0;background:rgba(15,32,52,.38);}
   .od-panel{position:absolute;top:0;right:0;bottom:0;width:min(460px,100%);background:#fff;
     display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(15,32,52,.18);}
-  .od-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-    padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  /* Шапка відповідає на три питання одразу: що за замовлення, звідки прийшло
+     і коли його здавати. Дата здачі раніше лежала в тілі, між нотаткою і
+     складом, — її доводилось шукати прокруткою саме тоді, коли вона
+     найпотрібніша. */
+  .od-head{position:relative;padding:14px 18px 13px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#fff 0%,var(--canvas) 100%);}
+  .od-head-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:32px;}
+  .od-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-left:auto;}
+  .od-head-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
   .od-oid{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
   /* Номер майже завжди звідси й переїжджає — у Sitniks, у Нову пошту,
      у повідомлення клієнту. Тому він копіюється натисканням. */
@@ -627,8 +634,9 @@
     transition:background .12s;}
   .od-oid.copyable:hover{background:var(--canvas);}
   .od-oid.copyable:active{background:#E8EDF5;}
-  .od-sub{font-size:11px;color:#9AA5B5;margin-top:3px;}
-  .od-x{all:unset;cursor:pointer;font-size:15px;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
+  .od-sub{font-size:11px;color:#9AA5B5;margin-top:4px;}
+  .od-x{all:unset;position:absolute;top:11px;right:13px;cursor:pointer;font-size:15px;
+    color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
   .od-x:hover{background:var(--canvas);}
   .od-body{flex:1;overflow-y:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:10px;}
   .od-who{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);
@@ -637,7 +645,7 @@
     color:#9AA5B5;margin-top:6px;}
   .od-empty{font-size:11px;color:#AEB8C9;}
   /* «Зібрати в конструкторі» — головна дія в складі замовлення */
-  .od-build{width:100%;margin:10px 0 4px;padding:11px 12px;border:1px dashed #C7D2E0;
+  .od-build{display:block;width:100%;margin:10px 0 4px;padding:11px 12px;border:1px dashed #C7D2E0;
     border-radius:11px;background:#F7FAFF;color:#1668c4;font:inherit;font-size:13px;
     font-weight:700;cursor:pointer;}
   .od-build:hover{background:#EDF4FF;border-color:#1668c4;}
@@ -724,9 +732,9 @@
   .od-sum-m{font-size:12px;color:var(--ink-soft);margin-top:3px;}
   /* Етап списком у шапці: раз на день його міняють, а ряд кнопок з'їдав
      верх картки. Списком — один рядок і зрозуміло без пояснень. */
-  .od-stage{margin-top:8px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
-    background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:6px 10px;
-    max-width:220px;}
+  .od-stage{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+    flex:0 1 auto;max-width:200px;}
   .od-stage:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   /* Повторний клієнт: інша розмова й інша знижка — це має впадати в око */
   .od-repeat{margin-top:14px;padding:11px 12px;border:1px solid #CFE3D8;border-radius:11px;
@@ -787,26 +795,30 @@
     background:var(--accent);color:#fff;font:inherit;font-size:13.5px;font-weight:800;
     padding:12px 14px;cursor:pointer;}
   .od-kp:hover{background:var(--accent-deep);}
-  /* Склад і гроші потрібні не щоразу, тож згорнуті. Але згорнутий рядок
-     має виглядати як кнопка, яку хочеться натиснути, а не як сірий підпис:
-     доти було незрозуміло, що там узагалі щось є. */
-  .od-fold{margin-top:16px;border:1px solid var(--line);border-radius:12px;
+  /* Головна зона картки: товари, собівартість, маржа. Заголовок навмисне
+     кольоровий — коли він був сірим, згорнутий блок читався як підпис, і
+     менеджер вирішував, що зону з товарами прибрали зовсім. */
+  .od-fold{margin-top:16px;border:1px solid var(--accent-soft);border-radius:12px;
     background:#fff;overflow:hidden;}
   .od-fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;
-    padding:14px 16px;font-size:14px;font-weight:650;color:var(--ink);background:var(--canvas);
-    transition:background .12s;}
-  .od-fold>summary:hover{background:#EDF1F7;}
+    padding:14px 16px;font-size:14px;font-weight:750;color:var(--accent-deep);
+    background:var(--accent-soft);transition:background .12s;}
+  .od-fold>summary:hover{filter:brightness(.97);}
   .od-fold>summary::-webkit-details-marker{display:none;}
   .od-fold>summary::after{content:'';flex:none;width:8px;height:8px;margin-left:auto;
-    border-right:2px solid #8C96A6;border-bottom:2px solid #8C96A6;
+    border-right:2px solid currentColor;border-bottom:2px solid currentColor;
     transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s;}
   .od-fold[open]>summary::after{transform:rotate(-135deg) translate(-2px,-2px);}
   .od-fold[open]>summary{border-bottom:1px solid var(--line);}
   .od-fold-t{flex:none;}
-  .od-fold-n{font-size:12px;font-weight:500;color:var(--ink-soft);}
+  .od-fold-n{font-size:12px;font-weight:600;color:var(--accent-deep);opacity:.75;}
   .od-fold>*:not(summary){margin-left:16px;margin-right:16px;}
   .od-fold>*:nth-child(2){margin-top:14px;}
   .od-fold>*:last-child{margin-bottom:16px;}
+  /* У кнопки width:100%, а бічні відступи їй дає правило вище — сто відсотків
+     рахувались від ширини разом із ними, і кнопка вилазила за рамку розділу.
+     Віднімаємо відступи явно, щоб вона стала рівно під іншими рядками. */
+  .od-fold>.od-build{width:calc(100% - 32px);}
 /* Поля були 12px із 7px відступу — у них важко влучити пальцем і важко
      читати, коли в полі довга назва компанії. 14px тексту й 40px висоти —
      мінімум, на якому працюють щодня, не мружачись. */
@@ -819,13 +831,12 @@
   .tc-ch-b:focus-visible,.tc-act:focus-visible,.od-foot button:focus-visible,
   .cw-go:focus-visible,.cw-ic:focus-visible,.oe-btn:focus-visible{
     outline:2px solid var(--accent);outline-offset:2px;}
-  .od-due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  .od-due{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-left:auto;}
   /* Слід відвідувача: канал і мітка пристрою для пошуку запису екрана.
-     Місце — у шапці картки, праворуч від номера: звідки прийшов клієнт,
+     Місце — у шапці картки, в одному ряду з номером: звідки прийшов клієнт,
      видно ще до того, як почав читати склад замовлення. Таблетки навмисне
      дрібні — це підпис, а не заголовок. */
-  .od-trace{display:flex;align-items:center;gap:4px;flex-wrap:wrap;
-    margin-left:auto;justify-content:flex-end;max-width:52%;}
+  .od-trace{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
   .od-trace-ch{font-size:10px;font-weight:700;color:#1668c4;background:#F4F8FE;
     border:1px solid #D9E2F0;border-radius:20px;padding:1px 7px;white-space:nowrap;}
   .od-trace-vid{font:inherit;font-family:var(--mono);font-size:10px;color:var(--ink-soft);
@@ -833,9 +844,10 @@
     padding:1px 7px;cursor:pointer;white-space:nowrap;max-width:100%;overflow:hidden;
     text-overflow:ellipsis;}
   .od-trace-vid:hover{color:var(--ink);background:#fff;}
-  .od-due-lab{font-size:11.5px;color:var(--ink-soft);}
-  .od-due-inp{width:auto;font-family:var(--mono);}
-  .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
+  .od-due-lab{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+  .od-due-inp{width:auto;font-family:var(--mono);font-size:12px;padding:5px 8px;background:#fff;}
+  .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:#fff;
+    border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;}
   .od-due-left.due-soon{background:#FFF4DE;color:#8A6A15;}
   .od-due-left.due-late{background:var(--bad-soft);color:var(--bad);}
   /* Нотатка — те, що менеджер перечитує найчастіше. Два рядки її ховали:
@@ -6957,18 +6969,28 @@ function renderOrderDrawer(){
   const hasChat = chanHasChat(o, ch);
   panel.innerHTML = `
     <div class="od-head">
-      <div>
+      ${/* Перший ряд — паспорт замовлення: номер і звідки воно взялось.
+           Мітка пристрою й сторінка входу стоять поруч із номером, бо це
+           одна думка — «хто це і звідки», а не окремий розділ. */''}
+      <div class="od-head-top">
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
           ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
-        <div class="od-sub">${escapeHtml(created)}</div>
-        ${/* Етап списком, а не рядом кнопок: він потрібен раз на день, а
-             місця займав більше за все інше в шапці. */''}
+        <div class="od-tags">${anTraceHtml(o)}${siteLinkHtml(o)}</div>
+      </div>
+      <div class="od-sub">${created ? 'Прийшло ' + escapeHtml(created) : ''}</div>
+      ${/* Другий ряд — час: на якому етапі стоїмо і коли здавати. Дата здачі
+           лежала аж під нотаткою, хоч дивляться на неї щодня. */''}
+      <div class="od-head-row">
         <select class="od-stage" title="Етап угоди">
           ${flow.map(st=>`<option value="${escapeHtml(st.key)}"${
             st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
         </select>
+        <div class="od-due">
+          <span class="od-due-lab">Здати до</span>
+          <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
+          ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</span>` : ''}
+        </div>
       </div>
-      ${anTraceHtml(o)}
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
@@ -7000,13 +7022,8 @@ function renderOrderDrawer(){
         <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
         <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
       </div>
-      <div class="od-due">
-        <span class="od-due-lab">Здати до</span>
-        <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
-        ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено на ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : 'лишилось ' + due.days + ' дн')}</span>` : ''}
-        ${siteLinkHtml(o)}
-      </div>
-
+      ${/* «Здати до» і сторінка входу переїхали в шапку — там вони видні
+           без прокрутки. */''}
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
