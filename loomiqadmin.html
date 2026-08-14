@@ -7734,7 +7734,9 @@ function offerCatalog(){
     name: (contentData.names && contentData.names[p.id]) || p.name,
     price: (bp[p.id] != null ? Number(bp[p.id])
                              : (DEFAULT_SITE_PRICING.basePrices[p.id] || 0)),
-    photo: prodThumb(p)
+    // prodThumb хоче конфігурацію з кольорами, а не рядок списку: без неї
+    // мініатюра поверталась порожньою ЗАВЖДИ, і каталог стояв без фото
+    photo: prodThumb(photoCfg(p.id))
   }));
 }
 /* Голий виріб із каталогу: без нанесення, за шкалою тиражу на одяг.
@@ -7745,12 +7747,17 @@ async function offerAddBare(o, gid, kind){
   if(!g) return;
   const q = 20;                       // типовий стартовий тираж, далі правиться
   const u = bareUnitPrice(gid, q);
+  /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
+     макета ще немає, бо немає логотипа, — і виглядало це так, ніби
+     додавання зламалось. Справжній макет замінить це фото, щойно
+     зʼявиться нанесення. */
+  const thumb = prodThumb(photoCfg(gid));
   (o.items = o.items || []).push({
     kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
     name: g.name, color:'', print:'', sizes:'',
     qty: q, unitPrice: u.price, price: u.price * q,
     unitCost: u.cost, cost: u.cost * q,
-    mockups: [], prints: [], calc: null, garmentId: gid,
+    mockups: thumb ? [thumb] : [], prints: [], calc: null, garmentId: gid,
     desc: { method:'dtf', units:q, base:g.minPrice, coefPart:0, pieceFee:0,
             dtfCols:[], designs:[], bare:true },
     config: null
@@ -7837,17 +7844,10 @@ async function offerEdApply(msg){
      сторінці, бо саме там видно, як воно виглядає. Порожнє значення скидає
      до автоматичного: менеджер має мати дорогу назад, не памʼятаючи, що
      там рахувалось. */
-  if(act === 'heroTitle' || act === 'valid' || act === 'ready' ||
-     act === 'tmin' || act === 'tplus' || act === 'treset'){
+  if(act === 'heroTitle' || act === 'valid' || act === 'ready'){
     if(act === 'heroTitle') o.offerTitle = String(msg.text || '').trim();
     else if(act === 'valid') o.offerValidUntil = String(msg.v || '').trim();
-    else if(act === 'ready') o.offerReadyAt = String(msg.v || '').trim();
-    else if(act === 'treset') o.offerTitleSize = 0;
-    else {
-      const cur = +o.offerTitleSize || 1;
-      o.offerTitleSize = Math.min(1.6, Math.max(0.7,
-        Math.round((cur + (act === 'tplus' ? 0.1 : -0.1)) * 100) / 100));
-    }
+    else o.offerReadyAt = String(msg.v || '').trim();
     try{ await storeSet('orders', orders); await offerSave(o); }
     catch(e){ console.error(e); toast('Не збереглось'); return; }
     renderBoard();
