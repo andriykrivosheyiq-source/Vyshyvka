@@ -1369,7 +1369,7 @@
         <div class="tl-divider" style="margin-top:18px;">Запобіжник маржі</div>
         <div class="sub" style="margin-bottom:8px;">
           Нижче за цей відсоток позицію в пропозицію не додати — адмінка відмовить і
-          попросить погодити з керівником. Порожньо або 0 — запобіжник вимкнено.
+          попросить погодити з керівником. Порожньо або 0 — запобіжник вимкнено (так і стоїть, поки не задасте).
           Стосується маржі ВСЬОГО замовлення, а не окремої позиції.
         </div>
         <label class="field" style="display:block;max-width:220px;">
@@ -3789,7 +3789,8 @@ function methodCfgKind(m, isText){
 function areaTiersOf(m, isCost){
   const a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
   return a.map(t => ({ from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) }))
-    .filter(t => t.from > 0 && isFinite(t.rate) && t.rate >= 0 && (isCost ? t.rate > 0 : true))
+    // Ставка 0 віддала б усю площу безкоштовно (див. index.html)
+    .filter(t => t.from > 0 && isFinite(t.rate) && t.rate > 0)
     .sort((a, b) => a.from - b.from);
 }
 function areaParts(m, mm2, isCost){
@@ -7795,8 +7796,12 @@ async function offerAddBare(o, gid, kind){
    макет і знижка за сумарний тираж роблять маржу однієї позиції числом, яке
    ні про що не свідчить. */
 function marginFloor(){
+  /* Порожньо — вимкнено. Спершу тут стояло 40 «за замовчуванням», і
+     запобіжник почав блокувати роботу в тих, хто його навіть не вмикав:
+     замовлення з нижчою маржею існували й раніше, а тепер до них раптом
+     не можна було додати позицію. Поріг має вмикати керівник свідомо. */
   const v = ((contentData || {}).pricing || {}).minMarginPct;
-  return v == null ? 40 : Math.max(0, +v || 0);
+  return Math.max(0, +v || 0);
 }
 function itemsSnapshot(o){
   try{ return JSON.parse(JSON.stringify(o.items || [])); }
