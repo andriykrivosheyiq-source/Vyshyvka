@@ -766,6 +766,16 @@
   .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
   .oe-body iframe{flex:1;width:100%;height:100%;border:0;display:block;background:#fff;}
   .oe-head .oe-brands{flex:none;display:flex;gap:5px;}
+  .cwin-wrap{position:fixed;inset:0;z-index:1400;display:none;align-items:center;
+    justify-content:center;background:rgba(15,32,52,.6);padding:14px;}
+  .cwin-wrap.open{display:flex;}
+  .cwin{width:100%;max-width:1180px;height:94vh;background:#fff;border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.45);}
+  .cwin-head{flex:none;display:flex;align-items:center;gap:10px;padding:11px 13px;
+    border-bottom:1px solid var(--line);background:var(--canvas);font-size:13.5px;}
+  .cwin-sub{flex:1;min-width:0;color:var(--ink-soft);font-size:12.5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cwin iframe{flex:1;width:100%;border:0;display:block;}
   .oe-brand{border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;
     font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:8px 13px;cursor:pointer;}
   .oe-brand.on{border-color:var(--ink);background:var(--ink);color:#fff;}
@@ -4305,7 +4315,13 @@ window.__adminSaveClientOrder = async function(payload){
     const boardBtn = document.querySelector('.nav button[data-view="board"]');
     if(boardBtn) boardBtn.click();
     renderBoard();
-    if(offerEdBack === target.id){ offerEdBack = null; openOfferEditor(target); }
+    if(offerEdBack === target.id){
+      offerEdBack = null;
+      closeCalcOver();
+      // Редактор КП лишався відкритим під вікном — просто освіжаємо сторінку
+      if(offerEd && offerEd.id === target.id) offerEdPreview(true);
+      else openOfferEditor(target);
+    }
     else openOrderDrawer(target);
     return target;
   }
@@ -7592,7 +7608,8 @@ function offerEdPreview(now){
     if(!f) return;
     /* Рукостискання після завантаження: сторінка вмикає редагування лише
        почувши батьківське вікно, а не за параметром в адресі. */
-    f.onload = ()=>{ try{ f.contentWindow.postMessage({ lqEditInit:true }, '*'); }catch(e){} };
+    f.onload = ()=>{ try{ f.contentWindow.postMessage(
+      { lqEditInit:true, catalog: offerCatalog() }, '*'); }catch(e){} };
     f.src = offerUrl(o) + '&edit=1&t=' + Date.now();
   };
   if(offerEd.timer) clearTimeout(offerEd.timer);
@@ -7616,6 +7633,93 @@ async function offerEdSave(o, opts){
    основні позиції й рекомендації двома окремими списками, а в картці вони
    лежать одним масивом із позначкою kind — без цього перекладу «прибрати
    другу рекомендацію» прибирало б зовсім не те. */
+/* Асортимент для сторінки КП. Вона живе в кадрі й до бази не ходить —
+   список приходить їй разом із рукостисканням. Ті самі назви, ціни й фото,
+   що й на сайті: інакше менеджер обирав би товар за одним підписом, а
+   клієнт бачив інший. */
+/* Конструктор вікном ПОВЕРХ пропозиції. Раніше олівець вів на вкладку
+   «Прорахунок», і сторінка КП зникала з очей — а менеджер саме її й збирає.
+   Кадр той самий, що на вкладці, тож нічого не дублюється: після збереження
+   вікно закривається, і сторінка перечитується з новою позицією. */
+function calcOverEl(){
+  let d = document.getElementById('calcWin');
+  if(d) return d;
+  d = document.createElement('div');
+  d.id = 'calcWin';
+  d.className = 'cwin-wrap';
+  d.innerHTML = '<div class="cwin"><div class="cwin-head">' +
+    '<b>Редагування позиції</b><span class="cwin-sub"></span>' +
+    '<button class="oe-btn" data-cwin-close>Закрити</button></div>' +
+    '<iframe title="Конструктор"></iframe></div>';
+  document.body.appendChild(d);
+  d.querySelector('[data-cwin-close]').addEventListener('click', closeCalcOver);
+  return d;
+}
+function closeCalcOver(){
+  const d = document.getElementById('calcWin');
+  if(!d) return;
+  d.classList.remove('open');
+  const f = d.querySelector('iframe');
+  if(f) f.removeAttribute('src');
+  calcTarget = null; calcEdit = null; window.__adminSeedItem = null;
+  paintCalcTarget();
+}
+function openCalcOver(o, editIdx){
+  calcTarget = o.id;
+  calcEdit = (editIdx == null) ? null : +editIdx;
+  const it = (calcEdit != null) ? (o.items || [])[calcEdit] : null;
+  // Позицію віддаємо конструктору цілком — він відновить виріб, колір,
+  // розміри й логотипи, а «Оновити» поверне нову версію на те саме місце.
+  window.__adminSeedItem = it ? {
+    kind: it.kind === 'reco' ? 'reco' : 'main',
+    name: it.name || '', color: it.color || '', print: it.print || '', sizes: it.sizes || '',
+    qty: +it.qty || 0, unitPrice: +it.unitPrice || 0, price: +it.price || 0,
+    unitCost: +it.unitCost || 0, cost: +it.cost || 0,
+    recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
+    calc: it.calc || null, desc: it.desc || null, config: it.config || null
+  } : null;
+  offerEdBack = o.id;
+  const d = calcOverEl();
+  d.querySelector('.cwin-sub').textContent = (it && it.name) ? it.name : '';
+  d.classList.add('open');
+  const f = d.querySelector('iframe');
+  f.src = 'index.html?manager=1&start=catalog&cart=new' +
+    (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
+}
+
+function offerCatalog(){
+  const prod = contentData.products || {};
+  const hidden = prod.hidden || [];
+  const bp = (contentData.pricing && contentData.pricing.basePrices) || {};
+  return goodsAllProducts().filter(p => !hidden.includes(p.id)).map(p => ({
+    id: p.id,
+    name: (contentData.names && contentData.names[p.id]) || p.name,
+    price: (bp[p.id] != null ? Number(bp[p.id])
+                             : (DEFAULT_SITE_PRICING.basePrices[p.id] || 0)),
+    photo: prodThumb(p)
+  }));
+}
+/* Голий виріб із каталогу: без нанесення, за шкалою тиражу на одяг.
+   Далі менеджер відкриє олівець і додасть логотип — але позиція вже стоїть
+   у пропозиції, і сторінку видно цілком. */
+async function offerAddBare(o, gid, kind){
+  const g = orderGarments().find(x => x.id === gid);
+  if(!g) return;
+  const q = 20;                       // типовий стартовий тираж, далі правиться
+  const u = bareUnitPrice(gid, q);
+  (o.items = o.items || []).push({
+    kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
+    name: g.name, color:'', print:'', sizes:'',
+    qty: q, unitPrice: u.price, price: u.price * q,
+    unitCost: u.cost, cost: u.cost * q,
+    mockups: [], prints: [], calc: null, garmentId: gid,
+    desc: { method:'dtf', units:q, base:g.minPrice, coefPart:0, pieceFee:0,
+            dtfCols:[], designs:[], bare:true },
+    config: null
+  });
+}
+
 function offerIdxToOrder(o, kind, i){
   let n = -1;
   const list = o.items || [];
@@ -7670,6 +7774,21 @@ async function offerEdApply(msg){
     // Заголовок правиться прямо на місці — перечитувати сторінку зайве;
     // розмір і дати міняють вигляд, тож їх показуємо наново.
     if(act !== 'heroTitle') offerEdPreview(true);
+    return;
+  }
+  if(act === 'pick'){
+    await offerAddBare(o, String(msg.gid || ''), msg.kind);
+    repriceOrder(o); recalcOrderTotals(o);
+    try{ await storeSet('orders', orders); await offerSave(o); }
+    catch(e){ console.error(e); toast('Не збереглось'); return; }
+    renderBoard(); offerEdPreview(true);
+    return;
+  }
+  if(act === 'edit'){
+    // Олівець: той самий конструктор, що й завжди, але вікном поверх КП —
+    // менеджер не втрачає з очей сторінку, яку саме збирає
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    if(k >= 0) openCalcOver(o, k);
     return;
   }
   if(act === 'add'){

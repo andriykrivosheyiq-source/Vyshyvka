@@ -6228,10 +6228,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function extraSketchCount(){ return Math.max(0, uniqueDesignCount() - 1); }
     function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
     // Разова оплата за замовлення = основний дизайн + додаткові ескізи (за кожне зайве лого).
-    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderFee || 0) + extraSketchCount() * (+m.sketchFee || 0); }
+    function methodOrderFee(){
+      if(!hasAnyLogo()) return 0;
+      var m = methodCfgNew(); if(!m) return 0;
+      var ks = feeKindsHere(); if(!ks.length) return 0;
+      var sum = 0;
+      ks.forEach(function(k){ sum += (+methodCfgKind(m, k === 'txt').orderFee || 0); });
+      var one = methodCfgKind(m, ks.length === 1 && ks[0] === 'txt');
+      return sum + extraSketchCount() * (+one.sketchFee || 0);
+    }
     // ── Собівартість (лише для менеджерського прорахунку) ──
     function methodPieceCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
-    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderCost || 0) + extraSketchCount() * (+m.sketchCost || 0); }
+    /* Які види дизайнів зараз на виробі: напис, картинка чи обидва.
+       Разові оплати задані ОКРЕМО для написів і для картинок — підготовка
+       напису дешевша, — і рушій цін це враховує. Тут раніше не враховувалось:
+       за звичайний текст рахувалась разова як за логотип. */
+    function feeKindsHere(){
+      var out = {};
+      getViews().forEach(function(s){
+        (pm.logos[s] || []).forEach(function(l){ out[isTextLayer(l) ? 'txt' : 'img'] = 1; });
+      });
+      return Object.keys(out);
+    }
+    function methodOrderCost(){
+      if(!hasAnyLogo()) return 0;
+      var m = methodCfgNew(); if(!m) return 0;
+      var ks = feeKindsHere(); if(!ks.length) return 0;
+      var sum = 0;
+      ks.forEach(function(k){ sum += (+methodCfgKind(m, k === 'txt').orderCost || 0); });
+      // Додатковий ескіз рахуємо за ставкою того ж виду, що й сам дизайн
+      var one = methodCfgKind(m, ks.length === 1 && ks[0] === 'txt');
+      return sum + extraSketchCount() * (+one.sketchCost || 0);
+    }
     function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
     // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
     // У сітці мінімалок немає: таблиця вже задає всі розміри й тиражі поіменно.
@@ -9057,8 +9085,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(nLogos > 0){
         tb += r('Оплата за штуку', money(pFee), money(pCost));
         var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
-        var mainFeePer = feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0;
-        var mainCostPer = feeUnits > 0 ? Math.round((+m.orderCost||0)/feeUnits) : 0;
+        /* Скільки саме разової врахував рушій — беремо в нього, а не рахуємо
+           тут заново з налаштувань методу. Раніше рахувалось заново, і для
+           напису (у якого своя, дешевша разова) рядок показував ставку
+           логотипа. Різницю доводилось кудись подіти — і вона зʼявлялась
+           окремим рядком «Додаткові ескізи» з мінусом, хоча жодного
+           додаткового ескіза не було. */
+        var mainFeePer = (P && P.feeUnits > 0)
+          ? Math.round((+P.feeTotal || 0) / P.feeUnits)
+          : (feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0);
+        var mainCostPer = feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0;
         // Решта разових — додаткові ескізи. Беремо різницею, щоб сума рядків
         // збігалась із часткою, яку порахував спільний рушій.
         var extraFee = oFeePer - mainFeePer;

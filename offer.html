@@ -1044,6 +1044,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff;outline:none;}
   .edwhy:focus{border-color:#4F5FD4;border-style:solid;}
   .edwhy:empty::before{content:attr(data-ph);color:#98A2B3;}
+  .edb-pen{background:#1F2C44;border-color:#1F2C44;color:#fff;}
+  .edb-pen:hover{background:#2c3b58;border-color:#2c3b58;color:#fff;}
+  .edpick{position:fixed;inset:0;z-index:900;display:none;align-items:center;
+    justify-content:center;background:rgba(15,32,52,.55);padding:16px;}
+  .edpick.open{display:flex;}
+  .edpick-c{width:100%;max-width:620px;max-height:86vh;background:#fff;border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden;}
+  .edpick-h{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:14px 16px;border-bottom:1px solid #E6EAF0;font-size:15px;font-weight:800;color:#1B2430;}
+  .edpick-g{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;}
+  .edpick-i{display:flex;flex-direction:column;gap:3px;text-align:left;background:#F6F8FB;
+    border:1px solid #E6EAF0;border-radius:12px;padding:10px;cursor:pointer;font:inherit;}
+  .edpick-i:hover{border-color:#4F5FD4;}
+  .edpick-ph{display:block;aspect-ratio:1;background:#fff;border-radius:9px;overflow:hidden;margin-bottom:4px;}
+  .edpick-ph img{width:100%;height:100%;object-fit:contain;display:block;}
+  .edpick-n{font-size:13.5px;font-weight:700;color:#1B2430;}
+  .edpick-p{font-size:12.5px;color:#6B7686;}
+  .edpick-e{padding:20px;font-size:13px;color:#6B7686;}
+  @media(max-width:520px){ .edpick-g{grid-template-columns:1fr;} }
   .edsize{display:flex;align-items:center;gap:6px;justify-content:center;margin:-6px 0 12px;
     font-size:12px;color:#6B7686;}
   .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:12px;
@@ -1228,6 +1247,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Правляться тільки товари й особиста рекомендація. Ціни, суми й
      терміни рахуються самі — інакше пропозиція розійшлась би з Канбаном. */
   var EDIT = false;
+  var EDIT_CATALOG = [];
   /* Чи це взагалі редагування. Знати треба ЩЕ ДО завантаження пропозиції:
      порожню КП сторінка чесно відмовляється показувати клієнту («ще
      готується»), а менеджеру саме її й треба відкрити — інакше ніде
@@ -1243,8 +1263,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   window.addEventListener('message', function(e){
     var d = e.data;
     if(!d || !d.lqEditInit || window.parent === window) return;
-    if(EDIT) return;
+    if(EDIT){ if(d.catalog) EDIT_CATALOG = d.catalog; return; }
     EDIT = true;
+    EDIT_CATALOG = d.catalog || [];
     document.documentElement.classList.add('is-edit');
     if(OFFER) render();
   });
@@ -1253,6 +1274,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function edBar(kind, i, qty){
     if(!EDIT) return '';
     return '<div class="edbar">' +
+      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
+        'title="Товар, колір, логотип, розмір нанесення">✎ Змінити</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
       '<button class="edb" data-ed="down" data-k="' + kind + '" data-i="' + i + '" title="Нижче">↓</button>' +
       (qty != null
@@ -1268,8 +1291,46 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function edAdd(kind){
     if(!EDIT) return '';
-    return '<button class="edadd" data-ed="add" data-k="' + kind + '">＋ ' +
+    return '<button class="edadd" data-ed="pickopen" data-k="' + kind + '">＋ ' +
       (kind === 'reco' ? 'Додати рекомендований товар' : 'Додати товар') + '</button>';
+  }
+  /* Каталог просто тут, а не на сайті: перекидати менеджера на іншу сторінку
+     заради вибору худі означало щоразу губити з очей пропозицію, яку він
+     збирає. Список приходить від адмінки: ті самі назви, ціни й фото, що на
+     сайті, тож обраний товар не розійдеться з тим, що побачить клієнт. */
+  function edPickOpen(kind){
+    var box = document.getElementById('edPick');
+    if(!box){
+      box = document.createElement('div');
+      box.id = 'edPick';
+      box.className = 'edpick';
+      document.body.appendChild(box);
+      box.addEventListener('click', function(e){ if(e.target === box) box.classList.remove('open'); });
+    }
+    var grid = EDIT_CATALOG.length
+      ? '<div class="edpick-g">' + EDIT_CATALOG.map(function(g){
+          var ph = g.photo
+            ? '<img src="' + esc(g.photo) + '" alt="" loading="lazy" onerror="this.remove()">'
+            : '';
+          return '<button class="edpick-i" data-gid="' + esc(g.id) + '">' +
+            '<span class="edpick-ph">' + ph + '</span>' +
+            '<span class="edpick-n">' + esc(g.name) + '</span>' +
+            '<span class="edpick-p">від ' + money(g.price) + '</span></button>';
+        }).join('') + '</div>'
+      : '<div class="edpick-e">Каталог не приїхав — оновіть сторінку адмінки.</div>';
+    box.innerHTML = '<div class="edpick-c"><div class="edpick-h">' +
+      (kind === 'reco' ? 'Що порадити на додачу' : 'Що додати в пропозицію') +
+      '<button class="edb" data-pick-x>Закрити</button></div>' + grid + '</div>';
+    box.classList.add('open');
+    box.querySelector('[data-pick-x]').addEventListener('click', function(){
+      box.classList.remove('open');
+    });
+    box.querySelectorAll('[data-gid]').forEach(function(b){
+      b.addEventListener('click', function(){
+        box.classList.remove('open');
+        edSend({ act:'pick', gid: b.dataset.gid, kind: kind });
+      });
+    });
   }
   /* Кнопки редагування не мають запускати звичайну поведінку сторінки:
      клік по «прибрати» всередині картки інакше ще й відкрив би галерею. */
@@ -1278,6 +1339,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.querySelectorAll('[data-ed]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
+        if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
         edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i });
       });
       // Галерея й тиражі слухають натискання, а не клік
