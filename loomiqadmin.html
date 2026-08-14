@@ -540,13 +540,6 @@
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
     .tc-date{font-size:11px;color:#A3ACBA;}
-  /* Наступний крок просто на картці: прострочене має бути видно з колонки */
-  .ticket.t-late{box-shadow:inset 3px 0 0 0 #DC2626,0 1px 3px rgba(15,32,52,.05);}
-  .ticket.t-today{box-shadow:inset 3px 0 0 0 #E7A33A,0 1px 3px rgba(15,32,52,.05);}
-  .tc-next{font-size:11.5px;color:var(--ink-soft);display:flex;gap:5px;align-items:baseline;}
-  .tc-next span{font-weight:700;}
-  .tc-next.late span{color:#DC2626;}
-  .tc-next.today span{color:#A8730F;}
   .tc-wait{font-size:11px;font-weight:600;color:#A8730F;}
   .tc-wait.hot{color:#DC2626;}
   .tc-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
@@ -714,27 +707,16 @@
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
   /* ── Контекст угоди в картці ─────────────────────────────────────────── */
-  .od-sum{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:2px 0 4px;}
-  .od-sum b{font-size:22px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;}
-  .od-sum span{font-size:12px;color:var(--ink-soft);}
-  /* Степер: рух воронкою має бути перед очима, а не кнопками в підвалі */
-  .od-steps{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0 6px;}
-  .od-step{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--ink-soft);
-    background:var(--canvas);border-radius:20px;padding:6px 12px;white-space:nowrap;
-    transition:background .12s,color .12s;}
-  .od-step:hover{background:var(--accent-soft);color:var(--accent-deep);}
-  .od-step.done{color:#96A0AF;background:#F1F4F8;}
-  .od-step.on{background:var(--ink);color:#fff;}
-  /* Наступний крок. Прострочений має різати око — заради цього він і є */
-  .od-next{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;
-    border:1px solid var(--line);border-radius:11px;background:var(--canvas);margin-top:4px;}
-  .od-next.today{border-color:#E7C989;background:#FFFAF0;}
-  .od-next.late{border-color:#F0B4AE;background:#FFF5F4;}
-  .od-next-t{flex:1;min-width:150px;}
-  .od-next-d{flex:none;width:190px;}
-  .od-next-l{flex:none;font-size:11px;font-weight:700;color:var(--ink-soft);}
-  .od-next.today .od-next-l{color:#8A6A15;}
-  .od-next.late .od-next-l{color:var(--bad);}
+  .od-sum{padding:2px 0 6px;}
+  .od-sum b{display:block;font-size:26px;font-weight:700;letter-spacing:-.6px;
+    font-variant-numeric:tabular-nums;line-height:1.15;}
+  .od-sum-m{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  /* Етап списком у шапці: раз на день його міняють, а ряд кнопок з'їдав
+     верх картки. Списком — один рядок і зрозуміло без пояснень. */
+  .od-stage{margin-top:8px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+    background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+    max-width:220px;}
+  .od-stage:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   /* Повторний клієнт: інша розмова й інша знижка — це має впадати в око */
   .od-repeat{margin-top:14px;padding:11px 12px;border:1px solid #CFE3D8;border-radius:11px;
     background:#F1F9F5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
@@ -756,8 +738,21 @@
   .od-fe.fe-kp::before{background:#7C3AED;}
   .od-fe.fe-new::before{background:var(--good);}
   .od-fe-t{flex:none;font-size:11px;color:#A3ACBA;font-variant-numeric:tabular-nums;min-width:78px;}
-  .od-foot .od-del{flex:1;padding:11px 14px;background:var(--bad-soft);color:var(--bad);
-    font-weight:600;}
+  /* Видалення — дрібним рядком у кінці стрічки, а не під пальцем поруч
+     із головними діями */
+  .od-del-lite{all:unset;cursor:pointer;align-self:flex-start;margin-top:6px;font-size:11.5px;
+    color:#A3ACBA;border-bottom:1px dashed #D6DCE5;}
+  .od-del-lite:hover{color:var(--bad);border-color:var(--bad);}
+  .od-foot{gap:8px;align-items:stretch;flex-wrap:wrap;}
+  /* .od-foot button має all:unset — фон і колір головній кнопці треба
+     повернути тут, інакше вона стає безбарвною серед кольорових каналів */
+  .od-foot .od-kp{margin:0;flex:1 1 150px;min-width:0;font-size:13px;padding:12px 14px;
+    background:var(--accent);color:#fff;font-weight:800;white-space:nowrap;border-radius:10px;}
+  .od-foot .od-kp:hover{background:var(--accent-deep);}
+  .od-foot .od-kp-link{flex:none;padding:0 14px;background:#fff;color:var(--ink-soft);
+    border:1px solid var(--line);border-radius:10px;}
+  .od-foot .tc-ch-b{flex:none;margin:0;padding:0 15px;display:flex;align-items:center;
+    font-size:12px;font-weight:700;color:#fff;border-radius:10px;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   /* Канал звʼязку — перший рядок картки: головне не «як звати», а «де ми
      з цією людиною розмовляємо» */
@@ -6592,10 +6587,6 @@ function ticketSummaryHtml(o){
     ${waitingMin(o) >= 60
       ? `<div class="tc-wait${waitingMin(o) >= 240 ? ' hot' : ''}">Клієнт чекає ${
           escapeHtml(agoUa(o.tgAt))}</div>` : ''}
-    ${(()=>{ const n = nextStepState(o); if(!n) return '';
-        return `<div class="tc-next ${n.late ? 'late' : (n.today ? 'today' : '')}">
-          <span>${escapeHtml(n.label)}</span>${n.text ? '· ' + escapeHtml(n.text) : ''}</div>`;
-      })()}
     <div class="tc-meta">
       <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт'
               : (o.type === 'lead' ? 'заявка · без товару' : 'без товарів')}</span>
@@ -6619,9 +6610,7 @@ function ticketSummaryHtml(o){
 
 function buildTicket(o){
   const el = document.createElement('div');
-  const nSt = nextStepState(o);
-  el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '') +
-    (nSt && nSt.late ? ' t-late' : (nSt && nSt.today ? ' t-today' : ''));
+  el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
   el.draggable = true;
   el.addEventListener('dragstart', e=>{
     e.dataTransfer.setData('text/plain', o.id);
@@ -6709,24 +6698,6 @@ function waitingMin(o){
   return Math.max(0, Math.round((Date.now() - t) / 60000));
 }
 
-/* Наступний крок: єдине, що справді не дає загубити клієнта. Строк
-   виробництва («Здати до») — зовсім інша річ: людина губиться не через
-   зірваний дедлайн, а через «мав передзвонити в четвер і забув». */
-function nextStepState(o){
-  const at = String((o && o.nextAt) || '').trim();
-  if(!at) return null;
-  const d = new Date(at.length <= 10 ? at + 'T23:59:00' : at);
-  if(isNaN(d)) return null;
-  const diff = d.getTime() - Date.now();
-  const day = 86400000;
-  return {
-    at: d,
-    text: String(o.nextStep || '').trim(),
-    late: diff < 0,
-    today: diff >= 0 && diff < day,
-    label: diff < 0 ? 'прострочено' : (diff < day ? 'сьогодні' : dtUa(d.toISOString()))
-  };
-}
 
 /* Той самий клієнт міг замовляти раніше. Кожне звернення — окрема картка,
    і що людина брала торік, не видно ніде; а повторний клієнт — це інша
@@ -6953,7 +6924,6 @@ function renderOrderDrawer(){
   const created = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const due = dueInfo(o);
-  const nx = nextStepState(o);
   chanMigrate(o);
   // Порожнє поле там, де розмова вже є, читається як «контакту немає»
   if(chanFill(o)) saveOrderMeta(o).catch(e=> console.warn(e));
@@ -6965,6 +6935,12 @@ function renderOrderDrawer(){
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
           ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
         <div class="od-sub">${escapeHtml(created)}</div>
+        ${/* Етап списком, а не рядом кнопок: він потрібен раз на день, а
+             місця займав більше за все інше в шапці. */''}
+        <select class="od-stage" title="Етап угоди">
+          ${flow.map(st=>`<option value="${escapeHtml(st.key)}"${
+            st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
+        </select>
       </div>
       ${anTraceHtml(o)}
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
@@ -6974,17 +6950,11 @@ function renderOrderDrawer(){
            було розгортати склад. */''}
       <div class="od-sum">
         <b>${fmt(o.totalPrice)} ₴</b>
-        ${(o.items||[]).length ? `<span>маржа ${(o.marginPct||0).toFixed(0)}%</span>` : ''}
-        <span>${daysInWork(o)}</span>
-        ${lastTouchLabel(o) ? `<span>${escapeHtml(lastTouchLabel(o))}</span>` : ''}
+        <div class="od-sum-m">${[
+          (o.items||[]).length ? 'маржа ' + (o.marginPct||0).toFixed(0) + '%' : '',
+          daysInWork(o), lastTouchLabel(o)
+        ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </div>
-      ${/* Рух воронкою перед очима, а не кнопками в підвалі */''}
-      <div class="od-steps">
-        ${flow.map((st, i)=>`<button class="od-step${i === statusIdx ? ' on' : ''}${
-          i < statusIdx ? ' done' : ''}" data-step="${escapeHtml(st.key)}"
-          >${escapeHtml(st.label)}</button>`).join('')}
-      </div>
-
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -6999,8 +6969,6 @@ function renderOrderDrawer(){
         ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
       </div>
       ${crmSeekHtml(o)}
-      ${hasChat ? `<button class="od-chat-open" data-chat="${ch === 'tg' ? 'tg' : 'crm'}">
-          Відкрити чат у ${escapeHtml(CHAN[ch].label)}</button>` : ''}
       <div class="od-fields">
         <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
         <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
@@ -7011,23 +6979,6 @@ function renderOrderDrawer(){
         <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
         ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено на ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : 'лишилось ' + due.days + ' дн')}</span>` : ''}
         ${siteLinkHtml(o)}
-      </div>
-
-      ${/* Найсильніший запобіжник від «загубився клієнт»: у кожної угоди має
-           бути запланована дія. «Здати до» — це строк виробництва, інша річ. */''}
-      <div class="od-next${nx ? (nx.late ? ' late' : (nx.today ? ' today' : '')) : ''}">
-        <input class="od-f od-next-t" data-f="nextStep" type="text"
-               placeholder="Наступний крок — передзвонити, надіслати макет…"
-               value="${escapeHtml(o.nextStep||'')}">
-        <input class="od-f od-next-d" data-f="nextAt" type="datetime-local"
-               value="${escapeHtml(o.nextAt||'')}">
-        ${nx ? `<span class="od-next-l">${escapeHtml(nx.label)}</span>` : ''}
-      </div>
-
-      <div class="od-kp-row">
-        <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
-        ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copylink"
-          title="Скопіювати посилання для клієнта">🔗 Посилання</button>` : ''}
       </div>
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
@@ -7063,6 +7014,8 @@ function renderOrderDrawer(){
 
       ${repeatHtml(o)}
 
+      <button class="od-del-lite" data-act="del">Видалити картку</button>
+
       <div class="od-sec">Що відбувалось</div>
       <div class="od-feed">${activityFeed(o).map(x=>`
         <div class="od-fe fe-${escapeHtml(x.kind)}">
@@ -7070,20 +7023,37 @@ function renderOrderDrawer(){
           <span>${escapeHtml(x.text)}</span>
         </div>`).join('') || '<div class="od-empty">Поки нічого</div>'}</div>
     </div>
+    ${/* Унизу закріплено лише те, що натискають щодня: зібрати пропозицію
+         й піти в розмову. Видалення — дрібним рядком у кінці стрічки, щоб
+         не стояло під пальцем поруч із головними діями. */''}
     <div class="od-foot">
-      ${/* Рух етапами переїхав нагору, у степер: там його видно завжди */''}
-      <button data-act="del" title="Видалити замовлення" class="od-del">🗑 Видалити картку</button>
+      <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
+      ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copylink"
+        title="Скопіювати посилання для клієнта">🔗</button>` : ''}
+      ${chanBtnsHtml(o)}
     </div>`;
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
-  // Степер: клік по етапу переводить угоду просто туди
-  panel.querySelectorAll('[data-step]').forEach(b=>{
-    b.addEventListener('click', async ()=>{
-      if(o.status === b.dataset.step) return;
-      setStatus(o, b.dataset.step);
-      await storeSet('orders', orders);
-      renderBoard(); renderOrderDrawer();
+  const stg = panel.querySelector('.od-stage');
+  if(stg) stg.addEventListener('change', async ()=>{
+    if(o.status === stg.value) return;
+    setStatus(o, stg.value);
+    await storeSet('orders', orders);
+    renderBoard(); renderOrderDrawer();
+  });
+  // Кнопки каналів у закріпленому низу — та сама дія, що й на дошці
+  panel.querySelectorAll('[data-ch]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const k = b.dataset.ch;
+      if(k === 'tg' && tgChatOf(o)) return chatOpen(o, 'tg');
+      if(k === 'ig' && o.crmChatId) return chatOpen(o, 'crm');
+      const h = chanHandle(o, k).replace(/^@/, '').trim();
+      if(!h){ toast('Контакт у цьому каналі не вписано'); return; }
+      const url = k === 'tg' ? 'https://t.me/' + encodeURIComponent(h)
+                : k === 'ig' ? 'https://instagram.com/' + encodeURIComponent(h)
+                : 'viber://chat?number=' + encodeURIComponent(h.replace(/[^\d+]/g, ''));
+      window.open(url, '_blank', 'noopener');
     });
   });
   // Перехід на іншу картку того самого клієнта
@@ -7093,11 +7063,12 @@ function renderOrderDrawer(){
       if(t) openOrderDrawer(t);
     });
   });
-  panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
+  panel.querySelectorAll('[data-act="del"]').forEach(b=>
+    b.addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); }));
   const build = panel.querySelector('[data-act="build"]');
   if(build) build.addEventListener('click', ()=> openCalcFor(o));
-  const kp = panel.querySelector('[data-act="offered"]');
-  if(kp) kp.addEventListener('click', ()=> openOfferEditor(o));
+  panel.querySelectorAll('[data-act="offered"]').forEach(b=>
+    b.addEventListener('click', ()=> openOfferEditor(o)));
   const chanSel = panel.querySelector('.od-chan');
   if(chanSel) chanSel.addEventListener('change', async ()=>{
     o.chan = chanSel.value;
