@@ -574,8 +574,12 @@
     text-align:center;margin-right:5px;vertical-align:middle;}
   .tc-tg-at{font-size:10px;color:var(--ink-soft);margin-left:5px;font-weight:400;}
   /* Канали клієнта: кожен своїм кольором, щоб було видно з колонки */
-  .tc-ch-b{all:unset;cursor:pointer;font-size:10.5px;font-weight:700;color:#fff;
-    border-radius:7px;padding:4px 9px;margin-right:5px;white-space:nowrap;}
+/* Кнопки каналів — головна дія на дошці: з них починається розмова.
+     Були 10.5px із чотирма пікселями відступу — у таку важко влучити й
+     на миші, а на дотику й поготів. */
+  .tc-ch-b{all:unset;cursor:pointer;font-size:12.5px;font-weight:700;color:#fff;
+    border-radius:9px;padding:9px 15px;margin-right:6px;white-space:nowrap;
+    display:inline-flex;align-items:center;min-height:36px;box-sizing:border-box;}
   .tc-ch-b.ch-tg{background:#229ED9;}
   .tc-ch-b.ch-ig{background:linear-gradient(45deg,#F09433,#DC2743 45%,#BC1888);}
   .tc-ch-b.ch-viber{background:#7360F2;}
@@ -595,11 +599,14 @@
      екрані. Потрібні вони раз на кілька хвилин, тож зʼявляються при
      наведенні. На дотику наведення немає — там лишаємо як було. */
   .tc-acts{display:flex;align-items:center;gap:4px;margin-top:4px;}
-  .tc-acts .tc-act,.tc-acts .tc-act[disabled]{opacity:0;transition:opacity .13s;}
+  /* Стрілки етапів були сховані до наведення — і їх переставали знаходити:
+     «а де кнопки?». Тепер вони видимі завжди, просто приглушені, а при
+     наведенні набирають повний колір. */
+  .tc-acts .tc-act{opacity:.45;transition:opacity .13s;}
+  .tc-acts .tc-act[disabled]{opacity:.18;}
   .ticket:hover .tc-acts .tc-act,.ticket:focus-within .tc-acts .tc-act{opacity:1;}
-  .ticket:hover .tc-acts .tc-act[disabled]{opacity:.3;}
-  @media(hover:none){ .tc-acts .tc-act{opacity:1;} .tc-acts .tc-act[disabled]{opacity:.3;} }
-  .tc-act{all:unset;cursor:pointer;font-size:12px;line-height:1;padding:5px 8px;border-radius:6px;
+  .ticket:hover .tc-acts .tc-act[disabled]{opacity:.25;}
+  .tc-act{all:unset;cursor:pointer;font-size:14px;line-height:1;padding:9px 12px;border-radius:8px;
     background:var(--canvas);color:var(--ink-soft);text-align:center;}
   .tc-act:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
   .tc-act[disabled]{opacity:.3;cursor:not-allowed;}
