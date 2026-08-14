@@ -403,17 +403,26 @@
   .board{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -14px;padding-left:14px;padding-right:14px;-webkit-overflow-scrolling:touch;}
   .board::-webkit-scrollbar{height:5px;}
   .board::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;}
-  .col{background:#EEF1F6;border-radius:12px;padding:12px;min-height:140px;flex:0 0 84%;scroll-snap-align:start;}
+  /* Колонки без власного фону: два близькі сірі (підкладка на полотні)
+     робили дошку каламутною. Статус тепер каже кольорова крапка біля
+     назви — так само роблять інструменти, від яких лишається відчуття
+     «дорого», і саме тому, що вони НЕ розфарбовують площини. */
+  .col{background:transparent;border-radius:12px;padding:4px 6px 12px;min-height:140px;
+    flex:0 0 84%;scroll-snap-align:start;}
+  .col.drag-over{background:var(--accent-soft);}
   /* Колонки завжди в один ряд: «Прорахунок» ліворуч → «Виконано» праворуч.
      Якщо всі не влазять — гортаються свайпом вправо, а не переносяться вниз. */
   @media (min-width:680px){.col{flex:0 0 55%;}}
   @media (min-width:1100px){.col{flex:1 1 0;min-width:300px;}}
-  .col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 12px;}
-  .col-head h3{font-size:12.5px;margin:0;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);}
-  .col-count{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);padding:1px 7px;border-radius:20px;color:var(--ink-soft);}
+  .col-head{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 14px;}
+    .col-head h3{font-size:11px;margin:0;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--ink-soft);display:flex;align-items:center;gap:7px;font-weight:700;}
+  .col-head h3::before{content:'';width:7px;height:7px;border-radius:50%;
+    background:currentColor;flex:none;}
+    .col-count{font-size:11px;font-variant-numeric:tabular-nums;color:#A3ACBA;padding:1px 2px;}
   .col.drag-over{background:#E2E9F2;outline:2px dashed var(--accent);}
 
-  .ticket{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:10px;cursor:grab;
+  .ticket{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;cursor:grab;
     display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 3px rgba(15,32,52,.05);transition:box-shadow .15s,border-color .15s;}
   .ticket:hover{box-shadow:0 4px 14px rgba(15,32,52,.10);border-color:#d5dce6;}
   .ticket:active{cursor:grabbing;}
@@ -422,7 +431,7 @@
   .phone{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);}
   .t-date{font-size:10.5px;color:#9AA5B5;margin-top:3px;display:flex;align-items:center;gap:6px;}
   /* Номер замовлення — щоб швидко знайти в CRM, тому виділений */
-  .t-oid{font-family:var(--mono);font-size:10.5px;font-weight:700;color:#0F2034;
+    .t-oid{font-family:var(--mono);font-size:11px;font-weight:600;color:#8C96A6;
     background:#e8eefa;border:1px solid #d3e0f5;border-radius:5px;padding:1px 6px;letter-spacing:.3px;}
   .src-tag{font-size:10px;background:var(--canvas);color:var(--ink-soft);padding:3px 7px;border-radius:5px;flex:none;margin-top:1px;}
   .t-site{font-size:10px;font-weight:700;color:#1668c4;background:#EAF1FB;border:1px solid #D9E2F0;
@@ -522,16 +531,16 @@
   .t-doc-sec:hover{background:var(--canvas);}
   .t-doc-main:disabled,.t-doc-sec:disabled{opacity:.55;cursor:default;}
   /* ── Згорнута картка Канбану ── */
-  .ticket--compact{padding:11px 12px;display:flex;flex-direction:column;gap:5px;}
+    .ticket--compact{padding:16px;display:flex;flex-direction:column;gap:8px;}
   .ticket--eye{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
-  .tc-date{font-size:10.5px;color:#9AA5B5;}
-  .tc-who{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--ink);
+    .tc-date{font-size:11px;color:#A3ACBA;}
+  .tc-who{font-size:15px;font-weight:650;letter-spacing:-.1px;color:var(--ink);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* Останнє повідомлення з Telegram прямо на картці — щоб не відкривати
      кожну заради одного рядка. Один рядок і три крапки: картка не має рости. */
-  .tc-tg{font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
+    .tc-tg{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;}
   .tc-tg.quiet{color:var(--ink-soft);font-style:italic;}
   /* Непрочитане: жирним і з крапкою. Колір лишаємо той самий — картка не має
@@ -554,13 +563,23 @@
   .tc-ch-b:hover{filter:brightness(1.12);}
   /* Каналу без привʼязаної розмови — блідіше: туди можна лише перейти */
   .tc-ch-b.off{opacity:.5;}
-  .tc-meta{font-size:11px;color:var(--ink-soft);}
+    .tc-meta{font-size:11px;color:#8C96A6;}
   .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
-  .tc-sum{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
+  /* Моноширинний на грошах читається як бухгалтерія: цифри рівняє
+     tabular-nums, а гарнітура лишається та сама, що й у решті інтерфейсу */
+  .tc-sum{font-size:20px;font-weight:700;letter-spacing:-.4px;color:var(--ink);
+    font-variant-numeric:tabular-nums;}
   .tc-marg{font-family:var(--mono);font-size:11.5px;font-weight:700;}
   .tc-marg.good{color:var(--good);}
   .tc-marg.bad{color:var(--bad);}
-  .tc-acts{display:flex;align-items:center;gap:4px;margin-top:2px;}
+  /* Стрілки й кошик повторювались на кожній картці — двадцять разів на
+     екрані. Потрібні вони раз на кілька хвилин, тож зʼявляються при
+     наведенні. На дотику наведення немає — там лишаємо як було. */
+  .tc-acts{display:flex;align-items:center;gap:4px;margin-top:4px;}
+  .tc-acts .tc-act,.tc-acts .tc-act[disabled]{opacity:0;transition:opacity .13s;}
+  .ticket:hover .tc-acts .tc-act,.ticket:focus-within .tc-acts .tc-act{opacity:1;}
+  .ticket:hover .tc-acts .tc-act[disabled]{opacity:.3;}
+  @media(hover:none){ .tc-acts .tc-act{opacity:1;} .tc-acts .tc-act[disabled]{opacity:.3;} }
   .tc-act{all:unset;cursor:pointer;font-size:12px;line-height:1;padding:5px 8px;border-radius:6px;
     background:var(--canvas);color:var(--ink-soft);text-align:center;}
   .tc-act:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -617,7 +636,7 @@
   .od-foot button[disabled]{opacity:.35;cursor:not-allowed;}
   .od-foot .od-del{flex:none;padding:9px 14px;background:var(--bad-soft);color:var(--bad);}
   .tc-meta{display:flex;align-items:center;gap:7px;}
-  .tc-due{font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:20px;
+    .tc-due{font-size:11px;font-variant-numeric:tabular-nums;padding:1px 7px;border-radius:20px;
     background:var(--canvas);color:var(--ink-soft);}
   .tc-due.due-soon{background:#FFF4DE;color:#8A6A15;}
   .tc-due.due-late{background:var(--bad-soft);color:var(--bad);}
@@ -683,7 +702,12 @@
     padding:9px 12px;cursor:pointer;}
   .od-chat-open:hover{background:#2c3b58;}
   /* Головна дія картки — зібрати пропозицію. Тому вона й виглядає головною */
-  .od-kp{width:100%;margin:14px 0 4px;border:none;border-radius:10px;
+  .od-kp-row{display:flex;gap:8px;align-items:stretch;margin:14px 0 4px;}
+  .od-kp-link{flex:none;border:1px solid var(--line);border-radius:10px;background:#fff;
+    color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:0 14px;cursor:pointer;
+    white-space:nowrap;}
+  .od-kp-link:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .od-kp{flex:1;min-width:0;border:none;border-radius:10px;
     background:var(--accent);color:#fff;font:inherit;font-size:13.5px;font-weight:800;
     padding:12px 14px;cursor:pointer;}
   .od-kp:hover{background:var(--accent-deep);}
@@ -861,7 +885,7 @@
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
   .t-actions button[disabled]{opacity:.35;cursor:not-allowed;}
-  .empty-col{font-size:11.5px;color:#AEB8C9;text-align:center;padding:20px 6px;}
+    .empty-col{font-size:12px;color:#B6BECC;text-align:center;padding:26px 6px;}
 
   .order-form-toggle{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
   .new-order-card{display:none;}
@@ -5885,8 +5909,6 @@ function recoNoteHtml(it){
   return (it && it.kind === 'reco' && it.recoNote)
     ? `<div class="t-reco-note">${escapeHtml(it.recoNote)}</div>` : '';
 }
-// Що відбувається з пропозицією на боці клієнта — прямо в картці,
-// щоб менеджер не мусив відкривати сторінку, аби це побачити.
 const OFFER_STATE_UA = {
   created:   { label:'КП сформовано',      cls:'os-idle' },
   opened:    { label:'Клієнт відкрив',     cls:'os-open' },
@@ -5902,72 +5924,6 @@ function offerTimeLabel(iso){
   const d = new Date(iso);
   if(isNaN(d)) return '';
   return d.toLocaleString('uk-UA', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-}
-function offerBlockHtml(o){
-  const off = o.offerToken && offersByToken[o.offerToken];
-  if(!off) return '';
-  const st = OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created;
-  const sel = off.selection || {};
-  const bits = [];
-  Object.keys(sel.qty || {}).forEach(i=>{
-    const it = (off.items || [])[+i];
-    if(it && +sel.qty[i] !== it.qty) bits.push(escapeHtml(it.name) + ' → ' + (+sel.qty[i]) + ' шт');
-  });
-  (sel.reco || []).forEach(i=>{
-    const r = (off.reco || [])[+i];
-    if(r) bits.push('+ ' + escapeHtml(r.name) + ' (' + r.qty + ' шт)');
-  });
-  const a = off.clientAction || {};
-  const events = (off.events || []).slice(-6).reverse().map(e=>
-    `<div class="t-ev"><span class="t-ev-t">${escapeHtml(offerTimeLabel(e.at))}</span>
-       <span>${escapeHtml(OFFER_EVENT_UA[e.type] || e.type)}${e.note ? ' · ' + escapeHtml(e.note) : ''}</span></div>`
-  ).join('');
-  return `
-    <div class="t-offer-state">
-      <div class="t-os-head">
-        <span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>
-        ${sel.total != null ? `<span class="t-os-sum">${fmt(sel.total)} ₴ · ${sel.count||0} шт</span>` : ''}
-      </div>
-      ${bits.length ? `<div class="t-os-pick">${bits.join(' · ')}</div>` : ''}
-      ${(a.kinds||[]).length ? `<div class="t-os-pick">Змінити: ${escapeHtml(a.kinds.join(', '))}</div>` : ''}
-      ${a.comment ? `<div class="t-os-note">«${escapeHtml(a.comment)}»</div>` : ''}
-      ${a.name || a.phone || a.contact
-        ? `<div class="t-os-note">${escapeHtml([a.name, a.phone, a.contact].filter(Boolean).join(' · '))}</div>` : ''}
-      ${events ? `<div class="t-evs">${events}</div>` : ''}
-    </div>`;
-}
-// Документи для клієнта. Кошторису й «КП на позицію» тут немає навмисно:
-// пропозиція будується з самого складу замовлення, тож окремі документи по
-// позиціях лише плодили б версії, які розходяться зі сторінкою клієнта.
-//
-// «Відкрити» і «PDF» — справжні посилання, а не кнопки з window.open: перехід
-// за <a> браузер не блокує ніколи, а спливаюче вікно на телефоні глушиться
-// мовчки. Адреса показана окремим рядком, щоб її завжди можна було виділити
-// пальцем або відкрити довгим натисканням, навіть якщо буфер обміну підвів.
-function docsBlockHtml(o){
-  const link = offerUrl(o);
-  if(!link && !(o.items||[]).length) return '';
-  const brands = brandAll();
-  const cur = brandKeyOf(o);
-  return `
-    <div class="od-sec">Документи для клієнта</div>
-    <div class="t-docs">
-      <div class="t-brand" title="Від якого бренду виглядає сторінка пропозиції">
-        <span class="t-brand-lab">Бренд КП</span>
-        ${BRAND_KEYS.map(k=>`<button class="t-brand-b${k===cur?' on':''}" data-brand="${k}">${escapeHtml(brands[k].name)}</button>`).join('')}
-      </div>
-      <div class="t-docs-row">
-        ${link?`<button class="t-doc-main" data-doc="copylink">🔗 Скопіювати посилання</button>`
-              :`<button class="t-doc-main" data-doc="makeoffer">✦ Створити КП</button>`}
-        ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}" target="_blank" rel="noopener" data-doc="openoffer">Відкрити</a>`:''}
-        ${link?`<a class="t-doc-sec" href="${escapeHtml(link)}&print=1" target="_blank" rel="noopener" data-doc="offerpdf">PDF</a>`:''}
-        <button class="t-doc-sec" data-doc="mockups">Макети ↓</button>
-      </div>
-      ${link?`<a class="t-offer-url" href="${escapeHtml(link)}" target="_blank" rel="noopener">${escapeHtml(link)}</a>`:''}
-      <div class="t-docs-hint">${link
-        ? 'Сторінка жива: будь-яка правка в картці одразу видно клієнту за цим посиланням. Окремо перезберігати не треба.'
-        : 'Зберемо персональну сторінку з того, що зараз у картці, і дамо посилання для клієнта. Далі правки підхоплюються самі.'}</div>
-    </div>`;
 }
 /* Копіюємо СИНХРОННО, прямо в обробнику: після await браузер на телефоні вже
    не вважає це дією користувача і мовчки відмовляє в доступі до буфера.
@@ -6089,7 +6045,7 @@ function renderBoard(){
     col.className = 'col';
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
-    col.style.background = c.bg;
+    // Колір статусу тепер несе крапка біля назви, а не підкладка колонки
     // Свіжа розмова — нагору колонки. Порівнюємо ISO-рядки як текст:
     // вони для того й придумані, щоб сортуватись без розбору дати.
     const list = orders.filter(o=>o.status===st.key)
@@ -6527,12 +6483,13 @@ function ticketSummaryHtml(o){
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
     </div>
     <div class="tc-acts">
+      ${/* Посилання на КП і видалення переїхали в саму картку клієнта:
+            на дошці вони повторювались двадцять разів і тільки шуміли.
+            Тут лишається те, що роблять щодня — рух по етапах. */''}
       ${chanBtnsHtml(o)}
-      ${offerUrl(o)?`<button class="tc-act" data-doc="copylink" title="Скопіювати посилання на КП">🔗</button>`:''}
       <span class="tc-spacer"></span>
       <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
       <button class="tc-act" data-act="next" ${canNext?'':'disabled'} title="На крок далі">→</button>
-      <button class="tc-act tc-act--del" data-act="del" title="Видалити замовлення">🗑</button>
     </div>`;
 }
 
@@ -6761,7 +6718,11 @@ function renderOrderDrawer(){
         ${siteLinkHtml(o)}
       </div>
 
-      <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
+      <div class="od-kp-row">
+        <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
+        ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copylink"
+          title="Скопіювати посилання для клієнта">🔗 Посилання</button>` : ''}
+      </div>
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="4"
@@ -6780,16 +6741,19 @@ function renderOrderDrawer(){
         </div>
         ${priceCalcHtml(o)}
         <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
+        ${orderBuyHtml(o) ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
       </details>
 
-      ${offerBlockHtml(o) ? `<div class="od-sec">Пропозиція клієнту</div>${offerBlockHtml(o)}` : ''}
-      ${docsBlockHtml(o)}
-
-      ${orderBuyHtml(o) ? '<div class="od-sec">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
-
-      ${tgChatOf(o) ? '<div class="od-sec">Діалог у Telegram</div>' + tgBlockHtml(o) : ''}
-
-      ${crmShow(o) ? '<div class="od-sec">Діалог з клієнтом (Sitniks)</div>' + crmBlockHtml(o) : ''}
+      ${/* Що було тут раніше і чому пішло:
+            «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
+            з кнопки вище; що клієнт із нею зробив, показує позначка на
+            картці дошки.
+            «Документи для клієнта» (бренд, посилання, PDF, макети) — усе це
+            тепер усередині редактора КП, поруч із тим, що редагують.
+            «Діалог у Telegram» — дубль: розмову відкриває кнопка каналу
+            вгорі, у вікні на весь екран, а не смужкою в колонці. */''}
+      ${crmShow(o) && !chanHasChat(o, 'ig')
+        ? '<div class="od-sec">Діалог з клієнтом (Sitniks)</div>' + crmBlockHtml(o) : ''}
     </div>
     <div class="od-foot">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
@@ -6904,33 +6868,6 @@ function tgChatOf(o){
 let tgChat = {};      // orderId → { msgs, draft, err, loading }
 let tgUnsub = null;   // жива підписка активної картки
 
-function tgBlockHtml(o){
-  const chat = tgChatOf(o);
-  if(!chat) return '';
-  const st = tgChat[o.id] || {};
-  const wrap = inner => `<div class="od-crm">${inner}</div>`;
-  let feed;
-  if(st.err) feed = `<div class="od-crm-err">${escapeHtml(st.err)}</div>`;
-  else if(st.loading) feed = `<div class="od-empty">Завантажуємо…</div>`;
-  else if(!(st.msgs || []).length)
-    // Людина натиснула «Запустити» й мовчить — це найчастіший випадок
-    // порожньої стрічки, і найкращий момент написати першим.
-    feed = `<div class="od-empty">Людина відкрила бота, але ще нічого не написала.
-      Можна написати першим — вона отримає повідомлення в Telegram.</div>`;
-  else feed = `<div class="od-crm-feed">${chatRowsHtml(chatMsgs(o, 'tg'))}</div>`;
-  const send = tgBase()
-    ? `<div class="od-crm-send">
-         <textarea class="od-tg-inp" rows="2" placeholder="Відповісти в Telegram…">${escapeHtml(st.draft || '')}</textarea>
-         <button class="od-tg-go" title="Ctrl+Enter">Надіслати</button>
-       </div>`
-    : `<div class="od-crm-note">Щоб відповідати звідси, вкажіть адресу воркера Telegram:
-        Конструктор сайту → «Telegram — діалог у картці».</div>`;
-  const who = (o.instagram || '').trim();
-  return wrap(
-    `<div class="od-crm-bar"><span class="od-crm-who">${escapeHtml(who || 'Telegram')}</span>` +
-    `<button class="od-open-chat" data-chat="tg">Відкрити діалог</button></div>` +
-    feed + send);
-}
 const TG_KIND_UA = { photo:'📷 фото', voice:'🎤 голосове', video:'🎬 відео',
   doc:'📎 файл', sticker:'стікер', contact:'📇 контакт', location:'📍 локація' };
 
