@@ -6823,7 +6823,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
         // Частка разових: базова оплата методу — на всі вироби методу,
         // додатковий ескіз — лише на вироби свого дизайну.
-        var feeShare = 0, sketches = [], feeTotal = 0, feeUnits = 0;
+        var feeShare = 0, costShare = 0, sketches = [], feeLines = [], feeTotal = 0, feeUnits = 0;
         var paid = {};
         (it.designs || []).forEach(function(fp, i){
           if(!fp) return;
@@ -6834,12 +6834,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           if(!paid[kind]){                            // разова за вид — один раз на позицію
             paid[kind] = {};
             feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+            costShare += (+f.cfg.orderCost || 0) / (f.total || 1);
             feeTotal += (+f.cfg.orderFee || 0); feeUnits = f.total || 1;
+            /* Кожну разову запамʼятовуємо окремим рядком. Раніше вони
+               складались в одне число, і в прорахунку стояло «підготовка
+               макета 1100», де 700 за картинку і 400 за напис — різні
+               роботи за різними ставками — були нерозрізненні. */
+            feeLines.push({ kind: kind, fee: +f.cfg.orderFee || 0,
+                            cost: +f.cfg.orderCost || 0, units: f.total || 1 });
           }
           if(paid[kind][gi] || gi === 0) return;      // перший дизайн виду входить у разову
           paid[kind][gi] = 1;
           feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
-          sketches.push({ fee: +f.cfg.sketchFee || 0, units: f.unitsOf[gi] || 1 });
+          costShare += (+f.cfg.sketchCost || 0) / (f.unitsOf[gi] || 1);
+          sketches.push({ kind: kind, fee: +f.cfg.sketchFee || 0,
+                          cost: +f.cfg.sketchCost || 0, units: f.unitsOf[gi] || 1 });
         });
         var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                    (+it.pieceFee || 0) + Math.round(feeShare);
@@ -6851,8 +6860,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           gridPriced: mk === 'dtf' && flat > 0,
           pieceFee: +it.pieceFee || 0,
           feeShare: Math.round(feeShare),
+          /* Собівартість разових рахує той самий обхід, що й продажну.
+             Доти вона бралась окремою функцією, яка рахувала «унікальні
+             дизайни мінус один» на всі види разом — а рушій звільняє
+             перший дизайн КОЖНОГО виду. На картинці з написом це давало
+             зайвий платний ескіз у собівартості й занижену маржу. */
+          costShare: Math.round(costShare),
           feeTotal: feeTotal, feeUnits: feeUnits,
-          sketches: sketches
+          feeLines: feeLines, sketches: sketches
         } };
       });
     }
@@ -8981,7 +8996,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Разова оплата ділиться так само, як у рушії: на всі вироби способу
       var feeUnits = (P && P.feeUnits) ? P.feeUnits : qty;
       var oFeePer = P ? P.feeShare : orderFeePerUnit(qty);
-      var oCostPer = feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0;
+      var oCostPer = (P && P.costShare != null) ? P.costShare
+                   : (feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0);
       var uSell = sd ? sd.unit : effUnitPrice(), fullUnitCost = unitCost() + oCostPer;
       /* Знижку показуємо як РІЗНИЦЮ, а не рахуємо окремою формулою: так
          стовпчик сходиться з підсумком до гривні при будь-яких округленнях. */
@@ -9125,32 +9141,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       if(nLogos > 0){
         tb += r('Оплата за штуку', money(pFee), money(pCost));
-        var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
-        /* Скільки саме разової врахував рушій — беремо в нього, а не рахуємо
-           тут заново з налаштувань методу. Раніше рахувалось заново, і для
-           напису (у якого своя, дешевша разова) рядок показував ставку
-           логотипа. Різницю доводилось кудись подіти — і вона зʼявлялась
-           окремим рядком «Додаткові ескізи» з мінусом, хоча жодного
-           додаткового ескіза не було. */
-        var mainFeePer = (P && P.feeUnits > 0)
-          ? Math.round((+P.feeTotal || 0) / P.feeUnits)
-          : (feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0);
-        var mainCostPer = feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0;
-        // Решта разових — додаткові ескізи. Беремо різницею, щоб сума рядків
-        // збігалась із часткою, яку порахував спільний рушій.
-        var extraFee = oFeePer - mainFeePer;
-        /* Показуємо і повну разову, і на скільки вона ділиться. Без цього
-           рядок «Підготовка макета — 1500 грн» на тиражі в одну штуку
-           виглядає як помилка, хоча це просто вся підготовка, що лягла на
-           один виріб: на десяти було б 150. */
-        var feeAll = (P && P.feeTotal) ? Math.round(P.feeTotal) : mainFeePer * (feeUnits || 1);
-        tb += r('Підготовка макета (' + Math.round(feeAll) + ' грн ÷ ' + feeDiv + ')',
-                money(mainFeePer), money(mainCostPer));
-        if(extraFee !== 0){
-          var nExtra = extraSketchCount();
-          // Перший дизайн кожного виду входить у разову; платні — усі наступні
-          tb += r('Додаткові ескізи' + (nExtra > 0 ? ' (' + nExtra + '× ÷ ' + feeDiv + ')' : ''),
-                  money(extraFee), money(Math.max(0, oCostPer-mainCostPer)));
+        /* Разові — кожна окремим рядком. Підготовка картинки і підготовка
+           напису це різні роботи за різними ставками, а додатковий ескіз —
+           узагалі третя. Складені в одне число, вони перетворювали рядок
+           на «звідкись 1100» і перевірити його було нічим.
+
+           Рядки беремо з рушія: він же їх і нарахував, тож стовпчик
+           сходиться з підсумком за визначенням. */
+        var KIND_UA = { img:'картинка', txt:'напис' };
+        var lines = (P && P.feeLines) ? P.feeLines : [];
+        var skets = (P && P.sketches) ? P.sketches : [];
+        if(lines.length){
+          lines.forEach(function(f){
+            var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
+            var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
+            tb += r('Підготовка макета · ' + (KIND_UA[f.kind] || f.kind) +
+                    ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
+                    f.units + ' шт)</span>', money(per), money(perC));
+          });
+          skets.forEach(function(x, i){
+            var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
+            var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
+            tb += r('Додатковий ескіз ' + (i + 1) + ' · ' + (KIND_UA[x.kind] || x.kind) +
+                    ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
+                    x.units + ' шт)</span>', money(per), money(perC));
+          });
+        } else {
+          // Рушій недоступний (чернетку ще не зібрано) — показуємо загальним рядком
+          var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
+          tb += r('Підготовка макета (÷' + feeDiv + ')', money(oFeePer), money(oCostPer));
         }
       }
       tb += r('Ціна за штуку', money(uSell), money(fullUnitCost), {bold:true});

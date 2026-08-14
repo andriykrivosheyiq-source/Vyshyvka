@@ -4944,7 +4944,8 @@ function priceOrder(list, opts){
         flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
       });
     }
-    let feeShare = 0, feeTotal = 0, feeUnits = 0; const sketches = []; const paid = {};
+    let feeShare = 0, costShare = 0, feeTotal = 0, feeUnits = 0;
+    const sketches = [], feeLines = [], paid = {};
     (it.designs || []).forEach((fp,i)=>{
       if(!fp) return;
       const kind = kindOf(it,i), key = mk+':'+kind, f = fees[key];
@@ -4954,12 +4955,18 @@ function priceOrder(list, opts){
       if(!paid[kind]){
         paid[kind] = {};
         feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
+        costShare += (+f.cfg.orderCost || 0) / (f.total || 1);
         feeTotal += (+f.cfg.orderFee || 0); feeUnits = f.total || 1;
+        // Кожна разова окремим рядком — щоб прорахунок можна було прочитати
+        feeLines.push({ kind, fee:+f.cfg.orderFee || 0,
+                        cost:+f.cfg.orderCost || 0, units:f.total || 1 });
       }
       if(paid[kind][gi] || gi === 0) return;
       paid[kind][gi] = 1;
       feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
-      sketches.push({ fee:+f.cfg.sketchFee || 0, units:f.unitsOf[gi] || 1 });
+      costShare += (+f.cfg.sketchCost || 0) / (f.unitsOf[gi] || 1);
+      sketches.push({ kind, fee:+f.cfg.sketchFee || 0,
+                      cost:+f.cfg.sketchCost || 0, units:f.unitsOf[gi] || 1 });
     });
     const unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                  (+it.pieceFee || 0) + Math.round(feeShare);
@@ -4970,8 +4977,9 @@ function priceOrder(list, opts){
       basePart:+it.basePart || 0, minPart:+it.minPart || 0,
       gridPriced: mk === 'dtf' && flat > 0,
       pieceFee:+it.pieceFee || 0, feeShare:Math.round(feeShare),
+      costShare:Math.round(costShare),
       feeTotal, feeUnits,
-      sketches
+      feeLines, sketches
     } };
   });
 }
