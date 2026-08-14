@@ -9139,10 +9139,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Решта разових — додаткові ескізи. Беремо різницею, щоб сума рядків
         // збігалась із часткою, яку порахував спільний рушій.
         var extraFee = oFeePer - mainFeePer;
-        tb += r('Підготовка макета (÷'+feeDiv+')', money(mainFeePer), money(mainCostPer));
+        /* Показуємо і повну разову, і на скільки вона ділиться. Без цього
+           рядок «Підготовка макета — 1500 грн» на тиражі в одну штуку
+           виглядає як помилка, хоча це просто вся підготовка, що лягла на
+           один виріб: на десяти було б 150. */
+        var feeAll = (P && P.feeTotal) ? Math.round(P.feeTotal) : mainFeePer * (feeUnits || 1);
+        tb += r('Підготовка макета (' + Math.round(feeAll) + ' грн ÷ ' + feeDiv + ')',
+                money(mainFeePer), money(mainCostPer));
         if(extraFee !== 0){
           var nExtra = extraSketchCount();
-          tb += r('Додаткові ескізи'+(nExtra>0 ? ' ('+nExtra+'×)' : ''),
+          // Перший дизайн кожного виду входить у разову; платні — усі наступні
+          tb += r('Додаткові ескізи' + (nExtra > 0 ? ' (' + nExtra + '× ÷ ' + feeDiv + ')' : ''),
                   money(extraFee), money(Math.max(0, oCostPer-mainCostPer)));
         }
       }
