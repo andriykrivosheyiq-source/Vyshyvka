@@ -540,6 +540,15 @@
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
     .tc-date{font-size:11px;color:#A3ACBA;}
+  /* Наступний крок просто на картці: прострочене має бути видно з колонки */
+  .ticket.t-late{box-shadow:inset 3px 0 0 0 #DC2626,0 1px 3px rgba(15,32,52,.05);}
+  .ticket.t-today{box-shadow:inset 3px 0 0 0 #E7A33A,0 1px 3px rgba(15,32,52,.05);}
+  .tc-next{font-size:11.5px;color:var(--ink-soft);display:flex;gap:5px;align-items:baseline;}
+  .tc-next span{font-weight:700;}
+  .tc-next.late span{color:#DC2626;}
+  .tc-next.today span{color:#A8730F;}
+  .tc-wait{font-size:11px;font-weight:600;color:#A8730F;}
+  .tc-wait.hot{color:#DC2626;}
   .tc-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
     justify-content:center;font-size:12px;font-weight:800;letter-spacing:0;}
   .tc-who{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650;letter-spacing:-.1px;color:var(--ink);
@@ -704,6 +713,51 @@
     color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
+  /* ── Контекст угоди в картці ─────────────────────────────────────────── */
+  .od-sum{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:2px 0 4px;}
+  .od-sum b{font-size:22px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;}
+  .od-sum span{font-size:12px;color:var(--ink-soft);}
+  /* Степер: рух воронкою має бути перед очима, а не кнопками в підвалі */
+  .od-steps{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0 6px;}
+  .od-step{all:unset;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--ink-soft);
+    background:var(--canvas);border-radius:20px;padding:6px 12px;white-space:nowrap;
+    transition:background .12s,color .12s;}
+  .od-step:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .od-step.done{color:#96A0AF;background:#F1F4F8;}
+  .od-step.on{background:var(--ink);color:#fff;}
+  /* Наступний крок. Прострочений має різати око — заради цього він і є */
+  .od-next{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;
+    border:1px solid var(--line);border-radius:11px;background:var(--canvas);margin-top:4px;}
+  .od-next.today{border-color:#E7C989;background:#FFFAF0;}
+  .od-next.late{border-color:#F0B4AE;background:#FFF5F4;}
+  .od-next-t{flex:1;min-width:150px;}
+  .od-next-d{flex:none;width:190px;}
+  .od-next-l{flex:none;font-size:11px;font-weight:700;color:var(--ink-soft);}
+  .od-next.today .od-next-l{color:#8A6A15;}
+  .od-next.late .od-next-l{color:var(--bad);}
+  /* Повторний клієнт: інша розмова й інша знижка — це має впадати в око */
+  .od-repeat{margin-top:14px;padding:11px 12px;border:1px solid #CFE3D8;border-radius:11px;
+    background:#F1F9F5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .od-repeat b{font-size:12.5px;color:#0B6B4A;}
+  .od-repeat span{font-size:12px;color:var(--ink-soft);}
+  .od-repeat-l{display:flex;gap:5px;flex-wrap:wrap;width:100%;}
+  .od-repeat-l button{all:unset;cursor:pointer;font-family:var(--mono);font-size:11px;
+    background:#fff;border:1px solid #CFE3D8;border-radius:7px;padding:3px 9px;color:#0B6B4A;}
+  .od-repeat-l button:hover{background:#0B6B4A;color:#fff;}
+  /* Стрічка активності — головна відповідь на «що тут відбувалось» */
+  .od-feed{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);
+    padding-left:12px;margin-left:3px;}
+  .od-fe{display:flex;gap:9px;align-items:baseline;font-size:12.5px;color:var(--ink-2);
+    line-height:1.5;padding:5px 0;position:relative;}
+  .od-fe::before{content:'';position:absolute;left:-17px;top:11px;width:7px;height:7px;
+    border-radius:50%;background:#C9D2DE;}
+  .od-fe.fe-client::before{background:var(--accent);}
+  .od-fe.fe-in::before{background:#DC2626;}
+  .od-fe.fe-kp::before{background:#7C3AED;}
+  .od-fe.fe-new::before{background:var(--good);}
+  .od-fe-t{flex:none;font-size:11px;color:#A3ACBA;font-variant-numeric:tabular-nums;min-width:78px;}
+  .od-foot .od-del{flex:1;padding:11px 14px;background:var(--bad-soft);color:var(--bad);
+    font-weight:600;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   /* Канал звʼязку — перший рядок картки: головне не «як звати», а «де ми
      з цією людиною розмовляємо» */
@@ -6521,6 +6575,13 @@ function ticketSummaryHtml(o){
         o.tgWrote ? '💬 ' + escapeHtml(o.tgLast || '')
                   : 'відкрив бота, ще не писав'}${
         tgUnread(o) && actTime ? `<span class="tc-tg-at">${escapeHtml(actTime)}</span>` : ''}</div>` : ''}
+    ${waitingMin(o) >= 60
+      ? `<div class="tc-wait${waitingMin(o) >= 240 ? ' hot' : ''}">Клієнт чекає ${
+          escapeHtml(agoUa(o.tgAt))}</div>` : ''}
+    ${(()=>{ const n = nextStepState(o); if(!n) return '';
+        return `<div class="tc-next ${n.late ? 'late' : (n.today ? 'today' : '')}">
+          <span>${escapeHtml(n.label)}</span>${n.text ? '· ' + escapeHtml(n.text) : ''}</div>`;
+      })()}
     <div class="tc-meta">
       <span>${pos ? pos + ' ' + posWordUa(pos) + ' · ' + units + ' шт'
               : (o.type === 'lead' ? 'заявка · без товару' : 'без товарів')}</span>
@@ -6544,7 +6605,9 @@ function ticketSummaryHtml(o){
 
 function buildTicket(o){
   const el = document.createElement('div');
-  el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
+  const nSt = nextStepState(o);
+  el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '') +
+    (nSt && nSt.late ? ' t-late' : (nSt && nSt.today ? ' t-today' : ''));
   el.draggable = true;
   el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
   el.innerHTML = ticketSummaryHtml(o);
@@ -6569,6 +6632,135 @@ function buildTicket(o){
 // Обидва джерела дають однакову картку — різниця лише в даних усередині.
 function renderWebTicket(o){ return buildTicket(o); }
 function renderClientTicket(o){ return buildTicket(o); }
+
+/* ============================================================
+   КОНТЕКСТ УГОДИ: історія, наступний крок, повторні замовлення
+
+   Картка показувала поля й суму — тобто відповідала на «які дані», але не
+   на два питання, заради яких її й відкривають: що тут уже відбувалось і
+   що я маю зробити далі. Через це вона читалась як анкета.
+   ============================================================ */
+
+/* Скільки часу минуло — людською мовою. «2 год» читається швидше за
+   «14.08 11:15», коли питання стоїть «наскільки це свіже». */
+function agoUa(iso){
+  const t = iso ? new Date(iso).getTime() : 0;
+  if(!t || isNaN(t)) return '';
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if(m < 1) return 'щойно';
+  if(m < 60) return m + ' хв';
+  const h = Math.round(m / 60);
+  if(h < 24) return h + ' год';
+  const d = Math.round(h / 24);
+  return d + ' дн';
+}
+function dtUa(iso){
+  const d = iso ? new Date(iso) : null;
+  if(!d || isNaN(d)) return '';
+  return d.toLocaleString('uk-UA', { day:'2-digit', month:'2-digit',
+                                     hour:'2-digit', minute:'2-digit' }).replace(',', '');
+}
+
+/* Клієнт написав останнім і йому ще не відповіли — скільки він чекає.
+   Не «є непрочитане», а саме час: година й доба вимагають різної реакції. */
+function waitingMin(o){
+  if(!o || !o.tgAt || !o.tgWrote) return 0;
+  if(String(o.tgLast || '').slice(0, 4) === 'Ви: ') return 0;
+  const t = new Date(o.tgAt).getTime();
+  if(!t || isNaN(t)) return 0;
+  return Math.max(0, Math.round((Date.now() - t) / 60000));
+}
+
+/* Наступний крок: єдине, що справді не дає загубити клієнта. Строк
+   виробництва («Здати до») — зовсім інша річ: людина губиться не через
+   зірваний дедлайн, а через «мав передзвонити в четвер і забув». */
+function nextStepState(o){
+  const at = String((o && o.nextAt) || '').trim();
+  if(!at) return null;
+  const d = new Date(at.length <= 10 ? at + 'T23:59:00' : at);
+  if(isNaN(d)) return null;
+  const diff = d.getTime() - Date.now();
+  const day = 86400000;
+  return {
+    at: d,
+    text: String(o.nextStep || '').trim(),
+    late: diff < 0,
+    today: diff >= 0 && diff < day,
+    label: diff < 0 ? 'прострочено' : (diff < day ? 'сьогодні' : dtUa(d.toISOString()))
+  };
+}
+
+/* Той самий клієнт міг замовляти раніше. Кожне звернення — окрема картка,
+   і що людина брала торік, не видно ніде; а повторний клієнт — це інша
+   розмова й інша знижка. Звʼязуємо за телефоном або ніком: цього досить,
+   і не треба переробляти структуру на «контакт + угода». */
+function sameClientKey(o){
+  const ph = String((o && o.phone) || '').replace(/\D/g, '');
+  if(ph.length >= 9) return 'p:' + ph.slice(-9);
+  const h = String((o && (o.tgUser || o.ig || o.instagram)) || '')
+    .trim().toLowerCase().replace(/^@/, '');
+  return h ? 'h:' + h : '';
+}
+function sameClientOrders(o){
+  const key = sameClientKey(o);
+  if(!key) return [];
+  return (orders || []).filter(x => x.id !== o.id && sameClientKey(x) === key);
+}
+
+/* Стрічка активності. Дані для неї вже писались — просто ніде не показувались:
+   hist зберігає рух етапами, offers/{token}.events — усе, що клієнт робив із
+   пропозицією, повідомлення мають час. */
+function daysInWork(o){
+  const t = o && o.createdAt ? new Date(o.createdAt).getTime() : 0;
+  if(!t || isNaN(t)) return '';
+  const d = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  return d === 0 ? 'сьогодні' : (d + ' ' + (d % 10 === 1 && d % 100 !== 11 ? 'день' :
+    (d % 10 >= 2 && d % 10 <= 4 && (d % 100 < 12 || d % 100 > 14) ? 'дні' : 'днів')) + ' у роботі');
+}
+function lastTouchLabel(o){
+  const a = agoUa(orderActivityAt(o));
+  if(!a) return '';
+  const w = waitingMin(o);
+  return w >= 60 ? ('клієнт чекає ' + agoUa(o.tgAt)) : ('останнє ' + a + ' тому');
+}
+function repeatHtml(o){
+  const prev = sameClientOrders(o);
+  if(!prev.length) return '';
+  const sum = prev.reduce((a, x) => a + (+x.totalPrice || 0), 0);
+  return `<div class="od-repeat">
+    <b>Повторний клієнт</b>
+    <span>Ще ${prev.length} ${prev.length === 1 ? 'замовлення' : 'замовлень'} · ${fmt(sum)} ₴</span>
+    <div class="od-repeat-l">${prev.slice(0, 6).map(x =>
+      `<button data-open="${escapeHtml(x.id)}">${escapeHtml(x.orderId || 'без номера')}</button>`).join('')}</div>
+  </div>`;
+}
+function activityFeed(o){
+  const out = [];
+  const push = (at, text, kind) => { if(at) out.push({ at:String(at), text, kind: kind || '' }); };
+  push(o.createdAt, 'Картка створена · ' + (o.source || 'сайт'), 'new');
+  (o.hist || []).forEach(h => {
+    const st = STATUSES.filter(s => s.key === h.s)[0];
+    push(h.at, 'Етап: ' + ((st && st.label) || h.s), 'stage');
+  });
+  const off = o.offerToken && offersByToken[o.offerToken];
+  if(off){
+    push(off.createdAt, 'Створено пропозицію', 'kp');
+    (off.events || []).forEach(e => {
+      push(e.at, 'Клієнт ' + (OFFER_EVENT_UA[e.type] || e.type) +
+                 (e.note ? ' · ' + e.note : ''), 'client');
+    });
+  }
+  if(o.tgAt && o.tgLast){
+    const mine = String(o.tgLast).slice(0, 4) === 'Ви: ';
+    push(o.tgAt, (mine ? 'Ми написали' : 'Повідомлення від клієнта') + ' · ' +
+                 String(o.tgLast).replace(/^Ви: /, '').slice(0, 60), mine ? 'out' : 'in');
+  }
+  // Найсвіже вгорі: історію читають з кінця, а не з початку
+  out.sort((a, b) => b.at.localeCompare(a.at));
+  const seen = {};
+  return out.filter(x => { const k = x.at + x.text; if(seen[k]) return false; seen[k] = 1; return true; })
+            .slice(0, 14);
+}
 
 /* ── Канали звʼязку в картці ──────────────────────────────────────────────
    Одна людина пише туди, куди їй зручно: сьогодні в Instagram, завтра з
@@ -6723,6 +6915,7 @@ function renderOrderDrawer(){
   const created = o.createdAt
     ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const due = dueInfo(o);
+  const nx = nextStepState(o);
   chanMigrate(o);
   // Порожнє поле там, де розмова вже є, читається як «контакту немає»
   if(chanFill(o)) saveOrderMeta(o).catch(e=> console.warn(e));
@@ -6733,12 +6926,27 @@ function renderOrderDrawer(){
       <div>
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
           ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
-        <div class="od-sub">${escapeHtml(created)}${(statusFlow()[statusIdx]||{}).label?' · '+escapeHtml(statusFlow()[statusIdx].label):''}</div>
+        <div class="od-sub">${escapeHtml(created)}</div>
       </div>
       ${anTraceHtml(o)}
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
+      ${/* Стан угоди в один погляд: доти, щоб зрозуміти «що тут», треба
+           було розгортати склад. */''}
+      <div class="od-sum">
+        <b>${fmt(o.totalPrice)} ₴</b>
+        ${(o.items||[]).length ? `<span>маржа ${(o.marginPct||0).toFixed(0)}%</span>` : ''}
+        <span>${daysInWork(o)}</span>
+        ${lastTouchLabel(o) ? `<span>${escapeHtml(lastTouchLabel(o))}</span>` : ''}
+      </div>
+      ${/* Рух воронкою перед очима, а не кнопками в підвалі */''}
+      <div class="od-steps">
+        ${flow.map((st, i)=>`<button class="od-step${i === statusIdx ? ' on' : ''}${
+          i < statusIdx ? ' done' : ''}" data-step="${escapeHtml(st.key)}"
+          >${escapeHtml(st.label)}</button>`).join('')}
+      </div>
+
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -6765,6 +6973,17 @@ function renderOrderDrawer(){
         <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
         ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено на ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : 'лишилось ' + due.days + ' дн')}</span>` : ''}
         ${siteLinkHtml(o)}
+      </div>
+
+      ${/* Найсильніший запобіжник від «загубився клієнт»: у кожної угоди має
+           бути запланована дія. «Здати до» — це строк виробництва, інша річ. */''}
+      <div class="od-next${nx ? (nx.late ? ' late' : (nx.today ? ' today' : '')) : ''}">
+        <input class="od-f od-next-t" data-f="nextStep" type="text"
+               placeholder="Наступний крок — передзвонити, надіслати макет…"
+               value="${escapeHtml(o.nextStep||'')}">
+        <input class="od-f od-next-d" data-f="nextAt" type="datetime-local"
+               value="${escapeHtml(o.nextAt||'')}">
+        ${nx ? `<span class="od-next-l">${escapeHtml(nx.label)}</span>` : ''}
       </div>
 
       <div class="od-kp-row">
@@ -6803,20 +7022,38 @@ function renderOrderDrawer(){
             вгорі, у вікні на весь екран, а не смужкою в колонці. */''}
       ${crmShow(o) && !chanHasChat(o, 'ig')
         ? '<div class="od-sec">Діалог з клієнтом (Sitniks)</div>' + crmBlockHtml(o) : ''}
+
+      ${repeatHtml(o)}
+
+      <div class="od-sec">Що відбувалось</div>
+      <div class="od-feed">${activityFeed(o).map(x=>`
+        <div class="od-fe fe-${escapeHtml(x.kind)}">
+          <span class="od-fe-t">${escapeHtml(dtUa(x.at))}</span>
+          <span>${escapeHtml(x.text)}</span>
+        </div>`).join('') || '<div class="od-empty">Поки нічого</div>'}</div>
     </div>
     <div class="od-foot">
-      <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
-      <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
-      <button data-act="del" title="Видалити замовлення" class="od-del">🗑</button>
+      ${/* Рух етапами переїхав нагору, у степер: там його видно завжди */''}
+      <button data-act="del" title="Видалити замовлення" class="od-del">🗑 Видалити картку</button>
     </div>`;
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
-  panel.querySelector('[data-act="next"]').addEventListener('click', async ()=>{
-    if(canNext){ setStatus(o, statusFlow()[statusIdx+1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+  // Степер: клік по етапу переводить угоду просто туди
+  panel.querySelectorAll('[data-step]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      if(o.status === b.dataset.step) return;
+      setStatus(o, b.dataset.step);
+      await storeSet('orders', orders);
+      renderBoard(); renderOrderDrawer();
+    });
   });
-  panel.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
-    if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); renderOrderDrawer(); }
+  // Перехід на іншу картку того самого клієнта
+  panel.querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = (orders || []).find(x => x.id === b.dataset.open);
+      if(t) openOrderDrawer(t);
+    });
   });
   panel.querySelector('[data-act="del"]').addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); });
   const build = panel.querySelector('[data-act="build"]');
@@ -8166,7 +8403,12 @@ function renderChatWin(toBottom){
   const msgs = chatMsgs(o, chatWin.kind);
   const isTg = chatWin.kind === 'tg';
   const nm = (o.name || o.instagram || (isTg ? 'Telegram' : 'Клієнт')).trim();
+  /* Писати, не бачачи, про що взагалі мова, — найшвидший шлях сказати
+     клієнту дурницю. Тому в шапці стоїть стан угоди, а не лише нік. */
+  const stLbl = (statusFlow().find(x => x.key === o.status) || {}).label || '';
   const sub = [isTg ? (o.instagram || 'Telegram') : ((crmChat[o.id] || {}).clientName || 'Sitniks'),
+               (o.items || []).length ? fmt(o.totalPrice) + ' ₴' : '',
+               stLbl,
                msgs.length ? (msgs.length + ' ' + msgWord(msgs.length)) : '']
               .filter(Boolean).join(' · ');
 
@@ -8205,6 +8447,7 @@ function renderChatWin(toBottom){
       <div class="cw-row">
         <button class="cw-ic${chatWin.qr ? ' on' : ''}" data-cw-qr title="Готові відповіді">⚡</button>
         <button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>
+        ${offerUrl(o) ? `<button class="cw-ic" data-cw-kp title="Вставити посилання на КП">🔗</button>` : ''}
         <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
           isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
         <button class="cw-go" data-cw-go title="Enter — надіслати">➤</button>
@@ -8252,6 +8495,14 @@ function wireChatWin(box, o){
       const el = document.querySelector('.cw-inp');
       if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     });
+  });
+  const kpBtn = box.querySelector('[data-cw-kp]');
+  if(kpBtn) kpBtn.addEventListener('click', ()=>{
+    const cur = inp.value.trim();
+    inp.value = (cur ? cur + '\n' : '') + offerUrl(o);
+    chatWin.draft = inp.value;
+    grow(); inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
   });
   const file = box.querySelector('[data-cw-file]');
   box.querySelector('[data-cw-clip]').addEventListener('click', ()=> file.click());
