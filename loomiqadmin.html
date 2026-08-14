@@ -7643,10 +7643,20 @@ function offerEdPreview(now){
   const go = ()=>{
     const f = d.querySelector('iframe');
     if(!f) return;
-    /* Рукостискання після завантаження: сторінка вмикає редагування лише
-       почувши батьківське вікно, а не за параметром в адресі. */
-    f.onload = ()=>{ try{ f.contentWindow.postMessage(
-      { lqEditInit:true, catalog: offerCatalog() }, '*'); }catch(e){} };
+    /* Місце, де менеджер зараз читає, після перечитування має лишитись тим
+       самим. Доти кожна дрібна правка викидала на початок сторінки, і до
+       позиції внизу доводилось гортати заново. */
+    let keep = 0;
+    try{ keep = (f.contentWindow && f.contentWindow.scrollY) || 0; }catch(e){}
+    f.onload = ()=>{
+      try{
+        /* Рукостискання: сторінка вмикає редагування лише почувши
+           батьківське вікно, а не за параметром в адресі. */
+        f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog() }, '*');
+        // Повертаємо прокрутку вже ПІСЛЯ перемальовування в режимі редагування
+        if(keep) setTimeout(()=>{ try{ f.contentWindow.scrollTo(0, keep); }catch(e){} }, 80);
+      }catch(e){}
+    };
     f.src = offerUrl(o) + '&edit=1&t=' + Date.now();
   };
   if(offerEd.timer) clearTimeout(offerEd.timer);
@@ -7714,9 +7724,16 @@ function openCalcOver(o, editIdx){
     unitCost: +it.unitCost || 0, cost: +it.cost || 0,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
-    calc: it.calc || null, desc: it.desc || null, config: it.config || null
+    calc: it.calc || null, desc: it.desc || null, config: it.config || null,
+    /* Товар із каталогу ще не має config — конструктор не мав чого
+       розгортати й лишався на каталозі, ніби ми нічого не обирали.
+       Із garmentId він відкриє потрібний виріб одразу. */
+    garmentId: it.garmentId || ''
   } : null;
   offerEdBack = o.id;
+  /* Без цього конструктор не знає ні картки, ні номера позиції, яку
+     редагуємо: __adminOfferTarget заповнює саме paintCalcTarget. */
+  paintCalcTarget();
   const d = calcOverEl();
   d.querySelector('.cwin-sub').textContent = (it && it.name) ? it.name : '';
   d.classList.add('open');

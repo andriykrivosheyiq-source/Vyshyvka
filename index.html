@@ -11679,11 +11679,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       renderCart();
       setTimeout(function(){
         try{
+          var cm = document.getElementById('catalogModal');
           if(seed.config && window.__editProduct){
             window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
-            var cm = document.getElementById('catalogModal');
             if(cm) cm.classList.remove('open');
             window.__editProduct(seed.config, 0);
+          } else if(seed.garmentId && window.__openProductModal){
+            /* Позиція, додана з каталогу пропозиції: виробу вже обрано, але
+               кольору й логотипа ще немає, тож розгортати нічого. Просто
+               відкриваємо цей виріб — інакше менеджер бачив би каталог і
+               мусив шукати те, що щойно обрав. */
+            window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
+            if(cm) cm.classList.remove('open');
+            cartItems.length = 0; renderCart();   // голу позицію замінить налаштована
+            window.__openProductModal(seed.garmentId);
           }
         }catch(e){ console.warn('не вдалось відкрити позицію на редагування', e); }
       }, 700);
