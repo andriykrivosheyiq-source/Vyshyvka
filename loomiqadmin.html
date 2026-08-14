@@ -625,7 +625,7 @@
   .od-head{position:relative;padding:14px 18px 13px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#fff 0%,var(--canvas) 100%);}
   .od-head-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:32px;}
-  .od-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-left:auto;}
+  .od-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-2px 0 8px;}
   .od-head-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
   .od-oid{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
   /* Номер майже завжди звідси й переїжджає — у Sitniks, у Нову пошту,
@@ -6969,13 +6969,13 @@ function renderOrderDrawer(){
   const hasChat = chanHasChat(o, ch);
   panel.innerHTML = `
     <div class="od-head">
-      ${/* Перший ряд — паспорт замовлення: номер і звідки воно взялось.
-           Мітка пристрою й сторінка входу стоять поруч із номером, бо це
-           одна думка — «хто це і звідки», а не окремий розділ. */''}
+      ${/* У шапці лишається тільки те, що потрібно щодня: номер, коли
+           прийшло, етап і термін. Канал, мітка пристрою й сторінка входу
+           переїхали вниз, до «Що відбувалось», — це історія звернення, а
+           не робочий інструмент. */''}
       <div class="od-head-top">
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
           ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
-        <div class="od-tags">${anTraceHtml(o)}${siteLinkHtml(o)}</div>
       </div>
       <div class="od-sub">${created ? 'Прийшло ' + escapeHtml(created) : ''}</div>
       ${/* Другий ряд — час: на якому етапі стоїмо і коли здавати. Дата здачі
@@ -7060,14 +7060,20 @@ function renderOrderDrawer(){
 
       ${repeatHtml(o)}
 
-      <button class="od-del-lite" data-act="del">Видалити картку</button>
-
+      ${/* Історія звернення одним блоком: звідки прийшло (канал, мітка
+           пристрою, сторінка входу) і що відбувалось далі. Видалення —
+           одразу під стрічкою, в самому кінці панелі: подивився історію,
+           переконався, що картка непотрібна, і тільки тоді видалив. */''}
       <div class="od-sec">Що відбувалось</div>
+      ${(()=>{ const t = anTraceHtml(o) + siteLinkHtml(o);
+        return t ? `<div class="od-tags">${t}</div>` : ''; })()}
       <div class="od-feed">${activityFeed(o).map(x=>`
         <div class="od-fe fe-${escapeHtml(x.kind)}">
           <span class="od-fe-t">${escapeHtml(dtUa(x.at))}</span>
           <span>${escapeHtml(x.text)}</span>
         </div>`).join('') || '<div class="od-empty">Поки нічого</div>'}</div>
+
+      <button class="od-del-lite" data-act="del">Видалити картку</button>
     </div>
     ${/* Унизу закріплено лише те, що натискають щодня: зібрати пропозицію
          й піти в розмову. Видалення — дрібним рядком у кінці стрічки, щоб
