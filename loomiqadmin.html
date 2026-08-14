@@ -1579,7 +1579,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>Канбан замовлень</h1>
         <div id="web-orders-state" class="wo-state">Замовлення з сайту: підключаюсь…</div>
         <div class="sub">Натисніть на картку — відкриється склад замовлення, макети, гроші й документи для клієнта.</div>
-        <button class="btn btn-ghost" id="st-toggle" style="margin-top:10px;">Налаштувати етапи</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="btn btn-accent" id="board-add">+ Нова картка</button>
+          <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
+        </div>
       </div>
 
       <div class="card" id="st-card" style="display:none;max-width:640px;">
@@ -4801,6 +4804,36 @@ function renderStatusEditor(){
     });
   });
 }
+/* Клієнт приходить не лише з сайту: подзвонив, написав знайомий, зустріли
+   на виставці. Досі такого не було куди записати — картка заводилась лише
+   з форми, бота або конструктора, тож половина звернень жила в голові. */
+(function wireBoardAdd(){
+  const b = document.getElementById('board-add');
+  if(!b) return;
+  b.addEventListener('click', async ()=>{
+    const o = {
+      id: cryptoId(), type:'client', status: firstStatusKey(),
+      orderId: makeOrderId(), source: 'вручну', site: 'main',
+      name: '', phone: '', company: '', instagram: '',
+      items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
+      createdAt: new Date().toISOString(),
+      hist: [{ s: firstStatusKey(), at: new Date().toISOString() }]
+    };
+    orders.unshift(o);
+    try{
+      const bad = await storeSet('orders', orders) || [];
+      if(Array.isArray(bad) && bad.some(x => x && x.id === o.id)) throw new Error('запис не пройшов');
+    }catch(e){
+      orders.shift();
+      console.error(e); toast('Не вдалося створити картку');
+      return;
+    }
+    renderBoard();
+    openOrderDrawer(o);   // одразу відкриваємо — вписати контакт треба зараз
+    toast('Картку ' + o.orderId + ' створено');
+  });
+})();
+
 (function wireStatusEditor(){
   const t = document.getElementById('st-toggle');
   if(t) t.addEventListener('click', () => {
@@ -6625,7 +6658,12 @@ function buildTicket(o){
   if(pv) pv.addEventListener('click', async ()=>{
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
-  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
+  /* Кнопки на картці змінні: кошик переїхав у саму картку клієнта, а
+     стрілки показуються лише при наведенні. Шукати їх без перевірки не
+     можна — одна відсутня кнопка валила рендер УСІЄЇ дошки, і вона
+     лишалась порожньою. */
+  const dl = el.querySelector('[data-act="del"]');
+  if(dl) dl.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
   return el;
 }
