@@ -6874,6 +6874,11 @@ function chanSet(o, k, v){
    Розкривати картку на місці не можна: колонка стрибає і Канбан перестає
    бути Канбаном. Тому деталі — у панелі справа, де є місце під макети. */
 let drawerOrderId = null;
+/* Склад замовлення згорнутим за замовчуванням читався як «зона зникла»:
+   менеджер відкриває картку саме заради товарів і собівартості. Тепер
+   розгорнуто завжди, а хто згорнув руками — тому лишається згорнутим,
+   поки не перезавантажить адмінку (панель перемальовується постійно). */
+let odFoldOpen = true;
 function orderDrawerEl(){
   let d = document.getElementById('orderDrawer');
   if(d) return d;
@@ -7006,8 +7011,9 @@ function renderOrderDrawer(){
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
-      <!-- Склад і гроші потрібні не щоразу, а місця займали пів панелі -->
-      <details class="od-fold"${(o.items||[]).length ? '' : ' open'}>
+      <!-- Товари, собівартість і маржа — те, заради чого картку відкривають.
+           Згортається лише вручну, і то не назавжди. -->
+      <details class="od-fold"${odFoldOpen ? ' open' : ''}>
         <summary>
           <span class="od-fold-t">Склад замовлення та гроші</span>
           <span class="od-fold-n">${(o.items||[]).length
@@ -7061,6 +7067,8 @@ function renderOrderDrawer(){
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
   panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
+  const fold = panel.querySelector('.od-fold');
+  if(fold) fold.addEventListener('toggle', ()=>{ odFoldOpen = fold.open; });
   const stg = panel.querySelector('.od-stage');
   if(stg) stg.addEventListener('change', async ()=>{
     if(o.status === stg.value) return;
