@@ -2099,6 +2099,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cart-totals-row strong{color:var(--ink);font-weight:700;}
   .cart-add-btn{width:100%;justify-content:center;margin-top:26px;}
   .cart-checkout-btn{width:100%;justify-content:center;margin-top:12px;}
+  /* Вибір товару перед завантаженням логотипа: ті самі картки каталогу,
+     тільки в два стовпці і з прокруткою — вікно не має рости на весь екран */
+  .pm-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    max-height:min(56vh,440px);overflow-y:auto;margin-top:4px;padding:2px;}
+  .pm-pick-grid .product{margin:0;cursor:pointer;}
+  .pm-pick-grid .product .go{display:none;}
+  @media(max-width:380px){ .pm-pick-grid{grid-template-columns:1fr;} }
   .cart-footer-link{
     display:block;width:100%;margin-top:14px;background:none;border:none;cursor:pointer;
     font-size:13.5px;color:var(--muted);text-decoration:underline;font-family:var(--font-sf);text-align:center;
@@ -3231,7 +3238,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button class="btn btn-primary" id="cartCreateClientBtn" style="display:none;width:100%;justify-content:center;margin-top:12px;background:#0f2034;">Створити картку клієнта</button>
       <button class="btn btn-primary cart-checkout-btn" data-scroll-to="catalog">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.6 13.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L23 6H6"/></svg>
-        Оформити замовлення
+        Залишити заявку
       </button>
       <button class="cart-footer-link" id="cartFooterInfoLink">Реквізити, оферта та контакти</button>
     </div>
@@ -3242,15 +3249,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <div class="pm-sheet-overlay" id="checkoutModal">
   <div class="pm-sheet-card">
     <div class="pm-sheet-handle"></div>
-    <div class="pm-sheet-title">Оформлення замовлення</div>
-    <div class="pm-sheet-sub">Залишіть контакти — менеджер підтвердить макет і терміни</div>
+    <div class="pm-sheet-title">Залишити заявку</div>
+    <div class="pm-sheet-sub">Залишіть контакти — менеджер порахує точну ціну, підтвердить макет і терміни</div>
     <form id="checkoutForm" novalidate>
       <label class="co-label" for="checkoutName">Ім'я</label>
       <input class="co-input" id="checkoutName" type="text" autocomplete="name" placeholder="Як до вас звертатися" required>
       <label class="co-label" for="checkoutPhone">Телефон</label>
       <input class="co-input" id="checkoutPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+38 (0__) ___-__-__" required>
       <div class="co-error" id="checkoutError" hidden></div>
-      <button class="pm-form-submit" id="checkoutSubmit" type="submit">Надіслати замовлення</button>
+      <button class="pm-form-submit" id="checkoutSubmit" type="submit">Залишити заявку</button>
       <button class="pm-mockup-continue-btn" type="button" id="checkoutCancel">Повернутись у кошик</button>
       <div class="co-note">Ми не передаємо ваш номер третім особам</div>
     </form>
@@ -3258,7 +3265,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="co-done-ic">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
-      <div class="co-done-title">Замовлення прийнято</div>
+      <div class="co-done-title">Заявку прийнято</div>
       <div class="co-done-sub">Менеджер зв'яжеться з вами найближчим часом і надішле макет на погодження.</div>
       <button class="pm-form-submit" type="button" id="checkoutClose">Готово</button>
     </div>
@@ -3642,6 +3649,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </div>
 
+<!-- Вибір товару перед завантаженням логотипа -->
+<div class="pm-sheet-overlay" id="pmPickModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">На чому друкуємо?</div>
+    <div class="pm-sheet-sub">Оберіть товар — далі одразу завантажите логотип і побачите ціну.</div>
+    <div class="pm-pick-grid" id="pmPickGrid"></div>
+  </div>
+</div>
+
 <!-- Delivery popup -->
 <div class="pm-sheet-overlay" id="pmDeliveryModal">
   <div class="pm-sheet-card">
@@ -3979,7 +3996,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     </div>
 
-    <button class="promo-card aurora-bg reveal" data-scroll-to="catalog">
+    <!-- Кнопка обіцяє завантаження логотипа, тож і вести має туди. Каталог
+         під нею й так є: людина, яка натиснула саме цю кнопку, хоче почати
+         з макета, а не гортати список. -->
+    <button class="promo-card aurora-bg reveal" id="promoUploadBtn">
       <div class="promo-left">
         <div class="promo-text">
           <h3>Дізнайтесь <strong>вартість та терміни</strong> спецодягу для бригади за 1 хвилину</h3>
@@ -6223,10 +6243,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function extraSketchCount(){ return Math.max(0, uniqueDesignCount() - 1); }
     function methodPieceFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceFee || 0) : 0; }
     // Разова оплата за замовлення = основний дизайн + додаткові ескізи (за кожне зайве лого).
-    function methodOrderFee(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderFee || 0) + extraSketchCount() * (+m.sketchFee || 0); }
+    function methodOrderFee(){
+      if(!hasAnyLogo()) return 0;
+      var m = methodCfgNew(); if(!m) return 0;
+      var ks = feeKindsHere(); if(!ks.length) return 0;
+      var sum = 0;
+      ks.forEach(function(k){ sum += (+methodCfgKind(m, k === 'txt').orderFee || 0); });
+      var one = methodCfgKind(m, ks.length === 1 && ks[0] === 'txt');
+      return sum + extraSketchCount() * (+one.sketchFee || 0);
+    }
     // ── Собівартість (лише для менеджерського прорахунку) ──
     function methodPieceCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); return m ? (+m.pieceCost || 0) : 0; }
-    function methodOrderCost(){ if(!hasAnyLogo()) return 0; var m = methodCfgNew(); if(!m) return 0; return (+m.orderCost || 0) + extraSketchCount() * (+m.sketchCost || 0); }
+    /* Які види дизайнів зараз на виробі: напис, картинка чи обидва.
+       Разові оплати задані ОКРЕМО для написів і для картинок — підготовка
+       напису дешевша, — і рушій цін це враховує. Тут раніше не враховувалось:
+       за звичайний текст рахувалась разова як за логотип. */
+    function feeKindsHere(){
+      var out = {};
+      getViews().forEach(function(s){
+        (pm.logos[s] || []).forEach(function(l){ out[isTextLayer(l) ? 'txt' : 'img'] = 1; });
+      });
+      return Object.keys(out);
+    }
+    function methodOrderCost(){
+      if(!hasAnyLogo()) return 0;
+      var m = methodCfgNew(); if(!m) return 0;
+      var ks = feeKindsHere(); if(!ks.length) return 0;
+      var sum = 0;
+      ks.forEach(function(k){ sum += (+methodCfgKind(m, k === 'txt').orderCost || 0); });
+      // Додатковий ескіз рахуємо за ставкою того ж виду, що й сам дизайн
+      var one = methodCfgKind(m, ks.length === 1 && ks[0] === 'txt');
+      return sum + extraSketchCount() * (+one.sketchCost || 0);
+    }
     function garmentCost(){ var pc = (window.SITE_CONTENT && window.SITE_CONTENT.products && window.SITE_CONTENT.products.cost) || {}; return +pc[pm.garmentId] || 0; }
     // собівартість нанесення одного лого: DTF — з таблиці собівартості; вишивка — площа × costPer1000mm2
     // У сітці мінімалок немає: таблиця вже задає всі розміри й тиражі поіменно.
@@ -6424,18 +6472,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
 
     /* ═══════════ Градація ціни за площею ═══════════
-       Ставка за 1000 мм² більше не одна на будь-який розмір: великий макет
-       має виходити дешевшим за квадратний сантиметр, інакше клієнту невигідно
+       Ставка за 1000 мм² не одна на будь-який розмір: великий макет має
+       виходити дешевшим за квадратний сантиметр, інакше клієнту невигідно
        замовляти більше.
 
-       Шкала ПРОГРЕСИВНА, як податкова: пороги ділять площу на шматки, і
-       кожен шматок рахується своєю ставкою. Пороги — це «від скількох мм²
-       починає діяти дешевша ставка», а не «якщо більше — усе за дешевшою».
-       Це принципово: при плоскому порозі 10 000 мм² по 35 грн коштували б
-       350, а 10 001 мм² по 30 — уже 300, і збільшення макета ЗМЕНШУВАЛО б
-       рахунок. Прогресивна шкала такого не допускає ніколи.
+       Шкала СХОДИНКОВА: уся площа рахується ОДНІЄЮ ставкою — тією, у чию
+       сходинку ця площа потрапила. Поріг означає «від такої площі і більше
+       діє ця ставка».
 
-       Порожній список порогів = стара поведінка: одна ставка на всю площу.
+       Про що треба памʼятати, задаючи пороги: на самому порозі ціна може
+       стрибнути ВНИЗ. Скажімо, 9 999 мм² по 3.0 грн/см² — це 300, а 10 000
+       по 2.5 — уже 250, і трохи більший макет виходить дешевшим. Це
+       властивість сходинкової шкали, а не помилка; щоб такого не було,
+       сусідні ставки не мають різнитися сильніше, ніж співвідношення
+       сусідніх порогів.
+
+       Порожній список порогів = одна ставка на всю площу.
        Порогів немає й у собівартості, поки їх не задали окремо — тоді
        cost1k просто не змінюється на цьому порозі. */
     function areaTiersOf(m, isCost){
@@ -6452,14 +6504,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function areaParts(m, mm2, isCost){
       mm2 = Math.max(0, +mm2 || 0);
       var rate = +(isCost ? (m || {}).costPer1000mm2 : (m || {}).pricePer1000mm2) || 0;
-      var tiers = areaTiersOf(m, isCost), out = [], prev = 0;
+      var tiers = areaTiersOf(m, isCost);
+      // Остання сходинка, до якої площа дотягнулась, і задає ставку на ВСЮ площу
       for(var i = 0; i < tiers.length; i++){
-        if(mm2 <= tiers[i].from) break;
-        out.push({ mm2: tiers[i].from - prev, rate: rate });
-        prev = tiers[i].from; rate = tiers[i].rate;
+        if(mm2 >= tiers[i].from) rate = tiers[i].rate;
       }
-      out.push({ mm2: mm2 - prev, rate: rate });
-      return out;
+      return [{ mm2: mm2, rate: rate }];
     }
     function areaSum(m, mm2, isCost){
       return areaParts(m, mm2, isCost).reduce(function(s, p){ return s + p.mm2 * p.rate / 1000; }, 0);
@@ -9004,7 +9054,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             var sell = (m.mode === 'grid') ? dtfGridSell(m, l, groupQty) : placementPrice(m, l, idx);
             var cost = (m.mode === 'grid') ? dtfGridCost(m, l, groupQty) : placementCost(m, l, idx);
             var raw  = (m.mode === 'grid') ? dtfGridRaw(m, l, groupQty, idx) : placementRaw(m, l);
-            var atMin = sell > raw + 0.5;
             var note;
             if(m.mode === 'grid'){
               // Показуємо, з якої саме клітинки таблиці взята сума: розмір листа,
@@ -9031,12 +9080,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               var parts = areaParts(mk, mm2, false);
               var calc = parts.map(function(p){
                   return (p.mm2/100).toFixed(1) + ' см² × ' + (p.rate/10);
-                }).join(' + ') + ' грн/см² = ' + Math.round(raw);
-              note = atMin
-                ? ' <span style="color:#c58a00;">(мін ' + minForIndex(mk, idx) + ')</span>'
-                  + ' <span style="color:#8a94a6;">' + calc + '</span>'
-                : ' <span style="color:#1a7a3a;">(за площею)</span>'
-                  + ' <span style="color:#8a94a6;">' + calc + '</span>';
+                }).join(' + ') + ' грн/см²';
+              /* Сума нанесення складається з трьох речей, і всі три треба
+                 назвати вголос: старт за це нанесення, площа за ставками і —
+                 лише якщо перших двох не вистачило — добивка до мінімалки.
+
+                 Раніше тут писалось «(мін 200)» і показувалась сама лише
+                 площа. Мінімалка при цьому майже ніколи не спрацьовувала:
+                 позначка зʼявлялась щоразу, коли є старт, бо порівнювалась
+                 повна сума з голою площею. Виходило, що рядок називав
+                 старт мінімалкою, а арифметика не сходилась із сумою. */
+              var det = placementDetail(m, l, idx);
+              note = ' <span style="color:#8a94a6;">' +
+                (det.base ? 'старт ' + det.base + ' + ' : '') +
+                'площа (' + calc + ') = ' + det.area +
+                (det.minAdd
+                  ? ' <span style="color:#c58a00;">+ ' + det.minAdd +
+                    ' до мінімалки ' + minForIndex(mk, idx) + '</span>' : '') +
+                '</span>';
             }
             tb += r('↳ ' + kindLabel + note, money(sell), money(cost), {muted:true});
           });
@@ -9052,8 +9113,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(nLogos > 0){
         tb += r('Оплата за штуку', money(pFee), money(pCost));
         var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
-        var mainFeePer = feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0;
-        var mainCostPer = feeUnits > 0 ? Math.round((+m.orderCost||0)/feeUnits) : 0;
+        /* Скільки саме разової врахував рушій — беремо в нього, а не рахуємо
+           тут заново з налаштувань методу. Раніше рахувалось заново, і для
+           напису (у якого своя, дешевша разова) рядок показував ставку
+           логотипа. Різницю доводилось кудись подіти — і вона зʼявлялась
+           окремим рядком «Додаткові ескізи» з мінусом, хоча жодного
+           додаткового ескіза не було. */
+        var mainFeePer = (P && P.feeUnits > 0)
+          ? Math.round((+P.feeTotal || 0) / P.feeUnits)
+          : (feeUnits > 0 ? Math.round((+m.orderFee||0)/feeUnits) : 0);
+        var mainCostPer = feeUnits > 0 ? Math.round(methodOrderCost()/feeUnits) : 0;
         // Решта разових — додаткові ескізи. Беремо різницею, щоб сума рядків
         // збігалась із часткою, яку порахував спільний рушій.
         var extraFee = oFeePer - mainFeePer;
@@ -10415,8 +10484,67 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       document.getElementById('pmPhoneModal').classList.remove('open');
       document.getElementById('pmConsultModal').classList.add('open');
     });
+    /* Заявка з вікна консультації. Кнопка колись просто закривала вікно —
+       ім'я й номер зникали безслідно. Тепер вони йдуть тим самим шляхом,
+       що й заявки зі звичайних форм: у Telegram і в базу, звідки адмінка
+       забирає їх у Канбан. */
     document.getElementById('pmConsultSubmitBtn').addEventListener('click', function(){
-      document.getElementById('pmConsultModal').classList.remove('open');
+      var box = document.getElementById('pmConsultModal');
+      var tel = box.querySelector('input[type="tel"]');
+      var nm  = box.querySelector('input[type="text"]');
+      var raw = (tel.value || '').trim();
+      if(raw.replace(/\D/g, '').length < 7){
+        tel.focus(); tel.style.borderColor = '#e4572e'; return;
+      }
+      var btn = this, orig = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Надсилаємо…';
+      var done = function(ok){
+        if(!ok){
+          btn.disabled = false; btn.textContent = orig;
+          alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
+          return;
+        }
+        btn.textContent = '✅ Дякуємо — передзвонимо';
+        setTimeout(function(){
+          box.classList.remove('open');
+          btn.disabled = false; btn.textContent = orig;
+          tel.value = ''; if(nm) nm.value = '';
+        }, 1800);
+      };
+      if(window.__lqLead) window.__lqLead(raw, nm ? nm.value : '').then(done);
+      else done(false);
+    });
+
+    /* «Завантажити логотип» → вибір товару. Кнопка обіцяла макет, а вела в
+       каталог: людина опинялась перед списком і мусила сама здогадатись, що
+       робити далі. Тепер одразу питаємо, на чому друкуємо, — і після вибору
+       відкривається конструктор, де зона завантаження перша на екрані.
+
+       Картки не дублюємо, а копіюємо з каталогу: назви, ціни й фото там
+       приходять з адмінки, і другий список одразу почав би розходитись. */
+    var promoBtn = document.getElementById('promoUploadBtn');
+    if(promoBtn) promoBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      var src = document.querySelectorAll('#catalog .catalog-grid .product');
+      var grid = document.getElementById('pmPickGrid');
+      if(!src.length || !grid){
+        var cat = document.getElementById('catalog');
+        if(cat) cat.scrollIntoView({ behavior:'smooth' });
+        return;
+      }
+      grid.innerHTML = '';
+      src.forEach(function(card){
+        var cl = card.cloneNode(true);
+        cl.removeAttribute('id');
+        grid.appendChild(cl);
+      });
+      document.getElementById('pmPickModal').classList.add('open');
+      if(window.lqAn) window.lqAn.track('pick_open');
+    });
+    // Товар обрано — конструктор уже відкривається, вікно вибору зайве
+    var pickGrid = document.getElementById('pmPickGrid');
+    if(pickGrid) pickGrid.addEventListener('click', function(){
+      document.getElementById('pmPickModal').classList.remove('open');
     });
 
     // FAQ accordion
@@ -11744,9 +11872,21 @@ window.LOOMIQ_CONFIG = {
   function showSuccess(form){
     form.innerHTML = '<div style="text-align:center;padding:16px 6px;font-weight:700;color:#C94F1E;line-height:1.5;">✅ Дякуємо!<br>Ми передзвонимо протягом 5 хвилин.</div>';
   }
-  function sendLead(phone, form, btn, origText){
+  /* Заявку відправляють два різні місця: звичайні форми з полем телефону і
+     вікно «Отримати консультацію», у якого форми немає взагалі. Спільне —
+     тут, а що показати людині, кожен вирішує сам. Повертає обіцянку з
+     ознакою «дійшло»: без неї викликач не знає, чи можна казати «дякуємо».
+
+     Раніше цієї функції не існувало, і кнопка в тому вікні просто ЗАКРИВАЛА
+     його. Ім'я й номер, які людина щойно вписала, зникали безслідно:
+     ні в Telegram, ні в базі, ні в Канбані. */
+  function postLead(phone, name){
     if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
-    var payload = { phone: phone, page: location.href, context: document.title, ts: new Date().toISOString() };
+    var who = String(name || '').trim().slice(0, 60);
+    // Ім'я домішуємо в контекст: воркер заявок приймає вільний рядок, і
+    // міняти його заради одного поля не варто.
+    var label = (document.title || 'Заявка з сайту') + (who ? ' · ' + who : '');
+    var payload = { phone: phone, page: location.href, context: label, ts: new Date().toISOString() };
 
     /* Заявка має потрапити не лише в Telegram, а й у базу — інакше вона
        живе тільки в чаті. Менеджер бачить її в потоці повідомлень, у
@@ -11757,6 +11897,7 @@ window.LOOMIQ_CONFIG = {
       var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
       if(db) db.collection('webLeads').add({
         phone: String(phone || '').slice(0, 20),
+        name: who,
         page: String(location.pathname || '/').slice(0, 120),
         context: String(document.title || '').slice(0, 120),
         site: (window.LQ_SITE || 'main'),
@@ -11768,19 +11909,23 @@ window.LOOMIQ_CONFIG = {
 
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
-      showSuccess(form);
-      return;
+      return Promise.resolve(true);
     }
-    fetch(c.leadEndpoint, {
+    return fetch(c.leadEndpoint, {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
-    }).then(function(r){ return r.ok; }).catch(function(){ return false; })
-      .then(function(ok){
-        if(ok){ showSuccess(form); }
-        else {
-          if(btn){ btn.disabled=false; btn.textContent=origText; }
-          alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
-        }
-      });
+    }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+  }
+  // Вікно консультації живе в іншому скрипті — даємо йому цю ж дорогу
+  window.__lqLead = postLead;
+
+  function sendLead(phone, form, btn, origText){
+    postLead(phone, '').then(function(ok){
+      if(ok){ showSuccess(form); }
+      else {
+        if(btn){ btn.disabled=false; btn.textContent=origText; }
+        alert('Не вдалося надіслати заявку. Спробуйте ще раз або напишіть нам у Telegram.');
+      }
+    });
   }
 
   document.querySelectorAll('form').forEach(function(form){

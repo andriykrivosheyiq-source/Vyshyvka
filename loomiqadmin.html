@@ -3090,9 +3090,9 @@ function paintMins(key, prices){
 function readMins(key){ const box=document.getElementById('sp-'+key+'-mins'); if(!box) return [0]; const a=[...box.querySelectorAll('.sp-min-p')].map(i=>parseFloat(i.value)||0); return a.length?a:[0]; }
 
 /* ── Пороги площі ─────────────────────────────────────────────────────
-   Кожен рядок — «від скількох мм² починає діяти дешевша ставка». Шкала
-   прогресивна (див. areaParts): поріг ділить площу, а не перемикає ціну на
-   всю. Собівартість необовʼязкова: порожнє поле = «на цьому порозі не
+   Кожен рядок — «від скількох мм² діє ця ставка». Шкала сходинкова (див.
+   areaParts): поріг перемикає ставку на ВСЮ площу, а не ділить її на
+   шматки. Собівартість необовʼязкова: порожнє поле = «на цьому порозі не
    змінюється». */
 function paintATiers(key, rows){
   const box = document.getElementById('sp-'+key+'-atiers'); if(!box) return;
@@ -3760,9 +3760,8 @@ function methodCfgKind(m, isText){
   return out;
 }
 /* Градація ціни за площею — той самий контракт, що на сайті (index.html →
-   areaParts). Шкала прогресивна: пороги ділять площу на шматки, кожен шматок
-   рахується своєю ставкою. Плоский поріг («більше 10 000 — усе по 30») тут
-   свідомо не використовується: він робив би більший макет дешевшим у сумі. */
+   areaParts). Шкала сходинкова: площа цілком рахується ставкою тієї
+   сходинки, у яку вона потрапила. */
 function areaTiersOf(m, isCost){
   const a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
   return a.map(t => ({ from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) }))
@@ -3772,15 +3771,12 @@ function areaTiersOf(m, isCost){
 function areaParts(m, mm2, isCost){
   mm2 = Math.max(0, +mm2 || 0);
   let rate = +(isCost ? (m||{}).costPer1000mm2 : (m||{}).pricePer1000mm2) || 0;
-  const tiers = areaTiersOf(m, isCost), out = [];
-  let prev = 0;
+  const tiers = areaTiersOf(m, isCost);
+  // Сходинкова шкала: остання пройдена сходинка задає ставку на ВСЮ площу
   for(let i = 0; i < tiers.length; i++){
-    if(mm2 <= tiers[i].from) break;
-    out.push({ mm2: tiers[i].from - prev, rate });
-    prev = tiers[i].from; rate = tiers[i].rate;
+    if(mm2 >= tiers[i].from) rate = tiers[i].rate;
   }
-  out.push({ mm2: mm2 - prev, rate });
-  return out;
+  return [{ mm2, rate }];
 }
 function areaSum(m, mm2, isCost){
   return areaParts(m, mm2, isCost).reduce((s, p) => s + p.mm2 * p.rate / 1000, 0);
