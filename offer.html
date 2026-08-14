@@ -1044,6 +1044,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff;outline:none;}
   .edwhy:focus{border-color:#4F5FD4;border-style:solid;}
   .edwhy:empty::before{content:attr(data-ph);color:#98A2B3;}
+  .edsize{display:flex;align-items:center;gap:6px;justify-content:center;margin:-6px 0 12px;
+    font-size:12px;color:#6B7686;}
+  .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:12px;
+    color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
+  .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
+  [data-ed-title]{outline:none;border-radius:8px;}
+  [data-ed-title]:focus{box-shadow:0 0 0 2px #4F5FD4;}
   .edempty{font-size:15px;line-height:1.6;color:#6B7686;background:#F4F7FB;
     border:1px dashed #B9C4D4;border-radius:12px;padding:18px;}
   .is-edit .rc{position:relative;}
@@ -1278,6 +1285,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         b.addEventListener(t, function(e){ e.stopPropagation(); });
       });
     });
+    var ttl = document.querySelector('[data-ed-title]');
+    if(ttl){
+      ttl.addEventListener('blur', function(){
+        edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
+      });
+      ttl.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Enter'){ e.preventDefault(); ttl.blur(); }   // заголовок в один рядок
+      });
+    }
+    document.querySelectorAll('[data-ed-date]').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        edSend({ act: inp.dataset.edDate, v: inp.value });
+      });
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+    });
     var why = document.querySelector('[data-ed-why]');
     if(why){
       // Зберігаємо, коли людина відвела погляд: на кожній літері писати в
@@ -1477,8 +1500,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return d;
   }
   function readyDate(){
-    var d = workdayAfter(curDays());
+    /* Ручний строк переважає розрахунок: менеджер міг домовитись інакше —
+       затримка з тканиною, термінове замовлення, свята. Розрахунок тоді
+       показував би дату, якої ніхто не обіцяв. */
+    var set = (OFFER.terms || {}).readyAt;
+    var d = set ? new Date(set + 'T12:00:00') : workdayAfter(curDays());
+    if(isNaN(d)) d = workdayAfter(curDays());
     return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  }
+  // Дата для поля вводу: воно розуміє тільки РРРР-ММ-ДД
+  function isoDay(v){
+    var d = v ? new Date(v) : null;
+    return (d && !isNaN(d)) ? d.toISOString().slice(0, 10) : '';
+  }
+  function edDate(act, val, label){
+    if(!EDIT) return '';
+    return '<label class="eddate">' + label +
+      '<input type="date" data-ed-date="' + act + '" value="' + esc(isoDay(val)) + '"></label>';
   }
 
   function totals(){
@@ -1628,6 +1666,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function heroHtml(){
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
     var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
+    // Заголовок: вписаний менеджером переважає складений автоматично
+    var title = String(OFFER.heroTitle || '').trim() ||
+      (who ? 'Корпоративний одяг для ' + who : 'Ваша пропозиція');
+    var hsz = +OFFER.heroSize || 0;
     /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
     var made = OFFER.items.map(function(it, i){
@@ -1641,7 +1683,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             'onerror="this.style.display=\'none\'">' : '') +
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
-        '<h1>' + (who ? 'Корпоративний одяг для ' + esc(who) : 'Ваша пропозиція') + '</h1>' +
+        '<h1' + (hsz ? ' style="font-size:' + hsz.toFixed(2) + 'em"' : '') +
+          (EDIT ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
+          esc(title) + '</h1>' +
+        (EDIT ? '<div class="edsize">Розмір заголовка' +
+          '<button class="edb" data-ed="tmin">A−</button>' +
+          '<button class="edb" data-ed="tplus">A+</button>' +
+          '<button class="edb" data-ed="treset">авто</button></div>' : '') +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
         /* Суми на першому екрані немає: поки людина не побачила склад, вона
@@ -1649,8 +1697,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            замість пропозиції. Сума є в кошторисі й у нижній панелі. */
         '<div class="hero-sum">Готово <b id="heroReady">до ' + readyDate() + '</b>' +
           '<span id="heroDays" class="hero-sum-x"> · ' + daysWord(curDays()) + '</span></div>' +
+        edDate('ready', (OFFER.terms || {}).readyAt, 'Готово до') +
         (till ? '<div class="hero-till">Ціни зафіксовані до ' + esc(till) +
           ' — далі перераховуємо за актуальною закупівлею тканини</div>' : '') +
+        edDate('valid', (OFFER.terms || {}).validUntil, 'Ціна діє до') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
       '</div>';
   }
