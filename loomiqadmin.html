@@ -5263,8 +5263,12 @@ function offerBuild(order){
   const totalQty = main.reduce((a,i) => a + i.qty, 0);
   const dl = deadlineLabel(totalQty || 1, new Date(),
     [...new Set(main.flatMap(i => i.techniques))]);
+  /* Термін дії ціни рахується від сьогодні, але менеджер може назвати свій:
+     буває, що клієнт просить потримати ціну довше, і зафіксувати це треба
+     в самій пропозиції, а не на словах у переписці. */
   const valid = new Date();
   valid.setDate(valid.getDate() + OFFER_DEFAULTS.validDays);
+  const validSet = String(order.offerValidUntil || '').trim();
   // Правила термінів — щоб сторінка клієнта перерахувала строк, коли він
   // обере більший тираж, і не показувала неправду.
   const methods = [...new Set((order.items || []).filter(i => i.kind !== 'reco')
@@ -5286,6 +5290,12 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    /* Заголовок першого екрана. Порожньо — сторінка складе його сама з
+       назви компанії; вписаний — показуємо рівно те, що написав менеджер.
+       Розмір теж його: «для Нестербуд» і «для Міністерства цифрової
+       трансформації» просяться в різний кегль. */
+    heroTitle: String(order.offerTitle || '').trim(),
+    heroSize: +order.offerTitleSize || 0,
     brand: brandSnap(order.brand),
     manager: offerManager(),
     /* Особистий коментар менеджера: чому зібрано саме такий варіант. Усе
@@ -5308,7 +5318,10 @@ function offerBuild(order){
       deadlineDays: dl.days,
       payment: OFFER_DEFAULTS.payment,
       startWith: OFFER_DEFAULTS.startWith,
-      validUntil: valid.toISOString()
+      validUntil: validSet ? new Date(validSet + 'T12:00:00').toISOString() : valid.toISOString(),
+      // Готовність рахується з тиражу й способу нанесення; тут — ручний
+      // строк, якщо менеджер домовився інакше
+      readyAt: String(order.offerReadyAt || '').trim()
     },
     state: order.offerState || 'created'
   };
@@ -7635,6 +7648,29 @@ async function offerEdApply(msg){
     try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
     renderBoard();
     return;                       // текст уже на екрані — перемальовувати нема чого
+  }
+  /* Правки шапки: заголовок, його розмір і дві дати. Усі вони — на самій
+     сторінці, бо саме там видно, як воно виглядає. Порожнє значення скидає
+     до автоматичного: менеджер має мати дорогу назад, не памʼятаючи, що
+     там рахувалось. */
+  if(act === 'heroTitle' || act === 'valid' || act === 'ready' ||
+     act === 'tmin' || act === 'tplus' || act === 'treset'){
+    if(act === 'heroTitle') o.offerTitle = String(msg.text || '').trim();
+    else if(act === 'valid') o.offerValidUntil = String(msg.v || '').trim();
+    else if(act === 'ready') o.offerReadyAt = String(msg.v || '').trim();
+    else if(act === 'treset') o.offerTitleSize = 0;
+    else {
+      const cur = +o.offerTitleSize || 1;
+      o.offerTitleSize = Math.min(1.6, Math.max(0.7,
+        Math.round((cur + (act === 'tplus' ? 0.1 : -0.1)) * 100) / 100));
+    }
+    try{ await storeSet('orders', orders); await offerSave(o); }
+    catch(e){ console.error(e); toast('Не збереглось'); return; }
+    renderBoard();
+    // Заголовок правиться прямо на місці — перечитувати сторінку зайве;
+    // розмір і дати міняють вигляд, тож їх показуємо наново.
+    if(act !== 'heroTitle') offerEdPreview(true);
+    return;
   }
   if(act === 'add'){
     // Повертаємось саме сюди, а не на дошку: додавання товару — крок
