@@ -6480,8 +6480,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return a.map(function(t){
           return { from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) };
         })
-        .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate >= 0
-                                    && (isCost ? t.rate > 0 : true); })
+        /* Ставка 0 у СХОДИНКОВІЙ шкалі означала б «уся площа безкоштовно»,
+           щойно вона дотягнулась до порогу. У старій прогресивній шкалі той
+           самий нуль читався інакше — «далі не додаємо», — і такі пороги
+           лишились у прайсі. Тому нульову ставку пропускаємо: безкоштовну
+           сходинку задають відсутністю порога, а не нулем. */
+        .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate > 0; })
         .sort(function(a, b){ return a.from - b.from; });
     }
     // Шматки площі зі своїми ставками — щоб розклад для менеджера показував
