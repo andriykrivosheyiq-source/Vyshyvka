@@ -1358,6 +1358,17 @@
 
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
+        <div class="tl-divider" style="margin-top:18px;">Запобіжник маржі</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Нижче за цей відсоток позицію в пропозицію не додати — адмінка відмовить і
+          попросить погодити з керівником. Порожньо або 0 — запобіжник вимкнено.
+          Стосується маржі ВСЬОГО замовлення, а не окремої позиції.
+        </div>
+        <label class="field" style="display:block;max-width:220px;">
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Мінімальна маржа, %</span>
+          <input id="sp-minmargin" type="number" min="0" max="95" step="1" style="width:100%;" placeholder="40">
+        </label>
+
         <div style="margin-top:16px;">
           <button class="btn btn-accent" id="sp-save">Зберегти прорахунок сайту</button>
         </div>
@@ -3188,6 +3199,9 @@ function readBases(key){ const box=document.getElementById('sp-'+key+'-bases'); 
 // Згортні секції методів (DTF / Вишивка)
 document.querySelectorAll('.tb-toggle').forEach(h=>{ h.addEventListener('click',()=>{ const body=h.nextElementSibling; if(!body||!body.classList.contains('tb-body')) return; const open=body.style.display!=='none'; body.style.display=open?'none':''; const c=h.querySelector('.tb-caret'); if(c) c.textContent=open?'▸':'▾'; }); });
 function paintSitePricing(){
+  const mm = document.getElementById('sp-minmargin');
+  if(mm) mm.value = ((contentData.pricing || {}).minMarginPct != null)
+    ? (contentData.pricing || {}).minMarginPct : '';
   if(!document.getElementById('sp-dtf-grid')) return;
   const p = curSitePricing();
   const meth = p.methods || {};
@@ -3587,7 +3601,9 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     // лишаємо і спільне поле — на випадок, якщо десь читається старий формат
     tiers: readSpTiers('dtf'),
     // окрема шкала на сам виріб; порожня = діє знижка нанесення (як було)
-    garmentTiers: readSpTiers('gar')
+    garmentTiers: readSpTiers('gar'),
+    // Поріг маржі: нижче нього адмінка не дає додати позицію в пропозицію
+    minMarginPct: numV('sp-minmargin')
   };
   // застарілі поля (enabled / leadTime) більше не пишемо; на читанні вони ігноруються
   try{
@@ -4282,6 +4298,7 @@ window.__adminSaveClientOrder = async function(payload){
      втрачав звернення: одна картка з діалогом, друга з товаром. */
   const target = payload.targetId && (orders || []).find(x => x.id === payload.targetId);
   if(target){
+    const snapBefore = itemsSnapshot(target);
     const ri = payload.replaceIndex;
     if(ri != null && (target.items || [])[ri]){
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
@@ -4298,6 +4315,12 @@ window.__adminSaveClientOrder = async function(payload){
     if(!target.orderId) target.orderId = makeOrderId();
     if(!target.offerToken){ target.offerToken = makeOfferToken(); target.offerState = 'created'; }
     if(target.type === 'lead') target.type = 'client';
+    /* Запобіжник маржі: позиція з конструктора теж може загнати замовлення
+       в мінус — і саме тут це найчастіше й ставалось. Кидаємо помилку, а не
+       тихо виходимо: конструктор покаже причину і НЕ очистить кошик, тож
+       менеджеру не доведеться збирати позицію наново. */
+    const lowMargin = marginCheck(target, snapBefore);
+    if(lowMargin) throw new Error(lowMargin);
     // Заявка стає прорахунком: етап рухаємо лише вперед і лише з першого
     if(target.status === firstStatusKey()) setStatus(target, 'prorahunok');
     recalcOrderTotals(target);
@@ -6354,6 +6377,7 @@ async function orderSetQty(o, idx, qty){
   if(!it) return;
   const q = Math.max(1, +qty || 1);
   if(q === it.qty) return;
+  const snap = itemsSnapshot(o);
   it.qty = q;
   // Для позицій із нанесенням ціна за штуку рахована конструктором — її не чіпаємо,
   // інакше загубився б друк. Для голого виробу перераховуємо за шкалою тиражу.
@@ -6364,6 +6388,7 @@ async function orderSetQty(o, idx, qty){
   it.price = Math.round((+it.unitPrice || 0) * q);
   it.cost  = Math.round((+it.unitCost  || 0) * q);
   if(it.desc) it.desc.units = q;    // щоб спільний перерахунок побачив новий тираж
+  if(!marginOk(o, snap)){ renderOrderDrawer(); return; }
   await saveOrderEdit(o);
 }
 async function orderRemoveItem(o, idx){
@@ -7716,6 +7741,49 @@ async function offerAddBare(o, gid, kind){
   });
 }
 
+/* ── Запобіжник маржі ─────────────────────────────────────────────────
+   Позицію в пропозицію не додати, якщо після цього маржа ВСЬОГО замовлення
+   впаде нижче за поріг. Раніше таке помічалось у кращому разі при
+   відвантаженні, а частіше — ніколи: скидку давали «щоб не втратити
+   клієнта», і замовлення тихо йшло в мінус.
+
+   Поріг — у Налаштуваннях (Формування цін → «Запобіжник маржі»). Нуль або
+   порожньо вимикає перевірку: бувають свідомо збиткові пробні партії, і
+   зашивати заборону намертво не можна.
+
+   Перевіряємо ПІСЛЯ зміни й на повному замовленні, а не на позиції: спільний
+   макет і знижка за сумарний тираж роблять маржу однієї позиції числом, яке
+   ні про що не свідчить. */
+function marginFloor(){
+  const v = ((contentData || {}).pricing || {}).minMarginPct;
+  return v == null ? 40 : Math.max(0, +v || 0);
+}
+function itemsSnapshot(o){
+  try{ return JSON.parse(JSON.stringify(o.items || [])); }
+  catch(e){ return (o.items || []).slice(); }
+}
+/* Приймає знімок складу, зроблений ДО зміни. Якщо маржа впала нижче порогу —
+   повертає склад як був і каже, чому не можна. Повертає true, якщо все добре. */
+function marginCheck(o, snapshot){
+  repriceOrder(o); recalcOrderTotals(o);
+  const floor = marginFloor();
+  if(floor <= 0) return '';
+  const got = +o.marginPct || 0;
+  if(got >= floor - 0.05) return '';
+  o.items = snapshot;                       // склад повертаємо як був
+  repriceOrder(o); recalcOrderTotals(o);
+  return 'Маржа впала б до ' + got.toFixed(1) + '% — нижче за дозволені ' +
+         floor + '%. Погодьте з керівником.';
+}
+function marginOk(o, snapshot){
+  const msg = marginCheck(o, snapshot);
+  if(!msg) return true;
+  toast(msg);
+  try{ alert(msg + '\n\nЗміну не застосовано. Щоб її дозволити, керівник міняє поріг у ' +
+             'Налаштуваннях → Формування цін → «Запобіжник маржі».'); }catch(e){}
+  return false;
+}
+
 function offerIdxToOrder(o, kind, i){
   let n = -1;
   const list = o.items || [];
@@ -7773,8 +7841,9 @@ async function offerEdApply(msg){
     return;
   }
   if(act === 'pick'){
+    const snap = itemsSnapshot(o);
     await offerAddBare(o, String(msg.gid || ''), msg.kind);
-    repriceOrder(o); recalcOrderTotals(o);
+    if(!marginOk(o, snap)){ offerEdPreview(true); return; }
     try{ await storeSet('orders', orders); await offerSave(o); }
     catch(e){ console.error(e); toast('Не збереглось'); return; }
     renderBoard(); offerEdPreview(true);
@@ -7812,8 +7881,10 @@ async function offerEdApply(msg){
     const step = offerQtyStep(cur);
     const q = Math.max(1, act === 'qp' ? cur + step : cur - step);
     if(q === cur) return;
+    const snap = itemsSnapshot(o);
     it.qty = q;
     if(it.desc) it.desc.units = q;
+    if(!marginOk(o, snap)){ offerEdPreview(true); return; }
   } else return;
   /* Ціни рахує спільний рушій, а не редактор: змінили тираж — і собівартість,
      і сума, і знижка за обсяг перерахуються самі, тими самими правилами, що
