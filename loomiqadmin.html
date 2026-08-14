@@ -6215,11 +6215,7 @@ function renderTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket';
   el.draggable = true;
-  el.addEventListener('dragstart', e=>{
-    e.dataTransfer.setData('text/plain', o.id);
-    el.classList.add('dragging');
-  });
-  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
+  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
 
   const goodMargin = o.margin >= 0;
   const flow = statusFlow();
@@ -6299,21 +6295,6 @@ function renderTicket(o){
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
   el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
-  el.querySelectorAll('[data-ch]').forEach(b=>{
-    b.addEventListener('click', e=>{
-      e.stopPropagation();
-      const k = b.dataset.ch;
-      if(k === 'tg' && tgChatOf(o)) return chatOpen(o, 'tg');
-      if(k === 'ig' && o.crmChatId) return chatOpen(o, 'crm');
-      // Розмови немає — відкриваємо застосунок за ніком
-      const h = chanHandle(o, k).replace(/^@/, '').trim();
-      if(!h){ toast('Контакт у цьому каналі не вписано'); return; }
-      const url = k === 'tg' ? 'https://t.me/' + encodeURIComponent(h)
-                : k === 'ig' ? 'https://instagram.com/' + encodeURIComponent(h)
-                : 'viber://chat?number=' + encodeURIComponent(h.replace(/[^\d+]/g, ''));
-      window.open(url, '_blank', 'noopener');
-    });
-  });
   wireDocsBlock(el, o);
 
   return el;
@@ -6642,7 +6623,11 @@ function buildTicket(o){
   el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '') +
     (nSt && nSt.late ? ' t-late' : (nSt && nSt.today ? ' t-today' : ''));
   el.draggable = true;
-  el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
+  el.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/plain', o.id);
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
   el.innerHTML = ticketSummaryHtml(o);
   const statusIdx = statusFlow().findIndex(s=>s.key===o.status);
   // Клік по картці відкриває панель; кліки по кнопках усередині — ні.
@@ -6662,6 +6647,21 @@ function buildTicket(o){
      стрілки показуються лише при наведенні. Шукати їх без перевірки не
      можна — одна відсутня кнопка валила рендер УСІЄЇ дошки, і вона
      лишалась порожньою. */
+  el.querySelectorAll('[data-ch]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      e.stopPropagation();
+      const k = b.dataset.ch;
+      if(k === 'tg' && tgChatOf(o)) return chatOpen(o, 'tg');
+      if(k === 'ig' && o.crmChatId) return chatOpen(o, 'crm');
+      // Розмови немає — відкриваємо застосунок за ніком
+      const h = chanHandle(o, k).replace(/^@/, '').trim();
+      if(!h){ toast('Контакт у цьому каналі не вписано'); return; }
+      const url = k === 'tg' ? 'https://t.me/' + encodeURIComponent(h)
+                : k === 'ig' ? 'https://instagram.com/' + encodeURIComponent(h)
+                : 'viber://chat?number=' + encodeURIComponent(h.replace(/[^\d+]/g, ''));
+      window.open(url, '_blank', 'noopener');
+    });
+  });
   const dl = el.querySelector('[data-act="del"]');
   if(dl) dl.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
