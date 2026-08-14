@@ -58,10 +58,16 @@ export default {
           FIREBASE_PROJECT: env.FIREBASE_PROJECT || '(за замовчуванням loomiq-admin)',
           FIREBASE_API_KEY: !!env.FIREBASE_API_KEY,
           FORWARD_URL: !!env.FORWARD_URL,
+          CLOUDINARY_CLOUD: env.CLOUDINARY_CLOUD || false,
+          CLOUDINARY_PRESET: !!env.CLOUDINARY_PRESET,
         },
         send: env.FIREBASE_API_KEY && env.TELEGRAM_BOT_TOKEN
           ? 'відповідь із адмінки працює'
           : 'відповідь із адмінки НЕ працюватиме: бракує змінної',
+        // Найчастіше питання після оновлення: «а фото вже показуються?»
+        photo: (env.CLOUDINARY_CLOUD && env.CLOUDINARY_PRESET)
+          ? 'фото від клієнта показуються в стрічці'
+          : 'фото від клієнта лишаться поміткою: додайте CLOUDINARY_CLOUD і CLOUDINARY_PRESET',
       }, 200);
     }
 
