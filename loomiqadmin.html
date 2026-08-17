@@ -1039,6 +1039,63 @@
   .od-mgr-me{all:unset;cursor:pointer;flex:none;font-size:12px;padding:9px 12px;border-radius:9px;
     background:var(--canvas);color:var(--ink-soft);border:1px solid var(--line);}
   .od-mgr-me:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  /* Наступна дія. Колір несе сенс: сірий — усе за планом, жовтий — сьогодні,
+     червоний — прострочено, пунктир — дії немає взагалі. */
+  .od-next{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;}
+  .od-next.is-today{border-color:#F0D9A0;background:#FFFBF2;}
+  .od-next.is-overdue{border-color:#F0B7BF;background:#FFF5F6;}
+  .od-next.is-none{border-style:dashed;background:var(--canvas);}
+  .on-lab{display:flex;align-items:baseline;gap:8px;font-size:10.5px;font-weight:800;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+  .on-when{margin-left:auto;letter-spacing:0;text-transform:none;font-size:11.5px;font-weight:700;}
+  .od-next.is-today .on-when{color:#8A6A15;}
+  .od-next.is-overdue .on-when{color:var(--bad);}
+  .on-text{font-size:14px;font-weight:600;color:var(--ink);margin-top:5px;line-height:1.4;}
+  .on-who{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+  .on-empty{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .on-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+  .on-do,.on-mv{all:unset;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;
+    border-radius:8px;background:var(--canvas);color:var(--ink-2);border:1px solid var(--line);}
+  .on-do{background:var(--accent);color:#fff;border-color:transparent;}
+  .on-do:hover{background:var(--accent-deep);}
+  .on-mv:hover{background:#fff;border-color:var(--accent);color:var(--accent-deep);}
+  .on-del{padding:7px 10px;color:#AEB8C9;}
+  .on-del:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
+  .on-more{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  .on-add{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .on-in{flex:1 1 150px;min-width:0;font:inherit;font-size:13px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .on-due{flex:none;font:inherit;font-size:12.5px;padding:8px 9px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;}
+  .on-go{all:unset;cursor:pointer;flex:none;padding:8px 14px;border-radius:8px;
+    background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;}
+  .on-go:hover{background:var(--accent-deep);}
+  /* Повний список задач */
+  .od-tasks{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px 12px 12px;}
+  .tk-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);}
+  .tk-row:last-of-type{border-bottom:none;}
+  .tk-chk{all:unset;cursor:pointer;flex:none;width:17px;height:17px;border-radius:5px;
+    border:1.5px solid #C3CBD8;display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:#fff;}
+  .tk-chk:hover{border-color:var(--accent);}
+  .tk-row.is-done .tk-chk{background:#1a7a3a;border-color:#1a7a3a;}
+  .tk-t{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tk-row.is-done .tk-t{color:var(--ink-soft);text-decoration:line-through;}
+  .tk-d{flex:none;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
+  .tk-d.is-late{color:var(--bad);font-weight:700;}
+  .tk-x{all:unset;cursor:pointer;flex:none;color:#D3DAE4;padding:2px 5px;border-radius:6px;font-size:11px;}
+  .tk-x:hover{background:var(--bad-soft);color:var(--bad);}
+  .tk-sep{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-soft);margin:10px 0 2px;}
+  /* Наступна дія на картці дошки */
+  .tc-task{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;
+    background:var(--canvas);color:var(--ink-soft);}
+  .tc-task.t-today{background:#FFF4DE;color:#8A6A15;}
+  .tc-task.t-overdue{background:var(--bad-soft);color:var(--bad);}
+  .tc-task.t-none{background:transparent;color:#B6BFCC;border:1px dashed var(--line);font-weight:600;}
+  .tc-taskrow{display:flex;align-items:center;gap:7px;min-width:0;}
+  .tc-task-t{font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;min-width:0;}
   /* Оплата на картці дошки */
   .tc-pay{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;}
   .tc-pay.p-full{background:#E8F6ED;color:#1a7a3a;}
@@ -6611,6 +6668,52 @@ async function addPayment(o, sum, kind){
   }catch(e){ console.error(e); o.payments.pop(); toast('Не збереглось'); }
   renderOrderDrawer();
 }
+/* Задачі. Автор фіксується разом із задачею: у команді з кількох людей
+   «хто це поставив» — перше питання, коли задача незрозуміла. Виконавцем
+   за замовчуванням стає відповідальний за замовлення, а не той, хто
+   заводить: задачі найчастіше ставлять собі, але й передають теж. */
+async function addTask(o, text, due){
+  const t = String(text || '').trim();
+  if(!t){ toast('Напишіть, що зробити'); return; }
+  if(!Array.isArray(o.tasks)) o.tasks = [];
+  o.tasks.push({ id: cryptoId(), text: t.slice(0, 200), due: String(due || '') || null,
+                 done:false, at: new Date().toISOString(),
+                 by: myEmail() || '', for: o.mgrEmail || myEmail() || '' });
+  try{ await saveOrderMeta(o); toast('Заплановано: ' + dueWordUa(due)); }
+  catch(e){ console.error(e); o.tasks.pop(); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
+async function setTaskDone(o, id, done){
+  const t = taskList(o).find(x => x && x.id === id);
+  if(!t) return;
+  const before = { done: t.done, doneAt: t.doneAt };
+  t.done = !!done;
+  t.doneAt = done ? new Date().toISOString() : null;
+  try{ await saveOrderMeta(o); }
+  catch(e){ console.error(e); Object.assign(t, before); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
+async function moveTask(o, id, days){
+  const t = taskList(o).find(x => x && x.id === id);
+  if(!t) return;
+  const before = t.due;
+  // Переносимо від сьогодні, а не від старої дати: прострочену задачу
+  // «на завтра» очікують побачити завтра, а не через тиждень після терміну.
+  t.due = dayShift(Math.max(1, +days || 1));
+  try{ await saveOrderMeta(o); toast('Перенесено на ' + dueWordUa(t.due)); }
+  catch(e){ console.error(e); t.due = before; toast('Не збереглось'); }
+  renderOrderDrawer();
+}
+async function removeTask(o, id){
+  const i = taskList(o).findIndex(x => x && x.id === id);
+  if(i < 0) return;
+  const t = o.tasks[i];
+  if(!t.done && !confirm('Прибрати задачу «' + (t.text || '') + '»?')) return;
+  o.tasks.splice(i, 1);
+  try{ await saveOrderMeta(o); }
+  catch(e){ console.error(e); o.tasks.splice(i, 0, t); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
 async function removePayment(o, i){
   const p = payList(o)[i];
   if(!p) return;
@@ -6787,6 +6890,20 @@ function ticketSummaryHtml(o){
       ${due ? `<span class="tc-due ${due.cls}">до ${escapeHtml(due.label)}</span>` : ''}
       ${o.note ? `<span class="tc-note" title="${escapeHtml(o.note)}">📝</span>` : ''}
     </div>
+    ${/* Наступна дія прямо на дошці: саме заради неї менеджер уранці й
+         дивиться на Канбан. «Без наступної дії» — теж сигнал, тому картку
+         без задачі не лишаємо мовчазною. */''}
+    ${(()=>{ const ts = taskState(o);
+      if(ts.kind === 'none'){
+        // Виконаним і відмовам наступна дія вже не потрібна
+        return (o.status === 'done' || o.status === 'cancel') ? ''
+          : '<div class="tc-taskrow"><span class="tc-task t-none">без наступної дії</span></div>';
+      }
+      const cls = ts.kind === 'overdue' ? 't-overdue' : (ts.kind === 'today' ? 't-today' : '');
+      return `<div class="tc-taskrow"><span class="tc-task ${cls}" title="${
+        escapeHtml(ts.task.text || '')}">⏰ ${escapeHtml(dueWordUa(ts.task.due))}</span>` +
+        `<span class="tc-task-t">${escapeHtml(ts.task.text || '')}</span></div>`;
+    })()}
     <div class="tc-money">
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
       ${/* Оплата — те, через що замовлення найчастіше стоїть. Показуємо лише
@@ -6890,6 +7007,56 @@ function dtUa(iso){
                                      hour:'2-digit', minute:'2-digit' }).replace(',', '');
 }
 
+/* ── Наступна дія ─────────────────────────────────────────────────────
+   Замовлення помирають не тому, що клієнт передумав, а тому, що про нього
+   просто забули. Тому в кожної картки має бути одна відповідь на питання
+   «що я роблю з цим далі і коли». Це не список справ на 20 пунктів —
+   це найближча дія, яку видно з дошки, не відкриваючи картку.
+
+   Дата зберігається днем (YYYY-MM-DD), без години: «передзвонити о 14:07»
+   ніхто не виконує з точністю до хвилини, а година в полі лише додає
+   роботи при заведенні. */
+function taskList(o){ return Array.isArray((o||{}).tasks) ? o.tasks : []; }
+function openTasks(o){
+  return taskList(o).filter(t => t && !t.done)
+                    .sort((a,b)=> String(a.due||'9999').localeCompare(String(b.due||'9999')));
+}
+function nextTask(o){ return openTasks(o)[0] || null; }
+function isoDay(d){
+  const x = d instanceof Date ? d : new Date(d);
+  if(isNaN(x)) return '';
+  return new Date(x.getTime() - x.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+function todayIso(){ return isoDay(new Date()); }
+function dayShift(n){ const d = new Date(); d.setDate(d.getDate() + n); return isoDay(d); }
+function daysTo(due){
+  if(!due) return null;
+  const a = new Date(todayIso() + 'T00:00:00'), b = new Date(String(due) + 'T00:00:00');
+  if(isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+function dueWordUa(due){
+  const n = daysTo(due);
+  if(n == null) return 'без дати';
+  if(n < -1) return 'прострочено ' + (-n) + ' дн';
+  if(n === -1) return 'прострочено вчора';
+  if(n === 0) return 'сьогодні';
+  if(n === 1) return 'завтра';
+  const d = new Date(String(due) + 'T00:00:00');
+  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+}
+/* Стан картки за наступною дією. «none» — теж стан, і найгірший: картка,
+   про яку ніхто не домовився, що з нею робити далі. */
+function taskState(o){
+  const t = nextTask(o);
+  if(!t) return { kind:'none', task:null };
+  const n = daysTo(t.due);
+  if(n == null) return { kind:'someday', task:t };
+  if(n < 0) return { kind:'overdue', task:t };
+  if(n === 0) return { kind:'today', task:t };
+  return { kind:'soon', task:t };
+}
+
 /* Клієнт написав останнім і йому ще не відповіли — скільки він чекає.
    Не «є непрочитане», а саме час: година й доба вимагають різної реакції. */
 function waitingMin(o){
@@ -6970,6 +7137,9 @@ function activityFeed(o){
   payList(o).forEach(p => push(p.at,
     (PAY_KIND_UA[p.kind] || PAY_KIND_UA.other).replace(/^./, c=>c.toUpperCase()) +
     ' ' + fmt(p.sum) + ' ₴' + (p.by ? ' · ' + personName(p.by) : ''), 'pay'));
+  // Виконані задачі: половина питань при передачі клієнта — «а що вже робили»
+  taskList(o).forEach(t => { if(t && t.done && t.doneAt)
+    push(t.doneAt, 'Зроблено · ' + String(t.text || '').slice(0, 60), 'task'); });
   // Найсвіже вгорі: історію читають з кінця, а не з початку
   out.sort((a, b) => b.at.localeCompare(a.at));
   const seen = {};
@@ -7181,6 +7351,75 @@ function odMoneyHtml(o){
       </div>
     </div>`;
 }
+/* Блок «Наступна дія» — одразу під сумою, до всього іншого. Він тут не для
+   краси: якщо дії немає, менеджер має це побачити раніше, ніж почне читати
+   склад замовлення. */
+function odNextHtml(o){
+  const st = taskState(o);
+  if(!st.task){
+    return `
+      <div class="od-next is-none">
+        <div class="on-lab">Наступна дія</div>
+        <div class="on-empty">Не запланована — картка може загубитись</div>
+        ${odTaskAddHtml()}
+      </div>`;
+  }
+  const t = st.task;
+  return `
+    <div class="od-next is-${st.kind}">
+      <div class="on-lab">Наступна дія<span class="on-when">${escapeHtml(dueWordUa(t.due))}</span></div>
+      <div class="on-text">${escapeHtml(t.text || 'без опису')}</div>
+      ${t.for && t.for !== myEmail()
+        ? `<div class="on-who">для: ${escapeHtml(personName(t.for))}</div>` : ''}
+      <div class="on-acts">
+        <button class="on-do" data-task-done="${escapeHtml(t.id)}">✓ Виконано</button>
+        <button class="on-mv" data-task-move="${escapeHtml(t.id)}" data-days="1">На завтра</button>
+        <button class="on-mv" data-task-move="${escapeHtml(t.id)}" data-days="7">На тиждень</button>
+        <button class="on-mv on-del" data-task-del="${escapeHtml(t.id)}" title="Прибрати задачу">✕</button>
+      </div>
+      ${openTasks(o).length > 1
+        ? `<div class="on-more">Ще ${openTasks(o).length - 1} у списку задач нижче</div>` : ''}
+    </div>`;
+}
+function odTaskAddHtml(){
+  return `
+    <div class="on-add">
+      <input class="on-in" type="text" maxlength="120" placeholder="що зробити далі">
+      <select class="on-due">
+        <option value="${todayIso()}">сьогодні</option>
+        <option value="${dayShift(1)}" selected>завтра</option>
+        <option value="${dayShift(3)}">через 3 дні</option>
+        <option value="${dayShift(7)}">через тиждень</option>
+        <option value="">без дати</option>
+      </select>
+      <button class="on-go">Запланувати</button>
+    </div>`;
+}
+/* Повний список задач — нижче, разом із виконаними за останній час:
+   «що вже зробили» відповідає на половину питань при передачі клієнта. */
+function odTasksHtml(o){
+  const open = openTasks(o);
+  const done = taskList(o).filter(t => t && t.done)
+                          .sort((a,b)=> String(b.doneAt||'').localeCompare(String(a.doneAt||'')))
+                          .slice(0, 5);
+  if(!open.length && !done.length) return '';
+  const row = (t)=>`
+    <div class="tk-row${t.done ? ' is-done' : ''}">
+      <button class="tk-chk" data-task-toggle="${escapeHtml(t.id)}" title="${
+        t.done ? 'Повернути в роботу' : 'Позначити виконаною'}">${t.done ? '✓' : ''}</button>
+      <span class="tk-t">${escapeHtml(t.text || 'без опису')}</span>
+      <span class="tk-d ${t.done ? '' : (daysTo(t.due) < 0 ? 'is-late' : '')}">${
+        escapeHtml(t.done ? dtUa(t.doneAt) : dueWordUa(t.due))}</span>
+      <button class="tk-x" data-task-del="${escapeHtml(t.id)}" title="Прибрати">✕</button>
+    </div>`;
+  return `
+    <div class="od-sec">Задачі</div>
+    <div class="od-tasks">
+      ${open.map(row).join('')}
+      ${done.length ? '<div class="tk-sep">Зроблено</div>' + done.map(row).join('') : ''}
+      ${odTaskAddHtml()}
+    </div>`;
+}
 function odPart(fn, label){
   try{ return fn() || ''; }
   catch(e){
@@ -7299,6 +7538,9 @@ function renderOrderDrawer(){
           daysInWork(o), lastTouchLabel(o)
         ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </div>
+      ${/* Найперше після суми — що ми з цим робимо далі. Якщо дії немає,
+           це видно раніше за будь-що інше в картці. */''}
+      ${odNextHtml(o)}
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -7342,6 +7584,8 @@ function renderOrderDrawer(){
       ${odGoodsHtml(o)}
 
       ${odMoneyHtml(o)}
+
+      ${odTasksHtml(o)}
 
       ${/* Що було тут раніше і чому пішло:
             «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
@@ -7452,6 +7696,24 @@ function renderOrderDrawer(){
   }
   panel.querySelectorAll('[data-pay-del]').forEach(b=>
     b.addEventListener('click', ()=> removePayment(o, +b.dataset.payDel)));
+  // Задачі: у панелі два місця, де їх заводять, — обробник один на обидва
+  panel.querySelectorAll('.on-add').forEach(box=>{
+    const inp = box.querySelector('.on-in'), due = box.querySelector('.on-due');
+    const send = ()=> addTask(o, inp.value, due.value);
+    box.querySelector('.on-go').addEventListener('click', send);
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
+  });
+  panel.querySelectorAll('[data-task-done]').forEach(b=>
+    b.addEventListener('click', ()=> setTaskDone(o, b.dataset.taskDone, true)));
+  panel.querySelectorAll('[data-task-toggle]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const t = taskList(o).find(x => x && x.id === b.dataset.taskToggle);
+      if(t) setTaskDone(o, t.id, !t.done);
+    }));
+  panel.querySelectorAll('[data-task-move]').forEach(b=>
+    b.addEventListener('click', ()=> moveTask(o, b.dataset.taskMove, +b.dataset.days || 1)));
+  panel.querySelectorAll('[data-task-del]').forEach(b=>
+    b.addEventListener('click', ()=> removeTask(o, b.dataset.taskDel)));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
   const chanSel = panel.querySelector('.od-chan');
