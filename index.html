@@ -9915,19 +9915,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // поверх товару.
     // Кнопка має казати, що станеться: при поверненні позиції з кошика це не
     // «додати ще одну», а «оновити ту саму». Інакше люди додавали дубль.
+    /* Конструктор відкрили з наявної картки клієнта — тоді кошика в цьому
+       сценарії немає взагалі: позиція йде просто в те замовлення, з якого
+       прийшли. Менеджера збивало саме слово «кошик»: виглядало так, ніби він
+       складає ще одне, нове замовлення. */
+    function boundOrder(){
+      try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
+      catch(e){ return null; }
+    }
     function syncAddLabels(){
       var edit = !!pm.editing;
+      var bound = !!boundOrder();
       var main = document.getElementById('pmAddMain');
       var t1 = document.querySelector('.pm-add-btn'), t2 = document.getElementById('pmStickyCartBtn');
       [t1, t2].forEach(function(b){
         if(!b) return;
         var sum = b.querySelector('.pm-add-btn-sum');
-        b.childNodes[0].nodeValue = edit ? 'Оновити в кошику' : 'Додати в кошик';
+        b.childNodes[0].nodeValue = edit ? (bound ? 'Оновити в замовленні' : 'Оновити в кошику')
+                                         : (bound ? 'Додати до замовлення' : 'Додати в кошик');
         if(sum) b.appendChild(sum);
       });
-      if(main) main.textContent = edit ? 'Оновити як основний товар' : 'Додати як основний товар';
+      if(main) main.textContent = edit
+        ? (bound ? 'Оновити як основний товар' : 'Оновити як основний товар')
+        : (bound ? 'Додати до замовлення як основний' : 'Додати як основний товар');
       var reco = document.getElementById('pmAddReco');
-      if(reco && edit) reco.textContent = 'Оновити як рекомендований';
+      if(reco) reco.textContent = edit ? 'Оновити як рекомендований'
+        : (bound ? 'Додати до замовлення як рекомендацію' : 'Додати як рекомендований');
     }
     window.__syncAddLabels = syncAddLabels;
     // Перемикання вкладки з коду: стан і смужка мають мінятись разом, інакше
@@ -10243,11 +10256,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
       if(!snapSides.length) snapSides = ['front'];
       // 1600px — макет іде у замовлення й Канбан, тож має лишатись чітким
-      Promise.all(snapSides.map(function(s){ return snapshotSide(s, 1600); }))
+      var snapDone = Promise.all(snapSides.map(function(s){ return snapshotSide(s, 1600); }))
         .then(function(imgs){ item.imgs = imgs.filter(Boolean); renderCart(); }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
       productModal.classList.remove('open');
+      /* Прийшли з картки клієнта — кошик пропускаємо. Позиція лягає прямо в
+         те замовлення, і менеджер повертається туди, звідки почав. Чекаємо
+         на знімки макета: без них у картці буде позиція без картинки. */
+      if(boundOrder() && typeof window.__lqSendToOrder === 'function'){
+        window.__pmAddKind = 'main';
+        pm.qty = {}; pm.editing = false;
+        try{ syncAddLabels(); }catch(e){}
+        snapDone.then(function(){ window.__lqSendToOrder(); });
+        return;
+      }
       cartModalCtrl.open();
       window.__pmAddKind = 'main';            // наступна позиція знову вважається основною
       // Кількість не переносимо на наступну позицію: людина вже «витратила» ці
@@ -11611,6 +11634,42 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
       catch(e){ return null; }   // інший домен — просто немає прив'язки
     }
+    /* Пряма дорога з конструктора в наявне замовлення, без кошика й без
+       модалки контактів: контакти вже відомі з картки, а «оформлення» тут
+       нічого не оформлює — позиція просто дописується в те саме замовлення.
+       Раніше цей шлях ішов через кошик і форму клієнта, і виглядав так, ніби
+       заводиться друге замовлення на ту саму людину. */
+    window.__lqSendToOrder = function(){
+      var tgt = ccTarget();
+      if(!tgt || !tgt.id) return Promise.resolve(false);
+      if(!cartItems.length) return Promise.resolve(false);
+      var saver = (window.parent && window.parent.__adminSaveClientOrder) || window.__adminSaveClientOrder;
+      if(typeof saver !== 'function'){
+        alert('Позицію можна додати лише з адмінки.');
+        return Promise.resolve(false);
+      }
+      var payload = { instagram: tgt.instagram || '', name: tgt.name || '',
+                      company: tgt.company || '', phone: tgt.phone || '', dueAt: '',
+                      items: JSON.parse(JSON.stringify(cartItems)), targetId: tgt.id };
+      if(tgt.replaceIndex != null) payload.replaceIndex = tgt.replaceIndex;
+      window.__cartSaving = true;
+      return Promise.resolve()
+        .then(function(){ return saver(payload); })
+        .then(function(){
+          // Кошик чистимо лише після підтвердженого запису — інакше позиція
+          // зникає, а в базі її немає
+          cartItems.length = 0; renderCart();
+          try{ document.getElementById('cartModal').classList.remove('open'); }catch(e){}
+          return true;
+        })
+        .catch(function(e){
+          alert('Не додано в замовлення: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+                '\n\nПозиція лишилась у кошику — перевірте звʼязок і спробуйте ще раз.');
+          try{ cartModalCtrl.open(); }catch(e2){}
+          return false;
+        })
+        .then(function(ok){ window.__cartSaving = false; return ok; });
+    };
     b.addEventListener('click', function(){
       if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
       if(!cartItems.some(function(i){ return i.kind !== 'reco'; })){
