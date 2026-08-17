@@ -983,6 +983,18 @@
   .oe-brand{border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;
     font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:8px 13px;cursor:pointer;}
   .oe-brand.on{border-color:var(--ink);background:var(--ink);color:#fff;}
+  /* Логотипи замовлення в шапці редактора: завантажили раз — доступні всім
+     товарам. Дрібні плитки, бо це склад, а не галерея. */
+  .oe-logos{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .oe-logo{position:relative;width:34px;height:34px;border-radius:8px;border:1px solid var(--line);
+    background:#fff center/contain no-repeat;flex:none;}
+  .oe-logo button{all:unset;position:absolute;top:-6px;right:-6px;width:16px;height:16px;
+    border-radius:8px;background:var(--ink);color:#fff;font-size:9px;line-height:16px;
+    text-align:center;cursor:pointer;opacity:0;transition:opacity .12s;}
+  .oe-logo:hover button{opacity:1;}
+  .oe-logo-add{all:unset;cursor:pointer;flex:none;font-size:12px;font-weight:700;
+    color:var(--ink-soft);padding:8px 11px;border:1px dashed var(--line);border-radius:8px;}
+  .oe-logo-add:hover{border-color:var(--accent);color:var(--accent-deep);border-style:solid;}
   @media(max-width:900px){ .oe-head{flex-wrap:wrap;} .oe-head .oe-title{width:100%;} }
 
   /* ── Вікно діалогу ──────────────────────────────────────────────────────
@@ -3208,6 +3220,36 @@ let calcEdit = null;      // індекс позиції, яку зараз ре
 function calcTargetWho(o){
   return (o.instagram || o.name || o.phone || o.orderId || 'клієнта');
 }
+/* ── Логотипи замовлення ──────────────────────────────────────────────
+   Логотип клієнта належить замовленню, а не окремій футболці. Раніше він
+   жив усередині позиції: поставив на футболку — на кепку завантажуй знову.
+   Саме це й забирало більшу частину часу на збирання пропозиції.
+
+   Список складається з двох джерел: те, що менеджер завантажив у редакторі
+   КП, і те, що вже стоїть на позиціях замовлення. Друге потрібне для старих
+   карток — там логотип є, але ніхто його окремо не зберігав. */
+function orderLogos(o){
+  const out = [];
+  const add = u => { if(u && typeof u === 'string' && out.indexOf(u) < 0) out.push(u); };
+  ((o || {}).logos || []).forEach(add);
+  ((o || {}).items || []).forEach(it => (it.prints || []).forEach(p => add(p.file)));
+  return out.slice(0, 12);
+}
+async function addOrderLogo(o, url){
+  if(!url) return;
+  if(!Array.isArray(o.logos)) o.logos = [];
+  if(o.logos.indexOf(url) >= 0) return;
+  o.logos.push(url);
+  try{ await saveOrderMeta(o); }
+  catch(e){ console.error(e); o.logos.pop(); toast('Логотип не збережено'); }
+}
+async function removeOrderLogo(o, url){
+  const i = (o.logos || []).indexOf(url);
+  if(i < 0){ toast('Цей логотип стоїть на позиції — приберіть його в конструкторі'); return; }
+  o.logos.splice(i, 1);
+  try{ await saveOrderMeta(o); }
+  catch(e){ console.error(e); o.logos.splice(i, 0, url); toast('Не збереглось'); }
+}
 function paintCalcTarget(){
   const box = document.getElementById('calc-target');
   if(!box) return;
@@ -3222,6 +3264,9 @@ function paintCalcTarget(){
     id: o.id, instagram: o.instagram || '', name: o.name || '',
     company: o.company || '', phone: o.phone || '', dueAt: o.dueAt || '',
     hasItems: (o.items || []).length > 0,
+    // Логотипи замовлення — конструктор покаже їх стрічкою над плитками
+    // дизайну, щоб той самий файл не завантажувати для кожного виробу
+    logos: orderLogos(o),
     replaceIndex: calcEdit
   } : null;
   if(!o){ window.__adminSeedItem = null; calcEdit = null; }
@@ -3277,7 +3322,7 @@ function openCalcFrame(fr){
        у IndexedDB і відновлює після перезавантаження; без цього прапорця
        в картку клієнта могли потрапити позиції з попереднього прорахунку.
        seed=1 — у кошик одразу кладеться позиція, яку відкрили на редагування. */
-    fr.src = 'index.html?manager=1&start=catalog&cart=new' +
+    fr.src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
       (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
   }catch(e){
     fail('Не вдалось скласти адресу сторінки: ' + (e && e.message || e));
@@ -8902,7 +8947,7 @@ function openCalcOver(o, editIdx){
   d.querySelector('.cwin-sub').textContent = (it && it.name) ? it.name : '';
   d.classList.add('open');
   const f = d.querySelector('iframe');
-  f.src = 'index.html?manager=1&start=catalog&cart=new' +
+  f.src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
     (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
 }
 
@@ -9118,12 +9163,52 @@ function renderOfferEd(){
       ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
         escapeHtml(brands[k].name)}</button>`).join('')}
     </div>
+    ${/* Логотип клієнта належить замовленню. Завантажили тут — і він
+         доступний кожному товару в конструкторі, ставити на виріб не
+         обовʼязково: місце для футболки й для кепки різне. */''}
+    <div class="oe-logos">
+      ${/* Картинку ставимо з коду: у data-URI трапляються лапки, і style="" від
+           них розсипається — це вже ламало стрічку логотипів у конструкторі. */''}
+      ${orderLogos(o).map((u,i)=>`<span class="oe-logo" data-logo-i="${i}"
+        title="Логотип замовлення"><button data-logo-del="${i}" title="Прибрати зі списку">✕</button></span>`).join('')}
+      <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
+    </div>
     <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
     <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">Відкрити ↗</a>
     <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
+  head.querySelector('[data-oe="logo"]').addEventListener('click', ()=>{
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/svg+xml,image/*';
+    inp.addEventListener('change', async ()=>{
+      const f = inp.files && inp.files[0];
+      if(!f) return;
+      toast('Завантажуємо логотип…');
+      try{
+        // У базі лишається посилання: документ замовлення обмежений 1 МБ,
+        // а логотипи клієнтів бувають важкі
+        const url = await uploadCloudinary(f);
+        await addOrderLogo(o, url);
+        renderOfferEd();
+        paintCalcTarget();          // конструктор має побачити новий логотип одразу
+        toast('Логотип додано — тепер він доступний усім товарам');
+      }catch(e){ console.error(e); toast('Не вдалось завантажити'); }
+    });
+    inp.click();
+  });
+  const logoUrls = orderLogos(o);
+  head.querySelectorAll('[data-logo-i]').forEach(el=>{
+    const u = logoUrls[+el.dataset.logoI];
+    if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
+  });
+  head.querySelectorAll('[data-logo-del]').forEach(b=>
+    b.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      await removeOrderLogo(o, logoUrls[+b.dataset.logoDel]);
+      renderOfferEd(); paintCalcTarget();
+    }));
   head.querySelector('[data-oe="copy"]').addEventListener('click', ()=>
     copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту'));
   head.querySelectorAll('[data-brand]').forEach(b=>{
