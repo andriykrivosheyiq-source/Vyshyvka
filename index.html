@@ -10004,6 +10004,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         : (bound ? 'Додати до замовлення як рекомендацію' : 'Додати як рекомендований');
     }
     window.__syncAddLabels = syncAddLabels;
+    // Адмінка відкриває конструктор одразу на потрібній вкладці (?tab=)
+    window.__pmGoTab = function(id){ if(id) goTab(id); };
     // Перемикання вкладки з коду: стан і смужка мають мінятись разом, інакше
     // панель показує одне, а підсвічена вкладка — інше.
     function goTab(id){
@@ -11854,6 +11856,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             cartItems.length = 0; renderCart();   // голу позицію замінить налаштована
             window.__openProductModal(seed.garmentId);
           }
+          /* ?tab= — з якої саме дії прийшли. Натиснув «Колір» у пропозиції —
+             конструктор відкривається на «Товарі», «Нанесення» — на «Дизайні»,
+             «Кількість» — на розмірах. Інакше менеджер щоразу шукав потрібну
+             вкладку сам. */
+          var mt = /[?&]tab=([a-z]+)/.exec(location.search);
+          if(mt && window.__pmGoTab) setTimeout(function(){
+            try{ window.__pmGoTab(mt[1]); }catch(e){}
+          }, 350);
         }catch(e){ console.warn('не вдалось відкрити позицію на редагування', e); }
       }, 700);
     }

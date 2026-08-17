@@ -969,6 +969,18 @@
   .oe-btn--main:hover{background:#1c2840;color:#fff;}
   .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
   .oe-body iframe{flex:1;width:100%;height:100%;border:0;display:block;background:#fff;}
+  /* Нижня панель редактора: сума й дві дії, якими роботу закінчують */
+  .oe-foot{flex:none;display:flex;align-items:center;gap:10px;padding:11px 13px;
+    border-top:1px solid var(--line);background:#fff;flex-wrap:wrap;}
+  .oe-sum{display:flex;align-items:baseline;gap:9px;min-width:0;}
+  .oe-sum b{font-size:19px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums;}
+  .oe-sum span{font-size:12.5px;color:var(--ink-soft);}
+  /* Стан автозбереження. Записувалось і раніше, але мовчки — і менеджер
+     не мав підтвердження, що робота вже в базі. */
+  .oe-save{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;}
+  .oe-save.is-ok{background:#E8F6ED;color:#1a7a3a;}
+  .oe-save.is-saving{background:var(--canvas);color:var(--ink-soft);}
+  .oe-save.is-bad{background:var(--bad-soft);color:var(--bad);}
   .oe-head .oe-brands{flex:none;display:flex;gap:5px;}
   .cwin-wrap{position:fixed;inset:0;z-index:1400;display:none;align-items:center;
     justify-content:center;background:rgba(15,32,52,.6);padding:14px;}
@@ -3228,6 +3240,14 @@ function calcTargetWho(o){
    Список складається з двох джерел: те, що менеджер завантажив у редакторі
    КП, і те, що вже стоїть на позиціях замовлення. Друге потрібне для старих
    карток — там логотип є, але ніхто його окремо не зберігав. */
+/* Підсумок для нижньої панелі редактора. Рекомендації не рахуємо: вони не
+   входять у суму, поки клієнт сам їх не обере — так само, як на сторінці КП. */
+function offerTotals(o){
+  const main = ((o || {}).items || []).filter(i => i && i.kind !== 'reco');
+  return { sum: +o.totalPrice || 0,
+           qty: main.reduce((a,i)=> a + (+i.qty || 0), 0),
+           pos: main.length };
+}
 function orderLogos(o){
   const out = [];
   const add = u => { if(u && typeof u === 'string' && out.indexOf(u) < 0) out.push(u); };
@@ -8807,7 +8827,11 @@ function offerEdEl(){
   d.className = 'oe-wrap';
   d.innerHTML = '<div class="oe"><div class="oe-head"></div>' +
                 '<div class="oe-body"><iframe title="Пропозиція" ' +
-                'sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div></div>';
+                'sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>' +
+                /* Сума й головні дії — унизу, завжди на очах. Доти, щоб
+                   скопіювати посилання, менеджер прокручував пропозицію
+                   назад угору. */
+                '<div class="oe-foot"></div></div>';
   document.body.appendChild(d);
   document.addEventListener('keydown', e=>{
     if(e.key === 'Escape' && offerEd && !chatWin) offerEdClose();
@@ -8920,7 +8944,7 @@ function closeCalcOver(){
   calcTarget = null; calcEdit = null; window.__adminSeedItem = null;
   paintCalcTarget();
 }
-function openCalcOver(o, editIdx){
+function openCalcOver(o, editIdx, tab){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
   const it = (calcEdit != null) ? (o.items || [])[calcEdit] : null;
@@ -8948,7 +8972,10 @@ function openCalcOver(o, editIdx){
   d.classList.add('open');
   const f = d.querySelector('iframe');
   f.src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
-    (window.__adminSeedItem ? '&seed=1' : '') + '&v=' + LQ_BUILD;
+    (window.__adminSeedItem ? '&seed=1' : '') +
+    // Натиснули «Колір» — конструктор має відкритись на кольорі, а не там,
+    // де його лишили минулого разу
+    (tab ? '&tab=' + encodeURIComponent(tab) : '') + '&v=' + LQ_BUILD;
 }
 
 function offerCatalog(){
@@ -9060,13 +9087,37 @@ function offerNeighbor(o, from, dir){
 // Крок кількості під тираж: на 500 футболках кнопка «+1» безглузда
 function offerQtyStep(q){ return q >= 100 ? 10 : (q >= 20 ? 5 : 1); }
 
+/* Автозбереження. Записувалось і раніше — після кожної правки, — але мовчки:
+   менеджер не мав жодного підтвердження, що двадцять хвилин роботи вже в
+   базі, і на всяк випадок не закривав вкладку. Тепер стан видно в шапці. */
+function offerSaveMark(state){
+  const el = document.querySelector('#offerEd .oe-save');
+  if(!el) return;
+  el.className = 'oe-save is-' + state;
+  el.textContent = state === 'saving' ? 'Зберігаємо…'
+    : (state === 'bad' ? '⚠ Не збережено' : 'Збережено ✓');
+}
+async function offerEdSave(o){
+  offerSaveMark('saving');
+  try{
+    await storeSet('orders', orders);
+    await offerSave(o);
+    offerSaveMark('ok');
+    return true;
+  }catch(e){
+    console.error('offer save failed', e);
+    offerSaveMark('bad');
+    toast('Не збереглось — перевірте звʼязок');
+    return false;
+  }
+}
 async function offerEdApply(msg){
   const o = offerEdOrder();
   if(!o) return;
   const act = msg.act;
   if(act === 'why'){
     o.why = String(msg.text || '').trim();
-    try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
+    await offerEdSave(o);
     renderBoard();
     return;                       // текст уже на екрані — перемальовувати нема чого
   }
@@ -9078,8 +9129,7 @@ async function offerEdApply(msg){
     if(act === 'heroTitle') o.offerTitle = String(msg.text || '').trim();
     else if(act === 'valid') o.offerValidUntil = String(msg.v || '').trim();
     else o.offerReadyAt = String(msg.v || '').trim();
-    try{ await storeSet('orders', orders); await offerSave(o); }
-    catch(e){ console.error(e); toast('Не збереглось'); return; }
+    if(!(await offerEdSave(o))) return;
     renderBoard();
     // Заголовок правиться прямо на місці — перечитувати сторінку зайве;
     // розмір і дати міняють вигляд, тож їх показуємо наново.
@@ -9090,16 +9140,30 @@ async function offerEdApply(msg){
     const snap = itemsSnapshot(o);
     await offerAddBare(o, String(msg.gid || ''), msg.kind);
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
-    try{ await storeSet('orders', orders); await offerSave(o); }
-    catch(e){ console.error(e); toast('Не збереглось'); return; }
+    if(!(await offerEdSave(o))) return;
     renderBoard(); offerEdPreview(true);
     return;
   }
   if(act === 'edit'){
-    // Олівець: той самий конструктор, що й завжди, але вікном поверх КП —
-    // менеджер не втрачає з очей сторінку, яку саме збирає
+    // Той самий конструктор, але вікном поверх КП — менеджер не втрачає з
+    // очей сторінку, яку саме збирає. Вкладку відкриваємо ту, яку просили:
+    // натиснув «Колір» — має відкритись колір, а не пошук по вкладках.
     const k = offerIdxToOrder(o, msg.kind, msg.i);
-    if(k >= 0) openCalcOver(o, k);
+    if(k >= 0) openCalcOver(o, k, msg.tab || '');
+    return;
+  }
+  if(act === 'dup'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const src = k >= 0 && (o.items || [])[k];
+    if(!src){ toast('Позицію не знайдено'); return; }
+    const snap = itemsSnapshot(o);
+    // Копія лягає одразу під оригіналом: інакше її треба шукати в кінці
+    o.items.splice(k + 1, 0, JSON.parse(JSON.stringify(src)));
+    repriceOrder(o); recalcOrderTotals(o);
+    if(!marginOk(o, snap)){ offerEdPreview(true); return; }
+    if(!(await offerEdSave(o))) return;
+    renderBoard(); offerEdPreview(true);
+    toast('Позицію продубльовано');
     return;
   }
   if(act === 'add'){
@@ -9137,8 +9201,7 @@ async function offerEdApply(msg){
      й у кошику. Саме тому ціну руками тут не правлять. */
   repriceOrder(o);
   recalcOrderTotals(o);
-  try{ await storeSet('orders', orders); await offerSave(o); }
-  catch(e){ console.error('offer edit', e); toast('Не збереглось'); return; }
+  if(!(await offerEdSave(o))) return;
   renderBoard();
   offerEdPreview(true);           // структура змінилась — сторінку перечитуємо
 }
@@ -9173,9 +9236,18 @@ function renderOfferEd(){
         title="Логотип замовлення"><button data-logo-del="${i}" title="Прибрати зі списку">✕</button></span>`).join('')}
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
-    <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
-    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">Відкрити ↗</a>
+    <span class="oe-save is-ok">Збережено ✓</span>
     <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
+
+  /* Нижня панель. Те, чим закінчують роботу над пропозицією: скільки вийшло,
+     подивитись очима клієнта й віддати посилання. */
+  const t = offerTotals(o);
+  d.querySelector('.oe-foot').innerHTML = `
+    <div class="oe-sum"><b>${fmt(t.sum)} ₴</b><span>${
+      t.qty ? t.qty + ' шт · ' + t.pos + ' ' + posWordUa(t.pos) : 'порожня пропозиція'}</span></div>
+    <span class="bh-spacer"></span>
+    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">👁 Перегляд як клієнт</a>
+    <button class="oe-btn oe-btn--main" data-oe="copy">🔗 Створити посилання</button>`;
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
@@ -9209,8 +9281,8 @@ function renderOfferEd(){
       await removeOrderLogo(o, logoUrls[+b.dataset.logoDel]);
       renderOfferEd(); paintCalcTarget();
     }));
-  head.querySelector('[data-oe="copy"]').addEventListener('click', ()=>
-    copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту'));
+  d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
+    copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту')));
   head.querySelectorAll('[data-brand]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       if(brandKeyOf(o) === b.dataset.brand) return;
