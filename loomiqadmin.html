@@ -141,9 +141,54 @@
   .cp-move{display:flex;flex-direction:column;gap:3px;flex:none;}
   .cp-move button{padding:2px 7px;font-size:11px;line-height:1.3;}
   .cp-clear{flex:none;padding:5px 9px;font-size:11px;}
-  .wo-state{margin-top:8px;font-size:12.5px;color:#7C8798;padding:7px 11px;border-radius:9px;
+  .wo-state{font-size:11.5px;color:#7C8798;padding:4px 9px;border-radius:20px;
     background:var(--paper);border:1px solid var(--line);display:inline-block;}
   .wo-state.is-bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft);font-weight:600;}
+  /* ── Шапка й інструменти дошки ─────────────────────────────────────── */
+  .board-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .board-head h1{margin:0;}
+  .bh-spacer{flex:1;}
+  .board-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .bt-search{position:relative;flex:1 1 320px;min-width:0;display:flex;align-items:center;}
+  .bt-ico{position:absolute;left:11px;font-size:12px;opacity:.5;pointer-events:none;}
+  .bt-search input{width:100%;font:inherit;font-size:13.5px;padding:10px 32px 10px 32px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .bt-search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .bt-search input::-webkit-search-cancel-button{display:none;}
+  .bt-x{all:unset;position:absolute;right:8px;cursor:pointer;color:#AEB8C9;padding:4px 6px;
+    border-radius:6px;font-size:12px;}
+  .bt-x:hover{background:var(--canvas);color:var(--ink);}
+  .bt-btn{all:unset;cursor:pointer;flex:none;font-size:13px;font-weight:600;padding:10px 15px;
+    border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink-2);}
+  .bt-btn:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .bt-btn.is-on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);}
+  .bt-sort{flex:none;font:inherit;font-size:13px;font-weight:600;padding:10px 12px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink-2);cursor:pointer;}
+  /* Розгортається лише коли натиснули «Фільтр»: постійно відкриті фільтри
+     займають місце щодня, а потрібні раз на тиждень. */
+  .board-filters{display:flex;gap:14px;flex-wrap:wrap;padding:12px 14px;margin-bottom:10px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .bf-g{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .bf-lab{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);}
+  .bf-g select{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;min-width:150px;}
+  .bf-flags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .bf-flag{all:unset;cursor:pointer;font-size:12.5px;padding:7px 11px;border-radius:20px;
+    border:1px solid var(--line);background:var(--canvas);color:var(--ink-2);}
+  .bf-flag:hover{border-color:var(--accent);}
+  .bf-flag.is-on{background:var(--accent);color:#fff;border-color:transparent;font-weight:700;}
+  /* Активні фільтри — самі себе показують. Показувати весь набір постійно
+     не треба: важливо, ЩО зараз увімкнено, а не що взагалі буває. */
+  .board-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .board-chips:empty{display:none;}
+  .bc{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+    padding:5px 6px 5px 11px;border-radius:20px;background:var(--accent-soft);color:var(--accent-deep);}
+  .bc button{all:unset;cursor:pointer;padding:0 4px;border-radius:20px;opacity:.6;}
+  .bc button:hover{opacity:1;}
+  .bc-clear{all:unset;cursor:pointer;font-size:12px;color:var(--ink-soft);padding:5px 8px;
+    border-radius:20px;text-decoration:underline dotted;}
+  .bc-clear:hover{color:var(--bad);}
+  .bt-found{font-size:12.5px;color:var(--ink-soft);align-self:center;}
   .nav{display:flex;flex-direction:column;gap:3px;}
   .nav button{
     all:unset;cursor:pointer;color:#8893A6;font-size:13.5px;padding:11px 13px;border-radius:9px;
@@ -1739,16 +1784,38 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
     <!-- ============ VIEW 2 — KANBAN (+ new order panel) ============ -->
     <section id="view-board">
-      <div class="page-head">
-        <div class="eyebrow">Замовлення</div>
-        <h1>Канбан замовлень</h1>
-        <div id="web-orders-state" class="wo-state">Замовлення з сайту: підключаюсь…</div>
-        <div class="sub">Натисніть на картку — відкриється склад замовлення, макети, гроші й документи для клієнта.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-          <button class="btn btn-accent" id="board-add">+ Нова картка</button>
-          <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
-        </div>
+      <!-- Шапка дошки навмисно коротка. Пояснення «натисніть на картку —
+           відкриється склад замовлення» описувало очевидне і щодня займало
+           місце, якого на дошці й так мало. -->
+      <div class="board-head">
+        <h1>Замовлення</h1>
+        <div id="web-orders-state" class="wo-state">підключаюсь…</div>
+        <span class="bh-spacer"></span>
+        <button class="btn btn-accent" id="board-add">+ Нова картка</button>
+        <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
       </div>
+      <!-- Пошук шукає по всій дошці, а не в одній колонці: замовлення, яке
+           шукають, майже завжди лежить не там, де на нього дивляться. -->
+      <div class="board-tools">
+        <div class="bt-search">
+          <span class="bt-ico">🔍</span>
+          <input id="board-q" type="search" autocomplete="off"
+                 placeholder="Пошук: номер, імʼя, телефон, компанія, Instagram, товар, сума, нотатка">
+          <button id="board-q-x" class="bt-x" title="Очистити" hidden>✕</button>
+        </div>
+        <button class="bt-btn" id="board-filter-btn">Фільтр</button>
+        <select class="bt-sort" id="board-sort" title="Порядок карток у колонках">
+          <option value="attention">Потребують уваги</option>
+          <option value="new">Спершу нові</option>
+          <option value="old">Спершу старі</option>
+          <option value="sum-desc">Найбільша сума</option>
+          <option value="sum-asc">Найменша сума</option>
+          <option value="quiet">Давно без контакту</option>
+          <option value="task">Найближча задача</option>
+        </select>
+      </div>
+      <div class="board-filters" id="board-filters" hidden></div>
+      <div class="board-chips" id="board-chips"></div>
 
       <div class="card" id="st-card" style="display:none;max-width:640px;">
         <div class="card-head"><h2>Етапи воронки</h2></div>
@@ -6343,9 +6410,177 @@ async function docsAutoPrepare(o){
   }catch(e){ console.warn('docs prepare failed', e); docsPrepared.delete(o.id); }
 }
 
+/* ── Пошук, фільтри й сортування дошки ────────────────────────────────
+   Усе це живе в памʼяті вкладки, а не в базі: у двох людей за сусідніми
+   столами різні фільтри, і зберігати їх спільно було б гірше, ніж не
+   зберігати зовсім. */
+const boardView = { q:'', mgr:'', chan:'', flags:{}, sort:'attention', open:false };
+const BOARD_FLAGS = {
+  unread:  'є непрочитані',
+  overdue: 'прострочена задача',
+  notask:  'без наступної дії',
+  waiting: 'клієнт чекає відповіді',
+  unpaid:  'не оплачено',
+  mine:    'мої'
+};
+/* Один рядок, у якому лежить усе, за чим можуть шукати. Збирається на льоту:
+   замовлень десятки, не десятки тисяч, і кеш тут коштував би дорожче за
+   користь. */
+function orderHaystack(o){
+  const items = (o.items || []).map(i => i && i.name).filter(Boolean).join(' ');
+  const tasks = taskList(o).map(t => t && t.text).filter(Boolean).join(' ');
+  return [o.orderId, o.name, o.phone, o.company, o.instagram,
+          chanHandle(o, 'tg'), chanHandle(o, 'ig'), chanHandle(o, 'viber'),
+          personName(o.mgrEmail), items, tasks, o.note,
+          o.totalPrice, (window.lqChannel && window.lqChannel.label(o.an)) || '']
+         .filter(v => v != null && v !== '').join(' ').toLowerCase();
+}
+/* Номер шукають із пробілами й без, телефон — у будь-якому форматі. Тому
+   для запиту з самих цифр звіряємо ще й «тільки цифри». */
+function boardMatch(o, q){
+  if(!q) return true;
+  const hay = orderHaystack(o);
+  if(hay.indexOf(q) >= 0) return true;
+  const d = q.replace(/\D+/g, '');
+  return d.length >= 3 && hay.replace(/\D+/g, '').indexOf(d) >= 0;
+}
+function boardFlagPass(o, key){
+  switch(key){
+    case 'unread':  return tgUnread(o);
+    case 'overdue': return taskState(o).kind === 'overdue';
+    case 'notask':  return taskState(o).kind === 'none' && o.status !== 'done' && o.status !== 'cancel';
+    case 'waiting': return waitingMin(o) >= 60;
+    case 'unpaid':  return payState(o) !== 'full' && (+o.totalPrice || 0) > 0;
+    case 'mine':    return !!myEmail() && o.mgrEmail === myEmail();
+    default: return true;
+  }
+}
+function boardPass(o){
+  const v = boardView;
+  if(!boardMatch(o, v.q)) return false;
+  if(v.mgr && (o.mgrEmail || '') !== v.mgr) return false;
+  if(v.chan){
+    const lab = (window.lqChannel && window.lqChannel.label(o.an)) || '';
+    if(lab !== v.chan) return false;
+  }
+  return Object.keys(v.flags).every(k => !v.flags[k] || boardFlagPass(o, k));
+}
+function boardFiltersOn(){
+  const v = boardView;
+  return !!(v.q || v.mgr || v.chan || Object.keys(v.flags).some(k => v.flags[k]));
+}
+/* «Потребують уваги» — головний порядок. Спершу те, де вже щось горить,
+   і лише потім усе інше за свіжістю. Саме так менеджер читає дошку вранці. */
+function attentionRank(o){
+  if(tgUnread(o)) return 0;
+  if(taskState(o).kind === 'overdue') return 1;
+  if(waitingMin(o) >= 60) return 2;
+  if(taskState(o).kind === 'today') return 3;
+  if(taskState(o).kind === 'none' && o.status !== 'done' && o.status !== 'cancel') return 4;
+  return 5;
+}
+function boardSortFn(){
+  const act = o => orderActivityAt(o) || '';
+  switch(boardView.sort){
+    case 'new':      return (a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+    case 'old':      return (a,b)=> String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+    case 'sum-desc': return (a,b)=> (+b.totalPrice||0) - (+a.totalPrice||0);
+    case 'sum-asc':  return (a,b)=> (+a.totalPrice||0) - (+b.totalPrice||0);
+    case 'quiet':    return (a,b)=> act(a).localeCompare(act(b));   // найдавніший контакт угорі
+    case 'task':     return (a,b)=> String(nextTask(a) && nextTask(a).due || '9999')
+                                     .localeCompare(String(nextTask(b) && nextTask(b).due || '9999'));
+    default:         return (a,b)=> (attentionRank(a) - attentionRank(b)) || act(b).localeCompare(act(a));
+  }
+}
+function renderBoardTools(){
+  const chips = document.getElementById('board-chips');
+  const fbtn = document.getElementById('board-filter-btn');
+  const box = document.getElementById('board-filters');
+  if(!chips || !box) return;
+  const v = boardView;
+  if(fbtn) fbtn.classList.toggle('is-on', v.open || !!(v.mgr || v.chan || Object.keys(v.flags).some(k=>v.flags[k])));
+  box.hidden = !v.open;
+  if(v.open){
+    const mgrs = [];
+    ((contentData.team) || []).forEach(p => mgrs.push({ v:p.email, t:p.name || p.email }));
+    (orders || []).forEach(o => { if(o.mgrEmail && !mgrs.some(m => m.v === o.mgrEmail))
+      mgrs.push({ v:o.mgrEmail, t:personName(o.mgrEmail) }); });
+    const chans = [];
+    (orders || []).forEach(o => { const l = (window.lqChannel && window.lqChannel.label(o.an)) || '';
+      if(l && chans.indexOf(l) < 0) chans.push(l); });
+    box.innerHTML = `
+      <div class="bf-g"><span class="bf-lab">Менеджер</span>
+        <select data-bf="mgr">
+          <option value="">усі</option>
+          ${mgrs.map(m=>`<option value="${escapeHtml(m.v)}"${m.v===v.mgr?' selected':''}>${escapeHtml(m.t)}</option>`).join('')}
+        </select></div>
+      <div class="bf-g"><span class="bf-lab">Канал</span>
+        <select data-bf="chan">
+          <option value="">усі</option>
+          ${chans.map(c=>`<option value="${escapeHtml(c)}"${c===v.chan?' selected':''}>${escapeHtml(c)}</option>`).join('')}
+        </select></div>
+      <div class="bf-g" style="flex:1;"><span class="bf-lab">Показати лише</span>
+        <div class="bf-flags">${Object.keys(BOARD_FLAGS).map(k=>
+          `<button class="bf-flag${v.flags[k]?' is-on':''}" data-bf-flag="${k}">${escapeHtml(BOARD_FLAGS[k])}</button>`).join('')}
+        </div></div>`;
+    box.querySelectorAll('[data-bf]').forEach(sel=>
+      sel.addEventListener('change', ()=>{ boardView[sel.dataset.bf] = sel.value; renderBoard(); }));
+    box.querySelectorAll('[data-bf-flag]').forEach(btn=>
+      btn.addEventListener('click', ()=>{
+        const k = btn.dataset.bfFlag;
+        boardView.flags[k] = !boardView.flags[k];
+        renderBoard();
+      }));
+  }
+  const parts = [];
+  if(v.q) parts.push({ k:'q', t:'«' + v.q + '»' });
+  if(v.mgr) parts.push({ k:'mgr', t:'Менеджер: ' + personName(v.mgr) });
+  if(v.chan) parts.push({ k:'chan', t:'Канал: ' + v.chan });
+  Object.keys(v.flags).forEach(k => { if(v.flags[k]) parts.push({ k:'flag:'+k, t:BOARD_FLAGS[k] }); });
+  chips.innerHTML = parts.map(p=>
+    `<span class="bc">${escapeHtml(p.t)}<button data-bc="${escapeHtml(p.k)}" title="Прибрати">✕</button></span>`).join('') +
+    (parts.length > 1 ? '<button class="bc-clear" data-bc="all">скинути все</button>' : '');
+  chips.querySelectorAll('[data-bc]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const k = b.dataset.bc;
+      if(k === 'all'){ boardView.q=''; boardView.mgr=''; boardView.chan=''; boardView.flags={}; }
+      else if(k === 'q'){ boardView.q = ''; }
+      else if(k.slice(0,5) === 'flag:'){ boardView.flags[k.slice(5)] = false; }
+      else boardView[k] = '';
+      const inp = document.getElementById('board-q');
+      if(inp && !boardView.q) inp.value = '';
+      renderBoard();
+    }));
+}
+(function wireBoardTools(){
+  const inp = document.getElementById('board-q');
+  const clr = document.getElementById('board-q-x');
+  if(inp){
+    let t = null;
+    inp.addEventListener('input', ()=>{
+      clearTimeout(t);
+      // Пауза, щоб дошка не перемальовувалась на кожну літеру
+      t = setTimeout(()=>{
+        boardView.q = inp.value.trim().toLowerCase();
+        if(clr) clr.hidden = !inp.value;
+        renderBoard();
+      }, 160);
+    });
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Escape'){ inp.value=''; boardView.q=''; if(clr) clr.hidden = true; renderBoard(); } });
+  }
+  if(clr) clr.addEventListener('click', ()=>{
+    inp.value = ''; boardView.q = ''; clr.hidden = true; inp.focus(); renderBoard();
+  });
+  const fb = document.getElementById('board-filter-btn');
+  if(fb) fb.addEventListener('click', ()=>{ boardView.open = !boardView.open; renderBoard(); });
+  const so = document.getElementById('board-sort');
+  if(so) so.addEventListener('change', ()=>{ boardView.sort = so.value; renderBoard(); });
+})();
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
+  renderBoardTools();
+  const hidden = (orders || []).filter(o => !boardPass(o)).length;
   STATUSES.forEach(st=>{
     const col = document.createElement('div');
     col.className = 'col';
@@ -6354,8 +6589,7 @@ function renderBoard(){
     // Колір статусу тепер несе крапка біля назви, а не підкладка колонки
     // Свіжа розмова — нагору колонки. Порівнюємо ISO-рядки як текст:
     // вони для того й придумані, щоб сортуватись без розбору дати.
-    const list = orders.filter(o=>o.status===st.key)
-      .sort((a,b)=> orderActivityAt(b).localeCompare(orderActivityAt(a)));
+    const list = orders.filter(o=> o.status===st.key && boardPass(o)).sort(boardSortFn());
     col.innerHTML = `
       <div class="col-head"><h3 style="color:${c.head};">${escapeHtml(st.label)}</h3><span class="col-count">${list.length}</span></div>
       <div class="col-body"></div>
@@ -6363,11 +6597,15 @@ function renderBoard(){
     const body = col.querySelector('.col-body');
     if(list.length===0){
       /* «Порожньо» нічого не каже. Перша колонка — це те, що менеджер
-         бачить щоранку, тож вона має пояснювати, чого чекати. */
+         бачить щоранку, тож вона має пояснювати, чого чекати. А коли
+         увімкнено пошук чи фільтр, порожня колонка означає зовсім інше —
+         і сказати про це треба прямо, інакше здається, що картки зникли. */
       body.innerHTML = `<div class="empty-col">${
-        st.key === firstStatusKey()
-          ? 'Тут зʼявляться нові звернення —<br>із сайту, Telegram та Instagram'
-          : 'Перетягніть сюди картку'}</div>`;
+        boardFiltersOn()
+          ? 'Нічого не знайшлось'
+          : (st.key === firstStatusKey()
+              ? 'Тут зʼявляться нові звернення —<br>із сайту, Telegram та Instagram'
+              : 'Перетягніть сюди картку')}</div>`;
     } else {
       list.forEach(o=>{ body.appendChild(renderTicket(o)); docsAutoPrepare(o); });
     }
@@ -6387,7 +6625,7 @@ function renderBoard(){
   /* Картка могла лишитись на етапі, який прибрали. Мовчки ховати її не можна:
      це втрачене замовлення. Показуємо окремою колонкою в кінці. */
   const known = STATUSES.map(s=>s.key);
-  const lost = orders.filter(o => known.indexOf(o.status) < 0);
+  const lost = orders.filter(o => known.indexOf(o.status) < 0 && boardPass(o));
   if(lost.length){
     const col = document.createElement('div');
     col.className = 'col';
@@ -6397,6 +6635,16 @@ function renderBoard(){
     const body = col.querySelector('.col-body');
     lost.forEach(o=>{ body.appendChild(renderTicket(o)); });
     board.appendChild(col);
+  }
+  /* Скільки карток зараз не видно. Без цього рядка відфільтрована дошка
+     виглядає як дошка, з якої зникли замовлення — ми це вже проходили. */
+  const chips = document.getElementById('board-chips');
+  if(chips && hidden > 0){
+    const s = document.createElement('span');
+    s.className = 'bt-found';
+    s.textContent = 'сховано ' + hidden + ' ' + (hidden === 1 ? 'картку' :
+      (hidden < 5 ? 'картки' : 'карток'));
+    chips.appendChild(s);
   }
   // Відкрита панель має показувати свіжі дані — Канбан оновлюється і з вебхуків
   try{ renderOrderDrawer(); }catch(e){}
