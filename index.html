@@ -1146,6 +1146,30 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     position:relative;height:calc(54vh - 48px);background:rgb(233,230,231);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
+  /* ── Вбудований режим: конструктор усередині адмінки ────────────────
+     Ховаємо все, що належить сайту, а не конструктору. Модалки лишаються —
+     саме вони тут і є інтерфейсом. */
+  html.lq-embed, html.lq-embed body{background:#fff;}
+  .lq-embed #promoBar, .lq-embed header, .lq-embed main#top, .lq-embed footer,
+  .lq-embed .float-telegram, .lq-embed #floatCtaBar{display:none !important;}
+  /* Телефон, меню й кошик у шапках модалок — дії сайту. У редакторі КП
+     кошика немає взагалі: позиція йде прямо в замовлення. */
+  .lq-embed .phone-btn, .lq-embed .burger, .lq-embed .cart-header-btn{display:none !important;}
+  /* Виріб має вміщатись у вікно цілком — і на широкому екрані, і на телефоні.
+     Фіксована висота сцени в vh рахувалась від вікна БРАУЗЕРА, а конструктор
+     тут живе у вужчій рамці всередині адмінки, тож макет обрізало. */
+  .lq-embed #productModal .pm-stage img{max-height:100%;object-fit:contain;}
+  /* Логотипи замовлення: завантажені один раз у картці клієнта, доступні
+     кожному товару. Навмисно НЕ ставимо їх на виріб самі — для футболки це
+     груди, для кепки центр, для худі спина; вгадати за менеджера не можна. */
+  .lqo-row{display:flex;gap:8px;flex:0 0 auto;align-items:center;}
+  .lqo-b{all:unset;cursor:pointer;flex:0 0 auto;width:50px;height:50px;border-radius:11px;
+    border:1.5px dashed #C3CBD8;background:#fff center/70% no-repeat;position:relative;
+    transition:border-color .12s,transform .12s;}
+  .lqo-b:hover{border-color:#111;border-style:solid;transform:translateY(-1px);}
+  .lqo-b::after{content:'+';position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;
+    border-radius:9px;background:#111;color:#fff;font-size:12px;line-height:17px;text-align:center;}
+  .lqo-sep{flex:0 0 auto;width:1px;height:34px;background:#E3E8EF;margin:0 2px;}
   .pm-pill{
     width:38px;height:38px;border-radius:19px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.5);
     display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;
@@ -2230,6 +2254,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   window.LQ_name = function(garmentId, fallback){
     return window.SITE_CONTENT.names[garmentId] || fallback;
   };
+  /* ?embed=1 — конструктор усередині адмінки. Це та сама сторінка й той самий
+     код, але без сайту навколо: менеджеру в редакторі КП не потрібні ні шапка
+     Loomiq, ні кошик, ні підвал — від них здається, що його викинуло з CRM
+     кудись на сайт. Прапорець ставимо ДО стилів і розмітки, щоб нічого не
+     встигло блимнути. */
+  if(/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('lq-embed');
 </script>
 
 <!-- Промо-банер (вмикається з адмінки) -->
@@ -8301,7 +8331,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // Поки нічого не додано, дві плитки розтягуються на всю ширину по
           // половині: інакше вони тулились дрібними квадратиками зліва, а
           // праворуч зяяла порожнеча. Щойно щось є — стають компактними.
-          html = '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">';
+          /* Логотипи, завантажені в картці клієнта, — перед плитками дизайну.
+             Один клік, і лого на поточній стороні. Завантажувати той самий
+             файл для кожного виробу окремо було найдовшою частиною збирання
+             пропозиції. Самі ми лого нікуди не ставимо: для футболки це груди,
+             для кепки центр, для худі спина — за менеджера не вгадаєш. */
+          html = '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">' +
+            orderLogosHtml();
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
@@ -8519,6 +8555,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(emptyTrigger) emptyTrigger.addEventListener('click', function(){ window.__pmPickLogoSource(); });
       var addMore = document.getElementById('pmPhotoAddMore');
       if(addMore) addMore.addEventListener('click', function(){ window.__pmPickLogoSource(); });
+      // Логотип замовлення — кладемо як звичайне лого, на поточну сторону
+      pmTabPanel.querySelectorAll('[data-order-logo]').forEach(function(el){
+        var u = orderLogos()[Number(el.dataset.orderLogo)];
+        if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
+        el.addEventListener('click', function(){ if(u) addLogo(u, u, null); });
+      });
       pmTabPanel.querySelectorAll('.pm-photo-thumb').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.id), side = el.dataset.side;
@@ -9922,6 +9964,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function boundOrder(){
       try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
       catch(e){ return null; }
+    }
+    /* Логотипи цього замовлення — їх завантажили один раз у картці клієнта.
+       Список приходить від адмінки разом із привʼязкою до замовлення. */
+    function orderLogos(){
+      var t = boundOrder();
+      var l = t && t.logos;
+      return Array.isArray(l) ? l.filter(function(u){ return typeof u === 'string' && u; }) : [];
+    }
+    /* Плитки логотипів стоять першими в тому самому ряду, що й дизайни:
+       це все «що можна покласти на виріб», і розділяти їх на два поверхи
+       немає за чим. Саму картинку ставимо з коду, а не в атрибут style:
+       у data-URI трапляються лапки, і розмітка від них розсипається. */
+    function orderLogosHtml(){
+      var list = orderLogos();
+      if(!list.length) return '';
+      return '<div class="lqo-row">' + list.map(function(u, i){
+          return '<button class="lqo-b" data-order-logo="' + i + '" ' +
+                 'title="Логотип замовлення — поставити на цю сторону"></button>';
+        }).join('') + '</div><div class="lqo-sep"></div>';
     }
     function syncAddLabels(){
       var edit = !!pm.editing;
