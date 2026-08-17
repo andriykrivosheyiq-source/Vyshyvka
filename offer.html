@@ -1271,9 +1271,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // від неї перерахується сама, спільним калькулятором.
   function edBar(kind, i, qty){
     if(!EDIT) return '';
+    /* Три конкретні дії замість однієї «Змінити». Кожна відкриває конструктор
+       одразу на потрібній вкладці: доти менеджер щоразу згадував, де саме
+       міняється колір, а де розмір нанесення. */
     return '<div class="edbar">' +
       '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
-        'title="Товар, колір, логотип, розмір нанесення">✎ Змінити</button>' +
+        'data-tab="garment" title="Товар і колір">Колір</button>' +
+      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
+        'data-tab="photo" title="Логотип, розмір і спосіб нанесення">Нанесення</button>' +
+      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
+        'data-tab="size" title="Розміри й тираж">Кількість</button>' +
+      '<button class="edb" data-ed="dup" data-k="' + kind + '" data-i="' + i + '" ' +
+        'title="Зробити копію позиції">Дублювати</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
       '<button class="edb" data-ed="down" data-k="' + kind + '" data-i="' + i + '" title="Нижче">↓</button>' +
       (qty != null
@@ -1338,7 +1347,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
-        edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i });
+        edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i,
+                 tab: b.dataset.tab || '' });
       });
       // Галерея й тиражі слухають натискання, а не клік
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
