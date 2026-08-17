@@ -7551,10 +7551,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
       return { count: reps.length, index: index, reps: reps };
     }
+    /* Відбиток напису рахуємо з самих букв, а не з картинки.
+       Картинка тут не працює взагалі: у imageFingerprint прозоре тло
+       заливається білим, а напис на темному виробі за замовчуванням теж
+       білий — після зведення до квадратика 12×12 будь-яке слово ставало
+       однаковим білим полем. Через це «LOOMIQ» і «Team 2026» вважались
+       ОДНИМ дизайном, і другий ескіз не нараховувався.
+       Довжина навмисно інша, ніж у відбитка картинки: напис і малюнок
+       ніколи не мають зійтись як один дизайн. */
+    function textFingerprint(spec){
+      var s = String((spec && spec.t) || '').replace(/\s+/g, ' ').trim().toLowerCase()
+            + '|' + ((spec && spec.font) || '')
+            + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '');
+      var out = '';
+      for(var i = 0; i < 64; i++){
+        var h = (2166136261 ^ i) >>> 0;
+        for(var j = 0; j < s.length; j++){
+          h = ((h ^ s.charCodeAt(j)) * 16777619) >>> 0;
+        }
+        out += (h % 5);
+      }
+      return out;
+    }
     function measureLayerShape(layer, url){
       return loadImgEl(url).then(function(img){
         layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
         try{ layer.fp = imageFingerprint(img); }catch(e){ layer.fp = ''; }
+        // Напис звіряємо за текстом — див. textFingerprint вище
+        if(layer.text) layer.fp = textFingerprint(layer.text);
         try{
           var m = measureShape(img);
           layer.opaqueBox = m ? m.opaqueBox : { x0:0, y0:0, x1:1, y1:1 };
