@@ -555,8 +555,14 @@
   .tc-wait.hot{color:#DC2626;}
   .tc-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
     justify-content:center;font-size:12px;font-weight:800;letter-spacing:0;}
-  .tc-who{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650;letter-spacing:-.1px;color:var(--ink);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tc-who{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:650;
+    letter-spacing:-.1px;color:var(--ink);min-width:0;}
+  /* Обгортка з переносом: імʼя і номер стоять поруч, поки вміщаються, а далі
+     номер іде на свій рядок цілим. Обрізається тільки імʼя — номер ніколи. */
+  .tc-who-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 8px;min-width:0;flex:1;}
+  .tc-who-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+  .tc-who-p{font-size:12.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;
+    font-variant-numeric:tabular-nums;}
   /* Останнє повідомлення з Telegram прямо на картці — щоб не відкривати
      кожну заради одного рядка. Один рядок і три крапки: картка не має рости. */
     .tc-tg{font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;
@@ -594,7 +600,8 @@
   /* Каналу без привʼязаної розмови — блідіше: туди можна лише перейти */
   .tc-ch-b.off{opacity:.5;}
     .tc-meta{font-size:11px;color:#8C96A6;}
-  .tc-money{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:1px;}
+  .tc-money{display:flex;align-items:baseline;gap:8px;margin-top:1px;flex-wrap:wrap;}
+  .tc-mgr{margin-left:auto;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
   /* Моноширинний на грошах читається як бухгалтерія: цифри рівняє
      tabular-nums, а гарнітура лишається та сама, що й у решті інтерфейсу */
   .tc-sum{font-size:20px;font-weight:700;letter-spacing:-.4px;color:var(--ink);
@@ -815,19 +822,25 @@
      сірим він читався як підпис, а не як розділ, і зону просто не помічали. */
   .od-fold{margin-top:16px;border:1px solid var(--accent-soft);border-radius:12px;
     background:#fff;overflow:hidden;}
-  .od-fold-h{display:flex;align-items:center;gap:10px;
+  .od-fold-h{all:unset;box-sizing:border-box;cursor:pointer;width:100%;
+    display:flex;align-items:center;gap:10px;
     padding:14px 16px;font-size:14px;font-weight:750;color:var(--accent-deep);
-    background:var(--accent-soft);border-bottom:1px solid var(--line);}
+    background:var(--accent-soft);}
+  .od-fold.is-open>.od-fold-h{border-bottom:1px solid var(--line);}
+  .od-fold-h:hover{filter:brightness(.97);}
+  .od-fold-h::after{content:'';flex:none;width:8px;height:8px;
+    border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+    transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s;}
+  .od-fold.is-open>.od-fold-h::after{transform:rotate(-135deg) translate(-2px,-2px);}
   .od-fold-t{flex:none;}
   .od-fold-n{font-size:12px;font-weight:600;color:var(--accent-deep);opacity:.75;
-    margin-left:auto;}
-  .od-fold>*:not(.od-fold-h){margin-left:16px;margin-right:16px;}
-  .od-fold>*:nth-child(2){margin-top:14px;}
-  .od-fold>*:last-child{margin-bottom:16px;}
+    margin-left:auto;text-align:right;}
+  .od-fold-b{padding:14px 16px 16px;}
+  .od-fold-b>*:first-child{margin-top:0;}
   /* У кнопки width:100%, а бічні відступи їй дає правило вище — сто відсотків
      рахувались від ширини разом із ними, і кнопка вилазила за рамку розділу.
      Віднімаємо відступи явно, щоб вона стала рівно під іншими рядками. */
-  .od-fold>.od-build{width:calc(100% - 32px);}
+  .od-fold-b>.od-build{width:100%;}
 /* Поля були 12px із 7px відступу — у них важко влучити пальцем і важко
      читати, коли в полі довга назва компанії. 14px тексту й 40px висоти —
      мінімум, на якому працюють щодня, не мружачись. */
@@ -988,6 +1001,48 @@
     border:1px solid var(--line);font-family:inherit;line-height:1.45;resize:vertical;}
   .qr-del{all:unset;cursor:pointer;flex:none;color:#AEB8C9;padding:8px;border-radius:7px;}
   .qr-del:hover{background:var(--bad-soft);color:var(--bad);}
+  .tm-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .tm-row input,.tm-row select{font-size:13px;padding:8px 10px;border-radius:8px;
+    border:1px solid var(--line);font-family:inherit;background:#fff;}
+  .tm-row .tm-mail{flex:1 1 220px;min-width:0;}
+  .tm-row .tm-name{flex:0 1 160px;min-width:0;}
+  .tm-row .tm-role{flex:none;}
+  .tm-row.is-me{background:var(--accent-soft);border-radius:10px;padding:6px 8px;margin-left:-8px;}
+  /* Гроші в картці. Залишок — головне число тут: саме його менеджер шукає
+     перед тим, як віддати замовлення у виробництво. */
+  .od-money{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;}
+  .pay-sum{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+  .pay-sum>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px;}
+  .pay-sum span{color:var(--ink-soft);}
+  .pay-sum b{font-size:14px;}
+  .pay-ok{color:#1a7a3a;}
+  .pay-due{color:var(--bad);}
+  .pay-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 0;
+    border-top:1px dashed var(--line);}
+  .pay-d{font-family:var(--mono);font-size:11px;color:var(--ink-soft);flex:none;}
+  .pay-k{color:var(--ink-soft);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pay-s{flex:none;}
+  .pay-x{all:unset;cursor:pointer;flex:none;color:#C3CBD8;padding:2px 6px;border-radius:6px;font-size:12px;}
+  .pay-x:hover{background:var(--bad-soft);color:var(--bad);}
+  .pay-add{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .pay-in{width:92px;flex:none;font-family:var(--mono);font-size:13px;padding:8px 9px;
+    border:1px solid var(--line);border-radius:8px;}
+  .pay-kind{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:8px 9px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .pay-go{all:unset;cursor:pointer;flex:none;padding:8px 14px;border-radius:8px;
+    background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;}
+  .pay-go:hover{background:var(--accent-deep);}
+  /* Відповідальний менеджер — окремим рядком, не в купі з контактами клієнта */
+  .od-mgr{display:flex;align-items:center;gap:8px;}
+  .od-mgr select{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 10px;
+    border:1px solid var(--line);border-radius:9px;background:#fff;}
+  .od-mgr-me{all:unset;cursor:pointer;flex:none;font-size:12px;padding:9px 12px;border-radius:9px;
+    background:var(--canvas);color:var(--ink-soft);border:1px solid var(--line);}
+  .od-mgr-me:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  /* Оплата на картці дошки */
+  .tc-pay{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+  .tc-pay.p-full{background:#E8F6ED;color:#1a7a3a;}
+  .tc-pay.p-part{background:#FFF4DE;color:#8A6A15;}
   .od-item-edit{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;
     border-top:1px dashed var(--line);}
   .od-qty{width:62px;font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:6px;
@@ -1574,6 +1629,22 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button class="pc-btn reset" id="mgr-photo-del" style="flex:none;padding:10px 20px;">Прибрати фото</button>
           <button class="btn btn-accent" id="mgr-save" style="flex:none;">Зберегти менеджера</button>
         </div>
+      </div>
+
+      <!-- Хто працює в системі. Роль привʼязана до пошти входу, а не до
+           вибору зі списку: інакше «не бачить собівартість» обходиться за
+           одну секунду — вибрав інше імʼя й дивись. -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Команда і ролі</h2>
+          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Власник бачить собівартість, маржу й підрядників. Менеджер бачить продажні ціни й оплати, але не бачить, скільки ми заробляємо. Кого немає в списку — працює як менеджер.</span>
+        </div>
+        <div id="team-list"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button class="pc-btn up" id="team-add" style="flex:none;padding:10px 22px;">+ Додати людину</button>
+          <button class="btn btn-accent" id="team-save" style="flex:none;">Зберегти команду</button>
+        </div>
+        <div class="sub" id="team-me" style="margin-top:10px;"></div>
       </div>
 
       <!-- Бренди пропозиції. Шапка й підвал сторінки КП беруться звідси,
@@ -4531,6 +4602,8 @@ window.__adminSaveClientOrder = async function(payload){
   }
   const order = {
     id: cryptoId(), type:'client', status:'prorahunok', source:'менеджер',
+    // Хто завів картку — той за неї і відповідає, поки не передасть іншому
+    mgrEmail: myEmail() || null,
     site: 'main',                    // прорахунок працює з основним сайтом
     orderId: makeOrderId(),
     offerToken: makeOfferToken(),    // адреса персональної сторінки клієнта
@@ -6508,6 +6581,45 @@ async function saveOrderMeta(o){
   try{ await offerSave(o); }catch(e){ console.warn('offer refresh failed', e); }
   renderBoard();
 }
+async function setOrderManager(o, email){
+  const v = String(email || '').trim().toLowerCase();
+  if((o.mgrEmail || '') === v) return;
+  o.mgrEmail = v || null;
+  try{
+    await saveOrderMeta(o);
+    toast(v ? ('Відповідальний: ' + personName(v)) : 'Відповідального знято');
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
+/* Оплату записуємо разом із тим, ХТО її записав: коли гроші не сходяться,
+   перше питання — хто вносив. Дата ставиться автоматично; вручну її не
+   правлять, щоб заднім числом нічого не зʼявлялось. */
+async function addPayment(o, sum, kind){
+  const s = Math.round(+sum || 0);
+  if(s <= 0){ toast('Вкажіть суму'); return; }
+  const due = dueSum(o);
+  if(due > 0 && s > due && !confirm(
+      'Сума більша за залишок (' + fmt(due) + ' ₴). Записати переплату ' +
+      fmt(s - due) + ' ₴?')) return;
+  if(!Array.isArray(o.payments)) o.payments = [];
+  o.payments.push({ at: new Date().toISOString(), sum: s,
+                    kind: (kind === 'prepay' || kind === 'final') ? kind : 'other',
+                    by: myEmail() || '' });
+  try{
+    await saveOrderMeta(o);
+    toast(payState(o) === 'full' ? 'Сплачено повністю' : ('Залишок ' + fmt(dueSum(o)) + ' ₴'));
+  }catch(e){ console.error(e); o.payments.pop(); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
+async function removePayment(o, i){
+  const p = payList(o)[i];
+  if(!p) return;
+  if(!confirm('Прибрати запис про оплату ' + fmt(p.sum) + ' ₴ від ' + dtUa(p.at) + '?')) return;
+  o.payments.splice(i, 1);
+  try{ await saveOrderMeta(o); toast('Запис прибрано'); }
+  catch(e){ console.error(e); o.payments.splice(i, 0, p); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
 // Дедлайн: скільки днів лишилось. Використовується і на картці, і в панелі.
 function dueInfo(o){
   if(!o.dueAt) return null;
@@ -6559,6 +6671,15 @@ async function orderRemoveItem(o, idx){
 function orderWho(o){
   return [o.instagram, o.name, o.phone].filter(Boolean).join(' · ') || '—';
 }
+/* Імʼя й номер на картці — окремо. Разом вони йшли одним рядком із трьома
+   крапками в кінці, і на довгому імені («Дмитро Юрійович Пелих») номер
+   зникав саме тоді, коли потрібен найбільше. Тепер номер має власне місце:
+   вміщаються — стоять поруч, не вміщаються — номер іде на другий рядок, але
+   ніколи не обрізається. */
+function orderName(o){
+  return [o.instagram, o.name].filter(Boolean).join(' · ') || (o.phone ? '' : '—');
+}
+function orderPhone(o){ return String((o || {}).phone || '').trim(); }
 function orderUnits(o){
   return (o.items||[]).reduce((a,it)=> a + (+it.qty || 0), 0);
 }
@@ -6645,7 +6766,11 @@ function ticketSummaryHtml(o){
         (st && off.state !== 'created')
           ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>` : ''}
     </div>
-    <div class="tc-who">${avatarHtml(orderWho(o))}<span>${escapeHtml(orderWho(o))}</span></div>
+    <div class="tc-who">${avatarHtml(orderName(o) || orderPhone(o))}
+      <div class="tc-who-t">
+        ${orderName(o) ? `<span class="tc-who-n">${escapeHtml(orderName(o))}</span>` : ''}
+        ${orderPhone(o) ? `<span class="tc-who-p">${escapeHtml(orderPhone(o))}</span>` : ''}
+      </div></div>
     ${tgChatOf(o) ? `<div class="tc-tg${o.tgWrote ? '' : ' quiet'}${tgUnread(o) ? ' unread' : ''}">${
         unread ? `<span class="tc-tg-n" title="Непрочитаних повідомлень від клієнта">${unread}</span>`
                : (tgUnread(o) ? '<span class="tc-tg-dot"></span>' : '')}${
@@ -6664,6 +6789,15 @@ function ticketSummaryHtml(o){
     </div>
     <div class="tc-money">
       <span class="tc-sum">${fmt(o.totalPrice)} ₴</span>
+      ${/* Оплата — те, через що замовлення найчастіше стоїть. Показуємо лише
+           коли гроші вже рухались: «не оплачено» на кожній картці нічого не
+           каже, бо таких більшість. */''}
+      ${payState(o) === 'full'
+        ? '<span class="tc-pay p-full">сплачено</span>'
+        : (payState(o) === 'part'
+            ? `<span class="tc-pay p-part">залишок ${fmt(dueSum(o))} ₴</span>` : '')}
+      ${o.mgrEmail ? `<span class="tc-mgr" title="Відповідальний менеджер">${
+        escapeHtml(personName(o.mgrEmail))}</span>` : ''}
     </div>
     <div class="tc-acts">
       ${/* Посилання на КП і видалення переїхали в саму картку клієнта:
@@ -6832,6 +6966,10 @@ function activityFeed(o){
     push(o.tgAt, (mine ? 'Ми написали' : 'Повідомлення від клієнта') + ' · ' +
                  String(o.tgLast).replace(/^Ви: /, '').slice(0, 60), mine ? 'out' : 'in');
   }
+  // Гроші — теж подія: коли прийшла передоплата, питають чи не частіше за все
+  payList(o).forEach(p => push(p.at,
+    (PAY_KIND_UA[p.kind] || PAY_KIND_UA.other).replace(/^./, c=>c.toUpperCase()) +
+    ' ' + fmt(p.sum) + ' ₴' + (p.by ? ' · ' + personName(p.by) : ''), 'pay'));
   // Найсвіже вгорі: історію читають з кінця, а не з початку
   out.sort((a, b) => b.at.localeCompare(a.at));
   const seen = {};
@@ -6984,6 +7122,65 @@ async function openOrderDrawer(o){
    товар, якого вже немає в каталозі) валила весь шаблон панелі, а разом із
    ним зникала й кнопка «Додати товар». Тепер збій показується рядком на
    своєму місці, а решта зони працює. */
+/* ── Гроші по замовленню ──────────────────────────────────────────────
+   Передоплату клієнт вносить, скільки вважає за потрібне, тож фіксованих
+   50% тут немає: менеджер записує кожне надходження окремо. Скільки
+   лишилось — рахує система, бо саме на цьому місці найчастіше й помиляються.
+   Записи не редагуються заднім числом: помилковий платіж прибирають цілим
+   рядком, і в стрічці подій лишається слід. */
+/* Список людей для вибору відповідального. Поки команду не завели, у списку
+   стоїть той, хто зайшов: замовлення все одно має бути чиїмось. */
+function teamOptionsHtml(sel){
+  let list = ((contentData.team) || []).map(p => ({ email:p.email, name: p.name || p.email }));
+  const me = myEmail();
+  if(me && !list.some(p => p.email === me)) list.unshift({ email: me, name: personName(me) });
+  // Відповідальний міг піти з команди — не ховаємо його, інакше поле мовчки
+  // порожніє і замовлення стає нічиїм
+  if(sel && !list.some(p => p.email === sel)) list.push({ email: sel, name: personName(sel) + ' (не в команді)' });
+  return list.map(p => `<option value="${escapeHtml(p.email)}"${
+    p.email === sel ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+}
+function payList(o){ return Array.isArray((o||{}).payments) ? o.payments : []; }
+function paidSum(o){ return payList(o).reduce((a,p)=> a + (+p.sum || 0), 0); }
+function dueSum(o){ return Math.max(0, Math.round((+o.totalPrice || 0) - paidSum(o))); }
+function payState(o){
+  const total = +o.totalPrice || 0, paid = paidSum(o);
+  if(paid <= 0) return 'none';
+  return (paid + 0.5 >= total && total > 0) ? 'full' : 'part';
+}
+const PAY_KIND_UA = { prepay:'передоплата', final:'доплата', other:'оплата' };
+function odMoneyHtml(o){
+  const total = +o.totalPrice || 0, paid = paidSum(o), due = dueSum(o), st = payState(o);
+  const rows = payList(o).map((p, i)=>`
+    <div class="pay-row" data-i="${i}">
+      <span class="pay-d">${escapeHtml(dtUa(p.at))}</span>
+      <span class="pay-k">${escapeHtml(PAY_KIND_UA[p.kind] || PAY_KIND_UA.other)}${
+        p.by ? ' · ' + escapeHtml(personName(p.by)) : ''}</span>
+      <b class="pay-s">${fmt(p.sum)} ₴</b>
+      <button class="pay-x" data-pay-del="${i}" title="Прибрати запис">✕</button>
+    </div>`).join('');
+  return `
+    <div class="od-sec">Гроші</div>
+    <div class="od-money">
+      <div class="pay-sum">
+        <div><span>Сума замовлення</span><b>${fmt(total)} ₴</b></div>
+        <div><span>Оплачено</span><b class="pay-ok">${fmt(paid)} ₴</b></div>
+        <div><span>Залишок</span><b class="${st==='full'?'pay-ok':'pay-due'}">${
+          st==='full' ? 'сплачено повністю' : fmt(due) + ' ₴'}</b></div>
+      </div>
+      ${rows || '<div class="od-empty">Оплат ще не було</div>'}
+      <div class="pay-add">
+        <input class="pay-in" type="number" min="1" step="1" placeholder="сума"
+               ${due > 0 ? 'data-due="' + due + '"' : ''}>
+        <select class="pay-kind">
+          <option value="prepay">передоплата</option>
+          <option value="final">доплата</option>
+          <option value="other">інше</option>
+        </select>
+        <button class="pay-go">Записати оплату</button>
+      </div>
+    </div>`;
+}
 function odPart(fn, label){
   try{ return fn() || ''; }
   catch(e){
@@ -6992,27 +7189,46 @@ function odPart(fn, label){
            ' не порахувалось: ' + escapeHtml(String(e && e.message || e)) + '</div>';
   }
 }
+/* Згорнути/розгорнути склад можна вручну; поки не чіпали — відкрито, якщо
+   товари є. Порожній блок згорнутий, бо в ньому нічого читати. Свідомо НЕ
+   через <details>: у частині браузерів його вміст у flex-колонці не
+   показується взагалі, на чому ми вже раз обпеклись. */
+let odGoodsOpen = null;
+function odGoodsIsOpen(o){
+  return odGoodsOpen === null ? ((o.items || []).length > 0) : !!odGoodsOpen;
+}
 function odGoodsHtml(o){
   const n = ((o || {}).items || []).length;
+  const open = odGoodsIsOpen(o);
+  const qty = (o.items || []).reduce((a,i)=> a + (+i.qty || 0), 0);
+  const head = n
+    ? n + ' ' + posWordUa(n) + (qty ? ' · ' + qty + ' шт' : '') + ' · ' + fmt(o.totalPrice) + ' ₴'
+    : 'порожньо';
   return `
-    <div class="od-fold">
-      <div class="od-fold-h">
-        <span class="od-fold-t">Склад замовлення та гроші</span>
-        <span class="od-fold-n">${n ? n + ' ' + posWordUa(n) : 'порожньо'}</span>
+    <div class="od-fold${open ? ' is-open' : ''}">
+      <button class="od-fold-h" data-goods-toggle>
+        <span class="od-fold-t">Замовлення та розрахунок</span>
+        <span class="od-fold-n">${escapeHtml(head)}</span>
+      </button>
+      <div class="od-fold-b"${open ? '' : ' hidden'}>
+        <div class="t-web-items">${
+          odPart(()=> orderItemsHtml(o), 'список товарів') ||
+          '<div class="od-empty">без товарів</div>'}</div>
+        <button class="od-build" data-act="build">＋ Додати товар</button>
+        <div class="t-breakdown">
+          ${canSeeCost()
+            ? `<div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>` : ''}
+          <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
+        </div>
+        ${odPart(()=> priceCalcHtml(o), 'розклад ціни')}
+        ${canSeeCost()
+          ? `<div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${
+              fmt(o.margin)} ₴ · ${(+o.marginPct||0).toFixed(1)}%</span></div>` : ''}
+        ${canSeeCost()
+          ? (()=>{ const b = odPart(()=> orderBuyHtml(o), 'закупівля');
+              return b ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + b : ''; })()
+          : ''}
       </div>
-      <div class="t-web-items">${
-        odPart(()=> orderItemsHtml(o), 'список товарів') ||
-        '<div class="od-empty">без товарів</div>'}</div>
-      <button class="od-build" data-act="build">＋ Додати товар</button>
-      <div class="t-breakdown">
-        <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
-        <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
-      </div>
-      ${odPart(()=> priceCalcHtml(o), 'розклад ціни')}
-      <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${
-        fmt(o.margin)} ₴ · ${(+o.marginPct||0).toFixed(1)}%</span></div>
-      ${(()=>{ const b = odPart(()=> orderBuyHtml(o), 'закупівля');
-        return b ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + b : ''; })()}
     </div>`;
 }
 function renderOrderDrawer(){
@@ -7077,15 +7293,12 @@ function renderOrderDrawer(){
       <div class="od-sum">
         <b>${fmt(o.totalPrice)} ₴</b>
         <div class="od-sum-m">${[
-          (o.items||[]).length ? 'маржа ' + (o.marginPct||0).toFixed(0) + '%' : '',
+          ((o.items||[]).length && canSeeCost()) ? 'маржа ' + (o.marginPct||0).toFixed(0) + '%' : '',
+          payState(o) === 'full' ? 'сплачено' :
+            (payState(o) === 'part' ? 'залишок ' + fmt(dueSum(o)) + ' ₴' : ''),
           daysInWork(o), lastTouchLabel(o)
         ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </div>
-      ${/* Склад замовлення — найперше в панелі, одразу під сумою. Раніше він
-           стояв аж під нотаткою: досить було одного збою в чомусь вище, і
-           менеджер бачив картку зовсім без товарів. Тепер до нього нічого
-           не малюється, крім суми, і зламати його ніщо не може. */''}
-      ${odGoodsHtml(o)}
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -7107,9 +7320,28 @@ function renderOrderDrawer(){
       </div>
       ${/* «Здати до» і сторінка входу переїхали в шапку — там вони видні
            без прокрутки. */''}
+      ${/* Чий це клієнт. Питання «а хто з ним працює» виникає раніше за
+           будь-які цифри, тому воно стоїть тут, а не в кінці панелі. */''}
+      <div class="od-sec">Відповідальний</div>
+      <div class="od-mgr">
+        <select class="od-mgr-sel">
+          <option value="">— не призначено —</option>
+          ${teamOptionsHtml(o.mgrEmail)}
+        </select>
+        ${myEmail() && o.mgrEmail !== myEmail()
+          ? '<button class="od-mgr-me" data-mgr-me>Взяти собі</button>' : ''}
+      </div>
+
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
+
+      ${/* Замовлення й розрахунок — після того, як зрозуміло, хто це і хто
+           з ним працює. Розгорнуто, коли товари є: саме цей блок відкривають
+           найчастіше. Порожній згортаємо, щоб не займав місце даремно. */''}
+      ${odGoodsHtml(o)}
+
+      ${odMoneyHtml(o)}
 
       ${/* Що було тут раніше і чому пішло:
             «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
@@ -7200,6 +7432,26 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=>{ closeOrderDrawer(); deleteOrderCard(o); }));
   const build = panel.querySelector('[data-act="build"]');
   if(build) build.addEventListener('click', ()=> openCalcFor(o));
+  const gtog = panel.querySelector('[data-goods-toggle]');
+  if(gtog) gtog.addEventListener('click', ()=>{
+    odGoodsOpen = !odGoodsIsOpen(o);
+    renderOrderDrawer();
+  });
+  // Відповідальний за замовлення
+  const mgrSel = panel.querySelector('.od-mgr-sel');
+  if(mgrSel) mgrSel.addEventListener('change', ()=> setOrderManager(o, mgrSel.value));
+  const mgrMe = panel.querySelector('[data-mgr-me]');
+  if(mgrMe) mgrMe.addEventListener('click', ()=> setOrderManager(o, myEmail()));
+  // Оплати
+  const payGo = panel.querySelector('.pay-go');
+  const payIn = panel.querySelector('.pay-in');
+  if(payGo && payIn){
+    const send = ()=> addPayment(o, payIn.value, (panel.querySelector('.pay-kind')||{}).value);
+    payGo.addEventListener('click', send);
+    payIn.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
+  }
+  panel.querySelectorAll('[data-pay-del]').forEach(b=>
+    b.addEventListener('click', ()=> removePayment(o, +b.dataset.payDel)));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
   const chanSel = panel.querySelector('.od-chan');
@@ -9082,6 +9334,8 @@ function renderSiteTab(){
   // Чернетку заготовок скидаємо: дані приїхали з бази, і показувати треба їх
   qrDraft = null;
   renderQrList();
+  teamDraft = null;
+  renderTeamList();
   const promo = contentData.promo || {};
   document.getElementById('promo-on').checked = !!promo.on;
   document.getElementById('promo-text').value = promo.text || '';
@@ -9198,6 +9452,107 @@ document.getElementById('qr-save').addEventListener('click', async ()=>{
     toast(list.length ? ('Збережено: ' + list.length) : 'Заготовки очищено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
+/* ── Команда і ролі ───────────────────────────────────────────────────
+   Роль привʼязана до пошти, якою людина зайшла, а не до вибору зі списку:
+   інакше «менеджер не бачить собівартість» обходиться за секунду — обрав
+   у списку інше імʼя й дивись. Кого в списку немає — менеджер: нова людина
+   не отримує доступ до цифр просто тому, що її забули завести. */
+const ROLES = { owner:'Власник — бачить усе', manager:'Менеджер — без собівартості' };
+let teamDraft = null;
+function teamList(){
+  if(!teamDraft){
+    teamDraft = ((contentData.team) || []).map(p => ({
+      email: String(p.email || '').trim().toLowerCase(),
+      name: String(p.name || '').trim(),
+      role: p.role === 'owner' ? 'owner' : 'manager'
+    }));
+  }
+  return teamDraft;
+}
+function myEmail(){
+  try{ return String((fbAuth.currentUser || {}).email || '').trim().toLowerCase(); }
+  catch(e){ return ''; }
+}
+function teamMember(email){
+  const e = String(email || '').trim().toLowerCase();
+  if(!e) return null;
+  return ((contentData.team) || []).find(p => String(p.email||'').trim().toLowerCase() === e) || null;
+}
+/* Поки команду не завели, система працює як раніше — усе видно. Інакше
+   перше ж збереження порожнього списку сховало б цифри від самого власника. */
+function teamOn(){ return (((contentData.team) || []).length > 0); }
+function myRole(){
+  if(!teamOn()) return 'owner';
+  const m = teamMember(myEmail());
+  return (m && m.role === 'owner') ? 'owner' : 'manager';
+}
+function canSeeCost(){ return myRole() === 'owner'; }
+function personName(email){
+  const m = teamMember(email);
+  if(m && m.name) return m.name;
+  const e = String(email || '').trim();
+  return e ? e.split('@')[0] : '';
+}
+function myName(){ return personName(myEmail()) || 'я'; }
+function renderTeamList(){
+  const box = document.getElementById('team-list');
+  if(!box) return;
+  const me = myEmail();
+  box.innerHTML = teamList().map((p, i)=>`
+    <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
+      <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
+      <input class="tm-name" type="text" maxlength="40" placeholder="імʼя" value="${escapeHtml(p.name)}">
+      <select class="tm-role">${Object.keys(ROLES).map(k=>
+        `<option value="${k}"${k===p.role?' selected':''}>${escapeHtml(ROLES[k])}</option>`).join('')}</select>
+      <button class="qr-del" title="Прибрати">🗑</button>
+    </div>`).join('') ||
+    '<div class="sub">Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».</div>';
+  box.querySelectorAll('.tm-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('.tm-mail').addEventListener('input', e=> teamList()[i].email = e.target.value);
+    row.querySelector('.tm-name').addEventListener('input', e=> teamList()[i].name = e.target.value);
+    row.querySelector('.tm-role').addEventListener('change', e=> teamList()[i].role = e.target.value);
+    row.querySelector('.qr-del').addEventListener('click', ()=>{ teamList().splice(i,1); renderTeamList(); });
+  });
+  const me2 = document.getElementById('team-me');
+  if(me2) me2.textContent = me
+    ? ('Ви зайшли як ' + me + ' — роль: ' + (myRole()==='owner' ? 'власник' : 'менеджер') +
+       (teamOn() ? '' : ' (список порожній, тому доступ повний)'))
+    : '';
+}
+(function(){
+  const add = document.getElementById('team-add');
+  if(!add) return;
+  add.addEventListener('click', ()=>{
+    // Перший рядок одразу заповнюємо собою: інакше легко зберегти список,
+    // у якому власника немає, і самому лишитись без цифр.
+    const first = !teamList().length;
+    teamList().push({ email: first ? myEmail() : '', name: '', role: first ? 'owner' : 'manager' });
+    renderTeamList();
+  });
+  document.getElementById('team-save').addEventListener('click', async ()=>{
+    const list = teamList()
+      .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
+                   name: String(p.name||'').trim(),
+                   role: p.role === 'owner' ? 'owner' : 'manager' }))
+      .filter(p => p.email);
+    if(list.length && !list.some(p => p.role === 'owner')){
+      toast('Хоч одна людина має бути власником — інакше собівартість не побачить ніхто');
+      return;
+    }
+    if(list.length && !list.some(p => p.email === myEmail())){
+      if(!confirm('Вас немає в списку. Після збереження ви працюватимете як менеджер і не бачитимете собівартість. Зберегти?')) return;
+    }
+    try{
+      await PHOTOS_DOC.set({ team: list }, { merge:true });
+      contentData.team = list;
+      teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role }));
+      renderTeamList();
+      try{ renderBoard(); }catch(e){}
+      toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
+    }catch(e){ console.error(e); toast('Помилка збереження'); }
+  });
+})();
 document.getElementById('clarity-save').addEventListener('click', async ()=>{
   const id = document.getElementById('clarity-id').value.trim();
   // Ідентифікатор проєкту — не секрет: він і так видно в коді сторінки.
