@@ -752,6 +752,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     color:rgba(255,255,255,.72); margin-bottom:8px; font-variant-numeric:tabular-nums;}
   .est-l b{font-weight:600; color:#fff;}
   .est-l.disc, .est-l.disc b{color:#4ADE80;}
+  /* Знижка за тираж окремими рядками: у цінах позицій вона вже врахована,
+     тож без цих двох рядків клієнт про неї просто не дізнається. */
+  .est-sub{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    font-size:13.5px; opacity:.72; margin-top:10px;}
+  .est-sub:first-of-type{margin-top:16px; padding-top:14px;
+    border-top:1px solid rgba(255,255,255,.14);}
+  .est-sub b{font-weight:700; font-variant-numeric:tabular-nums;}
+  .est-off{opacity:1; color:#4ADE80;}
+  .est-sub + .est-pay{margin-top:12px; padding-top:12px;}
   .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
     margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
   .est-pay span{font-size:15px; font-weight:600;}
@@ -2126,11 +2135,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '<span class="est-s">' + num(r.sum) + ' грн</span>' +
             '</div>';
           }).join('') +
-          /* Кошторис — це кошик: перелік того, що клієнт платить, і сума.
-             Знижка вже сидить у ціні кожної позиції, тож окремих рядків
-             «оптова знижка» і «ви економите» тут немає. Порожня обгортка
-             est-sum давала другу лінію поспіль — прибрана. */
+          /* Знижка за тираж сидить у ціні кожної позиції, тому в рядках вище
+             її не видно — і клієнт не знає, що вона взагалі є. Показуємо
+             окремо: скільки коштувало б без тиражу, скільки зняв тираж і
+             скільки на цьому зекономлено. Цифри не вигадані — це та сама
+             сума, порахована рушієм без знижки за кількість.
+             Немає знижки — немає й рядків: «економія 0 грн» гірша за тишу. */
+          (t.save > 0
+            ? '<div class="est-sub"><span>Без знижки за тираж</span><b>' + num(t.base) + ' грн</b></div>' +
+              '<div class="est-sub est-off"><span>Знижка за тираж</span><b>−' + num(t.save) + ' грн</b></div>'
+            : '') +
           '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
+          (t.save > 0
+            ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
         '</div>' +
       '</section>';
   }
