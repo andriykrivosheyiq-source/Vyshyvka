@@ -7230,6 +7230,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
       // фокус і на телефоні згортає клавіатуру просто посеред набору.
       var keepId = pm.textEdit;
+      /* …але лишати його можна тільки поки він на видимій стороні. Інакше
+         напис, який правили на спині, лишався висіти й на переді: вузол не
+         видалявся, а поверх нього домальовувались шари переду. Виглядало це
+         як «текст сам перенісся зі спини наперед», хоча в самому виробі
+         нічого не дублювалось — дублювалась тільки картинка на екрані. */
+      if(keepId != null && !(pm.logos[pm.side] || []).some(function(l){ return l.id === keepId; })){
+        keepId = null;
+      }
       Array.prototype.slice.call(pmLogoLayers.children).forEach(function(c){
         if(keepId == null || Number(c.dataset.layerId) !== keepId) c.remove();
       });
@@ -9949,6 +9957,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     function setSide(side){
       ensureLogoSides();
+      // Перейшли на іншу сторону — правку напису закриваємо: редагувати те,
+      // чого вже не видно, все одно неможливо, а відкрита правка тягла за
+      // собою вузол напису на нову сторону.
+      stopTextEdit();
       pm.side = side;
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
       updateSideMarks();
