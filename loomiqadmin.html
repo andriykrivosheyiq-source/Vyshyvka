@@ -646,6 +646,15 @@
     color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
   .od-x:hover{background:var(--canvas);}
   .od-body{flex:1;overflow-y:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:10px;}
+  /* Тіло панелі — колонка, що прокручується, тож жоден розділ у ній не має
+     стискатись: у прокрутці для кожного є скільки завгодно місця.
+     Через це й «зникав» склад замовлення. Розділи з overflow:hidden (а це
+     саме він) флексбокс має право стискати до нуля — і на картці з кількома
+     позиціями та довгою стрічкою подій від нього лишалась смужка заввишки
+     кілька пікселів. Виглядало як «зони з товарами немає взагалі».
+     На коротких картках блок вміщався і показувався — тому помилка й
+     ловилась лише на справжніх замовленнях. */
+  .od-body>*{flex:0 0 auto;}
   .od-who{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .od-sec{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
@@ -6947,6 +6956,13 @@ async function openOrderDrawer(o){
   ensureFeeAdj(o);   // до будь-якої правки складу
   const d = orderDrawerEl();
   d.classList.add('open');
+  /* Панель памʼятає прокрутку, щоб не викидати нагору після кожної правки.
+     Але при переході на ІНШУ картку та сама памʼять шкодила: нова картка
+     відкривалась прокрученою до середини — рівно там, де закінчили роботу
+     з попередньою. Виглядало це так, ніби в картці немає ні суми, ні
+     клієнта, ні складу замовлення: усе це лишалось вище екрана. */
+  const prevBody = d.querySelector('.od-body');
+  if(prevBody) prevBody.scrollTop = 0;
   renderOrderDrawer();
   if(tgChatOf(o)){
     tgWatch(o);                 // жива підписка лише на відкриту картку
@@ -6962,6 +6978,42 @@ async function openOrderDrawer(o){
   // розмова має бути на екрані разом із карткою.
   if(o.crmChatId && !crmChat[o.id]) crmLoadChat(o);
   renderBoard();
+}
+/* Склад замовлення й гроші — головна зона картки. Кожна частина збирається
+   окремо і під захистом: одна крива позиція (старий формат, битий макет,
+   товар, якого вже немає в каталозі) валила весь шаблон панелі, а разом із
+   ним зникала й кнопка «Додати товар». Тепер збій показується рядком на
+   своєму місці, а решта зони працює. */
+function odPart(fn, label){
+  try{ return fn() || ''; }
+  catch(e){
+    console.error('картка: не зібралось «' + label + '»', e);
+    return '<div class="od-empty">' + escapeHtml(label) +
+           ' не порахувалось: ' + escapeHtml(String(e && e.message || e)) + '</div>';
+  }
+}
+function odGoodsHtml(o){
+  const n = ((o || {}).items || []).length;
+  return `
+    <div class="od-fold">
+      <div class="od-fold-h">
+        <span class="od-fold-t">Склад замовлення та гроші</span>
+        <span class="od-fold-n">${n ? n + ' ' + posWordUa(n) : 'порожньо'}</span>
+      </div>
+      <div class="t-web-items">${
+        odPart(()=> orderItemsHtml(o), 'список товарів') ||
+        '<div class="od-empty">без товарів</div>'}</div>
+      <button class="od-build" data-act="build">＋ Додати товар</button>
+      <div class="t-breakdown">
+        <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
+        <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
+      </div>
+      ${odPart(()=> priceCalcHtml(o), 'розклад ціни')}
+      <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${
+        fmt(o.margin)} ₴ · ${(+o.marginPct||0).toFixed(1)}%</span></div>
+      ${(()=>{ const b = odPart(()=> orderBuyHtml(o), 'закупівля');
+        return b ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + b : ''; })()}
+    </div>`;
 }
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
@@ -6988,7 +7040,12 @@ function renderOrderDrawer(){
   if(chanFill(o)) saveOrderMeta(o).catch(e=> console.warn(e));
   const ch = chanActive(o);
   const hasChat = chanHasChat(o, ch);
-  panel.innerHTML = `
+  /* Панель збирається одним шаблоном, і будь-яка помилка всередині лишала
+     менеджера з порожнім екраном без пояснень. Тепер збій шаблону не забирає
+     з собою склад замовлення — його видно й у запасному вигляді. */
+  let odHtml;
+  try{
+  odHtml = `
     <div class="od-head">
       ${/* У шапці лишається тільки те, що потрібно щодня: номер, коли
            прийшло, етап і термін. Канал, мітка пристрою й сторінка входу
@@ -7024,6 +7081,11 @@ function renderOrderDrawer(){
           daysInWork(o), lastTouchLabel(o)
         ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </div>
+      ${/* Склад замовлення — найперше в панелі, одразу під сумою. Раніше він
+           стояв аж під нотаткою: досить було одного збою в чомусь вище, і
+           менеджер бачив картку зовсім без товарів. Тепер до нього нічого
+           не малюється, крім суми, і зламати його ніщо не може. */''}
+      ${odGoodsHtml(o)}
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -7048,28 +7110,6 @@ function renderOrderDrawer(){
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
-
-      ${/* Звичайний блок, а не <details>. Згортання тут коштувало дорожче,
-           ніж давало: у частині браузерів вміст details у flex-колонці не
-           показувався взагалі, і менеджер бачив картку без товарів, без
-           собівартості й без кнопки «Додати товар» — тобто без того, заради
-           чого картку й відкривають. */''}
-      <div class="od-fold">
-        <div class="od-fold-h">
-          <span class="od-fold-t">Склад замовлення та гроші</span>
-          <span class="od-fold-n">${(o.items||[]).length
-            ? (o.items||[]).length + ' ' + posWordUa((o.items||[]).length) : 'порожньо'}</span>
-        </div>
-        <div class="t-web-items">${orderItemsHtml(o) || '<div class="od-empty">без товарів</div>'}</div>
-        <button class="od-build" data-act="build">＋ Додати товар</button>
-        <div class="t-breakdown">
-          <div class="t-brow t-brow-total"><span>Собівартість</span><span>${fmt(o.totalCost)} ₴</span></div>
-          <div class="t-brow t-brow-price"><span>Сума замовлення</span><span>${fmt(o.totalPrice)} ₴</span></div>
-        </div>
-        ${priceCalcHtml(o)}
-        <div class="t-margin ${(o.margin||0)>=0?'good':'bad'}"><span>Маржа</span><span>${fmt(o.margin)} ₴ · ${(o.marginPct||0).toFixed(1)}%</span></div>
-        ${orderBuyHtml(o) ? '<div class="od-sec" style="margin-top:14px;">Що і в кого замовити</div>' + orderBuyHtml(o) : ''}
-      </div>
 
       ${/* Що було тут раніше і чому пішло:
             «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
@@ -7111,9 +7151,23 @@ function renderOrderDrawer(){
       ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copylink"
         title="Скопіювати посилання для клієнта">🔗</button>` : ''}
     </div>`;
+  }catch(e){
+    console.error('картка: шаблон не зібрався', e);
+    odHtml = `
+      <div class="od-head">
+        <div class="od-head-top"><div class="od-oid">${escapeHtml(o.orderId || '—')}</div></div>
+        <div class="od-sub">картка показана скорочено — ${escapeHtml(String(e && e.message || e))}</div>
+        <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+      </div>
+      <div class="od-body">${odGoodsHtml(o)}
+        <button class="od-del-lite" data-act="del">Видалити картку</button>
+      </div>`;
+  }
+  panel.innerHTML = odHtml;
   const bodyEl = panel.querySelector('.od-body');
   if(bodyEl && keepScroll) bodyEl.scrollTop = keepScroll;
-  panel.querySelector('[data-od-close2]').addEventListener('click', closeOrderDrawer);
+  const closeB = panel.querySelector('[data-od-close2]');
+  if(closeB) closeB.addEventListener('click', closeOrderDrawer);
   const stg = panel.querySelector('.od-stage');
   if(stg) stg.addEventListener('change', async ()=>{
     if(o.status === stg.value) return;
