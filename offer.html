@@ -813,11 +813,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-size:12.5px; font-variant-numeric:tabular-nums;}
   .est-r>span:not(:first-child){text-align:right; color:rgba(255,255,255,.72);}
   .est-r .est-s{color:#fff; font-weight:700;}
+  /* Ціна за штуку двома рядками: закреслена без знижки і чинна. Клієнт бачить
+     не просто цифру, а що саме він виграє на тиражі. */
+  .est-u{display:flex; flex-direction:column; align-items:flex-end; line-height:1.25;}
+  .est-u s{font-size:10.5px; color:rgba(255,255,255,.42);}
+  .est-u b{font-weight:700; color:#fff;}
+  .est-s em{display:block; font-style:normal; font-size:10.5px; font-weight:700;
+    color:#4ADE80; margin-top:2px;}
+  .est-nm-t{display:flex; flex-direction:column; min-width:0; gap:2px;}
+  /* «30 × 400 грн» під назвою: видно, з чого складається сума в рядку */
+  .est-mul{font-size:10.5px; color:rgba(255,255,255,.45); font-variant-numeric:tabular-nums;}
   .est-nm{display:flex; align-items:center; gap:8px; min-width:0;}
   /* Мініатюра товару в кошторисі: раніше 26 px — на ній не було видно
      нічого, крім плями. Тепер це впізнаваний знімок, і по ньому можна
      відкрити макет на весь екран. */
-  .est-nm i{flex:none; width:46px; height:46px; border-radius:9px; overflow:hidden;
+  .est-nm > i{flex:none; width:46px; height:46px; border-radius:9px; overflow:hidden;
     background:#fff; display:block; cursor:zoom-in;}
   .est-nm i img{width:100%; height:100%; object-fit:contain; display:block;}
   .est-nm b{font-weight:600; font-size:12.5px; line-height:1.25; min-width:0;}
@@ -1158,6 +1168,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edslot-body .lq-inline #pmModelSection,
   .edslot-body .lq-inline .pm-twocol,
   .edslot-body .lq-inline .pm-recommended,
+  .edslot-body .lq-inline .pm-footer,
+  .edslot-body .lq-inline .pm-footer-social,
   .edslot-body .lq-inline .pm-legal-links{display:none !important;}
   /* Супутні екрани конструктора — розмірна сітка, оферта, вибір джерела
      логотипа — і далі відкриваються поверх усього. Свого контексту
@@ -2041,9 +2053,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=7318fb2416';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=7318fb2416';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=7318fb2416';
+  var CTOR_JS   = 'loomiq-constructor.js?v=3df421f094';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=3df421f094';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=3df421f094';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2066,6 +2078,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(window.__lqShims) return;
     window.__lqShims = true;
     var W = window;
+    /* Ставимо ДО завантаження конструктора: він читає цей прапорець на
+       старті, щоб зрозуміти, що за кермом менеджер, а не клієнт. Поставити
+       пізніше — і прорахунок із площею та ставкою за см² не зʼявиться. */
+    W.__lqInline = true;
     W.cartItems = W.cartItems || [];
     W.renderCart = W.renderCart || function(){};
     W.cartPersist = W.cartPersist || function(){};
@@ -2238,7 +2254,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(modal.parentNode !== box){ box.innerHTML = ''; box.appendChild(modal); }
     modal.classList.add('open', 'lq-inline');
     document.documentElement.classList.add('lq-ctor-on');
-    window.__lqInline = true;      // зберігати одразу, без аркуша підтвердження
     // Підписи кнопок конструктор ставить на відкритті — тобто до переносу.
     // Просимо переставити, інакше кнопка й далі каже «в замовленні».
     try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
@@ -2269,7 +2284,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(modal && host && modal.parentNode !== host){ host.appendChild(modal); }
     if(modal) modal.classList.remove('open', 'lq-inline');
     document.documentElement.classList.remove('lq-ctor-on');
-    window.__lqInline = false;
   }
 
   /* Позицію готує адмінка — вона знає її конфігурацію й привʼязку до
@@ -3330,7 +3344,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!isOn(i)) return;
       var st = itemState(i);
       rows.push({ th:(it.mockups||[])[0], all:(it.mockups||[]).filter(Boolean),
-                  name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false });
+                  name:it.name, qty:st.qty, unit:st.unit, sum:st.sum, reco:false,
+                  base:st.base });
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
@@ -3339,6 +3354,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
+    // Ціна за штуку без знижки за тираж і виграш по кожній позиції
+    rows.forEach(function(r){
+      r.baseUnit = r.qty > 0 ? Math.round((r.base != null ? r.base : r.sum) / r.qty) : r.unit;
+      r.off = Math.max(0, (r.base != null ? r.base : r.sum) - r.sum);
+    });
     return '' +
       '<section id="estimate" class="full">' +
         '<div class="est">' +
@@ -3354,12 +3374,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     esc(r.all.join('|')) + '"' : '') + '>' +
                   (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
                   'onerror="this.style.display=\'none\'">' : '') + '</i>' +
-                '<b>' + esc(r.name) + '</b>' +
-                (r.reco ? '<em>додано</em>' : '') +
+                '<span class="est-nm-t"><b>' + esc(r.name) + '</b>' +
+                  (r.reco ? '<em>додано</em>' : '') +
+                  '<span class="est-mul">' + r.qty + ' × ' + num(r.unit) + ' грн</span></span>' +
               '</span>' +
               '<span>' + r.qty + ' шт</span>' +
-              '<span>' + num(r.unit) + ' грн</span>' +
-              '<span class="est-s">' + num(r.sum) + ' грн</span>' +
+              /* Ціна за штуку двома рядками: скільки коштувала б без знижки
+                 за тираж і скільки коштує тут. Одна цифра без другої нічого
+                 не каже — саме різниця між ними і є те, що клієнт виграє,
+                 замовляючи тираж, а не поштучно. */
+              '<span class="est-u">' +
+                (r.baseUnit > r.unit ? '<s>' + num(r.baseUnit) + '</s>' : '') +
+                '<b>' + num(r.unit) + '</b></span>' +
+              '<span class="est-s">' + num(r.sum) + ' грн' +
+                (r.off > 0 ? '<em>−' + num(r.off) + ' грн</em>' : '') + '</span>' +
             '</div>';
           }).join('') +
           /* Знижка за тираж сидить у ціні кожної позиції, тому в рядках вище
