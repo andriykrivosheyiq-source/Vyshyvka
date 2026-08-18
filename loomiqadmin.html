@@ -5760,12 +5760,33 @@ function sharedPriceAt(order, itemIdx, qty, opts){
   const res = priceOrder(clone, opts);
   return (res[k] && res[k].unit) || null;
 }
+/* Найменший поріг тиражу для позиції — те саме, що pt[0].min на сайті.
+   Від ціни на цьому порозі сайт і рахує відсоток знижки. */
+function offerFirstTierQty(order, itemIdx){
+  const item = order.items[itemIdx];
+  const p = curSitePricing();
+  if(!p) return 1;
+  const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
+  const m = (p.methods || {})[mk] || {};
+  const list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
+  if(!Array.isArray(list) || !list.length) return 1;
+  return Math.max(1, Math.min.apply(null, list.map(t => +t.from || 1)));
+}
 function offerItemNumbers(order, itemIdx){
   const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
   const unit = +item.unitPrice || 0;
-  // «Було» — той самий тираж, але без знижки за обсяг
-  const shared = sharedPriceAt(order, itemIdx, qty, { noVolume:true });
+  /* «Було» рахуємо ТОЧНО ТАК САМО, як картка товару на сайті: це ефективна
+     ціна за штуку на найменшому порозі тиражу. Саме там разова підготовка
+     макета ділиться на одну-дві штуки й тому важить найбільше — і саме тому
+     справжня знижка більша за самий лише коефіцієнт за обсяг.
+
+     Доти в пропозиції «було» бралось інакше: той самий тираж, але без
+     коефіцієнта за обсяг. Разова оплата ділилась на ті самі 13 штук, тож
+     основна частина вигоди зникала, і замість −40% клієнт бачив −18%. Дві
+     різні відповіді на те саме питання — звідси й «на сайті одна знижка, а
+     в КП інша». */
+  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx));
   const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, qty, offerBaseCoef()), unit);
   return {
     qty, unit, sum: +item.price || 0,
