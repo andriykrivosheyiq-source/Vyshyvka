@@ -970,11 +970,9 @@
   .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
   .oe-body iframe{flex:1;width:100%;height:100%;border:0;display:block;background:#fff;}
   /* Нижня панель редактора: сума й дві дії, якими роботу закінчують */
-  .oe-foot{flex:none;display:flex;align-items:center;gap:10px;padding:11px 13px;
-    border-top:1px solid var(--line);background:#fff;flex-wrap:wrap;}
-  .oe-sum{display:flex;align-items:baseline;gap:9px;min-width:0;}
-  .oe-sum b{font-size:19px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums;}
-  .oe-sum span{font-size:12.5px;color:var(--ink-soft);}
+  /* Порожня нижня панель не має займати ані пікселя: сума й склад тепер у
+     лівій панелі робочого місця, поруч із самими позиціями. */
+  .oe-foot:empty{display:none;}
   /* Стан автозбереження. Записувалось і раніше, але мовчки — і менеджер
      не мав підтвердження, що робота вже в базі. */
   .oe-save{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;}
@@ -3253,12 +3251,6 @@ function calcTargetWho(o){
    карток — там логотип є, але ніхто його окремо не зберігав. */
 /* Підсумок для нижньої панелі редактора. Рекомендації не рахуємо: вони не
    входять у суму, поки клієнт сам їх не обере — так само, як на сторінці КП. */
-function offerTotals(o){
-  const main = ((o || {}).items || []).filter(i => i && i.kind !== 'reco');
-  return { sum: +o.totalPrice || 0,
-           qty: main.reduce((a,i)=> a + (+i.qty || 0), 0),
-           pos: main.length };
-}
 function orderLogos(o){
   const out = [];
   const add = u => { if(u && typeof u === 'string' && out.indexOf(u) < 0) out.push(u); };
@@ -9683,17 +9675,15 @@ function renderOfferEd(){
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
     <span class="oe-save is-ok">Збережено ✓</span>
+    <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
     <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
 
-  /* Нижня панель. Те, чим закінчують роботу над пропозицією: скільки вийшло,
-     подивитись очима клієнта й віддати посилання. */
-  const t = offerTotals(o);
-  d.querySelector('.oe-foot').innerHTML = `
-    <div class="oe-sum"><b>${fmt(t.sum)} ₴</b><span>${
-      t.qty ? t.qty + ' шт · ' + t.pos + ' ' + posWordUa(t.pos) : 'порожня пропозиція'}</span></div>
-    <span class="bh-spacer"></span>
-    <a class="oe-btn" href="${escapeHtml(link)}" target="_blank" rel="noopener">👁 Перегляд як клієнт</a>
-    <button class="oe-btn oe-btn--main" data-oe="copy">🔗 Створити посилання</button>`;
+  /* Нижньої панелі більше немає. «Перегляд як клієнт» дублював вкладку «Як
+     бачить клієнт», що стоїть у самому робочому місці, — дві кнопки на одну
+     дію, поруч, і незрозуміло, чим вони різні. Посилання переїхало нагору,
+     до «Готово», а сума й склад видно в лівій панелі, біля самих позицій.
+     Уся висота вікна пішла під роботу. */
+  d.querySelector('.oe-foot').innerHTML = '';
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
