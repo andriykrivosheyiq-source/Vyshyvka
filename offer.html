@@ -1131,8 +1131,47 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     overflow:hidden;background:#fff;}
   .edslot-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:9px 12px;background:#F4F7FB;border-bottom:1px solid #E6EBF2;font-size:13px;}
-  .edslot-frame{display:block;width:100%;height:min(72vh,660px);border:0;background:#fff;}
   .edslot-wait{padding:26px 12px;text-align:center;color:#8A93A3;font-size:13px;}
+  /* ── Конструктор усередині картки ─────────────────────────────────────
+     Це та сама модалка, що на сайті, тільки вона більше не модалка: не
+     висить поверх усього, не займає екран і не має власної шапки. Вона
+     просто стоїть у картці, як її частина. Розмітка й код при цьому ті
+     самі — інакше пропозиція розійшлась би з сайтом. */
+  .edslot-body{background:#fff;}
+  .edslot-body .contact-modal.lq-inline{
+    position:static; inset:auto; width:auto; height:auto; max-height:none;
+    opacity:1; transform:none; pointer-events:auto; overflow:visible;
+    background:#fff; z-index:auto; display:block;}
+  /* Власна шапка модалки («← Loomiq») тут зайва: людина нікуди не йшла */
+  .edslot-body .lq-inline .catalog-modal-topbar,
+  .edslot-body .lq-inline .contact-modal-back{display:none !important;}
+  .edslot-body .lq-inline .contact-modal-inner{padding:0; max-width:none;}
+  /* Сцена виробу під ширину картки, а не під висоту вікна браузера.
+     Інакше навколо футболки лишалось пів екрана порожнього сірого. */
+  /* Висота сцени задається карткою, а не вікном браузера. !important тому,
+     що стиль конструктора приходить окремим файлом уже після нашого, і без
+     цього виграє його правило, розраховане на повний екран. */
+  .edslot-body .lq-inline .pm-stage{width:100% !important; max-width:100% !important;
+    height:min(56vh, 460px) !important; box-sizing:border-box;}
+  .edslot-body .lq-inline .pm-stage img{max-width:100%; max-height:100%; object-fit:contain;}
+  /* Сцена сама підганяє себе під ВІКНО браузера — на сайті вона на весь
+     екран, і це правильно. У картці рамка інша, тож розмір задає картка.
+     На міліметри це не впливає: вони рахуються від висоти виробу й
+     калібрування зони, а не від того, скільки пікселів на екрані. */
+  .edslot-body .lq-inline #pmGarmentWrap{max-width:100%; max-height:100%;}
+  /* Вітрина для клієнта тут зайва: менеджер прийшов правити нанесення, а не
+     читати відгуки й опис товару. Усе це лишається на сайті, де воно й
+     працює — просто не займає місця в картці пропозиції. */
+  .edslot-body .lq-inline .pm-rows,
+  .edslot-body .lq-inline .pm-detail,
+  .edslot-body .lq-inline #pmModelSection,
+  .edslot-body .lq-inline .pm-twocol,
+  .edslot-body .lq-inline .pm-recommended,
+  .edslot-body .lq-inline .pm-legal-links{display:none !important;}
+  /* Поки конструктор стоїть у картці, його супутні повноекранні сторінки
+     (розмірна сітка, оферта) лишаються на своєму місці — вони й мають
+     відкриватись поверх, це окремі екрани, а не частина картки. */
+  #lqCtorHost{position:relative; z-index:1;}
   .edb{font:inherit;font-size:12px;font-weight:700;color:#3D4C61;background:#fff;
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
@@ -1380,13 +1419,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
        угору, і менеджер щоразу шукав, де він був. Тепер приходить новий
        документ, сторінка перемальовується на місці, прокрутка лишається. */
-    /* Адмінка підготувала позицію й повернула адресу конструктора —
-       розгортаємо його в тій самій картці, де натиснули. */
-    if(d.editSrc != null){
-      if(!d.editSrc){ edOpen = null; }
-      else if(edOpen) edOpen.src = d.editSrc;
-      var ys = window.scrollY;
-      render(); window.scrollTo(0, ys);
+    /* Адмінка підготувала позицію — розгортаємо конструктор у тій самій
+       картці, де натиснули. Чекаємо саме на цей сигнал: без насіння
+       конструктор показав би порожній виріб замість цієї позиції. */
+    if(d.editReady != null){
+      if(!d.editReady){
+        ctorUnmount(); edOpen = null; edPending = null;
+        var ys0 = window.scrollY; render(); window.scrollTo(0, ys0);
+        return;
+      }
+      var want = edPending == null ? 'photo' : edPending;
+      edPending = null;
+      ctorLoad().then(function(){ ctorSeed(want); })
+                .catch(function(e){ console.warn('конструктор не готовий', e); });
       return;
     }
     if(d.offer){
@@ -1450,18 +1495,208 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      сюди кадром, тому розійтися з сайтом у розрахунках йому нема як.
      Відкритий редактор памʼятається у edOpen, щоб перемальовування сторінки
      (а воно тепер відбувається після кожної правки) його не згорнуло. */
-  var edOpen = null;      // { kind, i, src }
+  var edOpen = null;      // { kind, i }
+  var edPending = null;   // вкладка, на яку відкрити, коли адмінка відповість
   function edSlotHtml(kind, i){
     if(!EDIT) return '';
     var on = edOpen && edOpen.kind === kind && edOpen.i === i;
     if(!on) return '<div class="edslot" data-edslot="' + kind + ':' + i + '"></div>';
+    /* Порожня коробка — у неї переїде сам конструктор. Нічого не
+       відкривається й нікуди не веде: правки відбуваються тут, у картці. */
     return '<div class="edslot is-open" data-edslot="' + kind + ':' + i + '">' +
       '<div class="edslot-head"><b>Редагування позиції</b>' +
         '<button class="edb" data-ed="closeinline">Згорнути</button></div>' +
-      (edOpen.src
-        ? '<iframe class="edslot-frame" src="' + esc(edOpen.src) + '" title="Редактор позиції"></iframe>'
-        : '<div class="edslot-wait">Відкриваємо…</div>') +
+      '<div class="edslot-body" id="edSlotBody">' +
+        '<div class="edslot-wait">Відкриваємо…</div>' +
+      '</div>' +
     '</div>';
+  }
+
+  /* ── Конструктор просто в картці ────────────────────────────────────────
+     Той самий файл, що на сайті (loomiq-constructor.js), а не його копія й
+     не кадр із сайтом усередині. Тому виріб, кольори, зони нанесення,
+     висота виробу з адмінки, калібрування зони, міліметри й ціни тут ті
+     самі — розійтись їм фізично нема як.
+
+     Сторінці пропозиції потрібно дати конструкторові те, що на сайті йому
+     дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
+     Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
+     тут порожній список, а не вікно. */
+  var CTOR_JS   = 'loomiq-constructor.js?v=e50ae40be1';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=e50ae40be1';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=e50ae40be1';
+  var ctorReady = null;
+
+  function ctorShims(){
+    if(window.__lqShims) return;
+    window.__lqShims = true;
+    var W = window;
+    W.cartItems = W.cartItems || [];
+    W.renderCart = W.renderCart || function(){};
+    W.cartPersist = W.cartPersist || function(){};
+    W._navInternal = false;
+    W.escHtml = W.escHtml || esc;
+    // Вікна, яких у пропозиції немає: конструктор їх закриває й відкриває,
+    // і мовчазна заглушка тут чесніша за перевірку в двадцяти місцях
+    var noModal = { open:function(){}, close:function(){} };
+    W.cartModalCtrl = W.cartModalCtrl || noModal;
+    W.catalogModalCtrl = W.catalogModalCtrl || noModal;
+    W.contactModal = W.contactModal || null;
+    W.navGo = W.navGo || function(){};
+    W.navSetProductGarment = W.navSetProductGarment || function(){};
+    W.closeAllMainModals = W.closeAllMainModals || function(){};
+    W.closeMenu = W.closeMenu || function(){};
+    W.toggleMenu = W.toggleMenu || function(){};
+    W.PHOTO_OVERRIDES = W.PHOTO_OVERRIDES || {};
+    W.LQ_img = W.LQ_img || function(path){
+      var m = /images\/(.+)\.webp(?:\?.*)?$/.exec(path || '');
+      return (m && W.PHOTO_OVERRIDES[m[1]]) ? W.PHOTO_OVERRIDES[m[1]] : path;
+    };
+    W.LQ_name = W.LQ_name || function(gid, fallback){
+      return ((W.SITE_CONTENT || {}).names || {})[gid] || fallback;
+    };
+    /* Хто володіє привʼязкою до замовлення. Пропозиція відкрита кадром
+       усередині адмінки, тож шукаємо вгору: батько, потім найвищий кадр.
+       Без цього конструктор не знає, у чиє замовлення класти позицію, — і
+       мовчки нікуди її не кладе. */
+    W.__lqAdminHost = W.__lqAdminHost || function(){
+      var tries = [];
+      try{ if(window.parent && window.parent !== window) tries.push(window.parent); }catch(e){}
+      try{ if(window.top && window.top !== window) tries.push(window.top); }catch(e){}
+      tries.push(window);
+      for(var i = 0; i < tries.length; i++){
+        try{ if(tries[i].__adminOfferTarget || tries[i].__adminSaveClientOrder) return tries[i]; }catch(e){}
+      }
+      return null;
+    };
+  }
+
+  /* Контент із бази — той самий документ, що читає сайт: назви, фото,
+     розмірні сітки, ЗОНИ НАНЕСЕННЯ (висота виробу) і ціни. Без нього
+     конструктор порахував би за запасними числами, і пропозиція розійшлась
+     би з сайтом саме там, де це найдорожче. */
+  function ctorContent(){
+    if(window.__lqContentReady) return window.__lqContentReady;
+    window.__lqContentReady = new Promise(function(done){
+      var apply = function(d){
+        d = d || {};
+        window.PHOTO_OVERRIDES = d.map || {};
+        var C = window.SITE_CONTENT || {};
+        window.SITE_CONTENT = {
+          names: d.names || {}, descriptions: d.descriptions || {},
+          sizecharts: d.sizecharts || {}, sizechartPhotos: d.sizechartPhotos || {},
+          specs: d.specs || {}, models: d.models || {},
+          reviewOrder: d.reviewOrder || null, reviewPhotos: d.reviewPhotos || null,
+          products: d.products || {}, contacts: d.contacts || {},
+          faq: d.faq || null, hero: d.hero || {}, about: d.about || {},
+          stats: d.stats || null, cases: d.cases || null, promo: d.promo || {},
+          pricing: d.pricing || null, productColors: d.productColors || {},
+          printAreas: d.printAreas || {}, landing: d.landing || null,
+          catalogPicks: d.catalogPicks || null, bgApi: d.bgApi || C.bgApi || {},
+          viewOrder: d.viewOrder || {}
+        };
+        document.dispatchEvent(new Event('lq-photos'));
+        document.dispatchEvent(new Event('lq-content'));
+        done(true);
+      };
+      if(!db){ apply(null); return; }
+      db.collection('loomiq').doc('photos').get()
+        .then(function(snap){ apply(snap.exists ? snap.data() : null); })
+        .catch(function(e){ console.warn('контент сайту не прийшов', e); apply(null); });
+    });
+    return window.__lqContentReady;
+  }
+
+  function ctorLoad(){
+    if(ctorReady) return ctorReady;
+    ctorShims();
+    var css = new Promise(function(res){
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = CTOR_CSS;
+      l.onload = res; l.onerror = res;      // без стилів усе одно краще, ніж нічого
+      document.head.appendChild(l);
+    });
+    var markup = fetch(CTOR_HTML).then(function(r){ return r.text(); })
+      .then(function(html){
+        var host = document.createElement('div');
+        host.id = 'lqCtorHost';
+        host.innerHTML = html;
+        document.body.appendChild(host);
+      });
+    ctorReady = Promise.all([css, markup, ctorContent()]).then(function(){
+      return new Promise(function(res, rej){
+        var sc = document.createElement('script');
+        sc.src = CTOR_JS;
+        sc.onload = function(){ res(true); };
+        sc.onerror = function(){ rej(new Error('конструктор не завантажився')); };
+        document.body.appendChild(sc);
+      });
+    }).then(function(){
+      // Чекаємо, поки конструктор оголосить себе готовим
+      return new Promise(function(res){
+        var t0 = Date.now();
+        var iv = setInterval(function(){
+          if(window.__editProduct || window.__openProductModal || Date.now() - t0 > 15000){
+            clearInterval(iv); res(true);
+          }
+        }, 40);
+      });
+    });
+    return ctorReady;
+  }
+
+  /* Переносимо конструктор у коробку картки. Саме переносимо, а не
+     копіюємо: він один на сторінку, і два його екземпляри означали б два
+     різні #pmGarmentWrap — а конструктор шукає свої вузли за id. */
+  function ctorMount(tab){
+    var box = document.getElementById('edSlotBody');
+    var modal = document.getElementById('productModal');
+    if(!box || !modal) return;
+    if(modal.parentNode !== box){ box.innerHTML = ''; box.appendChild(modal); }
+    modal.classList.add('open', 'lq-inline');
+    document.documentElement.classList.add('lq-ctor-on');
+    if(tab && window.__pmGoTab) setTimeout(function(){
+      try{ window.__pmGoTab(tab); }catch(e){}
+    }, 60);
+    /* Виріб міряє свою рамку сам — але зробив це до переносу, коли рамка
+       була іншою. Просимо переміряти. Висоту сцени не чіпаємо: тут її задає
+       картка, а не вікно браузера. */
+    var fit = function(){ try{ if(window.__fitGarment) window.__fitGarment(); }catch(e){} };
+    setTimeout(fit, 90); setTimeout(fit, 400);
+    if(!window.__lqFitBound){
+      window.__lqFitBound = true;
+      window.addEventListener('resize', function(){ if(edOpen) fit(); });
+    }
+  }
+  // Згорнули картку — конструктор повертається на своє місце в кінці сторінки
+  function ctorUnmount(){
+    var modal = document.getElementById('productModal');
+    var host = document.getElementById('lqCtorHost');
+    if(modal && host && modal.parentNode !== host){ host.appendChild(modal); }
+    if(modal) modal.classList.remove('open', 'lq-inline');
+    document.documentElement.classList.remove('lq-ctor-on');
+  }
+
+  /* Позицію готує адмінка — вона знає її конфігурацію й привʼязку до
+     замовлення. Сюди приходить готове насіння, і конструктор розгортає з
+     нього рівно ту саму позицію, що відкрилася б на сайті. */
+  function ctorSeed(tab){
+    var seed = null;
+    try{ var h = window.__lqAdminHost && window.__lqAdminHost();
+         seed = (h && h.__adminSeedItem) || null; }catch(e){}
+    /* Насіння не приїхало — конструктор усе одно показуємо: порожній виріб
+       можна налаштувати, а порожня коробка з написом «Відкриваємо…»
+       виглядає як поломка. */
+    if(!seed){ ctorMount(tab); return; }
+    window.cartItems.length = 0;
+    window.cartItems.push(JSON.parse(JSON.stringify(seed)));
+    window.__pmEditIndex = 0;
+    window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
+    try{
+      if(seed.config && window.__editProduct) window.__editProduct(seed.config, 0, seed.prints || []);
+      else if(seed.garmentId && window.__openProductModal) window.__openProductModal(seed.garmentId);
+    }catch(e){ console.warn('позиція не розгорнулась', e); }
+    ctorMount(tab);
   }
   function edAdd(kind){
     if(!EDIT) return '';
@@ -1514,28 +1749,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
-        if(b.dataset.ed === 'closeinline'){ edOpen = null; render(); return; }
+        if(b.dataset.ed === 'closeinline'){ ctorUnmount(); edOpen = null; render(); return; }
         /* «Колір», «Нанесення» — редактор просто в картці. Спершу просимо
            адмінку підготувати позицію (вона знає її конфігурацію), а вже
            коли та відповість адресою — розгортаємо кадр на місці. */
         if(b.dataset.ed === 'edit'){
-          var y0 = window.scrollY;
-          /* Редактор уже відкритий на цій позиції — просто перемикаємо
-             вкладку, а не збираємо кадр наново: інакше клік по «Товар»
-             перезавантажував конструктор і скидав усе, що менеджер щойно
-             там зробив. */
-          if(edOpen && edOpen.kind === b.dataset.k && edOpen.i === +b.dataset.i && edOpen.src){
-            var fr = document.querySelector('.edslot-frame');
-            try{
-              if(fr && fr.contentWindow && fr.contentWindow.__pmGoTab){
-                fr.contentWindow.__pmGoTab(b.dataset.tab || 'photo');
-                return;
-              }
-            }catch(err){}
+          var tab = b.dataset.tab || 'photo';
+          /* Конструктор уже стоїть у цій картці — просто перемикаємо вкладку.
+             Збирати його наново означало б скинути все, що менеджер щойно
+             зробив, і саме через це клік по «Товар» був небезпечним. */
+          if(edOpen && edOpen.kind === b.dataset.k && edOpen.i === +b.dataset.i
+             && window.__pmGoTab){
+            try{ window.__pmGoTab(tab); return; }catch(err){}
           }
-          edOpen = { kind: b.dataset.k, i: +b.dataset.i, src: '' };
+          var y0 = window.scrollY;
+          edOpen = { kind: b.dataset.k, i: +b.dataset.i };
           render(); window.scrollTo(0, y0);
-          edSend({ act:'editInline', kind: b.dataset.k, i: +b.dataset.i, tab: b.dataset.tab || '' });
+          /* Просимо адмінку підготувати позицію (вона знає її конфігурацію й
+             привʼязку до замовлення), а конструктор тим часом вантажимо. Коли
+             обидва готові — розгортаємо його просто тут, у картці. Нічого не
+             відкривається й нікуди не веде. */
+          edSend({ act:'editInline', kind: b.dataset.k, i: +b.dataset.i, tab: tab });
+          edPending = tab;
+          ctorLoad().catch(function(e){ console.warn(e);
+                      var box = document.getElementById('edSlotBody');
+                      if(box) box.innerHTML = '<div class="edslot-wait">Конструктор не завантажився. ' +
+                        'Оновіть сторінку.</div>'; });
           return;
         }
         edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i,

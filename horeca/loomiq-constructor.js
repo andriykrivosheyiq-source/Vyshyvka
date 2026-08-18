@@ -1374,6 +1374,13 @@
         requestAnimationFrame(fitStageHeight); });
     }
     window.__fitStage = fitStageTwice;
+    /* Підігнати сам виріб під його рамку, не чіпаючи висоту сцени. Потрібно
+       там, де конструктор стоїть не на весь екран, а в картці пропозиції:
+       рамку задає картка, і після переносу розмір треба переміряти. */
+    window.__fitGarment = function(){
+      requestAnimationFrame(function(){ fitGarmentStage();
+        requestAnimationFrame(fitGarmentStage); });
+    };
     (function(){ var _fw = window.innerWidth; window.addEventListener('resize', function(){ if(window.innerWidth !== _fw){ _fw = window.innerWidth; } fitStageTwice(); }); })();
     window.addEventListener('orientationchange', function(){ setTimeout(fitStageTwice, 60); });
 
@@ -4938,9 +4945,13 @@
     document.getElementById('pmRowDelivery').addEventListener('click', function(){
       document.getElementById('pmDeliveryModal').classList.add('open');
     });
+    /* Відгуки живуть на сторінці сайту, а не в конструкторі. У пропозиції
+       їх немає — і це не привід валити весь конструктор: без них він просто
+       не показує цього рядка. */
     document.getElementById('pmRowReviews').addEventListener('click', function(){
       // відкриваємо відгуки ПОВЕРХ картки товару (не закриваючи її), щоб «назад» повертало сюди
       var rm = document.getElementById('reviewsModal');
+      if(!rm) return;
       closeMenu();
       rm.style.zIndex = '230';
       rm.dataset.overProduct = '1';
@@ -4950,6 +4961,7 @@
     // При закритті відгуків, відкритих поверх товару — прибираємо тимчасовий z-index
     (function(){
       var rm = document.getElementById('reviewsModal');
+      if(!rm) return;
       var clearOver = function(){ rm.style.zIndex = ''; delete rm.dataset.overProduct; };
       var bk = document.getElementById('reviewsModalBack');
       if(bk) bk.addEventListener('click', clearOver);

@@ -9451,15 +9451,14 @@ async function offerEdApply(msg){
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const f = document.querySelector('#offerEd iframe');
     if(k < 0 || !f || !f.contentWindow){
-      if(f && f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, editSrc:'' }, '*');
+      if(f && f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, editReady:false }, '*');
       return;
     }
-    // Позицію, привʼязку й насіння готує той самий код, що й раніше
+    /* Готуємо позицію, привʼязку до замовлення й насіння — тим самим кодом,
+       що й раніше. Адреси конструктора більше не віддаємо: сторінка
+       пропозиції малює його сама, у тій картці, де натиснули. */
     calcSeedFor(o, k);
-    const src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
-      (window.__adminSeedItem ? '&seed=1' : '') +
-      (msg.tab ? '&tab=' + encodeURIComponent(msg.tab) : '') + '&v=' + LQ_BUILD;
-    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editSrc: src }, '*');
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editReady:true }, '*');
     return;
   }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
