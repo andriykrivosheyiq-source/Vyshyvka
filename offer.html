@@ -1138,6 +1138,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edwhy:empty::before{content:attr(data-ph);color:#98A2B3;}
   .edb-pen{background:#1F2C44;border-color:#1F2C44;color:#fff;}
   .edb-pen:hover{background:#2c3b58;border-color:#2c3b58;color:#fff;}
+  /* «Дизайн | Товар» — одна пара, а не дві окремі кнопки: так видно, що це
+     два входи в те саме редагування, і межа між ними читається як вкладки */
+  .edseg{display:inline-flex; border-radius:7px; overflow:hidden;}
+  .edseg .edb-pen{border-radius:0;}
+  .edseg .edb-pen + .edb-pen{border-left:1px solid rgba(255,255,255,.3);}
   .edpick{position:fixed;inset:0;z-index:900;display:none;align-items:center;
     justify-content:center;background:rgba(15,32,52,.55);padding:16px;}
   .edpick.open{display:flex;}
@@ -1390,13 +1395,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // від неї перерахується сама, спільним калькулятором.
   function edBar(kind, i, qty){
     if(!EDIT) return '';
-    /* Одна кнопка редагування, а не три. Колір, нанесення й розміри живуть на
-       вкладках усередині самого редактора — дублювати їх ще й тут означало
-       ставити менеджера перед вибором там, де вибору немає: він однаково
-       відкриє те саме вікно. */
+    /* «Дизайн» і «Товар» — два входи, а не одне безлике «Редагувати». Це те
+       саме розділення, що й усередині самого редактора, і менеджер потрапляє
+       одразу туди, куди йшов: правити нанесення чи міняти виріб і колір.
+       Одна кнопка змушувала його щоразу відкривати редактор і шукати
+       потрібну вкладку вручну. */
     return '<div class="edbar">' +
-      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
-        'title="Товар, колір, логотип, розмір і спосіб нанесення">✎ Редагувати</button>' +
+      '<span class="edseg">' +
+        '<button class="edb edb-pen" data-ed="edit" data-tab="photo" ' +
+          'data-k="' + kind + '" data-i="' + i + '" ' +
+          'title="Логотип, напис, розмір і спосіб нанесення">Дизайн</button>' +
+        '<button class="edb edb-pen" data-ed="edit" data-tab="garment" ' +
+          'data-k="' + kind + '" data-i="' + i + '" ' +
+          'title="Виріб, колір, розміри">Товар</button>' +
+      '</span>' +
       '<button class="edb" data-ed="dup" data-k="' + kind + '" data-i="' + i + '" ' +
         'title="Зробити копію позиції">Дублювати</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
@@ -1491,6 +1503,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            коли та відповість адресою — розгортаємо кадр на місці. */
         if(b.dataset.ed === 'edit'){
           var y0 = window.scrollY;
+          /* Редактор уже відкритий на цій позиції — просто перемикаємо
+             вкладку, а не збираємо кадр наново: інакше клік по «Товар»
+             перезавантажував конструктор і скидав усе, що менеджер щойно
+             там зробив. */
+          if(edOpen && edOpen.kind === b.dataset.k && edOpen.i === +b.dataset.i && edOpen.src){
+            var fr = document.querySelector('.edslot-frame');
+            try{
+              if(fr && fr.contentWindow && fr.contentWindow.__pmGoTab){
+                fr.contentWindow.__pmGoTab(b.dataset.tab || 'photo');
+                return;
+              }
+            }catch(err){}
+          }
           edOpen = { kind: b.dataset.k, i: +b.dataset.i, src: '' };
           render(); window.scrollTo(0, y0);
           edSend({ act:'editInline', kind: b.dataset.k, i: +b.dataset.i, tab: b.dataset.tab || '' });
