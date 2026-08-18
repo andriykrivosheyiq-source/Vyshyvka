@@ -390,6 +390,23 @@ def main():
     print('[конструктор] стилі → %s (%d КБ), розмітка → %s (%d рядків)'
           % (CTOR_CSS, len(css) // 1024, CTOR_HTML, markup.count('\n') + 1))
 
+    # Розмітку кладемо ще й прямо в сторінку пропозиції. Окремим файлом вона
+    # тягнеться вже під час редагування — і варто тому файлу не доїхати, як
+    # редактор назавжди лишається з написом «Відкриваємо…».
+    off = os.path.join(ROOT, 'offer.html')
+    if os.path.exists(off):
+        txt = open(off, encoding='utf-8').read()
+        a, b = '<!-- lq:constructor -->', '<!-- /lq:constructor -->'
+        if txt.count(a) == 1 and txt.count(b) == 1:
+            head = txt.index(a) + len(a)
+            tail = txt.index(b)
+            new = txt[:head] + '\n' + markup + txt[tail:]
+            if new != txt:
+                open(off, 'w', encoding='utf-8').write(new)
+                print('[offer.html] розмітку конструктора вкладено в сторінку')
+        else:
+            raise BuildError('в offer.html немає міток lq:constructor для розмітки конструктора')
+
     # Позначка версії спільна на всі три файли: вони змінюються разом
     ver = ctor_version(base_ctor + css + markup)
     for name in STAMPED:
