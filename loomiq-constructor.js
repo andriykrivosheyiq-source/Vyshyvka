@@ -683,7 +683,13 @@
     window.__lqSendToOrder = function(){
       var tgt = ccTargetOrder();
       if(!tgt || !tgt.id) return Promise.resolve(false);
-      var items = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var all = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      /* У кошику лежить усе замовлення — воно потрібне, щоб ціна рахувалась
+         від сумарного тиражу, а не від однієї позиції. Але зберігаємо саме
+         ту, яку правили: решта в замовленні вже є, і надіслати їх ще раз
+         означало б задублювати склад. */
+      var only = window.__lqEditOnly;
+      var items = (only != null && all[only]) ? [all[only]] : all;
       if(!items.length) return Promise.resolve(false);
       var _h = window.__lqAdminHost && window.__lqAdminHost();
       var saver = (_h && _h.__adminSaveClientOrder) || window.__adminSaveClientOrder;
@@ -702,7 +708,10 @@
           /* Чистимо лише після підтвердженого запису — інакше позиція зникає
              з очей, а в базі її немає. У пропозиції кошика немає взагалі,
              тому і renderCart, і вікно кошика тут необовʼязкові. */
-          items.length = 0;
+          /* Кошик не чистимо, коли правимо одну позицію в пропозиції: там він
+             не кошик, а вміст замовлення, і без нього ціна наступної позиції
+             порахувалась би як для самотньої. */
+          if(only == null) all.length = 0;
           try{ if(typeof renderCart === 'function') renderCart(); }catch(e){}
           try{ document.getElementById('cartModal').classList.remove('open'); }catch(e){}
           return true;

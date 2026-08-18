@@ -593,10 +593,26 @@
   /* Дії над позицією. Правити її склад тут нема потреби — це робить сам
      конструктор; лишається тільки те, чого він не вміє: порядок, копія,
      перенос у рекомендовані та видалення. */
-  .acts{flex:none; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
-    padding:8px 12px; border-bottom:1px solid #E9EEF5; background:#FBFCFE;}
-  .acts .btn{padding:7px 11px; font-size:12px;}
-  .acts-nm{font-size:13px; font-weight:800; margin-right:4px;}
+  /* Дії живуть біля самої позиції, у списку, а не смугою над конструктором:
+     смуга забирала висоту в того єдиного, заради чого сюди й заходять — у
+     фото виробу. */
+  .it-dots{flex:none; width:26px; height:26px; border-radius:7px; border:0; cursor:pointer;
+    background:none; color:#9AA6B8; font-size:16px; line-height:1; opacity:0;}
+  .it:hover .it-dots, .it.on .it-dots{opacity:1;}
+  .it-dots:hover{background:#E7ECF4; color:#3D4C61;}
+  .menu{position:fixed; z-index:60; min-width:196px; background:#fff; border:1px solid #E2E8F0;
+    border-radius:12px; box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px;}
+  .menu button{display:block; width:100%; text-align:left; font:inherit; font-size:13px;
+    background:none; border:0; border-radius:8px; padding:9px 10px; cursor:pointer; color:#22314A;}
+  .menu button:hover{background:#F1F5FA;}
+  .menu button.is-del{color:#B3261E;}
+  .menu button.is-del:hover{background:#FDECEA;}
+  .why{flex:none; border-top:1px solid #E9EEF5; background:#FBFCFE; padding:10px 12px 12px;}
+  .why-l{display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em;
+    text-transform:uppercase; color:#8A93A3; margin-bottom:6px;}
+  .why-t{width:100%; font:inherit; font-size:13px; line-height:1.5; color:#22314A;
+    border:1px solid #D9E1EC; border-radius:10px; padding:9px 11px; resize:vertical;}
+  .why-t:focus{outline:none; border-color:#4F5FD4; box-shadow:0 0 0 3px rgba(79,95,212,.16);}
   .stage{flex:1; min-height:0; overflow:auto; position:relative;}
   .empty{padding:44px 20px; text-align:center; color:#8A93A3; font-size:13px; line-height:1.6;}
   .frame{width:100%; height:100%; border:0; display:block; background:#fff;}
@@ -612,7 +628,7 @@
   .stage .lq-inline .contact-modal-back{display:none !important;}
   .stage .lq-inline .contact-modal-inner{padding:0; max-width:none;}
   .stage .lq-inline .pm-stage{width:100% !important; max-width:100% !important;
-    height:min(46vh, 380px) !important; box-sizing:border-box;}
+    height:min(58vh, 520px) !important; box-sizing:border-box;}
   .stage .lq-inline .pm-stage img{max-width:100%; max-height:100%; object-fit:contain;}
   .stage .lq-inline #pmGarmentWrap{max-width:100%; max-height:100%;}
   /* Вітрина для клієнта тут зайва: відгуки, опис, гарантії, підвал і
@@ -651,10 +667,18 @@
   <aside class="list" id="paneList">
     <div class="list-h">Склад пропозиції</div>
     <div class="list-b" id="listBody"></div>
+    <!-- Пояснення до рекомендації — тут, біля самої позиції, а не над
+         конструктором: рекомендація без пояснення читається як спроба
+         дописати в рахунок ще один товар, а з поясненням — як робота
+         менеджера, який подумав за клієнта. -->
+    <div class="why hide" id="whyBox">
+      <label class="why-l" for="whyText">Чому радимо — клієнт це побачить</label>
+      <textarea class="why-t" id="whyText" rows="3"
+        placeholder="Напр.: до футболок беруть шопери — виходить комплект для подарунка клієнтам"></textarea>
+    </div>
     <div class="list-f">Разом<b id="listSum">—</b></div>
   </aside>
   <main class="work" id="paneWork">
-    <div class="acts" id="acts"></div>
     <div class="stage" id="stage">
       <div class="empty">Оберіть позицію ліворуч або додайте товар.</div>
     </div>
@@ -680,8 +704,8 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_JS   = 'loomiq-constructor.js?v=1ad060a6b8';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=1ad060a6b8';
+  var CTOR_JS   = 'loomiq-constructor.js?v=dd2d37ec3b';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=dd2d37ec3b';
 
   function send(msg){
     if(window.parent === window) return;
@@ -710,6 +734,7 @@
         '<span class="it-m">' + (kind === 'reco' ? 'рекомендований' :
           ((+it.qty || 0) + ' шт · ' + money(it.unitPrice) + '/шт')) + '</span>' +
       '</span>' +
+      '<button class="it-dots" data-dots="' + kind + ':' + i + '" title="Дії з позицією">⋯</button>' +
     '</div>';
   }
   function renderList(){
@@ -731,31 +756,77 @@
         pickItem(p[0], +p[1]);
       });
     });
+    box.querySelectorAll('[data-dots]').forEach(function(b2){
+      b2.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var p = b2.dataset.dots.split(':');
+        openMenu(b2, p[0], +p[1]);
+      });
+    });
     box.querySelectorAll('[data-add]').forEach(function(b){
       b.addEventListener('click', function(){ send({ act:'pickopen', kind: b.dataset.add }); });
     });
     renderActs();
   }
-  function renderActs(){
-    var box = document.getElementById('acts');
-    if(!cur){ box.innerHTML = ''; return; }
-    var it = itemsOf(cur.kind)[cur.i];
-    if(!it){ box.innerHTML = ''; return; }
-    box.innerHTML =
-      '<span class="acts-nm">' + esc(it.name || 'Позиція') + '</span>' +
-      '<button class="btn" data-act="dup">Дублювати</button>' +
-      '<button class="btn" data-act="up" title="Вище">↑</button>' +
-      '<button class="btn" data-act="down" title="Нижче">↓</button>' +
-      '<button class="btn" data-act="swap">' +
-        (cur.kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
-      '<button class="btn" data-act="del" title="Прибрати">🗑</button>';
-    box.querySelectorAll('[data-act]').forEach(function(b){
+  /* Меню позиції. Одне на всю сторінку: два відкритих меню поруч — це вже
+     здогадування, до якої позиції належить «Прибрати». */
+  var menuEl = null;
+  function closeMenu2(){ if(menuEl){ menuEl.remove(); menuEl = null; } }
+  document.addEventListener('click', closeMenu2);
+  window.addEventListener('scroll', closeMenu2, true);
+  function openMenu(anchor, kind, i){
+    closeMenu2();
+    var m = document.createElement('div');
+    m.className = 'menu';
+    m.innerHTML =
+      '<button data-act="dup">Дублювати</button>' +
+      '<button data-act="up">Пересунути вище</button>' +
+      '<button data-act="down">Пересунути нижче</button>' +
+      '<button data-act="swap">' +
+        (kind === 'reco' ? 'Перенести в основні' : 'Перенести в рекомендовані') + '</button>' +
+      '<button class="is-del" data-act="del">Прибрати з пропозиції</button>';
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left - w + r.width)) + 'px';
+    m.style.top  = (r.bottom + h + 8 > window.innerHeight
+                    ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+    m.addEventListener('click', function(e){ e.stopPropagation(); });
+    m.querySelectorAll('[data-act]').forEach(function(b){
       b.addEventListener('click', function(){
-        send({ act: b.dataset.act, kind: cur.kind, i: cur.i });
-        if(b.dataset.act === 'del' || b.dataset.act === 'swap') cur = null;
+        var a = b.dataset.act;
+        closeMenu2();
+        send({ act: a, kind: kind, i: i });
+        // Позиція зникла зі свого місця — активної більше немає
+        if(a === 'del' || a === 'swap') cur = null;
       });
     });
+    menuEl = m;
   }
+  /* Пояснення до рекомендації. Показуємо тільки там, де воно має сенс, і
+     зберігаємо, коли людина відвела погляд: писати в базу на кожній літері —
+     це десятки записів на один абзац. */
+  function renderWhy(){
+    var box = document.getElementById('whyBox');
+    var ta = document.getElementById('whyText');
+    var it = cur ? itemsOf(cur.kind)[cur.i] : null;
+    var on = !!(it && cur.kind === 'reco');
+    box.classList.toggle('hide', !on);
+    if(on && document.activeElement !== ta) ta.value = it.recoNote || '';
+  }
+  (function(){
+    var ta = document.getElementById('whyText');
+    var send2 = function(){
+      if(!cur || cur.kind !== 'reco') return;
+      var it = itemsOf(cur.kind)[cur.i];
+      var t = String(ta.value || '').trim();
+      if(it && (it.recoNote || '') === t) return;
+      if(it) it.recoNote = t;
+      send({ act:'recoNote', kind:'reco', i: cur.i, text: t });
+    };
+    ta.addEventListener('blur', send2);
+    ta.addEventListener('keydown', function(e){ e.stopPropagation(); });
+  })();
+  function renderActs(){ renderWhy(); }
 
   /* ── Конструктор ────────────────────────────────────────────────────── */
   function shims(){
@@ -920,7 +991,31 @@
   }
   function seedCtor(){
     var seed = window.__adminSeedItem || null;
+    /* У кошик кладемо УСЕ замовлення, а не саму лише позицію. Ціна залежить
+       від решти: поріг тиражу береться від сумарної кількості виробів цього
+       способу, а підготовка макета ділиться на всі вироби, а не на одну
+       позицію. Доти конструктор рахував позицію так, ніби вона в замовленні
+       сама, — і його ціна не збігалась із ціною в пропозиції. */
+    var cart = window.__adminSeedCart;
+    var idx = window.__adminSeedIndex;
     window.cartItems.length = 0;
+    if(Array.isArray(cart) && cart.length && idx != null && cart[idx]){
+      JSON.parse(JSON.stringify(cart)).forEach(function(x){ window.cartItems.push(x); });
+      window.__pmEditIndex = idx;
+      window.__lqEditOnly = idx;         // зберігати будемо тільки цю позицію
+      window.__pmAddKind = (cart[idx].kind === 'reco') ? 'reco' : 'main';
+      try{
+        var cfg = cart[idx].config;
+        if(cfg && window.__editProduct) window.__editProduct(cfg, idx, cart[idx].prints || []);
+        else if(cart[idx].garmentId && window.__openProductModal)
+          window.__openProductModal(cart[idx].garmentId);
+      }catch(e){ console.warn('позиція не розгорнулась', e); }
+      mountCtor(); quiet = true; dirty = false; mark('', '');
+      setTimeout(function(){ quiet = false; }, 1800);
+      return;
+    }
+    // Нова позиція: у замовленні її ще немає, тож і в кошику вона одна
+    window.__lqEditOnly = null;
     if(seed){
       window.cartItems.push(JSON.parse(JSON.stringify(seed)));
       window.__pmEditIndex = 0;
@@ -1005,6 +1100,8 @@
     if(d.catalog) CATALOG = d.catalog;
     if(d.clientUrl) CLIENT_URL = d.clientUrl;
     if(d.seed !== undefined) window.__adminSeedItem = d.seed;
+    if(d.cart !== undefined) window.__adminSeedCart = d.cart;
+    if(d.cartIndex !== undefined) window.__adminSeedIndex = d.cartIndex;
     if(d.target !== undefined) window.__adminOfferTarget = d.target;
     if(d.offer){
       OFFER = d.offer || {};
