@@ -4553,6 +4553,12 @@
       var u = totalUnits();
       if(u===0){ alert('Оберіть розмір і кількість'); return; }
       if(anyLogoOutsideAnySide()){ alert('Логотип виходить за зону друку. Посуньте його всередину пунктирної зони, щоб продовжити.'); return; }
+      /* Конструктор стоїть просто в картці пропозиції: аркуш «Додано в кошик»
+         тут зайвий. Він розповідає клієнтові про наступні кроки й пропонує
+         менеджерові вибрати блок кошика — а в пропозиції і кошика немає, і
+         блок уже відомий: правиться конкретна позиція. Тому зберігаємо
+         одразу, без проміжного вікна. */
+      if(window.__lqInline){ addCurrentToCart(window.__pmAddKind === 'reco' ? 'reco' : 'main'); return; }
       document.getElementById('pmMockupModal').classList.add('open');
       if(window.__markAddKind) window.__markAddKind();
     }
