@@ -539,15 +539,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pgal-off{position:absolute; left:8px; top:8px; z-index:2; font-size:10px; font-weight:800;
     letter-spacing:.04em; text-transform:uppercase; color:#7A2320; background:#FDECEA;
     border-radius:20px; padding:3px 8px; pointer-events:none;}
-  .pgal-lab.is-edit{pointer-events:auto; background:#fff; outline:2px solid #4F5FD4;
-    outline-offset:1px; min-width:60px; cursor:text;}
-  .pgal-add{flex:0 0 34%; scroll-snap-align:start; aspect-ratio:1/1; border:0; cursor:pointer;
-    background:#F7F9FC; box-shadow:inset 0 0 0 1.5px #DDE4EE; color:#9AA6B8; font-size:22px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    font-family:inherit;}
-  .pgal-add:hover{color:#3D4C61; box-shadow:inset 0 0 0 1.5px #4F5FD4;}
-  .pgal-add i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
-    text-transform:uppercase;}
   /* Прорахунок для менеджера. Розмітка й вигляд — ті самі, що в «Прорахунку
      замовлення» на сайті: менеджер читає звичний йому блок, а не другий
      варіант того самого. Згорнутий, бо потрібен не постійно. */
@@ -1424,6 +1415,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        картці, де натиснули. Чекаємо саме на цей сигнал: без насіння
        конструктор показав би порожній виріб замість цієї позиції. */
     if(d.editReady != null){
+      /* Насіння й привʼязку до замовлення адмінка передає повідомленням, а
+         не через доступ до свого вікна. Сторінка КП відкрита кадром, і її
+         адреса може бути з іншого домену, ніж адмінка, — тоді браузер
+         блокує будь-яке звертання до батьківського вікна, і місток мовчки
+         не працював: кнопка звалась «Додати в кошик», кількість не
+         підтягувалась, а попередження ковталось пісочницею кадру. */
+      if(d.seed !== undefined) window.__adminSeedItem = d.seed;
+      if(d.target !== undefined) window.__adminOfferTarget = d.target;
       if(!d.editReady){
         ctorUnmount(); edOpen = null; edPending = null;
         var ys0 = window.scrollY; render(); window.scrollTo(0, ys0);
@@ -1523,9 +1522,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=9650eafcbe';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=9650eafcbe';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=9650eafcbe';
+  var CTOR_JS   = 'loomiq-constructor.js?v=9cc7e5d90e';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=9cc7e5d90e';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=9cc7e5d90e';
   var ctorReady = null;
 
   function ctorShims(){
@@ -1560,6 +1559,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        усередині адмінки, тож шукаємо вгору: батько, потім найвищий кадр.
        Без цього конструктор не знає, у чиє замовлення класти позицію, — і
        мовчки нікуди її не кладе. */
+    /* Зберігає замовлення адмінка — але просимо її про це повідомленням, а
+       не викликом через вікно. Так це працює й тоді, коли адмінка відкрита
+       з іншої адреси, ніж сторінка пропозиції. */
+    W.__adminSaveClientOrder = W.__adminSaveClientOrder || function(payload){
+      return new Promise(function(res, rej){
+        var id = 's' + Date.now() + Math.random().toString(36).slice(2, 6);
+        var timer = null;
+        var off = function(e){
+          var m = e.data;
+          if(!m || !m.lqEditInit || m.saveAck !== id) return;
+          window.removeEventListener('message', off);
+          clearTimeout(timer);
+          if(m.ok) res(true); else rej(new Error(m.err || 'не збереглось'));
+        };
+        window.addEventListener('message', off);
+        timer = setTimeout(function(){
+          window.removeEventListener('message', off);
+          rej(new Error('адмінка не відповіла'));
+        }, 90000);
+        edSend({ act:'saveItem', id:id, payload:payload });
+      });
+    };
     W.__lqAdminHost = W.__lqAdminHost || function(){
       var tries = [];
       try{ if(window.parent && window.parent !== window) tries.push(window.parent); }catch(e){}
@@ -1821,16 +1842,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         el.addEventListener(t, function(e){ e.stopPropagation(); });
       });
     });
-    document.querySelectorAll('[data-viewadd]').forEach(function(b){
-      b.addEventListener('click', function(e){
-        e.preventDefault(); e.stopPropagation();
-        var p = String(b.dataset.viewadd).split(':');
-        edSend({ act:'viewAdd', kind: p[0], i: +p[1] });
-      });
-      ['pointerdown','mousedown','touchstart'].forEach(function(t){
-        b.addEventListener(t, function(e){ e.stopPropagation(); });
-      });
-    });
     var ttl = document.querySelector('[data-ed-title]');
     if(ttl){
       ttl.addEventListener('blur', function(){
@@ -1868,14 +1879,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var m = document.createElement('div');
     m.className = 'vmenu';
     var off = el.classList.contains('is-off');
-    m.innerHTML = '<b>Ракурс</b>' +
-      // Показ клієнту — перший рядок: саме заради нього менеджер сюди й
-      // заходить, коли хоче додати боковинку кепки в пропозицію
-      '<button data-vm="show">' + (off ? 'Показати клієнту' : 'Сховати від клієнта') + '</button>' +
-      '<button data-vm="photo">' +
-        (el.classList.contains('is-empty') ? 'Завантажити фото' : 'Замінити фото') + '</button>' +
-      '<button data-vm="name">Перейменувати</button>' +
-      '<button class="is-del" data-vm="del">Видалити ракурс</button>';
+    /* Один пункт, і цього досить. Завантажувати сюди сторонні фото не можна:
+       ракурси малює конструктор із того, що заведено в адмінці, і чуже фото
+       показало б клієнтові не той виріб. Перейменовувати теж нема чого —
+       підписи сторін ідуть із адмінки. А «видалити» не потрібне, бо є
+       «сховати»: ракурс лишається на місці й повертається одним кліком. */
+    m.innerHTML = '<b>Ракурс · ' + esc(el.getAttribute('data-view-label') || '') + '</b>' +
+      '<button data-vm="show">' + (off ? 'Показати клієнту' : 'Сховати від клієнта') + '</button>';
     document.body.appendChild(m);
     // Меню тримається біля знімка, але не вилазить за екран
     var r = el.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
@@ -1887,40 +1897,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(){
         var a = b.dataset.vm;
         vmenuClose();
-        if(a === 'show'){ edSend({ act:'viewShow', kind: kind, i: i, pos: pos, v: off ? 1 : 0 }); return; }
-        if(a === 'photo'){ edSend({ act:'viewPhoto', kind: kind, i: i, pos: pos }); return; }
-        if(a === 'del'){ edSend({ act:'viewDel', kind: kind, i: i, pos: pos }); return; }
-        vmenuRename(el, kind, i, pos);
+        if(a === 'show') edSend({ act:'viewShow', kind: kind, i: i, pos: pos, v: off ? 1 : 0 });
       });
     });
     vmenuEl = m;
-  }
-  // Назва правиться прямо в підписі — окремого поля для неї не потрібно
-  function vmenuRename(el, kind, i, pos){
-    var lab = el.querySelector('.pgal-lab');
-    if(!lab) return;
-    lab.setAttribute('contenteditable', 'plaintext-only');
-    lab.classList.add('is-edit');
-    lab.focus();
-    try{
-      var sel = window.getSelection(), rg = document.createRange();
-      rg.selectNodeContents(lab); sel.removeAllRanges(); sel.addRange(rg);
-    }catch(e){}
-    var done = false;
-    var stop = function(){ lab.removeAttribute('contenteditable'); lab.classList.remove('is-edit'); };
-    var save = function(){
-      if(done) return; done = true;
-      stop();
-      edSend({ act:'viewName', kind: kind, i: i, pos: pos,
-               text: lab.innerText.replace(/\s+/g, ' ').trim() });
-    };
-    lab.addEventListener('blur', save, { once:true });
-    lab.addEventListener('click', function(e){ e.stopPropagation(); });
-    lab.addEventListener('keydown', function(e){
-      e.stopPropagation();
-      if(e.key === 'Enter'){ e.preventDefault(); lab.blur(); }
-      if(e.key === 'Escape'){ done = true; stop(); lab.blur(); }
-    });
   }
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
@@ -2419,7 +2399,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var off = EDIT && v.show === false;
         return '<div class="pgal-i' + (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') +
           (off ? ' is-off' : '') + '"' +
-          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '" title="Натисніть, щоб змінити фото, назву або показ клієнту"' : '') + '>' +
+          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '"' +
+                  ' data-view-label="' + esc(v.label || '') + '"' +
+                  ' title="Натисніть, щоб сховати або показати клієнту"' : '') + '>' +
           (v.img
             ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
               (k > 1 ? 'loading="lazy" ' : '') +
@@ -2429,8 +2411,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
         '</div>';
       }).join('') +
-      (EDIT ? '<button class="pgal-add" data-viewadd="' + K + ':' + idx + '" ' +
-              'title="Додати ще один ракурс">＋<i>ракурс</i></button>' : '') +
+      /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
+         конструктором і лежать тут-таки — просто приховані. Додавати нема
+         чого: треба лише показати потрібну клієнту. */
     '</div>';
   }
   // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку

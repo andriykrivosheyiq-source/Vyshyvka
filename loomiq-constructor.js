@@ -4314,8 +4314,11 @@
       [t1, t2].forEach(function(b){
         if(!b) return;
         var sum = b.querySelector('.pm-add-btn-sum');
-        b.childNodes[0].nodeValue = edit ? (bound ? 'Оновити в замовленні' : 'Оновити в кошику')
-                                         : (bound ? 'Додати до замовлення' : 'Додати в кошик');
+        /* У картці пропозиції менеджер не «додає в кошик» — він править
+           позицію, яка вже там стоїть. Кнопка так і має називатись. */
+        b.childNodes[0].nodeValue = window.__lqInline ? 'Зберегти зміни'
+          : (edit ? (bound ? 'Оновити в замовленні' : 'Оновити в кошику')
+                  : (bound ? 'Додати до замовлення' : 'Додати в кошик'));
         if(sum) b.appendChild(sum);
       });
       if(main) main.textContent = edit
