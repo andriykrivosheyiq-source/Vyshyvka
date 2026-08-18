@@ -4681,22 +4681,37 @@ async function migrateOrdersToCollection(){
 
 // Розкладка логотипів потрібна лише для повторного редагування позиції —
 // самі картинки в ній зайві. Викидаємо base64, лишаємо геометрію.
-function slimOrderConfig(cfg){
+/* filesBySide — вивантажені у хмару адреси логотипів, по одній на кожен шар
+   тієї самої сторони й у тому самому порядку. Без них конфігурація зберігала
+   тільки геометрію: розмір, місце, поворот — а самої картинки не було. Тому
+   при повторному відкритті позиції макет виявлявся порожнім: логотип «зникав».
+   Data-URL сюди не кладемо ніколи — документ замовлення обмежений 1 МБ. */
+function slimOrderConfig(cfg, filesBySide){
   if(!cfg) return null;
   const out = { garmentId: cfg.garmentId || null, colorId: cfg.colorId || null,
                 printId: cfg.printId || null, qty: cfg.qty || {}, logos: {} };
   Object.keys(cfg.logos || {}).forEach(side=>{
+    const files = (filesBySide || {})[side] || [];
     /* frac/fx/fy — розмір і місце у ЧАСТКАХ ширини виробу. Саме вони, а не
        пікселі, задають фізичні міліметри друку. Без них та сама позиція,
        відкрита у вужчому вікні, оживала з іншим розміром і з іншою ціною.
        x/y/scale лишаються для сумісності зі старими картками. */
-    out.logos[side] = (cfg.logos[side] || []).map(l=>({
+    out.logos[side] = (cfg.logos[side] || []).map((l, i)=>{
+      const own = String(l.url || l.origUrl || '');
+      // Своя адреса підходить, лише якщо це вже посилання, а не важкий data-URL
+      const url = (/^https?:/i.test(own) ? own : '') || String(files[i] || '') || null;
+      return {
+      url, origUrl: url, cleanUrl: url,
+      // Напис лишається написом: без цього після повторного відкриття його
+      // не можна було переписати, лише видалити й набрати заново
+      text: l.text ? { t:String(l.text.t||''), font:l.text.font||'', color:l.text.color||'',
+                       bold:!!l.text.bold, italic:!!l.text.italic } : null,
       x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
       frac: l.frac != null ? l.frac : null,
       fx: l.fx != null ? l.fx : null,
       fy: l.fy != null ? l.fy : null,
       fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null
-    }));
+    };});
   });
   return out;
 }
@@ -4725,6 +4740,7 @@ window.__adminSaveClientOrder = async function(payload){
     // Оригінали логотипів теж ідуть у хмару. Раніше вони лягали в базу як base64
     // і одне замовлення могло саме по собі перевищити ліміт документа.
     const prints = [];
+    const filesBySide = {};      // адреси логотипів по сторонах — для конфігурації
     for(const p of (it.prints || [])){
       let file = p.file || null;
       if(file && /^data:/i.test(file)){
@@ -4736,6 +4752,7 @@ window.__adminSaveClientOrder = async function(payload){
       prints.push({ side: p.side||'', sideLabel: p.sideLabel||'', technique: p.technique||'',
                     widthMm: Math.round(+p.widthMm||0), heightMm: Math.round(+p.heightMm||0),
                     file: file || null });
+      (filesBySide[p.side||''] = filesBySide[p.side||''] || []).push(file || null);
     }
     items.push({
       kind: it.kind === 'reco' ? 'reco' : 'main',
@@ -4743,7 +4760,7 @@ window.__adminSaveClientOrder = async function(payload){
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config),
+      mockups, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config, filesBySide),
       // Товар і підрядник фіксуються тут-і-зараз. Якщо товар потім переведуть
       // на іншого підрядника, це замовлення має лишитись зі своїм.
       garmentId: (it.config && it.config.garmentId) || it.garmentId || null,
@@ -9075,6 +9092,31 @@ function closeCalcOver(){
    до замовлення. Один код на обидва способи відкриття — редактор у картці
    пропозиції й вікно збоку, — щоб вони не розʼїхались.
    Повертає саму позицію (або null для нової). */
+/* Позиції, збережені до того, як конфігурація почала памʼятати адресу
+   логотипа, мають геометрію без картинки — і відкривались із порожнім
+   макетом. Але сама картинка нікуди не поділась: вона лежить у prints[].file
+   тієї самої сторони. Підставляємо її при відкритті, щоб старі пропозиції
+   редагувались так само, як нові. */
+function configWithLogos(it){
+  const cfg = it && it.config;
+  if(!cfg || !cfg.logos) return cfg || null;
+  const need = Object.keys(cfg.logos).some(side =>
+    (cfg.logos[side] || []).some(l => l && !l.url));
+  if(!need) return cfg;
+  const bySide = {};
+  (it.prints || []).forEach(p => {
+    const k = p.side || '';
+    (bySide[k] = bySide[k] || []).push(p.file || null);
+  });
+  const out = JSON.parse(JSON.stringify(cfg));
+  Object.keys(out.logos).forEach(side => {
+    const files = bySide[side] || [];
+    (out.logos[side] || []).forEach((l, i) => {
+      if(l && !l.url && files[i]){ l.url = l.origUrl = l.cleanUrl = files[i]; }
+    });
+  });
+  return out;
+}
 function calcSeedFor(o, editIdx){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
@@ -9088,7 +9130,7 @@ function calcSeedFor(o, editIdx){
     unitCost: +it.unitCost || 0, cost: +it.cost || 0,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
-    calc: it.calc || null, desc: it.desc || null, config: it.config || null,
+    calc: it.calc || null, desc: it.desc || null, config: configWithLogos(it),
     /* Товар із каталогу ще не має config — конструктор не мав чого
        розгортати й лишався на каталозі, ніби ми нічого не обирали.
        Із garmentId він відкриє потрібний виріб одразу. */

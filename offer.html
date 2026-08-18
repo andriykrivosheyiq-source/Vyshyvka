@@ -1339,14 +1339,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // від неї перерахується сама, спільним калькулятором.
   function edBar(kind, i, qty){
     if(!EDIT) return '';
-    /* Три конкретні дії замість однієї «Змінити». Кожна відкриває конструктор
-       одразу на потрібній вкладці: доти менеджер щоразу згадував, де саме
-       міняється колір, а де розмір нанесення. */
+    /* Одна кнопка редагування, а не три. Колір, нанесення й розміри живуть на
+       вкладках усередині самого редактора — дублювати їх ще й тут означало
+       ставити менеджера перед вибором там, де вибору немає: він однаково
+       відкриє те саме вікно. */
     return '<div class="edbar">' +
       '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
-        'data-tab="garment" title="Товар і колір">Колір</button>' +
-      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
-        'data-tab="photo" title="Логотип, розмір і спосіб нанесення">Нанесення</button>' +
+        'title="Товар, колір, логотип, розмір і спосіб нанесення">✎ Редагувати</button>' +
       '<button class="edb" data-ed="dup" data-k="' + kind + '" data-i="' + i + '" ' +
         'title="Зробити копію позиції">Дублювати</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
