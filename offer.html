@@ -1044,6 +1044,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      бачити, де закінчується пропозиція і починається інструмент. */
   .edbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 14px 0;
     padding:8px;border:1px dashed #B9C4D4;border-radius:10px;background:#F4F7FB;}
+  /* Редактор позиції розгортається в самій картці, на всю її ширину.
+     Висота — від висоти вікна, щоб виріб вміщався цілком і не доводилось
+     прокручувати всередині кадру. */
+  .edslot:empty{display:none;}
+  .edslot.is-open{margin:10px 14px 0;border:1px solid #D9E1EC;border-radius:12px;
+    overflow:hidden;background:#fff;}
+  .edslot-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 12px;background:#F4F7FB;border-bottom:1px solid #E6EBF2;font-size:13px;}
+  .edslot-frame{display:block;width:100%;height:min(72vh,660px);border:0;background:#fff;}
+  .edslot-wait{padding:26px 12px;text-align:center;color:#8A93A3;font-size:13px;}
   .edb{font:inherit;font-size:12px;font-weight:700;color:#3D4C61;background:#fff;
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
@@ -1297,8 +1307,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
        угору, і менеджер щоразу шукав, де він був. Тепер приходить новий
        документ, сторінка перемальовується на місці, прокрутка лишається. */
+    /* Адмінка підготувала позицію й повернула адресу конструктора —
+       розгортаємо його в тій самій картці, де натиснули. */
+    if(d.editSrc != null){
+      if(!d.editSrc){ edOpen = null; }
+      else if(edOpen) edOpen.src = d.editSrc;
+      var ys = window.scrollY;
+      render(); window.scrollTo(0, ys);
+      return;
+    }
     if(d.offer){
       var y = window.scrollY;
+      // Правку зберегли — редактор у картці більше не потрібен
+      if(d.editDone) edOpen = null;
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
@@ -1342,6 +1363,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<button class="edb" data-ed="swap" data-k="' + kind + '" data-i="' + i + '">' +
         (kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
       '<button class="edb edb-del" data-ed="del" data-k="' + kind + '" data-i="' + i + '" title="Прибрати">🗑</button>' +
+    '</div>';
+  }
+  /* ── Редактор позиції просто в картці ──────────────────────────────
+     Це той самий конструктор, що на сайті: ті самі товари, кольори, зони
+     нанесення, формули й знижки. Він не переписаний удруге — він вкладений
+     сюди кадром, тому розійтися з сайтом у розрахунках йому нема як.
+     Відкритий редактор памʼятається у edOpen, щоб перемальовування сторінки
+     (а воно тепер відбувається після кожної правки) його не згорнуло. */
+  var edOpen = null;      // { kind, i, src }
+  function edSlotHtml(kind, i){
+    if(!EDIT) return '';
+    var on = edOpen && edOpen.kind === kind && edOpen.i === i;
+    if(!on) return '<div class="edslot" data-edslot="' + kind + ':' + i + '"></div>';
+    return '<div class="edslot is-open" data-edslot="' + kind + ':' + i + '">' +
+      '<div class="edslot-head"><b>Редагування позиції</b>' +
+        '<button class="edb" data-ed="closeinline">Згорнути</button></div>' +
+      (edOpen.src
+        ? '<iframe class="edslot-frame" src="' + esc(edOpen.src) + '" title="Редактор позиції"></iframe>'
+        : '<div class="edslot-wait">Відкриваємо…</div>') +
     '</div>';
   }
   function edAdd(kind){
@@ -1395,6 +1435,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
+        if(b.dataset.ed === 'closeinline'){ edOpen = null; render(); return; }
+        /* «Колір», «Нанесення» — редактор просто в картці. Спершу просимо
+           адмінку підготувати позицію (вона знає її конфігурацію), а вже
+           коли та відповість адресою — розгортаємо кадр на місці. */
+        if(b.dataset.ed === 'edit'){
+          var y0 = window.scrollY;
+          edOpen = { kind: b.dataset.k, i: +b.dataset.i, src: '' };
+          render(); window.scrollTo(0, y0);
+          edSend({ act:'editInline', kind: b.dataset.k, i: +b.dataset.i, tab: b.dataset.tab || '' });
+          return;
+        }
         edSend({ act: b.dataset.ed, kind: b.dataset.k, i: b.dataset.i == null ? null : +b.dataset.i,
                  tab: b.dataset.tab || '' });
       });
@@ -2105,6 +2156,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '</div>' +
             '</div>' +
             edBar('main', i, it.qty) +
+            /* Місце під редактор позиції. Він розгортається ТУТ, у самій
+               картці, а не окремим вікном чи колонкою: менеджер лишається в
+               документі, який збирає, і бачить, як правка на нього лягає. */
+            edSlotHtml('main', i) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
@@ -2309,6 +2364,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
               (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
             edBar('reco', i, null) +
+            edSlotHtml('reco', i) +
           '</div>';
         }).join('') + '</div>' +
         edAdd('reco') +
