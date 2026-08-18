@@ -5516,6 +5516,304 @@ function fillOrderParts(o){
   const res = priceOrder(list);
   idx.forEach((i, k)=>{ if(o.items[i] && res[k]) o.items[i].parts = res[k].parts || null; });
 }
+function priceCalcHtml(o){
+  fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
+  const rows = [];
+  (o.items || []).forEach(it=>{
+    if(it.kind === 'reco' || !it.parts) return;
+    const b = it.parts;
+    const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+    const lines = [];
+    lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
+    // DTF: знижка за тираж уже в ціні аркуша — окремим рядком не дублюємо
+    if(b.appBase){
+      // Старт вишивки — окремим рядком від площі (див. index.html, той самий розклад)
+      const area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
+      if((b.basePart > 0 || b.minPart > 0) && area > 0){
+        lines.push(['Нанесення · ' + (it.print || '—') + ' — за площею', area + ' ₴']);
+        if(b.basePart > 0) lines.push(['Нанесення · ' + (it.print || '—') + ' — старт', b.basePart + ' ₴']);
+        if(b.minPart > 0) lines.push(['Доплата до мінімальної ціни нанесення', b.minPart + ' ₴']);
+      } else {
+        lines.push(['Нанесення · ' + (it.print || '—') +
+          (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' ₴']);
+      }
+    }
+    if(pre > post) lines.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
+      Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
+    if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);
+    if(b.feeShare){
+      // feeShare містить і базову разову, і ескізи. Базову показуємо як залишок,
+      // щоб рядки сходились із ціною за штуку, а ескізи не рахувались двічі.
+      const sk = (b.sketches || []).map(s=>({ s, share: Math.round(s.fee / (s.units || 1)) }));
+      const base = b.feeShare - sk.reduce((a,x)=>a + x.share, 0);
+      if(base > 0) lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', base + ' ₴']);
+      sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
+    }
+    lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
+    lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
+    rows.push('<div class="t-calc-item"><div class="t-calc-name">' + escapeHtml(it.name || '—') + '</div>' +
+      lines.map(l=>'<div class="t-calc-row' + (l[2] === 'disc' ? ' is-disc' : '') +
+        (l[2] === 'note' ? ' is-note' : '') + (l[2] === 'sum' ? ' is-sum' : '') +
+        '"><span>' + escapeHtml(l[0]) + '</span><b>' + escapeHtml(l[1]) + '</b></div>').join('') +
+      '</div>');
+  });
+  if(!rows.length) return '';
+  const adj = +o.feeAdj || 0;
+  return '<details class="t-calc"><summary>Як склалась ціна</summary><div class="t-calc-body">' +
+    rows.join('') +
+    (adj ? '<div class="t-calc-row is-note"><span>Ручна поправка до суми</span><b>' +
+      (adj > 0 ? '+' : '') + adj + ' ₴</b></div>' : '') +
+    '</div></details>';
+}
+// Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
+function orderDescriptors(o){
+  const idx = [], list = [];
+  (o.items || []).forEach((it, i)=>{
+    if(it.kind === 'reco' || !it.desc) return;
+    idx.push(i); list.push(it.desc);
+  });
+  return { idx, list };
+}
+// Перерахунок цін позицій замовлення спільним рушієм. Повертає true, якщо
+// замовлення взагалі має розклад (старі замовлення його не мають).
+function repriceOrder(o){
+  const { idx, list } = orderDescriptors(o);
+  if(!list.length) return false;
+  const res = priceOrder(list);
+  idx.forEach((i, k)=>{
+    const it = o.items[i], r = res[k];
+    if(!it || !r) return;
+    it.unitPrice = r.unit;
+    it.price = r.sum;
+    it.feeShare = r.feeShare;
+    it.parts = r.parts || null;
+  });
+  return true;
+}
+
+function docGarmentCoef(qty){
+  const p = curSitePricing();
+  const l = p && p.garmentTiers;
+  if(!Array.isArray(l) || !l.length) return null;
+  const rows = l.map(t=>({ from:+t.from||1, coef:+t.coef||1 })).sort((a,b)=>a.from-b.from);
+  let c = 1;
+  for(let i = rows.length - 1; i >= 0; i--){ if(qty >= rows[i].from){ c = rows[i].coef; break; } }
+  return c;
+}
+function docPriceAt(item, qty, coefOverride){
+  const c = item.calc;
+  const p = curSitePricing();
+  const tiers = (p && p.tiers) || [];
+  let coef = 1;
+  for(let i = tiers.length - 1; i >= 0; i--){
+    if(qty >= (+tiers[i].from || 1)){ coef = +tiers[i].coef || 1; break; }
+  }
+  if(coefOverride != null) coef = coefOverride;
+  if(!c){
+    // старі замовлення без розкладу — масштабуємо від відомої ціни
+    let curCoef = 1;
+    for(let i = tiers.length - 1; i >= 0; i--){
+      if((item.qty||1) >= (+tiers[i].from || 1)){ curCoef = +tiers[i].coef || 1; break; }
+    }
+    return Math.round((+item.unitPrice || 0) * (coef / (curCoef || 1)));
+  }
+  const m = ((p && p.methods) || {})[c.method === 'dtf' ? 'dtf' : 'embro'] || {};
+  let flat = 0;
+  if(c.method === 'dtf' && (c.dtfCols || []).length){
+    const qf = m.qtyFrom || [];
+    let row = 0;
+    for(let j = qf.length - 1; j >= 0; j--){ if(qty >= qf[j]){ row = j; break; } }
+    const grid = m.price || [];
+    c.dtfCols.forEach(col=>{
+      const v = (grid[row] && grid[row][col] != null) ? +grid[row][col] : 0;
+      flat += Math.round(v);   // мінімалки в сітці немає — беремо рівно клітинку
+    });
+  }
+  // Знижки не накладаються: шкала виробу діє лише на позицію БЕЗ нанесення.
+  // Якщо нанесення є — виріб іде під знижку того способу, як і раніше.
+  const bare = !((item.prints || []).length) && !((c && c.dtfCols || []).length);
+  let gc = bare ? docGarmentCoef(qty) : null;
+  if(gc == null || coefOverride != null) gc = coef;
+  return Math.round((+c.base || 0) * gc + (+c.coefPart || 0) * coef) + flat
+       + (+c.pieceFee || 0) + (qty > 0 ? Math.round((+c.orderFee || 0) / qty) : 0);
+}
+
+// Пороги для блоку «при більшому тиражі» — беремо наступні після поточного.
+// Прив'язуємо до фактичної ціни позиції, щоб документ не суперечив сам собі:
+// рядок «ваш тираж» має збігатися з блоком вартості вище.
+function docTierRows(item){
+  const p = curSitePricing();
+  const tiers = (p && p.tiers) || [];
+  const cur = item.qty || 1;
+  const real = +item.unitPrice || 0;
+  const calcCur = docPriceAt(item, cur) || real || 1;
+  const k = real ? (real / calcCur) : 1;          // коефіцієнт прив'язки до реальної ціни
+  const out = [{ qty: cur, price: real || calcCur, now: true }];
+  tiers.forEach(t=>{
+    const q = +t.from || 1;
+    if(q > cur && out.length < 5) out.push({ qty: q, price: Math.round(docPriceAt(item, q) * k) });
+  });
+  return out;
+}
+
+/* ============================================================
+   ПЕРСОНАЛЬНА КОМЕРЦІЙНА ПРОПОЗИЦІЯ (offer.html)
+   Документ offers/{token} — єдине джерело даних і для сторінки, і для PDF.
+   Усі суми рахуємо ТУТ, тим самим калькулятором, що й адмінка,
+   щоб сторінка клієнта ніколи не розійшлася з Канбаном.
+   ============================================================ */
+
+// Базові тексти пропозиції. Поки зашиті; згодом винесемо в налаштування адмінки.
+const OFFER_DEFAULTS = {
+  includes: ['Виріб', 'Нанесення', 'Підготовка макета', 'Візуалізація',
+             'Перевірка якості перед відправкою', 'Пакування'],
+  trust: ['Власне виробництво в Україні',
+          'Макет погоджуємо до запуску у виробництво',
+          'Перевірка якості кожної партії',
+          'Працюємо з ФОП і ТОВ, надаємо документи'],
+  payment: 'Передоплата 50%, решта — після погодження готової партії',
+  startWith: 'Підтвердити пропозицію та внести передоплату',
+  validDays: 7,
+  // Запасні контакти на випадок, коли менеджера ще не заповнили в
+  // Налаштуваннях. Показувати вигадане імʼя клієнту не можна, тож у КП
+  // блок просто не зʼявиться, поки немає справжніх даних (див. offerManager).
+  manager: { name:'', role:'Ваш менеджер', photo:'',
+             phone:'', telegram:'', viber:'', email:'' }
+};
+/* Менеджер, від імені якого йдуть пропозиції. Один на всі КП — так
+   домовились; коли їх стане кілька, тут зʼявиться вибір у картці.
+   Живе у спільному документі, бо це не властивість сайту, а наша команда. */
+function offerManager(){
+  const m = (typeof contentData !== 'undefined' && contentData.offerManager) || {};
+  return {
+    name: String(m.name || '').trim(),
+    role: String(m.role || '').trim() || 'Ваш менеджер',
+    photo: String(m.photo || '').trim(),
+    phone: String(m.phone || '').trim(),
+    telegram: String(m.telegram || '').trim(),
+    viber: String(m.viber || '').trim(),
+    email: ''
+  };
+}
+
+/* ── Бренд пропозиції ──────────────────────────────────────────────────
+   Одне виробництво працює під двома вивісками, і частину пропозицій треба
+   надсилати від Stvory, а не від Loomiq. Тому шапка й підвал сторінки КП
+   беруться з бренду, а не зашиті в розмітку.
+
+   Бренд лягає в документ пропозиції ЗНІМКОМ, а не посиланням на довідник:
+   сторінка клієнта живе місяцями, і зміна назви чи логотипа в налаштуваннях
+   не має заднім числом переписувати вже надіслані пропозиції.
+
+   Назви, сайт і логотип редагуються в Налаштуваннях; тут — лише запасні
+   значення на випадок, коли в базі ще нічого немає. */
+const BRAND_KEYS = ['loomiq', 'stvory'];
+const BRAND_DEFAULTS = {
+  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'' },
+  stvory: { name:'Stvory', tagline:'виробництво мерчу', site:'', logo:'' }
+};
+function brandAll(){
+  const saved = cloud.offerBrands || {};
+  const out = {};
+  BRAND_KEYS.forEach(k => { out[k] = Object.assign({}, BRAND_DEFAULTS[k], saved[k] || {}); });
+  return out;
+}
+function brandKeyOf(o){
+  const k = o && o.brand;
+  return BRAND_KEYS.indexOf(k) >= 0 ? k : BRAND_KEYS[0];
+}
+// Те, що записуємо в offers/{token}: рівно ті поля, які малює сторінка клієнта.
+function brandSnap(key){
+  const k = BRAND_KEYS.indexOf(key) >= 0 ? key : BRAND_KEYS[0];
+  const b = brandAll()[k];
+  return { key: k, name: b.name || BRAND_DEFAULTS[k].name,
+           tagline: b.tagline || '', site: b.site || '', logo: b.logo || '' };
+}
+
+// Найменший коефіцієнт зі шкали тиражів = ціна без знижки за обсяг.
+// Порівнюємо однакову кількість, тож «економія» — це рівно те, що клієнт
+// виграє від тиражу, а не вигаданий відсоток від ціни однієї штуки.
+function offerBaseCoef(){
+  const tiers = (curSitePricing() || {}).tiers || [];
+  if(!tiers.length) return 1;
+  let base = +tiers[0].coef || 1;
+  tiers.forEach(t => { if((+t.coef || 1) > base) base = +t.coef || 1; });
+  return base;
+}
+// Ціна позиції при іншому тиражі — рахуємо ВСІМ замовленням, бо вона від нього
+// залежить: спільний макет ділиться на всі вироби, а знижка йде від сумарної
+// кількості в межах способу нанесення. Рахувати позицію окремо — це та сама
+// помилка, через яку кошик і Канбан колись розходились.
+function sharedPriceAt(order, itemIdx, qty, opts){
+  const { idx, list } = orderDescriptors(order);
+  const k = idx.indexOf(itemIdx);
+  if(k < 0) return null;
+  const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: Math.max(1, +qty || 1) }) : d);
+  const res = priceOrder(clone, opts);
+  return (res[k] && res[k].unit) || null;
+}
+/* Найменший поріг тиражу для позиції — те саме, що pt[0].min на сайті.
+   Від ціни на цьому порозі сайт і рахує відсоток знижки. */
+function offerFirstTierQty(order, itemIdx){
+  const item = order.items[itemIdx];
+  const p = curSitePricing();
+  if(!p) return 1;
+  const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
+  const m = (p.methods || {})[mk] || {};
+  const list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
+  if(!Array.isArray(list) || !list.length) return 1;
+  return Math.max(1, Math.min.apply(null, list.map(t => +t.from || 1)));
+}
+/* ── Ракурси позиції ──────────────────────────────────────────────────
+   Досі картка показувала просто список знімків, зроблених конструктором:
+   скільки сторін із нанесенням — стільки й фото. Менеджер не міг ні додати
+   ракурс, ні підмінити фото, ні прибрати зайвий.
+
+   Тепер ракурси — власне поле позиції. Поки менеджер їх не чіпав, вони
+   складаються з того, що вже є: знімки конструктора та підписи сторін. Перед
+   і Спина існують завжди, навіть коли фото ще немає, — це заготовка, у яку
+   менеджер кладе своє. Клієнту порожні ракурси не показуємо. */
+const VIEW_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
+function itemViews(it){
+  const mock = ((it || {}).mockups || []).filter(Boolean);
+  const own = Array.isArray((it || {}).views) ? it.views : null;
+  if(own && own.length) return own.map((v, i) => {
+    /* Ракурс, узятий із конструктора, і далі показує свіжий знімок: коли
+       менеджер змінив нанесення, підпис лишається його, а картинка
+       оновлюється сама. Своє завантажене фото так не перебивається —
+       у нього auto вже немає. */
+    const a = (v.auto == null || v.auto === '') ? null : +v.auto;
+    return { id: v.id || ('v' + i), side: v.side || null,
+             label: String(v.label || '').trim() || VIEW_UA[v.side] || ('Вигляд ' + (i + 1)),
+             img: (a != null && mock[a]) ? mock[a] : (String(v.img || '') || null),
+             auto: a, show: v.show !== false };
+  });
+  /* Стара позиція без ракурсів. Підписи беремо зі сторін нанесення, а чого
+     там немає — добудовуємо: перед і спина мають бути в кожного виробу,
+     навіть коли знімка ще не зробили. */
+  const sides = ((it || {}).sides || (it || {}).prints || []);
+  const out = mock.map((src, k) => {
+    const sd = sides[k] || {};
+    return { id: 'v' + k, side: sd.side || null, img: src, auto: k, show: true,
+             label: sd.sideLabel || VIEW_UA[sd.side] || (k === 0 ? 'Перед' : (k === 1 ? 'Спина' : 'Вигляд ' + (k + 1))) };
+  });
+  if(!out.some(v => v.label === 'Перед'))
+    out.unshift({ id:'vf', side:'front', label:'Перед', img:null, auto:null, show:true });
+  if(!out.some(v => v.label === 'Спина'))
+    out.push({ id:'vb', side:'back', label:'Спина', img:null, auto:null, show:true });
+  return out;
+}
+// Записати ракурси в позицію: далі вони живуть самі, від знімків не залежать
+function viewsWrite(o, k, list){
+  const it = (o.items || [])[k];
+  if(!it) return;
+  it.views = list.map((v, i) => ({ id: v.id || ('v' + i),
+                                   side: v.side || null,
+                                   label: String(v.label || '').slice(0, 40),
+                                   img: v.img || null,
+                                   auto: (v.auto == null || v.auto === '') ? null : +v.auto,
+                                   show: v.show !== false }));
+}
 /* Прорахунок пропозиції очима менеджера — ТОЧНО ТОЙ САМИЙ, що «Прорахунок
    замовлення» на сайті: ті самі рядки, ті самі формулювання, той самий
    порядок. Спершу все з розрахунку на ОДНУ штуку — виріб, нанесення, знижка
