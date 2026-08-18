@@ -4832,6 +4832,11 @@ window.__adminSaveClientOrder = async function(payload){
     if(lowMargin) throw new Error(lowMargin);
     // Заявка стає прорахунком: етап рухаємо лише вперед і лише з першого
     if(target.status === firstStatusKey()) setStatus(target, 'prorahunok');
+    /* Перерахунок спільним рушієм. Ціна позиції залежить від решти
+       замовлення — від сумарного тиражу способу й від того, на скільки
+       виробів ділиться підготовка макета. Без цього нова позиція приносила
+       свою ціну, а сусідні лишались зі старою, і кошторис не сходився. */
+    repriceOrder(target);
     recalcOrderTotals(target);
     const bad = await storeSet('orders', orders) || [];
     if(Array.isArray(bad) && bad.some(f => f && f.id === target.id))
@@ -9275,6 +9280,23 @@ function calcSeedFor(o, editIdx){
        Із garmentId він відкриє потрібний виріб одразу. */
     garmentId: it.garmentId || ''
   } : null;
+  /* УСЕ замовлення, а не лише редагована позиція. Знижка за тираж і
+     підготовка макета рахуються на все замовлення разом: макет ділиться на
+     всі вироби свого способу, а поріг тиражу береться від їхньої суми. Коли
+     конструктор бачив у кошику одну позицію, він рахував її так, ніби вона в
+     замовленні сама — і ціна виходила зовсім інша, ніж у пропозиції.
+     Редагована позиція йде під своїм номером; зберігається потім лише вона. */
+  window.__adminSeedCart = (o.items || []).map(x => ({
+    kind: x.kind === 'reco' ? 'reco' : 'main',
+    name: x.name || '', color: x.color || '', print: x.print || '', sizes: x.sizes || '',
+    qty: +x.qty || 0, unitPrice: +x.unitPrice || 0, price: +x.price || 0,
+    unitCost: +x.unitCost || 0, cost: +x.cost || 0,
+    recoNote: x.recoNote || '', recoTag: x.recoTag || '',
+    imgs: (x.mockups || []).slice(), prints: (x.prints || []).slice(),
+    calc: x.calc || null, desc: x.desc || null, config: configWithLogos(x),
+    garmentId: x.garmentId || ''
+  }));
+  window.__adminSeedIndex = (calcEdit != null && calcEdit >= 0) ? calcEdit : null;
   offerEdBack = o.id;
   /* Без цього конструктор не знає ні картки, ні номера позиції, яку
      редагуємо: __adminOfferTarget заповнює саме paintCalcTarget. */
@@ -9489,6 +9511,8 @@ async function offerEdApply(msg){
        відкривався порожнім. */
     f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editReady:true,
                                   seed: window.__adminSeedItem || null,
+                                  cart: window.__adminSeedCart || null,
+                                  cartIndex: window.__adminSeedIndex,
                                   target: window.__adminOfferTarget || null }, '*');
     return;
   }
@@ -9510,6 +9534,19 @@ async function offerEdApply(msg){
   }
   // Редактор згорнули — тепер можна спокійно показати оновлену пропозицію
   if(act === 'refresh'){ offerEdPreview(true); return; }
+  /* «Чому радимо» — текст під рекомендованою позицією, який бачить клієнт.
+     Рекомендація без пояснення читається як спроба дописати в рахунок ще
+     один товар; із поясненням — як робота менеджера, який подумав за
+     клієнта. Поле є в базі давно, але дотепер його ніде не було видно. */
+  if(act === 'recoNote'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const it = k >= 0 && (o.items || [])[k];
+    if(!it) return;
+    it.recoNote = String(msg.text || '').slice(0, 400);
+    if(!(await offerEdSave(o))) return;
+    renderBoard();
+    return;                       // сторінку не перемальовуємо: текст уже на екрані
+  }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
      список логотипів замовлення, тож у конструкторі його не треба
      завантажувати вдруге — це і був найдовший крок у збиранні пропозиції. */
