@@ -6438,10 +6438,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Масштаб поля нанесення: скільки мм відповідає 1.0 частки контейнера,
     // за калібруванням зони (heightCm + лінії калібрування). Прив'язує площу лого
     // до реального поля: на кепці поле мале → мало мм², на худі велике → більше.
+    /* Масштаб «міліметри на одну частку контейнера» рахується з фото виробу:
+       його пропорцій і калібрування зони друку. Поки фото не завантажилось,
+       раніше бралась зовсім інша формула — просто висота виробу, — і це
+       давало інший розмір друку, а отже й іншу ціну, на ті самі секунди
+       завантаження. Тепер памʼятаємо порахований масштаб для кожного виробу
+       й ракурсу, і на час завантаження беремо його, а не іншу формулу. */
+    var ZONE_MM_CACHE = {};
+    function zoneCacheKey(){ return pm.garmentId + '|' + pm.side + '|' + (pm.printId || ''); }
     function zoneScaleMmPerFrac(){
       if(typeof currentPrintCfg !== 'function') return null;
       var cfg = currentPrintCfg(); if(!cfg) return null;
-      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none') return null;
+      if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none'
+         || !(pmGarmentPhoto.naturalWidth > 0)){
+        return ZONE_MM_CACHE[zoneCacheKey()] != null ? ZONE_MM_CACHE[zoneCacheKey()] : null;
+      }
       var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
       if(!(natW>0) || !(natH>0)) return null;
       var pa = ((window.SITE_CONTENT||{}).printAreas || {})[pm.garmentId] || {};
@@ -6450,7 +6461,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var calT = cfg.calibTop!=null?cfg.calibTop:0.06, calB = cfg.calibBottom!=null?cfg.calibBottom:0.96;
       var ch = (calB - calT) * rh;   // калібрована висота як частка контейнера
       if(!(ch > 0)) return null;
-      return (heightCm * 10) / ch;   // мм на 1.0 частки контейнера
+      var mmPerFrac = (heightCm * 10) / ch;   // мм на 1.0 частки контейнера
+      ZONE_MM_CACHE[zoneCacheKey()] = mmPerFrac;
+      return mmPerFrac;
     }
     // Габарити картинки в мм — рівно ті, що видно на екрані. Лого вписується
     // у квадрат 120×scale пікселів: у горизонтального менша висота, у вертикального —
