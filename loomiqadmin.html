@@ -9497,9 +9497,15 @@ async function offerEdApply(msg){
     catch(e){ ok = false; err = (e && (e.code || e.message)) || 'помилка'; console.error(e); }
     if(f && f.contentWindow)
       f.contentWindow.postMessage({ lqEditInit:true, saveAck: msg.id, ok: ok, err: err }, '*');
-    if(ok){ renderBoard(); offerEdPreview(true); }
+    /* Сторінку КП НЕ перемальовуємо: редактор зараз відкритий, і перебудова
+       смикала б його під руками — саме те, що виглядало як «щось кудись
+       перекидає». Сторінка перечитає себе сама, коли менеджер згорне
+       редактор (act: refresh). */
+    if(ok) renderBoard();
     return;
   }
+  // Редактор згорнули — тепер можна спокійно показати оновлену пропозицію
+  if(act === 'refresh'){ offerEdPreview(true); return; }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
      список логотипів замовлення, тож у конструкторі його не треба
      завантажувати вдруге — це і був найдовший крок у збиранні пропозиції. */

@@ -1153,7 +1153,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      що стиль конструктора приходить окремим файлом уже після нашого, і без
      цього виграє його правило, розраховане на повний екран. */
   .edslot-body .lq-inline .pm-stage{width:100% !important; max-width:100% !important;
-    height:min(56vh, 460px) !important; box-sizing:border-box;}
+    height:min(42vh, 340px) !important; box-sizing:border-box;}
   .edslot-body .lq-inline .pm-stage img{max-width:100%; max-height:100%; object-fit:contain;}
   /* Сцена сама підганяє себе під ВІКНО браузера — на сайті вона на весь
      екран, і це правильно. У картці рамка інша, тож розмір задає картка.
@@ -1180,13 +1180,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
-  .edqty{display:flex;align-items:center;gap:5px;font-size:12px;color:#3D4C61;}
-  .edqty b{font-weight:600;color:#7A879B;}
-  .edqi{width:66px;font:inherit;font-size:13px;font-weight:700;text-align:center;
-    padding:6px 4px;border:1px solid #C7D0DE;border-radius:9px;background:#fff;color:#22314A;
-    font-variant-numeric:tabular-nums;-moz-appearance:textfield;}
-  .edqi:focus{outline:none;border-color:#4F5FD4;box-shadow:0 0 0 3px rgba(79,95,212,.16);}
-  .edqi::-webkit-outer-spin-button,.edqi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .edadd{display:block;width:100%;margin-top:12px;font:inherit;font-size:13.5px;
     font-weight:700;color:#3D4C61;background:#fff;border:1.5px dashed #B9C4D4;
     border-radius:12px;padding:14px;cursor:pointer;}
@@ -2006,15 +1999,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         'title="Зробити копію позиції">Дублювати</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
       '<button class="edb" data-ed="down" data-k="' + kind + '" data-i="' + i + '" title="Нижче">↓</button>' +
-      /* Кількість вписують числом. На тиражах у сотні штук кнопки −/+ це
-         десятки натискань, і після кожного сторінка перебудовувалась. */
-      (qty != null
-        ? '<span class="edqty">' +
-            '<input class="edqi" type="number" min="1" step="1" inputmode="numeric" ' +
-              'value="' + qty + '" data-ed-qty data-k="' + kind + '" data-i="' + i + '" ' +
-              'aria-label="Кількість">' +
-            '<b>шт</b>' +
-          '</span>' : '') +
+      /* Кількості тут немає навмисно: вона вже стоїть під ціною, лічильником
+         −/+, і два поля на одне число — це щоразу питання, яке з них
+         справжнє. Число в лічильнику вписується вручну, тож на тиражах у
+         сотні штук натискати кнопки не доводиться. */
       '<button class="edb" data-ed="swap" data-k="' + kind + '" data-i="' + i + '">' +
         (kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
       '<button class="edb edb-del" data-ed="del" data-k="' + kind + '" data-i="' + i + '" title="Прибрати">🗑</button>' +
@@ -2053,9 +2041,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=3df421f094';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=3df421f094';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=3df421f094';
+  var CTOR_JS   = 'loomiq-constructor.js?v=8c06db9b4b';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=8c06db9b4b';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=8c06db9b4b';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2358,7 +2346,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
-        if(b.dataset.ed === 'closeinline'){ ctorUnmount(); edOpen = null; render(); return; }
+        if(b.dataset.ed === 'closeinline'){
+          ctorUnmount(); edOpen = null; render();
+          edSend({ act:'refresh' });     // тепер показуємо оновлену пропозицію
+          return;
+        }
         /* «Колір», «Нанесення» — редактор просто в картці. Спершу просимо
            адмінку підготувати позицію (вона знає її конфігурацію), а вже
            коли та відповість адресою — розгортаємо кадр на місці. */
@@ -2389,39 +2381,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Галерея й тиражі слухають натискання, а не клік
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
         b.addEventListener(t, function(e){ e.stopPropagation(); });
-      });
-    });
-    /* Тираж: чекаємо, поки менеджер допише число, і лише тоді перераховуємо.
-       На кожну цифру рахувати не можна — «120» дало б розрахунок для 1, 12
-       і 120 підряд, і два з них із чужою знижкою за тираж. */
-    document.querySelectorAll('[data-ed-qty]').forEach(function(inp){
-      var t = null;
-      var send = function(){
-        var v = Math.max(1, Math.round(+inp.value || 0));
-        if(v !== +inp.defaultValue) edSend({ act:'qty', kind: inp.dataset.k, i: +inp.dataset.i, v: v });
-      };
-      inp.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(send, 700); });
-      inp.addEventListener('blur', function(){ clearTimeout(t); send(); });
-      inp.addEventListener('keydown', function(e){
-        e.stopPropagation();
-        if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(t); send(); inp.blur(); }
-      });
-      ['pointerdown','mousedown','touchstart','click'].forEach(function(ev){
-        inp.addEventListener(ev, function(e){ e.stopPropagation(); });
-      });
-    });
-    /* Ракурси. Клік по знімку — коротке меню просто біля нього: замінити
-       фото, перейменувати, прибрати. Ніякого окремого вікна: назва
-       правиться там само, де вона написана, і менеджер весь час бачить
-       картку, яку править. */
-    document.querySelectorAll('[data-view]').forEach(function(el){
-      el.addEventListener('click', function(e){
-        e.preventDefault(); e.stopPropagation();
-        var p = String(el.dataset.view).split(':');
-        vmenuOpen(el, p[0], +p[1], +p[2]);
-      });
-      ['pointerdown','mousedown','touchstart'].forEach(function(t){
-        el.addEventListener(t, function(e){ e.stopPropagation(); });
       });
     });
     var ttl = document.querySelector('[data-ed-title]');
@@ -3210,7 +3169,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<div class="pbuy-row">' +
           '<div class="pstep">' +
             '<button class="pstep-b" data-q="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
-            '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
+            '<span class="pstep-v"><b' + (EDIT ? ' contenteditable="plaintext-only" data-qedit="' + i + '"' : '') +
+              '>' + st.qty + '</b>шт</span>' +
             '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
           '</div>' +
           '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
@@ -4546,6 +4506,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(rep) clearTimeout(rep);
         wait = rep = null; held = false;
         var i = +b.dataset.q;
+        /* Менеджер міняє тираж САМОЇ позиції, а не робить клієнтський вибір:
+           у режимі редагування цей лічильник — єдине місце, де стоїть
+           кількість, тож він має правити замовлення. */
+        if(EDIT){
+          var q = Math.max(1, Math.round(pick.qty[i] || itemState(i).qty));
+          pick.qty[i] = null;
+          edSend({ act:'qty', kind:'main', i: i, v: q });
+          return;
+        }
         refresh();
         queueSave('qty', (OFFER.items[i] || {}).name + ' → ' + itemState(i).qty + ' шт');
       };
