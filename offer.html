@@ -1168,10 +1168,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edslot-body .lq-inline .pm-twocol,
   .edslot-body .lq-inline .pm-recommended,
   .edslot-body .lq-inline .pm-legal-links{display:none !important;}
-  /* Поки конструктор стоїть у картці, його супутні повноекранні сторінки
-     (розмірна сітка, оферта) лишаються на своєму місці — вони й мають
-     відкриватись поверх, це окремі екрани, а не частина картки. */
-  #lqCtorHost{position:relative; z-index:1;}
+  /* Супутні екрани конструктора — розмірна сітка, оферта, вибір джерела
+     логотипа — і далі відкриваються поверх усього. Свого контексту
+     накладання коробка для них не створює: інакше вони лишились би під
+     сторінкою пропозиції, і натиснута кнопка виглядала б як зламана. */
+  #lqCtorHost > *{z-index:300;}
   .edb{font:inherit;font-size:12px;font-weight:700;color:#3D4C61;background:#fff;
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
@@ -1522,9 +1523,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=e50ae40be1';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=e50ae40be1';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=e50ae40be1';
+  var CTOR_JS   = 'loomiq-constructor.js?v=9650eafcbe';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=9650eafcbe';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=9650eafcbe';
   var ctorReady = null;
 
   function ctorShims(){
@@ -1655,6 +1656,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(modal.parentNode !== box){ box.innerHTML = ''; box.appendChild(modal); }
     modal.classList.add('open', 'lq-inline');
     document.documentElement.classList.add('lq-ctor-on');
+    window.__lqInline = true;      // зберігати одразу, без аркуша підтвердження
     if(tab && window.__pmGoTab) setTimeout(function(){
       try{ window.__pmGoTab(tab); }catch(e){}
     }, 60);
@@ -1675,6 +1677,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(modal && host && modal.parentNode !== host){ host.appendChild(modal); }
     if(modal) modal.classList.remove('open', 'lq-inline');
     document.documentElement.classList.remove('lq-ctor-on');
+    window.__lqInline = false;
   }
 
   /* Позицію готує адмінка — вона знає її конфігурацію й привʼязку до
