@@ -4686,8 +4686,15 @@ function slimOrderConfig(cfg){
   const out = { garmentId: cfg.garmentId || null, colorId: cfg.colorId || null,
                 printId: cfg.printId || null, qty: cfg.qty || {}, logos: {} };
   Object.keys(cfg.logos || {}).forEach(side=>{
+    /* frac/fx/fy — розмір і місце у ЧАСТКАХ ширини виробу. Саме вони, а не
+       пікселі, задають фізичні міліметри друку. Без них та сама позиція,
+       відкрита у вужчому вікні, оживала з іншим розміром і з іншою ціною.
+       x/y/scale лишаються для сумісності зі старими картками. */
     out.logos[side] = (cfg.logos[side] || []).map(l=>({
       x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
+      frac: l.frac != null ? l.frac : null,
+      fx: l.fx != null ? l.fx : null,
+      fy: l.fy != null ? l.fy : null,
       fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null
     }));
   });
@@ -5470,6 +5477,52 @@ function fillOrderParts(o){
   if(!list.length) return;
   const res = priceOrder(list);
   idx.forEach((i, k)=>{ if(o.items[i] && res[k]) o.items[i].parts = res[k].parts || null; });
+}
+/* Розклад ціни для сторінки КП у режимі менеджера. Рядки ті самі, що й у
+   картці замовлення, і рахує їх той самий рушій — саме тому цифри в КП, у
+   Канбані й у конструкторі не можуть розійтись. Собівартості тут немає: у
+   документі, який лежить у клієнта, їй не місце навіть у службовому полі.
+   Ключі — індекси ГОЛОВНИХ позицій, у тому ж порядку, що й на сторінці. */
+function offerMgrCalc(o){
+  const out = {};
+  try{
+    fillOrderParts(o);
+    let k = 0;
+    (o.items || []).forEach(it=>{
+      if(it.kind === 'reco') return;
+      const i = k++;
+      const b = it.parts;
+      if(!b) return;
+      const rows = [];
+      const add = (t, v, sum) => rows.push(sum ? { t, v, sum:1 } : { t, v });
+      const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+      add('Виріб', b.garmentBase + ' ₴');
+      if(b.appBase){
+        const area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
+        if((b.basePart > 0 || b.minPart > 0) && area > 0){
+          add('Нанесення за площею', area + ' ₴');
+          if(b.basePart > 0) add('Нанесення · старт', b.basePart + ' ₴');
+          if(b.minPart > 0) add('Доплата до мінімальної', b.minPart + ' ₴');
+        } else {
+          add('Нанесення' + (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''),
+              b.appBase + ' ₴');
+        }
+      }
+      if(pre > post) add('Знижка за тираж −' + Math.round((1 - b.coef) * 100) +
+        '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴');
+      if(b.pieceFee) add('Обробка виробу', b.pieceFee + ' ₴');
+      (b.feeLines || []).forEach(f => add('Підготовка макета · ' +
+        (f.kind === 'txt' ? 'напис' : 'картинка') + ' (' + Math.round(f.fee) + ' ₴ ÷ ' + f.units + ' шт)',
+        Math.round(f.fee / (f.units || 1)) + ' ₴'));
+      (b.sketches || []).forEach((s, n) => add('Додатковий ескіз ' + (n + 1) + ' · ' +
+        (s.kind === 'txt' ? 'напис' : 'картинка') + ' (' + Math.round(s.fee) + ' ₴ ÷ ' + s.units + ' шт)',
+        Math.round(s.fee / (s.units || 1)) + ' ₴'));
+      add('Ціна за штуку', fmt(it.unitPrice) + ' ₴', true);
+      add((+it.qty || 0) + ' шт', fmt(it.price) + ' ₴', true);
+      out[i] = rows;
+    });
+  }catch(e){ console.warn('mgr calc', e); }
+  return out;
 }
 function priceCalcHtml(o){
   fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
@@ -8895,10 +8948,12 @@ function offerEdPush(o){
   const f = document.querySelector('#offerEd iframe');
   if(!f || !f.contentWindow) return false;
   try{
-    // Той самий документ, що лягає в базу, — сторінка бачить рівно те, що
-    // побачить клієнт
-    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(),
-                                  offer: offerClean(offerBuild(o)) }, '*');
+    /* Документ той самий, що лягає в базу, плюс службовий розклад ціни для
+       менеджера. Розклад ідемо ЛИШЕ сюди, у вікно редактора: у базу він не
+       записується, тож у клієнта в документі його немає взагалі. */
+    const doc = offerClean(offerBuild(o));
+    doc.mgr = offerMgrCalc(o);
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc }, '*');
     return true;
   }catch(e){ console.warn('offer push failed', e); return false; }
 }
@@ -8922,6 +8977,9 @@ function offerEdPreview(now){
            батьківське вікно, а не за параметром в адресі. */
         f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog() }, '*');
         if(offerEd) offerEd.ready = true;   // далі оновлюємо даними, без перезавантажень
+        // Одразу віддаємо розклад ціни: інакше «Деталі позиції» лишались би
+        // без нього до першої правки
+        setTimeout(()=>{ try{ offerEdPush(o); }catch(e){} }, 120);
         // Повертаємо прокрутку вже ПІСЛЯ перемальовування в режимі редагування
         if(keep) setTimeout(()=>{ try{ f.contentWindow.scrollTo(0, keep); }catch(e){} }, 80);
       }catch(e){}

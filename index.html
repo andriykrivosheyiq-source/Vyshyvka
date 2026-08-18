@@ -6456,11 +6456,49 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // у квадрат 120×scale пікселів: у горизонтального менша висота, у вертикального —
     // менша ширина. Раніше ширина завжди бралася як повна сторона квадрата, тож
     // вертикальні файли рахувались більшими, ніж вони є (площа завищувалась у 1/ar²).
+    /* ── Розмір нанесення НЕ залежить від ширини екрана ──────────────────
+       Раніше фізичні міліметри рахувались із того, скільки лого займає
+       пікселів на екрані: 120 × scale поділити на ширину контейнера. Поки
+       конструктор завжди відкривався на всю ширину, це збігалось. Але той
+       самий збережений scale у вужчому вікні (наприклад, у колонці збоку від
+       пропозиції) давав УДВІЧІ більший друк — і ціна злітала з 1 180 до
+       3 949 грн на тій самій позиції.
+
+       Тепер частка ширини виробу зберігається на самому шарі (frac) і є
+       єдиним джерелом правди для розміру. Пікселі — лише спосіб намалювати
+       її на конкретному екрані. */
+    function wrapBox(){
+      var el = document.getElementById('pmGarmentWrap');
+      return { w: (el && el.clientWidth) || 0, h: (el && el.clientHeight) || 0 };
+    }
+    function layerFrac(l){
+      if(l && +l.frac > 0) return +l.frac;
+      var w = wrapBox().w || 300;
+      return (120 * ((l && l.scale) || 1)) / w;
+    }
+    // Запамʼятати поточний стан шару у частках (після додавання чи перетягування)
+    function layerSaveFrac(l){
+      if(!l) return;
+      var b = wrapBox();
+      if(!b.w || !b.h) return;
+      l.frac = (120 * (l.scale || 1)) / b.w;
+      l.fx = (l.x || 0) / b.w;
+      l.fy = (l.y || 0) / b.h;
+      l.pxAt = b.w;
+    }
+    // Перевести частки назад у пікселі під поточний розмір контейнера
+    function layerApplyFrac(l){
+      if(!l || !(+l.frac > 0)) return;
+      var b = wrapBox();
+      if(!b.w || !b.h || l.pxAt === b.w) return;
+      l.scale = Math.max(0.04, Math.min(5, (l.frac * b.w) / 120));
+      if(l.fx != null) l.x = l.fx * b.w;
+      if(l.fy != null) l.y = l.fy * b.h;
+      l.pxAt = b.w;
+    }
     function layerDimsMm(l){
-      var wrapEl = document.getElementById('pmGarmentWrap');
-      var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
       var ar = (l.ar || 1) || 1;
-      var frac = (120 * (l.scale || 1)) / wrapW;    // сторона квадрата як частка контейнера
+      var frac = layerFrac(l);                       // сторона квадрата як частка контейнера
       var mmPerFrac = zoneScaleMmPerFrac();          // масштаб від поля нанесення (якщо зона задана)
       var szMm = (mmPerFrac != null) ? frac * mmPerFrac : frac * garmentHeightMm();  // фолбек — висота виробу
       return (ar >= 1)
@@ -7259,6 +7297,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     function renderLogoLayers(){
       // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
       // фокус і на телефоні згортає клавіатуру просто посеред набору.
+      /* Контейнер міг змінити ширину — вікно, колонка збоку, поворот
+         телефона. Перераховуємо пікселі з часток, щоб лого лишилось там
+         само й того самого фізичного розміру. */
+      currentLayers().forEach(layerApplyFrac);
       var keepId = pm.textEdit;
       /* …але лишати його можна тільки поки він на видимій стороні. Інакше
          напис, який правили на спині, лишався висіти й на переді: вузол не
@@ -8101,6 +8143,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1,
         // Ознака «це напис» лишається на шарі: за нею і редагування, і окремі ціни
         text: textSpec ? JSON.parse(JSON.stringify(textSpec)) : null};
+      layerSaveFrac(layer);            // розмір і місце — одразу в частках
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
       // Завантажив дизайн — маєш його побачити. Інакше людина лишалась на
@@ -8238,6 +8281,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Тап без руху по вже виділеному напису — це намір його переписати.
       var edit = (dlState.mode === 'drag' && !dlState.moved && dlState.wasActive &&
                   dlState.layer && dlState.layer.text) ? dlState.layer : null;
+      // Жест закінчився — фіксуємо результат у частках ширини виробу, щоб
+      // на іншому екрані він відтворився один в один
+      if(dlState.layer) layerSaveFrac(dlState.layer);
       renderLogoLayers(); renderTabPanel();
       // після зміни розміру напис міг стати замалим для вишивки — попередження
       // рахується від міліметрів, тож має перерахуватись саме тут
@@ -8375,22 +8421,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // Менеджеру — доробити вже наявний логотип: перегенерувати або перефарбувати
           var actL = findLayerAnySide(pm.activeLogoId) || layers[0];
           if(IS_MANAGER && actL){
+            /* «Змінити колір» прибрано: одноколірне зведення логотипа —
+               робота дизайнера перед виробництвом, а не кнопка в пропозиції.
+               Перефарбований на екрані логотип обіцяв клієнту вигляд, якого
+               ніхто не погоджував. Перегенерація й обрізання лишаються. */
             html += '<div class="pm-mgr-tools">' +
               '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
               '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
-              '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Змінити колір</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
             '</div>';
-            if(pm.recolorFor === actL.id){
-              html += '<div class="pm-recolor"><div class="pm-recolor-row">' +
-                RECOLOR_SWATCHES.map(function(c){
-                  return '<button class="pm-sw" data-sw="'+c+'" style="background:'+c+'" title="'+c+'"></button>';
-                }).join('') +
-                '<input type="color" id="pmRecolorPick" value="#ffffff">' +
-              '</div>' +
-              '<div class="pm-recolor-hint">Перефарбовує весь малюнок в один колір — для одноколірної вишивки чи друку. Форма й прозорість лишаються.</div>' +
-              '</div>';
-            }
           }
         }
         // Текст — той самий логотип, лише намальований нами. Тому йде тим самим
@@ -11184,12 +11223,48 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     window.__openProductModal = openProductModal;
     // Відновлення товару з кошика для редагування (доступ до pm/openProductModal лише тут, усередині IIFE)
-    window.__editProduct = function(cfg, editIdx){
+    /* Позиції, збережені до переходу на частки, знають свій розмір лише в
+       пікселях того екрана, де їх складали, — а на іншому це вже інший друк.
+       Але поруч із ними лежать МІЛІМЕТРИ, записані в момент збереження:
+       саме вони пішли в замовлення й у ціну. З них і відновлюємо частку —
+       тоді стара картка відкривається рівно такою, якою її здали.
+       Заодно повертаємо позицію: знаючи частку й піксельний scale, можна
+       відновити ширину того давнього екрана, а з неї — де саме стояло лого. */
+    function fracFromLegacyPrints(prints){
+      if(!prints || !prints.length) return;
+      var mmPerFrac = zoneScaleMmPerFrac();
+      if(mmPerFrac == null) mmPerFrac = garmentHeightMm();
+      if(!(mmPerFrac > 0)) return;
+      var b = wrapBox(), k = 0;
+      getViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          var p = prints[k++];
+          if(!l || +l.frac > 0 || !p) return;
+          var ar = (l.ar || 1) || 1;
+          var wMm = +p.widthMm || 0;
+          if(!(wMm > 0)) return;
+          var szMm = (ar >= 1) ? wMm : (wMm / ar);
+          var frac = szMm / mmPerFrac;
+          if(!(frac > 0)) return;
+          l.frac = frac;
+          // Ширина екрана, на якому це складали
+          var oldW = (120 * (l.scale || 1)) / frac;
+          if(oldW > 0 && b.w > 0){
+            var oldH = oldW * (b.h / b.w);
+            l.fx = (l.x || 0) / oldW;
+            l.fy = oldH ? (l.y || 0) / oldH : 0;
+          }
+          l.pxAt = null;          // хай renderLogoLayers перерахує під цей екран
+        });
+      });
+    }
+    window.__editProduct = function(cfg, editIdx, prints){
       pm.colorId = cfg.colorId;
       pm.printId = cfg.printId;
       pm.qty = Object.assign({}, cfg.qty);
       pm.logos = JSON.parse(JSON.stringify(cfg.logos));
       openProductModal(cfg.garmentId);
+      try{ fracFromLegacyPrints(prints); }catch(e){ console.warn('legacy frac', e); }
       pm.colorId = cfg.colorId;
       pm.colorPicked = true;   // з кошика — колір уже обраний
       pm.editing = true;       // позицію повернули з кошика: кнопка каже «Оновити»
@@ -11845,7 +11920,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           if(seed.config && window.__editProduct){
             window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
             if(cm) cm.classList.remove('open');
-            window.__editProduct(seed.config, 0);
+            // prints — збережені міліметри: з них відновлюємо розмір старих позицій
+            window.__editProduct(seed.config, 0, seed.prints || []);
           } else if(seed.garmentId && window.__openProductModal){
             /* Позиція, додана з каталогу пропозиції: виробу вже обрано, але
                кольору й логотипа ще немає, тож розгортати нічого. Просто
