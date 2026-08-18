@@ -6953,8 +6953,12 @@ function renderTicket(o){
   const canNext = statusIdx >= 0 && statusIdx < flow.length - 1;
 
   const appTechIcon = {print:'🖨', emb:'🧵'};
-  const appsList = o.apps.length
-    ? o.apps.map(a=>`<div class="t-app-row">
+  /* Замовлення без apps — і вся дошка не малюється взагалі, бо помилка
+     зупиняє цикл на першій же картці. Один зіпсований запис не має ховати
+     решту роботи. */
+  const apps = Array.isArray(o.apps) ? o.apps : [];
+  const appsList = apps.length
+    ? apps.map(a=>`<div class="t-app-row">
         <span class="t-app-badge ${a.technique==='print'?'p':'e'}">${appTechIcon[a.technique]||''} ${a.technique==='print'?'DTF-друк':'Вишивка'}</span>
         <span class="t-app-px">${(a.pixels||0).toLocaleString('uk-UA')} px</span>
       </div>`).join('')
@@ -9050,7 +9054,10 @@ function offerEdEl(){
   d.className = 'oe-wrap';
   d.innerHTML = '<div class="oe"><div class="oe-head"></div>' +
                 '<div class="oe-body"><iframe title="Пропозиція" ' +
-                'sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe></div>' +
+                /* allow-modals: без нього браузер мовчки ковтає alert зі сторінки КП —
+                    і попередження «оберіть кількість» просто не існувало для
+                    менеджера, а кнопка виглядала як зламана. */
+                 'sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"></iframe></div>' +
                 /* Сума й головні дії — унизу, завжди на очах. Доти, щоб
                    скопіювати посилання, менеджер прокручував пропозицію
                    назад угору. */
@@ -9458,7 +9465,26 @@ async function offerEdApply(msg){
        що й раніше. Адреси конструктора більше не віддаємо: сторінка
        пропозиції малює його сама, у тій картці, де натиснули. */
     calcSeedFor(o, k);
-    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editReady:true }, '*');
+    /* Насіння й привʼязку віддаємо ПОВІДОМЛЕННЯМ. Раніше сторінка КП лізла
+       по них у вікно адмінки напряму — і це працювало тільки поки обидві
+       сторінки з однієї адреси. Варто адмінці відкритись з іншого домену,
+       і браузер блокував доступ: позиція не підтягувалась, а конструктор
+       відкривався порожнім. */
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editReady:true,
+                                  seed: window.__adminSeedItem || null,
+                                  target: window.__adminOfferTarget || null }, '*');
+    return;
+  }
+  /* Зберегти позицію на прохання сторінки КП. Пише саме адмінка: у неї є
+     доступ і права, а сторінка пропозиції лише показує те, що вийшло. */
+  if(act === 'saveItem'){
+    const f = document.querySelector('#offerEd iframe');
+    let ok = true, err = '';
+    try{ await window.__adminSaveClientOrder(msg.payload || {}); }
+    catch(e){ ok = false; err = (e && (e.code || e.message)) || 'помилка'; console.error(e); }
+    if(f && f.contentWindow)
+      f.contentWindow.postMessage({ lqEditInit:true, saveAck: msg.id, ok: ok, err: err }, '*');
+    if(ok){ renderBoard(); offerEdPreview(true); }
     return;
   }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
@@ -9493,55 +9519,18 @@ async function offerEdApply(msg){
     offerEdPreview(true);
     return;
   }
-  /* Ракурси позиції. «Перед» і «Спина» є в кожної одразу — навіть коли фото
-     ще немає: менеджер бачить порожню рамку й знає, куди класти знімок, а не
-     здогадується, що ракурс узагалі можна додати. Список живе на позиції,
-     тож підписи не збиваються, коли міняється нанесення. */
-  if(act === 'viewPhoto' || act === 'viewName' || act === 'viewDel' ||
-     act === 'viewAdd'  || act === 'viewShow'){
+  /* Показ ракурсу клієнту. Більше в меню нічого немає навмисно: усі сторони
+     виробу вже зняті конструктором, підписи їхні йдуть із адмінки, а замість
+     «видалити» є «сховати» — ракурс лишається на місці й повертається одним
+     кліком. */
+  if(act === 'viewShow'){
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const it = k >= 0 && (o.items || [])[k];
     if(!it){ toast('Позицію не знайдено'); return; }
-    const pos = +msg.pos;
-    if(act === 'viewPhoto'){
-      /* Файл вибирає й вивантажує адмінка: сторінка КП відкрита кадром і
-         нікуди нічого не пише — доступ є тільки тут. */
-      const inp = document.createElement('input');
-      inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/*';
-      inp.addEventListener('change', async ()=>{
-        const f = inp.files && inp.files[0];
-        if(!f) return;
-        offerSaveMark('saving');
-        try{
-          const url = await uploadCloudinary(f);
-          const cur = itemViews(it);
-          if(!cur[pos]) return;
-          cur[pos].img = url;
-          cur[pos].auto = null;          // своє фото конструктор більше не перебиває
-          viewsWrite(o, k, cur);
-          if(!(await offerEdSave(o))) return;
-          offerEdPreview(true);
-        }catch(e){ console.error(e); offerSaveMark('bad'); toast('Не вдалось завантажити'); }
-      });
-      inp.click();
-      return;
-    }
     const list = itemViews(it);
-    if(act === 'viewAdd'){
-      list.push({ id: 'v' + Date.now().toString(36), label: 'Вигляд ' + (list.length + 1),
-                  img: null, auto: null, show: true });
-    } else if(act === 'viewShow'){
-      if(!list[pos]) return;
-      list[pos].show = !!+msg.v;
-    } else if(act === 'viewName'){
-      if(!list[pos]) return;
-      const t = String(msg.text || '').replace(/\s+/g, ' ').trim();
-      if(!t || t === list[pos].label) return;
-      list[pos].label = t;
-    } else {
-      if(!list[pos]) return;
-      list.splice(pos, 1);
-    }
+    const pos = +msg.pos;
+    if(!list[pos]) return;
+    list[pos].show = !!+msg.v;
     viewsWrite(o, k, list);
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
