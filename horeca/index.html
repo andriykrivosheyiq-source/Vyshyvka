@@ -6371,6 +6371,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      ?seed=1 — позицію, яку відкрили на редагування, кладемо в кошик і одразу
      розгортаємо в конструкторі: виріб, колір, розміри й логотипи відновляться
      з її ж конфігурації, а «Оновити» поверне нову версію на те саме місце. */
+  /* Конструктор живе в окремому файлі, і приїжджає він пізніше за сторінку.
+     Чекати на нього фіксовані 700 мс не можна: не встиг — і замість своєї
+     позиції менеджер бачить каталог сайту, ніби його кудись перекинуло.
+     Тому чекаємо не час, а саму готовність. */
+  window.__lqWhenCtor = function(cb){
+    if(window.__editProduct || window.__openProductModal) return cb();
+    var t0 = Date.now();
+    var iv = setInterval(function(){
+      if(window.__editProduct || window.__openProductModal || Date.now() - t0 > 15000){
+        clearInterval(iv); cb();
+      }
+    }, 40);
+  };
   if(/[?&]cart=new\b/.test(location.search)){
     cartItems.length = 0; renderCart(); cartPersist();
     var seed = null;
@@ -6378,7 +6391,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(seed && /[?&]seed=1\b/.test(location.search)){
       cartItems.push(JSON.parse(JSON.stringify(seed)));
       renderCart();
-      setTimeout(function(){
+      window.__lqWhenCtor(function(){
         try{
           var cm = document.getElementById('catalogModal');
           if(seed.config && window.__editProduct){
@@ -6405,7 +6418,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             try{ window.__pmGoTab(mt[1]); }catch(e){}
           }, 350);
         }catch(e){ console.warn('не вдалось відкрити позицію на редагування', e); }
-      }, 700);
+      });
     }
   } else {
     cartRestore();    // повертаємо те, що людина зібрала до перезавантаження
