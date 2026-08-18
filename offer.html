@@ -2041,11 +2041,27 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=9cc7e5d90e';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=9cc7e5d90e';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=9cc7e5d90e';
+  var CTOR_JS   = 'loomiq-constructor.js?v=7318fb2416';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=7318fb2416';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=7318fb2416';
   var ctorReady = null;
 
+  /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
+     себе вдруге. Другий клік завів би друге збереження тієї самої позиції. */
+  function saveMark(on){
+    ['#pmAddToCartBtn', '#pmStickyCartBtn'].forEach(function(sel){
+      var b = document.querySelector(sel);
+      if(!b || !b.childNodes.length) return;
+      if(on){
+        if(b.dataset.lqWas == null) b.dataset.lqWas = b.childNodes[0].nodeValue || '';
+        b.childNodes[0].nodeValue = 'Зберігаємо…';
+        b.disabled = true; b.style.opacity = '.65';
+      } else {
+        if(b.dataset.lqWas != null){ b.childNodes[0].nodeValue = b.dataset.lqWas; delete b.dataset.lqWas; }
+        b.disabled = false; b.style.opacity = '';
+      }
+    });
+  }
   function ctorShims(){
     if(window.__lqShims) return;
     window.__lqShims = true;
@@ -2095,8 +2111,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         window.addEventListener('message', off);
         timer = setTimeout(function(){
           window.removeEventListener('message', off);
+          saveMark(false);
           rej(new Error('адмінка не відповіла'));
         }, 90000);
+        /* Макети йдуть у хмару, і на кількох знімках це відчутні секунди.
+           Мовчазна кнопка в цей час читається як «не спрацювало», і
+           менеджер тисне ще раз. */
+        saveMark(true);
+        var res0 = res, rej0 = rej;
+        res = function(v){ saveMark(false); res0(v); };
+        rej = function(e){ saveMark(false); rej0(e); };
         edSend({ act:'saveItem', id:id, payload:payload });
       });
     };
@@ -2218,7 +2242,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Підписи кнопок конструктор ставить на відкритті — тобто до переносу.
     // Просимо переставити, інакше кнопка й далі каже «в замовленні».
     try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
-    if(tab && window.__pmGoTab) setTimeout(function(){
+    if(tab && window.__pmGoTab) setTimeout(function(){  // без tab лишаємо ту, що була
       try{ window.__pmGoTab(tab); }catch(e){}
     }, 60);
     /* Виріб міряє свою рамку сам — але зробив це до переносу, коли рамка
@@ -2230,6 +2254,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       window.__lqFitBound = true;
       window.addEventListener('resize', function(){ if(edOpen) fit(); });
     }
+  }
+  /* Відвести конструктор у його власну коробку в кінці сторінки, не
+     закриваючи. Потрібно щоразу перед перемальовуванням картки. */
+  function ctorPark(){
+    var modal = document.getElementById('productModal');
+    var host = document.getElementById('lqCtorHost');
+    if(modal && host && modal.parentNode !== host) host.appendChild(modal);
   }
   // Згорнули картку — конструктор повертається на своє місце в кінці сторінки
   function ctorUnmount(){
@@ -3894,6 +3925,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* ═══════════ рендер і події ═══════════ */
 
   function render(){
+    /* Конструктор стоїть усередині картки, а картку зараз перемалюють —
+       його треба відвести вбік, інакше він піде разом зі старою розміткою.
+       Саме через це «Редагувати» вдруге показувало «Відкриваємо…» і
+       зависало: вузол ще існував у памʼяті, але вже поза сторінкою, і
+       повертати в картку не було чого. */
+    ctorPark();
     app.innerHTML =
       '<div class="top">' + brandMarkHtml() +
         '<span class="top-no">Комерційна пропозиція' + (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</span></div>' +
@@ -3926,6 +3963,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>' +
       ((expired() || OFFER.state === 'confirmed') ? '' : barHtml());
     wire();
+    // Картку перемальовано — повертаємо конструктор на місце
+    if(edOpen && ctorReady) ctorMount(null);
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
