@@ -4687,8 +4687,13 @@
         return { id: s, side: s, label: sideLabelOf(pm.garmentId, s), img: null, auto: k,
                  show: !!(baseSides[s] || (pm.logos[s] || []).length) };
       });
-      // 1600px — макет іде у замовлення й Канбан, тож має лишатись чітким
-      var snapDone = Promise.all(allViews.map(function(s){ return snapshotSide(s, 1600); }))
+      /* 1600px — для сторін із нанесенням: макет іде у замовлення й Канбан і
+         має лишатись чітким. Сторони без нанесення показують сам виріб, і
+         тримати їх такими ж важкими немає сенсу — це просто довше
+         зберігається. */
+      var snapDone = Promise.all(allViews.map(function(s){
+        return snapshotSide(s, (pm.logos[s] || []).length ? 1600 : 900);
+      }))
         .then(function(imgs){
           /* Номер ракурсу і номер знімка мають збігатись. Якщо якась сторона
              не намалювалась, її треба прибрати РАЗОМ із діркою в списку —

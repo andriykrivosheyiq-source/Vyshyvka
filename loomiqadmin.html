@@ -4736,23 +4736,25 @@ window.__adminSaveClientOrder = async function(payload){
        підпис і сторона кожного знімка, — інакше пропозиція знала б лише
        «картинка номер два» і не могла б назвати її «Спина».
        Ракурс без знімка не лишаємо: номери мають збігатись. */
-    const mockups = [], views = [];
+    /* Знімки вивантажуємо РАЗОМ, а не по черзі. Сторін тепер до шести, і
+       послідовна черга перетворювала збереження на довге очікування: кожен
+       файл чекав на попередній, хоч заважати їм нічим. Порядок від цього не
+       страждає — Promise.all повертає результати в порядку запитів. */
     const vsrc = Array.isArray(it.views) ? it.views : [];
-    let vk = 0;
-    for(const img of (it.imgs || []).slice(0, 6)){
-      let u = null;
-      try{ u = await uploadCloudinary(img); }
-      catch(e){ console.warn('mockup upload failed', e); }
-      if(u){
-        const v = vsrc[vk] || {};
-        views.push({ id: v.id || ('v' + views.length), side: v.side || null,
-                     label: v.label || '', img: null, auto: views.length,
-                     show: v.show !== false });
-        mockups.push(u);
-      }
-      vk++;
-      step();
-    }
+    const shots = (it.imgs || []).slice(0, 6);
+    const urls = await Promise.all(shots.map(async img=>{
+      try{ const u = await uploadCloudinary(img); step(); return u; }
+      catch(e){ console.warn('mockup upload failed', e); step(); return null; }
+    }));
+    const mockups = [], views = [];
+    urls.forEach((u, vk)=>{
+      if(!u) return;                       // ракурс без знімка не лишаємо: номери мають збігатись
+      const v = vsrc[vk] || {};
+      views.push({ id: v.id || ('v' + views.length), side: v.side || null,
+                   label: v.label || '', img: null, auto: views.length,
+                   show: v.show !== false });
+      mockups.push(u);
+    });
     // Оригінали логотипів теж ідуть у хмару. Раніше вони лягали в базу як base64
     // і одне замовлення могло саме по собі перевищити ліміт документа.
     const prints = [];
