@@ -654,6 +654,70 @@
       ZONE_MM_CACHE[zoneCacheKey()] = mmPerFrac;
       return mmPerFrac;
     }
+    /* Пряма дорога з конструктора в наявне замовлення — без кошика й без
+       модалки контактів: контакти вже відомі з картки, а «оформлення» тут
+       нічого не оформлює, позиція просто дописується в те саме замовлення.
+
+       Живе тут, а не на сторінці, бо конструктор тепер відкривається у двох
+       місцях — на сайті й у пропозиції, — і місток має бути один. Пакування
+       макетів у хмару робить адмінка: сюди приходить лише сама позиція. */
+    function ccTargetOrder(){
+      try{ var h = window.__lqAdminHost && window.__lqAdminHost();
+           return (h && h.__adminOfferTarget) || null; }
+      catch(e){ return null; }   // інший домен — просто немає привʼязки
+    }
+    window.__lqSendToOrder = function(){
+      var tgt = ccTargetOrder();
+      if(!tgt || !tgt.id) return Promise.resolve(false);
+      var items = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      if(!items.length) return Promise.resolve(false);
+      var _h = window.__lqAdminHost && window.__lqAdminHost();
+      var saver = (_h && _h.__adminSaveClientOrder) || window.__adminSaveClientOrder;
+      if(typeof saver !== 'function'){
+        alert('Позицію можна додати лише з адмінки.');
+        return Promise.resolve(false);
+      }
+      var payload = { instagram: tgt.instagram || '', name: tgt.name || '',
+                      company: tgt.company || '', phone: tgt.phone || '', dueAt: '',
+                      items: JSON.parse(JSON.stringify(items)), targetId: tgt.id };
+      if(tgt.replaceIndex != null) payload.replaceIndex = tgt.replaceIndex;
+      window.__cartSaving = true;
+      return Promise.resolve()
+        .then(function(){ return saver(payload); })
+        .then(function(){
+          /* Чистимо лише після підтвердженого запису — інакше позиція зникає
+             з очей, а в базі її немає. У пропозиції кошика немає взагалі,
+             тому і renderCart, і вікно кошика тут необовʼязкові. */
+          items.length = 0;
+          try{ if(typeof renderCart === 'function') renderCart(); }catch(e){}
+          try{ document.getElementById('cartModal').classList.remove('open'); }catch(e){}
+          return true;
+        })
+        .catch(function(e){
+          alert('Не додано в замовлення: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+                '\n\nПозиція нікуди не поділась — перевірте звʼязок і спробуйте ще раз.');
+          try{ if(typeof cartModalCtrl !== 'undefined' && cartModalCtrl) cartModalCtrl.open(); }catch(e2){}
+          return false;
+        })
+        .then(function(ok){ window.__cartSaving = false; return ok; });
+    };
+    /* Перевірка масштабу нанесення з консолі. Ціна рахується від міліметрів,
+       міліметри — від висоти виробу й калібрування зони з адмінки; ширина
+       вікна чи картки не має впливати на них узагалі. Один виклик показує
+       всі три числа одразу — і видно, чи вони справді не залежать від
+       ширини контейнера. */
+    window.__lqPrintScale = function(){
+      var pa = ((window.SITE_CONTENT || {}).printAreas || {})[pm.garmentId] || {};
+      var cfg = (typeof currentPrintCfg === 'function') ? currentPrintCfg() : null;
+      return {
+        garment: pm.garmentId,
+        heightCm: (+pa.heightCm > 0) ? +pa.heightCm : (garmentHeightMm() / 10),
+        calibTop: cfg && cfg.calibTop != null ? cfg.calibTop : 0.06,
+        calibBottom: cfg && cfg.calibBottom != null ? cfg.calibBottom : 0.96,
+        wrapW: wrapBox().w,
+        mmPerFrac: zoneScaleMmPerFrac()
+      };
+    };
     // Габарити картинки в мм — рівно ті, що видно на екрані. Лого вписується
     // у квадрат 120×scale пікселів: у горизонтального менша висота, у вертикального —
     // менша ширина. Раніше ширина завжди бралася як повна сторона квадрата, тож

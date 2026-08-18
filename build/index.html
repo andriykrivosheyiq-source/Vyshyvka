@@ -6225,43 +6225,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       try{ var h = window.__lqAdminHost(); return (h && h.__adminOfferTarget) || null; }
       catch(e){ return null; }   // інший домен — просто немає прив'язки
     }
-    /* Пряма дорога з конструктора в наявне замовлення, без кошика й без
-       модалки контактів: контакти вже відомі з картки, а «оформлення» тут
-       нічого не оформлює — позиція просто дописується в те саме замовлення.
-       Раніше цей шлях ішов через кошик і форму клієнта, і виглядав так, ніби
-       заводиться друге замовлення на ту саму людину. */
-    window.__lqSendToOrder = function(){
-      var tgt = ccTarget();
-      if(!tgt || !tgt.id) return Promise.resolve(false);
-      if(!cartItems.length) return Promise.resolve(false);
-      var _h = window.__lqAdminHost();
-      var saver = (_h && _h.__adminSaveClientOrder) || window.__adminSaveClientOrder;
-      if(typeof saver !== 'function'){
-        alert('Позицію можна додати лише з адмінки.');
-        return Promise.resolve(false);
-      }
-      var payload = { instagram: tgt.instagram || '', name: tgt.name || '',
-                      company: tgt.company || '', phone: tgt.phone || '', dueAt: '',
-                      items: JSON.parse(JSON.stringify(cartItems)), targetId: tgt.id };
-      if(tgt.replaceIndex != null) payload.replaceIndex = tgt.replaceIndex;
-      window.__cartSaving = true;
-      return Promise.resolve()
-        .then(function(){ return saver(payload); })
-        .then(function(){
-          // Кошик чистимо лише після підтвердженого запису — інакше позиція
-          // зникає, а в базі її немає
-          cartItems.length = 0; renderCart();
-          try{ document.getElementById('cartModal').classList.remove('open'); }catch(e){}
-          return true;
-        })
-        .catch(function(e){
-          alert('Не додано в замовлення: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
-                '\n\nПозиція лишилась у кошику — перевірте звʼязок і спробуйте ще раз.');
-          try{ cartModalCtrl.open(); }catch(e2){}
-          return false;
-        })
-        .then(function(ok){ window.__cartSaving = false; return ok; });
-    };
+    /* Пряма дорога з конструктора в наявне замовлення живе тепер у самому
+       конструкторі (loomiq-constructor.js): нею користується і сайт, і
+       сторінка пропозиції, а два екземпляри одного містка — це два місця,
+       де його можна забути виправити. */
     b.addEventListener('click', function(){
       if(!cartItems.length){ alert('Кошик порожній — спершу додайте товари.'); return; }
       if(!cartItems.some(function(i){ return i.kind !== 'reco'; })){
@@ -6432,7 +6399,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=4ee7fa6994"></script>
+<script src="loomiq-constructor.js?v=8ece294f03"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
