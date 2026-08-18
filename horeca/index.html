@@ -10209,6 +10209,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       try{ renderRecommended(); }catch(e){}
       requestAnimationFrame(fitGarmentStage);
       fitStageTwice();
+      /* Логотип замовлення сам стає на новий виріб. Менеджер додає худі —
+         і бачить його вже з лого, а не порожнім: інакше на кожен товар
+         доводилось окремо згадувати про логотип, і в пропозицію потрапляли
+         виготовлені «голі» позиції.
+         Ставимо лише коли на виробі ще нічого немає і коли конструктор
+         відкритий із картки замовлення. Місце типове — центр зони друку;
+         менеджер його вільно посуне. Чекаємо на фото виробу: без його
+         розмірів зону нанесення не порахувати, а отже й ціну. */
+      if(!carry && logoCount() === 0 && orderLogos().length){
+        var putLogo = function(){
+          try{ if(logoCount() === 0) addLogo(orderLogos()[0], orderLogos()[0], null); }catch(e){}
+        };
+        if(pmGarmentPhoto && pmGarmentPhoto.complete && pmGarmentPhoto.naturalWidth)
+          requestAnimationFrame(function(){ requestAnimationFrame(putLogo); });
+        else if(pmGarmentPhoto)
+          pmGarmentPhoto.addEventListener('load', function once(){
+            pmGarmentPhoto.removeEventListener('load', once);
+            requestAnimationFrame(function(){ requestAnimationFrame(putLogo); });
+          });
+      }
       // Перенесений із рекомендованих дизайн ставимо, коли фото нового виробу
       // вже завантажене: без його розмірів зону нанесення не порахувати.
       if(carry && carry.ctx && carry.ctx.layers && carry.ctx.layers.length){
