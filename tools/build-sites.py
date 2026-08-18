@@ -11,6 +11,7 @@ tools/sites.json — те, чим ніші відрізняються: тема,
 (наприклад, ми переписали заголовок), збірка падає з поясненням, а не мовчки
 лишає нішевий сайт зі старим текстом.
 """
+import hashlib
 import json
 import os
 import re
@@ -19,6 +20,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = os.path.join(ROOT, 'index.html')
 CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
+# Конструктор живе окремим файлом і підключається і сайтом, і сторінкою
+# пропозиції. Ніші відрізняються складом виробів, тож кожна дістає власну копію.
+CTOR = 'loomiq-constructor.js'
+CTOR_PATH = os.path.join(ROOT, CTOR)
+STAMPED = ('index.html', 'offer.html')
 
 HERO_CONTROLS = """    <div class="hero-slide-controls">
       <div class="hero-slide-dots" id="heroSlideDots"></div>
@@ -192,29 +198,32 @@ def apply_cases(html, cfg):
     return html
 
 
-def apply_garments(html, cfg):
-    """Власні вироби ніші (кітель, фартух) — додаються до спільного списку."""
+def apply_garments(html, ctor, cfg):
+    """Власні вироби ніші (кітель, фартух) — додаються до спільного списку.
+
+    Список виробів переїхав у конструктор, а каталог лишився на сторінці —
+    тому правки лягають у два файли, а не в один."""
     items = cfg.get('garments') or []
     if not items:
-        return html
+        return html, ctor
     first = cfg.get('garmentsFirst')     # ставити власні вироби на початок списку
     code = ',\n'.join(g['code'].rstrip(',') for g in items)
     if first:
         head = "    var GARMENTS = [\n"
-        if head not in html:
-            raise BuildError('не знайшов початок списку виробів')
-        at = html.index(head) + len(head)
-        html = html[:at] + code + ',\n' + html[at:]
+        if head not in ctor:
+            raise BuildError('не знайшов початок списку виробів у конструкторі')
+        at = ctor.index(head) + len(head)
+        ctor = ctor[:at] + code + ',\n' + ctor[at:]
     else:
         anchor = "      {id:'tote', name:'Шопер', price:90,"
-        if anchor not in html:
+        if anchor not in ctor:
             raise BuildError('не знайшов кінець списку виробів для вставки власних')
-        tail = html.index('\n    ];', html.index(anchor))
-        html = html[:tail] + ',\n' + code + html[tail:]
+        tail = ctor.index('\n    ];', ctor.index(anchor))
+        ctor = ctor[:tail] + ',\n' + code + ctor[tail:]
 
     names = ', '.join('%s:1' % g['id'] for g in items)
-    html = re.sub(r'(var NAME_NO_SUFFIX = \{[^}]*)\}',
-                  lambda m: m.group(1) + ', ' + names + '}', html, count=1)
+    ctor = re.sub(r'(var NAME_NO_SUFFIX = \{[^}]*)\}',
+                  lambda m: m.group(1) + ', ' + names + '}', ctor, count=1)
 
     cat = ',\n    '.join(g['catalog'] for g in items if g.get('catalog'))
     if cat:
@@ -227,31 +236,56 @@ def apply_garments(html, cfg):
         else:
             end = html.index('\n  ];', html.index(head))
             html = html[:end] + ',\n    ' + cat + html[end:]
-    return html
+    return html, ctor
 
 
-def apply_texts(html, cfg):
+def apply_texts(html, ctor, cfg):
+    """Тексти ніші. Шукаємо і на сторінці, і в конструкторі: після винесення
+    конструктора в окремий файл частина рядків (вироби, кольори, відгуки)
+    живе саме там. Рядок, якого немає ніде, — це помилка збірки, а не привід
+    мовчки лишити нішевий сайт зі старим текстом."""
     missing = []
     for old, new in (cfg.get('texts') or {}).items():
         # шляхи вже зроблено абсолютними, тож і ключі, і заміни звіряємо в тому ж вигляді
         # (інакше відносний images/… з підпапки шукався б у /horeca/images/ і давав 404)
         old = absolutise_images(old)
         new = absolutise_images(new)
-        if html.count(old) == 1:
-            html = html.replace(old, new, 1)
-        elif html.count(old) == 0:
-            missing.append(old)
-        else:
+        if html.count(old):
             html = html.replace(old, new)
+        elif ctor.count(old):
+            ctor = ctor.replace(old, new)
+        else:
+            missing.append(old)
     if missing:
         raise BuildError(
-            'ці тексти більше не зустрічаються в головному сайті — онови tools/sites.json:\n  '
+            'ці тексти більше не зустрічаються ні на сторінці, ні в конструкторі '
+            '— онови tools/sites.json:\n  '
             + '\n  '.join(t[:110] for t in missing[:8])
         )
-    return html
+    return html, ctor
 
 
-def build(site, cfg, base_html):
+def stamp(path, name, ver):
+    """Позначку версії підставляємо в АДРЕСУ файлу.
+
+    Інакше браузер лишався б зі старим конструктором ще годину після
+    оновлення сайту: сторінка нова, скрипт із кешу — і менеджер не розуміє,
+    чому виправлене досі не виправлене."""
+    return re.sub(r'(?<=/)?' + re.escape(name) + r'\?v=[A-Za-z0-9]+',
+                  name + '?v=' + ver, path)
+
+
+def ctor_version(code):
+    return hashlib.sha1(code.encode('utf-8')).hexdigest()[:10]
+
+
+def build(site, cfg, base_html, base_ctor):
+    """Сторінка ніші плюс її власна копія конструктора.
+
+    Список виробів у ніші свій (кітель, фартух), а він живе саме в
+    конструкторі — тож окремої копії не уникнути. Решта коду в ній
+    побайтово та сама, що на головному сайті."""
+    ctor = absolutise_images(base_ctor)
     html = base_html
     html = absolutise_images(html)
     html = apply_identity(html, site, cfg)
@@ -261,14 +295,30 @@ def build(site, cfg, base_html):
     html = apply_hero(html, cfg)
     html = apply_niches(html, cfg)
     html = apply_cases(html, cfg)
-    html = apply_garments(html, cfg)
-    html = apply_texts(html, cfg)
-    return html
+    html, ctor = apply_garments(html, ctor, cfg)
+    html, ctor = apply_texts(html, ctor, cfg)
+    html = stamp(html, CTOR, ctor_version(ctor))
+    return html, ctor
 
 
 def main():
     base_html = open(BASE, encoding='utf-8').read()
+    base_ctor = open(CTOR_PATH, encoding='utf-8').read()
     config = json.load(open(CONFIG, encoding='utf-8'))
+
+    # Головний сайт і сторінка пропозиції беруть конструктор як є — їм
+    # потрібна лише свіжа позначка версії в адресі
+    ver = ctor_version(base_ctor)
+    for name in STAMPED:
+        path = os.path.join(ROOT, name)
+        if not os.path.exists(path):
+            continue
+        txt = open(path, encoding='utf-8').read()
+        new = stamp(txt, CTOR, ver)
+        if new != txt:
+            open(path, 'w', encoding='utf-8').write(new)
+            print('[%s] версія конструктора → %s' % (name, ver))
+
     wanted = sys.argv[1:] or list(config)
     failed = False
     for site in wanted:
@@ -277,7 +327,7 @@ def main():
             failed = True
             continue
         try:
-            html = build(site, config[site], base_html)
+            html, ctor = build(site, config[site], base_html, base_ctor)
         except BuildError as e:
             print('[%s] ПОМИЛКА\n  %s' % (site, e))
             failed = True
@@ -285,7 +335,8 @@ def main():
         out = os.path.join(ROOT, site, 'index.html')
         os.makedirs(os.path.dirname(out), exist_ok=True)
         open(out, 'w', encoding='utf-8').write(html)
-        print('[%s] зібрано → %s (%d рядків)' % (site, out, html.count('\n') + 1))
+        open(os.path.join(ROOT, site, CTOR), 'w', encoding='utf-8').write(ctor)
+        print('[%s] зібрано → %s (%d рядків) + %s' % (site, out, html.count('\n') + 1, CTOR))
     return 1 if failed else 0
 
 
