@@ -9152,7 +9152,8 @@ function offerEdPreview(now){
       try{
         /* Рукостискання: сторінка вмикає редагування лише почувши
            батьківське вікно, а не за параметром в адресі. */
-        f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog() }, '*');
+        f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(),
+                                      clientUrl: offerUrl(o) + '&preview=1' }, '*');
         if(offerEd) offerEd.ready = true;   // далі оновлюємо даними, без перезавантажень
         // Одразу віддаємо розклад ціни: інакше «Деталі позиції» лишались би
         // без нього до першої правки
@@ -9161,7 +9162,10 @@ function offerEdPreview(now){
         if(keep) setTimeout(()=>{ try{ f.contentWindow.scrollTo(0, keep); }catch(e){} }, 80);
       }catch(e){}
     };
-    f.src = offerUrl(o) + '&edit=1&t=' + Date.now();
+    /* Менеджер працює не в клієнтській сторінці, а на власному робочому
+       місці: конструктор плюс склад пропозиції. Клієнтська КП лишається
+       клієнтською — її видно на вкладці «Як бачить клієнт». */
+    f.src = 'offer-edit.html?v=' + LQ_BUILD + '&t=' + Date.now();
   };
   if(offerEd.timer) clearTimeout(offerEd.timer);
   if(now){ go(); return; }

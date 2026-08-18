@@ -3362,6 +3362,9 @@
       renderTiers();
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
+         /* Робоче місце менеджера слухає це, щоб знати: у позиції є зміни,
+         яких ще немає в замовленні. */
+      if(window.__lqDirty) window.__lqDirty();
     }
     // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
     function renderManagerPanel(){
@@ -3617,6 +3620,9 @@
       updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
+         /* Робоче місце менеджера слухає це, щоб знати: у позиції є зміни,
+         яких ще немає в замовленні. */
+      if(window.__lqDirty) window.__lqDirty();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───

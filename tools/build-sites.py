@@ -24,7 +24,7 @@ CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
 # пропозиції. Ніші відрізняються складом виробів, тож кожна дістає власну копію.
 CTOR = 'loomiq-constructor.js'
 CTOR_PATH = os.path.join(ROOT, CTOR)
-STAMPED = ('index.html', 'offer.html')
+STAMPED = ('index.html', 'offer.html', 'offer-edit.html')
 # Стилі й розмітка конструктора теж мають одне джерело — index.html. Сторінка
 # пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
 CTOR_CSS = 'loomiq-constructor.css'
@@ -393,19 +393,20 @@ def main():
     # Розмітку кладемо ще й прямо в сторінку пропозиції. Окремим файлом вона
     # тягнеться вже під час редагування — і варто тому файлу не доїхати, як
     # редактор назавжди лишається з написом «Відкриваємо…».
-    off = os.path.join(ROOT, 'offer.html')
-    if os.path.exists(off):
+    for name in ('offer.html', 'offer-edit.html'):
+        off = os.path.join(ROOT, name)
+        if not os.path.exists(off):
+            continue
         txt = open(off, encoding='utf-8').read()
         a, b = '<!-- lq:constructor -->', '<!-- /lq:constructor -->'
-        if txt.count(a) == 1 and txt.count(b) == 1:
-            head = txt.index(a) + len(a)
-            tail = txt.index(b)
-            new = txt[:head] + '\n' + markup + txt[tail:]
-            if new != txt:
-                open(off, 'w', encoding='utf-8').write(new)
-                print('[offer.html] розмітку конструктора вкладено в сторінку')
-        else:
-            raise BuildError('в offer.html немає міток lq:constructor для розмітки конструктора')
+        if txt.count(a) != 1 or txt.count(b) != 1:
+            raise BuildError('у %s немає міток lq:constructor для розмітки конструктора' % name)
+        head = txt.index(a) + len(a)
+        tail = txt.index(b)
+        new = txt[:head] + '\n' + markup + txt[tail:]
+        if new != txt:
+            open(off, 'w', encoding='utf-8').write(new)
+            print('[%s] розмітку конструктора вкладено в сторінку' % name)
 
     # Позначка версії спільна на всі три файли: вони змінюються разом
     ver = ctor_version(base_ctor + css + markup)
