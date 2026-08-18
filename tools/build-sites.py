@@ -25,6 +25,17 @@ CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
 CTOR = 'loomiq-constructor.js'
 CTOR_PATH = os.path.join(ROOT, CTOR)
 STAMPED = ('index.html', 'offer.html')
+# Стилі й розмітка конструктора теж мають одне джерело — index.html. Сторінка
+# пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
+CTOR_CSS = 'loomiq-constructor.css'
+CTOR_HTML = 'loomiq-constructor-body.html'
+# З чого починається й чим закінчується розмітка конструктора в index.html
+MARKUP_FROM = '<!-- Product configurator modal -->'
+MARKUP_TO = '<!-- floating action buttons:'
+# За цими ознаками правило вважається конструкторським
+CTOR_SELECTORS = re.compile(
+    r'(?:^|[\s,>+~])(?:\.pm-|\.pmm-|#pm[A-Z]|#productModal|\.contact-modal|\.catalog-modal'
+    r'|\.product\b|\.sheet|\.tsel|\.dl-|\.zone-|#legalPage|\.swatch)', re.I)
 
 HERO_CONTROLS = """    <div class="hero-slide-controls">
       <div class="hero-slide-dots" id="heroSlideDots"></div>
@@ -275,6 +286,70 @@ def stamp(path, name, ver):
                   name + '?v=' + ver, path)
 
 
+def split_rules(css):
+    """CSS на правила верхнього рівня. @media лишається одним шматком —
+    інакше медіа-запит розсипався б і його вміст став би безумовним."""
+    out = []
+    i = n = 0
+    n = len(css)
+    start = 0
+    depth = 0
+    while i < n:
+        c = css[i]
+        if c == '/' and css[i:i + 2] == '/*':
+            j = css.find('*/', i)
+            i = n if j < 0 else j + 2
+            continue
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                out.append(css[start:i + 1])
+                start = i + 1
+        i += 1
+    if css[start:].strip():
+        out.append(css[start:])
+    return out
+
+
+def constructor_css(html):
+    """Стилі конструктора з головного сайту.
+
+    Беремо не всі: сторінка пропозиції має власне оформлення, і повний стиль
+    сайту переписав би їй заголовки, кнопки й тіло. Лишаємо правила, які
+    згадують конструктор, — решта пропозиції їх не стосується."""
+    body = re.search(r'<style[^>]*>(.*?)</style>', html, re.S).group(1)
+    keep = []
+    for rule in split_rules(body):
+        head = rule.split('{', 1)[0]
+        if rule.lstrip().startswith('@media'):
+            inner = rule[rule.index('{') + 1:rule.rindex('}')]
+            sub = [x for x in split_rules(inner) if CTOR_SELECTORS.search(x.split('{', 1)[0])]
+            if sub:
+                keep.append(head + '{\n' + '\n'.join(sub) + '\n}')
+            continue
+        if rule.lstrip().startswith('@'):
+            keep.append(rule)
+            continue
+        if CTOR_SELECTORS.search(head):
+            keep.append(rule)
+    return ('/* Згенеровано: python3 tools/build-sites.py. Не правити руками —\n'
+            '   джерело стилів конструктора одне, і воно в index.html. */\n'
+            + '\n'.join(x.strip() for x in keep) + '\n')
+
+
+def constructor_markup(html):
+    """Розмітка конструктора з головного сайту, як є."""
+    if MARKUP_FROM not in html or MARKUP_TO not in html:
+        raise BuildError('не знайшов меж розмітки конструктора в index.html')
+    a = html.index(MARKUP_FROM)
+    b = html.index(MARKUP_TO, a)
+    return ('<!-- Згенеровано: python3 tools/build-sites.py. Не правити руками —\n'
+            '     джерело розмітки конструктора одне, і воно в index.html. -->\n'
+            + html[a:b].rstrip() + '\n')
+
+
 def ctor_version(code):
     return hashlib.sha1(code.encode('utf-8')).hexdigest()[:10]
 
@@ -308,13 +383,23 @@ def main():
 
     # Головний сайт і сторінка пропозиції беруть конструктор як є — їм
     # потрібна лише свіжа позначка версії в адресі
-    ver = ctor_version(base_ctor)
+    css = constructor_css(base_html)
+    markup = constructor_markup(base_html)
+    open(os.path.join(ROOT, CTOR_CSS), 'w', encoding='utf-8').write(css)
+    open(os.path.join(ROOT, CTOR_HTML), 'w', encoding='utf-8').write(markup)
+    print('[конструктор] стилі → %s (%d КБ), розмітка → %s (%d рядків)'
+          % (CTOR_CSS, len(css) // 1024, CTOR_HTML, markup.count('\n') + 1))
+
+    # Позначка версії спільна на всі три файли: вони змінюються разом
+    ver = ctor_version(base_ctor + css + markup)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
-        new = stamp(txt, CTOR, ver)
+        new = txt
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML):
+            new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)
             print('[%s] версія конструктора → %s' % (name, ver))

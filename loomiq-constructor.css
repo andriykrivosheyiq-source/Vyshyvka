@@ -1,0 +1,953 @@
+/* Згенеровано: python3 tools/build-sites.py. Не правити руками —
+   джерело стилів конструктора одне, і воно в index.html. */
+@keyframes tg-pop{
+    from{opacity:0;transform:scale(.86);filter:blur(8px);}
+    to{opacity:1;transform:scale(1);filter:blur(0);}
+  }
+@keyframes hero-ring-fill{
+    from{stroke-dashoffset:100.5;}
+    to{stroke-dashoffset:0;}
+  }
+@keyframes strip-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes glow-drift-1{
+    0%,100%{transform:translate(0,0) scale(1);opacity:.9;}
+    50%{transform:translate(-9%,10%) scale(1.12);opacity:1;}
+  }
+@keyframes glow-drift-2{
+    0%,100%{transform:translate(0,0) scale(1);opacity:.85;}
+    50%{transform:translate(10%,-8%) scale(1.1);opacity:1;}
+  }
+@keyframes ring-fill-once{
+    from{stroke-dashoffset:264;}
+    to{stroke-dashoffset:53;}
+  }
+.product{
+    background:#FFFFFF;border-radius:var(--radius);overflow:hidden;
+    border:1px solid var(--line);transition:box-shadow .2s ease;
+  }
+.product:hover{box-shadow:0 4px 14px -6px rgba(0,0,0,.1);}
+.product-art{position:relative;}
+/* Фото товарів зняті по-різному: у частини в самому файлі сірий фон, у
+     частини білий. Коли вони «вписуються» з полями, одна картка виглядає
+     як наліпка на білому, інша як сірий квадрат — сітка розсипається.
+     Тому однаковий квадрат на всіх і фото край-у-край: тон трохи різний,
+     зате картки одного розміру й нічого не висить у повітрі. */
+  .product-art{
+    aspect-ratio:1/1;background:#F1F2F4;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+.product-art svg{width:44%;color:var(--ink);}
+.product-art img{width:100%;height:100%;object-fit:cover;display:block;}
+/* Назва й ціна ліворуч, стрілка праворуч по центру висоти. Текст ніколи
+     не центрується: у сітці з чотирьох карток око читає лівий край. */
+  .product-info{padding:14px 14px 16px;display:flex;align-items:center;
+    justify-content:space-between;gap:10px;background:#FFFFFF;text-align:left;}
+.product-info > div{min-width:0;}
+.product-info h3,.product-info h4{font-size:15px;font-weight:700;line-height:1.25;
+    letter-spacing:-.2px;}
+.product-info .price{font-size:13px;color:var(--muted);margin-top:3px;}
+@media (max-width:420px){
+
+    .product-info{padding:11px 11px 13px;gap:8px;}
+
+    .product-info h3,.product-info h4{font-size:14px;}
+
+    .product-info .price{font-size:12px;}
+
+    .product-info .go{width:28px;height:28px;}
+}
+.product-info .go{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;flex:none;
+    color:var(--ink-soft);transition:border-color .15s ease,color .15s ease;
+  }
+.product:hover .go{border-color:var(--ink);color:var(--ink);}
+@keyframes why-logos-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes status-pulse{
+    0%{box-shadow:0 0 0 0 rgba(34,197,94,.5);}
+    70%{box-shadow:0 0 0 5px rgba(34,197,94,0);}
+    100%{box-shadow:0 0 0 0 rgba(34,197,94,0);}
+  }
+/* Contact modal — opened from header phone button or menu "Контакти" */
+  .contact-modal{
+    position:fixed;inset:0;z-index:220;background:#FFFFFF;
+    opacity:0;transform:translateY(12px);pointer-events:none;
+    transition:opacity .3s cubic-bezier(.16,1,.3,1), transform .3s cubic-bezier(.16,1,.3,1);
+    overflow-y:auto;
+    overscroll-behavior:contain;   /* iOS: не передавати скрол сторінці позаду, коли модалка вперлась у край */
+    -webkit-overflow-scrolling:touch;
+  }
+.contact-modal.open{opacity:1;transform:none;pointer-events:auto;}
+.contact-modal-inner{padding:20px 24px calc(24px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;}
+.contact-modal-back{
+    display:inline-flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;
+    font-size:15px;color:var(--muted);font-family:var(--font-sf);padding:8px 0;margin-top:4px;
+  }
+/* Catalog picker modal */
+  .catalog-modal-topbar{border-bottom:1px solid var(--line);max-width:none;}
+#productModal .catalog-modal-topbar{padding:10px 24px;}
+.catalog-modal-topbar-left{display:flex;align-items:center;gap:12px;}
+.catalog-modal-subhead{font-size:17px;font-weight:400;color:var(--muted);margin:20px 0;}
+/* Product configurator modal */
+  #productModal{display:block;}
+.pm-stage{
+    position:relative;height:calc(54vh - 48px);background:rgb(233,230,231);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+/* Виріб має вміщатись у вікно цілком — і на широкому екрані, і на телефоні.
+     Фіксована висота сцени в vh рахувалась від вікна БРАУЗЕРА, а конструктор
+     тут живе у вужчій рамці всередині адмінки, тож макет обрізало. */
+  .lq-embed #productModal .pm-stage img{max-height:100%;object-fit:contain;}
+.pm-pill{
+    width:38px;height:38px;border-radius:19px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.5);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;
+    box-shadow:0 2px 8px rgba(0,0,0,.09);position:relative;
+  }
+.pm-pill--back{position:absolute;top:18px;left:18px;z-index:9;}
+.pm-pill-group{position:absolute;top:18px;right:18px;z-index:9;display:flex;gap:8px;}
+.pm-cart-badge{
+    position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#e0392b;color:#fff;
+    font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;
+  }
+.pm-swipe-wrap{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:6px 6px 56px;overflow:hidden;
+  }
+.pm-garment-wrap{position:relative;}
+#pmGarmentSvg{width:100%;height:100%;display:block;filter:drop-shadow(0 18px 40px rgba(0,0,0,.18));}
+#pmGarmentPhoto{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:rgb(233,230,231);}
+#pmPrintArea{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:11;overflow:visible;}
+#pmPrintArea path{fill:none;stroke-linejoin:round;vector-effect:non-scaling-stroke;}
+/* Вибір джерела логотипа (лише менеджерський режим) */
+  .pm-src-modal{display:none;position:fixed;inset:0;z-index:120;background:rgba(15,32,52,.45);
+    align-items:center;justify-content:center;padding:20px;}
+.pm-src-modal.open{display:flex;}
+.pm-src-box{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:380px;
+    box-shadow:0 18px 50px rgba(15,32,52,.28);}
+.pm-src-title{font-size:17px;font-weight:800;color:#0f2034;margin-bottom:14px;}
+.pm-src-opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;
+    border:1px solid #e4e8ef;background:#fff;border-radius:13px;padding:13px 14px;margin-bottom:9px;font:inherit;}
+.pm-src-opt b{display:block;font-size:14.5px;color:#0f2034;}
+.pm-src-opt small{display:block;font-size:12px;color:#8893a6;margin-top:2px;}
+.pm-src-opt--go{justify-content:center;background:#0f2034;border-color:#0f2034;}
+.pm-src-opt--go b{color:#fff;}
+.pm-src-ic{font-size:20px;flex:none;}
+.pm-src-cancel{width:100%;border:none;background:none;color:#8893a6;font:inherit;font-size:13.5px;
+    padding:9px;cursor:pointer;border-radius:10px;}
+.pm-ai-prompt{width:100%;border:1px solid #e4e8ef;border-radius:12px;padding:11px 12px;font:inherit;
+    font-size:14px;resize:vertical;margin-bottom:8px;color:#0f2034;}
+.pm-ai-prompt:focus{outline:none;border-color:#4f5fd4;}
+/* Швидкі промти */
+  .pm-ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.pm-ai-chip{border:1px solid #e4e8ef;background:#fff;color:#0f2034;font:inherit;font-size:12.5px;
+    font-weight:600;padding:7px 11px;border-radius:999px;cursor:pointer;line-height:1.2;}
+.pm-ai-chip:disabled{opacity:.5;cursor:default;}
+/* Вище вікна генерації (z-index 120) — обрізання відкривається поверх нього */
+  .pm-crop-ov{position:fixed;inset:0;z-index:140;background:rgba(15,32,52,.92);
+    display:none;flex-direction:column;}
+.pm-crop-ov.open{display:flex;}
+.pm-crop-head{color:#fff;font-size:15px;font-weight:700;text-align:center;padding:16px 16px 4px;}
+.pm-crop-stage{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-height:0;}
+.pm-crop-wrap{position:relative;display:inline-block;max-width:100%;max-height:100%;}
+.pm-crop-wrap img{display:block;max-width:100%;max-height:64vh;user-select:none;-webkit-user-drag:none;
+    background:#fff;border-radius:6px;}
+.pm-crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);
+    cursor:move;touch-action:none;}
+.pm-crop-h{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;
+    box-shadow:0 1px 5px rgba(0,0,0,.35);touch-action:none;}
+.pm-crop-h[data-h="nw"]{left:-12px;top:-12px;cursor:nwse-resize;}
+.pm-crop-h[data-h="ne"]{right:-12px;top:-12px;cursor:nesw-resize;}
+.pm-crop-h[data-h="sw"]{left:-12px;bottom:-12px;cursor:nesw-resize;}
+.pm-crop-h[data-h="se"]{right:-12px;bottom:-12px;cursor:nwse-resize;}
+.pm-crop-bar{display:flex;gap:10px;padding:0 16px calc(20px + env(safe-area-inset-bottom));}
+.pm-crop-btn{flex:1;padding:14px;border-radius:12px;border:none;background:#fff;color:#0f2034;
+    font:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+.pm-crop-btn--ghost{background:rgba(255,255,255,.16);color:#fff;}
+.pm-ai-chip.on{background:#0f2034;color:#fff;border-color:#0f2034;}
+.pm-ai-bases{display:flex;gap:8px;margin-bottom:10px;}
+.pm-ai-base{flex:1;display:flex;align-items:center;gap:8px;border:1.5px solid #e4e8ef;background:#fff;
+    border-radius:11px;padding:7px 9px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
+    color:#5a6a80;text-align:left;}
+.pm-ai-base.on{border-color:#0f2034;color:#0f2034;background:#f7f9fc;}
+.pm-ai-base img{width:30px;height:30px;object-fit:contain;border-radius:6px;background:#f5f6f8;flex:none;}
+/* Менеджерські інструменти під списком лого */
+  .pm-mgr-tools{display:flex;gap:8px;margin:12px 0 0;padding:0 18px;flex-wrap:wrap;}
+.pm-mgr-tool{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4e8ef;background:#fff;
+    color:#0f2034;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
+.pm-recolor{margin:10px 18px 0;padding:11px;border:1px solid #e4e8ef;border-radius:12px;background:#fbfcfe;}
+.pm-recolor-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.pm-sw{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8dee7;
+    cursor:pointer;padding:0;}
+.pm-recolor input[type=color]{width:34px;height:30px;border:1px solid #d8dee7;border-radius:8px;
+    background:#fff;padding:2px;cursor:pointer;}
+.pm-recolor-hint{font-size:11.5px;color:#8893a6;margin-top:8px;line-height:1.4;}
+/* Прикріплений референс */
+  .pm-ai-attach{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.pm-ai-clip{display:inline-flex;align-items:center;gap:7px;border:1px solid #e4e8ef;background:#fff;
+    color:#5a6a80;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
+.pm-ai-thumb{position:relative;width:44px;height:44px;border-radius:9px;overflow:hidden;
+    border:1px solid #e4e8ef;background:#f5f6f8;flex:none;}
+.pm-ai-thumb img{width:100%;height:100%;object-fit:contain;display:block;}
+.pm-ai-thumb button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+    border:none;background:#0f2034;color:#fff;font-size:14px;line-height:18px;cursor:pointer;padding:0;}
+.pm-ai-note{font-size:12.5px;color:#8893a6;line-height:1.45;margin-bottom:12px;}
+.pm-ai-note.is-soon{color:#8a6a15;background:#fff8e6;border:1px solid #f3e0ab;border-radius:10px;padding:9px 11px;}
+#pmZoneWarn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:6px;
+    background:rgba(255,255,255,.94);color:#555;font-size:12.5px;font-weight:600;line-height:1;padding:8px 14px;border-radius:999px;
+    z-index:12;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.16);white-space:nowrap;}
+#pmZoneWarn svg{flex:none;}
+.pm-add-btn.is-blocked{opacity:.55;}
+/* Розміри рахуємо від ширини самого макета (--pmw), а не фіксованими
+     пікселями: мокап на кожному телефоні різний, і на меншому напис
+     «Завантажте логотип» просто не влазив — його різало по буквах, а плюс
+     виштовхувало за межі рамки. */
+  .pm-upload-zone{
+    position:absolute;top:30%;left:31%;right:31%;bottom:34%;border-radius:calc(var(--pmw,320px) * .028);
+    border:2px dashed rgba(255,255,255,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:calc(var(--pmw,320px) * .016);cursor:pointer;text-align:center;
+    padding:calc(var(--pmw,320px) * .012);box-sizing:border-box;
+    background:rgba(255,255,255,.13);overflow:hidden;
+  }
+/* Перелив, що підказує: сюди можна натиснути */
+  .pm-upload-zone::after{
+    content:'';position:absolute;top:-20%;bottom:-20%;left:-70%;width:55%;
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.30), transparent);
+    transform:skewX(-12deg);
+    animation:pm-shimmer 2.8s ease-in-out infinite;
+    pointer-events:none;
+  }
+@keyframes pm-shimmer{0%{left:-70%;}55%{left:115%;}100%{left:115%;}}
+@media (prefers-reduced-motion: reduce){
+.pm-upload-zone::after{animation:none;display:none;}
+}
+.pm-upload-plus{width:calc(var(--pmw,320px) * .105);height:calc(var(--pmw,320px) * .105);
+    min-width:24px;min-height:24px;max-width:44px;max-height:44px;border-radius:50%;flex:none;
+    background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
+.pm-upload-plus svg{width:52%;height:52%;}
+.pm-upload-text{font-size:clamp(9.5px, calc(var(--pmw,320px) * .042), 14px);font-weight:700;
+    color:rgba(255,255,255,.92);text-shadow:0 1px 3px rgba(0,0,0,.35);line-height:1.15;max-width:100%;}
+.pm-upload-sub{font-size:clamp(8px, calc(var(--pmw,320px) * .032), 11px);
+    color:rgba(255,255,255,.65);line-height:1.1;}
+/* Темний варіант — для світлих футболок (білий/сірий/пісочний), щоб не зливалось */
+  .pm-upload-zone--dark{border-color:rgba(0,0,0,.4);background:rgba(0,0,0,.07);}
+.pm-upload-zone--dark::after{background:linear-gradient(105deg, transparent, rgba(0,0,0,.10), transparent);}
+.pm-upload-zone--dark .pm-upload-plus{background:rgba(0,0,0,.12);}
+.pm-upload-zone--dark .pm-upload-plus svg,.pm-upload-zone--dark .pm-upload-plus svg line{stroke:#111;}
+.pm-upload-zone--dark .pm-upload-text{color:rgba(0,0,0,.82);text-shadow:none;}
+.pm-upload-zone--dark .pm-upload-sub{color:rgba(0,0,0,.5);}
+.pm-draggable-layer{position:absolute;top:50%;left:50%;transform-origin:center;user-select:none;touch-action:none;}
+.pm-dl-img{width:100%;height:100%;cursor:move;position:relative;}
+.pm-dl-img img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+.pm-dl-outline{position:absolute;inset:0;border:2px solid #fff;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.4);border-radius:2px;}
+.pm-dl-handle{
+    position:absolute;width:24px;height:24px;border-radius:12px;background:#fff;border:1.5px solid #ddd;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:30;
+  }
+.pm-dl-handle--delete{top:-14px;left:-14px;}
+.pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
+.pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
+.pm-dl-handle--scale svg{transform:rotate(90deg);}
+/* Стрілки — по краях фото, як і були: саме вони перемикають. */
+  .pm-side-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;
+    background:none;border:none;cursor:pointer;padding:4px;color:rgba(0,0,0,.5);}
+.pm-side-arrow--left{left:8px;}
+.pm-side-arrow--right{right:8px;}
+/* Назва сторони й крапки — покажчик, а не кнопка: без плашки, без фону.
+     Назва каже, який це бік, крапки — що фото тут не одне. */
+  .pm-side-mark{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:5;
+    display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;user-select:none;}
+.pm-side-mark-name{font-family:var(--font-sf);font-size:12px;font-weight:600;color:rgba(0,0,0,.62);
+    letter-spacing:.2px;text-shadow:0 1px 3px rgba(255,255,255,.85);}
+.pm-side-mark-dots{display:flex;align-items:center;gap:5px;}
+.pm-side-mark-dots i{width:6px;height:6px;border-radius:3px;background:rgba(0,0,0,.22);transition:all .25s;}
+.pm-side-mark-dots i.on{width:18px;background:rgba(0,0,0,.62);}
+.pm-sheet{
+    background:#FFFFFF;border-radius:28px 28px 0 0;
+    box-shadow:0 -2px 24px rgba(0,0,0,.08);position:relative;z-index:2;
+    margin-top:-20px;
+  }
+/* space-evenly + нульові поля: відстань від краю до слова дорівнює відстані
+     між словами. З space-between поля були фіксовані, а проміжки — великі. */
+  .pm-tabs{display:flex;justify-content:space-evenly;align-items:center;padding:7px 0;
+    border-bottom:1px solid #f2f2f2;overflow-x:auto;scrollbar-width:none;}
+/* Активна вкладка — м'яка пігулка, а не підкреслення. Дві риски (індикатор
+     і лінія стрічки) весь час сперечались між собою; тепер лінія одна, і
+     нічого під нею не малюється. Вага однакова для всіх, щоб ряд не смикався
+     при перемиканні — активну видно кольором і підкладкою. */
+  .pm-tab{
+    flex:0 0 auto;position:relative;padding:7px 13px;background:none;border:none;cursor:pointer;
+    border-radius:999px;font-family:var(--font-sf);font-size:14px;color:#9aa0ab;font-weight:600;
+    white-space:nowrap;transition:background .18s,color .18s;
+  }
+.pm-tab.active{color:#111;background:#f1f2f4;}
+.pm-qty-warning.is-tap{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.pm-qty-warning.is-tap:active{opacity:.6;}
+/* Вкладка «Товар»: рядок типу одягу — назва плюс поточний колір у дужках.
+     Тап розгортає вибір на все поле панелі, як екран кольору в написі. */
+  .pm-grow{width:100%;display:flex;align-items:center;gap:10px;padding:1px 18px 7px;
+    background:none;border:none;cursor:pointer;text-align:left;font-family:var(--font-sf);
+    -webkit-tap-highlight-color:transparent;}
+.pm-grow-txt{flex:1;min-width:0;}
+.pm-grow-k{display:block;font-size:11.5px;color:#9aa0ab;line-height:1.2;}
+.pm-grow-v{display:block;font-size:17px;font-weight:800;color:#111;line-height:1.25;
+    letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Замість стрілки — слово. Стрілка обіцяла «перейти», а тут міняють поточний
+     вибір; до того ж вона плуталась зі стрілкою гортання кольорів під нею. */
+  .pm-grow-btn{flex:none;border:1.5px solid #dcdfe5;border-radius:999px;padding:5px 13px;
+    font-size:12.5px;font-weight:600;color:#111;line-height:1.15;background:#fff;}
+.pm-grow:active .pm-grow-btn{background:#f1f2f4;}
+.pm-gp-head{display:flex;align-items:center;gap:9px;padding:0 18px 6px;}
+.pm-gp-head b{font-size:15px;font-weight:600;letter-spacing:-.2px;color:#111;}
+/* Картки типу одягу: фото, назва, крій. Стрічка гортається — вертикальна
+     сітка на 150px панелі показувала півтора ряди й нічого не пояснювала. */
+  .pm-gp-list{display:flex;gap:9px;padding:2px 2px 4px;overflow-x:auto;scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;}
+.pm-gp-list::-webkit-scrollbar{display:none;}
+.pm-gp-card{position:relative;flex:0 0 auto;width:82px;display:flex;flex-direction:column;
+    align-items:center;gap:0;padding:6px 5px 8px;border:1.5px solid #ededed;border-radius:14px;
+    background:#fff;cursor:pointer;font-family:var(--font-sf);
+    -webkit-tap-highlight-color:transparent;}
+.pm-gp-card.on{border-color:#111;border-width:2px;padding:5px 4px 7px;}
+/* Плитка фото на всю ширину картки: тло фото доходить до країв, тож
+     всередині немає окремого сірого прямокутника. */
+  .pm-gp-card img{width:100%;height:66px;object-fit:cover;border-radius:10px;
+    margin-bottom:2px;background:#f3f3f5;}
+.pm-gp-card svg{width:100%;height:66px;object-fit:contain;margin-bottom:2px;}
+.pm-gp-nm{font-size:12.5px;font-weight:700;color:#111;line-height:1.15;text-align:center;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pm-gp-fit{font-size:10.5px;color:#9aa0ab;line-height:1.15;text-align:center;min-height:12px;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pm-gp-ok{position:absolute;top:5px;right:5px;width:19px;height:19px;border-radius:10px;
+    background:#111;color:#fff;display:flex;align-items:center;justify-content:center;}
+.pm-gp-card.is-cat{border-style:dashed;color:#5a6472;justify-content:center;}
+.pm-gp-card.is-cat svg{height:40px;}
+/* Дотик не має лишати темного відблиску: браузер малює його ДО того, як
+     застосується наш стан — виходило «спершу темно-сіре, потім світло-сіре».
+     І ховер лишаємо тільки там, де є справжній курсор: на телефоні він
+     залипає після тапу й виглядає як застряглий стан. */
+  #productModal button, #productModal .pm-tab, #productModal .pm-photo-add,
+  #productModal .pm-photo-thumb, #productModal .pm-seg-btn, #productModal a{
+    -webkit-tap-highlight-color:transparent;}
+@media (hover:hover){
+
+    .pm-src-opt:hover{border-color:#4f5fd4;background:#f7f9ff;}
+
+    .pm-src-cancel:hover{background:#f4f5f7;color:#0f2034;}
+
+    .pm-ai-chip:hover{border-color:#0f2034;background:#f7f9fc;}
+
+    .pm-mgr-tool:hover{border-color:#0f2034;background:#f7f9fc;}
+
+    .pm-ai-clip:hover{border-color:#0f2034;color:#0f2034;}
+
+    .pm-side-arrow:hover{color:rgba(0,0,0,.8);}
+
+    .pm-photo-filled.is-empty .pm-photo-add:hover{border-color:#111;color:#111;}
+
+    .pm-photo-add--text:hover{border-color:#111;color:#111;}
+
+    .pm-tier-item:hover{background:#eceef2;}
+}
+.pm-tab-panel{height:118px;display:flex;align-items:center;padding:12px 0;flex:none;overflow:hidden;box-sizing:border-box;}
+/* Висота однакова на всіх вкладках. Раніше її диктував вміст — і блок
+     стрибав щоразу, коли міняли виріб чи брали напис: «худі на застібці»
+     робить список довшим, і все під ним їхало. Ціна цього — трохи порожнього
+     місця на коротких вкладках; воно того варте. */
+  .pm-tab-panel.is-two{height:clamp(124px,15vh,136px);min-height:0;max-height:none;
+    align-items:stretch;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 0;}
+/* Спосіб нанесення — властивість логотипа, а не окремий крок */
+  /* Підписи всередині вкладки: без них елементи висіли б самі по собі. */
+  .pm-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:#9aa0ab;flex:none;}
+/* Плитки додавання — рівно того ж розміру, що й мініатюри лого */
+  .pm-photo-filled.is-empty{padding-right:18px;height:100%;align-items:stretch;}
+.pm-photo-filled.is-empty .pm-photo-group,
+  .pm-photo-filled.is-empty .pm-photo-group-row{height:100%;}
+.pm-photo-filled.is-empty .pm-photo-group,
+  .pm-photo-filled.is-empty .pm-photo-group-row{flex:1;width:100%;}
+/* Порожній стан — це головний заклик до дії, тож контраст вищий за
+     звичайні «додати ще» плитки, які стоять поруч із мініатюрами. */
+  .pm-photo-filled.is-empty .pm-photo-add{flex:1;width:auto;height:100%;gap:7px;
+    border-color:#9aa3b0;color:#3d4757;background:#eceff3;}
+.pm-photo-filled.is-empty .pm-photo-add svg{width:24px;height:24px;}
+.pm-photo-filled.is-empty .pm-photo-add-ab{font-size:24px;}
+.pm-photo-filled.is-empty .pm-photo-add span:last-child{font-size:13px;font-weight:600;}
+.pm-photo-add--text{border-style:solid;border-color:#c3c9d2;color:#5a6472;}
+.pm-photo-add-ab{font-size:16px;font-weight:800;line-height:1;color:inherit;}
+/* «Прибрати фон» — значком у куті мініатюри, щоб не займати рядок під нею */
+  .pm-bg-dot{position:absolute;left:3px;bottom:3px;width:16px;height:16px;border-radius:8px;
+    border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
+.pm-bg-dot.on{background:#111;color:#fff;}
+/* ═══ Напис ═══
+     Набір іде прямо в рамці на виробі: окремого поля під макетом немає,
+     щоб той самий текст не стояв у двох місцях. */
+  .pm-dl-text{position:absolute;inset:0;box-sizing:border-box;display:block;text-align:center;
+    white-space:pre;overflow:hidden;outline:none;
+    pointer-events:none;-webkit-user-select:text;user-select:text;
+    paint-order:stroke fill;}
+.pm-dl-text.is-edit{pointer-events:auto;cursor:text;}
+.pm-dl-text:empty::before{content:attr(data-ph);opacity:.45;}
+/* Смуга оформлення в блоці «Дизайн» — замість плиток, у ту саму висоту */
+  .pm-text-strip{padding:0 14px;height:100%;}
+.pm-ts-card{position:relative;height:100%;display:flex;flex-direction:column;}
+.pm-ts{display:flex;align-items:center;gap:6px;}
+.pm-ts-grp{display:flex;align-items:center;gap:5px;min-width:0;}
+.pm-ts-grp--font{flex:1;min-width:0;position:relative;}
+.pm-ts-row{display:flex;align-items:center;gap:5px;}
+/* Такий самий підписаний вихід, як на підекранах: гола стрілка тут губилась
+     серед стрілки гортання зразків кольору просто під нею. */
+  .pm-ts-back{flex:none;height:34px;border-radius:10px;border:none;background:#f1f2f4;
+    color:#111;display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;padding:0 9px 0 6px;font-family:var(--font-sf);}
+.pm-ts-back:active{background:#e6e7ea;}
+.pm-ts-back b{font-size:12px;font-weight:600;letter-spacing:-.1px;}
+.pm-ts-sel{flex:1;width:100%;min-width:0;height:34px;border-radius:10px;border:1px solid #e6e6e6;
+    background:#fff;display:flex;align-items:center;justify-content:space-between;gap:5px;
+    padding:0 10px;cursor:pointer;font-size:15px;color:#111;
+    -webkit-tap-highlight-color:transparent;}
+.pm-ts-sel.on{border-color:#111;}
+.pm-ts-sel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pm-ts-selcol{width:auto;flex:0 1 auto;max-width:124px;padding:0 7px 0 6px;gap:5px;}
+.pm-ts-selcol .pm-ts-sw{width:22px;height:22px;border-radius:11px;pointer-events:none;flex:none;}
+.pm-ts-selcol span{font-size:13px;}
+.pm-ts-tog{flex:none;width:40px;height:34px;border-radius:10px;border:1px solid #e6e6e6;
+    background:#fff;color:#111;font-size:17px;line-height:1;cursor:pointer;padding:0;
+    font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
+.pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
+.pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
+    border:1px solid rgba(0,0,0,.16);outline:2px solid transparent;outline-offset:2px;
+    -webkit-tap-highlight-color:transparent;}
+.pm-ts-sw.on{outline-color:#111;}
+/* Список шрифтів лягає ПОВЕРХ макета, а не тулиться у смузі: двадцять
+     гарнітур у панель не влізуть, а гортати куценьке віконце незручно. */
+  .pm-ts-fonts{position:fixed;z-index:400;display:flex;flex-direction:column;
+    padding:6px;background:#fff;border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.22);}
+.pm-ts-fonts-list{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}
+.pm-ts-fonts-list::-webkit-scrollbar{display:none;}
+.pm-ts-fonts-back{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;
+    width:100%;height:38px;margin-bottom:5px;border:none;border-radius:11px;background:#f1f2f4;
+    color:#111;font-family:var(--font-sf);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.pm-ts-fonts-back:active{background:#e6e7ea;}
+.pm-ts-fonts-back b{font-size:13.5px;font-weight:600;}
+.pm-ts-opt{display:block;width:100%;text-align:left;border:none;background:none;border-radius:9px;
+    padding:9px 10px;font-size:17px;line-height:1.15;cursor:pointer;white-space:nowrap;color:#111;
+    overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;}
+.pm-ts-opt.on{background:#f2f3f5;}
+/* Кольори: свій екран замість смуги — базові зразки й палітра під пальцем */
+  /* Підекрани (палітра, тип одягу): велика кнопка «назад» зліва на всю
+     висоту, решта простору — під сам вибір. Заголовки прибрані: вони
+     з'їдали рядок, а що саме обирають, видно й так. */
+  .pm-scr{display:flex;align-items:stretch;gap:10px;padding:0 14px;height:100%;}
+/* Стрілок на екрані кілька (гортання зразків, гортання карток), тож голу
+     стрілку тут ніхто не читав як «вийти». Пишемо словом. */
+  .pm-scr-back{flex:none;width:62px;border:none;border-radius:14px;background:#111;
+    color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;cursor:pointer;padding:0;font-family:var(--font-sf);
+    -webkit-tap-highlight-color:transparent;}
+.pm-scr-back:active{background:#333;}
+.pm-scr-back svg{width:22px;height:22px;}
+.pm-scr-back b{font-size:12px;font-weight:700;letter-spacing:-.1px;line-height:1;}
+.pm-scr-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.pm-ts-head{display:flex;align-items:center;gap:6px;}
+/* Зразки стоять у тому самому рядку, що й стрілка: окремий ряд з'їдав висоту,
+     а прокрутка різала обвідку вибраного кружечка. */
+  .pm-ts-sv{position:relative;flex:1;min-height:38px;border-radius:11px;
+    cursor:crosshair;touch-action:none;}
+.pm-ts-dot{position:absolute;width:16px;height:16px;border-radius:9px;border:2px solid #fff;
+    box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);
+    pointer-events:none;}
+.pm-ts-sl{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:5px;
+    outline:none;padding:0;margin:6px 0 0;cursor:pointer;}
+.pm-ts-sl::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:9px;
+    background:#fff;border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
+.pm-ts-sl::-moz-range-thumb{width:17px;height:17px;border-radius:9px;background:#fff;
+    border:1.5px solid #111;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;}
+/* Кольори прямо в панелі: перший кружечок — палітра, далі зразки, справа
+     стрілка. Раніше за кольором треба було провалюватись окремим заходом. */
+  /* Кольори стоять по центру простору, що лишився під рядком шрифтів —
+     інакше вони тулились одразу під ним, а низ панелі зіяв порожнечею. */
+  .pm-tsc{flex:1;display:flex;align-items:center;gap:9px;padding:0 0 0 12px;min-height:0;}
+.pm-tsc-pal{flex:none;width:30px;height:30px;border-radius:15px;border:none;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;
+    background:conic-gradient(#f43f5e,#f59e0b,#facc15,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#f43f5e);}
+.pm-tsc-pal i{width:11px;height:11px;border-radius:6px;background:#fff;
+    box-shadow:0 0 0 1.5px rgba(0,0,0,.12);}
+.pm-tsc-wrap{flex:1;min-width:0;}
+/* Стрілка стоїть на білому розмиві: інакше вона накривала кружечок і
+     читалась як кнопка поверх кольору, а не як «тут ще є». */
+  /* Стрілка прокрутки — не кнопка поверх кружечка, а білий розмив із шевроном:
+     так видно, що ряд триває далі, і нічого не накрито. */
+  /* Стрілка прокрутки стоїть скраю й на щільному розмиві: раніше крізь неї
+     просвічувався кружечок, і виходила каша замість підказки. */
+  #pmTabPanel .pm-scroll-arrow{width:58px;height:100%;top:0;transform:none;box-shadow:none;
+    border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;color:#8b929c;}
+#pmTabPanel .pm-scroll-arrow--right{right:-2px;padding-left:26px;justify-content:flex-end;
+    background:linear-gradient(90deg,rgba(255,255,255,0),#fff 46%);}
+#pmTabPanel .pm-scroll-arrow--left{left:-2px;padding-right:26px;justify-content:flex-start;
+    background:linear-gradient(270deg,rgba(255,255,255,0),#fff 46%);}
+#pmTabPanel .pm-scroll-arrow svg{width:17px;height:17px;}
+.pm-tsc-list{display:flex;align-items:center;gap:9px;overflow-x:auto;scrollbar-width:none;
+    padding:6px 40px 6px 5px;}
+.pm-tsc-list::-webkit-scrollbar{display:none;}
+.pm-tsc-list .pm-ts-sw{width:28px;height:28px;border-radius:14px;}
+.pm-ts-warn{margin-top:6px;font-size:10.5px;line-height:1.25;color:#8a5a00;
+    background:#fff6e0;border-radius:7px;padding:3px 8px;}
+.pm-way-head{padding:3px 18px 2px;display:flex;align-items:center;gap:6px;}
+.pm-way-size{margin-left:auto;font-size:11.5px;color:#888;font-weight:600;}
+.pm-seg{margin:0 18px;display:flex;background:#f1f2f4;border-radius:11px;padding:3px;gap:3px;}
+.pm-seg-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+    border:none;background:none;border-radius:9px;padding:5px 6px;cursor:pointer;
+    font-family:var(--font-sf);font-size:12.5px;font-weight:600;color:#6b7280;
+    transition:background .18s,color .18s,box-shadow .18s;}
+.pm-seg-btn.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.pm-way-info{border:none;background:none;color:#b6bcc7;font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;}
+.pm-way-note{padding:2px 18px 0;font-size:11px;color:#8a94a6;line-height:1.5;}
+/* Колір — другий ряд вкладки «Товар». Риска відділяє його від типу одягу:
+     без неї «Змінити» читалось так, ніби змінює і колір теж. */
+  .pm-color-row{padding:7px 18px 0;display:flex;flex-direction:column;gap:4px;
+    border-top:1px solid #e0e4ea;}
+.pm-color-row .pm-color-name{margin:0;text-align:left;}
+/* Від'ємні поля виносили крайній кружечок за межі ряду — він визирав
+     з-під стрілки прокрутки. Тепер ряд лишається в своїх межах, а праворуч
+     є місце, щоб останній зразок не ховався під стрілкою. */
+  .pm-color-row .pm-color-list{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;
+    scrollbar-width:none;padding:6px 46px 6px 6px;margin:0;}
+.pm-color-row .pm-color-swatch{width:36px;height:36px;border-radius:18px;outline-offset:2px;}
+.pm-color-row .pm-color-list::-webkit-scrollbar{display:none;}
+/* Смуга порогів: усі рівні одразу, горизонтальним гортанням. Стоїть ПІД
+     кнопкою «в кошик», тож на її видимість не впливає. */
+  .pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;
+    text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;}
+.pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
+.pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
+.pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;white-space:nowrap;}
+.pm-tier-badge{position:absolute;top:-7px;right:-5px;background:#222;color:#fff;font-size:9px;
+    font-weight:700;padding:2px 4px;border-radius:999px;line-height:1.2;white-space:nowrap;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.pm-tab-panel.is-tall{height:auto;max-height:44vh;align-items:flex-start;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px;}
+.pm-tab-panel-inner{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;}
+.pm-tab-panel-inner.is-swap{animation:pmSwap .16s ease-out;}
+@keyframes pmSwap{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){
+ .pm-tab-panel-inner.is-swap{animation:none;}
+}
+.pm-photo-empty{
+    margin:0 18px;padding:16px 18px;border-radius:16px;cursor:pointer;border:2px dashed #ddd;background:#fafafa;
+    display:flex;align-items:center;gap:15px;
+  }
+.pm-photo-empty-ic{width:40px;height:40px;border-radius:20px;flex:none;background:#111;display:flex;align-items:center;justify-content:center;}
+.pm-photo-empty-title{font-size:14px;font-weight:700;}
+.pm-photo-empty-sub{font-size:12px;color:#bbb;margin-top:2px;}
+.pm-photo-filled{padding:0 18px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;
+    align-items:center;flex:none;}
+.pm-photo-filled .pm-photo-add,.pm-photo-filled .pm-photo-thumb{flex:0 0 auto;}
+.pm-photo-thumb{flex:0 0 auto;width:50px;height:50px;border-radius:11px;overflow:hidden;cursor:pointer;position:relative;border:2.5px solid #111;}
+/* Плитка бере колір виробу: світлий друк на білій плитці був невидимий,
+     а на чорній футболці він і має читатись так само, як на самому виробі. */
+  .pm-photo-thumb img{width:100%;height:100%;object-fit:contain;background:transparent;display:block;}
+.pm-photo-thumb.on-dark{border-color:#fff;box-shadow:0 0 0 1.5px #111;}
+.pm-photo-thumb.on-dark .pm-bg-dot{background:rgba(255,255,255,.92);color:#111;}
+.pm-photo-thumb-del{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;}
+.pm-photo-col{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center;}
+.pm-bg-toggle{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.pm-bg-toggle-pill{display:block;width:28px;height:16px;border-radius:8px;background:#ddd;position:relative;transition:background .2s;}
+.pm-bg-toggle-pill.on{background:#111;}
+.pm-bg-toggle-knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:6px;background:#fff;transition:left .18s;}
+.pm-bg-toggle-pill.on .pm-bg-toggle-knob{left:12px;}
+.pm-bg-toggle-label{font-size:10.5px;color:#666;font-weight:500;}
+.pm-photo-add{flex:0 0 auto;width:50px;height:50px;border-radius:11px;border:2px dashed #a9b0bb;
+    background:#eceff3;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;cursor:pointer;color:#5a6472;font-size:10px;line-height:1.2;text-align:center;
+    padding:0 4px;box-sizing:border-box;font-weight:600;}
+/* Вкладка «Фото» показує лого з усіх сторін одразу — групи з підписами */
+  .pm-photo-group{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;}
+.pm-photo-group-row{display:flex;gap:10px;align-items:flex-start;}
+.pm-photo-group.is-other .pm-photo-thumb img{opacity:.6;}
+.pm-garment-list{display:flex;gap:8px;padding:0 18px;overflow-x:auto;scrollbar-width:none;}
+/* Товщина рамки однакова в обох станах: інакше активна плитка ставала на
+     пів пікселя ширшою і сусідні смикались при кожному виборі. */
+  .pm-garment-item{
+    flex:0 0 auto;width:78px;display:flex;flex-direction:column;align-items:center;gap:0;
+    border-radius:14px;cursor:pointer;border:2px solid #eaeaea;background:#f9f9f9;overflow:hidden;
+    font-family:var(--font-sf);padding:0;
+  }
+.pm-garment-item.active{border-color:#4f5fd4;background:#FFFFFF;}
+.pm-garment-item-ic{width:100%;height:62px;flex:0 0 62px;background:#ebebeb;display:flex;align-items:center;justify-content:center;}
+.pm-garment-item.active .pm-garment-item-ic{background:#f0f0f0;}
+.pm-garment-item-ic svg{width:80%;height:80%;}
+.pm-garment-item-name{font-size:12px;line-height:1.2;font-weight:500;text-align:center;color:#555;padding:3px 4px 6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.4em;}
+.pm-garment-item.active .pm-garment-item-name{font-weight:700;color:#111;}
+.pm-catalog-cta-item{justify-content:center;background:#f5f5f5;border-color:#eaeaea;}
+.pm-catalog-cta-item .pm-garment-item-name{font-size:11.5px;line-height:1.25;color:#555;font-weight:600;padding:0 6px;}
+.pm-scroll-wrap{position:relative;}
+.pm-scroll-arrow{
+    position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;
+    display:none;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:6;
+    background:rgba(255,255,255,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    box-shadow:0 1px 4px rgba(0,0,0,.1);
+  }
+.pm-scroll-arrow.show{display:flex;}
+.pm-scroll-arrow--left{left:2px;}
+.pm-scroll-arrow--right{right:2px;}
+.pm-scroll-arrow svg{width:14px;height:14px;}
+.pm-color-name{font-size:13px;font-weight:600;padding:0 18px 6px;margin-top:-10px;}
+.pm-color-list{display:flex;gap:12px;padding:8px 18px;overflow-x:auto;scrollbar-width:none;}
+.pm-color-swatch{
+    flex:0 0 auto;width:42px;height:42px;border-radius:21px;cursor:pointer;border:none;padding:0;
+    outline:3px solid transparent;outline-offset:3px;box-shadow:0 1px 4px rgba(0,0,0,.14);
+  }
+.pm-color-swatch.active{outline-color:#4f5fd4;}
+.pm-print-list{display:flex;gap:10px;padding:0 18px;}
+.pm-print-item{
+    flex:1 1 0;text-align:left;padding:12px;border-radius:16px;cursor:pointer;border:1.5px solid #eaeaea;background:#f9f9f9;
+    display:flex;align-items:center;gap:10px;font-family:var(--font-sf);
+  }
+.pm-print-item.active{border:2px solid #4f5fd4;background:#FFFFFF;}
+.pm-print-item-ic{width:32px;height:32px;flex:none;border-radius:8px;background:#efefef;display:flex;align-items:center;justify-content:center;color:#888;}
+.pm-print-item.active .pm-print-item-ic{background:#111;color:#fff;}
+.pm-print-item-name{font-size:14px;font-weight:700;color:#111;}
+.pm-print-item-desc{font-size:11.5px;color:#888;margin-top:2px;}
+.pm-size-chart-btn{
+    display:inline-flex;align-items:center;gap:5px;background:none;border:1.5px solid #111;border-radius:20px;
+    cursor:pointer;font-size:12.5px;font-weight:600;color:#111;padding:3px 11px;margin:0 18px 4px;
+    font-family:var(--font-sf);align-self:flex-start;flex:none;
+  }
+.pm-size-list{display:flex;gap:2px;padding:0 18px;overflow-x:auto;align-items:flex-start;scrollbar-width:none;}
+/* Один великий лічильник на всю вкладку замість шести дрібних під кожним
+     розміром. Дотик по кружечку додає штуку — як і було; лічильник потрібен
+     лише щоб зняти зайве або швидко долити, і тепер у нього нормальні кнопки. */
+  .pm-size-top{display:flex;align-items:center;gap:8px;padding:0 18px 5px;min-height:34px;}
+.pm-size-top .pm-size-chart-btn{margin:0;}
+.pm-size-step{margin-left:auto;display:flex;align-items:center;gap:5px;flex:none;}
+.pm-size-step-sz{font-size:13px;font-weight:800;color:#111;letter-spacing:-.2px;
+    min-width:24px;text-align:right;}
+.pm-size-step-btn{width:32px;height:32px;flex:none;border-radius:11px;border:1.5px solid #e2e4e9;
+    background:#fff;color:#111;font-size:19px;line-height:1;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;font-family:var(--font-sf);padding:0;}
+.pm-size-step-btn.plus{border-color:#111;background:#111;color:#fff;}
+/* Кнопку тримають натиснутою — браузер не має ні гортати сторінку,
+     ні виділяти текст, ні показувати меню «копіювати». */
+  .pm-size-step-btn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+.pm-size-step-btn[disabled]{opacity:.32;cursor:default;}
+.pm-size-step-val{min-width:26px;text-align:center;font-size:16px;font-weight:800;color:#111;
+    font-variant-numeric:tabular-nums;}
+.pm-size-hint{margin-left:auto;font-size:12px;color:#9aa0ab;}
+.pm-size-col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:54px;padding-top:2px;}
+.pm-size-btn{
+    width:46px;height:46px;border-radius:23px;border:1.5px solid #ddd;background:#fff;color:#444;
+    font-size:14.5px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-sf);
+  }
+.pm-size-btn.active{border:2.5px solid #4f5fd4;color:#4f5fd4;font-weight:700;}
+/* Розмір, яким зараз керує лічильник, — заливкою: інакше незрозуміло,
+     до чого саме застосується «−». */
+  .pm-size-btn.focus{border-color:#4f5fd4;background:#4f5fd4;color:#fff;font-weight:700;}
+.pm-size-cnt{font-size:11.5px;font-weight:700;color:#4f5fd4;line-height:14px;height:14px;}
+/* One-size (кепка, шопер): розмір один, тож кнопка і лічильник стоять
+     в одному ряду по центру — окремий верхній ряд тут ні до чого. */
+  .pm-size-os{display:flex;align-items:center;justify-content:center;gap:12px;padding:0 18px;}
+.pm-size-os .pm-size-step{margin-left:0;}
+.pm-size-btn--os{width:auto;min-width:118px;height:46px;padding:0 22px;border-radius:23px;white-space:nowrap;}
+.pm-price-bar{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid #f0f0f0;flex:none;}
+.pm-product-title{font-size:17px;font-weight:700;letter-spacing:-0.2px;color:#111;margin-bottom:10px;}
+.pm-price-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px;}
+.pm-price-col{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;font-size:13px;color:#888;border:1.5px solid #e3e4ea;border-radius:12px;padding:10px 8px;background:#fff;}
+.pm-price-col .pm-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.5px;margin-right:4px;}
+.pm-price-col .pm-unit{font-size:13px;color:#888;font-weight:400;}
+.pm-price-divider{display:none;}
+.pm-qty-warning{display:flex;align-items:center;gap:6px;font-size:13px;color:#A9700A;font-weight:600;
+    margin:0 0 9px;line-height:1.3;}
+/* Той самий рядок у ролі підказки: ціна за кілька нанесень. Нового ряду не додаємо. */
+  .pm-qty-warning.is-info{color:#6b7280;font-size:13.5px;font-weight:500;}
+.pm-add-btn{
+    width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;
+    background:var(--cta);color:#fff;font-size:15px;font-weight:700;
+    font-family:var(--font-sf);
+  }
+.pm-add-btn:active{background:var(--cta-dark);}
+.pm-add-btn-sum{font-size:13px;color:rgba(255,255,255,.65);margin-left:8px;font-weight:400;}
+/* Контейнер градації: колонка (підпис + шкала). Горизонтальне гортання живе
+     всередині самої шкали, інакше підпис ставав окремою колонкою збоку. */
+  .pm-tier-row{display:flex;gap:5px;margin:0 -18px;padding:12px 18px 0 18px;
+    overflow-x:auto;scrollbar-width:none;}
+.pm-tier-row::-webkit-scrollbar{display:none;}
+.pm-tier-row::after{content:'';flex:0 0 8px;}
+.pm-tier-item{position:relative;flex:0 0 auto;min-width:78px;padding:7px 7px;border-radius:10px;text-align:center;border:1px solid #eee;background:#f5f5f5;transition:all .2s;}
+.pm-tier-item.active{background:#f5f5f5;border:1.5px solid #555;}
+.pm-tier-label{font-size:11px;color:#888;margin-bottom:2px;white-space:nowrap;}
+.pm-tier-price{font-size:14px;font-weight:700;color:#111;letter-spacing:-0.3px;}
+.pm-tier-badge{
+    position:absolute;top:-7px;right:-5px;background:#222;color:#fff;font-size:9px;font-weight:700;
+    padding:2px 4px;border-radius:999px;line-height:1.2;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);
+  }
+.pm-rows{border-top:1px solid #f0f0f0;}
+.pm-row{
+    width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+    background:none;border:none;border-bottom:1px solid #f0f0f0;cursor:pointer;font-family:var(--font-sf);
+    font-size:16px;font-weight:400;color:#111;text-align:left;
+  }
+.pm-row--last{border-bottom:none;}
+.pm-row-right{display:flex;align-items:center;gap:8px;}
+.pm-row-sub{font-size:14px;color:#888;}
+.pm-row-swatches{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 18px 14px;}
+.pm-row-swatch{flex:0 0 auto;width:104px;height:130px;border-radius:12px;cursor:pointer;object-fit:cover;}
+.pm-detail{padding:24px 18px;border-top:1px solid #f0f0f0;}
+.pm-detail-tabs{display:flex;gap:20px;margin-bottom:20px;border-bottom:1px solid #f0f0f0;overflow-x:auto;scrollbar-width:none;}
+.pm-detail-tab{
+    background:none;border:none;cursor:pointer;padding:0 0 12px;font-size:16px;color:#bbb;font-weight:400;
+    border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0;font-family:var(--font-sf);
+  }
+.pm-detail-tab.active{color:#111;font-weight:600;border-bottom-color:#111;}
+.pm-about-text{font-size:15px;color:#555;line-height:1.6;margin:0 0 20px;}
+.pm-spec-row{margin-bottom:16px;}
+.pm-spec-label{font-size:12px;color:#aaa;margin-bottom:2px;}
+.pm-spec-value{font-size:14px;font-weight:500;color:#111;}
+.pm-print-compare{display:flex;align-items:flex-start;gap:14px;padding:18px 0;}
+.pm-print-compare + .pm-print-compare{border-top:1px solid #f0f0f0;}
+.pm-print-compare-ic{width:80px;align-self:stretch;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pm-print-compare-name{font-size:15px;font-weight:700;color:#111;}
+.pm-print-compare-price{font-size:13px;color:#888;}
+.pm-print-compare-desc{font-size:13px;color:#777;line-height:1.5;margin:5px 0 8px;}
+.pm-print-compare-pros{display:flex;flex-wrap:wrap;gap:4px 10px;}
+.pm-print-compare-pro{display:flex;align-items:center;gap:4px;font-size:12px;color:#999;}
+.pm-model-photos{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-top:1px solid #f0f0f0;}
+.pm-model-photo{flex:0 0 auto;width:280px;height:350px;position:relative;background:#ececec;}
+.pm-model-img{width:100%;height:100%;object-fit:cover;display:block;}
+.pm-model-logo{position:absolute;transform:translate(-50%,-50%);aspect-ratio:1/1;background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:auto;cursor:grab;touch-action:none;display:none;}
+.pm-twocol{display:flex;flex-direction:column;gap:12px;margin:12px 18px;}
+.pm-card{flex:1;padding:20px;border-radius:16px;background:#FFFFFF;border:1.5px solid #eee;}
+.pm-card-title{font-size:20px;font-weight:700;color:#111;margin-bottom:14px;letter-spacing:-0.3px;}
+.pm-check-list{display:flex;flex-direction:column;gap:10px;}
+.pm-check-item{display:flex;align-items:center;gap:10px;font-size:15px;color:#333;line-height:1.4;}
+.pm-check-ic{width:22px;height:22px;border-radius:11px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pm-card--help{
+    display:flex;flex-direction:column;justify-content:space-between;gap:16px;
+    background:linear-gradient(145deg,#0c1140,#2a3470);border:none;
+  }
+.pm-card--help .pm-card-title{color:#fff;}
+.pm-help-sub{font-size:15px;color:rgba(255,255,255,.7);line-height:1.5;margin-top:8px;}
+.pm-help-btn{width:100%;padding:16px 16px;border-radius:10px;border:none;background:#fff;color:#111;font-size:17.5px;font-weight:700;cursor:pointer;font-family:var(--font-sf);display:flex;align-items:center;justify-content:center;gap:9px;}
+.pm-help-btn svg{flex:none;}
+.pm-recommended{padding:20px 0;border-top:1px solid #f2f2f2;}
+.pm-section-title{font-size:20px;font-weight:700;color:#111;margin:0 18px 12px;letter-spacing:-0.3px;}
+.pm-recommended-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:0 18px;}
+/* Фон із фото не чіпаємо: автообрізка на частині світлих виробів давала
+     рвані краї. Замість неї фото заповнює всю плитку картки — тоді тло
+     доходить до країв і не читається як зайвий прямокутник усередині. */
+  .pm-rec-card{--recH:148px;flex:0 0 auto;width:152px;border-radius:16px;border:1.5px solid #eee;
+    background:#fff;overflow:hidden;cursor:pointer;}
+.pm-rec-img{width:100%;height:var(--recH);}
+/* contain, а не cover: фото з адмінки бувають будь-яких пропорцій, і виріб
+     різало по краях. Плитка світло-сіра — під тон студійних фото, тож
+     полів по боках практично не видно. */
+  .pm-rec-ph{position:relative;display:block;width:100%;height:100%;overflow:hidden;
+    line-height:0;background:#f2f3f5;}
+.pm-rec-g{display:block;width:100%;height:100%;object-fit:contain;}
+.pm-rec-logo{position:absolute;transform:translate(-50%,-50%);object-fit:contain;
+    pointer-events:none;}
+.pm-rec-info{padding:8px 11px 11px;}
+.pm-rec-name{font-size:14px;font-weight:500;color:#111;margin-bottom:3px;}
+.pm-rec-price{font-size:16px;font-weight:700;color:#111;}
+.pm-rec-cta-card{display:flex;align-items:center;justify-content:center;text-align:center;background:#f5f5f5;font-size:15px;font-weight:600;color:#555;padding:12px;}
+.pm-faq-item{border-bottom:1px solid #f0f0f0;}
+.pm-faq-item--last{border-bottom:none;}
+.pm-faq-q{
+    width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;
+    background:none;border:none;cursor:pointer;text-align:left;font-size:16px;font-weight:500;color:#111;font-family:var(--font-sf);
+  }
+.pm-faq-plus{font-size:20px;color:#aaa;line-height:1;transition:transform .2s;}
+.pm-faq-item.open .pm-faq-plus{transform:rotate(45deg);}
+.pm-faq-a{max-height:0;overflow:hidden;transition:max-height .2s;padding:0 20px;font-size:15px;color:#666;line-height:1.6;}
+.pm-faq-item.open .pm-faq-a{max-height:420px;padding-bottom:14px;}
+.pm-cta-card{
+    flex:1;padding:24px 20px;border-radius:16px;border:1.5px solid #eee;
+    background:linear-gradient(145deg,#0c1140,#2a3470);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;gap:16px;
+  }
+.pm-cta-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.2px;line-height:1.2;white-space:nowrap;}
+.pm-cta-sub{font-size:16px;color:rgba(255,255,255,.7);line-height:1.5;}
+.pm-cta-btn{width:100%;padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:#fff;color:#111;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-sf);}
+.pm-footer{background:#111;padding:32px 18px calc(100px + env(safe-area-inset-bottom,0px));}
+.pm-footer-logo{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:6px;}
+.pm-footer-tag{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px;}
+.pm-footer-links{display:grid;grid-template-columns:1fr 1fr;gap:8px 0;margin-bottom:28px;}
+.pm-footer-links span{font-size:14px;color:rgba(255,255,255,.55);cursor:pointer;padding-bottom:4px;}
+.pm-footer-social{display:flex;gap:12px;margin-bottom:28px;}
+.pm-footer-social-ic{width:40px;height:40px;border-radius:20px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;text-decoration:none;}
+.pm-footer-contacts{padding-top:20px;border-top:1px solid rgba(255,255,255,.08);}
+.pm-footer-contacts div{font-size:14px;color:rgba(255,255,255,.4);margin-bottom:4px;}
+.pm-footer-copy{font-size:12px;color:rgba(255,255,255,.2)!important;margin-top:12px;margin-bottom:0!important;}
+/* Sticky cart bar */
+  .pm-sticky-cart{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.92);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,.06);
+    z-index:50;display:none;
+  }
+.pm-sticky-cart.show{display:block;}
+.pm-float-telegram{
+    position:fixed;bottom:86px;left:16px;z-index:51;
+    opacity:0;transform:translateY(10px) scale(.9);pointer-events:none;filter:none;
+    animation:none;transition:opacity .25s ease, transform .25s ease;
+  }
+.pm-float-telegram.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+/* Centered overlay (trash confirm) */
+  .pm-center-overlay{
+    position:fixed;inset:0;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.55);
+  }
+.pm-center-overlay.open{display:flex;}
+.pm-center-trash-ic{margin-bottom:32px;}
+.pm-center-card{background:#FFFFFF;border-radius:20px;padding:24px 28px;width:280px;text-align:center;}
+.pm-center-title{font-size:17px;font-weight:700;color:#111;margin-bottom:6px;}
+.pm-center-sub{font-size:14px;color:#999;margin-bottom:22px;}
+.pm-center-actions{display:flex;gap:10px;}
+.pm-center-btn{flex:1;padding:12px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font-sf);border:none;}
+.pm-center-btn--ghost{border:1.5px solid #eee;background:#fafafa;color:#111;}
+.pm-center-btn--danger{background:#c0392b;color:#fff;font-weight:700;}
+/* Bottom-sheet overlays (phone / consult / size chart / delivery / mockup) */
+  .pm-sheet-overlay{
+    position:fixed;inset:0;z-index:300;display:none;align-items:flex-end;background:rgba(0,0,0,.5);
+  }
+.pm-sheet-overlay.open{display:flex;}
+.pm-sheet-card{width:100%;max-width:430px;margin:0 auto;background:#FFFFFF;border-radius:24px 24px 0 0;padding:24px 22px calc(36px + env(safe-area-inset-bottom,0px));}
+.pm-sheet-handle{width:36px;height:4px;border-radius:2px;background:#ddd;margin:0 auto 20px;}
+.pm-sheet-title{font-size:18px;font-weight:700;color:#111;margin-bottom:6px;}
+.pm-sheet-sub{font-size:14px;color:#999;margin-bottom:20px;}
+.pm-contact-options{display:flex;flex-direction:column;gap:10px;}
+.pm-contact-option{
+    display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;border:1.5px solid #eee;
+    background:#fafafa;text-decoration:none;
+  }
+.pm-contact-ic{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pm-contact-name{display:block;font-size:15px;font-weight:600;color:#111;}
+.pm-contact-sub{display:block;font-size:13px;color:#999;}
+.pm-contact-callback-btn{
+    padding:14px;border-radius:12px;border:1.5px solid #eee;background:#FFFFFF;color:#111;font-size:15px;font-weight:600;
+    cursor:pointer;font-family:var(--font-sf);
+  }
+.pm-form-field{margin-bottom:12px;}
+.pm-form-field label{display:block;font-size:13px;color:#999;margin-bottom:5px;}
+.pm-form-field input{
+    width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid #eee;font-size:15px;font-family:var(--font-sf);
+    outline:none;box-sizing:border-box;
+  }
+.pm-form-submit[disabled]{opacity:.6;cursor:default;}
+.pm-form-submit{
+    width:100%;padding:15px;border-radius:12px;border:none;background:#111;color:#fff;font-size:15px;font-weight:700;
+    cursor:pointer;margin-top:4px;font-family:var(--font-sf);
+  }
+.pm-size-table .pm-size-table-row{
+    display:grid;grid-template-columns:1fr 1fr 1fr;padding:11px 0;border-bottom:1px solid #f8f8f8;font-size:15px;
+  }
+.pm-size-table .pm-size-table-row span:first-child{font-weight:600;}
+.pm-size-table .pm-size-table-row span:nth-child(2){text-align:center;color:#555;}
+.pm-size-table .pm-size-table-row span:last-child{text-align:right;color:#555;}
+.pm-delivery-row{padding:14px 0;border-bottom:1px solid #f5f5f5;}
+.pm-delivery-row--last{border-bottom:none;}
+.pm-delivery-row-title{font-size:15px;font-weight:600;color:#111;margin-bottom:3px;}
+.pm-delivery-row-desc{font-size:14px;color:#999;}
+.pm-mockup-check{
+    width:56px;height:56px;border-radius:28px;background:#f2f2f2;display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+  }
+.pm-mockup-title{font-size:20px;font-weight:700;color:#111;text-align:center;margin-bottom:8px;letter-spacing:-0.4px;}
+.pm-mockup-sub{font-size:14px;color:#888;text-align:center;line-height:1.6;margin-bottom:24px;}
+.pm-mockup-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;}
+.pm-mockup-step{display:flex;align-items:center;gap:12px;font-size:14px;color:#333;line-height:1.4;}
+.pm-mockup-step-n{
+    width:28px;height:28px;border-radius:14px;background:#111;color:#fff;font-size:14px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+.pm-mockup-continue-btn{
+    width:100%;padding:13px;border-radius:12px;border:1.5px solid #eee;background:#FFFFFF;color:#888;font-size:15px;
+    font-weight:500;cursor:pointer;font-family:var(--font-sf);
+  }
+/* Reviews fullscreen page */
+  .pm-reviews-page{position:fixed;inset:0;background:#FFFFFF;z-index:300;display:none;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;}
+.pm-reviews-page.open{display:flex;}
+.pm-reviews-page-header{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #f0f0f0;flex-shrink:0;}
+.pm-reviews-back{width:36px;height:36px;border-radius:18px;background:#f5f5f5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pm-reviews-page-title{font-size:17px;font-weight:700;color:#111;}
+.pm-sizechart-page{position:fixed;inset:0;background:#FFFFFF;z-index:300;display:none;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;}
+.pm-legal-page{position:fixed;inset:0;background:#FFFFFF;z-index:300;display:none;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;}
+.pm-legal-page.open{display:flex;}
+.pm-legal-body{padding:8px 20px 60px;font-size:15px;color:#444;line-height:1.6;max-width:640px;margin:0 auto;width:100%;}
+.pm-legal-body h3{font-size:15px;color:#111;margin:22px 0 8px;}
+.pm-legal-body h3:first-child{margin-top:4px;}
+.pm-legal-body p{margin:0 0 10px;}
+.pm-legal-body ul{margin:0 0 12px 18px;padding:0;}
+.pm-legal-body li{margin-bottom:4px;}
+.pm-legal-updated{font-size:13px;color:#aaa;margin-top:26px;}
+.pm-sizechart-page.open{display:flex;}
+/* Схема й таблиця: на компʼютері поруч, на телефоні одне під одним.
+     Раніше схема була завжди зверху й на широкому екрані займала пів вікна,
+     а таблицю доводилось шукати прокруткою. */
+  .pm-sc-wrap{display:flex;flex-direction:column;gap:0;padding:0 18px 24px;}
+.pm-sc-side{flex:none;}
+.pm-sc-main{flex:1;min-width:0;}
+@media (min-width:860px){
+
+    .pm-sc-wrap{flex-direction:row;gap:28px;align-items:flex-start;padding:8px 24px 28px;}
+
+    .pm-sc-side{flex:0 0 42%;max-width:420px;position:sticky;top:16px;}
+
+    .pm-sc-main .pm-sc-table{margin-top:0;}
+}
+.pm-sc-illust{position:relative;padding:20px 20px 4px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.pm-sc-shirt{width:312px;max-width:94%;filter:drop-shadow(0 18px 30px rgba(20,30,60,.1));opacity:0;transform:scale(.92);animation:sc-pop .5s cubic-bezier(.16,1,.3,1) .1s forwards;}
+@keyframes sc-pop{to{opacity:1;transform:scale(1);}}
+.pm-sc-dot-grid{position:absolute;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:54px;opacity:.5;}
+.pm-sc-dot-grid span, .pm-sc-dot-grid::before{content:'';}
+.pm-sc-dot-grid{background-image:radial-gradient(#aebdf2 2px, transparent 2.5px);background-size:14px 14px;height:54px;}
+.pm-sc-dot-grid--tl{top:18px;left:14px;}
+.pm-sc-dot-grid--br{bottom:14px;right:14px;}
+.pm-sc-x{position:absolute;color:#cfd8f5;font-size:18px;font-weight:700;}
+.pm-sc-x--1{top:24px;right:30px;}
+.pm-sc-x--2{bottom:30px;left:26px;}
+.pm-sc-legend{padding:10px 18px 4px;display:flex;flex-direction:column;gap:6px;}
+.pm-sc-legend-row{display:flex;align-items:center;gap:10px;background:#f7f8fc;border-radius:12px;padding:9px 14px;}
+.pm-sc-badge{flex:none;width:24px;height:24px;border-radius:50%;background:#262626;color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.pm-sc-legend-text{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px;line-height:1.35;}
+.pm-sc-legend-text b{font-size:14.5px;color:#111;flex:none;}
+.pm-sc-legend-text p{font-size:13.5px;color:#888;margin:0;}
+.pm-sc-table{width:calc(100% - 36px);margin:6px 18px 0;border-collapse:collapse;border-radius:14px;overflow:hidden;border:1px solid #eee;}
+.pm-sc-table th{background:#f7f8fc;font-size:12.5px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:12px 8px;text-align:center;}
+.pm-sc-table th:first-child{text-align:left;padding-left:16px;}
+.pm-sc-table td{font-size:15px;color:#111;font-weight:600;padding:12px 8px;text-align:center;border-top:1px solid #f0f0f0;}
+.pm-sc-table td:first-child{text-align:left;padding-left:16px;font-weight:700;}
+.pm-sc-table tr:nth-child(even) td{background:#fafafe;}
+.pm-sc-note{display:flex;align-items:center;gap:12px;margin:18px 18px 28px;font-size:13.5px;color:#888;line-height:1.4;}
+.pm-sc-note-badge{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px dashed #aebdf2;color:#262626;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;}
+.pm-reviews-summary{padding:20px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:16px;}
+.pm-reviews-summary-left{text-align:center;flex-shrink:0;}
+.pm-reviews-score{font-size:48px;font-weight:800;color:#111;line-height:1;}
+.pm-reviews-stars{font-size:15px;color:#FFC53D;margin-top:4px;}
+.pm-reviews-count{font-size:13px;color:#bbb;margin-top:2px;}
+.pm-reviews-bars{flex:1;}
+.pm-reviews-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.pm-reviews-bar-row span{font-size:12px;color:#888;width:8px;}
+.pm-reviews-bar-track{flex:1;height:4px;border-radius:2px;background:#f0f0f0;overflow:hidden;}
+.pm-reviews-bar-fill{height:100%;background:#f5a623;border-radius:2px;}
+.pm-reviews-photos-title{font-size:14px;font-weight:600;color:#111;padding:16px 18px 10px;}
+.pm-reviews-photos{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 18px 16px;border-bottom:1px solid #f0f0f0;}
+.pm-reviews-photo{flex:0 0 auto;width:182px;height:182px;border-radius:14px;object-fit:cover;background:#ececec;display:block;}
+.pm-reviews-list{padding:0 18px 40px;}
+.pm-review-item{padding:16px 0;border-bottom:1px solid #f5f5f5;}
+.pm-review-item-top{display:flex;justify-content:space-between;margin-bottom:5px;}
+.pm-review-item-name{font-size:15px;font-weight:600;color:#111;}
+.pm-review-item-date{font-size:13px;color:#bbb;}
+.pm-review-item-stars{font-size:14px;color:#FFC53D;margin-bottom:6px;}
+.pm-review-item-text{font-size:14px;color:#555;line-height:1.5;}
+/* Вибір товару перед завантаженням логотипа: ті самі картки каталогу,
+     тільки в два стовпці і з прокруткою — вікно не має рости на весь екран */
+  .pm-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    max-height:min(56vh,440px);overflow-y:auto;margin-top:4px;padding:2px;}
+.pm-pick-grid .product{margin:0;cursor:pointer;}
+.pm-pick-grid .product .go{display:none;}
+@media(max-width:380px){
+ .pm-pick-grid{grid-template-columns:1fr;}
+}
