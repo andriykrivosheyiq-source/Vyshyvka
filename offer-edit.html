@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Збирання пропозиції</title>
+<!-- Розмітка конструктора. Її вкладає сюди збірка з index.html — джерело одне,
+     руками цей блок не правлять. -->
+<template id="lqCtorTpl"><!-- lq:constructor -->
+<!-- Згенеровано: python3 tools/build-sites.py. Не правити руками —
+     джерело розмітки конструктора одне, і воно в index.html. -->
+<!-- Product configurator modal -->
+<div class="contact-modal" id="productModal">
+  <div class="nav catalog-modal-topbar">
+    <div class="catalog-modal-topbar-left">
+      <button class="catalog-back-btn" id="pmBackBtn" aria-label="Назад">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="logo">Loomiq</span>
+    </div>
+    <div class="header-actions">
+      <button class="phone-btn" id="pmPhoneBtn" aria-label="Контакти">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.339 1.85.574 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="burger" id="pmCartBtn" aria-label="Корзина" style="position:relative;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="pm-cart-badge" id="pmCartBadge" style="display:none;">0</span>
+      </button>
+      <button class="burger" id="pmMenuBtn" aria-label="Меню" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="pm-stage" id="pmStage">
+    <div class="pm-swipe-wrap" id="pmSwipeWrap">
+      <div class="pm-garment-wrap" id="pmGarmentWrap">
+        <svg id="pmGarmentSvg" viewBox="0 0 100 100" fill="currentColor"></svg>
+        <img id="pmGarmentPhoto" alt="" crossorigin="anonymous" style="display:none;">
+        <label class="pm-upload-zone" id="pmUploadZone" for="pmFileInput">
+          <span class="pm-upload-plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+          <div class="pm-upload-text">Завантажте логотип</div>
+          <div class="pm-upload-sub">PNG · JPG · SVG</div>
+        </label>
+        <div class="pm-logo-layers" id="pmLogoLayers"></div>
+        <svg id="pmPrintArea" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <!-- Панель напису лежить ПОВЕРХ виробу: людина друкує і одразу бачить
+             результат на футболці, не бігаючи очима вниз до форми. -->
+        <!-- На макеті — тільки поле для набору: людина друкує там, де бачить
+             результат. Оформлення живе внизу, у блоці «Дизайн», щоб панель не
+             закривала виріб і не питала «а в яке з двох полів писати». -->
+        <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
+      </div>
+    </div>
+    <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
+
+    <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
+    <div id="pmSrcModal" class="pm-src-modal">
+      <div class="pm-src-box">
+        <div class="pm-src-title">Звідки взяти логотип?</div>
+        <button class="pm-src-opt" id="pmSrcFile">
+          <span class="pm-src-ic">📁</span>
+          <span><b>Завантажити файл</b><small>PNG, JPG або SVG з компʼютера</small></span>
+        </button>
+        <button class="pm-src-opt" id="pmSrcAi">
+          <span class="pm-src-ic">✨</span>
+          <span><b>Згенерувати через Gemini</b><small>Опишіть логотип — ШІ намалює</small></span>
+        </button>
+        <button class="pm-src-cancel" id="pmSrcCancel">Скасувати</button>
+      </div>
+    </div>
+
+    <!-- Обрізання: і референсу клієнта, і того, що намалював Gemini -->
+    <div id="pmCropModal" class="pm-crop-ov">
+      <div class="pm-crop-head">Обріжте зображення</div>
+      <div class="pm-crop-stage">
+        <div class="pm-crop-wrap" id="pmCropWrap">
+          <img id="pmCropImg" alt="">
+          <div class="pm-crop-rect" id="pmCropRect">
+            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="ne"></span>
+            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="se"></span>
+          </div>
+        </div>
+      </div>
+      <div class="pm-crop-bar">
+        <button type="button" id="pmCropCancel" class="pm-crop-btn pm-crop-btn--ghost">Скасувати</button>
+        <button type="button" id="pmCropOk" class="pm-crop-btn">Обрізати</button>
+      </div>
+    </div>
+
+    <div id="pmAiModal" class="pm-src-modal">
+      <div class="pm-src-box">
+        <div class="pm-src-title">Згенерувати логотип</div>
+        <!-- Від чого відштовхуватись: фото клієнта чи вже згенерований логотип -->
+        <div class="pm-ai-bases" id="pmAiBases" hidden></div>
+        <!-- Швидкі промти: один дотик — і генерація вже пішла -->
+        <div class="pm-ai-chips" id="pmAiChips"></div>
+        <textarea id="pmAiPrompt" class="pm-ai-prompt" rows="3"
+          placeholder="Напр.: мінімалістичний логотип кавʼярні, чорний контур чашки, без тексту"></textarea>
+        <!-- Референс: фото клієнта, від якого відштовхується генерація -->
+        <div class="pm-ai-attach">
+          <button class="pm-ai-clip" id="pmAiClip" type="button" title="Прикріпити фото-референс">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+            <span>Прикріпити фото</span>
+          </button>
+          <div class="pm-ai-thumb" id="pmAiThumb" hidden>
+            <img id="pmAiThumbImg" alt="">
+            <button type="button" id="pmAiThumbDel" aria-label="Прибрати фото">×</button>
+          </div>
+          <button class="pm-ai-clip" id="pmAiCrop" type="button" hidden>✂ Обрізати</button>
+        </div>
+        <input type="file" id="pmAiFile" accept="image/*"
+          style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+        <div class="pm-ai-note" id="pmAiNote">Опишіть, який логотип потрібен — і натисніть «Згенерувати».</div>
+        <button class="pm-src-opt pm-src-opt--go" id="pmAiGo"><span class="pm-src-ic">✨</span><span><b>Згенерувати</b></span></button>
+        <button class="pm-src-cancel" id="pmAiCancel">Назад</button>
+      </div>
+    </div>
+
+    <button class="pm-side-arrow pm-side-arrow--left" id="pmArrowLeft" style="display:none;" aria-label="Попередня сторона">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="pm-side-arrow pm-side-arrow--right" id="pmArrowRight" aria-label="Наступна сторона">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="pm-side-mark" id="pmSideMark"></div>
+  </div>
+
+  <div class="pm-sheet">
+    <div class="pm-tabs" id="pmTabs">
+      <button class="pm-tab active" data-tab="photo">Дизайн</button>
+      <button class="pm-tab" data-tab="garment">Товар</button>
+      <button class="pm-tab" data-tab="size">Розмір і кількість</button>
+    </div>
+
+    <div class="pm-tab-panel" id="pmTabPanel"></div>
+
+    <div class="pm-price-bar">
+      <div class="pm-qty-warning" id="pmQtyWarning" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="pmQtyWarnText">Вкажіть кількість — покажемо точну ціну</span>
+      </div>
+      <div class="pm-price-row">
+        <div class="pm-price-col">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          <span id="pmPriceText"></span>
+        </div>
+        <div class="pm-price-divider"></div>
+        <div class="pm-price-col">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="pmDeliveryText"></span>
+        </div>
+      </div>
+      <button class="pm-add-btn" id="pmAddToCartBtn">
+        Додати в кошик<span class="pm-add-btn-sum" id="pmAddBtnSum"></span>
+      </button>
+      <div class="pm-tier-row" id="pmTierRow"></div>
+      <!-- Менеджерський блок (лише режим ?manager=1): завантаження макапа + прорахунок собівартості -->
+      <div id="pmManagerBox" style="display:none;margin-top:10px;">
+        <button id="pmDownloadMockup" style="width:100%;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Скачати макап
+        </button>
+        <div id="pmMgrCalc" style="margin-top:10px;background:#f6f7f9;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#1c2840;"></div>
+      </div>
+    </div>
+
+    <!-- Quick rows -->
+    <div class="pm-rows">
+      <button class="pm-row" id="pmRowSizeChart">
+        <span>Розмірна сітка</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button class="pm-row" id="pmRowDelivery">
+        <span>Оплата та доставка</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button class="pm-row pm-row--last" id="pmRowReviews">
+        <span>Відгуки</span>
+        <span class="pm-row-right"><span class="pm-row-sub">4.9 <span style="color:#FFC53D;">★★★★★</span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+      </button>
+      <div class="pm-row-swatches" id="pmReviewSwatches"></div>
+    </div>
+
+    <!-- Про товар / Типи нанесення -->
+    <div class="pm-detail">
+      <div class="pm-detail-tabs">
+        <button class="pm-detail-tab active" data-detail-tab="about">Про товар</button>
+        <button class="pm-detail-tab" data-detail-tab="print">Типи нанесення</button>
+      </div>
+      <div id="pmDetailPanel"></div>
+    </div>
+
+    <!-- Model photos (динамічно по крою) -->
+    <div id="pmModelSection">
+    <div class="pm-model-photos" id="pmModelPhotos"></div>
+    <div class="story-controls" style="padding:10px 18px 0;">
+      <div class="story-dots" id="pmModelDots"></div>
+      <button class="story-next" id="pmModelNext" aria-label="Наступне фото">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    </div>
+
+    <!-- Guarantee + Help -->
+    <div class="pm-twocol">
+      <div class="pm-card">
+        <div class="pm-card-title">Замовляйте впевнено</div>
+        <div class="pm-check-list">
+          <div class="pm-check-item"><span class="pm-check-ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Виготовляємо лише після погодження макета</div>
+          <div class="pm-check-item"><span class="pm-check-ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Надсилаємо фото готового виробу перед відправкою</div>
+          <div class="pm-check-item"><span class="pm-check-ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Якщо готовий виріб не відповідає погодженому макету або заявленим характеристикам — безкоштовно виправимо або повернемо кошти</div>
+          <div class="pm-check-item"><span class="pm-check-ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>На зв'язку 24/7 — допоможемо з будь-яким питанням</div>
+        </div>
+      </div>
+      <div class="pm-card pm-card--help">
+        <div>
+          <div class="pm-card-title" style="margin-bottom:8px;font-size:21px;">Потрібна допомога?</div>
+          <div class="pm-help-sub">Залиште номер — менеджер зв'яжеться за 5 хв.</div>
+        </div>
+        <button class="pm-help-btn" id="pmHelpConsultBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Консультація</button>
+      </div>
+    </div>
+
+    <!-- Recommended -->
+    <div class="pm-recommended">
+      <div class="pm-section-title">Вам також може сподобатись</div>
+      <div class="pm-recommended-scroll" id="pmRecommendedScroll">
+        <div class="pm-rec-card" data-rec-garment="hoodie"><div class="pm-rec-img" style="background:#2d2d2d;"></div><div class="pm-rec-info"><div class="pm-rec-name">Худі преміум</div><div class="pm-rec-price">890 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="sweat"><div class="pm-rec-img" style="background:#c9b99a;"></div><div class="pm-rec-info"><div class="pm-rec-name">Світшот класик</div><div class="pm-rec-price">650 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="cap"><div class="pm-rec-img" style="background:#5c5d45;"></div><div class="pm-rec-info"><div class="pm-rec-name">Кепка базова</div><div class="pm-rec-price">350 грн</div></div></div>
+        <div class="pm-rec-card" data-rec-garment="tee"><div class="pm-rec-img" style="background:#2d5a27;"></div><div class="pm-rec-info"><div class="pm-rec-name">Футболка преміум</div><div class="pm-rec-price">590 грн</div></div></div>
+        <button class="pm-rec-card pm-rec-cta-card" id="pmRecCatalogCta">
+          <span>Перейти в каталог</span>
+        </button>
+      </div>
+      <div class="story-controls" style="padding:0 18px;">
+        <div class="story-dots" id="pmRecDots"></div>
+        <button class="story-next" id="pmRecNext" aria-label="Наступний товар">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- FAQ + CTA -->
+    <div class="pm-twocol">
+      <div class="pm-card" style="padding:0;overflow:hidden;">
+        <div class="pm-card-title" style="padding:20px 20px 14px;">Питання / відповіді</div>
+        <div class="pm-faq-list" id="pmFaqList">
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Від чого залежить кінцева ціна?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Від виробу, тиражу, способу нанесення та розміру макета. Що більший тираж — то дешевша одиниця. Ціна і термін перераховуються тут же, щойно ви вкажете кількість.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Скільки штук треба замовляти мінімум?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Від 1 штуки — можна взяти один зразок, подивитись на якість тканини і нанесення, а вже потім запускати весь тираж.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Коли я побачу макет — до оплати чи після?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">До оплати. Ви бачите макет одразу тут, у конструкторі, а перед запуском тиражу ми надсилаємо фінальний варіант на погодження. У виробництво нічого не йде, поки ви не підтвердите.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Що робити, якщо немає готового логотипа у файлі?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Надішліть що є — фото візитки, скриншот, старий файл. Ми відмалюємо у векторі під друк. Якщо логотипа немає взагалі, підкажемо простий варіант із назви компанії.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Чи не злізе друк після прання?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Друк і вишивка витримують щонайменше 50 машинних прань за умови дотримання рекомендацій по догляду: до 40°, навиворіт, без відбілювача і без прасування по нанесенню.</div></div>
+          <div class="pm-faq-item"><button class="pm-faq-q" data-faq>Вишивка чи друк — що краще для мого логотипа?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Вишивка виглядає дорожче і служить довше, добре лягає на щільне: худі, світшоти, кепки. Друк точніше передає дрібні деталі та градієнти, дешевший і швидший. Підкажемо, що краще саме під ваш макет.</div></div>
+          <div class="pm-faq-item pm-faq-item--last"><button class="pm-faq-q" data-faq>Скільки часу займає замовлення і як доставляєте?<span class="pm-faq-plus">+</span></button><div class="pm-faq-a">Стандартно 2–4 робочих дні на невеликий тираж, точний термін видно тут же після вибору кількості. Відправляємо Новою поштою по Україні, для великих замовлень — адресна доставка.</div></div>
+        </div>
+      </div>
+      <div class="pm-cta-card">
+        <div class="pm-cta-title">Створіть свій мерч</div>
+        <div class="pm-cta-sub">Завантажте лого і отримайте мерч мрії</div>
+        <button class="pm-cta-btn" id="pmCtaScrollTop">Створити дизайн →</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="pm-footer">
+      <div class="pm-footer-logo">Loomiq</div>
+      <div class="pm-footer-tag">Створюємо одяг для тих, хто змінює світ</div>
+      <div class="pm-footer-links">
+        <span data-legal="about">Про нас</span><span data-legal="delivery">Доставка</span><span data-legal="payment">Оплата</span><span data-legal="returns">Повернення</span>
+        <span data-legal="warranty">Гарантія</span><span data-legal="offer">Публічна оферта</span><span data-legal="privacy">Політика приватності</span><span data-legal="terms">Умови використання</span>
+      </div>
+  <div class="pm-footer-social">
+    <a href="https://t.me/yourusername" target="_blank" rel="noopener" class="pm-footer-social-ic" aria-label="Telegram"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,.65)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.68 7.92c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.14-.26.26-.53.26l.19-2.66 4.84-4.37c.21-.19-.05-.29-.32-.1L7.9 14.49l-2.52-.79c-.55-.17-.56-.55.12-.81l9.85-3.8c.46-.17.86.11.69.71l.6-.02z"/></svg></a>
+    <a href="viber://chat?number=+380670000000" class="pm-footer-social-ic" aria-label="Viber"><svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,.65)"><path d="M12 1C6.477 1 2 5.477 2 11c0 2.5.9 4.8 2.4 6.6L3 21l3.6-1.4C8.2 20.5 10 21 12 21c5.523 0 10-4.477 10-10S17.523 1 12 1zm0 18c-1.8 0-3.5-.5-4.9-1.4l-.3-.2-2.1.8.7-2-.2-.3C3.9 14.5 3 12.8 3 11c0-5 4-9 9-9s9 4 9 9-4 9-9 9zm4.9-6.8c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.2-.6.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.4-1.8-.1-.3 0-.4.1-.6l.4-.4c.1-.1.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.8.8-.8 2s.8 2.3.9 2.4c.1.1 1.6 2.5 4 3.4.6.2 1 .4 1.3.5.6.2 1.1.1 1.5.1.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/></svg></a>
+  </div>
+      <div class="pm-footer-contacts">
+        <div class="pm-footer-copy">© 2026 Loomiq. Усі права захищено.</div>
+      </div>
+    </div>
+
+    <!-- Sticky cart bar (appears once the main add-to-cart button scrolls out of view) -->
+    <div class="pm-sticky-cart" id="pmStickyCart">
+      <button class="pm-add-btn" id="pmStickyCartBtn">
+        Додати в кошик<span class="pm-add-btn-sum" id="pmStickyCartSum"></span>
+      </button>
+    </div>
+    <a class="float-telegram pm-float-telegram" id="pmFloatTelegram" href="https://t.me/yourusername" target="_blank" rel="noopener" aria-label="Написати в Telegram">
+      <svg width="26" height="26" viewBox="0 0 240 240" fill="none"><path d="M180 60 L40 116 L80 130 L92 172 L116 148 L150 174 L180 60 Z" fill="#FFFFFF"/><path d="M92 172 L100 142 L150 110 L106 146 L92 172Z" fill="#bcdffb"/></svg>
+    </a>
+  </div>
+</div>
+
+<!-- Trash confirm (centered overlay) -->
+<div class="pm-center-overlay" id="pmTrashModal">
+  <div class="pm-center-trash-ic">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+    </svg>
+  </div>
+  <div class="pm-center-card">
+    <div class="pm-center-title">Видалити дизайн?</div>
+    <div class="pm-center-sub">Цю дію неможна скасувати</div>
+    <div class="pm-center-actions">
+      <button class="pm-center-btn pm-center-btn--ghost" id="pmTrashCancelBtn">Ні</button>
+      <button class="pm-center-btn pm-center-btn--danger" id="pmTrashConfirmBtn">Так, видалити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phone popup -->
+<!-- Менеджер: картка клієнта одним блоком. Раніше тут було чотири prompt()
+     підряд — на кожне поле окреме вікно, і жодного шансу щось виправити. -->
+<div class="pm-sheet-overlay" id="cartClientModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title" id="ccTitle">Картка клієнта</div>
+    <div class="pm-sheet-sub">Кошик поїде в Канбан разом із цими даними</div>
+    <!-- Коли конструктор відкрито з наявної картки — кажемо це прямо, щоб
+         менеджер не думав, що зараз створиться друга картка на ту саму людину. -->
+    <div class="pm-sheet-sub" id="ccBound" hidden
+      style="color:#1668c4;font-weight:600;"></div>
+    <div class="pm-form-field">
+      <label for="ccInstagram">Інстаграм <b style="color:#c0392b;">*</b></label>
+      <input id="ccInstagram" type="text" placeholder="@nickname" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccName">Імʼя</label>
+      <input id="ccName" type="text" placeholder="Андрій" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccCompany">Компанія</label>
+      <input id="ccCompany" type="text" placeholder="Lumen Clinic — піде в заголовок пропозиції" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccPhone">Телефон</label>
+      <input id="ccPhone" type="tel" placeholder="+380…" autocomplete="off">
+    </div>
+    <div class="pm-form-field">
+      <label for="ccDue">Здати до</label>
+      <input id="ccDue" type="date">
+    </div>
+    <div class="cc-err" id="ccErr" hidden></div>
+    <button class="pm-form-submit" id="ccSubmit">Створити картку</button>
+    <button class="pm-contact-callback-btn" id="ccCancel" style="width:100%;margin-top:8px;">Скасувати</button>
+  </div>
+</div>
+
+<div class="pm-sheet-overlay" id="pmPhoneModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">Зв'яжіться з нами</div>
+    <div class="pm-sheet-sub">Оберіть зручний спосіб</div>
+    <div class="pm-contact-options">
+      <a href="https://t.me/yourusername" target="_blank" rel="noopener" class="pm-contact-option">
+        <span class="pm-contact-ic" style="background:#2AABEE;"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.68 7.92c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.14-.26.26-.53.26l.19-2.66 4.84-4.37c.21-.19-.05-.29-.32-.1L7.9 14.49l-2.52-.79c-.55-.17-.56-.55.12-.81l9.85-3.8c.46-.17.86.11.69.71l.6-.02z"/></svg></span>
+        <span><span class="pm-contact-name">Telegram</span><span class="pm-contact-sub">@yourusername</span></span>
+      </a>
+      <a href="viber://chat?number=+380670000000" class="pm-contact-option">
+        <span class="pm-contact-ic" style="background:#7360F2;"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 1C6.477 1 2 5.477 2 11c0 2.5.9 4.8 2.4 6.6L3 21l3.6-1.4C8.2 20.5 10 21 12 21c5.523 0 10-4.477 10-10S17.523 1 12 1zm0 18c-1.8 0-3.5-.5-4.9-1.4l-.3-.2-2.1.8.7-2-.2-.3C3.9 14.5 3 12.8 3 11c0-5 4-9 9-9s9 4 9 9-4 9-9 9zm4.9-6.8c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.2-.6.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.4-1.8-.1-.3 0-.4.1-.6l.4-.4c.1-.1.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.8.8-.8 2s.8 2.3.9 2.4c.1.1 1.6 2.5 4 3.4.6.2 1 .4 1.3.5.6.2 1.1.1 1.5.1.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/></svg></span>
+        <span><span class="pm-contact-name">Viber</span><span class="pm-contact-sub">+38 (067) 000-00-00</span></span>
+      </a>
+      <button class="pm-contact-callback-btn" id="pmCallbackBtn">Замовити дзвінок</button>
+    </div>
+  </div>
+</div>
+
+<!-- Consultation popup -->
+<div class="pm-sheet-overlay" id="pmConsultModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">Отримати консультацію</div>
+    <div class="pm-sheet-sub">Менеджер зв'яжеться протягом 5 хв.</div>
+    <div class="pm-form-field">
+      <label>Ваше ім'я</label>
+      <input type="text" placeholder="Олексій">
+    </div>
+    <div class="pm-form-field">
+      <label>Номер телефону</label>
+      <input type="tel" placeholder="+38 (___) ___ __ __">
+    </div>
+    <button class="pm-form-submit" id="pmConsultSubmitBtn">Зв'яжіться зі мною</button>
+  </div>
+</div>
+
+<!-- Вибір товару перед завантаженням логотипа -->
+<div class="pm-sheet-overlay" id="pmPickModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title">На чому друкуємо?</div>
+    <div class="pm-sheet-sub">Оберіть товар — далі одразу завантажите логотип і побачите ціну.</div>
+    <div class="pm-pick-grid" id="pmPickGrid"></div>
+  </div>
+</div>
+
+<!-- Delivery popup -->
+<div class="pm-sheet-overlay" id="pmDeliveryModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle"></div>
+    <div class="pm-sheet-title" style="margin-bottom:20px;">Оплата та доставка</div>
+    <div class="pm-delivery-row">
+      <div class="pm-delivery-row-title">Доставка по Україні</div>
+      <div class="pm-delivery-row-desc">Новою Поштою за 1–2 дні після виготовлення.</div>
+    </div>
+    <div class="pm-delivery-row">
+      <div class="pm-delivery-row-title">Оплата</div>
+      <div class="pm-delivery-row-desc">Для фізичних осіб та компаній. Працюємо з ФОП і ТОВ, надаємо всі необхідні документи.</div>
+    </div>
+    <div class="pm-delivery-row pm-delivery-row--last">
+      <div class="pm-delivery-row-title">Документи</div>
+      <div class="pm-delivery-row-desc">Рахунок, видаткова накладна, договір — за потреби.</div>
+    </div>
+    <button class="pm-form-submit" id="pmDeliveryOkBtn">OK</button>
+  </div>
+</div>
+
+<!-- Mockup / add-to-cart confirm popup -->
+<div class="pm-sheet-overlay" id="pmMockupModal">
+  <div class="pm-sheet-card">
+    <div class="pm-sheet-handle" style="margin-bottom:24px;"></div>
+    <div class="pm-mockup-check">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="pm-mockup-title">Додано в кошик</div>
+    <div class="pm-mockup-sub">Наступний крок — підтвердження макету</div>
+    <div class="pm-mockup-steps">
+      <div class="pm-mockup-step"><span class="pm-mockup-step-n">1</span>Ми підготуємо макет вашого дизайну на виробі</div>
+      <div class="pm-mockup-step"><span class="pm-mockup-step-n">2</span>Надішлемо вам фото для погодження</div>
+      <div class="pm-mockup-step"><span class="pm-mockup-step-n">3</span>Виробництво починається після вашого ОК</div>
+    </div>
+    <button class="pm-form-submit" id="pmMockupConfirmBtn" style="margin-bottom:10px;">Оформити замовлення</button>
+    <!-- Менеджер одразу вирішує, це позиція, яку клієнт просив, чи наша рекомендація -->
+    <div id="pmMockupMgr" style="display:none;">
+      <button class="pm-form-submit" id="pmAddMain" style="margin-bottom:10px;">Додати як основний товар</button>
+      <button class="pm-form-submit" id="pmAddReco"
+        style="margin-bottom:10px;background:#fff;color:#0f2034;border:1.5px solid #0f2034;">Додати як рекомендований</button>
+    </div>
+    <button class="pm-mockup-continue-btn" id="pmMockupContinueBtn">Продовжити налаштовувати</button>
+  </div>
+</div>
+
+<!-- Reviews fullscreen page -->
+<div class="pm-reviews-page" id="pmReviewsPage">
+  <div class="pm-reviews-page-header">
+    <button class="pm-reviews-back" id="pmReviewsPageBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="pm-reviews-page-title">Відгуки</span>
+  </div>
+  <div class="pm-reviews-summary">
+    <div class="pm-reviews-summary-left">
+      <div class="pm-reviews-score">4.9</div>
+      <div class="pm-reviews-stars">★★★★★</div>
+      <div class="pm-reviews-count">128 відгуків</div>
+    </div>
+    <div class="pm-reviews-bars" id="pmReviewsBars"></div>
+  </div>
+  <div class="pm-reviews-photos-title">Фото відгуки</div>
+  <div class="pm-reviews-photos" id="pmReviewsPhotos"></div>
+  <div class="pm-reviews-list" id="pmReviewsList"></div>
+</div>
+
+<div class="pm-legal-page" id="legalPageModal">
+  <div class="pm-reviews-page-header">
+    <button class="pm-reviews-back" id="legalPageBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="pm-reviews-page-title" id="legalPageTitle"></span>
+  </div>
+  <div class="pm-legal-body" id="legalPageBody"></div>
+</div>
+
+<div class="pm-sizechart-page" id="pmSizeChartPage">
+  <div class="pm-reviews-page-header">
+    <button class="pm-reviews-back" id="pmSizeChartBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="pm-reviews-page-title" id="pmSizeChartTitle"><b style="color:#262626;">Розмірна сітка</b></span>
+  </div>
+
+  <!-- Схема ліворуч, таблиця праворуч; на телефоні одне під одним -->
+  <div class="pm-sc-wrap">
+  <div class="pm-sc-side">
+  <img id="pmSizeChartPhoto" alt="Схема мірок" style="display:none;width:100%;border-radius:14px;">
+
+  <div class="pm-sc-illust">
+    <div class="pm-sc-dot-grid pm-sc-dot-grid--tl"></div>
+    <div class="pm-sc-dot-grid pm-sc-dot-grid--br"></div>
+    <span class="pm-sc-x pm-sc-x--1">✕</span>
+    <span class="pm-sc-x pm-sc-x--2">✕</span>
+    <svg class="pm-sc-shirt" viewBox="0 0 200 210" fill="none">
+      <defs>
+        <marker id="scArrowEnd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#262626"/>
+        </marker>
+        <marker id="scArrowStart" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M10,0 L0,5 L10,10 Z" fill="#262626"/>
+        </marker>
+      </defs>
+      <path d="M70 16 Q100 32 130 16 L164 50 L148 65 L148 192 L52 192 L52 65 L36 50 Z" fill="#FFFFFF" stroke="#E4E7F0" stroke-width="2"/>
+      <line x1="52" y1="78" x2="148" y2="78" stroke="#262626" stroke-width="2.5" marker-start="url(#scArrowStart)" marker-end="url(#scArrowEnd)"/>
+      <line x1="100" y1="40" x2="100" y2="186" stroke="#262626" stroke-width="2.5" marker-start="url(#scArrowStart)" marker-end="url(#scArrowEnd)"/>
+      <circle cx="100" cy="60" r="13" fill="#262626"/>
+      <text x="100" y="65" text-anchor="middle" font-size="14" font-weight="700" fill="#fff" font-family="sans-serif">B</text>
+      <circle cx="100" cy="150" r="13" fill="#262626"/>
+      <text x="100" y="155" text-anchor="middle" font-size="14" font-weight="700" fill="#fff" font-family="sans-serif">A</text>
+    </svg>
+  </div>
+
+  </div>
+  <div class="pm-sc-main">
+  <!-- Мірки та їх пояснення задаються в адмінці для кожного товару окремо -->
+  <div class="pm-sc-legend" id="pmSizeChartLegend"></div>
+
+  <table class="pm-sc-table" style="margin-top:14px;">
+    <thead><tr id="pmSizeChartHead"></tr></thead>
+    <tbody id="pmSizeChartBody"></tbody>
+  </table>
+  <div class="pm-sc-note"><span class="pm-sc-note-badge">±2см</span>Всі розміри одягу підлягають допуску ±2 см</div>
+  </div>
+  </div>
+</div>
+<!-- /lq:constructor --></template>
+<style>
+  /* ── Робоче місце менеджера ──────────────────────────────────────────────
+     Менеджер збирає пропозицію тим самим конструктором, що стоїть на сайті.
+     Не «карткою КП, яку можна відкрити на редагування», а просто
+     конструктором: наклацав виріб, колір, нанесення, тираж — і одразу бачить
+     ціну й термін тими самими очима, що й клієнт на сайті.
+
+     Раніше позиція жила у двох виглядах: мертві дані в картці пропозиції
+     (знімки, ціна, розміри рядком) і жива модель у конструкторі. Кнопка
+     «Редагувати» була переносом між ними, і кожен перенос щось губив: то
+     розмір нанесення, то ціну, то термін, то тираж. Тут переносу немає:
+     жива модель одна, а пропозиція для клієнта — просто її вигляд.
+
+     Клієнтський вигляд лишається окремим і зовсім іншим: він на вкладці
+     «Як бачить клієнт», і це та сама сторінка, яку відкриє клієнт. */
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    background:#F1F4F8; color:#1B2536; display:flex; flex-direction:column; overflow:hidden;}
+  .hd{flex:none; display:flex; align-items:center; gap:12px; padding:9px 14px;
+    background:#fff; border-bottom:1px solid #E2E8F0;}
+  .tabs{display:inline-flex; background:#EEF2F7; border-radius:9px; padding:3px; gap:2px;}
+  .tab{font:inherit; font-size:12.5px; font-weight:700; color:#5A6A80; background:none;
+    border:0; border-radius:7px; padding:7px 13px; cursor:pointer; white-space:nowrap;}
+  .tab.on{background:#fff; color:#1B2536; box-shadow:0 1px 3px rgba(16,32,56,.12);}
+  .hd-sp{flex:1;}
+  .save{font-size:12px; font-weight:700; color:#7A879B; white-space:nowrap;}
+  .save.is-saving{color:#B7791F;} .save.is-ok{color:#0E9F6E;} .save.is-bad{color:#C6392F;}
+  .btn{font:inherit; font-size:12.5px; font-weight:700; border-radius:9px; padding:9px 14px;
+    cursor:pointer; border:1px solid #D9E1EC; background:#fff; color:#3D4C61; white-space:nowrap;}
+  .btn:hover{border-color:#4F5FD4; color:#3A48A8;}
+  .btn-main{background:#1F2C44; border-color:#1F2C44; color:#fff;}
+  .btn-main:hover{background:#2C3B58; border-color:#2C3B58; color:#fff;}
+  .btn:disabled{opacity:.5; cursor:default;}
+
+  .body{flex:1; min-height:0; display:flex;}
+  /* Стрічка позицій. Конструктор у нас один на сторінку — його вузли мають
+     унікальні id, — тож розгорнутою може бути лише одна позиція. Решта
+     стоять компактними рядками: видно весь склад замовлення, а клік
+     перемикає, яку саме зараз збираємо. Кнопки «Редагувати» немає: перехід
+     до позиції і є її редагування. */
+  .list{flex:0 0 250px; min-width:0; background:#fff; border-right:1px solid #E2E8F0;
+    display:flex; flex-direction:column;}
+  .list-h{flex:none; font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    color:#8A93A3; padding:12px 14px 7px;}
+  .list-b{flex:1; overflow:auto; padding:0 8px 8px;}
+  .it{display:flex; gap:9px; align-items:center; padding:8px; border-radius:10px; cursor:pointer;
+    border:1px solid transparent;}
+  .it:hover{background:#F4F7FB;}
+  .it.on{background:#EEF2FF; border-color:#C7D2FE;}
+  .it-th{flex:none; width:42px; height:42px; border-radius:8px; background:#F1F4F8;
+    overflow:hidden; display:flex; align-items:center; justify-content:center;}
+  .it-th img{width:100%; height:100%; object-fit:contain; display:block;}
+  .it-t{flex:1; min-width:0;}
+  .it-n{font-size:12.5px; font-weight:700; line-height:1.25; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;}
+  .it-m{font-size:11px; color:#7A879B; margin-top:2px;}
+  .it-r{font-size:11px; font-weight:700; color:#8A93A3; text-transform:uppercase; letter-spacing:.04em;}
+  .list-sec{font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    color:#8A93A3; padding:14px 8px 6px;}
+  .list-add{width:100%; margin-top:8px;}
+  .list-f{flex:none; border-top:1px solid #E2E8F0; padding:10px 12px; font-size:12px; color:#5A6A80;}
+  .list-f b{display:block; font-size:16px; color:#1B2536; margin-top:2px;}
+
+  .work{flex:1; min-width:0; display:flex; flex-direction:column; background:#fff;}
+  /* Дії над позицією. Правити її склад тут нема потреби — це робить сам
+     конструктор; лишається тільки те, чого він не вміє: порядок, копія,
+     перенос у рекомендовані та видалення. */
+  .acts{flex:none; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    padding:8px 12px; border-bottom:1px solid #E9EEF5; background:#FBFCFE;}
+  .acts .btn{padding:7px 11px; font-size:12px;}
+  .acts-nm{font-size:13px; font-weight:800; margin-right:4px;}
+  .stage{flex:1; min-height:0; overflow:auto; position:relative;}
+  .empty{padding:44px 20px; text-align:center; color:#8A93A3; font-size:13px; line-height:1.6;}
+  .frame{width:100%; height:100%; border:0; display:block; background:#fff;}
+  .hide{display:none !important;}
+
+  /* Конструктор усередині робочого місця. Це та сама модалка, що на сайті,
+     тільки вона більше не модалка: не висить поверх усього й не має власної
+     шапки — вона і є вміст цієї сторінки. */
+  .stage .contact-modal.lq-inline{position:static; inset:auto; width:auto; height:auto;
+    max-height:none; opacity:1; transform:none; pointer-events:auto; overflow:visible;
+    background:#fff; z-index:auto; display:block;}
+  .stage .lq-inline .catalog-modal-topbar,
+  .stage .lq-inline .contact-modal-back{display:none !important;}
+  .stage .lq-inline .contact-modal-inner{padding:0; max-width:none;}
+  .stage .lq-inline .pm-stage{width:100% !important; max-width:100% !important;
+    height:min(46vh, 380px) !important; box-sizing:border-box;}
+  .stage .lq-inline .pm-stage img{max-width:100%; max-height:100%; object-fit:contain;}
+  .stage .lq-inline #pmGarmentWrap{max-width:100%; max-height:100%;}
+  /* Вітрина для клієнта тут зайва: відгуки, опис, гарантії, підвал і
+     рекомендації живуть на сайті, де вони й працюють. */
+  .stage .lq-inline .pm-rows,
+  .stage .lq-inline .pm-detail,
+  .stage .lq-inline #pmModelSection,
+  .stage .lq-inline .pm-twocol,
+  .stage .lq-inline .pm-recommended,
+  .stage .lq-inline .pm-footer,
+  .stage .lq-inline .pm-footer-social,
+  .stage .lq-inline .pm-legal-links{display:none !important;}
+  #lqCtorHost > *{z-index:300;}
+  @media (max-width:820px){
+    .body{flex-direction:column;}
+    .list{flex:0 0 auto; max-height:38vh; border-right:0; border-bottom:1px solid #E2E8F0;}
+  }
+</style>
+</head>
+<body>
+
+<!-- Номера пропозиції й клієнта тут немає навмисно: вони вже стоять у шапці
+     самого вікна пропозиції, рядком вище. Двічі те саме на двох сусідніх
+     смугах — це шум, а не інформація. -->
+<div class="hd">
+  <div class="tabs">
+    <button class="tab on" data-view="build">Збирання</button>
+    <button class="tab" data-view="client">Як бачить клієнт</button>
+  </div>
+  <span class="hd-sp"></span>
+  <span class="save" id="saveMark"></span>
+  <button class="btn btn-main" id="btnSave">Зберегти позицію</button>
+</div>
+
+<div class="body">
+  <aside class="list" id="paneList">
+    <div class="list-h">Склад пропозиції</div>
+    <div class="list-b" id="listBody"></div>
+    <div class="list-f">Разом<b id="listSum">—</b></div>
+  </aside>
+  <main class="work" id="paneWork">
+    <div class="acts" id="acts"></div>
+    <div class="stage" id="stage">
+      <div class="empty">Оберіть позицію ліворуч або додайте товар.</div>
+    </div>
+  </main>
+</div>
+
+<iframe class="frame hide" id="clientFrame" title="Як бачить клієнт"></iframe>
+
+<script>
+(function(){
+  'use strict';
+  /* ── Звʼязок з адмінкою ───────────────────────────────────────────────
+     Пише в базу тільки адмінка: у неї доступ і права. Ця сторінка відкрита
+     кадром і може бути з іншої адреси, тому все спілкування — виключно
+     повідомленнями. Лізти у вікно адмінки напряму не можна: варто їй бути
+     на іншому домені, і браузер це заблокує, а поламається все мовчки. */
+  var OFFER = null;          // документ пропозиції від адмінки
+  var CATALOG = [];          // товари для «додати»
+  var CLIENT_URL = '';       // адреса клієнтської сторінки
+  var cur = null;            // { kind, i } — позиція, яку зараз збираємо
+  var dirty = false;         // у конструкторі є незбережені зміни
+  var quiet = true;          // перші секунди після розгортання позиції правками не рахуємо
+  var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
+  var ctorReady = null;
+
+  var CTOR_JS   = 'loomiq-constructor.js?v=1ad060a6b8';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=1ad060a6b8';
+
+  function send(msg){
+    if(window.parent === window) return;
+    try{ window.parent.postMessage(Object.assign({ lqEdit:true }, msg), '*'); }catch(e){}
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function money(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/ /g,' ') + ' грн'; }
+  function mark(state, text){
+    var el = document.getElementById('saveMark');
+    el.className = 'save' + (state ? ' is-' + state : '');
+    el.textContent = text || '';
+  }
+
+  /* ── Список позицій ─────────────────────────────────────────────────── */
+  function itemsOf(kind){ return (kind === 'reco' ? (OFFER.reco || []) : (OFFER.items || [])); }
+  function rowHtml(it, kind, i){
+    var on = cur && cur.kind === kind && cur.i === i;
+    var img = (it.mockups || []).filter(Boolean)[0] || '';
+    return '<div class="it' + (on ? ' on' : '') + '" data-pick="' + kind + ':' + i + '">' +
+      '<span class="it-th">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') + '</span>' +
+      '<span class="it-t">' +
+        '<span class="it-n">' + esc(it.name || 'Позиція') + '</span>' +
+        '<span class="it-m">' + (kind === 'reco' ? 'рекомендований' :
+          ((+it.qty || 0) + ' шт · ' + money(it.unitPrice) + '/шт')) + '</span>' +
+      '</span>' +
+    '</div>';
+  }
+  function renderList(){
+    var box = document.getElementById('listBody');
+    if(!OFFER){ box.innerHTML = ''; return; }
+    var main = itemsOf('main'), reco = itemsOf('reco');
+    box.innerHTML =
+      (main.length ? main.map(function(it, i){ return rowHtml(it, 'main', i); }).join('')
+                   : '<div class="empty" style="padding:18px 8px;">Позицій ще немає</div>') +
+      '<button class="btn list-add" data-add="main">＋ Додати товар</button>' +
+      (reco.length ? '<div class="list-sec">Рекомендовані</div>' +
+        reco.map(function(it, i){ return rowHtml(it, 'reco', i); }).join('') : '') +
+      '<button class="btn list-add" data-add="reco">＋ Рекомендований</button>';
+    var sum = main.reduce(function(a, it){ return a + (+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)); }, 0);
+    document.getElementById('listSum').textContent = money(sum);
+    box.querySelectorAll('[data-pick]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var p = el.dataset.pick.split(':');
+        pickItem(p[0], +p[1]);
+      });
+    });
+    box.querySelectorAll('[data-add]').forEach(function(b){
+      b.addEventListener('click', function(){ send({ act:'pickopen', kind: b.dataset.add }); });
+    });
+    renderActs();
+  }
+  function renderActs(){
+    var box = document.getElementById('acts');
+    if(!cur){ box.innerHTML = ''; return; }
+    var it = itemsOf(cur.kind)[cur.i];
+    if(!it){ box.innerHTML = ''; return; }
+    box.innerHTML =
+      '<span class="acts-nm">' + esc(it.name || 'Позиція') + '</span>' +
+      '<button class="btn" data-act="dup">Дублювати</button>' +
+      '<button class="btn" data-act="up" title="Вище">↑</button>' +
+      '<button class="btn" data-act="down" title="Нижче">↓</button>' +
+      '<button class="btn" data-act="swap">' +
+        (cur.kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
+      '<button class="btn" data-act="del" title="Прибрати">🗑</button>';
+    box.querySelectorAll('[data-act]').forEach(function(b){
+      b.addEventListener('click', function(){
+        send({ act: b.dataset.act, kind: cur.kind, i: cur.i });
+        if(b.dataset.act === 'del' || b.dataset.act === 'swap') cur = null;
+      });
+    });
+  }
+
+  /* ── Конструктор ────────────────────────────────────────────────────── */
+  function shims(){
+    if(window.__lqShims) return;
+    window.__lqShims = true;
+    var W = window;
+    W.__lqInline = true;                 // читається конструктором на старті
+    W.cartItems = W.cartItems || [];
+    W.renderCart = W.renderCart || function(){};
+    W.cartPersist = W.cartPersist || function(){};
+    W._navInternal = false;
+    W.escHtml = W.escHtml || esc;
+    var noModal = { open:function(){}, close:function(){} };
+    W.cartModalCtrl = W.cartModalCtrl || noModal;
+    W.catalogModalCtrl = W.catalogModalCtrl || noModal;
+    W.contactModal = W.contactModal || null;
+    W.navGo = W.navGo || function(){};
+    W.navSetProductGarment = W.navSetProductGarment || function(){};
+    W.closeAllMainModals = W.closeAllMainModals || function(){};
+    W.closeMenu = W.closeMenu || function(){};
+    W.toggleMenu = W.toggleMenu || function(){};
+    W.PHOTO_OVERRIDES = W.PHOTO_OVERRIDES || {};
+    W.LQ_img = W.LQ_img || function(path){
+      var m = /images\/(.+)\.webp(?:\?.*)?$/.exec(path || '');
+      return (m && W.PHOTO_OVERRIDES[m[1]]) ? W.PHOTO_OVERRIDES[m[1]] : path;
+    };
+    W.LQ_name = W.LQ_name || function(gid, fb){
+      return ((W.SITE_CONTENT || {}).names || {})[gid] || fb;
+    };
+    W.__lqAdminHost = W.__lqAdminHost || function(){
+      // Привʼязку й насіння адмінка кладе сюди повідомленням, тож шукати
+      // нема де: усе вже в цьому вікні
+      return (window.__adminOfferTarget || window.__adminSaveClientOrder) ? window : null;
+    };
+    W.__adminSaveClientOrder = W.__adminSaveClientOrder || function(payload){
+      return new Promise(function(res, rej){
+        var id = 's' + Date.now() + Math.random().toString(36).slice(2, 6);
+        var timer = null;
+        var off = function(e){
+          var m = e.data;
+          if(!m || !m.lqEditInit || m.saveAck !== id) return;
+          window.removeEventListener('message', off);
+          clearTimeout(timer);
+          mark(m.ok ? 'ok' : 'bad', m.ok ? 'Збережено ✓' : 'Не збережено');
+          if(m.ok){ dirty = false; res(true); } else rej(new Error(m.err || 'не збереглось'));
+        };
+        window.addEventListener('message', off);
+        timer = setTimeout(function(){
+          window.removeEventListener('message', off);
+          mark('bad', 'Адмінка не відповіла');
+          rej(new Error('адмінка не відповіла'));
+        }, 90000);
+        mark('saving', 'Зберігаємо…');
+        send({ act:'saveItem', id:id, payload:payload });
+      });
+    };
+  }
+  function content(){
+    if(window.__lqContentReady) return window.__lqContentReady;
+    /* Той самий документ, що читає сайт: назви, фото, зони нанесення з
+       висотою виробу, калібрування, ціни. Без нього конструктор рахував би
+       за запасними числами — і пропозиція розійшлась би з сайтом саме там,
+       де це найдорожче. */
+    window.__lqContentReady = fetch('https://firestore.googleapis.com/v1/projects/' +
+        'loomiq-admin/databases/(default)/documents/loomiq/photos')
+      .then(function(r){ return r.json(); })
+      .then(function(j){ return unwrap(j) || {}; })
+      .catch(function(e){ console.warn('контент сайту не прийшов', e); return {}; })
+      .then(function(d){
+        window.PHOTO_OVERRIDES = d.map || {};
+        window.SITE_CONTENT = {
+          names: d.names || {}, descriptions: d.descriptions || {},
+          sizecharts: d.sizecharts || {}, sizechartPhotos: d.sizechartPhotos || {},
+          specs: d.specs || {}, models: d.models || {},
+          reviewOrder: d.reviewOrder || null, reviewPhotos: d.reviewPhotos || null,
+          products: d.products || {}, contacts: d.contacts || {},
+          faq: d.faq || null, hero: d.hero || {}, about: d.about || {},
+          stats: d.stats || null, cases: d.cases || null, promo: d.promo || {},
+          pricing: d.pricing || null, productColors: d.productColors || {},
+          printAreas: d.printAreas || {}, landing: d.landing || null,
+          catalogPicks: d.catalogPicks || null, bgApi: d.bgApi || {},
+          viewOrder: d.viewOrder || {}
+        };
+        document.dispatchEvent(new Event('lq-photos'));
+        document.dispatchEvent(new Event('lq-content'));
+        return true;
+      });
+    return window.__lqContentReady;
+  }
+  // Firestore REST віддає значення в обгортках типів — розгортаємо в звичайний обʼєкт
+  function unwrap(node){
+    if(!node || typeof node !== 'object') return node;
+    if(node.fields) return unwrap({ mapValue:{ fields: node.fields } });
+    if(node.mapValue){
+      var out = {}, f = node.mapValue.fields || {};
+      Object.keys(f).forEach(function(k){ out[k] = unwrap(f[k]); });
+      return out;
+    }
+    if(node.arrayValue) return (node.arrayValue.values || []).map(unwrap);
+    if(node.stringValue !== undefined) return node.stringValue;
+    if(node.integerValue !== undefined) return +node.integerValue;
+    if(node.doubleValue !== undefined) return +node.doubleValue;
+    if(node.booleanValue !== undefined) return !!node.booleanValue;
+    if(node.nullValue !== undefined) return null;
+    return node;
+  }
+  function loadCtor(){
+    if(ctorReady) return ctorReady;
+    shims();
+    var css = new Promise(function(res){
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = CTOR_CSS; l.onload = res; l.onerror = res;
+      document.head.appendChild(l);
+    });
+    var markup = new Promise(function(res, rej){
+      var tpl = document.getElementById('lqCtorTpl');
+      var html = tpl ? tpl.innerHTML : '';
+      if(html.indexOf('productModal') < 0) return rej(new Error('розмітка конструктора порожня'));
+      var host = document.createElement('div');
+      host.id = 'lqCtorHost';
+      host.innerHTML = html;
+      document.body.appendChild(host);
+      res(true);
+    });
+    ctorReady = Promise.all([css, markup, content()]).then(function(){
+      return new Promise(function(res, rej){
+        var sc = document.createElement('script');
+        sc.src = CTOR_JS;
+        sc.onload = function(){ res(true); };
+        sc.onerror = function(){ rej(new Error('конструктор не завантажився')); };
+        document.body.appendChild(sc);
+      });
+    }).then(function(){
+      return new Promise(function(res, rej){
+        var t0 = Date.now();
+        var iv = setInterval(function(){
+          if(window.__editProduct || window.__openProductModal){ clearInterval(iv); res(true); }
+          else if(Date.now() - t0 > 15000){ clearInterval(iv); rej(new Error('конструктор не відповів')); }
+        }, 40);
+      });
+    });
+    return ctorReady;
+  }
+  /* Відвести конструктор у власну коробку, не закриваючи. Робимо це перед
+     будь-якою заміною вмісту сцени: інакше він піде разом зі старою
+     розміткою — вузол ще існує в памʼяті, але вже поза сторінкою, і
+     повертати на сцену нема чого. Саме так позиція «не відкривалась». */
+  function parkCtor(){
+    var modal = document.getElementById('productModal');
+    var host = document.getElementById('lqCtorHost');
+    if(modal && host && modal.parentNode !== host) host.appendChild(modal);
+  }
+  function mountCtor(){
+    var stage = document.getElementById('stage');
+    var modal = document.getElementById('productModal');
+    if(!stage || !modal) return;
+    if(modal.parentNode !== stage){ stage.innerHTML = ''; stage.appendChild(modal); }
+    modal.classList.add('open', 'lq-inline');
+    try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
+    var fit = function(){ try{ if(window.__fitGarment) window.__fitGarment(); }catch(e){} };
+    setTimeout(fit, 80); setTimeout(fit, 400);
+  }
+  function seedCtor(){
+    var seed = window.__adminSeedItem || null;
+    window.cartItems.length = 0;
+    if(seed){
+      window.cartItems.push(JSON.parse(JSON.stringify(seed)));
+      window.__pmEditIndex = 0;
+      window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
+      try{
+        if(seed.config && window.__editProduct) window.__editProduct(seed.config, 0, seed.prints || []);
+        else if(seed.garmentId && window.__openProductModal) window.__openProductModal(seed.garmentId);
+      }catch(e){ console.warn('позиція не розгорнулась', e); }
+    }
+    mountCtor();
+    /* Перші секунди після розгортання позиції конструктор ще довантажує фото
+       й перемальовує ціну — це не правки менеджера, і вважати їх змінами не
+       можна: інакше кожен перехід між позиціями заводив би зайвий запис. */
+    quiet = true;
+    dirty = false;
+    mark('', '');
+    setTimeout(function(){ quiet = false; }, 1800);
+  }
+  window.__lqDirty = function(){
+    if(quiet || !cur) return;
+    if(dirty) return;
+    dirty = true;
+    mark('', 'Є незбережені зміни');
+  };
+  function fail(e){
+    console.warn('конструктор не відкрився', e);
+    ctorReady = null;
+    document.getElementById('stage').innerHTML =
+      '<div class="empty">Конструктор не відкрився: ' + esc((e && e.message) || 'невідома причина') +
+      '<br><button class="btn" id="retry" style="margin-top:12px;">Спробувати ще раз</button></div>';
+    var r = document.getElementById('retry');
+    if(r) r.addEventListener('click', function(){ if(cur) pickItem(cur.kind, cur.i, true); });
+  }
+
+  /* Перехід до позиції. Спершу зберігаємо ту, що збирали: менеджер міг
+     півгодини накладати логотипи, і мовчки втратити це через один клік по
+     сусідньому рядку — найдорожча помилка, яку тут можна зробити. */
+  function pickItem(kind, i, force){
+    if(!force && cur && cur.kind === kind && cur.i === i) return;
+    var go = function(){
+      cur = { kind: kind, i: i };
+      renderList();
+      parkCtor();
+      document.getElementById('stage').innerHTML = '<div class="empty">Відкриваємо…</div>';
+      send({ act:'editInline', kind: kind, i: i });
+      loadCtor().catch(fail);
+    };
+    if(dirty && !force) saveCurrent().then(go, go); else go();
+  }
+  function saveCurrent(){
+    if(!window.__lqSendToOrder || !window.cartItems || !window.cartItems.length)
+      return Promise.resolve(false);
+    try{
+      var btn = document.getElementById('pmAddToCartBtn');
+      if(btn){ btn.click(); return Promise.resolve(true); }
+    }catch(e){}
+    return Promise.resolve(false);
+  }
+  document.getElementById('btnSave').addEventListener('click', function(){ saveCurrent(); });
+
+  /* ── Вкладки ────────────────────────────────────────────────────────── */
+  document.querySelectorAll('[data-view]').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('[data-view]').forEach(function(x){ x.classList.toggle('on', x === b); });
+      var client = b.dataset.view === 'client';
+      document.querySelector('.body').classList.toggle('hide', client);
+      var fr = document.getElementById('clientFrame');
+      fr.classList.toggle('hide', !client);
+      if(client){
+        // Перед показом клієнтського вигляду віддаємо адмінці незбережене:
+        // інакше менеджер звіряє пропозицію з тим, чого в ній ще немає
+        var go = function(){ if(CLIENT_URL) fr.src = CLIENT_URL + '&t=' + Date.now(); };
+        if(dirty) saveCurrent().then(go, go); else go();
+      }
+    });
+  });
+
+  /* ── Повідомлення від адмінки ───────────────────────────────────────── */
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if(!d || !d.lqEditInit || window.parent === window) return;
+    if(d.catalog) CATALOG = d.catalog;
+    if(d.clientUrl) CLIENT_URL = d.clientUrl;
+    if(d.seed !== undefined) window.__adminSeedItem = d.seed;
+    if(d.target !== undefined) window.__adminOfferTarget = d.target;
+    if(d.offer){
+      OFFER = d.offer || {};
+      OFFER.items = OFFER.items || [];
+      OFFER.reco  = OFFER.reco  || [];
+      renderList();
+      document.getElementById('btnSave').disabled = !OFFER.items.length && !OFFER.reco.length;
+      var n = OFFER.items.length;
+      /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
+         саме щоб його налаштувати, а не щоб потім шукати в списку. */
+      if(lastCount >= 0 && n > lastCount) pickItem('main', n - 1);
+      // Перша позиція відкривається сама: порожнє робоче місце змушує
+      // здогадуватись, що робити далі
+      else if(!cur && n) pickItem('main', 0);
+      lastCount = n;
+      return;
+    }
+    if(d.editReady != null){
+      if(!d.editReady){ document.getElementById('stage').innerHTML =
+        '<div class="empty">Позицію не знайдено.</div>'; return; }
+      loadCtor().then(seedCtor).catch(fail);
+      return;
+    }
+  });
+
+  /* Сигналу «я готовий» звідси немає навмисно: адмінка віддає дані сама,
+     коли кадр завантажився, а слово «ready» в її мові вже зайняте — воно
+     означає дату готовності замовлення. Один такий сигнал стер би її. */
+})();
+</script>
+</body>
+</html>
