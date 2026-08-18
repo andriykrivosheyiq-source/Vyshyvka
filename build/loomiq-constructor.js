@@ -235,7 +235,21 @@
       list.forEach(function(x){ if(!seen[x]){ seen[x] = 1; out.push(x); } });
       return out.length ? out : null;
     }
-    function getSizes(){ return chartSizes(pm.garmentId) || GARMENT_SIZES[pm.garmentId] || SIZES; }
+    var NO_SIZE = 'Без розміру';
+    /* Менеджер часто складає пропозицію ще до того, як клієнт назвав
+       розкладку: важливі кількість і ціна, а розміри будуть потім. Доти
+       доводилось вигадувати їх — і замовлення їхало у виробництво з чужою
+       розкладкою. Тому в менеджерському режимі є ще один рядок: «Без
+       розміру». Рахується він як звичайний розмір, тож ні тираж, ні знижка,
+       ні ціна від цього не міняються. Клієнтові його не показуємо. */
+    function isMgrMode(){
+      return /[?&]manager=1\b/.test(location.search) || !!window.__lqInline;
+    }
+    function getSizes(){
+      var base = chartSizes(pm.garmentId) || GARMENT_SIZES[pm.garmentId] || SIZES;
+      if(!isMgrMode() || base.length <= 1 || base.indexOf(NO_SIZE) !== -1) return base;
+      return base.concat([NO_SIZE]);
+    }
     function isOneSize(){ var s = getSizes(); return s.length === 1; }
     var SIZE_CHART = {XS:{A:64,B:47}, S:{A:66,B:50}, M:{A:68,B:53}, L:{A:72,B:56}, XL:{A:74,B:60}, XXL:{A:77,B:62}};
     // Реальні розмірні сітки виробників (A — довжина, B — ширина, см)
@@ -1313,7 +1327,11 @@
     var pmSwipeWrapEl = document.getElementById('pmSwipeWrap');
     var pmGarmentWrapEl = document.getElementById('pmGarmentWrap');
     // Менеджерський режим (вбудований iframe в адмінці ?manager=1): макап + прорахунок собівартості
-    var IS_MANAGER = /[?&]manager=1\b/.test(location.search);
+    /* Менеджерський режим. Крім ?manager=1 — ще й конструктор, відкритий у
+       картці пропозиції: там за кермом теж менеджер, і саме йому потрібен
+       прорахунок із площею, ставкою за см² і розміром нанесення. Без цього
+       в КП лишався урізаний вигляд для клієнта, і всі деталі зникали. */
+    var IS_MANAGER = /[?&]manager=1\b/.test(location.search) || !!window.__lqInline;
     // Позначка для CSS: у прорахунку інші пріоритети, ніж на сайті —
     // менеджеру важливий великий мокап, а не кнопка «в кошик» над згином.
     if(IS_MANAGER) document.documentElement.classList.add('is-mgr');
@@ -3303,6 +3321,28 @@
       }
       return TIERS[TIERS.length-1].price + logoSurcharge();
     }
+    /* Автозбереження в пропозиції. Менеджер править позицію просто в картці
+       КП — і чекати від нього окремого «зберегти» так само дивно, як у
+       документі. Тому будь-яка зміна, що змінює ціну чи вигляд позиції,
+       заводить відкладене збереження.
+
+       Відкладене, а не миттєве: під час перетягування логотипа ціна
+       перераховується десятки разів на секунду, і кожен перерахунок
+       вивантажував би макети наново. Чекаємо, поки людина спинилась. */
+    var lqAutoTimer = null;
+    function lqAutoSave(){
+      if(!window.__lqInline) return;
+      if(window.__cartSaving) return;               // одне збереження вже йде
+      if(totalUnits() === 0) return;                // нема чого зберігати
+      if(anyLogoOutsideAnySide()) return;           // спершу хай поправить макет
+      clearTimeout(lqAutoTimer);
+      lqAutoTimer = setTimeout(function(){
+        if(window.__cartSaving || totalUnits() === 0) return;
+        try{ addCurrentToCart(window.__pmAddKind === 'reco' ? 'reco' : 'main'); }
+        catch(e){ console.warn('автозбереження не вийшло', e); }
+      }, 4000);
+    }
+    window.__lqAutoSave = lqAutoSave;
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
@@ -3339,6 +3379,7 @@
       renderTiers();
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
+      lqAutoSave();
     }
     // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
     function renderManagerPanel(){
@@ -3594,6 +3635,7 @@
       updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
+      lqAutoSave();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
