@@ -67,6 +67,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero-sub{font-size:15.5px; color:var(--ink-2); margin:0 0 20px;}
   .hero-logo{max-height:56px; width:auto; margin-bottom:20px; border-radius:12px;
     display:block; background:rgba(255,255,255,.9); padding:6px 10px;}
+  /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
+  .hero-logo[style*="height"]{max-height:none;}
+  .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+  .edlogo-sz{display:flex; align-items:center; gap:5px;}
+  .edlogo-sz b{font-size:12px; font-weight:700; color:#3D4C61; min-width:46px; text-align:center;
+    font-variant-numeric:tabular-nums;}
   .hero-shot{background:var(--soft); border-radius:var(--radius); padding:14px; margin-bottom:20px;}
   .hero-shot img{width:100%; aspect-ratio:1/1; object-fit:contain;}
   /* Статуси в Hero: короткі підтвердження, що робота вже зроблена */
@@ -1042,8 +1048,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
-  .edqty{display:flex;align-items:center;gap:6px;font-size:12px;color:#3D4C61;}
-  .edqty b{min-width:52px;text-align:center;font-variant-numeric:tabular-nums;}
+  .edqty{display:flex;align-items:center;gap:5px;font-size:12px;color:#3D4C61;}
+  .edqty b{font-weight:600;color:#7A879B;}
+  .edqi{width:66px;font:inherit;font-size:13px;font-weight:700;text-align:center;
+    padding:6px 4px;border:1px solid #C7D0DE;border-radius:9px;background:#fff;color:#22314A;
+    font-variant-numeric:tabular-nums;-moz-appearance:textfield;}
+  .edqi:focus{outline:none;border-color:#4F5FD4;box-shadow:0 0 0 3px rgba(79,95,212,.16);}
+  .edqi::-webkit-outer-spin-button,.edqi::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .edadd{display:block;width:100%;margin-top:12px;font:inherit;font-size:13.5px;
     font-weight:700;color:#3D4C61;background:#fff;border:1.5px dashed #B9C4D4;
     border-radius:12px;padding:14px;cursor:pointer;}
@@ -1270,9 +1281,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   window.addEventListener('message', function(e){
     var d = e.data;
     if(!d || !d.lqEditInit || window.parent === window) return;
-    if(EDIT){ if(d.catalog) EDIT_CATALOG = d.catalog; return; }
+    if(d.catalog) EDIT_CATALOG = d.catalog;
+    /* Свіжі дані замість перезавантаження кадру. Доти кожна правка — навіть
+       «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
+       угору, і менеджер щоразу шукав, де він був. Тепер приходить новий
+       документ, сторінка перемальовується на місці, прокрутка лишається. */
+    if(d.offer){
+      var y = window.scrollY;
+      OFFER = d.offer || {};
+      OFFER.items = OFFER.items || [];
+      OFFER.reco  = OFFER.reco  || [];
+      OFFER.terms = OFFER.terms || { deadlineDays: 4 };
+      OFFER.client = OFFER.client || {};
+      if(!EDIT){ EDIT = true; document.documentElement.classList.add('is-edit'); }
+      render();
+      window.scrollTo(0, y);
+      return;
+    }
+    if(EDIT) return;
     EDIT = true;
-    EDIT_CATALOG = d.catalog || [];
     document.documentElement.classList.add('is-edit');
     if(OFFER) render();
   });
@@ -1288,17 +1315,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         'data-tab="garment" title="Товар і колір">Колір</button>' +
       '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
         'data-tab="photo" title="Логотип, розмір і спосіб нанесення">Нанесення</button>' +
-      '<button class="edb edb-pen" data-ed="edit" data-k="' + kind + '" data-i="' + i + '" ' +
-        'data-tab="size" title="Розміри й тираж">Кількість</button>' +
       '<button class="edb" data-ed="dup" data-k="' + kind + '" data-i="' + i + '" ' +
         'title="Зробити копію позиції">Дублювати</button>' +
       '<button class="edb" data-ed="up" data-k="' + kind + '" data-i="' + i + '" title="Вище">↑</button>' +
       '<button class="edb" data-ed="down" data-k="' + kind + '" data-i="' + i + '" title="Нижче">↓</button>' +
+      /* Кількість вписують числом. На тиражах у сотні штук кнопки −/+ це
+         десятки натискань, і після кожного сторінка перебудовувалась. */
       (qty != null
         ? '<span class="edqty">' +
-            '<button class="edb" data-ed="qm" data-k="' + kind + '" data-i="' + i + '">−</button>' +
-            '<b>' + qty + ' шт</b>' +
-            '<button class="edb" data-ed="qp" data-k="' + kind + '" data-i="' + i + '">+</button>' +
+            '<input class="edqi" type="number" min="1" step="1" inputmode="numeric" ' +
+              'value="' + qty + '" data-ed-qty data-k="' + kind + '" data-i="' + i + '" ' +
+              'aria-label="Кількість">' +
+            '<b>шт</b>' +
           '</span>' : '') +
       '<button class="edb" data-ed="swap" data-k="' + kind + '" data-i="' + i + '">' +
         (kind === 'reco' ? 'В основні' : 'У рекомендовані') + '</button>' +
@@ -1362,6 +1390,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       // Галерея й тиражі слухають натискання, а не клік
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
         b.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
+    /* Тираж: чекаємо, поки менеджер допише число, і лише тоді перераховуємо.
+       На кожну цифру рахувати не можна — «120» дало б розрахунок для 1, 12
+       і 120 підряд, і два з них із чужою знижкою за тираж. */
+    document.querySelectorAll('[data-ed-qty]').forEach(function(inp){
+      var t = null;
+      var send = function(){
+        var v = Math.max(1, Math.round(+inp.value || 0));
+        if(v !== +inp.defaultValue) edSend({ act:'qty', kind: inp.dataset.k, i: +inp.dataset.i, v: v });
+      };
+      inp.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(send, 700); });
+      inp.addEventListener('blur', function(){ clearTimeout(t); send(); });
+      inp.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(t); send(); inp.blur(); }
+      });
+      ['pointerdown','mousedown','touchstart','click'].forEach(function(ev){
+        inp.addEventListener(ev, function(e){ e.stopPropagation(); });
       });
     });
     var ttl = document.querySelector('[data-ed-title]');
@@ -1759,7 +1806,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<div class="hero">' +
         (OFFER.clientLogo
           ? '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
+            (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
             'onerror="this.style.display=\'none\'">' : '') +
+        /* Логотип клієнта — на самій сторінці, а не в службовій панелі
+           навколо неї: менеджер ставить його там, де він і стоятиме, і
+           одразу бачить, чи не завеликий. Той самий файл далі доступний
+           товарам у конструкторі. */
+        (EDIT
+          ? '<div class="edlogo">' +
+              '<button class="edb" data-ed="logo">' +
+                (OFFER.clientLogo ? 'Замінити лого' : '＋ Завантажити лого') + '</button>' +
+              (OFFER.clientLogo
+                ? '<span class="edlogo-sz">' +
+                    '<button class="edb" data-ed="logosm" title="Менший">−</button>' +
+                    '<b>' + Math.round(+OFFER.clientLogoSize || 44) + ' px</b>' +
+                    '<button class="edb" data-ed="logobg" title="Більший">+</button>' +
+                    '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
+                  '</span>' : '') +
+            '</div>' : '') +
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
         '<h1' + (hsz ? ' style="font-size:' + hsz.toFixed(2) + 'em"' : '') +

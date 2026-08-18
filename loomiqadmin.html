@@ -985,6 +985,17 @@
   .cwin-wrap{position:fixed;inset:0;z-index:1400;display:none;align-items:center;
     justify-content:center;background:rgba(15,32,52,.6);padding:14px;}
   .cwin-wrap.open{display:flex;}
+  /* Зона збоку: пропозиція лишається зліва й нікуди не зникає */
+  .cwin-side{display:none;flex:0 0 46%;min-width:0;max-width:620px;
+    border-left:1px solid var(--line);background:#fff;}
+  .cwin-side.open{display:block;}
+  .cwin-side .cwin{width:100%;height:100%;max-width:none;border-radius:0;box-shadow:none;}
+  /* Вузький екран — одне під одним, інакше обом колонкам тісно */
+  @media(max-width:900px){
+    #offerEd .oe-body{flex-direction:column;}
+    .cwin-side{flex:1 1 auto;max-width:none;border-left:0;border-top:1px solid var(--line);}
+    .cwin-side.open ~ iframe, .oe-body > iframe{min-height:0;}
+  }
   .cwin{width:100%;max-width:1180px;height:94vh;background:#fff;border-radius:16px;
     display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.45);}
   .cwin-head{flex:none;display:flex;align-items:center;gap:10px;padding:11px 13px;
@@ -5779,7 +5790,11 @@ function offerBuild(order){
   const items = (order.items || []).map((it, i) => offerItem(it, order, i));
   const main  = items.filter(i => i.kind !== 'reco');
   const reco  = items.filter(i => i.kind === 'reco');
-  const logo  = ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
+  /* Логотип у шапці пропозиції. Той, що менеджер поставив свідомо, головніший
+     за вгаданий: раніше сюди потрапляв просто перший файл із першої позиції,
+     і в шапці міг опинитись не той логотип. */
+  const logo  = String(order.clientLogo || '').trim() ||
+    ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
   const totalQty = main.reduce((a,i) => a + i.qty, 0);
   const dl = deadlineLabel(totalQty || 1, new Date(),
     [...new Set(main.flatMap(i => i.techniques))]);
@@ -5810,6 +5825,7 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    clientLogoSize: +order.clientLogoSize || 0,
     /* Заголовок першого екрана. Порожньо — сторінка складе його сама з
        назви компанії; вписаний — показуємо рівно те, що написав менеджер.
        Розмір теж його: «для Нестербуд» і «для Міністерства цифрової
@@ -8869,10 +8885,29 @@ function offerEdClose(){
 }
 /* Перегляд перезавантажуємо не на кожну літеру, а коли людина спинилась:
    інакше кадр блимав би щосимвола і читати його було б неможливо. */
+/* Оновлення сторінки КП без перезавантаження кадру.
+   Раніше кожна правка — навіть «+1 шт» — перевантажувала iframe: сторінка
+   моргала, скрол злітав, і повертати його доводилось таймером. Тепер
+   надсилаємо свіжий документ, а сторінка перемальовує себе на місці.
+   Повертає false, якщо кадр ще не готовий, — тоді викликаємо повне
+   перечитування, як раніше. */
+function offerEdPush(o){
+  const f = document.querySelector('#offerEd iframe');
+  if(!f || !f.contentWindow) return false;
+  try{
+    // Той самий документ, що лягає в базу, — сторінка бачить рівно те, що
+    // побачить клієнт
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(),
+                                  offer: offerClean(offerBuild(o)) }, '*');
+    return true;
+  }catch(e){ console.warn('offer push failed', e); return false; }
+}
 function offerEdPreview(now){
   const d = document.getElementById('offerEd');
   const o = offerEdOrder();
   if(!d || !o) return;
+  // Швидкий шлях: якщо сторінка вже відкрита — просто віддаємо їй нові дані
+  if(now && offerEd && offerEd.ready && offerEdPush(o)) return;
   const go = ()=>{
     const f = d.querySelector('iframe');
     if(!f) return;
@@ -8886,6 +8921,7 @@ function offerEdPreview(now){
         /* Рукостискання: сторінка вмикає редагування лише почувши
            батьківське вікно, а не за параметром в адресі. */
         f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog() }, '*');
+        if(offerEd) offerEd.ready = true;   // далі оновлюємо даними, без перезавантажень
         // Повертаємо прокрутку вже ПІСЛЯ перемальовування в режимі редагування
         if(keep) setTimeout(()=>{ try{ f.contentWindow.scrollTo(0, keep); }catch(e){} }, 80);
       }catch(e){}
@@ -8921,18 +8957,26 @@ async function offerEdSave(o, opts){
    «Прорахунок», і сторінка КП зникала з очей — а менеджер саме її й збирає.
    Кадр той самий, що на вкладці, тож нічого не дублюється: після збереження
    вікно закривається, і сторінка перечитується з новою позицією. */
+/* Конструктор позиції — зоною ЗБОКУ від пропозиції, а не вікном поверх неї.
+   Вікно поверх читалось як «мене кудись перекинуло»: сторінка, яку менеджер
+   збирає, зникала з очей рівно тоді, коли він її й правив. Тепер пропозиція
+   лишається зліва, конструктор стає справа, вікно те саме. */
 function calcOverEl(){
+  const host = document.querySelector('#offerEd .oe-body');
   let d = document.getElementById('calcWin');
-  if(d) return d;
-  d = document.createElement('div');
-  d.id = 'calcWin';
-  d.className = 'cwin-wrap';
-  d.innerHTML = '<div class="cwin"><div class="cwin-head">' +
-    '<b>Редагування позиції</b><span class="cwin-sub"></span>' +
-    '<button class="oe-btn" data-cwin-close>Закрити</button></div>' +
-    '<iframe title="Конструктор"></iframe></div>';
-  document.body.appendChild(d);
-  d.querySelector('[data-cwin-close]').addEventListener('click', closeCalcOver);
+  if(d && d.parentNode === (host || document.body)) return d;
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'calcWin';
+    d.innerHTML = '<div class="cwin"><div class="cwin-head">' +
+      '<b>Редагування позиції</b><span class="cwin-sub"></span>' +
+      '<button class="oe-btn" data-cwin-close>Закрити</button></div>' +
+      '<iframe title="Конструктор"></iframe></div>';
+    d.querySelector('[data-cwin-close]').addEventListener('click', closeCalcOver);
+  }
+  // Редактор КП відкритий — стаємо його правою колонкою; ні — лишаємось вікном
+  d.className = host ? 'cwin-side' : 'cwin-wrap';
+  (host || document.body).appendChild(d);
   return d;
 }
 function closeCalcOver(){
@@ -9152,6 +9196,38 @@ async function offerEdApply(msg){
     if(k >= 0) openCalcOver(o, k, msg.tab || '');
     return;
   }
+  /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
+     список логотипів замовлення, тож у конструкторі його не треба
+     завантажувати вдруге — це і був найдовший крок у збиранні пропозиції. */
+  if(act === 'logo'){
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/svg+xml,image/*';
+    inp.addEventListener('change', async ()=>{
+      const f = inp.files && inp.files[0];
+      if(!f) return;
+      offerSaveMark('saving');
+      try{
+        const url = await uploadCloudinary(f);
+        o.clientLogo = url;
+        if(!Array.isArray(o.logos)) o.logos = [];
+        if(o.logos.indexOf(url) < 0) o.logos.push(url);
+        if(!(await offerEdSave(o))) return;
+        renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+      }catch(e){ console.error(e); offerSaveMark('bad'); toast('Не вдалось завантажити'); }
+    });
+    inp.click();
+    return;
+  }
+  if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
+    if(act === 'logodel'){ o.clientLogo = ''; }
+    else {
+      const cur = Math.round(+o.clientLogoSize || 44);
+      o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
+    }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    return;
+  }
   if(act === 'dup'){
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const src = k >= 0 && (o.items || [])[k];
@@ -9186,11 +9262,13 @@ async function offerEdApply(msg){
     const n = offerNeighbor(o, k, act === 'up' ? -1 : 1);
     if(n < 0) return;
     o.items.splice(n, 0, o.items.splice(k, 1)[0]);
-  } else if(act === 'qm' || act === 'qp'){
+  } else if(act === 'qm' || act === 'qp' || act === 'qty'){
     const cur = +it.qty || 1;
-    const step = offerQtyStep(cur);
-    const q = Math.max(1, act === 'qp' ? cur + step : cur - step);
-    if(q === cur) return;
+    // Число, вписане руками, важливіше за крок: менеджер знає свій тираж
+    const q = (act === 'qty')
+      ? Math.max(1, Math.round(+msg.v || 0))
+      : Math.max(1, act === 'qp' ? cur + offerQtyStep(cur) : cur - offerQtyStep(cur));
+    if(!q || q === cur) return;
     const snap = itemsSnapshot(o);
     it.qty = q;
     if(it.desc) it.desc.units = q;
