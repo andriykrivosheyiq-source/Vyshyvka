@@ -2268,6 +2268,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var tries = [];
     try{ if(window.parent && window.parent !== window) tries.push(window.parent); }catch(e){}
     try{ if(window.top && window.top !== window) tries.push(window.top); }catch(e){}
+    // Останнім — саме вікно: конструктор буває відкритий і окремою вкладкою
+    // (адмінка дає таке посилання), і тоді привʼязка лежить просто в ньому
+    tries.push(window);
     for(var i = 0; i < tries.length; i++){
       try{ if(tries[i].__adminOfferTarget || tries[i].__adminSaveClientOrder) return tries[i]; }catch(e){}
     }
@@ -6839,7 +6842,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         ['img','txt'].forEach(function(kind){
           var flat = [];                     // відбитки цього виду, у порядку появи
           mine.forEach(function(it){
-            (it.designs || []).forEach(function(fp, i){ if(fp && kindOf(it, i) === kind) flat.push(fp); });
+            (it.designs || []).forEach(function(fp, i){ if(kindOf(it, i) === kind) flat.push(fp || ''); });
           });
           if(!flat.length){ fees[mk + ':' + kind] = null; return; }
           var cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
@@ -6849,7 +6852,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           mine.forEach(function(it){
             var seen = {}, has = false;
             (it.designs || []).forEach(function(fp, i){
-              if(!fp || kindOf(it, i) !== kind) return;
+              if(kindOf(it, i) !== kind) return;
               has = true;
               var gi = g.index[k++];
               if(seen[gi]) return;           // те саме лого двічі на одному виробі — один дизайн
@@ -6896,7 +6899,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var feeShare = 0, costShare = 0, sketches = [], feeLines = [], feeTotal = 0, feeUnits = 0;
         var paid = {};
         (it.designs || []).forEach(function(fp, i){
-          if(!fp) return;
+      /* Дизайн без відбитка — усе одно дизайн. Раніше такий рядок мовчки
+         пропускався, і замовлення втрачало гроші: напис, відбиток якого ще
+         не встиг порахуватись, ставав безкоштовним — ні разової підготовки
+         макета, ні ескізу. Тепер він рахується, а порожній відбиток просто
+         не збігається ні з чим і утворює власну групу. */
           var kind = kindOf(it, i), key = mk + ':' + kind, f = fees[key];
           if(!f) return;
           if(cursor[key] == null) cursor[key] = 0;
@@ -7838,6 +7845,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!url) return null;
       addLogo(url, url, sp);       // фон уже прозорий — видаляти нічого
       var l = findLayerAnySide(pm.activeLogoId);
+      /* Відбиток напису ставимо одразу, не чекаючи, поки домалюється
+         картинка. Інакше позицію можна встигнути додати в замовлення з
+         порожнім відбитком — і напис поїде у виробництво безкоштовно. */
+      if(l && l.text) l.fp = textFingerprint(l.text);
       // Поки напис не чіпали — це заготовка: підеш назад, і вона зникне сама,
       // щоб «Ваш напис» не поїхав у виробництво.
       if(l) l.textPristine = !initial;
@@ -7850,6 +7861,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!layer || !layer.text) return;
       Object.keys(patch || {}).forEach(function(k){ layer.text[k] = patch[k]; });
       if(patch && patch.t != null) layer.textPristine = false;
+      layer.fp = textFingerprint(layer.text);   // відбиток — за буквами, одразу
       var url = textToPng(layer.text);
       if(!url) return;
       layer.origUrl = layer.cleanUrl = layer.url = url;
@@ -7875,6 +7887,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           textSetCaret(el, t.length);
         }
         layer.text.t = t; layer.textPristine = false;
+        layer.fp = textFingerprint(layer.text);   // відбиток міняється разом із текстом
         var url = textToPng(layer.text);
         if(!url) return;
         layer.origUrl = layer.cleanUrl = layer.url = url;
