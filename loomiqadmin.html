@@ -4797,6 +4797,17 @@ window.__adminSaveClientOrder = async function(payload){
     const snapBefore = itemsSnapshot(target);
     const ri = payload.replaceIndex;
     if(ri != null && (target.items || [])[ri]){
+      /* Макети не вивантажились (звʼязок відпав, Cloudinary не відповів) —
+         лишаємо старі. Інакше одна невдала спроба зберегти забирала б у
+         позиції всі знімки й ракурси, і в пропозиції з'являлась би картка
+         без жодного фото. */
+      const was = target.items[ri];
+      items.forEach(nu=>{
+        if(!(nu.mockups || []).length && (was.mockups || []).length){
+          nu.mockups = was.mockups.slice();
+          nu.views = Array.isArray(was.views) ? was.views.slice() : [];
+        }
+      });
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
       target.items.splice(ri, 1, ...items);
