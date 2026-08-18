@@ -544,14 +544,13 @@
   html,body{margin:0;height:100%;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
     background:#F1F4F8; color:#1B2536; display:flex; flex-direction:column; overflow:hidden;}
-  .hd{flex:none; display:flex; align-items:center; gap:12px; padding:9px 14px;
-    background:#fff; border-bottom:1px solid #E2E8F0;}
-  .tabs{display:inline-flex; background:#EEF2F7; border-radius:9px; padding:3px; gap:2px;}
-  .tab{font:inherit; font-size:12.5px; font-weight:700; color:#5A6A80; background:none;
-    border:0; border-radius:7px; padding:7px 13px; cursor:pointer; white-space:nowrap;}
+  .tabs{flex:none; display:flex; background:#EEF2F7; border-radius:9px; padding:3px; gap:2px;
+    margin:10px 10px 0;}
+  .tab{flex:1; font:inherit; font-size:12px; font-weight:700; color:#5A6A80; background:none;
+    border:0; border-radius:7px; padding:8px 6px; cursor:pointer; white-space:nowrap;}
   .tab.on{background:#fff; color:#1B2536; box-shadow:0 1px 3px rgba(16,32,56,.12);}
-  .hd-sp{flex:1;}
-  .save{font-size:12px; font-weight:700; color:#7A879B; white-space:nowrap;}
+  .save{flex:none; font-size:11.5px; font-weight:700; color:#7A879B; padding:7px 12px 0;
+    min-height:19px;}
   .save.is-saving{color:#B7791F;} .save.is-ok{color:#0E9F6E;} .save.is-bad{color:#C6392F;}
   .btn{font:inherit; font-size:12.5px; font-weight:700; border-radius:9px; padding:9px 14px;
     cursor:pointer; border:1px solid #D9E1EC; background:#fff; color:#3D4C61; white-space:nowrap;}
@@ -631,7 +630,7 @@
   .stage .lq-inline .contact-modal-back{display:none !important;}
   .stage .lq-inline .contact-modal-inner{padding:0; max-width:none;}
   .stage .lq-inline .pm-stage{width:100% !important; max-width:100% !important;
-    height:min(58vh, 520px) !important; box-sizing:border-box;}
+    height:min(64vh, 600px) !important; box-sizing:border-box;}
   .stage .lq-inline .pm-stage img{max-width:100%; max-height:100%; object-fit:contain;}
   .stage .lq-inline #pmGarmentWrap{max-width:100%; max-height:100%;}
   /* Вітрина для клієнта тут зайва: відгуки, опис, гарантії, підвал і
@@ -653,24 +652,17 @@
 </head>
 <body>
 
-<!-- Номера пропозиції й клієнта тут немає навмисно: вони вже стоять у шапці
-     самого вікна пропозиції, рядком вище. Двічі те саме на двох сусідніх
-     смугах — це шум, а не інформація. -->
-<div class="hd">
-  <div class="tabs">
-    <button class="tab on" data-view="build">Збирання</button>
-    <button class="tab" data-view="client">Як бачить клієнт</button>
-  </div>
-  <span class="hd-sp"></span>
-  <!-- Кнопка збереження й позначка стану живуть у шапці самого вікна
-       пропозиції, рядком вище: там же «Посилання» і хрестик, тож роботу над
-       позицією закінчують в одному місці, а не двома кнопками в різних
-       смугах. -->
-  <span class="save" id="saveMark"></span>
-</div>
-
+<!-- Окремої смуги над робочим полем немає: вона забирала висоту в того
+     єдиного, заради чого сюди й заходять, — у зображення виробу. Перемикач
+     виглядів переїхав у ліву панель, а кнопка збереження й позначка стану —
+     у шапку самого вікна пропозиції, рядком вище. -->
 <div class="body">
   <aside class="list" id="paneList">
+    <div class="tabs">
+      <button class="tab on" data-view="build">Збирання</button>
+      <button class="tab" data-view="client">Як бачить клієнт</button>
+    </div>
+    <span class="save" id="saveMark"></span>
     <div class="list-h">Склад пропозиції</div>
     <div class="list-b" id="listBody"></div>
     <!-- Сума — тільки основних позицій. Рекомендовані клієнт ще не обрав, і
@@ -683,9 +675,8 @@
       <div class="empty">Оберіть позицію ліворуч або додайте товар.</div>
     </div>
   </main>
+  <iframe class="frame hide" id="clientFrame" title="Як бачить клієнт"></iframe>
 </div>
-
-<iframe class="frame hide" id="clientFrame" title="Як бачить клієнт"></iframe>
 
 <script>
 (function(){
@@ -704,8 +695,8 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_JS   = 'loomiq-constructor.js?v=27f363ac4f';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=27f363ac4f';
+  var CTOR_JS   = 'loomiq-constructor.js?v=ce328a8786';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=ce328a8786';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1114,7 +1105,9 @@
     b.addEventListener('click', function(){
       document.querySelectorAll('[data-view]').forEach(function(x){ x.classList.toggle('on', x === b); });
       var client = b.dataset.view === 'client';
-      document.querySelector('.body').classList.toggle('hide', client);
+      // Ховаємо тільки робоче поле: ліва панель зі складом і перемикачем
+      // лишається на місці, інакше не буде чим перемкнутись назад
+      document.getElementById('paneWork').classList.toggle('hide', client);
       var fr = document.getElementById('clientFrame');
       fr.classList.toggle('hide', !client);
       if(client){
