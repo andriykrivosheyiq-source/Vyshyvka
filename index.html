@@ -2260,6 +2260,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      кудись на сайт. Прапорець ставимо ДО стилів і розмітки, щоб нічого не
      встигло блимнути. */
   if(/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('lq-embed');
+  /* Конструктор може жити на два поверхи вглиб: адмінка → сторінка КП →
+     конструктор усередині картки товару. Тоді window.parent — це вже сторінка
+     КП, а не адмінка, і привʼязка до замовлення губилась. Шукаємо того, хто
+     справді нею володіє: спершу батько, потім найвищий кадр. */
+  window.__lqAdminHost = function(){
+    var tries = [];
+    try{ if(window.parent && window.parent !== window) tries.push(window.parent); }catch(e){}
+    try{ if(window.top && window.top !== window) tries.push(window.top); }catch(e){}
+    for(var i = 0; i < tries.length; i++){
+      try{ if(tries[i].__adminOfferTarget || tries[i].__adminSaveClientOrder) return tries[i]; }catch(e){}
+    }
+    return null;
+  };
 </script>
 
 <!-- Промо-банер (вмикається з адмінки) -->
@@ -10014,7 +10027,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        прийшли. Менеджера збивало саме слово «кошик»: виглядало так, ніби він
        складає ще одне, нове замовлення. */
     function boundOrder(){
-      try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
+      try{ var h = window.__lqAdminHost(); return (h && h.__adminOfferTarget) || null; }
       catch(e){ return null; }
     }
     /* Логотипи цього замовлення — їх завантажили один раз у картці клієнта.
@@ -11802,7 +11815,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        «Зібрати пропозицію в конструкторі»). Тоді контакти вже відомі: не
        питаємо їх удруге, а показуємо, у чию картку ляжуть позиції. */
     function ccTarget(){
-      try{ return (window.parent && window.parent.__adminOfferTarget) || null; }
+      try{ var h = window.__lqAdminHost(); return (h && h.__adminOfferTarget) || null; }
       catch(e){ return null; }   // інший домен — просто немає прив'язки
     }
     /* Пряма дорога з конструктора в наявне замовлення, без кошика й без
@@ -11814,7 +11827,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var tgt = ccTarget();
       if(!tgt || !tgt.id) return Promise.resolve(false);
       if(!cartItems.length) return Promise.resolve(false);
-      var saver = (window.parent && window.parent.__adminSaveClientOrder) || window.__adminSaveClientOrder;
+      var _h = window.__lqAdminHost();
+      var saver = (_h && _h.__adminSaveClientOrder) || window.__adminSaveClientOrder;
       if(typeof saver !== 'function'){
         alert('Позицію можна додати лише з адмінки.');
         return Promise.resolve(false);
@@ -11881,7 +11895,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var bound = ccTarget();
       if(!bound && (!v.instagram || v.instagram === '@')){
         ccShowErr('Вкажіть нік інстаграма — за ним картка шукається в Канбані.'); return; }
-      var saver = (window.parent && window.parent.__adminSaveClientOrder) ? window.parent.__adminSaveClientOrder : window.__adminSaveClientOrder;
+      var _h2 = window.__lqAdminHost();
+      var saver = (_h2 && _h2.__adminSaveClientOrder) || window.__adminSaveClientOrder;
       if(typeof saver !== 'function'){
         ccShowErr('Картку клієнта можна створити лише з адмінки (вкладка «Прорахунок»).'); return;
       }
@@ -11943,7 +11958,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   if(/[?&]cart=new\b/.test(location.search)){
     cartItems.length = 0; renderCart(); cartPersist();
     var seed = null;
-    try{ seed = (window.parent && window.parent.__adminSeedItem) || null; }catch(e){}
+    try{ var _h3 = window.__lqAdminHost(); seed = (_h3 && _h3.__adminSeedItem) || null; }catch(e){}
     if(seed && /[?&]seed=1\b/.test(location.search)){
       cartItems.push(JSON.parse(JSON.stringify(seed)));
       renderCart();

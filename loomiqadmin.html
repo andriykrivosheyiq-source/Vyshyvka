@@ -4799,6 +4799,7 @@ window.__adminSaveClientOrder = async function(payload){
     renderBoard();
     if(offerEdBack === target.id){
       offerEdBack = null;
+      offerEdCloseInline = true;   // позицію збережено — згортаємо редактор у картці
       closeCalcOver();
       // Редактор КП лишався відкритим під вікном — просто освіжаємо сторінку
       if(offerEd && offerEd.id === target.id) offerEdPreview(true);
@@ -8965,6 +8966,7 @@ function offerEdClose(){
    надсилаємо свіжий документ, а сторінка перемальовує себе на місці.
    Повертає false, якщо кадр ще не готовий, — тоді викликаємо повне
    перечитування, як раніше. */
+let offerEdCloseInline = false;   // правку зберегли — редактор у картці згорнути
 function offerEdPush(o){
   const f = document.querySelector('#offerEd iframe');
   if(!f || !f.contentWindow) return false;
@@ -8974,7 +8976,9 @@ function offerEdPush(o){
        записується, тож у клієнта в документі його немає взагалі. */
     const doc = offerClean(offerBuild(o));
     doc.mgr = offerMgrCalc(o);
-    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc }, '*');
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc,
+                                  editDone: offerEdCloseInline }, '*');
+    offerEdCloseInline = false;
     return true;
   }catch(e){ console.warn('offer push failed', e); return false; }
 }
@@ -9067,7 +9071,11 @@ function closeCalcOver(){
   calcTarget = null; calcEdit = null; window.__adminSeedItem = null;
   paintCalcTarget();
 }
-function openCalcOver(o, editIdx, tab){
+/* Підготувати позицію до редагування: насіння для конструктора й привʼязку
+   до замовлення. Один код на обидва способи відкриття — редактор у картці
+   пропозиції й вікно збоку, — щоб вони не розʼїхались.
+   Повертає саму позицію (або null для нової). */
+function calcSeedFor(o, editIdx){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
   const it = (calcEdit != null) ? (o.items || [])[calcEdit] : null;
@@ -9090,6 +9098,10 @@ function openCalcOver(o, editIdx, tab){
   /* Без цього конструктор не знає ні картки, ні номера позиції, яку
      редагуємо: __adminOfferTarget заповнює саме paintCalcTarget. */
   paintCalcTarget();
+  return it;
+}
+function openCalcOver(o, editIdx, tab){
+  const it = calcSeedFor(o, editIdx);
   const d = calcOverEl();
   d.querySelector('.cwin-sub').textContent = (it && it.name) ? it.name : '';
   d.classList.add('open');
@@ -9268,11 +9280,29 @@ async function offerEdApply(msg){
     return;
   }
   if(act === 'edit'){
-    // Той самий конструктор, але вікном поверх КП — менеджер не втрачає з
-    // очей сторінку, яку саме збирає. Вкладку відкриваємо ту, яку просили:
-    // натиснув «Колір» — має відкритись колір, а не пошук по вкладках.
+    // Старий шлях: конструктор колонкою збоку. Лишається для випадків, коли
+    // сторінка КП ще не вміє вбудованого редактора (стара вкладка в браузері).
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     if(k >= 0) openCalcOver(o, k, msg.tab || '');
+    return;
+  }
+  /* Редактор просто в картці пропозиції. Адмінка тут робить рівно те саме,
+     що робила для вікна збоку — готує позицію й привʼязку до замовлення, —
+     але замість того, щоб відкривати щось своє, повертає сторінці адресу.
+     Кадр вставляє вже сама сторінка, у тій картці, де натиснули. */
+  if(act === 'editInline'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const f = document.querySelector('#offerEd iframe');
+    if(k < 0 || !f || !f.contentWindow){
+      if(f && f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, editSrc:'' }, '*');
+      return;
+    }
+    // Позицію, привʼязку й насіння готує той самий код, що й раніше
+    calcSeedFor(o, k);
+    const src = 'index.html?manager=1&embed=1&start=catalog&cart=new' +
+      (window.__adminSeedItem ? '&seed=1' : '') +
+      (msg.tab ? '&tab=' + encodeURIComponent(msg.tab) : '') + '&v=' + LQ_BUILD;
+    f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), editSrc: src }, '*');
     return;
   }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
