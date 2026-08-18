@@ -1048,6 +1048,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
+  /* Розклад ціни для менеджера. Видно тільки в режимі редагування — клієнту
+     цього блоку не існує, він навіть не приїжджає в його версію документа. */
+  .mgrcalc{margin-top:12px;padding:11px 13px;border:1px dashed #C7D0DE;border-radius:12px;
+    background:#F7F9FC;}
+  .mgrcalc-h{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    color:#7A879B;margin-bottom:7px;}
+  .mgrcalc-r{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;
+    color:#3D4C61;padding:3px 0;}
+  .mgrcalc-r b{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .mgrcalc-r.is-sum{border-top:1px solid #E3E8EF;margin-top:4px;padding-top:6px;
+    font-weight:700;color:#22314A;}
   .edqty{display:flex;align-items:center;gap:5px;font-size:12px;color:#3D4C61;}
   .edqty b{font-weight:600;color:#7A879B;}
   .edqi{width:66px;font:inherit;font-size:13px;font-weight:700;text-align:center;
@@ -1573,7 +1584,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function itemState(i){
     var it = OFFER.items[i];
-    var q = pick.qty[i];
+    /* У режимі менеджера показуємо ЗАМОВЛЕННЯ, а не те, що клієнт собі
+       наклацав. Інакше в одній картці стояли дві різні кількості: 10 у полі
+       менеджера і 20 у клієнтському лічильнику — і сума внизу не збігалась
+       із жодною з них. Вибір клієнта нікуди не дівається, він просто не
+       підмінює менеджеру його ж дані. */
+    var q = EDIT ? null : pick.qty[i];
     /* Пакет міняє ціну за штуку пропорційно: знижка за тираж лишається тією
        самою, змінюється лише те, що наносимо. */
     var pk = packOf(i);
@@ -1982,6 +1998,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).join('') + '</div>';
   }
 
+  /* Розклад ціни для менеджера — той самий, що в конструкторі на сайті:
+     виріб, нанесення, знижка за тираж, разові оплати. Рахує його адмінка
+     тим самим рушієм і передає сюди разом із документом. У базу він не
+     потрапляє й клієнту не показується — це видно з того, що блок є лише
+     в режимі редагування. */
+  function mgrCalcHtml(i){
+    if(!EDIT) return '';
+    var rows = ((OFFER.mgr || {})[i] || []);
+    if(!rows.length) return '';
+    return '<div class="mgrcalc"><div class="mgrcalc-h">Як склалась ціна</div>' +
+      rows.map(function(r){
+        return '<div class="mgrcalc-r' + (r.sum ? ' is-sum' : '') + '">' +
+          '<span>' + esc(r.t) + '</span><b>' + esc(r.v) + '</b></div>';
+      }).join('') + '</div>';
+  }
   function priceBoxHtml(i){
     var s = itemState(i);
     return '' +
@@ -2077,7 +2108,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
-              '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) + priceBoxHtml(i) + '</div>' +
+              '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) +
+                priceBoxHtml(i) + mgrCalcHtml(i) + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
