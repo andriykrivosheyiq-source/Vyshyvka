@@ -5794,6 +5794,50 @@ function offerFirstTierQty(order, itemIdx){
   if(!Array.isArray(list) || !list.length) return 1;
   return Math.max(1, Math.min.apply(null, list.map(t => +t.from || 1)));
 }
+/* ── Ракурси позиції ──────────────────────────────────────────────────
+   Досі картка показувала просто список знімків, зроблених конструктором:
+   скільки сторін із нанесенням — стільки й фото. Менеджер не міг ні додати
+   ракурс, ні підмінити фото, ні прибрати зайвий.
+
+   Тепер ракурси — власне поле позиції. Поки менеджер їх не чіпав, вони
+   складаються з того, що вже є: знімки конструктора та підписи сторін. Перед
+   і Спина існують завжди, навіть коли фото ще немає, — це заготовка, у яку
+   менеджер кладе своє. Клієнту порожні ракурси не показуємо. */
+const VIEW_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
+function itemViews(it){
+  const mock = ((it || {}).mockups || []).filter(Boolean);
+  const own = Array.isArray((it || {}).views) ? it.views : null;
+  if(own) return own.map((v, i) => {
+    /* Ракурс, узятий із конструктора, і далі показує свіжий знімок: коли
+       менеджер змінив нанесення, підпис лишається його, а картинка
+       оновлюється сама. Своє завантажене фото так не перебивається —
+       у нього auto вже немає. */
+    const a = (v.auto == null || v.auto === '') ? null : +v.auto;
+    return { id: v.id || ('v' + i),
+             label: String(v.label || '').trim() || ('Вигляд ' + (i + 1)),
+             img: (a != null && mock[a]) ? mock[a] : (String(v.img || '') || null),
+             auto: a };
+  });
+  const sides = ((it || {}).sides || (it || {}).prints || []);
+  const out = mock.map((src, k) => {
+    const sd = sides[k] || {};
+    return { id: 'v' + k, img: src, auto: k,
+             label: sd.sideLabel || VIEW_UA[sd.side] || (k === 0 ? 'Перед' : (k === 1 ? 'Спина' : 'Вигляд ' + (k + 1))) };
+  });
+  // Перед і Спина є в кожного виробу — навіть якщо фото ще не зробили
+  if(!out.some(v => v.label === 'Перед')) out.unshift({ id:'vf', label:'Перед', img:null, auto:null });
+  if(!out.some(v => v.label === 'Спина')) out.push({ id:'vb', label:'Спина', img:null, auto:null });
+  return out;
+}
+// Записати ракурси в позицію: далі вони живуть самі, від знімків не залежать
+function viewsWrite(o, k, list){
+  const it = (o.items || [])[k];
+  if(!it) return;
+  it.views = list.map((v, i) => ({ id: v.id || ('v' + i),
+                                   label: String(v.label || '').slice(0, 40),
+                                   img: v.img || null,
+                                   auto: (v.auto == null || v.auto === '') ? null : +v.auto }));
+}
 function offerItemNumbers(order, itemIdx){
   const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
@@ -5872,6 +5916,8 @@ function offerItem(it, order, itemIdx){
       widthMm: Math.round(+p.widthMm || 0), heightMm: Math.round(+p.heightMm || 0)
     })),
     mockups: (it.mockups || []).slice(0, 4),
+    // Ракурси, якими керує менеджер: скільки їх, як звуться, яке фото в кожному
+    views: itemViews(it),
     /* Характеристики виробу — ті самі, що на сторінці товару сайту
        (Конструктор → Товари → «Характеристики»). Клієнт у пропозиції питає
        рівно про це: з чого пошито, яка щільність, який крій. Досі йому
@@ -9379,6 +9425,56 @@ async function offerEdApply(msg){
       const cur = Math.round(+o.clientLogoSize || 44);
       o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
     }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    return;
+  }
+  /* Ракурси позиції. «Перед» і «Спина» є в кожної одразу — навіть коли фото
+     ще немає: менеджер бачить порожню рамку й знає, куди класти знімок, а не
+     здогадується, що ракурс узагалі можна додати. Список живе на позиції,
+     тож підписи не збиваються, коли міняється нанесення. */
+  if(act === 'viewPhoto' || act === 'viewName' || act === 'viewDel' || act === 'viewAdd'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const it = k >= 0 && (o.items || [])[k];
+    if(!it){ toast('Позицію не знайдено'); return; }
+    const pos = +msg.pos;
+    if(act === 'viewPhoto'){
+      /* Файл вибирає й вивантажує адмінка: сторінка КП відкрита кадром і
+         нікуди нічого не пише — доступ є тільки тут. */
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/*';
+      inp.addEventListener('change', async ()=>{
+        const f = inp.files && inp.files[0];
+        if(!f) return;
+        offerSaveMark('saving');
+        try{
+          const url = await uploadCloudinary(f);
+          const cur = itemViews(it);
+          if(!cur[pos]) return;
+          cur[pos].img = url;
+          cur[pos].auto = null;          // своє фото конструктор більше не перебиває
+          viewsWrite(o, k, cur);
+          if(!(await offerEdSave(o))) return;
+          offerEdPreview(true);
+        }catch(e){ console.error(e); offerSaveMark('bad'); toast('Не вдалось завантажити'); }
+      });
+      inp.click();
+      return;
+    }
+    const list = itemViews(it);
+    if(act === 'viewAdd'){
+      list.push({ id: 'v' + Date.now().toString(36), label: 'Вигляд ' + (list.length + 1),
+                  img: null, auto: null });
+    } else if(act === 'viewName'){
+      if(!list[pos]) return;
+      const t = String(msg.text || '').replace(/\s+/g, ' ').trim();
+      if(!t || t === list[pos].label) return;
+      list[pos].label = t;
+    } else {
+      if(!list[pos]) return;
+      list.splice(pos, 1);
+    }
+    viewsWrite(o, k, list);
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
     return;

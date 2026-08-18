@@ -518,6 +518,40 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     aspect-ratio:3/4; overflow:hidden; background:#fff;}
   .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
   .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
+  /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
+     заготовкою під фото. Клієнт бачить лише заповнені й без підписів. */
+  .pgal-i.is-edit{cursor:pointer;}
+  .pgal-i.is-edit img{cursor:pointer;}
+  .pgal-i.is-edit:hover{background:#F4F7FB;}
+  .pgal-i.is-empty{display:flex; align-items:center; justify-content:center;
+    background:#F7F9FC; box-shadow:inset 0 0 0 1.5px #DDE4EE;}
+  .pgal-plus{display:flex; flex-direction:column; align-items:center; gap:2px;
+    color:#9AA6B8; font-size:22px; line-height:1;}
+  .pgal-plus i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase;}
+  .pgal-lab{position:absolute; left:8px; bottom:8px; z-index:2; font-size:11px; font-weight:700;
+    color:#22314A; background:rgba(255,255,255,.92); border-radius:20px; padding:3px 9px;
+    pointer-events:none;}
+  /* Під час перейменування підпис стає полем — просто на своєму місці */
+  .pgal-lab.is-edit{pointer-events:auto; background:#fff; outline:2px solid #4F5FD4;
+    outline-offset:1px; min-width:60px; cursor:text;}
+  .pgal-add{flex:0 0 34%; scroll-snap-align:start; aspect-ratio:1/1; border:0; cursor:pointer;
+    background:#F7F9FC; box-shadow:inset 0 0 0 1.5px #DDE4EE; color:#9AA6B8; font-size:22px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:inherit;}
+  .pgal-add:hover{color:#3D4C61; box-shadow:inset 0 0 0 1.5px #4F5FD4;}
+  .pgal-add i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase;}
+  /* Меню ракурсу */
+  .vmenu{position:fixed; z-index:60; min-width:210px; background:#fff; border:1px solid #E2E8F0;
+    border-radius:12px; box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px; font-size:13px;}
+  .vmenu b{display:block; padding:8px 10px 6px; font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:#8A93A3;}
+  .vmenu button{display:block; width:100%; text-align:left; font:inherit; font-size:13px;
+    background:none; border:0; border-radius:8px; padding:9px 10px; cursor:pointer; color:#22314A;}
+  .vmenu button:hover{background:#F1F5FA;}
+  .vmenu button.is-del{color:#B3261E;}
+  .vmenu button.is-del:hover{background:#FDECEA;}
   .pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;
     transform:scale(1.16); transform-origin:center 46%;}
 
@@ -1472,6 +1506,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         inp.addEventListener(ev, function(e){ e.stopPropagation(); });
       });
     });
+    /* Ракурси. Клік по знімку — коротке меню просто біля нього: замінити
+       фото, перейменувати, прибрати. Ніякого окремого вікна: назва
+       правиться там само, де вона написана, і менеджер весь час бачить
+       картку, яку править. */
+    document.querySelectorAll('[data-view]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var p = String(el.dataset.view).split(':');
+        vmenuOpen(el, p[0], +p[1], +p[2]);
+      });
+      ['pointerdown','mousedown','touchstart'].forEach(function(t){
+        el.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
+    document.querySelectorAll('[data-viewadd]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var p = String(b.dataset.viewadd).split(':');
+        edSend({ act:'viewAdd', kind: p[0], i: +p[1] });
+      });
+      ['pointerdown','mousedown','touchstart'].forEach(function(t){
+        b.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
     var ttl = document.querySelector('[data-ed-title]');
     if(ttl){
       ttl.addEventListener('blur', function(){
@@ -1497,6 +1555,66 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
       why.addEventListener('keydown', function(e){ e.stopPropagation(); });
     }
+  }
+  /* Меню ракурсу. Одне на всю сторінку: два відкритих меню поруч — це вже
+     здогадування, до якого знімка належить «Видалити». */
+  var vmenuEl = null;
+  function vmenuClose(){ if(vmenuEl){ vmenuEl.remove(); vmenuEl = null; } }
+  document.addEventListener('click', vmenuClose);
+  window.addEventListener('scroll', vmenuClose, true);
+  function vmenuOpen(el, kind, i, pos){
+    vmenuClose();
+    var m = document.createElement('div');
+    m.className = 'vmenu';
+    m.innerHTML = '<b>Ракурс</b>' +
+      '<button data-vm="photo">' +
+        (el.classList.contains('is-empty') ? 'Завантажити фото' : 'Замінити фото') + '</button>' +
+      '<button data-vm="name">Перейменувати</button>' +
+      '<button class="is-del" data-vm="del">Видалити ракурс</button>';
+    document.body.appendChild(m);
+    // Меню тримається біля знімка, але не вилазить за екран
+    var r = el.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + 'px';
+    m.style.top  = (r.bottom + h + 8 > window.innerHeight
+                    ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+    m.addEventListener('click', function(e){ e.stopPropagation(); });
+    m.querySelectorAll('[data-vm]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var a = b.dataset.vm;
+        vmenuClose();
+        if(a === 'photo'){ edSend({ act:'viewPhoto', kind: kind, i: i, pos: pos }); return; }
+        if(a === 'del'){ edSend({ act:'viewDel', kind: kind, i: i, pos: pos }); return; }
+        vmenuRename(el, kind, i, pos);
+      });
+    });
+    vmenuEl = m;
+  }
+  // Назва правиться прямо в підписі — окремого поля для неї не потрібно
+  function vmenuRename(el, kind, i, pos){
+    var lab = el.querySelector('.pgal-lab');
+    if(!lab) return;
+    lab.setAttribute('contenteditable', 'plaintext-only');
+    lab.classList.add('is-edit');
+    lab.focus();
+    try{
+      var sel = window.getSelection(), rg = document.createRange();
+      rg.selectNodeContents(lab); sel.removeAllRanges(); sel.addRange(rg);
+    }catch(e){}
+    var done = false;
+    var stop = function(){ lab.removeAttribute('contenteditable'); lab.classList.remove('is-edit'); };
+    var save = function(){
+      if(done) return; done = true;
+      stop();
+      edSend({ act:'viewName', kind: kind, i: i, pos: pos,
+               text: lab.innerText.replace(/\s+/g, ' ').trim() });
+    };
+    lab.addEventListener('blur', save, { once:true });
+    lab.addEventListener('click', function(e){ e.stopPropagation(); });
+    lab.addEventListener('keydown', function(e){
+      e.stopPropagation();
+      if(e.key === 'Enter'){ e.preventDefault(); lab.blur(); }
+      if(e.key === 'Escape'){ done = true; stop(); lab.blur(); }
+    });
   }
   var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
   var TICK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
@@ -1962,21 +2080,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function tintAll(){
     document.querySelectorAll('.pgal-i img, .rc-ph img').forEach(frameTint);
   }
-  function galleryHtml(it, idx){
-    var m = (it.mockups || []).filter(Boolean);
-    if(!m.length) return '';
+  /* Ракурси позиції. Менеджер бачить усі, разом із порожніми заготовками
+     «Перед» і «Спина», — саме в них він і кладе фото. Клієнтові порожні не
+     показуємо: порожня рамка в пропозиції читається як помилка. */
+  function viewsOf(it){
+    var own = it && it.views;
+    if(Array.isArray(own) && own.length) return own;
+    // Стара позиція без ракурсів — складаємо їх зі знімків, як було раніше
     var label = viewLabel(it);
-    // Смужку-покажчик прибрано: край наступного кадру й так каже, що
-    // стрічку можна гортати, а темна лінія під фото читалась як частина
-    // знімка.
-    return '<div class="pgal' + (m.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
-      m.map(function(src, k){
-        return '<div class="pgal-i">' +
-          '<img src="' + esc(src) + '" alt="' + esc(label(k)) + '" ' +
-          (k > 1 ? 'loading="lazy" ' : '') +
-          'onerror="this.parentNode.style.visibility=\'hidden\'">' +
+    return (it.mockups || []).filter(Boolean)
+      .map(function(src, k){ return { id:'v'+k, img:src, label:label(k) }; });
+  }
+  function galleryHtml(it, idx, kind){
+    var all = viewsOf(it);
+    var list = EDIT ? all : all.filter(function(v){ return v && v.img; });
+    if(!list.length && !EDIT) return '';
+    var K = kind || 'main';
+    return '<div class="pgal' + (list.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
+      list.map(function(v, k){
+        var pos = all.indexOf(v);
+        return '<div class="pgal-i' + (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') + '"' +
+          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '" title="Натисніть, щоб змінити фото або назву"' : '') + '>' +
+          (v.img
+            ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
+              (k > 1 ? 'loading="lazy" ' : '') +
+              'onerror="this.style.visibility=\'hidden\'">'
+            : '<span class="pgal-plus">＋<i>фото</i></span>') +
+          (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' : '') +
         '</div>';
-      }).join('') + '</div>';
+      }).join('') +
+      (EDIT ? '<button class="pgal-add" data-viewadd="' + K + ':' + idx + '" ' +
+              'title="Додати ще один ракурс">＋<i>ракурс</i></button>' : '') +
+    '</div>';
   }
   // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку
   function viewLabel(it){
@@ -2147,7 +2282,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var main = (it.mockups || [])[0] || '';
           return '<div class="pcard">' +
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
-            galleryHtml(it, i) +
+            galleryHtml(it, i, 'main') +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
@@ -2174,8 +2309,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var rs = recoState(i);
           var m = (r.mockups || [])[0] || '';
           return '<div class="pcard" data-recocard="' + i + '">' +
-            '<div class="pshot">' + (m ? '<img src="' + esc(m) + '" alt="' + esc(r.name) + '" ' +
-              'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>' +
+            /* Рекомендація, яку вже додали, — така сама позиція: ракурси
+               редагуються тим самим способом, що й в основних товарах. */
+            (EDIT ? galleryHtml(r, i, 'reco')
+                  : '<div class="pshot">' + (m ? '<img src="' + esc(m) + '" alt="' + esc(r.name) + '" ' +
+                    'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>') +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
@@ -3243,7 +3381,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var idxAttr = shot && shot.getAttribute('data-shot');
       if(idxAttr != null){
         var it = OFFER.items[+idxAttr] || {};
-        var list = (it.mockups || []).filter(Boolean);
+        // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
+        var list = viewsOf(it).map(function(v){ return v && v.img; }).filter(Boolean);
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
         openZoom(list.length ? list : [img.src], cur);
       } else {
