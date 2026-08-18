@@ -3321,28 +3321,11 @@
       }
       return TIERS[TIERS.length-1].price + logoSurcharge();
     }
-    /* Автозбереження в пропозиції. Менеджер править позицію просто в картці
-       КП — і чекати від нього окремого «зберегти» так само дивно, як у
-       документі. Тому будь-яка зміна, що змінює ціну чи вигляд позиції,
-       заводить відкладене збереження.
-
-       Відкладене, а не миттєве: під час перетягування логотипа ціна
-       перераховується десятки разів на секунду, і кожен перерахунок
-       вивантажував би макети наново. Чекаємо, поки людина спинилась. */
-    var lqAutoTimer = null;
-    function lqAutoSave(){
-      if(!window.__lqInline) return;
-      if(window.__cartSaving) return;               // одне збереження вже йде
-      if(totalUnits() === 0) return;                // нема чого зберігати
-      if(anyLogoOutsideAnySide()) return;           // спершу хай поправить макет
-      clearTimeout(lqAutoTimer);
-      lqAutoTimer = setTimeout(function(){
-        if(window.__cartSaving || totalUnits() === 0) return;
-        try{ addCurrentToCart(window.__pmAddKind === 'reco' ? 'reco' : 'main'); }
-        catch(e){ console.warn('автозбереження не вийшло', e); }
-      }, 4000);
-    }
-    window.__lqAutoSave = lqAutoSave;
+    /* Автозбереження позиції тут навмисно НЕМАЄ. Автоматично зберігається
+       сама пропозиція — заголовок, тексти, дати, склад; товар менеджер
+       зберігає кнопкою, коли закінчив. Інакше кожен рух логотипа заводив би
+       запис у базу й перебудову сторінки — і редактор смикався б під руками
+       ще до того, як людина щось вирішила. */
     function updatePriceBar(){
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
@@ -3379,7 +3362,6 @@
       renderTiers();
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
-      lqAutoSave();
     }
     // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
     function renderManagerPanel(){
@@ -3635,7 +3617,6 @@
       updateTierPricesLive();   // ціни порогів під кнопкою теж оновлюємо наживо
       renderPrintArea();
       if(IS_MANAGER) renderManagerPanel();
-      lqAutoSave();
     }
 
     // ─── Видалення заднього фону при завантаженні логотипа (чистий canvas) ───
@@ -4555,7 +4536,7 @@
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
     // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
-    function snapshotSide(side, sizeOverride){
+    function snapshotSide(side, sizeOverride, asJpeg){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
@@ -4589,7 +4570,11 @@
             });
           }, Promise.resolve());
         }).then(function(){
-          try { resolve(canvas.toDataURL('image/png')); } catch(e){ resolve(null); }
+          /* JPEG там, де прозорість не потрібна. Сцена завжди має суцільний
+             фон, а PNG на 900 px — це під пів мегабайта на кожну сторону:
+             саме через це збереження позиції відчутно затягувалось. */
+          try { resolve(asJpeg ? canvas.toDataURL('image/jpeg', 0.88)
+                               : canvas.toDataURL('image/png')); } catch(e){ resolve(null); }
         });
       });
     }
@@ -4681,7 +4666,11 @@
       item.prints = [];
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          var d = layerDimsMm(l);
+          /* Той самий габарит, що показує прорахунок і за яким рахується
+             ціна, — по непрозорому вмісту. Доти сюди йшов габарит усього
+             прямокутника картинки, і в картці замовлення стояв один розмір,
+             а в редакторі — інший. */
+          var d = layerOpaqueDimsMm(l);
           item.prints.push({
             side: side,
             sideLabel: sideLabelOf(pm.garmentId, side),
@@ -4730,7 +4719,8 @@
          тримати їх такими ж важкими немає сенсу — це просто довше
          зберігається. */
       var snapDone = Promise.all(allViews.map(function(s){
-        return snapshotSide(s, (pm.logos[s] || []).length ? 1600 : 900);
+        var has = (pm.logos[s] || []).length;
+        return snapshotSide(s, has ? 1600 : 900, !has);
       }))
         .then(function(imgs){
           /* Номер ракурсу і номер знімка мають збігатись. Якщо якась сторона
