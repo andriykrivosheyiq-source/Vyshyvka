@@ -10441,12 +10441,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
       }
       window.__pmEditIndex = null;
-      // знімок кожної сторони, де є логотип (перед/зад); якщо лого немає — просто перед
-      var snapSides = getViews().filter(function(s){ return (pm.logos[s]||[]).length; });
-      if(!snapSides.length) snapSides = ['front'];
+      /* Знімаємо ВСІ сторони виробу, а не тільки ті, де є нанесення.
+         Перед і спина показуються клієнту завжди: людина замовляє одяг, а не
+         принт, і хоче бачити, як він виглядатиме з обох боків — навіть коли
+         ззаду нічого не наносять. Доти в пропозицію потрапляв самий перед, і
+         спини просто не існувало.
+
+         Решта сторін (боковинки кепки, рукав) знімаються теж і лежать
+         готовими: показати їх клієнту — один клік у пропозиції, без
+         повторного відкривання конструктора. Малювати їх наново потім нема
+         де: масштаб зони живе тільки поки конструктор відкритий. */
+      var allViews = getViews().slice(0, 6);
+      if(!allViews.length) allViews = ['front'];
+      var baseSides = { front:1, back:1 };
+      item.views = allViews.map(function(s, k){
+        return { id: s, side: s, label: sideLabelOf(pm.garmentId, s), img: null, auto: k,
+                 show: !!(baseSides[s] || (pm.logos[s] || []).length) };
+      });
       // 1600px — макет іде у замовлення й Канбан, тож має лишатись чітким
-      var snapDone = Promise.all(snapSides.map(function(s){ return snapshotSide(s, 1600); }))
-        .then(function(imgs){ item.imgs = imgs.filter(Boolean); renderCart(); }).catch(function(){});
+      var snapDone = Promise.all(allViews.map(function(s){ return snapshotSide(s, 1600); }))
+        .then(function(imgs){
+          /* Номер ракурсу і номер знімка мають збігатись. Якщо якась сторона
+             не намалювалась, її треба прибрати РАЗОМ із діркою в списку —
+             інакше зсув на один перетворив би «Спину» на «Перед». */
+          item.views = item.views.filter(function(v, k){ return !!imgs[k]; })
+                                 .map(function(v, n){ v.auto = n; return v; });
+          item.imgs = imgs.filter(Boolean);
+          renderCart();
+        }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
       productModal.classList.remove('open');
@@ -12909,7 +12931,9 @@ window.LOOMIQ_CONFIG = {
   }
   function packItems(items){
     return Promise.all(items.map(function(it){
-      var mockups = (it.imgs || []).slice(0, 4);
+      // 6, а не 4: у кепки сторін більше, і зайвий зріз мовчки з'їдав би
+      // боковинки, які вже намальовані
+      var mockups = (it.imgs || []).slice(0, 6);
       var prints  = it.prints || [];
       return Promise.all([
         Promise.all(mockups.map(upload)),
@@ -12923,6 +12947,12 @@ window.LOOMIQ_CONFIG = {
           unitPrice: +it.unitPrice || 0, price: +it.price || 0,
           unitCost: +it.unitCost || 0, cost: +it.cost || 0,
           mockups: res[0].filter(Boolean),
+          // Ракурси: підпис і сторона кожного знімка, і чи показувати його
+          // клієнту. Без цього пропозиція знає лише «картинка номер два».
+          views: (it.views || []).slice(0, 6).map(function(v, k){
+            return { id:v.id || ('v'+k), side:v.side || null, label:v.label || '',
+                     img:null, auto:k, show: v.show !== false };
+          }),
           prints: prints.map(function(p, i){
             return { side:p.side, technique:p.technique,
                      widthMm:p.widthMm, heightMm:p.heightMm, file:res[1][i] || null };

@@ -533,6 +533,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     color:#22314A; background:rgba(255,255,255,.92); border-radius:20px; padding:3px 9px;
     pointer-events:none;}
   /* Під час перейменування підпис стає полем — просто на своєму місці */
+  /* Прихований ракурс менеджер бачить приглушеним і підписаним — щоб не
+     плутати його з тим, що піде клієнту */
+  .pgal-i.is-off{opacity:.5;}
+  .pgal-off{position:absolute; left:8px; top:8px; z-index:2; font-size:10px; font-weight:800;
+    letter-spacing:.04em; text-transform:uppercase; color:#7A2320; background:#FDECEA;
+    border-radius:20px; padding:3px 8px; pointer-events:none;}
   .pgal-lab.is-edit{pointer-events:auto; background:#fff; outline:2px solid #4F5FD4;
     outline-offset:1px; min-width:60px; cursor:text;}
   .pgal-add{flex:0 0 34%; scroll-snap-align:start; aspect-ratio:1/1; border:0; cursor:pointer;
@@ -542,23 +548,45 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pgal-add:hover{color:#3D4C61; box-shadow:inset 0 0 0 1.5px #4F5FD4;}
   .pgal-add i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
     text-transform:uppercase;}
-  /* Службова економіка. Навмисне не схожа на решту сторінки: смугаста
-     жовта рамка читається як «це не для клієнта» з одного погляду, і
-     переплутати її з кошторисом неможливо. */
-  .eco{margin:10px 14px 0; border-radius:12px; padding:10px 12px; font-size:12.5px;
-    background:repeating-linear-gradient(135deg,#FFFBEB,#FFFBEB 9px,#FEF6DC 9px,#FEF6DC 18px);
-    border:1px solid #F1D98B; color:#5A4A16;}
-  .eco.is-bad{background:repeating-linear-gradient(135deg,#FEF2F2,#FEF2F2 9px,#FCE8E8 9px,#FCE8E8 18px);
-    border-color:#F0B4B0; color:#7A2320;}
-  .eco-all{margin:14px 0 0;}
-  .eco-h{font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
-    opacity:.72; margin-bottom:6px;}
-  .eco-r{display:flex; justify-content:space-between; gap:12px; padding:3px 0; line-height:1.4;}
-  .eco-r b{font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums;}
-  .eco-r.is-sum{border-top:1px solid rgba(90,74,22,.22); margin-top:4px; padding-top:6px;
-    font-weight:700;}
-  .eco.is-bad .eco-r.is-sum{border-top-color:rgba(122,35,32,.22);}
-  .eco-warn{margin-top:7px; font-size:12px; font-weight:700;}
+  /* Прорахунок для менеджера. Розмітка й вигляд — ті самі, що в «Прорахунку
+     замовлення» на сайті: менеджер читає звичний йому блок, а не другий
+     варіант того самого. Згорнутий, бо потрібен не постійно. */
+  .cc-fold{margin:10px 14px 0; border:1px dashed #C7D0DE; border-radius:12px; background:#fff;}
+  .cc-fold-all{margin:14px 0 0;}
+  .cc-fold>summary{list-style:none; cursor:pointer; padding:9px 13px; font-size:12px;
+    font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#7A8496;}
+  .cc-fold>summary::-webkit-details-marker{display:none;}
+  .cc-fold>summary::after{content:'▾'; float:right; font-size:11px; opacity:.7;}
+  .cc-fold[open]>summary::after{content:'▴';}
+  .cc-fold>summary:hover{color:#3A48A8;}
+  .cc-fold-b{padding:0 13px 13px;}
+  .cc-groups{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px;}
+  .cc-group{display:flex;align-items:baseline;gap:7px;padding:7px 11px;background:#f1f3f5;
+    border-radius:9px;font-size:13px;color:#4a525c;}
+  .cc-group b{font-weight:700;color:#111;}
+  .cc-hint{font-size:12.5px;line-height:1.5;color:#8a929b;margin:0 0 14px;}
+  .cc-sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:#8a929b;margin:20px 0 8px;}
+  .cc-item{border:1px solid #e6e9ed;border-radius:12px;padding:13px 14px;margin-bottom:10px;background:#fff;}
+  .cc-item.is-reco{border-style:dashed;}
+  .cc-name{font-size:15px;font-weight:700;color:#111;}
+  .cc-name em{font-style:normal;font-size:11.5px;font-weight:600;color:#8a929b;
+    text-transform:uppercase;letter-spacing:.04em;}
+  .cc-meta{font-size:12.5px;color:#8a929b;margin-top:2px;}
+  .cc-rows{margin-top:9px;padding:9px 11px;background:#f7f8fa;border-radius:9px;}
+  .cc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    font-size:13px;line-height:1.45;padding:3px 0;color:#4a525c;}
+  .cc-row b{font-weight:600;color:#222;white-space:nowrap;}
+  .cc-row.is-disc,.cc-row.is-disc b{color:#128a4a;}
+  .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:5px;padding-top:6px;font-weight:700;color:#111;}
+  .cc-money{display:flex;gap:10px;margin-top:9px;}
+  .cc-money>div{flex:1;display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+    font-size:12.5px;color:#8a929b;padding:6px 10px;background:#f7f8fa;border-radius:8px;}
+  .cc-money b{font-weight:700;color:#222;white-space:nowrap;}
+  .cc-money b.good{color:#128a4a;}
+  .cc-money b.bad{color:#c0392b;}
+  .cc-total{margin-top:16px;padding:12px 14px;border:1px solid #dfe3e8;border-radius:12px;background:#fbfcfd;}
+  .cc-total .cc-row.is-sum{font-size:15px;}
   /* Меню ракурсу */
   .vmenu{position:fixed; z-index:60; min-width:210px; background:#fff; border:1px solid #E2E8F0;
     border-radius:12px; box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px; font-size:13px;}
@@ -1109,17 +1137,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
-  /* Розклад ціни для менеджера. Видно тільки в режимі редагування — клієнту
-     цього блоку не існує, він навіть не приїжджає в його версію документа. */
-  .mgrcalc{margin-top:12px;padding:11px 13px;border:1px dashed #C7D0DE;border-radius:12px;
-    background:#F7F9FC;}
-  .mgrcalc-h{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
-    color:#7A879B;margin-bottom:7px;}
-  .mgrcalc-r{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;
-    color:#3D4C61;padding:3px 0;}
-  .mgrcalc-r b{font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .mgrcalc-r.is-sum{border-top:1px solid #E3E8EF;margin-top:4px;padding-top:6px;
-    font-weight:700;color:#22314A;}
   .edqty{display:flex;align-items:center;gap:5px;font-size:12px;color:#3D4C61;}
   .edqty b{font-weight:600;color:#7A879B;}
   .edqi{width:66px;font:inherit;font-size:13px;font-weight:700;text-align:center;
@@ -1608,7 +1625,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     vmenuClose();
     var m = document.createElement('div');
     m.className = 'vmenu';
+    var off = el.classList.contains('is-off');
     m.innerHTML = '<b>Ракурс</b>' +
+      // Показ клієнту — перший рядок: саме заради нього менеджер сюди й
+      // заходить, коли хоче додати боковинку кепки в пропозицію
+      '<button data-vm="show">' + (off ? 'Показати клієнту' : 'Сховати від клієнта') + '</button>' +
       '<button data-vm="photo">' +
         (el.classList.contains('is-empty') ? 'Завантажити фото' : 'Замінити фото') + '</button>' +
       '<button data-vm="name">Перейменувати</button>' +
@@ -1624,6 +1645,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(){
         var a = b.dataset.vm;
         vmenuClose();
+        if(a === 'show'){ edSend({ act:'viewShow', kind: kind, i: i, pos: pos, v: off ? 1 : 0 }); return; }
         if(a === 'photo'){ edSend({ act:'viewPhoto', kind: kind, i: i, pos: pos }); return; }
         if(a === 'del'){ edSend({ act:'viewDel', kind: kind, i: i, pos: pos }); return; }
         vmenuRename(el, kind, i, pos);
@@ -2127,28 +2149,42 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      показуємо: порожня рамка в пропозиції читається як помилка. */
   function viewsOf(it){
     var own = it && it.views;
-    if(Array.isArray(own) && own.length) return own;
+    var mock = ((it || {}).mockups || []).filter(Boolean);
+    if(Array.isArray(own) && own.length) return own.map(function(v, i){
+      var a = (v.auto == null || v.auto === '') ? null : +v.auto;
+      return { id: v.id || ('v' + i), side: v.side || null, label: v.label || ('Вигляд ' + (i + 1)),
+               img: (a != null && mock[a]) ? mock[a] : (v.img || null),
+               auto: a, show: v.show !== false };
+    });
     // Стара позиція без ракурсів — складаємо їх зі знімків, як було раніше
     var label = viewLabel(it);
-    return (it.mockups || []).filter(Boolean)
-      .map(function(src, k){ return { id:'v'+k, img:src, label:label(k) }; });
+    return mock.map(function(src, k){
+      return { id:'v'+k, img:src, label:label(k), auto:k, show:true };
+    });
   }
   function galleryHtml(it, idx, kind){
     var all = viewsOf(it);
-    var list = EDIT ? all : all.filter(function(v){ return v && v.img; });
+    /* Клієнт бачить тільки ті ракурси, які менеджер лишив показаними, і тільки
+       зі знімком: порожня рамка в пропозиції читається як помилка, а
+       боковинка кепки без нанесення — як зайвий шум. Менеджер бачить усі,
+       разом із прихованими: вони вже намальовані, і показати їх — один клік. */
+    var list = EDIT ? all : all.filter(function(v){ return v && v.img && v.show !== false; });
     if(!list.length && !EDIT) return '';
     var K = kind || 'main';
     return '<div class="pgal' + (list.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
       list.map(function(v, k){
         var pos = all.indexOf(v);
-        return '<div class="pgal-i' + (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') + '"' +
-          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '" title="Натисніть, щоб змінити фото або назву"' : '') + '>' +
+        var off = EDIT && v.show === false;
+        return '<div class="pgal-i' + (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') +
+          (off ? ' is-off' : '') + '"' +
+          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '" title="Натисніть, щоб змінити фото, назву або показ клієнту"' : '') + '>' +
           (v.img
             ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
               (k > 1 ? 'loading="lazy" ' : '') +
               'onerror="this.style.visibility=\'hidden\'">'
             : '<span class="pgal-plus">＋<i>фото</i></span>') +
-          (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' : '') +
+          (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
+                (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
         '</div>';
       }).join('') +
       (EDIT ? '<button class="pgal-add" data-viewadd="' + K + ':' + idx + '" ' +
@@ -2225,67 +2261,85 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).join('') + '</div>';
   }
 
-  /* Розклад ціни для менеджера — той самий, що в конструкторі на сайті:
-     виріб, нанесення, знижка за тираж, разові оплати. Рахує його адмінка
-     тим самим рушієм і передає сюди разом із документом. У базу він не
-     потрапляє й клієнту не показується — це видно з того, що блок є лише
-     в режимі редагування. */
-  function mgrCalcHtml(i){
-    if(!EDIT) return '';
-    var rows = ((OFFER.mgr || {})[i] || []);
-    if(!rows.length) return '';
-    return '<div class="mgrcalc"><div class="mgrcalc-h">Як склалась ціна</div>' +
-      rows.map(function(r){
-        return '<div class="mgrcalc-r' + (r.sum ? ' is-sum' : '') + '">' +
-          '<span>' + esc(r.t) + '</span><b>' + esc(r.v) + '</b></div>';
-      }).join('') + '</div>';
+  /* Прорахунок для менеджера — той самий, що в «Прорахунку замовлення» на
+     сайті. Ті самі рядки, той самий порядок: спершу все на одну штуку, потім
+     ціна за штуку, і аж тоді множення на тираж. Рядки приходять готовими від
+     адмінки, тут їх лише малюють — саме тому цифри в КП, у кошику й у
+     Канбані не можуть розійтись.
+
+     Блок згорнутий і стоїть під ціною: він потрібен, коли менеджер про нього
+     згадав, а не постійно. Клієнту його не існує — ані розгорнутого, ані
+     згорнутого: у його версію документа ці дані просто не приїжджають. */
+  function ccRowsHtml(rows){
+    if(!rows || !rows.length)
+      return '<p class="cc-hint">Позиція без розкладу — ціна прийшла зі старого замовлення.</p>';
+    return '<div class="cc-rows">' + rows.map(function(r){
+      return '<div class="cc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
+             (r[2] === 'sum' ? ' is-sum' : '') + '">' +
+             '<span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
+    }).join('') + '</div>';
   }
-  /* Економіка позиції. Менеджер має бачити, скільки він на ній заробляє, у
-     той самий момент, коли ставить тираж і нанесення, — а не рахувати це
-     потім в окремій таблиці. Цифри приходять від адмінки повідомленням і в
-     самому документі не зберігаються, тож клієнт їх не побачить навіть за
-     прямим посиланням.  */
-  function ecoRow(t, v, cls){
-    return '<div class="eco-r' + (cls ? ' ' + cls : '') + '"><span>' + t + '</span><b>' + v + '</b></div>';
-  }
-  function ecoNum(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g, ' '); }
-  function mgrEcoHtml(i){
-    if(!EDIT) return '';
-    var e = ((OFFER.eco || {}).rows || {})[i];
-    if(!e) return '';
-    var qty = +e.qty || 0;
-    var bad = (+e.marginPct || 0) < 15;
-    return '<div class="eco' + (bad ? ' is-bad' : '') + '">' +
-      '<div class="eco-h">Службове · клієнт цього не бачить</div>' +
-      ecoRow('Тираж', qty + ' шт') +
-      (e.garmentUnit != null
-        ? ecoRow('Собівартість виробу', ecoNum(e.garmentUnit) + ' ₴ × ' + qty +
-                 ' = ' + ecoNum(e.garmentUnit * qty) + ' ₴') +
-          ecoRow('Собівартість нанесення', ecoNum(e.appUnit) + ' ₴ × ' + qty +
-                 ' = ' + ecoNum(e.appUnit * qty) + ' ₴')
-        : ecoRow('Собівартість за штуку', ecoNum(e.unitCost) + ' ₴')) +
-      ecoRow('Разом собівартість', ecoNum(e.cost) + ' ₴') +
-      ecoRow('Продаж', ecoNum(e.unitPrice) + ' ₴ × ' + qty + ' = ' + ecoNum(e.price) + ' ₴') +
-      ecoRow('Прибуток', (e.profit >= 0 ? '' : '−') + ecoNum(Math.abs(e.profit)) + ' ₴', 'is-sum') +
-      ecoRow('Маржа', (+e.marginPct || 0).toFixed(1).replace('.', ',') + '%', 'is-sum') +
+  function ccMoneyHtml(b){
+    if(b.cost == null) return '';
+    var m = +b.margin || 0;
+    return '<div class="cc-money">' +
+      '<div><span>Собівартість</span><b>' + Math.round(b.cost) + ' грн</b></div>' +
+      '<div><span>Маржа</span><b class="' + (m >= 0 ? 'good' : 'bad') + '">' +
+        Math.round(m) + ' грн · ' + (+b.pct || 0).toFixed(1) + '%</b></div>' +
     '</div>';
   }
-  // Те саме по всій пропозиції — щоб рішення «дати ще знижку» ухвалювалось
-  // із відомим залишком, а не на око
-  function ecoTotalHtml(){
+  function mgrCalcHtml(i, kind){
     if(!EDIT) return '';
-    var s = (OFFER.eco || {}).sum;
-    if(!s || !s.price) return '';
-    var bad = (+s.marginPct || 0) < 15;
-    return '<div class="eco eco-all' + (bad ? ' is-bad' : '') + '">' +
-      '<div class="eco-h">Економіка пропозиції · службове</div>' +
-      ecoRow('Виробів усього', (+s.qty || 0) + ' шт') +
-      ecoRow('Собівартість', ecoNum(s.cost) + ' ₴') +
-      ecoRow('Продаж', ecoNum(s.price) + ' ₴') +
-      ecoRow('Прибуток', (s.profit >= 0 ? '' : '−') + ecoNum(Math.abs(s.profit)) + ' ₴', 'is-sum') +
-      ecoRow('Маржа', (+s.marginPct || 0).toFixed(1).replace('.', ',') + '%', 'is-sum') +
-      (bad ? '<div class="eco-warn">Маржа нижча за 15% — перевірте тираж і разові за макет</div>' : '') +
-    '</div>';
+    var C = OFFER.mgr || {};
+    var b = ((kind === 'reco' ? C.reco : C.items) || {})[i];
+    if(!b) return '';
+    return '<details class="cc-fold"><summary>Прорахунок · службове</summary>' +
+      '<div class="cc-fold-b">' + ccRowsHtml(b.rows) + ccMoneyHtml(b) + '</div></details>';
+  }
+  // Те саме по всій пропозиції — під кошторисом, щоб рішення «дати ще знижку»
+  // ухвалювалось із відомим залишком, а не на око
+  function mgrCalcAllHtml(){
+    if(!EDIT) return '';
+    var C = OFFER.mgr || {};
+    var s = C.sum;
+    if(!s) return '';
+    var items = C.items || {}, reco = C.reco || {};
+    var keys = Object.keys(items).sort(function(a, b){ return a - b; });
+    var rkeys = Object.keys(reco).sort(function(a, b){ return a - b; });
+    function block(b, isReco){
+      return '<div class="cc-item' + (isReco ? ' is-reco' : '') + '">' +
+        '<div class="cc-name">' + esc(b.name || '') +
+          (isReco ? ' <em>рекомендований</em>' : '') + '</div>' +
+        (b.meta ? '<div class="cc-meta">' + esc(b.meta) + '</div>' : '') +
+        ccRowsHtml(b.rows) + ccMoneyHtml(b) +
+      '</div>';
+    }
+    var m = +s.margin || 0;
+    return '<details class="cc-fold cc-fold-all"><summary>Прорахунок пропозиції · службове</summary>' +
+      '<div class="cc-fold-b">' +
+        ((C.groups || []).length
+          ? '<div class="cc-groups">' + C.groups.map(function(g){
+              return '<div class="cc-group"><span>' + esc(g.k) + '</span><b>' + g.q + ' шт</b></div>';
+            }).join('') + '</div>' +
+            '<p class="cc-hint">Знижка за тираж і підготовка макета рахуються всередині групи, ' +
+            'а не по одній позиції. Однаковий ескіз на різних виробах — один макет.</p>'
+          : '') +
+        keys.map(function(k){ return block(items[k], false); }).join('') +
+        (rkeys.length
+          ? '<div class="cc-sec">Рекомендовані — у суму не входять</div>' +
+            rkeys.map(function(k){ return block(reco[k], true); }).join('')
+          : '') +
+        '<div class="cc-total">' +
+          '<div class="cc-row"><span>Виробів у замовленні</span><b>' + (+s.qty || 0) + ' шт</b></div>' +
+          (s.cost != null
+            ? '<div class="cc-row"><span>Собівартість</span><b>' + Math.round(s.cost) + ' грн</b></div>' : '') +
+          '<div class="cc-row is-sum"><span>Сума замовлення</span><b>' +
+            Math.round(+s.price || 0) + ' грн</b></div>' +
+          (s.cost != null
+            ? '<div class="cc-row ' + (m >= 0 ? 'is-disc' : '') + '"><span>Маржа</span><b>' +
+              Math.round(m) + ' грн · ' + (+s.pct || 0).toFixed(1) + '%</b></div>' : '') +
+        '</div>' +
+      '</div></details>';
   }
   function priceBoxHtml(i){
     var s = itemState(i);
@@ -2379,16 +2433,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '</div>' +
             '</div>' +
             edBar('main', i, it.qty) +
-            mgrEcoHtml(i) +
             /* Місце під редактор позиції. Він розгортається ТУТ, у самій
                картці, а не окремим вікном чи колонкою: менеджер лишається в
                документі, який збирає, і бачить, як правка на нього лягає. */
             edSlotHtml('main', i) +
             '<div data-tiers="' + i + '">' + tiersHtml(i) + '</div>' +
+            // Під ціною, згорнутий: потрібен, коли менеджер про нього згадав
+            mgrCalcHtml(i, 'main') +
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) +
-                priceBoxHtml(i) + mgrCalcHtml(i) + '</div>' +
+                priceBoxHtml(i) + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
@@ -2428,6 +2483,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'У замовленні</button>' +
               '</div>' +
             '</div>' +
+            mgrCalcHtml(i, 'reco') +
           '</div>';
         }).join('') +
         edAdd('main') +
@@ -2527,7 +2583,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (t.save > 0
             ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
         '</div>' +
-        ecoTotalHtml() +
+        mgrCalcAllHtml() +
       '</section>';
   }
 
