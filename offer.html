@@ -542,6 +542,23 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pgal-add:hover{color:#3D4C61; box-shadow:inset 0 0 0 1.5px #4F5FD4;}
   .pgal-add i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
     text-transform:uppercase;}
+  /* Службова економіка. Навмисне не схожа на решту сторінки: смугаста
+     жовта рамка читається як «це не для клієнта» з одного погляду, і
+     переплутати її з кошторисом неможливо. */
+  .eco{margin:10px 14px 0; border-radius:12px; padding:10px 12px; font-size:12.5px;
+    background:repeating-linear-gradient(135deg,#FFFBEB,#FFFBEB 9px,#FEF6DC 9px,#FEF6DC 18px);
+    border:1px solid #F1D98B; color:#5A4A16;}
+  .eco.is-bad{background:repeating-linear-gradient(135deg,#FEF2F2,#FEF2F2 9px,#FCE8E8 9px,#FCE8E8 18px);
+    border-color:#F0B4B0; color:#7A2320;}
+  .eco-all{margin:14px 0 0;}
+  .eco-h{font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    opacity:.72; margin-bottom:6px;}
+  .eco-r{display:flex; justify-content:space-between; gap:12px; padding:3px 0; line-height:1.4;}
+  .eco-r b{font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .eco-r.is-sum{border-top:1px solid rgba(90,74,22,.22); margin-top:4px; padding-top:6px;
+    font-weight:700;}
+  .eco.is-bad .eco-r.is-sum{border-top-color:rgba(122,35,32,.22);}
+  .eco-warn{margin-top:7px; font-size:12px; font-weight:700;}
   /* Меню ракурсу */
   .vmenu{position:fixed; z-index:60; min-width:210px; background:#fff; border:1px solid #E2E8F0;
     border-radius:12px; box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px; font-size:13px;}
@@ -2198,6 +2215,53 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '<span>' + esc(r.t) + '</span><b>' + esc(r.v) + '</b></div>';
       }).join('') + '</div>';
   }
+  /* Економіка позиції. Менеджер має бачити, скільки він на ній заробляє, у
+     той самий момент, коли ставить тираж і нанесення, — а не рахувати це
+     потім в окремій таблиці. Цифри приходять від адмінки повідомленням і в
+     самому документі не зберігаються, тож клієнт їх не побачить навіть за
+     прямим посиланням.  */
+  function ecoRow(t, v, cls){
+    return '<div class="eco-r' + (cls ? ' ' + cls : '') + '"><span>' + t + '</span><b>' + v + '</b></div>';
+  }
+  function ecoNum(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g, ' '); }
+  function mgrEcoHtml(i){
+    if(!EDIT) return '';
+    var e = ((OFFER.eco || {}).rows || {})[i];
+    if(!e) return '';
+    var qty = +e.qty || 0;
+    var bad = (+e.marginPct || 0) < 15;
+    return '<div class="eco' + (bad ? ' is-bad' : '') + '">' +
+      '<div class="eco-h">Службове · клієнт цього не бачить</div>' +
+      ecoRow('Тираж', qty + ' шт') +
+      (e.garmentUnit != null
+        ? ecoRow('Собівартість виробу', ecoNum(e.garmentUnit) + ' ₴ × ' + qty +
+                 ' = ' + ecoNum(e.garmentUnit * qty) + ' ₴') +
+          ecoRow('Собівартість нанесення', ecoNum(e.appUnit) + ' ₴ × ' + qty +
+                 ' = ' + ecoNum(e.appUnit * qty) + ' ₴')
+        : ecoRow('Собівартість за штуку', ecoNum(e.unitCost) + ' ₴')) +
+      ecoRow('Разом собівартість', ecoNum(e.cost) + ' ₴') +
+      ecoRow('Продаж', ecoNum(e.unitPrice) + ' ₴ × ' + qty + ' = ' + ecoNum(e.price) + ' ₴') +
+      ecoRow('Прибуток', (e.profit >= 0 ? '' : '−') + ecoNum(Math.abs(e.profit)) + ' ₴', 'is-sum') +
+      ecoRow('Маржа', (+e.marginPct || 0).toFixed(1).replace('.', ',') + '%', 'is-sum') +
+    '</div>';
+  }
+  // Те саме по всій пропозиції — щоб рішення «дати ще знижку» ухвалювалось
+  // із відомим залишком, а не на око
+  function ecoTotalHtml(){
+    if(!EDIT) return '';
+    var s = (OFFER.eco || {}).sum;
+    if(!s || !s.price) return '';
+    var bad = (+s.marginPct || 0) < 15;
+    return '<div class="eco eco-all' + (bad ? ' is-bad' : '') + '">' +
+      '<div class="eco-h">Економіка пропозиції · службове</div>' +
+      ecoRow('Виробів усього', (+s.qty || 0) + ' шт') +
+      ecoRow('Собівартість', ecoNum(s.cost) + ' ₴') +
+      ecoRow('Продаж', ecoNum(s.price) + ' ₴') +
+      ecoRow('Прибуток', (s.profit >= 0 ? '' : '−') + ecoNum(Math.abs(s.profit)) + ' ₴', 'is-sum') +
+      ecoRow('Маржа', (+s.marginPct || 0).toFixed(1).replace('.', ',') + '%', 'is-sum') +
+      (bad ? '<div class="eco-warn">Маржа нижча за 15% — перевірте тираж і разові за макет</div>' : '') +
+    '</div>';
+  }
   function priceBoxHtml(i){
     var s = itemState(i);
     return '' +
@@ -2290,6 +2354,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '</div>' +
             '</div>' +
             edBar('main', i, it.qty) +
+            mgrEcoHtml(i) +
             /* Місце під редактор позиції. Він розгортається ТУТ, у самій
                картці, а не окремим вікном чи колонкою: менеджер лишається в
                документі, який збирає, і бачить, як правка на нього лягає. */
@@ -2437,6 +2502,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (t.save > 0
             ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
         '</div>' +
+        ecoTotalHtml() +
       '</section>';
   }
 

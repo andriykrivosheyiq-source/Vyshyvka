@@ -5838,6 +5838,47 @@ function viewsWrite(o, k, list){
                                    img: v.img || null,
                                    auto: (v.auto == null || v.auto === '') ? null : +v.auto }));
 }
+/* Економіка позиції — те, що бачить менеджер і не бачить клієнт. Живе
+   ВИКЛЮЧНО в повідомленні до кадру редагування: у документі, який лежить у
+   Firestore і який клієнт читає за посиланням, собівартості немає й бути не
+   може. Тому ці цифри рахуються тут щоразу наново, а не зберігаються.
+
+   Рахувати їх у голові менеджер не мусить: побачити, що позиція йде в мінус,
+   треба ДО того, як пропозиція пішла клієнту, а не після виробництва. */
+function offerMgrEco(o){
+  const rows = {};
+  let sp = 0, sc = 0, sq = 0, k = 0;
+  // Ті ж права, що й у картці замовлення: кому не показуємо собівартість
+  // там, тому не показуємо і тут
+  if(!canSeeCost()) return { rows, sum: null };
+  try{
+    const gar = orderGarments();
+    (o.items || []).forEach(it=>{
+      if(it.kind === 'reco') return;
+      const i = k++;
+      const qty   = Math.max(0, +it.qty || 0);
+      const price = Math.round(+it.price || 0);
+      const cost  = Math.round(+it.cost  || 0);
+      const uCost = Math.round(+it.unitCost || 0);
+      const gid   = (it.config && it.config.garmentId) || it.garmentId || '';
+      const g     = gar.find(x => x.id === gid);
+      // Без виробу в довіднику розкласти собівартість нема на що — тоді
+      // показуємо її одним рядком, а не вигадуємо поділ
+      const gUnit = g ? Math.round(+g.cost || 0) : null;
+      rows[i] = {
+        qty, price, cost,
+        unitPrice: Math.round(+it.unitPrice || 0), unitCost: uCost,
+        garmentUnit: gUnit,
+        appUnit: gUnit == null ? null : Math.max(0, uCost - gUnit),
+        profit: price - cost,
+        marginPct: price > 0 ? ((price - cost) / price * 100) : 0
+      };
+      sp += price; sc += cost; sq += qty;
+    });
+  }catch(e){ console.warn('mgr eco', e); }
+  return { rows, sum: { qty: sq, price: sp, cost: sc, profit: sp - sc,
+                        marginPct: sp > 0 ? ((sp - sc) / sp * 100) : 0 } };
+}
 function offerItemNumbers(order, itemIdx){
   const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
@@ -9043,6 +9084,7 @@ function offerEdPush(o){
        записується, тож у клієнта в документі його немає взагалі. */
     const doc = offerClean(offerBuild(o));
     doc.mgr = offerMgrCalc(o);
+    doc.eco = offerMgrEco(o);      // тільки в кадр, у базу не потрапляє
     f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc,
                                   editDone: offerEdCloseInline }, '*');
     offerEdCloseInline = false;
