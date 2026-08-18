@@ -609,7 +609,8 @@
   .menu button:hover{background:#F1F5FA;}
   .menu button.is-del{color:#B3261E;}
   .menu button.is-del:hover{background:#FDECEA;}
-  .why{flex:none; border-top:1px solid #E9EEF5; background:#FBFCFE; padding:10px 12px 12px;}
+  .why{margin:14px 0 4px; padding:10px 10px 11px; background:#FBFCFE;
+    border:1px solid #E9EEF5; border-radius:10px;}
   .why-l{display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em;
     text-transform:uppercase; color:#8A93A3; margin-bottom:6px;}
   .why-t{width:100%; font:inherit; font-size:13px; line-height:1.5; color:#22314A;
@@ -661,23 +662,17 @@
     <button class="tab" data-view="client">Як бачить клієнт</button>
   </div>
   <span class="hd-sp"></span>
+  <!-- Кнопка збереження й позначка стану живуть у шапці самого вікна
+       пропозиції, рядком вище: там же «Посилання» і хрестик, тож роботу над
+       позицією закінчують в одному місці, а не двома кнопками в різних
+       смугах. -->
   <span class="save" id="saveMark"></span>
-  <button class="btn btn-main" id="btnSave">Зберегти позицію</button>
 </div>
 
 <div class="body">
   <aside class="list" id="paneList">
     <div class="list-h">Склад пропозиції</div>
     <div class="list-b" id="listBody"></div>
-    <!-- Пояснення до рекомендації — тут, біля самої позиції, а не над
-         конструктором: рекомендація без пояснення читається як спроба
-         дописати в рахунок ще один товар, а з поясненням — як робота
-         менеджера, який подумав за клієнта. -->
-    <div class="why hide" id="whyBox">
-      <label class="why-l" for="whyText">Чому радимо — клієнт це побачить</label>
-      <textarea class="why-t" id="whyText" rows="3"
-        placeholder="Напр.: до футболок беруть шопери — виходить комплект для подарунка клієнтам"></textarea>
-    </div>
     <!-- Сума — тільки основних позицій. Рекомендовані клієнт ще не обрав, і
          рахувати їх наперед означало б показувати менеджеру суму, якої
          немає. -->
@@ -736,8 +731,10 @@
       '<span class="it-th">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') + '</span>' +
       '<span class="it-t">' +
         '<span class="it-n">' + esc(it.name || 'Позиція') + '</span>' +
-        '<span class="it-m">' + (kind === 'reco' ? 'рекомендований' :
-          ((+it.qty || 0) + ' шт · ' + money(it.unitPrice) + '/шт')) + '</span>' +
+        /* Слова «рекомендований» тут немає: над цими рядками стоїть заголовок
+           «Рекомендовані», і повторювати його біля кожної назви — це шум.
+           Замість нього — те саме, що в основних: тираж і ціна за штуку. */
+        '<span class="it-m">' + ((+it.qty || 0) + ' шт · ' + money(it.unitPrice) + '/шт') + '</span>' +
       '</span>' +
       '<button class="it-dots" data-dots="' + kind + ':' + i + '" title="Дії з позицією">⋯</button>' +
     '</div>';
@@ -752,7 +749,15 @@
       '<button class="btn list-add" data-add="main">＋ Додати товар</button>' +
       (reco.length ? '<div class="list-sec">Рекомендовані</div>' +
         reco.map(function(it, i){ return rowHtml(it, 'reco', i); }).join('') : '') +
-      '<button class="btn list-add" data-add="reco">＋ Рекомендований</button>';
+      '<button class="btn list-add" data-add="reco">＋ Рекомендований</button>' +
+      /* Пояснення до рекомендації йде тут, звичайним блоком після списку, а
+         не приклеєним до низу панелі: приклеєне воно щоразу відтісняло сам
+         список і читалось як щось окреме від позиції, до якої належить. */
+      '<div class="why hide" id="whyBox">' +
+        '<label class="why-l" for="whyText">Чому радимо — клієнт це побачить</label>' +
+        '<textarea class="why-t" id="whyText" rows="3" ' +
+          'placeholder="Напр.: до футболок беруть шопери — виходить комплект для подарунка клієнтам"></textarea>' +
+      '</div>';
     var sum = main.reduce(function(a, it){ return a + (+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)); }, 0);
     var qty = main.reduce(function(a, it){ return a + (+it.qty || 0); }, 0);
     document.getElementById('listSum').textContent = money(sum);
@@ -816,6 +821,7 @@
      зберігаємо, коли людина відвела погляд: писати в базу на кожній літері —
      це десятки записів на один абзац. */
   function renderWhy(){
+    wireWhy();
     var box = document.getElementById('whyBox');
     var ta = document.getElementById('whyText');
     var it = cur ? itemsOf(cur.kind)[cur.i] : null;
@@ -823,19 +829,20 @@
     box.classList.toggle('hide', !on);
     if(on && document.activeElement !== ta) ta.value = it.recoNote || '';
   }
-  (function(){
+  function wireWhy(){
     var ta = document.getElementById('whyText');
-    var send2 = function(){
+    if(!ta || ta.dataset.wired) return;
+    ta.dataset.wired = '1';
+    ta.addEventListener('blur', function(){
       if(!cur || cur.kind !== 'reco') return;
       var it = itemsOf(cur.kind)[cur.i];
       var t = String(ta.value || '').trim();
       if(it && (it.recoNote || '') === t) return;
       if(it) it.recoNote = t;
       send({ act:'recoNote', kind:'reco', i: cur.i, text: t });
-    };
-    ta.addEventListener('blur', send2);
+    });
     ta.addEventListener('keydown', function(e){ e.stopPropagation(); });
-  })();
+  }
   function renderActs(){ renderWhy(); }
 
   /* ── Конструктор ────────────────────────────────────────────────────── */
@@ -1011,6 +1018,14 @@
     window.cartItems.length = 0;
     if(Array.isArray(cart) && cart.length && idx != null && cart[idx]){
       JSON.parse(JSON.stringify(cart)).forEach(function(x){ window.cartItems.push(x); });
+      /* Спершу МОНТУЄМО, і лише потім сіємо позицію. Конструктор вважає, що
+         редагування скасовано, якщо його вікно не позначене відкритим, — і
+         тоді мовчки скидає номер позиції, яку правлять. А без цього номера
+         стара версія лишається в розрахунку РАЗОМ із чернеткою: та сама
+         футболка рахується двічі, підготовка макета ділиться на вигаданий
+         тираж, зʼявляються «додаткові ескізи» на той самий малюнок, а
+         збереження додає ще одну позицію замість того, щоб замінити цю. */
+      mountCtor();
       window.__pmEditIndex = idx;
       window.__lqEditOnly = idx;         // зберігати будемо тільки цю позицію
       window.__pmAddKind = (cart[idx].kind === 'reco') ? 'reco' : 'main';
@@ -1020,7 +1035,10 @@
         else if(cart[idx].garmentId && window.__openProductModal)
           window.__openProductModal(cart[idx].garmentId);
       }catch(e){ console.warn('позиція не розгорнулась', e); }
-      mountCtor(); quiet = true; dirty = false; mark('', '');
+      // Номер міг злетіти під час розгортання — повертаємо його на місце
+      window.__pmEditIndex = idx;
+      try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
+      quiet = true; dirty = false; mark('', '');
       setTimeout(function(){ quiet = false; }, 1800);
       return;
     }
@@ -1028,14 +1046,18 @@
     window.__lqEditOnly = null;
     if(seed){
       window.cartItems.push(JSON.parse(JSON.stringify(seed)));
+      mountCtor();                       // так само: спершу вікно, потім насіння
       window.__pmEditIndex = 0;
       window.__pmAddKind = seed.kind === 'reco' ? 'reco' : 'main';
       try{
         if(seed.config && window.__editProduct) window.__editProduct(seed.config, 0, seed.prints || []);
         else if(seed.garmentId && window.__openProductModal) window.__openProductModal(seed.garmentId);
       }catch(e){ console.warn('позиція не розгорнулась', e); }
+      window.__pmEditIndex = 0;
+      try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
+    } else {
+      mountCtor();
     }
-    mountCtor();
     /* Перші секунди після розгортання позиції конструктор ще довантажує фото
        й перемальовує ціну — це не правки менеджера, і вважати їх змінами не
        можна: інакше кожен перехід між позиціями заводив би зайвий запис. */
@@ -1084,7 +1106,8 @@
     }catch(e){}
     return Promise.resolve(false);
   }
-  document.getElementById('btnSave').addEventListener('click', function(){ saveCurrent(); });
+  // Кнопка «Зберегти позицію» стоїть у шапці адмінки й просить нас звідти
+  function onSaveRequest(){ saveCurrent(); }
 
   /* ── Вкладки ────────────────────────────────────────────────────────── */
   document.querySelectorAll('[data-view]').forEach(function(b){
@@ -1107,6 +1130,7 @@
   window.addEventListener('message', function(e){
     var d = e.data;
     if(!d || !d.lqEditInit || window.parent === window) return;
+    if(d.doSave){ onSaveRequest(); return; }
     if(d.catalog) CATALOG = d.catalog;
     if(d.clientUrl) CLIENT_URL = d.clientUrl;
     if(d.seed !== undefined) window.__adminSeedItem = d.seed;
@@ -1118,7 +1142,6 @@
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
       renderList();
-      document.getElementById('btnSave').disabled = !OFFER.items.length && !OFFER.reco.length;
       var n = OFFER.items.length;
       /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
          саме щоб його налаштувати, а не щоб потім шукати в списку. */

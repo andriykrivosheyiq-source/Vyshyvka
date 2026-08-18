@@ -979,6 +979,13 @@
   .oe-save.is-ok{background:#E8F6ED;color:#1a7a3a;}
   .oe-save.is-saving{background:var(--canvas);color:var(--ink-soft);}
   .oe-save.is-bad{background:var(--bad-soft);color:var(--bad);}
+  /* Зелена — головна дія, і вона одна. Решта в шапці приглушені: бренд це
+     перемикач, посилання — довідка, а хрестик і має бути хрестиком. */
+  .oe-btn--save{background:#0E9F6E;border-color:#0E9F6E;color:#fff;font-weight:700;}
+  .oe-btn--save:hover{background:#0C8A5E;border-color:#0C8A5E;color:#fff;}
+  .oe-btn--x{width:34px;padding:0;display:flex;align-items:center;justify-content:center;
+    font-size:15px;line-height:1;color:var(--ink-soft);}
+  .oe-btn--x:hover{background:var(--canvas);color:var(--ink);}
   .oe-head .oe-brands{flex:none;display:flex;gap:5px;}
   .cwin-wrap{position:fixed;inset:0;z-index:1400;display:none;align-items:center;
     justify-content:center;background:rgba(15,32,52,.6);padding:14px;}
@@ -1001,9 +1008,12 @@
   .cwin-sub{flex:1;min-width:0;color:var(--ink-soft);font-size:12.5px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cwin iframe{flex:1;width:100%;border:0;display:block;}
-  .oe-brand{border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;
-    font-size:12.5px;font-weight:700;color:var(--ink-soft);padding:8px 13px;cursor:pointer;}
-  .oe-brand.on{border-color:var(--ink);background:var(--ink);color:#fff;}
+  /* Бренд — перемикач, а не дія: тому він приглушений і виглядає як
+     сегмент, а не як ще одна кнопка поряд із «Зберегти». */
+  .oe-brands{background:var(--canvas);border-radius:9px;padding:3px;gap:2px;}
+  .oe-brand{border:0;border-radius:7px;background:none;font:inherit;
+    font-size:12px;font-weight:700;color:var(--ink-soft);padding:6px 11px;cursor:pointer;}
+  .oe-brand.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,32,56,.12);}
   /* Логотипи замовлення в шапці редактора: завантажили раз — доступні всім
      товарам. Дрібні плитки, бо це склад, а не галерея. */
   .oe-logos{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -5587,6 +5597,9 @@ function orderDescriptors(o){
 // Перерахунок цін позицій замовлення спільним рушієм. Повертає true, якщо
 // замовлення взагалі має розклад (старі замовлення його не мають).
 function repriceOrder(o){
+  // Тираж рекомендованих іде за найбільшою основною позицією — тож
+  // вирівнюємо його перед будь-яким перерахунком, а не після
+  if(typeof syncRecoQty === 'function') syncRecoQty(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return false;
   const res = priceOrder(list);
@@ -9325,10 +9338,39 @@ function offerCatalog(){
 /* Голий виріб із каталогу: без нанесення, за шкалою тиражу на одяг.
    Далі менеджер відкриє олівець і додасть логотип — але позиція вже стоїть
    у пропозиції, і сторінку видно цілком. */
+/* Тираж рекомендованого — за найбільшою основною позицією.
+
+   Рекомендація це «те саме, але ще й ось це»: якщо в замовленні 20 футболок
+   і 50 худі, то шопер до них теж беруть на 50 — по найбільшій групі, а не
+   по найменшій і не за сумою. Від цього залежить і ціна: рекомендований
+   рахується за тим самим порогом тиражу, і клієнт бачить реальну цифру, а
+   не ціну за одну штуку.
+
+   Вписав менеджер своє число — воно фіксується (qtyAuto:false) і більше не
+   перебивається: він знає щось про цього клієнта, чого не знає формула. */
+function recoQtyFor(o){
+  const main = (o.items || []).filter(i => i && i.kind !== 'reco');
+  return Math.max(1, ...main.map(i => +i.qty || 0), 1);
+}
+function syncRecoQty(o){
+  const q = recoQtyFor(o);
+  let touched = false;
+  (o.items || []).forEach(it=>{
+    if(!it || it.kind !== 'reco' || it.qtyAuto === false) return;
+    if((+it.qty || 0) === q) return;
+    it.qty = q;
+    if(it.desc) it.desc.units = q;
+    it.price = Math.round((+it.unitPrice || 0) * q);
+    it.cost  = Math.round((+it.unitCost  || 0) * q);
+    touched = true;
+  });
+  return touched;
+}
 async function offerAddBare(o, gid, kind){
   const g = orderGarments().find(x => x.id === gid);
   if(!g) return;
-  const q = 20;                       // типовий стартовий тираж, далі правиться
+  // Рекомендований стартує з тиражу найбільшої основної позиції, основний — з типового
+  const q = kind === 'reco' ? recoQtyFor(o) : 20;
   const u = bareUnitPrice(gid, q);
   /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
      макета ще немає, бо немає логотипа, — і виглядало це так, ніби
@@ -9337,6 +9379,7 @@ async function offerAddBare(o, gid, kind){
   const thumb = prodThumb(photoCfg(gid));
   (o.items = o.items || []).push({
     kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
+    qtyAuto: kind === 'reco' ? true : undefined,
     name: g.name, color:'', print:'', sizes:'',
     qty: q, unitPrice: u.price, price: u.price * q,
     unitCost: u.cost, cost: u.cost * q,
@@ -9675,8 +9718,14 @@ function renderOfferEd(){
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
     <span class="oe-save is-ok">Збережено ✓</span>
+    ${/* Головна дія — зелена й одна. Доти в шапці стояло чотири однакові
+         кнопки поспіль (Loomiq, Stvory, Посилання, Готово), і серед них
+         неможливо було з одного погляду знайти ту, якою закінчують роботу
+         над позицією. */''}
+    <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
-    <button class="oe-btn oe-btn--main" data-oe="done">Готово</button>`;
+    <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
+      aria-label="Закрити">✕</button>`;
 
   /* Нижньої панелі більше немає. «Перегляд як клієнт» дублював вкладку «Як
      бачить клієнт», що стоїть у самому робочому місці, — дві кнопки на одну
@@ -9687,6 +9736,13 @@ function renderOfferEd(){
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
+  /* Зберігає позицію сам конструктор — він єдиний знає її поточний стан.
+     Ми лише просимо: кнопка стоїть тут, бо тут же й «Готово», і менеджер
+     закінчує роботу в одному місці, а не двома кнопками в різних смугах. */
+  head.querySelector('[data-oe="saveitem"]').addEventListener('click', ()=>{
+    const f = d.querySelector('iframe');
+    if(f && f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, doSave:true }, '*');
+  });
   head.querySelector('[data-oe="logo"]').addEventListener('click', ()=>{
     const inp = document.createElement('input');
     inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/svg+xml,image/*';
