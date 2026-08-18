@@ -1012,9 +1012,10 @@
       if(!sitePricing()) return null;
       var d = draftDescriptor();
       if(qtyOverride != null) d.units = Math.max(1, qtyOverride);
-      var list = cartDescriptors().concat([d]);
+      var list = descriptorsWithDraft(d);
       var r = priceOrder(list);
-      return r[r.length - 1].unit;
+      var k = draftAt(list, d);
+      return (r[k] || r[r.length - 1]).unit;
     }
     function effUnitPriceCoef(coef, qty){
       var sh = sharedUnitPrice(qty);
@@ -1030,9 +1031,9 @@
       if(!sitePricing()) return null;
       var d = draftDescriptor();
       if(qtyOverride != null) d.units = Math.max(1, qtyOverride);
-      var list = cartDescriptors().concat([d]);
+      var list = descriptorsWithDraft(d);
       var r = priceOrder(list);
-      var last = r[r.length - 1];
+      var last = r[draftAt(list, d)] || r[r.length - 1];
       return (last && last.parts) ? { unit: last.unit, parts: last.parts } : null;
     }
     // Ефективна ціна/шт для поточного вибору кількості (для рядка ціни та кошика).
@@ -1261,6 +1262,27 @@
       return list.filter(function(it, i){ return it.kind !== 'reco' && i !== skip; })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
+    /* Список описів РАЗОМ із чернеткою, і чернетка стоїть на своєму місці.
+       Порядок тут не косметика: додатковий ескіз ділиться на вироби своєї
+       групи дизайнів, а перша група його не платить — тож коли чернетку
+       кидали в кінець, вона потрапляла в іншу групу, ніж потрапить у
+       замовленні. Звідси й бралася різниця на кілька гривень між ціною в
+       конструкторі та ціною, яку показує пропозиція. */
+    function descriptorsWithDraft(d){
+      var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var skip = editIndex();
+      if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([d]);
+      var out = [], at = -1;
+      list.forEach(function(it, i){
+        if(it.kind === 'reco') return;
+        if(i === skip){ at = out.length; out.push(d); return; }
+        if(it.desc) out.push(it.desc);
+      });
+      if(at < 0) out.push(d);
+      return out;
+    }
+    // Де в цьому списку лежить чернетка — щоб узяти саме її рядок результату
+    function draftAt(list, d){ var k = list.indexOf(d); return k < 0 ? list.length - 1 : k; }
 
     function unitPrice(){
       if(sitePricing()){
