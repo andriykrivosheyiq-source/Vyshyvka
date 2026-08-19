@@ -1929,6 +1929,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Сам по собі параметр нічого не вмикає: керування зʼявиться лише після
      рукостискання від адмінки. */
   var EDIT_CTX = /[?&]edit=1/.test(location.search) && window.parent !== window;
+  /* Перегляд очима клієнта — але з прорахунком. Менеджер дивиться саме ту
+     сторінку, яку відкриє клієнт: жодних кнопок редагування тут немає. Одне
+     виняток — згорнутий службовий прорахунок у «Деталях позиції»: саме там
+     видно, з чого склалась ціна, і саме туди дивляться, коли цифра здається
+     дивною. Вмикається тільки рукостисканням від адмінки, тож клієнт із
+     своїм посиланням його не побачить, навіть дописавши ?preview=1. */
+  var MGR_VIEW = false;
   function edSend(msg){
     if(window.parent === window) return;
     try{ window.parent.postMessage(Object.assign({ lqEdit:true }, msg), '*'); }catch(e){}
@@ -1961,6 +1968,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var want = edPending == null ? 'photo' : edPending;
       edPending = null;
       ctorLoad().then(function(){ ctorSeed(want); }).catch(ctorFail);
+      return;
+    }
+    /* Перегляд для менеджера: дані ті самі, вигляд клієнтський, редагування
+       не вмикається — лише службовий прорахунок стає видимим. */
+    if(d.preview && d.offer){
+      var yp = window.scrollY;
+      MGR_VIEW = true;
+      OFFER = d.offer || {};
+      OFFER.items = OFFER.items || [];
+      OFFER.reco  = OFFER.reco  || [];
+      OFFER.terms = OFFER.terms || { deadlineDays: 4 };
+      OFFER.client = OFFER.client || {};
+      render();
+      window.scrollTo(0, yp);
       return;
     }
     if(d.offer){
@@ -2041,9 +2062,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=b5aa553b7f';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=b5aa553b7f';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=b5aa553b7f';
+  var CTOR_JS   = 'loomiq-constructor.js?v=21dc17d704';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=21dc17d704';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=21dc17d704';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -3055,7 +3076,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     '</div>';
   }
   function mgrCalcHtml(i, kind){
-    if(!EDIT) return '';
+    if(!EDIT && !MGR_VIEW) return '';
     var C = OFFER.mgr || {};
     var b = ((kind === 'reco' ? C.reco : C.items) || {})[i];
     if(!b) return '';
@@ -3065,7 +3086,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   // Те саме по всій пропозиції — під кошторисом, щоб рішення «дати ще знижку»
   // ухвалювалось із відомим залишком, а не на око
   function mgrCalcAllHtml(){
-    if(!EDIT) return '';
+    if(!EDIT && !MGR_VIEW) return '';
     var C = OFFER.mgr || {};
     var s = C.sum;
     if(!s) return '';
@@ -3210,7 +3231,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) +
-                priceBoxHtml(i) + '</div>' +
+                priceBoxHtml(i) + mgrCalcHtml(i, 'main') + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
