@@ -614,6 +614,25 @@
   .why{margin:14px 0 4px; padding:10px 10px 11px; background:#FBFCFE;
     border:1px solid #E9EEF5; border-radius:10px;}
   .note{flex:none; padding:10px 12px 12px; border-top:1px solid #E9EEF5; background:#fff;}
+  /* Вибір товару. Каталог тут-таки, у вікні: перекидати менеджера на сайт
+     заради вибору худі означало щоразу губити з очей пропозицію. */
+  .pick{position:fixed; inset:0; z-index:200; background:rgba(15,32,52,.5);
+    display:flex; align-items:center; justify-content:center; padding:18px;}
+  .pick-c{width:100%; max-width:640px; max-height:84vh; background:#fff; border-radius:16px;
+    display:flex; flex-direction:column; overflow:hidden;}
+  .pick-h{flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:13px 15px; border-bottom:1px solid #E9EEF5; font-size:14px;}
+  .pick-b{flex:1; overflow:auto; padding:10px; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
+  .pick-i{display:flex; flex-direction:column; gap:6px; align-items:flex-start; text-align:left;
+    font:inherit; background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:9px;
+    cursor:pointer;}
+  .pick-i:hover{border-color:#4F5FD4; box-shadow:0 4px 14px rgba(79,95,212,.13);}
+  .pick-th{width:100%; aspect-ratio:1/1; border-radius:9px; background:#F1F4F8; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;}
+  .pick-th img{width:100%; height:100%; object-fit:contain; display:block;}
+  .pick-n{font-size:12.5px; font-weight:700; line-height:1.25;}
+  .pick-p{font-size:11.5px; color:#7A879B;}
   .why-l{display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em;
     text-transform:uppercase; color:#8A93A3; margin-bottom:6px;}
   .why-t{width:100%; font:inherit; font-size:13px; line-height:1.5; color:#22314A;
@@ -707,8 +726,8 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_JS   = 'loomiq-constructor.js?v=b5aa553b7f';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=b5aa553b7f';
+  var CTOR_JS   = 'loomiq-constructor.js?v=21dc17d704';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=21dc17d704';
 
   function send(msg){
     if(window.parent === window) return;
@@ -785,9 +804,42 @@
       });
     });
     box.querySelectorAll('[data-add]').forEach(function(b){
-      b.addEventListener('click', function(){ send({ act:'pickopen', kind: b.dataset.add }); });
+      b.addEventListener('click', function(){ openPick(b.dataset.add); });
     });
     renderActs();
+  }
+  /* Вибір товару. Каталог показуємо самі — той самий список, що приходить
+     від адмінки разом із документом: ті самі назви, ціни й фото, що на
+     сайті. Доти ця кнопка просила адмінку відкрити каталог, а такої дії в
+     неї немає, — і «Додати товар» мовчки нічого не робило. */
+  var pickEl = null;
+  function closePick(){ if(pickEl){ pickEl.remove(); pickEl = null; } }
+  function openPick(kind){
+    closePick();
+    var d = document.createElement('div');
+    d.className = 'pick';
+    d.innerHTML = '<div class="pick-c">' +
+      '<div class="pick-h"><b>' + (kind === 'reco' ? 'Рекомендований товар' : 'Додати товар') + '</b>' +
+        '<button class="btn" data-pick-x>Закрити</button></div>' +
+      '<div class="pick-b">' +
+        (CATALOG.length ? CATALOG.map(function(p){
+          return '<button class="pick-i" data-gid="' + esc(p.id) + '">' +
+            '<span class="pick-th">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : '') + '</span>' +
+            '<span class="pick-n">' + esc(p.name) + '</span>' +
+            '<span class="pick-p">від ' + money(p.price) + '</span>' +
+          '</button>';
+        }).join('') : '<div class="empty">Каталог порожній — перевірте «Формування цін».</div>') +
+      '</div></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', function(e){ if(e.target === d) closePick(); });
+    d.querySelector('[data-pick-x]').addEventListener('click', closePick);
+    d.querySelectorAll('[data-gid]').forEach(function(b){
+      b.addEventListener('click', function(){
+        closePick();
+        send({ act:'pick', gid: b.dataset.gid, kind: kind });
+      });
+    });
+    pickEl = d;
   }
   /* Меню позиції. Одне на всю сторінку: два відкритих меню поруч — це вже
      здогадування, до якої позиції належить «Прибрати». */
@@ -1146,7 +1198,17 @@
       if(client){
         // Перед показом клієнтського вигляду віддаємо адмінці незбережене:
         // інакше менеджер звіряє пропозицію з тим, чого в ній ще немає
-        var go = function(){ if(CLIENT_URL) fr.src = CLIENT_URL + '&t=' + Date.now(); };
+        var go = function(){
+          if(!CLIENT_URL) return;
+          fr.onload = function(){
+            /* Даємо кадру ті самі дані, що маємо самі, — разом зі службовим
+               прорахунком. Вигляд лишається клієнтським, редагування там не
+               вмикається: у документі, який відкриє клієнт, цих цифр немає. */
+            try{ fr.contentWindow.postMessage({ lqEditInit:true, preview:true, offer: OFFER }, '*'); }
+            catch(e){}
+          };
+          fr.src = CLIENT_URL + '&t=' + Date.now();
+        };
         if(dirty) saveCurrent().then(go, go); else go();
       }
     });

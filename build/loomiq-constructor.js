@@ -564,8 +564,25 @@
     function logoCount(){ var n = 0; getViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
     // собівартість за штуку = одяг + нанесення + оплата за штуку
     function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
-    // повна собівартість замовлення = за штуку × кількість + разова собівартість замовлення
-    function orderCostTotal(){ var u = totalUnits(); return u > 0 ? (unitCost() * u + methodOrderCost()) : 0; }
+    /* Собівартість позиції = собівартість за штуку × тираж, і разова
+       собівартість макета входить у неї ЧАСТКОЮ — рівно так само, як разова
+       оплата входить у ціну. Доти сюди додавалась уся разова цілком, хоч
+       вона ділиться на всі вироби свого способу в замовленні. Тому рядок
+       «Ціна за штуку» в прорахунку не сходився з «Сумою собівартості», а в
+       замовленні позиція виглядала дорожчою, ніж є. */
+    function unitCostShare(qty){
+      var sd = (typeof sharedDraftParts === 'function') ? sharedDraftParts(qty) : null;
+      if(sd && sd.parts && sd.parts.costShare != null) return +sd.parts.costShare || 0;
+      return qty > 0 ? Math.round(methodOrderCost() / qty) : 0;   // рушій недоступний
+    }
+    function unitCostFull(){
+      var u = totalUnits();
+      return unitCost() + unitCostShare(u > 0 ? u : 1);
+    }
+    function orderCostTotal(){
+      var u = totalUnits();
+      return u > 0 ? Math.round(unitCostFull() * u) : 0;
+    }
     // Повна вартість замовлення = ціна/шт × кількість + разова оплата за замовлення.
     function orderTotal(){
       var u = totalUnits();
@@ -3495,7 +3512,11 @@
          Тому що в кошику лежать позиції з попереднього прорахунку, а знижка
          й підготовка макета рахуються на все замовлення разом — так само, як
          для клієнта. Пишемо це прямо і даємо кнопку почати з нуля. */
-      var inCart = (window.__cartItems || []).reduce(function(a, i){ return a + (+i.qty || 0); }, 0);
+      /* У пропозиції «кошик» — це склад замовлення, а не чернетки з
+         попереднього прорахунку. Попередження про нього тут недоречне, а
+         кнопка «почати з нуля» знищила б увесь склад. */
+      var inCart = window.__lqInline ? 0
+        : (window.__cartItems || []).reduce(function(a, i){ return a + (+i.qty || 0); }, 0);
       if(inCart > 0){
         head += '<div style="font-size:11.5px;line-height:1.5;margin:-4px 0 10px;padding:7px 9px;' +
           'border-radius:8px;background:#fff5e0;color:#8a5b00;">' +
@@ -3632,12 +3653,35 @@
       var oS = u>0 ? orderTotal() : Math.round(uSell*qty);
       var oC = u>0 ? orderCostTotal() : Math.round(fullUnitCost*qty);
       var oM = oS - oC, oMPct = oS>0 ? Math.round(oM/oS*100) : 0;
+      /* Ці три рядки — про ПОЗИЦІЮ, а не про замовлення: orderTotal() рахує
+         поточну позицію на її тираж. Поки в кошику лежала одна позиція, це
+         збігалось із замовленням, і назва «Маржа замовлення» була правдою.
+         У пропозиції в кошику весь склад — і назва почала брехати: зверху
+         одна штука, а внизу цифри від усього. Тому підписуємо чесно, а
+         справжнє замовлення рахуємо окремо, нижче. */
       var sum = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #d5d8dd;font-size:12.5px;">';
       sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа за штуку</span><b>'+money(marginU)+' ('+marginUPct+'%)</b></div>';
-      sum += '<div style="font-weight:800;margin:8px 0 4px;color:#0f2034;">Замовлення ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>';
+      sum += '<div style="font-weight:800;margin:8px 0 4px;color:#0f2034;">Ця позиція ('+qty+' шт'+(u>0?'':' — приклад')+'):</div>';
       sum += '<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(oS)+'</b></div>';
       sum += '<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b style="color:#8a1f1f;">'+money(oC)+'</b></div>';
-      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(oM)+' ('+oMPct+'%)</b></div>';
+      sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа позиції</span><b>'+money(oM)+' ('+oMPct+'%)</b></div>';
+      /* Усе замовлення — сусідні позиції плюс ця. Основні: рекомендовані
+         клієнт ще не обрав, і рахувати їх у суму зарано. */
+      var others = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var skipI = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
+      var aS = oS, aC = oC, aQ = u > 0 ? u : 0, aN = 1;
+      others.forEach(function(it, i){
+        if(i === skipI || !it || it.kind === 'reco') return;
+        aS += +it.price || 0; aC += +it.cost || 0; aQ += +it.qty || 0; aN++;
+      });
+      if(aN > 1){
+        var aM = aS - aC, aMPct = aS > 0 ? Math.round(aM / aS * 100) : 0;
+        sum += '<div style="font-weight:800;margin:10px 0 4px;color:#0f2034;">Усе замовлення (' +
+               aN + ' поз. · ' + aQ + ' шт):</div>';
+        sum += '<div style="display:flex;justify-content:space-between;"><span>Сума продажу</span><b>'+money(aS)+'</b></div>';
+        sum += '<div style="display:flex;justify-content:space-between;"><span>Сума собівартості</span><b style="color:#8a1f1f;">'+money(aC)+'</b></div>';
+        sum += '<div style="display:flex;justify-content:space-between;font-weight:800;color:#1a7a3a;"><span>Маржа замовлення</span><b>'+money(aM)+' ('+aMPct+'%)</b></div>';
+      }
       sum += '</div>';
       out.innerHTML = head + tb + sum;
       var tog = out.querySelector('[data-mgr-toggle]');
