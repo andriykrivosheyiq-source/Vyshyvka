@@ -2656,7 +2656,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-pricing.js?v=46cf49d9bc"></script>
+<script src="loomiq-pricing.js?v=185f37ca63"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5388,23 +5388,10 @@ const DOC_W = 1240;
    • Разова оплата методу ділиться на всі вироби методу, додатковий ескіз —
      на вироби свого дизайну. Однаковий малюнок = один макет.                */
 
-const FP_SAME = 0.03;
-function fpDistance(a, b){
-  if(!a || !b || a.length !== b.length || !a.length) return 1;
-  let n = 0;
-  for(let i = 0; i < a.length; i++) n += Math.abs((+a[i]||0) - (+b[i]||0));
-  return n / (a.length * 4);
-}
-function designGroups(fps){
-  const reps = [], index = [];
-  fps.forEach(fp=>{
-    let k = -1;
-    for(let i = 0; i < reps.length; i++){ if(fpDistance(reps[i], fp) <= FP_SAME){ k = i; break; } }
-    if(k < 0){ reps.push(fp); k = reps.length - 1; }
-    index.push(k);
-  });
-  return { count: reps.length, index, reps };
-}
+/* Порівняння відбитків і групування дизайнів — у рушії цін
+   (loomiq-pricing.js). Тут була друга копія тієї самої межі «схожості»;
+   розійшовшись, вони показували б різну кількість додаткових ескізів у
+   картці замовлення та в конструкторі. */
 function tierCoefFor(methodKey, qty){
   const p = curSitePricing(); if(!p) return 1;
   const m = (p.methods || {})[methodKey] || {};
@@ -9299,9 +9286,13 @@ function syncRecoQty(o){
 async function offerAddBare(o, gid, kind){
   const g = orderGarments().find(x => x.id === gid);
   if(!g) return;
-  // Рекомендований стартує з тиражу найбільшої основної позиції, основний — з типового
-  const q = kind === 'reco' ? recoQtyFor(o) : 20;
-  const u = bareUnitPrice(gid, q);
+  /* Рекомендований стартує з тиражу найбільшої основної позиції: його беруть
+     «до того ж», і питати кількість удруге немає за чим.
+     Основний товар кількості не вигадує. Скільки саме футболок замовляють —
+     знає менеджер, а не формула; вигадане число просто просочувалось у
+     пропозицію разом із порахованою з нього ціною. */
+  const q = kind === 'reco' ? recoQtyFor(o) : 0;
+  const u = bareUnitPrice(gid, q || 1);
   /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
      макета ще немає, бо немає логотипа, — і виглядало це так, ніби
      додавання зламалось. Справжній макет замінить це фото, щойно

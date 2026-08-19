@@ -584,6 +584,7 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .it-m{display:block; font-size:11px; color:#7A879B; margin-top:3px;
     font-variant-numeric:tabular-nums;}
+  .it-todo{color:#C2410C; font-weight:700;}
   .it-r{font-size:11px; font-weight:700; color:#8A93A3; text-transform:uppercase; letter-spacing:.04em;}
   .list-sec{font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
     color:#8A93A3; padding:14px 8px 6px;}
@@ -717,9 +718,9 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_PRICE = 'loomiq-pricing.js?v=46cf49d9bc';
-  var CTOR_JS   = 'loomiq-constructor.js?v=46cf49d9bc';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=46cf49d9bc';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=185f37ca63';
+  var CTOR_JS   = 'loomiq-constructor.js?v=185f37ca63';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=185f37ca63';
 
   function send(msg){
     if(window.parent === window) return;
@@ -750,8 +751,14 @@
            Замість нього — те саме, що в основних: тираж і ціна за штуку. */
         /* Видно й ціну за штуку, й суму: перше збігається з тим, що показує
            конструктор під виробом, друге — з тим, що піде в кошторис. */
-        '<span class="it-m">' + (+it.qty || 0) + ' × ' + money(it.unitPrice) +
-          ' = ' + money((+it.sum || (+it.unitPrice || 0) * (+it.qty || 0))) + '</span>' +
+        /* Щойно доданий основний товар кількості ще не має — її вказує
+           менеджер у конструкторі. Показувати «0 × 400 грн = 0 грн» немає
+           сенсу: це не ціна, це незаповнений рядок, і сказати про це прямо
+           коротше, ніж змушувати здогадуватись за нулями. */
+        '<span class="it-m">' + ((+it.qty || 0) > 0
+          ? (+it.qty || 0) + ' × ' + money(it.unitPrice) +
+            ' = ' + money((+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)))
+          : '<b class="it-todo">вкажіть розмір і кількість</b>') + '</span>' +
       '</span>' +
       '<button class="it-dots" data-dots="' + kind + ':' + i + '" title="Дії з позицією">⋯</button>' +
     '</div>';
@@ -1161,16 +1168,45 @@
       send({ act:'editInline', kind: kind, i: i });
       loadCtor().catch(fail);
     };
-    if(dirty && !force) saveCurrent().then(go, go); else go();
+    if(!dirty || force) return go();
+    /* Не зберіглось — не йдемо мовчки. Найчастіша причина буденна: у нової
+       позиції ще не вказано розмір і кількість, і конструктор замість запису
+       показав підказку. Піти звідси означало б стерти півгодини роботи. */
+    saveCurrent().then(function(ok){
+      if(ok) return go();
+      var m = 'Позицію не збережено — найімовірніше, не вказано розмір і кількість.\n\n' +
+              'Перейти до іншої позиції й втратити ці зміни?';
+      var leave = false;
+      try{ leave = window.confirm(m); }catch(e){ leave = true; }
+      if(leave) go();
+    }, function(){ go(); });
   }
+  /* Зберегти те, що зараз у конструкторі, і ДОЧЕКАТИСЬ кінця запису.
+     Клік лише запускає роботу: спершу знімаються макети всіх ракурсів, потім
+     летить запит до адмінки — на все це йдуть секунди. Доти ми вважали
+     збереженим уже сам клік і бралися перемикати позицію: конструктор
+     розбирали й засівали наново просто посеред збереження, і правки зникали.
+     Тепер обіцянку запису віддає сам конструктор (__lqSavePromise), і
+     перехід чекає саме на неї. */
   function saveCurrent(){
     if(!window.__lqSendToOrder || !window.cartItems || !window.cartItems.length)
       return Promise.resolve(false);
-    try{
-      var btn = document.getElementById('pmAddToCartBtn');
-      if(btn){ btn.click(); return Promise.resolve(true); }
-    }catch(e){}
-    return Promise.resolve(false);
+    var btn = document.getElementById('pmAddToCartBtn');
+    if(!btn) return Promise.resolve(false);
+    window.__lqSavePromise = null;
+    mark('saving', 'Зберігаємо…');
+    try{ btn.click(); }catch(e){ return Promise.resolve(false); }
+    /* Конструктор міг і не почати запису — наприклад, не вибрано розмір і
+       кількість, і замість збереження він показав підказку. Тоді обіцянки
+       немає, і рахувати позицію збереженою не можна. */
+    return waitSave(0);
+  }
+  function waitSave(tries){
+    if(window.__lqSavePromise)
+      return Promise.resolve(window.__lqSavePromise).then(function(ok){ return ok !== false; },
+                                                          function(){ return false; });
+    if(tries > 20){ mark('bad', 'Не збережено'); return Promise.resolve(false); }
+    return new Promise(function(res){ setTimeout(res, 100); }).then(function(){ return waitSave(tries + 1); });
   }
   // Кнопка «Зберегти позицію» стоїть у шапці адмінки й просить нас звідти
   function onSaveRequest(){ saveCurrent(); }
