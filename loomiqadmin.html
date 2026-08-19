@@ -2655,6 +2655,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK (compat) -->
+<!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
+<script src="loomiq-pricing.js?v=46cf49d9bc"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5414,119 +5416,13 @@ function tierCoefFor(methodKey, qty){
   return c;
 }
 // opts.noVolume — те саме замовлення без знижки за тираж (рядок «Було» в КП)
+/* Рушій цін живе в окремому файлі loomiq-pricing.js — один на сайт, адмінку
+   й сторінку пропозиції. Копія тут була другим місцем, де ту саму формулу
+   треба не забути виправити, і саме через такі копії числа розходились. */
 function priceOrder(list, opts){
-  opts = opts || {};
-  const p = curSitePricing();
-  if(!p) return list.map(()=>({ unit:0, sum:0, feeShare:0 }));
-  const U = { dtf:0, embro:0, bare:0 };
-  list.forEach(it=>{
-    const u = Math.max(0, +it.units || 0);
-    if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
-  });
-  const coef = { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (U.dtf || 1)),
-                 embro: tierCoefFor('embro', opts.noVolume ? 1 : (U.embro || 1)) };
-  // Голий виріб не прив'язаний до способу нанесення: без власної шкали виробу
-  // він іде за загальною шкалою сайту (див. index.html — рушій той самий).
-  const gcoefSet = docGarmentCoef(opts.noVolume ? 1 : (U.bare || 1));
-
-  // Разові — окремо на картинки й окремо на написи (див. index.html)
-  const kindOf = (it, i) => (Array.isArray(it.designKinds) && it.designKinds[i] === 'txt') ? 'txt' : 'img';
-  const fees = {};
-  ['dtf','embro'].forEach(mk=>{
-    const mine = list.filter(it=> !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk);
-    ['img','txt'].forEach(kind=>{
-      const flat = [];
-      mine.forEach(it=> (it.designs || []).forEach((fp,i)=>{ if(kindOf(it,i)===kind) flat.push(fp || ''); }));
-      if(!flat.length){ fees[mk+':'+kind] = null; return; }
-      const cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
-      const g = designGroups(flat);
-      const unitsOf = new Array(g.count).fill(0);
-      let k = 0, total = 0;
-      mine.forEach(it=>{
-        const seen = {}; let has = false;
-        (it.designs || []).forEach((fp,i)=>{
-          if(kindOf(it,i) !== kind) return;
-          has = true;
-          const gi = g.index[k++];
-          if(seen[gi]) return;
-          seen[gi] = 1;
-          unitsOf[gi] += Math.max(0, +it.units || 0);
-        });
-        if(has) total += Math.max(0, +it.units || 0);
-      });
-      fees[mk+':'+kind] = { cfg, groups:g, unitsOf, total: total || 1 };
-    });
-  });
-
-  const cursor = {};
-  return list.map(it=>{
-    const u = Math.max(0, +it.units || 0);
-    if(it.bare){
-      const gc = (gcoefSet != null) ? gcoefSet
-               : tierCoefFor(null, opts.noVolume ? 1 : (U.bare || 1));
-      const ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
-      return { unit: ub, sum: ub * u, feeShare: 0, parts: {
-        bare:true, coef:gc, groupQty:U.bare,
-        garmentBase:+it.base || 0, garment:Math.round((+it.base || 0) * gc),
-        appBase:0, app:0, pieceFee:+it.pieceFee || 0,
-        feeShare:0, feeTotal:0, feeUnits:0, sketches:[]
-      } };
-    }
-    const mk = it.method === 'embro' ? 'embro' : 'dtf';
-    const c = coef[mk];
-    let flat = 0;
-    if(mk === 'dtf' && (it.dtfCols || []).length){
-      const cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [];
-      let row = 0;
-      const qRow = opts.noVolume ? 1 : (U.dtf || 1);
-      for(let j = qf.length - 1; j >= 0; j--){ if(qRow >= qf[j]){ row = j; break; } }
-      const grid = cfg.price || [];
-      it.dtfCols.forEach(col=>{
-        flat += Math.round((grid[row] && grid[row][col] != null) ? +grid[row][col] : 0);
-      });
-    }
-    let feeShare = 0, costShare = 0, feeTotal = 0, feeUnits = 0;
-    const sketches = [], feeLines = [], paid = {};
-    (it.designs || []).forEach((fp,i)=>{
-      /* Дизайн без відбитка — усе одно дизайн. Раніше такий рядок мовчки
-         пропускався, і замовлення втрачало гроші: напис, відбиток якого ще
-         не встиг порахуватись, ставав безкоштовним — ні разової підготовки
-         макета, ні ескізу. Тепер він рахується, а порожній відбиток просто
-         не збігається ні з чим і утворює власну групу. */
-      const kind = kindOf(it,i), key = mk+':'+kind, f = fees[key];
-      if(!f) return;
-      if(cursor[key] == null) cursor[key] = 0;
-      const gi = f.groups.index[cursor[key]++];
-      if(!paid[kind]){
-        paid[kind] = {};
-        feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
-        costShare += (+f.cfg.orderCost || 0) / (f.total || 1);
-        feeTotal += (+f.cfg.orderFee || 0); feeUnits = f.total || 1;
-        // Кожна разова окремим рядком — щоб прорахунок можна було прочитати
-        feeLines.push({ kind, fee:+f.cfg.orderFee || 0,
-                        cost:+f.cfg.orderCost || 0, units:f.total || 1 });
-      }
-      if(paid[kind][gi] || gi === 0) return;
-      paid[kind][gi] = 1;
-      feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
-      costShare += (+f.cfg.sketchCost || 0) / (f.unitsOf[gi] || 1);
-      sketches.push({ kind, fee:+f.cfg.sketchFee || 0,
-                      cost:+f.cfg.sketchCost || 0, units:f.unitsOf[gi] || 1 });
-    });
-    const unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
-                 (+it.pieceFee || 0) + Math.round(feeShare);
-    return { unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
-      bare:false, method:mk, coef:c, groupQty:U[mk] || u,
-      garmentBase:+it.base || 0, garment:Math.round((+it.base || 0) * c),
-      appBase:(+it.coefPart || 0) + flat, app:Math.round((+it.coefPart || 0) * c) + flat,
-      basePart:+it.basePart || 0, minPart:+it.minPart || 0,
-      gridPriced: mk === 'dtf' && flat > 0,
-      pieceFee:+it.pieceFee || 0, feeShare:Math.round(feeShare),
-      costShare:Math.round(costShare),
-      feeTotal, feeUnits,
-      feeLines, sketches
-    } };
-  });
+  return (window.LQ && window.LQ.priceOrder)
+    ? window.LQ.priceOrder(list, opts)
+    : list.map(() => ({ unit:0, sum:0, feeShare:0 }));
 }
 // Розклад ціни під сумою: менеджер має бачити, з чого склалась цифра,
 // і чому вона змінилась, коли додали другу позицію з тим самим макетом.
@@ -5603,6 +5499,13 @@ function repriceOrder(o){
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return false;
   const res = priceOrder(list);
+  /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
+     повертає нулі. Записати їх означало б обнулити замовлення через
+     тимчасовий збій: краще лишити ціни, які вже пораховані. */
+  if(res.every(r => !r || !(+r.unit))){
+    console.warn('перерахунок пропущено: модель цін недоступна');
+    return false;
+  }
   idx.forEach((i, k)=>{
     const it = o.items[i], r = res[k];
     if(!it || !r) return;
@@ -6004,6 +5907,13 @@ function offerItem(it, order, itemIdx){
       widthMm: Math.round(+p.widthMm || 0), heightMm: Math.round(+p.heightMm || 0)
     })),
     mockups: (it.mockups || []).slice(0, 6),
+    /* Опис позиції для спільного рушія цін. Сторінка клієнта рахує ним
+       склад наново, коли клієнт додає рекомендований товар: тираж способу
+       від цього зростає, а отже дешевшає і все інше. Без цього опису вона
+       могла показати тільки те, що ми порахували наперед, — і сума
+       розходилась із тим, що клієнт щойно зібрав. Собівартості тут немає:
+       лише те, з чого складається ціна, яку він і так бачить. */
+    desc: it.desc || null,
     // Ракурси, якими керує менеджер: скільки їх, як звуться, яке фото в кожному
     views: itemViews(it),
     /* Характеристики виробу — ті самі, що на сторінці товару сайту
@@ -9144,6 +9054,20 @@ function offerEdPush(o){
        записується, тож у клієнта в документі його немає взагалі. */
     const doc = offerClean(offerBuild(o));
     doc.mgr = offerMgrCalc(o);     // тільки в кадр, у базу не потрапляє
+    /* Свіжий склад замовлення — робоче місце тримає його в кошику
+       конструктора, щоб ціна рахувалась від усього тиражу, а не від однієї
+       позиції. Без цього сусідні позиції застарівали після кожного
+       збереження. */
+    doc.cart = (o.items || []).map(x => ({
+      kind: x.kind === 'reco' ? 'reco' : 'main',
+      name: x.name || '', color: x.color || '', print: x.print || '', sizes: x.sizes || '',
+      qty: +x.qty || 0, unitPrice: +x.unitPrice || 0, price: +x.price || 0,
+      unitCost: +x.unitCost || 0, cost: +x.cost || 0,
+      recoNote: x.recoNote || '', recoTag: x.recoTag || '',
+      imgs: (x.mockups || []).slice(), prints: (x.prints || []).slice(),
+      calc: x.calc || null, desc: x.desc || null, config: configWithLogos(x),
+      garmentId: x.garmentId || ''
+    }));
     f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc,
                                   editDone: offerEdCloseInline }, '*');
     offerEdCloseInline = false;

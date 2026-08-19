@@ -717,8 +717,9 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_JS   = 'loomiq-constructor.js?v=d3e96d7b27';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=d3e96d7b27';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=46cf49d9bc';
+  var CTOR_JS   = 'loomiq-constructor.js?v=46cf49d9bc';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=46cf49d9bc';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1022,7 +1023,18 @@
       document.body.appendChild(host);
       res(true);
     });
-    ctorReady = Promise.all([css, markup, content()]).then(function(){
+    var one = function(src){
+      return new Promise(function(res, rej){
+        var sc = document.createElement('script');
+        sc.src = src;
+        sc.onload = function(){ res(true); };
+        sc.onerror = function(){ rej(new Error(src + ' не завантажився')); };
+        document.body.appendChild(sc);
+      });
+    };
+    ctorReady = Promise.all([css, markup, content()])
+      .then(function(){ return one(CTOR_PRICE); })   // рушій цін — перед конструктором
+      .then(function(){
       return new Promise(function(res, rej){
         var sc = document.createElement('script');
         sc.src = CTOR_JS;
@@ -1200,7 +1212,23 @@
     if(d.catalog) CATALOG = d.catalog;
     if(d.clientUrl) CLIENT_URL = d.clientUrl;
     if(d.seed !== undefined) window.__adminSeedItem = d.seed;
-    if(d.cart !== undefined) window.__adminSeedCart = d.cart;
+    if(d.cart !== undefined){
+      window.__adminSeedCart = d.cart;
+      /* Свіжий склад — і в кошик конструктора, але ЛИШЕ для сусідніх позицій.
+         Активну не чіпаємо: людина зараз її і править, і підміна під руками
+         скинула б незбережене. Без цього оновлення сусіди лишались зі
+         старими тиражами: одна й та сама позиція рахувалась то за одну
+         штуку, то за дві — залежно від того, коли ми востаннє бачили склад. */
+      try{
+        var keep = window.__lqEditOnly;
+        if(Array.isArray(d.cart) && window.cartItems && keep != null){
+          var fresh = JSON.parse(JSON.stringify(d.cart));
+          if(fresh.length === window.cartItems.length){
+            fresh.forEach(function(x, i){ if(i !== +keep) window.cartItems[i] = x; });
+          }
+        }
+      }catch(e){ console.warn('склад не оновився', e); }
+    }
     if(d.cartIndex !== undefined) window.__adminSeedIndex = d.cartIndex;
     if(d.target !== undefined) window.__adminOfferTarget = d.target;
     if(d.offer){

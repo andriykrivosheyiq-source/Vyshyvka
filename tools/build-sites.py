@@ -24,9 +24,11 @@ CONFIG = os.path.join(ROOT, 'tools', 'sites.json')
 # пропозиції. Ніші відрізняються складом виробів, тож кожна дістає власну копію.
 CTOR = 'loomiq-constructor.js'
 CTOR_PATH = os.path.join(ROOT, CTOR)
-STAMPED = ('index.html', 'offer.html', 'offer-edit.html')
+STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html')
 # Стилі й розмітка конструктора теж мають одне джерело — index.html. Сторінка
 # пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
+# Рушій цін — один файл на сайт, адмінку й сторінку пропозиції
+CTOR_PRICE = 'loomiq-pricing.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -67,8 +69,13 @@ def replace_once(text, old, new, what):
 
 
 def absolutise_images(html):
-    """images/... → /images/..., щоб спрацювало з підпапки /horeca/."""
+    """images/... → /images/..., щоб спрацювало з підпапки /horeca/.
+
+    Рушій цін теж робимо абсолютним. Він один на всі сайти, окремої копії в
+    ніші не має — а з відносним шляхом сторінка в /horeca/ шукала б його в
+    /horeca/ і не знаходила: ціни мовчки ставали нулями."""
     html = re.sub(r'(?<![/\w.])images/', '/images/', html)
+    html = html.replace('src="loomiq-pricing.js', 'src="/loomiq-pricing.js')
     return html
 
 
@@ -372,7 +379,9 @@ def build(site, cfg, base_html, base_ctor):
     html = apply_cases(html, cfg)
     html, ctor = apply_garments(html, ctor, cfg)
     html, ctor = apply_texts(html, ctor, cfg)
-    html = stamp(html, CTOR, ctor_version(ctor))
+    nv = ctor_version(ctor)
+    html = stamp(html, CTOR, nv)
+    html = stamp(html, CTOR_PRICE, nv)
     return html, ctor
 
 
@@ -409,14 +418,15 @@ def main():
             print('[%s] розмітку конструктора вкладено в сторінку' % name)
 
     # Позначка версії спільна на всі три файли: вони змінюються разом
-    ver = ctor_version(base_ctor + css + markup)
+    price = open(os.path.join(ROOT, CTOR_PRICE), encoding='utf-8').read()
+    ver = ctor_version(base_ctor + css + markup + price)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
         new = txt
-        for asset in (CTOR, CTOR_CSS, CTOR_HTML):
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE):
             new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)

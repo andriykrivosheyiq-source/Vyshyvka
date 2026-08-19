@@ -1836,6 +1836,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 <!-- /lq:constructor --></template>
 
+<!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
+     склад наново, коли клієнт додає рекомендований товар. -->
+<script src="loomiq-pricing.js?v=46cf49d9bc"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -1867,7 +1870,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   (function loadBgApi(){
     if(!window.fetch) return;
     fetch('https://firestore.googleapis.com/v1/projects/loomiq-admin/databases/(default)' +
-          '/documents/loomiq/photos?mask.fieldPaths=bgApi')
+          '/documents/loomiq/photos?mask.fieldPaths=bgApi&mask.fieldPaths=pricing')
       .then(function(r){ return r.json(); })
       .then(function(j){
         var f = ((((j || {}).fields || {}).bgApi || {}).mapValue || {}).fields || {};
@@ -1875,10 +1878,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         Object.keys(f).forEach(function(k){ out[k] = f[k].stringValue || ''; });
         window.SITE_CONTENT = window.SITE_CONTENT || {};
         window.SITE_CONTENT.bgApi = out;
+        /* Модель цін — та сама, що в конструкторі й адмінці. Потрібна, щоб
+           сторінка вміла перерахувати склад, коли клієнт додає
+           рекомендований товар: тираж способу зростає, і решта позицій має
+           подешевшати рівно так, як подешевшала б у прорахунку менеджера. */
+        /* Порожню відповідь не записуємо: збій мережі чи правил Firestore не
+           має стирати модель цін, якщо вона вже є. Інакше сторінка мовчки
+           переходить на нулі. */
+        var pr = unwrapFs(((j || {}).fields || {}).pricing);
+        if(pr && pr.methods) window.SITE_CONTENT.pricing = pr;
         document.dispatchEvent(new Event('lq-content'));
+        refresh();
       })
       .catch(function(){});
   })();
+
+  // Firestore REST віддає значення в обгортках типів — розгортаємо в обʼєкт
+  function unwrapFs(node){
+    if(!node || typeof node !== 'object') return node;
+    if(node.mapValue){
+      var out = {}, f = node.mapValue.fields || {};
+      Object.keys(f).forEach(function(k){ out[k] = unwrapFs(f[k]); });
+      return out;
+    }
+    if(node.arrayValue) return (node.arrayValue.values || []).map(unwrapFs);
+    if(node.stringValue !== undefined) return node.stringValue;
+    if(node.integerValue !== undefined) return +node.integerValue;
+    if(node.doubleValue !== undefined) return +node.doubleValue;
+    if(node.booleanValue !== undefined) return !!node.booleanValue;
+    if(node.nullValue !== undefined) return null;
+    return node;
+  }
 
   var app = document.getElementById('app');
 
@@ -2062,9 +2092,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=d3e96d7b27';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=d3e96d7b27';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=d3e96d7b27';
+  var CTOR_JS   = 'loomiq-constructor.js?v=46cf49d9bc';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=46cf49d9bc';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=46cf49d9bc';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2589,12 +2619,56 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   /* Додана рекомендація живе далі як звичайна позиція: своя кількість,
      свій підсумок. Тому в неї такий самий стан, як у основного товару. */
-  function recoState(i){
+  /* ── Перерахунок складу спільним рушієм ──────────────────────────────
+     Ціна позиції залежить від усього замовлення: знижка за тираж рахується
+     від сумарної кількості в межах способу нанесення, а підготовка макета
+     ділиться на всі вироби цього способу. Тому додавання рекомендованого
+     товару здешевлює й решту — і клієнт має бачити це одразу, а не тільки
+     після того, як менеджер перерахує вручну.
+
+     Рушій тут той самий, що в конструкторі й адмінці (loomiq-pricing.js).
+     Якщо він чи модель цін не приїхали — мовчки лишаємось на цінах, які
+     порахував менеджер: краще старі, ніж вигадані. */
+  var LIVE = null;
+  function livePrices(){
+    if(!window.LQ || !window.LQ.priceOrder) return null;
+    if(!(window.SITE_CONTENT && window.SITE_CONTENT.pricing)) return null;
+    var list = [], map = [];
+    (OFFER.items || []).forEach(function(it, i){
+      if(!isOn(i) || !it.desc) return;
+      var d = JSON.parse(JSON.stringify(it.desc));
+      d.units = Math.max(1, baseQty(i));
+      list.push(d); map.push(['main', i]);
+    });
+    (OFFER.reco || []).forEach(function(r, i){
+      if(!pick.reco[i] || !r.desc) return;
+      var d = JSON.parse(JSON.stringify(r.desc));
+      d.units = Math.max(1, baseRecoQty(i));
+      list.push(d); map.push(['reco', i]);
+    });
+    if(!list.length) return null;
+    var res;
+    try{ res = window.LQ.priceOrder(list); }catch(e){ console.warn('перерахунок не вийшов', e); return null; }
+    var out = { main:{}, reco:{} };
+    map.forEach(function(m, k){ if(res[k]) out[m[0]][m[1]] = res[k]; });
+    return out;
+  }
+  // Тираж без перерахунку — саме він іде в рушій
+  function baseQty(i){
+    var it = OFFER.items[i] || {};
+    var q = EDIT ? null : pick.qty[i];
+    return Math.max(1, Math.round(q == null ? (+it.qty || 1) : q));
+  }
+  function baseRecoQty(i){
     var r = OFFER.reco[i] || {};
     var q = pick.recoQty[i];
-    if(q == null) q = +r.qty || 1;
-    q = Math.max(1, Math.round(q));
-    var unit = +r.unitPrice || 0;
+    return Math.max(1, Math.round(q == null ? (+r.qty || 1) : q));
+  }
+  function recoState(i){
+    var r = OFFER.reco[i] || {};
+    var q = baseRecoQty(i);
+    var live = LIVE && LIVE.reco[i];
+    var unit = live ? live.unit : (+r.unitPrice || 0);
     return { qty:q, unit:unit, sum:unit * q };
   }
 
@@ -2610,8 +2684,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        самою, змінюється лише те, що наносимо. */
     var pk = packOf(i);
     var kp = (pk && it.unitPrice) ? (pk.unit / it.unitPrice) : 1;
+    /* Ціна від спільного рушія головніша за ту, що порахував менеджер: вона
+       враховує, що клієнт щойно додав рекомендований товар і тираж способу
+       зріс. Коефіцієнт пакета лишається зверху — він міняє склад нанесення,
+       а не тираж. */
+    var live = LIVE && LIVE.main[i];
     if(q == null || q === it.qty){
-      var u0 = Math.round(it.unitPrice * kp);
+      var u0 = live ? Math.round(live.unit * kp) : Math.round(it.unitPrice * kp);
       return { qty: it.qty, unit: u0, sum: u0 * it.qty,
                base: Math.round(it.basePrice * kp),
                save: Math.max(0, Math.round(it.basePrice * kp) - u0 * it.qty), changed: kp !== 1 };
@@ -2620,8 +2699,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Ціна за штуку — з того порогу, у який потрапила кількість: беремо
        найбільший поріг, що не перевищує обрану кількість. Так 40 шт коштують
        як 30, а не як 50 — це чесно й збігається з тим, що порахує Канбан. */
+    /* Рушій рахує саме цю кількість разом з усім складом — це точніше за
+       пороги, пораховані наперед. Пороги лишаються запасним шляхом на
+       випадок, коли модель цін не приїхала. */
     var unit = it.unitPrice;
-    (it.tiers || []).slice().sort(function(a, b){ return a.qty - b.qty; })
+    if(live) unit = live.unit;
+    else (it.tiers || []).slice().sort(function(a, b){ return a.qty - b.qty; })
       .forEach(function(t){ if(q >= t.qty) unit = t.unit; });
     unit = Math.round(unit * kp);
     var baseUnit = it.qty ? (it.basePrice * kp / it.qty) : unit;
@@ -3934,6 +4017,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* ═══════════ рендер і події ═══════════ */
 
   function render(){
+    LIVE = livePrices();
     /* Конструктор стоїть усередині картки, а картку зараз перемалюють —
        його треба відвести вбік, інакше він піде разом зі старою розміткою.
        Саме через це «Редагувати» вдруге показувало «Відкриваємо…» і
@@ -3978,6 +4062,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
   function refresh(){
+    // Склад міг змінитись — перераховуємо його спільним рушієм перед тим,
+    // як показувати будь-яку цифру
+    LIVE = livePrices();
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
