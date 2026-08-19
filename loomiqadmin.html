@@ -7142,7 +7142,13 @@ function orderItemsHtml(o){
           <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
-        <div class="t-web-meta">${escapeHtml(it.color||'')}${it.sizes?' · '+escapeHtml(it.sizes):''}</div>
+        ${/* Розкладка по розмірах — те, що піде у виробництво. Показуємо
+             завжди: коли її ще не узгодили, там стоїть «Без розміру × N», і
+             видно, що саме треба уточнити в клієнта, а не здогадуватись,
+             чому в позиції немає розмірів. */''}
+        <div class="t-web-meta">${escapeHtml(it.color||'')}${
+          it.sizes ? ' · ' + escapeHtml(it.sizes)
+                   : (+it.qty ? ' · без розміру × ' + (+it.qty) : '')}</div>
         ${itemSupHtml(it)}
         ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
@@ -9570,6 +9576,11 @@ async function offerEdApply(msg){
   }
   // Редактор згорнули — тепер можна спокійно показати оновлену пропозицію
   if(act === 'refresh'){ offerEdPreview(true); return; }
+  /* Робоче місце просить свіжі дані — віддаємо без перезавантаження кадру.
+     Кличеться одразу після збереження позиції: у лівій панелі стоїть її
+     ціна й сума пропозиції, і вони мають показувати те, що щойно
+     записалось, а не те, що було до правки. */
+  if(act === 'pull'){ try{ offerEdPush(o); }catch(e){} return; }
   /* «Чому радимо» — текст під рекомендованою позицією, який бачить клієнт.
      Рекомендація без пояснення читається як спроба дописати в рахунок ще
      один товар; із поясненням — як робота менеджера, який подумав за

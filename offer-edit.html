@@ -613,7 +613,6 @@
   .menu button.is-del:hover{background:#FDECEA;}
   .why{margin:14px 0 4px; padding:10px 10px 11px; background:#FBFCFE;
     border:1px solid #E9EEF5; border-radius:10px;}
-  .note{flex:none; padding:10px 12px 12px; border-top:1px solid #E9EEF5; background:#fff;}
   /* Вибір товару. Каталог тут-таки, у вікні: перекидати менеджера на сайт
      заради вибору худі означало щоразу губити з очей пропозицію. */
   .pick{position:fixed; inset:0; z-index:200; background:rgba(15,32,52,.5);
@@ -691,14 +690,6 @@
     <!-- Сума — тільки основних позицій. Рекомендовані клієнт ще не обрав, і
          рахувати їх наперед означало б показувати менеджеру суму, якої
          немає. -->
-    <!-- Коментар менеджера до всієї пропозиції: «ми підібрали вам саме такі
-         вироби, тому що…». Це текст про пропозицію загалом, і клієнт бачить
-         його на своїй сторінці окремим блоком. -->
-    <div class="note">
-      <label class="why-l" for="noteText">Коментар менеджера — клієнт це побачить</label>
-      <textarea class="why-t" id="noteText" rows="3"
-        placeholder="Напр.: підібрали вироби під ваш бюджет і терміни — вишивка тримається довше за друк"></textarea>
-    </div>
     <div class="list-f">Разом<b id="listSum">—</b><span id="listMeta"></span></div>
   </aside>
   <main class="work" id="paneWork">
@@ -726,8 +717,8 @@
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
   var ctorReady = null;
 
-  var CTOR_JS   = 'loomiq-constructor.js?v=21dc17d704';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=21dc17d704';
+  var CTOR_JS   = 'loomiq-constructor.js?v=d3e96d7b27';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=d3e96d7b27';
 
   function send(msg){
     if(window.parent === window) return;
@@ -887,24 +878,6 @@
     box.classList.toggle('hide', !on);
     if(on && document.activeElement !== ta) ta.value = it.recoNote || '';
   }
-  /* Коментар до всієї пропозиції. Зберігаємо, коли людина відвела погляд:
-     писати в базу на кожній літері — це десятки записів на один абзац. */
-  (function(){
-    var ta = document.getElementById('noteText');
-    if(!ta) return;
-    ta.addEventListener('blur', function(){
-      var t = String(ta.value || '').trim();
-      if(!OFFER || (noteText(OFFER) === t)) return;
-      OFFER.why = t ? t.split(/\r?\n/).map(function(x){ return x.trim(); }).filter(Boolean) : [];
-      send({ act:'why', text: t });
-    });
-    ta.addEventListener('keydown', function(e){ e.stopPropagation(); });
-  })();
-  // У документі це масив рядків — для поля зводимо назад у текст
-  function noteText(o){
-    var w = (o || {}).why;
-    return Array.isArray(w) ? w.join('\n') : String(w || '');
-  }
   function wireWhy(){
     var ta = document.getElementById('whyText');
     if(!ta || ta.dataset.wired) return;
@@ -964,7 +937,12 @@
           window.removeEventListener('message', off);
           clearTimeout(timer);
           mark(m.ok ? 'ok' : 'bad', m.ok ? 'Збережено ✓' : 'Не збережено');
-          if(m.ok){ dirty = false; res(true); } else rej(new Error(m.err || 'не збереглось'));
+          if(m.ok){
+            dirty = false;
+            // Просимо свіжі дані: у лівій панелі має стояти нова ціна й сума
+            send({ act:'pull' });
+            res(true);
+          } else rej(new Error(m.err || 'не збереглось'));
         };
         window.addEventListener('message', off);
         timer = setTimeout(function(){
@@ -1230,8 +1208,6 @@
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
       renderList();
-      var nt = document.getElementById('noteText');
-      if(nt && document.activeElement !== nt) nt.value = noteText(OFFER);
       var n = OFFER.items.length;
       /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
          саме щоб його налаштувати, а не щоб потім шукати в списку. */
