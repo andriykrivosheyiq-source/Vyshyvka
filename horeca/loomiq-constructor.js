@@ -1815,24 +1815,11 @@
         return out;
       }catch(e){ return ''; }
     }
-    function fpDistance(a, b){
-      if(!a || !b || a.length !== b.length || !a.length) return 1;
-      var n = 0;
-      for(var i = 0; i < a.length; i++) n += Math.abs((+a[i]||0) - (+b[i]||0));
-      return n / (a.length * 4);
-    }
-    function sameFingerprint(a, b){ return fpDistance(a, b) <= FP_SAME; }
-    // Розкладаємо список відбитків по групах: однакові малюнки — одна група.
-    function designGroups(fps){
-      var reps = [], index = [];
-      fps.forEach(function(fp){
-        var k = -1;
-        for(var i = 0; i < reps.length; i++){ if(sameFingerprint(reps[i], fp)){ k = i; break; } }
-        if(k < 0){ reps.push(fp); k = reps.length - 1; }
-        index.push(k);
-      });
-      return { count: reps.length, index: index, reps: reps };
-    }
+    /* Порівняння відбитків і розкладання їх по групах живуть у рушії цін
+       (loomiq-pricing.js): саме він вирішує, за який дизайн беруться разові.
+       Копія тут була б другим місцем, де ту саму межу «схожості» треба не
+       забути виправити, — а розійшовшись, вони давали б різну кількість
+       додаткових ескізів у конструкторі й у пропозиції. */
     /* Відбиток напису рахуємо з самих букв, а не з картинки.
        Картинка тут не працює взагалі: у imageFingerprint прозоре тло
        заливається білим, а напис на темному виробі за замовчуванням теж
@@ -4429,6 +4416,14 @@
       pm.garmentPick = false;
       pm.sizeFocus = null;
       pm.editing = false;      // звичайне відкриття картки — не редагування
+      /* Тираж на новий виріб не переїжджає. Кількість базового товару
+         визначає менеджер — він знає, скільки саме футболок беруть, і
+         успадкована з попередньої картки цифра означала б замовлення на
+         30 худі там, де домовлялись про 10.
+         Виняток — перехід із рекомендованої картки (carry): там тираж
+         навмисно той самий, що й в основної позиції, і питати його вдруге
+         немає за чим. */
+      if(!carry) pm.qty = {};
       window.__pmEditIndex = null;
       try{ syncAddLabels(); }catch(e){}
       // перше фото = те, що менеджер поставив першим у порядку (перетягуванням в адмінці)
@@ -4728,7 +4723,12 @@
           pm.qty = {}; pm.editing = false;
           try{ syncAddLabels(); }catch(e){}
         }
-        snapDone.then(function(){ window.__lqSendToOrder(); });
+        /* Обіцянку запису лишаємо назовні. Робоче місце менеджера перемикає
+           позиції й показує клієнтський вигляд — і те, і те має дочекатись
+           саме кінця запису. Доти воно вважало збереженим уже сам клік: поки
+           знімалися макети й летів запит, конструктор устигали розібрати й
+           засіяти наново, і правки тихо зникали. */
+        window.__lqSavePromise = snapDone.then(function(){ return window.__lqSendToOrder(); });
         return;
       }
       cartModalCtrl.open();
@@ -5627,6 +5627,9 @@
       pm.qty = Object.assign({}, cfg.qty);
       pm.logos = JSON.parse(JSON.stringify(cfg.logos));
       openProductModal(cfg.garmentId);
+      // Відкриття картки скидає тираж (новий виріб рахує менеджер сам) —
+      // але позицію ми не відкриваємо, а повертаємо, і її тираж уже відомий
+      pm.qty = Object.assign({}, cfg.qty);
       try{ fracFromLegacyPrints(prints); }catch(e){ console.warn('legacy frac', e); }
       pm.colorId = cfg.colorId;
       pm.colorPicked = true;   // з кошика — колір уже обраний
