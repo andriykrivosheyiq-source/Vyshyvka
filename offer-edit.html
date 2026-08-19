@@ -716,11 +716,12 @@
   var dirty = false;         // у конструкторі є незбережені зміни
   var quiet = true;          // перші секунди після розгортання позиції правками не рахуємо
   var lastCount = -1;        // скільки позицій було, щоб побачити щойно додану
+  var lastReco = -1;         // те саме окремо для рекомендованих
   var ctorReady = null;
 
-  var CTOR_PRICE = 'loomiq-pricing.js?v=185f37ca63';
-  var CTOR_JS   = 'loomiq-constructor.js?v=185f37ca63';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=185f37ca63';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=210695da51';
+  var CTOR_JS   = 'loomiq-constructor.js?v=210695da51';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=210695da51';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1113,6 +1114,7 @@
       try{ if(window.__syncAddLabels) window.__syncAddLabels(); }catch(e){}
       quiet = true; dirty = false; mark('', '');
       setTimeout(function(){ quiet = false; }, 1800);
+      readyReco(cart[idx], idx);
       return;
     }
     // Нова позиція: у замовленні її ще немає, тож і в кошику вона одна
@@ -1138,6 +1140,37 @@
     dirty = false;
     mark('', '');
     setTimeout(function(){ quiet = false; }, 1800);
+  }
+
+  /* Щойно доданий РЕКОМЕНДОВАНИЙ товар доводимо до готового вигляду сам.
+     У ньому не лишається жодного рішення за менеджером: тираж іде за
+     найбільшою основною позицією, логотип замовлення конструктор ставить
+     сам. А без збереження в пропозиції висить порожнє фото з каталогу — і
+     клієнт бачить у «часто беруть разом» голу футболку замість своєї, з
+     логотипом. Саме через це рекомендовані виглядали чужими.
+
+     Базових товарів це не стосується: там кількість вносить менеджер, і
+     зберігати за нього недороблену позицію не можна. */
+  function readyReco(it, idx){
+    if(!it || it.kind !== 'reco') return;
+    if(it.config) return;                       // позицію вже збирали — не чіпаємо
+    var q = Math.max(0, Math.round(+it.qty || 0));
+    if(!q) return;
+    if(typeof window.__lqSetQty === 'function') window.__lqSetQty({ 'Без розміру': q });
+    // Чекаємо, поки ляже логотип: без нього збережеться той самий голий виріб
+    var t0 = 0;
+    var wait = function(){
+      var has = 0;
+      try{ has = window.__lqLayerCount ? window.__lqLayerCount() : 0; }catch(e){}
+      if(has || t0 > 30){
+        if(!has) return;                        // логотипа в замовленні немає — нема чого чекати
+        saveCurrent().then(function(){ quiet = true; dirty = false;
+          setTimeout(function(){ quiet = false; }, 1200); });
+        return;
+      }
+      t0++; setTimeout(wait, 150);
+    };
+    setTimeout(wait, 300);
   }
   window.__lqDirty = function(){
     if(quiet || !cur) return;
@@ -1272,14 +1305,18 @@
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
       renderList();
-      var n = OFFER.items.length;
+      var n = OFFER.items.length, nr = OFFER.reco.length;
       /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
-         саме щоб його налаштувати, а не щоб потім шукати в списку. */
+         саме щоб його налаштувати, а не щоб потім шукати в списку.
+         Рекомендовані рахуємо окремо: вони лежать своїм списком, і доти
+         додавання рекомендації нічого не відкривало — вона тихо падала в
+         кінець панелі голою, без тиражу й без логотипа. */
       if(lastCount >= 0 && n > lastCount) pickItem('main', n - 1);
+      else if(lastReco >= 0 && nr > lastReco) pickItem('reco', nr - 1);
       // Перша позиція відкривається сама: порожнє робоче місце змушує
       // здогадуватись, що робити далі
       else if(!cur && n) pickItem('main', 0);
-      lastCount = n;
+      lastCount = n; lastReco = nr;
       return;
     }
     if(d.editReady != null){

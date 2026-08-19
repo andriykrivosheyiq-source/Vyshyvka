@@ -3291,6 +3291,59 @@
          яких ще немає в замовленні. */
       if(window.__lqDirty) window.__lqDirty();
     }
+    /* Покроковий розклад нанесення — рядок на кожне зображення й напис, із
+       формулою, з якої вийшла сума: площа × ставка, старт, добивка до
+       мінімалки; для DTF — лист, рядок тиражу й габарит.
+
+       Той самий текст, що менеджер бачить у «Прорахунку» в конструкторі, — і
+       він же їде разом із позицією в замовлення. Інакше в пропозиції стояло
+       «Нанесення 436 грн» без жодного пояснення, звідки взялись ці 436, і
+       перевірити ціну не було чим: розклад живе тільки поки конструктор
+       відкритий, а після збереження відновити його нізвідки. */
+    function calcLinesForItem(groupQty){
+      var m = methodCfgNew() || {};
+      if(!m || logoCount() === 0) return [];
+      var imgN = 0, txtN = 0, out = [];
+      orderedLayers().forEach(function(x){
+        var l = x.l, idx = x.idx, isTxt = isTextLayer(l);
+        var label = isTxt ? ('Текст ' + (++txtN)) : ('Зображення ' + (++imgN));
+        var sell, cost, note;
+        if(m.mode === 'grid'){
+          sell = dtfGridSell(m, l, groupQty);
+          cost = dtfGridCost(m, l, groupQty);
+          var bcol = dtfBandCol(m, l);
+          var blab = (m.bands && m.bands[bcol]) ? m.bands[bcol].label : '';
+          var qfa = m.qtyFrom || [], uNow = Math.max(1, groupQty), qrow = 0;
+          for(var j = qfa.length - 1; j >= 0; j--){ if(uNow >= qfa[j]){ qrow = j; break; } }
+          var dmm = layerOpaqueDimsMm(l);
+          note = 'лист ' + blab +
+                 (qfa.length ? ' · рядок «від ' + qfa[qrow] + ' шт»' : '') +
+                 (dmm ? ' · лого ' + Math.round(dmm.w/10) + '×' + Math.round(dmm.h/10) + ' см' : '');
+        } else {
+          sell = placementPrice(m, l, idx);
+          cost = placementCost(methodCfgKind(m, isTxt), l, idx);
+          var mk = methodCfgKind(m, isTxt);
+          var mm2 = layerInkMm2(l);
+          var det = placementDetail(m, l, idx);
+          var dm = layerOpaqueDimsMm(l);
+          var parts = areaParts(mk, mm2, false);
+          /* Ставку називаємо лише тоді, коли вона справді є. Модель цін може
+             рахувати нанесення інакше (стібками, за листом) — тоді «× 0
+             грн/см²» поруч із живою сумою виглядало б як помилка, хоча це
+             просто інша формула. Площу й габарит показуємо завжди: саме їх
+             найчастіше й перепитують. */
+          var rated = parts.some(function(p){ return p.rate > 0; });
+          note = 'лого ' + Math.round(dm.w/10) + '×' + Math.round(dm.h/10) + ' см · площа ' +
+                 (mm2/100).toFixed(1) + ' см²' +
+                 (rated ? ' × ' + parts.map(function(p){ return (p.rate/10); }).join(' + ') + ' грн/см²' : '') +
+                 (det.area ? ' = ' + det.area : '') +
+                 (det.base ? ' + старт ' + det.base : '') +
+                 (det.minAdd ? ' + ' + det.minAdd + ' до мінімалки ' + minForIndex(mk, idx) : '');
+        }
+        out.push({ label: label, note: note, sell: Math.round(sell), cost: Math.round(cost) });
+      });
+      return out;
+    }
     // Менеджерський прорахунок — таблиця «Назва | Продажна | Собівартість» + маржа й суми замовлення
     function renderManagerPanel(){
       var box = document.getElementById('pmManagerBox'), out = document.getElementById('pmMgrCalc');
@@ -4651,6 +4704,13 @@
           });
         });
       });
+      /* Розклад нанесення їде разом із позицією: після збереження відновити
+         його нізвідки — він живе тільки поки конструктор відкритий. */
+      try{
+        var _sd = sharedDraftParts(totalUnits());
+        var _gq = (_sd && _sd.parts && _sd.parts.groupQty) ? _sd.parts.groupQty : totalUnits();
+        item.calcLines = calcLinesForItem(_gq);
+      }catch(e){ item.calcLines = []; }
       // Редагування з кошика — перезаписуємо ту саму позицію на її місці,
       // щоб порядок не стрибав і не з'являвся дубль.
       var ei = window.__pmEditIndex;
@@ -5640,6 +5700,16 @@
       try{ syncAddLabels(); }catch(e){}
       try{ renderTabPanel(); renderRecommended(); updatePriceBar(); }catch(e){}
     };
+    /* Проставити тираж ззовні. Потрібно рекомендованим: їхня кількість іде за
+       найбільшою основною позицією, її вже порахувала адмінка, і питати її в
+       менеджера вдруге немає за чим. Базових товарів це не стосується — там
+       кількість вносить людина. */
+    window.__lqSetQty = function(map){
+      pm.qty = Object.assign({}, map || {});
+      try{ renderTabPanel(); updatePriceBar(); syncAddLabels(); }catch(e){}
+    };
+    // Скільки шарів зараз на виробі — робоче місце чекає, поки лягне логотип
+    window.__lqLayerCount = function(){ try{ return logoCount(); }catch(e){ return 0; } };
     renderGarment();
     updatePriceBar();
 
