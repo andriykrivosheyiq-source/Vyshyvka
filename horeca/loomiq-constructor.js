@@ -400,7 +400,15 @@
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
     function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
     function getPrint(){ return PRINTS.find(function(p){return p.id===pm.printId;}) || PRINTS[0]; }
-    function totalUnits(){ return getSizes().reduce(function(a,s){return a+(pm.qty[s]||0);},0); }
+    /* Рахуємо ВСІ вписані кількості, а не лише ті розміри, що зараз у сітці.
+       Інакше «Без розміру» зникало з підрахунку щоразу, коли сітка ще не
+       встигла його включити: конструктор казав «оберіть розмір і кількість»
+       над уже заповненою кількістю. */
+    function totalUnits(){
+      var q = pm.qty || {}, n = 0;
+      Object.keys(q).forEach(function(k){ n += +q[k] || 0; });
+      return n;
+    }
     function activeTier(){
       var u = totalUnits();
       if(u===0) return TIERS[0];
@@ -1258,7 +1266,7 @@
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
       // Позицію, яку зараз редагують, не рахуємо двічі: у списку вона є як чернетка.
       // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
-      var skip = editIndex();
+      var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
       return list.filter(function(it, i){ return it.kind !== 'reco' && i !== skip; })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
@@ -1270,7 +1278,14 @@
        конструкторі та ціною, яку показує пропозиція. */
     function descriptorsWithDraft(d){
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
-      var skip = editIndex();
+      /* Номер позиції, яку правлять, беремо з __lqEditOnly, коли він є.
+         editIndex() сам себе скидає, щойно вікно конструктора виявилось не
+         позначеним відкритим, — а в робочому місці менеджера воно й не
+         зобовʼязане бути «модалкою». Варто цьому номеру злетіти, як стара
+         версія позиції лишається в розрахунку РАЗОМ із чернеткою: та сама
+         футболка рахується двічі, тираж стає 2 замість 1, зʼявляється чужа
+         знижка й підготовка макета ділиться навпіл. */
+      var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
       if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([d]);
       var out = [], at = -1;
       list.forEach(function(it, i){
@@ -4666,7 +4681,11 @@
     window.__pmAddKind = 'main';
     function addCurrentToCart(kind){
       var u = totalUnits();
-      var sizesStr = getSizes().filter(function(s){return (pm.qty[s]||0)>0;}).map(function(s){return s+' × '+pm.qty[s];}).join(', ');
+      /* Беремо всі вписані кількості, а не лише ті розміри, що зараз у сітці:
+         інакше «Без розміру» не потрапляло б у склад позиції — тираж є, а
+         рядка з розміром немає, і в замовленні незрозуміло, що замовили. */
+      var sizesStr = Object.keys(pm.qty || {}).filter(function(s){ return (pm.qty[s] || 0) > 0; })
+        .map(function(s){ return s + ' × ' + pm.qty[s]; }).join(', ');
       var nm = productName();
       var item = {
         kind: (kind === 'reco' ? 'reco' : 'main'),

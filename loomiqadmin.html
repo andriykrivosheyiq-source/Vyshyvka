@@ -9718,13 +9718,14 @@ function renderOfferEd(){
         title="Логотип замовлення"><button data-logo-del="${i}" title="Прибрати зі списку">✕</button></span>`).join('')}
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
-    <span class="oe-save is-ok">Збережено ✓</span>
-    ${/* Головна дія — зелена й одна. Доти в шапці стояло чотири однакові
-         кнопки поспіль (Loomiq, Stvory, Посилання, Готово), і серед них
-         неможливо було з одного погляду знайти ту, якою закінчують роботу
-         над позицією. */''}
-    <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
+    ${/* Порядок читається зліва направо як хід роботи: чия пропозиція → від
+         якого бренду → логотипи замовлення → посилання клієнту → зберегти →
+         стан → закрити. Головна дія одна й зелена; доти в шапці стояло
+         чотири однакові кнопки поспіль, і серед них неможливо було з одного
+         погляду знайти потрібну. */''}
     <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
+    <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
+    <span class="oe-save is-ok">Збережено ✓</span>
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
       aria-label="Закрити">✕</button>`;
 
