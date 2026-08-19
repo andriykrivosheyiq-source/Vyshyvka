@@ -251,8 +251,16 @@
     }
     function getSizes(){
       var base = chartSizes(pm.garmentId) || GARMENT_SIZES[pm.garmentId] || SIZES;
-      if(!isMgrMode() || base.length <= 1 || base.indexOf(NO_SIZE) !== -1) return base;
-      return base.concat([NO_SIZE]);
+      var out = base.slice();
+      if(isMgrMode() && base.length > 1 && base.indexOf(NO_SIZE) === -1) out.push(NO_SIZE);
+      /* Розмір, у який уже вписано кількість, показуємо завжди — навіть якщо
+         сітка виробу його не містить. Інакше вибір «зникав» на очах: сітка
+         перемальовується, «Без розміру» в ній цього разу немає, а кількість
+         лишилась — і конструктор просив обрати те, що вже обрано. */
+      Object.keys(pm.qty || {}).forEach(function(k){
+        if((pm.qty[k] || 0) > 0 && out.indexOf(k) === -1) out.push(k);
+      });
+      return out;
     }
     function isOneSize(){ var s = getSizes(); return s.length === 1; }
     var SIZE_CHART = {XS:{A:64,B:47}, S:{A:66,B:50}, M:{A:68,B:53}, L:{A:72,B:56}, XL:{A:74,B:60}, XXL:{A:77,B:62}};
@@ -4808,7 +4816,11 @@
             sum: item.price, print: (getPrint() || {}).name || '' });
         }
       }
-      window.__pmEditIndex = null;
+      /* У робочому місці менеджера позиція лишається відкритою й після
+         збереження — отже й далі редагується. Скинути номер тут означало б,
+         що наступне збереження ДОДАСТЬ ще одну таку саму позицію замість
+         того, щоб оновити цю. */
+      if(!window.__lqInline) window.__pmEditIndex = null;
       /* Знімаємо ВСІ сторони виробу, а не тільки ті, де є нанесення.
          Перед і спина показуються клієнту завжди: людина замовляє одяг, а не
          принт, і хоче бачити, як він виглядатиме з обох боків — навіть коли
@@ -4845,14 +4857,22 @@
         }).catch(function(){});
       renderCart();
       document.getElementById('pmMockupModal').classList.remove('open');
-      productModal.classList.remove('open');
+      /* У робочому місці менеджера конструктор — це не вікно, яке закривають
+         після покупки, а сам документ, у якому працюють. Закривати його й
+         стирати тираж після збереження не можна: вікно перестає вважатись
+         відкритим — і позиція знову починає рахуватись двічі, — а порожній
+         тираж змушує конструктор просити «оберіть розмір і кількість» одразу
+         після того, як позицію з цим розміром щойно зберегли. */
+      if(!window.__lqInline) productModal.classList.remove('open');
       /* Прийшли з картки клієнта — кошик пропускаємо. Позиція лягає прямо в
          те замовлення, і менеджер повертається туди, звідки почав. Чекаємо
          на знімки макета: без них у картці буде позиція без картинки. */
       if(boundOrder() && typeof window.__lqSendToOrder === 'function'){
-        window.__pmAddKind = 'main';
-        pm.qty = {}; pm.editing = false;
-        try{ syncAddLabels(); }catch(e){}
+        if(!window.__lqInline){
+          window.__pmAddKind = 'main';
+          pm.qty = {}; pm.editing = false;
+          try{ syncAddLabels(); }catch(e){}
+        }
         snapDone.then(function(){ window.__lqSendToOrder(); });
         return;
       }
