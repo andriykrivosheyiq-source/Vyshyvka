@@ -2656,7 +2656,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-pricing.js?v=185f37ca63"></script>
+<script src="loomiq-pricing.js?v=210695da51"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4783,6 +4783,10 @@ window.__adminSaveClientOrder = async function(payload){
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
       mockups, views, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config, filesBySide),
+      /* Розклад нанесення від конструктора: рядок на кожне зображення з
+         формулою, з якої вийшла сума. Відновити його потім нізвідки — він
+         живе тільки поки конструктор відкритий. */
+      calcLines: Array.isArray(it.calcLines) ? it.calcLines.slice(0, 12) : null,
       // Товар і підрядник фіксуються тут-і-зараз. Якщо товар потім переведуть
       // на іншого підрядника, це замовлення має лишитись зі своїм.
       garmentId: (it.config && it.config.garmentId) || it.garmentId || null,
@@ -5419,6 +5423,36 @@ function fillOrderParts(o){
   const res = priceOrder(list);
   idx.forEach((i, k)=>{ if(o.items[i] && res[k]) o.items[i].parts = res[k].parts || null; });
 }
+/* Розклад для РЕКОМЕНДОВАНИХ. У склад замовлення вони не входять — доти
+   вони й не потрапляли в розрахунок узагалі, і в службовому прорахунку
+   навпроти рекомендованої позиції не було жодного рядка: ні виробу, ні
+   нанесення, ні підготовки макета. Перевірити її ціну не було чим.
+
+   Рахуємо кожну окремо: основні позиції ПЛЮС ця одна — рівно так, як вийде,
+   коли клієнт її вибере. Разом усі рекомендовані не рахуємо: клієнт може
+   взяти одну, а не всі, і тираж від решти був би вигаданий.
+
+   Із writePrice ще й оновлюємо ціну. Доти вона лишалась такою, якою її
+   порахував конструктор у мить збереження: змінився тираж основної позиції —
+   і рекомендована показувала стару ціну, хоч поріг уже інший. */
+function fillRecoParts(o, writePrice){
+  const main = (o.items || []).filter(it => it && it.kind !== 'reco' && it.desc).map(it => it.desc);
+  let touched = false;
+  (o.items || []).forEach(it=>{
+    if(!it || it.kind !== 'reco' || !it.desc) return;
+    const res = priceOrder(main.concat([it.desc]));
+    const mine = res[res.length - 1];
+    if(!mine) return;
+    it.parts = mine.parts || null;
+    // Нулі означають, що модель цін не приїхала — стару ціну тоді не чіпаємо
+    if(writePrice && +mine.unit){
+      it.unitPrice = mine.unit;
+      it.price = Math.round(mine.unit * (+it.qty || 0));
+      touched = true;
+    }
+  });
+  return touched;
+}
 function priceCalcHtml(o){
   fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
   const rows = [];
@@ -5501,6 +5535,11 @@ function repriceOrder(o){
     it.feeShare = r.feeShare;
     it.parts = r.parts || null;
   });
+  /* Рекомендовані йдуть слідом за складом. Їхня ціна залежить від основних
+     позицій — від них береться і поріг тиражу, і поділ підготовки макета, —
+     тож коли основний тираж змінився, стара ціна рекомендованої вже неправда.
+     Рахуємо кожну як «основні + ця», рівно так, як вийде в клієнта. */
+  fillRecoParts(o, true);
   return true;
 }
 
@@ -5746,16 +5785,23 @@ function offerCalcRows(it){
   const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
   rows.push(['Виріб · ' + (it.name || ''), b.garmentBase + ' грн']);
   if(b.appBase){
-    // Старт вишивки окремо від площі: інакше «нанесення 436» ні про що не
-    // каже, а треба бачити, що з цього фікс, а що за розмір
-    const area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
-    if((b.basePart > 0 || b.minPart > 0) && area > 0){
-      rows.push(['Нанесення · ' + (it.print || '') + ' — за площею', area + ' грн']);
-      if(b.basePart > 0) rows.push(['Нанесення · ' + (it.print || '') + ' — старт', b.basePart + ' грн']);
-      if(b.minPart > 0) rows.push(['Доплата до мінімальної ціни нанесення', b.minPart + ' грн']);
-    } else {
-      rows.push(['Нанесення · ' + (it.print || '') +
-        (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' грн']);
+    rows.push(['Нанесення · ' + (it.print || '') +
+      (b.gridPriced ? ' (ціна вже за тираж ' + b.groupQty + ' шт)' : ''), b.appBase + ' грн']);
+    /* Розклад по кожному зображенню — той самий, що менеджер бачить у
+       конструкторі: площа, ставка за см², старт, добивка до мінімалки. Без
+       нього рядок «Нанесення 436 грн» ні про що не каже, а саме його й
+       доводиться пояснювати клієнту найчастіше. Розклад приходить готовим
+       від конструктора: відновити його тут нізвідки. */
+    const lines = Array.isArray(it.calcLines) ? it.calcLines : [];
+    lines.forEach(l => rows.push(['↳ ' + (l.label || '') +
+      (l.note ? ' · ' + l.note : ''), Math.round(+l.sell || 0) + ' грн', 'sub']));
+    /* Старі позиції розкладу не мають — тоді хоч розділяємо суму на частини,
+       щоб було видно, що з неї фікс, а що за розмір. */
+    if(!lines.length){
+      const area = b.appBase - (b.basePart || 0) - (b.minPart || 0);
+      if(b.basePart > 0 && area > 0) rows.push(['↳ старт нанесення', b.basePart + ' грн', 'sub']);
+      if(area > 0 && (b.basePart > 0 || b.minPart > 0)) rows.push(['↳ за площею', area + ' грн', 'sub']);
+      if(b.minPart > 0) rows.push(['↳ добивка до мінімальної ціни', b.minPart + ' грн', 'sub']);
     }
   }
   if(pre > post) rows.push([(b.gridPriced ? 'Знижка за тираж на виріб — ' : 'Знижка за тираж — ') +
@@ -5767,10 +5813,10 @@ function offerCalcRows(it){
     // показуємо як залишок, інакше ескізи порахувались би двічі.
     const sk = (b.sketches || []).map(s => ({ s, share: Math.round(s.fee / (s.units || 1)) }));
     const base = b.feeShare - sk.reduce((a, x) => a + x.share, 0);
-    if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт',
-                            base + ' грн']);
-    sk.forEach(x => rows.push(['Додатковий ескіз · ' + x.s.fee + ' грн на ' + x.s.units + ' шт',
-                               x.share + ' грн']));
+    if(base > 0) rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
+                            b.feeUnits + ' шт цього способу', base + ' грн']);
+    sk.forEach(x => rows.push(['Додатковий ескіз — ' + x.s.fee + ' грн разово, ділиться на ' +
+                               x.s.units + ' шт із цим дизайном', x.share + ' грн']));
   }
   rows.push(['Ціна за штуку', Math.round(+it.unitPrice || 0) + ' грн', 'sum']);
   rows.push([(+it.qty || 0) + ' шт', Math.round(+it.price || 0) + ' грн', 'sum']);
@@ -5782,6 +5828,7 @@ function offerMgrCalc(o){
   const out = { groups: [], items: {}, reco: {}, sum: null, cost: canSeeCost() };
   try{
     fillOrderParts(o);
+    fillRecoParts(o, false);   // рекомендовані — кожна окремо, «основні + ця»
     // Групи: саме від них рахуються знижки й ділиться підготовка макета
     const g = {};
     (o.items || []).forEach(it=>{
