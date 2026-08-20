@@ -2011,6 +2011,23 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <div class="sub" style="margin-bottom:12px;">Натисніть на товар, щоб редагувати все в одному місці: фото, назву, опис, розмірну сітку, фото моделей, ціну й собівартість. Порядок карток — перетягуванням за ⠿.</div>
           <div id="prod-grid" class="prod-grid"></div>
 
+          <!-- Звірка з сайтом. Найгірший стан — коли адмінка каже «Збережено»,
+               а на сайті нічого не змінилось: помилки ніде немає, і лишається
+               гадати, де загубилось. Ця панель читає той самий документ, що
+               й сайт, і каже прямо, що сайт покаже, а що ні. -->
+          <div class="card" style="max-width:760px;margin-top:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+              <b style="font-size:14px;">🔍 Що з цього бачить сайт</b>
+              <button class="pc-btn reset" id="sitecheck-run" style="flex:none;padding:8px 16px;">Перевірити</button>
+            </div>
+            <div class="sub" style="margin-top:8px;">
+              Читає той самий документ, що й сайт, і показує, які товари він покаже,
+              а які — ні, і чому. Якщо тут товар є, а на сайті його немає — справа
+              в кеші браузера: оновіть сторінку сайту з Ctrl+Shift+R.
+            </div>
+            <div id="sitecheck-out" style="margin-top:12px;"></div>
+          </div>
+
           <div class="card" style="max-width:640px;margin-top:16px;">
             <div id="np-toggle" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;">
               <b style="font-size:14px;">➕ Додати новий товар</b>
@@ -10275,8 +10292,103 @@ function goodsAllProducts(){
   const custom = ((contentData.products || {}).custom || []).map(c=>({id:c.id, name:c.name, price:c.price || '', custom:true}));
   return BASE_PRODUCTS.concat(custom);
 }
+/* ── Контент прочитано чи ні ──────────────────────────────────────────
+   Доти збій читання йшов у console.warn — і менеджер його не бачив. А
+   наслідок у нього був найгірший з можливих: без прочитаного документа
+   список товарів порожній, і наступне збереження записувало «власні
+   товари: жодного», стираючи все, що додали раніше. Виглядало це як
+   «адмінка не зберігає», хоча вона саме зберігала — порожнечу.
+
+   Тому дві речі. Збій видно на екрані. І поки документ не прочитано,
+   писати склад товарів заборонено. */
+let contentLoaded = false;
+function contentBanner(text){
+  let el = document.getElementById('content-err');
+  if(!text){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'content-err';
+    el.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;padding:10px 16px;' +
+      'background:#8a1f1f;color:#fff;font:600 13px/1.5 inherit;text-align:center;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+}
+function contentReadOk(){ contentBanner(''); }
+function contentReadFailed(e){
+  console.warn('photos snapshot', e);
+  contentBanner('Не вдалось прочитати дані сайту (' +
+    ((e && (e.code || e.message)) || 'помилка') +
+    '). Товари й ціни зараз показані неповно — не зберігайте нічого, поки це не зникне.');
+}
+/* Дозвіл писати склад товарів. Порожній масив custom пишемо лише тоді, коли
+   ми справді прочитали документ і там справді порожньо. */
+function canWriteProducts(){
+  if(contentLoaded) return true;
+  toast('Дані сайту ще не прочитані — збереження скасовано, щоб не стерти товари');
+  return false;
+}
+
+/* ── Звірка з сайтом ──────────────────────────────────────────────────
+   Повторює рівно ту логіку, якою сайт будує каталог: базові товари плюс
+   власні, мінус приховані. І показує, чи є в товару фото — бо товар без
+   фото на сайті малюється контуром, і збоку це читається як «його немає».
+
+   Читаємо ЗАНОВО з бази, а не з памʼяті вкладки: половина скарг «зберіг, а
+   не видно» — це саме розбіжність між тим, що в цій вкладці, і тим, що
+   насправді записалось. */
+async function runSiteCheck(){
+  const box = document.getElementById('sitecheck-out');
+  if(!box) return;
+  box.innerHTML = '<div class="sub">Читаю базу…</div>';
+  let d;
+  try{ const snap = await SHARED_DOC.get(); d = snap.exists ? (snap.data() || {}) : {}; }
+  catch(e){
+    box.innerHTML = '<div class="sub" style="color:#c0392b;">Не вдалось прочитати базу: ' +
+      escapeHtml((e && (e.code || e.message)) || 'помилка') + '</div>';
+    return;
+  }
+  const prod = d.products || {}, map = d.map || {}, colors = d.productColors || {};
+  const hidden = prod.hidden || [];
+  const custom = prod.custom || [];
+  const all = BASE_PRODUCTS.concat(custom.map(c => ({ id:c.id, name:c.name, custom:true, colors:c.colors })));
+  // Чи є в товару хоч одне завантажене фото
+  const photoKeys = Object.keys(map);
+  const shots = id => photoKeys.filter(k => k.indexOf(id + '-') === 0).length;
+  const rows = all.map(p=>{
+    const isHidden = hidden.indexOf(p.id) >= 0;
+    const n = shots(p.id);
+    const cols = (p.colors || colors[p.id] || []).length;
+    let state, tone;
+    if(isHidden){ state = 'схований — сайт його не показує'; tone = '#c0392b'; }
+    else if(p.custom && !n){ state = 'фото не завантажено — на сайті буде контур замість виробу'; tone = '#c58a00'; }
+    else { state = 'показується' + (n ? ' · фото: ' + n : ''); tone = '#127a3d'; }
+    return '<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);">' +
+      '<b style="min-width:190px;font-size:13px;">' + escapeHtml(p.name || p.id) + '</b>' +
+      '<span style="font-size:12px;color:var(--ink-soft);min-width:90px;">' +
+        (p.custom ? 'власний' : 'базовий') + (cols ? ' · ' + cols + ' кол.' : '') + '</span>' +
+      '<span style="font-size:12px;color:' + tone + ';">' + state + '</span></div>';
+  }).join('');
+  const shown = all.filter(p => hidden.indexOf(p.id) < 0).length;
+  box.innerHTML =
+    '<div style="font-size:13px;margin-bottom:8px;">Сайт покаже <b>' + shown + '</b> ' +
+      'із <b>' + all.length + '</b> товарів' +
+      (custom.length ? ' · власних: <b>' + custom.length + '</b>' : ' · власних немає') +
+      ' · фото в базі: <b>' + photoKeys.length + '</b></div>' +
+    rows +
+    (custom.length ? '' :
+      '<div class="sub" style="margin-top:10px;color:#c58a00;">Власних товарів у базі немає. ' +
+      'Якщо ви їх додавали — виходить, збереження не дійшло: створіть товар ще раз і ' +
+      'дочекайтесь напису «Товар створено».</div>');
+}
+(function(){
+  const b = document.getElementById('sitecheck-run');
+  if(b) b.addEventListener('click', runSiteCheck);
+})();
+
 /* Видалити власний товар */
 async function deleteCustomProduct(id){
+  if(!canWriteProducts()) return;
   const c = ((contentData.products||{}).custom||[]).find(x=>x.id===id);
   if(!confirm('Видалити товар «'+(c?c.name:id)+'» назавжди? Його фото і налаштування буде втрачено.')) return;
   try{
@@ -10393,6 +10505,7 @@ document.getElementById('np-create').addEventListener('click', async ()=>{
     id, name, price, surcharge,
     colors: colors.map((c,i)=>({id:'c'+(i+1), name:c.name, hex:c.hex}))
   };
+  if(!canWriteProducts()) return;
   try{
     const custom = (((contentData.products||{}).custom)||[]).concat([product]);
     await PHOTOS_DOC.set({ products: { custom } }, { merge:true });
@@ -12646,6 +12759,8 @@ async function init(){
     if(photosUnsub){ try{ photosUnsub(); }catch(e){} }
     photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
+    contentLoaded = true;
+    contentReadOk();
     photosMap = contentData.map || {};
     refreshSiteList();   // копії сайтів живуть у тому ж документі
     const a0 = document.activeElement;
@@ -12673,7 +12788,7 @@ async function init(){
       else if(!typing) renderProductsTab();
     }
     else if(ctorTab==='site' && !typing) renderSiteTab();
-    }, function(e){ console.warn('photos snapshot', e); });
+    }, contentReadFailed);
   }
   subscribePhotos();
 
