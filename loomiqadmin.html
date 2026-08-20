@@ -1724,6 +1724,28 @@
           <input id="sp-minmargin" type="number" min="0" max="95" step="1" style="width:100%;" placeholder="40">
         </label>
 
+        <div class="tl-divider" style="margin-top:18px;">Ціни при допродажу</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Що робити з цінами, коли клієнт бере рекомендований товар зверху вже
+          погодженого складу.
+        </div>
+        <label class="field" style="display:block;max-width:520px;">
+          <select id="sp-upsell" style="width:100%;">
+            <option value="all">Перераховувати все замовлення</option>
+            <option value="keep">Фіксувати погоджене, знижку віддавати новому</option>
+          </select>
+        </label>
+        <div class="sub" style="margin-top:8px;line-height:1.6;">
+          <b>Перераховувати все</b> — тираж зріс, отже дешевшає весь склад разом.
+          Чесно арифметично, але ціна, на яку клієнт уже погодився, змінюється в
+          нього на очах, і кожне «додайте ще» відкриває розмову про попередні позиції.<br>
+          <b>Фіксувати погоджене</b> — основні позиції не рухаються, а весь виграш
+          дістається новому товару: він іде за порогом усього складу й не платить
+          удруге за макет, який уже підготували. Клієнт бачить не «ціни змінились»,
+          а «рекомендоване виходить помітно дешевше». Тираж самої основної позиції
+          клієнт і далі міняє вільно — вона перераховується як завжди.
+        </div>
+
         <div style="margin-top:16px;">
           <button class="btn btn-accent" id="sp-save">Зберегти прорахунок сайту</button>
         </div>
@@ -2656,7 +2678,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-pricing.js?v=210695da51"></script>
+<script src="loomiq-pricing.js?v=fd7ea183c6"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -3661,6 +3683,8 @@ function paintSitePricing(){
   const mm = document.getElementById('sp-minmargin');
   if(mm) mm.value = ((contentData.pricing || {}).minMarginPct != null)
     ? (contentData.pricing || {}).minMarginPct : '';
+  const um = document.getElementById('sp-upsell');
+  if(um) um.value = upsellMode();
   if(!document.getElementById('sp-dtf-grid')) return;
   const p = curSitePricing();
   const meth = p.methods || {};
@@ -4062,7 +4086,10 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     // окрема шкала на сам виріб; порожня = діє знижка нанесення (як було)
     garmentTiers: readSpTiers('gar'),
     // Поріг маржі: нижче нього адмінка не дає додати позицію в пропозицію
-    minMarginPct: numV('sp-minmargin')
+    minMarginPct: numV('sp-minmargin'),
+    /* Що робити з цінами при допродажу: 'all' — перерахувати весь склад
+       (як було завжди), 'keep' — погоджене не рухати, виграш віддати новому. */
+    upsellMode: (document.getElementById('sp-upsell') || {}).value || 'all'
   };
   // застарілі поля (enabled / leadTime) більше не пишемо; на читанні вони ігноруються
   try{
@@ -5437,17 +5464,31 @@ function fillOrderParts(o){
    і рекомендована показувала стару ціну, хоч поріг уже інший. */
 function fillRecoParts(o, writePrice){
   const main = (o.items || []).filter(it => it && it.kind !== 'reco' && it.desc).map(it => it.desc);
+  const keep = upsellMode() === 'keep';
   let touched = false;
   (o.items || []).forEach(it=>{
     if(!it || it.kind !== 'reco' || !it.desc) return;
-    const res = priceOrder(main.concat([it.desc]));
+    /* У режимі «фіксувати погоджене» рекомендована позиція йде допродажем:
+       основні від неї не дешевшають, а вона сама бере поріг усього складу й
+       не платить за вже підготовлений макет. */
+    const d = keep ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
+    const res = priceOrder(main.concat([d]));
     const mine = res[res.length - 1];
     if(!mine) return;
+    const wasCostShare = (it.parts && +it.parts.costShare) || 0;
     it.parts = mine.parts || null;
     // Нулі означають, що модель цін не приїхала — стару ціну тоді не чіпаємо
     if(writePrice && +mine.unit){
       it.unitPrice = mine.unit;
       it.price = Math.round(mine.unit * (+it.qty || 0));
+      /* Разом із ціною рухається й собівартість: у неї входить частка
+         підготовки макета, а допродаж її не платить. Інакше маржа
+         рекомендованої позиції показувала б збиток там, де його немає. */
+      const nowCostShare = (mine.parts && +mine.parts.costShare) || 0;
+      if(nowCostShare !== wasCostShare){
+        it.unitCost = Math.max(0, Math.round((+it.unitCost || 0) - wasCostShare + nowCostShare));
+        it.cost = Math.round(it.unitCost * (+it.qty || 0));
+      }
       touched = true;
     }
   });
@@ -5818,6 +5859,11 @@ function offerCalcRows(it){
     sk.forEach(x => rows.push(['Додатковий ескіз — ' + x.s.fee + ' грн разово, ділиться на ' +
                                x.s.units + ' шт із цим дизайном', x.share + ' грн']));
   }
+  /* Чому допродаж вийшов дешевшим — треба сказати рядком, інакше цифра
+     виглядає як помилка: та сама вишивка, а ціна нижча за основну позицію. */
+  if(b.upsell && b.freeDesigns)
+    rows.push(['Підготовка макета — уже оплачена основними позиціями',
+               '0 грн', 'disc']);
   rows.push(['Ціна за штуку', Math.round(+it.unitPrice || 0) + ' грн', 'sum']);
   rows.push([(+it.qty || 0) + ' шт', Math.round(+it.price || 0) + ' грн', 'sum']);
   return rows;
@@ -9371,6 +9417,12 @@ async function offerAddBare(o, gid, kind){
    Перевіряємо ПІСЛЯ зміни й на повному замовленні, а не на позиції: спільний
    макет і знижка за сумарний тираж роблять маржу однієї позиції числом, яке
    ні про що не свідчить. */
+/* Режим допродажу — той самий, що читає рушій, але з локального документа:
+   в адмінці contentData свіжіший за SITE_CONTENT, бо його щойно редагували. */
+function upsellMode(){
+  const v = ((contentData || {}).pricing || {}).upsellMode;
+  return v === 'keep' ? 'keep' : 'all';
+}
 function marginFloor(){
   /* Порожньо — вимкнено. Спершу тут стояло 40 «за замовчуванням», і
      запобіжник почав блокувати роботу в тих, хто його навіть не вмикав:

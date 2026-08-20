@@ -56,13 +56,42 @@
     var p = sitePricing();
     if(!p) return list.map(function(){ return { unit:0, sum:0, feeShare:0 }; });
 
-    var U = { dtf:0, embro:0, bare:0 };
+    /* ── Дві полички: погоджене й допродаж ────────────────────────────────
+       Позиція з ознакою upsell — це те, що клієнт бере ЗВЕРХУ вже
+       погодженого складу: рекомендований товар, друга партія.
+
+       Коли перерахувати все разом, дешевшає й те, на що клієнт уже
+       погодився. Виглядає це так, ніби перша ціна була завищена, і кожне
+       «додайте ще» перетворюється на нову розмову про всі попередні
+       позиції.
+
+       Тож погоджене рахується між собою й не рухається, а весь виграш від
+       зрослого тиражу дістається новому товару: він іде за порогом УСЬОГО
+       складу й не платить удруге за макет, який уже підготували під
+       погоджені позиції. Клієнт бачить не «ціни змінились», а «кепки
+       виходять помітно дешевші, бо тираж уже набраний».
+
+       Без жодної позначки upsell поличка одна, і все рахується як раніше —
+       саме тому старі виклики нічого не помічають. */
+    var U = { dtf:0, embro:0, bare:0 };          // весь склад
+    var B = { dtf:0, embro:0, bare:0 };          // тільки погоджене
+    var anyUp = false;
     list.forEach(function(it){
       var u = Math.max(0, +it.units || 0);
-      if(it.bare) U.bare += u; else U[it.method === 'embro' ? 'embro' : 'dtf'] += u;
+      var k = it.bare ? 'bare' : (it.method === 'embro' ? 'embro' : 'dtf');
+      U[k] += u;
+      if(it.upsell) anyUp = true; else B[k] += u;
     });
-    var coef  = { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (U.dtf || 1)),
-                  embro: tierCoefFor('embro', opts.noVolume ? 1 : (U.embro || 1)) };
+    if(!anyUp) B = U;
+    function coefSet(V){
+      return { dtf: tierCoefFor('dtf', opts.noVolume ? 1 : (V.dtf || 1)),
+               embro: tierCoefFor('embro', opts.noVolume ? 1 : (V.embro || 1)) };
+    }
+    var coefAll = coefSet(U), coefBase = coefSet(B);
+    // Тираж, від якого рахується ця позиція: погоджене — від погодженого,
+    // допродаж — від усього складу разом
+    function volFor(it, k){ return (it.upsell ? U : B)[k] || 0; }
+    function coefFor(it, mk){ return (it.upsell ? coefAll : coefBase)[mk]; }
     // Шкала на голий виріб може бути не задана — тоді, як і раніше, діє шкала
     // способу нанесення від кількості голих виробів. Без цього запасного шляху
     // товари без друку залишились би зовсім без знижки за тираж.
@@ -70,7 +99,8 @@
     // виробу не задано, він іде за ЗАГАЛЬНОЮ шкалою сайту, а не за шкалою того
     // способу, який зараз вибраний у конструкторі. Інакше зміна типового
     // способу мовчки міняла б ціни на футболки без друку.
-    var gcoefSet = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
+    var gcoefAll  = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
+    var gcoefBase = garmentCoefFor(opts.noVolume ? 1 : (B.bare || 1));
 
     // Разові оплати рахуються окремо для картинок і окремо для написів:
     // підготовка напису дешевша за підготовку логотипа, тож змішувати їх в
@@ -80,32 +110,65 @@
       var ks = it.designKinds;
       return (Array.isArray(ks) && ks[i] === 'txt') ? 'txt' : 'img';
     }
+    /* Відро разових. Погоджені позиції й допродаж рахуються в РІЗНИХ відрах:
+       інакше поява рекомендованого товару переділила б макет на більший
+       тираж — і погоджена ціна поїхала б, чого ми саме й уникаємо.
+
+       doneReps — відбитки дизайнів, макет яких уже оплачено в погодженій
+       частині. Допродаж із таким самим дизайном за макет не платить: його
+       вже підготували, і брати за нього вдруге немає за що. */
+    function buildFees(mine, mk, kind, doneReps){
+      var flat = [];                     // відбитки цього виду, у порядку появи
+      mine.forEach(function(it){
+        (it.designs || []).forEach(function(fp, i){ if(kindOf(it, i) === kind) flat.push(fp || ''); });
+      });
+      if(!flat.length) return null;
+      var cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
+      var g = designGroups(flat);
+      // скільки виробів припадає на кожен дизайн і на весь вид загалом
+      var unitsOf = new Array(g.count).fill(0), k = 0, total = 0;
+      mine.forEach(function(it){
+        var seen = {}, has = false;
+        (it.designs || []).forEach(function(fp, i){
+          if(kindOf(it, i) !== kind) return;
+          has = true;
+          var gi = g.index[k++];
+          if(seen[gi]) return;           // те саме лого двічі на одному виробі — один дизайн
+          seen[gi] = 1;
+          unitsOf[gi] += Math.max(0, +it.units || 0);
+        });
+        if(has) total += Math.max(0, +it.units || 0);
+      });
+      /* Які групи вже оплачені раніше. Порожній відбиток теж вважаємо
+         оплаченим, коли в погодженій частині взагалі є дизайни цього виду:
+         довести, що це ІНШИЙ малюнок, нічим, а виставити за нього окремий
+         макет — це рахунок за роботу, якої, найімовірніше, не було. */
+      var done = null;
+      if(doneReps){
+        done = {};
+        g.reps.forEach(function(r, i){
+          done[i] = r
+            ? doneReps.some(function(x){ return sameFingerprint(x, r); })
+            : doneReps.length > 0;
+        });
+      }
+      // Перша ПЛАТНА група входить у разову підготовку, наступні — ескізи
+      var firstIdx = -1;
+      for(var i = 0; i < g.count; i++){ if(!done || !done[i]){ firstIdx = i; break; } }
+      return { cfg: cfg, groups: g, unitsOf: unitsOf, total: total || 1,
+               done: done, firstIdx: firstIdx };
+    }
+    function feeKey(it, mk, kind){ return mk + ':' + kind + (it.upsell ? ':u' : ''); }
     var fees = {};
     ['dtf','embro'].forEach(function(mk){
       var mine = list.filter(function(it){ return !it.bare && (it.method === 'embro' ? 'embro' : 'dtf') === mk; });
+      var base = mine.filter(function(it){ return !it.upsell; });
+      var up   = mine.filter(function(it){ return  it.upsell; });
       ['img','txt'].forEach(function(kind){
-        var flat = [];                     // відбитки цього виду, у порядку появи
-        mine.forEach(function(it){
-          (it.designs || []).forEach(function(fp, i){ if(kindOf(it, i) === kind) flat.push(fp || ''); });
-        });
-        if(!flat.length){ fees[mk + ':' + kind] = null; return; }
-        var cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
-        var g = designGroups(flat);
-        // скільки виробів припадає на кожен дизайн і на весь вид загалом
-        var unitsOf = new Array(g.count).fill(0), k = 0, total = 0;
-        mine.forEach(function(it){
-          var seen = {}, has = false;
-          (it.designs || []).forEach(function(fp, i){
-            if(kindOf(it, i) !== kind) return;
-            has = true;
-            var gi = g.index[k++];
-            if(seen[gi]) return;           // те саме лого двічі на одному виробі — один дизайн
-            seen[gi] = 1;
-            unitsOf[gi] += Math.max(0, +it.units || 0);
-          });
-          if(has) total += Math.max(0, +it.units || 0);
-        });
-        fees[mk + ':' + kind] = { cfg: cfg, groups: g, unitsOf: unitsOf, total: total || 1 };
+        var fb = buildFees(base, mk, kind, null);
+        fees[mk + ':' + kind] = fb;
+        if(!up.length){ fees[mk + ':' + kind + ':u'] = null; return; }
+        fees[mk + ':' + kind + ':u'] = buildFees(up, mk, kind, (fb && fb.groups.reps) || []);
       });
     });
 
@@ -115,23 +178,24 @@
     return list.map(function(it){
       var u = Math.max(0, +it.units || 0);
       if(it.bare){
-        var gc = (gcoefSet != null) ? gcoefSet
-               : tierCoefFor(null, opts.noVolume ? 1 : (U.bare || 1));
+        var gcSet = it.upsell ? gcoefAll : gcoefBase;
+        var gc = (gcSet != null) ? gcSet
+               : tierCoefFor(null, opts.noVolume ? 1 : (volFor(it, 'bare') || 1));
         var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
         return { unit: ub, sum: ub * u, feeShare: 0, parts: {
-          bare: true, coef: gc, groupQty: U.bare,
+          bare: true, coef: gc, groupQty: volFor(it, 'bare'), upsell: !!it.upsell,
           garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gc),
           appBase: 0, app: 0, pieceFee: +it.pieceFee || 0,
           feeShare: 0, feeTotal: 0, feeUnits: 0, sketches: []
         } };
       }
       var mk = it.method === 'embro' ? 'embro' : 'dtf';
-      var c = coef[mk];
+      var c = coefFor(it, mk);
       // DTF: рядок сітки береться за СУМАРНИМ тиражем методу
       var flat = 0;
       if(mk === 'dtf' && (it.dtfCols || []).length){
         var cfg = (p.methods || {}).dtf || {}, qf = cfg.qtyFrom || [], row = 0;
-        var qRow = opts.noVolume ? 1 : (U.dtf || 1);
+        var qRow = opts.noVolume ? 1 : (volFor(it, 'dtf') || 1);
         for(var j = qf.length - 1; j >= 0; j--){ if(qRow >= qf[j]){ row = j; break; } }
         var grid = cfg.price || [];
         it.dtfCols.forEach(function(col){
@@ -141,17 +205,21 @@
       // Частка разових: базова оплата методу — на всі вироби методу,
       // додатковий ескіз — лише на вироби свого дизайну.
       var feeShare = 0, costShare = 0, sketches = [], feeLines = [], feeTotal = 0, feeUnits = 0;
-      var paid = {};
+      var paid = {}, freeDesigns = 0;
       (it.designs || []).forEach(function(fp, i){
     /* Дизайн без відбитка — усе одно дизайн. Раніше такий рядок мовчки
        пропускався, і замовлення втрачало гроші: напис, відбиток якого ще
        не встиг порахуватись, ставав безкоштовним — ні разової підготовки
        макета, ні ескізу. Тепер він рахується, а порожній відбиток просто
        не збігається ні з чим і утворює власну групу. */
-        var kind = kindOf(it, i), key = mk + ':' + kind, f = fees[key];
+        var kind = kindOf(it, i), key = feeKey(it, mk, kind), f = fees[key];
         if(!f) return;
         if(cursor[key] == null) cursor[key] = 0;
         var gi = f.groups.index[cursor[key]++];
+        /* Макет цього дизайну вже оплачено погодженою частиною замовлення —
+           допродаж за нього не платить. Саме звідси й береться вигода
+           рекомендованого товару: та сама вишивка, але без підготовки. */
+        if(f.done && f.done[gi]){ freeDesigns++; return; }
         if(!paid[kind]){                            // разова за вид — один раз на позицію
           paid[kind] = {};
           feeShare += (+f.cfg.orderFee || 0) / (f.total || 1);
@@ -164,7 +232,8 @@
           feeLines.push({ kind: kind, fee: +f.cfg.orderFee || 0,
                           cost: +f.cfg.orderCost || 0, units: f.total || 1 });
         }
-        if(paid[kind][gi] || gi === 0) return;      // перший дизайн виду входить у разову
+        // Перший ПЛАТНИЙ дизайн виду входить у разову підготовку
+        if(paid[kind][gi] || gi === f.firstIdx) return;
         paid[kind][gi] = 1;
         feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
         costShare += (+f.cfg.sketchCost || 0) / (f.unitsOf[gi] || 1);
@@ -174,7 +243,11 @@
       var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
                  (+it.pieceFee || 0) + Math.round(feeShare);
       return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
-        bare: false, method: mk, coef: c, groupQty: U[mk] || u,
+        bare: false, method: mk, coef: c, groupQty: volFor(it, mk) || u,
+        /* Позначки для прорахунку: чи це допродаж і скільки дизайнів пішло
+           без оплати макета. Менеджер має бачити, чому рекомендований товар
+           вийшов дешевшим, — інакше цифра виглядає як помилка. */
+        upsell: !!it.upsell, freeDesigns: freeDesigns,
         garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * c),
         appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
         basePart: +it.basePart || 0, minPart: +it.minPart || 0,
@@ -250,7 +323,17 @@
      як два різні макети — або, навпаки, різні зливались би в один. */
   var FP_N = 12, FP_SAME = 0.03;
 
+  /* Як рахувати допродаж. 'all' — перерахувати весь склад разом (так було
+     завжди й так лишається за замовчуванням), 'keep' — погоджене не рухати,
+     а виграш від зрослого тиражу віддати новому товару. Задається в
+     Налаштуваннях → Формування цін → «Ціни при допродажу». */
+  function upsellMode(){
+    var p = window.SITE_CONTENT && window.SITE_CONTENT.pricing;
+    return ((p && p.upsellMode) === 'keep') ? 'keep' : 'all';
+  }
+
   window.LQ = window.LQ || {};
+  window.LQ.upsellMode = upsellMode;
   window.LQ.priceOrder = priceOrder;
   window.LQ.tierCoefFor = tierCoefFor;
   window.LQ.garmentCoefFor = garmentCoefFor;
