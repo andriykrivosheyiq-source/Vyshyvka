@@ -6771,6 +6771,15 @@ window.LOOMIQ_CONFIG = {
       descriptions: data.descriptions || {},
       sizecharts: data.sizecharts || {},
       sizechartPhotos: data.sizechartPhotos || {},
+      /* Ці три ключі адмінка пише, а сайт їх мовчки викидав — і будь-яка
+         правка в них не доїжджала нікуди. Менеджер додавав виробу рукав чи
+         боковинку кепки, міняв порядок ракурсів, правив колонки розмірної
+         сітки, тиснув «Зберегти», бачив «Збережено» — і на сайті нічого не
+         змінювалось. Помилки при цьому не було: перелік нижче просто не
+         переносив їх у SITE_CONTENT, а конструктор читає саме звідти. */
+      sides: data.sides || {},
+      viewOrder: data.viewOrder || {},
+      sizechartCols: data.sizechartCols || {},
       specs: data.specs || {},
       models: data.models || {},
       reviewOrder: data.reviewOrder || null,

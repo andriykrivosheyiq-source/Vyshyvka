@@ -2217,7 +2217,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           pricing: d.pricing || null, productColors: d.productColors || {},
           printAreas: d.printAreas || {}, landing: d.landing || null,
           catalogPicks: d.catalogPicks || null, bgApi: d.bgApi || C.bgApi || {},
-          viewOrder: d.viewOrder || {}
+          // sides і sizechartCols — теж з адмінки; без них конструктор не
+          // побачить додаткових ракурсів виробу й правлених колонок сітки
+          viewOrder: d.viewOrder || {}, sides: d.sides || {},
+          sizechartCols: d.sizechartCols || {}
         };
         document.dispatchEvent(new Event('lq-photos'));
         document.dispatchEvent(new Event('lq-content'));
