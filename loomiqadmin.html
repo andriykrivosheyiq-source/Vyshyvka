@@ -2695,7 +2695,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-pricing.js?v=9bfcafbc98"></script>
+<script src="loomiq-pricing.js?v=b66aceb46f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4758,7 +4758,12 @@ function slimOrderConfig(cfg, filesBySide){
       frac: l.frac != null ? l.frac : null,
       fx: l.fx != null ? l.fx : null,
       fy: l.fy != null ? l.fy : null,
-      fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null
+      fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null,
+      /* Зведення в один колір: звідки й у що. Без цього після збереження
+         «Повернути колір» зникало разом із початковим файлом — і повернути
+         багатоколірний оригінал не було звідки. */
+      recolorFrom: /^https?:/i.test(String(l.recolorFrom || '')) ? l.recolorFrom : null,
+      recolorTo: l.recolorTo || null
     };});
   });
   return out;

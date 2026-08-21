@@ -784,6 +784,15 @@
        вікна чи картки не має впливати на них узагалі. Один виклик показує
        всі три числа одразу — і видно, чи вони справді не залежать від
        ширини контейнера. */
+    /* Стан активного шару однією стрічкою — для перевірки з консолі. Найчастіше
+       треба саме відбиток: за ним рушій вирішує, чи це той самий дизайн, а
+       отже й чи брати додатковий ескіз. */
+    window.__lqLayerInfo = function(){
+      var l = findLayerAnySide(pm.activeLogoId) || currentLayers()[0];
+      if(!l) return null;
+      return { id: l.id, fp: l.fp || '', recolorTo: l.recolorTo || null,
+               recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)) };
+    };
     window.__lqPrintScale = function(){
       var pa = ((window.SITE_CONTENT || {}).printAreas || {})[pm.garmentId] || {};
       var cfg = (typeof currentPrintCfg === 'function') ? currentPrintCfg() : null;
@@ -2665,15 +2674,39 @@
           // Менеджеру — доробити вже наявний логотип: перегенерувати або перефарбувати
           var actL = findLayerAnySide(pm.activeLogoId) || layers[0];
           if(IS_MANAGER && actL){
-            /* «Змінити колір» прибрано: одноколірне зведення логотипа —
-               робота дизайнера перед виробництвом, а не кнопка в пропозиції.
-               Перефарбований на екрані логотип обіцяв клієнту вигляд, якого
-               ніхто не погоджував. Перегенерація й обрізання лишаються. */
+            /* Колір нитки — інструмент МЕНЕДЖЕРА, і тільки його. Клієнту цієї
+               кнопки немає навмисно: перефарбований на екрані логотип обіцяв
+               би вигляд, якого ніхто не погоджував. А от менеджеру вона
+               потрібна щодня: те саме лого вишивають однією ниткою, і на
+               замовлення в іншому кольорі треба показати саме той колір, а не
+               просити дизайнера перемалювати файл заради одного слайда. */
+            var recolorOn = pm.recolorFor === actL.id;
             html += '<div class="pm-mgr-tools">' +
               '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
               '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
+              '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Колір нитки</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
             '</div>';
+            if(recolorOn){
+              /* Зразки — реальні нитки й плівка, ті самі, що й для напису.
+                 Вільна палітра поруч, але окремо: фірмовий відтінок буває
+                 точний, а вгадувати його зразками — марна справа. */
+              var now = actL.recolorTo || '#111111';
+              html += '<div class="pm-mgr-recolor">' +
+                '<div class="pm-lbl">Звести логотип в один колір</div>' +
+                '<div class="pm-mgr-sw">' +
+                  '<input type="color" id="pmRecolorPick" value="' + now + '" ' +
+                    'aria-label="Точний відтінок">' +
+                  TEXT_COLORS.map(function(c){
+                    return '<button class="pm-ts-sw' + (c === actL.recolorTo ? ' on' : '') + '" ' +
+                           'data-sw="' + c + '" style="background:' + c + '" ' +
+                           'aria-label="' + colorName(c) + '"></button>';
+                  }).join('') +
+                '</div>' +
+                '<div class="pm-ts-warn">Форма й розмір не змінюються — отже й ціна теж. ' +
+                  'Повернути початкові кольори можна будь-коли.</div>' +
+              '</div>';
+            }
           }
         }
         // Текст — той самий логотип, лише намальований нами. Тому йде тим самим
@@ -3835,6 +3868,11 @@
     // Для одноколірної вишивки це рівно те, що треба: форма та сама, нитка інша.
     function recolorLogo(layer, color){
       var srcUrl = layer.recolorFrom || layer.url;
+      /* Відбиток лишається від ПОЧАТКОВОГО малюнка. Інакше те саме лого,
+         зведене в іншу нитку, рахувалось би як другий дизайн — і замовлення
+         отримувало б додатковий ескіз за роботу, якої немає: для вишивки
+         програма та сама, змінюється лише колір нитки. */
+      var keepFp = layer.fp;
       return loadImgEl(srcUrl).then(function(img){
         var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
         var c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -3850,15 +3888,20 @@
         }
         x.putImageData(d, 0, 0);
         if(!layer.recolorFrom) layer.recolorFrom = srcUrl;   // щоб можна було повернути як було
+        layer.recolorTo = color;                             // яким саме звели — видно на зразку
         var out = c.toDataURL('image/png');
         layer.url = out; layer.cleanUrl = out;
         return measureLayerShape(layer, out);
-      }).then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
+      }).then(function(){
+        if(keepFp) layer.fp = keepFp;      // дизайн той самий, змінилась лише нитка
+        renderGarment(); renderTabPanel(); updatePriceBar();
+      });
     }
     function resetRecolor(layer){
       if(!layer.recolorFrom) return Promise.resolve();
       var back = layer.recolorFrom;
       layer.recolorFrom = null;
+      layer.recolorTo = null;
       layer.url = back; layer.cleanUrl = back;
       return measureLayerShape(layer, back)
         .then(function(){ renderGarment(); renderTabPanel(); updatePriceBar(); });
