@@ -351,11 +351,29 @@
     }
     window.__sideLabel = sideLabelOf;
     function getViews(){
-      var base = ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || [])
-                 .concat(extraViews(pm.garmentId, pm.colorId));
+      var saved = adminSides(pm.garmentId);
+      var base;
+      if(saved.length){
+        /* Склад ракурсів задав менеджер — поважаємо його цілком: і те, що
+           додав, і те, що прибрав. Доти перед і зад були вшиті намертво, і
+           товар з одним фото — шапка, плед, кружка — все одно показував
+           порожню вкладку «Спина». Перед лишається завжди: без жодного
+           ракурсу товару не існує. */
+        base = saved.map(function(s){ return s && s.id; }).filter(Boolean);
+        if(base.indexOf('front') < 0) base.unshift('front');
+        // Додаткові показуємо лише коли для них є фото саме цього кольору —
+        // порожня вкладка «Лівий рукав» гірша за її відсутність
+        base = base.filter(function(v){
+          return v === 'front' || v === 'back' ||
+                 !!(window.PHOTO_OVERRIDES || {})[pm.garmentId + '-' + pm.colorId + '-' + v];
+        });
+      } else {
+        base = ['front','back'].concat(GARMENT_ANGLES[pm.garmentId] || [])
+               .concat(extraViews(pm.garmentId, pm.colorId));
+      }
       // порядок фото, заданий перетягуванням в адмінці (viewOrder)
-      var saved = ((window.SITE_CONTENT.viewOrder || {})[pm.garmentId]) || [];
-      var known = saved.filter(function(v){ return base.indexOf(v) !== -1; });
+      var order = ((window.SITE_CONTENT.viewOrder || {})[pm.garmentId]) || [];
+      var known = order.filter(function(v){ return base.indexOf(v) !== -1; });
       return known.concat(base.filter(function(v){ return known.indexOf(v) === -1; }));
     }
 

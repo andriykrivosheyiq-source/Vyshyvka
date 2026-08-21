@@ -2695,7 +2695,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-pricing.js?v=fd7ea183c6"></script>
+<script src="loomiq-pricing.js?v=9bfcafbc98"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -12502,15 +12502,20 @@ function customSides(gid){
   const list = (contentData.sides || {})[gid];
   return Array.isArray(list) ? list.filter(x => x && x.id) : [];
 }
+/* Список, який менеджер уже редагував, головніший за типовий: саме в ньому
+   записано, які ракурси цей товар має. Доти типовий домішувався завжди — і
+   прибраний зад повертався на місце при кожному перемальовуванні, тобто
+   видалити його було неможливо в принципі. Перед добудовуємо, якщо його
+   якось не стало: без жодного ракурсу товару не існує. */
 function sidesFor(g){
-  const base = (g.views || ['front','back']).map(v => ({ id:v, label:VIEW_LABEL[v] || v }));
   const own = customSides(g.id);
-  const out = base.map(b => {
-    const o = own.find(x => x.id === b.id);
-    return { id: b.id, label: (o && o.label) || b.label, base: true };
-  });
-  own.forEach(o => { if(!out.some(x => x.id === o.id)) out.push({ id:o.id, label:o.label || o.id }); });
-  return out;
+  if(own.length){
+    const out = own.map(o => ({ id:o.id, label:o.label || VIEW_LABEL[o.id] || o.id }));
+    if(!out.some(x => x.id === 'front'))
+      out.unshift({ id:'front', label: VIEW_LABEL.front || 'Перед' });
+    return out;
+  }
+  return (g.views || ['front','back']).map(v => ({ id:v, label: VIEW_LABEL[v] || v }));
 }
 function sideNewId(taken){
   let i = 2;
@@ -12530,17 +12535,26 @@ function renderSidesEditor(){
   const list = sidesFor(g);
   box.innerHTML =
     '<div class="sides-h">Ракурси товару</div>' +
-    '<div class="sub" style="margin:-2px 0 10px;">Перед і зад є завжди. Решту додайте самі — ' +
-      'рукав, бік, козирок. Назву можна змінити: на кепці «зад» це не спина. ' +
+    /* Прибрати можна БУДЬ-ЯКИЙ ракурс, крім переду. Раніше зад був
+       незнімний — і шапка, плед чи кружка, у яких фото одне, тягли за собою
+       порожню вкладку «Спина»: клієнт її відкривав і бачив пустоту, а
+       менеджер не мав чим це прибрати. Один ракурс — цілком нормальний
+       товар; неможливим лишається тільки жоден. */
+    '<div class="sub" style="margin:-2px 0 10px;">Перед є завжди. Решту додавайте й прибирайте ' +
+      'на свій розсуд: рукав, бік, козирок. Товару з одним фото — шапці, пледу, кружці — ' +
+      'зад просто приберіть. Назву можна змінити: на кепці «зад» це не спина. ' +
       'Ракурс показується на сайті лише тоді, коли для нього завантажене фото.</div>' +
     list.map(sd => `
       <div class="side-row" data-side="${escA(sd.id)}">
         <input type="text" maxlength="28" value="${escA(sd.label)}" data-side-lab>
         <span class="side-id">${escA(sd.id)}</span>
-        ${sd.base ? '<span class="side-lock" title="Базовий ракурс — його не прибрати">завжди</span>'
-                  : '<button class="side-del" title="Прибрати ракурс">✕</button>'}
+        ${sd.id === 'front' ? '<span class="side-lock" title="Головне фото товару — його не прибрати">завжди</span>'
+                            : '<button class="side-del" title="Прибрати ракурс">✕</button>'}
       </div>`).join('') +
-    '<div class="add-row-btn" id="side-add">+ Додати ракурс</div>';
+    '<div class="add-row-btn" id="side-add">+ Додати ракурс</div>' +
+    (list.length === 1
+      ? '<div class="sub" style="margin-top:8px;color:#127a3d;">Товар з одним фото — конструктор ' +
+        'покаже його без перемикача ракурсів.</div>' : '');
 
   const collect = () => Array.from(box.querySelectorAll('.side-row')).map(r => ({
     id: r.dataset.side,
@@ -12560,7 +12574,11 @@ function renderSidesEditor(){
   const add = document.getElementById('side-add');
   if(add) add.addEventListener('click', async ()=>{
     const cur = collect();
-    cur.push({ id: sideNewId(cur.map(x => x.id)), label: 'Новий ракурс' });
+    /* Прибрали зад і передумали — повертаємо саме «back», а не «view2».
+       Інакше фото, завантажені для заду раніше, лишились би осиротілими:
+       вони прив'язані до ключа, а не до підпису. */
+    if(!cur.some(x => x.id === 'back')) cur.push({ id:'back', label:'Спина' });
+    else cur.push({ id: sideNewId(cur.map(x => x.id)), label: 'Новий ракурс' });
     await saveSides(g.id, cur);
     renderSidesEditor(); renderPhotoCells();
   });
