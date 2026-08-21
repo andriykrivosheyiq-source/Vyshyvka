@@ -1825,17 +1825,51 @@
     // Заміряно на тестових малюнках: той самий дизайн у різному розмірі — 0…0.1%,
     // різні дизайни — 11…23%. Поріг 3% розділяє їх із запасом.
     var FP_N = 12, FP_SAME = 0.03;
-    function imageFingerprint(img){
+    /* Дивимось на САМ малюнок, а не на прозоре поле навколо нього. Логотип
+       майже завжди лежить невеликою плямою посеред великого прозорого полотна.
+       Якщо стиснути все полотно в квадратик 12×12, від малюнка лишиться кілька
+       блідих пікселів, а решта — біле тло. Два зовсім різні логотипи виходили
+       тоді «майже однаково білими», відстань між ними падала нижче порогу — і
+       рушій вважав їх ОДНИМ дизайном. На практиці це виглядало так: менеджер
+       прибрав лого, завантажив зовсім інше, а додатковий ескіз не додався.
+
+       Тому спершу знаходимо межі непрозорого вмісту (opaqueBox) і стискаємо в
+       сітку саме його. Тоді малюнок заповнює всю сітку, і відмінності видно.
+
+       Альфа теж іде у відбиток: два силуети однакового кольору, але різної
+       форми, за самим лише кольором нерозрізненні. */
+    function imageFingerprint(img, box){
       try{
+        var W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+        var sx = 0, sy = 0, sw = W, sh = H;
+        if(box && box.x1 > box.x0 && box.y1 > box.y0){
+          sx = Math.max(0, Math.floor(box.x0 * W));
+          sy = Math.max(0, Math.floor(box.y0 * H));
+          sw = Math.max(1, Math.ceil((box.x1 - box.x0) * W));
+          sh = Math.max(1, Math.ceil((box.y1 - box.y0) * H));
+        }
         var c = document.createElement('canvas'); c.width = FP_N; c.height = FP_N;
         var x = c.getContext('2d', { willReadFrequently:true });
         x.fillStyle = '#fff'; x.fillRect(0, 0, FP_N, FP_N);   // прозоре → біле
-        x.drawImage(img, 0, 0, FP_N, FP_N);
+        x.drawImage(img, sx, sy, sw, sh, 0, 0, FP_N, FP_N);
         var d = x.getImageData(0, 0, FP_N, FP_N).data, out = '';
+        // Прозорість беремо з ОКРЕМОГО проходу: на білому тлі вона вже злилась
+        var ca = document.createElement('canvas'); ca.width = FP_N; ca.height = FP_N;
+        var xa = ca.getContext('2d', { willReadFrequently:true });
+        xa.drawImage(img, sx, sy, sw, sh, 0, 0, FP_N, FP_N);
+        var a = xa.getImageData(0, 0, FP_N, FP_N).data;
+        /* Колір і прозорість — двома блоками через «|», а не впереміш. Старі
+           відбитки складались лише з кольору; якби прозорість вклинилась між
+           цифрами, вони перестали б збігатися з новими взагалі — і кожне
+           замовлення, збережене раніше, отримало б «інші дизайни» разом із
+           додатковими ескізами. Двома блоками старий відбиток лишається
+           першою половиною нового, і порівняння працює в обидва боки. */
+        var alpha = '';
         for(var i = 0; i < d.length; i += 4){
           out += Math.round(d[i]/64) + '' + Math.round(d[i+1]/64) + '' + Math.round(d[i+2]/64);
+          alpha += Math.round(a[i+3]/64);
         }
-        return out;
+        return out + '|' + alpha;
       }catch(e){ return ''; }
     }
     /* Порівняння відбитків і розкладання їх по групах живуть у рушії цін
@@ -1868,14 +1902,16 @@
     function measureLayerShape(layer, url){
       return loadImgEl(url).then(function(img){
         layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
-        try{ layer.fp = imageFingerprint(img); }catch(e){ layer.fp = ''; }
-        // Напис звіряємо за текстом — див. textFingerprint вище
-        if(layer.text) layer.fp = textFingerprint(layer.text);
+        // Спершу межі малюнка — відбиток знімаємо саме з них, а не з усього
+        // полотна разом із прозорими полями (див. imageFingerprint)
         try{
           var m = measureShape(img);
           layer.opaqueBox = m ? m.opaqueBox : { x0:0, y0:0, x1:1, y1:1 };
           layer.fill = m ? m.fill : 1;
         }catch(e){ layer.fill = 0.85; layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 }; }
+        try{ layer.fp = imageFingerprint(img, layer.opaqueBox); }catch(e){ layer.fp = ''; }
+        // Напис звіряємо за текстом — див. textFingerprint вище
+        if(layer.text) layer.fp = textFingerprint(layer.text);
       });
     }
     // Розмір лого зберігається в пікселях (120 × scale), а фізичні міліметри

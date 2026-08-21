@@ -311,11 +311,26 @@
 
   function sameFingerprint(a, b){ return fpDistance(a, b) <= FP_SAME; }
 
-  function fpDistance(a, b){
-    if(!a || !b || a.length !== b.length || !a.length) return 1;
+  /* Відбиток складається з двох блоків через «|»: колір і прозорість.
+     Прозорість зʼявилась пізніше, тож у замовленнях, збережених раніше, її
+     немає. Коли її немає хоч в одного — порівнюємо за самим кольором:
+     інакше кожна стара позиція раптом стала б «іншим дизайном» і привела
+     за собою додатковий ескіз. */
+  function fpPart(a, b){
+    if(!a || !b || a.length !== b.length || !a.length) return null;
     var n = 0;
     for(var i = 0; i < a.length; i++) n += Math.abs((+a[i]||0) - (+b[i]||0));
     return n / (a.length * 4);
+  }
+  function fpDistance(a, b){
+    a = String(a || ''); b = String(b || '');
+    if(!a || !b) return 1;
+    var pa = a.split('|'), pb = b.split('|');
+    var col = fpPart(pa[0], pb[0]);
+    if(col == null) return 1;
+    var alp = (pa[1] && pb[1]) ? fpPart(pa[1], pb[1]) : null;
+    // Колір — три цифри на клітинку, прозорість одна: звідси й ваги 3 до 1
+    return alp == null ? col : (col * 3 + alp) / 4;
   }
 
   /* Наскільки два відбитки мають бути схожі, щоб вважатись одним дизайном.
