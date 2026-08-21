@@ -205,7 +205,10 @@
       // Частка разових: базова оплата методу — на всі вироби методу,
       // додатковий ескіз — лише на вироби свого дизайну.
       var feeShare = 0, costShare = 0, sketches = [], feeLines = [], feeTotal = 0, feeUnits = 0;
-      var paid = {}, freeDesigns = 0;
+      /* Номери дизайнів цієї позиції — рівно ті, за якими рушій вирішує, що
+         з чим збігається. Без них «чому тут ескіз, а тут ні» доводилось
+         брати на віру: на екрані видно картинки, а рахунок іде за групами. */
+      var paid = {}, freeDesigns = 0, designNos = [];
       (it.designs || []).forEach(function(fp, i){
     /* Дизайн без відбитка — усе одно дизайн. Раніше такий рядок мовчки
        пропускався, і замовлення втрачало гроші: напис, відбиток якого ще
@@ -216,6 +219,8 @@
         if(!f) return;
         if(cursor[key] == null) cursor[key] = 0;
         var gi = f.groups.index[cursor[key]++];
+        designNos.push({ kind: kind, no: gi + 1, first: gi === f.firstIdx,
+                         units: f.unitsOf[gi] || 0 });
         /* Макет цього дизайну вже оплачено погодженою частиною замовлення —
            допродаж за нього не платить. Саме звідси й береться вигода
            рекомендованого товару: та сама вишивка, але без підготовки. */
@@ -247,7 +252,7 @@
         /* Позначки для прорахунку: чи це допродаж і скільки дизайнів пішло
            без оплати макета. Менеджер має бачити, чому рекомендований товар
            вийшов дешевшим, — інакше цифра виглядає як помилка. */
-        upsell: !!it.upsell, freeDesigns: freeDesigns,
+        upsell: !!it.upsell, freeDesigns: freeDesigns, designNos: designNos,
         garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * c),
         appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
         basePart: +it.basePart || 0, minPart: +it.minPart || 0,

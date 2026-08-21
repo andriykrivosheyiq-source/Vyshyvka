@@ -556,6 +556,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border-radius:9px;font-size:13px;color:#4a525c;}
   .cc-group b{font-weight:700;color:#111;}
   .cc-hint{font-size:12.5px;line-height:1.5;color:#8a929b;margin:0 0 14px;}
+  .cc-fix{font:inherit;font-size:13px;font-weight:600;color:#0f2034;background:#fff;
+    border:1px solid #d8dee7;border-radius:10px;padding:8px 14px;cursor:pointer;margin-bottom:6px;}
+  .cc-fix:hover{border-color:#0f2034;}
+  .cc-fix:disabled{opacity:.55;cursor:default;}
   .cc-sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
     color:#8a929b;margin:20px 0 8px;}
   .cc-item{border:1px solid #e6e9ed;border-radius:12px;padding:13px 14px;margin-bottom:10px;background:#fff;}
@@ -1842,7 +1846,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-pricing.js?v=193332ee24"></script>
+<script src="loomiq-fingerprint.js?v=229dc1d1b9"></script>
+<script src="loomiq-pricing.js?v=229dc1d1b9"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2096,9 +2101,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=193332ee24';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=193332ee24';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=193332ee24';
+  var CTOR_JS   = 'loomiq-constructor.js?v=229dc1d1b9';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=229dc1d1b9';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=229dc1d1b9';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2440,6 +2445,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
         b.addEventListener(t, function(e){ e.stopPropagation(); });
       });
+    });
+    var fpFix = document.getElementById('ccFpFix');
+    if(fpFix) fpFix.addEventListener('click', function(){
+      fpFix.disabled = true;
+      fpFix.textContent = 'Перераховую…';
+      edSend({ act:'fpfix' });
     });
     var ttl = document.querySelector('[data-ed-title]');
     if(ttl){
@@ -3203,6 +3214,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var m = +s.margin || 0;
     return '<details class="cc-fold cc-fold-all"><summary>Прорахунок пропозиції · службове</summary>' +
       '<div class="cc-fold-b">' +
+        /* Відбитки дизайнів лежать у замовленні такими, якими їх порахувала
+           тодішня версія формули. Коли формула стала точнішою, старі числа
+           самі не оновляться — і в рахунку далі стоять групи, зліплені за
+           старим правилом. Кнопка знімає відбитки заново з тих самих файлів
+           нанесення, які лежать у позиціях. */
+        (EDIT ? '<button class="cc-fix" id="ccFpFix">↻ Перерахувати дизайни за макетами</button>' +
+                '<p class="cc-hint">Знімає відбиток заново з кожного нанесення й перескладає групи. ' +
+                'Потрібно для замовлень, зібраних раніше: у них групи дизайнів пораховані старою формулою.</p>'
+              : '') +
         ((C.groups || []).length
           ? '<div class="cc-groups">' + C.groups.map(function(g){
               return '<div class="cc-group"><span>' + esc(g.k) + '</span><b>' + g.q + ' шт</b></div>';
