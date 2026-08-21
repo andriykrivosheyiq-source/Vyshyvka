@@ -478,6 +478,9 @@
     display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 3px rgba(15,32,52,.05);transition:box-shadow .15s,border-color .15s;}
   .ticket:hover{box-shadow:0 4px 14px rgba(15,32,52,.10);border-color:#d5dce6;}
   .ticket:active{cursor:grabbing;}
+  /* Щойно перенесена картка: секунда підсвітки, щоб око знайшло, куди вона
+     лягла. Довше — і це вже прикраса, яка відволікає. */
+  .ticket--landed{border-color:#127a3d;box-shadow:0 0 0 3px rgba(18,122,61,.14);}
   /* Картка, яку тягнуть, трохи піднімається й хилиться — рух каже «взяв»
      краще за будь-яку рамку */
   .ticket.dragging{transform:rotate(1.5deg) scale(1.02);box-shadow:0 14px 34px rgba(15,32,52,.18);
@@ -3138,10 +3141,31 @@ let currentApps = [];     // apps being built in calculator before save
 /* Історія етапів. Без неї не порахувати ні «скільки днів картка стоїть у
    роботі», ні конверсію прорахунок→оплата: у картці видно лише поточний
    статус, а коли він змінився — ніде. Пишемо коротко: етап і час. */
+/* Порядок перенесень у цьому сеансі. Картка, яку щойно перекинули в іншу
+   колонку, має лягти ЗВЕРХУ: менеджер щойно її туди відправив і мусить
+   бачити, що вона долетіла. Без цього вона сортувалась на загальних
+   підставах і зникала десь усередині довгої колонки — виглядало це так,
+   ніби перенесення не спрацювало.
+
+   Тримаємо лічильник, а не час: години на різних машинах розходяться, а
+   номер перенесення — ні. Живе до перезавантаження сторінки: наступного
+   ранку дошка знову читається за своїм звичайним порядком. */
+let movedSeq = 0;
+const movedOrder = new Map();
+/* Коротка підсвітка щойно перенесеної картки. Вона й так лягає першою, але
+   в довгій колонці погляд усе одно шукає, куди саме вона поділась. */
+function flashTicket(id){
+  const el = document.querySelector('.ticket[data-oid="' + String(id).replace(/"/g,'') + '"]');
+  if(!el) return;
+  el.classList.add('ticket--landed');
+  try{ el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(e){}
+  setTimeout(()=>{ el.classList.remove('ticket--landed'); }, 1400);
+}
 function setStatus(o, key){
   if(!o || o.status === key) return;
   o.status = key;
   o.hist = (o.hist || []).concat([{ s:key, at:new Date().toISOString() }]).slice(-40);
+  movedOrder.set(o.id, ++movedSeq);
 }
 
 /* ============================================================
@@ -6803,6 +6827,17 @@ function attentionRank(o){
   return 5;
 }
 function boardSortFn(){
+  const inner = boardSortInner();
+  /* Щойно перенесені — завжди першими, і в тому ж порядку, в якому їх
+     переносили: останнє зверху. Решта йде звичайним порядком, який обрав
+     менеджер у списку сортування. */
+  return (a, b)=>{
+    const ma = movedOrder.get(a.id) || 0, mb = movedOrder.get(b.id) || 0;
+    if(ma !== mb) return mb - ma;
+    return inner(a, b);
+  };
+}
+function boardSortInner(){
   const act = o => orderActivityAt(o) || '';
   switch(boardView.sort){
     case 'new':      return (a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||''));
@@ -6940,7 +6975,12 @@ function renderBoard(){
       col.classList.remove('drag-over');
       const id = e.dataTransfer.getData('text/plain');
       const o = orders.find(x=>x.id===id);
-      if(o){ setStatus(o, st.key); await storeSet('orders', orders); renderBoard(); }
+      if(o){
+        setStatus(o, st.key);
+        await storeSet('orders', orders);
+        renderBoard();
+        flashTicket(o.id);
+      }
     });
 
     board.appendChild(col);
@@ -6978,6 +7018,7 @@ function renderTicket(o){
   if(o.type === 'client') return renderClientTicket(o);
   const el = document.createElement('div');
   el.className = 'ticket';
+  el.dataset.oid = o.id;      // щоб знайти картку після перемальовування дошки
   el.draggable = true;
   el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
 
@@ -7511,6 +7552,7 @@ function ticketSummaryHtml(o){
 function buildTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
+  el.dataset.oid = o.id;      // щоб знайти картку після перемальовування дошки
   el.draggable = true;
   el.addEventListener('dragstart', e=>{
     e.dataTransfer.setData('text/plain', o.id);
@@ -9216,14 +9258,30 @@ function offerEdPreview(now){
 /* Одна дорога для всіх правок редактора: перерахувати, зберегти, оновити
    перегляд. Кожне поле лише міняє значення й кличе це. */
 async function offerEdSave(o, opts){
+  /* Перерахунок ПЕРЕД записом, і саме тут — це єдина дорога, якою проходять
+     усі правки складу: додали товар, продублювали, прибрали, змінили тираж.
+     Ціна кожної позиції залежить від усього замовлення, тож зміна складу
+     міняє ціни всіх позицій, а не лише тієї, яку чіпали. Доти перерахунок
+     траплявся лише побіжно — усередині запобіжника маржі, — і коли поріг
+     маржі був вимкнений, сусідні позиції лишались зі старою ціною. */
+  repriceOrder(o);
   recalcOrderTotals(o);
   try{
     await storeSet('orders', orders);
     await offerSave(o);
-  }catch(e){ console.error('offer save', e); toast('Не збереглось'); return; }
+  }catch(e){ console.error('offer save', e); toast('Не збереглось'); return false; }
   renderBoard();
   if(opts && opts.repaint) renderOfferEd();
-  offerEdPreview();
+  /* Свіжі дані в робоче місце — БЕЗ перезавантаження кадру. Доти тут стояв
+     відкладений перезапуск сторінки, і склад у лівій панелі оновлювався аж
+     через секунду з гаком, разом із перебудовою всього редактора. */
+  offerEdPreview(true);
+  /* Успіх треба повернути ЯВНО. Без цього функція віддавала undefined, а
+     кожен виклик перевіряє її як `if(!(await offerEdSave(o))) return;` — і
+     весь код після збереження мовчки не виконувався: ні перемальовування
+     дошки, ні оновлення панелі. Саме через це ціни в лівому меню й
+     застигали на тому, що було збережено першим. */
+  return true;
 }
 
 /* Індекс у пропозиції → індекс у складі замовлення. Сторінка КП показує
