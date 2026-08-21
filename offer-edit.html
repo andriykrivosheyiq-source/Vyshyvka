@@ -719,9 +719,10 @@
   var lastReco = -1;         // те саме окремо для рекомендованих
   var ctorReady = null;
 
-  var CTOR_PRICE = 'loomiq-pricing.js?v=193332ee24';
-  var CTOR_JS   = 'loomiq-constructor.js?v=193332ee24';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=193332ee24';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=229dc1d1b9';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=229dc1d1b9';
+  var CTOR_JS   = 'loomiq-constructor.js?v=229dc1d1b9';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=229dc1d1b9';
 
   function send(msg){
     if(window.parent === window) return;
@@ -758,7 +759,11 @@
            коротше, ніж змушувати здогадуватись за нулями. */
         '<span class="it-m">' + ((+it.qty || 0) > 0
           ? (+it.qty || 0) + ' × ' + money(it.unitPrice) +
-            ' = ' + money((+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)))
+            ' = ' + money((+it.sum || (+it.unitPrice || 0) * (+it.qty || 0))) +
+            /* Позиція без розкладу не перераховується разом з рештою: її
+               ціна лишається такою, якою її записали колись, і розходиться
+               з тим, що показує картка. Кажемо це прямо. */
+            (it.stale ? '<b class="it-todo"> · ціна застаріла, відкрийте й збережіть</b>' : '')
           : '<b class="it-todo">вкажіть розмір і кількість</b>') + '</span>' +
       '</span>' +
       '<button class="it-dots" data-dots="' + kind + ':' + i + '" title="Дії з позицією">⋯</button>' +
@@ -1044,6 +1049,8 @@
       });
     };
     ctorReady = Promise.all([css, markup, content()])
+      // Відбиток дизайну — перед рушієм: рушій його порівнює, конструктор рахує
+      .then(function(){ return one(CTOR_FP); })
       .then(function(){ return one(CTOR_PRICE); })   // рушій цін — перед конструктором
       .then(function(){
       return new Promise(function(res, rej){

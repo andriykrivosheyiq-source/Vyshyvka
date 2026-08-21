@@ -29,6 +29,8 @@ STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html')
 # пропозиції не тримає їхньої копії: збірка щоразу дістає їх звідти.
 # Рушій цін — один файл на сайт, адмінку й сторінку пропозиції
 CTOR_PRICE = 'loomiq-pricing.js'
+# Відбиток дизайну — теж один: за ним рушій вирішує, один це макет чи два
+CTOR_FP = 'loomiq-fingerprint.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -76,6 +78,7 @@ def absolutise_images(html):
     /horeca/ і не знаходила: ціни мовчки ставали нулями."""
     html = re.sub(r'(?<![/\w.])images/', '/images/', html)
     html = html.replace('src="loomiq-pricing.js', 'src="/loomiq-pricing.js')
+    html = html.replace('src="loomiq-fingerprint.js', 'src="/loomiq-fingerprint.js')
     return html
 
 
@@ -382,6 +385,7 @@ def build(site, cfg, base_html, base_ctor):
     nv = ctor_version(ctor)
     html = stamp(html, CTOR, nv)
     html = stamp(html, CTOR_PRICE, nv)
+    html = stamp(html, CTOR_FP, nv)
     return html, ctor
 
 
@@ -419,14 +423,15 @@ def main():
 
     # Позначка версії спільна на всі три файли: вони змінюються разом
     price = open(os.path.join(ROOT, CTOR_PRICE), encoding='utf-8').read()
-    ver = ctor_version(base_ctor + css + markup + price)
+    fp = open(os.path.join(ROOT, CTOR_FP), encoding='utf-8').read()
+    ver = ctor_version(base_ctor + css + markup + price + fp)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
         new = txt
-        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE):
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP):
             new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)
