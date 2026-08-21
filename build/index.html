@@ -1250,6 +1250,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-mgr-tools{display:flex;gap:8px;margin:12px 0 0;padding:0 18px;flex-wrap:wrap;}
   .pm-mgr-tool{display:inline-flex;align-items:center;gap:6px;border:1px solid #e4e8ef;background:#fff;
     color:#0f2034;font:inherit;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer;}
+  /* Зведення логотипа в один колір — панель менеджера. Зразки ті самі, що
+     й у напису: це ті ж нитки й плівка, і два різні набори кольорів у
+     одному конструкторі читались би як дві різні палітри. */
+  .pm-mgr-recolor{margin:10px 18px 0;padding:11px 12px;border:1px solid #e4e8ef;
+    border-radius:12px;background:#fbfcfe;}
+  .pm-mgr-recolor .pm-lbl{display:block;margin-bottom:8px;}
+  .pm-mgr-sw{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .pm-mgr-sw input[type=color]{width:30px;height:30px;flex:none;padding:0;cursor:pointer;
+    border:1px solid #d6dae1;border-radius:15px;background:none;}
+  .pm-mgr-sw input[type=color]::-webkit-color-swatch-wrapper{padding:2px;}
+  .pm-mgr-sw input[type=color]::-webkit-color-swatch{border:none;border-radius:12px;}
+  .pm-mgr-sw .pm-ts-sw{width:28px;height:28px;border-radius:14px;}
   .pm-recolor{margin:10px 18px 0;padding:11px;border:1px solid #e4e8ef;border-radius:12px;background:#fbfcfe;}
   .pm-recolor-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
   .pm-sw{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8dee7;
@@ -6399,10 +6411,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
-<script src="/loomiq-pricing.js?v=b14cd3cd6b"></script>
+<script src="/loomiq-pricing.js?v=231fe2a994"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=b14cd3cd6b"></script>
+<script src="loomiq-constructor.js?v=231fe2a994"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
