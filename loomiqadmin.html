@@ -2698,8 +2698,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=229dc1d1b9"></script>
-<script src="loomiq-pricing.js?v=229dc1d1b9"></script>
+<script src="loomiq-fingerprint.js?v=ce0ae37967"></script>
+<script src="loomiq-pricing.js?v=ce0ae37967"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4804,6 +4804,7 @@ window.__adminSaveClientOrder = async function(payload){
     a + Math.min(6, (it.imgs || []).length)
       + (it.prints || []).filter(p => p.file && /^data:/i.test(p.file)).length, 0);
   const step = () => { done++; if(total) toast('Зберігаємо макети… ' + done + ' з ' + total); };
+  const uploadFails = [];      // причини, з яких файли не долетіли — покажемо словами
   toast(total ? ('Зберігаємо макети… 0 з ' + total) : 'Зберігаємо…');
   // Макети вивантажуємо у хмару: у Канбані лишаються ПОСИЛАННЯ, а не data URL
   // (інакше документ Firestore швидко перевищить ліміт 1 МБ і дошка зламається).
@@ -4822,7 +4823,14 @@ window.__adminSaveClientOrder = async function(payload){
     const shots = (it.imgs || []).slice(0, 6);
     const urls = await Promise.all(shots.map(async img=>{
       try{ const u = await uploadCloudinary(img); step(); return u; }
-      catch(e){ console.warn('mockup upload failed', e); step(); return null; }
+      catch(e){
+        /* Мовчати тут не можна. Раніше збій ішов у console.warn — і позиція
+           просто зберігалась без фото: менеджер бачив порожню картку й не
+           мав жодної підказки, що сталось і що з цим робити. */
+        console.warn('mockup upload failed', e);
+        uploadFails.push((e && e.message) || 'помилка');
+        step(); return null;
+      }
     }));
     const mockups = [], views = [];
     urls.forEach((u, vk)=>{
@@ -4926,6 +4934,13 @@ window.__adminSaveClientOrder = async function(payload){
     try{ await offerSave(target); }
     catch(e){ console.error('offer save failed', e); toast('Позиції додано, але сторінку КП не збережено'); }
     calcTarget = null; paintCalcTarget();
+    if(uploadFails.length){
+      /* Кажемо прямо: скільки не долетіло і чому. Найчастіша причина — звʼязок,
+         і тоді досить зберегти позицію ще раз. */
+      const why = uploadFails[0] === 'The user aborted a request.' ? 'звʼязок обірвався' : uploadFails[0];
+      toast('Не завантажилось макетів: ' + uploadFails.length + ' (' + why + '). ' +
+            'Збережіть позицію ще раз.');
+    } else
     toast('Позиції додано в картку ' + (target.instagram || target.name || target.orderId));
     const boardBtn = document.querySelector('.nav button[data-view="board"]');
     if(boardBtn) boardBtn.click();
@@ -12868,10 +12883,21 @@ function uploadCloudinary(blob){
     fd.append('file', blob);
     fd.append('upload_preset', CLOUDINARY.preset);
     const ctrl = new AbortController();
-    const t = setTimeout(()=>ctrl.abort(), 30000);
+    /* Хвилина, а не тридцять секунд. Макети йдуть по шість одразу, ділять
+       канал, і на звичайному мобільному звʼязку тридцяти секунд не
+       вистачало — файли обривались на півдорозі, а позиція зберігалась без
+       фото. Чекати довше дешевше, ніж зберегти порожню картку. */
+    const t = setTimeout(()=>ctrl.abort(), 60000);
     fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY.cloud+'/image/upload', {method:'POST', body:fd, signal:ctrl.signal})
       .then(r=>r.json())
-      .then(d=>{ clearTimeout(t); d && d.secure_url ? resolve(d.secure_url) : reject(new Error('no-url')); })
+      .then(d=>{
+        clearTimeout(t);
+        if(d && d.secure_url) return resolve(d.secure_url);
+        /* Причину віддаємо словами Cloudinary. «no-url» не казало нічого, а
+           там зазвичай лежить рівно те, що треба знати: завеликий файл,
+           вичерпаний ліміт, невірний пресет. */
+        reject(new Error((d && d.error && d.error.message) || 'no-url'));
+      })
       .catch(err=>{ clearTimeout(t); reject(err); });
   });
 }
