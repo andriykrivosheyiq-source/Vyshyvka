@@ -1768,6 +1768,9 @@
     function imageFingerprint(img, box){
       return (window.LQ && window.LQ.imageFingerprint) ? window.LQ.imageFingerprint(img, box) : '';
     }
+    function urlFingerprint(url){
+      return (window.LQ && window.LQ.urlFingerprint) ? window.LQ.urlFingerprint(url) : '';
+    }
     /* Порівняння відбитків і розкладання їх по групах живуть у рушії цін
        (loomiq-pricing.js): саме він вирішує, за який дизайн беруться разові.
        Копія тут була б другим місцем, де ту саму межу «схожості» треба не
@@ -1806,8 +1809,23 @@
           layer.fill = m ? m.fill : 1;
         }catch(e){ layer.fill = 0.85; layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 }; }
         try{ layer.fp = imageFingerprint(img, layer.opaqueBox); }catch(e){ layer.fp = ''; }
+        /* Пікселі не прочитались — лишається адреса файлу. Порожній відбиток
+           рушій вважає «дизайну немає» й приєднує до першої групи, тож
+           другий логотип (найчастіше той, що кладуть на спину) їхав би без
+           ескізу: площа порахована, підготовка макета — ні. */
+        if(!layer.fp) layer.fp = urlFingerprint(url);
         // Напис звіряємо за текстом — див. textFingerprint вище
         if(layer.text) layer.fp = textFingerprint(layer.text);
+      }, function(err){
+        /* Картинка взагалі не відкрилась. Через crossOrigin='anonymous' так
+           буває з кожним хостингом без CORS: обіцянка відхиляється, і шар
+           лишається без відбитка зовсім. Шар при цьому нікуди не дівається —
+           його площа рахується від масштабу, — тож дизайн їхав у виробництво
+           без підготовки макета. */
+        if(!layer.fp) layer.fp = layer.text ? textFingerprint(layer.text) : urlFingerprint(url);
+        if(!layer.opaqueBox) layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 };
+        if(layer.fill == null) layer.fill = 0.85;
+        console.warn('макет не відкрився, відбиток за адресою файлу', err);
       });
     }
     // Розмір лого зберігається в пікселях (120 × scale), а фізичні міліметри
@@ -5707,6 +5725,23 @@
     };
     // Скільки шарів зараз на виробі — робоче місце чекає, поки лягне логотип
     window.__lqLayerCount = function(){ try{ return logoCount(); }catch(e){ return 0; } };
+    /* Що саме бачить рушій у цій позиції: скільки дизайнів, які в них
+       відбитки й скільки за них береться ескізів. Найчастіше питання
+       підтримки — «чому за другий логотип не взяло підготовку макета», і
+       відповідь на нього видно тільки тут: у самому конструкторі, до
+       збереження. */
+    window.__lqDraftDesc = function(){
+      try{
+        var d = draftDescriptor();
+        var r = (window.LQ && window.LQ.priceOrder) ? window.LQ.priceOrder([d])[0] : null;
+        return { designs: (d.designs || []).map(function(f){ return String(f || '').slice(0, 14); }),
+                 kinds: d.designKinds || [], coefPart: d.coefPart, units: d.units,
+                 sketches: (r && r.parts) ? (r.parts.sketches || []).length : -1,
+                 designNos: (r && r.parts)
+                   ? (r.parts.designNos || []).map(function(x){ return x.kind + '№' + x.no; }) : [],
+                 unit: r ? r.unit : -1 };
+      }catch(e){ return { err: String(e && e.message || e) }; }
+    };
     renderGarment();
     updatePriceBar();
 
