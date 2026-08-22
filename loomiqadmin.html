@@ -6537,7 +6537,41 @@ function docPngToPdf(dataUrl, w, h){
   return new Blob([all], { type:'application/pdf' });
 }
 
+/* ── Імʼя файлу латинкою ──────────────────────────────────────────────
+   Chromium (а отже Chrome, Opera, Edge) мовчки ВИКИДАЄ імʼя з атрибута
+   download, якщо в ньому є кирилиця, — і зберігає файл як «download», без
+   розширення. Виглядає це рівно як «нічого не завантажилось»: у теці
+   лежить безіменний файл, який ніщо не відкриває.
+
+   Тому назву перекладаємо латинкою. Читати її так само легко
+   («Maket-Futbolka-polo-pered.jpg»), а браузер її вже не чіпає. */
+const DOC_TRANSLIT = {
+  а:'a', б:'b', в:'v', г:'h', ґ:'g', д:'d', е:'e', є:'ie', ж:'zh', з:'z',
+  и:'y', і:'i', ї:'i', й:'i', к:'k', л:'l', м:'m', н:'n', о:'o', п:'p',
+  р:'r', с:'s', т:'t', у:'u', ф:'f', х:'kh', ц:'ts', ч:'ch', ш:'sh',
+  щ:'shch', ь:'', ю:'iu', я:'ia', ы:'y', э:'e', ъ:'', ё:'e'
+};
+function docAsciiName(s){
+  const out = String(s || '').replace(/[Ѐ-ӿ]/g, ch=>{
+    const low = ch.toLowerCase();
+    const t = DOC_TRANSLIT[low];
+    if(t == null) return '';
+    return (ch === low) ? t : (t.charAt(0).toUpperCase() + t.slice(1));
+  }).replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
+  return out || 'loomiq';
+}
+/* Посилання на чужий домен атрибут download не слухає — браузер просто
+   відкриває картинку в новій вкладці, і «файл ↓» нічого не завантажує.
+   Єдиний, хто може віддати її вкладенням, — сам хостинг. Cloudinary це
+   вміє: fl_attachment у трансформації ставить Content-Disposition. */
+function docAttachUrl(u){
+  const s = String(u || '');
+  if(!/^https:\/\/res\.cloudinary\.com\/.+\/upload\//.test(s)) return s;
+  if(/\/upload\/[^/]*fl_attachment/.test(s)) return s;
+  return s.replace('/upload/', '/upload/fl_attachment/');
+}
 function docDownload(href, filename){
+  filename = docAsciiName(filename);
   // data: URL перетворюємо на blob — інакше браузер може зберегти файл
   // під іменем «download» замість нашого
   if(href.startsWith('data:')){
@@ -6567,10 +6601,14 @@ function docPngToJpegDataUrl(pngDataUrl){
     im.src = pngDataUrl;
   });
 }
+/* Два файли поспіль браузер віддає не завжди: Chrome питає дозволу, Opera
+   мовчки блокує друге завантаження. Тож першим іде PDF — саме його
+   відправляють клієнту. Доти першою йшла картинка, і в Opera менеджер
+   лишався рівно без того файлу, по який і прийшов. */
 async function docSavePair(pngDataUrl, baseName){
-  docDownload(pngDataUrl, baseName + '.png');
   const j = await docPngToJpegDataUrl(pngDataUrl);
   docDownload(URL.createObjectURL(docPngToPdf(j.url, j.w, j.h)), baseName + '.pdf');
+  setTimeout(()=> docDownload(pngDataUrl, baseName + '.png'), 400);
 }
 
 async function docKPForItem(order, item, idx){
@@ -6585,27 +6623,122 @@ async function docEstimateForOrder(order){
   await docSavePair(png, 'Кошторис-' + (order.orderId||'') + '-' + docSafeName(order.name||order.instagram));
   toast('Кошторис завантажено');
 }
-// Мокапи — окремими PNG, без обʼєднання в документ
+/* ── Архів ───────────────────────────────────────────────────────────────
+   Кілька файлів поспіль браузер не віддає. Chrome питає «дозволити кілька
+   завантажень?», Opera просто мовчки блокує все після першого — саме тому
+   «Макети» в ній не качали нічого. Плюс кожне наступне a.click() відлітає
+   все далі від натискання кнопки, а без сліду натискання завантаження
+   блокують уже всі браузери.
+
+   Тому віддаємо ОДИН файл — zip. Пакуємо без стиснення: усередині JPEG і
+   PNG, вони вже стиснуті, а stored-архів пишеться кількома десятками
+   рядків і не тягне жодної бібліотеки. */
+const ZIP_CRC = (function(){
+  const t = new Uint32Array(256);
+  for(let i = 0; i < 256; i++){
+    let c = i;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+function zipCrc32(buf){
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < buf.length; i++) c = ZIP_CRC[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipBlob(files){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let off = 0;
+  const d = new Date();
+  const time = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+  const date = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  files.forEach(f=>{
+    const name = enc.encode(f.name);            // прапорець 0x0800 нижче — імена в UTF-8
+    const body = f.data;
+    const crc = zipCrc32(body);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034B50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint16(8, 0, true); h.setUint16(10, time, true); h.setUint16(12, date, true);
+    h.setUint32(14, crc, true); h.setUint32(18, body.length, true); h.setUint32(22, body.length, true);
+    h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, body);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014B50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true);
+    c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, time, true); c.setUint16(14, date, true);
+    c.setUint32(16, crc, true); c.setUint32(20, body.length, true); c.setUint32(24, body.length, true);
+    c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + body.length;
+  });
+  const cSize = central.reduce((a, b)=> a + b.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054B50, true);
+  e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, cSize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type:'application/zip' });
+}
+// Мокапи — одним архівом: усі сторони всіх позицій, кожна окремим файлом
 const DOC_SIDE_UA = { front:'перед', back:'спина', left:'лівий-бік', right:'правий-бік' };
+/* Байти беремо з самого файлу, а не перемальовуванням через canvas. Canvas
+   псував дві речі: чуже походження робило його «зіпсованим» і toDataURL
+   падав із SecurityError, а перекодування в PNG роздувало кожен макет у
+   кілька разів проти оригінального JPEG. */
+async function docFetchBytes(url){
+  try{
+    const r = await fetch(url, { mode:'cors', credentials:'omit' });
+    if(!r.ok) return null;
+    return new Uint8Array(await r.arrayBuffer());
+  }catch(e){ console.warn('макет не прочитався', url, e); return null; }
+}
+function docExtOf(url){
+  const m = /\.(png|jpe?g|webp)(?:$|[?#])/i.exec(String(url || ''));
+  return m ? ('.' + m[1].toLowerCase().replace('jpeg','jpg')) : '.jpg';
+}
 async function docMockupsForOrder(order){
   const items = order.items || [];
-  let n = 0;
-  for(const it of items){
-    const list = it.mockups || [];
-    for(let i = 0; i < list.length; i++){
-      const im = await docLoadImg(list[i]);
-      if(!im) continue;
-      const c = document.createElement('canvas');
-      c.width = im.naturalWidth; c.height = im.naturalHeight;
-      c.getContext('2d').drawImage(im, 0, 0);
+  const jobs = [];
+  items.forEach(it=>{
+    (it.mockups || []).forEach((url, i)=>{
+      if(!url) return;
       const side = ((it.prints||[])[i] || {}).side;
-      docDownload(c.toDataURL('image/png'),
-        'Макет-' + docSafeName(it.name) + '-' + (DOC_SIDE_UA[side] || ('сторона-'+(i+1))) + '.png');
-      n++;
-      await new Promise(r=>setTimeout(r, 350));   // щоб браузер не блокував пакетне завантаження
-    }
+      // імена всередині архіву теж латинкою: розпакувальник Windows
+      // показує кирилицю з UTF-8-архіву не завжди, а прочитати «Maket-…»
+      // однаково зрозуміло
+      jobs.push({ url, name: docAsciiName('Макет-' + docSafeName(it.name) + '-' +
+        (DOC_SIDE_UA[side] || ('сторона-' + (i+1)))) + docExtOf(url) });
+    });
+  });
+  if(!jobs.length){ toast('У цьому замовленні ще немає макетів'); return; }
+  const files = [], bad = [];
+  // імена всередині архіву мають бути унікальні: дві позиції з однаковою
+  // назвою давали два «Макет-Футболка-перед.jpg», і другий затирав перший
+  const used = {};
+  for(const j of jobs){
+    const data = await docFetchBytes(j.url);
+    if(!data){ bad.push(j.name); continue; }
+    let name = j.name;
+    if(used[name]){ const dot = name.lastIndexOf('.');
+      name = name.slice(0, dot) + '-' + (++used[j.name]) + name.slice(dot); }
+    else used[name] = 1;
+    files.push({ name, data });
   }
-  toast(n ? ('Завантажено макетів: ' + n) : 'У цьому замовленні ще немає макетів');
+  if(!files.length){
+    toast('Жоден макет не прочитався — перевірте звʼязок');
+    return;
+  }
+  const base = 'Макети-' + (order.orderId || order.no || '') + '-' +
+               docSafeName(order.name || order.instagram || '');
+  if(files.length === 1){
+    docDownload(URL.createObjectURL(new Blob([files[0].data])), files[0].name);
+  }else{
+    docDownload(URL.createObjectURL(zipBlob(files)), base + '.zip');
+  }
+  toast(bad.length
+    ? ('Завантажено макетів: ' + files.length + ', не прочиталось ' + bad.length)
+    : ('Завантажено макетів: ' + files.length + (files.length > 1 ? ' — одним архівом' : '')));
 }
 
 // Посадкова, з якої прийшло замовлення — з клікабельним посиланням
@@ -7217,7 +7350,7 @@ function orderItemsHtml(o){
       <div class="t-web-print">
         <span class="t-web-print-size">${p.widthMm?Math.round(p.widthMm):'?'} × ${p.heightMm?Math.round(p.heightMm):'?'} мм</span>
         <span class="t-web-print-side">${escapeHtml(p.technique||'')}${p.side?' · '+escapeHtml(p.side):''}</span>
-        ${p.file?`<a href="${escapeHtml(p.file)}" target="_blank" rel="noopener" download class="t-web-file">файл ↓</a>`:'<span class="t-web-file t-web-file--none">без файлу</span>'}
+        ${p.file?`<a href="${escapeHtml(docAttachUrl(p.file))}" target="_blank" rel="noopener" download class="t-web-file">файл ↓</a>`:'<span class="t-web-file t-web-file--none">без файлу</span>'}
       </div>`).join('') || `<div class="t-web-print t-web-print--none">${escapeHtml(it.print||'без нанесення')}</div>`;
     const mockups = (it.mockups||[]).map(u=>
       `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="t-web-mock"><img src="${escapeHtml(u)}" alt="макет" loading="lazy" onerror="this.style.display='none';this.parentNode.classList.add('t-web-mock--miss')"></a>`).join('');
@@ -9731,11 +9864,21 @@ async function offerEdApply(msg){
      їхній відбиток рахується з самих букв, а не з картинки. */
   if(act === 'fpfix'){
     if(!window.LQ || !window.LQ.fpFromUrl){ toast('Модуль відбитка не завантажився'); return; }
-    let touched = 0, skipped = 0;
+    let touched = 0, skipped = 0, dropped = 0;
     for(const it of (o.items || [])){
       const d = it.desc;
       if(!d || !Array.isArray(d.designs) || !d.designs.length) continue;
       const prints = it.prints || [];
+      /* Дизайнів більше, ніж самих нанесень. Такого не буває в позиції,
+         зібраній конструктором: обидва списки він складає одним обходом
+         шарів. Отже зайві — слід видаленого логотипа, і саме за них
+         замовлення платить ескіз, якого ніхто не малював. Прибираємо: це
+         рівно та «додаткова підготовка макета, якої в макеті немає». */
+      if(prints.length && d.designs.length > prints.length){
+        dropped += d.designs.length - prints.length;
+        d.designs = d.designs.slice(0, prints.length);
+        if(Array.isArray(d.designKinds)) d.designKinds = d.designKinds.slice(0, prints.length);
+      }
       const kinds = d.designKinds || [];
       const next = d.designs.slice();
       for(let i = 0; i < next.length; i++){
@@ -9752,8 +9895,9 @@ async function offerEdApply(msg){
     }
     repriceOrder(o); recalcOrderTotals(o);
     await offerEdSave(o);
-    toast(touched
+    toast((touched || dropped)
       ? ('Дизайни перераховано: оновлено ' + touched +
+         (dropped ? ', прибрано зайвих ' + dropped : '') +
          (skipped ? ', не прочитано ' + skipped : ''))
       : (skipped ? 'Не вдалось прочитати жодного макета' : 'Дизайни й так актуальні'));
     return;
