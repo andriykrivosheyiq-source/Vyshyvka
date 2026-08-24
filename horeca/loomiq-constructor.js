@@ -1064,17 +1064,27 @@
     // разової оплати на тираж. Від неї рахуються і ціни, і знижки на картках порогів.
     // Ціна за штуку при заданому тиражі ЦІЄЇ позиції — з урахуванням того,
     // що вже лежить у кошику: спільні макети й спільна знижка за тираж.
-    function sharedUnitPrice(qtyOverride){
+    /* solo — порахувати цю позицію ОКРЕМО, ніби замовили тільки її. Потрібно
+       для «визначальної» ціни, від якої рахується відсоток знижки: це та
+       ціна, яку людина заплатила б, замовивши одну штуку й нічого більше.
+
+       Без solo визначальна ціна рахувалась разом із рештою кошика — і
+       підготовка макета ділилась на всі вироби способу навіть у рядку «від
+       1 шт». Знаменник майже не мінявся, різниця зводилась до самого
+       коефіцієнта за обсяг, і знижка виходила в рази меншою за справжню.
+       На порожньому кошику це нічого не міняє: там список і так із самої
+       чернетки. */
+    function sharedUnitPrice(qtyOverride, solo){
       if(!sitePricing()) return null;
       var d = draftDescriptor();
       if(qtyOverride != null) d.units = Math.max(1, qtyOverride);
-      var list = descriptorsWithDraft(d);
+      var list = solo ? [d] : descriptorsWithDraft(d);
       var r = priceOrder(list);
-      var k = draftAt(list, d);
+      var k = solo ? 0 : draftAt(list, d);
       return (r[k] || r[r.length - 1]).unit;
     }
-    function effUnitPriceCoef(coef, qty){
-      var sh = sharedUnitPrice(qty);
+    function effUnitPriceCoef(coef, qty, solo){
+      var sh = sharedUnitPrice(qty, solo);
       return sh != null ? sh : (unitPriceCoef(coef, qty) + orderFeePerUnit(qty));
     }
     /* Розклад ціни поточної позиції ОЧИМА СПІЛЬНОГО РУШІЯ — того самого, що
@@ -3217,8 +3227,10 @@
       var rows;
       if(pt){
         var actT = activeCoefTier();
-        // визначальна ціна = ефективна ціна за 1 шт (з повною разовою оплатою). Від неї — знижки.
-        var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min);
+        /* Визначальна ціна = ефективна ціна за 1 шт із ПОВНОЮ разовою
+           оплатою, тобто ця позиція сама по собі. Від неї й рахуються
+           знижки: саме стільки коштувала б одна штука, замовлена окремо. */
+        var base1 = effUnitPriceCoef(pt[0].coef, pt[0].min, true);
         rows = pt.map(function(t){
           // ефективна ціна порогу: коеф на базу+вишивку (+ DTF за тираж порогу) + частка разової оплати
           var price = effUnitPriceCoef(t.coef, t.min);

@@ -2700,8 +2700,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=088f16ae90"></script>
-<script src="loomiq-pricing.js?v=088f16ae90"></script>
+<script src="loomiq-fingerprint.js?v=44a5990216"></script>
+<script src="loomiq-pricing.js?v=44a5990216"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5801,11 +5801,36 @@ function offerBaseCoef(){
 // залежить: спільний макет ділиться на всі вироби, а знижка йде від сумарної
 // кількості в межах способу нанесення. Рахувати позицію окремо — це та сама
 // помилка, через яку кошик і Канбан колись розходились.
+/* Ціна позиції при іншому тиражі.
+
+   За замовчуванням — усередині цього ж замовлення: решта позицій лишається
+   зі своїми тиражами. Саме так і треба для рядків «від 30 шт», бо клієнт,
+   збільшуючи тираж, справді ділить макет з рештою складу.
+
+   opts.solo — порахувати позицію ОКРЕМО, ніби замовили тільки її. Це і є
+   «було» для рядка знижки: ціна, яку людина заплатила б, замовивши одну
+   таку футболку й нічого більше.
+
+   Без solo «було» виходило майже дорівнює «стало». Підготовка макета
+   ділиться на всі вироби способу, і коли тираж скидали в одиницю ЛИШЕ цій
+   позиції, знаменник майже не мінявся: був 40 виробів, ставав 31. Частка
+   макета лишалась тією самою, різниця зводилась до самого коефіцієнта за
+   обсяг — і клієнт бачив «−1%» там, де насправді економив десятки
+   відсотків. */
 function sharedPriceAt(order, itemIdx, qty, opts){
   const { idx, list } = orderDescriptors(order);
   const k = idx.indexOf(itemIdx);
   if(k < 0) return null;
-  const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: Math.max(1, +qty || 1) }) : d);
+  const u = Math.max(1, +qty || 1);
+  if(opts && opts.solo){
+    /* Позначку допродажу знімаємо: «було» — це перша покупка, а не
+       додавання до вже погодженого складу. З нею позиція не платила б за
+       макет узагалі, і «було» вийшло б ДЕШЕВШЕ за «стало». */
+    const one = Object.assign({}, list[k], { units: u, upsell: false });
+    const r = priceOrder([one], opts);
+    return (r[0] && r[0].unit) || null;
+  }
+  const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: u }) : d);
   const res = priceOrder(clone, opts);
   return (res[k] && res[k].unit) || null;
 }
@@ -5998,7 +6023,7 @@ function offerItemNumbers(order, itemIdx){
      основна частина вигоди зникала, і замість −40% клієнт бачив −18%. Дві
      різні відповіді на те саме питання — звідси й «на сайті одна знижка, а
      в КП інша». */
-  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx));
+  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
   const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, qty, offerBaseCoef()), unit);
   return {
     qty, unit, sum: +item.price || 0,
