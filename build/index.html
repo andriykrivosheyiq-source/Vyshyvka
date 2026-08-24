@@ -1509,6 +1509,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff;color:#111;font-size:17px;line-height:1;cursor:pointer;padding:0;
     font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent;}
   .pm-ts-tog.on{border-color:#111;background:#111;color:#fff;}
+  /* «A−» і «A+» — два знаки замість одного, тож потрібна своя ширина й
+     гарнітура інтерфейсу: у Georgia мінус і плюс поруч із літерою читаються
+     як помилка набору. */
+  .pm-ts-sz{width:46px;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:-.02em;}
   .pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
     border:1px solid rgba(0,0,0,.16);outline:2px solid transparent;outline-offset:2px;
     -webkit-tap-highlight-color:transparent;}
@@ -6415,11 +6419,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
-<script src="/loomiq-fingerprint.js?v=49224c3725"></script>
-<script src="/loomiq-pricing.js?v=49224c3725"></script>
+<script src="/loomiq-fingerprint.js?v=e272b17a9e"></script>
+<script src="/loomiq-pricing.js?v=e272b17a9e"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=49224c3725"></script>
+<script src="loomiq-constructor.js?v=e272b17a9e"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
