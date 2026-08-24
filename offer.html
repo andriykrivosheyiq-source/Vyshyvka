@@ -686,6 +686,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-info{margin-top:16px;}
   .pcard-name{font-size:22px; font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
   .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
+  /* ── Варіант на вибір ──────────────────────────────────────────────────
+     Клієнт має з першого погляду бачити три речі: що це варіант, а не вже
+     замовлене; скільки він коштує; і — після натискання — що його взяли.
+     Тому позначка стоїть над назвою, а не збоку від ціни: там її читають
+     раніше, ніж встигають порахувати суму. */
+  .pcard-tag{display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
+    padding:3px 8px; margin-bottom:7px;}
+  .pcard.is-taken .pcard-tag{color:#0F5C34; background:#DCF4E6;}
+  /* Невзятий варіант тримається тихіше за погоджені позиції — але не
+     блідне: ціну на ньому й читають. Різницю несе рамка, не прозорість. */
+  .pcard.is-opt{border-style:dashed;}
+  .pcard.is-opt.is-taken{border-style:solid; border-color:#9FD3B6;}
+  .pcard-why{margin-top:7px; font-size:13.5px; line-height:1.5; color:var(--ink);
+    background:var(--soft); border-radius:10px; padding:8px 11px;}
   .pcard-money{display:flex; align-items:baseline; gap:9px; margin-top:9px; flex-wrap:wrap;}
   .pcard-price{font-size:28px; font-weight:600; letter-spacing:-0.7px;
     font-variant-numeric:tabular-nums; color:var(--ink);}
@@ -861,6 +876,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-pay b{font-size:27px; font-weight:800; letter-spacing:-0.8px; font-variant-numeric:tabular-nums;}
   .est-save{margin-top:14px; font-size:13px; font-weight:600; color:#4ADE80; text-align:center;
     line-height:1.45;}
+  /* Кошторис на темному тлі — тому тут не сірий, а приглушено-світлий */
+  .est-left{margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);
+    font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.66);}
 
   /* ══ Зняття ризику одразу під сумою ══ */
   .rea{display:grid; gap:10px; margin-top:18px;}
@@ -2580,7 +2598,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
   var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {} };
-  function isOn(i){ return pick.on[i] !== false; }
+  /* Позиція-варіант приходить НЕ доданою: менеджер порахував поло, оверсайз
+     і базову під ту саму задачу, а візьмуть щось одне. Скласти всі три в
+     кошторис одразу означало б показати суму, якої ніхто не замовляв.
+     Решта позицій, як і раніше, вже в замовленні — це погоджений склад, і
+     змушувати клієнта підтверджувати кожну було б зайвим кроком. */
+  function isOn(i){
+    if(pick.on[i] != null) return pick.on[i] !== false;
+    return !((OFFER.items[i] || {}).optional);
+  }
 
   /* Пакети позиції: що саме наносимо. Ціни задає менеджер у пропозиції
      (it.packs). Якщо не задав — у бойовій пропозиції пакетів просто немає:
@@ -3330,13 +3356,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var st = itemState(i);
           var tech = (it.techniques || []).join(', ') || it.print || '';
           var main = (it.mockups || [])[0] || '';
-          return '<div class="pcard">' +
+          return '<div class="pcard' + (it.optional ? ' is-opt' : '') +
+                 (it.optional && isOn(i) ? ' is-taken' : '') + '">' +
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
             galleryHtml(it, i, 'main') +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
+                (it.optional
+                  ? '<div class="pcard-tag">' + (isOn(i) ? 'обрано' : 'варіант на вибір') + '</div>'
+                  : '') +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
                 (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+                /* Підпис менеджера — чому саме цей виріб. Питання «а чим
+                   поло краще за футболку» виникає рівно тут, під назвою, а
+                   не в деталях позиції, куди мало хто відкриває. */
+                (it.recoNote ? '<div class="pcard-why">' + esc(it.recoNote) + '</div>' : '') +
               '</div>' +
             '</div>' +
             edBar('main', i, it.qty) +
@@ -3503,6 +3537,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
           (t.save > 0
             ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
+          /* Що порахували, а що ні. Без цього рядка кошторис виглядає як
+             повна відповідь: людина дивилась три варіанти, взяла один — і
+             не бачить, що інші два просто не враховані, а не зникли. */
+          (function(){
+            var left = OFFER.items.filter(function(it, i){ return it.optional && !isOn(i); })
+                                  .map(function(it){ return it.name; });
+            if(!left.length) return '';
+            return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
+              '. Ціну видно в картці — натисніть «Додати в замовлення», і сума перерахується.</div>';
+          })() +
         '</div>' +
         mgrCalcAllHtml() +
       '</section>';
