@@ -1468,6 +1468,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.92);color:#8a8a8a;box-shadow:0 1px 3px rgba(0,0,0,.22);}
   .pm-bg-dot.on{background:#111;color:#fff;}
+  /* Фон лишився непрозорим: вишивається весь прямокутник, і ціна виходить у
+     рази більшою за роботу. Кнопка сама про це й каже — вона ж це й лікує. */
+  .pm-bg-dot.warn{background:#D2560B;color:#fff;
+    box-shadow:0 0 0 2px rgba(210,86,11,.28), 0 1px 3px rgba(0,0,0,.22);}
   /* ═══ Напис ═══
      Набір іде прямо в рамці на виробі: окремого поля під макетом немає,
      щоб той самий текст не стояв у двох місцях. */
@@ -6411,11 +6415,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
-<script src="/loomiq-fingerprint.js?v=2356cd333b"></script>
-<script src="/loomiq-pricing.js?v=2356cd333b"></script>
+<script src="/loomiq-fingerprint.js?v=c36c20cf7c"></script>
+<script src="/loomiq-pricing.js?v=c36c20cf7c"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=2356cd333b"></script>
+<script src="loomiq-constructor.js?v=c36c20cf7c"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

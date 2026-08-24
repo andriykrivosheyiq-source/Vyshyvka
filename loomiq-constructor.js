@@ -2593,7 +2593,18 @@
                 '<div class="pm-photo-thumb'+(thumbDark?' on-dark':'')+'" data-id="'+l.id+'" data-side="'+gr.side+'" ' +
                   'style="background:'+thumbBg+';border-color:'+(isActive?(thumbDark?'#fff':'#111'):'rgba(0,0,0,.12)')+';">' +
                   '<img src="'+l.url+'">' + (isActive ? '<div class="pm-photo-thumb-del" data-del="'+l.id+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></div>' : '') +
-                  '<button class="pm-bg-dot'+(l.removeBg?' on':'')+'" data-bgtoggle="'+l.id+'" title="'+(l.removeBg?'Фон прибрано — повернути':'Прибрати фон')+'" aria-label="Прибрати фон">' +
+                  /* Заповнення під 100% означає, що фон лишився непрозорим:
+                     вишивається весь прямокутник, і ціна виходить у рази
+                     більшою за роботу. Позначку ставимо просто на кнопці
+                     фону — там, де це й лікується одним натисканням. */
+                  '<button class="pm-bg-dot'+(l.removeBg?' on':'')+
+                    ((!l.removeBg && l.fill != null && l.fill >= 0.97) ? ' warn' : '')+
+                    '" data-bgtoggle="'+l.id+'" title="'+
+                    (l.removeBg ? 'Фон прибрано — повернути'
+                                : ((l.fill != null && l.fill >= 0.97)
+                                    ? 'Фон не прозорий — вишивається весь прямокутник. Прибрати фон'
+                                    : 'Прибрати фон'))+
+                    '" aria-label="Прибрати фон">' +
                     (l.removeBg
                       ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
                       : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 20 20 4M4 4l16 16"/></svg>') +
@@ -3330,12 +3341,26 @@
              просто інша формула. Площу й габарит показуємо завжди: саме їх
              найчастіше й перепитують. */
           var rated = parts.some(function(p){ return p.rate > 0; });
-          note = 'лого ' + Math.round(dm.w/10) + '×' + Math.round(dm.h/10) + ' см · площа ' +
+          /* Заповнення — частка непрозорих пікселів усередині габариту. Саме
+             воно й перетворює габарит на активну площу, і саме його доти
+             ніде не було видно: у прорахунку стояло «площа 100 см²», і
+             зрозуміти, це суцільна пляма чи тонкий контур на непрозорому
+             фоні, було нізвідки. */
+          var fillPct = Math.round((l.fill == null ? 0.85 : l.fill) * 100);
+          note = 'лого ' + Math.round(dm.w/10) + '×' + Math.round(dm.h/10) + ' см · заповнення ' +
+                 fillPct + '% · активна площа ' +
                  (mm2/100).toFixed(1) + ' см²' +
                  (rated ? ' × ' + parts.map(function(p){ return (p.rate/10); }).join(' + ') + ' грн/см²' : '') +
                  (det.area ? ' = ' + det.area : '') +
                  (det.base ? ' + старт ' + det.base : '') +
                  (det.minAdd ? ' + ' + det.minAdd + ' до мінімалки ' + minForIndex(mk, idx) : '');
+          /* Заповнення під 100% у картинки — майже завжди непрозорий фон, а
+             не суцільна вишивка. Тоді вишивається весь прямокутник, і ціна
+             виходить у рази більшою за реальну роботу. Мовчати про це не
+             можна: цифра виглядає як помилка рушія, хоча рушій рахує чесно
+             те, що йому дали. */
+          if(!isTxt && (l.fill == null || l.fill >= 0.97))
+            note += ' · ⚠ фон не прозорий — рахується весь прямокутник, натисніть «Прибрати фон»';
         }
         out.push({ label: label, note: note, sell: Math.round(sell), cost: Math.round(cost) });
       });
@@ -5730,6 +5755,12 @@
        підтримки — «чому за другий логотип не взяло підготовку макета», і
        відповідь на нього видно тільки тут: у самому конструкторі, до
        збереження. */
+    /* Розклад нанесення рядками — те саме, що лягає в прорахунок позиції.
+       Головне тут «заповнення»: без нього «площа 100 см²» не каже, це
+       суцільна пляма чи тонкий контур на непрозорому фоні. */
+    window.__lqCalcLines = function(){
+      try{ return calcLinesForItem(Math.max(1, totalUnits() || 1)); }catch(e){ return []; }
+    };
     window.__lqDraftDesc = function(){
       try{
         var d = draftDescriptor();
