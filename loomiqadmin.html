@@ -3170,6 +3170,22 @@ function setStatus(o, key){
   o.hist = (o.hist || []).concat([{ s:key, at:new Date().toISOString() }]).slice(-40);
   movedOrder.set(o.id, ++movedSeq);
 }
+/* Народження КП — одне на всі три двері, крізь які його створюють: кнопка
+   в картці, збереження позиції з конструктора і просто «відкрити документ».
+   Доти кожні робили своє: одні рухали етап, інші ні, — і картка з новим КП
+   лишалась там, де лежала, десь усередині стовпця. Її доводилось шукати
+   рівно тоді, коли вона потрібна найбільше.
+
+   Позначку «щойно рухалась» ставимо ЗАВЖДИ, а не тільки коли етап
+   змінився: КП часто створюють картці, яка вже стоїть у «Прорахунку», —
+   там setStatus виходить одразу й нічого не позначає. */
+function offerBorn(o){
+  if(!o) return;
+  if(!o.offerToken){ o.offerToken = makeOfferToken(); o.offerState = 'created'; }
+  if(!o.orderId) o.orderId = makeOrderId();
+  if(o.status === firstStatusKey()) setStatus(o, 'prorahunok');
+  movedOrder.set(o.id, ++movedSeq);
+}
 
 /* ============================================================
    ЕТАПИ ВОРОНКИ
@@ -4913,8 +4929,6 @@ window.__adminSaveClientOrder = async function(payload){
       if(v) target[k] = v;              // порожнім полем нічого не затираємо
     });
     if(payload.dueAt) target.dueAt = String(payload.dueAt).trim();
-    if(!target.orderId) target.orderId = makeOrderId();
-    if(!target.offerToken){ target.offerToken = makeOfferToken(); target.offerState = 'created'; }
     if(target.type === 'lead') target.type = 'client';
     /* Запобіжник маржі: позиція з конструктора теж може загнати замовлення
        в мінус — і саме тут це найчастіше й ставалось. Кидаємо помилку, а не
@@ -4922,8 +4936,8 @@ window.__adminSaveClientOrder = async function(payload){
        менеджеру не доведеться збирати позицію наново. */
     const lowMargin = marginCheck(target, snapBefore);
     if(lowMargin) throw new Error(lowMargin);
-    // Заявка стає прорахунком: етап рухаємо лише вперед і лише з першого
-    if(target.status === firstStatusKey()) setStatus(target, 'prorahunok');
+    // Заявка стає прорахунком, а картка — першою у своєму стовпці
+    offerBorn(target);
     /* Перерахунок спільним рушієм. Ціна позиції залежить від решти
        замовлення — від сумарного тиражу способу й від того, на скільки
        виробів ділиться підготовка макета. Без цього нова позиція приносила
@@ -6900,8 +6914,7 @@ function wireDocsBlock(el, o){
   if(mo) mo.addEventListener('click', async ()=>{
     if(o.offerToken) return;
     mo.disabled = true;
-    o.offerToken = makeOfferToken();
-    o.offerState = 'created';
+    offerBorn(o);
     try{
       await storeSet('orders', orders);
       await offerSave(o);
@@ -9362,9 +9375,7 @@ async function openOfferEditor(o){
   // Без токена немає ні сторінки, ні перегляду — створюємо мовчки, це вже
   // не окрема дія менеджера, а просто «відкрити документ».
   if(!o.offerToken){
-    o.offerToken = makeOfferToken();
-    o.offerState = 'created';
-    if(!o.orderId) o.orderId = makeOrderId();
+    offerBorn(o);
     try{ await storeSet('orders', orders); await offerSave(o); }
     catch(e){ console.error(e); toast('Не вдалося створити КП'); return; }
     renderBoard();
