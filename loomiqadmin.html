@@ -6052,6 +6052,9 @@ function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
     kind: it.kind === 'reco' ? 'reco' : 'main',
+    /* Варіант на вибір: до клієнта приходить не доданим у кошторис.
+       Рекомендовані й так додаються вручну, тож там прапорець зайвий. */
+    optional: it.kind === 'reco' ? false : !!it.optional,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     name: it.name || '', color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
@@ -9933,6 +9936,25 @@ async function offerEdApply(msg){
     if(!(await offerEdSave(o))) return;
     renderBoard();
     return;                       // сторінку не перемальовуємо: текст уже на екрані
+  }
+  /* Варіант на вибір. Клієнт часто просить порахувати кілька виробів під ту
+     саму задачу — поло, оверсайз, базову, — а візьме щось одне. Доти всі
+     вони одразу лежали в кошторисі, і сума виглядала втричі більшою за
+     реальну: доводилось або складати три окремі КП, або пояснювати на
+     словах, що рахувати треба не все.
+
+     Позначена варіантом позиція приходить до клієнта НЕ доданою. Ціна її
+     видна, кнопка «Додати в замовлення» поруч, у кошторис вона потрапляє
+     лише після натискання. */
+  if(act === 'optional'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const it = k >= 0 && (o.items || [])[k];
+    if(!it || it.kind === 'reco') return;
+    it.optional = !it.optional;
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    toast(it.optional ? 'Позиція стала варіантом на вибір' : 'Позиція знову обовʼязкова');
+    return;
   }
   /* Логотип клієнта просто на сторінці КП. Той самий файл одразу лягає в
      список логотипів замовлення, тож у конструкторі його не треба

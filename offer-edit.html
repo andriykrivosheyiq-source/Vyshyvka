@@ -585,6 +585,11 @@
   .it-m{display:block; font-size:11px; color:#7A879B; margin-top:3px;
     font-variant-numeric:tabular-nums;}
   .it-todo{color:#C2410C; font-weight:700;}
+  /* Позиція-варіант: клієнт її ще не додав. У списку це має читатись з
+     першого погляду — інакше менеджер рахує суму, якої в кошторисі немає. */
+  .it-opt{margin-left:6px; font-size:9.5px; font-weight:800; letter-spacing:.05em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:5px;
+    padding:1px 5px; vertical-align:1px;}
   /* Розклад ціни просто в списку. «Дві однакові позиції, а ціни різні» —
      найчастіше питання менеджера, і доти відповідь на нього лежала тільки
      всередині картки: щоб порівняти дві, треба було відкрити одну,
@@ -808,7 +813,8 @@
     return '<div class="it' + (on ? ' on' : '') + '" data-pick="' + kind + ':' + i + '">' +
       '<span class="it-th">' + (img ? '<img src="' + esc(img) + '" alt="">' : '') + '</span>' +
       '<span class="it-t">' +
-        '<span class="it-n">' + esc(it.name || 'Позиція') + '</span>' +
+        '<span class="it-n">' + esc(it.name || 'Позиція') +
+          (it.optional ? '<b class="it-opt">вибір</b>' : '') + '</span>' +
         /* Слова «рекомендований» тут немає: над цими рядками стоїть заголовок
            «Рекомендовані», і повторювати його біля кожної назви — це шум.
            Замість нього — те саме, що в основних: тираж і ціна за штуку. */
@@ -857,7 +863,7 @@
          не приклеєним до низу панелі: приклеєне воно щоразу відтісняло сам
          список і читалось як щось окреме від позиції, до якої належить. */
       '<div class="why hide" id="whyBox">' +
-        '<label class="why-l" for="whyText">Чому радимо — клієнт це побачить</label>' +
+        '<label class="why-l" for="whyText" id="whyLabel">Підпис до позиції — клієнт це побачить</label>' +
         '<textarea class="why-t" id="whyText" rows="3" ' +
           'placeholder="Напр.: до футболок беруть шопери — виходить комплект для подарунка клієнтам"></textarea>' +
       '</div>';
@@ -943,7 +949,17 @@
     closeMenu2();
     var m = document.createElement('div');
     m.className = 'menu';
+    var one = itemsOf(kind)[i] || {};
     m.innerHTML =
+      (kind === 'reco' ? '' :
+        /* Варіант на вибір. Буває, що клієнт просить порахувати і поло, і
+           оверсайз, і базу — а купить щось одне. Доти всі три лягали в
+           кошторис одразу, і сума виглядала втричі більшою за реальну.
+           Позначена варіантом позиція приходить до клієнта НЕ доданою: він
+           бачить ціну кожної й сам натискає «Додати в замовлення». */
+        '<button data-act="optional">' +
+          (one.optional ? 'Зробити обовʼязковою позицією' : 'Зробити варіантом на вибір') +
+        '</button>') +
       '<button data-act="dup">Дублювати</button>' +
       '<button data-act="up">Пересунути вище</button>' +
       '<button data-act="down">Пересунути нижче</button>' +
@@ -967,29 +983,45 @@
     });
     menuEl = m;
   }
-  /* Пояснення до рекомендації. Показуємо тільки там, де воно має сенс, і
-     зберігаємо, коли людина відвела погляд: писати в базу на кожній літері —
-     це десятки записів на один абзац. */
+  /* Пояснення до позиції. Доти воно було лише в рекомендованих — а питання
+     «чому саме цей» виникає насамперед там, де клієнт обирає: поло чи
+     оверсайз, база чи преміум. Тепер підпис є в кожної позиції, змінюється
+     лише заголовок. Зберігаємо, коли людина відвела погляд: писати в базу
+     на кожній літері — це десятки записів на один абзац. */
+  function whyLabel(it, kind){
+    if(kind === 'reco') return 'Чому радимо — клієнт це побачить';
+    if(it && it.optional) return 'Чому саме цей варіант — клієнт це побачить';
+    return 'Підпис до позиції — клієнт це побачить';
+  }
+  function whyHint(it, kind){
+    if(kind === 'reco') return 'Напр.: до футболок беруть шопери — виходить комплект для подарунка клієнтам';
+    if(it && it.optional) return 'Напр.: поло тримає форму краще за футболку — добре для адміністраторів залу';
+    return 'Напр.: щільність 190 г/м², не витягується після прання';
+  }
   function renderWhy(){
     wireWhy();
     var box = document.getElementById('whyBox');
     var ta = document.getElementById('whyText');
+    var lb = document.getElementById('whyLabel');
     var it = cur ? itemsOf(cur.kind)[cur.i] : null;
-    var on = !!(it && cur.kind === 'reco');
+    var on = !!it;
     box.classList.toggle('hide', !on);
-    if(on && document.activeElement !== ta) ta.value = it.recoNote || '';
+    if(!on) return;
+    if(lb) lb.textContent = whyLabel(it, cur.kind);
+    ta.placeholder = whyHint(it, cur.kind);
+    if(document.activeElement !== ta) ta.value = it.recoNote || '';
   }
   function wireWhy(){
     var ta = document.getElementById('whyText');
     if(!ta || ta.dataset.wired) return;
     ta.dataset.wired = '1';
     ta.addEventListener('blur', function(){
-      if(!cur || cur.kind !== 'reco') return;
+      if(!cur) return;
       var it = itemsOf(cur.kind)[cur.i];
       var t = String(ta.value || '').trim();
       if(it && (it.recoNote || '') === t) return;
       if(it) it.recoNote = t;
-      send({ act:'recoNote', kind:'reco', i: cur.i, text: t });
+      send({ act:'recoNote', kind: cur.kind, i: cur.i, text: t });
     });
     ta.addEventListener('keydown', function(e){ e.stopPropagation(); });
   }
