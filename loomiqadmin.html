@@ -772,8 +772,10 @@
     box-shadow:0 1px 2px rgba(15,32,52,.04);}
   .od-crm-msg.mine{align-self:flex-end;background:#1F2C44;border-color:#1F2C44;
     border-radius:14px 14px 4px 14px;}
-  /* Усередині групи кути зрізані менше, і бульбашки стоять щільніше */
-  .od-crm-msg.grouped{border-radius:14px 14px 14px 10px;margin-bottom:-3px;}
+  /* Усередині групи кути зрізані менше, і бульбашки стоять щільніше.
+     Мінусового відступу тут більше немає: тепер у кожній бульбашці є рядок
+     часу, і бульбашки налазили б на нього. */
+  .od-crm-msg.grouped{border-radius:14px 14px 14px 10px;}
   .od-crm-msg.mine.grouped{border-radius:14px 14px 10px 14px;}
   .od-crm-txt{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
     color:var(--ink);}
@@ -8980,6 +8982,16 @@ function crmDayLabel(day){
   if(diff === 1) return 'вчора';
   return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'long' });
 }
+/* Повна позначка часу — для підказки на наведення. «Сьогодні» й «вчора»
+   зручні, поки розмова свіжа; коли до неї повертаються через місяць, потрібні
+   рівно дата, година, хвилина й секунда. */
+function crmFullStamp(at){
+  if(!at) return '';
+  const d = new Date(at);
+  if(isNaN(d)) return String(at);
+  return d.toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric',
+    hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
 
 /* Форма повідомлення в Sitniks достеменно не відома — документація закрита.
    Тому спершу пробуємо звичні назви полів, а якщо жодна не підійшла, беремо
@@ -10167,10 +10179,17 @@ function chatMsgs(o, kind){
     at: m.at, text: m.text, mine: m.mine, kind: 'text', files: m.files || []
   }));
 }
-/* Повідомлення підряд від однієї сторони — одна «репліка»: час і підпис
-   лише під останнім, кути між ними зрізані менше. Без цього стрічка з десяти
-   коротких фраз перетворюється на десять однакових бульбашок із десятьма
-   однаковими часами, і розмову доводиться вичитувати, а не переглядати. */
+/* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
+   кутами — видно, що це одна репліка.
+
+   А от ЧАС стоїть під кожним. Спершу він був лише під останнім у групі:
+   так стрічка виглядала спокійніше. Але в переписці з клієнтом час — не
+   прикраса: за ним видно, скільки людина чекала на відповідь і коли саме
+   надійшла вимога. Коли він один на п'ять повідомлень, чотири з них
+   лишаються без часу зовсім, і відновити його нізвідки.
+
+   Підпис менеджера залишився під останнім: він у групі той самий, і
+   повторювати його щоразу — це вже шум, а не відомість. */
 function chatRowsHtml(msgs){
   let lastDay = '';
   const list = msgs || [];
@@ -10187,17 +10206,20 @@ function chatRowsHtml(msgs){
     // неправдою.
     const mark = (m.kind && m.kind !== 'text' && !(m.files || []).length)
       ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
-    // Час показуємо лише під останнім повідомленням у групі
     const nxt = list[i + 1];
     const grouped = nxt && !!nxt.mine === !!m.mine &&
                     (nxt.at || '').slice(0, 10) === day;
+    // Наведення показує повну дату з секундами: у спорі «коли саме він це
+    // написав» хвилин буває замало
+    const full = crmFullStamp(m.at);
     return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}">
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
-        ${(time && !grouped) ? `<div class="od-crm-at">${escapeHtml(time)}${
-          m.mine && m.by ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
+        ${time ? `<div class="od-crm-at"${full ? ` title="${escapeHtml(full)}"` : ''}>${
+          escapeHtml(time)}${
+          (!grouped && m.mine && m.by) ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
       </div>`;
   }).join('');
 }
