@@ -1528,9 +1528,8 @@
     // Кегль живого напису рахується з тієї самої геометрії, що й PNG, тож
     // текст у рамці стоїть точно там, де він буде на виробі.
     function styleTextEl(el, sp, bh){
-      var lines = textLines(sp.t).length || 1;
-      var e = textEdge(sp);
-      var pngH = Math.ceil(TXT_FS * TXT_LH * lines) + TXT_PAD * 2 + e.w * 2;
+      var L = textLayout(sp);
+      var pngH = Math.max(2, L.h + TXT_PAD * 2);
       var k = bh / pngH;
       el.style.fontFamily = textFontCss(sp.font);
       el.style.fontSize   = (TXT_FS * k).toFixed(2) + 'px';
@@ -1538,8 +1537,8 @@
       el.style.fontWeight = sp.bold ? '700' : '400';
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
-      el.style.padding    = ((TXT_PAD + e.w) * k).toFixed(2) + 'px';
-      el.style.webkitTextStroke = e.w * k > 0.4 ? (e.w * k).toFixed(2) + 'px ' + e.color : '';
+      el.style.padding    = (TXT_PAD * k).toFixed(2) + 'px';
+      el.style.webkitTextStroke = '';
       // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
       // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
       // що на екрані, збігається з тим, що піде у виробництво.
@@ -1551,6 +1550,45 @@
           if(fit < 0.995) el.style.fontSize = (TXT_FS * k * fit).toFixed(2) + 'px';
         }
       }
+    }
+    /* Шматки → розмітка живої рамки. Кегль пишемо в em: сам елемент має
+       базовий кегль, підігнаний під рамку, тож множник шматка лишається
+       правильним при будь-якому масштабі. */
+    function runsHtml(sp){
+      return textRuns(sp).map(function(r){
+        var st = 'font-size:' + r.size + 'em;color:' + r.color +
+                 ';font-family:' + textFontCss(r.font) +
+                 ';font-weight:' + (r.bold ? 700 : 400) +
+                 ';font-style:' + (r.italic ? 'italic' : 'normal');
+        return '<span data-lqr="1" data-s="' + r.size + '" data-c="' + escAttr(r.color) +
+               '" data-f="' + escAttr(r.font) + '" data-b="' + (r.bold ? 1 : 0) +
+               '" data-i="' + (r.italic ? 1 : 0) + '" style="' + escAttr(st) + '">' +
+               escAttr(r.t) + '</span>';
+      }).join('');
+    }
+    /* Розмітка → шматки. Ідемо саме текстовими вузлами: браузер під час
+       набору вільно ріже й склеює спани, тож довіряти можна лише тому, що
+       текст лежить усередині вузла зі своїми data-атрибутами. */
+    function runsFromEl(el, sp){
+      var out = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n;
+      while((n = walk.nextNode())){
+        var t = String(n.nodeValue || '').replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
+        if(!t) continue;
+        var host = n.parentElement;
+        while(host && host !== el && !host.hasAttribute('data-lqr')) host = host.parentElement;
+        var d = (host && host !== el) ? host.dataset : {};
+        var r = runStyle(sp, { size:+d.s || 1, color:d.c, font:d.f,
+                               bold: d.b != null ? d.b === '1' : undefined,
+                               italic: d.i != null ? d.i === '1' : undefined });
+        r.t = t;
+        var last = out[out.length - 1];
+        // сусідні шматки з однаковим стилем склеюємо: інакше кожна набрана
+        // літера ставала б окремим шматком
+        if(last && last.size === r.size && last.color === r.color && last.font === r.font &&
+           last.bold === r.bold && last.italic === r.italic) last.t += r.t;
+        else out.push(r);
+      }
+      return out;
     }
     function renderLogoLayers(){
       // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
@@ -1594,9 +1632,13 @@
         el.style.zIndex = active ? 10 : 1;
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
         var inner = layer.text
+          /* contenteditable="true", а не plaintext-only: у звичайному тексті
+             немає куди покласти «це слово більше, а це іншим кольором».
+             Розмітку тримаємо своєю — спани зі стилями шматків, — а вставку
+             ззовні чистимо до простого тексту (див. bindTextEl). */
           ? '<div class="pm-dl-text' + (keepId === layer.id ? ' is-edit' : '') + '" data-tid="' + layer.id + '" ' +
-            'data-ph="Ваш напис" spellcheck="false" contenteditable="plaintext-only">' +
-            escAttr(layer.text.t || '') + '</div>'
+            'data-ph="Ваш напис" spellcheck="false" contenteditable="true">' +
+            runsHtml(layer.text) + '</div>'
           : '<img src="'+layer.url+'" alt="">';
         el.innerHTML =
           '<div class="pm-dl-img">' + inner + (active ? '<div class="pm-dl-outline"></div>' : '') + '</div>' +
@@ -1795,9 +1837,19 @@
        Довжина навмисно інша, ніж у відбитка картинки: напис і малюнок
        ніколи не мають зійтись як один дизайн. */
     function textFingerprint(spec){
+      /* Стилі шматків теж у відбитку: той самий текст, але половина слів
+         іншим кольором чи іншим кеглем — це інша робота на верстаті, а отже
+         інший макет. Без цього два різні написи вважались би одним. */
+      var runsKey = (spec && Array.isArray(spec.runs) && spec.runs.length)
+        ? spec.runs.map(function(r){
+            return String(r.t || '') + '~' + (r.size || 1) + '~' + (r.color || '') +
+                   '~' + (r.font || '') + '~' + (r.bold ? 'b' : '') + (r.italic ? 'i' : '');
+          }).join('§')
+        : '';
       var s = String((spec && spec.t) || '').replace(/\s+/g, ' ').trim().toLowerCase()
             + '|' + ((spec && spec.font) || '')
-            + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '');
+            + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '')
+            + '|' + runsKey;
       var out = '';
       for(var i = 0; i < 64; i++){
         var h = (2166136261 ^ i) >>> 0;
@@ -1957,10 +2009,87 @@
     // назва плюс дрібніший підпис під нею, одним рядком це не зробити.
     // Геометрію напису тримаємо в одному місці: за нею і canvas малює PNG,
     // і жива рамка на виробі рахує кегль. Розійдуться — текст «поїде».
-    var TXT_FS = 200, TXT_PAD = 28, TXT_LH = 1.18;
+    /* Рядків стільки, скільки потрібно. Число тут — не смак, а запобіжник:
+   полотно напису росте з кожним рядком, і без стелі затиснута клавіша Enter
+   зробила б картинку в десятки тисяч пікселів заввишки. Дванадцять — це
+   вчетверо більше за найдовший напис, який колись просили. */
+    var TXT_FS = 200, TXT_PAD = 28, TXT_LH = 1.18, TXT_MAX_LINES = 12;
     function textLines(t){
       return String(t || '').split('\n').map(function(x){ return x.trim(); })
-               .filter(Boolean).slice(0, 2);
+               .filter(Boolean).slice(0, TXT_MAX_LINES);
+    }
+    /* ══════════ Напис шматками ══════════
+       Напис довго був однорідний: один шрифт, один кегль, один колір на все.
+       Але корпоративний напис майже завжди неоднорідний — назва велика,
+       підпис під нею дрібний, слово в іншому кольорі. Робити це двома
+       окремими написами означало вирівнювати їх руками й возити разом.
+
+       Тому напис — список шматків. Кожен шматок несе свій кегль (множник до
+       базового), колір, гарнітуру й насиченість. Один шматок без нічого — це
+       рівно старий напис, тож усі збережені написи читаються як були. */
+    function runStyle(sp, r){
+      r = r || {};
+      return {
+        size: Math.min(2.5, Math.max(0.4, +r.size || 1)),
+        color: r.color || sp.color || TEXT_COLORS[0],
+        font: r.font || sp.font || TEXT_FONTS[0].id,
+        bold: r.bold != null ? !!r.bold : !!sp.bold,
+        italic: r.italic != null ? !!r.italic : !!sp.italic
+      };
+    }
+    // Шматки напису, завжди нормалізовані. Немає власних — увесь текст одним.
+    function textRuns(sp){
+      sp = sp || {};
+      var src = Array.isArray(sp.runs) && sp.runs.length ? sp.runs : [{ t: sp.t || '' }];
+      var out = [];
+      src.forEach(function(r){
+        var t = String(r.t == null ? '' : r.t);
+        if(!t) return;
+        var st = runStyle(sp, r);
+        st.t = t;
+        out.push(st);
+      });
+      if(!out.length){ var z = runStyle(sp, {}); z.t = ''; out.push(z); }
+      return out;
+    }
+    // Той самий текст, зібраний докупи: за ним рахується відбиток і живе sp.t
+    function runsText(runs){
+      return (runs || []).map(function(r){ return r.t; }).join('');
+    }
+    function runFontCss(r){
+      return (r.italic ? 'italic ' : '') + (r.bold ? '700 ' : '400 ') +
+             (TXT_FS * r.size) + 'px ' + textFontCss(r.font);
+    }
+    /* Розкладка напису: рядки, у кожному — шматки зі своїми кеглями. Одна на
+       двох: за нею canvas малює PNG, і за нею ж жива рамка рахує розміри.
+       Розійдуться — те, що на екрані, перестане збігатися з тим, що піде у
+       виробництво. */
+    function textLayout(sp){
+      var runs = textRuns(sp);
+      var mc = document.createElement('canvas').getContext('2d');
+      var lines = [[]], n = 0;
+      runs.forEach(function(r){
+        String(r.t).split('\n').forEach(function(part, i){
+          if(i > 0 && n < TXT_MAX_LINES - 1){ lines.push([]); n++; }
+          if(part) lines[lines.length - 1].push({ t: part, st: r });
+        });
+      });
+      var out = [], maxW = 0, totalH = 0;
+      lines.forEach(function(segs){
+        if(!segs.length) return;                     // порожні рядки не малюємо
+        var w = 0, fs = 0;
+        segs.forEach(function(g){
+          mc.font = runFontCss(g.st);
+          g.w = mc.measureText(g.t).width;
+          w += g.w;
+          fs = Math.max(fs, TXT_FS * g.st.size);
+        });
+        var band = fs * TXT_LH;
+        out.push({ segs: segs, w: w, fs: fs, band: band });
+        maxW = Math.max(maxW, w);
+        totalH += band;
+      });
+      return { lines: out, w: Math.ceil(maxW), h: Math.ceil(totalH) };
     }
     // Обводки немає: на виробі її ніхто не вишиває й не друкує задарма, а на
     // макеті вона робила напис схожим на наліпку. Контраст тримає сам колір —
@@ -1969,31 +2098,29 @@
     function textEdge(sp){ return { w:0, color:'' }; }
     function textToPng(sp){
       sp = sp || {};
-      var lines = textLines(sp.t);
-      if(!lines.length) return null;
-      var FS = TXT_FS, PAD = TXT_PAD, LH = TXT_LH;
-      var weight = sp.bold ? '700' : '400';
-      var style = sp.italic ? 'italic ' : '';
-      var font = style + weight + ' ' + FS + 'px ' + textFontCss(sp.font);
-      var m = document.createElement('canvas').getContext('2d');
-      m.font = font;
-      var w = 0;
-      lines.forEach(function(l){ w = Math.max(w, Math.ceil(m.measureText(l).width)); });
-      var col = sp.color || TEXT_COLORS[0];
-      var e = textEdge(sp), edge = e.color, lw = e.w;
-
+      var L = textLayout(sp);
+      if(!L.lines.length) return null;
+      var PAD = TXT_PAD;
       var c = document.createElement('canvas');
-      c.width  = Math.max(2, w + PAD * 2 + lw * 2);
-      c.height = Math.ceil(FS * LH * lines.length) + PAD * 2 + lw * 2;
+      c.width  = Math.max(2, L.w + PAD * 2);
+      c.height = Math.max(2, L.h + PAD * 2);
       var x = c.getContext('2d');
-      x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.textAlign = 'left'; x.textBaseline = 'alphabetic';
       x.lineJoin = 'round'; x.miterLimit = 2;
-      var cx = c.width / 2;
-      var top = (c.height - FS * LH * lines.length) / 2 + FS * LH / 2;
-      lines.forEach(function(l, i){
-        var cy = top + i * FS * LH;
-        if(lw){ x.lineWidth = lw; x.strokeStyle = edge; x.strokeText(l, cx, cy); }
-        x.fillStyle = col; x.fillText(l, cx, cy);
+      var top = PAD;
+      L.lines.forEach(function(ln){
+        /* Спільна лінія шрифту на весь рядок. Вирівняти шматки різного кегля
+           по центру означало б посадити дрібне слово вище рядка — на письмі
+           літери стоять на одній лінії, хоч би якого вони розміру. */
+        var baseline = top + ln.fs * 0.80;
+        var cx = (c.width - ln.w) / 2;
+        ln.segs.forEach(function(g){
+          x.font = runFontCss(g.st);
+          x.fillStyle = g.st.color;
+          x.fillText(g.t, cx, baseline);
+          cx += g.w;
+        });
+        top += ln.band;
       });
       return c.toDataURL('image/png');
     }
@@ -2023,6 +2150,17 @@
       if(!layer || !layer.text) return;
       Object.keys(patch || {}).forEach(function(k){ layer.text[k] = patch[k]; });
       if(patch && patch.t != null) layer.textPristine = false;
+      /* Шматки несуть свій колір і гарнітуру, тож зміна базового стилю сама
+         по собі на них не лягає — і кнопка «жирний» переставала працювати,
+         щойно в написі з'являвся хоч один особливий шматок. Нічого не
+         виділено — правка лягає на ВСІ шматки. */
+      var keys = ['color','font','bold','italic'].filter(function(k){ return patch && patch[k] != null; });
+      if(keys.length && Array.isArray(layer.text.runs) && layer.text.runs.length){
+        layer.text.runs = layer.text.runs.map(function(r){
+          keys.forEach(function(k){ r[k] = patch[k]; });
+          return r;
+        });
+      }
       layer.fp = textFingerprint(layer.text);   // відбиток — за буквами, одразу
       var url = textToPng(layer.text);
       if(!url) return;
@@ -2038,40 +2176,145 @@
     }
 
     /* ── Правка напису прямо в рамці ──────────────────────────────────── */
+    // Перемалювати напис після будь-якої зміни: картинка, габарит, ціна
+    function textLayerRedraw(el, layer){
+      layer.fp = textFingerprint(layer.text);   // відбиток міняється разом із написом
+      var url = textToPng(layer.text);
+      if(!url) return;
+      layer.origUrl = layer.cleanUrl = layer.url = url;
+      measureLayerShape(layer, url).then(function(){
+        var host = el && el.closest('.pm-draggable-layer');
+        if(host){
+          var b = layerBox(layer);
+          host.style.width = b.w + 'px'; host.style.height = b.h + 'px';
+          styleTextEl(el, layer.text, b.h);
+        }
+        renderTabPanel(); updatePriceBar();
+      }).catch(function(){});
+    }
     function bindTextEl(el, layer){
       el.addEventListener('input', function(){
-        var t = el.innerText.replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
-        // Два рядки — стеля: третій уже не напис, а абзац, і на виробі не читається
+        var runs = runsFromEl(el, layer.text);
+        var t = runsText(runs);
+        // Чотири рядки — стеля: п'ятий уже не напис, а абзац, і на виробі
+        // не читається
         var ls = t.split('\n');
-        if(ls.length > 2){
-          t = ls.slice(0, 2).join('\n');
+        if(ls.length > TXT_MAX_LINES){
+          t = ls.slice(0, TXT_MAX_LINES).join('\n');
           el.textContent = t;
           textSetCaret(el, t.length);
+          runs = runsFromEl(el, layer.text);
         }
-        layer.text.t = t; layer.textPristine = false;
-        layer.fp = textFingerprint(layer.text);   // відбиток міняється разом із текстом
-        var url = textToPng(layer.text);
-        if(!url) return;
-        layer.origUrl = layer.cleanUrl = layer.url = url;
-        measureLayerShape(layer, url).then(function(){
-          var host = el.closest('.pm-draggable-layer');
-          if(host){
-            var b = layerBox(layer);
-            host.style.width = b.w + 'px'; host.style.height = b.h + 'px';
-            styleTextEl(el, layer.text, b.h);
-          }
-          renderTabPanel(); updatePriceBar();
-        }).catch(function(){});
+        layer.text.runs = runs;
+        layer.text.t = runsText(runs);
+        layer.textPristine = false;
+        textLayerRedraw(el, layer);
+      });
+      /* Вставка ззовні приносить чужу розмітку: шрифти сайту, кольори,
+         посилання. Беремо з неї лише текст — стилі напису задаються тут, а
+         не приїжджають із буфера. */
+      el.addEventListener('paste', function(e){
+        e.preventDefault();
+        var t = '';
+        try{ t = (e.clipboardData || window.clipboardData).getData('text/plain') || ''; }catch(err){}
+        t = t.replace(/\r/g, '').replace(/\n{2,}/g, '\n');
+        try{ document.execCommand('insertText', false, t); }catch(err){}
       });
       el.addEventListener('keydown', function(e){
         if(e.key !== 'Enter') return;
         e.preventDefault();
-        // Другий рядок — стеля: третій уже не напис, а абзац
-        if(el.innerText.replace(/[\n\u200b]+$/, '').indexOf('\n') >= 0) return;
-        // Порожній другий рядок браузер не малює, і каретка зістрибує назад
+        var cur = el.innerText.replace(/[\n\u200b]+$/, '').split('\n').length;
+        if(cur >= TXT_MAX_LINES) return;
+        // Порожній наступний рядок браузер не малює, і каретка зістрибує назад
         // — тримаємо його невидимим символом, який у текст напису не йде.
         try{ document.execCommand('insertText', false, '\n\u200b'); }catch(err){}
       });
+    }
+    /* ── Стиль на виділений шматок ──────────────────────────────────────
+       Виділив слово — змінив йому кегль, колір, гарнітуру чи насиченість.
+       Нічого не виділено — зміна лягає на весь напис, як було завжди.
+
+       Працюємо самі, без execCommand: він уміє font-size лише сімкою
+       нестандартних розмірів і плодить <font>, який потім нізвідки читати. */
+    function textSelectionIn(el){
+      var sel = window.getSelection();
+      if(!sel || !sel.rangeCount) return null;
+      var r = sel.getRangeAt(0);
+      if(r.collapsed) return null;
+      if(!el.contains(r.commonAncestorContainer)) return null;
+      return r;
+    }
+    /* Стиль там, де стоїть початок виділення. Читаємо його з живого дерева
+       ДО вирізання: коли виділення точно збігається з уже стилізованим
+       шматком, вирізаний фрагмент приходить голим текстом без обгортки — і
+       стиль, який щойно поставили, губився. Саме через це другий клік
+       поспіль (спершу кегль, потім колір) скидав кегль назад в одиницю. */
+    function styleAtRange(el, layer, r){
+      var node = r.startContainer;
+      var host = node.nodeType === 3 ? node.parentElement : node;
+      while(host && host !== el && !host.hasAttribute('data-lqr')) host = host.parentElement;
+      var d = (host && host !== el) ? host.dataset : {};
+      return runStyle(layer.text, { size:+d.s || 1, color:d.c, font:d.f,
+        bold: d.b != null ? d.b === '1' : undefined,
+        italic: d.i != null ? d.i === '1' : undefined });
+    }
+    function applyToSelection(el, layer, patch){
+      var r = textSelectionIn(el);
+      if(!r) return false;
+      var was = styleAtRange(el, layer, r);
+      /* Виділення через кілька різних шматків зводиться до одного стилю —
+         того, з якого воно почалось, плюс правка. Зберегти всередині
+         виділення розмаїття й водночас змінити йому колір неможливо: людина
+         просить «оцьому шматку отак», а не «кожному по-своєму». */
+      var frag = r.extractContents();
+      var span = document.createElement('span');
+      span.setAttribute('data-lqr', '1');
+      var probe = document.createElement('div');
+      probe.appendChild(frag.cloneNode(true));
+      var st = runStyle(layer.text, {
+        size: patch.size != null ? patch.size : was.size,
+        color: patch.color != null ? patch.color : was.color,
+        font: patch.font != null ? patch.font : was.font,
+        bold: patch.bold != null ? patch.bold : was.bold,
+        italic: patch.italic != null ? patch.italic : was.italic
+      });
+      span.dataset.s = st.size; span.dataset.c = st.color; span.dataset.f = st.font;
+      span.dataset.b = st.bold ? 1 : 0; span.dataset.i = st.italic ? 1 : 0;
+      span.style.fontSize = st.size + 'em';
+      span.style.color = st.color;
+      span.style.fontFamily = textFontCss(st.font);
+      span.style.fontWeight = st.bold ? 700 : 400;
+      span.style.fontStyle = st.italic ? 'italic' : 'normal';
+      span.textContent = probe.textContent;
+      r.insertNode(span);
+      // виділення лишаємо на місці: далі часто тиснуть ще одну кнопку
+      try{
+        var sel = window.getSelection(), nr = document.createRange();
+        nr.selectNodeContents(span); sel.removeAllRanges(); sel.addRange(nr);
+      }catch(e){}
+      layer.text.runs = runsFromEl(el, layer.text);
+      layer.text.t = runsText(layer.text.runs);
+      layer.textPristine = false;
+      textLayerRedraw(el, layer);
+      return true;
+    }
+    // Кегль виділеного шматка — множник до базового, з обмеженням
+    function scaleSelection(el, layer, mul){
+      var r = textSelectionIn(el);
+      var was = r ? styleAtRange(el, layer, r) : runStyle(layer.text, {});
+      var next = Math.min(2.5, Math.max(0.4, Math.round(was.size * mul * 100) / 100));
+      if(r) return applyToSelection(el, layer, { size: next });
+      // нічого не виділено — міняємо кегль усьому напису
+      var runs = textRuns(layer.text).map(function(x){
+        x.size = Math.min(2.5, Math.max(0.4, Math.round(x.size * mul * 100) / 100));
+        return x;
+      });
+      layer.text.runs = runs;
+      textLayerRedraw(el, layer);
+      return true;
+    }
+    function activeTextEl(){
+      return pmLogoLayers ? pmLogoLayers.querySelector('.pm-dl-text.is-edit') : null;
     }
     function textSetCaret(el, pos){
       try{
@@ -2141,7 +2384,12 @@
       if(patch.font) pm.textFont = patch.font;
       if(patch.color) pm.textColor = patch.color;
       var l = activeTextLayer();
-      if(l) updateTextLayer(l, patch);
+      if(!l) return;
+      /* Є виділення — правка лягає лише на нього. Саме заради цього тут і
+         з'явилися шматки: «оце слово іншим кольором», а не весь напис. */
+      var el = activeTextEl();
+      if(el && applyToSelection(el, l, patch)) return;
+      updateTextLayer(l, patch);
     }
     // Вишивка не бере дрібний текст: нижче ~5 мм літера збивається в кашу.
     // Краще сказати про це тут, ніж переробляти партію за свій рахунок.
@@ -2196,6 +2444,16 @@
           'style="font-weight:700" aria-label="Жирний">B</button>' +
         '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
           'style="font-style:italic" aria-label="Курсив">I</button>' +
+        /* Кегль — двома кнопками, а не полем із числом: тут не набирають
+           «14», тут дивляться на макет і роблять трохи більше або трохи
+           менше. Діють на виділене, а якщо нічого не виділено — на весь
+           напис. */
+        '<button class="pm-ts-tog pm-ts-sz" id="pmTsSmall" ' +
+          'title="Менші літери — для виділеного або всього напису" ' +
+          'aria-label="Зменшити літери">A−</button>' +
+        '<button class="pm-ts-tog pm-ts-sz" id="pmTsBig" ' +
+          'title="Більші літери — для виділеного або всього напису" ' +
+          'aria-label="Збільшити літери">A+</button>' +
         '</div>';
       // Кольори — прямо тут, а не за окремим заходом. Перший кружечок веде в
       // палітру: точний фірмовий відтінок зразками не вгадаєш.
@@ -2959,6 +3217,31 @@
       if(tsItal) tsItal.addEventListener('click', function(){
         textApply({ italic: !textSpec().italic }); renderTabPanel();
       });
+      /* Натискання на кнопку панелі забирає фокус із напису, а разом із ним
+         зникає виділення — і правка лягає вже не на те слово, яке щойно
+         виділили. Гасимо саме mousedown: клік при цьому працює, а фокус
+         лишається в тексті. */
+      pmTabPanel.querySelectorAll('.pm-ts [data-tc], .pm-tsc [data-tc], #pmTsBold, ' +
+        '#pmTsItal, #pmTsSmall, #pmTsBig').forEach(function(b){
+          b.addEventListener('mousedown', function(e){ e.preventDefault(); });
+        });
+      var tsSmall = document.getElementById('pmTsSmall');
+      var tsBig   = document.getElementById('pmTsBig');
+      function sizeStep(mul){
+        var l = activeTextLayer(); if(!l) return;
+        var el = activeTextEl();
+        if(el) scaleSelection(el, l, mul);
+        else {
+          var runs = textRuns(l.text).map(function(x){
+            x.size = Math.min(2.5, Math.max(0.4, Math.round(x.size * mul * 100) / 100));
+            return x;
+          });
+          updateTextLayer(l, { runs: runs });
+        }
+        renderTabPanel();
+      }
+      if(tsSmall) tsSmall.addEventListener('click', function(){ sizeStep(1/1.18); });
+      if(tsBig)   tsBig.addEventListener('click', function(){ sizeStep(1.18); });
       // Один рівень інтерфейсу за раз: екран кольору заміняє панель цілком
       pmTabPanel.querySelectorAll('[data-tsnav]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -5793,6 +6076,17 @@
     /* Розклад нанесення рядками — те саме, що лягає в прорахунок позиції.
        Головне тут «заповнення»: без нього «площа 100 см²» не каже, це
        суцільна пляма чи тонкий контур на непрозорому фоні. */
+    /* Шматки поточного напису — за ними видно, чи справді збереглися різні
+       кеглі й кольори всередині одного напису, чи це лише розмітка на екрані. */
+    window.__lqTextRuns = function(){
+      try{
+        var l = activeTextLayer();
+        if(!l) return null;
+        return textRuns(l.text).map(function(r){
+          return { t:r.t, size:r.size, color:r.color, font:r.font, bold:r.bold };
+        });
+      }catch(e){ return null; }
+    };
     window.__lqCalcLines = function(){
       try{ return calcLinesForItem(Math.max(1, totalUnits() || 1)); }catch(e){ return []; }
     };
