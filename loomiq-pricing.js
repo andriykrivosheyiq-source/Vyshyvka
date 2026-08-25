@@ -219,7 +219,10 @@
         if(!f) return;
         if(cursor[key] == null) cursor[key] = 0;
         var gi = f.groups.index[cursor[key]++];
-        designNos.push({ kind: kind, no: gi + 1, first: gi === f.firstIdx,
+        /* i — номер дизайну ВСЕРЕДИНІ позиції, той самий, що в designs,
+           designKinds і designMm2. Без нього прорахунок не може сказати
+           адмінці, який саме рядок перемикають на напис. */
+        designNos.push({ i: i, kind: kind, no: gi + 1, first: gi === f.firstIdx,
                          units: f.unitsOf[gi] || 0 });
         /* Макет цього дизайну вже оплачено погодженою частиною замовлення —
            допродаж за нього не платить. Саме звідси й береться вигода
@@ -270,6 +273,69 @@
       } };
     });
   }
+  /* ══════════ Ціна одного нанесення від його площі ══════════
+     Жила в конструкторі й лишалась там, поки типом дизайну ніхто не керував
+     вручну: конструктор рахував число один раз при збереженні, і всі решта
+     просто його отримували.
+
+     Тепер тип можна перемкнути в прорахунку — картинку рахувати як напис. А
+     в вишивці в напису СВОЯ ставка за площу, тож перемикання мусить
+     перерахувати й нанесення, не відкриваючи позицію. Отже формула потрібна
+     обом сторонам — і живе там само, де решта рушія.
+
+     Площа при перемиканні НЕ міняється: 17.1 см² лишається 17.1 см².
+     Міняються лише ставки, за якими ця площа рахується. */
+  function areaTiersOf(m, isCost){
+    var a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
+    return a.map(function(t){
+        return { from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) };
+      })
+      /* Ставка 0 у СХОДИНКОВІЙ шкалі означала б «уся площа безкоштовно»,
+         щойно вона дотягнулась до порогу. У старій прогресивній шкалі той
+         самий нуль читався інакше — «далі не додаємо», — і такі пороги
+         лишились у прайсі. Тому нульову ставку пропускаємо. */
+      .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate > 0; })
+      .sort(function(a, b){ return a.from - b.from; });
+  }
+  function areaParts(m, mm2, isCost){
+    mm2 = Math.max(0, +mm2 || 0);
+    var rate = +(isCost ? (m || {}).costPer1000mm2 : (m || {}).pricePer1000mm2) || 0;
+    var tiers = areaTiersOf(m, isCost);
+    // Остання сходинка, до якої площа дотягнулась, задає ставку на ВСЮ площу
+    for(var i = 0; i < tiers.length; i++){ if(mm2 >= tiers[i].from) rate = tiers[i].rate; }
+    return [{ mm2: mm2, rate: rate }];
+  }
+  function areaSum(m, mm2, isCost){
+    return areaParts(m, mm2, isCost).reduce(function(s, p){ return s + p.mm2 * p.rate / 1000; }, 0);
+  }
+  function listAt(a, idx){
+    if(!Array.isArray(a) || !a.length) return 0;
+    return Math.round(+a[Math.min(idx || 0, a.length - 1)] || 0);
+  }
+  function minForIndex(m, idx){
+    if(m && Array.isArray(m.minPrices) && m.minPrices.length) return listAt(m.minPrices, idx);
+    if(m && m.minPrice != null) return Math.round(+m.minPrice || 0);
+    return 0;
+  }
+  function minCostForIndex(m, idx){ return listAt(m && m.minCosts, idx); }
+  function baseForIndex(m, idx){ return listAt(m && m.basePrices, idx); }
+  // Продажна ціна одного нанесення: старт + площа, і лише потім підлога —
+  // мінімалка страхує знизу весь доданок, а не саму площу.
+  function placeSell(m0, isText, mm2, idx){
+    var m = methodCfgKind(m0 || {}, !!isText);
+    var raw;
+    if(m.pricePer1000mm2 != null) raw = areaSum(m, mm2, false);
+    else if(m.mode === 'stitch') raw = (+mm2 || 0) * (+m.density || 1.6) / 1000 * (+m.pricePer1000 || 0);
+    else raw = (+m.ratePerMm2 || 0) * (+mm2 || 0);
+    var area = Math.round(raw), base = baseForIndex(m, idx || 0);
+    var minAdd = Math.max(0, minForIndex(m, idx || 0) - (area + base));
+    return { area: area, base: base, minAdd: minAdd, total: area + base + minAdd };
+  }
+  function placeCost(m0, isText, mm2, idx){
+    var m = methodCfgKind(m0 || {}, !!isText);
+    return Math.max(Math.round(areaSum(m, mm2, true)), minCostForIndex(m, idx || 0));
+  }
+
   function methodCfgKind(m, isText){
     if(!m || !isText || !m.text) return m || {};
     var t = m.text, out = {};
@@ -359,6 +425,14 @@
 
   window.LQ = window.LQ || {};
   window.LQ.upsellMode = upsellMode;
+  window.LQ.areaParts = areaParts;
+  window.LQ.areaSum = areaSum;
+  window.LQ.minForIndex = minForIndex;
+  window.LQ.minCostForIndex = minCostForIndex;
+  window.LQ.baseForIndex = baseForIndex;
+  window.LQ.placeSell = placeSell;
+  window.LQ.placeCost = placeCost;
+  window.LQ.methodCfgKind = methodCfgKind;
   window.LQ.priceOrder = priceOrder;
   window.LQ.tierCoefFor = tierCoefFor;
   window.LQ.garmentCoefFor = garmentCoefFor;

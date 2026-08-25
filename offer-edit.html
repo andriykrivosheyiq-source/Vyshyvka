@@ -751,10 +751,10 @@
   var lastReco = -1;         // те саме окремо для рекомендованих
   var ctorReady = null;
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=31454c8ab0';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=31454c8ab0';
-  var CTOR_JS   = 'loomiq-constructor.js?v=31454c8ab0';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=31454c8ab0';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=6336664117';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=6336664117';
+  var CTOR_JS   = 'loomiq-constructor.js?v=6336664117';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=6336664117';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1404,6 +1404,16 @@
   /* ── Повідомлення від адмінки ───────────────────────────────────────── */
   window.addEventListener('message', function(e){
     var d = e.data;
+    /* Вкладка «Як бачить клієнт» — це ще один кадр усередині цього. Коли
+       менеджер тисне щось у прорахунку там, повідомлення прилітає сюди, а
+       робити з ним нічого не можемо: пише в базу тільки адмінка. Тож просто
+       передаємо далі вгору — інакше кнопка мовчить, і виглядає це як
+       поламана кнопка, а не як відсутній місток. */
+    if(d && d.lqEdit && !d.lqEditInit){
+      var cf = document.getElementById('clientFrame');
+      if(cf && cf.contentWindow === e.source) send(d);
+      return;
+    }
     if(!d || !d.lqEditInit || window.parent === window) return;
     if(d.doSave){ onSaveRequest(); return; }
     if(d.catalog) CATALOG = d.catalog;
