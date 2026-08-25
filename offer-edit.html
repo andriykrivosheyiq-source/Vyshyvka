@@ -620,6 +620,18 @@
   .it-r{font-size:11px; font-weight:700; color:#8A93A3; text-transform:uppercase; letter-spacing:.04em;}
   .list-sec{font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
     color:#8A93A3; padding:14px 8px 6px;}
+  /* Група варіантів: назва правиться на місці, поруч — «додати в цю групу».
+     Заголовок тут не підпис, а питання до клієнта, тож він і має бути
+     редагованим полем, а не написом. */
+  .list-sec.is-var{display:flex; align-items:center; gap:6px;}
+  .vg-name{flex:1; min-width:0; outline:none; border-bottom:1px dashed transparent;
+    padding-bottom:1px; cursor:text;}
+  .vg-name:hover{border-bottom-color:#C7CFDA;}
+  .vg-name:focus{border-bottom-color:#5B6B80; color:#1B2536;}
+  .vg-add{flex:none; width:20px; height:20px; border-radius:6px; border:1px solid #E2E8F0;
+    background:#fff; color:#5B6B80; font:inherit; font-size:13px; line-height:1; cursor:pointer;
+    padding:0;}
+  .vg-add:hover{background:#F1F5FA; color:#1B2536;}
   .list-add{width:100%; margin-top:8px;}
   .list-f{flex:none; border-top:1px solid #E2E8F0; padding:10px 12px; font-size:12px; color:#5A6A80;}
   .list-f b{display:block; font-size:18px; font-weight:800; letter-spacing:-.3px;
@@ -772,7 +784,22 @@
   }
 
   /* ── Список позицій ─────────────────────────────────────────────────── */
-  function itemsOf(kind){ return (kind === 'reco' ? (OFFER.reco || []) : (OFFER.items || [])); }
+  function itemsOf(kind){
+    if(kind === 'reco') return OFFER.reco || [];
+    if(kind === 'variant') return OFFER.variants || [];
+    return OFFER.items || [];
+  }
+  /* Групи варіантів у порядку появи. Клієнт бере по одному з кожної, тож
+     група — це питання («який верх?»), а позиції в ній — відповіді. */
+  function variantGroups(){
+    var out = [], seen = {};
+    (OFFER.variants || []).forEach(function(v, i){
+      var g = v.vgroup || 'Варіанти на вибір';
+      if(!seen[g]){ seen[g] = { name:g, idx:[] }; out.push(seen[g]); }
+      seen[g].idx.push(i);
+    });
+    return out;
+  }
   /* Розклад ціни позиції — той самий, що в картці. Приходить готовим від
      адмінки разом із документом (OFFER.mgr) і в базу не потрапляє: це
      службові числа для менеджера, клієнт їх не бачить. */
@@ -851,6 +878,20 @@
       (reco.length ? '<div class="list-sec">Рекомендовані</div>' +
         reco.map(function(it, i){ return rowHtml(it, 'reco', i); }).join('') : '') +
       '<button class="btn list-add" data-add="reco">＋ Рекомендований</button>' +
+      /* Третя зона: варіанти на вибір. Клієнт часто просить порахувати
+         кілька виробів під ту саму задачу — поло, оверсайз, базову, — а
+         візьме щось одне. У кошторис вони не входять, доки він не обере, і
+         між собою НЕ складаються: тираж рахується так, ніби взяли саме цей. */
+      variantGroups().map(function(g){
+        return '<div class="list-sec is-var">' +
+            '<span class="vg-name" contenteditable="plaintext-only" ' +
+              'data-vgname="' + esc(g.name) + '">' + esc(g.name) + '</span>' +
+            '<button class="vg-add" data-add="variant" data-vgroup="' + esc(g.name) + '" ' +
+              'title="Додати варіант у цю групу">＋</button>' +
+          '</div>' +
+          g.idx.map(function(i){ return rowHtml(itemsOf('variant')[i], 'variant', i); }).join('');
+      }).join('') +
+      '<button class="btn list-add" data-add="variant">＋ Група варіантів</button>' +
       (hasExtraSketch()
         ? '<div class="fpfix-box">' +
             '<button class="btn" id="fpFix">↻ Перерахувати дизайни за макетами</button>' +
@@ -901,7 +942,26 @@
       });
     });
     box.querySelectorAll('[data-add]').forEach(function(b){
-      b.addEventListener('click', function(){ openPick(b.dataset.add); });
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        openPick(b.dataset.add, b.dataset.vgroup || '');
+      });
+    });
+    /* Назва групи правиться на місці. Це не косметика: група — це питання,
+       яке ставлять клієнту («який верх?»), і воно має звучати його словами,
+       а не нашим «Варіанти на вибір». */
+    box.querySelectorAll('[data-vgname]').forEach(function(el){
+      el.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      });
+      el.addEventListener('blur', function(){
+        var was = el.dataset.vgname;
+        var now = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+        if(!now){ el.textContent = was; return; }
+        if(now === was) return;
+        send({ act:'vgroup', from: was, to: now });
+      });
     });
     renderActs();
   }
@@ -911,12 +971,16 @@
      неї немає, — і «Додати товар» мовчки нічого не робило. */
   var pickEl = null;
   function closePick(){ if(pickEl){ pickEl.remove(); pickEl = null; } }
-  function openPick(kind){
+  function openPick(kind, vgroup){
     closePick();
     var d = document.createElement('div');
     d.className = 'pick';
+    var title = kind === 'reco' ? 'Рекомендований товар'
+              : kind === 'variant' ? (vgroup ? ('Варіант у групу «' + vgroup + '»')
+                                             : 'Перший варіант нової групи')
+              : 'Додати товар';
     d.innerHTML = '<div class="pick-c">' +
-      '<div class="pick-h"><b>' + (kind === 'reco' ? 'Рекомендований товар' : 'Додати товар') + '</b>' +
+      '<div class="pick-h"><b>' + esc(title) + '</b>' +
         '<button class="btn" data-pick-x>Закрити</button></div>' +
       '<div class="pick-b">' +
         (CATALOG.length ? CATALOG.map(function(p){
@@ -933,7 +997,7 @@
     d.querySelectorAll('[data-gid]').forEach(function(b){
       b.addEventListener('click', function(){
         closePick();
-        send({ act:'pick', gid: b.dataset.gid, kind: kind });
+        send({ act:'pick', gid: b.dataset.gid, kind: kind, vgroup: vgroup || '' });
       });
     });
     pickEl = d;
@@ -1442,6 +1506,7 @@
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
+      OFFER.variants = OFFER.variants || [];
       renderList();
       var n = OFFER.items.length, nr = OFFER.reco.length;
       /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
