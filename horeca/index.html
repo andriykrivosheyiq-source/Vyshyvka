@@ -6625,6 +6625,27 @@ window.LOOMIQ_CONFIG = {
      Раніше цієї функції не існувало, і кнопка в тому вікні просто ЗАКРИВАЛА
      його. Ім'я й номер, які людина щойно вписала, зникали безслідно:
      ні в Telegram, ні в базі, ні в Канбані. */
+  /* ── База: одна точка підняття на весь сайт ───────────────────────────
+     Доти firebase.initializeApp жив усередині блоку відгуків, за рядком
+     «немає вікна відгуку — виходимо». На сторінці без цього вікна база не
+     піднімалась узагалі, і кожна заявка та кожне замовлення тихо не
+     доїжджали в Канбан — при тому, що в Telegram вони приходили справно.
+     Тепер підняття не залежить від жодного блоку розмітки. */
+  window.LQ_initFirebase = window.LQ_initFirebase || function(){
+    var FB = {
+      apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+      authDomain: "loomiq-admin.firebaseapp.com",
+      projectId: "loomiq-admin",
+      storageBucket: "loomiq-admin.firebasestorage.app",
+      messagingSenderId: "828527183830",
+      appId: "1:828527183830:web:69895ce3f3c5505d014677"
+    };
+    try{
+      if(!window.firebase) return null;
+      if(!firebase.apps.length) firebase.initializeApp(FB);
+      return firebase.firestore();
+    }catch(e){ console.warn('Firebase init failed', e); return null; }
+  };
   function postLead(phone, name){
     if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
     var who = String(name || '').trim().slice(0, 60);
@@ -6638,9 +6659,23 @@ window.LOOMIQ_CONFIG = {
        Канбані її немає, і за тиждень ніхто не згадає, чи передзвонили.
        Пишемо тихо, у фоні: якщо не вийде, людині все одно скажемо «дякуємо»,
        бо повідомлення в Telegram уже пішло. */
+    /* Збій запису НЕ можна ковтати. Замовлення давно вміє про це сказати:
+       не потрапило в Канбан — у Telegram летить окреме попередження, і
+       менеджер заводить картку руками. Заявка ж мовчала: у чат приходила,
+       у Канбані її не було, і ніхто про це не дізнавався. Рівно те саме
+       ставалось і без бази взагалі — коли Firebase не завантажився. */
+    function leadWriteFailed(why){
+      console.warn('заявка не записалась у базу', why);
+      if(!c.leadEndpoint) return;
+      fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phone: String(phone || ''), page: 'збій запису заявки',
+          context: '⚠️ Заявка НЕ потрапила в Канбан (' + (why || 'невідома причина') + ').\n'
+                 + 'Дані — у повідомленні вище, заведіть картку вручну.' }) }).catch(function(){});
+    }
     try{
-      var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
-      if(db) db.collection('webLeads').add({
+      var db = window.LQ_initFirebase();
+      if(!db) leadWriteFailed('база не підключилась');
+      else db.collection('webLeads').add({
         phone: String(phone || '').slice(0, 20),
         name: who,
         page: String(location.pathname || '/').slice(0, 120),
@@ -6649,8 +6684,8 @@ window.LOOMIQ_CONFIG = {
         createdAt: new Date().toISOString(),
         imported: false,
         an: (window.lqAn && window.lqAn.attribution()) || null
-      }).catch(function(e){ console.warn('заявка не записалась у базу', e && e.code); });
-    }catch(e){ console.warn('заявка не записалась у базу', e); }
+      }).catch(function(e){ leadWriteFailed((e && (e.code || e.message)) || 'відмова бази'); });
+    }catch(e){ leadWriteFailed((e && (e.code || e.message)) || 'виняток'); }
 
     if(!c.leadEndpoint){
       console.warn('LOOMIQ_CONFIG.leadEndpoint не налаштовано — заявка не надіслана.');
@@ -6739,21 +6774,13 @@ window.LOOMIQ_CONFIG = {
       }
     }, 0);
   }
-  var FB = {
-    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
-    authDomain: "loomiq-admin.firebaseapp.com",
-    projectId: "loomiq-admin",
-    storageBucket: "loomiq-admin.firebasestorage.app",
-    messagingSenderId: "828527183830",
-    appId: "1:828527183830:web:69895ce3f3c5505d014677"
-  };
-  var db=null;
-  try{
-    if(window.firebase){
-      if(!firebase.apps.length) firebase.initializeApp(FB);
-      db = firebase.firestore();
-    }
-  }catch(e){ console.warn('Firebase init failed', e); }
+  /* Підняття бази винесене нагору файлу (LQ_initFirebase). Тут воно жило
+     ВСЕРЕДИНІ блоку відгуків, після «немає вікна відгуку — виходимо». На
+     сторінці без цього вікна база не піднімалась зовсім, і кожна заявка та
+     кожне замовлення тихо не доїжджали в Канбан, хоч у Telegram приходили.
+     Зараз таке вікно є на всіх трьох сайтах, але тримати запис у Канбан
+     заручником блоку відгуків не можна. */
+  var db = (window.LQ_initFirebase ? window.LQ_initFirebase() : null);
 
   var UA=['','січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
   function fmtDate(d){ return d.getDate()+' '+UA[d.getMonth()+1]+' '+d.getFullYear(); }
@@ -7391,7 +7418,7 @@ window.LOOMIQ_CONFIG = {
         an: (window.lqAn && window.lqAn.attribution()) || null,
         imported: false            // адмінка забере і поставить true
       };
-      var db = (window.firebase && firebase.apps && firebase.apps.length) ? firebase.firestore() : null;
+      var db = window.LQ_initFirebase();
       // Два незалежні канали. Замовлення вважається прийнятим, якщо спрацював
       // хоч один: Канбан дає повну картку, Telegram — гарантію, що заявка дійшла.
       // Раніше Telegram надсилався лише після успішного запису, тож блокування
@@ -7420,7 +7447,12 @@ window.LOOMIQ_CONFIG = {
         ? fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ phone: ph, page: location.pathname,
               context: 'ЗАМОВЛЕННЯ З САЙТУ'
-                + '\n№ ' + order.orderId          // короткий номер для пошуку в CRM/Канбані
+                /* Це КОД, а не номер замовлення. Номер призначає Канбан при
+                   імпорті — у нього своя наскрізна нумерація, і сайт до неї
+                   не має доступу. Доти тут стояло «№», через що в чаті й у
+                   Канбані виявлялись два різні «номери» того самого
+                   замовлення. За кодом картка шукається так само. */
+                + '\nКод з сайту: ' + order.orderId
                 + (function(){                     // з якої посадкової прийшло
                     var si = (window.LQ_SITE_INFO || {})[order.site] || null;
                     return si ? ('\nСайт: ' + si.label + ' — ' + si.url) : '';
@@ -7459,7 +7491,7 @@ window.LOOMIQ_CONFIG = {
             var why = (res[0].reason && (res[0].reason.code || res[0].reason.message)) || 'невідома причина';
             fetch(c.leadEndpoint, { method:'POST', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ phone: ph, page: 'збій запису в Канбан',
-                context: '⚠️ Замовлення № ' + order.orderId + ' НЕ потрапило в Канбан (' + why + ').\n'
+                context: '⚠️ Замовлення (код ' + order.orderId + ') НЕ потрапило в Канбан (' + why + ').\n'
                        + 'Дані замовлення — у повідомленні вище, заведіть картку вручну.' }) }).catch(function(){});
           }
         }
