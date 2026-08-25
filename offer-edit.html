@@ -1027,7 +1027,7 @@
       '<button data-act="up">Пересунути вище</button>' +
       '<button data-act="down">Пересунути нижче</button>' +
       '<button data-act="swap">' +
-        (kind === 'reco' ? 'Перенести в основні' : 'Перенести в рекомендовані') + '</button>' +
+        (kind === 'main' ? 'Перенести в рекомендовані' : 'Перенести в основні') + '</button>' +
       '<button class="is-del" data-act="del">Прибрати з пропозиції</button>';
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
