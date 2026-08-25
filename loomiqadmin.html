@@ -2700,8 +2700,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=31454c8ab0"></script>
-<script src="loomiq-pricing.js?v=31454c8ab0"></script>
+<script src="loomiq-fingerprint.js?v=6336664117"></script>
+<script src="loomiq-pricing.js?v=6336664117"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5922,6 +5922,36 @@ function viewsWrite(o, k, list){
    Собівартість і маржа живуть ВИКЛЮЧНО в повідомленні до кадру редагування.
    У документі, який лежить у Firestore і який клієнт читає за посиланням,
    їх немає — тому вони рахуються тут щоразу наново, а не зберігаються. */
+/* Перерахувати нанесення позиції під поточні види дизайнів.
+
+   Площа НЕ міняється — 17.1 см² лишається 17.1 см². Міняються лише ставки,
+   за якими ця площа рахується: у вишивки в напису своя ціна за 1000 мм²,
+   своя собівартість і свої разові. Формула — та сама, що в конструкторі:
+   вона живе у спільному рушії саме тому, що потрібна обом.
+
+   Порядок мінімалок — за площею, найбільше нанесення бере найдорожчу: так
+   само, як конструктор шикує шари. Інакше після перемикання позиція
+   отримала б інші мінімалки, ніж мала при збереженні. */
+function placementTotals(desc){
+  const p = curSitePricing();
+  if(!p || !desc || !Array.isArray(desc.designMm2) || !desc.designMm2.length) return null;
+  const mk = desc.method === 'embro' ? 'embro' : 'dtf';
+  const m = (p.methods || {})[mk] || {};
+  // DTF рахується за листами, а не за площею: там вид міняє тільки разові
+  if(m.mode === 'grid') return null;
+  const order = desc.designMm2
+    .map((mm2, i) => ({ i, mm2: Math.max(0, +mm2 || 0) }))
+    .sort((a, b) => b.mm2 - a.mm2);
+  let sell = 0, cost = 0, base = 0, minAdd = 0;
+  order.forEach((x, idx) => {
+    const isTxt = (desc.designKinds || [])[x.i] === 'txt';
+    const r = window.LQ.placeSell(m, isTxt, x.mm2, idx);
+    sell += r.total; base += r.base; minAdd += r.minAdd;
+    cost += window.LQ.placeCost(m, isTxt, x.mm2, idx);
+  });
+  return { sell: Math.round(sell), cost: Math.round(cost),
+           basePart: Math.round(base), minPart: Math.round(minAdd) };
+}
 function offerCalcRows(it){
   const b = it.parts;
   if(!b) return null;
@@ -5958,10 +5988,20 @@ function offerCalcRows(it){
      однаковий номер у двох позицій означає «рушій вважає це тим самим
      малюнком», і далі вже видно, чи він має рацію. */
   (b.designNos || []).forEach(d=>{
+    /* Четвертим елементом іде дія: перемкнути вид цього дизайну. Клієнт її
+       не бачить — прорахунок узагалі йде тільки в кадр менеджера.
+
+       Навіщо: клієнт часто присилає картинку, на якій просто напис їхнім
+       шрифтом. Виглядати воно має картинкою (шрифт ми не відтворимо), а
+       рахуватись мусить як напис — у вишивки в напису своя ставка за площу
+       й свої разові. Автоматично цього не вгадати, тож вирішує менеджер. */
     rows.push(['↳ Дизайн №' + d.no + (d.kind === 'txt' ? ' (напис)' : '') +
       (d.first ? ' — перший, входить у підготовку макета'
                : ' — окремий, ділиться на ' + d.units + ' шт із цим дизайном'),
-      '', 'sub']);
+      '', 'sub',
+      (d.i != null && Array.isArray(it.desc && it.desc.designMm2))
+        ? { act:'kind', di:d.i, kind:d.kind }
+        : null]);
   });
   if(b.feeShare){
     // feeShare — уся разова частка разом з ескізами. Базову підготовку
@@ -9982,6 +10022,47 @@ async function offerEdApply(msg){
      Позначена варіантом позиція приходить до клієнта НЕ доданою. Ціна її
      видна, кнопка «Додати в замовлення» поруч, у кошторис вона потрапляє
      лише після натискання. */
+  /* Вид дизайну вручну: картинка ↔ напис. Клієнт присилає файл, на якому
+     просто напис їхнім шрифтом, — виглядати воно має картинкою, а
+     рахуватись як напис. Автоматично цього не вгадати.
+
+     Площа не міняється. Міняються ставки: своя ціна за 1000 мм², своя
+     собівартість, свої разові. Далі звичайний перерахунок — і нове число
+     їде туди ж, куди й усі: в КП, кошторис, картку, Канбан. */
+  if(act === 'designKind'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const it = k >= 0 && (o.items || [])[k];
+    const d = it && it.desc;
+    const di = +msg.di;
+    if(!d || !Array.isArray(d.designs) || !(di >= 0 && di < d.designs.length)) return;
+    if(!Array.isArray(d.designMm2) || d.designMm2.length !== d.designs.length){
+      toast('Ця позиція збережена давно й не везе площі — відкрийте її й збережіть');
+      return;
+    }
+    const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
+    while(kinds.length < d.designs.length) kinds.push('img');
+    const was = placementTotals(Object.assign({}, d, { designKinds: kinds }));
+    kinds[di] = kinds[di] === 'txt' ? 'img' : 'txt';
+    d.designKinds = kinds;
+    const now = placementTotals(d);
+    /* Нанесення пишемо назад у позицію, а собівартість рухаємо рівно на
+       різницю: у неї, крім нанесення, входить і сам виріб, і частка
+       разових, — перезаписати її цілком означало б стерти решту. */
+    if(was && now){
+      d.coefPart = now.sell;
+      d.basePart = now.basePart;
+      d.minPart  = now.minPart;
+      const dCost = now.cost - was.cost;
+      if(dCost){
+        it.unitCost = Math.max(0, Math.round((+it.unitCost || 0) + dCost));
+        it.cost = it.unitCost * (+it.qty || 0);
+      }
+    }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    toast(kinds[di] === 'txt' ? 'Дизайн рахується як напис' : 'Дизайн рахується як картинка');
+    return;
+  }
   if(act === 'optional'){
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const it = k >= 0 && (o.items || [])[k];

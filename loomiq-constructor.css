@@ -435,6 +435,13 @@
      гарнітура інтерфейсу: у Georgia мінус і плюс поруч із літерою читаються
      як помилка набору. */
   .pm-ts-sz{width:46px;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:-.02em;}
+/* Три положення одного перемикача: стоять впритул і читаються як одна
+     кнопка з трьома станами, а не як три окремі дії. */
+  .pm-ts-al{flex:none;display:flex;}
+.pm-ts-alb{width:34px;border-radius:0;margin-left:-1px;}
+.pm-ts-alb:first-child{border-radius:10px 0 0 10px;margin-left:0;}
+.pm-ts-alb:last-child{border-radius:0 10px 10px 0;}
+.pm-ts-alb.on{position:relative;z-index:1;}
 .pm-ts-sw{flex:0 0 auto;width:22px;height:22px;border-radius:11px;cursor:pointer;padding:0;
     border:1px solid rgba(0,0,0,.16);outline:2px solid transparent;outline-offset:2px;
     -webkit-tap-highlight-color:transparent;}

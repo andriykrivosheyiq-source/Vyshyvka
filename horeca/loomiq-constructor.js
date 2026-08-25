@@ -541,7 +541,9 @@
       var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
       return Math.round(c);
     }
-    function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(areaSum(m, cleanMm2, true)), minCostForIndex(m, idx || 0)); }
+    function placementCost(m, l, idx){
+      return window.LQ.placeCost(m, isTextLayer(l), layerInkMm2(l), idx || 0);
+    }
     /* ═══════════ Порядок нанесень для мінімалок ═══════════
        Мінімальна ціна задана списком: перше нанесення 200, друге 150, далі
        менше. «Перше» раніше означало «те, що лежить на передній стороні» —
@@ -874,8 +876,9 @@
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
     // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
-    function methodMins(m){ if(m && Array.isArray(m.minPrices) && m.minPrices.length) return m.minPrices; if(m && m.minPrice != null) return [+m.minPrice || 0]; return [0]; }
-    function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function minForIndex(m, idx){
+      return (window.LQ && window.LQ.minForIndex) ? window.LQ.minForIndex(m, idx) : 0;
+    }
 
     /* ═══════════ Градація ціни за площею ═══════════
        Ставка за 1000 мм² не одна на будь-який розмір: великий макет має
@@ -896,36 +899,21 @@
        Порожній список порогів = одна ставка на всю площу.
        Порогів немає й у собівартості, поки їх не задали окремо — тоді
        cost1k просто не змінюється на цьому порозі. */
-    function areaTiersOf(m, isCost){
-      var a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
-      return a.map(function(t){
-          return { from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) };
-        })
-        /* Ставка 0 у СХОДИНКОВІЙ шкалі означала б «уся площа безкоштовно»,
-           щойно вона дотягнулась до порогу. У старій прогресивній шкалі той
-           самий нуль читався інакше — «далі не додаємо», — і такі пороги
-           лишились у прайсі. Тому нульову ставку пропускаємо: безкоштовну
-           сходинку задають відсутністю порога, а не нулем. */
-        .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate > 0; })
-        .sort(function(a, b){ return a.from - b.from; });
-    }
-    // Шматки площі зі своїми ставками — щоб розклад для менеджера показував
-    // не «площа × ставка», а справжню сходинку.
+    /* Площа й ставки переїхали в спільний рушій (loomiq-pricing.js): відколи
+       тип дизайну можна перемкнути в прорахунку, ту саму формулу мусить
+       уміти й адмінка. Дві копії однієї формули — це два різні числа рівно
+       тоді, коли одну з них виправлять. */
     function areaParts(m, mm2, isCost){
-      mm2 = Math.max(0, +mm2 || 0);
-      var rate = +(isCost ? (m || {}).costPer1000mm2 : (m || {}).pricePer1000mm2) || 0;
-      var tiers = areaTiersOf(m, isCost);
-      // Остання сходинка, до якої площа дотягнулась, і задає ставку на ВСЮ площу
-      for(var i = 0; i < tiers.length; i++){
-        if(mm2 >= tiers[i].from) rate = tiers[i].rate;
-      }
-      return [{ mm2: mm2, rate: rate }];
+      return (window.LQ && window.LQ.areaParts) ? window.LQ.areaParts(m, mm2, isCost)
+                                                : [{ mm2: Math.max(0, +mm2 || 0), rate: 0 }];
     }
     function areaSum(m, mm2, isCost){
-      return areaParts(m, mm2, isCost).reduce(function(s, p){ return s + p.mm2 * p.rate / 1000; }, 0);
+      return (window.LQ && window.LQ.areaSum) ? window.LQ.areaSum(m, mm2, isCost) : 0;
     }
     // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
-    function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function minCostForIndex(m, idx){
+      return (window.LQ && window.LQ.minCostForIndex) ? window.LQ.minCostForIndex(m, idx) : 0;
+    }
     // Стартова ціна вишивки: фіксована сума, з якої нанесення СТАРТУЄ, а вже до
     // неї додається площа. Не плутати з мінімалкою: мінімалка — це підлога
     // (підтягує результат угору), старт — це доданок. Список за дизайнами:
@@ -953,28 +941,13 @@
     }
     function isTextLayer(l){ return !!(l && l.text); }
     function baseForIndex(m, idx){
-      var a = (m && Array.isArray(m.basePrices)) ? m.basePrices : null;
-      if(!a || !a.length) return 0;
-      return Math.round(+a[Math.min(idx, a.length - 1)] || 0);
+      return (window.LQ && window.LQ.baseForIndex) ? window.LQ.baseForIndex(m, idx) : 0;
     }
     // Повертає нанесення по частинах, щоб розклад не доводилось відновлювати
     // відніманням: коли спрацьовує мінімалка, різниця «разом мінус старт» уже
     // не дорівнює площі, і рядок «за площею» показував би неправду.
     function placementDetail(m0, l, idx){
-      var m = methodCfgKind(m0, isTextLayer(l));
-      var cleanMm2 = layerInkMm2(l);
-      var raw;
-      if(m.pricePer1000mm2 != null){
-        raw = areaSum(m, cleanMm2, false);
-      } else if(m.mode === 'stitch'){
-        raw = cleanMm2 * (+m.density || 1.6) / 1000 * (+m.pricePer1000 || 0);
-      } else {
-        raw = (+m.ratePerMm2 || 0) * cleanMm2;
-      }
-      var area = Math.round(raw), base = baseForIndex(m, idx || 0);
-      // Старт + площа, і лише потім підлога: мінімалка страхує знизу весь доданок
-      var minAdd = Math.max(0, minForIndex(m, idx || 0) - (area + base));
-      return { area: area, base: base, minAdd: minAdd, total: area + base + minAdd };
+      return window.LQ.placeSell(m0, isTextLayer(l), layerInkMm2(l), idx || 0);
     }
     function placementPrice(m, l, idx){ return placementDetail(m, l, idx).total; }
     // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
@@ -1143,9 +1116,10 @@
     function draftDescriptor(){
       var m = methodCfgNew();
       var ap = applicationParts();
-      var fps = [], kinds = [];
+      var fps = [], kinds = [], mm2s = [];
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img'); }); });
+        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img');
+        mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
         getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
@@ -1163,6 +1137,13 @@
         // Вид кожного дизайну — за ним разові оплати діляться на текст і картинку.
         // Старі замовлення цього поля не мають, там усе рахується як картинка.
         designKinds: kinds,
+        /* Активна площа кожного дизайну окремо. Доти позиція везла лише
+           СУМУ (coefPart), і з неї було нізвідки дізнатись, з чого вона
+           склалась. Через це перемкнути тип дизайну в прорахунку не
+           виходило: у вишивці в напису своя ставка за площу, а перерахувати
+           її нема з чого. Тепер площі їдуть поруч із відбитками, у тому
+           самому порядку. */
+        designMm2: mm2s,
         bare: logoCount() === 0
       };
     }
@@ -1542,6 +1523,7 @@
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
       el.style.padding    = (TXT_PAD * k).toFixed(2) + 'px';
+      el.style.textAlign  = textAlign(sp);
       el.style.webkitTextStroke = '';
       // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
       // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
@@ -1853,7 +1835,8 @@
       var s = String((spec && spec.t) || '').replace(/\s+/g, ' ').trim().toLowerCase()
             + '|' + ((spec && spec.font) || '')
             + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '')
-            + '|' + runsKey;
+            + '|' + runsKey
+            + '|' + ((spec && spec.align) || 'center');
       var out = '';
       for(var i = 0; i < 64; i++){
         var h = (2166136261 ^ i) >>> 0;
@@ -2060,6 +2043,12 @@
     function runsText(runs){
       return (runs || []).map(function(r){ return r.t; }).join('');
     }
+    /* Вирівнювання напису. За замовчуванням по центру — так напис стояв
+       завжди, і всі збережені написи мають лишитись як були. */
+    function textAlign(sp){
+      var a = sp && sp.align;
+      return (a === 'left' || a === 'right') ? a : 'center';
+    }
     function runFontCss(r){
       return (r.italic ? 'italic ' : '') + (r.bold ? '700 ' : '400 ') +
              (TXT_FS * r.size) + 'px ' + textFontCss(r.font);
@@ -2112,12 +2101,18 @@
       x.textAlign = 'left'; x.textBaseline = 'alphabetic';
       x.lineJoin = 'round'; x.miterLimit = 2;
       var top = PAD;
+      var al = textAlign(sp);
       L.lines.forEach(function(ln){
         /* Спільна лінія шрифту на весь рядок. Вирівняти шматки різного кегля
            по центру означало б посадити дрібне слово вище рядка — на письмі
            літери стоять на одній лінії, хоч би якого вони розміру. */
         var baseline = top + ln.fs * 0.80;
-        var cx = (c.width - ln.w) / 2;
+        /* Вирівнювання рахуємо по САМОМУ довгому рядку, а не по полотну:
+           полотно обрізане під найдовший рядок, тож ліворуч і праворуч від
+           нього однакові поля, і решта рядків стає відносно нього. */
+        var cx = al === 'left'  ? PAD
+               : al === 'right' ? (c.width - PAD - ln.w)
+               : (c.width - ln.w) / 2;
         ln.segs.forEach(function(g){
           x.font = runFontCss(g.st);
           x.fillStyle = g.st.color;
@@ -2426,6 +2421,22 @@
     var SCROLL_L = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M15 6l-6 6 6 6"/></svg>';
+    var TEXT_ALIGN_UA = { left:'Ліворуч', center:'По центру', right:'Праворуч' };
+    var TEXT_ALIGN_SVG = (function(){
+      function bars(ws, xs){
+        return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="2.1" stroke-linecap="round">' +
+          ws.map(function(w, i){
+            var y = 6 + i * 4;
+            return '<path d="M' + xs[i] + ' ' + y + 'h' + w + '"/>';
+          }).join('') + '</svg>';
+      }
+      return {
+        left:   bars([14, 9, 14, 9], [4, 4, 4, 4]),
+        center: bars([16, 10, 16, 10], [4, 7, 4, 7]),
+        right:  bars([14, 9, 14, 9], [6, 11, 6, 11])
+      };
+    })();
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -2458,6 +2469,16 @@
         '<button class="pm-ts-tog pm-ts-sz" id="pmTsBig" ' +
           'title="Більші літери — для виділеного або всього напису" ' +
           'aria-label="Збільшити літери">A+</button>' +
+        /* Вирівнювання діє на весь напис, а не на виділене: рядок не може
+           стояти ліворуч наполовину. Тому це три положення одного
+           перемикача, а не три незалежні кнопки. */
+        '<span class="pm-ts-al">' +
+          ['left','center','right'].map(function(a){
+            return '<button class="pm-ts-tog pm-ts-alb' + (textAlign(sp) === a ? ' on' : '') +
+              '" data-talign="' + a + '" aria-label="' + TEXT_ALIGN_UA[a] + '" ' +
+              'title="' + TEXT_ALIGN_UA[a] + '">' + TEXT_ALIGN_SVG[a] + '</button>';
+          }).join('') +
+        '</span>' +
         '</div>';
       // Кольори — прямо тут, а не за окремим заходом. Перший кружечок веде в
       // палітру: точний фірмовий відтінок зразками не вгадаєш.
@@ -3244,6 +3265,14 @@
         }
         renderTabPanel();
       }
+      pmTabPanel.querySelectorAll('[data-talign]').forEach(function(b){
+        b.addEventListener('mousedown', function(e){ e.preventDefault(); });
+        b.addEventListener('click', function(){
+          var l = activeTextLayer(); if(!l) return;
+          updateTextLayer(l, { align: b.dataset.talign });
+          renderTabPanel();
+        });
+      });
       if(tsSmall) tsSmall.addEventListener('click', function(){ sizeStep(1/1.18); });
       if(tsBig)   tsBig.addEventListener('click', function(){ sizeStep(1.18); });
       // Один рівень інтерфейсу за раз: екран кольору заміняє панель цілком
@@ -3645,7 +3674,7 @@
                  (dmm ? ' · лого ' + Math.round(dmm.w/10) + '×' + Math.round(dmm.h/10) + ' см' : '');
         } else {
           sell = placementPrice(m, l, idx);
-          cost = placementCost(methodCfgKind(m, isTxt), l, idx);
+          cost = placementCost(m, l, idx);   // вид дизайну рушій визначає сам
           var mk = methodCfgKind(m, isTxt);
           var mm2 = layerInkMm2(l);
           var det = placementDetail(m, l, idx);
