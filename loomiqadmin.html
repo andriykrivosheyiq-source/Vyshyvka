@@ -4895,7 +4895,7 @@ window.__adminSaveClientOrder = async function(payload){
   }
   // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
   // і додаються до кошторису тільки тоді, коли клієнт сам їх обере на сторінці КП.
-  const paid = items.filter(i => i.kind !== 'reco');
+  const paid = items.filter(i => itemKind(i) === 'main');
   const totalPrice = paid.reduce((a,i)=>a+i.price,0);
   const totalCost  = paid.reduce((a,i)=>a+i.cost,0);
 
@@ -5596,15 +5596,22 @@ function fillOrderParts(o){
    порахував конструктор у мить збереження: змінився тираж основної позиції —
    і рекомендована показувала стару ціну, хоч поріг уже інший. */
 function fillRecoParts(o, writePrice){
-  const main = (o.items || []).filter(it => it && it.kind !== 'reco' && it.desc).map(it => it.desc);
+  const main = (o.items || []).filter(it => itemKind(it) === 'main' && it.desc).map(it => it.desc);
   const keep = upsellMode() === 'keep';
   let touched = false;
   (o.items || []).forEach(it=>{
-    if(!it || it.kind !== 'reco' || !it.desc) return;
-    /* У режимі «фіксувати погоджене» рекомендована позиція йде допродажем:
-       основні від неї не дешевшають, а вона сама бере поріг усього складу й
-       не платить за вже підготовлений макет. */
-    const d = keep ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
+    const kd = itemKind(it);
+    /* Варіанти рахуються так само, як рекомендовані: «основні + ЦЕЙ». Вони
+       виключають один одного, тож у спільний склад не входять — інакше три
+       варіанти по десять штук дали б тираж 30 і знижку за вироби, яких ніхто
+       не замовить.
+
+       Різниця одна: варіант — це НЕ допродаж. Він не додається до
+       погодженого складу, а заміняє позицію в ньому, тож поводитись із ним
+       як із «беруть ще зверху» було б неправдою: він не платив би за макет
+       і виходив дешевшим за той самий виріб в основних. */
+    if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
+    const d = (keep && kd === 'reco') ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
     const res = priceOrder(main.concat([d]));
     const mine = res[res.length - 1];
     if(!mine) return;
@@ -5631,7 +5638,7 @@ function priceCalcHtml(o){
   fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
   const rows = [];
   (o.items || []).forEach(it=>{
-    if(it.kind === 'reco' || !it.parts) return;
+    if(itemKind(it) !== 'main' || !it.parts) return;
     const b = it.parts;
     const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
     const lines = [];
@@ -5677,10 +5684,14 @@ function priceCalcHtml(o){
     '</div></details>';
 }
 // Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
+/* Склад, який рахується разом. Ані рекомендовані, ані варіанти сюди не
+   входять: перші клієнт ще не додав, другі виключають один одного. Скласти
+   всі варіанти в один тираж означало б порахувати вироби, яких ніхто не
+   замовить, — і занизити ціну всьому замовленню. */
 function orderDescriptors(o){
   const idx = [], list = [];
   (o.items || []).forEach((it, i)=>{
-    if(it.kind === 'reco' || !it.desc) return;
+    if(itemKind(it) !== 'main' || !it.desc) return;
     idx.push(i); list.push(it.desc);
   });
   return { idx, list };
@@ -6080,23 +6091,23 @@ function offerCalcRows(it){
 function offerMgrCalc(o){
   // Ті ж права, що й у картці замовлення: кому не показуємо собівартість
   // там, тому не показуємо і тут
-  const out = { groups: [], items: {}, reco: {}, sum: null, cost: canSeeCost() };
+  const out = { groups: [], items: {}, reco: {}, vars: {}, sum: null, cost: canSeeCost() };
   try{
     fillOrderParts(o);
     fillRecoParts(o, false);   // рекомендовані — кожна окремо, «основні + ця»
     // Групи: саме від них рахуються знижки й ділиться підготовка макета
     const g = {};
     (o.items || []).forEach(it=>{
-      if(it.kind === 'reco' || !it.desc) return;
+      if(itemKind(it) !== 'main' || !it.desc) return;
       const key = it.desc.bare ? 'Без нанесення'
                 : (it.desc.method === 'embro' ? 'Вишивка' : 'DTF принт');
       g[key] = (g[key] || 0) + (+it.desc.units || 0);
     });
     out.groups = Object.keys(g).map(key => ({ k: key, q: g[key] }));
-    let mi = 0, ri = 0, sp = 0, sc = 0, sq = 0;
+    let mi = 0, ri = 0, vi = 0, sp = 0, sc = 0, sq = 0;
     (o.items || []).forEach(it=>{
-      const reco  = it.kind === 'reco';
-      const i     = reco ? ri++ : mi++;
+      const kd = itemKind(it);
+      const i  = kd === 'reco' ? ri++ : (kd === 'variant' ? vi++ : mi++);
       const price = Math.round(+it.price || 0);
       const cost  = Math.round(+it.cost  || 0);
       const box = { rows: offerCalcRows(it), qty: +it.qty || 0, price,
@@ -6107,8 +6118,10 @@ function offerMgrCalc(o){
         box.margin = price - cost;
         box.pct = price > 0 ? ((price - cost) / price * 100) : 0;
       }
-      (reco ? out.reco : out.items)[i] = box;
-      if(!reco){ sp += price; sc += cost; sq += +it.qty || 0; }
+      (kd === 'reco' ? out.reco : (kd === 'variant' ? out.vars : out.items))[i] = box;
+      // У підсумок ідуть лише основні: рекомендовані клієнт ще не додав, а
+      // з варіантів візьме один — складати їх усі означало б вигадати суму
+      if(kd === 'main'){ sp += price; sc += cost; sq += +it.qty || 0; }
     });
     out.sum = { qty: sq, price: sp };
     if(out.cost){
@@ -6185,10 +6198,12 @@ function itemSpecs(it){
 function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
-    kind: it.kind === 'reco' ? 'reco' : 'main',
+    kind: itemKind(it),
+    // Група варіантів: клієнт бере по одному з кожної
+    vgroup: itemKind(it) === 'variant' ? (it.vgroup || 'Варіанти на вибір') : '',
     /* Варіант на вибір: до клієнта приходить не доданим у кошторис.
        Рекомендовані й так додаються вручну, тож там прапорець зайвий. */
-    optional: it.kind === 'reco' ? false : !!it.optional,
+    optional: itemKind(it) === 'main' ? !!it.optional : false,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     name: it.name || '', color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
@@ -6225,8 +6240,9 @@ function offerItem(it, order, itemIdx){
 }
 function offerBuild(order){
   const items = (order.items || []).map((it, i) => offerItem(it, order, i));
-  const main  = items.filter(i => i.kind !== 'reco');
+  const main  = items.filter(i => i.kind === 'main');
   const reco  = items.filter(i => i.kind === 'reco');
+  const vars  = items.filter(i => i.kind === 'variant');
   /* Логотип у шапці пропозиції. Той, що менеджер поставив свідомо, головніший
      за вгаданий: раніше сюди потрапляв просто перший файл із першої позиції,
      і в шапці міг опинитись не той логотип. */
@@ -6243,7 +6259,7 @@ function offerBuild(order){
   const validSet = String(order.offerValidUntil || '').trim();
   // Правила термінів — щоб сторінка клієнта перерахувала строк, коли він
   // обере більший тираж, і не показувала неправду.
-  const methods = [...new Set((order.items || []).filter(i => i.kind !== 'reco')
+  const methods = [...new Set((order.items || []).filter(i => itemKind(i) === 'main')
     .map(i => (i.calc && i.calc.method === 'dtf') ? 'print' : 'emb'))];
   const leadRules = (methods.length ? methods : ['print']).map(t=>{
     const l = (methodModel(t).lead) || {};
@@ -6276,6 +6292,10 @@ function offerBuild(order){
        про конкретне замовлення — ні. Порожньо — блоку в КП немає. */
     why: String(order.why || '').trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0, 5),
     items: main, reco,
+    /* Варіанти на вибір — окремим списком. У кошторис вони не входять, доки
+       клієнт не обере: у групі беруть рівно один, і скласти їх усі означало
+       б показати суму, якої ніхто не замовляв. */
+    variants: vars,
     totals: {
       qty: totalQty,
       base: main.reduce((a,i) => a + i.basePrice, 0),
@@ -7537,7 +7557,7 @@ function bareUnitPrice(gid, qty){
   return { price: Math.round(g.minPrice * (c == null ? 1 : c)), cost: Math.round(g.cost) };
 }
 function itemSums(o){
-  const paid = (o.items||[]).filter(i => i.kind !== 'reco');
+  const paid = (o.items||[]).filter(i => itemKind(i) === 'main');
   return { p: paid.reduce((a,i)=> a + (+i.price || 0), 0),
            c: paid.reduce((a,i)=> a + (+i.cost  || 0), 0) };
 }
@@ -9526,7 +9546,7 @@ function offerEdPush(o){
        позиції. Без цього сусідні позиції застарівали після кожного
        збереження. */
     doc.cart = (o.items || []).map(x => ({
-      kind: x.kind === 'reco' ? 'reco' : 'main',
+      kind: itemKind(x), vgroup: x.vgroup || '',
       name: x.name || '', color: x.color || '', print: x.print || '', sizes: x.sizes || '',
       qty: +x.qty || 0, unitPrice: +x.unitPrice || 0, price: +x.price || 0,
       unitCost: +x.unitCost || 0, cost: +x.cost || 0,
@@ -9738,7 +9758,7 @@ function offerCatalog(){
    Вписав менеджер своє число — воно фіксується (qtyAuto:false) і більше не
    перебивається: він знає щось про цього клієнта, чого не знає формула. */
 function recoQtyFor(o){
-  const main = (o.items || []).filter(i => i && i.kind !== 'reco');
+  const main = (o.items || []).filter(i => itemKind(i) === 'main');
   return Math.max(1, ...main.map(i => +i.qty || 0), 1);
 }
 function syncRecoQty(o){
@@ -9755,7 +9775,7 @@ function syncRecoQty(o){
   });
   return touched;
 }
-async function offerAddBare(o, gid, kind){
+async function offerAddBare(o, gid, kind, vgroup){
   const g = orderGarments().find(x => x.id === gid);
   if(!g) return;
   /* Рекомендований стартує з тиражу найбільшої основної позиції: його беруть
@@ -9763,7 +9783,10 @@ async function offerAddBare(o, gid, kind){
      Основний товар кількості не вигадує. Скільки саме футболок замовляють —
      знає менеджер, а не формула; вигадане число просто просочувалось у
      пропозицію разом із порахованою з нього ціною. */
-  const q = kind === 'reco' ? recoQtyFor(o) : 0;
+  /* Варіант, як і рекомендований, стартує з тиражу найбільшої основної
+     позиції: він її заміняє, тож кількість та сама. Менеджер і клієнт можуть
+     її потім змінити. Основний товар кількості не вигадує. */
+  const q = (kind === 'reco' || kind === 'variant') ? recoQtyFor(o) : 0;
   const u = bareUnitPrice(gid, q || 1);
   /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
      макета ще немає, бо немає логотипа, — і виглядало це так, ніби
@@ -9771,7 +9794,10 @@ async function offerAddBare(o, gid, kind){
      зʼявиться нанесення. */
   const thumb = prodThumb(photoCfg(gid));
   (o.items = o.items || []).push({
-    kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
+    kind: (kind === 'reco' || kind === 'variant') ? kind : 'main', recoNote: '',
+    // Група варіантів: у пропозиції їх може бути кілька — «Верх», «Головні
+    // убори», — і клієнт бере по одному з кожної
+    vgroup: kind === 'variant' ? (vgroup || 'Варіанти на вибір') : undefined,
     qtyAuto: kind === 'reco' ? true : undefined,
     name: g.name, color:'', print:'', sizes:'',
     qty: q, unitPrice: u.price, price: u.price * q,
@@ -9856,11 +9882,20 @@ function marginOk(o, snapshot){
   return false;
 }
 
+/* Рід позиції. Було два: основна й рекомендована, тож усюди стояло
+   порівняння «reco чи не reco». Родів стало три — додався варіант на вибір,
+   — і таке порівняння тихо зараховувало варіанти в основні: вони йшли в
+   кошторис, роздували тираж і псували всі ціни. */
+function itemKind(it){
+  const k = it && it.kind;
+  return (k === 'reco' || k === 'variant') ? k : 'main';
+}
 function offerIdxToOrder(o, kind, i){
   let n = -1;
   const list = o.items || [];
+  const want = (kind === 'reco' || kind === 'variant') ? kind : 'main';
   for(let k = 0; k < list.length; k++){
-    if((kind === 'reco') === (list[k].kind === 'reco')){
+    if(itemKind(list[k]) === want){
       n++;
       if(n === i) return k;
     }
@@ -9870,9 +9905,9 @@ function offerIdxToOrder(o, kind, i){
 // Сусід того ж роду — щоб «вище» переставляло позицію через рекомендацію,
 // а не мінялося з нею місцями
 function offerNeighbor(o, from, dir){
-  const list = o.items || [], kind = list[from].kind === 'reco' ? 'reco' : 'main';
+  const list = o.items || [], kind = itemKind(list[from]);
   for(let k = from + dir; k >= 0 && k < list.length; k += dir){
-    if((list[k].kind === 'reco' ? 'reco' : 'main') === kind) return k;
+    if(itemKind(list[k]) === kind) return k;
   }
   return -1;
 }
@@ -9945,7 +9980,7 @@ async function offerEdApply(msg){
   }
   if(act === 'pick'){
     const snap = itemsSnapshot(o);
-    await offerAddBare(o, String(msg.gid || ''), msg.kind);
+    await offerAddBare(o, String(msg.gid || ''), msg.kind, msg.vgroup);
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
     if(!(await offerEdSave(o))) return;
     renderBoard(); offerEdPreview(true);
@@ -10119,6 +10154,24 @@ async function offerEdApply(msg){
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
     toast(kinds[di] === 'txt' ? 'Дизайн рахується як напис' : 'Дизайн рахується як картинка');
+    return;
+  }
+  /* Перейменування групи варіантів. Група — це питання до клієнта, тож
+     назва має бути його словами. Міняємо в усіх позицій групи одразу:
+     інакше одна лишилась би зі старою назвою й утворила б групу-двійника. */
+  if(act === 'vgroup'){
+    const from = String(msg.from || '').trim();
+    const to   = String(msg.to || '').trim().slice(0, 60);
+    if(!from || !to || from === to) return;
+    let n = 0;
+    (o.items || []).forEach(it=>{
+      if(itemKind(it) !== 'variant') return;
+      if((it.vgroup || 'Варіанти на вибір') !== from) return;
+      it.vgroup = to; n++;
+    });
+    if(!n) return;
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
     return;
   }
   if(act === 'optional'){

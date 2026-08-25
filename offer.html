@@ -996,6 +996,36 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .et-grand span:last-child{font-size:27px; font-weight:800; letter-spacing:-0.7px;}
 
   /* ── рекомендації ── */
+  /* ── Варіанти на вибір ─────────────────────────────────────────────────
+     Картки стоять поруч і однакового розміру: їх порівнюють, а не читають
+     підряд. Обраний виділяється рамкою й галочкою — тим самим, чим
+     позначені додані позиції, щоб «обрано» скрізь виглядало однаково. */
+  .vgroup{margin-bottom:22px;}
+  .vgroup-h{font-size:15px; font-weight:600; margin-bottom:10px; display:flex;
+    align-items:baseline; gap:8px;}
+  .vgroup-h em{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
+    padding:2px 7px;}
+  .vgrid{display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));}
+  .vcard{display:flex; flex-direction:column; border:1.5px solid var(--line);
+    border-radius:16px; padding:12px; background:#fff; transition:.15s;}
+  .vcard.on{border-color:#0F5C34; background:#F6FBF8;}
+  .vshot{width:100%; aspect-ratio:1/1; background:var(--soft); border-radius:12px;
+    overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:10px;}
+  .vshot img{width:100%; height:100%; object-fit:contain; display:block;}
+  .vname{font-size:15px; font-weight:600; line-height:1.25;}
+  .vwhy{margin-top:5px; font-size:12.5px; line-height:1.45; color:var(--muted);}
+  .vprice{margin-top:9px; font-size:21px; font-weight:600; letter-spacing:-.4px;
+    font-variant-numeric:tabular-nums;}
+  .vprice span{font-size:12.5px; font-weight:400; color:var(--muted); letter-spacing:0;}
+  .vsum{font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; margin-top:2px;}
+  .vbtn{margin-top:auto; display:flex; align-items:center; justify-content:center; gap:7px;
+    width:100%; margin-top:12px; padding:11px 12px; border-radius:11px; cursor:pointer;
+    font:inherit; font-size:13.5px; font-weight:600; border:1.5px solid var(--ink);
+    background:#fff; color:var(--ink);}
+  .vbtn:hover{background:var(--soft);}
+  .vbtn.on{background:#0F5C34; border-color:#0F5C34; color:#fff;}
+  .vbtn.on:hover{background:#0C4A2A;}
   .reco{border:1.5px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; transition:.15s;}
   .reco.on{border-color:var(--ink); background:#F7F9FC;}
   .reco-top{display:flex; gap:13px;}
@@ -2043,6 +2073,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
+      OFFER.variants = OFFER.variants || [];
       OFFER.terms = OFFER.terms || { deadlineDays: 4 };
       OFFER.client = OFFER.client || {};
       render();
@@ -2056,6 +2087,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
+      OFFER.variants = OFFER.variants || [];
       OFFER.terms = OFFER.terms || { deadlineDays: 4 };
       OFFER.client = OFFER.client || {};
       if(!EDIT){ EDIT = true; document.documentElement.classList.add('is-edit'); }
@@ -2605,7 +2637,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
-  var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {} };
+  /* variant — обраний варіант у кожній групі: { 'Верх': 2 }. Порожньо
+     означає «ще не обрали», і тоді група в кошторис не входить узагалі. */
+  var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {}, variant: {}, varQty: {} };
+  function variantGroups(){
+    var out = [], seen = {};
+    (OFFER.variants || []).forEach(function(v, i){
+      var g = v.vgroup || 'Варіанти на вибір';
+      if(!seen[g]){ seen[g] = { name:g, idx:[] }; out.push(seen[g]); }
+      seen[g].idx.push(i);
+    });
+    return out;
+  }
+  function variantPicked(){
+    // індекси обраних варіантів, по одному з групи
+    return variantGroups().map(function(g){
+      var i = pick.variant[g.name];
+      return (i != null && OFFER.variants[i]) ? +i : null;
+    }).filter(function(x){ return x != null; });
+  }
+  function baseVarQty(i){
+    var v = (OFFER.variants || [])[i] || {};
+    var q = pick.varQty[i];
+    return Math.max(1, Math.round(q == null ? (+v.qty || 1) : q));
+  }
+  function varState(i){
+    var v = (OFFER.variants || [])[i] || {};
+    var live = LIVE && LIVE.vars && LIVE.vars[i];
+    var q = baseVarQty(i);
+    var unit = live ? live.unit : (+v.unitPrice || 0);
+    return { qty:q, unit:unit, sum:unit * q };
+  }
   /* Позиція-варіант приходить НЕ доданою: менеджер порахував поло, оверсайз
      і базову під ту саму задачу, а візьмуть щось одне. Скласти всі три в
      кошторис одразу означало б показати суму, якої ніхто не замовляв.
@@ -2696,6 +2758,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        погодженого складу. У режимі «фіксувати погоджене» позначаємо його
        саме так, і тоді основні позиції від його появи не дешевшають, а весь
        виграш від зрослого тиражу дістається йому. */
+    /* Обраний варіант — частина складу: він заміняє позицію в замовленні, а
+       не додається зверху. Тож іде в спільний прогін нарівні з основними, і
+       решта позицій від нього дешевшає так само, як від звичайного товару. */
+    variantPicked().forEach(function(vi){
+      var v = OFFER.variants[vi];
+      if(!v || !v.desc) return;
+      var d = JSON.parse(JSON.stringify(v.desc));
+      d.units = Math.max(1, baseVarQty(vi));
+      list.push(d); map.push(['variant', vi]);
+    });
     var keep = window.LQ.upsellMode && window.LQ.upsellMode() === 'keep';
     (OFFER.reco || []).forEach(function(r, i){
       if(!pick.reco[i] || !r.desc) return;
@@ -2704,11 +2776,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(keep) d.upsell = true;
       list.push(d); map.push(['reco', i]);
     });
+    /* Варіанти рахуємо по одному: кожен — «склад + ЦЕЙ». Скласти їх усі в
+       один список означало б порахувати вироби, яких ніхто не замовить, і
+       занизити ціну всьому замовленню знижкою за неіснуючий тираж. Тому
+       нижче вони йдуть окремими прогонами, а не в спільному. */
     if(!list.length) return null;
     var res;
     try{ res = window.LQ.priceOrder(list); }catch(e){ console.warn('перерахунок не вийшов', e); return null; }
-    var out = { main:{}, reco:{} };
-    map.forEach(function(m, k){ if(res[k]) out[m[0]][m[1]] = res[k]; });
+    var out = { main:{}, reco:{}, vars:{} };
+    (OFFER.variants || []).forEach(function(v, vi){
+      if(!v.desc) return;
+      var d = JSON.parse(JSON.stringify(v.desc));
+      d.units = Math.max(1, baseVarQty(vi));
+      try{
+        var r = window.LQ.priceOrder(list.concat([d]));
+        var mine = r[r.length - 1];
+        if(mine) out.vars[vi] = mine;
+      }catch(e){}
+    });
+    map.forEach(function(m, k){
+      if(!res[k]) return;
+      var box = m[0] === 'variant' ? out.vars : out[m[0]];
+      box[m[1]] = res[k];
+    });
     return out;
   }
   // Тираж без перерахунку — саме він іде в рушій
@@ -2829,6 +2919,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!pick.reco[i]) return;
       var rs = recoState(i);
       qty += rs.qty; sum += rs.sum; base += rs.sum;
+    });
+    variantPicked().forEach(function(vi){
+      var vs = varState(vi);
+      qty += vs.qty; sum += vs.sum; base += vs.sum;
     });
     return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
   }
@@ -3367,6 +3461,45 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>';
   }
 
+  /* ── Блок «Оберіть варіант» ────────────────────────────────────────────
+     Клієнт просив порахувати кілька виробів під ту саму задачу. Візьме він
+     один. Тому це перемикач, а не галочки: обрав другий — перший знявся
+     сам, і в кошторисі завжди рівно одна позиція з групи.
+
+     Ціна в кожного варіанта — справжня: порахована так, ніби взяли саме
+     його, разом з усім рештою складу. Тому переключення міняє не лише свій
+     рядок, а й ціни інших позицій, якщо від цього змінився тираж. */
+  function variantsHtml(){
+    var groups = variantGroups();
+    if(!groups.length) return '';
+    return '<section id="variants">' +
+      '<h2 class="sec-title">Оберіть варіант</h2>' +
+      groups.map(function(g){
+        var chosen = pick.variant[g.name];
+        return '<div class="vgroup">' +
+          '<div class="vgroup-h">' + esc(g.name) +
+            (chosen == null ? '<em>ще не обрано</em>' : '') + '</div>' +
+          '<div class="vgrid">' + g.idx.map(function(i){
+            var v = OFFER.variants[i], st = varState(i);
+            var on = String(chosen) === String(i);
+            var img = (v.mockups || [])[0] || '';
+            return '<div class="vcard' + (on ? ' on' : '') + '">' +
+              '<div class="vshot">' + (img
+                ? '<img src="' + esc(img) + '" alt="' + esc(v.name) + '" loading="lazy" ' +
+                  'onerror="this.style.display=\'none\'">' : '') + '</div>' +
+              '<div class="vname">' + esc(v.name) + '</div>' +
+              (v.recoNote ? '<div class="vwhy">' + esc(v.recoNote) + '</div>' : '') +
+              '<div class="vprice">' + money(st.unit) + '<span> / шт</span></div>' +
+              '<div class="vsum">' + st.qty + ' шт · ' + money(st.sum) + '</div>' +
+              '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
+                esc(g.name) + '|' + i + '">' +
+                (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
+            '</div>';
+          }).join('') + '</div>' +
+        '</div>';
+      }).join('') +
+    '</section>';
+  }
   function itemsHtml(){
     return '' +
       '<section id="offerStart">' +
@@ -3508,6 +3641,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var rs = recoState(i);
       rows.push({ th:(r.mockups||[])[0], all:(r.mockups||[]).filter(Boolean),
                   name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
+    });
+    variantPicked().forEach(function(vi){
+      var v = OFFER.variants[vi], vs = varState(vi);
+      rows.push({ th:(v.mockups||[])[0], all:(v.mockups||[]).filter(Boolean),
+                  name:v.name, qty:vs.qty, unit:vs.unit, sum:vs.sum, reco:false });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     // Ціна за штуку без знижки за тираж і виграш по кожній позиції
@@ -4145,7 +4283,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            після колекції, і виходило «ось рахунок, а тепер вам ще щось
            допродадуть»; гарантії ж читались уже після найтривожнішого
            моменту, коли вони потрібні до нього. */
-        heroHtml() + itemsHtml() + recoHtml() +
+        heroHtml() + itemsHtml() + variantsHtml() + recoHtml() +
         includesHtml() + whyHtml() + guaranteesSection() +
         estimateHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
@@ -4163,6 +4301,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
+  window.__lqRefresh = function(){ refresh(); };
   function refresh(){
     // Склад міг змінитись — перераховуємо його спільним рушієм перед тим,
     // як показувати будь-яку цифру
@@ -4202,6 +4341,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var anchorTop = anchor ? anchor.getBoundingClientRect().top : null;
     var isec = document.getElementById('offerStart');
     if(isec) isec.outerHTML = itemsHtml();
+    /* Блок варіантів теж перемальовуємо. Доти він лишався таким, яким його
+       зібрали при завантаженні: кнопка не ставала «Обрано», ціни не
+       оновлювались, а wire() навішував на ті самі вузли ще один обробник —
+       і другий клік спрацьовував двічі, знімаючи щойно зроблений вибір. */
+    var vsec = document.getElementById('variants');
+    if(vsec) vsec.outerHTML = variantsHtml();
     var rsec = document.getElementById('recoSec');
     if(rsec) rsec.outerHTML = recoHtml();
 
@@ -4633,6 +4778,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      сторінка не в режимі редагування, а прорахунок менеджер найчастіше
      відкриває саме на вкладці «Як бачить клієнт», де редагування вимкнене.
      Кнопка там була, але мовчала — і виглядало це як поламана кнопка. */
+  /* Вибір варіанта. Перемикач у межах групи: обрав другий — перший знявся.
+     Повторний клік по обраному знімає вибір — буває, що клієнт передумав і
+     не бере з цієї групи нічого. */
+  function wireVariants(){
+    document.querySelectorAll('[data-vpick]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var p2 = b.dataset.vpick.split('|');
+        var g = p2[0], i = p2[1];
+        if(String(pick.variant[g]) === String(i)) delete pick.variant[g];
+        else pick.variant[g] = +i;
+        refresh();
+        var nm = ((OFFER.variants || [])[+i] || {}).name || '';
+        queueSave('variant', g + ': ' + (pick.variant[g] == null ? 'знято' : nm));
+      });
+    });
+  }
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){
       b2.addEventListener('click', function(e){
@@ -4648,6 +4809,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function wire(){
     wireEdit();
     wireKindSwitch();
+    wireVariants();
     tintAll();   // рамки фото беруть колір із самих світлин
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
