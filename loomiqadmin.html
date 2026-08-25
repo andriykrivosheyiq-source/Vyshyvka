@@ -5391,6 +5391,7 @@ function watchWebLeads(){
     snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
     if(!fresh.length) return;
     let added = 0;
+    const pending = [];
     for(const rec of fresh){
       if(orders.some(o => o.webId === rec.id)) continue;
       const d = rec.data || {};
@@ -5412,14 +5413,44 @@ function watchWebLeads(){
         hist: [{ s:'new', at:new Date().toISOString() }]
       });
       added++;
-      try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('lead mark failed', e); }
+      pending.push(rec);
     }
     if(added){
-      await storeSet('orders', orders);
+      /* Порядок тут — це не смак. Доти заявку позначали забраною ВІДРАЗУ, а
+         картки зберігали потім. Варто було збереженню не пройти — збій
+         мережі, правила бази, закрита вкладка, — і заявка лишалась
+         позначеною забраною, хоч у Канбані її не було. Наступного разу
+         запит її вже не бачив: у базі є, на дошці немає, і дістати нізвідки.
+
+         Тепер спершу зберігаємо картки, і лише коли це вдалось — ставимо
+         позначку. Найгірше, що тепер може статись, — повторний імпорт, а
+         від нього вище стоїть захист за webId. */
+      try{
+        await storeSet('orders', orders);
+      }catch(e){
+        console.error('заявки не збереглись', e);
+        toast('Заявки з сайту не збереглись — спробуйте оновити сторінку');
+        webLeadsWatching = false;
+        return;
+      }
+      for(const rec of pending){
+        try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('lead mark failed', e); }
+      }
       renderBoard();
       toast(added === 1 ? 'Нова заявка з сайту' : ('Нових заявок: ' + added));
     }
-  }, function(e){ console.warn('webLeads', e && e.code); });
+  }, function(e){
+    /* Мовчазний console.warn тут коштував заявок. Замовлення давно кажуть
+       про збій просто в Канбані, а заявки падали в консоль — менеджер бачив
+       їх у Telegram, у Канбані не бачив і не знав чому.
+
+       Прапорець теж скидаємо: доти він лишався піднятим після помилки, тож
+       підписка не пробувала встати заново навіть після входу. */
+    console.warn('webLeads', e && e.code);
+    webLeadsWatching = false;
+    woState('Заявки з сайту НЕ надходять: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+            '. Дозвольте колекцію webLeads у правилах Firestore.', true);
+  });
 }
 
 function watchWebOrders(){
@@ -5433,6 +5464,7 @@ function watchWebOrders(){
     snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
     if(!fresh.length) return;
     let added = 0;
+    const pending = [];
     for(const rec of fresh){
       if(orders.some(o => o.webId === rec.id)) continue;   // захист від повторного імпорту
       const d = rec.data || {};
@@ -5450,7 +5482,18 @@ function watchWebOrders(){
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
       orders.unshift({
         id: cryptoId(), webId: rec.id, type:'web', status:'new',
-        orderId: d.orderId || makeOrderId(),   // короткий номер для пошуку в CRM
+        /* Номер призначає САМЕ КАНБАН, і завжди свій.
+
+           Сайт теж генерував номер — дата плюс три випадкові цифри — і слав
+           його в Telegram. Виходило дві незалежні нумерації: у Канбані
+           1000021, у чаті 250826417, і зіставити їх було нічим. Ба більше,
+           випадкових варіантів на день лише 900, тож два замовлення в один
+           день могли отримати однаковий «номер».
+
+           Тепер номер один — той, за яким шукають у CRM. Код сайту не
+           викидаємо: за ним картка знаходиться з повідомлення в чаті. */
+        orderId: makeOrderId(),
+        siteRef: String(d.orderId || '').trim() || null,
         source: 'сайт',
         site: d.site || 'main',        // з якої посадкової прийшло замовлення
         name: d.name||'', phone: d.phone||'', items,
@@ -5461,10 +5504,22 @@ function watchWebOrders(){
         createdAt: d.createdAt || new Date().toISOString()
       });
       added++;
-      try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('mark imported failed', e); }
+      pending.push(rec);
     }
     if(added){
-      await storeSet('orders', orders);
+      // Спершу зберігаємо картки, і лише потім позначаємо забраними —
+      // інакше збій збереження губить замовлення назавжди (див. заявки вище)
+      try{
+        await storeSet('orders', orders);
+      }catch(e){
+        console.error('замовлення не збереглись', e);
+        woState('Замовлення з сайту прийшли, але не збереглись — оновіть сторінку', true);
+        webOrdersWatching = false;
+        return;
+      }
+      for(const rec of pending){
+        try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('mark imported failed', e); }
+      }
       renderBoard();
       toast(added === 1 ? 'Нове замовлення з сайту' : added + ' нових замовлень із сайту');
     }
@@ -7024,7 +7079,10 @@ const BOARD_FLAGS = {
 function orderHaystack(o){
   const items = (o.items || []).map(i => i && i.name).filter(Boolean).join(' ');
   const tasks = taskList(o).map(t => t && t.text).filter(Boolean).join(' ');
-  return [o.orderId, o.name, o.phone, o.company, o.instagram,
+  /* Код із сайту теж шукається: у Telegram приходить саме він, і картку
+     знаходять, вставивши його в пошук. Без цього рядка код у чаті був би
+     мертвим — його нікуди прикласти. */
+  return [o.orderId, o.siteRef, o.name, o.phone, o.company, o.instagram,
           chanHandle(o, 'tg'), chanHandle(o, 'ig'), chanHandle(o, 'viber'),
           personName(o.mgrEmail), items, tasks, o.note,
           o.totalPrice, (window.lqChannel && window.lqChannel.label(o.an)) || '']
