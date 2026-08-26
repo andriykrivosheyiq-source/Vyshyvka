@@ -2706,8 +2706,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=5a375a0e13"></script>
-<script src="loomiq-pricing.js?v=5a375a0e13"></script>
+<script src="loomiq-fingerprint.js?v=3853c6aee7"></script>
+<script src="loomiq-pricing.js?v=3853c6aee7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -10371,12 +10371,16 @@ function itemKind(it){
    документі логотип був, а в замовленні поле лишалось порожнім. Кнопки
    обрізання й підкладки дивились саме в поле — і чесно відповідали
    «Логотипа ще немає», хоч він на екрані. */
+/* У шапці стоїть РІВНО той логотип, який поставив менеджер. Ніякої
+   автоматичної підстановки: доти, коли свого логотипа не було, сюди
+   підставлявся перший файл нанесення з будь-якої позиції — тобто макет із
+   футболки. Виглядало це як «підтягується друга фотка» і «завантажую нове,
+   а показується старе»: щойно свій логотип не проставився, у шапку стрибала
+   картинка з товару, і зрозуміти, що саме зараз показано, було неможливо.
+   Немає логотипа — немає й логотипа, стоїть кнопка «Завантажити». */
 function effectiveClientLogo(o){
   if(!o || o.clientLogoOff) return '';
-  const own = String(o.clientLogo || '').trim();
-  if(own) return own;
-  const p = (o.items || []).flatMap(i => i.prints || []).find(x => x && x.file);
-  return (p && p.file) || '';
+  return String(o.clientLogo || '').trim();
 }
 function offerIdxToOrder(o, kind, i){
   let n = -1;
