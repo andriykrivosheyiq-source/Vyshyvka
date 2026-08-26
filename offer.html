@@ -3552,7 +3552,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '<div class="pchart-wrap"><table class="pchart">' +
       (head ? '<thead><tr>' + head.map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') +
               '</tr></thead>' : '') +
-      '<tbody>' + c.rows.map(function(r){
+      // рядок приходить обгорнутим {c:[...]} — Firestore не тримає масив у масиві
+      '<tbody>' + c.rows.map(function(row){
+        var r = (row && row.c) ? row.c : (Array.isArray(row) ? row : []);
+        return r;
+      }).map(function(r){
         return '<tr>' + r.map(function(v){ return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
   }
