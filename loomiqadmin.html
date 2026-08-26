@@ -5747,29 +5747,36 @@ function repriceOrder(o){
   // вирівнюємо його перед будь-яким перерахунком, а не після
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
   const { idx, list } = orderDescriptors(o);
-  if(!list.length) return false;
-  const res = priceOrder(list);
-  /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
-     повертає нулі. Записати їх означало б обнулити замовлення через
-     тимчасовий збій: краще лишити ціни, які вже пораховані. */
-  if(res.every(r => !r || !(+r.unit))){
-    console.warn('перерахунок пропущено: модель цін недоступна');
-    return false;
+  /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
+     самих варіантів: менеджер порахував базову й оверсайз, а клієнт обирає
+     один. Доти тут стояв вихід ДО перерахунку рекомендованих і варіантів —
+     і в такій пропозиції жодна позиція не отримувала ціни зовсім, скрізь
+     лишались нулі. */
+  if(list.length){
+    const res = priceOrder(list);
+    /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
+       повертає нулі. Записати їх означало б обнулити замовлення через
+       тимчасовий збій: краще лишити ціни, які вже пораховані. */
+    if(res.every(r => !r || !(+r.unit))){
+      console.warn('перерахунок пропущено: модель цін недоступна');
+      return false;
+    }
+    idx.forEach((i, k)=>{
+      const it = o.items[i], r = res[k];
+      if(!it || !r) return;
+      it.unitPrice = r.unit;
+      it.price = r.sum;
+      it.feeShare = r.feeShare;
+      it.parts = r.parts || null;
+    });
   }
-  idx.forEach((i, k)=>{
-    const it = o.items[i], r = res[k];
-    if(!it || !r) return;
-    it.unitPrice = r.unit;
-    it.price = r.sum;
-    it.feeShare = r.feeShare;
-    it.parts = r.parts || null;
-  });
   /* Рекомендовані йдуть слідом за складом. Їхня ціна залежить від основних
      позицій — від них береться і поріг тиражу, і поділ підготовки макета, —
      тож коли основний тираж змінився, стара ціна рекомендованої вже неправда.
      Рахуємо кожну як «основні + ця», рівно так, як вийде в клієнта. */
   fillRecoParts(o, true);
-  return true;
+  return list.length > 0 ||
+         (o.items || []).some(it => itemKind(it) !== 'main' && it.desc);
 }
 
 function docGarmentCoef(qty){
@@ -10311,6 +10318,13 @@ async function offerEdApply(msg){
   if(act === 'del'){
     if(!confirm('Прибрати «' + (it.name || 'позицію') + '» з пропозиції?')) return;
     o.items.splice(k, 1);
+  } else if(act === 'tovariant'){
+    /* Позицію, яка вже лежить у складі, буває треба перевести у варіанти:
+       порахували базову, потім клієнт попросив ще й оверсайз «на подивитись».
+       Створювати групу з нуля й збирати позицію заново — зайва робота. */
+    it.kind = 'variant';
+    it.vgroup = String(msg.vgroup || '').trim() || 'Варіанти на вибір';
+    delete it.optional;
   } else if(act === 'swap'){
     /* Куди переносити. З варіанта — тільки в основні: «варіант ↔
        рекомендований» не означає нічого, бо це різні питання до клієнта.

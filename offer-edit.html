@@ -1028,6 +1028,12 @@
       '<button data-act="down">Пересунути нижче</button>' +
       '<button data-act="swap">' +
         (kind === 'main' ? 'Перенести в рекомендовані' : 'Перенести в основні') + '</button>' +
+      /* З основної — у варіанти. Групу пропонуємо ту, що вже є в пропозиції:
+         найчастіше порівнюють саме з нею, а не заводять другу. */
+      (kind === 'variant' ? '' :
+        '<button data-act="tovariant" data-vgroup="' +
+          esc((variantGroups()[0] || {}).name || 'Варіанти на вибір') + '">' +
+          'Перенести у варіанти</button>') +
       '<button class="is-del" data-act="del">Прибрати з пропозиції</button>';
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
@@ -1039,7 +1045,7 @@
       b.addEventListener('click', function(){
         var a = b.dataset.act;
         closeMenu2();
-        send({ act: a, kind: kind, i: i });
+        send({ act: a, kind: kind, i: i, vgroup: b.dataset.vgroup || '' });
         // Позиція зникла зі свого місця — активної більше немає
         if(a === 'del' || a === 'swap') cur = null;
       });
