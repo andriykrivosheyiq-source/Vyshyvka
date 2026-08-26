@@ -6077,7 +6077,24 @@ function placementTotals(desc){
   return { sell: Math.round(sell), cost: Math.round(cost),
            basePart: Math.round(base), minPart: Math.round(minAdd) };
 }
-function offerCalcRows(it){
+/* Хто саме ділить підготовку макета з цією позицією. Для основної — усі
+   основні того самого способу. Для варіанта — основні плюс він сам: інші
+   варіанти його групи в тираж не входять, бо клієнт візьме щось одне. */
+function feeSharers(o, it){
+  if(!o || !it || !it.desc || it.desc.bare) return '';
+  const mk = it.desc.method === 'embro' ? 'embro' : 'dtf';
+  const same = d => d && !d.bare && ((d.method === 'embro' ? 'embro' : 'dtf') === mk);
+  const names = [];
+  (o.items || []).forEach(x=>{
+    if(!same(x.desc)) return;
+    const kx = itemKind(x);
+    if(kx === 'reco') return;
+    if(kx === 'variant' && x !== it) return;         // конкурент по групі не рахується
+    names.push((x.name || 'позиція') + ' × ' + (+x.qty || 0));
+  });
+  return names.length > 1 ? names.join(' · ') : '';
+}
+function offerCalcRows(it, o){
   const b = it.parts;
   if(!b) return null;
   const rows = [];
@@ -6139,8 +6156,17 @@ function offerCalcRows(it){
     // показуємо як залишок, інакше ескізи порахувались би двічі.
     const sk = (b.sketches || []).map(s => ({ s, share: Math.round(s.fee / (s.units || 1)) }));
     const base = b.feeShare - sk.reduce((a, x) => a + x.share, 0);
-    if(base > 0) rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
-                            b.feeUnits + ' шт цього способу', base + ' грн']);
+    if(base > 0){
+      /* Не просто «ділиться на 10 шт», а НА ЯКІ САМЕ позиції. Це найчастіше
+         непорозуміння в прорахунку: цифра виглядає завищеною, а причина в
+         тому, що поруч у тиражі стоїть позиція, якої там не чекали —
+         забутий основний товар замість варіанта, наприклад. Поки список
+         доводилось відновлювати в голові, помилку не було видно. */
+      rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
+                 b.feeUnits + ' шт цього способу', base + ' грн']);
+      const who = feeSharers(o, it);
+      if(who) rows.push(['↳ у цьому тиражі: ' + who, '', 'sub']);
+    }
     sk.forEach(x => rows.push(['Додатковий ескіз — ' + x.s.fee + ' грн разово, ділиться на ' +
                                x.s.units + ' шт із цим дизайном', x.share + ' грн']));
   }
@@ -6175,7 +6201,7 @@ function offerMgrCalc(o){
       const i  = kd === 'reco' ? ri++ : (kd === 'variant' ? vi++ : mi++);
       const price = Math.round(+it.price || 0);
       const cost  = Math.round(+it.cost  || 0);
-      const box = { rows: offerCalcRows(it), qty: +it.qty || 0, price,
+      const box = { rows: offerCalcRows(it, o), qty: +it.qty || 0, price,
                     name: it.name || '',
                     meta: [it.color, it.print, it.sizes].filter(Boolean).join(' · ') };
       if(out.cost){
