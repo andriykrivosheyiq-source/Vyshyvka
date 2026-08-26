@@ -9874,6 +9874,7 @@ function syncRecoQty(o){
     if((+it.qty || 0) === q) return;
     it.qty = q;
     if(it.desc) it.desc.units = q;
+    applyQtyToConfig(it, q);     // конструктор читає саме розклад
     it.price = Math.round((+it.unitPrice || 0) * q);
     it.cost  = Math.round((+it.unitCost  || 0) * q);
     touched = true;
@@ -9889,6 +9890,47 @@ function syncRecoQty(o){
    Зміна кількості будь-де — у панелі, в конструкторі, кнопкою — задає її
    всій групі. Набрати різну неможливо не тому, що ми забороняємо, а тому,
    що зберігати її ніде: число одне. */
+/* Тираж позиції живе у ДВОХ місцях: числом (qty) і розкладом по розмірах
+   (config.qty). Число бачить пропозиція, розклад — конструктор.
+
+   Доти їх міняли поодинці: кнопки в панелі правили число, а розклад лишався
+   тим, що набрали в конструкторі колись. Тож у панелі стояло «7 шт», а
+   картка тієї самої позиції відкривалась із пʼятьма — і ціна в ній була за
+   пʼять. Дві відповіді на те саме питання, і жодного способу зрозуміти, яка
+   правильна.
+
+   Тепер розклад іде за числом. Один розмір — просто нове число. Кілька —
+   ділимо пропорційно, а залишок кладемо в найбільший, щоб сума зійшлася
+   точно. */
+function applyQtyToConfig(it, q){
+  q = Math.max(1, Math.round(+q || 0));
+  const map = it && it.config && it.config.qty;
+  if(!map || typeof map !== 'object') return false;
+  const keys = Object.keys(map);
+  if(!keys.length) return false;
+  const live = keys.filter(k => (+map[k] || 0) > 0);
+  const use = live.length ? live : [keys[0]];
+  const was = use.reduce((a, k) => a + (+map[k] || 0), 0);
+  if(was === q) return false;
+  if(use.length === 1 || !was){
+    use.forEach((k, i) => { map[k] = i === 0 ? q : 0; });
+  }else{
+    let left = q;
+    const share = use.map(k => Math.max(1, Math.floor((+map[k] || 0) * q / was)));
+    use.forEach((k, i) => { map[k] = Math.min(share[i], left); left -= map[k]; });
+    if(left > 0){
+      // залишок — у найбільший розмір: округлення не має губити штуки
+      let big = use[0];
+      use.forEach(k => { if((+map[k] || 0) > (+map[big] || 0)) big = k; });
+      map[big] = (+map[big] || 0) + left;
+    }
+  }
+  // Підпис розмірів іде за розкладом, інакше в картці «M × 5» при семи штуках
+  const label = use.filter(k => (+map[k] || 0) > 0)
+                   .map(k => k + ' × ' + map[k]).join(' · ');
+  if(label) it.sizes = label;
+  return true;
+}
 function variantGroupOf(it){
   return (itemKind(it) === 'variant') ? (it.vgroup || 'Варіанти на вибір') : null;
 }
@@ -9918,6 +9960,7 @@ function syncVariantQty(o){
       if((+it.qty || 0) === q) return;
       it.qty = q;
       if(it.desc) it.desc.units = q;
+      applyQtyToConfig(it, q);     // конструктор читає саме розклад
       it.price = Math.round((+it.unitPrice || 0) * q);
       it.cost  = Math.round((+it.unitCost  || 0) * q);
       touched = true;
@@ -10462,6 +10505,7 @@ async function offerEdApply(msg){
     if(vg){ setVariantGroupQty(o, vg, q); }
     it.qty = q;
     if(it.desc) it.desc.units = q;
+    applyQtyToConfig(it, q);
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
   } else return;
   /* Ціни рахує спільний рушій, а не редактор: змінили тираж — і собівартість,
