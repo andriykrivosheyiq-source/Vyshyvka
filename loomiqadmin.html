@@ -6251,12 +6251,25 @@ function offerItemNumbers(order, itemIdx){
      основна частина вигоди зникала, і замість −40% клієнт бачив −18%. Дві
      різні відповіді на те саме питання — звідси й «на сайті одна знижка, а
      в КП інша». */
-  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
-  const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, qty, offerBaseCoef()), unit);
+  const first = offerFirstTierQty(order, itemIdx);
+  const shared = sharedPriceAt(order, itemIdx, first, { solo:true });
+  /* Запасний шлях — коли розкладу немає (позиція зі старого замовлення).
+     Він теж має рахувати НАЙМЕНШИЙ тираж, а не поточний: інакше разова
+     підготовка ділиться на ті самі п'ять виробів і в «було» вже сидить уся
+     вигода, від якої лишається сам коефіцієнт за обсяг. Саме звідси бралось
+     «−5%» замість «−37%» — тираж у обох числах був однаковий. */
+  const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, first, offerBaseCoef()), unit);
+  /* П'ять відсотків такою математикою не виходять узагалі: на найменшому
+     порозі позиція платить за підготовку макета сама, тож справжня знижка
+     завжди десятки відсотків. Мала різниця означає одне — «було» порахувати
+     не вдалося. Показувати перекреслену ціну в такому разі гірше, ніж не
+     показувати: клієнт бачить знижку, якої немає. */
+  const real = baseUnit >= unit * 1.08;
   return {
     qty, unit, sum: +item.price || 0,
-    baseUnit, baseSum: baseUnit * qty,
-    save: Math.max(0, baseUnit * qty - (+item.price || 0))
+    baseUnit: real ? baseUnit : unit,
+    baseSum: (real ? baseUnit : unit) * qty,
+    save: real ? Math.max(0, baseUnit * qty - (+item.price || 0)) : 0
   };
 }
 // Варіанти тиражу, які клієнт зможе обрати на сторінці.
