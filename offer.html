@@ -1328,21 +1328,23 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      не потрібна, її й не знаходили. */
   .mgr-logo .hero-logo{cursor:crosshair;}
   .cropui{position:absolute; inset:0; z-index:5;}
-  .cropbox{position:absolute; border:2px solid #fff; box-shadow:0 0 0 9999px rgba(15,32,52,.55);
-    border-radius:2px;}
-  .croph{position:absolute; background:#fff; border-radius:4px;
-    box-shadow:0 1px 4px rgba(0,0,0,.35);}
+  /* Лінія різу — волосяна, в один піксель, і маркери її не затуляють: вони
+     відсунуті назовні. Видно рівно ту лінію, по якій ріже. */
+  .cropbox{position:absolute; outline:1px solid #fff; outline-offset:-1px;
+    box-shadow:0 0 0 9999px rgba(15,32,52,.55);}
+  .croph{position:absolute; background:#fff; border-radius:3px;
+    box-shadow:0 1px 4px rgba(0,0,0,.45);}
   /* Кути тягнуть дві сторони, середини сторін — тільки свою: саме цього й
      бракувало, коли треба підрізати лише зверху. */
-  .croph-nw,.croph-ne,.croph-sw,.croph-se{width:16px; height:16px;}
-  .croph-nw{left:-8px; top:-8px; cursor:nwse-resize;}
-  .croph-ne{right:-8px; top:-8px; cursor:nesw-resize;}
-  .croph-sw{left:-8px; bottom:-8px; cursor:nesw-resize;}
-  .croph-se{right:-8px; bottom:-8px; cursor:nwse-resize;}
-  .croph-n,.croph-s{left:50%; width:26px; height:8px; margin-left:-13px; cursor:ns-resize;}
-  .croph-n{top:-4px;}  .croph-s{bottom:-4px;}
-  .croph-w,.croph-e{top:50%; width:8px; height:26px; margin-top:-13px; cursor:ew-resize;}
-  .croph-w{left:-4px;} .croph-e{right:-4px;}
+  .croph-nw,.croph-ne,.croph-sw,.croph-se{width:12px; height:12px;}
+  .croph-nw{left:-14px; top:-14px; cursor:nwse-resize;}
+  .croph-ne{right:-14px; top:-14px; cursor:nesw-resize;}
+  .croph-sw{left:-14px; bottom:-14px; cursor:nesw-resize;}
+  .croph-se{right:-14px; bottom:-14px; cursor:nwse-resize;}
+  .croph-n,.croph-s{left:50%; width:24px; height:5px; margin-left:-12px; cursor:ns-resize;}
+  .croph-n{top:-9px;}  .croph-s{bottom:-9px;}
+  .croph-w,.croph-e{top:50%; width:5px; height:24px; margin-top:-12px; cursor:ew-resize;}
+  .croph-w{left:-9px;} .croph-e{right:-9px;}
   /* Кружечок кольору — біля логотипа, показує сам себе: у ньому стоїть той
      колір, який зараз під логотипом. Поруч хрестик — зняти фон. */
   .logobg{display:inline-flex; align-items:center; gap:4px; margin-left:4px;}
@@ -1533,13 +1535,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="pm-crop-wrap" id="pmCropWrap">
           <img id="pmCropImg" alt="">
           <div class="pm-crop-rect" id="pmCropRect">
-            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="ne"></span>
-            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="se"></span>
+            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="n"></span>
+            <span class="pm-crop-h" data-h="ne"></span><span class="pm-crop-h" data-h="e"></span>
+            <span class="pm-crop-h" data-h="se"></span><span class="pm-crop-h" data-h="s"></span>
+            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="w"></span>
           </div>
         </div>
       </div>
+      <div class="pm-crop-info" id="pmCropInfo"></div>
       <div class="pm-crop-bar">
         <button type="button" id="pmCropCancel" class="pm-crop-btn pm-crop-btn--ghost">Скасувати</button>
+        <button type="button" id="pmCropSnap" class="pm-crop-btn pm-crop-btn--ghost">Впритул</button>
         <button type="button" id="pmCropOk" class="pm-crop-btn">Обрізати</button>
       </div>
     </div>
@@ -1984,8 +1990,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=ff51435463"></script>
-<script src="loomiq-pricing.js?v=ff51435463"></script>
+<script src="loomiq-fingerprint.js?v=5a375a0e13"></script>
+<script src="loomiq-pricing.js?v=5a375a0e13"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2253,9 +2259,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=ff51435463';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=ff51435463';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=ff51435463';
+  var CTOR_JS   = 'loomiq-constructor.js?v=5a375a0e13';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=5a375a0e13';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=5a375a0e13';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути

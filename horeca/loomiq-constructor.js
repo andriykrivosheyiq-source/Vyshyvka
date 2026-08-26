@@ -1574,6 +1574,10 @@
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     var HANDLE_ROTATE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
     var HANDLE_SCALE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+    /* Обрізання стоїть поруч із рештою ручок шару — видалити, повернути,
+       розтягнути, обрізати. Доти воно ховалось окремою кнопкою в
+       менеджерських інструментах, і на самому дизайні його ніхто не шукав. */
+    var HANDLE_CROP_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>';
 
     // Розміри рамки шару — в одному місці: їх треба і при побудові, і при
     // правці на місці, коли шар перебудовувати не можна (загубиться каретка).
@@ -1704,7 +1708,10 @@
           (active ?
             '<div class="pm-dl-handle pm-dl-handle--delete" data-handle="delete">'+HANDLE_DELETE_SVG+'</div>' +
             '<div class="pm-dl-handle pm-dl-handle--rotate" data-handle="rotate">'+HANDLE_ROTATE_SVG+'</div>' +
-            '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>'
+            '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>' +
+            (layer.text ? '' :
+              '<div class="pm-dl-handle pm-dl-handle--crop" data-handle="crop" ' +
+              'title="Обрізати по краях">'+HANDLE_CROP_SVG+'</div>')
           : '');
         pmLogoLayers.appendChild(el);
         var te = el.querySelector('.pm-dl-text');
@@ -1719,6 +1726,12 @@
           el.querySelector('[data-handle="rotate"]').addEventListener('touchstart', function(e){ onRotateDown(e, layer, el); }, {passive:false});
           el.querySelector('[data-handle="scale"]').addEventListener('mousedown', function(e){ onScaleDown(e, layer); });
           el.querySelector('[data-handle="scale"]').addEventListener('touchstart', function(e){ onScaleDown(e, layer); }, {passive:false});
+          var ch = el.querySelector('[data-handle="crop"]');
+          if(ch){
+            var openCrop = function(e){ e.stopPropagation(); e.preventDefault(); cropLayer(layer); };
+            ch.addEventListener('mousedown', openCrop);
+            ch.addEventListener('touchstart', openCrop, {passive:false});
+          }
         }
       });
     }
@@ -3269,16 +3282,8 @@
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
         el.addEventListener('click', function(){
-          var id = Number(el.dataset.crop);
-          var layer = findLayerAnySide(id);
-          if(!layer) return;
-          openCropper(layer.url).then(function(res){
-            if(!res) return;
-            // Ту саму рамку застосовуємо і до версії з фоном, і до версії без —
-            // інакше перемикач «З фоном / Без фону» показував би різні кадри.
-            return Promise.all([cropImage(layer.origUrl, res.box), cropImage(layer.cleanUrl, res.box)])
-              .then(function(p){ return replaceLayerImage(layer, p[0] || res.url, p[1] || res.url); });
-          });
+          var layer = findLayerAnySide(Number(el.dataset.crop));
+          if(layer) cropLayer(layer);
         });
       });
       pmTabPanel.querySelectorAll('[data-recolor]').forEach(function(el){
@@ -4207,20 +4212,48 @@
       });
     }
     // Повертає { url, box } або null, якщо скасували
+    /* Обрізати дизайн шару. Рамку застосовуємо і до версії з фоном, і до
+       версії без — інакше перемикач «З фоном / Без фону» показував би різні
+       кадри. Одна дія на обидва входи: ручку на самому шарі й кнопку в
+       менеджерських інструментах. */
+    function cropLayer(layer){
+      if(!layer || layer.text) return Promise.resolve();
+      return openCropper(layer.url).then(function(res){
+        if(!res) return;
+        return Promise.all([cropImage(layer.origUrl, res.box), cropImage(layer.cleanUrl, res.box)])
+          .then(function(p){ return replaceLayerImage(layer, p[0] || res.url, p[1] || res.url); });
+      });
+    }
     function openCropper(url){
       return new Promise(function(resolve){
         var ov = document.getElementById('pmCropModal');
         var img = document.getElementById('pmCropImg');
         var rect = document.getElementById('pmCropRect');
+        var info = document.getElementById('pmCropInfo');
         var box = { x0:0.06, y0:0.06, x1:0.94, y1:0.94 };
-        var MIN = 0.06;                        // менше не даємо, щоб не зникло
+        var MIN = 0.01;                        // менше не даємо, щоб не зникло
 
+        /* Числа в пікселях ВИХІДНОГО файлу. На екрані картинка зменшена, тож
+           один піксель екрана — це кілька пікселів файлу, і «на око» точно не
+           влучити. Тому показуємо, що саме лишиться і скільки зрізано з
+           кожного боку, а стрілками рамку можна доводити по одному пікселю. */
+        function srcSize(){
+          return { W: img.naturalWidth || img.clientWidth || 1,
+                   H: img.naturalHeight || img.clientHeight || 1 };
+        }
         function paint(){
           var w = img.clientWidth || 1, h = img.clientHeight || 1;
           rect.style.left   = (box.x0 * w) + 'px';
           rect.style.top    = (box.y0 * h) + 'px';
           rect.style.width  = ((box.x1 - box.x0) * w) + 'px';
           rect.style.height = ((box.y1 - box.y0) * h) + 'px';
+          if(info){
+            var s = srcSize();
+            var cw = Math.round((box.x1 - box.x0) * s.W), chh = Math.round((box.y1 - box.y0) * s.H);
+            info.textContent = cw + ' × ' + chh + ' px   ·   зрізано: ' +
+              'зліва ' + Math.round(box.x0 * s.W) + ', справа ' + Math.round((1 - box.x1) * s.W) +
+              ', зверху ' + Math.round(box.y0 * s.H) + ', знизу ' + Math.round((1 - box.y1) * s.H);
+          }
         }
         function onLoad(){ paint(); }
         img.addEventListener('load', onLoad);
@@ -4237,7 +4270,10 @@
         function down(e, mode){
           e.preventDefault(); e.stopPropagation();
           drag = { mode: mode, start: pos(e), box: Object.assign({}, box) };
-          e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+          /* Захоплення вказівника не завжди можливе (синтетична подія, миша
+             вже відпущена) — і кидати винятком через це не варто: тягнути
+             рамку далі це не заважає. */
+          try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(err){}
         }
         function move(e){
           if(!drag) return;
@@ -4261,17 +4297,67 @@
 
         rect.onpointerdown = function(e){ down(e, 'move'); };
         rect.querySelectorAll('[data-h]').forEach(function(h){
-          h.onpointerdown = function(e){ down(e, h.dataset.h); };
+          h.onpointerdown = function(e){ lastSide = h.dataset.h; down(e, h.dataset.h); };
         });
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
         window.addEventListener('pointercancel', up);
 
+        /* Останній маркер, якого торкались: саме його й рухають стрілки.
+           Миша наводить грубо, клавіатура доводить по пікселю — і рамка
+           стає рівно там, де треба, а не «десь біля». */
+        var lastSide = 'se';
+        function nudge(k, dx, dy){
+          var s = srcSize();
+          var fx = dx / (s.W || 1), fy = dy / (s.H || 1);
+          var n = Object.assign({}, box);
+          if(k.indexOf('w') >= 0) n.x0 = Math.min(box.x1 - MIN, Math.max(0, box.x0 + fx));
+          if(k.indexOf('e') >= 0) n.x1 = Math.max(box.x0 + MIN, Math.min(1, box.x1 + fx));
+          if(k.indexOf('n') >= 0) n.y0 = Math.min(box.y1 - MIN, Math.max(0, box.y0 + fy));
+          if(k.indexOf('s') >= 0) n.y1 = Math.max(box.y0 + MIN, Math.min(1, box.y1 + fy));
+          box = n; paint();
+        }
+        function onKey(e){
+          var step = e.shiftKey ? 10 : 1;       // Shift — по десять пікселів
+          var d = { ArrowLeft:[-step,0], ArrowRight:[step,0],
+                    ArrowUp:[0,-step], ArrowDown:[0,step] }[e.key];
+          if(!d) return;
+          e.preventDefault();
+          nudge(lastSide, d[0], d[1]);
+        }
+        window.addEventListener('keydown', onKey);
+        /* «Впритул» — рамка сама сідає на краї малюнка. Для найчастішого
+           випадку «обрізати порожні поля» це один дотик замість ручного
+           цілення в прозорий край, якого на екрані й не видно. */
+        var snapBtn = document.getElementById('pmCropSnap');
+        if(snapBtn) snapBtn.onclick = function(){
+          try{
+            var s = srcSize();
+            var c = document.createElement('canvas');
+            c.width = s.W; c.height = s.H;
+            var g = c.getContext('2d', { willReadFrequently:true });
+            g.drawImage(img, 0, 0, s.W, s.H);
+            var d = g.getImageData(0, 0, s.W, s.H).data;
+            var minX = s.W, minY = s.H, maxX = -1, maxY = -1;
+            for(var y = 0; y < s.H; y++){
+              for(var x = 0; x < s.W; x++){
+                if(d[(y * s.W + x) * 4 + 3] < 12) continue;     // прозоре — не рахуємо
+                if(x < minX) minX = x; if(x > maxX) maxX = x;
+                if(y < minY) minY = y; if(y > maxY) maxY = y;
+              }
+            }
+            if(maxX < minX || maxY < minY) return;
+            box = { x0:minX / s.W, y0:minY / s.H,
+                    x1:(maxX + 1) / s.W, y1:(maxY + 1) / s.H };
+            paint();
+          }catch(err){ /* чужий домен — лишаємо рамку як є */ }
+        };
         function finish(res){
           img.removeEventListener('load', onLoad);
           window.removeEventListener('pointermove', move);
           window.removeEventListener('pointerup', up);
           window.removeEventListener('pointercancel', up);
+          window.removeEventListener('keydown', onKey);
           ov.classList.remove('open');
           resolve(res);
         }
