@@ -6283,6 +6283,11 @@ function offerTiers(order, itemIdx){
    товару; якщо не задавав — стандартні, ті самі, що показує сайт. Порожній
    список краще за вигаданий: у пропозиції «100% бавовна» на поліестері
    коштує дорожче за будь-який гарний рядок. */
+function itemAbout(it){
+  const gid = it && it.garmentId;
+  const t = gid && contentData.descriptions && contentData.descriptions[gid];
+  return String(t || '').trim().slice(0, 700);
+}
 function itemSpecs(it){
   const gid = it && it.garmentId;
   const custom = gid && contentData.specs && contentData.specs[gid];
@@ -6330,6 +6335,12 @@ function offerItem(it, order, itemIdx){
        рівно про це: з чого пошито, яка щільність, який крій. Досі йому
        доводилось вірити на слово або лізти на сайт. */
     specs: itemSpecs(it),
+    /* Опис товару — той самий, що на сторінці товару сайту (Конструктор →
+       Товари → «Опис»). Клієнт у пропозиції питає рівно про це: з чого
+       пошито, як лягає нанесення, чим цей виріб відрізняється від сусіднього.
+       Досі опис жив тільки на сайті, і в пропозиції товар лишався самою
+       назвою. */
+    about: itemAbout(it),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
     tiers: offerTiers(order, itemIdx)

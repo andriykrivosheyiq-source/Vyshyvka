@@ -750,6 +750,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transition:transform .18s;}
   .pcard-more[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
   .pcard-more-body{padding-top:12px;}
+  /* Опис товару — суцільним абзацом перед списком характеристик: він
+     відповідає на «що це взагалі», а вже потім ідуть цифри. */
+  .pspec-about{margin:0 0 12px; font-size:13.5px; line-height:1.55; color:var(--ink);}
 
   /* ══ Пакети: три варіанти замість одного «так або ні» ══ */
   .packs{display:grid; grid-template-columns:1fr; gap:10px;}
@@ -3181,8 +3184,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
     var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
     // Заголовок: вписаний менеджером переважає складений автоматично
+    /* Типовий заголовок називає документ так, як його називають у
+       листуванні: «комерційна пропозиція для такої-то компанії». Менеджер
+       може переписати, але починати з правильного краще, ніж із загального
+       «Ваша пропозиція». */
     var title = String(OFFER.heroTitle || '').trim() ||
-      (who ? 'Корпоративний одяг для ' + who : 'Ваша пропозиція');
+      (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
     var hsz = +OFFER.heroSize || 0;
     /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
@@ -3395,6 +3402,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      двох нанесеннях уже не було зрозуміло, що до чого належить.
      Далі — розмірний ряд і характеристики самого виробу (тканина, щільність,
      крій) із картки товару: у пропозиції питають саме про це. */
+  /* Деталі позиції — однакові скрізь: у складі, у варіантах, у
+     рекомендованих. Опис товару йде першим: він відповідає на «що це
+     взагалі», а вже потім ідуть нанесення, розмірний ряд і характеристики. */
+  function aboutHtml(it){
+    var t = String((it && it.about) || '').trim();
+    return t ? '<p class="pspec-about">' + esc(t) + '</p>' : '';
+  }
   function specsHtml(it, i, stIn){
     var rows = [];
     (it.sides || []).forEach(function(s){
@@ -3414,13 +3428,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     (it.specs || []).forEach(function(sp){
       if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
     });
-    if(!rows.length) return '';
+    var about = aboutHtml(it);
+    if(!rows.length) return about;
     var ICO = {
       print: '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>',
       size:  '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5V20.5"/>',
       spec:  '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16h.01"/>'
     };
-    return '<div class="specs" data-specs="' + i + '">' +
+    return about + '<div class="specs" data-specs="' + i + '">' +
       rows.map(function(r){
         return '<div class="spec"><span class="spec-ic">' +
           '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -3717,9 +3732,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           return '<div class="pcard" data-recocard="' + i + '">' +
             /* Рекомендація, яку вже додали, — така сама позиція: ракурси
                редагуються тим самим способом, що й в основних товарах. */
-            (EDIT ? galleryHtml(r, i, 'reco')
-                  : '<div class="pshot">' + (m ? '<img src="' + esc(m) + '" alt="' + esc(r.name) + '" ' +
-                    'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>') +
+            /* Та сама галерея, що в основних: перед і спина, гортання,
+               збільшення. Доти клієнт бачив у рекомендованій ОДНЕ фото —
+               картка виглядала біднішою за сусідні, хоч ракурси в ній уже
+               зняті. */
+            galleryHtml(r, 'r' + i, 'reco') +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
@@ -3744,6 +3761,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'У замовленні</button>' +
               '</div>' +
             '</div>' +
+            /* Ті самі «Деталі позиції», що в основних і у варіантах. Доти
+               рекомендована картка їх не мала зовсім: клієнт бачив назву й
+               ціну, а з чого пошито й що саме наносять — ніде. */
+            '<details class="pcard-more">' +
+              '<summary>Деталі позиції</summary>' +
+              '<div class="pcard-more-body">' + specsHtml(r, i, rs) + '</div>' +
+            '</details>' +
             mgrCalcHtml(i, 'reco') +
           '</div>';
         }).join('') +
@@ -4839,9 +4863,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         /* Варіанти мають власну нумерацію, тож їхні галереї підписані «v3».
            Без цього збільшення відкривало ракурси зовсім іншої позиції — тієї,
            що стоїть під тим самим номером у складі. */
-        var it = (String(idxAttr).charAt(0) === 'v')
-          ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
-          : (OFFER.items[+idxAttr] || {});
+        var kf = String(idxAttr).charAt(0);
+        var it = kf === 'v' ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
+               : kf === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
+               : (OFFER.items[+idxAttr] || {});
         // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
         var list = viewsOf(it).map(function(v){ return v && v.img; }).filter(Boolean);
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
