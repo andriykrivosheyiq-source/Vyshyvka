@@ -462,8 +462,16 @@
     function activeLogoSizeLabel(){
       var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       if(!l) return '';
-      if(sitePricing()){ var d = layerOpaqueDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }
-      return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см';
+      /* Стелю називаємо поруч із розміром, а не десь у довідці: питання «а
+         більше можна?» виникає рівно тут, коли тягнуть рамку. */
+      var cap = sizeCapMm();
+      var capTxt = cap ? (' · максимум ' + Math.round(cap.w/10) + ' × ' + Math.round(cap.h/10) + ' см') : '';
+      if(sitePricing()){
+        var d = layerOpaqueDimsMm(l);
+        if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' +
+                              Math.round(d.h/10) + ' см' + capTxt;
+      }
+      return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см' + capTxt;
     }
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
@@ -792,8 +800,11 @@
     window.__lqLayerInfo = function(){
       var l = findLayerAnySide(pm.activeLogoId) || currentLayers()[0];
       if(!l) return null;
+      var d = layerOpaqueDimsMm(l);
       return { id: l.id, fp: l.fp || '', recolorTo: l.recolorTo || null,
-               recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)) };
+               recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)),
+               // габарит у мм — за ним видно, чи спрацювала стеля розміру
+               wMm: Math.round(d.w), hMm: Math.round(d.h) };
     };
     window.__lqPrintScale = function(){
       var pa = ((window.SITE_CONTENT || {}).printAreas || {})[pm.garmentId] || {};
@@ -861,6 +872,43 @@
         : { w: szMm * ar, h: szMm };
     }
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
+    /* ══════════ Стеля розміру вишивки ══════════
+       Верстат має п'яльці, і більше за них не вишити ніяк. Клієнт цього не
+       знає: він тягне логотип на пів спини, отримує ціну за цю площу — а
+       далі макет усе одно доводиться зменшувати, і розмова починається
+       спочатку, тепер уже про гроші.
+
+       Тому обмеження стоїть там, де його видно одразу: рамка просто
+       перестає рости. Числа за замовчуванням — 40 × 32 см; якщо в
+       «Формуванні цін» задано свої (maxWidthMm / maxHeightMm), діють вони.
+
+       Міряємо НЕПРОЗОРИЙ вміст: у п'яльці лягає сам малюнок, а не прозорі
+       поля навколо нього. */
+    var EMB_MAX_W_MM = 400, EMB_MAX_H_MM = 320;
+    function sizeCapMm(){
+      var m = methodCfgNew() || {};
+      if(m.mode === 'grid') return null;          // DTF друкується аркушем, п'яльців немає
+      return { w: (+m.maxWidthMm > 0) ? +m.maxWidthMm : EMB_MAX_W_MM,
+               h: (+m.maxHeightMm > 0) ? +m.maxHeightMm : EMB_MAX_H_MM };
+    }
+    // На скільки шар більший за стелю: 1 і менше — влазить
+    function sizeOverRatio(l){
+      var cap = sizeCapMm();
+      if(!cap || !l) return 1;
+      var d = layerOpaqueDimsMm(l);
+      if(!(d.w > 0) || !(d.h > 0)) return 1;
+      return Math.max(d.w / cap.w, d.h / cap.h);
+    }
+    /* Підрізати шар під стелю. Масштаб лінійний, тож достатньо поділити його
+       на перевищення. Повертає true, якщо справді підрізали, — щоб було що
+       сказати людині. */
+    function clampLayerMm(l){
+      var over = sizeOverRatio(l);
+      if(!(over > 1.0001)) return false;
+      l.scale = Math.max(0.04, l.scale / over);
+      layerSaveFrac(l);
+      return true;
+    }
     // Площа, за яку клієнт платить. Береться ГАБАРИТ НЕПРОЗОРОГО вмісту, а не весь
     // прямокутник картинки: прозорі поля навколо лого нічого не коштують. Раніше
     // рахувалось від усього прямокутника, тож один і той самий логотип у файлі
@@ -2638,6 +2686,8 @@
       updatePriceBar();
       // пропорції лого + fill/opaqueBox → рамка облягає контур і площа вишивки коректна
       measureLayerShape(layer, url).then(function(){
+        // Габарит стає відомий лише після заміру — тут і підрізаємо
+        if(clampLayerMm(layer)) sizeCapHint();
         renderLogoLayers();
         /* Панель теж треба перемалювати: до заміру шар ще не знає ні свого
            габариту, ні заповнення, і панель лишалась із тим, що було до
@@ -2719,6 +2769,26 @@
                    startLX:layer.x, startLY:layer.y, moved:false, wasActive:wasActive};
       }
     }
+    var sizeCapSaid = 0;
+    function sizeCapHint(){
+      var cap = sizeCapMm(); if(!cap) return;
+      var now = (window.performance && performance.now) ? performance.now() : 0;
+      if(now - sizeCapSaid < 4000) return;             // не повторюємось на кожному пікселі руху
+      sizeCapSaid = now;
+      var txt = 'Більше не вишити: максимум ' + Math.round(cap.w / 10) +
+                ' × ' + Math.round(cap.h / 10) + ' см';
+      if(typeof toast === 'function'){ try{ toast(txt); return; }catch(e){} }
+      var el = document.getElementById('pmSizeCap');
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'pmSizeCap'; el.className = 'pm-size-cap';
+        (document.getElementById('pmGarmentWrap') || document.body).appendChild(el);
+      }
+      el.textContent = txt;
+      el.classList.add('show');
+      clearTimeout(el.__t);
+      el.__t = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+    }
     function onScaleDown(e, layer){
       e.stopPropagation(); e.preventDefault(); lockScroll();
       if(pmTabPanel) pmTabPanel.style.display = 'none';   // підняти ціну, щоб було видно її зміну
@@ -2765,6 +2835,12 @@
          повертало логотипу попередній розмір, тож рух читався навпаки:
          зменшуєш, а стає більше. */
       layerSaveFrac(layer);
+      /* Стеля вишивки — просто тут, посеред жесту. Дати виростити, а потім
+         відкотити на відпусканні означало б показати людині розмір і ціну,
+         яких не буде: рамка мусить упертись під пальцем. */
+      if(dlState.mode === 'scale' || dlState.mode === 'pinch'){
+        if(clampLayerMm(layer)) sizeCapHint();
+      }
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       updateModelLogos();                               // синхронізуємо лого на фото моделей наживо
       try{ renderPrintArea(); }catch(e){}               // зона нанесення реагує наживо (червоніє за межами)
