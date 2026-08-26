@@ -4939,6 +4939,13 @@ window.__adminSaveClientOrder = async function(payload){
            варіант. */
         nu.kind = itemKind(was);
         nu.vgroup = was.vgroup || '';
+        /* Тираж, набраний у конструкторі, стає тиражем УСІЄЇ групи: інакше
+           дві картки порівняння виявились би з різною кількістю, а
+           порівнювати ціну за штуку при різних тиражах немає сенсу. */
+        if(itemKind(was) === 'variant' && +nu.qty > 0){
+          target.vqty = target.vqty || {};
+          target.vqty[was.vgroup || 'Варіанти на вибір'] = Math.round(+nu.qty);
+        }
         if(was.recoNote && !nu.recoNote) nu.recoNote = was.recoNote;
         if(was.optional != null) nu.optional = was.optional;
       });
@@ -5746,6 +5753,7 @@ function repriceOrder(o){
   // Тираж рекомендованих іде за найбільшою основною позицією — тож
   // вирівнюємо його перед будь-яким перерахунком, а не після
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
+  syncVariantQty(o);   // у групі варіантів тираж один на всіх
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
      самих варіантів: менеджер порахував базову й оверсайз, а клієнт обирає
@@ -6074,6 +6082,12 @@ function offerCalcRows(it){
   if(!b) return null;
   const rows = [];
   const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+  /* До якої групи належить варіант і скільки виробів у розрахунку. Саме тут
+     і виникає питання «чому макет ділиться на десять»: відповідь у тому, що
+     потрапило в тираж, а це видно лише звідси. */
+  if(itemKind(it) === 'variant')
+    rows.push(['Варіант групи «' + (it.vgroup || 'Варіанти на вибір') + '» — рахується так, ' +
+               'ніби взяли саме його', '', 'sub']);
   rows.push(['Виріб · ' + (it.name || ''), b.garmentBase + ' грн']);
   if(b.appBase){
     rows.push(['Нанесення · ' + (it.print || '') +
@@ -6343,6 +6357,8 @@ function offerBuild(order){
        про конкретне замовлення — ні. Порожньо — блоку в КП немає. */
     why: String(order.why || '').trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0, 5),
     items: main, reco,
+    // тираж кожної групи варіантів — щоб панель показала одне число на групу
+    vqty: Object.assign({}, order.vqty || {}),
     /* Варіанти на вибір — окремим списком. У кошторис вони не входять, доки
        клієнт не обере: у групі беруть рівно один, і скласти їх усі означало
        б показати суму, якої ніхто не замовляв. */
@@ -9831,6 +9847,51 @@ function syncRecoQty(o){
   });
   return touched;
 }
+/* ── Кількість у групі варіантів — одна на всіх ────────────────────────
+   Варіанти порівнюють між собою: базова проти оверсайзу. Порівняння з
+   різними тиражами не означає нічого — ані ціна за штуку не зіставна (макет
+   ділиться на різну кількість), ані сума. Тому кількість тут не властивість
+   позиції, а властивість ГРУПИ: одна на всі варіанти в ній.
+
+   Зміна кількості будь-де — у панелі, в конструкторі, кнопкою — задає її
+   всій групі. Набрати різну неможливо не тому, що ми забороняємо, а тому,
+   що зберігати її ніде: число одне. */
+function variantGroupOf(it){
+  return (itemKind(it) === 'variant') ? (it.vgroup || 'Варіанти на вибір') : null;
+}
+function variantGroupQty(o, g){
+  const set = (o.vqty || {})[g];
+  if(+set > 0) return Math.round(+set);
+  // Групі щойно задали перший варіант — беремо його тираж, а не вигадуємо
+  const first = (o.items || []).find(it => variantGroupOf(it) === g && +it.qty > 0);
+  if(first) return Math.round(+first.qty);
+  return recoQtyFor(o) || 1;
+}
+function setVariantGroupQty(o, g, q){
+  q = Math.max(1, Math.round(+q || 0));
+  if(!q) return false;
+  o.vqty = o.vqty || {};
+  o.vqty[g] = q;
+  return syncVariantQty(o);
+}
+function syncVariantQty(o){
+  const groups = {};
+  (o.items || []).forEach(it=>{ const g = variantGroupOf(it); if(g) groups[g] = 1; });
+  let touched = false;
+  Object.keys(groups).forEach(g=>{
+    const q = variantGroupQty(o, g);
+    (o.items || []).forEach(it=>{
+      if(variantGroupOf(it) !== g) return;
+      if((+it.qty || 0) === q) return;
+      it.qty = q;
+      if(it.desc) it.desc.units = q;
+      it.price = Math.round((+it.unitPrice || 0) * q);
+      it.cost  = Math.round((+it.unitCost  || 0) * q);
+      touched = true;
+    });
+  });
+  return touched;
+}
 async function offerAddBare(o, gid, kind, vgroup){
   const g = orderGarments().find(x => x.id === gid);
   if(!g) return;
@@ -9842,7 +9903,10 @@ async function offerAddBare(o, gid, kind, vgroup){
   /* Варіант, як і рекомендований, стартує з тиражу найбільшої основної
      позиції: він її заміняє, тож кількість та сама. Менеджер і клієнт можуть
      її потім змінити. Основний товар кількості не вигадує. */
-  const q = (kind === 'reco' || kind === 'variant') ? recoQtyFor(o) : 0;
+  const vg = (kind === 'variant') ? (String(vgroup || '').trim() || 'Варіанти на вибір') : null;
+  const q = kind === 'reco' ? recoQtyFor(o)
+          : vg ? variantGroupQty(o, vg)      // у групі тираж один на всіх
+          : 0;
   const u = bareUnitPrice(gid, q || 1);
   /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
      макета ще немає, бо немає логотипа, — і виглядало це так, ніби
@@ -9853,7 +9917,7 @@ async function offerAddBare(o, gid, kind, vgroup){
     kind: (kind === 'reco' || kind === 'variant') ? kind : 'main', recoNote: '',
     // Група варіантів: у пропозиції їх може бути кілька — «Верх», «Головні
     // убори», — і клієнт бере по одному з кожної
-    vgroup: kind === 'variant' ? (vgroup || 'Варіанти на вибір') : undefined,
+    vgroup: vg || undefined,
     qtyAuto: kind === 'reco' ? true : undefined,
     name: g.name, color:'', print:'', sizes:'',
     qty: q, unitPrice: u.price, price: u.price * q,
@@ -10312,6 +10376,20 @@ async function offerEdApply(msg){
     openCalcFor(o);
     return;
   }
+  /* Тираж групи варіантів. Стоїть ДО пошуку позиції навмисно: це дія над
+     ГРУПОЮ, а не над карткою, і номера позиції в ній немає. Доти вона
+     ховалась нижче за «позицію не знайдено» й мовчки не спрацьовувала. */
+  if(act === 'vqty'){
+    const g = String(msg.vgroup || '').trim() || 'Варіанти на вибір';
+    const snapV = itemsSnapshot(o);
+    if(!setVariantGroupQty(o, g, msg.v)) return;
+    repriceOrder(o); recalcOrderTotals(o);
+    const low = marginCheck(o, snapV);
+    if(low){ toast(low); return; }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    return;
+  }
   const k = offerIdxToOrder(o, msg.kind, msg.i);
   const it = (o.items || [])[k];
   if(!it) return;
@@ -10345,6 +10423,10 @@ async function offerEdApply(msg){
       : Math.max(1, act === 'qp' ? cur + offerQtyStep(cur) : cur - offerQtyStep(cur));
     if(!q || q === cur) return;
     const snap = itemsSnapshot(o);
+    /* Варіант тираж окремо не має: він у групі, і число там одне. Тому
+       правка кількості будь-якої картки задає її всій групі. */
+    const vg = variantGroupOf(it);
+    if(vg){ setVariantGroupQty(o, vg, q); }
     it.qty = q;
     if(it.desc) it.desc.units = q;
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
