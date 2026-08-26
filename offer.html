@@ -65,8 +65,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted); margin-bottom:12px;}
   .hero h1{font-size:31px; line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:800;}
   .hero-sub{font-size:15.5px; color:var(--ink-2); margin:0 0 20px;}
-  .hero-logo{max-height:56px; width:auto; margin-bottom:20px; border-radius:12px;
-    display:block; background:rgba(255,255,255,.9); padding:6px 10px;}
+  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
+     власного фону: усе це колись стояло тут і зробило три речі одразу.
+     Відступи й margin робили блок вищим і ширшим за саму картинку, тож рамка
+     обрізання лягала на одну область, а різалась інша — зміщена й більша.
+     Заокруглення різало кути логотипа, якого ніхто про це не просив.
+     А власний майже білий фон малювався ПОВЕРХ того, що фарбує менеджер:
+     обраний колір лишався видним хіба смужкою по краю, і виглядало це так,
+     ніби міняється щось інше, а не за картинкою.
+     Відступ до заголовка переїхав на обгортку — там він нічому не заважає. */
+  .hero-logo{max-height:56px; width:auto; display:block;}
   /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
   .hero-logo[style*="height"]{max-height:none;}
   .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
@@ -1305,14 +1313,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
   .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
   /* Підкладка під логотип і рамка обрізання просто на ньому */
-  .hero-logo-wrap{position:relative; display:inline-block; line-height:0; border-radius:10px;}
-  /* Фон логотипа задає менеджер кольором; padding тільки коли фон є, інакше
-     прозорий логотип «відʼїхав» би від тексту без жодної причини. */
-  .hero-logo-wrap.has-bg{padding:8px 12px;}
+  /* Обгортка збігається з картинкою піксель у піксель: жодних відступів і
+     жодного заокруглення. Тільки так фон лягає саме ЗА картинку, а рамка
+     обрізання показує рівно те, що буде відрізано. */
+  .hero-logo-wrap{position:relative; display:inline-block; line-height:0;
+    margin-bottom:20px;}
   /* Старі пропозиції зберігали не колір, а один із двох станів підкладки —
-     лишаємо їх робочими, щоб уже надіслані КП не змінились заднім числом. */
-  .hero-logo-wrap.plate-light{background:#fff; padding:8px 12px; box-shadow:0 1px 6px rgba(15,32,52,.12);}
-  .hero-logo-wrap.plate-dark{background:#14171B; padding:8px 12px;}
+     лишаємо їх робочими, тепер такими самими квадратними. */
+  .hero-logo-wrap.plate-light{background:#fff;}
+  .hero-logo-wrap.plate-dark{background:#14171B;}
   .hero-logo-wrap.cropping .hero-logo{cursor:default;}
   /* У режимі менеджера логотип сам і є кнопкою обрізання — як на телефоні:
      торкнувся картинки, зʼявились маркери. Окрема кнопка «решітка» для цього
