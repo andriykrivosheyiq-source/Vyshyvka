@@ -5965,16 +5965,25 @@ function offerBaseCoef(){
 function sharedPriceAt(order, itemIdx, qty, opts){
   const { idx, list } = orderDescriptors(order);
   const k = idx.indexOf(itemIdx);
-  if(k < 0) return null;
   const u = Math.max(1, +qty || 1);
   if(opts && opts.solo){
+    /* Для solo склад замовлення взагалі не потрібен: рахуємо ОДНУ цю
+       позицію окремо. Тому й беремо розклад прямо з неї, а не шукаємо в
+       orderDescriptors — там лише основні позиції, і варіант із
+       рекомендованим не знаходились зовсім. Функція повертала null, «було»
+       падало на запасний шлях (той самий тираж, лише базовий коефіцієнт за
+       обсяг) — і в блоці «Оберіть варіант» клієнт бачив −5% там, де в складі
+       пропозиції та сама математика давала −37% і більше. */
+    const src = k >= 0 ? list[k] : ((order.items || [])[itemIdx] || {}).desc;
+    if(!src) return null;
     /* Позначку допродажу знімаємо: «було» — це перша покупка, а не
        додавання до вже погодженого складу. З нею позиція не платила б за
        макет узагалі, і «було» вийшло б ДЕШЕВШЕ за «стало». */
-    const one = Object.assign({}, list[k], { units: u, upsell: false });
+    const one = Object.assign({}, src, { units: u, upsell: false });
     const r = priceOrder([one], opts);
     return (r[0] && r[0].unit) || null;
   }
+  if(k < 0) return null;
   const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: u }) : d);
   const res = priceOrder(clone, opts);
   return (res[k] && res[k].unit) || null;
