@@ -2780,16 +2780,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        один список означало б порахувати вироби, яких ніхто не замовить, і
        занизити ціну всьому замовленню знижкою за неіснуючий тираж. Тому
        нижче вони йдуть окремими прогонами, а не в спільному. */
-    if(!list.length) return null;
-    var res;
-    try{ res = window.LQ.priceOrder(list); }catch(e){ console.warn('перерахунок не вийшов', e); return null; }
+    /* Порожній склад — ще не привід зупинятись: пропозиція може складатись
+       із самих варіантів, і їхні ціни рахуються нижче своїми прогонами.
+       Доти тут стояв вихід, і в такій пропозиції жодна ціна не була живою:
+       вибір варіанта нічого не перераховував. */
+    if(!list.length && !(OFFER.variants || []).length) return null;
+    var res = [];
+    if(list.length){
+      try{ res = window.LQ.priceOrder(list); }
+      catch(e){ console.warn('перерахунок не вийшов', e); return null; }
+    }
     var out = { main:{}, reco:{}, vars:{} };
+    /* Ціна варіанта — «скільки коштуватиме, якщо взяти САМЕ ЙОГО». Тому з
+       розрахунку прибираємо обраний варіант ТІЄЇ САМОЇ групи: клієнт візьме
+       щось одне, і два одночасно не існують ніколи.
+
+       Доти обраний лишався в списку, і сусідній варіант рахувався так, ніби
+       беруть обидва: п'ять базових плюс п'ять оверсайзів — підготовка макета
+       ділилась на десять виробів замість п'яти, і ціна виходила нижчою за
+       справжню. Варіанти інших груп лишаються: їх справді беруть разом. */
     (OFFER.variants || []).forEach(function(v, vi){
       if(!v.desc) return;
+      var myGroup = v.vgroup || 'Варіанти на вибір';
+      var base = [];
+      map.forEach(function(m, k){
+        if(m[0] !== 'variant'){ base.push(list[k]); return; }
+        var other = (OFFER.variants || [])[m[1]] || {};
+        var og = other.vgroup || 'Варіанти на вибір';
+        if(og !== myGroup) base.push(list[k]);        // чужа група — лишається
+      });
       var d = JSON.parse(JSON.stringify(v.desc));
       d.units = Math.max(1, baseVarQty(vi));
       try{
-        var r = window.LQ.priceOrder(list.concat([d]));
+        var r = window.LQ.priceOrder(base.concat([d]));
         var mine = r[r.length - 1];
         if(mine) out.vars[vi] = mine;
       }catch(e){}
@@ -5203,9 +5226,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     OFFER = snap.data() || {};
     OFFER.items = OFFER.items || [];
     OFFER.reco  = OFFER.reco  || [];
+    OFFER.variants = OFFER.variants || [];
     OFFER.terms = OFFER.terms || { deadlineDays: 4 };
     OFFER.client = OFFER.client || {};
-    if(!OFFER.items.length && !EDIT_CTX){
+    /* Пропозиція може складатись із самих варіантів: менеджер порахував
+       базову й оверсайз, клієнт обирає один. Доти сторінка дивилась лише на
+       склад — не знайшла там нічого й казала «ще готується», хоч було що
+       показати й що обрати. */
+    if(!OFFER.items.length && !OFFER.variants.length && !OFFER.reco.length && !EDIT_CTX){
       fail('Пропозиція ще готується', 'Менеджер завершує розрахунок. Спробуйте трохи пізніше.');
       return;
     }
