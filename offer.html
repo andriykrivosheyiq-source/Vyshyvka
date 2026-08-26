@@ -3630,9 +3630,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      не можна: менеджер бачить, що в одній картці вигода є, а в сусідній ні,
      і читає це як поломку. Тому кажемо прямо — і тільки йому. */
   function staleNote(it){
-    if(!MGR_EDIT_ON() || !it || !it.stale) return '';
-    return '<div class="pqty-n is-todo">Старої ціни тут немає: у позиції немає ' +
-      'розкладу. Відкрийте її й збережіть — вигода порахується.</div>';
+    /* Саме noBase, а не «ціна застаріла»: позиція може бути без розкладу, але
+       з чесно розкрученою початковою ціною — і тоді пояснювати нічого. */
+    if(!MGR_EDIT_ON() || !it || !it.noBase) return '';
+    return '<div class="pqty-n is-todo">Старої ціни тут немає: початкову ціну не ' +
+      'вдалось порахувати. Відкрийте позицію й збережіть — вигода зʼявиться.</div>';
   }
   function priceBoxHtml(i, stIn, key){
     var s = stIn || itemState(i);

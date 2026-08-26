@@ -6294,46 +6294,114 @@ function offerMgrCalc(o){
   }catch(e){ console.warn('mgr calc', e); }
   return out;
 }
+/* ══════════ Початкова ціна позиції ══════════
+   «Було» — це скільки коштувала б ЦЯ САМА позиція, замовлена однією штукою:
+   виріб + нанесення + оплата за штуку + ПОВНА разова підготовка макета, не
+   поділена ні на що. Саме її бачить людина на сайті, коли ставить у кошик
+   одну футболку, і саме від неї рахується вигода тиражу.
+
+   Проблема була не у формулі, а в даних. Формула вміла рахувати лише з
+   розкладу (desc), а позиції зі старих замовлень його не мають. Тоді
+   вмикався запасний шлях, який просто масштабував наявну ціну коефіцієнтом
+   за обсяг — і давав «−4%» там, де насправді −33%.
+
+   Тепер шляхів три, від найточнішого до найгрубішого, і кожен дає СПРАВЖНЮ
+   ціну однієї штуки, а не масштаб поточної:
+
+   1. Є розклад — прогін рушія на одну штуку. Точно до гривні.
+   2. Є розклад прорахунку (parts) — складаємо з готових частин.
+   3. Немає нічого — розкручуємо формулу назад із самої ціни: знімаємо
+      коефіцієнт за тираж і частку макета, які в ній сидять, і додаємо
+      повну разову. Це та сама формула, розв'язана в інший бік. */
+function offerItemMethod(it){
+  if(it && it.desc && it.desc.method) return it.desc.method === 'embro' ? 'embro' : 'dtf';
+  if(it && it.calc && it.calc.method) return it.calc.method === 'embro' ? 'embro' : 'dtf';
+  /* Ні розкладу, ні прорахунку — питаємо саму позицію, чим на неї наносили.
+     Технік у prints, зведений підпис у print: у старих позицій буває або те,
+     або те, тож дивимось в обидва. Помилитись тут дорого: разові у вишивки й
+     у друку різні на порядок. */
+  const tech = ((it && it.prints) || []).map(p => String(p.technique || '')).join(' ') +
+               ' ' + String((it && it.print) || '');
+  return /ишив/i.test(tech) ? 'embro' : 'dtf';
+}
+// Скільки виробів того самого способу в замовленні — на них і ділиться разова
+function offerMethodUnits(order, method){
+  let u = 0;
+  (order.items || []).forEach(it => {
+    if(offerItemMethod(it) === method) u += Math.max(0, +it.qty || 0);
+  });
+  return Math.max(1, u);
+}
+function offerOneUnitPrice(order, itemIdx){
+  const item = order.items[itemIdx];
+  const unit = +item.unitPrice || 0;
+  // 1. Розклад є — рахуємо чесним прогоном
+  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
+  if(shared != null) return shared;
+  // 2. Розклад прорахунку є — складаємо з частин, які вже пораховані
+  const b = item.parts;
+  if(b && !b.bare && (b.garmentBase != null)){
+    const sk = (b.sketches || []).reduce((a, s) => a + (+s.fee || 0), 0);
+    return Math.round((+b.garmentBase || 0) + (+b.appBase || 0) +
+                      (+b.pieceFee || 0) + (+b.feeTotal || 0) + sk);
+  }
+  // 3. Немає нічого — розкручуємо формулу назад
+  const p = curSitePricing();
+  if(!p || !unit) return null;
+  const mk = offerItemMethod(item);
+  const m = (p.methods || {})[mk] || {};
+  const pieceFee = +m.pieceFee || 0;
+  const orderFee = +m.orderFee || 0;
+  const units = offerMethodUnits(order, mk);
+  /* Коефіцієнт беремо з ТІЄЇ САМОЇ моделі цін, що й оплати вище. Спокуса
+     покликати LQ.tierCoefFor велика, але він читає SITE_CONTENT, а оплати ми
+     щойно взяли з curSitePricing() — і два різні джерела в одній формулі
+     рано чи пізно розійдуться. */
+  const tl = ((m.tiers && m.tiers.length) ? m.tiers : p.tiers) || [];
+  let coef = 1;
+  tl.map(t => ({ from:+t.from || 1, coef:+t.coef || 1 }))
+    .sort((a, b) => a.from - b.from)
+    .forEach(t => { if(units >= t.from) coef = t.coef; });
+  if(!coef) return null;
+  /* У поточній ціні сидять: частина, що масштабується коефіцієнтом (виріб +
+     нанесення), незмінна оплата за штуку і частка разової. Знімаємо два
+     останніх, ділимо на коефіцієнт — лишається чиста частина на одну штуку. */
+  const scaled = (unit - pieceFee - (orderFee / units)) / coef;
+  if(!(scaled > 0)) return null;
+  return Math.round(scaled + pieceFee + orderFee);
+}
 function offerItemNumbers(order, itemIdx){
   const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
   const unit = +item.unitPrice || 0;
-  /* «Було» рахуємо ТОЧНО ТАК САМО, як картка товару на сайті: це ефективна
-     ціна за штуку на найменшому порозі тиражу. Саме там разова підготовка
-     макета ділиться на одну-дві штуки й тому важить найбільше — і саме тому
-     справжня знижка більша за самий лише коефіцієнт за обсяг.
-
-     Доти в пропозиції «було» бралось інакше: той самий тираж, але без
-     коефіцієнта за обсяг. Разова оплата ділилась на ті самі 13 штук, тож
-     основна частина вигоди зникала, і замість −40% клієнт бачив −18%. Дві
-     різні відповіді на те саме питання — звідси й «на сайті одна знижка, а
-     в КП інша». */
-  const first = offerFirstTierQty(order, itemIdx);
-  const shared = sharedPriceAt(order, itemIdx, first, { solo:true });
-  /* Запасний шлях — коли розкладу немає (позиція зі старого замовлення).
-     Він теж має рахувати НАЙМЕНШИЙ тираж, а не поточний: інакше разова
-     підготовка ділиться на ті самі п'ять виробів і в «було» вже сидить уся
-     вигода, від якої лишається сам коефіцієнт за обсяг. Саме звідси бралось
-     «−5%» замість «−37%» — тираж у обох числах був однаковий. */
-  const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, first, offerBaseCoef()), unit);
+  /* «Було» — ціна цієї позиції, замовленої ОДНІЄЮ штукою: виріб + нанесення +
+     оплата за штуку + повна разова підготовка макета. Саме так рахує картку
+     товару сайт, і саме від цього числа людина відлічує вигоду тиражу.
+     Три шляхи розрахунку — див. offerOneUnitPrice. */
+  const one = offerOneUnitPrice(order, itemIdx);
+  const baseUnit = Math.max(one != null ? one : unit, unit);
   /* Позиція з нанесенням на найменшому порозі платить за підготовку макета
-     САМА — тож справжня знижка там завжди десятки відсотків. П'ять відсотків
+     САМА — тож справжня знижка там завжди десятки відсотків. Кілька відсотків
      такою математикою не виходять узагалі: мала різниця означає одне — «було»
      порахувати не вдалося. Показувати перекреслену ціну в такому разі гірше,
      ніж не показувати: клієнт бачить знижку, якої немає.
 
      Голий виріб без нанесення — інша річ: разових у нього немає, і вся його
      вигода — це шкала за кількість. Там і 8% справжні, тож поріг на нього не
-     поширюється. */
-  /* Послаблюємо поріг лише тоді, коли ТОЧНО знаємо, що виріб голий: розклад
-     є і в ньому стоїть bare. Позиція без розкладу — не «голий виріб», а
-     невідомість, і саме в ній запасний шлях і давав фальшиві 5%. */
-  const bare = !!(item.desc && item.desc.bare);
-  const real = bare ? (baseUnit > unit) : (baseUnit >= unit * 1.08);
+     поширюється. Послаблюємо його лише коли ТОЧНО знаємо, що виріб голий:
+     позиція без розкладу — це не «голий виріб», а невідомість. */
+  const bare = !!(item.desc && item.desc.bare) || !!(item.parts && item.parts.bare);
+  const real = one != null && unit > 0 &&
+               (bare ? (baseUnit > unit) : (baseUnit >= unit * 1.08));
   return {
     qty, unit, sum: +item.price || 0,
     baseUnit: real ? baseUnit : unit,
     baseSum: (real ? baseUnit : unit) * qty,
+    /* Порахувати початкову ціну не вдалося жодним із трьох шляхів. Кажемо це
+       окремим прапорцем: картка тоді не малює перекресленої ціни, а менеджеру
+       пояснює чому. Прив'язувати пояснення до «ціна застаріла» не можна —
+       позиція може бути без розкладу, але з чесно розкрученою початковою. */
+    noBase: !real,
     save: real ? Math.max(0, baseUnit * qty - (+item.price || 0)) : 0
   };
 }
@@ -6476,6 +6544,7 @@ function offerItem(it, order, itemIdx){
     sizechart: itemSizeChart(it),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
+    noBase: !!n.noBase,
     tiers: offerTiers(order, itemIdx)
   };
 }
