@@ -6498,8 +6498,14 @@ function itemSizeChart(it){
   const clean = rows.slice(0, 14).map(r => (Array.isArray(r) ? r : [])
     .slice(0, 8).map(v => String(v == null ? '' : v).slice(0, 24)));
   if(!clean.length) return null;
+  /* Кожен рядок — обʼєкт із масивом усередині, а не масив у масиві.
+     Firestore масив-у-масиві НЕ приймає й відхиляє ВЕСЬ документ. Саме через
+     це пропозиція перестала зберігатись: у документі зʼявилась розмірна
+     сітка, запис почав падати, і за посиланням лишався попередній варіант —
+     хоч на екрані все виглядало свіжим. Та сама причина, через яку таблиця
+     собівартості DTF зберігається плоскою. */
   return { cols: Array.isArray(cols) ? cols.slice(0, 8).map(c => String(c || '').slice(0, 24)) : null,
-           rows: clean };
+           rows: clean.map(r => ({ c: r })) };
 }
 /* Опис товару з сайту — саме там живуть тип тканини, щільність і «для чого
    краще підходить». Окремих полів під це немає й не треба: менеджер пише їх
@@ -6736,6 +6742,31 @@ async function offerLinkCopy(order){
                 '. За цим посиланням клієнт побачить попередній варіант.');
   }
 }
+/* Firestore відхиляє ВЕСЬ документ через одну заборонену дрібницю — і
+   найчастіше це масив усередині масиву. Помилка приходить без адреси: «nested
+   arrays are not supported», і шукай де. Тож знаходимо самі, з дорогою до
+   поля: «items[0].sizechart.rows[0]» знімає питання за секунду.
+   Перевірка дешева й іде перед кожним записом: тиждень пошуків «чому не
+   зберігається» коштує дорожче. */
+function offerBadPath(v, path, inArray){
+  if(v === undefined) return (path || 'документ') + ' — undefined';
+  if(v === null || typeof v !== 'object') return null;
+  if(Array.isArray(v)){
+    if(inArray) return (path || 'документ') + ' — масив усередині масиву';
+    for(let i = 0; i < v.length; i++){
+      const r = offerBadPath(v[i], path + '[' + i + ']', true);
+      if(r) return r;
+    }
+    return null;
+  }
+  const keys = Object.keys(v);
+  for(let i = 0; i < keys.length; i++){
+    const k = keys[i];
+    const r = offerBadPath(v[k], path ? path + '.' + k : k, false);
+    if(r) return r;
+  }
+  return null;
+}
 async function offerSave(order){
   /* Без токена пропозиції писати нікуди — і сказати про це треба вголос.
      Доти функція тихо поверталась ні з чим: адмінка показувала «збережено»,
@@ -6743,6 +6774,8 @@ async function offerSave(order){
   if(!order) return null;
   if(!order.offerToken) throw new Error('у замовлення немає посилання на пропозицію');
   const doc = offerClean(offerBuild(order));
+  const bad = offerBadPath(doc, '');
+  if(bad) throw new Error('база не прийме документ: ' + bad);
   // Стан і вибір належать клієнту — перезаписом менеджера їх стерти не можна.
   if(offersByToken[order.offerToken]) delete doc.state;
   await fbDb.collection('offers').doc(order.offerToken).set(doc, { merge: true });
