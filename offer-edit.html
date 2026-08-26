@@ -628,6 +628,17 @@
     padding-bottom:1px; cursor:text;}
   .vg-name:hover{border-bottom-color:#C7CFDA;}
   .vg-name:focus{border-bottom-color:#5B6B80; color:#1B2536;}
+  .vg-qty{flex:none; display:flex; align-items:center; gap:2px; text-transform:none;
+    letter-spacing:0; font-weight:600; color:#3D4C61;}
+  .vg-qty button{width:18px; height:18px; border-radius:5px; border:1px solid #E2E8F0;
+    background:#fff; color:#5B6B80; font:inherit; font-size:12px; line-height:1; cursor:pointer;
+    padding:0;}
+  .vg-qty button:hover{background:#F1F5FA; color:#1B2536;}
+  .vg-qty b{min-width:16px; text-align:center; outline:none; font-variant-numeric:tabular-nums;
+    border-bottom:1px dashed transparent; cursor:text;}
+  .vg-qty b:hover{border-bottom-color:#C7CFDA;}
+  .vg-qty b:focus{border-bottom-color:#5B6B80;}
+  .vg-qty i{font-style:normal; font-size:9.5px; color:#8A93A3; margin-left:1px;}
   .vg-add{flex:none; width:20px; height:20px; border-radius:6px; border:1px solid #E2E8F0;
     background:#fff; color:#5B6B80; font:inherit; font-size:13px; line-height:1; cursor:pointer;
     padding:0;}
@@ -883,9 +894,21 @@
          візьме щось одне. У кошторис вони не входять, доки він не обере, і
          між собою НЕ складаються: тираж рахується так, ніби взяли саме цей. */
       variantGroups().map(function(g){
+        /* Тираж у заголовку групи, а не в кожній картці: варіанти
+           порівнюють між собою, і порівняння з різними тиражами не
+           означає нічого. Число тут одне на всю групу — набрати різне
+           неможливо не тому, що заборонено, а тому, що зберігати ніде. */
+        var gq = (OFFER.vqty || {})[g.name] ||
+                 (itemsOf('variant')[g.idx[0]] || {}).qty || 1;
         return '<div class="list-sec is-var">' +
             '<span class="vg-name" contenteditable="plaintext-only" ' +
               'data-vgname="' + esc(g.name) + '">' + esc(g.name) + '</span>' +
+            '<span class="vg-qty" title="Тираж однаковий для всіх варіантів групи">' +
+              '<button data-vq="' + esc(g.name) + '" data-d="-1" aria-label="Менше">−</button>' +
+              '<b contenteditable="plaintext-only" data-vqedit="' + esc(g.name) + '">' +
+                gq + '</b><i>шт</i>' +
+              '<button data-vq="' + esc(g.name) + '" data-d="1" aria-label="Більше">＋</button>' +
+            '</span>' +
             '<button class="vg-add" data-add="variant" data-vgroup="' + esc(g.name) + '" ' +
               'title="Додати варіант у цю групу">＋</button>' +
           '</div>' +
@@ -950,6 +973,28 @@
     /* Назва групи правиться на місці. Це не косметика: група — це питання,
        яке ставлять клієнту («який верх?»), і воно має звучати його словами,
        а не нашим «Варіанти на вибір». */
+    box.querySelectorAll('[data-vq]').forEach(function(bq){
+      bq.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var g = bq.dataset.vq;
+        var cur = +((OFFER.vqty || {})[g] || 0) ||
+                  +((itemsOf('variant')[(variantGroups().filter(function(x){ return x.name === g; })[0]
+                     || { idx:[0] }).idx[0]] || {}).qty || 1);
+        var step = cur >= 100 ? 10 : (cur >= 20 ? 5 : 1);
+        send({ act:'vqty', vgroup:g, v: Math.max(1, cur + (+bq.dataset.d) * step) });
+      });
+    });
+    box.querySelectorAll('[data-vqedit]').forEach(function(el){
+      el.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      });
+      el.addEventListener('blur', function(){
+        var v = parseInt(String(el.textContent || '').replace(/\D+/g, ''), 10);
+        if(!(v > 0)){ renderList(); return; }
+        send({ act:'vqty', vgroup: el.dataset.vqedit, v: v });
+      });
+    });
     box.querySelectorAll('[data-vgname]').forEach(function(el){
       el.addEventListener('keydown', function(e){
         e.stopPropagation();
