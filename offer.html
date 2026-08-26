@@ -3390,6 +3390,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         ? '<button class="edb" data-ed="logofillOff" ' +
                           'title="Без фону">✕</button>' : '') +
                     '</span>' +
+                    /* Крок назад по лінії обрізок. Стоїть у меню, а не біля
+                       рамки: коли менеджер помітив, що перестарався, рамка
+                       вже закрита, і відкривати її заради відкату — зайве.
+                       Немає куди повертатись — немає й кнопки. */
+                    (OFFER.clientLogoBack
+                      ? '<button class="edb" data-ed="logoBack" ' +
+                        'title="Повернути попередній логотип">↶</button>' : '') +
                     '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
                   '</span>' : '') +
               '<div class="edlogo-note" id="edlogoNote"></div>' +

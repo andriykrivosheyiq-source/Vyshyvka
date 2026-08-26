@@ -6477,6 +6477,16 @@ function offerTiers(order, itemIdx){
    місця (постачальник виробу, ціна голого виробу), а опис, характеристики й
    розмірна сітка дивились ЛИШЕ на it.garmentId. Тому в пропозиції їх не було
    взагалі: менеджер заповнив картку товару, а КП мовчки нічого не знаходило. */
+/* Куди повертає «↶ Повернути»: попередній логотип у лінії обрізок.
+   Спершу власна історія, а якщо її не писали — попередній файл зі списку
+   логотипів замовлення. Порожньо означає, що це вже початкове зображення. */
+function logoPrevUrl(o){
+  const hist = (o && Array.isArray(o.clientLogoHist)) ? o.clientLogoHist.filter(Boolean) : [];
+  if(hist.length) return hist[hist.length - 1];
+  const list = (o && Array.isArray(o.logos)) ? o.logos.filter(Boolean) : [];
+  const i = list.indexOf(o && o.clientLogo);
+  return i > 0 ? list[i - 1] : null;
+}
 function itemGarmentId(it){
   return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
 }
@@ -6625,6 +6635,8 @@ function offerBuild(order){
        уже надіслані КП не змінились. */
     clientLogoBg: String(order.clientLogoBg || ''),
     clientLogoPlate: String(order.clientLogoPlate || ''),
+    // чи є куди повертатись — кнопка «↶» показується лише тоді
+    clientLogoBack: !!logoPrevUrl(order),
     /* Заголовок першого екрана. Порожньо — сторінка складе його сама з
        назви компанії; вписаний — показуємо рівно те, що написав менеджер.
        Розмір теж його: «для Нестербуд» і «для Міністерства цифрової
@@ -10699,6 +10711,34 @@ async function offerEdApply(msg){
      Доти замість кольору було три вгадані стани підкладки, і жоден не
      підходив, коли шапка не біла й не чорна. Порожньо означає «без фону» —
      окремий стан, а не білий. */
+  /* Крок назад по лінії обрізок — аж до початкового файлу.
+     Обрізка не підмінює файл: результат вивантажується окремо, а всі
+     попередні лишаються в замовленні. Бракувало тільки дороги назад:
+     перестарався з рамкою — і повернути було нічим.
+
+     Історію пишемо з кожною обрізкою. Там, де її ще не писали (обрізка вже
+     зроблена, а кнопки тоді не було), відкочуємось списком логотипів
+     замовлення — він і є та сама лінія, просто без окремого запису. Тому
+     кнопка працює й на вже обрізаному лого, а не лише на майбутніх. */
+  if(act === 'logoBack'){
+    const prev = logoPrevUrl(o);
+    if(!prev){
+      toast('Це вже початкове зображення');
+      offerEdNote('Це вже початкове зображення — далі повертатись нікуди');
+      return;
+    }
+    const hist = Array.isArray(o.clientLogoHist) ? o.clientLogoHist.slice() : [];
+    if(hist.length) hist.pop();
+    o.clientLogoHist = hist;
+    o.clientLogo = prev;
+    o.clientLogoOff = false;
+    if(!(await offerEdSave(o))) return;
+    renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+    toast('Повернуто попередній логотип');
+    offerEdNote(logoPrevUrl(o) ? 'Повернуто на крок назад'
+                               : 'Повернуто до початкового зображення');
+    return;
+  }
   if(act === 'logoFill'){
     const c = String(msg.color || '').trim();
     o.clientLogoBg = /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '';
@@ -10800,6 +10840,13 @@ async function offerEdApply(msg){
       const blob = await new Promise(res => out.toBlob(res, 'image/png'));
       if(!blob) throw new Error('не вдалось зібрати файл');
       const url = await uploadCloudinary(new File([blob], 'logo.png', { type:'image/png' }));
+      /* Запамʼятовуємо, що було ДО цієї обрізки — інакше повертатись нікуди.
+         Пишемо перед підміною: після неї попереднє значення вже втрачене. */
+      if(o.clientLogo && o.clientLogo !== url){
+        if(!Array.isArray(o.clientLogoHist)) o.clientLogoHist = [];
+        o.clientLogoHist.push(o.clientLogo);
+        o.clientLogoHist = o.clientLogoHist.slice(-12);   // глибше ніхто не відкочує
+      }
       o.clientLogo = url;
       o.clientLogoOff = false;
       if(!Array.isArray(o.logos)) o.logos = [];
