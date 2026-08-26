@@ -1306,17 +1306,47 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
   /* Підкладка під логотип і рамка обрізання просто на ньому */
   .hero-logo-wrap{position:relative; display:inline-block; line-height:0; border-radius:10px;}
+  /* Фон логотипа задає менеджер кольором; padding тільки коли фон є, інакше
+     прозорий логотип «відʼїхав» би від тексту без жодної причини. */
+  .hero-logo-wrap.has-bg{padding:8px 12px;}
+  /* Старі пропозиції зберігали не колір, а один із двох станів підкладки —
+     лишаємо їх робочими, щоб уже надіслані КП не змінились заднім числом. */
   .hero-logo-wrap.plate-light{background:#fff; padding:8px 12px; box-shadow:0 1px 6px rgba(15,32,52,.12);}
   .hero-logo-wrap.plate-dark{background:#14171B; padding:8px 12px;}
+  .hero-logo-wrap.cropping .hero-logo{cursor:default;}
+  /* У режимі менеджера логотип сам і є кнопкою обрізання — як на телефоні:
+     торкнувся картинки, зʼявились маркери. Окрема кнопка «решітка» для цього
+     не потрібна, її й не знаходили. */
+  .mgr-logo .hero-logo{cursor:crosshair;}
   .cropui{position:absolute; inset:0; z-index:5;}
   .cropbox{position:absolute; border:2px solid #fff; box-shadow:0 0 0 9999px rgba(15,32,52,.55);
     border-radius:2px;}
-  .croph{position:absolute; width:16px; height:16px; background:#fff; border-radius:4px;
-    box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:nwse-resize;}
-  .croph-nw{left:-8px; top:-8px;}
+  .croph{position:absolute; background:#fff; border-radius:4px;
+    box-shadow:0 1px 4px rgba(0,0,0,.35);}
+  /* Кути тягнуть дві сторони, середини сторін — тільки свою: саме цього й
+     бракувало, коли треба підрізати лише зверху. */
+  .croph-nw,.croph-ne,.croph-sw,.croph-se{width:16px; height:16px;}
+  .croph-nw{left:-8px; top:-8px; cursor:nwse-resize;}
   .croph-ne{right:-8px; top:-8px; cursor:nesw-resize;}
   .croph-sw{left:-8px; bottom:-8px; cursor:nesw-resize;}
-  .croph-se{right:-8px; bottom:-8px;}
+  .croph-se{right:-8px; bottom:-8px; cursor:nwse-resize;}
+  .croph-n,.croph-s{left:50%; width:26px; height:8px; margin-left:-13px; cursor:ns-resize;}
+  .croph-n{top:-4px;}  .croph-s{bottom:-4px;}
+  .croph-w,.croph-e{top:50%; width:8px; height:26px; margin-top:-13px; cursor:ew-resize;}
+  .croph-w{left:-4px;} .croph-e{right:-4px;}
+  /* Кружечок кольору — біля логотипа, показує сам себе: у ньому стоїть той
+     колір, який зараз під логотипом. Поруч хрестик — зняти фон. */
+  .logobg{display:inline-flex; align-items:center; gap:4px; margin-left:4px;}
+  .logobg-dot{position:relative; width:26px; height:26px; border-radius:50%;
+    border:1px solid #C7D0DE; box-shadow:inset 0 1px 3px rgba(15,32,52,.14); cursor:pointer;
+    padding:0; overflow:hidden; flex:none;}
+  /* Прозорий фон малюємо шахівкою — інакше «немає кольору» і «білий» на око
+     одне й те саме. */
+  .logobg-dot.none{background-image:
+      linear-gradient(45deg,#D9E1EC 25%,transparent 25%,transparent 75%,#D9E1EC 75%),
+      linear-gradient(45deg,#D9E1EC 25%,transparent 25%,transparent 75%,#D9E1EC 75%);
+    background-size:10px 10px; background-position:0 0,5px 5px; background-color:#fff;}
+  .logobg-dot input{position:absolute; inset:0; opacity:0; cursor:pointer; border:0; padding:0;}
   .cropbar{position:absolute; left:50%; top:100%; transform:translate(-50%,10px);
     display:flex; gap:6px; z-index:6; white-space:nowrap;}
   .edlogo-note{flex-basis:100%; margin-top:6px; font-size:12px; line-height:1.4;
@@ -2521,6 +2551,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.querySelectorAll('[data-ed]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
+        if(logoAct(b.dataset.ed)) return;
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
         if(b.dataset.ed === 'closeinline'){
           ctorUnmount(); edOpen = null; render();
@@ -2706,6 +2737,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      видно рівно те, що лишиться. «Готово» вирізає й вивантажує новий файл;
      початковий лишається в замовленні. Частки, а не пікселі: той самий
      виріз відтвориться на будь-якому екрані. */
+  /* Колір фону логотипа. Порожньо означає «без фону» — і це окремий стан, а
+     не білий: логотип із прозорими краями на білому й на прозорому виглядає
+     по-різному, щойно шапка не біла. */
+  function logoBg(){
+    var c = String(OFFER.clientLogoBg || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(c) ? c : '';
+  }
   var edCrop = null;      // { x0, y0, x1, y1 } у частках, поки триває обрізання
   function cropUiHtml(){
     var c = edCrop || { x0:0, y0:0, x1:1, y1:1 };
@@ -2713,7 +2751,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              'width:' + ((c.x1-c.x0)*100) + '%;height:' + ((c.y1-c.y0)*100) + '%';
     return '<span class="cropui" id="cropUi">' +
       '<span class="cropbox" style="' + st + '">' +
-        ['nw','ne','sw','se'].map(function(k){
+        // вісім маркерів: чотири кути й чотири середини сторін
+        ['nw','n','ne','e','se','s','sw','w'].map(function(k){
           return '<i class="croph croph-' + k + '" data-croph="' + k + '"></i>';
         }).join('') +
       '</span>' +
@@ -2722,6 +2761,61 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<button class="edb" data-ed="cropoff">Скасувати</button>' +
       '</span>' +
     '</span>';
+  }
+  /* Дії логотипа, які треба перехопити ДО загального відправлення в адмінку:
+     обрізання живе в самій сторінці, доки менеджер тягає рамку, — у базу йде
+     лише результат. Возити кожен рух туди й назад означало б перемальовувати
+     сторінку на кожен піксель.
+     Один список на обидва режими — і на редагування, і на «Як бачить клієнт».
+     Доти рамку вміла тільки друга з двох гілок, і в режимі редагування
+     обрізання просто не працювало. */
+  function logoAct(a){
+    if(a === 'cropoff'){ edCrop = null; render(); return true; }
+    if(a === 'cropok'){
+      var c = edCrop; edCrop = null; render();
+      if(c) edSend({ act:'logocrop', box: c });
+      return true;
+    }
+    if(a === 'logofillOff'){
+      OFFER.clientLogoBg = ''; render();
+      edSend({ act:'logoFill', color:'' });
+      return true;
+    }
+    return false;
+  }
+  /* Логотип сам відкриває обрізання, а кружечок поруч міняє фон. Обидва
+     потрібні в обох режимах, тож живуть тут, а не в одній із гілок. */
+  function wireLogoTools(){
+    if(!MGR_EDIT_ON()) return;
+    var img = document.querySelector('[data-logo-crop]');
+    if(img) img.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      edCrop = edCrop ? null : { x0:.05, y0:.05, x1:.95, y1:.95 };
+      render();
+    });
+    var inp = document.querySelector('[data-logo-fill]');
+    if(inp){
+      /* Поки крутять палітру — фарбуємо просто на екрані, без перемальовування:
+         перемальовування закрило б саму палітру на першому ж русі. У базу
+         пишемо, коли колір обрано остаточно. */
+      var paint = function(){
+        var c = inp.value;
+        OFFER.clientLogoBg = c;
+        var w = document.querySelector('.hero-logo-wrap');
+        if(w){ w.style.background = c; w.classList.add('has-bg');
+               w.classList.remove('plate-light', 'plate-dark'); }
+        var dot = document.querySelector('.logobg-dot');
+        if(dot){ dot.style.background = c; dot.classList.remove('none'); }
+      };
+      inp.addEventListener('input', paint);
+      inp.addEventListener('change', function(){
+        paint();
+        edSend({ act:'logoFill', color: inp.value });
+        render();          // щоб зʼявився хрестик «без фону»
+      });
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+    wireCropUi();
   }
   function wireCropUi(){
     var ui = document.getElementById('cropUi');
@@ -2737,11 +2831,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var pt = ev.touches ? ev.touches[0] : ev;
           var fx = Math.min(1, Math.max(0, (pt.clientX - r.left) / (r.width || 1)));
           var fy = Math.min(1, Math.max(0, (pt.clientY - r.top) / (r.height || 1)));
-          // Кут тягне свої дві сторони; протилежні лишаються на місці
-          if(k === 'nw' || k === 'sw') edCrop.x0 = Math.min(fx, edCrop.x1 - 0.05);
-          else                          edCrop.x1 = Math.max(fx, edCrop.x0 + 0.05);
-          if(k === 'nw' || k === 'ne') edCrop.y0 = Math.min(fy, edCrop.y1 - 0.05);
-          else                          edCrop.y1 = Math.max(fy, edCrop.y0 + 0.05);
+          /* Маркер рухає ТІЛЬКИ ті сторони, які названі в його ключі:
+             'n' — верх, 'e' — правий край, 'nw' — верх і лівий край разом.
+             Доти маркерів було чотири, самі кути, і підрізати лише зверху
+             було нічим: тягнеш кут — їде й бік. */
+          if(k.indexOf('w') >= 0) edCrop.x0 = Math.min(fx, edCrop.x1 - 0.05);
+          if(k.indexOf('e') >= 0) edCrop.x1 = Math.max(fx, edCrop.x0 + 0.05);
+          if(k.indexOf('n') >= 0) edCrop.y0 = Math.min(fy, edCrop.y1 - 0.05);
+          if(k.indexOf('s') >= 0) edCrop.y1 = Math.max(fy, edCrop.y0 + 0.05);
           box.style.left = (edCrop.x0*100) + '%';
           box.style.top = (edCrop.y0*100) + '%';
           box.style.width = ((edCrop.x1-edCrop.x0)*100) + '%';
@@ -3239,9 +3336,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<div class="hero">' +
         (OFFER.clientLogo
           ? '<span class="hero-logo-wrap' +
-              (OFFER.clientLogoPlate === 'light' ? ' plate-light' : '') +
-              (OFFER.clientLogoPlate === 'dark' ? ' plate-dark' : '') + '">' +
+              (logoBg() ? ' has-bg' : '') +
+              (!logoBg() && OFFER.clientLogoPlate === 'light' ? ' plate-light' : '') +
+              (!logoBg() && OFFER.clientLogoPlate === 'dark' ? ' plate-dark' : '') +
+              (MGR_EDIT_ON() ? ' mgr-logo' : '') + (edCrop ? ' cropping' : '') + '"' +
+              (logoBg() ? ' style="background:' + esc(logoBg()) + '"' : '') + '>' +
               '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
+              (MGR_EDIT_ON() ? 'data-logo-crop="1" title="Натисніть, щоб обрізати" ' : '') +
               (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
               'onerror="this.style.display=\'none\'">' +
               (edCrop ? cropUiHtml() : '') +
@@ -3264,21 +3365,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     '<button class="edb" data-ed="logosm" title="Менший">−</button>' +
                     '<b>' + Math.round(+OFFER.clientLogoSize || 44) + ' px</b>' +
                     '<button class="edb" data-ed="logobg" title="Більший">+</button>' +
-                    /* Логотипи присилають із полями навколо й на білому тлі.
-                       У шапці це видно одразу: лого «плаває» посередині
-                       порожнього прямокутника або лежить білою плиткою. Обидва
-                       лікуються тут, а не листуванням із клієнтом. */
-                    /* Фон логотипа прибирати не треба: він приходить із
-                       конструктора вже прозорим. Потрібне інше — ПІДКЛАДКА:
-                       світлий логотип на світлій шапці зникає, темний на
-                       темній теж. Три стани по колу: без підкладки, біла,
-                       темна. */
-                    '<button class="edb" data-ed="logoplate" ' +
-                      'title="Підкладка під логотип: немає → біла → темна">' +
-                      (OFFER.clientLogoPlate === 'light' ? '▢'
-                       : OFFER.clientLogoPlate === 'dark' ? '▣' : '◌') + '</button>' +
-                    '<button class="edb' + (edCrop ? ' on' : '') + '" data-ed="logocropui" ' +
-                      'title="Обрізати: потягніть за краї">⌗</button>' +
+                    /* Фон логотипа — справжній колір, а не три вгадані стани.
+                       Світлий логотип на світлій шапці зникає, темний на
+                       темній теж, і котрий саме відтінок рятує — видно лише
+                       на екрані. Тому кружечок із палітрою: колір видно в
+                       ньому самому, а хрестик поруч знімає фон зовсім. */
+                    '<span class="logobg">' +
+                      '<span class="logobg-dot' + (logoBg() ? '' : ' none') + '"' +
+                        (logoBg() ? ' style="background:' + esc(logoBg()) + '"' : '') +
+                        ' title="Фон логотипа">' +
+                        '<input type="color" data-logo-fill="1" value="' +
+                          esc(logoBg() || '#FFFFFF') + '">' +
+                      '</span>' +
+                      (logoBg()
+                        ? '<button class="edb" data-ed="logofillOff" ' +
+                          'title="Без фону">✕</button>' : '') +
+                    '</span>' +
                     '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
                   '</span>' : '') +
               '<div class="edlogo-note" id="edlogoNote"></div>' +
@@ -5135,17 +5237,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         var a = b.dataset.ed;
-        /* Обрізання живе в самій сторінці, доки менеджер тягає рамку: у базу
-           йде лише результат. Возити кожен рух до адмінки й назад означало б
-           перемальовувати сторінку на кожен піксель. */
-        if(a === 'logocropui'){ edCrop = edCrop ? null : { x0:.08, y0:.08, x1:.92, y1:.92 };
-          render(); return; }
-        if(a === 'cropoff'){ edCrop = null; render(); return; }
-        if(a === 'cropok'){
-          var c = edCrop; edCrop = null; render();
-          if(c) edSend({ act:'logocrop', box: c });
-          return;
-        }
+        if(logoAct(a)) return;
         edSend({ act: a });
       });
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
@@ -5156,7 +5248,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(ttl) ttl.addEventListener('blur', function(){
       edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
     });
-    wireCropUi();
   }
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){
@@ -5173,6 +5264,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function wire(){
     wireEdit();
     wireHeroEdit();
+    wireLogoTools();
     wireKindSwitch();
     wireVariants();
     tintAll();   // рамки фото беруть колір із самих світлин
