@@ -10403,6 +10403,92 @@ async function offerEdApply(msg){
     inp.click();
     return;
   }
+  /* ── Логотип: обрізати поля та прибрати фон ────────────────────────────
+     Клієнти присилають лого як є: у прямокутнику з широкими прозорими
+     полями або просто на білому тлі. У шапці пропозиції це видно одразу —
+     лого або плаває посеред порожнечі, або лежить білою плиткою на кольорі.
+
+     Обидва лікуються тут, за кілька секунд, а не листуванням «а надішліть,
+     будь ласка, без фону». Файл при цьому не підмінюється: результат
+     вивантажується окремо, і початковий лишається в замовленні. */
+  if(act === 'logocrop' || act === 'logonobg'){
+    const src = String(o.clientLogo || '').trim();
+    if(!src){ toast('Логотипа ще немає'); return; }
+    offerSaveMark('saving');
+    try{
+      const img = await new Promise((res, rej)=>{
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = ()=> res(im);
+        im.onerror = ()=> rej(new Error('файл не відкрився'));
+        im.src = src;
+      });
+      const W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const x = c.getContext('2d', { willReadFrequently:true });
+      x.drawImage(img, 0, 0);
+      let d = x.getImageData(0, 0, W, H);
+      if(act === 'logonobg'){
+        /* Фон беремо з кутів: якщо всі чотири однакові — це справді тло, а
+           не частина малюнка. Інакше нічого не чіпаємо: стерти шматок
+           логотипа гірше, ніж лишити тло. */
+        const at = (px, py)=>{ const i = (py * W + px) * 4; return [d.data[i], d.data[i+1], d.data[i+2], d.data[i+3]]; };
+        const cs = [at(0,0), at(W-1,0), at(0,H-1), at(W-1,H-1)].filter(v => v[3] > 8);
+        const near = (a, b)=> Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[2]-b[2]) < 30;
+        if(cs.length < 3 || !cs.every(v => near(v, cs[0]))){
+          offerSaveMark('ok');
+          toast('Фон неоднорідний — прибирати нічого, обріжте поля або надішліть PNG');
+          return;
+        }
+        const bg = cs[0], TOL = 42;
+        for(let i = 0; i < d.data.length; i += 4){
+          if(d.data[i+3] < 8) continue;
+          const dist = Math.abs(d.data[i]-bg[0]) + Math.abs(d.data[i+1]-bg[1]) + Math.abs(d.data[i+2]-bg[2]);
+          if(dist < TOL) d.data[i+3] = 0;
+        }
+        x.putImageData(d, 0, 0);
+        d = x.getImageData(0, 0, W, H);
+      }
+      // Межі непрозорого — тим самим модулем, що й у конструкторі
+      let box = null;
+      try{
+        const m = window.LQ && window.LQ.measureShape ? window.LQ.measureShape(c) : null;
+        box = m && m.opaqueBox;
+      }catch(e){}
+      let out = c;
+      if(box && box.x1 > box.x0 && box.y1 > box.y0){
+        const sx = Math.max(0, Math.floor(box.x0 * W)), sy = Math.max(0, Math.floor(box.y0 * H));
+        const sw = Math.max(1, Math.ceil((box.x1 - box.x0) * W));
+        const sh = Math.max(1, Math.ceil((box.y1 - box.y0) * H));
+        if(sw < W || sh < H || act === 'logonobg'){
+          const c2 = document.createElement('canvas');
+          c2.width = sw; c2.height = sh;
+          c2.getContext('2d').drawImage(c, sx, sy, sw, sh, 0, 0, sw, sh);
+          out = c2;
+        }
+      }
+      if(out === c && act === 'logocrop'){
+        offerSaveMark('ok');
+        toast('Порожніх полів навколо немає — обрізати нічого');
+        return;
+      }
+      const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+      if(!blob) throw new Error('не вдалось зібрати файл');
+      const url = await uploadCloudinary(new File([blob], 'logo.png', { type:'image/png' }));
+      o.clientLogo = url;
+      if(!Array.isArray(o.logos)) o.logos = [];
+      if(o.logos.indexOf(url) < 0) o.logos.push(url);
+      if(!(await offerEdSave(o))) return;
+      renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+      toast(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
+    }catch(e){
+      console.error('logo edit', e);
+      offerSaveMark('bad');
+      toast('Не вдалось обробити логотип: ' + ((e && e.message) || 'помилка'));
+    }
+    return;
+  }
   if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
     if(act === 'logodel'){ o.clientLogo = ''; }
     else {
