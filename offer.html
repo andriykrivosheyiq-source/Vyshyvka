@@ -1278,6 +1278,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:12px;
     color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
   .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
+  /* Підкладка під логотип і рамка обрізання просто на ньому */
+  .hero-logo-wrap{position:relative; display:inline-block; line-height:0; border-radius:10px;}
+  .hero-logo-wrap.plate-light{background:#fff; padding:8px 12px; box-shadow:0 1px 6px rgba(15,32,52,.12);}
+  .hero-logo-wrap.plate-dark{background:#14171B; padding:8px 12px;}
+  .cropui{position:absolute; inset:0; z-index:5;}
+  .cropbox{position:absolute; border:2px solid #fff; box-shadow:0 0 0 9999px rgba(15,32,52,.55);
+    border-radius:2px;}
+  .croph{position:absolute; width:16px; height:16px; background:#fff; border-radius:4px;
+    box-shadow:0 1px 4px rgba(0,0,0,.35); cursor:nwse-resize;}
+  .croph-nw{left:-8px; top:-8px;}
+  .croph-ne{right:-8px; top:-8px; cursor:nesw-resize;}
+  .croph-sw{left:-8px; bottom:-8px; cursor:nesw-resize;}
+  .croph-se{right:-8px; bottom:-8px;}
+  .cropbar{position:absolute; left:50%; top:100%; transform:translate(-50%,10px);
+    display:flex; gap:6px; z-index:6; white-space:nowrap;}
   .edlogo-note{flex-basis:100%; margin-top:6px; font-size:12px; line-height:1.4;
     color:#B45309; background:#FFF8EC; border:1px solid #F3DFB8; border-radius:8px;
     padding:6px 10px; display:none;}
@@ -2656,6 +2671,71 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Хто може правити шапку: режим редагування або перегляд менеджера.
      Клієнт не потрапляє в жоден із них. */
   function MGR_EDIT_ON(){ return EDIT || MGR_VIEW; }
+  /* ── Обрізання логотипа просто на ньому ────────────────────────────────
+     Кнопка «обрізати порожні поля» вгадувала за менеджера, де ці поля, і
+     здебільшого відповідала «нема чого обрізати». А обрізати треба інакше:
+     подивитись і потягнути за край.
+
+     Тому рамка лягає просто на логотип у шапці. Чотири кути тягнуться,
+     видно рівно те, що лишиться. «Готово» вирізає й вивантажує новий файл;
+     початковий лишається в замовленні. Частки, а не пікселі: той самий
+     виріз відтвориться на будь-якому екрані. */
+  var edCrop = null;      // { x0, y0, x1, y1 } у частках, поки триває обрізання
+  function cropUiHtml(){
+    var c = edCrop || { x0:0, y0:0, x1:1, y1:1 };
+    var st = 'left:' + (c.x0*100) + '%;top:' + (c.y0*100) + '%;' +
+             'width:' + ((c.x1-c.x0)*100) + '%;height:' + ((c.y1-c.y0)*100) + '%';
+    return '<span class="cropui" id="cropUi">' +
+      '<span class="cropbox" style="' + st + '">' +
+        ['nw','ne','sw','se'].map(function(k){
+          return '<i class="croph croph-' + k + '" data-croph="' + k + '"></i>';
+        }).join('') +
+      '</span>' +
+      '<span class="cropbar">' +
+        '<button class="edb" data-ed="cropok">Готово</button>' +
+        '<button class="edb" data-ed="cropoff">Скасувати</button>' +
+      '</span>' +
+    '</span>';
+  }
+  function wireCropUi(){
+    var ui = document.getElementById('cropUi');
+    if(!ui || !edCrop) return;
+    var wrap = ui.parentElement;
+    var box = ui.querySelector('.cropbox');
+    ui.querySelectorAll('[data-croph]').forEach(function(h){
+      var down = function(e){
+        e.preventDefault(); e.stopPropagation();
+        var k = h.dataset.croph;
+        var r = wrap.getBoundingClientRect();
+        var move = function(ev){
+          var pt = ev.touches ? ev.touches[0] : ev;
+          var fx = Math.min(1, Math.max(0, (pt.clientX - r.left) / (r.width || 1)));
+          var fy = Math.min(1, Math.max(0, (pt.clientY - r.top) / (r.height || 1)));
+          // Кут тягне свої дві сторони; протилежні лишаються на місці
+          if(k === 'nw' || k === 'sw') edCrop.x0 = Math.min(fx, edCrop.x1 - 0.05);
+          else                          edCrop.x1 = Math.max(fx, edCrop.x0 + 0.05);
+          if(k === 'nw' || k === 'ne') edCrop.y0 = Math.min(fy, edCrop.y1 - 0.05);
+          else                          edCrop.y1 = Math.max(fy, edCrop.y0 + 0.05);
+          box.style.left = (edCrop.x0*100) + '%';
+          box.style.top = (edCrop.y0*100) + '%';
+          box.style.width = ((edCrop.x1-edCrop.x0)*100) + '%';
+          box.style.height = ((edCrop.y1-edCrop.y0)*100) + '%';
+        };
+        var up = function(){
+          window.removeEventListener('mousemove', move);
+          window.removeEventListener('touchmove', move);
+          window.removeEventListener('mouseup', up);
+          window.removeEventListener('touchend', up);
+        };
+        window.addEventListener('mousemove', move);
+        window.addEventListener('touchmove', move, { passive:false });
+        window.addEventListener('mouseup', up);
+        window.addEventListener('touchend', up);
+      };
+      h.addEventListener('mousedown', down);
+      h.addEventListener('touchstart', down, { passive:false });
+    });
+  }
   var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {}, variant: {}, varQty: {} };
   function variantGroups(){
     var out = [], seen = {};
@@ -3113,9 +3193,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
-          ? '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
-            (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
-            'onerror="this.style.display=\'none\'">' : '') +
+          ? '<span class="hero-logo-wrap' +
+              (OFFER.clientLogoPlate === 'light' ? ' plate-light' : '') +
+              (OFFER.clientLogoPlate === 'dark' ? ' plate-dark' : '') + '">' +
+              '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
+              (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
+              'onerror="this.style.display=\'none\'">' +
+              (edCrop ? cropUiHtml() : '') +
+            '</span>' : '') +
         /* Логотип клієнта — на самій сторінці, а не в службовій панелі
            навколо неї: менеджер ставить його там, де він і стоятиме, і
            одразу бачить, чи не завеликий. Той самий файл далі доступний
@@ -3138,10 +3223,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                        У шапці це видно одразу: лого «плаває» посередині
                        порожнього прямокутника або лежить білою плиткою. Обидва
                        лікуються тут, а не листуванням із клієнтом. */
-                    '<button class="edb" data-ed="logocrop" ' +
-                      'title="Обрізати порожні поля навколо">⌗</button>' +
-                    '<button class="edb" data-ed="logonobg" ' +
-                      'title="Прибрати однорідний фон">◍</button>' +
+                    /* Фон логотипа прибирати не треба: він приходить із
+                       конструктора вже прозорим. Потрібне інше — ПІДКЛАДКА:
+                       світлий логотип на світлій шапці зникає, темний на
+                       темній теж. Три стани по колу: без підкладки, біла,
+                       темна. */
+                    '<button class="edb" data-ed="logoplate" ' +
+                      'title="Підкладка під логотип: немає → біла → темна">' +
+                      (OFFER.clientLogoPlate === 'light' ? '▢'
+                       : OFFER.clientLogoPlate === 'dark' ? '▣' : '◌') + '</button>' +
+                    '<button class="edb' + (edCrop ? ' on' : '') + '" data-ed="logocropui" ' +
+                      'title="Обрізати: потягніть за краї">⌗</button>' +
                     '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
                   '</span>' : '') +
               '<div class="edlogo-note" id="edlogoNote"></div>' +
@@ -4878,10 +4970,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      самої шапки — логотип і заголовок. */
   function wireHeroEdit(){
     if(EDIT || !MGR_EDIT_ON()) return;      // у режимі редагування це робить wireEdit
-    document.querySelectorAll('.edlogo [data-ed]').forEach(function(b){
+    document.querySelectorAll('.edlogo [data-ed], .cropbar [data-ed]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
-        edSend({ act: b.dataset.ed });
+        var a = b.dataset.ed;
+        /* Обрізання живе в самій сторінці, доки менеджер тягає рамку: у базу
+           йде лише результат. Возити кожен рух до адмінки й назад означало б
+           перемальовувати сторінку на кожен піксель. */
+        if(a === 'logocropui'){ edCrop = edCrop ? null : { x0:.08, y0:.08, x1:.92, y1:.92 };
+          render(); return; }
+        if(a === 'cropoff'){ edCrop = null; render(); return; }
+        if(a === 'cropok'){
+          var c = edCrop; edCrop = null; render();
+          if(c) edSend({ act:'logocrop', box: c });
+          return;
+        }
+        edSend({ act: a });
       });
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
         b.addEventListener(t, function(e){ e.stopPropagation(); });
@@ -4891,6 +4995,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(ttl) ttl.addEventListener('blur', function(){
       edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
     });
+    wireCropUi();
   }
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){

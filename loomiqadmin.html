@@ -6343,8 +6343,17 @@ function offerBuild(order){
   /* Логотип у шапці пропозиції. Той, що менеджер поставив свідомо, головніший
      за вгаданий: раніше сюди потрапляв просто перший файл із першої позиції,
      і в шапці міг опинитись не той логотип. */
-  const logo  = String(order.clientLogo || '').trim() ||
-    ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
+  /* Логотип у шапці. Коли менеджер його не ставив, беремо перший файл
+     нанесення — це майже завжди логотип клієнта, і шапка не лишається
+     порожньою.
+
+     Але «прибрав» і «не ставив» — різні речі. Доти вони не розрізнялись:
+     кнопка кошика чистила clientLogo, і той самий файл одразу повертався
+     сюди з першої позиції. Виглядало це так, ніби видалення не працює
+     взагалі. Тепер прибраний логотип лишається прибраним. */
+  const logo  = order.clientLogoOff ? ''
+    : (String(order.clientLogo || '').trim() ||
+       ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '');
   const totalQty = main.reduce((a,i) => a + i.qty, 0);
   const dl = deadlineLabel(totalQty || 1, new Date(),
     [...new Set(main.flatMap(i => i.techniques))]);
@@ -10408,6 +10417,7 @@ async function offerEdApply(msg){
       try{
         const url = await uploadCloudinary(f);
         o.clientLogo = url;
+        o.clientLogoOff = false;      // поставили свідомо — заборона знімається
         if(!Array.isArray(o.logos)) o.logos = [];
         if(o.logos.indexOf(url) < 0) o.logos.push(url);
         if(!(await offerEdSave(o))) return;
@@ -10425,6 +10435,18 @@ async function offerEdApply(msg){
      Обидва лікуються тут, за кілька секунд, а не листуванням «а надішліть,
      будь ласка, без фону». Файл при цьому не підмінюється: результат
      вивантажується окремо, і початковий лишається в замовленні. */
+  /* Підкладка під логотип. Фон прибирати не треба — він приходить із
+     конструктора вже прозорим. Потрібне протилежне: світлий логотип на
+     світлій шапці зникає, темний на темній теж. Три стани по колу. */
+  if(act === 'logoplate'){
+    const cur = String(o.clientLogoPlate || '');
+    o.clientLogoPlate = cur === 'light' ? 'dark' : (cur === 'dark' ? '' : 'light');
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    offerEdNote(o.clientLogoPlate === 'light' ? 'Підкладка: біла'
+              : o.clientLogoPlate === 'dark' ? 'Підкладка: темна' : 'Підкладка прибрана');
+    return;
+  }
   if(act === 'logocrop' || act === 'logonobg'){
     const src = String(o.clientLogo || '').trim();
     if(!src){ toast('Логотипа ще немає'); return; }
@@ -10471,18 +10493,24 @@ async function offerEdApply(msg){
         x.putImageData(d, 0, 0);
         d = x.getImageData(0, 0, W, H);
       }
-      // Межі непрозорого — тим самим модулем, що й у конструкторі
-      let box = null;
-      try{
-        const m = window.LQ && window.LQ.measureShape ? window.LQ.measureShape(c) : null;
-        box = m && m.opaqueBox;
-      }catch(e){}
+      /* Рамку задає менеджер — він її щойно тягав руками на самому
+         логотипі. Автоматичні межі непрозорого лишились запасним шляхом:
+         вони потрібні після прибирання фону, коли рамки ніхто не малював. */
+      let box = (msg.box && +msg.box.x1 > +msg.box.x0 && +msg.box.y1 > +msg.box.y0)
+        ? { x0:+msg.box.x0, y0:+msg.box.y0, x1:+msg.box.x1, y1:+msg.box.y1 }
+        : null;
+      if(!box){
+        try{
+          const m = window.LQ && window.LQ.measureShape ? window.LQ.measureShape(c) : null;
+          box = m && m.opaqueBox;
+        }catch(e){}
+      }
       let out = c;
       if(box && box.x1 > box.x0 && box.y1 > box.y0){
         const sx = Math.max(0, Math.floor(box.x0 * W)), sy = Math.max(0, Math.floor(box.y0 * H));
         const sw = Math.max(1, Math.ceil((box.x1 - box.x0) * W));
         const sh = Math.max(1, Math.ceil((box.y1 - box.y0) * H));
-        if(sw < W || sh < H || act === 'logonobg'){
+        if(sw < W || sh < H || act === 'logonobg' || msg.box){
           const c2 = document.createElement('canvas');
           c2.width = sw; c2.height = sh;
           c2.getContext('2d').drawImage(c, sx, sy, sw, sh, 0, 0, sw, sh);
@@ -10498,6 +10526,7 @@ async function offerEdApply(msg){
       if(!blob) throw new Error('не вдалось зібрати файл');
       const url = await uploadCloudinary(new File([blob], 'logo.png', { type:'image/png' }));
       o.clientLogo = url;
+      o.clientLogoOff = false;
       if(!Array.isArray(o.logos)) o.logos = [];
       if(o.logos.indexOf(url) < 0) o.logos.push(url);
       if(!(await offerEdSave(o))) return;
@@ -10513,7 +10542,11 @@ async function offerEdApply(msg){
     return;
   }
   if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
-    if(act === 'logodel'){ o.clientLogo = ''; }
+    if(act === 'logodel'){
+      o.clientLogo = '';
+      // саме «прибрав», а не «ще не ставив» — інакше повернеться сам
+      o.clientLogoOff = true;
+    }
     else {
       const cur = Math.round(+o.clientLogoSize || 44);
       o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
