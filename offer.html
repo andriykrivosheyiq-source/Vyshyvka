@@ -746,6 +746,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cf-who-note{display:block; margin-top:6px; font-size:12px; color:var(--muted);}
   .pqty-n{margin-top:8px; font-size:13px; color:var(--muted);}
   .pqty-n b{color:var(--good);}
+  /* Тільки для менеджера: чому саме в цій позиції немає перекресленої ціни */
+  .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:8px;
+    padding:6px 9px; font-size:12.5px;}
 
   .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
   .pcard-more>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
@@ -2964,7 +2967,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var q = baseRecoQty(i);
     var live = LIVE && LIVE.reco[i];
     var unit = live ? live.unit : (+r.unitPrice || 0);
-    return { qty:q, unit:unit, sum:unit * q };
+    /* «Було» — те саме, що в основних і у варіантів: ціна цієї позиції,
+       замовленої однією штукою. Адмінка рахує його для рекомендованих так
+       само й давно надсилає — просто картка його не читала, і в блоці, який
+       має продавати, стояла сама лише ціна без жодної вигоди. */
+    var baseUnit = Math.max(+r.baseUnitPrice || 0, unit);
+    return { qty:q, unit:unit, sum:unit * q,
+             base: baseUnit * q, save: Math.max(0, (baseUnit - unit) * q) };
   }
 
   function itemState(i){
@@ -3614,6 +3623,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      сума. Раніше він був лише в основних позиціях, і в деталях варіанта
      арифметики не було взагалі — картка називала ціну, а перевірити її було
      ніде. Стан передається зовні, бо у варіанта він свій. */
+  /* Позиція без розкладу не може мати чесного «було»: ціну для неї колись
+     записали числом, а з чого вона склалась — невідомо, тож порахувати ту
+     саму позицію однією штукою нема з чого. Перекреслену ціну в такому разі
+     не показуємо — вигадана знижка гірша за її відсутність. Але мовчати теж
+     не можна: менеджер бачить, що в одній картці вигода є, а в сусідній ні,
+     і читає це як поломку. Тому кажемо прямо — і тільки йому. */
+  function staleNote(it){
+    if(!MGR_EDIT_ON() || !it || !it.stale) return '';
+    return '<div class="pqty-n is-todo">Старої ціни тут немає: у позиції немає ' +
+      'розкладу. Відкрийте її й збережіть — вигода порахується.</div>';
+  }
   function priceBoxHtml(i, stIn, key){
     var s = stIn || itemState(i);
     return '' +
@@ -3665,6 +3685,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               : '') +
           '</div>' +
         '</div>' +
+        staleNote(it) +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
         (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '</div>' : '') +
         packsHtml(i) +
@@ -3742,7 +3763,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '</div></div>' +
                 (st.save > 0
                   ? '<div class="pqty-n">Вигода ' + money(st.save) + ' на ' + st.qty + ' шт</div>'
-                  : '') +
+                  : '') + staleNote(v) +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
@@ -3828,10 +3849,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="pqty">' +
               '<div class="prow">' +
                 '<div class="prow-l"><span class="pcard-price">' + money(rs.unit) + '</span>' +
-                  '<span class="pcard-per">за штуку</span></div>' +
+                  (rs.qty && rs.base > rs.sum
+                    ? '<span class="pcard-old">' + money(rs.base / rs.qty) + '</span>' +
+                      '<span class="pcard-off">−' +
+                        Math.round((1 - rs.sum / rs.base) * 100) + '%</span>'
+                    : '<span class="pcard-per">за штуку</span>') + '</div>' +
                 '<div class="prow-r"><span class="prow-k">Виготовлення</span>' +
                   '<span class="prow-v">' + curDays() + ' роб. днів</span></div>' +
               '</div>' +
+              (rs.save > 0
+                ? '<div class="pqty-n">Вигода ' + money(rs.save) + ' на ' + rs.qty + ' шт</div>'
+                : '') + staleNote(r) +
               '<div class="pbuy-row">' +
                 '<div class="pstep">' +
                   '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
