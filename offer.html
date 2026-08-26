@@ -2639,6 +2639,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      береться з того порогу, у який кількість потрапляє. */
   /* variant — обраний варіант у кожній групі: { 'Верх': 2 }. Порожньо
      означає «ще не обрали», і тоді група в кошторис не входить узагалі. */
+  /* Хто може правити шапку: режим редагування або перегляд менеджера.
+     Клієнт не потрапляє в жоден із них. */
+  function MGR_EDIT_ON(){ return EDIT || MGR_VIEW; }
   var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {}, variant: {}, varQty: {} };
   function variantGroups(){
     var out = [], seen = {};
@@ -3102,7 +3105,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            навколо неї: менеджер ставить його там, де він і стоятиме, і
            одразу бачить, чи не завеликий. Той самий файл далі доступний
            товарам у конструкторі. */
-        (EDIT
+        /* Правки шапки доступні і в режимі «Як бачить клієнт»: саме там
+           менеджер дивиться на пропозицію очима клієнта й саме там бачить,
+           що логотип завеликий або заголовок не той. Клієнту ці кнопки не
+           дістаються ніколи — MGR_VIEW вмикає лише адмінка, своїм
+           повідомленням у кадр. */
+        (MGR_EDIT_ON()
           ? '<div class="edlogo">' +
               '<button class="edb" data-ed="logo">' +
                 (OFFER.clientLogo ? 'Замінити лого' : '＋ Завантажити лого') + '</button>' +
@@ -3117,7 +3125,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
         '<h1' + (hsz ? ' style="font-size:' + hsz.toFixed(2) + 'em"' : '') +
-          (EDIT ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
+          (MGR_EDIT_ON() ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
           esc(title) + '</h1>' +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
@@ -4817,6 +4825,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     });
   }
+  /* Правки шапки в режимі «Як бачить клієнт». Повний wireEdit сюди не
+     годиться: він вмикає ще й редактор позиції просто в картці, а в режимі
+     перегляду це вже не перегляд. Тому окремо й лише те, що стосується
+     самої шапки — логотип і заголовок. */
+  function wireHeroEdit(){
+    if(EDIT || !MGR_EDIT_ON()) return;      // у режимі редагування це робить wireEdit
+    document.querySelectorAll('.edlogo [data-ed]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        edSend({ act: b.dataset.ed });
+      });
+      ['pointerdown','mousedown','touchstart'].forEach(function(t){
+        b.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
+    var ttl = document.querySelector('[data-ed-title]');
+    if(ttl) ttl.addEventListener('blur', function(){
+      edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
+    });
+  }
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){
       b2.addEventListener('click', function(e){
@@ -4831,6 +4859,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function wire(){
     wireEdit();
+    wireHeroEdit();
     wireKindSwitch();
     wireVariants();
     tintAll();   // рамки фото беруть колір із самих світлин

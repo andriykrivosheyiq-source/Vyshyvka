@@ -930,13 +930,31 @@
         '<label class="why-l" for="whyText" id="whyLabel">Підпис до позиції — клієнт це побачить</label>' +
         '<textarea class="why-t" id="whyText" rows="3"></textarea>' +
       '</div>';
-    var sum = main.reduce(function(a, it){ return a + (+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)); }, 0);
+    var lineSum = function(it){ return (+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)); };
+    var sum = main.reduce(function(a, it){ return a + lineSum(it); }, 0);
     var qty = main.reduce(function(a, it){ return a + (+it.qty || 0); }, 0);
-    document.getElementById('listSum').textContent = money(sum);
-    document.getElementById('listMeta').textContent = main.length
-      ? (qty + ' шт · ' + main.length + ' ' + (main.length === 1 ? 'позиція'
-          : (main.length < 5 ? 'позиції' : 'позицій')))
-      : 'порожня пропозиція';
+    /* Варіанти в суму не додаються — клієнт візьме один із групи. Але й
+       мовчати про них не можна: пропозиція, зібрана з самих варіантів,
+       показувала «0 грн · порожня пропозиція» й не мінялась ні від чого.
+       Тому сума стає вилкою: найдешевший вибір — найдорожчий. */
+    var groups = variantGroups();
+    var lo = 0, hi = 0, vq = 0;
+    groups.forEach(function(g){
+      var sums = g.idx.map(function(i){ return lineSum(itemsOf('variant')[i]); });
+      if(!sums.length) return;
+      lo += Math.min.apply(null, sums);
+      hi += Math.max.apply(null, sums);
+      vq += (+(itemsOf('variant')[g.idx[0]] || {}).qty || 0);
+    });
+    document.getElementById('listSum').textContent = (lo && lo !== hi)
+      ? (money(sum + lo).replace(' грн', '') + ' – ' + money(sum + hi))
+      : money(sum + lo);
+    var parts = [];
+    if(main.length) parts.push(qty + ' шт · ' + main.length + ' ' +
+      (main.length === 1 ? 'позиція' : (main.length < 5 ? 'позиції' : 'позицій')));
+    if(groups.length) parts.push(vq + ' шт · ' + groups.length + ' ' +
+      (groups.length === 1 ? 'група на вибір' : (groups.length < 5 ? 'групи на вибір' : 'груп на вибір')));
+    document.getElementById('listMeta').textContent = parts.join(' + ') || 'порожня пропозиція';
     box.querySelectorAll('[data-pick]').forEach(function(el){
       el.addEventListener('click', function(){
         var p = el.dataset.pick.split(':');
