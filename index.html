@@ -1223,14 +1223,30 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-crop-wrap{position:relative;display:inline-block;max-width:100%;max-height:100%;}
   .pm-crop-wrap img{display:block;max-width:100%;max-height:64vh;user-select:none;-webkit-user-drag:none;
     background:#fff;border-radius:6px;}
-  .pm-crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);
-    cursor:move;touch-action:none;}
-  .pm-crop-h{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;
-    box-shadow:0 1px 5px rgba(0,0,0,.35);touch-action:none;}
-  .pm-crop-h[data-h="nw"]{left:-12px;top:-12px;cursor:nwse-resize;}
-  .pm-crop-h[data-h="ne"]{right:-12px;top:-12px;cursor:nesw-resize;}
-  .pm-crop-h[data-h="sw"]{left:-12px;bottom:-12px;cursor:nesw-resize;}
-  .pm-crop-h[data-h="se"]{right:-12px;bottom:-12px;cursor:nwse-resize;}
+  /* Лінія різу — волосяна, в один піксель, і маркери її НЕ затуляють: вони
+     відсунуті назовні. Доти рамка була в два пікселі, а круглі маркери лежали
+     просто на ній — край різу ховався під ними, і влучити «саме туди» було
+     нічим. Видно рівно ту лінію, по якій ріже. */
+  .pm-crop-rect{position:absolute;outline:1px solid #fff;outline-offset:-1px;
+    box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:move;touch-action:none;}
+  .pm-crop-h{position:absolute;background:#fff;border-radius:3px;
+    box-shadow:0 1px 5px rgba(0,0,0,.45);touch-action:none;}
+  .pm-crop-h[data-h="nw"],.pm-crop-h[data-h="ne"],
+  .pm-crop-h[data-h="sw"],.pm-crop-h[data-h="se"]{width:14px;height:14px;}
+  .pm-crop-h[data-h="nw"]{left:-16px;top:-16px;cursor:nwse-resize;}
+  .pm-crop-h[data-h="ne"]{right:-16px;top:-16px;cursor:nesw-resize;}
+  .pm-crop-h[data-h="sw"]{left:-16px;bottom:-16px;cursor:nesw-resize;}
+  .pm-crop-h[data-h="se"]{right:-16px;bottom:-16px;cursor:nwse-resize;}
+  .pm-crop-h[data-h="n"],.pm-crop-h[data-h="s"]{left:50%;width:30px;height:6px;
+    margin-left:-15px;cursor:ns-resize;}
+  .pm-crop-h[data-h="n"]{top:-11px;}
+  .pm-crop-h[data-h="s"]{bottom:-11px;}
+  .pm-crop-h[data-h="w"],.pm-crop-h[data-h="e"]{top:50%;width:6px;height:30px;
+    margin-top:-15px;cursor:ew-resize;}
+  .pm-crop-h[data-h="w"]{left:-11px;}
+  .pm-crop-h[data-h="e"]{right:-11px;}
+  .pm-crop-info{color:rgba(255,255,255,.86);font-size:12.5px;text-align:center;
+    padding:0 16px 10px;font-variant-numeric:tabular-nums;}
   .pm-crop-bar{display:flex;gap:10px;padding:0 16px calc(20px + env(safe-area-inset-bottom));}
   .pm-crop-btn{flex:1;padding:14px;border-radius:12px;border:none;background:#fff;color:#0f2034;
     font:inherit;font-size:15px;font-weight:700;cursor:pointer;}
@@ -1328,6 +1344,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-dl-handle--delete{top:-14px;left:-14px;}
   .pm-dl-handle--rotate{top:-14px;right:-14px;cursor:grab;}
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
+  /* Обрізати — четверта ручка шару, поруч із рештою */
+  .pm-dl-handle--crop{bottom:-14px;left:-14px;cursor:pointer;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
   /* Стрілки — по краях фото, як і були: саме вони перемикають. */
   .pm-side-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;
@@ -3414,13 +3432,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="pm-crop-wrap" id="pmCropWrap">
           <img id="pmCropImg" alt="">
           <div class="pm-crop-rect" id="pmCropRect">
-            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="ne"></span>
-            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="se"></span>
+            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="n"></span>
+            <span class="pm-crop-h" data-h="ne"></span><span class="pm-crop-h" data-h="e"></span>
+            <span class="pm-crop-h" data-h="se"></span><span class="pm-crop-h" data-h="s"></span>
+            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="w"></span>
           </div>
         </div>
       </div>
+      <div class="pm-crop-info" id="pmCropInfo"></div>
       <div class="pm-crop-bar">
         <button type="button" id="pmCropCancel" class="pm-crop-btn pm-crop-btn--ghost">Скасувати</button>
+        <button type="button" id="pmCropSnap" class="pm-crop-btn pm-crop-btn--ghost">Впритул</button>
         <button type="button" id="pmCropOk" class="pm-crop-btn">Обрізати</button>
       </div>
     </div>
@@ -6417,11 +6439,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
-<script src="loomiq-fingerprint.js?v=ff51435463"></script>
-<script src="loomiq-pricing.js?v=ff51435463"></script>
+<script src="loomiq-fingerprint.js?v=5a375a0e13"></script>
+<script src="loomiq-pricing.js?v=5a375a0e13"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=ff51435463"></script>
+<script src="loomiq-constructor.js?v=5a375a0e13"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
