@@ -6373,8 +6373,16 @@ function offerTiers(order, itemIdx){
 /* Розмірна сітка виробу: заголовки колонок і рядки. Формат той самий, що в
    адмінці, — переносимо як є, без перетворень: щойно вони розійдуться,
    клієнт побачить одні числа, а на сайті стоятимуть інші. */
+/* Який саме виріб у цій позиції. У позицій, зібраних конструктором, id лежить
+   у config — на самій позиції його немає. Решта адмінки давно бере обидва
+   місця (постачальник виробу, ціна голого виробу), а опис, характеристики й
+   розмірна сітка дивились ЛИШЕ на it.garmentId. Тому в пропозиції їх не було
+   взагалі: менеджер заповнив картку товару, а КП мовчки нічого не знаходило. */
+function itemGarmentId(it){
+  return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
+}
 function itemSizeChart(it){
-  const gid = it && it.garmentId;
+  const gid = itemGarmentId(it);
   const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
   if(!Array.isArray(rows) || !rows.length) return null;
   const cols = (contentData.sizechartCols && contentData.sizechartCols[gid]) || null;
@@ -6390,15 +6398,26 @@ function itemSizeChart(it){
    Обрізали на 700 символах — рівно на цьому місці й закінчувався абзац про
    щільність, і в пропозиції опис уривався на півслові. */
 function itemAbout(it){
-  const gid = it && it.garmentId;
+  const gid = itemGarmentId(it);
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
   return String(t || '').trim().slice(0, 1600);
 }
+/* Характеристики товару — тканина, щільність, крій. Коли менеджер задав свої
+   в картці товару, беремо їх. Коли ні — беремо ті самі типові, що показує
+   картка товару на сайті: інакше клієнт бачить на сайті склад і фасон, а в
+   іменній пропозиції — порожньо, ніби про цей виріб нічого не відомо.
+   Один список на обидві сторони, щоб вони не могли розійтись. */
+const GARMENT_SPECS_FALLBACK = [
+  { label:'Матеріал',  value:'100% бавовна' },
+  { label:'Щільність', value:'240 г/м²' },
+  { label:'Крій',      value:'оверсайз' },
+  { label:'Формат',    value:'унісекс' },
+  { label:'Нанесення', value:'DTF друк та вишивка' }
+];
 function itemSpecs(it){
-  const gid = it && it.garmentId;
+  const gid = itemGarmentId(it);
   const custom = gid && contentData.specs && contentData.specs[gid];
-  const rows = (custom && custom.length) ? custom : null;
-  if(!rows) return [];
+  const rows = (custom && custom.length) ? custom : GARMENT_SPECS_FALLBACK;
   /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
      картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
      догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
