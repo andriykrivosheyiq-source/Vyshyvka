@@ -1278,6 +1278,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:12px;
     color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
   .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
+  .edlogo-note{flex-basis:100%; margin-top:6px; font-size:12px; line-height:1.4;
+    color:#B45309; background:#FFF8EC; border:1px solid #F3DFB8; border-radius:8px;
+    padding:6px 10px; display:none;}
+  .edlogo-note.show{display:block;}
   [data-ed-title]{outline:none;border-radius:8px;}
   [data-ed-title]:focus{box-shadow:0 0 0 2px #4F5FD4;}
   .edempty{font-size:15px;line-height:1.6;color:#6B7686;background:#F4F7FB;
@@ -2036,6 +2040,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   window.addEventListener('message', function(e){
     var d = e.data;
     if(!d || !d.lqEditInit || window.parent === window) return;
+    /* Відповідь на дію — просто під кнопками, які натиснули. Тост живе в
+       адмінці, а вона за цим кадром: сказане там менеджер не бачить. */
+    if(d.note !== undefined){
+      var nb = document.getElementById('edlogoNote');
+      if(nb){
+        nb.textContent = String(d.note || '');
+        nb.classList.toggle('show', !!d.note);
+        clearTimeout(nb.__t);
+        nb.__t = setTimeout(function(){ nb.classList.remove('show'); }, 6000);
+      }
+      return;
+    }
     if(d.catalog) EDIT_CATALOG = d.catalog;
     /* Свіжі дані замість перезавантаження кадру. Доти кожна правка — навіть
        «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
@@ -3128,6 +3144,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                       'title="Прибрати однорідний фон">◍</button>' +
                     '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
                   '</span>' : '') +
+              '<div class="edlogo-note" id="edlogoNote"></div>' +
             '</div>' : '') +
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
