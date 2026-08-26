@@ -1549,6 +1549,16 @@
     }
     if(!d || !d.lqEditInit || window.parent === window) return;
     if(d.doSave){ onSaveRequest(); return; }
+    /* Відповідь на дію переказуємо далі, у клієнтський кадр: натискали
+       там, і читати результат мають теж там. */
+    if(d.note !== undefined){
+      try{
+        var nf = document.getElementById('clientFrame');
+        if(nf && !nf.classList.contains('hide') && nf.contentWindow)
+          nf.contentWindow.postMessage({ lqEditInit:true, note: d.note }, '*');
+      }catch(e){}
+      return;
+    }
     if(d.catalog) CATALOG = d.catalog;
     if(d.clientUrl) CLIENT_URL = d.clientUrl;
     if(d.seed !== undefined) window.__adminSeedItem = d.seed;

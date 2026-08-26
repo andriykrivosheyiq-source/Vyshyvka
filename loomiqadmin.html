@@ -1216,7 +1216,13 @@
   .form-strip{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;}
   @media (min-width:560px){.form-strip{grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:50;}
+  /* Повідомлення мусить бути видно ЗАВЖДИ, зокрема поверх редактора
+     пропозиції (z-index 1300) і вікна конструктора (1400). Доти воно мало 50
+     і ховалось під ними: менеджер тиснув кнопку, дія відпрацьовувала й
+     чесно казала результат — а сказане лишалось за екраном. Найгірше це
+     виглядало там, де результат «нічого робити не треба»: нічого не
+     змінилось і ніхто нічого не пояснив. */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:9500;max-width:min(560px,92vw);text-align:center;line-height:1.4;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   .deadline-pill{display:flex;align-items:center;gap:10px;background:#1E293B;border-radius:10px;padding:12px 14px;margin-top:12px;}
@@ -9621,6 +9627,14 @@ function offerEdClose(){
    Повертає false, якщо кадр ще не готовий, — тоді викликаємо повне
    перечитування, як раніше. */
 let offerEdCloseInline = false;   // правку зберегли — редактор у картці згорнути
+/* Сказати щось у кадр, де менеджер зараз дивиться. Тост в адмінці — це
+   інше вікно: поки відкритий редактор, він за ним, і побачити його можна,
+   лише закривши редактор. А відповідь потрібна там, де натиснули. */
+function offerEdNote(text){
+  const f = document.querySelector('#offerEd iframe');
+  if(!f || !f.contentWindow) return;
+  try{ f.contentWindow.postMessage({ lqEditInit:true, note: String(text || '') }, '*'); }catch(e){}
+}
 function offerEdPush(o){
   const f = document.querySelector('#offerEd iframe');
   if(!f || !f.contentWindow) return false;
@@ -10440,12 +10454,12 @@ async function offerEdApply(msg){
           /* Кути прозорі — фон уже прибрано. Казати «неоднорідний» тут
              неправда й збиває з пантелику: людина тисне кнопку ще раз. */
           offerSaveMark('ok');
-          toast('Фон уже прозорий — прибирати нічого');
+          toast('Фон уже прозорий — прибирати нічого'); offerEdNote('Фон уже прозорий — прибирати нічого');
           return;
         }
         if(cs.length < 3 || !cs.every(v => near(v, cs[0]))){
           offerSaveMark('ok');
-          toast('Фон неоднорідний — по кутах різні кольори. Стерти шматок логотипа гірше, ніж лишити тло');
+          toast('Фон неоднорідний — по кутах різні кольори'); offerEdNote('Фон неоднорідний — по кутах різні кольори. Стерти шматок логотипа гірше, ніж лишити тло');
           return;
         }
         const bg = cs[0], TOL = 42;
@@ -10477,7 +10491,7 @@ async function offerEdApply(msg){
       }
       if(out === c && act === 'logocrop'){
         offerSaveMark('ok');
-        toast('Логотип уже впритул — порожніх полів навколо немає');
+        toast('Логотип уже впритул'); offerEdNote('Логотип уже впритул — порожніх полів навколо немає');
         return;
       }
       const blob = await new Promise(res => out.toBlob(res, 'image/png'));
@@ -10489,10 +10503,12 @@ async function offerEdApply(msg){
       if(!(await offerEdSave(o))) return;
       renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
       toast(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
+      offerEdNote(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
     }catch(e){
       console.error('logo edit', e);
       offerSaveMark('bad');
       toast('Не вдалось обробити логотип: ' + ((e && e.message) || 'помилка'));
+      offerEdNote('Не вдалось обробити логотип: ' + ((e && e.message) || 'помилка'));
     }
     return;
   }
