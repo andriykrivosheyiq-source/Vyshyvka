@@ -483,7 +483,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
   /* Фото має йти від краю до краю картки, тож відступ живе не на самій
      картці, а на її вмісті — окрім стрічки фото. */
-  .pcard{border:1px solid var(--line); border-radius:18px; padding:14px 0 0; background:#fff;
+  /* Верхнього відступу немає: фото починається від самого краю картки, і
+     заокруглення лягає просто на знімок. Доти над стрічкою стояла біла
+     смуга в 14px — рамка заокруглювалась по порожньому місцю, і картка
+     виглядала так, ніби фото в ній відклеїлось від верху.
+     Коли фото немає, відступ дає .pcard-info своїм margin-top. */
+  .pcard{border:1px solid var(--line); border-radius:18px; padding:0 0 0; background:#fff;
     margin-bottom:12px; overflow:hidden;}
   .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
   .pcard > .pcard-more{padding-bottom:14px;}
@@ -3316,15 +3321,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
      Якщо картинка з чужого домену й полотно «отруєне» — просто лишаємо біле:
      краще рівний білий, ніж помилка в консолі. */
+  /* Колір читаємо не з видимої картинки, а з її копії, завантаженої з
+     дозволом на читання пікселів. Без цього дозволу браузер «отруює»
+     полотно навіть тоді, коли сервер картинок читати дозволяє, — і колір
+     не діставався ЖОДНОГО разу: рамка мовчки лишалась білою, а виріб
+     висів на ній прямокутником. Ставити дозвіл на саму видиму картинку
+     не можна: якби сервер його не дав, зникло б фото, а не лише колір. */
   function frameTint(img){
     if(!img || img.dataset.tinted) return;
     img.dataset.tinted = '1';
-    var go = function(){
+    var go = function(src){
       try{
         var c = document.createElement('canvas'), n = 12;
         c.width = n; c.height = n;
         var g = c.getContext('2d');
-        g.drawImage(img, 0, 0, n, n);
+        g.drawImage(src, 0, 0, n, n);
         var d = g.getImageData(0, 0, n, n).data;
         // Беремо рамку в один піксель по периметру — там майже завжди фон
         var pts = [], i, x, y;
@@ -3344,8 +3355,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(img.parentNode) img.parentNode.style.background = 'rgb(' + r + ',' + gg + ',' + b + ')';
       }catch(e){ /* полотно з чужого домену — лишаємо як є */ }
     };
-    if(img.complete && img.naturalWidth) go();
-    else img.addEventListener('load', go, { once:true });
+    var start = function(){
+      var url = img.currentSrc || img.src;
+      if(!url) return;
+      /* data: і той самий домен читаються напряму — зайвий запит ні до чого */
+      if(url.indexOf('data:') === 0 || url.indexOf(location.origin) === 0){ go(img); return; }
+      var probe = new Image();
+      probe.crossOrigin = 'anonymous';
+      probe.onload = function(){ go(probe); };
+      probe.onerror = function(){ /* сервер не дає читати — лишаємо як є */ };
+      probe.src = url;
+    };
+    if(img.complete && img.naturalWidth) start();
+    else img.addEventListener('load', start, { once:true });
   }
   function tintAll(){
     document.querySelectorAll('.pgal-i img, .rc-ph img').forEach(frameTint);
@@ -3724,9 +3746,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<h2 class="sec-title">Оберіть варіант</h2>' +
       groups.map(function(g){
         var chosen = pick.variant[g.name];
+        /* Назва групи потрібна лише тоді, коли груп кілька — інакше вона
+           переказує заголовок «Оберіть варіант», що стоїть рядком вище.
+           Бейджа «ще не обрано» немає зовсім: стан і так написаний на кнопці
+           кожної картки, а вгорі він лише додавав блоку висоти. */
         return '<div class="vgroup">' +
-          '<div class="vgroup-h">' + esc(g.name) +
-            (chosen == null ? '<em>ще не обрано</em>' : '') + '</div>' +
+          (groups.length > 1 ? '<div class="vgroup-h">' + esc(g.name) + '</div>' : '') +
           g.idx.map(function(i){
             var v = OFFER.variants[i], st = varState(i);
             var on = String(chosen) === String(i);
