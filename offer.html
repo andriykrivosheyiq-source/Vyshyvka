@@ -703,6 +703,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
     padding:3px 8px; margin-bottom:7px;}
   .pcard.is-taken .pcard-tag{color:#0F5C34; background:#DCF4E6;}
+  /* Та сама позначка, але на фото: підкладка щільніша, бо під нею знімок */
+  .pgal-tag{position:absolute; left:8px; top:8px; z-index:3; font-size:10.5px;
+    font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#7A6538;
+    background:rgba(253,240,213,.95); border-radius:6px; padding:3px 8px;
+    pointer-events:none; box-shadow:0 1px 3px rgba(20,30,50,.10);}
+  .pcard.is-taken .pgal-tag{color:#0F5C34; background:rgba(220,244,230,.95);}
   /* Невзятий варіант тримається тихіше за погоджені позиції — але не
      блідне: ціну на ньому й читають. Різницю несе рамка, не прозорість. */
   .pcard.is-opt{border-style:dashed;}
@@ -3353,7 +3359,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return { id:'v'+k, img:src, label:label(k), auto:k, show:true };
     });
   }
-  function galleryHtml(it, idx, kind){
+  /* tag — позначка «варіант на вибір». Вона лягає НА фото, у лівий верхній
+     кут першого кадру, а не окремим рядком над назвою. Рядком вона додавала
+     картці висоти, і в блоці порівняння, де карток кілька поспіль, кожна
+     через це розтягувалась. На фото місце вже є, і читається вона там
+     першою — саме тоді, коли око ще на знімку. */
+  function galleryHtml(it, idx, kind, tag){
     var all = viewsOf(it);
     /* Клієнт бачить тільки ті ракурси, які менеджер лишив показаними, і тільки
        зі знімком: порожня рамка в пропозиції читається як помилка, а
@@ -3378,6 +3389,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             : '<span class="pgal-plus">＋<i>фото</i></span>') +
           (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
                 (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
+          (tag && k === 0 ? '<span class="pgal-tag">' + esc(tag) + '</span>' : '') +
         '</div>';
       }).join('') +
       /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
@@ -3453,6 +3465,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Колір виробу — те, про що питають першим, а стояв він лише дрібним
        підписом під назвою. У деталях йому місце нарівні з тканиною. */
     if(it.color) rows.push(['Колір виробу', it.color, 'spec']);
+    /* Спершу сам виріб — тканина, щільність, крій, — і аж потім те, що ми з
+       ним робимо. Доти характеристики стояли останніми, після нанесення й
+       розмірного ряду: питання «а це взагалі яка тканина і який фасон»
+       виникає першим, а відповідь була найнижчою в списку. */
+    (it.specs || []).forEach(function(sp){
+      if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
+    });
     (it.sides || []).forEach(function(s){
       if(!s.side && !s.technique) return;
       var val = [];
@@ -3467,9 +3486,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var stSp = stIn || itemState(i);
     if(it.sizes) rows.push(['Розмірний ряд',
       stSp.changed ? 'узгодимо з вами' : it.sizes, 'size']);
-    (it.specs || []).forEach(function(sp){
-      if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
-    });
     var about = aboutHtml(it), chart = chartHtml(it);
     if(!rows.length) return about + chart;
     var ICO = {
@@ -3697,11 +3713,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                вона була компактною плиткою, і виявилось, що порівнювати
                нема чим: ні тканини, ні розмірів нанесення, ні спини. А
                порівняння — це рівно те, заради чого блок існує. */
+            var vtag = on ? 'обрано' : 'варіант на вибір';
+            var vgal = galleryHtml(v, 'v' + i, 'variant', vtag);
             return '<div class="pcard is-var' + (on ? ' is-taken' : '') + '">' +
-              galleryHtml(v, 'v' + i, 'variant') +
+              vgal +
               '<div class="pcard-info">' +
                 '<div class="pcard-head">' +
-                  '<div class="pcard-tag">' + (on ? 'обрано' : 'варіант на вибір') + '</div>' +
+                  // фото немає — позначці ніде лягти, лишаємо її над назвою
+                  (vgal ? '' : '<div class="pcard-tag">' + vtag + '</div>') +
                   '<h3 class="pcard-name">' + esc(v.name) + '</h3>' +
                   (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
                   (v.recoNote ? '<div class="pcard-why">' + esc(v.recoNote) + '</div>' : '') +
@@ -3750,14 +3769,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var st = itemState(i);
           var tech = (it.techniques || []).join(', ') || it.print || '';
           var main = (it.mockups || [])[0] || '';
+          var otag = it.optional ? (isOn(i) ? 'обрано' : 'варіант на вибір') : '';
+          var ogal = galleryHtml(it, i, 'main', otag);
           return '<div class="pcard' + (it.optional ? ' is-opt' : '') +
                  (it.optional && isOn(i) ? ' is-taken' : '') + '">' +
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
-            galleryHtml(it, i, 'main') +
+            ogal +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
-                (it.optional
-                  ? '<div class="pcard-tag">' + (isOn(i) ? 'обрано' : 'варіант на вибір') + '</div>'
+                (otag && !ogal
+                  ? '<div class="pcard-tag">' + otag + '</div>'
                   : '') +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
                 (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
