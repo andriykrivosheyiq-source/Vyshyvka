@@ -1208,12 +1208,37 @@
       return window.__pmEditIndex;
     }
     // Дескриптори того, що вже лежить у кошику
+    /* ── Чи рахується ця позиція разом із поточною ──────────────────────
+       Рекомендовані не рахуються ніколи: клієнт їх ще не додав.
+
+       Варіанти — залежно від групи. Два варіанти ОДНІЄЇ групи не існують
+       разом: клієнт візьме щось одне. Складати їх в один тираж означало б
+       поділити підготовку макета на вироби, яких не буде: п'ять базових і
+       п'ять оверсайзів давали макет ÷10 замість ÷5, і ціна виходила нижчою
+       за справжню. Варіанти ЧУЖИХ груп лишаються — «верх» і «головний убір»
+       справді беруть разом. */
+    function draftGroupOf(){
+      var idx = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
+      var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var cur = (idx != null && idx >= 0) ? list[idx] : null;
+      return (cur && cur.kind === 'variant') ? (cur.vgroup || 'Варіанти на вибір') : null;
+    }
+    function countsWithDraft(it){
+      if(!it || it.kind === 'reco') return false;
+      if(it.kind !== 'variant') return true;
+      var mine = draftGroupOf();
+      // сама чернетка — варіант: конкурентів із її групи не беремо
+      if(mine != null) return (it.vgroup || 'Варіанти на вибір') !== mine;
+      // чернетка не варіант: чужі варіанти в тираж не входять, їх ще не обрали
+      return false;
+    }
     function cartDescriptors(){
+
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
       // Позицію, яку зараз редагують, не рахуємо двічі: у списку вона є як чернетка.
       // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
       var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
-      return list.filter(function(it, i){ return it.kind !== 'reco' && i !== skip; })
+      return list.filter(function(it, i){ return i !== skip && countsWithDraft(it); })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
     /* Список описів РАЗОМ із чернеткою, і чернетка стоїть на своєму місці.
@@ -1235,8 +1260,8 @@
       if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([d]);
       var out = [], at = -1;
       list.forEach(function(it, i){
-        if(it.kind === 'reco') return;
         if(i === skip){ at = out.length; out.push(d); return; }
+        if(!countsWithDraft(it)) return;
         if(it.desc) out.push(it.desc);
       });
       if(at < 0) out.push(d);
@@ -6187,6 +6212,13 @@
        суцільна пляма чи тонкий контур на непрозорому фоні. */
     /* Шматки поточного напису — за ними видно, чи справді збереглися різні
        кеглі й кольори всередині одного напису, чи це лише розмітка на екрані. */
+    /* З якими позиціями рахується поточна чернетка. Найчастіше питання —
+       «чому макет ділиться на десять, а не на п'ять»: відповідь саме в цьому
+       списку, і без нього її нізвідки взяти. */
+    window.__lqCartDesc = function(){
+      try{ return descriptorsWithDraft(draftDescriptor()).map(function(x){
+        return { units:x.units, base:x.base }; }); }catch(e){ return null; }
+    };
     window.__lqTextRuns = function(){
       try{
         var l = activeTextLayer();
