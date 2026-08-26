@@ -6700,11 +6700,32 @@ function offerClean(v){
    за якою лежав попередній варіант — з іншим заголовком, іншими датами й
    іншим логотипом. Тепер спершу кажемо «оновлюємо», потім записуємо, і аж
    тоді — «можна надсилати». Не записалось — так і кажемо. */
+/* Що саме має збігтися між тим, що бачить менеджер, і тим, що лежить за
+   посиланням. Не весь документ — лише те, на що дивляться очима: заголовок,
+   логотип, терміни, склад і сума. Якщо розійшлося хоч одне, «збережено»
+   казати не можна. */
+function offerStamp(d){
+  const t = (d && d.terms) || {};
+  return JSON.stringify([
+    d && d.heroTitle, d && d.clientLogo, d && d.clientLogoSize, d && d.clientLogoBg,
+    t.deadlineDays, t.validUntil, t.readyAt,
+    (d && d.items || []).length, (d && d.variants || []).length,
+    ((d && d.totals) || {}).total
+  ]);
+}
 async function offerLinkCopy(order){
   const link = offerUrl(order);
   copyText(link, 'Посилання скопійовано — оновлюємо сторінку…');
   try{
-    await offerSave(order);
+    const doc = await offerSave(order);
+    /* Перечитуємо те, що реально лягло в базу, і звіряємо. Обіцянка «можна
+       надсилати» коштує рівно стільки, скільки коштує ця перевірка: доти ми
+       казали її, не глянувши, що там насправді. */
+    const snap = await fbDb.collection('offers').doc(order.offerToken).get();
+    const got = snap.exists ? snap.data() : null;
+    if(!got) throw new Error('за посиланням порожньо');
+    if(offerStamp(got) !== offerStamp(doc))
+      throw new Error('за посиланням лягло не те, що на екрані');
     toast('Посилання скопійовано — сторінку оновлено, можна надсилати');
     offerEdNote('');
   }catch(e){
@@ -10462,31 +10483,42 @@ async function offerEdSave(o){
      порогом сусідні позиції лишались зі старою ціною. */
   repriceOrder(o);
   recalcOrderTotals(o);
-  let saved = true;
+  /* Два різні записи, і плутати їх не можна.
+     Картка замовлення — для нас; документ пропозиції — те, що бачить клієнт
+     за посиланням. Доти вони йшли одним ланцюжком: не записалась картка —
+     і документ пропозиції навіть не пробували записати. Виходило найгірше:
+     менеджер бачить свої правки на екрані, а клієнт за посиланням — ні.
+     Тепер пробуємо ОБИДВА, і кажемо про кожен окремо. */
+  let cardErr = null, offerErr = null, size = 0;
   try{
     /* saveOrders не кидає винятком — вона повертає список карток, які не
        записались. Доти цей список тут ніхто не дивився: картка лишалась
-       незбереженою, а робоче місце казало «ок». Саме звідси й бралось
-       «зберігаю, а в посиланні старе»: у базу нічого не поїхало. */
+       незбереженою, а робоче місце казало «ок». */
     const bad = (await storeSet('orders', orders)) || [];
-    if(bad.length){
-      const f = bad[0];
-      throw new Error((f.e && (f.e.code || f.e.message)) || 'картка не записалась' +
-                      (f.size ? ' (' + Math.round(f.size / 1024) + ' КБ)' : ''));
+    const mine = bad.filter(f => f && f.id === o.id)[0] || bad[0];
+    if(mine){
+      size = mine.size || 0;
+      cardErr = (mine.e && (mine.e.code || mine.e.message)) || 'картка не записалась';
     }
-    await offerSave(o);
-    offerSaveMark('ok');
-  }catch(e){
-    console.error('offer save failed', e);
+  }catch(e){ console.error('order save failed', e); cardErr = (e && (e.code || e.message)) || 'збій запису'; }
+  try{ await offerSave(o); }
+  catch(e){ console.error('offer save failed', e); offerErr = (e && (e.code || e.message)) || 'збій запису'; }
+
+  const saved = !cardErr && !offerErr;
+  if(saved){ offerSaveMark('ok'); offerEdNote(''); }
+  else {
     offerSaveMark('bad');
     /* Кажемо ПРИЧИНУ, а не «перевірте звʼязок». Причина буває яка завгодно —
        правила бази, завелика картка, вичерпаний ліміт, — і кожну з них видно
        в помилці. Здогадка замість неї коштувала півдня. */
-    const why = (e && (e.code || e.message)) || 'невідома причина';
-    toast('НЕ ЗБЕРЕЖЕНО: ' + why);
-    offerEdNote('НЕ ЗБЕРЕЖЕНО: ' + why + '. Зміни лишились тільки на екрані — ' +
-                'у посиланні для клієнта буде попередній варіант.');
-    saved = false;
+    const kb = size ? ' (картка ' + Math.round(size / 1024) + ' КБ з 1024)' : '';
+    const msg = offerErr
+      ? 'НЕ ЗБЕРЕЖЕНО сторінку клієнта: ' + offerErr +
+        '. За посиланням лишиться попередній варіант.'
+      : 'Картку замовлення не записано: ' + cardErr + kb +
+        '. Сторінка клієнта за посиланням оновлена, але в Канбані лишиться старе.';
+    toast(msg);
+    offerEdNote(msg);
   }
   renderBoard();
   /* Свіжі числа в ліву панель — навіть якщо запис не пройшов. Порахували ми
