@@ -10436,9 +10436,16 @@ async function offerEdApply(msg){
         const at = (px, py)=>{ const i = (py * W + px) * 4; return [d.data[i], d.data[i+1], d.data[i+2], d.data[i+3]]; };
         const cs = [at(0,0), at(W-1,0), at(0,H-1), at(W-1,H-1)].filter(v => v[3] > 8);
         const near = (a, b)=> Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[2]-b[2]) < 30;
+        if(!cs.length){
+          /* Кути прозорі — фон уже прибрано. Казати «неоднорідний» тут
+             неправда й збиває з пантелику: людина тисне кнопку ще раз. */
+          offerSaveMark('ok');
+          toast('Фон уже прозорий — прибирати нічого');
+          return;
+        }
         if(cs.length < 3 || !cs.every(v => near(v, cs[0]))){
           offerSaveMark('ok');
-          toast('Фон неоднорідний — прибирати нічого, обріжте поля або надішліть PNG');
+          toast('Фон неоднорідний — по кутах різні кольори. Стерти шматок логотипа гірше, ніж лишити тло');
           return;
         }
         const bg = cs[0], TOL = 42;
@@ -10470,7 +10477,7 @@ async function offerEdApply(msg){
       }
       if(out === c && act === 'logocrop'){
         offerSaveMark('ok');
-        toast('Порожніх полів навколо немає — обрізати нічого');
+        toast('Логотип уже впритул — порожніх полів навколо немає');
         return;
       }
       const blob = await new Promise(res => out.toBlob(res, 'image/png'));

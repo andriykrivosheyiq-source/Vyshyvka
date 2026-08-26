@@ -1006,19 +1006,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .vgroup-h em{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.05em;
     text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
     padding:2px 7px;}
-  .vgrid{display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));}
-  .vcard{display:flex; flex-direction:column; border:1.5px solid var(--line);
-    border-radius:16px; padding:12px; background:#fff; transition:.15s;}
-  .vcard.on{border-color:#0F5C34; background:#F6FBF8;}
-  .vshot{width:100%; aspect-ratio:1/1; background:var(--soft); border-radius:12px;
-    overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:10px;}
-  .vshot img{width:100%; height:100%; object-fit:contain; display:block;}
-  .vname{font-size:15px; font-weight:600; line-height:1.25;}
-  .vwhy{margin-top:5px; font-size:12.5px; line-height:1.45; color:var(--muted);}
-  .vprice{margin-top:9px; font-size:21px; font-weight:600; letter-spacing:-.4px;
-    font-variant-numeric:tabular-nums;}
-  .vprice span{font-size:12.5px; font-weight:400; color:var(--muted); letter-spacing:0;}
-  .vsum{font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; margin-top:2px;}
+  /* Картка варіанта — звичайна картка товару (.pcard), тож власних стилів
+     їй майже не треба: лише позначка обраного. */
+  .pcard.is-var{border-style:dashed;}
+  .pcard.is-var.is-taken{border-style:solid; border-color:#9FD3B6;}
   /* Кнопку вибору треба бачити здалеку: це єдина дія, якої від клієнта тут
      чекають, і поки вона схожа на решту рамок, її просто не помічають.
      Тому невибраний варіант — суцільна темна кнопка, а вибраний міняє не
@@ -3295,7 +3286,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      двох нанесеннях уже не було зрозуміло, що до чого належить.
      Далі — розмірний ряд і характеристики самого виробу (тканина, щільність,
      крій) із картки товару: у пропозиції питають саме про це. */
-  function specsHtml(it, i){
+  function specsHtml(it, i, stIn){
     var rows = [];
     (it.sides || []).forEach(function(s){
       if(!s.side && !s.technique) return;
@@ -3308,8 +3299,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     // Обраний клієнтом тираж уже не збігається з початковою розкладкою по розмірах —
     // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
+    var stSp = stIn || itemState(i);
     if(it.sizes) rows.push(['Розмірний ряд',
-      itemState(i).changed ? 'узгодимо з вами' : it.sizes, 'size']);
+      stSp.changed ? 'узгодимо з вами' : it.sizes, 'size']);
     (it.specs || []).forEach(function(sp){
       if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
     });
@@ -3526,23 +3518,40 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         return '<div class="vgroup">' +
           '<div class="vgroup-h">' + esc(g.name) +
             (chosen == null ? '<em>ще не обрано</em>' : '') + '</div>' +
-          '<div class="vgrid">' + g.idx.map(function(i){
+          g.idx.map(function(i){
             var v = OFFER.variants[i], st = varState(i);
             var on = String(chosen) === String(i);
-            var img = (v.mockups || [])[0] || '';
-            return '<div class="vcard' + (on ? ' on' : '') + '">' +
-              '<div class="vshot">' + (img
-                ? '<img src="' + esc(img) + '" alt="' + esc(v.name) + '" loading="lazy" ' +
-                  'onerror="this.style.display=\'none\'">' : '') + '</div>' +
-              '<div class="vname">' + esc(v.name) + '</div>' +
-              (v.recoNote ? '<div class="vwhy">' + esc(v.recoNote) + '</div>' : '') +
-              '<div class="vprice">' + money(st.unit) + '<span> / шт</span></div>' +
-              '<div class="vsum">' + st.qty + ' шт · ' + money(st.sum) + '</div>' +
-              '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
-                esc(g.name) + '|' + i + '">' +
-                (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
+            var tech = (v.techniques || []).join(', ') || v.print || '';
+            /* Картка варіанта — така сама, як у звичайного товару: ракурси
+               перед і зад, назва, характеристики, «Деталі позиції». Спершу
+               вона була компактною плиткою, і виявилось, що порівнювати
+               нема чим: ні тканини, ні розмірів нанесення, ні спини. А
+               порівняння — це рівно те, заради чого блок існує. */
+            return '<div class="pcard is-var' + (on ? ' is-taken' : '') + '">' +
+              galleryHtml(v, 'v' + i, 'variant') +
+              '<div class="pcard-info">' +
+                '<div class="pcard-head">' +
+                  '<div class="pcard-tag">' + (on ? 'обрано' : 'варіант на вибір') + '</div>' +
+                  '<h3 class="pcard-name">' + esc(v.name) + '</h3>' +
+                  (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+                  (v.recoNote ? '<div class="pcard-why">' + esc(v.recoNote) + '</div>' : '') +
+                '</div>' +
+              '</div>' +
+              '<div class="pqty">' +
+                '<div class="prow"><div class="prow-l">' +
+                  '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                  '<span class="pcard-per">за шт · ' + st.qty + ' шт · ' + money(st.sum) + '</span>' +
+                '</div></div>' +
+                '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
+                  esc(g.name) + '|' + i + '">' +
+                  (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
+              '</div>' +
+              '<details class="pcard-more">' +
+                '<summary>Деталі позиції</summary>' +
+                '<div class="pcard-more-body">' + specsHtml(v, i, st) + '</div>' +
+              '</details>' +
             '</div>';
-          }).join('') + '</div>' +
+          }).join('') +
         '</div>';
       }).join('') +
     '</section>';
@@ -3851,6 +3860,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      розрізняти рядки й читає їх як один. */
   var GUARANTEES = [
     ['photo', 'Надсилаємо фото готового виробу перед відправкою'],
+    ['back',  'Виріб не відповідає погодженому макету — виправимо безкоштовно'],
     ['time',  'Звертайтесь протягом 14 днів після отримання — розберемось з будь-яким питанням']
   ];
 
@@ -4717,7 +4727,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var shot = img.closest('.pgal, .pshot');
       var idxAttr = shot && shot.getAttribute('data-shot');
       if(idxAttr != null){
-        var it = OFFER.items[+idxAttr] || {};
+        /* Варіанти мають власну нумерацію, тож їхні галереї підписані «v3».
+           Без цього збільшення відкривало ракурси зовсім іншої позиції — тієї,
+           що стоїть під тим самим номером у складі. */
+        var it = (String(idxAttr).charAt(0) === 'v')
+          ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
+          : (OFFER.items[+idxAttr] || {});
         // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
         var list = viewsOf(it).map(function(v){ return v && v.img; }).filter(Boolean);
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
