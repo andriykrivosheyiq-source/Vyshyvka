@@ -2773,6 +2773,63 @@ window.addEventListener('error', function(e){
   (document.body || document.documentElement).appendChild(bar);
 });
 
+/* Адмінку тримають відкритою днями. Внутрішні сторінки — прорахунок,
+   пропозиція, конструктор — щоразу підвантажуються з міткою LQ_BUILD і тому
+   завжди свіжі. А сам файл адмінки браузер перечитує тільки при
+   перезавантаженні вкладки, і саме в ньому живуть усі розрахунки: ціни,
+   знижки, кошторис. Виходить найгірше з можливого — сторінка клієнта нова,
+   математика під нею стара, і виправлене виглядає невиправленим.
+
+   Тож питаємо сервер, чи файл змінився, і кажемо про це прямо. Мовчазна
+   перевірка без напису була б такою самою пасткою. */
+(function(){
+  function hash(s){
+    var h = 5381;
+    for(var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36) + ':' + s.length;
+  }
+  var mine = null;
+  function self(){
+    // no-store, щоб питати саме сервер, а не той самий кеш, який ми й перевіряємо
+    return fetch(location.pathname + '?probe=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(t){ return t ? hash(t) : null; });
+  }
+  function bar(){
+    if(document.getElementById('lq-newver')) return;
+    var d = document.createElement('div');
+    d.id = 'lq-newver';
+    d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:0;' +
+      'z-index:99998;background:#0f3d2e;color:#fff;padding:10px 14px;border-radius:0 0 12px 12px;' +
+      'font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+      'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;';
+    var t = document.createElement('span');
+    t.textContent = 'Вийшла нова версія адмінки — розрахунки оновились.';
+    var go = document.createElement('button');
+    go.textContent = 'Оновити';
+    go.style.cssText = 'all:unset;cursor:pointer;background:#fff;color:#0f3d2e;font-weight:700;' +
+      'padding:5px 12px;border-radius:8px;';
+    go.onclick = function(){ location.reload(true); };
+    var x = document.createElement('button');
+    x.textContent = '×';
+    x.style.cssText = 'all:unset;cursor:pointer;opacity:.7;font-size:18px;line-height:1;padding:0 4px;';
+    x.onclick = function(){ d.remove(); };
+    d.appendChild(t); d.appendChild(go); d.appendChild(x);
+    (document.body || document.documentElement).appendChild(d);
+  }
+  function check(){
+    self().then(function(h){
+      if(!h) return;
+      if(mine == null){ mine = h; return; }
+      if(h !== mine) bar();
+    }).catch(function(){});
+  }
+  check();
+  setInterval(check, 4 * 60 * 1000);
+  // Повернулись до вкладки після паузи — найімовірніший момент, коли версія вже інша
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
+})();
+
 /* ============================================================
    FIREBASE — спільна хмарна база (синхронізація між пристроями)
    ============================================================ */
@@ -6259,12 +6316,20 @@ function offerItemNumbers(order, itemIdx){
      вигода, від якої лишається сам коефіцієнт за обсяг. Саме звідси бралось
      «−5%» замість «−37%» — тираж у обох числах був однаковий. */
   const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, first, offerBaseCoef()), unit);
-  /* П'ять відсотків такою математикою не виходять узагалі: на найменшому
-     порозі позиція платить за підготовку макета сама, тож справжня знижка
-     завжди десятки відсотків. Мала різниця означає одне — «було» порахувати
-     не вдалося. Показувати перекреслену ціну в такому разі гірше, ніж не
-     показувати: клієнт бачить знижку, якої немає. */
-  const real = baseUnit >= unit * 1.08;
+  /* Позиція з нанесенням на найменшому порозі платить за підготовку макета
+     САМА — тож справжня знижка там завжди десятки відсотків. П'ять відсотків
+     такою математикою не виходять узагалі: мала різниця означає одне — «було»
+     порахувати не вдалося. Показувати перекреслену ціну в такому разі гірше,
+     ніж не показувати: клієнт бачить знижку, якої немає.
+
+     Голий виріб без нанесення — інша річ: разових у нього немає, і вся його
+     вигода — це шкала за кількість. Там і 8% справжні, тож поріг на нього не
+     поширюється. */
+  /* Послаблюємо поріг лише тоді, коли ТОЧНО знаємо, що виріб голий: розклад
+     є і в ньому стоїть bare. Позиція без розкладу — не «голий виріб», а
+     невідомість, і саме в ній запасний шлях і давав фальшиві 5%. */
+  const bare = !!(item.desc && item.desc.bare);
+  const real = bare ? (baseUnit > unit) : (baseUnit >= unit * 1.08);
   return {
     qty, unit, sum: +item.price || 0,
     baseUnit: real ? baseUnit : unit,
