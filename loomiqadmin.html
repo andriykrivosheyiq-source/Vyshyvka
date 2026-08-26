@@ -6343,17 +6343,7 @@ function offerBuild(order){
   /* Логотип у шапці пропозиції. Той, що менеджер поставив свідомо, головніший
      за вгаданий: раніше сюди потрапляв просто перший файл із першої позиції,
      і в шапці міг опинитись не той логотип. */
-  /* Логотип у шапці. Коли менеджер його не ставив, беремо перший файл
-     нанесення — це майже завжди логотип клієнта, і шапка не лишається
-     порожньою.
-
-     Але «прибрав» і «не ставив» — різні речі. Доти вони не розрізнялись:
-     кнопка кошика чистила clientLogo, і той самий файл одразу повертався
-     сюди з першої позиції. Виглядало це так, ніби видалення не працює
-     взагалі. Тепер прибраний логотип лишається прибраним. */
-  const logo  = order.clientLogoOff ? ''
-    : (String(order.clientLogo || '').trim() ||
-       ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '');
+  const logo = effectiveClientLogo(order);
   const totalQty = main.reduce((a,i) => a + i.qty, 0);
   const dl = deadlineLabel(totalQty || 1, new Date(),
     [...new Set(main.flatMap(i => i.techniques))]);
@@ -10109,6 +10099,23 @@ function itemKind(it){
   const k = it && it.kind;
   return (k === 'reco' || k === 'variant') ? k : 'main';
 }
+/* Який логотип СПРАВДІ стоїть у шапці пропозиції.
+
+   Коли менеджер його не ставив, шапка бере перший файл нанесення — це майже
+   завжди логотип клієнта, і порожня шапка нікому не потрібна. Але «прибрав»
+   і «не ставив» — різні речі, тож прибраний лишається прибраним.
+
+   Помічник спільний навмисно. Доти запасний шлях знав лише offerBuild: у
+   документі логотип був, а в замовленні поле лишалось порожнім. Кнопки
+   обрізання й підкладки дивились саме в поле — і чесно відповідали
+   «Логотипа ще немає», хоч він на екрані. */
+function effectiveClientLogo(o){
+  if(!o || o.clientLogoOff) return '';
+  const own = String(o.clientLogo || '').trim();
+  if(own) return own;
+  const p = (o.items || []).flatMap(i => i.prints || []).find(x => x && x.file);
+  return (p && p.file) || '';
+}
 function offerIdxToOrder(o, kind, i){
   let n = -1;
   const list = o.items || [];
@@ -10448,8 +10455,12 @@ async function offerEdApply(msg){
     return;
   }
   if(act === 'logocrop' || act === 'logonobg'){
-    const src = String(o.clientLogo || '').trim();
-    if(!src){ toast('Логотипа ще немає'); return; }
+    const src = effectiveClientLogo(o);
+    if(!src){
+      toast('Логотипа ще немає');
+      offerEdNote('Логотипа ще немає — спершу завантажте його');
+      return;
+    }
     offerSaveMark('saving');
     try{
       const img = await new Promise((res, rej)=>{
