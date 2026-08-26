@@ -2775,7 +2775,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var live = LIVE && LIVE.vars && LIVE.vars[i];
     var q = baseVarQty(i);
     var unit = live ? live.unit : (+v.unitPrice || 0);
-    return { qty:q, unit:unit, sum:unit * q };
+    /* «Було» — така сама ціна за штуку на найменшому порозі тиражу, як в
+       основних позиціях: адмінка рахує її тим самим `offerItemNumbers` і
+       для варіантів теж. Доти варіант лишався без неї, і виходило, що в
+       складі пропозиції вигода показана, а в блоці порівняння — ні, хоч
+       порівнюють саме там. Множимо на поточну кількість: клієнт міг її
+       змінити, і «було» має рухатись разом із сумою. */
+    var baseUnit = Math.max(+v.baseUnitPrice || 0, unit);
+    return { qty:q, unit:unit, sum:unit * q,
+             base: baseUnit * q, save: Math.max(0, (baseUnit - unit) * q),
+             changed: q !== (+v.qty || q) };
   }
   /* Позиція-варіант приходить НЕ доданою: менеджер порахував поло, оверсайз
      і базову під ту саму задачу, а візьмуть щось одне. Скласти всі три в
@@ -3414,9 +3423,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Деталі позиції — однакові скрізь: у складі, у варіантах, у
      рекомендованих. Опис товару йде першим: він відповідає на «що це
      взагалі», а вже потім ідуть нанесення, розмірний ряд і характеристики. */
+  /* Опис приходить так, як менеджер його набрав у картці товару, — рядками.
+     Доти він склеювався в один суцільний абзац, і «Щільність: 190 г/м²»
+     губилось усередині тексту замість того, щоб стояти окремим рядком. */
   function aboutHtml(it){
     var t = String((it && it.about) || '').trim();
-    return t ? '<p class="pspec-about">' + esc(t) + '</p>' : '';
+    if(!t) return '';
+    return t.split(/\n+/).map(function(p){
+      p = p.trim();
+      return p ? '<p class="pspec-about">' + esc(p) + '</p>' : '';
+    }).join('');
   }
   /* Розмірна сітка просто в деталях позиції. Питання «а який це розмір»
      виникає рівно там, де обирають тираж, і відповідь має бути під рукою, а
@@ -3578,10 +3594,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '</div>' +
       '</div></details>';
   }
-  function priceBoxHtml(i){
-    var s = itemState(i);
+  /* Той самий блок рахунку і для варіантів: ціна за одиницю → кількість →
+     сума. Раніше він був лише в основних позиціях, і в деталях варіанта
+     арифметики не було взагалі — картка називала ціну, а перевірити її було
+     ніде. Стан передається зовні, бо у варіанта він свій. */
+  function priceBoxHtml(i, stIn, key){
+    var s = stIn || itemState(i);
     return '' +
-      '<div class="price-box" data-price-box="' + i + '">' +
+      '<div class="price-box" data-price-box="' + (key || i) + '">' +
         '<div class="pb-row"><span class="pb-k">Ціна за одиницю</span>' +
           '<span class="pb-v">' + money(s.unit) + '</span></div>' +
         '<div class="pb-row"><span class="pb-k">Кількість</span>' +
@@ -3687,18 +3707,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   (v.recoNote ? '<div class="pcard-why">' + esc(v.recoNote) + '</div>' : '') +
                 '</div>' +
               '</div>' +
+              /* Угорі картки — тільки те, що порівнюють очима: ціна за штуку,
+                 перекреслена стара і вигода. Множення «×5 шт = стільки»
+                 переїхало в деталі позиції: у блоці порівняння воно займало
+                 рядок, який мав належати різниці між варіантами, і в сусідніх
+                 картках стояли однакові числа кількості. */
               '<div class="pqty">' +
                 '<div class="prow"><div class="prow-l">' +
                   '<span class="pcard-price">' + money(st.unit) + '</span>' +
-                  '<span class="pcard-per">за шт · ' + st.qty + ' шт · ' + money(st.sum) + '</span>' +
+                  (st.qty && st.base > st.sum
+                    ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
+                      '<span class="pcard-off">−' +
+                        Math.round((1 - st.sum / st.base) * 100) + '%</span>'
+                    : '<span class="pcard-per">за штуку</span>') +
                 '</div></div>' +
+                (st.save > 0
+                  ? '<div class="pqty-n">Вигода ' + money(st.save) + ' на ' + st.qty + ' шт</div>'
+                  : '') +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
               '</div>' +
               '<details class="pcard-more">' +
                 '<summary>Деталі позиції</summary>' +
-                '<div class="pcard-more-body">' + specsHtml(v, i, st) + '</div>' +
+                '<div class="pcard-more-body">' + specsHtml(v, 'v' + i, st) +
+                  priceBoxHtml(i, st, 'v' + i) + '</div>' +
               '</details>' +
             '</div>';
           }).join('') +
@@ -3792,7 +3825,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                ціну, а з чого пошито й що саме наносять — ніде. */
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
-              '<div class="pcard-more-body">' + specsHtml(r, i, rs) + '</div>' +
+              '<div class="pcard-more-body">' + specsHtml(r, 'r' + i, rs) +
+                priceBoxHtml(i, rs, 'r' + i) + '</div>' +
             '</details>' +
             mgrCalcHtml(i, 'reco') +
           '</div>';

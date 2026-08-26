@@ -6297,10 +6297,15 @@ function itemSizeChart(it){
   return { cols: Array.isArray(cols) ? cols.slice(0, 8).map(c => String(c || '').slice(0, 24)) : null,
            rows: clean };
 }
+/* Опис товару з сайту — саме там живуть тип тканини, щільність і «для чого
+   краще підходить». Окремих полів під це немає й не треба: менеджер пише їх
+   одним текстом у картці товару, і сюди він має приїхати цілим.
+   Обрізали на 700 символах — рівно на цьому місці й закінчувався абзац про
+   щільність, і в пропозиції опис уривався на півслові. */
 function itemAbout(it){
   const gid = it && it.garmentId;
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
-  return String(t || '').trim().slice(0, 700);
+  return String(t || '').trim().slice(0, 1600);
 }
 function itemSpecs(it){
   const gid = it && it.garmentId;
