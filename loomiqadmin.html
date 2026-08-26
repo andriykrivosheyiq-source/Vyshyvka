@@ -6283,6 +6283,20 @@ function offerTiers(order, itemIdx){
    товару; якщо не задавав — стандартні, ті самі, що показує сайт. Порожній
    список краще за вигаданий: у пропозиції «100% бавовна» на поліестері
    коштує дорожче за будь-який гарний рядок. */
+/* Розмірна сітка виробу: заголовки колонок і рядки. Формат той самий, що в
+   адмінці, — переносимо як є, без перетворень: щойно вони розійдуться,
+   клієнт побачить одні числа, а на сайті стоятимуть інші. */
+function itemSizeChart(it){
+  const gid = it && it.garmentId;
+  const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
+  if(!Array.isArray(rows) || !rows.length) return null;
+  const cols = (contentData.sizechartCols && contentData.sizechartCols[gid]) || null;
+  const clean = rows.slice(0, 14).map(r => (Array.isArray(r) ? r : [])
+    .slice(0, 8).map(v => String(v == null ? '' : v).slice(0, 24)));
+  if(!clean.length) return null;
+  return { cols: Array.isArray(cols) ? cols.slice(0, 8).map(c => String(c || '').slice(0, 24)) : null,
+           rows: clean };
+}
 function itemAbout(it){
   const gid = it && it.garmentId;
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
@@ -6293,9 +6307,13 @@ function itemSpecs(it){
   const custom = gid && contentData.specs && contentData.specs[gid];
   const rows = (custom && custom.length) ? custom : null;
   if(!rows) return [];
+  /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
+     картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
+     догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
+     на сайті. */
   return rows.filter(r => r && r.label && r.value)
-             .slice(0, 6)
-             .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 80) }));
+             .slice(0, 12)
+             .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 120) }));
 }
 function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
@@ -6341,6 +6359,10 @@ function offerItem(it, order, itemIdx){
        Досі опис жив тільки на сайті, і в пропозиції товар лишався самою
        назвою. */
     about: itemAbout(it),
+    /* Розмірна сітка того самого виробу. Питання «а який це розмір» виникає
+       рівно там, де обирають тираж, — і доти на нього доводилось відповідати
+       посиланням на сайт або листом. */
+    sizechart: itemSizeChart(it),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
     tiers: offerTiers(order, itemIdx)
