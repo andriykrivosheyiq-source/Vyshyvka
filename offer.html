@@ -2770,6 +2770,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
   }
   function logoAct(a){
+    if(a === 'logocropopen'){ openLogoCrop(); return true; }
     if(a === 'logofillOff'){
       OFFER.clientLogoBg = ''; render();
       edSend({ act:'logoFill', color:'' });
@@ -3330,6 +3331,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         ? '<button class="edb" data-ed="logofillOff" ' +
                           'title="Без фону">✕</button>' : '') +
                     '</span>' +
+                    /* Обрізання — своя кнопка, а не «здогадайся натиснути на
+                       картинку». Клік по логотипу теж працює, але шукати
+                       його там ніхто не буде: у рядку видно розмір, заміну й
+                       кошик, а обрізання не видно ніде. */
+                    '<button class="edb" data-ed="logocropopen" ' +
+                      'title="Обрізати логотип">✂ Обрізати</button>' +
                     /* Крок назад по лінії обрізок. Стоїть у меню, а не біля
                        рамки: коли менеджер помітив, що перестарався, рамка
                        вже закрита, і відкривати її заради відкату — зайве.
