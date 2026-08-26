@@ -1577,6 +1577,16 @@
       OFFER.reco  = OFFER.reco  || [];
       OFFER.variants = OFFER.variants || [];
       renderList();
+      /* Вкладка «Як бачить клієнт» — окремий кадр, і дані вона отримувала
+         РІВНО ОДИН раз, коли її відкрили. Далі менеджер міняв логотип чи
+         дату, адмінка справно все зберігала, а кадр показував старе — і
+         виглядало це так, ніби кнопки не працюють. Тепер свіжий документ
+         їде і туди. */
+      try{
+        var cf = document.getElementById('clientFrame');
+        if(cf && !cf.classList.contains('hide') && cf.contentWindow)
+          cf.contentWindow.postMessage({ lqEditInit:true, preview:true, offer: OFFER }, '*');
+      }catch(e){}
       var n = OFFER.items.length, nr = OFFER.reco.length;
       /* Щойно доданий товар одразу стає активним: менеджер натиснув «додати»
          саме щоб його налаштувати, а не щоб потім шукати в списку.
