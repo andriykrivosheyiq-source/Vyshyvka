@@ -5846,8 +5846,32 @@ function repriceOrder(o){
      тож коли основний тираж змінився, стара ціна рекомендованої вже неправда.
      Рахуємо кожну як «основні + ця», рівно так, як вийде в клієнта. */
   fillRecoParts(o, true);
+  /* Початкова ціна ЗАПАМʼЯТОВУЄТЬСЯ разом із замовленням — так само, як ціна
+     за штуку. Доти вона щоразу виводилась наново під час складання
+     пропозиції, і будь-яка правка в тому шляху могла її зрушити: позиція
+     лишалась та сама, а знижка стрибала. Тепер вона рахується рівно тут — у
+     єдиному місці, де ціни й так перераховуються і де всі дані на місці, — і
+     далі просто читається.
+
+     Разом із цінами вона й оновлюється: змінилась модель цін чи тираж —
+     перерахунок пройде тут і перепише її. Окремого життя в неї немає. */
+  (o.items || []).forEach(it => {
+    const u = soloOneUnit(it && it.desc);
+    if(u) it.baseUnit1 = u;
+  });
   return list.length > 0 ||
          (o.items || []).some(it => itemKind(it) !== 'main' && it.desc);
+}
+/* Скільки коштувала б позиція, замовлена ОДНІЄЮ штукою й нічого більше:
+   виріб + нанесення + за штуку + повна разова підготовка. Склад замовлення
+   тут ні до чого — рахуємо саму позицію. */
+function soloOneUnit(desc){
+  if(!desc) return null;
+  try{
+    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })]);
+    const u = (r[0] && +r[0].unit) || 0;
+    return u > 0 ? u : null;
+  }catch(e){ return null; }
 }
 
 function docGarmentCoef(qty){
@@ -6335,6 +6359,13 @@ function offerMethodUnits(order, method){
 function offerOneUnitPrice(order, itemIdx){
   const item = order.items[itemIdx];
   const unit = +item.unitPrice || 0;
+  /* 0. Записана разом із замовленням — головніша за будь-який перерахунок.
+     Саме вона й робить знижку сталою: число зафіксоване тоді, коли позицію
+     рахували, і його не може зрушити правка деінде. Перевіряємо лише, що
+     воно не нижче поточної ціни: якби модель цін відтоді змінилась, стара
+     початкова була б неправдою — тоді рахуємо наново. */
+  const kept = +item.baseUnit1 || 0;
+  if(kept > unit) return kept;
   // 1. Розклад є — рахуємо чесним прогоном
   const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
   if(shared != null) return shared;
