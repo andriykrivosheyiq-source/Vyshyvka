@@ -970,6 +970,8 @@
     color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;padding:8px 13px;
     cursor:pointer;text-decoration:none;}
   .oe-btn:hover{border-color:var(--accent);color:var(--accent-deep);}
+  /* Скріпка — квадратна й без підпису: дія очевидна, а місце в шапці дороге */
+  .oe-btn--ic{padding:8px 10px;font-size:14px;line-height:1;}
   .oe-btn--main{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;}
   .oe-btn--main:hover{background:#1c2840;color:#fff;}
   .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
@@ -6719,6 +6721,27 @@ function offerStamp(d){
     ((d && d.totals) || {}).total
   ]);
 }
+/* Відкрити сторінку клієнта. Вкладку відчиняємо ОДРАЗУ, ще до запису: якщо
+   чекати, браузер вважає її не наслідком дотику й блокує. Спершу вона порожня,
+   а адресу отримує, коли документ уже оновлено — тож клієнтська сторінка
+   відкривається на свіжому, а не на тому, що лежало досі. */
+async function offerLinkOpen(order){
+  const link = offerUrl(order);
+  if(!link){ toast('У замовлення немає посилання'); return; }
+  const w = window.open('', '_blank');
+  try{
+    await offerSave(order);
+    if(w) w.location = link; else window.open(link, '_blank');
+    offerEdNote('');
+  }catch(e){
+    console.error('offer refresh failed', e);
+    const why = (e && (e.code || e.message)) || 'невідома причина';
+    if(w) w.location = link;
+    toast('УВАГА: сторінку клієнта НЕ оновлено — ' + why);
+    offerEdNote('Сторінку клієнта не оновлено: ' + why +
+                '. Відкрилось те, що лежало за посиланням досі.');
+  }
+}
 async function offerLinkCopy(order){
   const link = offerUrl(order);
   copyText(link, 'Посилання скопійовано — оновлюємо сторінку…');
@@ -11144,7 +11167,13 @@ function renderOfferEd(){
          стан → закрити. Головна дія одна й зелена; доти в шапці стояло
          чотири однакові кнопки поспіль, і серед них неможливо було з одного
          погляду знайти потрібну. */''}
-    <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
+    ${/* Дві дії з посиланням, обидві без «скопіюй і встав кудись»: скріпка
+         кладе адресу в буфер, стрілка відкриває сторінку клієнта в сусідній
+         вкладці. Обидві спершу оновлюють документ за посиланням — інакше
+         відкриється те, що там лежало досі. */''}
+    <button class="oe-btn oe-btn--ic" data-oe="copy" title="Скопіювати посилання"
+      aria-label="Скопіювати посилання">📎</button>
+    <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
     <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <span class="oe-save is-ok">Збережено ✓</span>
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
@@ -11198,6 +11227,8 @@ function renderOfferEd(){
     }));
   d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
     offerLinkCopy(o)));
+  d.querySelectorAll('[data-oe="open"]').forEach(b=> b.addEventListener('click', ()=>
+    offerLinkOpen(o)));
   head.querySelectorAll('[data-brand]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       if(brandKeyOf(o) === b.dataset.brand) return;

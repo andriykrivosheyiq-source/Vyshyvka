@@ -2109,13 +2109,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Відповідь на дію — просто під кнопками, які натиснули. Тост живе в
        адмінці, а вона за цим кадром: сказане там менеджер не бачить. */
     if(d.note !== undefined){
-      var nb = document.getElementById('edlogoNote');
-      if(nb){
-        nb.textContent = String(d.note || '');
-        nb.classList.toggle('show', !!d.note);
-        clearTimeout(nb.__t);
-        nb.__t = setTimeout(function(){ nb.classList.remove('show'); }, 6000);
-      }
+      /* Повідомлення про ПОМИЛКУ не зникає само. Доти будь-який напис гасили
+         через шість секунд — і той єдиний рядок, який пояснював, чому нічого
+         не сталось, менеджер просто не встигав прочитати. Лишалось «не
+         працює» без жодної підказки. Спокійні відповіді гасимо, як і раніше. */
+      edNote(String(d.note || ''));
       return;
     }
     if(d.catalog) EDIT_CATALOG = d.catalog;
@@ -2751,22 +2749,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      числа в пікселях, стрілки по одному пікселю, «Впритул».
      Рамка просто на маленькому логотипі в шапці була незручна: у неї важко
      влучити, і того, що ріжеш, майже не видно. */
+  /* Один напис під кнопками логотипа. Помилки лишаються, поки їх не змінить
+     наступна дія; звичайні відповіді гаснуть самі. */
+  function edNote(text, isErr){
+    var nb = document.getElementById('edlogoNote');
+    if(!nb) return;
+    nb.textContent = String(text || '');
+    nb.classList.toggle('show', !!text);
+    clearTimeout(nb.__t);
+    var err = isErr != null ? isErr : /не вдал|не зберег|помилка|НЕ ЗБЕРЕЖ|недоступ/i.test(text || '');
+    if(text && !err) nb.__t = setTimeout(function(){ nb.classList.remove('show'); }, 6000);
+  }
   function openLogoCrop(){
     if(!OFFER.clientLogo) return;
-    var note = function(t){
-      var nb = document.getElementById('edlogoNote');
-      if(!nb) return;
-      nb.textContent = t; nb.classList.toggle('show', !!t);
-    };
-    note('Готуємо різак…');
+    edNote('Готуємо різак…', false);
     ctorLoad().then(function(){
-      note('');
       if(!window.__pmCrop) throw new Error('різак недоступний');
+      /* Вікно різака стоїть position:fixed, але конструктор міг переїхати
+         всередину картки — а там у предків є і overflow:hidden, і transform.
+         Тоді «на весь екран» перетворюється на «всередині коробки», і вікно
+         або обрізається, або не видно зовсім. Тому перед відкриттям піднімаємо
+         його просто в body: там нічого не заважає. */
+      var ov = document.getElementById('pmCropModal');
+      if(ov && ov.parentNode !== document.body) document.body.appendChild(ov);
+      edNote('');
       return window.__pmCrop(OFFER.clientLogo);
     }).then(function(res){
-      if(res && res.box) edSend({ act:'logocrop', box: res.box });
+      if(res && res.box){ edNote('Обрізаємо…', false); edSend({ act:'logocrop', box: res.box }); }
+      else edNote('');
     }).catch(function(e){
-      note('Не вдалось відкрити різак: ' + ((e && e.message) || 'помилка'));
+      /* Невдале завантаження запамʼятовувалось назавжди: другий дотик до
+         кнопки повертав ТУ САМУ відмову, вже без жодного напису, і виглядало
+         це як мертва кнопка. Тепер спроба скидається — можна натиснути ще. */
+      try{ ctorReady = null; }catch(err){}
+      edNote('Не вдалось відкрити різак: ' + ((e && e.message) || 'помилка') +
+             '. Натисніть ще раз.', true);
     });
   }
   function logoAct(a){
