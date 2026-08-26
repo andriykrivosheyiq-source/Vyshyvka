@@ -10826,10 +10826,16 @@ async function offerEdApply(msg){
       offerSaveMark('saving');
       try{
         const url = await uploadCloudinary(f);
+        /* Новий файл ВИТІСНЯЄ попередній. Доти кожне завантаження й кожна
+           обрізка додавали ще один запис, і замовлення тягло за собою десяток
+           майже однакових картинок — з них жодна нікому не була потрібна,
+           крім останньої. Завантажили інший логотип — минулого більше немає,
+           і лінія відкоту починається з чистого аркуша: відкочувати правки
+           попередньої картинки в новій немає сенсу. */
         o.clientLogo = url;
         o.clientLogoOff = false;      // поставили свідомо — заборона знімається
-        if(!Array.isArray(o.logos)) o.logos = [];
-        if(o.logos.indexOf(url) < 0) o.logos.push(url);
+        o.logos = [url];
+        o.clientLogoHist = [];
         if(!(await offerEdSave(o))) return;
         renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
       }catch(e){ console.error(e); offerSaveMark('bad'); toast('Не вдалось завантажити'); }
@@ -10871,6 +10877,11 @@ async function offerEdApply(msg){
     const hist = Array.isArray(o.clientLogoHist) ? o.clientLogoHist.slice() : [];
     if(hist.length) hist.pop();
     o.clientLogoHist = hist;
+    // список логотипів замовлення теж їде назад: у ньому завжди рівно поточний
+    if(Array.isArray(o.logos)){
+      const at = o.logos.indexOf(o.clientLogo);
+      if(at >= 0) o.logos[at] = prev;
+    }
     o.clientLogo = prev;
     o.clientLogoOff = false;
     if(!(await offerEdSave(o))) return;
@@ -10988,10 +10999,17 @@ async function offerEdApply(msg){
         o.clientLogoHist.push(o.clientLogo);
         o.clientLogoHist = o.clientLogoHist.slice(-12);   // глибше ніхто не відкочує
       }
+      /* У списку логотипів замовлення лежить рівно один — поточний. Обрізка
+         його підміняє, а не додає поруч: конструктор має пропонувати те, що
+         зараз у шапці, а не всі проміжні версії. Попередній файл живе далі
+         в невидимій лінії відкоту — саме звідти його дістає кнопка «↶». */
+      const was = o.clientLogo;
       o.clientLogo = url;
       o.clientLogoOff = false;
       if(!Array.isArray(o.logos)) o.logos = [];
-      if(o.logos.indexOf(url) < 0) o.logos.push(url);
+      const at = o.logos.indexOf(was);
+      if(at >= 0) o.logos[at] = url;
+      else if(o.logos.indexOf(url) < 0) o.logos.push(url);
       if(!(await offerEdSave(o))) return;
       renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
       toast(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
@@ -11152,14 +11170,14 @@ function renderOfferEd(){
       ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
         escapeHtml(brands[k].name)}</button>`).join('')}
     </div>
-    ${/* Логотип клієнта належить замовленню. Завантажили тут — і він
-         доступний кожному товару в конструкторі, ставити на виріб не
-         обовʼязково: місце для футболки й для кепки різне. */''}
+    ${/* Смужки з усіма логотипами замовлення тут більше немає. Кожна обрізка
+         клала в неї ще одну майже таку саму картинку, і за кілька правок
+         шапка перетворювалась на купу однакових мініатюр, серед яких годі
+         зрозуміти, яка з них зараз стоїть. Керувати логотипом треба там, де
+         його видно, — у самій шапці пропозиції; тут лишається один вхід для
+         завантаження. Лінія відкоту нікуди не ділась, вона просто не
+         показується: її діло — кнопка «↶», а не вітрина. */''}
     <div class="oe-logos">
-      ${/* Картинку ставимо з коду: у data-URI трапляються лапки, і style="" від
-           них розсипається — це вже ламало стрічку логотипів у конструкторі. */''}
-      ${orderLogos(o).map((u,i)=>`<span class="oe-logo" data-logo-i="${i}"
-        title="Логотип замовлення"><button data-logo-del="${i}" title="Прибрати зі списку">✕</button></span>`).join('')}
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
     ${/* Порядок читається зліва направо як хід роботи: чия пропозиція → від
@@ -11214,17 +11232,6 @@ function renderOfferEd(){
     });
     inp.click();
   });
-  const logoUrls = orderLogos(o);
-  head.querySelectorAll('[data-logo-i]').forEach(el=>{
-    const u = logoUrls[+el.dataset.logoI];
-    if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
-  });
-  head.querySelectorAll('[data-logo-del]').forEach(b=>
-    b.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      await removeOrderLogo(o, logoUrls[+b.dataset.logoDel]);
-      renderOfferEd(); paintCalcTarget();
-    }));
   d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
     offerLinkCopy(o)));
   d.querySelectorAll('[data-oe="open"]').forEach(b=> b.addEventListener('click', ()=>
