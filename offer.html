@@ -217,7 +217,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
      зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
-  .pqty{margin-top:16px;}
+  .pqty{margin-top:10px;}
   .pqty.off{opacity:.55;}
   .pchk{display:flex; align-items:center; gap:9px; width:100%; padding:11px 13px;
     border:1.5px solid var(--line); border-radius:13px; background:#fff;
@@ -497,9 +497,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      виглядала так, ніби фото в ній відклеїлось від верху.
      Коли фото немає, відступ дає .pcard-info своїм margin-top. */
   .pcard{border:1px solid var(--line); border-radius:18px; padding:0 0 0; background:#fff;
-    margin-bottom:12px; overflow:hidden;}
+    margin-bottom:8px; overflow:hidden;}
   .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
-  .pcard > .pcard-more{padding-bottom:14px;}
+  .pcard > .pcard-more{padding-bottom:10px;}
   /* На телефоні картка виходить за поля сторінки: фото мають торкатися
      країв екрана, як на сторінці товару в магазині. Бічної рамки й
      заокруглень тут немає — вони й перетворювали фото на «наліпку». */
@@ -507,7 +507,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .pcard{margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
       border-left:0; border-right:0; border-radius:0; padding-top:0;}
     .pcard > *:not(.pgal){padding-left:var(--pad); padding-right:var(--pad);}
-    .pcard > .pcard-more{padding-bottom:var(--pad);}
+    .pcard > .pcard-more{padding-bottom:10px;}
   }
   /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
      людина має встигнути захотіти виріб, перш ніж читатиме ціну. Раніше фото
@@ -704,7 +704,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Назва й ціна — без рамок. Рамка навколо ціни робила з неї кнопку,
      якою вона не є, і сперечалася за увагу з реальними кнопками. */
-  .pcard-info{margin-top:16px;}
+  /* Відступи в картці стиснуті вдвічі. Кожен окремо виглядав невеликим —
+     16 тут, 16 там, 12 нижче, 20 під деталями, 12 під карткою, 22 під групою, —
+     а разом вони робили з картки колонку повітря: пів екрана порожнього між
+     фото й ціною і смуга нічого під «Деталями». Висоту тримали саме вони,
+     жодного min-height у картці немає. */
+  .pcard-info{margin-top:8px;}
   .pcard-name{font-size:22px; font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
   .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
   /* ── Варіант на вибір ──────────────────────────────────────────────────
@@ -741,7 +746,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-term{font-size:12.5px; color:var(--muted); margin-top:7px;}
 
   /* Тираж — один сегмент замість трьох карток */
-  .pqty{margin-top:16px;}
+  .pqty{margin-top:10px;}
   .pqty-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
     text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
   .pseg{display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--soft);}
@@ -763,7 +768,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:8px;
     padding:6px 9px; font-size:12.5px;}
 
-  .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
+  .pcard-more{margin-top:8px; border-top:1px solid var(--line); padding-top:8px;}
   .pcard-more>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
     gap:6px; font-size:13.5px; font-weight:600; color:var(--ink-2);}
   .pcard-more>summary::-webkit-details-marker{display:none;}
@@ -1034,7 +1039,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Картки стоять поруч і однакового розміру: їх порівнюють, а не читають
      підряд. Обраний виділяється рамкою й галочкою — тим самим, чим
      позначені додані позиції, щоб «обрано» скрізь виглядало однаково. */
-  .vgroup{margin-bottom:22px;}
+  .vgroup{margin-bottom:12px;}
   .vgroup-h{font-size:15px; font-weight:600; margin-bottom:10px; display:flex;
     align-items:baseline; gap:8px;}
   .vgroup-h em{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.05em;
@@ -3744,6 +3749,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return '<div class="pqty-n is-todo">Старої ціни тут немає: початкову ціну не ' +
       'вдалось порахувати. Відкрийте позицію й збережіть — вигода зʼявиться.</div>';
   }
+  /* Наступний поріг тиражу: найменший із тих, що більші за поточну кількість.
+     Працює сам для будь-яких порогів — 2, 5, 10, 30: узяв 10 — покаже 30.
+     Дійшли до останнього — рядка немає, бо пропонувати нічого.
+     Це замість «вигоди»: вигода вже намальована перекресленою ціною поруч, а
+     тут місце для того, що клієнт ще МОЖЕ отримати, якщо візьме більше. */
+  function nextTierHtml(it, qty){
+    var next = (it && it.tiers || [])
+      .filter(function(t){ return t && +t.qty > qty && +t.unit > 0; })
+      .sort(function(a, b){ return a.qty - b.qty; })[0];
+    if(!next) return '';
+    return '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '/шт</div>';
+  }
   function priceBoxHtml(i, stIn, key){
     var s = stIn || itemState(i);
     return '' +
@@ -3777,8 +3794,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var st = itemState(i);
     var on = isOn(i);
     var it = OFFER.items[i];
-    var next = (it.tiers || []).filter(function(t){ return t.qty > st.qty; })
-                               .sort(function(a, b){ return a.qty - b.qty; })[0];
     return '' +
       '<div class="pqty' + (on ? '' : ' off') + '">' +
         '<div class="prow">' +
@@ -3797,7 +3812,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '</div>' +
         staleNote(it) +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
-        (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '</div>' : '') +
+        /* Один напис на всі види карток: доти в основних позиціях стояло
+           «Від 30 шт — 980 грн», а у варіантах інше — два різні тексти для
+           того самого в одному документі. */
+        nextTierHtml(it, st.qty) +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
@@ -3874,9 +3892,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
                     : '<span class="pcard-per">за штуку</span>') +
                 '</div></div>' +
-                (st.save > 0
-                  ? '<div class="pqty-n">Вигода ' + money(st.save) + ' на ' + st.qty + ' шт</div>'
-                  : '') + staleNote(v) +
+                nextTierHtml(v, st.qty) + staleNote(v) +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
@@ -3970,9 +3986,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '<div class="prow-r"><span class="prow-k">Виготовлення</span>' +
                   '<span class="prow-v">' + curDays() + ' роб. днів</span></div>' +
               '</div>' +
-              (rs.save > 0
-                ? '<div class="pqty-n">Вигода ' + money(rs.save) + ' на ' + rs.qty + ' шт</div>'
-                : '') + staleNote(r) +
+              nextTierHtml(r, rs.qty) + staleNote(r) +
               '<div class="pbuy-row">' +
                 '<div class="pstep">' +
                   '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
