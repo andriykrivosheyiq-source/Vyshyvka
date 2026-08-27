@@ -877,67 +877,104 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc.on .rc-add{background:var(--good); border-color:var(--good); color:#fff;}
   .rc-add svg{display:block;}
 
-  /* ══ Кошторис: темний блок, як фінальний документ ══ */
+  /* ══ Кошторис: premium checkout, а не бухгалтерська таблиця ══
+     Було: шапка таблиці, чотири колонки цифр, стара й нова ціна впритул одна
+     до одної, знижка окремим стовпчиком — і найбільше число сторінки аж унизу.
+     Клієнт мусив читати таблицю, щоб зрозуміти, скільки платить.
+     Стало: угорі одразу сума, нижче позиції картками, у кінці — три числа
+     підряд: скільки коштувало б, скільки зняв тираж, скільки платити.
+     Кольорів рівно три: білий — головне, сірий — пояснення, зелений — тільки
+     знижка. Помаранчевий лишається за головною дією. */
   .est{background:#14171B; color:#fff; border-radius:0;
     padding:26px var(--pad) 24px; margin-top:0;}
-  /* Той самий заголовок, що й у решти блоків: раніше кожен розділ мав свою
-     вагу й розмір — 800 тут, 600 там, 15px у деталях, — і сторінка виглядала
-     зібраною з різних сайтів. */
-  .est-h{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 16px;}
-  /* Колонки цифр тримаємо вузькими: на 390px ширший «Ціна за шт» з'їдав назву
-     до «Ф…». Назві дозволено переноситись у два рядки — це краще, ніж трикрапка. */
-  .est-head{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
-    font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
-    color:rgba(255,255,255,.42); padding-bottom:9px;}
-  .est-head span:not(:first-child){text-align:right;}
-  .est-r{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
-    align-items:center; padding:11px 0; border-top:1px solid rgba(255,255,255,.09);
-    font-size:12.5px; font-variant-numeric:tabular-nums;}
-  .est-r>span:not(:first-child){text-align:right; color:rgba(255,255,255,.72);}
-  .est-r .est-s{color:#fff; font-weight:700;}
-  /* Ціна за штуку двома рядками: закреслена без знижки і чинна. Клієнт бачить
-     не просто цифру, а що саме він виграє на тиражі. */
-  .est-u{display:flex; flex-direction:column; align-items:flex-end; line-height:1.25;}
-  .est-u s{font-size:10.5px; color:rgba(255,255,255,.42);}
-  .est-u b{font-weight:700; color:#fff;}
-  .est-s em{display:block; font-style:normal; font-size:10.5px; font-weight:700;
-    color:#4ADE80; margin-top:2px;}
-  .est-nm-t{display:flex; flex-direction:column; min-width:0; gap:2px;}
-  /* «30 × 400 грн» під назвою: видно, з чого складається сума в рядку */
-  .est-mul{font-size:10.5px; color:rgba(255,255,255,.45); font-variant-numeric:tabular-nums;}
-  .est-nm{display:flex; align-items:center; gap:8px; min-width:0;}
-  /* Мініатюра товару в кошторисі: раніше 26 px — на ній не було видно
-     нічого, крім плями. Тепер це впізнаваний знімок, і по ньому можна
-     відкрити макет на весь екран. */
-  .est-nm > i{flex:none; width:46px; height:46px; border-radius:9px; overflow:hidden;
+  .est-top{display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; margin-bottom:20px;}
+  .est-h{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 4px;}
+  .est-meta{font-size:13px; color:rgba(255,255,255,.55);}
+  .est-top-r{text-align:right; margin-left:auto;}
+  .est-total{font-size:28px; font-weight:800; letter-spacing:-0.8px;
+    font-variant-numeric:tabular-nums; line-height:1.1;}
+  /* Зелений — виключно про вигоду, і більше ні про що на цій сторінці */
+  .est-chip{display:inline-block; margin-top:6px; font-size:12px; font-weight:700;
+    color:#4ADE80; background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.28);
+    border-radius:20px; padding:3px 10px; white-space:nowrap;}
+
+  /* ── Позиції ── */
+  .est-list{display:flex; flex-direction:column; gap:10px;}
+  /* Картка позиції: фото, суть, сума. Світліша за фон блоку — рівно
+     настільки, щоб читалась як окремий предмет, і не більше. */
+  .est-i{display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px;
+    align-items:center; background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px;}
+  .est-i-ph{width:64px; height:64px; flex:none; border-radius:10px; overflow:hidden;
     background:#fff; display:block; cursor:zoom-in;}
-  .est-nm i img{width:100%; height:100%; object-fit:contain; display:block;}
-  .est-nm b{font-weight:600; font-size:12.5px; line-height:1.25; min-width:0;}
-  .est-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  .est-i-ph img{width:100%; height:100%; object-fit:contain; display:block;}
+  .est-i-t{min-width:0;}
+  .est-i-nm{font-size:14.5px; font-weight:600; line-height:1.3;}
+  .est-i-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
     letter-spacing:.4px; color:#7FE0B0; margin-left:6px;}
-  .est-sum{margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
-  .est-l{display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px;
-    color:rgba(255,255,255,.72); margin-bottom:8px; font-variant-numeric:tabular-nums;}
-  .est-l b{font-weight:600; color:#fff;}
-  .est-l.disc, .est-l.disc b{color:#4ADE80;}
-  /* Знижка за тираж окремими рядками: у цінах позицій вона вже врахована,
-     тож без цих двох рядків клієнт про неї просто не дізнається. */
-  .est-sub{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    font-size:13.5px; opacity:.72; margin-top:10px;}
-  .est-sub:first-of-type{margin-top:16px; padding-top:14px;
-    border-top:1px solid rgba(255,255,255,.14);}
-  .est-sub b{font-weight:700; font-variant-numeric:tabular-nums;}
-  .est-off{opacity:1; color:#4ADE80;}
-  .est-sub + .est-pay{margin-top:12px; padding-top:12px;}
-  .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
+  /* Головний рядок позиції: скільки й почому. Решта — пояснення до нього. */
+  .est-i-mul{margin-top:3px; font-size:13px; color:rgba(255,255,255,.72);
+    font-variant-numeric:tabular-nums;}
+  .est-i-was{margin-top:3px; font-size:12px; color:rgba(255,255,255,.45);
+    font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:5px;
+    flex-wrap:wrap;}
+  .est-i-was s{color:rgba(255,255,255,.45);}
+  .est-i-was b{font-weight:600; color:rgba(255,255,255,.82);}
+  .est-i-arr{opacity:.5;}
+  .est-i-badge{display:inline-block; margin-top:5px; font-size:11px; font-weight:700;
+    color:#4ADE80; background:rgba(74,222,128,.12); border-radius:6px; padding:2px 7px;}
+  .est-i-sum{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap; align-self:center;}
+  /* На широкому екрані та сама ієрархія лягає в рядок таблиці: сума праворуч
+     стовпчиком, ціна за штуку поруч. Але картки не «стискаємо» — розкладка
+     інша, порядок читання той самий. */
+  @media (min-width:720px){
+    .est-i{grid-template-columns:64px minmax(0,1fr) 150px; padding:14px 16px;}
+    .est-i-sum{font-size:18px; text-align:right;}
+  }
+
+  /* ── Підсумок ── */
+  .est-card{margin-top:16px; background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:16px 16px 18px;}
+  .est-card-h{font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    color:rgba(255,255,255,.5); margin-bottom:12px;}
+  .est-line{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    font-size:13.5px; color:rgba(255,255,255,.7); margin-bottom:8px;
+    font-variant-numeric:tabular-nums;}
+  .est-line b{font-weight:600; color:rgba(255,255,255,.9);}
+  .est-line.is-off, .est-line.is-off b{color:#4ADE80;}
+  .est-div{height:1px; background:rgba(255,255,255,.14); margin:12px 0;}
+  .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .est-pay span{font-size:15px; font-weight:600;}
-  .est-pay b{font-size:27px; font-weight:800; letter-spacing:-0.8px; font-variant-numeric:tabular-nums;}
-  .est-save{margin-top:14px; font-size:13px; font-weight:600; color:#4ADE80; text-align:center;
-    line-height:1.45;}
-  /* Кошторис на темному тлі — тому тут не сірий, а приглушено-світлий */
+  /* Найбільша цифра всієї сторінки — саме тут */
+  .est-pay b{font-size:32px; font-weight:800; letter-spacing:-1px;
+    font-variant-numeric:tabular-nums; line-height:1.05;}
+  .est-chip-b{margin-top:12px;}
+
+  /* ── Що входить ── */
+  .est-inc{display:flex; gap:8px; align-items:flex-start; margin-top:14px;
+    font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.6);}
+  .est-inc svg{flex:none; margin-top:2px; color:rgba(255,255,255,.4);}
+  .est-inc b{font-weight:700; color:rgba(255,255,255,.78);}
+
   .est-left{margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);
     font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.66);}
+
+  /* ── Дії ──
+     На телефоні внизу вже стоїть липка панель із «Підтвердити». Дві однаково
+     сильні кнопки в одному екрані змагаються між собою, тому тут головна
+     зʼявляється лише на широкому екрані, де панелі немає. */
+  .est-cta{display:flex; gap:10px; margin-top:18px;}
+  .est-cta .btn{flex:1;}
+  /* Другорядна кнопка на темному тлі мусить бути темною: біла заливка тут
+     важча за помаранчеву й перетягує на себе головну дію. */
+  .est-cta .btn-ghost{background:transparent; color:#fff;
+    border:1px solid rgba(255,255,255,.28);}
+  .est-cta .btn-ghost:hover{background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.42);}
+  .est-cta-go{display:none;}
+  @media (min-width:720px){ .est-cta-go{display:block;} }
 
   /* ══ Зняття ризику одразу під сумою ══ */
   .rea{display:grid; gap:10px; margin-top:18px;}
@@ -1028,23 +1065,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .ticks li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink-2);}
   .ticks svg{flex:none; margin-top:3px;}
 
-  /* ── кошторис ── */
-  .est-row{display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);}
-  .est-th{width:52px; height:52px; flex:none; background:var(--soft); border-radius:10px; padding:4px;}
-  .est-th img{width:100%; height:100%; object-fit:contain;}
-  .est-info{flex:1; min-width:0;}
-  .est-name{font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .est-meta{font-size:12.5px; color:var(--muted);}
-  .est-sum{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right;}
-  .est-tot{margin-top:16px; background:var(--soft); border-radius:0; padding:24px var(--pad);
-    margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);}
-  .et-row{display:flex; justify-content:space-between; align-items:baseline; font-size:14px; color:var(--ink-2);}
-  .et-row + .et-row{margin-top:7px;}
-  .et-row.save span:last-child{color:var(--good); font-weight:700;}
-  .et-grand{margin-top:13px; padding-top:13px; border-top:1px solid var(--line);
-    display:flex; justify-content:space-between; align-items:baseline;}
-  .et-grand span:first-child{font-size:15px; font-weight:700;}
-  .et-grand span:last-child{font-size:27px; font-weight:800; letter-spacing:-0.7px;}
+  /* Стара таблиця кошторису (.est-row/.est-th/.est-tot/.et-*) прибрана разом
+     із розміткою. Її .est-meta стояв нижче за новий і перефарбовував рядок
+     «N позицій · M одиниць» у сірий по темному тлу. */
 
   /* ── рекомендації ── */
   /* ── Варіанти на вибір ─────────────────────────────────────────────────
@@ -1221,12 +1244,30 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .hero h1{font-size:26px;}
     .item + .item{margin-top:20px; padding-top:18px;}
     .specs{grid-template-columns:repeat(3,1fr);}
-    .item, .mock, .price-box, .est-tot, .reco, .mgr{break-inside:avoid;}
+    .item, .mock, .price-box, .est-i, .est-card, .reco, .mgr{break-inside:avoid;}
     .tier{border-color:#ccc;}
     .tier.on{background:#f2f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-    .hero-shot, .mock, .wow-cell, .est-th, .reco-th, .price-box, .est-tot, .mgr{
+    .hero-shot, .mock, .wow-cell, .reco-th, .price-box, .mgr{
       background:#F6F8FA !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-    .hm-val.save, .pb-save, .et-row.save span:last-child{color:#0E9F6E !important;
+    /* На папері темний блок не друкується: браузер за замовчуванням не кладе
+       фон, і білий текст лишається на білому. Тому в друку кошторис
+       перевертаємо в світлий — верстка та сама, кольори паперові. */
+    .est{background:#fff !important; color:var(--ink) !important; padding:0 !important;}
+    .est-meta, .est-i-mul, .est-i-was, .est-line, .est-inc, .est-left{
+      color:#5A6472 !important;}
+    .est-i-was s{color:#8A93A0 !important;}
+    .est-i-was b, .est-i-nm, .est-i-sum, .est-line b, .est-pay b, .est-pay span,
+    .est-total, .est-h{color:var(--ink) !important;}
+    .est-i, .est-card{border-color:#D9E1EC !important; background:#F6F8FA !important;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .est-i-ph{border:1px solid #E5EAF1;}
+    .est-card-h{color:#5A6472 !important;}
+    .est-div{background:#D9E1EC !important;}
+    .est-inc svg{color:#8A93A0 !important;}
+    .est-cta{display:none !important;}
+    .hm-val.save, .pb-save, .est-chip, .est-i-badge, .est-line.is-off,
+    .est-line.is-off b{color:#0E9F6E !important; background:transparent !important;
+      border-color:#A7DFC3 !important;
       -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     .print-only{display:block !important;}
   }
@@ -3159,14 +3200,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var s = itemState(i);
       qty += s.qty; sum += s.sum; base += s.base;
     });
+    /* Рекомендовані й варіанти дають до «було» свою повну ціну, а не суму зі
+       знижкою. Доти вони йшли в базу вже здешевленими: у картці позиції
+       стояло «−55% за тираж», а підсумок цієї знижки не бачив — і людина
+       вірила меншій цифрі. Тепер обидва місця рахують те саме. */
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
       var rs = recoState(i);
-      qty += rs.qty; sum += rs.sum; base += rs.sum;
+      qty += rs.qty; sum += rs.sum; base += (rs.base != null ? rs.base : rs.sum);
     });
     variantPicked().forEach(function(vi){
       var vs = varState(vi);
-      qty += vs.qty; sum += vs.sum; base += vs.sum;
+      qty += vs.qty; sum += vs.sum; base += (vs.base != null ? vs.base : vs.sum);
     });
     return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
   }
@@ -4131,63 +4176,108 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!pick.reco[i]) return;
       var rs = recoState(i);
       rows.push({ th:(r.mockups||[])[0], all:(r.mockups||[]).filter(Boolean),
-                  name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
+                  name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true,
+                  base:rs.base });
     });
     variantPicked().forEach(function(vi){
       var v = OFFER.variants[vi], vs = varState(vi);
       rows.push({ th:(v.mockups||[])[0], all:(v.mockups||[]).filter(Boolean),
-                  name:v.name, qty:vs.qty, unit:vs.unit, sum:vs.sum, reco:false });
+                  name:v.name, qty:vs.qty, unit:vs.unit, sum:vs.sum, reco:false,
+                  base:vs.base });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
-    // Ціна за штуку без знижки за тираж і виграш по кожній позиції
+    /* Ціна за штуку без знижки за тираж — та сама, що в картці позиції. Один
+       розрахунок на обидва місця: щойно вони розійдуться, клієнт побачить
+       одну знижку в картці й іншу в кошторисі, і повірить меншій. */
     rows.forEach(function(r){
-      r.baseUnit = r.qty > 0 ? Math.round((r.base != null ? r.base : r.sum) / r.qty) : r.unit;
-      r.off = Math.max(0, (r.base != null ? r.base : r.sum) - r.sum);
+      var b = (r.base != null ? r.base : r.sum);
+      r.baseUnit = r.qty > 0 ? Math.round(b / r.qty) : r.unit;
+      r.off = Math.max(0, b - r.sum);
+      r.pct = (b > r.sum && b > 0) ? Math.round((1 - r.sum / b) * 100) : 0;
     });
+    var units = rows.reduce(function(a, r){ return a + r.qty; }, 0);
+    var pct = (t.base > t.sum && t.base > 0) ? Math.round((1 - t.sum / t.base) * 100) : 0;
+    var word = function(n, one, few, many){
+      var d = n % 10, dd = n % 100;
+      if(d === 1 && dd !== 11) return one;
+      if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return few;
+      return many;
+    };
+    /* Один рядок «скільки і чого» замість шапки таблиці: клієнт має за пару
+       секунд зрозуміти обсяг, а не читати назви колонок. */
+    var meta = rows.length + ' ' + word(rows.length, 'позиція', 'позиції', 'позицій') +
+               ' · ' + units + ' ' + word(units, 'одиниця', 'одиниці', 'одиниць');
     return '' +
       '<section id="estimate" class="full">' +
         '<div class="est">' +
-          '<h2 class="est-h">Кошторис</h2>' +
-          // «Кількість» і «Ціна за шт» у вузьких колонках налазять одне на одне —
-          // у шапці лишаємо скорочення, самі цифри від цього не страждають
-          '<div class="est-head"><span>Товар</span><span>К-сть</span>' +
-            '<span>За шт</span><span>Сума</span></div>' +
-          rows.map(function(r){
-            return '<div class="est-r">' +
-              '<span class="est-nm">' +
-                '<i class="est-th"' + (r.all && r.all.length ? ' data-estzoom="' +
+          /* Угорі — тільки те, заради чого сюди дивляться: скільки платити.
+             Решта цифр нижче. Доти верх був шапкою таблиці, і найбільше число
+             сторінки губилось у самому низу. */
+          '<div class="est-top">' +
+            '<div class="est-top-l">' +
+              '<h2 class="est-h">Кошторис</h2>' +
+              '<div class="est-meta">' + esc(meta) + '</div>' +
+            '</div>' +
+            '<div class="est-top-r">' +
+              '<div class="est-total">' + num(t.sum) + ' грн</div>' +
+              (t.save > 0
+                ? '<div class="est-chip">Економія ' + num(t.save) + ' грн · ' + pct + '%</div>'
+                : '') +
+            '</div>' +
+          '</div>' +
+          /* Позиції: на телефоні картки, на широкому екрані — рядки таблиці.
+             Одна розмітка, різна розкладка: стиснута десктопна таблиця на
+             390 px давала «Ф…» замість назви й три колонки цифр упритул. */
+          '<div class="est-list">' +
+            rows.map(function(r){
+              return '<div class="est-i">' +
+                '<i class="est-i-ph"' + (r.all && r.all.length ? ' data-estzoom="' +
                     esc(r.all.join('|')) + '"' : '') + '>' +
                   (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
                   'onerror="this.style.display=\'none\'">' : '') + '</i>' +
-                '<span class="est-nm-t"><b>' + esc(r.name) + '</b>' +
-                  (r.reco ? '<em>додано</em>' : '') +
-                  '<span class="est-mul">' + r.qty + ' × ' + num(r.unit) + ' грн</span></span>' +
-              '</span>' +
-              '<span>' + r.qty + ' шт</span>' +
-              /* Ціна за штуку двома рядками: скільки коштувала б без знижки
-                 за тираж і скільки коштує тут. Одна цифра без другої нічого
-                 не каже — саме різниця між ними і є те, що клієнт виграє,
-                 замовляючи тираж, а не поштучно. */
-              '<span class="est-u">' +
-                (r.baseUnit > r.unit ? '<s>' + num(r.baseUnit) + '</s>' : '') +
-                '<b>' + num(r.unit) + '</b></span>' +
-              '<span class="est-s">' + num(r.sum) + ' грн' +
-                (r.off > 0 ? '<em>−' + num(r.off) + ' грн</em>' : '') + '</span>' +
-            '</div>';
-          }).join('') +
-          /* Знижка за тираж сидить у ціні кожної позиції, тому в рядках вище
-             її не видно — і клієнт не знає, що вона взагалі є. Показуємо
-             окремо: скільки коштувало б без тиражу, скільки зняв тираж і
-             скільки на цьому зекономлено. Цифри не вигадані — це та сама
-             сума, порахована рушієм без знижки за кількість.
-             Немає знижки — немає й рядків: «економія 0 грн» гірша за тишу. */
-          (t.save > 0
-            ? '<div class="est-sub"><span>Без знижки за тираж</span><b>' + num(t.base) + ' грн</b></div>' +
-              '<div class="est-sub est-off"><span>Знижка за тираж</span><b>−' + num(t.save) + ' грн</b></div>'
-            : '') +
-          '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
-          (t.save > 0
-            ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
+                '<div class="est-i-t">' +
+                  '<div class="est-i-nm">' + esc(r.name) +
+                    (r.reco ? '<em>додано</em>' : '') + '</div>' +
+                  '<div class="est-i-mul">' + r.qty + ' шт × ' + num(r.unit) + ' грн</div>' +
+                  /* Стара ціна — вторинна: сіра й перекреслена, під головним
+                     рядком. Вона пояснює знижку, але не сперечається з нею
+                     за увагу. */
+                  (r.pct > 0
+                    ? '<div class="est-i-was"><s>' + num(r.baseUnit) + ' грн/шт</s>' +
+                      '<span class="est-i-arr">→</span><b>' + num(r.unit) + ' грн/шт</b></div>' +
+                      '<div class="est-i-badge">−' + r.pct + '% за тираж</div>'
+                    : '') +
+                '</div>' +
+                '<div class="est-i-sum">' + num(r.sum) + ' грн</div>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+          /* Підсумок окремою карткою: три числа підряд — скільки коштувало б,
+             скільки зняв тираж, скільки платити. Саме в такому порядку його й
+             читають, і саме останнє має бути найбільшим на всій сторінці. */
+          '<div class="est-card">' +
+            '<div class="est-card-h">Ваш кошторис</div>' +
+            (t.save > 0
+              ? '<div class="est-line"><span>Вартість без знижки</span><b>' +
+                  num(t.base) + ' грн</b></div>' +
+                '<div class="est-line is-off"><span>Знижка за тираж</span><b>−' +
+                  num(t.save) + ' грн</b></div>'
+              : '') +
+            '<div class="est-div"></div>' +
+            '<div class="est-pay"><span>До сплати</span><b>' + num(t.sum) + ' грн</b></div>' +
+            (t.save > 0
+              ? '<div class="est-chip est-chip-b">Економія ' + num(t.save) +
+                ' грн · ' + pct + '%</div>' : '') +
+          '</div>' +
+          /* Що входить у ціну — дрібним рядком. Питання «а це вже з нанесенням?»
+             виникає рівно тут, і відповідь на нього не варта окремої секції. */
+          '<div class="est-inc">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+              'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M20 6 9 17l-5-5"/></svg>' +
+            '<span><b>У вартість включено</b> Одяг · Нанесення · Підготовка макета · ' +
+              'Контроль якості</span>' +
+          '</div>' +
           /* Що порахували, а що ні. Без цього рядка кошторис виглядає як
              повна відповідь: людина дивилась три варіанти, взяла один — і
              не бачить, що інші два просто не враховані, а не зникли. */
@@ -4198,6 +4288,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
               '. Ціну видно в картці — натисніть «Додати в замовлення», і сума перерахується.</div>';
           })() +
+          /* Дії одразу під сумою. На телефоні внизу вже стоїть липка панель із
+             «Підтвердити» — другу таку саму кнопку в тому ж екрані ставити не
+             можна, тож там лишається тільки «Скачати кошторис». */
+          '<div class="est-cta">' +
+            '<button class="btn btn-ghost" id="estPdfBtn">Скачати кошторис</button>' +
+            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити замовлення →</button>' +
+          '</div>' +
         '</div>' +
         mgrCalcAllHtml() +
       '</section>';
@@ -5486,7 +5583,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       copy();
       imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
     };
-    ['confirmBtn','barConfirm'].forEach(function(id){
+    ['confirmBtn','barConfirm','estConfirmBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
         document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
@@ -5494,6 +5591,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         openSheet('ovConfirm');
       };
     });
+    /* «Скачати кошторис» — той самий друк у PDF, що й кнопка нижче. Дію не
+       дублюємо, лише даємо їй вхід просто під сумою: саме там вона й потрібна
+       людині, яка збирається переслати кошторис бухгалтеру. */
+    var estPdf = document.getElementById('estPdfBtn');
+    if(estPdf) estPdf.onclick = function(){
+      if(window.lqAn) window.lqAn.track('offer_print', { from:'estimate' });
+      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
+    };
     ['changeBtn','barChange'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){ openSheet('ovChange'); };
