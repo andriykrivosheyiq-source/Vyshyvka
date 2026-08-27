@@ -314,17 +314,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
-  .gcards{display:grid; gap:8px;}
-  .gcard{display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
-    border-radius:14px; background:rgba(255,255,255,.07);
-    border:1px solid rgba(255,255,255,.13); color:#fff;}
-  .gc-ic{flex:none; width:34px; height:34px; border-radius:10px; color:#7FE0B0;
-    background:rgba(255,255,255,.09); display:flex; align-items:center; justify-content:center;}
-  .gc-tx{min-width:0;}
-  .gc-tx b{display:block; font-size:14px; font-weight:700; line-height:1.4;}
-  .gc-tx i{display:block; font-style:normal; font-size:12.5px; line-height:1.5;
-    color:rgba(255,255,255,.66); margin-top:3px;}
-
   .rmore{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:13px; border-radius:13px; border:1.5px solid var(--line);
     background:#fff; font:inherit; font-size:14px; font-weight:700; color:var(--ink);
@@ -345,20 +334,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Тепер це одна темна зона з волосяним розділювачем, і тон у них спільний. */
   .band{background:#14171B; color:#fff; border-radius:0; border:none;
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
-  /* Гарантії — світла смуга, кошторис — темна. Дві темні поспіль зливались
-     в одну зону, і людина читала гарантії як шапку рахунку. Тепер це різні
-     блоки й за кольором. */
-  .guar{background:#F2F4F7; color:var(--ink); border:none; border-radius:0;
-    padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
-  .guar .sec-title{color:var(--ink); margin-top:0;}
-  .guar .gcard{background:#fff; border:1px solid #E3E7EE; color:var(--ink);}
-  .guar .gc-ic{background:#EAF6F0; color:#0E9F6E;}
-  .guar .gc-tx b{color:var(--ink);}
-  .guar .gc-tx i{color:var(--muted);}
-  .guar + section.full{margin-bottom:26px; padding-top:0; border-top:none;}
   .band .sec-title{color:#fff;}
   .band .sec-sub{color:rgba(255,255,255,.66);}
-  .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
   .band .review-card{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12);}
   .band .review-card-main h4{color:#fff;}
   .band .review-card p, .band .review-date{color:rgba(255,255,255,.7);}
@@ -413,26 +390,33 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .review-card .review-stars{margin-top:8px; font-size:15px; color:#FFC53D; letter-spacing:1px;}
   .review-card p{font-size:15px; color:var(--muted); margin:6px 0 0; line-height:1.5;}
 
-  /* Як проходитиме замовлення */
-  /* Етапи замовлення: одна лінія з кружечками, а не пʼять окремих карток.
-     Картки читались як пʼять різних блоків і не показували головного —
-     що це послідовність. Тепер лінія проходить крізь усі кружечки, і
-     останній підсвічено: видно, куди веде шлях. */
-  .tl{display:flex; gap:0; position:relative; padding:4px 0 2px;}
-  .tl-step{flex:1; position:relative; text-align:center; min-width:0;}
-  .tl-step::before{content:''; position:absolute; top:15px; left:0; right:50%; height:2px;
-    background:var(--line);}
-  .tl-step::after{content:''; position:absolute; top:15px; left:50%; right:0; height:2px;
-    background:var(--line);}
-  .tl-step:first-child::before, .tl-step:last-child::after{display:none;}
-  .tl-n{position:relative; z-index:1; display:flex; align-items:center; justify-content:center;
-    width:30px; height:30px; margin:0 auto 8px; border-radius:50%; background:#fff;
-    border:2px solid var(--line); color:var(--ink-2); font-size:12px; font-weight:700;}
-  .tl-step:last-child .tl-n{background:var(--ink); border-color:var(--ink); color:#fff;}
-  .tl-t{display:block; font-size:11.5px; font-weight:600; color:var(--ink-2); line-height:1.3;
-    padding:0 2px;}
-  @media (max-width:420px){ .tl-t{font-size:10.5px;} .tl-n{width:26px; height:26px;}
-    .tl-step::before, .tl-step::after{top:13px;} }
+  /* ── Як пройде замовлення ──────────────────────────────────────────
+     Тонка лінія проходить крізь усі пʼять етапів, а номер вибиває в ній
+     проміжок кольором фону: рамок і кружечків немає взагалі, звʼязок видно.
+     На вузькому екрані та сама лінія просто стає вертикальною. */
+  .fl{list-style:none; margin:0; padding:0; display:grid; gap:0;}
+  .fl-s{position:relative; padding:0 0 22px 34px;}
+  .fl-s:last-child{padding-bottom:0;}
+  /* Лінія трохи темніша за звичайні рамки: вона тут не розділювач, а сам
+     звʼязок між етапами, і на світлому тлі має бути помітною. */
+  .fl-s::before{content:''; position:absolute; left:9px; top:20px; bottom:0;
+    width:1px; background:#D3DAE3;}
+  .fl-s:last-child::before{display:none;}
+  .fl-n{position:absolute; left:0; top:0; background:var(--bg); padding-bottom:4px;
+    font-size:11.5px; font-weight:700; letter-spacing:.08em; color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  .fl-t{display:block; font-size:15px; font-weight:600; letter-spacing:-0.2px;
+    line-height:1.3;}
+  .fl-d{display:block; font-size:13px; color:var(--muted); line-height:1.45; margin-top:3px;}
+  @media (min-width:660px){
+    .fl{grid-template-columns:repeat(5,1fr);}
+    .fl-s{padding:26px 18px 0 0;}
+    .fl-s::before{left:0; right:0; top:7px; bottom:auto; width:auto; height:1px;}
+    .fl-n{padding:0 9px 0 0; background:var(--bg);}
+    .fl-t{font-size:14.5px;}
+    .fl-d{font-size:12.5px;}
+  }
+
   /* Проєкти */
   .cases{display:grid; grid-template-columns:1fr; gap:12px;}
   .case{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff;}
@@ -441,11 +425,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .case-n{font-weight:700; font-size:15px; padding:12px 14px 0;}
   .case-q{font-size:12.5px; color:var(--muted); padding:2px 14px 0;}
   .case-t{font-size:13px; color:var(--ink); padding:6px 14px 14px;}
-  /* Гарантії */
-  .gcards{display:grid; grid-template-columns:1fr; gap:10px;}
-  .gcard{display:flex; align-items:center; gap:10px; padding:14px; border:1px solid var(--line);
-    border-radius:14px; background:#fff; font-size:14px;}
-  .gcard svg{flex:none;}
   /* FAQ */
   .fq{border:1px solid var(--line); border-radius:14px; background:#fff; margin-bottom:8px;
     overflow:hidden;}
@@ -457,7 +436,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .fq-a{padding:0 16px 14px; font-size:13.5px; color:var(--muted); line-height:1.55;}
   @media (min-width:560px){
     .cases{grid-template-columns:1fr 1fr 1fr;}
-    .gcards{grid-template-columns:1fr 1fr;}
   }
   .hero-facts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;}
   .fact{background:var(--soft); border-radius:999px; padding:7px 13px; font-size:13px;
@@ -976,33 +954,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-cta-go{display:none;}
   @media (min-width:720px){ .est-cta-go{display:block;} }
 
-  /* ══ Зняття ризику одразу під сумою ══ */
-  .rea{display:grid; gap:10px; margin-top:18px;}
-  @media (min-width:560px){ .rea{grid-template-columns:1fr 1fr;} }
-  .rea-i{display:flex; gap:10px; align-items:flex-start; padding:12px 14px;
-    border:1px solid var(--line); border-radius:13px; background:#fff;}
-  .rea-i svg{flex:none; margin-top:1px;}
-  .rea-i b{display:block; font-size:13.5px; font-weight:700;}
-  .rea-i span{display:block; font-size:12.5px; color:var(--muted); line-height:1.45; margin-top:1px;}
-  .rea-ask{font-size:13px; color:var(--muted); margin:12px 0 0; text-align:center;}
-
-  /* ══ Згорнутий хвіст сторінки ══ */
-  .det{border:1px solid var(--line); border-radius:16px; background:#fff; overflow:hidden;}
-  .det>summary{list-style:none; cursor:pointer; padding:16px 18px; font-size:15px;
-    font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:10px;}
-  .det>summary::-webkit-details-marker{display:none;}
-  .det>summary::after{content:''; width:8px; height:8px; border-right:2px solid var(--muted);
-    border-bottom:2px solid var(--muted); transform:rotate(45deg) translateY(-2px);
-    transition:transform .18s;}
-  .det[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
-  .det-body{padding:0 18px 18px;}
-  /* Розгорнутий розділ: без рамки й відступів акордеона, підзаголовки
-     тримають ритм самі. */
-  .det-open .det-body{padding:0;}
-  .det-open .det-h:first-child{margin-top:0;}
-  .det-h{font-size:17px; font-weight:600; letter-spacing:-0.2px; margin:20px 0 10px;}
-  .det-body>.det-h:first-child{margin-top:0;}
-
   /* ══ Що входить у вартість: іконки в ряд ══ */
   /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
      як обірваний список, а не як набір того, що входить у ціну. */
@@ -1115,11 +1066,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .reco-box svg{opacity:0;}
   .reco.on .reco-box svg{opacity:1;}
 
-  /* ── умови ── */
-  .terms{display:grid; gap:14px;}
-  .term-k{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
-    color:var(--muted); margin-bottom:2px;}
-  .term-v{font-size:14.5px;}
+  /* ── Умови замовлення ──────────────────────────────────────────────
+     Головне значення велике й читається без читання: щоб дізнатись термін,
+     не треба доходити до кінця речення. Підпис під ним пояснює, ЩО це за
+     цифра, третій рядок — деталь для тих, кому вона потрібна. */
+  .cond-g{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .cond-c{border:1px solid var(--line); border-radius:14px; background:#fff;
+    padding:16px 14px 15px; min-width:0;}
+  .cond-v{font-size:19px; font-weight:700; letter-spacing:-0.5px; line-height:1.2;
+    font-variant-numeric:tabular-nums;}
+  .cond-k{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--muted); margin-top:7px;}
+  .cond-n{font-size:12.5px; color:var(--ink-2); line-height:1.45; margin-top:7px;}
+  /* Документи — не пʼята картка, а рядок: це не умова цього замовлення, а
+     те, як ми працюємо взагалі. */
+  .cond-doc{display:flex; gap:8px; align-items:center; margin-top:12px;
+    font-size:13px; color:var(--muted);}
+  .cond-doc svg{flex:none; color:var(--good);}
+  @media (min-width:660px){
+    .cond-g{grid-template-columns:repeat(4,1fr);}
+    .cond-v{font-size:21px;}
+    .cond-c{padding:18px 16px 17px;}
+  }
+
+  /* ── Під нашим контролем ────────────────────────────────────────────
+     Пʼять рядків із тонкою галочкою. Без карток і без рамок: це не пʼять
+     різних обʼєктів, а один список, і кожна рамка тут додавала б ваги
+     тому, що має читатись за секунду. */
+  .tru-l{list-style:none; margin:0; padding:0; display:grid; gap:11px;}
+  @media (min-width:660px){ .tru-l{grid-template-columns:1fr 1fr; gap:12px 28px;} }
+  .tru-l li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px;
+    color:var(--ink-2); line-height:1.45;}
+  .tru-l svg{flex:none; margin-top:3px; color:var(--good);}
 
   /* ── менеджер ── */
   .mgr{display:flex; gap:14px; align-items:center; background:var(--soft);
@@ -1135,38 +1113,41 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff; border:1.5px solid var(--line); font-size:14px; font-weight:600;
     color:var(--ink); text-decoration:none;}
 
-  /* ── фінальні дії ── */
-  .final{display:grid; gap:10px; padding-bottom:14px;}
-  /* Заклик: вузька колонка на власній підкладці. Довгий рядок на всю ширину
-     читається найгірше саме там, де має читатися найкраще. */
+  /* ── Фінальний заклик ──────────────────────────────────────────────
+     Головна дія всієї сторінки. Тому вона стоїть на власній темній
+     підкладці від краю до краю: на білому серед білого кнопка була просто
+     ще одним елементом списку.
+     Списку «Рахунок → Макет → Виготовлення» тут більше немає — він
+     переказував таймлайн вище. Лишились три речі: що станеться, кнопка,
+     і чого НЕ станеться. */
+  .cta-wrap{border-top:none; padding:0;}
   .cta-box{background:#14171B; color:#fff; border:none; border-radius:0;
-    padding:32px var(--pad) 30px; text-align:center;
-    margin:8px calc(var(--pad) * -1) 0;}
-  .cta-box .sec-title{margin-bottom:8px; color:#fff;}
-  /* Текст усередині лишається вузьким — довгий рядок на всю ширину
-     читається найгірше саме там, де має читатися найкраще. */
-  .cta-box .sec-sub{margin:0 auto 20px; max-width:34ch; color:rgba(255,255,255,.7);}
-  .cta-box .final{padding-bottom:0; max-width:420px; margin:0 auto;}
-  /* Друга дія — тиха: поділитися можна, але головне тут підтвердити */
-  .btn-share{display:flex; align-items:center; justify-content:center; gap:8px;
-    background:transparent; color:rgba(255,255,255,.82);
-    border:1px solid rgba(255,255,255,.28); font-weight:600;}
-  .btn-share:hover{background:rgba(255,255,255,.08); color:#fff;}
-  .btn-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
-  .btn-share svg{flex:none;}
-  /* Три кроки перед кнопкою — на темному, у стовпчик і зліва: нумерований
-     список читається лише коли цифри стоять одна під одною. */
-  .nsteps{list-style:none; margin:0 auto 22px; padding:0; max-width:420px; text-align:left;
-    counter-reset:ns;}
-  .nsteps li{position:relative; padding:0 0 0 38px; margin-bottom:14px; counter-increment:ns;}
-  .nsteps li:last-child{margin-bottom:0;}
-  .nsteps li::before{content:counter(ns); position:absolute; left:0; top:0;
-    width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.12);
-    color:#fff; font-size:12.5px; font-weight:700; display:flex; align-items:center;
-    justify-content:center;}
-  .nsteps b{display:block; font-size:15px; font-weight:600; color:#fff; line-height:1.35;}
-  .nsteps span{display:block; font-size:13px; color:rgba(255,255,255,.65); line-height:1.45;
-    margin-top:2px;}
+    padding:40px var(--pad) 34px; text-align:center;
+    margin:26px calc(var(--pad) * -1) 0;}
+  .cta-h{font-size:24px; font-weight:600; letter-spacing:-0.6px; line-height:1.25;
+    margin:0 auto 12px; max-width:26ch; text-wrap:balance;}
+  /* Текст лишається вузьким — довгий рядок читається найгірше саме там,
+     де має читатися найкраще. */
+  .cta-p{font-size:14.5px; line-height:1.55; color:rgba(255,255,255,.7);
+    margin:0 auto 24px; max-width:44ch;}
+  .final{display:grid; gap:10px; padding-bottom:0; max-width:420px; margin:0 auto;}
+  /* Рядок під кнопкою знімає той самий страх, через який палець над нею й
+     завмирає: що замовлення піде у виробництво без клієнта. */
+  .cta-note{font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.5);
+    margin:12px auto 0; max-width:40ch;}
+  /* Поділитися — тихим рядком, а не кнопкою: друга кнопка поруч із головною
+     тягне на себе увагу й дає привід не вирішувати. */
+  .cta-share{display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    margin-top:22px; padding:8px 4px; font:inherit; font-size:13px; font-weight:600;
+    color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.18);
+    transition:.15s;}
+  .cta-share:hover{color:#fff; border-color:rgba(255,255,255,.45);}
+  .cta-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
+  .cta-share svg{flex:none; width:15px; height:15px;}
+  @media (min-width:660px){
+    .cta-box{padding:52px var(--pad) 44px;}
+    .cta-h{font-size:29px;}
+  }
 
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
@@ -1245,6 +1226,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .item + .item{margin-top:20px; padding-top:18px;}
     .specs{grid-template-columns:repeat(3,1fr);}
     .item, .mock, .price-box, .est-i, .est-card, .reco, .mgr{break-inside:avoid;}
+    /* Умови й етапи тепер друкуються разом із рештою: раніше весь хвіст
+       сторінки лежав під .no-print, і в PDF, який пересилають бухгалтеру,
+       не було ні термінів, ні оплати. */
+    .fl, .fl-s, .cond-c, .tru-l li, .fq{break-inside:avoid;}
     .tier{border-color:#ccc;}
     .tier.on{background:#f2f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     .hero-shot, .mock, .wow-cell, .reco-th, .price-box, .mgr{
@@ -4293,40 +4278,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              можна, тож там лишається тільки «Скачати кошторис». */
           '<div class="est-cta">' +
             '<button class="btn btn-ghost" id="estPdfBtn">Скачати кошторис</button>' +
-            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити замовлення →</button>' +
+            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію →</button>' +
           '</div>' +
         '</div>' +
         mgrCalcAllHtml() +
       '</section>';
-  }
-
-  // Найбільший страх корпоративного клієнта — не ціна, а «раптом зроблять не те»
-  // і «як я це проведу». Обидва питання виникають рівно в момент, коли він
-  // побачив суму, тому відповіді стоять тут, а не в розділі внизу сторінки.
-  function reassureHtml(){
-    /* Тут лишається тільки те, чого клієнт сам не бачить: умови оплати й
-       документи. «Макет погоджуємо до запуску» і «підготовка макета — один
-       раз» він і так розуміє, а поруч із гарантіями це просто повтор. */
-    var rows = [];
-    // Про документи кажемо лише якщо це справді ваша заявлена умова
-    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
-    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
-    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
-    var IC = {
-      shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
-      repeat:'<path d="M4 9a8 8 0 0 1 13.7-5.7L20 5.5"/><path d="M20 15a8 8 0 0 1-13.7 5.7L4 18.5"/><path d="M20 3v3h-3M4 21v-3h3"/>',
-      doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
-      card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
-    };
-    return '' +
-      '<div class="rea">' + rows.map(function(r){
-        return '<div class="rea-i">' +
-          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
-            'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + IC[r[0]] + '</svg>' +
-          '<div><b>' + esc(r[1]) + '</b><span>' + esc(r[2]) + '</span></div>' +
-        '</div>';
-      }).join('') + '</div>' +
-      '<p class="rea-ask">Потрібен зразок перед тиражем — напишіть менеджеру, узгодимо.</p>';
   }
 
   function recoHtml(){
@@ -4375,24 +4331,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      винесемо їх у налаштування. Кожен блок ховається, якщо даних немає:
      порожній заголовок гірший за його відсутність. */
 
-  var TIMELINE = ['Погодження', 'Підготовка', 'Виробництво', 'Контроль якості', 'Доставка'];
-  /* Гарантії. Кожен рядок знімає конкретний страх, а не вихваляє нас:
-     «а раптом вийде не те», «а раптом доведеться доплачувати за правки»,
-     «а раптом брак», «а раптом наступного разу буде інакше». */
-  /* Ті самі гарантії, що на сторінці «Гарантія» сайту — слово в слово по
-     суті, лише коротше. Обіцяти в пропозиції одне, а в публічній гарантії
-     інше не можна: клієнт порівняє, і це коштуватиме довіри дорожче за
-     будь-який гарний рядок. */
-  /* Лишаємо тільки те, що клієнт не може перевірити сам до отримання.
-     «Виготовляємо після підтвердження макета» він і так бачить з процесу,
-     а обіцянка про стійкість друку без строку нічого не важить. */
-  /* Ті самі пункти, що на сторінці «Гарантія» сайту. У кожного своя іконка:
-     чотири однакові щити перетворювали список на орнамент — око перестає
-     розрізняти рядки й читає їх як один. */
-  var GUARANTEES = [
-    ['photo', 'Надсилаємо фото готового виробу перед відправкою'],
-    ['back',  'Виріб не відповідає погодженому макету — виправимо безкоштовно'],
-    ['time',  'Звертайтесь протягом 14 днів після отримання — розберемось з будь-яким питанням']
+  /* Пʼять етапів замовлення. Кожен — не тільки назва, а й один рядок про те,
+     що на ньому відбувається: сама назва «Погодження» нічого не пояснює
+     людині, яка замовляє вперше, і саме на цих словах вона й вирішує, чи
+     розуміє процес. Другий етап названо «Макет», а не «Підготовка» — це те
+     єдине, що клієнт робить руками, і воно має називатись своїм імʼям. */
+  var FLOW = [
+    ['Погодження',      'Звіряємо склад, тираж і терміни'],
+    ['Макет',           'Готуємо й погоджуємо з вами до запуску'],
+    ['Виробництво',     'Шиємо й наносимо після вашого «так»'],
+    ['Контроль якості', 'Перевіряємо кожну одиницю партії'],
+    ['Доставка',        'Надсилаємо фото готового і відправляємо']
   ];
 
   // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
@@ -4409,13 +4358,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }).filter(function(q){ return q[0] && q[1]; });
   }
 
-  function timelineHtml(){
+  /* Етапи однією лінією, а не пʼятьма картками. Картки читались як пʼять
+     окремих блоків і ховали головне — що це послідовність. Тепер номер
+     стоїть на самій лінії й вибиває в ній проміжок: рамок немає взагалі,
+     а звʼязок видно. На вузькому екрані лінія просто повертається
+     вертикально — той самий обʼєкт, інша вісь. */
+  function flowHtml(){
     return '' +
-      '<h3 class="det-h">Як проходитиме замовлення</h3>' +
-        '<div class="tl">' + TIMELINE.map(function(x, i){
-          return '<div class="tl-step"><span class="tl-n">' + (i + 1) + '</span>' +
-                 '<span class="tl-t">' + esc(x) + '</span></div>';
-        }).join('') + '</div>';
+      '<section class="flow">' +
+        '<h2 class="sec-title">Як пройде ваше замовлення</h2>' +
+        '<ol class="fl">' + FLOW.map(function(x, i){
+          return '<li class="fl-s">' +
+            '<span class="fl-n">' + (i < 9 ? '0' : '') + (i + 1) + '</span>' +
+            '<b class="fl-t">' + esc(x[0]) + '</b>' +
+            '<span class="fl-d">' + esc(x[1]) + '</span>' +
+          '</li>';
+        }).join('') + '</ol>' +
+      '</section>';
   }
 
   // Персональний коментар менеджера. Без нього блоку немає — загальні слова
@@ -4466,62 +4425,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
-  /* Гарантії лежали в загальному розкритті «Терміни, гарантії та умови» —
-     тобто найсильніший аргумент проти страху передоплати не бачив ніхто.
-     Тепер це окрема видима секція на темному тлі. */
-  function guaranteesHtml(){
-    return '' +
-      '<div class="gcards">' + GUARANTEES.map(function(g){
-        return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
-      }).join('') + '</div>';
-  }
-  var G_IC = {
-    shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
-    ok:'<circle cx="12" cy="12" r="8.8"/><path d="m8.2 12.2 2.6 2.6 5-5.4"/>',
-    photo:'<path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3Z"/><circle cx="12" cy="13" r="3.4"/>',
-    back:'<path d="M4 10a8 8 0 0 1 13.6-5.6L20 6.8"/><path d="M20 6.8V3M20 6.8h-3.8"/><path d="M20 14a8 8 0 0 1-13.6 5.6L4 17.2"/><path d="M4 17.2V21M4 17.2h3.8"/>',
-    wash:'<path d="M12 3.2s5.4 5.3 5.4 9a5.4 5.4 0 1 1-10.8 0c0-3.7 5.4-9 5.4-9Z"/><path d="M9.4 13.6a2.6 2.6 0 0 0 2.6 2.6"/>',
-    time:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3.2 2"/>',
-    doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
-    card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
-  };
-  function gcard(ic, title, note){
-    return '<div class="gcard">' +
-      '<span class="gc-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
-        (G_IC[ic] || G_IC.shield) + '</svg></span>' +
-      '<span class="gc-tx"><b>' + esc(title) + '</b>' +
-        (note ? '<i>' + esc(note) + '</i>' : '') + '</span></div>';
-  }
-  // Документи й оплата — це теж зобовʼязання, тож живуть у блоці гарантій
-  function reassureRows(){
-    var rows = [];
-    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
-    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
-    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
-    return rows;
-  }
-
-  function guaranteesSection(){
-    var extra = (OFFER.includes || []).filter(function(t){ return /якіст|перевір|контрол/i.test(t); });
-    return '' +
-      '<section class="guar">' +
-        '<h2 class="sec-title">Гарантії</h2>' +
-        /* Підзаголовка тут немає навмисно. Спершу він пояснював, звідки ці
-           умови, потім — що вони означають; і те, й те виявилось переказом
-           самих пунктів. Три рядки нижче говорять за себе. */
-        /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
-           той самий вигляд, що був у документів і оплати. Галочки в рядок
-           виглядали як список справ, а не як зобовʼязання. */
-        '<div class="gcards">' +
-          GUARANTEES.map(function(g){ return gcard(g[0], g[1], ''); }).join('') +
-          extra.map(function(g){ return gcard('shield', g, ''); }).join('') +
-          reassureRows().map(function(r){
-            return gcard(r[0], r[1], r[2]);
-          }).join('') +
-        '</div>' +
-      '</section>';
-  }
+  /* Секція «Гарантії» стояла перед кошторисом і повторювала те саме, що
+     блок довіри внизу: фото перед відправкою, безкоштовне виправлення,
+     документи, оплата. Одна обіцянка двічі на сторінці не подвоює довіру —
+     вона змушує шукати, чим ці два списки відрізняються. Лишився один
+     блок, унизу, поруч із рішенням. */
 
   /* ── Заглушки ──────────────────────────────────────────────────────
      Блоки довіри без справжнього наповнення шкодять більше, ніж їх
@@ -4664,7 +4572,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var FAQ = faqList();
     if(!FAQ.length) return '';
     return '' +
-      '<h3 class="det-h">Часті питання</h3>' +
+      '<h2 class="sec-title">Часті питання</h2>' +
         '<div class="faq">' + FAQ.map(function(q, i){
           return '<details class="fq"' + (i === 0 ? ' open' : '') + '>' +
             '<summary>' + esc(q[0]) + '</summary>' +
@@ -4672,54 +4580,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }).join('') + '</div>';
   }
 
+  /* Пʼять фактів про те, як ми працюємо. Це не «переваги» — це відповіді на
+     чотири страхи, з якими людина сидить над передоплатою: зроблять не те,
+     зроблять неякісно, не побачу до відправки, не проведу по бухгалтерії.
+     Список фіксований навмисно: це властивості компанії, а не цієї
+     пропозиції, і від замовлення до замовлення вони не змінюються. Поле
+     `trust` в адмінці лишається джерелом рядка про ФОП/ТОВ під умовами. */
+  var TRUST = [
+    'Власне виробництво в Україні',
+    'Макет погоджуємо до запуску',
+    'Контролюємо якість кожної партії',
+    'Надсилаємо фото готового замовлення',
+    'Працюємо офіційно з ФОП та ТОВ'
+  ];
+  var TICK_TH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M20 6 9 17l-5-5"/></svg>';
   function trustHtml(){
-    if(!OFFER.trust || !OFFER.trust.length) return '';
     return '' +
-      '<h3 class="det-h">Чому нам довіряють</h3>' +
-      '<ul class="ticks">' + OFFER.trust.slice(0, 5).map(function(t){
-        return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
-      }).join('') + '</ul>';
+      '<section class="tru">' +
+        '<h2 class="sec-title">Ваше замовлення під нашим контролем на кожному етапі</h2>' +
+        '<ul class="tru-l">' + TRUST.map(function(t){
+          return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</section>';
   }
 
-  function termsHtml(){
-    var v = dateUa(OFFER.terms.validUntil);
-    return '' +
-      '<h3 class="det-h">Умови замовлення</h3>' +
-        '<div class="terms">' +
-          '<div><div class="term-k">Термін виготовлення</div>' +
-            '<div class="term-v" id="termDays">' + daysWord(curDays()) +
-            ' після погодження макета — орієнтовно до ' + readyDate() + '</div></div>' +
-          '<div><div class="term-k">Оплата</div>' +
-            '<div class="term-v">' + esc(OFFER.terms.payment) + '</div></div>' +
-          '<div><div class="term-k">Для запуску</div>' +
-            '<div class="term-v">' + esc(OFFER.terms.startWith) + '</div></div>' +
-          (v ? '<div><div class="term-k">Пропозиція актуальна до</div>' +
-               '<div class="term-v">' + esc(v) + '</div></div>' : '') +
-        '</div>';
+  /* Коротка форма умов оплати для великої цифри: «50% для запуску, решта
+     після готовності партії» → «50% / 50%». Відсоток беремо з тексту, який
+     менеджер написав в адмінці, і нічого не вигадуємо: немає відсотка —
+     немає й цифри, у картці лишиться сам текст. */
+  function payShort(txt){
+    var m = String(txt || '').match(/(\d{1,3})\s*%/);
+    if(!m) return '';
+    var a = +m[1];
+    if(!(a > 0 && a < 100)) return '';
+    return a + '% / ' + (100 - a) + '%';
   }
-  // Хвіст сторінки — в одне розкриття. Кожен екран між сумою і кнопкою це шанс
-  // передумати; хто вагається — розгорне, хто готовий — не гортатиме мимо.
-  /* Терміни, питання й умови більше не сховані під «розгорнути». Людина
-     ухвалює рішення на десятки тисяч — і саме тут у неї останні питання;
-     ховати відповіді за клік означало залишити їх без відповіді. Замість
-     акордеона — звичайний розділ, розбитий на підзаголовки. */
+  // «2 вересня» без року: рік у даті, до якої лишився тиждень, лише шумить
+  function dayMonth(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  }
+  /* Умови — чотирма картками, де головне значення велике й читається без
+     читання. Досі це був список «підпис зверху, речення знизу»: щоб дізнатись
+     термін, доводилось прочитати рядок до кінця. Тепер спершу видно «7
+     робочих днів», і лише потім, кому цікаво, — до якого числа.
+     Жодна цифра не зашита: термін рахує daysFor() від тиражу, дата
+     готовності — readyDate(), актуальність — те, що стоїть в адмінці. */
+  function condHtml(){
+    var cards = [];
+    var days = curDays();
+    if(days > 0) cards.push([daysWord(days), 'Термін виготовлення',
+                             'Орієнтовно до ' + readyDate(), 'condDays', 'condReady']);
+    var pay = String((OFFER.terms || {}).payment || '').trim();
+    if(pay){
+      var short = payShort(pay);
+      cards.push([short || pay, 'Оплата', short ? pay : '']);
+    }
+    var till = dayMonth((OFFER.terms || {}).validUntil);
+    if(till) cards.push(['До ' + till, 'Пропозиція актуальна', '']);
+    cards.push(['Макет до запуску', '',
+                'Виробництво починається тільки після підтвердження клієнта']);
+    /* Рядок про документи — той, що менеджер написав у полі `trust`. Своє
+       формулювання головніше за наше: у когось ФОП, у когось ТОВ, у когось
+       окрема умова щодо ПДВ. */
+    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0]
+            || 'Працюємо з ФОП та ТОВ · Надаємо всі необхідні документи';
+    return '' +
+      '<section class="cond">' +
+        '<h2 class="sec-title">Умови замовлення</h2>' +
+        '<div class="cond-g">' + cards.map(function(c){
+          return '<div class="cond-c">' +
+            '<div class="cond-v"' + (c[3] ? ' id="' + c[3] + '"' : '') + '>' +
+              esc(c[0]) + '</div>' +
+            (c[1] ? '<div class="cond-k">' + esc(c[1]) + '</div>' : '') +
+            (c[2] ? '<div class="cond-n"' + (c[4] ? ' id="' + c[4] + '"' : '') + '>' +
+              esc(c[2]) + '</div>' : '') +
+          '</div>';
+        }).join('') + '</div>' +
+        '<div class="cond-doc">' + TICK_TH + '<span>' + esc(docs) + '</span></div>' +
+      '</section>';
+  }
+
+  /* Порядок низу: як це буде → на яких умовах → чому нам можна вірити →
+     що ще питають → дія. Кожен наступний блок відповідає на питання, яке
+     виникає після попереднього; після останнього питань не лишається,
+     і там стоїть кнопка. */
   function detailsHtml(){
-    var body = timelineHtml() + faqHtml() + trustHtml() + termsHtml();
-    if(!body) return '';
-    return '<section class="det-open"><div class="det-body">' + body + '</div></section>';
+    return flowHtml() + condHtml() + trustHtml() + faqSection();
+  }
+  function faqSection(){
+    var body = faqHtml();
+    return body ? '<section>' + body + '</section>' : '';
   }
 
-  /* Що буде після натискання. Головний страх на цьому місці — «а що з мене
-     зараз спишуть» і «а раптом одразу запустять у виробництво не те». Три
-     короткі кроки знімають обидва, і найважливіше в них — друге речення
-     третього кроку: до погодження макета не платять нічого. */
-  function nextStepsHtml(){
-    return '<ol class="nsteps">' +
-      '<li><b>Рахунок</b><span>Надішлемо сьогодні, разом зі звіркою деталей</span></li>' +
-      '<li><b>Макет на погодження</b><span>Виробництво починається лише після вашого «так»</span></li>' +
-      '<li><b>Виготовлення</b><span>' + daysWord(curDays()) + ' — і надсилаємо фото готової партії</span></li>' +
-      '</ol>';
-  }
+  /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
+     самий таймлайн вище, переказаний іншими словами. Замість трьох кроків —
+     одне речення про те, що станеться після натискання, і окремий рядок під
+     кнопкою про те, чого НЕ станеться. Саме друге й тримає палець над
+     кнопкою: людина боїться не рахунку, а що замовлення піде у виробництво
+     без неї. */
   function finalHtml(){
     if(OFFER.state === 'confirmed'){
       var who = (OFFER.clientAction || {}).at;
@@ -4732,30 +4695,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
     }
     return '' +
-      '<section class="no-print">' +
-        // Умови — перед рішенням: спершу відповідаємо на «а що як», і лише
-        // потім просимо натиснути.
-        detailsHtml() +
+      // Спершу відповідаємо на «а що як», і лише потім просимо натиснути
+      detailsHtml() +
+      '<section class="no-print cta-wrap">' +
         /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
            екрана рядок виходив задовгим — око губить початок наступного, і
            найважливіший абзац сторінки читається найгірше. */
         '<div class="cta-box">' +
-          '<h2 class="sec-title">Готові замовити?</h2>' +
-          '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
-            'Виробництво починається лише після вашого підтвердження макета.</p>' +
+          '<h2 class="cta-h">Все підходить? Можемо запускати замовлення</h2>' +
+          '<p class="cta-p">Після підтвердження ми звіримо фінальні деталі та ' +
+            'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
+            'замовлення піде тільки після вашого підтвердження.</p>' +
           /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
              привід не вирішувати — а написати менеджеру він може з блоку
              контактів вище, де для цього є і телефон, і месенджери. */
-          nextStepsHtml() +
           '<div class="final">' +
-            '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
-            /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
-               партнеру. Досі це означало «скопіюй адресу з рядка браузера»
-               або скріншот. Тепер поруч своя кнопка: рідне «поділитися» на
-               телефоні, збереження в PDF на компʼютері. */
-            '<button class="btn btn-ghost btn-share" id="shareBtn">' + SHARE_IC +
-              'Поділитися або зберегти PDF</button>' +
+            '<button class="btn" id="confirmBtn">Підтвердити пропозицію</button>' +
           '</div>' +
+          '<p class="cta-note">Підтвердження пропозиції не запускає виробництво ' +
+            'автоматично.</p>' +
+          /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
+             партнеру. Кнопкою це було б другою дією поруч із головною і
+             тягнуло б увагу на себе; тихим рядком — лишається доступним
+             тому, хто його шукає. */
+          '<button class="cta-share" id="shareBtn">' + SHARE_IC +
+            'Поділитися або зберегти PDF</button>' +
         '</div>' +
       '</section>';
   }
@@ -4834,7 +4798,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            а поруч із кнопкою читалась як «стільки списати зараз». */
         '<div class="bar-btns">' +
           '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
-          '<button class="btn" id="barConfirm">Підтвердити замовлення</button>' +
+          '<button class="btn" id="barConfirm">Підтвердити пропозицію</button>' +
         '</div>' +
       '</div>';
   }
@@ -4874,7 +4838,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            допродадуть»; гарантії ж читались уже після найтривожнішого
            моменту, коли вони потрібні до нього. */
         heroHtml() + itemsHtml() + variantsHtml() + recoHtml() +
-        includesHtml() + whyHtml() + guaranteesSection() +
+        includesHtml() + whyHtml() +
         estimateHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
            потім чужі слова про нас. Після відгуків його майже не гортали. */
@@ -4903,7 +4867,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     set('heroDays', ' · ' + daysWord(curDays()));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = madeLine();
-    set('termDays', daysWord(curDays()) + ' після погодження макета — орієнтовно до ' + readyDate());
+    /* Термін залежить від тиражу: клієнт міняє кількість — картка умов
+       мусить рухатись разом із нею, інакше вона показує чужий строк. */
+    set('condDays', daysWord(curDays()));
+    set('condReady', 'Орієнтовно до ' + readyDate());
     OFFER.items.forEach(function(it, i){
       // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
       // а в кошторисі нижче інше.
@@ -5567,7 +5534,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var done = function(msg){
         shareB.classList.add('done');
         var old = shareB.innerHTML;
-        shareB.innerHTML = TICK + msg;
+        shareB.innerHTML = TICK_TH + msg;   // галочка кольором рядка, а не темно-зелена по темному
         setTimeout(function(){ shareB.innerHTML = old; shareB.classList.remove('done'); }, 2200);
       };
       var copy = function(){
