@@ -199,7 +199,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .psum b{color:var(--ink); font-size:16px; font-weight:800;}
   /* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
-  .pcard-head .pcard-meta{margin-top:2px;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
   .pbuy-row .pstep{margin-top:0; flex:none;}
   .pbuy-row .pbuy{margin-top:0; flex:1;}
@@ -711,7 +710,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      жодного min-height у картці немає. */
   .pcard-info{margin-top:8px;}
   .pcard-name{font-size:22px; font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
-  .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
   /* ── Варіант на вибір ──────────────────────────────────────────────────
      Клієнт має з першого погляду бачити три речі: що це варіант, а не вже
      замовлене; скільки він коштує; і — після натискання — що його взяли.
@@ -3859,7 +3857,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           g.idx.map(function(i){
             var v = OFFER.variants[i], st = varState(i);
             var on = String(chosen) === String(i);
-            var tech = (v.techniques || []).join(', ') || v.print || '';
             /* Картка варіанта — така сама, як у звичайного товару: ракурси
                перед і зад, назва, характеристики, «Деталі позиції». Спершу
                вона була компактною плиткою, і виявилось, що порівнювати
@@ -3874,7 +3871,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   // фото немає — позначці ніде лягти, лишаємо її над назвою
                   (vgal ? '' : '<div class="pcard-tag">' + vtag + '</div>') +
                   '<h3 class="pcard-name">' + esc(v.name) + '</h3>' +
-                  (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+                /* Способу нанесення під назвою більше немає. Він написаний у
+                   «Деталях позиції», у рядку «Нанесення», разом із розміром —
+                   там йому й місце. Два підписи того самого лише додавали
+                   картці висоти: у блоці порівняння, де карток кілька поспіль,
+                   кожен зайвий рядок множиться на їхню кількість. */
                   (v.recoNote ? '<div class="pcard-why">' + esc(v.recoNote) + '</div>' : '') +
                 '</div>' +
               '</div>' +
@@ -3917,7 +3918,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             'решта сторінки збереться навколо нього сама.</div>' : '') +
         OFFER.items.map(function(it, i){
           var st = itemState(i);
-          var tech = (it.techniques || []).join(', ') || it.print || '';
           var main = (it.mockups || [])[0] || '';
           var otag = it.optional ? (isOn(i) ? 'обрано' : 'варіант на вибір') : '';
           var ogal = galleryHtml(it, i, 'main', otag);
@@ -3931,7 +3931,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   ? '<div class="pcard-tag">' + otag + '</div>'
                   : '') +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
-                (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+              /* Способу нанесення під назвою більше немає. Він написаний у
+                   «Деталях позиції», у рядку «Нанесення», разом із розміром —
+                   там йому й місце. Два підписи того самого лише додавали
+                   картці висоти: у блоці порівняння, де карток кілька поспіль,
+                   кожен зайвий рядок множиться на їхню кількість. */
                 /* Підпис менеджера — чому саме цей виріб. Питання «а чим
                    поло краще за футболку» виникає рівно тут, під назвою, а
                    не в деталях позиції, куди мало хто відкриває. */
@@ -3970,9 +3974,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
-                '<div class="pcard-meta">' +
-                  [(r.techniques || []).join(', ') || r.print, r.color].filter(Boolean).map(esc).join(' · ') +
-                '</div>' +
               '</div>' +
             '</div>' +
             '<div class="pqty">' +
@@ -4180,7 +4181,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
         '<div class="rrow">' + OFFER.reco.slice(0, 4).map(function(r, i){
           var on = !!pick.reco[i];
-          var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
             '<div class="rc-ph">' + (r.mockups[0]
               ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
