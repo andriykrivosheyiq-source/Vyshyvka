@@ -592,12 +592,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      пояснює рядок над собою, а не додається до суми ще раз. */
   /* Перемикач «картинка ⇄ напис» стоїть у самому рядку дизайну: рішення
      ухвалюють, дивлячись на цифру поруч, а не в окремому меню. */
-  .cc-kind{margin-left:8px; font:inherit; font-size:10.5px; font-weight:700;
-    letter-spacing:.03em; text-transform:uppercase; color:#2F4C8F; background:#EAF0FC;
-    border:1px solid #C9D8F2; border-radius:6px; padding:1px 6px; cursor:pointer;
+  /* Таблетка «Картинка ▾ / Напис ▾»: показує, як цей дизайн рахується
+     ЗАРАЗ, і одразу дає змінити. Німий перемикач «⇄» цього не вмів — стан
+     доводилось вгадувати з підпису. */
+  .cc-kind-wrap{display:inline-flex; align-items:center; gap:4px; margin-left:8px;
     vertical-align:1px;}
-  .cc-kind:hover{background:#DCE7FA;}
+  .cc-kind{font:inherit; font-size:10.5px; font-weight:700;
+    letter-spacing:.03em; text-transform:uppercase; color:#2F4C8F; background:#EAF0FC;
+    border:1px solid #C9D8F2; border-radius:6px; padding:1px 18px 1px 6px; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='6'><path d='M1 1l3.5 3.5L8 1' fill='none' stroke='%232F4C8F' stroke-width='1.6' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 5px center;}
+  .cc-kind:hover{background-color:#DCE7FA;}
   .cc-kind:disabled{opacity:.5; cursor:default;}
+  /* Вид обрав менеджер — крапка поруч. Без неї через тиждень ніхто не
+     згадає, чому напис рахується як картинка, і чи це навмисно. */
+  .cc-kind.is-fixed{border-color:#8FB4EE;}
+  .cc-kind-dot{width:5px; height:5px; border-radius:50%; background:#2F4C8F;
+    display:inline-block; flex:none;}
   .cc-row.is-sub{padding-left:10px;font-size:11px;color:#8a94a6;}
   .cc-row.is-sub b{font-weight:500;color:#8a94a6;}
   .cc-money{display:flex;gap:10px;margin-top:9px;}
@@ -3690,10 +3702,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       /* Кнопка потрібна і в режимі редагування, і в «Як бачить клієнт»:
          прорахунок менеджер найчастіше відкриває саме там. Клієнт цього
          блоку не бачить узагалі — він приходить лише в кадр менеджера. */
+      /* Таблетка з поточним видом і вибором, а не німий перемикач: видно, що
+         система визначила зараз, і видно, що це можна змінити. Крапка поруч —
+         ознака, що вид обрав менеджер, а не автоматика. */
       var btn = (act && act.act === 'kind' && (EDIT || MGR_VIEW))
-        ? '<button class="cc-kind" data-ckind="' + kind + ':' + i + ':' + act.di + '" ' +
-          'title="Рахувати цей дизайн як напис або як картинку">' +
-          (act.kind === 'txt' ? 'напис ⇄' : 'картинка ⇄') + '</button>'
+        ? '<span class="cc-kind-wrap">' +
+            '<select class="cc-kind' + (act.fixed ? ' is-fixed' : '') + '" ' +
+              'data-ckind="' + kind + ':' + i + ':' + act.di + '" ' +
+              'title="Як рахувати цей дизайн: як картинку чи як напис">' +
+              '<option value="img"' + (act.kind === 'txt' ? '' : ' selected') + '>Картинка</option>' +
+              '<option value="txt"' + (act.kind === 'txt' ? ' selected' : '') + '>Напис</option>' +
+            '</select>' +
+            (act.fixed ? '<i class="cc-kind-dot" title="Вид обрав менеджер"></i>' : '') +
+          '</span>'
         : '';
       return '<div class="cc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
              (r[2] === 'sum' ? ' is-sum' : '') +
@@ -5294,13 +5315,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){
-      b2.addEventListener('click', function(e){
-        // клік по кнопці не має згортати сам прорахунок
-        e.preventDefault(); e.stopPropagation();
+      // клік по селектору не має згортати сам прорахунок
+      b2.addEventListener('click', function(e){ e.stopPropagation(); });
+      b2.addEventListener('change', function(e){
+        e.stopPropagation();
         var p2 = b2.dataset.ckind.split(':');
         b2.disabled = true;
-        b2.textContent = 'рахую…';
-        edSend({ act:'designKind', kind:p2[0], i:+p2[1], di:+p2[2] });
+        edSend({ act:'designKind', kind:p2[0], i:+p2[1], di:+p2[2], to:b2.value });
       });
     });
   }

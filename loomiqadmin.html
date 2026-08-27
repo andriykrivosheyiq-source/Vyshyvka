@@ -5693,7 +5693,55 @@ function priceOrder(list, opts){
 }
 // Розклад ціни під сумою: менеджер має бачити, з чого склалась цифра,
 // і чому вона змінилась, коли додали другу позицію з тим самим макетом.
+/* ══════════ Ручний вид дизайну ══════════
+   Клієнт присилає PNG, на якому просто напис його фірмовим шрифтом.
+   Конструктор бачить файл-картинку й ставить «картинка» — інакше й не може:
+   шрифт ми не відтворимо, тож воно й лишається картинкою на вигляд. А
+   рахуватись мусить як напис: у вишивки в напису своя ставка за площу й свої
+   разові. Вирішує це менеджер, і його слово головніше за автоматику.
+
+   Тому вибір менеджера живе ОКРЕМО від автоматичного. Доти він писався
+   просто в designKinds — а конструктор перезбирає цей список щоразу, коли
+   позицію відкривають і зберігають, і вибір мовчки затирався. Пріоритету не
+   було: він діяв рівно до наступного збереження.
+
+   Ключ — ВІДБИТОК дизайну, а не його номер. Номери зсуваються, щойно
+   додали чи прибрали малюнок, і позначка поїхала б на сусідній. Відбиток
+   тримає її за конкретним зображенням; замінили файл — відбиток інший, і
+   вид повертається до автоматичного. Це навмисно: інший малюнок — інше
+   рішення. */
+function itemKindFix(it){
+  const m = it && it.designKindFix;
+  return (m && typeof m === 'object') ? m : null;
+}
+function setItemKindFix(it, fp, kind){
+  if(!it) return;
+  const m = Object.assign({}, itemKindFix(it) || {});
+  const key = String(fp || '');
+  if(!key) return;
+  if(kind === 'img' || kind === 'txt') m[key] = kind; else delete m[key];
+  it.designKindFix = Object.keys(m).length ? m : null;
+}
+/* Накладаємо вибір менеджера поверх автоматичного. Одна точка на всю
+   систему — і вона стоїть ПЕРЕД будь-яким розрахунком, тож вибір діє скрізь,
+   де вид має значення: ставка за площу, відро разових, ціна, собівартість,
+   маржа, КП, Канбан, PDF. */
+function applyKindFix(o){
+  (o && o.items || []).forEach(it=>{
+    const fix = itemKindFix(it);
+    const d = it && it.desc;
+    if(!fix || !d || !Array.isArray(d.designs)) return;
+    const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
+    while(kinds.length < d.designs.length) kinds.push('img');
+    d.designs.forEach((fp, i)=>{
+      const want = fix[String(fp || '')];
+      if(want === 'img' || want === 'txt') kinds[i] = want;
+    });
+    d.designKinds = kinds;
+  });
+}
 function fillOrderParts(o){
+  applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
   const res = priceOrder(list);
@@ -5819,6 +5867,7 @@ function repriceOrder(o){
   // вирівнюємо його перед будь-яким перерахунком, а не після
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
   syncVariantQty(o);   // у групі варіантів тираж один на всіх
+  applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
      самих варіантів: менеджер порахував базову й оверсайз, а клієнт обирає
@@ -6246,7 +6295,10 @@ function offerCalcRows(it, o){
                : ' — окремий, ділиться на ' + d.units + ' шт із цим дизайном'),
       '', 'sub',
       (d.i != null && Array.isArray(it.desc && it.desc.designMm2))
-        ? { act:'kind', di:d.i, kind:d.kind }
+        ? { act:'kind', di:d.i, kind:d.kind,
+            /* чи це рішення менеджера, а не автоматика — інакше через тиждень
+               ніхто не згадає, чому напис рахується як картинка */
+            fixed: !!(itemKindFix(it) || {})[String((it.desc.designs || [])[d.i] || '')] }
         : null]);
   });
   if(b.feeShare){
@@ -10760,8 +10812,15 @@ async function offerEdApply(msg){
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
     const was = placementTotals(Object.assign({}, d, { designKinds: kinds }));
-    kinds[di] = kinds[di] === 'txt' ? 'img' : 'txt';
+    /* Вид приходить явно — «зроби написом», а не «перемкни». Перемикач не
+       знав, у якому стані він зараз, і два кліки поспіль із різних місць
+       могли повернути все назад. */
+    const to = (msg.to === 'txt' || msg.to === 'img')
+      ? msg.to : (kinds[di] === 'txt' ? 'img' : 'txt');
+    kinds[di] = to;
     d.designKinds = kinds;
+    // і те саме — у пам'ять позиції, щоб пережило наступне збереження
+    setItemKindFix(it, d.designs[di], to);
     const now = placementTotals(d);
     /* Нанесення пишемо назад у позицію, а собівартість рухаємо рівно на
        різницю: у неї, крім нанесення, входить і сам виріб, і частка
@@ -10779,6 +10838,9 @@ async function offerEdApply(msg){
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
     toast(kinds[di] === 'txt' ? 'Дизайн рахується як напис' : 'Дизайн рахується як картинка');
+    offerEdNote(kinds[di] === 'txt'
+      ? 'Дизайн №' + (di + 1) + ' рахується як НАПИС — за рішенням менеджера'
+      : 'Дизайн №' + (di + 1) + ' рахується як КАРТИНКА — за рішенням менеджера');
     return;
   }
   /* Перейменування групи варіантів. Група — це питання до клієнта, тож
