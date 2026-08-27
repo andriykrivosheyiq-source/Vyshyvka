@@ -1761,7 +1761,49 @@
       return inside;
     }
     // Чи виходить якесь лого поточної сторони за межі зони (перевіряємо кути рамки з поворотом).
+    /* Межі САМИХ БУКВ, а не поля, у якому їх набирають.
+       Напис лежить у полі на всю ширину рамки шару, а літери займають у
+       ньому смужку посередині. Перевірка ж дивилась на рамку — і казала «за
+       межами зони друку» там, де за межі не виходило нічого, крім порожнього
+       поля. Тому в напису беремо прямокутник, який реально малюють літери:
+       обхід рядків через Range дає рівно те, що видно на екрані. */
+    function textInkFrac(l){
+      var el = pmLogoLayers && pmLogoLayers.querySelector('.pm-dl-text[data-tid="' + l.id + '"]');
+      if(!el || !pmGarmentWrapEl) return null;
+      var wrap = pmGarmentWrapEl.getBoundingClientRect();
+      if(!(wrap.width > 0)) return null;
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      try{
+        var rg = document.createRange();
+        rg.selectNodeContents(el);
+        var rs = rg.getClientRects();
+        for(var i = 0; i < rs.length; i++){
+          var q = rs[i];
+          if(!(q.width > 0) || !(q.height > 0)) continue;
+          if(q.left < x0) x0 = q.left;
+          if(q.top < y0) y0 = q.top;
+          if(q.right > x1) x1 = q.right;
+          if(q.bottom > y1) y1 = q.bottom;
+        }
+      }catch(e){ return null; }
+      if(!isFinite(x0) || !isFinite(y0)) return null;
+      /* Зона задана в частках контейнера, причому обидві осі міряються його
+         ШИРИНОЮ — так само, як нижче для картинок. Тримаємось того самого. */
+      var f = function(px, py){
+        return [(px - wrap.left) / wrap.width, (py - wrap.top) / wrap.width];
+      };
+      return [f(x0, y0), f(x1, y0), f(x1, y1), f(x0, y1)];
+    }
     function logoOutside(l, polyFrac, wrapW){
+      if(l.text){
+        var ink = textInkFrac(l);
+        if(ink){
+          for(var t = 0; t < ink.length; t++){
+            if(!paPointInPoly(ink[t], polyFrac)) return true;
+          }
+          return false;
+        }
+      }
       var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
       if(ar>=1) bh=sz/ar; else bw=sz*ar;
       var ob=l.opaqueBox||{x0:0,y0:0,x1:1,y1:1};
