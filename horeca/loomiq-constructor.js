@@ -5281,6 +5281,31 @@
 
     // Add to cart → show mockup confirm popup first (matches original UX exactly)
     // Знімок обраного товару (фото + накладений логотип) → data URL для кошика
+    /* Колір тла знімка — за його кутами. Беремо всі чотири: якщо виріб
+       обрізаний упритул і кут потрапив на тканину, кути розійдуться в
+       кольорі, і тоді краще не вгадувати — лишаємо тло як було. */
+    function cornerColor(img){
+      try{
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h) return null;
+        var c = document.createElement('canvas'); c.width = c.height = 2;
+        var x = c.getContext('2d', { willReadFrequently:true });
+        var k = Math.max(2, Math.round(Math.min(w, h) * 0.02));   // ~2% кута
+        var pts = [[0,0],[w-k,0],[0,h-k],[w-k,h-k]], got = [];
+        for(var i=0;i<4;i++){
+          x.clearRect(0,0,2,2);
+          x.drawImage(img, pts[i][0], pts[i][1], k, k, 0, 0, 1, 1);
+          var d = x.getImageData(0,0,1,1).data;
+          if(d[3] < 200) return null;                             // прозорий кут
+          got.push([d[0], d[1], d[2]]);
+        }
+        var avg = [0,1,2].map(function(ch){
+          return Math.round(got.reduce(function(s,p){ return s + p[ch]; }, 0) / 4); });
+        for(var j=0;j<4;j++) for(var ch2=0;ch2<3;ch2++)
+          if(Math.abs(got[j][ch2] - avg[ch2]) > 10) return null;   // кути різні
+        return 'rgb(' + avg[0] + ',' + avg[1] + ',' + avg[2] + ')';
+      }catch(e){ return null; }                                   // CORS тощо
+    }
     function snapshotSide(side, sizeOverride, asJpeg){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
@@ -5298,6 +5323,13 @@
           ? loadImgEl(window.LQ_img('/images/'+g.id+'-'+c.id+'-'+snapSide+'.webp')).then(function(img){
               var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
               var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
+              // Полотно квадратне, а знімок виробу — ні, тож зверху й знизу
+              // лишається смуга тла. Поки тло було фіксованим сірим, воно не
+              // збігалося з фоном самого знімка, і в макапі проступали дві
+              // чужі смуги. Беремо колір із кутів знімка — тоді смуга і фон
+              // однакові, і шва не видно на жодному виробі.
+              var bg = cornerColor(img);
+              if(bg){ ctx.fillStyle = bg; ctx.fillRect(0,0,C,C); }
               ctx.drawImage(img, (C-dw)/2, (C-dh)/2, dw, dh);
             }).catch(function(){})
           : Promise.resolve();

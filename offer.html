@@ -934,13 +934,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-list{display:flex; flex-direction:column;}
   /* Фото вдвічі більше: на 44 px виріб не роздивишся, а саме він і має
      нагадати, за що платять. */
-  .est-i{display:grid; grid-template-columns:88px minmax(0,1fr) auto;
-    grid-template-areas:'ph name sum' '. mul mul';
-    gap:6px 14px; align-items:start; padding:18px 0;
+  /* Фото займає обидва рядки, а «4 × 1 466 грн» стоїть одразу під назвою —
+     це підпис до неї, з чого склалась сума. Раніше воно жило в окремому
+     рядку під фотографією: між назвою і множенням зяяла порожнеча заввишки
+     з фото, і рядок читався як випадково кинутий. */
+  .est-i{display:grid; grid-template-columns:120px minmax(0,1fr) auto;
+    grid-template-areas:'ph name sum' 'ph mul sum';
+    /* Другий рядок — 1fr: зайву висоту, яку додає фото, забирає він, а не
+       рядок із назвою. Інакше назву відносило вгору, а множення — вниз, і
+       між ними зяяла порожнеча. */
+    grid-template-rows:auto 1fr;
+    gap:4px 14px; align-items:start; padding:18px 0;
     border-top:1px solid rgba(255,255,255,.12);}
-  .est-i-ph{grid-area:ph;} .est-i-t{grid-area:name;}
-  .est-i-mul{grid-area:mul;} .est-i-sum{grid-area:sum;}
-  .est-i-ph{width:88px; height:88px; flex:none; border-radius:12px; overflow:hidden;
+  .est-i-ph{grid-area:ph; align-self:start;} .est-i-t{grid-area:name;}
+  .est-i-mul{grid-area:mul; align-self:start;}
+  .est-i-sum{grid-area:sum; align-self:start;}
+  .est-i-ph{width:120px; height:120px; flex:none; border-radius:12px; overflow:hidden;
     background:#fff; display:block; cursor:zoom-in;}
   .est-i-ph img{width:100%; height:100%; object-fit:contain; display:block;}
   .est-i-t{min-width:0; padding-top:2px;}
@@ -958,7 +967,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (min-width:640px){
     /* Обидві числові колонки фіксованої ширини — так суми стоять одна під
        одною рівним стовпчиком, як у рахунку, а не «десь праворуч». */
-    .est-i{grid-template-columns:88px minmax(0,1fr) 150px 130px;
+    .est-i{grid-template-columns:120px minmax(0,1fr) 150px 130px;
       grid-template-areas:'ph name mul sum'; gap:18px; padding:20px 0;}
     .est-i-mul{text-align:right; padding-top:2px;}
     .est-i-sum{font-size:18px;}
@@ -1127,7 +1136,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg); transition:transform .18s;}
   .fr[open]>summary::after{transform:rotate(45deg);}
-  .fr>summary:hover .fr-t{color:var(--cta);}
+  /* На телефоні :hover «залипає» після дотику: пункт лишався оранжевим
+     доти, доки не торкнешся іншого. Підсвітка потрібна лише там, де є
+     справжній курсор; сірої підсвітки системи теж не треба — рядок і так
+     розкривається. */
+  @media (hover:hover) and (pointer:fine){
+    .fr>summary:hover .fr-t{color:var(--cta);}
+    .fr-link:hover .fr-t{color:var(--cta);}
+  }
+  .fr>summary, .fr-link{-webkit-tap-highlight-color:transparent;}
   /* Рядок-посилання виглядає так само, як розкривний: інакше незрозуміло,
      чому один пункт відкривається тут, а інший забирає на іншу сторінку. */
   .fr-link{display:flex; align-items:center; gap:12px; padding:17px 2px;
@@ -1135,7 +1152,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .fr-link::after{content:''; flex:none; width:8px; height:8px;
     border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg);}
-  .fr-link:hover .fr-t{color:var(--cta);}
   .fr-b{padding:2px 2px 20px; color:var(--ink);}
   .fr-b p{margin:0; font-size:14px; color:var(--ink-2); line-height:1.6;}
   .fr-b .fl{margin-top:2px;}
@@ -2166,8 +2182,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=745ac9ecee"></script>
-<script src="loomiq-pricing.js?v=745ac9ecee"></script>
+<script src="loomiq-fingerprint.js?v=56d16bead0"></script>
+<script src="loomiq-pricing.js?v=56d16bead0"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2440,9 +2456,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=745ac9ecee';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=745ac9ecee';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=745ac9ecee';
+  var CTOR_JS   = 'loomiq-constructor.js?v=56d16bead0';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=56d16bead0';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=56d16bead0';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
