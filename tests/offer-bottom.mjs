@@ -35,7 +35,8 @@ fs.writeFileSync(VH,
    <iframe id="f" src="offer.html?demo=1"></iframe><script>
    var q = new URLSearchParams(location.search), f = document.getElementById('f');
    if(q.get('w')) f.style.width = parseInt(q.get('w'),10) + 'px';
-   window.__push = o => f.contentWindow.postMessage({ lqEditInit:true, offer:o }, '*');
+   window.__push = (o, prev) => f.contentWindow.postMessage(
+     { lqEditInit:true, preview:!!prev, offer:o }, '*');
    </script>`);
 
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -65,7 +66,7 @@ const OFFER = extra => Object.assign({
     tiers:[{from:1,coef:1},{from:10,coef:.6}], garmentTiers:[{from:1,coef:1}] }
 }, extra || {});
 
-const open = async (w, offer) => {
+const open = async (w, offer, preview) => {
   const p = await browser.newPage({ viewport:{ width:w + 20, height:1000 } });
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message.slice(0, 170)));
   await p.route('**://**', r => { const u = r.request().url();
@@ -74,7 +75,7 @@ const open = async (w, offer) => {
     return r.abort(); });
   await p.goto(HOST + '/_bottom_vhost.html?w=' + w, { waitUntil:'domcontentloaded' });
   await p.waitForTimeout(4000);
-  await p.evaluate(d => window.__push(d), offer);
+  await p.evaluate(d => window.__push(d.o, d.prev), { o:offer, prev:!!preview });
   await p.waitForTimeout(2500);
   return p;
 };
@@ -218,12 +219,18 @@ ok(!e.менеджерВидно,
 console.log('');
 console.log('═══ РАКУРСИ В КАРТЦІ ═══');
 const withViews = OFFER({ items:[ Object.assign({}, item, {
+  /* Один ракурс прихований від клієнта: саме на ньому набір знімків
+     розходився з набором підписів, і галерея лишалась без назв. */
   views:[{side:'front', label:'Перед', img:PH, show:true},
+         {side:'right', label:'Правий бік', img:PH, show:false},
          {side:'back',  label:'Спина', img:PH, show:true},
          {side:'left',  label:'Бік',   img:PH, show:true}],
   sides:[{ side:'back', sideLabel:'Спина', technique:'Вишивка', widthMm:80, heightMm:80 }],
   sizechart:{ cols:['Розмір','Груди'], rows:[{c:['S','92 см']},{c:['M','98 см']}] } }) ] });
-p = await open(430, withViews);
+/* Дивимось очима КЛІЄНТА: у режимі менеджера приховані ракурси показані
+   всі, і розходження між набором знімків і набором підписів там не виникає
+   в принципі — саме тому воно й проскочило. */
+p = await open(430, withViews, true);
 const g = await p.frames()[1].evaluate(()=>{
   const gal = document.querySelector('.pgal');
   const main = gal && gal.querySelector('.pgal-i.is-main img');
@@ -271,6 +278,26 @@ ok(Math.abs(g.пропорція - g.пропорціяФото) < 0.03,
 ok(g.шириноюВКартку === 0,
   'кадр на всю ширину картки — праворуч не лишається смуги',
   'кадр вужчий за картку на ' + g.шириноюВКартку + 'px');
+/* Галерея на весь екран підписує ракурси — і вгорі, і під мініатюрами.
+   Доти підписи бралися з окремого атрибута, зібраного за іншим набором
+   ракурсів: варто менеджеру сховати один — і замість «Перед · 1 з 2»
+   лишалось голе «1 з 2», а внизу два однакові білі квадрати. */
+await p.frames()[1].click('.pgal-i.is-main img');
+await p.waitForTimeout(500);
+const z = await p.frames()[1].evaluate(() => ({
+  заголовок: (document.getElementById('zoomCount')||{}).textContent||'',
+  мініатюр: document.querySelectorAll('#zoomThumbs button').length,
+  підМініатюрами: [...document.querySelectorAll('#zoomThumbs button i')].map(x => x.textContent)
+}));
+console.log('  ' + JSON.stringify(z));
+ok(/^\S.* · 1 з 3$/.test(z.заголовок),
+  'угорі галереї — назва ракурсу й число ПОКАЗАНИХ клієнту (' + z.заголовок + ')',
+  'угорі галереї: «' + z.заголовок + '» — або без назви, або з прихованим ракурсом');
+ok(z.мініатюр === 3 && z.підМініатюрами.length === 3 && z.підМініатюрами.every(Boolean),
+  'кожна мініатюра в галереї підписана: видно, де перед, а де спина',
+  'мініатюр ' + z.мініатюр + ', підписів ' + JSON.stringify(z.підМініатюрами));
+await p.frames()[1].evaluate(() => { const x = document.getElementById('zoomX'); if(x) x.click(); });
+
 ok(g.сітка === 'Розмірна сітка',
   'розмірна сітка — окремим рядком у деталях позиції',
   'сітки в деталях немає: ' + g.сітка);
