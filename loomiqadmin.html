@@ -970,6 +970,8 @@
     color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;padding:8px 13px;
     cursor:pointer;text-decoration:none;}
   .oe-btn:hover{border-color:var(--accent);color:var(--accent-deep);}
+  /* Скріпка — квадратна й без підпису: дія очевидна, а місце в шапці дороге */
+  .oe-btn--ic{padding:8px 10px;font-size:14px;line-height:1;}
   .oe-btn--main{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;}
   .oe-btn--main:hover{background:#1c2840;color:#fff;}
   .oe-body{flex:1;min-height:0;display:flex;background:#E9EDF3;}
@@ -1216,7 +1218,13 @@
   .form-strip{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px;}
   @media (min-width:560px){.form-strip{grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:50;}
+  /* Повідомлення мусить бути видно ЗАВЖДИ, зокрема поверх редактора
+     пропозиції (z-index 1300) і вікна конструктора (1400). Доти воно мало 50
+     і ховалось під ними: менеджер тиснув кнопку, дія відпрацьовувала й
+     чесно казала результат — а сказане лишалось за екраном. Найгірше це
+     виглядало там, де результат «нічого робити не треба»: нічого не
+     змінилось і ніхто нічого не пояснив. */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;font-size:13px;padding:12px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;z-index:9500;max-width:min(560px,92vw);text-align:center;line-height:1.4;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   .deadline-pill{display:flex;align-items:center;gap:10px;background:#1E293B;border-radius:10px;padding:12px 14px;margin-top:12px;}
@@ -2700,8 +2708,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=31454c8ab0"></script>
-<script src="loomiq-pricing.js?v=31454c8ab0"></script>
+<script src="loomiq-fingerprint.js?v=3f0656336a"></script>
+<script src="loomiq-pricing.js?v=3f0656336a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -2766,6 +2774,63 @@ window.addEventListener('error', function(e){
   bar.appendChild(x);
   (document.body || document.documentElement).appendChild(bar);
 });
+
+/* Адмінку тримають відкритою днями. Внутрішні сторінки — прорахунок,
+   пропозиція, конструктор — щоразу підвантажуються з міткою LQ_BUILD і тому
+   завжди свіжі. А сам файл адмінки браузер перечитує тільки при
+   перезавантаженні вкладки, і саме в ньому живуть усі розрахунки: ціни,
+   знижки, кошторис. Виходить найгірше з можливого — сторінка клієнта нова,
+   математика під нею стара, і виправлене виглядає невиправленим.
+
+   Тож питаємо сервер, чи файл змінився, і кажемо про це прямо. Мовчазна
+   перевірка без напису була б такою самою пасткою. */
+(function(){
+  function hash(s){
+    var h = 5381;
+    for(var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h.toString(36) + ':' + s.length;
+  }
+  var mine = null;
+  function self(){
+    // no-store, щоб питати саме сервер, а не той самий кеш, який ми й перевіряємо
+    return fetch(location.pathname + '?probe=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(t){ return t ? hash(t) : null; });
+  }
+  function bar(){
+    if(document.getElementById('lq-newver')) return;
+    var d = document.createElement('div');
+    d.id = 'lq-newver';
+    d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:0;' +
+      'z-index:99998;background:#0f3d2e;color:#fff;padding:10px 14px;border-radius:0 0 12px 12px;' +
+      'font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+      'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:12px;align-items:center;';
+    var t = document.createElement('span');
+    t.textContent = 'Вийшла нова версія адмінки — розрахунки оновились.';
+    var go = document.createElement('button');
+    go.textContent = 'Оновити';
+    go.style.cssText = 'all:unset;cursor:pointer;background:#fff;color:#0f3d2e;font-weight:700;' +
+      'padding:5px 12px;border-radius:8px;';
+    go.onclick = function(){ location.reload(true); };
+    var x = document.createElement('button');
+    x.textContent = '×';
+    x.style.cssText = 'all:unset;cursor:pointer;opacity:.7;font-size:18px;line-height:1;padding:0 4px;';
+    x.onclick = function(){ d.remove(); };
+    d.appendChild(t); d.appendChild(go); d.appendChild(x);
+    (document.body || document.documentElement).appendChild(d);
+  }
+  function check(){
+    self().then(function(h){
+      if(!h) return;
+      if(mine == null){ mine = h; return; }
+      if(h !== mine) bar();
+    }).catch(function(){});
+  }
+  check();
+  setInterval(check, 4 * 60 * 1000);
+  // Повернулись до вкладки після паузи — найімовірніший момент, коли версія вже інша
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) check(); });
+})();
 
 /* ============================================================
    FIREBASE — спільна хмарна база (синхронізація між пристроями)
@@ -3168,7 +3233,7 @@ function setStatus(o, key){
   if(!o || o.status === key) return;
   o.status = key;
   o.hist = (o.hist || []).concat([{ s:key, at:new Date().toISOString() }]).slice(-40);
-  movedOrder.set(o.id, ++movedSeq);
+  touchOrder(o);
 }
 /* Народження КП — одне на всі три двері, крізь які його створюють: кнопка
    в картці, збереження позиції з конструктора і просто «відкрити документ».
@@ -3179,12 +3244,26 @@ function setStatus(o, key){
    Позначку «щойно рухалась» ставимо ЗАВЖДИ, а не тільки коли етап
    змінився: КП часто створюють картці, яка вже стоїть у «Прорахунку», —
    там setStatus виходить одразу й нічого не позначає. */
+/* Остання дія — зверху. Будь-яка: завели картку, змінили товар, зробили КП,
+   написали клієнту, перенесли між воронками. Ніякої іншої логіки над цим
+   немає — картку, з якою щойно працювали, не мають шукати.
+
+   Час пишемо В КАРТКУ, а не в памʼять вкладки. Доти позначка жила в Map,
+   і після оновлення сторінки картка поверталась туди, куди її ставило
+   звичайне сортування, — а виглядало це як «підняття не працює». Лічильник
+   у памʼяті лишається: дві дії в одну секунду він розводить точніше за час. */
+function touchOrder(o){
+  if(!o) return o;
+  o.touchedAt = new Date().toISOString();
+  movedOrder.set(o.id, ++movedSeq);
+  return o;
+}
 function offerBorn(o){
   if(!o) return;
   if(!o.offerToken){ o.offerToken = makeOfferToken(); o.offerState = 'created'; }
   if(!o.orderId) o.orderId = makeOrderId();
   if(o.status === firstStatusKey()) setStatus(o, 'prorahunok');
-  movedOrder.set(o.id, ++movedSeq);
+  touchOrder(o);
 }
 
 /* ============================================================
@@ -4877,7 +4956,7 @@ window.__adminSaveClientOrder = async function(payload){
       (filesBySide[p.side||''] = filesBySide[p.side||''] || []).push(file || null);
     }
     items.push({
-      kind: it.kind === 'reco' ? 'reco' : 'main',
+      kind: itemKind(it), vgroup: it.vgroup || '',
       recoNote: it.recoNote || '', recoTag: it.recoTag || '',
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
@@ -4895,7 +4974,7 @@ window.__adminSaveClientOrder = async function(payload){
   }
   // У суму замовлення входять лише основні позиції. Рекомендації лежать поруч
   // і додаються до кошторису тільки тоді, коли клієнт сам їх обере на сторінці КП.
-  const paid = items.filter(i => i.kind !== 'reco');
+  const paid = items.filter(i => itemKind(i) === 'main');
   const totalPrice = paid.reduce((a,i)=>a+i.price,0);
   const totalCost  = paid.reduce((a,i)=>a+i.cost,0);
 
@@ -4917,6 +4996,23 @@ window.__adminSaveClientOrder = async function(payload){
           nu.mockups = was.mockups.slice();
           nu.views = Array.isArray(was.views) ? was.views.slice() : [];
         }
+        /* Зона позиції належить пропозиції, а не конструктору. Конструктор
+           знає про виріб, нанесення й тираж — і нічого не знає про те, що
+           ця позиція лежить у групі варіантів. Доти збережена версія
+           приходила без роду, і рід підставлявся типовий: варіант мовчки
+           переїжджав у склад пропозиції. Виправив кількість — втратив
+           варіант. */
+        nu.kind = itemKind(was);
+        nu.vgroup = was.vgroup || '';
+        /* Тираж, набраний у конструкторі, стає тиражем УСІЄЇ групи: інакше
+           дві картки порівняння виявились би з різною кількістю, а
+           порівнювати ціну за штуку при різних тиражах немає сенсу. */
+        if(itemKind(was) === 'variant' && +nu.qty > 0){
+          target.vqty = target.vqty || {};
+          target.vqty[was.vgroup || 'Варіанти на вибір'] = Math.round(+nu.qty);
+        }
+        if(was.recoNote && !nu.recoNote) nu.recoNote = was.recoNote;
+        if(was.optional != null) nu.optional = was.optional;
       });
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
@@ -5055,19 +5151,35 @@ function makeOrderId(){
   orderSeq += 1;
   return String(orderSeq);
 }
-/* Картки, заведені до цієї зміни, номера не мають. Проставляємо разом і в
-   тому ж порядку, у якому вони зʼявлялись, — щоб нумерація читалась як
-   історія, а не як випадковий набір. */
+/* Номери, яких у нумерації Канбану немає.
+
+   Таких два роди. Картки, заведені до появи нумерації, номера не мають
+   зовсім. А замовлення з сайту приносили СВІЙ номер — дата плюс три
+   випадкові цифри, «250826417», — бо сайт до наскрізного лічильника не
+   дістає. Виходило, що у «Зверненнях» і «Прорахунку» номери людські, а в
+   «Нових замовленнях» беззмістовні: дві незалежні нумерації на одній дошці.
+
+   Обидва роди підбираємо в одну послідовність, у порядку появи, — щоб
+   нумерація читалась як історія. Старий номер не викидаємо: він лишається
+   в картці кодом сайту й шукається на дошці, тож повідомлення в Telegram
+   зі старим номером усе одно знаходить свою картку. */
 async function backfillOrderIds(){
-  const need = (orders || []).filter(o => !String(o.orderId || '').trim());
+  const need = (orders || []).filter(o => !orderIdNum(o.orderId));
   if(!need.length) return;
   need.sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
-  need.forEach(o => { o.orderId = makeOrderId(); });
+  need.forEach(o => {
+    const was = String(o.orderId || '').trim();
+    if(was && !o.siteRef) o.siteRef = was;
+    o.orderId = makeOrderId();
+  });
   try{
     await storeSet('orders', orders);
     // Пропозиції, які вже надіслані, мають показувати той самий номер
     for(const o of need){ if(o.offerToken) await offerSave(o).catch(()=>{}); }
     console.log('номери проставлено:', need.length);
+    const renamed = need.filter(o => o.siteRef).length;
+    if(renamed) toast('Номери зведено в один ряд: перенумеровано ' + renamed +
+                      '. Старий номер шукається на дошці');
   }catch(e){ console.warn('нумерація не збереглась', e); }
 }
 // Сповіщення в Telegram через той самий воркер, що й заявки з сайту (без собівартості).
@@ -5325,6 +5437,8 @@ function renderStatusEditor(){
       name: '', phone: '', company: '', instagram: '',
       items: [], totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
       createdAt: new Date().toISOString(),
+      // щойно заведена картка стоїть першою й після перезавантаження теж
+      touchedAt: new Date().toISOString(),
       hist: [{ s: firstStatusKey(), at: new Date().toISOString() }]
     };
     orders.unshift(o);
@@ -5391,6 +5505,7 @@ function watchWebLeads(){
     snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
     if(!fresh.length) return;
     let added = 0;
+    const pending = [];
     for(const rec of fresh){
       if(orders.some(o => o.webId === rec.id)) continue;
       const d = rec.data || {};
@@ -5409,17 +5524,48 @@ function watchWebLeads(){
         totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
         an: d.an || null,
         createdAt: d.createdAt || new Date().toISOString(),
+        touchedAt: new Date().toISOString(),
         hist: [{ s:'new', at:new Date().toISOString() }]
       });
       added++;
-      try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('lead mark failed', e); }
+      pending.push(rec);
     }
     if(added){
-      await storeSet('orders', orders);
+      /* Порядок тут — це не смак. Доти заявку позначали забраною ВІДРАЗУ, а
+         картки зберігали потім. Варто було збереженню не пройти — збій
+         мережі, правила бази, закрита вкладка, — і заявка лишалась
+         позначеною забраною, хоч у Канбані її не було. Наступного разу
+         запит її вже не бачив: у базі є, на дошці немає, і дістати нізвідки.
+
+         Тепер спершу зберігаємо картки, і лише коли це вдалось — ставимо
+         позначку. Найгірше, що тепер може статись, — повторний імпорт, а
+         від нього вище стоїть захист за webId. */
+      try{
+        await storeSet('orders', orders);
+      }catch(e){
+        console.error('заявки не збереглись', e);
+        toast('Заявки з сайту не збереглись — спробуйте оновити сторінку');
+        webLeadsWatching = false;
+        return;
+      }
+      for(const rec of pending){
+        try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('lead mark failed', e); }
+      }
       renderBoard();
       toast(added === 1 ? 'Нова заявка з сайту' : ('Нових заявок: ' + added));
     }
-  }, function(e){ console.warn('webLeads', e && e.code); });
+  }, function(e){
+    /* Мовчазний console.warn тут коштував заявок. Замовлення давно кажуть
+       про збій просто в Канбані, а заявки падали в консоль — менеджер бачив
+       їх у Telegram, у Канбані не бачив і не знав чому.
+
+       Прапорець теж скидаємо: доти він лишався піднятим після помилки, тож
+       підписка не пробувала встати заново навіть після входу. */
+    console.warn('webLeads', e && e.code);
+    webLeadsWatching = false;
+    woState('Заявки з сайту НЕ надходять: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
+            '. Дозвольте колекцію webLeads у правилах Firestore.', true);
+  });
 }
 
 function watchWebOrders(){
@@ -5433,6 +5579,7 @@ function watchWebOrders(){
     snap.forEach(function(d){ fresh.push({ ref:d.ref, id:d.id, data:d.data() }); });
     if(!fresh.length) return;
     let added = 0;
+    const pending = [];
     for(const rec of fresh){
       if(orders.some(o => o.webId === rec.id)) continue;   // захист від повторного імпорту
       const d = rec.data || {};
@@ -5450,7 +5597,18 @@ function watchWebOrders(){
       const totalCost  = +d.totalCost  || items.reduce((a,i)=>a+i.cost,0);
       orders.unshift({
         id: cryptoId(), webId: rec.id, type:'web', status:'new',
-        orderId: d.orderId || makeOrderId(),   // короткий номер для пошуку в CRM
+        /* Номер призначає САМЕ КАНБАН, і завжди свій.
+
+           Сайт теж генерував номер — дата плюс три випадкові цифри — і слав
+           його в Telegram. Виходило дві незалежні нумерації: у Канбані
+           1000021, у чаті 250826417, і зіставити їх було нічим. Ба більше,
+           випадкових варіантів на день лише 900, тож два замовлення в один
+           день могли отримати однаковий «номер».
+
+           Тепер номер один — той, за яким шукають у CRM. Код сайту не
+           викидаємо: за ним картка знаходиться з повідомлення в чаті. */
+        orderId: makeOrderId(),
+        siteRef: String(d.orderId || '').trim() || null,
         source: 'сайт',
         site: d.site || 'main',        // з якої посадкової прийшло замовлення
         name: d.name||'', phone: d.phone||'', items,
@@ -5458,13 +5616,26 @@ function watchWebOrders(){
         marginPct: totalPrice>0 ? ((totalPrice-totalCost)/totalPrice*100) : 0,
         an: d.an || null,               // джерело трафіку — для звіту з реклами
         hist: [{ s:'new', at:(d.createdAt || new Date().toISOString()) }],
-        createdAt: d.createdAt || new Date().toISOString()
+        createdAt: d.createdAt || new Date().toISOString(),
+        touchedAt: new Date().toISOString()
       });
       added++;
-      try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('mark imported failed', e); }
+      pending.push(rec);
     }
     if(added){
-      await storeSet('orders', orders);
+      // Спершу зберігаємо картки, і лише потім позначаємо забраними —
+      // інакше збій збереження губить замовлення назавжди (див. заявки вище)
+      try{
+        await storeSet('orders', orders);
+      }catch(e){
+        console.error('замовлення не збереглись', e);
+        woState('Замовлення з сайту прийшли, але не збереглись — оновіть сторінку', true);
+        webOrdersWatching = false;
+        return;
+      }
+      for(const rec of pending){
+        try{ await rec.ref.update({ imported:true }); }catch(e){ console.warn('mark imported failed', e); }
+      }
       renderBoard();
       toast(added === 1 ? 'Нове замовлення з сайту' : added + ' нових замовлень із сайту');
     }
@@ -5522,7 +5693,55 @@ function priceOrder(list, opts){
 }
 // Розклад ціни під сумою: менеджер має бачити, з чого склалась цифра,
 // і чому вона змінилась, коли додали другу позицію з тим самим макетом.
+/* ══════════ Ручний вид дизайну ══════════
+   Клієнт присилає PNG, на якому просто напис його фірмовим шрифтом.
+   Конструктор бачить файл-картинку й ставить «картинка» — інакше й не може:
+   шрифт ми не відтворимо, тож воно й лишається картинкою на вигляд. А
+   рахуватись мусить як напис: у вишивки в напису своя ставка за площу й свої
+   разові. Вирішує це менеджер, і його слово головніше за автоматику.
+
+   Тому вибір менеджера живе ОКРЕМО від автоматичного. Доти він писався
+   просто в designKinds — а конструктор перезбирає цей список щоразу, коли
+   позицію відкривають і зберігають, і вибір мовчки затирався. Пріоритету не
+   було: він діяв рівно до наступного збереження.
+
+   Ключ — ВІДБИТОК дизайну, а не його номер. Номери зсуваються, щойно
+   додали чи прибрали малюнок, і позначка поїхала б на сусідній. Відбиток
+   тримає її за конкретним зображенням; замінили файл — відбиток інший, і
+   вид повертається до автоматичного. Це навмисно: інший малюнок — інше
+   рішення. */
+function itemKindFix(it){
+  const m = it && it.designKindFix;
+  return (m && typeof m === 'object') ? m : null;
+}
+function setItemKindFix(it, fp, kind){
+  if(!it) return;
+  const m = Object.assign({}, itemKindFix(it) || {});
+  const key = String(fp || '');
+  if(!key) return;
+  if(kind === 'img' || kind === 'txt') m[key] = kind; else delete m[key];
+  it.designKindFix = Object.keys(m).length ? m : null;
+}
+/* Накладаємо вибір менеджера поверх автоматичного. Одна точка на всю
+   систему — і вона стоїть ПЕРЕД будь-яким розрахунком, тож вибір діє скрізь,
+   де вид має значення: ставка за площу, відро разових, ціна, собівартість,
+   маржа, КП, Канбан, PDF. */
+function applyKindFix(o){
+  (o && o.items || []).forEach(it=>{
+    const fix = itemKindFix(it);
+    const d = it && it.desc;
+    if(!fix || !d || !Array.isArray(d.designs)) return;
+    const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
+    while(kinds.length < d.designs.length) kinds.push('img');
+    d.designs.forEach((fp, i)=>{
+      const want = fix[String(fp || '')];
+      if(want === 'img' || want === 'txt') kinds[i] = want;
+    });
+    d.designKinds = kinds;
+  });
+}
 function fillOrderParts(o){
+  applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
   const res = priceOrder(list);
@@ -5541,15 +5760,22 @@ function fillOrderParts(o){
    порахував конструктор у мить збереження: змінився тираж основної позиції —
    і рекомендована показувала стару ціну, хоч поріг уже інший. */
 function fillRecoParts(o, writePrice){
-  const main = (o.items || []).filter(it => it && it.kind !== 'reco' && it.desc).map(it => it.desc);
+  const main = (o.items || []).filter(it => itemKind(it) === 'main' && it.desc).map(it => it.desc);
   const keep = upsellMode() === 'keep';
   let touched = false;
   (o.items || []).forEach(it=>{
-    if(!it || it.kind !== 'reco' || !it.desc) return;
-    /* У режимі «фіксувати погоджене» рекомендована позиція йде допродажем:
-       основні від неї не дешевшають, а вона сама бере поріг усього складу й
-       не платить за вже підготовлений макет. */
-    const d = keep ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
+    const kd = itemKind(it);
+    /* Варіанти рахуються так само, як рекомендовані: «основні + ЦЕЙ». Вони
+       виключають один одного, тож у спільний склад не входять — інакше три
+       варіанти по десять штук дали б тираж 30 і знижку за вироби, яких ніхто
+       не замовить.
+
+       Різниця одна: варіант — це НЕ допродаж. Він не додається до
+       погодженого складу, а заміняє позицію в ньому, тож поводитись із ним
+       як із «беруть ще зверху» було б неправдою: він не платив би за макет
+       і виходив дешевшим за той самий виріб в основних. */
+    if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
+    const d = (keep && kd === 'reco') ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
     const res = priceOrder(main.concat([d]));
     const mine = res[res.length - 1];
     if(!mine) return;
@@ -5576,7 +5802,7 @@ function priceCalcHtml(o){
   fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
   const rows = [];
   (o.items || []).forEach(it=>{
-    if(it.kind === 'reco' || !it.parts) return;
+    if(itemKind(it) !== 'main' || !it.parts) return;
     const b = it.parts;
     const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
     const lines = [];
@@ -5622,10 +5848,14 @@ function priceCalcHtml(o){
     '</div></details>';
 }
 // Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
+/* Склад, який рахується разом. Ані рекомендовані, ані варіанти сюди не
+   входять: перші клієнт ще не додав, другі виключають один одного. Скласти
+   всі варіанти в один тираж означало б порахувати вироби, яких ніхто не
+   замовить, — і занизити ціну всьому замовленню. */
 function orderDescriptors(o){
   const idx = [], list = [];
   (o.items || []).forEach((it, i)=>{
-    if(it.kind === 'reco' || !it.desc) return;
+    if(itemKind(it) !== 'main' || !it.desc) return;
     idx.push(i); list.push(it.desc);
   });
   return { idx, list };
@@ -5636,30 +5866,63 @@ function repriceOrder(o){
   // Тираж рекомендованих іде за найбільшою основною позицією — тож
   // вирівнюємо його перед будь-яким перерахунком, а не після
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
+  syncVariantQty(o);   // у групі варіантів тираж один на всіх
+  applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
-  if(!list.length) return false;
-  const res = priceOrder(list);
-  /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
-     повертає нулі. Записати їх означало б обнулити замовлення через
-     тимчасовий збій: краще лишити ціни, які вже пораховані. */
-  if(res.every(r => !r || !(+r.unit))){
-    console.warn('перерахунок пропущено: модель цін недоступна');
-    return false;
+  /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
+     самих варіантів: менеджер порахував базову й оверсайз, а клієнт обирає
+     один. Доти тут стояв вихід ДО перерахунку рекомендованих і варіантів —
+     і в такій пропозиції жодна позиція не отримувала ціни зовсім, скрізь
+     лишались нулі. */
+  if(list.length){
+    const res = priceOrder(list);
+    /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
+       повертає нулі. Записати їх означало б обнулити замовлення через
+       тимчасовий збій: краще лишити ціни, які вже пораховані. */
+    if(res.every(r => !r || !(+r.unit))){
+      console.warn('перерахунок пропущено: модель цін недоступна');
+      return false;
+    }
+    idx.forEach((i, k)=>{
+      const it = o.items[i], r = res[k];
+      if(!it || !r) return;
+      it.unitPrice = r.unit;
+      it.price = r.sum;
+      it.feeShare = r.feeShare;
+      it.parts = r.parts || null;
+    });
   }
-  idx.forEach((i, k)=>{
-    const it = o.items[i], r = res[k];
-    if(!it || !r) return;
-    it.unitPrice = r.unit;
-    it.price = r.sum;
-    it.feeShare = r.feeShare;
-    it.parts = r.parts || null;
-  });
   /* Рекомендовані йдуть слідом за складом. Їхня ціна залежить від основних
      позицій — від них береться і поріг тиражу, і поділ підготовки макета, —
      тож коли основний тираж змінився, стара ціна рекомендованої вже неправда.
      Рахуємо кожну як «основні + ця», рівно так, як вийде в клієнта. */
   fillRecoParts(o, true);
-  return true;
+  /* Початкова ціна ЗАПАМʼЯТОВУЄТЬСЯ разом із замовленням — так само, як ціна
+     за штуку. Доти вона щоразу виводилась наново під час складання
+     пропозиції, і будь-яка правка в тому шляху могла її зрушити: позиція
+     лишалась та сама, а знижка стрибала. Тепер вона рахується рівно тут — у
+     єдиному місці, де ціни й так перераховуються і де всі дані на місці, — і
+     далі просто читається.
+
+     Разом із цінами вона й оновлюється: змінилась модель цін чи тираж —
+     перерахунок пройде тут і перепише її. Окремого життя в неї немає. */
+  (o.items || []).forEach(it => {
+    const u = soloOneUnit(it && it.desc);
+    if(u) it.baseUnit1 = u;
+  });
+  return list.length > 0 ||
+         (o.items || []).some(it => itemKind(it) !== 'main' && it.desc);
+}
+/* Скільки коштувала б позиція, замовлена ОДНІЄЮ штукою й нічого більше:
+   виріб + нанесення + за штуку + повна разова підготовка. Склад замовлення
+   тут ні до чого — рахуємо саму позицію. */
+function soloOneUnit(desc){
+  if(!desc) return null;
+  try{
+    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })]);
+    const u = (r[0] && +r[0].unit) || 0;
+    return u > 0 ? u : null;
+  }catch(e){ return null; }
 }
 
 function docGarmentCoef(qty){
@@ -5834,16 +6097,25 @@ function offerBaseCoef(){
 function sharedPriceAt(order, itemIdx, qty, opts){
   const { idx, list } = orderDescriptors(order);
   const k = idx.indexOf(itemIdx);
-  if(k < 0) return null;
   const u = Math.max(1, +qty || 1);
   if(opts && opts.solo){
+    /* Для solo склад замовлення взагалі не потрібен: рахуємо ОДНУ цю
+       позицію окремо. Тому й беремо розклад прямо з неї, а не шукаємо в
+       orderDescriptors — там лише основні позиції, і варіант із
+       рекомендованим не знаходились зовсім. Функція повертала null, «було»
+       падало на запасний шлях (той самий тираж, лише базовий коефіцієнт за
+       обсяг) — і в блоці «Оберіть варіант» клієнт бачив −5% там, де в складі
+       пропозиції та сама математика давала −37% і більше. */
+    const src = k >= 0 ? list[k] : ((order.items || [])[itemIdx] || {}).desc;
+    if(!src) return null;
     /* Позначку допродажу знімаємо: «було» — це перша покупка, а не
        додавання до вже погодженого складу. З нею позиція не платила б за
        макет узагалі, і «було» вийшло б ДЕШЕВШЕ за «стало». */
-    const one = Object.assign({}, list[k], { units: u, upsell: false });
+    const one = Object.assign({}, src, { units: u, upsell: false });
     const r = priceOrder([one], opts);
     return (r[0] && r[0].unit) || null;
   }
+  if(k < 0) return null;
   const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: u }) : d);
   const res = priceOrder(clone, opts);
   return (res[k] && res[k].unit) || null;
@@ -5922,11 +6194,64 @@ function viewsWrite(o, k, list){
    Собівартість і маржа живуть ВИКЛЮЧНО в повідомленні до кадру редагування.
    У документі, який лежить у Firestore і який клієнт читає за посиланням,
    їх немає — тому вони рахуються тут щоразу наново, а не зберігаються. */
-function offerCalcRows(it){
+/* Перерахувати нанесення позиції під поточні види дизайнів.
+
+   Площа НЕ міняється — 17.1 см² лишається 17.1 см². Міняються лише ставки,
+   за якими ця площа рахується: у вишивки в напису своя ціна за 1000 мм²,
+   своя собівартість і свої разові. Формула — та сама, що в конструкторі:
+   вона живе у спільному рушії саме тому, що потрібна обом.
+
+   Порядок мінімалок — за площею, найбільше нанесення бере найдорожчу: так
+   само, як конструктор шикує шари. Інакше після перемикання позиція
+   отримала б інші мінімалки, ніж мала при збереженні. */
+function placementTotals(desc){
+  const p = curSitePricing();
+  if(!p || !desc || !Array.isArray(desc.designMm2) || !desc.designMm2.length) return null;
+  const mk = desc.method === 'embro' ? 'embro' : 'dtf';
+  const m = (p.methods || {})[mk] || {};
+  // DTF рахується за листами, а не за площею: там вид міняє тільки разові
+  if(m.mode === 'grid') return null;
+  const order = desc.designMm2
+    .map((mm2, i) => ({ i, mm2: Math.max(0, +mm2 || 0) }))
+    .sort((a, b) => b.mm2 - a.mm2);
+  let sell = 0, cost = 0, base = 0, minAdd = 0;
+  order.forEach((x, idx) => {
+    const isTxt = (desc.designKinds || [])[x.i] === 'txt';
+    const r = window.LQ.placeSell(m, isTxt, x.mm2, idx);
+    sell += r.total; base += r.base; minAdd += r.minAdd;
+    cost += window.LQ.placeCost(m, isTxt, x.mm2, idx);
+  });
+  return { sell: Math.round(sell), cost: Math.round(cost),
+           basePart: Math.round(base), minPart: Math.round(minAdd) };
+}
+/* Хто саме ділить підготовку макета з цією позицією. Для основної — усі
+   основні того самого способу. Для варіанта — основні плюс він сам: інші
+   варіанти його групи в тираж не входять, бо клієнт візьме щось одне. */
+function feeSharers(o, it){
+  if(!o || !it || !it.desc || it.desc.bare) return '';
+  const mk = it.desc.method === 'embro' ? 'embro' : 'dtf';
+  const same = d => d && !d.bare && ((d.method === 'embro' ? 'embro' : 'dtf') === mk);
+  const names = [];
+  (o.items || []).forEach(x=>{
+    if(!same(x.desc)) return;
+    const kx = itemKind(x);
+    if(kx === 'reco') return;
+    if(kx === 'variant' && x !== it) return;         // конкурент по групі не рахується
+    names.push((x.name || 'позиція') + ' × ' + (+x.qty || 0));
+  });
+  return names.length > 1 ? names.join(' · ') : '';
+}
+function offerCalcRows(it, o){
   const b = it.parts;
   if(!b) return null;
   const rows = [];
   const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+  /* До якої групи належить варіант і скільки виробів у розрахунку. Саме тут
+     і виникає питання «чому макет ділиться на десять»: відповідь у тому, що
+     потрапило в тираж, а це видно лише звідси. */
+  if(itemKind(it) === 'variant')
+    rows.push(['Варіант групи «' + (it.vgroup || 'Варіанти на вибір') + '» — рахується так, ' +
+               'ніби взяли саме його', '', 'sub']);
   rows.push(['Виріб · ' + (it.name || ''), b.garmentBase + ' грн']);
   if(b.appBase){
     rows.push(['Нанесення · ' + (it.print || '') +
@@ -5953,26 +6278,86 @@ function offerCalcRows(it){
     '−' + (pre - post) + ' грн', 'disc']);
   if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
   /* Який це дизайн за рахунком рушія. Саме тут найчастіше й розходяться
-     очікування: на екрані чотири різні картинки, а в рахунку — один макет,
-     бо рушій визнав їх однаковими (або навпаки). Номер робить це видимим:
-     однаковий номер у двох позицій означає «рушій вважає це тим самим
-     малюнком», і далі вже видно, чи він має рацію. */
+     очікування: на екрані два логотипи — спереду й ззаду, — а в рахунку один
+     макет, бо рушій визнав їх тим самим малюнком. Доти про це доводилось
+     здогадуватись за однаковим номером; тепер другий рядок каже це словами.
+
+     Перемикача виду тут БІЛЬШЕ НЕМАЄ. Він стояв поруч із нанесенням, а
+     нанесення рахується за квадратурою — і виглядало так, ніби вид міняє
+     площу. Вид міняє разові, тож перемикач переїхав на рядки «Підготовка
+     макета» й «Додатковий ескіз», де ці гроші й стоять. */
+  const seenNo = {};
   (b.designNos || []).forEach(d=>{
+    /* Звідки взявся відбиток. «u:…» — це адреса файлу: пікселі прочитати не
+       вдалось (найчастіше хостинг без CORS), і однаковими вважаються лише
+       буквально ті самі файли. Порожній відбиток не знявся зовсім, і тоді
+       рушій приєднує дизайн до першої групи. Менеджеру це треба бачити: від
+       цього залежить, чи довіряти номеру групи. */
+    const fp = String(((it.desc && it.desc.designs) || [])[d.i] || '');
+    const how = !fp ? ' · відбиток не знявся, приєднано до першого макета'
+              : (fp.indexOf('u:') === 0 ? ' · звірено за файлом, не за пікселями' : '');
+    const dup = seenNo[d.no];
+    seenNo[d.no] = 1;
     rows.push(['↳ Дизайн №' + d.no + (d.kind === 'txt' ? ' (напис)' : '') +
-      (d.first ? ' — перший, входить у підготовку макета'
-               : ' — окремий, ділиться на ' + d.units + ' шт із цим дизайном'),
+      (dup ? ' — той самий малюнок, що вже порахований вище: окремий макет не потрібен'
+           : (d.first ? ' — перший, входить у підготовку макета'
+                      : ' — окремий, ділиться на ' + d.units + ' шт із цим дизайном')) + how,
       '', 'sub']);
   });
+
   if(b.feeShare){
     // feeShare — уся разова частка разом з ескізами. Базову підготовку
     // показуємо як залишок, інакше ескізи порахувались би двічі.
-    const sk = (b.sketches || []).map(s => ({ s, share: Math.round(s.fee / (s.units || 1)) }));
-    const base = b.feeShare - sk.reduce((a, x) => a + x.share, 0);
-    if(base > 0) rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
-                            b.feeUnits + ' шт цього способу', base + ' грн']);
-    sk.forEach(x => rows.push(['Додатковий ескіз — ' + x.s.fee + ' грн разово, ділиться на ' +
-                               x.s.units + ' шт із цим дизайном', x.share + ' грн']));
+    const sk = (b.sketches || []).map(x => ({ s: x, share: Math.round(x.fee / (x.units || 1)) }));
+    const base = b.feeShare - sk.reduce((a2, x) => a2 + x.share, 0);
+    /* Дія на рядку разової: перемкнути вид того дизайну, з якого ця разова й
+       береться. Саме тут вид і важить — у написа своя підготовка макета і
+       свій ескіз. Клієнт цих рядків не бачить: прорахунок іде тільки в кадр
+       менеджера. */
+    const kindAct = di => (di != null && Array.isArray(it.desc && it.desc.designMm2))
+      ? { act:'kind', di: di,
+          kind: ((it.desc.designKinds || [])[di] === 'txt') ? 'txt' : 'img',
+          /* чи це рішення менеджера, а не автоматика — інакше через тиждень
+             ніхто не згадає, чому напис рахується як картинка */
+          fixed: !!(itemKindFix(it) || {})[String((it.desc.designs || [])[di] || '')] }
+      : null;
+    if(base > 0){
+      /* Разова належить ВИДУ, а не окремому дизайну: на позиції з картинкою
+         й написом їх дві — своя за картинку і своя за напис. Доти вони
+         складались в одне число, і різні роботи за різними ставками були
+         нерозрізненні. Тепер кожна своїм рядком і зі своїм перемикачем.
+         Останній рядок бере залишок, щоб сума не поїхала на гривню. */
+      const lines = (b.feeLines || []).filter(l => l && l.fee > 0);
+      if(lines.length > 1){
+        let left = base;
+        lines.forEach((l, n) => {
+          const share = (n === lines.length - 1) ? left : Math.round(l.fee / (l.units || 1));
+          left -= share;
+          rows.push(['Підготовка макета' + (l.kind === 'txt' ? ' (напис)' : ' (картинка)') +
+                     ' — ' + l.fee + ' грн разово, ділиться на ' + (l.units || 1) +
+                     ' шт цього способу', share + ' грн', '', kindAct(l.di)]);
+        });
+      } else {
+        rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
+                   b.feeUnits + ' шт цього способу', base + ' грн', '',
+                   kindAct(lines.length ? lines[0].di : null)]);
+      }
+      /* Не просто «ділиться на 10 шт», а НА ЯКІ САМЕ позиції. Це найчастіше
+         непорозуміння в прорахунку: цифра виглядає завищеною, а причина в
+         тому, що поруч у тиражі стоїть позиція, якої там не чекали —
+         забутий основний товар замість варіанта, наприклад. Поки список
+         доводилось відновлювати в голові, помилку не було видно. */
+      const who = feeSharers(o, it);
+      if(who) rows.push(['↳ у цьому тиражі: ' + who, '', 'sub']);
+    }
+    sk.forEach(x => rows.push(['Додатковий ескіз' +
+                               (x.s.no ? ' до дизайну №' + x.s.no : '') +
+                               (x.s.kind === 'txt' ? ' (напис)' : '') +
+                               ' — ' + x.s.fee + ' грн разово, ділиться на ' +
+                               x.s.units + ' шт із цим дизайном', x.share + ' грн', '',
+                               kindAct(x.s.di)]));
   }
+
   /* Чому допродаж вийшов дешевшим — треба сказати рядком, інакше цифра
      виглядає як помилка: та сама вишивка, а ціна нижча за основну позицію. */
   if(b.upsell && b.freeDesigns)
@@ -5985,26 +6370,26 @@ function offerCalcRows(it){
 function offerMgrCalc(o){
   // Ті ж права, що й у картці замовлення: кому не показуємо собівартість
   // там, тому не показуємо і тут
-  const out = { groups: [], items: {}, reco: {}, sum: null, cost: canSeeCost() };
+  const out = { groups: [], items: {}, reco: {}, vars: {}, sum: null, cost: canSeeCost() };
   try{
     fillOrderParts(o);
     fillRecoParts(o, false);   // рекомендовані — кожна окремо, «основні + ця»
     // Групи: саме від них рахуються знижки й ділиться підготовка макета
     const g = {};
     (o.items || []).forEach(it=>{
-      if(it.kind === 'reco' || !it.desc) return;
+      if(itemKind(it) !== 'main' || !it.desc) return;
       const key = it.desc.bare ? 'Без нанесення'
                 : (it.desc.method === 'embro' ? 'Вишивка' : 'DTF принт');
       g[key] = (g[key] || 0) + (+it.desc.units || 0);
     });
     out.groups = Object.keys(g).map(key => ({ k: key, q: g[key] }));
-    let mi = 0, ri = 0, sp = 0, sc = 0, sq = 0;
+    let mi = 0, ri = 0, vi = 0, sp = 0, sc = 0, sq = 0;
     (o.items || []).forEach(it=>{
-      const reco  = it.kind === 'reco';
-      const i     = reco ? ri++ : mi++;
+      const kd = itemKind(it);
+      const i  = kd === 'reco' ? ri++ : (kd === 'variant' ? vi++ : mi++);
       const price = Math.round(+it.price || 0);
       const cost  = Math.round(+it.cost  || 0);
-      const box = { rows: offerCalcRows(it), qty: +it.qty || 0, price,
+      const box = { rows: offerCalcRows(it, o), qty: +it.qty || 0, price,
                     name: it.name || '',
                     meta: [it.color, it.print, it.sizes].filter(Boolean).join(' · ') };
       if(out.cost){
@@ -6012,8 +6397,10 @@ function offerMgrCalc(o){
         box.margin = price - cost;
         box.pct = price > 0 ? ((price - cost) / price * 100) : 0;
       }
-      (reco ? out.reco : out.items)[i] = box;
-      if(!reco){ sp += price; sc += cost; sq += +it.qty || 0; }
+      (kd === 'reco' ? out.reco : (kd === 'variant' ? out.vars : out.items))[i] = box;
+      // У підсумок ідуть лише основні: рекомендовані клієнт ще не додав, а
+      // з варіантів візьме один — складати їх усі означало б вигадати суму
+      if(kd === 'main'){ sp += price; sc += cost; sq += +it.qty || 0; }
     });
     out.sum = { qty: sq, price: sp };
     if(out.cost){
@@ -6023,26 +6410,122 @@ function offerMgrCalc(o){
   }catch(e){ console.warn('mgr calc', e); }
   return out;
 }
+/* ══════════ Початкова ціна позиції ══════════
+   «Було» — це скільки коштувала б ЦЯ САМА позиція, замовлена однією штукою:
+   виріб + нанесення + оплата за штуку + ПОВНА разова підготовка макета, не
+   поділена ні на що. Саме її бачить людина на сайті, коли ставить у кошик
+   одну футболку, і саме від неї рахується вигода тиражу.
+
+   Проблема була не у формулі, а в даних. Формула вміла рахувати лише з
+   розкладу (desc), а позиції зі старих замовлень його не мають. Тоді
+   вмикався запасний шлях, який просто масштабував наявну ціну коефіцієнтом
+   за обсяг — і давав «−4%» там, де насправді −33%.
+
+   Тепер шляхів три, від найточнішого до найгрубішого, і кожен дає СПРАВЖНЮ
+   ціну однієї штуки, а не масштаб поточної:
+
+   1. Є розклад — прогін рушія на одну штуку. Точно до гривні.
+   2. Є розклад прорахунку (parts) — складаємо з готових частин.
+   3. Немає нічого — розкручуємо формулу назад із самої ціни: знімаємо
+      коефіцієнт за тираж і частку макета, які в ній сидять, і додаємо
+      повну разову. Це та сама формула, розв'язана в інший бік. */
+function offerItemMethod(it){
+  if(it && it.desc && it.desc.method) return it.desc.method === 'embro' ? 'embro' : 'dtf';
+  if(it && it.calc && it.calc.method) return it.calc.method === 'embro' ? 'embro' : 'dtf';
+  /* Ні розкладу, ні прорахунку — питаємо саму позицію, чим на неї наносили.
+     Технік у prints, зведений підпис у print: у старих позицій буває або те,
+     або те, тож дивимось в обидва. Помилитись тут дорого: разові у вишивки й
+     у друку різні на порядок. */
+  const tech = ((it && it.prints) || []).map(p => String(p.technique || '')).join(' ') +
+               ' ' + String((it && it.print) || '');
+  return /ишив/i.test(tech) ? 'embro' : 'dtf';
+}
+// Скільки виробів того самого способу в замовленні — на них і ділиться разова
+function offerMethodUnits(order, method){
+  let u = 0;
+  (order.items || []).forEach(it => {
+    if(offerItemMethod(it) === method) u += Math.max(0, +it.qty || 0);
+  });
+  return Math.max(1, u);
+}
+function offerOneUnitPrice(order, itemIdx){
+  const item = order.items[itemIdx];
+  const unit = +item.unitPrice || 0;
+  /* 0. Записана разом із замовленням — головніша за будь-який перерахунок.
+     Саме вона й робить знижку сталою: число зафіксоване тоді, коли позицію
+     рахували, і його не може зрушити правка деінде. Перевіряємо лише, що
+     воно не нижче поточної ціни: якби модель цін відтоді змінилась, стара
+     початкова була б неправдою — тоді рахуємо наново. */
+  const kept = +item.baseUnit1 || 0;
+  if(kept > unit) return kept;
+  // 1. Розклад є — рахуємо чесним прогоном
+  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
+  if(shared != null) return shared;
+  // 2. Розклад прорахунку є — складаємо з частин, які вже пораховані
+  const b = item.parts;
+  if(b && !b.bare && (b.garmentBase != null)){
+    const sk = (b.sketches || []).reduce((a, s) => a + (+s.fee || 0), 0);
+    return Math.round((+b.garmentBase || 0) + (+b.appBase || 0) +
+                      (+b.pieceFee || 0) + (+b.feeTotal || 0) + sk);
+  }
+  // 3. Немає нічого — розкручуємо формулу назад
+  const p = curSitePricing();
+  if(!p || !unit) return null;
+  const mk = offerItemMethod(item);
+  const m = (p.methods || {})[mk] || {};
+  const pieceFee = +m.pieceFee || 0;
+  const orderFee = +m.orderFee || 0;
+  const units = offerMethodUnits(order, mk);
+  /* Коефіцієнт беремо з ТІЄЇ САМОЇ моделі цін, що й оплати вище. Спокуса
+     покликати LQ.tierCoefFor велика, але він читає SITE_CONTENT, а оплати ми
+     щойно взяли з curSitePricing() — і два різні джерела в одній формулі
+     рано чи пізно розійдуться. */
+  const tl = ((m.tiers && m.tiers.length) ? m.tiers : p.tiers) || [];
+  let coef = 1;
+  tl.map(t => ({ from:+t.from || 1, coef:+t.coef || 1 }))
+    .sort((a, b) => a.from - b.from)
+    .forEach(t => { if(units >= t.from) coef = t.coef; });
+  if(!coef) return null;
+  /* У поточній ціні сидять: частина, що масштабується коефіцієнтом (виріб +
+     нанесення), незмінна оплата за штуку і частка разової. Знімаємо два
+     останніх, ділимо на коефіцієнт — лишається чиста частина на одну штуку. */
+  const scaled = (unit - pieceFee - (orderFee / units)) / coef;
+  if(!(scaled > 0)) return null;
+  return Math.round(scaled + pieceFee + orderFee);
+}
 function offerItemNumbers(order, itemIdx){
   const item = order.items[itemIdx];
   const qty  = +item.qty || 0;
   const unit = +item.unitPrice || 0;
-  /* «Було» рахуємо ТОЧНО ТАК САМО, як картка товару на сайті: це ефективна
-     ціна за штуку на найменшому порозі тиражу. Саме там разова підготовка
-     макета ділиться на одну-дві штуки й тому важить найбільше — і саме тому
-     справжня знижка більша за самий лише коефіцієнт за обсяг.
+  /* «Було» — ціна цієї позиції, замовленої ОДНІЄЮ штукою: виріб + нанесення +
+     оплата за штуку + повна разова підготовка макета. Саме так рахує картку
+     товару сайт, і саме від цього числа людина відлічує вигоду тиражу.
+     Три шляхи розрахунку — див. offerOneUnitPrice. */
+  const one = offerOneUnitPrice(order, itemIdx);
+  const baseUnit = Math.max(one != null ? one : unit, unit);
+  /* Позиція з нанесенням на найменшому порозі платить за підготовку макета
+     САМА — тож справжня знижка там завжди десятки відсотків. Кілька відсотків
+     такою математикою не виходять узагалі: мала різниця означає одне — «було»
+     порахувати не вдалося. Показувати перекреслену ціну в такому разі гірше,
+     ніж не показувати: клієнт бачить знижку, якої немає.
 
-     Доти в пропозиції «було» бралось інакше: той самий тираж, але без
-     коефіцієнта за обсяг. Разова оплата ділилась на ті самі 13 штук, тож
-     основна частина вигоди зникала, і замість −40% клієнт бачив −18%. Дві
-     різні відповіді на те саме питання — звідси й «на сайті одна знижка, а
-     в КП інша». */
-  const shared = sharedPriceAt(order, itemIdx, offerFirstTierQty(order, itemIdx), { solo:true });
-  const baseUnit = Math.max(shared != null ? shared : docPriceAt(item, qty, offerBaseCoef()), unit);
+     Голий виріб без нанесення — інша річ: разових у нього немає, і вся його
+     вигода — це шкала за кількість. Там і 8% справжні, тож поріг на нього не
+     поширюється. Послаблюємо його лише коли ТОЧНО знаємо, що виріб голий:
+     позиція без розкладу — це не «голий виріб», а невідомість. */
+  const bare = !!(item.desc && item.desc.bare) || !!(item.parts && item.parts.bare);
+  const real = one != null && unit > 0 &&
+               (bare ? (baseUnit > unit) : (baseUnit >= unit * 1.08));
   return {
     qty, unit, sum: +item.price || 0,
-    baseUnit, baseSum: baseUnit * qty,
-    save: Math.max(0, baseUnit * qty - (+item.price || 0))
+    baseUnit: real ? baseUnit : unit,
+    baseSum: (real ? baseUnit : unit) * qty,
+    /* Порахувати початкову ціну не вдалося жодним із трьох шляхів. Кажемо це
+       окремим прапорцем: картка тоді не малює перекресленої ціни, а менеджеру
+       пояснює чому. Прив'язувати пояснення до «ціна застаріла» не можна —
+       позиція може бути без розкладу, але з чесно розкрученою початковою. */
+    noBase: !real,
+    save: real ? Math.max(0, baseUnit * qty - (+item.price || 0)) : 0
   };
 }
 // Варіанти тиражу, які клієнт зможе обрати на сторінці.
@@ -6078,22 +6561,82 @@ function offerTiers(order, itemIdx){
    товару; якщо не задавав — стандартні, ті самі, що показує сайт. Порожній
    список краще за вигаданий: у пропозиції «100% бавовна» на поліестері
    коштує дорожче за будь-який гарний рядок. */
+/* Розмірна сітка виробу: заголовки колонок і рядки. Формат той самий, що в
+   адмінці, — переносимо як є, без перетворень: щойно вони розійдуться,
+   клієнт побачить одні числа, а на сайті стоятимуть інші. */
+/* Який саме виріб у цій позиції. У позицій, зібраних конструктором, id лежить
+   у config — на самій позиції його немає. Решта адмінки давно бере обидва
+   місця (постачальник виробу, ціна голого виробу), а опис, характеристики й
+   розмірна сітка дивились ЛИШЕ на it.garmentId. Тому в пропозиції їх не було
+   взагалі: менеджер заповнив картку товару, а КП мовчки нічого не знаходило. */
+/* Куди повертає «↶ Повернути»: попередній логотип у лінії обрізок.
+   Спершу власна історія, а якщо її не писали — попередній файл зі списку
+   логотипів замовлення. Порожньо означає, що це вже початкове зображення. */
+function logoPrevUrl(o){
+  const hist = (o && Array.isArray(o.clientLogoHist)) ? o.clientLogoHist.filter(Boolean) : [];
+  if(hist.length) return hist[hist.length - 1];
+  const list = (o && Array.isArray(o.logos)) ? o.logos.filter(Boolean) : [];
+  const i = list.indexOf(o && o.clientLogo);
+  return i > 0 ? list[i - 1] : null;
+}
+function itemGarmentId(it){
+  return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
+}
+function itemSizeChart(it){
+  const gid = itemGarmentId(it);
+  const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
+  if(!Array.isArray(rows) || !rows.length) return null;
+  const cols = (contentData.sizechartCols && contentData.sizechartCols[gid]) || null;
+  const clean = rows.slice(0, 14).map(r => (Array.isArray(r) ? r : [])
+    .slice(0, 8).map(v => String(v == null ? '' : v).slice(0, 24)));
+  if(!clean.length) return null;
+  /* Кожен рядок — обʼєкт із масивом усередині, а не масив у масиві.
+     Firestore масив-у-масиві НЕ приймає й відхиляє ВЕСЬ документ. Саме через
+     це пропозиція перестала зберігатись: у документі зʼявилась розмірна
+     сітка, запис почав падати, і за посиланням лишався попередній варіант —
+     хоч на екрані все виглядало свіжим. Та сама причина, через яку таблиця
+     собівартості DTF зберігається плоскою. */
+  return { cols: Array.isArray(cols) ? cols.slice(0, 8).map(c => String(c || '').slice(0, 24)) : null,
+           rows: clean.map(r => ({ c: r })) };
+}
+/* Опис товару з сайту — саме там живуть тип тканини, щільність і «для чого
+   краще підходить». Окремих полів під це немає й не треба: менеджер пише їх
+   одним текстом у картці товару, і сюди він має приїхати цілим.
+   Обрізали на 700 символах — рівно на цьому місці й закінчувався абзац про
+   щільність, і в пропозиції опис уривався на півслові. */
+function itemAbout(it){
+  const gid = itemGarmentId(it);
+  const t = gid && contentData.descriptions && contentData.descriptions[gid];
+  return String(t || '').trim().slice(0, 1600);
+}
+/* Характеристики товару — тканина, щільність, крій, формат. Беремо рівно ті,
+   що менеджер задав у картці ЦІЄЇ моделі: у «Футболки базової» свої, в
+   «Оверсайзу» свої.
+   Типового списку тут більше немає. Він показував «240 г/м², оверсайз» для
+   будь-якого виробу, якому картку ще не заповнили, — і в іменній пропозиції
+   стояло твердження про тканину, якого ніхто не перевіряв. Не заповнено —
+   рядка немає взагалі: порожнє місце чесніше за вгадане число. */
 function itemSpecs(it){
-  const gid = it && it.garmentId;
+  const gid = itemGarmentId(it);
   const custom = gid && contentData.specs && contentData.specs[gid];
-  const rows = (custom && custom.length) ? custom : null;
-  if(!rows) return [];
+  const rows = (custom && custom.length) ? custom : [];
+  /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
+     картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
+     догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
+     на сайті. */
   return rows.filter(r => r && r.label && r.value)
-             .slice(0, 6)
-             .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 80) }));
+             .slice(0, 12)
+             .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 120) }));
 }
 function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
-    kind: it.kind === 'reco' ? 'reco' : 'main',
+    kind: itemKind(it),
+    // Група варіантів: клієнт бере по одному з кожної
+    vgroup: itemKind(it) === 'variant' ? (it.vgroup || 'Варіанти на вибір') : '',
     /* Варіант на вибір: до клієнта приходить не доданим у кошторис.
        Рекомендовані й так додаються вручну, тож там прапорець зайвий. */
-    optional: it.kind === 'reco' ? false : !!it.optional,
+    optional: itemKind(it) === 'main' ? !!it.optional : false,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
     name: it.name || '', color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
@@ -6123,23 +6666,39 @@ function offerItem(it, order, itemIdx){
        рівно про це: з чого пошито, яка щільність, який крій. Досі йому
        доводилось вірити на слово або лізти на сайт. */
     specs: itemSpecs(it),
+    /* Опис товару — той самий, що на сторінці товару сайту (Конструктор →
+       Товари → «Опис»). Клієнт у пропозиції питає рівно про це: з чого
+       пошито, як лягає нанесення, чим цей виріб відрізняється від сусіднього.
+       Досі опис жив тільки на сайті, і в пропозиції товар лишався самою
+       назвою. */
+    about: itemAbout(it),
+    /* Розмірна сітка того самого виробу. Питання «а який це розмір» виникає
+       рівно там, де обирають тираж, — і доти на нього доводилось відповідати
+       посиланням на сайт або листом. */
+    sizechart: itemSizeChart(it),
     unitPrice: n.unit, price: n.sum,
     baseUnitPrice: n.baseUnit, basePrice: n.baseSum, save: n.save,
+    noBase: !!n.noBase,
     tiers: offerTiers(order, itemIdx)
   };
 }
 function offerBuild(order){
   const items = (order.items || []).map((it, i) => offerItem(it, order, i));
-  const main  = items.filter(i => i.kind !== 'reco');
+  const main  = items.filter(i => i.kind === 'main');
   const reco  = items.filter(i => i.kind === 'reco');
+  const vars  = items.filter(i => i.kind === 'variant');
   /* Логотип у шапці пропозиції. Той, що менеджер поставив свідомо, головніший
      за вгаданий: раніше сюди потрапляв просто перший файл із першої позиції,
      і в шапці міг опинитись не той логотип. */
-  const logo  = String(order.clientLogo || '').trim() ||
-    ((order.items || []).flatMap(i => i.prints || []).find(p => p.file) || {}).file || '';
+  const logo = effectiveClientLogo(order);
   const totalQty = main.reduce((a,i) => a + i.qty, 0);
   const dl = deadlineLabel(totalQty || 1, new Date(),
     [...new Set(main.flatMap(i => i.techniques))]);
+  /* Термін бере число ІЗ ЗАМОВЛЕННЯ, коли воно там є. Доти пропозиція
+     рахувала свій, від сьогоднішньої дати й поточного тиражу, і мовчки
+     розходилась із карткою в Канбані: там «7 р.дн.», у КП «5». Менеджер
+     писав одне, клієнт бачив інше, і жодного натяку, звідки взялося друге. */
+  const dlDays = (+order.deadlineDays > 0) ? Math.round(+order.deadlineDays) : dl.days;
   /* Термін дії ціни рахується від сьогодні, але менеджер може назвати свій:
      буває, що клієнт просить потримати ціну довше, і зафіксувати це треба
      в самій пропозиції, а не на словах у переписці. */
@@ -6148,7 +6707,7 @@ function offerBuild(order){
   const validSet = String(order.offerValidUntil || '').trim();
   // Правила термінів — щоб сторінка клієнта перерахувала строк, коли він
   // обере більший тираж, і не показувала неправду.
-  const methods = [...new Set((order.items || []).filter(i => i.kind !== 'reco')
+  const methods = [...new Set((order.items || []).filter(i => itemKind(i) === 'main')
     .map(i => (i.calc && i.calc.method === 'dtf') ? 'print' : 'emb'))];
   const leadRules = (methods.length ? methods : ['print']).map(t=>{
     const l = (methodModel(t).lead) || {};
@@ -6168,6 +6727,14 @@ function offerBuild(order){
     },
     clientLogo: logo,
     clientLogoSize: +order.clientLogoSize || 0,
+    /* Фон логотипа їде разом із ним. Доти не їхав узагалі: колір зберігався в
+       замовленні, а в пропозицію не потрапляв — тому й виглядало, ніби
+       кнопка фону нічого не робить. Стан старої підкладки віддаємо теж, щоб
+       уже надіслані КП не змінились. */
+    clientLogoBg: String(order.clientLogoBg || ''),
+    clientLogoPlate: String(order.clientLogoPlate || ''),
+    // чи є куди повертатись — кнопка «↶» показується лише тоді
+    clientLogoBack: !!logoPrevUrl(order),
     /* Заголовок першого екрана. Порожньо — сторінка складе його сама з
        назви компанії; вписаний — показуємо рівно те, що написав менеджер.
        Розмір теж його: «для Нестербуд» і «для Міністерства цифрової
@@ -6181,6 +6748,12 @@ function offerBuild(order){
        про конкретне замовлення — ні. Порожньо — блоку в КП немає. */
     why: String(order.why || '').trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0, 5),
     items: main, reco,
+    // тираж кожної групи варіантів — щоб панель показала одне число на групу
+    vqty: Object.assign({}, order.vqty || {}),
+    /* Варіанти на вибір — окремим списком. У кошторис вони не входять, доки
+       клієнт не обере: у групі беруть рівно один, і скласти їх усі означало
+       б показати суму, якої ніхто не замовляв. */
+    variants: vars,
     totals: {
       qty: totalQty,
       base: main.reduce((a,i) => a + i.basePrice, 0),
@@ -6193,7 +6766,7 @@ function offerBuild(order){
     cases: (offerTexts().cases || []),
     faq: (offerTexts().faq || []),
     terms: {
-      deadlineDays: dl.days,
+      deadlineDays: dlDays,
       payment: OFFER_DEFAULTS.payment,
       startWith: OFFER_DEFAULTS.startWith,
       validUntil: validSet ? new Date(validSet + 'T12:00:00').toISOString() : valid.toISOString(),
@@ -6213,9 +6786,104 @@ function offerClean(v){
   Object.keys(v).forEach(k => { out[k] = offerClean(v[k]); });
   return out;
 }
+/* Скопіювати посилання — і НЕ збрехати про те, що за ним лежить.
+   Доти копіювання й оновлення сторінки клієнта були двома різними подіями:
+   посилання лягало в буфер одразу, а запис ішов слідом, без очікування, і
+   про його провал казали лише в консоль. Менеджер надсилав клієнту адресу,
+   за якою лежав попередній варіант — з іншим заголовком, іншими датами й
+   іншим логотипом. Тепер спершу кажемо «оновлюємо», потім записуємо, і аж
+   тоді — «можна надсилати». Не записалось — так і кажемо. */
+/* Що саме має збігтися між тим, що бачить менеджер, і тим, що лежить за
+   посиланням. Не весь документ — лише те, на що дивляться очима: заголовок,
+   логотип, терміни, склад і сума. Якщо розійшлося хоч одне, «збережено»
+   казати не можна. */
+function offerStamp(d){
+  const t = (d && d.terms) || {};
+  return JSON.stringify([
+    d && d.heroTitle, d && d.clientLogo, d && d.clientLogoSize, d && d.clientLogoBg,
+    t.deadlineDays, t.validUntil, t.readyAt,
+    (d && d.items || []).length, (d && d.variants || []).length,
+    ((d && d.totals) || {}).total
+  ]);
+}
+/* Відкрити сторінку клієнта. Вкладку відчиняємо ОДРАЗУ, ще до запису: якщо
+   чекати, браузер вважає її не наслідком дотику й блокує. Спершу вона порожня,
+   а адресу отримує, коли документ уже оновлено — тож клієнтська сторінка
+   відкривається на свіжому, а не на тому, що лежало досі. */
+async function offerLinkOpen(order){
+  const link = offerUrl(order);
+  if(!link){ toast('У замовлення немає посилання'); return; }
+  const w = window.open('', '_blank');
+  try{
+    await offerSave(order);
+    if(w) w.location = link; else window.open(link, '_blank');
+    offerEdNote('');
+  }catch(e){
+    console.error('offer refresh failed', e);
+    const why = (e && (e.code || e.message)) || 'невідома причина';
+    if(w) w.location = link;
+    toast('УВАГА: сторінку клієнта НЕ оновлено — ' + why);
+    offerEdNote('Сторінку клієнта не оновлено: ' + why +
+                '. Відкрилось те, що лежало за посиланням досі.');
+  }
+}
+async function offerLinkCopy(order){
+  const link = offerUrl(order);
+  copyText(link, 'Посилання скопійовано — оновлюємо сторінку…');
+  try{
+    const doc = await offerSave(order);
+    /* Перечитуємо те, що реально лягло в базу, і звіряємо. Обіцянка «можна
+       надсилати» коштує рівно стільки, скільки коштує ця перевірка: доти ми
+       казали її, не глянувши, що там насправді. */
+    const snap = await fbDb.collection('offers').doc(order.offerToken).get();
+    const got = snap.exists ? snap.data() : null;
+    if(!got) throw new Error('за посиланням порожньо');
+    if(offerStamp(got) !== offerStamp(doc))
+      throw new Error('за посиланням лягло не те, що на екрані');
+    toast('Посилання скопійовано — сторінку оновлено, можна надсилати');
+    offerEdNote('');
+  }catch(e){
+    console.error('offer refresh failed', e);
+    const why = (e && (e.code || e.message)) || 'невідома причина';
+    toast('УВАГА: сторінку клієнта НЕ оновлено — ' + why);
+    offerEdNote('Сторінку клієнта не оновлено: ' + why +
+                '. За цим посиланням клієнт побачить попередній варіант.');
+  }
+}
+/* Firestore відхиляє ВЕСЬ документ через одну заборонену дрібницю — і
+   найчастіше це масив усередині масиву. Помилка приходить без адреси: «nested
+   arrays are not supported», і шукай де. Тож знаходимо самі, з дорогою до
+   поля: «items[0].sizechart.rows[0]» знімає питання за секунду.
+   Перевірка дешева й іде перед кожним записом: тиждень пошуків «чому не
+   зберігається» коштує дорожче. */
+function offerBadPath(v, path, inArray){
+  if(v === undefined) return (path || 'документ') + ' — undefined';
+  if(v === null || typeof v !== 'object') return null;
+  if(Array.isArray(v)){
+    if(inArray) return (path || 'документ') + ' — масив усередині масиву';
+    for(let i = 0; i < v.length; i++){
+      const r = offerBadPath(v[i], path + '[' + i + ']', true);
+      if(r) return r;
+    }
+    return null;
+  }
+  const keys = Object.keys(v);
+  for(let i = 0; i < keys.length; i++){
+    const k = keys[i];
+    const r = offerBadPath(v[k], path ? path + '.' + k : k, false);
+    if(r) return r;
+  }
+  return null;
+}
 async function offerSave(order){
-  if(!order || !order.offerToken) return null;
+  /* Без токена пропозиції писати нікуди — і сказати про це треба вголос.
+     Доти функція тихо поверталась ні з чим: адмінка показувала «збережено»,
+     а посилання для клієнта лишалось на старому документі. */
+  if(!order) return null;
+  if(!order.offerToken) throw new Error('у замовлення немає посилання на пропозицію');
   const doc = offerClean(offerBuild(order));
+  const bad = offerBadPath(doc, '');
+  if(bad) throw new Error('база не прийме документ: ' + bad);
   // Стан і вибір належать клієнту — перезаписом менеджера їх стерти не можна.
   if(offersByToken[order.offerToken]) delete doc.state;
   await fbDb.collection('offers').doc(order.offerToken).set(doc, { merge: true });
@@ -6931,17 +7599,20 @@ function wireDocsBlock(el, o){
     }
   });
   const cp = el.querySelector('[data-doc="copylink"]');
-  if(cp) cp.addEventListener('click', ()=>{
-    copyText(offerUrl(o), 'Посилання скопійовано');
-    // Сторінку клієнта оновлюємо вже після копіювання — воно не має чекати
-    offerSave(o).catch(e=> console.warn('offer refresh failed', e));
-  });
+  if(cp) cp.addEventListener('click', ()=> offerLinkCopy(o));
   // «Відкрити» і «PDF» — звичайні посилання. Клік лишаємо браузеру, а самі
   // лише освіжаємо сторінку клієнта у фоні, щоб він побачив актуальні дані.
   el.querySelectorAll('[data-doc="openoffer"], [data-doc="offerpdf"]').forEach(a=>{
     a.addEventListener('click', ()=>{
       if(a.dataset.doc === 'offerpdf') toast('Відкриваємо друк — оберіть «Зберегти як PDF»');
-      offerSave(o).catch(e=> console.warn('offer refresh failed', e));
+      /* Провал запису тут теж має бути чутним: інакше менеджер відкриває
+         сторінку клієнта й бачить не те, що щойно правив, без жодного
+         пояснення. */
+      offerSave(o).catch(e=>{
+        console.error('offer refresh failed', e);
+        toast('УВАГА: сторінку клієнта НЕ оновлено — ' +
+              ((e && (e.code || e.message)) || 'невідома причина'));
+      });
     });
   });
   const mk = el.querySelector('[data-doc="mockups"]');
@@ -6984,7 +7655,10 @@ const BOARD_FLAGS = {
 function orderHaystack(o){
   const items = (o.items || []).map(i => i && i.name).filter(Boolean).join(' ');
   const tasks = taskList(o).map(t => t && t.text).filter(Boolean).join(' ');
-  return [o.orderId, o.name, o.phone, o.company, o.instagram,
+  /* Код із сайту теж шукається: у Telegram приходить саме він, і картку
+     знаходять, вставивши його в пошук. Без цього рядка код у чаті був би
+     мертвим — його нікуди прикласти. */
+  return [o.orderId, o.siteRef, o.name, o.phone, o.company, o.instagram,
           chanHandle(o, 'tg'), chanHandle(o, 'ig'), chanHandle(o, 'viber'),
           personName(o.mgrEmail), items, tasks, o.note,
           o.totalPrice, (window.lqChannel && window.lqChannel.label(o.an)) || '']
@@ -7040,8 +7714,13 @@ function boardSortFn(){
      переносили: останнє зверху. Решта йде звичайним порядком, який обрав
      менеджер у списку сортування. */
   return (a, b)=>{
+    /* Спершу лічильник цієї вкладки — він розводить дії, зроблені в одну
+       секунду. Потім збережений час останньої дії — він переживає
+       перезавантаження. І лише потім те сортування, яке обрав менеджер. */
     const ma = movedOrder.get(a.id) || 0, mb = movedOrder.get(b.id) || 0;
     if(ma !== mb) return mb - ma;
+    const ta = String(a.touchedAt || ''), tb = String(b.touchedAt || '');
+    if(ta !== tb) return tb.localeCompare(ta);
     return inner(a, b);
   };
 }
@@ -7439,7 +8118,7 @@ function bareUnitPrice(gid, qty){
   return { price: Math.round(g.minPrice * (c == null ? 1 : c)), cost: Math.round(g.cost) };
 }
 function itemSums(o){
-  const paid = (o.items||[]).filter(i => i.kind !== 'reco');
+  const paid = (o.items||[]).filter(i => itemKind(i) === 'main');
   return { p: paid.reduce((a,i)=> a + (+i.price || 0), 0),
            c: paid.reduce((a,i)=> a + (+i.cost  || 0), 0) };
 }
@@ -9405,6 +10084,14 @@ function offerEdClose(){
    Повертає false, якщо кадр ще не готовий, — тоді викликаємо повне
    перечитування, як раніше. */
 let offerEdCloseInline = false;   // правку зберегли — редактор у картці згорнути
+/* Сказати щось у кадр, де менеджер зараз дивиться. Тост в адмінці — це
+   інше вікно: поки відкритий редактор, він за ним, і побачити його можна,
+   лише закривши редактор. А відповідь потрібна там, де натиснули. */
+function offerEdNote(text){
+  const f = document.querySelector('#offerEd iframe');
+  if(!f || !f.contentWindow) return;
+  try{ f.contentWindow.postMessage({ lqEditInit:true, note: String(text || '') }, '*'); }catch(e){}
+}
 function offerEdPush(o){
   const f = document.querySelector('#offerEd iframe');
   if(!f || !f.contentWindow) return false;
@@ -9428,7 +10115,7 @@ function offerEdPush(o){
        позиції. Без цього сусідні позиції застарівали після кожного
        збереження. */
     doc.cart = (o.items || []).map(x => ({
-      kind: x.kind === 'reco' ? 'reco' : 'main',
+      kind: itemKind(x), vgroup: x.vgroup || '',
       name: x.name || '', color: x.color || '', print: x.print || '', sizes: x.sizes || '',
       qty: +x.qty || 0, unitPrice: +x.unitPrice || 0, price: +x.price || 0,
       unitCost: +x.unitCost || 0, cost: +x.cost || 0,
@@ -9583,7 +10270,14 @@ function calcSeedFor(o, editIdx){
      замовленні сама — і ціна виходила зовсім інша, ніж у пропозиції.
      Редагована позиція йде під своїм номером; зберігається потім лише вона. */
   window.__adminSeedCart = (o.items || []).map(x => ({
-    kind: x.kind === 'reco' ? 'reco' : 'main',
+    /* Рід і група їдуть у конструктор обовʼязково. Доти тут стояло «не
+       рекомендований — значить основний», і варіанти приїжджали до
+       конструктора звичайними позиціями складу. Далі він чесно робив те, що
+       робить з основними: складав їх в один тираж. Звідси й бралося
+       «ділиться на 10 шт» та знижка за десять — при пʼяти в кожному
+       варіанті. Конструктор уже вміє не рахувати конкурента з тієї самої
+       групи, просто дізнатись про групу йому не було звідки. */
+    kind: itemKind(x), vgroup: x.vgroup || '',
     name: x.name || '', color: x.color || '', print: x.print || '', sizes: x.sizes || '',
     qty: +x.qty || 0, unitPrice: +x.unitPrice || 0, price: +x.price || 0,
     unitCost: +x.unitCost || 0, cost: +x.cost || 0,
@@ -9640,7 +10334,7 @@ function offerCatalog(){
    Вписав менеджер своє число — воно фіксується (qtyAuto:false) і більше не
    перебивається: він знає щось про цього клієнта, чого не знає формула. */
 function recoQtyFor(o){
-  const main = (o.items || []).filter(i => i && i.kind !== 'reco');
+  const main = (o.items || []).filter(i => itemKind(i) === 'main');
   return Math.max(1, ...main.map(i => +i.qty || 0), 1);
 }
 function syncRecoQty(o){
@@ -9651,13 +10345,101 @@ function syncRecoQty(o){
     if((+it.qty || 0) === q) return;
     it.qty = q;
     if(it.desc) it.desc.units = q;
+    applyQtyToConfig(it, q);     // конструктор читає саме розклад
     it.price = Math.round((+it.unitPrice || 0) * q);
     it.cost  = Math.round((+it.unitCost  || 0) * q);
     touched = true;
   });
   return touched;
 }
-async function offerAddBare(o, gid, kind){
+/* ── Кількість у групі варіантів — одна на всіх ────────────────────────
+   Варіанти порівнюють між собою: базова проти оверсайзу. Порівняння з
+   різними тиражами не означає нічого — ані ціна за штуку не зіставна (макет
+   ділиться на різну кількість), ані сума. Тому кількість тут не властивість
+   позиції, а властивість ГРУПИ: одна на всі варіанти в ній.
+
+   Зміна кількості будь-де — у панелі, в конструкторі, кнопкою — задає її
+   всій групі. Набрати різну неможливо не тому, що ми забороняємо, а тому,
+   що зберігати її ніде: число одне. */
+/* Тираж позиції живе у ДВОХ місцях: числом (qty) і розкладом по розмірах
+   (config.qty). Число бачить пропозиція, розклад — конструктор.
+
+   Доти їх міняли поодинці: кнопки в панелі правили число, а розклад лишався
+   тим, що набрали в конструкторі колись. Тож у панелі стояло «7 шт», а
+   картка тієї самої позиції відкривалась із пʼятьма — і ціна в ній була за
+   пʼять. Дві відповіді на те саме питання, і жодного способу зрозуміти, яка
+   правильна.
+
+   Тепер розклад іде за числом. Один розмір — просто нове число. Кілька —
+   ділимо пропорційно, а залишок кладемо в найбільший, щоб сума зійшлася
+   точно. */
+function applyQtyToConfig(it, q){
+  q = Math.max(1, Math.round(+q || 0));
+  const map = it && it.config && it.config.qty;
+  if(!map || typeof map !== 'object') return false;
+  const keys = Object.keys(map);
+  if(!keys.length) return false;
+  const live = keys.filter(k => (+map[k] || 0) > 0);
+  const use = live.length ? live : [keys[0]];
+  const was = use.reduce((a, k) => a + (+map[k] || 0), 0);
+  if(was === q) return false;
+  if(use.length === 1 || !was){
+    use.forEach((k, i) => { map[k] = i === 0 ? q : 0; });
+  }else{
+    let left = q;
+    const share = use.map(k => Math.max(1, Math.floor((+map[k] || 0) * q / was)));
+    use.forEach((k, i) => { map[k] = Math.min(share[i], left); left -= map[k]; });
+    if(left > 0){
+      // залишок — у найбільший розмір: округлення не має губити штуки
+      let big = use[0];
+      use.forEach(k => { if((+map[k] || 0) > (+map[big] || 0)) big = k; });
+      map[big] = (+map[big] || 0) + left;
+    }
+  }
+  // Підпис розмірів іде за розкладом, інакше в картці «M × 5» при семи штуках
+  const label = use.filter(k => (+map[k] || 0) > 0)
+                   .map(k => k + ' × ' + map[k]).join(' · ');
+  if(label) it.sizes = label;
+  return true;
+}
+function variantGroupOf(it){
+  return (itemKind(it) === 'variant') ? (it.vgroup || 'Варіанти на вибір') : null;
+}
+function variantGroupQty(o, g){
+  const set = (o.vqty || {})[g];
+  if(+set > 0) return Math.round(+set);
+  // Групі щойно задали перший варіант — беремо його тираж, а не вигадуємо
+  const first = (o.items || []).find(it => variantGroupOf(it) === g && +it.qty > 0);
+  if(first) return Math.round(+first.qty);
+  return recoQtyFor(o) || 1;
+}
+function setVariantGroupQty(o, g, q){
+  q = Math.max(1, Math.round(+q || 0));
+  if(!q) return false;
+  o.vqty = o.vqty || {};
+  o.vqty[g] = q;
+  return syncVariantQty(o);
+}
+function syncVariantQty(o){
+  const groups = {};
+  (o.items || []).forEach(it=>{ const g = variantGroupOf(it); if(g) groups[g] = 1; });
+  let touched = false;
+  Object.keys(groups).forEach(g=>{
+    const q = variantGroupQty(o, g);
+    (o.items || []).forEach(it=>{
+      if(variantGroupOf(it) !== g) return;
+      if((+it.qty || 0) === q) return;
+      it.qty = q;
+      if(it.desc) it.desc.units = q;
+      applyQtyToConfig(it, q);     // конструктор читає саме розклад
+      it.price = Math.round((+it.unitPrice || 0) * q);
+      it.cost  = Math.round((+it.unitCost  || 0) * q);
+      touched = true;
+    });
+  });
+  return touched;
+}
+async function offerAddBare(o, gid, kind, vgroup){
   const g = orderGarments().find(x => x.id === gid);
   if(!g) return;
   /* Рекомендований стартує з тиражу найбільшої основної позиції: його беруть
@@ -9665,7 +10447,13 @@ async function offerAddBare(o, gid, kind){
      Основний товар кількості не вигадує. Скільки саме футболок замовляють —
      знає менеджер, а не формула; вигадане число просто просочувалось у
      пропозицію разом із порахованою з нього ціною. */
-  const q = kind === 'reco' ? recoQtyFor(o) : 0;
+  /* Варіант, як і рекомендований, стартує з тиражу найбільшої основної
+     позиції: він її заміняє, тож кількість та сама. Менеджер і клієнт можуть
+     її потім змінити. Основний товар кількості не вигадує. */
+  const vg = (kind === 'variant') ? (String(vgroup || '').trim() || 'Варіанти на вибір') : null;
+  const q = kind === 'reco' ? recoQtyFor(o)
+          : vg ? variantGroupQty(o, vg)      // у групі тираж один на всіх
+          : 0;
   const u = bareUnitPrice(gid, q || 1);
   /* Фото товару кладемо одразу. Інакше в КП зʼявлялась порожня картка:
      макета ще немає, бо немає логотипа, — і виглядало це так, ніби
@@ -9673,7 +10461,10 @@ async function offerAddBare(o, gid, kind){
      зʼявиться нанесення. */
   const thumb = prodThumb(photoCfg(gid));
   (o.items = o.items || []).push({
-    kind: kind === 'reco' ? 'reco' : 'main', recoNote: '',
+    kind: (kind === 'reco' || kind === 'variant') ? kind : 'main', recoNote: '',
+    // Група варіантів: у пропозиції їх може бути кілька — «Верх», «Головні
+    // убори», — і клієнт бере по одному з кожної
+    vgroup: vg || undefined,
     qtyAuto: kind === 'reco' ? true : undefined,
     name: g.name, color:'', print:'', sizes:'',
     qty: q, unitPrice: u.price, price: u.price * q,
@@ -9758,11 +10549,41 @@ function marginOk(o, snapshot){
   return false;
 }
 
+/* Рід позиції. Було два: основна й рекомендована, тож усюди стояло
+   порівняння «reco чи не reco». Родів стало три — додався варіант на вибір,
+   — і таке порівняння тихо зараховувало варіанти в основні: вони йшли в
+   кошторис, роздували тираж і псували всі ціни. */
+function itemKind(it){
+  const k = it && it.kind;
+  return (k === 'reco' || k === 'variant') ? k : 'main';
+}
+/* Який логотип СПРАВДІ стоїть у шапці пропозиції.
+
+   Коли менеджер його не ставив, шапка бере перший файл нанесення — це майже
+   завжди логотип клієнта, і порожня шапка нікому не потрібна. Але «прибрав»
+   і «не ставив» — різні речі, тож прибраний лишається прибраним.
+
+   Помічник спільний навмисно. Доти запасний шлях знав лише offerBuild: у
+   документі логотип був, а в замовленні поле лишалось порожнім. Кнопки
+   обрізання й підкладки дивились саме в поле — і чесно відповідали
+   «Логотипа ще немає», хоч він на екрані. */
+/* У шапці стоїть РІВНО той логотип, який поставив менеджер. Ніякої
+   автоматичної підстановки: доти, коли свого логотипа не було, сюди
+   підставлявся перший файл нанесення з будь-якої позиції — тобто макет із
+   футболки. Виглядало це як «підтягується друга фотка» і «завантажую нове,
+   а показується старе»: щойно свій логотип не проставився, у шапку стрибала
+   картинка з товару, і зрозуміти, що саме зараз показано, було неможливо.
+   Немає логотипа — немає й логотипа, стоїть кнопка «Завантажити». */
+function effectiveClientLogo(o){
+  if(!o || o.clientLogoOff) return '';
+  return String(o.clientLogo || '').trim();
+}
 function offerIdxToOrder(o, kind, i){
   let n = -1;
   const list = o.items || [];
+  const want = (kind === 'reco' || kind === 'variant') ? kind : 'main';
   for(let k = 0; k < list.length; k++){
-    if((kind === 'reco') === (list[k].kind === 'reco')){
+    if(itemKind(list[k]) === want){
       n++;
       if(n === i) return k;
     }
@@ -9772,9 +10593,9 @@ function offerIdxToOrder(o, kind, i){
 // Сусід того ж роду — щоб «вище» переставляло позицію через рекомендацію,
 // а не мінялося з нею місцями
 function offerNeighbor(o, from, dir){
-  const list = o.items || [], kind = list[from].kind === 'reco' ? 'reco' : 'main';
+  const list = o.items || [], kind = itemKind(list[from]);
   for(let k = from + dir; k >= 0 && k < list.length; k += dir){
-    if((list[k].kind === 'reco' ? 'reco' : 'main') === kind) return k;
+    if(itemKind(list[k]) === kind) return k;
   }
   return -1;
 }
@@ -9796,22 +10617,49 @@ function offerSaveMark(state){
    тираж, — тож перерахунок і оновлення панелі стоять саме тут. */
 async function offerEdSave(o){
   offerSaveMark('saving');
+  touchOrder(o);        // склад пропозиції правили — картка йде нагору
   /* Ціна кожної позиції залежить від усього замовлення: зміна складу міняє
      ціни ВСІХ позицій, а не лише тієї, яку чіпали. Доти перерахунок
      траплявся лише побіжно — усередині запобіжника маржі, — і з вимкненим
      порогом сусідні позиції лишались зі старою ціною. */
   repriceOrder(o);
   recalcOrderTotals(o);
-  let saved = true;
+  /* Два різні записи, і плутати їх не можна.
+     Картка замовлення — для нас; документ пропозиції — те, що бачить клієнт
+     за посиланням. Доти вони йшли одним ланцюжком: не записалась картка —
+     і документ пропозиції навіть не пробували записати. Виходило найгірше:
+     менеджер бачить свої правки на екрані, а клієнт за посиланням — ні.
+     Тепер пробуємо ОБИДВА, і кажемо про кожен окремо. */
+  let cardErr = null, offerErr = null, size = 0;
   try{
-    await storeSet('orders', orders);
-    await offerSave(o);
-    offerSaveMark('ok');
-  }catch(e){
-    console.error('offer save failed', e);
+    /* saveOrders не кидає винятком — вона повертає список карток, які не
+       записались. Доти цей список тут ніхто не дивився: картка лишалась
+       незбереженою, а робоче місце казало «ок». */
+    const bad = (await storeSet('orders', orders)) || [];
+    const mine = bad.filter(f => f && f.id === o.id)[0] || bad[0];
+    if(mine){
+      size = mine.size || 0;
+      cardErr = (mine.e && (mine.e.code || mine.e.message)) || 'картка не записалась';
+    }
+  }catch(e){ console.error('order save failed', e); cardErr = (e && (e.code || e.message)) || 'збій запису'; }
+  try{ await offerSave(o); }
+  catch(e){ console.error('offer save failed', e); offerErr = (e && (e.code || e.message)) || 'збій запису'; }
+
+  const saved = !cardErr && !offerErr;
+  if(saved){ offerSaveMark('ok'); offerEdNote(''); }
+  else {
     offerSaveMark('bad');
-    toast('Не збереглось — перевірте звʼязок');
-    saved = false;
+    /* Кажемо ПРИЧИНУ, а не «перевірте звʼязок». Причина буває яка завгодно —
+       правила бази, завелика картка, вичерпаний ліміт, — і кожну з них видно
+       в помилці. Здогадка замість неї коштувала півдня. */
+    const kb = size ? ' (картка ' + Math.round(size / 1024) + ' КБ з 1024)' : '';
+    const msg = offerErr
+      ? 'НЕ ЗБЕРЕЖЕНО сторінку клієнта: ' + offerErr +
+        '. За посиланням лишиться попередній варіант.'
+      : 'Картку замовлення не записано: ' + cardErr + kb +
+        '. Сторінка клієнта за посиланням оновлена, але в Канбані лишиться старе.';
+    toast(msg);
+    offerEdNote(msg);
   }
   renderBoard();
   /* Свіжі числа в ліву панель — навіть якщо запис не пройшов. Порахували ми
@@ -9847,7 +10695,7 @@ async function offerEdApply(msg){
   }
   if(act === 'pick'){
     const snap = itemsSnapshot(o);
-    await offerAddBare(o, String(msg.gid || ''), msg.kind);
+    await offerAddBare(o, String(msg.gid || ''), msg.kind, msg.vgroup);
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
     if(!(await offerEdSave(o))) return;
     renderBoard(); offerEdPreview(true);
@@ -9982,6 +10830,75 @@ async function offerEdApply(msg){
      Позначена варіантом позиція приходить до клієнта НЕ доданою. Ціна її
      видна, кнопка «Додати в замовлення» поруч, у кошторис вона потрапляє
      лише після натискання. */
+  /* Вид дизайну вручну: картинка ↔ напис. Клієнт присилає файл, на якому
+     просто напис їхнім шрифтом, — виглядати воно має картинкою, а
+     рахуватись як напис. Автоматично цього не вгадати.
+
+     Площа не міняється. Міняються ставки: своя ціна за 1000 мм², своя
+     собівартість, свої разові. Далі звичайний перерахунок — і нове число
+     їде туди ж, куди й усі: в КП, кошторис, картку, Канбан. */
+  if(act === 'designKind'){
+    const k = offerIdxToOrder(o, msg.kind, msg.i);
+    const it = k >= 0 && (o.items || [])[k];
+    const d = it && it.desc;
+    const di = +msg.di;
+    if(!d || !Array.isArray(d.designs) || !(di >= 0 && di < d.designs.length)) return;
+    if(!Array.isArray(d.designMm2) || d.designMm2.length !== d.designs.length){
+      toast('Ця позиція збережена давно й не везе площі — відкрийте її й збережіть');
+      return;
+    }
+    const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
+    while(kinds.length < d.designs.length) kinds.push('img');
+    const was = placementTotals(Object.assign({}, d, { designKinds: kinds }));
+    /* Вид приходить явно — «зроби написом», а не «перемкни». Перемикач не
+       знав, у якому стані він зараз, і два кліки поспіль із різних місць
+       могли повернути все назад. */
+    const to = (msg.to === 'txt' || msg.to === 'img')
+      ? msg.to : (kinds[di] === 'txt' ? 'img' : 'txt');
+    kinds[di] = to;
+    d.designKinds = kinds;
+    // і те саме — у пам'ять позиції, щоб пережило наступне збереження
+    setItemKindFix(it, d.designs[di], to);
+    const now = placementTotals(d);
+    /* Нанесення пишемо назад у позицію, а собівартість рухаємо рівно на
+       різницю: у неї, крім нанесення, входить і сам виріб, і частка
+       разових, — перезаписати її цілком означало б стерти решту. */
+    if(was && now){
+      d.coefPart = now.sell;
+      d.basePart = now.basePart;
+      d.minPart  = now.minPart;
+      const dCost = now.cost - was.cost;
+      if(dCost){
+        it.unitCost = Math.max(0, Math.round((+it.unitCost || 0) + dCost));
+        it.cost = it.unitCost * (+it.qty || 0);
+      }
+    }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    toast(kinds[di] === 'txt' ? 'Дизайн рахується як напис' : 'Дизайн рахується як картинка');
+    offerEdNote(kinds[di] === 'txt'
+      ? 'Дизайн №' + (di + 1) + ' рахується як НАПИС — за рішенням менеджера'
+      : 'Дизайн №' + (di + 1) + ' рахується як КАРТИНКА — за рішенням менеджера');
+    return;
+  }
+  /* Перейменування групи варіантів. Група — це питання до клієнта, тож
+     назва має бути його словами. Міняємо в усіх позицій групи одразу:
+     інакше одна лишилась би зі старою назвою й утворила б групу-двійника. */
+  if(act === 'vgroup'){
+    const from = String(msg.from || '').trim();
+    const to   = String(msg.to || '').trim().slice(0, 60);
+    if(!from || !to || from === to) return;
+    let n = 0;
+    (o.items || []).forEach(it=>{
+      if(itemKind(it) !== 'variant') return;
+      if((it.vgroup || 'Варіанти на вибір') !== from) return;
+      it.vgroup = to; n++;
+    });
+    if(!n) return;
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    return;
+  }
   if(act === 'optional'){
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const it = k >= 0 && (o.items || [])[k];
@@ -10004,9 +10921,16 @@ async function offerEdApply(msg){
       offerSaveMark('saving');
       try{
         const url = await uploadCloudinary(f);
+        /* Новий файл ВИТІСНЯЄ попередній. Доти кожне завантаження й кожна
+           обрізка додавали ще один запис, і замовлення тягло за собою десяток
+           майже однакових картинок — з них жодна нікому не була потрібна,
+           крім останньої. Завантажили інший логотип — минулого більше немає,
+           і лінія відкоту починається з чистого аркуша: відкочувати правки
+           попередньої картинки в новій немає сенсу. */
         o.clientLogo = url;
-        if(!Array.isArray(o.logos)) o.logos = [];
-        if(o.logos.indexOf(url) < 0) o.logos.push(url);
+        o.clientLogoOff = false;      // поставили свідомо — заборона знімається
+        o.logos = [url];
+        o.clientLogoHist = [];
         if(!(await offerEdSave(o))) return;
         renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
       }catch(e){ console.error(e); offerSaveMark('bad'); toast('Не вдалось завантажити'); }
@@ -10014,14 +10938,206 @@ async function offerEdApply(msg){
     inp.click();
     return;
   }
+  /* ── Логотип: обрізати поля та прибрати фон ────────────────────────────
+     Клієнти присилають лого як є: у прямокутнику з широкими прозорими
+     полями або просто на білому тлі. У шапці пропозиції це видно одразу —
+     лого або плаває посеред порожнечі, або лежить білою плиткою на кольорі.
+
+     Обидва лікуються тут, за кілька секунд, а не листуванням «а надішліть,
+     будь ласка, без фону». Файл при цьому не підмінюється: результат
+     вивантажується окремо, і початковий лишається в замовленні. */
+  /* Підкладка під логотип. Фон прибирати не треба — він приходить із
+     конструктора вже прозорим. Потрібне протилежне: світлий логотип на
+     світлій шапці зникає, темний на темній теж. Три стани по колу. */
+  /* Фон логотипа — колір, який обрав менеджер у палітрі просто на сторінці.
+     Доти замість кольору було три вгадані стани підкладки, і жоден не
+     підходив, коли шапка не біла й не чорна. Порожньо означає «без фону» —
+     окремий стан, а не білий. */
+  /* Крок назад по лінії обрізок — аж до початкового файлу.
+     Обрізка не підмінює файл: результат вивантажується окремо, а всі
+     попередні лишаються в замовленні. Бракувало тільки дороги назад:
+     перестарався з рамкою — і повернути було нічим.
+
+     Історію пишемо з кожною обрізкою. Там, де її ще не писали (обрізка вже
+     зроблена, а кнопки тоді не було), відкочуємось списком логотипів
+     замовлення — він і є та сама лінія, просто без окремого запису. Тому
+     кнопка працює й на вже обрізаному лого, а не лише на майбутніх. */
+  if(act === 'logoBack'){
+    const prev = logoPrevUrl(o);
+    if(!prev){
+      toast('Це вже початкове зображення');
+      offerEdNote('Це вже початкове зображення — далі повертатись нікуди');
+      return;
+    }
+    const hist = Array.isArray(o.clientLogoHist) ? o.clientLogoHist.slice() : [];
+    if(hist.length) hist.pop();
+    o.clientLogoHist = hist;
+    // список логотипів замовлення теж їде назад: у ньому завжди рівно поточний
+    if(Array.isArray(o.logos)){
+      const at = o.logos.indexOf(o.clientLogo);
+      if(at >= 0) o.logos[at] = prev;
+    }
+    o.clientLogo = prev;
+    o.clientLogoOff = false;
+    if(!(await offerEdSave(o))) return;
+    renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+    toast('Повернуто попередній логотип');
+    offerEdNote(logoPrevUrl(o) ? 'Повернуто на крок назад'
+                               : 'Повернуто до початкового зображення');
+    return;
+  }
+  if(act === 'logoFill'){
+    const c = String(msg.color || '').trim();
+    o.clientLogoBg = /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '';
+    // старий стан підкладки більше не діє: два джерела фону сперечались би
+    if(o.clientLogoBg) o.clientLogoPlate = '';
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    offerEdNote(o.clientLogoBg ? ('Фон логотипа: ' + o.clientLogoBg) : 'Фон логотипа знято');
+    return;
+  }
+  if(act === 'logoplate'){
+    const cur = String(o.clientLogoPlate || '');
+    o.clientLogoPlate = cur === 'light' ? 'dark' : (cur === 'dark' ? '' : 'light');
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    offerEdNote(o.clientLogoPlate === 'light' ? 'Підкладка: біла'
+              : o.clientLogoPlate === 'dark' ? 'Підкладка: темна' : 'Підкладка прибрана');
+    return;
+  }
+  if(act === 'logocrop' || act === 'logonobg'){
+    const src = effectiveClientLogo(o);
+    if(!src){
+      toast('Логотипа ще немає');
+      offerEdNote('Логотипа ще немає — спершу завантажте його');
+      return;
+    }
+    offerSaveMark('saving');
+    try{
+      const img = await new Promise((res, rej)=>{
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = ()=> res(im);
+        im.onerror = ()=> rej(new Error('файл не відкрився'));
+        im.src = src;
+      });
+      const W = img.naturalWidth || 1, H = img.naturalHeight || 1;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const x = c.getContext('2d', { willReadFrequently:true });
+      x.drawImage(img, 0, 0);
+      let d = x.getImageData(0, 0, W, H);
+      if(act === 'logonobg'){
+        /* Фон беремо з кутів: якщо всі чотири однакові — це справді тло, а
+           не частина малюнка. Інакше нічого не чіпаємо: стерти шматок
+           логотипа гірше, ніж лишити тло. */
+        const at = (px, py)=>{ const i = (py * W + px) * 4; return [d.data[i], d.data[i+1], d.data[i+2], d.data[i+3]]; };
+        const cs = [at(0,0), at(W-1,0), at(0,H-1), at(W-1,H-1)].filter(v => v[3] > 8);
+        const near = (a, b)=> Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) + Math.abs(a[2]-b[2]) < 30;
+        if(!cs.length){
+          /* Кути прозорі — фон уже прибрано. Казати «неоднорідний» тут
+             неправда й збиває з пантелику: людина тисне кнопку ще раз. */
+          offerSaveMark('ok');
+          toast('Фон уже прозорий — прибирати нічого'); offerEdNote('Фон уже прозорий — прибирати нічого');
+          return;
+        }
+        if(cs.length < 3 || !cs.every(v => near(v, cs[0]))){
+          offerSaveMark('ok');
+          toast('Фон неоднорідний — по кутах різні кольори'); offerEdNote('Фон неоднорідний — по кутах різні кольори. Стерти шматок логотипа гірше, ніж лишити тло');
+          return;
+        }
+        const bg = cs[0], TOL = 42;
+        for(let i = 0; i < d.data.length; i += 4){
+          if(d.data[i+3] < 8) continue;
+          const dist = Math.abs(d.data[i]-bg[0]) + Math.abs(d.data[i+1]-bg[1]) + Math.abs(d.data[i+2]-bg[2]);
+          if(dist < TOL) d.data[i+3] = 0;
+        }
+        x.putImageData(d, 0, 0);
+        d = x.getImageData(0, 0, W, H);
+      }
+      /* Рамку задає менеджер — він її щойно тягав руками на самому
+         логотипі. Автоматичні межі непрозорого лишились запасним шляхом:
+         вони потрібні після прибирання фону, коли рамки ніхто не малював. */
+      let box = (msg.box && +msg.box.x1 > +msg.box.x0 && +msg.box.y1 > +msg.box.y0)
+        ? { x0:+msg.box.x0, y0:+msg.box.y0, x1:+msg.box.x1, y1:+msg.box.y1 }
+        : null;
+      if(!box){
+        try{
+          const m = window.LQ && window.LQ.measureShape ? window.LQ.measureShape(c) : null;
+          box = m && m.opaqueBox;
+        }catch(e){}
+      }
+      let out = c;
+      if(box && box.x1 > box.x0 && box.y1 > box.y0){
+        const sx = Math.max(0, Math.floor(box.x0 * W)), sy = Math.max(0, Math.floor(box.y0 * H));
+        const sw = Math.max(1, Math.ceil((box.x1 - box.x0) * W));
+        const sh = Math.max(1, Math.ceil((box.y1 - box.y0) * H));
+        if(sw < W || sh < H || act === 'logonobg' || msg.box){
+          const c2 = document.createElement('canvas');
+          c2.width = sw; c2.height = sh;
+          c2.getContext('2d').drawImage(c, sx, sy, sw, sh, 0, 0, sw, sh);
+          out = c2;
+        }
+      }
+      if(out === c && act === 'logocrop'){
+        offerSaveMark('ok');
+        toast('Логотип уже впритул'); offerEdNote('Логотип уже впритул — порожніх полів навколо немає');
+        return;
+      }
+      const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+      if(!blob) throw new Error('не вдалось зібрати файл');
+      const url = await uploadCloudinary(new File([blob], 'logo.png', { type:'image/png' }));
+      /* Запамʼятовуємо, що було ДО цієї обрізки — інакше повертатись нікуди.
+         Пишемо перед підміною: після неї попереднє значення вже втрачене. */
+      if(o.clientLogo && o.clientLogo !== url){
+        if(!Array.isArray(o.clientLogoHist)) o.clientLogoHist = [];
+        o.clientLogoHist.push(o.clientLogo);
+        o.clientLogoHist = o.clientLogoHist.slice(-12);   // глибше ніхто не відкочує
+      }
+      /* У списку логотипів замовлення лежить рівно один — поточний. Обрізка
+         його підміняє, а не додає поруч: конструктор має пропонувати те, що
+         зараз у шапці, а не всі проміжні версії. Попередній файл живе далі
+         в невидимій лінії відкоту — саме звідти його дістає кнопка «↶». */
+      const was = o.clientLogo;
+      o.clientLogo = url;
+      o.clientLogoOff = false;
+      if(!Array.isArray(o.logos)) o.logos = [];
+      const at = o.logos.indexOf(was);
+      if(at >= 0) o.logos[at] = url;
+      else if(o.logos.indexOf(url) < 0) o.logos.push(url);
+      if(!(await offerEdSave(o))) return;
+      renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+      toast(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
+      offerEdNote(act === 'logonobg' ? 'Фон прибрано' : 'Поля обрізано');
+    }catch(e){
+      console.error('logo edit', e);
+      offerSaveMark('bad');
+      toast('Не вдалось обробити логотип: ' + ((e && e.message) || 'помилка'));
+      offerEdNote('Не вдалось обробити логотип: ' + ((e && e.message) || 'помилка'));
+    }
+    return;
+  }
   if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
-    if(act === 'logodel'){ o.clientLogo = ''; }
+    if(act === 'logodel'){
+      o.clientLogo = '';
+      // саме «прибрав», а не «ще не ставив» — інакше повернеться сам
+      o.clientLogoOff = true;
+      /* Разом із логотипом зникає й лінія відкоту. Видалення — свідома дія, а
+         не крок обрізки: якби історія лишалась, після видалення в меню й далі
+         стояла б кнопка «↶», і натиснувши її, менеджер отримав би НАЗАД
+         якийсь із попередніх логотипів. Саме так і виглядало «видалив, а
+         зʼявився інший». */
+      o.clientLogoHist = [];
+    }
     else {
       const cur = Math.round(+o.clientLogoSize || 44);
       o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
     }
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
+    // Кожна дія має сказати про себе просто там, де її зробили
+    if(act === 'logodel') offerEdNote('Логотип прибрано');
+    else offerEdNote('Розмір логотипа: ' + o.clientLogoSize + ' px');
     return;
   }
   /* Показ ракурсу клієнту. Більше в меню нічого немає навмисно: усі сторони
@@ -10063,14 +11179,41 @@ async function offerEdApply(msg){
     openCalcFor(o);
     return;
   }
+  /* Тираж групи варіантів. Стоїть ДО пошуку позиції навмисно: це дія над
+     ГРУПОЮ, а не над карткою, і номера позиції в ній немає. Доти вона
+     ховалась нижче за «позицію не знайдено» й мовчки не спрацьовувала. */
+  if(act === 'vqty'){
+    const g = String(msg.vgroup || '').trim() || 'Варіанти на вибір';
+    const snapV = itemsSnapshot(o);
+    if(!setVariantGroupQty(o, g, msg.v)) return;
+    repriceOrder(o); recalcOrderTotals(o);
+    const low = marginCheck(o, snapV);
+    if(low){ toast(low); return; }
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    return;
+  }
   const k = offerIdxToOrder(o, msg.kind, msg.i);
   const it = (o.items || [])[k];
   if(!it) return;
   if(act === 'del'){
     if(!confirm('Прибрати «' + (it.name || 'позицію') + '» з пропозиції?')) return;
     o.items.splice(k, 1);
+  } else if(act === 'tovariant'){
+    /* Позицію, яка вже лежить у складі, буває треба перевести у варіанти:
+       порахували базову, потім клієнт попросив ще й оверсайз «на подивитись».
+       Створювати групу з нуля й збирати позицію заново — зайва робота. */
+    it.kind = 'variant';
+    it.vgroup = String(msg.vgroup || '').trim() || 'Варіанти на вибір';
+    delete it.optional;
   } else if(act === 'swap'){
-    it.kind = it.kind === 'reco' ? 'main' : 'reco';
+    /* Куди переносити. З варіанта — тільки в основні: «варіант ↔
+       рекомендований» не означає нічого, бо це різні питання до клієнта.
+       Доти варіант перетворювався на рекомендований, і кнопка «Перенести в
+       основні» робила зовсім не те, що написано. */
+    const kd = itemKind(it);
+    it.kind = kd === 'main' ? 'reco' : 'main';
+    if(it.kind === 'main') delete it.vgroup;
   } else if(act === 'up' || act === 'down'){
     const n = offerNeighbor(o, k, act === 'up' ? -1 : 1);
     if(n < 0) return;
@@ -10083,8 +11226,13 @@ async function offerEdApply(msg){
       : Math.max(1, act === 'qp' ? cur + offerQtyStep(cur) : cur - offerQtyStep(cur));
     if(!q || q === cur) return;
     const snap = itemsSnapshot(o);
+    /* Варіант тираж окремо не має: він у групі, і число там одне. Тому
+       правка кількості будь-якої картки задає її всій групі. */
+    const vg = variantGroupOf(it);
+    if(vg){ setVariantGroupQty(o, vg, q); }
     it.qty = q;
     if(it.desc) it.desc.units = q;
+    applyQtyToConfig(it, q);
     if(!marginOk(o, snap)){ offerEdPreview(true); return; }
   } else return;
   /* Ціни рахує спільний рушій, а не редактор: змінили тираж — і собівартість,
@@ -10117,14 +11265,14 @@ function renderOfferEd(){
       ${BRAND_KEYS.map(k=>`<button class="oe-brand${k===curBrand?' on':''}" data-brand="${k}">${
         escapeHtml(brands[k].name)}</button>`).join('')}
     </div>
-    ${/* Логотип клієнта належить замовленню. Завантажили тут — і він
-         доступний кожному товару в конструкторі, ставити на виріб не
-         обовʼязково: місце для футболки й для кепки різне. */''}
+    ${/* Смужки з усіма логотипами замовлення тут більше немає. Кожна обрізка
+         клала в неї ще одну майже таку саму картинку, і за кілька правок
+         шапка перетворювалась на купу однакових мініатюр, серед яких годі
+         зрозуміти, яка з них зараз стоїть. Керувати логотипом треба там, де
+         його видно, — у самій шапці пропозиції; тут лишається один вхід для
+         завантаження. Лінія відкоту нікуди не ділась, вона просто не
+         показується: її діло — кнопка «↶», а не вітрина. */''}
     <div class="oe-logos">
-      ${/* Картинку ставимо з коду: у data-URI трапляються лапки, і style="" від
-           них розсипається — це вже ламало стрічку логотипів у конструкторі. */''}
-      ${orderLogos(o).map((u,i)=>`<span class="oe-logo" data-logo-i="${i}"
-        title="Логотип замовлення"><button data-logo-del="${i}" title="Прибрати зі списку">✕</button></span>`).join('')}
       <button class="oe-logo-add" data-oe="logo">＋ Логотип</button>
     </div>
     ${/* Порядок читається зліва направо як хід роботи: чия пропозиція → від
@@ -10132,7 +11280,13 @@ function renderOfferEd(){
          стан → закрити. Головна дія одна й зелена; доти в шапці стояло
          чотири однакові кнопки поспіль, і серед них неможливо було з одного
          погляду знайти потрібну. */''}
-    <button class="oe-btn" data-oe="copy">🔗 Посилання</button>
+    ${/* Дві дії з посиланням, обидві без «скопіюй і встав кудись»: скріпка
+         кладе адресу в буфер, стрілка відкриває сторінку клієнта в сусідній
+         вкладці. Обидві спершу оновлюють документ за посиланням — інакше
+         відкриється те, що там лежало досі. */''}
+    <button class="oe-btn oe-btn--ic" data-oe="copy" title="Скопіювати посилання"
+      aria-label="Скопіювати посилання">📎</button>
+    <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
     <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <span class="oe-save is-ok">Збережено ✓</span>
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
@@ -10173,19 +11327,10 @@ function renderOfferEd(){
     });
     inp.click();
   });
-  const logoUrls = orderLogos(o);
-  head.querySelectorAll('[data-logo-i]').forEach(el=>{
-    const u = logoUrls[+el.dataset.logoI];
-    if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
-  });
-  head.querySelectorAll('[data-logo-del]').forEach(b=>
-    b.addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      await removeOrderLogo(o, logoUrls[+b.dataset.logoDel]);
-      renderOfferEd(); paintCalcTarget();
-    }));
   d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
-    copyText(offerUrl(o), 'Посилання скопійовано — можна надсилати клієнту')));
+    offerLinkCopy(o)));
+  d.querySelectorAll('[data-oe="open"]').forEach(b=> b.addEventListener('click', ()=>
+    offerLinkOpen(o)));
   head.querySelectorAll('[data-brand]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       if(brandKeyOf(o) === b.dataset.brand) return;
@@ -10491,6 +11636,8 @@ function wireChatWin(box, o){
 async function chatSend(o, text){
   if(chatWin.kind === 'tg') await tgSend(o, text);
   else await crmSend(o, text);
+  touchOrder(o);        // написали клієнту — картка йде нагору
+  renderBoard();
 }
 
 /* Фото: спершу в Cloudinary, і вже посилання — у месенджер. Інакше довелось

@@ -65,8 +65,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:var(--muted); margin-bottom:12px;}
   .hero h1{font-size:31px; line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:800;}
   .hero-sub{font-size:15.5px; color:var(--ink-2); margin:0 0 20px;}
-  .hero-logo{max-height:56px; width:auto; margin-bottom:20px; border-radius:12px;
-    display:block; background:rgba(255,255,255,.9); padding:6px 10px;}
+  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
+     власного фону: усе це колись стояло тут і зробило три речі одразу.
+     Відступи й margin робили блок вищим і ширшим за саму картинку, тож рамка
+     обрізання лягала на одну область, а різалась інша — зміщена й більша.
+     Заокруглення різало кути логотипа, якого ніхто про це не просив.
+     А власний майже білий фон малювався ПОВЕРХ того, що фарбує менеджер:
+     обраний колір лишався видним хіба смужкою по краю, і виглядало це так,
+     ніби міняється щось інше, а не за картинкою.
+     Відступ до заголовка переїхав на обгортку — там він нічому не заважає. */
+  .hero-logo{max-height:56px; width:auto; display:block;}
   /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
   .hero-logo[style*="height"]{max-height:none;}
   .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
@@ -191,7 +199,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .psum b{color:var(--ink); font-size:16px; font-weight:800;}
   /* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
-  .pcard-head .pcard-meta{margin-top:2px;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
   .pbuy-row .pstep{margin-top:0; flex:none;}
   .pbuy-row .pbuy{margin-top:0; flex:1;}
@@ -209,7 +216,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
      зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
-  .pqty{margin-top:16px;}
+  .pqty{margin-top:10px;}
   .pqty.off{opacity:.55;}
   .pchk{display:flex; align-items:center; gap:9px; width:100%; padding:11px 13px;
     border:1.5px solid var(--line); border-radius:13px; background:#fff;
@@ -296,26 +303,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rev-st{display:flex; gap:2px; margin-bottom:8px;}
   .rev-head{display:flex; align-items:baseline; justify-content:space-between; gap:14px;}
   .rev-head .sec-title{margin-bottom:14px;}
-  .rev-all{flex:none; font-size:13.5px; font-weight:700; color:var(--cta-dark);
-    text-decoration:none; white-space:nowrap;}
-  .rev-note{flex:none; font-size:12.5px; color:var(--muted); white-space:nowrap;}
-  @media (max-width:479px){ .rev-note{display:none;} }
+  /* Кнопка, а не рядок дрібним: сторінка відгуків уже є, і на неї треба
+     заходити, а не здогадуватись, що підпис клікабельний. */
+  .rev-all{flex:none; font-size:13.5px; font-weight:700; text-decoration:none;
+    color:#fff; background:var(--ink); border-radius:10px; padding:9px 14px;
+    white-space:nowrap;}
+  .rev-all:hover{background:#1c2840;}
 
   /* ── Ритм сторінки ─────────────────────────────────────────────────
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
-  .gcards{display:grid; gap:8px;}
-  .gcard{display:flex; align-items:flex-start; gap:11px; padding:13px 14px;
-    border-radius:14px; background:rgba(255,255,255,.07);
-    border:1px solid rgba(255,255,255,.13); color:#fff;}
-  .gc-ic{flex:none; width:34px; height:34px; border-radius:10px; color:#7FE0B0;
-    background:rgba(255,255,255,.09); display:flex; align-items:center; justify-content:center;}
-  .gc-tx{min-width:0;}
-  .gc-tx b{display:block; font-size:14px; font-weight:700; line-height:1.4;}
-  .gc-tx i{display:block; font-style:normal; font-size:12.5px; line-height:1.5;
-    color:rgba(255,255,255,.66); margin-top:3px;}
-
   .rmore{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:13px; border-radius:13px; border:1.5px solid var(--line);
     background:#fff; font:inherit; font-size:14px; font-weight:700; color:var(--ink);
@@ -336,20 +334,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Тепер це одна темна зона з волосяним розділювачем, і тон у них спільний. */
   .band{background:#14171B; color:#fff; border-radius:0; border:none;
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
-  /* Гарантії — світла смуга, кошторис — темна. Дві темні поспіль зливались
-     в одну зону, і людина читала гарантії як шапку рахунку. Тепер це різні
-     блоки й за кольором. */
-  .guar{background:#F2F4F7; color:var(--ink); border:none; border-radius:0;
-    padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}
-  .guar .sec-title{color:var(--ink); margin-top:0;}
-  .guar .gcard{background:#fff; border:1px solid #E3E7EE; color:var(--ink);}
-  .guar .gc-ic{background:#EAF6F0; color:#0E9F6E;}
-  .guar .gc-tx b{color:var(--ink);}
-  .guar .gc-tx i{color:var(--muted);}
-  .guar + section.full{margin-bottom:26px; padding-top:0; border-top:none;}
   .band .sec-title{color:#fff;}
   .band .sec-sub{color:rgba(255,255,255,.66);}
-  .band .gcard{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.14); color:#fff;}
   .band .review-card{background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12);}
   .band .review-card-main h4{color:#fff;}
   .band .review-card p, .band .review-date{color:rgba(255,255,255,.7);}
@@ -404,26 +390,33 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .review-card .review-stars{margin-top:8px; font-size:15px; color:#FFC53D; letter-spacing:1px;}
   .review-card p{font-size:15px; color:var(--muted); margin:6px 0 0; line-height:1.5;}
 
-  /* Як проходитиме замовлення */
-  /* Етапи замовлення: одна лінія з кружечками, а не пʼять окремих карток.
-     Картки читались як пʼять різних блоків і не показували головного —
-     що це послідовність. Тепер лінія проходить крізь усі кружечки, і
-     останній підсвічено: видно, куди веде шлях. */
-  .tl{display:flex; gap:0; position:relative; padding:4px 0 2px;}
-  .tl-step{flex:1; position:relative; text-align:center; min-width:0;}
-  .tl-step::before{content:''; position:absolute; top:15px; left:0; right:50%; height:2px;
-    background:var(--line);}
-  .tl-step::after{content:''; position:absolute; top:15px; left:50%; right:0; height:2px;
-    background:var(--line);}
-  .tl-step:first-child::before, .tl-step:last-child::after{display:none;}
-  .tl-n{position:relative; z-index:1; display:flex; align-items:center; justify-content:center;
-    width:30px; height:30px; margin:0 auto 8px; border-radius:50%; background:#fff;
-    border:2px solid var(--line); color:var(--ink-2); font-size:12px; font-weight:700;}
-  .tl-step:last-child .tl-n{background:var(--ink); border-color:var(--ink); color:#fff;}
-  .tl-t{display:block; font-size:11.5px; font-weight:600; color:var(--ink-2); line-height:1.3;
-    padding:0 2px;}
-  @media (max-width:420px){ .tl-t{font-size:10.5px;} .tl-n{width:26px; height:26px;}
-    .tl-step::before, .tl-step::after{top:13px;} }
+  /* ── Як пройде замовлення ──────────────────────────────────────────
+     Тонка лінія проходить крізь усі пʼять етапів, а номер вибиває в ній
+     проміжок кольором фону: рамок і кружечків немає взагалі, звʼязок видно.
+     На вузькому екрані та сама лінія просто стає вертикальною. */
+  .fl{list-style:none; margin:0; padding:0; display:grid; gap:0;}
+  .fl-s{position:relative; padding:0 0 22px 34px;}
+  .fl-s:last-child{padding-bottom:0;}
+  /* Лінія трохи темніша за звичайні рамки: вона тут не розділювач, а сам
+     звʼязок між етапами, і на світлому тлі має бути помітною. */
+  .fl-s::before{content:''; position:absolute; left:9px; top:20px; bottom:0;
+    width:1px; background:#D3DAE3;}
+  .fl-s:last-child::before{display:none;}
+  .fl-n{position:absolute; left:0; top:0; background:var(--bg); padding-bottom:4px;
+    font-size:11.5px; font-weight:700; letter-spacing:.08em; color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  .fl-t{display:block; font-size:15px; font-weight:600; letter-spacing:-0.2px;
+    line-height:1.3;}
+  .fl-d{display:block; font-size:13px; color:var(--muted); line-height:1.45; margin-top:3px;}
+  @media (min-width:660px){
+    .fl{grid-template-columns:repeat(5,1fr);}
+    .fl-s{padding:26px 18px 0 0;}
+    .fl-s::before{left:0; right:0; top:7px; bottom:auto; width:auto; height:1px;}
+    .fl-n{padding:0 9px 0 0; background:var(--bg);}
+    .fl-t{font-size:14.5px;}
+    .fl-d{font-size:12.5px;}
+  }
+
   /* Проєкти */
   .cases{display:grid; grid-template-columns:1fr; gap:12px;}
   .case{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff;}
@@ -432,11 +425,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .case-n{font-weight:700; font-size:15px; padding:12px 14px 0;}
   .case-q{font-size:12.5px; color:var(--muted); padding:2px 14px 0;}
   .case-t{font-size:13px; color:var(--ink); padding:6px 14px 14px;}
-  /* Гарантії */
-  .gcards{display:grid; grid-template-columns:1fr; gap:10px;}
-  .gcard{display:flex; align-items:center; gap:10px; padding:14px; border:1px solid var(--line);
-    border-radius:14px; background:#fff; font-size:14px;}
-  .gcard svg{flex:none;}
   /* FAQ */
   .fq{border:1px solid var(--line); border-radius:14px; background:#fff; margin-bottom:8px;
     overflow:hidden;}
@@ -448,7 +436,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .fq-a{padding:0 16px 14px; font-size:13.5px; color:var(--muted); line-height:1.55;}
   @media (min-width:560px){
     .cases{grid-template-columns:1fr 1fr 1fr;}
-    .gcards{grid-template-columns:1fr 1fr;}
   }
   .hero-facts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;}
   .fact{background:var(--soft); border-radius:999px; padding:7px 13px; font-size:13px;
@@ -483,10 +470,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
   /* Фото має йти від краю до краю картки, тож відступ живе не на самій
      картці, а на її вмісті — окрім стрічки фото. */
-  .pcard{border:1px solid var(--line); border-radius:18px; padding:14px 0 0; background:#fff;
-    margin-bottom:12px; overflow:hidden;}
+  /* Верхнього відступу немає: фото починається від самого краю картки, і
+     заокруглення лягає просто на знімок. Доти над стрічкою стояла біла
+     смуга в 14px — рамка заокруглювалась по порожньому місцю, і картка
+     виглядала так, ніби фото в ній відклеїлось від верху.
+     Коли фото немає, відступ дає .pcard-info своїм margin-top. */
+  .pcard{border:1px solid var(--line); border-radius:18px; padding:0 0 0; background:#fff;
+    margin-bottom:8px; overflow:hidden;}
   .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
-  .pcard > .pcard-more{padding-bottom:14px;}
+  .pcard > .pcard-more{padding-bottom:10px;}
   /* На телефоні картка виходить за поля сторінки: фото мають торкатися
      країв екрана, як на сторінці товару в магазині. Бічної рамки й
      заокруглень тут немає — вони й перетворювали фото на «наліпку». */
@@ -494,7 +486,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .pcard{margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);
       border-left:0; border-right:0; border-radius:0; padding-top:0;}
     .pcard > *:not(.pgal){padding-left:var(--pad); padding-right:var(--pad);}
-    .pcard > .pcard-more{padding-bottom:var(--pad);}
+    .pcard > .pcard-more{padding-bottom:10px;}
   }
   /* Спершу товар, потім цифри. Фото на всю ширину картки і майже квадратне:
      людина має встигнути захотіти виріб, перш ніж читатиме ціну. Раніше фото
@@ -576,6 +568,26 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:5px;padding-top:6px;font-weight:700;color:#111;}
   /* Підрядок розкладу: тонший і трохи відсунутий, щоб було видно, що він
      пояснює рядок над собою, а не додається до суми ще раз. */
+  /* Перемикач «картинка ⇄ напис» стоїть у самому рядку дизайну: рішення
+     ухвалюють, дивлячись на цифру поруч, а не в окремому меню. */
+  /* Таблетка «Картинка ▾ / Напис ▾»: показує, як цей дизайн рахується
+     ЗАРАЗ, і одразу дає змінити. Німий перемикач «⇄» цього не вмів — стан
+     доводилось вгадувати з підпису. */
+  .cc-kind-wrap{display:inline-flex; align-items:center; gap:4px; margin-left:8px;
+    vertical-align:1px;}
+  .cc-kind{font:inherit; font-size:10.5px; font-weight:700;
+    letter-spacing:.03em; text-transform:uppercase; color:#2F4C8F; background:#EAF0FC;
+    border:1px solid #C9D8F2; border-radius:6px; padding:1px 18px 1px 6px; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='6'><path d='M1 1l3.5 3.5L8 1' fill='none' stroke='%232F4C8F' stroke-width='1.6' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 5px center;}
+  .cc-kind:hover{background-color:#DCE7FA;}
+  .cc-kind:disabled{opacity:.5; cursor:default;}
+  /* Вид обрав менеджер — крапка поруч. Без неї через тиждень ніхто не
+     згадає, чому напис рахується як картинка, і чи це навмисно. */
+  .cc-kind.is-fixed{border-color:#8FB4EE;}
+  .cc-kind-dot{width:5px; height:5px; border-radius:50%; background:#2F4C8F;
+    display:inline-block; flex:none;}
   .cc-row.is-sub{padding-left:10px;font-size:11px;color:#8a94a6;}
   .cc-row.is-sub b{font-weight:500;color:#8a94a6;}
   .cc-money{display:flex;gap:10px;margin-top:9px;}
@@ -683,9 +695,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Назва й ціна — без рамок. Рамка навколо ціни робила з неї кнопку,
      якою вона не є, і сперечалася за увагу з реальними кнопками. */
-  .pcard-info{margin-top:16px;}
+  /* Відступи в картці стиснуті вдвічі. Кожен окремо виглядав невеликим —
+     16 тут, 16 там, 12 нижче, 20 під деталями, 12 під карткою, 22 під групою, —
+     а разом вони робили з картки колонку повітря: пів екрана порожнього між
+     фото й ціною і смуга нічого під «Деталями». Висоту тримали саме вони,
+     жодного min-height у картці немає. */
+  .pcard-info{margin-top:8px;}
   .pcard-name{font-size:22px; font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
-  .pcard-meta{font-size:13.5px; color:var(--muted); line-height:1.5;}
   /* ── Варіант на вибір ──────────────────────────────────────────────────
      Клієнт має з першого погляду бачити три речі: що це варіант, а не вже
      замовлене; скільки він коштує; і — після натискання — що його взяли.
@@ -695,6 +711,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
     padding:3px 8px; margin-bottom:7px;}
   .pcard.is-taken .pcard-tag{color:#0F5C34; background:#DCF4E6;}
+  /* Та сама позначка, але на фото: підкладка щільніша, бо під нею знімок */
+  .pgal-tag{position:absolute; left:8px; top:8px; z-index:3; font-size:10.5px;
+    font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#7A6538;
+    background:rgba(253,240,213,.95); border-radius:6px; padding:3px 8px;
+    pointer-events:none; box-shadow:0 1px 3px rgba(20,30,50,.10);}
+  .pcard.is-taken .pgal-tag{color:#0F5C34; background:rgba(220,244,230,.95);}
   /* Невзятий варіант тримається тихіше за погоджені позиції — але не
      блідне: ціну на ньому й читають. Різницю несе рамка, не прозорість. */
   .pcard.is-opt{border-style:dashed;}
@@ -714,7 +736,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-term{font-size:12.5px; color:var(--muted); margin-top:7px;}
 
   /* Тираж — один сегмент замість трьох карток */
-  .pqty{margin-top:16px;}
+  .pqty{margin-top:10px;}
   .pqty-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
     text-transform:uppercase; color:var(--muted); margin-bottom:7px;}
   .pseg{display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--soft);}
@@ -732,8 +754,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cf-who-note{display:block; margin-top:6px; font-size:12px; color:var(--muted);}
   .pqty-n{margin-top:8px; font-size:13px; color:var(--muted);}
   .pqty-n b{color:var(--good);}
+  /* Тільки для менеджера: чому саме в цій позиції немає перекресленої ціни */
+  .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:8px;
+    padding:6px 9px; font-size:12.5px;}
 
-  .pcard-more{margin-top:12px; border-top:1px solid var(--line); padding-top:10px;}
+  .pcard-more{margin-top:8px; border-top:1px solid var(--line); padding-top:8px;}
   .pcard-more>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
     gap:6px; font-size:13.5px; font-weight:600; color:var(--ink-2);}
   .pcard-more>summary::-webkit-details-marker{display:none;}
@@ -742,6 +767,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transition:transform .18s;}
   .pcard-more[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
   .pcard-more-body{padding-top:12px;}
+  /* Опис товару — суцільним абзацом перед списком характеристик: він
+     відповідає на «що це взагалі», а вже потім ідуть цифри. */
+  .pspec-about{margin:0 0 12px; font-size:13.5px; line-height:1.55; color:var(--ink);}
+  /* Розмірна сітка: вузька таблиця, яка на телефоні гортається вбік, а не
+     розсуває сторінку. */
+  .pchart-wrap{margin-top:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .pchart{border-collapse:collapse; width:100%; min-width:340px; font-size:12.5px;
+    font-variant-numeric:tabular-nums;}
+  .pchart th, .pchart td{border:1px solid var(--line); padding:6px 9px; text-align:center;
+    white-space:nowrap;}
+  .pchart th{background:var(--soft); font-weight:600; color:var(--ink);}
+  .pchart td:first-child, .pchart th:first-child{text-align:left; font-weight:600;}
 
   /* ══ Пакети: три варіанти замість одного «так або ні» ══ */
   .packs{display:grid; grid-template-columns:1fr; gap:10px;}
@@ -818,94 +855,104 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .rc.on .rc-add{background:var(--good); border-color:var(--good); color:#fff;}
   .rc-add svg{display:block;}
 
-  /* ══ Кошторис: темний блок, як фінальний документ ══ */
+  /* ══ Кошторис: premium checkout, а не бухгалтерська таблиця ══
+     Було: шапка таблиці, чотири колонки цифр, стара й нова ціна впритул одна
+     до одної, знижка окремим стовпчиком — і найбільше число сторінки аж унизу.
+     Клієнт мусив читати таблицю, щоб зрозуміти, скільки платить.
+     Стало: угорі одразу сума, нижче позиції картками, у кінці — три числа
+     підряд: скільки коштувало б, скільки зняв тираж, скільки платити.
+     Кольорів рівно три: білий — головне, сірий — пояснення, зелений — тільки
+     знижка. Помаранчевий лишається за головною дією. */
   .est{background:#14171B; color:#fff; border-radius:0;
     padding:26px var(--pad) 24px; margin-top:0;}
-  /* Той самий заголовок, що й у решти блоків: раніше кожен розділ мав свою
-     вагу й розмір — 800 тут, 600 там, 15px у деталях, — і сторінка виглядала
-     зібраною з різних сайтів. */
-  .est-h{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 16px;}
-  /* Колонки цифр тримаємо вузькими: на 390px ширший «Ціна за шт» з'їдав назву
-     до «Ф…». Назві дозволено переноситись у два рядки — це краще, ніж трикрапка. */
-  .est-head{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
-    font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
-    color:rgba(255,255,255,.42); padding-bottom:9px;}
-  .est-head span:not(:first-child){text-align:right;}
-  .est-r{display:grid; grid-template-columns:minmax(0,1fr) 46px 62px 76px; gap:6px;
-    align-items:center; padding:11px 0; border-top:1px solid rgba(255,255,255,.09);
-    font-size:12.5px; font-variant-numeric:tabular-nums;}
-  .est-r>span:not(:first-child){text-align:right; color:rgba(255,255,255,.72);}
-  .est-r .est-s{color:#fff; font-weight:700;}
-  /* Ціна за штуку двома рядками: закреслена без знижки і чинна. Клієнт бачить
-     не просто цифру, а що саме він виграє на тиражі. */
-  .est-u{display:flex; flex-direction:column; align-items:flex-end; line-height:1.25;}
-  .est-u s{font-size:10.5px; color:rgba(255,255,255,.42);}
-  .est-u b{font-weight:700; color:#fff;}
-  .est-s em{display:block; font-style:normal; font-size:10.5px; font-weight:700;
-    color:#4ADE80; margin-top:2px;}
-  .est-nm-t{display:flex; flex-direction:column; min-width:0; gap:2px;}
-  /* «30 × 400 грн» під назвою: видно, з чого складається сума в рядку */
-  .est-mul{font-size:10.5px; color:rgba(255,255,255,.45); font-variant-numeric:tabular-nums;}
-  .est-nm{display:flex; align-items:center; gap:8px; min-width:0;}
-  /* Мініатюра товару в кошторисі: раніше 26 px — на ній не було видно
-     нічого, крім плями. Тепер це впізнаваний знімок, і по ньому можна
-     відкрити макет на весь екран. */
-  .est-nm > i{flex:none; width:46px; height:46px; border-radius:9px; overflow:hidden;
+  .est-top{display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; margin-bottom:20px;}
+  .est-h{font-size:22px; font-weight:600; letter-spacing:-0.4px; margin:0 0 4px;}
+  .est-meta{font-size:13px; color:rgba(255,255,255,.55);}
+  .est-top-r{text-align:right; margin-left:auto;}
+  .est-total{font-size:28px; font-weight:800; letter-spacing:-0.8px;
+    font-variant-numeric:tabular-nums; line-height:1.1;}
+  /* Зелений — виключно про вигоду, і більше ні про що на цій сторінці */
+  .est-chip{display:inline-block; margin-top:6px; font-size:12px; font-weight:700;
+    color:#4ADE80; background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.28);
+    border-radius:20px; padding:3px 10px; white-space:nowrap;}
+
+  /* ── Позиції ── */
+  .est-list{display:flex; flex-direction:column; gap:10px;}
+  /* Картка позиції: фото, суть, сума. Світліша за фон блоку — рівно
+     настільки, щоб читалась як окремий предмет, і не більше. */
+  .est-i{display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px;
+    align-items:center; background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px;}
+  .est-i-ph{width:64px; height:64px; flex:none; border-radius:10px; overflow:hidden;
     background:#fff; display:block; cursor:zoom-in;}
-  .est-nm i img{width:100%; height:100%; object-fit:contain; display:block;}
-  .est-nm b{font-weight:600; font-size:12.5px; line-height:1.25; min-width:0;}
-  .est-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
+  .est-i-ph img{width:100%; height:100%; object-fit:contain; display:block;}
+  .est-i-t{min-width:0;}
+  .est-i-nm{font-size:14.5px; font-weight:600; line-height:1.3;}
+  .est-i-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
     letter-spacing:.4px; color:#7FE0B0; margin-left:6px;}
-  .est-sum{margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
-  .est-l{display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px;
-    color:rgba(255,255,255,.72); margin-bottom:8px; font-variant-numeric:tabular-nums;}
-  .est-l b{font-weight:600; color:#fff;}
-  .est-l.disc, .est-l.disc b{color:#4ADE80;}
-  /* Знижка за тираж окремими рядками: у цінах позицій вона вже врахована,
-     тож без цих двох рядків клієнт про неї просто не дізнається. */
-  .est-sub{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    font-size:13.5px; opacity:.72; margin-top:10px;}
-  .est-sub:first-of-type{margin-top:16px; padding-top:14px;
-    border-top:1px solid rgba(255,255,255,.14);}
-  .est-sub b{font-weight:700; font-variant-numeric:tabular-nums;}
-  .est-off{opacity:1; color:#4ADE80;}
-  .est-sub + .est-pay{margin-top:12px; padding-top:12px;}
-  .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-    margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14);}
+  /* Головний рядок позиції: скільки й почому. Решта — пояснення до нього. */
+  .est-i-mul{margin-top:3px; font-size:13px; color:rgba(255,255,255,.72);
+    font-variant-numeric:tabular-nums;}
+  .est-i-was{margin-top:3px; font-size:12px; color:rgba(255,255,255,.45);
+    font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:5px;
+    flex-wrap:wrap;}
+  .est-i-was s{color:rgba(255,255,255,.45);}
+  .est-i-was b{font-weight:600; color:rgba(255,255,255,.82);}
+  .est-i-arr{opacity:.5;}
+  .est-i-badge{display:inline-block; margin-top:5px; font-size:11px; font-weight:700;
+    color:#4ADE80; background:rgba(74,222,128,.12); border-radius:6px; padding:2px 7px;}
+  .est-i-sum{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;
+    white-space:nowrap; align-self:center;}
+  /* На широкому екрані та сама ієрархія лягає в рядок таблиці: сума праворуч
+     стовпчиком, ціна за штуку поруч. Але картки не «стискаємо» — розкладка
+     інша, порядок читання той самий. */
+  @media (min-width:720px){
+    .est-i{grid-template-columns:64px minmax(0,1fr) 150px; padding:14px 16px;}
+    .est-i-sum{font-size:18px; text-align:right;}
+  }
+
+  /* ── Підсумок ── */
+  .est-card{margin-top:16px; background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:16px 16px 18px;}
+  .est-card-h{font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    color:rgba(255,255,255,.5); margin-bottom:12px;}
+  .est-line{display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    font-size:13.5px; color:rgba(255,255,255,.7); margin-bottom:8px;
+    font-variant-numeric:tabular-nums;}
+  .est-line b{font-weight:600; color:rgba(255,255,255,.9);}
+  .est-line.is-off, .est-line.is-off b{color:#4ADE80;}
+  .est-div{height:1px; background:rgba(255,255,255,.14); margin:12px 0;}
+  .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .est-pay span{font-size:15px; font-weight:600;}
-  .est-pay b{font-size:27px; font-weight:800; letter-spacing:-0.8px; font-variant-numeric:tabular-nums;}
-  .est-save{margin-top:14px; font-size:13px; font-weight:600; color:#4ADE80; text-align:center;
-    line-height:1.45;}
-  /* Кошторис на темному тлі — тому тут не сірий, а приглушено-світлий */
+  /* Найбільша цифра всієї сторінки — саме тут */
+  .est-pay b{font-size:32px; font-weight:800; letter-spacing:-1px;
+    font-variant-numeric:tabular-nums; line-height:1.05;}
+  .est-chip-b{margin-top:12px;}
+
+  /* ── Що входить ── */
+  .est-inc{display:flex; gap:8px; align-items:flex-start; margin-top:14px;
+    font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.6);}
+  .est-inc svg{flex:none; margin-top:2px; color:rgba(255,255,255,.4);}
+  .est-inc b{font-weight:700; color:rgba(255,255,255,.78);}
+
   .est-left{margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14);
     font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.66);}
 
-  /* ══ Зняття ризику одразу під сумою ══ */
-  .rea{display:grid; gap:10px; margin-top:18px;}
-  @media (min-width:560px){ .rea{grid-template-columns:1fr 1fr;} }
-  .rea-i{display:flex; gap:10px; align-items:flex-start; padding:12px 14px;
-    border:1px solid var(--line); border-radius:13px; background:#fff;}
-  .rea-i svg{flex:none; margin-top:1px;}
-  .rea-i b{display:block; font-size:13.5px; font-weight:700;}
-  .rea-i span{display:block; font-size:12.5px; color:var(--muted); line-height:1.45; margin-top:1px;}
-  .rea-ask{font-size:13px; color:var(--muted); margin:12px 0 0; text-align:center;}
-
-  /* ══ Згорнутий хвіст сторінки ══ */
-  .det{border:1px solid var(--line); border-radius:16px; background:#fff; overflow:hidden;}
-  .det>summary{list-style:none; cursor:pointer; padding:16px 18px; font-size:15px;
-    font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:10px;}
-  .det>summary::-webkit-details-marker{display:none;}
-  .det>summary::after{content:''; width:8px; height:8px; border-right:2px solid var(--muted);
-    border-bottom:2px solid var(--muted); transform:rotate(45deg) translateY(-2px);
-    transition:transform .18s;}
-  .det[open]>summary::after{transform:rotate(-135deg) translateY(-1px);}
-  .det-body{padding:0 18px 18px;}
-  /* Розгорнутий розділ: без рамки й відступів акордеона, підзаголовки
-     тримають ритм самі. */
-  .det-open .det-body{padding:0;}
-  .det-open .det-h:first-child{margin-top:0;}
-  .det-h{font-size:17px; font-weight:600; letter-spacing:-0.2px; margin:20px 0 10px;}
-  .det-body>.det-h:first-child{margin-top:0;}
+  /* ── Дії ──
+     На телефоні внизу вже стоїть липка панель із «Підтвердити». Дві однаково
+     сильні кнопки в одному екрані змагаються між собою, тому тут головна
+     зʼявляється лише на широкому екрані, де панелі немає. */
+  .est-cta{display:flex; gap:10px; margin-top:18px;}
+  .est-cta .btn{flex:1;}
+  /* Другорядна кнопка на темному тлі мусить бути темною: біла заливка тут
+     важча за помаранчеву й перетягує на себе головну дію. */
+  .est-cta .btn-ghost{background:transparent; color:#fff;
+    border:1px solid rgba(255,255,255,.28);}
+  .est-cta .btn-ghost:hover{background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.42);}
+  .est-cta-go{display:none;}
+  @media (min-width:720px){ .est-cta-go{display:block;} }
 
   /* ══ Що входить у вартість: іконки в ряд ══ */
   /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
@@ -969,25 +1016,39 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .ticks li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink-2);}
   .ticks svg{flex:none; margin-top:3px;}
 
-  /* ── кошторис ── */
-  .est-row{display:flex; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);}
-  .est-th{width:52px; height:52px; flex:none; background:var(--soft); border-radius:10px; padding:4px;}
-  .est-th img{width:100%; height:100%; object-fit:contain;}
-  .est-info{flex:1; min-width:0;}
-  .est-name{font-size:14.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .est-meta{font-size:12.5px; color:var(--muted);}
-  .est-sum{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right;}
-  .est-tot{margin-top:16px; background:var(--soft); border-radius:0; padding:24px var(--pad);
-    margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);}
-  .et-row{display:flex; justify-content:space-between; align-items:baseline; font-size:14px; color:var(--ink-2);}
-  .et-row + .et-row{margin-top:7px;}
-  .et-row.save span:last-child{color:var(--good); font-weight:700;}
-  .et-grand{margin-top:13px; padding-top:13px; border-top:1px solid var(--line);
-    display:flex; justify-content:space-between; align-items:baseline;}
-  .et-grand span:first-child{font-size:15px; font-weight:700;}
-  .et-grand span:last-child{font-size:27px; font-weight:800; letter-spacing:-0.7px;}
+  /* Стара таблиця кошторису (.est-row/.est-th/.est-tot/.et-*) прибрана разом
+     із розміткою. Її .est-meta стояв нижче за новий і перефарбовував рядок
+     «N позицій · M одиниць» у сірий по темному тлу. */
 
   /* ── рекомендації ── */
+  /* ── Варіанти на вибір ─────────────────────────────────────────────────
+     Картки стоять поруч і однакового розміру: їх порівнюють, а не читають
+     підряд. Обраний виділяється рамкою й галочкою — тим самим, чим
+     позначені додані позиції, щоб «обрано» скрізь виглядало однаково. */
+  .vgroup{margin-bottom:12px;}
+  .vgroup-h{font-size:15px; font-weight:600; margin-bottom:10px; display:flex;
+    align-items:baseline; gap:8px;}
+  .vgroup-h em{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
+    padding:2px 7px;}
+  /* Картка варіанта — звичайна картка товару (.pcard), тож власних стилів
+     їй майже не треба: лише позначка обраного. */
+  .pcard.is-var{border-style:dashed;}
+  .pcard.is-var.is-taken{border-style:solid; border-color:#9FD3B6;}
+  /* Кнопку вибору треба бачити здалеку: це єдина дія, якої від клієнта тут
+     чекають, і поки вона схожа на решту рамок, її просто не помічають.
+     Тому невибраний варіант — суцільна темна кнопка, а вибраний міняє не
+     насиченість, а КОЛІР: зелена обводка й зелені літери, як «готово». */
+  .vbtn{margin-top:auto; display:flex; align-items:center; justify-content:center; gap:7px;
+    width:100%; margin-top:12px; padding:12px 12px; border-radius:11px; cursor:pointer;
+    font:inherit; font-size:14px; font-weight:700; letter-spacing:-.01em;
+    border:1.5px solid var(--ink); background:var(--ink); color:#fff;
+    box-shadow:0 2px 10px rgba(15,32,52,.16); transition:.14s;}
+  .vbtn:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(15,32,52,.22);}
+  .vbtn.on{background:#EAF7F0; border-color:#0F5C34; color:#0F5C34; box-shadow:none;
+    transform:none;}
+  .vbtn.on:hover{background:#DFF2E8; transform:none; box-shadow:none;}
+  .vbtn.on svg{stroke:#0F5C34;}
   .reco{border:1.5px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; transition:.15s;}
   .reco.on{border-color:var(--ink); background:#F7F9FC;}
   .reco-top{display:flex; gap:13px;}
@@ -1005,11 +1066,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .reco-box svg{opacity:0;}
   .reco.on .reco-box svg{opacity:1;}
 
-  /* ── умови ── */
-  .terms{display:grid; gap:14px;}
-  .term-k{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
-    color:var(--muted); margin-bottom:2px;}
-  .term-v{font-size:14.5px;}
+  /* ── Умови замовлення ──────────────────────────────────────────────
+     Головне значення велике й читається без читання: щоб дізнатись термін,
+     не треба доходити до кінця речення. Підпис під ним пояснює, ЩО це за
+     цифра, третій рядок — деталь для тих, кому вона потрібна. */
+  .cond-g{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .cond-c{border:1px solid var(--line); border-radius:14px; background:#fff;
+    padding:16px 14px 15px; min-width:0;}
+  .cond-v{font-size:19px; font-weight:700; letter-spacing:-0.5px; line-height:1.2;
+    font-variant-numeric:tabular-nums;}
+  .cond-k{font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--muted); margin-top:7px;}
+  .cond-n{font-size:12.5px; color:var(--ink-2); line-height:1.45; margin-top:7px;}
+  /* Документи — не пʼята картка, а рядок: це не умова цього замовлення, а
+     те, як ми працюємо взагалі. */
+  .cond-doc{display:flex; gap:8px; align-items:center; margin-top:12px;
+    font-size:13px; color:var(--muted);}
+  .cond-doc svg{flex:none; color:var(--good);}
+  @media (min-width:660px){
+    .cond-g{grid-template-columns:repeat(4,1fr);}
+    .cond-v{font-size:21px;}
+    .cond-c{padding:18px 16px 17px;}
+  }
+
+  /* ── Під нашим контролем ────────────────────────────────────────────
+     Пʼять рядків із тонкою галочкою. Без карток і без рамок: це не пʼять
+     різних обʼєктів, а один список, і кожна рамка тут додавала б ваги
+     тому, що має читатись за секунду. */
+  .tru-l{list-style:none; margin:0; padding:0; display:grid; gap:11px;}
+  @media (min-width:660px){ .tru-l{grid-template-columns:1fr 1fr; gap:12px 28px;} }
+  .tru-l li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px;
+    color:var(--ink-2); line-height:1.45;}
+  .tru-l svg{flex:none; margin-top:3px; color:var(--good);}
 
   /* ── менеджер ── */
   .mgr{display:flex; gap:14px; align-items:center; background:var(--soft);
@@ -1025,38 +1113,41 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#fff; border:1.5px solid var(--line); font-size:14px; font-weight:600;
     color:var(--ink); text-decoration:none;}
 
-  /* ── фінальні дії ── */
-  .final{display:grid; gap:10px; padding-bottom:14px;}
-  /* Заклик: вузька колонка на власній підкладці. Довгий рядок на всю ширину
-     читається найгірше саме там, де має читатися найкраще. */
+  /* ── Фінальний заклик ──────────────────────────────────────────────
+     Головна дія всієї сторінки. Тому вона стоїть на власній темній
+     підкладці від краю до краю: на білому серед білого кнопка була просто
+     ще одним елементом списку.
+     Списку «Рахунок → Макет → Виготовлення» тут більше немає — він
+     переказував таймлайн вище. Лишились три речі: що станеться, кнопка,
+     і чого НЕ станеться. */
+  .cta-wrap{border-top:none; padding:0;}
   .cta-box{background:#14171B; color:#fff; border:none; border-radius:0;
-    padding:32px var(--pad) 30px; text-align:center;
-    margin:8px calc(var(--pad) * -1) 0;}
-  .cta-box .sec-title{margin-bottom:8px; color:#fff;}
-  /* Текст усередині лишається вузьким — довгий рядок на всю ширину
-     читається найгірше саме там, де має читатися найкраще. */
-  .cta-box .sec-sub{margin:0 auto 20px; max-width:34ch; color:rgba(255,255,255,.7);}
-  .cta-box .final{padding-bottom:0; max-width:420px; margin:0 auto;}
-  /* Друга дія — тиха: поділитися можна, але головне тут підтвердити */
-  .btn-share{display:flex; align-items:center; justify-content:center; gap:8px;
-    background:transparent; color:rgba(255,255,255,.82);
-    border:1px solid rgba(255,255,255,.28); font-weight:600;}
-  .btn-share:hover{background:rgba(255,255,255,.08); color:#fff;}
-  .btn-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
-  .btn-share svg{flex:none;}
-  /* Три кроки перед кнопкою — на темному, у стовпчик і зліва: нумерований
-     список читається лише коли цифри стоять одна під одною. */
-  .nsteps{list-style:none; margin:0 auto 22px; padding:0; max-width:420px; text-align:left;
-    counter-reset:ns;}
-  .nsteps li{position:relative; padding:0 0 0 38px; margin-bottom:14px; counter-increment:ns;}
-  .nsteps li:last-child{margin-bottom:0;}
-  .nsteps li::before{content:counter(ns); position:absolute; left:0; top:0;
-    width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.12);
-    color:#fff; font-size:12.5px; font-weight:700; display:flex; align-items:center;
-    justify-content:center;}
-  .nsteps b{display:block; font-size:15px; font-weight:600; color:#fff; line-height:1.35;}
-  .nsteps span{display:block; font-size:13px; color:rgba(255,255,255,.65); line-height:1.45;
-    margin-top:2px;}
+    padding:40px var(--pad) 34px; text-align:center;
+    margin:26px calc(var(--pad) * -1) 0;}
+  .cta-h{font-size:24px; font-weight:600; letter-spacing:-0.6px; line-height:1.25;
+    margin:0 auto 12px; max-width:26ch; text-wrap:balance;}
+  /* Текст лишається вузьким — довгий рядок читається найгірше саме там,
+     де має читатися найкраще. */
+  .cta-p{font-size:14.5px; line-height:1.55; color:rgba(255,255,255,.7);
+    margin:0 auto 24px; max-width:44ch;}
+  .final{display:grid; gap:10px; padding-bottom:0; max-width:420px; margin:0 auto;}
+  /* Рядок під кнопкою знімає той самий страх, через який палець над нею й
+     завмирає: що замовлення піде у виробництво без клієнта. */
+  .cta-note{font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.5);
+    margin:12px auto 0; max-width:40ch;}
+  /* Поділитися — тихим рядком, а не кнопкою: друга кнопка поруч із головною
+     тягне на себе увагу й дає привід не вирішувати. */
+  .cta-share{display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    margin-top:22px; padding:8px 4px; font:inherit; font-size:13px; font-weight:600;
+    color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.18);
+    transition:.15s;}
+  .cta-share:hover{color:#fff; border-color:rgba(255,255,255,.45);}
+  .cta-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
+  .cta-share svg{flex:none; width:15px; height:15px;}
+  @media (min-width:660px){
+    .cta-box{padding:52px var(--pad) 44px;}
+    .cta-h{font-size:29px;}
+  }
 
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
@@ -1134,12 +1225,34 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .hero h1{font-size:26px;}
     .item + .item{margin-top:20px; padding-top:18px;}
     .specs{grid-template-columns:repeat(3,1fr);}
-    .item, .mock, .price-box, .est-tot, .reco, .mgr{break-inside:avoid;}
+    .item, .mock, .price-box, .est-i, .est-card, .reco, .mgr{break-inside:avoid;}
+    /* Умови й етапи тепер друкуються разом із рештою: раніше весь хвіст
+       сторінки лежав під .no-print, і в PDF, який пересилають бухгалтеру,
+       не було ні термінів, ні оплати. */
+    .fl, .fl-s, .cond-c, .tru-l li, .fq{break-inside:avoid;}
     .tier{border-color:#ccc;}
     .tier.on{background:#f2f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-    .hero-shot, .mock, .wow-cell, .est-th, .reco-th, .price-box, .est-tot, .mgr{
+    .hero-shot, .mock, .wow-cell, .reco-th, .price-box, .mgr{
       background:#F6F8FA !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-    .hm-val.save, .pb-save, .et-row.save span:last-child{color:#0E9F6E !important;
+    /* На папері темний блок не друкується: браузер за замовчуванням не кладе
+       фон, і білий текст лишається на білому. Тому в друку кошторис
+       перевертаємо в світлий — верстка та сама, кольори паперові. */
+    .est{background:#fff !important; color:var(--ink) !important; padding:0 !important;}
+    .est-meta, .est-i-mul, .est-i-was, .est-line, .est-inc, .est-left{
+      color:#5A6472 !important;}
+    .est-i-was s{color:#8A93A0 !important;}
+    .est-i-was b, .est-i-nm, .est-i-sum, .est-line b, .est-pay b, .est-pay span,
+    .est-total, .est-h{color:var(--ink) !important;}
+    .est-i, .est-card{border-color:#D9E1EC !important; background:#F6F8FA !important;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .est-i-ph{border:1px solid #E5EAF1;}
+    .est-card-h{color:#5A6472 !important;}
+    .est-div{background:#D9E1EC !important;}
+    .est-inc svg{color:#8A93A0 !important;}
+    .est-cta{display:none !important;}
+    .hm-val.save, .pb-save, .est-chip, .est-i-badge, .est-line.is-off,
+    .est-line.is-off b{color:#0E9F6E !important; background:transparent !important;
+      border-color:#A7DFC3 !important;
       -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     .print-only{display:block !important;}
   }
@@ -1242,6 +1355,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:12px;
     color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
   .eddate input{font:inherit;font-size:13px;border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
+  /* Підкладка під логотип і рамка обрізання просто на ньому */
+  /* Обгортка збігається з картинкою піксель у піксель: жодних відступів і
+     жодного заокруглення. Тільки так фон лягає саме ЗА картинку, а рамка
+     обрізання показує рівно те, що буде відрізано. */
+  .hero-logo-wrap{position:relative; display:inline-block; line-height:0;
+    margin-bottom:20px;}
+  /* Старі пропозиції зберігали не колір, а один із двох станів підкладки —
+     лишаємо їх робочими, тепер такими самими квадратними. */
+  .hero-logo-wrap.plate-light{background:#fff;}
+  .hero-logo-wrap.plate-dark{background:#14171B;}
+  /* У режимі менеджера логотип сам і є кнопкою обрізання — як на телефоні:
+     торкнувся картинки, і відкрилось вікно різака. Те саме вікно, що в картці
+     товару: велика картинка, волосяна лінія, числа. Рамка просто на
+     маленькому логотипі в шапці була незручна — у неї важко влучити. */
+  .mgr-logo .hero-logo{cursor:crosshair;}
+  /* Кружечок кольору — біля логотипа, показує сам себе: у ньому стоїть той
+     колір, який зараз під логотипом. Поруч хрестик — зняти фон. */
+  .logobg{display:inline-flex; align-items:center; gap:4px; margin-left:4px;}
+  .logobg-dot{position:relative; width:26px; height:26px; border-radius:50%;
+    border:1px solid #C7D0DE; box-shadow:inset 0 1px 3px rgba(15,32,52,.14); cursor:pointer;
+    padding:0; overflow:hidden; flex:none;}
+  /* Прозорий фон малюємо шахівкою — інакше «немає кольору» і «білий» на око
+     одне й те саме. */
+  .logobg-dot.none{background-image:
+      linear-gradient(45deg,#D9E1EC 25%,transparent 25%,transparent 75%,#D9E1EC 75%),
+      linear-gradient(45deg,#D9E1EC 25%,transparent 25%,transparent 75%,#D9E1EC 75%);
+    background-size:10px 10px; background-position:0 0,5px 5px; background-color:#fff;}
+  .logobg-dot input{position:absolute; inset:0; opacity:0; cursor:pointer; border:0; padding:0;}
+  .edlogo-note{flex-basis:100%; margin-top:6px; font-size:12px; line-height:1.4;
+    color:#B45309; background:#FFF8EC; border:1px solid #F3DFB8; border-radius:8px;
+    padding:6px 10px; display:none;}
+  .edlogo-note.show{display:block;}
   [data-ed-title]{outline:none;border-radius:8px;}
   [data-ed-title]:focus{box-shadow:0 0 0 2px #4F5FD4;}
   .edempty{font-size:15px;line-height:1.6;color:#6B7686;background:#F4F7FB;
@@ -1413,13 +1558,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="pm-crop-wrap" id="pmCropWrap">
           <img id="pmCropImg" alt="">
           <div class="pm-crop-rect" id="pmCropRect">
-            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="ne"></span>
-            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="se"></span>
+            <span class="pm-crop-h" data-h="nw"></span><span class="pm-crop-h" data-h="n"></span>
+            <span class="pm-crop-h" data-h="ne"></span><span class="pm-crop-h" data-h="e"></span>
+            <span class="pm-crop-h" data-h="se"></span><span class="pm-crop-h" data-h="s"></span>
+            <span class="pm-crop-h" data-h="sw"></span><span class="pm-crop-h" data-h="w"></span>
           </div>
         </div>
       </div>
+      <div class="pm-crop-info" id="pmCropInfo"></div>
       <div class="pm-crop-bar">
         <button type="button" id="pmCropCancel" class="pm-crop-btn pm-crop-btn--ghost">Скасувати</button>
+        <button type="button" id="pmCropSnap" class="pm-crop-btn pm-crop-btn--ghost">Впритул</button>
         <button type="button" id="pmCropOk" class="pm-crop-btn">Обрізати</button>
       </div>
     </div>
@@ -1864,8 +2013,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=31454c8ab0"></script>
-<script src="loomiq-pricing.js?v=31454c8ab0"></script>
+<script src="loomiq-fingerprint.js?v=3f0656336a"></script>
+<script src="loomiq-pricing.js?v=3f0656336a"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2000,6 +2149,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   window.addEventListener('message', function(e){
     var d = e.data;
     if(!d || !d.lqEditInit || window.parent === window) return;
+    /* Відповідь на дію — просто під кнопками, які натиснули. Тост живе в
+       адмінці, а вона за цим кадром: сказане там менеджер не бачить. */
+    if(d.note !== undefined){
+      /* Повідомлення про ПОМИЛКУ не зникає само. Доти будь-який напис гасили
+         через шість секунд — і той єдиний рядок, який пояснював, чому нічого
+         не сталось, менеджер просто не встигав прочитати. Лишалось «не
+         працює» без жодної підказки. Спокійні відповіді гасимо, як і раніше. */
+      edNote(String(d.note || ''));
+      return;
+    }
     if(d.catalog) EDIT_CATALOG = d.catalog;
     /* Свіжі дані замість перезавантаження кадру. Доти кожна правка — навіть
        «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
@@ -2035,6 +2194,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
+      OFFER.variants = OFFER.variants || [];
       OFFER.terms = OFFER.terms || { deadlineDays: 4 };
       OFFER.client = OFFER.client || {};
       render();
@@ -2048,6 +2208,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       OFFER = d.offer || {};
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
+      OFFER.variants = OFFER.variants || [];
       OFFER.terms = OFFER.terms || { deadlineDays: 4 };
       OFFER.client = OFFER.client || {};
       if(!EDIT){ EDIT = true; document.documentElement.classList.add('is-edit'); }
@@ -2119,9 +2280,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=31454c8ab0';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=31454c8ab0';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=31454c8ab0';
+  var CTOR_JS   = 'loomiq-constructor.js?v=3f0656336a';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=3f0656336a';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=3f0656336a';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2426,6 +2587,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.querySelectorAll('[data-ed]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
+        if(logoAct(b.dataset.ed)) return;
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
         if(b.dataset.ed === 'closeinline'){
           ctorUnmount(); edOpen = null; render();
@@ -2597,7 +2759,155 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      штук. Тираж більше не набирається з трьох фіксованих порогів: клієнту
      потрібна своя кількість, а не наша сітка. Ціна за штуку при цьому чесно
      береться з того порогу, у який кількість потрапляє. */
-  var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {} };
+  /* variant — обраний варіант у кожній групі: { 'Верх': 2 }. Порожньо
+     означає «ще не обрали», і тоді група в кошторис не входить узагалі. */
+  /* Хто може правити шапку: режим редагування або перегляд менеджера.
+     Клієнт не потрапляє в жоден із них. */
+  function MGR_EDIT_ON(){ return EDIT || MGR_VIEW; }
+  /* ── Обрізання логотипа просто на ньому ────────────────────────────────
+     Кнопка «обрізати порожні поля» вгадувала за менеджера, де ці поля, і
+     здебільшого відповідала «нема чого обрізати». А обрізати треба інакше:
+     подивитись і потягнути за край.
+
+     Тому рамка лягає просто на логотип у шапці. Чотири кути тягнуться,
+     видно рівно те, що лишиться. «Готово» вирізає й вивантажує новий файл;
+     початковий лишається в замовленні. Частки, а не пікселі: той самий
+     виріз відтвориться на будь-якому екрані. */
+  /* Колір фону логотипа. Порожньо означає «без фону» — і це окремий стан, а
+     не білий: логотип із прозорими краями на білому й на прозорому виглядає
+     по-різному, щойно шапка не біла. */
+  function logoBg(){
+    var c = String(OFFER.clientLogoBg || '').trim();
+    return /^#[0-9a-f]{3,8}$/i.test(c) ? c : '';
+  }
+  /* Дії логотипа, які треба перехопити ДО загального відправлення в адмінку:
+     обрізання живе в самій сторінці, доки менеджер тягає рамку, — у базу йде
+     лише результат. Возити кожен рух туди й назад означало б перемальовувати
+     сторінку на кожен піксель.
+     Один список на обидва режими — і на редагування, і на «Як бачить клієнт».
+     Доти рамку вміла тільки друга з двох гілок, і в режимі редагування
+     обрізання просто не працювало. */
+  /* Обрізання логотипа — ТИМ САМИМ вікном, що й дизайн у картці товару:
+     велика картинка на весь екран, волосяна лінія різу, вісім маркерів,
+     числа в пікселях, стрілки по одному пікселю, «Впритул».
+     Рамка просто на маленькому логотипі в шапці була незручна: у неї важко
+     влучити, і того, що ріжеш, майже не видно. */
+  /* Один напис під кнопками логотипа. Помилки лишаються, поки їх не змінить
+     наступна дія; звичайні відповіді гаснуть самі. */
+  function edNote(text, isErr){
+    var nb = document.getElementById('edlogoNote');
+    if(!nb) return;
+    nb.textContent = String(text || '');
+    nb.classList.toggle('show', !!text);
+    clearTimeout(nb.__t);
+    var err = isErr != null ? isErr : /не вдал|не зберег|помилка|НЕ ЗБЕРЕЖ|недоступ/i.test(text || '');
+    if(text && !err) nb.__t = setTimeout(function(){ nb.classList.remove('show'); }, 6000);
+  }
+  function openLogoCrop(){
+    if(!OFFER.clientLogo) return;
+    edNote('Готуємо різак…', false);
+    ctorLoad().then(function(){
+      if(!window.__pmCrop) throw new Error('різак недоступний');
+      /* Вікно різака стоїть position:fixed, але конструктор міг переїхати
+         всередину картки — а там у предків є і overflow:hidden, і transform.
+         Тоді «на весь екран» перетворюється на «всередині коробки», і вікно
+         або обрізається, або не видно зовсім. Тому перед відкриттям піднімаємо
+         його просто в body: там нічого не заважає. */
+      var ov = document.getElementById('pmCropModal');
+      if(ov && ov.parentNode !== document.body) document.body.appendChild(ov);
+      edNote('');
+      return window.__pmCrop(OFFER.clientLogo);
+    }).then(function(res){
+      if(res && res.box){ edNote('Обрізаємо…', false); edSend({ act:'logocrop', box: res.box }); }
+      else edNote('');
+    }).catch(function(e){
+      /* Невдале завантаження запамʼятовувалось назавжди: другий дотик до
+         кнопки повертав ТУ САМУ відмову, вже без жодного напису, і виглядало
+         це як мертва кнопка. Тепер спроба скидається — можна натиснути ще. */
+      try{ ctorReady = null; }catch(err){}
+      edNote('Не вдалось відкрити різак: ' + ((e && e.message) || 'помилка') +
+             '. Натисніть ще раз.', true);
+    });
+  }
+  function logoAct(a){
+    if(a === 'logocropopen'){ openLogoCrop(); return true; }
+    if(a === 'logofillOff'){
+      OFFER.clientLogoBg = ''; render();
+      edSend({ act:'logoFill', color:'' });
+      return true;
+    }
+    return false;
+  }
+  /* Логотип сам відкриває обрізання, а кружечок поруч міняє фон. Обидва
+     потрібні в обох режимах, тож живуть тут, а не в одній із гілок. */
+  function wireLogoTools(){
+    if(!MGR_EDIT_ON()) return;
+    var img = document.querySelector('[data-logo-crop]');
+    if(img) img.addEventListener('click', function(e){
+      e.preventDefault(); e.stopPropagation();
+      openLogoCrop();
+    });
+    var inp = document.querySelector('[data-logo-fill]');
+    if(inp){
+      /* Поки крутять палітру — фарбуємо просто на екрані, без перемальовування:
+         перемальовування закрило б саму палітру на першому ж русі. У базу
+         пишемо, коли колір обрано остаточно. */
+      var paint = function(){
+        var c = inp.value;
+        OFFER.clientLogoBg = c;
+        var w = document.querySelector('.hero-logo-wrap');
+        if(w){ w.style.background = c; w.classList.add('has-bg');
+               w.classList.remove('plate-light', 'plate-dark'); }
+        var dot = document.querySelector('.logobg-dot');
+        if(dot){ dot.style.background = c; dot.classList.remove('none'); }
+      };
+      inp.addEventListener('input', paint);
+      inp.addEventListener('change', function(){
+        paint();
+        edSend({ act:'logoFill', color: inp.value });
+        render();          // щоб зʼявився хрестик «без фону»
+      });
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+  }
+  var pick = { qty: {}, reco: {}, recoQty: {}, on: {}, pack: {}, variant: {}, varQty: {} };
+  function variantGroups(){
+    var out = [], seen = {};
+    (OFFER.variants || []).forEach(function(v, i){
+      var g = v.vgroup || 'Варіанти на вибір';
+      if(!seen[g]){ seen[g] = { name:g, idx:[] }; out.push(seen[g]); }
+      seen[g].idx.push(i);
+    });
+    return out;
+  }
+  function variantPicked(){
+    // індекси обраних варіантів, по одному з групи
+    return variantGroups().map(function(g){
+      var i = pick.variant[g.name];
+      return (i != null && OFFER.variants[i]) ? +i : null;
+    }).filter(function(x){ return x != null; });
+  }
+  function baseVarQty(i){
+    var v = (OFFER.variants || [])[i] || {};
+    var q = pick.varQty[i];
+    return Math.max(1, Math.round(q == null ? (+v.qty || 1) : q));
+  }
+  function varState(i){
+    var v = (OFFER.variants || [])[i] || {};
+    var live = LIVE && LIVE.vars && LIVE.vars[i];
+    var q = baseVarQty(i);
+    var unit = live ? live.unit : (+v.unitPrice || 0);
+    /* «Було» — така сама ціна за штуку на найменшому порозі тиражу, як в
+       основних позиціях: адмінка рахує її тим самим `offerItemNumbers` і
+       для варіантів теж. Доти варіант лишався без неї, і виходило, що в
+       складі пропозиції вигода показана, а в блоці порівняння — ні, хоч
+       порівнюють саме там. Множимо на поточну кількість: клієнт міг її
+       змінити, і «було» має рухатись разом із сумою. */
+    var baseUnit = Math.max(+v.baseUnitPrice || 0, unit);
+    return { qty:q, unit:unit, sum:unit * q,
+             base: baseUnit * q, save: Math.max(0, (baseUnit - unit) * q),
+             changed: q !== (+v.qty || q) };
+  }
   /* Позиція-варіант приходить НЕ доданою: менеджер порахував поло, оверсайз
      і базову під ту саму задачу, а візьмуть щось одне. Скласти всі три в
      кошторис одразу означало б показати суму, якої ніхто не замовляв.
@@ -2688,6 +2998,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        погодженого складу. У режимі «фіксувати погоджене» позначаємо його
        саме так, і тоді основні позиції від його появи не дешевшають, а весь
        виграш від зрослого тиражу дістається йому. */
+    /* Обраний варіант — частина складу: він заміняє позицію в замовленні, а
+       не додається зверху. Тож іде в спільний прогін нарівні з основними, і
+       решта позицій від нього дешевшає так само, як від звичайного товару. */
+    variantPicked().forEach(function(vi){
+      var v = OFFER.variants[vi];
+      if(!v || !v.desc) return;
+      var d = JSON.parse(JSON.stringify(v.desc));
+      d.units = Math.max(1, baseVarQty(vi));
+      list.push(d); map.push(['variant', vi]);
+    });
     var keep = window.LQ.upsellMode && window.LQ.upsellMode() === 'keep';
     (OFFER.reco || []).forEach(function(r, i){
       if(!pick.reco[i] || !r.desc) return;
@@ -2696,11 +3016,52 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(keep) d.upsell = true;
       list.push(d); map.push(['reco', i]);
     });
-    if(!list.length) return null;
-    var res;
-    try{ res = window.LQ.priceOrder(list); }catch(e){ console.warn('перерахунок не вийшов', e); return null; }
-    var out = { main:{}, reco:{} };
-    map.forEach(function(m, k){ if(res[k]) out[m[0]][m[1]] = res[k]; });
+    /* Варіанти рахуємо по одному: кожен — «склад + ЦЕЙ». Скласти їх усі в
+       один список означало б порахувати вироби, яких ніхто не замовить, і
+       занизити ціну всьому замовленню знижкою за неіснуючий тираж. Тому
+       нижче вони йдуть окремими прогонами, а не в спільному. */
+    /* Порожній склад — ще не привід зупинятись: пропозиція може складатись
+       із самих варіантів, і їхні ціни рахуються нижче своїми прогонами.
+       Доти тут стояв вихід, і в такій пропозиції жодна ціна не була живою:
+       вибір варіанта нічого не перераховував. */
+    if(!list.length && !(OFFER.variants || []).length) return null;
+    var res = [];
+    if(list.length){
+      try{ res = window.LQ.priceOrder(list); }
+      catch(e){ console.warn('перерахунок не вийшов', e); return null; }
+    }
+    var out = { main:{}, reco:{}, vars:{} };
+    /* Ціна варіанта — «скільки коштуватиме, якщо взяти САМЕ ЙОГО». Тому з
+       розрахунку прибираємо обраний варіант ТІЄЇ САМОЇ групи: клієнт візьме
+       щось одне, і два одночасно не існують ніколи.
+
+       Доти обраний лишався в списку, і сусідній варіант рахувався так, ніби
+       беруть обидва: п'ять базових плюс п'ять оверсайзів — підготовка макета
+       ділилась на десять виробів замість п'яти, і ціна виходила нижчою за
+       справжню. Варіанти інших груп лишаються: їх справді беруть разом. */
+    (OFFER.variants || []).forEach(function(v, vi){
+      if(!v.desc) return;
+      var myGroup = v.vgroup || 'Варіанти на вибір';
+      var base = [];
+      map.forEach(function(m, k){
+        if(m[0] !== 'variant'){ base.push(list[k]); return; }
+        var other = (OFFER.variants || [])[m[1]] || {};
+        var og = other.vgroup || 'Варіанти на вибір';
+        if(og !== myGroup) base.push(list[k]);        // чужа група — лишається
+      });
+      var d = JSON.parse(JSON.stringify(v.desc));
+      d.units = Math.max(1, baseVarQty(vi));
+      try{
+        var r = window.LQ.priceOrder(base.concat([d]));
+        var mine = r[r.length - 1];
+        if(mine) out.vars[vi] = mine;
+      }catch(e){}
+    });
+    map.forEach(function(m, k){
+      if(!res[k]) return;
+      var box = m[0] === 'variant' ? out.vars : out[m[0]];
+      box[m[1]] = res[k];
+    });
     return out;
   }
   // Тираж без перерахунку — саме він іде в рушій
@@ -2719,7 +3080,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var q = baseRecoQty(i);
     var live = LIVE && LIVE.reco[i];
     var unit = live ? live.unit : (+r.unitPrice || 0);
-    return { qty:q, unit:unit, sum:unit * q };
+    /* «Було» — те саме, що в основних і у варіантів: ціна цієї позиції,
+       замовленої однією штукою. Адмінка рахує його для рекомендованих так
+       само й давно надсилає — просто картка його не читала, і в блоці, який
+       має продавати, стояла сама лише ціна без жодної вигоди. */
+    var baseUnit = Math.max(+r.baseUnitPrice || 0, unit);
+    return { qty:q, unit:unit, sum:unit * q,
+             base: baseUnit * q, save: Math.max(0, (baseUnit - unit) * q) };
   }
 
   function itemState(i){
@@ -2805,7 +3172,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return (d && !isNaN(d)) ? d.toISOString().slice(0, 10) : '';
   }
   function edDate(act, val, label){
-    if(!EDIT) return '';
+    // і в «Як бачить клієнт» теж: саме там менеджер помічає, що дата не та
+    if(!MGR_EDIT_ON()) return '';
     return '<label class="eddate">' + label +
       '<input type="date" data-ed-date="' + act + '" value="' + esc(isoDay(val)) + '"></label>';
   }
@@ -2817,10 +3185,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var s = itemState(i);
       qty += s.qty; sum += s.sum; base += s.base;
     });
+    /* Рекомендовані й варіанти дають до «було» свою повну ціну, а не суму зі
+       знижкою. Доти вони йшли в базу вже здешевленими: у картці позиції
+       стояло «−55% за тираж», а підсумок цієї знижки не бачив — і людина
+       вірила меншій цифрі. Тепер обидва місця рахують те саме. */
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
       var rs = recoState(i);
-      qty += rs.qty; sum += rs.sum; base += rs.sum;
+      qty += rs.qty; sum += rs.sum; base += (rs.base != null ? rs.base : rs.sum);
+    });
+    variantPicked().forEach(function(vi){
+      var vs = varState(vi);
+      qty += vs.qty; sum += vs.sum; base += (vs.base != null ? vs.base : vs.sum);
     });
     return { qty: qty, sum: sum, base: base, save: Math.max(0, base - sum) };
   }
@@ -2954,30 +3330,89 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      колекції замість дрібного збоку, і термін дії замість дати правки
      документа. Економії тут немає навмисно — знижка вже сидить у ціні
      кожної позиції, і виносити її окремо означало б рахувати двічі. */
+  /* Скільки й чого в замовленні — по ТИПУ виробу, а не по моделі.
+     «Футболка базова» й «Футболка оверсайз» — це дві моделі одного типу, і
+     клієнтові на першому екрані важить «футболок — пʼять», а не перелік
+     моделей. Тип беремо з першого слова назви: саме воно й називає виріб,
+     а решта — уточнення крою.
+     Варіанти в групі рахуються ОДИН раз: у групі беруть щось одне, і тираж
+     у неї спільний, тож додавати кожен варіант окремо означало б порахувати
+     вироби, яких ніхто не замовляв. */
+  function typeWord(name){
+    return String(name || '').trim().split(/[\s,·]+/)[0] || '';
+  }
+  function typePlural(w){
+    var s = String(w || '');
+    if(!s) return s;
+    var low = s.toLowerCase();
+    // невідмінювані: худі, поло, бо «худіи» не буває
+    if(/[іїоеуюя]$/.test(low)) return s;
+    if(/а$/.test(low)) return s.slice(0, -1) + 'и';
+    return s + 'и';
+  }
+  function madeLine(){
+    var by = [], seen = {};
+    var add = function(name, qty){
+      if(!qty) return;
+      var t = typeWord(name).toLowerCase();
+      if(!t) return;
+      if(seen[t] == null){ seen[t] = by.length; by.push({ word: typeWord(name), qty: 0 }); }
+      by[seen[t]].qty += qty;
+    };
+    (OFFER.items || []).forEach(function(it, i){ if(isOn(i)) add(it.name, itemState(i).qty); });
+    /* Група варіантів дає рівно одну позицію — обрану, а поки не обрано,
+       беремо перший варіант групи: тип у групі один і той самий, а тираж
+       спільний, тож число від цього не змінюється. */
+    variantGroups().forEach(function(g){
+      var pick0 = pick.variant[g.name];
+      var vi = (pick0 != null) ? +pick0 : g.idx[0];
+      var v = (OFFER.variants || [])[vi];
+      if(v) add(v.name, varState(vi).qty);
+    });
+    (OFFER.reco || []).forEach(function(r, i){ if(pick.reco[i]) add(r.name, recoState(i).qty); });
+    return by.map(function(x){
+      return typePlural(x.word).toLowerCase() + ' — ' + x.qty + ' шт';
+    }).join(' · ');
+  }
   function heroHtml(){
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
     var who = OFFER.client.company || OFFER.client.name || OFFER.client.instagram || '';
     // Заголовок: вписаний менеджером переважає складений автоматично
+    /* Типовий заголовок називає документ так, як його називають у
+       листуванні: «комерційна пропозиція для такої-то компанії». Менеджер
+       може переписати, але починати з правильного краще, ніж із загального
+       «Ваша пропозиція». */
     var title = String(OFFER.heroTitle || '').trim() ||
-      (who ? 'Корпоративний одяг для ' + who : 'Ваша пропозиція');
+      (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
     var hsz = +OFFER.heroSize || 0;
     /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
-    var made = OFFER.items.map(function(it, i){
-      return itemState(i).qty + ' ' + String(it.name || '').toLowerCase();
-    }).join(' · ');
+    var made = madeLine();
     var till = dateUa((OFFER.terms || {}).validUntil);
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
-          ? '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
-            (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
-            'onerror="this.style.display=\'none\'">' : '') +
+          ? '<span class="hero-logo-wrap' +
+              (logoBg() ? ' has-bg' : '') +
+              (!logoBg() && OFFER.clientLogoPlate === 'light' ? ' plate-light' : '') +
+              (!logoBg() && OFFER.clientLogoPlate === 'dark' ? ' plate-dark' : '') +
+              (MGR_EDIT_ON() ? ' mgr-logo' : '') + '"' +
+              (logoBg() ? ' style="background:' + esc(logoBg()) + '"' : '') + '>' +
+              '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
+              (MGR_EDIT_ON() ? 'data-logo-crop="1" title="Натисніть, щоб обрізати" ' : '') +
+              (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
+              'onerror="this.style.display=\'none\'">' +
+            '</span>' : '') +
         /* Логотип клієнта — на самій сторінці, а не в службовій панелі
            навколо неї: менеджер ставить його там, де він і стоятиме, і
            одразу бачить, чи не завеликий. Той самий файл далі доступний
            товарам у конструкторі. */
-        (EDIT
+        /* Правки шапки доступні і в режимі «Як бачить клієнт»: саме там
+           менеджер дивиться на пропозицію очима клієнта й саме там бачить,
+           що логотип завеликий або заголовок не той. Клієнту ці кнопки не
+           дістаються ніколи — MGR_VIEW вмикає лише адмінка, своїм
+           повідомленням у кадр. */
+        (MGR_EDIT_ON()
           ? '<div class="edlogo">' +
               '<button class="edb" data-ed="logo">' +
                 (OFFER.clientLogo ? 'Замінити лого' : '＋ Завантажити лого') + '</button>' +
@@ -2986,13 +3421,43 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     '<button class="edb" data-ed="logosm" title="Менший">−</button>' +
                     '<b>' + Math.round(+OFFER.clientLogoSize || 44) + ' px</b>' +
                     '<button class="edb" data-ed="logobg" title="Більший">+</button>' +
+                    /* Фон логотипа — справжній колір, а не три вгадані стани.
+                       Світлий логотип на світлій шапці зникає, темний на
+                       темній теж, і котрий саме відтінок рятує — видно лише
+                       на екрані. Тому кружечок із палітрою: колір видно в
+                       ньому самому, а хрестик поруч знімає фон зовсім. */
+                    '<span class="logobg">' +
+                      '<span class="logobg-dot' + (logoBg() ? '' : ' none') + '"' +
+                        (logoBg() ? ' style="background:' + esc(logoBg()) + '"' : '') +
+                        ' title="Фон логотипа">' +
+                        '<input type="color" data-logo-fill="1" value="' +
+                          esc(logoBg() || '#FFFFFF') + '">' +
+                      '</span>' +
+                      (logoBg()
+                        ? '<button class="edb" data-ed="logofillOff" ' +
+                          'title="Без фону">✕</button>' : '') +
+                    '</span>' +
+                    /* Обрізання — своя кнопка, а не «здогадайся натиснути на
+                       картинку». Клік по логотипу теж працює, але шукати
+                       його там ніхто не буде: у рядку видно розмір, заміну й
+                       кошик, а обрізання не видно ніде. */
+                    '<button class="edb" data-ed="logocropopen" ' +
+                      'title="Обрізати логотип">✂ Обрізати</button>' +
+                    /* Крок назад по лінії обрізок. Стоїть у меню, а не біля
+                       рамки: коли менеджер помітив, що перестарався, рамка
+                       вже закрита, і відкривати її заради відкату — зайве.
+                       Немає куди повертатись — немає й кнопки. */
+                    (OFFER.clientLogoBack
+                      ? '<button class="edb" data-ed="logoBack" ' +
+                        'title="Повернути попередній логотип">↶</button>' : '') +
                     '<button class="edb edb-del" data-ed="logodel" title="Прибрати">🗑</button>' +
                   '</span>' : '') +
+              '<div class="edlogo-note" id="edlogoNote"></div>' +
             '</div>' : '') +
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
         '<h1' + (hsz ? ' style="font-size:' + hsz.toFixed(2) + 'em"' : '') +
-          (EDIT ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
+          (MGR_EDIT_ON() ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
           esc(title) + '</h1>' +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
@@ -3027,15 +3492,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
      Якщо картинка з чужого домену й полотно «отруєне» — просто лишаємо біле:
      краще рівний білий, ніж помилка в консолі. */
+  /* Колір читаємо не з видимої картинки, а з її копії, завантаженої з
+     дозволом на читання пікселів. Без цього дозволу браузер «отруює»
+     полотно навіть тоді, коли сервер картинок читати дозволяє, — і колір
+     не діставався ЖОДНОГО разу: рамка мовчки лишалась білою, а виріб
+     висів на ній прямокутником. Ставити дозвіл на саму видиму картинку
+     не можна: якби сервер його не дав, зникло б фото, а не лише колір. */
   function frameTint(img){
     if(!img || img.dataset.tinted) return;
     img.dataset.tinted = '1';
-    var go = function(){
+    var go = function(src){
       try{
         var c = document.createElement('canvas'), n = 12;
         c.width = n; c.height = n;
         var g = c.getContext('2d');
-        g.drawImage(img, 0, 0, n, n);
+        g.drawImage(src, 0, 0, n, n);
         var d = g.getImageData(0, 0, n, n).data;
         // Беремо рамку в один піксель по периметру — там майже завжди фон
         var pts = [], i, x, y;
@@ -3055,8 +3526,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(img.parentNode) img.parentNode.style.background = 'rgb(' + r + ',' + gg + ',' + b + ')';
       }catch(e){ /* полотно з чужого домену — лишаємо як є */ }
     };
-    if(img.complete && img.naturalWidth) go();
-    else img.addEventListener('load', go, { once:true });
+    var start = function(){
+      var url = img.currentSrc || img.src;
+      if(!url) return;
+      /* data: і той самий домен читаються напряму — зайвий запит ні до чого */
+      if(url.indexOf('data:') === 0 || url.indexOf(location.origin) === 0){ go(img); return; }
+      var probe = new Image();
+      probe.crossOrigin = 'anonymous';
+      probe.onload = function(){ go(probe); };
+      probe.onerror = function(){ /* сервер не дає читати — лишаємо як є */ };
+      probe.src = url;
+    };
+    if(img.complete && img.naturalWidth) start();
+    else img.addEventListener('load', start, { once:true });
   }
   function tintAll(){
     document.querySelectorAll('.pgal-i img, .rc-ph img').forEach(frameTint);
@@ -3079,7 +3561,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return { id:'v'+k, img:src, label:label(k), auto:k, show:true };
     });
   }
-  function galleryHtml(it, idx, kind){
+  /* tag — позначка «варіант на вибір». Вона лягає НА фото, у лівий верхній
+     кут першого кадру, а не окремим рядком над назвою. Рядком вона додавала
+     картці висоти, і в блоці порівняння, де карток кілька поспіль, кожна
+     через це розтягувалась. На фото місце вже є, і читається вона там
+     першою — саме тоді, коли око ще на знімку. */
+  function galleryHtml(it, idx, kind, tag){
     var all = viewsOf(it);
     /* Клієнт бачить тільки ті ракурси, які менеджер лишив показаними, і тільки
        зі знімком: порожня рамка в пропозиції читається як помилка, а
@@ -3104,6 +3591,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             : '<span class="pgal-plus">＋<i>фото</i></span>') +
           (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
                 (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
+          (tag && k === 0 ? '<span class="pgal-tag">' + esc(tag) + '</span>' : '') +
         '</div>';
       }).join('') +
       /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
@@ -3146,8 +3634,50 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      двох нанесеннях уже не було зрозуміло, що до чого належить.
      Далі — розмірний ряд і характеристики самого виробу (тканина, щільність,
      крій) із картки товару: у пропозиції питають саме про це. */
-  function specsHtml(it, i){
+  /* Деталі позиції — однакові скрізь: у складі, у варіантах, у
+     рекомендованих. Опис товару йде першим: він відповідає на «що це
+     взагалі», а вже потім ідуть нанесення, розмірний ряд і характеристики. */
+  /* Опис приходить так, як менеджер його набрав у картці товару, — рядками.
+     Доти він склеювався в один суцільний абзац, і «Щільність: 190 г/м²»
+     губилось усередині тексту замість того, щоб стояти окремим рядком. */
+  function aboutHtml(it){
+    var t = String((it && it.about) || '').trim();
+    if(!t) return '';
+    return t.split(/\n+/).map(function(p){
+      p = p.trim();
+      return p ? '<p class="pspec-about">' + esc(p) + '</p>' : '';
+    }).join('');
+  }
+  /* Розмірна сітка просто в деталях позиції. Питання «а який це розмір»
+     виникає рівно там, де обирають тираж, і відповідь має бути під рукою, а
+     не посиланням на сайт. */
+  function chartHtml(it){
+    var c = it && it.sizechart;
+    if(!c || !c.rows || !c.rows.length) return '';
+    var head = c.cols && c.cols.length ? c.cols : null;
+    return '<div class="pchart-wrap"><table class="pchart">' +
+      (head ? '<thead><tr>' + head.map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') +
+              '</tr></thead>' : '') +
+      // рядок приходить обгорнутим {c:[...]} — Firestore не тримає масив у масиві
+      '<tbody>' + c.rows.map(function(row){
+        var r = (row && row.c) ? row.c : (Array.isArray(row) ? row : []);
+        return r;
+      }).map(function(r){
+        return '<tr>' + r.map(function(v){ return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function specsHtml(it, i, stIn){
     var rows = [];
+    /* Колір виробу — те, про що питають першим, а стояв він лише дрібним
+       підписом під назвою. У деталях йому місце нарівні з тканиною. */
+    if(it.color) rows.push(['Колір виробу', it.color, 'spec']);
+    /* Спершу сам виріб — тканина, щільність, крій, — і аж потім те, що ми з
+       ним робимо. Доти характеристики стояли останніми, після нанесення й
+       розмірного ряду: питання «а це взагалі яка тканина і який фасон»
+       виникає першим, а відповідь була найнижчою в списку. */
+    (it.specs || []).forEach(function(sp){
+      if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
+    });
     (it.sides || []).forEach(function(s){
       if(!s.side && !s.technique) return;
       var val = [];
@@ -3159,18 +3689,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     });
     // Обраний клієнтом тираж уже не збігається з початковою розкладкою по розмірах —
     // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
+    var stSp = stIn || itemState(i);
     if(it.sizes) rows.push(['Розмірний ряд',
-      itemState(i).changed ? 'узгодимо з вами' : it.sizes, 'size']);
-    (it.specs || []).forEach(function(sp){
-      if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
-    });
-    if(!rows.length) return '';
+      stSp.changed ? 'узгодимо з вами' : it.sizes, 'size']);
+    var about = aboutHtml(it), chart = chartHtml(it);
+    if(!rows.length) return about + chart;
     var ICO = {
       print: '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>',
       size:  '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5V20.5"/>',
       spec:  '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16h.01"/>'
     };
-    return '<div class="specs" data-specs="' + i + '">' +
+    return about + '<div class="specs" data-specs="' + i + '">' +
       rows.map(function(r){
         return '<div class="spec"><span class="spec-ic">' +
           '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -3178,7 +3707,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (ICO[r[2]] || ICO.spec) + '</svg></span>' +
           '<span class="spec-k">' + esc(r[0]) + '</span>' +
           '<span class="spec-v">' + esc(r[1]) + '</span></div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>' + chart;
   }
 
   /* Прорахунок для менеджера — той самий, що в «Прорахунку замовлення» на
@@ -3190,16 +3719,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Блок згорнутий і стоїть під ціною: він потрібен, коли менеджер про нього
      згадав, а не постійно. Клієнту його не існує — ані розгорнутого, ані
      згорнутого: у його версію документа ці дані просто не приїжджають. */
-  function ccRowsHtml(rows){
+  function ccRowsHtml(rows, kind, i){
     if(!rows || !rows.length)
       return '<p class="cc-hint">Позиція без розкладу — ціна прийшла зі старого замовлення.</p>';
     return '<div class="cc-rows">' + rows.map(function(r){
+      /* Четвертий елемент рядка — дія. Поки що одна: перемкнути вид дизайну
+         з картинки на напис. Клієнт присилає файл, на якому просто напис
+         їхнім шрифтом; виглядати воно має картинкою, а рахуватись як напис —
+         у вишивки в напису своя ставка за площу. Вгадати це нізвідки, тож
+         вирішує менеджер, і рівно тут, де він і дивиться на цифри. */
+      var act = r[3];
+      /* Кнопка потрібна і в режимі редагування, і в «Як бачить клієнт»:
+         прорахунок менеджер найчастіше відкриває саме там. Клієнт цього
+         блоку не бачить узагалі — він приходить лише в кадр менеджера. */
+      /* Таблетка з поточним видом і вибором, а не німий перемикач: видно, що
+         система визначила зараз, і видно, що це можна змінити. Крапка поруч —
+         ознака, що вид обрав менеджер, а не автоматика. */
+      var btn = (act && act.act === 'kind' && (EDIT || MGR_VIEW))
+        ? '<span class="cc-kind-wrap">' +
+            '<select class="cc-kind' + (act.fixed ? ' is-fixed' : '') + '" ' +
+              'data-ckind="' + kind + ':' + i + ':' + act.di + '" ' +
+              'title="Як рахувати цей дизайн: як картинку чи як напис">' +
+              '<option value="img"' + (act.kind === 'txt' ? '' : ' selected') + '>Картинка</option>' +
+              '<option value="txt"' + (act.kind === 'txt' ? ' selected' : '') + '>Напис</option>' +
+            '</select>' +
+            (act.fixed ? '<i class="cc-kind-dot" title="Вид обрав менеджер"></i>' : '') +
+          '</span>'
+        : '';
       return '<div class="cc-row' + (r[2] === 'disc' ? ' is-disc' : '') +
              (r[2] === 'sum' ? ' is-sum' : '') +
              /* Розклад нанесення — підрядками під своєю сумою: це не окремі
                 доданки, а пояснення, з чого склався рядок над ними. */
              (r[2] === 'sub' ? ' is-sub' : '') + '">' +
-             '<span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>';
+             '<span>' + esc(r[0]) + btn + '</span><b>' + esc(r[1]) + '</b></div>';
     }).join('') + '</div>';
   }
   function ccMoneyHtml(b){
@@ -3214,10 +3766,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function mgrCalcHtml(i, kind){
     if(!EDIT && !MGR_VIEW) return '';
     var C = OFFER.mgr || {};
-    var b = ((kind === 'reco' ? C.reco : C.items) || {})[i];
+    /* Варіанти лежать у своєму кошику (vars), а не разом з основними.
+       Доти сюди приходило C.items[i] — прорахунок ЗОВСІМ ІНШОЇ позиції з тим
+       самим номером, а найчастіше нічого, і блок просто не малювався. Через
+       це в картці варіанта («Футболка поло») прорахунку не було взагалі, а
+       разом із ним і перемикача виду дизайну. */
+    var bag = kind === 'reco' ? C.reco : (kind === 'variant' ? C.vars : C.items);
+    var b = (bag || {})[i];
     if(!b) return '';
     return '<details class="cc-fold"><summary>Прорахунок · службове</summary>' +
-      '<div class="cc-fold-b">' + ccRowsHtml(b.rows) + ccMoneyHtml(b) + '</div></details>';
+      '<div class="cc-fold-b">' + ccRowsHtml(b.rows, kind, i) + ccMoneyHtml(b) + '</div></details>';
   }
   // Те саме по всій пропозиції — під кошторисом, щоб рішення «дати ще знижку»
   // ухвалювалось із відомим залишком, а не на око
@@ -3226,15 +3784,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var C = OFFER.mgr || {};
     var s = C.sum;
     if(!s) return '';
-    var items = C.items || {}, reco = C.reco || {};
+    var items = C.items || {}, reco = C.reco || {}, vars = C.vars || {};
     var keys = Object.keys(items).sort(function(a, b){ return a - b; });
     var rkeys = Object.keys(reco).sort(function(a, b){ return a - b; });
-    function block(b, isReco){
-      return '<div class="cc-item' + (isReco ? ' is-reco' : '') + '">' +
+    /* Варіанти сюди не потрапляли зовсім: адмінка їх рахує й кладе в C.vars,
+       а цей список читав лише items і reco. Через це прорахунку «Футболки
+       поло» не було ні тут, ні в її картці. */
+    var vkeys = Object.keys(vars).sort(function(a, b){ return a - b; });
+    function block(b, kind, idx){
+      return '<div class="cc-item' + (kind !== 'main' ? ' is-reco' : '') + '">' +
         '<div class="cc-name">' + esc(b.name || '') +
-          (isReco ? ' <em>рекомендований</em>' : '') + '</div>' +
+          (kind === 'reco' ? ' <em>рекомендований</em>' : '') +
+          (kind === 'variant' ? ' <em>варіант на вибір</em>' : '') + '</div>' +
         (b.meta ? '<div class="cc-meta">' + esc(b.meta) + '</div>' : '') +
-        ccRowsHtml(b.rows) + ccMoneyHtml(b) +
+        ccRowsHtml(b.rows, kind, idx) + ccMoneyHtml(b) +
       '</div>';
     }
     var m = +s.margin || 0;
@@ -3256,10 +3819,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<p class="cc-hint">Знижка за тираж і підготовка макета рахуються всередині групи, ' +
             'а не по одній позиції. Однаковий ескіз на різних виробах — один макет.</p>'
           : '') +
-        keys.map(function(k){ return block(items[k], false); }).join('') +
+        keys.map(function(k){ return block(items[k], 'main', +k); }).join('') +
+        (vkeys.length
+          ? '<div class="cc-sec">Варіанти на вибір — у суму входить лише обраний</div>' +
+            vkeys.map(function(k){ return block(vars[k], 'variant', +k); }).join('')
+          : '') +
         (rkeys.length
           ? '<div class="cc-sec">Рекомендовані — у суму не входять</div>' +
-            rkeys.map(function(k){ return block(reco[k], true); }).join('')
+            rkeys.map(function(k){ return block(reco[k], 'reco', +k); }).join('')
           : '') +
         '<div class="cc-total">' +
           '<div class="cc-row"><span>Виробів у замовленні</span><b>' + (+s.qty || 0) + ' шт</b></div>' +
@@ -3273,10 +3840,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '</div>' +
       '</div></details>';
   }
-  function priceBoxHtml(i){
-    var s = itemState(i);
+  /* Той самий блок рахунку і для варіантів: ціна за одиницю → кількість →
+     сума. Раніше він був лише в основних позиціях, і в деталях варіанта
+     арифметики не було взагалі — картка називала ціну, а перевірити її було
+     ніде. Стан передається зовні, бо у варіанта він свій. */
+  /* Позиція без розкладу не може мати чесного «було»: ціну для неї колись
+     записали числом, а з чого вона склалась — невідомо, тож порахувати ту
+     саму позицію однією штукою нема з чого. Перекреслену ціну в такому разі
+     не показуємо — вигадана знижка гірша за її відсутність. Але мовчати теж
+     не можна: менеджер бачить, що в одній картці вигода є, а в сусідній ні,
+     і читає це як поломку. Тому кажемо прямо — і тільки йому. */
+  function staleNote(it){
+    /* Саме noBase, а не «ціна застаріла»: позиція може бути без розкладу, але
+       з чесно розкрученою початковою ціною — і тоді пояснювати нічого. */
+    if(!MGR_EDIT_ON() || !it || !it.noBase) return '';
+    return '<div class="pqty-n is-todo">Старої ціни тут немає: початкову ціну не ' +
+      'вдалось порахувати. Відкрийте позицію й збережіть — вигода зʼявиться.</div>';
+  }
+  /* Наступний поріг тиражу: найменший із тих, що більші за поточну кількість.
+     Працює сам для будь-яких порогів — 2, 5, 10, 30: узяв 10 — покаже 30.
+     Дійшли до останнього — рядка немає, бо пропонувати нічого.
+     Це замість «вигоди»: вигода вже намальована перекресленою ціною поруч, а
+     тут місце для того, що клієнт ще МОЖЕ отримати, якщо візьме більше. */
+  function nextTierHtml(it, qty){
+    var next = (it && it.tiers || [])
+      .filter(function(t){ return t && +t.qty > qty && +t.unit > 0; })
+      .sort(function(a, b){ return a.qty - b.qty; })[0];
+    if(!next) return '';
+    return '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '/шт</div>';
+  }
+  function priceBoxHtml(i, stIn, key){
+    var s = stIn || itemState(i);
     return '' +
-      '<div class="price-box" data-price-box="' + i + '">' +
+      '<div class="price-box" data-price-box="' + (key || i) + '">' +
         '<div class="pb-row"><span class="pb-k">Ціна за одиницю</span>' +
           '<span class="pb-v">' + money(s.unit) + '</span></div>' +
         '<div class="pb-row"><span class="pb-k">Кількість</span>' +
@@ -3306,8 +3902,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var st = itemState(i);
     var on = isOn(i);
     var it = OFFER.items[i];
-    var next = (it.tiers || []).filter(function(t){ return t.qty > st.qty; })
-                               .sort(function(a, b){ return a.qty - b.qty; })[0];
     return '' +
       '<div class="pqty' + (on ? '' : ' off') + '">' +
         '<div class="prow">' +
@@ -3324,8 +3918,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               : '') +
           '</div>' +
         '</div>' +
+        staleNote(it) +
         // Множення тут не робимо: підсумок по позиції рахує кошторис
-        (next ? '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '</div>' : '') +
+        /* Один напис на всі види карток: доти в основних позиціях стояло
+           «Від 30 шт — 980 грн», а у варіантах інше — два різні тексти для
+           того самого в одному документі. */
+        nextTierHtml(it, st.qty) +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
@@ -3345,6 +3943,88 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</div>';
   }
 
+  /* ── Блок «Оберіть варіант» ────────────────────────────────────────────
+     Клієнт просив порахувати кілька виробів під ту саму задачу. Візьме він
+     один. Тому це перемикач, а не галочки: обрав другий — перший знявся
+     сам, і в кошторисі завжди рівно одна позиція з групи.
+
+     Ціна в кожного варіанта — справжня: порахована так, ніби взяли саме
+     його, разом з усім рештою складу. Тому переключення міняє не лише свій
+     рядок, а й ціни інших позицій, якщо від цього змінився тираж. */
+  function variantsHtml(){
+    var groups = variantGroups();
+    if(!groups.length) return '';
+    return '<section id="variants">' +
+      '<h2 class="sec-title">Оберіть варіант</h2>' +
+      groups.map(function(g){
+        var chosen = pick.variant[g.name];
+        /* Назва групи потрібна лише тоді, коли груп кілька — інакше вона
+           переказує заголовок «Оберіть варіант», що стоїть рядком вище.
+           Бейджа «ще не обрано» немає зовсім: стан і так написаний на кнопці
+           кожної картки, а вгорі він лише додавав блоку висоти. */
+        return '<div class="vgroup">' +
+          (groups.length > 1 ? '<div class="vgroup-h">' + esc(g.name) + '</div>' : '') +
+          g.idx.map(function(i){
+            var v = OFFER.variants[i], st = varState(i);
+            var on = String(chosen) === String(i);
+            /* Картка варіанта — така сама, як у звичайного товару: ракурси
+               перед і зад, назва, характеристики, «Деталі позиції». Спершу
+               вона була компактною плиткою, і виявилось, що порівнювати
+               нема чим: ні тканини, ні розмірів нанесення, ні спини. А
+               порівняння — це рівно те, заради чого блок існує. */
+            var vtag = on ? 'обрано' : 'варіант на вибір';
+            var vgal = galleryHtml(v, 'v' + i, 'variant', vtag);
+            return '<div class="pcard is-var' + (on ? ' is-taken' : '') + '">' +
+              vgal +
+              '<div class="pcard-info">' +
+                '<div class="pcard-head">' +
+                  // фото немає — позначці ніде лягти, лишаємо її над назвою
+                  (vgal ? '' : '<div class="pcard-tag">' + vtag + '</div>') +
+                  '<h3 class="pcard-name">' + esc(v.name) + '</h3>' +
+                /* Способу нанесення під назвою більше немає. Він написаний у
+                   «Деталях позиції», у рядку «Нанесення», разом із розміром —
+                   там йому й місце. Два підписи того самого лише додавали
+                   картці висоти: у блоці порівняння, де карток кілька поспіль,
+                   кожен зайвий рядок множиться на їхню кількість. */
+                  (v.recoNote ? '<div class="pcard-why">' + esc(v.recoNote) + '</div>' : '') +
+                '</div>' +
+              '</div>' +
+              /* Угорі картки — тільки те, що порівнюють очима: ціна за штуку,
+                 перекреслена стара і вигода. Множення «×5 шт = стільки»
+                 переїхало в деталі позиції: у блоці порівняння воно займало
+                 рядок, який мав належати різниці між варіантами, і в сусідніх
+                 картках стояли однакові числа кількості. */
+              '<div class="pqty">' +
+                '<div class="prow"><div class="prow-l">' +
+                  '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                  (st.qty && st.base > st.sum
+                    ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
+                      '<span class="pcard-off">−' +
+                        Math.round((1 - st.sum / st.base) * 100) + '%</span>'
+                    : '<span class="pcard-per">за штуку</span>') +
+                '</div></div>' +
+                nextTierHtml(v, st.qty) + staleNote(v) +
+                '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
+                  esc(g.name) + '|' + i + '">' +
+                  (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
+              '</div>' +
+              /* Прорахунок варіанта — на тому самому місці, що й у основної
+                 позиції: під ціною, згорнутий. Доти його не було ніде —
+                 варіанти малює окрема функція, і виклик сюди не дійшов, а
+                 сам mgrCalcHtml шукав варіант серед основних. */
+              mgrCalcHtml(i, 'variant') +
+              '<details class="pcard-more">' +
+                '<summary>Деталі позиції</summary>' +
+                '<div class="pcard-more-body">' + specsHtml(v, 'v' + i, st) +
+                  priceBoxHtml(i, st, 'v' + i) +
+                  '</div>' +
+              '</details>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }).join('') +
+    '</section>';
+  }
   function itemsHtml(){
     return '' +
       '<section id="offerStart">' +
@@ -3354,19 +4034,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             'решта сторінки збереться навколо нього сама.</div>' : '') +
         OFFER.items.map(function(it, i){
           var st = itemState(i);
-          var tech = (it.techniques || []).join(', ') || it.print || '';
           var main = (it.mockups || [])[0] || '';
+          var otag = it.optional ? (isOn(i) ? 'обрано' : 'варіант на вибір') : '';
+          var ogal = galleryHtml(it, i, 'main', otag);
           return '<div class="pcard' + (it.optional ? ' is-opt' : '') +
                  (it.optional && isOn(i) ? ' is-taken' : '') + '">' +
             // Спершу товар, і лише потім цифри: людина має встигнути захотіти
-            galleryHtml(it, i, 'main') +
+            ogal +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
-                (it.optional
-                  ? '<div class="pcard-tag">' + (isOn(i) ? 'обрано' : 'варіант на вибір') + '</div>'
+                (otag && !ogal
+                  ? '<div class="pcard-tag">' + otag + '</div>'
                   : '') +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
-                (tech ? '<div class="pcard-meta">' + esc(tech) + '</div>' : '') +
+              /* Способу нанесення під назвою більше немає. Він написаний у
+                   «Деталях позиції», у рядку «Нанесення», разом із розміром —
+                   там йому й місце. Два підписи того самого лише додавали
+                   картці висоти: у блоці порівняння, де карток кілька поспіль,
+                   кожен зайвий рядок множиться на їхню кількість. */
                 /* Підпис менеджера — чому саме цей виріб. Питання «а чим
                    поло краще за футболку» виникає рівно тут, під назвою, а
                    не в деталях позиції, куди мало хто відкриває. */
@@ -3384,7 +4069,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) +
-                priceBoxHtml(i) + mgrCalcHtml(i, 'main') + '</div>' +
+                priceBoxHtml(i) + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
@@ -3397,24 +4082,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           return '<div class="pcard" data-recocard="' + i + '">' +
             /* Рекомендація, яку вже додали, — така сама позиція: ракурси
                редагуються тим самим способом, що й в основних товарах. */
-            (EDIT ? galleryHtml(r, i, 'reco')
-                  : '<div class="pshot">' + (m ? '<img src="' + esc(m) + '" alt="' + esc(r.name) + '" ' +
-                    'onerror="this.parentNode.style.visibility=\'hidden\'">' : '') + '</div>') +
+            /* Та сама галерея, що в основних: перед і спина, гортання,
+               збільшення. Доти клієнт бачив у рекомендованій ОДНЕ фото —
+               картка виглядала біднішою за сусідні, хоч ракурси в ній уже
+               зняті. */
+            galleryHtml(r, 'r' + i, 'reco') +
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
-                '<div class="pcard-meta">' +
-                  [(r.techniques || []).join(', ') || r.print, r.color].filter(Boolean).map(esc).join(' · ') +
-                '</div>' +
               '</div>' +
             '</div>' +
             '<div class="pqty">' +
               '<div class="prow">' +
                 '<div class="prow-l"><span class="pcard-price">' + money(rs.unit) + '</span>' +
-                  '<span class="pcard-per">за штуку</span></div>' +
+                  (rs.qty && rs.base > rs.sum
+                    ? '<span class="pcard-old">' + money(rs.base / rs.qty) + '</span>' +
+                      '<span class="pcard-off">−' +
+                        Math.round((1 - rs.sum / rs.base) * 100) + '%</span>'
+                    : '<span class="pcard-per">за штуку</span>') + '</div>' +
                 '<div class="prow-r"><span class="prow-k">Виготовлення</span>' +
                   '<span class="prow-v">' + curDays() + ' роб. днів</span></div>' +
               '</div>' +
+              nextTierHtml(r, rs.qty) + staleNote(r) +
               '<div class="pbuy-row">' +
                 '<div class="pstep">' +
                   '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
@@ -3424,6 +4113,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'У замовленні</button>' +
               '</div>' +
             '</div>' +
+            /* Ті самі «Деталі позиції», що в основних і у варіантах. Доти
+               рекомендована картка їх не мала зовсім: клієнт бачив назву й
+               ціну, а з чого пошито й що саме наносять — ніде. */
+            '<details class="pcard-more">' +
+              '<summary>Деталі позиції</summary>' +
+              '<div class="pcard-more-body">' + specsHtml(r, 'r' + i, rs) +
+                priceBoxHtml(i, rs, 'r' + i) + '</div>' +
+            '</details>' +
             mgrCalcHtml(i, 'reco') +
           '</div>';
         }).join('') +
@@ -3485,58 +4182,108 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(!pick.reco[i]) return;
       var rs = recoState(i);
       rows.push({ th:(r.mockups||[])[0], all:(r.mockups||[]).filter(Boolean),
-                  name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true });
+                  name:r.name, qty:rs.qty, unit:rs.unit, sum:rs.sum, reco:true,
+                  base:rs.base });
+    });
+    variantPicked().forEach(function(vi){
+      var v = OFFER.variants[vi], vs = varState(vi);
+      rows.push({ th:(v.mockups||[])[0], all:(v.mockups||[]).filter(Boolean),
+                  name:v.name, qty:vs.qty, unit:vs.unit, sum:vs.sum, reco:false,
+                  base:vs.base });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
-    // Ціна за штуку без знижки за тираж і виграш по кожній позиції
+    /* Ціна за штуку без знижки за тираж — та сама, що в картці позиції. Один
+       розрахунок на обидва місця: щойно вони розійдуться, клієнт побачить
+       одну знижку в картці й іншу в кошторисі, і повірить меншій. */
     rows.forEach(function(r){
-      r.baseUnit = r.qty > 0 ? Math.round((r.base != null ? r.base : r.sum) / r.qty) : r.unit;
-      r.off = Math.max(0, (r.base != null ? r.base : r.sum) - r.sum);
+      var b = (r.base != null ? r.base : r.sum);
+      r.baseUnit = r.qty > 0 ? Math.round(b / r.qty) : r.unit;
+      r.off = Math.max(0, b - r.sum);
+      r.pct = (b > r.sum && b > 0) ? Math.round((1 - r.sum / b) * 100) : 0;
     });
+    var units = rows.reduce(function(a, r){ return a + r.qty; }, 0);
+    var pct = (t.base > t.sum && t.base > 0) ? Math.round((1 - t.sum / t.base) * 100) : 0;
+    var word = function(n, one, few, many){
+      var d = n % 10, dd = n % 100;
+      if(d === 1 && dd !== 11) return one;
+      if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return few;
+      return many;
+    };
+    /* Один рядок «скільки і чого» замість шапки таблиці: клієнт має за пару
+       секунд зрозуміти обсяг, а не читати назви колонок. */
+    var meta = rows.length + ' ' + word(rows.length, 'позиція', 'позиції', 'позицій') +
+               ' · ' + units + ' ' + word(units, 'одиниця', 'одиниці', 'одиниць');
     return '' +
       '<section id="estimate" class="full">' +
         '<div class="est">' +
-          '<h2 class="est-h">Кошторис</h2>' +
-          // «Кількість» і «Ціна за шт» у вузьких колонках налазять одне на одне —
-          // у шапці лишаємо скорочення, самі цифри від цього не страждають
-          '<div class="est-head"><span>Товар</span><span>К-сть</span>' +
-            '<span>За шт</span><span>Сума</span></div>' +
-          rows.map(function(r){
-            return '<div class="est-r">' +
-              '<span class="est-nm">' +
-                '<i class="est-th"' + (r.all && r.all.length ? ' data-estzoom="' +
+          /* Угорі — тільки те, заради чого сюди дивляться: скільки платити.
+             Решта цифр нижче. Доти верх був шапкою таблиці, і найбільше число
+             сторінки губилось у самому низу. */
+          '<div class="est-top">' +
+            '<div class="est-top-l">' +
+              '<h2 class="est-h">Кошторис</h2>' +
+              '<div class="est-meta">' + esc(meta) + '</div>' +
+            '</div>' +
+            '<div class="est-top-r">' +
+              '<div class="est-total">' + num(t.sum) + ' грн</div>' +
+              (t.save > 0
+                ? '<div class="est-chip">Економія ' + num(t.save) + ' грн · ' + pct + '%</div>'
+                : '') +
+            '</div>' +
+          '</div>' +
+          /* Позиції: на телефоні картки, на широкому екрані — рядки таблиці.
+             Одна розмітка, різна розкладка: стиснута десктопна таблиця на
+             390 px давала «Ф…» замість назви й три колонки цифр упритул. */
+          '<div class="est-list">' +
+            rows.map(function(r){
+              return '<div class="est-i">' +
+                '<i class="est-i-ph"' + (r.all && r.all.length ? ' data-estzoom="' +
                     esc(r.all.join('|')) + '"' : '') + '>' +
                   (r.th ? '<img src="' + esc(r.th) + '" alt="" loading="lazy" ' +
                   'onerror="this.style.display=\'none\'">' : '') + '</i>' +
-                '<span class="est-nm-t"><b>' + esc(r.name) + '</b>' +
-                  (r.reco ? '<em>додано</em>' : '') +
-                  '<span class="est-mul">' + r.qty + ' × ' + num(r.unit) + ' грн</span></span>' +
-              '</span>' +
-              '<span>' + r.qty + ' шт</span>' +
-              /* Ціна за штуку двома рядками: скільки коштувала б без знижки
-                 за тираж і скільки коштує тут. Одна цифра без другої нічого
-                 не каже — саме різниця між ними і є те, що клієнт виграє,
-                 замовляючи тираж, а не поштучно. */
-              '<span class="est-u">' +
-                (r.baseUnit > r.unit ? '<s>' + num(r.baseUnit) + '</s>' : '') +
-                '<b>' + num(r.unit) + '</b></span>' +
-              '<span class="est-s">' + num(r.sum) + ' грн' +
-                (r.off > 0 ? '<em>−' + num(r.off) + ' грн</em>' : '') + '</span>' +
-            '</div>';
-          }).join('') +
-          /* Знижка за тираж сидить у ціні кожної позиції, тому в рядках вище
-             її не видно — і клієнт не знає, що вона взагалі є. Показуємо
-             окремо: скільки коштувало б без тиражу, скільки зняв тираж і
-             скільки на цьому зекономлено. Цифри не вигадані — це та сама
-             сума, порахована рушієм без знижки за кількість.
-             Немає знижки — немає й рядків: «економія 0 грн» гірша за тишу. */
-          (t.save > 0
-            ? '<div class="est-sub"><span>Без знижки за тираж</span><b>' + num(t.base) + ' грн</b></div>' +
-              '<div class="est-sub est-off"><span>Знижка за тираж</span><b>−' + num(t.save) + ' грн</b></div>'
-            : '') +
-          '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
-          (t.save > 0
-            ? '<div class="est-save">Ви економите <b>' + num(t.save) + ' грн</b></div>' : '') +
+                '<div class="est-i-t">' +
+                  '<div class="est-i-nm">' + esc(r.name) +
+                    (r.reco ? '<em>додано</em>' : '') + '</div>' +
+                  '<div class="est-i-mul">' + r.qty + ' шт × ' + num(r.unit) + ' грн</div>' +
+                  /* Стара ціна — вторинна: сіра й перекреслена, під головним
+                     рядком. Вона пояснює знижку, але не сперечається з нею
+                     за увагу. */
+                  (r.pct > 0
+                    ? '<div class="est-i-was"><s>' + num(r.baseUnit) + ' грн/шт</s>' +
+                      '<span class="est-i-arr">→</span><b>' + num(r.unit) + ' грн/шт</b></div>' +
+                      '<div class="est-i-badge">−' + r.pct + '% за тираж</div>'
+                    : '') +
+                '</div>' +
+                '<div class="est-i-sum">' + num(r.sum) + ' грн</div>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+          /* Підсумок окремою карткою: три числа підряд — скільки коштувало б,
+             скільки зняв тираж, скільки платити. Саме в такому порядку його й
+             читають, і саме останнє має бути найбільшим на всій сторінці. */
+          '<div class="est-card">' +
+            '<div class="est-card-h">Ваш кошторис</div>' +
+            (t.save > 0
+              ? '<div class="est-line"><span>Вартість без знижки</span><b>' +
+                  num(t.base) + ' грн</b></div>' +
+                '<div class="est-line is-off"><span>Знижка за тираж</span><b>−' +
+                  num(t.save) + ' грн</b></div>'
+              : '') +
+            '<div class="est-div"></div>' +
+            '<div class="est-pay"><span>До сплати</span><b>' + num(t.sum) + ' грн</b></div>' +
+            (t.save > 0
+              ? '<div class="est-chip est-chip-b">Економія ' + num(t.save) +
+                ' грн · ' + pct + '%</div>' : '') +
+          '</div>' +
+          /* Що входить у ціну — дрібним рядком. Питання «а це вже з нанесенням?»
+             виникає рівно тут, і відповідь на нього не варта окремої секції. */
+          '<div class="est-inc">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+              'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+              '<path d="M20 6 9 17l-5-5"/></svg>' +
+            '<span><b>У вартість включено</b> Одяг · Нанесення · Підготовка макета · ' +
+              'Контроль якості</span>' +
+          '</div>' +
           /* Що порахували, а що ні. Без цього рядка кошторис виглядає як
              повна відповідь: людина дивилась три варіанти, взяла один — і
              не бачить, що інші два просто не враховані, а не зникли. */
@@ -3547,38 +4294,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
               '. Ціну видно в картці — натисніть «Додати в замовлення», і сума перерахується.</div>';
           })() +
+          /* Дії одразу під сумою. На телефоні внизу вже стоїть липка панель із
+             «Підтвердити» — другу таку саму кнопку в тому ж екрані ставити не
+             можна, тож там лишається тільки «Скачати кошторис». */
+          '<div class="est-cta">' +
+            '<button class="btn btn-ghost" id="estPdfBtn">Скачати кошторис</button>' +
+            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію →</button>' +
+          '</div>' +
         '</div>' +
         mgrCalcAllHtml() +
       '</section>';
-  }
-
-  // Найбільший страх корпоративного клієнта — не ціна, а «раптом зроблять не те»
-  // і «як я це проведу». Обидва питання виникають рівно в момент, коли він
-  // побачив суму, тому відповіді стоять тут, а не в розділі внизу сторінки.
-  function reassureHtml(){
-    /* Тут лишається тільки те, чого клієнт сам не бачить: умови оплати й
-       документи. «Макет погоджуємо до запуску» і «підготовка макета — один
-       раз» він і так розуміє, а поруч із гарантіями це просто повтор. */
-    var rows = [];
-    // Про документи кажемо лише якщо це справді ваша заявлена умова
-    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
-    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
-    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
-    var IC = {
-      shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
-      repeat:'<path d="M4 9a8 8 0 0 1 13.7-5.7L20 5.5"/><path d="M20 15a8 8 0 0 1-13.7 5.7L4 18.5"/><path d="M20 3v3h-3M4 21v-3h3"/>',
-      doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
-      card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
-    };
-    return '' +
-      '<div class="rea">' + rows.map(function(r){
-        return '<div class="rea-i">' +
-          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E" ' +
-            'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + IC[r[0]] + '</svg>' +
-          '<div><b>' + esc(r[1]) + '</b><span>' + esc(r[2]) + '</span></div>' +
-        '</div>';
-      }).join('') + '</div>' +
-      '<p class="rea-ask">Потрібен зразок перед тиражем — напишіть менеджеру, узгодимо.</p>';
   }
 
   function recoHtml(){
@@ -3595,7 +4320,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
         '<div class="rrow">' + OFFER.reco.slice(0, 4).map(function(r, i){
           var on = !!pick.reco[i];
-          var tech = (r.techniques || []).join(', ') || r.print || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
             '<div class="rc-ph">' + (r.mockups[0]
               ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
@@ -3614,6 +4338,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
             edBar('reco', i, null) +
             edSlotHtml('reco', i) +
+            /* Прорахунок і тут, у пропонованій картці: доти він зʼявлявся
+               ЛИШЕ після того, як клієнт додав рекомендацію в замовлення —
+               тобто саме тоді, коли міняти вже нічого. Менеджеру він
+               потрібен до того, поки він цю рекомендацію ще складає. */
+            mgrCalcHtml(i, 'reco') +
           '</div>';
         }).join('') + '</div>' +
         edAdd('reco') +
@@ -3628,24 +4357,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      винесемо їх у налаштування. Кожен блок ховається, якщо даних немає:
      порожній заголовок гірший за його відсутність. */
 
-  var TIMELINE = ['Погодження', 'Підготовка', 'Виробництво', 'Контроль якості', 'Доставка'];
-  /* Гарантії. Кожен рядок знімає конкретний страх, а не вихваляє нас:
-     «а раптом вийде не те», «а раптом доведеться доплачувати за правки»,
-     «а раптом брак», «а раптом наступного разу буде інакше». */
-  /* Ті самі гарантії, що на сторінці «Гарантія» сайту — слово в слово по
-     суті, лише коротше. Обіцяти в пропозиції одне, а в публічній гарантії
-     інше не можна: клієнт порівняє, і це коштуватиме довіри дорожче за
-     будь-який гарний рядок. */
-  /* Лишаємо тільки те, що клієнт не може перевірити сам до отримання.
-     «Виготовляємо після підтвердження макета» він і так бачить з процесу,
-     а обіцянка про стійкість друку без строку нічого не важить. */
-  /* Ті самі пункти, що на сторінці «Гарантія» сайту. У кожного своя іконка:
-     чотири однакові щити перетворювали список на орнамент — око перестає
-     розрізняти рядки й читає їх як один. */
-  var GUARANTEES = [
-    ['photo', 'Надсилаємо фото готового виробу перед відправкою'],
-    ['back',  'Виріб не відповідає погодженому макету — виправимо безкоштовно або повернемо кошти'],
-    ['time',  'Звертайтесь протягом 14 днів після отримання — розберемось з будь-яким питанням']
+  /* Пʼять етапів замовлення. Кожен — не тільки назва, а й один рядок про те,
+     що на ньому відбувається: сама назва «Погодження» нічого не пояснює
+     людині, яка замовляє вперше, і саме на цих словах вона й вирішує, чи
+     розуміє процес. Другий етап названо «Макет», а не «Підготовка» — це те
+     єдине, що клієнт робить руками, і воно має називатись своїм імʼям. */
+  var FLOW = [
+    ['Погодження',      'Звіряємо склад, тираж і терміни'],
+    ['Макет',           'Готуємо й погоджуємо з вами до запуску'],
+    ['Виробництво',     'Шиємо й наносимо після вашого «так»'],
+    ['Контроль якості', 'Перевіряємо кожну одиницю партії'],
+    ['Доставка',        'Надсилаємо фото готового і відправляємо']
   ];
 
   // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
@@ -3662,13 +4384,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }).filter(function(q){ return q[0] && q[1]; });
   }
 
-  function timelineHtml(){
+  /* Етапи однією лінією, а не пʼятьма картками. Картки читались як пʼять
+     окремих блоків і ховали головне — що це послідовність. Тепер номер
+     стоїть на самій лінії й вибиває в ній проміжок: рамок немає взагалі,
+     а звʼязок видно. На вузькому екрані лінія просто повертається
+     вертикально — той самий обʼєкт, інша вісь. */
+  function flowHtml(){
     return '' +
-      '<h3 class="det-h">Як проходитиме замовлення</h3>' +
-        '<div class="tl">' + TIMELINE.map(function(x, i){
-          return '<div class="tl-step"><span class="tl-n">' + (i + 1) + '</span>' +
-                 '<span class="tl-t">' + esc(x) + '</span></div>';
-        }).join('') + '</div>';
+      '<section class="flow">' +
+        '<h2 class="sec-title">Як пройде ваше замовлення</h2>' +
+        '<ol class="fl">' + FLOW.map(function(x, i){
+          return '<li class="fl-s">' +
+            '<span class="fl-n">' + (i < 9 ? '0' : '') + (i + 1) + '</span>' +
+            '<b class="fl-t">' + esc(x[0]) + '</b>' +
+            '<span class="fl-d">' + esc(x[1]) + '</span>' +
+          '</li>';
+        }).join('') + '</ol>' +
+      '</section>';
   }
 
   // Персональний коментар менеджера. Без нього блоку немає — загальні слова
@@ -3719,62 +4451,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
-  /* Гарантії лежали в загальному розкритті «Терміни, гарантії та умови» —
-     тобто найсильніший аргумент проти страху передоплати не бачив ніхто.
-     Тепер це окрема видима секція на темному тлі. */
-  function guaranteesHtml(){
-    return '' +
-      '<div class="gcards">' + GUARANTEES.map(function(g){
-        return '<div class="gcard">' + TICK + '<span>' + esc(g) + '</span></div>';
-      }).join('') + '</div>';
-  }
-  var G_IC = {
-    shield:'<path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
-    ok:'<circle cx="12" cy="12" r="8.8"/><path d="m8.2 12.2 2.6 2.6 5-5.4"/>',
-    photo:'<path d="M3 8.5h3.2l1.6-2.4h8.4l1.6 2.4H21v10H3Z"/><circle cx="12" cy="13" r="3.4"/>',
-    back:'<path d="M4 10a8 8 0 0 1 13.6-5.6L20 6.8"/><path d="M20 6.8V3M20 6.8h-3.8"/><path d="M20 14a8 8 0 0 1-13.6 5.6L4 17.2"/><path d="M4 17.2V21M4 17.2h3.8"/>',
-    wash:'<path d="M12 3.2s5.4 5.3 5.4 9a5.4 5.4 0 1 1-10.8 0c0-3.7 5.4-9 5.4-9Z"/><path d="M9.4 13.6a2.6 2.6 0 0 0 2.6 2.6"/>',
-    time:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3.2 2"/>',
-    doc:'<rect x="4.5" y="3" width="15" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h5M8.5 16h6"/>',
-    card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>'
-  };
-  function gcard(ic, title, note){
-    return '<div class="gcard">' +
-      '<span class="gc-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
-        (G_IC[ic] || G_IC.shield) + '</svg></span>' +
-      '<span class="gc-tx"><b>' + esc(title) + '</b>' +
-        (note ? '<i>' + esc(note) + '</i>' : '') + '</span></div>';
-  }
-  // Документи й оплата — це теж зобовʼязання, тож живуть у блоці гарантій
-  function reassureRows(){
-    var rows = [];
-    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0];
-    if(docs) rows.push(['doc', 'Документи для бухгалтерії', docs]);
-    if(OFFER.terms && OFFER.terms.payment) rows.push(['card', 'Оплата', OFFER.terms.payment]);
-    return rows;
-  }
-
-  function guaranteesSection(){
-    var extra = (OFFER.includes || []).filter(function(t){ return /якіст|перевір|контрол/i.test(t); });
-    return '' +
-      '<section class="guar">' +
-        '<h2 class="sec-title">Гарантії</h2>' +
-        /* Підзаголовка тут немає навмисно. Спершу він пояснював, звідки ці
-           умови, потім — що вони означають; і те, й те виявилось переказом
-           самих пунктів. Три рядки нижче говорять за себе. */
-        /* Один стиль на весь блок: іконка в кружечку, назва і пояснення —
-           той самий вигляд, що був у документів і оплати. Галочки в рядок
-           виглядали як список справ, а не як зобовʼязання. */
-        '<div class="gcards">' +
-          GUARANTEES.map(function(g){ return gcard(g[0], g[1], ''); }).join('') +
-          extra.map(function(g){ return gcard('shield', g, ''); }).join('') +
-          reassureRows().map(function(r){
-            return gcard(r[0], r[1], r[2]);
-          }).join('') +
-        '</div>' +
-      '</section>';
-  }
+  /* Секція «Гарантії» стояла перед кошторисом і повторювала те саме, що
+     блок довіри внизу: фото перед відправкою, безкоштовне виправлення,
+     документи, оплата. Одна обіцянка двічі на сторінці не подвоює довіру —
+     вона змушує шукати, чим ці два списки відрізняються. Лишився один
+     блок, унизу, поруч із рішенням. */
 
   /* ── Заглушки ──────────────────────────────────────────────────────
      Блоки довіри без справжнього наповнення шкодять більше, ніж їх
@@ -3890,21 +4571,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }).join('') + '</div>';
   }
 
+  function reviewsUrl(){
+    var base = String(brand().site || '').replace(/\/+$/, '');
+    if(!base){ try{ base = location.origin; }catch(e){ base = ''; } }
+    return base + '/?start=reviews';
+  }
   function reviewsSection(){
 
     return '' +
       '<section>' +
         '<div class="rev-head">' +
           '<h2 class="sec-title">Відгуки</h2>' +
-          // Кажемо, що на фото — справжні замовлення. Без цього рядка їх
-          // читають як стокові картинки й пропускають.
-          '<span class="rev-note">Фото — з реальних замовлень</span>' +
-          /* Посилання лише тоді, коли в бренду є сайт: вести клієнта Stvory
-             на чужий домен гірше, ніж не показати рядок узагалі. */
-          (brand().site
-            ? '<a class="rev-all" href="' + esc(brand().site.replace(/\/+$/, '')) + '/?start=reviews" target="_blank" rel="noopener">' +
-                'Усі відгуки ›</a>'
-            : '') +
+          /* Сторінка з усіма відгуками вже є на сайті — ведемо туди кнопкою,
+             а не дрібним посиланням: її мають бачити.
+             Домен беремо з бренду, а якщо в нього свого немає — з адреси, за
+             якою відкрито саму пропозицію: вести клієнта Stvory на чужий сайт
+             гірше, ніж нікуди. */
+          '<a class="rev-all" href="' + esc(reviewsUrl()) + '" ' +
+            'target="_blank" rel="noopener">Переглянути всі відгуки</a>' +
         '</div>' +
         revsInner() +
       '</section>';
@@ -3914,7 +4598,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var FAQ = faqList();
     if(!FAQ.length) return '';
     return '' +
-      '<h3 class="det-h">Часті питання</h3>' +
+      '<h2 class="sec-title">Часті питання</h2>' +
         '<div class="faq">' + FAQ.map(function(q, i){
           return '<details class="fq"' + (i === 0 ? ' open' : '') + '>' +
             '<summary>' + esc(q[0]) + '</summary>' +
@@ -3922,54 +4606,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }).join('') + '</div>';
   }
 
+  /* Пʼять фактів про те, як ми працюємо. Це не «переваги» — це відповіді на
+     чотири страхи, з якими людина сидить над передоплатою: зроблять не те,
+     зроблять неякісно, не побачу до відправки, не проведу по бухгалтерії.
+     Список фіксований навмисно: це властивості компанії, а не цієї
+     пропозиції, і від замовлення до замовлення вони не змінюються. Поле
+     `trust` в адмінці лишається джерелом рядка про ФОП/ТОВ під умовами. */
+  var TRUST = [
+    'Власне виробництво в Україні',
+    'Макет погоджуємо до запуску',
+    'Контролюємо якість кожної партії',
+    'Надсилаємо фото готового замовлення',
+    'Працюємо офіційно з ФОП та ТОВ'
+  ];
+  var TICK_TH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M20 6 9 17l-5-5"/></svg>';
   function trustHtml(){
-    if(!OFFER.trust || !OFFER.trust.length) return '';
     return '' +
-      '<h3 class="det-h">Чому нам довіряють</h3>' +
-      '<ul class="ticks">' + OFFER.trust.slice(0, 5).map(function(t){
-        return '<li>' + TICK + '<span>' + esc(t) + '</span></li>';
-      }).join('') + '</ul>';
+      '<section class="tru">' +
+        '<h2 class="sec-title">Ваше замовлення під нашим контролем на кожному етапі</h2>' +
+        '<ul class="tru-l">' + TRUST.map(function(t){
+          return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
+        }).join('') + '</ul>' +
+      '</section>';
   }
 
-  function termsHtml(){
-    var v = dateUa(OFFER.terms.validUntil);
-    return '' +
-      '<h3 class="det-h">Умови замовлення</h3>' +
-        '<div class="terms">' +
-          '<div><div class="term-k">Термін виготовлення</div>' +
-            '<div class="term-v" id="termDays">' + daysWord(curDays()) +
-            ' після погодження макета — орієнтовно до ' + readyDate() + '</div></div>' +
-          '<div><div class="term-k">Оплата</div>' +
-            '<div class="term-v">' + esc(OFFER.terms.payment) + '</div></div>' +
-          '<div><div class="term-k">Для запуску</div>' +
-            '<div class="term-v">' + esc(OFFER.terms.startWith) + '</div></div>' +
-          (v ? '<div><div class="term-k">Пропозиція актуальна до</div>' +
-               '<div class="term-v">' + esc(v) + '</div></div>' : '') +
-        '</div>';
+  /* Коротка форма умов оплати для великої цифри: «50% для запуску, решта
+     після готовності партії» → «50% / 50%». Відсоток беремо з тексту, який
+     менеджер написав в адмінці, і нічого не вигадуємо: немає відсотка —
+     немає й цифри, у картці лишиться сам текст. */
+  function payShort(txt){
+    var m = String(txt || '').match(/(\d{1,3})\s*%/);
+    if(!m) return '';
+    var a = +m[1];
+    if(!(a > 0 && a < 100)) return '';
+    return a + '% / ' + (100 - a) + '%';
   }
-  // Хвіст сторінки — в одне розкриття. Кожен екран між сумою і кнопкою це шанс
-  // передумати; хто вагається — розгорне, хто готовий — не гортатиме мимо.
-  /* Терміни, питання й умови більше не сховані під «розгорнути». Людина
-     ухвалює рішення на десятки тисяч — і саме тут у неї останні питання;
-     ховати відповіді за клік означало залишити їх без відповіді. Замість
-     акордеона — звичайний розділ, розбитий на підзаголовки. */
+  // «2 вересня» без року: рік у даті, до якої лишився тиждень, лише шумить
+  function dayMonth(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    if(isNaN(d)) return '';
+    return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
+  }
+  /* Умови — чотирма картками, де головне значення велике й читається без
+     читання. Досі це був список «підпис зверху, речення знизу»: щоб дізнатись
+     термін, доводилось прочитати рядок до кінця. Тепер спершу видно «7
+     робочих днів», і лише потім, кому цікаво, — до якого числа.
+     Жодна цифра не зашита: термін рахує daysFor() від тиражу, дата
+     готовності — readyDate(), актуальність — те, що стоїть в адмінці. */
+  function condHtml(){
+    var cards = [];
+    var days = curDays();
+    if(days > 0) cards.push([daysWord(days), 'Термін виготовлення',
+                             'Орієнтовно до ' + readyDate(), 'condDays', 'condReady']);
+    var pay = String((OFFER.terms || {}).payment || '').trim();
+    if(pay){
+      var short = payShort(pay);
+      cards.push([short || pay, 'Оплата', short ? pay : '']);
+    }
+    var till = dayMonth((OFFER.terms || {}).validUntil);
+    if(till) cards.push(['До ' + till, 'Пропозиція актуальна', '']);
+    cards.push(['Макет до запуску', '',
+                'Виробництво починається тільки після підтвердження клієнта']);
+    /* Рядок про документи — той, що менеджер написав у полі `trust`. Своє
+       формулювання головніше за наше: у когось ФОП, у когось ТОВ, у когось
+       окрема умова щодо ПДВ. */
+    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0]
+            || 'Працюємо з ФОП та ТОВ · Надаємо всі необхідні документи';
+    return '' +
+      '<section class="cond">' +
+        '<h2 class="sec-title">Умови замовлення</h2>' +
+        '<div class="cond-g">' + cards.map(function(c){
+          return '<div class="cond-c">' +
+            '<div class="cond-v"' + (c[3] ? ' id="' + c[3] + '"' : '') + '>' +
+              esc(c[0]) + '</div>' +
+            (c[1] ? '<div class="cond-k">' + esc(c[1]) + '</div>' : '') +
+            (c[2] ? '<div class="cond-n"' + (c[4] ? ' id="' + c[4] + '"' : '') + '>' +
+              esc(c[2]) + '</div>' : '') +
+          '</div>';
+        }).join('') + '</div>' +
+        '<div class="cond-doc">' + TICK_TH + '<span>' + esc(docs) + '</span></div>' +
+      '</section>';
+  }
+
+  /* Порядок низу: як це буде → на яких умовах → чому нам можна вірити →
+     що ще питають → дія. Кожен наступний блок відповідає на питання, яке
+     виникає після попереднього; після останнього питань не лишається,
+     і там стоїть кнопка. */
   function detailsHtml(){
-    var body = timelineHtml() + faqHtml() + trustHtml() + termsHtml();
-    if(!body) return '';
-    return '<section class="det-open"><div class="det-body">' + body + '</div></section>';
+    return flowHtml() + condHtml() + trustHtml() + faqSection();
+  }
+  function faqSection(){
+    var body = faqHtml();
+    return body ? '<section>' + body + '</section>' : '';
   }
 
-  /* Що буде після натискання. Головний страх на цьому місці — «а що з мене
-     зараз спишуть» і «а раптом одразу запустять у виробництво не те». Три
-     короткі кроки знімають обидва, і найважливіше в них — друге речення
-     третього кроку: до погодження макета не платять нічого. */
-  function nextStepsHtml(){
-    return '<ol class="nsteps">' +
-      '<li><b>Рахунок</b><span>Надішлемо сьогодні, разом зі звіркою деталей</span></li>' +
-      '<li><b>Макет на погодження</b><span>Виробництво починається лише після вашого «так»</span></li>' +
-      '<li><b>Виготовлення</b><span>' + daysWord(curDays()) + ' — і надсилаємо фото готової партії</span></li>' +
-      '</ol>';
-  }
+  /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
+     самий таймлайн вище, переказаний іншими словами. Замість трьох кроків —
+     одне речення про те, що станеться після натискання, і окремий рядок під
+     кнопкою про те, чого НЕ станеться. Саме друге й тримає палець над
+     кнопкою: людина боїться не рахунку, а що замовлення піде у виробництво
+     без неї. */
   function finalHtml(){
     if(OFFER.state === 'confirmed'){
       var who = (OFFER.clientAction || {}).at;
@@ -3982,30 +4721,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
     }
     return '' +
-      '<section class="no-print">' +
-        // Умови — перед рішенням: спершу відповідаємо на «а що як», і лише
-        // потім просимо натиснути.
-        detailsHtml() +
+      // Спершу відповідаємо на «а що як», і лише потім просимо натиснути
+      detailsHtml() +
+      '<section class="no-print cta-wrap">' +
         /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
            екрана рядок виходив задовгим — око губить початок наступного, і
            найважливіший абзац сторінки читається найгірше. */
         '<div class="cta-box">' +
-          '<h2 class="sec-title">Готові замовити?</h2>' +
-          '<p class="sec-sub">Ми звіримо деталі та надішлемо рахунок. ' +
-            'Виробництво починається лише після вашого підтвердження макета.</p>' +
+          '<h2 class="cta-h">Все підходить? Можемо запускати замовлення</h2>' +
+          '<p class="cta-p">Після підтвердження ми звіримо фінальні деталі та ' +
+            'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
+            'замовлення піде тільки після вашого підтвердження.</p>' +
           /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
              привід не вирішувати — а написати менеджеру він може з блоку
              контактів вище, де для цього є і телефон, і месенджери. */
-          nextStepsHtml() +
           '<div class="final">' +
-            '<button class="btn" id="confirmBtn">Підтвердити замовлення</button>' +
-            /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
-               партнеру. Досі це означало «скопіюй адресу з рядка браузера»
-               або скріншот. Тепер поруч своя кнопка: рідне «поділитися» на
-               телефоні, збереження в PDF на компʼютері. */
-            '<button class="btn btn-ghost btn-share" id="shareBtn">' + SHARE_IC +
-              'Поділитися або зберегти PDF</button>' +
+            '<button class="btn" id="confirmBtn">Підтвердити пропозицію</button>' +
           '</div>' +
+          '<p class="cta-note">Підтвердження пропозиції не запускає виробництво ' +
+            'автоматично.</p>' +
+          /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
+             партнеру. Кнопкою це було б другою дією поруч із головною і
+             тягнуло б увагу на себе; тихим рядком — лишається доступним
+             тому, хто його шукає. */
+          '<button class="cta-share" id="shareBtn">' + SHARE_IC +
+            'Поділитися або зберегти PDF</button>' +
         '</div>' +
       '</section>';
   }
@@ -4084,7 +4824,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            а поруч із кнопкою читалась як «стільки списати зараз». */
         '<div class="bar-btns">' +
           '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
-          '<button class="btn" id="barConfirm">Підтвердити замовлення</button>' +
+          '<button class="btn" id="barConfirm">Підтвердити пропозицію</button>' +
         '</div>' +
       '</div>';
   }
@@ -4123,8 +4863,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            після колекції, і виходило «ось рахунок, а тепер вам ще щось
            допродадуть»; гарантії ж читались уже після найтривожнішого
            моменту, коли вони потрібні до нього. */
-        heroHtml() + itemsHtml() + recoHtml() +
-        includesHtml() + whyHtml() + guaranteesSection() +
+        heroHtml() + itemsHtml() + variantsHtml() + recoHtml() +
+        includesHtml() + whyHtml() +
         estimateHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
            потім чужі слова про нас. Після відгуків його майже не гортали. */
@@ -4141,6 +4881,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
+  window.__lqRefresh = function(){ refresh(); };
   function refresh(){
     // Склад міг змінитись — перераховуємо його спільним рушієм перед тим,
     // як показувати будь-яку цифру
@@ -4151,10 +4892,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     set('heroReady', 'до ' + readyDate());
     set('heroDays', ' · ' + daysWord(curDays()));
     var hm = document.getElementById('heroMade');
-    if(hm) hm.textContent = OFFER.items.map(function(it, i){
-      return itemState(i).qty + ' ' + String(it.name || '').toLowerCase();
-    }).join(' · ');
-    set('termDays', daysWord(curDays()) + ' після погодження макета — орієнтовно до ' + readyDate());
+    if(hm) hm.textContent = madeLine();
+    /* Термін залежить від тиражу: клієнт міняє кількість — картка умов
+       мусить рухатись разом із нею, інакше вона показує чужий строк. */
+    set('condDays', daysWord(curDays()));
+    set('condReady', 'Орієнтовно до ' + readyDate());
     OFFER.items.forEach(function(it, i){
       // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
       // а в кошторисі нижче інше.
@@ -4180,6 +4922,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var anchorTop = anchor ? anchor.getBoundingClientRect().top : null;
     var isec = document.getElementById('offerStart');
     if(isec) isec.outerHTML = itemsHtml();
+    /* Блок варіантів теж перемальовуємо. Доти він лишався таким, яким його
+       зібрали при завантаженні: кнопка не ставала «Обрано», ціни не
+       оновлювались, а wire() навішував на ті самі вузли ще один обробник —
+       і другий клік спрацьовував двічі, знімаючи щойно зроблений вибір. */
+    var vsec = document.getElementById('variants');
+    if(vsec) vsec.outerHTML = variantsHtml();
     var rsec = document.getElementById('recoSec');
     if(rsec) rsec.outerHTML = recoHtml();
 
@@ -4504,7 +5252,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var shot = img.closest('.pgal, .pshot');
       var idxAttr = shot && shot.getAttribute('data-shot');
       if(idxAttr != null){
-        var it = OFFER.items[+idxAttr] || {};
+        /* Варіанти мають власну нумерацію, тож їхні галереї підписані «v3».
+           Без цього збільшення відкривало ракурси зовсім іншої позиції — тієї,
+           що стоїть під тим самим номером у складі. */
+        var kf = String(idxAttr).charAt(0);
+        var it = kf === 'v' ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
+               : kf === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
+               : (OFFER.items[+idxAttr] || {});
         // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
         var list = viewsOf(it).map(function(v){ return v && v.img; }).filter(Boolean);
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
@@ -4607,8 +5361,66 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     };
   }
 
+  /* Перемикач виду дизайну живе НЕ в wireEdit: той вимикається, щойно
+     сторінка не в режимі редагування, а прорахунок менеджер найчастіше
+     відкриває саме на вкладці «Як бачить клієнт», де редагування вимкнене.
+     Кнопка там була, але мовчала — і виглядало це як поламана кнопка. */
+  /* Вибір варіанта. Перемикач у межах групи: обрав другий — перший знявся.
+     Повторний клік по обраному знімає вибір — буває, що клієнт передумав і
+     не бере з цієї групи нічого. */
+  function wireVariants(){
+    document.querySelectorAll('[data-vpick]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var p2 = b.dataset.vpick.split('|');
+        var g = p2[0], i = p2[1];
+        if(String(pick.variant[g]) === String(i)) delete pick.variant[g];
+        else pick.variant[g] = +i;
+        refresh();
+        var nm = ((OFFER.variants || [])[+i] || {}).name || '';
+        queueSave('variant', g + ': ' + (pick.variant[g] == null ? 'знято' : nm));
+      });
+    });
+  }
+  /* Правки шапки в режимі «Як бачить клієнт». Повний wireEdit сюди не
+     годиться: він вмикає ще й редактор позиції просто в картці, а в режимі
+     перегляду це вже не перегляд. Тому окремо й лише те, що стосується
+     самої шапки — логотип і заголовок. */
+  function wireHeroEdit(){
+    if(EDIT || !MGR_EDIT_ON()) return;      // у режимі редагування це робить wireEdit
+    document.querySelectorAll('.edlogo [data-ed]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var a = b.dataset.ed;
+        if(logoAct(a)) return;
+        edSend({ act: a });
+      });
+      ['pointerdown','mousedown','touchstart'].forEach(function(t){
+        b.addEventListener(t, function(e){ e.stopPropagation(); });
+      });
+    });
+    var ttl = document.querySelector('[data-ed-title]');
+    if(ttl) ttl.addEventListener('blur', function(){
+      edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
+    });
+  }
+  function wireKindSwitch(){
+    document.querySelectorAll('[data-ckind]').forEach(function(b2){
+      // клік по селектору не має згортати сам прорахунок
+      b2.addEventListener('click', function(e){ e.stopPropagation(); });
+      b2.addEventListener('change', function(e){
+        e.stopPropagation();
+        var p2 = b2.dataset.ckind.split(':');
+        b2.disabled = true;
+        edSend({ act:'designKind', kind:p2[0], i:+p2[1], di:+p2[2], to:b2.value });
+      });
+    });
+  }
   function wire(){
     wireEdit();
+    wireHeroEdit();
+    wireLogoTools();
+    wireKindSwitch();
+    wireVariants();
     tintAll();   // рамки фото беруть колір із самих світлин
     var go = document.getElementById('goOffer');
     if(go) go.onclick = function(){
@@ -4748,7 +5560,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var done = function(msg){
         shareB.classList.add('done');
         var old = shareB.innerHTML;
-        shareB.innerHTML = TICK + msg;
+        shareB.innerHTML = TICK_TH + msg;   // галочка кольором рядка, а не темно-зелена по темному
         setTimeout(function(){ shareB.innerHTML = old; shareB.classList.remove('done'); }, 2200);
       };
       var copy = function(){
@@ -4764,7 +5576,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       copy();
       imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
     };
-    ['confirmBtn','barConfirm'].forEach(function(id){
+    ['confirmBtn','barConfirm','estConfirmBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
         document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
@@ -4772,6 +5584,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         openSheet('ovConfirm');
       };
     });
+    /* «Скачати кошторис» — той самий друк у PDF, що й кнопка нижче. Дію не
+       дублюємо, лише даємо їй вхід просто під сумою: саме там вона й потрібна
+       людині, яка збирається переслати кошторис бухгалтеру. */
+    var estPdf = document.getElementById('estPdfBtn');
+    if(estPdf) estPdf.onclick = function(){
+      if(window.lqAn) window.lqAn.track('offer_print', { from:'estimate' });
+      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
+    };
     ['changeBtn','barChange'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){ openSheet('ovChange'); };
@@ -5002,9 +5822,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     OFFER = snap.data() || {};
     OFFER.items = OFFER.items || [];
     OFFER.reco  = OFFER.reco  || [];
+    OFFER.variants = OFFER.variants || [];
     OFFER.terms = OFFER.terms || { deadlineDays: 4 };
     OFFER.client = OFFER.client || {};
-    if(!OFFER.items.length && !EDIT_CTX){
+    /* Пропозиція може складатись із самих варіантів: менеджер порахував
+       базову й оверсайз, клієнт обирає один. Доти сторінка дивилась лише на
+       склад — не знайшла там нічого й казала «ще готується», хоч було що
+       показати й що обрати. */
+    if(!OFFER.items.length && !OFFER.variants.length && !OFFER.reco.length && !EDIT_CTX){
       fail('Пропозиція ще готується', 'Менеджер завершує розрахунок. Спробуйте трохи пізніше.');
       return;
     }

@@ -462,8 +462,16 @@
     function activeLogoSizeLabel(){
       var l = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       if(!l) return '';
-      if(sitePricing()){ var d = layerOpaqueDimsMm(l); if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' + Math.round(d.h/10) + ' см'; }
-      return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см';
+      /* Стелю називаємо поруч із розміром, а не десь у довідці: питання «а
+         більше можна?» виникає рівно тут, коли тягнуть рамку. */
+      var cap = sizeCapMm();
+      var capTxt = cap ? (' · максимум ' + Math.round(cap.w/10) + ' × ' + Math.round(cap.h/10) + ' см') : '';
+      if(sitePricing()){
+        var d = layerOpaqueDimsMm(l);
+        if(d && d.w>0) return 'Розмір друку ≈ ' + Math.round(d.w/10) + ' × ' +
+                              Math.round(d.h/10) + ' см' + capTxt;
+      }
+      return 'Ширина друку ≈ ' + logoWidthCm(l) + ' см' + capTxt;
     }
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
@@ -541,7 +549,9 @@
       var c = (m.cost && m.cost[row] && m.cost[row][col] != null) ? +m.cost[row][col] : 0;
       return Math.round(c);
     }
-    function placementCost(m, l, idx){ var cleanMm2 = layerInkMm2(l); return Math.max(Math.round(areaSum(m, cleanMm2, true)), minCostForIndex(m, idx || 0)); }
+    function placementCost(m, l, idx){
+      return window.LQ.placeCost(m, isTextLayer(l), layerInkMm2(l), idx || 0);
+    }
     /* ═══════════ Порядок нанесень для мінімалок ═══════════
        Мінімальна ціна задана списком: перше нанесення 200, друге 150, далі
        менше. «Перше» раніше означало «те, що лежить на передній стороні» —
@@ -790,8 +800,11 @@
     window.__lqLayerInfo = function(){
       var l = findLayerAnySide(pm.activeLogoId) || currentLayers()[0];
       if(!l) return null;
+      var d = layerOpaqueDimsMm(l);
       return { id: l.id, fp: l.fp || '', recolorTo: l.recolorTo || null,
-               recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)) };
+               recolored: !!l.recolorFrom, mm2: Math.round(layerInkMm2(l)),
+               // габарит у мм — за ним видно, чи спрацювала стеля розміру
+               wMm: Math.round(d.w), hMm: Math.round(d.h) };
     };
     window.__lqPrintScale = function(){
       var pa = ((window.SITE_CONTENT || {}).printAreas || {})[pm.garmentId] || {};
@@ -859,6 +872,43 @@
         : { w: szMm * ar, h: szMm };
     }
     function layerAreaMm2(l){ var d = layerDimsMm(l); return d.w * d.h; }
+    /* ══════════ Стеля розміру вишивки ══════════
+       Верстат має п'яльці, і більше за них не вишити ніяк. Клієнт цього не
+       знає: він тягне логотип на пів спини, отримує ціну за цю площу — а
+       далі макет усе одно доводиться зменшувати, і розмова починається
+       спочатку, тепер уже про гроші.
+
+       Тому обмеження стоїть там, де його видно одразу: рамка просто
+       перестає рости. Числа за замовчуванням — 40 × 32 см; якщо в
+       «Формуванні цін» задано свої (maxWidthMm / maxHeightMm), діють вони.
+
+       Міряємо НЕПРОЗОРИЙ вміст: у п'яльці лягає сам малюнок, а не прозорі
+       поля навколо нього. */
+    var EMB_MAX_W_MM = 400, EMB_MAX_H_MM = 320;
+    function sizeCapMm(){
+      var m = methodCfgNew() || {};
+      if(m.mode === 'grid') return null;          // DTF друкується аркушем, п'яльців немає
+      return { w: (+m.maxWidthMm > 0) ? +m.maxWidthMm : EMB_MAX_W_MM,
+               h: (+m.maxHeightMm > 0) ? +m.maxHeightMm : EMB_MAX_H_MM };
+    }
+    // На скільки шар більший за стелю: 1 і менше — влазить
+    function sizeOverRatio(l){
+      var cap = sizeCapMm();
+      if(!cap || !l) return 1;
+      var d = layerOpaqueDimsMm(l);
+      if(!(d.w > 0) || !(d.h > 0)) return 1;
+      return Math.max(d.w / cap.w, d.h / cap.h);
+    }
+    /* Підрізати шар під стелю. Масштаб лінійний, тож достатньо поділити його
+       на перевищення. Повертає true, якщо справді підрізали, — щоб було що
+       сказати людині. */
+    function clampLayerMm(l){
+      var over = sizeOverRatio(l);
+      if(!(over > 1.0001)) return false;
+      l.scale = Math.max(0.04, l.scale / over);
+      layerSaveFrac(l);
+      return true;
+    }
     // Площа, за яку клієнт платить. Береться ГАБАРИТ НЕПРОЗОРОГО вмісту, а не весь
     // прямокутник картинки: прозорі поля навколо лого нічого не коштують. Раніше
     // рахувалось від усього прямокутника, тож один і той самий логотип у файлі
@@ -874,8 +924,9 @@
     // Ціна одного нанесення від ЧИСТОЇ площі (непрозоре × заповнення) — усе в мм².
     // Головна модель: ціна за 1000 мм². (Підтримка старих полів для сумісності.)
     // Мінімальна ціна нанесення — своя для кожного дизайну (1-й, 2-й, 3-й…). За межами списку — останнє значення.
-    function methodMins(m){ if(m && Array.isArray(m.minPrices) && m.minPrices.length) return m.minPrices; if(m && m.minPrice != null) return [+m.minPrice || 0]; return [0]; }
-    function minForIndex(m, idx){ var a = methodMins(m); return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function minForIndex(m, idx){
+      return (window.LQ && window.LQ.minForIndex) ? window.LQ.minForIndex(m, idx) : 0;
+    }
 
     /* ═══════════ Градація ціни за площею ═══════════
        Ставка за 1000 мм² не одна на будь-який розмір: великий макет має
@@ -896,36 +947,21 @@
        Порожній список порогів = одна ставка на всю площу.
        Порогів немає й у собівартості, поки їх не задали окремо — тоді
        cost1k просто не змінюється на цьому порозі. */
-    function areaTiersOf(m, isCost){
-      var a = (m && Array.isArray(m.areaTiers)) ? m.areaTiers : [];
-      return a.map(function(t){
-          return { from: +t.from || 0, rate: +(isCost ? t.cost1k : t.price1k) };
-        })
-        /* Ставка 0 у СХОДИНКОВІЙ шкалі означала б «уся площа безкоштовно»,
-           щойно вона дотягнулась до порогу. У старій прогресивній шкалі той
-           самий нуль читався інакше — «далі не додаємо», — і такі пороги
-           лишились у прайсі. Тому нульову ставку пропускаємо: безкоштовну
-           сходинку задають відсутністю порога, а не нулем. */
-        .filter(function(t){ return t.from > 0 && isFinite(t.rate) && t.rate > 0; })
-        .sort(function(a, b){ return a.from - b.from; });
-    }
-    // Шматки площі зі своїми ставками — щоб розклад для менеджера показував
-    // не «площа × ставка», а справжню сходинку.
+    /* Площа й ставки переїхали в спільний рушій (loomiq-pricing.js): відколи
+       тип дизайну можна перемкнути в прорахунку, ту саму формулу мусить
+       уміти й адмінка. Дві копії однієї формули — це два різні числа рівно
+       тоді, коли одну з них виправлять. */
     function areaParts(m, mm2, isCost){
-      mm2 = Math.max(0, +mm2 || 0);
-      var rate = +(isCost ? (m || {}).costPer1000mm2 : (m || {}).pricePer1000mm2) || 0;
-      var tiers = areaTiersOf(m, isCost);
-      // Остання сходинка, до якої площа дотягнулась, і задає ставку на ВСЮ площу
-      for(var i = 0; i < tiers.length; i++){
-        if(mm2 >= tiers[i].from) rate = tiers[i].rate;
-      }
-      return [{ mm2: mm2, rate: rate }];
+      return (window.LQ && window.LQ.areaParts) ? window.LQ.areaParts(m, mm2, isCost)
+                                                : [{ mm2: Math.max(0, +mm2 || 0), rate: 0 }];
     }
     function areaSum(m, mm2, isCost){
-      return areaParts(m, mm2, isCost).reduce(function(s, p){ return s + p.mm2 * p.rate / 1000; }, 0);
+      return (window.LQ && window.LQ.areaSum) ? window.LQ.areaSum(m, mm2, isCost) : 0;
     }
     // Мінімальна СОБІВАРТІСТЬ нанесення — своя для кожного дизайну (необов'язкова).
-    function minCostForIndex(m, idx){ var a = (m && Array.isArray(m.minCosts)) ? m.minCosts : null; if(!a || !a.length) return 0; return Math.round(+a[Math.min(idx, a.length-1)] || 0); }
+    function minCostForIndex(m, idx){
+      return (window.LQ && window.LQ.minCostForIndex) ? window.LQ.minCostForIndex(m, idx) : 0;
+    }
     // Стартова ціна вишивки: фіксована сума, з якої нанесення СТАРТУЄ, а вже до
     // неї додається площа. Не плутати з мінімалкою: мінімалка — це підлога
     // (підтягує результат угору), старт — це доданок. Список за дизайнами:
@@ -953,28 +989,13 @@
     }
     function isTextLayer(l){ return !!(l && l.text); }
     function baseForIndex(m, idx){
-      var a = (m && Array.isArray(m.basePrices)) ? m.basePrices : null;
-      if(!a || !a.length) return 0;
-      return Math.round(+a[Math.min(idx, a.length - 1)] || 0);
+      return (window.LQ && window.LQ.baseForIndex) ? window.LQ.baseForIndex(m, idx) : 0;
     }
     // Повертає нанесення по частинах, щоб розклад не доводилось відновлювати
     // відніманням: коли спрацьовує мінімалка, різниця «разом мінус старт» уже
     // не дорівнює площі, і рядок «за площею» показував би неправду.
     function placementDetail(m0, l, idx){
-      var m = methodCfgKind(m0, isTextLayer(l));
-      var cleanMm2 = layerInkMm2(l);
-      var raw;
-      if(m.pricePer1000mm2 != null){
-        raw = areaSum(m, cleanMm2, false);
-      } else if(m.mode === 'stitch'){
-        raw = cleanMm2 * (+m.density || 1.6) / 1000 * (+m.pricePer1000 || 0);
-      } else {
-        raw = (+m.ratePerMm2 || 0) * cleanMm2;
-      }
-      var area = Math.round(raw), base = baseForIndex(m, idx || 0);
-      // Старт + площа, і лише потім підлога: мінімалка страхує знизу весь доданок
-      var minAdd = Math.max(0, minForIndex(m, idx || 0) - (area + base));
-      return { area: area, base: base, minAdd: minAdd, total: area + base + minAdd };
+      return window.LQ.placeSell(m0, isTextLayer(l), layerInkMm2(l), idx || 0);
     }
     function placementPrice(m, l, idx){ return placementDetail(m, l, idx).total; }
     // DTF — собівартість по сітці. Логотип (габаритний прямокутник Ш×В) потрапляє
@@ -1143,9 +1164,10 @@
     function draftDescriptor(){
       var m = methodCfgNew();
       var ap = applicationParts();
-      var fps = [], kinds = [];
+      var fps = [], kinds = [], mm2s = [];
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img'); }); });
+        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img');
+        mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
         getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
@@ -1163,6 +1185,13 @@
         // Вид кожного дизайну — за ним разові оплати діляться на текст і картинку.
         // Старі замовлення цього поля не мають, там усе рахується як картинка.
         designKinds: kinds,
+        /* Активна площа кожного дизайну окремо. Доти позиція везла лише
+           СУМУ (coefPart), і з неї було нізвідки дізнатись, з чого вона
+           склалась. Через це перемкнути тип дизайну в прорахунку не
+           виходило: у вишивці в напису своя ставка за площу, а перерахувати
+           її нема з чого. Тепер площі їдуть поруч із відбитками, у тому
+           самому порядку. */
+        designMm2: mm2s,
         bare: logoCount() === 0
       };
     }
@@ -1179,12 +1208,37 @@
       return window.__pmEditIndex;
     }
     // Дескриптори того, що вже лежить у кошику
+    /* ── Чи рахується ця позиція разом із поточною ──────────────────────
+       Рекомендовані не рахуються ніколи: клієнт їх ще не додав.
+
+       Варіанти — залежно від групи. Два варіанти ОДНІЄЇ групи не існують
+       разом: клієнт візьме щось одне. Складати їх в один тираж означало б
+       поділити підготовку макета на вироби, яких не буде: п'ять базових і
+       п'ять оверсайзів давали макет ÷10 замість ÷5, і ціна виходила нижчою
+       за справжню. Варіанти ЧУЖИХ груп лишаються — «верх» і «головний убір»
+       справді беруть разом. */
+    function draftGroupOf(){
+      var idx = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
+      var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var cur = (idx != null && idx >= 0) ? list[idx] : null;
+      return (cur && cur.kind === 'variant') ? (cur.vgroup || 'Варіанти на вибір') : null;
+    }
+    function countsWithDraft(it){
+      if(!it || it.kind === 'reco') return false;
+      if(it.kind !== 'variant') return true;
+      var mine = draftGroupOf();
+      // сама чернетка — варіант: конкурентів із її групи не беремо
+      if(mine != null) return (it.vgroup || 'Варіанти на вибір') !== mine;
+      // чернетка не варіант: чужі варіанти в тираж не входять, їх ще не обрали
+      return false;
+    }
     function cartDescriptors(){
+
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
       // Позицію, яку зараз редагують, не рахуємо двічі: у списку вона є як чернетка.
       // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
       var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
-      return list.filter(function(it, i){ return it.kind !== 'reco' && i !== skip; })
+      return list.filter(function(it, i){ return i !== skip && countsWithDraft(it); })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
     /* Список описів РАЗОМ із чернеткою, і чернетка стоїть на своєму місці.
@@ -1206,8 +1260,8 @@
       if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([d]);
       var out = [], at = -1;
       list.forEach(function(it, i){
-        if(it.kind === 'reco') return;
         if(i === skip){ at = out.length; out.push(d); return; }
+        if(!countsWithDraft(it)) return;
         if(it.desc) out.push(it.desc);
       });
       if(at < 0) out.push(d);
@@ -1520,6 +1574,10 @@
     var HANDLE_DELETE_SVG = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     var HANDLE_ROTATE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
     var HANDLE_SCALE_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+    /* Обрізання стоїть поруч із рештою ручок шару — видалити, повернути,
+       розтягнути, обрізати. Доти воно ховалось окремою кнопкою в
+       менеджерських інструментах, і на самому дизайні його ніхто не шукав. */
+    var HANDLE_CROP_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>';
 
     // Розміри рамки шару — в одному місці: їх треба і при побудові, і при
     // правці на місці, коли шар перебудовувати не можна (загубиться каретка).
@@ -1542,6 +1600,7 @@
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
       el.style.padding    = (TXT_PAD * k).toFixed(2) + 'px';
+      el.style.textAlign  = textAlign(sp);
       el.style.webkitTextStroke = '';
       // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
       // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
@@ -1649,7 +1708,10 @@
           (active ?
             '<div class="pm-dl-handle pm-dl-handle--delete" data-handle="delete">'+HANDLE_DELETE_SVG+'</div>' +
             '<div class="pm-dl-handle pm-dl-handle--rotate" data-handle="rotate">'+HANDLE_ROTATE_SVG+'</div>' +
-            '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>'
+            '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>' +
+            (layer.text ? '' :
+              '<div class="pm-dl-handle pm-dl-handle--crop" data-handle="crop" ' +
+              'title="Обрізати по краях">'+HANDLE_CROP_SVG+'</div>')
           : '');
         pmLogoLayers.appendChild(el);
         var te = el.querySelector('.pm-dl-text');
@@ -1664,6 +1726,12 @@
           el.querySelector('[data-handle="rotate"]').addEventListener('touchstart', function(e){ onRotateDown(e, layer, el); }, {passive:false});
           el.querySelector('[data-handle="scale"]').addEventListener('mousedown', function(e){ onScaleDown(e, layer); });
           el.querySelector('[data-handle="scale"]').addEventListener('touchstart', function(e){ onScaleDown(e, layer); }, {passive:false});
+          var ch = el.querySelector('[data-handle="crop"]');
+          if(ch){
+            var openCrop = function(e){ e.stopPropagation(); e.preventDefault(); cropLayer(layer); };
+            ch.addEventListener('mousedown', openCrop);
+            ch.addEventListener('touchstart', openCrop, {passive:false});
+          }
         }
       });
     }
@@ -1693,7 +1761,49 @@
       return inside;
     }
     // Чи виходить якесь лого поточної сторони за межі зони (перевіряємо кути рамки з поворотом).
+    /* Межі САМИХ БУКВ, а не поля, у якому їх набирають.
+       Напис лежить у полі на всю ширину рамки шару, а літери займають у
+       ньому смужку посередині. Перевірка ж дивилась на рамку — і казала «за
+       межами зони друку» там, де за межі не виходило нічого, крім порожнього
+       поля. Тому в напису беремо прямокутник, який реально малюють літери:
+       обхід рядків через Range дає рівно те, що видно на екрані. */
+    function textInkFrac(l){
+      var el = pmLogoLayers && pmLogoLayers.querySelector('.pm-dl-text[data-tid="' + l.id + '"]');
+      if(!el || !pmGarmentWrapEl) return null;
+      var wrap = pmGarmentWrapEl.getBoundingClientRect();
+      if(!(wrap.width > 0)) return null;
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      try{
+        var rg = document.createRange();
+        rg.selectNodeContents(el);
+        var rs = rg.getClientRects();
+        for(var i = 0; i < rs.length; i++){
+          var q = rs[i];
+          if(!(q.width > 0) || !(q.height > 0)) continue;
+          if(q.left < x0) x0 = q.left;
+          if(q.top < y0) y0 = q.top;
+          if(q.right > x1) x1 = q.right;
+          if(q.bottom > y1) y1 = q.bottom;
+        }
+      }catch(e){ return null; }
+      if(!isFinite(x0) || !isFinite(y0)) return null;
+      /* Зона задана в частках контейнера, причому обидві осі міряються його
+         ШИРИНОЮ — так само, як нижче для картинок. Тримаємось того самого. */
+      var f = function(px, py){
+        return [(px - wrap.left) / wrap.width, (py - wrap.top) / wrap.width];
+      };
+      return [f(x0, y0), f(x1, y0), f(x1, y1), f(x0, y1)];
+    }
     function logoOutside(l, polyFrac, wrapW){
+      if(l.text){
+        var ink = textInkFrac(l);
+        if(ink){
+          for(var t = 0; t < ink.length; t++){
+            if(!paPointInPoly(ink[t], polyFrac)) return true;
+          }
+          return false;
+        }
+      }
       var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
       if(ar>=1) bh=sz/ar; else bw=sz*ar;
       var ob=l.opaqueBox||{x0:0,y0:0,x1:1,y1:1};
@@ -1853,7 +1963,8 @@
       var s = String((spec && spec.t) || '').replace(/\s+/g, ' ').trim().toLowerCase()
             + '|' + ((spec && spec.font) || '')
             + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '')
-            + '|' + runsKey;
+            + '|' + runsKey
+            + '|' + ((spec && spec.align) || 'center');
       var out = '';
       for(var i = 0; i < 64; i++){
         var h = (2166136261 ^ i) >>> 0;
@@ -2060,6 +2171,12 @@
     function runsText(runs){
       return (runs || []).map(function(r){ return r.t; }).join('');
     }
+    /* Вирівнювання напису. За замовчуванням по центру — так напис стояв
+       завжди, і всі збережені написи мають лишитись як були. */
+    function textAlign(sp){
+      var a = sp && sp.align;
+      return (a === 'left' || a === 'right') ? a : 'center';
+    }
     function runFontCss(r){
       return (r.italic ? 'italic ' : '') + (r.bold ? '700 ' : '400 ') +
              (TXT_FS * r.size) + 'px ' + textFontCss(r.font);
@@ -2112,12 +2229,18 @@
       x.textAlign = 'left'; x.textBaseline = 'alphabetic';
       x.lineJoin = 'round'; x.miterLimit = 2;
       var top = PAD;
+      var al = textAlign(sp);
       L.lines.forEach(function(ln){
         /* Спільна лінія шрифту на весь рядок. Вирівняти шматки різного кегля
            по центру означало б посадити дрібне слово вище рядка — на письмі
            літери стоять на одній лінії, хоч би якого вони розміру. */
         var baseline = top + ln.fs * 0.80;
-        var cx = (c.width - ln.w) / 2;
+        /* Вирівнювання рахуємо по САМОМУ довгому рядку, а не по полотну:
+           полотно обрізане під найдовший рядок, тож ліворуч і праворуч від
+           нього однакові поля, і решта рядків стає відносно нього. */
+        var cx = al === 'left'  ? PAD
+               : al === 'right' ? (c.width - PAD - ln.w)
+               : (c.width - ln.w) / 2;
         ln.segs.forEach(function(g){
           x.font = runFontCss(g.st);
           x.fillStyle = g.st.color;
@@ -2426,6 +2549,22 @@
     var SCROLL_L = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M15 6l-6 6 6 6"/></svg>';
+    var TEXT_ALIGN_UA = { left:'Ліворуч', center:'По центру', right:'Праворуч' };
+    var TEXT_ALIGN_SVG = (function(){
+      function bars(ws, xs){
+        return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="2.1" stroke-linecap="round">' +
+          ws.map(function(w, i){
+            var y = 6 + i * 4;
+            return '<path d="M' + xs[i] + ' ' + y + 'h' + w + '"/>';
+          }).join('') + '</svg>';
+      }
+      return {
+        left:   bars([14, 9, 14, 9], [4, 4, 4, 4]),
+        center: bars([16, 10, 16, 10], [4, 7, 4, 7]),
+        right:  bars([14, 9, 14, 9], [6, 11, 6, 11])
+      };
+    })();
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -2458,6 +2597,16 @@
         '<button class="pm-ts-tog pm-ts-sz" id="pmTsBig" ' +
           'title="Більші літери — для виділеного або всього напису" ' +
           'aria-label="Збільшити літери">A+</button>' +
+        /* Вирівнювання діє на весь напис, а не на виділене: рядок не може
+           стояти ліворуч наполовину. Тому це три положення одного
+           перемикача, а не три незалежні кнопки. */
+        '<span class="pm-ts-al">' +
+          ['left','center','right'].map(function(a){
+            return '<button class="pm-ts-tog pm-ts-alb' + (textAlign(sp) === a ? ' on' : '') +
+              '" data-talign="' + a + '" aria-label="' + TEXT_ALIGN_UA[a] + '" ' +
+              'title="' + TEXT_ALIGN_UA[a] + '">' + TEXT_ALIGN_SVG[a] + '</button>';
+          }).join('') +
+        '</span>' +
         '</div>';
       // Кольори — прямо тут, а не за окремим заходом. Перший кружечок веде в
       // палітру: точний фірмовий відтінок зразками не вгадаєш.
@@ -2617,6 +2766,8 @@
       updatePriceBar();
       // пропорції лого + fill/opaqueBox → рамка облягає контур і площа вишивки коректна
       measureLayerShape(layer, url).then(function(){
+        // Габарит стає відомий лише після заміру — тут і підрізаємо
+        if(clampLayerMm(layer)) sizeCapHint();
         renderLogoLayers();
         /* Панель теж треба перемалювати: до заміру шар ще не знає ні свого
            габариту, ні заповнення, і панель лишалась із тим, що було до
@@ -2698,6 +2849,26 @@
                    startLX:layer.x, startLY:layer.y, moved:false, wasActive:wasActive};
       }
     }
+    var sizeCapSaid = 0;
+    function sizeCapHint(){
+      var cap = sizeCapMm(); if(!cap) return;
+      var now = (window.performance && performance.now) ? performance.now() : 0;
+      if(now - sizeCapSaid < 4000) return;             // не повторюємось на кожному пікселі руху
+      sizeCapSaid = now;
+      var txt = 'Більше не вишити: максимум ' + Math.round(cap.w / 10) +
+                ' × ' + Math.round(cap.h / 10) + ' см';
+      if(typeof toast === 'function'){ try{ toast(txt); return; }catch(e){} }
+      var el = document.getElementById('pmSizeCap');
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'pmSizeCap'; el.className = 'pm-size-cap';
+        (document.getElementById('pmGarmentWrap') || document.body).appendChild(el);
+      }
+      el.textContent = txt;
+      el.classList.add('show');
+      clearTimeout(el.__t);
+      el.__t = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+    }
     function onScaleDown(e, layer){
       e.stopPropagation(); e.preventDefault(); lockScroll();
       if(pmTabPanel) pmTabPanel.style.display = 'none';   // підняти ціну, щоб було видно її зміну
@@ -2744,6 +2915,12 @@
          повертало логотипу попередній розмір, тож рух читався навпаки:
          зменшуєш, а стає більше. */
       layerSaveFrac(layer);
+      /* Стеля вишивки — просто тут, посеред жесту. Дати виростити, а потім
+         відкотити на відпусканні означало б показати людині розмір і ціну,
+         яких не буде: рамка мусить упертись під пальцем. */
+      if(dlState.mode === 'scale' || dlState.mode === 'pinch'){
+        if(clampLayerMm(layer)) sizeCapHint();
+      }
       applyLayerStyle(dlState.el, layer);              // пряме оновлення без перебудови DOM
       updateModelLogos();                               // синхронізуємо лого на фото моделей наживо
       try{ renderPrintArea(); }catch(e){}               // зона нанесення реагує наживо (червоніє за межами)
@@ -3147,16 +3324,8 @@
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
         el.addEventListener('click', function(){
-          var id = Number(el.dataset.crop);
-          var layer = findLayerAnySide(id);
-          if(!layer) return;
-          openCropper(layer.url).then(function(res){
-            if(!res) return;
-            // Ту саму рамку застосовуємо і до версії з фоном, і до версії без —
-            // інакше перемикач «З фоном / Без фону» показував би різні кадри.
-            return Promise.all([cropImage(layer.origUrl, res.box), cropImage(layer.cleanUrl, res.box)])
-              .then(function(p){ return replaceLayerImage(layer, p[0] || res.url, p[1] || res.url); });
-          });
+          var layer = findLayerAnySide(Number(el.dataset.crop));
+          if(layer) cropLayer(layer);
         });
       });
       pmTabPanel.querySelectorAll('[data-recolor]').forEach(function(el){
@@ -3244,6 +3413,14 @@
         }
         renderTabPanel();
       }
+      pmTabPanel.querySelectorAll('[data-talign]').forEach(function(b){
+        b.addEventListener('mousedown', function(e){ e.preventDefault(); });
+        b.addEventListener('click', function(){
+          var l = activeTextLayer(); if(!l) return;
+          updateTextLayer(l, { align: b.dataset.talign });
+          renderTabPanel();
+        });
+      });
       if(tsSmall) tsSmall.addEventListener('click', function(){ sizeStep(1/1.18); });
       if(tsBig)   tsBig.addEventListener('click', function(){ sizeStep(1.18); });
       // Один рівень інтерфейсу за раз: екран кольору заміняє панель цілком
@@ -3645,7 +3822,7 @@
                  (dmm ? ' · лого ' + Math.round(dmm.w/10) + '×' + Math.round(dmm.h/10) + ' см' : '');
         } else {
           sell = placementPrice(m, l, idx);
-          cost = placementCost(methodCfgKind(m, isTxt), l, idx);
+          cost = placementCost(m, l, idx);   // вид дизайну рушій визначає сам
           var mk = methodCfgKind(m, isTxt);
           var mm2 = layerInkMm2(l);
           var det = placementDetail(m, l, idx);
@@ -4077,20 +4254,48 @@
       });
     }
     // Повертає { url, box } або null, якщо скасували
+    /* Обрізати дизайн шару. Рамку застосовуємо і до версії з фоном, і до
+       версії без — інакше перемикач «З фоном / Без фону» показував би різні
+       кадри. Одна дія на обидва входи: ручку на самому шарі й кнопку в
+       менеджерських інструментах. */
+    function cropLayer(layer){
+      if(!layer || layer.text) return Promise.resolve();
+      return openCropper(layer.url).then(function(res){
+        if(!res) return;
+        return Promise.all([cropImage(layer.origUrl, res.box), cropImage(layer.cleanUrl, res.box)])
+          .then(function(p){ return replaceLayerImage(layer, p[0] || res.url, p[1] || res.url); });
+      });
+    }
     function openCropper(url){
       return new Promise(function(resolve){
         var ov = document.getElementById('pmCropModal');
         var img = document.getElementById('pmCropImg');
         var rect = document.getElementById('pmCropRect');
+        var info = document.getElementById('pmCropInfo');
         var box = { x0:0.06, y0:0.06, x1:0.94, y1:0.94 };
-        var MIN = 0.06;                        // менше не даємо, щоб не зникло
+        var MIN = 0.01;                        // менше не даємо, щоб не зникло
 
+        /* Числа в пікселях ВИХІДНОГО файлу. На екрані картинка зменшена, тож
+           один піксель екрана — це кілька пікселів файлу, і «на око» точно не
+           влучити. Тому показуємо, що саме лишиться і скільки зрізано з
+           кожного боку, а стрілками рамку можна доводити по одному пікселю. */
+        function srcSize(){
+          return { W: img.naturalWidth || img.clientWidth || 1,
+                   H: img.naturalHeight || img.clientHeight || 1 };
+        }
         function paint(){
           var w = img.clientWidth || 1, h = img.clientHeight || 1;
           rect.style.left   = (box.x0 * w) + 'px';
           rect.style.top    = (box.y0 * h) + 'px';
           rect.style.width  = ((box.x1 - box.x0) * w) + 'px';
           rect.style.height = ((box.y1 - box.y0) * h) + 'px';
+          if(info){
+            var s = srcSize();
+            var cw = Math.round((box.x1 - box.x0) * s.W), chh = Math.round((box.y1 - box.y0) * s.H);
+            info.textContent = cw + ' × ' + chh + ' px   ·   зрізано: ' +
+              'зліва ' + Math.round(box.x0 * s.W) + ', справа ' + Math.round((1 - box.x1) * s.W) +
+              ', зверху ' + Math.round(box.y0 * s.H) + ', знизу ' + Math.round((1 - box.y1) * s.H);
+          }
         }
         function onLoad(){ paint(); }
         img.addEventListener('load', onLoad);
@@ -4107,7 +4312,10 @@
         function down(e, mode){
           e.preventDefault(); e.stopPropagation();
           drag = { mode: mode, start: pos(e), box: Object.assign({}, box) };
-          e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+          /* Захоплення вказівника не завжди можливе (синтетична подія, миша
+             вже відпущена) — і кидати винятком через це не варто: тягнути
+             рамку далі це не заважає. */
+          try{ e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }catch(err){}
         }
         function move(e){
           if(!drag) return;
@@ -4131,17 +4339,67 @@
 
         rect.onpointerdown = function(e){ down(e, 'move'); };
         rect.querySelectorAll('[data-h]').forEach(function(h){
-          h.onpointerdown = function(e){ down(e, h.dataset.h); };
+          h.onpointerdown = function(e){ lastSide = h.dataset.h; down(e, h.dataset.h); };
         });
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
         window.addEventListener('pointercancel', up);
 
+        /* Останній маркер, якого торкались: саме його й рухають стрілки.
+           Миша наводить грубо, клавіатура доводить по пікселю — і рамка
+           стає рівно там, де треба, а не «десь біля». */
+        var lastSide = 'se';
+        function nudge(k, dx, dy){
+          var s = srcSize();
+          var fx = dx / (s.W || 1), fy = dy / (s.H || 1);
+          var n = Object.assign({}, box);
+          if(k.indexOf('w') >= 0) n.x0 = Math.min(box.x1 - MIN, Math.max(0, box.x0 + fx));
+          if(k.indexOf('e') >= 0) n.x1 = Math.max(box.x0 + MIN, Math.min(1, box.x1 + fx));
+          if(k.indexOf('n') >= 0) n.y0 = Math.min(box.y1 - MIN, Math.max(0, box.y0 + fy));
+          if(k.indexOf('s') >= 0) n.y1 = Math.max(box.y0 + MIN, Math.min(1, box.y1 + fy));
+          box = n; paint();
+        }
+        function onKey(e){
+          var step = e.shiftKey ? 10 : 1;       // Shift — по десять пікселів
+          var d = { ArrowLeft:[-step,0], ArrowRight:[step,0],
+                    ArrowUp:[0,-step], ArrowDown:[0,step] }[e.key];
+          if(!d) return;
+          e.preventDefault();
+          nudge(lastSide, d[0], d[1]);
+        }
+        window.addEventListener('keydown', onKey);
+        /* «Впритул» — рамка сама сідає на краї малюнка. Для найчастішого
+           випадку «обрізати порожні поля» це один дотик замість ручного
+           цілення в прозорий край, якого на екрані й не видно. */
+        var snapBtn = document.getElementById('pmCropSnap');
+        if(snapBtn) snapBtn.onclick = function(){
+          try{
+            var s = srcSize();
+            var c = document.createElement('canvas');
+            c.width = s.W; c.height = s.H;
+            var g = c.getContext('2d', { willReadFrequently:true });
+            g.drawImage(img, 0, 0, s.W, s.H);
+            var d = g.getImageData(0, 0, s.W, s.H).data;
+            var minX = s.W, minY = s.H, maxX = -1, maxY = -1;
+            for(var y = 0; y < s.H; y++){
+              for(var x = 0; x < s.W; x++){
+                if(d[(y * s.W + x) * 4 + 3] < 12) continue;     // прозоре — не рахуємо
+                if(x < minX) minX = x; if(x > maxX) maxX = x;
+                if(y < minY) minY = y; if(y > maxY) maxY = y;
+              }
+            }
+            if(maxX < minX || maxY < minY) return;
+            box = { x0:minX / s.W, y0:minY / s.H,
+                    x1:(maxX + 1) / s.W, y1:(maxY + 1) / s.H };
+            paint();
+          }catch(err){ /* чужий домен — лишаємо рамку як є */ }
+        };
         function finish(res){
           img.removeEventListener('load', onLoad);
           window.removeEventListener('pointermove', move);
           window.removeEventListener('pointerup', up);
           window.removeEventListener('pointercancel', up);
+          window.removeEventListener('keydown', onKey);
           ov.classList.remove('open');
           resolve(res);
         }
@@ -6007,6 +6265,11 @@
     });
 
     window.__openProductModal = openProductModal;
+    /* Різак віддаємо назовні: пропозиція обрізає логотип у шапці ТИМ САМИМ
+       вікном, що й дизайн у картці товару. Дві різні реалізації того самого
+       вже одного разу розійшлись — в одній були маркери сторін, у другій
+       самі кути, і поводились вони по-різному. */
+    window.__pmCrop = function(url){ return openCropper(url); };
     // Відновлення товару з кошика для редагування (доступ до pm/openProductModal лише тут, усередині IIFE)
     /* Позиції, збережені до переходу на частки, знають свій розмір лише в
        пікселях того екрана, де їх складали, — а на іншому це вже інший друк.
@@ -6082,6 +6345,13 @@
        суцільна пляма чи тонкий контур на непрозорому фоні. */
     /* Шматки поточного напису — за ними видно, чи справді збереглися різні
        кеглі й кольори всередині одного напису, чи це лише розмітка на екрані. */
+    /* З якими позиціями рахується поточна чернетка. Найчастіше питання —
+       «чому макет ділиться на десять, а не на п'ять»: відповідь саме в цьому
+       списку, і без нього її нізвідки взяти. */
+    window.__lqCartDesc = function(){
+      try{ return descriptorsWithDraft(draftDescriptor()).map(function(x){
+        return { units:x.units, base:x.base }; }); }catch(e){ return null; }
+    };
     window.__lqTextRuns = function(){
       try{
         var l = activeTextLayer();
