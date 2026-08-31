@@ -515,13 +515,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Кадр вищий за квадрат: ширшим він бути не може — уже на всю сторінку, —
      тож збільшуємо єдиним доступним боком. Виріб на 3:4 видно на третину
      краще, а картка від цього не стає нечитабельною. */
-  /* width:100% тут обовʼязковий. Без нього ширина лишається «автоматичною»,
-     і коли max-height обрізає висоту (74vh — а в браузері всередині додатка
-     видима висота менша за екран), браузер зберігає пропорцію, звужуючи
-     КАДР: фото ставало на 20px вужчим за картку й з правого боку лишалась
-     біла смуга. З визначеною шириною поступається пропорція, а не ширина —
-     кадр просто стає нижчим, і фото (object-fit:cover) заповнює його. */
-  .pgal-i.is-main{width:100%; aspect-ratio:3/4; max-height:74vh;}
+  /* Кадр повторює пропорцію самого знімка — її проставляє fitMain(), коли
+     фото завантажилось. Тут лише запобіжник до того моменту: макапи
+     квадратні, тож квадрат.
+
+     max-height:74vh звідси прибрано. На айфоні при прокрутці ховається
+     адресний рядок, vh змінюється — і кадр разом із ним: висота стрибала
+     просто від скролу, а фото щоразу підрізалось інакше. Плюс без
+     визначеної ширини браузер тримав пропорцію коштом ШИРИНИ, і справа
+     лишалась біла смуга. */
+  .pgal-i.is-main{width:100%; aspect-ratio:1/1;}
   /* Головний кадр заповнює рамку. Квадратне фото в кадрі 3:4 при contain
      лишало білі смуги зверху й знизу — виріб плавав посеред порожнечі.
      Обрізати з боків безпечно: нанесення завжди по центру. */
@@ -5285,8 +5288,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        вона малювалась, але слухача прокрутки не отримувала — і не зʼявлялась
        ніколи. Менеджер саме там і перевіряє, як це виглядає клієнту. */
     watchBar();
+    fitMains();
     // Картку перемальовано — повертаємо конструктор на місце
     if(edOpen && ctorReady) ctorMount(null);
+  }
+
+  /* Кадр під головне фото ставимо за пропорцією самого знімка.
+     Макап конструктора — квадрат, а кадр стояв 3:4: object-fit:cover
+     дорізав квадрат до вищого прямокутника, зрізаючи по 12% з кожного
+     боку. Футболці це минало (вона вузька), а худі відрізало рукави.
+     Тепер кадр і знімок однакової форми — різати нема чого.
+     Межі: не вужче 3:4 (інакше фото зайняло б увесь екран) і не ширше
+     4:3 (інакше картка перетворюється на смужку). */
+  function fitMain(img){
+    if(!img) return;
+    var box = img.parentNode;
+    if(!box || !box.classList.contains('is-main')) return;
+    var apply = function(){
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if(!w || !h) return;
+      box.style.aspectRatio = String(Math.max(0.75, Math.min(4/3, w / h)));
+    };
+    img.addEventListener('load', apply, { once:true });
+    if(img.complete && img.naturalWidth) apply();
+  }
+  function fitMains(){
+    [].forEach.call(document.querySelectorAll('.pgal-i.is-main img'), fitMain);
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
@@ -5677,6 +5704,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           big2.setAttribute('alt', sm.getAttribute('alt') || '');
           sm.setAttribute('src', sv); sm.setAttribute('alt', av);
           if(cp) cp.textContent = av;
+          fitMain(big2);
         }
         return;
       }
@@ -5697,6 +5725,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           small.setAttribute('src', src);
           small.setAttribute('alt', alt);
           if(cap) cap.textContent = alt;
+          fitMain(big);
         }
         return;
       }
