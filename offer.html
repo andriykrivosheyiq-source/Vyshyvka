@@ -30,6 +30,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     /* Типографічна шкала. Вісім кеглів на всю сторінку: доти їх було
        тридцять три, і сім із них — у проміжку 12–16px, де різниця вже
        не читається як задум. */
+
+    /* Радіуси: плашка · поле й кнопка · картка · велика картка й фото ·
+       лічильник. Було тринадцять значень майже суцільним рядом. */
+    --r-1:6px; --r-2:10px; --r-3:14px; --r-4:20px; --r-pill:999px;
     --fs-1:11px; --fs-2:13px; --fs-3:15px; --fs-4:17px; --fs-5:21px; --fs-6:26px; --fs-7:32px; --fs-8:38px;
 
   }
@@ -56,7 +60,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ── шапка ── */
   .top{display:flex; align-items:center; justify-content:space-between;
     padding:18px var(--pad); border-bottom:1px solid var(--line);}
-  .brand{font-size:var(--fs-5); font-weight:800; letter-spacing:-0.4px;}
+  .brand{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px;}
   /* Логотип бренду. Висота фіксована, ширина вільна: логотипи в різних
      пропорціях не мають смикати висоту шапки. */
   .brand-img{height:26px; width:auto; max-width:190px; object-fit:contain; display:block;}
@@ -65,7 +69,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .top-no{font-size:var(--fs-2); color:var(--muted); font-variant-numeric:tabular-nums;}
 
   /* ── перший екран ── */
-  .hero{padding:34px 0 30px;}  .hero h1{font-size:var(--fs-7); line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:800;}  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
+  .hero{padding:34px 0 30px;}  .hero h1{font-size:var(--fs-7); line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:700;}  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
      власного фону: усе це колись стояло тут і зробило три речі одразу.
      Відступи й margin робили блок вищим і ширшим за саму картинку, тож рамка
      обрізання лягала на одну область, а різалась інша — зміщена й більша.
@@ -79,13 +83,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero-logo[style*="height"]{max-height:none;}
   .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
   .edlogo-sz{display:flex; align-items:center; gap:5px;}
-  .edlogo-sz b{font-size:var(--fs-2); font-weight:700; color:#3D4C61; min-width:46px; text-align:center;
+  .edlogo-sz b{font-size:var(--fs-2); font-weight:600; color:#3D4C61; min-width:46px; text-align:center;
     font-variant-numeric:tabular-nums;}/* Статуси в Hero: короткі підтвердження, що робота вже зроблена */
   .hero-body{display:flex; align-items:flex-start; gap:10px; margin:6px 0 22px;}/* Фото виходить за правий край — так воно виглядає як частина сторінки,
      а не як картинка, вставлена в рамку. */
   .hero-photo{flex:0 0 44%; max-width:230px; margin-right:calc(var(--pad) * -1);
     border-radius:20px 0 0 20px; overflow:hidden; background:var(--soft);}  @media (min-width:560px){}/* Товар: велике фото + ряд міні-прев'ю */
-  .shot{border-radius:18px; overflow:hidden; background:#F1F4F8; margin-bottom:10px;}
+  .shot{border-radius:var(--r-4); overflow:hidden; background:#F1F4F8; margin-bottom:10px;}
   .shot img{width:100%; display:block;}/* Пакет — що саме наносимо. Стоїть перед кількістю: спершу «який варіант»,
      потім «скільки». */
   .ppack{margin-top:16px;}
@@ -125,22 +129,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .prow-r{text-align:right; flex:none;}
   /* Один стиль для всіх підписів у картці: раніше «Пакет», «Виготовлення»
      і підказка про тираж були трьома різними шрифтами. */
-  .prow-k, .ppack-k{display:block; font-size:var(--fs-1); font-weight:700; letter-spacing:.5px;
+  .prow-k, .ppack-k{display:block; font-size:var(--fs-1); font-weight:600; letter-spacing:.5px;
     text-transform:uppercase; color:var(--muted); margin:0 0 6px;}
-  .prow-v{display:block; font-size:var(--fs-3); font-weight:700; white-space:nowrap;}/* Кнопка замість галочки: дія має виглядати як дія */
+  .prow-v{display:block; font-size:var(--fs-3); font-weight:600; white-space:nowrap;}/* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
   .pbuy-row .pstep{margin-top:0; flex:none;}
   .pbuy-row .pbuy{margin-top:0; flex:1;}
   .pbuy{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
-    margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
-    background:#fff; color:var(--ink); font:inherit; font-size:var(--fs-3); font-weight:700;
+    margin-top:14px; padding:15px; border-radius:var(--r-3); border:1.5px solid var(--ink);
+    background:#fff; color:var(--ink); font:inherit; font-size:var(--fs-3); font-weight:600;
     cursor:pointer; transition:.15s;}
   /* Не обрана — горить помаранчевим і кличе натиснути. Обрана — тонка
      обводка з галочкою: дію вже зроблено, привертати увагу нема чого.
      Раніше було навпаки, і обрана позиція виглядала як заклик натиснути. */
   .pbuy{background:var(--cta); border-color:var(--cta); color:#fff;}
-  .pbuy.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:700;}
+  .pbuy.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:600;}
   .pbuy.on svg{stroke:var(--good);}
   .pbuy:active{transform:scale(.99);}
 
@@ -153,8 +157,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .ppick{display:flex; align-items:center; gap:7px; margin-top:10px;
     font-size:var(--fs-2); color:var(--ink-2);}
   .pstep{display:inline-flex; align-items:center; gap:4px; margin-top:10px;
-    border:1.5px solid var(--line); border-radius:14px; padding:3px;}
-  .pstep-b{flex:none; width:36px; height:36px; border-radius:11px; border:none;
+    border:1.5px solid var(--line); border-radius:var(--r-3); padding:3px;}
+  .pstep-b{flex:none; width:36px; height:36px; border-radius:var(--r-2); border:none;
     background:var(--soft); font:inherit; font-size:19px; line-height:1; color:var(--ink);
     cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none;}
   .pstep-b.plus{background:var(--ink); color:#fff;}
@@ -167,15 +171,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .incl{display:grid; gap:8px;}/* Менеджер: обличчя ліворуч, контакти праворуч. Кружечок з літерою
      довіри не викликає — на пропозиції в десятки тисяч потрібне фото. */
   .mgr{display:flex; gap:15px; align-items:flex-start;}
-  .mgr-ph{flex:0 0 96px; width:96px; height:96px; border-radius:18px; overflow:hidden;
+  .mgr-ph{flex:0 0 96px; width:96px; height:96px; border-radius:var(--r-4); overflow:hidden;
     background:var(--soft); position:relative;}
   .mgr-ph img{width:100%; height:100%; object-fit:cover; display:block;}
   .mgr-ph.noimg::after, .mgr-ph:empty::after{content:''; position:absolute; inset:0;
     background:var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='none' stroke='%23B6BFCC' stroke-width='1.5'%3E%3Ccircle cx='12' cy='8.5' r='3.8'/%3E%3Cpath d='M4.5 20.5a7.5 7.5 0 0 1 15 0'/%3E%3C/svg%3E") center/44px no-repeat;}
   .mgr-txt{flex:1; min-width:0;}
-  .mgr-role{font-size:var(--fs-1); font-weight:700; letter-spacing:.6px;
+  .mgr-role{font-size:var(--fs-1); font-weight:600; letter-spacing:.6px;
     text-transform:uppercase; color:var(--muted);}
-  .mgr-name{font-size:var(--fs-5); font-weight:800; letter-spacing:-.4px; margin-top:2px;}
+  .mgr-name{font-size:var(--fs-5); font-weight:600; letter-spacing:-.4px; margin-top:2px;}
   .mgr-phone{font-size:var(--fs-3); font-weight:600; margin-top:3px; font-variant-numeric:tabular-nums;}
   /* Статус менеджера. Зелена крапка «дихає» — саме вона й читається як
      «там жива людина»; поза робочими годинами крапка сіра й не блимає. */
@@ -199,8 +203,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      тільки іконки: їх упізнають без підпису, а підпис лише розтягує блок. */
   .mgr-acts{display:flex; align-items:center; gap:8px; margin-top:12px;}
   .mgr-a{display:inline-flex; align-items:center; justify-content:center;
-    text-decoration:none; font-size:var(--fs-2); font-weight:700; line-height:1;
-    border-radius:999px; white-space:nowrap;}
+    text-decoration:none; font-size:var(--fs-2); font-weight:600; line-height:1;
+    border-radius:var(--r-pill); white-space:nowrap;}
   .mgr-a svg{flex:none; width:19px; height:19px; display:block;}
   .mgr-a i{font-style:normal;}
   .mgr-a.call{flex:1; gap:7px; padding:12px 16px; background:var(--ink); color:#fff;}
@@ -213,16 +217,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   .rev-st{display:flex; gap:2px; margin-bottom:8px;}/* Кнопка, а не рядок дрібним: сторінка відгуків уже є, і на неї треба
      заходити, а не здогадуватись, що підпис клікабельний. */
-  .rev-all{flex:none; font-size:var(--fs-2); font-weight:700; text-decoration:none;
-    color:#fff; background:var(--ink); border-radius:10px; padding:9px 14px;
+  .rev-all{flex:none; font-size:var(--fs-2); font-weight:600; text-decoration:none;
+    color:#fff; background:var(--ink); border-radius:var(--r-2); padding:9px 14px;
     white-space:nowrap;}
   /* ── Ритм сторінки ─────────────────────────────────────────────────
      Усе на білому робить блоки однаково важливими, і сторінка читається як
      таблиця. Смуга іншого тону відділяє «нас» від «товару» і дає око, за що
      зачепитись під час прокрутки. */
   .rmore{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
-    margin-top:14px; padding:13px; border-radius:13px; border:1.5px solid var(--line);
-    background:#fff; font:inherit; font-size:var(--fs-3); font-weight:700; color:var(--ink);
+    margin-top:14px; padding:13px; border-radius:var(--r-3); border:1.5px solid var(--line);
+    background:#fff; font:inherit; font-size:var(--fs-3); font-weight:600; color:var(--ink);
     cursor:pointer;}
   /* Контраст між блоками. Раніше всі секції лежали на білому й розділялись
      тонкою лінією — сторінка читалась як одна довга простиня. Тепер блоки
@@ -246,12 +250,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding:30px var(--pad); margin:26px calc(var(--pad) * -1) 0;}/* «Це вже в ціні» — світлі картки на темному, максимальний контраст */
   .band .incl-i{background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.13);}/* Заглушка — видно лише в тестовому режимі */
   .stub{border:2px dashed #D8C08A; background:#FDF7EC; color:#7A5410;
-    border-radius:14px; padding:14px 16px; font-size:var(--fs-2); line-height:1.6;}
+    border-radius:var(--r-3); padding:14px 16px; font-size:var(--fs-2); line-height:1.6;}
   .stub b{display:block; font-size:var(--fs-2); color:#5E4009; margin-bottom:4px;}
 
   /* Наші роботи */
   .works{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
-  .work{position:relative; border-radius:14px; overflow:hidden; background:var(--soft);
+  .work{position:relative; border-radius:var(--r-3); overflow:hidden; background:var(--soft);
     aspect-ratio:1/1;}
   .work img{width:100%; height:100%; object-fit:cover; display:block;}
   .work span{position:absolute; left:0; right:0; bottom:0; padding:8px 10px;
@@ -268,7 +272,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding-right:18px;}
   #revsBox::-webkit-scrollbar{display:none;}
   .review-card{flex:0 0 86%; scroll-snap-align:start; background:#fff;
-    border:1px solid var(--line); border-radius:18px; padding:16px; margin:0;
+    border:1px solid var(--line); border-radius:var(--r-4); padding:16px; margin:0;
     display:flex; gap:14px; align-items:flex-start;}
   @media (min-width:640px){ .review-card{flex-basis:44%;} }
   /* Відгук із фото — це доказ, а не цитата. Тому фото зверху й на всю
@@ -280,7 +284,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     flex:none; background:var(--soft); cursor:zoom-in;}
   .review-photo img{width:100%; height:100%; object-fit:cover; display:block;}
   .review-card-main{flex:1; min-width:0;}
-  .review-card-main h4{font-size:var(--fs-4); font-weight:700; margin:0;}
+  .review-card-main h4{font-size:var(--fs-4); font-weight:600; margin:0;}
   .review-date{font-size:var(--fs-2); color:var(--muted);}
   .review-card .review-stars{margin-top:8px; font-size:var(--fs-3); color:#FFC53D; letter-spacing:1px;}
   .review-card p{font-size:var(--fs-3); color:var(--muted); margin:6px 0 0; line-height:1.5;}
@@ -298,7 +302,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     width:1px; background:#D3DAE3;}
   .fl-s:last-child::before{display:none;}
   .fl-n{position:absolute; left:0; top:0; background:var(--bg); padding-bottom:4px;
-    font-size:var(--fs-1); font-weight:700; letter-spacing:.08em; color:var(--muted);
+    font-size:var(--fs-1); font-weight:600; letter-spacing:.08em; color:var(--muted);
     font-variant-numeric:tabular-nums;}
   .fl-t{display:block; font-size:var(--fs-3); font-weight:600; letter-spacing:-0.2px;
     line-height:1.3;}
@@ -312,14 +316,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Проєкти */
   .cases{display:grid; grid-template-columns:1fr; gap:12px;}
-  .case{border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#fff;}
+  .case{border:1px solid var(--line); border-radius:var(--r-4); overflow:hidden; background:#fff;}
   .case-ph{height:132px; background:#F1F4F8;}
   .case-ph img{width:100%; height:100%; object-fit:cover; display:block;}
-  .case-n{font-weight:700; font-size:var(--fs-3); padding:12px 14px 0;}
+  .case-n{font-weight:600; font-size:var(--fs-3); padding:12px 14px 0;}
   .case-q{font-size:var(--fs-2); color:var(--muted); padding:2px 14px 0;}
   .case-t{font-size:var(--fs-2); color:var(--ink); padding:6px 14px 14px;}
   /* FAQ */
-  .fq{border:1px solid var(--line); border-radius:14px; background:#fff; margin-bottom:8px;
+  .fq{border:1px solid var(--line); border-radius:var(--r-3); background:#fff; margin-bottom:8px;
     overflow:hidden;}
   .fq summary{padding:14px 16px; font-size:var(--fs-3); font-weight:600; cursor:pointer;
     list-style:none; display:flex; justify-content:space-between; gap:10px;}
@@ -330,7 +334,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (min-width:560px){
     .cases{grid-template-columns:1fr 1fr 1fr;}
   }.btn{display:flex; align-items:center; justify-content:center; gap:8px;
-    width:100%; padding:15px 20px; border-radius:12px; font-size:var(--fs-3); font-weight:700;
+    width:100%; padding:15px 20px; border-radius:var(--r-3); font-size:var(--fs-3); font-weight:600;
     background:var(--cta); color:#fff; transition:.15s; border:1.5px solid var(--cta);}
   .btn:active{background:var(--cta-dark); border-color:var(--cta-dark);}
   .btn-ghost{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
@@ -350,7 +354,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      смуга в 14px — рамка заокруглювалась по порожньому місцю, і картка
      виглядала так, ніби фото в ній відклеїлось від верху.
      Коли фото немає, відступ дає .pcard-info своїм margin-top. */
-  .pcard{border:1px solid var(--line); border-radius:18px; padding:0 0 0; background:#fff;
+  .pcard{border:1px solid var(--line); border-radius:var(--r-4); padding:0 0 0; background:#fff;
     margin-bottom:8px; overflow:hidden;}
   .pcard > *:not(.pgal){padding-left:14px; padding-right:14px;}
   .pcard > .pcard-more{padding-bottom:10px;}
@@ -367,7 +371,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      людина має встигнути захотіти виріб, перш ніж читатиме ціну. Раніше фото
      займало 118 px збоку і важило рівно стільки ж, скільки будь-який рядок
      тексту поруч, — картка виглядала як таблиця, а не як вітрина. */
-  .pshot{width:100%; aspect-ratio:1/1; max-height:62vh; border-radius:16px; overflow:hidden;
+  .pshot{width:100%; aspect-ratio:1/1; max-height:62vh; border-radius:var(--r-4); overflow:hidden;
     background:var(--soft); display:flex; align-items:center; justify-content:center;}
   .pshot img{width:100%; height:100%; object-fit:contain; display:block;
     transition:opacity .18s ease; cursor:zoom-in;}
@@ -405,13 +409,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     display:flex; gap:8px;}
   /* Мініатюра з підписом: «Спина» під фото. Без підпису вона була просто
      сірим квадратиком, і що там — доводилось вгадувати. */
-  .pgal-i.is-thumb{width:86px; height:86px; border-radius:12px; cursor:pointer;
+  .pgal-i.is-thumb{width:86px; height:86px; border-radius:var(--r-3); cursor:pointer;
     box-shadow:0 3px 14px rgba(15,32,52,.22), inset 0 0 0 2px rgba(255,255,255,.95);
     transition:transform .15s;}
   .pgal-i.is-thumb:hover{transform:translateY(-2px);}
   .pgal-i.is-thumb img{width:100%; height:100%; object-fit:cover;}
   .pgal-cap{position:absolute; left:0; right:0; bottom:0; z-index:2;
-    font-size:var(--fs-1); font-weight:700; letter-spacing:.02em; text-align:center;
+    font-size:var(--fs-1); font-weight:600; letter-spacing:.02em; text-align:center;
     color:#fff; background:linear-gradient(transparent, rgba(15,32,52,.72));
     padding:8px 2px 3px; pointer-events:none;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -438,10 +442,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:#F7F9FC; box-shadow:inset 0 0 0 1.5px #DDE4EE;}
   .pgal-plus{display:flex; flex-direction:column; align-items:center; gap:2px;
     color:#9AA6B8; font-size:22px; line-height:1;}
-  .pgal-plus i{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.04em;
+  .pgal-plus i{font-style:normal; font-size:11px; font-weight:600; letter-spacing:.04em;
     text-transform:uppercase;}
-  .pgal-lab{position:absolute; left:8px; bottom:8px; z-index:2; font-size:var(--fs-1); font-weight:700;
-    color:#22314A; background:rgba(255,255,255,.92); border-radius:20px; padding:3px 9px;
+  .pgal-lab{position:absolute; left:8px; bottom:8px; z-index:2; font-size:var(--fs-1); font-weight:600;
+    color:#22314A; background:rgba(255,255,255,.92); border-radius:var(--r-4); padding:3px 9px;
     pointer-events:none;}
   /* Під час перейменування підпис стає полем — просто на своєму місці */
   /* Прихований ракурс менеджер бачить приглушеним і підписаним — щоб не
@@ -451,16 +455,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      дрібними, інакше вони перекривають саме фото, яке й треба роздивитись. */
   .pgal-i.is-thumb .pgal-lab{left:3px; bottom:3px; font-size:var(--fs-1); padding:1px 5px;}
   .pgal-i.is-thumb .pgal-off{left:3px; top:3px; font-size:var(--fs-1); padding:1px 4px;}
-  .pgal-off{position:absolute; left:8px; top:8px; z-index:2; font-size:var(--fs-1); font-weight:800;
+  .pgal-off{position:absolute; left:8px; top:8px; z-index:2; font-size:var(--fs-1); font-weight:600;
     letter-spacing:.04em; text-transform:uppercase; color:#7A2320; background:#FDECEA;
-    border-radius:20px; padding:3px 8px; pointer-events:none;}
+    border-radius:var(--r-4); padding:3px 8px; pointer-events:none;}
   /* Прорахунок для менеджера. Розмітка й вигляд — ті самі, що в «Прорахунку
      замовлення» на сайті: менеджер читає звичний йому блок, а не другий
      варіант того самого. Згорнутий, бо потрібен не постійно. */
-  .cc-fold{margin:10px 14px 0; border:1px dashed #C7D0DE; border-radius:12px; background:#fff;}
+  .cc-fold{margin:10px 14px 0; border:1px dashed #C7D0DE; border-radius:var(--r-3); background:#fff;}
   .cc-fold-all{margin:14px 0 0;}
   .cc-fold>summary{list-style:none; cursor:pointer; padding:9px 13px; font-size:var(--fs-2);
-    font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#7A8496;}
+    font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:#7A8496;}
   .cc-fold>summary::-webkit-details-marker{display:none;}
   .cc-fold>summary::after{content:'▾'; float:right; font-size:11px; opacity:.7;}
   .cc-fold[open]>summary::after{content:'▴';}
@@ -468,27 +472,27 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cc-fold-b{padding:0 13px 13px;}
   .cc-groups{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px;}
   .cc-group{display:flex;align-items:baseline;gap:7px;padding:7px 11px;background:#f1f3f5;
-    border-radius:9px;font-size:var(--fs-2);color:#4a525c;}
-  .cc-group b{font-weight:700;color:#111;}
+    border-radius:var(--r-2);font-size:var(--fs-2);color:#4a525c;}
+  .cc-group b{font-weight:600;color:#111;}
   .cc-hint{font-size:var(--fs-2);line-height:1.5;color:#8a929b;margin:0 0 14px;}
   .cc-fix{font:inherit;font-size:var(--fs-2);font-weight:600;color:#0f2034;background:#fff;
-    border:1px solid #d8dee7;border-radius:10px;padding:8px 14px;cursor:pointer;margin-bottom:6px;}
+    border:1px solid #d8dee7;border-radius:var(--r-2);padding:8px 14px;cursor:pointer;margin-bottom:6px;}
   .cc-fix:hover{border-color:#0f2034;}
   .cc-fix:disabled{opacity:.55;cursor:default;}
-  .cc-sec{font-size:var(--fs-2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  .cc-sec{font-size:var(--fs-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;
     color:#8a929b;margin:20px 0 8px;}
-  .cc-item{border:1px solid #e6e9ed;border-radius:12px;padding:13px 14px;margin-bottom:10px;background:#fff;}
+  .cc-item{border:1px solid #e6e9ed;border-radius:var(--r-3);padding:13px 14px;margin-bottom:10px;background:#fff;}
   .cc-item.is-reco{border-style:dashed;}
-  .cc-name{font-size:var(--fs-3);font-weight:700;color:#111;}
+  .cc-name{font-size:var(--fs-3);font-weight:600;color:#111;}
   .cc-name em{font-style:normal;font-size:var(--fs-1);font-weight:600;color:#8a929b;
     text-transform:uppercase;letter-spacing:.04em;}
   .cc-meta{font-size:var(--fs-2);color:#8a929b;margin-top:2px;}
-  .cc-rows{margin-top:9px;padding:9px 11px;background:#f7f8fa;border-radius:9px;}
+  .cc-rows{margin-top:9px;padding:9px 11px;background:#f7f8fa;border-radius:var(--r-2);}
   .cc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
     font-size:var(--fs-2);line-height:1.45;padding:3px 0;color:#4a525c;}
   .cc-row b{font-weight:600;color:#222;white-space:nowrap;}
   .cc-row.is-disc,.cc-row.is-disc b{color:#128a4a;}
-  .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:5px;padding-top:6px;font-weight:700;color:#111;}
+  .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:5px;padding-top:6px;font-weight:600;color:#111;}
   /* Підрядок розкладу: тонший і трохи відсунутий, щоб було видно, що він
      пояснює рядок над собою, а не додається до суми ще раз. */
   /* Перемикач «картинка ⇄ напис» стоїть у самому рядку дизайну: рішення
@@ -498,9 +502,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      доводилось вгадувати з підпису. */
   .cc-kind-wrap{display:inline-flex; align-items:center; gap:4px; margin-left:8px;
     vertical-align:1px;}
-  .cc-kind{font:inherit; font-size:var(--fs-1); font-weight:700;
+  .cc-kind{font:inherit; font-size:var(--fs-1); font-weight:600;
     letter-spacing:.03em; text-transform:uppercase; color:#2F4C8F; background:#EAF0FC;
-    border:1px solid #C9D8F2; border-radius:6px; padding:1px 18px 1px 6px; cursor:pointer;
+    border:1px solid #C9D8F2; border-radius:var(--r-1); padding:1px 18px 1px 6px; cursor:pointer;
     -webkit-appearance:none; appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='6'><path d='M1 1l3.5 3.5L8 1' fill='none' stroke='%232F4C8F' stroke-width='1.6' stroke-linecap='round'/></svg>");
     background-repeat:no-repeat; background-position:right 5px center;}
@@ -515,19 +519,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cc-row.is-sub b{font-weight:500;color:#8a94a6;}
   .cc-money{display:flex;gap:10px;margin-top:9px;}
   .cc-money>div{flex:1;display:flex;justify-content:space-between;gap:8px;align-items:baseline;
-    font-size:var(--fs-2);color:#8a929b;padding:6px 10px;background:#f7f8fa;border-radius:8px;}
-  .cc-money b{font-weight:700;color:#222;white-space:nowrap;}
+    font-size:var(--fs-2);color:#8a929b;padding:6px 10px;background:#f7f8fa;border-radius:var(--r-2);}
+  .cc-money b{font-weight:600;color:#222;white-space:nowrap;}
   .cc-money b.good{color:#128a4a;}
   .cc-money b.bad{color:#c0392b;}
-  .cc-total{margin-top:16px;padding:12px 14px;border:1px solid #dfe3e8;border-radius:12px;background:#fbfcfd;}
+  .cc-total{margin-top:16px;padding:12px 14px;border:1px solid #dfe3e8;border-radius:var(--r-3);background:#fbfcfd;}
   .cc-total .cc-row.is-sum{font-size:var(--fs-3);}
   /* Меню ракурсу */
   .vmenu{position:fixed; z-index:60; min-width:210px; background:#fff; border:1px solid #E2E8F0;
-    border-radius:12px; box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px; font-size:var(--fs-2);}
+    border-radius:var(--r-3); box-shadow:0 14px 40px rgba(15,32,52,.18); padding:6px; font-size:var(--fs-2);}
   .vmenu b{display:block; padding:8px 10px 6px; font-size:var(--fs-1); letter-spacing:.06em;
     text-transform:uppercase; color:#8A93A3;}
   .vmenu button{display:block; width:100%; text-align:left; font:inherit; font-size:var(--fs-2);
-    background:none; border:0; border-radius:8px; padding:9px 10px; cursor:pointer; color:#22314A;}
+    background:none; border:0; border-radius:var(--r-2); padding:9px 10px; cursor:pointer; color:#22314A;}
   .vmenu button:hover{background:#F1F5FA;}.pgal-i img{width:100%; height:100%; object-fit:contain; display:block; cursor:zoom-in;
     transform:scale(1.16); transform-origin:center 46%;}
 
@@ -578,7 +582,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     calc(14px + env(safe-area-inset-bottom)); overflow-x:auto; scrollbar-width:none;}
   .zoom-thumbs::-webkit-scrollbar{display:none;}
   .zoom-thumbs button{flex:none; width:64px; padding:0;
-    border:1px solid rgba(255,255,255,.25); border-radius:10px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.25); border-radius:var(--r-2); overflow:hidden;
     background:#fff; cursor:pointer; opacity:.55;
     transition:opacity .15s ease, box-shadow .15s ease, border-color .15s ease;}
   .zoom-thumbs button:hover{opacity:.85;}
@@ -587,7 +591,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Підпис під мініатюрою: два білі квадрати внизу самі по собі не кажуть,
      який із них спина. Той самий текст, що й угорі кадру. */
   .zoom-thumbs button i{display:block; font-style:normal; font-size:var(--fs-1);
-    font-weight:700; line-height:1.2; padding:4px 3px; color:#22314A;
+    font-weight:600; line-height:1.2; padding:4px 3px; color:#22314A;
     background:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .zoom-thumbs:empty{display:none;}
   .pshot img.swap{opacity:0;}
@@ -606,11 +610,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:none; border:none; cursor:pointer; font:inherit; font-size:var(--fs-2);
     color:var(--muted);}
   .pnote-i{flex:none; width:16px; height:16px; border-radius:50%; background:#F0E2C4;
-    color:#8A5B00; font-size:var(--fs-1); font-weight:800; display:flex;
+    color:#8A5B00; font-size:var(--fs-1); font-weight:600; display:flex;
     align-items:center; justify-content:center; line-height:1;}
   .pnote-c{transition:transform .18s;}
   .pnote-t.on .pnote-c{transform:rotate(180deg);}
-  .pnote{margin-top:8px; padding:11px 13px; border-radius:12px; background:#FDF7EC;
+  .pnote{margin-top:8px; padding:11px 13px; border-radius:var(--r-3); background:#FDF7EC;
     color:#7A5410; font-size:var(--fs-2); line-height:1.6;}
 
   /* Назва й ціна — без рамок. Рамка навколо ціни робила з неї кнопку,
@@ -627,14 +631,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      замовлене; скільки він коштує; і — після натискання — що його взяли.
      Тому позначка стоїть над назвою, а не збоку від ціни: там її читають
      раніше, ніж встигають порахувати суму. */
-  .pcard-tag{display:inline-block; font-size:var(--fs-1); font-weight:700; letter-spacing:.06em;
-    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
+  .pcard-tag{display:inline-block; font-size:var(--fs-1); font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:var(--r-1);
     padding:3px 8px; margin-bottom:7px;}
   .pcard.is-taken .pcard-tag{color:#0F5C34; background:#DCF4E6;}
   /* Та сама позначка, але на фото: підкладка щільніша, бо під нею знімок */
   .pgal-tag{position:absolute; left:8px; top:8px; z-index:3; font-size:var(--fs-1);
-    font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#7A6538;
-    background:rgba(253,240,213,.95); border-radius:6px; padding:3px 8px;
+    font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#7A6538;
+    background:rgba(253,240,213,.95); border-radius:var(--r-1); padding:3px 8px;
     pointer-events:none; box-shadow:0 1px 3px rgba(20,30,50,.10);}
   .pcard.is-taken .pgal-tag{color:#0F5C34; background:rgba(220,244,230,.95);}
   /* Невзятий варіант тримається тихіше за погоджені позиції — але не
@@ -645,29 +649,29 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      замість неї. Читається за секунду й не робить картку вищою. */
   .pcard-kit{margin-top:4px; font-size:var(--fs-2); color:var(--muted); line-height:1.4;}
   .pcard-why{margin-top:7px; font-size:var(--fs-2); line-height:1.5; color:var(--ink);
-    background:var(--soft); border-radius:10px; padding:8px 11px;}  .pcard-price{font-size:var(--fs-7); font-weight:600; letter-spacing:-0.7px;
+    background:var(--soft); border-radius:var(--r-2); padding:8px 11px;}  .pcard-price{font-size:var(--fs-7); font-weight:600; letter-spacing:-0.7px;
     font-variant-numeric:tabular-nums; color:var(--ink);}
   /* Ціна без знижки за тираж — перекресленою поруч, і поруч розмір вигоди.
      Це не прикраса: клієнт має бачити, що тираж уже здешевив кожну штуку. */
   .pcard-old{font-size:var(--fs-4); font-weight:400; color:var(--muted);
     text-decoration:line-through; font-variant-numeric:tabular-nums;}
-  .pcard-off{font-size:var(--fs-2); font-weight:800; color:#fff; background:var(--cta);
-    border-radius:6px; padding:2px 6px; letter-spacing:.2px;}
+  .pcard-off{font-size:var(--fs-2); font-weight:600; color:#fff; background:var(--cta);
+    border-radius:var(--r-1); padding:2px 6px; letter-spacing:.2px;}
   .pcard-per{font-size:var(--fs-2); color:var(--muted);}
   /* Тираж — один сегмент замість трьох карток */
-  .pqty{margin-top:10px;}  .pseg{display:flex; gap:4px; padding:4px; border-radius:13px; background:var(--soft);}
-  .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:10px; background:none;
-    font:inherit; font-size:var(--fs-3); font-weight:700; color:var(--ink-2); cursor:pointer;
+  .pqty{margin-top:10px;}  .pseg{display:flex; gap:4px; padding:4px; border-radius:var(--r-3); background:var(--soft);}
+  .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:var(--r-2); background:none;
+    font:inherit; font-size:var(--fs-3); font-weight:600; color:var(--ink-2); cursor:pointer;
     font-variant-numeric:tabular-nums; transition:.15s;}
   .pseg-b.on{background:var(--ink); color:#fff;}  /* Кому ми оформлюємо замовлення — у вікні підтвердження */
-  .cf-who{background:var(--soft); border-radius:12px; padding:12px 14px; margin-bottom:14px;
+  .cf-who{background:var(--soft); border-radius:var(--r-3); padding:12px 14px; margin-bottom:14px;
     font-size:var(--fs-3); color:var(--ink-2); line-height:1.5;}
   .cf-who b{display:block; color:var(--ink); font-size:var(--fs-3); margin-top:2px;}
   .cf-who-note{display:block; margin-top:6px; font-size:var(--fs-2); color:var(--muted);}
   .pqty-n{margin-top:8px; font-size:var(--fs-2); color:var(--muted);}
   .pqty-n b{color:var(--good);}
   /* Тільки для менеджера: чому саме в цій позиції немає перекресленої ціни */
-  .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:8px;
+  .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:var(--r-2);
     padding:6px 9px; font-size:var(--fs-2);}
 
   .pcard-more{margin-top:8px; border-top:1px solid var(--line); padding-top:8px;}
@@ -696,23 +700,23 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .packs{display:grid; grid-template-columns:1fr; gap:10px;}
   @media (min-width:560px){ .packs{grid-template-columns:repeat(3,1fr);} }
   .pack{position:relative; display:grid; gap:3px; text-align:left; padding:15px 16px;
-    border:1.5px solid var(--line); border-radius:16px; background:#fff; font:inherit;
+    border:1.5px solid var(--line); border-radius:var(--r-4); background:#fff; font:inherit;
     cursor:pointer; transition:.15s;}
   .pack.best{border-color:#CBD5E1;}
   .pack.on{border-color:var(--ink); background:#F7F9FC;}
   .pack-rib{position:absolute; top:-9px; left:16px; background:var(--good); color:#fff;
-    font-size:var(--fs-1); font-weight:800; letter-spacing:.5px; text-transform:uppercase;
-    padding:3px 9px; border-radius:999px;}
-  .pack-n{font-size:var(--fs-2); font-weight:800; letter-spacing:.6px; text-transform:uppercase;
+    font-size:var(--fs-1); font-weight:600; letter-spacing:.5px; text-transform:uppercase;
+    padding:3px 9px; border-radius:var(--r-pill);}
+  .pack-n{font-size:var(--fs-2); font-weight:600; letter-spacing:.6px; text-transform:uppercase;
     color:var(--muted);}
-  .pack-u{font-size:var(--fs-6); font-weight:800; letter-spacing:-0.8px; line-height:1.15;
+  .pack-u{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.8px; line-height:1.15;
     font-variant-numeric:tabular-nums;}
   .pack-s{font-size:var(--fs-2); color:var(--ink-2); font-variant-numeric:tabular-nums;}
   .pack-gain{margin-top:6px; align-self:start; background:#ECFDF5; color:#047857;
-    border-radius:999px; padding:3px 10px; font-size:var(--fs-2); font-weight:700;}
+    border-radius:var(--r-pill); padding:3px 10px; font-size:var(--fs-2); font-weight:600;}
   .pack-note{font-size:var(--fs-2); color:var(--muted); line-height:1.4; margin-top:4px;}
-  .pack-cta{margin-top:10px; text-align:center; padding:9px; border-radius:10px;
-    background:var(--soft); font-size:var(--fs-2); font-weight:700;}
+  .pack-cta{margin-top:10px; text-align:center; padding:9px; border-radius:var(--r-2);
+    background:var(--soft); font-size:var(--fs-2); font-weight:600;}
   .pack.on .pack-cta{background:var(--ink); color:#fff;}
   .pack-own{font-size:var(--fs-2); color:var(--muted); margin:12px 0 0;}
 
@@ -726,7 +730,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      дія тут одна, і вона внизу. Тепер це тихий блок: фото, назва, ціна й
      стримана кнопка, яка стає зеленою, коли товар уже в замовленні. */
   .rc{position:relative; display:flex; flex-direction:column; border:1px solid var(--line);
-    border-radius:14px; padding:10px 10px 12px; background:#fff; transition:.15s;}
+    border-radius:var(--r-3); padding:10px 10px 12px; background:#fff; transition:.15s;}
   .rc:hover{border-color:#C9D2DE;}
   .rc.on{border-color:#9BD9BA; background:#F7FCF9;}
   /* Точно як у каталозі сайту: фото заповнює плитку від краю до краю
@@ -735,7 +739,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Однакова рамка й ВПИСУВАННЯ, а не обрізання. З обрізанням кепка займала
      весь квадрат, а шопер — половину, і поруч вони виглядали різного
      калібру. Тепер усі товари в однаковій рамці й однаково дихають. */
-  .rc-ph{border-radius:11px; overflow:hidden; background:#fff; aspect-ratio:1/1;
+  .rc-ph{border-radius:var(--r-2); overflow:hidden; background:#fff; aspect-ratio:1/1;
     margin-bottom:9px; display:flex; align-items:center; justify-content:center;
     padding:10px; cursor:zoom-in;}
   .rc-ph img{max-width:100%; max-height:100%; width:auto; height:auto;
@@ -743,11 +747,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin-top:4px; font-variant-numeric:tabular-nums;}/* Кнопка яскрава, але маленька: дію видно, а вагу головного заклику вона
      не перебиває — саме тому не на всю ширину й не така висока, як раніше. */
   .rc-add{display:flex; align-items:center; justify-content:center; gap:6px; width:100%;
-    margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--cta);
-    background:var(--cta); color:#fff; font:inherit; font-size:var(--fs-2); font-weight:700;
+    margin-top:10px; padding:10px; border-radius:var(--r-2); border:1px solid var(--cta);
+    background:var(--cta); color:#fff; font:inherit; font-size:var(--fs-2); font-weight:600;
     cursor:pointer; transition:.15s; position:static;}
   .rc-add:hover{filter:brightness(1.06);}
-  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:700;}.rc.on .rc-add{background:var(--good); border-color:var(--good); color:#fff;}
+  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good); font-weight:600;}.rc.on .rc-add{background:var(--good); border-color:var(--good); color:#fff;}
   .rc-add svg{display:block;}
 
   /* ══ Кошторис ═══════════════════════════════════════════════════════
@@ -770,7 +774,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding:34px var(--pad) 32px;}
   /* Заголовок видно: це вхід у головну частину, а не службовий підпис.
      Дрібними літерами вгорі його просто не помічали. */
-  .est-h{font-size:var(--fs-6); font-weight:700; letter-spacing:-0.6px; margin:0 0 4px;
+  .est-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px; margin:0 0 4px;
     color:#fff;}
   .est-meta{font-size:var(--fs-3); color:rgba(255,255,255,.55);}
   .est-top{margin-bottom:24px;}
@@ -796,12 +800,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-i-ph{grid-area:ph; align-self:start;} .est-i-t{grid-area:name;}
   .est-i-mul{grid-area:mul; align-self:start;}
   .est-i-sum{grid-area:sum; align-self:start;}
-  .est-i-ph{width:120px; height:120px; flex:none; border-radius:12px; overflow:hidden;
+  .est-i-ph{width:120px; height:120px; flex:none; border-radius:var(--r-3); overflow:hidden;
     background:#fff; display:block; cursor:zoom-in;}
   .est-i-ph img{width:100%; height:100%; object-fit:contain; display:block;}
   .est-i-t{min-width:0; padding-top:2px;}
   .est-i-nm{font-size:var(--fs-3); font-weight:600; line-height:1.35;}
-  .est-i-nm em{font-style:normal; font-size:var(--fs-1); font-weight:700; text-transform:uppercase;
+  .est-i-nm em{font-style:normal; font-size:var(--fs-1); font-weight:600; text-transform:uppercase;
     letter-spacing:.4px; color:rgba(255,255,255,.5); margin-left:7px;}
   /* Спосіб нанесення — підпис до назви, а не окремий рядок рахунку: у
      вартість він уже входить, і фінансовим рядком лише плодив би відчуття
@@ -850,22 +854,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-cta .btn-ghost{background:transparent; color:#fff;
     border:1px solid rgba(255,255,255,.28);}
   .est-cta .btn-ghost:hover{background:rgba(255,255,255,.08);
-    border-color:rgba(255,255,255,.42);}.mock{background:var(--soft); border-radius:14px; padding:10px; position:relative;}
+    border-color:rgba(255,255,255,.42);}.mock{background:var(--soft); border-radius:var(--r-3); padding:10px; position:relative;}
   .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}  .specs{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
     gap:8px; margin-bottom:18px;}
   .spec{display:grid; grid-template-columns:auto 1fr; gap:2px 7px; padding:10px 12px;
-    border-radius:12px; background:var(--soft); align-items:center;}
+    border-radius:var(--r-3); background:var(--soft); align-items:center;}
   .spec-ic{color:var(--muted); line-height:0;}
-  .spec-k{font-size:var(--fs-1); font-weight:700; letter-spacing:.5px;
+  .spec-k{font-size:var(--fs-1); font-weight:600; letter-spacing:.5px;
     text-transform:uppercase; color:var(--muted); align-self:center;}
   .spec-v{grid-column:2; font-size:var(--fs-3); font-weight:600;}
-  .price-box{background:var(--soft); border-radius:14px; padding:16px 18px;}
+  .price-box{background:var(--soft); border-radius:var(--r-3); padding:16px 18px;}
   .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .pb-row + .pb-row{margin-top:8px;}
   .pb-k{font-size:var(--fs-3); color:var(--ink-2);}
   .pb-v{font-size:var(--fs-3); font-weight:600; font-variant-numeric:tabular-nums;}.pb-total{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
-  .pb-total .pb-k{font-weight:700; color:var(--ink); font-size:var(--fs-3);}
-  .pb-total .pb-v{font-size:var(--fs-5); font-weight:800; letter-spacing:-0.4px;}
+  .pb-total .pb-k{font-weight:600; color:var(--ink); font-size:var(--fs-3);}
+  .pb-total .pb-v{font-size:var(--fs-5); font-weight:700; letter-spacing:-0.4px;}
 
   /* ── тиражі ── */
   .tiers{margin-top:20px;}/* ── списки ── */
@@ -885,8 +889,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .vgroup{margin-bottom:12px;}
   .vgroup-h{font-size:var(--fs-3); font-weight:600; margin-bottom:10px; display:flex;
     align-items:baseline; gap:8px;}
-  .vgroup-h em{font-style:normal; font-size:var(--fs-1); font-weight:700; letter-spacing:.05em;
-    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
+  .vgroup-h em{font-style:normal; font-size:var(--fs-1); font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:var(--r-1);
     padding:2px 7px;}
   /* Картка варіанта — звичайна картка товару (.pcard), тож власних стилів
      їй майже не треба: лише позначка обраного. */
@@ -897,8 +901,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Тому невибраний варіант — суцільна темна кнопка, а вибраний міняє не
      насиченість, а КОЛІР: зелена обводка й зелені літери, як «готово». */
   .vbtn{margin-top:auto; display:flex; align-items:center; justify-content:center; gap:7px;
-    width:100%; margin-top:12px; padding:12px 12px; border-radius:11px; cursor:pointer;
-    font:inherit; font-size:var(--fs-3); font-weight:700; letter-spacing:-.01em;
+    width:100%; margin-top:12px; padding:12px 12px; border-radius:var(--r-2); cursor:pointer;
+    font:inherit; font-size:var(--fs-3); font-weight:600; letter-spacing:-.01em;
     border:1.5px solid var(--ink); background:var(--ink); color:#fff;
     box-shadow:0 2px 10px rgba(15,32,52,.16); transition:.14s;}
   .vbtn:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(15,32,52,.22);}
@@ -906,7 +910,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transform:none;}
   .vbtn.on:hover{background:#DFF2E8; transform:none; box-shadow:none;}
   .vbtn.on svg{stroke:#0F5C34;}
-  .reco{border:1.5px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; transition:.15s;}
+  .reco{border:1.5px solid var(--line); border-radius:var(--r-4); padding:14px; margin-bottom:12px; transition:.15s;}
   .reco.on{border-color:var(--ink); background:#F7F9FC;}/* ── Рядки з переходом ───────────────────────────────────────────────
      Той самий вигляд, що в картці товару на сайті: назва, шеврон, волосяна
      лінія. Рамки навколо кожного пункту робили зі списку шість окремих
@@ -917,7 +921,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      шість жирних рядків підряд перетворюють зміст на шість заголовків, між
      якими не видно, що головне. */
   .fr>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
-    gap:12px; padding:17px 2px; font-size:var(--fs-4); font-weight:450; color:var(--ink);}
+    gap:12px; padding:17px 2px; font-size:var(--fs-4); font-weight:500; color:var(--ink);}
   .fr>summary::-webkit-details-marker{display:none;}
   .fr-t{flex:1; min-width:0;}
   .fr-a{display:flex; align-items:center; gap:7px; font-size:var(--fs-3); font-weight:600;
@@ -944,7 +948,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Рядок-посилання виглядає так само, як розкривний: інакше незрозуміло,
      чому один пункт відкривається тут, а інший забирає на іншу сторінку. */
   .fr-link{display:flex; align-items:center; gap:12px; padding:17px 2px;
-    font-size:var(--fs-4); font-weight:450; color:var(--ink); text-decoration:none;}
+    font-size:var(--fs-4); font-weight:500; color:var(--ink); text-decoration:none;}
   .fr-link::after{content:''; flex:none; width:8px; height:8px;
     border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg);}
@@ -973,19 +977,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Заголовок, що відкриває розділ: більший за звичайний і з однаковим
      повітрям згори й знизу. */
-  .sec-lead{font-size:var(--fs-6); font-weight:700; letter-spacing:-0.6px;
+  .sec-lead{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px;
     margin:6px 0 22px; text-align:center;}
   @media (min-width:640px){ .sec-lead{font-size:var(--fs-7); margin:10px 0 26px;} }
 
   /* ── Відгуки в рядку ─────────────────────────────────────────────────
      Оцінка праворуч від назви, під рядком — смужка фото робіт. Саме фото й
      переконує: текст під ним читає той, кому цього замало. */
-  .rev-sc{font-size:var(--fs-4); font-weight:700; color:var(--ink);}
+  .rev-sc{font-size:var(--fs-4); font-weight:600; color:var(--ink);}
   .rev-st{color:#FFC53D; font-size:var(--fs-3); letter-spacing:1px;}
   .rev-strip{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
     -webkit-overflow-scrolling:touch; padding:2px 0 18px;}
   .rev-strip::-webkit-scrollbar{display:none;}
-  .rev-strip i{flex:0 0 auto; width:120px; height:120px; border-radius:12px;
+  .rev-strip i{flex:0 0 auto; width:120px; height:120px; border-radius:var(--r-3);
     overflow:hidden; background:var(--soft); cursor:zoom-in;}
   .rev-strip img{width:100%; height:100%; object-fit:cover; display:block;}
   @media (min-width:640px){ .rev-strip i{width:150px; height:150px;} }
@@ -998,7 +1002,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Без волосяної лінії згори: під нею одразу йде темна смуга кошторису, і
      риска висіла окремою рисочкою на білому — розділяти там уже нічого. */
   .fold{padding-top:26px; border-top:none;}
-  .fold-h{font-size:var(--fs-5); font-weight:700; letter-spacing:-0.4px; margin:0 0 8px;}
+  .fold-h{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px; margin:0 0 8px;}
   /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
      список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
      все успадкувало б дрібний сірий шрифт відповіді на питання. */
@@ -1009,11 +1013,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      не треба доходити до кінця речення. Підпис під ним пояснює, ЩО це за
      цифра, третій рядок — деталь для тих, кому вона потрібна. */
   .cond-g{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .cond-c{border:1px solid var(--line); border-radius:14px; background:#fff;
+  .cond-c{border:1px solid var(--line); border-radius:var(--r-3); background:#fff;
     padding:16px 14px 15px; min-width:0;}
-  .cond-v{font-size:var(--fs-4); font-weight:700; letter-spacing:-0.5px; line-height:1.2;
+  .cond-v{font-size:var(--fs-4); font-weight:600; letter-spacing:-0.5px; line-height:1.2;
     font-variant-numeric:tabular-nums;}
-  .cond-k{font-size:var(--fs-1); font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+  .cond-k{font-size:var(--fs-1); font-weight:600; letter-spacing:.6px; text-transform:uppercase;
     color:var(--muted); margin-top:7px;}
   .cond-n{font-size:var(--fs-2); color:var(--ink-2); line-height:1.45; margin-top:7px;}
   /* Документи — не пʼята картка, а рядок: це не умова цього замовлення, а
@@ -1039,8 +1043,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* ── менеджер ── */
   .mgr{display:flex; gap:14px; align-items:center; background:var(--soft);
-    border-radius:16px; padding:16px;}.mgr-role{font-size:var(--fs-1);font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
-  .mgr-name{font-size:var(--fs-4);font-weight:700;}  /* ── Фінальний заклик ──────────────────────────────────────────────
+    border-radius:var(--r-4); padding:16px;}.mgr-role{font-size:var(--fs-1);font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);}
+  .mgr-name{font-size:var(--fs-4);font-weight:600;}  /* ── Фінальний заклик ──────────────────────────────────────────────
      Головна дія всієї сторінки. Тому вона стоїть на власній темній
      підкладці від краю до краю: на білому серед білого кнопка була просто
      ще одним елементом списку.
@@ -1097,7 +1101,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   body.has-bar{padding-bottom:calc(72px + env(safe-area-inset-bottom));}
 
   /* ── підтверджено ── */
-  .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:14px;
+  .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:var(--r-3);
     padding:14px 16px; font-size:var(--fs-3); color:#0B6B4A; margin-bottom:18px;}
 
   /* ── вікна підтвердження / змін ── */
@@ -1109,25 +1113,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     max-height:92dvh; overflow:auto;}
   @media (min-width:640px){
     .ov{align-items:center;}
-    .sheet{border-radius:20px;}
+    .sheet{border-radius:var(--r-4);}
   }
-  .sheet h3{font-size:var(--fs-5); font-weight:800; letter-spacing:-0.5px; margin:0 0 6px;}
+  .sheet h3{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.5px; margin:0 0 6px;}
   .sheet .sec-sub{margin-bottom:16px;}
-  .sum-box{background:var(--soft); border-radius:14px; padding:14px 16px; margin-bottom:16px;}
+  .sum-box{background:var(--soft); border-radius:var(--r-3); padding:14px 16px; margin-bottom:16px;}
   .sum-line{display:flex; justify-content:space-between; font-size:var(--fs-3); color:var(--ink-2);}
   .sum-line + .sum-line{margin-top:6px;}
   .sum-line.big{margin-top:11px; padding-top:11px; border-top:1px solid var(--line);}
-  .sum-line.big span:first-child{font-weight:700; color:var(--ink);}
-  .sum-line.big span:last-child{font-size:var(--fs-5); font-weight:800;}
+  .sum-line.big span:first-child{font-weight:600; color:var(--ink);}
+  .sum-line.big span:last-child{font-size:var(--fs-5); font-weight:700;}
   .fld{margin-bottom:12px;}
-  .fld label{display:block; font-size:var(--fs-2); font-weight:700; letter-spacing:.4px;
+  .fld label{display:block; font-size:var(--fs-2); font-weight:600; letter-spacing:.4px;
     text-transform:uppercase; color:var(--muted); margin-bottom:5px;}
-  .fld input, .fld textarea{width:100%; border:1.5px solid var(--line); border-radius:11px;
+  .fld input, .fld textarea{width:100%; border:1.5px solid var(--line); border-radius:var(--r-2);
     padding:12px 13px; font:inherit; font-size:var(--fs-3); background:#fff; color:var(--ink);}
   .fld input:focus, .fld textarea:focus{outline:none; border-color:var(--ink);}
   .fld textarea{resize:vertical; min-height:76px;}
   .chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
-  .chip{padding:9px 13px; border-radius:999px; border:1.5px solid var(--line);
+  .chip{padding:9px 13px; border-radius:var(--r-pill); border:1.5px solid var(--line);
     font-size:var(--fs-3); font-weight:600; background:#fff;}
   .chip.on{background:var(--ink); color:#fff; border-color:var(--ink);}
   .err{color:#C0392B; font-size:var(--fs-2); margin-bottom:10px;}
@@ -1186,18 +1190,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     align-items:center; justify-content:center; padding:20px;
     background:rgba(15,32,52,.55); backdrop-filter:blur(3px);}
   .ai-ov.show{display:flex;}
-  .ai-box{background:#fff; border-radius:18px; padding:22px; width:100%;
+  .ai-box{background:#fff; border-radius:var(--r-4); padding:22px; width:100%;
     max-width:720px; max-height:90vh; overflow:auto;
     box-shadow:0 24px 60px rgba(15,32,52,.28);}
-  .ai-h{font-size:var(--fs-5); font-weight:700; letter-spacing:-0.3px;}
+  .ai-h{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.3px;}
   .ai-sub{font-size:var(--fs-2); color:var(--muted); line-height:1.5; margin:6px 0 16px;}
   .ai-pair{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   .ai-pair figure{margin:0; min-width:0;}
-  .ai-pair figcaption{font-size:var(--fs-1); font-weight:700; letter-spacing:.6px;
+  .ai-pair figcaption{font-size:var(--fs-1); font-weight:600; letter-spacing:.6px;
     text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
   .ai-pair span{display:block; font-size:var(--fs-2); color:var(--muted); margin-top:6px;
     font-variant-numeric:tabular-nums;}
-  .ai-ph{border:1px solid var(--line); border-radius:12px; padding:10px;
+  .ai-ph{border:1px solid var(--line); border-radius:var(--r-3); padding:10px;
     display:flex; align-items:center; justify-content:center; min-height:150px;
     background-color:#fff;
     background-image:linear-gradient(45deg,#EDF1F5 25%,transparent 25%,transparent 75%,#EDF1F5 75%),
@@ -1212,12 +1216,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Керування навмисно виглядає чужорідно щодо сторінки: менеджер має
      бачити, де закінчується пропозиція і починається інструмент. */
   .edbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 14px 0;
-    padding:8px;border:1px dashed #B9C4D4;border-radius:10px;background:#F4F7FB;}
+    padding:8px;border:1px dashed #B9C4D4;border-radius:var(--r-2);background:#F4F7FB;}
   /* Редактор позиції розгортається в самій картці, на всю її ширину.
      Висота — від висоти вікна, щоб виріб вміщався цілком і не доводилось
      прокручувати всередині кадру. */
   .edslot:empty{display:none;}
-  .edslot.is-open{margin:10px 14px 0;border:1px solid #D9E1EC;border-radius:12px;
+  .edslot.is-open{margin:10px 14px 0;border:1px solid #D9E1EC;border-radius:var(--r-3);
     overflow:hidden;background:#fff;}
   .edslot-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:9px 12px;background:#F4F7FB;border-bottom:1px solid #E6EBF2;font-size:var(--fs-2);}
@@ -1263,16 +1267,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      накладання коробка для них не створює: інакше вони лишились би під
      сторінкою пропозиції, і натиснута кнопка виглядала б як зламана. */
   #lqCtorHost > *{z-index:300;}
-  .edb{font:inherit;font-size:var(--fs-2);font-weight:700;color:#3D4C61;background:#fff;
-    border:1px solid #D9E1EC;border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1;}
+  .edb{font:inherit;font-size:var(--fs-2);font-weight:600;color:#3D4C61;background:#fff;
+    border:1px solid #D9E1EC;border-radius:var(--r-1);padding:6px 10px;cursor:pointer;line-height:1;}
   .edb:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edb-del:hover{border-color:#C6392F;color:#C6392F;background:#FDECEA;}
   .edadd{display:block;width:100%;margin-top:12px;font:inherit;font-size:var(--fs-2);
-    font-weight:700;color:#3D4C61;background:#fff;border:1.5px dashed #B9C4D4;
-    border-radius:12px;padding:14px;cursor:pointer;}
+    font-weight:600;color:#3D4C61;background:#fff;border:1.5px dashed #B9C4D4;
+    border-radius:var(--r-3);padding:14px;cursor:pointer;}
   .edadd:hover{border-color:#4F5FD4;color:#3A48A8;}
   .edwhy{white-space:pre-wrap;font-size:var(--fs-4);line-height:1.65;color:#1B2430;
-    border:1.5px dashed #B9C4D4;border-radius:12px;padding:14px 16px;min-height:90px;
+    border:1.5px dashed #B9C4D4;border-radius:var(--r-3);padding:14px 16px;min-height:90px;
     background:#fff;outline:none;}
   .edwhy:focus{border-color:#4F5FD4;border-style:solid;}
   .edwhy:empty::before{content:attr(data-ph);color:#98A2B3;}
@@ -1280,26 +1284,26 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edb-pen:hover{background:#2c3b58;border-color:#2c3b58;color:#fff;}
   /* «Дизайн | Товар» — одна пара, а не дві окремі кнопки: так видно, що це
      два входи в те саме редагування, і межа між ними читається як вкладки */
-  .edseg{display:inline-flex; border-radius:7px; overflow:hidden;}.edpick{position:fixed;inset:0;z-index:900;display:none;align-items:center;
+  .edseg{display:inline-flex; border-radius:var(--r-1); overflow:hidden;}.edpick{position:fixed;inset:0;z-index:900;display:none;align-items:center;
     justify-content:center;background:rgba(15,32,52,.55);padding:16px;}
   .edpick.open{display:flex;}
-  .edpick-c{width:100%;max-width:620px;max-height:86vh;background:#fff;border-radius:16px;
+  .edpick-c{width:100%;max-width:620px;max-height:86vh;background:#fff;border-radius:var(--r-4);
     display:flex;flex-direction:column;overflow:hidden;}
   .edpick-h{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:14px 16px;border-bottom:1px solid #E6EAF0;font-size:var(--fs-3);font-weight:800;color:#1B2430;}
+    padding:14px 16px;border-bottom:1px solid #E6EAF0;font-size:var(--fs-3);font-weight:600;color:#1B2430;}
   .edpick-g{flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;}
   .edpick-i{display:flex;flex-direction:column;gap:3px;text-align:left;background:#F6F8FB;
-    border:1px solid #E6EAF0;border-radius:12px;padding:10px;cursor:pointer;font:inherit;}
+    border:1px solid #E6EAF0;border-radius:var(--r-3);padding:10px;cursor:pointer;font:inherit;}
   .edpick-i:hover{border-color:#4F5FD4;}
-  .edpick-ph{display:block;aspect-ratio:1;background:#fff;border-radius:9px;overflow:hidden;margin-bottom:4px;}
+  .edpick-ph{display:block;aspect-ratio:1;background:#fff;border-radius:var(--r-2);overflow:hidden;margin-bottom:4px;}
   .edpick-ph img{width:100%;height:100%;object-fit:contain;display:block;}
-  .edpick-n{font-size:var(--fs-2);font-weight:700;color:#1B2430;}
+  .edpick-n{font-size:var(--fs-2);font-weight:600;color:#1B2430;}
   .edpick-p{font-size:var(--fs-2);color:#6B7686;}
   .edpick-e{padding:20px;font-size:var(--fs-2);color:#6B7686;}
   @media(max-width:520px){ .edpick-g{grid-template-columns:1fr;} }
   .eddate{display:inline-flex;align-items:center;gap:7px;margin:8px 0;font-size:var(--fs-2);
-    color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:9px;padding:6px 10px;}
-  .eddate input{font:inherit;font-size:var(--fs-2);border:1px solid #D9E1EC;border-radius:6px;padding:4px 7px;}
+    color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:var(--r-2);padding:6px 10px;}
+  .eddate input{font:inherit;font-size:var(--fs-2);border:1px solid #D9E1EC;border-radius:var(--r-1);padding:4px 7px;}
   /* Підкладка під логотип і рамка обрізання просто на ньому */
   /* Обгортка збігається з картинкою піксель у піксель: жодних відступів і
      жодного заокруглення. Тільки так фон лягає саме ЗА картинку, а рамка
@@ -1329,13 +1333,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background-size:10px 10px; background-position:0 0,5px 5px; background-color:#fff;}
   .logobg-dot input{position:absolute; inset:0; opacity:0; cursor:pointer; border:0; padding:0;}
   .edlogo-note{flex-basis:100%; margin-top:6px; font-size:var(--fs-2); line-height:1.4;
-    color:#B45309; background:#FFF8EC; border:1px solid #F3DFB8; border-radius:8px;
+    color:#B45309; background:#FFF8EC; border:1px solid #F3DFB8; border-radius:var(--r-2);
     padding:6px 10px; display:none;}
   .edlogo-note.show{display:block;}
-  [data-ed-title]{outline:none;border-radius:8px;}
+  [data-ed-title]{outline:none;border-radius:var(--r-2);}
   [data-ed-title]:focus{box-shadow:0 0 0 2px #4F5FD4;}
   .edempty{font-size:var(--fs-3);line-height:1.6;color:#6B7686;background:#F4F7FB;
-    border:1px dashed #B9C4D4;border-radius:12px;padding:18px;}
+    border:1px dashed #B9C4D4;border-radius:var(--r-3);padding:18px;}
   .is-edit .rc{position:relative;}
   /* Плаваюча смуга дій клієнта в редагуванні лише заважає */
   .is-edit .bar{display:none !important;}
