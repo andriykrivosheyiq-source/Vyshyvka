@@ -79,7 +79,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .brand-img{height:26px; width:auto; max-width:190px; object-fit:contain; display:block;}
   .brand i{display:block; font-style:normal; font-size:var(--fs-1); font-weight:500;
     letter-spacing:.2px; color:var(--muted); margin-top:2px; white-space:nowrap;}
-  .top-no{font-size:var(--fs-2); color:var(--muted); font-variant-numeric:tabular-nums;}
+  /* Праворуч у шапці — номер пропозиції й «Поділитися». Кнопка кругла й
+     тиха: це не дія сторінки, а системний жест, і виглядати вона має як
+     системна — саме тому іконка та сама, що в айфоні. */
+  .share-b{display:flex; align-items:center; justify-content:center; flex:none;
+    width:36px; height:36px; border-radius:var(--r-pill); background:var(--soft);
+    color:var(--ink-2); cursor:pointer; transition:.15s;}
+  @media (hover:hover){ .share-b:hover{background:#EDF1F5; color:var(--ink);} }
+  .share-b:active{transform:scale(.94);}
+  .share-b.is-done{background:#EAF7F0; color:var(--good);}
+
 
   /* ── перший екран ── */
   .hero{padding:32px 0 32px;}  .hero h1{font-size:var(--fs-7); line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:700;}  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
@@ -420,17 +429,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      що?» — тож зрозуміло, навіщо тиснути. */
   .pgal-more{position:absolute; right:10px; bottom:10px; z-index:2;
     display:flex; gap:8px;}
-  /* Мініатюра з підписом: «Спина» під фото. Без підпису вона була просто
-     сірим квадратиком, і що там — доводилось вгадувати. */
-  .pgal-i.is-thumb{width:86px; height:86px; border-radius:var(--r-3); cursor:pointer;
-    box-shadow:0 3px 14px rgba(15,32,52,.22), inset 0 0 0 2px rgba(255,255,255,.95);
+  /* Мініатюра — та сама плитка, що в галереї на весь екран: біле тло, фото,
+     під ним підпис темним по білому. Доти підпис лежав НА фото під темним
+     градієнтом: на світлому знімку градієнт читався як бруд, а на темному
+     сам підпис зникав. Тепер обидві мініатюри — у картці й у галереї —
+     виглядають однаково, і зрозуміло, що це той самий елемент. */
+  .pgal-i.is-thumb{width:86px; height:auto; border-radius:var(--r-3); cursor:pointer;
+    background:#fff; box-shadow:0 4px 16px rgba(15,32,52,.24);
+    border:1.5px solid rgba(255,255,255,.95); overflow:hidden;
     transition:transform .15s;}@media (hover:hover){
   .pgal-i.is-thumb:hover{transform:translateY(-2px);}}
-  .pgal-i.is-thumb img{width:100%; height:100%; object-fit:cover;}
-  .pgal-cap{position:absolute; left:0; right:0; bottom:0; z-index:2;
-    font-size:var(--fs-1); font-weight:600; letter-spacing:.02em; text-align:center;
-    color:#fff; background:linear-gradient(transparent, rgba(15,32,52,.72));
-    padding:8px 2px 2px; pointer-events:none;
+  .pgal-i.is-thumb img{width:100%; height:86px; object-fit:cover; transform:none;
+    background:#fff;}
+  .pgal-cap{display:block; background:#fff; color:var(--ink);
+    font-size:var(--fs-1); font-weight:600; text-align:center;
+    padding:4px 4px 6px; pointer-events:none;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   /* Скільки всього ракурсів — у протилежному кутку від мініатюр, щоб не
      перекривати їх і не загубитись на світлому фото. */
@@ -442,10 +455,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     color:var(--ink); font-size:22px; line-height:1; padding:0 0 2px;
     display:flex; align-items:center; justify-content:center; transition:.15s;}@media (hover:hover){
   .pgal-ar:hover{background:#fff; box-shadow:0 4px 16px rgba(15,32,52,.22);}}
+  /* display:flex у .pgal-ar сильніший за [hidden], і схована стрілка
+     все одно малювалась. */
+  .pgal-ar[hidden]{display:none;}
   .pgal-ar.prev{left:10px;}
   .pgal-ar.next{right:10px;}
   @media (min-width:640px){ .pgal-ar{width:44px; height:44px; font-size:24px;} }
-  @media (min-width:640px){ .pgal-i.is-thumb{width:98px; height:98px;} }
+  @media (min-width:640px){ .pgal-i.is-thumb{width:98px;}
+    .pgal-i.is-thumb img{height:98px;} }
   /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
      заготовкою під фото. Клієнт бачить лише заповнені й без підписів. */
   .pgal-i.is-edit{cursor:pointer;}
@@ -1153,6 +1170,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      його висоти, і сторінка закінчувалась задовго до свого кінця. */
   .foot{padding:16px 0 4px; text-align:center; color:var(--muted); font-size:var(--fs-2);}
   .foot a{color:var(--muted);}
+  .foot-no{margin-top:4px; font-variant-numeric:tabular-nums; opacity:.72;}
   @media (min-width:640px){
     :root{--pad:28px;}
     .hero h1{font-size:var(--fs-8);}
@@ -3629,6 +3647,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var off = EDIT && v.show === false;
       return '<div class="pgal-i' + (big ? ' is-main' : ' is-thumb') +
         (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') + (off ? ' is-off' : '') + '"' +
+        ' data-vi="' + list.indexOf(v) + '"' +
         (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '"' +
                 ' data-view-label="' + esc(v.label || '') + '"' +
                 ' title="Натисніть, щоб сховати або показати клієнту"' : '') + '>' +
@@ -3648,18 +3667,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
        конструктором і лежать тут-таки — просто приховані. Додавати нема
        чого: треба лише показати потрібну клієнту. */
-    return '<div class="pgal" data-shot="' + esc(idx) + '">' +
+    return '<div class="pgal" data-shot="' + esc(idx) + '" data-i="' + lead + '">' +
       (main ? cell(main, true) : '') +
       (rest.length
         ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
           '</div>' +
           /* Стрілка каже «це гортається», мініатюра — «ось що там буде».
              Разом вони не сперечаються: стрілки з боків, мініатюри внизу.
-             Коли ракурсів рівно два, ліва стрілка веде туди ж, куди права,
-             — тож лишається одна: та, що показує «далі». */
-          (list.length > 2
-            ? '<button class="pgal-ar prev" data-gnav="-1" aria-label="Попередній ракурс">‹</button>'
-            : '') +
+             Обидві стрілки в розмітці завжди; яку показати — вирішує
+             galSync() за поточним ракурсом: на першому видно тільки «далі»,
+             на останньому — тільки «назад». Доти «назад» просто не існувало
+             при двох ракурсах, і повернутись до переду було нічим. */
+          '<button class="pgal-ar prev" data-gnav="-1" aria-label="Попередній ракурс" hidden>‹</button>' +
           '<button class="pgal-ar next" data-gnav="1" aria-label="Наступний ракурс">›</button>'
         : '') +
     '</div>';
@@ -4383,9 +4402,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
               '. Ціну видно в картці — натисніть «Додати», і сума перерахується.</div>';
           })() +
+          /* Одна кнопка. «Завантажити PDF» стояла поруч і важила стільки ж,
+             скільки дія, заради якої написана вся сторінка; переслати
+             кошторис тепер можна кнопкою «Поділитися» в шапці. Стрілка
+             біля напису теж пішла: кнопка й так очевидно кнопка. */
           '<div class="est-cta">' +
-            '<button class="btn btn-ghost" id="estPdfBtn">Завантажити PDF</button>' +
-            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію →</button>' +
+            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію</button>' +
           '</div>' +
         '</div>' +
         mgrCalcAllHtml() +
@@ -5025,8 +5047,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        повертати в картку не було чого. */
     ctorPark();
     app.innerHTML =
-      '<div class="top">' + brandMarkHtml() +
-        '<span class="top-no">Комерційна пропозиція' + (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</span></div>' +
+      /* У шапці — бренд і «Поділитися». Номер пропозиції звідти пішов у
+         підвал: угорі він тиснув кнопку до краю екрана, а людині, яка
+         щойно відкрила посилання, номер не потрібен — він потрібен тоді,
+         коли вона на нього посилається. */
+      '<div class="top">' + brandMarkHtml() + shareBtnHtml() + '</div>' +
       '<div class="wrap">' +
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
@@ -5066,7 +5091,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '<div class="foot">' + esc(brand().name) +
           (brand().tagline ? ' · ' + esc(brand().tagline) : '') +
           (brand().site ? ' · <a href="' + esc(brand().site) + '" target="_blank" rel="noopener">' +
-            esc(brandSiteLabel()) + '</a>' : '') + '</div>' +
+            esc(brandSiteLabel()) + '</a>' : '') +
+          /* Номер пропозиції — тут, а не в шапці: він потрібен тоді, коли на
+             нього посилаються, а не коли відкривають сторінку. */
+          '<div class="foot-no">Комерційна пропозиція' +
+            (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</div>' +
+        '</div>' +
       '</div>' +
       ((expired() || OFFER.state === 'confirmed') ? '' : barHtml());
     wire();
@@ -5098,8 +5128,100 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     img.addEventListener('load', apply, { once:true });
     if(img.complete && img.naturalWidth) apply();
   }
+  /* Іконка та сама, що в системному «Поділитися» на айфоні: рамка з
+     стрілкою вгору. Людина впізнає її, не читаючи підпису, — тож підпису
+     й немає. */
+  var SHARE_IC = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M12 15V3"/><path d="M8 7l4-4 4 4"/>' +
+    '<path d="M20 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5"/></svg>';
+  function shareBtnHtml(){
+    if(EDIT) return '';
+    return '<button class="share-b no-print" data-share aria-label="Поділитися пропозицією" ' +
+      'title="Поділитися">' + SHARE_IC + '</button>';
+  }
+  /* Спершу системне вікно «Поділитися» — там уже є і пошта, і месенджери,
+     і «Скопіювати». Де його немає (десктопні браузери), кладемо посилання
+     в буфер і кажемо про це самою кнопкою: окреме вікно заради одного
+     рядка — зайвий крок. */
+  var TICK_IC = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" ' +
+    'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" ' +
+    'stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  function doShare(btn){
+    var url = location.href;
+    var title = 'Комерційна пропозиція' + (brand().name ? ' · ' + brand().name : '');
+    if(window.lqAn) window.lqAn.track('offer_share', {});
+    if(navigator.share){
+      navigator.share({ title: title, url: url }).catch(function(){});
+      return;
+    }
+    var done = function(){
+      btn.classList.add('is-done');
+      btn.innerHTML = TICK_IC;
+      setTimeout(function(){ btn.classList.remove('is-done'); btn.innerHTML = SHARE_IC; }, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(done).catch(function(){});
+    }
+  }
+
   function fitMains(){
     [].forEach.call(document.querySelectorAll('.pgal-i.is-main img'), fitMain);
+    [].forEach.call(document.querySelectorAll('.pgal'), galSync);
+  }
+
+  /* ── Ракурси як карусель ──────────────────────────────────────────────
+     Доти стрілка не гортала, а МІНЯЛА головне фото місцями з мініатюрою:
+     після натиску «далі» позиції в ряду перемішувались, і повернутись до
+     переду не було чим — при двох ракурсах «назад» узагалі не малювалась.
+     Тепер у галереї є номер поточного ракурсу, а мініатюри й стрілки —
+     похідні від нього: ліва є, поки є куди назад, права — поки є куди
+     далі. Список беремо з тих самих shownViews(), що й галерея на весь
+     екран, тож порядок скрізь один. */
+  function itemOfShot(idxAttr){
+    var k = String(idxAttr).charAt(0);
+    return k === 'v' ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
+         : k === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
+         : (OFFER.items[+idxAttr] || {});
+  }
+  function galSync(gal){
+    if(!gal || EDIT) return;
+    var vv = shownViews(itemOfShot(gal.getAttribute('data-shot')));
+    var i = Math.max(0, Math.min(vv.length - 1, +gal.getAttribute('data-i') || 0));
+    var prev = gal.querySelector('.pgal-ar.prev');
+    var next = gal.querySelector('.pgal-ar.next');
+    if(prev) prev.hidden = i <= 0;
+    if(next) next.hidden = i >= vv.length - 1;
+  }
+  function galGo(gal, d, to){
+    if(!gal || EDIT) return;
+    var it = itemOfShot(gal.getAttribute('data-shot'));
+    var all0 = viewsOf(it), vv = shownViews(it);
+    if(vv.length < 2) return;
+    var cur = Math.max(0, Math.min(vv.length - 1, +gal.getAttribute('data-i') || 0));
+    var i = (to == null ? cur + d : to);
+    if(i < 0 || i > vv.length - 1) return;
+    var big = gal.querySelector('.pgal-i.is-main img');
+    if(big){
+      big.setAttribute('src', vv[i].img);
+      big.setAttribute('alt', viewCap(vv[i], all0.indexOf(vv[i])));
+      fitMain(big);
+    }
+    /* Мініатюри — решта ракурсів у своєму порядку, а не «те, що лишилось
+       після обміну»: інакше після другого натиску вони стоять як попало. */
+    var more = gal.querySelector('.pgal-more');
+    if(more){
+      more.innerHTML = vv.map(function(v, k){
+        if(k === i) return '';
+        var cap = viewCap(v, all0.indexOf(v));
+        return '<div class="pgal-i is-thumb" data-vi="' + k + '">' +
+          '<img src="' + esc(v.img) + '" alt="' + esc(cap) + '" loading="lazy" ' +
+          'onerror="this.style.visibility=\'hidden\'">' +
+          '<span class="pgal-cap">' + esc(cap) + '</span></div>';
+      }).join('');
+    }
+    gal.setAttribute('data-i', i);
+    galSync(gal);
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
@@ -5477,26 +5599,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        обробників: картки перемальовуються, і кожне перемальовування
        залишало б за собою мертві обробники. */
     document.addEventListener('click', function(ev){
+      var sh = ev.target.closest && ev.target.closest('[data-share]');
+      if(sh){ doShare(sh); return; }
       var est = ev.target.closest && ev.target.closest('[data-estzoom]');
       if(est){ openZoom(String(est.dataset.estzoom).split('|'), 0); return; }
-      /* Стрілка гортає ракурси на місці — той самий обмін, що й у мініатюри,
-         тільки наступною за порядком. Галерея не відкривається: людина
+      /* Стрілка гортає ракурси на місці; галерея не відкривається — людина
          хотіла подивитись спину, а не вікно. */
       var ar = ev.target.closest && ev.target.closest('.pgal-ar');
       if(ar && !EDIT){
-        var g2 = ar.closest('.pgal');
-        var big2 = g2 && g2.querySelector('.pgal-i.is-main img');
-        var ths = g2 ? [].slice.call(g2.querySelectorAll('.pgal-i.is-thumb')) : [];
-        if(big2 && ths.length){
-          var d2 = +ar.getAttribute('data-gnav') > 0 ? 0 : ths.length - 1;
-          var t2 = ths[d2], sm = t2.querySelector('img'), cp = t2.querySelector('.pgal-cap');
-          var sv = big2.getAttribute('src'), av = big2.getAttribute('alt') || '';
-          big2.setAttribute('src', sm.getAttribute('src'));
-          big2.setAttribute('alt', sm.getAttribute('alt') || '');
-          sm.setAttribute('src', sv); sm.setAttribute('alt', av);
-          if(cp) cp.textContent = av;
-          fitMain(big2);
-        }
+        galGo(ar.closest('.pgal'), +ar.getAttribute('data-gnav'));
         return;
       }
       /* Мініатюра просто МІНЯЄ головне фото. Доти вона відкривала галерею —
@@ -5505,19 +5616,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          відкрилась галерея. */
       var th = ev.target.closest && ev.target.closest('.pgal-i.is-thumb');
       if(th && !EDIT){
-        var gal = th.closest('.pgal');
-        var big = gal && gal.querySelector('.pgal-i.is-main img');
-        var small = th.querySelector('img');
-        var cap = th.querySelector('.pgal-cap');
-        if(big && small){
-          var src = big.getAttribute('src'), alt = big.getAttribute('alt') || '';
-          big.setAttribute('src', small.getAttribute('src'));
-          big.setAttribute('alt', small.getAttribute('alt') || '');
-          small.setAttribute('src', src);
-          small.setAttribute('alt', alt);
-          if(cap) cap.textContent = alt;
-          fitMain(big);
-        }
+        galGo(th.closest('.pgal'), 0, +th.getAttribute('data-vi'));
         return;
       }
       var img = ev.target.closest && ev.target.closest('.pgal-i img, .pshot img, .rc-ph img, .review-photo img');
@@ -5935,11 +6034,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* «Скачати кошторис» — той самий друк у PDF, що й кнопка нижче. Дію не
        дублюємо, лише даємо їй вхід просто під сумою: саме там вона й потрібна
        людині, яка збирається переслати кошторис бухгалтеру. */
-    var estPdf = document.getElementById('estPdfBtn');
-    if(estPdf) estPdf.onclick = function(){
-      if(window.lqAn) window.lqAn.track('offer_print', { from:'estimate' });
-      imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
-    };
+
     ['changeBtn','barChange'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){ openSheet('ovChange'); };
