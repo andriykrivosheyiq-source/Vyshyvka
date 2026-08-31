@@ -115,8 +115,9 @@ console.log('  ' + d.входить);
 console.log('  кнопки:', JSON.stringify(d.кнопки));
 console.log('');
 ok(/255, 255, 255/.test(d.фон), 'кошторис на світлому тлі, як рахунок', 'фон: ' + d.фон);
-ok(d.шапка === 'Кошторис' && d.підпис === '4 одиниці',
-  'шапка нічого не рахує: «Кошторис · 4 одиниці»', 'шапка: ' + d.шапка + ' / ' + d.підпис);
+ok(d.шапка === 'Кошторис' && d.підпис === '1 позиція · 4 одиниці',
+  'шапка: «Кошторис · ' + d.підпис + '» — спершу склад, потім обсяг',
+  'шапка: ' + d.шапка + ' / ' + d.підпис);
 ok(d.позиції.length === 1 && /^4 × 1 450 грн$/.test(d.позиції[0].множення),
   'позиція одним рядком: 4 × 1 450 грн', 'множення: ' + JSON.stringify(d.позиції.map(x=>x.множення)));
 ok(d.позиції[0].підпис === 'Вишивка логотипа',
@@ -131,7 +132,7 @@ ok(d.відсотків.length === 1, 'відсоток названий рів�
   'відсотків: ' + JSON.stringify(d.відсотків));
 ok(d.зелених <= 1, 'зелений колір рівно в одному місці — на цифрі знижки',
   'зелених елементів: ' + d.зелених);
-ok(d.рядки.length === 2 && /^Разом без знижки/.test(d.рядки[0]) &&
+ok(d.рядки.length === 2 && /^Вартість до знижки/.test(d.рядки[0]) &&
    /^Знижка за тираж \d+%/.test(d.рядки[1]) && /^Разом/.test(d.разом),
   'підсумок трьома рядками: без знижки → знижка → разом',
   'підсумок: ' + JSON.stringify(d.рядки) + ' / ' + d.разом);
@@ -152,28 +153,40 @@ await p.close();
 
 console.log('');
 console.log('═══ ТЕЛЕФОН 390px ═══');
-p = await open(390, OF([ mk('Футболка поло','Вишивка логотипа',4, 1450, 2125) ]), 780);
+/* Довга пропозиція навмисно: на короткій між кошторисом і фінальним
+   закликом просто немає місця, де на екрані не було б жодної кнопки, — і
+   перевірка липкої панелі стала б беззмістовною. */
+const LONG = OF([ mk('Футболка поло','Вишивка логотипа',4, 1450, 2125),
+                  mk('Худі Premium','Вишивка на грудях',10, 1390, 1750),
+                  mk('Кепка','Вишивка спереду',20, 390, 520) ]);
+LONG.faq = [['Чи можна змінити тираж?','Так, до запуску у виробництво.'],
+            ['Скільки коштує доставка?','Новою поштою за тарифами перевізника.'],
+            ['Чи є знижка на повтор?','Так, макет уже оплачено.'],
+            ['Як щодо документів?','ФОП і ТОВ, повний пакет.']];
+p = await open(390, LONG, 780);
 let m = await read(p.frames()[1]);
 console.log('  кнопки:', JSON.stringify(m.кнопки.map(x=>[x.текст, x.видно])));
 ok(m.кнопки.every(x=>x.видно), 'на телефоні видно обидві кнопки — головну більше не ховаємо',
   'на телефоні щось сховано: ' + JSON.stringify(m.кнопки));
-ok(m.відсотків.length === 1 && m.закреслень === 0 && m.плашок === 0,
-  'на телефоні так само чисто', 'на телефоні лишились повтори');
+ok(m.закреслень === 0 && m.плашок === 0,
+  'на телефоні так само чисто: ні перекреслень, ні плашок',
+  'на телефоні лишились повтори');
 // липка панель має мовчати, поки головна кнопка на екрані
 const fr = p.frames()[1];
 const bar = async () => fr.evaluate(()=>{
   const b2 = document.getElementById('bar');
   const cta = document.getElementById('estConfirmBtn');
   const r = cta ? cta.getBoundingClientRect() : null;
-  const fin = document.getElementById('confirmBtn');
-  const rf = fin ? fin.getBoundingClientRect() : null;
   const on = e => !!(e && e.top < innerHeight - 40 && e.bottom > 0);
+  const vis = id => { const el = document.getElementById(id);
+    return !!(el && el.offsetParent) && on(el.getBoundingClientRect()); };
+  const анаЕкрані = ['estConfirmBtn','confirmBtn','confirmBtn2'].filter(vis);
   const anch = document.getElementById('offerStart');
   return { панель: !!(b2 && b2.classList.contains('show')),
            панельЄ: !!b2,
            scrollY: Math.round(scrollY),
            поріг: anch ? Math.round(anch.getBoundingClientRect().top + scrollY - 80) : null,
-           кнопкаНаЕкрані: on(r), фінальнаНаЕкрані: on(rf) };
+           кнопкаНаЕкрані: on(r), кнопкиНаЕкрані: анаЕкрані };
 });
 await fr.evaluate(()=>{
   document.getElementById('estConfirmBtn').scrollIntoView({ block:'center' });
@@ -181,23 +194,25 @@ await fr.evaluate(()=>{
 });
 await p.waitForTimeout(600);
 const b1 = await bar();
-/* Їдемо ВНИЗ, у смугу між кошторисом і фінальним закликом: там на екрані
-   немає жодної справжньої кнопки — саме там панель і має зʼявитись. */
+/* А тепер — у товари: саме там панель і потрібна. Клієнт гортає позиції,
+   міняє кількості й має бачити, як росте сума, не доходячи до кошторису.
+   Жодної справжньої кнопки на екрані там немає. */
 await fr.evaluate(()=>{
-  const est = document.getElementById('estConfirmBtn').getBoundingClientRect();
-  window.scrollBy(0, est.bottom + 500);
+  const cards = document.querySelectorAll('.pcard');
+  const c = cards[Math.max(0, cards.length - 2)];
+  if(c) c.scrollIntoView({ block:'center' });
   window.dispatchEvent(new Event('scroll'));
 });
 await p.waitForTimeout(600);
 const b2 = await bar();
 console.log('  кнопка кошторису на екрані:', JSON.stringify(b1));
-console.log('  прокрутили геть:          ', JSON.stringify(b2));
+console.log('  у товарах:                ', JSON.stringify(b2));
 ok(b1.кнопкаНаЕкрані && !b1.панель,
   'поки головна кнопка на екрані — липкої панелі немає',
   'панель дублює кнопку: ' + JSON.stringify(b1));
-ok(!b2.кнопкаНаЕкрані && b2.панель,
-  'кнопка поїхала за екран — панель зʼявилась',
-  'панель не зʼявилась після прокрутки: ' + JSON.stringify(b2));
+ok(!b2.кнопкиНаЕкрані.length && b2.панель,
+  'у товарах справжньої кнопки на екрані немає — панель із живою сумою зʼявилась',
+  'панель не зʼявилась у товарах: ' + JSON.stringify(b2));
 await p.close();
 
 console.log('');

@@ -200,8 +200,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
-  .pbuy-row .pstep{margin-top:0; flex:none;}
-  .pbuy-row .pbuy{margin-top:0; flex:1;}
+  /* Лічильник — головний інтерактив рядка, тож він і росте. Доти обидва
+     елементи були однаково великими й змагались між собою: «У замовленні»
+     кричало на всю ширину, хоча це стан, а не дія, а справжня дія —
+     поставити свою кількість — тулилась поруч. */
+  .pbuy-row .pstep{margin-top:0; flex:1 1 auto; justify-content:center;}
+  .pbuy-row .pstep-v{flex:1;}
+  .pbuy-row .pbuy{margin-top:0; flex:0 0 auto; width:auto; padding:12px 18px;
+    font-size:14px;}
+  /* Доданої позиції видно, що вона додана, — і не більше */
+  .pbuy-row .pbuy.on{padding:12px 16px; border-width:1px;}
   .pbuy{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
     background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
@@ -721,6 +729,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      блідне: ціну на ньому й читають. Різницю несе рамка, не прозорість. */
   .pcard.is-opt{border-style:dashed;}
   .pcard.is-opt.is-taken{border-style:solid; border-color:#9FD3B6;}
+  /* Комплектація одним рядком, дрібним і сірим: вона під назвою, а не
+     замість неї. Читається за секунду й не робить картку вищою. */
+  .pcard-kit{margin-top:4px; font-size:13px; color:var(--muted); line-height:1.4;}
   .pcard-why{margin-top:7px; font-size:13.5px; line-height:1.5; color:var(--ink);
     background:var(--soft); border-radius:10px; padding:8px 11px;}
   .pcard-money{display:flex; align-items:baseline; gap:9px; margin-top:9px; flex-wrap:wrap;}
@@ -1055,6 +1066,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .reco-box svg{opacity:0;}
   .reco.on .reco-box svg{opacity:1;}
 
+  /* ── Гарантії та один відгук ─────────────────────────────────────────
+     Усе, що знімає останній сумнів, — на одному екрані: чотири конкретні
+     обіцянки й один свіжий відгук із оцінкою. Стрічка з десяти карток
+     перетворювала пропозицію на лендинг рівно там, де людина вже тримала
+     палець над кнопкою. */
+  .risk{padding-top:30px;}
+  .rev-mini{margin-top:22px; padding-top:18px; border-top:1px solid var(--line);}
+  .rev-mini-h{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .rev-mini-st{color:#FFC53D; font-size:15px; letter-spacing:1px;}
+  .rev-mini-h b{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .rev-mini-n{font-size:13px; color:var(--muted);}
+  .rev-mini-q{margin:10px 0 0; font-size:14.5px; line-height:1.55; color:var(--ink-2);}
+  .rev-mini-q cite{display:block; font-style:normal; font-size:12.5px;
+    color:var(--muted); margin-top:6px;}
+
   /* ── Згорнутий хвіст сторінки ────────────────────────────────────────
      Етапи, гарантії, проєкти, відгуки й питання — одним списком у стилі
      «Часті питання». Викидати їх не можна: комусь саме гарантії чи відгуки
@@ -1142,6 +1168,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     margin:12px auto 0; max-width:40ch;}
   /* Поділитися — тихим рядком, а не кнопкою: друга кнопка поруч із головною
      тягне на себе увагу й дає привід не вирішувати. */
+  /* Другий заклик — половина зросту першого: він для тих, хто вже
+     переконався, і переконувати вдруге його завдання не входить. */
+  .cta-last .cta-box{padding:30px var(--pad) 28px; margin-top:0;}
+  .cta-last .cta-h{font-size:21px; margin-bottom:16px;}
+  @media (min-width:660px){ .cta-last .cta-box{padding:36px var(--pad) 32px;}
+    .cta-last .cta-h{font-size:24px;} }
   .cta-share{display:inline-flex; align-items:center; justify-content:center; gap:7px;
     margin-top:22px; padding:8px 4px; font:inherit; font-size:13px; font-weight:600;
     color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.18);
@@ -1157,14 +1189,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
     backdrop-filter:blur(10px); border-top:1px solid var(--line);
-    padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:10px;
+    padding:6px var(--pad) calc(6px + env(safe-area-inset-bottom));
     transform:translateY(110%); transition:transform .25s ease;}
   .bar.show{transform:none;}
-  .bar-btns{display:flex; gap:8px;}
-  .bar-btns .btn{padding:14px 12px; font-size:14.5px;}
-  .bar-btns #barEstimate{flex:0 0 34%;}
-  .bar-btns #barConfirm{flex:1;}
-  body.has-bar{padding-bottom:132px;}
+  /* Сума ліворуч — не просто напис, а вхід у кошторис: людина все одно
+     тицяє в число, коли хоче побачити, з чого воно склалось. */
+  .bar-sum{flex:1 1 auto; min-width:0; text-align:left; padding:0; background:none;
+    border:none; font:inherit; cursor:pointer; line-height:1.15;}
+  .bar-sum b{display:block; font-size:17px; font-weight:800; letter-spacing:-0.4px;
+    line-height:1.15; font-variant-numeric:tabular-nums;}
+  .bar-sum span{display:block; font-size:11.5px; line-height:1.2; color:var(--muted);}
+  .bar .btn{flex:0 0 auto; width:auto; padding:10px 18px; font-size:14px;
+    line-height:1.2; border-radius:11px;}
+  /* Відступ під панель — рівно її висота плюс повітря. Доти під нею було
+     132 px порожнечі: сторінка закінчувалась задовго до кінця екрана. */
+  body.has-bar{padding-bottom:70px;}
 
   /* ── підтверджено ── */
   .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:14px;
@@ -3374,14 +3414,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function typeWord(name){
     return String(name || '').trim().split(/[\s,·]+/)[0] || '';
   }
-  function typePlural(w){
+  /* Форма слова під число: 1 футболка, 2 футболки, 5 футболок. Доти форма
+     була одна — «футболки», — і на першому екрані стояло «1 футболки».
+     Дрібниця, але саме з таких дрібниць і складається відчуття, що
+     пропозицію зібрала машина. */
+  function typePlural(w, n){
     var s = String(w || '');
     if(!s) return s;
     var low = s.toLowerCase();
     // невідмінювані: худі, поло, бо «худіи» не буває
     if(/[іїоеуюя]$/.test(low)) return s;
-    if(/а$/.test(low)) return s.slice(0, -1) + 'и';
-    return s + 'и';
+    var d = n % 10, dd = n % 100;
+    var one = n != null && d === 1 && dd !== 11;
+    var few = n != null && d >= 2 && d <= 4 && (dd < 12 || dd > 14);
+    if(n != null && one) return s;
+    if(/а$/.test(low)){
+      var stem = s.slice(0, -1);
+      if(n == null || few) return stem + 'и';
+      /* 5 футболок: між двома приголосними наприкінці зʼявляється «о»
+         (футболк → футболок, кепк → кепок) — інакше виходить «футболк». */
+      return /[бвгджзклмнпрстфхцчшщ][кцлрнм]$/i.test(stem)
+        ? stem.slice(0, -1) + 'о' + stem.slice(-1) : stem;
+    }
+    if(n == null || few) return s + 'и';
+    return s + 'ів';
   }
   function madeLine(){
     var by = [], seen = {};
@@ -3403,9 +3459,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(v) add(v.name, varState(vi).qty);
     });
     (OFFER.reco || []).forEach(function(r, i){ if(pick.reco[i]) add(r.name, recoState(i).qty); });
+    /* «4 футболки», а не «футболки — 4 шт»: так це й вимовляють уголос, і
+       рядок першого екрана читається як речення, а не як рядок накладної. */
     return by.map(function(x){
-      return typePlural(x.word).toLowerCase() + ' — ' + x.qty + ' шт';
+      return x.qty + ' ' + typePlural(x.word, x.qty).toLowerCase();
     }).join(' · ');
+  }
+  /* Рядок першого екрана: «4 футболки поло · готово до 9 вересня». Склад
+     пропозиції словами — це справжня відповідь на «що мені пропонують», а
+     дата поруч відповідає на «коли». Два питання, один рядок. */
+  function heroLine(){
+    var made = madeLine();
+    var ready = 'готово до ' + readyDate();
+    return made ? (made + ' · ' + ready) : (ready.charAt(0).toUpperCase() + ready.slice(1));
   }
   function heroHtml(){
     var shot = (OFFER.items[0] && OFFER.items[0].mockups[0]) || '';
@@ -3415,13 +3481,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        листуванні: «комерційна пропозиція для такої-то компанії». Менеджер
        може переписати, але починати з правильного краще, ніж із загального
        «Ваша пропозиція». */
+    /* «Пропозиція для THE DREAMERS», а не «Комерційна пропозиція для…».
+       Слово «комерційна» нічого не додає людині, яка й так відкрила
+       посилання від менеджера, — воно лише робить рядок довшим і казеннішим
+       на екрані, де все має читатись за секунду. */
     var title = String(OFFER.heroTitle || '').trim() ||
-      (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
+      (who ? 'Пропозиція для ' + who : 'Пропозиція');
     var hsz = +OFFER.heroSize || 0;
     /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
     var made = madeLine();
-    var till = dateUa((OFFER.terms || {}).validUntil);
+    /* Без року: до дати лишились дні, і «2026» поруч — це шум. */
+    var till = dayMonth((OFFER.terms || {}).validUntil);
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
@@ -3505,15 +3576,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           (MGR_EDIT_ON() ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
           esc(title).split('\n').join('<br>') + '</h1>' +
 
-        (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
-        /* Суми на першому екрані немає: поки людина не побачила склад, вона
+        /* Один рядок замість двох: що саме готують і до якого числа.
+           «7 робочих днів» звідси прибрано — поруч уже стоїть конкретна дата,
+           а два способи сказати те саме змушують рахувати в голові.
+           Суми на першому екрані немає: поки людина не побачила склад, вона
            нічого не означає, а велике число на вході читається як цінник
            замість пропозиції. Сума є в кошторисі й у нижній панелі. */
-        '<div class="hero-sum">Готово <b id="heroReady">до ' + readyDate() + '</b>' +
-          '<span id="heroDays" class="hero-sum-x"> · ' + daysWord(curDays()) + '</span></div>' +
+        '<div class="hero-made" id="heroMade">' + esc(heroLine()) + '</div>' +
         edDate('ready', (OFFER.terms || {}).readyAt, 'Готово до') +
-        (till ? '<div class="hero-till">Ціни зафіксовані до ' + esc(till) +
-          ' — далі перераховуємо за актуальною закупівлею тканини</div>' : '') +
+        /* Без хвоста «далі перераховуємо за актуальною закупівлею тканини».
+           Він звучав як попередження про подорожчання рівно там, де людина
+           тільки почала читати, — і на першому екрані тривожив більше, ніж
+           пояснював. */
+        (till ? '<div class="hero-till">Ціна зафіксована до ' + esc(till) + '</div>' : '') +
         edDate('valid', (OFFER.terms || {}).validUntil, 'Ціна діє до') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
       '</div>';
@@ -3907,6 +3982,37 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Дійшли до останнього — рядка немає, бо пропонувати нічого.
      Це замість «вигоди»: вигода вже намальована перекресленою ціною поруч, а
      тут місце для того, що клієнт ще МОЖЕ отримати, якщо візьме більше. */
+  /* Один рядок під назвою: «Біла · Вишивка · Перед + спина». Раніше під
+     назвою стояло саме слово «Вишивка» — воно нічого не додавало, і ми його
+     прибрали. Але без нього під назвою не лишилось узагалі нічого, і клієнт
+     не бачив, ЩО він бере, доки не розкриє деталі. Тепер рядок відповідає
+     на три питання одразу: якого кольору, чим наносимо і куди.
+
+     Технічне — щільність, склад, крій, розміри нанесення — лишається в
+     «Деталях позиції»: це вже перевірка, а не впізнавання. */
+  var SIDE_UA = { front:'перед', back:'спина', left:'лівий бік', right:'правий бік',
+                  sleeve:'рукав', chest:'груди' };
+  function kitLine(it){
+    var out = [];
+    if(it.color) out.push(String(it.color).trim());
+    var tech = (it.techniques && it.techniques.length)
+      ? it.techniques.filter(Boolean).join(' + ')
+      : String(it.print || '').trim();
+    if(tech) out.push(tech);
+    /* Куди наносимо — словами, а не «2 нанесення»: людина уявляє виріб, а не
+       рахує операції. Беремо підписи сторін, які прийшли з позиції, і лише
+       якщо їх немає — падаємо назад на кількість. */
+    var sides = (it.sides || []).map(function(s2){
+      return String(s2.sideLabel || SIDE_UA[s2.side] || '').trim().toLowerCase();
+    }).filter(Boolean);
+    var uniq = [];
+    sides.forEach(function(x){ if(uniq.indexOf(x) < 0) uniq.push(x); });
+    if(uniq.length) out.push(uniq.map(function(x, i){
+      return i ? x : x.charAt(0).toUpperCase() + x.slice(1); }).join(' + '));
+    else if((it.prints || []).length > 1)
+      out.push((it.prints || []).length + ' нанесення');
+    return out.join(' · ');
+  }
   function nextTierHtml(it, qty){
     var next = (it && it.tiers || [])
       .filter(function(t){ return t && +t.qty > qty && +t.unit > 0; })
@@ -3982,8 +4088,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '>' + st.qty + '</b>шт</span>' +
             '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
           '</div>' +
+          /* Зелена частина навмисно менша за лічильник: «Додано» — це стан,
+             а не дія, і змагатись із кількістю за увагу їй нема чого.
+             Головний інтерактив тут один — скільки штук. */
           '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
-            (on ? TICK + 'У замовленні' : 'Додати в замовлення') + '</button>' +
+            (on ? TICK + 'Додано' : '+ Додати') + '</button>' +
         '</div>' +
       '</div>';
   }
@@ -4026,6 +4135,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   // фото немає — позначці ніде лягти, лишаємо її над назвою
                   (vgal ? '' : '<div class="pcard-tag">' + vtag + '</div>') +
                   '<h3 class="pcard-name">' + esc(v.name) + '</h3>' +
+                  (function(k){ return k ? '<div class="pcard-kit">' + esc(k) + '</div>' : ''; })(kitLine(v)) +
                 /* Способу нанесення під назвою більше немає. Він написаний у
                    «Деталях позиції», у рядку «Нанесення», разом із розміром —
                    там йому й місце. Два підписи того самого лише додавали
@@ -4073,7 +4183,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function itemsHtml(){
     return '' +
       '<section id="offerStart">' +
-        '<h2 class="sec-title">Підготовлена для вас колекція</h2>' +
+        '<h2 class="sec-title">Підготували для вас</h2>' +
         (EDIT && !OFFER.items.length
           ? '<div class="edempty">Позицій ще немає. Додайте перший товар — ' +
             'решта сторінки збереться навколо нього сама.</div>' : '') +
@@ -4092,6 +4202,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   ? '<div class="pcard-tag">' + otag + '</div>'
                   : '') +
                 '<h3 class="pcard-name">' + esc(it.name) + '</h3>' +
+                (function(k){ return k ? '<div class="pcard-kit">' + esc(k) + '</div>' : ''; })(kitLine(it)) +
               /* Способу нанесення під назвою більше немає. Він написаний у
                    «Деталях позиції», у рядку «Нанесення», разом із розміром —
                    там йому й місце. Два підписи того самого лише додавали
@@ -4135,6 +4246,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="pcard-info">' +
               '<div class="pcard-head">' +
                 '<h3 class="pcard-name">' + esc(r.name) + '</h3>' +
+                (function(k){ return k ? '<div class="pcard-kit">' + esc(k) + '</div>' : ''; })(kitLine(r)) +
               '</div>' +
             '</div>' +
             '<div class="pqty">' +
@@ -4155,7 +4267,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   '<span class="pstep-v"><b>' + rs.qty + '</b>шт</span>' +
                   '<button class="pstep-b plus" data-rq="' + i + '" data-d="1" aria-label="Більше">+</button>' +
                 '</div>' +
-                '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'У замовленні</button>' +
+                '<button class="pbuy on" data-reco="' + i + '">' + TICK + 'Додано</button>' +
               '</div>' +
             '</div>' +
             /* Ті самі «Деталі позиції», що в основних і у варіантах. Доти
@@ -4259,8 +4371,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              Сума вгорі була третьою копією того самого числа. */
           '<div class="est-top">' +
             '<h2 class="est-h">Кошторис</h2>' +
-            '<div class="est-meta">' + units + ' ' +
-              esc(word(units, 'одиниця', 'одиниці', 'одиниць')) + '</div>' +
+            /* Спершу скільки позицій, потім скільки одиниць: людина
+               перевіряє, чи все на місці, а вже потім — обсяг. */
+            '<div class="est-meta">' + rows.length + ' ' +
+              esc(word(rows.length, 'позиція', 'позиції', 'позицій')) + ' · ' +
+              units + ' ' + esc(word(units, 'одиниця', 'одиниці', 'одиниць')) + '</div>' +
           '</div>' +
           /* Позиція — один рядок: що це, скільки й почому, і сума справа.
              Ні перекресленої ціни, ні значка відсотка: уся арифметика
@@ -4289,7 +4404,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              платити. Знижка названа тут — і більше ніде на сторінці. */
           '<div class="est-sum">' +
             (off > 0
-              ? '<div class="est-line"><span>Разом без знижки</span><b>' +
+              ? '<div class="est-line"><span>Вартість до знижки</span><b>' +
                   num(base) + ' грн</b></div>' +
                 '<div class="est-line is-off"><span>Знижка за тираж ' + pct +
                   '%</span><b>−' + num(off) + ' грн</b></div>'
@@ -4309,7 +4424,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                                   .map(function(it){ return it.name; });
             if(!left.length) return '';
             return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
-              '. Ціну видно в картці — натисніть «Додати в замовлення», і сума перерахується.</div>';
+              '. Ціну видно в картці — натисніть «Додати», і сума перерахується.</div>';
           })() +
           '<div class="est-cta">' +
             '<button class="btn btn-ghost" id="estPdfBtn">Завантажити PDF</button>' +
@@ -4349,7 +4464,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="rc-p">' + money(r.unitPrice) + '</div>' +
             '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
               'aria-pressed="' + (on ? 'true' : 'false') + '">' +
-              (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
+              (on ? TICK + 'Додано' : '+ Додати') + '</button>' +
             edBar('reco', i, null) +
             edSlotHtml('reco', i) +
             /* Прорахунок і тут, у пропонованій картці: доти він зʼявлявся
@@ -4523,9 +4638,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return { name:r.name, rating:r.rating, photo:r.photo, text:r.text, at:ts, date:dateShort(ts) };
   });
   var SITE_REVIEWS = null;
+  /* Скільки схвалених відгуків справді є в базі. Показувати «300+» руками не
+     можна: це саме та цифра, яку клієнт перевіряє за одне посилання. Читаємо
+     не більше сотні — далі кажемо «100+», що теж правда, але не коштує
+     клієнтові зайвої секунди завантаження. */
+  var REVIEWS_N = 0, REVIEWS_CAP = 100;
   function loadReviews(){
     if(!db || SITE_REVIEWS) return;
-    db.collection('reviews').where('approved','==',true).limit(60).get().then(function(snap){
+    db.collection('reviews').where('approved','==',true).limit(REVIEWS_CAP).get().then(function(snap){
       var arr = [];
       snap.forEach(function(d){
         var v = d.data() || {};
@@ -4539,9 +4659,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          відгуки пʼятизіркові, тож вона нічого не впорядковувала, а нагору
          випадково потрапляли торішні. */
       arr.sort(function(a, b){ return b.at - a.at; });
+      REVIEWS_N = arr.length;
       SITE_REVIEWS = arr.concat(SITE_BUILTIN).slice(0, 8);
       var box = document.getElementById('revsBox');
       if(box && SITE_REVIEWS.length) box.outerHTML = revsInner();
+      // Оцінка й кількість у блоці довіри — з тих самих даних, тож оновлюємо
+      var mini = document.getElementById('revMini');
+      if(mini) mini.outerHTML = revsTeaser();
     }).catch(function(e){ console.warn('відгуки не прочитались', e && e.code); });
   }
   var STARS = function(n){
@@ -4588,16 +4712,44 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Відгуки в згорнутому рядку: заголовок несе сам рядок, а кнопка на повну
      сторінку лишається під ними — вона потрібна саме тому, хто вже розкрив і
      читає. */
-  function revsFoldInner(){
-    var inner = revsInner();
-    if(!inner) return '';
-    return inner +
-      '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
-        'target="_blank" rel="noopener">Переглянути всі відгуки</a>';
+  /* Відгуки в КП — одним рядком, а не стрічкою карток. Десять великих
+     відгуків прямо тут перетворювали пропозицію на лендинг рівно там, де
+     людина вже тримала палець над кнопкою: доказ потрібен, але одного
+     свіжого досить, а решта живе на своїй сторінці.
+
+     Оцінка й кількість — справжні, з тих самих відгуків, що показує сайт.
+     Написати «4.9 · 300+» руками було б швидше, але це саме та цифра, яку
+     клієнт може перевірити за одне посилання. */
+  function revsTeaser(){
+    var list = (SITE_REVIEWS || SITE_BUILTIN || []).filter(Boolean);
+    if(!list.length) return '';
+    var rated = list.filter(function(r){ return +r.rating > 0; });
+    var avg = rated.length
+      ? (rated.reduce(function(a, r){ return a + (+r.rating || 0); }, 0) / rated.length)
+      : 0;
+    var top = list.filter(function(r){ return r.text; })[0];
+    if(!top) return '';
+    var stars = new Array(Math.max(1, Math.min(5, Math.round(avg || 5))) + 1).join('★');
+    /* Кількість кажемо ЛИШЕ якщо порахували її в базі. Число з показаного
+       списку було б «за 8 відгуками» — а вісім там тому, що більше ми й не
+       вивантажуємо. Уперлись у стелю читання — кажемо «100+», це чесно. */
+    var cnt = REVIEWS_N >= REVIEWS_CAP ? (REVIEWS_CAP + '+ відгуків')
+            : (REVIEWS_N > 0 ? REVIEWS_N + ' ' +
+               plural(REVIEWS_N, 'відгук', 'відгуки', 'відгуків') : '');
+    return '' +
+      '<div class="rev-mini" id="revMini">' +
+        '<div class="rev-mini-h">' +
+          '<span class="rev-mini-st">' + stars + '</span>' +
+          (avg ? '<b>' + avg.toFixed(1).replace('.', ',') + '</b>' : '') +
+          (cnt ? '<span class="rev-mini-n">· ' + esc(cnt) + '</span>' : '') +
+        '</div>' +
+        '<blockquote class="rev-mini-q">«' + esc(top.text) + '»' +
+          '<cite>' + esc(top.name || 'Клієнт') +
+            (top.date ? ' · ' + esc(top.date) : '') + '</cite></blockquote>' +
+        '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
+          'target="_blank" rel="noopener">Переглянути всі відгуки →</a>' +
+      '</div>';
   }
-  /* Окремої секції відгуків більше немає: вони переїхали рядком у
-     згорнутий список. Заголовок і кнопку «всі відгуки» несе тепер сам
-     рядок — див. revsFoldInner. */
 
   function faqHtml(){
     var FAQ = faqList();
@@ -4618,7 +4770,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      пропозиції, і від замовлення до замовлення вони не змінюються. Поле
      `trust` в адмінці лишається джерелом рядка про ФОП/ТОВ під умовами. */
   var TRUST = [
-    'Власне виробництво в Україні',
+    /* «Власне виробництво в Україні» звідси прибрано: це про нас, а решта —
+       про його замовлення. Чотири рядки, кожен знімає конкретний страх, і
+       жоден не витрачено на самопрезентацію. */
     'Макет погоджуємо до запуску',
     'Контролюємо якість кожної партії',
     'Надсилаємо фото готового замовлення',
@@ -4657,7 +4811,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      робочих днів», і лише потім, кому цікаво, — до якого числа.
      Жодна цифра не зашита: термін рахує daysFor() від тиражу, дата
      готовності — readyDate(), актуальність — те, що стоїть в адмінці. */
-  function condHtml(){
+  function condInner(){
     var cards = [];
     var days = curDays();
     if(days > 0) cards.push([daysWord(days), 'Термін виготовлення',
@@ -4677,8 +4831,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0]
             || 'Працюємо з ФОП та ТОВ · Надаємо всі необхідні документи';
     return '' +
-      '<section class="cond">' +
-        '<h2 class="sec-title">Як ми працюємо</h2>' +
         '<div class="cond-g">' + cards.map(function(c){
           return '<div class="cond-c">' +
             '<div class="cond-v"' + (c[3] ? ' id="' + c[3] + '"' : '') + '>' +
@@ -4688,8 +4840,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               esc(c[2]) + '</div>' : '') +
           '</div>';
         }).join('') + '</div>' +
-        '<div class="cond-doc">' + TICK_TH + '<span>' + esc(docs) + '</span></div>' +
-      '</section>';
+        '<div class="cond-doc">' + TICK_TH + '<span>' + esc(docs) + '</span></div>';
   }
 
   /* Порядок низу: як це буде → на яких умовах → чому нам можна вірити →
@@ -4712,12 +4863,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<summary>' + esc(title) + '</summary>' +
       '<div class="fq-a fq-rich">' + body + '</div></details>';
   }
+  /* Після кошторису — не сайт, а рівно те, що знімає останній сумнів.
+     Чотири конкретні гарантії відкрито, оцінка й ОДИН відгук, а процес,
+     умови й решта — за згортками. Десять великих карток відгуків прямо в
+     КП перетворювали пропозицію на лендинг рівно там, де людина вже
+     тримала палець над кнопкою. */
+  function trustBlock(){
+    return '' +
+      '<section class="risk">' +
+        '<h2 class="sec-title">Замовлення без зайвих ризиків</h2>' +
+        '<ul class="tru-l">' + TRUST.map(function(t){
+          return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
+        }).join('') + '</ul>' +
+        revsTeaser() +
+      '</section>';
+  }
   function detailsHtml(){
     var rows = '';
-    rows += foldRow('Як пройде ваше замовлення', flowInner(), true);
-    rows += foldRow('Контроль якості та гарантії', trustInner(), false);
+    rows += foldRow('Як проходитиме замовлення', flowInner(), false);
+    rows += foldRow('Умови замовлення', condInner(), false);
     rows += foldRow('Реалізовані проєкти', casesInner(), false);
-    rows += foldRow('Відгуки', revsFoldInner(), false);
     /* Питання йдуть окремими рядками того ж списку, а не вкладеною
        гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
     rows += faqList().map(function(q){
@@ -4733,6 +4898,46 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      кнопкою про те, чого НЕ станеться. Саме друге й тримає палець над
      кнопкою: людина боїться не рахунку, а що замовлення піде у виробництво
      без неї. */
+  /* Заклик стоїть двічі, і це навмисно: перший — одразу за кошторисом,
+     поки сума перед очима; другий — у самому кінці, для того, хто розкрив
+     умови й переконався. Гортати назад до кнопки нікого змушувати не можна.
+
+     Але другий короткий: заголовок і кнопка, без абзацу пояснень. Повторити
+     той самий текст удруге означало б визнати, що першого разу його не
+     прочитали. */
+  function ctaHtml(kind){
+    if(OFFER.state === 'confirmed' || expired()) return '';
+    var last = kind === 'last';
+    return '' +
+      '<section class="no-print cta-wrap' + (last ? ' cta-last' : '') + '">' +
+        '<div class="cta-box">' +
+          '<h2 class="cta-h">' + (last
+            ? 'Готові запускати?'
+            : 'Все підходить? Можемо запускати замовлення') + '</h2>' +
+          (last ? '' :
+            '<p class="cta-p">Після підтвердження ми звіримо фінальні деталі та ' +
+            'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
+            'замовлення піде тільки після вашого підтвердження.</p>') +
+          /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
+             привід не вирішувати — а написати менеджеру він може з блоку
+             контактів вище, де для цього є і телефон, і месенджери. */
+          '<div class="final">' +
+            '<button class="btn" id="' + (last ? 'confirmBtn2' : 'confirmBtn') + '">' +
+              'Підтвердити пропозицію</button>' +
+          '</div>' +
+          (last ? '' :
+            '<p class="cta-note">Підтвердження пропозиції не запускає виробництво ' +
+            'автоматично.</p>') +
+          /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
+             партнеру. Кнопкою це було б другою дією поруч із головною і
+             тягнуло б увагу на себе; тихим рядком — лишається доступним
+             тому, хто його шукає. */
+          (last ? '' :
+            '<button class="cta-share" id="shareBtn">' + SHARE_IC +
+            'Поділитися або зберегти PDF</button>') +
+        '</div>' +
+      '</section>';
+  }
   function finalHtml(){
     if(OFFER.state === 'confirmed'){
       var who = (OFFER.clientAction || {}).at;
@@ -4744,35 +4949,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return '<section><div class="locked">Термін дії пропозиції минув. ' +
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
     }
-    /* Хвіст сторінки переїхав нагору, під кошторис: спершу умови, потім
-       згорнутий список, і аж тоді заклик. Тягнути його звідси означало б
-       знову поставити шість екранів між сумою й кнопкою. */
-    return '' +
-      '<section class="no-print cta-wrap">' +
-        /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
-           екрана рядок виходив задовгим — око губить початок наступного, і
-           найважливіший абзац сторінки читається найгірше. */
-        '<div class="cta-box">' +
-          '<h2 class="cta-h">Все підходить? Можемо запускати замовлення</h2>' +
-          '<p class="cta-p">Після підтвердження ми звіримо фінальні деталі та ' +
-            'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
-            'замовлення піде тільки після вашого підтвердження.</p>' +
-          /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
-             привід не вирішувати — а написати менеджеру він може з блоку
-             контактів вище, де для цього є і телефон, і месенджери. */
-          '<div class="final">' +
-            '<button class="btn" id="confirmBtn">Підтвердити пропозицію</button>' +
-          '</div>' +
-          '<p class="cta-note">Підтвердження пропозиції не запускає виробництво ' +
-            'автоматично.</p>' +
-          /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
-             партнеру. Кнопкою це було б другою дією поруч із головною і
-             тягнуло б увагу на себе; тихим рядком — лишається доступним
-             тому, хто його шукає. */
-          '<button class="cta-share" id="shareBtn">' + SHARE_IC +
-            'Поділитися або зберегти PDF</button>' +
-        '</div>' +
-      '</section>';
+    return ctaHtml('last');
   }
 
   /* Менеджер. Кружечок з літерою не викликає довіри — потрібне обличчя.
@@ -4841,16 +5018,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      кошторисі, і давала «Підтвердити» ще до того, як людина той кошторис
      побачила. Тепер це навігація: сума маленьким рядком, а поруч — куди
      піти. «Кошторис» веде до розкладки, «Підтвердити» — до форми. */
+  /* Панель тепер несе суму, а не другу кнопку. Кнопка «Кошторис» вела туди,
+     куди людина й так прокручує, і забирала третину смуги; жива сума
+     корисніша: клієнт міняє кількості в картках і бачить, як росте
+     замовлення, не гортаючи вниз.
+
+     Смуга навмисно нижча за попередню: вона стоїть поверх сторінки весь
+     час, і кожен зайвий її піксель — це піксель, якого немає в товару. */
   function barHtml(){
     var t = totals();
     return '' +
       '<div class="bar" id="bar">' +
-        /* Суми тут немає навмисно: вона є в кошторисі й на першому екрані,
-           а поруч із кнопкою читалась як «стільки списати зараз». */
-        '<div class="bar-btns">' +
-          '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
-          '<button class="btn" id="barConfirm">Підтвердити пропозицію</button>' +
-        '</div>' +
+        '<button class="bar-sum" id="barEstimate" ' +
+          'title="Перейти до кошторису">' +
+          '<b id="barSum">' + money(t.sum) + '</b>' +
+          '<span id="barQty">' + t.qty + ' ' +
+            esc(plural(t.qty, 'одиниця', 'одиниці', 'одиниць')) + '</span>' +
+        '</button>' +
+        '<button class="btn" id="barConfirm">Підтвердити →</button>' +
       '</div>';
   }
 
@@ -4895,7 +5080,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            шанс передумати. */
         heroHtml() + itemsHtml() + variantsHtml() + recoHtml() +
         includesHtml() + whyHtml() +
-        estimateHtml() + condHtml() + detailsHtml() +
+        /* Кошторис — заклик — гарантії з відгуком — згортки — коротка
+           кнопка в кінці. Заклик стоїть одразу за сумою, поки вона перед
+           очима; усе, що нижче, лише допомагає зважитись і не має стояти на
+           дорозі до кнопки. */
+        estimateHtml() + ctaHtml('') + trustBlock() + detailsHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
            потім чужі слова про нас. Після відгуків його майже не гортали. */
         /* Менеджер лишається відкритим: це не читання, а дія — подзвонити
@@ -4925,10 +5114,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var t = totals();
     var set = function(id, v){ var el = document.getElementById(id); if(el) el.textContent = v; };
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
-    set('heroReady', 'до ' + readyDate());
-    set('heroDays', ' · ' + daysWord(curDays()));
+    /* Склад і дата тепер один рядок — оновлюємо його цілком. Окремих
+       heroReady/heroDays більше немає. */
+    /* Сума в липкій панелі — жива: клієнт міняє кількості в картках і має
+       бачити, як росте замовлення, не гортаючи до кошторису. */
+    set('barSum', money(t.sum));
+    set('barQty', t.qty + ' ' + plural(t.qty, 'одиниця', 'одиниці', 'одиниць'));
     var hm = document.getElementById('heroMade');
-    if(hm) hm.textContent = madeLine();
+    if(hm) hm.textContent = heroLine();
     /* Термін залежить від тиражу: клієнт міняє кількість — картка умов
        мусить рухатись разом із нею, інакше вона показує чужий строк. */
     set('condDays', daysWord(curDays()));
@@ -4984,7 +5177,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(add){
         /* Раніше тут кнопку переписувало назад у «+» на кожному перерахунку —
            через це плюсик повертався, скільки б я не міняв розмітку. */
-        add.innerHTML = on ? TICK + 'У замовленні' : 'Додати в замовлення';
+        add.innerHTML = on ? TICK + 'Додано' : '+ Додати';
         add.classList.toggle('on', on);
         add.setAttribute('aria-label', on ? 'Прибрати з пропозиції' : 'Додати до пропозиції');
       }
@@ -5680,7 +5873,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       copy();
       imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
     };
-    ['confirmBtn','barConfirm','estConfirmBtn'].forEach(function(id){
+    ['confirmBtn','confirmBtn2','barConfirm','estConfirmBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
         document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
@@ -5724,7 +5917,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          одному екрані змагаються між собою, і людина не розуміє, яка з них
          головна; панель має бути продовженням тієї, що поїхала вгору, а не
          її копією. */
-      var ctaVisible = ['estConfirmBtn', 'confirmBtn'].some(function(id){
+      var ctaVisible = ['estConfirmBtn', 'confirmBtn', 'confirmBtn2'].some(function(id){
         var cta = document.getElementById(id);
         if(!cta || !cta.offsetParent) return false;
         var r = cta.getBoundingClientRect();
