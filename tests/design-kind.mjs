@@ -297,6 +297,75 @@ const наШарі = await ctor.evaluate(() => {
 ok(наШарі === 'txt', 'перемикач лишився на «напис» після перерахунку',
   'перемикач зіскочив на ' + наШарі);
 
+// ── Позиція без відбитків: два файли мусять лишитись двома макетами ──────
+/* Найдорожча тиха помилка: у позиції, збереженої до появи відбитків (або поки
+   картинка не домалювалась), designs порожні. Рушій вважає такий дизайн
+   невідомим і чіпляє до першої групи — на екрані два логотипи, а разова одна,
+   і замовлення недорахувало ескіз. */
+console.log('');
+console.log('═══ ПОЗИЦІЯ БЕЗ ВІДБИТКІВ ═══');
+await seed('', '');            // жодного відбитка, але файли РІЗНІ
+c = await panel();
+c.рядки.filter(x => /макет|ескіз|нанесення ·/.test(x)).forEach(x => console.log('  ' + x));
+ok(c.рядки.some(x => /Додатковий ескіз/.test(x)),
+  'два різні файли без відбитків усе одно дають два макети',
+  'без відбитків два файли злиплись в один макет');
+// той самий файл двічі — і тоді макет справді один
+await ctor.evaluate(cfg => window.__editProduct(cfg, null, []), {
+  garmentId: gid, colorId:null, printId:null, qty:{ M:4 },
+  logos:{ front:[{ id:'S1', url:'https://cdn.test/same.png', scale:1, frac:0.32,
+                   fx:0.3, fy:0.3, ar:1, fill:0.8, opaqueBox:{x0:0,y0:0,x1:1,y1:1} }],
+          back: [{ id:'S2', url:'https://cdn.test/same.png', scale:1, frac:0.32,
+                   fx:0.3, fy:0.3, ar:1, fill:0.8, opaqueBox:{x0:0,y0:0,x1:1,y1:1} }],
+          left:[], right:[] } });
+await ctor.waitForTimeout(1600);
+c = await panel();
+console.log('');
+c.рядки.filter(x => /макет|ескіз|нанесення ·/.test(x)).forEach(x => console.log('  ' + x));
+ok(!c.рядки.some(x => /Додатковий ескіз/.test(x)),
+  'той самий файл двічі — макет один, як і має бути',
+  'на однаковому файлі зʼявився зайвий ескіз');
+
+// ── Те саме з боку адмінки: старе замовлення лікується без жодної кнопки ──
+console.log('');
+console.log('═══ СТАРЕ ЗАМОВЛЕННЯ В АДМІНЦІ ═══');
+const heal = JSON.parse(await admin.evaluate(s2 => window.eval(s2), SETUP + `
+  const mk2 = (designs, files) => ({ kind:'main', name:'Футболка', qty:4,
+    unitPrice:0, price:0, unitCost:0, cost:0, config:{garmentId:'tee'},
+    mockups:[], views:[], calc:null,
+    prints: files.map(f => ({ side:'front', technique:'Вишивка', file:f })),
+    desc:{ method:'embro', units:4, base:630, coefPart:300, basePart:0, minPart:0,
+           pieceFee:20, dtfCols:[], designs, designKinds:designs.map(()=>'img'),
+           designMm2:[5000, 3000], bare:false } });
+  const роб = (designs, files) => {
+    const o = { id:'h', orderId:'1', name:'к', items:[ mk2(designs, files) ] };
+    orders.length = 0; orders.push(o);
+    repriceOrder(o); recalcOrderTotals(o);
+    const c2 = offerMgrCalc(o).items[0];
+    return { ескізів: (c2.rows||[]).filter(r=>/Додатковий ескіз/.test(r[0])).length,
+             ціна: o.items[0].unitPrice };
+  };
+  JSON.stringify({
+    різніФайли: роб(['',''], ['https://cdn.test/a.png','https://cdn.test/b.png']),
+    тойСамийФайл: роб(['',''], ['https://cdn.test/a.png','https://cdn.test/a.png']),
+    файлівНемає: роб(['',''], [{}, {}].map(()=>null)) });
+`));
+console.log('  різні файли:      ' + JSON.stringify(heal.різніФайли));
+console.log('  той самий файл:   ' + JSON.stringify(heal.тойСамийФайл));
+console.log('  файлів немає:     ' + JSON.stringify(heal.файлівНемає));
+ok(heal.різніФайли.ескізів === 1,
+  'старе замовлення з двома різними файлами саме отримало другий макет',
+  'ескізів: ' + heal.різніФайли.ескізів);
+ok(heal.тойСамийФайл.ескізів === 0,
+  'той самий файл двічі — жодного зайвого ескізу',
+  'зайвий ескіз на однаковому файлі');
+ok(heal.файлівНемає.ескізів === 0,
+  'коли й файлів немає — нічого не вигадуємо',
+  'вигадали ескіз там, де немає навіть файлу');
+ok(heal.різніФайли.ціна > heal.тойСамийФайл.ціна,
+  'другий макет справді додає грошей: ' + heal.тойСамийФайл.ціна + ' → ' + heal.різніФайли.ціна,
+  'ціна не змінилась: ' + JSON.stringify(heal));
+
 console.log('');
 console.log('помилки сторінок:', errs.length);
 errs.slice(0, 5).forEach(e => console.log(' ', e));
