@@ -506,7 +506,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      сторона зазвичай той самий виріб ззаду. */
   .pgal{position:relative; margin:0 0 2px; background:#fff;}
   .pgal-i{position:relative; overflow:hidden; background:#fff;}
-  .pgal-i.is-main{aspect-ratio:1/1; max-height:62vh;}
+  /* Кадр вищий за квадрат: ширшим він бути не може — уже на всю сторінку, —
+     тож збільшуємо єдиним доступним боком. Виріб на 3:4 видно на третину
+     краще, а картка від цього не стає нечитабельною. */
+  .pgal-i.is-main{aspect-ratio:3/4; max-height:74vh;}
   /* Мініатюри лежать поверх головного фото в нижньому кутку: вони не
      забирають висоти, а те, що на них видно, і є відповіддю на «а ззаду
      що?» — тож зрозуміло, навіщо тиснути. */
@@ -526,10 +529,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   /* Скільки всього ракурсів — у протилежному кутку від мініатюр, щоб не
      перекривати їх і не загубитись на світлому фото. */
-  .pgal-n{position:absolute; left:10px; bottom:10px; z-index:2;
-    font-size:11.5px; font-weight:700; color:#fff; background:rgba(15,32,52,.62);
-    border-radius:20px; padding:4px 10px; pointer-events:none;
-    backdrop-filter:blur(4px);}
+  /* Стрілки з боків кадру — вони самі й є підказкою, що є куди гортати.
+     Плашка «3 фото» казала те саме словами й займала кут. */
+  .pgal-ar{position:absolute; top:50%; transform:translateY(-50%); z-index:3;
+    width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,.92); box-shadow:0 2px 10px rgba(15,32,52,.16);
+    color:var(--ink); font-size:22px; line-height:1; padding:0 0 2px;
+    display:flex; align-items:center; justify-content:center; transition:.15s;}
+  .pgal-ar:hover{background:#fff; box-shadow:0 4px 16px rgba(15,32,52,.22);}
+  .pgal-ar.prev{left:10px;}
+  .pgal-ar.next{right:10px;}
+  @media (min-width:640px){ .pgal-ar{width:44px; height:44px; font-size:24px;} }
   @media (min-width:640px){ .pgal-i.is-thumb{width:84px; height:84px;} }
   /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
      заготовкою під фото. Клієнт бачить лише заповнені й без підписів. */
@@ -996,6 +1006,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     transform:rotate(-45deg); transition:transform .18s;}
   .fr[open]>summary::after{transform:rotate(45deg);}
   .fr>summary:hover .fr-t{color:var(--cta);}
+  /* Рядок-посилання виглядає так само, як розкривний: інакше незрозуміло,
+     чому один пункт відкривається тут, а інший забирає на іншу сторінку. */
+  .fr-link{display:flex; align-items:center; gap:12px; padding:17px 2px;
+    font-size:16px; font-weight:600; color:var(--ink); text-decoration:none;}
+  .fr-link::after{content:''; flex:none; width:8px; height:8px;
+    border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
+    transform:rotate(-45deg);}
+  .fr-link:hover .fr-t{color:var(--cta);}
   .fr-b{padding:2px 2px 20px; color:var(--ink);}
   .fr-b p{margin:0; font-size:14px; color:var(--ink-2); line-height:1.6;}
   .fr-b .fl{margin-top:2px;}
@@ -1012,9 +1030,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      не бачить (без даних розділів для нього немає), але менеджер щоразу
      прокручує повз. Тепер порожній розділ стискається до одного рядка з
      кнопкою, а щойно в ньому щось зʼявиться — розгортається сам. */
-  section.is-blank{padding:12px 0; border-top:1px dashed var(--line);}
-  section.is-blank .sec-title{font-size:14px; font-weight:600; color:var(--muted);
-    margin:0 0 8px;}
+  section.is-blank{padding:8px 0; border-top:1px dashed var(--line);}
+  section.is-blank .sec-title{font-size:12.5px; font-weight:600; color:var(--muted);
+    margin:0 0 5px;}
+  section.is-blank .edadd, section.is-blank .edb{padding:7px 12px; font-size:12.5px;}
   section.is-blank .sec-sub{display:none;}
   section.is-blank .edwhy{min-height:44px;}
 
@@ -1043,6 +1062,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      й потрібні, щоб зважитись. Але шість відкритих екранів між сумою й
      кнопкою — це шість шансів передумати. */
   .fold{padding-top:26px;}
+  .fold-h{font-size:20px; font-weight:700; letter-spacing:-0.4px; margin:0 0 8px;}
   /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
      список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
      все успадкувало б дрібний сірий шрифт відповіді на питання. */
@@ -1188,7 +1208,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .done-ic{width:52px;height:52px;border-radius:50%;background:#E7F6EF;margin:0 auto 14px;
     display:flex;align-items:center;justify-content:center;}
 
-  .foot{padding:26px 0 40px; text-align:center; color:var(--muted); font-size:12.5px;}
+  /* Підвал стискаємо втричі: 40 px порожнечі під ним були майже половиною
+     його висоти, і сторінка закінчувалась задовго до свого кінця. */
+  .foot{padding:14px 0 10px; text-align:center; color:var(--muted); font-size:12px;}
   .foot a{color:var(--muted);}
   .updated{font-size:12px; color:var(--muted); margin-top:6px;}
 
@@ -3694,9 +3716,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       (rest.length
         ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
           '</div>' +
-          /* Скільки всього ракурсів. Без цього не видно, що фото більше
-             одного, доки не приглядишся до кутка. */
-          '<span class="pgal-n">' + list.length + ' фото</span>'
+          /* Стрілка каже «це гортається», мініатюра — «ось що там буде».
+             Разом вони не сперечаються: стрілки з боків, мініатюри внизу. */
+          '<button class="pgal-ar prev" data-gnav="-1" aria-label="Попередній ракурс">‹</button>' +
+          '<button class="pgal-ar next" data-gnav="1" aria-label="Наступний ракурс">›</button>'
         : '') +
     '</div>';
   }
@@ -4617,6 +4640,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return d.getDate() + ' ' + UA_MON[d.getMonth()] + ' ' + d.getFullYear();
   }
   var DAY_MS = 24 * 60 * 60 * 1000;
+  /* Оцінка компанії — рівно та, що стоїть у блоці відгуків на сайті.
+     Одне місце на всю пропозицію: зміниться на сайті — міняється тут. */
+  var SITE_RATING = 4.9;
   var SITE_BUILTIN = [
     { name:"Соф.", ago:6, rating:5, photo:"images/work-50.webp", text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
     { name:"Кирило", ago:13, rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. Дуже сподобались." },
@@ -4720,18 +4746,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function revsRow(){
     var list = (SITE_REVIEWS || SITE_BUILTIN || []).filter(Boolean);
     if(!list.length) return '';
-    var rated = list.filter(function(r){ return +r.rating > 0; });
-    var avg = rated.length
-      ? (rated.reduce(function(a, r){ return a + (+r.rating || 0); }, 0) / rated.length)
-      : 0;
-    var stars = new Array(Math.max(1, Math.min(5, Math.round(avg || 5))) + 1).join('★');
-    var aside = (avg ? '<b class="rev-sc">' + avg.toFixed(1).replace('.', ',') + '</b>' : '') +
-                '<span class="rev-st">' + stars + '</span>';
-    var body = revsInner() +
-      '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
-        'target="_blank" rel="noopener">Переглянути всі відгуки →</a>';
+    /* Оцінка — та сама, що показує сайт. Рахувати середню з восьми відгуків,
+       вшитих у сторінку, не можна: всі вони пʼятірки, і виходило рівне
+       «5,0», якого немає ніде більше. Сайт і пропозиція мають казати одне
+       число, інакше клієнт побачить розбіжність за один перехід. */
+    var aside = '<b class="rev-sc">' + SITE_RATING.toFixed(1).replace('.', ',') + '</b>' +
+                '<span class="rev-st">★★★★★</span>';
+    /* Не розкриваємо стрічку карток у самій пропозиції: відгуки живуть на
+       сайті, і там їх видно всі, зі своїм блоком і своїм оформленням.
+       Тут рядок каже оцінку, показує роботи — і веде туди. */
     var strip = list.filter(function(r){ return r.photo; }).slice(0, 8);
-    return foldRow('Відгуки', body, false, aside) +
+    return foldLink('Відгуки', reviewsUrl(), aside) +
       (strip.length
         ? '<div class="rev-strip" id="revStrip">' + strip.map(function(r){
             return '<i data-estzoom="' + esc(strip.map(function(x){ return x.photo; }).join('|')) +
@@ -4852,6 +4877,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      сусідами. Плюсик у рамці читався як «розгорнути технічну довідку»;
      рядок зі стрілкою — як «тут ще є, зазирни». Праворуч від назви можна
      показати саме те, заради чого туди й тиснуть: оцінку, кількість, дату. */
+  /* Рядок, який не розкривається, а веде. Виглядає точно так само —
+     інакше людина не зрозуміє, чому один пункт відкривається на місці, а
+     інший забирає її на іншу сторінку. */
+  function foldLink(title, href, aside){
+    return '<a class="fr fr-link" href="' + esc(href) + '" target="_blank" rel="noopener">' +
+      '<span class="fr-t">' + esc(title) + '</span>' +
+      (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
+    '</a>';
+  }
   function foldRow(title, body, open, aside){
     if(!body) return '';
     return '<details class="fr"' + (open ? ' open' : '') + '>' +
@@ -4884,7 +4918,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
     }).join('');
     if(!rows) return '';
-    return '<section class="fold"><div class="fr-list">' + rows + '</div></section>';
+    /* Заголовок над списком: без нього блок починався одразу рядками й
+       читався як службовий хвіст сторінки. «Що ще варто знати» нічого не
+       продає й чесно описує все, що там лежить, — від процесу до питань. */
+    return '<section class="fold">' +
+      '<h2 class="sec-title fold-h">Що ще варто знати</h2>' +
+      '<div class="fr-list">' + rows + '</div></section>';
   }
 
   /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
@@ -5470,6 +5509,25 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.addEventListener('click', function(ev){
       var est = ev.target.closest && ev.target.closest('[data-estzoom]');
       if(est){ openZoom(String(est.dataset.estzoom).split('|'), 0); return; }
+      /* Стрілка гортає ракурси на місці — той самий обмін, що й у мініатюри,
+         тільки наступною за порядком. Галерея не відкривається: людина
+         хотіла подивитись спину, а не вікно. */
+      var ar = ev.target.closest && ev.target.closest('.pgal-ar');
+      if(ar && !EDIT){
+        var g2 = ar.closest('.pgal');
+        var big2 = g2 && g2.querySelector('.pgal-i.is-main img');
+        var ths = g2 ? [].slice.call(g2.querySelectorAll('.pgal-i.is-thumb')) : [];
+        if(big2 && ths.length){
+          var d2 = +ar.getAttribute('data-gnav') > 0 ? 0 : ths.length - 1;
+          var t2 = ths[d2], sm = t2.querySelector('img'), cp = t2.querySelector('.pgal-cap');
+          var sv = big2.getAttribute('src'), av = big2.getAttribute('alt') || '';
+          big2.setAttribute('src', sm.getAttribute('src'));
+          big2.setAttribute('alt', sm.getAttribute('alt') || '');
+          sm.setAttribute('src', sv); sm.setAttribute('alt', av);
+          if(cp) cp.textContent = av;
+        }
+        return;
+      }
       /* Мініатюра просто МІНЯЄ головне фото. Доти вона відкривала галерею —
          і щоб роздивитись спину, треба було спершу відкрити вікно, а потім
          його закрити. Тепер: тицьнув у кут — побачив; тицьнув у саме фото —

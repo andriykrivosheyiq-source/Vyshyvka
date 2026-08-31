@@ -82,9 +82,13 @@ const read = fr => fr.evaluate(() => {
   const tx = s => { const e = document.querySelector(s);
     return e ? e.textContent.replace(/\s+/g,' ').trim() : ''; };
   const секції = [...document.querySelectorAll('section')].map(s => s.className || '—');
+  /* Рядки бувають двох видів: розкривні (details) і ті, що ведуть на сайт
+     (a.fr-link) — відгуки. Виглядають однаково, тож і читаємо однаково. */
   const рядки = [...document.querySelectorAll('.fold .fr')].map(d => ({
-    назва: (d.querySelector('summary') || {}).textContent.trim(),
-    відкрито: d.open,
+    назва: ((d.querySelector('summary') || d.querySelector('.fr-t') ||
+             {}).textContent || '').trim(),
+    посилання: d.tagName === 'A' ? d.getAttribute('href') : '',
+    відкрито: !!d.open,
     висота: Math.round(d.getBoundingClientRect().height) }));
   const y = s => { const e = document.querySelector(s);
     return e ? Math.round(e.getBoundingClientRect().top + scrollY) : -1; };
@@ -97,7 +101,8 @@ const read = fr => fr.evaluate(() => {
     рядки: рядки,
     менеджерВидно: !!document.querySelector('.mgr'),
     менеджерУСписку: !!document.querySelector('.fold .mgr'),
-    заголовківУнизу: [...document.querySelectorAll('.fold h2')].length,
+    заголовокСписку: (document.querySelector('.fold-h') || {}).textContent || '',
+    заголовківУнизу: [...document.querySelectorAll('.fold .fr h2')].length,
     /* Рядок, а не картка: рамки навколо кожного пункту робили зі списку
        шість окремих обʼєктів замість однієї таблиці змісту. */
     рамокУРядка: (function(){ const r = document.querySelector('.fold .fr');
@@ -131,9 +136,18 @@ ok(d.гарантій === 4,
   'галочок: ' + d.гарантій);
 /* Рядок «Відгуки · 5,0 ★★★★★», а під ним смужка фото робіт — точно як у
    картці товару на сайті. Фото видно без розкриття: воно і є доказ. */
-ok(/★/.test(d.оцінка) && d.смужкаФото > 0,
+ok(/★/.test(d.оцінка) && /4,9/.test(d.оцінка) && d.смужкаФото > 0,
   'відгуки рядком з оцінкою (' + d.оцінка + ') і смужкою з ' + d.смужкаФото + ' фото',
   'оцінка: ' + d.оцінка + ', фото: ' + d.смужкаФото);
+/* Відгуки живуть на сайті: там їх видно всі, зі своїм блоком. Розкривати
+   стрічку карток у самій пропозиції означало б зробити з неї лендинг. */
+const rev = d.рядки.filter(x => /^Відгуки/.test(x.назва))[0];
+ok(rev && /reviews/.test(rev.посилання || ''),
+  'рядок відгуків веде на сторінку сайту: ' + (rev && rev.посилання),
+  'відгуки не ведуть на сайт: ' + JSON.stringify(rev));
+ok(d.заголовокСписку === 'Що ще варто знати',
+  'над списком є заголовок: «' + d.заголовокСписку + '»',
+  'заголовка немає: ' + d.заголовокСписку);
 ok(d.закликів === 1,
   'заклик один — у кінці: другий одразу за кошторисом повторював кнопку в ньому',
   'закликів на сторінці: ' + d.закликів);
@@ -221,6 +235,11 @@ const g = await p.frames()[1].evaluate(()=>{
     мініатюриПоверх: th.length
       ? getComputedStyle(th[0].parentNode).position === 'absolute' : false,
     сітка: (document.querySelector('.fr-inline .fr-t')||{}).textContent||'',
+    стрілок: gal ? gal.querySelectorAll('.pgal-ar').length : -1,
+    плашкаКількості: !!(gal && gal.querySelector('.pgal-n')),
+    пропорція: (function(){ const m2 = gal && gal.querySelector('.pgal-i.is-main');
+      if(!m2) return 0; const r = m2.getBoundingClientRect();
+      return r.width ? r.height / r.width : 0; })(),
     висотаГалереї: box ? Math.round(box.height) : -1 };
 });
 console.log('  ' + JSON.stringify(g));
@@ -230,6 +249,14 @@ ok(g.головне === 'Спина',
 ok(g.мініатюр === 2 && g.мініатюриПоверх,
   'решта ракурсів — мініатюрами поверх фото: висоти не забирають, а видно, що там',
   'мініатюр: ' + g.мініатюр + ', поверх: ' + g.мініатюриПоверх);
+/* Стрілка каже «це гортається», мініатюра — «ось що там буде». Плашка
+   «3 фото» казала те саме словами й займала кут. */
+ok(g.стрілок === 2 && !g.плашкаКількості,
+  'на фото дві стрілки, плашки з кількістю немає',
+  'стрілок: ' + g.стрілок + ', плашка: ' + g.плашкаКількості);
+ok(g.пропорція > 1.2,
+  'кадр вищий за квадрат — виріб видно більшим (' + g.пропорція.toFixed(2) + ')',
+  'кадр лишився квадратним: ' + g.пропорція);
 ok(g.сітка === 'Розмірна сітка',
   'розмірна сітка — окремим рядком у деталях позиції',
   'сітки в деталях немає: ' + g.сітка);
