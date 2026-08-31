@@ -2708,8 +2708,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=90a4e78eb1"></script>
-<script src="loomiq-pricing.js?v=90a4e78eb1"></script>
+<script src="loomiq-fingerprint.js?v=745ac9ecee"></script>
+<script src="loomiq-pricing.js?v=745ac9ecee"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5754,7 +5754,35 @@ function applyKindFix(o){
     d.designKinds = kinds;
   });
 }
+/* Дизайн без відбитка рушій вважає «невідомим» і приєднує до першої групи:
+   на екрані два логотипи — спереду й ззаду, — а разова підготовка макета одна.
+   Так виглядають позиції, збережені до появи відбитків, і ті, де картинка не
+   встигла домалюватись у момент збереження.
+
+   Даємо такому дизайну хоч якусь чесну особу — хеш адреси його ж файлу.
+   Це гірше за пікселі (два однакові малюнки з різних файлів рахуватимуться
+   як два макети), але незрівнянно краще за порожнечу, яка мовчки склеює все
+   підряд і дарує клієнту ескіз. Пікселі нікуди не діваються: кнопка
+   «Перерахувати дизайни за макетами» перепише відбиток точним.
+
+   Синхронно й без завантаження картинок — тому це можна робити перед кожним
+   розрахунком, а не окремою дією, про яку треба памʼятати. */
+function fillMissingFp(o){
+  const url = (window.LQ && window.LQ.urlFingerprint) ? window.LQ.urlFingerprint : null;
+  if(!url) return;
+  (o && o.items || []).forEach(it=>{
+    const d = it && it.desc;
+    if(!d || !Array.isArray(d.designs) || !d.designs.length) return;
+    const prints = it.prints || [];
+    d.designs = d.designs.map((fp, i)=>{
+      if(fp) return fp;
+      const file = (prints[i] || {}).file;
+      return file ? (url(file) || fp) : fp;
+    });
+  });
+}
 function fillOrderParts(o){
+  fillMissingFp(o);   // безіменний дизайн склеюється з першим — дамо йому імʼя
   applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
@@ -5881,6 +5909,7 @@ function repriceOrder(o){
   // вирівнюємо його перед будь-яким перерахунком, а не після
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
   syncVariantQty(o);   // у групі варіантів тираж один на всіх
+  fillMissingFp(o);    // дизайн без відбитка інакше склеїться з першим
   applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із

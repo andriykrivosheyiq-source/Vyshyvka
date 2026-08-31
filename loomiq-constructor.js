@@ -995,6 +995,40 @@
       if(l && (l.kindFix === 'txt' || l.kindFix === 'img')) return l.kindFix;
       return isTextLayer(l) ? 'txt' : 'img';
     }
+    /* Останній рубіж проти «два лого рахуються як одне».
+       Відбиток знімається з пікселів під час завантаження картинки. Але
+       позиція могла бути збережена ще до того, як відбитки зʼявились, або
+       поки картинка не встигла домалюватись, — і тоді шар приїжджає назад
+       узагалі без відбитка. Рушій цін вважає такий дизайн «невідомим» і
+       приєднує до першої групи: на екрані два логотипи, а разова одна.
+
+       Тому даємо шару хоч якусь чесну особу — хеш його ж адреси. Це гірше за
+       пікселі (два однакові малюнки з різних файлів рахуватимуться як два
+       макети), але незрівнянно краще за порожнечу, яка мовчки склеює все
+       підряд. Щойно пікселі вдасться прочитати, measureLayerShape перепише
+       відбиток точним. */
+    function ensureFp(l){
+      if(!l) return '';
+      if(!l.fp && l.text) l.fp = textFingerprint(l.text);
+      if(!l.fp && l.url)  l.fp = urlFingerprint(l.url);
+      return l.fp || '';
+    }
+    /* Позицію повернули з кошика — знімаємо відбитки заново з тих файлів, що
+       в ній лежать. Доти цього не робив ніхто: відкрити картку й подивитись
+       на прорахунок було недостатньо, треба було йти в пропозицію й тиснути
+       «Перерахувати дизайни за макетами». */
+    function remeasureMissing(){
+      var jobs = [];
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        ensureFp(l);                       // одразу, синхронно — щоб ціна не брехала й секунди
+        if(!l.text && l.url && String(l.fp || '').indexOf('u:') === 0)
+          jobs.push(measureLayerShape(l, l.url).catch(function(){}));
+      }); });
+      if(jobs.length) Promise.all(jobs).then(function(){
+        try{ renderLogoLayers(); }catch(e){}
+        updatePriceBar();
+      });
+    }
     // Шар за номером дизайну — тим самим, у якому їх бачить рушій цін
     function layerAtDesign(di){
       var n = 0, out = null;
@@ -1180,7 +1214,7 @@
       var ap = applicationParts();
       var fps = [], kinds = [], mm2s = [];
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        fps.push(l.fp || ''); kinds.push(layerKind(l));
+        fps.push(ensureFp(l)); kinds.push(layerKind(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -4115,9 +4149,14 @@
               var byUrl = nos.some(function(d){
                 var l = layerAtDesign(d.i);
                 return l && String(l.fp || '').indexOf('u:') === 0; });
+              /* Порожній відбиток тепер майже не трапляється: шар отримує
+                 хеш свого файлу одразу, щойно позицію відкрили. Лишається
+                 випадок, коли й файлу немає, — тоді відрізнити дизайни
+                 нічим, і про це треба сказати прямо. */
               why = blank
-                ? ' — відбиток не знявся, дизайни склеєно наосліп: натисніть «Перерахувати»'
-                : (byUrl ? ' — звірено за файлом, не за пікселями: однаковими вважаються лише ті самі файли'
+                ? ' — у дизайну немає ні файлу, ні відбитка: відрізнити його нічим'
+                : (byUrl ? ' — той самий файл; пікселі не читались (хостинг без CORS), ' +
+                           'тож звірка йде за адресою файлу'
                          : ' — це той самий малюнок, окремий макет не потрібен');
             }
             tb += r('<span style="color:#8a94a6;">' + nos.length + ' нанесення · ' +
@@ -6420,6 +6459,7 @@
       // і як чернетка, і як те, що лежить у кошику, — і ціна вийде завищена.
       window.__pmEditIndex = (editIdx == null) ? null : editIdx;
       try{ syncAddLabels(); }catch(e){}
+      try{ remeasureMissing(); }catch(e){ console.warn('відбитки', e); }
       try{ renderTabPanel(); renderRecommended(); updatePriceBar(); }catch(e){}
     };
     /* Проставити тираж ззовні. Потрібно рекомендованим: їхня кількість іде за
