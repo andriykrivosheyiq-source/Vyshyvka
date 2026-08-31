@@ -509,15 +509,21 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Два кадри в ряд на всю ширину, третій визирає з краю — саме цей край і
      каже, що стрічку можна гортати. Прокрутка з прилипанням, як у
      магазинах: палець відпустив — кадр став на місце. */
-  .pgal{display:flex; gap:0; overflow-x:auto; scroll-snap-type:x mandatory;
-    scrollbar-width:none; -webkit-overflow-scrolling:touch; margin:0 0 2px;}
-  .pgal::-webkit-scrollbar{display:none;}
-  /* Рівно половина ширини на кадр і жодного проміжку: два фото змикаються
-     в один знімок від краю до краю, а третє видно лише коли гортаєш. */
-  .pgal-i{position:relative; flex:0 0 50%; scroll-snap-align:start;
-    aspect-ratio:3/4; overflow:hidden; background:#fff;}
-  .pgal-i + .pgal-i{box-shadow:inset 1px 0 0 rgba(0,0,0,.05);}
-  .pgal.one .pgal-i{flex-basis:100%; aspect-ratio:1/1; max-height:62vh;}
+  /* Один знімок на всю ширину, решта ракурсів — мініатюрами в кутку. Два
+     фото поруч ділили увагу навпіл і робили картку вдвічі вищою, хоча друга
+     сторона зазвичай той самий виріб ззаду. */
+  .pgal{position:relative; margin:0 0 2px; background:#fff;}
+  .pgal-i{position:relative; overflow:hidden; background:#fff;}
+  .pgal-i.is-main{aspect-ratio:1/1; max-height:62vh;}
+  /* Мініатюри лежать поверх головного фото в нижньому кутку: вони не
+     забирають висоти, а те, що на них видно, і є відповіддю на «а ззаду
+     що?» — тож зрозуміло, навіщо тиснути. */
+  .pgal-more{position:absolute; right:10px; bottom:10px; z-index:2;
+    display:flex; gap:6px;}
+  .pgal-i.is-thumb{width:52px; height:52px; border-radius:10px; cursor:zoom-in;
+    box-shadow:0 2px 10px rgba(15,32,52,.18), inset 0 0 0 1.5px rgba(255,255,255,.9);}
+  .pgal-i.is-thumb img{width:100%; height:100%; object-fit:cover;}
+  @media (min-width:640px){ .pgal-i.is-thumb{width:60px; height:60px;} }
   /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
      заготовкою під фото. Клієнт бачить лише заповнені й без підписів. */
   .pgal-i.is-edit{cursor:pointer;}
@@ -536,6 +542,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Прихований ракурс менеджер бачить приглушеним і підписаним — щоб не
      плутати його з тим, що піде клієнту */
   .pgal-i.is-off{opacity:.5;}
+  /* На мініатюрі підпис і позначка «клієнт не бачить» не влазять — робимо їх
+     дрібними, інакше вони перекривають саме фото, яке й треба роздивитись. */
+  .pgal-i.is-thumb .pgal-lab{left:3px; bottom:3px; font-size:9px; padding:1px 5px;}
+  .pgal-i.is-thumb .pgal-off{left:3px; top:3px; font-size:8px; padding:1px 4px;}
   .pgal-off{position:absolute; left:8px; top:8px; z-index:2; font-size:10px; font-weight:800;
     letter-spacing:.04em; text-transform:uppercase; color:#7A2320; background:#FDECEA;
     border-radius:20px; padding:3px 8px; pointer-events:none;}
@@ -1066,6 +1076,34 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .reco-box svg{opacity:0;}
   .reco.on .reco-box svg{opacity:1;}
 
+  /* ── Рядки з переходом ───────────────────────────────────────────────
+     Той самий вигляд, що в картці товару на сайті: назва, шеврон, волосяна
+     лінія. Рамки навколо кожного пункту робили зі списку шість окремих
+     обʼєктів; без них це одна спокійна таблиця змісту. */
+  .fr-list{border-top:1px solid var(--line);}
+  .fr{border-bottom:1px solid var(--line);}
+  .fr>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
+    gap:12px; padding:17px 2px; font-size:16px; font-weight:600; color:var(--ink);}
+  .fr>summary::-webkit-details-marker{display:none;}
+  .fr-t{flex:1; min-width:0;}
+  .fr-a{font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap;}
+  /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
+     і «тут ще є», і «зараз відкрито». */
+  .fr>summary::after{content:''; flex:none; width:8px; height:8px;
+    border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
+    transform:rotate(-45deg); transition:transform .18s;}
+  .fr[open]>summary::after{transform:rotate(45deg);}
+  .fr>summary:hover .fr-t{color:var(--cta);}
+  .fr-b{padding:2px 2px 20px; color:var(--ink);}
+  .fr-b p{margin:0; font-size:14px; color:var(--ink-2); line-height:1.6;}
+  .fr-b .fl{margin-top:2px;}
+  .fr-b .cases{margin-top:2px;}
+
+  /* Той самий рядок усередині деталей позиції — трохи тихіший: він там не
+     перелік розділів, а один пункт серед характеристик. */
+  .fr-inline{margin-top:14px;}
+  .fr-inline .fr>summary{padding:13px 2px; font-size:14.5px;}
+
   /* ── Гарантії та один відгук ─────────────────────────────────────────
      Усе, що знімає останній сумнів, — на одному екрані: чотири конкретні
      обіцянки й один свіжий відгук із оцінкою. Стрічка з десяти карток
@@ -1090,11 +1128,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
      список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
      все успадкувало б дрібний сірий шрифт відповіді на питання. */
-  .fq-rich{font-size:inherit; color:var(--ink); padding-top:4px;}
-  .fq-rich .fl{margin-top:2px;}
-  .fq-rich .cases{margin-top:2px;}
-  .fq-rich p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.55;}
-  .fq-rich .review-list, .fq-rich .reviews{margin-top:2px;}
   .rev-all-fold{display:inline-block; margin-top:14px;}
 
   /* ── Умови замовлення ──────────────────────────────────────────────
@@ -3686,6 +3719,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      картці висоти, і в блоці порівняння, де карток кілька поспіль, кожна
      через це розтягувалась. На фото місце вже є, і читається вона там
      першою — саме тоді, коли око ще на знімку. */
+  /* Одне фото, а не два поруч. Два ракурси в кадрі ділили увагу навпіл і
+     робили картку вдвічі вищою, хоча друга сторона в більшості випадків —
+     та сама футболка ззаду. Показуємо ту сторону, де є нанесення (заради
+     нього все й затівалось), а решта — мініатюрами в кутку: видно і скільки
+     їх, і що саме там, тож зрозуміло, навіщо тиснути. */
   function galleryHtml(it, idx, kind, tag){
     var all = viewsOf(it);
     /* Клієнт бачить тільки ті ракурси, які менеджер лишив показаними, і тільки
@@ -3695,28 +3733,44 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var list = EDIT ? all : all.filter(function(v){ return v && v.img && v.show !== false; });
     if(!list.length && !EDIT) return '';
     var K = kind || 'main';
-    return '<div class="pgal' + (list.length === 1 ? ' one' : '') + '" data-shot="' + idx + '">' +
-      list.map(function(v, k){
-        var pos = all.indexOf(v);
-        var off = EDIT && v.show === false;
-        return '<div class="pgal-i' + (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') +
-          (off ? ' is-off' : '') + '"' +
-          (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '"' +
-                  ' data-view-label="' + esc(v.label || '') + '"' +
-                  ' title="Натисніть, щоб сховати або показати клієнту"' : '') + '>' +
-          (v.img
-            ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
-              (k > 1 ? 'loading="lazy" ' : '') +
-              'onerror="this.style.visibility=\'hidden\'">'
-            : '<span class="pgal-plus">＋<i>фото</i></span>') +
-          (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
-                (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
-          (tag && k === 0 ? '<span class="pgal-tag">' + esc(tag) + '</span>' : '') +
-        '</div>';
-      }).join('') +
-      /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
-         конструктором і лежать тут-таки — просто приховані. Додавати нема
-         чого: треба лише показати потрібну клієнту. */
+    /* Головним стає ракурс із нанесенням. «Перед» за замовчуванням підходить
+       не завжди: буває, що лого лише на спині, і тоді перша картка показує
+       порожній виріб — саме те, чого клієнт і не замовляв. */
+    var lead = 0;
+    var sides = (it.sides || []).map(function(sd){ return sd && sd.side; });
+    for(var n = 0; n < list.length; n++){
+      var sd0 = all.indexOf(list[n]);
+      if(sd0 >= 0 && sides.indexOf((all[sd0] || {}).side) >= 0){ lead = n; break; }
+    }
+    var main = list[lead];
+    var rest = list.filter(function(v, n){ return n !== lead; });
+    var cell = function(v, big){
+      var pos = all.indexOf(v);
+      var off = EDIT && v.show === false;
+      return '<div class="pgal-i' + (big ? ' is-main' : ' is-thumb') +
+        (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') + (off ? ' is-off' : '') + '"' +
+        (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '"' +
+                ' data-view-label="' + esc(v.label || '') + '"' +
+                ' title="Натисніть, щоб сховати або показати клієнту"' : '') + '>' +
+        (v.img
+          ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
+            (big ? '' : 'loading="lazy" ') +
+            'onerror="this.style.visibility=\'hidden\'">'
+          : '<span class="pgal-plus">＋<i>фото</i></span>') +
+        (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
+              (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
+        (big && tag ? '<span class="pgal-tag">' + esc(tag) + '</span>' : '') +
+      '</div>';
+    };
+    /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
+       конструктором і лежать тут-таки — просто приховані. Додавати нема
+       чого: треба лише показати потрібну клієнту. */
+    return '<div class="pgal" data-shot="' + esc(idx) + '">' +
+      (main ? cell(main, true) : '') +
+      (rest.length
+        ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
+          '</div>'
+        : '') +
     '</div>';
   }
   // Підпис ракурсу: те, що позначив менеджер, інакше «Перед / Спина» по порядку
@@ -3812,7 +3866,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var stSp = stIn || itemState(i);
     if(it.sizes) rows.push(['Розмірний ряд',
       stSp.changed ? 'узгодимо з вами' : it.sizes, 'size']);
-    var about = aboutHtml(it), chart = chartHtml(it);
+    var about = aboutHtml(it);
+    /* Розмірна сітка — окремим рядком, як на сайті: таблиця обмірів у
+       середині деталей просто «випадала» серед характеристик, і зрозуміти,
+       що це саме сітка, можна було лише прочитавши шапку. Тепер це пункт,
+       який видно, і його розкривають свідомо. */
+    var chart = (function(){
+      var t = chartHtml(it);
+      return t ? '<div class="fr-list fr-inline">' +
+        foldRow('Розмірна сітка', t, false) + '</div>' : '';
+    })();
     if(!rows.length) return about + chart;
     var ICO = {
       print: '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>',
@@ -4857,11 +4920,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Перший рядок відкритий: інакше блок читається як службовий хвіст, і його
      не розкриває ніхто. Відкриваємо саме етапи — це питання, яке виникає
      одразу після «скільки це коштує». */
-  function foldRow(title, body, open){
+  /* Рядок, а не картка: назва ліворуч, шеврон праворуч, волосяна лінія між
+     сусідами. Плюсик у рамці читався як «розгорнути технічну довідку»;
+     рядок зі стрілкою — як «тут ще є, зазирни». Праворуч від назви можна
+     показати саме те, заради чого туди й тиснуть: оцінку, кількість, дату. */
+  function foldRow(title, body, open, aside){
     if(!body) return '';
-    return '<details class="fq"' + (open ? ' open' : '') + '>' +
-      '<summary>' + esc(title) + '</summary>' +
-      '<div class="fq-a fq-rich">' + body + '</div></details>';
+    return '<details class="fr"' + (open ? ' open' : '') + '>' +
+      '<summary><span class="fr-t">' + esc(title) + '</span>' +
+        (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
+      '</summary>' +
+      '<div class="fr-b">' + body + '</div></details>';
   }
   /* Після кошторису — не сайт, а рівно те, що знімає останній сумнів.
      Чотири конкретні гарантії відкрито, оцінка й ОДИН відгук, а процес,
@@ -4889,7 +4958,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
     }).join('');
     if(!rows) return '';
-    return '<section class="fold"><div class="faq">' + rows + '</div></section>';
+    return '<section class="fold"><div class="fr-list">' + rows + '</div></section>';
   }
 
   /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
@@ -4912,12 +4981,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<section class="no-print cta-wrap' + (last ? ' cta-last' : '') + '">' +
         '<div class="cta-box">' +
           '<h2 class="cta-h">' + (last
-            ? 'Готові запускати?'
+            ? 'Готові оформити замовлення?'
             : 'Все підходить? Можемо запускати замовлення') + '</h2>' +
-          (last ? '' :
-            '<p class="cta-p">Після підтвердження ми звіримо фінальні деталі та ' +
-            'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
-            'замовлення піде тільки після вашого підтвердження.</p>') +
+          '<p class="cta-p">' + (last
+            ? 'Підтвердіть пропозицію — і ми перейдемо до фінального погодження деталей.'
+            : 'Після підтвердження ми звіримо фінальні деталі та ' +
+              'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
+              'замовлення піде тільки після вашого підтвердження.') + '</p>' +
           /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
              привід не вирішувати — а написати менеджеру він може з блоку
              контактів вище, де для цього є і телефон, і месенджери. */
