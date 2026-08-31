@@ -711,13 +711,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     display:flex; gap:8px; justify-content:center; padding:14px 12px
     calc(14px + env(safe-area-inset-bottom)); overflow-x:auto; scrollbar-width:none;}
   .zoom-thumbs::-webkit-scrollbar{display:none;}
-  .zoom-thumbs button{flex:none; width:56px; height:68px; padding:0;
+  .zoom-thumbs button{flex:none; width:64px; padding:0;
     border:1px solid rgba(255,255,255,.25); border-radius:10px; overflow:hidden;
     background:#fff; cursor:pointer; opacity:.55;
     transition:opacity .15s ease, box-shadow .15s ease, border-color .15s ease;}
   .zoom-thumbs button:hover{opacity:.85;}
   .zoom-thumbs button.on{opacity:1; border-color:#fff; box-shadow:0 0 0 2px #fff;}
-  .zoom-thumbs button img{width:100%; height:100%; object-fit:contain; display:block; background:#fff;}
+  .zoom-thumbs button img{width:100%; height:64px; object-fit:contain; display:block; background:#fff;}
+  /* Підпис під мініатюрою: два білі квадрати внизу самі по собі не кажуть,
+     який із них спина. Той самий текст, що й угорі кадру. */
+  .zoom-thumbs button i{display:block; font-style:normal; font-size:10px;
+    font-weight:700; line-height:1.2; padding:4px 3px; color:#22314A;
+    background:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .zoom-thumbs:empty{display:none;}
   .pshot img.swap{opacity:0;}
 
@@ -3807,6 +3812,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      та сама футболка ззаду. Показуємо ту сторону, де є нанесення (заради
      нього все й затівалось), а решта — мініатюрами в кутку: видно і скільки
      їх, і що саме там, тож зрозуміло, навіщо тиснути. */
+  /* Підпис ракурсу — той, що менеджер поставив у конструкторі, а не
+     «Вигляд 2». Клієнту він каже, що саме він зараз побачить. Спільний для
+     мініатюри в картці й для галереї на весь екран: доти галерея читала
+     підписи з окремого атрибута, зібраного за іншим набором ракурсів, і при
+     найменшому розходженні лишалась без підписів узагалі. */
+  function viewCap(v, n){
+    return String((v && v.label) || SIDE_UA[(v && v.side) || ''] ||
+      ['Перед','Спина','Лівий бік','Правий бік'][n] || '').trim();
+  }
+  /* Ракурси, які реально показані в картці: саме їх гортає і галерея.
+     Прихований менеджером ракурс не має спливати на весь екран. */
+  function shownViews(it){
+    var all = viewsOf(it);
+    return all.filter(function(v){ return v && v.img && (EDIT || v.show !== false); });
+  }
   function galleryHtml(it, idx, kind, tag){
     var all = viewsOf(it);
     /* Клієнт бачить тільки ті ракурси, які менеджер лишив показаними, і тільки
@@ -3827,12 +3847,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     var main = list[lead];
     var rest = list.filter(function(v, n){ return n !== lead; });
-    var lab = function(v, n){
-      /* Підпис ракурсу — той, що менеджер поставив у конструкторі, а не
-         «Вигляд 2». Клієнту він каже, що саме він зараз побачить. */
-      return String((v && v.label) || SIDE_UA[(v && v.side) || ''] ||
-        ['Перед','Спина','Лівий бік','Правий бік'][n] || '').trim();
-    };
+    var lab = viewCap;
     var cell = function(v, big){
       var pos = all.indexOf(v);
       var off = EDIT && v.show === false;
@@ -3857,12 +3872,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
        конструктором і лежать тут-таки — просто приховані. Додавати нема
        чого: треба лише показати потрібну клієнту. */
-    /* Підписи всіх ракурсів їдуть у розмітці — їх читає і збільшення, щоб
-       у галереї під кожним фото стояло «Перед» чи «Спина», а не порядковий
-       номер. */
-    var caps = list.map(function(v){ return lab(v, all.indexOf(v)); });
-    return '<div class="pgal" data-shot="' + esc(idx) + '"' +
-      ' data-caps="' + esc(caps.join('|')) + '">' +
+    return '<div class="pgal" data-shot="' + esc(idx) + '">' +
       (main ? cell(main, true) : '') +
       (rest.length
         ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
@@ -5575,8 +5585,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(ZM.list.length < 2){ box.innerHTML = ''; box.dataset.key = ''; return; }
     if(box.dataset.key !== ZM.list.join('|')){
       box.dataset.key = ZM.list.join('|');
+      /* Під мініатюрою — той самий підпис, що й угорі: інакше внизу стоять
+         два майже однакові білі квадрати, і який із них спина, видно тільки
+         натиснувши. */
       box.innerHTML = ZM.list.map(function(src, k){
-        return '<button data-zt="' + k + '"><img src="' + esc(src) + '" alt=""></button>';
+        var cp = (ZM.caps || [])[k] || '';
+        return '<button data-zt="' + k + '"><img src="' + esc(src) + '" alt="' +
+          esc(cp) + '">' + (cp ? '<i>' + esc(cp) + '</i>' : '') + '</button>';
       }).join('');
       box.querySelectorAll('[data-zt]').forEach(function(b){
         b.addEventListener('click', function(ev){ ev.stopPropagation(); zoomShow(+b.dataset.zt); });
@@ -5741,10 +5756,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var it = kf === 'v' ? ((OFFER.variants || [])[+String(idxAttr).slice(1)] || {})
                : kf === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
                : (OFFER.items[+idxAttr] || {});
-        // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
-        var vv = viewsOf(it).filter(function(v){ return v && v.img; });
+        /* Гортаємо саме те, що показано в картці, — ракурси, а не сирі
+           знімки. Підписи рахуємо з того самого набору, що й знімки: доти
+           список брався з одного джерела, а підписи — з іншого (там ще діяв
+           фільтр «показувати клієнту»), і на першому ж прихованому ракурсі
+           підписи з'їжджали або зникали. */
+        var all0 = viewsOf(it);
+        var vv = shownViews(it);
         var list = vv.map(function(v){ return v.img; });
-        var caps = String((shot && shot.getAttribute('data-caps')) || '').split('|');
+        var caps = vv.map(function(v){ return viewCap(v, all0.indexOf(v)); });
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
         openZoom(list.length ? list : [img.src], cur, caps);
       } else {
