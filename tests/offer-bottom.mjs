@@ -240,6 +240,12 @@ const g = await p.frames()[1].evaluate(()=>{
     пропорція: (function(){ const m2 = gal && gal.querySelector('.pgal-i.is-main');
       if(!m2) return 0; const r = m2.getBoundingClientRect();
       return r.width ? r.height / r.width : 0; })(),
+    пропорціяФото: (function(){ const im = gal && gal.querySelector('.pgal-i.is-main img');
+      return im && im.naturalWidth ? im.naturalHeight / im.naturalWidth : 0; })(),
+    шириноюВКартку: (function(){ const m2 = gal && gal.querySelector('.pgal-i.is-main');
+      const pc = gal && gal.closest('.pcard');
+      if(!m2 || !pc) return -1;
+      return Math.round(pc.getBoundingClientRect().width - m2.getBoundingClientRect().width); })(),
     висотаГалереї: box ? Math.round(box.height) : -1 };
 });
 console.log('  ' + JSON.stringify(g));
@@ -254,9 +260,17 @@ ok(g.мініатюр === 2 && g.мініатюриПоверх,
 ok(g.стрілок === 2 && !g.плашкаКількості,
   'на фото дві стрілки, плашки з кількістю немає',
   'стрілок: ' + g.стрілок + ', плашка: ' + g.плашкаКількості);
-ok(g.пропорція > 1.2,
-  'кадр вищий за квадрат — виріб видно більшим (' + g.пропорція.toFixed(2) + ')',
-  'кадр лишився квадратним: ' + g.пропорція);
+/* Кадр повторює пропорцію знімка: object-fit:cover у кадрі іншої форми
+   дорізав макап із боків — вузькій футболці це минало, а худі відрізало
+   рукави. І жодного max-height у vh: на айфоні при прокрутці ховається
+   адресний рядок, vh змінюється — кадр стрибав від самого скролу. */
+ok(Math.abs(g.пропорція - g.пропорціяФото) < 0.03,
+  'кадр тієї ж форми, що знімок — виріб не дорізається (' +
+    g.пропорція.toFixed(2) + ' проти ' + g.пропорціяФото.toFixed(2) + ')',
+  'кадр ' + g.пропорція.toFixed(2) + ', а знімок ' + g.пропорціяФото.toFixed(2));
+ok(g.шириноюВКартку === 0,
+  'кадр на всю ширину картки — праворуч не лишається смуги',
+  'кадр вужчий за картку на ' + g.шириноюВКартку + 'px');
 ok(g.сітка === 'Розмірна сітка',
   'розмірна сітка — окремим рядком у деталях позиції',
   'сітки в деталях немає: ' + g.сітка);
