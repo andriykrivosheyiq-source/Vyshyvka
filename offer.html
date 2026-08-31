@@ -200,16 +200,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
-  /* Лічильник — головний інтерактив рядка, тож він і росте. Доти обидва
-     елементи були однаково великими й змагались між собою: «У замовленні»
-     кричало на всю ширину, хоча це стан, а не дія, а справжня дія —
-     поставити свою кількість — тулилась поруч. */
-  .pbuy-row .pstep{margin-top:0; flex:1 1 auto; justify-content:center;}
-  .pbuy-row .pstep-v{flex:1;}
-  .pbuy-row .pbuy{margin-top:0; flex:0 0 auto; width:auto; padding:12px 18px;
-    font-size:14px;}
-  /* Доданої позиції видно, що вона додана, — і не більше */
-  .pbuy-row .pbuy.on{padding:12px 16px; border-width:1px;}
+  .pbuy-row .pstep{margin-top:0; flex:none;}
+  .pbuy-row .pbuy{margin-top:0; flex:1;}
   .pbuy{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
     margin-top:14px; padding:15px; border-radius:14px; border:1.5px solid var(--ink);
     background:#fff; color:var(--ink); font:inherit; font-size:15px; font-weight:700;
@@ -519,11 +511,26 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      забирають висоти, а те, що на них видно, і є відповіддю на «а ззаду
      що?» — тож зрозуміло, навіщо тиснути. */
   .pgal-more{position:absolute; right:10px; bottom:10px; z-index:2;
-    display:flex; gap:6px;}
-  .pgal-i.is-thumb{width:52px; height:52px; border-radius:10px; cursor:zoom-in;
-    box-shadow:0 2px 10px rgba(15,32,52,.18), inset 0 0 0 1.5px rgba(255,255,255,.9);}
+    display:flex; gap:8px;}
+  /* Мініатюра з підписом: «Спина» під фото. Без підпису вона була просто
+     сірим квадратиком, і що там — доводилось вгадувати. */
+  .pgal-i.is-thumb{width:72px; height:72px; border-radius:12px; cursor:pointer;
+    box-shadow:0 3px 14px rgba(15,32,52,.22), inset 0 0 0 2px rgba(255,255,255,.95);
+    transition:transform .15s;}
+  .pgal-i.is-thumb:hover{transform:translateY(-2px);}
   .pgal-i.is-thumb img{width:100%; height:100%; object-fit:cover;}
-  @media (min-width:640px){ .pgal-i.is-thumb{width:60px; height:60px;} }
+  .pgal-cap{position:absolute; left:0; right:0; bottom:0; z-index:2;
+    font-size:9.5px; font-weight:700; letter-spacing:.02em; text-align:center;
+    color:#fff; background:linear-gradient(transparent, rgba(15,32,52,.72));
+    padding:8px 2px 3px; pointer-events:none;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Скільки всього ракурсів — у протилежному кутку від мініатюр, щоб не
+     перекривати їх і не загубитись на світлому фото. */
+  .pgal-n{position:absolute; left:10px; bottom:10px; z-index:2;
+    font-size:11.5px; font-weight:700; color:#fff; background:rgba(15,32,52,.62);
+    border-radius:20px; padding:4px 10px; pointer-events:none;
+    backdrop-filter:blur(4px);}
+  @media (min-width:640px){ .pgal-i.is-thumb{width:84px; height:84px;} }
   /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
      заготовкою під фото. Клієнт бачить лише заповнені й без підписів. */
   .pgal-i.is-edit{cursor:pointer;}
@@ -887,194 +894,88 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      скільки коштувало б, скільки зняв тираж, скільки платити. Рамок немає
      зовсім — тільки волосяні лінії й повітря; кольору теж майже немає:
      помаранчевий на дії, один тихий зелений на самій знижці. */
-  .est{background:#fff; color:var(--ink); border-radius:0;
-    padding:32px var(--pad) 30px;
-    border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
-  .est-h{font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
-    color:var(--muted); margin:0 0 4px;}
-  .est-meta{font-size:15px; color:var(--ink-2);}
-  .est-top{margin-bottom:22px;}
+  /* Темна смуга: кошторис — це момент, коли сторінка змінює тон і людина
+     розуміє, що почалась головна частина. На білому він губився серед решти
+     блоків і читався як ще один розділ.
+     Структура лишається як у quote: позиція — один рядок, знижка названа
+     один раз, унизу одна головна цифра. */
+  .est{background:#14171B; color:#fff; border-radius:0;
+    padding:34px var(--pad) 32px;}
+  /* Заголовок видно: це вхід у головну частину, а не службовий підпис.
+     Дрібними літерами вгорі його просто не помічали. */
+  .est-h{font-size:26px; font-weight:700; letter-spacing:-0.6px; margin:0 0 4px;
+    color:#fff;}
+  .est-meta{font-size:14px; color:rgba(255,255,255,.55);}
+  .est-top{margin-bottom:24px;}
 
   /* ── Позиції ──
      Рядок, а не картка. Картка робить із позиції окремий предмет, який треба
      розглядати; тут їх треба прочитати підряд і скласти. */
   .est-list{display:flex; flex-direction:column;}
-  /* Кількість × ціна — власна клітинка, а не хвіст назви: інакше на
-     широкому екрані вона висіла посеред рядка, і цифри в стовпчик не
-     сходились. На телефоні та сама клітинка просто падає під назву. */
-  .est-i{display:grid; grid-template-columns:44px minmax(0,1fr) auto;
+  /* Фото вдвічі більше: на 44 px виріб не роздивишся, а саме він і має
+     нагадати, за що платять. */
+  .est-i{display:grid; grid-template-columns:88px minmax(0,1fr) auto;
     grid-template-areas:'ph name sum' '. mul mul';
-    /* Вирівнюємо по верху: сума й «кількість × ціна» мають стояти на рядку
-       назви, а не сповзати до підпису під нею. */
-    gap:4px 14px; align-items:start; padding:16px 0;
-    border-top:1px solid var(--line);}
+    gap:6px 14px; align-items:start; padding:18px 0;
+    border-top:1px solid rgba(255,255,255,.12);}
   .est-i-ph{grid-area:ph;} .est-i-t{grid-area:name;}
   .est-i-mul{grid-area:mul;} .est-i-sum{grid-area:sum;}
-  .est-i-ph{width:44px; height:44px; flex:none; border-radius:8px; overflow:hidden;
-    background:var(--soft); display:block; cursor:zoom-in; margin-top:1px;}
+  .est-i-ph{width:88px; height:88px; flex:none; border-radius:12px; overflow:hidden;
+    background:#fff; display:block; cursor:zoom-in;}
   .est-i-ph img{width:100%; height:100%; object-fit:contain; display:block;}
-  .est-i-t{min-width:0;}
-  .est-i-nm{font-size:15px; font-weight:600; line-height:1.35;}
+  .est-i-t{min-width:0; padding-top:2px;}
+  .est-i-nm{font-size:16px; font-weight:600; line-height:1.35;}
   .est-i-nm em{font-style:normal; font-size:9.5px; font-weight:700; text-transform:uppercase;
-    letter-spacing:.4px; color:var(--muted); margin-left:7px;}
+    letter-spacing:.4px; color:rgba(255,255,255,.5); margin-left:7px;}
   /* Спосіб нанесення — підпис до назви, а не окремий рядок рахунку: у
      вартість він уже входить, і фінансовим рядком лише плодив би відчуття
      складного рахунку. */
-  .est-i-sub{font-size:13px; color:var(--muted); line-height:1.4; margin-top:2px;}
-  .est-i-mul{font-size:13.5px; color:var(--ink-2); margin-top:6px;
+  .est-i-sub{font-size:13px; color:rgba(255,255,255,.5); line-height:1.4; margin-top:3px;}
+  .est-i-mul{font-size:14px; color:rgba(255,255,255,.72);
     font-variant-numeric:tabular-nums;}
-  .est-i-sum{font-size:16px; font-weight:600; font-variant-numeric:tabular-nums;
-    white-space:nowrap; text-align:right; line-height:1.35;}
+  .est-i-sum{font-size:17px; font-weight:600; font-variant-numeric:tabular-nums;
+    white-space:nowrap; text-align:right; line-height:1.35; padding-top:2px;}
   @media (min-width:640px){
     /* Обидві числові колонки фіксованої ширини — так суми стоять одна під
        одною рівним стовпчиком, як у рахунку, а не «десь праворуч». */
-    .est-i{grid-template-columns:44px minmax(0,1fr) 150px 130px;
-      grid-template-areas:'ph name mul sum'; gap:16px; padding:18px 0;}
-    .est-i-mul{margin-top:1px; text-align:right;}
-    .est-i-sum{font-size:17px;}
+    .est-i{grid-template-columns:88px minmax(0,1fr) 150px 130px;
+      grid-template-areas:'ph name mul sum'; gap:18px; padding:20px 0;}
+    .est-i-mul{text-align:right; padding-top:2px;}
+    .est-i-sum{font-size:18px;}
   }
 
   /* ── Підсумок ──
      Знижка названа один раз і тільки тут. Ні плашок, ні перекреслень, ні
      повторення відсотка деінде на сторінці. */
-  .est-sum{margin-top:4px; padding-top:18px; border-top:1px solid var(--line);}
+  .est-sum{margin-top:4px; padding-top:20px; border-top:1px solid rgba(255,255,255,.12);}
   .est-line{display:flex; justify-content:space-between; align-items:baseline; gap:16px;
-    font-size:14.5px; color:var(--ink-2); margin-bottom:10px;
+    font-size:14.5px; color:rgba(255,255,255,.65); margin-bottom:10px;
     font-variant-numeric:tabular-nums;}
-  .est-line b{font-weight:500; color:var(--ink);}
+  .est-line b{font-weight:500; color:rgba(255,255,255,.9);}
   /* Єдиний зелений на всьому блоці — сама цифра вигоди. Без плашки й рамки:
      вигоду не ховаємо, але й не кричимо про неї. */
-  .est-line.is-off b{color:var(--good); font-weight:600;}
+  .est-line.is-off b{color:#4ADE80; font-weight:600;}
   .est-pay{display:flex; justify-content:space-between; align-items:baseline; gap:16px;
-    margin-top:16px; padding-top:16px; border-top:1px solid var(--ink);}
+    margin-top:16px; padding-top:18px; border-top:1px solid rgba(255,255,255,.28);}
   .est-pay span{font-size:16px; font-weight:600;}
   /* Одна головна цифра на весь блок */
-  .est-pay b{font-size:30px; font-weight:700; letter-spacing:-0.8px;
+  .est-pay b{font-size:32px; font-weight:700; letter-spacing:-0.9px;
     font-variant-numeric:tabular-nums; line-height:1.05;}
-  @media (min-width:640px){ .est-pay b{font-size:34px;} }
+  @media (min-width:640px){ .est-pay b{font-size:36px;} }
 
   /* ── Що входить ── */
-  .est-inc{margin-top:16px; font-size:13px; line-height:1.55; color:var(--muted);}
-  .est-left{margin-top:10px; font-size:13px; line-height:1.55; color:var(--muted);}
+  .est-inc{margin-top:18px; font-size:13px; line-height:1.55; color:rgba(255,255,255,.55);}
+  .est-left{margin-top:10px; font-size:13px; line-height:1.55; color:rgba(255,255,255,.55);}
 
-  /* ── Дії ──
-     Обидві видимі завжди. Липка панель унизу тепер зʼявляється лише тоді,
-     коли ця кнопка вийшла за екран, — тож дублювання більше немає, і ховати
-     головну дію на телефоні не треба. */
-  .est-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:24px;}
+  /* ── Дії ── */
+  .est-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px;}
   .est-cta .btn{flex:1 1 200px;}
-
-  /* ══ Що входить у вартість: іконки в ряд ══ */
-  /* П'ять пунктів лишаються в один ряд навіть на 360px: розрив на 3+2 виглядає
-     як обірваний список, а не як набір того, що входить у ціну. */
-  /* Стара сітка з пʼяти колонок прибрана: вона перебивала новий вигляд
-     і стискала текст у стовпчики по одній літері. */
-  @media (min-width:480px){ .incl{gap:10px;} .incl-l{font-size:11.5px;} }
-
-  /* ── товар ── */
-  .item{padding-top:6px;}
-  .item + .item{margin-top:36px; padding-top:32px; border-top:1px solid var(--line);}
-  .item-name{font-size:21px; font-weight:800; letter-spacing:-0.5px; margin:0 0 14px;}
-  .mocks{display:grid; gap:10px; margin-bottom:18px;}
-  .mocks.n1{grid-template-columns:1fr;}
-  .mocks.n2,.mocks.n4{grid-template-columns:1fr 1fr;}
-  .mocks.n3{grid-template-columns:1fr 1fr;}
-  .mocks.n3 > :first-child{grid-column:1/-1;}
-  .mock{background:var(--soft); border-radius:14px; padding:10px; position:relative;}
-  .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}
-  .mock-side{position:absolute; left:14px; top:14px; background:rgba(255,255,255,.9);
-    border-radius:999px; padding:3px 9px; font-size:11px; font-weight:700; color:var(--ink-2);}
-  .specs{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-    gap:8px; margin-bottom:18px;}
-  .spec{display:grid; grid-template-columns:auto 1fr; gap:2px 7px; padding:10px 12px;
-    border-radius:12px; background:var(--soft); align-items:center;}
-  .spec-ic{color:var(--muted); line-height:0;}
-  .spec-k{font-size:10.5px; font-weight:700; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted); align-self:center;}
-  .spec-v{grid-column:2; font-size:14.5px; font-weight:600;}
-  .price-box{background:var(--soft); border-radius:14px; padding:16px 18px;}
-  .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
-  .pb-row + .pb-row{margin-top:8px;}
-  .pb-k{font-size:14px; color:var(--ink-2);}
-  .pb-v{font-size:15px; font-weight:600; font-variant-numeric:tabular-nums;}
-  .pb-strike{color:var(--muted); text-decoration:line-through;}
-  .pb-save{color:var(--good); font-weight:700;}
-  .pb-total{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
-  .pb-total .pb-k{font-weight:700; color:var(--ink); font-size:15px;}
-  .pb-total .pb-v{font-size:21px; font-weight:800; letter-spacing:-0.4px;}
-
-  /* ── тиражі ── */
-  .tiers{margin-top:20px;}
-  .tiers-h{font-size:15px; font-weight:700; margin:0 0 4px;}
-  .tiers-note{font-size:13px; color:var(--muted); margin:0 0 12px;}
-  .tier{display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center;
-    width:100%; text-align:left; padding:12px 14px; border-radius:12px;
-    border:1.5px solid var(--line); background:#fff; margin-bottom:8px; transition:.15s;}
-  .tier:active{transform:scale(.995);}
-  .tier.on{border-color:var(--ink); background:#F7F9FC;}
-  .tier-q{font-size:15px; font-weight:700;}
-  .tier-tag{display:inline-block; margin-left:7px; padding:1px 7px; border-radius:999px;
-    background:#E7F6EF; color:var(--good); font-size:10px; font-weight:800;
-    letter-spacing:.4px; text-transform:uppercase; vertical-align:middle;}
-  .tier-tag.cur{background:#EEF3FB; color:#31517F;}
-  .tier-u{font-size:13.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
-  .tier-s{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; min-width:96px; text-align:right;}
-  .tier-hint{font-size:12.5px; color:var(--muted); margin:2px 0 0;}
-
-  /* ── списки ── */
-  .ticks{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
-  .ticks li{display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--ink-2);}
-  .ticks svg{flex:none; margin-top:3px;}
-
-  /* Стара таблиця кошторису (.est-row/.est-th/.est-tot/.et-*) прибрана разом
-     із розміткою. Її .est-meta стояв нижче за новий і перефарбовував рядок
-     «N позицій · M одиниць» у сірий по темному тлу. */
-
-  /* ── рекомендації ── */
-  /* ── Варіанти на вибір ─────────────────────────────────────────────────
-     Картки стоять поруч і однакового розміру: їх порівнюють, а не читають
-     підряд. Обраний виділяється рамкою й галочкою — тим самим, чим
-     позначені додані позиції, щоб «обрано» скрізь виглядало однаково. */
-  .vgroup{margin-bottom:12px;}
-  .vgroup-h{font-size:15px; font-weight:600; margin-bottom:10px; display:flex;
-    align-items:baseline; gap:8px;}
-  .vgroup-h em{font-style:normal; font-size:11px; font-weight:700; letter-spacing:.05em;
-    text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:6px;
-    padding:2px 7px;}
-  /* Картка варіанта — звичайна картка товару (.pcard), тож власних стилів
-     їй майже не треба: лише позначка обраного. */
-  .pcard.is-var{border-style:dashed;}
-  .pcard.is-var.is-taken{border-style:solid; border-color:#9FD3B6;}
-  /* Кнопку вибору треба бачити здалеку: це єдина дія, якої від клієнта тут
-     чекають, і поки вона схожа на решту рамок, її просто не помічають.
-     Тому невибраний варіант — суцільна темна кнопка, а вибраний міняє не
-     насиченість, а КОЛІР: зелена обводка й зелені літери, як «готово». */
-  .vbtn{margin-top:auto; display:flex; align-items:center; justify-content:center; gap:7px;
-    width:100%; margin-top:12px; padding:12px 12px; border-radius:11px; cursor:pointer;
-    font:inherit; font-size:14px; font-weight:700; letter-spacing:-.01em;
-    border:1.5px solid var(--ink); background:var(--ink); color:#fff;
-    box-shadow:0 2px 10px rgba(15,32,52,.16); transition:.14s;}
-  .vbtn:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(15,32,52,.22);}
-  .vbtn.on{background:#EAF7F0; border-color:#0F5C34; color:#0F5C34; box-shadow:none;
-    transform:none;}
-  .vbtn.on:hover{background:#DFF2E8; transform:none; box-shadow:none;}
-  .vbtn.on svg{stroke:#0F5C34;}
-  .reco{border:1.5px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; transition:.15s;}
-  .reco.on{border-color:var(--ink); background:#F7F9FC;}
-  .reco-top{display:flex; gap:13px;}
-  .reco-th{width:88px; height:88px; flex:none; background:var(--soft); border-radius:12px; padding:6px;}
-  .reco-th img{width:100%; height:100%; object-fit:contain;}
-  .reco-name{font-size:16px; font-weight:700; margin-bottom:3px;}
-  .reco-why{font-size:13.5px; color:var(--muted); line-height:1.45; margin-bottom:6px;}
-  .reco-price{font-size:14px; font-weight:600;}
-  .reco-btn{display:flex; align-items:center; gap:10px; width:100%; margin-top:12px;
-    padding:11px 13px; border-radius:11px; background:var(--soft); font-size:14.5px; font-weight:600;}
-  .reco.on .reco-btn{background:var(--ink); color:#fff;}
-  .reco-box{width:20px;height:20px;flex:none;border:2px solid #C3CBD6;border-radius:6px;
-    display:flex;align-items:center;justify-content:center;background:#fff;}
-  .reco.on .reco-box{background:#fff;border-color:#fff;}
-  .reco-box svg{opacity:0;}
-  .reco.on .reco-box svg{opacity:1;}
+  /* Другорядна кнопка на темному тлі мусить бути темною: біла заливка тут
+     важча за помаранчеву й перетягує на себе головну дію. */
+  .est-cta .btn-ghost{background:transparent; color:#fff;
+    border:1px solid rgba(255,255,255,.28);}
+  .est-cta .btn-ghost:hover{background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.42);}
 
   /* ── Рядки з переходом ───────────────────────────────────────────────
      Той самий вигляд, що в картці товару на сайті: назва, шеврон, волосяна
@@ -1086,7 +987,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     gap:12px; padding:17px 2px; font-size:16px; font-weight:600; color:var(--ink);}
   .fr>summary::-webkit-details-marker{display:none;}
   .fr-t{flex:1; min-width:0;}
-  .fr-a{font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap;}
+  .fr-a{display:flex; align-items:center; gap:7px; font-size:14px; font-weight:600;
+    color:var(--muted); white-space:nowrap;}
   /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
      і «тут ще є», і «зараз відкрито». */
   .fr>summary::after{content:''; flex:none; width:8px; height:8px;
@@ -1104,20 +1006,36 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .fr-inline{margin-top:14px;}
   .fr-inline .fr>summary{padding:13px 2px; font-size:14.5px;}
 
-  /* ── Гарантії та один відгук ─────────────────────────────────────────
-     Усе, що знімає останній сумнів, — на одному екрані: чотири конкретні
-     обіцянки й один свіжий відгук із оцінкою. Стрічка з десяти карток
-     перетворювала пропозицію на лендинг рівно там, де людина вже тримала
-     палець над кнопкою. */
-  .risk{padding-top:30px;}
-  .rev-mini{margin-top:22px; padding-top:18px; border-top:1px solid var(--line);}
-  .rev-mini-h{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
-  .rev-mini-st{color:#FFC53D; font-size:15px; letter-spacing:1px;}
-  .rev-mini-h b{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums;}
-  .rev-mini-n{font-size:13px; color:var(--muted);}
-  .rev-mini-q{margin:10px 0 0; font-size:14.5px; line-height:1.55; color:var(--ink-2);}
-  .rev-mini-q cite{display:block; font-style:normal; font-size:12.5px;
-    color:var(--muted); margin-top:6px;}
+  /* Порожні розділи в режимі менеджера: між останнім товаром і кошторисом
+     стояло майже пів екрана порожнечі — заголовок «Часто беруть разом» без
+     жодної рекомендації й порожнє поле «чому ми рекомендуємо». Клієнт цього
+     не бачить (без даних розділів для нього немає), але менеджер щоразу
+     прокручує повз. Тепер порожній розділ стискається до одного рядка з
+     кнопкою, а щойно в ньому щось зʼявиться — розгортається сам. */
+  section.is-blank{padding:12px 0; border-top:1px dashed var(--line);}
+  section.is-blank .sec-title{font-size:14px; font-weight:600; color:var(--muted);
+    margin:0 0 8px;}
+  section.is-blank .sec-sub{display:none;}
+  section.is-blank .edwhy{min-height:44px;}
+
+  /* Заголовок, що відкриває розділ: більший за звичайний і з однаковим
+     повітрям згори й знизу. */
+  .sec-lead{font-size:26px; font-weight:700; letter-spacing:-0.6px;
+    margin:6px 0 22px; text-align:center;}
+  @media (min-width:640px){ .sec-lead{font-size:30px; margin:10px 0 26px;} }
+
+  /* ── Відгуки в рядку ─────────────────────────────────────────────────
+     Оцінка праворуч від назви, під рядком — смужка фото робіт. Саме фото й
+     переконує: текст під ним читає той, кому цього замало. */
+  .rev-sc{font-size:16px; font-weight:700; color:var(--ink);}
+  .rev-st{color:#FFC53D; font-size:14px; letter-spacing:1px;}
+  .rev-strip{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch; padding:2px 0 18px;}
+  .rev-strip::-webkit-scrollbar{display:none;}
+  .rev-strip i{flex:0 0 auto; width:120px; height:120px; border-radius:12px;
+    overflow:hidden; background:var(--soft); cursor:zoom-in;}
+  .rev-strip img{width:100%; height:100%; object-fit:cover; display:block;}
+  @media (min-width:640px){ .rev-strip i{width:150px; height:150px;} }
 
   /* ── Згорнутий хвіст сторінки ────────────────────────────────────────
      Етапи, гарантії, проєкти, відгуки й питання — одним списком у стилі
@@ -1222,22 +1140,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ── фіксована панель ── */
   .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
     backdrop-filter:blur(10px); border-top:1px solid var(--line);
-    display:flex; align-items:center; gap:10px;
-    padding:6px var(--pad) calc(6px + env(safe-area-inset-bottom));
+    padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
     transform:translateY(110%); transition:transform .25s ease;}
   .bar.show{transform:none;}
-  /* Сума ліворуч — не просто напис, а вхід у кошторис: людина все одно
-     тицяє в число, коли хоче побачити, з чого воно склалось. */
-  .bar-sum{flex:1 1 auto; min-width:0; text-align:left; padding:0; background:none;
-    border:none; font:inherit; cursor:pointer; line-height:1.15;}
-  .bar-sum b{display:block; font-size:17px; font-weight:800; letter-spacing:-0.4px;
-    line-height:1.15; font-variant-numeric:tabular-nums;}
-  .bar-sum span{display:block; font-size:11.5px; line-height:1.2; color:var(--muted);}
-  .bar .btn{flex:0 0 auto; width:auto; padding:10px 18px; font-size:14px;
-    line-height:1.2; border-radius:11px;}
-  /* Відступ під панель — рівно її висота плюс повітря. Доти під нею було
-     132 px порожнечі: сторінка закінчувалась задовго до кінця екрана. */
-  body.has-bar{padding-bottom:70px;}
+  .bar-btns{display:flex; gap:8px;}
+  .bar-btns .btn{padding:14px 12px; font-size:14.5px;}
+  .bar-btns #barEstimate{flex:0 0 34%;}
+  .bar-btns #barConfirm{flex:1;}
+  body.has-bar{padding-bottom:96px;}
 
   /* ── підтверджено ── */
   .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:14px;
@@ -3744,6 +3654,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     var main = list[lead];
     var rest = list.filter(function(v, n){ return n !== lead; });
+    var lab = function(v, n){
+      /* Підпис ракурсу — той, що менеджер поставив у конструкторі, а не
+         «Вигляд 2». Клієнту він каже, що саме він зараз побачить. */
+      return String((v && v.label) || SIDE_UA[(v && v.side) || ''] ||
+        ['Перед','Спина','Лівий бік','Правий бік'][n] || '').trim();
+    };
     var cell = function(v, big){
       var pos = all.indexOf(v);
       var off = EDIT && v.show === false;
@@ -3759,17 +3675,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           : '<span class="pgal-plus">＋<i>фото</i></span>') +
         (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
               (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
+        /* Підпис на мініатюрі — щоб не треба було вгадувати, що там: людина
+           бачить «Спина» й одразу розуміє, навіщо тиснути. */
+        (!big ? '<span class="pgal-cap">' + esc(lab(v, all.indexOf(v))) + '</span>' : '') +
         (big && tag ? '<span class="pgal-tag">' + esc(tag) + '</span>' : '') +
       '</div>';
     };
     /* Кнопки «додати ракурс» немає навмисно. Усі сторони виробу вже зняті
        конструктором і лежать тут-таки — просто приховані. Додавати нема
        чого: треба лише показати потрібну клієнту. */
-    return '<div class="pgal" data-shot="' + esc(idx) + '">' +
+    /* Підписи всіх ракурсів їдуть у розмітці — їх читає і збільшення, щоб
+       у галереї під кожним фото стояло «Перед» чи «Спина», а не порядковий
+       номер. */
+    var caps = list.map(function(v){ return lab(v, all.indexOf(v)); });
+    return '<div class="pgal" data-shot="' + esc(idx) + '"' +
+      ' data-caps="' + esc(caps.join('|')) + '">' +
       (main ? cell(main, true) : '') +
       (rest.length
         ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
-          '</div>'
+          '</div>' +
+          /* Скільки всього ракурсів. Без цього не видно, що фото більше
+             одного, доки не приглядишся до кутка. */
+          '<span class="pgal-n">' + list.length + ' фото</span>'
         : '') +
     '</div>';
   }
@@ -4246,7 +4173,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function itemsHtml(){
     return '' +
       '<section id="offerStart">' +
-        '<h2 class="sec-title">Підготували для вас</h2>' +
+        /* Заголовок розділу, а не підпис до фото: він відкриває головну
+           частину сторінки, і повітря над ним і під ним однакове — інакше
+           здається, що він приклеєний до товару, який іде нижче. */
+        '<h2 class="sec-title sec-lead">Підготували для вас</h2>' +
         (EDIT && !OFFER.items.length
           ? '<div class="edempty">Позицій ще немає. Додайте перший товар — ' +
             'решта сторінки збереться навколо нього сама.</div>' : '') +
@@ -4503,7 +4433,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // натиснути, щоб додати першу рекомендацію.
     if(!OFFER.reco.length && !EDIT) return '';
     return '' +
-      '<section id="recoSec">' +
+      '<section id="recoSec"' + (OFFER.reco.length ? '' : ' class="is-blank"') + '>' +
         '<h2 class="sec-title">Часто беруть разом</h2>' +
         /* Три картки замість чотирьох і назва замість «часто беруть разом».
            Ряд однакових плиток із кнопками робив з пропозиції на десятки
@@ -4606,7 +4536,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!list.length && !EDIT) return '';
     if(EDIT){
       return '' +
-        '<section>' +
+        '<section' + (list.length ? '' : ' class="is-blank"') + '>' +
           '<h2 class="sec-title">Чому ми рекомендуємо саме цей варіант</h2>' +
           '<div class="edwhy" contenteditable="plaintext-only" data-ed-why="1" ' +
             'data-ph="Кожен рядок — окремий пункт. Чому ця тканина, чому вишивка, чому такий тираж.">' +
@@ -4726,9 +4656,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       SITE_REVIEWS = arr.concat(SITE_BUILTIN).slice(0, 8);
       var box = document.getElementById('revsBox');
       if(box && SITE_REVIEWS.length) box.outerHTML = revsInner();
-      // Оцінка й кількість у блоці довіри — з тих самих даних, тож оновлюємо
-      var mini = document.getElementById('revMini');
-      if(mini) mini.outerHTML = revsTeaser();
+      /* Оцінка в рядку й смужка фото — із тих самих даних. Перемальовуємо
+         весь список: рядок відгуків стоїть усередині нього. */
+      var fold = document.querySelector('.fold');
+      if(fold) fold.outerHTML = detailsHtml();
     }).catch(function(e){ console.warn('відгуки не прочитались', e && e.code); });
   }
   var STARS = function(n){
@@ -4783,37 +4714,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Оцінка й кількість — справжні, з тих самих відгуків, що показує сайт.
      Написати «4.9 · 300+» руками було б швидше, але це саме та цифра, яку
      клієнт може перевірити за одне посилання. */
-  function revsTeaser(){
+  /* Рядок «Відгуки · 4.9 ★★★★★ ›», а під ним смужка фото робіт — точно як у
+     картці товару на сайті. Фото видно одразу: це і є доказ, і саме воно
+     змушує розкрити рядок, а не навпаки. */
+  function revsRow(){
     var list = (SITE_REVIEWS || SITE_BUILTIN || []).filter(Boolean);
     if(!list.length) return '';
     var rated = list.filter(function(r){ return +r.rating > 0; });
     var avg = rated.length
       ? (rated.reduce(function(a, r){ return a + (+r.rating || 0); }, 0) / rated.length)
       : 0;
-    var top = list.filter(function(r){ return r.text; })[0];
-    if(!top) return '';
     var stars = new Array(Math.max(1, Math.min(5, Math.round(avg || 5))) + 1).join('★');
-    /* Кількість кажемо ЛИШЕ якщо порахували її в базі. Число з показаного
-       списку було б «за 8 відгуками» — а вісім там тому, що більше ми й не
-       вивантажуємо. Уперлись у стелю читання — кажемо «100+», це чесно. */
-    var cnt = REVIEWS_N >= REVIEWS_CAP ? (REVIEWS_CAP + '+ відгуків')
-            : (REVIEWS_N > 0 ? REVIEWS_N + ' ' +
-               plural(REVIEWS_N, 'відгук', 'відгуки', 'відгуків') : '');
-    return '' +
-      '<div class="rev-mini" id="revMini">' +
-        '<div class="rev-mini-h">' +
-          '<span class="rev-mini-st">' + stars + '</span>' +
-          (avg ? '<b>' + avg.toFixed(1).replace('.', ',') + '</b>' : '') +
-          (cnt ? '<span class="rev-mini-n">· ' + esc(cnt) + '</span>' : '') +
-        '</div>' +
-        '<blockquote class="rev-mini-q">«' + esc(top.text) + '»' +
-          '<cite>' + esc(top.name || 'Клієнт') +
-            (top.date ? ' · ' + esc(top.date) : '') + '</cite></blockquote>' +
-        '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
-          'target="_blank" rel="noopener">Переглянути всі відгуки →</a>' +
-      '</div>';
+    var aside = (avg ? '<b class="rev-sc">' + avg.toFixed(1).replace('.', ',') + '</b>' : '') +
+                '<span class="rev-st">' + stars + '</span>';
+    var body = revsInner() +
+      '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
+        'target="_blank" rel="noopener">Переглянути всі відгуки →</a>';
+    var strip = list.filter(function(r){ return r.photo; }).slice(0, 8);
+    return foldRow('Відгуки', body, false, aside) +
+      (strip.length
+        ? '<div class="rev-strip" id="revStrip">' + strip.map(function(r){
+            return '<i data-estzoom="' + esc(strip.map(function(x){ return x.photo; }).join('|')) +
+              '"><img src="' + esc(r.photo) + '" alt="Робота для клієнта" loading="lazy" ' +
+              'onerror="this.parentNode.style.display=\'none\'"></i>';
+          }).join('') + '</div>'
+        : '');
   }
-
+  /* Окремої «міні-картки» відгуку більше немає: оцінка переїхала в сам
+     рядок списку, а фото — у смужку під ним. Див. revsRow. */
   function faqHtml(){
     var FAQ = faqList();
     if(!FAQ.length) return '';
@@ -4937,21 +4865,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      умови й решта — за згортками. Десять великих карток відгуків прямо в
      КП перетворювали пропозицію на лендинг рівно там, де людина вже
      тримала палець над кнопкою. */
-  function trustBlock(){
-    return '' +
-      '<section class="risk">' +
-        '<h2 class="sec-title">Замовлення без зайвих ризиків</h2>' +
-        '<ul class="tru-l">' + TRUST.map(function(t){
-          return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-        }).join('') + '</ul>' +
-        revsTeaser() +
-      '</section>';
-  }
   function detailsHtml(){
     var rows = '';
     rows += foldRow('Як проходитиме замовлення', flowInner(), false);
+    rows += foldRow('Замовлення без зайвих ризиків',
+      '<ul class="tru-l">' + TRUST.map(function(t){
+        return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
+      }).join('') + '</ul>', false);
     rows += foldRow('Умови замовлення', condInner(), false);
     rows += foldRow('Реалізовані проєкти', casesInner(), false);
+    /* Відгуки — рядок із оцінкою праворуч, а під ним смужка фото робіт, яку
+       видно без розкриття. Оцінка й фото — це і є доказ; текст під ними
+       читає той, кому цього замало. */
+    rows += revsRow();
     /* Питання йдуть окремими рядками того ж списку, а не вкладеною
        гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
     rows += faqList().map(function(q){
@@ -5088,24 +5014,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      кошторисі, і давала «Підтвердити» ще до того, як людина той кошторис
      побачила. Тепер це навігація: сума маленьким рядком, а поруч — куди
      піти. «Кошторис» веде до розкладки, «Підтвердити» — до форми. */
-  /* Панель тепер несе суму, а не другу кнопку. Кнопка «Кошторис» вела туди,
-     куди людина й так прокручує, і забирала третину смуги; жива сума
-     корисніша: клієнт міняє кількості в картках і бачить, як росте
-     замовлення, не гортаючи вниз.
-
-     Смуга навмисно нижча за попередню: вона стоїть поверх сторінки весь
-     час, і кожен зайвий її піксель — це піксель, якого немає в товару. */
+  /* Дві кнопки, як і було: «Кошторис» веде до суми, «Підтвердити» — до дії.
+     Пробували замінити ліву кнопку живою сумою — виглядало гірше: смуга
+     ставала схожою на рядок підсумку, а не на панель дій. */
   function barHtml(){
-    var t = totals();
     return '' +
       '<div class="bar" id="bar">' +
-        '<button class="bar-sum" id="barEstimate" ' +
-          'title="Перейти до кошторису">' +
-          '<b id="barSum">' + money(t.sum) + '</b>' +
-          '<span id="barQty">' + t.qty + ' ' +
-            esc(plural(t.qty, 'одиниця', 'одиниці', 'одиниць')) + '</span>' +
-        '</button>' +
-        '<button class="btn" id="barConfirm">Підтвердити →</button>' +
+        /* Суми тут немає навмисно: вона є в кошторисі й на першому екрані,
+           а поруч із кнопкою читалась як «стільки списати зараз». */
+        '<div class="bar-btns">' +
+          '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
+          '<button class="btn" id="barConfirm">Підтвердити пропозицію</button>' +
+        '</div>' +
       '</div>';
   }
 
@@ -5154,7 +5074,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            кнопка в кінці. Заклик стоїть одразу за сумою, поки вона перед
            очима; усе, що нижче, лише допомагає зважитись і не має стояти на
            дорозі до кнопки. */
-        estimateHtml() + ctaHtml('') + trustBlock() + detailsHtml() +
+        /* Заклику одразу за кошторисом більше немає: у самому кошторисі вже
+           стоїть «Підтвердити пропозицію», і другий такий самий екраном
+           нижче читався як повтор. Дія лишається в кошторисі та в кінці. */
+        estimateHtml() + detailsHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
            потім чужі слова про нас. Після відгуків його майже не гортали. */
         /* Менеджер лишається відкритим: це не читання, а дія — подзвонити
@@ -5186,10 +5109,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     set('heroQty', t.qty + ' ' + plural(t.qty,'виріб','вироби','виробів'));
     /* Склад і дата тепер один рядок — оновлюємо його цілком. Окремих
        heroReady/heroDays більше немає. */
-    /* Сума в липкій панелі — жива: клієнт міняє кількості в картках і має
-       бачити, як росте замовлення, не гортаючи до кошторису. */
-    set('barSum', money(t.sum));
-    set('barQty', t.qty + ' ' + plural(t.qty, 'одиниця', 'одиниці', 'одиниць'));
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = heroLine();
     /* Термін залежить від тиражу: клієнт міняє кількість — картка умов
@@ -5422,7 +5341,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var b = document.getElementById(id); if(b) b.style.display = nav ? '' : 'none';
     });
     var cnt = document.getElementById('zoomCount');
-    if(cnt) cnt.textContent = nav ? ((ZM.i + 1) + ' з ' + ZM.list.length) : '';
+    var cap = (ZM.caps || [])[ZM.i] || '';
+    if(cnt) cnt.textContent = [cap, nav ? ((ZM.i + 1) + ' з ' + ZM.list.length) : '']
+      .filter(Boolean).join(' · ');
     zoomThumbs();
   }
   /* Мініатюри внизу. Малюємо один раз на відкриття, далі лише переставляємо
@@ -5447,8 +5368,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       b.classList.toggle('on', +b.dataset.zt === ZM.i);
     });
   }
-  function openZoom(list, idx){
+  function openZoom(list, idx, caps){
     ZM.list = (list || []).filter(Boolean);
+    /* Підписи ракурсів — ті самі, що менеджер поставив у конструкторі.
+       «1 з 3» каже, скільки лишилось гортати, але не каже, на що дивишся. */
+    ZM.caps = (caps || []).slice(0, ZM.list.length);
     if(!ZM.list.length) return;
     var e = zoomEls();
     e.ov.classList.add('open');
@@ -5546,6 +5470,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     document.addEventListener('click', function(ev){
       var est = ev.target.closest && ev.target.closest('[data-estzoom]');
       if(est){ openZoom(String(est.dataset.estzoom).split('|'), 0); return; }
+      /* Мініатюра просто МІНЯЄ головне фото. Доти вона відкривала галерею —
+         і щоб роздивитись спину, треба було спершу відкрити вікно, а потім
+         його закрити. Тепер: тицьнув у кут — побачив; тицьнув у саме фото —
+         відкрилась галерея. */
+      var th = ev.target.closest && ev.target.closest('.pgal-i.is-thumb');
+      if(th && !EDIT){
+        var gal = th.closest('.pgal');
+        var big = gal && gal.querySelector('.pgal-i.is-main img');
+        var small = th.querySelector('img');
+        var cap = th.querySelector('.pgal-cap');
+        if(big && small){
+          var src = big.getAttribute('src'), alt = big.getAttribute('alt') || '';
+          big.setAttribute('src', small.getAttribute('src'));
+          big.setAttribute('alt', small.getAttribute('alt') || '');
+          small.setAttribute('src', src);
+          small.setAttribute('alt', alt);
+          if(cap) cap.textContent = alt;
+        }
+        return;
+      }
       var img = ev.target.closest && ev.target.closest('.pgal-i img, .pshot img, .rc-ph img, .review-photo img');
       if(!img) return;
       var shot = img.closest('.pgal, .pshot');
@@ -5559,9 +5503,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                : kf === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
                : (OFFER.items[+idxAttr] || {});
         // Гортаємо саме те, що показано в картці, — ракурси, а не сирі знімки
-        var list = viewsOf(it).map(function(v){ return v && v.img; }).filter(Boolean);
+        var vv = viewsOf(it).filter(function(v){ return v && v.img; });
+        var list = vv.map(function(v){ return v.img; });
+        var caps = String((shot && shot.getAttribute('data-caps')) || '').split('|');
         var cur = Math.max(0, list.indexOf(img.getAttribute('src')));
-        openZoom(list.length ? list : [img.src], cur);
+        openZoom(list.length ? list : [img.src], cur, caps);
       } else {
         openZoom([img.getAttribute('src')], 0);
       }

@@ -94,6 +94,10 @@ const read = fr => fr.evaluate(()=>{
     зелених: est ? [...est.querySelectorAll('*')].filter(e=>{
       const c = getComputedStyle(e).color;
       return /rgb\(14, 159, 110\)|rgb\(74, 222, 128\)/.test(c) && e.children.length === 0; }).length : -1,
+    фотоПозиції: (function(){ const ph = document.querySelector('.est-i-ph');
+      return ph ? Math.round(ph.getBoundingClientRect().width) : -1; })(),
+    розмірШапки: (function(){ const h = document.querySelector('.est-h');
+      return h ? Math.round(parseFloat(getComputedStyle(h).fontSize)) : -1; })(),
     відсотків: (txt.match(/\d+\s*%/g) || []),
     повторені: Object.keys(tally).filter(k=>tally[k] > 1).map(k=>k + ' ×' + tally[k]),
     входить: tx('.est-inc'),
@@ -114,7 +118,9 @@ console.log('  відсотки на блоці:', JSON.stringify(d.відсот
 console.log('  ' + d.входить);
 console.log('  кнопки:', JSON.stringify(d.кнопки));
 console.log('');
-ok(/255, 255, 255/.test(d.фон), 'кошторис на світлому тлі, як рахунок', 'фон: ' + d.фон);
+/* Темна смуга: кошторис — момент, коли сторінка змінює тон і людина розуміє,
+   що почалась головна частина. На білому він губився серед решти блоків. */
+ok(/rgb\(20, 23, 27\)/.test(d.фон), 'кошторис на темній смузі: ' + d.фон, 'фон: ' + d.фон);
 ok(d.шапка === 'Кошторис' && d.підпис === '1 позиція · 4 одиниці',
   'шапка: «Кошторис · ' + d.підпис + '» — спершу склад, потім обсяг',
   'шапка: ' + d.шапка + ' / ' + d.підпис);
@@ -148,6 +154,12 @@ ok(d.кнопки.length === 2 && d.кнопки.every(x=>x.видно) &&
    d.кнопки[0].текст === 'Завантажити PDF',
   'дві кнопки, обидві видимі: ' + JSON.stringify(d.кнопки.map(x=>x.текст)),
   'кнопки: ' + JSON.stringify(d.кнопки));
+ok(d.фотоПозиції >= 80,
+  'фото позиції велике (' + d.фотоПозиції + ' px): на 44 px виріб не роздивишся',
+  'фото замале: ' + d.фотоПозиції + ' px');
+ok(d.розмірШапки >= 24,
+  'заголовок «Кошторис» видно (' + d.розмірШапки + 'px), а не дрібним підписом',
+  'заголовок дрібний: ' + d.розмірШапки + 'px');
 ok(!d.вилазить, 'сторінка не їде вбік', 'зʼявився горизонтальний скрол');
 await p.close();
 
