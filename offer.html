@@ -1055,6 +1055,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .reco-box svg{opacity:0;}
   .reco.on .reco-box svg{opacity:1;}
 
+  /* ── Згорнутий хвіст сторінки ────────────────────────────────────────
+     Етапи, гарантії, проєкти, відгуки й питання — одним списком у стилі
+     «Часті питання». Викидати їх не можна: комусь саме гарантії чи відгуки
+     й потрібні, щоб зважитись. Але шість відкритих екранів між сумою й
+     кнопкою — це шість шансів передумати. */
+  .fold{padding-top:26px;}
+  /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
+     список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
+     все успадкувало б дрібний сірий шрифт відповіді на питання. */
+  .fq-rich{font-size:inherit; color:var(--ink); padding-top:4px;}
+  .fq-rich .fl{margin-top:2px;}
+  .fq-rich .cases{margin-top:2px;}
+  .fq-rich p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.55;}
+  .fq-rich .review-list, .fq-rich .reviews{margin-top:2px;}
+  .rev-all-fold{display:inline-block; margin-top:14px;}
+
   /* ── Умови замовлення ──────────────────────────────────────────────
      Головне значення велике й читається без читання: щоб дізнатись термін,
      не треба доходити до кінця речення. Підпис під ним пояснює, ЩО це за
@@ -4387,18 +4403,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      стоїть на самій лінії й вибиває в ній проміжок: рамок немає взагалі,
      а звʼязок видно. На вузькому екрані лінія просто повертається
      вертикально — той самий обʼєкт, інша вісь. */
-  function flowHtml(){
-    return '' +
-      '<section class="flow">' +
-        '<h2 class="sec-title">Як пройде ваше замовлення</h2>' +
-        '<ol class="fl">' + FLOW.map(function(x, i){
-          return '<li class="fl-s">' +
-            '<span class="fl-n">' + (i < 9 ? '0' : '') + (i + 1) + '</span>' +
-            '<b class="fl-t">' + esc(x[0]) + '</b>' +
-            '<span class="fl-d">' + esc(x[1]) + '</span>' +
-          '</li>';
-        }).join('') + '</ol>' +
-      '</section>';
+  /* Тільки вміст: заголовок тепер несе сам рядок списку, і другий такий
+     самий усередині читався б як помилка. */
+  function flowInner(){
+    return '<ol class="fl">' + FLOW.map(function(x, i){
+      return '<li class="fl-s">' +
+        '<span class="fl-n">' + (i < 9 ? '0' : '') + (i + 1) + '</span>' +
+        '<b class="fl-t">' + esc(x[0]) + '</b>' +
+        '<span class="fl-d">' + esc(x[1]) + '</span>' +
+      '</li>';
+    }).join('') + '</ol>';
   }
 
   // Персональний коментар менеджера. Без нього блоку немає — загальні слова
@@ -4430,12 +4444,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
-  function casesHtml(){
+  function casesInner(){
     var CASES = casesList();
     if(!CASES.length) return '';
     return '' +
-      '<section>' +
-        '<h2 class="sec-title">Реалізовані корпоративні проєкти</h2>' +
         '<div class="cases">' + CASES.map(function(c){
           return '<div class="case">' +
             '<div class="case-ph">' + (c.photo
@@ -4445,8 +4457,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<div class="case-q">' + esc(c.qty) + '</div>' +
             '<div class="case-t">' + esc(c.note) + '</div>' +
           '</div>';
-        }).join('') + '</div>' +
-      '</section>';
+        }).join('') + '</div>';
   }
 
   /* Секція «Гарантії» стояла перед кошторисом і повторювала те саме, що
@@ -4574,23 +4585,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!base){ try{ base = location.origin; }catch(e){ base = ''; } }
     return base + '/?start=reviews';
   }
-  function reviewsSection(){
-
-    return '' +
-      '<section>' +
-        '<div class="rev-head">' +
-          '<h2 class="sec-title">Відгуки</h2>' +
-          /* Сторінка з усіма відгуками вже є на сайті — ведемо туди кнопкою,
-             а не дрібним посиланням: її мають бачити.
-             Домен беремо з бренду, а якщо в нього свого немає — з адреси, за
-             якою відкрито саму пропозицію: вести клієнта Stvory на чужий сайт
-             гірше, ніж нікуди. */
-          '<a class="rev-all" href="' + esc(reviewsUrl()) + '" ' +
-            'target="_blank" rel="noopener">Переглянути всі відгуки</a>' +
-        '</div>' +
-        revsInner() +
-      '</section>';
+  /* Відгуки в згорнутому рядку: заголовок несе сам рядок, а кнопка на повну
+     сторінку лишається під ними — вона потрібна саме тому, хто вже розкрив і
+     читає. */
+  function revsFoldInner(){
+    var inner = revsInner();
+    if(!inner) return '';
+    return inner +
+      '<a class="rev-all rev-all-fold" href="' + esc(reviewsUrl()) + '" ' +
+        'target="_blank" rel="noopener">Переглянути всі відгуки</a>';
   }
+  /* Окремої секції відгуків більше немає: вони переїхали рядком у
+     згорнутий список. Заголовок і кнопку «всі відгуки» несе тепер сам
+     рядок — див. revsFoldInner. */
 
   function faqHtml(){
     var FAQ = faqList();
@@ -4620,14 +4627,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   var TICK_TH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M20 6 9 17l-5-5"/></svg>';
-  function trustHtml(){
-    return '' +
-      '<section class="tru">' +
-        '<h2 class="sec-title">Ваше замовлення під нашим контролем на кожному етапі</h2>' +
-        '<ul class="tru-l">' + TRUST.map(function(t){
-          return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-        }).join('') + '</ul>' +
-      '</section>';
+  function trustInner(){
+    return '<ul class="tru-l">' + TRUST.map(function(t){
+      return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
+    }).join('') + '</ul>';
   }
 
   /* Коротка форма умов оплати для великої цифри: «50% для запуску, решта
@@ -4675,7 +4678,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             || 'Працюємо з ФОП та ТОВ · Надаємо всі необхідні документи';
     return '' +
       '<section class="cond">' +
-        '<h2 class="sec-title">Умови замовлення</h2>' +
+        '<h2 class="sec-title">Як ми працюємо</h2>' +
         '<div class="cond-g">' + cards.map(function(c){
           return '<div class="cond-c">' +
             '<div class="cond-v"' + (c[3] ? ' id="' + c[3] + '"' : '') + '>' +
@@ -4693,12 +4696,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      що ще питають → дія. Кожен наступний блок відповідає на питання, яке
      виникає після попереднього; після останнього питань не лишається,
      і там стоїть кнопка. */
-  function detailsHtml(){
-    return flowHtml() + condHtml() + trustHtml() + faqSection();
+  /* Один згорнутий список замість шести відкритих секцій.
+     Між сумою й кнопкою стояло шість екранів: етапи, довіра, проєкти,
+     відгуки, питання — і кожен із них шанс передумати. Але викидати їх не
+     можна: комусь саме гарантії чи відгуки й потрібні, щоб зважитись.
+     Тому все живе тут, рядками: хто шукає — розкриє, хто готовий —
+     проскролить за секунду.
+
+     Перший рядок відкритий: інакше блок читається як службовий хвіст, і його
+     не розкриває ніхто. Відкриваємо саме етапи — це питання, яке виникає
+     одразу після «скільки це коштує». */
+  function foldRow(title, body, open){
+    if(!body) return '';
+    return '<details class="fq"' + (open ? ' open' : '') + '>' +
+      '<summary>' + esc(title) + '</summary>' +
+      '<div class="fq-a fq-rich">' + body + '</div></details>';
   }
-  function faqSection(){
-    var body = faqHtml();
-    return body ? '<section>' + body + '</section>' : '';
+  function detailsHtml(){
+    var rows = '';
+    rows += foldRow('Як пройде ваше замовлення', flowInner(), true);
+    rows += foldRow('Контроль якості та гарантії', trustInner(), false);
+    rows += foldRow('Реалізовані проєкти', casesInner(), false);
+    rows += foldRow('Відгуки', revsFoldInner(), false);
+    /* Питання йдуть окремими рядками того ж списку, а не вкладеною
+       гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
+    rows += faqList().map(function(q){
+      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
+    }).join('');
+    if(!rows) return '';
+    return '<section class="fold"><div class="faq">' + rows + '</div></section>';
   }
 
   /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
@@ -4718,9 +4744,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return '<section><div class="locked">Термін дії пропозиції минув. ' +
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
     }
+    /* Хвіст сторінки переїхав нагору, під кошторис: спершу умови, потім
+       згорнутий список, і аж тоді заклик. Тягнути його звідси означало б
+       знову поставити шість екранів між сумою й кнопкою. */
     return '' +
-      // Спершу відповідаємо на «а що як», і лише потім просимо натиснути
-      detailsHtml() +
       '<section class="no-print cta-wrap">' +
         /* Заклик у вужчій колонці й на власній підкладці. На всю ширину
            екрана рядок виходив задовгим — око губить початок наступного, і
@@ -4861,12 +4888,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            після колекції, і виходило «ось рахунок, а тепер вам ще щось
            допродадуть»; гарантії ж читались уже після найтривожнішого
            моменту, коли вони потрібні до нього. */
+        /* Умови — ОДРАЗУ під кошторисом, розгорнуті. Це те, що читають
+           перед рішенням: коли буде і як платити. Решта — етапи, гарантії,
+           проєкти, відгуки, питання — згорнута в один список нижче: між
+           сумою й кнопкою стояло шість відкритих екранів, і кожен із них
+           шанс передумати. */
         heroHtml() + itemsHtml() + variantsHtml() + recoHtml() +
         includesHtml() + whyHtml() +
-        estimateHtml() +
+        estimateHtml() + condHtml() + detailsHtml() +
         /* Менеджер стоїть ПЕРЕД відгуками: спершу людина, з якою розмовляти,
            потім чужі слова про нас. Після відгуків його майже не гортали. */
-        casesHtml() + mgrHtml() + reviewsSection() + finalHtml() +
+        /* Менеджер лишається відкритим: це не читання, а дія — подзвонити
+           чи написати. Шукати телефон у згортці не буде ніхто. */
+        mgrHtml() + finalHtml() +
         '<div class="foot">' + esc(brand().name) +
           (brand().tagline ? ' · ' + esc(brand().tagline) : '') +
           (brand().site ? ' · <a href="' + esc(brand().site) + '" target="_blank" rel="noopener">' +
