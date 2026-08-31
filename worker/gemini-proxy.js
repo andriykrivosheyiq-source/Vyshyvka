@@ -39,7 +39,7 @@ function corsHeaders(origin, env) {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
     // Щоб сайт міг перевірити, чи цей воркер узагалі вміє приймати фото-референс
-    'Access-Control-Expose-Headers': 'X-Loomiq-Ref',
+    'Access-Control-Expose-Headers': 'X-Loomiq-Ref, X-Loomiq-Mode',
     'Vary': 'Origin'
   };
 }
@@ -134,10 +134,32 @@ export default {
       refPart = { inlineData: { mimeType: m[1], data: m[2] } };
     }
 
+    /* Режим роботи. За замовчуванням — те, що було: зібрати макет із фото
+       або згенерувати новий. 'enhance' — протилежна задача: НІЧОГО не
+       вигадувати, лише витягти чіткість із того самого малюнка. Різниця
+       принципова: типова інструкція наказує поставити об'єкт по центру на
+       білий фон, а для логотипа клієнта це вже перемальовування. */
+    const mode = String((body && body.mode) || '').trim();
+    const enhance = mode === 'enhance' && !!refPart;
+
     // Просимо саме те, що потрібно для друку: чіткий об'єкт на однорідному тлі,
     // без тіней і фотофону — далі фон прибирає Photoroom.
     // З референсом задача інша: не вигадати нове, а витягти й вичистити наявне.
-    const guide = refPart
+    const guide = enhance
+      /* Заборони важливіші за побажання: модель охоче «покращує» логотип,
+         перемальовуючи літери й підправляючи форми, — а це вже інший знак
+         компанії. Тому спершу кажемо, чого робити НЕ можна, і лише потім
+         чого хочемо. */
+      ? 'Upscale and restore this exact logo image. This is a real company logo: ' +
+        'it must remain identical. Do NOT redesign, do NOT redraw or re-letter text, ' +
+        'do NOT change shapes, proportions, spacing, colours or composition, ' +
+        'do NOT add, remove or rearrange any element, do NOT add background, ' +
+        'shadow, gradient, frame, mockup or watermark, do NOT crop or re-centre. ' +
+        'Only increase resolution and sharpness: clean up compression artefacts, ' +
+        'jagged edges and blur, so lines and letters become crisp. ' +
+        'Keep the original transparency or flat background exactly as it is. ' +
+        'Output only the improved image. Notes: '
+      : refPart
       ? 'You are preparing artwork for apparel printing from a customer photo. ' +
         'Output a single clean image of the artwork alone, centred, on a plain flat white ' +
         'background, no shadow, no mockup, no garment, no watermark, crisp edges. Task: '
@@ -191,7 +213,13 @@ export default {
           'Cache-Control': 'no-store',
           // Прямо кажемо, чи фото пішло в модель. Старий воркер такого заголовка
           // не має — і сайт одразу побачить, що його не оновили.
-          'X-Loomiq-Ref': refPart ? 'used' : 'none'
+          'X-Loomiq-Ref': refPart ? 'used' : 'none',
+          /* Те саме для режиму. Стара версія воркера просто не знає слова
+             'enhance' і мовчки виконає ІНШУ інструкцію — поставить логотип
+             по центру на білий фон. Мовчазна підміна тут гірша за відмову,
+             тож сайт перевіряє цей заголовок і не показує результат, якщо
+             воркер не оновили. */
+          'X-Loomiq-Mode': enhance ? 'enhance' : (mode || 'default')
         }
       });
     }

@@ -5710,6 +5710,9 @@ function priceOrder(list, opts){
    тримає її за конкретним зображенням; замінили файл — відбиток інший, і
    вид повертається до автоматичного. Це навмисно: інший малюнок — інше
    рішення. */
+/* Непідтверджений результат AI. Живе тільки в памʼяті вкладки: ні в базі, ні
+   в документі його немає, доки менеджер не сказав «залишити». */
+let AI_LOGO = null;
 function itemKindFix(it){
   const m = it && it.designKindFix;
   return (m && typeof m === 'object') ? m : null;
@@ -11046,6 +11049,126 @@ async function offerEdApply(msg){
     offerEdPreview(true);
     offerEdNote(o.clientLogoPlate === 'light' ? 'Підкладка: біла'
               : o.clientLogoPlate === 'dark' ? 'Підкладка: темна' : 'Підкладка прибрана');
+    return;
+  }
+  /* ── Якість логотипа через AI ────────────────────────────────────────
+     Клієнт часто присилає логотип, вирізаний із презентації або витягнутий
+     із сайту: 200 px, рвані краї, сліди стиснення. Друкувати з такого не
+     можна, а просити оригінал довго й не завжди є в кого.
+
+     Ключ Gemini живе в секретах Cloudflare Worker і в код сайту не потрапляє
+     ніколи — сюди їде тільки картинка й назва режиму.
+
+     Результат НЕ зберігається одразу: він лишається тут, у памʼяті вкладки,
+     доки менеджер не подивиться на нього поруч зі старим і не скаже
+     «залишити». Інакше відхилена версія на секунду поїхала б клієнту за
+     посиланням. */
+  if(act === 'logoai' || act === 'logoaiKeep' || act === 'logoaiDrop'){
+    if(act === 'logoaiDrop'){ AI_LOGO = null; offerEdNote('Скасовано — логотип не змінився'); return; }
+
+    if(act === 'logoaiKeep'){
+      if(!AI_LOGO || AI_LOGO.order !== o.id){
+        offerEdNote('Немає що зберігати — спробуйте покращити ще раз'); return;
+      }
+      offerSaveMark('saving');
+      try{
+        const file = new File([AI_LOGO.blob], 'logo.png', { type:'image/png' });
+        const url = await uploadCloudinary(file);
+        /* Попередній файл — у лінію відкоту, як після обрізки. Саме звідти
+           його дістає кнопка «↶», і саме тому AI не є дією без вороття. */
+        if(o.clientLogo && o.clientLogo !== url){
+          if(!Array.isArray(o.clientLogoHist)) o.clientLogoHist = [];
+          o.clientLogoHist.push(o.clientLogo);
+          o.clientLogoHist = o.clientLogoHist.slice(-12);
+        }
+        const was = o.clientLogo;
+        o.clientLogo = url;
+        o.clientLogoOff = false;
+        if(!Array.isArray(o.logos)) o.logos = [];
+        const at = o.logos.indexOf(was);
+        if(at >= 0) o.logos[at] = url; else if(o.logos.indexOf(url) < 0) o.logos.push(url);
+        AI_LOGO = null;
+        if(!(await offerEdSave(o))) return;
+        renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
+        toast('Логотип оновлено'); offerEdNote('Логотип оновлено — повернути можна кнопкою ↶');
+      }catch(e){
+        offerSaveMark('bad');
+        offerEdNote('Не вдалось зберегти: ' + ((e && e.message) || 'помилка'));
+      }
+      return;
+    }
+
+    const src = effectiveClientLogo(o);
+    if(!src){ offerEdNote('Логотипа ще немає — спершу завантажте його'); return; }
+    const api = ((window.SITE_CONTENT && window.SITE_CONTENT.bgApi) || {}).geminiUrl;
+    if(!/^https:\/\//i.test(String(api || ''))){
+      offerEdNote('Не задана адреса AI-проксі. Налаштування → Фон і AI → адреса воркера');
+      return;
+    }
+    offerEdNote('Покращую якість… це займає до півхвилини');
+    try{
+      // Картинку веземо самі: воркер по чужих адресах не ходить
+      const asData = await new Promise((res, rej)=>{
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = ()=>{
+          const c = document.createElement('canvas');
+          c.width = im.naturalWidth || 1; c.height = im.naturalHeight || 1;
+          c.getContext('2d').drawImage(im, 0, 0);
+          try{ res({ url: c.toDataURL('image/png'), w: c.width, h: c.height }); }
+          catch(e){ rej(new Error('файл із чужого домену — полотно закрилось')); }
+        };
+        im.onerror = ()=> rej(new Error('файл не відкрився'));
+        im.src = src;
+      });
+      const resp = await fetch(api, {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ mode:'enhance', image: asData.url,
+          prompt:'Company logo for apparel printing. Keep it identical.' })
+      });
+      if(!resp.ok){
+        let why = '';
+        try{ why = ((await resp.json()) || {}).error || ''; }catch(e){}
+        throw new Error(why || ('проксі відповів ' + resp.status));
+      }
+      /* Стара версія воркера слова «enhance» не знає й мовчки виконає ІНШУ
+         інструкцію: поставить логотип по центру на білий фон. Мовчазна
+         підміна гірша за відмову, тож перевіряємо заголовок. */
+      if(resp.headers.get('X-Loomiq-Mode') !== 'enhance'){
+        throw new Error('у Cloudflare стара версія воркера loomiq-gemini — ' +
+          'оновіть worker/gemini-proxy.js, інакше AI перемалює логотип, а не покращить');
+      }
+      const blob = await resp.blob();
+      if(!blob || !blob.size) throw new Error('порожня відповідь');
+      const after = await new Promise((res, rej)=>{
+        const fr = new FileReader();
+        fr.onload = ()=> res(String(fr.result || ''));
+        fr.onerror = ()=> rej(new Error('не вдалось прочитати відповідь'));
+        fr.readAsDataURL(blob);
+      });
+      /* Перевіряємо не розмір у байтах, а те, що це справді картинка й вона
+         відкривається. Поріг у кілобайтах відкинув би маленький, але
+         правильний результат, а текст помилки, який приїхав замість
+         зображення, пропустив би. */
+      const dim = await new Promise((res, rej)=>{
+        const im = new Image();
+        im.onload = ()=> res({ w: im.naturalWidth || 0, h: im.naturalHeight || 0 });
+        im.onerror = ()=> rej(new Error('відповідь не є зображенням'));
+        im.src = after;
+      });
+      if(!dim.w || !dim.h) throw new Error('відповідь не є зображенням');
+      AI_LOGO = { order:o.id, blob:blob };
+      const f = document.querySelector('#offerEd iframe');
+      if(f && f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, aiLogo:{
+        before: asData.url, after: after,
+        beforeSize: asData.w + '×' + asData.h + ' px',
+        afterSize: dim.w + '×' + dim.h + ' px' } }, '*');
+      offerEdNote('');
+    }catch(e){
+      console.error('logo ai', e);
+      AI_LOGO = null;
+      offerEdNote('Не вдалось покращити: ' + ((e && e.message) || 'помилка'));
+    }
     return;
   }
   if(act === 'logocrop' || act === 'logonobg'){

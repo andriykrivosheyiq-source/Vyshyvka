@@ -1233,6 +1233,37 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .print-only{display:none;}
 
+  /* ── Порівняння логотипа після AI ────────────────────────────────────
+     Обидві версії поруч і в справжньому розмірі: у шапці логотип 44 px, і
+     підмінену літеру там не побачить ніхто. Клітчасте тло показує, де
+     прозорість, — після AI фон часто стає білим, а на білому полі це
+     невідрізнити. */
+  .ai-ov{position:fixed; inset:0; z-index:120; display:none;
+    align-items:center; justify-content:center; padding:20px;
+    background:rgba(15,32,52,.55); backdrop-filter:blur(3px);}
+  .ai-ov.show{display:flex;}
+  .ai-box{background:#fff; border-radius:18px; padding:22px; width:100%;
+    max-width:720px; max-height:90vh; overflow:auto;
+    box-shadow:0 24px 60px rgba(15,32,52,.28);}
+  .ai-h{font-size:19px; font-weight:700; letter-spacing:-0.3px;}
+  .ai-sub{font-size:13px; color:var(--muted); line-height:1.5; margin:6px 0 16px;}
+  .ai-pair{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .ai-pair figure{margin:0; min-width:0;}
+  .ai-pair figcaption{font-size:11px; font-weight:700; letter-spacing:.6px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
+  .ai-pair span{display:block; font-size:12px; color:var(--muted); margin-top:6px;
+    font-variant-numeric:tabular-nums;}
+  .ai-ph{border:1px solid var(--line); border-radius:12px; padding:10px;
+    display:flex; align-items:center; justify-content:center; min-height:150px;
+    background-color:#fff;
+    background-image:linear-gradient(45deg,#EDF1F5 25%,transparent 25%,transparent 75%,#EDF1F5 75%),
+                     linear-gradient(45deg,#EDF1F5 25%,transparent 25%,transparent 75%,#EDF1F5 75%);
+    background-size:14px 14px; background-position:0 0, 7px 7px;}
+  .ai-ph img{max-width:100%; max-height:220px; object-fit:contain;}
+  .ai-cta{display:flex; gap:10px; margin-top:18px;}
+  .ai-cta .btn{flex:1;}
+  @media (max-width:520px){ .ai-pair{grid-template-columns:1fr;} }
+
   /* ── Режим редагування ────────────────────────────────────────────────
      Керування навмисно виглядає чужорідно щодо сторінки: менеджер має
      бачити, де закінчується пропозиція і починається інструмент. */
@@ -2134,6 +2165,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       edNote(String(d.note || ''));
       return;
     }
+    /* Результат AI приходить сюди КАРТИНКОЮ, а не адресою: поки менеджер не
+       сказав «залишити», нічого не має лежати ні в сховищі, ні в документі.
+       Інакше відхилений результат на секунду поїхав би клієнту за посиланням. */
+    if(d.aiLogo){
+      showAiLogo(d.aiLogo);
+      return;
+    }
     if(d.catalog) EDIT_CATALOG = d.catalog;
     /* Свіжі дані замість перезавантаження кадру. Доти кожна правка — навіть
        «+1 шт» — перебудовувала сторінку з нуля: вона моргала, скрол злітав
@@ -2610,11 +2648,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var ttl = document.querySelector('[data-ed-title]');
     if(ttl){
       ttl.addEventListener('blur', function(){
-        edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
+        edSend({ act:'heroTitle', text: titleText(ttl) });
       });
+      /* Enter робить перенос, а не завершує редагування. Доти він гасився
+         навмисно («заголовок в один рядок»), і другий рядок зробити не було
+         чим. Закінчити правку тепер можна Esc або кліком поза полем —
+         інакше не лишилось би жодного способу вийти з поля з клавіатури. */
       ttl.addEventListener('keydown', function(e){
         e.stopPropagation();
-        if(e.key === 'Enter'){ e.preventDefault(); ttl.blur(); }   // заголовок в один рядок
+        if(e.key === 'Escape'){ e.preventDefault(); ttl.blur(); }
       });
     }
     document.querySelectorAll('[data-ed-date]').forEach(function(inp){
@@ -3418,6 +3460,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                        кошик, а обрізання не видно ніде. */
                     '<button class="edb" data-ed="logocropopen" ' +
                       'title="Обрізати логотип">✂ Обрізати</button>' +
+                    /* Клієнт часто присилає логотип, вирізаний із презентації
+                       або витягнутий із сайту: 200 px, рвані краї, сліди
+                       стиснення. Друкувати з такого не можна, а просити
+                       оригінал довго й не завжди є в кого. */
+                    '<button class="edb" data-ed="logoai" ' +
+                      'title="Підняти роздільність і чіткість через AI">' +
+                      '✦ Якість</button>' +
                     /* Крок назад по лінії обрізок. Стоїть у меню, а не біля
                        рамки: коли менеджер помітив, що перестарався, рамка
                        вже закрита, і відкривати її заради відкату — зайве.
@@ -3431,9 +3480,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>' : '') +
         // Номер і дата вже стоять у шапці сторінки — повторювати їх тут
         // означає віддати найпомітніше місце службовій інформації.
+        /* Заголовок може бути в кілька рядків: «Комерційна пропозиція» і
+           «для компанії ARMORIX» під ним читаються краще, ніж один довгий
+           рядок на весь екран. Переноси зберігаються як \n, а тут стають
+           <br> — саме тому esc() лишається на місці, а розбивка йде вже по
+           екранованому тексту. */
         '<h1' + (hsz ? ' style="font-size:' + hsz.toFixed(2) + 'em"' : '') +
           (MGR_EDIT_ON() ? ' contenteditable="plaintext-only" data-ed-title="1"' : '') + '>' +
-          esc(title) + '</h1>' +
+          esc(title).split('\n').join('<br>') + '</h1>' +
 
         (made ? '<div class="hero-made" id="heroMade">' + esc(made) + '</div>' : '') +
         /* Суми на першому екрані немає: поки людина не побачила склад, вона
@@ -5347,10 +5401,78 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     });
     var ttl = document.querySelector('[data-ed-title]');
-    if(ttl) ttl.addEventListener('blur', function(){
-      edSend({ act:'heroTitle', text: ttl.innerText.replace(/\s+/g, ' ').trim() });
-    });
+    if(ttl){
+      ttl.addEventListener('blur', function(){
+        edSend({ act:'heroTitle', text: titleText(ttl) });
+      });
+      ttl.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Escape'){ e.preventDefault(); ttl.blur(); }
+      });
+    }
   }
+  /* Текст заголовка з поля: переноси лишаються, решта пробілів чиститься.
+     Порожні рядки поспіль зливаємо в один, а всього рядків беремо не більше
+     чотирьох — шапку можна було б розтягнути на пів екрана, і перший екран
+     пропозиції перестав би показувати саму пропозицію. */
+  function titleText(el){
+    return String(el.innerText || '')
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
+      .map(function(x){ return x.replace(/[^\S\n]+/g, ' ').trim(); })
+      .filter(function(x, i, a){ return x || (i > 0 && i < a.length - 1 && a[i - 1]); })
+      .slice(0, 4)
+      .join('\n')
+      .trim();
+  }
+  /* Порівняння «було / стало» перед тим, як підмінити логотип.
+     Генеративна модель не вміє пообіцяти, що не зачепить деталі: скільки б не
+     писати «не перемальовуй», вона може повести літеру або з'їсти тонку
+     лінію. У шапці логотип 44 px — там такого не видно, і зіпсований знак
+     поїхав би клієнту. Тому показуємо обидві версії у справжньому розмірі,
+     і рішення лишається за людиною.
+
+     Клітчасте тло — щоб було видно прозорість: біле поле на білому фоні не
+     відрізниш від прозорого, а після AI фон часто стає саме білим. */
+  var AI_PEND = null;
+  function showAiLogo(d){
+    AI_PEND = d;
+    var ov = document.getElementById('ovAiLogo');
+    if(!ov){
+      ov = document.createElement('div');
+      ov.id = 'ovAiLogo';
+      ov.className = 'ai-ov';
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML =
+      '<div class="ai-box">' +
+        '<div class="ai-h">Якість логотипа</div>' +
+        '<p class="ai-sub">AI не гарантує, що не зачепив деталі. Порівняйте ' +
+          'літери й тонкі лінії — і лише тоді залишайте.</p>' +
+        '<div class="ai-pair">' +
+          '<figure><figcaption>Було</figcaption>' +
+            '<div class="ai-ph"><img src="' + esc(d.before || '') + '" alt=""></div>' +
+            '<span>' + esc(d.beforeSize || '') + '</span></figure>' +
+          '<figure><figcaption>Стало</figcaption>' +
+            '<div class="ai-ph"><img src="' + esc(d.after || '') + '" alt=""></div>' +
+            '<span>' + esc(d.afterSize || '') + '</span></figure>' +
+        '</div>' +
+        '<div class="ai-cta">' +
+          '<button class="btn btn-ghost" id="aiNo">Скасувати</button>' +
+          '<button class="btn" id="aiYes">Залишити новий</button>' +
+        '</div>' +
+      '</div>';
+    ov.classList.add('show');
+    var close = function(){ ov.classList.remove('show'); AI_PEND = null; };
+    ov.onclick = function(e){ if(e.target === ov) close(); };
+    document.getElementById('aiNo').onclick = function(){
+      close(); edSend({ act:'logoaiDrop' });
+    };
+    document.getElementById('aiYes').onclick = function(){
+      close(); edSend({ act:'logoaiKeep' });
+    };
+  }
+
   function wireKindSwitch(){
     document.querySelectorAll('[data-ckind]').forEach(function(b2){
       // клік по селектору не має згортати сам прорахунок
