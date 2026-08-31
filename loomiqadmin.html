@@ -6188,6 +6188,24 @@ function offerFirstTierQty(order, itemIdx){
    і Спина існують завжди, навіть коли фото ще немає, — це заготовка, у яку
    менеджер кладе своє. Клієнту порожні ракурси не показуємо. */
 const VIEW_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік', sleeve:'Рукав' };
+/* Фото сторони самого виробу — без нанесення.
+
+   Конструктор знімає макап лише для тих сторін, на які щось наносять. У
+   голого виробу нанесення немає взагалі, тож знімок один — і в пропозиції
+   лишався тільки перед, хоча спина у товару, звісно, є: тим самим фото її
+   малює і конструктор, і сторінка товару на сайті.
+
+   Беремо його за тим самим ключем, що й усюди: {виріб}-{колір}-{сторона}.
+   Своє завантажене фото головніше за стандартне. Якщо в позиції не
+   записано, який це виріб і якого кольору, — не вигадуємо. */
+function itemSidePhoto(it, side){
+  const cfg = (it || {}).config || {};
+  const g = cfg.garmentId || (it || {}).garmentId;
+  const c = cfg.colorId;
+  if(!g || !c || !side) return null;
+  const key = g + '-' + c + '-' + side;
+  return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
+}
 function itemViews(it){
   const mock = ((it || {}).mockups || []).filter(Boolean);
   const own = Array.isArray((it || {}).views) ? it.views : null;
@@ -6197,9 +6215,10 @@ function itemViews(it){
        оновлюється сама. Своє завантажене фото так не перебивається —
        у нього auto вже немає. */
     const a = (v.auto == null || v.auto === '') ? null : +v.auto;
+    const own = (a != null && mock[a]) ? mock[a] : (String(v.img || '') || null);
     return { id: v.id || ('v' + i), side: v.side || null,
              label: String(v.label || '').trim() || VIEW_UA[v.side] || ('Вигляд ' + (i + 1)),
-             img: (a != null && mock[a]) ? mock[a] : (String(v.img || '') || null),
+             img: own || itemSidePhoto(it, v.side),
              auto: a, show: v.show !== false };
   });
   /* Стара позиція без ракурсів. Підписи беремо зі сторін нанесення, а чого
@@ -6212,9 +6231,11 @@ function itemViews(it){
              label: sd.sideLabel || VIEW_UA[sd.side] || (k === 0 ? 'Перед' : (k === 1 ? 'Спина' : 'Вигляд ' + (k + 1))) };
   });
   if(!out.some(v => v.label === 'Перед'))
-    out.unshift({ id:'vf', side:'front', label:'Перед', img:null, auto:null, show:true });
+    out.unshift({ id:'vf', side:'front', label:'Перед',
+                  img: itemSidePhoto(it, 'front'), auto:null, show:true });
   if(!out.some(v => v.label === 'Спина'))
-    out.push({ id:'vb', side:'back', label:'Спина', img:null, auto:null, show:true });
+    out.push({ id:'vb', side:'back', label:'Спина',
+               img: itemSidePhoto(it, 'back'), auto:null, show:true });
   return out;
 }
 // Записати ракурси в позицію: далі вони живуть самі, від знімків не залежать
