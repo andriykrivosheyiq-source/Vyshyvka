@@ -82,7 +82,7 @@ const read = fr => fr.evaluate(() => {
   const tx = s => { const e = document.querySelector(s);
     return e ? e.textContent.replace(/\s+/g,' ').trim() : ''; };
   const секції = [...document.querySelectorAll('section')].map(s => s.className || '—');
-  const рядки = [...document.querySelectorAll('.fold .fq')].map(d => ({
+  const рядки = [...document.querySelectorAll('.fold .fr')].map(d => ({
     назва: (d.querySelector('summary') || {}).textContent.trim(),
     відкрито: d.open,
     висота: Math.round(d.getBoundingClientRect().height) }));
@@ -100,6 +100,14 @@ const read = fr => fr.evaluate(() => {
     менеджерВидно: !!document.querySelector('.mgr'),
     менеджерУСписку: !!document.querySelector('.fold .mgr'),
     заголовківУнизу: [...document.querySelectorAll('.fold h2')].length,
+    /* Рядок, а не картка: рамки навколо кожного пункту робили зі списку
+       шість окремих обʼєктів замість однієї таблиці змісту. */
+    рамокУРядка: (function(){ const r = document.querySelector('.fold .fr');
+      if(!r) return -1; const c = getComputedStyle(r);
+      return ['Top','Left','Right'].filter(k => parseFloat(c['border'+k+'Width']) > 0).length; })(),
+    шеврон: (function(){ const r = document.querySelector('.fold .fr>summary');
+      if(!r) return ''; const c = getComputedStyle(r, '::after');
+      return c.borderRightWidth + '/' + c.borderBottomWidth; })(),
     порядок: { кошторис:y('.est'), заклик:y('.cta-wrap'), ризики:y('.risk'),
                список:y('.fold'), менеджер:y('.mgr'), останній:y('.cta-last') },
     висотаХвоста: (function(){
@@ -146,6 +154,9 @@ ok(d.рядки.every(x => !x.відкрито),
 ok(d.менеджерВидно && !d.менеджерУСписку,
   'картка менеджера лишилась на видноті: телефон у згортці не шукають',
   'менеджер: видно ' + d.менеджерВидно + ', у списку ' + d.менеджерУСписку);
+ok(d.рамокУРядка === 0 && /2px\/2px/.test(d.шеврон),
+  'рядки в стилі переходу: волосяна лінія знизу й шеврон, без рамок',
+  'рядок не той: рамок ' + d.рамокУРядка + ', шеврон ' + d.шеврон);
 ok(d.заголовківУнизу === 0,
   'усередині рядків немає других заголовків — назву несе сам рядок',
   'заголовків усередині: ' + d.заголовківУнизу);
@@ -179,6 +190,45 @@ ok(e.рядки.length === 2 && e.рядки.map(x => x.назва).join('|') ==
 ok(!e.менеджерВидно,
   'менеджера не заповнили — блоку немає, вигаданого імені не показуємо',
   'зʼявився менеджер без імені');
+
+// ── Картка: один ракурс великим, решта мініатюрами ──────────────────────
+/* Два фото поруч ділили увагу навпіл і робили картку вдвічі вищою, хоча
+   друга сторона зазвичай той самий виріб ззаду. Головним стає ракурс із
+   НАНЕСЕННЯМ: «перед» за замовчуванням показував порожній виріб, коли лого
+   лише на спині. */
+console.log('');
+console.log('═══ РАКУРСИ В КАРТЦІ ═══');
+const withViews = OFFER({ items:[ Object.assign({}, item, {
+  views:[{side:'front', label:'Перед', img:PH, show:true},
+         {side:'back',  label:'Спина', img:PH, show:true},
+         {side:'left',  label:'Бік',   img:PH, show:true}],
+  sides:[{ side:'back', sideLabel:'Спина', technique:'Вишивка', widthMm:80, heightMm:80 }],
+  sizechart:{ cols:['Розмір','Груди'], rows:[{c:['S','92 см']},{c:['M','98 см']}] } }) ] });
+p = await open(430, withViews);
+const g = await p.frames()[1].evaluate(()=>{
+  const gal = document.querySelector('.pgal');
+  const main = gal && gal.querySelector('.pgal-i.is-main img');
+  const th = gal ? [...gal.querySelectorAll('.pgal-i.is-thumb')] : [];
+  const box = gal ? gal.getBoundingClientRect() : null;
+  return { головне: main ? main.alt : '(немає)',
+    мініатюр: th.length,
+    підписи: th.map(x=>(x.querySelector('img')||{}).alt||''),
+    мініатюриПоверх: th.length
+      ? getComputedStyle(th[0].parentNode).position === 'absolute' : false,
+    сітка: (document.querySelector('.fr-inline .fr-t')||{}).textContent||'',
+    висотаГалереї: box ? Math.round(box.height) : -1 };
+});
+console.log('  ' + JSON.stringify(g));
+ok(g.головне === 'Спина',
+  'великим показано ракурс із нанесенням, а не «перед» за звичкою',
+  'великим стоїть: ' + g.головне);
+ok(g.мініатюр === 2 && g.мініатюриПоверх,
+  'решта ракурсів — мініатюрами поверх фото: висоти не забирають, а видно, що там',
+  'мініатюр: ' + g.мініатюр + ', поверх: ' + g.мініатюриПоверх);
+ok(g.сітка === 'Розмірна сітка',
+  'розмірна сітка — окремим рядком у деталях позиції',
+  'сітки в деталях немає: ' + g.сітка);
+await p.close();
 await p.close();
 
 console.log('');
