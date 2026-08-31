@@ -237,7 +237,12 @@
              складались в одне число, і в прорахунку стояло «підготовка
              макета 1100», де 700 за картинку і 400 за напис — різні
              роботи за різними ставками — були нерозрізненні. */
-          feeLines.push({ kind: kind, fee: +f.cfg.orderFee || 0,
+          /* di — номер дизайну ВСЕРЕДИНІ позиції, з якого ця разова й
+             почалась. Без нього прорахунок не може сказати адмінці, який
+             саме дизайн перемикати на рядку «Підготовка макета»: сама
+             разова належить видові, а перемикають конкретний дизайн. */
+          feeLines.push({ kind: kind, di: i, gi: gi, first: gi === f.firstIdx,
+                          fee: +f.cfg.orderFee || 0,
                           cost: +f.cfg.orderCost || 0, units: f.total || 1 });
         }
         // Перший ПЛАТНИЙ дизайн виду входить у разову підготовку
@@ -245,7 +250,9 @@
         paid[kind][gi] = 1;
         feeShare += (+f.cfg.sketchFee || 0) / (f.unitsOf[gi] || 1);
         costShare += (+f.cfg.sketchCost || 0) / (f.unitsOf[gi] || 1);
-        sketches.push({ kind: kind, fee: +f.cfg.sketchFee || 0,
+        // Той самий di: ескіз завжди належить одному конкретному дизайну
+        sketches.push({ kind: kind, di: i, gi: gi, no: gi + 1,
+                        fee: +f.cfg.sketchFee || 0,
                         cost: +f.cfg.sketchCost || 0, units: f.unitsOf[gi] || 1 });
       });
       var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +

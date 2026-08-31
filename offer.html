@@ -2013,8 +2013,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=a20c65f0d3"></script>
-<script src="loomiq-pricing.js?v=a20c65f0d3"></script>
+<script src="loomiq-fingerprint.js?v=3f0656336a"></script>
+<script src="loomiq-pricing.js?v=3f0656336a"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2280,9 +2280,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=a20c65f0d3';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=a20c65f0d3';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=a20c65f0d3';
+  var CTOR_JS   = 'loomiq-constructor.js?v=3f0656336a';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=3f0656336a';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=3f0656336a';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -3766,7 +3766,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function mgrCalcHtml(i, kind){
     if(!EDIT && !MGR_VIEW) return '';
     var C = OFFER.mgr || {};
-    var b = ((kind === 'reco' ? C.reco : C.items) || {})[i];
+    /* Варіанти лежать у своєму кошику (vars), а не разом з основними.
+       Доти сюди приходило C.items[i] — прорахунок ЗОВСІМ ІНШОЇ позиції з тим
+       самим номером, а найчастіше нічого, і блок просто не малювався. Через
+       це в картці варіанта («Футболка поло») прорахунку не було взагалі, а
+       разом із ним і перемикача виду дизайну. */
+    var bag = kind === 'reco' ? C.reco : (kind === 'variant' ? C.vars : C.items);
+    var b = (bag || {})[i];
     if(!b) return '';
     return '<details class="cc-fold"><summary>Прорахунок · службове</summary>' +
       '<div class="cc-fold-b">' + ccRowsHtml(b.rows, kind, i) + ccMoneyHtml(b) + '</div></details>';
@@ -3778,15 +3784,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var C = OFFER.mgr || {};
     var s = C.sum;
     if(!s) return '';
-    var items = C.items || {}, reco = C.reco || {};
+    var items = C.items || {}, reco = C.reco || {}, vars = C.vars || {};
     var keys = Object.keys(items).sort(function(a, b){ return a - b; });
     var rkeys = Object.keys(reco).sort(function(a, b){ return a - b; });
-    function block(b, isReco, idx){
-      return '<div class="cc-item' + (isReco ? ' is-reco' : '') + '">' +
+    /* Варіанти сюди не потрапляли зовсім: адмінка їх рахує й кладе в C.vars,
+       а цей список читав лише items і reco. Через це прорахунку «Футболки
+       поло» не було ні тут, ні в її картці. */
+    var vkeys = Object.keys(vars).sort(function(a, b){ return a - b; });
+    function block(b, kind, idx){
+      return '<div class="cc-item' + (kind !== 'main' ? ' is-reco' : '') + '">' +
         '<div class="cc-name">' + esc(b.name || '') +
-          (isReco ? ' <em>рекомендований</em>' : '') + '</div>' +
+          (kind === 'reco' ? ' <em>рекомендований</em>' : '') +
+          (kind === 'variant' ? ' <em>варіант на вибір</em>' : '') + '</div>' +
         (b.meta ? '<div class="cc-meta">' + esc(b.meta) + '</div>' : '') +
-        ccRowsHtml(b.rows, isReco ? 'reco' : 'main', idx) + ccMoneyHtml(b) +
+        ccRowsHtml(b.rows, kind, idx) + ccMoneyHtml(b) +
       '</div>';
     }
     var m = +s.margin || 0;
@@ -3808,10 +3819,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<p class="cc-hint">Знижка за тираж і підготовка макета рахуються всередині групи, ' +
             'а не по одній позиції. Однаковий ескіз на різних виробах — один макет.</p>'
           : '') +
-        keys.map(function(k){ return block(items[k], false, +k); }).join('') +
+        keys.map(function(k){ return block(items[k], 'main', +k); }).join('') +
+        (vkeys.length
+          ? '<div class="cc-sec">Варіанти на вибір — у суму входить лише обраний</div>' +
+            vkeys.map(function(k){ return block(vars[k], 'variant', +k); }).join('')
+          : '') +
         (rkeys.length
           ? '<div class="cc-sec">Рекомендовані — у суму не входять</div>' +
-            rkeys.map(function(k){ return block(reco[k], true, +k); }).join('')
+            rkeys.map(function(k){ return block(reco[k], 'reco', +k); }).join('')
           : '') +
         '<div class="cc-total">' +
           '<div class="cc-row"><span>Виробів у замовленні</span><b>' + (+s.qty || 0) + ' шт</b></div>' +
@@ -3993,10 +4008,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
               '</div>' +
+              /* Прорахунок варіанта — на тому самому місці, що й у основної
+                 позиції: під ціною, згорнутий. Доти його не було ніде —
+                 варіанти малює окрема функція, і виклик сюди не дійшов, а
+                 сам mgrCalcHtml шукав варіант серед основних. */
+              mgrCalcHtml(i, 'variant') +
               '<details class="pcard-more">' +
                 '<summary>Деталі позиції</summary>' +
                 '<div class="pcard-more-body">' + specsHtml(v, 'v' + i, st) +
-                  priceBoxHtml(i, st, 'v' + i) + '</div>' +
+                  priceBoxHtml(i, st, 'v' + i) +
+                  '</div>' +
               '</details>' +
             '</div>';
           }).join('') +
@@ -4048,7 +4069,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '<details class="pcard-more">' +
               '<summary>Деталі позиції</summary>' +
               '<div class="pcard-more-body">' + specsHtml(it, i) + noteHtml(i) +
-                priceBoxHtml(i) + mgrCalcHtml(i, 'main') + '</div>' +
+                priceBoxHtml(i) + '</div>' +
             '</details>' +
           '</div>';
         }).join('') +
@@ -4317,6 +4338,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (on ? TICK + 'У замовленні' : '+ Додати') + '</button>' +
             edBar('reco', i, null) +
             edSlotHtml('reco', i) +
+            /* Прорахунок і тут, у пропонованій картці: доти він зʼявлявся
+               ЛИШЕ після того, як клієнт додав рекомендацію в замовлення —
+               тобто саме тоді, коли міняти вже нічого. Менеджеру він
+               потрібен до того, поки він цю рекомендацію ще складає. */
+            mgrCalcHtml(i, 'reco') +
           '</div>';
         }).join('') + '</div>' +
         edAdd('reco') +
