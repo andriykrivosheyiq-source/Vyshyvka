@@ -197,6 +197,106 @@ ok(life[3].вид === 'img' && life[3].ціна === life[0].ціна,
   'замінили файл — вид повернувся до автоматичного',
   'після заміни файлу лишилось ' + life[3].вид);
 
+// ── Прорахунок у самій картці товару (конструктор) ──────────────────────
+/* Це ІНШИЙ блок, ніж вище: менеджер найчастіше сидить саме тут, у відкритій
+   картці, а не в пропозиції. Доти перемикача тут не було зовсім, і рядок
+   «Підготовка макета» нічим не пояснював, чому два логотипи дали один макет. */
+console.log('');
+console.log('═══ ПРОРАХУНОК У КАРТЦІ ТОВАРУ ═══');
+const ctor = await browser.newPage({ viewport:{ width:1300, height:1000 } });
+ctor.on('pageerror', e => errs.push('КОНСТРУКТОР: ' + e.message.slice(0, 170)));
+await route(ctor);
+await ctor.goto(HOST + '/index.html?manager=1', { waitUntil:'domcontentloaded' });
+await ctor.waitForTimeout(5000);
+await ctor.evaluate(() => {
+  window.SITE_CONTENT = window.SITE_CONTENT || {};
+  window.SITE_CONTENT.pricing = {
+    methods:{ embro:{ orderFee:800, orderCost:300, sketchFee:390, sketchCost:150,
+      pieceFee:75, pieceCost:34, pricePer1000mm2:34, costPer1000mm2:7, minPrice:400,
+      text:{ orderFee:400, orderCost:150, sketchFee:150, sketchCost:60,
+             pricePer1000mm2:20, costPer1000mm2:5, minPrice:150 } } },
+    tiers:[{from:1,coef:1},{from:4,coef:.94},{from:10,coef:.8}],
+    garmentTiers:[{from:1,coef:1}] };
+});
+const gid = await ctor.evaluate(() => {
+  const el = document.querySelector('[data-garment]');
+  return el ? el.getAttribute('data-garment') : null;
+});
+const FP_A = Array.from({length:64},(_,i)=>(i*1)%5).join('');
+const FP_B = Array.from({length:64},(_,i)=>(i*3+1)%5).join('');
+const layer = (id, fp) => ({ id, url:'https://cdn.test/' + id + '.png', fp,
+  scale:1, frac:0.32, fx:0.3, fy:0.3, ar:1, fill:0.8,
+  opaqueBox:{ x0:0, y0:0, x1:1, y1:1 }, w:60, h:60 });
+// Той самий шлях, яким позицію відкриває редактор пропозиції
+const seed = async (fpFront, fpBack) => {
+  await ctor.evaluate(cfg => window.__editProduct(cfg, null, []), {
+    garmentId: gid, colorId:null, printId:null, qty:{ M:4 },
+    logos:{ front:[layer('L1', fpFront)], back:[layer('L2', fpBack)], left:[], right:[] } });
+  await ctor.waitForTimeout(1600);
+};
+const panel = () => ctor.evaluate(() => {
+  const box = document.getElementById('pmMgrCalc');
+  if(!box) return { рядки:['(панелі немає)'], перемикачів:0, ціна:'' };
+  return {
+    рядки: [...box.querySelectorAll('tr')].map(t => t.innerText.replace(/\s+/g,' ').trim()),
+    перемикачів: box.querySelectorAll('[data-mgr-kind]').length,
+    ціна: (document.querySelector('.pm-num') || {}).textContent || '' };
+});
+
+await seed(FP_A, FP_B);                     // два РІЗНІ логотипи
+let c = await panel();
+c.рядки.filter(x => /макет|ескіз|нанесення ·/.test(x)).forEach(x => console.log('  ' + x));
+ok(c.рядки.some(x => /Підготовка макета/.test(x)) && c.рядки.some(x => /Додатковий ескіз/.test(x)),
+  'два різні лого — підготовка макета плюс додатковий ескіз',
+  'на двох різних лого ескізу немає');
+ok(c.перемикачів === 2, 'перемикач стоїть на обох разових рядках',
+  'перемикачів у картці: ' + c.перемикачів);
+
+await seed(FP_A, FP_A);                     // ОДИН і той самий файл спереду й ззаду
+c = await panel();
+console.log('');
+c.рядки.filter(x => /макет|ескіз|нанесення ·/.test(x)).forEach(x => console.log('  ' + x));
+const цінаКартинка = c.ціна;
+ok(!c.рядки.some(x => /Додатковий ескіз/.test(x)),
+  'той самий файл спереду й ззаду — один макет, ескізу немає',
+  'на однаковому файлі зʼявився ескіз');
+ok(c.рядки.some(x => /2 нанесення · 1 макет/.test(x)),
+  'рядок каже причину вголос, а не лишає здогадуватись',
+  'пояснення «2 нанесення · 1 макет» немає');
+
+// Обидва дизайни — написом: разова має стати дешевшою, а не подвоїтись
+/* По одному: панель перемальовується після кожної зміни, тож посилання на
+   решту перемикачів стають несправжніми — саме так помилився б і менеджер,
+   який клікає швидко, якби ми оновлювали таблицю мовчки. */
+for(let n = 0; n < 4; n++){
+  const left = await ctor.evaluate(() => {
+    const s = [...document.querySelectorAll('#pmMgrCalc [data-mgr-kind]')]
+      .filter(x => x.value !== 'txt')[0];
+    if(!s) return 0;
+    s.value = 'txt'; s.dispatchEvent(new Event('change', { bubbles:true }));
+    return 1;
+  });
+  await ctor.waitForTimeout(700);
+  if(!left) break;
+}
+c = await panel();
+console.log('');
+c.рядки.filter(x => /макет|ескіз/.test(x)).forEach(x => console.log('  ' + x));
+console.log('  ціна: ' + цінаКартинка + ' → ' + c.ціна);
+ok(c.рядки.some(x => /400 грн ÷/.test(x)) && !c.рядки.some(x => /800 грн ÷/.test(x)),
+  'обидва написом — разова за ставкою напису, а не картинки',
+  'разова лишилась картинчаною: ' + JSON.stringify(c.рядки.filter(x => /Підготовка/.test(x))));
+ok(+c.ціна < +цінаКартинка,
+  'ціна впала: ' + цінаКартинка + ' → ' + c.ціна,
+  'ціна не впала: ' + цінаКартинка + ' → ' + c.ціна);
+// Вибір лежить на шарі, тож переживе збереження позиції разом із config.logos
+const наШарі = await ctor.evaluate(() => {
+  const s = document.querySelector('#pmMgrCalc [data-mgr-kind]');
+  return s ? s.value : '(немає)';
+});
+ok(наШарі === 'txt', 'перемикач лишився на «напис» після перерахунку',
+  'перемикач зіскочив на ' + наШарі);
+
 console.log('');
 console.log('помилки сторінок:', errs.length);
 errs.slice(0, 5).forEach(e => console.log(' ', e));

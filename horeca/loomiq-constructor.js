@@ -988,6 +988,24 @@
       return out;
     }
     function isTextLayer(l){ return !!(l && l.text); }
+    /* Вид дизайну для рахунку. Автоматика дивиться, чи це текстовий шар, але
+       клієнт часто присилає КАРТИНКУ, на якій просто напис їхнім шрифтом:
+       виглядати воно має картинкою (шрифт ми не відтворимо), а рахуватись
+       мусить як напис — у написа своя разова, свій ескіз і своя ставка за
+       площу. Вгадати це нізвідки, тож вирішує менеджер, і його вибір лежить
+       на самому шарі: шар цілком їде в config.logos, тож переживає
+       збереження позиції разом з усім іншим. */
+    function layerKind(l){
+      if(l && (l.kindFix === 'txt' || l.kindFix === 'img')) return l.kindFix;
+      return isTextLayer(l) ? 'txt' : 'img';
+    }
+    // Шар за номером дизайну — тим самим, у якому їх бачить рушій цін
+    function layerAtDesign(di){
+      var n = 0, out = null;
+      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+        if(n++ === di) out = l; }); });
+      return out;
+    }
     function baseForIndex(m, idx){
       return (window.LQ && window.LQ.baseForIndex) ? window.LQ.baseForIndex(m, idx) : 0;
     }
@@ -1166,7 +1184,7 @@
       var ap = applicationParts();
       var fps = [], kinds = [], mm2s = [];
       getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-        fps.push(l.fp || ''); kinds.push(isTextLayer(l) ? 'txt' : 'img');
+        fps.push(l.fp || ''); kinds.push(layerKind(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -4052,21 +4070,64 @@
         var KIND_UA = { img:'картинка', txt:'напис' };
         var lines = (P && P.feeLines) ? P.feeLines : [];
         var skets = (P && P.sketches) ? P.sketches : [];
+        /* Перемикач виду стоїть саме на разових, а не біля нанесення:
+           нанесення рахується за квадратурою, і вид там нічого не міняє на
+           око. А ось разова й ескіз у написа свої — тут вибір і важить.
+           Крапка поруч означає, що вид обрав менеджер, а не автоматика:
+           інакше через тиждень ніхто не згадає, чому напис рахується як
+           картинка. */
+        function kindPick(di, kind){
+          var l = layerAtDesign(di);
+          if(!l) return '';
+          var fixed = (l.kindFix === 'txt' || l.kindFix === 'img');
+          return ' <select data-mgr-kind="' + di + '" title="Як рахувати цей дизайн" ' +
+            'style="font:inherit;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 4px;' +
+            'border:1px solid ' + (fixed ? '#8fb4ee' : '#cdd6e4') + ';background:#eef3fb;' +
+            'color:#2f4c8f;cursor:pointer;vertical-align:middle;">' +
+            '<option value="img"' + (kind === 'txt' ? '' : ' selected') + '>картинка</option>' +
+            '<option value="txt"' + (kind === 'txt' ? ' selected' : '') + '>напис</option>' +
+            '</select>' + (fixed ? ' <span title="Вид обрав менеджер" style="display:inline-block;' +
+            'width:5px;height:5px;border-radius:50%;background:#2f4c8f;vertical-align:middle;"></span>' : '');
+        }
         if(lines.length){
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
-            tb += r('Підготовка макета · ' + (KIND_UA[f.kind] || f.kind) +
+            tb += r('Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
                     f.units + ' шт)</span>', money(per), money(perC));
           });
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
-            tb += r('Додатковий ескіз ' + (i + 1) + ' · ' + (KIND_UA[x.kind] || x.kind) +
+            tb += r('Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
                     x.units + ' шт)</span>', money(per), money(perC));
           });
+          /* Скільки нанесень і скільки з них ОКРЕМИХ макетів. Найчастіше
+             непорозуміння: два логотипи — спереду й ззаду, — а разова одна.
+             Причина буває трьох видів, і всі три треба назвати вголос,
+             інакше цифра виглядає як помилка рахунку. */
+          var nos = (P && P.designNos) ? P.designNos : [];
+          if(nos.length > 1){
+            var groups = {}; nos.forEach(function(d){ groups[d.no] = 1; });
+            var nGroups = Object.keys(groups).length;
+            var why = '';
+            if(nGroups < nos.length){
+              var blank = nos.some(function(d){
+                var l = layerAtDesign(d.i); return !l || !l.fp; });
+              var byUrl = nos.some(function(d){
+                var l = layerAtDesign(d.i);
+                return l && String(l.fp || '').indexOf('u:') === 0; });
+              why = blank
+                ? ' — відбиток не знявся, дизайни склеєно наосліп: натисніть «Перерахувати»'
+                : (byUrl ? ' — звірено за файлом, не за пікселями: однаковими вважаються лише ті самі файли'
+                         : ' — це той самий малюнок, окремий макет не потрібен');
+            }
+            tb += r('<span style="color:#8a94a6;">' + nos.length + ' нанесення · ' +
+                    nGroups + (nGroups === 1 ? ' макет' : ' макети') + why + '</span>',
+                    dash, dash, { muted:true });
+          }
         } else {
           // Рушій недоступний (чернетку ще не зібрано) — показуємо загальним рядком
           var feeDiv = feeUnits + ' шт' + (feeUnits > qty ? ' цього способу' : '');
@@ -4114,6 +4175,20 @@
       out.innerHTML = head + tb + sum;
       var tog = out.querySelector('[data-mgr-toggle]');
       if(tog) tog.onclick = function(e){ e.stopPropagation(); mgrDetailOpen = !mgrDetailOpen; renderManagerPanel(); };
+      /* Вибір виду дизайну. Пишемо на сам шар: він цілком їде в config.logos,
+         тож рішення переживає збереження позиції й повертається разом із нею.
+         Явне значення, а не «перемкнути»: перемикач не знає, у якому стані
+         він зараз, і два кліки з різних місць могли повернути все назад. */
+      out.querySelectorAll('[data-mgr-kind]').forEach(function(sel){
+        sel.onclick = function(e){ e.stopPropagation(); };
+        sel.onchange = function(e){
+          e.stopPropagation();
+          var l = layerAtDesign(+sel.getAttribute('data-mgr-kind'));
+          if(!l) return;
+          l.kindFix = (sel.value === 'txt') ? 'txt' : 'img';
+          updatePriceBar();          // ціна, шкала тиражів і сам прорахунок
+        };
+      });
       var clr = out.querySelector('[data-mgr-clear]');
       if(clr) clr.onclick = function(e){
         e.stopPropagation();
@@ -5270,6 +5345,18 @@
         // Дескриптор для спільного розрахунку: кошик перераховує ціни щоразу,
         // бо вони залежать від інших позицій (спільний макет, спільний тираж).
         desc: draftDescriptor(),
+        /* Вибір менеджера про вид дизайну — ще й окремою мапою за відбитком.
+           Він і так лежить на шарі, але адмінка перед кожним рахунком
+           накладає designKindFix поверх designKinds: без цієї мапи вона
+           поверне вид на автоматичний, і вибір, зроблений у конструкторі,
+           зникне на першому ж перерахунку. */
+        designKindFix: (function(){
+          var map = {};
+          getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+            if(l && (l.kindFix === 'txt' || l.kindFix === 'img') && l.fp)
+              map[String(l.fp)] = l.kindFix; }); });
+          return Object.keys(map).length ? map : null;
+        })(),
         // Розклад ціни — щоб комерційна пропозиція могла точно порахувати вартість
         // за будь-якого тиражу («при більшому тиражі»), а не приблизно.
         calc: (function(){
@@ -5328,6 +5415,20 @@
       var ei = window.__pmEditIndex;
       if(ei != null && cartItems[ei]){
         item.recoNote = cartItems[ei].recoNote || '';
+        /* Вид дизайну, обраний у прорахунку пропозиції, лежить у позиції
+           мапою за відбитком, а не на шарі — конструктор про нього не знає.
+           Переносимо його разом із позицією, інакше відкрити й зберегти
+           картку означало б мовчки повернути вид на автоматичний і змінити
+           ціну вже погодженої пропозиції. Свіжий вибір із конструктора
+           головніший: він щойно зроблений. */
+        var wasFix = cartItems[ei].designKindFix;
+        if(wasFix && typeof wasFix === 'object'){
+          var merged = {};
+          Object.keys(wasFix).forEach(function(k){ merged[k] = wasFix[k]; });
+          Object.keys(item.designKindFix || {}).forEach(function(k){
+            merged[k] = item.designKindFix[k]; });
+          item.designKindFix = Object.keys(merged).length ? merged : null;
+        }
         cartItems[ei] = item;
         if(window.lqAn) window.lqAn.track('cart_edit', { garment: pm.garmentId });
       } else {
