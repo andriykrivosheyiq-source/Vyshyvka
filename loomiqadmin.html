@@ -2708,8 +2708,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=3f0656336a"></script>
-<script src="loomiq-pricing.js?v=3f0656336a"></script>
+<script src="loomiq-fingerprint.js?v=90a4e78eb1"></script>
+<script src="loomiq-pricing.js?v=90a4e78eb1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5721,6 +5721,20 @@ function setItemKindFix(it, fp, kind){
   if(!key) return;
   if(kind === 'img' || kind === 'txt') m[key] = kind; else delete m[key];
   it.designKindFix = Object.keys(m).length ? m : null;
+  /* І те саме — на сам шар у config.logos. Конструктор читає позицію звідти
+     й про мапу за відбитком не знає: без цього рядка менеджер, відкривши
+     картку, побачив би в прорахунку «картинка» там, де сам щойно поставив
+     «напис». Одна дія — один стан у всіх трьох місцях: позиція, шар,
+     прорахунок. */
+  const logos = it.config && it.config.logos;
+  if(logos && typeof logos === 'object'){
+    Object.keys(logos).forEach(side=>{
+      (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+        if(!l || String(l.fp || '') !== key) return;
+        if(kind === 'img' || kind === 'txt') l.kindFix = kind; else delete l.kindFix;
+      });
+    });
+  }
 }
 /* Накладаємо вибір менеджера поверх автоматичного. Одна точка на всю
    систему — і вона стоїть ПЕРЕД будь-яким розрахунком, тож вибір діє скрізь,
