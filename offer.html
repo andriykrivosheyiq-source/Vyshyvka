@@ -364,8 +364,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* ── секції ── */
   section{padding:32px 0; border-top:1px solid var(--line);}
-  .sec-title{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px; margin:0 0 6px;}
-  .sec-sub{font-size:var(--fs-3); color:var(--muted); margin:0 0 20px;}/* ══ Картка товару: фото ліворуч, суть праворуч, ракурси знизу ══
+  /* ── Два рівні заголовків на всю сторінку ───────────────────────────
+     Було шість стилів: 21/600 у секції, 26/600 по центру над колекцією,
+     26/600 у кошторисі, 21/600 у згортках, 21/500 у картці, 26→32 у
+     заклику — і половина з них по центру, половина ліворуч. Читалось це
+     не як ієрархія, а як різні сторінки, зшиті докупи.
+
+     Лишається два: заголовок секції на світлому й заголовок смуги на
+     темному. Обидва ліворуч, обидва 600. Розмір відрізняє не важливість
+     розділу, а ТЛО: темна смуга — це окремий екран усередині сторінки.
+     Підзаголовок один на всіх: 15px, приглушений, той самий відступ. */
+  .sec-title{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px;
+    line-height:1.25; margin:0 0 4px; text-align:left;}
+  .sec-sub{font-size:var(--fs-3); font-weight:400; color:var(--muted);
+    line-height:1.5; margin:0 0 16px; text-align:left;}/* ══ Картка товару: фото ліворуч, суть праворуч, ракурси знизу ══
      Раніше кожна позиція займала майже екран: велике фото, сітка
      характеристик, окремий блок ціни. Клієнт гортав і не бачив, скільки
      всього позицій. Тепер це компактна картка, а подробиці — під розкриттям. */
@@ -655,7 +667,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      фото й ціною і смуга нічого під «Деталями». Висоту тримали саме вони,
      жодного min-height у картці немає. */
   .pcard-info{margin-top:8px;}
-  .pcard-name{font-size:var(--fs-5); font-weight:500; letter-spacing:-0.3px; margin:0 0 4px;}
+  /* Назва товару — того ж кегля, що заголовок секції, але легша: у
+     системі рівень задає вага, а не новий розмір. */
+  .pcard-name{font-size:var(--fs-5); font-weight:500; letter-spacing:-0.4px;
+    line-height:1.25; margin:0 0 4px;}
   /* ── Варіант на вибір ──────────────────────────────────────────────────
      Клієнт має з першого погляду бачити три речі: що це варіант, а не вже
      замовлене; скільки він коштує; і — після натискання — що його взяли.
@@ -804,7 +819,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     padding:34px var(--pad) 32px;}
   /* Заголовок видно: це вхід у головну частину, а не службовий підпис.
      Дрібними літерами вгорі його просто не помічали. */
-  .est-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px; margin:0 0 4px;
+  .est-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px;
+    line-height:1.2; margin:0 0 4px;
     color:#fff;}
   .est-meta{font-size:var(--fs-3); color:rgba(255,255,255,.55);}
   .est-top{margin-bottom:24px;}
@@ -1004,9 +1020,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Заголовок, що відкриває розділ: більший за звичайний і з однаковим
      повітрям згори й знизу. */
-  .sec-lead{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px;
-    margin:6px 0 24px; text-align:center;}
-  @media (min-width:640px){ .sec-lead{font-size:var(--fs-7); margin:10px 0 24px;} }
+  /* «Підготували для вас» більше не осібний великий заголовок по центру:
+     він відкриває звичайну секцію й виглядає, як усі інші. По центру на
+     сторінці лишились тільки дві темні смуги — шапка й фінальний заклик,
+     — де центрування тримає всю композицію блоку, а не один рядок. */
+  .sec-lead{margin:0 0 16px;}
 
   /* ── Відгуки в рядку ─────────────────────────────────────────────────
      Оцінка праворуч від назви, під рядком — смужка фото робіт. Саме фото й
@@ -1029,7 +1047,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Без волосяної лінії згори: під нею одразу йде темна смуга кошторису, і
      риска висіла окремою рисочкою на білому — розділяти там уже нічого. */
   .fold{padding-top:24px; border-top:none;}
-  .fold-h{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px; margin:0 0 8px;}
+  .fold-h{margin:0 0 4px;}
   /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
      список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
      все успадкувало б дрібний сірий шрифт відповіді на питання. */
@@ -1082,7 +1100,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cta-box{background:#14171B; color:#fff; border:none; border-radius:0;
     padding:40px var(--pad) 34px; text-align:center;
     margin:26px calc(var(--pad) * -1) 0;}
-  .cta-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px; line-height:1.25;
+  .cta-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px; line-height:1.2;
     margin:0 auto 12px; max-width:26ch; text-wrap:balance;}
   /* Текст лишається вузьким — довгий рядок читається найгірше саме там,
      де має читатися найкраще. */
@@ -1098,9 +1116,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Другий заклик — половина зросту першого: він для тих, хто вже
      переконався, і переконувати вдруге його завдання не входить. */
   .cta-last .cta-box{padding:30px var(--pad) 28px; margin-top:0;}
-  .cta-last .cta-h{font-size:var(--fs-5); margin-bottom:16px;}
+  .cta-last .cta-h{margin-bottom:16px;}
   @media (min-width:660px){ .cta-last .cta-box{padding:36px var(--pad) 32px;}
-    .cta-last .cta-h{font-size:var(--fs-6);} }
+ }
   .cta-share{display:inline-flex; align-items:center; justify-content:center; gap:6px;
     margin-top:24px; padding:8px 4px; font:inherit; font-size:var(--fs-2); font-weight:600;
     color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.18);
@@ -1110,7 +1128,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .cta-share svg{flex:none; width:15px; height:15px;}
   @media (min-width:660px){
     .cta-box{padding:52px var(--pad) 44px;}
-    .cta-h{font-size:var(--fs-7);}
+    .cta-h{font-size:var(--fs-6);}
   }
 
   /* ── фіксована панель ── */
@@ -1142,7 +1160,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .ov{align-items:center;}
     .sheet{border-radius:var(--r-4);}
   }
-  .sheet h3{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.5px; margin:0 0 6px;}
+  .sheet h3{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px;
+    line-height:1.25; margin:0 0 4px;}
   .sheet .sec-sub{margin-bottom:16px;}
   .sum-box{background:var(--soft); border-radius:var(--r-3); padding:16px 16px; margin-bottom:16px;}
   .sum-line{display:flex; justify-content:space-between; font-size:var(--fs-3); color:var(--ink-2);}
@@ -3654,7 +3673,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (v.img
           ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
             (big ? '' : 'loading="lazy" ') +
-            'onerror="this.style.visibility=\'hidden\'">'
+            'onerror="lqShotFail(this)">'
           : '<span class="pgal-plus">＋<i>фото</i></span>') +
         (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
               (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
@@ -5184,6 +5203,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          : k === 'r' ? ((OFFER.reco || [])[+String(idxAttr).slice(1)] || {})
          : (OFFER.items[+idxAttr] || {});
   }
+  /* Знімка за адресою може не виявитись: фото сторони виробу підставляє
+     адмінка за ключем {виріб}-{колір}-{сторона}, і для рідкісного кольору
+     файлу може просто не бути. Порожня рамка в пропозиції читається як
+     помилка, тож битий ракурс не ховаємо, а прибираємо разом із кнопкою —
+     ніби його й не було. */
+  function lqShotFail(img){
+    var cell = img.closest && img.closest('.pgal-i');
+    var gal = cell && cell.closest('.pgal');
+    if(cell && cell.classList.contains('is-thumb') && !EDIT){
+      cell.remove();
+      if(gal && !gal.querySelector('.pgal-i.is-thumb')){
+        [].forEach.call(gal.querySelectorAll('.pgal-ar'), function(b){ b.hidden = true; });
+      }else if(gal){ galSync(gal); }
+      return;
+    }
+    img.style.visibility = 'hidden';
+  }
+  window.lqShotFail = lqShotFail;
   function galSync(gal){
     if(!gal || EDIT) return;
     var vv = shownViews(itemOfShot(gal.getAttribute('data-shot')));
@@ -5216,7 +5253,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var cap = viewCap(v, all0.indexOf(v));
         return '<div class="pgal-i is-thumb" data-vi="' + k + '">' +
           '<img src="' + esc(v.img) + '" alt="' + esc(cap) + '" loading="lazy" ' +
-          'onerror="this.style.visibility=\'hidden\'">' +
+          'onerror="lqShotFail(this)">' +
           '<span class="pgal-cap">' + esc(cap) + '</span></div>';
       }).join('');
     }
