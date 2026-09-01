@@ -1,17 +1,20 @@
 /* Обіцянка про наступний поріг тиражу мусить збігатися з реальністю.
 
-   «Від 10 шт — 761 грн/шт» бралось із it.tiers — знімка, який адмінка
-   зробила під час збереження. Склад пропозиції відтоді міг змінитись:
-   клієнт додав рекомендований товар, обрав інший варіант, покрутив
-   кількості. Разова підготовка макета ділиться на весь тираж способу, тож
-   будь-яка з цих дій міняє ціну КОЖНОЇ позиції — а знімок лишався старим.
+   Спершу вона стояла в кожній картці рядком «Від 10 шт — 761 грн/шт» і
+   бралась із it.tiers — знімка, який адмінка зробила під час збереження.
+   Склад пропозиції відтоді міг змінитись: клієнт додав рекомендований
+   товар, обрав інший варіант, покрутив кількості. Разова підготовка макета
+   ділиться на весь тираж способу, тож будь-яка з цих дій міняє ціну КОЖНОЇ
+   позиції — а знімок лишався старим. Клієнт набирав обіцяні 10 штук і бачив
+   874 грн замість 761; подекуди поріг виходив ДОРОЖЧИМ за поточну ціну.
 
-   Через це клієнт набирав обіцяні 10 штук і бачив 874 грн замість 761. А
-   подекуди поріг виходив ДОРОЖЧИМ за поточну ціну, тобто «бери більше —
-   плати більше».
+   Тепер обіцянка одна на всю сторінку й стоїть під сумою: поріг рахується
+   від ЗАГАЛЬНОЇ кількості по способу нанесення, тож у картці окремої
+   позиції він і не мав як бути зрозумілим. Названо в ній те саме, на що
+   клієнт дивиться, — скільки стане замовлення разом.
 
-   Тест робить рівно те, що робить клієнт: читає обіцянку, набирає ту саму
-   кількість і звіряє ціну.
+   Тест робить рівно те, що робить клієнт: читає обіцянку, набирає названу
+   кількість і звіряє підсумок.
 
    Запуск:  node tests/tier-promise.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -73,12 +76,12 @@ const OFFER = {
   trust:[], faq:[], cases:[], state:'', reco:[], variants:[], state_pick:{},
   manager:{ name:'Марія', role:'Ваш менеджер', phone:'+380671112233' },
   items:[{ kind:'main', vgroup:'', name:'Футболка поло', color:'Біла', print:'Вишивка',
-    sizes:'M × 30', qty:30, unitPrice:1180, price:35400,
-    basePrice:41700, baseUnitPrice:1390, mockups:[PH], prints:[],
+    sizes:'M × 45', qty:45, unitPrice:1180, price:53100,
+    basePrice:62550, baseUnitPrice:1390, mockups:[PH], prints:[],
     views:[{ side:'front', label:'Перед', img:PH, show:true }],
     sides:[], techniques:[], specs:[], about:'',
     tiers:[{ qty:50, unit:9999 }],
-    desc:{ method:'embro', units:30, base:600, coefPart:300, pieceFee:20, dtfCols:[],
+    desc:{ method:'embro', units:45, base:600, coefPart:300, pieceFee:20, dtfCols:[],
            designs:[FP], designKinds:['img'], bare:false } }],
   pricing:{ methods:{ embro:{ orderFee:900, tiers:[{from:1,coef:1},{from:50,coef:.85}] } },
     tiers:[{from:1,coef:1},{from:50,coef:.85}], garmentTiers:[{from:1,coef:1}] }
@@ -100,47 +103,52 @@ await fr().evaluate(pr => {
 }, OFFER.pricing);
 await p.waitForTimeout(1200);
 
-const read = () => fr().evaluate(() => {
-  const c = document.querySelectorAll('.pcard')[0];
-  return { кількість: +(c.querySelector('.pstep-v b') || {}).textContent,
-           ціна: (c.querySelector('.pcard-price') || {}).textContent,
-           обіцянка: (c.querySelector('.pqty-n') || {}).textContent || '' };
-});
-/* Лічильник слухає pointerdown/pointerup, а не click — інакше жодного
-   натиску він не бачить. */
+const read = () => fr().evaluate(() => ({
+  кількість: +(document.querySelector('.est-q-v') || {}).textContent,
+  разом: (document.querySelector('.est-pay b') || {}).textContent || '',
+  обіцянка: ((document.querySelector('.est-more') || {}).textContent || '')
+    .replace(/\s+/g, ' ').trim(),
+  вКартках: document.querySelectorAll('.pqty-n').length
+}));
+/* Лічильник у кошторисі — звичайний click. */
 const bump = async n => {
   for(let i = 0; i < n; i++){
-    await fr().evaluate(() => {
-      const b = document.querySelector('[data-q="0"][data-d="1"]');
-      b.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, button:0 }));
-      b.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, button:0 }));
-      window.dispatchEvent(new PointerEvent('pointerup', { bubbles:true, button:0 }));
-    });
-    await p.waitForTimeout(80);
+    await fr().click('.est-q-b[data-d="1"]');
+    await p.waitForTimeout(120);
   }
-  await p.waitForTimeout(700);
+  await p.waitForTimeout(800);
 };
 
 console.log('═══ ОБІЦЯНКА ПРО ТИРАЖ ═══');
 console.log('  у позиції записано: за 50 шт по 9 999 грн (застарілий знімок)');
 const start = await read();
 console.log('  сторінка показує:   ' + JSON.stringify(start));
-const m = /Від (\d+) шт — ([\d\s ]+)/.exec(start.обіцянка);
-ok(!!m, 'рядок про наступний поріг є', 'порогу не запропоновано зовсім');
+/* У картках порогу немає зовсім: він рахується від загальної кількості по
+   способу нанесення, а картка знає лише про себе. */
+ok(start.вКартках === 0,
+  'у картках порогу немає — там він однаково не був би зрозумілим',
+  'у картках лишилось рядків про поріг: ' + start.вКартках);
+const m = /Додайте ще (\d+) [^—]*— .*?на ([\d\s ]+) грн дешевше/.exec(start.обіцянка);
+ok(!!m, 'під сумою є підказка про найближчий поріг: «' + start.обіцянка + '»',
+  'порогу не запропоновано зовсім: «' + start.обіцянка + '»');
 
 if(m){
-  const target = +m[1], promised = num(m[2]);
-  ok(promised < num(start.ціна),
-    'на порозі ДЕШЕВШЕ, ніж зараз: ' + promised + ' проти ' + num(start.ціна),
-    'поріг не дешевший: ' + promised + ' проти ' + num(start.ціна) + ' — «бери більше, плати більше»');
-  await bump(target - start.кількість);
+  const need = +m[1], promised = num(m[2]), was = num(start.разом);
+  await bump(need);
   const after = await read();
-  console.log('  набрали ' + target + ' шт:    ' + JSON.stringify(after));
-  ok(after.кількість === target,
-    'кількість набралась', 'кількість не набралась: ' + after.кількість);
-  ok(num(after.ціна) === promised,
-    'ціна збіглася з обіцяною: ' + promised + ' грн',
-    'обіцяли ' + promised + ', вийшло ' + num(after.ціна));
+  console.log('  набрали +' + need + ' шт:   ' + JSON.stringify(after));
+  ok(after.кількість === start.кількість + need,
+    'кількість набралась просто в кошторисі: ' + after.кількість,
+    'кількість не набралась: ' + after.кількість);
+  /* Головне: обіцяне число — це різниця в рядку «Разом», а не абстрактна
+     «знижка на те, що вже замовлено». Клієнт дивиться саме сюди. */
+  ok(num(after.разом) === was - promised,
+    'підсумок упав рівно на обіцяне: ' + was + ' − ' + promised + ' = ' + num(after.разом),
+    'обіцяли мінус ' + promised + ' (тобто ' + (was - promised) +
+      '), а вийшло ' + num(after.разом));
+  ok(num(after.разом) < was,
+    'замовлення справді подешевшало, хоч виробів більше',
+    'сума зросла: ' + was + ' → ' + num(after.разом) + ' — «бери більше, плати більше»');
 }
 try{ fs.unlinkSync(VH); }catch(e){}
 

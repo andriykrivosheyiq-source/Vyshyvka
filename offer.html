@@ -149,13 +149,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Ціна ліворуч, термін праворуч — два числа, які клієнт звіряє між собою */
   .prow{display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
     margin-top:16px;}
-  .prow-l{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;}
-  .prow-r{text-align:right; flex:none;}
-  /* Один стиль для всіх підписів у картці: раніше «Пакет», «Виготовлення»
+  .prow-l{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;}  /* Один стиль для всіх підписів у картці: раніше «Пакет», «Виготовлення»
      і підказка про тираж були трьома різними шрифтами. */
   .prow-k, .ppack-k{display:block; font-size:var(--fs-1); font-weight:600; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted); margin:0 0 6px;}
-  .prow-v{display:block; font-size:var(--fs-3); font-weight:600; white-space:nowrap;}/* Кнопка замість галочки: дія має виглядати як дія */
+    text-transform:uppercase; color:var(--muted); margin:0 0 6px;}/* Кнопка замість галочки: дія має виглядати як дія */
   .pcard-head{display:block;}
   .pbuy-row{display:flex; align-items:center; gap:10px; margin-top:16px;}
   .pbuy-row .pstep{margin-top:0; flex:none;}
@@ -764,9 +761,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
      Завжди дві в ряд, скільки б їх не було: третя йде в другий рядок,
      п'ята — у третій. Чотири в ряд на широкому екрані робили картки
-     дрібними рівно там, де місця найбільше. */
-  .rrow{display:grid; grid-template-columns:repeat(2,1fr); gap:2px;
-    margin-left:calc(var(--pad) * -1); margin-right:calc(var(--pad) * -1);}
+     дрібними рівно там, де місця найбільше.
+
+     Картки стоять у полях сторінки, а не від краю до краю. Впритул до краю
+     фото «заїжджало» за екран і сперечалось із рештою сторінки, у якої
+     поля є скрізь. Проміжок між колонками — щоб дві картки читались як
+     дві, а не як одна розрізана. */
+  .rrow{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
   .rc{position:relative; display:flex; flex-direction:column; background:#fff;
     transition:.15s;}
   /* position тут обов'язковий: плашка з відсотком лягає на ФОТО, а без
@@ -874,7 +875,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      складного рахунку. */
   .est-i-sub{font-size:var(--fs-2); color:rgba(255,255,255,.5); line-height:1.4; margin-top:2px;}
   .est-i-mul{font-size:var(--fs-2); color:rgba(255,255,255,.72);
-    font-variant-numeric:tabular-nums;}
+    font-variant-numeric:tabular-nums;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  /* Кількість міняють просто тут: замовлення людина зводить у кошторисі, і
+     повертатись до картки заради однієї штуки їй немає сенсу. */
+  .est-q{display:inline-flex; align-items:center; gap:2px; flex:none;
+    border:1px solid rgba(255,255,255,.22); border-radius:var(--r-pill); padding:2px;}
+  .est-q-b{width:28px; height:28px; flex:none; border:none; background:none; color:#fff;
+    font-size:var(--fs-3); line-height:1; border-radius:var(--r-pill); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;}
+  @media (hover:hover){ .est-q-b:hover{background:rgba(255,255,255,.12);} }
+  .est-q-b[disabled]{opacity:.35; cursor:default;}
+  .est-q-v{min-width:30px; text-align:center; font-size:var(--fs-3); font-weight:600;
+    color:#fff; font-variant-numeric:tabular-nums;}
   .est-i-sum{font-size:var(--fs-4); font-weight:600; font-variant-numeric:tabular-nums;
     white-space:nowrap; text-align:right; line-height:1.35; padding-top:2px;}
   @media (min-width:640px){
@@ -882,7 +895,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
        одною рівним стовпчиком, як у рахунку, а не «десь праворуч». */
     .est-i{grid-template-columns:120px minmax(0,1fr) 150px 130px;
       grid-template-areas:'ph name mul sum'; gap:20px; padding:20px 0;}
-    .est-i-mul{text-align:right; padding-top:2px;}
+    .est-i-mul{text-align:right; padding-top:2px;
+      flex-direction:column; align-items:flex-end; gap:6px;}
   }
 
   /* ── Підсумок ──
@@ -905,6 +919,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (min-width:640px){ .est-pay b{font-size:var(--fs-8);} }
 
   /* ── Що входить ── */
+  /* Підказка про поріг: зелена, як і будь-яка вигода на сторінці, і одразу
+     під сумою — саме там, де людина вирішує, чи додавати. */
+  .est-more{margin-top:12px; padding:12px 16px; border-radius:var(--r-2);
+    background:rgba(14,159,110,.14); color:#7FE0B0;
+    font-size:var(--fs-2); line-height:1.45;}
+  .est-more b{color:#fff; font-weight:600; font-variant-numeric:tabular-nums;}
   .est-inc{margin-top:20px; font-size:var(--fs-2); line-height:1.55; color:rgba(255,255,255,.55);}
   .est-left{margin-top:10px; font-size:var(--fs-2); line-height:1.55; color:rgba(255,255,255,.55);}
 
@@ -995,19 +1015,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      суцільною стіною тексту; підпис відповідає на «а що там усередині»,
      щоб не доводилось розкривати навмання. */
   .fr>summary, .fr-link{list-style:none; cursor:pointer; display:flex;
-    align-items:center; gap:12px; padding:12px 2px; color:var(--ink);
+    align-items:center; gap:12px; padding:16px 2px; color:var(--ink);
     text-decoration:none; -webkit-tap-highlight-color:transparent;}
   .fr>summary::-webkit-details-marker{display:none;}
-  .fr-ic{flex:none; width:44px; height:44px; border-radius:var(--r-3);
-    background:var(--soft); color:var(--ink-2);
-    display:flex; align-items:center; justify-content:center;}
-  .fr-t{flex:1; min-width:0; font-size:var(--fs-4); font-weight:500;
+  .fr-t{flex:1; min-width:0; font-size:var(--fs-3); font-weight:500;
     line-height:1.3; color:var(--ink);}
   .fr-a{display:flex; align-items:center; gap:6px; font-size:var(--fs-2);
     font-weight:600; color:var(--muted); white-space:nowrap;}
-  .fr-a .rev-st{margin:0; line-height:1; display:inline-flex; align-items:center;}
-  .fr-a .rev-sc{line-height:1;}
-  /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
+  .fr-a .rev-st{margin:0; line-height:1; display:inline-flex; align-items:center;}  /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
      і «тут ще є», і «зараз відкрито». Посилання не повертається — воно не
      розкривається, а веде. */
   .fr>summary::after, .fr-link::after{content:''; flex:none; width:11px; height:11px;
@@ -1049,14 +1064,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Оцінка праворуч від назви, під рядком — смужка фото робіт. Саме фото й
      переконує: текст під ним читає той, кому цього замало. */
   .rev-sc{font-size:var(--fs-4); font-weight:600; color:var(--ink);}
-  .rev-st{color:#FFC53D; font-size:var(--fs-3); letter-spacing:1px;}
-  .rev-strip{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
-    -webkit-overflow-scrolling:touch; padding:2px 0 20px;}
-  .rev-strip::-webkit-scrollbar{display:none;}
-  .rev-strip i{flex:0 0 auto; width:120px; height:120px; border-radius:var(--r-3);
-    overflow:hidden; background:var(--soft); cursor:zoom-in;}
-  .rev-strip img{width:100%; height:100%; object-fit:cover; display:block;}
-  @media (min-width:640px){ .rev-strip i{width:150px; height:150px;} }
+  .rev-st{color:#FFC53D; font-size:var(--fs-3); letter-spacing:1px;}@media (min-width:640px){}
 
   /* ── Згорнутий хвіст сторінки ────────────────────────────────────────
      Етапи, гарантії, проєкти, відгуки й питання — одним списком у стилі
@@ -4043,39 +4051,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       out.push((it.prints || []).length + ' нанесення');
     return out.join(' · ');
   }
-  /* Ціну на наступному порозі рахуємо ТУТ І ЗАРАЗ, тим самим рушієм і в
-     тому самому складі, що й ціну на картці.
-
-     Доти вона бралась із it.tiers — знімка, який адмінка зробила під час
-     збереження. Склад пропозиції відтоді міг змінитись: клієнт додав
-     рекомендований товар, обрав інший варіант, покрутив кількості. Разова
-     підготовка макета ділиться на весь тираж способу, тож будь-яка з цих
-     дій міняє ціну КОЖНОЇ позиції — а знімок лишався старим. Через це
-     обіцянка «від 10 шт — 761 грн» не збігалась із 874 грн, які клієнт
-     бачив, набравши ті самі 10; а подекуди поріг виходив ДОРОЖЧИМ за
-     поточну ціну, тобто «бери більше — плати більше».
-
-     Пороги (самі числа кількостей) лишаються з it.tiers: який тираж
-     пропонувати — рішення менеджера. Ціну на ньому рахуємо самі. І якщо
-     на порозі не дешевше — рядка немає взагалі: обіцянка без вигоди гірша
-     за її відсутність. */
+  /* Ціна позиції на іншій кількості — тим самим прогоном і в тому самому
+     складі, що й ціна на картці. Потрібно, щоб підказка про поріг у
+     кошторисі обіцяла рівно те, що клієнт отримає, а не число зі знімка,
+     збереженого колись адмінкою. */
   function tierUnitAt(kind, i, q){
     var lp = livePrices({ kind: kind, i: i, units: q });
     var box = lp && (kind === 'variant' ? lp.vars : lp[kind]);
     var r = box && box[i];
     return (r && r.unit) || null;
   }
-  function nextTierHtml(it, qty, kind, idx){
-    var next = (it && it.tiers || [])
-      .filter(function(t){ return t && +t.qty > qty; })
-      .sort(function(a, b){ return a.qty - b.qty; })[0];
-    if(!next) return '';
-    var unit = (kind != null && idx != null) ? tierUnitAt(kind, idx, +next.qty) : null;
-    if(unit == null) unit = +next.unit || 0;      // немає рушія — старий шлях
-    var now = curUnit(kind, idx, it);
-    if(!(unit > 0) || (now > 0 && unit >= now)) return '';
-    return '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(unit) + '/шт</div>';
+  /* ── Підказка про найближчий поріг ────────────────────────────────────
+     Один рядок під сумою: скількох одиниць бракує до наступної сходинки
+     тиражу і скільки клієнт на цьому зекономить.
+
+     Доти те саме стояло в КОЖНІЙ картці рядком «Від 20 шт — 677 грн/шт».
+     Там воно казало ціну за штуку окремої позиції, хоч поріг рахується від
+     ЗАГАЛЬНОЇ кількості виробів по способу нанесення, — і людина не мала
+     як зрозуміти, скільки ж треба додати. Тут вона бачить це поруч із
+     фінальною сумою, одним реченням і в гривнях.
+
+     Обіцяємо рівно те, що клієнт побачить у рядку «Разом»: перераховуємо
+     все замовлення на новій кількості, з оплатою доданих одиниць, і беремо
+     різницю. Коли поріг близько, штука дешевшає сильніше, ніж коштують
+     додані вироби, — і підсумок падає попри те, що товару більше. Коли не
+     падає, рядка немає зовсім. */
+  function ladderFor(k){
+    var P = (window.SITE_CONTENT && window.SITE_CONTENT.pricing) || OFFER.pricing || {};
+    if(k === 'bare') return P.garmentTiers || P.tiers || [];
+    var m = (P.methods || {})[k] || {};
+    return (m.tiers && m.tiers.length) ? m.tiers : (P.tiers || []);
   }
+  function nextStepHint(){
+    if(!LIVE) return '';
+    /* Скільки одиниць у кожній «поличці» зараз і яку основну позицію
+       нарощувати, щоб до цієї полички додати. */
+    var U = { dtf:0, embro:0, bare:0 }, rep = {};
+    var add = function(desc, qty, kind, i){
+      if(!desc) return;
+      var k = desc.bare ? 'bare' : (desc.method === 'embro' ? 'embro' : 'dtf');
+      U[k] += qty;
+      if(kind === 'main' && rep[k] == null) rep[k] = i;
+    };
+    (OFFER.items || []).forEach(function(it, i){
+      if(isOn(i) && it.desc) add(it.desc, baseQty(i), 'main', i);
+    });
+    variantPicked().forEach(function(vi){
+      var v = (OFFER.variants || [])[vi];
+      if(v && v.desc) add(v.desc, baseVarQty(vi), 'variant', vi);
+    });
+    (OFFER.reco || []).forEach(function(r, i){
+      if(pick.reco[i] && r.desc) add(r.desc, baseRecoQty(i), 'reco', i);
+    });
+
+    var now = totals();
+    var best = null;
+    Object.keys(U).forEach(function(k){
+      if(!U[k] || rep[k] == null) return;
+      var from = ladderFor(k)
+        .map(function(t){ return +t.from || 0; })
+        .filter(function(f){ return f > U[k]; })
+        .sort(function(a, b){ return a - b; })[0];
+      if(!from) return;
+      var need = from - U[k];
+      if(need > 60) return;                       // далекий поріг не обіцянка
+      var lp = livePrices({ kind:'main', i:rep[k], units: baseQty(rep[k]) + need });
+      if(!lp) return;
+      /* Рахуємо не «наскільки подешевшає штука», а скільки стане в
+         підсумку — з урахуванням того, що доданих одиниць теж треба
+         оплатити. Різниця в ціні за штуку виглядає більшою, але клієнт
+         дивиться на «Разом»; обіцяти йому цифру, якої там не буде, — те
+         саме, чим грішив рядок «Від 20 шт» у картках. */
+      var nxt = 0;
+      (OFFER.items || []).forEach(function(it, i){
+        if(!isOn(i)) return;
+        var was = itemState(i), nw = lp.main[i];
+        var q = (i === rep[k]) ? was.qty + need : was.qty;
+        nxt += q * ((nw && nw.unit) ? Math.round(nw.unit) : was.unit);
+      });
+      variantPicked().forEach(function(vi){
+        var was = varState(vi), nw = lp.vars && lp.vars[vi];
+        nxt += was.qty * ((nw && nw.unit) ? Math.round(nw.unit) : was.unit);
+      });
+      (OFFER.reco || []).forEach(function(r, i){
+        if(!pick.reco[i]) return;
+        var was = recoState(i), nw = lp.reco && lp.reco[i];
+        nxt += was.qty * ((nw && nw.unit) ? Math.round(nw.unit) : was.unit);
+      });
+      var save = Math.round(now.sum - nxt);
+      /* Дрібна вигода — не привід просити докупити: сто гривень на
+         замовлення в десятки тисяч читається як знущання. А якщо підсумок
+         не падає зовсім, підказки просто немає: «додайте більше і
+         заплатіть більше» — не пропозиція. */
+      if(save < 100 || save < now.sum * 0.01) return;
+      if(!best || need < best.need || (need === best.need && save > best.save))
+        best = { need: need, save: save };
+    });
+    if(!best) return '';
+    return '<div class="est-more">Додайте ще <b>' + best.need + ' ' +
+      plural(best.need, 'одиницю', 'одиниці', 'одиниць') +
+      '</b> — і все замовлення вийде на <b>' + money(best.save) +
+      '</b> дешевше, ніж зараз</div>';
+  }
+
   /* Поточна ціна за штуку тієї самої позиції — щоб було з чим порівняти. */
   function curUnit(kind, idx, it){
     if(kind === 'main') return itemState(idx).unit;
@@ -4137,7 +4215,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         /* Один напис на всі види карток: доти в основних позиціях стояло
            «Від 30 шт — 980 грн», а у варіантах інше — два різні тексти для
            того самого в одному документі. */
-        nextTierHtml(it, st.qty, 'main', i) +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
@@ -4221,7 +4298,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
                     : '<span class="pcard-per">за штуку</span>') +
                 '</div></div>' +
-                nextTierHtml(v, st.qty, 'variant', i) + staleNote(v) +
+                staleNote(v) +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
@@ -4328,7 +4405,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    позиції його теж немає — а поруч вони мають виглядати
                    однаково, це той самий товар, лише запропонований нами. */
               '</div>' +
-              nextTierHtml(r, rs.qty, 'reco', i) + staleNote(r) +
+              staleNote(r) +
               '<div class="pbuy-row">' +
                 '<div class="pstep">' +
                   '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
@@ -4401,20 +4478,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var st = itemState(i);
       rows.push({ th:(it.mockups||[])[0], all:(it.mockups||[]).filter(Boolean),
                   name:it.name, sub:it.print || '', qty:st.qty, unit:st.unit,
-                  sum:st.sum, reco:false, base:st.base });
+                  sum:st.sum, reco:false, base:st.base, kind:'main', idx:i });
     });
     OFFER.reco.forEach(function(r, i){
       if(!pick.reco[i]) return;
       var rs = recoState(i);
       rows.push({ th:(r.mockups||[])[0], all:(r.mockups||[]).filter(Boolean),
                   name:r.name, sub:r.print || '', qty:rs.qty, unit:rs.unit,
-                  sum:rs.sum, reco:true, base:rs.base });
+                  sum:rs.sum, reco:true, base:rs.base, kind:'reco', idx:i });
     });
     variantPicked().forEach(function(vi){
       var v = OFFER.variants[vi], vs = varState(vi);
       rows.push({ th:(v.mockups||[])[0], all:(v.mockups||[]).filter(Boolean),
                   name:v.name, sub:v.print || '', qty:vs.qty, unit:vs.unit,
-                  sum:vs.sum, reco:false, base:vs.base });
+                  sum:vs.sum, reco:false, base:vs.base, kind:'variant', idx:vi });
     });
     var num = function(n){ return Math.round(+n || 0).toLocaleString('uk-UA').replace(/\s/g,' '); };
     /* Ціна за штуку без знижки за тираж. Потрібна рівно для ОДНОГО рядка
@@ -4463,7 +4540,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 /* Окремою клітинкою сітки, а не всередині назви: інакше на
                    широкому екрані «4 × 1 450 грн» лишалось у колонці назви,
                    і числа не сходились у стовпчик. */
-                '<div class="est-i-mul">' + r.qty + ' × ' + num(r.unit) + ' грн</div>' +
+                '<div class="est-i-mul">' +
+                  '<span class="est-q">' +
+                    '<button class="est-q-b" data-eq="' + r.kind + ':' + r.idx +
+                      '" data-d="-1" aria-label="Менше"' +
+                      (r.qty <= 1 ? ' disabled' : '') + '>−</button>' +
+                    '<span class="est-q-v">' + r.qty + '</span>' +
+                    '<button class="est-q-b" data-eq="' + r.kind + ':' + r.idx +
+                      '" data-d="1" aria-label="Більше">+</button>' +
+                  '</span>' +
+                  '<span>× ' + num(r.unit) + ' грн</span>' +
+                '</div>' +
                 '<div class="est-i-sum">' + num(r.sum) + ' грн</div>' +
               '</div>';
             }).join('') +
@@ -4479,6 +4566,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               : '') +
             '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
           '</div>' +
+          nextStepHint() +
           /* Нанесення, макет і контроль якості вже сидять у ціні за штуку.
              Окремими фінансовими рядками вони б лише вдруге проговорили те
              саме й повернули відчуття складного рахунку. */
@@ -4818,28 +4906,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Рядок «Відгуки · 4.9 ★★★★★ ›», а під ним смужка фото робіт — точно як у
      картці товару на сайті. Фото видно одразу: це і є доказ, і саме воно
      змушує розкрити рядок, а не навпаки. */
-  function revsRow(){
-    var list = (SITE_REVIEWS || SITE_BUILTIN || []).filter(Boolean);
-    if(!list.length) return '';
-    /* Оцінка — та сама, що показує сайт. Рахувати середню з восьми відгуків,
-       вшитих у сторінку, не можна: всі вони пʼятірки, і виходило рівне
-       «5,0», якого немає ніде більше. Сайт і пропозиція мають казати одне
-       число, інакше клієнт побачить розбіжність за один перехід. */
-    var aside = '<b class="rev-sc">' + SITE_RATING.toFixed(1).replace('.', ',') + '</b>' +
-                '<span class="rev-st">★★★★★</span>';
-    /* Не розкриваємо стрічку карток у самій пропозиції: відгуки живуть на
-       сайті, і там їх видно всі, зі своїм блоком і своїм оформленням.
-       Тут рядок каже оцінку, показує роботи — і веде туди. */
-    var strip = list.filter(function(r){ return r.photo; }).slice(0, 8);
-    return foldLink('Відгуки', reviewsUrl(), aside, 'revs') +
-      (strip.length
-        ? '<div class="rev-strip" id="revStrip">' + strip.map(function(r){
-            return '<i data-estzoom="' + esc(strip.map(function(x){ return x.photo; }).join('|')) +
-              '"><img src="' + esc(r.photo) + '" alt="Робота для клієнта" loading="lazy" ' +
-              'onerror="this.parentNode.style.display=\'none\'"></i>';
-          }).join('') + '</div>'
-        : '');
-  }
   /* Окремої «міні-картки» відгуку більше немає: оцінка переїхала в сам
      рядок списку, а фото — у смужку під ним. Див. revsRow. */
   function faqHtml(){
@@ -4955,36 +5021,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Рядок, який не розкривається, а веде. Виглядає точно так само —
      інакше людина не зрозуміє, чому один пункт відкривається на місці, а
      інший забирає її на іншу сторінку. */
-  function foldLink(title, href, aside, ic){
+  function foldLink(title, href, aside){
     return '<a class="fr fr-link" href="' + esc(href) + '" target="_blank" rel="noopener">' +
-      frHead(ic || 'faq', title, aside) + '</a>';
+      '<span class="fr-t">' + esc(title) + '</span>' +
+      (aside ? '<span class="fr-a">' + aside + '</span>' : '') + '</a>';
   }
-  /* Іконка на плитці ліворуч. Око чіпляється за неї раніше, ніж читає
-     назву, — і шість однакових рядків перестають бути суцільною стіною
-     тексту. Лінійні знаки, а не емодзі: емодзі малюються по-різному на
-     кожній системі, а на світлій плитці вони ще й строкаті. */
-  var FR_IC = {
-    flow:  '<path d="M5 6h14M5 12h9M5 18h14"/><circle cx="18.5" cy="12" r="2.5"/>',
-    trust: '<path d="M12 3.5 19 6v6c0 4-3 6.6-7 8.5C8 18.6 5 16 5 12V6Z"/><path d="m9 12 2 2 4-4"/>',
-    terms: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20Z"/><path d="M14 3.5V8h4M10 13h5M10 16.5h5"/>',
-    works: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m6 16 3.5-4 3 3L16 11l2.5 3"/><circle cx="9" cy="9.5" r="1.2"/>',
-    revs:  '<path d="M12 4.5l2.3 4.7 5.2.8-3.7 3.6.9 5.1-4.7-2.4-4.7 2.4.9-5.1L4.5 10l5.2-.8Z"/>',
-    faq:   '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 16.5h.01"/>'
-  };
-  function frIc(k){
-    return '<span class="fr-ic"><svg width="20" height="20" viewBox="0 0 24 24" ' +
-      'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" ' +
-      'stroke-linejoin="round">' + (FR_IC[k] || FR_IC.faq) + '</svg></span>';
-  }
-  function frHead(ic, title, aside){
-    return frIc(ic) + '<span class="fr-t">' + esc(title) + '</span>' +
-      (aside ? '<span class="fr-a">' + aside + '</span>' : '');
-  }
-  function foldRow(title, body, open, aside, ic){
+  function foldRow(title, body, open, aside){
     if(!body) return '';
     return '<details class="fr"' + (open ? ' open' : '') + '>' +
-      '<summary>' + frHead(ic || 'faq', title, aside) + '</summary>' +
-      '<div class="fr-b">' + body + '</div></details>';
+      '<summary><span class="fr-t">' + esc(title) + '</span>' +
+        (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
+      '</summary><div class="fr-b">' + body + '</div></details>';
   }
   /* Після кошторису — не сайт, а рівно те, що знімає останній сумнів.
      Чотири конкретні гарантії відкрито, оцінка й ОДИН відгук, а процес,
@@ -4993,21 +5040,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      тримала палець над кнопкою. */
   function detailsHtml(){
     var rows = '';
-    rows += foldRow('Як проходитиме замовлення', flowInner(), false, '', 'flow');
+    rows += foldRow('Як проходитиме замовлення', flowInner(), false);
     rows += foldRow('Замовлення без зайвих ризиків',
       '<ul class="tru-l">' + TRUST.map(function(t){
         return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-      }).join('') + '</ul>', false, '', 'trust');
-    rows += foldRow('Умови замовлення', condInner(), false, '', 'terms');
-    rows += foldRow('Реалізовані проєкти', casesInner(), false, '', 'works');
-    /* Відгуки — рядок із оцінкою праворуч, а під ним смужка фото робіт, яку
-       видно без розкриття. Оцінка й фото — це і є доказ; текст під ними
-       читає той, кому цього замало. */
-    rows += revsRow();
+      }).join('') + '</ul>', false);
+    rows += foldRow('Умови замовлення', condInner(), false);
+    rows += foldRow('Реалізовані проєкти', casesInner(), false);
+    /* Рядка «Відгуки» тут більше немає — і смужки фото робіт під ним теж.
+       Прибрано на прохання: відгуки живуть на сайті, і вести туди зі
+       сторінки, де людина вже дочитала суму, означає забирати її з неї. */
     /* Питання йдуть окремими рядками того ж списку, а не вкладеною
        гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
     rows += faqList().map(function(q){
-      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false, '', 'faq');
+      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
     }).join('');
     if(!rows) return '';
     /* Заголовок над списком: без нього блок починався одразу рядками й
@@ -6063,6 +6109,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var i = +b.dataset.rq, d = +b.dataset.d;
         pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
         refresh();
+      };
+    });
+    /* Лічильник у самому кошторисі. Замовлення людина зводить тут: бачить
+       усі позиції разом і суму під ними. Доти щоб додати одну штуку, треба
+       було знайти ту саму позицію вище й повернутись назад — а між тим
+       кількість міняє ціну ВСІХ позицій способу, тож підсумок усе одно
+       читають звідси. */
+    document.querySelectorAll('[data-eq]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      b.onclick = function(){
+        var p = String(b.dataset.eq).split(':'), kind = p[0], i = +p[1], d = +b.dataset.d;
+        var q, nm;
+        if(kind === 'reco'){
+          q = pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
+          nm = (OFFER.reco[i] || {}).name;
+        }else if(kind === 'variant'){
+          q = pick.varQty[i] = Math.max(1, varState(i).qty + d);
+          nm = (OFFER.variants[i] || {}).name;
+        }else{
+          q = Math.max(1, itemState(i).qty + d);
+          nm = (OFFER.items[i] || {}).name;
+          /* У режимі редагування лічильник править саме замовлення, а не
+             робить клієнтський вибір — так само, як на картці. */
+          if(EDIT){ edSend({ act:'qty', kind:'main', i:i, v:q }); return; }
+          pick.qty[i] = q;
+        }
+        refresh();
+        queueSave('qty', nm + ' → ' + q + ' шт');
       };
     });
     // Галочка «беру цю позицію»
