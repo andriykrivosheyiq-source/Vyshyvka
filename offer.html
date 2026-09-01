@@ -337,23 +337,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
 
   /* Проєкти */
-  .cases{display:grid; grid-template-columns:1fr; gap:12px;}
-  .case{border:1px solid var(--line); border-radius:var(--r-4); overflow:hidden; background:#fff;}
-  .case-ph{height:132px; background:#F1F4F8;}
-  .case-ph img{width:100%; height:100%; object-fit:cover; display:block;}
-  .case-n{font-weight:600; font-size:var(--fs-3); padding:12px 16px 0;}
-  .case-q{font-size:var(--fs-2); color:var(--muted); padding:2px 16px 0;}
-  .case-t{font-size:var(--fs-2); color:var(--ink); padding:6px 16px 16px;}
-  /* FAQ */
-  .fq{border:1px solid var(--line); border-radius:var(--r-3); background:#fff; margin-bottom:8px;
-    overflow:hidden;}
-  .fq summary{padding:16px 16px; font-size:var(--fs-3); font-weight:600; cursor:pointer;
-    list-style:none; display:flex; justify-content:space-between; gap:10px;}
-  .fq summary::-webkit-details-marker{display:none;}
-  .fq summary::after{content:"+"; color:var(--muted); font-weight:400; font-size:18px; line-height:1;}
-  .fq[open] summary::after{content:"–";}
-  .fq-a{padding:0 16px 16px; font-size:var(--fs-2); color:var(--muted); line-height:1.55;}
-  @media (min-width:560px){
+  .cases{display:grid; grid-template-columns:1fr; gap:12px;}@media (min-width:560px){
     .cases{grid-template-columns:1fr 1fr 1fr;}
   }.btn{display:flex; align-items:center; justify-content:center; gap:8px;
     width:100%; padding:16px 20px; border-radius:var(--r-3); font-size:var(--fs-3); font-weight:600;
@@ -884,8 +868,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      це підпис до неї, з чого склалась сума. Раніше воно жило в окремому
      рядку під фотографією: між назвою і множенням зяяла порожнеча заввишки
      з фото, і рядок читався як випадково кинутий. */
+  /* Рядок із кількістю розтягнутий на обидві колонки — назви й суми. У
+     колонці назви йому лишалось ~80px, і «× 940 грн» зривалось під
+     лічильник другим рядком: людина бачила кількість і ціну за штуку як
+     два різні факти, хоч це одне множення. */
   .est-i{display:grid; grid-template-columns:120px minmax(0,1fr) auto;
-    grid-template-areas:'ph name sum' 'ph mul sum';
+    grid-template-areas:'ph name sum' 'ph mul mul';
     /* Другий рядок — 1fr: зайву висоту, яку додає фото, забирає він, а не
        рядок із назвою. Інакше назву відносило вгору, а множення — вниз, і
        між ними зяяла порожнеча. */
@@ -963,6 +951,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ── Дії ── */
   .est-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:24px;}
   .est-cta .btn{flex:1 1 200px;}
+  /* Своїм рядком під головною кнопкою, на всю ширину: у спільному рядку дві
+     кнопки однакової ваги читались би як вибір із двох. */
+  .est-cta-share{flex:1 1 100% !important; display:inline-flex; align-items:center;
+    justify-content:center; gap:8px;}
+  .est-cta-share svg{flex:none;}
   /* Другорядна кнопка на темному тлі мусить бути темною: біла заливка тут
      важча за помаранчеву й перетягує на себе головну дію. */
   .est-cta .btn-ghost{background:transparent; color:#fff;
@@ -1107,24 +1100,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Головне значення велике й читається без читання: щоб дізнатись термін,
      не треба доходити до кінця речення. Підпис під ним пояснює, ЩО це за
      цифра, третій рядок — деталь для тих, кому вона потрібна. */
-  .cond-g{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .cond-c{border:1px solid var(--line); border-radius:var(--r-3); background:#fff;
-    padding:16px 16px 16px; min-width:0;}
-  .cond-v{font-size:var(--fs-4); font-weight:600; letter-spacing:-0.5px; line-height:1.2;
-    font-variant-numeric:tabular-nums;}
-  .cond-k{font-size:var(--fs-1); font-weight:600; letter-spacing:.6px; text-transform:uppercase;
-    color:var(--muted); margin-top:6px;}
-  .cond-n{font-size:var(--fs-2); color:var(--ink-2); line-height:1.45; margin-top:6px;}
-  /* Документи — не пʼята картка, а рядок: це не умова цього замовлення, а
+  .cond-g{display:grid; grid-template-columns:1fr 1fr; gap:10px;}/* Документи — не пʼята картка, а рядок: це не умова цього замовлення, а
      те, як ми працюємо взагалі. */
   .cond-doc{display:flex; gap:8px; align-items:center; margin-top:12px;
-    font-size:var(--fs-2); color:var(--muted);}
-  .cond-doc svg{flex:none; color:var(--good);}
-  @media (min-width:660px){
-    .cond-g{grid-template-columns:repeat(4,1fr);}
-    .cond-v{font-size:var(--fs-5);}
-    .cond-c{padding:20px 16px 16px;}
-  }
+    font-size:var(--fs-2); color:var(--muted);}  @media (min-width:660px){}
 
   /* ── Під нашим контролем ────────────────────────────────────────────
      Пʼять рядків із тонкою галочкою. Без карток і без рамок: це не пʼять
@@ -1135,6 +1114,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .tru-l li{display:flex; gap:10px; align-items:flex-start; font-size:var(--fs-3);
     color:var(--ink-2); line-height:1.45;}
   .tru-l svg{flex:none; margin-top:2px; color:var(--good);}
+  /* Назва гарантії темна, пояснення під нею — сіре й окремим рядком: у
+     суцільному реченні око не відрізняє обіцянку від її умов. */
+  .tru-l b{display:block; font-weight:600; color:var(--ink);}
+  .tru-l i{display:block; font-style:normal; color:var(--muted); margin-top:2px;}
+  .tru-n{font-size:var(--fs-3); color:var(--muted); line-height:1.5;
+    margin:16px 0 0; padding-top:16px; border-top:1px solid var(--line);}
 
   /* ── менеджер ── */
   .mgr{display:flex; gap:16px; align-items:center; background:var(--soft);
@@ -1146,18 +1131,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      Списку «Рахунок → Макет → Виготовлення» тут більше немає — він
      переказував таймлайн вище. Лишились три речі: що станеться, кнопка,
      і чого НЕ станеться. */
-  .cta-wrap{border-top:none; padding:0;}
-  .cta-box{background:#14171B; color:#fff; border:none; border-radius:0;
-    padding:40px var(--pad) 34px; text-align:center;
-    margin:26px calc(var(--pad) * -1) 0;}
-  .cta-h{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.6px; line-height:1.2;
-    margin:0 auto 12px; max-width:26ch; text-wrap:balance;}
-  /* Текст лишається вузьким — довгий рядок читається найгірше саме там,
+  .cta-wrap{border-top:none; padding:0;}/* Текст лишається вузьким — довгий рядок читається найгірше саме там,
      де має читатися найкраще. */
   .cta-p{font-size:var(--fs-3); line-height:1.55; color:rgba(255,255,255,.7);
-    margin:0 auto 24px; max-width:44ch;}
-  .final{display:grid; gap:10px; padding-bottom:0; max-width:420px; margin:0 auto;}
-  /* Рядок під кнопкою знімає той самий страх, через який палець над нею й
+    margin:0 auto 24px; max-width:44ch;}  /* Рядок під кнопкою знімає той самий страх, через який палець над нею й
      завмирає: що замовлення піде у виробництво без клієнта. */
   .cta-note{font-size:var(--fs-2); line-height:1.5; color:rgba(255,255,255,.5);
     margin:12px auto 0; max-width:40ch;}
@@ -1165,21 +1142,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      тягне на себе увагу й дає привід не вирішувати. */
   /* Другий заклик — половина зросту першого: він для тих, хто вже
      переконався, і переконувати вдруге його завдання не входить. */
-  .cta-last .cta-box{padding:30px var(--pad) 28px; margin-top:0;}
-  .cta-last .cta-h{margin-bottom:16px;}
-  @media (min-width:660px){ .cta-last .cta-box{padding:36px var(--pad) 32px;}
- }
-  .cta-share{display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    margin-top:24px; padding:8px 4px; font:inherit; font-size:var(--fs-2); font-weight:600;
-    color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.18);
-    transition:.15s;}@media (hover:hover){
-  .cta-share:hover{color:#fff; border-color:rgba(255,255,255,.45);}}
-  .cta-share.done{color:#7FE0B0; border-color:rgba(127,224,176,.5);}
-  .cta-share svg{flex:none; width:15px; height:15px;}
-  @media (min-width:660px){
-    .cta-box{padding:52px var(--pad) 44px;}
-    .cta-h{font-size:var(--fs-6);}
-  }
+  .cta-last .cta-box{padding:30px var(--pad) 28px; margin-top:0;}  @media (min-width:660px){ }@media (hover:hover){}@media (min-width:660px){}
 
   /* ── підтверджено ── */
   .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:var(--r-3);
@@ -4611,12 +4574,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             return '<div class="est-left">Не додано: ' + esc(left.join(', ')) +
               '. Ціну видно в картці — натисніть «Додати», і сума перерахується.</div>';
           })() +
-          /* Одна кнопка. «Завантажити PDF» стояла поруч і важила стільки ж,
-             скільки дія, заради якої написана вся сторінка; переслати
-             кошторис тепер можна кнопкою «Поділитися» в шапці. Стрілка
-             біля напису теж пішла: кнопка й так очевидно кнопка. */
+          /* Головна дія одна, і вона помаранчева. «Поділитися» стоїть під
+             нею окремим рядком, прозорою: пропозицію майже завжди
+             пересилають — керівнику, бухгалтеру, партнеру, — і шукати для
+             цього кнопку в шапці людині ніколи. Поруч, у той самий рядок,
+             її ставити не можна: дві кнопки однакової ширини читаються як
+             вибір із двох, хоч вибір тут один. */
           '<div class="est-cta">' +
             '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію</button>' +
+            '<button class="btn btn-ghost est-cta-share" id="shareBtn">' + SHARE_IC +
+              'Поділитися</button>' +
           '</div>' +
         '</div>' +
         mgrCalcAllHtml() +
@@ -4703,26 +4670,20 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      розуміє процес. Другий етап названо «Макет», а не «Підготовка» — це те
      єдине, що клієнт робить руками, і воно має називатись своїм імʼям. */
   var FLOW = [
-    ['Погодження',      'Звіряємо склад, тираж і терміни'],
-    ['Макет',           'Готуємо й погоджуємо з вами до запуску'],
-    ['Виробництво',     'Шиємо й наносимо після вашого «так»'],
-    ['Контроль якості', 'Перевіряємо кожну одиницю партії'],
-    ['Доставка',        'Надсилаємо фото готового і відправляємо']
+    ['Погодження замовлення',
+     'Фіксуємо моделі, кількість, розміри, макет та вартість.'],
+    ['Виготовляємо тестовий зразок',
+     'Перед запуском партії погоджуємо його з вами за фото або надсилаємо ' +
+     'фізичний зразок.'],
+    ['Виробництво',
+     'Після погодження запускаємо партію.'],
+    ['Контроль якості',
+     'Перевіряємо кожен готовий виріб: якість пошиття, нанесення та ' +
+     'відповідність погодженому зразку.'],
+    ['Доставка',
+     'Надсилаємо фото готового замовлення та відправляємо партію.']
   ];
 
-  // ЗАГЛУШКА: замінити реальними проєктами (фото, компанія, тираж, результат)
-  // Кейси і часті питання беремо ЛИШЕ з документа пропозиції. Вигадані
-  // «Компанія А · 120 виробів» читаються як шаблон із інтернету, і недовіра
-  // переноситься на всю пропозицію разом із цінами. Порожньо краще за фальшиве:
-  // поки менеджер не заповнив — блоки просто не показуються.
-  // Функціями, а не змінними: на момент розбору скрипта OFFER ще null, і
-  // константи назавжди лишились би порожніми навіть після заповнення в адмінці.
-  function casesList(){ return (OFFER && OFFER.cases) || []; }
-  function faqList(){
-    return ((OFFER && OFFER.faq) || []).map(function(q){
-      return Array.isArray(q) ? q : [q && q.q, q && q.a];
-    }).filter(function(q){ return q[0] && q[1]; });
-  }
 
   /* Етапи однією лінією, а не пʼятьма картками. Картки читались як пʼять
      окремих блоків і ховали головне — що це послідовність. Тепер номер
@@ -4770,21 +4731,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '</section>';
   }
 
-  function casesInner(){
-    var CASES = casesList();
-    if(!CASES.length) return '';
-    return '' +
-        '<div class="cases">' + CASES.map(function(c){
-          return '<div class="case">' +
-            '<div class="case-ph">' + (c.photo
-              ? '<img src="' + esc(c.photo) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
-              : '') + '</div>' +
-            '<div class="case-n">' + esc(c.name) + '</div>' +
-            '<div class="case-q">' + esc(c.qty) + '</div>' +
-            '<div class="case-t">' + esc(c.note) + '</div>' +
-          '</div>';
-        }).join('') + '</div>';
-  }
 
   /* Секція «Гарантії» стояла перед кошторисом і повторювала те саме, що
      блок довіри внизу: фото перед відправкою, безкоштовне виправлення,
@@ -4938,17 +4884,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      змушує розкрити рядок, а не навпаки. */
   /* Окремої «міні-картки» відгуку більше немає: оцінка переїхала в сам
      рядок списку, а фото — у смужку під ним. Див. revsRow. */
-  function faqHtml(){
-    var FAQ = faqList();
-    if(!FAQ.length) return '';
-    return '' +
-      '<h2 class="sec-title">Часті питання</h2>' +
-        '<div class="faq">' + FAQ.map(function(q, i){
-          return '<details class="fq"' + (i === 0 ? ' open' : '') + '>' +
-            '<summary>' + esc(q[0]) + '</summary>' +
-            '<div class="fq-a">' + esc(q[1]) + '</div></details>';
-        }).join('') + '</div>';
-  }
 
   /* Пʼять фактів про те, як ми працюємо. Це не «переваги» — це відповіді на
      чотири страхи, з якими людина сидить над передоплатою: зроблять не те,
@@ -4956,78 +4891,49 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Список фіксований навмисно: це властивості компанії, а не цієї
      пропозиції, і від замовлення до замовлення вони не змінюються. Поле
      `trust` в адмінці лишається джерелом рядка про ФОП/ТОВ під умовами. */
+  /* «Власне виробництво в Україні» звідси прибрано: це про нас, а решта —
+     про його замовлення. Чотири пункти, кожен знімає конкретний страх, і
+     жоден не витрачено на самопрезентацію.
+
+     Під назвою — речення про те, ЩО саме за нею стоїть. Самі назви
+     («Контроль якості») людина вже читала в десятку інших пропозицій і
+     нічого з них не дізнається; обіцянка починає важити рівно тоді, коли
+     сказано, що саме буде зроблено і що буде, якщо не вийде. */
   var TRUST = [
-    /* «Власне виробництво в Україні» звідси прибрано: це про нас, а решта —
-       про його замовлення. Чотири рядки, кожен знімає конкретний страх, і
-       жоден не витрачено на самопрезентацію. */
-    'Макет погоджуємо до запуску',
-    'Контролюємо якість кожної партії',
-    'Надсилаємо фото готового замовлення',
-    'Працюємо офіційно з ФОП та ТОВ'
+    ['Тестовий зразок перед запуском партії',
+     'Виготовляємо тестовий зразок, щоб ви могли оцінити результат до ' +
+     'запуску основного тиражу.'],
+    ['Контроль якості кожної одиниці',
+     'Перевіряємо пошиття, нанесення та готовий виріб перед відправкою.'],
+    ['Гарантія відповідності результату',
+     'Якщо результат не відповідає погодженому макету, зразку або заявленим ' +
+     'характеристикам — переробимо за наш рахунок.'],
+    ['Офіційна співпраця',
+     'Працюємо з ФОП та ТОВ, надаємо всі необхідні документи та підписуємо ' +
+     'договір.']
   ];
+  /* Менеджер — не пункт списку: це не гарантія на замовлення, а те, як воно
+     супроводжується. Тому окремим рядком під галочками. */
+  var TRUST_NOTE = 'Персональний менеджер супроводжує ваше замовлення від ' +
+    'погодження до отримання готової партії.';
   var TICK_TH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" ' +
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M20 6 9 17l-5-5"/></svg>';
   function trustInner(){
     return '<ul class="tru-l">' + TRUST.map(function(t){
-      return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-    }).join('') + '</ul>';
+      return '<li>' + TICK_TH + '<span><b>' + esc(t[0]) + '</b>' +
+        (t[1] ? '<i>' + esc(t[1]) + '</i>' : '') + '</span></li>';
+    }).join('') + '</ul>' +
+    '<p class="tru-n">' + esc(TRUST_NOTE) + '</p>';
   }
 
-  /* Коротка форма умов оплати для великої цифри: «50% для запуску, решта
-     після готовності партії» → «50% / 50%». Відсоток беремо з тексту, який
-     менеджер написав в адмінці, і нічого не вигадуємо: немає відсотка —
-     немає й цифри, у картці лишиться сам текст. */
-  function payShort(txt){
-    var m = String(txt || '').match(/(\d{1,3})\s*%/);
-    if(!m) return '';
-    var a = +m[1];
-    if(!(a > 0 && a < 100)) return '';
-    return a + '% / ' + (100 - a) + '%';
-  }
+
   // «2 вересня» без року: рік у даті, до якої лишився тиждень, лише шумить
   function dayMonth(iso){
     if(!iso) return '';
     var d = new Date(iso);
     if(isNaN(d)) return '';
     return d.toLocaleDateString('uk-UA', { day:'numeric', month:'long' });
-  }
-  /* Умови — чотирма картками, де головне значення велике й читається без
-     читання. Досі це був список «підпис зверху, речення знизу»: щоб дізнатись
-     термін, доводилось прочитати рядок до кінця. Тепер спершу видно «7
-     робочих днів», і лише потім, кому цікаво, — до якого числа.
-     Жодна цифра не зашита: термін рахує daysFor() від тиражу, дата
-     готовності — readyDate(), актуальність — те, що стоїть в адмінці. */
-  function condInner(){
-    var cards = [];
-    var days = curDays();
-    if(days > 0) cards.push([daysWord(days), 'Термін виготовлення',
-                             'Орієнтовно до ' + readyDate(), 'condDays', 'condReady']);
-    var pay = String((OFFER.terms || {}).payment || '').trim();
-    if(pay){
-      var short = payShort(pay);
-      cards.push([short || pay, 'Оплата', short ? pay : '']);
-    }
-    var till = dayMonth((OFFER.terms || {}).validUntil);
-    if(till) cards.push(['До ' + till, 'Пропозиція актуальна', '']);
-    cards.push(['Макет до запуску', '',
-                'Виробництво починається тільки після підтвердження клієнта']);
-    /* Рядок про документи — той, що менеджер написав у полі `trust`. Своє
-       формулювання головніше за наше: у когось ФОП, у когось ТОВ, у когось
-       окрема умова щодо ПДВ. */
-    var docs = (OFFER.trust || []).filter(function(t){ return /ФОП|ТОВ|документ/i.test(t); })[0]
-            || 'Працюємо з ФОП та ТОВ · Надаємо всі необхідні документи';
-    return '' +
-        '<div class="cond-g">' + cards.map(function(c){
-          return '<div class="cond-c">' +
-            '<div class="cond-v"' + (c[3] ? ' id="' + c[3] + '"' : '') + '>' +
-              esc(c[0]) + '</div>' +
-            (c[1] ? '<div class="cond-k">' + esc(c[1]) + '</div>' : '') +
-            (c[2] ? '<div class="cond-n"' + (c[4] ? ' id="' + c[4] + '"' : '') + '>' +
-              esc(c[2]) + '</div>' : '') +
-          '</div>';
-        }).join('') + '</div>' +
-        '<div class="cond-doc">' + TICK_TH + '<span>' + esc(docs) + '</span></div>';
   }
 
   /* Порядок низу: як це буде → на яких умовах → чому нам можна вірити →
@@ -5063,28 +4969,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
       '</summary><div class="fr-b">' + body + '</div></details>';
   }
-  /* Після кошторису — не сайт, а рівно те, що знімає останній сумнів.
-     Чотири конкретні гарантії відкрито, оцінка й ОДИН відгук, а процес,
-     умови й решта — за згортками. Десять великих карток відгуків прямо в
-     КП перетворювали пропозицію на лендинг рівно там, де людина вже
-     тримала палець над кнопкою. */
+  /* Після кошторису — не сайт, а рівно два питання, які лишаються в людини
+     з сумою перед очима: як це буде відбуватись і що буде, якщо вийде не
+     так. Більше тут немає нічого.
+
+     Було шість рядків: етапи, гарантії, умови, проєкти й два питання.
+     «Умови замовлення» переказували те, що вже стоїть у шапці й у рядку
+     під кошторисом; проєкти й питання — матеріал сайту, а не цієї
+     пропозиції. Кожен зайвий рядок тут коштує дорого: він стоїть рівно
+     між сумою й кнопкою. */
   function detailsHtml(){
     var rows = '';
-    rows += foldRow('Як проходитиме замовлення', flowInner(), false);
-    rows += foldRow('Замовлення без зайвих ризиків',
-      '<ul class="tru-l">' + TRUST.map(function(t){
-        return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-      }).join('') + '</ul>', false);
-    rows += foldRow('Умови замовлення', condInner(), false);
-    rows += foldRow('Реалізовані проєкти', casesInner(), false);
-    /* Рядка «Відгуки» тут більше немає — і смужки фото робіт під ним теж.
-       Прибрано на прохання: відгуки живуть на сайті, і вести туди зі
-       сторінки, де людина вже дочитала суму, означає забирати її з неї. */
-    /* Питання йдуть окремими рядками того ж списку, а не вкладеною
-       гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
-    rows += faqList().map(function(q){
-      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
-    }).join('');
+    rows += foldRow('Етапи виконання замовлення', flowInner(), false);
+    rows += foldRow('Гарантії вашого замовлення', trustInner(), false);
     if(!rows) return '';
     /* Заголовок над списком: без нього блок починався одразу рядками й
        читався як службовий хвіст сторінки. «Що ще варто знати» нічого не
@@ -5097,53 +4994,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<div class="fr-list">' + rows + '</div></section>';
   }
 
-  /* Списку «Рахунок → Макет → Виготовлення» тут більше немає: це був той
-     самий таймлайн вище, переказаний іншими словами. Замість трьох кроків —
-     одне речення про те, що станеться після натискання, і окремий рядок під
-     кнопкою про те, чого НЕ станеться. Саме друге й тримає палець над
-     кнопкою: людина боїться не рахунку, а що замовлення піде у виробництво
-     без неї. */
-  /* Заклик стоїть двічі, і це навмисно: перший — одразу за кошторисом,
-     поки сума перед очима; другий — у самому кінці, для того, хто розкрив
-     умови й переконався. Гортати назад до кнопки нікого змушувати не можна.
-
-     Але другий короткий: заголовок і кнопка, без абзацу пояснень. Повторити
-     той самий текст удруге означало б визнати, що першого разу його не
-     прочитали. */
-  function ctaHtml(kind){
-    if(OFFER.state === 'confirmed' || expired()) return '';
-    var last = kind === 'last';
-    return '' +
-      '<section class="no-print cta-wrap' + (last ? ' cta-last' : '') + '">' +
-        '<div class="cta-box">' +
-          '<h2 class="cta-h">' + (last
-            ? 'Готові оформити замовлення?'
-            : 'Все підходить? Можемо запускати замовлення') + '</h2>' +
-          '<p class="cta-p">' + (last
-            ? 'Підтвердіть пропозицію — і ми перейдемо до фінального погодження деталей.'
-            : 'Після підтвердження ми звіримо фінальні деталі та ' +
-              'надішлемо рахунок. Після оплати підготуємо макет — у виробництво ' +
-              'замовлення піде тільки після вашого підтвердження.') + '</p>' +
-          /* Одна дія. «Потрібні зміни» поруч із «Підтвердити» давало клієнту
-             привід не вирішувати — а написати менеджеру він може з блоку
-             контактів вище, де для цього є і телефон, і месенджери. */
-          '<div class="final">' +
-            '<button class="btn" id="' + (last ? 'confirmBtn2' : 'confirmBtn') + '">' +
-              'Підтвердити пропозицію</button>' +
-          '</div>' +
-          (last ? '' :
-            '<p class="cta-note">Підтвердження пропозиції не запускає виробництво ' +
-            'автоматично.</p>') +
-          /* Пропозицію майже завжди пересилають — керівнику, бухгалтеру,
-             партнеру. Кнопкою це було б другою дією поруч із головною і
-             тягнуло б увагу на себе; тихим рядком — лишається доступним
-             тому, хто його шукає. */
-          (last ? '' :
-            '<button class="cta-share" id="shareBtn">' + SHARE_IC +
-            'Поділитися або зберегти PDF</button>') +
-        '</div>' +
-      '</section>';
-  }
   function finalHtml(){
     if(OFFER.state === 'confirmed'){
       var who = (OFFER.clientAction || {}).at;
@@ -5155,7 +5005,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return '<section><div class="locked">Термін дії пропозиції минув. ' +
              'Напишіть менеджеру — оновимо ціни й терміни.</div></section>';
     }
-    return ctaHtml('last');
+    /* Блоку «Готові оформити замовлення?» більше немає. Він повторював
+       кнопку, яка вже стоїть у кошторисі, — тільки на екран нижче й з
+       новим заголовком. Друга кнопка з тією самою дією не додає рішучості,
+       а забирає її: людина бачить, що її ще про щось просять. Хто дочитав
+       до кінця — прокрутить на екран угору, де сума й кнопка стоять разом. */
+    return '';
   }
 
   /* Менеджер. Кружечок з літерою не викликає довіри — потрібне обличчя.
@@ -5469,10 +5324,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        heroReady/heroDays більше немає. */
     var hm = document.getElementById('heroMade');
     if(hm) hm.textContent = heroLine();
-    /* Термін залежить від тиражу: клієнт міняє кількість — картка умов
-       мусить рухатись разом із нею, інакше вона показує чужий строк. */
-    set('condDays', daysWord(curDays()));
-    set('condReady', 'Орієнтовно до ' + readyDate());
     OFFER.items.forEach(function(it, i){
       // Ціна на самій картці теж їде за вибраним тиражем — інакше в картці одне,
       // а в кошторисі нижче інше.
