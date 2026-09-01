@@ -864,21 +864,20 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-list{display:flex; flex-direction:column;}
   /* Фото вдвічі більше: на 44 px виріб не роздивишся, а саме він і має
      нагадати, за що платять. */
-  /* Фото займає обидва рядки, а «4 × 1 466 грн» стоїть одразу під назвою —
-     це підпис до неї, з чого склалась сума. Раніше воно жило в окремому
-     рядку під фотографією: між назвою і множенням зяяла порожнеча заввишки
-     з фото, і рядок читався як випадково кинутий. */
-  /* Рядок із кількістю розтягнутий на обидві колонки — назви й суми. У
-     колонці назви йому лишалось ~80px, і «× 940 грн» зривалось під
-     лічильник другим рядком: людина бачила кількість і ціну за штуку як
-     два різні факти, хоч це одне множення. */
-  .est-i{display:grid; grid-template-columns:120px minmax(0,1fr) auto;
-    grid-template-areas:'ph name sum' 'ph mul mul';
-    /* Другий рядок — 1fr: зайву висоту, яку додає фото, забирає він, а не
-       рядок із назвою. Інакше назву відносило вгору, а множення — вниз, і
-       між ними зяяла порожнеча. */
-    grid-template-rows:auto 1fr;
-    gap:4px 16px; align-items:start; padding:20px 0;
+  /* Рядок читається згори вниз, як його й складають: що це → скільки штук і
+     почому → скільки за це разом. Доти сума стояла вгорі праворуч, навпроти
+     назви, а кількість і ціна за штуку — під нею: тобто підсумок ішов
+     ПЕРЕД тим, з чого він вийшов, та ще й в іншому кінці рядка.
+
+     Фото займає всю висоту праворуч від себе — воно тут нагадує, за що
+     платять, і рівняти його нема з чим. */
+  .est-i{display:grid; grid-template-columns:120px minmax(0,1fr);
+    grid-template-areas:'ph name' 'ph mul' 'ph sum';
+    /* Останній рядок — 1fr: зайву висоту, яку додає фото, забирає він, а не
+       рядок із назвою. Інакше назву відносило вгору, а суму — вниз, і між
+       ними зяяла порожнеча. */
+    grid-template-rows:auto auto 1fr;
+    gap:6px 16px; align-items:start; padding:20px 0;
     border-top:1px solid rgba(255,255,255,.12);}
   .est-i-ph{grid-area:ph; align-self:start;} .est-i-t{grid-area:name;}
   .est-i-mul{grid-area:mul; align-self:start;}
@@ -894,9 +893,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      вартість він уже входить, і фінансовим рядком лише плодив би відчуття
      складного рахунку. */
   .est-i-sub{font-size:var(--fs-2); color:rgba(255,255,255,.5); line-height:1.4; margin-top:2px;}
-  .est-i-mul{font-size:var(--fs-2); color:rgba(255,255,255,.72);
+  /* Ціна за штуку того ж кегля, що й число в лічильнику: це два множники
+     одного добутку, і дрібнішою вона читалась як примітка до кількості. */
+  .est-i-mul{font-size:var(--fs-3); color:rgba(255,255,255,.72);
     font-variant-numeric:tabular-nums;
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
   /* Кількість міняють просто тут: замовлення людина зводить у кошторисі, і
      повертатись до картки заради однієї штуки їй немає сенсу. */
   .est-q{display:inline-flex; align-items:center; gap:2px; flex:none;
@@ -908,15 +909,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .est-q-b[disabled]{opacity:.35; cursor:default;}
   .est-q-v{min-width:30px; text-align:center; font-size:var(--fs-3); font-weight:600;
     color:#fff; font-variant-numeric:tabular-nums;}
+  /* Сума позиції — під кількістю, з якої вона вийшла, і ліворуч, як усе в
+     цій колонці. Праворуч вона стояла на одній лінії з назвою й читалась
+     раніше за множення, що її й дає. */
   .est-i-sum{font-size:var(--fs-4); font-weight:600; font-variant-numeric:tabular-nums;
-    white-space:nowrap; text-align:right; line-height:1.35; padding-top:2px;}
+    white-space:nowrap; line-height:1.35;}
   @media (min-width:640px){
-    /* Обидві числові колонки фіксованої ширини — так суми стоять одна під
-       одною рівним стовпчиком, як у рахунку, а не «десь праворуч». */
-    .est-i{grid-template-columns:120px minmax(0,1fr) 150px 130px;
-      grid-template-areas:'ph name mul sum'; gap:20px; padding:20px 0;}
-    .est-i-mul{text-align:right; padding-top:2px;
-      flex-direction:column; align-items:flex-end; gap:6px;}
+    /* На широкому екрані порядок той самий — міняється лише повітря.
+       Розкладати рядок в один ряд не варто: тоді на комп'ютері й на
+       телефоні людина читає позицію в різній послідовності. */
+    .est-i{gap:8px 20px; padding:24px 0;}
   }
 
   /* ── Підсумок ──
@@ -4191,17 +4193,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          (cand.need === best.need && cand.gain > best.gain)) best = cand;
     });
     if(!best) return '';
-    /* Друга строчка — новий підсумок, тихіше. Він тут не для краси: без
-       нього «додаткова знижка» лишається числом, яке ні з чим не звірити.
-       А коли сума ще й падає попри більший тираж — це найсильніше, що можна
-       сказати, і сказано воно тим самим рядком. */
+    /* Одне речення й жодного другого рядка. Новий підсумок під ним стояв,
+       щоб знижку можна було звірити, — але звіряти її й так є чим: натиснув
+       «+» стільки разів, скільки написано, і «Разом» перерахувалось саме на
+       цю суму. Другий рядок лише додавав блоку ваги там, де людина вже
+       тримає палець над кнопкою. */
     return '<div class="est-more">Додайте ще <b>' + best.need + ' ' +
       plural(best.need, 'одиницю', 'одиниці', 'одиниць') +
       '</b> — і отримаєте додаткову знижку <b>' + money(best.extra) +
-      '</b> на все замовлення' +
-      '<i>Разом за більший тираж: ' + money(best.sum) +
-      (best.less ? ' — на ' + money(best.less) + ' менше, ніж зараз' : '') +
-      '</i></div>';
+      '</b> на все замовлення</div>';
   }
 
   /* Поточна ціна за штуку тієї самої позиції — щоб було з чим порівняти. */
@@ -4607,9 +4607,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     (r.reco ? '<em>додано</em>' : '') + '</div>' +
                   (r.sub ? '<div class="est-i-sub">' + esc(r.sub) + '</div>' : '') +
                 '</div>' +
-                /* Окремою клітинкою сітки, а не всередині назви: інакше на
-                   широкому екрані «4 × 1 450 грн» лишалось у колонці назви,
-                   і числа не сходились у стовпчик. */
+                /* «940 грн/шт», а не «× 940 грн»: знак множення тут ні до
+                   чого не веде — добуток стоїть не поруч, а рядком нижче,
+                   і «×» повисав початком незакінченого прикладу. */
                 '<div class="est-i-mul">' +
                   '<span class="est-q">' +
                     '<button class="est-q-b" data-eq="' + r.kind + ':' + r.idx +
@@ -4619,7 +4619,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     '<button class="est-q-b" data-eq="' + r.kind + ':' + r.idx +
                       '" data-d="1" aria-label="Більше">+</button>' +
                   '</span>' +
-                  '<span>× ' + num(r.unit) + ' грн</span>' +
+                  '<span>' + num(r.unit) + ' грн/шт</span>' +
                 '</div>' +
                 '<div class="est-i-sum">' + num(r.sum) + ' грн</div>' +
               '</div>';
@@ -5556,24 +5556,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var c = OFFER.client || {};
     return { name: String(c.name || '').trim(), phone: String(c.phone || '').trim() };
   }
+  /* Нічого не питаємо. Пропозиція іменна: менеджер сам її склав, сам
+     надіслав і знає, кому. Просити тут імʼя й телефон — це просити людину
+     назватись тому, з ким вона щойно переписувалась, та ще й у крок, де
+     вона вже все вирішила. Кожне поле тут коштує частини підтверджених
+     замовлень.
+
+     Лишається один рядок — на кого оформлюємо, — і то лише якщо є що
+     показати. Він не про збір даних, а про можливість спинитись, якщо
+     менеджер щось переплутав. */
   function confirmWhoHtml(){
     var k = clientKnown();
-    var out = '';
-    if(k.name || k.phone){
-      out += '<div class="cf-who">Оформлюємо на ' +
-        '<b>' + esc([k.name, k.phone].filter(Boolean).join(' · ')) + '</b>' +
-        '<span class="cf-who-note">Не ви? Напишіть менеджеру — виправимо.</span></div>';
-    }
-    if(!k.name){
-      out += '<div class="fld"><label for="cfName">Ім\'я</label>' +
-        '<input id="cfName" type="text" autocomplete="name" placeholder="Як до вас звертатися"></div>';
-    }
-    if(!k.phone){
-      out += '<div class="fld"><label for="cfPhone">Телефон</label>' +
-        '<input id="cfPhone" type="tel" inputmode="tel" autocomplete="tel" ' +
-        'placeholder="+38 (0__) ___-__-__"></div>';
-    }
-    return out;
+    if(!k.name && !k.phone) return '';
+    return '<div class="cf-who">Оформлюємо на ' +
+      '<b>' + esc([k.name, k.phone].filter(Boolean).join(' · ')) + '</b>' +
+      '<span class="cf-who-note">Не ви? Напишіть менеджеру — виправимо.</span></div>';
   }
 
   function lockAfterConfirm(){
@@ -5821,16 +5818,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // ── підтвердження ──
     document.getElementById('cfSend').onclick = function(){
       var btn = this;
+      /* Ім'я й телефон беремо з самої пропозиції — питати їх ні в кого й
+         нема потреби. Порожні вони бувають тільки тоді, коли менеджер не
+         заповнив картку; підтвердження від цього не залежить, а хто
+         підтвердив — видно з самої картки замовлення. */
       var k = clientKnown();
-      // Поля існують лише тоді, коли даних не було: беремо або їх, або те,
-      // що вже відоме з пропозиції.
-      var nameEl = document.getElementById('cfName');
-      var phoneEl = document.getElementById('cfPhone');
-      var name = nameEl ? nameEl.value.trim() : k.name;
-      var phone = phoneEl ? phoneEl.value.trim() : k.phone;
+      var name = k.name, phone = k.phone;
       var err = document.getElementById('cfErr');
-      if(nameEl && name.length < 2){ err.hidden = false; err.textContent = 'Вкажіть, як до вас звертатися.'; return; }
-      if(phoneEl && phone.replace(/\D/g,'').length < 9){ err.hidden = false; err.textContent = 'Перевірте номер телефону.'; return; }
       err.hidden = true;
       btn.disabled = true; btn.textContent = 'Надсилаємо…';
       var t = totals();
