@@ -732,12 +732,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:var(--r-2); background:none;
     font:inherit; font-size:var(--fs-3); font-weight:600; color:var(--ink-2); cursor:pointer;
     font-variant-numeric:tabular-nums; transition:.15s;}
-  .pseg-b.on{background:var(--ink); color:#fff;}  /* Кому ми оформлюємо замовлення — у вікні підтвердження */
-  .cf-who{background:var(--soft); border-radius:var(--r-3); padding:12px 16px; margin-bottom:16px;
-    font-size:var(--fs-3); color:var(--ink-2); line-height:1.5;}
-  .cf-who b{display:block; color:var(--ink); font-size:var(--fs-3); margin-top:2px;}
-  .cf-who-note{display:block; margin-top:6px; font-size:var(--fs-2); color:var(--muted);}
-  .pqty-n{margin-top:8px; font-size:var(--fs-2); color:var(--muted);}
+  .pseg-b.on{background:var(--ink); color:#fff;}.pqty-n{margin-top:8px; font-size:var(--fs-2); color:var(--muted);}
   .pqty-n b{color:var(--good);}
   /* Тільки для менеджера: чому саме в цій позиції немає перекресленої ціни */
   .pqty-n.is-todo{color:#7A5410; background:#FFF7E6; border-radius:var(--r-2);
@@ -1194,14 +1189,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .sheet h3{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px;
     line-height:1.25; margin:0 0 4px;}
-  .sheet .sec-sub{margin-bottom:16px;}
-  .sum-box{background:var(--soft); border-radius:var(--r-3); padding:16px 16px; margin-bottom:16px;}
-  .sum-line{display:flex; justify-content:space-between; font-size:var(--fs-3); color:var(--ink-2);}
-  .sum-line + .sum-line{margin-top:6px;}
-  .sum-line.big{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);}
-  .sum-line.big span:first-child{font-weight:600; color:var(--ink);}
-  .sum-line.big span:last-child{font-size:var(--fs-5); font-weight:700;}
-  .fld{margin-bottom:12px;}
+  .sheet .sec-sub{margin-bottom:16px;}.fld{margin-bottom:12px;}
   .fld label{display:block; font-size:var(--fs-2); font-weight:600; letter-spacing:.4px;
     text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
   .fld input, .fld textarea{width:100%; border:1.5px solid var(--line); border-radius:var(--r-2);
@@ -1448,37 +1436,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <img id="zoomImg" alt="Фото">
   <button class="zoom-nav next" id="zoomNext" aria-label="Наступне фото">›</button>
   <div class="zoom-thumbs" id="zoomThumbs"></div>
-</div>
-
-<!-- Підтвердження замовлення -->
-<div class="ov no-print" id="ovConfirm">
-  <div class="sheet">
-    <div id="cfForm">
-      <h3>Підтвердження замовлення</h3>
-      <p class="sec-sub">Ми звіримо деталі та надішлемо рахунок.</p>
-      <!-- Кошторис тут НЕ повторюємо: клієнт щойно його бачив, і другий
-           список перед кнопкою читається як «ще щось порахували». Лишається
-           один рядок — сума й термін. -->
-      <div class="sum-box" id="cfSummary"></div>
-      <!-- Контакти не питаємо: пропозиція іменна, ми знаємо, кому її
-           надіслали. Поле зʼявляється лише тоді, коли даних справді немає. -->
-      <div id="cfWho"></div>
-      <div class="err" id="cfErr" hidden></div>
-      <div class="sheet-btns">
-        <button class="btn" id="cfSend">Підтвердити замовлення</button>
-        <button class="btn btn-ghost" data-close>Назад</button>
-      </div>
-    </div>
-    <div id="cfDone" hidden style="text-align:center;">
-      <div class="done-ic">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E9F6E"
-          stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      </div>
-      <h3>Дякуємо, замовлення прийнято</h3>
-      <p class="sec-sub">Менеджер звірить деталі й напише вам найближчим часом.</p>
-      <button class="btn" data-close>Готово</button>
-    </div>
-  </div>
 </div>
 
 <!-- Запит на зміни -->
@@ -4681,8 +4638,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              цього кнопку в шапці людині ніколи. Поруч, у той самий рядок,
              її ставити не можна: дві кнопки однакової ширини читаються як
              вибір із двох, хоч вибір тут один. */
+          /* Замовлення вже підтверджено — кнопки немає. Доти вона лишалась
+             на місці й після підтвердження: натиснувши її вдруге, людина не
+             розуміла, чи спрацювало перше. «Поділитися» лишається — переслати
+             підтверджений кошторис бухгалтеру треба саме тепер. */
           '<div class="est-cta">' +
-            '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію</button>' +
+            (OFFER.state === 'confirmed' ? '' :
+              '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію</button>') +
             '<button class="btn btn-ghost est-cta-share" id="shareBtn">' + SHARE_IC +
               'Поділитися</button>' +
           '</div>' +
@@ -5275,28 +5237,72 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Беремо найвищу пропорцію серед усіх ракурсів позиції. Тоді жоден
      знімок не доводиться різати згори чи знизу — object-fit:cover
      підрізає лише з боків, а там у знімка виробу самі поля. */
+  /* Пропорція кадру на КОЖНУ картку, порахована один раз за сеанс.
+
+     Раніше вона жила в атрибуті самої галереї — і зникала разом із нею при
+     кожному перемальовуванні сторінки. А перемальовує її тут майже все:
+     змінена кількість, доданий рекомендований товар, обраний варіант. Після
+     цього кадр рахувався заново, і відповідь могла вийти інша: якщо на той
+     момент один зі знімків ще не завантажився або віддався з помилкою, у
+     розрахунок ішли не всі ракурси — і картка сідала або підростала просто
+     від дотику до мініатюри.
+
+     Тепер число живе поза розміткою й більше не міняється: полічили — і до
+     кінця сеансу кадр стоїть, що б із сторінкою не робили. */
+  var AR = {};
+  /* Ключем не може бути номер позиції: під тим самим номером у пропозиції
+     буває інший товар — менеджер переставив склад, клієнт обрав інший
+     варіант. Тому ключ — самі знімки: той самий набір фото завжди дає ту
+     саму рамку, а інший набір чесно рахується заново. Довгі адреси
+     згортаємо, щоб ключі не важили більше за дані. */
+  function arKey(shot, srcs){
+    var h = 0, s = srcs.join('~');
+    for(var i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return shot + '#' + srcs.length + '#' + h;
+  }
   function fitMain(img){
     if(!img) return;
     var box = img.parentNode;
     if(!box || !box.classList.contains('is-main')) return;
     var gal = box.closest('.pgal');
-    if(!gal || gal.dataset.ar) return;              // рамку вже поставили
-    var vv = shownViews(itemOfShot(gal.getAttribute('data-shot')));
-    var srcs = vv.length ? vv.map(function(v){ return v.img; })
-                         : [img.getAttribute('src')];
-    var left = srcs.length, best = 0;
+    if(!gal) return;
+    var shot = gal.getAttribute('data-shot');
+    /* Беремо ВСІ показані клієнту ракурси, а не лише ті, що вже
+       завантажились: якщо котрийсь віддався з помилкою, набір не має
+       змінюватись — інакше ключ став би іншим і кадр перерахувався б. */
+    var all = viewsOf(itemOfShot(shot)).filter(function(v){
+      return v && v.img && (EDIT || v.show !== false);
+    });
+    var srcs = all.length ? all.map(function(v){ return v.img; })
+                          : [img.getAttribute('src')];
+    var key = arKey(shot, srcs);
+    if(AR[key] != null){                            // уже полічили — просто ставимо
+      box.style.aspectRatio = String(1 / AR[key]);
+      return;
+    }
+    if(gal.dataset.arWait === key) return;          // рахунок уже йде
+    gal.dataset.arWait = key;
+    var left = srcs.length, best = 0, got = 0;
     var done = function(){
       if(--left) return;
-      var r = best || 1;
-      r = Math.max(0.75, Math.min(4 / 3, r));       // ані смужка, ані весь екран
-      gal.dataset.ar = r;
-      box.style.aspectRatio = String(1 / r);        // CSS чекає ширина/висота
+      /* Жоден знімок не віддався — нічого не фіксуємо: краще лишити
+         запобіжний квадрат і порахувати чесно наступного разу, ніж
+         заморозити кадр за випадковою невдачею мережі. */
+      if(!got){ delete gal.dataset.arWait; return; }
+      var r = Math.max(0.75, Math.min(4 / 3, best)); // ані смужка, ані весь екран
+      AR[key] = r;
+      /* Ставимо не в той вузол, з якого починали: поки вантажились знімки,
+         сторінку могли перемалювати, і `box` уже нічий. */
+      var live = document.querySelector('.pgal[data-shot="' + shot + '"] .pgal-i.is-main');
+      if(live) live.style.aspectRatio = String(1 / r);   // CSS чекає ширина/висота
     };
     srcs.forEach(function(src){
       var im = new Image();
       im.onload = function(){
-        if(im.naturalWidth && im.naturalHeight)
+        if(im.naturalWidth && im.naturalHeight){
+          got++;
           best = Math.max(best, im.naturalHeight / im.naturalWidth);
+        }
         done();
       };
       im.onerror = done;
@@ -5377,7 +5383,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(cell && cell.classList.contains('is-thumb')){ cell.remove(); return; }
     var it = itemOfShot(gal.getAttribute('data-shot'));
     if(!shownViews(it).length){ gal.style.display = 'none'; return; }
-    gal.removeAttribute('data-ar');          // пропорцію рахуємо заново
+    /* Кадр НЕ перераховуємо. Битий ракурс — привід прибрати його зі
+       стрічки, а не міняти висоту картки: людина побачила б, як фото
+       стрибнуло, і вирішила б, що зламалась сторінка, а не один знімок. */
     galGo(gal, 0, 0);
     var big = gal.querySelector('.pgal-i.is-main img');
     if(big) fitMain(big);
@@ -5563,39 +5571,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Один рядок замість повторного кошторису. Розкладку клієнт щойно бачив
      на сторінці; повторити її перед кнопкою — це не «переконатись», а
      змусити читати те саме вдруге і засумніватись. */
-  function confirmSummaryHtml(){
-    var t = totals();
-    return '<div class="sum-line big"><span>Разом</span><span>' + money(t.sum) + '</span></div>' +
-           '<div class="sum-line"><span>' + t.qty + ' ' +
-             plural(t.qty, 'виріб', 'вироби', 'виробів') + '</span><span>' +
-             daysWord(curDays()) + '</span></div>';
-  }
-
-  /* Кого ми знаємо. Пропозиція іменна: імʼя й телефон приїхали з картки
-     замовлення разом із цінами. Питати їх удруге — це і зайвий крок перед
-     кнопкою, і натяк, що ми не памʼятаємо, кому пишемо. Поле показуємо
-     рівно тоді, коли даних справді бракує. */
   function clientKnown(){
     var c = OFFER.client || {};
     return { name: String(c.name || '').trim(), phone: String(c.phone || '').trim() };
   }
-  /* Нічого не питаємо. Пропозиція іменна: менеджер сам її склав, сам
-     надіслав і знає, кому. Просити тут імʼя й телефон — це просити людину
-     назватись тому, з ким вона щойно переписувалась, та ще й у крок, де
-     вона вже все вирішила. Кожне поле тут коштує частини підтверджених
-     замовлень.
-
-     Лишається один рядок — на кого оформлюємо, — і то лише якщо є що
-     показати. Він не про збір даних, а про можливість спинитись, якщо
-     менеджер щось переплутав. */
-  function confirmWhoHtml(){
-    var k = clientKnown();
-    if(!k.name && !k.phone) return '';
-    return '<div class="cf-who">Оформлюємо на ' +
-      '<b>' + esc([k.name, k.phone].filter(Boolean).join(' · ')) + '</b>' +
-      '<span class="cf-who-note">Не ви? Напишіть менеджеру — виправимо.</span></div>';
-  }
-
   function lockAfterConfirm(){
     OFFER.state = 'confirmed';
     render();
@@ -5830,48 +5809,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     wireZoom();
     document.querySelectorAll('[data-close]').forEach(function(b){
       b.onclick = function(){
-        closeSheet('ovConfirm'); closeSheet('ovChange');
+        closeSheet('ovChange');
       };
     });
-    ['ovConfirm','ovChange'].forEach(function(id){
+    ['ovChange'].forEach(function(id){
       var ov = document.getElementById(id);
       ov.onclick = function(e){ if(e.target === ov) closeSheet(id); };
     });
-
-    // ── підтвердження ──
-    document.getElementById('cfSend').onclick = function(){
-      var btn = this;
-      /* Ім'я й телефон беремо з самої пропозиції — питати їх ні в кого й
-         нема потреби. Порожні вони бувають тільки тоді, коли менеджер не
-         заповнив картку; підтвердження від цього не залежить, а хто
-         підтвердив — видно з самої картки замовлення. */
-      var k = clientKnown();
-      var name = k.name, phone = k.phone;
-      var err = document.getElementById('cfErr');
-      err.hidden = true;
-      btn.disabled = true; btn.textContent = 'Надсилаємо…';
-      var t = totals();
-      saveClient({
-        state: 'confirmed',
-        clientAction: {
-          kind: 'confirm', name: name, phone: phone,
-          contact: String((OFFER.client || {}).instagram || '').slice(0, 200),
-          comment: '',
-          total: t.sum, count: t.qty, days: curDays(),
-          at: new Date().toISOString()
-        }
-      }, 'confirmed').then(function(){
-        if(window.lqAn) window.lqAn.order({ orderId: 'КП ' + token, sum: t.sum, qty: t.qty, items: 1 });
-        document.getElementById('cfForm').hidden = true;
-        document.getElementById('cfDone').hidden = false;
-        lockAfterConfirm();
-      }).catch(function(e){
-        console.error(e);
-        err.hidden = false;
-        err.textContent = 'Не вдалося надіслати. Спробуйте ще раз або напишіть менеджеру.';
-        btn.disabled = false; btn.textContent = 'Підтвердити замовлення';
-      });
-    };
 
     // ── запит на зміни ──
     var chips = document.getElementById('chChips');
@@ -6236,12 +6180,44 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       copy();
       imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
     };
+    /* Натиснув — підтверджено. Ніякого вікна між кнопкою й дією.
+
+       Доти відкривалась картка з підсумком і другою такою самою кнопкою:
+       людина, яка вже все вирішила й дійшла до кінця сторінки, мусила
+       вирішити це вдруге. Підсумок у тій картці теж нічого не додавав — він
+       стоїть рядком вище, під пальцем.
+
+       Сторінка після цього замикається сама: замість кнопки зʼявляється
+       рядок «Замовлення підтверджено», і це видно без жодного вікна. */
     ['confirmBtn','confirmBtn2','estConfirmBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
-        document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
-        document.getElementById('cfWho').innerHTML = confirmWhoHtml();
-        openSheet('ovConfirm');
+        var btn = this;
+        if(btn.disabled) return;
+        btn.disabled = true;
+        var was = btn.textContent;
+        btn.textContent = 'Підтверджуємо…';
+        var k = clientKnown(), t = totals();
+        saveClient({
+          state: 'confirmed',
+          clientAction: {
+            kind: 'confirm', name: k.name, phone: k.phone,
+            contact: String((OFFER.client || {}).instagram || '').slice(0, 200),
+            comment: '',
+            total: t.sum, count: t.qty, days: curDays(),
+            at: new Date().toISOString()
+          }
+        }, 'confirmed').then(function(){
+          if(window.lqAn) window.lqAn.order({ orderId:'КП ' + token, sum:t.sum, qty:t.qty, items:1 });
+          lockAfterConfirm();
+        }).catch(function(e){
+          console.error(e);
+          /* Мовчазний провал тут найгірший: людина вважає, що замовила, а
+             менеджер нічого не отримав. Кажемо прямо й лишаємо кнопку
+             живою. */
+          btn.disabled = false; btn.textContent = was;
+          alert('Не вдалося підтвердити. Спробуйте ще раз або напишіть менеджеру.');
+        });
       };
     });
     /* «Скачати кошторис» — той самий друк у PDF, що й кнопка нижче. Дію не
