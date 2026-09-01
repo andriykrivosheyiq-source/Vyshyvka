@@ -964,7 +964,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      шість жирних рядків підряд перетворюють зміст на шість заголовків, між
      якими не видно, що головне. */
   .fr>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
-    gap:12px; padding:16px 2px; font-size:var(--fs-4); font-weight:500; color:var(--ink);}
+    gap:12px; padding:16px 2px; font-size:var(--fs-3); font-weight:500; color:var(--ink);}
   .fr>summary::-webkit-details-marker{display:none;}
   .fr-t{flex:1; min-width:0;}
   .fr-a{display:flex; align-items:center; gap:6px; font-size:var(--fs-3); font-weight:600;
@@ -991,7 +991,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Рядок-посилання виглядає так само, як розкривний: інакше незрозуміло,
      чому один пункт відкривається тут, а інший забирає на іншу сторінку. */
   .fr-link{display:flex; align-items:center; gap:12px; padding:16px 2px;
-    font-size:var(--fs-4); font-weight:500; color:var(--ink); text-decoration:none;}
+    font-size:var(--fs-3); font-weight:500; color:var(--ink); text-decoration:none;}
   .fr-link::after{content:''; flex:none; width:8px; height:8px;
     border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg);}
@@ -1047,7 +1047,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Без волосяної лінії згори: під нею одразу йде темна смуга кошторису, і
      риска висіла окремою рисочкою на білому — розділяти там уже нічого. */
   .fold{padding-top:24px; border-top:none;}
-  .fold-h{margin:0 0 4px;}
   /* Усередині рядка живе не абзац відповіді, а цілі блоки: стрічка етапів,
      список гарантій, картки проєктів. Тому тут свій колір і розмір — інакше
      все успадкувало б дрібний сірий шрифт відповіді на питання. */
@@ -1131,20 +1130,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .cta-h{font-size:var(--fs-6);}
   }
 
-  /* ── фіксована панель ── */
-  .bar{position:fixed; left:0; right:0; bottom:0; z-index:40; background:rgba(255,255,255,.97);
-    backdrop-filter:blur(10px); border-top:1px solid var(--line);
-    padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
-    transform:translateY(110%); transition:transform .25s ease;}
-  .bar.show{transform:none;}
-  .bar-btns{display:flex; gap:8px;}
-  .bar-btns .btn{padding:16px 12px; font-size:var(--fs-3);}
-  .bar-btns #barEstimate{flex:0 0 34%;}
-  .bar-btns #barConfirm{flex:1;}
-  /* Запас під панель рівно на її висоту (≈67px) плюс безпечна зона. Було
-     96px — під футером лишалась порожня біла смуга висотою з абзац. */
-  body.has-bar{padding-bottom:calc(72px + env(safe-area-inset-bottom));}
-
   /* ── підтверджено ── */
   .locked{background:#E7F6EF; border:1px solid #B9E5D2; border-radius:var(--r-3);
     padding:16px 16px; font-size:var(--fs-3); color:#0B6B4A; margin-bottom:20px;}
@@ -1187,7 +1172,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   /* Підвал стискаємо втричі: 40 px порожнечі під ним були майже половиною
      його висоти, і сторінка закінчувалась задовго до свого кінця. */
-  .foot{padding:16px 0 4px; text-align:center; color:var(--muted); font-size:var(--fs-2);}
+  /* Запас під підвалом тепер його власний: доти його давала липка панель,
+     а разом із нею зник і він — підвал прилипав до нижнього краю. */
+  .foot{padding:16px 0 calc(20px + env(safe-area-inset-bottom));
+    text-align:center; color:var(--muted); font-size:var(--fs-2);}
   .foot a{color:var(--muted);}
   .foot-no{margin-top:4px; font-variant-numeric:tabular-nums; opacity:.72;}
   @media (min-width:640px){
@@ -1200,7 +1188,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media print{
     @page{size:A4; margin:14mm 12mm;}
     body{padding-bottom:0 !important;}
-    .bar, .no-print, .btn, .reco-btn, .tier-hint, .tiers-note{display:none !important;}
+    .no-print, .btn, .reco-btn, .tier-hint, .tiers-note{display:none !important;}
     .wrap{max-width:none; padding:0;}
     section{break-inside:avoid; padding:16px 0;}
     /* На папері макети не мають з'їдати сторінку — тримаємо їх компактними */
@@ -1389,7 +1377,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px dashed #B9C4D4;border-radius:var(--r-3);padding:20px;}
   .is-edit .rc{position:relative;}
   /* Плаваюча смуга дій клієнта в редагуванні лише заважає */
-  .is-edit .bar{display:none !important;}
 </style>
 </head>
 <body>
@@ -2009,8 +1996,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=56d16bead0"></script>
-<script src="loomiq-pricing.js?v=56d16bead0"></script>
+<script src="loomiq-fingerprint.js?v=cbe6ca01b0"></script>
+<script src="loomiq-pricing.js?v=cbe6ca01b0"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2283,9 +2270,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=56d16bead0';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=56d16bead0';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=56d16bead0';
+  var CTOR_JS   = 'loomiq-constructor.js?v=cbe6ca01b0';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=cbe6ca01b0';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=cbe6ca01b0';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -4903,8 +4890,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Заголовок над списком: без нього блок починався одразу рядками й
        читався як службовий хвіст сторінки. «Що ще варто знати» нічого не
        продає й чесно описує все, що там лежить, — від процесу до питань. */
+    /* Заголовка над списком немає. «Що ще варто знати» нічого не додавало
+       до того, що й так видно з назв пунктів, зате робило зі змісту ще один
+       розділ — а це саме те місце, де людина вже дочитала суму й тримає
+       палець над кнопкою. */
     return '<section class="fold">' +
-      '<h2 class="sec-title fold-h">Що ще варто знати</h2>' +
       '<div class="fr-list">' + rows + '</div></section>';
   }
 
@@ -5038,18 +5028,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Дві кнопки, як і було: «Кошторис» веде до суми, «Підтвердити» — до дії.
      Пробували замінити ліву кнопку живою сумою — виглядало гірше: смуга
      ставала схожою на рядок підсумку, а не на панель дій. */
-  function barHtml(){
-    return '' +
-      '<div class="bar" id="bar">' +
-        /* Суми тут немає навмисно: вона є в кошторисі й на першому екрані,
-           а поруч із кнопкою читалась як «стільки списати зараз». */
-        '<div class="bar-btns">' +
-          '<button class="btn btn-ghost" id="barEstimate">Кошторис</button>' +
-          '<button class="btn" id="barConfirm">Підтвердити пропозицію</button>' +
-        '</div>' +
-      '</div>';
-  }
-
   function expired(){
     var v = OFFER.terms && OFFER.terms.validUntil;
     return !!v && new Date(v) < new Date();
@@ -5116,13 +5094,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '<div class="foot-no">Комерційна пропозиція' +
             (OFFER.orderId ? ' № ' + esc(OFFER.orderId) : '') + '</div>' +
         '</div>' +
-      '</div>' +
-      ((expired() || OFFER.state === 'confirmed') ? '' : barHtml());
+      '</div>';
     wire();
     /* Панель дій живе разом зі сторінкою: у «Як бачить клієнт» і в редакторі
        вона малювалась, але слухача прокрутки не отримувала — і не зʼявлялась
        ніколи. Менеджер саме там і перевіряє, як це виглядає клієнту. */
-    watchBar();
     fitMains();
     // Картку перемальовано — повертаємо конструктор на місце
     if(edOpen && ctorReady) ctorMount(null);
@@ -5448,8 +5424,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function lockAfterConfirm(){
     OFFER.state = 'confirmed';
-    var bar = document.getElementById('bar');
-    if(bar){ bar.remove(); document.body.classList.remove('has-bar'); }
     render();
   }
 
@@ -6022,11 +5996,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         queueSave(pick.reco[i] ? 'reco-add' : 'reco-remove', (OFFER.reco[i] || {}).name);
       };
     });
-    var estB = document.getElementById('barEstimate');
-    if(estB) estB.onclick = function(){
-      var t = document.getElementById('estimate');
-      if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
-    };
     /* Поділитися. На телефоні — системне вікно (Telegram, пошта, «зберегти
        в файли»); на компʼютері такого немає, тож там це друк у PDF плюс
        скопійована адреса. Обидва шляхи ведуть до одного: пропозицію можна
@@ -6060,7 +6029,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       copy();
       imagesReady().then(function(){ setTimeout(function(){ window.print(); }, 250); });
     };
-    ['confirmBtn','confirmBtn2','barConfirm','estConfirmBtn'].forEach(function(id){
+    ['confirmBtn','confirmBtn2','estConfirmBtn'].forEach(function(id){
       var b = document.getElementById(id);
       if(b) b.onclick = function(){
         document.getElementById('cfSummary').innerHTML = confirmSummaryHtml();
@@ -6084,35 +6053,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      показувало б клас уже викинутому вузлу. Сам обробник вішаємо один раз —
      інакше після десятка перемальовувань на кожну прокрутку працювало б
      десять однакових перевірок. */
-  var barWired = false;
-  function watchBar(){
-    if(!document.getElementById('bar')) return;
-    document.body.classList.add('has-bar');
-    if(barWired) return;
-    barWired = true;
-    // Показуємо лише коли людина вже дійшла до колекції: на першому екрані
-    // жодних дій бути не повинно, поки не зрозуміло, що саме пропонують.
-    var onScroll = function(){
-      var anchor = document.getElementById('offerStart');
-      var y = anchor ? (anchor.getBoundingClientRect().top + window.scrollY) : 420;
-      /* Ховаємо панель, поки на екрані видно БУДЬ-ЯКУ справжню кнопку
-         «Підтвердити» — у кошторисі або у фіналі. Дві однакові кнопки в
-         одному екрані змагаються між собою, і людина не розуміє, яка з них
-         головна; панель має бути продовженням тієї, що поїхала вгору, а не
-         її копією. */
-      var ctaVisible = ['estConfirmBtn', 'confirmBtn', 'confirmBtn2'].some(function(id){
-        var cta = document.getElementById(id);
-        if(!cta || !cta.offsetParent) return false;
-        var r = cta.getBoundingClientRect();
-        return r.top < window.innerHeight - 40 && r.bottom > 0;
-      });
-      var bar = document.getElementById('bar');
-      if(bar) bar.classList.toggle('show', window.scrollY > y - 80 && !ctaVisible);
-    };
-    window.addEventListener('scroll', onScroll, { passive:true });
-    onScroll();
-  }
-
   // Чекаємо, поки завантажаться всі макети (або впадуть) — потрібно перед друком
   function imagesReady(){
     var imgs = [].slice.call(document.images).filter(function(im){ return !im.complete; });
@@ -6276,7 +6216,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                       tagline: 'виробництво мерчу', site: '', logo: qb.get('logo') || '' };
     }
     document.title = 'Тестова КП · ' + brand().name;
-    render(); wireSheets(); watchBar();
+    render(); wireSheets();
     var note = document.createElement('div');
     note.textContent = 'Тестова пропозиція — нічого не зберігається';
     note.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99;' +
@@ -6334,7 +6274,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     render();
     wireSheets();
-    watchBar();
 
     // «Клієнт відкрив КП» — один раз на сеанс, щоб не засмічувати стрічку
     try{
