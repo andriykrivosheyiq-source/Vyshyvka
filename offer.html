@@ -990,41 +990,34 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      обʼєктів; без них це одна спокійна таблиця змісту. */
   .fr-list{border-top:1px solid var(--line);}
   .fr{border-bottom:1px solid var(--line);}
-  /* Назви пунктів — звичайної насиченості. Список читають по діагоналі, і
-     шість жирних рядків підряд перетворюють зміст на шість заголовків, між
-     якими не видно, що головне. */
-  .fr>summary{list-style:none; cursor:pointer; display:flex; align-items:center;
-    gap:12px; padding:16px 2px; font-size:var(--fs-3); font-weight:500; color:var(--ink);}
+  /* Рядок: іконка на плитці — назва з підписом — шеврон. Іконку око ловить
+     раніше, ніж читає назву, і шість однакових рядків перестають бути
+     суцільною стіною тексту; підпис відповідає на «а що там усередині»,
+     щоб не доводилось розкривати навмання. */
+  .fr>summary, .fr-link{list-style:none; cursor:pointer; display:flex;
+    align-items:center; gap:12px; padding:12px 2px; color:var(--ink);
+    text-decoration:none; -webkit-tap-highlight-color:transparent;}
   .fr>summary::-webkit-details-marker{display:none;}
-  .fr-t{flex:1; min-width:0;}
-  .fr-a{display:flex; align-items:center; gap:6px; font-size:var(--fs-3); font-weight:600;
-    color:var(--muted); white-space:nowrap;}
-  /* Оцінка й зірочки стоять в одному рядку: у .rev-st вище є margin-bottom
-     для блоку відгуків, і тут він піднімав зірочки над цифрою. */
+  .fr-ic{flex:none; width:44px; height:44px; border-radius:var(--r-3);
+    background:var(--soft); color:var(--ink-2);
+    display:flex; align-items:center; justify-content:center;}
+  .fr-t{flex:1; min-width:0; font-size:var(--fs-4); font-weight:500;
+    line-height:1.3; color:var(--ink);}
+  .fr-a{display:flex; align-items:center; gap:6px; font-size:var(--fs-2);
+    font-weight:600; color:var(--muted); white-space:nowrap;}
   .fr-a .rev-st{margin:0; line-height:1; display:inline-flex; align-items:center;}
   .fr-a .rev-sc{line-height:1;}
   /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
-     і «тут ще є», і «зараз відкрито». */
-  .fr>summary::after{content:''; flex:none; width:8px; height:8px;
-    border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
+     і «тут ще є», і «зараз відкрито». Посилання не повертається — воно не
+     розкривається, а веде. */
+  .fr>summary::after, .fr-link::after{content:''; flex:none; width:11px; height:11px;
+    margin-right:2px; border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg); transition:transform .18s;}
-  .fr[open]>summary::after{transform:rotate(45deg);}@media (hover:hover){
-  /* На телефоні :hover «залипає» після дотику: пункт лишався оранжевим
-     доти, доки не торкнешся іншого. Підсвітка потрібна лише там, де є
-     справжній курсор; сірої підсвітки системи теж не треба — рядок і так
-     розкривається. */
-  @media (hover:hover) and (pointer:fine){
+  .fr[open]>summary::after{transform:rotate(45deg);}
+  @media (hover:hover){
     .fr>summary:hover .fr-t{color:var(--cta);}
     .fr-link:hover .fr-t{color:var(--cta);}
-  }}
-  .fr>summary, .fr-link{-webkit-tap-highlight-color:transparent;}
-  /* Рядок-посилання виглядає так само, як розкривний: інакше незрозуміло,
-     чому один пункт відкривається тут, а інший забирає на іншу сторінку. */
-  .fr-link{display:flex; align-items:center; gap:12px; padding:16px 2px;
-    font-size:var(--fs-3); font-weight:500; color:var(--ink); text-decoration:none;}
-  .fr-link::after{content:''; flex:none; width:8px; height:8px;
-    border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
-    transform:rotate(-45deg);}
+  }
   .fr-b{padding:2px 2px 20px; color:var(--ink);}
   .fr-b p{margin:0; font-size:var(--fs-3); color:var(--ink-2); line-height:1.6;}
   .fr-b .fl{margin-top:2px;}
@@ -4840,7 +4833,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        сайті, і там їх видно всі, зі своїм блоком і своїм оформленням.
        Тут рядок каже оцінку, показує роботи — і веде туди. */
     var strip = list.filter(function(r){ return r.photo; }).slice(0, 8);
-    return foldLink('Відгуки', reviewsUrl(), aside) +
+    return foldLink('Відгуки', reviewsUrl(), aside, 'revs') +
       (strip.length
         ? '<div class="rev-strip" id="revStrip">' + strip.map(function(r){
             return '<i data-estzoom="' + esc(strip.map(function(x){ return x.photo; }).join('|')) +
@@ -4964,18 +4957,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   /* Рядок, який не розкривається, а веде. Виглядає точно так само —
      інакше людина не зрозуміє, чому один пункт відкривається на місці, а
      інший забирає її на іншу сторінку. */
-  function foldLink(title, href, aside){
+  function foldLink(title, href, aside, ic){
     return '<a class="fr fr-link" href="' + esc(href) + '" target="_blank" rel="noopener">' +
-      '<span class="fr-t">' + esc(title) + '</span>' +
-      (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
-    '</a>';
+      frHead(ic || 'faq', title, aside) + '</a>';
   }
-  function foldRow(title, body, open, aside){
+  /* Іконка на плитці ліворуч. Око чіпляється за неї раніше, ніж читає
+     назву, — і шість однакових рядків перестають бути суцільною стіною
+     тексту. Лінійні знаки, а не емодзі: емодзі малюються по-різному на
+     кожній системі, а на світлій плитці вони ще й строкаті. */
+  var FR_IC = {
+    flow:  '<path d="M5 6h14M5 12h9M5 18h14"/><circle cx="18.5" cy="12" r="2.5"/>',
+    trust: '<path d="M12 3.5 19 6v6c0 4-3 6.6-7 8.5C8 18.6 5 16 5 12V6Z"/><path d="m9 12 2 2 4-4"/>',
+    terms: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20Z"/><path d="M14 3.5V8h4M10 13h5M10 16.5h5"/>',
+    works: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m6 16 3.5-4 3 3L16 11l2.5 3"/><circle cx="9" cy="9.5" r="1.2"/>',
+    revs:  '<path d="M12 4.5l2.3 4.7 5.2.8-3.7 3.6.9 5.1-4.7-2.4-4.7 2.4.9-5.1L4.5 10l5.2-.8Z"/>',
+    faq:   '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3M12 16.5h.01"/>'
+  };
+  function frIc(k){
+    return '<span class="fr-ic"><svg width="20" height="20" viewBox="0 0 24 24" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" ' +
+      'stroke-linejoin="round">' + (FR_IC[k] || FR_IC.faq) + '</svg></span>';
+  }
+  function frHead(ic, title, aside){
+    return frIc(ic) + '<span class="fr-t">' + esc(title) + '</span>' +
+      (aside ? '<span class="fr-a">' + aside + '</span>' : '');
+  }
+  function foldRow(title, body, open, aside, ic){
     if(!body) return '';
     return '<details class="fr"' + (open ? ' open' : '') + '>' +
-      '<summary><span class="fr-t">' + esc(title) + '</span>' +
-        (aside ? '<span class="fr-a">' + aside + '</span>' : '') +
-      '</summary>' +
+      '<summary>' + frHead(ic || 'faq', title, aside) + '</summary>' +
       '<div class="fr-b">' + body + '</div></details>';
   }
   /* Після кошторису — не сайт, а рівно те, що знімає останній сумнів.
@@ -4985,13 +4995,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      тримала палець над кнопкою. */
   function detailsHtml(){
     var rows = '';
-    rows += foldRow('Як проходитиме замовлення', flowInner(), false);
+    rows += foldRow('Як проходитиме замовлення', flowInner(), false, '', 'flow');
     rows += foldRow('Замовлення без зайвих ризиків',
       '<ul class="tru-l">' + TRUST.map(function(t){
         return '<li>' + TICK_TH + '<span>' + esc(t) + '</span></li>';
-      }).join('') + '</ul>', false);
-    rows += foldRow('Умови замовлення', condInner(), false);
-    rows += foldRow('Реалізовані проєкти', casesInner(), false);
+      }).join('') + '</ul>', false, '', 'trust');
+    rows += foldRow('Умови замовлення', condInner(), false, '', 'terms');
+    rows += foldRow('Реалізовані проєкти', casesInner(), false, '', 'works');
     /* Відгуки — рядок із оцінкою праворуч, а під ним смужка фото робіт, яку
        видно без розкриття. Оцінка й фото — це і є доказ; текст під ними
        читає той, кому цього замало. */
@@ -4999,7 +5009,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     /* Питання йдуть окремими рядками того ж списку, а не вкладеною
        гармошкою в гармошці: два рівні розкриття людина просто не проходить. */
     rows += faqList().map(function(q){
-      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false);
+      return foldRow(q[0], '<p>' + esc(q[1]) + '</p>', false, '', 'faq');
     }).join('');
     if(!rows) return '';
     /* Заголовок над списком: без нього блок починався одразу рядками й
