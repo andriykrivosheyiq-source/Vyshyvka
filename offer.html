@@ -26,7 +26,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
        були темно-синіми й нічим не відрізнялись від тексту заголовків. */
     --bg:#fff; --soft:#F6F8FA; --accent:#0F2034; --good:#0E9F6E;
     --cta:#E8590C; --cta-dark:#C2410C;
-    --pad:20px; --radius:16px;
+    /* Бічні поля сторінки. 20px тримали текст надто близько до краю —
+       читалось як «впритул», а не як документ. */
+    --pad:24px; --radius:16px;
     /* Типографічна шкала. Вісім кеглів на всю сторінку: доти їх було
        тридцять три, і сім із них — у проміжку 12–16px, де різниця вже
        не читається як задум. */
@@ -461,18 +463,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      перекривати їх і не загубитись на світлому фото. */
   /* Стрілки з боків кадру — вони самі й є підказкою, що є куди гортати.
      Плашка «3 фото» казала те саме словами й займала кут. */
-  .pgal-ar{position:absolute; top:50%; transform:translateY(-50%); z-index:3;
-    width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
-    background:rgba(255,255,255,.92); box-shadow:0 2px 10px rgba(15,32,52,.16);
-    color:var(--ink); font-size:22px; line-height:1; padding:0 0 2px;
-    display:flex; align-items:center; justify-content:center; transition:.15s;}@media (hover:hover){
-  .pgal-ar:hover{background:#fff; box-shadow:0 4px 16px rgba(15,32,52,.22);}}
-  /* display:flex у .pgal-ar сильніший за [hidden], і схована стрілка
-     все одно малювалась. */
-  .pgal-ar[hidden]{display:none;}
-  .pgal-ar.prev{left:10px;}
-  .pgal-ar.next{right:10px;}
-  @media (min-width:640px){ .pgal-ar{width:44px; height:44px; font-size:24px;} }
   @media (min-width:640px){ .pgal-i.is-thumb{width:98px;}
     .pgal-i.is-thumb img{height:98px;} }
   /* Ракурс у режимі менеджера: клікабельний, із підписом і порожньою
@@ -3678,14 +3668,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       (rest.length
         ? '<div class="pgal-more">' + rest.map(function(v){ return cell(v, false); }).join('') +
           '</div>' +
-          /* Стрілка каже «це гортається», мініатюра — «ось що там буде».
-             Разом вони не сперечаються: стрілки з боків, мініатюри внизу.
-             Обидві стрілки в розмітці завжди; яку показати — вирішує
-             galSync() за поточним ракурсом: на першому видно тільки «далі»,
-             на останньому — тільки «назад». Доти «назад» просто не існувало
-             при двох ракурсах, і повернутись до переду було нічим. */
-          '<button class="pgal-ar prev" data-gnav="-1" aria-label="Попередній ракурс" hidden>‹</button>' +
-          '<button class="pgal-ar next" data-gnav="1" aria-label="Наступний ракурс">›</button>'
+          /* Стрілок у картці немає: мініатюра в кутку показує, ЩО там буде,
+             і цього досить. Стрілка казала те саме, тільки словом «далі», і
+             стояла просто на виробі. Гортати на весь екран є чим — там
+             стрілки лишились. */
+          ''
         : '') +
     '</div>';
   }
@@ -4239,8 +4226,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                       '<span class="pcard-off">−' +
                         Math.round((1 - rs.sum / rs.base) * 100) + '%</span>'
                     : '<span class="pcard-per">за штуку</span>') + '</div>' +
-                '<div class="prow-r"><span class="prow-k">Виготовлення</span>' +
-                  '<span class="prow-v">' + curDays() + ' роб. днів</span></div>' +
+                /* Терміну тут немає навмисно: він один на все замовлення й
+                   написаний в умовах під кошторисом. У картці основної
+                   позиції його теж немає — а поруч вони мають виглядати
+                   однаково, це той самий товар, лише запропонований нами. */
               '</div>' +
               nextTierHtml(r, rs.qty) + staleNote(r) +
               '<div class="pbuy-row">' +
@@ -5111,17 +5100,41 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Тепер кадр і знімок однакової форми — різати нема чого.
      Межі: не вужче 3:4 (інакше фото зайняло б увесь екран) і не ширше
      4:3 (інакше картка перетворюється на смужку). */
+  /* Рамка головного фото рахується ОДИН раз на картку і далі не міняється.
+     Доти вона бралася з поточного знімка — і при перемиканні перед↔спина
+     стрибала: у знімків різних сторін пропорції трохи різні, тож картка то
+     виростала, то сідала просто від дотику до мініатюри.
+
+     Беремо найвищу пропорцію серед усіх ракурсів позиції. Тоді жоден
+     знімок не доводиться різати згори чи знизу — object-fit:cover
+     підрізає лише з боків, а там у знімка виробу самі поля. */
   function fitMain(img){
     if(!img) return;
     var box = img.parentNode;
     if(!box || !box.classList.contains('is-main')) return;
-    var apply = function(){
-      var w = img.naturalWidth, h = img.naturalHeight;
-      if(!w || !h) return;
-      box.style.aspectRatio = String(Math.max(0.75, Math.min(4/3, w / h)));
+    var gal = box.closest('.pgal');
+    if(!gal || gal.dataset.ar) return;              // рамку вже поставили
+    var vv = shownViews(itemOfShot(gal.getAttribute('data-shot')));
+    var srcs = vv.length ? vv.map(function(v){ return v.img; })
+                         : [img.getAttribute('src')];
+    var left = srcs.length, best = 0;
+    var done = function(){
+      if(--left) return;
+      var r = best || 1;
+      r = Math.max(0.75, Math.min(4 / 3, r));       // ані смужка, ані весь екран
+      gal.dataset.ar = r;
+      box.style.aspectRatio = String(1 / r);        // CSS чекає ширина/висота
     };
-    img.addEventListener('load', apply, { once:true });
-    if(img.complete && img.naturalWidth) apply();
+    srcs.forEach(function(src){
+      var im = new Image();
+      im.onload = function(){
+        if(im.naturalWidth && im.naturalHeight)
+          best = Math.max(best, im.naturalHeight / im.naturalWidth);
+        done();
+      };
+      im.onerror = done;
+      im.src = src;
+    });
   }
   /* Іконка та сама, що в системному «Поділитися» на айфоні: рамка з
      стрілкою вгору. Людина впізнає її, не читаючи підпису, — тож підпису
@@ -5162,7 +5175,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   function fitMains(){
     [].forEach.call(document.querySelectorAll('.pgal-i.is-main img'), fitMain);
-    [].forEach.call(document.querySelectorAll('.pgal'), galSync);
   }
 
   /* ── Ракурси як карусель ──────────────────────────────────────────────
@@ -5189,23 +5201,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var gal = cell && cell.closest('.pgal');
     if(cell && cell.classList.contains('is-thumb') && !EDIT){
       cell.remove();
-      if(gal && !gal.querySelector('.pgal-i.is-thumb')){
-        [].forEach.call(gal.querySelectorAll('.pgal-ar'), function(b){ b.hidden = true; });
-      }else if(gal){ galSync(gal); }
       return;
     }
     img.style.visibility = 'hidden';
   }
   window.lqShotFail = lqShotFail;
-  function galSync(gal){
-    if(!gal || EDIT) return;
-    var vv = shownViews(itemOfShot(gal.getAttribute('data-shot')));
-    var i = Math.max(0, Math.min(vv.length - 1, +gal.getAttribute('data-i') || 0));
-    var prev = gal.querySelector('.pgal-ar.prev');
-    var next = gal.querySelector('.pgal-ar.next');
-    if(prev) prev.hidden = i <= 0;
-    if(next) next.hidden = i >= vv.length - 1;
-  }
   function galGo(gal, d, to){
     if(!gal || EDIT) return;
     var it = itemOfShot(gal.getAttribute('data-shot'));
@@ -5234,7 +5234,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }).join('');
     }
     gal.setAttribute('data-i', i);
-    galSync(gal);
   }
 
   // Перемальовуємо лише те, що залежить від вибору — сторінка не «стрибає»
@@ -5614,13 +5613,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(sh){ doShare(sh); return; }
       var est = ev.target.closest && ev.target.closest('[data-estzoom]');
       if(est){ openZoom(String(est.dataset.estzoom).split('|'), 0); return; }
-      /* Стрілка гортає ракурси на місці; галерея не відкривається — людина
-         хотіла подивитись спину, а не вікно. */
-      var ar = ev.target.closest && ev.target.closest('.pgal-ar');
-      if(ar && !EDIT){
-        galGo(ar.closest('.pgal'), +ar.getAttribute('data-gnav'));
-        return;
-      }
       /* Мініатюра просто МІНЯЄ головне фото. Доти вона відкривала галерею —
          і щоб роздивитись спину, треба було спершу відкрити вікно, а потім
          його закрити. Тепер: тицьнув у кут — побачив; тицьнув у саме фото —
