@@ -3000,14 +3000,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Якщо він чи модель цін не приїхали — мовчки лишаємось на цінах, які
      порахував менеджер: краще старі, ніж вигадані. */
   var LIVE = null;
-  function livePrices(){
+  /* what — необовʼязкова підміна: {kind, i, units}. Із нею той самий прогін
+     рахує склад так, ніби в ЦІЙ позиції інша кількість. Потрібно, щоб
+     обіцянка «від 20 шт — стільки» рахувалась тим самим рушієм і в тому
+     самому складі, що й ціна на картці: доти вона бралася з порогів,
+     збережених адмінкою колись, і після будь-якої зміни складу розходилась
+     із тим, що клієнт побачить, коли ту кількість справді набере. */
+  function livePrices(what){
     if(!window.LQ || !window.LQ.priceOrder) return null;
     if(!(window.SITE_CONTENT && window.SITE_CONTENT.pricing)) return null;
+    var sub = function(kind, i, q){
+      return (what && what.kind === kind && what.i === i)
+        ? Math.max(1, Math.round(what.units)) : q;
+    };
     var list = [], map = [];
     (OFFER.items || []).forEach(function(it, i){
       if(!isOn(i) || !it.desc) return;
       var d = JSON.parse(JSON.stringify(it.desc));
-      d.units = Math.max(1, baseQty(i));
+      d.units = sub('main', i, Math.max(1, baseQty(i)));
       list.push(d); map.push(['main', i]);
     });
     /* Рекомендований товар — це допродаж: клієнт бере його зверху вже
@@ -3021,14 +3031,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var v = OFFER.variants[vi];
       if(!v || !v.desc) return;
       var d = JSON.parse(JSON.stringify(v.desc));
-      d.units = Math.max(1, baseVarQty(vi));
+      d.units = sub('variant', vi, Math.max(1, baseVarQty(vi)));
       list.push(d); map.push(['variant', vi]);
     });
     var keep = window.LQ.upsellMode && window.LQ.upsellMode() === 'keep';
     (OFFER.reco || []).forEach(function(r, i){
       if(!pick.reco[i] || !r.desc) return;
       var d = JSON.parse(JSON.stringify(r.desc));
-      d.units = Math.max(1, baseRecoQty(i));
+      d.units = sub('reco', i, Math.max(1, baseRecoQty(i)));
       if(keep) d.upsell = true;
       list.push(d); map.push(['reco', i]);
     });
@@ -3066,7 +3076,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(og !== myGroup) base.push(list[k]);        // чужа група — лишається
       });
       var d = JSON.parse(JSON.stringify(v.desc));
-      d.units = Math.max(1, baseVarQty(vi));
+      d.units = sub('variant', vi, Math.max(1, baseVarQty(vi)));
       try{
         var r = window.LQ.priceOrder(base.concat([d]));
         var mine = r[r.length - 1];
@@ -3655,9 +3665,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   /* Ракурси, які реально показані в картці: саме їх гортає і галерея.
      Прихований менеджером ракурс не має спливати на весь екран. */
+  /* Ракурси, знімок яких не завантажився. Адмінка підставляє фото сторони
+     виробу за ключем {виріб}-{колір}-{сторона}; для рідкісного кольору
+     файлу може не бути, і тоді ракурс існує, а картинки за ним немає.
+     Тримаємо їх тут і викидаємо звідусіль — зі списку, з мініатюр, із
+     галереї й з розрахунку пропорції кадру. */
+  var BAD_IMG = {};
   function shownViews(it){
     var all = viewsOf(it);
-    return all.filter(function(v){ return v && v.img && (EDIT || v.show !== false); });
+    return all.filter(function(v){
+      return v && v.img && !BAD_IMG[v.img] && (EDIT || v.show !== false);
+    });
   }
   function galleryHtml(it, idx, kind, tag){
     var all = viewsOf(it);
@@ -4021,12 +4039,45 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       out.push((it.prints || []).length + ' нанесення');
     return out.join(' · ');
   }
-  function nextTierHtml(it, qty){
+  /* Ціну на наступному порозі рахуємо ТУТ І ЗАРАЗ, тим самим рушієм і в
+     тому самому складі, що й ціну на картці.
+
+     Доти вона бралась із it.tiers — знімка, який адмінка зробила під час
+     збереження. Склад пропозиції відтоді міг змінитись: клієнт додав
+     рекомендований товар, обрав інший варіант, покрутив кількості. Разова
+     підготовка макета ділиться на весь тираж способу, тож будь-яка з цих
+     дій міняє ціну КОЖНОЇ позиції — а знімок лишався старим. Через це
+     обіцянка «від 10 шт — 761 грн» не збігалась із 874 грн, які клієнт
+     бачив, набравши ті самі 10; а подекуди поріг виходив ДОРОЖЧИМ за
+     поточну ціну, тобто «бери більше — плати більше».
+
+     Пороги (самі числа кількостей) лишаються з it.tiers: який тираж
+     пропонувати — рішення менеджера. Ціну на ньому рахуємо самі. І якщо
+     на порозі не дешевше — рядка немає взагалі: обіцянка без вигоди гірша
+     за її відсутність. */
+  function tierUnitAt(kind, i, q){
+    var lp = livePrices({ kind: kind, i: i, units: q });
+    var box = lp && (kind === 'variant' ? lp.vars : lp[kind]);
+    var r = box && box[i];
+    return (r && r.unit) || null;
+  }
+  function nextTierHtml(it, qty, kind, idx){
     var next = (it && it.tiers || [])
-      .filter(function(t){ return t && +t.qty > qty && +t.unit > 0; })
+      .filter(function(t){ return t && +t.qty > qty; })
       .sort(function(a, b){ return a.qty - b.qty; })[0];
     if(!next) return '';
-    return '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(next.unit) + '/шт</div>';
+    var unit = (kind != null && idx != null) ? tierUnitAt(kind, idx, +next.qty) : null;
+    if(unit == null) unit = +next.unit || 0;      // немає рушія — старий шлях
+    var now = curUnit(kind, idx, it);
+    if(!(unit > 0) || (now > 0 && unit >= now)) return '';
+    return '<div class="pqty-n">Від ' + next.qty + ' шт — ' + money(unit) + '/шт</div>';
+  }
+  /* Поточна ціна за штуку тієї самої позиції — щоб було з чим порівняти. */
+  function curUnit(kind, idx, it){
+    if(kind === 'main') return itemState(idx).unit;
+    if(kind === 'variant') return varState(idx).unit;
+    if(kind === 'reco') return recoState(idx).unit;
+    return +((it || {}).unitPrice) || 0;
   }
   function priceBoxHtml(i, stIn, key){
     var s = stIn || itemState(i);
@@ -4082,7 +4133,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         /* Один напис на всі види карток: доти в основних позиціях стояло
            «Від 30 шт — 980 грн», а у варіантах інше — два різні тексти для
            того самого в одному документі. */
-        nextTierHtml(it, st.qty) +
+        nextTierHtml(it, st.qty, 'main', i) +
         packsHtml(i) +
         /* Кількість поруч із кнопкою — так це роблять маркетплейси: обидві
            дії в одному рядку, у зоні великого пальця, і не треба шукати
@@ -4166,7 +4217,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
                     : '<span class="pcard-per">за штуку</span>') +
                 '</div></div>' +
-                nextTierHtml(v, st.qty) + staleNote(v) +
+                nextTierHtml(v, st.qty, 'variant', i) + staleNote(v) +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
                   (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
@@ -4273,7 +4324,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                    позиції його теж немає — а поруч вони мають виглядати
                    однаково, це той самий товар, лише запропонований нами. */
               '</div>' +
-              nextTierHtml(r, rs.qty) + staleNote(r) +
+              nextTierHtml(r, rs.qty, 'reco', i) + staleNote(r) +
               '<div class="pbuy-row">' +
                 '<div class="pstep">' +
                   '<button class="pstep-b" data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
@@ -5249,21 +5300,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      файлу може просто не бути. Порожня рамка в пропозиції читається як
      помилка, тож битий ракурс не ховаємо, а прибираємо разом із кнопкою —
      ніби його й не було. */
+  /* Битий знімок не ховаємо — прибираємо ракурс. Доти головне фото лише
+     ставало невидимим, а КАДР лишався: на його місці зяяло біле поле
+     заввишки з фото, і картка виглядала зламаною. Тепер ракурс викидається
+     зі списку, галерея переходить на наступний, а якщо не лишилось жодного
+     — зникає разом із кадром. */
   function lqShotFail(img){
     var cell = img.closest && img.closest('.pgal-i');
     var gal = cell && cell.closest('.pgal');
-    if(cell && cell.classList.contains('is-thumb') && !EDIT){
-      cell.remove();
-      return;
-    }
-    img.style.visibility = 'hidden';
+    var src = img.getAttribute('src');
+    if(!gal || EDIT){ img.style.visibility = 'hidden'; return; }
+    if(src) BAD_IMG[src] = 1;
+    if(cell && cell.classList.contains('is-thumb')){ cell.remove(); return; }
+    var it = itemOfShot(gal.getAttribute('data-shot'));
+    if(!shownViews(it).length){ gal.style.display = 'none'; return; }
+    gal.removeAttribute('data-ar');          // пропорцію рахуємо заново
+    galGo(gal, 0, 0);
+    var big = gal.querySelector('.pgal-i.is-main img');
+    if(big) fitMain(big);
   }
   window.lqShotFail = lqShotFail;
   function galGo(gal, d, to){
     if(!gal || EDIT) return;
     var it = itemOfShot(gal.getAttribute('data-shot'));
     var all0 = viewsOf(it), vv = shownViews(it);
-    if(vv.length < 2) return;
+    if(!vv.length) return;
     var cur = Math.max(0, Math.min(vv.length - 1, +gal.getAttribute('data-i') || 0));
     var i = (to == null ? cur + d : to);
     if(i < 0 || i > vv.length - 1) return;
