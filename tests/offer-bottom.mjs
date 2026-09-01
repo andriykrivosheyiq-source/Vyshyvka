@@ -296,6 +296,21 @@ const h1 = await p.frames()[1].evaluate(() =>
 ok(h0 === h1,
   'кадр не змінює висоту при перемиканні ракурсу (' + h0 + 'px)',
   'кадр стрибнув: ' + h0 + ' → ' + h1 + 'px');
+/* І головне — після ПЕРЕМАЛЬОВУВАННЯ. Саме тут воно й ламалось: пропорція
+   жила в атрибуті галереї й зникала разом із нею, а перемальовує сторінку
+   майже все — змінена кількість, доданий товар, обраний варіант. Кадр
+   рахувався заново, і якщо котрийсь знімок на той момент не віддався,
+   відповідь виходила інша: картка сідала або підростала просто від дотику
+   до мініатюри. */
+await p.frames()[1].evaluate(() => { if(window.__lqRefresh) window.__lqRefresh(); });
+await p.waitForTimeout(400);
+await p.frames()[1].click('.pgal-i.is-thumb');
+await p.waitForTimeout(500);
+const h2 = await p.frames()[1].evaluate(() =>
+  Math.round(document.querySelector('.pgal-i.is-main').getBoundingClientRect().height));
+ok(h0 === h2,
+  'кадр той самий і після перемальовування сторінки (' + h2 + 'px)',
+  'після перемальовування кадр став інший: ' + h0 + ' → ' + h2 + 'px');
 
 await p.frames()[1].click('.pgal-i.is-main img');
 await p.waitForTimeout(500);
