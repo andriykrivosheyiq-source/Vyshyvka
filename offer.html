@@ -704,10 +704,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-off{font-size:var(--fs-2); font-weight:600; color:#fff; background:var(--cta);
     border-radius:var(--r-1); padding:2px 6px; letter-spacing:.2px;}
   .pcard-per{font-size:var(--fs-2); color:var(--muted);}
-  /* За який тираж ця ціна — рядком під нею, тихо. Це не окремий факт, а
-     умова до числа вище. */
-  .pcard-qn{font-size:var(--fs-2); color:var(--muted); margin-top:4px;}
-  .pcard-qn b{font-weight:600; color:var(--ink-2); font-variant-numeric:tabular-nums;}
   /* Тираж — один сегмент замість трьох карток */
   .pqty{margin-top:10px;}  .pseg{display:flex; gap:4px; padding:4px; border-radius:var(--r-3); background:var(--soft);}
   .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:var(--r-2); background:none;
@@ -1047,18 +1043,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      раніше, ніж читає назву, і шість однакових рядків перестають бути
      суцільною стіною тексту; підпис відповідає на «а що там усередині»,
      щоб не доводилось розкривати навмання. */
+  /* Рядків лишилось два, і кожен — це те, чим менеджер відповідає на страх
+     клієнта. Дрібними вони читались як службова примітка внизу сторінки, а
+     не як пункт, у який варто зазирнути. Кегль на крок більший і рядок
+     вищий: за нього тепер зручно й пальцем. */
   .fr>summary, .fr-link{list-style:none; cursor:pointer; display:flex;
-    align-items:center; gap:12px; padding:16px 2px; color:var(--ink);
+    align-items:center; gap:12px; padding:20px 2px; color:var(--ink);
     text-decoration:none; -webkit-tap-highlight-color:transparent;}
   .fr>summary::-webkit-details-marker{display:none;}
-  .fr-t{flex:1; min-width:0; font-size:var(--fs-3); font-weight:500;
+  .fr-t{flex:1; min-width:0; font-size:var(--fs-4); font-weight:600;
     line-height:1.3; color:var(--ink);}
   .fr-a{display:flex; align-items:center; gap:6px; font-size:var(--fs-2);
     font-weight:600; color:var(--muted); white-space:nowrap;}
   .fr-a .rev-st{margin:0; line-height:1; display:inline-flex; align-items:center;}  /* Шеврон повертається вниз, коли рядок відкрито: та сама стрілка показує
      і «тут ще є», і «зараз відкрито». Посилання не повертається — воно не
      розкривається, а веде. */
-  .fr>summary::after, .fr-link::after{content:''; flex:none; width:11px; height:11px;
+  .fr>summary::after, .fr-link::after{content:''; flex:none; width:12px; height:12px;
     margin-right:2px; border-right:2px solid #B6BFCC; border-bottom:2px solid #B6BFCC;
     transform:rotate(-45deg); transition:transform .18s;}
   .fr[open]>summary::after{transform:rotate(45deg);}
@@ -2901,10 +2901,29 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return (i != null && OFFER.variants[i]) ? +i : null;
     }).filter(function(x){ return x != null; });
   }
+  /* Назва групи, до якої належить варіант. Вона ж — ключ, під яким живе
+     тираж: у групі він ОДИН на всіх. */
+  function varGroupOf(i){
+    var v = (OFFER.variants || [])[i] || {};
+    return v.vgroup || 'Варіанти на вибір';
+  }
+  /* Тираж варіанта — спільний для всієї групи, а не свій у кожної картки.
+
+     Інакше виходила пастка: клієнт ставить 40 шт на одному варіанті,
+     перемикається на сусідній — а там свої 30, бо лічильник у кожного був
+     власний. І порівняння, заради якого блок існує, ставало неможливим:
+     ціни за штуку на різних тиражах ні про що не говорять. Тепер число одне
+     — його видно на кожній картці групи й у кошторисі, і міняється воно
+     звідусіль однаково. */
   function baseVarQty(i){
     var v = (OFFER.variants || [])[i] || {};
-    var q = pick.varQty[i];
+    var q = pick.varQty[varGroupOf(i)];
     return Math.max(1, Math.round(q == null ? (+v.qty || 1) : q));
+  }
+  /* Поставити тираж усій групі. Значення живе під назвою групи, тож картка
+     сусіда й рядок кошторису беруть його тим самим ключем. */
+  function setVarQty(i, q){
+    pick.varQty[varGroupOf(i)] = Math.max(1, Math.round(q));
   }
   function varState(i){
     var v = (OFFER.variants || [])[i] || {};
@@ -4143,23 +4162,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         nxt += was.qty * ((nw && nw.unit) ? Math.round(nw.unit) : was.unit);
       });
       var save = Math.round(now.sum - nxt);
-      /* Ціна за штуку тієї позиції, яку пропонуємо доростити: саме її число
-         клієнт побачить у її ж рядку кошторису, коли натисне «+». */
-      var wasU = Math.round(itemState(rep[k]).unit);
-      var nowU = Math.round(((lp.main || {})[rep[k]] || {}).unit || 0);
-      var drop = wasU - nowU;
+      /* Скільки коштував би ТОЙ САМИЙ більший тираж, якби ціни за штуку
+         лишились нинішніми. Різниця з фактичною сумою — і є та додаткова
+         знижка, яку дає перехід через поріг: вона рахується на ВСЕ
+         замовлення, а не тільки на те, що вже в ньому. */
+      var asIs = 0;
+      (OFFER.items || []).forEach(function(it, i){
+        if(!isOn(i)) return;
+        var was = itemState(i);
+        asIs += ((i === rep[k]) ? was.qty + need : was.qty) * was.unit;
+      });
+      variantPicked().forEach(function(vi){ var w = varState(vi); asIs += w.qty * w.unit; });
+      (OFFER.reco || []).forEach(function(r, i){
+        if(!pick.reco[i]) return;
+        var w = recoState(i); asIs += w.qty * w.unit;
+      });
+      var extra = Math.round(asIs - nxt);
       var cand = null;
       /* Дрібна вигода — не привід просити докупити: сто гривень на
          замовлення в десятки тисяч читається як знущання. */
-      if(save >= 100 && save >= now.sum * 0.01){
-        cand = { kind:'sum', need:need, save:save, gain:save };
-      }else if(nowU > 0 && drop > 0 && drop >= wasU * 0.03 && drop * (U[k] + need) >= 200){
-        /* Сума росте, бо виробів більше, — але кожен виріб дешевший.
-           Вигода тут — це те, скільки клієнт НЕ переплатить за новий тираж
-           проти старої ціни за штуку; за нею й обираємо найкращий поріг. */
-        cand = { kind:'unit', need:need, wasU:wasU, nowU:nowU, sum:Math.round(nxt),
-                 gain: drop * (U[k] + need) };
-      }
+      if(extra < 100 || extra < now.sum * 0.01) return;
+      cand = { need:need, extra:extra, sum:Math.round(nxt),
+               less: save > 0 ? save : 0, gain:extra };
       if(!cand) return;
       /* Ближчий поріг завжди кращий за вигідніший: чотири одиниці людина
          додасть, двадцять — уже інша розмова. */
@@ -4167,19 +4191,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          (cand.need === best.need && cand.gain > best.gain)) best = cand;
     });
     if(!best) return '';
-    var many = '<b>' + best.need + ' ' +
-      plural(best.need, 'одиницю', 'одиниці', 'одиниць') + '</b>';
-    if(best.kind === 'sum')
-      return '<div class="est-more">Додайте ще ' + many +
-        ' — і все замовлення вийде на <b>' + money(best.save) +
-        '</b> дешевше, ніж зараз</div>';
-    /* «з 1 070 до 830 грн», а не «з 1 070 грн до 830 грн»: гривня двічі в
-       одному порівнянні читається як два різні числа. */
-    return '<div class="est-more">Додайте ще ' + many +
-      ' — і ціна за штуку впаде з ' +
-      Math.round(best.wasU).toLocaleString('uk-UA').replace(/ /g, ' ') +
-      ' до <b>' + money(best.nowU) + '</b>' +
-      '<i>Разом за більший тираж: ' + money(best.sum) + '</i></div>';
+    /* Друга строчка — новий підсумок, тихіше. Він тут не для краси: без
+       нього «додаткова знижка» лишається числом, яке ні з чим не звірити.
+       А коли сума ще й падає попри більший тираж — це найсильніше, що можна
+       сказати, і сказано воно тим самим рядком. */
+    return '<div class="est-more">Додайте ще <b>' + best.need + ' ' +
+      plural(best.need, 'одиницю', 'одиниці', 'одиниць') +
+      '</b> — і отримаєте додаткову знижку <b>' + money(best.extra) +
+      '</b> на все замовлення' +
+      '<i>Разом за більший тираж: ' + money(best.sum) +
+      (best.less ? ' — на ' + money(best.less) + ' менше, ніж зараз' : '') +
+      '</i></div>';
   }
 
   /* Поточна ціна за штуку тієї самої позиції — щоб було з чим порівняти. */
@@ -4325,27 +4347,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
                       '<span class="pcard-off">−' +
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
-                    /* «за штуку» тут більше не пишемо: це сказано рядком
-                       нижче, разом із тиражем, і двічі поспіль виглядало як
-                       два різні уточнення до одного числа. */
-                    : '') +
+                    : '<span class="pcard-per">за штуку</span>') +
                 '</div></div>' +
-                /* За який тираж ця ціна. Доти на картці стояли ціна за штуку,
-                   перекреслена стара і «−27%» — і жодного числа, до якого ці
-                   відсотки прив'язані. Питання «а знижка за скільки?» виникало
-                   першим, і відповіді на картці не було: кількість переїхала
-                   в «Деталі позиції», бо в сусідніх картках групи вона
-                   однакова. Однакова — але не очевидна.
-
-                   Тут вона тільки написана, а не міняється: варіанти
-                   порівнюють на ОДНОМУ тиражі, інакше порівняння втрачає сенс.
-                   Змінити кількість можна в кошторисі, коли варіант обрано. */
-                (st.qty ? '<div class="pcard-qn">Ціна за штуку при тиражі <b>' +
-                  st.qty + ' шт</b></div>' : '') +
                 staleNote(v) +
-                '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
-                  esc(g.name) + '|' + i + '">' +
-                  (on ? TICK + 'Обрано' : 'Обрати цей варіант') + '</button>' +
+                /* Лічильник поруч із кнопкою, як в основних позиціях. Тираж
+                   тут спільний на всю групу: покрутили на одній картці —
+                   змінилось на всіх і в кошторисі. Саме тому ціни варіантів
+                   лишаються порівнюваними: вони завжди за однакову
+                   кількість. */
+                '<div class="pbuy-row">' +
+                  '<div class="pstep">' +
+                    '<button class="pstep-b" data-vq="' + i + '" data-d="-1" ' +
+                      'aria-label="Менше">−</button>' +
+                    '<span class="pstep-v"><b>' + st.qty + '</b>шт</span>' +
+                    '<button class="pstep-b plus" data-vq="' + i + '" data-d="1" ' +
+                      'aria-label="Більше">+</button>' +
+                  '</div>' +
+                  '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
+                    esc(g.name) + '|' + i + '">' +
+                    (on ? TICK + 'Обрано' : 'Обрати') + '</button>' +
+                '</div>' +
               '</div>' +
               /* Прорахунок варіанта — на тому самому місці, що й у основної
                  позиції: під ціною, згорнутий. Доти його не було ніде —
@@ -5450,6 +5471,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return {
       qty: qty,
       reco: Object.keys(pick.reco).filter(function(i){ return pick.reco[i]; }).map(Number),
+      /* Вибір варіанта і тиражі — теж вибір клієнта, і доти вони нікуди не
+         зберігались. Людина обирала варіант, ставила 40 шт, закривала
+         вкладку — і поверталась до початкових 30 і нічого не обраного. А
+         менеджер у картці не бачив, що саме вона обрала. */
+      variant: Object.assign({}, pick.variant),
+      varQty: Object.assign({}, pick.varQty),
+      recoQty: Object.assign({}, pick.recoQty),
       total: t.sum, count: t.qty, days: curDays()
     };
   }
@@ -6048,6 +6076,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         refresh();
       };
     });
+    /* Тираж варіанта. Ключ — назва групи, тож картка сусіднього варіанта й
+       рядок кошторису показують те саме число й міняють те саме значення. */
+    document.querySelectorAll('[data-vq]').forEach(function(b){
+      if(frozen){ b.disabled = true; return; }
+      b.onclick = function(){
+        var i = +b.dataset.vq, d = +b.dataset.d;
+        setVarQty(i, varState(i).qty + d);
+        refresh();
+        queueSave('qty', (OFFER.variants[i] || {}).name + ' → ' +
+          varState(i).qty + ' шт');
+      };
+    });
     /* Лічильник у самому кошторисі. Замовлення людина зводить тут: бачить
        усі позиції разом і суму під ними. Доти щоб додати одну штуку, треба
        було знайти ту саму позицію вище й повернутись назад — а між тим
@@ -6062,7 +6102,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           q = pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
           nm = (OFFER.reco[i] || {}).name;
         }else if(kind === 'variant'){
-          q = pick.varQty[i] = Math.max(1, varState(i).qty + d);
+          /* Через setVarQty, а не в pick.varQty[i]: тираж належить групі, і
+             покручений тут він мусить збігтися з тим, що на картках. */
+          setVarQty(i, varState(i).qty + d);
+          q = varState(i).qty;
           nm = (OFFER.variants[i] || {}).name;
         }else{
           q = Math.max(1, itemState(i).qty + d);
@@ -6416,6 +6459,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var sel = OFFER.selection || {};
     Object.keys(sel.qty || {}).forEach(function(i){ pick.qty[+i] = +sel.qty[i]; });
     (sel.reco || []).forEach(function(i){ pick.reco[+i] = true; });
+    /* Обраний варіант і тиражі — рівно те, що людина вже вирішила. Ключ у
+       varQty — назва групи: тираж у групі один на всі картки. */
+    Object.keys(sel.variant || {}).forEach(function(g){ pick.variant[g] = sel.variant[g]; });
+    Object.keys(sel.varQty || {}).forEach(function(g){ pick.varQty[g] = +sel.varQty[g]; });
+    Object.keys(sel.recoQty || {}).forEach(function(i){ pick.recoQty[+i] = +sel.recoQty[i]; });
 
     render();
     wireSheets();
