@@ -176,7 +176,7 @@ ok(decl('.sec-title', 'text-align') === 'left',
 const heads = [...src.matchAll(/<h2 class="sec-title">([^<]+)<\/h2>'\s*\+\s*\n?\s*(?:\/\*[\s\S]*?\*\/\s*)?'?<p class="sec-sub">/g)]
   .map(m => m[1]);
 const allHeads = [...src.matchAll(/<h2 class="sec-title">([^<]+)<\/h2>/g)].map(m => m[1]);
-const MAIN = ['Ваша пропозиція', 'Варіанти на вибір', 'Доповніть замовлення'];
+const MAIN = ['Ваша пропозиція', 'Варіанти на вибір', 'Доповніть комплект'];
 const noSub = MAIN.filter(h => allHeads.includes(h) && !heads.includes(h));
 ok(noSub.length === 0,
   'у головних розділів є підзаголовок про те, що саме в них',
