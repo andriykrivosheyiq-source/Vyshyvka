@@ -150,6 +150,69 @@ if(m){
     'замовлення справді подешевшало, хоч виробів більше',
     'сума зросла: ' + was + ' → ' + num(after.разом) + ' — «бери більше, плати більше»');
 }
+
+/* ── Маленьке замовлення ──────────────────────────────────────────────
+   Шість одиниць, поріг за чотири кроки. Додані вироби коштують більше, ніж
+   дає знижка, — підсумок росте. Спершу такий випадок ми ховали зовсім, і на
+   реальному КП клієнта під сумою не було нічого: підказка не спрацьовувала
+   саме там, де вона найпотрібніша.
+
+   Тепер вона є й називає обидва числа — нову ціну за штуку і новий
+   підсумок. Тест набирає названу кількість і звіряє обидва. */
+console.log('');
+console.log('═══ ТЕ САМЕ НА МАЛЕНЬКОМУ ЗАМОВЛЕННІ ═══');
+const mk = (name, qty, unit) => ({ kind:'main', vgroup:'', name, color:'Біла', print:'Вишивка',
+  sizes:'M × ' + qty, qty, unitPrice:unit, price:unit*qty,
+  basePrice:Math.round(unit*qty*1.9), baseUnitPrice:Math.round(unit*1.9),
+  mockups:[PH], prints:[], views:[{ side:'front', label:'Перед', img:PH, show:true }],
+  sides:[], techniques:[], specs:[], about:'', tiers:[],
+  desc:{ method:'embro', units:qty, base:600, coefPart:300, pieceFee:20, dtfCols:[],
+         designs:[FP], designKinds:['img'], bare:false } });
+const SMALL = Object.assign({}, OFFER, {
+  items:[ mk('Футболка поло', 1, 1360), mk('Футболка базова', 5, 1048) ],
+  pricing:{ methods:{ embro:{ orderFee:900,
+      tiers:[{from:1,coef:1},{from:10,coef:.8},{from:30,coef:.65}] } },
+    tiers:[{from:1,coef:1},{from:10,coef:.8},{from:30,coef:.65}],
+    garmentTiers:[{from:1,coef:1}] }
+});
+/* Сторінка приймає дані один раз, під час ініціалізації кадру, — тож для
+   другого випадку відкриваємо її заново. */
+await p.goto(HOST + '/_tier_vhost.html', { waitUntil:'domcontentloaded' });
+await p.waitForTimeout(4000);
+await p.evaluate(o => window.__push(o), SMALL);
+await p.waitForTimeout(2500);
+await fr().evaluate(pr => {
+  window.SITE_CONTENT = window.SITE_CONTENT || {};
+  window.SITE_CONTENT.pricing = pr;
+  document.dispatchEvent(new Event('lq-content'));
+  if(window.__lqRefresh) window.__lqRefresh();
+}, SMALL.pricing);
+await p.waitForTimeout(1200);
+
+const s2 = await read();
+console.log('  шість одиниць:      ' + JSON.stringify(s2));
+const m2 = /Додайте ще (\d+)\D+впаде з [\d\s ]+ до ([\d\s ]+) грн\D*?тираж: ([\d\s ]+) грн/
+  .exec(s2.обіцянка);
+ok(!!m2,
+  'на маленькому замовленні підказка теж є: «' + s2.обіцянка + '»',
+  'під сумою порожньо — підказки немає там, де вона найпотрібніша: «' +
+    s2.обіцянка + '»');
+if(m2){
+  const need = +m2[1], unit = num(m2[2]), sum = num(m2[3]);
+  await bump(need);
+  const a2 = await fr().evaluate(() => ({
+    разом: (document.querySelector('.est-pay b') || {}).textContent || '',
+    заШтуку: (document.querySelector('.est-i-mul') || {}).textContent || ''
+  }));
+  console.log('  набрали +' + need + ' шт:   ' + JSON.stringify(a2));
+  const gotU = num((/× ([\d\s ]+) грн/.exec(a2.заШтуку) || [0, '0'])[1]);
+  ok(gotU === unit,
+    'ціна за штуку впала рівно до обіцяної: ' + unit + ' грн',
+    'обіцяли ' + unit + ' за штуку, вийшло ' + gotU);
+  ok(num(a2.разом) === sum,
+    'підсумок збігся з обіцяним: ' + sum + ' грн',
+    'обіцяли разом ' + sum + ', вийшло ' + num(a2.разом));
+}
 try{ fs.unlinkSync(VH); }catch(e){}
 
 console.log('');
