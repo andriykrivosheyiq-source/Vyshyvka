@@ -188,46 +188,22 @@ ok(m.закреслень === 0 && m.плашок === 0,
   'на телефоні лишились повтори');
 // липка панель має мовчати, поки головна кнопка на екрані
 const fr = p.frames()[1];
-const bar = async () => fr.evaluate(()=>{
-  const b2 = document.getElementById('bar');
-  const cta = document.getElementById('estConfirmBtn');
-  const r = cta ? cta.getBoundingClientRect() : null;
-  const on = e => !!(e && e.top < innerHeight - 40 && e.bottom > 0);
-  const vis = id => { const el = document.getElementById(id);
-    return !!(el && el.offsetParent) && on(el.getBoundingClientRect()); };
-  const анаЕкрані = ['estConfirmBtn','confirmBtn','confirmBtn2'].filter(vis);
-  const anch = document.getElementById('offerStart');
-  return { панель: !!(b2 && b2.classList.contains('show')),
-           панельЄ: !!b2,
-           scrollY: Math.round(scrollY),
-           поріг: anch ? Math.round(anch.getBoundingClientRect().top + scrollY - 80) : null,
-           кнопкаНаЕкрані: on(r), кнопкиНаЕкрані: анаЕкрані };
-});
-await fr.evaluate(()=>{
-  document.getElementById('estConfirmBtn').scrollIntoView({ block:'center' });
-  window.dispatchEvent(new Event('scroll'));
-});
-await p.waitForTimeout(600);
-const b1 = await bar();
-/* А тепер — у товари: саме там панель і потрібна. Клієнт гортає позиції,
-   міняє кількості й має бачити, як росте сума, не доходячи до кошторису.
-   Жодної справжньої кнопки на екрані там немає. */
-await fr.evaluate(()=>{
-  const cards = document.querySelectorAll('.pcard');
-  const c = cards[Math.max(0, cards.length - 2)];
-  if(c) c.scrollIntoView({ block:'center' });
-  window.dispatchEvent(new Event('scroll'));
-});
-await p.waitForTimeout(600);
-const b2 = await bar();
-console.log('  кнопка кошторису на екрані:', JSON.stringify(b1));
-console.log('  у товарах:                ', JSON.stringify(b2));
-ok(b1.кнопкаНаЕкрані && !b1.панель,
-  'поки головна кнопка на екрані — липкої панелі немає',
-  'панель дублює кнопку: ' + JSON.stringify(b1));
-ok(!b2.кнопкиНаЕкрані.length && b2.панель,
-  'у товарах справжньої кнопки на екрані немає — панель із живою сумою зʼявилась',
-  'панель не зʼявилась у товарах: ' + JSON.stringify(b2));
+/* Липкої панелі внизу більше немає. Вона з'їдала 72px кожного екрана, а
+   кнопка «Підтвердити» і так стоїть у кошторисі й у фінальному заклику —
+   двічі на сторінці, повз які не пройти. Стережемо, що вона не повернулась
+   сама собою разом із запасом під неї. */
+const b0 = await fr.evaluate(() => ({
+  панель: !!document.getElementById('bar'),
+  запас: getComputedStyle(document.body).paddingBottom,
+  кнопки: ['estConfirmBtn','confirmBtn2'].filter(id => !!document.getElementById(id))
+}));
+console.log('  ' + JSON.stringify(b0));
+ok(!b0.панель && /^0/.test(b0.запас),
+  'липкої панелі немає, і запасу під неї теж',
+  'панель повернулась: ' + JSON.stringify(b0));
+ok(b0.кнопки.length >= 1,
+  'кнопка підтвердження лишається в кошторисі: ' + JSON.stringify(b0.кнопки),
+  'підтвердити нема чим: ' + JSON.stringify(b0.кнопки));
 await p.close();
 
 console.log('');

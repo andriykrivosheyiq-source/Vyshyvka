@@ -5310,32 +5310,51 @@
         var wrapEl = document.getElementById('pmGarmentWrap');
         var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
         var C = sizeOverride || 500, k = C / wrapW;
-        var canvas = document.createElement('canvas'); canvas.width = C; canvas.height = C;
-        var ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // чіткіший макап
-        ctx.fillStyle = 'rgb(233,230,231)'; ctx.fillRect(0,0,C,C);
         var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
-        var garmentP = hasPhoto
-          ? loadImgEl(window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp')).then(function(img){
-              var s = Math.min(C/img.naturalWidth, C/img.naturalHeight);
-              var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
-              // Полотно квадратне, а знімок виробу — ні, тож зверху й знизу
-              // лишається смуга тла. Поки тло було фіксованим сірим, воно не
-              // збігалося з фоном самого знімка, і в макапі проступали дві
-              // чужі смуги. Беремо колір із кутів знімка — тоді смуга і фон
-              // однакові, і шва не видно на жодному виробі.
-              var bg = cornerColor(img);
-              if(bg){ ctx.fillStyle = bg; ctx.fillRect(0,0,C,C); }
-              ctx.drawImage(img, (C-dw)/2, (C-dh)/2, dw, dh);
-            }).catch(function(){})
-          : Promise.resolve();
+        var loadG = hasPhoto
+          ? loadImgEl(window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp'))
+              .catch(function(){ return null; })
+          : Promise.resolve(null);
+        var canvas = document.createElement('canvas'), ctx = null, W = C, H = C;
+        var garmentP = loadG.then(function(img){
+          /* Полотно тієї самої форми, що знімок виробу, а не квадрат.
+             Доти знімок вписувався в квадрат «по меншій стороні», і зверху
+             й знизу лишалась смуга тла — у макапі вона читалась як дві сірі
+             стрічки над виробом і під ним. Тепер вписувати нема куди:
+             полотно і знімок однакові, виріб займає його цілком, і жодної
+             смуги не виникає в принципі. */
+          var nat = (img && img.naturalWidth && img.naturalHeight)
+                  ? img.naturalHeight / img.naturalWidth : 1;
+          var r = Math.max(0.5, Math.min(2, nat));   // запобіжник від дивних файлів
+          H = Math.round(C * r);
+          canvas.width = W; canvas.height = H;
+          ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+          /* Тло лишається на випадки, коли знімка немає зовсім або його
+             пропорція вперлась у запобіжник: тоді беремо колір із кутів
+             самого знімка, щоб поле не відрізнялось від його фону. */
+          var bg = img ? cornerColor(img) : null;
+          ctx.fillStyle = bg || 'rgb(233,230,231)'; ctx.fillRect(0, 0, W, H);
+          if(!img) return;
+          if(Math.abs(r - nat) < 0.001){
+            ctx.drawImage(img, 0, 0, W, H);                     // край у край
+          }else{
+            var s = Math.min(W/img.naturalWidth, H/img.naturalHeight);
+            var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
+            ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);     // не спотворюємо
+          }
+        });
         garmentP.then(function(){
           return layers.reduce(function(p, layer){
             return p.then(function(){
               return loadImgEl(layer.url).then(function(img){
                 var sz = 120*layer.scale, ar = layer.ar||1, bw = sz, bh = sz;
                 if(ar>=1) bh = sz/ar; else bw = sz*ar;
-                var cx = (wrapW/2 + layer.x)*k, cy = (wrapW/2 + layer.y)*k;
+                /* Прев'ю квадратне, і layer.x/y відлічені від його центру —
+                   тобто від центру виробу. Полотно тепер нижче, тож по
+                   вертикалі рахуємо від ЙОГО центру, інакше нанесення поїде
+                   вниз рівно на половину зрізаної смуги. */
+                var cx = W/2 + layer.x*k, cy = H/2 + layer.y*k;
                 var w = bw*k, h = bh*k;
                 ctx.save(); ctx.translate(cx, cy); ctx.rotate((layer.rot||0)*Math.PI/180);
                 ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
