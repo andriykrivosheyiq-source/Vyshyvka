@@ -704,6 +704,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pcard-off{font-size:var(--fs-2); font-weight:600; color:#fff; background:var(--cta);
     border-radius:var(--r-1); padding:2px 6px; letter-spacing:.2px;}
   .pcard-per{font-size:var(--fs-2); color:var(--muted);}
+  /* За який тираж ця ціна — рядком під нею, тихо. Це не окремий факт, а
+     умова до числа вище. */
+  .pcard-qn{font-size:var(--fs-2); color:var(--muted); margin-top:4px;}
+  .pcard-qn b{font-weight:600; color:var(--ink-2); font-variant-numeric:tabular-nums;}
   /* Тираж — один сегмент замість трьох карток */
   .pqty{margin-top:10px;}  .pseg{display:flex; gap:4px; padding:4px; border-radius:var(--r-3); background:var(--soft);}
   .pseg-b{flex:1; padding:10px 6px; border:none; border-radius:var(--r-2); background:none;
@@ -4321,8 +4325,23 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
                       '<span class="pcard-off">−' +
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
-                    : '<span class="pcard-per">за штуку</span>') +
+                    /* «за штуку» тут більше не пишемо: це сказано рядком
+                       нижче, разом із тиражем, і двічі поспіль виглядало як
+                       два різні уточнення до одного числа. */
+                    : '') +
                 '</div></div>' +
+                /* За який тираж ця ціна. Доти на картці стояли ціна за штуку,
+                   перекреслена стара і «−27%» — і жодного числа, до якого ці
+                   відсотки прив'язані. Питання «а знижка за скільки?» виникало
+                   першим, і відповіді на картці не було: кількість переїхала
+                   в «Деталі позиції», бо в сусідніх картках групи вона
+                   однакова. Однакова — але не очевидна.
+
+                   Тут вона тільки написана, а не міняється: варіанти
+                   порівнюють на ОДНОМУ тиражі, інакше порівняння втрачає сенс.
+                   Змінити кількість можна в кошторисі, коли варіант обрано. */
+                (st.qty ? '<div class="pcard-qn">Ціна за штуку при тиражі <b>' +
+                  st.qty + ' шт</b></div>' : '') +
                 staleNote(v) +
                 '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                   esc(g.name) + '|' + i + '">' +
