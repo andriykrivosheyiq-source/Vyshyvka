@@ -800,25 +800,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     background:var(--cta); color:#fff; font-size:var(--fs-1); font-weight:600;
     letter-spacing:.02em; padding:4px 8px; border-radius:0 var(--r-1) 0 0;
     font-variant-numeric:tabular-nums; pointer-events:none;}
-  /* Додавання — окрема видима дія, а не дотик по картці: у вітрині дотик
-     ВІДКРИВАЄ товар і нічого не коштує, а тут він міняє суму кошторису на
-     тисячі. Кругла кнопка в куті фото: помітна, але текстову зону не
-     займає. Додано — зелена галочка. */
-  /* Кнопка темна, а не помаранчева. Помаранчевий на сторінці належить
-     ОДНІЙ дії — підтвердити пропозицію; шість помаранчевих кружечків у
-     вітрині перетягували б увагу на себе рівно там, де клієнт ще не
-     вирішив головного. Додано — зелена. */
-  .rc-add{position:absolute; right:8px; top:8px; z-index:3;
-    display:flex; align-items:center; justify-content:center;
-    width:36px; height:36px; padding:0; border-radius:var(--r-pill);
-    border:none; background:var(--ink); color:#fff;
-    font:inherit; font-size:var(--fs-4); font-weight:600; line-height:1;
-    box-shadow:0 2px 10px rgba(15,32,52,.2); cursor:pointer; transition:.15s;}
-  .rc-add:active{transform:scale(.92);}
-  .rc-add.on{background:var(--good); box-shadow:none;}
-  /* Галочка спільна на всю сторінку й намальована зеленим — на зеленій
-     кнопці її не видно. Тут перефарбовуємо в біле. */
-  .rc-add svg{display:block; stroke:#fff;}
+  /* Кнопка внизу картки, з підписом і на всю ширину. Темна обводка, а не
+     помаранчева заливка: помаранчевий на сторінці належить одній дії —
+     підтвердити пропозицію, — і шість помаранчевих кнопок у вітрині
+     перетягували б увагу рівно там, де клієнт ще не вирішив головного.
+     Додано — зелена. */
+  .rc-add{display:flex; align-items:center; justify-content:center; gap:6px;
+    width:100%; margin-top:10px; padding:10px; border-radius:var(--r-2);
+    border:1.5px solid var(--ink); background:#fff; color:var(--ink);
+    font:inherit; font-size:var(--fs-2); font-weight:600; cursor:pointer;
+    transition:.15s;}
+  .rc-add:active{transform:scale(.99);}
+  .rc-add.on{background:#EFFAF4; border-color:#9BD9BA; color:var(--good);}
+  .rc-add svg{display:block; stroke:var(--good);}
   .rc.on .rc-ph{box-shadow:inset 0 0 0 2px #9BD9BA;}
 
   /* ══ Кошторис ═══════════════════════════════════════════════════════
@@ -923,14 +917,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid rgba(255,255,255,.28);}@media (hover:hover){
   .est-cta .btn-ghost:hover{background:rgba(255,255,255,.08);
     border-color:rgba(255,255,255,.42);}}.mock{background:var(--soft); border-radius:var(--r-3); padding:10px; position:relative;}
-  .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}  .specs{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-    gap:8px; margin-bottom:20px;}
-  .spec{display:grid; grid-template-columns:auto 1fr; gap:2px 6px; padding:10px 12px;
-    border-radius:var(--r-3); background:var(--soft); align-items:center;}
-  .spec-ic{color:var(--muted); line-height:0;}
-  .spec-k{font-size:var(--fs-1); font-weight:600; letter-spacing:.5px;
-    text-transform:uppercase; color:var(--muted); align-self:center;}
-  .spec-v{grid-column:2; font-size:var(--fs-3); font-weight:600;}
+  .mock img{width:100%; aspect-ratio:1/1; object-fit:contain;}  /* ── Деталі позиції: список, а не плитки ────────────────────────────
+     Один параметр — один рядок: назва тихим, значення темним. Доти кожна
+     характеристика жила у власній плитці з іконкою й тлом — чотири плитки
+     займали пів екрана, а несли чотири слова, і поруч вони були різної
+     висоти, бо тягнулись під найдовше значення. */
+  .sl{margin-top:12px; border-top:1px solid var(--line);}
+  .sl-r{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+    padding:10px 2px; border-bottom:1px solid var(--line);}
+  .sl-k{flex:none; font-size:var(--fs-2); color:var(--muted);}
+  .sl-k::after{content:'·'; margin-left:8px; color:#B6BFCC;}
+  .sl-v{flex:1; min-width:0; font-size:var(--fs-3); font-weight:500; color:var(--ink);}
+  /* Розміри — той самий рядок, тільки він розкривається. Шеврон праворуч
+     каже, що під ним таблиця обмірів. */
+  .sl-fold>summary{list-style:none; cursor:pointer; display:flex;
+    align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .sl-fold>summary::-webkit-details-marker{display:none;}
+  .sl-fold>summary::after{content:''; flex:none; align-self:center;
+    width:7px; height:7px; border-right:2px solid #B6BFCC;
+    border-bottom:2px solid #B6BFCC; transform:rotate(-45deg);
+    transition:transform .18s;}
+  .sl-fold[open]>summary::after{transform:rotate(45deg);}
+  .sl-b{padding:8px 0 4px;}
   .price-box{background:var(--soft); border-radius:var(--r-3); padding:16px 20px;}
   .pb-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px;}
   .pb-row + .pb-row{margin-top:8px;}
@@ -1022,10 +1030,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .fr-b .fl{margin-top:2px;}
   .fr-b .cases{margin-top:2px;}
 
-  /* Той самий рядок усередині деталей позиції — трохи тихіший: він там не
-     перелік розділів, а один пункт серед характеристик. */
-  .fr-inline{margin-top:16px;}
-  .fr-inline .fr>summary{padding:12px 2px; font-size:var(--fs-3);}
 
   /* Порожні розділи в режимі менеджера: між останнім товаром і кошторисом
      стояло майже пів екрана порожнечі — заголовок «Часто беруть разом» без
@@ -1203,7 +1207,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   @media (min-width:640px){
     :root{--pad:28px;}
     .hero h1{font-size:var(--fs-8);}
-    .specs{grid-template-columns:repeat(3,1fr);}
   }
 
   /* ── друк = PDF: та сама сторінка, без інтерактиву ── */
@@ -1220,7 +1223,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     .hero{padding:10px 0 16px;}
     .hero h1{font-size:var(--fs-6);}
     .item + .item{margin-top:20px; padding-top:20px;}
-    .specs{grid-template-columns:repeat(3,1fr);}
     .item, .mock, .price-box, .est-i, .reco, .mgr{break-inside:avoid;}
     /* Умови й етапи тепер друкуються разом із рештою: раніше весь хвіст
        сторінки лежав під .no-print, і в PDF, який пересилають бухгалтеру,
@@ -3803,17 +3805,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         return '<tr>' + r.map(function(v){ return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
   }
+  /* Розмах розмірів із сітки: «S–XXL». Клієнту важливо знати, чи є його
+     розмір, ще до того, як він розгорне таблицю обмірів. */
+  function sizeRange(it){
+    var ch = it && it.sizechart;
+    var rows = (ch && ch.rows) || [];
+    var names = rows.map(function(r){
+      var c = (r && r.c) || r; return String((c && c[0]) || '').trim();
+    }).filter(Boolean);
+    if(names.length < 2) return names[0] || '';
+    return names[0] + '–' + names[names.length - 1];
+  }
+
+  /* ── Деталі позиції ──────────────────────────────────────────────────
+     Один параметр — один рядок: назва тихим, значення темним, між ними
+     крапка. Доти кожна характеристика жила у власній плитці з іконкою й
+     тлом: чотири плитки займали пів екрана, а несли чотири слова. Плитки
+     розтягувались під найдовше значення, і поруч вони були різної висоти.
+
+     Значення беремо рівно ті, що менеджер задав у картці товару в адмінці.
+     Немає параметра — немає рядка: у іменній пропозиції твердження про
+     тканину, якого ніхто не перевіряв, коштує дорожче за порожнє місце. */
   function specsHtml(it, i, stIn){
     var rows = [];
-    /* Колір виробу — те, про що питають першим, а стояв він лише дрібним
-       підписом під назвою. У деталях йому місце нарівні з тканиною. */
-    if(it.color) rows.push(['Колір виробу', it.color, 'spec']);
-    /* Спершу сам виріб — тканина, щільність, крій, — і аж потім те, що ми з
-       ним робимо. Доти характеристики стояли останніми, після нанесення й
-       розмірного ряду: питання «а це взагалі яка тканина і який фасон»
-       виникає першим, а відповідь була найнижчою в списку. */
+    if(it.color) rows.push(['Колір', it.color]);
     (it.specs || []).forEach(function(sp){
-      if(sp && sp.label && sp.value) rows.push([sp.label, sp.value, 'spec']);
+      if(sp && sp.label && sp.value) rows.push([String(sp.label), String(sp.value)]);
     });
     (it.sides || []).forEach(function(s){
       if(!s.side && !s.technique) return;
@@ -3822,38 +3839,32 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(s.widthMm && s.heightMm)
         val.push(Math.round(s.widthMm/10) + ' × ' + Math.round(s.heightMm/10) + ' см');
       rows.push(['Нанесення · ' + (s.sideLabel || SIDE_UA[s.side] || s.side || 'виріб'),
-                 val.join(', ') || '—', 'print']);
+                 val.join(', ') || '—']);
     });
-    // Обраний клієнтом тираж уже не збігається з початковою розкладкою по розмірах —
-    // не вигадуємо за нього нову, а чесно кажемо, що розміри узгодить менеджер.
+    /* Обраний клієнтом тираж уже не збігається з початковою розкладкою по
+       розмірах — не вигадуємо за нього нову, а чесно кажемо, що розміри
+       узгодить менеджер. */
     var stSp = stIn || itemState(i);
-    if(it.sizes) rows.push(['Розмірний ряд',
-      stSp.changed ? 'узгодимо з вами' : it.sizes, 'size']);
+    if(it.sizes) rows.push(['Розмірний ряд', stSp.changed ? 'узгодимо з вами' : it.sizes]);
+
     var about = aboutHtml(it);
-    /* Розмірна сітка — окремим рядком, як на сайті: таблиця обмірів у
-       середині деталей просто «випадала» серед характеристик, і зрозуміти,
-       що це саме сітка, можна було лише прочитавши шапку. Тепер це пункт,
-       який видно, і його розкривають свідомо. */
-    var chart = (function(){
-      var t = chartHtml(it);
-      return t ? '<div class="fr-list fr-inline">' +
-        foldRow('Розмірна сітка', t, false) + '</div>' : '';
-    })();
-    if(!rows.length) return about + chart;
-    var ICO = {
-      print: '<path d="M8 5 4 7l1.5 4L8 10v9h8v-9l2.5 1L20 7l-4-2-1.5 1.5a3.5 3.5 0 0 1-5 0Z"/>',
-      size:  '<path d="M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16Z"/><path d="M3.5 8 12 12.5 20.5 8M12 12.5V20.5"/>',
-      spec:  '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16h.01"/>'
-    };
-    return about + '<div class="specs" data-specs="' + i + '">' +
+    /* Розміри — такий самий рядок, тільки він розкривається: у значенні
+       стоїть розмах, а таблиця обмірів чекає під ним. Доти сітка була
+       окремим блоком в іншому стилі, і зрозуміти, що це саме вона, можна
+       було, лише прочитавши шапку. */
+    var chart = chartHtml(it);
+    var chartRow = chart
+      ? '<details class="sl-r sl-fold"><summary>' +
+          '<span class="sl-k">Розміри</span>' +
+          '<span class="sl-v">' + (esc(sizeRange(it)) || 'таблиця обмірів') + '</span>' +
+        '</summary><div class="sl-b">' + chart + '</div></details>'
+      : '';
+    if(!rows.length) return about + (chartRow ? '<div class="sl">' + chartRow + '</div>' : '');
+    return about + '<div class="sl" data-specs="' + i + '">' +
       rows.map(function(r){
-        return '<div class="spec"><span class="spec-ic">' +
-          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-          'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
-          (ICO[r[2]] || ICO.spec) + '</svg></span>' +
-          '<span class="spec-k">' + esc(r[0]) + '</span>' +
-          '<span class="spec-v">' + esc(r[1]) + '</span></div>';
-      }).join('') + '</div>' + chart;
+        return '<div class="sl-r"><span class="sl-k">' + esc(r[0]) + '</span>' +
+          '<span class="sl-v">' + esc(r[1]) + '</span></div>';
+      }).join('') + chartRow + '</div>';
   }
 
   /* Прорахунок для менеджера — той самий, що в «Прорахунку замовлення» на
@@ -4513,7 +4524,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            Ряд однакових плиток із кнопками робив з пропозиції на десятки
            тисяч сторінку інтернет-магазину, а «часто беруть разом» — це
            фраза кошика, і в іменній пропозиції вона звучить як автопідбір. */
-        '<p class="sec-sub">Макети вже підготовлені — додається одним дотиком.</p>' +
+        /* Підзаголовка немає: назва розділу вже все сказала, а зайвий
+           рядок над вітриною лише відсуває фото. */
         '<div class="rrow">' + OFFER.reco.slice(0, 6).map(function(r, i){
           var on = !!pick.reco[i];
           /* Ціну беремо з рушія, а не з поля позиції. Доти плитка малювала
@@ -4524,15 +4536,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var off = (rs.qty && rs.base > rs.sum)
             ? Math.round((1 - rs.sum / rs.base) * 100) : 0;
           var kit = kitLine(r);
+          /* Показуємо той ракурс, де є нанесення, а не просто перший знімок:
+             заради нього все й затівалось. data-shot тут той самий, що в
+             галереї великої картки, — тож дотик по фото відкриває ВСІ
+             ракурси товару, а не одну картинку. Доти в рекомендованих можна
+             було побачити лише перед. */
+          var rv = shownViews(r);
+          var lead = (rv[0] && rv[0].img) || r.mockups[0] || '';
           return '<div class="rc' + (on ? ' on' : '') + '" data-reco-card="' + i + '">' +
-            '<div class="rc-ph">' + (r.mockups[0]
-              ? '<img src="' + esc(r.mockups[0]) + '" alt="" loading="lazy" ' +
+            '<div class="rc-ph" data-shot="r' + i + '">' + (lead
+              ? '<img src="' + esc(lead) + '" alt="" loading="lazy" ' +
                 'onerror="this.style.display=\'none\'">' : '') +
               (off ? '<span class="rc-off">−' + off + '%</span>' : '') + '</div>' +
-            '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
-              'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
-              'aria-label="' + (on ? 'Прибрати з замовлення' : 'Додати в замовлення') + '">' +
-              (on ? TICK : '+') + '</button>' +
             '<div class="rc-b">' +
               /* Ціна перша, назва під нею — як у вітрині: спершу видно,
                  скільки це коштує, і вже потім читається, що саме. */
@@ -4542,6 +4557,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '</div>' +
               '<div class="rc-n">' + esc(r.name) + '</div>' +
               (kit ? '<div class="rc-kit">' + esc(kit) + '</div>' : '') +
+              /* Кнопка внизу картки й із підписом. Кругла «+» у куті фото не
+                 казала, що саме вона робить: людина бачила плюс на товарі й
+                 не розуміла — це збільшити фото, додати в обране чи в
+                 замовлення. */
+              '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
+                'aria-pressed="' + (on ? 'true' : 'false') + '">' +
+                (on ? TICK + 'Додано' : '+ Додати') + '</button>' +
               edBar('reco', i, null) +
               edSlotHtml('reco', i) +
               /* Прорахунок і тут, у пропонованій картці: доти він зʼявлявся
@@ -5416,10 +5438,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       card.classList.toggle('on', on);
       var add = card.querySelector('.rc-add');
       if(add){
-        /* Тільки знак, без слова: кнопка кругла, 36px, і будь-який підпис
-           із неї вилазить. Що вона робить — каже aria-label нижче й сам
-           стан: темний плюс або зелена галочка. */
-        add.innerHTML = on ? TICK : '+';
+        add.innerHTML = on ? TICK + 'Додано' : '+ Додати';
         add.classList.toggle('on', on);
         add.setAttribute('aria-label', on ? 'Прибрати з пропозиції' : 'Додати до пропозиції');
       }
@@ -5739,7 +5758,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       }
       var img = ev.target.closest && ev.target.closest('.pgal-i img, .pshot img, .rc-ph img, .review-photo img');
       if(!img) return;
-      var shot = img.closest('.pgal, .pshot');
+      var shot = img.closest('.pgal, .pshot, .rc-ph');
       var idxAttr = shot && shot.getAttribute('data-shot');
       if(idxAttr != null){
         /* Варіанти мають власну нумерацію, тож їхні галереї підписані «v3».

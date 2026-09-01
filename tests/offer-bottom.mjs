@@ -244,7 +244,7 @@ const g = await p.frames()[1].evaluate(()=>{
     підписи: th.map(x=>(x.querySelector('img')||{}).alt||''),
     мініатюриПоверх: th.length
       ? getComputedStyle(th[0].parentNode).position === 'absolute' : false,
-    сітка: (document.querySelector('.fr-inline .fr-t')||{}).textContent||'',
+    сітка: (document.querySelector('.sl-fold .sl-k')||{}).textContent||'',
     стрілок: gal ? gal.querySelectorAll('.pgal-ar').length : -1,
     плашкаКількості: !!(gal && gal.querySelector('.pgal-n')),
     пропорція: (function(){ const m2 = gal && gal.querySelector('.pgal-i.is-main');
@@ -316,9 +316,12 @@ ok(z.мініатюр === 3 && z.підМініатюрами.length === 3 && z.
   'мініатюр ' + z.мініатюр + ', підписів ' + JSON.stringify(z.підМініатюрами));
 await p.frames()[1].evaluate(() => { const x = document.getElementById('zoomX'); if(x) x.click(); });
 
-ok(g.сітка === 'Розмірна сітка',
-  'розмірна сітка — окремим рядком у деталях позиції',
-  'сітки в деталях немає: ' + g.сітка);
+/* Розмірна сітка — такий самий рядок списку, як решта характеристик,
+   тільки він розкривається: у значенні стоїть розмах «S–XXL», а таблиця
+   обмірів чекає під ним. */
+ok(g.сітка === 'Розміри',
+  'розміри — рядком у списку характеристик, із таблицею під ним',
+  'рядка розмірів немає: ' + g.сітка);
 await p.close();
 await p.close();
 
