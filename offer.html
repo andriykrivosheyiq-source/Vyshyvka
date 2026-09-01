@@ -14,8 +14,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <title>Комерційна пропозиція · Loomiq</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0F2034">
-<meta property="og:title" content="Персональна комерційна пропозиція · Loomiq">
-<meta property="og:description" content="Візуалізація, розрахунок вартості та персональні умови для вашого замовлення.">
+<!-- Картка, яку месенджери показують під посиланням.
+
+     Ці теги читає БОТ Telegram чи Viber, а він не виконує JavaScript —
+     тому все тут статичне й однакове для всіх пропозицій. Підставити сюди
+     бренд конкретного КП чи логотип клієнта можна лише з боку сервера
+     (Cloudflare Worker на маршруті loomiq.net/offer.html*): він читає
+     offers/{token} і віддає ботові ці ж теги, але заповнені.
+
+     Доти назва бренду стоїть в ОПИСІ, а не в адресі: домену в Stvory ще
+     немає, і в посиланні його не покажеш.
+
+     Картинка — 1200×630, тим самим тлом, що й шапка сторінки: людина
+     натискає посилання й потрапляє рівно в те, що бачила в картці. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Loomiq · виробництво мерчу">
+<meta property="og:title" content="Персональна комерційна пропозиція">
+<meta property="og:description" content="Loomiq — виробництво мерчу. Візуалізація з вашим брендингом, розрахунок вартості та індивідуальні умови замовлення.">
+<meta property="og:image" content="https://loomiq.net/images/og-offer.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Персональна комерційна пропозиція">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -93,7 +113,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
   /* ── перший екран ── */
-  .hero{padding:32px 0 32px;}  .hero h1{font-size:var(--fs-7); line-height:1.18; letter-spacing:-0.9px; margin:0 0 12px; font-weight:700;}  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
+  /* Шапка стиснута приблизно на третину. Вона нічого не вирішує — вона лише
+     каже, чия це пропозиція й до якого числа, — а забирала перший екран
+     цілком: людина гортала, ще не побачивши жодного товару. */
+  .hero{padding:24px 0;}  .hero h1{font-size:var(--fs-6); line-height:1.18; letter-spacing:-0.6px; margin:0 0 8px; font-weight:700;}  /* Картинка логотипа — і нічого більше. Ні полів, ні заокруглень, ні
      власного фону: усе це колись стояло тут і зробило три речі одразу.
      Відступи й margin робили блок вищим і ширшим за саму картинку, тож рамка
      обрізання лягала на одну область, а різалась інша — зміщена й більша.
@@ -102,7 +125,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      обраний колір лишався видним хіба смужкою по краю, і виглядало це так,
      ніби міняється щось інше, а не за картинкою.
      Відступ до заголовка переїхав на обгортку — там він нічому не заважає. */
-  .hero-logo{max-height:56px; width:auto; display:block;}
+  .hero-logo{max-height:36px; width:auto; display:block;}
   /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
   .hero-logo[style*="height"]{max-height:none;}
   .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;}
@@ -127,7 +150,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      тепле світло знизу під кнопкою і тонка світла лінія по верхньому краю,
      як фаска на металі. */
   .hero{position:relative; overflow:hidden; color:#fff; border:none; border-radius:0;
-    padding:40px var(--pad) 36px; margin:0 calc(var(--pad) * -1) 10px;
+    padding:16px var(--pad) 20px; margin:0 calc(var(--pad) * -1) 10px;
     background:linear-gradient(168deg, #131A22 0%, #0A0F15 55%, #0D141C 100%);}
   .hero::before{content:''; position:absolute; inset:0; pointer-events:none;
     background:
@@ -143,8 +166,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero .hero-logo{margin-left:auto; margin-right:auto;}  .hero .btn{max-width:420px; margin-left:auto; margin-right:auto;}
   .hero h1{color:#fff; letter-spacing:-.9px;}
   .hero-made{color:rgba(255,255,255,.78) !important;}  .hero-till{color:rgba(255,255,255,.6) !important;}.hero .btn{background:var(--cta); border-color:var(--cta);
-    box-shadow:0 10px 26px -10px rgba(232,89,12,.75);}.hero-made{font-size:var(--fs-3); color:var(--ink-2); line-height:1.6; margin-bottom:16px;}.hero-till{margin-top:10px; font-size:var(--fs-2); font-weight:600; color:var(--muted);}
-  .hero .btn{margin-top:16px;}
+    box-shadow:0 10px 26px -10px rgba(232,89,12,.75);}.hero-made{font-size:var(--fs-2); color:var(--ink-2); line-height:1.45; margin-bottom:10px;}.hero-till{margin-top:4px; font-size:var(--fs-2); font-weight:600; color:var(--muted);}
+  .hero .btn{margin-top:10px; padding:12px 20px;}
 
   /* Ціна ліворуч, термін праворуч — два числа, які клієнт звіряє між собою */
   .prow{display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
