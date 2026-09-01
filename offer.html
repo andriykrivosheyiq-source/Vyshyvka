@@ -4721,14 +4721,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      Одне місце на всю пропозицію: зміниться на сайті — міняється тут. */
   var SITE_RATING = 4.9;
   var SITE_BUILTIN = [
-    { name:"Соф.", ago:6, rating:5, photo:"images/work-50.webp", text:"Партія кепок з вишивкою — усі ідентичні за якістю. Рекомендую." },
-    { name:"Кирило", ago:13, rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. Дуже сподобались." },
-    { name:"ShopHopp", ago:24, rating:5, photo:"images/work-25.webp", text:"Замовляли футболки та світшоти — лого рівне на всіх. Молодці!" },
-    { name:"Поліна", ago:38, rating:5, photo:"images/work-29.webp", text:"Робили шеврони та нашивки — деталізація супер, кольори яскраві." },
-    { name:"Захар", ago:52, rating:5, photo:"images/work-30.webp", text:"Футболки з лого — друк чіткий, тканина щільна. Рекомендую." },
-    { name:"Босс Бургер", ago:67, rating:5, photo:"images/work-45.webp", text:"Футболки з великим принтом — друк насичений, не тріснув 🍔" },
-    { name:"Юрій", ago:85, rating:5, photo:"images/work-43.webp", text:"Бачили як роблять на власному обладнанні — якість відповідна. Кепки супер." },
-    { name:"Владислав", ago:104, rating:5, photo:"images/work-40.webp", text:"Кепки з вишивкою — рівно, тримають форму. Всім раджу." }
+    { name:"Соф.", ago:6, rating:5, photo:"images/work-50.webp", text:"Брали партію кепок з вишивкою, всі однакові, без різнобою. рекомендую" },
+    { name:"Кирило", ago:13, rating:5, photo:"images/work-35.webp", text:"Кепки вийшли класні, вишивка акуратна. дуже сподобались" },
+    { name:"ShopHopp", ago:24, rating:5, photo:"images/work-25.webp", text:"Замовляли футболки і світшоти, лого рівне на всіх до єдиної. дякуємо" },
+    { name:"Поліна", ago:38, rating:5, photo:"images/work-29.webp", text:"Робили шеврони і нашивки. Деталізація супер, кольори яскраві" },
+    { name:"Захар", ago:52, rating:5, photo:"images/work-30.webp", text:"Футболки з лого - друк чіткий, тканина щільна, не просвічує" },
+    { name:"Владислав", ago:104, rating:5, photo:"images/work-40.webp", text:"Кепки з вишивкою, вишито рівно і форму тримають" }
   ].map(function(r){
     var ts = Date.now() - r.ago * DAY_MS;
     return { name:r.name, rating:r.rating, photo:r.photo, text:r.text, at:ts, date:dateShort(ts) };
