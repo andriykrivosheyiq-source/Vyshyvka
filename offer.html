@@ -4299,8 +4299,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var groups = variantGroups();
     if(!groups.length) return '';
     return '<section id="variants">' +
-      '<h2 class="sec-title">Варіанти на вибір</h2>' +
-      '<p class="sec-sub">Альтернативи за бюджетом, матеріалом або посадкою</p>' +
+      '<h2 class="sec-title">Оберіть варіант</h2>' +
+      '<p class="sec-sub">Перегляньте запропоновані моделі та оберіть ту, ' +
+        'що вам більше підходить</p>' +
       groups.map(function(g){
         var chosen = pick.variant[g.name];
         /* Назва групи потрібна лише тоді, коли груп кілька — інакше вона
