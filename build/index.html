@@ -6646,7 +6646,12 @@ window.LOOMIQ_CONFIG = {
     }catch(e){ console.warn('Firebase init failed', e); return null; }
   };
   function postLead(phone, name){
-    if(window.lqAn){ window.lqAn.step('checkout'); window.lqAn.track('lead_submit'); }
+    /* Крок «lead», а не «checkout». Доти заявка з форми позначалась тим
+       самим кроком, що й оформлення кошика, — і у воронці два різні шляхи
+       злипались в один. Через це не можна було сказати ні скільки заявок
+       дає форма, ні де насправді обривається конструктор: у «Оформлення»
+       сиділи обидва. */
+    if(window.lqAn){ window.lqAn.step('lead'); window.lqAn.track('lead_submit'); }
     var who = String(name || '').trim().slice(0, 60);
     // Ім'я домішуємо в контекст: воркер заявок приймає вільний рядок, і
     // міняти його заради одного поля не варто.

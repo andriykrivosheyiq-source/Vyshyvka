@@ -347,6 +347,16 @@
   @media (max-width:560px){.an-step .vv{width:86px;font-size:11px;}}
   .an-drop{font-size:11.5px;color:var(--bad);margin:-3px 0 8px 128px;}
   @media (max-width:560px){.an-drop{margin-left:102px;}}
+  /* Заголовок гілки. Воронка більше не один ланцюг, тож треба видимо
+     показати, де закінчується один шлях і починається інший. */
+  .an-fun-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+    font-size:12px;font-weight:700;color:var(--ink);
+    margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--line);}
+  .an-fun-h:first-child{margin-top:0;padding-top:0;border-top:none;}
+  .an-fun-h i{font-style:normal;font-weight:400;color:var(--ink-soft);font-size:11.5px;}
+  .an-step.is-end .bar i{background:var(--good);}
+  .an-note{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0 128px;}
+  @media (max-width:560px){.an-note{margin-left:0;}}
 
   .an-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .an-tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:460px;}
@@ -15694,8 +15704,15 @@ async function init(){
 
   var STEP_UA = { visit:'Зайшли на сайт', ctor:'Відкрили конструктор', design:'Додали лого/напис',
                   size:'Обрали розмір', cart:'Поклали в кошик', checkout:'Почали оформлення',
-                  order:'Залишили замовлення' };
+                  order:'Залишили замовлення', lead:'Залишили заявку' };
   var STEP_ORDER = ['visit','ctor','design','size','cart','checkout','order'];
+  /* Два шляхи, а не один ланцюг.
+     Доти воронка вміла показувати ТІЛЬКИ дорогу через конструктор, а заявка
+     з форми в ній кроком не була — вона позначалась тим самим «checkout», що
+     й оформлення кошика, і два різні шляхи злипались.
+     Тепер видно, скільки дає кожен, і зміна одного не читається як обвал. */
+  var FUN_CTOR = ['ctor','design','size','cart','checkout','order'];
+  var FUN_FORM = ['lead'];
   var EV_UA = {
     open_ctor:'Відкрили конструктор', logo_upload:'Завантажили логотип', text_add:'Додали напис',
     add_cart:'Додали в кошик', cart_edit:'Змінили позицію в кошику', checkout_open:'Відкрили оформлення',
@@ -15903,13 +15920,17 @@ async function init(){
       alert('warn', '<b>У покинутих кошиках більше грошей, ніж у замовленнях</b> — ' +
         fmt(A.abandSum) + ' грн проти ' + fmt(revenue) + ' грн. Найбільший запас зростання саме тут.');
     var worst = null;
-    STEP_ORDER.forEach(function(s, i){
+    var WORST = ['visit'].concat(FUN_CTOR);
+    WORST.forEach(function(s, i){
       if(!i) return;
-      var prev = A.steps[STEP_ORDER[i-1]] || 0, v = A.steps[s] || 0;
+      var prev = A.steps[WORST[i-1]] || 0, v = A.steps[s] || 0;
       if(prev < 10) return;
       var lost = prev - v;
-      if(!worst || lost > worst.lost) worst = { lost:lost, from:STEP_ORDER[i-1], to:s, prev:prev };
+      if(!worst || lost > worst.lost) worst = { lost:lost, from:WORST[i-1], to:s, prev:prev };
     });
+    /* Шукаємо найбільшу втрату лише в гілці конструктора: у формі один крок,
+       і «втрата» там означала б просто тих, хто не лишив заявку, — тобто
+       майже всіх, хто зайшов. */
     if(worst && worst.lost > 0)
       alert('info', 'Найбільша втрата у воронці: <b>' + escapeHtml(STEP_UA[worst.from]) + ' → ' +
         escapeHtml(STEP_UA[worst.to]) + '</b>, пішло ' + fmt(worst.lost) + ' з ' + fmt(worst.prev) + '.');
@@ -15918,21 +15939,7 @@ async function init(){
     document.getElementById('an-alerts').innerHTML = AL.length
       ? '<div class="card"><div class="card-head"><h2>На що звернути увагу</h2></div>' + AL.join('') + '</div>' : '';
 
-    /* Воронка */
-    var base = A.steps.visit || A.visits || 0;
-    var F = [];
-    STEP_ORDER.forEach(function(s, i){
-      var v = A.steps[s] || 0;
-      var prev = i ? (A.steps[STEP_ORDER[i-1]] || 0) : v;
-      F.push('<div class="an-step"><span class="nm">' + escapeHtml(STEP_UA[s]) + '</span>' +
-        '<span class="bar"><i style="width:' + Math.max(0, Math.min(100, pct(v, base))).toFixed(1) + '%"></i></span>' +
-        '<span class="vv">' + fmt(v) + ' · ' + p1(pct(v, base)) + '</span></div>');
-      if(i && prev > 0 && v < prev)
-        F.push('<div class="an-drop">тут пішло ' + fmt(prev - v) + ' — це ' +
-          p1(100 - pct(v, prev)) + ' тих, хто дійшов до попереднього кроку</div>');
-    });
-    document.getElementById('an-funnel').innerHTML = base
-      ? F.join('') : '<div class="an-empty">Даних поки немає — зачекайте перших відвідувачів.</div>';
+    renderFunnel(A, days);
 
     /* По днях */
     var ordDay = {};
@@ -16241,6 +16248,78 @@ async function init(){
     renderSpend(days);
   }
 
+  /* ── Воронка: два шляхи з одного початку ──────────────────────────────
+     На сайт заходять по-різному й по-різному лишають про себе знати: одні
+     збирають виріб у конструкторі, інші просто лишають заявку. Доти
+     воронка малювала лише перший шлях, а другий у ній не існував — і будь-
+     яка зміна конструктора читалась як обвал, навіть коли заявок ставало
+     більше.
+
+     Відсоток усередині гілки рахуємо від ПОЧАТКУ ГІЛКИ, а не від усіх
+     візитів: питання «скільки з тих, хто відкрив конструктор, доніс лого»
+     і «скільки з усіх, хто зайшов» — різні, і перше корисніше.
+
+     Останній рядок — оплачені замовлення. Це вже не сесії, а картки з
+     Канбану, і одиниця в них інша; але закінчувати воронку «залишив
+     замовлення» після того, як ми домовились, що картка ≠ гроші, означало б
+     тримати два звіти в різних реальностях. */
+  function funStep(name, v, base, prev, cls){
+    var out = '<div class="an-step' + (cls ? ' ' + cls : '') + '">' +
+      '<span class="nm">' + escapeHtml(name) + '</span>' +
+      '<span class="bar"><i style="width:' +
+        Math.max(0, Math.min(100, pct(v, base))).toFixed(1) + '%"></i></span>' +
+      '<span class="vv">' + fmt(v) + ' · ' + p1(pct(v, base)) + '</span></div>';
+    if(prev != null && prev > 0 && v < prev)
+      out += '<div class="an-drop">тут пішло ' + fmt(prev - v) + ' — це ' +
+        p1(100 - pct(v, prev)) + ' тих, хто дійшов до попереднього кроку</div>';
+    return out;
+  }
+  function renderFunnel(A, days){
+    var box = document.getElementById('an-funnel');
+    if(!box) return;
+    var st = A.steps || {};
+    var all = st.visit || A.visits || 0;
+    if(!all){
+      box.innerHTML = '<div class="an-empty">Даних поки немає — зачекайте перших відвідувачів.</div>';
+      return;
+    }
+    var F = [funStep(STEP_UA.visit, all, all)];
+
+    var ctorBase = st.ctor || 0;
+    F.push('<div class="an-fun-h">Через конструктор<i>' +
+      p1(pct(ctorBase, all)) + ' від усіх, хто зайшов</i></div>');
+    FUN_CTOR.forEach(function(k, i){
+      var v = st[k] || 0;
+      var prev = i ? (st[FUN_CTOR[i - 1]] || 0) : null;
+      F.push(funStep(STEP_UA[k], v, ctorBase || all, prev));
+    });
+
+    var lead = st.lead || 0;
+    F.push('<div class="an-fun-h">Через форму заявки<i>' +
+      p1(pct(lead, all)) + ' від усіх, хто зайшов</i></div>');
+    F.push(funStep(STEP_UA.lead, lead, all));
+    /* Історія лишається змішаною: доти заявка з форми позначалась кроком
+       «Почали оформлення», і за старі дні розділити їх нема як. Кажемо це
+       прямо, щоб нуль не читався як поломка. */
+    if(!lead && (st.checkout || 0) > 0)
+      F.push('<div class="an-note">За цей період заявки з форми окремо не рахувались — ' +
+        'вони сиділи в кроці «Почали оформлення» разом з оформленням кошика. ' +
+        'Нові дні рахуються окремо.</div>');
+
+    var M = moneyReport(days);
+    F.push('<div class="an-fun-h">Чим закінчилось</div>');
+    F.push(funStep('Заявок і замовлень', (st.order || 0) + lead, all));
+    F.push('<div class="an-step is-end"><span class="nm">Оплачено</span>' +
+      '<span class="bar"><i style="width:' +
+        Math.max(0, Math.min(100, pct(M.paidN, all))).toFixed(1) + '%"></i></span>' +
+      '<span class="vv">' + fmt(M.paidN) + ' · ' + fmt(M.revenue) + ' грн</span></div>');
+    F.push('<div class="an-note">Останній рядок — картки з Канбану, які дійшли до ' +
+      '«Оплачено» за цей період, а не сесії на сайті. Одиниця інша, тому у ' +
+      'відсотках від візитів його не рахуємо.</div>');
+
+    box.innerHTML = F.join('');
+  }
+
   /* ── 5. ПРИБУТОК І ГРОШІ ──────────────────────────────────── */
   function renderMoney(days){
     var R = moneyReport(days);
@@ -16500,9 +16579,14 @@ async function init(){
     out.push('Канали: ' + Object.keys(A.chFirst || {}).map(function(k){
       return (CH_UA[k] || k) + ' — ' + fmt(A.chFirst[k]); }).join('; '));
     out.push('');
+    /* Два шляхи окремими рядками — так само, як на екрані. Один ланцюг
+       через кому читався б так, ніби заявка з форми йде після кошика. */
     out.push('ЛІЙКА');
-    out.push(['visit','ctor','design','size','cart','checkout','order'].map(function(k){
-      return k + ': ' + fmt(A.steps[k] || 0); }).join(' → '));
+    out.push('Зайшли: ' + fmt(A.steps.visit || A.visits || 0));
+    out.push('Конструктор: ' + FUN_CTOR.map(function(k){
+      return STEP_UA[k] + ' ' + fmt(A.steps[k] || 0); }).join(' → '));
+    out.push('Форма: заявок ' + fmt(A.steps.lead || 0));
+    out.push('Оплачено: ' + fmt(M.paidN) + ' на ' + fmt(M.revenue) + ' грн');
     out.push('');
     out.push('ЩО НАТИСКАЮТЬ');
     out.push(topLine(A.ev, 12));
