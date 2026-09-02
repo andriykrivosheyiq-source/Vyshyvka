@@ -805,7 +805,12 @@
     return OFFER.items || [];
   }
   /* Групи варіантів у порядку появи. Клієнт бере по одному з кожної, тож
-     група — це питання («який верх?»), а позиції в ній — відповіді. */
+     група — це питання («який верх?»), а позиції в ній — відповіді.
+
+     Груп може бути кілька, і це не рідкість: футболки окремо, худі окремо —
+     клієнт обирає модель у кожній. Доти зробити другу групу було нічим:
+     будь-який новий варіант падав у ту саму «Варіанти на вибір», а
+     перенести його між групами не було як. */
   function variantGroups(){
     var out = [], seen = {};
     (OFFER.variants || []).forEach(function(v, i){
@@ -814,6 +819,23 @@
       seen[g].idx.push(i);
     });
     return out;
+  }
+  /* Назва нової групи. Вона піде клієнтові як питання, тож питаємо її
+     одразу, а не підставляємо «Група 2» і сподіваємось, що перейменують. */
+  function nextGroupName(){
+    var used = {};
+    variantGroups().forEach(function(g){ used[g.name] = 1; });
+    if(!used['Варіанти на вибір']) return 'Варіанти на вибір';
+    for(var i = 2; i < 40; i++){ if(!used['Група ' + i]) return 'Група ' + i; }
+    return 'Нова група';
+  }
+  function askGroupName(){
+    var n = window.prompt(
+      'Як назвати групу?\n\nКлієнт побачить цю назву над картками — це питання, ' +
+      'на яке він відповідає: «Футболки», «Худі», «Який верх?».', nextGroupName());
+    if(n == null) return null;
+    n = String(n).replace(/\s+/g, ' ').trim().slice(0, 60);
+    return n || null;
   }
   /* Розклад ціни позиції — той самий, що в картці. Приходить готовим від
      адмінки разом із документом (OFFER.mgr) і в базу не потрапляє: це
@@ -918,7 +940,7 @@
           '</div>' +
           g.idx.map(function(i){ return rowHtml(itemsOf('variant')[i], 'variant', i); }).join('');
       }).join('') +
-      '<button class="btn list-add" data-add="variant">＋ Група варіантів</button>' +
+      '<button class="btn list-add" data-newgroup>＋ Група варіантів</button>' +
       (hasExtraSketch()
         ? '<div class="fpfix-box">' +
             '<button class="btn" id="fpFix">↻ Перерахувати дизайни за макетами</button>' +
@@ -990,6 +1012,13 @@
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         openPick(b.dataset.add, b.dataset.vgroup || '');
+      });
+    });
+    box.querySelectorAll('[data-newgroup]').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var n = askGroupName();
+        if(n) openPick('variant', n);
       });
     });
     /* Назва групи правиться на місці. Це не косметика: група — це питання,
@@ -1100,12 +1129,19 @@
       '<button data-act="down">Пересунути нижче</button>' +
       '<button data-act="swap">' +
         (kind === 'main' ? 'Перенести в рекомендовані' : 'Перенести в основний склад') + '</button>' +
-      /* З основної — у варіанти. Групу пропонуємо ту, що вже є в пропозиції:
-         найчастіше порівнюють саме з нею, а не заводять другу. */
-      (kind === 'variant' ? '' :
-        '<button data-act="tovariant" data-vgroup="' +
-          esc((variantGroups()[0] || {}).name || 'Варіанти на вибір') + '">' +
-          'Перенести у варіанти</button>') +
+      /* Куди саме у варіанти. Груп буває кілька — футболки окремо, худі
+         окремо, — тож пропонуємо всі, крім тієї, у якій позиція вже стоїть,
+         і завжди даємо завести нову. Доти тут була одна кнопка, яка мовчки
+         клала все в першу групу. */
+      (function(){
+        var here = (kind === 'variant')
+          ? ((itemsOf('variant')[i] || {}).vgroup || 'Варіанти на вибір') : null;
+        return variantGroups().filter(function(g){ return g.name !== here; })
+          .map(function(g){
+            return '<button data-act="tovariant" data-vgroup="' + esc(g.name) + '">' +
+              'У групу «' + esc(g.name) + '»</button>'; }).join('') +
+          '<button data-act="newgroup">У нову групу…</button>';
+      })() +
       '<button class="is-del" data-act="del">Прибрати з пропозиції</button>';
     document.body.appendChild(m);
     var r = anchor.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
@@ -1115,11 +1151,16 @@
     m.addEventListener('click', function(e){ e.stopPropagation(); });
     m.querySelectorAll('[data-act]').forEach(function(b){
       b.addEventListener('click', function(){
-        var a = b.dataset.act;
+        var a = b.dataset.act, vg = b.dataset.vgroup || '';
         closeMenu2();
-        send({ act: a, kind: kind, i: i, vgroup: b.dataset.vgroup || '' });
+        if(a === 'newgroup'){
+          vg = askGroupName();
+          if(!vg) return;
+          a = 'tovariant';
+        }
+        send({ act: a, kind: kind, i: i, vgroup: vg });
         // Позиція зникла зі свого місця — активної більше немає
-        if(a === 'del' || a === 'swap') cur = null;
+        if(a === 'del' || a === 'swap' || a === 'tovariant') cur = null;
       });
     });
     menuEl = m;
