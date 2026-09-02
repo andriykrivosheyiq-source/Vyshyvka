@@ -74,6 +74,16 @@ const ORDER = {
     it('variant', 'Худі чорне', 'hoodie', 'texug',     10, 850, 500, { vgroup:'g1' })
   ]
 };
+/* Та сама людина вже замовляла — інакше три цифри в шапці нічого не важать:
+   «Замовлень 1 · за весь час стільки ж, скільки зараз» перевіряє тільки те,
+   що ми вміємо переписати одне число двічі. */
+const OLD_ORDER = {
+  id:'2', orderId:'1000007', type:'client', name:'Оксана', phone:'+380670000042',
+  company:'Кава Друзі', status:'done', site:'main', payments:[], items:[],
+  createdAt:new Date(Date.now() - 90 * 864e5).toISOString(),
+  hist:[{ s:'done', at:new Date(Date.now() - 80 * 864e5).toISOString() }],
+  totalPrice:8000, totalCost:5000, margin:3000, marginPct:37.5
+};
 /* Що клієнт обрав у КП: 12 футболок, кепку теж 12 і ДРУГЕ худі — чорне.
    Клієнт нічого не натиснув (`state` немає) — підтверджує менеджер. */
 const OFFER = { tok1:{ selection:{
@@ -81,7 +91,7 @@ const OFFER = { tok1:{ selection:{
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 fbstub = fbstub.replace('window.firebase={',
-  'window.__ORDERS=' + JSON.stringify([ORDER]) + ';\n' +
+  'window.__ORDERS=' + JSON.stringify([ORDER, OLD_ORDER]) + ';\n' +
   '  window.__OFFERS=' + JSON.stringify(OFFER) + ';\n' +
   '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
 fbstub = fbstub.replace(
@@ -120,106 +130,120 @@ await p.route('**://**', r => {
 });
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForTimeout(5500);
-await p.click('.ticket');
+await p.click('.ticket:has-text("1000042")');
 await p.waitForTimeout(1500);
 
 console.log('═══ ШАПКА ═══');
 const head = await p.evaluate(() => {
-  const pills = [...document.querySelectorAll('.od-head-top .od-pill')];
+  const t = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
   const g = el => getComputedStyle(el);
+  const st = document.querySelector('.od-head .od-pill-st');
+  const mgr = document.querySelector('.od-head .od-pill-mgr');
   const box = el => el.getBoundingClientRect();
-  const oid = document.querySelector('.od-pill-oid');
-  const mgr = document.querySelector('.od-pill-mgr');
-  const st = document.querySelector('.od-pill-st');
-  const due = document.querySelector('.od-head .od-due-inp');
+  const head = document.querySelector('.od-head');
   return {
-    n: pills.length,
-    txt: pills.map(x => x.textContent.replace(/\s+/g, ' ').trim().slice(0, 24)),
-    /* Уніфікація — це не «схоже», а «однаково»: одна висота, один радіус,
-       один кегль. Різниця в пікселі читається як недбалість. */
-    h: [...new Set(pills.map(x => Math.round(box(x).height)))],
-    r: [...new Set(pills.map(x => g(x).borderRadius))],
-    fs: [...new Set(pills.map(x => g(x).fontSize))],
-    /* Кольором виділяємо тільки те, що потребує акценту. Нейтральні фони
-       беремо з самих таблеток — і вимагаємо, щоб з них вибивалась рівно
-       одна, зі статусом. */
-    bg: pills.map(x => g(x).backgroundColor),
+    name: t(document.querySelector('.od-cl-nm')),
+    chan: t(document.querySelector('.od-cl-ch')),
+    stats: [...document.querySelectorAll('.od-stat')]
+      .map(x => [t(x.querySelector('span')), t(x.querySelector('b'))]),
+    oid: t(document.querySelector('.od-meta .od-oid-b')),
+    meta: t(document.querySelector('.od-meta')),
+    due: (document.querySelector('.od-head .od-due-inp') || {}).value,
+    /* Етап — смугою на всю ширину шапки, і це єдине кольорове місце. */
+    stWide: !!st && box(st).width > box(head).width - 46,
     stBg: st ? g(st).backgroundColor : null,
-    age: (document.querySelector('.od-pill-st .od-pill-age') || {}).textContent || '',
-    /* Пʼять таблеток у вузькій панелі в один ряд не стають — і не мусять.
-       Важливо інше: відповідальний тримається правого краю шапки, а не
-       губиться десь посеред ряду. */
-    mgrInHead: !!(mgr && document.querySelector('.od-head-top').contains(mgr)),
-    mgrRight: !!mgr && pills.every(x => x === mgr || box(x).right <= box(mgr).right + 1),
-    mgrLast: !!(mgr && oid) && box(mgr).top >= box(oid).top,
-    due: due ? due.value : null,
-    mgrTwice: document.querySelectorAll('.od-mgr-sel').length
+    mgrWide: !!mgr && Math.abs(box(mgr).width - box(st).width) < 2,
+    /* Решта шапки тримає один фон: колір тут має рівно одне значення. */
+    others: [...head.querySelectorAll('.od-stat, .od-meta, .od-cl-nm')]
+      .map(x => g(x).backgroundColor)
   };
 });
-console.log('  ' + head.txt.join(' | '));
-console.log('  висота ' + head.h.join('/') + ' · радіус ' + head.r.join('/') +
-            ' · кегль ' + head.fs.join('/'));
-ok(head.h.length === 1 && head.r.length === 1 && head.fs.length === 1,
-  'усі таблетки шапки однакові: висота ' + head.h[0] + ', радіус ' + head.r[0] +
-    ', кегль ' + head.fs[0],
-  'таблетки різні: висоти ' + head.h.join('/') + ', радіуси ' + head.r.join('/') +
-    ', кеглі ' + head.fs.join('/'));
-ok(head.bg.filter(c => c !== head.stBg).length === head.n - 1 &&
-   new Set(head.bg.filter(c => c !== head.stBg)).size === 1,
-  'кольорова в шапці рівно одна таблетка — етап; решта тримає один нейтральний фон',
-  'кольорових таблеток більше однієї: ' + JSON.stringify(head.bg));
-ok(head.mgrInHead && head.mgrRight && head.mgrLast,
-  'відповідальний — у шапці, притиснутий до правого краю',
-  'відповідального в шапці немає або він не праворуч: ' + JSON.stringify(head));
-ok(head.mgrTwice === 1,
-  'вибір відповідального в картці один',
-  'вибір відповідального дублюється: ' + head.mgrTwice);
-ok(/1000042/.test(head.txt.join(' ')) && head.txt.some(t => /\d\d\.\d\d/.test(t)) &&
+console.log('  ' + head.name + ' · ' + head.chan);
+head.stats.forEach(x => console.log('  ' + x[0] + ': ' + x[1]));
+console.log('  ' + head.meta);
+ok(head.name === 'Оксана' && /Instagram/.test(head.chan || ''),
+  'імʼя клієнта — заголовком картки, під ним канал',
+  'шапка не каже, хто це: ' + JSON.stringify([head.name, head.chan]));
+/* Три цифри — вага клієнта. Рахуються ВКЛЮЧНО з поточним замовленням: це вся
+   історія людини, а не залишок після відрахування. 8 000 + 5 000. */
+ok(head.stats.length === 3 &&
+   /Замовлень/.test(head.stats[0][0]) && head.stats[0][1] === '2' &&
+   /13\D?000/.test(head.stats[1][1]) && /5\D?000/.test(head.stats[2][1]),
+  'три цифри: замовлень 2 · за весь час 13 000 ₴ · це замовлення 5 000 ₴',
+  'цифри не ті: ' + JSON.stringify(head.stats));
+ok(head.stWide && head.mgrWide,
+  'етап і відповідальний — смугами на всю ширину шапки',
+  'смуги не на всю ширину: ' + JSON.stringify([head.stWide, head.mgrWide]));
+ok(head.others.every(c => c === head.others[0]) && head.stBg !== head.others[0],
+  'кольорове місце в шапці рівно одне — етап',
+  'кольору в шапці більше, ніж етап: ' + JSON.stringify(head.others));
+ok(head.oid === '1000042' && /30\.08|\d\d\.\d\d/.test(head.meta || '') &&
    head.due === '2026-12-01',
-  'у шапці номер, дата звернення і термін здачі',
-  'шапка неповна: ' + JSON.stringify(head.txt));
-/* Скільки картка стоїть в етапі — тут же, у таблетці статусу. Раніше цей
-   сигнал вимагав окремого блоку під шапкою. */
-ok(/дн|сьогодні/.test(head.age),
-  'скільки стоїть в етапі — усередині таблетки статусу: «' + head.age.trim() + '»',
-  'строку в таблетці статусу немає');
+   'номер, дата й термін — дрібним рядком з іконками',
+   'рядок міток неповний: ' + JSON.stringify(head.meta));
+
+/* Історія клієнта розгортається з шапки: доти вона лежала окремим блоком
+   «Повторний клієнт» аж під складом замовлення. */
+await p.click('[data-hist]');
+await p.waitForTimeout(700);
+const hist = await p.evaluate(() => [...document.querySelectorAll('.od-hist-l button')]
+  .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+console.log('  історія: ' + JSON.stringify(hist));
+ok(hist.length === 1 && /1000007/.test(hist[0]) && /8\D?000/.test(hist[0]),
+  'історія показує попереднє замовлення цього клієнта з сумою',
+  'історії немає: ' + JSON.stringify(hist));
 
 console.log('');
-console.log('═══ КЛІЄНТ І СУМА ═══');
-const cli = await p.evaluate(() => {
-  const box = document.querySelector('.od-cli');
-  const sum = document.querySelector('.od-cli-sum');
-  return {
-    fields: box ? [...box.querySelectorAll('.od-fields .od-f')].map(i => i.getAttribute('data-f')) : null,
-    sum: sum ? sum.textContent.replace(/\s+/g, ' ').trim() : null,
-    right: !!(box && sum) && sum.getBoundingClientRect().left >
-           box.querySelector('.od-fields').getBoundingClientRect().left,
-    old: !!document.querySelector('.od-sum')
-  };
-});
-console.log('  поля: ' + JSON.stringify(cli.fields) + ' · сума: ' + JSON.stringify(cli.sum));
-ok((cli.fields || []).join(',') === 'name,phone,company',
-  'поля клієнта лишились ті самі — ми нічого в них не міняли',
-  'поля клієнта змінились: ' + JSON.stringify(cli.fields));
-ok(/5\D?000/.test(cli.sum || '') && cli.right,
-  'сума замовлення стоїть праворуч від клієнта: «хто це і на скільки» — одне питання',
-  'суми біля клієнта немає: ' + JSON.stringify(cli));
-ok(!cli.old,
-  'окремої плашки з сумою більше немає — одна сума в одному місці',
-  'стара плашка суми лишилась');
+console.log('═══ ПОРЯДОК РОЗДІЛІВ ═══');
+/* Порядок читається як порядок питань: що з цим далі → що памʼятати → і аж
+   потім усе важке, розкладене по смугах. */
+const order = await p.evaluate(() => ({
+  top: [...document.querySelectorAll('.od-body > .od-sec')]
+    .map(x => x.textContent.replace(/\s+/g, ' ').trim().split(' · ')[0]),
+  folds: [...document.querySelectorAll('.od-folds .od-fold-t')].map(x => x.textContent.trim()),
+  /* Смуги мають виглядати однаково: одна висота, один радіус, один фон.
+     Різнобій тут читається як «ці розділи чимось різні», хоч вони не різні. */
+  h: [...new Set([...document.querySelectorAll('.od-folds .od-fold-h')]
+      .map(x => Math.round(x.getBoundingClientRect().height)))],
+  r: [...new Set([...document.querySelectorAll('.od-folds .od-fold')]
+      .map(x => getComputedStyle(x).borderRadius))],
+  bg: [...new Set([...document.querySelectorAll('.od-folds .od-fold')]
+      .map(x => getComputedStyle(x).backgroundColor))],
+  shut: [...document.querySelectorAll('.od-folds .od-fold-b')].every(x => x.hasAttribute('hidden'))
+}));
+console.log('  зверху: ' + order.top.join(' → '));
+console.log('  смуги: ' + order.folds.join(' · '));
+/* Нагадування й нотатка лишаються відкритими: це щоденне, і сховане під
+   смугу його просто не відкриють. */
+ok(order.top.join('|') === 'Нагадування|Нотатка менеджера',
+  'над смугами лишились тільки нагадування й нотатка — щоденне не ховаємо',
+  'зверху не те: ' + JSON.stringify(order.top));
+ok(order.folds.join('|') ===
+   'Інформація про клієнта|Товари|Додаткові продажі|Оплата|Фінанси|Що відбувалось',
+  'смуги йдуть у порядку питань до замовлення',
+  'смуги не ті: ' + JSON.stringify(order.folds));
+ok(order.h.length === 1 && order.r.length === 1 && order.bg.length === 1,
+  'усі смуги однакові: висота ' + order.h[0] + ', радіус ' + order.r[0],
+  'смуги різні: ' + JSON.stringify([order.h, order.r, order.bg]));
+ok(order.shut,
+  'усе згорнуте — картка відкривається як список питань, а не як стос коробок',
+  'якась смуга відкрита одразу');
+/* Кожна смуга каже підсумком, чи є в ній що читати: інакше їх доводиться
+   відкривати по черзі, щоб це зʼясувати. */
+const sums = await p.evaluate(() => [...document.querySelectorAll('.od-folds .od-fold')]
+  .map(f => [(f.querySelector('.od-fold-t')||{}).textContent.trim(),
+             (f.querySelector('.od-fold-n')||{textContent:''}).textContent.replace(/\s+/g,' ').trim()]));
+sums.forEach(x => console.log('    ' + x[0].padEnd(24) + x[1]));
+ok(sums.every(x => x[1]),
+  'кожна смуга каже підсумком, що всередині',
+  'є німа смуга: ' + JSON.stringify(sums.filter(x => !x[1])));
+/* Найважливіший підсумок: «Товари» рахують ТІЛЬКИ склад замовлення, а
+   рекомендації й варіанти живуть окремою смугою. */
+ok(/1 позиц/.test((sums.find(x => x[0] === 'Товари') || [])[1] || '') &&
+   /1 рекомендовано · 2 на вибір/.test((sums.find(x => x[0] === 'Додаткові продажі') || [])[1] || ''),
+  'товари й додаткові продажі рахуються окремо: 1 позиція проти 1+2',
+  'рахунок змішався: ' + JSON.stringify(sums.slice(1, 3)));
 
-console.log('');
-console.log('═══ ПОРЯДОК БЛОКІВ ═══');
-/* Порядок читається як порядок питань: хто це і на скільки → що з цим далі
-   → що памʼятати → і аж потім склад із розрахунком. */
-const order = await p.evaluate(() => [...document.querySelectorAll('.od-body > .od-sec, .od-body > .od-fold')]
-  .map(x => x.classList.contains('od-fold')
-    ? (x.querySelector('.od-fold-t') || {}).textContent.trim()
-    : x.textContent.replace(/\s+/g, ' ').trim().split(' · ')[0]));
-console.log('  ' + order.slice(0, 5).join(' → '));
-ok(order.slice(0, 4).join('|') === 'Клієнт|Нагадування|Нотатка менеджера|Замовлення та розрахунок',
-  'блоки йдуть у порядку питань: клієнт → нагадування → нотатка → склад',
-  'порядок не той: ' + order.slice(0, 5).join(' → '));
 /* Порожній блок нагадувань — це один рядок, а не картка в рамці: доти на
    його місці стояли дві («Наступна дія» і «Задачі») незалежно від того, чи
    є там що читати. */
@@ -258,43 +282,35 @@ ok(/розмірного ряду/.test(remRow) && /14:00/.test(remRow),
   'нагадування не записалось: ' + JSON.stringify(remRow));
 
 console.log('');
-console.log('═══ СКЛАД І РОЗРАХУНОК ═══');
-const foldShut = await p.evaluate(() => {
-  const b = document.querySelector('.od-fold-b');
-  return { hidden: !b || b.hasAttribute('hidden'),
-    head: (document.querySelector('.od-fold-h') || {}).textContent.replace(/\s+/g, ' ').trim() };
-});
-console.log('  ' + JSON.stringify(foldShut.head));
-ok(foldShut.hidden,
-  'склад із розрахунком згорнутий — щодня з картки потрібні клієнт, стан і наступна дія',
-  'склад розгорнутий і відсуває все інше вниз');
-/* Згорнутий блок мусить сам сказати, що в ньому: інакше його не відкриють. */
-ok(/4 позиц/i.test(foldShut.head) && /5\D?000/.test(foldShut.head),
-  'згорнутий блок каже, скільки позицій і на яку суму',
-  'заголовок згорнутого блоку мовчить: ' + JSON.stringify(foldShut.head));
-
-await p.click('[data-goods-toggle]');
+console.log('═══ ТОВАРИ Й РОЗМІРИ ═══');
+await p.click('[data-fold="goods"]');
 await p.waitForTimeout(900);
 const sizes = await p.evaluate(() => {
-  const b = document.querySelector('.od-fold-b');
   const sz = document.querySelector('.od-sz');
   const cells = sz ? [...sz.querySelectorAll('.od-sz-i')] : [];
   const box = el => el.getBoundingClientRect();
   return {
-    open: b && !b.hasAttribute('hidden'),
+    open: !document.querySelector('[data-fold="goods"]').nextElementSibling.hasAttribute('hidden'),
     list: cells.map(c => c.querySelector('span').textContent.trim()),
     note: sz ? (sz.querySelector('.od-sz-h span') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
-    boxes: document.querySelectorAll('[data-sz-item]').length,
     /* Колонка: підпис зверху, поле під ним. */
     stacked: cells.every(c => box(c.querySelector('span')).bottom <= box(c.querySelector('input')).top + 1),
     /* Усі колонки на одній лінії й однакової ширини — інакше ряд читається
        як список, а не як розмірна сітка. */
     tops: [...new Set(cells.map(c => Math.round(box(c).top)))].length,
-    widths: [...new Set(cells.map(c => Math.round(box(c).width)))].length
+    widths: [...new Set(cells.map(c => Math.round(box(c).width)))].length,
+    /* У «Товарах» лежить тільки склад: рекомендацію й варіанти видно в
+       сусідній смузі, і сплутати їх зі складом уже не можна. */
+    names: [...document.querySelectorAll('[data-fold="goods"] ~ .od-fold-b .t-web-name')]
+      .map(x => x.textContent.replace(/\s+/g, ' ').trim())
   };
 });
+console.log('  позиції: ' + JSON.stringify(sizes.names));
 console.log('  розміри: ' + JSON.stringify(sizes.list) + ' · ' + JSON.stringify(sizes.note));
-ok(sizes.open, 'блок відкривається кліком', 'блок не відкрився');
+ok(sizes.open, 'смуга відкривається кліком', 'смуга не відкрилась');
+ok(sizes.names.length === 1 && /Футболка/.test(sizes.names[0]),
+  'у «Товарах» лише склад замовлення, без рекомендацій і варіантів',
+  'у товари попала пропозиція: ' + JSON.stringify(sizes.names));
 ok((sizes.list || []).join(',') === 'S,M,L,XL',
   'розміри взяті з розмірної сітки товару — того самого джерела, що й на сайті',
   'розмірів немає або вони не з сітки: ' + JSON.stringify(sizes.list));
@@ -324,14 +340,17 @@ console.log('  дописали L×4: ' + JSON.stringify(done.note) + ' · ' + J
 ok(/розписано 10 із 10/.test(done.note) && done.cls === 'ok',
   'розписали всі 10 — розбіжність зникла',
   'рахунок не зійшовся: ' + JSON.stringify(done));
-/* Порядок розмірів — з сітки, а не з порядку набору: «S · M · L», а не
-   «S · M» і десь у кінці L. */
+/* Порядок розмірів — з сітки, а не з порядку набору. */
 ok(/S×2 · M×4 · L×4/.test(done.meta),
   'розкладка читається в порядку сітки: S×2 · M×4 · L×4',
   'порядок розмірів не той: ' + JSON.stringify(done.meta));
 
 console.log('');
 console.log('═══ ЩО ЙДЕ ПІДРЯДНИКУ ═══');
+/* Закупівля живе у «Фінансах»: це наші гроші, і менеджер без прав на
+   собівартість цієї смуги не бачить узагалі. */
+await p.click('[data-fold="fin"]');
+await p.waitForTimeout(900);
 const buy = () => p.evaluate(() => [...document.querySelectorAll('.od-buy-li')]
   .map(x => x.textContent.replace(/\s+/g, ' ').trim()));
 const b0 = await buy();
@@ -399,12 +418,19 @@ await p.click('#offerEd [data-oe="mgrok"]');
 await p.waitForTimeout(2200);
 await p.click('#offerEd [data-oe="done"]');
 await p.waitForTimeout(1500);
-const after = await p.evaluate(() => ({
-  pick: (document.querySelector('.od-pick') || {}).textContent.replace(/\s+/g, ' ').trim() || '',
-  sum: (document.querySelector('.od-cli-sum b') || {}).textContent.replace(/\s+/g, ' ').trim(),
-  stage: (document.querySelector('.od-stage') || {}).value,
-  buy: [...document.querySelectorAll('.od-buy-li')].map(x => x.textContent.replace(/\s+/g, ' ').trim())
-}));
+const after = await p.evaluate(() => {
+  const t = s2 => { const el = document.querySelector(s2);
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  return {
+    pick: t('.od-pick'),
+    /* «Це замовлення» — третя цифра шапки. Після підтвердження вона має
+       показати перерахований склад, а не те, що менеджер запропонував. */
+    sum: t('.od-stat:nth-child(3) b'),
+    life: t('.od-stat:nth-child(2) b'),
+    stage: (document.querySelector('.od-stage') || {}).value,
+    buy: [...document.querySelectorAll('.od-buy-li')].map(x => x.textContent.replace(/\s+/g, ' ').trim())
+  };
+});
 after.buy.forEach(l => console.log('  ' + l));
 console.log('  сума: ' + after.sum + ' · етап: ' + after.stage);
 ok(after.stage === 'new',
@@ -423,6 +449,10 @@ ok(after.buy.every(l => /12 шт/.test(l)),
 ok(/18\D?600/.test(after.sum || ''),
   'сума замовлення перерахована по підтвердженому складу: 18 600 ₴',
   'сума не перерахувалась: ' + after.sum);
+/* І вага клієнта разом із нею: 8 000 старих + 18 600 нових. */
+ok(/26\D?600/.test(after.life || ''),
+  'за весь час теж перерахувалось: 26 600 ₴',
+  'сума за весь час не оновилась: ' + after.life);
 /* Підпис «хто і коли зафіксував склад» стоїть під самим складом, а не за
    два екрани від нього. */
 ok(/Склад підтверджено/.test(after.pick),
