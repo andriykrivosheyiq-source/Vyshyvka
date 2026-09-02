@@ -721,17 +721,49 @@
      найпотрібніша. */
   .od-head{position:relative;padding:14px 18px 13px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#fff 0%,var(--canvas) 100%);}
-  .od-head-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:32px;}
+  .od-head-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:32px;}
   .od-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-2px 0 8px;}
-  .od-head-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px;}
-  .od-oid{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--ink);}
+  /* ── Таблетки шапки ─────────────────────────────────────────────────────
+     Одна форма на всі пʼять відповідей: висота 30, радіус 8, кегль 12.
+     Кольорова рівно одна — етап; решта тримає нейтральний фон, і саме тому
+     кольорову видно. Усередині таблетки можуть жити випадайка чи поле дати:
+     вони позбавлені власної рамки й фону, щоб не малювати рамку в рамці. */
+  .od-pill{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;
+    font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;max-width:100%;}
+  .od-pill select,.od-pill input{all:unset;font:inherit;font-size:12px;font-weight:600;
+    cursor:pointer;min-width:0;max-width:100%;}
+  .od-pill select:focus-visible,.od-pill input:focus-visible,.od-pill:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;border-radius:6px;}
+  /* Поля всередині таблетки не малюють власного світіння: рамка тут одна —
+     сама таблетка, а клавіатурний фокус видно по обводці вище. */
+  .od-pill .od-f:focus{box-shadow:none;}
+  .od-pill-lab{color:var(--ink-soft);font-weight:600;}
+  .od-pill-mut{color:var(--ink-soft);font-weight:600;}
   /* Номер майже завжди звідси й переїжджає — у Sitniks, у Нову пошту,
      у повідомлення клієнту. Тому він копіюється натисканням. */
-  .od-oid.copyable{cursor:pointer;border-radius:6px;margin:-2px -6px;padding:2px 6px;
-    transition:background .12s;}
-  .od-oid.copyable:hover{background:var(--canvas);}
-  .od-oid.copyable:active{background:#E8EDF5;}
-  .od-sub{font-size:11px;color:#9AA5B5;margin-top:4px;}
+  .od-pill-oid{font-family:var(--mono);font-weight:800;cursor:pointer;}
+  .od-pill-oid:hover:not([disabled]){background:var(--canvas);}
+  .od-pill-oid:active:not([disabled]){background:#E8EDF5;}
+  .od-pill-oid[disabled]{cursor:default;color:var(--ink-soft);}
+  .od-pill-st{border-color:transparent;font-weight:700;}
+  .od-pill-st select{font-weight:700;}
+  .od-pill-due input{font-family:var(--mono);cursor:text;}
+  /* Відповідальний тримається правого краю: у вузькій панелі пʼять таблеток
+     в один ряд не стають, і без цього він опинявся посеред другого ряду. */
+  .od-pill-mgr{margin-left:auto;}
+  .od-pill-mgr select{color:var(--ink-soft);max-width:150px;text-overflow:ellipsis;}
+  .od-pill-me{all:unset;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent-deep);
+    padding:2px 6px;border-radius:6px;background:var(--accent-soft);}
+  /* Скільки стоїть в етапі й скільки лишилось до здачі — однакові дрібні
+     позначки всередині своїх таблеток. Мовчать, поки все гаразд. */
+  .od-pill-age{font-size:11px;font-weight:700;color:var(--ink-soft);}
+  .od-pill-age.is-warn{color:#8A6A15;}
+  .od-pill-age.is-bad{color:var(--bad);}
+  .od-pill-st .od-pill-age{color:inherit;opacity:.72;}
+  .od-pill-st .od-pill-age.is-warn{color:#8A6A15;opacity:1;}
+  .od-pill-st .od-pill-age.is-bad{color:var(--bad);opacity:1;}
+  .od-sub{font-size:11px;color:#9AA5B5;margin-top:6px;}
   .od-x{all:unset;position:absolute;top:11px;right:13px;cursor:pointer;font-size:15px;
     color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
   .od-x:hover{background:var(--canvas);}
@@ -833,17 +865,10 @@
     color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}
   .tc-ch{font-size:10.5px;padding:1px 6px;border-radius:20px;background:#EEF2FF;color:#3B4A9E;}
   .tc-note{font-size:11px;cursor:help;}
-  /* ── Контекст угоди в картці ─────────────────────────────────────────── */
-  .od-sum{padding:2px 0 6px;}
-  .od-sum b{display:block;font-size:26px;font-weight:700;letter-spacing:-.6px;
-    font-variant-numeric:tabular-nums;line-height:1.15;}
-  .od-sum-m{font-size:12px;color:var(--ink-soft);margin-top:3px;}
   /* Етап списком у шапці: раз на день його міняють, а ряд кнопок з'їдав
-     верх картки. Списком — один рядок і зрозуміло без пояснень. */
-  .od-stage{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
-    background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;
-    flex:0 1 auto;max-width:200px;}
-  .od-stage:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+     верх картки. Списком — один рядок і зрозуміло без пояснень.
+     Вигляд списку задає таблетка, у якій він стоїть. */
+  .od-stage{max-width:180px;}
   /* Повторний клієнт: інша розмова й інша знижка — це має впадати в око */
   .od-repeat{margin-top:14px;padding:11px 12px;border:1px solid #CFE3D8;border-radius:11px;
     background:#F1F9F5;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
@@ -938,7 +963,6 @@
   .tc-ch-b:focus-visible,.tc-act:focus-visible,.od-foot button:focus-visible,
   .cw-go:focus-visible,.cw-ic:focus-visible,.oe-btn:focus-visible{
     outline:2px solid var(--accent);outline-offset:2px;}
-  .od-due{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-left:auto;}
   /* Слід відвідувача: канал і мітка пристрою для пошуку запису екрана.
      Місце — у шапці картки, в одному ряду з номером: звідки прийшов клієнт,
      видно ще до того, як почав читати склад замовлення. Таблетки навмисне
@@ -951,17 +975,12 @@
     padding:1px 7px;cursor:pointer;white-space:nowrap;max-width:100%;overflow:hidden;
     text-overflow:ellipsis;}
   .od-trace-vid:hover{color:var(--ink);background:#fff;}
-  .od-due-lab{font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
-  .od-due-inp{width:auto;font-family:var(--mono);font-size:12px;padding:5px 8px;background:#fff;}
-  .od-due-left{font-size:11px;padding:2px 8px;border-radius:20px;background:#fff;
-    border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;}
-  .od-due-left.due-soon{background:#FFF4DE;color:#8A6A15;}
-  .od-due-left.due-late{background:var(--bad-soft);color:var(--bad);}
+  .od-due-inp{width:auto;}
   /* Нотатка — те, що менеджер перечитує найчастіше. Два рядки її ховали:
      доводилось скролити всередині крихітного віконця. Тепер поле відразу
      на кілька рядків і саме росте під текст. */
   .od-note{width:100%;resize:vertical;line-height:1.5;font-size:13px;
-    min-height:104px;padding:10px 12px;border-radius:9px;}
+    min-height:56px;padding:10px 12px;border-radius:9px;}
   /* Пошук діалогу в Sitniks — коли Telegram у клієнта немає */
   .od-igrow{display:flex;gap:6px;align-items:stretch;min-width:0;}
   .od-igrow .od-f{flex:1;min-width:0;}
@@ -1015,6 +1034,23 @@
   /* Порожня нижня панель не має займати ані пікселя: сума й склад тепер у
      лівій панелі робочого місця, поруч із самими позиціями. */
   .oe-foot:empty{display:none;}
+  /* Правка тексту повідомлення: панель відкривається знизу, а пропозиція
+     лишається на екрані — текст пишуть, дивлячись на те, про що він. */
+  .oe-msg{flex:none;border-top:1px solid var(--line);background:var(--canvas);padding:10px 13px 12px;}
+  .oe-msg-h{display:flex;align-items:baseline;gap:8px;font-size:12px;margin-bottom:7px;}
+  .oe-msg-h b{font-size:12.5px;color:var(--ink);}
+  .oe-msg-h span{color:var(--ink-soft);}
+  .oe-msg-t{width:100%;resize:vertical;font:inherit;font-size:13px;line-height:1.5;
+    padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;
+    color:var(--ink);min-height:120px;}
+  .oe-msg-t:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .oe-msg-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;}
+  .oe-msg-n{font-size:11.5px;color:var(--ink-soft);}
+  /* Підтвердження за клієнта — обведена, а не залита: залита зелена в шапці
+     одна, і це «Зберегти позицію», яку натискають щодня. Підтверджують раз
+     на замовлення, і кнопка має бути помітною, але не головною. */
+  .oe-btn--ok{border-color:#0E9F6E;color:#0B7F58;font-weight:700;}
+  .oe-btn--ok:hover{background:#E8F6ED;border-color:#0C8A5E;color:#0B7F58;}
   /* Стан автозбереження. Записувалось і раніше, але мовчки — і менеджер
      не мав підтвердження, що робота вже в базі. */
   .oe-save{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;}
@@ -1171,13 +1207,18 @@
     letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
   .od-sz-h span{margin-left:auto;letter-spacing:0;text-transform:none;font-size:11.5px;font-weight:700;}
   .od-sz-h .ok{color:var(--good);} .od-sz-h .no{color:#A8730F;}
-  .od-sz-r{display:flex;flex-wrap:wrap;gap:6px;}
-  .od-sz-i{display:flex;align-items:center;gap:5px;background:var(--canvas);
-    border:1px solid var(--line);border-radius:8px;padding:4px 6px 4px 9px;}
-  .od-sz-i>span{font-size:11.5px;font-weight:700;color:var(--ink-2);min-width:22px;}
-  .od-sz-i input{all:unset;width:38px;font-size:12.5px;font-weight:700;text-align:center;
-    background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 2px;}
-  .od-sz-i input:focus{border-color:var(--accent);}
+  /* Розмір зверху, кількість під ним — колонками, як розмірний ряд на самому
+     сайті. Горизонтальними парами «S 2 · M 4 · L 0» ряд читався як суцільний
+     рядок цифр, і щоб знайти потрібний розмір, доводилось вести пальцем.
+     Колонки однакової ширини, тож усі поля стоять на одній лінії. */
+  .od-sz-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(46px,1fr));gap:6px;}
+  .od-sz-i{display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:center;}
+  .od-sz-i>span{font-size:11px;font-weight:700;color:var(--ink-soft);
+    letter-spacing:.04em;text-transform:uppercase;}
+  .od-sz-i input{all:unset;font-size:14px;font-weight:700;text-align:center;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 2px;}
+  .od-sz-i input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   /* Відповідальний у шапці, праворуч: місце там було порожнє, а питання
      «хто з ним працює» виникає першим. */
   .od-head-mgr{margin-left:auto;display:flex;align-items:center;gap:6px;}
@@ -1196,69 +1237,45 @@
   .od-mgr-me{all:unset;cursor:pointer;flex:none;font-size:12px;padding:9px 12px;border-radius:9px;
     background:var(--canvas);color:var(--ink-soft);border:1px solid var(--line);}
   .od-mgr-me:hover{background:var(--accent-soft);color:var(--accent-deep);}
-  /* Наступна дія. Колір несе сенс: сірий — усе за планом, жовтий — сьогодні,
-     червоний — прострочено, пунктир — дії немає взагалі. */
-  /* Етап і скільки в ньому стоїмо — перший блок картки. Клас саме
-     `od-deal`, а не `od-stage`: під тим іменем уже живе випадайка вибору
-     етапу нижче в картці, і два різні елементи з одним класом ловили б
-     стилі одне одного. */
-  .od-deal{border:1px solid var(--line);border-radius:12px;padding:11px 13px;
-    background:#fff;margin-bottom:10px;}
-  .od-deal.is-warn{border-color:#F0D9A0;background:#FFFBF2;}
-  .od-deal.is-bad{border-color:#F0B7BF;background:#FFF5F6;}
-  .od-deal.is-snz{border-style:dashed;background:var(--canvas);}
-  .ods-t{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:700;}
-  .ods-age{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--ink-soft);}
-  .od-deal.is-warn .ods-age{color:#8A6A15;}
-  .od-deal.is-bad .ods-age{color:var(--bad);}
-  .ods-n{font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;}
-  .ods-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
-  .od-next{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;}
-  .od-next.is-today{border-color:#F0D9A0;background:#FFFBF2;}
-  .od-next.is-overdue{border-color:#F0B7BF;background:#FFF5F6;}
-  .od-next.is-none{border-style:dashed;background:var(--canvas);}
-  .on-lab{display:flex;align-items:baseline;gap:8px;font-size:10.5px;font-weight:800;
-    letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
-  .on-when{margin-left:auto;letter-spacing:0;text-transform:none;font-size:11.5px;font-weight:700;}
-  .od-next.is-today .on-when{color:#8A6A15;}
-  .od-next.is-overdue .on-when{color:var(--bad);}
-  .on-text{font-size:14px;font-weight:600;color:var(--ink);margin-top:5px;line-height:1.4;}
-  .on-who{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
-  .on-empty{font-size:13px;color:var(--ink-soft);margin-top:4px;}
-  .on-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
-  .on-do,.on-mv{all:unset;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;
-    border-radius:8px;background:var(--canvas);color:var(--ink-2);border:1px solid var(--line);}
-  .on-do{background:var(--accent);color:#fff;border-color:transparent;}
-  .on-do:hover{background:var(--accent-deep);}
-  .on-mv:hover{background:#fff;border-color:var(--accent);color:var(--accent-deep);}
-  .on-del{padding:7px 10px;color:#AEB8C9;}
-  .on-del:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
-  .on-more{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
-  .on-add{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
-  .on-in{flex:1 1 150px;min-width:0;font:inherit;font-size:13px;padding:8px 10px;
-    border:1px solid var(--line);border-radius:8px;background:#fff;}
-  .on-due{flex:none;font:inherit;font-size:12.5px;padding:8px 9px;border:1px solid var(--line);
-    border-radius:8px;background:#fff;}
-  .on-go{all:unset;cursor:pointer;flex:none;padding:8px 14px;border-radius:8px;
-    background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;}
-  .on-go:hover{background:var(--accent-deep);}
-  /* Повний список задач */
-  .od-tasks{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px 12px 12px;}
-  .tk-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);}
-  .tk-row:last-of-type{border-bottom:none;}
-  .tk-chk{all:unset;cursor:pointer;flex:none;width:17px;height:17px;border-radius:5px;
+  /* ── Нагадування ───────────────────────────────────────────────────────
+     Рядок на нагадування плюс рядок, щоб додати нове. Порожній блок — це
+     один рядок і нічого більше: доти на його місці стояли дві картки в
+     рамках, які займали висоту незалежно від того, є там що читати чи ні. */
+  .od-pick{font-size:11.5px;font-weight:700;color:#1a7a3a;background:#E8F6ED;
+    border-radius:8px;padding:6px 10px;margin-bottom:9px;}
+  .od-rem{border:1px solid var(--line);border-radius:12px;background:#fff;padding:2px 12px 8px;}
+  .rem-row{display:flex;align-items:center;gap:8px;padding:8px 0;
+    border-bottom:1px dashed var(--line);}
+  .rem-chk{all:unset;cursor:pointer;flex:none;width:18px;height:18px;border-radius:5px;
     border:1.5px solid #C3CBD8;display:flex;align-items:center;justify-content:center;
-    font-size:11px;color:#fff;}
-  .tk-chk:hover{border-color:var(--accent);}
-  .tk-row.is-done .tk-chk{background:#1a7a3a;border-color:#1a7a3a;}
-  .tk-t{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tk-row.is-done .tk-t{color:var(--ink-soft);text-decoration:line-through;}
-  .tk-d{flex:none;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
-  .tk-d.is-late{color:var(--bad);font-weight:700;}
-  .tk-x{all:unset;cursor:pointer;flex:none;color:#D3DAE4;padding:2px 5px;border-radius:6px;font-size:11px;}
-  .tk-x:hover{background:var(--bad-soft);color:var(--bad);}
-  .tk-sep{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--ink-soft);margin:10px 0 2px;}
+    font-size:11px;color:transparent;}
+  .rem-chk:hover{border-color:#1a7a3a;color:#1a7a3a;}
+  .rem-t{flex:1;min-width:0;font-size:13.5px;color:var(--ink);line-height:1.35;}
+  .rem-w{flex:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+    background:var(--canvas);color:var(--ink-soft);white-space:nowrap;}
+  .rem-w.is-today{background:#FFF4DE;color:#8A6A15;}
+  .rem-w.is-late{background:var(--bad-soft);color:var(--bad);}
+  .rem-zz,.rem-x{all:unset;cursor:pointer;flex:none;padding:3px 6px;border-radius:6px;
+    font-size:12px;color:#B6BFCC;line-height:1;}
+  .rem-zz{opacity:.45;}
+  .rem-zz.is-on,.rem-zz:hover{opacity:1;}
+  .rem-x:hover{background:var(--bad-soft);color:var(--bad);}
+  .rem-add{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 2px;}
+  /* Коментар займає весь рядок, дата з часом і кнопка — наступний. В один
+     ряд усе четверо не влазить: поля дати й часу в браузері широкі, і
+     коментар лишався смужкою на два слова, у якій не видно, що пишеш. */
+  .rem-in{flex:1 1 100%;min-width:0;font:inherit;font-size:13px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .rem-d,.rem-tm{flex:none;font:inherit;font-family:var(--mono);font-size:12px;padding:7px 8px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink-2);}
+  .rem-go{margin-left:auto;}
+  .rem-in:focus,.rem-d:focus,.rem-tm:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);}
+  .rem-go{all:unset;cursor:pointer;flex:none;padding:8px 11px;border-radius:8px;
+    background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;}
+  .rem-go:hover{background:var(--accent-deep);}
+  .rem-go:focus-visible,.rem-chk:focus-visible,.rem-zz:focus-visible,.rem-x:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;}
   /* Наступна дія на картці дошки */
   .tc-task{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;
     background:var(--canvas);color:var(--ink-soft);}
@@ -7060,14 +7077,28 @@ async function offerLinkOpen(order){
 
    Порожній рядок між абзацами навмисно: у месенджерах це три окремі
    репліки в одному повідомленні, і посилання стоїть у своїй. */
+const OFFER_MSG_DEFAULT =
+  'Підготувала для вас пропозицію за вашим запитом 👌\n' +
+  'Тут є візуалізації з вашим брендингом, розрахунок вартості та всі ' +
+  'деталі замовлення.\n\n' +
+  'Переглянути пропозицію →\n{кп}\n\n' +
+  'Якщо виникнуть питання — із задоволенням на все відповім)';
+/* Текст можна поправити під конкретного клієнта — олівцем у самому КП. Тоді
+   він живе в замовленні (`shareMsg`) і йде звідусіль, звідки надсилають це
+   КП: із самої пропозиції, з кнопки «💬» на картці й із готової відповіді в
+   чаті. Інакше клієнт отримав би два різні листи залежно від того, звідки
+   менеджер натиснув.
+
+   Посилання всередині тексту тримаємо підстановкою `{кп}`, а не готовою
+   адресою: так воно лишається живим, навіть коли текст переписали. */
 function offerShareText(order){
   const link = offerUrl(order);
   if(!link) return '';
-  return 'Підготувала для вас пропозицію за вашим запитом 👌\n' +
-    'Тут є візуалізації з вашим брендингом, розрахунок вартості та всі ' +
-    'деталі замовлення.\n\n' +
-    'Переглянути пропозицію →\n' + link + '\n\n' +
-    'Якщо виникнуть питання — із задоволенням на все відповім)';
+  return offerMsgTpl(order).split('{кп}').join(link);
+}
+function offerMsgTpl(order){
+  const own = String((order && order.shareMsg) || '').trim();
+  return own || OFFER_MSG_DEFAULT;
 }
 /* Спільне для обох дій: кладемо в буфер одразу, а тоді переписуємо
    документ за посиланням і ЗВІРЯЄМО, що туди лягло саме те, що на екрані.
@@ -7278,6 +7309,8 @@ async function confirmAsManager(o){
     await saveOrderMeta(o); await storeSet('orders', orders);
     toast('Підтверджено' + (note ? ' · ' + note.slice(0, 60) : ''));
     renderBoard(); renderOrderDrawer();
+    // Кнопка живе в шапці КП — після підтвердження вона має звідти зникнути
+    if(offerEd && offerEd.id === o.id){ renderOfferEd(); offerEdPreview(true); }
   }catch(e){ console.error(e); toast('Не збереглось'); }
 }
 /* Той самий розбір, але нічого не міняє — щоб показати менеджеру список
@@ -8570,14 +8603,18 @@ async function addPayment(o, sum, kind){
    «хто це поставив» — перше питання, коли задача незрозуміла. Виконавцем
    за замовчуванням стає відповідальний за замовлення, а не той, хто
    заводить: задачі найчастіше ставлять собі, але й передають теж. */
-async function addTask(o, text, due){
+async function addTask(o, text, due, time){
   const t = String(text || '').trim();
-  if(!t){ toast('Напишіть, що зробити'); return; }
+  /* Без коментаря нагадування марне: картка повернеться з датою, але без
+     причини, і менеджер знову вигадуватиме, навіщо він сюди зайшов. */
+  if(!t){ toast('Напишіть, про що нагадати'); return; }
+  const tm = /^\d{2}:\d{2}$/.test(String(time || '')) ? String(time) : '';
   if(!Array.isArray(o.tasks)) o.tasks = [];
   o.tasks.push({ id: cryptoId(), text: t.slice(0, 200), due: String(due || '') || null,
+                 dueTime: tm || null,
                  done:false, at: new Date().toISOString(),
                  by: myEmail() || '', for: o.mgrEmail || myEmail() || '' });
-  try{ await saveOrderMeta(o); toast('Заплановано: ' + dueWordUa(due)); }
+  try{ await saveOrderMeta(o); toast('Нагадаємо ' + dueWordUa(due) + (tm ? ' о ' + tm : '')); }
   catch(e){ console.error(e); o.tasks.pop(); toast('Не збереглось'); }
   renderOrderDrawer();
 }
@@ -9006,21 +9043,6 @@ async function setItemSize(o, idx, size, v){
   }
 }
 
-async function remindLater(o){
-  const txt = window.prompt(
-    'Про що нагадати?\n\nНаприклад: «клієнт просив передзвонити після ' +
-    'затвердження бюджету»', '');
-  if(txt == null) return;
-  const t = String(txt).trim();
-  if(!t) return toast('Без коментаря нагадування марне — не буде зрозуміло, навіщо повертались');
-  const d = window.prompt('Коли повернутись до замовлення? (РРРР-ММ-ДД)', dayShift(7));
-  if(d == null) return;
-  const till = String(d).trim();
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(till)) return toast('Дата у форматі 2026-11-14');
-  if(till <= todayIso()) return toast('Дата має бути в майбутньому');
-  await addTask(o, t, till);          // наступна дія — щоб було видно, навіщо
-  await snoozeOrder(o, till);         // і з дошки до цієї дати
-}
 /* Відкласти. `''` повертає картку на дошку, дата — до неї. Етап не
    міняється: картка повернеться туди, де стояла. */
 async function snoozeOrder(o, v){
@@ -9395,109 +9417,50 @@ function odMoneyHtml(o){
       </div>
     </div>`;
 }
-/* Блок «Наступна дія» — одразу під сумою, до всього іншого. Він тут не для
-   краси: якщо дії немає, менеджер має це побачити раніше, ніж почне читати
-   склад замовлення. */
-/* Стан угоди одним рядком, ще до всього іншого: на якому етапі стоїмо,
-   скільки вже, і чи не відкладена картка. Для продажника «три дні в КП
-   надіслано» важливіше за будь-яку іншу цифру на картці. */
-function odStageHtml(o){
-  const st = statusMeta(o.status) || { label:o.status };
-  const heat = stageHeat(o), w = stageWord(o);
-  const snz = snoozedTill(o);
-  return `
-    <div class="od-deal${heat ? ' is-' + heat : ''}${snz ? ' is-snz' : ''}">
-      <div class="ods-t"><b>${escapeHtml(st.label)}</b>${
-        w ? `<span class="ods-age">${escapeHtml(w)}</span>` : ''}</div>
-      ${snz
-        ? `<div class="ods-n">Відкладено до ${escapeHtml(dayUa(snz))} — до цієї дати картки на дошці немає</div>`
-        : (heat === 'bad'
-            ? '<div class="ods-n">Стоїть довше, ніж мало б. Домовтесь про наступний крок або закрийте.</div>'
-            : (heat === 'warn' ? '<div class="ods-n">Час нагадати про себе.</div>' : ''))}
-      <div class="ods-acts">
-        ${/* Підтвердити за клієнта. Він часто нічого не натискає в КП —
-             просто каже «беремо» в переписці. Доти менеджеру не було чим це
-             зафіксувати, і склад замовлення лишався пропозицією. */''}
-        ${(o.offerToken && o.offerState !== 'confirmed' &&
-           ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0)
-          ? '<button class="on-do" data-mgr-confirm="1">Підтвердити за клієнта</button>' : ''}
-        ${snz
-          ? `<button class="on-mv" data-snooze="">Повернути на дошку</button>`
-          : `<button class="on-mv" data-remind="1">Нагадати пізніше…</button>`}
-        ${o.status !== 'cancel'
-          ? '<button class="on-mv on-del" data-lost="1">Відмова…</button>' : ''}
-      </div>
-      ${o.clientPickAt
-        ? `<div class="ods-n">Склад підтверджено ${escapeHtml(dtUa(o.clientPickAt))}${
-            o.clientPickBy ? ' · ' + escapeHtml(personName(o.clientPickBy)) : ''}</div>` : ''}
-      ${o.status === 'cancel' && o.lostReason
-        ? `<div class="ods-n">Причина: <b>${escapeHtml(o.lostReason)}</b></div>` : ''}
-    </div>`;
-}
-function odNextHtml(o){
-  const st = taskState(o);
-  if(!st.task){
-    return `
-      <div class="od-next is-none">
-        <div class="on-lab">Наступна дія</div>
-        <div class="on-empty">Не запланована — картка може загубитись</div>
-        ${odTaskAddHtml()}
-      </div>`;
-  }
-  const t = st.task;
-  return `
-    <div class="od-next is-${st.kind}">
-      <div class="on-lab">Наступна дія<span class="on-when">${escapeHtml(dueWordUa(t.due))}</span></div>
-      <div class="on-text">${escapeHtml(t.text || 'без опису')}</div>
-      ${t.for && t.for !== myEmail()
-        ? `<div class="on-who">для: ${escapeHtml(personName(t.for))}</div>` : ''}
-      <div class="on-acts">
-        <button class="on-do" data-task-done="${escapeHtml(t.id)}">✓ Виконано</button>
-        <button class="on-mv" data-task-move="${escapeHtml(t.id)}" data-days="1">На завтра</button>
-        <button class="on-mv" data-task-move="${escapeHtml(t.id)}" data-days="7">На тиждень</button>
-        <button class="on-mv on-del" data-task-del="${escapeHtml(t.id)}" title="Прибрати задачу">✕</button>
-      </div>
-      ${openTasks(o).length > 1
-        ? `<div class="on-more">Ще ${openTasks(o).length - 1} у списку задач нижче</div>` : ''}
-    </div>`;
-}
-function odTaskAddHtml(){
-  return `
-    <div class="on-add">
-      <input class="on-in" type="text" maxlength="120" placeholder="що зробити далі">
-      <select class="on-due">
-        <option value="${todayIso()}">сьогодні</option>
-        <option value="${dayShift(1)}" selected>завтра</option>
-        <option value="${dayShift(3)}">через 3 дні</option>
-        <option value="${dayShift(7)}">через тиждень</option>
-        <option value="">без дати</option>
-      </select>
-      <button class="on-go">Запланувати</button>
-    </div>`;
-}
-/* Повний список задач — нижче, разом із виконаними за останній час:
-   «що вже зробили» відповідає на половину питань при передачі клієнта. */
-function odTasksHtml(o){
+/* ── Нагадування ─────────────────────────────────────────────────────────
+   Один блок замість трьох. Доти те саме питання — «що з цією карткою далі»
+   — жило в трьох місцях одночасно: «Стан угоди» під шапкою, велика картка
+   «Наступна дія» під нею і повний список задач унизу. Три блоки про одне
+   з'їдали пів екрана й розходились у показаннях.
+
+   Тепер: етап зі строком — таблеткою в шапці, а тут рівно те, про що
+   менеджер домовився сам із собою: коментар, дата й час. Коли нагадувань
+   немає, блок займає один рядок — поле, дату, час і кнопку.
+
+   Виконані сюди не повертаються: вони лягають у «Що відбувалось» рядком
+   «Зроблено · …», і місце тут лишається для того, що попереду. */
+function odRemindHtml(o){
   const open = openTasks(o);
-  const done = taskList(o).filter(t => t && t.done)
-                          .sort((a,b)=> String(b.doneAt||'').localeCompare(String(a.doneAt||'')))
-                          .slice(0, 5);
-  if(!open.length && !done.length) return '';
-  const row = (t)=>`
-    <div class="tk-row${t.done ? ' is-done' : ''}">
-      <button class="tk-chk" data-task-toggle="${escapeHtml(t.id)}" title="${
-        t.done ? 'Повернути в роботу' : 'Позначити виконаною'}">${t.done ? '✓' : ''}</button>
-      <span class="tk-t">${escapeHtml(t.text || 'без опису')}</span>
-      <span class="tk-d ${t.done ? '' : (daysTo(t.due) < 0 ? 'is-late' : '')}">${
-        escapeHtml(t.done ? dtUa(t.doneAt) : dueWordUa(t.due))}</span>
-      <button class="tk-x" data-task-del="${escapeHtml(t.id)}" title="Прибрати">✕</button>
-    </div>`;
+  const snz = snoozedTill(o);
+  const row = (t)=>{
+    const n = daysTo(t.due);
+    const cls = n == null ? '' : (n < 0 ? 'is-late' : (n === 0 ? 'is-today' : ''));
+    /* Картку ховає з дошки саме ця дата — тож і перемикач стоїть у її
+       рядку, а не окремою кнопкою десь поруч. */
+    const off = snz && t.due && snz === t.due;
+    return `
+      <div class="rem-row">
+        <button class="rem-chk" data-task-toggle="${escapeHtml(t.id)}"
+          title="Нагадування виконане">✓</button>
+        <span class="rem-t">${escapeHtml(t.text || 'без опису')}</span>
+        <span class="rem-w ${cls}">${escapeHtml(dueWordUa(t.due) +
+          (t.dueTime ? ' · ' + t.dueTime : ''))}</span>
+        ${t.due ? `<button class="rem-zz${off ? ' is-on' : ''}" data-task-snooze="${escapeHtml(t.id)}"
+          title="${off ? 'Картка прибрана з дошки до цієї дати — повернути'
+                       : 'Прибрати картку з дошки до цієї дати'}">${off ? '🌙' : '💤'}</button>` : ''}
+        <button class="rem-x" data-task-del="${escapeHtml(t.id)}" title="Прибрати">✕</button>
+      </div>`;
+  };
   return `
-    <div class="od-sec">Задачі</div>
-    <div class="od-tasks">
+    <div class="od-sec">Нагадування</div>
+    <div class="od-rem">
       ${open.map(row).join('')}
-      ${done.length ? '<div class="tk-sep">Зроблено</div>' + done.map(row).join('') : ''}
-      ${odTaskAddHtml()}
+      <div class="rem-add">
+        <input class="rem-in" type="text" maxlength="120" placeholder="про що нагадати">
+        <input class="rem-d" type="date" value="${dayShift(1)}" title="Коли нагадати">
+        <input class="rem-tm" type="time" value="10:00" title="О котрій">
+        <button class="rem-go">Додати</button>
+      </div>
     </div>`;
 }
 function odPart(fn, label){
@@ -9593,6 +9556,12 @@ function odGoodsHtml(o){
         <span class="od-fold-n">${escapeHtml(head)}</span>
       </button>
       <div class="od-fold-b"${open ? '' : ' hidden'}>
+        ${/* Хто і коли зафіксував склад — тут, а не в шапці: це підпис саме
+             під цим списком. Доти рядок стояв у блоці стану угоди, за два
+             екрани від того, про що він. */''}
+        ${o.clientPickAt
+          ? `<div class="od-pick">Склад підтверджено ${escapeHtml(dtUa(o.clientPickAt))}${
+              o.clientPickBy ? ' · ' + escapeHtml(personName(o.clientPickBy)) : ''}</div>` : ''}
         <div class="t-web-items">${
           odPart(()=> orderItemsHtml(o), 'список товарів') ||
           '<div class="od-empty">без товарів</div>'}</div>
@@ -9627,12 +9596,13 @@ function renderOrderDrawer(){
      (найпомітніше на діалозі з клієнтом). Запамʼятовуємо позицію і повертаємо
      після перемальовування. */
   const keepScroll = (panel.querySelector('.od-body') || {}).scrollTop || 0;
-  const flow = statusFlow();
-  const statusIdx = flow.findIndex(s=>s.key===o.status);
-  const canPrev = statusIdx > 0, canNext = statusIdx >= 0 && statusIdx < flow.length-1;
+  /* Дата в шапці без року й без хвилин: рік у роботі один і той самий, а
+     хвилина створення нікому не потрібна — потрібно «коли це було». */
   const created = o.createdAt
-    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
   const due = dueInfo(o);
+  const sc = statusColor(o.status);
+  const age = stageWord(o), heat = stageHeat(o), snz = snoozedTill(o);
   chanMigrate(o);
   // Порожнє поле там, де розмова вже є, читається як «контакту немає»
   if(chanFill(o)) saveOrderMeta(o).catch(e=> console.warn(e));
@@ -9645,49 +9615,60 @@ function renderOrderDrawer(){
   try{
   odHtml = `
     <div class="od-head">
-      ${/* У шапці лишається тільки те, що потрібно щодня: номер, коли
-           прийшло, етап і термін. Канал, мітка пристрою й сторінка входу
-           переїхали вниз, до «Що відбувалось», — це історія звернення, а
-           не робочий інструмент. */''}
+      ${/* У шапці рівно пʼять відповідей: що за замовлення, коли прийшло, на
+           якому етапі, коли здавати, хто веде. Усі пʼять — таблетки однакової
+           висоти, радіуса й кегля: доти тут стояли номер великим шрифтом,
+           дрібний сірий підпис, випадайка й поле дати — чотири різні на
+           вигляд речі в одній смузі, і око щоразу перебирало їх заново.
+           Канал, мітка пристрою й сторінка входу переїхали вниз, до «Що
+           відбувалось», — це історія звернення, а не робочий інструмент. */''}
       <div class="od-head-top">
-        <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
-          ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
-        ${/* Відповідальний — у шапці, праворуч, де було порожньо. Доти він
-             стояв окремим розділом посеред картки, між клієнтом і нотаткою:
-             питання «хто з ним працює» виникає одразу, а відповідь на нього
-             доводилось шукати прокруткою. */''}
-        <div class="od-head-mgr">
-          <select class="od-mgr-sel" title="Відповідальний менеджер">
+        <button class="od-pill od-pill-oid" ${o.orderId
+          ? 'data-copy-oid title="Натисніть, щоб скопіювати номер"'
+          : 'disabled'}>${escapeHtml(o.orderId || '—')}</button>
+        ${created ? `<span class="od-pill od-pill-mut" title="Коли прийшло замовлення">${
+          escapeHtml(created)}</span>` : ''}
+        ${/* Єдина кольорова таблетка на всю шапку — етап. Колір тут не
+             прикраса: він відповідає кольору колонки на дошці, і картка,
+             відкрита з пошуку, одразу каже, звідки вона. Скільки стоїть в
+             етапі — тут же, всередині: жовтіє на строку, червоніє на
+             подвійному. Раніше цей сигнал жив окремим блоком під шапкою. */''}
+        <span class="od-pill od-pill-st" style="background:${sc.bg};color:${sc.head};">
+          <select class="od-stage" title="Етап угоди" style="color:${sc.head};">
+            ${STATUSES.map(st=>`<option value="${escapeHtml(st.key)}"${
+              st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
+          </select>
+          ${age ? `<b class="od-pill-age${heat ? ' is-' + heat : ''}">${escapeHtml(age)}</b>` : ''}
+        </span>
+        <span class="od-pill od-pill-due" title="Коли здавати замовлення">
+          <span class="od-pill-lab">Здати до</span>
+          <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
+          ${/* Дедлайн фарбуємо тільки коли він горить. «За два тижні» не
+               потребує кольору, «прострочено» — потребує. */''}
+          ${due ? `<b class="od-pill-age ${due.cls === 'due-late' ? 'is-bad' : (due.cls === 'due-soon' ? 'is-warn' : '')}">${
+            due.days < 0 ? 'прострочено ' + (-due.days) + ' дн'
+                         : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}
+        </span>
+        <span class="od-pill od-pill-mgr" title="Відповідальний менеджер">
+          <select class="od-mgr-sel">
             <option value="">— відповідальний —</option>
             ${teamOptionsHtml(o.mgrEmail)}
           </select>
           ${myEmail() && o.mgrEmail !== myEmail()
-            ? '<button class="od-mgr-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
-        </div>
+            ? '<button class="od-pill-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
+        </span>
       </div>
-      <div class="od-sub">${created ? 'Прийшло ' + escapeHtml(created) : ''}</div>
-      ${/* Другий ряд — час: на якому етапі стоїмо і коли здавати. Дата здачі
-           лежала аж під нотаткою, хоч дивляться на неї щодня. */''}
-      <div class="od-head-row">
-        <select class="od-stage" title="Етап угоди">
-          ${flow.map(st=>`<option value="${escapeHtml(st.key)}"${
-            st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
-        </select>
-        <div class="od-due">
-          <span class="od-due-lab">Здати до</span>
-          <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
-          ${due ? `<span class="od-due-left ${due.cls}">${due.days < 0 ? 'прострочено ' + (-due.days) + ' дн' : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</span>` : ''}
-        </div>
-      </div>
+      ${snz ? `<div class="od-sub">Відкладено до ${escapeHtml(dayUa(snz))} — до цієї дати картки на дошці немає</div>` : ''}
+      ${o.status === 'cancel' && o.lostReason
+        ? `<div class="od-sub">Причина відмови: <b>${escapeHtml(o.lostReason)}</b></div>` : ''}
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
-      ${/* Стан угоди в один погляд: доти, щоб зрозуміти «що тут», треба
-           було розгортати склад. */''}
-      ${/* Спершу — де стоїмо і скільки вже. Потім — що робимо далі. Якщо
-           наступної дії немає, це видно раніше за будь-що інше в картці. */''}
-      ${odPart(()=> odStageHtml(o), 'етап')}
-      ${odNextHtml(o)}
+      ${/* Клієнт іде першим: перше питання до будь-якої картки — «хто це і
+           на скільки». Блоків «Стан угоди» і «Наступна дія» тут більше
+           немає: етап зі строком переїхав у таблетку в шапці, нагадування —
+           у власний блок нижче, а «Підтвердити за клієнта» живе тепер у
+           самому КП, поруч із тим, що підтверджують. */''}
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
            а «де ми з цією людиною розмовляємо» -->
@@ -9720,11 +9701,14 @@ function renderOrderDrawer(){
           ].filter(Boolean).map(escapeHtml).join(' · ')}</span>
         </div>
       </div>
-      ${/* «Здати до» і сторінка входу переїхали в шапку — там вони видні
-           без прокрутки. */''}
-      ${/* Відповідальний переїхав у шапку — там він видний без прокрутки. */''}
+      ${/* «Здати до», етап і відповідальний переїхали в шапку — там вони
+           видні без прокрутки. */''}
+      ${odPart(()=> odRemindHtml(o), 'нагадування')}
+      ${/* Нотатка одразу за нагадуванням: це два різні записники — «що
+           зробити» з датою і «що памʼятати» без неї. Поле починається з
+           двох рядків і росте під текст, а не займає пів екрана порожнім. */''}
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
-      <textarea class="od-note od-f" data-f="note" rows="4"
+      <textarea class="od-note od-f" data-f="note" rows="2"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
       ${/* Замовлення й розрахунок — після того, як зрозуміло, хто це і хто
@@ -9733,8 +9717,6 @@ function renderOrderDrawer(){
       ${odGoodsHtml(o)}
 
       ${odMoneyHtml(o)}
-
-      ${odTasksHtml(o)}
 
       ${/* Що було тут раніше і чому пішло:
             «Пропозиція клієнту · КП сформовано» — сам факт, що КП є, видно
@@ -9784,7 +9766,7 @@ function renderOrderDrawer(){
     console.error('картка: шаблон не зібрався', e);
     odHtml = `
       <div class="od-head">
-        <div class="od-head-top"><div class="od-oid">${escapeHtml(o.orderId || '—')}</div></div>
+        <div class="od-head-top"><span class="od-pill od-pill-oid">${escapeHtml(o.orderId || '—')}</span></div>
         <div class="od-sub">картка показана скорочено — ${escapeHtml(String(e && e.message || e))}</div>
         <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
       </div>
@@ -9800,6 +9782,11 @@ function renderOrderDrawer(){
   const stg = panel.querySelector('.od-stage');
   if(stg) stg.addEventListener('change', async ()=>{
     if(o.status === stg.value) return;
+    /* Відмова — не просто ще один етап. Разом із нею питаємо причину: без
+       неї через півроку на питання «чому ми програємо» відповіді не буде, а
+       окремої кнопки для цього більше немає. Відмовився відповідати —
+       списка повертається на місце, бо етап не змінився. */
+    if(stg.value === 'cancel'){ await askLost(o); renderOrderDrawer(); return; }
     setStatus(o, stg.value);
     await storeSet('orders', orders);
     renderBoard(); renderOrderDrawer();
@@ -9849,32 +9836,30 @@ function renderOrderDrawer(){
   }
   panel.querySelectorAll('[data-pay-del]').forEach(b=>
     b.addEventListener('click', ()=> removePayment(o, +b.dataset.payDel)));
-  // Задачі: у панелі два місця, де їх заводять, — обробник один на обидва
-  panel.querySelectorAll('.on-add').forEach(box=>{
-    const inp = box.querySelector('.on-in'), due = box.querySelector('.on-due');
-    const send = ()=> addTask(o, inp.value, due.value);
-    box.querySelector('.on-go').addEventListener('click', send);
+  // Нагадування: коментар, дата, час — і Enter у полі теж додає
+  panel.querySelectorAll('.rem-add').forEach(box=>{
+    const inp = box.querySelector('.rem-in');
+    const d = box.querySelector('.rem-d'), tm = box.querySelector('.rem-tm');
+    const send = ()=> addTask(o, inp.value, d.value, tm.value);
+    box.querySelector('.rem-go').addEventListener('click', send);
     inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
   });
-  panel.querySelectorAll('[data-task-done]').forEach(b=>
-    b.addEventListener('click', ()=> setTaskDone(o, b.dataset.taskDone, true)));
   panel.querySelectorAll('[data-task-toggle]').forEach(b=>
     b.addEventListener('click', ()=>{
       const t = taskList(o).find(x => x && x.id === b.dataset.taskToggle);
       if(t) setTaskDone(o, t.id, !t.done);
     }));
-  panel.querySelectorAll('[data-task-move]').forEach(b=>
-    b.addEventListener('click', ()=> moveTask(o, b.dataset.taskMove, +b.dataset.days || 1)));
   panel.querySelectorAll('[data-task-del]').forEach(b=>
     b.addEventListener('click', ()=> removeTask(o, b.dataset.taskDel)));
-  panel.querySelectorAll('[data-snooze]').forEach(b=>
-    b.addEventListener('click', ()=> snoozeOrder(o, b.dataset.snooze)));
-  panel.querySelectorAll('[data-remind]').forEach(b=>
-    b.addEventListener('click', ()=> remindLater(o)));
-  panel.querySelectorAll('[data-mgr-confirm]').forEach(b=>
-    b.addEventListener('click', ()=> confirmAsManager(o)));
-  panel.querySelectorAll('[data-lost]').forEach(b=>
-    b.addEventListener('click', ()=> askLost(o)));
+  /* Перемикач «прибрати з дошки до цієї дати». Вимкнений за замовчуванням:
+     «нагадай мені» і «прибери з очей» — різні бажання, і картка, що зникла
+     сама, лякає більше, ніж допомагає. */
+  panel.querySelectorAll('[data-task-snooze]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const t = taskList(o).find(x => x && x.id === b.dataset.taskSnooze);
+      if(!t || !t.due) return;
+      snoozeOrder(o, snoozedTill(o) === t.due ? '' : t.due);
+    }));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
   const chanSel = panel.querySelector('.od-chan');
@@ -10714,6 +10699,7 @@ async function openOfferEditor(o){
     renderBoard();
   }
   offerEd = { id: o.id };
+  oeMsgOpen = false;          // нове КП відкривається з закритою правкою тексту
   offerEdEl().classList.add('open');
   renderOfferEd();
   offerEdPreview(true);
@@ -12061,8 +12047,22 @@ function renderOfferEd(){
          переписці. Стрілка відкриває сторінку клієнта в сусідній вкладці.
          Усі три спершу оновлюють документ за посиланням — інакше клієнт
          відкриє те, що там лежало досі. */''}
+    ${/* Клієнт часто нічого не натискає в самому КП — просто каже «беремо» в
+         переписці. Тоді підтверджує менеджер, і робить це тут, поруч із тим,
+         що підтверджує: обране з пропозиції стає складом замовлення. На
+         картці цієї кнопки більше немає — там її натискали, не бачачи КП. */''}
+    ${(o.offerToken && o.offerState !== 'confirmed' &&
+       ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0)
+      ? '<button class="oe-btn oe-btn--ok" data-oe="mgrok" ' +
+        'title="Клієнт погодився в переписці — записати склад замовлення">✓ Підтвердити за клієнта</button>'
+      : ''}
     <button class="oe-btn oe-btn--main" data-oe="copymsg"
       title="Скопіювати готове повідомлення разом із посиланням">💬 Повідомлення клієнту</button>
+    ${/* Олівець правит саме те повідомлення, яке піде цьому клієнту. Доти
+         текст був один на всі КП і правився вже в месенджері, після
+         вставки, — тобто щоразу заново. */''}
+    <button class="oe-btn oe-btn--ic" data-oe="editmsg" title="Змінити текст повідомлення"
+      aria-label="Змінити текст повідомлення">✎</button>
     <button class="oe-btn oe-btn--ic" data-oe="copy" title="Скопіювати лише посилання"
       aria-label="Скопіювати лише посилання">📎</button>
     <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
@@ -12071,12 +12071,15 @@ function renderOfferEd(){
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
       aria-label="Закрити">✕</button>`;
 
-  /* Нижньої панелі більше немає. «Перегляд як клієнт» дублював вкладку «Як
-     бачить клієнт», що стоїть у самому робочому місці, — дві кнопки на одну
-     дію, поруч, і незрозуміло, чим вони різні. Посилання переїхало нагору,
-     до «Готово», а сума й склад видно в лівій панелі, біля самих позицій.
-     Уся висота вікна пішла під роботу. */
-  d.querySelector('.oe-foot').innerHTML = '';
+  /* Нижня панель мовчить, поки нічого не редагують: «Перегляд як клієнт»
+     дублював вкладку «Як бачить клієнт», що стоїть у самому робочому місці,
+     — дві кнопки на одну дію, поруч, і незрозуміло, чим вони різні.
+     Посилання переїхало нагору, сума й склад видно в лівій панелі. Уся
+     висота вікна пішла під роботу.
+
+     Єдине, заради чого панель відкривається, — текст повідомлення: правити
+     його треба, бачачи саму пропозицію, а не в порожньому вікні. */
+  d.querySelector('.oe-foot').innerHTML = oeMsgOpen ? offerEdMsgHtml(o) : '';
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
@@ -12108,6 +12111,15 @@ function renderOfferEd(){
   });
   d.querySelectorAll('[data-oe="copymsg"]').forEach(b=> b.addEventListener('click', ()=>
     offerMessageCopy(o)));
+  d.querySelectorAll('[data-oe="mgrok"]').forEach(b=> b.addEventListener('click', ()=>
+    confirmAsManager(o)));
+  d.querySelectorAll('[data-oe="editmsg"]').forEach(b=> b.addEventListener('click', ()=>{
+    oeMsgOpen = !oeMsgOpen;
+    renderOfferEd();
+    const t = document.querySelector('#offerEd .oe-msg-t');
+    if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  }));
+  offerEdMsgWire(d, o);
   d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
     offerLinkCopy(o)));
   d.querySelectorAll('[data-oe="open"]').forEach(b=> b.addEventListener('click', ()=>
@@ -12119,6 +12131,68 @@ function renderOfferEd(){
       try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
       renderBoard(); renderOfferEd(); offerEdPreview(true);
     });
+  });
+}
+
+/* ── Текст повідомлення клієнту ──────────────────────────────────────────
+   Правиться там же, де й надсилається. У полі стоїть готовий текст із
+   ЖИВИМ посиланням — менеджер має бачити рівно те, що піде клієнту, а не
+   підстановку `{кп}`. Зберігаючи, адресу кладемо назад підстановкою: так
+   вона не застигне текстом, який колись перестане відповідати документу.
+
+   Без посилання не зберігаємо. Повідомлення без нього — це лист «дивіться
+   пропозицію», у якому нічого відкрити, і помітить це першим клієнт. */
+let oeMsgOpen = false;
+function offerEdMsgHtml(o){
+  const own = String(o.shareMsg || '').trim();
+  return `
+    <div class="oe-msg">
+      <div class="oe-msg-h">
+        <b>Повідомлення клієнту</b>
+        <span>${own ? 'змінене для цього КП' : 'стандартний текст'}</span>
+      </div>
+      <textarea class="oe-msg-t" rows="7" spellcheck="false">${escapeHtml(offerShareText(o))}</textarea>
+      <div class="oe-msg-a">
+        <button class="oe-btn oe-btn--save" data-msg="save">Зберегти</button>
+        <button class="oe-btn" data-msg="cancel">Скасувати</button>
+        ${own ? '<button class="oe-btn" data-msg="reset">Повернути стандартний</button>' : ''}
+        <span class="oe-msg-n">Текст лишається в цьому замовленні — і в чаті з клієнтом теж піде він</span>
+      </div>
+    </div>`;
+}
+function offerEdMsgWire(d, o){
+  const box = d.querySelector('.oe-msg');
+  if(!box) return;
+  const ta = box.querySelector('.oe-msg-t');
+  const close = ()=>{ oeMsgOpen = false; renderOfferEd(); };
+  box.querySelector('[data-msg="cancel"]').addEventListener('click', close);
+  const reset = box.querySelector('[data-msg="reset"]');
+  if(reset) reset.addEventListener('click', async ()=>{
+    if(!confirm('Повернути стандартний текст? Ваші правки для цього КП зникнуть.')) return;
+    delete o.shareMsg;
+    try{ await saveOrderMeta(o); toast('Повернули стандартний текст'); }
+    catch(e){ console.error(e); toast('Не збереглось'); }
+    renderOfferEd();
+  });
+  box.querySelector('[data-msg="save"]').addEventListener('click', async ()=>{
+    const link = offerUrl(o);
+    const txt = String(ta.value || '').trim();
+    if(!txt) return toast('Порожнє повідомлення надсилати нема сенсу');
+    if(link && txt.indexOf(link) < 0 && txt.indexOf('{кп}') < 0)
+      return toast('У тексті немає посилання на пропозицію — клієнту не буде що відкрити');
+    const tpl = link ? txt.split(link).join('{кп}') : txt;
+    const was = o.shareMsg;
+    o.shareMsg = (tpl === OFFER_MSG_DEFAULT) ? null : tpl.slice(0, 2000);
+    if(!o.shareMsg) delete o.shareMsg;
+    try{
+      await saveOrderMeta(o);
+      toast('Текст збережено — саме він і копіюється');
+      close();
+    }catch(e){
+      console.error(e);
+      if(was) o.shareMsg = was; else delete o.shareMsg;
+      toast('Не збереглось');
+    }
   });
 }
 
@@ -12219,8 +12293,9 @@ const QR_DEFAULT = [
   { t:'Вітання', m:'Вітаю! Це {бренд}. Підкажіть, будь ласка, що плануєте нанести і на який одяг — підберемо і порахуємо.' },
   { t:'Тираж',   m:'Підкажіть орієнтовну кількість і розмірний ряд — від тиражу суттєво залежить ціна.' },
   /* Той самий текст, що й у кнопці «Повідомлення клієнту»: клієнт не має
-     отримувати два різні листи залежно від того, звідки менеджер натиснув. */
-  { t:'Надсилаю КП', m:'Підготувала для вас пропозицію за вашим запитом 👌\nТут є візуалізації з вашим брендингом, розрахунок вартості та всі деталі замовлення.\n\nПереглянути пропозицію →\n{кп}\n\nЯкщо виникнуть питання — із задоволенням на все відповім)' },
+     отримувати два різні листи залежно від того, звідки менеджер натиснув.
+     Тому він тут не переписаний, а взятий звідти ж. */
+  { t:'Надсилаю КП', m: OFFER_MSG_DEFAULT },
   { t:'Оплата',  m:'Працюємо за передоплатою 50%, решта — перед відправкою. Рахунок виставляємо на ФОП.' },
   { t:'Макет',   m:'Надішліть, будь ласка, логотип у векторі (.ai, .eps, .pdf або .svg). Якщо вектора немає — надішліть що є, підготуємо самі.' }
 ];
@@ -12230,6 +12305,11 @@ function quickReplies(){
 }
 function qrFill(text, o){
   const first = String(o.name || '').trim().split(/\s+/)[0] || '';
+  /* Заготовка, яка несе посилання на КП, — це те саме повідомлення, що й
+     кнопка «Повідомлення клієнту». Якщо менеджер підправив його олівцем у
+     самому КП, у чат має піти правлений текст, а не шаблон. */
+  if(String(text || '').indexOf('{кп}') >= 0 && String(o.shareMsg || '').trim())
+    text = offerMsgTpl(o);
   return String(text || '')
     .replace(/\{імʼя\}|\{ім'я\}|\{імя\}/g, first)
     .replace(/\{бренд\}/g, brandSnap(o.brand).name)
