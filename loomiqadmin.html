@@ -1164,6 +1164,33 @@
   .pay-go:hover{background:var(--accent-deep);}
   /* Відповідальний менеджер — окремим рядком, не в купі з контактами клієнта */
   .od-mgr{display:flex;align-items:center;gap:8px;}
+  /* Розміри позиції. Розбіжність не ховаємо: кількість лишається головною,
+     а скільки розписано — сказано вголос. */
+  .od-sz{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+  .od-sz-h{display:flex;align-items:baseline;gap:8px;font-size:11px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .od-sz-h span{margin-left:auto;letter-spacing:0;text-transform:none;font-size:11.5px;font-weight:700;}
+  .od-sz-h .ok{color:var(--good);} .od-sz-h .no{color:#A8730F;}
+  .od-sz-r{display:flex;flex-wrap:wrap;gap:6px;}
+  .od-sz-i{display:flex;align-items:center;gap:5px;background:var(--canvas);
+    border:1px solid var(--line);border-radius:8px;padding:4px 6px 4px 9px;}
+  .od-sz-i>span{font-size:11.5px;font-weight:700;color:var(--ink-2);min-width:22px;}
+  .od-sz-i input{all:unset;width:38px;font-size:12.5px;font-weight:700;text-align:center;
+    background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 2px;}
+  .od-sz-i input:focus{border-color:var(--accent);}
+  /* Відповідальний у шапці, праворуч: місце там було порожнє, а питання
+     «хто з ним працює» виникає першим. */
+  .od-head-mgr{margin-left:auto;display:flex;align-items:center;gap:6px;}
+  .od-head-mgr .od-mgr-sel{font-size:12px;padding:6px 9px;max-width:190px;}
+  .od-head-mgr .od-mgr-me{font-size:11.5px;padding:6px 10px;}
+  /* Клієнт і гроші — один рядок: «хто це і на скільки» читається одним
+     рухом ока. На вузькому екрані сума стає під полями. */
+  .od-cli{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .od-cli .od-fields{flex:1 1 260px;min-width:0;}
+  .od-cli-sum{flex:none;text-align:right;padding-top:2px;}
+  .od-cli-sum b{display:block;font-size:20px;font-weight:800;
+    font-variant-numeric:tabular-nums;letter-spacing:-.4px;}
+  .od-cli-sum span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
   .od-mgr select{flex:1;min-width:0;font:inherit;font-size:13px;padding:9px 10px;
     border:1px solid var(--line);border-radius:9px;background:#fff;}
   .od-mgr-me{all:unset;cursor:pointer;flex:none;font-size:12px;padding:9px 12px;border-radius:9px;
@@ -7154,10 +7181,114 @@ async function reactToClientActions(){
        стоїть ще «КП надіслано», і саме там картка й буде найчастіше. */
     if(off.state === 'confirmed' && ['lead','prorahunok','kp'].indexOf(o.status) >= 0)
       setStatus(o, 'new');
+    /* Клієнт підтвердив — його вибір стає складом замовлення. Саме звідси
+       далі беруться і сума, і потреба на закупівлю. */
+    if(off.state === 'confirmed') applyOfferPick(o);
     if(off.state === 'confirmed' || off.state === 'changes') notifyClientAction(o, off);
   }
   if(dirty){ try{ await saveOrders({ quiet:true }); renderBoard(); }catch(e){ console.warn(e); } }
 }
+/* ── Вибір клієнта з КП → у замовлення ────────────────────────────────────
+   Доти цей вибір нікуди не доїжджав. Клієнт додавав рекомендацію, обирав
+   варіант, міняв кількості — усе це лягало в документ пропозиції, звідти
+   йшло в Telegram і на цьому закінчувалось. У картці лишалось те, що
+   ЗАПРОПОНУВАВ менеджер, а не те, що взяв клієнт: і сума, і потреба на
+   закупівлю рахувались із трьох товарів, коли взяли один.
+
+   Тепер обране стає основними позиціями. Нічого не видаляємо: необране
+   лишається рекомендацією чи варіантом і через це саме випадає із сум і з
+   закупівлі — а якщо клієнт передумає, воно на місці.
+
+   Повертає короткий опис того, що змінилось, або '' — щоб було чим
+   відзвітувати менеджеру. */
+function applyOfferPick(o){
+  const off = o.offerToken && offersByToken[o.offerToken];
+  const sel = (off && off.selection) || null;
+  if(!sel) return '';
+  const items = o.items || [];
+  /* Індекси в пропозиції рахуються окремо для кожного виду — так їх і
+     віддає offerIdxToOrder(). */
+  const took = [], left = [];
+  const setQty = (it, q) => {
+    const n = Math.max(1, Math.round(+q || 0));
+    if(!n || n === +it.qty) return;
+    it.qty = n;
+    it.price = Math.round((+it.unitPrice || 0) * n);
+    it.cost  = Math.round((+it.unitCost  || 0) * n);
+    if(it.desc) it.desc.units = n;
+  };
+  // основні: тільки кількості
+  Object.keys(sel.qty || {}).forEach(k => {
+    const idx = offerIdxToOrder(o, 'main', +k);
+    if(idx >= 0 && items[idx]) setQty(items[idx], sel.qty[k]);
+  });
+  // рекомендації: обрані стають основними
+  const recoOn = {};
+  (sel.reco || []).forEach(i => { recoOn[+i] = true; });
+  let ri = -1;
+  items.forEach(it => {
+    if(itemKind(it) !== 'reco') return;
+    ri++;
+    if(!recoOn[ri]){ left.push(it.name || 'позиція'); return; }
+    const q = (sel.recoQty || {})[ri];
+    if(q) setQty(it, q);
+    it.kind = 'main';
+    took.push((it.name || 'позиція') + ' · ' + (+it.qty || 0) + ' шт');
+  });
+  // варіанти: обраний у групі стає основним, решта лишається варіантами
+  const picked = {};
+  Object.keys(sel.variant || {}).forEach(g => { picked[String(sel.variant[g])] = g; });
+  let vi = -1;
+  items.forEach(it => {
+    if(itemKind(it) !== 'variant') return;
+    vi++;
+    const g = picked[String(vi)];
+    if(!g){ left.push(it.name || 'варіант'); return; }
+    const q = (sel.varQty || {})[g];
+    if(q) setQty(it, q);
+    it.kind = 'main';
+    it.vgroup = '';
+    took.push((it.name || 'варіант') + ' · ' + (+it.qty || 0) + ' шт');
+  });
+  recalcOrderTotals(o);
+  if(!took.length && !left.length) return '';
+  return (took.length ? 'У замовлення: ' + took.join(', ') : '') +
+         (left.length ? (took.length ? '. ' : '') + 'Не взяли: ' + left.join(', ') : '');
+}
+
+/* Менеджер підтверджує за клієнта. Клієнт часто нічого не натискає — просто
+   каже «беремо» в переписці, — і тоді підтвердити має право менеджер. Дія
+   та сама, що й у клієнта: вибір із КП переїжджає в замовлення, картка йде
+   в «Чекаємо оплату». Перед цим показуємо, ЩО саме потрапить у замовлення:
+   підтверджувати наосліп те, за чим піде закупівля, не можна. */
+async function confirmAsManager(o){
+  const off = o.offerToken && offersByToken[o.offerToken];
+  if(!off) return toast('У замовлення ще немає КП');
+  const what = applyOfferPickPreview(o);
+  const ok = window.confirm(
+    'Підтвердити замовлення за клієнта?\n\n' + what +
+    '\n\nКартка перейде в «Чекаємо оплату», а склад — у розрахунок і до підрядника.');
+  if(!ok) return;
+  const note = applyOfferPick(o);
+  o.offerState = 'confirmed';
+  o.clientPickBy = myEmail() || 'менеджер';
+  o.clientPickAt = new Date().toISOString();
+  if(['lead','prorahunok','kp'].indexOf(o.status) >= 0) setStatus(o, 'new');
+  try{
+    await saveOrderMeta(o); await storeSet('orders', orders);
+    toast('Підтверджено' + (note ? ' · ' + note.slice(0, 60) : ''));
+    renderBoard(); renderOrderDrawer();
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+}
+/* Той самий розбір, але нічого не міняє — щоб показати менеджеру список
+   ДО того, як він натисне. */
+function applyOfferPickPreview(o){
+  const copy = JSON.parse(JSON.stringify({ items:o.items || [], offerToken:o.offerToken,
+    totalPrice:o.totalPrice, totalCost:o.totalCost, feeAdj:o.feeAdj, feeAdjC:o.feeAdjC }));
+  const txt = applyOfferPick(copy);
+  return txt || 'Склад лишиться таким, як зараз.';
+}
+
 function notifyClientAction(o, off){
   const a = off.clientAction || {};
   const L = [];
@@ -8277,14 +8408,20 @@ function itemSupHtml(it){
    щодня переписує це в повідомлення підряднику; хай копіює одним кліком. */
 function orderBuyHtml(o){
   const grp = {};
-  (o.items || []).forEach(it => {
+  /* Тільки підтверджені позиції. Рекомендації й варіанти для порівняння
+     лежать у тій самій картці, і доти вони теж летіли в потребу на
+     закупівлю: запропонували футболку, кепку й шопер — замовляли всі три,
+     хоч клієнт узяв одну. */
+  (o.items || []).filter(it => itemKind(it) === 'main').forEach(it => {
     const s = itemSup(it);
     const k = s ? s.id : '—';
     if(!grp[k]) grp[k] = { sup: s, lines: [], units: 0 };
     grp[k].lines.push({
       name: it.name || 'товар',
       color: it.color || '',
-      sizes: it.sizes || '',
+      /* Розкладка по розмірах, якщо вона є: підряднику потрібне саме «S×2,
+         M×4», а не загальні 12 шт. Немає — лишається старе текстове поле. */
+      sizes: sizeQtyText(it) || it.sizes || '',
       qty: +it.qty || 0
     });
     grp[k].units += (+it.qty || 0);
@@ -8334,8 +8471,9 @@ function orderItemsHtml(o){
              видно, що саме треба уточнити в клієнта, а не здогадуватись,
              чому в позиції немає розмірів. */''}
         <div class="t-web-meta">${escapeHtml(it.color||'')}${
-          it.sizes ? ' · ' + escapeHtml(it.sizes)
-                   : (+it.qty ? ' · без розміру × ' + (+it.qty) : '')}</div>
+          sizeQtyText(it) ? ' · ' + escapeHtml(sizeQtyText(it))
+            : (it.sizes ? ' · ' + escapeHtml(it.sizes)
+                        : (+it.qty ? ' · без розміру × ' + (+it.qty) : ''))}</div>
         ${itemSupHtml(it)}
         ${recoNoteHtml(it)}
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
@@ -8348,6 +8486,10 @@ function orderItemsHtml(o){
             title="Відкрити позицію в конструкторі: логотип, розмір нанесення, кольори">✎ Змінити</button>` : ''}
           <button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>
         </div>
+        ${/* Розкладка по розмірах — одразу під кількістю: спершу «скільки
+             всього», потім «як воно ділиться». Саме цим рядком менеджер
+             щодня добиває замовлення до виробництва. */''}
+        ${itemSizesHtml(o, (o.items||[]).indexOf(it))}
       </div>`;
   }).join('');
 }
@@ -8839,20 +8981,52 @@ function isSnoozed(o){ return !!snoozedTill(o); }
 const LOST_REASONS = ['дорого', 'знайшли дешевше', 'передумали', 'не сезон',
                       'зник', 'не наш профіль', 'інше'];
 
-/* Відкласти. `''` повертає картку на дошку, число — на стільки днів,
-   'ask' — питаємо дату. Етап не міняється: картка повернеться туди, де
-   стояла. */
+/* ── Нагадування ──────────────────────────────────────────────────────────
+   «Відкласти на тиждень» без пояснення — це той самий «Думає», тільки з
+   таймером: картка повертається, і ніхто не памʼятає, навіщо її відкладали.
+   Тому нагадування — це ЗАВЖДИ дата плюс коментар, і воно робить дві речі
+   одразу: прибирає картку з дошки до дати й лишає наступну дію з тим самим
+   текстом. Повернувшись, менеджер одразу бачить, про що домовлялись. */
+/* Записуємо кількість по розміру. Кількість позиції НЕ чіпаємо: менеджер
+   часто знає загальний тираж раніше, ніж клієнт пришле розмірний ряд, і
+   мовчазний перерахунок обнулив би замовлення в найгірший момент. */
+async function setItemSize(o, idx, size, v){
+  const it = (o.items || [])[idx];
+  if(!it || !size) return;
+  const n = Math.max(0, Math.round(+v || 0));
+  const m = Object.assign({}, sizeQty(it));
+  if(n > 0) m[size] = n; else delete m[size];
+  const was = it.sizeQty;
+  if(Object.keys(m).length) it.sizeQty = m; else delete it.sizeQty;
+  try{ await saveOrderMeta(o); renderOrderDrawer(); }
+  catch(e){
+    console.error(e);
+    if(was) it.sizeQty = was; else delete it.sizeQty;
+    toast('Не збереглось');
+  }
+}
+
+async function remindLater(o){
+  const txt = window.prompt(
+    'Про що нагадати?\n\nНаприклад: «клієнт просив передзвонити після ' +
+    'затвердження бюджету»', '');
+  if(txt == null) return;
+  const t = String(txt).trim();
+  if(!t) return toast('Без коментаря нагадування марне — не буде зрозуміло, навіщо повертались');
+  const d = window.prompt('Коли повернутись до замовлення? (РРРР-ММ-ДД)', dayShift(7));
+  if(d == null) return;
+  const till = String(d).trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(till)) return toast('Дата у форматі 2026-11-14');
+  if(till <= todayIso()) return toast('Дата має бути в майбутньому');
+  await addTask(o, t, till);          // наступна дія — щоб було видно, навіщо
+  await snoozeOrder(o, till);         // і з дошки до цієї дати
+}
+/* Відкласти. `''` повертає картку на дошку, дата — до неї. Етап не
+   міняється: картка повернеться туди, де стояла. */
 async function snoozeOrder(o, v){
   let till = '';
-  if(v === 'ask'){
-    const d = window.prompt('Повернути картку на дошку — коли? (РРРР-ММ-ДД)',
-                            dayShift(14));
-    if(d == null) return;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d).trim())) return toast('Дата у форматі 2026-11-14');
-    till = String(d).trim();
-  }else if(v){
-    till = dayShift(+v || 7);
-  }
+  if(v && /^\d{4}-\d{2}-\d{2}$/.test(String(v))) till = String(v);
+  else if(v) till = dayShift(+v || 7);
   const was = o.snoozeUntil || '';
   o.snoozeUntil = till || '';
   if(!till) delete o.snoozeUntil;
@@ -9241,14 +9415,21 @@ function odStageHtml(o){
             ? '<div class="ods-n">Стоїть довше, ніж мало б. Домовтесь про наступний крок або закрийте.</div>'
             : (heat === 'warn' ? '<div class="ods-n">Час нагадати про себе.</div>' : ''))}
       <div class="ods-acts">
+        ${/* Підтвердити за клієнта. Він часто нічого не натискає в КП —
+             просто каже «беремо» в переписці. Доти менеджеру не було чим це
+             зафіксувати, і склад замовлення лишався пропозицією. */''}
+        ${(o.offerToken && o.offerState !== 'confirmed' &&
+           ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0)
+          ? '<button class="on-do" data-mgr-confirm="1">Підтвердити за клієнта</button>' : ''}
         ${snz
           ? `<button class="on-mv" data-snooze="">Повернути на дошку</button>`
-          : `<button class="on-mv" data-snooze="7">Відкласти на тиждень</button>
-             <button class="on-mv" data-snooze="30">На місяць</button>
-             <button class="on-mv" data-snooze="ask">До дати…</button>`}
+          : `<button class="on-mv" data-remind="1">Нагадати пізніше…</button>`}
         ${o.status !== 'cancel'
           ? '<button class="on-mv on-del" data-lost="1">Відмова…</button>' : ''}
       </div>
+      ${o.clientPickAt
+        ? `<div class="ods-n">Склад підтверджено ${escapeHtml(dtUa(o.clientPickAt))}${
+            o.clientPickBy ? ' · ' + escapeHtml(personName(o.clientPickBy)) : ''}</div>` : ''}
       ${o.status === 'cancel' && o.lostReason
         ? `<div class="ods-n">Причина: <b>${escapeHtml(o.lostReason)}</b></div>` : ''}
     </div>`;
@@ -9327,13 +9508,76 @@ function odPart(fn, label){
            ' не порахувалось: ' + escapeHtml(String(e && e.message || e)) + '</div>';
   }
 }
-/* Згорнути/розгорнути склад можна вручну; поки не чіпали — відкрито, якщо
-   товари є. Порожній блок згорнутий, бо в ньому нічого читати. Свідомо НЕ
-   через <details>: у частині браузерів його вміст у flex-колонці не
-   показується взагалі, на чому ми вже раз обпеклись. */
+/* Згорнутий за замовчуванням: у картці щодня потрібні клієнт, стан і
+   наступна дія, а склад із розрахунком відкривають тоді, коли працюють саме
+   з ним. Розгорнутий, він відсував усе інше на екран униз. Стан памʼятаємо
+   на час сеансу — розгорнув один раз і працюєш далі по картках.
+   Свідомо НЕ через <details>: у частині браузерів його вміст у flex-колонці
+   не показується взагалі, на чому ми вже раз обпеклись. */
 let odGoodsOpen = null;
-function odGoodsIsOpen(o){
-  return odGoodsOpen === null ? ((o.items || []).length > 0) : !!odGoodsOpen;
+function odGoodsIsOpen(o){ return !!odGoodsOpen; }
+
+/* ── Розміри позиції ──────────────────────────────────────────────────────
+   Список беремо з розмірної сітки товару в адмінці — того самого джерела,
+   що й сайт. Сітка зберігається у двох виглядах: старі рядки — обʼєкти з
+   полем `size`, нові — масиви, де розмір у першій клітинці. Читаємо обидва,
+   інакше половина товарів лишиться без розмірів. */
+function garmentSizes(gid){
+  const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
+  if(!Array.isArray(rows) || !rows.length) return [];
+  const out = [];
+  rows.forEach(r => {
+    const v = Array.isArray(r) ? r[0] : (r && (r.size || r.c && r.c[0]));
+    const t = String(v == null ? '' : v).trim();
+    if(t && !/розмір|size/i.test(t) && out.indexOf(t) < 0) out.push(t);
+  });
+  return out.slice(0, 12);
+}
+function sizeQty(it){ return (it && it.sizeQty && typeof it.sizeQty === 'object') ? it.sizeQty : {}; }
+function sizeQtySum(it){
+  const m = sizeQty(it);
+  return Object.keys(m).reduce((a, k) => a + (+m[k] || 0), 0);
+}
+/* Розкладка одним рядком — «S×2 · M×4». Порядок беремо з розмірної сітки, а
+   не з порядку, в якому менеджер тикав у поля: у списку для підрядника
+   «XL, S, M» читається як помилка. */
+function sizeQtyText(it){
+  const m = sizeQty(it);
+  const ord = garmentSizes(itemGarmentId(it));
+  const ks = Object.keys(m).filter(k => +m[k] > 0).sort((a, b) => {
+    const ia = ord.indexOf(a), ib = ord.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  return ks.map(k => k + '×' + (+m[k])).join(' · ');
+}
+/* Розкладка по розмірах. Кількість позиції лишається головною: менеджер
+   часто знає «50 футболок» іще до того, як клієнт пришле розмірний ряд.
+   Тому розбіжність не виправляємо мовчки й не забороняємо зберегти — просто
+   кажемо її вголос. */
+function itemSizesHtml(o, idx){
+  const it = (o.items || [])[idx] || {};
+  const gid = itemGarmentId(it);
+  const list = garmentSizes(gid);
+  if(!list.length) return '';
+  const m = sizeQty(it), have = sizeQtySum(it), need = +it.qty || 0;
+  const diff = need - have;
+  return `
+    <div class="od-sz">
+      <div class="od-sz-h">Розміри${
+        have || need
+          ? `<span class="${diff === 0 ? 'ok' : 'no'}">${
+              diff === 0 ? 'розписано ' + have + ' із ' + need
+                         : 'розписано ' + have + ' із ' + need +
+                           (diff > 0 ? ' · лишилось ' + diff : ' · зайвих ' + (-diff))}</span>`
+          : ''}</div>
+      <div class="od-sz-r">${list.map(sz => `
+        <label class="od-sz-i">
+          <span>${escapeHtml(sz)}</span>
+          <input type="number" min="0" step="1" inputmode="numeric"
+            data-sz-item="${idx}" data-sz="${escapeHtml(sz)}"
+            value="${+m[sz] || ''}" placeholder="0">
+        </label>`).join('')}</div>
+    </div>`;
 }
 function odGoodsHtml(o){
   const n = ((o || {}).items || []).length;
@@ -9408,6 +9652,18 @@ function renderOrderDrawer(){
       <div class="od-head-top">
         <div class="od-oid${o.orderId?' copyable':''}"${o.orderId
           ? ' data-copy-oid title="Натисніть, щоб скопіювати номер"' : ''}>${escapeHtml(o.orderId || '—')}</div>
+        ${/* Відповідальний — у шапці, праворуч, де було порожньо. Доти він
+             стояв окремим розділом посеред картки, між клієнтом і нотаткою:
+             питання «хто з ним працює» виникає одразу, а відповідь на нього
+             доводилось шукати прокруткою. */''}
+        <div class="od-head-mgr">
+          <select class="od-mgr-sel" title="Відповідальний менеджер">
+            <option value="">— відповідальний —</option>
+            ${teamOptionsHtml(o.mgrEmail)}
+          </select>
+          ${myEmail() && o.mgrEmail !== myEmail()
+            ? '<button class="od-mgr-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
+        </div>
       </div>
       <div class="od-sub">${created ? 'Прийшло ' + escapeHtml(created) : ''}</div>
       ${/* Другий ряд — час: на якому етапі стоїмо і коли здавати. Дата здачі
@@ -9428,15 +9684,6 @@ function renderOrderDrawer(){
     <div class="od-body">
       ${/* Стан угоди в один погляд: доти, щоб зрозуміти «що тут», треба
            було розгортати склад. */''}
-      <div class="od-sum">
-        <b>${fmt(o.totalPrice)} ₴</b>
-        <div class="od-sum-m">${[
-          ((o.items||[]).length && canSeeCost()) ? 'маржа ' + (o.marginPct||0).toFixed(0) + '%' : '',
-          payState(o) === 'full' ? 'сплачено' :
-            (payState(o) === 'part' ? 'залишок ' + fmt(dueSum(o)) + ' ₴' : ''),
-          daysInWork(o), lastTouchLabel(o)
-        ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
-      </div>
       ${/* Спершу — де стоїмо і скільки вже. Потім — що робимо далі. Якщо
            наступної дії немає, це видно раніше за будь-що інше в картці. */''}
       ${odPart(()=> odStageHtml(o), 'етап')}
@@ -9455,32 +9702,34 @@ function renderOrderDrawer(){
         ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
       </div>
       ${crmSeekHtml(o)}
-      <div class="od-fields">
-        <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
-        <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
-        <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
+      ${/* Гроші стоять поруч із клієнтом, а не окремою плашкою вгорі:
+           «хто це і на скільки» — одне питання, і читати його треба одним
+           рухом ока. */''}
+      <div class="od-cli">
+        <div class="od-fields">
+          <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
+          <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
+          <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
+        </div>
+        <div class="od-cli-sum">
+          <b>${fmt(o.totalPrice)} ₴</b>
+          <span>${[
+            ((o.items||[]).length && canSeeCost()) ? 'маржа ' + (+o.marginPct||0).toFixed(0) + '%' : '',
+            payState(o) === 'full' ? 'сплачено' :
+              (payState(o) === 'part' ? 'залишок ' + fmt(dueSum(o)) + ' ₴' : '')
+          ].filter(Boolean).map(escapeHtml).join(' · ')}</span>
+        </div>
       </div>
       ${/* «Здати до» і сторінка входу переїхали в шапку — там вони видні
            без прокрутки. */''}
-      ${/* Чий це клієнт. Питання «а хто з ним працює» виникає раніше за
-           будь-які цифри, тому воно стоїть тут, а не в кінці панелі. */''}
-      <div class="od-sec">Відповідальний</div>
-      <div class="od-mgr">
-        <select class="od-mgr-sel">
-          <option value="">— не призначено —</option>
-          ${teamOptionsHtml(o.mgrEmail)}
-        </select>
-        ${myEmail() && o.mgrEmail !== myEmail()
-          ? '<button class="od-mgr-me" data-mgr-me>Взяти собі</button>' : ''}
-      </div>
-
+      ${/* Відповідальний переїхав у шапку — там він видний без прокрутки. */''}
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="4"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
       ${/* Замовлення й розрахунок — після того, як зрозуміло, хто це і хто
-           з ним працює. Розгорнуто, коли товари є: саме цей блок відкривають
-           найчастіше. Порожній згортаємо, щоб не займав місце даремно. */''}
+           з ним працює. Згорнуто: щодня з картки потрібні клієнт, стан і
+           наступна дія, а склад відкривають тоді, коли працюють саме з ним. */''}
       ${odGoodsHtml(o)}
 
       ${odMoneyHtml(o)}
@@ -9620,6 +9869,10 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=> removeTask(o, b.dataset.taskDel)));
   panel.querySelectorAll('[data-snooze]').forEach(b=>
     b.addEventListener('click', ()=> snoozeOrder(o, b.dataset.snooze)));
+  panel.querySelectorAll('[data-remind]').forEach(b=>
+    b.addEventListener('click', ()=> remindLater(o)));
+  panel.querySelectorAll('[data-mgr-confirm]').forEach(b=>
+    b.addEventListener('click', ()=> confirmAsManager(o)));
   panel.querySelectorAll('[data-lost]').forEach(b=>
     b.addEventListener('click', ()=> askLost(o)));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
@@ -9659,6 +9912,9 @@ function renderOrderDrawer(){
   });
   panel.querySelectorAll('.od-qty').forEach(inp=>{
     inp.addEventListener('change', ()=> orderSetQty(o, +inp.dataset.i, inp.value));
+  });
+  panel.querySelectorAll('[data-sz-item]').forEach(inp=>{
+    inp.addEventListener('change', ()=> setItemSize(o, +inp.dataset.szItem, inp.dataset.sz, inp.value));
   });
   panel.querySelectorAll('[data-del-i]').forEach(b=>{
     b.addEventListener('click', ()=> orderRemoveItem(o, +b.dataset.delI));
