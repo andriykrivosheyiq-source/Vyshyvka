@@ -628,6 +628,12 @@
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
     .tc-date{font-size:11px;color:#A3ACBA;}
+  /* Скільки картка стоїть в етапі. Мовчить, поки все гаразд, — інакше в
+     кожній картці був би ще один шумний напис. */
+  .tc-age{font-size:11px;color:#A3ACBA;}
+  .tc-age.warn{color:#A8730F;font-weight:700;}
+  .tc-age.bad{color:#DC2626;font-weight:700;}
+  .tc-snz{font-size:11px;color:#5A6A80;}
   .tc-wait{font-size:11px;font-weight:600;color:#A8730F;}
   .tc-wait.hot{color:#DC2626;}
   .tc-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
@@ -1165,6 +1171,21 @@
   .od-mgr-me:hover{background:var(--accent-soft);color:var(--accent-deep);}
   /* Наступна дія. Колір несе сенс: сірий — усе за планом, жовтий — сьогодні,
      червоний — прострочено, пунктир — дії немає взагалі. */
+  /* Етап і скільки в ньому стоїмо — перший блок картки. Клас саме
+     `od-deal`, а не `od-stage`: під тим іменем уже живе випадайка вибору
+     етапу нижче в картці, і два різні елементи з одним класом ловили б
+     стилі одне одного. */
+  .od-deal{border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+    background:#fff;margin-bottom:10px;}
+  .od-deal.is-warn{border-color:#F0D9A0;background:#FFFBF2;}
+  .od-deal.is-bad{border-color:#F0B7BF;background:#FFF5F6;}
+  .od-deal.is-snz{border-style:dashed;background:var(--canvas);}
+  .ods-t{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:700;}
+  .ods-age{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--ink-soft);}
+  .od-deal.is-warn .ods-age{color:#8A6A15;}
+  .od-deal.is-bad .ods-age{color:var(--bad);}
+  .ods-n{font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;}
+  .ods-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
   .od-next{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;}
   .od-next.is-today{border-color:#F0D9A0;background:#FFFBF2;}
   .od-next.is-overdue{border-color:#F0B7BF;background:#FFF5F6;}
@@ -3347,15 +3368,37 @@ function offerBorn(o){
    у нього не потрапиш, лише перетягуванням. Це для «Відмови»: вона не
    наступний крок після «Виконано».
    ============================================================ */
+/* Колонка каже, ЧИЙ ЗАРАЗ ХІД. Це єдине правило, за яким названі етапи, і
+   воно ж не пускає сюди колонку «Думає»: «думає» — не хід, а наша здогадка
+   про чужу голову. Така колонка завжди стає кладовищем, куди їде все, що
+   шкода визнати мертвим, — і картка в ній перестає муляти око, хоч саме
+   цього від неї й треба.
+
+   «Не відповідає» живе на КАРТЦІ: скільки вона стоїть у колонці, наступна
+   дія з датою і «відкласти до». Дошка від цього не бреше.
+
+   `new` перейменовано, а не замінено: код уже сьогодні кидає туди картку,
+   коли клієнт натиснув «Підтвердити» в КП, — тобто ця колонка давно
+   означала «погодив, чекаємо гроші» й лише називалась неправильно. Тому
+   жодна картка нікуди не переїде.
+
+   Виробничу частину поки не чіпаємо — вона наступним блоком. */
 const STATUS_DEFAULTS = [
   {key:'lead',       label:'Звернення',      color:'gray'},
   {key:'prorahunok', label:'Прорахунок',     color:'blue'},
-  {key:'new',        label:'Нове замовлення',color:'violet'},
+  {key:'kp',         label:'КП надіслано',   color:'violet'},
+  {key:'new',        label:'Чекаємо оплату', color:'amber'},
   {key:'paid',       label:'Оплачено',       color:'green'},
-  {key:'production', label:'На виробництві', color:'amber'},
+  {key:'production', label:'На виробництві', color:'cyan'},
   {key:'done',       label:'Виконано',       color:'teal'},
   {key:'cancel',     label:'Відмова',        color:'rose', off:true}
 ];
+/* Скільки днів картка може стояти в етапі, поки це нормально. Далі вона
+   жовтіє, за подвійним строком — червоніє. Числа різні, бо й етапи різні:
+   на звернення відповідають того ж дня, а КП клієнт має право думати
+   тиждень. Порожньо — етап без строку: у виробництві свої терміни, і
+   квапити його дошкою продажів немає сенсу. */
+const STAGE_LIMIT = { lead:1, prorahunok:2, kp:7, new:5 };
 const STATUS_COLORS = {
   gray:   { bg:'#EEF1F6', head:'#5A6A80' },
   blue:   { bg:'#E8F0FE', head:'#2B5CB8' },
@@ -3363,13 +3406,16 @@ const STATUS_COLORS = {
   green:  { bg:'#E7F6EC', head:'#1E7A45' },
   amber:  { bg:'#FDF3E0', head:'#8A6A15' },
   teal:   { bg:'#E4F4F3', head:'#1F6E6A' },
+  cyan:   { bg:'#E4F1FA', head:'#1F5E85' },
   rose:   { bg:'#FBEAEC', head:'#A32C3E' }
 };
 const STATUS_COLOR_UA = { gray:'сірий', blue:'синій', violet:'фіолетовий', green:'зелений',
-                          amber:'жовтий', teal:'бірюзовий', rose:'рожевий' };
+                          amber:'жовтий', teal:'бірюзовий', cyan:'блакитний',
+                          rose:'рожевий' };
 let STATUSES = STATUS_DEFAULTS.map(x => Object.assign({}, x));
 /* Стрілки «далі/назад» ходять лише по основній лінії воронки. */
 function statusFlow(){ return STATUSES.filter(s => !s.off); }
+function statusMeta(key){ return STATUSES.filter(s => s.key === key)[0] || null; }
 function statusColor(key){
   const st = STATUSES.filter(s => s.key === key)[0];
   return STATUS_COLORS[(st && st.color) || 'gray'] || STATUS_COLORS.gray;
@@ -7002,6 +7048,12 @@ function offerShareText(order){
    перевірка: доти ми казали її, не глянувши, що там насправді. */
 async function offerCopyAndRefresh(order, text, what){
   copyText(text, what + ' скопійовано — оновлюємо сторінку…');
+  /* Момент, коли КП пішло клієнту, ми знаємо точно — оце він і є. Далі м'яч
+     у клієнта, і картка має стояти там, де це видно. Рухаємо тільки з
+     ранніх етапів: якщо менеджер копіює посилання на вже оплачене
+     замовлення, повертати його назад безглуздо. */
+  if(['lead','prorahunok'].indexOf(order.status) >= 0 && statusMeta('kp'))
+    setStatus(order, 'kp');
   try{
     const doc = await offerSave(order);
     const snap = await fbDb.collection('offers').doc(order.offerToken).get();
@@ -7097,7 +7149,11 @@ async function reactToClientActions(){
     if(o.offerState === off.state) continue;         // уже опрацьовано
     o.offerState = off.state;
     dirty = true;
-    if(off.state === 'confirmed' && o.status === 'prorahunok') setStatus(o, 'new');
+    /* Клієнт натиснув «Підтвердити» — далі чекаємо гроші. Рухаємо з будь-
+       якого продажного етапу, а не тільки з «Прорахунку»: тепер між ними
+       стоїть ще «КП надіслано», і саме там картка й буде найчастіше. */
+    if(off.state === 'confirmed' && ['lead','prorahunok','kp'].indexOf(o.status) >= 0)
+      setStatus(o, 'new');
     if(off.state === 'confirmed' || off.state === 'changes') notifyClientAction(o, off);
   }
   if(dirty){ try{ await saveOrders({ quiet:true }); renderBoard(); }catch(e){ console.warn(e); } }
@@ -7827,6 +7883,8 @@ const BOARD_FLAGS = {
   overdue: 'прострочена задача',
   notask:  'без наступної дії',
   waiting: 'клієнт чекає відповіді',
+  stale:   'довго стоїть',
+  snoozed: 'відкладені',
   unpaid:  'не оплачено',
   mine:    'мої'
 };
@@ -7860,6 +7918,10 @@ function boardFlagPass(o, key){
     case 'overdue': return taskState(o).kind === 'overdue';
     case 'notask':  return taskState(o).kind === 'none' && o.status !== 'done' && o.status !== 'cancel';
     case 'waiting': return waitingMin(o) >= 60;
+    /* «Довго стоїть» — те саме, що жовта чи червона позначка на картці:
+       етап має строк, і його перевищено. */
+    case 'stale':   return stageHeat(o) !== '';
+    case 'snoozed': return isSnoozed(o);
     case 'unpaid':  return payState(o) !== 'full' && (+o.totalPrice || 0) > 0;
     case 'mine':    return !!myEmail() && o.mgrEmail === myEmail();
     default: return true;
@@ -7867,6 +7929,10 @@ function boardFlagPass(o, key){
 }
 function boardPass(o){
   const v = boardView;
+  /* Відкладені зникають із дошки до своєї дати — і повертаються самі, на
+     той самий етап. Побачити їх можна фільтром: сховати не означає
+     втратити. */
+  if(isSnoozed(o) && !v.flags.snoozed) return false;
   if(!boardMatch(o, v.q)) return false;
   if(v.mgr && (o.mgrEmail || '') !== v.mgr) return false;
   if(v.chan){
@@ -8141,7 +8207,7 @@ function renderTicket(o){
 
     <div class="t-margin ${goodMargin?'good':'bad'}">
       <span>Маржа</span>
-      <span>${fmt(o.margin)} ₴ · ${o.marginPct.toFixed(1)}%</span>
+      <span>${fmt(o.margin)} ₴ · ${(+o.marginPct || 0).toFixed(1)}%</span>
     </div>
 
     ${o.deadline ? (()=>{
@@ -8553,6 +8619,13 @@ function ticketSummaryHtml(o){
     <div class="tc-top">
       ${o.orderId?`<span class="t-oid">${escapeHtml(o.orderId)}</span>`:''}
       <span class="tc-date">${escapeHtml(date)}</span>
+      ${/* Скільки картка стоїть у цій колонці. Жовтіє, коли час нагадати,
+            червоніє, коли її забули. Саме це й заміняє колонку «Думає»:
+            картка лишається там, де правда, але мовчати вже не може. */''}
+      ${(()=>{ const w = stageWord(o), h = stageHeat(o);
+        return w ? `<span class="tc-age ${h}" title="У цьому етапі">${escapeHtml(w)}</span>` : ''; })()}
+      ${snoozedTill(o) ? `<span class="tc-snz" title="Відкладено — повернеться сама">💤 ${
+        escapeHtml(dayUa(o.snoozeUntil))}</span>` : ''}
       <span class="tc-spacer"></span>
       ${/* «КП сформовано» нічого не додає: сам факт, що пропозиція є, видно
             з посилання нижче. Показуємо лише те, що ВІДБУЛОСЬ у клієнта. */
@@ -8707,6 +8780,112 @@ function dtUa(iso){
    Дата зберігається днем (YYYY-MM-DD), без години: «передзвонити о 14:07»
    ніхто не виконує з точністю до хвилини, а година в полі лише додає
    роботи при заведенні. */
+/* ── Скільки картка стоїть у колонці ──────────────────────────────────────
+   Для продажу це найсильніший сигнал, і доти його не було ніде: на картці
+   стояла дата створення, а «три дні в КП надіслано» доводилось тримати в
+   голові. Тепер картка сама жовтіє й червоніє там, де стоїть, — тож
+   «клієнт не відповідає» не треба нікуди перекладати, щоб про це
+   пам'ятати. */
+function stageSince(o){
+  if(!o) return null;
+  var h = (o.hist || []).filter(function(x){ return x && x.s === o.status; }).pop();
+  return (h && h.at) || o.createdAt || null;
+}
+function stageDays(o){
+  var at = stageSince(o);
+  if(!at) return null;
+  var d = Math.floor((Date.now() - new Date(at).getTime()) / 86400000);
+  return d >= 0 ? d : null;
+}
+/* '' — норма, 'warn' — час нагадати, 'bad' — картку забули. */
+function stageHeat(o){
+  var lim = STAGE_LIMIT[o && o.status];
+  var d = stageDays(o);
+  if(!lim || d == null) return '';
+  if(d >= lim * 2) return 'bad';
+  if(d >= lim) return 'warn';
+  return '';
+}
+function stageWord(o){
+  var d = stageDays(o);
+  if(d == null) return '';
+  if(d === 0) return 'сьогодні';
+  return d + ' ' + (d % 10 === 1 && d % 100 !== 11 ? 'день'
+    : (d % 10 >= 2 && d % 10 <= 4 && (d % 100 < 12 || d % 100 > 14) ? 'дні' : 'днів'));
+}
+
+/* ── Відкласти до дати ────────────────────────────────────────────────────
+   «Повернемось у листопаді» — не «думає», а домовленість із датою. Тримати
+   таку картку три місяці червоною в «КП надіслано» безглуздо, а класти в
+   окрему колонку — означає загубити її там назавжди.
+
+   Тому картка ЙДЕ З ДОШКИ й повертається сама, на той самий етап, де
+   стояла: етап не змінився, змінилась тільки наша увага. Так у воронці
+   лишається те, з чим працюють цього тижня, і її сума перестає брехати. */
+/* «до 14.11» — коротко, без року: відкладають на тижні, не на роки. */
+function dayUa(d){
+  var x = new Date(String(d) + 'T12:00:00');
+  if(isNaN(x)) return String(d || '');
+  return x.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+}
+function snoozedTill(o){
+  var d = (o && o.snoozeUntil) || '';
+  return (d && d > todayIso()) ? d : '';
+}
+function isSnoozed(o){ return !!snoozedTill(o); }
+
+/* Причина відмови. Без неї через півроку на питання «чому ми програємо»
+   відповіді немає — а це п'ять секунд менеджера. */
+const LOST_REASONS = ['дорого', 'знайшли дешевше', 'передумали', 'не сезон',
+                      'зник', 'не наш профіль', 'інше'];
+
+/* Відкласти. `''` повертає картку на дошку, число — на стільки днів,
+   'ask' — питаємо дату. Етап не міняється: картка повернеться туди, де
+   стояла. */
+async function snoozeOrder(o, v){
+  let till = '';
+  if(v === 'ask'){
+    const d = window.prompt('Повернути картку на дошку — коли? (РРРР-ММ-ДД)',
+                            dayShift(14));
+    if(d == null) return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d).trim())) return toast('Дата у форматі 2026-11-14');
+    till = String(d).trim();
+  }else if(v){
+    till = dayShift(+v || 7);
+  }
+  const was = o.snoozeUntil || '';
+  o.snoozeUntil = till || '';
+  if(!till) delete o.snoozeUntil;
+  touchOrder(o);
+  try{
+    await saveOrderMeta(o);
+    toast(till ? 'Відкладено до ' + dayUa(till) : 'Повернули на дошку');
+    renderBoard(); renderOrderDrawer();
+  }catch(e){
+    console.error(e);
+    if(was) o.snoozeUntil = was; else delete o.snoozeUntil;
+    toast('Не збереглось');
+  }
+}
+/* Причина відмови — одним кліком зі списку. Без неї через півроку на
+   питання «чому ми програємо» відповіді не буде. */
+async function askLost(o){
+  const list = LOST_REASONS.map((r, i) => (i + 1) + '. ' + r).join('\n');
+  const a = window.prompt('Чому не вийшло? Номер зі списку або свій текст:\n\n' + list, '1');
+  if(a == null) return;
+  const t = String(a).trim();
+  if(!t) return;
+  const n = +t;
+  o.lostReason = (n >= 1 && n <= LOST_REASONS.length) ? LOST_REASONS[n - 1] : t.slice(0, 60);
+  if(o.snoozeUntil) delete o.snoozeUntil;   // закрита картка не «повертається»
+  setStatus(o, 'cancel');
+  try{
+    await saveOrderMeta(o); await storeSet('orders', orders);
+    toast('Відмова: ' + o.lostReason);
+    renderBoard(); renderOrderDrawer();
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+}
+
 function taskList(o){ return Array.isArray((o||{}).tasks) ? o.tasks : []; }
 function openTasks(o){
   return taskList(o).filter(t => t && !t.done)
@@ -9045,6 +9224,35 @@ function odMoneyHtml(o){
 /* Блок «Наступна дія» — одразу під сумою, до всього іншого. Він тут не для
    краси: якщо дії немає, менеджер має це побачити раніше, ніж почне читати
    склад замовлення. */
+/* Стан угоди одним рядком, ще до всього іншого: на якому етапі стоїмо,
+   скільки вже, і чи не відкладена картка. Для продажника «три дні в КП
+   надіслано» важливіше за будь-яку іншу цифру на картці. */
+function odStageHtml(o){
+  const st = statusMeta(o.status) || { label:o.status };
+  const heat = stageHeat(o), w = stageWord(o);
+  const snz = snoozedTill(o);
+  return `
+    <div class="od-deal${heat ? ' is-' + heat : ''}${snz ? ' is-snz' : ''}">
+      <div class="ods-t"><b>${escapeHtml(st.label)}</b>${
+        w ? `<span class="ods-age">${escapeHtml(w)}</span>` : ''}</div>
+      ${snz
+        ? `<div class="ods-n">Відкладено до ${escapeHtml(dayUa(snz))} — до цієї дати картки на дошці немає</div>`
+        : (heat === 'bad'
+            ? '<div class="ods-n">Стоїть довше, ніж мало б. Домовтесь про наступний крок або закрийте.</div>'
+            : (heat === 'warn' ? '<div class="ods-n">Час нагадати про себе.</div>' : ''))}
+      <div class="ods-acts">
+        ${snz
+          ? `<button class="on-mv" data-snooze="">Повернути на дошку</button>`
+          : `<button class="on-mv" data-snooze="7">Відкласти на тиждень</button>
+             <button class="on-mv" data-snooze="30">На місяць</button>
+             <button class="on-mv" data-snooze="ask">До дати…</button>`}
+        ${o.status !== 'cancel'
+          ? '<button class="on-mv on-del" data-lost="1">Відмова…</button>' : ''}
+      </div>
+      ${o.status === 'cancel' && o.lostReason
+        ? `<div class="ods-n">Причина: <b>${escapeHtml(o.lostReason)}</b></div>` : ''}
+    </div>`;
+}
 function odNextHtml(o){
   const st = taskState(o);
   if(!st.task){
@@ -9229,8 +9437,9 @@ function renderOrderDrawer(){
           daysInWork(o), lastTouchLabel(o)
         ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
       </div>
-      ${/* Найперше після суми — що ми з цим робимо далі. Якщо дії немає,
-           це видно раніше за будь-що інше в картці. */''}
+      ${/* Спершу — де стоїмо і скільки вже. Потім — що робимо далі. Якщо
+           наступної дії немає, це видно раніше за будь-що інше в картці. */''}
+      ${odPart(()=> odStageHtml(o), 'етап')}
       ${odNextHtml(o)}
       <div class="od-sec">Клієнт</div>
       <!-- Канал і нік — одним рядком: головне питання картки не «як звати»,
@@ -9409,6 +9618,10 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=> moveTask(o, b.dataset.taskMove, +b.dataset.days || 1)));
   panel.querySelectorAll('[data-task-del]').forEach(b=>
     b.addEventListener('click', ()=> removeTask(o, b.dataset.taskDel)));
+  panel.querySelectorAll('[data-snooze]').forEach(b=>
+    b.addEventListener('click', ()=> snoozeOrder(o, b.dataset.snooze)));
+  panel.querySelectorAll('[data-lost]').forEach(b=>
+    b.addEventListener('click', ()=> askLost(o)));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
   const chanSel = panel.querySelector('.od-chan');
