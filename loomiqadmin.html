@@ -312,6 +312,23 @@
   .an-flat{color:var(--ink-soft);}
 
   .an-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;}
+  /* Обраний період і сайт було видно ТІЛЬКИ в розмітці: клас .active
+     проставлявся, а стилю під нього не існувало — фарбувались лише
+     .active.print і .active.emb з іншого місця. Людина натискала «30 днів» і
+     не бачила жодної різниці. */
+  .an-bar .seg button.active{background:var(--ink);color:#fff;}
+  /* Поки йде рахунок, перемикачі притлумлені й не приймають натиск. Доти
+     вони приймали його, фарбувались обраними — і мовчки викидали: на екрані
+     лишався попередній період, а кнопка казала, що вибрано новий. */
+  .an-bar.is-busy .seg{opacity:.5;pointer-events:none;}
+  .an-bar.is-busy #an-reload,.an-bar.is-busy #an-copy{opacity:.5;pointer-events:none;}
+  /* Прапорець «цей браузер не рахується» — не кнопка дії, а стан, який видно
+     й можна зняти. */
+  .an-me{display:inline-flex;align-items:center;gap:7px;font-size:12px;
+    color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;
+    padding:6px 12px;cursor:pointer;user-select:none;}
+  .an-me.on{border-color:var(--good);color:var(--good);background:#F2FBF5;}
+  .an-me b{font-weight:700;}
   .an-kpis{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-bottom:16px;}
   @media (min-width:680px){.an-kpis{grid-template-columns:repeat(4,1fr);gap:12px;}}
   .an-kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:13px 14px;}
@@ -2559,6 +2576,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
         <button class="btn btn-ghost" id="an-reload">Оновити</button>
         <button class="btn btn-ghost" id="an-copy" title="Скопіювати цифри текстом — щоб переслати чи розібрати">Зведення текстом</button>
+        <span class="an-me" id="an-me" title="Свої заходи не мають потрапляти у статистику"></span>
       </div>
       <div class="sub" id="an-state" style="margin:0 0 14px;"></div>
 
@@ -16326,8 +16344,22 @@ async function init(){
 
   /* ── Завантаження ─────────────────────────────────────────── */
   async function load(){
-    if(AN.busy) return;
+    /* Натиск під час рахунку не викидаємо, а запам'ятовуємо: перерахуємо
+       одразу, щойно звільнимось. Доти він зникав мовчки — кнопка ставала
+       обраною, а на екрані лишався попередній період, і людина дивилась на
+       семиденні числа, вважаючи їх місячними. */
+    if(AN.busy){ AN.again = true; anBusy(true); return; }
     AN.busy = true;
+    anBusy(true);
+    /* Запобіжник. Якщо запит до бази зависне, `finally` не настане ніколи —
+       і аналітика лишиться мертвою до перезавантаження сторінки. Через
+       хвилину відпускаємо керування назад людині. */
+    var stuck = setTimeout(function(){
+      if(!AN.busy) return;
+      AN.busy = false; AN.again = false; anBusy(false);
+      state('База не відповідає вже хвилину. Спробуйте «Оновити» ще раз ' +
+            'або звузьте період.');
+    }, 60000);
     var days = dayList(AN.days);
     var prevDays = dayList(AN.days, AN.days);
     state('Рахуємо за ' + days.length + ' дн…');
@@ -16365,7 +16397,18 @@ async function init(){
       state('Не вдалось прочитати аналітику: ' + ((e && (e.code || e.message)) || 'невідома помилка') +
             '. Опублікуйте оновлені правила Firestore (файл firestore.rules).');
     }
+    clearTimeout(stuck);
     AN.busy = false;
+    /* Поки рахували, людина могла обрати інший період. Перераховуємо одразу,
+       не змушуючи натискати вдруге. */
+    if(AN.again){ AN.again = false; load(); return; }
+    anBusy(false);
+  }
+  /* Поки йде рахунок, перемикачі притлумлені й не приймають натиск: краще
+     чесно показати, що зайняті, ніж вдавати готовність і губити натиски. */
+  function anBusy(on){
+    var bar = document.querySelector('.an-bar');
+    if(bar) bar.classList.toggle('is-busy', !!on);
   }
 
   /* ── Кнопки ───────────────────────────────────────────────── */
@@ -16543,7 +16586,52 @@ async function init(){
     }catch(e){ toast('Не збереглось: ' + ((e && e.code) || 'помилка')); }
   });
 
+  /* ── Свої заходи не рахуємо ───────────────────────────────────────────
+     Механізм у сайту вже був: прапорець `lq_staff` у localStorage, і далі
+     цей браузер у статистику не потрапляє. Проблема була в тому, що його
+     треба ЗГАДАТИ поставити — дописати `?staff=1` до адреси сайту, і на
+     кожному пристрої окремо. Ніхто цього не робить, і власні заходи місяцями
+     сидять у воронці поруч зі справжніми.
+
+     Адмінка живе на тому самому домені, що й сайт, тож localStorage у них
+     спільний. Отже ставимо прапорець самі, мовчки, при кожному відкритті:
+     хто бодай раз зайшов в адмінку з цього браузера — більше не рахується
+     ніколи. Знімається кнопкою поруч — коли треба перевірити, що облік
+     узагалі працює. */
+  function staffOn(){ try{ return localStorage.getItem('lq_staff') === '1'; }catch(e){ return false; } }
+  function staffSet(v){
+    try{
+      v ? localStorage.setItem('lq_staff', '1') : localStorage.removeItem('lq_staff');
+      /* Позначаємо, що вибір зробила людина. Інакше наступне відкриття
+         адмінки мовчки ввімкнуло б прапорець назад — і перевірити, чи
+         працює облік, стало б неможливо. */
+      localStorage.setItem('lq_staff_choice', '1');
+    }catch(e){}
+    paintStaff();
+  }
+  function staffDefault(){
+    try{ if(localStorage.getItem('lq_staff_choice') === '1') return; }catch(e){ return; }
+    try{ localStorage.setItem('lq_staff', '1'); }catch(e){}
+  }
+  function paintStaff(){
+    var el = document.getElementById('an-me');
+    if(!el) return;
+    var on = staffOn();
+    el.classList.toggle('on', on);
+    el.innerHTML = on
+      ? '✓ <b>Цей браузер не рахується</b>'
+      : '<b>Цей браузер рахується</b> — натисніть, щоб виключити';
+    el.title = on
+      ? 'Ваші заходи на сайт не потрапляють у статистику. Натисніть, щоб знову рахувати — це потрібно хіба для перевірки, що облік працює.'
+      : 'Ваші заходи зараз потрапляють у статистику й псують воронку.';
+  }
+  staffDefault();          // ← сам факт відкриття адмінки й означає «це ми»
+  paintStaff();
+  var meEl = document.getElementById('an-me');
+  if(meEl) meEl.addEventListener('click', function(){ staffSet(!staffOn()); });
+
   window.__anOpen = function(){
+    paintStaff();
     var el = document.getElementById('an-spend-date');
     if(el && !el.value) el.value = today();
     var fm = document.getElementById('an-fx-month');
