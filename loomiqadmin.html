@@ -729,16 +729,36 @@
   .od-cl-nm{font-size:23px;font-weight:800;letter-spacing:-.4px;line-height:1.2;
     padding-right:34px;overflow-wrap:anywhere;}
   .od-cl-nm.is-none{color:#AEB8C9;font-weight:700;}
-  .od-cl-ch{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-    margin-top:5px;font-size:14px;font-weight:700;color:var(--accent);
-    border-radius:8px;padding:2px 6px;margin-left:-6px;max-width:100%;}
-  .od-cl-ch:hover{background:var(--accent-soft);}
-  .od-cl-ch.is-none{color:#AEB8C9;font-weight:600;}
-  .od-cl-ch i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .od-cl-ic{flex:none;width:20px;height:20px;border-radius:6px;display:flex;
-    align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;}
-  .od-cl-ic.tg{background:#27A7E7;} .od-cl-ic.ig{background:linear-gradient(45deg,#F9A03F,#D6249F);}
-  .od-cl-ic.viber{background:#7360F2;}
+  /* Канал і нік — один рядок у шапці. Іконки перемикають канал: питання
+     «де ми з цією людиною розмовляємо» виникає раніше за все інше, і лізти
+     за ним у розділ нижче менеджер не буде. */
+  .od-who-row{display:flex;align-items:center;gap:6px;margin-top:8px;padding-right:34px;}
+  .od-ch-pick{display:flex;gap:3px;flex:none;}
+  .od-ch-b{all:unset;cursor:pointer;width:26px;height:26px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;color:#fff;background:#C7CDD8;opacity:.5;}
+  .od-ch-b:hover{opacity:.8;}
+  .od-ch-b.is-on{opacity:1;}
+  .od-ch-b.tg{background:#27A7E7;} .od-ch-b.ig{background:linear-gradient(45deg,#F9A03F,#D6249F);}
+  .od-ch-b.viber{background:#7360F2;}
+  .od-ch-b:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .od-who-row .od-chan-h{flex:1;min-width:0;font-size:13.5px;min-height:34px;padding:7px 10px;}
+  .od-who-go{all:unset;cursor:pointer;flex:none;width:34px;height:34px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;font-size:14px;
+    background:var(--canvas);border:1px solid var(--line);}
+  .od-who-go:hover{border-color:var(--accent);background:#fff;}
+  /* Дані клієнта. Порожні поля сховані: у більшості карток на цьому етапі
+     їх ще немає, і три порожні рядки лише займають екран. */
+  .od-cli-t{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    margin-top:10px;font-size:12.5px;font-weight:700;color:var(--accent);}
+  .od-cli-t::after{content:'';width:7px;height:7px;
+    border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+    border-radius:1px;transform:rotate(45deg) translateY(-2px);transition:transform .15s;}
+  .od-cli-t.is-open::after{transform:rotate(-135deg) translateY(-2px);}
+  .od-head .od-fields{display:flex;flex-direction:column;gap:7px;margin-top:9px;}
+  /* Етап і відповідальний — один рядок */
+  .od-deal-row{display:flex;gap:8px;margin-top:14px;}
+  .od-deal-row .od-pill{margin-top:0;}
   /* Три цифри — вага клієнта. «Замовлень» і «за весь час» рахуються ВКЛЮЧНО
      з поточним: це вся історія людини, а не залишок після відрахування. */
   .od-stats{display:flex;gap:6px;margin-top:16px;}
@@ -750,14 +770,33 @@
   .od-hist{all:unset;cursor:pointer;display:inline-block;margin-top:8px;
     font-size:12.5px;font-weight:700;color:var(--accent);}
   .od-hist:hover{text-decoration:underline;}
-  .od-hist-l{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
-  .od-hist-l button{all:unset;cursor:pointer;font-family:var(--mono);font-size:11.5px;
-    font-weight:700;color:var(--ink-2);background:#fff;border:1px solid var(--line);
-    border-radius:8px;padding:5px 9px;}
-  .od-hist-l button:hover{border-color:var(--accent);color:var(--accent-deep);}
+  /* ── Усі замовлення клієнта ─────────────────────────────────────────── */
+  .ao-wrap{position:fixed;inset:0;z-index:1500;display:none;align-items:center;
+    justify-content:center;background:rgba(15,32,52,.5);padding:16px;}
+  .ao-wrap.open{display:flex;}
+  .ao{width:100%;max-width:560px;max-height:82vh;background:#fff;border-radius:16px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(15,32,52,.3);}
+  .ao-head{flex:none;display:flex;align-items:flex-start;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);}
+  .ao-head b{display:block;font-size:15px;}
+  .ao-head span{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .ao-x{all:unset;cursor:pointer;margin-left:auto;color:var(--ink-soft);padding:3px 7px;
+    border-radius:7px;font-size:14px;}
+  .ao-x:hover{background:var(--canvas);color:var(--ink);}
+  .ao-list{overflow-y:auto;padding:8px;}
+  .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
+    box-sizing:border-box;padding:11px 10px;border-radius:10px;}
+  .ao-row:hover{background:var(--canvas);}
+  .ao-row.is-cur{background:var(--accent-soft);}
+  .ao-oid{font-family:var(--mono);font-size:12.5px;font-weight:700;flex:none;}
+  .ao-st{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
+    white-space:nowrap;flex:none;}
+  .ao-d{font-size:11.5px;color:var(--ink-soft);flex:none;}
+  .ao-s{margin-left:auto;font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .ao-cur{font-size:10.5px;color:var(--accent-deep);font-weight:700;flex:none;}
   /* Етап — єдине кольорове місце картки, тож він на всю ширину */
-  .od-head .od-pill-st{display:flex;width:100%;height:42px;margin-top:14px;
-    font-size:14.5px;padding:0 14px;}
+  .od-head .od-pill-st{display:flex;flex:1.35 1 0;min-width:0;height:40px;
+    font-size:14px;padding:0 12px;}
   /* Обидві смуги — списки, і мають про це сказати. Без стрілки вони
      виглядають як підпис, і клацати по них не здогадуються. */
   .od-head .od-pill-st::after,.od-head .od-pill-mgr::after{
@@ -766,8 +805,8 @@
     border-radius:1px;transform:rotate(45deg) translateY(-2px);}
   .od-head .od-pill-mgr::after{color:var(--ink-soft);}
   .od-head .od-pill-st select{flex:1;min-width:0;font-size:14.5px;font-weight:700;}
-  .od-head .od-pill-mgr{display:flex;width:100%;height:38px;margin-top:8px;margin-left:0;}
-  .od-head .od-pill-mgr select{flex:1;min-width:0;font-size:13px;color:var(--ink);}
+  .od-head .od-pill-mgr{display:flex;flex:1 1 0;min-width:0;height:40px;margin-left:0;}
+  .od-head .od-pill-mgr select{flex:1;min-width:0;font-size:12.5px;color:var(--ink);}
   /* Номер, дата й термін — дрібним рядком з іконками: дивляться на них щодня,
      але вони не питання, а мітки. */
   .od-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;
@@ -9497,6 +9536,18 @@ function odMoneyHtml(o){
 
    Виконані сюди не повертаються: вони лягають у «Що відбувалось» рядком
    «Зроблено · …», і місце тут лишається для того, що попереду. */
+/* Нагадування смугою: дата в підсумку каже, коли й про що, тож тримати блок
+   розгорнутим весь час немає потреби. «Не заплановано» — теж відповідь, і
+   найгірша: картка, про яку ніхто не домовився, що з нею робити далі. */
+function odRemindFold(o){
+  const open = openTasks(o);
+  const t = open[0];
+  const sum = t
+    ? dueWordUa(t.due) + (t.dueTime ? ' · ' + t.dueTime : '') + ' · ' +
+      String(t.text || '').slice(0, 28) + (open.length > 1 ? ' +' + (open.length - 1) : '')
+    : 'не заплановано';
+  return odFoldHtml('rem', 'Нагадування', sum, odRemindHtml(o));
+}
 function odRemindHtml(o){
   const open = openTasks(o);
   const snz = snoozedTill(o);
@@ -9520,7 +9571,6 @@ function odRemindHtml(o){
       </div>`;
   };
   return `
-    <div class="od-sec">Нагадування</div>
     <div class="od-rem">
       ${open.map(row).join('')}
       <div class="rem-add">
@@ -9629,31 +9679,6 @@ function odFoldHtml(key, title, sum, body){
       <div class="od-fold-b"${on ? '' : ' hidden'}>${body}</div>
     </div>`;
 }
-/* Інформація про клієнта. Імʼя й канал уже стоять у шапці — тут те, що
-   потрібне для рахунку й доставки, а не для впізнавання. */
-function odClientFold(o, ch, hasChat){
-  const body = `
-    <div class="od-contact">
-      <select class="od-chan" title="Де ведемо розмову">
-        ${CHAN_KEYS.map(k=>`<option value="${k}"${k===ch?' selected':''}>${
-          CHAN[k].label}${chanFilled(o,k)?' •':''}</option>`).join('')}
-      </select>
-      <input class="od-f od-chan-h" type="text" placeholder="${escapeHtml(CHAN[ch].ph)}"
-             value="${escapeHtml(chanHandle(o, ch))}">
-      ${hasChat ? '<span class="od-chan-ok" title="Діалог привʼязаний — можна писати звідси">✓</span>' : ''}
-      ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
-    </div>
-    ${crmSeekHtml(o)}
-    <div class="od-fields">
-      <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
-      <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
-      <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
-    </div>`;
-  const h = chanHandle(o, ch);
-  return odFoldHtml('client', 'Інформація про клієнта',
-    [CHAN[ch].label + (h ? ' · ' + h : ''), o.phone || '', o.company || '']
-      .filter(Boolean).join(' · ').slice(0, 60), body);
-}
 /* Товари — те, що виробляємо. Рекомендації й варіанти сюди не входять:
    вони ще не замовлення, а пропозиція. */
 function odGoodsFold(o){
@@ -9723,8 +9748,71 @@ function odLogFold(o){
   return odFoldHtml('log', 'Що відбувалось',
     feed.length ? 'останнє ' + dayUa(String(feed[0].at).slice(0, 10)) : '', body);
 }
-/* Історія клієнта в шапці розгортається за потреби — і теж на час сеансу */
-let odHistOpen = false;
+/* Дані клієнта в шапці: null — вирішує сама картка (є що показати —
+   відкрито), далі памʼятаємо вибір менеджера на час сеансу. */
+let odCliOpen = null;
+
+/* ── Усі замовлення клієнта ──────────────────────────────────────────────
+   Одна людина замовляє не раз, і питання «а що в них було минулого разу»
+   виникає в кожній другій розмові. Доти відповідь збиралась по дошці
+   руками: знайти інші картки того самого клієнта можна було лише пошуком
+   по імені, і то якщо воно скрізь написане однаково.
+
+   Вікно показує всі його замовлення одним списком — з етапом, датою й
+   сумою, — і будь-яке відкривається одним кліком. */
+function allOrdersHtml(o){
+  const list = [o].concat(sameClientOrders(o))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const sum = list.reduce((a, x) => a + (+x.totalPrice || 0), 0);
+  const who = o.name || chanHandle(o, chanActive(o)) || 'клієнт';
+  return `
+    <div class="ao">
+      <div class="ao-head">
+        <div>
+          <b>${escapeHtml(who)}</b>
+          <span>${list.length} ${list.length === 1 ? 'замовлення' : 'замовлень'} · ${fmt(sum)} ₴</span>
+        </div>
+        <button class="ao-x" data-ao-close aria-label="Закрити">✕</button>
+      </div>
+      <div class="ao-list">${list.map(x=>{
+        const st = statusMeta(x.status) || { label:x.status, color:'gray' };
+        const c = statusColor(x.status);
+        return `
+        <button class="ao-row${x.id === o.id ? ' is-cur' : ''}" data-open="${escapeHtml(x.id)}">
+          <span class="ao-oid">${escapeHtml(x.orderId || 'без номера')}</span>
+          <span class="ao-st" style="background:${c.bg};color:${c.head};">${escapeHtml(st.label)}</span>
+          <span class="ao-d">${escapeHtml(x.createdAt
+            ? new Date(x.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'2-digit'})
+            : '—')}</span>
+          <b class="ao-s">${fmt(x.totalPrice)} ₴</b>
+          ${x.id === o.id ? '<span class="ao-cur">ця картка</span>' : ''}
+        </button>`; }).join('')}</div>
+    </div>`;
+}
+function openAllOrders(o){
+  let d = document.getElementById('allOrders');
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'allOrders';
+    d.className = 'ao-wrap';
+    document.body.appendChild(d);
+    d.addEventListener('click', e=>{ if(e.target === d) closeAllOrders(); });
+  }
+  d.innerHTML = allOrdersHtml(o);
+  d.classList.add('open');
+  d.querySelector('[data-ao-close]').addEventListener('click', closeAllOrders);
+  d.querySelectorAll('[data-open]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = (orders || []).find(x => x.id === b.dataset.open);
+      closeAllOrders();
+      if(t && t.id !== o.id) openOrderDrawer(t);
+    });
+  });
+}
+function closeAllOrders(){
+  const d = document.getElementById('allOrders');
+  if(d) d.classList.remove('open');
+}
 
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
@@ -9759,51 +9847,78 @@ function renderOrderDrawer(){
   try{
   odHtml = `
     <div class="od-head">
-      ${/* Спершу — хто це. Імʼя великим, під ним канал із ніком (натиснув —
-           відкрився діалог), далі три цифри про вагу клієнта. Номер, дата й
-           термін здачі стоять нижче дрібним рядком: на них дивляться щодня,
-           але це мітки, а не питання. */''}
-      <div class="od-cl-nm${o.name ? '' : ' is-none'}">${escapeHtml(o.name || 'Без імені')}</div>
-      ${(()=>{ const h = chanHandle(o, ch);
-        return `<button class="od-cl-ch${h ? '' : ' is-none'}" data-chan-go title="${
-          h ? 'Відкрити розмову' : 'Контакт у цьому каналі не вписано'}">
-          <span class="od-cl-ic ${escapeHtml(ch)}">${escapeHtml(CHAN_MARK[ch] || '·')}</span>
-          <i>${escapeHtml(h || CHAN[ch].label + ' — не вписано')}</i>
-        </button>`; })()}
-      ${/* Замовлень і сума — ВКЛЮЧНО з поточним: це вся вага клієнта, а не
-           залишок після відрахування. */''}
-      ${(()=>{ const prev = sameClientOrders(o);
-        const all = prev.concat([o]);
-        const life = all.reduce((a2, x) => a2 + (+x.totalPrice || 0), 0);
-        return `<div class="od-stats">
-          <div class="od-stat"><span>Замовлень</span><b>${all.length}</b></div>
-          <div class="od-stat"><span>За весь час</span><b>${fmt(life)} ₴</b></div>
-          <div class="od-stat"><span>Це замовлення</span><b>${fmt(o.totalPrice)} ₴</b></div>
+      ${/* Спершу — хто це. Канал із ніком стоїть у шапці, а не в розділі
+           нижче: питання «де ми з цією людиною розмовляємо» виникає раніше
+           за «як її звати», і відповідь на нього — головна дія з картки.
+           Імені може не бути взагалі — тоді впізнає нік, і вигадувати «Без
+           імені» немає потреби. */''}
+      ${o.name ? `<div class="od-cl-nm">${escapeHtml(o.name)}</div>` : ''}
+      <div class="od-who-row">
+        <div class="od-ch-pick">
+          ${CHAN_KEYS.map(k=>`<button class="od-ch-b${k === ch ? ' is-on' : ''} ${k}"
+            data-chan-set="${k}" title="${escapeHtml(CHAN[k].label)}${
+              chanFilled(o, k) ? ' · контакт є' : ''}">${escapeHtml(CHAN_MARK[k])}</button>`).join('')}
         </div>
-        ${prev.length ? `<button class="od-hist" data-hist>${odHistOpen
-            ? 'Історія — сховати' : 'Історія — показати'}</button>
-          ${odHistOpen ? `<div class="od-hist-l">${prev.map(x =>
-            `<button data-open="${escapeHtml(x.id)}">${escapeHtml(x.orderId || 'без номера')} · ${
-              fmt(x.totalPrice)} ₴</button>`).join('')}</div>` : ''}` : ''}`; })()}
+        <input class="od-f od-chan-h" type="text" placeholder="${escapeHtml(CHAN[ch].ph)}"
+               value="${escapeHtml(chanHandle(o, ch))}">
+        ${chanHandle(o, ch)
+          ? `<button class="od-who-go" data-chan-go title="${hasChat
+              ? 'Відкрити розмову' : 'Відкрити в месенджері'}">${hasChat ? '💬' : '↗'}</button>`
+          : ''}
+        ${ch === 'ig' ? crmSeekBtnHtml(o) : ''}
+      </div>
+      ${crmSeekHtml(o)}
+      ${/* Імʼя, телефон і компанія — тут же, під ніком. Порожні вони сховані:
+           у більшості карток на цьому етапі їх ще немає, і три порожні поля
+           лише займають екран. Щойно щось вписали — блок лишається
+           відкритим, бо тепер там є що читати. */''}
+      ${(()=>{ const has = !!(o.name || o.phone || o.company);
+        const on = (odCliOpen == null) ? has : odCliOpen;
+        return `
+        <button class="od-cli-t${on ? ' is-open' : ''}" data-cli-toggle>${
+          on ? 'Дані клієнта' : (has ? 'Дані клієнта' : 'Додати імʼя, телефон, компанію')}</button>
+        ${on ? `<div class="od-fields">
+          <input class="od-f" data-f="name" type="text" placeholder="ім'я" value="${escapeHtml(o.name||'')}">
+          <input class="od-f" data-f="phone" type="tel" placeholder="телефон" value="${escapeHtml(o.phone||'')}">
+          <input class="od-f" data-f="company" type="text" placeholder="компанія" value="${escapeHtml(o.company||'')}">
+        </div>` : ''}`; })()}
+      ${/* Скільки цей клієнт важить. Сума цього замовлення стоїть першою —
+           вона потрібна щодня; «за весь час» зʼявляється лише тоді, коли
+           замовлень справді більше одного, інакше це те саме число двічі. */''}
+      ${(()=>{ const prev = sameClientOrders(o);
+        const n = prev.length + 1;
+        const life = prev.concat([o]).reduce((a2, x) => a2 + (+x.totalPrice || 0), 0);
+        return `<div class="od-stats">
+          <div class="od-stat"><span>${n === 1 ? 'Замовлення' : 'Замовлень'}</span><b>${n}</b></div>
+          <div class="od-stat"><span>Це замовлення</span><b>${fmt(o.totalPrice)} ₴</b></div>
+          ${n > 1 ? `<div class="od-stat"><span>За весь час</span><b>${fmt(life)} ₴</b></div>` : ''}
+        </div>
+        <button class="od-hist" data-all-orders>Усі замовлення клієнта →</button>`; })()}
       ${/* Єдине кольорове місце картки — етап. Колір той самий, що в колонки
            на дошці: картка, відкрита з пошуку, одразу каже, звідки вона.
            Скільки стоїть в етапі — тут же: жовтіє на строку, червоніє на
            подвійному. */''}
-      <span class="od-pill od-pill-st" style="background:${sc.bg};color:${sc.head};">
-        <select class="od-stage" title="Етап угоди" style="color:${sc.head};">
-          ${STATUSES.map(st=>`<option value="${escapeHtml(st.key)}"${
-            st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
-        </select>
-        ${age ? `<b class="od-pill-age${heat ? ' is-' + heat : ''}">${escapeHtml(age)}</b>` : ''}
-      </span>
-      <span class="od-pill od-pill-mgr" title="Відповідальний менеджер">
-        <select class="od-mgr-sel">
-          <option value="">— відповідальний —</option>
-          ${teamOptionsHtml(o.mgrEmail)}
-        </select>
-        ${myEmail() && o.mgrEmail !== myEmail()
-          ? '<button class="od-pill-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
-      </span>
+      ${/* Етап і відповідальний — один рядок: це два боки одного питання
+           «де воно і в кого», і читати їх треба разом. */''}
+      <div class="od-deal-row">
+        <span class="od-pill od-pill-st" style="background:${sc.bg};color:${sc.head};">
+          <select class="od-stage" title="Етап угоди" style="color:${sc.head};">
+            ${STATUSES.map(st=>`<option value="${escapeHtml(st.key)}"${
+              st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
+          </select>
+          ${age ? `<b class="od-pill-age${heat ? ' is-' + heat : ''}">${escapeHtml(age)}</b>` : ''}
+        </span>
+        <span class="od-pill od-pill-mgr" title="Відповідальний менеджер">
+          <select class="od-mgr-sel">
+            ${/* Короткий підпис: у рядку на двох поле вузьке, і «—
+                 відповідальний —» у ньому просто обрізалось. */''}
+            <option value="">Хто веде?</option>
+            ${teamOptionsHtml(o.mgrEmail)}
+          </select>
+          ${myEmail() && o.mgrEmail !== myEmail()
+            ? '<button class="od-pill-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
+        </span>
+      </div>
       <div class="od-meta">
         <span title="Номер замовлення">${ICO.tag}${o.orderId
           ? `<button class="od-oid-b" data-copy-oid title="Натисніть, щоб скопіювати номер">${
@@ -9822,19 +9937,16 @@ function renderOrderDrawer(){
       <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
     </div>
     <div class="od-body">
-      ${/* Нагадування й нотатка лишаються відкритими: це щоденне, і сховане
-           під смугу його просто не відкриють. Усе решта — розділами, як
-           список питань до замовлення. */''}
-      ${odPart(()=> odRemindHtml(o), 'нагадування')}
-      ${/* Нотатка одразу за нагадуванням: це два різні записники — «що
-           зробити» з датою і «що памʼятати» без неї. Поле починається з
-           двох рядків і росте під текст, а не займає пів екрана порожнім. */''}
+      ${/* Нотатка лишається відкритою: її перечитують щоразу, коли
+           відкривають картку, і сховану під смугу її просто не побачать.
+           Нагадування ж мають дату — смуга сама скаже, коли й про що, тож
+           тримати їх розгорнутими весь час немає потреби. */''}
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="2"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
       <div class="od-folds">
-        ${odPart(()=> odClientFold(o, ch, hasChat), 'клієнт')}
+        ${odPart(()=> odRemindFold(o), 'нагадування')}
         ${odPart(()=> odGoodsFold(o), 'товари')}
         ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
         ${odPart(()=> odPayFold(o), 'оплата')}
@@ -9923,8 +10035,27 @@ function renderOrderDrawer(){
       renderOrderDrawer();
     });
   });
-  const hist = panel.querySelector('[data-hist]');
-  if(hist) hist.addEventListener('click', ()=>{ odHistOpen = !odHistOpen; renderOrderDrawer(); });
+  const allB = panel.querySelector('[data-all-orders]');
+  if(allB) allB.addEventListener('click', ()=> openAllOrders(o));
+  const cliT = panel.querySelector('[data-cli-toggle]');
+  if(cliT) cliT.addEventListener('click', ()=>{
+    const has = !!(o.name || o.phone || o.company);
+    odCliOpen = !((odCliOpen == null) ? has : odCliOpen);
+    renderOrderDrawer();
+  });
+  /* Канал перемикається просто в шапці: питання «де ми з цією людиною
+     розмовляємо» виникає раніше за все інше, і лізти за ним у розділ нижче
+     менеджер не буде. */
+  panel.querySelectorAll('[data-chan-set]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const k = b.dataset.chanSet;
+      if(k === chanActive(o)) return;
+      o.chan = k;
+      chanSet(o, k, chanHandle(o, k));
+      await saveOrderMeta(o);
+      renderOrderDrawer();
+    });
+  });
   /* Канал у шапці натискається: якщо діалог привʼязаний — відкриваємо його,
      якщо ні — ведемо в месенджер. Це найчастіша дія з картки. */
   const chGo = panel.querySelector('[data-chan-go]');
@@ -9980,13 +10111,6 @@ function renderOrderDrawer(){
     }));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
-  const chanSel = panel.querySelector('.od-chan');
-  if(chanSel) chanSel.addEventListener('change', async ()=>{
-    o.chan = chanSel.value;
-    chanSet(o, o.chan, chanHandle(o, o.chan));   // оновлюємо дзеркало instagram
-    await saveOrderMeta(o);
-    renderOrderDrawer();
-  });
   const chanInp = panel.querySelector('.od-chan-h');
   if(chanInp) chanInp.addEventListener('change', async ()=>{
     chanSet(o, chanActive(o), chanInp.value);

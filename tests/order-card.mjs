@@ -137,63 +137,85 @@ console.log('═══ ШАПКА ═══');
 const head = await p.evaluate(() => {
   const t = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
   const g = el => getComputedStyle(el);
+  const box = el => el.getBoundingClientRect();
   const st = document.querySelector('.od-head .od-pill-st');
   const mgr = document.querySelector('.od-head .od-pill-mgr');
-  const box = el => el.getBoundingClientRect();
-  const head = document.querySelector('.od-head');
+  const headEl = document.querySelector('.od-head');
   return {
     name: t(document.querySelector('.od-cl-nm')),
-    chan: t(document.querySelector('.od-cl-ch')),
+    /* Канал перемикається просто в шапці, і нік вписується там само:
+       питання «де ми з цією людиною розмовляємо» виникає раніше за все. */
+    chans: [...document.querySelectorAll('.od-ch-b')].map(b => b.dataset.chanSet),
+    chanOn: (document.querySelector('.od-ch-b.is-on') || {}).dataset?.chanSet,
+    nickPh: (document.querySelector('.od-who-row .od-chan-h') || {}).placeholder,
+    fields: [...document.querySelectorAll('.od-head .od-fields .od-f')]
+      .map(i => i.getAttribute('data-f')),
     stats: [...document.querySelectorAll('.od-stat')]
       .map(x => [t(x.querySelector('span')), t(x.querySelector('b'))]),
+    all: !!document.querySelector('[data-all-orders]'),
     oid: t(document.querySelector('.od-meta .od-oid-b')),
     meta: t(document.querySelector('.od-meta')),
     due: (document.querySelector('.od-head .od-due-inp') || {}).value,
-    /* Етап — смугою на всю ширину шапки, і це єдине кольорове місце. */
-    stWide: !!st && box(st).width > box(head).width - 46,
+    /* Етап і відповідальний — один рядок: два боки одного питання «де воно
+       і в кого». */
+    sameRow: !!(st && mgr) && Math.abs(box(st).top - box(mgr).top) < 2,
+    stLeft: !!(st && mgr) && box(st).right <= box(mgr).left + 1,
     stBg: st ? g(st).backgroundColor : null,
-    mgrWide: !!mgr && Math.abs(box(mgr).width - box(st).width) < 2,
-    /* Решта шапки тримає один фон: колір тут має рівно одне значення. */
-    others: [...head.querySelectorAll('.od-stat, .od-meta, .od-cl-nm')]
+    others: [...headEl.querySelectorAll('.od-stat, .od-meta, .od-cl-nm')]
       .map(x => g(x).backgroundColor)
   };
 });
-console.log('  ' + head.name + ' · ' + head.chan);
+console.log('  ' + head.name + ' · канали ' + JSON.stringify(head.chans) + ' → ' + head.chanOn);
 head.stats.forEach(x => console.log('  ' + x[0] + ': ' + x[1]));
 console.log('  ' + head.meta);
-ok(head.name === 'Оксана' && /Instagram/.test(head.chan || ''),
-  'імʼя клієнта — заголовком картки, під ним канал',
-  'шапка не каже, хто це: ' + JSON.stringify([head.name, head.chan]));
-/* Три цифри — вага клієнта. Рахуються ВКЛЮЧНО з поточним замовленням: це вся
-   історія людини, а не залишок після відрахування. 8 000 + 5 000. */
+ok(head.name === 'Оксана' && head.chans.join(',') === 'tg,ig,viber' && head.chanOn === 'ig' &&
+   /Instagram/.test(head.nickPh || ''),
+  'у шапці імʼя, перемикач каналу й поле ніка — активний канал підсвічений',
+  'шапка не каже, хто це й де: ' + JSON.stringify([head.name, head.chans, head.chanOn]));
+/* Дані клієнта відкриті, бо вони заповнені. Порожні вони сховані — три
+   порожні рядки в кожній картці лише займають екран. */
+ok(head.fields.join(',') === 'name,phone,company',
+  'заповнені дані клієнта видно одразу, без відкривання розділу',
+  'полів клієнта в шапці немає: ' + JSON.stringify(head.fields));
+/* Сума цього замовлення йде ПЕРШОЮ — вона потрібна щодня; «за весь час»
+   зʼявляється лише коли замовлень справді більше одного. */
 ok(head.stats.length === 3 &&
-   /Замовлень/.test(head.stats[0][0]) && head.stats[0][1] === '2' &&
-   /13\D?000/.test(head.stats[1][1]) && /5\D?000/.test(head.stats[2][1]),
-  'три цифри: замовлень 2 · за весь час 13 000 ₴ · це замовлення 5 000 ₴',
+   /Це замовлення/.test(head.stats[1][0]) && /5\D?000/.test(head.stats[1][1]) &&
+   /За весь час/.test(head.stats[2][0]) && /13\D?000/.test(head.stats[2][1]),
+  'цифри в порядку потреби: замовлень 2 · це замовлення 5 000 ₴ · за весь час 13 000 ₴',
   'цифри не ті: ' + JSON.stringify(head.stats));
-ok(head.stWide && head.mgrWide,
-  'етап і відповідальний — смугами на всю ширину шапки',
-  'смуги не на всю ширину: ' + JSON.stringify([head.stWide, head.mgrWide]));
+ok(head.all, 'із шапки можна відкрити всі замовлення клієнта', 'переходу до всіх замовлень немає');
+ok(head.sameRow && head.stLeft,
+  'етап і відповідальний стоять в одному рядку',
+  'етап і відповідальний не в рядку: ' + JSON.stringify([head.sameRow, head.stLeft]));
 ok(head.others.every(c => c === head.others[0]) && head.stBg !== head.others[0],
   'кольорове місце в шапці рівно одне — етап',
   'кольору в шапці більше, ніж етап: ' + JSON.stringify(head.others));
-ok(head.oid === '1000042' && /30\.08|\d\d\.\d\d/.test(head.meta || '') &&
-   head.due === '2026-12-01',
+ok(head.oid === '1000042' && /\d\d\.\d\d/.test(head.meta || '') && head.due === '2026-12-01',
    'номер, дата й термін — дрібним рядком з іконками',
    'рядок міток неповний: ' + JSON.stringify(head.meta));
 
-/* Історія клієнта розгортається з шапки: доти вона лежала окремим блоком
-   «Повторний клієнт» аж під складом замовлення. */
-await p.click('[data-hist]');
-await p.waitForTimeout(700);
-const hist = await p.evaluate(() => [...document.querySelectorAll('.od-hist-l button')]
-  .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
-console.log('  історія: ' + JSON.stringify(hist));
-ok(hist.length === 1 && /1000007/.test(hist[0]) && /8\D?000/.test(hist[0]),
-  'історія показує попереднє замовлення цього клієнта з сумою',
-  'історії немає: ' + JSON.stringify(hist));
-
 console.log('');
+console.log('═══ УСІ ЗАМОВЛЕННЯ КЛІЄНТА ═══');
+/* Питання «а що в них було минулого разу» виникає в кожній другій розмові.
+   Доти відповідь збирали по дошці руками. */
+await p.click('[data-all-orders]');
+await p.waitForTimeout(800);
+const ao = await p.evaluate(() => ({
+  head: (document.querySelector('.ao-head') || {}).textContent.replace(/\s+/g, ' ').trim(),
+  rows: [...document.querySelectorAll('.ao-row')].map(r => r.textContent.replace(/\s+/g, ' ').trim()),
+  cur: (document.querySelector('.ao-row.is-cur .ao-oid') || {}).textContent
+}));
+ao.rows.forEach(r => console.log('  ' + r));
+ok(ao.rows.length === 2 && ao.rows.some(r => /1000007/.test(r) && /8\D?000/.test(r)),
+  'у вікні всі замовлення клієнта — з етапом, датою й сумою',
+  'список не той: ' + JSON.stringify(ao.rows));
+ok(ao.cur === '1000042',
+  'відкрита картка позначена, щоб не шукати себе в списку',
+  'поточна картка не позначена: ' + ao.cur);
+await p.evaluate(() => closeAllOrders());
+await p.waitForTimeout(400);
+
 console.log('═══ ПОРЯДОК РОЗДІЛІВ ═══');
 /* Порядок читається як порядок питань: що з цим далі → що памʼятати → і аж
    потім усе важке, розкладене по смугах. */
@@ -215,11 +237,12 @@ console.log('  зверху: ' + order.top.join(' → '));
 console.log('  смуги: ' + order.folds.join(' · '));
 /* Нагадування й нотатка лишаються відкритими: це щоденне, і сховане під
    смугу його просто не відкриють. */
-ok(order.top.join('|') === 'Нагадування|Нотатка менеджера',
-  'над смугами лишились тільки нагадування й нотатка — щоденне не ховаємо',
+/* Нотатку не ховаємо: її перечитують щоразу, коли відкривають картку. */
+ok(order.top.join('|') === 'Нотатка менеджера',
+  'над смугами лишилась тільки нотатка',
   'зверху не те: ' + JSON.stringify(order.top));
 ok(order.folds.join('|') ===
-   'Інформація про клієнта|Товари|Додаткові продажі|Оплата|Фінанси|Що відбувалось',
+   'Нагадування|Товари|Додаткові продажі|Оплата|Фінанси|Що відбувалось',
   'смуги йдуть у порядку питань до замовлення',
   'смуги не ті: ' + JSON.stringify(order.folds));
 ok(order.h.length === 1 && order.r.length === 1 && order.bg.length === 1,
@@ -244,29 +267,27 @@ ok(/1 позиц/.test((sums.find(x => x[0] === 'Товари') || [])[1] || '')
   'товари й додаткові продажі рахуються окремо: 1 позиція проти 1+2',
   'рахунок змішався: ' + JSON.stringify(sums.slice(1, 3)));
 
-/* Порожній блок нагадувань — це один рядок, а не картка в рамці: доти на
-   його місці стояли дві («Наступна дія» і «Задачі») незалежно від того, чи
-   є там що читати. */
-const rem = await p.evaluate(() => {
-  const b = document.querySelector('.od-rem');
-  const note = document.querySelector('.od-note');
-  return { h: b ? Math.round(b.getBoundingClientRect().height) : null,
-    rows: document.querySelectorAll('.rem-row').length,
-    noteRows: note ? +note.getAttribute('rows') : null,
-    old: !!document.querySelector('.od-deal') || !!document.querySelector('.od-next') };
-});
-console.log('  порожні нагадування: ' + rem.h + 'px · нотатка: ' + rem.noteRows + ' рядки');
-ok(!rem.old,
+/* Нагадування теж смугою: дата в підсумку каже, коли й про що, тож тримати
+   блок розгорнутим весь час немає потреби. «Не заплановано» — теж
+   відповідь, і найгірша. */
+await p.click('[data-fold="rem"]');
+await p.waitForTimeout(700);
+const rem0 = await p.evaluate(() => ({
+  h: Math.round(document.querySelector('.od-rem').getBoundingClientRect().height),
+  rows: document.querySelectorAll('.rem-row').length,
+  noteRows: +document.querySelector('.od-note').getAttribute('rows'),
+  old: !!document.querySelector('.od-deal') || !!document.querySelector('.od-next')
+}));
+console.log('  порожні нагадування: ' + rem0.h + 'px · нотатка: ' + rem0.noteRows + ' рядки');
+ok(!rem0.old,
   'блоків «Стан угоди» і «Наступна дія» в картці немає',
   'старі блоки лишились');
-/* Дві старі картки — «Наступна дія» й «Задачі» — займали під 260 px
-   незалежно від того, чи є в них що читати. */
-ok(rem.rows === 0 && rem.h > 0 && rem.h < 120,
-  'порожній блок нагадувань — коментар і рядок «коли» (' + rem.h + 'px)',
-  'порожній блок нагадувань завеликий: ' + rem.h + 'px');
-ok(rem.noteRows === 2,
+ok(rem0.rows === 0 && rem0.h > 0 && rem0.h < 120,
+  'порожній блок нагадувань — коментар і рядок «коли» (' + rem0.h + 'px)',
+  'порожній блок нагадувань завеликий: ' + rem0.h + 'px');
+ok(rem0.noteRows === 2,
   'нотатка починається з двох рядків і росте під текст',
-  'нотатка одразу займає ' + rem.noteRows + ' рядків');
+  'нотатка одразу займає ' + rem0.noteRows + ' рядків');
 
 await p.fill('.rem-in', 'передзвонити щодо розмірного ряду');
 await p.fill('.rem-tm', '14:00');
@@ -274,12 +295,19 @@ await p.click('.rem-go');
 await p.waitForTimeout(1300);
 const remRow = await p.evaluate(() => {
   const r = document.querySelector('.rem-row');
-  return r ? r.textContent.replace(/\s+/g, ' ').trim() : '';
+  return { row: r ? r.textContent.replace(/\s+/g, ' ').trim() : '',
+    sum: (document.querySelector('[data-fold="rem"] .od-fold-n') || {}).textContent
+      .replace(/\s+/g, ' ').trim() };
 });
-console.log('  ' + remRow);
-ok(/розмірного ряду/.test(remRow) && /14:00/.test(remRow),
+console.log('  ' + remRow.row);
+console.log('  підсумок смуги: ' + JSON.stringify(remRow.sum));
+ok(/розмірного ряду/.test(remRow.row) && /14:00/.test(remRow.row),
   'нагадування — коментар, дата й час одним рядком',
-  'нагадування не записалось: ' + JSON.stringify(remRow));
+  'нагадування не записалось: ' + JSON.stringify(remRow.row));
+/* Підсумок смуги каже, коли і про що, — щоб не відкривати її заради цього. */
+ok(/завтра/.test(remRow.sum) && /розмірн/.test(remRow.sum),
+  'смуга каже підсумком, коли й про що нагадати',
+  'підсумок смуги мовчить: ' + JSON.stringify(remRow.sum));
 
 console.log('');
 console.log('═══ ТОВАРИ Й РОЗМІРИ ═══');
@@ -425,8 +453,8 @@ const after = await p.evaluate(() => {
     pick: t('.od-pick'),
     /* «Це замовлення» — третя цифра шапки. Після підтвердження вона має
        показати перерахований склад, а не те, що менеджер запропонував. */
-    sum: t('.od-stat:nth-child(3) b'),
-    life: t('.od-stat:nth-child(2) b'),
+    sum: t('.od-stat:nth-child(2) b'),
+    life: t('.od-stat:nth-child(3) b'),
     stage: (document.querySelector('.od-stage') || {}).value,
     buy: [...document.querySelectorAll('.od-buy-li')].map(x => x.textContent.replace(/\s+/g, ' ').trim())
   };
