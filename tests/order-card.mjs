@@ -354,51 +354,47 @@ ok(await p.evaluate(() => !!document.querySelector('#offerEd [data-oe="mgrok"]')
   'у КП кнопки підтвердження немає');
 
 console.log('');
-console.log('═══ ТЕКСТ ПОВІДОМЛЕННЯ ═══');
-/* Олівець біля «Повідомлення клієнту»: текст правиться там, де його й
-   надсилають. Доти він був один на всі КП і правився вже в месенджері,
-   після вставки, — тобто щоразу заново. */
-await p.click('#offerEd [data-oe="editmsg"]');
-await p.waitForTimeout(700);
-const msg0 = await p.evaluate(() => {
-  const t = document.querySelector('#offerEd .oe-msg-t');
-  return { txt: t ? t.value : null, link: offerUrl(offerEdOrder()) };
-});
-ok(!!msg0.txt && msg0.link && msg0.txt.indexOf(msg0.link) >= 0,
-  'у полі стоїть готовий текст із живим посиланням — видно рівно те, що піде клієнту',
-  'у полі не текст повідомлення: ' + JSON.stringify((msg0.txt || '').slice(0, 60)));
-/* Повідомлення без посилання — це лист «дивіться пропозицію», у якому
-   нічого відкрити. Помітив би це першим клієнт, тож не зберігаємо. */
-await p.fill('#offerEd .oe-msg-t', 'Оксано, дивіться пропозицію');
-await p.click('#offerEd [data-msg="save"]');
-await p.waitForTimeout(900);
-ok(await p.evaluate(() => !!document.querySelector('#offerEd .oe-msg') &&
-                          !(offerEdOrder() || {}).shareMsg),
-  'текст без посилання не зберігається — клієнту не було б що відкрити',
-  'зберегли повідомлення без посилання');
+console.log('═══ ПОВІДОМЛЕННЯ КЛІЄНТУ ═══');
+/* У шапці КП лишились тільки дії з посиланням. Готового повідомлення тут
+   немає навмисно: його не надсилають із пропозиції — його надсилають у
+   діалозі, і правлять теж там, у заготовках. */
+const oe = await p.evaluate(() => ({
+  copy: !!document.querySelector('#offerEd [data-oe="copy"]'),
+  msg: !!document.querySelector('#offerEd [data-oe="copymsg"]'),
+  pen: !!document.querySelector('#offerEd [data-oe="editmsg"]'),
+  out: offerShareText(offerEdOrder()),
+  link: offerUrl(offerEdOrder())
+}));
+ok(oe.copy && !oe.msg && !oe.pen,
+  'у шапці КП лишились дії з посиланням, а тексту повідомлення там немає',
+  'у КП лишилось редагування тексту: ' + JSON.stringify(oe));
+ok(oe.out.indexOf(oe.link) >= 0,
+  'кнопка «💬» на картці бере текст із заготовки, з живим посиланням',
+  'посилання не підставилось: ' + JSON.stringify(oe.out.slice(0, 80)));
 
-await p.fill('#offerEd .oe-msg-t', 'Оксано, як домовлялись — ось пропозиція:\n' + msg0.link);
-await p.click('#offerEd [data-msg="save"]');
-await p.waitForTimeout(1200);
-const msg1 = await p.evaluate(() => {
-  const o = offerEdOrder();
-  return { saved: o.shareMsg || '', out: offerShareText(o),
-    open: !!document.querySelector('#offerEd .oe-msg'),
-    head: (document.querySelector('#offerEd .oe-head') || {}).textContent || '' };
+/* Правка заготовки — і той самий текст іде звідусіль. Раніше він був
+   зашитий у код окремо від заготовки в чаті, і клієнт міг отримати два
+   різні листи залежно від того, звідки менеджер натиснув. */
+const edited = await p.evaluate(async () => {
+  const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
+  const i = list.findIndex(q => String(q.m || '').indexOf('{кп}') >= 0);
+  list[i] = { t:'Надсилаю КП', m:'Оксано, як домовлялись — ось пропозиція:\n{кп}' };
+  await qrStore(list);
+  return { out: offerShareText(offerEdOrder()), noOffer: offerShareText({}) };
 });
-console.log('  збережено: ' + JSON.stringify(msg1.saved));
-console.log('  піде клієнту: ' + JSON.stringify(msg1.out));
-ok(!msg1.open && /як домовлялись/.test(msg1.out),
-  'правлений текст збережено — саме він і копіюється',
-  'текст не зберігся: ' + JSON.stringify(msg1.out.slice(0, 80)));
-/* Посилання лягає назад підстановкою, а не застигає текстом: інакше воно
-   колись перестане відповідати документу, і ніхто цього не помітить. */
-ok(msg1.saved.indexOf('{кп}') >= 0 && msg1.saved.indexOf(msg0.link) < 0,
-  'у замовленні лежить підстановка {кп}, а не застигла адреса',
-  'адреса застигла в тексті: ' + JSON.stringify(msg1.saved));
-ok(msg1.out.indexOf(msg0.link) >= 0,
-  'а клієнту йде текст із живим посиланням',
-  'посилання не підставилось: ' + JSON.stringify(msg1.out));
+console.log('  ' + JSON.stringify(edited.out));
+ok(/як домовлялись/.test(edited.out) && edited.out.indexOf(oe.link) >= 0,
+  'правлена заготовка стала тим текстом, що копіюється з картки',
+  'текст не змінився: ' + JSON.stringify(edited.out));
+/* Замовлення без КП не має давати листа «дивіться пропозицію», у якому
+   нічого відкрити. */
+ok(edited.noOffer === '',
+  'без пропозиції повідомлення не збирається взагалі',
+  'зібрали повідомлення без посилання: ' + JSON.stringify(edited.noOffer));
+
+console.log('');
+console.log('═══ ЩО ЗАПИСАЛОСЬ ПІСЛЯ ПІДТВЕРДЖЕННЯ ═══');
+
 await p.click('#offerEd [data-oe="mgrok"]');
 await p.waitForTimeout(2200);
 await p.click('#offerEd [data-oe="done"]');

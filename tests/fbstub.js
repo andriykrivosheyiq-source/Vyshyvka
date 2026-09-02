@@ -15,6 +15,12 @@
   Col.prototype.orderBy=function(){ return this; };
   Col.prototype.limit=function(){ return this; };
   Col.prototype.onSnapshot=function(cb){ try{ cb({ docs:[], forEach:function(){}, empty:true }); }catch(e){} return function(){}; };
+  /* Записи через .add() складаємо у window.__ADDED: сайт пише так заявки, і
+     без цього методу він чесно вважав, що база їх не прийняла. */
+  Col.prototype.add=function(d){
+    (window.__ADDED=window.__ADDED||[]).push(d);
+    return Promise.resolve({ id:'stub' });
+  };
   var fs=function(){ return { collection:function(){ return new Col(); },
     doc:function(){ return new Doc(); },
     batch:function(){ return { set:function(){}, update:function(){}, delete:function(){}, commit:function(){ return Promise.resolve(); } }; },

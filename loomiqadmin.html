@@ -1034,18 +1034,6 @@
   /* Порожня нижня панель не має займати ані пікселя: сума й склад тепер у
      лівій панелі робочого місця, поруч із самими позиціями. */
   .oe-foot:empty{display:none;}
-  /* Правка тексту повідомлення: панель відкривається знизу, а пропозиція
-     лишається на екрані — текст пишуть, дивлячись на те, про що він. */
-  .oe-msg{flex:none;border-top:1px solid var(--line);background:var(--canvas);padding:10px 13px 12px;}
-  .oe-msg-h{display:flex;align-items:baseline;gap:8px;font-size:12px;margin-bottom:7px;}
-  .oe-msg-h b{font-size:12.5px;color:var(--ink);}
-  .oe-msg-h span{color:var(--ink-soft);}
-  .oe-msg-t{width:100%;resize:vertical;font:inherit;font-size:13px;line-height:1.5;
-    padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;
-    color:var(--ink);min-height:120px;}
-  .oe-msg-t:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-  .oe-msg-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;}
-  .oe-msg-n{font-size:11.5px;color:var(--ink-soft);}
   /* Підтвердження за клієнта — обведена, а не залита: залита зелена в шапці
      одна, і це «Зберегти позицію», яку натискають щодня. Підтверджують раз
      на замовлення, і кнопка має бути помітною, але не головною. */
@@ -1156,6 +1144,33 @@
   .cw-qr-m{color:var(--ink-soft);display:block;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;}
   .cw-qr-none{font-size:12px;color:var(--ink-soft);line-height:1.5;}
+  /* Заготовка й олівець до неї — одним рядком: правку роблять там, де
+     заготовку й читають. */
+  .cw-qr-row{display:flex;gap:5px;align-items:stretch;margin-bottom:5px;}
+  .cw-qr-row .cw-qr-b{flex:1;min-width:0;margin-bottom:0;}
+  .cw-qr-e{all:unset;cursor:pointer;flex:none;display:flex;align-items:center;
+    padding:0 9px;border:1px solid var(--line);border-radius:9px;color:#AEB8C9;font-size:12px;}
+  .cw-qr-e:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .cw-qr-add{all:unset;cursor:pointer;display:block;width:100%;text-align:center;
+    font-size:12px;font-weight:700;color:var(--ink-soft);padding:8px;border-radius:9px;
+    border:1px dashed var(--line);}
+  .cw-qr-add:hover{border-color:var(--accent);color:var(--accent-deep);border-style:solid;}
+  .cw-qr-ed{border:1px solid var(--accent);border-radius:9px;background:#fff;
+    padding:8px;margin-bottom:5px;}
+  .cw-qr-in-t,.cw-qr-in-m{width:100%;font:inherit;font-size:12.5px;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);
+    margin-bottom:6px;}
+  .cw-qr-in-m{line-height:1.45;resize:vertical;}
+  .cw-qr-in-t:focus,.cw-qr-in-m:focus{outline:none;border-color:var(--accent);}
+  .cw-qr-hint{font-size:11px;color:var(--ink-soft);line-height:1.4;margin-bottom:7px;}
+  .cw-qr-acts{display:flex;gap:6px;align-items:center;}
+  .cw-qr-ok,.cw-qr-no,.cw-qr-rm{all:unset;cursor:pointer;font-size:12px;font-weight:700;
+    padding:7px 12px;border-radius:8px;border:1px solid var(--line);color:var(--ink-2);}
+  .cw-qr-ok{background:var(--accent);border-color:transparent;color:#fff;}
+  .cw-qr-ok:hover{background:var(--accent-deep);}
+  .cw-qr-no:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .cw-qr-rm{margin-left:auto;color:#AEB8C9;padding:7px 10px;}
+  .cw-qr-rm:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
   .cw-note{font-size:11.5px;color:#7A5410;background:#FDF7EC;border-radius:8px;
     padding:7px 10px;margin-bottom:7px;line-height:1.45;}
   @media(max-width:520px){ .cw-wrap{padding:0;} .cw{max-width:none;height:100%;border-radius:0;} }
@@ -2841,8 +2856,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=cbe6ca01b0"></script>
-<script src="loomiq-pricing.js?v=cbe6ca01b0"></script>
+<script src="loomiq-fingerprint.js?v=92aef7ae03"></script>
+<script src="loomiq-pricing.js?v=92aef7ae03"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5676,8 +5691,13 @@ function watchWebLeads(){
         source: 'заявка',
         site: d.site || 'main',
         name: d.name || '', phone: d.phone || '',
-        note: 'Заявка без товару' + (d.context ? ' · ' + d.context : '') +
+        /* Кількість із форми — перше, що менеджер спитав би сам, і без чого
+           не почати прорахунок. Тому вона стоїть на початку нотатки, а не
+           десь у хвості контексту. */
+        note: (+d.qty > 0 ? 'Орієнтовно ' + (+d.qty) + ' од. · ' : '') +
+              'Заявка без товару' + (d.context ? ' · ' + d.context : '') +
               (d.page ? ' · сторінка ' + d.page : ''),
+        leadQty: +d.qty || 0,
         items: [],
         totalPrice: 0, totalCost: 0, margin: 0, marginPct: 0,
         an: d.an || null,
@@ -7083,22 +7103,22 @@ const OFFER_MSG_DEFAULT =
   'деталі замовлення.\n\n' +
   'Переглянути пропозицію →\n{кп}\n\n' +
   'Якщо виникнуть питання — із задоволенням на все відповім)';
-/* Текст можна поправити під конкретного клієнта — олівцем у самому КП. Тоді
-   він живе в замовленні (`shareMsg`) і йде звідусіль, звідки надсилають це
-   КП: із самої пропозиції, з кнопки «💬» на картці й із готової відповіді в
-   чаті. Інакше клієнт отримав би два різні листи залежно від того, звідки
+/* Текст живе в заготовках діалога — там, де його й надсилають, і правиться
+   теж там. Тут ми його лише беремо: тою самою заготовкою, що вставляється в
+   чат. Інакше клієнт отримав би два різні листи залежно від того, звідки
    менеджер натиснув.
 
-   Посилання всередині тексту тримаємо підстановкою `{кп}`, а не готовою
-   адресою: так воно лишається живим, навіть коли текст переписали. */
-function offerShareText(order){
-  const link = offerUrl(order);
-  if(!link) return '';
-  return offerMsgTpl(order).split('{кп}').join(link);
+   Впізнаємо заготовку за підстановкою `{кп}`, а не за назвою: назву
+   менеджер може переписати як завгодно, а от посилання на пропозицію — це
+   рівно те, що робить цю заготовку саме нею. Посилання підставляється в
+   мить відправлення, тож воно завжди свіже. */
+function offerMsgTpl(){
+  const q = quickReplies().filter(x => x && String(x.m || '').indexOf('{кп}') >= 0)[0];
+  return (q && q.m) || OFFER_MSG_DEFAULT;
 }
-function offerMsgTpl(order){
-  const own = String((order && order.shareMsg) || '').trim();
-  return own || OFFER_MSG_DEFAULT;
+function offerShareText(order){
+  if(!offerUrl(order)) return '';
+  return qrFill(offerMsgTpl(), order);
 }
 /* Спільне для обох дій: кладемо в буфер одразу, а тоді переписуємо
    документ за посиланням і ЗВІРЯЄМО, що туди лягло саме те, що на екрані.
@@ -10699,7 +10719,6 @@ async function openOfferEditor(o){
     renderBoard();
   }
   offerEd = { id: o.id };
-  oeMsgOpen = false;          // нове КП відкривається з закритою правкою тексту
   offerEdEl().classList.add('open');
   renderOfferEd();
   offerEdPreview(true);
@@ -12056,30 +12075,26 @@ function renderOfferEd(){
       ? '<button class="oe-btn oe-btn--ok" data-oe="mgrok" ' +
         'title="Клієнт погодився в переписці — записати склад замовлення">✓ Підтвердити за клієнта</button>'
       : ''}
-    <button class="oe-btn oe-btn--main" data-oe="copymsg"
-      title="Скопіювати готове повідомлення разом із посиланням">💬 Повідомлення клієнту</button>
-    ${/* Олівець правит саме те повідомлення, яке піде цьому клієнту. Доти
-         текст був один на всі КП і правився вже в месенджері, після
-         вставки, — тобто щоразу заново. */''}
-    <button class="oe-btn oe-btn--ic" data-oe="editmsg" title="Змінити текст повідомлення"
-      aria-label="Змінити текст повідомлення">✎</button>
-    <button class="oe-btn oe-btn--ic" data-oe="copy" title="Скопіювати лише посилання"
-      aria-label="Скопіювати лише посилання">📎</button>
+    ${/* Готового повідомлення тут немає навмисно. Його не надсилають із
+         пропозиції — його надсилають у діалозі, і правити текст треба там
+         само, у заготовках. Тут лишаються дві дії з посиланням: узяти його
+         й подивитись, що за ним лежить. */''}
+    <button class="oe-btn oe-btn--main" data-oe="copy"
+      title="Скопіювати посилання на пропозицію">📎 Скопіювати посилання</button>
     <button class="oe-btn" data-oe="open">Відкрити посилання ↗</button>
     <button class="oe-btn oe-btn--save" data-oe="saveitem">Зберегти позицію</button>
     <span class="oe-save is-ok">Збережено ✓</span>
     <button class="oe-btn oe-btn--x" data-oe="done" title="Закрити пропозицію"
       aria-label="Закрити">✕</button>`;
 
-  /* Нижня панель мовчить, поки нічого не редагують: «Перегляд як клієнт»
+  /* Нижньої панелі більше немає. «Перегляд як клієнт»
      дублював вкладку «Як бачить клієнт», що стоїть у самому робочому місці,
      — дві кнопки на одну дію, поруч, і незрозуміло, чим вони різні.
      Посилання переїхало нагору, сума й склад видно в лівій панелі. Уся
      висота вікна пішла під роботу.
 
-     Єдине, заради чого панель відкривається, — текст повідомлення: правити
-     його треба, бачачи саму пропозицію, а не в порожньому вікні. */
-  d.querySelector('.oe-foot').innerHTML = oeMsgOpen ? offerEdMsgHtml(o) : '';
+     Уся висота вікна пішла під роботу. */
+  d.querySelector('.oe-foot').innerHTML = '';
 
   const head = d.querySelector('.oe-head');
   head.querySelector('[data-oe="done"]').addEventListener('click', offerEdClose);
@@ -12109,17 +12124,8 @@ function renderOfferEd(){
     });
     inp.click();
   });
-  d.querySelectorAll('[data-oe="copymsg"]').forEach(b=> b.addEventListener('click', ()=>
-    offerMessageCopy(o)));
   d.querySelectorAll('[data-oe="mgrok"]').forEach(b=> b.addEventListener('click', ()=>
     confirmAsManager(o)));
-  d.querySelectorAll('[data-oe="editmsg"]').forEach(b=> b.addEventListener('click', ()=>{
-    oeMsgOpen = !oeMsgOpen;
-    renderOfferEd();
-    const t = document.querySelector('#offerEd .oe-msg-t');
-    if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
-  }));
-  offerEdMsgWire(d, o);
   d.querySelectorAll('[data-oe="copy"]').forEach(b=> b.addEventListener('click', ()=>
     offerLinkCopy(o)));
   d.querySelectorAll('[data-oe="open"]').forEach(b=> b.addEventListener('click', ()=>
@@ -12131,68 +12137,6 @@ function renderOfferEd(){
       try{ await storeSet('orders', orders); await offerSave(o); }catch(e){ console.error(e); }
       renderBoard(); renderOfferEd(); offerEdPreview(true);
     });
-  });
-}
-
-/* ── Текст повідомлення клієнту ──────────────────────────────────────────
-   Правиться там же, де й надсилається. У полі стоїть готовий текст із
-   ЖИВИМ посиланням — менеджер має бачити рівно те, що піде клієнту, а не
-   підстановку `{кп}`. Зберігаючи, адресу кладемо назад підстановкою: так
-   вона не застигне текстом, який колись перестане відповідати документу.
-
-   Без посилання не зберігаємо. Повідомлення без нього — це лист «дивіться
-   пропозицію», у якому нічого відкрити, і помітить це першим клієнт. */
-let oeMsgOpen = false;
-function offerEdMsgHtml(o){
-  const own = String(o.shareMsg || '').trim();
-  return `
-    <div class="oe-msg">
-      <div class="oe-msg-h">
-        <b>Повідомлення клієнту</b>
-        <span>${own ? 'змінене для цього КП' : 'стандартний текст'}</span>
-      </div>
-      <textarea class="oe-msg-t" rows="7" spellcheck="false">${escapeHtml(offerShareText(o))}</textarea>
-      <div class="oe-msg-a">
-        <button class="oe-btn oe-btn--save" data-msg="save">Зберегти</button>
-        <button class="oe-btn" data-msg="cancel">Скасувати</button>
-        ${own ? '<button class="oe-btn" data-msg="reset">Повернути стандартний</button>' : ''}
-        <span class="oe-msg-n">Текст лишається в цьому замовленні — і в чаті з клієнтом теж піде він</span>
-      </div>
-    </div>`;
-}
-function offerEdMsgWire(d, o){
-  const box = d.querySelector('.oe-msg');
-  if(!box) return;
-  const ta = box.querySelector('.oe-msg-t');
-  const close = ()=>{ oeMsgOpen = false; renderOfferEd(); };
-  box.querySelector('[data-msg="cancel"]').addEventListener('click', close);
-  const reset = box.querySelector('[data-msg="reset"]');
-  if(reset) reset.addEventListener('click', async ()=>{
-    if(!confirm('Повернути стандартний текст? Ваші правки для цього КП зникнуть.')) return;
-    delete o.shareMsg;
-    try{ await saveOrderMeta(o); toast('Повернули стандартний текст'); }
-    catch(e){ console.error(e); toast('Не збереглось'); }
-    renderOfferEd();
-  });
-  box.querySelector('[data-msg="save"]').addEventListener('click', async ()=>{
-    const link = offerUrl(o);
-    const txt = String(ta.value || '').trim();
-    if(!txt) return toast('Порожнє повідомлення надсилати нема сенсу');
-    if(link && txt.indexOf(link) < 0 && txt.indexOf('{кп}') < 0)
-      return toast('У тексті немає посилання на пропозицію — клієнту не буде що відкрити');
-    const tpl = link ? txt.split(link).join('{кп}') : txt;
-    const was = o.shareMsg;
-    o.shareMsg = (tpl === OFFER_MSG_DEFAULT) ? null : tpl.slice(0, 2000);
-    if(!o.shareMsg) delete o.shareMsg;
-    try{
-      await saveOrderMeta(o);
-      toast('Текст збережено — саме він і копіюється');
-      close();
-    }catch(e){
-      console.error(e);
-      if(was) o.shareMsg = was; else delete o.shareMsg;
-      toast('Не збереглось');
-    }
   });
 }
 
@@ -12303,13 +12247,55 @@ function quickReplies(){
   const q = (contentData || {}).quickReplies;
   return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
 }
+/* ── Заготовки просто у вікні діалога ────────────────────────────────────
+   Правити їх треба там, де їх видно в роботі. Доти єдиний вхід був через
+   «Конструктор сайту → Готові відповіді»: менеджер, який щойно побачив, що
+   текст незручний, мусив вийти з розмови, знайти налаштування й повернутись
+   — тобто не правив ніколи.
+
+   Список один на всіх і лежить там само, куди пише конструктор сайту, тож
+   двох різних наборів не буває. */
+function qrPanelHtml(o){
+  const L = quickReplies();
+  const ed = chatWin && chatWin.qrEdit;
+  const rows = L.map((q, i)=> ed === i ? qrEditHtml(q, i) : `
+    <div class="cw-qr-row">
+      <button class="cw-qr-b" data-qr="${i}">
+        <span class="cw-qr-t">${escapeHtml(q.t || 'Заготовка')}</span>
+        <span class="cw-qr-m">${escapeHtml(qrFill(q.m, o).replace(/\n/g, ' '))}</span>
+      </button>
+      <button class="cw-qr-e" data-qr-edit="${i}" title="Змінити заготовку">✎</button>
+    </div>`).join('');
+  return rows + (ed === 'new' ? qrEditHtml({ t:'', m:'' }, 'new')
+    : `<button class="cw-qr-add" data-qr-edit="new">＋ Нова заготовка</button>`);
+}
+function qrEditHtml(q, i){
+  return `
+    <div class="cw-qr-ed" data-ed="${i}">
+      <input class="cw-qr-in-t" type="text" maxlength="40" placeholder="назва"
+             value="${escapeHtml(q.t || '')}">
+      <textarea class="cw-qr-in-m" rows="6" maxlength="900"
+                placeholder="текст повідомлення">${escapeHtml(q.m || '')}</textarea>
+      <div class="cw-qr-hint">{кп} — посилання на пропозицію, {імʼя}, {бренд}, {номер}.
+        Підставляються в мить вставки, тож посилання завжди свіже.</div>
+      <div class="cw-qr-acts">
+        <button class="cw-qr-ok" data-qr-save>Зберегти</button>
+        <button class="cw-qr-no" data-qr-cancel>Скасувати</button>
+        ${i === 'new' ? '' : '<button class="cw-qr-rm" data-qr-del title="Прибрати заготовку">🗑</button>'}
+      </div>
+    </div>`;
+}
+async function qrStore(list){
+  const clean = list.map(q => ({ t: String(q.t || '').trim().slice(0, 40),
+                                 m: String(q.m || '').trim().slice(0, 900) }))
+                    .filter(q => q.m);
+  await PHOTOS_DOC.set({ quickReplies: clean }, { merge:true });
+  /* Знімок бази прийде своєю чергою, але вікно має оновитись одразу —
+     інакше здається, що збереження не спрацювало. */
+  contentData.quickReplies = clean;
+}
 function qrFill(text, o){
   const first = String(o.name || '').trim().split(/\s+/)[0] || '';
-  /* Заготовка, яка несе посилання на КП, — це те саме повідомлення, що й
-     кнопка «Повідомлення клієнту». Якщо менеджер підправив його олівцем у
-     самому КП, у чат має піти правлений текст, а не шаблон. */
-  if(String(text || '').indexOf('{кп}') >= 0 && String(o.shareMsg || '').trim())
-    text = offerMsgTpl(o);
   return String(text || '')
     .replace(/\{імʼя\}|\{ім'я\}|\{імя\}/g, first)
     .replace(/\{бренд\}/g, brandSnap(o.brand).name)
@@ -12401,13 +12387,7 @@ function renderChatWin(toBottom){
       : 'Повідомлень поки немає.'}</div>`;
   } else feed = chatRowsHtml(msgs);
 
-  const qr = chatWin.qr ? `<div class="cw-qr">${
-    quickReplies().length
-      ? quickReplies().map((q, i)=>`<button class="cw-qr-b" data-qr="${i}">
-           <span class="cw-qr-t">${escapeHtml(q.t || 'Заготовка')}</span>
-           <span class="cw-qr-m">${escapeHtml(qrFill(q.m, o).replace(/\n/g, ' '))}</span></button>`).join('')
-      : `<div class="cw-qr-none">Заготовок ще немає. Додати: Конструктор сайту → «Готові відповіді».</div>`
-  }</div>` : '';
+  const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
 
   // Sitniks приймає від нас лише текст — чесно попереджаємо, що фото туди
   // піде посиланням, а не картинкою в чаті.
@@ -12468,6 +12448,11 @@ function wireChatWin(box, o){
     b.addEventListener('click', ()=>{
       const q = quickReplies()[+b.dataset.qr];
       if(!q) return;
+      /* Заготовка з посиланням на пропозицію без самої пропозиції — це лист
+         «дивіться КП», у якому нічого відкрити. Помітив би це першим клієнт,
+         тож не вставляємо взагалі. */
+      if(String(q.m || '').indexOf('{кп}') >= 0 && !offerUrl(o))
+        return toast('У замовлення ще немає КП — спершу зберіть пропозицію');
       // Вставляємо, а не надсилаємо: заготовку майже завжди дописують під
       // конкретну людину, і випадкове «надіслалось саме» тут неприпустиме.
       const cur = inp.value.trim();
@@ -12478,6 +12463,40 @@ function wireChatWin(box, o){
       if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
     });
   });
+  box.querySelectorAll('[data-qr-edit]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const v = b.dataset.qrEdit;
+      chatWin.qrEdit = (v === 'new') ? 'new' : +v;
+      chatWin.draft = inp.value;
+      renderChatWin();
+    });
+  });
+  const ed = box.querySelector('.cw-qr-ed');
+  if(ed){
+    const tIn = ed.querySelector('.cw-qr-in-t'), mIn = ed.querySelector('.cw-qr-in-m');
+    const stop = ()=>{ chatWin.qrEdit = null; chatWin.draft = inp.value; renderChatWin(); };
+    ed.querySelector('[data-qr-cancel]').addEventListener('click', stop);
+    ed.querySelector('[data-qr-save]').addEventListener('click', async ()=>{
+      const m = String(mIn.value || '').trim();
+      if(!m) return toast('Порожня заготовка нічого не варта');
+      const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
+      const i = ed.dataset.ed;
+      if(i === 'new') list.push({ t:tIn.value, m });
+      else { list[+i] = { t:tIn.value, m }; }
+      try{ await qrStore(list); toast('Заготовку збережено'); stop(); }
+      catch(e){ console.error(e); toast('Не збереглось'); }
+    });
+    const del = ed.querySelector('[data-qr-del]');
+    if(del) del.addEventListener('click', async ()=>{
+      const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
+      const i = +ed.dataset.ed;
+      if(!confirm('Прибрати заготовку «' + (list[i].t || list[i].m.slice(0, 30)) + '»?')) return;
+      list.splice(i, 1);
+      try{ await qrStore(list); toast('Прибрали'); stop(); }
+      catch(e){ console.error(e); toast('Не збереглось'); }
+    });
+    mIn.focus();
+  }
   const kpBtn = box.querySelector('[data-cw-kp]');
   if(kpBtn) kpBtn.addEventListener('click', ()=>{
     const cur = inp.value.trim();
