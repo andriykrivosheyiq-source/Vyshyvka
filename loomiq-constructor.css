@@ -1002,3 +1002,7 @@
 @media(max-width:380px){
  .pm-pick-grid{grid-template-columns:1fr;}
 }
+/* Картки одягу лишаються вітриною: подивитись — так, провалитись у
+     конструктор — ні. Тому вони перестають вдавати кнопку. */
+  html.lq-leadonly #catalog .product{ cursor:default; }
+html.lq-leadonly #catalog .product .go{ display:none; }

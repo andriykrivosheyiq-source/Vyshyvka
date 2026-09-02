@@ -2227,6 +2227,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-family:var(--font-sf);color:var(--ink);outline:none;
   }
   .contact-phone-row input::placeholder{color:var(--muted);}
+  /* Імʼя і кількість — одним рядком над телефоном: на телефоні перелаштовуються
+     в стовпчик, бо два поля по пів екрана вже не поля. */
+  .contact-field-row{display:flex;gap:10px;margin-top:14px;}
+  .contact-inp{
+    flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:#FFFFFF;
+    padding:14px 16px;font-size:15px;font-family:var(--font-sf);color:var(--ink);outline:none;
+  }
+  .contact-inp::placeholder{color:var(--muted);}
+  .contact-inp:focus{border-color:var(--ink);}
+  .contact-inp--qty{flex:0 1 46%;}
+  @media (max-width:420px){ .contact-field-row{flex-direction:column;} .contact-inp--qty{flex:1;} }
   .contact-call-btn{width:100%;justify-content:center;margin-top:12px;}
   .contact-lock{
     display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13.5px;color:var(--muted);
@@ -2281,9 +2292,37 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     /* Плаваюча кнопка "Створити мерч" — по центру контенту, не на всю ширину */
     .float-cta-bar .btn{ max-width:420px; margin-left:auto; margin-right:auto; }
   }
+
+  /* ── Тільки заявка ────────────────────────────────────────────────────────
+     Клієнт не збирає мерч сам. Конструктор нікуди не дівся — ним щодня
+     працюємо ми, — але для відвідувача дверей у нього немає: кошик і каталог
+     як шлях зникають, лишається одна дія на всю сторінку.
+
+     Аналітика показала чому: з тих, хто відкрив конструктор, до кошика
+     доходили одиниці, і чеки там були найменші. Людина приходить із задачею
+     «одягнути команду», а не «зібрати виріб»; збирати їй нічим і ніколи. */
+  html.lq-leadonly .cart-header-btn,
+  html.lq-leadonly #menuCartBtn,
+  html.lq-leadonly #menuCatalogBtn,
+  html.lq-leadonly .catalog-cta-btn,
+  html.lq-leadonly #heroCreateBtn{ display:none !important; }
+  /* Картки одягу лишаються вітриною: подивитись — так, провалитись у
+     конструктор — ні. Тому вони перестають вдавати кнопку. */
+  html.lq-leadonly #catalog .product{ cursor:default; }
+  html.lq-leadonly #catalog .product .go{ display:none; }
+  /* Кнопка заявки в шапці героя стає головною — другої поруч уже немає */
+  html.lq-leadonly .hero-leave-request{ background:var(--ink); color:#fff; border-color:var(--ink); }
 </style>
 </head>
 <body>
+<script>
+/* Режим «тільки заявка» вмикаємо ДО малювання: інакше кошик і «Створити
+   мерч» встигають блимнути на екрані. Менеджерський режим (?manager=1) і
+   конструктор сайту (?edit=1) працюють як раніше — це наші двері, і вони
+   лишаються відчиненими. */
+window.LQ_LEADONLY = !/[?&](manager|edit)=1\b/.test(location.search);
+if(window.LQ_LEADONLY) document.documentElement.classList.add('lq-leadonly');
+</script>
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5Z28ZZV5"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -2437,11 +2476,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </div>
         <p>Залишіть номер телефону і ми зв'яжемось з вами протягом 5 хвилин.</p>
         <form onsubmit="return false;">
+          <!-- Три поля, не більше. Імʼя — щоб не починати розмову з «алло»;
+               кількість — єдине, без чого прорахунок не почати, і питати її
+               в переписці означає втратити ще пів дня. Усе інше менеджер
+               спитає голосом, коли вже говорить із людиною. -->
+          <div class="contact-field-row">
+            <input type="text" class="contact-inp" name="lead-name" placeholder="Ваше ім'я"
+                   aria-label="Ваше ім'я" autocomplete="name" maxlength="60">
+            <input type="number" class="contact-inp contact-inp--qty" name="lead-qty"
+                   placeholder="Скільки одиниць" aria-label="Скільки одиниць"
+                   min="1" max="100000" inputmode="numeric">
+          </div>
           <div class="contact-phone-row">
             <span class="contact-phone-prefix">+380</span>
             <input type="tel" placeholder="Ваш номер телефону" aria-label="Номер телефону" required>
           </div>
-          <button type="submit" class="btn btn-primary contact-call-btn">Передзвоніть мені</button>
+          <button type="submit" class="btn btn-primary contact-call-btn">Залишити заявку</button>
         </form>
         <div class="contact-lock">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -3914,7 +3964,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <h1>Створіть мерч для команди <span class="accent">за 1 хв</span></h1>
       <p class="lead">Завантажте логотип і одразу побачите точну ціну та дату готовності.</p>
       <div class="cta-row cta-row--stack">
-        <button class="btn btn-primary" data-open-catalog>Створити мерч</button>
+        <button class="btn btn-primary" id="heroCreateBtn" data-open-catalog>Створити мерч</button>
         <button class="btn btn-ghost hero-leave-request" id="heroLeaveRequestBtn">
           Залишити заявку
         </button>
@@ -4694,8 +4744,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }, true);
 
   /* ---------- перший показ ---------- */
-  // Не чіпаємо тих, хто прийшов за конкретним, і не заважаємо менеджеру
-  var OFF = /[?&](manager|edit)=1\b/.test(location.search) || Q.get('q') === '0';
+  // Не чіпаємо тих, хто прийшов за конкретним, і не заважаємо менеджеру.
+  // У режимі «тільки заявка» стартер мовчить узагалі: він питав сферу й
+  // логотип, щоб підлаштувати каталог, а каталогу для клієнта більше немає.
+  var OFF = /[?&](manager|edit)=1\b/.test(location.search) || Q.get('q') === '0'
+            || !!W.LQ_LEADONLY;
   try{ if(W.top !== W.self) OFF = true; }catch(e){ OFF = true; }
 
   apply();
@@ -4715,6 +4768,64 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     e.preventDefault(); e.stopPropagation();
     open(W.LQ_START.s ? 2 : 1); track('start_open_cta');
   }, true);
+})();
+</script>
+
+<script>
+/* ============================================================
+   ТІЛЬКИ ЗАЯВКА — одна дія на всю сторінку
+
+   Наповнення сторінки лишається тим самим; міняється лише те, КУДИ ведуть
+   кнопки. Усе, що вело в каталог, кошик або конструктор, тепер веде у
+   форму заявки, а кошик і пункт «Каталог» у меню зникають зовсім.
+
+   Перехоплюємо на WINDOW у фазі захоплення — це найраніша точка на шляху
+   події. Обробники каталогу, стартера й кошика висять на document, тож
+   вони просто не отримають кліку, і жоден із них не треба розплітати.
+
+   Менеджерський режим сюди не заходить: увесь конструктор лишається
+   робочим інструментом, ним збирається кожне КП.
+   ============================================================ */
+(function(){
+  if(!window.LQ_LEADONLY) return;
+  var LEAD = '[data-open-catalog], #menuCatalogBtn, #menuCartBtn, .cart-header-btn,'
+           + ' #promoUploadBtn, #catalog .product, .wear-card, [data-scroll-to="catalog"]';
+
+  function openLead(){
+    if(window.__lqOpenLead) window.__lqOpenLead();
+    else location.hash = '#contact';
+  }
+  window.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest(LEAD) : null;
+    if(!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+    openLead();
+  }, true);
+
+  /* Підпис кнопок. Текст міняємо в текстовому вузлі, а не через textContent:
+     у частині кнопок поруч живе стрілка, і вона має лишитись. */
+  function relabel(el, text){
+    var got = false;
+    [].slice.call(el.childNodes).forEach(function(n){
+      if(n.nodeType !== 3 || !n.nodeValue.trim()) return;
+      if(got){ n.nodeValue = ''; return; }
+      n.nodeValue = text; got = true;
+    });
+    if(!got) el.insertBefore(document.createTextNode(text), el.firstChild);
+  }
+  function paint(){
+    document.querySelectorAll('[data-open-catalog]').forEach(function(b){
+      if(b.id === 'heroCreateBtn') return;    // у героя кнопка заявки вже стоїть
+      relabel(b, 'Залишити заявку');
+    });
+  }
+  if(document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', paint);
+  else paint();
+  // Каталог на головній перемальовується з адмінки — підписи ставимо знову
+  document.addEventListener('lq-content', paint);
 })();
 </script>
 
@@ -5375,6 +5486,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     else contactModal.classList.remove('open');
   };
   phoneBtn.addEventListener('click', openContactModal);
+  // Одна дія на всю сторінку — тож дорогу до неї має знати й режим «тільки заявка»
+  window.__lqOpenLead = openContactModal;
   document.getElementById('heroLeaveRequestBtn').addEventListener('click', openContactModal);
   menuContactsBtn.addEventListener('click', openContactModal);
   contactModalBack.addEventListener('click', closeContactModal);
@@ -5397,8 +5510,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     btn.addEventListener('click', function(e){ e.preventDefault(); catalogModalCtrl.open(); });
   });
   // ?start=catalog — одразу відкриваємо каталог (використовує «Прорахунок» в адмінці:
-  // менеджеру не потрібна посадкова, він одразу обирає товар)
-  if(/[?&]start=catalog\b/.test(location.search)){
+  // менеджеру не потрібна посадкова, він одразу обирає товар). Клієнту цей
+  // шлях закритий, навіть якщо адресу з ним хтось перешле.
+  if(/[?&]start=catalog\b/.test(location.search) && !window.LQ_LEADONLY){
     setTimeout(function(){ try{ catalogModalCtrl.open(); }catch(e){} }, 250);
   }
   document.getElementById('catalogPhoneBtn').addEventListener('click', openContactModal);
@@ -6419,11 +6533,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
-<script src="loomiq-fingerprint.js?v=cbe6ca01b0"></script>
-<script src="loomiq-pricing.js?v=cbe6ca01b0"></script>
+<script src="loomiq-fingerprint.js?v=92aef7ae03"></script>
+<script src="loomiq-pricing.js?v=92aef7ae03"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=cbe6ca01b0"></script>
+<script src="loomiq-constructor.js?v=92aef7ae03"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
@@ -6630,7 +6744,7 @@ window.LOOMIQ_CONFIG = {
       return firebase.firestore();
     }catch(e){ console.warn('Firebase init failed', e); return null; }
   };
-  function postLead(phone, name){
+  function postLead(phone, name, qty){
     /* Крок «lead», а не «checkout». Доти заявка з форми позначалась тим
        самим кроком, що й оформлення кошика, — і у воронці два різні шляхи
        злипались в один. Через це не можна було сказати ні скільки заявок
@@ -6638,9 +6752,11 @@ window.LOOMIQ_CONFIG = {
        сиділи обидва. */
     if(window.lqAn){ window.lqAn.step('lead'); window.lqAn.track('lead_submit'); }
     var who = String(name || '').trim().slice(0, 60);
-    // Ім'я домішуємо в контекст: воркер заявок приймає вільний рядок, і
-    // міняти його заради одного поля не варто.
-    var label = (document.title || 'Заявка з сайту') + (who ? ' · ' + who : '');
+    var units = Math.max(0, Math.round(+qty || 0)) || 0;
+    // Ім'я й кількість домішуємо в контекст: воркер заявок приймає вільний
+    // рядок, і міняти його заради двох полів не варто.
+    var label = (document.title || 'Заявка з сайту') + (who ? ' · ' + who : '')
+              + (units ? ' · ' + units + ' од.' : '');
     var payload = { phone: phone, page: location.href, context: label, ts: new Date().toISOString() };
 
     /* Заявка має потрапити не лише в Telegram, а й у базу — інакше вона
@@ -6667,6 +6783,7 @@ window.LOOMIQ_CONFIG = {
       else db.collection('webLeads').add({
         phone: String(phone || '').slice(0, 20),
         name: who,
+        qty: units,
         page: String(location.pathname || '/').slice(0, 120),
         context: String(document.title || '').slice(0, 120),
         site: (window.LQ_SITE || 'main'),
@@ -6688,7 +6805,10 @@ window.LOOMIQ_CONFIG = {
   window.__lqLead = postLead;
 
   function sendLead(phone, form, btn, origText){
-    postLead(phone, '').then(function(ok){
+    var f = form || document;
+    var nm = f.querySelector('[name="lead-name"]');
+    var qt = f.querySelector('[name="lead-qty"]');
+    postLead(phone, nm ? nm.value : '', qt ? qt.value : 0).then(function(ok){
       if(ok){ showSuccess(form); }
       else {
         if(btn){ btn.disabled=false; btn.textContent=origText; }
