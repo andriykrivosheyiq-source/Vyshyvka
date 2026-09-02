@@ -178,6 +178,9 @@ ok(await p.evaluate(() => !document.querySelector('.od-deal') && !document.query
   'старі блоки лишились у картці');
 
 const TILL = dayAhead(9);
+/* Нагадування живуть смугою — спершу її відкриваємо, як це робить менеджер. */
+await p.click('[data-fold="rem"]');
+await p.waitForTimeout(700);
 await p.fill('.rem-in', 'передзвонити після затвердження бюджету');
 await p.fill('.rem-d', TILL);
 await p.fill('.rem-tm', '11:30');
