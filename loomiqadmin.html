@@ -341,10 +341,12 @@
   .an-empty{font-size:12.5px;color:var(--ink-soft);padding:6px 0;}
   .an-dim{color:var(--ink-soft);font-size:11.5px;}
 
-  .an-spend-row{display:flex;flex-wrap:wrap;gap:8px;}
-  .an-spend-row input,.an-spend-row select{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
+  .an-spend-row,.an-fx-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .an-spend-row input,.an-spend-row select,
+  .an-fx-row input{font:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line);
     border-radius:8px;background:var(--paper);color:var(--ink);min-width:130px;flex:1;}
-  @media (min-width:560px){.an-spend-row input,.an-spend-row select{flex:none;}}
+  @media (min-width:560px){.an-spend-row input,.an-spend-row select,
+    .an-fx-row input{flex:none;}}
   .an-attr{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:12px;
     color:var(--ink-soft);margin-bottom:12px;}
   .an-attr-btn{all:unset;cursor:pointer;font-size:12px;padding:5px 11px;border-radius:999px;
@@ -2565,7 +2567,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <button data-b="traffic">2 · Трафік</button>
         <button data-b="behav">3 · Поведінка</button>
         <button data-b="sales">4 · Продажі</button>
-        <button data-b="ads">5 · Реклама</button>
+        <button data-b="money">5 · Прибуток і гроші</button>
+        <button data-b="ads">6 · Реклама</button>
       </div>
 
       <!-- ── 1. ГОЛОВНЕ ─────────────────────────────────────────── -->
@@ -2668,7 +2671,44 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
       </div>
 
-      <!-- ── 5. РЕКЛАМА ─────────────────────────────────────────── -->
+      <!-- ── 5. ПРИБУТОК І ГРОШІ ────────────────────────────────── -->
+      <div class="an-pane" id="an-pane-money" hidden>
+        <div id="an-money-alerts"></div>
+        <div class="card">
+          <div class="card-head"><h2>Прибуток за період</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Рахуємо від дня, коли картку
+            перенесли в «Оплачено». Прорахунки й відмови сюди не входять: це ще не гроші.
+            Відмова після оплати йде мінусом на день відмови — місяць, який уже показали,
+            не змінюється заднім числом.</div>
+          <div id="an-pnl"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Скільки зайшло по днях</h2></div>
+          <div class="sub" style="margin-bottom:12px;">«Гроші» — з журналу оплат у картці:
+            кожен платіж своєю сумою і датою. «Виручка» — повна ціна замовлення в день,
+            коли воно стало оплаченим. Різниця між ними — те, що вам ще винні.</div>
+          <div id="an-cash-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Постійні витрати</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Єдине, чого в CRM немає й бути не може.
+            Вносьте раз на місяць — і звіт вище перестане бути валовою маржею й почне
+            показувати справжній прибуток. За коротший період сума ділиться по днях.</div>
+          <div class="an-fx-row">
+            <input type="month" id="an-fx-month">
+            <input type="number" id="an-fx-salary" placeholder="зарплати" min="0" step="1">
+            <input type="number" id="an-fx-rent"   placeholder="оренда"   min="0" step="1">
+            <input type="number" id="an-fx-tax"    placeholder="податки"  min="0" step="1">
+            <input type="number" id="an-fx-other"  placeholder="інше"     min="0" step="1">
+            <button class="btn btn-accent" id="an-fx-save">Зберегти</button>
+          </div>
+          <div class="sub" style="margin-top:10px;">Оберіть місяць — поля підставляться самі.
+            Порожнє поле означає нуль.</div>
+          <div id="an-fx-list" style="margin-top:14px;"></div>
+        </div>
+      </div>
+
+      <!-- ── 6. РЕКЛАМА ─────────────────────────────────────────── -->
       <div class="an-pane" id="an-pane-ads" hidden>
         <div class="card">
           <div class="card-head"><h2>Рекламний бюджет</h2></div>
@@ -15419,6 +15459,130 @@ async function init(){
   }
   function sum(list, f){ return list.reduce(function(a, x){ return a + (+f(x) || 0); }, 0); }
 
+  /* ══════════ ГРОШІ ══════════════════════════════════════════
+     Три різні числа, які не можна складати в одне.
+
+     ГРОШІ    — скільки реально зайшло. Беремо з журналу оплат: кожен
+                платіж своєю сумою і своєю датою. Єдине число у звіті, яке
+                справді лежить на рахунку.
+     ВИРУЧКА  — повна ціна замовлень, що дійшли до «Оплачено», на день
+                цього переходу. Це вже угода, а не надія.
+     ПОТЕНЦІЙНІ — усе, що в роботі й ще не оплачене. Не гроші, і в жодну
+                суму з грошима не входить.
+
+     Доти виручкою вважалась ціна ВСІХ карток, створених за період, — разом
+     із прорахунками, на які ніхто не відповів, і навіть із відмовами.
+     Тобто в головному числі звіту стояли гроші, яких не було ніколи.
+
+     Дата — день оплати, а не створення картки. Інакше замовлення, зроблене
+     в березні й оплачене у квітні, падало б у березень, і місяць, який уже
+     комусь показали, заднім числом підростав би. */
+  function dayOf(iso){ return iso ? String(iso).slice(0, 10) : ''; }
+  /* Статуси від «Оплачено» і далі. «Відмови» серед них немає: statusFlow()
+     не віддає вимкнені колонки, а вона саме така. */
+  function paidStage(){
+    var f = statusFlow().map(function(s){ return s.key; });
+    var i = f.indexOf('paid');
+    return i < 0 ? [] : f.slice(i);
+  }
+  function isPaidOrder(o){ return paidStage().indexOf(o && o.status) >= 0; }
+  /* День, коли картку перенесли в «Оплачено». Для старих карток історії
+     може не бути — тоді лишається день створення: краще неточна дата, ніж
+     замовлення, що зникло зі звіту зовсім. */
+  function paidDay(o){
+    var st = paidStage();
+    var h = (o.hist || []).filter(function(x){ return st.indexOf(x.s) >= 0; })[0];
+    return dayOf((h && h.at) || o.createdAt);
+  }
+  function everPaid(o){
+    return (o.hist || []).some(function(x){ return x.s === 'paid'; }) ||
+           paidSum(o) > 0 || isPaidOrder(o);
+  }
+  function cancelDay(o){
+    var h = (o.hist || []).filter(function(x){ return x.s === 'cancel'; }).pop();
+    return dayOf((h && h.at) || o.updatedAt || o.createdAt);
+  }
+
+  /* Постійні витрати — єдине, чого в CRM немає й бути не може: зарплати,
+     оренда, податки. Вносяться руками, по місяцях. Без них звіт показує
+     валову маржу; з ними — справжній прибуток. */
+  function fixedMonths(){ return (AN.fixed && AN.fixed.months) || {}; }
+  function fixedOfMonth(m){
+    var v = fixedMonths()[m] || {};
+    return FIXED_KINDS.reduce(function(a, k){ return a + (+v[k.k] || 0); }, 0);
+  }
+  /* Місячну суму розкладаємо по днях: період може бути будь-який, і сім
+     днів не мають нести витрати за всі тридцять. */
+  function fixedIn(days){
+    var byMonth = {};
+    days.forEach(function(d){
+      var m = d.slice(0, 7);
+      byMonth[m] = (byMonth[m] || 0) + 1;
+    });
+    return Object.keys(byMonth).reduce(function(a, m){
+      var inMonth = new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
+      return a + fixedOfMonth(m) / inMonth * byMonth[m];
+    }, 0);
+  }
+  var FIXED_KINDS = [
+    { k:'salary', ua:'Зарплати' }, { k:'rent', ua:'Оренда' },
+    { k:'tax',    ua:'Податки'  }, { k:'other', ua:'Інше' }
+  ];
+
+  /* Зведення по грошах за період. Те, що прив'язане до дати, рахуємо в
+     межах періоду; борги й роботу в процесі — станом на ЗАРАЗ, бо це не
+     подія, а залишок. */
+  function moneyReport(days){
+    var from = days[0], to = days[days.length - 1];
+    var mine = (orders || []).filter(function(o){
+      return !AN.site || (o.site || 'main') === AN.site;
+    });
+    var R = { cash:0, revenue:0, cost:0, paidN:0,
+              refund:0, refundN:0,
+              pot:0, potN:0, due:0, dueN:0, noPayN:0, noPaySum:0,
+              byDay:{} };
+    var day = function(d){
+      if(!R.byDay[d]) R.byDay[d] = { cash:0, rev:0, cost:0 };
+      return R.byDay[d];
+    };
+    mine.forEach(function(o){
+      var price = +o.totalPrice || 0, cost = +o.totalCost || 0;
+      payList(o).forEach(function(p){
+        var d = dayOf(p.at);
+        if(d >= from && d <= to){ R.cash += +p.sum || 0; day(d).cash += +p.sum || 0; }
+      });
+      if(isPaidOrder(o)){
+        var d = paidDay(o);
+        if(d >= from && d <= to){
+          R.revenue += price; R.cost += cost; R.paidN++;
+          day(d).rev += price; day(d).cost += cost;
+        }
+        /* Борг — залишок станом на зараз, без огляду на період: питання
+           «скільки нам винні» не має періоду. */
+        var left = Math.max(0, Math.round(price - paidSum(o)));
+        if(left > 0){ R.due += left; R.dueN++; }
+        if(paidSum(o) <= 0){ R.noPayN++; R.noPaySum += price; }
+      }else if(o.status !== 'cancel'){
+        R.pot += price; R.potN++;
+      }
+      /* Відмова після оплати — мінусом на день відмови, а не заднім числом.
+         Місяць, який уже показали, мінятись не має. */
+      if(o.status === 'cancel' && everPaid(o)){
+        var cd = cancelDay(o);
+        if(cd >= from && cd <= to){
+          R.revenue -= price; R.cost -= cost;
+          R.refund += price; R.refundN++;
+          day(cd).rev -= price; day(cd).cost -= cost;
+        }
+      }
+    });
+    R.margin = R.revenue - R.cost;
+    R.spend = spendIn(days);
+    R.fixed = fixedIn(days);
+    R.profit = R.margin - R.spend - R.fixed;
+    return R;
+  }
+
   /* ── Витрати на рекламу ───────────────────────────────────── */
   async function loadSpend(){
     if(AN.spend) return AN.spend;
@@ -15427,6 +15591,14 @@ async function init(){
       AN.spend = (d.exists && (d.data() || {}).days) || {};
     }catch(e){ AN.spend = {}; }
     return AN.spend;
+  }
+  async function loadFixed(){
+    if(AN.fixed) return AN.fixed;
+    try{
+      var d = await fbDb.collection('loomiq').doc('fixedcosts').get();
+      AN.fixed = { months: (d.exists && (d.data() || {}).months) || {} };
+    }catch(e){ AN.fixed = { months:{} }; }
+    return AN.fixed;
   }
   /* Старий формат — одне число за день. Читаємо його як «інша реклама»,
      щоб уже внесені суми не зникли. */
@@ -15448,6 +15620,12 @@ async function init(){
 
   /* ── Дрібні помічники малювання ───────────────────────────── */
   function pct(a, b){ return b > 0 ? (a / b * 100) : 0; }
+  function plural(n, one, few, many){
+    var d = n % 10, dd = n % 100;
+    if(d === 1 && dd !== 11) return one;
+    if(d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return few;
+    return many;
+  }
   function p1(v){ return (Math.round(v * 10) / 10).toLocaleString('uk-UA') + '%'; }
   function dur(sec){
     sec = Math.round(sec || 0);
@@ -15536,14 +15714,36 @@ async function init(){
   function renderChannels(A, days, ords){
     var sp = spendByChannel(days);
     var visits = AN.attr === 'first' ? A.chFirst : A.ch;
-    var byCh = {};
-    ords.forEach(function(o){
+    /* Заявки рахуємо всі, гроші — тільки з оплачених. Доти канал, який
+       привів десять прорахунків і жодної оплати, показував виручку й
+       окупність, ніби він працює.
+
+       Гроші беремо за тим самим правилом, що й у звіті «Прибуток»: за днем
+       ОПЛАТИ, з відмовами мінусом. Інакше дві таблиці в одному звіті
+       показували б різну виручку за той самий період, і кожен, хто їх
+       читає, витрачав би час на з'ясування, чому вони не сходяться. */
+    var from = days[0], to = days[days.length - 1];
+    var chOf = function(o){
       var an = o.an || {};
-      var c = channelOf(AN.attr === 'first' ? (an.first || an.src) : an.src);
-      if(!byCh[c]) byCh[c] = { n:0, sum:0, marg:0 };
-      byCh[c].n++;
-      byCh[c].sum  += +o.totalPrice || 0;
-      byCh[c].marg += +o.margin || 0;
+      return channelOf(AN.attr === 'first' ? (an.first || an.src) : an.src);
+    };
+    var byCh = {};
+    var cell = function(c){
+      if(!byCh[c]) byCh[c] = { n:0, pn:0, sum:0, marg:0 };
+      return byCh[c];
+    };
+    ords.forEach(function(o){ cell(chOf(o)).n++; });
+    (orders || []).forEach(function(o){
+      if(AN.site && (o.site || 'main') !== AN.site) return;
+      var price = +o.totalPrice || 0, cost = +o.totalCost || 0;
+      if(isPaidOrder(o) && paidDay(o) >= from && paidDay(o) <= to){
+        var c = cell(chOf(o));
+        c.pn++; c.sum += price; c.marg += price - cost;
+      }else if(o.status === 'cancel' && everPaid(o) &&
+               cancelDay(o) >= from && cancelDay(o) <= to){
+        var c2 = cell(chOf(o));
+        c2.sum -= price; c2.marg -= price - cost;
+      }
     });
 
     var keys = {};
@@ -15553,26 +15753,31 @@ async function init(){
     Object.keys(sp.m).forEach(function(k){ keys[k] = 1; });
 
     var list = Object.keys(keys).map(function(k){
-      var o = byCh[k] || { n:0, sum:0, marg:0 };
-      return { k:k, spend:+sp.m[k] || 0, v:visits[k] || 0, n:o.n, sum:o.sum, marg:o.marg };
+      var o = byCh[k] || { n:0, pn:0, sum:0, marg:0 };
+      return { k:k, spend:+sp.m[k] || 0, v:visits[k] || 0,
+               n:o.n, pn:o.pn, sum:o.sum, marg:o.marg };
     }).sort(function(a, b){ return (b.spend - a.spend) || (b.sum - a.sum) || (b.v - a.v); });
 
-    var T = { spend:0, v:0, n:0, sum:0, marg:0 };
-    list.forEach(function(r){ T.spend += r.spend; T.v += r.v; T.n += r.n; T.sum += r.sum; T.marg += r.marg; });
+    var T = { spend:0, v:0, n:0, pn:0, sum:0, marg:0 };
+    list.forEach(function(r){ T.spend += r.spend; T.v += r.v; T.n += r.n;
+      T.pn += r.pn; T.sum += r.sum; T.marg += r.marg; });
 
     function row(r, isTot){
-      var cpo   = r.n ? r.spend / r.n : 0;
+      /* Ціна замовлення — за ОПЛАЧЕНИМИ: скільки коштує реальний клієнт,
+         а не звернення, яке нічим не закінчилось. */
+      var cpo   = r.pn ? r.spend / r.pn : 0;
       var roas  = r.spend ? r.sum / r.spend : 0;
       var profit = r.marg - r.spend;
-      var bad = r.spend > 0 && !r.n;
+      var bad = r.spend > 0 && !r.pn;
       return { tot:isTot, c:[
         (isTot ? 'Разом' : escapeHtml(CH_UA[r.k] || r.k)),
         r.spend ? fmt(r.spend) + ' грн' : '—',
         fmt(r.v),
         fmt(r.n),
+        fmt(r.pn),
         fmt(r.sum) + ' грн',
         fmt(r.marg) + ' грн',
-        r.spend ? (r.n ? fmt(cpo) + ' грн' : '<span class="an-down">немає замовлень</span>') : '—',
+        r.spend ? (r.pn ? fmt(cpo) + ' грн' : '<span class="an-down">немає оплат</span>') : '—',
         r.spend ? (Math.round(roas * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
         (r.spend || r.marg)
           ? '<b class="' + (profit >= 0 ? 'an-up' : 'an-down') + '">' + fmt(profit) + ' грн</b>'
@@ -15587,9 +15792,9 @@ async function init(){
         '<button class="an-attr-btn' + (AN.attr === 'first' ? ' on' : '') + '" data-attr="first">тому, хто привів уперше</button>' +
         '<button class="an-attr-btn' + (AN.attr === 'last'  ? ' on' : '') + '" data-attr="last">останньому переходу</button>' +
       '</div>' +
-      tbl([{t:'Канал'},{t:'Витрати',num:1},{t:'Візити',num:1},{t:'Замовлень',num:1},
-           {t:'Виручка',num:1},{t:'Маржа',num:1},{t:'Ціна замовлення',num:1},
-           {t:'Окупність',num:1},{t:'Прибуток',num:1}],
+      tbl([{t:'Канал'},{t:'Витрати',num:1},{t:'Візити',num:1},{t:'Заявок',num:1},
+           {t:'Оплачено',num:1},{t:'Виручка',num:1},{t:'Маржа',num:1},
+           {t:'Ціна оплати',num:1},{t:'Окупність',num:1},{t:'Прибуток',num:1}],
           rows, 'Даних за період немає.');
 
     document.getElementById('an-channels').querySelectorAll('[data-attr]').forEach(function(b){
@@ -15602,24 +15807,33 @@ async function init(){
   }
 
   /* ── 1. ГОЛОВНЕ ───────────────────────────────────────────── */
-  function renderMain(A, P, days, ords, prevOrds){
+  function renderMain(A, P, days, ords, prevOrds, prevDays){
     var spend = spendIn(days);
-    var revenue = sum(ords, function(o){ return o.totalPrice; });
-    var cost    = sum(ords, function(o){ return o.totalCost;  });
-    var margin  = revenue - cost;
-    var avg     = ords.length ? revenue / ords.length : 0;
+    /* Гроші — тільки з оплачених замовлень і на день оплати. Доти сюди
+       йшла ціна ВСІХ створених карток: прорахунків, на які ніхто не
+       відповів, і навіть відмов. Замовлення як лічильник лишається за
+       всіма створеними — це воронка, і конверсія «візит → замовлення» без
+       нього не має сенсу. */
+    var M = moneyReport(days), PM = moneyReport(prevDays);
+    var revenue = M.revenue, margin = M.margin;
+    var avg     = M.paidN ? revenue / M.paidN : 0;
     var conv    = pct(ords.length, A.visits);
-    var prevRev = sum(prevOrds, function(o){ return o.totalPrice; });
+    var toPaid  = pct(M.paidN, ords.length);
+    var prevRev = PM.revenue;
     var prevConv = pct(prevOrds.length, P.visits);
 
     var K = [];
     K.push(kpi('Візити', fmt(A.visits), note(delta(A.visits, P.visits), fmt(A.newVis) + ' вперше')));
     K.push(kpi('Замовлення', fmt(ords.length), delta(ords.length, prevOrds.length)));
-    K.push(kpi('Виручка', fmt(revenue) + ' грн', delta(revenue, prevRev)));
+    K.push(kpi('Оплачено', fmt(M.paidN), p1(toPaid) + ' від замовлень', M.paidN ? 'good' : ''));
+    K.push(kpi('Виручка', fmt(revenue) + ' грн', note(delta(revenue, prevRev), 'тільки оплачені')));
+    K.push(kpi('Гроші за період', fmt(M.cash) + ' грн', 'реально зайшло'));
     K.push(kpi('Маржа', fmt(margin) + ' грн', p1(pct(margin, revenue)) + ' від виручки',
                margin > 0 ? 'good' : (revenue ? 'bad' : '')));
     K.push(kpi('Конверсія в замовлення', p1(conv), delta(conv, prevConv), conv >= 1 ? 'good' : ''));
-    K.push(kpi('Середній чек', fmt(avg) + ' грн'));
+    K.push(kpi('Середній чек', fmt(avg) + ' грн', 'по оплачених'));
+    K.push(kpi('Потенційні', fmt(M.pot) + ' грн',
+      fmt(M.potN) + ' в роботі · це ще не гроші'));
     K.push(kpi('Середній час на сайті', dur(A.visits ? A.sec / A.visits : 0),
                'догортують до ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%'));
     K.push(kpi('Затримались', p1(pct(A.engaged, A.visits)), 'решта пішла одразу'));
@@ -15628,8 +15842,9 @@ async function init(){
         'замовлення по ' + (ords.length ? fmt(spend / ords.length) : '—') + ' грн'));
       K.push(kpi('Окупність реклами', revenue ? (Math.round(revenue / spend * 10) / 10).toLocaleString('uk-UA') + '×' : '—',
         'на кожну вкладену гривню', revenue >= spend ? 'good' : 'bad'));
-      K.push(kpi('Чистий прибуток', fmt(margin - spend) + ' грн', 'маржа мінус реклама',
-        (margin - spend) > 0 ? 'good' : 'bad'));
+      K.push(kpi('Чистий прибуток', fmt(M.profit) + ' грн',
+        M.fixed ? 'маржа − реклама − постійні' : 'без постійних витрат — див. «Прибуток і гроші»',
+        M.profit > 0 ? 'good' : 'bad'));
     } else {
       K.push(kpi('Реклама', '—', 'внесіть бюджет у розділі «Реклама»'));
     }
@@ -15958,13 +16173,17 @@ async function init(){
 
     /* Клієнти — за телефоном, за весь час: скільки повертаються і скільки
        приносить один клієнт за життя. */
+    /* «Скільки приносить клієнт» — теж тільки з оплачених: людина, яка
+       двічі попросила порахувати й не замовила, нічого не принесла. */
     var byPhone = {};
     mine.forEach(function(o){
+      if(!isPaidOrder(o)) return;
       var ph = String(o.phone || '').replace(/\D/g, '').slice(-9);
       if(!ph) return;
       if(!byPhone[ph]) byPhone[ph] = { n:0, sum:0, name:o.name || '' };
       byPhone[ph].n++; byPhone[ph].sum += +o.totalPrice || 0;
     });
+    var paidN = ppl0Count(byPhone);
     var ppl = Object.keys(byPhone).map(function(k){ return byPhone[k]; });
     var again = ppl.filter(function(x){ return x.n > 1; });
     var totalRev = ppl.reduce(function(a, x){ return a + x.sum; }, 0);
@@ -15972,13 +16191,14 @@ async function init(){
       .map(function(x){ return { c:[escapeHtml(x.name || 'без імені'), fmt(x.n), fmt(x.sum) + ' грн'] }; });
     document.getElementById('an-repeat').innerHTML = ppl.length
       ? '<div class="an-kpis" style="margin-bottom:14px;">' +
-          kpi('Клієнтів', fmt(ppl.length)) +
+          kpi('Клієнтів', fmt(ppl.length), 'з оплаченими замовленнями') +
           kpi('Замовили більше разу', fmt(again.length), p1(pct(again.length, ppl.length)),
               again.length ? 'good' : '') +
           kpi('Один клієнт приносить', fmt(ppl.length ? totalRev / ppl.length : 0) + ' грн', 'за весь час') +
-          kpi('Замовлень на клієнта', ppl.length ? (Math.round(mine.length / ppl.length * 10) / 10).toLocaleString('uk-UA') : '—') +
+          kpi('Замовлень на клієнта', ppl.length
+            ? (Math.round(paidN / ppl.length * 10) / 10).toLocaleString('uk-UA') : '—') +
         '</div>' + tbl([{t:'Клієнт'},{t:'Замовлень',num:1},{t:'Разом',num:1}], topRows)
-      : '<div class="an-empty">Замовлень ще немає.</div>';
+      : '<div class="an-empty">Оплачених замовлень ще немає.</div>';
 
     var offs = ords.filter(function(o){ return o.offerToken && offersByToken[o.offerToken]; })
       .map(function(o){ return { o:o, f:offersByToken[o.offerToken] }; });
@@ -16001,6 +16221,84 @@ async function init(){
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
     renderSpend(days);
+  }
+
+  /* ── 5. ПРИБУТОК І ГРОШІ ──────────────────────────────────── */
+  function renderMoney(days){
+    var R = moneyReport(days);
+
+    /* Звірка. Картку перенесли в «Оплачено», а платіж не внесли — і звіт
+       уже бреше: у виручці сума є, у грошах її немає. Хай звіт сам показує,
+       де його ведуть неточно, ніж перевіряти це вручну. */
+    var AL = [];
+    if(R.noPayN > 0)
+      AL.push('<div class="an-alert warn"><b>' + fmt(R.noPayN) + ' ' +
+        plural(R.noPayN, 'картка', 'картки', 'карток') + ' в «Оплачено» без жодного запису про оплату</b> — на ' +
+        fmt(R.noPaySum) + ' грн. У виручці ці гроші є, у «Грошах» — ні. ' +
+        'Внесіть платежі в картках, і звіт зійдеться.</div>');
+    if(R.refundN > 0)
+      AL.push('<div class="an-alert warn"><b>Відмови після оплати: ' + fmt(R.refundN) +
+        '</b> на ' + fmt(R.refund) + ' грн. Вони відняті з виручки на день відмови.</div>');
+    document.getElementById('an-money-alerts').innerHTML = AL.join('');
+
+    var K = [];
+    K.push(kpi('Гроші за період', fmt(R.cash) + ' грн', 'реально зайшло на рахунок'));
+    K.push(kpi('Виручка', fmt(R.revenue) + ' грн',
+      fmt(R.paidN) + ' ' + plural(R.paidN, 'оплачене замовлення', 'оплачені замовлення', 'оплачених замовлень')));
+    K.push(kpi('Собівартість', fmt(R.cost) + ' грн', 'товар і нанесення'));
+    K.push(kpi('Валова маржа', fmt(R.margin) + ' грн',
+      p1(pct(R.margin, R.revenue)) + ' від виручки', R.margin > 0 ? 'good' : (R.revenue ? 'bad' : '')));
+    K.push(kpi('Реклама', R.spend ? fmt(R.spend) + ' грн' : '—',
+      R.spend ? '' : 'внесіть бюджет у «Рекламі»'));
+    K.push(kpi('Постійні витрати', R.fixed ? fmt(R.fixed) + ' грн' : '—',
+      R.fixed ? 'за цей період' : 'внесіть нижче'));
+    /* Головне число блоку. Поки постійні витрати не внесені, це чесно
+       валова маржа мінус реклама — так і підписано, щоб ніхто не прийняв
+       його за прибуток. */
+    K.push(kpi('Чистий прибуток', fmt(R.profit) + ' грн',
+      R.fixed ? 'маржа − реклама − постійні' : 'без постійних витрат — це ще не прибуток',
+      R.profit > 0 ? 'good' : (R.revenue ? 'bad' : '')));
+    K.push(kpi('Рентабельність', R.revenue ? p1(pct(R.profit, R.revenue)) : '—', 'від виручки'));
+    /* Два залишки, а не події періоду: питання «скільки нам винні» і
+       «скільки ще в роботі» періоду не мають. */
+    K.push(kpi('Вам винні', fmt(R.due) + ' грн',
+      fmt(R.dueN) + ' ' + plural(R.dueN, 'замовлення', 'замовлення', 'замовлень') + ' · зараз',
+      R.due ? 'bad' : ''));
+    K.push(kpi('Потенційні', fmt(R.pot) + ' грн',
+      fmt(R.potN) + ' в роботі · це ще не гроші'));
+    document.getElementById('an-pnl').innerHTML =
+      '<div class="an-kpis" style="margin-bottom:0;">' + K.join('') + '</div>';
+
+    var rows = [];
+    days.slice().reverse().forEach(function(d){
+      var v = R.byDay[d];
+      if(!v || (!v.cash && !v.rev)) return;
+      rows.push({ c:[escapeHtml(d),
+        v.cash ? fmt(v.cash) + ' грн' : '—',
+        v.rev ? fmt(v.rev) + ' грн' : '—',
+        v.rev ? fmt(v.rev - v.cost) + ' грн' : '—'] });
+    });
+    if(rows.length) rows.push({ tot:1, c:['Разом', fmt(R.cash) + ' грн',
+      fmt(R.revenue) + ' грн', fmt(R.margin) + ' грн'] });
+    document.getElementById('an-cash-list').innerHTML =
+      tbl([{t:'День'},{t:'Гроші',num:1},{t:'Виручка',num:1},{t:'Маржа',num:1}],
+          rows, 'За період грошей не заходило й нічого не оплачували.');
+
+    var fx = fixedMonths();
+    var fxRows = Object.keys(fx).sort().reverse().map(function(m){
+      var v = fx[m] || {};
+      return { c:[escapeHtml(m)]
+        .concat(FIXED_KINDS.map(function(k){ return +v[k.k] ? fmt(+v[k.k]) + ' грн' : '—'; }))
+        .concat(['<b>' + fmt(fixedOfMonth(m)) + ' грн</b>']) };
+    });
+    document.getElementById('an-fx-list').innerHTML =
+      tbl([{t:'Місяць'}].concat(FIXED_KINDS.map(function(k){ return { t:k.ua, num:1 }; }))
+                        .concat([{ t:'Разом', num:1 }]),
+          fxRows, 'Постійних витрат ще не вносили.');
+  }
+
+  function ppl0Count(byPhone){
+    return Object.keys(byPhone).reduce(function(a, k){ return a + byPhone[k].n; }, 0);
   }
 
   /* Витрати: рядок на день, колонка на канал. */
@@ -16035,18 +16333,21 @@ async function init(){
     state('Рахуємо за ' + days.length + ' дн…');
     try{
       await loadSpend();
+      await loadFixed();
       AN.truncated = 0;
       var cur = await rangeAgg(days);
       var prv = await rangeAgg(prevDays);
       var ords = periodOrders(days), prevOrds = periodOrders(prevDays);
       renderMain.perDay = cur.perDay;
       AN.last = { A: cur.A, prev: prv.A, days: days, ords: ords, perDay: cur.perDay };
-      renderMain(cur.A, prv.A, days, ords, prevOrds);
+      renderMain(cur.A, prv.A, days, ords, prevOrds, prevDays);
       renderChannels(cur.A, days, ords);
       renderTraffic(cur.A, ords);
       renderTg(days);            // діалоги тягнуться окремо, звіт їх не чекає
       renderBehav(cur.A, ords);
       renderSales(days, ords);
+      renderMoney(days);
+      fxFill();
       // Порожньо — це не помилка читання, тож окремим повідомленням пояснюємо,
       // де шукати причину. Інакше нуль виглядає як «просто ніхто не заходив».
       if(!cur.A.visits && !AN.site)
@@ -16084,7 +16385,7 @@ async function init(){
   seg('an-site', 's', function(v){ AN.site = v || ''; });
   seg('an-block', 'b', function(v){
     AN.block = v || 'main';
-    ['main','traffic','behav','sales','ads'].forEach(function(k){
+    ['main','traffic','behav','sales','money','ads'].forEach(function(k){
       var el = document.getElementById('an-pane-' + k);
       if(el) el.hidden = (k !== AN.block);
     });
@@ -16092,7 +16393,8 @@ async function init(){
   }, false);
 
   var rl = document.getElementById('an-reload');
-  if(rl) rl.addEventListener('click', function(){ AN.cache = {}; AN.spend = null; load(); });
+  if(rl) rl.addEventListener('click', function(){
+    AN.cache = {}; AN.spend = null; AN.fixed = null; load(); });
 
   /* Звіт живе на екрані, а розібратись у ньому часто треба не тут: переслати
      таргетологу, порівняти з минулим тижнем, показати комусь. Тому цифри
@@ -16116,9 +16418,10 @@ async function init(){
     var L = AN.last;
     if(!L) return '';
     var A = L.A, P = L.prev, days = L.days, ords = L.ords;
-    var rev = sum(ords, function(o){ return o.totalPrice; });
-    var cost = sum(ords, function(o){ return o.totalCost; });
-    var marg = rev - cost;
+    /* Ті самі правила, що й на екрані: гроші — лише з оплачених замовлень.
+       Інакше зведення, яке пересилають далі, казало б інше, ніж звіт. */
+    var M = moneyReport(days);
+    var rev = M.revenue, cost = M.cost, marg = M.margin;
     var sp = spendByChannel(days);
     var out = [];
     out.push('LOOMIQ · АНАЛІТИКА');
@@ -16135,10 +16438,15 @@ async function init(){
              ' · глибина: ' + Math.round(A.visits ? A.depth / A.visits : 0) + '%');
     out.push('До першої дії: ' + (A.actN ? dur(A.actSum / A.actN) : '—'));
     out.push('');
-    out.push('ГРОШІ (з Канбану)');
-    out.push('Замовлень: ' + fmt(ords.length) + ' · виручка: ' + fmt(rev) + ' грн');
+    out.push('ГРОШІ (з Канбану, тільки оплачені)');
+    out.push('Замовлень: ' + fmt(ords.length) + ' · з них оплачено: ' + fmt(M.paidN));
+    out.push('Виручка: ' + fmt(rev) + ' грн · зайшло грошей: ' + fmt(M.cash) + ' грн');
     out.push('Собівартість: ' + fmt(cost) + ' грн · маржа: ' + fmt(marg) + ' грн (' + pctS(marg, rev) + ')');
-    out.push('Середній чек: ' + fmt(ords.length ? rev / ords.length : 0) + ' грн');
+    out.push('Середній чек: ' + fmt(M.paidN ? rev / M.paidN : 0) + ' грн');
+    out.push('Вам винні: ' + fmt(M.due) + ' грн · потенційні: ' + fmt(M.pot) + ' грн');
+    if(M.fixed) out.push('Постійні витрати: ' + fmt(M.fixed) + ' грн');
+    out.push('Чистий прибуток: ' + fmt(M.profit) + ' грн' +
+             (M.fixed ? '' : ' (без постійних витрат)'));
     out.push('Конверсія візит → замовлення: ' + pctS(ords.length, A.visits));
     out.push('Покинуті кошики: ' + fmt(A.abandN) + ' на ' + fmt(A.abandSum) + ' грн');
     out.push('Рекламний бюджет: ' + fmt(sp.total) + ' грн' +
@@ -16201,9 +16509,45 @@ async function init(){
     }catch(e){ toast('Не збереглось: ' + ((e && e.code) || 'помилка')); }
   });
 
+  /* Постійні витрати. Обраний місяць одразу підставляє те, що вже внесено:
+     інакше людина, яка хоче виправити одну цифру, мусить пам'ятати решту
+     напам'ять і вписати їх заново. */
+  function fxFill(){
+    var m = (document.getElementById('an-fx-month') || {}).value || '';
+    var v = fixedMonths()[m] || {};
+    FIXED_KINDS.forEach(function(k){
+      var el = document.getElementById('an-fx-' + k.k);
+      if(el) el.value = +v[k.k] ? String(+v[k.k]) : '';
+    });
+  }
+  var fxM = document.getElementById('an-fx-month');
+  if(fxM) fxM.addEventListener('change', fxFill);
+  var fxSave = document.getElementById('an-fx-save');
+  if(fxSave) fxSave.addEventListener('click', async function(){
+    var m = (document.getElementById('an-fx-month') || {}).value || '';
+    if(!/^\d{4}-\d{2}$/.test(m)) return toast('Оберіть місяць');
+    var rec = {}, total = 0;
+    FIXED_KINDS.forEach(function(k){
+      var v = +((document.getElementById('an-fx-' + k.k) || {}).value || 0);
+      if(v > 0){ rec[k.k] = v; total += v; }
+    });
+    try{
+      await loadFixed();
+      if(total > 0) AN.fixed.months[m] = rec;
+      else delete AN.fixed.months[m];
+      await fbDb.collection('loomiq').doc('fixedcosts')
+        .set({ months: AN.fixed.months }, { merge:false });
+      toast(total ? 'Постійні витрати за ' + m + ': ' + fmt(total) + ' грн'
+                  : 'Витрати за ' + m + ' прибрано');
+      load();
+    }catch(e){ toast('Не збереглось: ' + ((e && e.code) || 'помилка')); }
+  });
+
   window.__anOpen = function(){
     var el = document.getElementById('an-spend-date');
     if(el && !el.value) el.value = today();
+    var fm = document.getElementById('an-fx-month');
+    if(fm && !fm.value) fm.value = today().slice(0, 7);
     AN.opened = true;
     load();
   };
