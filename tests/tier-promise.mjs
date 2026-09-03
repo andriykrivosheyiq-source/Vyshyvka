@@ -83,8 +83,14 @@ const OFFER = {
     tiers:[{ qty:50, unit:9999 }],
     desc:{ method:'embro', units:45, base:600, coefPart:300, pieceFee:20, dtfCols:[],
            designs:[FP], designKinds:['img'], bare:false } }],
+  /* Шкала на виріб мусить бути справжня. Доти тут стояв один рядок
+     «коеф 1»: поле діяло лише на голі вироби, тож для позиції з вишивкою
+     було мертвим. Тепер виріб завжди йде за своєю шкалою, і «коеф 1»
+     означав би, що на сам одяг знижки немає ніколи — а перевіряємо ми тут
+     не це, а те, що обіцянка про поріг збігається з реальністю. */
   pricing:{ methods:{ embro:{ orderFee:900, tiers:[{from:1,coef:1},{from:50,coef:.85}] } },
-    tiers:[{from:1,coef:1},{from:50,coef:.85}], garmentTiers:[{from:1,coef:1}] }
+    tiers:[{from:1,coef:1},{from:50,coef:.85}],
+    garmentTiers:[{from:1,coef:1},{from:50,coef:.85}] }
 };
 
 await p.goto(HOST + '/_tier_vhost.html', { waitUntil:'domcontentloaded' });
@@ -177,7 +183,7 @@ const SMALL = Object.assign({}, OFFER, {
   pricing:{ methods:{ embro:{ orderFee:900,
       tiers:[{from:1,coef:1},{from:10,coef:.8},{from:30,coef:.65}] } },
     tiers:[{from:1,coef:1},{from:10,coef:.8},{from:30,coef:.65}],
-    garmentTiers:[{from:1,coef:1}] }
+    garmentTiers:[{from:1,coef:1},{from:10,coef:.8},{from:30,coef:.65}] }
 });
 /* Сторінка приймає дані один раз, під час ініціалізації кадру, — тож для
    другого випадку відкриваємо її заново. */

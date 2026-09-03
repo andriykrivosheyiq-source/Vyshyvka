@@ -1227,6 +1227,10 @@
       return {
         method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
         units: totalUnits(),
+        /* Який це товар. Знижка на виріб рахується за його власною шкалою й
+           за кількістю САМЕ ЦЬОГО товару, тож рушію треба знати, що перед
+           ним. Старі позиції поля не мають — там усе рахується, як раніше. */
+        gid: pm.garmentId,
         base: basePriceNew(),
         coefPart: ap.coefPart,
         basePart: ap.basePart || 0,
