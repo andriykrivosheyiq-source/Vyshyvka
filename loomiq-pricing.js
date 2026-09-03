@@ -23,16 +23,24 @@
     return (p && p.methods) ? p : null;
   }
 
-  function garmentTiersList(){
+  /* Шкала знижки на САМ ВИРІБ. У кожного товару може бути своя: футболка й
+     худі куплені за різні гроші й з різною маржею, і однакова знижка на них
+     означає, що на одному ми заробляємо, а на другому дотуємо.
+
+     Не задали свою — працює загальна. Немає й загальної — лишається старий
+     запасний шлях: загальна шкала сайту (`tiers`), як було завжди. */
+  function garmentTiersList(gid){
     var p = sitePricing();
-    var l = p && p.garmentTiers;
+    if(!p) return null;
+    var own = gid && (p.garmentTiersBy || {})[gid];
+    var l = (Array.isArray(own) && own.length) ? own : p.garmentTiers;
     if(!Array.isArray(l) || !l.length) return null;
     return l.map(function(t){ return { from: +t.from || 1, coef: +t.coef || 1 }; })
             .sort(function(a, b){ return a.from - b.from; });
   }
 
-  function garmentCoefFor(qty){
-    var l = garmentTiersList();
+  function garmentCoefFor(qty, gid){
+    var l = garmentTiersList(gid);
     if(!l) return null;
     var c = 1;
     for(var i = l.length - 1; i >= 0; i--){ if(qty >= l[i].from){ c = l[i].coef; break; } }
@@ -99,8 +107,30 @@
     // виробу не задано, він іде за ЗАГАЛЬНОЮ шкалою сайту, а не за шкалою того
     // способу, який зараз вибраний у конструкторі. Інакше зміна типового
     // способу мовчки міняла б ціни на футболки без друку.
-    var gcoefAll  = garmentCoefFor(opts.noVolume ? 1 : (U.bare || 1));
-    var gcoefBase = garmentCoefFor(opts.noVolume ? 1 : (B.bare || 1));
+    /* Скільки одиниць КОЖНОГО товару в замовленні. Знижка на виріб рахується
+       саме від цього числа: 20 футболок і 20 худі — це не 40 футболок, бо в
+       постачальника ціна падає за кожним товаром окремо. Позиція без ознаки
+       товару (старі замовлення) рахується від усього одягу разом, як було. */
+    var Ug = {}, Bg = {}, Uall = 0, Ball = 0;
+    list.forEach(function(it){
+      var u = Math.max(0, +it.units || 0);
+      var g = it.gid || '';
+      Ug[g] = (Ug[g] || 0) + u; Uall += u;
+      if(!it.upsell){ Bg[g] = (Bg[g] || 0) + u; Ball += u; }
+    });
+    if(!anyUp){ Bg = Ug; Ball = Uall; }
+    /* Коефіцієнт на виріб цієї позиції. Він НЕ залежить від способу
+       нанесення: футболка коштує стільки, скільки коштує, і те, що на ній
+       надрукували, до її ціни стосунку не має. Доти виріб із друком
+       дисконтувався шкалою способу — і перемикання DTF↔вишивка мовчки
+       міняло ціну самої футболки. */
+    function garmentQty(it){
+      if(opts.noVolume) return 1;
+      var g = it.gid || '';
+      var map = it.upsell ? Ug : Bg;
+      return (g ? map[g] : (it.upsell ? Uall : Ball)) || 1;
+    }
+    function gcoefOf(it){ return garmentCoefFor(garmentQty(it), it.gid || ''); }
 
     // Разові оплати рахуються окремо для картинок і окремо для написів:
     // підготовка напису дешевша за підготовку логотипа, тож змішувати їх в
@@ -178,12 +208,13 @@
     return list.map(function(it){
       var u = Math.max(0, +it.units || 0);
       if(it.bare){
-        var gcSet = it.upsell ? gcoefAll : gcoefBase;
+        var gcSet = gcoefOf(it);
         var gc = (gcSet != null) ? gcSet
                : tierCoefFor(null, opts.noVolume ? 1 : (volFor(it, 'bare') || 1));
         var ub = Math.round((+it.base || 0) * gc) + (+it.pieceFee || 0);
         return { unit: ub, sum: ub * u, feeShare: 0, parts: {
-          bare: true, coef: gc, groupQty: volFor(it, 'bare'), upsell: !!it.upsell,
+          bare: true, coef: gc, gcoef: gc, garmentQty: garmentQty(it),
+          groupQty: volFor(it, 'bare'), upsell: !!it.upsell,
           garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gc),
           appBase: 0, app: 0, pieceFee: +it.pieceFee || 0,
           feeShare: 0, feeTotal: 0, feeUnits: 0, sketches: []
@@ -255,15 +286,21 @@
                         fee: +f.cfg.sketchFee || 0,
                         cost: +f.cfg.sketchCost || 0, units: f.unitsOf[gi] || 1 });
       });
-      var unit = Math.round((+it.base || 0) * c + (+it.coefPart || 0) * c) + flat +
+      /* Виріб іде за СВОЄЮ шкалою, нанесення — за шкалою способу. Округлення
+         одне на обидві частини: два окремі давали б розбіжність у гривню з
+         тим, що бачить клієнт у кошторисі. */
+      var gcv = gcoefOf(it);
+      if(gcv == null) gcv = c;          // шкали виробу немає — усе як раніше
+      var unit = Math.round((+it.base || 0) * gcv + (+it.coefPart || 0) * c) + flat +
                  (+it.pieceFee || 0) + Math.round(feeShare);
       return { unit: unit, sum: unit * u, feeShare: Math.round(feeShare), parts: {
-        bare: false, method: mk, coef: c, groupQty: volFor(it, mk) || u,
+        bare: false, method: mk, coef: c, gcoef: gcv, garmentQty: garmentQty(it),
+        groupQty: volFor(it, mk) || u,
         /* Позначки для прорахунку: чи це допродаж і скільки дизайнів пішло
            без оплати макета. Менеджер має бачити, чому рекомендований товар
            вийшов дешевшим, — інакше цифра виглядає як помилка. */
         upsell: !!it.upsell, freeDesigns: freeDesigns, designNos: designNos,
-        garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * c),
+        garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gcv),
         appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
         basePart: +it.basePart || 0, minPart: +it.minPart || 0,
         gridPriced: mk === 'dtf' && flat > 0,

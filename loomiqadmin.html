@@ -2410,6 +2410,22 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               </label>
             </div>
             <div id="pc-margin" class="sub" style="margin-bottom:12px;"></div>
+            <!-- Знижка за тираж САМЕ НА ЦЕЙ ТОВАР. Футболка й худі куплені за
+                 різні гроші й з різною маржею: однакова знижка на них означає,
+                 що на одному ми заробляємо, а на другому дотуємо. Не задали
+                 свою — працює загальна, з «Формування цін». -->
+            <div class="prod-sec-h" style="margin-top:16px;">Знижка за тираж</div>
+            <div class="sub" style="margin-bottom:10px;">
+              Діє тільки на сам виріб. Нанесення дисконтується своєю шкалою —
+              окремо для DTF і для вишивки.
+            </div>
+            <div id="pc-tiers-state" class="sub" style="margin-bottom:10px;"></div>
+            <div id="sp-tiers-pc"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+              <button class="pc-btn up" id="sp-tier-add-pc" style="flex:none;padding:8px 16px;">+ Рядок</button>
+              <button class="pc-btn reset" id="pc-tiers-own" style="flex:none;padding:8px 16px;">Своя шкала</button>
+              <button class="pc-btn reset" id="pc-tiers-clear" style="flex:none;padding:8px 16px;">Повернути загальну</button>
+            </div>
             <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:14px;cursor:pointer;">
               <input type="checkbox" id="pc-hide"> Приховати товар з каталогу
             </label>
@@ -2939,8 +2955,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=92aef7ae03"></script>
-<script src="loomiq-pricing.js?v=92aef7ae03"></script>
+<script src="loomiq-fingerprint.js?v=730d643f08"></script>
+<script src="loomiq-pricing.js?v=730d643f08"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4296,7 +4312,7 @@ function paintSpProducts(p){
     </div>`;
   }).join('');
 }
-['dtf','emb','gar'].forEach(key=>{
+['dtf','emb','gar','pc'].forEach(key=>{
   const btn = document.getElementById('sp-tier-add-' + key);
   if(!btn) return;
   btn.addEventListener('click', ()=>{
@@ -4307,8 +4323,8 @@ function paintSpProducts(p){
   });
 });
 document.getElementById('sp-dtf-row-add').addEventListener('click', dtfAddRow);
-// відсоток поруч із коефіцієнтом — оновлюємо в обох таблицях знижок
-['dtf','emb'].forEach(key=>{
+// відсоток поруч із коефіцієнтом — оновлюємо в усіх таблицях знижок
+['dtf','emb','gar','pc'].forEach(key=>{
   const box = document.getElementById('sp-tiers-' + key);
   if(!box) return;
   box.addEventListener('input', e=>{
@@ -6081,7 +6097,7 @@ function fillRecoParts(o, writePrice){
        як із «беруть ще зверху» було б неправдою: він не платив би за макет
        і виходив дешевшим за той самий виріб в основних. */
     if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
-    const d = (keep && kd === 'reco') ? Object.assign({}, it.desc, { upsell:true }) : it.desc;
+    const d = (keep && kd === 'reco') ? Object.assign({}, descOf(it), { upsell:true }) : descOf(it);
     const res = priceOrder(main.concat([d]));
     const mine = res[res.length - 1];
     if(!mine) return;
@@ -6158,11 +6174,19 @@ function priceCalcHtml(o){
    входять: перші клієнт ще не додав, другі виключають один одного. Скласти
    всі варіанти в один тираж означало б порахувати вироби, яких ніхто не
    замовить, — і занизити ціну всьому замовленню. */
+/* Опис позиції для рушія. Ознаку товару підставляємо тут, а не покладаємось
+   на те, що вона збереглась у самому описі: позиції, зроблені до появи
+   індивідуальних шкал, її не мають, а знижку на виріб треба рахувати і їм. */
+function descOf(it){
+  if(!it || !it.desc) return null;
+  const gid = itemGarmentId(it);
+  return (gid && it.desc.gid !== gid) ? Object.assign({}, it.desc, { gid }) : it.desc;
+}
 function orderDescriptors(o){
   const idx = [], list = [];
   (o.items || []).forEach((it, i)=>{
     if(itemKind(it) !== 'main' || !it.desc) return;
-    idx.push(i); list.push(it.desc);
+    idx.push(i); list.push(descOf(it));
   });
   return { idx, list };
 }
@@ -6232,9 +6256,10 @@ function soloOneUnit(desc){
   }catch(e){ return null; }
 }
 
-function docGarmentCoef(qty){
+function docGarmentCoef(qty, gid){
   const p = curSitePricing();
-  const l = p && p.garmentTiers;
+  const own = gid && ((p && p.garmentTiersBy) || {})[gid];
+  const l = (Array.isArray(own) && own.length) ? own : (p && p.garmentTiers);
   if(!Array.isArray(l) || !l.length) return null;
   const rows = l.map(t=>({ from:+t.from||1, coef:+t.coef||1 })).sort((a,b)=>a.from-b.from);
   let c = 1;
@@ -6270,10 +6295,11 @@ function docPriceAt(item, qty, coefOverride){
       flat += Math.round(v);   // мінімалки в сітці немає — беремо рівно клітинку
     });
   }
-  // Знижки не накладаються: шкала виробу діє лише на позицію БЕЗ нанесення.
-  // Якщо нанесення є — виріб іде під знижку того способу, як і раніше.
-  const bare = !((item.prints || []).length) && !((c && c.dtfCols || []).length);
-  let gc = bare ? docGarmentCoef(qty) : null;
+  /* Виріб іде за СВОЄЮ шкалою — своєю в товара або загальною, — і байдуже,
+     є на ньому нанесення чи немає. Доти виріб із друком дисконтувався
+     шкалою способу, і перемикання DTF↔вишивка мовчки міняло ціну самої
+     футболки. Немає жодної шкали виробу — усе як раніше, за способом. */
+  let gc = docGarmentCoef(qty, itemGarmentId(item));
   if(gc == null || coefOverride != null) gc = coef;
   return Math.round((+c.base || 0) * gc + (+c.coefPart || 0) * coef) + flat
        + (+c.pieceFee || 0) + (qty > 0 ? Math.round((+c.orderFee || 0) / qty) : 0);
@@ -6869,7 +6895,11 @@ function offerTiers(order, itemIdx){
     const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
     const m = (p.methods || {})[mk] || {};
     push((m.tiers && m.tiers.length) ? m.tiers : p.tiers);
-    if(item.desc && item.desc.bare) push(p.garmentTiers);
+    /* Пороги шкали виробу впливають на КОЖНУ позицію, не тільки на голу:
+       виріб тепер завжди дисконтується своєю шкалою. */
+    const gid = itemGarmentId(item);
+    const own = gid && ((p.garmentTiersBy || {})[gid]);
+    push((Array.isArray(own) && own.length) ? own : p.garmentTiers);
     if(mk === 'dtf') (m.qtyFrom || []).forEach(q => { if(src.indexOf(+q) < 0) src.push(+q); });
   }
   const rows = [{ qty: cur, unit: real, sum: real * cur, now: true }];
@@ -6981,7 +7011,7 @@ function offerItem(it, order, itemIdx){
        могла показати тільки те, що ми порахували наперед, — і сума
        розходилась із тим, що клієнт щойно зібрав. Собівартості тут немає:
        лише те, з чого складається ціна, яку він і так бачить. */
-    desc: it.desc || null,
+    desc: descOf(it),
     /* Позиція без розкладу спільним рушієм не перераховується — її ціна
        лишається такою, якою її колись записали, і мовчки розходиться з тим,
        що показує картка. Позначаємо це, щоб робоче місце сказало прямо:
@@ -8651,7 +8681,7 @@ function orderItemsHtml(o, want){
 function bareUnitPrice(gid, qty){
   const g = orderGarments().find(x=>x.id === gid);
   if(!g) return { price:0, cost:0 };
-  const c = docGarmentCoef(qty);
+  const c = docGarmentCoef(qty, gid);
   return { price: Math.round(g.minPrice * (c == null ? 1 : c)), cost: Math.round(g.cost) };
 }
 function itemSums(o){
@@ -11352,7 +11382,7 @@ async function offerAddBare(o, gid, kind, vgroup){
     unitCost: u.cost, cost: u.cost * q,
     mockups: thumb ? [thumb] : [], prints: [], calc: null, garmentId: gid,
     desc: { method:'dtf', units:q, base:g.minPrice, coefPart:0, pieceFee:0,
-            dtfCols:[], designs:[], bare:true },
+            dtfCols:[], designs:[], bare:true, gid },
     config: null
   });
 }
@@ -13038,6 +13068,27 @@ async function deleteCustomProduct(id){
   if(el) el.addEventListener('input', updateMarginHint);
 });
 
+document.getElementById('pc-tiers-own').addEventListener('click', ()=>{
+  /* Починаємо зі списаної загальної шкали, а не з порожнечі: у 9 випадках із
+     10 треба «як усюди, тільки трохи менше», і набирати пороги заново — це
+     зайва робота й привід помилитись. */
+  pcTiersOwn = true;
+  const p = curSitePricing() || {};
+  const start = pcOwnTiers(photoGarmentId) || (p.garmentTiers || []);
+  paintSpTiers(start.length ? start : [{ from:1, to:null, coef:1 }], 'pc');
+  renderPcTiers();
+});
+document.getElementById('pc-tiers-clear').addEventListener('click', async ()=>{
+  if(!confirm('Повернути цей товар на загальну шкалу знижок?')) return;
+  const id = photoGarmentId;
+  try{
+    await PHOTOS_DOC.set({ pricing: { garmentTiersBy: {
+      [id]: firebase.firestore.FieldValue.delete() } } }, { merge:true });
+    pcTiersOwn = false;
+    toast('Товар знову на загальній шкалі');
+    renderPcTiers();
+  }catch(e){ console.error(e); toast('Помилка'); }
+});
 /* Зберегти напис ціни + продажну ціну + собівартість + приховування */
 document.getElementById('pc-save').addEventListener('click', async ()=>{
   const id = photoGarmentId;
@@ -13054,8 +13105,16 @@ document.getElementById('pc-save').addEventListener('click', async ()=>{
   upd.products.priceLabels[id] = label ? label : DEL;   // порожнє = авто «від [базова ціна]»
   upd.products.cost[id]        = (cost>0) ? cost : DEL;
   upd.pricing.basePrices[id]   = (bp>0) ? bp : DEL;
+  /* Своя шкала знижок. Пишемо тільки коли її справді редагували: інакше
+     кожне збереження ціни клало б товару копію загальної шкали, і той
+     назавжди відвʼязався б від неї мовчки. */
+  if(pcTiersOwn){
+    const rows = readSpTiers('pc').filter(r => r.coef > 0 && r.coef <= 1);
+    upd.pricing.garmentTiersBy = { [id]: rows.length ? rows : DEL };
+  }
   try{
     await PHOTOS_DOC.set(upd, { merge:true });
+    pcTiersOwn = false;
     toast('Збережено');
   }catch(e){ console.error(e); toast('Помилка збереження'); }
 });
@@ -14249,6 +14308,40 @@ function updatePaSummary(id){
   window.__paOpen=open;
 })();
 
+/* ── Знижка за тираж на один товар ───────────────────────────────────────
+   Своя шкала перебиває загальну. Порожня — товар іде за загальною, і в цьому
+   стані ми показуємо саме її рядки: інакше менеджер має бігти в «Формування
+   цін» щоразу, коли хоче зрозуміти, що зараз діє. */
+let pcTiersOwn = false;      // чи редагуємо саме СВОЮ шкалу цього товару
+function pcOwnTiers(id){
+  const by = (curSitePricing() || {}).garmentTiersBy || {};
+  const l = by[id];
+  return (Array.isArray(l) && l.length) ? l : null;
+}
+function renderPcTiers(){
+  const id = photoGarmentId;
+  const own = pcOwnTiers(id);
+  const p = curSitePricing() || {};
+  const state = document.getElementById('pc-tiers-state');
+  const box = document.getElementById('sp-tiers-pc');
+  if(!state || !box) return;
+  const mine = pcTiersOwn || !!own;
+  const rows = mine ? (own || readSpTiers('pc')) : ((p.garmentTiers || []));
+  state.innerHTML = mine
+    ? '<b style="color:var(--accent-deep);">Своя шкала цього товару</b>'
+    : ((p.garmentTiers || []).length
+        ? 'Працює <b>загальна шкала</b> — з «Формування цін». Нижче показана вона.'
+        : 'Загальної шкали виробу теж немає — знижка на виріб не діє. '
+          + 'Задайте або тут, або в «Формування цін».');
+  paintSpTiers(rows, 'pc');
+  box.querySelectorAll('input').forEach(i=>{ i.disabled = !mine; });
+  const addB = document.getElementById('sp-tier-add-pc');
+  const clrB = document.getElementById('pc-tiers-clear');
+  const ownB = document.getElementById('pc-tiers-own');
+  if(addB) addB.style.display = mine ? '' : 'none';
+  if(clrB) clrB.style.display = mine ? '' : 'none';
+  if(ownB) ownB.style.display = mine ? 'none' : '';
+}
 /* Ціна і собівартість одного товару */
 function renderPriceCost(){
   const id = photoGarmentId;
@@ -14282,6 +14375,8 @@ function renderPriceCost(){
     }
     if(delBtn) delBtn.style.display = '';
   } else if(delBtn){ delBtn.style.display = 'none'; }
+  pcTiersOwn = false;          // відкрили інший товар — показуємо його стан
+  renderPcTiers();
   updateMarginHint();
 }
 function updateMarginHint(){
