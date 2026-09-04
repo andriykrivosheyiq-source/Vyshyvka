@@ -6034,12 +6034,36 @@ function orderIdNum(v){
   const s = String(v || '');
   return /^\d{7}$/.test(s) ? +s : 0;
 }
+/* ── Номер видається раз і назавжди ──────────────────────────────────────
+   Доти наступний номер брався від найбільшого НАЯВНОГО на дошці. Видалили
+   останню картку — і її номер видавався наступній: у двох різних замовлень
+   виявлявся один номер. А номер живе не тільки в нас: він у КП, у
+   переписці, у платіжці, у розмові з клієнтом. Два замовлення з одним
+   номером — це рано чи пізно не той рахунок і не та відправка.
+
+   Тому лічильник більше не «рахується від карток», а зберігається окремо в
+   документі сайту й тільки росте. Видалили картку — її номер зникає разом
+   із нею й не повертається нікому. Дірка в нумерації — це нормально: вона
+   чесно каже, що замовлення було.
+
+   Наявні картки лишаються запобіжником на випадок, якщо лічильник загубився
+   (стара база, перший запуск): беремо більше з двох. */
+function orderSeqNow(){
+  let n = +(contentData && contentData.orderSeq) || 0;
+  (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v > n) n = v; });
+  if(n < ORDER_ID_MIN - 1) n = ORDER_ID_MIN - 1;
+  return Math.max(n, orderSeq);
+}
 function makeOrderId(){
-  if(!orderSeq){
-    (orders || []).forEach(o => { const n = orderIdNum(o.orderId); if(n > orderSeq) orderSeq = n; });
-    if(orderSeq < ORDER_ID_MIN - 1) orderSeq = ORDER_ID_MIN - 1;
-  }
-  orderSeq += 1;
+  orderSeq = orderSeqNow() + 1;
+  /* Пишемо одразу, не чекаючи збереження самої картки: якщо вкладку
+     закрити між цими двома діями, номер усе одно вже витрачений. */
+  if(contentData) contentData.orderSeq = orderSeq;
+  try{
+    if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
+      PHOTOS_DOC.set({ orderSeq: orderSeq }, { merge:true })
+        .catch(e => console.warn('лічильник номерів не збережено', e));
+  }catch(e){ console.warn('лічильник номерів не збережено', e); }
   return String(orderSeq);
 }
 /* Номери, яких у нумерації Канбану немає.
