@@ -96,6 +96,45 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .top{display:flex; align-items:center; justify-content:space-between;
     padding:18px var(--pad); border-bottom:1px solid var(--line);}
   .brand{font-size:var(--fs-5); font-weight:600; letter-spacing:-0.4px;}
+  /* ── вкладки: КП і Замовлення ──
+     Після оплати за тим самим посиланням людині потрібне вже не КП, а
+     відповідь на «що з моїм замовленням». Друга вкладка зʼявляється рівно
+     тоді — і одразу стає відкритою. */
+  .tabs{display:flex; gap:6px; padding:10px var(--pad) 0;}
+  .tab{flex:1; text-align:center; padding:12px 8px; border-radius:var(--r-pill);
+    background:var(--soft); color:var(--muted); font-size:var(--fs-2); font-weight:600;
+    cursor:pointer; border:0; font-family:inherit;}
+  .tab.on{background:var(--ink); color:#fff;}
+  .ord{padding:24px var(--pad) 40px; max-width:640px; margin:0 auto;}
+  .ord h2{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.5px; margin:0 0 4px;}
+  .ord-due{color:var(--muted); font-size:var(--fs-2); margin-bottom:20px;}
+  .ord-step{display:flex; gap:12px; align-items:flex-start; padding:12px 0;
+    border-bottom:1px solid var(--line);}
+  .ord-mark{flex:none; width:22px; height:22px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:var(--fs-1); font-weight:600;
+    background:var(--soft); color:var(--muted);}
+  .ord-step.is-done .ord-mark{background:#1E7A45; color:#fff;}
+  .ord-step.is-now .ord-mark{background:var(--ink); color:#fff;}
+  .ord-step.is-ask .ord-mark{background:#8A6A15; color:#fff;}
+  .ord-t{flex:1; min-width:0; font-size:var(--fs-3); font-weight:600;}
+  .ord-t i{display:block; font-style:normal; font-size:var(--fs-1); font-weight:400;
+    color:var(--muted); margin-top:2px;}
+  .ord-ask{margin-top:20px; border:1px solid var(--line); border-radius:var(--r-3); padding:16px;}
+  .ord-ask h3{margin:0 0 10px; font-size:var(--fs-4); font-weight:600;}
+  .ord-ask img{width:100%; border-radius:var(--r-2); display:block; margin-bottom:12px;}
+  .ord-acts{display:flex; gap:8px; flex-wrap:wrap;}
+  .ord-b{flex:1; min-width:150px; padding:12px 16px; border-radius:var(--r-pill); border:0;
+    font-family:inherit; font-size:var(--fs-2); font-weight:600; cursor:pointer;}
+  .ord-b.ok{background:var(--ink); color:#fff;}
+  .ord-b.fix{background:var(--soft); color:var(--ink);}
+  .ord-why{margin-top:12px; display:none;}
+  .ord-why.open{display:block;}
+  .ord-why select{width:100%; padding:12px; border-radius:var(--r-2); border:1px solid var(--line);
+    font-family:inherit; font-size:var(--fs-2); margin-bottom:8px; background:#fff;}
+  .ord-done{margin-top:16px; padding:16px; border-radius:var(--r-3); background:var(--soft);
+    font-size:var(--fs-2); color:var(--ink-2);}
+  .ord-ttn{margin-top:16px; font-size:var(--fs-3);}
+  .ord-ttn b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
   /* Логотип бренду. Висота фіксована, ширина вільна: логотипи в різних
      пропорціях не мають смикати висоту шапки. */
   .brand-img{height:26px; width:auto; max-width:190px; object-fit:contain; display:block;}
@@ -5172,6 +5211,109 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   /* ═══════════ рендер і події ═══════════ */
 
+  /* ═══════════ Вкладка «Замовлення» ═══════════
+     Те саме посилання, той самий токен. До оплати цієї вкладки немає
+     зовсім; після — вона відкрита першою, бо саме по неї людина й
+     повертається. Тут вона бачить етапи, погоджує відшив і забирає номер
+     накладної; кнопка, яка щось вирішує, є тільки тут, а не в переписці. */
+  var TAB = 'kp';
+  function trackData(){ return (OFFER && OFFER.track) || null; }
+  function hasOrderTab(){ return !!trackData(); }
+  function tabsHtml(){
+    if(!hasOrderTab()) return '';
+    return '<div class="tabs">' +
+      '<button class="tab' + (TAB === 'kp' ? ' on' : '') + '" data-tab="kp">Пропозиція</button>' +
+      '<button class="tab' + (TAB === 'ord' ? ' on' : '') + '" data-tab="ord">Замовлення</button>' +
+      '</div>';
+  }
+  function ordDate(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  }
+  /* Відповідь клієнта живе в документі пропозиції — там само, де його вибір
+     у КП. Окремої «системи для клієнта» немає й не треба: одне посилання,
+     один документ, одна історія. */
+  function ordSaved(){ return (OFFER && OFFER.clientApprovals) || {}; }
+  function orderTabHtml(){
+    var t = trackData(); if(!t) return '';
+    var saved = ordSaved();
+    var askN = t.ask ? +t.ask.n : 0;
+    var answered = (saved.test && +saved.test.n === askN) ||
+                   (saved.testBack && +saved.testBack.n === askN);
+    var steps = (t.steps || []).map(function(s){
+      var cls = s.state === 'done' ? 'is-done'
+              : (s.state === 'ask' ? 'is-ask' : (s.state === 'now' ? 'is-now' : ''));
+      var mark = s.state === 'done' ? '✓' : (s.state === 'ask' ? '!' : '');
+      var note = s.state === 'done' ? (ordDate(s.at) || 'готово')
+               : (s.state === 'ask' ? 'чекаємо вашої відповіді'
+               : (s.state === 'now' ? 'у роботі' : 'попереду'));
+      return '<div class="ord-step ' + cls + '">' +
+        '<span class="ord-mark">' + mark + '</span>' +
+        '<span class="ord-t">' + esc(s.label) + '<i>' + esc(note) + '</i></span></div>';
+    }).join('');
+    var ask = '';
+    if(t.ask && !answered){
+      ask = '<div class="ord-ask" id="ordAsk">' +
+        '<h3>Тестовий відшив — подивіться, будь ласка</h3>' +
+        (t.ask.photo ? '<img src="' + esc(t.ask.photo) + '" alt="Фото тестового відшиву">' : '') +
+        '<div class="ord-acts">' +
+          '<button class="ord-b ok" data-ord="ok">Усе добре — погоджую</button>' +
+          '<button class="ord-b fix" data-ord="fix">Потрібні правки</button>' +
+        '</div>' +
+        '<div class="ord-why" id="ordWhy">' +
+          '<select id="ordReason">' +
+            (t.reasons || []).map(function(r){
+              return '<option value="' + esc(r.key) + '">' + esc(r.label) + '</option>'; }).join('') +
+          '</select>' +
+          '<button class="ord-b ok" data-ord="send">Надіслати</button>' +
+        '</div></div>';
+    }else if(t.ask && answered){
+      ask = '<div class="ord-done">' + (saved.test
+        ? 'Дякуємо — ваше погодження записане, запускаємо тираж.'
+        : 'Ваші правки записані. Менеджер звʼяжеться з вами.') + '</div>';
+    }
+    return '<h2>Замовлення' + (t.orderId ? ' № ' + esc(t.orderId) : '') + '</h2>' +
+      (t.dueAt ? '<div class="ord-due">Здати до ' + esc(ordDate(t.dueAt + 'T12:00:00')) + '</div>' : '') +
+      steps + ask +
+      (t.ttn ? '<div class="ord-ttn">Накладна: <b>' + esc(t.ttn) + '</b></div>' : '');
+  }
+  function wireOrderTab(){
+    document.querySelectorAll('[data-tab]').forEach(function(b){
+      b.onclick = function(){ TAB = b.dataset.tab; render(); };
+    });
+    document.querySelectorAll('[data-ord]').forEach(function(b){
+      b.onclick = function(){
+        var t = trackData(); if(!t || !t.ask) return;
+        var k = b.dataset.ord;
+        if(k === 'fix'){ document.getElementById('ordWhy').classList.add('open'); return; }
+        var now = new Date().toISOString();
+        var data = k === 'ok'
+          ? { test: { n:+t.ask.n, at:now } }
+          : { testBack: { n:+t.ask.n, at:now,
+                          reason:(document.getElementById('ordReason') || {}).value || 'other' } };
+        b.disabled = true;
+        saveApproval(data, k === 'ok' ? 'test_ok' : 'test_fix').then(function(){
+          OFFER.clientApprovals = Object.assign({}, OFFER.clientApprovals, data);
+          render();
+        }).catch(function(e){
+          console.warn('approval save failed', e);
+          b.disabled = false;
+          alert('Не вдалося надіслати. Перевірте звʼязок і спробуйте ще раз.');
+        });
+      };
+    });
+  }
+  /* Пишемо тільки погодження й подію: склад замовлення після оплати клієнт
+     уже не міняє, і правило бази цього не дозволить. */
+  function saveApproval(data, evType){
+    if(!offerRef) return Promise.resolve();
+    return offerRef.update({
+      clientApprovals: Object.assign({}, ordSaved(), data),
+      clientAt: new Date().toISOString(),
+      events: withEvent(evType, '')
+    });
+  }
   function render(){
     LIVE = livePrices();
     /* Конструктор стоїть усередині картки, а картку зараз перемалюють —
@@ -5186,7 +5328,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          щойно відкрила посилання, номер не потрібен — він потрібен тоді,
          коли вона на нього посилається. */
       '<div class="top">' + brandMarkHtml() + shareBtnHtml() + '</div>' +
-      '<div class="wrap">' +
+      tabsHtml() +
+      (hasOrderTab() ? '<div class="ord"' + (TAB === 'ord' ? '' : ' hidden') + '>' +
+        orderTabHtml() + '</div>' : '') +
+      '<div class="wrap"' + (hasOrderTab() && TAB === 'ord' ? ' hidden' : '') + '>' +
         // Порядок за ТЗ: спершу людина бачить, ЩО їй підготували, і лише
         // потім — скільки це коштує. Блок «wow» прибрано: він показував ті
         // самі макети, що й колекція нижче, тільки дрібніше.
@@ -5233,6 +5378,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         '</div>' +
       '</div>';
     wire();
+    wireOrderTab();
     /* Панель дій живе разом зі сторінкою: у «Як бачить клієнт» і в редакторі
        вона малювалась, але слухача прокрутки не отримувала — і не зʼявлялась
        ніколи. Менеджер саме там і перевіряє, як це виглядає клієнту. */
@@ -6479,6 +6625,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     Object.keys(sel.varQty || {}).forEach(function(g){ pick.varQty[g] = +sel.varQty[g]; });
     Object.keys(sel.recoQty || {}).forEach(function(i){ pick.recoQty[+i] = +sel.recoQty[i]; });
 
+    /* Замовлення вже в роботі — відкриваємо саме його: по КП людина
+       повертається рідко, а по «що з моїм замовленням» — щодня. */
+    if(OFFER.track) TAB = 'ord';
     render();
     wireSheets();
 
