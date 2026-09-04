@@ -2141,6 +2141,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>Замовлення</h1>
         <div id="web-orders-state" class="wo-state">підключаюсь…</div>
         <span class="bh-spacer"></span>
+        <select class="bt-sort" id="board-track" title="Яку дошку показувати"></select>
         <button class="btn btn-accent" id="board-add">+ Нова картка</button>
         <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
       </div>
@@ -8707,6 +8708,11 @@ function renderBoardTools(){
       renderBoard();
     }));
 }
+(function wireBoardTrack(){
+  const sel = document.getElementById('board-track');
+  if(!sel) return;
+  sel.addEventListener('change', ()=>{ boardTrack = sel.value; renderBoard(); });
+})();
 (function wireBoardTools(){
   const inp = document.getElementById('board-q');
   const clr = document.getElementById('board-q-x');
@@ -8731,11 +8737,75 @@ function renderBoardTools(){
   const so = document.getElementById('board-sort');
   if(so) so.addEventListener('change', ()=>{ boardView.sort = so.value; renderBoard(); });
 })();
+/* ── Дошка — це вікно, а не місце ─────────────────────────────────────────
+   Картка одна, а дощок кілька: та сама картка стоїть у дизайнера в «В
+   роботі», у закупівельника в «Замовлено», у менеджера в «Оплачено». Тут
+   перемикається саме вікно — по якому треку групувати ті самі картки.
+
+   Дизайнер вікна не перемикає: у нього одна дошка, і вкладок, у які йому
+   нема чого відкривати, він не бачить. */
+let boardTrack = 'sale';
+function boardTrackNow(){ return isDesigner() ? 'design' : boardTrack; }
+function renderBoardSwitch(){
+  const sel = document.getElementById('board-track');
+  if(!sel) return;
+  if(isDesigner()){ sel.hidden = true; return; }
+  sel.hidden = false;
+  const cur = boardTrackNow();
+  const opts = [{ key:'sale', label:'Продажі' }]
+    .concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
+  sel.innerHTML = opts.map(o =>
+    `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>Дошка: ${
+      escapeHtml(o.label)}</option>`).join('');
+}
+function renderTrackBoard(){
+  const board = document.getElementById('board');
+  const key = boardTrackNow();
+  const t = trackMeta(key);
+  if(!t) return false;
+  /* На виробничій дошці немає замовлень, які ще продають: там нічого
+     робити. Показуємо тільки те, що вже оплачене. */
+  const live = (orders || []).filter(o => tracksLive(o) && boardPass(o));
+  t.steps.forEach(st=>{
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.status = st.key;
+    const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
+    const list = live.filter(o => trackOf(o, key) === st.key).sort(boardSortFn());
+    col.innerHTML = `
+      <div class="col-head"><h3 style="color:${c.head};">${escapeHtml(st.label)}</h3>
+        <span class="col-count">${list.length}</span></div>
+      <div class="col-body"></div>`;
+    const body = col.querySelector('.col-body');
+    if(!list.length){
+      body.innerHTML = `<div class="empty-col">${
+        boardFiltersOn() ? 'Нічого не знайшлось' : 'Порожньо'}</div>`;
+    } else {
+      list.forEach(o => body.appendChild(renderTicket(o)));
+    }
+    col.addEventListener('dragover', e=>{ e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', ()=> col.classList.remove('drag-over'));
+    col.addEventListener('drop', async e=>{
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      const o = (orders || []).find(x => x.id === e.dataTransfer.getData('text/plain'));
+      if(o){ await setTrack(o, key, st.key); flashTicket(o.id); }
+    });
+    board.appendChild(col);
+  });
+  return true;
+}
 function renderBoard(){
   const board = document.getElementById('board');
   board.innerHTML = '';
   renderBoardTools();
+  renderBoardSwitch();
   const hidden = (orders || []).filter(o => !boardPass(o)).length;
+  if(boardTrackNow() !== 'sale'){
+    renderTrackBoard();
+    try{ renderOrderDrawer(); }catch(e){}
+    return;
+  }
   STATUSES.forEach(st=>{
     const col = document.createElement('div');
     col.className = 'col';
@@ -9588,6 +9658,29 @@ function ticketSummaryHtml(o){
     </div>`;
 }
 
+/* Дизайнерська картка: те, що потрібно для роботи, і нічого зайвого.
+   Клієнта, телефон і гроші сюди не пускаємо навмисно. */
+function designerTicketHtml(o){
+  const due = dueInfo(o);
+  const items = (o.items || []).filter(it => itemKind(it) === 'main');
+  const cur = artCur(o);
+  return `
+    <div class="tc-top">
+      <span class="t-oid">${escapeHtml(o.orderId || '')}</span>
+      ${due ? `<span class="tc-due ${due.cls}">до ${escapeHtml(due.label)}</span>` : ''}
+      <span class="tc-spacer"></span>
+      ${cur ? `<span class="tc-ch">v${escapeHtml(String(cur.n))}</span>` : ''}
+    </div>
+    <div class="tc-meta">
+      <span>${escapeHtml(items.map(it => (it.name || '') +
+        ((+it.qty) ? ' × ' + (+it.qty) : '')).join(' · ') || 'без позицій')}</span>
+    </div>
+    ${(()=>{ const p = (o.items || []).flatMap(it => it.prints || [])
+        .filter(x => x && (x.widthMm || x.heightMm))
+        .map(x => (x.sideLabel || x.side || '') + ' ' +
+             Math.round(+x.widthMm || 0) + '×' + Math.round(+x.heightMm || 0) + ' мм');
+      return p.length ? `<div class="tc-meta"><span>${escapeHtml(p.join(' · '))}</span></div>` : ''; })()}`;
+}
 function buildTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
@@ -9598,7 +9691,7 @@ function buildTicket(o){
     el.classList.add('dragging');
   });
   el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
-  el.innerHTML = ticketSummaryHtml(o);
+  el.innerHTML = isDesigner() ? designerTicketHtml(o) : ticketSummaryHtml(o);
   const statusIdx = statusFlow().findIndex(s=>s.key===o.status);
   // Клік по картці відкриває панель; кліки по кнопках усередині — ні.
   el.addEventListener('click', e=>{
@@ -10531,6 +10624,65 @@ function artFold(o){
     <button class="art-new" data-art-new>+ Нова версія</button>`;
   return odFoldHtml('art', 'Макет', sum, body);
 }
+/* ══════════ Картка очима дизайнера ══════════
+   Дизайнеру потрібні чотири речі: що шиємо, де саме на виробі, який файл
+   прислав клієнт і на якій версії ми стоїмо. Клієнт, телефон, ціни й
+   листування сюди не приходять — не тому, що таємниця, а тому, що зайве
+   поле на екрані колись переплутають із потрібним. */
+function odDesignerHtml(o){
+  const due = dueInfo(o);
+  const items = (o.items || []).filter(it => itemKind(it) === 'main');
+  const cur = trackStepMeta('design', trackOf(o, 'design')) || {};
+  const c = STATUS_COLORS[cur.color] || STATUS_COLORS.gray;
+  return `
+    <div class="od-head">
+      <div class="od-cl-nm">Замовлення ${escapeHtml(o.orderId || '')}</div>
+      <div class="od-meta">
+        <span title="Коли здавати">${ICO.cal}Здати до <b>${
+          escapeHtml(o.dueAt ? dayUa(o.dueAt) : '—')}</b>${
+          due ? ` <b class="od-pill-age ${due.cls === 'due-late' ? 'is-bad'
+            : (due.cls === 'due-soon' ? 'is-warn' : '')}">${
+            due.days < 0 ? 'прострочено ' + (-due.days) + ' дн'
+              : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}</span>
+      </div>
+      <div class="od-deal-row">
+        <span class="od-pill od-pill-st" style="background:${c.bg};color:${c.head};">
+          <select class="od-trk-sel" data-track="design" title="Стан макета" style="color:${c.head};">
+            ${trackSteps('design').map(st=>`<option value="${escapeHtml(st.key)}"${
+              st.key === trackOf(o, 'design') ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
+          </select>
+        </span>
+      </div>
+      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+    </div>
+    <div class="od-body">
+      <div class="od-sec">Що шиємо</div>
+      ${items.map(it=>`
+        <div class="t-web-item">
+          <div class="t-web-head"><span class="t-web-name">${escapeHtml(it.name || '—')}</span></div>
+          <div class="t-web-meta">${escapeHtml(it.color || '')}${
+            sizeQtyText(it) ? ' · ' + escapeHtml(sizeQtyText(it))
+              : ((+it.qty) ? ' · ' + (+it.qty) + ' шт' : '')}</div>
+          ${(it.prints || []).map(pr=>`
+            <div class="t-web-print">
+              <span class="t-web-print-size">${pr.widthMm ? Math.round(pr.widthMm) : '?'} × ${
+                pr.heightMm ? Math.round(pr.heightMm) : '?'} мм</span>
+              <span class="t-web-print-side">${escapeHtml(pr.technique || '')}${
+                pr.sideLabel ? ' · ' + escapeHtml(pr.sideLabel) : ''}</span>
+              ${pr.file ? `<a href="${escapeHtml(docAttachUrl(pr.file))}" target="_blank" rel="noopener"
+                download class="t-web-file">файл ↓</a>` : '<span class="t-web-file t-web-file--none">без файлу</span>'}
+            </div>`).join('')}
+          <div class="od-item-edit">
+            <span class="tc-spacer"></span>
+            ${(it.prints || []).length ? `<button class="od-item-edit-b" data-mark-i="${
+              (o.items || []).indexOf(it)}" title="Розмір, зміщення від центру, відступ від лінії плечей">⌗ Розмітка</button>` : ''}
+          </div>
+        </div>`).join('') || '<div class="od-empty">Позицій немає</div>'}
+      <div class="od-folds">
+        ${odPart(()=> artFold(o), 'макет')}
+      </div>
+    </div>`;
+}
 function odPayFold(o){
   const st = payState(o);
   return odFoldHtml('pay', 'Оплата',
@@ -10701,7 +10853,7 @@ function renderOrderDrawer(){
      з собою склад замовлення — його видно й у запасному вигляді. */
   let odHtml;
   try{
-  odHtml = `
+  odHtml = isDesigner() ? odDesignerHtml(o) : `
     <div class="od-head">
       ${/* Спершу — хто це. Канал із ніком стоїть у шапці, а не в розділі
            нижче: питання «де ми з цією людиною розмовляємо» виникає раніше
@@ -14305,7 +14457,8 @@ document.getElementById('qr-save').addEventListener('click', async ()=>{
    інакше «менеджер не бачить собівартість» обходиться за секунду — обрав
    у списку інше імʼя й дивись. Кого в списку немає — менеджер: нова людина
    не отримує доступ до цифр просто тому, що її забули завести. */
-const ROLES = { owner:'Власник — бачить усе', manager:'Менеджер — без собівартості' };
+const ROLES = { owner:'Власник — бачить усе', manager:'Менеджер — без собівартості',
+                designer:'Дизайнер — тільки макети' };
 let teamDraft = null;
 function teamList(){
   if(!teamDraft){
@@ -14332,9 +14485,31 @@ function teamOn(){ return (((contentData.team) || []).length > 0); }
 function myRole(){
   if(!teamOn()) return 'owner';
   const m = teamMember(myEmail());
-  return (m && m.role === 'owner') ? 'owner' : 'manager';
+  const r = m && m.role;
+  return (r === 'owner' || r === 'designer') ? r : 'manager';
 }
 function canSeeCost(){ return myRole() === 'owner'; }
+/* У бічному меню людина бачить тільки свої розділи. Дизайнер заходить і
+   бачить одну дошку — ніяких вкладок, у які йому нема чого відкривати. */
+function applyRoleUi(){
+  const d = isDesigner();
+  document.querySelectorAll('.nav button[data-view]').forEach(b=>{
+    b.hidden = d && b.dataset.view !== 'board';
+  });
+  ['board-add','st-toggle'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.hidden = d;
+  });
+  if(d){
+    const bb = document.querySelector('.nav button[data-view="board"]');
+    if(bb && !bb.classList.contains('active')) bb.click();
+  }
+}
+/* Дизайнеру не потрібен телефон клієнта, а виробництву — маржа. Це не про
+   секретність, а про те, що зайве поле на екрані — це поле, яке хтось колись
+   переплутає з потрібним. */
+function isDesigner(){ return myRole() === 'designer'; }
+function canSeeClient(){ return !isDesigner(); }
 function personName(email){
   const m = teamMember(email);
   if(m && m.name) return m.name;
@@ -16387,6 +16562,7 @@ async function init(){
     // Етапи воронки живуть у тому ж документі — перечитуємо й перемальовуємо
     loadStatuses();
     loadTracks();
+    applyRoleUi();
     const bv = document.getElementById('view-board');
     if(bv && bv.style.display !== 'none' && !typing0){
       renderBoard();
