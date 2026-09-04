@@ -784,6 +784,29 @@
     border-radius:7px;font-size:14px;}
   .ao-x:hover{background:var(--canvas);color:var(--ink);}
   .ao-list{overflow-y:auto;padding:8px;}
+  /* Розмітка нанесення: числа зліва, креслення справа — на вузькому екрані одне під одним */
+  .ao.mk{max-width:640px;}
+  .mk-side{padding:10px 8px;border-bottom:1px solid var(--line);}
+  .mk-side:last-child{border-bottom:0;}
+  .mk-side-h{display:flex;align-items:baseline;gap:8px;font-size:12px;font-weight:800;
+    letter-spacing:.06em;text-transform:uppercase;}
+  .mk-side-h span{font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;
+    color:var(--ink-soft);}
+  .mk-body{display:flex;gap:14px;align-items:flex-start;margin-top:8px;}
+  .mk-rows{flex:1 1 0;min-width:0;}
+  .mk-row{display:flex;gap:10px;justify-content:space-between;align-items:baseline;
+    padding:4px 0;font-size:12.5px;}
+  .mk-row span{color:var(--ink-soft);flex:none;}
+  .mk-row b{text-align:right;font-variant-numeric:tabular-nums;}
+  .mk-old{margin-top:6px;font-size:11.5px;color:var(--ink-soft);line-height:1.45;}
+  .mk-draw{flex:none;width:190px;height:auto;max-height:230px;background:var(--canvas);
+    border:1px solid var(--line);border-radius:10px;padding:6px;box-sizing:border-box;}
+  .mk-none{padding:14px 10px;font-size:12.5px;color:var(--ink-soft);}
+  .mk-foot{flex:none;padding:10px 12px;border-top:1px solid var(--line);display:flex;}
+  .mk-copy{all:unset;cursor:pointer;flex:1;text-align:center;padding:10px;border-radius:10px;
+    background:var(--accent);color:#fff;font-size:13px;font-weight:700;}
+  .mk-copy:hover{filter:brightness(1.06);}
+  @media (max-width:560px){ .mk-body{flex-direction:column;} .mk-draw{width:100%;max-height:none;} }
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -2955,8 +2978,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=730d643f08"></script>
-<script src="loomiq-pricing.js?v=730d643f08"></script>
+<script src="loomiq-fingerprint.js?v=78f196cdb0"></script>
+<script src="loomiq-pricing.js?v=78f196cdb0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5224,6 +5247,10 @@ window.__adminSaveClientOrder = async function(payload){
       }
       prints.push({ side: p.side||'', sideLabel: p.sideLabel||'', technique: p.technique||'',
                     widthMm: Math.round(+p.widthMm||0), heightMm: Math.round(+p.heightMm||0),
+                    /* Розмітка (де саме лежить нанесення в міліметрах) рахується
+                       в конструкторі й більше нізвідки не береться: у картці
+                       масштабу зони вже немає. Тому переносимо як є. */
+                    mark: markClean(p.mark),
                     file: file || null });
       (filesBySide[p.side||''] = filesBySide[p.side||''] || []).push(file || null);
     }
@@ -8623,6 +8650,172 @@ function orderBuyHtml(o){
   }).join('');
 }
 
+/* ══════════ Розмітка нанесення ══════════
+   Дизайнер отримує логотип і робить «на око» — а потім виявляється, що
+   завеликий або з'їхав. Але числа вже пораховані в конструкторі: розмір
+   нанесення, зміщення від осі, відступ від лінії плечей. Тут вони просто
+   складаються в технічну картку, яку можна прочитати або скопіювати одним
+   рухом і віддати дизайнеру та швачці.
+
+   Опора — верхня точка плеча: звідти ж міряється довжина виробу в розмірній
+   сітці, тож числа сходяться з тим, що людина міряє рулеткою.
+
+   Старі позиції розмітки не мають: вона з'явилась пізніше, а вигадувати її
+   заднім числом нізвідки. Там лишається розмір нанесення, як і був. */
+function markClean(m){
+  if(!m || typeof m !== 'object') return null;
+  const n = v => Number.isFinite(+v) ? Math.round(+v) : null;
+  const z = m.zone || {};
+  const poly = Array.isArray(z.poly)
+    ? z.poly.slice(0, 160).map(v => n(v)).filter(v => v != null) : [];
+  const top = n(m.topMm), cen = n(m.centerMm);
+  if(top == null || cen == null) return null;
+  return {
+    topMm: top, centerMm: cen, rotDeg: n(m.rotDeg) || 0,
+    zone: { top: n(z.top) || 0, left: n(z.left) || 0,
+            w: n(z.w) || 0, h: n(z.h) || 0,
+            poly: (poly.length >= 6 && poly.length % 2 === 0) ? poly : [] }
+  };
+}
+function markHasAny(it){ return (it && it.prints || []).some(p => markClean(p.mark)); }
+/* Один рядок горизонталі: «по центру» чи «зміщення 25 мм праворуч».
+   Три міліметри в той чи інший бік — це не зміщення, а похибка миші. */
+function markCenterText(mk){
+  const c = mk.centerMm;
+  if(Math.abs(c) <= 3) return 'по центру';
+  return 'зміщення ' + Math.abs(c) + ' мм ' + (c > 0 ? 'праворуч' : 'ліворуч') + ' від центру';
+}
+function markSideText(p){
+  return String(p.sideLabel || p.side || '').toUpperCase() || 'НАНЕСЕННЯ';
+}
+/* Технічна картка простим текстом — те, що менеджер вставляє дизайнеру. */
+function markTextOf(o, it){
+  const head = [
+    '#' + (o.orderId || ''),
+    [it.name || '', it.color || '', ((+it.qty || 0) ? (+it.qty) + ' шт' : '')]
+      .filter(Boolean).join(' · ')
+  ].filter(Boolean).join('  ');
+  const blocks = (it.prints || []).map(p=>{
+    const mk = markClean(p.mark);
+    const L = [markSideText(p) + (p.technique ? ' · ' + p.technique : '')];
+    L.push('  розмір нанесення: ' + (+p.widthMm || 0) + ' × ' + (+p.heightMm || 0) + ' мм');
+    if(mk){
+      L.push('  по горизонталі: ' + markCenterText(mk));
+      L.push('  по вертикалі: ' + mk.topMm + ' мм від лінії плечей до верху нанесення');
+      if(mk.rotDeg) L.push('  поворот: ' + mk.rotDeg + '°');
+      if(mk.zone.w && mk.zone.h)
+        L.push('  зона нанесення: ' + mk.zone.w + ' × ' + mk.zone.h + ' мм');
+    } else {
+      L.push('  розмітки немає — позицію склали до того, як вона зʼявилась');
+    }
+    return L.join('\n');
+  });
+  return head + '\n\n' + blocks.join('\n\n');
+}
+/* Креслення в масштабі: контур зони, саме нанесення, вісь і лінія плечей.
+   Усе в міліметрах — viewBox і є міліметрами, тож нічого не перераховуємо. */
+function markSvg(p){
+  const mk = markClean(p.mark); if(!mk) return '';
+  const w = +p.widthMm || 0, h = +p.heightMm || 0;
+  const dx0 = mk.centerMm - w/2, dx1 = mk.centerMm + w/2;
+  const dy0 = mk.topMm, dy1 = mk.topMm + h;
+  const z = mk.zone, hasZone = z.poly.length >= 6;
+  const xs = [dx0, dx1, 0].concat(hasZone ? [z.left, z.left + z.w] : []);
+  const ys = [dy0, dy1, 0].concat(hasZone ? [z.top, z.top + z.h] : []);
+  const pad = 26;
+  const x0 = Math.min.apply(null, xs) - pad, x1 = Math.max.apply(null, xs) + pad;
+  const y0 = Math.min.apply(null, ys) - pad, y1 = Math.max.apply(null, ys) + pad;
+  const W = Math.max(1, x1 - x0), H = Math.max(1, y1 - y0);
+  const fs = Math.max(7, Math.round(W / 26));         // підписи — часткою від ширини
+  const sw = Math.max(0.6, W / 340);                  // товщина ліній
+  let zone = '';
+  if(hasZone){
+    let d = '';
+    for(let i = 0; i < z.poly.length; i += 2)
+      d += (i ? 'L' : 'M') + z.poly[i] + ' ' + z.poly[i+1] + ' ';
+    zone = `<path d="${d}Z" fill="none" stroke="var(--ink-soft,#4B5667)"
+      stroke-width="${sw}" stroke-dasharray="${sw*5} ${sw*4}"/>`;
+  }
+  return `<svg class="mk-draw" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${W.toFixed(1)} ${H.toFixed(1)}"
+      role="img" aria-label="Схема розташування нанесення">
+    ${zone}
+    <line x1="0" y1="${y0}" x2="0" y2="${y1}" stroke="var(--ink-soft,#7b8a9c)"
+      stroke-width="${sw*0.8}" stroke-dasharray="${sw*3} ${sw*3}" opacity=".7"/>
+    <line x1="${x0}" y1="0" x2="${x1}" y2="0" stroke="var(--ink-soft,#7b8a9c)"
+      stroke-width="${sw*0.8}" stroke-dasharray="${sw*3} ${sw*3}" opacity=".7"/>
+    <text x="${x0 + fs*0.4}" y="${-fs*0.5}" font-size="${fs}"
+      fill="var(--ink-soft,#7b8a9c)">лінія плечей</text>
+    <rect x="${dx0}" y="${dy0}" width="${Math.max(w,1)}" height="${Math.max(h,1)}"
+      fill="var(--accent-soft,#e8f0fb)" stroke="var(--accent,#2f6fd0)" stroke-width="${sw*1.4}"/>
+    <line x1="${dx0 - fs*0.9}" y1="0" x2="${dx0 - fs*0.9}" y2="${dy0}"
+      stroke="var(--accent,#2f6fd0)" stroke-width="${sw}"/>
+    <text x="${dx0 - fs*1.4}" y="${dy0/2 + fs*0.35}" font-size="${fs}" text-anchor="end"
+      fill="var(--accent,#2f6fd0)">${mk.topMm} мм</text>
+    <text x="${(dx0+dx1)/2}" y="${dy1 + fs*1.3}" font-size="${fs}" text-anchor="middle"
+      fill="var(--ink,#152033)">${w} мм</text>
+    <text x="${dx1 + fs*0.5}" y="${(dy0+dy1)/2 + fs*0.35}" font-size="${fs}"
+      fill="var(--ink,#152033)">${h} мм</text>
+  </svg>`;
+}
+function markBodyHtml(o, it){
+  const prints = (it.prints || []);
+  if(!prints.length) return '<div class="mk-none">У позиції немає нанесення.</div>';
+  return prints.map(p=>{
+    const mk = markClean(p.mark);
+    const rows = [
+      ['розмір нанесення', (+p.widthMm||0) + ' × ' + (+p.heightMm||0) + ' мм']
+    ];
+    if(mk){
+      rows.push(['по горизонталі', markCenterText(mk)]);
+      rows.push(['по вертикалі', mk.topMm + ' мм від лінії плечей до верху нанесення']);
+      if(mk.rotDeg) rows.push(['поворот', mk.rotDeg + '°']);
+      if(mk.zone.w && mk.zone.h) rows.push(['зона нанесення', mk.zone.w + ' × ' + mk.zone.h + ' мм']);
+    }
+    return `<div class="mk-side">
+      <div class="mk-side-h">${escapeHtml(markSideText(p))}${
+        p.technique ? '<span>' + escapeHtml(p.technique) + '</span>' : ''}</div>
+      <div class="mk-body">
+        <div class="mk-rows">${rows.map(r=>
+          `<div class="mk-row"><span>${escapeHtml(r[0])}</span><b>${escapeHtml(r[1])}</b></div>`).join('')}
+          ${mk ? '' : '<div class="mk-old">Розмітки немає: позицію склали до того, як вона зʼявилась. Розмір нанесення — той самий, що й був.</div>'}
+        </div>
+        ${mk ? markSvg(p) : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openMark(o, i){
+  const it = (o.items || [])[i]; if(!it) return;
+  let d = document.getElementById('markWrap');
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'markWrap';
+    d.className = 'ao-wrap';
+    document.body.appendChild(d);
+    d.addEventListener('click', e=>{ if(e.target === d) closeMark(); });
+  }
+  d.innerHTML = `<div class="ao mk">
+      <div class="ao-head">
+        <div><b>Розмітка нанесення</b>
+          <span>${escapeHtml([it.name||'', it.color||'',
+            ((+it.qty||0) ? (+it.qty)+' шт' : '')].filter(Boolean).join(' · '))}</span></div>
+        <button class="ao-x" data-mk-close aria-label="Закрити">✕</button>
+      </div>
+      <div class="ao-list">${markBodyHtml(o, it)}</div>
+      <div class="mk-foot">
+        <button class="mk-copy" data-mk-copy>Копіювати для дизайнера</button>
+      </div>
+    </div>`;
+  d.classList.add('open');
+  d.querySelector('[data-mk-close]').addEventListener('click', closeMark);
+  d.querySelector('[data-mk-copy]').addEventListener('click', ()=>
+    copyText(markTextOf(o, it), 'Розмітка скопійована — можна віддавати дизайнеру'));
+}
+function closeMark(){
+  const d = document.getElementById('markWrap');
+  if(d) d.classList.remove('open');
+}
+
 /* `want`: 'main' — те, що виробляємо; 'extra' — рекомендації й варіанти;
    без нього — усе разом (запасний шаблон картки). */
 function orderItemsHtml(o, want){
@@ -8660,6 +8853,8 @@ function orderItemsHtml(o, want){
           <input class="od-qty" type="number" min="1" step="1" value="${+it.qty||1}" data-i="${(o.items||[]).indexOf(it)}" aria-label="Кількість">
           <span class="od-qty-unit">шт</span>
           <span class="tc-spacer"></span>
+          ${(it.prints||[]).length ? `<button class="od-item-edit-b" data-mark-i="${(o.items||[]).indexOf(it)}"
+            title="Технічна розмітка: розмір нанесення, зміщення від центру, відступ від лінії плечей">⌗ Розмітка</button>` : ''}
           ${it.config ? `<button class="od-item-edit-b" data-edit-i="${(o.items||[]).indexOf(it)}"
             title="Відкрити позицію в конструкторі: логотип, розмір нанесення, кольори">✎ Змінити</button>` : ''}
           <button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>
@@ -10175,6 +10370,9 @@ function renderOrderDrawer(){
   });
   panel.querySelectorAll('[data-del-i]').forEach(b=>{
     b.addEventListener('click', ()=> orderRemoveItem(o, +b.dataset.delI));
+  });
+  panel.querySelectorAll('[data-mark-i]').forEach(b=>{
+    b.addEventListener('click', ()=> openMark(o, +b.dataset.markI));
   });
   wireDocsBlock(panel, o);
   panel.querySelectorAll('[data-buy]').forEach(b => {

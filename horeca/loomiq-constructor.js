@@ -713,6 +713,7 @@
        завантаження. Тепер памʼятаємо порахований масштаб для кожного виробу
        й ракурсу, і на час завантаження беремо його, а не іншу формулу. */
     var ZONE_MM_CACHE = {};
+    var ZONE_GEO_CACHE = {};   // сторона → вісь, лінія плечей і масштаб (для розмітки)
     function zoneCacheKey(){ return pm.garmentId + '|' + pm.side + '|' + (pm.printId || ''); }
     function zoneScaleMmPerFrac(){
       if(typeof currentPrintCfg !== 'function') return null;
@@ -1894,7 +1895,60 @@
       var calX=cfg.calibCx!=null?cfg.calibCx:0.5;
       var topCal=oy+calT*rh, ch=(calB-calT)*rh, cx=ox+rw*calX;
       var polyFrac = paFullPoly(cfg).map(function(p){ return [cx+p[0]*ch, topCal+p[1]*ch]; });
+      /* Дві опорні лінії виробу — вісь і верх (звідки міряється довжина) —
+         запамʼятовуємо разом із масштабом. З них рахується розмітка
+         нанесення для виробництва: «85 мм від лінії плечей, по центру».
+         Тут вони є тільки поки відкрита ця сторона й завантажене її фото —
+         далі, у кошику, брати їх нізвідки. */
+      var mmF = zoneScaleMmPerFrac();
+      if(mmF > 0) ZONE_GEO_CACHE[zoneCacheKey()] =
+        { cx: cx, top: topCal, mm: mmF, polyFrac: polyFrac };
       return { polyFrac: polyFrac, wrapW: wrapW };
+    }
+    /* ══════════ Розмітка нанесення ══════════
+       Дизайнер отримує логотип і робить «на око», а потім виявляється, що
+       завеликий. Але всі числа вже пораховані: масштаб зони дає міліметри,
+       калібрування дає вісь і лінію плечей. Лишається порахувати їх один
+       раз — поки конструктор відкритий — і покласти в позицію.
+
+       Опора навмисно та сама, за якою міряють довжину виробу в розмірній
+       сітці: верхня точка плеча. Швачка міряє звідти ж, і числа сходяться. */
+    function placementMarkMm(l, side){
+      var geo = ZONE_GEO_CACHE[pm.garmentId + '|' + side + '|' + (pm.printId || '')];
+      if(!geo || !(geo.mm > 0)) return null;
+      var wrapW = (pmGarmentWrapEl && pmGarmentWrapEl.clientWidth) || 0;
+      if(!(wrapW > 0)) return null;
+      var cxF = 0.5 + (l.x||0)/wrapW, cyF = 0.5 + (l.y||0)/wrapW;
+      var fr = layerFrac(l), ar = (l.ar||1)||1;
+      var bwF = (ar >= 1) ? fr : fr*ar, bhF = (ar >= 1) ? fr/ar : fr;
+      var ob = l.opaqueBox || {x0:0,y0:0,x1:1,y1:1};
+      var x0=(ob.x0-0.5)*bwF, x1=(ob.x1-0.5)*bwF, y0=(ob.y0-0.5)*bhF, y1=(ob.y1-0.5)*bhF;
+      var rot=(l.rot||0)*Math.PI/180, cs=Math.cos(rot), sn=Math.sin(rot), xs=[], ys=[];
+      [[x0,y0],[x1,y0],[x1,y1],[x0,y1]].forEach(function(c){
+        xs.push(c[0]*cs - c[1]*sn); ys.push(c[0]*sn + c[1]*cs); });
+      var left = cxF + Math.min.apply(null, xs), right = cxF + Math.max.apply(null, xs);
+      var top  = cyF + Math.min.apply(null, ys), bot   = cyF + Math.max.apply(null, ys);
+      var mm = geo.mm, r = function(v){ return Math.round(v); };
+      /* Контур зони — плоским списком чисел: у Firestore масив у масиві
+         не кладеться. Пари йдуть підряд: x, y, x, y… */
+      var poly = [], px = [], py = [];
+      geo.polyFrac.forEach(function(p){
+        var x = (p[0] - geo.cx)*mm, y = (p[1] - geo.top)*mm;
+        px.push(x); py.push(y);
+        if(poly.length < 160){ poly.push(r(x)); poly.push(r(y)); }
+      });
+      return {
+        topMm:    r((top - geo.top)*mm),                 // від лінії плечей до верху нанесення
+        centerMm: r(((left+right)/2 - geo.cx)*mm),       // + праворуч від осі
+        rotDeg:   Math.round(l.rot||0),
+        zone: {
+          top:  r(Math.min.apply(null, py)),
+          left: r(Math.min.apply(null, px)),
+          w:    r(Math.max.apply(null, px) - Math.min.apply(null, px)),
+          h:    r(Math.max.apply(null, py) - Math.min.apply(null, py)),
+          poly: poly
+        }
+      };
     }
     // Центр зони у пікселях відносно центра контейнера (для стартового положення лого).
     function printAreaAnchorPx(){
@@ -5487,14 +5541,21 @@
              прямокутника картинки, і в картці замовлення стояв один розмір,
              а в редакторі — інший. */
           var d = layerOpaqueDimsMm(l);
-          item.prints.push({
+          var pr = {
             side: side,
             sideLabel: sideLabelOf(pm.garmentId, side),
             technique: getPrint().name,
             widthMm: Math.round(d.w),
             heightMm: Math.round(d.h),
             file: l.url || null          // оригінал, як його завантажив клієнт
-          });
+          };
+          /* Де саме лежить нанесення — у міліметрах від осі й від лінії
+             плечей. Без цього дизайнер і швачка ставлять «на око», а потім
+             виявляється, що завеликий або з'їхав. Немає зони чи фото —
+             немає й розмітки: краще нічого, ніж вигадане число. */
+          try{ var mk = placementMarkMm(l, side); if(mk) pr.mark = mk; }
+          catch(e){ console.warn('placement mark failed', e); }   // позиція важливіша за розмітку
+          item.prints.push(pr);
         });
       });
       /* Розклад нанесення їде разом із позицією: після збереження відновити
