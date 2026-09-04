@@ -1999,6 +1999,46 @@
   .upd-bar{background:var(--ink);border-radius:var(--r-ctl);box-shadow:var(--sh-3);}
   .upd-bar button{background:#fff;color:var(--ink);border-radius:var(--r-sm);font-weight:600;}
   ::selection{background:var(--accent-soft);}
+
+  /* ── Перемикачі-сегменти (періоди, вкладки звіту) ──
+     Один активний, темний; решта тиха. Той самий ритм, що й у кнопок. */
+  .an-seg,.an-tabs,.dev-switch{background:var(--paper);border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:4px;gap:2px;}
+  .an-seg button,.an-tabs button,.dev-switch button{border-radius:var(--r-sm);font-size:13.5px;
+    font-weight:500;color:var(--ink-soft);padding:8px 14px;}
+  .an-seg button:hover,.an-tabs button:hover,.dev-switch button:hover{background:var(--canvas);color:var(--ink);}
+  .an-seg button.active,.an-tabs button.active,.dev-switch button.active{
+    background:var(--ink);color:#fff;font-weight:600;box-shadow:none;}
+
+  /* ── Показники ──
+     Підпис тихий, число головне, пояснення знизу ще тихіше: три рівні
+     одного блоку читаються без жодної рамки всередині. */
+  .an-kpi,.kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);
+    padding:20px;box-shadow:none;}
+  .an-kpi b,.kpi b{font-size:26px;font-weight:700;letter-spacing:-.02em;color:var(--ink);}
+  .an-kpi span,.kpi span{font-size:13px;color:var(--ink-soft);}
+  .an-kpi i,.kpi i{font-size:12.5px;color:var(--muted);font-style:normal;}
+
+  /* ── Таблиці всередині карток ──
+     Картка вже дала межу — таблиці власна рамка не потрібна. */
+  .card table{margin:0 -4px;width:calc(100% + 8px);}
+  .card th:first-child,.card td:first-child{padding-left:4px;}
+  .card th:last-child,.card td:last-child{padding-right:4px;}
+
+  /* Модалка з розміткою нанесення — та сама система */
+  .mk-copy{height:44px;border-radius:var(--r-ctl);background:var(--ink);font-size:14px;}
+  .mk-copy:hover{background:#000;filter:none;}
+  .mk-draw{border-radius:var(--r-ctl);}
+
+  /* ── Стани, які легко забути ── */
+  button:focus-visible,a:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm);}
+  button:disabled{cursor:not-allowed;opacity:.5;}
+
+  /* Підказка згорнутого меню має вийти за межі sidebar, тож прокрутку
+     віддаємо внутрішньому шару, а сам sidebar більше нічого не ріже. */
+  .sidebar{overflow:visible;}
+  .sidebar-inner{overflow-y:auto;overflow-x:visible;}
 </style>
 </head>
 <body>
