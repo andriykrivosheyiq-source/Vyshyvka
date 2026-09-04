@@ -3768,6 +3768,36 @@ function tracksLive(o){
   if(typeof payList === 'function' && payList(o).length) return true;
   return ['paid','production','done'].indexOf(o.status) >= 0;
 }
+/* ── Коротке слово клієнту на кожній віхі ─────────────────────────────────
+   Це те, що менеджер пише руками по десять разів на день: «зробили тест,
+   гляньте», «пішло в тираж», «відправили». Пишемо самі — але тільки туди,
+   де вже є розмова, тільки один раз на подію і тільки про те, що клієнта
+   справді стосується. Вимкнути можна одним полем у налаштуваннях сайту. */
+const STAGE_MSG = {
+  test_ask:  o => 'Ми зробили тестовий відшив і виклали фото на вашій сторінці замовлення. ' +
+                  'Погляньте, будь ласка, і натисніть «погоджую» або «потрібні правки»: ' + (offerUrl(o) || ''),
+  prod_work: o => 'Ваше замовлення № ' + (o.orderId || '') + ' пішло в тираж.',
+  ship_sent: o => 'Замовлення № ' + (o.orderId || '') + ' відправлено.' +
+                  (o.ttn ? ' Накладна: ' + o.ttn : '')
+};
+async function notifyStage(o, key){
+  if(!o || !STAGE_MSG[key]) return;
+  if(contentData.notifyClient === false) return;   // вимкнено свідомо
+  if(typeof tgChatOf !== 'function' || !tgChatOf(o)) return;  // немає розмови — нема куди
+  if(!o.notified || typeof o.notified !== 'object') o.notified = {};
+  if(o.notified[key]) return;                      // двічі про одне не пишемо
+  o.notified[key] = new Date().toISOString();
+  try{ await tgSend(o, STAGE_MSG[key](o)); }
+  catch(e){ console.warn('stage notify failed', e); }
+}
+/* Одні й ті самі віхи, хоч їх посунули руками, хоч погодженням. */
+function stageKeyOf(track, step){
+  if(track === 'test' && step === 'client') return 'test_ask';
+  if(track === 'prod' && step === 'work')   return 'prod_work';
+  if(track === 'ship' && trackStepMeta('ship', step) &&
+     trackStepMeta('ship', step).done)      return 'ship_sent';
+  return '';
+}
 async function setTrack(o, key, step){
   if(!o || !trackStepMeta(key, step)) return;
   if(trackOf(o, key) === step) return;
@@ -3777,6 +3807,7 @@ async function setTrack(o, key, step){
      запис «хто і коли посунув» потрібен рівно так само, як в етапах. */
   o.trackHist = (o.trackHist || []).concat([{ t:key, s:step,
     at:new Date().toISOString(), by:(typeof myEmail === 'function' ? (myEmail() || '') : '') }]).slice(-60);
+  await notifyStage(o, stageKeyOf(key, step));
   touchOrder(o);
   try{ await storeSet('orders', orders); }
   catch(e){ console.error(e); toast('Не збереглось'); }
@@ -9223,6 +9254,43 @@ async function setOrderManager(o, email){
 /* Оплату записуємо разом із тим, ХТО її записав: коли гроші не сходяться,
    перше питання — хто вносив. Дата ставиться автоматично; вручну її не
    правлять, щоб заднім числом нічого не зʼявлялось. */
+/* ══════════ Оплата запускає виробництво ══════════
+   Доти після оплати нічого не відбувалось: менеджер сам згадував, що треба
+   передати макет дизайнеру, сам заводив потребу на закупівлю, сам рухав
+   картку. Кожен із цих кроків можна забути — і забували.
+
+   Тепер гроші вмикають роботу: картка стає в «Оплачено», треки заводяться,
+   у списку «наступна дія» зʼявляється задача дизайнеру, а на сторінці
+   клієнта відкривається вкладка «Замовлення». Один раз і за фактом події, а
+   не за розкладом чиєїсь памʼяті. */
+function firstStepKey(track){ const s = trackSteps(track)[0]; return s ? s.key : ''; }
+function prodStarted(o){ return !!(o && o.prodAt); }
+function prodItemsLine(o){
+  const L = (o.items || []).filter(it => itemKind(it) === 'main')
+    .map(it => (it.name || '') + (it.color ? ' · ' + it.color : '') +
+               ((+it.qty) ? ' × ' + (+it.qty) : ''));
+  return L.slice(0, 3).join('; ') + (L.length > 3 ? ' …' : '');
+}
+function startProduction(o){
+  if(!o || prodStarted(o)) return false;
+  o.prodAt = new Date().toISOString();
+  if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+  /* Треки заводимо мовчки, без запису в історію: шість рядків «Дизайн:
+     Нові» одночасно нічого не пояснюють, а стрічку забивають. Подія тут
+     одна — «виробництво запущено», і вона нижче. */
+  TRACKS.forEach(t => { if(!o.tracks[t.key]) o.tracks[t.key] = firstStepKey(t.key); });
+  /* Задача дизайнеру — у той самий список «наступна дія», яким менеджер уже
+     живе. Окремого місця для неї немає й не треба: дошка дизайну зʼявиться
+     пізніше, а забути про макет не можна вже сьогодні. */
+  if(!Array.isArray(o.tasks)) o.tasks = [];
+  const line = prodItemsLine(o);
+  o.tasks.push({ id: cryptoId(),
+    text: ('Передати макет дизайнеру' + (line ? ': ' + line : '')).slice(0, 200),
+    due: new Date().toISOString().slice(0, 10), dueTime: null,
+    done:false, at:new Date().toISOString(),
+    by: myEmail() || '', for: o.mgrEmail || myEmail() || '' });
+  return true;
+}
 async function addPayment(o, sum, kind){
   const s = Math.round(+sum || 0);
   if(s <= 0){ toast('Вкажіть суму'); return; }
@@ -9234,10 +9302,16 @@ async function addPayment(o, sum, kind){
   o.payments.push({ at: new Date().toISOString(), sum: s,
                     kind: (kind === 'prepay' || kind === 'final') ? kind : 'other',
                     by: myEmail() || '' });
+  /* Гроші прийшли — робота починається. Не «повна оплата», а перша:
+     передоплата і є те, з чого запускають виробництво. */
+  const started = startProduction(o);
+  if(started && ['lead','prorahunok','kp','new'].indexOf(o.status) >= 0) setStatus(o, 'paid');
   try{
     await saveOrderMeta(o);
-    toast(payState(o) === 'full' ? 'Сплачено повністю' : ('Залишок ' + fmt(dueSum(o)) + ' ₴'));
+    toast(started ? 'Оплата записана — виробництво запущено'
+      : (payState(o) === 'full' ? 'Сплачено повністю' : ('Залишок ' + fmt(dueSum(o)) + ' ₴')));
   }catch(e){ console.error(e); o.payments.pop(); toast('Не збереглось'); }
+  renderBoard();
   renderOrderDrawer();
 }
 /* Задачі. Автор фіксується разом із задачею: у команді з кількох людей
@@ -9820,6 +9894,7 @@ function activityFeed(o){
     const st = STATUSES.filter(s => s.key === h.s)[0];
     push(h.at, 'Етап: ' + ((st && st.label) || h.s), 'stage');
   });
+  push(o.prodAt, 'Виробництво запущено · задача дизайнеру, вкладка клієнта відкрита', 'stage');
   /* Рух треків — така сама подія, як етап продажу. Без цього в стрічці
      видно «клієнт погодив», але не видно, що після цього макет пішов у
      роботу, — а питають саме про це. */
@@ -10312,6 +10387,7 @@ function artTrack(o, track, step){
   o.tracks[track] = step;
   o.trackHist = (o.trackHist || []).concat([{ t:track, s:step, at:new Date().toISOString(),
     by:(myEmail() || '') }]).slice(-60);
+  notifyStage(o, stageKeyOf(track, step));   // те саме слово клієнту, звідки б трек не рушив
 }
 async function artNew(o){
   const l = artList(o);
