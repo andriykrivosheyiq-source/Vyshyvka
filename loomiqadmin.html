@@ -798,6 +798,44 @@
   .tc-tracks{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
   .tc-trk{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;
     white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  /* Макет: версії, файли, три погодження */
+  .art-ver{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;}
+  .art-ver.is-cur{border-color:var(--accent);}
+  .art-ver-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;
+    color:var(--ink-soft);}
+  .art-ver-h b{font-size:14px;color:var(--ink);font-family:var(--mono);}
+  .art-back{color:#A32C3E;font-weight:700;}
+  .art-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;}
+  .art-file{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:8px;
+    background:var(--canvas);color:var(--accent-deep);text-decoration:none;}
+  .art-file:hover{background:var(--accent-soft);}
+  .art-add{display:flex;gap:4px;align-items:center;flex:1;min-width:190px;}
+  .art-add select,.art-add input{font:inherit;font-size:12px;border:1px solid var(--line);
+    border-radius:8px;padding:5px 7px;min-width:0;}
+  .art-add input{flex:1;}
+  .art-b{all:unset;cursor:pointer;flex:none;padding:5px 10px;border-radius:8px;
+    background:var(--accent-soft);color:var(--accent-deep);font-size:12px;font-weight:700;}
+  .art-b:hover{background:var(--accent);color:#fff;}
+  .art-imgs{display:flex;gap:8px;margin-top:8px;}
+  .art-img{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;width:112px;
+    font-size:10.5px;color:var(--ink-soft);text-align:center;}
+  .art-img img{width:112px;height:84px;object-fit:cover;border-radius:9px;border:1px solid var(--line);}
+  .art-img--add{align-items:center;justify-content:center;height:84px;border:1px dashed var(--line);
+    border-radius:9px;width:112px;box-sizing:border-box;}
+  .art-img--add b{font-size:18px;color:var(--ink-soft);font-weight:400;line-height:1;}
+  .art-aps{margin-top:10px;border-top:1px solid var(--line);padding-top:6px;}
+  .art-ap{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;}
+  .art-ap-n{flex:none;width:14px;text-align:center;color:var(--ink-soft);}
+  .art-ap.is-ok .art-ap-n{color:#1E7A45;font-weight:800;}
+  .art-ap-l{flex:1;min-width:0;font-weight:700;}
+  .art-ap-l i{display:block;font-style:normal;font-size:10.5px;font-weight:400;color:var(--ink-soft);}
+  .art-ap-w{font-size:11px;color:var(--ink-soft);text-align:right;max-width:52%;}
+  .art-back-row{display:flex;gap:6px;margin-top:10px;}
+  .art-back-row select{flex:1;min-width:0;font:inherit;font-size:12px;border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;}
+  .art-new{all:unset;cursor:pointer;display:block;text-align:center;padding:9px;border-radius:10px;
+    border:1px dashed var(--line);font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+  .art-new:hover{border-color:var(--accent);color:var(--accent-deep);}
   /* Розмітка нанесення: числа зліва, креслення справа — на вузькому екрані одне під одним */
   .ao.mk{max-width:640px;}
   .mk-side{padding:10px 8px;border-bottom:1px solid var(--line);}
@@ -3742,6 +3780,7 @@ async function setTrack(o, key, step){
   touchOrder(o);
   try{ await storeSet('orders', orders); }
   catch(e){ console.error(e); toast('Не збереглось'); }
+  await offerSync(o);      // сторінка клієнта показує сьогоднішній стан
   renderBoard();
   renderOrderDrawer();
 }
@@ -7354,8 +7393,59 @@ function offerBuild(order){
       // строк, якщо менеджер домовився інакше
       readyAt: String(order.offerReadyAt || '').trim()
     },
-    state: order.offerState || 'created'
+    state: order.offerState || 'created',
+    /* Вкладка «Замовлення» на тій самій сторінці. До оплати її немає зовсім:
+       поки клієнт вирішує, показувати йому виробничі етапи нема чого. */
+    track: offerTrackBlock(order)
   };
+}
+/* ── Що бачить клієнт після оплати ────────────────────────────────────────
+   Досі за посиланням лежало КП — і на цьому все. Після оплати клієнт сліп:
+   єдиний спосіб дізнатись, що відбувається, — написати менеджеру. Звідси й
+   береться купа узгоджень у чатах: не тому, що клієнт настирливий, а тому,
+   що ми не залишили йому іншого місця.
+
+   Сюди кладемо рівно те, що його стосується: етапи, фото відшиву на
+   погодження й номер накладної. Ні собівартості, ні внутрішніх коментарів,
+   ні наших треків — вони називаються словами, зрозумілими нам, а не йому. */
+function offerTrackBlock(order){
+  if(typeof tracksLive !== 'function' || !tracksLive(order)) return null;
+  const v = (typeof artCur === 'function') ? artCur(order) : null;
+  const ap = (v && v.approvals) || {};
+  const pays = (typeof payList === 'function') ? payList(order) : [];
+  const st = (done, now) => done ? 'done' : (now ? 'now' : 'wait');
+  const steps = [
+    { key:'pay',   label:'Оплачено',
+      state: st(pays.length, true), at: pays.length ? String(pays[0].at || '') : '' },
+    { key:'art',   label:'Макет погоджено',
+      state: st(!!ap.art, true), at: ap.art ? String(ap.art.at || '') : '' },
+    { key:'test',  label:'Тестовий відшив',
+      state: ap.client ? 'done' : (ap.inner ? 'ask' : 'wait'),
+      at: ap.client ? String(ap.client.at || '') : '' },
+    { key:'prod',  label:'Тираж',
+      state: st(trackIsDone(order, 'prod'), trackOf(order, 'prod') === 'work') },
+    { key:'ship',  label:'Відправка',
+      state: st(trackIsDone(order, 'ship'), trackOf(order, 'ship') === 'ttn') }
+  ];
+  return {
+    orderId: order.orderId || '',
+    dueAt: String(order.dueAt || ''),
+    steps,
+    /* Питання клієнту зʼявляється лише тоді, коли ми самі вже подивились на
+       фото: криве фото клієнту ніхто не шле. */
+    ask: (v && ap.inner && !ap.client && !v.back)
+      ? { n: +v.n || 1, photo: String(v.photo || '') } : null,
+    reasons: ART_REASONS.map(r => ({ key:r.key, label:r.label })),
+    ttn: String(order.ttn || '').trim()
+  };
+}
+/* Сторінка клієнта має показувати сьогоднішній стан, а не той, що був на
+   момент останнього збереження КП. Тому будь-який рух виробництва
+   перезаписує документ пропозиції — тихо, у фоні. */
+async function offerSync(o){
+  if(!o || !o.offerToken) return;
+  try{ await offerSave(o); }
+  catch(e){ console.warn('offer refresh failed', e); }
 }
 // Firestore не приймає undefined — через одне поле не збережеться весь документ.
 function offerClean(v){
@@ -7538,10 +7628,42 @@ function watchOffers(){
 }
 // Підтвердив — картка сама переходить у «Нове», і про це приходить Telegram.
 // Виробництво не запускається: менеджер спершу звіряє замовлення.
+/* ── Відповідь клієнта з його вкладки «Замовлення» ───────────────────────
+   Клієнт натиснув «погоджую» або «потрібні правки» на своїй сторінці. Це те
+   саме третє погодження з макета — тільки натиснуте ним, а не переказане
+   нами. Тому воно лягає в ту саму версію й рухає ті самі треки. */
+function applyClientArt(o, off){
+  const a = (off && off.clientApprovals) || {};
+  const v = artCur(o);
+  if(!v) return false;
+  const ap = v.approvals || (v.approvals = {});
+  let dirty = false;
+  if(a.test && +a.test.n === +v.n && !ap.client){
+    ap.client = { by:'клієнт', at:String(a.test.at || new Date().toISOString()),
+                  note:'сторінка замовлення' };
+    artTrack(o, 'test', trackDoneKey('test'));
+    dirty = true;
+  }
+  if(a.testBack && +a.testBack.n === +v.n && !v.back){
+    const r = artReason(a.testBack.reason) || { key:'other', label:'Інше', route:'' };
+    v.back = { reason:r.key, label:r.label, route:r.route,
+               at:String(a.testBack.at || new Date().toISOString()), by:'клієнт' };
+    if(r.route === 'design') artTrack(o, 'design', 'fix');
+    if(r.route === 'sew')    artTrack(o, 'test', 'work');
+    dirty = true;
+  }
+  return dirty;
+}
 async function reactToClientActions(){
   let dirty = false;
   for(const o of (orders || [])){
     const off = o.offerToken && offersByToken[o.offerToken];
+    if(off && off.clientApprovals && applyClientArt(o, off)){
+      dirty = true;
+      /* Клієнт побачить свою ж відповідь на сторінці лише після того, як
+         документ перезапишеться нашим станом. */
+      offerSync(o);
+    }
     if(!off || !off.state) continue;
     if(o.offerState === off.state) continue;         // уже опрацьовано
     o.offerState = off.state;
@@ -10128,6 +10250,211 @@ function odExtraFold(o){
     [reco ? reco + ' рекомендовано' : '', vars ? vars + ' на вибір' : '']
       .filter(Boolean).join(' · '), body);
 }
+/* ══════════ Макет: версії й три погодження ══════════
+   Уся плутанина береться з одного: погодження живуть у чатах. У чаті немає
+   версії, немає «хто саме сказав ок», немає «за яким фото». Три людини
+   памʼятають три різні реальності, і жодна не помиляється.
+
+   Тому макет живе в замовленні списком версій. Версія не редагується: не
+   сподобалось — зʼявляється наступна, а попередня лишається назавжди, з
+   причиною повернення. Файл підписаний версією, а не «остаточний_фінал2».
+
+   Погоджень три, і плутати їх не можна: макет дивимось ми на скріні з
+   Wilcom; відшив спершу дивимось ми на фото; і тільки потім його бачить
+   клієнт. Друге зараз ніде не записане, а воно є — криве фото клієнту ніхто
+   не шле, і саме на ньому найчастіше вертають назад. */
+const ART_KINDS = [
+  { key:'front', label:'DST спереду' },
+  { key:'back',  label:'DST ззаду' },
+  { key:'src',   label:'Вихідник' },
+  { key:'other', label:'Інший файл' }
+];
+const ART_APPROVALS = [
+  { key:'art',    label:'Макет',              who:'ми',     on:'скрін із Wilcom' },
+  { key:'inner',  label:'Відшив — внутрішньо', who:'ми',    on:'фото тесту, перед тим як показати клієнту' },
+  { key:'client', label:'Відшив — клієнт',    who:'клієнт', on:'те саме фото або фізичний зразок' }
+];
+/* Список причин фіксований — і саме тому маршрут вибирає система, а не
+   людина: коли повернення пішло не туди, згорає день. */
+const ART_REASONS = [
+  { key:'big',   label:'Завеликий / замалий', route:'design' },
+  { key:'place', label:'Не те розташування',  route:'design' },
+  { key:'color', label:'Не той колір ниток',  route:'design' },
+  { key:'font',  label:'Не той шрифт',        route:'design' },
+  { key:'crook', label:'Криво вишито',        route:'sew' },
+  { key:'pull',  label:'Стягує тканину',      route:'sew' },
+  { key:'skip',  label:'Пропуски',            route:'sew' },
+  { key:'dirty', label:'Брудно',              route:'sew' },
+  { key:'other', label:'Інше',                route:'' }
+];
+function artList(o){ return Array.isArray(o && o.art) ? o.art : []; }
+function artCur(o){ const l = artList(o); return l.length ? l[l.length - 1] : null; }
+function artReason(key){ return ART_REASONS.filter(r => r.key === key)[0] || null; }
+/* Крок-фініш треку: він позначений у налаштуваннях, а не зашитий тут —
+   назву кроку можуть перейменувати, ознаку «фініш» лишать. */
+function trackDoneKey(track){
+  const s = trackSteps(track).filter(x => x.done)[0];
+  return s ? s.key : '';
+}
+async function artStore(o, msg){
+  touchOrder(o);
+  try{ await storeSet('orders', orders); if(msg) toast(msg); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  await offerSync(o);      // сторінка клієнта показує сьогоднішній стан
+  renderBoard(); renderOrderDrawer();
+}
+/* Трек рухаємо тільки якщо такий крок у ньому справді є: кроки
+   налаштовуються, і зникнути може будь-який. */
+function artTrack(o, track, step){
+  if(!step || !trackStepMeta(track, step)) return;
+  if(trackOf(o, track) === step) return;
+  if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+  o.tracks[track] = step;
+  o.trackHist = (o.trackHist || []).concat([{ t:track, s:step, at:new Date().toISOString(),
+    by:(myEmail() || '') }]).slice(-60);
+}
+async function artNew(o){
+  const l = artList(o);
+  const n = l.length ? (+l[l.length - 1].n || l.length) + 1 : 1;
+  o.art = l.concat([{ n, at:new Date().toISOString(), by:(myEmail() || ''),
+                      files:[], wilcom:'', photo:'', approvals:{} }]);
+  await artStore(o, 'Версія v' + n + ' створена');
+}
+async function artApprove(o, kind){
+  const v = artCur(o);
+  if(!v) return toast('Спершу створіть версію макета');
+  if(!v.approvals || typeof v.approvals !== 'object') v.approvals = {};
+  if(v.approvals[kind]) return;
+  let note = '';
+  if(kind === 'client'){
+    /* Написав клієнт «ок» у телеграм — записуємо ЗВІДКИ, а не «здається,
+       він десь писав ок». Одна кнопка, один слід. */
+    const a = window.prompt('Звідки взяли погодження клієнта?', 'переписка в Telegram');
+    if(a === null) return;
+    note = String(a || '').trim();
+  }
+  v.approvals[kind] = { by:(myEmail() || ''), at:new Date().toISOString(), note };
+  /* Погодження — не запис у щоденник, а рух роботи. Тому трек іде далі
+     одразу: інакше довелось би памʼятати про два натискання замість одного. */
+  if(kind === 'art')    artTrack(o, 'design', trackDoneKey('design'));
+  if(kind === 'inner')  artTrack(o, 'test', 'client');
+  if(kind === 'client') artTrack(o, 'test', trackDoneKey('test'));
+  await artStore(o, 'Погоджено');
+}
+async function artBack(o, reasonKey){
+  const v = artCur(o);
+  if(!v) return toast('Спершу створіть версію макета');
+  const r = artReason(reasonKey);
+  if(!r) return toast('Оберіть причину');
+  v.back = { reason:r.key, label:r.label, route:r.route,
+             at:new Date().toISOString(), by:(myEmail() || '') };
+  if(r.route === 'design') artTrack(o, 'design', 'fix');
+  if(r.route === 'sew')    artTrack(o, 'test', 'work');
+  await artStore(o, r.route === 'design' ? 'Повернуто дизайнеру'
+    : (r.route === 'sew' ? 'Повернуто на перешив' : 'Причину записано'));
+}
+async function artFile(o, kind, url, name){
+  const v = artCur(o);
+  if(!v) return toast('Спершу створіть версію макета');
+  const u = String(url || '').trim();
+  if(!u) return;
+  if(kind === 'wilcom' || kind === 'photo'){ v[kind] = u; }
+  else {
+    if(!Array.isArray(v.files)) v.files = [];
+    /* Імʼя файла — з версією в назві: «остаточний_фінал2.dst» і є та сама
+       плутанина, від якої все це заводилось. */
+    const k = ART_KINDS.filter(x => x.key === kind)[0] || ART_KINDS[3];
+    v.files.push({ kind:k.key, name: String(name || '').trim() ||
+      ((o.orderId || '') + '_' + k.key + '_v' + v.n), url:u });
+  }
+  await artStore(o, 'Додано');
+}
+/* Завантаження файла: Cloudinary приймає й не-картинки через auto/upload.
+   Не прийняв — кажемо прямо й лишаємо шлях посиланням, а не мовчимо. */
+function artPick(o, kind){
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  if(kind === 'wilcom' || kind === 'photo') inp.accept = 'image/*';
+  inp.addEventListener('change', async ()=>{
+    const f = inp.files && inp.files[0];
+    if(!f) return;
+    toast('Завантажую…');
+    try{
+      const url = await uploadCloudinaryAuto(f);
+      await artFile(o, kind, url, f.name);
+    }catch(e){
+      console.error(e);
+      toast('Файл не прийнявся — вставте посилання');
+    }
+  });
+  inp.click();
+}
+function artVerHtml(o, v, isCur){
+  const ap = v.approvals || {};
+  const rows = ART_APPROVALS.map(a=>{
+    const got = ap[a.key];
+    return `<div class="art-ap${got ? ' is-ok' : ''}">
+      <span class="art-ap-n">${got ? '✓' : '○'}</span>
+      <span class="art-ap-l">${escapeHtml(a.label)}<i>${escapeHtml(a.who)} · ${escapeHtml(a.on)}</i></span>
+      ${got
+        ? `<span class="art-ap-w">${escapeHtml(dtUa(got.at))}${
+            got.by ? ' · ' + escapeHtml(personName(got.by)) : ''}${
+            got.note ? ' · ' + escapeHtml(got.note) : ''}</span>`
+        : (isCur ? `<button class="art-b" data-art-ok="${escapeHtml(a.key)}">Погодити</button>`
+                 : '<span class="art-ap-w">—</span>')}
+    </div>`;
+  }).join('');
+  const files = (v.files || []).map(f=>
+    `<a class="art-file" href="${escapeHtml(docAttachUrl(f.url))}" target="_blank" rel="noopener" download
+       title="${escapeHtml((ART_KINDS.filter(k=>k.key===f.kind)[0]||{}).label || '')}">${
+      escapeHtml(f.name || 'файл')} ↓</a>`).join('');
+  const img = (key, label) => v[key]
+    ? `<a class="art-img" href="${escapeHtml(v[key])}" target="_blank" rel="noopener">
+         <img src="${escapeHtml(v[key])}" alt="${escapeHtml(label)}" loading="lazy">
+         <span>${escapeHtml(label)}</span></a>`
+    : (isCur ? `<button class="art-img art-img--add" data-art-pick="${key}">
+         <b>+</b><span>${escapeHtml(label)}</span></button>` : '');
+  return `<div class="art-ver${isCur ? ' is-cur' : ''}">
+    <div class="art-ver-h">
+      <b>v${escapeHtml(String(v.n))}</b>
+      <span>${escapeHtml(dtUa(v.at))}${v.by ? ' · ' + escapeHtml(personName(v.by)) : ''}</span>
+      ${v.back ? `<span class="art-back">повернуто: ${escapeHtml(v.back.label || '')}${
+        v.back.route === 'design' ? ' → дизайнеру'
+          : (v.back.route === 'sew' ? ' → на перешив' : '')}</span>` : ''}
+    </div>
+    ${files || isCur ? `<div class="art-files">${files}${isCur ? `
+      <span class="art-add">
+        <select class="art-kind" aria-label="Що за файл">
+          ${ART_KINDS.map(k=>`<option value="${escapeHtml(k.key)}">${escapeHtml(k.label)}</option>`).join('')}
+        </select>
+        <input class="art-url" type="url" placeholder="посилання на файл">
+        <button class="art-b" data-art-add>+</button>
+        <button class="art-b" data-art-pick="file" title="Завантажити файл">⇪</button>
+      </span>` : ''}</div>` : ''}
+    <div class="art-imgs">${img('wilcom', 'Скрін із Wilcom')}${img('photo', 'Фото відшиву')}</div>
+    <div class="art-aps">${rows}</div>
+    ${isCur ? `<div class="art-back-row">
+      <select class="art-reason" aria-label="Причина повернення">
+        <option value="">Повернути з правкою…</option>
+        ${ART_REASONS.map(r=>`<option value="${escapeHtml(r.key)}">${escapeHtml(r.label)}</option>`).join('')}
+      </select>
+      <button class="art-b" data-art-back>Повернути</button>
+    </div>` : ''}
+  </div>`;
+}
+function artFold(o){
+  const l = artList(o), cur = artCur(o);
+  if(!tracksLive(o) && !l.length) return '';
+  const ap = (cur && cur.approvals) || {};
+  const sum = !cur ? 'версій ще немає'
+    : ('v' + cur.n + ' · ' + (ap.client ? 'погоджено клієнтом'
+        : (ap.inner ? 'у клієнта' : (ap.art ? 'чекає відшиву' : 'чекає нашого погодження'))));
+  const body = `
+    ${l.length ? l.slice().reverse().map((v, i) => artVerHtml(o, v, i === 0)).join('')
+               : '<div class="od-empty">Версій ще немає. Перша зʼявиться, коли дизайнер надішле макет.</div>'}
+    <button class="art-new" data-art-new>+ Нова версія</button>`;
+  return odFoldHtml('art', 'Макет', sum, body);
+}
 function odPayFold(o){
   const st = payState(o);
   return odFoldHtml('pay', 'Оплата',
@@ -10404,6 +10731,7 @@ function renderOrderDrawer(){
         ${odPart(()=> odRemindFold(o), 'нагадування')}
         ${odPart(()=> odGoodsFold(o), 'товари')}
         ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
+        ${odPart(()=> artFold(o), 'макет')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
         ${crmShow(o) && !chanHasChat(o, 'ig')
@@ -10607,6 +10935,27 @@ function renderOrderDrawer(){
   panel.querySelectorAll('.od-trk-sel').forEach(sel=>{
     sel.addEventListener('change', ()=> setTrack(o, sel.dataset.track, sel.value));
   });
+  const artNewB = panel.querySelector('[data-art-new]');
+  if(artNewB) artNewB.addEventListener('click', ()=> artNew(o));
+  panel.querySelectorAll('[data-art-ok]').forEach(b=>{
+    b.addEventListener('click', ()=> artApprove(o, b.dataset.artOk));
+  });
+  const artAddB = panel.querySelector('[data-art-add]');
+  if(artAddB) artAddB.addEventListener('click', ()=>{
+    const box = artAddB.closest('.art-add');
+    const url = box.querySelector('.art-url');
+    artFile(o, box.querySelector('.art-kind').value, url.value, '');
+    url.value = '';
+  });
+  panel.querySelectorAll('[data-art-pick]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const k = b.dataset.artPick;
+      artPick(o, k === 'file' ? (b.closest('.art-add').querySelector('.art-kind').value) : k);
+    });
+  });
+  const artBackB = panel.querySelector('[data-art-back]');
+  if(artBackB) artBackB.addEventListener('click', ()=>
+    artBack(o, artBackB.closest('.art-back-row').querySelector('.art-reason').value));
   wireDocsBlock(panel, o);
   panel.querySelectorAll('[data-buy]').forEach(b => {
     b.addEventListener('click', () => {
@@ -15874,6 +16223,27 @@ function shrinkImage(file){
   });
 }
 
+/* Те саме, але через auto/upload: макети приходять не лише картинками —
+   DST і вихідники теж мають лежати в картці, а не в чиємусь месенджері. */
+function uploadCloudinaryAuto(blob){
+  return new Promise((resolve, reject)=>{
+    if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', CLOUDINARY.preset);
+    const ctrl = new AbortController();
+    const t = setTimeout(()=>ctrl.abort(), 60000);
+    fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY.cloud+'/auto/upload',
+          { method:'POST', body:fd, signal:ctrl.signal })
+      .then(r=>r.json())
+      .then(d=>{
+        clearTimeout(t);
+        if(d && d.secure_url) return resolve(d.secure_url);
+        reject(new Error((d && d.error && d.error.message) || 'no-url'));
+      })
+      .catch(err=>{ clearTimeout(t); reject(err); });
+  });
+}
 function uploadCloudinary(blob){
   return new Promise((resolve, reject)=>{
     if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }

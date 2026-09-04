@@ -70,10 +70,25 @@ service cloud.firestore {
       // додані рекомендації, підтвердження або запит на зміни. Ціни, товари
       // й макети він змінити не може — правило пускає тільки ці поля.
       // Після підтвердження сторінка замикається: далі працює менеджер.
+      //
+      // `behaviour` тут теж свій: сторінка пише його разом із вибором (до
+      // якого місця догортали, скільки часу минуло до першої дії). Без нього
+      // в списку весь запис відхилявся — а разом із ним падав і сам вибір.
       allow update: if request.auth == null
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['selection', 'state', 'clientAction', 'events', 'clientAt'])
+             .hasOnly(['selection', 'state', 'clientAction', 'events', 'clientAt', 'behaviour'])
         && resource.data.state != 'confirmed'
+        && (!('events' in request.resource.data)
+            || request.resource.data.events.size() <= 60);
+
+      // Друга вкладка тієї самої сторінки — «Замовлення». Після оплати клієнт
+      // погоджує тестовий відшив або просить правки, і це має працювати вже
+      // ПІСЛЯ підтвердження — тобто там, де правило вище замикає сторінку.
+      // Тому дозвіл окремий, і в ньому рівно поля відповіді: склад
+      // замовлення, ціни й стан ним не змінюються.
+      allow update: if request.auth == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['clientApprovals', 'events', 'clientAt'])
         && (!('events' in request.resource.data)
             || request.resource.data.events.size() <= 60);
     }
