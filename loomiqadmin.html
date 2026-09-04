@@ -3799,9 +3799,21 @@ function stageKeyOf(track, step){
      trackStepMeta('ship', step).done)      return 'ship_sent';
   return '';
 }
+/* Запобіжник: «тест готовий» без фото не натискається. Фізично. Це прибирає
+   половину «а де фото?» — і разом із ним половину суперечок про те, що саме
+   бачив клієнт. */
+function trackBlocked(o, key, step){
+  if(key === 'test' && step === 'inner'){
+    const v = artCur(o);
+    if(!v || !v.photo) return 'Спершу зніміть фото відшиву — без нього тест далі не йде';
+  }
+  return '';
+}
 async function setTrack(o, key, step){
   if(!o || !trackStepMeta(key, step)) return;
   if(trackOf(o, key) === step) return;
+  const stop = trackBlocked(o, key, step);
+  if(stop){ toast(stop); renderOrderDrawer(); return; }
   if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
   o.tracks[key] = step;
   /* Історія плоским списком: у Firestore масив у масиві не кладеться, а
@@ -8745,15 +8757,24 @@ function renderBoardTools(){
    Дизайнер вікна не перемикає: у нього одна дошка, і вкладок, у які йому
    нема чого відкривати, він не бачить. */
 let boardTrack = 'sale';
-function boardTrackNow(){ return isDesigner() ? 'design' : boardTrack; }
+function boardTrackNow(){
+  const mine = myBoards();
+  if(!mine.length) return boardTrack;
+  return mine.indexOf(boardTrack) >= 0 ? boardTrack : mine[0];
+}
 function renderBoardSwitch(){
   const sel = document.getElementById('board-track');
   if(!sel) return;
-  if(isDesigner()){ sel.hidden = true; return; }
+  const mine = myBoards();
+  /* Одна дошка — перемикати нічого. Кілька своїх — перемикач лишається, але
+     в ньому тільки вони. Порожній список означає «усі», а не «жодної». */
+  if(mine.length === 1){ sel.hidden = true; return; }
   sel.hidden = false;
   const cur = boardTrackNow();
-  const opts = [{ key:'sale', label:'Продажі' }]
-    .concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
+  const opts = (mine.length
+      ? TRACKS.filter(t => mine.indexOf(t.key) >= 0)
+      : [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label }))))
+    .map(t => ({ key:t.key, label:t.label }));
   sel.innerHTML = opts.map(o =>
     `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>Дошка: ${
       escapeHtml(o.label)}</option>`).join('');
@@ -9660,7 +9681,7 @@ function ticketSummaryHtml(o){
 
 /* Дизайнерська картка: те, що потрібно для роботи, і нічого зайвого.
    Клієнта, телефон і гроші сюди не пускаємо навмисно. */
-function designerTicketHtml(o){
+function floorTicketHtml(o){
   const due = dueInfo(o);
   const items = (o.items || []).filter(it => itemKind(it) === 'main');
   const cur = artCur(o);
@@ -9679,7 +9700,9 @@ function designerTicketHtml(o){
         .filter(x => x && (x.widthMm || x.heightMm))
         .map(x => (x.sideLabel || x.side || '') + ' ' +
              Math.round(+x.widthMm || 0) + '×' + Math.round(+x.heightMm || 0) + ' мм');
-      return p.length ? `<div class="tc-meta"><span>${escapeHtml(p.join(' · '))}</span></div>` : ''; })()}`;
+      return p.length ? `<div class="tc-meta"><span>${escapeHtml(p.join(' · '))}</span></div>` : ''; })()}
+    ${isProd() ? (()=>{ const sz = items.map(it => sizeQtyText(it)).filter(Boolean).join(' · ');
+      return sz ? `<div class="tc-meta"><span>${escapeHtml(sz)}</span></div>` : ''; })() : ''}`;
 }
 function buildTicket(o){
   const el = document.createElement('div');
@@ -9691,7 +9714,7 @@ function buildTicket(o){
     el.classList.add('dragging');
   });
   el.addEventListener('dragend', ()=> el.classList.remove('dragging'));
-  el.innerHTML = isDesigner() ? designerTicketHtml(o) : ticketSummaryHtml(o);
+  el.innerHTML = isFloor() ? floorTicketHtml(o) : ticketSummaryHtml(o);
   const statusIdx = statusFlow().findIndex(s=>s.key===o.status);
   // Клік по картці відкриває панель; кліки по кнопках усередині — ні.
   el.addEventListener('click', e=>{
@@ -10624,6 +10647,92 @@ function artFold(o){
     <button class="art-new" data-art-new>+ Нова версія</button>`;
   return odFoldHtml('art', 'Макет', sum, body);
 }
+/* ══════════ Виробнича картка ══════════
+   Швачка не має вгадувати. На екрані рівно те, що потрібно біля машини:
+   який виріб і скільки якого розміру, які файли ставити, де саме лягає
+   нанесення — у міліметрах, — і фото тесту, яке без нього далі не пускає.
+
+   Погоджений макет тут не редагується: файли беруться з останньої версії, і
+   якщо її ще не погодили, це сказано вголос замість того, щоб мовчки дати
+   шити не те. */
+function odProdHtml(o){
+  const due = dueInfo(o);
+  const items = (o.items || []).filter(it => itemKind(it) === 'main');
+  const v = artCur(o);
+  const ap = (v && v.approvals) || {};
+  const files = (v && v.files || []).filter(f => f && f.url);
+  const cur = trackStepMeta('prod', trackOf(o, 'prod')) || {};
+  const c = STATUS_COLORS[cur.color] || STATUS_COLORS.gray;
+  const trackPill = (key, title) => {
+    const st = trackStepMeta(key, trackOf(o, key)) || {};
+    const cc = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
+    return `<span class="od-trk" style="background:${cc.bg};color:${cc.head};">
+      <i>${escapeHtml(title)}</i>
+      <select class="od-trk-sel" data-track="${escapeHtml(key)}" style="color:${cc.head};">
+        ${trackSteps(key).map(x=>`<option value="${escapeHtml(x.key)}"${
+          x.key === trackOf(o, key) ? ' selected' : ''}>${escapeHtml(x.label)}</option>`).join('')}
+      </select></span>`;
+  };
+  return `
+    <div class="od-head">
+      <div class="od-cl-nm">Замовлення ${escapeHtml(o.orderId || '')}</div>
+      <div class="od-meta">
+        <span title="Коли здавати">${ICO.cal}Здати до <b>${
+          escapeHtml(o.dueAt ? dayUa(o.dueAt) : '—')}</b>${
+          due ? ` <b class="od-pill-age ${due.cls === 'due-late' ? 'is-bad'
+            : (due.cls === 'due-soon' ? 'is-warn' : '')}">${
+            due.days < 0 ? 'прострочено ' + (-due.days) + ' дн'
+              : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}</span>
+      </div>
+      <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
+    </div>
+    <div class="od-body">
+      <div class="od-sec">Стан</div>
+      <div class="od-tracks">${trackPill('test','Тест')}${trackPill('prod','Тираж')}${trackPill('qc','Контроль')}</div>
+
+      <div class="od-sec">Файли на машину</div>
+      ${v
+        ? `<div class="art-ver is-cur">
+             <div class="art-ver-h"><b>v${escapeHtml(String(v.n))}</b>
+               <span>${ap.art ? 'макет погоджено' : 'МАКЕТ ЩЕ НЕ ПОГОДЖЕНО'}</span></div>
+             <div class="art-files">${files.map(f=>
+               `<a class="art-file" href="${escapeHtml(docAttachUrl(f.url))}" target="_blank"
+                  rel="noopener" download>${escapeHtml(f.name || 'файл')} ↓</a>`).join('') ||
+               '<span class="od-empty">Файлів у версії немає</span>'}</div>
+             <div class="art-imgs">
+               ${v.wilcom ? `<a class="art-img" href="${escapeHtml(v.wilcom)}" target="_blank" rel="noopener">
+                 <img src="${escapeHtml(v.wilcom)}" alt="Скрін із Wilcom" loading="lazy"><span>Скрін із Wilcom</span></a>` : ''}
+               ${v.photo
+                 ? `<a class="art-img" href="${escapeHtml(v.photo)}" target="_blank" rel="noopener">
+                     <img src="${escapeHtml(v.photo)}" alt="Фото відшиву" loading="lazy"><span>Фото відшиву</span></a>`
+                 : `<button class="art-img art-img--add" data-art-pick="photo"><b>+</b><span>Зняти тест</span></button>`}
+             </div>
+           </div>`
+        : '<div class="od-empty">Версії макета ще немає — шити нема з чого.</div>'}
+
+      <div class="od-sec">Що шиємо</div>
+      ${items.map(it=>`
+        <div class="t-web-item">
+          <div class="t-web-head"><span class="t-web-name">${escapeHtml(it.name || '—')}</span></div>
+          <div class="t-web-meta">${escapeHtml(it.color || '')}${
+            sizeQtyText(it) ? ' · ' + escapeHtml(sizeQtyText(it))
+              : ((+it.qty) ? ' · ' + (+it.qty) + ' шт' : '')}</div>
+          ${(it.prints || []).map(pr=>`
+            <div class="t-web-print">
+              <span class="t-web-print-size">${pr.widthMm ? Math.round(pr.widthMm) : '?'} × ${
+                pr.heightMm ? Math.round(pr.heightMm) : '?'} мм</span>
+              <span class="t-web-print-side">${escapeHtml(pr.technique || '')}${
+                pr.sideLabel ? ' · ' + escapeHtml(pr.sideLabel) : ''}</span>
+            </div>`).join('')}
+          <div class="od-item-edit">
+            <span class="tc-spacer"></span>
+            ${(it.prints || []).length ? `<button class="od-item-edit-b" data-mark-i="${
+              (o.items || []).indexOf(it)}" title="Розмір, зміщення від центру, відступ від лінії плечей">⌗ Розмітка</button>` : ''}
+          </div>
+          ${itemSizesHtml(o, (o.items || []).indexOf(it))}
+        </div>`).join('') || '<div class="od-empty">Позицій немає</div>'}
+    </div>`;
+}
 /* ══════════ Картка очима дизайнера ══════════
    Дизайнеру потрібні чотири речі: що шиємо, де саме на виробі, який файл
    прислав клієнт і на якій версії ми стоїмо. Клієнт, телефон, ціни й
@@ -10853,7 +10962,7 @@ function renderOrderDrawer(){
      з собою склад замовлення — його видно й у запасному вигляді. */
   let odHtml;
   try{
-  odHtml = isDesigner() ? odDesignerHtml(o) : `
+  odHtml = isProd() ? odProdHtml(o) : (isDesigner() ? odDesignerHtml(o) : `
     <div class="od-head">
       ${/* Спершу — хто це. Канал із ніком стоїть у шапці, а не в розділі
            нижче: питання «де ми з цією людиною розмовляємо» виникає раніше
@@ -10984,7 +11093,7 @@ function renderOrderDrawer(){
         title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
       <button class="od-kp-link" data-doc="copylink"
         title="Скопіювати лише посилання">🔗</button>` : ''}
-    </div>`;
+    </div>`);
   }catch(e){
     console.error('картка: шаблон не зібрався', e);
     odHtml = `
@@ -14458,7 +14567,8 @@ document.getElementById('qr-save').addEventListener('click', async ()=>{
    у списку інше імʼя й дивись. Кого в списку немає — менеджер: нова людина
    не отримує доступ до цифр просто тому, що її забули завести. */
 const ROLES = { owner:'Власник — бачить усе', manager:'Менеджер — без собівартості',
-                designer:'Дизайнер — тільки макети' };
+                designer:'Дизайнер — тільки макети',
+                production:'Виробництво — тест, тираж, контроль' };
 let teamDraft = null;
 function teamList(){
   if(!teamDraft){
@@ -14486,13 +14596,13 @@ function myRole(){
   if(!teamOn()) return 'owner';
   const m = teamMember(myEmail());
   const r = m && m.role;
-  return (r === 'owner' || r === 'designer') ? r : 'manager';
+  return (r === 'owner' || r === 'designer' || r === 'production') ? r : 'manager';
 }
 function canSeeCost(){ return myRole() === 'owner'; }
 /* У бічному меню людина бачить тільки свої розділи. Дизайнер заходить і
    бачить одну дошку — ніяких вкладок, у які йому нема чого відкривати. */
 function applyRoleUi(){
-  const d = isDesigner();
+  const d = isFloor();
   document.querySelectorAll('.nav button[data-view]').forEach(b=>{
     b.hidden = d && b.dataset.view !== 'board';
   });
@@ -14509,7 +14619,17 @@ function applyRoleUi(){
    секретність, а про те, що зайве поле на екрані — це поле, яке хтось колись
    переплутає з потрібним. */
 function isDesigner(){ return myRole() === 'designer'; }
-function canSeeClient(){ return !isDesigner(); }
+function isProd(){ return myRole() === 'production'; }
+/* Хто працює з виробом, а не з клієнтом: у них на екрані немає ні імені, ні
+   телефону, ні цін. */
+function isFloor(){ return isDesigner() || isProd(); }
+function canSeeClient(){ return !isFloor(); }
+/* Дошки, доступні ролі. Порожньо — усі. */
+function myBoards(){
+  if(isDesigner()) return ['design'];
+  if(isProd()) return ['test', 'prod', 'qc'];
+  return [];
+}
 function personName(email){
   const m = teamMember(email);
   if(m && m.name) return m.name;
