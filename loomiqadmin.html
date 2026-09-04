@@ -1349,6 +1349,21 @@
     border:1px solid var(--line);font-family:inherit;line-height:1.45;resize:vertical;}
   .qr-del{all:unset;cursor:pointer;flex:none;color:#AEB8C9;padding:8px;border-radius:7px;}
   .qr-del:hover{background:var(--bad-soft);color:var(--bad);}
+  .tm-wrap{margin-bottom:8px;}
+  .tm-more{all:unset;cursor:pointer;flex:none;padding:7px 12px;border-radius:8px;
+    background:var(--canvas);color:var(--ink-soft);font-size:12.5px;font-weight:700;}
+  .tm-more:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .tm-acc{border:1px solid var(--line);border-radius:12px;padding:12px;margin:2px 0 10px;
+    background:var(--canvas);}
+  .tm-zone{display:flex;gap:10px;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;}
+  .tm-zone-t{flex:none;width:70px;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.05em;}
+  .tm-boxes{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;}
+  .tm-box{display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;
+    border-radius:20px;background:#fff;border:1px solid var(--line);font-size:12.5px;}
+  .tm-box.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);
+    font-weight:700;}
+  .tm-box input{margin:0;}
   .tm-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
   .tm-row input,.tm-row select{font-size:13px;padding:8px 10px;border-radius:8px;
     border:1px solid var(--line);font-family:inherit;background:#fff;}
@@ -2089,7 +2104,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="card">
         <div class="card-head">
           <h2>Команда і ролі</h2>
-          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Власник бачить собівартість, маржу й підрядників. Менеджер бачить продажні ціни й оплати, але не бачить, скільки ми заробляємо. Кого немає в списку — працює як менеджер.</span>
+          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Роль лише заповнює галочки: далі кожному вмикається рівно те, що потрібно — розділи меню, дошки, що видно в картці й що можна міняти. Формат картки окремо: менеджерський показує клієнта й гроші, дизайнерський — макет, виробничий — файли й розмірний ряд. Кого немає в списку — працює як менеджер.</span>
         </div>
         <div id="team-list"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
@@ -8771,10 +8786,8 @@ function renderBoardSwitch(){
   if(mine.length === 1){ sel.hidden = true; return; }
   sel.hidden = false;
   const cur = boardTrackNow();
-  const opts = (mine.length
-      ? TRACKS.filter(t => mine.indexOf(t.key) >= 0)
-      : [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label }))))
-    .map(t => ({ key:t.key, label:t.label }));
+  const all = zoneBoards();
+  const opts = mine.length ? all.filter(t => mine.indexOf(t.key) >= 0) : all;
   sel.innerHTML = opts.map(o =>
     `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>Дошка: ${
       escapeHtml(o.label)}</option>`).join('');
@@ -9273,14 +9286,14 @@ function orderItemsHtml(o, want){
         ${mockups?`<div class="t-web-mocks">${mockups}</div>`:''}
         ${prints}
         <div class="od-item-edit">
-          <input class="od-qty" type="number" min="1" step="1" value="${+it.qty||1}" data-i="${(o.items||[]).indexOf(it)}" aria-label="Кількість">
+          ${canEditItems() ? `<input class="od-qty" type="number" min="1" step="1" value="${+it.qty||1}" data-i="${(o.items||[]).indexOf(it)}" aria-label="Кількість">` : ''}
           <span class="od-qty-unit">шт</span>
           <span class="tc-spacer"></span>
           ${(it.prints||[]).length ? `<button class="od-item-edit-b" data-mark-i="${(o.items||[]).indexOf(it)}"
             title="Технічна розмітка: розмір нанесення, зміщення від центру, відступ від лінії плечей">⌗ Розмітка</button>` : ''}
-          ${it.config ? `<button class="od-item-edit-b" data-edit-i="${(o.items||[]).indexOf(it)}"
+          ${(it.config && canEditItems()) ? `<button class="od-item-edit-b" data-edit-i="${(o.items||[]).indexOf(it)}"
             title="Відкрити позицію в конструкторі: логотип, розмір нанесення, кольори">✎ Змінити</button>` : ''}
-          <button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>
+          ${canEditItems() ? `<button class="od-item-del" data-del-i="${(o.items||[]).indexOf(it)}" title="Прибрати позицію">✕</button>` : ''}
         </div>
         ${/* Розкладка по розмірах — одразу під кількістю: спершу «скільки
              всього», потім «як воно ділиться». Саме цим рядком менеджер
@@ -9561,6 +9574,7 @@ function avatarHtml(name, cls){
     style="background:hsl(${hue} 62% 92%);color:hsl(${hue} 55% 34%);">${escapeHtml(ch)}</span>`;
 }
 function chanBtnsHtml(o){
+  if(!canSeeChat()) return '';   // без права на листування кнопок розмови немає
   const out = [];
   CHAN_KEYS.forEach(k => {
     if(!chanFilled(o, k)) return;
@@ -10793,6 +10807,7 @@ function odDesignerHtml(o){
     </div>`;
 }
 function odPayFold(o){
+  if(!canPay()) return '';   // немає права записувати гроші — немає й блоку
   const st = payState(o);
   return odFoldHtml('pay', 'Оплата',
     st === 'full' ? 'сплачено' : (st === 'part' ? 'залишок ' + fmt(dueSum(o)) + ' ₴' : 'оплат не було'),
@@ -11071,7 +11086,7 @@ function renderOrderDrawer(){
         ${odPart(()=> artFold(o), 'макет')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
-        ${crmShow(o) && !chanHasChat(o, 'ig')
+        ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
           ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : ''}
         ${odPart(()=> odLogFold(o), 'що відбувалось')}
       </div>
@@ -14566,19 +14581,109 @@ document.getElementById('qr-save').addEventListener('click', async ()=>{
    інакше «менеджер не бачить собівартість» обходиться за секунду — обрав
    у списку інше імʼя й дивись. Кого в списку немає — менеджер: нова людина
    не отримує доступ до цифр просто тому, що її забули завести. */
-const ROLES = { owner:'Власник — бачить усе', manager:'Менеджер — без собівартості',
-                designer:'Дизайнер — тільки макети',
-                production:'Виробництво — тест, тираж, контроль' };
+const ROLES = { owner:'Власник', manager:'Менеджер',
+                designer:'Дизайнер', production:'Виробництво' };
+/* ══════════ Доступи по зонах ══════════
+   Роль — це пресет, а не вирок. Люди не діляться на чотири види: буває
+   менеджер, якому треба бачити собівартість, і дизайнер, який заодно веде
+   конструктор сайту. Тому роль лише заповнює галочки, а далі кожному
+   вмикається рівно те, що йому потрібно.
+
+   Зон чотири, і вони відповідають на чотири різні питання:
+     розділи — куди людина взагалі заходить;
+     дошки   — які вікна в замовлення їй показувати;
+     бачить  — що з картки їй видно;
+     може    — що їй дозволено змінювати.
+
+   Інтерфейс картки — окремо: це не право, а формат. Менеджерський —
+   клієнт, гроші, КП. Дизайнерський — макет і розмітка. Виробничий — файли,
+   розмірний ряд, фото. */
+const ZONE_NAV = [
+  { key:'board',     label:'Канбан' },
+  { key:'calc',      label:'Прорахунок' },
+  { key:'settings',  label:'Формування цін' },
+  { key:'photos',    label:'Конструктор сайту' },
+  { key:'reviews',   label:'Відгуки' },
+  { key:'suppliers', label:'Підрядники' },
+  { key:'analytics', label:'Аналітика' }
+];
+const ZONE_SEE = [
+  { key:'client', label:'Клієнт і контакти' },
+  { key:'chat',   label:'Листування з клієнтом' },
+  { key:'cost',   label:'Собівартість, маржа, закупівля' }
+];
+const ZONE_CAN = [
+  { key:'edit',  label:'Міняти склад і кількості' },
+  { key:'pay',   label:'Записувати оплату' },
+  { key:'setup', label:'Міняти етапи, треки й команду' }
+];
+const UI_KINDS = { manager:'Менеджерський', designer:'Дизайнерський', production:'Виробничий' };
+function zoneBoards(){
+  return [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
+}
+const ROLE_PRESET = {
+  owner:      { ui:'manager',    nav:'*', boards:'*',
+                see:['client','chat','cost'], can:['edit','pay','setup'] },
+  manager:    { ui:'manager',    nav:['board','calc','photos','reviews','suppliers'],
+                boards:'*', see:['client','chat'], can:['edit','pay'] },
+  designer:   { ui:'designer',   nav:['board'], boards:['design'], see:[], can:[] },
+  production: { ui:'production', nav:['board'], boards:['test','prod','qc'], see:[], can:[] }
+};
+function presetOf(role){
+  const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
+  return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
+}
+/* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
+function accOf(member){
+  const role = (member && ROLE_PRESET[member.role]) ? member.role : 'manager';
+  const base = presetOf(role);
+  const a = member && member.acc;
+  if(!a || typeof a !== 'object') return base;
+  const pick = (v, def) => (v === '*' ? '*' : (Array.isArray(v) ? v.slice() : def));
+  return {
+    ui: UI_KINDS[a.ui] ? a.ui : base.ui,
+    nav:    pick(a.nav,    base.nav),
+    boards: pick(a.boards, base.boards),
+    see:    pick(a.see,    base.see),
+    can:    pick(a.can,    base.can)
+  };
+}
+function myAcc(){
+  if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
+  const m = teamMember(myEmail());
+  if(!m) return presetOf('manager');            // кого не завели — менеджер
+  return accOf(m);
+}
+function may(group, key){
+  const v = (myAcc() || {})[group];
+  if(v === '*') return true;
+  return Array.isArray(v) && v.indexOf(key) >= 0;
+}
+function myUi(){ return (myAcc() || {}).ui || 'manager'; }
 let teamDraft = null;
+let teamOpen = -1;      // чиї доступи зараз розгорнуті
 function teamList(){
   if(!teamDraft){
     teamDraft = ((contentData.team) || []).map(p => ({
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
-      role: p.role === 'owner' ? 'owner' : 'manager'
+      role: ROLE_PRESET[p.role] ? p.role : 'manager',
+      /* Доступи розкриваємо в явний список одразу: далі з ними працюють
+         галочками, а «*» у галочці не поставиш. */
+      acc: accExpand(accOf(p))
     }));
   }
   return teamDraft;
+}
+function accExpand(a){
+  const all = (list, v) => (v === '*' || !Array.isArray(v)) ? list.map(x => x.key) : v.slice();
+  return {
+    ui: a.ui,
+    nav:    all(ZONE_NAV, a.nav),
+    boards: all(zoneBoards(), a.boards),
+    see:    all(ZONE_SEE, a.see),
+    can:    all(ZONE_CAN, a.can)
+  };
 }
 function myEmail(){
   try{ return String((fbAuth.currentUser || {}).email || '').trim().toLowerCase(); }
@@ -14596,39 +14701,49 @@ function myRole(){
   if(!teamOn()) return 'owner';
   const m = teamMember(myEmail());
   const r = m && m.role;
-  return (r === 'owner' || r === 'designer' || r === 'production') ? r : 'manager';
+  return ROLE_PRESET[r] ? r : 'manager';
 }
-function canSeeCost(){ return myRole() === 'owner'; }
+function canSeeCost(){ return may('see', 'cost'); }
+function canSeeChat(){ return may('see', 'chat'); }
+function canEditItems(){ return may('can', 'edit'); }
+function canPay(){ return may('can', 'pay'); }
+function canSetup(){ return may('can', 'setup'); }
 /* У бічному меню людина бачить тільки свої розділи. Дизайнер заходить і
    бачить одну дошку — ніяких вкладок, у які йому нема чого відкривати. */
 function applyRoleUi(){
-  const d = isFloor();
+  const nav = (myAcc() || {}).nav;
+  const all = nav === '*' || !Array.isArray(nav);
+  let firstOk = null;
   document.querySelectorAll('.nav button[data-view]').forEach(b=>{
-    b.hidden = d && b.dataset.view !== 'board';
+    const on = all || nav.indexOf(b.dataset.view) >= 0;
+    b.hidden = !on;
+    if(on && !firstOk) firstOk = b;
   });
-  ['board-add','st-toggle'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.hidden = d;
-  });
-  if(d){
-    const bb = document.querySelector('.nav button[data-view="board"]');
-    if(bb && !bb.classList.contains('active')) bb.click();
-  }
+  const add = document.getElementById('board-add');
+  if(add) add.hidden = !canEditItems();
+  const st = document.getElementById('st-toggle');
+  if(st) st.hidden = !canSetup();
+  /* Людина стоїть у розділі, який їй закрили, — переводимо в перший
+     дозволений. Порожній екран без пояснень гірший за будь-який інший. */
+  const cur = document.querySelector('.nav button[data-view].active');
+  if(firstOk && (!cur || cur.hidden)) firstOk.click();
 }
 /* Дизайнеру не потрібен телефон клієнта, а виробництву — маржа. Це не про
    секретність, а про те, що зайве поле на екрані — це поле, яке хтось колись
    переплутає з потрібним. */
-function isDesigner(){ return myRole() === 'designer'; }
-function isProd(){ return myRole() === 'production'; }
-/* Хто працює з виробом, а не з клієнтом: у них на екрані немає ні імені, ні
-   телефону, ні цін. */
-function isFloor(){ return isDesigner() || isProd(); }
-function canSeeClient(){ return !isFloor(); }
-/* Дошки, доступні ролі. Порожньо — усі. */
+/* Формат картки — це не право, а вигляд. Менеджерський показує клієнта й
+   гроші, два інші — виріб. */
+function isDesigner(){ return myUi() === 'designer'; }
+function isProd(){ return myUi() === 'production'; }
+function isFloor(){ return myUi() !== 'manager'; }
+function canSeeClient(){ return may('see', 'client') && !isFloor(); }
+/* Дошки людини. Порожній список означає «усі». */
 function myBoards(){
-  if(isDesigner()) return ['design'];
-  if(isProd()) return ['test', 'prod', 'qc'];
-  return [];
+  const b = (myAcc() || {}).boards;
+  if(b === '*' || !Array.isArray(b)) return [];
+  const known = zoneBoards().map(x => x.key);
+  const mine = b.filter(k => known.indexOf(k) >= 0);
+  return (mine.length === known.length) ? [] : mine;
 }
 function personName(email){
   const m = teamMember(email);
@@ -14637,26 +14752,70 @@ function personName(email){
   return e ? e.split('@')[0] : '';
 }
 function myName(){ return personName(myEmail()) || 'я'; }
+/* Галочки однієї зони. Підпис каже, що саме вмикається, — «доступ до
+   аналітики» без пояснення нічого не означає. */
+function accBoxes(i, group, list, on){
+  return `<div class="tm-zone"><span class="tm-zone-t">${escapeHtml(
+    { nav:'Розділи', boards:'Дошки', see:'Бачить', can:'Може' }[group] || group)}</span>
+    <div class="tm-boxes">${list.map(z=>`
+      <label class="tm-box${on.indexOf(z.key) >= 0 ? ' on' : ''}">
+        <input type="checkbox" data-acc="${i}" data-g="${group}" data-k="${escapeHtml(z.key)}"${
+          on.indexOf(z.key) >= 0 ? ' checked' : ''}>${escapeHtml(z.label)}</label>`).join('')}</div></div>`;
+}
 function renderTeamList(){
   const box = document.getElementById('team-list');
   if(!box) return;
   const me = myEmail();
   box.innerHTML = teamList().map((p, i)=>`
-    <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
-      <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
-      <input class="tm-name" type="text" maxlength="40" placeholder="імʼя" value="${escapeHtml(p.name)}">
-      <select class="tm-role">${Object.keys(ROLES).map(k=>
-        `<option value="${k}"${k===p.role?' selected':''}>${escapeHtml(ROLES[k])}</option>`).join('')}</select>
-      <button class="qr-del" title="Прибрати">🗑</button>
+    <div class="tm-wrap">
+      <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
+        <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
+        <input class="tm-name" type="text" maxlength="40" placeholder="імʼя" value="${escapeHtml(p.name)}">
+        <select class="tm-role" title="Роль заповнює галочки нижче">${Object.keys(ROLES).map(k=>
+          `<option value="${k}"${k===p.role?' selected':''}>${escapeHtml(ROLES[k])}</option>`).join('')}</select>
+        <select class="tm-ui" title="Формат картки замовлення">${Object.keys(UI_KINDS).map(k=>
+          `<option value="${k}"${k===p.acc.ui?' selected':''}>${escapeHtml(UI_KINDS[k])}</option>`).join('')}</select>
+        <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
+        <button class="qr-del" title="Прибрати">🗑</button>
+      </div>
+      ${teamOpen === i ? `<div class="tm-acc">
+        ${accBoxes(i, 'nav', ZONE_NAV, p.acc.nav)}
+        ${accBoxes(i, 'boards', zoneBoards(), p.acc.boards)}
+        ${accBoxes(i, 'see', ZONE_SEE, p.acc.see)}
+        ${accBoxes(i, 'can', ZONE_CAN, p.acc.can)}
+        <div class="sub">Зміна ролі перезаписує ці галочки пресетом. Далі правте руками — саме для цього вони тут.</div>
+      </div>` : ''}
     </div>`).join('') ||
     '<div class="sub">Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».</div>';
   box.querySelectorAll('.tm-row').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.tm-mail').addEventListener('input', e=> teamList()[i].email = e.target.value);
     row.querySelector('.tm-name').addEventListener('input', e=> teamList()[i].name = e.target.value);
-    row.querySelector('.tm-role').addEventListener('change', e=> teamList()[i].role = e.target.value);
-    row.querySelector('.qr-del').addEventListener('click', ()=>{ teamList().splice(i,1); renderTeamList(); });
+    row.querySelector('.tm-role').addEventListener('change', e=>{
+      const p = teamList()[i];
+      p.role = e.target.value;
+      p.acc = accExpand(presetOf(p.role));   // роль — це пресет, і він заповнює галочки
+      renderTeamList();
+    });
+    row.querySelector('.tm-ui').addEventListener('change', e=>{ teamList()[i].acc.ui = e.target.value; });
+    row.querySelector('.qr-del').addEventListener('click', ()=>{
+      teamList().splice(i,1); teamOpen = -1; renderTeamList(); });
   });
+  box.querySelectorAll('[data-more]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const i = +b.dataset.more;
+      teamOpen = (teamOpen === i) ? -1 : i;
+      renderTeamList();
+    }));
+  box.querySelectorAll('[data-acc]').forEach(c=>
+    c.addEventListener('change', ()=>{
+      const p = teamList()[+c.dataset.acc], g = c.dataset.g, k = c.dataset.k;
+      const list = p.acc[g];
+      const at = list.indexOf(k);
+      if(c.checked && at < 0) list.push(k);
+      if(!c.checked && at >= 0) list.splice(at, 1);
+      c.closest('.tm-box').classList.toggle('on', c.checked);
+    }));
   const me2 = document.getElementById('team-me');
   if(me2) me2.textContent = me
     ? ('Ви зайшли як ' + me + ' — роль: ' + (myRole()==='owner' ? 'власник' : 'менеджер') +
@@ -14670,17 +14829,26 @@ function renderTeamList(){
     // Перший рядок одразу заповнюємо собою: інакше легко зберегти список,
     // у якому власника немає, і самому лишитись без цифр.
     const first = !teamList().length;
-    teamList().push({ email: first ? myEmail() : '', name: '', role: first ? 'owner' : 'manager' });
+    teamList().push({ email: first ? myEmail() : '', name: '', role: first ? 'owner' : 'manager',
+                      acc: accExpand(presetOf(first ? 'owner' : 'manager')) });
+    teamOpen = teamList().length - 1;
     renderTeamList();
   });
   document.getElementById('team-save').addEventListener('click', async ()=>{
     const list = teamList()
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
-                   role: p.role === 'owner' ? 'owner' : 'manager' }))
+                   role: ROLE_PRESET[p.role] ? p.role : 'manager',
+                   acc: { ui: UI_KINDS[p.acc.ui] ? p.acc.ui : 'manager',
+                          nav: p.acc.nav.slice(), boards: p.acc.boards.slice(),
+                          see: p.acc.see.slice(), can: p.acc.can.slice() } }))
       .filter(p => p.email);
-    if(list.length && !list.some(p => p.role === 'owner')){
-      toast('Хоч одна людина має бути власником — інакше собівартість не побачить ніхто');
+    if(list.length && !list.some(p => (p.acc.see || []).indexOf('cost') >= 0)){
+      toast('Хоч комусь має бути видно собівартість — інакше її не побачить ніхто');
+      return;
+    }
+    if(list.length && !list.some(p => (p.acc.can || []).indexOf('setup') >= 0)){
+      toast('Хоч комусь має лишитись право міняти налаштування');
       return;
     }
     if(list.length && !list.some(p => p.email === myEmail())){
@@ -14689,7 +14857,9 @@ function renderTeamList(){
     try{
       await PHOTOS_DOC.set({ team: list }, { merge:true });
       contentData.team = list;
-      teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role }));
+      teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
+                                   acc: accExpand(p.acc) }));
+      applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
