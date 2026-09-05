@@ -2067,6 +2067,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         appId: "1:828527183830:web:69895ce3f3c5505d014677"
       });
       db = firebase.firestore();
+      /* Firestore тримає з базою постійне зʼєднання (WebChannel). На частині
+         мобільних мереж, у корпоративних Wi-Fi і за деякими VPN воно просто
+         не встановлюється — і бібліотека віддає «unavailable», хоч інтернет
+         є. Цей прапорець дозволяє їй самій перейти на звичайні HTTP-запити,
+         які проходять скрізь. */
+      try{ db.settings({ experimentalAutoDetectLongPolling:true, merge:true }); }
+      catch(e){ console.warn('long polling setting failed', e); }
     }
   }catch(e){ console.warn('Firebase init failed', e); }
 
@@ -6634,7 +6641,100 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return;
   }
 
-  db.collection('offers').doc(token).get().then(function(snap){
+  /* ── Як сторінка дістає пропозицію ──────────────────────────────────
+     Раніше спроба була одна: не долетіло — екран помилки, і людина сама
+     мала здогадатись оновити сторінку. А «unavailable» не означає ні
+     «немає такої пропозиції», ні «закрито доступ»: це «до бази не
+     достукались» — мобільна мережа моргнула, тунель не встановився,
+     оператор перемкнув вишку.
+
+     Тому три речі:
+       — три спроби з паузами, а не одна;
+       — запасний шлях звичайним HTTPS-запитом: він проходить там, де не
+         проходить постійне зʼєднання бібліотеки;
+       — якщо все одно не вийшло, на екрані є кнопка «Спробувати ще раз», і
+         сторінка сама повторює спробу, коли звʼязок повернувся або людина
+         повернулась у вкладку.
+
+     Паралельні сесії тут ні до чого: читати той самий документ можуть
+     скільки завгодно людей одночасно. */
+  var REST = 'https://firestore.googleapis.com/v1/projects/loomiq-admin' +
+             '/databases/(default)/documents/offers/';
+  var REST_KEY = 'AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc';
+  /* Firestore REST віддає значення в обгортках: {stringValue:'…'}. Розгортаємо
+     назад у звичайний обʼєкт, щоб сторінка не знала, звідки прийшли дані. */
+  function restVal(v){
+    if(!v || typeof v !== 'object') return null;
+    if('nullValue' in v) return null;
+    if('stringValue' in v) return v.stringValue;
+    if('integerValue' in v) return +v.integerValue;
+    if('doubleValue' in v) return +v.doubleValue;
+    if('booleanValue' in v) return !!v.booleanValue;
+    if('timestampValue' in v) return v.timestampValue;
+    if('mapValue' in v){
+      var f = (v.mapValue && v.mapValue.fields) || {}, o = {};
+      Object.keys(f).forEach(function(k){ o[k] = restVal(f[k]); });
+      return o;
+    }
+    if('arrayValue' in v)
+      return ((v.arrayValue && v.arrayValue.values) || []).map(restVal);
+    return null;
+  }
+  function getByRest(tk){
+    return fetch(REST + encodeURIComponent(tk) + '?key=' + REST_KEY)
+      .then(function(r){
+        if(r.status === 404) return { exists:false };
+        if(!r.ok) throw new Error('rest-' + r.status);
+        return r.json();
+      })
+      .then(function(d){
+        if(d && d.exists === false) return { exists:false, data:function(){ return null; } };
+        var f = (d && d.fields) || {}, o = {};
+        Object.keys(f).forEach(function(k){ o[k] = restVal(f[k]); });
+        return { exists:true, data:function(){ return o; } };
+      });
+  }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  /* Помилки, після яких є сенс пробувати ще: це не «нема» і не «не можна». */
+  function worthRetry(e){
+    var c = String((e && (e.code || e.message)) || '');
+    return !/permission|insufficient|not-found/i.test(c);
+  }
+  function loadOffer(tk){
+    var tries = [0, 400, 1200];
+    var run = function(i){
+      return (i ? wait(tries[i]) : Promise.resolve())
+        .then(function(){ return db.collection('offers').doc(tk).get(); })
+        .catch(function(e){
+          if(i + 1 < tries.length && worthRetry(e)) return run(i + 1);
+          if(!worthRetry(e)) throw e;
+          /* Бібліотека не достукалась — пробуємо звичайним запитом. */
+          return getByRest(tk).catch(function(){ throw e; });
+        });
+    };
+    return run(0);
+  }
+  /* Повторна спроба без перезавантаження: кнопкою, коли зʼявився звʼязок і
+     коли людина повернулась у вкладку. Один раз на подію, не частіше. */
+  var retryOn = false;
+  function armRetry(){
+    if(retryOn) return;
+    retryOn = true;
+    var again = function(){
+      if(!navigator.onLine) return;
+      retryOn = false;
+      window.removeEventListener('online', again);
+      document.removeEventListener('visibilitychange', vis);
+      start();
+    };
+    var vis = function(){ if(!document.hidden) again(); };
+    window.addEventListener('online', again);
+    document.addEventListener('visibilitychange', vis);
+    var b = document.getElementById('failRetry');
+    if(b) b.addEventListener('click', function(){ retryOn = false; start(); });
+  }
+  function start(){
+  loadOffer(token).then(function(snap){
     if(!snap.exists){
       fail('Пропозицію не знайдено',
            'Можливо, посилання застаріло. Напишіть менеджеру — надішлемо нове.');
@@ -6696,9 +6796,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     // Пишемо це прямо, інакше причину доводиться вгадувати.
     var hint = /permission|insufficient/i.test(code)
       ? 'Доступ до пропозиції закритий налаштуваннями бази. Напишіть менеджеру — це полагодять швидко.'
-      : 'Перевірте зв\'язок і оновіть сторінку. Якщо не допоможе — напишіть менеджеру.';
+      : 'Схоже, звʼязок перервався. Спробуємо ще раз — або натисніть кнопку нижче.';
     fail('Не вдалося відкрити пропозицію', hint, code);
+    /* Кнопка просто в екрані помилки: оновлювати сторінку руками на телефоні
+       незручно, а половина таких випадків минає за кілька секунд. */
+    var st = document.querySelector('.state');
+    if(st && !/permission|insufficient/i.test(code)){
+      var b = document.createElement('button');
+      b.id = 'failRetry'; b.className = 'btn'; b.textContent = 'Спробувати ще раз';
+      b.style.marginTop = '16px';
+      st.appendChild(b);
+    }
+    armRetry();
   });
+  }
+  start();
 })();
 </script>
 <script>
