@@ -4069,6 +4069,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      «Деталях позиції»: це вже перевірка, а не впізнавання. */
   var SIDE_UA = { front:'перед', back:'спина', left:'лівий бік', right:'правий бік',
                   sleeve:'рукав', chest:'груди' };
+  /* «від 10 штук» — рівно те, за що показана ціна. Однина після «від»
+     стоїть у родовому: «від 1 штуки». */
+  function fromQtyLine(n){
+    var q = Math.max(1, Math.round(+n || 1));
+    return 'від ' + q + ' ' + (q === 1 ? 'штуки' : 'штук');
+  }
   function kitLine(it){
     var out = [];
     if(it.color) out.push(String(it.color).trim());
@@ -4735,7 +4741,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           var rs = recoState(i);
           var off = (rs.qty && rs.base > rs.sum)
             ? Math.round((1 - rs.sum / rs.base) * 100) : 0;
-          var kit = kitLine(r);
+          /* Під ціною — не опис товару, а те, звідки ця ціна взялася.
+             «Чорний · Вишивка · Перед» повторює саме фото й нічого не
+             пояснює, а питання в цю секунду одне: «678 — це за скільки?».
+             Тому пишемо тираж, на який порахована плитка. */
+          var kit = fromQtyLine(rs.qty);
           /* Показуємо той ракурс, де є нанесення, а не просто перший знімок:
              заради нього все й затівалось. data-shot тут той самий, що в
              галереї великої картки, — тож дотик по фото відкриває ВСІ
