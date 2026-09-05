@@ -7047,7 +7047,9 @@ const OFFER_DEFAULTS = {
           'Працюємо з ФОП і ТОВ, надаємо документи'],
   payment: 'Передоплата 50%, решта — після погодження готової партії',
   startWith: 'Підтвердити пропозицію та внести передоплату',
-  validDays: 3,          // робочі дні: пʼятниця + 3 = середа, а не неділя
+  /* Робочі дні, а не календарні: пʼятниця + 5 = наступна пʼятниця, а не
+     середа посеред вихідних. Менеджер міняє це число прямо в пропозиції. */
+  validDays: 5,
   // Запасні контакти на випадок, коли менеджера ще не заповнили в
   // Налаштуваннях. Показувати вигадане імʼя клієнту не можна, тож у КП
   // блок просто не зʼявиться, поки немає справжніх даних (див. offerManager).
@@ -7763,7 +7765,13 @@ function offerBuild(order){
      рахувала свій, від сьогоднішньої дати й поточного тиражу, і мовчки
      розходилась із карткою в Канбані: там «7 р.дн.», у КП «5». Менеджер
      писав одне, клієнт бачив інше, і жодного натяку, звідки взялося друге. */
-  const dlDays = (+order.deadlineDays > 0) ? Math.round(+order.deadlineDays) : dl.days;
+  /* Скільки робочих днів на виготовлення. Число менеджера головніше за
+     будь-яку формулу: домовленість із конкретним клієнтом сильніша. */
+  const daysFixed = +order.offerDays > 0;
+  const dlDays = daysFixed ? Math.round(+order.offerDays)
+    : ((+order.deadlineDays > 0) ? Math.round(+order.deadlineDays) : dl.days);
+  const holdDays = (+order.offerHoldDays > 0)
+    ? Math.round(+order.offerHoldDays) : (OFFER_DEFAULTS.validDays | 0);
   /* Термін дії ціни рахується від сьогодні, але менеджер може назвати свій:
      буває, що клієнт просить потримати ціну довше, і зафіксувати це треба
      в самій пропозиції, а не на словах у переписці.
@@ -7777,7 +7785,7 @@ function offerBuild(order){
      фіксацією. */
   const valid = (function(){
     const d = new Date();
-    let left = Math.max(0, OFFER_DEFAULTS.validDays | 0);
+    let left = Math.max(0, holdDays);
     while(left > 0){
       d.setDate(d.getDate() + 1);
       const w = d.getDay();
@@ -7848,6 +7856,8 @@ function offerBuild(order){
     faq: (offerTexts().faq || []),
     terms: {
       deadlineDays: dlDays,
+      daysFixed,                 // число вписав менеджер — правила його не перебивають
+      holdDays,                  // скільки робочих днів тримається ціна
       payment: OFFER_DEFAULTS.payment,
       startWith: OFFER_DEFAULTS.startWith,
       validUntil: validSet ? new Date(validSet + 'T12:00:00').toISOString() : valid.toISOString(),
@@ -8066,6 +8076,22 @@ async function offerSave(order){
   if(bad) throw new Error('база не прийме документ: ' + bad);
   // Стан і вибір належать клієнту — перезаписом менеджера їх стерти не можна.
   if(offersByToken[order.offerToken]) delete doc.state;
+  /* Порожнім складом непорожню пропозицію не перезаписуємо.
+     Клієнт може відкрити посилання будь-якої миті — зокрема тоді, коли
+     менеджер саме перескладає замовлення й на секунду в ньому немає жодної
+     позиції. У той момент сторінка казала «Пропозиція ще готується», і
+     людина закривала її, вирішивши, що їй надіслали порожнє.
+     Тепер у такий момент за посиланням лишається попередня версія: вона
+     принаймні правдива. Оновиться, щойно склад повернеться. */
+  const prev = offersByToken[order.offerToken] || null;
+  const noneNow  = !(doc.items || []).length && !(doc.reco || []).length &&
+                   !(doc.variants || []).length;
+  const hadBefore = prev && ((prev.items || []).length || (prev.reco || []).length ||
+                             (prev.variants || []).length);
+  if(noneNow && hadBefore){
+    delete doc.items; delete doc.reco; delete doc.variants; delete doc.totals;
+    toast('У складі немає позицій — за посиланням лишилась попередня версія');
+  }
   await fbDb.collection('offers').doc(order.offerToken).set(doc, { merge: true });
   return doc;
 }
@@ -13130,8 +13156,15 @@ async function offerEdApply(msg){
      сторінці, бо саме там видно, як воно виглядає. Порожнє значення скидає
      до автоматичного: менеджер має мати дорогу назад, не памʼятаючи, що
      там рахувалось. */
-  if(act === 'heroTitle' || act === 'valid' || act === 'ready'){
+  if(act === 'heroTitle' || act === 'valid' || act === 'ready' ||
+     act === 'days' || act === 'hold'){
     if(act === 'heroTitle') o.offerTitle = String(msg.text || '').trim();
+    /* Терміни правляться днями. Дата рахується від сьогодні, тож обрана
+       вручну застарівала наступного ранку: у пропозиції, надісланій у
+       вівторок, у четвер стояло вчорашнє число. Старі поля з датами
+       чистимо, щоб вони більше не перебивали число. */
+    else if(act === 'days'){ o.offerDays = Math.max(1, Math.round(+msg.v || 0)); o.offerReadyAt = ''; }
+    else if(act === 'hold'){ o.offerHoldDays = Math.max(1, Math.round(+msg.v || 0)); o.offerValidUntil = ''; }
     else if(act === 'valid') o.offerValidUntil = String(msg.v || '').trim();
     else o.offerReadyAt = String(msg.v || '').trim();
     if(!(await offerEdSave(o))) return;

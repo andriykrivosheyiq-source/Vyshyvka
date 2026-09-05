@@ -167,6 +167,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .hero-logo{max-height:36px; width:auto; display:block;}
   /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
   .hero-logo[style*="height"]{max-height:none;}
+  /* Поле терміну: підпис, число й пояснення під ним */
+  .eddate{display:inline-flex; flex-direction:column; gap:4px; margin:0 12px 16px 0;
+    font-size:var(--fs-1); color:rgba(255,255,255,.72); text-align:left;}
+  .eddate input{width:110px; padding:8px 10px; border-radius:var(--r-2);
+    border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08);
+    color:#fff; font-family:inherit; font-size:var(--fs-2); font-weight:600;}
+  .eddate i{font-style:normal; font-size:var(--fs-1); color:rgba(255,255,255,.5);}
   .edlogo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;}
   .edlogo-sz{display:flex; align-items:center; gap:4px;}
   .edlogo-sz b{font-size:var(--fs-2); font-weight:600; color:#3D4C61; min-width:46px; text-align:center;
@@ -2617,6 +2624,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   /* Кнопки редагування не мають запускати звичайну поведінку сторінки:
      клік по «прибрати» всередині картки інакше ще й відкрив би галерею. */
+  /* Терміни підключаємо ОКРЕМО від решти редагування.
+     Раніше вони жили у wireEdit(), а той виходить одразу, якщо це не
+     редактор. Тому в «Як бачить клієнт» поле малювалось, але не робило
+     нічого: менеджер міняв значення, і воно мовчки поверталось назад.
+     Саме звідси й бралось «календарик не працює». */
+  function wireTerms(){
+    if(!MGR_EDIT_ON()) return;
+    document.querySelectorAll('[data-ed-num]').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        edSend({ act: inp.dataset.edNum, v: Math.max(1, Math.round(+inp.value || 0)) });
+      });
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+      inp.addEventListener('keydown', function(e){ e.stopPropagation(); });
+    });
+  }
   function wireEdit(){
     if(!EDIT) return;
     document.querySelectorAll('[data-ed]').forEach(function(b){
@@ -2681,12 +2703,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         if(e.key === 'Escape'){ e.preventDefault(); ttl.blur(); }
       });
     }
-    document.querySelectorAll('[data-ed-date]').forEach(function(inp){
-      inp.addEventListener('change', function(){
-        edSend({ act: inp.dataset.edDate, v: inp.value });
-      });
-      inp.addEventListener('click', function(e){ e.stopPropagation(); });
-    });
     var why = document.querySelector('[data-ed-why]');
     if(why){
       // Зберігаємо, коли людина відвела погляд: на кожній літері писати в
@@ -3204,6 +3220,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      недоробка; і те, і те гірше за чесний типовий строк. */
   var LEAD_BASE = 7;
   function daysFor(qty){
+    /* Менеджер вписав число руками — воно й головне. Правила рахують
+       типовий строк, але домовленість із конкретним клієнтом сильніша за
+       будь-яку формулу. */
+    if(OFFER.terms && OFFER.terms.daysFixed) return (+OFFER.terms.deadlineDays || 0) || LEAD_BASE;
     var rules = OFFER.leadRules || [];
     if(!rules.length) return (+OFFER.terms.deadlineDays || 0) || LEAD_BASE;
     var best = 0;
@@ -3215,6 +3235,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return best || (+OFFER.terms.deadlineDays || 0) || LEAD_BASE;
   }
   function curDays(){ return daysFor(totals().qty || 1); }
+  /* Скільки робочих днів тримається ціна. Менеджер задає число, сторінка
+     рахує дату — і вона завжди свіжа, скільки б днів пропозиція не лежала. */
+  function holdDays(){ return Math.max(1, Math.round(+(OFFER.terms || {}).holdDays || 5)); }
   function daysWord(n){ return n + ' ' + plural(n, 'робочий день', 'робочі дні', 'робочих днів'); }
   /* Конкретна дата, а не тільки «7 робочих днів». Формулу клієнт мусив
      рахувати сам — і завжди лишався сумнів, чи встигаємо до його події.
@@ -3243,11 +3266,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var d = v ? new Date(v) : null;
     return (d && !isNaN(d)) ? d.toISOString().slice(0, 10) : '';
   }
-  function edDate(act, val, label){
-    // і в «Як бачить клієнт» теж: саме там менеджер помічає, що дата не та
+  /* Термін правиться днями, а не датою.
+     Календар тут не працював за призначенням: менеджер думає «сім робочих
+     днів», а не «двадцять третє». Дата ж усе одно рахується від сьогодні —
+     тож вибрана вручну застаріває наступного ранку, і в пропозиції,
+     надісланій у вівторок, у четвер стоїть учорашнє число.
+     Тепер поле одне й просте: скільки днів. Дату сторінка складе сама. */
+  function edNum(act, val, label, hint){
     if(!MGR_EDIT_ON()) return '';
     return '<label class="eddate">' + label +
-      '<input type="date" data-ed-date="' + act + '" value="' + esc(isoDay(val)) + '"></label>';
+      '<input type="number" min="1" max="90" step="1" data-ed-num="' + act + '" value="' +
+      esc(Math.max(1, Math.round(+val || 0))) + '">' +
+      (hint ? '<i>' + esc(hint) + '</i>' : '') + '</label>';
   }
 
   function totals(){
@@ -3497,7 +3527,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
     var made = madeLine();
     /* Без року: до дати лишились дні, і «2026» поруч — це шум. */
-    var till = dayMonth((OFFER.terms || {}).validUntil);
+    /* Дату фіксації рахуємо тут і зараз, від числа днів: так вона не
+       застаріває в пропозиції, яку відкрили через тиждень. */
+    var till = dayMonth(workdayAfter(holdDays()).toISOString());
     return '' +
       '<div class="hero">' +
         (OFFER.clientLogo
@@ -3588,13 +3620,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            нічого не означає, а велике число на вході читається як цінник
            замість пропозиції. Сума є в кошторисі й у нижній панелі. */
         '<div class="hero-made" id="heroMade">' + esc(heroLine()) + '</div>' +
-        edDate('ready', (OFFER.terms || {}).readyAt, 'Готово до') +
+        edNum('days', curDays(), 'Робочих днів на виготовлення', 'рахуємо від сьогодні') +
         /* Без хвоста «далі перераховуємо за актуальною закупівлею тканини».
            Він звучав як попередження про подорожчання рівно там, де людина
            тільки почала читати, — і на першому екрані тривожив більше, ніж
            пояснював. */
         (till ? '<div class="hero-till">Ціна зафіксована до ' + esc(till) + '</div>' : '') +
-        edDate('valid', (OFFER.terms || {}).validUntil, 'Ціна діє до') +
+        edNum('hold', holdDays(), 'Ціна тримається, днів', 'робочих днів від сьогодні') +
         '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
       '</div>';
   }
@@ -6158,6 +6190,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function wire(){
     wireEdit();
+    wireTerms();
     wireHeroEdit();
     wireLogoTools();
     wireKindSwitch();
