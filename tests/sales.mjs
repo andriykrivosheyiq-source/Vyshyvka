@@ -50,7 +50,13 @@ const HOST = 'http://127.0.0.1:' + PORT;
 let bad = 0;
 const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong + ' ✗')); if(!c) bad++; };
 
-const D = n => { const x = new Date(); x.setDate(x.getDate() - n);
+/* Полудень того самого дня — рівно, читабельно й достатньо для «N днів
+   тому». Але для СЬОГОДНІШНЬОЇ картки полудень може виявитись у
+   майбутньому: до 12:00 за Гринвічем різниця стає відʼємною, картка каже
+   «часу ще не минуло» і плашка зникає взагалі. Тест від цього падав рівно
+   пів доби на добу. Тому нуль днів — це година тому, а не полудень. */
+const D = n => { if(!n) return new Date(Date.now() - 3600e3).toISOString();
+  const x = new Date(); x.setDate(x.getDate() - n);
   return x.toISOString().slice(0, 10) + 'T12:00:00.000Z'; };
 const dayAhead = n => { const x = new Date(); x.setDate(x.getDate() + n);
   return x.toISOString().slice(0, 10); };
