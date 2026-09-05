@@ -3412,8 +3412,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=78f196cdb0"></script>
-<script src="loomiq-pricing.js?v=78f196cdb0"></script>
+<script src="loomiq-fingerprint.js?v=b44d1f0333"></script>
+<script src="loomiq-pricing.js?v=b44d1f0333"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6675,6 +6675,18 @@ function priceOrder(list, opts){
     ? window.LQ.priceOrder(list, opts)
     : list.map(() => ({ unit:0, sum:0, feeShare:0 }));
 }
+/* Умови рахунку, які належать ЗАМОВЛЕННЮ, а не окремій позиції. Поки що одна:
+   «за дизайн не беремо». Макет буває вже готовий — клієнт присилає свій файл
+   або ми робили його минулого разу, — і платити за роботу, якої не буде,
+   немає за що. Правити заради цього ставки способу нанесення не можна: вони
+   спільні на весь сайт, і одне таке КП змінило б ціни всім.
+   Прапорець живе на замовленні, тож він однаковий і в Канбані, і в
+   пропозиції, і в перерахунку рекомендованих. */
+function orderPriceOpts(o, opts){
+  const out = opts ? Object.assign({}, opts) : {};
+  if(o && o.noDesignFee) out.noDesignFee = true;
+  return out;
+}
 // Розклад ціни під сумою: менеджер має бачити, з чого склалась цифра,
 // і чому вона змінилась, коли додали другу позицію з тим самим макетом.
 /* ══════════ Ручний вид дизайну ══════════
@@ -6773,7 +6785,7 @@ function fillOrderParts(o){
   applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
-  const res = priceOrder(list);
+  const res = priceOrder(list, orderPriceOpts(o));
   idx.forEach((i, k)=>{ if(o.items[i] && res[k]) o.items[i].parts = res[k].parts || null; });
 }
 /* Розклад для РЕКОМЕНДОВАНИХ. У склад замовлення вони не входять — доти
@@ -6805,7 +6817,7 @@ function fillRecoParts(o, writePrice){
        і виходив дешевшим за той самий виріб в основних. */
     if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
     const d = (keep && kd === 'reco') ? Object.assign({}, descOf(it), { upsell:true }) : descOf(it);
-    const res = priceOrder(main.concat([d]));
+    const res = priceOrder(main.concat([d]), orderPriceOpts(o));
     const mine = res[res.length - 1];
     if(!mine) return;
     const wasCostShare = (it.parts && +it.parts.costShare) || 0;
@@ -6913,7 +6925,7 @@ function repriceOrder(o){
      і в такій пропозиції жодна позиція не отримувала ціни зовсім, скрізь
      лишались нулі. */
   if(list.length){
-    const res = priceOrder(list);
+    const res = priceOrder(list, orderPriceOpts(o));
     /* Модель цін не приїхала (збій мережі, правила Firestore) — рушій чесно
        повертає нулі. Записати їх означало б обнулити замовлення через
        тимчасовий збій: краще лишити ціни, які вже пораховані. */
@@ -6945,7 +6957,7 @@ function repriceOrder(o){
      Разом із цінами вона й оновлюється: змінилась модель цін чи тираж —
      перерахунок пройде тут і перепише її. Окремого життя в неї немає. */
   (o.items || []).forEach(it => {
-    const u = soloOneUnit(it && it.desc);
+    const u = soloOneUnit(it && it.desc, o);
     if(u) it.baseUnit1 = u;
   });
   return list.length > 0 ||
@@ -6954,10 +6966,10 @@ function repriceOrder(o){
 /* Скільки коштувала б позиція, замовлена ОДНІЄЮ штукою й нічого більше:
    виріб + нанесення + за штуку + повна разова підготовка. Склад замовлення
    тут ні до чого — рахуємо саму позицію. */
-function soloOneUnit(desc){
+function soloOneUnit(desc, o){
   if(!desc) return null;
   try{
-    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })]);
+    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })], orderPriceOpts(o));
     const u = (r[0] && +r[0].unit) || 0;
     return u > 0 ? u : null;
   }catch(e){ return null; }
@@ -7154,12 +7166,12 @@ function sharedPriceAt(order, itemIdx, qty, opts){
        додавання до вже погодженого складу. З нею позиція не платила б за
        макет узагалі, і «було» вийшло б ДЕШЕВШЕ за «стало». */
     const one = Object.assign({}, src, { units: u, upsell: false });
-    const r = priceOrder([one], opts);
+    const r = priceOrder([one], orderPriceOpts(order, opts));
     return (r[0] && r[0].unit) || null;
   }
   if(k < 0) return null;
   const clone = list.map((d, i) => i === k ? Object.assign({}, d, { units: u }) : d);
-  const res = priceOrder(clone, opts);
+  const res = priceOrder(clone, orderPriceOpts(order, opts));
   return (res[k] && res[k].unit) || null;
 }
 /* Найменший поріг тиражу для позиції — те саме, що pt[0].min на сайті.
@@ -7649,22 +7661,48 @@ function logoPrevUrl(o){
 function itemGarmentId(it){
   return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
 }
+/* Розмірна сітка в тому вигляді, у якому її читає клієнт.
+   У базі сітка лежить рядками-обʼєктами: {size:'M', A:71, B:53}, а мірки
+   (що таке A і що таке B) — окремим списком колонок у того ж товару.
+   Доти сюди приїжджав розрахунок на масив масивів — рядок-обʼєкт під нього
+   не підходив, кожен рядок перетворювався на порожній, і в пропозиції під
+   написом «Розміри» відкривалась таблиця без жодної цифри. Тепер рядок
+   збирається з мірок цього товару: перша колонка — розмір, далі мірки в
+   сантиметрах.
+   Немає власної сітки — беремо сітку виробника з тієї самої таблиці, що й
+   сайт: розмірний ряд у КП має бути завжди, це перше питання клієнта.
+   Кожен рядок — обʼєкт із масивом усередині, а не масив у масиві. Firestore
+   масив-у-масиві НЕ приймає й відхиляє ВЕСЬ документ; саме через це
+   пропозиція колись перестала зберігатись. */
 function itemSizeChart(it){
   const gid = itemGarmentId(it);
-  const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
-  if(!Array.isArray(rows) || !rows.length) return null;
-  const cols = (contentData.sizechartCols && contentData.sizechartCols[gid]) || null;
-  const clean = rows.slice(0, 14).map(r => (Array.isArray(r) ? r : [])
-    .slice(0, 8).map(v => String(v == null ? '' : v).slice(0, 24)));
-  if(!clean.length) return null;
-  /* Кожен рядок — обʼєкт із масивом усередині, а не масив у масиві.
-     Firestore масив-у-масиві НЕ приймає й відхиляє ВЕСЬ документ. Саме через
-     це пропозиція перестала зберігатись: у документі зʼявилась розмірна
-     сітка, запис почав падати, і за посиланням лишався попередній варіант —
-     хоч на екрані все виглядало свіжим. Та сама причина, через яку таблиця
-     собівартості DTF зберігається плоскою. */
-  return { cols: Array.isArray(cols) ? cols.slice(0, 8).map(c => String(c || '').slice(0, 24)) : null,
-           rows: clean.map(r => ({ c: r })) };
+  if(!gid) return null;
+  const own = contentData.sizecharts && contentData.sizecharts[gid];
+  const mine = Array.isArray(own) && own.length && !isGenericChart(own);
+  const src = mine ? own : (DEFAULT_GARMENT_CHARTS[gid] || DEFAULT_SIZE_CHART_ROWS);
+  const cols = (mine ? scColsOf(gid) : SC_COLS_DEFAULT)
+    .slice(0, 4).map(c => ({ key:c.key, label:String(c.label || c.key).slice(0, 24),
+                             hint:String(c.hint || '').slice(0, 90) }));
+  const rows = (Array.isArray(src) ? src : []).slice(0, 16).map(r => {
+    const name = String((r && r.size) == null ? '' : r.size).trim().slice(0, 24);
+    if(!name) return null;
+    return { c: [name].concat(cols.map(c => {
+      const v = r ? r[c.key] : null;
+      return (+v) ? String(v).replace('.', ',') : '—';
+    })) };
+  }).filter(Boolean);
+  if(!rows.length) return null;
+  const photo = (contentData.sizechartPhotos && contentData.sizechartPhotos[gid]) || '';
+  return {
+    cols: ['Розмір'].concat(cols.map(c => c.label + ', см')),
+    rows: rows,
+    /* Підказки «як міряти» — тими самими словами, що менеджер написав у
+       картці товару. Без них таблиця чисел не відповідає на питання, від
+       якої точки міряти. */
+    hints: cols.filter(c => c.hint).map(c => c.label + ' — ' + c.hint),
+    // Фото сітки заміняє таблицю — так само, як на сайті
+    photo: String(photo).slice(0, 500)
+  };
 }
 /* Опис товару з сайту — саме там живуть тип тканини, щільність і «для чого
    краще підходить». Окремих полів під це немає й не треба: менеджер пише їх
@@ -7866,6 +7904,10 @@ function offerBuild(order){
       readyAt: String(order.offerReadyAt || '').trim()
     },
     state: order.offerState || 'created',
+    /* За дизайн у цьому замовленні не беремо. Сторінка перераховує склад
+       наново, коли клієнт додає рекомендований товар, — і без цього прапорця
+       вона повернула б підготовку макета назад у ціну, хоч менеджер її зняв. */
+    noDesignFee: !!order.noDesignFee,
     /* Вкладка «Замовлення» на тій самій сторінці. До оплати її немає зовсім:
        поки клієнт вирішує, показувати йому виробничі етапи нема чого. */
     track: offerTrackBlock(order)
@@ -13172,6 +13214,15 @@ async function offerEdApply(msg){
     // Заголовок правиться прямо на місці — перечитувати сторінку зайве;
     // розмір і дати міняють вигляд, тож їх показуємо наново.
     if(act !== 'heroTitle') offerEdPreview(true);
+    return;
+  }
+  /* «За дизайн не беремо» — рішення про все замовлення, тож і живе воно на
+     замовленні. Перерахунок робить offerEdSave: він проходить по всіх
+     позиціях тим самим рушієм, лише вже без разових. */
+  if(act === 'nofee'){
+    o.noDesignFee = !!msg.v;
+    if(!(await offerEdSave(o))) return;
+    renderBoard(); offerEdPreview(true);
     return;
   }
   if(act === 'pick'){

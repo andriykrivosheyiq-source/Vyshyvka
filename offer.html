@@ -584,6 +584,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px solid #d8dee7;border-radius:var(--r-2);padding:8px 16px;cursor:pointer;margin-bottom:6px;}@media (hover:hover){
   .cc-fix:hover{border-color:#0f2034;}}
   .cc-fix:disabled{opacity:.55;cursor:default;}
+  /* «Не брати за дизайн» — перемикач на все замовлення, тож він і виглядає
+     як рішення, а не як ще одна кнопка поруч. */
+  .cc-nofee{display:flex;align-items:center;gap:10px;font-size:var(--fs-2);font-weight:600;
+    color:#0f2034;background:#fff;border:1px solid #d8dee7;border-radius:var(--r-2);
+    padding:8px 16px;margin-bottom:6px;cursor:pointer;}
+  .cc-nofee.is-on{border-color:#0f2034;background:#f3f6fa;}
+  .cc-nofee input{width:16px;height:16px;margin:0;cursor:pointer;}
+  .cc-nofee input:disabled{cursor:default;}
   .cc-sec{font-size:var(--fs-2);font-weight:600;text-transform:uppercase;letter-spacing:.05em;
     color:#8a929b;margin:20px 0 8px;}
   .cc-item{border:1px solid #e6e9ed;border-radius:var(--r-3);padding:12px 16px;margin-bottom:10px;background:#fff;}
@@ -805,6 +813,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     white-space:nowrap;}
   .pchart th{background:var(--soft); font-weight:600; color:var(--ink);}
   .pchart td:first-child, .pchart th:first-child{text-align:left; font-weight:600;}
+  /* Як міряти — під таблицею, тими самими словами, що в картці товару. */
+  .pchart-hint{margin:8px 0 0; padding:0; list-style:none; font-size:var(--fs-1);
+    line-height:1.5; color:var(--ink-soft);}
+  .pchart-hint li{margin-top:4px;}
+  .pchart-img{margin-top:12px;}
+  .pchart-img img{display:block; width:100%; border-radius:var(--r-2); border:1px solid var(--line);}
 
   /* ══ Пакети: три варіанти замість одного «так або ні» ══ */
   .packs{display:grid; grid-template-columns:1fr; gap:10px;}
@@ -2044,8 +2058,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <!-- Рушій цін — той самий, що в конструкторі й адмінці. Сторінка рахує ним
      склад наново, коли клієнт додає рекомендований товар. -->
-<script src="loomiq-fingerprint.js?v=78f196cdb0"></script>
-<script src="loomiq-pricing.js?v=78f196cdb0"></script>
+<script src="loomiq-fingerprint.js?v=b44d1f0333"></script>
+<script src="loomiq-pricing.js?v=b44d1f0333"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script>
@@ -2329,9 +2343,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      дає сама сторінка: кошик, кілька дрібних помічників і контент з бази.
      Кошика в пропозиції немає — позиція йде прямо в замовлення, — тож він
      тут порожній список, а не вікно. */
-  var CTOR_JS   = 'loomiq-constructor.js?v=78f196cdb0';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=78f196cdb0';
-  var CTOR_HTML = 'loomiq-constructor-body.html?v=78f196cdb0';
+  var CTOR_JS   = 'loomiq-constructor.js?v=b44d1f0333';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=b44d1f0333';
+  var CTOR_HTML = 'loomiq-constructor-body.html?v=b44d1f0333';
   var ctorReady = null;
 
   /* Поки адмінка вивантажує макети — кнопка це показує й не дає натиснути
@@ -2689,6 +2703,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       ['pointerdown','mousedown','touchstart'].forEach(function(t){
         b.addEventListener(t, function(e){ e.stopPropagation(); });
       });
+    });
+    var noFee = document.getElementById('ccNoFee');
+    if(noFee) noFee.addEventListener('change', function(){
+      noFee.disabled = true;
+      edSend({ act:'nofee', v: !!noFee.checked });
     });
     var fpFix = document.getElementById('ccFpFix');
     if(fpFix) fpFix.addEventListener('click', function(){
@@ -3071,6 +3090,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      самому складі, що й ціна на картці: доти вона бралася з порогів,
      збережених адмінкою колись, і після будь-якої зміни складу розходилась
      із тим, що клієнт побачить, коли ту кількість справді набере. */
+  /* Умови рахунку, спільні на всю пропозицію. Приходять із документа — тобто
+     рівно ті, з якими рахувала адмінка. Порахувати тут по-іншому означало б
+     показати клієнтові суму, якої немає в замовленні. */
+  function priceOpts(){
+    return { noDesignFee: !!OFFER.noDesignFee };
+  }
   function livePrices(what){
     if(!window.LQ || !window.LQ.priceOrder) return null;
     if(!(window.SITE_CONTENT && window.SITE_CONTENT.pricing)) return null;
@@ -3118,7 +3143,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!list.length && !(OFFER.variants || []).length) return null;
     var res = [];
     if(list.length){
-      try{ res = window.LQ.priceOrder(list); }
+      /* Ті самі умови, що в адмінці: якщо за дизайн у цьому замовленні не
+         беремо, то й перерахунок після «додати рекомендований» не має
+         повертати підготовку макета назад у ціну. */
+      try{ res = window.LQ.priceOrder(list, priceOpts()); }
       catch(e){ console.warn('перерахунок не вийшов', e); return null; }
     }
     var out = { main:{}, reco:{}, vars:{} };
@@ -3143,7 +3171,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var d = JSON.parse(JSON.stringify(v.desc));
       d.units = sub('variant', vi, Math.max(1, baseVarQty(vi)));
       try{
-        var r = window.LQ.priceOrder(base.concat([d]));
+        var r = window.LQ.priceOrder(base.concat([d]), priceOpts());
         var mine = r[r.length - 1];
         if(mine) out.vars[vi] = mine;
       }catch(e){}
@@ -3840,8 +3868,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       '<div class="pnote" data-note-body="' + i + '" hidden>' +
         'Кольори одягу, принтів і вишивки можуть трохи відрізнятися від того, ' +
         'що ви бачите на екрані: кожен монітор і телефон передає колір по-своєму.<br>' +
-        'Розмір нанесення масштабується під розмір виробу — крок між сусідніми ' +
-        'розмірами приблизно 0,5–1 см на грудях і 1–2 см на спині.' +
+        'Пропорції нанесення трохи змінюються від розміру до розміру: на фото ' +
+        'показано M, а на S чи L макет масштабується під виріб. Різниця між ' +
+        'сусідніми розмірами — приблизно 1–2 см, тож загальна картина лишається ' +
+        'тією самою.' +
       '</div>';
   }
 
@@ -3871,8 +3901,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      не посиланням на сайт. */
   function chartHtml(it){
     var c = it && it.sizechart;
-    if(!c || !c.rows || !c.rows.length) return '';
+    if(!c) return '';
+    /* Фото сітки, якщо його завантажили в картці товару, заміняє таблицю —
+       так само, як на сайті: у виробника своя мірна схема, і перемальовувати
+       її цифрами означає її ж і спотворити. */
+    if(c.photo) return '<div class="pchart-img"><img src="' + esc(c.photo) +
+      '" alt="Розмірна сітка" loading="lazy"></div>';
+    if(!c.rows || !c.rows.length) return '';
     var head = c.cols && c.cols.length ? c.cols : null;
+    var hints = (c.hints && c.hints.length)
+      ? '<ul class="pchart-hint">' + c.hints.map(function(h){
+          return '<li>' + esc(h) + '</li>'; }).join('') + '</ul>'
+      : '';
     return '<div class="pchart-wrap"><table class="pchart">' +
       (head ? '<thead><tr>' + head.map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') +
               '</tr></thead>' : '') +
@@ -3882,16 +3922,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         return r;
       }).map(function(r){
         return '<tr>' + r.map(function(v){ return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>';
-      }).join('') + '</tbody></table></div>';
+      }).join('') + '</tbody></table></div>' + hints;
   }
   /* Розмах розмірів із сітки: «S–XXL». Клієнту важливо знати, чи є його
-     розмір, ще до того, як він розгорне таблицю обмірів. */
+     розмір, ще до того, як він розгорне таблицю обмірів.
+     Перший рядок буває підписом («Розмір»), а не розміром — такий пропускаємо,
+     інакше в значенні стоїть «Розмір–XXL». */
   function sizeRange(it){
     var ch = it && it.sizechart;
     var rows = (ch && ch.rows) || [];
     var names = rows.map(function(r){
       var c = (r && r.c) || r; return String((c && c[0]) || '').trim();
-    }).filter(Boolean);
+    }).filter(function(n){ return n && !/^розмір$/i.test(n); });
     if(names.length < 2) return names[0] || '';
     return names[0] + '–' + names[names.length - 1];
   }
@@ -4044,7 +4086,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            самі не оновляться — і в рахунку далі стоять групи, зліплені за
            старим правилом. Кнопка знімає відбитки заново з тих самих файлів
            нанесення, які лежать у позиціях. */
-        (EDIT ? '<button class="cc-fix" id="ccFpFix">↻ Перерахувати дизайни за макетами</button>' +
+        /* Підготовка макета — робота, якої іноді немає: клієнт присилає
+           готовий файл, або ми робили цей самий макет минулого разу. Тоді за
+           неї не беремо, і рішення це — про все замовлення, а не про окремий
+           дизайн. Стоїть тут, у прорахунку, бо саме тут видно рядки, які від
+           нього зникають. */
+        (EDIT ? '<label class="cc-nofee' + (OFFER.noDesignFee ? ' is-on' : '') + '">' +
+                  '<input type="checkbox" id="ccNoFee"' + (OFFER.noDesignFee ? ' checked' : '') + '>' +
+                  '<span>Не брати за дизайн</span>' +
+                '</label>' +
+                '<p class="cc-hint">Прибирає з рахунку підготовку макета й додаткові ескізи — ' +
+                'усе замовлення рахується по нулях за дизайн. Для випадків, коли макет уже готовий ' +
+                'або його оплатили минулим разом.</p>' +
+                '<button class="cc-fix" id="ccFpFix">↻ Перерахувати дизайни за макетами</button>' +
                 '<p class="cc-hint">Знімає відбиток заново з кожного нанесення й перескладає групи. ' +
                 'Потрібно для замовлень, зібраних раніше: у них групи дизайнів пораховані старою формулою.</p>'
               : '') +
