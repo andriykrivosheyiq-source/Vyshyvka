@@ -692,6 +692,24 @@
   .pick-th img{width:100%; height:100%; object-fit:contain; display:block;}
   .pick-n{font-size:12.5px; font-weight:700; line-height:1.25;}
   .pick-p{font-size:11.5px; color:#7A879B;}
+  /* Вибір групи варіантів: спершу ті, що вже є в цьому КП, і лише потім
+     поле для нової. Групи йдуть списком в один стовпець — це рішення
+     «куди покласти», а не вітрина. */
+  .pick-b.is-groups{grid-template-columns:1fr; gap:6px; padding:12px;}
+  .pick-g{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font:inherit; font-size:13px; font-weight:700; color:#22314A; text-align:left;
+    background:#fff; border:1px solid #E2E8F0; border-radius:11px; padding:11px 13px;
+    cursor:pointer; width:100%;}
+  .pick-g:hover{border-color:#4F5FD4; box-shadow:0 4px 14px rgba(79,95,212,.13);}
+  .pick-g i{font-style:normal; font-size:11.5px; font-weight:600; color:#7A879B;}
+  .pick-lbl{font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:#8A93A3; margin:14px 0 2px;}
+  .pick-lbl:first-child{margin-top:0;}
+  .pick-new{display:flex; gap:8px;}
+  .pick-new input{flex:1; font:inherit; font-size:13px; color:#22314A;
+    border:1px solid #E2E8F0; border-radius:11px; padding:11px 13px;}
+  .pick-new input:focus{outline:none; border-color:#4F5FD4;}
+  .pick-hint{font-size:11.5px; line-height:1.5; color:#7A879B; margin:8px 0 0;}
   .why-l{display:block; font-size:10.5px; font-weight:800; letter-spacing:.06em;
     text-transform:uppercase; color:#8A93A3; margin-bottom:6px;}
   .why-t{width:100%; font:inherit; font-size:13px; line-height:1.5; color:#22314A;
@@ -829,13 +847,57 @@
     for(var i = 2; i < 40; i++){ if(!used['Група ' + i]) return 'Група ' + i; }
     return 'Нова група';
   }
-  function askGroupName(){
-    var n = window.prompt(
-      'Як назвати групу?\n\nКлієнт побачить цю назву над картками — це питання, ' +
-      'на яке він відповідає: «Футболки», «Худі», «Який верх?».', nextGroupName());
-    if(n == null) return null;
-    n = String(n).replace(/\s+/g, ' ').trim().slice(0, 60);
-    return n || null;
+  /* Куди покласти варіант. Спершу — групи, які вже є в ЦЬОМУ КП: найчастіше
+     менеджер додає другу футболку до футболок, а не заводить групу з нуля.
+     Доти тут стояло вікно вводу з підставленою назвою, і щоб потрапити в
+     наявну групу, треба було згадати й набрати її назву слово в слово —
+     помилився в літері, і поруч зʼявлялась друга група з тим самим змістом.
+     Поле для нової лишається, але вже другим кроком. */
+  function askGroupName(done){
+    var groups = variantGroups();
+    var d = document.createElement('div');
+    d.className = 'pick';
+    d.innerHTML = '<div class="pick-c">' +
+      '<div class="pick-h"><b>У яку групу додати варіант</b>' +
+        '<button class="btn" data-g-x>Закрити</button></div>' +
+      '<div class="pick-b is-groups">' +
+        (groups.length
+          ? '<div class="pick-lbl">Уже в цій пропозиції</div>' +
+            groups.map(function(g){
+              return '<button class="pick-g" data-g="' + esc(g.name) + '">' +
+                esc(g.name) + '<i>' + g.idx.length + ' ' +
+                (g.idx.length === 1 ? 'варіант' : (g.idx.length < 5 ? 'варіанти' : 'варіантів')) +
+                '</i></button>';
+            }).join('')
+          : '') +
+        '<div class="pick-lbl">Нова група</div>' +
+        '<div class="pick-new">' +
+          '<input type="text" maxlength="60" id="gNew" placeholder="Футболки, Худі, Який верх?" ' +
+            'value="' + esc(nextGroupName()) + '">' +
+          '<button class="btn" data-g-add>Створити</button>' +
+        '</div>' +
+        '<p class="pick-hint">Назву групи клієнт побачить над картками — ' +
+          'це питання, на яке він відповідає.</p>' +
+      '</div></div>';
+    document.body.appendChild(d);
+    var close = function(){ d.remove(); };
+    d.addEventListener('click', function(e){ if(e.target === d) close(); });
+    d.querySelector('[data-g-x]').addEventListener('click', close);
+    d.querySelectorAll('[data-g]').forEach(function(b){
+      b.addEventListener('click', function(){ close(); done(b.dataset.g); });
+    });
+    var inp = d.querySelector('#gNew');
+    var addNew = function(){
+      var n = String(inp.value || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      if(!n){ inp.focus(); return; }
+      close(); done(n);
+    };
+    d.querySelector('[data-g-add]').addEventListener('click', addNew);
+    inp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); addNew(); }
+      if(e.key === 'Escape'){ e.preventDefault(); close(); }
+    });
+    setTimeout(function(){ inp.select(); }, 30);
   }
   /* Розклад ціни позиції — той самий, що в картці. Приходить готовим від
      адмінки разом із документом (OFFER.mgr) і в базу не потрапляє: це
@@ -899,6 +961,20 @@
         (rows ? '<button class="it-why" data-why="' + key + '" ' +
                 'title="З чого складається ця ціна">' +
                 (open ? '▾ розклад' : '▸ розклад') + '</button>' : '') +
+        /* Тираж рекомендованої — просто тут. За замовчуванням він іде за
+           найбільшою основною позицією, і це правильна заготовка, але не
+           рішення: шопер до 50 худі беруть і на 20, і на 100. Доти змінити
+           його можна було тільки в конструкторі, а перерахунок мовчки
+           повертав число назад — виглядало це так, ніби кількість не
+           міняється взагалі. */
+        (kind === 'reco'
+          ? '<span class="vg-qty" title="Тираж рекомендованого товару">' +
+              '<button data-rq="' + i + '" data-d="-1" aria-label="Менше">−</button>' +
+              '<b contenteditable="plaintext-only" data-rqedit="' + i + '">' +
+                Math.max(1, Math.round(+it.qty || 1)) + '</b><i>шт</i>' +
+              '<button data-rq="' + i + '" data-d="1" aria-label="Більше">＋</button>' +
+            '</span>'
+          : '') +
       '</span>' +
       '<button class="it-dots" data-dots="' + kind + ':' + i + '" title="Дії з позицією">⋯</button>' +
     '</div>' +
@@ -1017,8 +1093,7 @@
     box.querySelectorAll('[data-newgroup]').forEach(function(b){
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
-        var n = askGroupName();
-        if(n) openPick('variant', n);
+        askGroupName(function(n){ if(n) openPick('variant', n); });
       });
     });
     /* Назва групи правиться на місці. Це не косметика: група — це питання,
@@ -1033,6 +1108,29 @@
                      || { idx:[0] }).idx[0]] || {}).qty || 1);
         var step = cur >= 100 ? 10 : (cur >= 20 ? 5 : 1);
         send({ act:'vqty', vgroup:g, v: Math.max(1, cur + (+bq.dataset.d) * step) });
+      });
+    });
+    /* Тираж рекомендованої — тими самими двома способами, що й у групи
+       варіантів: кнопками з кроком під розмір числа й правкою на місці. */
+    box.querySelectorAll('[data-rq]').forEach(function(bq){
+      bq.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var i = +bq.dataset.rq;
+        var cur = Math.max(1, Math.round(+(itemsOf('reco')[i] || {}).qty || 1));
+        var step = cur >= 100 ? 10 : (cur >= 20 ? 5 : 1);
+        send({ act:'qty', kind:'reco', i:i, v: Math.max(1, cur + (+bq.dataset.d) * step) });
+      });
+    });
+    box.querySelectorAll('[data-rqedit]').forEach(function(el){
+      el.addEventListener('click', function(e){ e.stopPropagation(); });
+      el.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      });
+      el.addEventListener('blur', function(){
+        var v = parseInt(String(el.textContent || '').replace(/\D+/g, ''), 10);
+        if(!(v > 0)){ renderList(); return; }
+        send({ act:'qty', kind:'reco', i: +el.dataset.rqedit, v: v });
       });
     });
     box.querySelectorAll('[data-vqedit]').forEach(function(el){
@@ -1154,9 +1252,12 @@
         var a = b.dataset.act, vg = b.dataset.vgroup || '';
         closeMenu2();
         if(a === 'newgroup'){
-          vg = askGroupName();
-          if(!vg) return;
-          a = 'tovariant';
+          askGroupName(function(n){
+            if(!n) return;
+            send({ act:'tovariant', kind: kind, i: i, vgroup: n });
+            cur = null;
+          });
+          return;
         }
         send({ act: a, kind: kind, i: i, vgroup: vg });
         // Позиція зникла зі свого місця — активної більше немає

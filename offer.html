@@ -3189,9 +3189,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var q = EDIT ? null : pick.qty[i];
     return Math.max(1, Math.round(q == null ? (+it.qty || 1) : q));
   }
+  /* Тираж рекомендованої позиції. У клієнта це його вибір і живе в pick;
+     у менеджера — властивість самої позиції в замовленні, тож читаємо з
+     документа, а лічильник править замовлення через адмінку. Доти менеджер
+     теж міняв лише pick: число зростало на екрані, наступне оновлення
+     документа стирало його, і кількість поверталась до тієї, що в складі. */
   function baseRecoQty(i){
     var r = OFFER.reco[i] || {};
-    var q = pick.recoQty[i];
+    var q = EDIT ? null : pick.recoQty[i];
     return Math.max(1, Math.round(q == null ? (+r.qty || 1) : q));
   }
   function recoState(i){
@@ -3551,12 +3556,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        листуванні: «комерційна пропозиція для такої-то компанії». Менеджер
        може переписати, але починати з правильного краще, ніж із загального
        «Ваша пропозиція». */
-    /* «Пропозиція для THE DREAMERS», а не «Комерційна пропозиція для…».
-       Слово «комерційна» нічого не додає людині, яка й так відкрила
-       посилання від менеджера, — воно лише робить рядок довшим і казеннішим
-       на екрані, де все має читатись за секунду. */
+    /* «Комерційна пропозиція для THE DREAMERS» — так документ називають у
+       листуванні й так його переказують усередині компанії клієнта. Коротке
+       «Пропозиція» читалось як лист від знайомого; повна назва каже, що це
+       офіційний документ, який можна переслати керівнику. */
     var title = String(OFFER.heroTitle || '').trim() ||
-      (who ? 'Пропозиція для ' + who : 'Пропозиція');
+      (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
     var hsz = +OFFER.heroSize || 0;
     /* Склад пропозиції словами: «10 худі · 50 футболок» — це справжня
        відповідь на «що мені пропонують», на відміну від «2 види товарів». */
@@ -3662,7 +3667,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
            пояснював. */
         (till ? '<div class="hero-till">Ціна зафіксована до ' + esc(till) + '</div>' : '') +
         edNum('hold', holdDays(), 'Ціна тримається, днів', 'робочих днів від сьогодні') +
-        '<button class="btn no-print" id="goOffer">Подивитись пропозицію ↓</button>' +
+        /* Кнопки «Подивитись пропозицію ↓» тут більше немає. Склад починався
+           одразу під шапкою — його й так видно, варто прокрутити на палець, —
+           а кнопка забирала на себе увагу й робила вигляд, ніби рішень на
+           сторінці два. Головна дія одна: «Підтвердити пропозицію» в
+           кошторисі, і ніщо не має з нею конкурувати. */
       '</div>';
   }
 
@@ -3768,9 +3777,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      мініатюри в картці й для галереї на весь екран: доти галерея читала
      підписи з окремого атрибута, зібраного за іншим набором ракурсів, і при
      найменшому розходженні лишалась без підписів узагалі. */
+  /* Сторона виробу зветься «Спина», а не «Зад». Уже надіслані пропозиції
+     несуть у собі старий підпис — виправляємо його при показі, щоб клієнт не
+     читав «Зад» у документі, який ми йому щойно оновили. */
+  function sideWord(s){
+    return /^зад$/i.test(String(s || '').trim()) ? 'Спина' : s;
+  }
   function viewCap(v, n){
-    return String((v && v.label) || SIDE_UA[(v && v.side) || ''] ||
-      ['Перед','Спина','Лівий бік','Правий бік'][n] || '').trim();
+    return String(sideWord((v && v.label) || SIDE_UA[(v && v.side) || ''] ||
+      ['Перед','Спина','Лівий бік','Правий бік'][n] || '')).trim();
   }
   /* Ракурси, які реально показані в картці: саме їх гортає і галерея.
      Прихований менеджером ракурс не має спливати на весь екран. */
@@ -3814,14 +3829,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (EDIT ? ' is-edit' : '') + (v.img ? '' : ' is-empty') + (off ? ' is-off' : '') + '"' +
         ' data-vi="' + list.indexOf(v) + '"' +
         (EDIT ? ' data-view="' + K + ':' + idx + ':' + pos + '"' +
-                ' data-view-label="' + esc(v.label || '') + '"' +
+                ' data-view-label="' + esc(sideWord(v.label || '')) + '"' +
                 ' title="Натисніть, щоб сховати або показати клієнту"' : '') + '>' +
         (v.img
           ? '<img src="' + esc(v.img) + '" alt="' + esc(v.label || '') + '" ' +
             (big ? '' : 'loading="lazy" ') +
             'onerror="lqShotFail(this)">'
           : '<span class="pgal-plus">＋<i>фото</i></span>') +
-        (EDIT ? '<span class="pgal-lab">' + esc(v.label || '') + '</span>' +
+        (EDIT ? '<span class="pgal-lab">' + esc(sideWord(v.label || '')) + '</span>' +
               (off ? '<span class="pgal-off">Клієнт не бачить</span>' : '') : '') +
         /* Підпис на мініатюрі — щоб не треба було вгадувати, що там: людина
            бачить «Спина» й одразу розуміє, навіщо тиснути. */
@@ -3850,7 +3865,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var FALLBACK = ['Перед', 'Спина', 'Лівий бік', 'Правий бік'];
     return function(k){
       var sd = (it.sides || [])[k];
-      if(sd && sd.sideLabel) return sd.sideLabel;
+      if(sd && sd.sideLabel) return sideWord(sd.sideLabel);
       if(sd && SIDE_UA[sd.side]) return SIDE_UA[sd.side];
       return FALLBACK[k] || ('Вигляд ' + (k + 1));
     };
@@ -3959,7 +3974,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(s.technique) val.push(s.technique);
       if(s.widthMm && s.heightMm)
         val.push(Math.round(s.widthMm/10) + ' × ' + Math.round(s.heightMm/10) + ' см');
-      rows.push(['Нанесення · ' + (s.sideLabel || SIDE_UA[s.side] || s.side || 'виріб'),
+      rows.push(['Нанесення · ' + sideWord(s.sideLabel || SIDE_UA[s.side] || s.side || 'виріб'),
                  val.join(', ') || '—']);
     });
     /* Обраний клієнтом тираж уже не збігається з початковою розкладкою по
@@ -4179,7 +4194,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        рахує операції. Беремо підписи сторін, які прийшли з позиції, і лише
        якщо їх немає — падаємо назад на кількість. */
     var sides = (it.sides || []).map(function(s2){
-      return String(s2.sideLabel || SIDE_UA[s2.side] || '').trim().toLowerCase();
+      return String(sideWord(s2.sideLabel || SIDE_UA[s2.side] || '')).trim().toLowerCase();
     }).filter(Boolean);
     var uniq = [];
     sides.forEach(function(x){ if(uniq.indexOf(x) < 0) uniq.push(x); });
@@ -6257,11 +6272,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     wireKindSwitch();
     wireVariants();
     tintAll();   // рамки фото беруть колір із самих світлин
-    var go = document.getElementById('goOffer');
-    if(go) go.onclick = function(){
-      var t = document.getElementById('offerStart') || document.getElementById('estimate');
-      if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
-    };
     /* Стрілки й крапки-ракурси прибрані разом зі старою галереєю: тепер
        усі фото позиції видно стрічкою, а гортання робить сам браузер. */
     // Примітка про кольори — розкривається дотиком
@@ -6304,7 +6314,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       if(frozen){ b.disabled = true; return; }
       b.onclick = function(){
         var i = +b.dataset.rq, d = +b.dataset.d;
-        pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
+        var q = Math.max(1, recoState(i).qty + d);
+        if(EDIT){ edSend({ act:'qty', kind:'reco', i:i, v:q }); return; }
+        pick.recoQty[i] = q;
         refresh();
       };
     });
@@ -6331,8 +6343,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var p = String(b.dataset.eq).split(':'), kind = p[0], i = +p[1], d = +b.dataset.d;
         var q, nm;
         if(kind === 'reco'){
-          q = pick.recoQty[i] = Math.max(1, recoState(i).qty + d);
+          q = Math.max(1, recoState(i).qty + d);
           nm = (OFFER.reco[i] || {}).name;
+          if(EDIT){ edSend({ act:'qty', kind:'reco', i:i, v:q }); return; }
+          pick.recoQty[i] = q;
         }else if(kind === 'variant'){
           /* Через setVarQty, а не в pick.varQty[i]: тираж належить групі, і
              покручений тут він мусить збігтися з тим, що на картках. */

@@ -79,9 +79,18 @@ const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromiu
 const p = await browser.newPage({ viewport:{ width:1400, height:1000 } });
 const errs = [];
 p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
-/* Назву нової групи питають запитом — відповідаємо як менеджер. */
-let ANS = 'Худі';
-p.on('dialog', d => d.accept(ANS));
+/* Назву нової групи питають власним вікном: спершу воно показує групи, які
+   вже є в цьому КП, а поле для нової — другим кроком. Відповідаємо як
+   менеджер, що заводить «Худі». */
+const newGroup = async (name) => {
+  await p.waitForTimeout(400);
+  await p.evaluate(n => {
+    const d = document.querySelector('#offerEd iframe').contentDocument;
+    const inp = d.querySelector('#gNew');
+    inp.value = n;
+    d.querySelector('[data-g-add]').click();
+  }, name);
+};
 await p.route('**://**', r => {
   const u = r.request().url();
   if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body:fbstub });
@@ -133,11 +142,11 @@ ok(menu.some(t => /У групу «Футболки»/.test(t)) && menu.some(t =
   'меню пропонує і наявну групу, і нову',
   'вибору групи в меню немає: ' + JSON.stringify(menu));
 
-ANS = 'Худі';
 await p.evaluate(() => {
   const d = document.querySelector('#offerEd iframe').contentDocument;
   [...d.querySelectorAll('.menu button')].filter(b => /У нову групу/.test(b.textContent))[0].click();
 });
+await newGroup('Худі');
 await p.waitForTimeout(2500);
 const a1 = await ed();
 console.log('  групи: ' + JSON.stringify(a1.groups) + ' · тиражі: ' + JSON.stringify(a1.qty));

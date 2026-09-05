@@ -5919,6 +5919,17 @@ window.__adminSaveClientOrder = async function(payload){
           target.vqty = target.vqty || {};
           target.vqty[was.vgroup || 'Варіанти на вибір'] = Math.round(+nu.qty);
         }
+        /* Тираж рекомендованої, набраний у конструкторі, — рішення менеджера,
+           а не збіг. Без цієї позначки найближчий перерахунок повертав його до
+           тиражу найбільшої основної позиції, і кількість «не мінялась»:
+           менеджер ставив 20, зберігав, а в панелі знову стояло 50. Збіг із
+           автоматичним числом лишає позицію на автоматі — це «поки що стільки
+           ж, скільки й у складі», а не «зафіксував саме 50». */
+        if(itemKind(was) === 'reco'){
+          nu.qtyAuto = (+nu.qty > 0)
+            ? (Math.round(+nu.qty) === recoQtyFor(target))
+            : (was.qtyAuto !== false);
+        }
         if(was.recoNote && !nu.recoNote) nu.recoNote = was.recoNote;
         if(was.optional != null) nu.optional = was.optional;
       });
@@ -13888,6 +13899,13 @@ async function offerEdApply(msg){
        правка кількості будь-якої картки задає її всій групі. */
     const vg = variantGroupOf(it);
     if(vg){ setVariantGroupQty(o, vg, q); }
+    /* Тираж рекомендованої за замовчуванням іде за найбільшою основною
+       позицією. Щойно менеджер назвав своє число — воно перестає бути
+       автоматичним, інакше найближчий перерахунок мовчки поверне його назад
+       до тиражу складу, і кількість «не міняється». Збіг із автоматичним
+       числом залишає позицію на автоматі: це не «зафіксував 50», а «поки
+       що стільки ж, скільки й у складі». */
+    if(itemKind(it) === 'reco') it.qtyAuto = (q === recoQtyFor(o));
     it.qty = q;
     if(it.desc) it.desc.units = q;
     applyQtyToConfig(it, q);
@@ -15576,7 +15594,11 @@ function effectiveColors(id){
   if(Array.isArray(ov) && ov.length) return ov.map(c=>({id:c.id,name:c.name,hex:c.hex}));
   return defaultColors(id);
 }
-const VIEW_LABEL = {front:'Перед', back:'Зад', left:'Лівий бік', right:'Правий бік'};
+/* «Спина», а не «Зад». Слово стоїть у назві ракурсу, у підписі фото й у
+   документах на виробництво — і в кожному з цих місць «зад» читається як
+   грубість, а не як сторона виробу. Конструктор і сторінка клієнта кажуть
+   «Спина» давно; тут лишалась остання розбіжність. */
+const VIEW_LABEL = {front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік'};
 /* Стандартні дані сайту (мають збігатися з index.html) */
 const DEFAULT_SIZE_CHART_ROWS = [
   {size:'XS',A:64,B:47},{size:'S',A:66,B:50},{size:'M',A:68,B:53},
@@ -15920,7 +15942,7 @@ function updatePaSummary(id){
   const modal = ()=>document.getElementById('pa-modal');
   const el = id=>document.getElementById(id);
 
-  const PA_SIDE_LABELS={front:'Перед (груди)',back:'Зад (спина)',left:'Лівий бік',right:'Правий бік'};
+  const PA_SIDE_LABELS={front:'Перед (груди)',back:'Спина',left:'Лівий бік',right:'Правий бік'};
   const PA_SIDE_SHORT={front:'Груди',back:'Спина',left:'Лівий бік',right:'Правий бік'};
   function paSideLabel(s){ return PA_SIDE_LABELS[s]||s; }
   function paChart(){ return (typeof currentScRows==='function') ? currentScRows() : [{size:'M',A:68,B:52}]; }
