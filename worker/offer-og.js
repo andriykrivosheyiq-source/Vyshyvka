@@ -16,7 +16,7 @@
  * цьому тримається саме посилання клієнта), бере з нього ті самі дані, що
  * стоять у першому екрані сторінки, і вписує їх у теги заставки:
  *
- *   заголовок  — той самий, що в шапці КП: «Пропозиція для Grand Cafe»;
+ *   заголовок  — той самий, що в шапці КП: «Комерційна пропозиція для Grand Cafe»;
  *   опис       — склад і сума: «50 футболок · 42 300 ₴ · дійсна до 12.09»;
  *   картинка   — перший макет позиції, тобто те, що клієнт бачить угорі.
  *
@@ -86,7 +86,7 @@ async function offerMeta(token) {
   const client = val(f.client) || {};
   const who = val(client.company) || val(client.name) || val(client.instagram) || '';
   const hero = String(val(f.heroTitle) || '').trim();
-  const title = hero || (who ? 'Пропозиція для ' + who : 'Пропозиція');
+  const title = hero || (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
 
   const items = val(f.items) || [];
   let qty = 0, shot = '';
