@@ -2223,6 +2223,7 @@
         <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
         <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
         <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
+        <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
         <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
       </nav>
       <div class="sidebar-foot">
@@ -2579,21 +2580,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
       </div>
 
-      <!-- Хто працює в системі. Роль привʼязана до пошти входу, а не до
-           вибору зі списку: інакше «не бачить собівартість» обходиться за
-           одну секунду — вибрав інше імʼя й дивись. -->
-      <div class="card">
-        <div class="card-head">
-          <h2>Команда і ролі</h2>
-          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Роль лише заповнює галочки: далі кожному вмикається рівно те, що потрібно — розділи меню, дошки, що видно в картці й що можна міняти. Формат картки окремо: менеджерський показує клієнта й гроші, дизайнерський — макет, виробничий — файли й розмірний ряд. Кого немає в списку — працює як менеджер.</span>
-        </div>
-        <div id="team-list"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-          <button class="pc-btn up" id="team-add" style="flex:none;padding:10px 22px;">+ Додати людину</button>
-          <button class="btn btn-accent" id="team-save" style="flex:none;">Зберегти команду</button>
-        </div>
-        <div class="sub" id="team-me" style="margin-top:10px;"></div>
-      </div>
+
 
       <!-- Бренди пропозиції. Шапка й підвал сторінки КП беруться звідси,
            а який саме бренд — обирається в самій картці замовлення. -->
@@ -2614,6 +2601,33 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     </section>
 
     <!-- ============ VIEW 2 — GARMENTS ============ -->
+    <!-- ── Команда й доступи ──────────────────────────────────────────────
+         Окремий розділ, і видно його лише тим, кому дозволено міняти
+         налаштування. Доти список команди лежав усередині «Формування цін»
+         — між ставками друку й термінами, — і знайти його міг хіба той, хто
+         знав, що він там є. Доступи — це не довідник цін, це керування
+         людьми, і місце в них своє. -->
+    <section id="view-team" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Адміністрування</div>
+        <h1>Команда й доступи</h1>
+        <div class="sub">Хто заходить у систему і що кожен бачить. Право привʼязане до пошти, якою людина входить, — не до вибору зі списку: інакше «не бачить собівартість» обходиться за секунду.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Команда і ролі</h2>
+          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Роль лише заповнює галочки: далі кожному вмикається рівно те, що потрібно — розділи меню, дошки, що видно в картці й що можна міняти. Формат картки окремо: менеджерський показує клієнта й гроші, дизайнерський — макет, виробничий — файли й розмірний ряд. Кого немає в списку — працює як менеджер.</span>
+        </div>
+        <div id="team-list"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button class="pc-btn up" id="team-add" style="flex:none;padding:10px 22px;">+ Додати людину</button>
+          <button class="btn btn-accent" id="team-save" style="flex:none;">Зберегти команду</button>
+        </div>
+        <div class="sub" id="team-me" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
     <section id="view-garments" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Каталог</div>
@@ -4399,7 +4413,8 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vSup = document.getElementById('view-suppliers'); if(vSup) vSup.style.display = view==='suppliers' ? 'block':'none';
     const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика'};
+    const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -4409,6 +4424,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
+    if(view==='team') renderTeamList();
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -15245,7 +15261,11 @@ const ZONE_NAV = [
   { key:'photos',    label:'Конструктор сайту' },
   { key:'reviews',   label:'Відгуки' },
   { key:'suppliers', label:'Підрядники' },
-  { key:'analytics', label:'Аналітика' }
+  { key:'analytics', label:'Аналітика' },
+  /* Команда й доступи — теж зона, але з подвійним замком: мало мати її в
+     списку розділів, треба ще й право міняти налаштування. Інакше вистачило
+     б одної забутої галочки, щоб людина роздала доступи сама собі. */
+  { key:'team',      label:'Команда й доступи' }
 ];
 const ZONE_SEE = [
   { key:'client', label:'Клієнт і контакти' },
@@ -15355,7 +15375,11 @@ function applyRoleUi(){
   const all = nav === '*' || !Array.isArray(nav);
   let firstOk = null;
   document.querySelectorAll('.nav button[data-view]').forEach(b=>{
-    const on = all || nav.indexOf(b.dataset.view) >= 0;
+    let on = all || nav.indexOf(b.dataset.view) >= 0;
+    /* «Команда й доступи» — розділ адміністратора, і тільки його. Право
+       міняти налаштування тут не одна з галочок, а умова входу: хто не може
+       міняти етапи й команду, той і роздавати доступи не має. */
+    if(b.dataset.view === 'team' && !canSetup()) on = false;
     b.hidden = !on;
     if(on && !firstOk) firstOk = b;
   });
