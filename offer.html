@@ -117,6 +117,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .ord{padding:24px var(--pad) 40px; max-width:640px; margin:0 auto;}
   .ord h2{font-size:var(--fs-6); font-weight:600; letter-spacing:-0.5px; margin:0 0 4px;}
   .ord-due{color:var(--muted); font-size:var(--fs-2); margin-bottom:20px;}
+  .ord-due i{display:block; font-style:normal; margin-top:3px; font-size:var(--fs-3);
+    color:var(--warn, #A3722C); font-weight:600;}
   .ord-step{display:flex; gap:12px; align-items:flex-start; padding:12px 0;
     border-bottom:1px solid var(--line);}
   .ord-mark{flex:none; width:22px; height:22px; border-radius:50%; display:flex;
@@ -144,6 +146,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     font-size:var(--fs-2); color:var(--ink-2);}
   .ord-ttn{margin-top:16px; font-size:var(--fs-3);}
   .ord-ttn b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .ord-ttn a{margin-left:10px; color:var(--accent); font-weight:600; text-decoration:none;}
   /* Логотип бренду. Висота фіксована, ширина вільна: логотипи в різних
      пропорціях не мають смикати висоту шапки. */
   .brand-img{height:26px; width:auto; max-width:190px; object-fit:contain; display:block;}
@@ -5567,9 +5570,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         : 'Ваші правки записані. Менеджер звʼяжеться з вами.') + '</div>';
     }
     return '<h2>Замовлення' + (t.orderId ? ' № ' + esc(t.orderId) : '') + '</h2>' +
-      (t.dueAt ? '<div class="ord-due">Здати до ' + esc(ordDate(t.dueAt + 'T12:00:00')) + '</div>' : '') +
+      (t.dueAt ? '<div class="ord-due">Здати до ' + esc(ordDate(t.dueAt + 'T12:00:00')) +
+        /* Дату перенесли — кажемо про це прямо. Мовчазна підміна числа
+           гірша за саму затримку: людина бачить інше число й не розуміє,
+           чи то вона помилилась, чи то ми. */
+        (t.dueWas ? '<i>дату перенесено з ' + esc(ordDate(t.dueWas + 'T12:00:00')) + '</i>' : '') +
+        '</div>' : '') +
       steps + ask +
-      (t.ttn ? '<div class="ord-ttn">Накладна: <b>' + esc(t.ttn) + '</b></div>' : '');
+      (t.ttn
+        ? '<div class="ord-ttn">Накладна: <b>' + esc(t.ttn) + '</b>' +
+            '<a href="https://novaposhta.ua/tracking/?cargo_number=' + encodeURIComponent(t.ttn) +
+            '" target="_blank" rel="noopener">Відстежити ↗</a></div>'
+        : '');
   }
   function wireOrderTab(){
     document.querySelectorAll('[data-tab]').forEach(function(b){
