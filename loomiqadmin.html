@@ -1022,6 +1022,35 @@
   .bs-h span{font-size:11.5px;color:var(--ink-soft);}
   .bs-h .bs-u{margin-left:auto;font-weight:800;color:var(--ink);}
   .bs-ok{flex:none;}
+  .buy-x{font-style:normal;font-size:10.5px;color:#A32C3E;margin-left:3px;}
+  /* ── Контроль якості ────────────────────────────────────────────────── */
+  .qc-l{display:grid;gap:2px;margin-top:2px;}
+  .qc-i{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--r-sm);
+    font-size:12.5px;cursor:pointer;}
+  .qc-i:hover{background:var(--canvas);}
+  .qc-i.is-ok{color:var(--ink-soft);}
+  .qc-i.is-ok span{text-decoration:line-through;}
+  .qc-i input{width:17px;height:17px;flex:none;accent-color:var(--accent);}
+  .qc-defs{margin-top:10px;border-top:1px solid var(--line);padding-top:6px;}
+  .qc-def{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12.5px;}
+  .qc-def.is-fixed{opacity:.55;}
+  .qc-def-n{flex:none;font-weight:800;font-variant-numeric:tabular-nums;}
+  .qc-def-t{flex:1;min-width:0;font-weight:700;}
+  .qc-def-t i{display:block;font-style:normal;font-size:10.5px;font-weight:400;color:var(--ink-soft);}
+  .qc-def-w{font-size:11px;color:var(--ink-soft);}
+  .qc-foot{display:flex;gap:8px;align-items:center;margin-top:12px;}
+  .qc-short{font-size:12px;font-weight:700;color:#A32C3E;}
+  .qc-bad{margin-left:auto;background:rgba(163,44,62,.1);color:#A32C3E;}
+  .qc-bad:hover{background:#A32C3E;color:#fff;}
+  .qc-pass{flex:none;padding:9px 16px;}
+  .qc-pass[disabled]{opacity:.45;cursor:not-allowed;filter:none;}
+  .def-form{display:grid;gap:10px;padding:12px;}
+  .def-f{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;}
+  .def-f>span{flex:none;width:104px;color:var(--ink-soft);font-weight:600;}
+  .def-f input,.def-f select{flex:1;min-width:0;font:inherit;font-size:13px;
+    border:1px solid var(--line);border-radius:var(--r-ctl);padding:8px 10px;}
+  .def-route{font-size:12px;color:var(--ink-soft);line-height:1.5;background:var(--canvas);
+    padding:9px 11px;border-radius:var(--r-sm);}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -3363,6 +3392,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           </div>
         </div>
 
+        <div class="card" style="max-width:760px;">
+          <b style="font-size:14px;">Чекліст контролю якості</b>
+          <div class="sub" style="margin:6px 0 12px;">Пункти, які відмічають перед відправкою. Кожен має бути взятий
+            із того, що вже колись поїхало не так, — інакше його відмічатимуть не дивлячись. Стовпчик «спосіб»:
+            порожньо — питання для всіх, <code>embro</code> — тільки для вишивки, <code>print</code> — тільки для друку.
+            Фото партії обовʼязкове завжди й вимикається не тут.</div>
+          <div id="qc-list"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+            <button class="pc-btn up" id="qc-add" style="flex:none;padding:10px 22px;">+ Додати</button>
+            <button class="pc-btn up" id="qc-save" style="flex:none;padding:10px 22px;">Зберегти</button>
+            <button class="pc-btn reset" id="qc-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
+          </div>
+        </div>
+
         <div class="card" style="max-width:640px;">
           <b style="font-size:14px;">Генерація логотипів (Gemini)</b>
           <div class="sub" style="margin:6px 0 12px;">Адреса Worker-проксі до Gemini — потрібна для кнопки «Згенерувати через Gemini» у прорахунку. <b>Ключ Google сюди НЕ вставляти</b> — він лише в секретах Worker. Якщо поле порожнє, використовується адреса за замовчуванням.</div>
@@ -3620,6 +3663,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div class="card">
           <div class="card-head"><h2>Комерційні пропозиції</h2></div>
           <div id="an-offers"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Брак і перешиви</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Єдиний спосіб побачити, що перешиви
+            йдуть не рівномірно, а на одній машині або в одного виконавця. Рахується по всіх
+            замовленнях, у яких виробництво вже запущене.</div>
+          <div id="an-defects"></div>
         </div>
       </div>
 
@@ -11453,7 +11503,7 @@ function buyKey(i, sz){ return i + '|' + sz; }
    Позиції без розмірної сітки не пропадають — вони йдуть одним рядком «без
    розмірів», інакше закупівля мовчки недорахувала б половину замовлення. */
 function buyRows(o){
-  const lines = buyLines(o);
+  const lines = buyLines(o), extra = buyExtra(o);
   const out = [];
   (o.items || []).forEach((it, i) => {
     if(itemKind(it) !== 'main') return;      // рекомендації — ще не замовлення
@@ -11463,8 +11513,12 @@ function buyRows(o){
     const list = sizes.length ? sizes.map(sz => ({ sz, need:+m[sz] || 0 }))
       : [{ sz:'—', need: have || (+it.qty || 0) }];
     list.forEach(r => {
-      const L = lines[buyKey(i, r.sz)] || {};
-      out.push({ i, sz:r.sz, need:r.need, res: buyReserve(r.need, gid),
+      const k = buyKey(i, r.sz);
+      const L = lines[k] || {};
+      /* Докупівля після браку лягає в ту саму потребу: окремий список
+         означав би два різні «скільки треба» — і мовчазну недостачу. */
+      const xtr = Math.max(0, +extra[k] || 0);
+      out.push({ i, sz:r.sz, need:r.need + xtr, xtr, res: buyReserve(r.need, gid),
                  ord: Math.max(0, +L.ord || 0), got: Math.max(0, +L.got || 0),
                  gid, name: it.name || 'товар', color: it.color || '',
                  sup: it.sup || supOfGarment(gid) || '' });
@@ -11668,7 +11722,8 @@ function buyFold(o){
         <tr${r.got >= r.need ? ' class="is-ok"' : ''}>
           <td class="buy-sz"><b>${escapeHtml(r.sz)}</b>${
             rows.some(x=> x.i !== r.i) ? `<i>${escapeHtml(r.name)}</i>` : ''}</td>
-          <td>${r.need}</td><td>${r.res}</td><td><b>${r.need + r.res}</b></td>
+          <td>${r.need}${r.xtr ? `<i class="buy-x" title="докупівля після браку">+${r.xtr}</i>` : ''}</td>
+          <td>${r.res}</td><td><b>${r.need + r.res}</b></td>
           <td><input type="number" min="0" step="1" inputmode="numeric"
                 data-buy="ord" data-buy-i="${r.i}" data-buy-sz="${escapeHtml(r.sz)}"
                 value="${r.ord || ''}" placeholder="0"></td>
@@ -11687,6 +11742,325 @@ function buyFold(o){
   return odFoldHtml('buy', 'Закупівля',
     s.got + ' / ' + s.need + (s.enough ? ' · вистачає' : (s.ord ? ' · замовлено ' + s.ord : ' · ще не замовляли')),
     body);
+}
+
+/* ══════════ Контроль якості ══════════
+   «Перевір уважно» — не інструкція. Це список, який читається з екрана й
+   відмічається пальцем, і кожен його пункт узятий із того, що вже колись
+   поїхало не так.
+
+   Незакритий пункт — не помилка й не заборона. Це ПРИЧИНА: чекліст із
+   пропуском веде на «Брак» із уже підставленим приводом, а не на
+   «пройдено». І фото партії обов'язкове так само, як фото тесту: без нього
+   «QC пройдено» не натискається. */
+const QC_DEF = [
+  { key:'model',  label:'Виріб той самий: модель і колір' },
+  { key:'sizes',  label:'Кількість по кожному розміру збігається' },
+  { key:'place',  label:'Нанесення на місці: ширина, висота, відступ' },
+  { key:'test',   label:'Нанесення збігається з погодженим тестом' },
+  { key:'thread', label:'Нитки обрізані, вузлів і хвостів немає', tech:'embro' },
+  { key:'pull',   label:'Тканина не стягнута, слідів пʼялець немає', tech:'embro' },
+  { key:'ink',    label:'Друк рівний, без напливів і відшарувань', tech:'print' },
+  { key:'clean',  label:'Плям, затяжок і дірок немає' },
+  { key:'pack',   label:'Виріб складений і спакований' }
+];
+/* Вишивка й друк ламаються по-різному, тож і питання різні. Спосіб беремо з
+   самих нанесень замовлення — питати про пʼяльці там, де їх не було, значить
+   привчати відмічати не дивлячись. */
+function orderTechs(o){
+  const out = {};
+  (o.items || []).forEach(it => (it.prints || []).forEach(p => {
+    const t = String(p.technique || '').toLowerCase();
+    if(/вишив|embro/.test(t)) out.embro = true;
+    else if(t) out.print = true;
+  }));
+  return out;
+}
+function qcChecks(o){
+  const cfg = contentData.qcChecks;
+  const list = (Array.isArray(cfg) && cfg.length)
+    ? cfg.filter(x => x && x.key).map(x => ({ key:String(x.key),
+        label:String(x.label || x.key), tech:String(x.tech || '') }))
+    : QC_DEF.map(x => Object.assign({}, x));
+  const T = orderTechs(o);
+  const any = T.embro || T.print;
+  return list.filter(x => !x.tech || !any || T[x.tech]);
+}
+function qcState(o){ return (o && o.qc && typeof o.qc === 'object') ? o.qc : {}; }
+function qcMarks(o){ const m = qcState(o).checks; return (m && typeof m === 'object') ? m : {}; }
+function qcMissed(o){ const m = qcMarks(o); return qcChecks(o).filter(x => !m[x.key]); }
+function qcReady(o){ return !!qcState(o).photo && !qcMissed(o).length; }
+async function qcSave(o, msg){
+  touchOrder(o);
+  try{ await storeSet('orders', orders); if(msg) toast(msg); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  await offerSync(o);
+  renderBoard(); renderOrderDrawer();
+}
+async function qcMark(o, key, on){
+  if(!o.qc || typeof o.qc !== 'object') o.qc = {};
+  if(!o.qc.checks || typeof o.qc.checks !== 'object') o.qc.checks = {};
+  o.qc.checks[key] = !!on;
+  await qcSave(o);
+}
+function qcShoot(o){
+  openCam('batch', async blob=>{
+    toast('Завантажую…');
+    try{
+      const url = await uploadCloudinaryAuto(blob);
+      if(!o.qc || typeof o.qc !== 'object') o.qc = {};
+      o.qc.photo = url;
+      o.qc.photoAt = new Date().toISOString();
+      o.qc.photoBy = myEmail() || '';
+      await qcSave(o, 'Фото партії збережено');
+    }catch(e){ console.error(e); toast('Знімок не завантажився'); }
+  });
+}
+async function qcPass(o){
+  if(!qcState(o).photo) return toast('Спершу зніміть фото партії — без нього контроль не закривається');
+  const miss = qcMissed(o);
+  if(miss.length) return toast('Не відмічено: ' + miss.map(x => x.label.toLowerCase()).join('; '));
+  /* Кількість — окрема умова, і найдорожча: «відправили 48 із 50 і забули»
+     має бути неможливим. Рахуємо готове за вирахуванням невиправленого браку. */
+  const short = defectShort(o);
+  if(short > 0 && !confirm('Не вистачає ' + short + ' шт (брак не закритий). Усе одно пройдено?')) return;
+  o.qc.passedAt = new Date().toISOString();
+  o.qc.passedBy = myEmail() || '';
+  artTrack(o, 'qc', trackDoneKey('qc'));
+  artTrack(o, 'ship', (trackSteps('ship')[0] || {}).key || 'wait');
+  await qcSave(o, 'Контроль пройдено — замовлення чекає на відправку');
+}
+
+/* ── Брак: розвилка, а не тупик ─────────────────────────────────────────
+   Сам по собі стан «брак» нічого не вирішує — замовлення просто зависає.
+   Тому при позначенні беремо три речі: скільки, чому і чия провина. Далі
+   маршрут визначається сам, і всі три наслідки стають видимі одразу:
+   строк, гроші й кількість. */
+const DEFECT_REASONS = [
+  { key:'crook',   label:'Криво вишито',          blame:'ours' },
+  { key:'pull',    label:'Стягує тканину',        blame:'ours' },
+  { key:'skip',    label:'Пропуски',              blame:'ours' },
+  { key:'spot',    label:'Пляма',                 blame:'ours' },
+  { key:'wrongsz', label:'Не той розмір',         blame:'sup'  },
+  { key:'garment', label:'Дефект самого виробу',  blame:'sup'  }
+];
+const DEFECT_BLAME = [
+  { key:'ours',   label:'наша',                  route:'resew' },
+  { key:'sup',    label:'постачальника одягу',   route:'rebuy' },
+  { key:'client', label:'клієнтського файлу',    route:'design' }
+];
+function defectReason(k){ return DEFECT_REASONS.filter(x => x.key === k)[0] || null; }
+function defectBlame(k){ return DEFECT_BLAME.filter(x => x.key === k)[0] || DEFECT_BLAME[0]; }
+function defectList(o){ return Array.isArray(o && o.defects) ? o.defects : []; }
+function defectQty(o){ return defectList(o).reduce((a, d) => a + (+d.qty || 0), 0); }
+/* Скільки одиниць бракує до повного замовлення просто зараз: брак мінус те,
+   що вже перешили або докупили. */
+function defectShort(o){
+  return defectList(o).reduce((a, d) => a + (d.fixed ? 0 : (+d.qty || 0)), 0);
+}
+/* Докупівля живе в тій самій таблиці закупівлі — окремий список означав би
+   два різні «скільки треба». */
+function buyExtra(o){ const e = buyState(o).extra; return (e && typeof e === 'object') ? e : {}; }
+async function defectAdd(o, qty, sz, reasonKey, blameKey){
+  const n = Math.max(1, Math.round(+qty || 0));
+  const r = defectReason(reasonKey);
+  const b = defectBlame(blameKey || (r && r.blame));
+  const d = { id: cryptoId(), at:new Date().toISOString(), by:(myEmail() || ''),
+              qty:n, sz:String(sz || '—'), reason:(r ? r.key : 'other'),
+              label:(r ? r.label : 'інше'), blame:b.key, route:b.route, fixed:false };
+  o.defects = defectList(o).concat([d]);
+  let word = '';
+  if(b.route === 'rebuy'){
+    /* Дефект виробу — не наша робота: докуповуємо стільки ж і ставимо
+       претензію постачальнику, інакше вона забудеться до кінця місяця. */
+    if(!o.buy || typeof o.buy !== 'object') o.buy = {};
+    if(!o.buy.extra || typeof o.buy.extra !== 'object') o.buy.extra = {};
+    const idx = (o.items || []).findIndex(it => itemKind(it) === 'main');
+    const k = buyKey(Math.max(0, idx), d.sz);
+    o.buy.extra[k] = (+o.buy.extra[k] || 0) + n;
+    o.claims = (Array.isArray(o.claims) ? o.claims : []).concat([{
+      at:d.at, sup:(o.items || []).map(it => it.sup || supOfGarment(itemGarmentId(it)))
+        .filter(Boolean)[0] || '', qty:n, reason:d.label, sum:0, paidAt:'' }]);
+    artTrack(o, 'supply', 'part');
+    word = 'Докупівля заведена, претензію постачальнику записано';
+  } else if(b.route === 'resew'){
+    /* Наша робота — беремо із запасу. Не вистачило запасу — це вже
+       докупівля, і краще дізнатись про це зараз, а не в день здачі. */
+    const s = buySum(o);
+    const spare = Math.max(0, s.got - s.need - defectQty(o) + n);
+    if(spare < n){
+      if(!o.buy || typeof o.buy !== 'object') o.buy = {};
+      if(!o.buy.extra || typeof o.buy.extra !== 'object') o.buy.extra = {};
+      const idx = (o.items || []).findIndex(it => itemKind(it) === 'main');
+      const k = buyKey(Math.max(0, idx), d.sz);
+      o.buy.extra[k] = (+o.buy.extra[k] || 0) + (n - spare);
+      word = 'Запасу не вистачило — заведена докупівля на ' + (n - spare) + ' шт';
+    } else {
+      word = 'Перешив із запасу';
+    }
+    d.cost = 0;
+    artTrack(o, 'prod', 'work');
+  } else {
+    artTrack(o, 'design', 'fix');
+    word = 'Повернуто дизайнеру — потрібна нова версія макета';
+  }
+  artTrack(o, 'qc', 'bad');
+  /* Строк. Мовчазний зсув — це той самий дзвінок «а де?», тільки через
+     тиждень. Тому нову дату рахуємо одразу й питаємо, чи попереджати. */
+  const add = (b.route === 'rebuy') ? defectSupDays(o) : 2;
+  const base = o.dueAt && o.dueAt > todayIso() ? o.dueAt : todayIso();
+  const nd = new Date(base + 'T00:00:00');
+  nd.setDate(nd.getDate() + add);
+  d.dueWas = o.dueAt || '';
+  o.dueAt = isoDay(nd);
+  await qcSave(o, word);
+  if(typeof tgChatOf === 'function' && tgChatOf(o) &&
+     confirm('Дата здачі посунулась на ' + dueWordUa(o.dueAt) +
+             '. Попередити клієнта в переписці?')){
+    try{ await tgSend(o, 'Невелика затримка: частину виробів переробляємо, щоб віддати як слід. ' +
+      'Нова дата здачі — ' + dueWordUa(o.dueAt) + '.'); }
+    catch(e){ console.warn(e); }
+  }
+}
+function defectSupDays(o){
+  let d = 7, known = false;
+  buyRows(o).forEach(r => { const s = supById(r.sup);
+    if(s && s.days != null){ known = true; d = Math.max(d, +s.days || 0); } });
+  return known ? d : 7;
+}
+async function defectFix(o, id){
+  const d = defectList(o).filter(x => x.id === id)[0];
+  if(!d) return;
+  d.fixed = true; d.fixedAt = new Date().toISOString(); d.fixedBy = myEmail() || '';
+  if(!defectShort(o)) artTrack(o, 'qc', 'check');   // усе закрито — знову на перевірку
+  await qcSave(o, 'Закрито');
+}
+/* Відсоток браку по всій базі — по замовленнях, способах і людях. Це єдиний
+   спосіб побачити, що перешиви йдуть не рівномірно, а на одній машині або в
+   одного виконавця. */
+function defectStats(){
+  const out = { orders:0, withBad:0, units:0, bad:0, byReason:{}, byWho:{}, byTech:{} };
+  (orders || []).forEach(o => {
+    if(!prodStarted(o)) return;
+    out.orders++;
+    const units = (o.items || []).filter(it => itemKind(it) === 'main')
+      .reduce((a, it) => a + (+it.qty || 0), 0);
+    out.units += units;
+    const L = defectList(o);
+    if(!L.length) return;
+    out.withBad++;
+    const T = orderTechs(o);
+    const tech = T.embro && T.print ? 'вишивка+друк' : (T.embro ? 'вишивка' : (T.print ? 'друк' : '—'));
+    L.forEach(d => {
+      out.bad += +d.qty || 0;
+      out.byReason[d.label] = (out.byReason[d.label] || 0) + (+d.qty || 0);
+      const who = personName(d.by) || '—';
+      out.byWho[who] = (out.byWho[who] || 0) + (+d.qty || 0);
+      out.byTech[tech] = (out.byTech[tech] || 0) + (+d.qty || 0);
+    });
+  });
+  out.pct = out.units ? (out.bad / out.units * 100) : 0;
+  return out;
+}
+function qcFold(o){
+  if(!tracksLive(o)) return '';
+  const list = qcChecks(o), m = qcMarks(o), st = qcState(o);
+  const defs = defectList(o);
+  const short = defectShort(o);
+  const body = `
+    <div class="qc-l">${list.map(x=>`
+      <label class="qc-i${m[x.key] ? ' is-ok' : ''}">
+        <input type="checkbox" data-qc="${escapeHtml(x.key)}"${m[x.key] ? ' checked' : ''}>
+        <span>${escapeHtml(x.label)}</span>
+      </label>`).join('')}</div>
+    <div class="art-imgs">
+      ${st.photo
+        ? `<a class="art-img" href="${escapeHtml(st.photo)}" target="_blank" rel="noopener">
+             <img src="${escapeHtml(st.photo)}" alt="Фото партії" loading="lazy"><span>Фото партії</span></a>`
+        : `<button class="art-img art-img--add" data-qc-shoot><b>+</b><span>Зняти партію</span></button>`}
+    </div>
+    ${defs.length ? `<div class="qc-defs">${defs.map(d=>`
+      <div class="qc-def${d.fixed ? ' is-fixed' : ''}">
+        <span class="qc-def-n">${d.qty} шт${d.sz && d.sz !== '—' ? ' · ' + escapeHtml(d.sz) : ''}</span>
+        <span class="qc-def-t">${escapeHtml(d.label)}<i>провина ${escapeHtml(defectBlame(d.blame).label)} · ${
+          escapeHtml(dayUa(d.at))}</i></span>
+        ${d.fixed ? '<span class="qc-def-w">закрито</span>'
+                  : `<button class="art-b" data-qc-fix="${escapeHtml(d.id)}">Закрито</button>`}
+      </div>`).join('')}</div>` : ''}
+    <div class="qc-foot">
+      ${short ? `<span class="qc-short">не вистачає ${short} шт</span>` : ''}
+      <button class="art-b qc-bad" data-qc-bad>Брак</button>
+      <button class="mk-copy qc-pass" data-qc-pass${qcReady(o) ? '' : ' disabled'}>QC пройдено</button>
+    </div>
+    ${qcReady(o) ? '' : `<div class="od-hint">${
+      !st.photo ? 'Фото партії обовʼязкове — без нього контроль не закривається. '
+                : ''}${qcMissed(o).length
+        ? 'Не відмічено: ' + escapeHtml(qcMissed(o).map(x => x.label.toLowerCase()).join('; ')) +
+          '. Не відмічений пункт — не помилка, а причина: тисніть «Брак».'
+        : ''}</div>`}`;
+  return odFoldHtml('qc', 'Контроль якості',
+    st.passedAt ? 'пройдено ' + dayUa(st.passedAt)
+      : (defs.length ? defs.length + ' брак' + (defs.length === 1 ? '' : 'у') +
+                       (short ? ' · бракує ' + short + ' шт' : '')
+                     : (list.length - qcMissed(o).length) + ' із ' + list.length),
+    body);
+}
+/* Три речі при позначенні браку — і жодної менше: без кількості не видно
+   недостачі, без причини маршрут не вибереться, без провини не буде
+   претензії. */
+function openDefect(o){
+  const sizes = [...new Set(buyRows(o).map(r => r.sz))];
+  let d = document.getElementById('defWrap');
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'defWrap'; d.className = 'ao-wrap';
+    document.body.appendChild(d);
+    d.addEventListener('click', e=>{ if(e.target === d) d.classList.remove('open'); });
+  }
+  d.innerHTML = `<div class="ao">
+      <div class="ao-head">
+        <div><b>Брак</b><span>Маршрут вибере система — за причиною й провиною</span></div>
+        <button class="ao-x" data-def-x aria-label="Закрити">✕</button>
+      </div>
+      <div class="ao-list def-form">
+        <label class="def-f"><span>Скільки</span>
+          <input type="number" min="1" step="1" value="1" data-def-qty></label>
+        <label class="def-f"><span>Розмір</span>
+          <select data-def-sz>${sizes.map(s=>`<option value="${escapeHtml(s)}">${
+            escapeHtml(s)}</option>`).join('') || '<option value="—">—</option>'}</select></label>
+        <label class="def-f"><span>Причина</span>
+          <select data-def-reason>${DEFECT_REASONS.map(r=>`<option value="${escapeHtml(r.key)}">${
+            escapeHtml(r.label)}</option>`).join('')}</select></label>
+        <label class="def-f"><span>Чия провина</span>
+          <select data-def-blame>${DEFECT_BLAME.map(b=>`<option value="${escapeHtml(b.key)}">${
+            escapeHtml(b.label)}</option>`).join('')}</select></label>
+        <div class="def-route" data-def-route></div>
+      </div>
+      <div class="mk-foot"><button class="mk-copy" data-def-go>Записати брак</button></div>
+    </div>`;
+  d.classList.add('open');
+  const q = s => d.querySelector(s);
+  const reason = q('[data-def-reason]'), blame = q('[data-def-blame]'), route = q('[data-def-route]');
+  const ROUTE_WORD = {
+    resew:'Беремо із запасу й перешиваємо. Не вистачить запасу — заведеться докупівля.',
+    rebuy:'Докуповуємо стільки ж і ставимо претензію постачальнику. Тираж не зупиняється.',
+    design:'Повертається дизайнеру: потрібна нова версія макета.'
+  };
+  const sync = ()=>{
+    const r = defectReason(reason.value);
+    if(r && blame.dataset.touched !== '1') blame.value = r.blame;
+    route.textContent = ROUTE_WORD[defectBlame(blame.value).route] || '';
+  };
+  reason.addEventListener('change', sync);
+  blame.addEventListener('change', ()=>{ blame.dataset.touched = '1'; sync(); });
+  sync();
+  q('[data-def-x]').addEventListener('click', ()=> d.classList.remove('open'));
+  q('[data-def-go]').addEventListener('click', async ()=>{
+    d.classList.remove('open');
+    await defectAdd(o, q('[data-def-qty]').value, q('[data-def-sz]').value,
+                    reason.value, blame.value);
+  });
+  if(window.LQSelect) LQSelect.scan(d);
 }
 
 /* ── Розділи картки ──────────────────────────────────────────────────────
@@ -12043,6 +12417,13 @@ function odProdHtml(o){
           </div>
           ${itemSizesHtml(o, (o.items || []).indexOf(it))}
         </div>`).join('') || '<div class="od-empty">Позицій немає</div>'}
+
+      ${/* Ворота — тут же: «почати виробництво» без них однаково не
+           натиснеться, і краще бачити чого бракує, ніж гадати. */''}
+      <div class="od-folds">
+        ${odPart(()=> gateFold(o), 'ворота тиражу')}
+        ${odPart(()=> qcFold(o), 'контроль якості')}
+      </div>
     </div>`;
 }
 /* ══════════ Картка очима дизайнера ══════════
@@ -12384,6 +12765,7 @@ function renderOrderDrawer(){
         ${odPart(()=> artFold(o), 'макет')}
         ${odPart(()=> buyFold(o), 'закупівля')}
         ${odPart(()=> gateFold(o), 'ворота тиражу')}
+        ${odPart(()=> qcFold(o), 'контроль якості')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
         ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
@@ -12590,6 +12972,18 @@ function renderOrderDrawer(){
   });
   const buyAllB = panel.querySelector('[data-buy-all]');
   if(buyAllB) buyAllB.addEventListener('click', ()=> buyOrderAll(o));
+  panel.querySelectorAll('[data-qc]').forEach(cb=>{
+    cb.addEventListener('change', ()=> qcMark(o, cb.dataset.qc, cb.checked));
+  });
+  const qcShootB = panel.querySelector('[data-qc-shoot]');
+  if(qcShootB) qcShootB.addEventListener('click', ()=> qcShoot(o));
+  const qcPassB = panel.querySelector('[data-qc-pass]');
+  if(qcPassB) qcPassB.addEventListener('click', ()=> qcPass(o));
+  const qcBadB = panel.querySelector('[data-qc-bad]');
+  if(qcBadB) qcBadB.addEventListener('click', ()=> openDefect(o));
+  panel.querySelectorAll('[data-qc-fix]').forEach(b=>{
+    b.addEventListener('click', ()=> defectFix(o, b.dataset.qcFix));
+  });
   panel.querySelectorAll('.od-trk-sel').forEach(sel=>{
     sel.addEventListener('change', ()=> setTrack(o, sel.dataset.track, sel.value));
   });
@@ -15803,6 +16197,8 @@ function renderSiteTab(){
   // Чернетку заготовок скидаємо: дані приїхали з бази, і показувати треба їх
   qrDraft = null;
   renderQrList();
+  qcDraft = null;
+  renderQcList();
   teamDraft = null;
   renderTeamList();
   const promo = contentData.promo || {};
@@ -15921,6 +16317,74 @@ document.getElementById('qr-save').addEventListener('click', async ()=>{
     toast(list.length ? ('Збережено: ' + list.length) : 'Заготовки очищено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
+/* Чекліст контролю — той самий список, що й на екрані перед відправкою.
+   Редагується тут, бо через півроку зʼявиться пункт, якого сьогодні ще
+   ніхто не придумав, а переписувати для цього програму безглуздо. */
+let qcDraft = null;
+function qcCfgList(){
+  if(!qcDraft){
+    const a = contentData.qcChecks;
+    qcDraft = (Array.isArray(a) && a.length)
+      ? a.map(x => ({ key:String(x.key || ''), label:String(x.label || ''), tech:String(x.tech || '') }))
+      : QC_DEF.map(x => ({ key:x.key, label:x.label, tech:x.tech || '' }));
+  }
+  return qcDraft;
+}
+function renderQcList(){
+  const box = document.getElementById('qc-list');
+  if(!box) return;
+  box.innerHTML = qcCfgList().map((q, i)=>`
+    <div class="qr-row" data-i="${i}">
+      <input type="text" maxlength="90" placeholder="що перевіряємо" value="${escapeHtml(q.label)}"
+        style="flex:1;width:auto;">
+      <input type="text" maxlength="10" placeholder="спосіб" value="${escapeHtml(q.tech || '')}"
+        style="width:90px;flex:none;">
+      <button class="qr-del" title="Видалити">🗑</button>
+    </div>`).join('') ||
+    '<div class="sub">Пунктів немає. Натисніть «+ Додати».</div>';
+  box.querySelectorAll('.qr-row').forEach(row=>{
+    const i = +row.dataset.i, inp = row.querySelectorAll('input');
+    inp[0].addEventListener('input', e=> qcCfgList()[i].label = e.target.value);
+    inp[1].addEventListener('input', e=> qcCfgList()[i].tech = e.target.value.trim());
+    row.querySelector('.qr-del').addEventListener('click', ()=>{
+      qcCfgList().splice(i, 1); renderQcList();
+    });
+  });
+}
+(function wireQcCfg(){
+  const add = document.getElementById('qc-add');
+  if(!add) return;
+  add.addEventListener('click', ()=>{ qcCfgList().push({ key:'', label:'', tech:'' }); renderQcList(); });
+  document.getElementById('qc-reset').addEventListener('click', ()=>{
+    if(!confirm('Повернути стандартний чекліст?')) return;
+    qcDraft = QC_DEF.map(x => ({ key:x.key, label:x.label, tech:x.tech || '' }));
+    renderQcList();
+  });
+  document.getElementById('qc-save').addEventListener('click', async ()=>{
+    /* Ключ у пункту свій і незмінний: до нього привʼязані вже відмічені
+       галочки в замовленнях. Перейменували питання — відмітки лишились. */
+    const used = [];
+    const list = qcCfgList().map((q, i) => {
+      const label = String(q.label || '').trim();
+      if(!label) return null;
+      let key = String(q.key || '').trim() || ('c' + (i + 1));
+      while(used.indexOf(key) >= 0) key += 'x';
+      used.push(key);
+      const tech = /^(embro|print)$/.test(String(q.tech || '').trim()) ? q.tech.trim() : '';
+      return { key, label, tech };
+    }).filter(Boolean);
+    if(!list.length) return toast('Хоч один пункт має лишитись');
+    try{
+      await PHOTOS_DOC.set({ qcChecks: list }, { merge:true });
+      qcDraft = list.map(x => ({ key:x.key, label:x.label, tech:x.tech }));
+      renderQcList();
+      toast('Збережено: ' + list.length);
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+  /* Малювати тут не можна: список читає contentData, а дані приїжджають
+     пізніше. Перший показ — там же, де й решта налаштувань, коли документ
+     уже прийшов. */
+})();
 /* ── Команда і ролі ───────────────────────────────────────────────────
    Роль привʼязана до пошти, якою людина зайшла, а не до вибору зі списку:
    інакше «менеджер не бачить собівартість» обходиться за секунду — обрав
@@ -19963,7 +20427,34 @@ async function init(){
         '</div>'
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
+    renderDefects();
     renderSpend(days);
+  }
+
+  /* Брак у цифрах. Сильні виробництва тримаються 0,5–1%, у галузі норма
+     2–5% — тому відсоток показуємо не сам по собі, а поруч із тим, до чого
+     його порівнювати. Розбивка по причинах і людях і є та відповідь, якої
+     не дає загальне число. */
+  function renderDefects(){
+    var box = document.getElementById('an-defects');
+    if(!box || typeof defectStats !== 'function') return;
+    var s = defectStats();
+    if(!s.orders){ box.innerHTML = '<div class="an-empty">Виробництво ще не запускали.</div>'; return; }
+    var mood = s.pct <= 1 ? 'good' : (s.pct <= 5 ? '' : 'bad');
+    var top = function(m){
+      var k = Object.keys(m).sort(function(a, b){ return m[b] - m[a]; });
+      return k.length ? k.slice(0, 4).map(function(x){ return escA(x) + ' — ' + m[x]; }).join(' · ') : '—';
+    };
+    box.innerHTML =
+      '<div class="an-kpis" style="margin-bottom:12px;">' +
+        kpi('Відсоток браку', (Math.round(s.pct * 10) / 10) + '%',
+            'у галузі 2–5%, сильні — до 1%', mood) +
+        kpi('Перероблено', fmt(s.bad) + ' шт', 'із ' + fmt(s.units) + ' шт') +
+        kpi('Замовлень із браком', fmt(s.withBad), 'із ' + fmt(s.orders)) +
+      '</div>' +
+      '<div class="sub"><b>Причини:</b> ' + top(s.byReason) + '</div>' +
+      '<div class="sub"><b>Спосіб нанесення:</b> ' + top(s.byTech) + '</div>' +
+      '<div class="sub"><b>Хто позначав:</b> ' + top(s.byWho) + '</div>';
   }
 
   /* ── Воронка: два шляхи з одного початку ──────────────────────────────
