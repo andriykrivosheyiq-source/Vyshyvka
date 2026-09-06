@@ -54,6 +54,9 @@
     /* Округлення: великі й помітні. Дрібний радіус — це стиль 2015 року;
        форма має читатись як мʼяка плитка, а не як прямокутник із фаскою. */
     --r-card:20px;  --r-ctl:13px;  --r-sm:10px;  --r-tile:14px;  --r-pill:999px;
+    /* Округлення самої оболонки — найбільше на екрані: панель контенту й
+       колонки воронки. Воно й задає відчуття «вікна в корпусі». */
+    --r-shell:24px;
 
     /* Тіні дуже обережно: інтерфейс тримається на межах і повітрі */
     --sh-1:0 1px 2px rgba(16,24,40,.05);
@@ -2178,6 +2181,61 @@
   .panel-coal p,.panel-coal .sub{color:#C7CDD8;}
   .panel-coal .btn-sky{background:var(--sky);color:var(--coal);}
   @media (hover:hover){ .panel-coal .btn-sky:hover{background:var(--sky-deep);} }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ОБОЛОНКА
+
+     Робоче місце — світла панель усередині темного корпусу, а не сторінка
+     від краю до краю. Різниця не косметична: край екрана перестає бути
+     краєм інтерфейсу, і меню читається як частина корпусу, а не як ще одна
+     колонка з даними. Саме так виглядають робочі місця, з якими приємно
+     сидіти цілий день.
+     ══════════════════════════════════════════════════════════════════════ */
+  body{background:var(--side);}
+  .shell{background:var(--side);}
+  .sidebar{background:transparent;}
+  /* Панель контенту: власне тло, велике округлення, повітря по краях. */
+  main{background:var(--canvas);border-radius:var(--r-shell);
+    margin:10px 10px 10px 0;padding:32px 32px 96px;min-height:calc(100vh - 20px);}
+  @media (max-width:1279px){ main{padding:24px 20px 80px;} }
+  /* На телефоні корпус тільки заважає: там і так усе на всю ширину, а
+     кожен піксель поля — це піксель, якого бракує таблиці. */
+  @media (max-width:767px){
+    main{margin:0;border-radius:0;padding:16px 14px 40px;min-height:100vh;}
+    body{background:var(--canvas);}
+  }
+
+  /* ── Кнопка згортання меню ──
+     У згорнутому стані вона їхала під низ логотипа й опинялась за краєм
+     панелі: меню зменшувалось, а розгорнути його назад було нічим. Тепер
+     вона просто стоїть під знаком бренду — на тому ж місці, тільки по
+     центру вузької смуги. */
+  .sidebar.is-folded .brand{flex-direction:column;gap:10px;}
+  .sidebar.is-folded .side-fold{position:static;margin:0;transform:none;
+    width:34px;height:34px;border-radius:var(--r-tile);background:var(--side-2);
+    color:#fff;}
+  @media (hover:hover){ .sidebar.is-folded .side-fold:hover{background:#2E3542;} }
+
+  /* ── Воронка ──
+     Колонка етапу стоїть на власній дуже світлій підкладці, а картки на ній
+     лишаються білими. Пробували інакше: колір на самих картках робить дошку
+     строкатою — на ній не відпочиває око, а працювати в ній цілий день.
+     Підкладка каже те саме одним рухом і не заважає читати картки.
+
+     Колір беремо той самий, що й у плитці заголовка, тільки розведений
+     білим: 55% пастелі — це вже майже папір, але етапи все одно
+     розрізняються з відстані. */
+  .col{background:var(--st-bg,transparent);border-radius:var(--r-shell);
+    padding:12px 10px 14px;}
+  .col-head{padding:2px 4px 12px;}
+  .col.drag-over{background:var(--st-bg,var(--paper));outline:2px dashed var(--accent);
+    outline-offset:-4px;}
+  .empty-col{background:rgba(255,255,255,.55);border-color:transparent;}
+
+  /* ── Показники ──
+     Плитка без межі поверх світлої панелі: межа на кольоровому тлі читається
+     як обведення, а не як край блоку. */
+  .card{border-radius:var(--r-card);}
 </style>
 </head>
 <body>
@@ -3548,8 +3606,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
-<script src="loomiq-fingerprint.js?v=b44d1f0333"></script>
-<script src="loomiq-pricing.js?v=b44d1f0333"></script>
+<!-- Випадаючі списки одного вигляду на весь Loomiq -->
+<script src="loomiq-select.js?v=08d0cf494d"></script>
+<script src="loomiq-fingerprint.js?v=08d0cf494d"></script>
+<script src="loomiq-pricing.js?v=08d0cf494d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4167,6 +4227,17 @@ let STATUSES = STATUS_DEFAULTS.map(x => Object.assign({}, x));
 /* Стрілки «далі/назад» ходять лише по основній лінії воронки. */
 function statusFlow(){ return STATUSES.filter(s => !s.off); }
 function statusMeta(key){ return STATUSES.filter(s => s.key === key)[0] || null; }
+/* Пастель, розведена білим. Колір етапу на плитці заголовка вже спокійний,
+   але як підкладка ЦІЛОЇ колонки він задужий: дошка починає рябіти, а на
+   ній працюють цілий день. Розводимо до майже-паперу — етапи все одно
+   розрізняються з відстані, а очі не втомлюються. */
+function tintSoft(hex, k){
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if(!m) return 'transparent';
+  const n = parseInt(m[1], 16);
+  const mix = v => Math.round(v * k + 255 * (1 - k));
+  return 'rgb(' + mix((n >> 16) & 255) + ',' + mix((n >> 8) & 255) + ',' + mix(n & 255) + ')';
+}
 function statusColor(key){
   const st = STATUSES.filter(s => s.key === key)[0];
   return STATUS_COLORS[(st && st.color) || 'gray'] || STATUS_COLORS.gray;
@@ -9428,6 +9499,7 @@ function renderTrackBoard(){
     col.className = 'col';
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
+    col.style.setProperty('--st-bg', tintSoft(c.bg, .5));
     const list = live.filter(o => trackOf(o, key) === st.key).sort(boardSortFn());
     col.innerHTML = `
       <div class="col-head"><h3 style="--st-soft:${c.bg};--st-ink:${c.head};"><i class="col-dot"></i>${
@@ -9469,7 +9541,8 @@ function renderBoard(){
     col.className = 'col';
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
-    // Колір статусу тепер несе крапка біля назви, а не підкладка колонки
+    col.style.setProperty('--st-bg', tintSoft(c.bg, .5));
+    // Колір етапу несе підкладка колонки, а плитка заголовка — його ж, насиченіший
     // Свіжа розмова — нагору колонки. Порівнюємо ISO-рядки як текст:
     // вони для того й придумані, щоб сортуватись без розбору дати.
     const list = orders.filter(o=> o.status===st.key && boardPass(o)).sort(boardSortFn());
