@@ -1438,6 +1438,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edpick-p{font-size:var(--fs-2);color:#6B7686;}
   .edpick-e{padding:20px;font-size:var(--fs-2);color:#6B7686;}
   @media(max-width:520px){ .edpick-g{grid-template-columns:1fr;} }
+  /* Вибір групи варіантів — список в один стовпець: це рішення «куди
+     покласти», а не вітрина товарів. */
+  .edpick-g.is-groups{grid-template-columns:1fr;gap:8px;}
+  .edpick-i.is-group{flex-direction:row;align-items:center;justify-content:space-between;
+    gap:10px;padding:12px 16px;background:#fff;}
+  .edpick-new{display:flex;gap:8px;margin-top:8px;}
+  .edpick-new input{flex:1;font:inherit;font-size:var(--fs-2);color:#1B2430;background:#fff;
+    border:1px solid #E6EAF0;border-radius:var(--r-3);padding:12px 16px;}
   .eddate{display:inline-flex;align-items:center;gap:6px;margin:8px 0;font-size:var(--fs-2);
     color:#6B7686;background:#fff;border:1px dashed #B9C4D4;border-radius:var(--r-2);padding:6px 10px;}
   .eddate input{font:inherit;font-size:var(--fs-2);border:1px solid #D9E1EC;border-radius:var(--r-1);padding:4px 6px;}
@@ -2403,6 +2411,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          нічого. Менеджер читав підпис і не натискав. */
       '<button class="edb" data-ed="swap" data-k="' + kind + '" data-i="' + i + '">' +
         (kind === 'main' ? 'У рекомендовані' : 'В основний склад') + '</button>' +
+      /* Третій напрямок переносу: у варіанти на вибір. Доти позицію можна
+         було посунути вище-нижче й перекинути в рекомендовані — і все.
+         Порахував менеджер худі, клієнт просить «а покажіть ще оверсайз»:
+         зібрана позиція вже є, а покласти її поруч як варіант нема як. Лишався
+         один шлях — завести товар з нуля в групі варіантів і викинути цей. */
+      (kind !== 'variant'
+        ? '<button class="edb" data-ed="tovariant" data-k="' + kind + '" data-i="' + i + '" ' +
+          'title="Перенести в групу варіантів на вибір">У варіанти</button>'
+        : '') +
       '<button class="edb edb-del" data-ed="del" data-k="' + kind + '" data-i="' + i + '" title="Прибрати">🗑</button>' +
     '</div>';
   }
@@ -2739,6 +2756,52 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       });
     });
   }
+  /* Куди покласти варіант. Спершу — групи, які вже є в цій пропозиції:
+     найчастіше менеджер додає другу футболку до футболок, а не заводить
+     групу з нуля. Поле для нової лишається, але другим кроком — інакше
+     назву доводиться згадувати й набирати слово в слово, а помилка в літері
+     заводить другу групу з тим самим змістом. */
+  function edGroupPick(done){
+    var groups = variantGroups();
+    var box = document.createElement('div');
+    box.className = 'edpick open';
+    box.innerHTML = '<div class="edpick-c"><div class="edpick-h">У яку групу варіантів' +
+      '<button class="edb" data-gx>Закрити</button></div>' +
+      '<div class="edpick-g is-groups">' +
+        (groups.length
+          ? groups.map(function(g){
+              return '<button class="edpick-i is-group" data-g="' + esc(g.name) + '">' +
+                '<span class="edpick-n">' + esc(g.name) + '</span>' +
+                '<span class="edpick-p">' + g.idx.length + ' у групі</span></button>';
+            }).join('')
+          : '') +
+        '<div class="edpick-new">' +
+          '<input type="text" maxlength="60" id="edGName" placeholder="Футболки, Худі, Який верх?" ' +
+            'value="' + esc(groups.length ? '' : 'Варіанти на вибір') + '">' +
+          '<button class="edb" data-gadd>Створити</button>' +
+        '</div>' +
+      '</div></div>';
+    document.body.appendChild(box);
+    var close = function(){ box.remove(); };
+    box.addEventListener('click', function(e){ if(e.target === box) close(); });
+    box.querySelector('[data-gx]').addEventListener('click', close);
+    box.querySelectorAll('[data-g]').forEach(function(b2){
+      b2.addEventListener('click', function(){ close(); done(b2.dataset.g); });
+    });
+    var inp = box.querySelector('#edGName');
+    var add = function(){
+      var n = String(inp.value || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      if(!n){ inp.focus(); return; }
+      close(); done(n);
+    };
+    box.querySelector('[data-gadd]').addEventListener('click', add);
+    inp.addEventListener('keydown', function(e){
+      e.stopPropagation();
+      if(e.key === 'Enter'){ e.preventDefault(); add(); }
+      if(e.key === 'Escape'){ e.preventDefault(); close(); }
+    });
+    setTimeout(function(){ inp.focus(); }, 30);
+  }
   /* Кнопки редагування не мають запускати звичайну поведінку сторінки:
      клік по «прибрати» всередині картки інакше ще й відкрив би галерею. */
   /* Терміни підключаємо ОКРЕМО від решти редагування.
@@ -2763,6 +2826,15 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         e.preventDefault(); e.stopPropagation();
         if(logoAct(b.dataset.ed)) return;
         if(b.dataset.ed === 'pickopen'){ edPickOpen(b.dataset.k); return; }
+        /* «У варіанти» питає, у яку саме групу. Групи в пропозиції може бути
+           дві й більше — футболки окремо, худі окремо, — і мовчки класти
+           позицію в першу означає вгадувати за менеджера. */
+        if(b.dataset.ed === 'tovariant'){
+          edGroupPick(function(g){
+            edSend({ act:'tovariant', kind:b.dataset.k, i:+b.dataset.i, vgroup:g });
+          });
+          return;
+        }
         if(b.dataset.ed === 'closeinline'){
           ctorUnmount(); edOpen = null; render();
           edSend({ act:'refresh' });     // тепер показуємо оновлену пропозицію

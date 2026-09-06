@@ -194,10 +194,16 @@ console.log('═══ ЗАПОБІЖНИКИ ═══');
   await p2.close();
 
   const p3 = await open('nobody@loomiq', []);
-  const empty = await p3.evaluate(() => ({ cost:canSeeCost(), setup:canSetup(),
-    nav:[...document.querySelectorAll('.nav button[data-view]')].filter(b => !b.hidden).length }));
-  ok(empty.cost && empty.setup && empty.nav === 7,
-    'порожній список — доступ повний, як і було',
+  /* Рахуємо не магічне число, а частку: видно МАЄ БУТИ все меню, скільки б
+     розділів у ньому не завели далі. Прибите число падало щоразу, коли в
+     системі зʼявлявся новий розділ, — і виглядало це як зламані права. */
+  const empty = await p3.evaluate(() => {
+    const all = [...document.querySelectorAll('.nav button[data-view]')];
+    return { cost:canSeeCost(), setup:canSetup(),
+             nav: all.filter(b => !b.hidden).length, all: all.length };
+  });
+  ok(empty.cost && empty.setup && empty.nav === empty.all && empty.all > 5,
+    'порожній список — доступ повний, як і було: видно всі ' + empty.all + ' розділи',
     'порожній список щось замкнув: ' + JSON.stringify(empty));
   await p3.close();
 }
