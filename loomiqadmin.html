@@ -944,6 +944,42 @@
     background:var(--accent);color:#fff;font-size:13px;font-weight:700;}
   .mk-copy:hover{filter:brightness(1.06);}
   @media (max-width:560px){ .mk-body{flex-direction:column;} .mk-draw{width:100%;max-height:none;} }
+  /* ── Камера з рамкою ──────────────────────────────────────────────────
+     Знімок робиться тут, а не «в галерею й переслати»: половина суперечок
+     про те, що саме бачив клієнт, береться з фото, знятого невідомо коли. */
+  .ao.cam{max-width:520px;}
+  .cam-stage{position:relative;background:#0E1116;aspect-ratio:4/3;overflow:hidden;}
+  .cam-stage video,.cam-stage img{width:100%;height:100%;object-fit:cover;display:block;}
+  /* Рамка — не прикраса: за нею знімок виходить однаковим щоразу, і два
+     фото різних партій нарешті можна покласти поруч. */
+  .cam-frame{position:absolute;inset:12% 14%;border:2px solid rgba(255,255,255,.9);
+    border-radius:12px;box-shadow:0 0 0 100vmax rgba(6,10,16,.42);pointer-events:none;}
+  .cam-frame::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;
+    background:rgba(255,255,255,.45);}
+  /* Зразок гарного фото — напівпрозоро поверх кадру: показати швидше, ніж
+     пояснити словами. */
+  .cam-ghost{position:absolute;inset:12% 14%;opacity:.28;object-fit:contain;
+    pointer-events:none;border-radius:12px;}
+  .cam-hint{position:absolute;left:0;right:0;bottom:0;padding:8px 12px;font-size:12.5px;
+    font-weight:700;color:#fff;background:linear-gradient(transparent,rgba(6,10,16,.72));
+    display:flex;gap:10px;flex-wrap:wrap;}
+  .cam-hint b{font-weight:700;color:#FFD27A;}
+  .cam-hint.is-ok b{color:#8BE3B0;}
+  .cam-foot{flex:none;padding:10px 12px;border-top:1px solid var(--line);
+    display:flex;gap:8px;align-items:center;}
+  .cam-b{all:unset;cursor:pointer;padding:10px 14px;border-radius:11px;font-size:13px;
+    font-weight:700;background:var(--canvas);color:var(--ink);text-align:center;}
+  .cam-b:hover{background:var(--line);}
+  .cam-b--go{flex:1;background:var(--accent);color:#fff;}
+  .cam-b--go:hover{filter:brightness(1.06);}
+  .cam-b[disabled]{opacity:.45;cursor:not-allowed;}
+  .cam-qs{padding:10px 12px;border-top:1px solid var(--line);display:grid;gap:6px;}
+  .cam-q{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .cam-q input{width:16px;height:16px;accent-color:var(--accent);}
+  .cam-note{padding:0 12px 8px;font-size:11.5px;color:var(--ink-soft);line-height:1.45;}
+  .cam-samp{all:unset;cursor:pointer;font-size:11.5px;font-weight:700;color:var(--accent);
+    margin-left:auto;}
+  .cam-samp:hover{text-decoration:underline;}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -9971,6 +10007,212 @@ function closeMark(){
   if(d) d.classList.remove('open');
 }
 
+/* ══════════ Камера з рамкою ══════════
+   Досі виробництво знімало телефоном у галерею й пересилало. Через це фото
+   приходило кадроване як завгодно, часом темне, часом за півдня до того — і
+   на питання «а це та сама версія?» відповіді не було.
+
+   Тут знімок робиться в самій картці: рамка тримає кадр однаковим, живі
+   підказки ловлять темряву й нахил ДО натиску, а після знімка стоять два
+   питання, на які інакше ніхто не дивиться. Прив'язка до версії макета —
+   не дія людини, а наслідок того, ЗВІДКИ відкрили камеру.
+
+   Камери може не бути (комп'ютер без вебки, відмова в дозволі) — тоді це
+   звичайний вибір файлу, а не глухий кут. */
+const CAM_MODES = {
+  test:  { title:'Фото тестового відшиву',
+           hint:'Розмістіть виріб у рамці, нанесення по центру',
+           qs:['Нанесення видно чітко?', 'Виріб рівно?'] },
+  batch: { title:'Фото готової партії',
+           hint:'Складену партію в рамку — так, щоб було видно кількість',
+           qs:['Видно всю партію?', 'Нанесення на видноті?'] }
+};
+let camStop = null;
+function camSample(mode){ return String((contentData || {})['camSample_' + mode] || ''); }
+function closeCam(){
+  if(camStop){ try{ camStop(); }catch(e){} camStop = null; }
+  const d = document.getElementById('camWrap');
+  if(d) d.classList.remove('open');
+}
+/* done(blob) — що робити зі знімком. Камера не знає ні про версії макета, ні
+   про контроль якості: вона віддає кадр, а рішення лишається зовні. */
+function openCam(mode, done){
+  const M = CAM_MODES[mode] || CAM_MODES.test;
+  let d = document.getElementById('camWrap');
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'camWrap'; d.className = 'ao-wrap';
+    document.body.appendChild(d);
+    d.addEventListener('click', e=>{ if(e.target === d) closeCam(); });
+  }
+  const ghost = camSample(mode);
+  d.innerHTML = `<div class="ao cam">
+      <div class="ao-head">
+        <div><b>${escapeHtml(M.title)}</b><span>${escapeHtml(M.hint)}</span></div>
+        <button class="ao-x" data-cam-close aria-label="Закрити">✕</button>
+      </div>
+      <div class="cam-stage">
+        <video playsinline muted autoplay></video>
+        <img class="cam-shot" alt="" hidden>
+        <div class="cam-frame"></div>
+        ${ghost ? `<img class="cam-ghost" src="${escapeHtml(ghost)}" alt="Зразок гарного фото">` : ''}
+        <div class="cam-hint"><span data-cam-hint>Вмикаю камеру…</span></div>
+      </div>
+      <div class="cam-qs" hidden>
+        ${M.qs.map((q, i)=>`<label class="cam-q"><input type="checkbox" data-cam-q="${i}">${
+          escapeHtml(q)}</label>`).join('')}
+      </div>
+      <div class="cam-note" hidden>Обидві відповіді мають бути «так». Ні — перезнімайте:
+        переробити кадр коштує хвилину, переробити партію — тиждень.</div>
+      <div class="cam-foot">
+        <button class="cam-b cam-b--go" data-cam-go>Зняти</button>
+        <button class="cam-b" data-cam-file>Із галереї</button>
+        ${canSetup() ? '<button class="cam-samp" data-cam-samp hidden>Зробити зразком</button>' : ''}
+      </div>
+    </div>`;
+  d.classList.add('open');
+
+  const q = s => d.querySelector(s);
+  const video = q('video'), shot = q('.cam-shot'), hint = q('[data-cam-hint]');
+  const qs = q('.cam-qs'), note = q('.cam-note'), go = q('[data-cam-go]');
+  const fileB = q('[data-cam-file]'), sampB = q('[data-cam-samp]');
+  let blob = null;
+
+  q('[data-cam-close]').addEventListener('click', closeCam);
+
+  /* Живі підказки. Яскравість рахуємо з крихітної копії кадру — 32×24
+     вистачає, щоб відрізнити темну кімнату від нормальної, і не гріє
+     телефон. Нахил телефон знає сам. */
+  let tilt = 0;
+  /* Міряємо саме БІЧНИЙ нахил (gamma): від нього кадр виходить косим — і
+     коли знімають виріб на столі згори, і коли на стіні перед собою. Нахил
+     уперед-назад залежить від того, як тримають, і косим кадр не робить.
+     Датчика немає — браузер шле подію з null, і це «не знаємо», а не нуль:
+     без цієї перевірки ноутбук вічно просив би тримати рівніше. */
+  const onTilt = e => {
+    if(e.gamma == null) return;
+    tilt = Math.abs(+e.gamma || 0);
+  };
+  try{ window.addEventListener('deviceorientation', onTilt); }catch(e){}
+  const probe = document.createElement('canvas');
+  probe.width = 32; probe.height = 24;
+  const say = (t, ok) => { hint.textContent = t;
+    hint.parentNode.classList.toggle('is-ok', !!ok); };
+  let timer = 0;
+  const watch = ()=>{
+    if(!video.videoWidth) return;
+    let lum = 128;
+    try{
+      const c = probe.getContext('2d');
+      c.drawImage(video, 0, 0, 32, 24);
+      const px = c.getImageData(0, 0, 32, 24).data;
+      let s = 0;
+      for(let i = 0; i < px.length; i += 4) s += (px[i] * 0.299 + px[i+1] * 0.587 + px[i+2] * 0.114);
+      lum = s / (px.length / 4);
+    }catch(e){ return; }   // кадр із іншого джерела — не читається, і не треба
+    if(lum < 58) return say('Темнувато — увімкніть світло');
+    if(lum > 232) return say('Пересвітлено — приберіть відблиск');
+    if(tilt > 18)  return say('Тримайте телефон рівніше');
+    say('Кадр годиться — знімайте', true);
+  };
+
+  const stopAll = ()=>{
+    if(timer){ clearInterval(timer); timer = 0; }
+    try{ window.removeEventListener('deviceorientation', onTilt); }catch(e){}
+    const st = video.srcObject;
+    if(st && st.getTracks) st.getTracks().forEach(t=>{ try{ t.stop(); }catch(e){} });
+    video.srcObject = null;
+  };
+  camStop = stopAll;
+
+  /* Показ знімка: камера більше не потрібна, зате потрібні два питання. */
+  const preview = b=>{
+    blob = b;
+    stopAll();
+    shot.src = URL.createObjectURL(b);
+    shot.hidden = false; video.hidden = true;
+    const gh = q('.cam-ghost'); if(gh) gh.remove();
+    hint.parentNode.hidden = true;
+    qs.hidden = false; note.hidden = false;
+    go.textContent = 'Готово'; go.disabled = true;
+    fileB.textContent = 'Перезняти';
+    if(sampB) sampB.hidden = false;
+  };
+  d.querySelectorAll('[data-cam-q]').forEach(cb=> cb.addEventListener('change', ()=>{
+    go.disabled = [...d.querySelectorAll('[data-cam-q]')].some(x=> !x.checked);
+  }));
+
+  const pickFile = ()=>{
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    /* На телефоні це відкриває камеру напряму — без рамки, але з тією ж
+       прив'язкою до версії. Краще так, ніж «перешлю потім». */
+    inp.setAttribute('capture', 'environment');
+    inp.addEventListener('change', ()=>{ const f = inp.files && inp.files[0]; if(f) preview(f); });
+    inp.click();
+  };
+  fileB.addEventListener('click', ()=>{ if(blob){ closeCam(); openCam(mode, done); } else pickFile(); });
+
+  go.addEventListener('click', async ()=>{
+    if(blob){
+      closeCam();
+      await done(blob);
+      return;
+    }
+    if(!video.videoWidth) return pickFile();
+    const cv = document.createElement('canvas');
+    cv.width = video.videoWidth; cv.height = video.videoHeight;
+    cv.getContext('2d').drawImage(video, 0, 0);
+    cv.toBlob(b=>{ if(b) preview(b); }, 'image/jpeg', 0.9);
+  });
+
+  if(sampB) sampB.addEventListener('click', async ()=>{
+    if(!blob) return;
+    try{
+      const url = await uploadCloudinaryAuto(blob);
+      contentData['camSample_' + mode] = url;
+      await storeSet('contentData', contentData);
+      toast('Зразок збережено — його побачать у камері наступного разу');
+    }catch(e){ console.error(e); toast('Зразок не зберігся'); }
+  });
+
+  /* Дозвіл питаємо тільки коли камеру справді відкрили — не при завантаженні
+     адмінки. Відмовили або камери немає — кажемо прямо й лишаємо файл. */
+  const md = navigator.mediaDevices;
+  if(!md || !md.getUserMedia){
+    say('Камери тут немає — оберіть файл');
+    go.textContent = 'Обрати файл';
+    return;
+  }
+  md.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1600 } }, audio:false })
+    .then(st=>{
+      if(!document.getElementById('camWrap') ||
+         !document.getElementById('camWrap').classList.contains('open')){
+        st.getTracks().forEach(t=>{ try{ t.stop(); }catch(e){} });
+        return;
+      }
+      video.srcObject = st;
+      say('Наводьте на виріб…');
+      timer = setInterval(watch, 600);
+    })
+    .catch(()=>{
+      say('Камеру не дали — оберіть файл');
+      go.textContent = 'Обрати файл';
+    });
+}
+/* Знімок тесту прив'язується до поточної версії макета — саме тому камера
+   відкривається з картки, а не окремим екраном. */
+async function camForArt(o){
+  openCam('test', async blob=>{
+    if(!artCur(o)) return toast('Спершу створіть версію макета');
+    toast('Завантажую…');
+    try{
+      const url = await uploadCloudinaryAuto(blob);
+      await artFile(o, 'photo', url, 'test.jpg');
+    }catch(e){ console.error(e); toast('Знімок не завантажився'); }
+  });
+}
+
 /* `want`: 'main' — те, що виробляємо; 'extra' — рекомендації й варіанти;
    без нього — усе разом (запасний шаблон картки). */
 function orderItemsHtml(o, want){
@@ -12021,6 +12263,10 @@ function renderOrderDrawer(){
   panel.querySelectorAll('[data-art-pick]').forEach(b=>{
     b.addEventListener('click', ()=>{
       const k = b.dataset.artPick;
+      /* Фото відшиву — завжди через камеру з рамкою: саме воно потім їде
+         клієнту, і саме на ньому найчастіше вертають назад. Решта файлів
+         (DST, вихідник, скрін із Wilcom) приходить із комп'ютера. */
+      if(k === 'photo') return camForArt(o);
       artPick(o, k === 'file' ? (b.closest('.art-add').querySelector('.art-kind').value) : k);
     });
   });
