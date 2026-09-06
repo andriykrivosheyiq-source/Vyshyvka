@@ -807,6 +807,10 @@
                // габарит у мм — за ним видно, чи спрацювала стеля розміру
                wMm: Math.round(d.w), hMm: Math.round(d.h) };
     };
+    /* Геометрія шару в частках — назовні. Потрібна перевіркам (щоб довести,
+       що ширина екрана ні на що не впливає) і діагностиці: коли макап
+       виглядає дивно, першим ділом дивляться саме на ці три числа. */
+    window.__lqGeomFrac = function(l){ return layerGeomFrac(l || currentLayers()[0]); };
     window.__lqPrintScale = function(){
       var pa = ((window.SITE_CONTENT || {}).printAreas || {})[pm.garmentId] || {};
       var cfg = (typeof currentPrintCfg === 'function') ? currentPrintCfg() : null;
@@ -852,6 +856,46 @@
       l.fx = (l.x || 0) / b.w;
       l.fy = (l.y || 0) / b.h;
       l.pxAt = b.w;
+      // Висота контейнера в ту саму мить: без неї fy (частка ВИСОТИ) не
+      // перевести в частку ширини, а всі споживачі рахують саме від ширини.
+      l.hAt = b.h;
+    }
+    /* ── Геометрія шару в частках ────────────────────────────────────────
+       ПРОБЛЕМА, ЯКУ ЦЕ ЗАКРИВАЄ. Позиція й розмір логотипа лежать у
+       ПІКСЕЛЯХ того прев'ю, у якому його ставили. Кожне місце, якому
+       потрібна геометрія — знімок макапа, лого на фото моделей, розмітка в
+       міліметрах для швачки, перевірка виходу за межі зони, — ділило ці
+       пікселі на ШИРИНУ ПРЕВʼЮ ЗАРАЗ. А вона різна: у вужчому вікні, на
+       телефоні, у бічній колонці поруч із пропозицією. Найгірше, коли
+       контейнера немає зовсім: clientWidth дорівнює нулю, і код падав на
+       вигадані 300 px — логотип роздувався рівно в стільки разів, у скільки
+       справжня ширина відрізнялась від трьохсот.
+
+       Наслідок бачив кожен: макап зберігся — лого «попливло», пересохранив
+       при відкритому конструкторі — стало на місце. Причина не в збереженні,
+       а в тому, ЯКОЇ ШИРИНИ був екран у мить знімка.
+
+       Тепер геометрія береться зі збережених часток (frac/fx/fy), які
+       конструктор і так пише на шар. Ширина прев'ю більше ні на що не
+       впливає. Пікселі лишаються запасним шляхом для позицій, збережених до
+       появи часток.
+
+       Усе повертається у частках ШИРИНИ контейнера — саме в цій системі
+       рахують усі споживачі. */
+    function layerGeomFrac(l){
+      if(!l) return { frac:0, fx:0, fy:0 };
+      var b = wrapBox();
+      var w = b.w || +l.pxAt || 300;
+      /* Пропорція контейнера не залежить від ширини вікна — її задає саме
+         фото виробу. Тож беремо поточну, а якщо контейнера немає — ту, що
+         була в мить збереження. */
+      var ratio = (b.w && b.h) ? (b.h / b.w)
+                : ((+l.hAt > 0 && +l.pxAt > 0) ? (+l.hAt / +l.pxAt) : 1);
+      return {
+        frac: (+l.frac > 0) ? +l.frac : ((120 * (l.scale || 1)) / w),
+        fx: (l.fx != null) ? +l.fx : ((l.x || 0) / w),
+        fy: (l.fy != null) ? ((+l.fy || 0) * ratio) : ((l.y || 0) / w)
+      };
     }
     // Перевести частки назад у пікселі під поточний розмір контейнера
     function layerApplyFrac(l){
@@ -1511,14 +1555,15 @@
     // Накладаємо логотип на фото моделей, дзеркалячи позицію/розмір/поворот із головного мокапа.
     // Спина: показуємо лого беку; якщо його немає — показуємо передній (як прев'ю).
     function updateModelLogos(){
-      var wrapEl = document.getElementById('pmGarmentWrap');
-      var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
       var frontLogo = pm.logos.front[0], backLogo = pm.logos.back[0];
       document.querySelectorAll('.pm-model-logo').forEach(function(el){
         var l = (el.dataset.side === 'back') ? (backLogo || frontLogo) : frontLogo;
         if(!l || !l.url){ el.style.display='none'; return; }
         var sw = parseFloat(el.dataset.sw);
-        var sf = (120*(l.scale||1))/wrapW;   // розмір як частка ширини виробу
+        // Частки з самого шару: від ширини прев'ю тут більше нічого не
+        // залежить — інакше те саме лого на вужчому екрані виходило більшим
+        var G = layerGeomFrac(l);
+        var sf = G.frac;                     // розмір як частка ширини виробу
         el.style.width = (sf*sw) + '%';
         el.style.transform = 'translate(-50%,-50%) rotate('+(l.rot||0)+'deg)';
         el.style.backgroundImage = 'url("'+l.url+'")';
@@ -1527,7 +1572,7 @@
           el.style.top = el.dataset.py + '%';
         } else {
           var cx = parseFloat(el.dataset.cx), cy = parseFloat(el.dataset.cy);
-          var u = (l.x||0)/wrapW, v = (l.y||0)/wrapW;   // зсув як частка ширини виробу
+          var u = G.fx, v = G.fy;              // зсув як частка ширини виробу
           el.style.left = (cx + u*sw) + '%';
           el.style.top = (cy + v*sw) + '%';
         }
@@ -1851,6 +1896,8 @@
       };
       return [f(x0, y0), f(x1, y0), f(x1, y1), f(x0, y1)];
     }
+    /* Чи виходить лого за межі поля нанесення. Геометрія — та сама, у
+       частках: інакше в одному вікні попередження є, а в іншому немає. */
     function logoOutside(l, polyFrac, wrapW){
       if(l.text){
         var ink = textInkFrac(l);
@@ -1861,17 +1908,18 @@
           return false;
         }
       }
-      var sz=120*(l.scale||1), ar=l.ar||1, bw=sz, bh=sz;
-      if(ar>=1) bh=sz/ar; else bw=sz*ar;
+      var G=layerGeomFrac(l);
+      var ar=l.ar||1, bw=G.frac, bh=G.frac;      // усе одразу в частках ширини
+      if(ar>=1) bh=G.frac/ar; else bw=G.frac*ar;
       var ob=l.opaqueBox||{x0:0,y0:0,x1:1,y1:1};
-      // прямокутник непрозорих пікселів у локальних px відносно центра лого
+      // прямокутник непрозорих пікселів у частках, відносно центра лого
       var lx0=(ob.x0-0.5)*bw, lx1=(ob.x1-0.5)*bw, ly0=(ob.y0-0.5)*bh, ly1=(ob.y1-0.5)*bh;
-      var cxF=0.5+(l.x||0)/wrapW, cyF=0.5+(l.y||0)/wrapW;
+      var cxF=0.5+G.fx, cyF=0.5+G.fy;
       var rot=(l.rot||0)*Math.PI/180, cs=Math.cos(rot), sn=Math.sin(rot);
       var corners=[[lx0,ly0],[lx1,ly0],[lx1,ly1],[lx0,ly1]];
       for(var c=0;c<4;c++){
         var rx=corners[c][0]*cs - corners[c][1]*sn, ry=corners[c][0]*sn + corners[c][1]*cs;
-        if(!paPointInPoly([cxF+rx/wrapW, cyF+ry/wrapW], polyFrac)) return true;
+        if(!paPointInPoly([cxF+rx, cyF+ry], polyFrac)) return true;
       }
       return false;
     }
@@ -1916,10 +1964,12 @@
     function placementMarkMm(l, side){
       var geo = ZONE_GEO_CACHE[pm.garmentId + '|' + side + '|' + (pm.printId || '')];
       if(!geo || !(geo.mm > 0)) return null;
-      var wrapW = (pmGarmentWrapEl && pmGarmentWrapEl.clientWidth) || 0;
-      if(!(wrapW > 0)) return null;
-      var cxF = 0.5 + (l.x||0)/wrapW, cyF = 0.5 + (l.y||0)/wrapW;
-      var fr = layerFrac(l), ar = (l.ar||1)||1;
+      /* Геометрія в частках, а не в пікселях під поточну ширину. Це числа,
+         за якими швачка ставить нанесення на виріб: якщо вони залежать від
+         ширини вікна, у якому натиснули «зберегти», то й нанесення поїде. */
+      var G = layerGeomFrac(l);
+      var cxF = 0.5 + G.fx, cyF = 0.5 + G.fy;
+      var fr = G.frac, ar = (l.ar||1)||1;
       var bwF = (ar >= 1) ? fr : fr*ar, bhF = (ar >= 1) ? fr/ar : fr;
       var ob = l.opaqueBox || {x0:0,y0:0,x1:1,y1:1};
       var x0=(ob.x0-0.5)*bwF, x1=(ob.x1-0.5)*bwF, y0=(ob.y0-0.5)*bhF, y1=(ob.y1-0.5)*bhF;
@@ -5364,14 +5414,16 @@
         return 'rgb(' + avg[0] + ',' + avg[1] + ',' + avg[2] + ')';
       }catch(e){ return null; }                                   // CORS тощо
     }
+    /* Знімок сторони — назовні, тим самим шляхом і з тими самими даними,
+       якими його робить збереження. Так перевірка знімає макап двічі з
+       різних ширин екрана й порівнює результат байт у байт. */
+    window.__lqSnapSide = function(side, size, jpeg){ return snapshotSide(side, size, jpeg); };
     function snapshotSide(side, sizeOverride, asJpeg){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
         var layers = pm.logos[snapSide];
-        var wrapEl = document.getElementById('pmGarmentWrap');
-        var wrapW = (wrapEl && wrapEl.clientWidth) || 300;
-        var C = sizeOverride || 500, k = C / wrapW;
+        var C = sizeOverride || 500;
         var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
         var loadG = hasPhoto
           ? loadImgEl(window.LQ_img('/images/'+g.id+'-'+c.id+'-'+snapSide+'.webp'))
@@ -5410,14 +5462,18 @@
           return layers.reduce(function(p, layer){
             return p.then(function(){
               return loadImgEl(layer.url).then(function(img){
-                var sz = 120*layer.scale, ar = layer.ar||1, bw = sz, bh = sz;
+                /* Геометрія — зі збережених часток, а не з пікселів під
+                   поточну ширину прев'ю. Саме тут логотип і «плив»: знімок
+                   виходив таким, якої ширини випадково було прев'ю в цю
+                   мить, — а на телефоні, у вужчому вікні чи при схованому
+                   конструкторі вона щоразу інша. */
+                var G = layerGeomFrac(layer);
+                var ar = layer.ar||1, sz = G.frac*W, bw = sz, bh = sz;
                 if(ar>=1) bh = sz/ar; else bw = sz*ar;
-                /* Прев'ю квадратне, і layer.x/y відлічені від його центру —
-                   тобто від центру виробу. Полотно тепер нижче, тож по
-                   вертикалі рахуємо від ЙОГО центру, інакше нанесення поїде
-                   вниз рівно на половину зрізаної смуги. */
-                var cx = W/2 + layer.x*k, cy = H/2 + layer.y*k;
-                var w = bw*k, h = bh*k;
+                /* Зсув відлічується від центру виробу й теж у частках
+                   ширини — так само, як його зберігали. */
+                var cx = W/2 + G.fx*W, cy = H/2 + G.fy*W;
+                var w = bw, h = bh;
                 ctx.save(); ctx.translate(cx, cy); ctx.rotate((layer.rot||0)*Math.PI/180);
                 ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
               }).catch(function(){});
