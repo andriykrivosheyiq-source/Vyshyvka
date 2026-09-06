@@ -2192,16 +2192,23 @@
      сидіти цілий день.
      ══════════════════════════════════════════════════════════════════════ */
   body{background:var(--side);}
-  .shell{background:var(--side);}
+  .shell{background:var(--side);height:100vh;overflow:hidden;}
   .sidebar{background:transparent;}
-  /* Панель контенту: власне тло, велике округлення, повітря по краях. */
+  /* Панель контенту — саме вікно: округлення з УСІХ боків і поле знизу теж.
+     Доти вона тяглася за нижній край екрана, і вікном не виглядала: верх
+     заокруглений, а низ обрізаний межею монітора. Тому прокручується не
+     сторінка, а вміст усередині вікна — так низ лишається на видноті
+     завжди, скільки б там не було карток. */
   main{background:var(--canvas);border-radius:var(--r-shell);
-    margin:10px 10px 10px 0;padding:32px 32px 96px;min-height:calc(100vh - 20px);}
-  @media (max-width:1279px){ main{padding:24px 20px 80px;} }
+    margin:10px;height:calc(100vh - 20px);overflow-y:auto;overflow-x:hidden;
+    padding:32px 32px 64px;}
+  @media (max-width:1279px){ main{padding:24px 20px 56px;} }
   /* На телефоні корпус тільки заважає: там і так усе на всю ширину, а
      кожен піксель поля — це піксель, якого бракує таблиці. */
   @media (max-width:767px){
-    main{margin:0;border-radius:0;padding:16px 14px 40px;min-height:100vh;}
+    .shell{height:auto;overflow:visible;}
+    main{margin:0;border-radius:0;height:auto;overflow:visible;
+      padding:16px 14px 40px;min-height:100vh;}
     body{background:var(--canvas);}
   }
 
@@ -3607,9 +3614,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=08d0cf494d"></script>
-<script src="loomiq-fingerprint.js?v=08d0cf494d"></script>
-<script src="loomiq-pricing.js?v=08d0cf494d"></script>
+<script src="loomiq-select.js?v=8333edcadf"></script>
+<script src="loomiq-fingerprint.js?v=8333edcadf"></script>
+<script src="loomiq-pricing.js?v=8333edcadf"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4504,6 +4511,10 @@ document.querySelectorAll('.nav button').forEach(btn=>{
       if(fr && !fr.src) openCalcFrame(fr);
       else if(fr && fr.dataset.failed) openCalcFrame(fr);   // не вийшло — пробуємо ще раз
     }
+    /* Прокручується вміст вікна, а не сторінка: після переходу в розділ
+       він має початися згори, як і раніше. */
+    const mainEl = document.querySelector('main');
+    if(mainEl) mainEl.scrollTop = 0;
     window.scrollTo({top:0, behavior:'instant'});
     closeSidebar();
   });
@@ -6941,7 +6952,7 @@ function setItemKindFix(it, fp, kind){
   const m = Object.assign({}, itemKindFix(it) || {});
   const key = String(fp || '');
   if(!key) return;
-  if(kind === 'img' || kind === 'txt') m[key] = kind; else delete m[key];
+  if(kind === 'img' || kind === 'txt' || kind === 'off') m[key] = kind; else delete m[key];
   it.designKindFix = Object.keys(m).length ? m : null;
   /* І те саме — на сам шар у config.logos. Конструктор читає позицію звідти
      й про мапу за відбитком не знає: без цього рядка менеджер, відкривши
@@ -6971,7 +6982,7 @@ function applyKindFix(o){
     while(kinds.length < d.designs.length) kinds.push('img');
     d.designs.forEach((fp, i)=>{
       const want = fix[String(fp || '')];
-      if(want === 'img' || want === 'txt') kinds[i] = want;
+      if(want === 'img' || want === 'txt' || want === 'off') kinds[i] = want;
     });
     d.designKinds = kinds;
   });
@@ -7584,6 +7595,18 @@ function offerCalcRows(it, o){
      нанесення рахується за квадратурою — і виглядало так, ніби вид міняє
      площу. Вид міняє разові, тож перемикач переїхав на рядки «Підготовка
      макета» й «Додатковий ескіз», де ці гроші й стоять. */
+  /* Дія на рядку: перемкнути вид того дизайну, з якого ця разова й береться.
+     Саме тут вид і важить — у написа своя підготовка макета і свій ескіз, а
+     «не рахувати» знімає і те, і те. Клієнт цих рядків не бачить: прорахунок
+     іде тільки в кадр менеджера. */
+  const kindAct = di => (di != null && Array.isArray(it.desc && it.desc.designMm2))
+    ? { act:'kind', di: di,
+        kind: (function(k){ return (k === 'txt' || k === 'off') ? k : 'img'; })(
+                (it.desc.designKinds || [])[di]),
+        /* чи це рішення менеджера, а не автоматика — інакше через тиждень
+           ніхто не згадає, чому напис рахується як картинка */
+        fixed: !!(itemKindFix(it) || {})[String((it.desc.designs || [])[di] || '')] }
+    : null;
   const seenNo = {};
   (b.designNos || []).forEach(d=>{
     /* Звідки взявся відбиток. «u:…» — це адреса файлу: пікселі прочитати не
@@ -7594,6 +7617,15 @@ function offerCalcRows(it, o){
     const fp = String(((it.desc && it.desc.designs) || [])[d.i] || '');
     const how = !fp ? ' · відбиток не знявся, приєднано до першого макета'
               : (fp.indexOf('u:') === 0 ? ' · звірено за файлом, не за пікселями' : '');
+    /* Дизайн, за який не беремо. Він стоїть окремим рядком із власним
+       перемикачем — і саме тому його можна повернути в оплату: інакше
+       вимкнений дизайн зник би з прорахунку разом із єдиним місцем, де вид
+       міняють. Нуль тут не «безкоштовно», а «роботи не було». */
+    if(d.kind === 'off'){
+      rows.push(['Підготовка макета — дизайн №' + (d.i + 1) + ': не рахуємо',
+                 '0 грн', 'disc', kindAct(d.i)]);
+      return;
+    }
     const dup = seenNo[d.no];
     seenNo[d.no] = 1;
     rows.push(['↳ Дизайн №' + d.no + (d.kind === 'txt' ? ' (напис)' : '') +
@@ -7608,17 +7640,6 @@ function offerCalcRows(it, o){
     // показуємо як залишок, інакше ескізи порахувались би двічі.
     const sk = (b.sketches || []).map(x => ({ s: x, share: Math.round(x.fee / (x.units || 1)) }));
     const base = b.feeShare - sk.reduce((a2, x) => a2 + x.share, 0);
-    /* Дія на рядку разової: перемкнути вид того дизайну, з якого ця разова й
-       береться. Саме тут вид і важить — у написа своя підготовка макета і
-       свій ескіз. Клієнт цих рядків не бачить: прорахунок іде тільки в кадр
-       менеджера. */
-    const kindAct = di => (di != null && Array.isArray(it.desc && it.desc.designMm2))
-      ? { act:'kind', di: di,
-          kind: ((it.desc.designKinds || [])[di] === 'txt') ? 'txt' : 'img',
-          /* чи це рішення менеджера, а не автоматика — інакше через тиждень
-             ніхто не згадає, чому напис рахується як картинка */
-          fixed: !!(itemKindFix(it) || {})[String((it.desc.designs || [])[di] || '')] }
-      : null;
     if(base > 0){
       /* Разова належить ВИДУ, а не окремому дизайну: на позиції з картинкою
          й написом їх дві — своя за картинку і своя за напис. Доти вони
@@ -13610,7 +13631,7 @@ async function offerEdApply(msg){
     /* Вид приходить явно — «зроби написом», а не «перемкни». Перемикач не
        знав, у якому стані він зараз, і два кліки поспіль із різних місць
        могли повернути все назад. */
-    const to = (msg.to === 'txt' || msg.to === 'img')
+    const to = (msg.to === 'txt' || msg.to === 'img' || msg.to === 'off')
       ? msg.to : (kinds[di] === 'txt' ? 'img' : 'txt');
     kinds[di] = to;
     d.designKinds = kinds;
@@ -13632,10 +13653,14 @@ async function offerEdApply(msg){
     }
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
-    toast(kinds[di] === 'txt' ? 'Дизайн рахується як напис' : 'Дизайн рахується як картинка');
-    offerEdNote(kinds[di] === 'txt'
-      ? 'Дизайн №' + (di + 1) + ' рахується як НАПИС — за рішенням менеджера'
-      : 'Дизайн №' + (di + 1) + ' рахується як КАРТИНКА — за рішенням менеджера');
+    const WORD = { txt:'НАПИС', img:'КАРТИНКА', off:'НЕ РАХУЄМО' };
+    const w = WORD[kinds[di]] || WORD.img;
+    toast(kinds[di] === 'off' ? 'За цей дизайн не беремо'
+                              : ('Дизайн рахується як ' + w.toLowerCase()));
+    offerEdNote(kinds[di] === 'off'
+      ? 'Дизайн №' + (di + 1) + ' — підготовку макета й ескіз не рахуємо. ' +
+        'Саме нанесення рахується як звичайно.'
+      : 'Дизайн №' + (di + 1) + ' рахується як ' + w + ' — за рішенням менеджера');
     return;
   }
   /* Перейменування групи варіантів. Група — це питання до клієнта, тож
@@ -19487,6 +19512,8 @@ async function init(){
       var el = document.getElementById('an-pane-' + k);
       if(el) el.hidden = (k !== AN.block);
     });
+    const mScroll = document.querySelector('main');
+    if(mScroll) mScroll.scrollTop = 0;
     window.scrollTo({ top:0, behavior:'instant' });
   }, false);
 
