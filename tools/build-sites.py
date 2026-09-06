@@ -31,6 +31,10 @@ STAMPED = ('index.html', 'offer.html', 'offer-edit.html', 'loomiqadmin.html')
 CTOR_PRICE = 'loomiq-pricing.js'
 # Відбиток дизайну — теж один: за ним рушій вирішує, один це макет чи два
 CTOR_FP = 'loomiq-fingerprint.js'
+# Вигляд випадаючих списків — теж один на всі сторінки: нативний select
+# малює операційна система, і поруч із рештою інтерфейсу він виглядає як
+# шматок чужої програми.
+CTOR_SEL = 'loomiq-select.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -78,6 +82,7 @@ def absolutise_images(html):
     /horeca/ і не знаходила: ціни мовчки ставали нулями."""
     html = re.sub(r'(?<![/\w.])images/', '/images/', html)
     html = html.replace('src="loomiq-pricing.js', 'src="/loomiq-pricing.js')
+    html = html.replace('src="loomiq-select.js', 'src="/loomiq-select.js')
     html = html.replace('src="loomiq-fingerprint.js', 'src="/loomiq-fingerprint.js')
     return html
 
@@ -424,14 +429,15 @@ def main():
     # Позначка версії спільна на всі три файли: вони змінюються разом
     price = open(os.path.join(ROOT, CTOR_PRICE), encoding='utf-8').read()
     fp = open(os.path.join(ROOT, CTOR_FP), encoding='utf-8').read()
-    ver = ctor_version(base_ctor + css + markup + price + fp)
+    seljs = open(os.path.join(ROOT, CTOR_SEL), encoding='utf-8').read()
+    ver = ctor_version(base_ctor + css + markup + price + fp + seljs)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
         new = txt
-        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP):
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL):
             new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)

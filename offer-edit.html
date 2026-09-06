@@ -796,10 +796,18 @@
   var lastReco = -1;         // те саме окремо для рекомендованих
   var ctorReady = null;
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=b44d1f0333';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=b44d1f0333';
-  var CTOR_JS   = 'loomiq-constructor.js?v=b44d1f0333';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=b44d1f0333';
+  /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
+     панель редактора живе кадром і власного <head> зі скриптами не має. */
+  (function(){
+    var s = document.createElement('script');
+    s.src = 'loomiq-select.js?v=08d0cf494d';
+    document.head.appendChild(s);
+  })();
+
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=08d0cf494d';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=08d0cf494d';
+  var CTOR_JS   = 'loomiq-constructor.js?v=08d0cf494d';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=08d0cf494d';
 
   function send(msg){
     if(window.parent === window) return;
