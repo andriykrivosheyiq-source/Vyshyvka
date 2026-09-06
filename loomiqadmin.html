@@ -980,6 +980,48 @@
   .cam-samp{all:unset;cursor:pointer;font-size:11.5px;font-weight:700;color:var(--accent);
     margin-left:auto;}
   .cam-samp:hover{text-decoration:underline;}
+  /* ── Закупівля по розмірах ──────────────────────────────────────────── */
+  .buy-t{width:100%;border-collapse:collapse;font-size:12.5px;
+    font-variant-numeric:tabular-nums;margin-top:6px;}
+  .buy-t th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700;text-align:right;padding:0 4px 6px;}
+  .buy-t th:first-child{text-align:left;}
+  .buy-t td{padding:4px;text-align:right;border-top:1px solid var(--line);}
+  .buy-t td:first-child{text-align:left;}
+  .buy-sz b{font-size:13px;}
+  .buy-sz i{display:block;font-style:normal;font-size:10.5px;color:var(--ink-soft);}
+  .buy-t tr.is-ok td{background:rgba(30,122,69,.06);}
+  .buy-t input{width:56px;font:inherit;font-size:12.5px;text-align:right;
+    border:1px solid var(--line);border-radius:8px;padding:5px 6px;}
+  .buy-t tfoot td{font-weight:800;border-top:2px solid var(--line);}
+  .buy-t .is-ok{color:#1E7A45;}
+  .buy-t .is-no{color:#A32C3E;}
+  .buy-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+  .buy-eta{font-size:12px;color:var(--ink-soft);}
+  .buy-b{all:unset;cursor:pointer;margin-left:auto;padding:8px 13px;border-radius:10px;
+    background:var(--accent-soft);color:var(--accent-deep);font-size:12.5px;font-weight:700;}
+  .buy-b:hover{background:var(--accent);color:#fff;}
+  /* ── Ворота тиражу ──────────────────────────────────────────────────── */
+  .gate-l{margin-top:4px;}
+  .gate-r{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12.5px;
+    border-bottom:1px solid var(--line);}
+  .gate-r:last-child{border-bottom:0;}
+  .gate-n{flex:none;width:14px;text-align:center;color:var(--ink-soft);}
+  .gate-r.is-ok .gate-n{color:#1E7A45;font-weight:800;}
+  .gate-t{flex:1;min-width:0;font-weight:700;}
+  .gate-t i{display:block;font-style:normal;font-size:10.5px;font-weight:400;color:var(--ink-soft);}
+  .gate-w{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);background:var(--canvas);padding:3px 7px;border-radius:20px;}
+  .gate-sum{margin-top:10px;padding:9px 11px;border-radius:11px;background:var(--canvas);
+    font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--ink-soft);}
+  .gate-sum.is-ok{background:rgba(30,122,69,.12);color:#166638;}
+  /* ── Зведена закупівля на день ──────────────────────────────────────── */
+  .bs-g{border:1px solid var(--line);border-radius:var(--r-card);padding:12px;margin-bottom:12px;}
+  .bs-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .bs-h b{font-size:14.5px;}
+  .bs-h span{font-size:11.5px;color:var(--ink-soft);}
+  .bs-h .bs-u{margin-left:auto;font-weight:800;color:var(--ink);}
+  .bs-ok{flex:none;}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -3432,6 +3474,15 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           які ще не завершені. Це те, що треба замовити найближчим часом.</div>
         <div id="sup-load"></div>
       </div>
+
+      <div class="card" style="max-width:980px;">
+        <div class="card-head"><h2>Що замовити сьогодні</h2>
+          <button class="btn" id="buy-csv">Завантажити CSV</button></div>
+        <div class="sub" style="margin-bottom:12px;">Усі оплачені замовлення, у яких одяг ще не замовлений,
+          зведені по підрядниках і розмірах. Позначене замовленим більше сюди не потрапляє —
+          інакше завтра замовимо те саме вдруге.</div>
+        <div id="buy-sheet"></div>
+      </div>
     </section>
 
     <section id="view-analytics" style="display:none;">
@@ -4430,6 +4481,13 @@ function trackBlocked(o, key, step){
   if(key === 'test' && step === 'inner'){
     const v = artCur(o);
     if(!v || !v.photo) return 'Спершу зніміть фото відшиву — без нього тест далі не йде';
+  }
+  /* «Готово до тиражу» — ворота, а не крок. Їх відчиняє рахунок умов, і
+     саме тому руками сюди не стають: рука і є те рішення головою, від якого
+     потім переробляють партію. Умови видно у смузі «Ворота тиражу». */
+  if(key === 'prod' && step === 'ready' && typeof prodGateOpen === 'function' && !prodGateOpen(o)){
+    const left = prodGates(o).filter(x => !x.ok).map(x => x.label.toLowerCase());
+    return 'Тираж ще не готовий: ' + left.join(', ');
   }
   return '';
 }
@@ -10376,6 +10434,9 @@ async function addPayment(o, sum, kind){
     toast(started ? 'Оплата записана — виробництво запущено'
       : (payState(o) === 'full' ? 'Сплачено повністю' : ('Залишок ' + fmt(dueSum(o)) + ' ₴')));
   }catch(e){ console.error(e); o.payments.pop(); toast('Не збереглось'); }
+  /* Передоплата — одна з п'яти умов тиражу. У повторному замовленні вона
+     буває останньою, якої бракувало: макет і тест уже погоджені. */
+  await prodGateCheck(o);
   renderBoard();
   renderOrderDrawer();
 }
@@ -11356,6 +11417,278 @@ function itemSizesHtml(o, idx){
         </label>`).join('')}</div>
     </div>`;
 }
+/* ══════════ Закупівля по розмірах ══════════
+   «Одяг замовлений» однією галочкою не означає нічого. Замовлено все чи
+   половину, приїхало 42 із 50, чого саме бракує — з галочки не видно, а
+   саме це число вирішує, можна вже шити чи ні.
+
+   Тому потреба розписується ПО КОЖНОМУ РОЗМІРУ. «Треба» не редагується
+   руками: воно береться з розмірного ряду позиції — одне джерело, інакше
+   через тиждень таблиця закупівлі й склад замовлення розійдуться. Руками
+   вносять тільки те, чого система не знає: скільки замовили і скільки
+   приїхало.
+
+   ЗАПАС. Купувати рівно 50 із 50 не можна: один зіпсований виріб зупиняє
+   все замовлення й вимагає термінової докупівлі — а це зайвий тиждень. У
+   галузі норма браку 2–5%. Тому в потребі стоїть «треба + запас», запас
+   округлюється вгору й ніколи не менший за одиницю на розмір, який узагалі
+   замовляється. Ворота тиражу дивляться на «треба», не на «замовити»:
+   50 отриманих із 55 — це вже досить, щоб шити. */
+const RESERVE_PCT_DEF = 3;
+function reservePct(gid){
+  const g = (contentData.products || {})[gid] || {};
+  /* На дорогому худі запас дорожчий за ризик, тому відсоток окремо на виріб. */
+  const v = (g.reservePct == null) ? contentData.reservePct : g.reservePct;
+  const n = +v;
+  return (v == null || isNaN(n)) ? RESERVE_PCT_DEF : Math.max(0, Math.min(50, n));
+}
+function buyReserve(need, gid){
+  if(need <= 0) return 0;
+  return Math.max(1, Math.ceil(need * reservePct(gid) / 100));
+}
+function buyState(o){ return (o && o.buy && typeof o.buy === 'object') ? o.buy : {}; }
+function buyLines(o){ const b = buyState(o).lines; return (b && typeof b === 'object') ? b : {}; }
+function buyKey(i, sz){ return i + '|' + sz; }
+/* Потреба цілком: позиції складу, їхні розміри, запас і те, що вже внесли.
+   Позиції без розмірної сітки не пропадають — вони йдуть одним рядком «без
+   розмірів», інакше закупівля мовчки недорахувала б половину замовлення. */
+function buyRows(o){
+  const lines = buyLines(o);
+  const out = [];
+  (o.items || []).forEach((it, i) => {
+    if(itemKind(it) !== 'main') return;      // рекомендації — ще не замовлення
+    const gid = itemGarmentId(it);
+    const m = sizeQty(it), have = sizeQtySum(it);
+    const sizes = garmentSizes(gid).filter(sz => +m[sz] > 0);
+    const list = sizes.length ? sizes.map(sz => ({ sz, need:+m[sz] || 0 }))
+      : [{ sz:'—', need: have || (+it.qty || 0) }];
+    list.forEach(r => {
+      const L = lines[buyKey(i, r.sz)] || {};
+      out.push({ i, sz:r.sz, need:r.need, res: buyReserve(r.need, gid),
+                 ord: Math.max(0, +L.ord || 0), got: Math.max(0, +L.got || 0),
+                 gid, name: it.name || 'товар', color: it.color || '',
+                 sup: it.sup || supOfGarment(gid) || '' });
+    });
+  });
+  return out;
+}
+function buySum(o){
+  const rows = buyRows(o);
+  const s = { need:0, res:0, ord:0, got:0, rows:rows.length };
+  rows.forEach(r => { s.need += r.need; s.res += r.res; s.ord += r.ord; s.got += r.got; });
+  s.buy = s.need + s.res;
+  /* Готовність рахуємо від «треба»: запас — наша страховка, а не обіцянка
+     клієнту. Прийшло 50 із 55 замовлених — замовлення вкомплектоване. */
+  s.enough = s.rows > 0 && s.got >= s.need;
+  return s;
+}
+/* Коли одяг буде на місці. Береться зі строку доставки підрядника — того
+   самого поля, яке раніше було довідковим. Підрядників у замовленні може
+   бути кілька: чекаємо найдовшого, бо шиємо, коли приїхало все. */
+function buyEta(o){
+  const at = buyState(o).orderedAt;
+  if(!at) return null;
+  let days = 0, known = false;
+  buyRows(o).forEach(r => {
+    const s = supById(r.sup);
+    if(s && s.days != null && +s.days >= 0){ known = true; days = Math.max(days, +s.days); }
+  });
+  if(!known) return null;
+  const d = new Date(at);
+  if(isNaN(d)) return null;
+  d.setDate(d.getDate() + days);
+  return isoDay(d);
+}
+/* Трек одягу веде сама таблиця: тримати його окремо означало б мати два
+   різні «отримано» — у смузі стану й у цифрах, — і вірити доводилось би
+   комусь одному. */
+function buyTrack(o){
+  const s = buySum(o);
+  if(!s.rows) return '';
+  if(s.got > 0 && s.enough) return trackDoneKey('supply') || 'got';
+  if(s.got > 0) return 'part';
+  if(s.ord > 0 && s.ord >= s.buy) return 'sent';
+  if(s.ord > 0) return 'sent';
+  return (trackSteps('supply')[0] || {}).key || 'todo';
+}
+async function buySet(o, i, sz, field, val){
+  if(!o.buy || typeof o.buy !== 'object') o.buy = {};
+  if(!o.buy.lines || typeof o.buy.lines !== 'object') o.buy.lines = {};
+  const k = buyKey(i, sz);
+  const L = o.buy.lines[k] || (o.buy.lines[k] = { ord:0, got:0 });
+  L[field] = Math.max(0, Math.round(+val || 0));
+  /* Прийшло більше, ніж замовляли, — не помилка й не заборона: підрядник
+     інколи докладає. Але й мовчати не будемо, бо частіше це описка. */
+  if(field === 'got' && L.got > L.ord && L.ord > 0)
+    toast('Отримано більше, ніж замовлено — перевірте число');
+  if(field === 'ord' && L.ord > 0 && !o.buy.orderedAt){
+    o.buy.orderedAt = new Date().toISOString();
+    o.buy.orderedBy = myEmail() || '';
+  }
+  const step = buyTrack(o);
+  if(step && trackStepMeta('supply', step) && trackOf(o, 'supply') !== step){
+    if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+    o.tracks.supply = step;
+    o.trackHist = (o.trackHist || []).concat([{ t:'supply', s:step,
+      at:new Date().toISOString(), by:(myEmail() || '') }]).slice(-60);
+  }
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  await prodGateCheck(o);
+  renderBoard(); renderOrderDrawer();
+}
+/* Позначити замовленим одним рухом: у таблиці «замовити» вже пораховано, і
+   переписувати ті самі числа руками — робота, яку система має робити сама. */
+async function buyOrderAll(o){
+  if(!o.buy || typeof o.buy !== 'object') o.buy = {};
+  if(!o.buy.lines || typeof o.buy.lines !== 'object') o.buy.lines = {};
+  buyRows(o).forEach(r => {
+    const k = buyKey(r.i, r.sz);
+    const L = o.buy.lines[k] || (o.buy.lines[k] = { ord:0, got:0 });
+    if(!L.ord) L.ord = r.need + r.res;
+  });
+  o.buy.orderedAt = o.buy.orderedAt || new Date().toISOString();
+  o.buy.orderedBy = o.buy.orderedBy || (myEmail() || '');
+  const step = buyTrack(o);
+  if(step && trackStepMeta('supply', step)){
+    if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+    o.tracks.supply = step;
+  }
+  touchOrder(o);
+  try{ await storeSet('orders', orders); toast('Позначено замовленим'); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  renderBoard(); renderOrderDrawer();
+}
+/* ══════════ Ворота тиражу ══════════
+   Ніхто не вирішує головою, чи можна запускати тираж. Система рахує п'ять
+   умов і показує, чого саме бракує та хто цим займається. Зійшлось усе —
+   стан САМ стає «готово до тиражу», і замовлення з'являється у виробництва.
+
+   Саме тому «готово до тиражу» не рухається руками: рука — це і є те
+   рішення головою, від якого потім переробляють партію. Умови видно, і
+   кожну видно окремо, тож «система не пускає» ніколи не буває загадкою. */
+function prodGates(o){
+  const v = artCur(o);
+  const ap = (v && v.approvals) || {};
+  const files = ((v && v.files) || []).filter(f => f && f.url);
+  const s = buySum(o);
+  const paid = (typeof payList === 'function' ? payList(o) : []).length > 0;
+  return [
+    { key:'art',   label:'Макет погоджено',
+      ok: !!ap.art,
+      note: ap.art ? 'v' + ((v && v.n) || '?') + ' · ' + dayUa(ap.art.at) : 'чекає на нас',
+      who:'дизайн' },
+    { key:'test',  label:'Тест погоджено',
+      ok: !!ap.client,
+      note: ap.client ? 'клієнт · ' + dayUa(ap.client.at)
+                      : (ap.inner ? 'у клієнта' : 'тест ще не показували'),
+      who:'клієнт' },
+    { key:'supply',label:'Одяг отримано',
+      /* Немає таблиці закупівлі — віримо треку: у старих замовленнях
+         розмірів не розписували, і вимагати їх заднім числом безглуздо. */
+      ok: s.rows ? s.enough : trackIsDone(o, 'supply'),
+      note: s.rows ? s.got + ' із ' + s.need : 'за станом треку',
+      who:'закупівля' },
+    { key:'pay',   label:'Передоплата',
+      ok: paid, note: paid ? 'є' : 'грошей ще не було', who:'менеджер' },
+    { key:'files', label:'Файли для машини',
+      ok: files.length > 0,
+      note: files.length ? files.map(f => f.name || 'файл').join(', ') : 'у версії немає файлів',
+      who:'дизайн' }
+  ];
+}
+function prodGateOpen(o){ return prodGates(o).every(g => g.ok); }
+/* Одне місце, де ворота відчиняються. Кличеться після кожної зміни, яка
+   може закрити останню умову: погодження, оплата, надходження одягу. */
+async function prodGateCheck(o){
+  if(!o) return false;
+  const ready = 'ready';
+  if(!trackStepMeta('prod', ready)) return false;
+  const cur = trackOf(o, 'prod');
+  const first = (trackSteps('prod')[0] || {}).key || 'lock';
+  const open = prodGateOpen(o);
+  /* Рухаємо тільки на межі «заблоковано ↔ готово». Замовлення, яке вже
+     шиють, ворота назад не смикають: там уже інша реальність. */
+  if(open && cur === first){
+    if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+    o.tracks.prod = ready;
+    o.trackHist = (o.trackHist || []).concat([{ t:'prod', s:ready,
+      at:new Date().toISOString(), by:'' }]).slice(-60);
+    try{ await storeSet('orders', orders); }catch(e){ console.error(e); }
+    toast('Умови тиражу зійшлись — замовлення пішло у виробництво');
+    return true;
+  }
+  if(!open && cur === ready){
+    o.tracks.prod = first;
+    o.trackHist = (o.trackHist || []).concat([{ t:'prod', s:first,
+      at:new Date().toISOString(), by:'' }]).slice(-60);
+    try{ await storeSet('orders', orders); }catch(e){ console.error(e); }
+    return true;
+  }
+  return false;
+}
+function gateFold(o){
+  /* До оплати ворота — це п'ять порожніх рядків про роботу, якої ще немає.
+     Смуга з'являється разом із рештою виробничої частини. */
+  if(!tracksLive(o)) return '';
+  const g = prodGates(o);
+  const left = g.filter(x => !x.ok);
+  const body = `
+    <div class="od-hint">Це не чиясь думка, а п'ять умов. Поки хоч одна не
+      закрита, «готово до тиражу» не вмикається — ні руками, ні згори.</div>
+    <div class="gate-l">${g.map(x=>`
+      <div class="gate-r${x.ok ? ' is-ok' : ''}">
+        <span class="gate-n">${x.ok ? '✓' : '○'}</span>
+        <span class="gate-t">${escapeHtml(x.label)}<i>${escapeHtml(x.note)}</i></span>
+        ${x.ok ? '' : `<span class="gate-w">${escapeHtml(x.who)}</span>`}
+      </div>`).join('')}</div>
+    <div class="gate-sum${left.length ? '' : ' is-ok'}">${
+      left.length ? 'ОЧІКУЄМО: ' + escapeHtml(left.map(x => x.label.toLowerCase()).join(' · '))
+                  : 'ГОТОВО ДО ТИРАЖУ'}</div>`;
+  return odFoldHtml('gate', 'Ворота тиражу',
+    left.length ? (g.length - left.length) + ' із ' + g.length : 'усе зійшлось', body);
+}
+
+function buyFold(o){
+  if(!canSeeCost()) return '';         // закупівельні числа — не для всіх
+  if(!tracksLive(o)) return '';        // до оплати закуповувати нема чого
+  const rows = buyRows(o);
+  if(!rows.length) return '';
+  const s = buySum(o), eta = buyEta(o);
+  const body = `
+    <div class="od-hint">«Треба» береться з розмірного ряду позиції й руками не
+      правиться. Запас — ${escapeHtml(String(reservePct(rows[0].gid)))}% на брак,
+      не менше однієї штуки на розмір: один зіпсований виріб інакше зупиняє все
+      замовлення.</div>
+    <table class="buy-t">
+      <thead><tr><th>Розмір</th><th>Треба</th><th>Запас</th><th>Замовити</th>
+        <th>Замовлено</th><th>Отримано</th></tr></thead>
+      <tbody>${rows.map(r=>`
+        <tr${r.got >= r.need ? ' class="is-ok"' : ''}>
+          <td class="buy-sz"><b>${escapeHtml(r.sz)}</b>${
+            rows.some(x=> x.i !== r.i) ? `<i>${escapeHtml(r.name)}</i>` : ''}</td>
+          <td>${r.need}</td><td>${r.res}</td><td><b>${r.need + r.res}</b></td>
+          <td><input type="number" min="0" step="1" inputmode="numeric"
+                data-buy="ord" data-buy-i="${r.i}" data-buy-sz="${escapeHtml(r.sz)}"
+                value="${r.ord || ''}" placeholder="0"></td>
+          <td><input type="number" min="0" step="1" inputmode="numeric"
+                data-buy="got" data-buy-i="${r.i}" data-buy-sz="${escapeHtml(r.sz)}"
+                value="${r.got || ''}" placeholder="0"></td>
+        </tr>`).join('')}</tbody>
+      <tfoot><tr><td>Разом</td><td>${s.need}</td><td>${s.res}</td><td><b>${s.buy}</b></td>
+        <td>${s.ord}</td><td class="${s.enough ? 'is-ok' : 'is-no'}">${s.got}</td></tr></tfoot>
+    </table>
+    <div class="buy-foot">
+      ${eta ? `<span class="buy-eta">Одяг буде ${escapeHtml(dueWordUa(eta))}${
+        o.dueAt && eta > o.dueAt ? ' — це ПІЗНІШЕ за дату здачі' : ''}</span>` : ''}
+      ${s.ord < s.buy ? '<button class="buy-b" data-buy-all>Позначити замовленим</button>' : ''}
+    </div>`;
+  return odFoldHtml('buy', 'Закупівля',
+    s.got + ' / ' + s.need + (s.enough ? ' · вистачає' : (s.ord ? ' · замовлено ' + s.ord : ' · ще не замовляли')),
+    body);
+}
+
 /* ── Розділи картки ──────────────────────────────────────────────────────
    Усе важке лежить у смугах, і кожна каже підсумком, чи є в ній що читати.
    Згорнуті за замовчуванням: щодня з картки потрібні клієнт, стан і
@@ -11506,6 +11839,10 @@ async function artApprove(o, kind){
   if(kind === 'art')    artTrack(o, 'design', trackDoneKey('design'));
   if(kind === 'inner')  artTrack(o, 'test', 'client');
   if(kind === 'client') artTrack(o, 'test', trackDoneKey('test'));
+  /* Погодження — одна з п'яти умов тиражу. Перевіряємо ворота одразу: якщо
+     це була остання, замовлення має піти у виробництво зараз, а не тоді,
+     коли хтось згадає подивитись. */
+  await prodGateCheck(o);
   await artStore(o, 'Погоджено');
 }
 async function artBack(o, reasonKey){
@@ -12045,6 +12382,8 @@ function renderOrderDrawer(){
         ${odPart(()=> odGoodsFold(o), 'товари')}
         ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
         ${odPart(()=> artFold(o), 'макет')}
+        ${odPart(()=> buyFold(o), 'закупівля')}
+        ${odPart(()=> gateFold(o), 'ворота тиражу')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
         ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
@@ -12245,6 +12584,12 @@ function renderOrderDrawer(){
   panel.querySelectorAll('[data-mark-i]').forEach(b=>{
     b.addEventListener('click', ()=> openMark(o, +b.dataset.markI));
   });
+  panel.querySelectorAll('[data-buy]').forEach(inp=>{
+    inp.addEventListener('change', ()=>
+      buySet(o, +inp.dataset.buyI, inp.dataset.buySz, inp.dataset.buy, inp.value));
+  });
+  const buyAllB = panel.querySelector('[data-buy-all]');
+  if(buyAllB) buyAllB.addEventListener('click', ()=> buyOrderAll(o));
   panel.querySelectorAll('.od-trk-sel').forEach(sel=>{
     sel.addEventListener('change', ()=> setTrack(o, sel.dataset.track, sel.value));
   });
@@ -16978,6 +17323,12 @@ function renderSuppliers(){
     '<div class="sup-row" data-sid="' + escA(x.id) + '">' +
       '<input class="s-nm" type="text" maxlength="60" value="' + escA(x.name) + '">' +
       '<input class="s-url" type="text" maxlength="200" placeholder="сайт" value="' + escA(x.url || '') + '">' +
+      '<input class="s-contact" type="text" maxlength="80" placeholder="контакт" value="' + escA(x.contact || '') + '">' +
+      /* Строк доставки — не довідкове поле: саме з нього видно, коли одяг
+         буде на місці, а отже й чи встигаємо до дати здачі. Поки підрядник
+         був рядком тексту, дата приїзду бралась зі стелі. */
+      '<input class="s-days" type="number" min="0" max="120" step="1" title="Звичайний строк доставки, днів" ' +
+        'placeholder="дн" value="' + escA(x.days == null ? '' : String(x.days)) + '">' +
       '<span class="s-cnt">' + (counts[x.id] || 0) + ' тов.</span>' +
       (x.url ? '<a class="s-go" href="' + escA(x.url) + '" target="_blank" rel="noopener">↗</a>' : '') +
       '<button class="s-del" title="Видалити">✕</button>' +
@@ -16989,12 +17340,15 @@ function renderSuppliers(){
     const save = () => {
       const nm = row.querySelector('.s-nm').value.trim();
       const url = row.querySelector('.s-url').value.trim();
-      const next = supAll().map(x => x.id === id ? Object.assign({}, x, { name: nm, url: url }) : x);
+      const ct = row.querySelector('.s-contact').value.trim();
+      const dv = row.querySelector('.s-days').value.trim();
+      const next = supAll().map(x => x.id === id ? Object.assign({}, x,
+        { name: nm, url: url, contact: ct, days: dv === '' ? null : Math.max(0, Math.round(+dv || 0)) }) : x);
       PHOTOS_DOC.set({ suppliers: next }, { merge:true })
         .then(() => toast('Збережено')).catch(e => { console.error(e); toast('Помилка'); });
     };
-    row.querySelector('.s-nm').addEventListener('change', save);
-    row.querySelector('.s-url').addEventListener('change', save);
+    row.querySelectorAll('.s-nm,.s-url,.s-contact,.s-days')
+       .forEach(inp => inp.addEventListener('change', save));
     row.querySelector('.s-del').addEventListener('click', async () => {
       const n = counts[id] || 0;
       if(n && !confirm('До цього підрядника прив’язано ' + n + ' товар(ів). Після видалення вони лишаться без підрядника. Видаляємо?')) return;
@@ -17019,7 +17373,124 @@ function renderSuppliers(){
       '</div>';
     }).join('') : '<div class="sub">Активних замовлень немає.</div>';
   }
+  renderBuySheet();
 }
+
+/* ══════════ Зведена закупівля на день ══════════
+   Замовлення приходять по одному, а замовляють одяг раз на день і одним
+   листом. Доти закупівельник обходив картки й переписував розміри в
+   блокнот — звідти й бралось «здається, це вже замовляли».
+
+   Тут те саме зведено по підрядниках і розмірах. Умова потрапляння одна:
+   виробництво вже запущене (гроші є), а рядок ще не позначений замовленим.
+   Позначене зникає зі списку назавжди — саме тому наступного дня його не
+   замовлять удруге. */
+function buySheet(){
+  const out = {};
+  (orders || []).forEach(o => {
+    if(!prodStarted(o)) return;                       // ще не оплачено — не закуповуємо
+    if(['cancel'].indexOf(o.status) >= 0) return;
+    buyRows(o).forEach(r => {
+      if(r.ord > 0) return;                           // вже замовлено — не повторюємо
+      const k = r.sup || '—';
+      if(!out[k]) out[k] = { sup:supById(r.sup), rows:[], units:0 };
+      out[k].rows.push({ o, r });
+      out[k].units += r.need + r.res;
+    });
+  });
+  return out;
+}
+function renderBuySheet(){
+  const box = document.getElementById('buy-sheet');
+  if(!box) return;
+  const sheet = buySheet();
+  const keys = Object.keys(sheet).sort((a, b) => sheet[b].units - sheet[a].units);
+  if(!keys.length){
+    box.innerHTML = '<div class="sub">Замовляти нема чого — усе, що оплачено, вже замовлене.</div>';
+    return;
+  }
+  box.innerHTML = keys.map(k => {
+    const g = sheet[k];
+    const nm = g.sup ? escA(g.sup.name)
+      : '<span style="color:var(--bad);">Підрядник не вказаний</span>';
+    return '<div class="bs-g">' +
+      '<div class="bs-h"><b>' + nm + '</b>' +
+        (g.sup && g.sup.days != null ? '<span>доставка ' + (+g.sup.days) + ' дн</span>' : '') +
+        (g.sup && g.sup.contact ? '<span>' + escA(g.sup.contact) + '</span>' : '') +
+        '<span class="bs-u">' + g.units + ' шт</span>' +
+        '<button class="btn btn-accent bs-ok" data-buy-sup="' + escA(k) + '">Позначити замовленим</button>' +
+      '</div>' +
+      '<table class="buy-t"><thead><tr><th>Замовлення</th><th>Товар</th><th>Розмір</th>' +
+        '<th>Треба</th><th>Запас</th><th>Замовити</th></tr></thead><tbody>' +
+      g.rows.map(x => '<tr><td>' + escA(x.o.orderId || '') + '</td>' +
+        '<td>' + escA(x.r.name + (x.r.color ? ' · ' + x.r.color : '')) + '</td>' +
+        '<td>' + escA(x.r.sz) + '</td><td>' + x.r.need + '</td><td>' + x.r.res + '</td>' +
+        '<td><b>' + (x.r.need + x.r.res) + '</b></td></tr>').join('') +
+      '</tbody></table></div>';
+  }).join('');
+  box.querySelectorAll('[data-buy-sup]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const k = b.dataset.buySup;
+      const g = buySheet()[k];
+      if(!g) return;
+      if(!confirm('Позначити замовленим ' + g.units + ' шт у ' +
+        (g.sup ? g.sup.name : 'підрядника без назви') + '? Ці рядки зі списку зникнуть.')) return;
+      const touched = [];
+      g.rows.forEach(x => {
+        const o = x.o;
+        if(!o.buy || typeof o.buy !== 'object') o.buy = {};
+        if(!o.buy.lines || typeof o.buy.lines !== 'object') o.buy.lines = {};
+        const key = buyKey(x.r.i, x.r.sz);
+        const L = o.buy.lines[key] || (o.buy.lines[key] = { ord:0, got:0 });
+        L.ord = x.r.need + x.r.res;
+        o.buy.orderedAt = o.buy.orderedAt || new Date().toISOString();
+        o.buy.orderedBy = o.buy.orderedBy || (myEmail() || '');
+        if(touched.indexOf(o) < 0) touched.push(o);
+      });
+      touched.forEach(o => {
+        const step = buyTrack(o);
+        if(step && trackStepMeta('supply', step)){
+          if(!o.tracks || typeof o.tracks !== 'object') o.tracks = {};
+          o.tracks.supply = step;
+        }
+        touchOrder(o);
+      });
+      try{ await storeSet('orders', orders); toast('Позначено замовленим'); }
+      catch(e){ console.error(e); toast('Не збереглось'); }
+      renderBuySheet(); renderBoard();
+    });
+  });
+}
+/* Той самий список файлом — його відкривають у таблиці й шлють підряднику.
+   CSV, бо його читає будь-що: і Excel, і Google Таблиці, і сам підрядник. */
+function buySheetCsv(){
+  const sheet = buySheet();
+  const rows = [['Підрядник', 'Замовлення', 'Товар', 'Колір', 'Розмір', 'Треба', 'Запас', 'Замовити']];
+  Object.keys(sheet).forEach(k => {
+    const g = sheet[k];
+    g.rows.forEach(x => rows.push([
+      g.sup ? g.sup.name : 'без підрядника', x.o.orderId || '', x.r.name, x.r.color,
+      x.r.sz, x.r.need, x.r.res, x.r.need + x.r.res ]));
+  });
+  /* Крапка з комою й BOM — щоб Excel українською не зліпив усе в один
+     стовпчик і не зіпсував кирилицю. */
+  return '﻿' + rows.map(r => r.map(c => {
+    const t = String(c == null ? '' : c);
+    return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  }).join(';')).join('\r\n');
+}
+(function wireBuyCsv(){
+  const b = document.getElementById('buy-csv');
+  if(!b) return;
+  b.addEventListener('click', () => {
+    const blob = new Blob([buySheetCsv()], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'zakupivlya-' + todayIso() + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+})();
 
 /* Додавання з перевіркою на двійника — і тут, і з картки товару. */
 async function supAdd(name, url){
