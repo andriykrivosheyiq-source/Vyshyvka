@@ -1064,6 +1064,22 @@
   .ship-o{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;
     padding:8px 10px;font-size:12.5px;}
   .ship-o:hover{background:var(--canvas);}
+  /* ── Факт проти плану ───────────────────────────────────────────────── */
+  .fact-t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;
+    font-variant-numeric:tabular-nums;}
+  .fact-t th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700;text-align:right;padding:0 4px 6px;}
+  .fact-t td{padding:5px 4px;text-align:right;border-top:1px solid var(--line);}
+  .fact-t td:first-child{text-align:left;font-weight:600;}
+  .fact-t td i{display:block;font-style:normal;font-size:10.5px;font-weight:400;color:var(--ink-soft);}
+  .fact-t tfoot td{font-weight:800;border-top:2px solid var(--line);}
+  .fact-t .is-no{color:#A32C3E;}
+  .fact-t .is-ok{color:#1E7A45;}
+  .fact-add{display:flex;gap:6px;margin-top:10px;}
+  .fact-add input{font:inherit;font-size:12.5px;border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:7px 9px;min-width:0;}
+  .fact-add input[data-fact-label]{flex:1;}
+  .fact-add input[data-fact-sum]{width:80px;flex:none;text-align:right;}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -11670,9 +11686,15 @@ function prodGates(o){
       note: ap.art ? 'v' + ((v && v.n) || '?') + ' · ' + dayUa(ap.art.at) : 'чекає на нас',
       who:'дизайн' },
     { key:'test',  label:'Тест погоджено',
-      ok: !!ap.client,
-      note: ap.client ? 'клієнт · ' + dayUa(ap.client.at)
-                      : (ap.inner ? 'у клієнта' : 'тест ще не показували'),
+      /* Успадковане з повтору погодження діє — доти клієнт уже дивився цей
+         самий виріб і сказав «так». Але тільки поки виріб той самий: змінили
+         одяг, колір чи розмір нанесення — тест вимагається знову. */
+      ok: !!ap.client && !repeatStale(o),
+      note: repeatStale(o) ? 'змінився виріб — потрібен новий тест'
+        : (ap.client
+            ? (v && v.from ? 'успадковано з ' + (v.from.orderId || '') + ' · v' + v.from.n
+                           : 'клієнт · ' + dayUa(ap.client.at))
+            : (ap.inner ? 'у клієнта' : 'тест ще не показували')),
       who:'клієнт' },
     { key:'supply',label:'Одяг отримано',
       /* Немає таблиці закупівлі — віримо треку: у старих замовленнях
@@ -12097,6 +12119,100 @@ function openDefect(o){
                     reason.value, blame.value);
   });
   if(window.LQSelect) LQSelect.scan(d);
+}
+
+/* ══════════ Повтор замовлення ══════════
+   Найдешевші гроші, які ми не беремо. Клієнт повертається через півроку за
+   тими самими футболками — і проходить весь цикл заново: дизайнер, тест,
+   погодження, три дні. А макет УЖЕ погоджено: версія лежить у першому
+   замовленні з файлами й фото.
+
+   Тому нова картка успадковує погоджену версію, і ворота тиражу не вимагають
+   ні дизайну, ні тесту — вони вже закриті цим погодженням. Лишається закупити
+   одяг і пошити.
+
+   ВИНЯТОК ВИДИМИЙ. Якщо змінився виріб, колір або розмір нанесення, кнопка
+   каже прямо: потрібен новий тест. Пропуск етапів має бути обґрунтованим, а
+   не мовчазним — інакше одного разу пошиють 50 худі за макетом від футболки. */
+function repeatSource(o){
+  /* Успадковувати можна тільки те, що клієнт справді бачив і погодив. */
+  const v = artList(o).filter(x => x && x.approvals && x.approvals.client).slice(-1)[0];
+  return v || null;
+}
+function canRepeat(o){ return !!repeatSource(o); }
+/* Підпис виробу — по ньому й видно, чи це та сама річ. Свідомо грубий:
+   назва, колір, спосіб і розмір нанесення. Кількість не рахуємо — тираж
+   якраз і міняється, це нормально. */
+function repeatFingerprint(items){
+  return (items || []).filter(it => itemKind(it) === 'main').map(it =>
+    [it.name || '', it.color || '', itemGarmentId(it) || '',
+     (it.prints || []).map(p => [p.side || '', p.technique || '',
+       Math.round(+p.widthMm || 0), Math.round(+p.heightMm || 0)].join('/')).join(',')
+    ].join('|')).join(' ~ ');
+}
+async function repeatOrder(o){
+  const v = repeatSource(o);
+  if(!v) return toast('Повторювати нема з чого: погодженої версії макета немає');
+  const items = JSON.parse(JSON.stringify((o.items || []).filter(it => itemKind(it) === 'main')));
+  const n = {
+    id: cryptoId(), type:'client', status: firstStatusKey(),
+    orderId: makeOrderId(), source:'повтор', site: o.site || 'main',
+    name:o.name || '', phone:o.phone || '', company:o.company || '',
+    instagram:o.instagram || '', telegram:o.telegram || '', viber:o.viber || '',
+    mgrEmail:o.mgrEmail || (myEmail() || ''),
+    items,
+    /* Ціна перераховується на сьогоднішню й на новий тираж — стару суму не
+       переносимо навіть як підказку: вона застаріла й вводила б в оману. */
+    totalPrice:0, totalCost:0, margin:0, marginPct:0,
+    createdAt:new Date().toISOString(), touchedAt:new Date().toISOString(),
+    hist:[{ s:firstStatusKey(), at:new Date().toISOString() }],
+    /* Успадкована версія лишається підписаною, звідки вона: через рік
+       «звідки цей файл» — перше питання. */
+    art:[Object.assign({}, JSON.parse(JSON.stringify(v)), {
+      n:1, at:new Date().toISOString(), by:(myEmail() || ''),
+      from:{ orderId:o.orderId || '', n:+v.n || 1 } })],
+    repeatOf:o.orderId || '', repeatFrom:o.id || ''
+  };
+  orders.unshift(n);
+  try{
+    const bad = await storeSet('orders', orders) || [];
+    if(Array.isArray(bad) && bad.some(x => x && x.id === n.id)) throw new Error('запис не пройшов');
+  }catch(e){
+    orders.shift();
+    console.error(e); toast('Повтор не створився');
+    return;
+  }
+  renderBoard();
+  openOrderDrawer(n);
+  toast('Повтор ' + n.orderId + ' створено — макет успадковано з ' + (o.orderId || ''));
+}
+/* Успадковане погодження діє, поки виріб той самий. Змінили одяг, колір або
+   розмір нанесення — тест умикається назад, і ворота знову його вимагають. */
+function repeatStale(o){
+  if(!o || !o.repeatOf) return false;
+  const v = artCur(o);
+  if(!v || !v.from) return false;
+  const src = (orders || []).filter(x => x.orderId === o.repeatOf)[0];
+  if(!src) return false;
+  return repeatFingerprint(o.items) !== repeatFingerprint(src.items);
+}
+function repeatFold(o){
+  const src = o.repeatOf ? (orders || []).filter(x => x.orderId === o.repeatOf)[0] : null;
+  const stale = repeatStale(o);
+  if(!o.repeatOf && !canRepeat(o)) return '';
+  const body = o.repeatOf
+    ? `<div class="od-hint">Макет успадковано із замовлення ${escapeHtml(o.repeatOf)}${
+        (artCur(o) || {}).from ? ', версія v' + escapeHtml(String(((artCur(o) || {}).from || {}).n)) : ''
+      }. Дизайн і тест уже погоджені, тож ворота тиражу їх не вимагають.</div>
+       ${stale ? `<div class="gate-sum">ЗМІНИВСЯ ВИРІБ — ПОТРІБЕН НОВИЙ ТЕСТ.
+         Успадковане погодження на цей склад не поширюється.</div>` : ''}`
+    : `<div class="od-hint">Макет цього замовлення погоджений клієнтом. Повтор
+        забере його разом із файлами й фото: дизайнера й тест проходити заново
+        не доведеться, ціна перерахується на сьогодні й на новий тираж.</div>
+       <button class="mk-copy" data-repeat>Повторити замовлення</button>`;
+  return odFoldHtml('rep', o.repeatOf ? 'Повтор замовлення' : 'Повторити замовлення',
+    o.repeatOf ? ('з ' + o.repeatOf + (stale ? ' · потрібен новий тест' : '')) : 'макет погоджено',
+    body);
 }
 
 /* ══════════ Відправка: накладна й відстеження ══════════
@@ -12690,6 +12806,120 @@ function odPayFold(o){
 /* Фінанси — окремою смугою, і це не косметика: рівно цього не має бачити
    менеджер без прав на собівартість. Доти ці рядки ховались усередині
    спільного розділу зі складом. */
+/* ══════════ Факт проти плану ══════════
+   Планову собівартість ми знаємо ще в КП. Фактичну — не знали ніколи, тому
+   питання «чому на цьому замовленні не заробили» не мало відповіді, крім
+   здогадок.
+
+   Факт збирається САМ, із того, що вже й так відбувається: закупівля дає
+   куплені одиниці, брак — перешив, версії макета рахуються самі, накладна
+   дає доставку. Руками — тільки те, чого система не бачить. Це принципово:
+   таблиця, яку треба заповнювати, не заповнюється ніколи.
+
+   Навіщо: перевірити шкали знижок (якщо на худі зі знижкою маржа щоразу
+   нижча за план — шкала неправильна, а не «місяць невдалий»), побачити, у
+   якому саме місці бреше прорахунок, і показати перешиви окремим рядком у
+   гривнях. Бачить це тільки той, кому видно собівартість. */
+function factCostPerUnit(o){
+  const units = (o.items || []).filter(it => itemKind(it) === 'main')
+    .reduce((a, it) => a + (+it.qty || 0), 0);
+  return units ? (+o.totalCost || 0) / units : 0;
+}
+/* Скільки коштує одна одиниця одягу за планом — щоб докупівля й перешив
+   рахувались у грошах, а не в штуках. */
+function factGarmentPerUnit(o){
+  let sum = 0, units = 0;
+  (o.items || []).forEach(it => {
+    if(itemKind(it) !== 'main') return;
+    const q = +it.qty || 0;
+    units += q;
+    sum += q * (+it.unitGarmentCost || 0);
+  });
+  if(units && sum > 0) return sum / units;
+  /* Розкладки по статтях немає — беремо частку собівартості. Груба оцінка,
+     але чесна: краще приблизно й видно, ніж точно й ніколи. */
+  return factCostPerUnit(o) * 0.55;
+}
+function factRows(o){
+  const plan = +o.totalCost || 0;
+  const s = buySum(o);
+  const per = factGarmentPerUnit(o);
+  const extra = Object.keys(buyExtra(o)).reduce((a, k) => a + (+buyExtra(o)[k] || 0), 0);
+  const resew = defectList(o).filter(d => d.route === 'resew')
+                             .reduce((a, d) => a + (+d.qty || 0), 0);
+  /* Перша версія макета закладена в ціні. Кожна наступна — робота, якої в
+     плані не було, і саме вона найчастіше зʼїдає маржу непомітно. */
+  const vers = Math.max(0, artList(o).length - 1);
+  const artFee = vers * (+((contentData.pricing || {}).extraArtCost) || 300);
+  const rows = [
+    { k:'buy', label:'Докупівля', plan:0, fact: Math.round(extra * per),
+      note: extra ? extra + ' шт понад потребу' : '' },
+    { k:'resew', label:'Перешив', plan:0, fact: Math.round(resew * per),
+      note: resew ? resew + ' шт, наша провина' : '' },
+    { k:'art', label:'Макет понад норму', plan:0, fact: artFee,
+      note: vers ? vers + ' верс' + (vers === 1 ? 'ія' : 'ії') + ' понад першу' : '' },
+    { k:'ship', label:'Доставка', plan:0, fact: Math.round(+o.ttnCost || 0),
+      note: o.ttn ? 'накладна ' + o.ttn : '' }
+  ].filter(r => r.fact > 0 || r.plan > 0);
+  /* Руками вносять лише те, чого система не бачить: наприклад, таксі за
+     терміновою тканиною. Окремим рядком, щоб не змішувалось із рахованим. */
+  const hand = Math.round(+((o.factExtra || {}).sum) || 0);
+  if(hand) rows.push({ k:'hand', label:String((o.factExtra || {}).label || 'Інше'),
+                       plan:0, fact:hand, note:'внесено руками' });
+  const factSum = plan + rows.reduce((a, r) => a + r.fact, 0);
+  return { plan, rows, cost:factSum,
+           price:+o.totalPrice || 0,
+           marginPlan:(+o.totalPrice || 0) - plan,
+           marginFact:(+o.totalPrice || 0) - factSum,
+           over: factSum - plan };
+}
+function factFold(o){
+  if(!canSeeCost()) return '';
+  if(!prodStarted(o)) return '';       // до запуску факту ще немає
+  const f = factRows(o);
+  if(!f.rows.length && !f.over) return '';
+  const pctPlan = f.price ? (f.marginPlan / f.price * 100) : 0;
+  const pctFact = f.price ? (f.marginFact / f.price * 100) : 0;
+  const body = `
+    <div class="od-hint">Факт збирається сам: закупівля дає докупівлю, брак —
+      перешив, версії макета рахуються самі, накладна дає доставку. Таблиця,
+      яку треба заповнювати руками, не заповнюється ніколи.</div>
+    <table class="fact-t">
+      <thead><tr><th></th><th>План</th><th>Факт</th></tr></thead>
+      <tbody>
+        <tr><td>За прорахунком</td><td>${fmt(f.plan)}</td><td>${fmt(f.plan)}</td></tr>
+        ${f.rows.map(r=>`<tr><td>${escapeHtml(r.label)}${
+          r.note ? `<i>${escapeHtml(r.note)}</i>` : ''}</td>
+          <td>${r.plan ? fmt(r.plan) : '—'}</td>
+          <td class="is-no">+${fmt(r.fact)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr><td>Собівартість</td><td>${fmt(f.plan)}</td><td>${fmt(f.cost)}</td></tr>
+        <tr><td>Маржа</td>
+          <td>${fmt(f.marginPlan)} · ${pctPlan.toFixed(0)}%</td>
+          <td class="${f.marginFact >= f.marginPlan ? 'is-ok' : 'is-no'}">${
+            fmt(f.marginFact)} · ${pctFact.toFixed(0)}%</td></tr>
+      </tfoot>
+    </table>
+    <div class="fact-add">
+      <input type="text" maxlength="40" data-fact-label placeholder="що ще (таксі, терміновість)"
+        value="${escapeHtml((o.factExtra || {}).label || '')}">
+      <input type="number" min="0" step="1" data-fact-sum placeholder="грн"
+        value="${(+((o.factExtra || {}).sum) || '') || ''}">
+      <button class="art-b" data-fact-save>Внести</button>
+    </div>`;
+  return odFoldHtml('fact', 'Факт проти плану',
+    f.over ? 'перевитрата ' + fmt(f.over) + ' ₴' : 'за планом', body);
+}
+async function factSave(o, label, sum){
+  const s = Math.max(0, Math.round(+sum || 0));
+  o.factExtra = s ? { label:String(label || 'Інше').slice(0, 40), sum:s,
+                      by:(myEmail() || ''), at:new Date().toISOString() } : null;
+  touchOrder(o);
+  try{ await storeSet('orders', orders); toast(s ? 'Внесено' : 'Прибрано'); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
 function odFinFold(o){
   if(!canSeeCost()) return '';
   const body = `
@@ -12958,12 +13188,14 @@ function renderOrderDrawer(){
         ${odPart(()=> odGoodsFold(o), 'товари')}
         ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
         ${odPart(()=> artFold(o), 'макет')}
+        ${odPart(()=> repeatFold(o), 'повтор')}
         ${odPart(()=> buyFold(o), 'закупівля')}
         ${odPart(()=> gateFold(o), 'ворота тиражу')}
         ${odPart(()=> qcFold(o), 'контроль якості')}
         ${odPart(()=> shipFold(o), 'відправка')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
+        ${odPart(()=> factFold(o), 'факт проти плану')}
         ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
           ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : ''}
         ${odPart(()=> odLogFold(o), 'що відбувалось')}
@@ -13181,6 +13413,12 @@ function renderOrderDrawer(){
     b.addEventListener('click', ()=> defectFix(o, b.dataset.qcFix));
   });
   wireShip(panel, o);
+  const repB = panel.querySelector('[data-repeat]');
+  if(repB) repB.addEventListener('click', ()=> repeatOrder(o));
+  const factB = panel.querySelector('[data-fact-save]');
+  if(factB) factB.addEventListener('click', ()=> factSave(o,
+    panel.querySelector('[data-fact-label]').value,
+    panel.querySelector('[data-fact-sum]').value));
   panel.querySelectorAll('.od-trk-sel').forEach(sel=>{
     sel.addEventListener('change', ()=> setTrack(o, sel.dataset.track, sel.value));
   });
