@@ -60,7 +60,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
        між 6 і 8px справді видима; грубий задає ритм секцій. Було 31
        довільне число. */
     --s-2:2px; --s-4:4px; --s-6:6px; --s-8:8px; --s-10:10px; --s-12:12px; --s-16:16px; --s-20:20px; --s-24:24px; --s-32:32px; --s-40:40px; --s-56:56px;
-    --r-1:6px; --r-2:10px; --r-3:14px; --r-4:20px; --r-pill:999px;
+    --r-1:8px; --r-2:12px; --r-3:16px; --r-4:22px; --r-pill:999px;
+    /* Кольорові плитки — той самий набір, що в робочому місці менеджера:
+       пропозиція і CRM мають виглядати як один продукт, а не як дві різні
+       програми. Колір тут завжди підкладка, текст на ній лишається темним. */
+    --tint-violet:#F0EAFB; --tint-mint:#E4F4EA; --tint-sand:#FAF2DC;
+    --tint-sky:#E7F0FE;    --tint-rose:#FBEAEC;
+    /* Темні блоки — графіт із синім підтоном. Чистий чорний на білому екрані
+       читається як діра, графіт — як матеріал. */
+    --coal:#1B1F28; --coal-2:#242A36;
+    --sky:#AFD3FF; --sky-deep:#8FBFF8;
     --fs-1:11px; --fs-2:13px; --fs-3:15px; --fs-4:17px; --fs-5:21px; --fs-6:26px; --fs-7:32px; --fs-8:38px;
 
   }
@@ -1470,6 +1479,93 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     border:1px dashed #B9C4D4;border-radius:var(--r-3);padding:20px;}
   .is-edit .rc{position:relative;}
   /* Плаваюча смуга дій клієнта в редагуванні лише заважає */
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ШАР КОЛЬОРУ Й ФОРМИ
+
+     Пропозиція й робоче місце менеджера мають виглядати як один продукт:
+     ті самі пастельні плитки, той самий графіт замість чистого чорного, те
+     саме помітне округлення. Дрібний радіус і плоска темна кнопка — це
+     форма з середини десятих; поруч із нею навіть свіжий текст читається
+     як старий сайт.
+
+     Колір тут ніколи не заливка тексту, а підкладка під блоком: він каже,
+     що блоки різні, ще до того, як людина прочитає підписи.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Темні блоки ──
+     Кошторис і смуга дії — графіт, а не майже-чорний. Різниця маленька на
+     піпетці й велика на екрані: графіт лишається матеріалом.
+
+     І це картки, а не смуги на всю ширину. Смуга від краю до краю ділить
+     сторінку навпіл і читається як межа документа; картка з полями лишається
+     блоком усередині нього — тим самим, що й товар вище. */
+  .band{background:var(--coal); border-radius:var(--r-4);}
+  .est{background:var(--coal); border-radius:var(--r-4);}
+  .hero{border-radius:var(--r-4); margin-left:0; margin-right:0;
+    background:linear-gradient(168deg,#232935 0%,var(--coal) 58%,#161A22 100%);}
+  section.full{margin-left:0; margin-right:0; padding-left:0; padding-right:0;}
+  .hero-logo-wrap.plate-dark{background:var(--coal);}
+
+  /* ── Кнопки ──
+     Пігулка на всю ширину. Прямокутник із радіусом 14 виглядав як кнопка
+     форми, а не як головна дія сторінки; мʼяка тінь у колір дає їй обʼєм,
+     якого не буває в плоскої заливки. */
+  .btn{border-radius:var(--r-pill); padding:16px 24px;
+    box-shadow:0 10px 24px -12px rgba(232,89,12,.55);}
+  .btn-ghost{box-shadow:none;}
+  .est-cta .btn-ghost{border-radius:var(--r-pill);}
+  /* Кнопка на темному — небесна плитка, а не прозорий контур: у пару до
+     помаранчевої вона читається як «друга дія», а не як обведення. */
+  .rc-add{border-radius:var(--r-pill); padding:12px;}
+  .ord-b{padding:12px 20px;}
+  .pstep{border-radius:var(--r-pill);}
+  .pstep-b{border-radius:var(--r-pill);}
+  .pbuy{border-radius:var(--r-pill);}
+  .chip{border-radius:var(--r-pill);}
+
+  /* ── Плитки ──
+     Картка, фото, вкладка, модалка — одна родина форм. */
+  .pcard{border-radius:var(--r-4);}
+  .mock{border-radius:var(--r-4);}
+  .mgr-ph{border-radius:var(--r-4);}
+  .ord-ask{border-radius:var(--r-4);}
+  .ord-done{border-radius:var(--r-4);}
+  .pnote{border-radius:var(--r-3);}
+  .pchart-img img{border-radius:var(--r-3);}
+
+  /* ── Кольорові підкладки ──
+     Три речі, які клієнт шукає очима найчастіше: скільки треба чекати, як
+     тримається ціна і що йому радять на додачу. Кожна дістає свою пастель —
+     і блок перестає бути суцільною білою стрічкою. */
+  .sl-fold[open]{background:var(--tint-sky); border-radius:var(--r-3);
+    padding:0 12px; margin:0 -12px;}
+  .pnote{background:var(--tint-sand); color:var(--ink);}
+  .rc-add.on{background:var(--tint-mint);}
+  .tab.on{background:var(--coal);}
+
+  /* ── «Доповніть комплект» ──
+     Плитки на кольорових підкладках, по колу чотирьох пастелей. Білі плитки
+     на світлому тлі зливались у сіру стрічку, і розділ, який має щось
+     продавати, читався як службовий список. */
+  .rc{border-radius:var(--r-4); overflow:hidden; background:var(--tint-sky);}
+  .rc:nth-child(4n+2){background:var(--tint-violet);}
+  .rc:nth-child(4n+3){background:var(--tint-mint);}
+  .rc:nth-child(4n+4){background:var(--tint-sand);}
+  .rc-ph{background:transparent;}
+  .rc-add{background:rgba(255,255,255,.92); border-color:transparent;}
+  .rc-add.on{background:#fff; border-color:transparent; color:var(--good);}
+
+  /* ── Картка менеджера ──
+     Останній екран пропозиції — це «з ким я говоритиму». Сірий прямокутник
+     робив із нього підвал; спокійна пастель робить блоком, який помічають. */
+  .mgr{background:var(--tint-sky);}
+  .mgr-a{border-radius:var(--r-pill);}
+  .mgr-a.call{background:var(--coal);}
+
+  /* ── Дрібне, що видає вік інтерфейсу ── */
+  .eddate input, .ord-why select{border-radius:var(--r-2);}
+  .sl-fold > summary{border-radius:var(--r-2);}
 </style>
 </head>
 <body>

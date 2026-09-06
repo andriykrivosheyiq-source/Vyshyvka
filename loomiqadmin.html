@@ -20,13 +20,13 @@
     /* Поверхні й текст */
     --canvas:#F7F8FA;        /* фон сторінки */
     --paper:#FFFFFF;         /* фон карток */
-    --ink:#171717;           /* основний текст */
+    --ink:#1B1F28;           /* основний текст: графіт, а не чистий чорний */
     --ink-soft:#667085;      /* другорядний текст */
     --muted:#98A2B3;         /* тихий текст, підписи */
     --line:#EAECF0;          /* межі й розділювачі */
     --line-soft:#F2F4F7;     /* дуже тиха межа, зебра в таблиці */
-    --side:#171717;          /* sidebar */
-    --side-2:#232323;        /* активний пункт меню */
+    --side:#171B23;          /* sidebar */
+    --side-2:#262C38;        /* активний пункт меню */
     --side-txt:#98A2B3;      /* текст меню */
 
     /* Функціональні кольори: пастельна підкладка + темніший текст */
@@ -36,8 +36,24 @@
     --bad:#B42318;           --bad-soft:#FEF3F2;
     --violet:#6941C6;        --violet-soft:#F4F3FF;
 
-    /* Округлення: картки більші, контроли менші — і жодних інших значень */
-    --r-card:16px;  --r-ctl:10px;  --r-sm:8px;  --r-pill:999px;
+    /* ── Кольорові плитки ──────────────────────────────────────────────
+       Чотири спокійні пастелі, якими підсвічуються показники, воронка й
+       підкладки. Сенс у тому, що поруч вони не зливаються: людина
+       розрізняє блоки кольором ще до того, як прочитає підпис. Текст на
+       них завжди темний — це підкладка, а не заливка. */
+    --tint-violet:#F0EAFB;   --tint-mint:#E4F4EA;
+    --tint-sand:#FAF2DC;     --tint-sky:#E7F0FE;
+    --tint-rose:#FBEAEC;     --tint-teal:#E2F3F2;
+
+    /* Темні блоки — графіт із синім підтоном, а не чистий чорний: чорний на
+       білому екрані читається як діра, графіт — як матеріал. */
+    --coal:#1B1F28;          --coal-2:#242A36;
+    /* Кнопка на темному: спокійне небо, у пару до пастелей вище */
+    --sky:#AFD3FF;           --sky-deep:#8FBFF8;
+
+    /* Округлення: великі й помітні. Дрібний радіус — це стиль 2015 року;
+       форма має читатись як мʼяка плитка, а не як прямокутник із фаскою. */
+    --r-card:20px;  --r-ctl:13px;  --r-sm:10px;  --r-tile:14px;  --r-pill:999px;
 
     /* Тіні дуже обережно: інтерфейс тримається на межах і повітрі */
     --sh-1:0 1px 2px rgba(16,24,40,.05);
@@ -56,7 +72,7 @@
 
   /* sidebar */
   .sidebar{
-    width:220px;flex:none;background:var(--ink);display:flex;flex-direction:column;
+    width:220px;flex:none;background:var(--side);display:flex;flex-direction:column;
     position:sticky;top:0;height:100vh;overflow-y:auto;z-index:40;
   }
   .sidebar-inner{padding:22px 16px;display:flex;flex-direction:column;gap:28px;height:100%;}
@@ -229,20 +245,20 @@
   .nav button svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;
     stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
   .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .nav button:hover{background:#1F1F1F;color:#E6E8EC;}
+  .nav button:hover{background:#20262F;color:#E6E8EC;}
   .nav button.active{background:var(--side-2);color:#fff;font-weight:600;}
   .side-out{all:unset;cursor:pointer;color:var(--side-txt);font-size:13.5px;display:flex;
     align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-ctl);
     box-sizing:border-box;width:100%;position:relative;}
   .side-out svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;
     stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
-  .side-out:hover{background:#1F1F1F;color:#E6E8EC;}
+  .side-out:hover{background:#20262F;color:#E6E8EC;}
   .side-fold{all:unset;cursor:pointer;margin-left:auto;width:28px;height:28px;flex:none;
     border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
     color:var(--side-txt);}
   .side-fold svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;
     stroke-linecap:round;stroke-linejoin:round;}
-  .side-fold:hover{background:#1F1F1F;color:#fff;}
+  .side-fold:hover{background:#20262F;color:#fff;}
   .sidebar-foot{margin-top:auto;font-size:11px;color:var(--ink-soft);line-height:1.5;
     padding-top:14px;border-top:1px solid #262626;}
   .side-note{margin-top:10px;}
@@ -2056,6 +2072,112 @@
   .cw-qr-add{border-radius:var(--r-ctl);font-size:13px;font-weight:600;padding:10px;}
   .cw-qr-ed{border-radius:var(--r-ctl);padding:10px;}
   .cw-ic--txt{width:auto;padding:0 12px;font-size:12.5px;font-weight:600;gap:6px;}
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ШАР КОЛЬОРУ Й ФОРМИ
+
+     Попередній шар звів інтерфейс до одного ритму, але лишив його зовсім
+     тихим: біла картка, сіра межа, чорна кнопка. Такий екран нічим не
+     допомагає — усе однакове, і щоб зрозуміти, де показник, де воронка, а
+     де дія, доводиться читати підписи.
+
+     Тут додається рівно те, чого бракувало: пастельна плитка як спосіб
+     розрізняти блоки, графіт замість чистого чорного й помітне округлення.
+     Правила ті самі: колір — підкладка, ніколи не заливка тексту; на кожен
+     екран одна головна дія; жодного нового кольору повз токени вгорі.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Бічне меню ──
+     Іконка живе в плитці, а не висить у порожнечі: активний пункт видно з
+     півпогляду навіть у згорнутому меню, де підпису немає взагалі. */
+  .nav button{padding:9px 10px;border-radius:var(--r-tile);gap:11px;}
+  .nav button svg{padding:0;}
+  .nav button.active{background:var(--side-2);color:#fff;}
+  /* Плитка під іконкою — світла на темному. Це той самий прийом, що й у
+     знака бренду вгорі: одна світла пляма веде око до поточного місця. */
+  .nav button::before{content:'';position:absolute;left:6px;top:50%;width:3px;height:0;
+    transform:translateY(-50%);border-radius:var(--r-pill);background:var(--sky);
+    transition:height .16s;}
+  .nav button.active::before{height:20px;}
+  .sidebar.is-folded .nav button{border-radius:var(--r-tile);}
+  .sidebar.is-folded .nav button::before{left:2px;}
+  .brand-mark{border-radius:var(--r-tile);}
+
+  /* ── Показники ──
+     Чотири плитки поспіль, кожна свого кольору. Однакові білі картки
+     читались як одна широка смуга: щоб знайти потрібне число, доводилось
+     щоразу читати всі підписи. Колір закріплює місце — «виторг завжди
+     фіолетовий» запамʼятовується з другого разу. */
+  .an-kpis .an-kpi{border:0;border-radius:var(--r-card);padding:16px 18px;}
+  .an-kpis .an-kpi:nth-child(4n+1){background:var(--tint-sky);}
+  .an-kpis .an-kpi:nth-child(4n+2){background:var(--tint-violet);}
+  .an-kpis .an-kpi:nth-child(4n+3){background:var(--tint-mint);}
+  .an-kpis .an-kpi:nth-child(4n+4){background:var(--tint-sand);}
+  .an-kpis .an-kpi .k{color:var(--ink-soft);font-weight:500;}
+  .an-kpis .an-kpi .v{color:var(--ink);}
+  .an-kpis .an-kpi .n{color:var(--ink-soft);opacity:.8;}
+
+  /* ── Воронка ──
+     Назва етапу сидить у плитці свого кольору. Доти колір ніс лише
+     восьмипіксельний кружечок — на екрані з шести колонок його не видно
+     взагалі, і воронка читалась як шість однакових списків. */
+  .col-head{align-items:center;gap:8px;padding:0 4px 12px;}
+  .col-head h3{background:var(--st-soft,var(--canvas));color:var(--st-ink,var(--ink));
+    border-radius:var(--r-pill);padding:5px 13px 5px 11px;display:inline-flex;
+    align-items:center;gap:8px;font-weight:600;}
+  .col-dot{width:7px;height:7px;background:currentColor;opacity:.65;}
+  .col-count{background:transparent;border:0;color:var(--muted);font-weight:600;padding:0 2px;}
+
+  /* ── Картка на дошці ── */
+  .ticket{border-radius:var(--r-card);}
+  /* Аватар — мʼяка плитка, а не кружечок: у ряду з іншими плитками інтерфейсу
+     коло виглядає гостем із чужої системи. Колір лишається свій, від імені. */
+  .tc-av{border-radius:var(--r-sm);}
+
+  /* ── Кнопки ──
+     Округлення помітне, головна дія — графітова плитка з мʼякою тінню.
+     Плоский прямокутник із чорною заливкою виглядав як кнопка з форми
+     десятирічної давнини. */
+  .btn{border-radius:var(--r-ctl);height:44px;padding:0 20px;}
+  .btn-accent{background:var(--coal);border-color:var(--coal);box-shadow:var(--sh-1);}
+  @media (hover:hover){ .btn-accent:hover{background:var(--coal-2);} }
+  /* Друга за важливістю дія — небесна плитка. Вона не сперечається з
+     графітовою: колір інший, ваги однакові, і поруч видно, що головніше. */
+  .btn-sky{background:var(--tint-sky);color:var(--accent-deep);border-color:transparent;}
+  @media (hover:hover){ .btn-sky:hover{background:#DBE8FD;} }
+  .btn-ghost{border-radius:var(--r-ctl);}
+  .icon-btn{border-radius:var(--r-tile);}
+  .bt-btn,.bt-sort,.bt-search input{border-radius:var(--r-ctl);}
+  .bt-btn.is-on{background:var(--coal);border-color:var(--coal);}
+  .an-seg,.an-tabs,.dev-switch{border-radius:var(--r-ctl);}
+  .an-seg button,.an-tabs button,.dev-switch button{border-radius:var(--r-tile);}
+  .an-seg button.active,.an-tabs button.active,.dev-switch button.active{background:var(--coal);}
+  .od-foot .od-kp{background:var(--coal);border-radius:var(--r-ctl);}
+  @media (hover:hover){ .od-foot .od-kp:hover{background:var(--coal-2);} }
+  .mk-copy{background:var(--coal);border-radius:var(--r-ctl);}
+  @media (hover:hover){ .mk-copy:hover{background:var(--coal-2);} }
+
+  /* ── Поля ── */
+  input[type=text],input[type=email],input[type=password],input[type=search],
+  input[type=number],input[type=date],input[type=time],input[type=url],
+  select,textarea{border-radius:var(--r-ctl);}
+
+  /* ── Картки й панелі ── */
+  .card{border-radius:var(--r-card);}
+  .ao{border-radius:var(--r-card);}
+  .od-panel{border-radius:var(--r-card) 0 0 var(--r-card);}
+  .toast,.upd-bar{background:var(--coal);border-radius:var(--r-ctl);}
+  .empty-col{border-radius:var(--r-card);}
+
+  /* ── Темний блок ──
+     Для того одного місця на екрані, яке має зупинити погляд: підказка,
+     запрошення, підсумок. Графіт, світлий текст і небесна кнопка — усе те
+     саме, що й скрізь, лише навиворіт. */
+  .panel-coal{background:var(--coal);color:#fff;border-radius:var(--r-card);padding:24px;}
+  .panel-coal h2,.panel-coal h3,.panel-coal b{color:#fff;}
+  .panel-coal p,.panel-coal .sub{color:#C7CDD8;}
+  .panel-coal .btn-sky{background:var(--sky);color:var(--coal);}
+  @media (hover:hover){ .panel-coal .btn-sky:hover{background:var(--sky-deep);} }
 </style>
 </head>
 <body>
@@ -5514,7 +5636,10 @@ function computeApp(app, qty){
   return appCalc(app.technique, app.wCm, app.hCm, qty, appSizeIndex(app), app.isText);
 }
 
-function fmt(n){ return Math.round(n).toLocaleString('uk-UA'); }
+/* Порожнє поле — це нуль, а не «NaN». Заявка без товару суми ще не має, і
+   на картці стояло «NaN ₴» — напис, який виглядає як поломка системи, хоч
+   насправді там просто ще нічого не порахували. */
+function fmt(n){ return Math.round(+n || 0).toLocaleString('uk-UA'); }
 
 /* ============================================================
    МОДЕЛЬ МЕТОДУ: оплати + терміни (спільні хелпери)
@@ -9289,7 +9414,7 @@ function renderTrackBoard(){
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
     const list = live.filter(o => trackOf(o, key) === st.key).sort(boardSortFn());
     col.innerHTML = `
-      <div class="col-head"><h3><i class="col-dot" style="background:${c.head};"></i>${
+      <div class="col-head"><h3 style="--st-soft:${c.bg};--st-ink:${c.head};"><i class="col-dot"></i>${
         escapeHtml(st.label)}</h3>
         <span class="col-count">${list.length}</span></div>
       <div class="col-body"></div>`;
@@ -9333,7 +9458,7 @@ function renderBoard(){
     // вони для того й придумані, щоб сортуватись без розбору дати.
     const list = orders.filter(o=> o.status===st.key && boardPass(o)).sort(boardSortFn());
     col.innerHTML = `
-      <div class="col-head"><h3><i class="col-dot" style="background:${c.head};"></i>${
+      <div class="col-head"><h3 style="--st-soft:${c.bg};--st-ink:${c.head};"><i class="col-dot"></i>${
         escapeHtml(st.label)}</h3><span class="col-count">${list.length}</span></div>
       <div class="col-body"></div>
     `;
