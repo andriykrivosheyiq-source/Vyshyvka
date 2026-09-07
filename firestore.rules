@@ -22,6 +22,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ─── ПРАВА НА ЗАПИС ────────────────────────────────────────────────
+    // Приховати поля в інтерфейсі — не те саме, що закрити доступ. Доти
+    // дизайнер технічно міг записати в замовлення будь-що: правило пускало
+    // всіх, хто увійшов. Тут закривається найчастіше — «випадково змінив
+    // ціну» й «випадково перетягнув етап».
+    //
+    // Права читаються з окремої карти `acl` у loomiq/photos. Саме карти, а
+    // не списку `team`, яким користується адмінка: у мові правил список за
+    // полем не шукається, а карта — так. Адмінка пише обидва разом, із того
+    // самого списку галочок, тож розійтись вони не можуть.
+    //
+    // Ключ карти — пошта, у якій усе, крім літер і цифр, замінене на «_».
+    // Порожня карта означає «команду ще не заводили» — тоді працює як
+    // раніше, повний доступ усім, хто увійшов. Інакше перше ж збереження
+    // замкнуло б систему від самого власника.
+
+    function cfg() {
+      return get(/databases/$(database)/documents/loomiq/photos).data;
+    }
+    function aclMap() { return cfg().get('acl', {}); }
+    function aclKey() {
+      return (request.auth != null && request.auth.token.email != null)
+        ? request.auth.token.email.lower().replace('[^a-z0-9]', '_') : '';
+    }
+    function aclOn() { return aclMap().keys().size() > 0; }
+    function may(k) {
+      return request.auth != null
+        && (!aclOn() || aclMap().get(aclKey(), {}).get(k, false) == true);
+    }
+    function touched(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys);
+    }
+
     match /reviews/{doc} {
       allow read: if resource.data.approved == true;
       allow create: if request.resource.data.approved == false
@@ -35,10 +68,31 @@ service cloud.firestore {
       allow update, delete: if request.auth != null;
     }
 
-    // Фото товарів: сайт читає публічно, змінює лише менеджер (під паролем)
+    // Контент сайту: читає кожен відвідувач (інакше сайт порожній), змінює
+    // той, кому дозволено налаштування.
+    //
+    // Два винятки, без яких система стала б: лічильник номерів витрачає
+    // будь-хто, хто заводить картку, а журнал доступу пишеться на кожну дію
+    // — якби їх закрили правом setup, менеджер не зміг би ні створити
+    // замовлення, ні лишити слід у журналі, і журнал був би порожній саме
+    // там, де він потрібен.
+    //
+    // Журнал не редагується взагалі: список може тільки рости. Це не робить
+    // його недоторканним (запис можна дописати), але вирізати з нього рядок
+    // уже не можна — а саме вирізання й приховує сліди.
     match /loomiq/photos {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+           may('setup')
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['accessLog', 'orderSeq'])
+      ) && (
+           !('accessLog' in request.resource.data)
+        || !('accessLog' in resource.data)
+        || request.resource.data.accessLog.size() >= resource.data.accessLog.size()
+      );
+      allow delete: if request.auth != null && may('setup');
     }
 
     // Замовлення з сайту: клієнт лише створює, читає й обробляє тільки адмінка.
@@ -95,8 +149,24 @@ service cloud.firestore {
 
     // Картки Канбану: одна картка = один документ (ліміт 1 МБ на весь Канбан
     // раніше глушив збереження). Доступ лише з адмінки.
+    //
+    // Читає кожен, хто увійшов: приховування полів робить інтерфейс, і
+    // розділяти документ ми поки свідомо не беремось — це окрема робота, до
+    // якої треба спершу зрозуміти, які поля кому справді потрібні.
+    //
+    // А от ЗАПИС розділений уже зараз, і саме там, де болить. Дизайнер і
+    // виробництво працюють із треками, макетом, фото й контролем — це їм і
+    // лишається. Склад, ціни та етап продажу вимагають права «міняти склад»,
+    // гроші — права «записувати оплату». Так закривається найчастіше:
+    // «випадково змінив ціну» й «випадково перетягнув етап».
     match /kanbanOrders/{id} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && may('edit');
+      allow delete: if request.auth != null && may('edit');
+      allow update: if request.auth != null
+        && (may('edit') || !touched(['items', 'totalPrice', 'totalCost', 'margin',
+                                     'marginPct', 'status', 'hist', 'discount']))
+        && (may('pay')  || !touched(['payments']));
     }
 
     // Аналітика: один ПЕРЕГЛЯД СТОРІНКИ = один документ. Сесію звіт збирає

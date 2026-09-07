@@ -1051,6 +1051,59 @@
     border:1px solid var(--line);border-radius:var(--r-ctl);padding:8px 10px;}
   .def-route{font-size:12px;color:var(--ink-soft);line-height:1.5;background:var(--canvas);
     padding:9px 11px;border-radius:var(--r-sm);}
+  /* ── Відправка ──────────────────────────────────────────────────────── */
+  .ship-row{display:flex;gap:6px;align-items:center;margin-top:8px;}
+  .ship-row input{flex:1;min-width:0;font:inherit;font-size:13px;border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:8px 10px;}
+  .ship-row input:disabled{background:var(--canvas);color:var(--ink-soft);}
+  .ship-note{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:12px;}
+  .ship-note a{color:var(--accent);font-weight:700;text-decoration:none;}
+  .ship-note span{color:var(--ink-soft);}
+  .ship-pick{margin-top:6px;max-height:190px;overflow-y:auto;border:1px solid var(--line);
+    border-radius:var(--r-ctl);}
+  .ship-o{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;
+    padding:8px 10px;font-size:12.5px;}
+  .ship-o:hover{background:var(--canvas);}
+  /* ── Факт проти плану ───────────────────────────────────────────────── */
+  .fact-t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;
+    font-variant-numeric:tabular-nums;}
+  .fact-t th{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700;text-align:right;padding:0 4px 6px;}
+  .fact-t td{padding:5px 4px;text-align:right;border-top:1px solid var(--line);}
+  .fact-t td:first-child{text-align:left;font-weight:600;}
+  .fact-t td i{display:block;font-style:normal;font-size:10.5px;font-weight:400;color:var(--ink-soft);}
+  .fact-t tfoot td{font-weight:800;border-top:2px solid var(--line);}
+  .fact-t .is-no{color:#A32C3E;}
+  .fact-t .is-ok{color:#1E7A45;}
+  .fact-add{display:flex;gap:6px;margin-top:10px;}
+  .fact-add input{font:inherit;font-size:12.5px;border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:7px 9px;min-width:0;}
+  .fact-add input[data-fact-label]{flex:1;}
+  .fact-add input[data-fact-sum]{width:80px;flex:none;text-align:right;}
+  /* ── Дивитись як / журнал доступу ───────────────────────────────────── */
+  #seeAsBar{position:fixed;left:0;right:0;bottom:0;z-index:2400;display:flex;
+    align-items:center;justify-content:center;gap:14px;padding:10px 16px;
+    background:var(--side,#171B23);color:#fff;font-size:13px;font-weight:600;
+    box-shadow:0 -8px 24px rgba(15,32,52,.25);}
+  #seeAsBar b{color:#8BD3E6;}
+  #seeAsBar button{all:unset;cursor:pointer;padding:6px 14px;border-radius:20px;
+    background:rgba(255,255,255,.16);font-size:12.5px;font-weight:700;}
+  #seeAsBar button:hover{background:rgba(255,255,255,.28);}
+  body.see-as main{padding-bottom:56px;}
+  .see-as-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .see-as-row select{font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:9px 11px;min-width:200px;}
+  .al-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
+    border-bottom:1px solid var(--line);font-size:12.5px;}
+  .al-row:last-child{border-bottom:0;}
+  .al-t{flex:none;width:104px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .al-w{flex:none;width:150px;font-weight:700;}
+  .al-w i{font-style:normal;font-weight:400;color:var(--ink-soft);font-size:11px;}
+  .al-k{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;padding:2px 7px;
+    border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
+  .al-k--export{background:rgba(163,44,62,.12);color:#A32C3E;}
+  .al-k--rights{background:rgba(30,122,69,.12);color:#166638;}
+  .al-x{flex:1;min-width:0;color:var(--ink-soft);}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -2798,6 +2851,25 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
         <div class="sub" id="team-me" style="margin-top:10px;"></div>
       </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Дивитись як</h2>
+          <span class="hint">Адмінка перемальовується рівно так, як її бачить обрана роль. Це перегляд, а не перевтілення: права звужуються, але не розширюються — з чужих очей не зробити того, чого не можна зі своїх. Потрібно щодня: коли налаштовуєш ролі й коли людина каже «у мене цього немає».</span>
+        </div>
+        <div class="see-as-row">
+          <select id="see-as-pick"></select>
+          <button class="btn btn-accent" id="see-as-go">Подивитись</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Журнал доступу</h2>
+          <span class="hint">Стрічка подій у картці каже, що зробили із замовленням. Тут — хто що дивився, змінював і вивантажував. Три записи обовʼязкові: експорти (єдиний спосіб дізнатись, звідки пішла база), зміни прав і вхід у режим «дивитись як». Журнал не редагується взагалі — ні ким.</span>
+        </div>
+        <div id="acc-log"></div>
+      </div>
     </section>
 
     <section id="view-garments" style="display:none;">
@@ -3390,6 +3462,17 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <button class="pc-btn up" id="qr-save" style="flex:none;padding:10px 22px;">Зберегти</button>
             <button class="pc-btn reset" id="qr-reset" style="flex:none;padding:10px 22px;">Повернути стандартні</button>
           </div>
+        </div>
+
+        <div class="card" style="max-width:760px;">
+          <b style="font-size:14px;">Нова пошта — накладні з картки</b>
+          <div class="sub" style="margin:6px 0 12px;">Адреса воркера (<code>worker/novaposhta-proxy.js</code>). З нею накладна
+            створюється просто з картки замовлення, а номер летить клієнту на його сторінку.
+            <b>Ключ API Нової пошти сюди НЕ вставляти</b> — він лише в секретах Worker: з цим ключем
+            стороння людина створює накладні за ваш рахунок і читає всі ваші відправлення.
+            Поле порожнє — номер накладної просто вписують руками, і все інше працює як раніше.</div>
+          <input id="npapi-url" type="text" maxlength="200" style="width:100%;margin-bottom:12px;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:10px 11px;" placeholder="https://loomiq-np.ВАШ-АКАУНТ.workers.dev">
+          <button class="pc-btn up" id="npapi-save" style="flex:none;padding:10px 22px;">Зберегти адресу</button>
         </div>
 
         <div class="card" style="max-width:760px;">
@@ -4646,7 +4729,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
-    if(view==='team') renderTeamList();
+    if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -8324,14 +8407,26 @@ function offerTrackBlock(order){
     { key:'test',  label:'Тестовий відшив',
       state: ap.client ? 'done' : (ap.inner ? 'ask' : 'wait'),
       at: ap.client ? String(ap.client.at || '') : '' },
+    /* Найчастіше питання «а чого так довго» — саме про цей проміжок. Доти
+       між макетом і тиражем у клієнта була порожнеча, і він ішов питати. */
+    { key:'supply', label:'Одяг на складі',
+      state: st(trackIsDone(order, 'supply'), trackOf(order, 'supply') === 'sent') },
     { key:'prod',  label:'Тираж',
       state: st(trackIsDone(order, 'prod'), trackOf(order, 'prod') === 'work') },
+    { key:'qc',    label:'Контроль якості',
+      state: st(trackIsDone(order, 'qc'), trackOf(order, 'qc') === 'check') },
     { key:'ship',  label:'Відправка',
       state: st(trackIsDone(order, 'ship'), trackOf(order, 'ship') === 'ttn') }
   ];
+  /* Дату перенесли — так і кажемо. Мовчазна підміна числа на сторінці
+     клієнта гірша за саму затримку: людина бачить іншу дату й не розуміє,
+     чи то вона помилилась, чи то ми. */
+  const moved = (defectList(order).filter(d => d.dueWas && d.dueWas !== order.dueAt)
+                 .slice(-1)[0] || {}).dueWas || '';
   return {
     orderId: order.orderId || '',
     dueAt: String(order.dueAt || ''),
+    dueWas: String(moved || ''),
     steps,
     /* Питання клієнту зʼявляється лише тоді, коли ми самі вже подивились на
        фото: криве фото клієнту ніхто не шле. */
@@ -11634,9 +11729,15 @@ function prodGates(o){
       note: ap.art ? 'v' + ((v && v.n) || '?') + ' · ' + dayUa(ap.art.at) : 'чекає на нас',
       who:'дизайн' },
     { key:'test',  label:'Тест погоджено',
-      ok: !!ap.client,
-      note: ap.client ? 'клієнт · ' + dayUa(ap.client.at)
-                      : (ap.inner ? 'у клієнта' : 'тест ще не показували'),
+      /* Успадковане з повтору погодження діє — доти клієнт уже дивився цей
+         самий виріб і сказав «так». Але тільки поки виріб той самий: змінили
+         одяг, колір чи розмір нанесення — тест вимагається знову. */
+      ok: !!ap.client && !repeatStale(o),
+      note: repeatStale(o) ? 'змінився виріб — потрібен новий тест'
+        : (ap.client
+            ? (v && v.from ? 'успадковано з ' + (v.from.orderId || '') + ' · v' + v.from.n
+                           : 'клієнт · ' + dayUa(ap.client.at))
+            : (ap.inner ? 'у клієнта' : 'тест ще не показували')),
       who:'клієнт' },
     { key:'supply',label:'Одяг отримано',
       /* Немає таблиці закупівлі — віримо треку: у старих замовленнях
@@ -12061,6 +12162,259 @@ function openDefect(o){
                     reason.value, blame.value);
   });
   if(window.LQSelect) LQSelect.scan(d);
+}
+
+/* ══════════ Повтор замовлення ══════════
+   Найдешевші гроші, які ми не беремо. Клієнт повертається через півроку за
+   тими самими футболками — і проходить весь цикл заново: дизайнер, тест,
+   погодження, три дні. А макет УЖЕ погоджено: версія лежить у першому
+   замовленні з файлами й фото.
+
+   Тому нова картка успадковує погоджену версію, і ворота тиражу не вимагають
+   ні дизайну, ні тесту — вони вже закриті цим погодженням. Лишається закупити
+   одяг і пошити.
+
+   ВИНЯТОК ВИДИМИЙ. Якщо змінився виріб, колір або розмір нанесення, кнопка
+   каже прямо: потрібен новий тест. Пропуск етапів має бути обґрунтованим, а
+   не мовчазним — інакше одного разу пошиють 50 худі за макетом від футболки. */
+function repeatSource(o){
+  /* Успадковувати можна тільки те, що клієнт справді бачив і погодив. */
+  const v = artList(o).filter(x => x && x.approvals && x.approvals.client).slice(-1)[0];
+  return v || null;
+}
+function canRepeat(o){ return !!repeatSource(o); }
+/* Підпис виробу — по ньому й видно, чи це та сама річ. Свідомо грубий:
+   назва, колір, спосіб і розмір нанесення. Кількість не рахуємо — тираж
+   якраз і міняється, це нормально. */
+function repeatFingerprint(items){
+  return (items || []).filter(it => itemKind(it) === 'main').map(it =>
+    [it.name || '', it.color || '', itemGarmentId(it) || '',
+     (it.prints || []).map(p => [p.side || '', p.technique || '',
+       Math.round(+p.widthMm || 0), Math.round(+p.heightMm || 0)].join('/')).join(',')
+    ].join('|')).join(' ~ ');
+}
+async function repeatOrder(o){
+  const v = repeatSource(o);
+  if(!v) return toast('Повторювати нема з чого: погодженої версії макета немає');
+  const items = JSON.parse(JSON.stringify((o.items || []).filter(it => itemKind(it) === 'main')));
+  const n = {
+    id: cryptoId(), type:'client', status: firstStatusKey(),
+    orderId: makeOrderId(), source:'повтор', site: o.site || 'main',
+    name:o.name || '', phone:o.phone || '', company:o.company || '',
+    instagram:o.instagram || '', telegram:o.telegram || '', viber:o.viber || '',
+    mgrEmail:o.mgrEmail || (myEmail() || ''),
+    items,
+    /* Ціна перераховується на сьогоднішню й на новий тираж — стару суму не
+       переносимо навіть як підказку: вона застаріла й вводила б в оману. */
+    totalPrice:0, totalCost:0, margin:0, marginPct:0,
+    createdAt:new Date().toISOString(), touchedAt:new Date().toISOString(),
+    hist:[{ s:firstStatusKey(), at:new Date().toISOString() }],
+    /* Успадкована версія лишається підписаною, звідки вона: через рік
+       «звідки цей файл» — перше питання. */
+    art:[Object.assign({}, JSON.parse(JSON.stringify(v)), {
+      n:1, at:new Date().toISOString(), by:(myEmail() || ''),
+      from:{ orderId:o.orderId || '', n:+v.n || 1 } })],
+    repeatOf:o.orderId || '', repeatFrom:o.id || ''
+  };
+  orders.unshift(n);
+  try{
+    const bad = await storeSet('orders', orders) || [];
+    if(Array.isArray(bad) && bad.some(x => x && x.id === n.id)) throw new Error('запис не пройшов');
+  }catch(e){
+    orders.shift();
+    console.error(e); toast('Повтор не створився');
+    return;
+  }
+  renderBoard();
+  openOrderDrawer(n);
+  toast('Повтор ' + n.orderId + ' створено — макет успадковано з ' + (o.orderId || ''));
+}
+/* Успадковане погодження діє, поки виріб той самий. Змінили одяг, колір або
+   розмір нанесення — тест умикається назад, і ворота знову його вимагають. */
+function repeatStale(o){
+  if(!o || !o.repeatOf) return false;
+  const v = artCur(o);
+  if(!v || !v.from) return false;
+  const src = (orders || []).filter(x => x.orderId === o.repeatOf)[0];
+  if(!src) return false;
+  return repeatFingerprint(o.items) !== repeatFingerprint(src.items);
+}
+function repeatFold(o){
+  const src = o.repeatOf ? (orders || []).filter(x => x.orderId === o.repeatOf)[0] : null;
+  const stale = repeatStale(o);
+  if(!o.repeatOf && !canRepeat(o)) return '';
+  const body = o.repeatOf
+    ? `<div class="od-hint">Макет успадковано із замовлення ${escapeHtml(o.repeatOf)}${
+        (artCur(o) || {}).from ? ', версія v' + escapeHtml(String(((artCur(o) || {}).from || {}).n)) : ''
+      }. Дизайн і тест уже погоджені, тож ворота тиражу їх не вимагають.</div>
+       ${stale ? `<div class="gate-sum">ЗМІНИВСЯ ВИРІБ — ПОТРІБЕН НОВИЙ ТЕСТ.
+         Успадковане погодження на цей склад не поширюється.</div>` : ''}`
+    : `<div class="od-hint">Макет цього замовлення погоджений клієнтом. Повтор
+        забере його разом із файлами й фото: дизайнера й тест проходити заново
+        не доведеться, ціна перерахується на сьогодні й на новий тираж.</div>
+       <button class="mk-copy" data-repeat>Повторити замовлення</button>`;
+  return odFoldHtml('rep', o.repeatOf ? 'Повтор замовлення' : 'Повторити замовлення',
+    o.repeatOf ? ('з ' + o.repeatOf + (stale ? ' · потрібен новий тест' : '')) : 'макет погоджено',
+    body);
+}
+
+/* ══════════ Відправка: накладна й відстеження ══════════
+   Номер накладної досі жив у переписці. Клієнт питав «а де?», менеджер
+   шукав у чаті, копіював, вставляв. Тепер номер лежить у замовленні, сам
+   летить на сторінку клієнта й сам закриває продажний етап.
+
+   Накладна створюється двома шляхами, і обидва рівноправні: якщо воркер
+   Нової пошти налаштований — кнопкою з картки; якщо ні — номер вписують
+   руками. Другий шлях не гірший: він працює завжди, зокрема тоді, коли
+   відправляють іншою службою. */
+function npUrl(){ return String(((contentData || {}).bgApi || {}).npUrl || '').trim(); }
+async function npCall(op, extra){
+  const u = npUrl();
+  if(!u) throw new Error('Адреса воркера Нової пошти не задана');
+  const ctrl = new AbortController();
+  const t = setTimeout(()=> ctrl.abort(), 25000);
+  try{
+    const r = await fetch(u, { method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(Object.assign({ op }, extra || {})), signal:ctrl.signal });
+    const d = await r.json().catch(()=> null);
+    if(!d) throw new Error('Воркер відповів не JSON');
+    if(!d.ok) throw new Error(d.error || 'Нова пошта відмовила');
+    return d;
+  } finally { clearTimeout(t); }
+}
+function shipUnits(o){
+  return (o.items || []).filter(it => itemKind(it) === 'main')
+    .reduce((a, it) => a + (+it.qty || 0), 0);
+}
+/* Номер накладної — єдине місце, звідки клієнт дізнається, що посилка
+   поїхала. Тому запис номера одразу закриває трек відправки й продаж: два
+   окремі натискання для однієї події забуваються рівно наполовину. */
+async function shipSetTtn(o, ttn, extra){
+  const n = String(ttn || '').trim();
+  if(!n) return;
+  o.ttn = n;
+  Object.assign(o, extra || {});
+  o.ttnAt = o.ttnAt || new Date().toISOString();
+  artTrack(o, 'ship', trackDoneKey('ship'));
+  if(o.status !== 'done' && typeof setStatus === 'function') setStatus(o, 'done');
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  await offerSync(o);
+  renderBoard(); renderOrderDrawer();
+}
+async function shipTrack(o){
+  if(!o.ttn) return toast('Номера накладної ще немає');
+  if(!npUrl()) return toast('Відстеження працює через воркер Нової пошти — адресу не задано');
+  toast('Питаю Нову пошту…');
+  try{
+    const d = await npCall('track', { ttn:o.ttn, phone:String(o.phone || '').replace(/\D/g, '') });
+    o.ttnStatus = d.status || '';
+    o.ttnStatusAt = new Date().toISOString();
+    if(d.est) o.ttnEst = d.est;
+    touchOrder(o);
+    await storeSet('orders', orders);
+    await offerSync(o);
+    toast(d.status || 'Статус порожній');
+    renderOrderDrawer();
+  }catch(e){ console.error(e); toast(String(e.message || e)); }
+}
+function shipFold(o){
+  if(!tracksLive(o)) return '';
+  const has = !!o.ttn;
+  const body = `
+    <div class="ship-row">
+      <input type="text" inputmode="numeric" maxlength="30" data-ttn
+        placeholder="Номер накладної" value="${escapeHtml(o.ttn || '')}">
+      <button class="art-b" data-ttn-save>Записати</button>
+    </div>
+    ${has ? `<div class="ship-note">
+      <a href="https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(o.ttn)}"
+         target="_blank" rel="noopener">Відстежити на сайті НП ↗</a>
+      ${o.ttnStatus ? `<span>${escapeHtml(o.ttnStatus)}${
+        o.ttnStatusAt ? ' · ' + escapeHtml(dtUa(o.ttnStatusAt)) : ''}</span>` : ''}
+      ${npUrl() ? '<button class="art-b" data-ttn-track>Оновити статус</button>' : ''}
+    </div>` : ''}
+    ${npUrl() && !has ? `
+      <div class="od-hint">Накладну можна створити звідси: місто й відділення
+        підкаже Нова пошта, решту система візьме із замовлення — ${
+        shipUnits(o)} шт, ${escapeHtml(o.name || 'отримувач')}, ${
+        escapeHtml(o.phone || 'телефон не вписаний')}.</div>
+      <div class="ship-row">
+        <input type="text" data-np-city placeholder="Місто отримувача" autocomplete="off">
+        <input type="text" data-np-wh placeholder="Відділення №" autocomplete="off" disabled>
+      </div>
+      <div class="ship-pick" data-np-list hidden></div>
+      <button class="mk-copy" data-np-make disabled>Створити накладну</button>` : ''}
+    ${!npUrl() ? '<div class="od-hint">Створення накладних вимкнене: у налаштуваннях не задана адреса воркера Нової пошти. Номер можна вписати руками — усе інше працює так само.</div>' : ''}`;
+  return odFoldHtml('ship', 'Відправка',
+    has ? (o.ttnStatus || o.ttn) : 'накладної ще немає', body);
+}
+/* Вибір міста й відділення. Довідник Нової пошти величезний, тому нічого не
+   зберігаємо: питаємо рівно те, що зараз набрали, і рівно тоді, коли набрали
+   досить, щоб пошук мав сенс. */
+function wireShip(panel, o){
+  const ttnI = panel.querySelector('[data-ttn]');
+  const saveB = panel.querySelector('[data-ttn-save]');
+  if(saveB) saveB.addEventListener('click', ()=> shipSetTtn(o, ttnI.value));
+  if(ttnI) ttnI.addEventListener('keydown', e=>{ if(e.key === 'Enter') shipSetTtn(o, ttnI.value); });
+  const trackB = panel.querySelector('[data-ttn-track]');
+  if(trackB) trackB.addEventListener('click', ()=> shipTrack(o));
+
+  const cityI = panel.querySelector('[data-np-city]');
+  const whI   = panel.querySelector('[data-np-wh]');
+  const list  = panel.querySelector('[data-np-list]');
+  const makeB = panel.querySelector('[data-np-make]');
+  if(!cityI || !whI || !list || !makeB) return;
+  let city = null, wh = null, timer = 0;
+
+  const show = (items, pick) => {
+    list.hidden = !items.length;
+    list.innerHTML = items.map((x, i)=>
+      `<button class="ship-o" data-i="${i}">${escapeHtml(x.name)}</button>`).join('');
+    list.querySelectorAll('.ship-o').forEach(b=>
+      b.addEventListener('click', ()=> pick(items[+b.dataset.i])));
+  };
+  const ask = (fn, ms) => { clearTimeout(timer); timer = setTimeout(fn, ms || 350); };
+
+  cityI.addEventListener('input', ()=> ask(async ()=>{
+    const q = cityI.value.trim();
+    city = null; wh = null; whI.disabled = true; whI.value = ''; makeB.disabled = true;
+    if(q.length < 2){ list.hidden = true; return; }
+    try{
+      const d = await npCall('cities', { q });
+      show(d.list || [], x=>{
+        city = x; cityI.value = x.name; list.hidden = true;
+        whI.disabled = false; whI.focus();
+      });
+    }catch(e){ list.hidden = true; toast(String(e.message || e)); }
+  }));
+  whI.addEventListener('input', ()=> ask(async ()=>{
+    if(!city) return;
+    wh = null; makeB.disabled = true;
+    try{
+      const d = await npCall('warehouses', { city:city.ref, q:whI.value.trim() });
+      show(d.list || [], x=>{
+        wh = x; whI.value = x.name; list.hidden = true; makeB.disabled = false;
+      });
+    }catch(e){ list.hidden = true; toast(String(e.message || e)); }
+  }));
+  makeB.addEventListener('click', async ()=>{
+    if(!city || !wh) return toast('Оберіть місто й відділення зі списку');
+    makeB.disabled = true;
+    toast('Створюю накладну…');
+    try{
+      const d = await npCall('create', { order:{
+        name:o.name || '', phone:o.phone || '', qty:shipUnits(o),
+        cost:o.totalPrice || 0, cityRef:city.ref, cityName:city.name,
+        warehouseRef:wh.ref, warehouseNumber:wh.number,
+        description:'Одяг з нанесенням, замовлення ' + (o.orderId || ''),
+        payer:'recipient' } });
+      await shipSetTtn(o, d.ttn, { ttnRef:d.ref, ttnEst:d.est || '',
+                                   ttnCity:city.name, ttnWh:wh.name });
+      toast('Накладна ' + d.ttn + ' створена');
+    }catch(e){ console.error(e); toast(String(e.message || e)); makeB.disabled = false; }
+  });
 }
 
 /* ── Розділи картки ──────────────────────────────────────────────────────
@@ -12495,6 +12849,120 @@ function odPayFold(o){
 /* Фінанси — окремою смугою, і це не косметика: рівно цього не має бачити
    менеджер без прав на собівартість. Доти ці рядки ховались усередині
    спільного розділу зі складом. */
+/* ══════════ Факт проти плану ══════════
+   Планову собівартість ми знаємо ще в КП. Фактичну — не знали ніколи, тому
+   питання «чому на цьому замовленні не заробили» не мало відповіді, крім
+   здогадок.
+
+   Факт збирається САМ, із того, що вже й так відбувається: закупівля дає
+   куплені одиниці, брак — перешив, версії макета рахуються самі, накладна
+   дає доставку. Руками — тільки те, чого система не бачить. Це принципово:
+   таблиця, яку треба заповнювати, не заповнюється ніколи.
+
+   Навіщо: перевірити шкали знижок (якщо на худі зі знижкою маржа щоразу
+   нижча за план — шкала неправильна, а не «місяць невдалий»), побачити, у
+   якому саме місці бреше прорахунок, і показати перешиви окремим рядком у
+   гривнях. Бачить це тільки той, кому видно собівартість. */
+function factCostPerUnit(o){
+  const units = (o.items || []).filter(it => itemKind(it) === 'main')
+    .reduce((a, it) => a + (+it.qty || 0), 0);
+  return units ? (+o.totalCost || 0) / units : 0;
+}
+/* Скільки коштує одна одиниця одягу за планом — щоб докупівля й перешив
+   рахувались у грошах, а не в штуках. */
+function factGarmentPerUnit(o){
+  let sum = 0, units = 0;
+  (o.items || []).forEach(it => {
+    if(itemKind(it) !== 'main') return;
+    const q = +it.qty || 0;
+    units += q;
+    sum += q * (+it.unitGarmentCost || 0);
+  });
+  if(units && sum > 0) return sum / units;
+  /* Розкладки по статтях немає — беремо частку собівартості. Груба оцінка,
+     але чесна: краще приблизно й видно, ніж точно й ніколи. */
+  return factCostPerUnit(o) * 0.55;
+}
+function factRows(o){
+  const plan = +o.totalCost || 0;
+  const s = buySum(o);
+  const per = factGarmentPerUnit(o);
+  const extra = Object.keys(buyExtra(o)).reduce((a, k) => a + (+buyExtra(o)[k] || 0), 0);
+  const resew = defectList(o).filter(d => d.route === 'resew')
+                             .reduce((a, d) => a + (+d.qty || 0), 0);
+  /* Перша версія макета закладена в ціні. Кожна наступна — робота, якої в
+     плані не було, і саме вона найчастіше зʼїдає маржу непомітно. */
+  const vers = Math.max(0, artList(o).length - 1);
+  const artFee = vers * (+((contentData.pricing || {}).extraArtCost) || 300);
+  const rows = [
+    { k:'buy', label:'Докупівля', plan:0, fact: Math.round(extra * per),
+      note: extra ? extra + ' шт понад потребу' : '' },
+    { k:'resew', label:'Перешив', plan:0, fact: Math.round(resew * per),
+      note: resew ? resew + ' шт, наша провина' : '' },
+    { k:'art', label:'Макет понад норму', plan:0, fact: artFee,
+      note: vers ? vers + ' верс' + (vers === 1 ? 'ія' : 'ії') + ' понад першу' : '' },
+    { k:'ship', label:'Доставка', plan:0, fact: Math.round(+o.ttnCost || 0),
+      note: o.ttn ? 'накладна ' + o.ttn : '' }
+  ].filter(r => r.fact > 0 || r.plan > 0);
+  /* Руками вносять лише те, чого система не бачить: наприклад, таксі за
+     терміновою тканиною. Окремим рядком, щоб не змішувалось із рахованим. */
+  const hand = Math.round(+((o.factExtra || {}).sum) || 0);
+  if(hand) rows.push({ k:'hand', label:String((o.factExtra || {}).label || 'Інше'),
+                       plan:0, fact:hand, note:'внесено руками' });
+  const factSum = plan + rows.reduce((a, r) => a + r.fact, 0);
+  return { plan, rows, cost:factSum,
+           price:+o.totalPrice || 0,
+           marginPlan:(+o.totalPrice || 0) - plan,
+           marginFact:(+o.totalPrice || 0) - factSum,
+           over: factSum - plan };
+}
+function factFold(o){
+  if(!canSeeCost()) return '';
+  if(!prodStarted(o)) return '';       // до запуску факту ще немає
+  const f = factRows(o);
+  if(!f.rows.length && !f.over) return '';
+  const pctPlan = f.price ? (f.marginPlan / f.price * 100) : 0;
+  const pctFact = f.price ? (f.marginFact / f.price * 100) : 0;
+  const body = `
+    <div class="od-hint">Факт збирається сам: закупівля дає докупівлю, брак —
+      перешив, версії макета рахуються самі, накладна дає доставку. Таблиця,
+      яку треба заповнювати руками, не заповнюється ніколи.</div>
+    <table class="fact-t">
+      <thead><tr><th></th><th>План</th><th>Факт</th></tr></thead>
+      <tbody>
+        <tr><td>За прорахунком</td><td>${fmt(f.plan)}</td><td>${fmt(f.plan)}</td></tr>
+        ${f.rows.map(r=>`<tr><td>${escapeHtml(r.label)}${
+          r.note ? `<i>${escapeHtml(r.note)}</i>` : ''}</td>
+          <td>${r.plan ? fmt(r.plan) : '—'}</td>
+          <td class="is-no">+${fmt(r.fact)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr><td>Собівартість</td><td>${fmt(f.plan)}</td><td>${fmt(f.cost)}</td></tr>
+        <tr><td>Маржа</td>
+          <td>${fmt(f.marginPlan)} · ${pctPlan.toFixed(0)}%</td>
+          <td class="${f.marginFact >= f.marginPlan ? 'is-ok' : 'is-no'}">${
+            fmt(f.marginFact)} · ${pctFact.toFixed(0)}%</td></tr>
+      </tfoot>
+    </table>
+    <div class="fact-add">
+      <input type="text" maxlength="40" data-fact-label placeholder="що ще (таксі, терміновість)"
+        value="${escapeHtml((o.factExtra || {}).label || '')}">
+      <input type="number" min="0" step="1" data-fact-sum placeholder="грн"
+        value="${(+((o.factExtra || {}).sum) || '') || ''}">
+      <button class="art-b" data-fact-save>Внести</button>
+    </div>`;
+  return odFoldHtml('fact', 'Факт проти плану',
+    f.over ? 'перевитрата ' + fmt(f.over) + ' ₴' : 'за планом', body);
+}
+async function factSave(o, label, sum){
+  const s = Math.max(0, Math.round(+sum || 0));
+  o.factExtra = s ? { label:String(label || 'Інше').slice(0, 40), sum:s,
+                      by:(myEmail() || ''), at:new Date().toISOString() } : null;
+  touchOrder(o);
+  try{ await storeSet('orders', orders); toast(s ? 'Внесено' : 'Прибрано'); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  renderOrderDrawer();
+}
 function odFinFold(o){
   if(!canSeeCost()) return '';
   const body = `
@@ -12763,11 +13231,14 @@ function renderOrderDrawer(){
         ${odPart(()=> odGoodsFold(o), 'товари')}
         ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
         ${odPart(()=> artFold(o), 'макет')}
+        ${odPart(()=> repeatFold(o), 'повтор')}
         ${odPart(()=> buyFold(o), 'закупівля')}
         ${odPart(()=> gateFold(o), 'ворота тиражу')}
         ${odPart(()=> qcFold(o), 'контроль якості')}
+        ${odPart(()=> shipFold(o), 'відправка')}
         ${odPart(()=> odPayFold(o), 'оплата')}
         ${odPart(()=> odFinFold(o), 'фінанси')}
+        ${odPart(()=> factFold(o), 'факт проти плану')}
         ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
           ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : ''}
         ${odPart(()=> odLogFold(o), 'що відбувалось')}
@@ -12984,6 +13455,13 @@ function renderOrderDrawer(){
   panel.querySelectorAll('[data-qc-fix]').forEach(b=>{
     b.addEventListener('click', ()=> defectFix(o, b.dataset.qcFix));
   });
+  wireShip(panel, o);
+  const repB = panel.querySelector('[data-repeat]');
+  if(repB) repB.addEventListener('click', ()=> repeatOrder(o));
+  const factB = panel.querySelector('[data-fact-save]');
+  if(factB) factB.addEventListener('click', ()=> factSave(o,
+    panel.querySelector('[data-fact-label]').value,
+    panel.querySelector('[data-fact-sum]').value));
   panel.querySelectorAll('.od-trk-sel').forEach(sel=>{
     sel.addEventListener('change', ()=> setTrack(o, sel.dataset.track, sel.value));
   });
@@ -16194,6 +16672,7 @@ function renderSiteTab(){
   const crmEl = document.getElementById('crmapi-url'); if(crmEl) crmEl.value = bgApi.sitniksUrl || '';
   const tgEl = document.getElementById('tgapi-url'); if(tgEl) tgEl.value = bgApi.tgUrl || '';
   const clEl = document.getElementById('clarity-id'); if(clEl) clEl.value = bgApi.clarityId || '';
+  const npEl = document.getElementById('npapi-url'); if(npEl) npEl.value = bgApi.npUrl || '';
   // Чернетку заготовок скидаємо: дані приїхали з бази, і показувати треба їх
   qrDraft = null;
   renderQrList();
@@ -16262,6 +16741,24 @@ document.getElementById('crmapi-save').addEventListener('click', async ()=>{
     toast(url ? 'Адресу збережено — переписка тягнеться в картку' : 'Очищено — блок діалогу вимкнено');
   }catch(e){ console.error(e); toast('Помилка'); }
 });
+(function wireNpSave(){
+  const b = document.getElementById('npapi-save');
+  if(!b) return;
+  b.addEventListener('click', async ()=>{
+    const url = document.getElementById('npapi-url').value.trim();
+    if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
+    /* Ключ Нової пошти — 32 шістнадцяткові символи. Якщо він потрапив у
+       посилання, зупиняємось: у базі його бачитиме кожен, хто відкриє
+       адмінку, а це чужі накладні за ваш рахунок. */
+    if(/[?&](api[_-]?key|key|token)=/i.test(url) || /\b[0-9a-f]{32}\b/i.test(url)){
+      toast('Не вставляйте ключ у посилання — лише адресу Worker'); return; }
+    try{
+      await PHOTOS_DOC.set({ bgApi: { npUrl: url } }, { merge:true });
+      toast(url ? 'Адресу збережено — накладну можна створювати з картки'
+                : 'Очищено — номер накладної вписують руками');
+    }catch(e){ console.error(e); toast('Помилка'); }
+  });
+})();
 document.getElementById('tgapi-save').addEventListener('click', async ()=>{
   const url = document.getElementById('tgapi-url').value.trim();
   if(url && !/^https:\/\/\S+$/i.test(url)){ toast('Адреса має починатись з https://'); return; }
@@ -16461,11 +16958,102 @@ function accOf(member){
     can:    pick(a.can,    base.can)
   };
 }
-function myAcc(){
+/* ══════════ Режим «Дивитись як» ══════════
+   Потрібен щодня: коли налаштовуєш ролі, коли людина каже «у мене цього
+   немає», коли треба зрозуміти, чому щось не зроблено. Доти єдиним способом
+   було завести собі другий акаунт і зайти з нього.
+
+   Це саме ПЕРЕГЛЯД, а не перевтілення: права звужуються, але не
+   розширюються — з чужих очей не можна зробити те, чого не можна зі своїх.
+   Інакше режим став би дірою, через яку менеджер дивиться «як власник».
+   І вихід із нього завжди на видноті: непомічений режим гірший за його
+   відсутність. */
+let seeAs = '';
+function seeAsOn(){ return !!seeAs && ROLE_PRESET[seeAs]; }
+function seeAsSet(role){
+  seeAs = (role && ROLE_PRESET[role] && role !== myRole()) ? role : '';
+  try{ sessionStorage.setItem('lq_see_as', seeAs); }catch(e){}
+  if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + (ROLES[seeAs] || seeAs) + '»');
+  applySeeAsBar();
+  applyRoleUi();
+  renderBoard();
+  renderOrderDrawer();
+}
+/* Перетин: у режимі перегляду видно рівно те, що видно ОБОМ. */
+function accIntersect(mine, other){
+  const cut = (a, b) => {
+    if(a === '*') return (b === '*') ? '*' : b.slice();
+    if(b === '*') return a.slice();
+    return a.filter(x => b.indexOf(x) >= 0);
+  };
+  return { ui: other.ui, nav: cut(mine.nav, other.nav), boards: cut(mine.boards, other.boards),
+           see: cut(mine.see, other.see), can: cut(mine.can, other.can) };
+}
+function myAccReal(){
   if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
   const m = teamMember(myEmail());
   if(!m) return presetOf('manager');            // кого не завели — менеджер
   return accOf(m);
+}
+function myAcc(){
+  const mine = myAccReal();
+  if(!seeAsOn()) return mine;
+  return accIntersect(mine, presetOf(seeAs));
+}
+function applySeeAsBar(){
+  let bar = document.getElementById('seeAsBar');
+  if(!seeAsOn()){ if(bar) bar.remove(); document.body.classList.remove('see-as'); return; }
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'seeAsBar';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = '<span>Ви дивитесь очима: <b>' + escapeHtml(ROLES[seeAs] || seeAs) +
+    '</b> — тільки перегляд</span><button data-see-off>Вийти</button>';
+  bar.querySelector('[data-see-off]').addEventListener('click', ()=> seeAsSet(''));
+  document.body.classList.add('see-as');
+}
+
+/* ══════════ Журнал доступу ══════════
+   Стрічка подій каже, ЩО зробили із замовленням. Цього мало. Журнал каже,
+   ХТО що дивився, змінював і вивантажував — і три записи в ньому
+   обов'язкові: експорти (єдиний спосіб дізнатись, звідки пішла база), зміни
+   прав і вхід у режим «дивитись як».
+
+   Журнал бачить тільки той, хто налаштовує систему, і він не редагується
+   взагалі — ні ким. Тому пишемо додаванням у сам документ сайту, а не
+   правкою: правити нічого. */
+const ACC_LOG_MAX = 400;
+function accLogList(){
+  const a = (contentData || {}).accessLog;
+  return Array.isArray(a) ? a : [];
+}
+async function accLog(kind, text){
+  /* Мовчазний журнал гірший за відсутній: якщо запис не пройшов, кажемо в
+     консоль, але саму дію не зупиняємо — інакше збій журналу зупиняв би
+     роботу. */
+  try{
+    const row = { at:new Date().toISOString(), by:(myEmail() || ''),
+                  role:myRole(), kind:String(kind || ''), text:String(text || '').slice(0, 160) };
+    const next = accLogList().concat([row]).slice(-ACC_LOG_MAX);
+    if(contentData) contentData.accessLog = next;
+    if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
+      await PHOTOS_DOC.set({ accessLog: next }, { merge:true });
+  }catch(e){ console.warn('журнал доступу не записався', e); }
+}
+function renderAccLog(){
+  const box = document.getElementById('acc-log');
+  if(!box) return;
+  if(!canSetup()){ box.innerHTML = '<div class="sub">Журнал бачить тільки той, хто налаштовує систему.</div>'; return; }
+  const L = accLogList().slice().reverse();
+  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК', open:'відкрив' };
+  box.innerHTML = L.length ? L.slice(0, 200).map(r =>
+    '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
+    '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
+      (r.role ? ' <i>' + escA(ROLES[r.role] || r.role) + '</i>' : '') + '</span>' +
+    '<span class="al-k al-k--' + escA(r.kind) + '">' + escA(WORD[r.kind] || r.kind) + '</span>' +
+    '<span class="al-x">' + escA(r.text) + '</span></div>').join('')
+    : '<div class="sub">Записів ще немає.</div>';
 }
 function may(group, key){
   const v = (myAcc() || {})[group];
@@ -16579,6 +17167,47 @@ function accBoxes(i, group, list, on){
         <input type="checkbox" data-acc="${i}" data-g="${group}" data-k="${escapeHtml(z.key)}"${
           on.indexOf(z.key) >= 0 ? ' checked' : ''}>${escapeHtml(z.label)}</label>`).join('')}</div></div>`;
 }
+/* ══════════ Права для правил бази ══════════
+   Приховати поле в інтерфейсі — не те саме, що закрити доступ. Правила бази
+   мусять знати ті самі права, але список за полем у мові правил не
+   шукається — карта шукається. Тому поруч зі списком `team` пишеться карта
+   `acl`, зібрана з тих самих галочок: розійтись вони не можуть, бо
+   записуються одним рухом.
+
+   Ключ — пошта, у якій усе, крім літер і цифр, замінене на «_»: у правилах
+   доступний саме такий вигляд. Дві різні пошти теоретично можуть дати один
+   ключ, практично — ні, і краще так, ніж не мати правил узагалі. */
+function aclKeyOf(email){
+  return String(email || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+}
+function aclFromTeam(list){
+  const out = {};
+  (list || []).forEach(p => {
+    const k = aclKeyOf(p.email);
+    if(!k) return;
+    const can = (p.acc && p.acc.can) || [];
+    const see = (p.acc && p.acc.see) || [];
+    out[k] = { edit: can.indexOf('edit') >= 0, pay: can.indexOf('pay') >= 0,
+               setup: can.indexOf('setup') >= 0, cost: see.indexOf('cost') >= 0 };
+  });
+  return out;
+}
+(function wireSeeAs(){
+  const sel = document.getElementById('see-as-pick');
+  const go  = document.getElementById('see-as-go');
+  if(!sel || !go) return;
+  sel.innerHTML = '<option value="">— своїми очима —</option>' +
+    Object.keys(ROLES).map(k => '<option value="' + escA(k) + '">' + escA(ROLES[k]) + '</option>').join('');
+  go.addEventListener('click', ()=>{
+    if(!canSetup()) return toast('Режим перегляду — для того, хто налаштовує систему');
+    seeAsSet(sel.value);
+    if(!sel.value) toast('Повернулись до своїх прав');
+  });
+  /* Режим живе до закриття вкладки: лишити його назавжди означало б, що
+     хтось одного дня працює чужими очима й не розуміє, чому нічого не
+     зберігається. */
+  try{ const s = sessionStorage.getItem('lq_see_as'); if(s) seeAs = s; }catch(e){}
+})();
 function renderTeamList(){
   const box = document.getElementById('team-list');
   if(!box) return;
@@ -16671,14 +17300,25 @@ function renderTeamList(){
     if(list.length && !list.some(p => p.email === myEmail())){
       if(!confirm('Вас немає в списку. Після збереження ви працюватимете як менеджер і не бачитимете собівартість. Зберегти?')) return;
     }
+    /* Що саме змінилось у правах — важливіше за «список збережено»: через
+       півроку питання буде «хто відкрив йому собівартість», а не «коли». */
+    const before = {};
+    ((contentData.team) || []).forEach(p => { before[p.email] = JSON.stringify(p.acc || p.role); });
+    const diff = list.filter(p => before[p.email] !== JSON.stringify(p.acc))
+                     .map(p => p.email + (before[p.email] === undefined ? ' (нов.)' : ''));
+    const gone = Object.keys(before).filter(e => !list.some(p => p.email === e));
     try{
-      await PHOTOS_DOC.set({ team: list }, { merge:true });
+      await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list) }, { merge:true });
       contentData.team = list;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
                                    acc: accExpand(p.acc) }));
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
+      if(diff.length || gone.length)
+        await accLog('rights', [diff.length ? 'змінив права: ' + diff.join(', ') : '',
+          gone.length ? 'прибрав: ' + gone.join(', ') : ''].filter(Boolean).join(' · '));
+      renderAccLog();
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
     }catch(e){ console.error(e); toast('Помилка збереження'); }
   });
@@ -17952,6 +18592,10 @@ function buySheetCsv(){
     a.href = URL.createObjectURL(blob);
     a.download = 'zakupivlya-' + todayIso() + '.csv';
     a.click();
+    /* Вивантаження — єдине, звідки база йде за межі системи. Тому воно в
+       журналі завжди, з числом рядків: «хтось колись викачав» — не відповідь. */
+    const rows = buySheetCsv().split('\r\n').length - 1;
+    accLog('export', 'закупівля на день, ' + rows + ' рядків');
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
 })();
