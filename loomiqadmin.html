@@ -3406,6 +3406,21 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <button class="pc-btn reset" id="pc-tiers-own" style="flex:none;padding:8px 16px;">Своя шкала</button>
               <button class="pc-btn reset" id="pc-tiers-clear" style="flex:none;padding:8px 16px;">Повернути загальну</button>
             </div>
+            <!-- Не кожен спосіб лягає на кожну тканину. На флісі DTF тримається
+                 погано: ворс не дає плівці рівно прилягти, і через кілька прань
+                 краї відходять. Дешевше не пропонувати цього взагалі, ніж потім
+                 перешивати партію за свій кошт. -->
+            <div class="prod-sec-h" style="margin-top:16px;">Способи нанесення</div>
+            <div class="sub" style="margin-bottom:10px;">
+              Що можна робити на цьому виробі. Знятий спосіб зникає з конструктора
+              й із прорахунку — його не запропонують ні клієнту, ні менеджеру.
+              Уже складені пропозиції не змінюються: там лишається те, про що домовлялись.
+            </div>
+            <div class="pc-apps">
+              <label><input type="checkbox" id="pc-app-embro" checked> Вишивка</label>
+              <label><input type="checkbox" id="pc-app-dtf" checked> DTF принт</label>
+            </div>
+            <div class="sub" id="pc-apps-note" style="margin-bottom:14px;"></div>
             <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:14px;cursor:pointer;">
               <input type="checkbox" id="pc-hide"> Приховати товар з каталогу
             </label>
@@ -3995,9 +4010,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=666b42e189"></script>
-<script src="loomiq-fingerprint.js?v=666b42e189"></script>
-<script src="loomiq-pricing.js?v=666b42e189"></script>
+<script src="loomiq-select.js?v=fae56e5a8d"></script>
+<script src="loomiq-fingerprint.js?v=fae56e5a8d"></script>
+<script src="loomiq-pricing.js?v=fae56e5a8d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5956,6 +5971,15 @@ function embMin(m, idx){
   if(!a) return Math.round(+((m || {}).minPrice) || 0);
   return Math.round(+a[Math.min(idx || 0, a.length - 1)] || 0);
 }
+/* Чи дозволений цей спосіб на виробі, обраному зараз у прорахунку.
+   Ключі тут свої («print» замість «dtf») — історична назва в цьому екрані. */
+function calcAllows(tech){
+  const gid = (document.getElementById('order-garment') || {}).value || '';
+  if(!gid || !window.LQ || !LQ.garmentApps) return true;
+  const g = orderGarments().find(x => x.id === gid) || {};
+  const list = LQ.garmentApps(gid, g.name || '', contentData.products || {});
+  return list.indexOf(tech === 'emb' ? 'embro' : 'dtf') >= 0;
+}
 function appCalc(technique, wCm, hCm, qty, idx, isText){
   const p = curSitePricing();
   const meth = p.methods || {};
@@ -6027,6 +6051,9 @@ function renderApps(){
   }
   const qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
   wrap.innerHTML = '';
+  /* Спосіб, знятий на цьому виробі, не має ні показуватись, ні лишатись
+     обраним: інакше ціна порахувалась би за тим, чого ми не зробимо. */
+  currentApps.forEach(a => { if(!calcAllows(a.technique)) a.technique = calcAllows('emb') ? 'emb' : 'print'; });
   currentApps.forEach((app, idx)=>{
     const fig = computeApp(app, qty);
     const card = document.createElement('div');
@@ -6043,10 +6070,17 @@ function renderApps(){
       </div>
       <div class="app-body">
         <div>
+          ${/* Спосіб, якого цей виріб не тримає, тут теж не пропонуємо: інакше
+                менеджер порахував би клієнту те, чого ми не зробимо, і про це
+                стало б відомо вже після підтвердження. */''}
           <div class="seg" data-id="${app.id}">
-            <button data-tech="print" class="${app.technique==='print'?'active print':''}">Друк</button>
-            <button data-tech="emb" class="${app.technique==='emb'?'active emb':''}">Вишивка</button>
+            ${calcAllows('print') ? `<button data-tech="print" class="${
+              app.technique==='print'?'active print':''}">Друк</button>` : ''}
+            ${calcAllows('emb') ? `<button data-tech="emb" class="${
+              app.technique==='emb'?'active emb':''}">Вишивка</button>` : ''}
           </div>
+          ${(calcAllows('print') && calcAllows('emb')) ? '' :
+            '<div class="sub" style="margin:6px 0 0;font-size:11.5px;">На цьому виробі доступний лише один спосіб — тканина не тримає інший.</div>'}
           <!-- Вид нанесення: у написа своя ставка, свій старт і своя разова -->
           <div class="seg" style="margin-top:8px;">
             <button data-kindsw="img" class="${app.isText?'':'active'}">Картинка</button>
@@ -17346,10 +17380,16 @@ document.getElementById('pc-save').addEventListener('click', async ()=>{
   const bp = parseFloat(document.getElementById('pc-baseprice').value);
   const cost = parseFloat(document.getElementById('pc-cost').value);
   const hide = document.getElementById('pc-hide').checked;
+  const apps = ['embro', 'dtf'].filter(k =>
+    (document.getElementById('pc-app-' + k) || {}).checked);
   const DEL = firebase.firestore.FieldValue.delete();
   let hidden = (prod.hidden || []).filter(x=>x!==id);
   if(hide) hidden.push(id);
-  const upd = { products: { hidden, priceLabels:{}, cost:{} }, pricing: { basePrices:{} } };
+  const upd = { products: { hidden, priceLabels:{}, cost:{}, apps:{} }, pricing: { basePrices:{} } };
+  /* Жоден спосіб не знятий — виріб, на який нічого не нанести. Такого не
+     буває, і мовчки зберегти це означало б зробити товар непродаваним. */
+  if(!apps.length){ toast('Хоч один спосіб нанесення має лишитись'); return; }
+  upd.products.apps[id] = apps;
   upd.products.priceLabels[id] = label ? label : DEL;   // порожнє = авто «від [базова ціна]»
   upd.products.cost[id]        = (cost>0) ? cost : DEL;
   upd.pricing.basePrices[id]   = (bp>0) ? bp : DEL;
@@ -19046,6 +19086,25 @@ function renderPriceCost(){
   if(bpEl) bpEl.value = bp === '' ? '' : bp;
   if(costEl) costEl.value = (costs[id] != null) ? costs[id] : '';
   if(hideEl) hideEl.checked = (prod.hidden || []).includes(id);
+  /* Способи нанесення. Показуємо те, що діє ЗАРАЗ, — разом із запасним
+     шляхом за назвою: інакше на флісі стояли б дві галочки, а конструктор
+     показував би один спосіб, і хто правий, було б незрозуміло. */
+  const appsNow = (window.LQ && LQ.garmentApps)
+    ? LQ.garmentApps(id, (g && g.name) || (base && base.name) || '', prod)
+    : ['embro', 'dtf'];
+  const embEl = document.getElementById('pc-app-embro');
+  const dtfEl = document.getElementById('pc-app-dtf');
+  if(embEl) embEl.checked = appsNow.indexOf('embro') >= 0;
+  if(dtfEl) dtfEl.checked = appsNow.indexOf('dtf') >= 0;
+  const noteEl = document.getElementById('pc-apps-note');
+  if(noteEl){
+    const own = Array.isArray((prod.apps || {})[id]);
+    noteEl.textContent = own
+      ? 'Задано вручну для цього товару.'
+      : (appsNow.length < 2
+          ? 'Визначено за назвою: на флісі DTF не тримається. Знявши цю підказку галочкою, ви задасте своє.'
+          : 'Обидва способи доступні.');
+  }
   // кнопка видалення — лише для власних товарів
   const saveBtn = document.getElementById('pc-save');
   let delBtn = document.getElementById('pc-del');

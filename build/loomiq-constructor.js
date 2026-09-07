@@ -421,7 +421,32 @@
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
     function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
-    function getPrint(){ return PRINTS.find(function(p){return p.id===pm.printId;}) || PRINTS[0]; }
+    /* Способи, дозволені на цьому виробі. На флісі DTF тримається погано:
+       ворс не дає плівці рівно прилягти, і через кілька прань краї відходять.
+       Тому спосіб не просто ховається з очей — його не можна й обрати. */
+    function allowedPrints(){
+      var gid = pm.garmentId;
+      var name = (getGarment() || {}).name || '';
+      var ok = (window.LQ && window.LQ.garmentApps)
+        ? window.LQ.garmentApps(gid, window.LQ_name ? window.LQ_name(gid, name) : name)
+        : null;
+      var list = PRINTS.filter(function(p){ return !ok || ok.indexOf(p.id) >= 0; });
+      /* Порожній список означав би виріб, на який нічого не нанести, — такого
+         не буває, і мовчазна порожнеча гірша за зайвий вибір. */
+      return list.length ? list : PRINTS.slice();
+    }
+    function getPrint(){
+      var list = allowedPrints();
+      return list.find(function(p){ return p.id === pm.printId; }) || list[0];
+    }
+    /* Змінили виріб — обраний спосіб міг стати недоступним. Мовчки лишити
+       його не можна: ціна рахувалась би за тим, чого ми не зробимо. */
+    function fixPrintForGarment(){
+      var list = allowedPrints();
+      if(list.some(function(p){ return p.id === pm.printId; })) return false;
+      pm.printId = list[0].id;
+      return true;
+    }
     /* Рахуємо ВСІ вписані кількості, а не лише ті розміри, що зараз у сітці.
        Інакше «Без розміру» зникало з підрахунку щоразу, коли сітка ще не
        встигла його включити: конструктор казав «оберіть розмір і кількість»
@@ -3304,7 +3329,7 @@
             '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
             '<span class="pm-way-size" id="pmPrintSize"></span></div>' +
             '<div class="pm-seg">' +
-              PRINTS.map(function(pr){
+              allowedPrints().map(function(pr){
                 return '<button class="pm-seg-btn'+(pr.id===getPrint().id?' on':'')+'" data-print="'+pr.id+'">' +
                   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+pr.icon+'</svg>' +
                   pr.name + '</button>';
@@ -3312,7 +3337,10 @@
             '</div>';
           if(pm.wayInfo){
             html += '<div class="pm-way-note">' +
-              PRINTS.map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') + '</div>';
+              allowedPrints().map(function(pr){ return '<b>'+pr.name+'</b> — '+pr.desc; }).join('<br>') +
+              (allowedPrints().length < PRINTS.length
+                ? '<br><i>На цьому виробі доступний лише один спосіб — тканина не тримає інший.</i>'
+                : '') + '</div>';
           }
         }
       } else if(pm.tab === 'garment'){
@@ -3665,6 +3693,12 @@
           try{ navSetProductGarment(pm.garmentId); }catch(e){}   // reload має повертати саме цей одяг
           // якщо поточний колір недоступний для нового одягу — беремо перший доступний
           if(!getColors().some(function(c){return c.id===pm.colorId;})) pm.colorId = getColors()[0].id;
+          /* На новому виробі обраний спосіб міг стати недоступним — мовчки
+             лишити його не можна: ціна рахувалась би за тим, чого ми не
+             зробимо, і клієнт побачив би це вже в пропозиції. */
+          if(fixPrintForGarment() && typeof toast === 'function'){
+            try{ toast('На цьому виробі — тільки ' + getPrint().name.toLowerCase()); }catch(e){}
+          }
           // новий виріб може мати іншу кількість ракурсів → скидаємо на «перед» і перебудовуємо крапки
           ensureLogoSides();
           if(getViews().indexOf(pm.side) === -1) pm.side = 'front';
@@ -5280,6 +5314,7 @@
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
       pm.garmentId = garmentId || GARMENTS[0].id;
+      fixPrintForGarment();     // спосіб має бути з тих, що дозволені на цьому виробі
       // Прийшли з рекомендованої картки — беремо саме той колір, який на ній
       // показали. Інакше картка обіцяє шоколадне худі, а відкривається біле.
       if(carry && carry.colorId && getColors().some(function(c){ return c.id === carry.colorId; })){

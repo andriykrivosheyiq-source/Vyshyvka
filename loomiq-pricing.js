@@ -497,7 +497,45 @@
     return ((p && p.upsellMode) === 'keep') ? 'keep' : 'all';
   }
 
+  /* ── Які способи нанесення дозволені на цьому виробі ──────────────────
+     Не кожен спосіб лягає на кожну тканину. На флісі DTF тримається погано:
+     ворс не дає плівці рівно прилягти, і через кілька прань краї відходять.
+     Дешевше не пропонувати цього взагалі, ніж перешивати партію за свій
+     кошт — а «менеджер памʼятає, що на фліс не можна» перестає працювати з
+     появою другого менеджера.
+
+     Правило живе в картці товару, а не в коді: завтра зʼявиться ще один
+     фліс, і вимикати спосіб має бути галочкою.
+
+     Запасний шлях за назвою потрібен для того, що вже заведено: усі фліси,
+     яким нічого не задавали, одразу без DTF. Явна галочка старша за назву —
+     інакше не було б як зробити виняток. */
+  var ALL_APPS = ['embro', 'dtf'];
+  /* `src` — звідки брати налаштування товарів. Сайт і сторінка клієнта
+     читають SITE_CONTENT; адмінка передає свій contentData.products, бо він
+     свіжіший — його щойно редагували, і чекати на перезавантаження сайту,
+     щоб побачити власну галочку, було б дивно. */
+  function garmentApps(gid, name, src){
+    var prod = src || (window.SITE_CONTENT && window.SITE_CONTENT.products) || {};
+    var own = (prod.apps || {})[gid];
+    if(Array.isArray(own)) return own.filter(function(x){ return ALL_APPS.indexOf(x) >= 0; });
+    var nm = String(name || '');
+    if(!nm){
+      var c = (prod.custom || []).filter(function(x){ return x && x.id === gid; })[0];
+      nm = (c && c.name) || '';
+    }
+    /* Назву дивимось і в самого виробу, і в його підпису: «Худі оверсайз з
+       флісом» і «фліска» — те саме для цього правила. */
+    if(/фліс|флис|fleece/i.test(nm + ' ' + String(gid || ''))) return ['embro'];
+    return ALL_APPS.slice();
+  }
+  function garmentAllows(gid, method, name, src){
+    return garmentApps(gid, name, src).indexOf(method === 'dtf' ? 'dtf' : 'embro') >= 0;
+  }
+
   window.LQ = window.LQ || {};
+  window.LQ.garmentApps = garmentApps;
+  window.LQ.garmentAllows = garmentAllows;
   window.LQ.upsellMode = upsellMode;
   window.LQ.areaParts = areaParts;
   window.LQ.areaSum = areaSum;
