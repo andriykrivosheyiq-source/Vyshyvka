@@ -2069,9 +2069,23 @@
       // лишає лeterбокс-смуги в межах фото, і саме вони давали «рамку» іншого кольору
       if(pmGarmentPhoto) pmGarmentPhoto.style.background = col;
     }
+    /* Фон сцени знімається З САМОГО ФОТО виробу — щоб студійний фон картинки
+       й фон блоку були одного кольору, без видимої рамки.
+
+       Але зчитувати його можна лише з фото, яке вже завантажилось. Доти в
+       елементі <img> лежить ПОПЕРЕДНЄ зображення: браузер міняє картинку
+       тільки коли нова готова. Ми ж викликали цю функцію одразу після зміни
+       адреси — і знімали колір із фото минулого кольору. Через це при
+       перемиканні чорного на біле сцена на частку секунди заливалась темним,
+       а тоді стрибала на світле. Саме це й читалось як «кольори заливають».
+
+       Тому поки фото вантажиться — не чіпаємо нічого: лишається той фон, що
+       був, і зміна відбувається один раз, коли нове фото вже на екрані.
+       Покличе нас обробник load, він для цього й стоїть. */
     function matchStageBg(){
       var stage = document.getElementById('pmStage'); if(!stage) return;
       if(!pmGarmentPhoto || pmGarmentPhoto.style.display === 'none' || !pmGarmentPhoto.naturalWidth){ setStageBg(STAGE_BG_FALLBACK); return; }
+      if(!pmGarmentPhoto.complete) return;
       try{
         var nw = pmGarmentPhoto.naturalWidth, nh = pmGarmentPhoto.naturalHeight;
         var W = 64, H = Math.max(1, Math.round(64 * nh / nw));   // масштаб зі збереженням пропорцій
@@ -2092,6 +2106,13 @@
     }
     // перемальовуємо зону, коли фото-мокап довантажився
     pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
+    /* Фото не завантажилось — лишити фон від попереднього кольору означало б
+       показувати чужий колір без жодного пояснення. Повертаємось до
+       нейтрального. */
+    pmGarmentPhoto.addEventListener('error', function(){ try{ setStageBg(STAGE_BG_FALLBACK); }catch(e){} });
+    /* Для перевірки: підгін фону — те місце, де колір минулого виробу колись
+       заливав сцену. Хай буде видно ззовні, щоб це можна було стерегти. */
+    window.__lqStageBg = function(){ return matchStageBg(); };
 
     // Міряємо форму лого з КОНКРЕТНОГО url: пропорції, частку непрозорих пікселів (fill)
     // і межі непрозорого (opaqueBox). Викликаємо і при завантаженні, і при перемиканні
