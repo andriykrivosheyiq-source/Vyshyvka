@@ -3839,6 +3839,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             замовленнях, у яких виробництво вже запущене.</div>
           <div id="an-defects"></div>
         </div>
+        <div class="card">
+          <div class="card-head"><h2>Скільки часу де стоїть</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Рахується з рухів треків, які й так записувались
+            від самого початку — нічого заводити не треба. Головне тут не «скільки працювали», а
+            <b>скільки чекали</b>: простій між діями подовжує строк, не додаючи якості.
+            Ці числа — підстава для строків по етапах. Ставити їх з голови не можна:
+            половина замовлень червонітиме з першого дня, до червоного звикнуть і перестануть дивитись.</div>
+          <div id="an-stages"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Люди й підрядники</h2></div>
+          <div class="sub" style="margin-bottom:12px;">По людях свідомо НЕ міряємо швидкість: якщо міряти
+            швидкістю, її почнуть підганяти за рахунок якості — тест «готовий» без нормального фото,
+            чекліст відмічений не дивлячись. Міряємо те, що людина справді контролює:
+            скільки її роботи повернули з правкою і скільки браку вона позначила.
+            Простій між відділами — питання до процесу, а не до людини, і він у таблиці вище.</div>
+          <div id="an-people"></div>
+        </div>
       </div>
 
       <!-- ── 5. ПРИБУТОК І ГРОШІ ────────────────────────────────── -->
@@ -12355,6 +12373,154 @@ function openDefect(o){
                     reason.value, blame.value);
   });
   if(window.LQSelect) LQSelect.scan(d);
+}
+
+/* ══════════ Скільки часу де стоїть ══════════
+   Ставити SLA «макет — 3 години» з голови не можна: половина замовлень
+   червонітиме з першого дня, до червоного звикнуть і перестануть дивитись.
+   Поріг має братись із власної статистики.
+
+   Добра новина: рахувати нема чого заводити. Кожен рух треку вже пишеться в
+   trackHist з часом і автором — з самого початку. Тому час по етапах
+   збирається заднім числом, з наявних даних.
+
+   Головна величина тут не «скільки працювали», а СКІЛЬКИ ЧЕКАЛИ. Саме
+   простій між діями і є те, що подовжує строк, не додаючи якості. */
+const WAIT_STEPS = { 'test:client':1, 'supply:sent':1, 'supply:part':1, 'design:work':1,
+                     'design:fix':1, 'prod:work':1 };
+function stageSegments(o){
+  const out = [];
+  const start = o.prodAt || o.createdAt || '';
+  const byTrack = {};
+  (o.trackHist || []).forEach(h => {
+    if(!h || !h.t) return;
+    (byTrack[h.t] = byTrack[h.t] || []).push(h);
+  });
+  Object.keys(byTrack).forEach(t => {
+    const L = byTrack[t].slice().sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    for(let i = 0; i < L.length; i++){
+      const from = new Date(L[i].at).getTime();
+      const to = (i + 1 < L.length) ? new Date(L[i + 1].at).getTime()
+        : (trackIsDone(o, t) ? 0 : Date.now());
+      if(!from || !to || to < from) continue;
+      out.push({ track:t, step:L[i].s, by:L[i].by || '', from, to,
+                 hours:(to - from) / 36e5, wait: !!WAIT_STEPS[t + ':' + L[i].s] });
+    }
+    /* Найперший відрізок — від запуску виробництва до першого руху: саме
+       там найчастіше й лежить забуте замовлення. */
+    const f = new Date(L[0].at).getTime(), s0 = new Date(start).getTime();
+    if(f && s0 && f > s0)
+      out.push({ track:t, step:(trackSteps(t)[0] || {}).key || '', by:'', from:s0, to:f,
+                 hours:(f - s0) / 36e5, wait:false });
+  });
+  return out;
+}
+/* Обʼєднання відрізків. Без нього чекання рахувалось СУМОЮ по треках, а
+   треки йдуть паралельно: дизайнер малює, поки одяг їде. Виходило, що
+   «чекали 170 годин» при циклі 120 — число, яке саме себе спростовує.
+   Тепер міряємо по календарю: година, у яку ми чекали двох одразу, це
+   одна година, а не дві. */
+function mergeSpans(list){
+  const L = list.filter(x => x && x.to > x.from).slice()
+                .sort((a, b) => a.from - b.from);
+  let sum = 0, from = 0, to = 0;
+  L.forEach(x => {
+    if(!to || x.from > to){ sum += to - from; from = x.from; to = x.to; }
+    else if(x.to > to) to = x.to;
+  });
+  return sum + (to - from);
+}
+/* Скільки замовлення реально працювалось, а скільки чекало. Разом із
+   блокуваннями це і є відповідь на «чому п'ять днів». */
+function orderTimes(o){
+  const seg = stageSegments(o);
+  const from = new Date(o.prodAt || o.createdAt || 0).getTime();
+  const to = trackIsDone(o, 'ship') && o.ttnAt ? new Date(o.ttnAt).getTime() : Date.now();
+  const total = (from && to > from) ? (to - from) : 0;
+  /* Замовлення чекає, коли ЖОДЕН трек не в роботі — а не коли чекає хоч
+     один: поки шиють, ми не «чекаємо клієнта», навіть якщо він мовчить. */
+  const busy = mergeSpans(seg.filter(s => !s.wait));
+  const blocks = (o.blockHist || []).map(b => ({ from:new Date(b.at).getTime(),
+                                                 to:new Date(b.until).getTime() }));
+  const b = blockOf(o);
+  if(b) blocks.push({ from:new Date(b.at).getTime(), to:Date.now() });
+  const blocked = mergeSpans(blocks);
+  const work = Math.max(0, Math.min(busy, total));
+  return { work:Math.round(work / 36e5),
+           wait:Math.round(Math.max(0, total - work) / 36e5),
+           blocked:Math.round(blocked / 36e5),
+           total:Math.round(total / 36e5) };
+}
+/* Зведення по етапах і по людях. Свідомо роздільно: процес і люди — різні
+   питання, і мішати їх означає міряти людину чужим простоєм. */
+function deptStats(){
+  const steps = {}, people = {}, orders_ = [];
+  (orders || []).forEach(o => {
+    if(!prodStarted(o) || o.status === 'cancel') return;
+    const t = orderTimes(o);
+    orders_.push(t);
+    stageSegments(o).forEach(s => {
+      const k = s.track + ':' + s.step;
+      const r = steps[k] || (steps[k] = { track:s.track, step:s.step, wait:s.wait, sum:0, n:0 });
+      r.sum += s.hours; r.n++;
+      if(s.by){
+        const p = people[s.by] || (people[s.by] = { hours:0, moves:0, returns:0, defects:0 });
+        p.hours += s.hours; p.moves++;
+      }
+    });
+    /* Повернення з правкою — те, що людина справді контролює. Саме це має
+       сенс міряти по людях, а не швидкість: швидкість підганяють, якість — ні. */
+    (o.trackHist || []).forEach(h => {
+      if(h.t === 'design' && h.s === 'fix' && h.by)
+        (people[h.by] = people[h.by] || { hours:0, moves:0, returns:0, defects:0 }).returns++;
+    });
+    defectList(o).forEach(d => {
+      if(!d.by) return;
+      (people[d.by] = people[d.by] || { hours:0, moves:0, returns:0, defects:0 }).defects += (+d.qty || 0);
+    });
+  });
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  return {
+    steps: Object.keys(steps).map(k => Object.assign({ key:k, avg: steps[k].sum / steps[k].n }, steps[k]))
+             .sort((a, b) => b.avg - a.avg),
+    people, n: orders_.length,
+    work: avg(orders_.map(x => x.work)), wait: avg(orders_.map(x => x.wait)),
+    blocked: avg(orders_.map(x => x.blocked)), total: avg(orders_.map(x => x.total))
+  };
+}
+/* Постачальник: обіцяв стільки днів, віз стільки. Доти строк доставки був
+   довідковим полем, у яке ніхто не заглядав удруге. */
+function supStats(){
+  const out = {};
+  (orders || []).forEach(o => {
+    const at = (o.buy || {}).orderedAt;
+    if(!at) return;
+    buyRows(o).forEach(r => {
+      if(!r.sup || !r.got) return;
+      const s = supById(r.sup);
+      const rec = out[r.sup] || (out[r.sup] = { name:(s && s.name) || r.sup,
+        promised:(s && s.days != null) ? +s.days : null, days:[], rows:0, short:0, got:0, need:0 });
+      rec.got += r.got; rec.need += r.need; rec.rows++;
+      /* Недовіз рахуємо ПО РЯДКАХ, а не підсумком: прислати 11 M замість 10
+         і 9 L замість 10 — це недовіз, хоч у сумі рівно двадцять. Саме так
+         він і ховався від нас досі. */
+      if(r.got < r.need) rec.short += (r.need - r.got);
+    });
+    /* Фактичний строк беремо з першого руху треку одягу в «отримано». */
+    const done = (o.trackHist || []).filter(h => h.t === 'supply' && trackStepMeta('supply', h.s) &&
+                                                 trackStepMeta('supply', h.s).done)[0];
+    if(done){
+      const d = (new Date(done.at).getTime() - new Date(at).getTime()) / 864e5;
+      buyRows(o).forEach(r => { if(r.sup && out[r.sup] && d > 0) out[r.sup].days.push(d); });
+    }
+  });
+  Object.keys(out).forEach(k => {
+    const L = out[k].days;
+    out[k].fact = L.length ? L.reduce((a, b) => a + b, 0) / L.length : null;
+    out[k].late = (out[k].promised != null && out[k].fact != null)
+      ? out[k].fact - out[k].promised : null;
+  });
+  return out;
 }
 
 /* ══════════ Вікно «Сьогодні» ══════════
@@ -21573,7 +21739,72 @@ async function init(){
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
     renderDefects();
+    renderStages();
     renderSpend(days);
+  }
+
+  /* Час по етапах і люди. Числа тут не «за період»: цикл замовлення довший
+     за будь-яке вікно звіту, і різати його датою означало б рахувати
+     половину шляху. */
+  function renderStages(){
+    const box = document.getElementById('an-stages');
+    if(!box || typeof deptStats !== 'function') return;
+    const d = deptStats();
+    if(!d.n){ box.innerHTML = '<div class="an-empty">Виробництво ще не запускали.</div>'; return; }
+    const hrs = h => h >= 48 ? (Math.round(h / 24 * 10) / 10) + ' дн' : Math.round(h) + ' год';
+    const label = s => {
+      const t = (typeof trackMeta === 'function' && trackMeta(s.track)) || { label:s.track };
+      const st = (typeof trackStepMeta === 'function' && trackStepMeta(s.track, s.step)) || { label:s.step };
+      return t.label + ' · ' + st.label;
+    };
+    const waitPct = d.total ? Math.round(d.wait / d.total * 100) : 0;
+    box.innerHTML =
+      '<div class="an-kpis" style="margin-bottom:12px;">' +
+        kpi('Цикл замовлення', hrs(d.total), 'від запуску до відправки') +
+        kpi('З них у роботі', hrs(d.work)) +
+        kpi('З них у чеканні', hrs(d.wait), waitPct + '% усього часу',
+            waitPct > 50 ? 'bad' : (waitPct > 30 ? '' : 'good')) +
+        kpi('З них заблоковано', hrs(d.blocked), 'чекали когось зовні') +
+      '</div>' +
+      '<table class="buy-t"><thead><tr><th>Етап</th><th>Разів</th><th>У середньому</th><th></th></tr></thead><tbody>' +
+      d.steps.slice(0, 12).map(s =>
+        '<tr><td class="buy-sz"><b>' + escA(label(s)) + '</b></td>' +
+        '<td>' + s.n + '</td><td><b>' + escA(hrs(s.avg)) + '</b></td>' +
+        '<td>' + (s.wait ? '<i class="buy-x">чекаємо</i>' : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+    renderPeople(d);
+  }
+  function renderPeople(d){
+    const box = document.getElementById('an-people');
+    if(!box) return;
+    const P = d.people || {};
+    const keys = Object.keys(P).sort((a, b) => P[b].moves - P[a].moves);
+    const sup = (typeof supStats === 'function') ? supStats() : {};
+    const sk = Object.keys(sup);
+    box.innerHTML =
+      (keys.length
+        ? '<table class="buy-t"><thead><tr><th>Людина</th><th>Рухів</th>' +
+          '<th>Повернень з правкою</th><th>Позначила браку</th></tr></thead><tbody>' +
+          keys.map(k => '<tr><td class="buy-sz"><b>' + escA(personName(k) || k) + '</b></td>' +
+            '<td>' + P[k].moves + '</td>' +
+            '<td' + (P[k].returns ? ' class="is-no"' : '') + '>' + P[k].returns + '</td>' +
+            '<td>' + P[k].defects + '</td></tr>').join('') +
+          '</tbody></table>'
+        : '<div class="an-empty">Рухів у треках ще не було.</div>') +
+      (sk.length
+        ? '<div class="od-sec" style="margin-top:18px;">Підрядники: обіцяв і привіз</div>' +
+          '<table class="buy-t"><thead><tr><th>Підрядник</th><th>Обіцяв</th><th>Возив</th>' +
+          '<th>Різниця</th><th>Недовіз</th></tr></thead><tbody>' +
+          sk.map(k => {
+            const s = sup[k];
+            return '<tr><td class="buy-sz"><b>' + escA(s.name) + '</b></td>' +
+              '<td>' + (s.promised == null ? '—' : s.promised + ' дн') + '</td>' +
+              '<td>' + (s.fact == null ? '—' : (Math.round(s.fact * 10) / 10) + ' дн') + '</td>' +
+              '<td' + (s.late > 0 ? ' class="is-no"' : (s.late != null ? ' class="is-ok"' : '')) + '>' +
+                (s.late == null ? '—' : (s.late > 0 ? '+' : '') + (Math.round(s.late * 10) / 10) + ' дн') + '</td>' +
+              '<td' + (s.short ? ' class="is-no"' : '') + '>' + (s.short ? s.short + ' шт' : '—') + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '');
   }
 
   /* Брак у цифрах. Сильні виробництва тримаються 0,5–1%, у галузі норма
