@@ -7,14 +7,19 @@
    памʼятає, що на фліс не можна» перестає працювати з появою другого
    менеджера.
 
-   Рішення — правило в картці товару, а не в коді: завтра зʼявиться ще один
-   фліс, і вимикати спосіб має бути галочкою. Запасний шлях за назвою
-   потрібен для того, що вже заведено: усі фліси, яким нічого не задавали,
+   Рішення — правило в картці товару, а не в коді: завтра зʼявиться ще одна
+   фліска, і вимикати спосіб має бути галочкою. Запасний шлях за назвою
+   потрібен для того, що вже заведено: фліски, яким нічого не задавали,
    одразу без DTF. Явна галочка старша за назву — інакше не було б як
    зробити виняток.
 
+   МЕЖА ПРАВИЛА. Слово «фліс» у назві саме по собі нічого не означає: худі з
+   флісовою підкладкою — це звичайне ХУДІ, і DTF на ньому тримається. Ворс,
+   через який плівка відходить, має фліска — сам виріб із флісу. Тому
+   правило шукає назву виробу, а не згадку матеріалу.
+
    Перевіряємо:
-     — фліс за назвою лишається без DTF, звичайні вироби — з обома;
+     — фліска за назвою без DTF, а худі з флісом і звичайні вироби — з обома;
      — явна галочка перекриває правило за назвою в обидві сторони;
      — конструктор не показує й не дає обрати знятий спосіб;
      — зміна виробу перемикає спосіб, а не лишає недоступний;
@@ -63,19 +68,30 @@ await p.waitForTimeout(5000);
 
 console.log('═══ ПРАВИЛО: ФЛІС БЕЗ DTF ═══');
 const rule = await p.evaluate(() => {
-  const A = (gid, name, src) => LQ.garmentApps(gid, name, src).join(',');
+  const A = name => LQ.garmentApps('x', name).join(',');
   return {
-    fleeceById:   A('hoodieoverfleece', 'Худі оверсайз з флісом'),
-    fleeceByName: A('custom1', 'Світшот на флісі'),
-    fleeceLatin:  A('custom2', 'Fleece hoodie'),
-    plain:        A('tee', 'Футболка базова'),
-    hoodie:       A('hoodie', 'Худі базове')
+    /* Фліска — сам виріб із флісу. Ось у неї ворс, через який плівка відходить. */
+    fleece:     A('Фліска'),
+    fleeceCase: A('Фліски чоловічі'),
+    fleeceWord: A('Куртка фліска'),
+    fleeceEn:   A('Fleece jacket'),
+    /* А це худі. Фліс у них усередині, верх звичайний — DTF тримається. */
+    hoodieFl:   A('Худі оверсайз з флісом'),
+    hoodieLine: A('Худі з флісовою підкладкою'),
+    sweatFl:    A('Світшот на флісі'),
+    hoodie:     A('Худі базове'),
+    plain:      A('Футболка базова')
   };
 });
 Object.keys(rule).forEach(k => console.log('  ' + k + ': ' + rule[k]));
-ok(rule.fleeceById === 'embro' && rule.fleeceByName === 'embro' && rule.fleeceLatin === 'embro',
-  'усі фліси — тільки вишивка, хоч за ключем, хоч за назвою',
-  'фліс лишився з DTF: ' + JSON.stringify(rule));
+ok(rule.fleece === 'embro' && rule.fleeceCase === 'embro' &&
+   rule.fleeceWord === 'embro' && rule.fleeceEn === 'embro',
+  'фліски — тільки вишивка, у будь-якому відмінку',
+  'фліска лишилась із DTF: ' + JSON.stringify(rule));
+ok(rule.hoodieFl === 'embro,dtf' && rule.hoodieLine === 'embro,dtf' &&
+   rule.sweatFl === 'embro,dtf',
+  'худі з флісом усередині правила НЕ стосується — це звичайне худі',
+  'у худі з флісовою підкладкою забрали DTF: ' + JSON.stringify(rule));
 ok(rule.plain === 'embro,dtf' && rule.hoodie === 'embro,dtf',
   'на звичайних виробах обидва способи, як і були',
   'звичайний виріб втратив спосіб: ' + rule.plain);
@@ -85,47 +101,49 @@ console.log('═══ ГАЛОЧКА СТАРША ЗА НАЗВУ ═══');
 const own = await p.evaluate(() => {
   /* Виняток в обидві сторони: фліс, на якому DTF таки дозволили, і звичайне
      худі, на якому його зняли. */
-  const src = { apps:{ hoodieoverfleece:['embro', 'dtf'], hoodie:['embro'] } };
+  const src = { apps:{ fl:['embro', 'dtf'], hoodie:['embro'] } };
   return {
-    fleeceOn: LQ.garmentApps('hoodieoverfleece', 'Худі оверсайз з флісом', src).join(','),
+    fleeceOn: LQ.garmentApps('fl', 'Фліска', src).join(','),
     hoodieOff: LQ.garmentApps('hoodie', 'Худі базове', src).join(','),
     allows: LQ.garmentAllows('hoodie', 'dtf', 'Худі базове', src)
   };
 });
-console.log('  фліс із дозволом: ' + own.fleeceOn + ' · худі із забороною: ' + own.hoodieOff);
+console.log('  фліска з дозволом: ' + own.fleeceOn + ' · худі із забороною: ' + own.hoodieOff);
 ok(own.fleeceOn === 'embro,dtf',
   'заданий вручну дозвіл перекриває правило за назвою',
   'галочка не подіяла: ' + own.fleeceOn);
 ok(own.hoodieOff === 'embro' && own.allows === false,
-  'і заборона теж — правило працює на будь-якому виробі, не лише на флісі',
+  'і заборона теж — галочкою спосіб можна зняти з будь-якого виробу',
   'заборону не застосували: ' + own.hoodieOff);
 
 console.log('');
 console.log('═══ КОНСТРУКТОР НЕ ПОКАЗУЄ ЗНЯТОГО ═══');
 const ctor = await p.evaluate(async () => {
   const has = () => [...document.querySelectorAll('[data-print]')].map(b => b.dataset.print);
-  /* Відкриваємо звичайне худі з логотипом — перемикач має бути з двох. */
-  window.__editProduct({ garmentId:'hoodie', colorId:null, printId:null, qty:{ M:10 },
-    logos:{ front:[{ id:'L1', url:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
-                     fp:'f1', scale:1, frac:.2, fx:0, fy:0, ar:1 }], back:[], left:[], right:[] } }, null, []);
+  const LOGO = { id:'L1', fp:'f1', scale:1, frac:.2, fx:0, fy:0, ar:1,
+    url:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>' };
+  const open = (gid, printId) => window.__editProduct({ garmentId:gid, colorId:null,
+    printId, qty:{ M:10 }, logos:{ front:[LOGO], back:[], left:[], right:[] } }, null, []);
+  open('hoodie', null);
   await new Promise(r => setTimeout(r, 1400));
   const both = has();
-  /* Той самий логотип, але на флісі. */
-  window.__editProduct({ garmentId:'hoodieoverfleece', colorId:null, printId:'dtf', qty:{ M:10 },
-    logos:{ front:[{ id:'L1', url:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
-                     fp:'f1', scale:1, frac:.2, fx:0, fy:0, ar:1 }], back:[], left:[], right:[] } }, null, []);
+  /* Знімаємо DTF на цьому виробі так, як це зробить менеджер галочкою. */
+  window.SITE_CONTENT.products = Object.assign({}, window.SITE_CONTENT.products,
+    { apps:{ hoodie:['embro'] } });
+  open('hoodie', 'dtf');
   await new Promise(r => setTimeout(r, 1400));
-  return { both, fleece:has() };
+  const off = has();
+  return { both, off };
 });
-console.log('  худі: ' + ctor.both.join(', ') + ' · фліс: ' + (ctor.fleece.join(', ') || '—'));
+console.log('  до: ' + ctor.both.join(', ') + ' · після зняття: ' + (ctor.off.join(', ') || '—'));
 ok(ctor.both.length === 2 && ctor.both.indexOf('dtf') >= 0,
-  'на звичайному худі перемикач із двох способів',
+  'поки спосіб дозволений — перемикач із двох',
   'перемикач не той: ' + ctor.both.join(','));
-ok(ctor.fleece.length === 1 && ctor.fleece[0] === 'embro',
-  'на флісі DTF немає навіть у списку — його не можна обрати',
-  'DTF лишився на флісі: ' + ctor.fleece.join(','));
+ok(ctor.off.length === 1 && ctor.off[0] === 'embro',
+  'знятий спосіб зникає зі списку — його не можна обрати',
+  'знятий спосіб лишився: ' + ctor.off.join(','));
 
-/* Найважливіше: обраний DTF не має мовчки лишитись, коли перейшли на фліс —
+/* Найважливіше: обраний DTF не має мовчки лишитись, коли спосіб зняли —
    інакше ціна порахується за тим, чого ми не зробимо. */
 const kept = await p.evaluate(() => {
   /* Дивимось на те, що бачить людина: яка кнопка підсвічена. Стан
@@ -135,10 +153,10 @@ const kept = await p.evaluate(() => {
   return { on: on ? on.dataset.print : null,
            all: [...document.querySelectorAll('[data-print]')].map(b => b.dataset.print) };
 });
-console.log('  на флісі підсвічено: ' + kept.on);
+console.log('  підсвічено: ' + kept.on);
 ok(kept.on === 'embro',
   'обраний DTF сам змінився на дозволений спосіб',
-  'на флісі лишився обраний DTF: ' + JSON.stringify(kept));
+  'лишився обраний DTF: ' + JSON.stringify(kept));
 
 console.log('');
 console.log('═══ ПРОРАХУНОК МЕНЕДЖЕРА Й КАРТКА ТОВАРУ ═══');
@@ -159,7 +177,7 @@ ok(/Хоч один спосіб нанесення має лишитись/.tes
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
-                : 'на флісі DTF більше не запропонують — ні клієнту, ні менеджеру');
+                : 'на фліску DTF більше не запропонують — ні клієнту, ні менеджеру');
 await browser.close();
 srv.close();
 process.exit(bad ? 1 : 0);

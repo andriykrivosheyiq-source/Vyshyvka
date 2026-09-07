@@ -3406,10 +3406,11 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <button class="pc-btn reset" id="pc-tiers-own" style="flex:none;padding:8px 16px;">Своя шкала</button>
               <button class="pc-btn reset" id="pc-tiers-clear" style="flex:none;padding:8px 16px;">Повернути загальну</button>
             </div>
-            <!-- Не кожен спосіб лягає на кожну тканину. На флісі DTF тримається
+            <!-- Не кожен спосіб лягає на кожну тканину. На флісці DTF тримається
                  погано: ворс не дає плівці рівно прилягти, і через кілька прань
-                 краї відходять. Дешевше не пропонувати цього взагалі, ніж потім
-                 перешивати партію за свій кошт. -->
+                 краї відходять. Худі з флісовою підкладкою це не стосується —
+                 верх у нього звичайний. Дешевше не пропонувати способу там, де
+                 він не тримається, ніж потім перешивати партію за свій кошт. -->
             <div class="prod-sec-h" style="margin-top:16px;">Способи нанесення</div>
             <div class="sub" style="margin-bottom:10px;">
               Що можна робити на цьому виробі. Знятий спосіб зникає з конструктора
@@ -4010,9 +4011,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fae56e5a8d"></script>
-<script src="loomiq-fingerprint.js?v=fae56e5a8d"></script>
-<script src="loomiq-pricing.js?v=fae56e5a8d"></script>
+<script src="loomiq-select.js?v=c8c97d6b3a"></script>
+<script src="loomiq-fingerprint.js?v=c8c97d6b3a"></script>
+<script src="loomiq-pricing.js?v=c8c97d6b3a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -19102,7 +19103,7 @@ function renderPriceCost(){
     noteEl.textContent = own
       ? 'Задано вручну для цього товару.'
       : (appsNow.length < 2
-          ? 'Визначено за назвою: на флісі DTF не тримається. Знявши цю підказку галочкою, ви задасте своє.'
+          ? 'Визначено за назвою: на флісці DTF не тримається — ворс не дає плівці прилягти. Галочка старша за це правило.'
           : 'Обидва способи доступні.');
   }
   // кнопка видалення — лише для власних товарів
