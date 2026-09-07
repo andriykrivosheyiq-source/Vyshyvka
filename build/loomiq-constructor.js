@@ -421,7 +421,7 @@
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
     function getColor(){ var cs = getColors(); return cs.find(function(c){return c.id===pm.colorId;}) || cs[0]; }
-    /* Способи, дозволені на цьому виробі. На флісі DTF тримається погано:
+    /* Способи, дозволені на цьому виробі. На флісці DTF тримається погано:
        ворс не дає плівці рівно прилягти, і через кілька прань краї відходять.
        Тому спосіб не просто ховається з очей — його не можна й обрати. */
     function allowedPrints(){
