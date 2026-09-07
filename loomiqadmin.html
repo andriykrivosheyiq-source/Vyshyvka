@@ -1104,6 +1104,72 @@
   .al-k--export{background:rgba(163,44,62,.12);color:#A32C3E;}
   .al-k--rights{background:rgba(30,122,69,.12);color:#166638;}
   .al-x{flex:1;min-width:0;color:var(--ink-soft);}
+  /* ── Вікно «Сьогодні» ───────────────────────────────────────────────── */
+  .td-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;margin-bottom:16px;}
+  .td-k{background:#fff;border-radius:var(--r-card);padding:14px 16px;
+    border:1px solid var(--line);}
+  .td-k b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;}
+  .td-k span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+  .td-k.is-hot b{color:#A32C3E;}
+  .td-k.is-warn b{color:#A3722C;}
+  .td-filter{margin-bottom:14px;}
+  .td-r{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;
+    border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:8px;
+    cursor:pointer;}
+  .td-r:hover{border-color:var(--accent);}
+  .td-r.is-doing{background:var(--accent-soft);border-color:var(--accent);}
+  .td-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#8FA0B4;}
+  .td-hot .td-dot{background:#A32C3E;}
+  .td-warn .td-dot{background:#D19A3C;}
+  .td-ok .td-dot{background:#4FA97A;}
+  .td-b{flex:1;min-width:0;}
+  .td-t{font-size:14px;font-weight:700;line-height:1.35;}
+  .td-m{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+  .td-m b{color:var(--ink);font-family:var(--mono);font-weight:700;}
+  .td-m i{font-style:normal;color:#A32C3E;font-weight:700;}
+  .td-warn .td-m i{color:#A3722C;}
+  .td-a{flex:none;display:flex;gap:6px;}
+  .td-btn{all:unset;cursor:pointer;padding:7px 12px;border-radius:var(--r-ctl);
+    background:var(--canvas);font-size:12px;font-weight:700;white-space:nowrap;}
+  .td-btn:hover{background:var(--line);}
+  .td-ok{background:var(--accent-soft);color:var(--accent-deep);}
+  .td-ok:hover{background:var(--accent);color:#fff;}
+  .td-open{background:transparent;color:var(--ink-soft);}
+  .td-empty{padding:36px 16px;text-align:center;color:var(--ink-soft);font-size:14px;
+    background:#fff;border:1px dashed var(--line);border-radius:var(--r-card);}
+  @media (max-width:720px){
+    .td-r{flex-wrap:wrap;} .td-a{width:100%;justify-content:flex-end;}
+  }
+  /* ── Наступна дія в картці ──────────────────────────────────────────── */
+  .od-step{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0 4px;
+    padding:10px 12px;border-radius:var(--r-ctl);background:var(--canvas);}
+  .od-step--hot{background:rgba(163,44,62,.09);}
+  .od-step--warn{background:rgba(209,154,60,.14);}
+  .od-step-k{flex:none;font-size:9.5px;font-weight:800;letter-spacing:.07em;
+    color:var(--ink-soft);}
+  .od-step-t{flex:1;min-width:120px;font-size:13px;font-weight:700;}
+  .od-step-w{font-size:11px;font-weight:700;color:#A32C3E;}
+  .od-step--warn .od-step-w{color:#A3722C;}
+  .od-step-b{all:unset;cursor:pointer;flex:none;font-size:11px;font-weight:700;
+    color:var(--ink-soft);padding:4px 9px;border-radius:20px;background:rgba(0,0,0,.05);}
+  .od-step-b:hover{background:rgba(0,0,0,.1);color:var(--ink);}
+  /* ── Перша одиниця: еталон поруч із фактом ──────────────────────────── */
+  .fp-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+  .fp-c{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .fp-l{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);}
+  .fp-c img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-sm);
+    border:1px solid var(--line);display:block;}
+  .fp-c i{font-style:normal;font-size:10.5px;color:var(--ink-soft);}
+  .fp-none{padding:18px 10px;font-size:11.5px;color:var(--ink-soft);text-align:center;
+    border:1px dashed var(--line);border-radius:var(--r-sm);}
+  .fp-add{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:4px;aspect-ratio:4/3;border:1px dashed var(--line);
+    border-radius:var(--r-sm);font-size:11px;color:var(--ink-soft);text-align:center;}
+  .fp-add:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .fp-add b{font-size:18px;font-weight:400;line-height:1;}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -2442,6 +2508,7 @@
         </button>
       </div>
       <nav class="nav">
+        <button data-view="today" data-tip="Сьогодні"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.4 9.9l6-.9z"/></svg><span>Сьогодні</span></button>
         <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
         <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
@@ -2832,6 +2899,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
          — між ставками друку й термінами, — і знайти його міг хіба той, хто
          знав, що він там є. Доступи — це не довідник цін, це керування
          людьми, і місце в них своє. -->
+    <section id="view-today" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Робочий день</div>
+        <h1>Що зробити сьогодні</h1>
+        <div class="sub">Одне вікно замість обходу карток. Система сама каже, яка наступна дія
+          в кожному замовленні, і чекає від вас одного з двох: «беру» або «зробив».
+          Нагадування, які ви ставили руками, лежать тут же — окремо їх шукати не треба.</div>
+      </div>
+      <div class="td-kpis" id="td-kpis"></div>
+      <div class="td-filter seg" id="td-filter">
+        <button data-f="all" class="active">Усе</button>
+        <button data-f="mine">Моє</button>
+        <button data-f="hot">Потребує рішення</button>
+        <button data-f="wait">Чекаємо інших</button>
+      </div>
+      <div id="td-list"></div>
+    </section>
+
     <section id="view-team" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Адміністрування</div>
@@ -3754,6 +3839,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             замовленнях, у яких виробництво вже запущене.</div>
           <div id="an-defects"></div>
         </div>
+        <div class="card">
+          <div class="card-head"><h2>Скільки часу де стоїть</h2></div>
+          <div class="sub" style="margin-bottom:12px;">Рахується з рухів треків, які й так записувались
+            від самого початку — нічого заводити не треба. Головне тут не «скільки працювали», а
+            <b>скільки чекали</b>: простій між діями подовжує строк, не додаючи якості.
+            Ці числа — підстава для строків по етапах. Ставити їх з голови не можна:
+            половина замовлень червонітиме з першого дня, до червоного звикнуть і перестануть дивитись.</div>
+          <div id="an-stages"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Люди й підрядники</h2></div>
+          <div class="sub" style="margin-bottom:12px;">По людях свідомо НЕ міряємо швидкість: якщо міряти
+            швидкістю, її почнуть підганяти за рахунок якості — тест «готовий» без нормального фото,
+            чекліст відмічений не дивлячись. Міряємо те, що людина справді контролює:
+            скільки її роботи повернули з правкою і скільки браку вона позначила.
+            Простій між відділами — питання до процесу, а не до людини, і він у таблиці вище.</div>
+          <div id="an-people"></div>
+        </div>
       </div>
 
       <!-- ── 5. ПРИБУТОК І ГРОШІ ────────────────────────────────── -->
@@ -4622,6 +4725,15 @@ function trackBlocked(o, key, step){
     const left = prodGates(o).filter(x => !x.ok).map(x => x.label.toLowerCase());
     return 'Тираж ще не готовий: ' + left.join(', ');
   }
+  /* Тираж не закривається, поки не звірили першу одиницю — там, де ми
+     самі вирішили, що вона потрібна. Це не зайва церемонія: помилка на
+     першій штуці коштує одну штуку, на закритому тиражі — всі. */
+  if(key === 'prod' && trackStepMeta('prod', step) && trackStepMeta('prod', step).done &&
+     typeof firstPieceNeeded === 'function' && firstPieceNeeded(o).length){
+    const f = firstPieceState(o);
+    if(!f || !f.photo) return 'Спершу зніміть першу одиницю партії й звірте з еталоном';
+    if(!f.ok) return 'Перша одиниця знята, але не звірена з еталоном';
+  }
   return '';
 }
 async function setTrack(o, key, step){
@@ -4719,7 +4831,8 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vAn = document.getElementById('view-analytics'); if(vAn) vAn.style.display = view==='analytics' ? 'block':'none';
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи'};
+    const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Сьогодні'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -4730,6 +4843,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
     if(view==='team'){ renderTeamList(); renderAccLog(); }
+    if(view==='today') renderToday();
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -12063,6 +12177,97 @@ function defectStats(){
   out.pct = out.units ? (out.bad / out.units * 100) : 0;
   return out;
 }
+/* ══════════ Перша одиниця ══════════
+   Не чекати, поки вишиють 50 худі. Перша одиниця партії → швидка перевірка
+   → і аж тоді решта тиражу. Помилка коштує одне худі замість пʼятдесяти, і
+   це найдешевший запобіжник з усіх, які тут є.
+
+   Вимагаємо не завжди: на десяти футболках із простим написом окрема
+   зупинка — зайва церемонія. Правило просте й пояснюване, без балів:
+   дорого, багато або складно. Оцінку, яку ніхто не може пояснити, за
+   тиждень перестають читати. */
+function firstPieceNeeded(o){
+  const why = [];
+  const units = (o.items || []).filter(it => itemKind(it) === 'main')
+    .reduce((a, it) => a + (+it.qty || 0), 0);
+  const prints = (o.items || []).reduce((a, it) => a + ((it.prints || []).length), 0);
+  const per = (o.items || []).filter(it => itemKind(it) === 'main')
+    .reduce((a, it) => Math.max(a, +it.unitPrice || 0), 0);
+  if(units >= 30) why.push('тираж ' + units + ' шт');
+  if(per >= 900)  why.push('дорогий виріб');
+  if(prints >= 2) why.push(prints + ' нанесення');
+  if(o.repeatOf && repeatStale(o)) why.push('змінився виріб у повторі');
+  if(artList(o).length >= 3) why.push('макет переробляли ' + (artList(o).length - 1) + " раз" +
+    (artList(o).length === 3 ? 'и' : 'ів'));
+  return why;
+}
+function firstPieceState(o){ return (o.qc && o.qc.first) || null; }
+async function firstPieceShoot(o){
+  openCam('batch', async blob=>{
+    toast('Завантажую…');
+    try{
+      const url = await uploadCloudinaryAuto(blob);
+      if(!o.qc || typeof o.qc !== 'object') o.qc = {};
+      o.qc.first = { photo:url, at:new Date().toISOString(), by:(myEmail() || ''), ok:false };
+      await qcSave(o, 'Перша одиниця знята — звірте з еталоном');
+    }catch(e){ console.error(e); toast('Знімок не завантажився'); }
+  });
+}
+async function firstPieceOk(o, good){
+  const f = firstPieceState(o);
+  if(!f) return toast('Спершу зніміть першу одиницю');
+  f.ok = !!good;
+  f.okAt = new Date().toISOString();
+  f.okBy = myEmail() || '';
+  if(!good){
+    /* Не збіглась із еталоном — це брак, і маршрут у нього вже є. Головне,
+       що тиражу ще немає: переробляти одну штуку, а не партію. */
+    await qcSave(o);
+    return openDefect(o);
+  }
+  await qcSave(o, 'Перша одиниця збіглася з еталоном — можна тираж');
+}
+/* Еталон: саме те фото тесту, яке погодив клієнт. Не «перевірити вишивку», а
+   ось це поруч із ось цим — так набагато менше суб'єктивного «ну наче
+   нормально». */
+function goldenSample(o){
+  const v = artList(o).filter(x => x && x.approvals && x.approvals.client && x.photo).slice(-1)[0];
+  return v || null;
+}
+function firstPieceFold(o){
+  const why = firstPieceNeeded(o);
+  if(!why.length) return '';
+  if(!tracksLive(o)) return '';
+  const g = goldenSample(o), f = firstPieceState(o);
+  const body = `
+    <div class="od-hint">Перевіряємо ОДНУ одиницю до того, як шити решту:
+      ${escapeHtml(why.join(', '))}. Помилка коштуватиме одне ${
+      escapeHtml(((o.items || [])[0] || {}).name || 'виріб').toLowerCase()}, а не весь тираж.</div>
+    <div class="fp-pair">
+      <div class="fp-c">
+        <span class="fp-l">Еталон — погоджений тест</span>
+        ${g && g.photo
+          ? `<a href="${escapeHtml(g.photo)}" target="_blank" rel="noopener">
+               <img src="${escapeHtml(g.photo)}" alt="Еталон" loading="lazy"></a>
+             <i>v${escapeHtml(String(g.n))} · погодив клієнт</i>`
+          : '<div class="fp-none">Погодженого тесту немає — звіряти нема з чим</div>'}
+      </div>
+      <div class="fp-c">
+        <span class="fp-l">Перша одиниця партії</span>
+        ${f && f.photo
+          ? `<a href="${escapeHtml(f.photo)}" target="_blank" rel="noopener">
+               <img src="${escapeHtml(f.photo)}" alt="Перша одиниця" loading="lazy"></a>
+             <i>${escapeHtml(dtUa(f.at))}${f.ok ? ' · збіглась' : ''}</i>`
+          : `<button class="fp-add" data-fp-shoot><b>+</b><span>Зняти першу одиницю</span></button>`}
+      </div>
+    </div>
+    ${f && !f.ok ? `<div class="qc-foot">
+      <button class="art-b qc-bad" data-fp-bad>Не збіглась</button>
+      <button class="mk-copy qc-pass" data-fp-ok>Збіглась — далі тираж</button>
+    </div>` : ''}`;
+  return odFoldHtml('fp', 'Перша одиниця',
+    f ? (f.ok ? 'звірено ✓' : 'знято — звірте з еталоном') : 'ще не знято', body);
+}
 function qcFold(o){
   if(!tracksLive(o)) return '';
   const list = qcChecks(o), m = qcMarks(o), st = qcState(o);
@@ -12074,7 +12279,13 @@ function qcFold(o){
         <input type="checkbox" data-qc="${escapeHtml(x.key)}"${m[x.key] ? ' checked' : ''}>
         <span>${escapeHtml(x.label)}</span>
       </label>`).join('')}</div>
+    ${/* Еталон поруч із фактом: «перевірити вишивку» — не інструкція, а ось
+         це поруч із ось цим — інструкція. */''}
     <div class="art-imgs">
+      ${(()=>{ const g = goldenSample(o); return g && g.photo
+        ? `<a class="art-img" href="${escapeHtml(g.photo)}" target="_blank" rel="noopener">
+             <img src="${escapeHtml(g.photo)}" alt="Еталон" loading="lazy"><span>Еталон · v${
+             escapeHtml(String(g.n))}</span></a>` : ''; })()}
       ${st.photo
         ? `<a class="art-img" href="${escapeHtml(st.photo)}" target="_blank" rel="noopener">
              <img src="${escapeHtml(st.photo)}" alt="Фото партії" loading="lazy"><span>Фото партії</span></a>`
@@ -12163,6 +12374,422 @@ function openDefect(o){
   });
   if(window.LQSelect) LQSelect.scan(d);
 }
+
+/* ══════════ Скільки часу де стоїть ══════════
+   Ставити SLA «макет — 3 години» з голови не можна: половина замовлень
+   червонітиме з першого дня, до червоного звикнуть і перестануть дивитись.
+   Поріг має братись із власної статистики.
+
+   Добра новина: рахувати нема чого заводити. Кожен рух треку вже пишеться в
+   trackHist з часом і автором — з самого початку. Тому час по етапах
+   збирається заднім числом, з наявних даних.
+
+   Головна величина тут не «скільки працювали», а СКІЛЬКИ ЧЕКАЛИ. Саме
+   простій між діями і є те, що подовжує строк, не додаючи якості. */
+const WAIT_STEPS = { 'test:client':1, 'supply:sent':1, 'supply:part':1, 'design:work':1,
+                     'design:fix':1, 'prod:work':1 };
+function stageSegments(o){
+  const out = [];
+  const start = o.prodAt || o.createdAt || '';
+  const byTrack = {};
+  (o.trackHist || []).forEach(h => {
+    if(!h || !h.t) return;
+    (byTrack[h.t] = byTrack[h.t] || []).push(h);
+  });
+  Object.keys(byTrack).forEach(t => {
+    const L = byTrack[t].slice().sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    for(let i = 0; i < L.length; i++){
+      const from = new Date(L[i].at).getTime();
+      const to = (i + 1 < L.length) ? new Date(L[i + 1].at).getTime()
+        : (trackIsDone(o, t) ? 0 : Date.now());
+      if(!from || !to || to < from) continue;
+      out.push({ track:t, step:L[i].s, by:L[i].by || '', from, to,
+                 hours:(to - from) / 36e5, wait: !!WAIT_STEPS[t + ':' + L[i].s] });
+    }
+    /* Найперший відрізок — від запуску виробництва до першого руху: саме
+       там найчастіше й лежить забуте замовлення. */
+    const f = new Date(L[0].at).getTime(), s0 = new Date(start).getTime();
+    if(f && s0 && f > s0)
+      out.push({ track:t, step:(trackSteps(t)[0] || {}).key || '', by:'', from:s0, to:f,
+                 hours:(f - s0) / 36e5, wait:false });
+  });
+  return out;
+}
+/* Обʼєднання відрізків. Без нього чекання рахувалось СУМОЮ по треках, а
+   треки йдуть паралельно: дизайнер малює, поки одяг їде. Виходило, що
+   «чекали 170 годин» при циклі 120 — число, яке саме себе спростовує.
+   Тепер міряємо по календарю: година, у яку ми чекали двох одразу, це
+   одна година, а не дві. */
+function mergeSpans(list){
+  const L = list.filter(x => x && x.to > x.from).slice()
+                .sort((a, b) => a.from - b.from);
+  let sum = 0, from = 0, to = 0;
+  L.forEach(x => {
+    if(!to || x.from > to){ sum += to - from; from = x.from; to = x.to; }
+    else if(x.to > to) to = x.to;
+  });
+  return sum + (to - from);
+}
+/* Скільки замовлення реально працювалось, а скільки чекало. Разом із
+   блокуваннями це і є відповідь на «чому п'ять днів». */
+function orderTimes(o){
+  const seg = stageSegments(o);
+  const from = new Date(o.prodAt || o.createdAt || 0).getTime();
+  const to = trackIsDone(o, 'ship') && o.ttnAt ? new Date(o.ttnAt).getTime() : Date.now();
+  const total = (from && to > from) ? (to - from) : 0;
+  /* Замовлення чекає, коли ЖОДЕН трек не в роботі — а не коли чекає хоч
+     один: поки шиють, ми не «чекаємо клієнта», навіть якщо він мовчить. */
+  const busy = mergeSpans(seg.filter(s => !s.wait));
+  const blocks = (o.blockHist || []).map(b => ({ from:new Date(b.at).getTime(),
+                                                 to:new Date(b.until).getTime() }));
+  const b = blockOf(o);
+  if(b) blocks.push({ from:new Date(b.at).getTime(), to:Date.now() });
+  const blocked = mergeSpans(blocks);
+  const work = Math.max(0, Math.min(busy, total));
+  return { work:Math.round(work / 36e5),
+           wait:Math.round(Math.max(0, total - work) / 36e5),
+           blocked:Math.round(blocked / 36e5),
+           total:Math.round(total / 36e5) };
+}
+/* Зведення по етапах і по людях. Свідомо роздільно: процес і люди — різні
+   питання, і мішати їх означає міряти людину чужим простоєм. */
+function deptStats(){
+  const steps = {}, people = {}, orders_ = [];
+  (orders || []).forEach(o => {
+    if(!prodStarted(o) || o.status === 'cancel') return;
+    const t = orderTimes(o);
+    orders_.push(t);
+    stageSegments(o).forEach(s => {
+      const k = s.track + ':' + s.step;
+      const r = steps[k] || (steps[k] = { track:s.track, step:s.step, wait:s.wait, sum:0, n:0 });
+      r.sum += s.hours; r.n++;
+      if(s.by){
+        const p = people[s.by] || (people[s.by] = { hours:0, moves:0, returns:0, defects:0 });
+        p.hours += s.hours; p.moves++;
+      }
+    });
+    /* Повернення з правкою — те, що людина справді контролює. Саме це має
+       сенс міряти по людях, а не швидкість: швидкість підганяють, якість — ні. */
+    (o.trackHist || []).forEach(h => {
+      if(h.t === 'design' && h.s === 'fix' && h.by)
+        (people[h.by] = people[h.by] || { hours:0, moves:0, returns:0, defects:0 }).returns++;
+    });
+    defectList(o).forEach(d => {
+      if(!d.by) return;
+      (people[d.by] = people[d.by] || { hours:0, moves:0, returns:0, defects:0 }).defects += (+d.qty || 0);
+    });
+  });
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  return {
+    steps: Object.keys(steps).map(k => Object.assign({ key:k, avg: steps[k].sum / steps[k].n }, steps[k]))
+             .sort((a, b) => b.avg - a.avg),
+    people, n: orders_.length,
+    work: avg(orders_.map(x => x.work)), wait: avg(orders_.map(x => x.wait)),
+    blocked: avg(orders_.map(x => x.blocked)), total: avg(orders_.map(x => x.total))
+  };
+}
+/* Постачальник: обіцяв стільки днів, віз стільки. Доти строк доставки був
+   довідковим полем, у яке ніхто не заглядав удруге. */
+function supStats(){
+  const out = {};
+  (orders || []).forEach(o => {
+    const at = (o.buy || {}).orderedAt;
+    if(!at) return;
+    buyRows(o).forEach(r => {
+      if(!r.sup || !r.got) return;
+      const s = supById(r.sup);
+      const rec = out[r.sup] || (out[r.sup] = { name:(s && s.name) || r.sup,
+        promised:(s && s.days != null) ? +s.days : null, days:[], rows:0, short:0, got:0, need:0 });
+      rec.got += r.got; rec.need += r.need; rec.rows++;
+      /* Недовіз рахуємо ПО РЯДКАХ, а не підсумком: прислати 11 M замість 10
+         і 9 L замість 10 — це недовіз, хоч у сумі рівно двадцять. Саме так
+         він і ховався від нас досі. */
+      if(r.got < r.need) rec.short += (r.need - r.got);
+    });
+    /* Фактичний строк беремо з першого руху треку одягу в «отримано». */
+    const done = (o.trackHist || []).filter(h => h.t === 'supply' && trackStepMeta('supply', h.s) &&
+                                                 trackStepMeta('supply', h.s).done)[0];
+    if(done){
+      const d = (new Date(done.at).getTime() - new Date(at).getTime()) / 864e5;
+      buyRows(o).forEach(r => { if(r.sup && out[r.sup] && d > 0) out[r.sup].days.push(d); });
+    }
+  });
+  Object.keys(out).forEach(k => {
+    const L = out[k].days;
+    out[k].fact = L.length ? L.reduce((a, b) => a + b, 0) / L.length : null;
+    out[k].late = (out[k].promised != null && out[k].fact != null)
+      ? out[k].fact - out[k].promised : null;
+  });
+  return out;
+}
+
+/* ══════════ Вікно «Сьогодні» ══════════
+   Замість обходу карток — один список. У кожному рядку замовлення, одна
+   наступна дія й чому вона зараз. Людина не вирішує, що робити далі: вона
+   бачить, що робити далі, і каже «беру» або «зробив».
+
+   Рядки двох родів, і вони не змішуються випадково: поставлені руками
+   нагадування (вони й були обіцянкою комусь) і дії, які система вивела
+   сама зі стану замовлення. Обидва — робота, тому лежать разом.
+
+   Сортування: спершу те, що горить, потім те, що на нас, і аж тоді те, де
+   ми чекаємо інших. Саме в такому порядку до цього й повертаються. */
+let todayFilter = 'all';
+function todayRows(){
+  const out = [];
+  (orders || []).forEach(o => {
+    if(['cancel'].indexOf(o.status) >= 0) return;
+    if(o.status === 'done' && trackIsDone(o, 'ship')) return;
+    /* Нагадування — окремими рядками: вони конкретніші за будь-яку
+       автоматичну дію, бо їх писала людина під конкретну обіцянку. */
+    openTasks(o).forEach(t => {
+      const n = daysTo(t.due);
+      out.push({ o, key:'task:' + t.id, kind:'task', text:t.text, who:t.for || o.mgrEmail || '',
+        due:t.due, task:t,
+        heat: (n != null && n < 0) ? { level:'hot', why:'прострочено ' + (-n) + ' дн' }
+            : (n === 0 ? { level:'warn', why:'сьогодні' } : { level:'ok', why:'' }),
+        wait:false });
+    });
+    const a = nextAction(o);
+    if(!a) return;
+    if(a.key === 'task') return;         // вже додали рядком вище
+    const st = todoOf(o, a.key);
+    if(st && st.s === 'done') return;    // людина сказала «зробив» — не мозолимо
+    out.push({ o, key:a.key, kind:'auto', text:a.text, who:a.who, wait:a.wait,
+               since:a.since, heat: actionHeat(o, a), doing: !!(st && st.s === 'doing') });
+  });
+  const rank = r => (r.heat.level === 'hot' ? 0 : (r.wait ? 2 : 1));
+  return out.sort((x, y) => rank(x) - rank(y) ||
+    String(x.o.dueAt || '9999').localeCompare(String(y.o.dueAt || '9999')));
+}
+function renderToday(){
+  const list = document.getElementById('td-list');
+  const kpis = document.getElementById('td-kpis');
+  if(!list) return;
+  const all = todayRows();
+  const mine = (myEmail() || '').toLowerCase();
+  const rows = all.filter(r =>
+      todayFilter === 'hot'  ? r.heat.level === 'hot'
+    : todayFilter === 'wait' ? r.wait
+    : todayFilter === 'mine' ? String(r.who || r.o.mgrEmail || '').toLowerCase() === mine
+    : true);
+  if(kpis){
+    const hot = all.filter(r => r.heat.level === 'hot').length;
+    const warn = all.filter(r => r.heat.level === 'warn').length;
+    const money = all.filter(r => r.heat.level === 'hot')
+      .reduce((a, r) => a + (+r.o.totalPrice || 0), 0);
+    const act = (orders || []).filter(o => o.status !== 'cancel' &&
+      !(o.status === 'done' && trackIsDone(o, 'ship'))).length;
+    kpis.innerHTML =
+      '<div class="td-k"><b>' + act + '</b><span>активних замовлень</span></div>' +
+      '<div class="td-k is-hot"><b>' + hot + '</b><span>потребує рішення</span></div>' +
+      '<div class="td-k is-warn"><b>' + warn + '</b><span>ризик затримки</span></div>' +
+      (canSeeCost()
+        ? '<div class="td-k"><b>' + fmt(money) + ' ₴</b><span>під ризиком</span></div>' : '');
+  }
+  if(!rows.length){
+    list.innerHTML = '<div class="td-empty">Нічого не висить. Це не помилка — це добре.</div>';
+    return;
+  }
+  list.innerHTML = rows.map((r, i) => {
+    const o = r.o;
+    const wait = r.wait ? (r.since ? hoursSince(r.since) : 0) : 0;
+    return '<div class="td-r td-' + r.heat.level + (r.doing ? ' is-doing' : '') +
+        '" data-i="' + i + '">' +
+      '<span class="td-dot"></span>' +
+      '<div class="td-b">' +
+        '<div class="td-t">' + escA(r.text) + '</div>' +
+        '<div class="td-m">' +
+          '<b>' + escA(o.orderId || '—') + '</b>' +
+          (canSeeClient() && o.name ? ' · ' + escA(o.name) : '') +
+          (o.dueAt ? ' · здати ' + escA(dueWordUa(o.dueAt)) : '') +
+          (r.who ? ' · ' + escA(personName(r.who) || r.who) : '') +
+          (wait ? ' · чекаємо ' + (wait >= 48 ? Math.round(wait / 24) + ' дн' : wait + ' год') : '') +
+          (r.heat.why ? ' · <i>' + escA(r.heat.why) + '</i>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="td-a">' +
+        (r.kind === 'task'
+          ? '<button class="td-btn td-ok" data-td="taskdone">Зробив</button>'
+          : (r.doing
+              ? '<button class="td-btn" data-td="undoing">Не беру</button>' +
+                '<button class="td-btn td-ok" data-td="done">Зробив</button>'
+              : '<button class="td-btn" data-td="doing">Беру</button>' +
+                '<button class="td-btn td-ok" data-td="done">Зробив</button>')) +
+        '<button class="td-btn td-open" data-td="open">Картка</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  list.querySelectorAll('.td-r').forEach(el => {
+    const r = rows[+el.dataset.i];
+    el.querySelectorAll('[data-td]').forEach(b => b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      const k = b.dataset.td;
+      if(k === 'open') return openOrderDrawer(r.o);
+      if(k === 'taskdone') return setTaskDone(r.o, r.task.id, true);
+      if(k === 'doing')   return todoState(r.o, r.key, 'doing');
+      if(k === 'undoing') return todoState(r.o, r.key, '');
+      if(k === 'done')    return todoState(r.o, r.key, 'done');
+    }));
+    el.addEventListener('click', ()=> openOrderDrawer(r.o));
+  });
+}
+(function wireToday(){
+  const f = document.getElementById('td-filter');
+  if(!f) return;
+  f.addEventListener('click', e => {
+    const b = e.target.closest('button[data-f]');
+    if(!b) return;
+    todayFilter = b.dataset.f;
+    f.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    renderToday();
+  });
+})();
+
+/* ══════════ Заблоковано ══════════
+   Найважливіше поле, якого не було. Замовлення не має просто висіти в
+   «Дизайні»: воно або працюється, або ЧЕКАЄ — і це різні речі. Доти
+   відрізнити їх було неможливо, а отже, неможливо було й побачити, де
+   насправді згорає час.
+
+   Причина обовʼязкова: «заблоковано» без причини — те саме «висить», лише
+   з новою назвою. */
+function blockOf(o){ return (o && o.blocked && o.blocked.why) ? o.blocked : null; }
+async function blockSet(o, why){
+  const t = String(why || '').trim();
+  if(t){
+    o.blocked = { why:t.slice(0, 120), at:new Date().toISOString(), by:(myEmail() || '') };
+  } else if(o.blocked){
+    /* Скільки простояло — записуємо в момент розблокування: потім цього
+       числа вже нізвідки взяти, а саме воно й цікаве. */
+    const from = new Date(o.blocked.at).getTime();
+    const h = from ? Math.round((Date.now() - from) / 36e5) : 0;
+    o.blockHist = (o.blockHist || []).concat([{ why:o.blocked.why, at:o.blocked.at,
+      until:new Date().toISOString(), hours:h }]).slice(-30);
+    o.blocked = null;
+  }
+  touchOrder(o);
+  try{ await storeSet('orders', orders); toast(t ? 'Заблоковано: ' + t : 'Розблоковано'); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  renderBoard(); renderOrderDrawer(); renderToday();
+}
+/* Скільки годин замовлення сумарно ПРОЧЕКАЛО. Разом із часом у роботі це і
+   є та відповідь, заради якої все й заводилось. */
+function blockedHours(o){
+  let h = (o.blockHist || []).reduce((a, x) => a + (+x.hours || 0), 0);
+  const b = blockOf(o);
+  if(b){ const t = new Date(b.at).getTime(); if(t) h += Math.round((Date.now() - t) / 36e5); }
+  return h;
+}
+const BLOCK_WHY = ['чекаємо логотип від клієнта', 'чекаємо оплату',
+                   'немає розміру в постачальника', 'чекаємо відповідь клієнта',
+                   'чекаємо рішення керівника'];
+
+/* ══════════ Наступна дія ══════════
+   Головне, чого бракувало: менеджер відкривав картку й сам розбирався в
+   історії. Тепер система каже одним рядком, що робити ДАЛІ, — і робить це з
+   даних, які вже є, не питаючи нікого.
+
+   Порядок правил — це і є порядок роботи. Перше, що збіглося, і є наступна
+   дія: двох одночасних «далі» не буває, а список із п'яти пунктів на одній
+   картці знову перетворює рішення на роботу людини.
+
+   `wait:true` означає «м'яч не в нас»: такі рядки не червоніють від того,
+   що минув час, але видно, СКІЛЬКИ вже чекаємо — саме звідси й береться
+   ескалація, коли вона знадобиться. */
+function hoursSince(iso){
+  const t = iso ? new Date(iso).getTime() : 0;
+  return t ? Math.max(0, Math.round((Date.now() - t) / 36e5)) : 0;
+}
+function lastTrackAt(o, track, step){
+  const L = (o.trackHist || []).filter(x => x.t === track && (!step || x.s === step));
+  return L.length ? L[L.length - 1].at : (o.prodAt || o.createdAt || '');
+}
+function nextAction(o){
+  const A = (key, text, opt) => Object.assign({ key, text, who:'', wait:false, since:'' }, opt || {});
+  const b = blockOf(o);
+  if(b) return A('block', 'Розблокувати: ' + b.why, { wait:true, since:b.at, who:'ви' });
+  if(o.status === 'cancel') return null;
+  /* Відправлене замовлення закінчилось. Без цієї перевірки правила нижче
+     дочитувались до першого незакритого пункту й радили, наприклад,
+     створити версію макета — на речі, яка вже поїхала клієнту. */
+  if(trackIsDone(o, 'ship') || (o.status === 'done' && o.ttn)) return null;
+
+  /* До оплати працює продаж, і там наступна дія — це поставлене
+     нагадування або, якщо його немає, найперший обов'язок етапу. */
+  if(!prodStarted(o)){
+    const t = nextTask(o);
+    if(t) return A('task', t.text, { who:'ви', since:t.at, task:t });
+    if(o.status === 'kp' || o.status === 'offered')
+      return A('kp', 'Пропозиція надіслана — дізнатись рішення', { wait:true, since:o.offeredAt || o.touchedAt });
+    if(o.status === 'prorahunok') return A('calc', 'Порахувати й зібрати КП', { who:'ви' });
+    return A('call', 'Звʼязатись і зʼясувати задачу', { who:'ви' });
+  }
+
+  const v = artCur(o), ap = (v && v.approvals) || {};
+  const d = trackOf(o, 'design'), te = trackOf(o, 'test');
+  const s = buySum(o), pr = trackOf(o, 'prod'), qc = trackOf(o, 'qc');
+
+  if(qc === 'bad' && defectShort(o))
+    return A('defect', 'Закрити брак: ' + defectShort(o) + ' шт', { who:'виробництво' });
+  if(d === 'new')  return A('d_new',  'Передати макет дизайнеру', { who:'ви' });
+  if(d === 'work') return A('d_work', 'Дизайнер робить макет',
+    { wait:true, who:'дизайн', since:lastTrackAt(o, 'design', 'work') });
+  if(d === 'check')return A('d_check','Подивитись макет і погодити або повернути', { who:'ви' });
+  if(d === 'fix')  return A('d_fix',  'Дизайнер править за нашим зауваженням',
+    { wait:true, who:'дизайн', since:lastTrackAt(o, 'design', 'fix') });
+  if(!v)           return A('art',    'Створити версію макета', { who:'ви' });
+  if(!ap.art)      return A('ap_art', 'Погодити макет', { who:'ви' });
+  if(!v.photo)     return A('shoot',  'Зняти тестовий відшив', { who:'виробництво' });
+  if(!ap.inner)    return A('ap_in',  'Подивитись фото відшиву — перед тим, як показати клієнту', { who:'ви' });
+  if(!ap.client)   return A('ap_cl',  'Клієнт дивиться тестовий відшив',
+    { wait:true, who:'клієнт', since:lastTrackAt(o, 'test', 'client') });
+  if(s.rows && !s.ord) return A('buy', 'Замовити одяг: ' + s.buy + ' шт', { who:'закупівля' });
+  if(s.rows && !s.enough) return A('buy_wait',
+    'Одяг у дорозі: ' + s.got + ' із ' + s.need,
+    { wait:true, who:'постачальник', since:(o.buy || {}).orderedAt || '' });
+  if(pr === 'ready') return A('run',  'Запустити тираж — усі умови зійшлись', { who:'виробництво' });
+  if(pr === 'work')  return A('sew',  'Шиємо',
+    { wait:true, who:'виробництво', since:lastTrackAt(o, 'prod', 'work') });
+  if(qc !== 'ok')    return A('qc',   'Контроль якості: чекліст і фото партії', { who:'виробництво' });
+  if(!o.ttn)         return A('ttn',  'Створити накладну й відправити', { who:'ви' });
+  if(!trackIsDone(o, 'ship')) return A('sent', 'Позначити відправленим', { who:'ви' });
+  return null;
+}
+/* Гарячість рядка. Свідомо без балів: оцінку, яку ніхто не може пояснити,
+   перестають читати за тиждень. Тут три стани, і в кожного є словесна
+   причина. */
+function actionHeat(o, a){
+  if(!a) return { level:'ok', why:'' };
+  const days = daysTo(o.dueAt);
+  const running = ['run', 'sew', 'qc', 'ttn', 'sent'].indexOf(a.key) >= 0;
+  if(days != null && days < 0) return { level:'hot', why:'прострочено ' + (-days) + ' дн' };
+  if(days != null && days <= 2 && !running)
+    return { level:'hot', why:'здавати через ' + days + ' дн, тираж ще не почато' };
+  const h = a.since ? hoursSince(a.since) : 0;
+  if(a.wait && h >= 24) return { level:'warn', why:'чекаємо ' + Math.round(h / 24) + ' дн' };
+  if(a.wait && h >= 6)  return { level:'warn', why:'чекаємо ' + h + ' год' };
+  if(a.key === 'block')  return { level:'warn', why:'заблоковано ' + blockedHours(o) + ' год' };
+  return { level:'ok', why:'' };
+}
+/* Стан рядка, який ставить сама людина. Потрібен рівно для одного: щоб між
+   «побачив» і «зробив» був крок «беру» — інакше двоє беруться за те саме. */
+async function todoState(o, key, state){
+  if(!o.todo || typeof o.todo !== 'object') o.todo = {};
+  if(state === 'done'){
+    /* «Зробив» на автоматичній дії нічого не рухає в треках: рухає сама
+       робота. Це позначка «я цим зайнявся й закінчив», щоб рядок не стояв
+       перед очима, поки система не побачить наслідок. */
+    o.todo[key] = { s:'done', at:new Date().toISOString(), by:(myEmail() || '') };
+  } else if(state === 'doing'){
+    o.todo[key] = { s:'doing', at:new Date().toISOString(), by:(myEmail() || '') };
+  } else delete o.todo[key];
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }
+  catch(e){ console.error(e); toast('Не збереглось'); }
+  renderToday();
+}
+function todoOf(o, key){ return ((o && o.todo) || {})[key] || null; }
 
 /* ══════════ Повтор замовлення ══════════
    Найдешевші гроші, які ми не беремо. Клієнт повертається через півроку за
@@ -12776,6 +13403,7 @@ function odProdHtml(o){
            натиснеться, і краще бачити чого бракує, ніж гадати. */''}
       <div class="od-folds">
         ${odPart(()=> gateFold(o), 'ворота тиражу')}
+        ${odPart(()=> firstPieceFold(o), 'перша одиниця')}
         ${odPart(()=> qcFold(o), 'контроль якості')}
       </div>
     </div>`;
@@ -12982,6 +13610,31 @@ function odFinFold(o){
    Читається як речення: «дизайн погоджено, одяг замовлено, тест у клієнта,
    тираж заблоковано». Кожен трек — окремий вибір, і рухаються вони
    незалежно: дизайнер малює, поки одяг їде, і ніхто нікого не чекає. */
+/* Наступна дія в шапці картки — те саме, що видно у «Сьогодні», але тут
+   вона на місці: менеджер відкрив замовлення й одразу бачить, що робити,
+   замість того щоб розбиратись в історії. */
+function odNextHtml(o){
+  const a = nextAction(o);
+  if(!a) return '';
+  const h = actionHeat(o, a);
+  const b = blockOf(o);
+  return `<div class="od-step od-step--${h.level}">
+    <span class="od-step-k">${a.wait ? 'ЧЕКАЄМО' : 'НАСТУПНА ДІЯ'}</span>
+    <span class="od-step-t">${escapeHtml(a.text)}</span>
+    ${h.why ? `<span class="od-step-w">${escapeHtml(h.why)}</span>` : ''}
+    <button class="od-step-b" data-block>${b ? 'Розблокувати' : 'Заблоковано'}</button>
+  </div>`;
+}
+async function askBlock(o){
+  if(blockOf(o)) return blockSet(o, '');
+  const list = BLOCK_WHY.map((r, i) => (i + 1) + '. ' + r).join('\n');
+  const a = window.prompt('Чого чекаємо? Номер зі списку або свій текст:\n\n' + list, '1');
+  if(a == null) return;
+  const t = String(a).trim();
+  if(!t) return;
+  const n = +t;
+  await blockSet(o, (n >= 1 && n <= BLOCK_WHY.length) ? BLOCK_WHY[n - 1] : t);
+}
 function odTracksHtml(o){
   if(!tracksLive(o)) return '';
   const rows = TRACKS.map(t => {
@@ -13220,6 +13873,7 @@ function renderOrderDrawer(){
            відкривають картку, і сховану під смугу її просто не побачать.
            Нагадування ж мають дату — смуга сама скаже, коли й про що, тож
            тримати їх розгорнутими весь час немає потреби. */''}
+      ${odPart(()=> odNextHtml(o), 'наступна дія')}
       ${odPart(()=> odTracksHtml(o), 'стан замовлення')}
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
@@ -13234,6 +13888,7 @@ function renderOrderDrawer(){
         ${odPart(()=> repeatFold(o), 'повтор')}
         ${odPart(()=> buyFold(o), 'закупівля')}
         ${odPart(()=> gateFold(o), 'ворота тиражу')}
+        ${odPart(()=> firstPieceFold(o), 'перша одиниця')}
         ${odPart(()=> qcFold(o), 'контроль якості')}
         ${odPart(()=> shipFold(o), 'відправка')}
         ${odPart(()=> odPayFold(o), 'оплата')}
@@ -13437,6 +14092,8 @@ function renderOrderDrawer(){
   panel.querySelectorAll('[data-mark-i]').forEach(b=>{
     b.addEventListener('click', ()=> openMark(o, +b.dataset.markI));
   });
+  const blockB = panel.querySelector('[data-block]');
+  if(blockB) blockB.addEventListener('click', ()=> askBlock(o));
   panel.querySelectorAll('[data-buy]').forEach(inp=>{
     inp.addEventListener('change', ()=>
       buySet(o, +inp.dataset.buyI, inp.dataset.buySz, inp.dataset.buy, inp.value));
@@ -13446,6 +14103,12 @@ function renderOrderDrawer(){
   panel.querySelectorAll('[data-qc]').forEach(cb=>{
     cb.addEventListener('change', ()=> qcMark(o, cb.dataset.qc, cb.checked));
   });
+  const fpShootB = panel.querySelector('[data-fp-shoot]');
+  if(fpShootB) fpShootB.addEventListener('click', ()=> firstPieceShoot(o));
+  const fpOkB = panel.querySelector('[data-fp-ok]');
+  if(fpOkB) fpOkB.addEventListener('click', ()=> firstPieceOk(o, true));
+  const fpBadB = panel.querySelector('[data-fp-bad]');
+  if(fpBadB) fpBadB.addEventListener('click', ()=> firstPieceOk(o, false));
   const qcShootB = panel.querySelector('[data-qc-shoot]');
   if(qcShootB) qcShootB.addEventListener('click', ()=> qcShoot(o));
   const qcPassB = panel.querySelector('[data-qc-pass]');
@@ -16905,6 +17568,10 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
    клієнт, гроші, КП. Дизайнерський — макет і розмітка. Виробничий — файли,
    розмірний ряд, фото. */
 const ZONE_NAV = [
+  /* «Сьогодні» першим і в усіх ролей: це не ще один розділ, а вхід у роботу.
+     Дизайнер бачить у ньому свої макети, виробництво — свої тести, і кожен
+     — рівно те, що йому й так видно на дошці. */
+  { key:'today',     label:'Сьогодні' },
   { key:'board',     label:'Канбан' },
   { key:'calc',      label:'Прорахунок' },
   { key:'settings',  label:'Формування цін' },
@@ -16934,10 +17601,10 @@ function zoneBoards(){
 const ROLE_PRESET = {
   owner:      { ui:'manager',    nav:'*', boards:'*',
                 see:['client','chat','cost'], can:['edit','pay','setup'] },
-  manager:    { ui:'manager',    nav:['board','calc','photos','reviews','suppliers'],
+  manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
                 boards:'*', see:['client','chat'], can:['edit','pay'] },
-  designer:   { ui:'designer',   nav:['board'], boards:['design'], see:[], can:[] },
-  production: { ui:'production', nav:['board'], boards:['test','prod','qc'], see:[], can:[] }
+  designer:   { ui:'designer',   nav:['today','board'], boards:['design'], see:[], can:[] },
+  production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] }
 };
 function presetOf(role){
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
@@ -21072,7 +21739,72 @@ async function init(){
       : '<div class="an-empty">За період пропозицій не відправляли.</div>';
 
     renderDefects();
+    renderStages();
     renderSpend(days);
+  }
+
+  /* Час по етапах і люди. Числа тут не «за період»: цикл замовлення довший
+     за будь-яке вікно звіту, і різати його датою означало б рахувати
+     половину шляху. */
+  function renderStages(){
+    const box = document.getElementById('an-stages');
+    if(!box || typeof deptStats !== 'function') return;
+    const d = deptStats();
+    if(!d.n){ box.innerHTML = '<div class="an-empty">Виробництво ще не запускали.</div>'; return; }
+    const hrs = h => h >= 48 ? (Math.round(h / 24 * 10) / 10) + ' дн' : Math.round(h) + ' год';
+    const label = s => {
+      const t = (typeof trackMeta === 'function' && trackMeta(s.track)) || { label:s.track };
+      const st = (typeof trackStepMeta === 'function' && trackStepMeta(s.track, s.step)) || { label:s.step };
+      return t.label + ' · ' + st.label;
+    };
+    const waitPct = d.total ? Math.round(d.wait / d.total * 100) : 0;
+    box.innerHTML =
+      '<div class="an-kpis" style="margin-bottom:12px;">' +
+        kpi('Цикл замовлення', hrs(d.total), 'від запуску до відправки') +
+        kpi('З них у роботі', hrs(d.work)) +
+        kpi('З них у чеканні', hrs(d.wait), waitPct + '% усього часу',
+            waitPct > 50 ? 'bad' : (waitPct > 30 ? '' : 'good')) +
+        kpi('З них заблоковано', hrs(d.blocked), 'чекали когось зовні') +
+      '</div>' +
+      '<table class="buy-t"><thead><tr><th>Етап</th><th>Разів</th><th>У середньому</th><th></th></tr></thead><tbody>' +
+      d.steps.slice(0, 12).map(s =>
+        '<tr><td class="buy-sz"><b>' + escA(label(s)) + '</b></td>' +
+        '<td>' + s.n + '</td><td><b>' + escA(hrs(s.avg)) + '</b></td>' +
+        '<td>' + (s.wait ? '<i class="buy-x">чекаємо</i>' : '') + '</td></tr>').join('') +
+      '</tbody></table>';
+    renderPeople(d);
+  }
+  function renderPeople(d){
+    const box = document.getElementById('an-people');
+    if(!box) return;
+    const P = d.people || {};
+    const keys = Object.keys(P).sort((a, b) => P[b].moves - P[a].moves);
+    const sup = (typeof supStats === 'function') ? supStats() : {};
+    const sk = Object.keys(sup);
+    box.innerHTML =
+      (keys.length
+        ? '<table class="buy-t"><thead><tr><th>Людина</th><th>Рухів</th>' +
+          '<th>Повернень з правкою</th><th>Позначила браку</th></tr></thead><tbody>' +
+          keys.map(k => '<tr><td class="buy-sz"><b>' + escA(personName(k) || k) + '</b></td>' +
+            '<td>' + P[k].moves + '</td>' +
+            '<td' + (P[k].returns ? ' class="is-no"' : '') + '>' + P[k].returns + '</td>' +
+            '<td>' + P[k].defects + '</td></tr>').join('') +
+          '</tbody></table>'
+        : '<div class="an-empty">Рухів у треках ще не було.</div>') +
+      (sk.length
+        ? '<div class="od-sec" style="margin-top:18px;">Підрядники: обіцяв і привіз</div>' +
+          '<table class="buy-t"><thead><tr><th>Підрядник</th><th>Обіцяв</th><th>Возив</th>' +
+          '<th>Різниця</th><th>Недовіз</th></tr></thead><tbody>' +
+          sk.map(k => {
+            const s = sup[k];
+            return '<tr><td class="buy-sz"><b>' + escA(s.name) + '</b></td>' +
+              '<td>' + (s.promised == null ? '—' : s.promised + ' дн') + '</td>' +
+              '<td>' + (s.fact == null ? '—' : (Math.round(s.fact * 10) / 10) + ' дн') + '</td>' +
+              '<td' + (s.late > 0 ? ' class="is-no"' : (s.late != null ? ' class="is-ok"' : '')) + '>' +
+                (s.late == null ? '—' : (s.late > 0 ? '+' : '') + (Math.round(s.late * 10) / 10) + ' дн') + '</td>' +
+              '<td' + (s.short ? ' class="is-no"' : '') + '>' + (s.short ? s.short + ' шт' : '—') + '</td></tr>';
+          }).join('') + '</tbody></table>'
+        : '');
   }
 
   /* Брак у цифрах. Сильні виробництва тримаються 0,5–1%, у галузі норма
