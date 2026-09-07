@@ -613,8 +613,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     text-transform:uppercase;letter-spacing:.04em;}
   .cc-meta{font-size:var(--fs-2);color:#8a929b;margin-top:2px;}
   .cc-rows{margin-top:8px;padding:8px 10px;background:#f7f8fa;border-radius:var(--r-2);}
+  /* Рядок переноситься, а не тисне: на вузькому екрані таблетка виду має
+     піти на власний рядок, а не стиснутись до нечитабельного. */
   .cc-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
-    font-size:var(--fs-2);line-height:1.45;padding:2px 0;color:#4a525c;}
+    flex-wrap:wrap;font-size:var(--fs-2);line-height:1.45;padding:2px 0;color:#4a525c;}
+  .cc-row>span{min-width:0;}
   .cc-row b{font-weight:600;color:#222;white-space:nowrap;}
   .cc-row.is-disc,.cc-row.is-disc b{color:#128a4a;}
   .cc-row.is-sum{border-top:1px solid #e3e6ea;margin-top:4px;padding-top:6px;font-weight:600;color:#111;}
@@ -626,8 +629,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      ЗАРАЗ, і одразу дає змінити. Німий перемикач «⇄» цього не вмів — стан
      доводилось вгадувати з підпису. */
   .cc-kind-wrap{display:inline-flex; align-items:center; gap:4px; margin-left:8px;
-    vertical-align:1px;}
-  .cc-kind{font:inherit; font-size:var(--fs-1); font-weight:600;
+    vertical-align:1px; flex:none;}
+  /* Мінімальна ширина — під найдовший пункт «Не рахувати». Без неї рядок
+     із довгою назвою стискав таблетку до однієї літери, і який саме вид
+     обрано, видно не було. */
+  .cc-kind{font:inherit; font-size:var(--fs-1); font-weight:600; min-width:112px;
     letter-spacing:.03em; text-transform:uppercase; color:#2F4C8F; background:#EAF0FC;
     border:1px solid #C9D8F2; border-radius:var(--r-1); padding:2px 20px 2px 6px; cursor:pointer;
     -webkit-appearance:none; appearance:none;
@@ -4203,7 +4209,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
          ознака, що вид обрав менеджер, а не автоматика. */
       var btn = (act && act.act === 'kind' && (EDIT || MGR_VIEW))
         ? '<span class="cc-kind-wrap">' +
-            '<select class="cc-kind' + (act.fixed ? ' is-fixed' : '') + '" ' +
+            /* Не одягаємо: це маленька таблетка в рядку прорахунку, а
+               спільне вбрання розраховане на повнорозмірне поле — 44 пікселі
+               заввишки. Втиснуте в рядок, воно стискалось до однієї літери,
+               і побачити, який вид обрано, було неможливо. */
+            '<select class="cc-kind' + (act.fixed ? ' is-fixed' : '') + '" data-native ' +
               'data-ckind="' + kind + ':' + i + ':' + act.di + '" ' +
               'title="Як рахувати цей дизайн: як картинку, як напис — або не рахувати макет узагалі">' +
               '<option value="img"' + (act.kind === 'img' ? ' selected' : '') + '>Картинка</option>' +

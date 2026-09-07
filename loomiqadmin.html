@@ -1114,33 +1114,74 @@
   .td-k span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
   .td-k.is-hot b{color:#A32C3E;}
   .td-k.is-warn b{color:#A3722C;}
+  .td-k.is-good b{color:#1E7A45;}
   .td-filter{margin-bottom:14px;}
+  /* Розділи, а не одна купа: «за що братись» — це питання про порядок, і
+     відповідати на нього має сама будова списку. */
+  .td-sec{display:flex;align-items:baseline;gap:10px;margin:20px 0 8px;}
+  .td-sec:first-child{margin-top:0;}
+  .td-sec h3{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);display:flex;align-items:center;gap:7px;margin:0;}
+  .td-sec h3 b{font-size:11px;font-weight:800;padding:1px 7px;border-radius:20px;
+    background:var(--canvas);color:var(--ink);}
+  .td-sec--hot h3{color:#A32C3E;} .td-sec--hot h3 b{background:rgba(163,44,62,.12);color:#A32C3E;}
+  .td-sec--done h3{color:#1E7A45;} .td-sec--done h3 b{background:rgba(30,122,69,.12);color:#166638;}
+  .td-sec span{font-size:11.5px;color:var(--ink-soft);}
   .td-r{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;
     border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:8px;
-    cursor:pointer;}
+    cursor:pointer;transition:background .18s,border-color .18s,opacity .25s;}
   .td-r:hover{border-color:var(--accent);}
+  .td-r:focus-visible,.td-r.is-cur{outline:2px solid var(--accent);outline-offset:2px;}
   .td-r.is-doing{background:var(--accent-soft);border-color:var(--accent);}
-  .td-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#8FA0B4;}
+  /* Зроблене не зникає до кінця дня: список, у якому за день нічого не
+     додалось у «зроблено», читається як безкінечний. */
+  .td-r.is-done{background:rgba(30,122,69,.06);border-color:rgba(30,122,69,.25);opacity:.75;}
+  .td-r.is-done .td-t{text-decoration:line-through;color:var(--ink-soft);}
+  .td-r.td-flash{background:rgba(30,122,69,.22);border-color:#1E7A45;}
+  .td-dot{flex:none;width:16px;height:16px;border-radius:50%;background:#8FA0B4;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;
+    font-weight:800;}
   .td-hot .td-dot{background:#A32C3E;}
   .td-warn .td-dot{background:#D19A3C;}
   .td-ok .td-dot{background:#4FA97A;}
+  .td-r.is-done .td-dot{background:#1E7A45;}
   .td-b{flex:1;min-width:0;}
   .td-t{font-size:14px;font-weight:700;line-height:1.35;}
   .td-m{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
   .td-m b{color:var(--ink);font-family:var(--mono);font-weight:700;}
   .td-m i{font-style:normal;color:#A32C3E;font-weight:700;}
   .td-warn .td-m i{color:#A3722C;}
-  .td-a{flex:none;display:flex;gap:6px;}
-  .td-btn{all:unset;cursor:pointer;padding:7px 12px;border-radius:var(--r-ctl);
+  .td-a{flex:none;display:flex;gap:6px;align-items:center;}
+  .td-btn{all:unset;cursor:pointer;padding:8px 13px;border-radius:var(--r-ctl);
     background:var(--canvas);font-size:12px;font-weight:700;white-space:nowrap;}
   .td-btn:hover{background:var(--line);}
-  .td-ok{background:var(--accent-soft);color:var(--accent-deep);}
-  .td-ok:hover{background:var(--accent);color:#fff;}
-  .td-open{background:transparent;color:var(--ink-soft);}
+  .td-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .td-ok{background:#1E7A45;color:#fff;}
+  .td-ok:hover{background:#166638;}
+  .td-snooze,.td-open{background:transparent;color:var(--ink-soft);padding:8px 10px;}
+  .td-snooze:hover,.td-open:hover{background:var(--canvas);color:var(--ink);}
   .td-empty{padding:36px 16px;text-align:center;color:var(--ink-soft);font-size:14px;
     background:#fff;border:1px dashed var(--line);border-radius:var(--r-card);}
+  .td-keys{font-size:11.5px;color:var(--ink-soft);margin-top:14px;}
+  .td-keys kbd{font-family:var(--mono);font-size:11px;background:var(--canvas);
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;margin:0 2px;}
+  /* Смуга скасування: живе кілька секунд — рівно стільки, скільки людина
+     розуміє, що натиснула не те. */
+  #tdUndo{position:fixed;left:50%;bottom:24px;transform:translate(-50%,80px);
+    z-index:2500;display:flex;align-items:center;gap:14px;padding:11px 16px;
+    border-radius:var(--r-ctl);background:var(--coal,#1B1F28);color:#fff;
+    font-size:13px;font-weight:600;box-shadow:0 12px 32px rgba(15,32,52,.28);
+    opacity:0;pointer-events:none;transition:transform .22s,opacity .22s;}
+  #tdUndo.show{transform:translate(-50%,0);opacity:1;pointer-events:auto;}
+  #tdUndo button{all:unset;cursor:pointer;font-size:12.5px;font-weight:800;
+    color:#8BD3E6;padding:3px 6px;border-radius:6px;}
+  #tdUndo button:hover{background:rgba(255,255,255,.14);}
   @media (max-width:720px){
     .td-r{flex-wrap:wrap;} .td-a{width:100%;justify-content:flex-end;}
+    .td-keys{display:none;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .td-r,#tdUndo{transition:none;}
   }
   /* ── Наступна дія в картці ──────────────────────────────────────────── */
   .od-step{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0 4px;
@@ -2199,6 +2240,17 @@
   .bt-search input{font-size:14px;height:42px;padding:0 36px 0 38px;border-radius:var(--r-ctl);
     border:1px solid var(--line);background:var(--paper);}
   .bt-x{color:var(--muted);}
+  /* Перемикач дошок читався як просто текст: сім однакових слів без жодної
+     ознаки, що на них узагалі можна натиснути. Тепер це підписаний елемент
+     керування — видно і що це вибір, і що саме вибирають. */
+  .bt-board{display:flex;align-items:center;gap:0;flex:none;border:1px solid var(--line);
+    border-radius:var(--r-ctl);background:#fff;overflow:hidden;height:42px;}
+  .bt-board>span{flex:none;align-self:stretch;display:flex;align-items:center;
+    padding:0 10px;background:var(--canvas);color:var(--ink-soft);
+    font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    border-right:1px solid var(--line);}
+  .bt-board .bt-sort{border:0;height:40px;background:transparent;}
+  .bt-board .lq-sel{border:0;height:40px;background:transparent;}
   .bt-btn,.bt-sort{height:42px;border-radius:var(--r-ctl);border:1px solid var(--line);
     background:var(--paper);font-size:14px;color:var(--ink);}
   .bt-btn:hover,.bt-sort:hover{background:var(--canvas);}
@@ -2508,7 +2560,7 @@
         </button>
       </div>
       <nav class="nav">
-        <button data-view="today" data-tip="Сьогодні"><svg viewBox="0 0 24 24"><path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.4 9.9l6-.9z"/></svg><span>Сьогодні</span></button>
+        <button data-view="today" data-tip="Задачі"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="m17 16.5 1.6 1.6L22 14.7"/></svg><span>Задачі</span></button>
         <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
         <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
@@ -2902,19 +2954,23 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     <section id="view-today" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Робочий день</div>
-        <h1>Що зробити сьогодні</h1>
+        <h1>Задачі</h1>
         <div class="sub">Одне вікно замість обходу карток. Система сама каже, яка наступна дія
-          в кожному замовленні, і чекає від вас одного з двох: «беру» або «зробив».
-          Нагадування, які ви ставили руками, лежать тут же — окремо їх шукати не треба.</div>
+          в кожному замовленні; ваші нагадування лежать тут же. Кнопка з дієсловом справді
+          <b>виконує</b> дію — рухає етап, погоджує, замовляє одяг, — а не просто ставить галочку.
+          Зроблене лишається внизу до кінця дня, і його можна повернути.</div>
       </div>
       <div class="td-kpis" id="td-kpis"></div>
       <div class="td-filter seg" id="td-filter">
         <button data-f="all" class="active">Усе</button>
         <button data-f="mine">Моє</button>
-        <button data-f="hot">Потребує рішення</button>
+        <button data-f="hot">Горить</button>
         <button data-f="wait">Чекаємо інших</button>
       </div>
       <div id="td-list"></div>
+      <div class="td-keys">З клавіатури: <kbd>j</kbd><kbd>k</kbd> — рядок,
+        <kbd>d</kbd> — виконати, <kbd>t</kbd> — беру, <kbd>s</kbd> — відкласти на завтра,
+        <kbd>Enter</kbd> — відкрити картку.</div>
     </section>
 
     <section id="view-team" style="display:none;">
@@ -2980,7 +3036,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>Замовлення</h1>
         <div id="web-orders-state" class="wo-state">підключаюсь…</div>
         <span class="bh-spacer"></span>
-        <select class="bt-sort" id="board-track" title="Яку дошку показувати"></select>
+        <label class="bt-board" for="board-track"><span>Дошка</span>
+          <select class="bt-sort" id="board-track" title="Яку дошку показувати"></select>
+        </label>
         <button class="btn btn-accent" id="board-add">+ Нова картка</button>
         <button class="btn btn-ghost" id="st-toggle">Налаштувати етапи</button>
       </div>
@@ -4832,7 +4890,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
     const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Сьогодні'};
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -9845,6 +9903,8 @@ function boardTrackNow(){
   if(!mine.length) return boardTrack;
   return mine.indexOf(boardTrack) >= 0 ? boardTrack : mine[0];
 }
+const BOARD_ICON = { sale:'💬', design:'🎨', supply:'📦', test:'🧵',
+                     prod:'⚙️', qc:'✅', ship:'🚚' };
 function renderBoardSwitch(){
   const sel = document.getElementById('board-track');
   if(!sel) return;
@@ -9856,9 +9916,12 @@ function renderBoardSwitch(){
   const cur = boardTrackNow();
   const all = zoneBoards();
   const opts = mine.length ? all.filter(t => mine.indexOf(t.key) >= 0) : all;
+  /* Значок перед назвою — не прикраса: у перемикачі з семи однакових слів
+     око чіпляється саме за нього, і «я не туди дивлюсь» стається рідше. */
   sel.innerHTML = opts.map(o =>
-    `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>Дошка: ${
-      escapeHtml(o.label)}</option>`).join('');
+    `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>${
+      BOARD_ICON[o.key] || '▫'} ${escapeHtml(o.label)}</option>`).join('');
+  if(window.LQSelect) LQSelect.scan(sel.parentNode || document);
 }
 function renderTrackBoard(){
   const board = document.getElementById('board');
@@ -12535,13 +12598,69 @@ function supStats(){
    Сортування: спершу те, що горить, потім те, що на нас, і аж тоді те, де
    ми чекаємо інших. Саме в такому порядку до цього й повертаються. */
 let todayFilter = 'all';
+let todayUndo = null;      // останнє «зробив» — щоб було що скасувати
+let todayCursor = -1;      // рядок під клавіатурою
+
+/* Що саме означає «зробив» для кожної дії.
+
+   Доти кнопка лише ставила позначку: рядок зникав, а замовлення лишалось
+   там, де було, — і за годину дія поверталась. Це і є та «галочка для
+   галочки», через яку такі списки перестають вести.
+
+   Тепер «зробив» РОБИТЬ: рухає трек, погоджує, замовляє одяг. Підпис кнопки
+   — дієслово в минулому часі, бо його натискають ПІСЛЯ дії, а не замість неї.
+
+   Там, де рішення вимагає очей (подивитись макет, зняти фото), кнопка
+   відкриває потрібне місце, а не вдає, що зробила роботу. */
+const TODO_DO = {
+  block:  { label:'Розблокувати', run:o => blockSet(o, '') },
+  d_new:  { label:'Передав',      run:o => setTrack(o, 'design', 'work') },
+  d_check:{ label:'Погодити',     run:o => artApprove(o, 'art') },
+  ap_art: { label:'Погодити',     run:o => artApprove(o, 'art') },
+  shoot:  { label:'Зняти',        run:o => camForArt(o), keep:true },
+  ap_in:  { label:'Погодити',     run:o => artApprove(o, 'inner') },
+  buy:    { label:'Замовив',      run:o => buyOrderAll(o) },
+  run:    { label:'Запустив',     run:o => setTrack(o, 'prod', 'work') },
+  sent:   { label:'Відправив',    run:o => setTrack(o, 'ship', trackDoneKey('ship')) },
+  qc:     { label:'Відкрити',     run:o => { odFolds.qc = true; openOrderDrawer(o); }, keep:true },
+  ttn:    { label:'Відкрити',     run:o => { odFolds.ship = true; openOrderDrawer(o); }, keep:true },
+  defect: { label:'Відкрити',     run:o => { odFolds.qc = true; openOrderDrawer(o); }, keep:true },
+  calc:   { label:'Відкрити',     run:o => openOfferEditor(o), keep:true },
+  art:    { label:'Створити',     run:o => artNew(o) }
+};
+/* Відкладене не зникає — воно повертається тоді, коли просили. Без цього
+   список читають один раз на день і кидають: половина рядків «не сьогодні». */
+function todoSnoozed(o, key){
+  const t = todoOf(o, key);
+  return !!(t && t.s === 'snooze' && t.until && t.until > new Date().toISOString());
+}
+async function todoSnooze(o, key, days){
+  const d = new Date(); d.setDate(d.getDate() + days); d.setHours(9, 0, 0, 0);
+  if(!o.todo || typeof o.todo !== 'object') o.todo = {};
+  o.todo[key] = { s:'snooze', until:d.toISOString(), by:(myEmail() || '') };
+  touchOrder(o);
+  try{ await storeSet('orders', orders); }catch(e){ console.error(e); toast('Не збереглось'); }
+  toast(days === 1 ? 'Повернеться завтра' : ('Повернеться через ' + days + ' дн'));
+  renderToday();
+}
+function doneToday(o, key){
+  const t = todoOf(o, key);
+  return !!(t && t.s === 'done' && String(t.at || '').slice(0, 10) === todayIso());
+}
+
+/* ══════════ Список ══════════
+   Рядки трьох родів, і вони не змішуються: поставлені руками нагадування
+   (їх писала людина під конкретну обіцянку), дії, виведені зі стану, і те,
+   що вже закрито сьогодні — окремою смугою внизу.
+
+   Останнє не для краси: список, у якому за день нічого не додалось у
+   «зроблено», читається як безкінечний. Видимий підсумок дня — те, заради
+   чого такі списки взагалі ведуть. */
 function todayRows(){
   const out = [];
   (orders || []).forEach(o => {
-    if(['cancel'].indexOf(o.status) >= 0) return;
-    if(o.status === 'done' && trackIsDone(o, 'ship')) return;
-    /* Нагадування — окремими рядками: вони конкретніші за будь-яку
-       автоматичну дію, бо їх писала людина під конкретну обіцянку. */
+    if(o.status === 'cancel') return;
+    const shipped = o.status === 'done' && trackIsDone(o, 'ship');
     openTasks(o).forEach(t => {
       const n = daysTo(t.due);
       out.push({ o, key:'task:' + t.id, kind:'task', text:t.text, who:t.for || o.mgrEmail || '',
@@ -12550,17 +12669,40 @@ function todayRows(){
             : (n === 0 ? { level:'warn', why:'сьогодні' } : { level:'ok', why:'' }),
         wait:false });
     });
+    if(shipped) return;
     const a = nextAction(o);
-    if(!a) return;
-    if(a.key === 'task') return;         // вже додали рядком вище
+    if(!a || a.key === 'task') return;
     const st = todoOf(o, a.key);
-    if(st && st.s === 'done') return;    // людина сказала «зробив» — не мозолимо
+    if(st && st.s === 'done'){
+      /* Закрите сьогодні лишається на видноті до кінця дня — і щоб було що
+         скасувати, і щоб видно було, що день не пройшов дарма. */
+      if(doneToday(o, a.key))
+        out.push({ o, key:a.key, kind:'done', text:a.text, who:a.who, wait:false,
+                   heat:{ level:'ok', why:'' }, at:st.at });
+      return;
+    }
+    if(todoSnoozed(o, a.key)) return;
     out.push({ o, key:a.key, kind:'auto', text:a.text, who:a.who, wait:a.wait,
                since:a.since, heat: actionHeat(o, a), doing: !!(st && st.s === 'doing') });
   });
-  const rank = r => (r.heat.level === 'hot' ? 0 : (r.wait ? 2 : 1));
-  return out.sort((x, y) => rank(x) - rank(y) ||
-    String(x.o.dueAt || '9999').localeCompare(String(y.o.dueAt || '9999')));
+  return out;
+}
+/* Розділи, а не одна купа. Порядок відповідає на «за що братись»: спершу
+   те, що вже горить, потім те, що на нас, і аж тоді те, де м'яч в інших. */
+const TODAY_SECS = [
+  { key:'hot',  title:'Горить',        hint:'прострочене або здавати за два дні' },
+  { key:'mine', title:'На нас',        hint:'нічого не чекаємо — можна робити зараз' },
+  { key:'wait', title:'Чекаємо інших', hint:'мʼяч не в нас, але видно скільки вже чекаємо' },
+  { key:'done', title:'Зроблено сьогодні', hint:'' }
+];
+/* Розділ у рядка рівно один. Інакше замовлення, яке і горить, і чекає
+   постачальника, стояло б у списку двічі — і половина роботи здавалась би
+   удвічі більшою, ніж вона є. Гарячість важливіша за чекання: коли строк
+   на носі, «мʼяч не в нас» перестає бути виправданням. */
+function todaySection(r){
+  if(r.kind === 'done') return 'done';
+  if(r.heat.level === 'hot') return 'hot';
+  return r.wait ? 'wait' : 'mine';
 }
 function renderToday(){
   const list = document.getElementById('td-list');
@@ -12569,21 +12711,20 @@ function renderToday(){
   const all = todayRows();
   const mine = (myEmail() || '').toLowerCase();
   const rows = all.filter(r =>
-      todayFilter === 'hot'  ? r.heat.level === 'hot'
-    : todayFilter === 'wait' ? r.wait
+      todayFilter === 'hot'  ? (r.kind !== 'done' && r.heat.level === 'hot')
+    : todayFilter === 'wait' ? (r.kind !== 'done' && r.wait)
     : todayFilter === 'mine' ? String(r.who || r.o.mgrEmail || '').toLowerCase() === mine
     : true);
   if(kpis){
-    const hot = all.filter(r => r.heat.level === 'hot').length;
-    const warn = all.filter(r => r.heat.level === 'warn').length;
-    const money = all.filter(r => r.heat.level === 'hot')
+    const hot = all.filter(r => r.kind !== 'done' && r.heat.level === 'hot').length;
+    const warn = all.filter(r => r.kind !== 'done' && r.heat.level === 'warn').length;
+    const did = all.filter(r => r.kind === 'done').length;
+    const money = all.filter(r => r.kind !== 'done' && r.heat.level === 'hot')
       .reduce((a, r) => a + (+r.o.totalPrice || 0), 0);
-    const act = (orders || []).filter(o => o.status !== 'cancel' &&
-      !(o.status === 'done' && trackIsDone(o, 'ship'))).length;
     kpis.innerHTML =
-      '<div class="td-k"><b>' + act + '</b><span>активних замовлень</span></div>' +
-      '<div class="td-k is-hot"><b>' + hot + '</b><span>потребує рішення</span></div>' +
+      '<div class="td-k is-hot"><b>' + hot + '</b><span>горить</span></div>' +
       '<div class="td-k is-warn"><b>' + warn + '</b><span>ризик затримки</span></div>' +
+      '<div class="td-k is-good"><b>' + did + '</b><span>зроблено сьогодні</span></div>' +
       (canSeeCost()
         ? '<div class="td-k"><b>' + fmt(money) + ' ₴</b><span>під ризиком</span></div>' : '');
   }
@@ -12591,48 +12732,122 @@ function renderToday(){
     list.innerHTML = '<div class="td-empty">Нічого не висить. Це не помилка — це добре.</div>';
     return;
   }
-  list.innerHTML = rows.map((r, i) => {
-    const o = r.o;
-    const wait = r.wait ? (r.since ? hoursSince(r.since) : 0) : 0;
-    return '<div class="td-r td-' + r.heat.level + (r.doing ? ' is-doing' : '') +
-        '" data-i="' + i + '">' +
-      '<span class="td-dot"></span>' +
-      '<div class="td-b">' +
-        '<div class="td-t">' + escA(r.text) + '</div>' +
-        '<div class="td-m">' +
-          '<b>' + escA(o.orderId || '—') + '</b>' +
-          (canSeeClient() && o.name ? ' · ' + escA(o.name) : '') +
-          (o.dueAt ? ' · здати ' + escA(dueWordUa(o.dueAt)) : '') +
-          (r.who ? ' · ' + escA(personName(r.who) || r.who) : '') +
-          (wait ? ' · чекаємо ' + (wait >= 48 ? Math.round(wait / 24) + ' дн' : wait + ' год') : '') +
-          (r.heat.why ? ' · <i>' + escA(r.heat.why) + '</i>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="td-a">' +
-        (r.kind === 'task'
-          ? '<button class="td-btn td-ok" data-td="taskdone">Зробив</button>'
-          : (r.doing
-              ? '<button class="td-btn" data-td="undoing">Не беру</button>' +
-                '<button class="td-btn td-ok" data-td="done">Зробив</button>'
-              : '<button class="td-btn" data-td="doing">Беру</button>' +
-                '<button class="td-btn td-ok" data-td="done">Зробив</button>')) +
-        '<button class="td-btn td-open" data-td="open">Картка</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
+  const flat = [];
+  let html = '';
+  TODAY_SECS.forEach(sec => {
+    const L = rows.filter(r => todaySection(r) === sec.key);
+    if(!L.length) return;
+    html += '<div class="td-sec td-sec--' + sec.key + '">' +
+      '<h3>' + escA(sec.title) + '<b>' + L.length + '</b></h3>' +
+      (sec.hint ? '<span>' + escA(sec.hint) + '</span>' : '') + '</div>';
+    L.sort((x, y) => String(x.o.dueAt || '9999').localeCompare(String(y.o.dueAt || '9999')));
+    L.forEach(r => { html += todayRowHtml(r, flat.length); flat.push(r); });
+  });
+  list.innerHTML = html;
+  if(todayCursor >= flat.length) todayCursor = flat.length - 1;
   list.querySelectorAll('.td-r').forEach(el => {
-    const r = rows[+el.dataset.i];
-    el.querySelectorAll('[data-td]').forEach(b => b.addEventListener('click', async ev => {
+    const r = flat[+el.dataset.i];
+    el.querySelectorAll('[data-td]').forEach(b => b.addEventListener('click', ev => {
       ev.stopPropagation();
-      const k = b.dataset.td;
-      if(k === 'open') return openOrderDrawer(r.o);
-      if(k === 'taskdone') return setTaskDone(r.o, r.task.id, true);
-      if(k === 'doing')   return todoState(r.o, r.key, 'doing');
-      if(k === 'undoing') return todoState(r.o, r.key, '');
-      if(k === 'done')    return todoState(r.o, r.key, 'done');
+      todayAct(r, b.dataset.td, el);
     }));
     el.addEventListener('click', ()=> openOrderDrawer(r.o));
   });
+  window.__tdRows = flat;
+  paintCursor();
+}
+function todayRowHtml(r, i){
+  const o = r.o;
+  const wait = r.wait ? (r.since ? hoursSince(r.since) : 0) : 0;
+  const doAct = r.kind === 'task' ? { label:'Зробив' } : (TODO_DO[r.key] || { label:'Зробив' });
+  const meta = [
+    '<b>' + escA(o.orderId || '—') + '</b>',
+    (canSeeClient() && o.name) ? escA(o.name) : '',
+    o.dueAt ? 'здати ' + escA(dueWordUa(o.dueAt)) : '',
+    r.who ? escA(personName(r.who) || r.who) : '',
+    wait ? 'чекаємо ' + (wait >= 48 ? Math.round(wait / 24) + ' дн' : wait + ' год') : '',
+    r.heat.why ? '<i>' + escA(r.heat.why) + '</i>' : '',
+    r.kind === 'done' && r.at ? 'о ' + escA(String(r.at).slice(11, 16)) : ''
+  ].filter(Boolean).join(' · ');
+  return '<div class="td-r td-' + r.heat.level + (r.doing ? ' is-doing' : '') +
+      (r.kind === 'done' ? ' is-done' : '') + '" data-i="' + i + '" tabindex="0">' +
+    '<span class="td-dot">' + (r.kind === 'done' ? '✓' : '') + '</span>' +
+    '<div class="td-b"><div class="td-t">' + escA(r.text) + '</div>' +
+      '<div class="td-m">' + meta + '</div></div>' +
+    '<div class="td-a">' +
+      (r.kind === 'done'
+        ? '<button class="td-btn" data-td="undo">Повернути</button>'
+        : (r.doing
+            ? '<button class="td-btn" data-td="undoing">Не беру</button>'
+            : '<button class="td-btn" data-td="doing" title="Щоб інші бачили, що ви за це взялись">Беру</button>') +
+          '<button class="td-btn td-snooze" data-td="snooze" title="Повернути завтра">↷</button>' +
+          '<button class="td-btn td-ok" data-td="done">' + escA(doAct.label) + '</button>') +
+      '<button class="td-btn td-open" data-td="open" title="Відкрити картку">↗</button>' +
+    '</div></div>';
+}
+/* Одна дія на всі кнопки рядка. Зелена спалах-позначка ставиться ДО запису:
+   рука вже відпустила кнопку, і чекати на базу нема чого. */
+async function todayAct(r, k, el){
+  if(k === 'open') return openOrderDrawer(r.o);
+  if(k === 'doing')   return todoState(r.o, r.key, 'doing');
+  if(k === 'undoing') return todoState(r.o, r.key, '');
+  if(k === 'snooze')  return todoSnooze(r.o, r.key, 1);
+  if(k === 'undo'){
+    if(r.kind === 'done') await todoState(r.o, r.key, '');
+    return;
+  }
+  if(k !== 'done') return;
+  if(el){ el.classList.add('td-flash'); }
+  if(r.kind === 'task'){
+    await setTaskDone(r.o, r.task.id, true);
+    todayUndo = { o:r.o, task:r.task.id };
+  } else {
+    const act = TODO_DO[r.key];
+    /* Спершу справжня дія, і лише потім позначка: якщо дія не пройшла,
+       рядок має лишитись, а не зникнути з відчуттям зробленого. */
+    if(act && act.run){
+      try{ await act.run(r.o); }
+      catch(e){ console.error(e); toast('Не вийшло — картка відкрита, зробіть руками'); }
+    }
+    /* Дії, які лише відкривають потрібне місце, позначки не ставлять:
+       робота ще попереду. */
+    if(!act || !act.keep){
+      await todoState(r.o, r.key, 'done');
+      todayUndo = { o:r.o, key:r.key };
+    }
+  }
+  showUndo(r.text);
+  renderToday();
+}
+/* Смуга «зроблено · повернути». Живе кілька секунд — рівно стільки, скільки
+   людина розуміє, що натиснула не те. */
+let undoTimer = 0;
+function showUndo(text){
+  let bar = document.getElementById('tdUndo');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'tdUndo';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = '<span>✓ ' + escA(String(text || '').slice(0, 70)) + '</span>' +
+    '<button data-undo>Повернути</button>';
+  bar.classList.add('show');
+  bar.querySelector('[data-undo]').addEventListener('click', async ()=>{
+    if(!todayUndo) return;
+    if(todayUndo.task) await setTaskDone(todayUndo.o, todayUndo.task, false);
+    else await todoState(todayUndo.o, todayUndo.key, '');
+    todayUndo = null;
+    bar.classList.remove('show');
+    renderToday();
+  });
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(()=> bar.classList.remove('show'), 6000);
+}
+function paintCursor(){
+  const rows = [...document.querySelectorAll('#td-list .td-r')];
+  rows.forEach((el, i) => el.classList.toggle('is-cur', i === todayCursor));
+  if(todayCursor >= 0 && rows[todayCursor])
+    rows[todayCursor].scrollIntoView({ block:'nearest' });
 }
 (function wireToday(){
   const f = document.getElementById('td-filter');
@@ -12642,7 +12857,28 @@ function renderToday(){
     if(!b) return;
     todayFilter = b.dataset.f;
     f.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    todayCursor = -1;
     renderToday();
+  });
+  /* Клавіатура. Хто веде такий список щодня, робить це руками на клавішах:
+     п'ятдесят рядків мишею — це окрема робота. */
+  document.addEventListener('keydown', e => {
+    const v = document.getElementById('view-today');
+    if(!v || v.style.display === 'none') return;
+    if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) return;
+    const rows = window.__tdRows || [];
+    if(!rows.length) return;
+    const move = n => { todayCursor = Math.max(0, Math.min(rows.length - 1, todayCursor + n));
+                        paintCursor(); e.preventDefault(); };
+    if(e.key === 'j' || e.key === 'ArrowDown') return move(1);
+    if(e.key === 'k' || e.key === 'ArrowUp')   return move(-1);
+    if(todayCursor < 0) return;
+    const r = rows[todayCursor];
+    const el = document.querySelectorAll('#td-list .td-r')[todayCursor];
+    if(e.key === 'Enter'){ e.preventDefault(); return openOrderDrawer(r.o); }
+    if(e.key === 'd'){ e.preventDefault(); return todayAct(r, 'done', el); }
+    if(e.key === 't'){ e.preventDefault(); return todayAct(r, 'doing', el); }
+    if(e.key === 's'){ e.preventDefault(); return todayAct(r, 'snooze', el); }
   });
 })();
 
@@ -17571,7 +17807,7 @@ const ZONE_NAV = [
   /* «Сьогодні» першим і в усіх ролей: це не ще один розділ, а вхід у роботу.
      Дизайнер бачить у ньому свої макети, виробництво — свої тести, і кожен
      — рівно те, що йому й так видно на дошці. */
-  { key:'today',     label:'Сьогодні' },
+  { key:'today',     label:'Задачі' },
   { key:'board',     label:'Канбан' },
   { key:'calc',      label:'Прорахунок' },
   { key:'settings',  label:'Формування цін' },
