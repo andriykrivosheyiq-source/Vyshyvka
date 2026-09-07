@@ -276,12 +276,19 @@ const rem0 = await p.evaluate(() => ({
   h: Math.round(document.querySelector('.od-rem').getBoundingClientRect().height),
   rows: document.querySelectorAll('.rem-row').length,
   noteRows: +document.querySelector('.od-note').getAttribute('rows'),
-  old: !!document.querySelector('.od-deal') || !!document.querySelector('.od-next')
+  /* Старий блок «Наступна дія» був полем, яке заповнювали руками, — і
+     дублював нагадування. Його немає й не має бути. А от виведений зі
+     стану рядок «що робити далі» — інша річ: він нічого не питає. */
+  old: !!document.querySelector('.od-deal') || !!document.querySelector('.od-next'),
+  step: (document.querySelector('.od-step') || {}).textContent || ''
 }));
 console.log('  порожні нагадування: ' + rem0.h + 'px · нотатка: ' + rem0.noteRows + ' рядки');
 ok(!rem0.old,
-  'блоків «Стан угоди» і «Наступна дія» в картці немає',
+  'блоків «Стан угоди» і заповнюваної руками «Наступної дії» в картці немає',
   'старі блоки лишились');
+ok(/\S/.test(rem0.step),
+  'натомість угорі рядок, виведений зі стану замовлення — його не заповнюють',
+  'виведеної наступної дії немає');
 ok(rem0.rows === 0 && rem0.h > 0 && rem0.h < 120,
   'порожній блок нагадувань — коментар і рядок «коли» (' + rem0.h + 'px)',
   'порожній блок нагадувань завеликий: ' + rem0.h + 'px');
