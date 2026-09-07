@@ -1080,6 +1080,30 @@
     border-radius:var(--r-ctl);padding:7px 9px;min-width:0;}
   .fact-add input[data-fact-label]{flex:1;}
   .fact-add input[data-fact-sum]{width:80px;flex:none;text-align:right;}
+  /* ── Дивитись як / журнал доступу ───────────────────────────────────── */
+  #seeAsBar{position:fixed;left:0;right:0;bottom:0;z-index:2400;display:flex;
+    align-items:center;justify-content:center;gap:14px;padding:10px 16px;
+    background:var(--side,#171B23);color:#fff;font-size:13px;font-weight:600;
+    box-shadow:0 -8px 24px rgba(15,32,52,.25);}
+  #seeAsBar b{color:#8BD3E6;}
+  #seeAsBar button{all:unset;cursor:pointer;padding:6px 14px;border-radius:20px;
+    background:rgba(255,255,255,.16);font-size:12.5px;font-weight:700;}
+  #seeAsBar button:hover{background:rgba(255,255,255,.28);}
+  body.see-as main{padding-bottom:56px;}
+  .see-as-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .see-as-row select{font:inherit;font-size:14px;border:1px solid var(--line);
+    border-radius:var(--r-ctl);padding:9px 11px;min-width:200px;}
+  .al-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
+    border-bottom:1px solid var(--line);font-size:12.5px;}
+  .al-row:last-child{border-bottom:0;}
+  .al-t{flex:none;width:104px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .al-w{flex:none;width:150px;font-weight:700;}
+  .al-w i{font-style:normal;font-weight:400;color:var(--ink-soft);font-size:11px;}
+  .al-k{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;padding:2px 7px;
+    border-radius:20px;background:var(--canvas);color:var(--ink-soft);}
+  .al-k--export{background:rgba(163,44,62,.12);color:#A32C3E;}
+  .al-k--rights{background:rgba(30,122,69,.12);color:#166638;}
+  .al-x{flex:1;min-width:0;color:var(--ink-soft);}
   .ao-row{all:unset;cursor:pointer;display:flex;align-items:center;gap:9px;width:100%;
     box-sizing:border-box;padding:11px 10px;border-radius:10px;}
   .ao-row:hover{background:var(--canvas);}
@@ -2826,6 +2850,25 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <button class="btn btn-accent" id="team-save" style="flex:none;">Зберегти команду</button>
         </div>
         <div class="sub" id="team-me" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Дивитись як</h2>
+          <span class="hint">Адмінка перемальовується рівно так, як її бачить обрана роль. Це перегляд, а не перевтілення: права звужуються, але не розширюються — з чужих очей не зробити того, чого не можна зі своїх. Потрібно щодня: коли налаштовуєш ролі й коли людина каже «у мене цього немає».</span>
+        </div>
+        <div class="see-as-row">
+          <select id="see-as-pick"></select>
+          <button class="btn btn-accent" id="see-as-go">Подивитись</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Журнал доступу</h2>
+          <span class="hint">Стрічка подій у картці каже, що зробили із замовленням. Тут — хто що дивився, змінював і вивантажував. Три записи обовʼязкові: експорти (єдиний спосіб дізнатись, звідки пішла база), зміни прав і вхід у режим «дивитись як». Журнал не редагується взагалі — ні ким.</span>
+        </div>
+        <div id="acc-log"></div>
       </div>
     </section>
 
@@ -4686,7 +4729,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='photos') renderCtor();
     if(view==='suppliers' && typeof renderSuppliers==='function') renderSuppliers();
     if(view==='analytics' && window.__anOpen) window.__anOpen();
-    if(view==='team') renderTeamList();
+    if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -16915,11 +16958,102 @@ function accOf(member){
     can:    pick(a.can,    base.can)
   };
 }
-function myAcc(){
+/* ══════════ Режим «Дивитись як» ══════════
+   Потрібен щодня: коли налаштовуєш ролі, коли людина каже «у мене цього
+   немає», коли треба зрозуміти, чому щось не зроблено. Доти єдиним способом
+   було завести собі другий акаунт і зайти з нього.
+
+   Це саме ПЕРЕГЛЯД, а не перевтілення: права звужуються, але не
+   розширюються — з чужих очей не можна зробити те, чого не можна зі своїх.
+   Інакше режим став би дірою, через яку менеджер дивиться «як власник».
+   І вихід із нього завжди на видноті: непомічений режим гірший за його
+   відсутність. */
+let seeAs = '';
+function seeAsOn(){ return !!seeAs && ROLE_PRESET[seeAs]; }
+function seeAsSet(role){
+  seeAs = (role && ROLE_PRESET[role] && role !== myRole()) ? role : '';
+  try{ sessionStorage.setItem('lq_see_as', seeAs); }catch(e){}
+  if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + (ROLES[seeAs] || seeAs) + '»');
+  applySeeAsBar();
+  applyRoleUi();
+  renderBoard();
+  renderOrderDrawer();
+}
+/* Перетин: у режимі перегляду видно рівно те, що видно ОБОМ. */
+function accIntersect(mine, other){
+  const cut = (a, b) => {
+    if(a === '*') return (b === '*') ? '*' : b.slice();
+    if(b === '*') return a.slice();
+    return a.filter(x => b.indexOf(x) >= 0);
+  };
+  return { ui: other.ui, nav: cut(mine.nav, other.nav), boards: cut(mine.boards, other.boards),
+           see: cut(mine.see, other.see), can: cut(mine.can, other.can) };
+}
+function myAccReal(){
   if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
   const m = teamMember(myEmail());
   if(!m) return presetOf('manager');            // кого не завели — менеджер
   return accOf(m);
+}
+function myAcc(){
+  const mine = myAccReal();
+  if(!seeAsOn()) return mine;
+  return accIntersect(mine, presetOf(seeAs));
+}
+function applySeeAsBar(){
+  let bar = document.getElementById('seeAsBar');
+  if(!seeAsOn()){ if(bar) bar.remove(); document.body.classList.remove('see-as'); return; }
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'seeAsBar';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = '<span>Ви дивитесь очима: <b>' + escapeHtml(ROLES[seeAs] || seeAs) +
+    '</b> — тільки перегляд</span><button data-see-off>Вийти</button>';
+  bar.querySelector('[data-see-off]').addEventListener('click', ()=> seeAsSet(''));
+  document.body.classList.add('see-as');
+}
+
+/* ══════════ Журнал доступу ══════════
+   Стрічка подій каже, ЩО зробили із замовленням. Цього мало. Журнал каже,
+   ХТО що дивився, змінював і вивантажував — і три записи в ньому
+   обов'язкові: експорти (єдиний спосіб дізнатись, звідки пішла база), зміни
+   прав і вхід у режим «дивитись як».
+
+   Журнал бачить тільки той, хто налаштовує систему, і він не редагується
+   взагалі — ні ким. Тому пишемо додаванням у сам документ сайту, а не
+   правкою: правити нічого. */
+const ACC_LOG_MAX = 400;
+function accLogList(){
+  const a = (contentData || {}).accessLog;
+  return Array.isArray(a) ? a : [];
+}
+async function accLog(kind, text){
+  /* Мовчазний журнал гірший за відсутній: якщо запис не пройшов, кажемо в
+     консоль, але саму дію не зупиняємо — інакше збій журналу зупиняв би
+     роботу. */
+  try{
+    const row = { at:new Date().toISOString(), by:(myEmail() || ''),
+                  role:myRole(), kind:String(kind || ''), text:String(text || '').slice(0, 160) };
+    const next = accLogList().concat([row]).slice(-ACC_LOG_MAX);
+    if(contentData) contentData.accessLog = next;
+    if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
+      await PHOTOS_DOC.set({ accessLog: next }, { merge:true });
+  }catch(e){ console.warn('журнал доступу не записався', e); }
+}
+function renderAccLog(){
+  const box = document.getElementById('acc-log');
+  if(!box) return;
+  if(!canSetup()){ box.innerHTML = '<div class="sub">Журнал бачить тільки той, хто налаштовує систему.</div>'; return; }
+  const L = accLogList().slice().reverse();
+  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК', open:'відкрив' };
+  box.innerHTML = L.length ? L.slice(0, 200).map(r =>
+    '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
+    '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
+      (r.role ? ' <i>' + escA(ROLES[r.role] || r.role) + '</i>' : '') + '</span>' +
+    '<span class="al-k al-k--' + escA(r.kind) + '">' + escA(WORD[r.kind] || r.kind) + '</span>' +
+    '<span class="al-x">' + escA(r.text) + '</span></div>').join('')
+    : '<div class="sub">Записів ще немає.</div>';
 }
 function may(group, key){
   const v = (myAcc() || {})[group];
@@ -17033,6 +17167,47 @@ function accBoxes(i, group, list, on){
         <input type="checkbox" data-acc="${i}" data-g="${group}" data-k="${escapeHtml(z.key)}"${
           on.indexOf(z.key) >= 0 ? ' checked' : ''}>${escapeHtml(z.label)}</label>`).join('')}</div></div>`;
 }
+/* ══════════ Права для правил бази ══════════
+   Приховати поле в інтерфейсі — не те саме, що закрити доступ. Правила бази
+   мусять знати ті самі права, але список за полем у мові правил не
+   шукається — карта шукається. Тому поруч зі списком `team` пишеться карта
+   `acl`, зібрана з тих самих галочок: розійтись вони не можуть, бо
+   записуються одним рухом.
+
+   Ключ — пошта, у якій усе, крім літер і цифр, замінене на «_»: у правилах
+   доступний саме такий вигляд. Дві різні пошти теоретично можуть дати один
+   ключ, практично — ні, і краще так, ніж не мати правил узагалі. */
+function aclKeyOf(email){
+  return String(email || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+}
+function aclFromTeam(list){
+  const out = {};
+  (list || []).forEach(p => {
+    const k = aclKeyOf(p.email);
+    if(!k) return;
+    const can = (p.acc && p.acc.can) || [];
+    const see = (p.acc && p.acc.see) || [];
+    out[k] = { edit: can.indexOf('edit') >= 0, pay: can.indexOf('pay') >= 0,
+               setup: can.indexOf('setup') >= 0, cost: see.indexOf('cost') >= 0 };
+  });
+  return out;
+}
+(function wireSeeAs(){
+  const sel = document.getElementById('see-as-pick');
+  const go  = document.getElementById('see-as-go');
+  if(!sel || !go) return;
+  sel.innerHTML = '<option value="">— своїми очима —</option>' +
+    Object.keys(ROLES).map(k => '<option value="' + escA(k) + '">' + escA(ROLES[k]) + '</option>').join('');
+  go.addEventListener('click', ()=>{
+    if(!canSetup()) return toast('Режим перегляду — для того, хто налаштовує систему');
+    seeAsSet(sel.value);
+    if(!sel.value) toast('Повернулись до своїх прав');
+  });
+  /* Режим живе до закриття вкладки: лишити його назавжди означало б, що
+     хтось одного дня працює чужими очима й не розуміє, чому нічого не
+     зберігається. */
+  try{ const s = sessionStorage.getItem('lq_see_as'); if(s) seeAs = s; }catch(e){}
+})();
 function renderTeamList(){
   const box = document.getElementById('team-list');
   if(!box) return;
@@ -17125,14 +17300,25 @@ function renderTeamList(){
     if(list.length && !list.some(p => p.email === myEmail())){
       if(!confirm('Вас немає в списку. Після збереження ви працюватимете як менеджер і не бачитимете собівартість. Зберегти?')) return;
     }
+    /* Що саме змінилось у правах — важливіше за «список збережено»: через
+       півроку питання буде «хто відкрив йому собівартість», а не «коли». */
+    const before = {};
+    ((contentData.team) || []).forEach(p => { before[p.email] = JSON.stringify(p.acc || p.role); });
+    const diff = list.filter(p => before[p.email] !== JSON.stringify(p.acc))
+                     .map(p => p.email + (before[p.email] === undefined ? ' (нов.)' : ''));
+    const gone = Object.keys(before).filter(e => !list.some(p => p.email === e));
     try{
-      await PHOTOS_DOC.set({ team: list }, { merge:true });
+      await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list) }, { merge:true });
       contentData.team = list;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
                                    acc: accExpand(p.acc) }));
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
+      if(diff.length || gone.length)
+        await accLog('rights', [diff.length ? 'змінив права: ' + diff.join(', ') : '',
+          gone.length ? 'прибрав: ' + gone.join(', ') : ''].filter(Boolean).join(' · '));
+      renderAccLog();
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
     }catch(e){ console.error(e); toast('Помилка збереження'); }
   });
@@ -18406,6 +18592,10 @@ function buySheetCsv(){
     a.href = URL.createObjectURL(blob);
     a.download = 'zakupivlya-' + todayIso() + '.csv';
     a.click();
+    /* Вивантаження — єдине, звідки база йде за межі системи. Тому воно в
+       журналі завжди, з числом рядків: «хтось колись викачав» — не відповідь. */
+    const rows = buySheetCsv().split('\r\n').length - 1;
+    accLog('export', 'закупівля на день, ' + rows + ' рядків');
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
 })();
