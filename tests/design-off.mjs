@@ -135,6 +135,41 @@ ok(/msg\.to === 'off'/.test(adm) && /kind === 'off'/.test(adm),
   'адмінка не знає про вид «не рахувати»');
 
 console.log('');
+console.log('═══ ТАБЛЕТКУ ВИДНО ЦІЛКОМ ═══');
+/* Таблетка виду стояла в рядку прорахунку поруч із довгою назвою — і рядок
+   стискав її до однієї літери «К». Побачити, який вид обрано, було
+   неможливо, а «Не рахувати» не вміщалось узагалі. */
+const pill = await fr.evaluate(() => {
+  const box = document.createElement('div');
+  box.className = 'cc';
+  box.style.width = '320px';                 // вузька колонка, як у картці
+  box.innerHTML =
+    '<div class="cc-row"><span>Підготовка макета · вишивка, картинка' +
+      '<span class="cc-kind-wrap"><select class="cc-kind" data-native>' +
+        '<option value="img" selected>Картинка</option>' +
+        '<option value="txt">Напис</option>' +
+        '<option value="off">Не рахувати</option>' +
+      '</select></span></span><b>900 грн</b></div>';
+  document.body.appendChild(box);
+  const sel = box.querySelector('.cc-kind');
+  const w = Math.round(sel.getBoundingClientRect().width);
+  const dressed = !!sel.__lqBox;
+  const opts = [...sel.options].map(o => o.textContent);
+  box.remove();
+  return { w, dressed, opts };
+});
+console.log('  ширина таблетки ' + pill.w + 'px · пункти: ' + pill.opts.join(', '));
+ok(pill.w >= 100,
+  'таблетка не стискається — видно, який вид обрано',
+  'таблетку стиснуло до ' + pill.w + 'px — саме там і лишалась одна літера');
+ok(!pill.dressed,
+  'маленька таблетка не одягається спільним убранням, розрахованим на велике поле',
+  'таблетку одягнули — вона знову стане 44 пікселі заввишки');
+ok(pill.opts.length === 3 && /Не рахувати/.test(pill.opts[2]),
+  'усі три пункти на місці, зокрема «Не рахувати»',
+  'пунктів не три: ' + pill.opts.join(', '));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 try{ fs.unlinkSync(VH); }catch(e){}
 console.log(bad ? 'розходжень: ' + bad

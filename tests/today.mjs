@@ -195,18 +195,97 @@ console.log('═══ «БЕРУ» І «ЗРОБИВ» ═══');
 const take = await p.evaluate(async () => {
   const o = orders.find(x => x.orderId === '1001401');
   await todoState(o, 'd_check', 'doing');
-  const doing = { mark:(o.todo || {}).d_check, rows:document.querySelectorAll('.td-r.is-doing').length };
-  await todoState(o, 'd_check', 'done');
-  const gone = { rows:[...document.querySelectorAll('.td-m b')].map(b => b.textContent) };
-  return { doing, gone };
+  return { mark:(o.todo || {}).d_check, rows:document.querySelectorAll('.td-r.is-doing').length };
 });
-console.log('  «беру» → підсвічених рядків ' + take.doing.rows);
-ok(take.doing.mark && take.doing.mark.s === 'doing' && take.doing.rows === 1,
+console.log('  «беру» → підсвічених рядків ' + take.rows);
+ok(take.mark && take.mark.s === 'doing' && take.rows === 1,
   '«беру» видно всім — щоб двоє не бралися за те саме',
-  'позначка не спрацювала: ' + JSON.stringify(take.doing));
-ok(take.gone.rows.indexOf('1001401') < 0,
-  '«зробив» прибирає рядок з очей, поки система не побачить наслідок',
-  'рядок лишився після «зробив»');
+  'позначка не спрацювала: ' + JSON.stringify(take));
+
+/* Головне: кнопка з дієсловом має РОБИТИ роботу, а не ставити галочку.
+   Доти рядок зникав, замовлення лишалось на місці — і за годину дія
+   поверталась. Це і є та «галочка для галочки». */
+console.log('');
+console.log('═══ «ЗРОБИВ» СПРАВДІ РУХАЄ СТАН ═══');
+const real = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001403');   // «Передати макет дизайнеру»
+  const before = (o.tracks || {}).design;
+  const rows = [...document.querySelectorAll('.td-r')];
+  const el = rows.filter(r => /1001403/.test(r.textContent))[0];
+  const btn = el && el.querySelector('[data-td="done"]');
+  const label = btn ? btn.textContent.trim() : '';
+  if(btn) btn.click();
+  await new Promise(r => setTimeout(r, 900));
+  return { before, after:(o.tracks || {}).design, label,
+           undo: !!document.querySelector('#tdUndo.show'),
+           act:(nextAction(o) || {}).key };
+});
+console.log('  кнопка «' + real.label + '» · дизайн ' + real.before + ' → ' + real.after);
+ok(real.label === 'Передав',
+  'на кнопці дієслово в минулому часі — її натискають після дії, а не замість неї',
+  'підпис кнопки не той: ' + real.label);
+ok(real.after === 'work' && real.before === 'new',
+  '«зробив» перевів замовлення на наступний етап, а не просто сховав рядок',
+  'стан не зрушив: ' + real.before + ' → ' + real.after);
+ok(real.act === 'd_work',
+  'і наступна дія одразу стала іншою — робота пішла далі',
+  'дія не змінилась: ' + real.act);
+ok(real.undo,
+  'зʼявилась смуга «повернути» — рівно на той випадок, коли натиснули не те',
+  'скасувати нічим');
+
+console.log('');
+console.log('═══ ЗРОБЛЕНЕ ЛИШАЄТЬСЯ ДО КІНЦЯ ДНЯ ═══');
+const done = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001401');
+  await todoState(o, 'd_check', 'done');
+  const secs = [...document.querySelectorAll('.td-sec h3')].map(h => h.textContent.trim());
+  const doneRows = [...document.querySelectorAll('.td-r.is-done')]
+    .map(r => (r.querySelector('.td-m b') || {}).textContent);
+  const kpis = [...document.querySelectorAll('.td-k span')].map(s => s.textContent.trim());
+  return { secs, doneRows, kpis };
+});
+console.log('  розділи: ' + done.secs.join(' | '));
+ok(done.secs.some(x => /ГОРИТЬ|Горить/i.test(x)) && done.secs.some(x => /Зроблено/i.test(x)),
+  'список поділений на розділи — «за що братись» видно з будови',
+  'розділів немає: ' + done.secs.join(' | '));
+ok(done.doneRows.indexOf('1001401') >= 0,
+  'зроблене не зникає: список, у якому за день нічого не додалось, читається як безкінечний',
+  'рядок зник одразу');
+ok(done.kpis.some(x => /зроблено сьогодні/i.test(x)),
+  'угорі видно, скільки вже закрито за день',
+  'підсумку дня немає: ' + done.kpis.join(' | '));
+
+const back = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001401');
+  const el = [...document.querySelectorAll('.td-r.is-done')]
+    .filter(r => /1001401/.test(r.textContent))[0];
+  const b = el && el.querySelector('[data-td="undo"]');
+  if(b) b.click();
+  await new Promise(r => setTimeout(r, 700));
+  return { mark:(o.todo || {}).d_check,
+           back: [...document.querySelectorAll('.td-r:not(.is-done)')]
+                   .some(r => /1001401/.test(r.textContent)) };
+});
+ok(!back.mark && back.back,
+  'повернути можна одним рухом — помилковий натиск не коштує нічого',
+  'рядок не повернувся: ' + JSON.stringify(back));
+
+console.log('');
+console.log('═══ ВІДКЛАСТИ ═══');
+const snoozed = await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001402');
+  await todoSnooze(o, 'ap_cl', 1);
+  const gone = ![...document.querySelectorAll('.td-r')].some(r => /1001402/.test(r.textContent));
+  return { until:((o.todo || {}).ap_cl || {}).until, gone, snoozed: todoSnoozed(o, 'ap_cl') };
+});
+ok(snoozed.gone && snoozed.snoozed && snoozed.until,
+  'відкладене зникає зі списку — але з датою повернення, а не назавжди',
+  'відкладення не спрацювало: ' + JSON.stringify(snoozed));
+await p.evaluate(async () => {
+  const o = orders.find(x => x.orderId === '1001402');
+  await todoState(o, 'ap_cl', '');
+});
 
 console.log('');
 console.log('═══ ФІЛЬТР «ЧЕКАЄМО ІНШИХ» ═══');
@@ -214,11 +293,18 @@ await p.click('#td-filter button[data-f="wait"]');
 await p.waitForTimeout(400);
 const waitOnly = await p.evaluate(() =>
   [...document.querySelectorAll('.td-r')].map(r => (r.querySelector('.td-m b') || {}).textContent));
+/* Рядок належить рівно одному розділу: замовлення, яке і горить, і чекає
+   постачальника, інакше стояло б у списку двічі. */
+const dup = waitOnly.length !== new Set(waitOnly).size;
 console.log('  ' + waitOnly.join(' · '));
-ok(waitOnly.indexOf('1001402') >= 0 && waitOnly.indexOf('1001403') < 0,
+ok(waitOnly.indexOf('1001402') >= 0 && waitOnly.indexOf('1001405') < 0,
   'окремо видно те, де мʼяч не в нас',
   'фільтр не працює: ' + waitOnly.join(','));
+ok(!dup,
+  'жоден рядок не потрапив у список двічі',
+  'рядок задвоївся: ' + waitOnly.join(','));
 await p.click('#td-filter button[data-f="all"]');
+await p.waitForTimeout(300);
 
 console.log('');
 console.log('═══ ЗАБЛОКОВАНО: ЧЕКАННЯ РАХУЄТЬСЯ ═══');
