@@ -41,6 +41,10 @@
       'cursor:pointer;user-select:none;max-width:100%;box-sizing:border-box;',
       'transition:border-color .14s,box-shadow .14s;}',
     '.lq-sel-v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
+    /* Невидимий відбиток найдовшого пункту тримає ширину кнопки: вона не
+       стрибає при виборі й не ріже довшу назву. */
+    '.lq-sel-v::after{content:attr(data-longest);display:block;height:0;overflow:hidden;',
+      'visibility:hidden;white-space:nowrap;font-weight:600;}',
     '.lq-sel-c{flex:none;width:16px;height:16px;opacity:.5;transition:transform .16s;}',
     '.lq-sel.is-open .lq-sel-c{transform:rotate(180deg);}',
     '.lq-sel.is-open{border-color:#3B6FD4;box-shadow:0 0 0 3px rgba(59,111,212,.14);}',
@@ -264,7 +268,17 @@
          ширину картки, після одягання стало б вузьким. */
       var cs = window.getComputedStyle(sel);
       if(sel.style.width) box.style.width = sel.style.width;
-      else if(cs.width && cs.display !== 'none') box.style.width = cs.width;
+      /* Виміряну ширину беремо як МІНІМУМ, а не як стелю.
+
+         Доти вона копіювалась у width один раз — при створенні кнопки — і
+         більше ніколи не перераховувалась. Але список живий: пункти в нього
+         додають уже після того, як кнопку зроблено. Замороженої ширини
+         переставало вистачати, і назва різалась до однієї літери — у
+         перемикачі дошок від «Продажі» лишалось «П».
+
+         Мінімум зберігає поведінку для полів, розтягнутих на всю ширину
+         картки, і дозволяє коротким кнопкам вирости під свій напис. */
+      else if(cs.width && cs.display !== 'none') box.style.minWidth = cs.width;
       if(sel.style.flex) box.style.flex = sel.style.flex;
       if(sel.style.minWidth) box.style.minWidth = sel.style.minWidth;
       if(sel.style.maxWidth) box.style.maxWidth = sel.style.maxWidth;
@@ -289,7 +303,15 @@
       /* Значення міняють і програмно — тоді підпис має оновитись сам. */
       sel.addEventListener('change', function(){ dress(sel); });
     }
+    /* Кнопка має вміщати найдовший пункт списку, а не тільки поточний:
+       інакше вибір довшої назви обріже її одразу після натиску. */
     box.querySelector('.lq-sel-v').textContent = label(sel);
+    var longest = '';
+    for(var i = 0; i < sel.options.length; i++){
+      var t = String(sel.options[i].textContent || '');
+      if(t.length > longest.length) longest = t;
+    }
+    box.querySelector('.lq-sel-v').setAttribute('data-longest', longest);
     box.classList.toggle('is-off', !!sel.disabled);
     box.hidden = !!sel.hidden;
     return box;

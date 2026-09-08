@@ -539,7 +539,12 @@
 
   .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:100%;}
   @media (min-width:560px){.seg{width:fit-content;}}
-  .seg button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:9px 14px;color:var(--ink-soft);flex:1;text-align:center;}
+  /* Підпис не ріжемо: у перемикачі з трьох пунктів «Картинка» стискалась до
+     однієї літери, і що саме обрано, видно не було. Краще перенести кнопки
+     на другий рядок, ніж лишити «К». */
+  .seg{flex-wrap:wrap;}
+  .seg button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:9px 14px;
+    color:var(--ink-soft);flex:1 0 auto;text-align:center;white-space:nowrap;}
   @media (min-width:560px){.seg button{flex:none;}}
   .seg button.active.print{background:var(--accent);color:#fff;}
   .seg button.active.emb{background:var(--warn);color:#fff;}
@@ -2403,11 +2408,13 @@
      восьмипіксельний кружечок — на екрані з шести колонок його не видно
      взагалі, і воронка читалась як шість однакових списків. */
   .col-head{align-items:center;gap:8px;padding:0 4px 12px;}
-  .col-head h3{background:var(--st-soft,var(--canvas));color:var(--st-ink,var(--ink));
-    border-radius:var(--r-pill);padding:5px 13px 5px 11px;display:inline-flex;
-    align-items:center;gap:8px;font-weight:600;}
+  /* Плашка вже кольорова сама — окрема «таблетка» під назвою всередині неї
+     була б кольором на кольорі. Лишаємо назву текстом, у чорнилі етапу. */
+  .col-head h3{background:transparent;color:var(--st-ink,var(--ink));
+    padding:0;display:inline-flex;align-items:center;gap:8px;font-weight:700;}
   .col-dot{width:7px;height:7px;background:currentColor;opacity:.65;}
-  .col-count{background:transparent;border:0;color:var(--muted);font-weight:600;padding:0 2px;}
+  .col-count{background:rgba(255,255,255,.55);border:0;color:var(--st-ink,var(--ink));
+    font-weight:700;padding:1px 8px;border-radius:var(--r-pill);opacity:.85;}
 
   /* ── Картка на дошці ── */
   .ticket{border-radius:var(--r-card);}
@@ -2510,11 +2517,17 @@
      Колір беремо той самий, що й у плитці заголовка, тільки розведений
      білим: 55% пастелі — це вже майже папір, але етапи все одно
      розрізняються з відстані. */
-  .col{background:var(--st-bg,transparent);border-radius:var(--r-shell);
-    padding:12px 10px 14px;}
-  .col-head{padding:2px 4px 12px;}
-  .col.drag-over{background:var(--st-bg,var(--paper));outline:2px dashed var(--accent);
-    outline-offset:-4px;}
+  /* Колір етапу живе у ШАПЦІ колонки, а не під картками.
+     Пробували інакше: підкладка на всю колонку робила дошку строкатою —
+     шість кольорових полотнищ поруч, і білі картки на них уже не читались
+     як головне. Тепер кольорова тільки верхня плашка: етап видно з
+     відстані, а робоча область лишається спокійною. */
+  .col{background:transparent;border-radius:var(--r-shell);padding:0 4px 14px;}
+  .col-head{background:var(--st-bg,var(--canvas));border-radius:var(--r-card);
+    padding:10px 12px;margin-bottom:10px;}
+  .col.drag-over{outline:2px dashed var(--accent);outline-offset:-4px;
+    border-radius:var(--r-shell);}
+  .col.drag-over .col-head{filter:brightness(.96);}
   .empty-col{background:rgba(255,255,255,.55);border-color:transparent;}
 
   /* ── Показники ──
@@ -4011,9 +4024,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a9647808f8"></script>
-<script src="loomiq-fingerprint.js?v=a9647808f8"></script>
-<script src="loomiq-pricing.js?v=a9647808f8"></script>
+<script src="loomiq-select.js?v=4a023ef29d"></script>
+<script src="loomiq-fingerprint.js?v=4a023ef29d"></script>
+<script src="loomiq-pricing.js?v=4a023ef29d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4631,10 +4644,10 @@ let STATUSES = STATUS_DEFAULTS.map(x => Object.assign({}, x));
 /* Стрілки «далі/назад» ходять лише по основній лінії воронки. */
 function statusFlow(){ return STATUSES.filter(s => !s.off); }
 function statusMeta(key){ return STATUSES.filter(s => s.key === key)[0] || null; }
-/* Пастель, розведена білим. Колір етапу на плитці заголовка вже спокійний,
-   але як підкладка ЦІЛОЇ колонки він задужий: дошка починає рябіти, а на
-   ній працюють цілий день. Розводимо до майже-паперу — етапи все одно
-   розрізняються з відстані, а очі не втомлюються. */
+/* Пастель, розведена білим. Лишилась як загальний інструмент — підкладку
+   цілої колонки нею більше не роблять (колір етапу тепер живе тільки в
+   шапці), але розведений відтінок потрібен там, де кольорове тло має бути
+   ледь помітним. */
 function tintSoft(hex, k){
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
   if(!m) return 'transparent';
@@ -5981,6 +5994,23 @@ function calcAllows(tech){
   const list = LQ.garmentApps(gid, g.name || '', contentData.products || {});
   return list.indexOf(tech === 'emb' ? 'embro' : 'dtf') >= 0;
 }
+/* Вид дизайну в прорахунку: картинка, напис — або «без дизайну».
+
+   Третій вид потрібен там само, де й у пропозиції: дизайн буває готовий —
+   клієнт приніс файл саме під цей виріб, або те саме нанесення вже
+   підготували минулого разу. Тоді разових немає, а САМЕ НАНЕСЕННЯ рахується
+   як звичайно: тканину прошити все одно треба.
+
+   Старі позиції зберігали булеве `isText`, і читати його треба далі: без
+   цього вже складені прорахунки мовчки стали б «картинками». */
+function appKind(app){
+  if(!app) return 'img';
+  if(app.kind === 'txt' || app.kind === 'off' || app.kind === 'img') return app.kind;
+  return app.isText ? 'txt' : 'img';
+}
+const APP_KINDS = [{ k:'img', label:'Картинка' },
+                   { k:'txt', label:'Текст' },
+                   { k:'off', label:'Без дизайну' }];
 function appCalc(technique, wCm, hCm, qty, idx, isText){
   const p = curSitePricing();
   const meth = p.methods || {};
@@ -6061,7 +6091,8 @@ function renderApps(){
     card.className = 'app-card';
     card.innerHTML = `
       <div class="app-head">
-        <span class="tag">${app.isText ? 'Текст' : 'Зображення'} ${idx+1}</span>
+        <span class="tag">${
+          (APP_KINDS.filter(k=>k.k===appKind(app))[0]||APP_KINDS[0]).label} ${idx+1}</span>
         ${currentApps.length > 1
           ? `<span class="tag" style="background:#EEF2FF;color:#3B4A9E;"
                title="Старт і мінімалка беруться за розміром нанесення, а не за порядком додавання"
@@ -6084,8 +6115,8 @@ function renderApps(){
             '<div class="sub" style="margin:6px 0 0;font-size:11.5px;">На цьому виробі доступний лише один спосіб — тканина не тримає інший.</div>'}
           <!-- Вид нанесення: у написа своя ставка, свій старт і своя разова -->
           <div class="seg" style="margin-top:8px;">
-            <button data-kindsw="img" class="${app.isText?'':'active'}">Картинка</button>
-            <button data-kindsw="txt" class="${app.isText?'active':''}">Текст</button>
+            ${APP_KINDS.map(k=>`<button data-kindsw="${k.k}" class="${
+              appKind(app)===k.k?'active':''}">${k.label}</button>`).join('')}
           </div>
           <div style="display:flex;gap:8px;margin:12px 0;">
             <label class="field" style="flex:1;">Ширина нанесення, см
@@ -6109,7 +6140,10 @@ function renderApps(){
     card.querySelectorAll('.seg button').forEach(b=>{
       b.addEventListener('click', ()=>{
         if(b.dataset.tech) app.technique = b.dataset.tech;
-        else if(b.dataset.kindsw) app.isText = (b.dataset.kindsw === 'txt');
+        else if(b.dataset.kindsw){
+          app.kind = b.dataset.kindsw;
+          app.isText = (app.kind === 'txt');   // сумісність зі старим полем
+        }
         renderApps();
       });
     });
@@ -6165,7 +6199,7 @@ function appSizeIndex(app){
 }
 function computeApp(app, qty){
   if(qty==null) qty = Math.max(1, parseInt((document.getElementById('order-qty')||{}).value||1));
-  return appCalc(app.technique, app.wCm, app.hCm, qty, appSizeIndex(app), app.isText);
+  return appCalc(app.technique, app.wCm, app.hCm, qty, appSizeIndex(app), appKind(app) === 'txt');
 }
 
 /* Порожнє поле — це нуль, а не «NaN». Заявка без товару суми ще не має, і
@@ -6188,8 +6222,14 @@ function leadDaysFor(technique, qty){
   return d;
 }
 // Оплати замовлення від набору методів: за замовлення (разова) + за штуку × кількість.
+/* `techniques` — способи, за які РАХУЄМО разові. Порожній список означає
+   рівно те, що написано: рахувати нема за що, разової немає. Доти порожнеча
+   мовчки підмінялась на «друк», і замовлення, у якому всі дизайни позначені
+   «без дизайну», усе одно платило підготовку макета. Не передали аргумент
+   зовсім (старий виклик) — тоді, як і було, береться друк. */
 function orderFees(techniques, qty){
-  const uniq = [...new Set((techniques&&techniques.length?techniques:['print']).map(t=>t==='emb'?'emb':'print'))];
+  const src = (techniques === undefined || techniques === null) ? ['print'] : techniques;
+  const uniq = [...new Set(src.map(t=>t==='emb'?'emb':'print'))];
   let orderP=0, orderC=0, pieceP=0, pieceC=0;
   uniq.forEach(t=>{
     const m = methodModel(t);
@@ -6264,7 +6304,11 @@ function recalc(){
     else { dtfUnit+=f.price; dtfCostU+=f.cost; }
   });
   // Оплати: за замовлення (разова) + за штуку × кількість — від методів у замовленні
-  const fees = orderFees(currentApps.map(a=>a.technique), qty);
+  /* «Без дизайну» не платить разову підготовку макета: роботи по ньому не
+     було. Якщо таких усі — разової в замовленні немає взагалі. Саме
+     нанесення при цьому рахується вище, як звичайно. */
+  const fees = orderFees(currentApps.filter(a => appKind(a) !== 'off')
+                                    .map(a=>a.technique), qty);
 
   // Ціна/собівартість за одиницю — ОДИН-В-ОДИН із формулою сайту (unitPrice):
   // round((база + вишивка) × коеф) + DTF + за_штуку
@@ -6322,7 +6366,7 @@ document.getElementById('save-order').addEventListener('click', async ()=>{
     garmentId: figs.garment.id,
     garmentName: figs.garment.name,
     qty: figs.qty,
-    apps: currentApps.map(a=>({technique:a.technique, wCm:a.wCm, hCm:a.hCm})),
+    apps: currentApps.map(a=>({technique:a.technique, wCm:a.wCm, hCm:a.hCm, kind:appKind(a)})),
     totalPrice: figs.totalPrice,
     totalCost: figs.totalCost,
     garmentCost: figs.garmentCost,
@@ -9971,7 +10015,10 @@ function renderTrackBoard(){
     col.className = 'col';
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
-    col.style.setProperty('--st-bg', tintSoft(c.bg, .5));
+    /* Плашка шапки бере колір етапу як він є: розводити його білим було
+       потрібно, поки він заливав усю колонку. На вузькій смузі згори
+       пастель читається як мітка, а не як полотнище. */
+    col.style.setProperty('--st-bg', c.bg);
     const list = live.filter(o => trackOf(o, key) === st.key).sort(boardSortFn());
     col.innerHTML = `
       <div class="col-head"><h3 style="--st-soft:${c.bg};--st-ink:${c.head};"><i class="col-dot"></i>${
@@ -10013,7 +10060,10 @@ function renderBoard(){
     col.className = 'col';
     col.dataset.status = st.key;
     const c = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
-    col.style.setProperty('--st-bg', tintSoft(c.bg, .5));
+    /* Плашка шапки бере колір етапу як він є: розводити його білим було
+       потрібно, поки він заливав усю колонку. На вузькій смузі згори
+       пастель читається як мітка, а не як полотнище. */
+    col.style.setProperty('--st-bg', c.bg);
     // Колір етапу несе підкладка колонки, а плитка заголовка — його ж, насиченіший
     // Свіжа розмова — нагору колонки. Порівнюємо ISO-рядки як текст:
     // вони для того й придумані, щоб сортуватись без розбору дати.
