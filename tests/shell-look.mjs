@@ -93,21 +93,32 @@ ok(shell.frame < 80 && shell.panel > 200,
   'корпус і панель не розрізняються: ' + JSON.stringify(shell));
 
 console.log('');
-console.log('═══ ВОРОНКА: ПІДКЛАДКА КОЛОНКИ, БІЛІ КАРТКИ ═══');
+console.log('═══ ВОРОНКА: КОЛІР У ШАПЦІ, БІЛІ КАРТКИ ═══');
+/* Колір етапу спершу заливав усю колонку. Шість кольорових полотнищ поруч
+   роблять дошку строкатою, і білі картки на них перестають читатись як
+   головне. Тепер кольорова тільки верхня плашка. */
 const cols = await p.evaluate(() => {
   const c = document.querySelector('.col');
+  const h = c && c.querySelector('.col-head');
   const t = document.querySelector('.ticket');
+  const solid = s => !/rgba\([^)]*,\s*0\)|transparent/.test(String(s));
   return { col: c ? getComputedStyle(c).backgroundColor : '',
-           radius: c ? parseFloat(getComputedStyle(c).borderRadius) || 0 : 0,
+           colSolid: c ? solid(getComputedStyle(c).backgroundColor) : true,
+           head: h ? getComputedStyle(h).backgroundColor : '',
+           headSolid: h ? solid(getComputedStyle(h).backgroundColor) : false,
+           headRadius: h ? parseFloat(getComputedStyle(h).borderRadius) || 0 : 0,
            tint: c ? c.style.getPropertyValue('--st-bg') : '',
            card: t ? getComputedStyle(t).backgroundColor : '' };
 });
-console.log('  колонка ' + cols.col + ' · картка ' + cols.card);
-ok(/^rgb/.test(cols.tint) && cols.radius >= 16,
-  'колонка стоїть на власній підкладці кольору етапу',
-  'підкладки колонки немає: ' + JSON.stringify(cols));
+console.log('  колонка ' + cols.col + ' · шапка ' + cols.head + ' · картка ' + cols.card);
+ok(!cols.colSolid,
+  'під картками фону немає — робоча область спокійна',
+  'колір досі залитий на всю колонку: ' + cols.col);
+ok(cols.headSolid && cols.headRadius >= 10 && /^#|^rgb/.test(cols.tint),
+  'колір етапу видно у шапці колонки',
+  'шапка без кольору етапу: ' + JSON.stringify(cols));
 ok(/255,\s*255,\s*255/.test(cols.card),
-  'картки на ній лишаються білими — дошка не рябить',
+  'картки лишаються білими',
   'картка не біла: ' + cols.card);
 
 console.log('');
