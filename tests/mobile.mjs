@@ -239,6 +239,58 @@ ok(!/user-scalable\s*=\s*no|maximum-scale/.test(zoom),
   'zoom заборонений: ' + zoom);
 
 console.log('');
+console.log('═══ РЕДАКТОР КП: ШАПКА В ОДИН РЯДОК, КОНСТРУКТОР НА ВЕСЬ ЕКРАН ═══');
+/* Саме тут було найгірше: шапка з шести дій розгорталась у чотири ряди, а
+   конструктор ділив решту навпіл із пропозицією — дві смуги, у кожній з
+   яких нічого не робиться. */
+const ed = await p.evaluate(async () => {
+  const o = orders[0];
+  await openOfferEditor(o);
+  await new Promise(r => setTimeout(r, 900));
+  const head = document.querySelector('#offerEd .oe-head');
+  const hr = head.getBoundingClientRect();
+  /* Перенос — це коли якийсь елемент починається НИЖЧЕ, ніж закінчився
+     перший. Різні висоти в одному ряду переносом не є, тож рахувати різні
+     координати верху не можна. */
+  const kids = [...head.children].filter(el => el.offsetParent !== null)
+    .map(el => el.getBoundingClientRect());
+  const wrapped = kids.length > 1 && kids.some(r => r.top >= kids[0].bottom - 1);
+  const title = document.querySelector('#offerEd .oe-title');
+  const before = { h: Math.round(hr.height), wrapped,
+                   scrolls: head.scrollWidth > head.clientWidth + 2,
+                   sticky: getComputedStyle(title).position };
+  /* Відкриваємо конструктор так само, як його відкриває робота з позицією. */
+  const win = calcOverEl();
+  win.classList.add('open');
+  await new Promise(r => setTimeout(r, 500));
+  const wr = win.getBoundingClientRect();
+  const frame = document.querySelector('#offerEd .oe-body > iframe');
+  const fr = frame.getBoundingClientRect();
+  const body = document.querySelector('#offerEd .oe-body').getBoundingClientRect();
+  return { before,
+           winW: Math.round(wr.width), winH: Math.round(wr.height),
+           bodyW: Math.round(body.width), bodyH: Math.round(body.height),
+           covers: wr.height >= body.height - 2 && wr.width >= body.width - 2,
+           frameH: Math.round(fr.height) };
+});
+console.log('  шапка ' + ed.before.h + 'px · перенесена: ' + ed.before.wrapped +
+            ' · гортається: ' + ed.before.scrolls);
+console.log('  конструктор ' + ed.winW + '×' + ed.winH +
+            ' при робочій області ' + ed.bodyW + '×' + ed.bodyH);
+ok(!ed.before.wrapped && ed.before.h <= 88,
+  'шапка редактора — один рядок, а не чотири ряди на третину екрана',
+  'шапка розгорнулась: перенос ' + ed.before.wrapped + ', висота ' + ed.before.h);
+ok(ed.before.scrolls && ed.before.sticky === 'sticky',
+  'дії гортаються вбік, а номер КП лишається на місці',
+  'шапка не гортається або номер їде разом з усім');
+ok(ed.covers,
+  'конструктор відкривається на весь редактор, а не половиною',
+  'конструктор ділить екран: ' + ed.winW + '×' + ed.winH +
+  ' із ' + ed.bodyW + '×' + ed.bodyH);
+await p.evaluate(() => { try{ closeCalcOver(); }catch(e){} offerEdClose(); });
+await p.waitForTimeout(500);
+
+console.log('');
 console.log('═══ ЗАГОЛОВКИ Й ШИРИНА СТОРІНКИ ═══');
 const layout = await p.evaluate(() => ({
   overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -249,6 +301,38 @@ console.log('  горизонтальний виліт ' + layout.overflow + 'px
 ok(layout.overflow <= 1,
   'сторінка не їде вбік — нічого не вилазить за екран',
   'сторінка ширша за екран на ' + layout.overflow + 'px');
+
+console.log('');
+console.log('═══ ФОРМА ЗАЯВКИ НА САЙТІ ═══');
+/* Єдина форма, яку заповнює клієнт, і заповнює він її переважно з телефона.
+   Дрібний напис у полі означає, що при дотику сайт стрибне й лишиться
+   збільшеним — саме там, де людина щойно вирішила лишити заявку. */
+await p.goto(HOST + '/index.html', { waitUntil:'domcontentloaded' });
+await p.waitForTimeout(4000);
+const form = await p.evaluate(() => {
+  const list = [...document.querySelectorAll('input, textarea, select')]
+    .filter(el => {
+      const r = el.getBoundingClientRect();
+      /* Приховані файлові поля (1×1, прозорі, без подій) дотиком недосяжні —
+         їхній розмір ні на що не впливає. */
+      return r.width > 24 && r.height > 12 && getComputedStyle(el).pointerEvents !== 'none';
+    });
+  return { n: list.length,
+           small: list.filter(el => parseFloat(getComputedStyle(el).fontSize) < 16)
+                      .map(el => (el.className || el.tagName) + ':' + getComputedStyle(el).fontSize),
+           low: list.filter(el => el.getBoundingClientRect().height < 40).length,
+           over: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+});
+console.log('  полів ' + form.n + ' · виліт сторінки ' + form.over + 'px');
+ok(form.n > 0 && form.small.length === 0,
+  'у формі заявки жодного дрібного поля — сайт не стрибне при дотику',
+  'дрібні поля: ' + JSON.stringify(form.small));
+ok(form.low === 0,
+  'усі поля форми не нижчі за 40 пікселів',
+  'низьких полів: ' + form.low);
+ok(form.over <= 1,
+  'сторінка сайту не їде вбік',
+  'сайт ширший за екран на ' + form.over + 'px');
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
