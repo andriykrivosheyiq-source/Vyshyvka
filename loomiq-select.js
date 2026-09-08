@@ -51,6 +51,10 @@
     '.lq-sel.is-off{opacity:.55;cursor:not-allowed;}',
     '.lq-sel:focus-visible{outline:2px solid #3B6FD4;outline-offset:2px;}',
     '@media (hover:hover){ .lq-sel:not(.is-off):hover{border-color:#C9D0DC;} }',
+    /* Телефон. 16 пікселів — не про смак: на менший напис Safari «наїжджає»
+       при дотику й лишає сторінку збільшеною. 48 у висоту — щоб у список
+       можна було влучити пальцем, а не нігтем. */
+    '@media (max-width:767px){ .lq-sel{font-size:16px;height:48px;padding:0 14px;} }',
     /* Меню живе в body: усередині картки з overflow воно різалось би краєм. */
     '.lq-menu{position:fixed;z-index:12000;background:#fff;border:1px solid #E5E8EF;',
       'border-radius:16px;box-shadow:0 18px 44px rgba(16,24,40,.16);padding:6px;',

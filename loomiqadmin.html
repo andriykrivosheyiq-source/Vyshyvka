@@ -2,7 +2,11 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- Збільшення пальцями більше не заборонено: його вимикали тільки щоб
+     Safari не «наїжджав» на дрібні поля при дотику. Тепер поля на телефоні
+     мають 16 пікселів, наїзду немає, а можливість наблизити дрібну таблицю
+     людині лишається. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Loomiq · Прорахунок</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1617,6 +1621,30 @@
     color:var(--ink-soft);padding:8px 11px;border:1px dashed var(--line);border-radius:8px;}
   .oe-logo-add:hover{border-color:var(--accent);color:var(--accent-deep);border-style:solid;}
   @media(max-width:900px){ .oe-head{flex-wrap:wrap;} .oe-head .oe-title{width:100%;} }
+  /* ── Редактор КП на телефоні ──────────────────────────────────────────
+     Шапка з шести дій розгорталась у чотири ряди й з'їдала третину екрана,
+     а конструктор ділив решту навпіл із самою пропозицією. На 390 пікселях
+     це дві смуги, у кожній з яких нічого не робиться.
+
+     Те саме правило: один рівень на екран. Шапка — один рядок, який
+     гортається вбік, з номером КП, що лишається на місці. Конструктор
+     відкривається НА ВЕСЬ редактор, а не половиною. */
+  @media(max-width:767px){
+    #offerEd .oe{border-radius:0;}
+    #offerEd .oe-head{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+      gap:6px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));}
+    #offerEd .oe-head::-webkit-scrollbar{display:none;}
+    #offerEd .oe-title{position:sticky;left:0;z-index:2;flex:none;width:auto;
+      max-width:46vw;background:var(--canvas);padding-right:8px;}
+    #offerEd .oe-title b{font-size:14px;}
+    #offerEd .oe-btn,#offerEd .oe-brand,#offerEd .oe-logo-add{flex:none;min-height:40px;}
+    #offerEd .oe-body{position:relative;flex-direction:column;}
+    /* Конструктор — окремим шаром поверх пропозиції. Половина екрана на
+       кожного означала, що не працює жодне з двох. */
+    #offerEd .cwin-side.open{position:absolute;inset:0;max-width:none;flex:none;
+      border:0;z-index:5;}
+    #offerEd .cwin-side .cwin-head{padding-top:10px;}
+  }
 
   /* ── Вікно діалогу ──────────────────────────────────────────────────────
      Переписуватись у вузькій колонці картки незручно: рядок на два слова,
@@ -2497,6 +2525,120 @@
     body{background:var(--canvas);}
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     ТЕЛЕФОН
+     Менеджери просять працювати з телефона, а працювати не виходило: меню
+     просвічувало наскрізь, колонка дошки не влазила в екран, картка
+     відкривалась вузькою смугою збоку, а поля при дотику розсовували
+     сторінку.
+
+     Правило одне й воно все пояснює: НА ТЕЛЕФОНІ ОДИН РІВЕНЬ НА ЕКРАН.
+     Меню — поверх усього й непрозоре. Дошка — одна колонка на всю ширину.
+     Картка — на весь екран. Нічого не «поруч», усе по черзі.
+     ══════════════════════════════════════════════════════════════════════ */
+  @media (max-width:767px){
+    /* ── Меню ──
+       Головна вада була тут: у корпусі меню лежить на темному тлі оболонки й
+       власного не має. На телефоні воно висить НАД вмістом — і крізь пункти
+       просвічували картки. Читати було неможливо. */
+    .sidebar{background:var(--side);width:min(86vw,320px);
+      box-shadow:8px 0 40px rgba(0,0,0,.45);
+      padding-bottom:env(safe-area-inset-bottom);}
+    .sidebar-inner{padding:18px 14px 24px;gap:20px;}
+    .overlay{background:rgba(6,10,16,.6);backdrop-filter:blur(2px);}
+    /* Сторінка під відкритим меню не має їхати: інакше закриваєш меню й
+       опиняєшся зовсім не там, де був. */
+    body.menu-open{overflow:hidden;}
+    /* Пункт меню — під палець, а не під мишу. */
+    .nav button{min-height:48px;font-size:15px;}
+
+    /* ── Шапка ──
+       Липка, вузька, з урахуванням «чубчика». */
+    .topbar{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
+      z-index:60;}
+    .hamburger{width:44px;height:44px;}
+
+    /* ── Заголовок розділу ──
+       Три рядки пояснень над кожним екраном з'їдали пів телефона. Лишаємо
+       назву; пояснення читають один раз, і воно є на комп'ютері. */
+    .page-head h1{font-size:22px;line-height:1.2;}
+    .page-head .eyebrow{font-size:10px;}
+    .page-head .sub,.page-head p.sub{display:none;}
+
+    /* ── Дошка ──
+       Колонка на весь екран і «прилипання»: гортаєш етапи, як сторінки, а не
+       намагаєшся влучити в обрізану смугу. */
+    .board{margin:0 -14px;padding:0 14px 12px;gap:12px;
+      scroll-snap-type:x mandatory;overscroll-behavior-x:contain;}
+    .col{flex:0 0 calc(100vw - 28px);min-width:0;scroll-snap-align:center;}
+    .col-head{position:sticky;top:0;z-index:2;}
+
+    /* Смуга етапів над дошкою: видно, де ти зараз і скільки їх усього. */
+    .bstrip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+      margin:0 -14px 10px;padding:0 14px 2px;-webkit-overflow-scrolling:touch;}
+    .bstrip::-webkit-scrollbar{display:none;}
+    .bstrip button{all:unset;cursor:pointer;flex:none;display:flex;align-items:center;
+      gap:6px;padding:8px 13px;border-radius:var(--r-pill);background:var(--paper);
+      border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-soft);
+      white-space:nowrap;min-height:38px;box-sizing:border-box;}
+    .bstrip button.on{background:var(--coal);color:#fff;border-color:var(--coal);}
+    .bstrip button i{font-style:normal;font-size:11px;opacity:.75;font-weight:700;}
+
+    /* ── Панель інструментів дошки ── */
+    .board-head{flex-wrap:wrap;gap:8px;}
+    .board-head h1{font-size:22px;width:100%;}
+    .board-head .bh-spacer{display:none;}
+    .board-tools{gap:8px;}
+    .bt-search{flex:1 1 100%;}
+    .bt-board,.bt-btn,.bt-sort{height:44px;}
+    #board-add,#st-toggle{flex:1 1 auto;min-height:44px;}
+
+    /* ── Картка замовлення ──
+       На весь екран, а не смугою збоку: у смузі 460px на телефоні лишалось
+       трохи більше половини рядка. */
+    .od-panel{width:100%;max-width:none;border-radius:0;
+      padding-bottom:env(safe-area-inset-bottom);}
+    .od-body{padding-bottom:20px;}
+    .od-foot{padding-bottom:calc(10px + env(safe-area-inset-bottom));}
+    .od-fold-h{min-height:48px;}
+
+    /* ── Вікна ── */
+    .ao{max-height:92vh;border-radius:var(--r-card) var(--r-card) 0 0;
+      margin-top:auto;width:100%;max-width:none;}
+    .ao-wrap{padding:0;align-items:flex-end;}
+
+    /* ── Поля ──
+       16 пікселів — не про смак: на менший шрифт Safari сам «наїжджає» на
+       поле при дотику, і сторінка лишається збільшеною. Разом із висотою в
+       44 пікселі це те, через що форми на телефоні або працюють, або ні. */
+    input[type=text],input[type=email],input[type=password],input[type=search],
+    input[type=number],input[type=date],input[type=time],input[type=url],
+    select,textarea{font-size:16px;min-height:44px;}
+    /* Одягнений список малює свій вигляд сам (loomiq-select.js) — там же
+       й розміри під телефон, щоб вони діяли і на сторінці КП, і на сайті. */
+    /* Таблиці не розсовують сторінку — вони їдуть у своїй рамці. */
+    .buy-t,.fact-t{display:block;overflow-x:auto;white-space:nowrap;}
+    .card{padding:16px 14px;}
+    .card-head h2{font-size:16px;}
+
+    /* ── Задачі ── */
+    .td-r{padding:14px 12px;}
+    .td-a{width:100%;justify-content:space-between;margin-top:4px;}
+    .td-btn{min-height:44px;flex:1;text-align:center;}
+    .td-open{flex:0 0 44px;}
+    .td-kpis{grid-template-columns:repeat(2,1fr);}
+
+    /* ── Аналітика ── */
+    .an-kpis{grid-template-columns:repeat(2,1fr);}
+    .an-bar{gap:8px;}
+    .seg button{min-height:44px;}
+  }
+  /* Дуже вузькі екрани — те саме, тільки щільніше. */
+  @media (max-width:380px){
+    .page-head h1{font-size:20px;}
+    .td-kpis,.an-kpis{grid-template-columns:1fr;}
+  }
+
   /* ── Кнопка згортання меню ──
      У згорнутому стані вона їхала під низ логотипа й опинялась за краєм
      панелі: меню зменшувалось, а розгорнути його назад було нічим. Тепер
@@ -3161,6 +3303,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         </div>
       </div>
 
+      <!-- Смуга етапів: на телефоні колонка займає весь екран, і без неї не
+           видно, де ти зараз і скільки етапів попереду. На комп'ютері вона
+           не потрібна — там усі колонки й так на очах. -->
+      <div class="bstrip" id="board-strip" hidden></div>
       <div class="board" id="board"></div>
     </section>
 
@@ -4024,9 +4170,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4a023ef29d"></script>
-<script src="loomiq-fingerprint.js?v=4a023ef29d"></script>
-<script src="loomiq-pricing.js?v=4a023ef29d"></script>
+<script src="loomiq-select.js?v=d7b7764f5b"></script>
+<script src="loomiq-fingerprint.js?v=d7b7764f5b"></script>
+<script src="loomiq-pricing.js?v=d7b7764f5b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -4856,12 +5002,15 @@ const hamburger = document.getElementById('hamburger');
 function openSidebar(){
   sidebar.classList.add('open');
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  /* Клас, а не inline-стиль: те саме блокування прокрутки потрібне й іншим
+     шарам (картка, вікна), і тримати його в одному місці простіше, ніж
+     стежити, хто останній переписав style.overflow. */
+  document.body.classList.add('menu-open');
 }
 function closeSidebar(){
   sidebar.classList.remove('open');
   overlay.classList.remove('show');
-  document.body.style.overflow = '';
+  document.body.classList.remove('menu-open');
 }
 hamburger.addEventListener('click', ()=> sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
 overlay.addEventListener('click', closeSidebar);
@@ -4909,6 +5058,10 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view === 'photos' && !(await askCtorPass())) return;
     document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    /* На телефоні меню лежить поверх сторінки: не закрити його після вибору
+       означає показати людині її ж меню замість розділу, який вона щойно
+       відкрила. */
+    if(typeof closeSidebar === 'function') closeSidebar();
     document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
@@ -10052,6 +10205,7 @@ function renderBoard(){
   const hidden = (orders || []).filter(o => !boardPass(o)).length;
   if(boardTrackNow() !== 'sale'){
     renderTrackBoard();
+    renderBoardStrip();
     try{ renderOrderDrawer(); }catch(e){}
     return;
   }
@@ -10130,8 +10284,66 @@ function renderBoard(){
       (hidden < 5 ? 'картки' : 'карток'));
     chips.appendChild(s);
   }
+  renderBoardStrip();
   // Відкрита панель має показувати свіжі дані — Канбан оновлюється і з вебхуків
   try{ renderOrderDrawer(); }catch(e){}
+}
+
+/* ══════════ Смуга етапів (телефон) ══════════
+   На телефоні колонка займає весь екран, і в цьому вся користь: картку видно
+   цілком, а не смугою. Але зникає те, що на комп'ютері дається задарма —
+   відчуття, де ти зараз і скільки етапів попереду.
+
+   Смуга це повертає: назви з лічильниками, поточний виділений, дотик
+   перегортає дошку на потрібний етап. Будується з тих самих колонок, що вже
+   намальовані, — окремого джерела етапів тут нема й не треба.
+
+   На комп'ютері смуги немає: там усі колонки й так на очах, і ще один ряд
+   кнопок був би шумом. */
+let stripSync = 0;
+function renderBoardStrip(){
+  const strip = document.getElementById('board-strip');
+  const board = document.getElementById('board');
+  if(!strip || !board) return;
+  const cols = [...board.querySelectorAll('.col')];
+  const phone = window.matchMedia('(max-width:767px)').matches;
+  strip.hidden = !phone || cols.length < 2;
+  if(strip.hidden){ strip.innerHTML = ''; return; }
+  strip.innerHTML = cols.map((c, i) => {
+    const nm = (c.querySelector('.col-head h3') || {}).textContent || '';
+    const n = (c.querySelector('.col-count') || {}).textContent || '';
+    return '<button data-i="' + i + '">' + escA(nm.trim()) +
+           (n ? '<i>' + escA(n.trim()) + '</i>' : '') + '</button>';
+  }).join('');
+  const paint = () => {
+    /* Активним вважаємо той етап, чия колонка ближча до центра екрана: при
+       «прилипанні» саме він і стоїть перед очима. */
+    const mid = board.scrollLeft + board.clientWidth / 2;
+    let best = 0, bd = Infinity;
+    cols.forEach((c, i) => {
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid);
+      if(d < bd){ bd = d; best = i; }
+    });
+    strip.querySelectorAll('button').forEach((b, i) => b.classList.toggle('on', i === best));
+    const on = strip.children[best];
+    if(on) on.scrollIntoView({ block:'nearest', inline:'nearest' });
+  };
+  strip.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const c = cols[+b.dataset.i];
+    if(c) board.scrollTo({ left: c.offsetLeft - 14, behavior:'smooth' });
+  }));
+  if(!stripSync){
+    /* Один обробник на весь час життя сторінки: дошку перемальовують часто,
+       і вішати новий щоразу означало б сотні однакових слухачів. */
+    stripSync = 1;
+    let t = 0;
+    board.addEventListener('scroll', () => {
+      clearTimeout(t);
+      t = setTimeout(() => { try{ renderBoardStrip(); }catch(e){} }, 90);
+    }, { passive:true });
+    window.addEventListener('resize', () => { try{ renderBoardStrip(); }catch(e){} });
+  }
+  paint();
 }
 
 function renderTicket(o){
@@ -11594,6 +11806,10 @@ function orderDrawerEl(){
 function closeOrderDrawer(){
   const d = document.getElementById('orderDrawer');
   if(d) d.classList.remove('open');
+  /* Знімаємо блокування лише якщо меню теж закрите: інакше картка,
+     закрита з відкритого меню, розблокувала б сторінку під ним. */
+  if(!sidebar || !sidebar.classList.contains('open'))
+    document.body.classList.remove('menu-open');
   drawerOrderId = null;
   if(typeof chatClose === 'function') chatClose();
   if(typeof crmStopPoll === 'function') crmStopPoll();
@@ -11610,6 +11826,10 @@ async function openOrderDrawer(o){
   ensureFeeAdj(o);   // до будь-якої правки складу
   const d = orderDrawerEl();
   d.classList.add('open');
+  /* На телефоні картка займає весь екран. Без блокування сторінка під нею
+     продовжує гортатись пальцем, і закривши картку, опиняєшся зовсім не
+     там, де був. */
+  document.body.classList.add('menu-open');
   /* Панель памʼятає прокрутку, щоб не викидати нагору після кожної правки.
      Але при переході на ІНШУ картку та сама памʼять шкодила: нова картка
      відкривалась прокрученою до середини — рівно там, де закінчили роботу
