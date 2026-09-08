@@ -2223,17 +2223,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:600;color:var(--ink);
     background:var(--paper);border-right:1px solid var(--line);flex:none;
   }
+  /* Те саме, що й у полів вище: 16 пікселів проти «наїзду» Safari. Телефон —
+     головне поле форми, і воно ж єдине, у яке точно натиснуть з мобільного. */
   .contact-phone-row input{
-    flex:1;min-width:0;border:none;background:none;padding:14px 16px;font-size:15px;
+    flex:1;min-width:0;border:none;background:none;padding:14px 16px;font-size:16px;
     font-family:var(--font-sf);color:var(--ink);outline:none;
   }
   .contact-phone-row input::placeholder{color:var(--muted);}
   /* Імʼя і кількість — одним рядком над телефоном: на телефоні перелаштовуються
      в стовпчик, бо два поля по пів екрана вже не поля. */
   .contact-field-row{display:flex;gap:10px;margin-top:14px;}
+  /* 16 пікселів — не про смак: на менший напис Safari «наїжджає» на поле
+     при дотику й лишає сторінку збільшеною. Форма заявки — саме те місце,
+     де це найпомітніше: людина торкається поля, і сайт стрибає. */
   .contact-inp{
     flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:#FFFFFF;
-    padding:14px 16px;font-size:15px;font-family:var(--font-sf);color:var(--ink);outline:none;
+    padding:14px 16px;font-size:16px;font-family:var(--font-sf);color:var(--ink);outline:none;
   }
   .contact-inp::placeholder{color:var(--muted);}
   .contact-inp:focus{border-color:var(--ink);}
@@ -6558,7 +6563,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=a9647808f8"></script>
+<script src="/loomiq-select.js?v=d7b7764f5b"></script>
 <script src="/loomiq-fingerprint.js?v=51f38d6bb4"></script>
 <script src="/loomiq-pricing.js?v=51f38d6bb4"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
