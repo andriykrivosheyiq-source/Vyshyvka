@@ -105,6 +105,26 @@
   }
 .pm-pill--back{position:absolute;top:18px;left:18px;z-index:9;}
 .pm-pill-group{position:absolute;top:18px;right:18px;z-index:9;display:flex;gap:8px;}
+/* Скачати макет із самої картинки. Правий верхній кут сцени вільний у всіх
+     режимах: кошик і меню живуть у смужці НАД сценою, а не на ній.
+     Показуємо блок лише менеджерові — клієнт макапів не качає. */
+  .pm-dl{position:absolute;top:18px;right:18px;z-index:12;}
+.pm-dl-btn{all:unset;box-sizing:border-box;width:38px;height:38px;border-radius:19px;
+    background:rgba(255,255,255,.92);border:1px solid rgba(15,32,52,.10);color:#0f2034;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);transition:background .12s,transform .12s,opacity .12s;}
+.pm-dl-btn:hover{background:#fff;transform:translateY(-1px);}
+.pm-dl-btn:focus-visible{outline:2px solid #0f2034;outline-offset:2px;}
+.pm-dl-btn[disabled]{opacity:.5;cursor:default;transform:none;}
+.pm-dl-menu{display:none;position:absolute;top:44px;right:0;min-width:212px;
+    background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:5px;
+    box-shadow:0 12px 30px rgba(15,32,52,.18);}
+.pm-dl.open .pm-dl-menu{display:block;}
+.pm-dl-opt{all:unset;box-sizing:border-box;display:block;width:100%;padding:8px 10px;
+    border-radius:9px;font-size:13.5px;font-weight:700;color:#0f2034;cursor:pointer;line-height:1.25;}
+.pm-dl-opt small{display:block;font-size:11.5px;font-weight:500;color:#7c8698;margin-top:2px;}
+.pm-dl-opt:hover{background:#f2f4f8;}
+.pm-dl-opt:focus-visible{background:#f2f4f8;outline:2px solid #0f2034;outline-offset:-2px;}
 .pm-cart-badge{
     position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#e0392b;color:#fff;
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;

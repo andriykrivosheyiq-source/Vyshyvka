@@ -1178,6 +1178,26 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   }
   .pm-pill--back{position:absolute;top:18px;left:18px;z-index:9;}
   .pm-pill-group{position:absolute;top:18px;right:18px;z-index:9;display:flex;gap:8px;}
+  /* Скачати макет із самої картинки. Правий верхній кут сцени вільний у всіх
+     режимах: кошик і меню живуть у смужці НАД сценою, а не на ній.
+     Показуємо блок лише менеджерові — клієнт макапів не качає. */
+  .pm-dl{position:absolute;top:18px;right:18px;z-index:12;}
+  .pm-dl-btn{all:unset;box-sizing:border-box;width:38px;height:38px;border-radius:19px;
+    background:rgba(255,255,255,.92);border:1px solid rgba(15,32,52,.10);color:#0f2034;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);transition:background .12s,transform .12s,opacity .12s;}
+  .pm-dl-btn:hover{background:#fff;transform:translateY(-1px);}
+  .pm-dl-btn:focus-visible{outline:2px solid #0f2034;outline-offset:2px;}
+  .pm-dl-btn[disabled]{opacity:.5;cursor:default;transform:none;}
+  .pm-dl-menu{display:none;position:absolute;top:44px;right:0;min-width:212px;
+    background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:5px;
+    box-shadow:0 12px 30px rgba(15,32,52,.18);}
+  .pm-dl.open .pm-dl-menu{display:block;}
+  .pm-dl-opt{all:unset;box-sizing:border-box;display:block;width:100%;padding:8px 10px;
+    border-radius:9px;font-size:13.5px;font-weight:700;color:#0f2034;cursor:pointer;line-height:1.25;}
+  .pm-dl-opt small{display:block;font-size:11.5px;font-weight:500;color:#7c8698;margin-top:2px;}
+  .pm-dl-opt:hover{background:#f2f4f8;}
+  .pm-dl-opt:focus-visible{background:#f2f4f8;outline:2px solid #0f2034;outline-offset:-2px;}
   .pm-cart-badge{
     position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#e0392b;color:#fff;
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;
@@ -3443,6 +3463,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
       </div>
     </div>
+    <!-- Скачати макет прямо з картинки. Кнопка стоїть у правому верхньому
+         куті самої сцени — там, де її шукають, а не внизу під ціною. Тільки
+         менеджерський режим: клієнтові на сайті вона не потрібна. -->
+    <div class="pm-dl" id="pmDl" hidden>
+      <button type="button" class="pm-dl-btn" id="pmDlBtn" aria-haspopup="true" aria-expanded="false" title="Скачати макет">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="pm-dl-menu" id="pmDlMenu" role="menu">
+        <button type="button" class="pm-dl-opt" data-dl="full" role="menuitem">З логотипом<small>як на екрані</small></button>
+        <button type="button" class="pm-dl-opt" data-dl="bare" role="menuitem">Пустий виріб<small>той самий колір, без нанесення</small></button>
+      </div>
+    </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
     <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
@@ -3555,10 +3587,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div class="pm-tier-row" id="pmTierRow"></div>
       <!-- Менеджерський блок (лише режим ?manager=1): завантаження макапа + прорахунок собівартості -->
       <div id="pmManagerBox" style="display:none;margin-top:10px;">
-        <button id="pmDownloadMockup" style="width:100%;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Скачати макап
-        </button>
+        <!-- Той самий макет, що й зі значка на картинці, і той самий пустий
+             виріб — щоб два входи не давали різних файлів. -->
+        <div style="display:flex;gap:8px;">
+          <button id="pmDownloadMockup" style="flex:1;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Макап
+          </button>
+          <button id="pmDownloadBlank" title="Той самий виріб і колір, без нанесення" style="flex:1;padding:11px;border:1px solid #0f2034;border-radius:12px;background:#fff;color:#0f2034;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Пустий
+          </button>
+        </div>
         <div id="pmMgrCalc" style="margin-top:10px;background:#f6f7f9;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#1c2840;"></div>
       </div>
     </div>
@@ -6563,12 +6603,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=d7b7764f5b"></script>
-<script src="/loomiq-fingerprint.js?v=51f38d6bb4"></script>
-<script src="/loomiq-pricing.js?v=51f38d6bb4"></script>
+<script src="/loomiq-select.js?v=d8faf0fbf6"></script>
+<script src="/loomiq-fingerprint.js?v=fe31da5a50"></script>
+<script src="/loomiq-pricing.js?v=fe31da5a50"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=51f38d6bb4"></script>
+<script src="loomiq-constructor.js?v=fe31da5a50"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

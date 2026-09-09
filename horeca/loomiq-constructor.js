@@ -5473,12 +5473,17 @@
     /* Знімок сторони — назовні, тим самим шляхом і з тими самими даними,
        якими його робить збереження. Так перевірка знімає макап двічі з
        різних ширин екрана й порівнює результат байт у байт. */
-    window.__lqSnapSide = function(side, size, jpeg){ return snapshotSide(side, size, jpeg); };
-    function snapshotSide(side, sizeOverride, asJpeg){
+    window.__lqSnapSide = function(side, size, jpeg, bare){ return snapshotSide(side, size, jpeg, bare); };
+    /* `bare` — знімок без нанесення: той самий виріб, той самий колір і та
+       сама сторона, тільки шари логотипа не малюємо. Саме тому «пустий макет»
+       робиться цією ж функцією, а не береться з іншого місця: виріб на ньому
+       стоїть точно так само, як на макеті з логотипом, і два файли можна
+       класти поруч. */
+    function snapshotSide(side, sizeOverride, asJpeg, bare){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
-        var layers = pm.logos[snapSide];
+        var layers = bare ? [] : pm.logos[snapSide];
         var C = sizeOverride || 500;
         var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
         var loadG = hasPhoto
@@ -5560,21 +5565,74 @@
     }
     document.getElementById('pmAddToCartBtn').addEventListener('click', triggerAddToCartFlow);
     document.getElementById('pmStickyCartBtn').addEventListener('click', triggerAddToCartFlow);
-    // Менеджер: завантаження макапа поточної сторони (перед/зад/бік) як PNG
+    /* Менеджер: завантаження макета поточної сторони (перед/зад/бік) як PNG.
+       Два входи — значок у куті самої картинки й пара кнопок у менеджерському
+       блоці — ведуть в один код і дають однакові файли: з логотипом і той
+       самий виріб без нанесення. */
     (function(){
-      var btn = document.getElementById('pmDownloadMockup'); if(!btn) return;
-      btn.addEventListener('click', function(){
-        btn.disabled = true; var old = btn.innerHTML; btn.textContent = 'Готуємо…';
-        snapshotSide(pm.side, 2000).then(function(url){   // висока роздільна здатність для завантаження
+      var box = document.getElementById('pmDl');
+      var full = document.getElementById('pmDownloadMockup');
+      var bareB = document.getElementById('pmDownloadBlank');
+      if(!box && !full && !bareB) return;
+      var busy = false;
+
+      function grab(bare, mark){
+        if(busy) return;
+        busy = true;
+        var back = mark ? mark() : null;
+        // висока роздільна здатність для завантаження
+        snapshotSide(pm.side, 2000, false, bare).then(function(url){
           if(url){
+            /* Виріб і колір беремо звідти ж, звідки їх бере сам знімок. У
+               pm.colorId лежить те, що ВИБРАЛИ руками, а поки не вибрали —
+               там порожньо, і в імені файла з'являлось «null». */
+            var g = getGarment(), c = getColor();
             var a = document.createElement('a');
             a.href = url;
-            a.download = 'mockup-' + pm.garmentId + '-' + pm.colorId + '-' + pm.side + '.png';
+            a.download = 'mockup-' + ((g && g.id) || 'item') + '-' + ((c && c.id) || 'color') +
+                         '-' + pm.side + (bare ? '-blank' : '') + '.png';
             document.body.appendChild(a); a.click(); a.remove();
           }
-          btn.disabled = false; btn.innerHTML = old;
-        }).catch(function(){ btn.disabled = false; btn.innerHTML = old; });
-      });
+          busy = false; if(back) back();
+        }).catch(function(){ busy = false; if(back) back(); });
+      }
+      /* Кнопка на час підготовки каже, що зайнята: знімок на 2000 px не
+         миттєвий, і без цього людина тисне вдруге. */
+      function marker(el, txt){
+        return function(){
+          var old = el.innerHTML;
+          el.disabled = true;
+          if(txt) el.textContent = txt;
+          return function(){ el.disabled = false; el.innerHTML = old; };
+        };
+      }
+
+      if(box){
+        var btn = document.getElementById('pmDlBtn');
+        var open = function(on){
+          box.classList.toggle('open', on);
+          btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        };
+        btn.addEventListener('click', function(e){
+          e.stopPropagation();
+          open(!box.classList.contains('open'));
+        });
+        box.addEventListener('click', function(e){
+          var o = e.target.closest ? e.target.closest('[data-dl]') : null;
+          if(!o) return;
+          open(false);
+          grab(o.getAttribute('data-dl') === 'bare', marker(btn));
+        });
+        document.addEventListener('click', function(e){
+          if(!box.contains(e.target)) open(false);
+        });
+        document.addEventListener('keydown', function(e){
+          if(e.key === 'Escape' || e.key === 'Esc') open(false);
+        });
+        if(IS_MANAGER) box.hidden = false;
+      }
+      if(full)  full.addEventListener('click',  function(){ grab(false, marker(full, 'Готуємо…')); });
+      if(bareB) bareB.addEventListener('click', function(){ grab(true,  marker(bareB, 'Готуємо…')); });
     })();
 
     // Позиція кошика буває двох видів: 'main' — те, що клієнт просив прорахувати,

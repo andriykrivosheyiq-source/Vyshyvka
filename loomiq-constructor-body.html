@@ -42,6 +42,18 @@
         <div id="pmZoneWarn" aria-live="polite"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.4" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Логотип за межами зони друку</span></div>
       </div>
     </div>
+    <!-- Скачати макет прямо з картинки. Кнопка стоїть у правому верхньому
+         куті самої сцени — там, де її шукають, а не внизу під ціною. Тільки
+         менеджерський режим: клієнтові на сайті вона не потрібна. -->
+    <div class="pm-dl" id="pmDl" hidden>
+      <button type="button" class="pm-dl-btn" id="pmDlBtn" aria-haspopup="true" aria-expanded="false" title="Скачати макет">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="pm-dl-menu" id="pmDlMenu" role="menu">
+        <button type="button" class="pm-dl-opt" data-dl="full" role="menuitem">З логотипом<small>як на екрані</small></button>
+        <button type="button" class="pm-dl-opt" data-dl="bare" role="menuitem">Пустий виріб<small>той самий колір, без нанесення</small></button>
+      </div>
+    </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
     <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
@@ -154,10 +166,18 @@
       <div class="pm-tier-row" id="pmTierRow"></div>
       <!-- Менеджерський блок (лише режим ?manager=1): завантаження макапа + прорахунок собівартості -->
       <div id="pmManagerBox" style="display:none;margin-top:10px;">
-        <button id="pmDownloadMockup" style="width:100%;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Скачати макап
-        </button>
+        <!-- Той самий макет, що й зі значка на картинці, і той самий пустий
+             виріб — щоб два входи не давали різних файлів. -->
+        <div style="display:flex;gap:8px;">
+          <button id="pmDownloadMockup" style="flex:1;padding:11px;border:none;border-radius:12px;background:#0f2034;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Макап
+          </button>
+          <button id="pmDownloadBlank" title="Той самий виріб і колір, без нанесення" style="flex:1;padding:11px;border:1px solid #0f2034;border-radius:12px;background:#fff;color:#0f2034;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Пустий
+          </button>
+        </div>
         <div id="pmMgrCalc" style="margin-top:10px;background:#f6f7f9;border:1px solid #e6e8ec;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55;color:#1c2840;"></div>
       </div>
     </div>
