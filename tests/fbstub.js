@@ -32,11 +32,32 @@
   fs.Timestamp={ now:function(){ return { toDate:function(){ return new Date(); } }; } };
   window.firebase={
     initializeApp:function(){ return {}; },
+    /* Запрошення поштою й зміна пароля: справжніх листів у перевірці бути не
+       може, тож записуємо, ЩО саме попросили зробити. Саме це й перевіряємо —
+       на яку пошту й з якою адресою повернення пішло запрошення. */
     auth:function(){ return {
       onAuthStateChanged:function(cb){ setTimeout(function(){ cb({ uid:'test', email:'test@loomiq' }); }, 0); return function(){}; },
       signInWithEmailAndPassword:function(){ return Promise.resolve(); },
-      signOut:function(){ return Promise.resolve(); },
-      currentUser:{ uid:'test', email:'test@loomiq', getIdToken:function(){ return Promise.resolve('stub'); } } }; },
+      signOut:function(){ (window.__AUTH=window.__AUTH||[]).push({ op:'signOut' }); return Promise.resolve(); },
+      sendSignInLinkToEmail:function(mail, opt){
+        (window.__AUTH=window.__AUTH||[]).push({ op:'invite', mail:mail, url:(opt||{}).url });
+        return Promise.resolve();
+      },
+      sendPasswordResetEmail:function(mail){
+        (window.__AUTH=window.__AUTH||[]).push({ op:'reset', mail:mail });
+        return Promise.resolve();
+      },
+      isSignInWithEmailLink:function(){ return !!window.__ASLINK; },
+      signInWithEmailLink:function(mail){
+        (window.__AUTH=window.__AUTH||[]).push({ op:'linkin', mail:mail });
+        return Promise.resolve({ user: window.firebase.auth().currentUser });
+      },
+      currentUser:{ uid:'test', email:'test@loomiq',
+        getIdToken:function(){ return Promise.resolve('stub'); },
+        updatePassword:function(p){ (window.__AUTH=window.__AUTH||[]).push({ op:'pass', len:p.length }); return Promise.resolve(); },
+        updateProfile:function(d){ (window.__AUTH=window.__AUTH||[]).push({ op:'name', name:d.displayName }); return Promise.resolve(); },
+        linkWithCredential:function(){ (window.__AUTH=window.__AUTH||[]).push({ op:'link' }); return Promise.resolve({}); } } }; },
     firestore: fs, apps:[]
   };
+  window.firebase.auth.EmailAuthProvider = { credential:function(m, p){ return { m:m, p:p }; } };
 })();

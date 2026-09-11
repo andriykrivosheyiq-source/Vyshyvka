@@ -183,13 +183,18 @@ await p.close();
 console.log('');
 console.log('═══ ЗАПОБІЖНИКИ ═══');
 {
-  /* Кого немає в списку — менеджер. Порожній список — повний доступ:
-     інакше перше ж збереження замкнуло б систему від самого власника. */
+  /* Кого немає в списку — НЕ БАЧИТЬ НІЧОГО. Раніше тут стояв менеджер:
+     чужий акаунт отримував дошку, клієнтів і всі замовлення. Поки вхід
+     заводили руками в консолі, це не стріляло; з появою запрошень поштою
+     він відкривається сам. Детальніше — tests/access-rights.mjs.
+     Порожній список і далі означає повний доступ: інакше перше ж
+     збереження замкнуло б систему від самого власника. */
   const p2 = await open('stranger@loomiq', TEAM);
-  const st = await p2.evaluate(() => ({ role:myRole(), cost:canSeeCost(),
+  const st = await p2.evaluate(() => ({ cost:canSeeCost(), edit:canEditItems(),
+    screen: !!document.getElementById('no-access'),
     nav:[...document.querySelectorAll('.nav button[data-view]')].filter(b => !b.hidden).length }));
-  ok(st.role === 'manager' && st.cost === false && st.nav > 1,
-    'кого немає в списку — менеджер: працює, але без цифр',
+  ok(st.screen && !st.cost && !st.edit,
+    'кого немає в списку — не бачить нічого й читає про це на екрані',
     'чужа пошта отримала не те: ' + JSON.stringify(st));
   await p2.close();
 

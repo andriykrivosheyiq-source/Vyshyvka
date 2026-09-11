@@ -1099,6 +1099,19 @@
     background:rgba(255,255,255,.16);font-size:12.5px;font-weight:700;}
   #seeAsBar button:hover{background:rgba(255,255,255,.28);}
   body.see-as main{padding-bottom:56px;}
+  /* Екран «вас не завели в команду». Не тост і не порожня сторінка: людина
+     має прочитати, під якою поштою вона зайшла, і кого просити. */
+  #no-access{position:fixed;inset:0;z-index:2600;background:#171717;display:flex;
+    align-items:center;justify-content:center;padding:24px;}
+  #no-access .na-box{max-width:400px;background:#fff;border-radius:16px;padding:26px 24px;
+    box-shadow:0 24px 64px rgba(0,0,0,.3);}
+  #no-access b{display:block;font-size:17px;color:var(--ink);margin-bottom:10px;}
+  #no-access p{font-size:13.5px;line-height:1.55;color:var(--ink-soft);margin:0 0 10px;}
+  #no-access .na-sub{font-size:12px;color:var(--muted);}
+  #no-access .na-mail{font-weight:700;color:var(--ink);word-break:break-all;}
+  #no-access button{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;
+    text-align:center;margin-top:14px;padding:12px;border-radius:10px;background:#171717;
+    color:#fff;font-size:14px;font-weight:600;}
   .see-as-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .see-as-row select{font:inherit;font-size:14px;border:1px solid var(--line);
     border-radius:var(--r-ctl);padding:9px 11px;min-width:200px;}
@@ -1740,15 +1753,32 @@
   .tm-more:hover{background:var(--accent-soft);color:var(--accent-deep);}
   .tm-acc{border:1px solid var(--line);border-radius:12px;padding:12px;margin:2px 0 10px;
     background:var(--canvas);}
-  .tm-zone{display:flex;gap:10px;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;}
-  .tm-zone-t{flex:none;width:70px;font-size:11.5px;font-weight:700;color:var(--ink-soft);
-    text-transform:uppercase;letter-spacing:.05em;}
-  .tm-boxes{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;}
+  /* Зона доступів: назва, під нею одним рядком — на яке питання вона
+     відповідає, і далі самі галочки. Галочка з поясненням стає карткою, а
+     не кружечком: пояснення тут важливіше за компактність. */
+  .tm-zone{display:grid;grid-template-columns:86px 1fr;gap:4px 10px;margin-bottom:12px;
+    align-items:start;}
+  .tm-zone-t{grid-column:1;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.05em;padding-top:6px;}
+  .tm-zone-a{grid-column:2;font-size:11.5px;color:var(--muted);line-height:1.4;}
+  .tm-boxes{grid-column:2;display:flex;gap:6px;flex-wrap:wrap;min-width:0;}
   .tm-box{display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;
     border-radius:20px;background:#fff;border:1px solid var(--line);font-size:12.5px;}
+  .tm-box.has-hint{align-items:flex-start;border-radius:11px;padding:7px 11px;
+    flex:1 1 210px;max-width:320px;}
+  .tm-box.has-hint input{margin-top:2px;}
+  .tm-box-t{display:block;min-width:0;}
+  .tm-box-h{display:block;font-style:normal;font-weight:400;font-size:11px;line-height:1.35;
+    color:var(--muted);margin-top:2px;}
   .tm-box.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);
     font-weight:700;}
+  .tm-box.on .tm-box-h{color:var(--accent-deep);opacity:.75;}
   .tm-box input{margin:0;}
+  /* Підсумок доступів у згорнутому рядку: результат, а не кількість галочок. */
+  .tm-sum{grid-column:1/-1;font-size:11.5px;color:var(--muted);line-height:1.45;
+    padding:0 2px 4px;}
+  .tm-sum b{color:var(--ink-soft);font-weight:700;}
+  .tm-sum.tm-sum--none{color:var(--bad);}
   .tm-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
   .tm-row input,.tm-row select{font-size:13px;padding:8px 10px;border-radius:8px;
     border:1px solid var(--line);font-family:inherit;background:#fff;}
@@ -1756,6 +1786,28 @@
   .tm-row .tm-name{flex:0 1 160px;min-width:0;}
   .tm-row .tm-role{flex:none;}
   .tm-row.is-me{background:var(--accent-soft);border-radius:10px;padding:6px 8px;margin-left:-8px;}
+  /* Запрошення поштою: кнопка поруч із людиною, стан — рядком під нею. */
+  .tm-inv{all:unset;cursor:pointer;flex:none;padding:7px 12px;border-radius:8px;
+    background:var(--canvas);color:var(--ink-soft);font-size:12.5px;font-weight:700;}
+  .tm-inv:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .tm-inv[disabled]{opacity:.45;cursor:default;}
+  .tm-inv[disabled]:hover{background:var(--canvas);color:var(--ink-soft);}
+  .tm-st{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:20px;
+    background:var(--canvas);color:var(--muted);font-size:10.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.04em;}
+  .tm-st--ok{background:#E6F4EC;color:#0F7B4F;}
+  .tm-st--new{background:var(--bad-soft);color:var(--bad);}
+  .tm-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:4px 0 8px;
+    font-size:12px;color:var(--ink-soft);}
+  .tm-tools label{display:flex;gap:6px;align-items:center;}
+  .tm-tools select{font:inherit;font-size:12.5px;padding:6px 9px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;}
+  .tm-see{all:unset;cursor:pointer;padding:6px 11px;border-radius:8px;background:#fff;
+    border:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+  .tm-see:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .tm-see[disabled]{opacity:.45;cursor:default;}
+  .tm-warn{font-size:12px;line-height:1.45;color:var(--bad);background:var(--bad-soft);
+    border-radius:9px;padding:8px 10px;margin-bottom:8px;}
   /* Гроші в картці. Залишок — головне число тут: саме його менеджер шукає
      перед тим, як віддати замовлення у виробництво. */
   .od-money{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;}
@@ -2697,6 +2749,73 @@
       </label>
       <button type="submit" id="auth-submit" style="width:100%;background:#171717;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;">Увійти</button>
       <div id="auth-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;"></div>
+      <!-- Пароля людина не памʼятає рівно тоді, коли він найпотрібніший.
+           Доти єдиним виходом було писати власнику, а той ішов у консоль
+           Firebase. Лист шле сам Firebase, свого сервера для цього не треба. -->
+      <div style="margin-top:12px;text-align:center;font-size:12px;color:var(--muted);">
+        <a href="#" id="auth-forgot" style="color:var(--muted);text-decoration:underline;">Забули пароль?</a>
+      </div>
+      <div id="auth-ok" style="display:none;color:#0F7B4F;font-size:12.5px;margin-top:10px;text-align:center;"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Перший вхід за запрошенням ──────────────────────────────────────────
+     Людина приходить сюди з листа, який надіслав Firebase: посилання вже
+     підтверджує, що пошта її. Лишається придумати пароль і назватись — далі
+     вона заходить як усі, поштою й паролем. Права їй тут не показуються й не
+     питаються: вони вже стоять там, де їх поставив власник. -->
+<div id="invite-gate" style="display:none;position:fixed;inset:0;z-index:210;background:#171717;align-items:center;justify-content:center;padding:24px;">
+  <div style="width:100%;max-width:360px;background:#fff;border-radius:16px;padding:26px 22px;box-shadow:0 24px 64px rgba(0,0,0,.3);">
+    <div style="font-weight:700;font-size:17px;color:var(--ink);margin-bottom:4px;">Вітаємо в Loomiq</div>
+    <div id="inv-sub" style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">Придумайте пароль — далі заходитимете поштою й паролем.</div>
+    <form id="invite-form">
+      <input id="inv-mail" type="email" placeholder="Ваша пошта" autocomplete="username"
+        style="width:100%;font-size:15px;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none;margin-bottom:10px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input id="inv-first" type="text" maxlength="40" placeholder="Імʼя" autocomplete="given-name"
+          style="flex:1;min-width:0;font-size:15px;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none;box-sizing:border-box;">
+        <input id="inv-last" type="text" maxlength="40" placeholder="Прізвище" autocomplete="family-name"
+          style="flex:1;min-width:0;font-size:15px;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none;box-sizing:border-box;">
+      </div>
+      <input id="inv-pass" type="password" placeholder="Пароль (від 6 знаків)" autocomplete="new-password"
+        style="width:100%;font-size:15px;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none;margin-bottom:10px;box-sizing:border-box;">
+      <input id="inv-pass2" type="password" placeholder="Пароль ще раз" autocomplete="new-password"
+        style="width:100%;font-size:15px;padding:12px;border:1px solid var(--line);border-radius:9px;outline:none;margin-bottom:14px;box-sizing:border-box;">
+      <button type="submit" id="inv-submit" style="width:100%;background:#171717;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;">Готово</button>
+      <div id="inv-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Мій профіль ─────────────────────────────────────────────────────────
+     Імʼя, прізвище й пароль людина міняє сама. Права тут лише показані, і
+     навмисно: щоб на питання «що мені відкрито» відповідав екран, а не
+     власник у месенджері. -->
+<div id="me-modal" style="display:none;position:fixed;inset:0;z-index:220;background:rgba(15,23,32,.55);align-items:center;justify-content:center;padding:24px;">
+  <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:24px 22px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:88vh;overflow:auto;">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
+      <b style="font-size:16px;color:var(--ink);">Мій профіль</b>
+      <span id="me-mail" style="font-size:12px;color:var(--muted);word-break:break-all;"></span>
+    </div>
+    <div id="me-acc" class="tm-sum" style="margin:8px 0 14px;"></div>
+    <form id="me-form">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input id="me-first" type="text" maxlength="40" placeholder="Імʼя"
+          style="flex:1;min-width:0;font-size:15px;padding:11px;border:1px solid var(--line);border-radius:9px;outline:none;box-sizing:border-box;">
+        <input id="me-last" type="text" maxlength="40" placeholder="Прізвище"
+          style="flex:1;min-width:0;font-size:15px;padding:11px;border:1px solid var(--line);border-radius:9px;outline:none;box-sizing:border-box;">
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin:12px 0 6px;">Новий пароль — залиште порожнім, якщо міняти не треба</div>
+      <input id="me-pass" type="password" autocomplete="new-password" placeholder="Новий пароль"
+        style="width:100%;font-size:15px;padding:11px;border:1px solid var(--line);border-radius:9px;outline:none;margin-bottom:10px;box-sizing:border-box;">
+      <input id="me-pass2" type="password" autocomplete="new-password" placeholder="Ще раз"
+        style="width:100%;font-size:15px;padding:11px;border:1px solid var(--line);border-radius:9px;outline:none;margin-bottom:14px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="me-cancel" style="flex:1;background:var(--canvas);color:var(--ink-soft);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Закрити</button>
+        <button type="submit" id="me-save" style="flex:1;background:#171717;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;">Зберегти</button>
+      </div>
+      <div id="me-err" style="display:none;color:#B42318;font-size:12.5px;margin-top:10px;text-align:center;"></div>
     </form>
   </div>
 </div>
@@ -2726,6 +2845,9 @@
         <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
       </nav>
       <div class="sidebar-foot">
+        <!-- Своє імʼя й свій пароль людина міняє сама. Доти імʼя за неї
+             вписував власник, а пароль мінявся лише через консоль Firebase. -->
+        <button id="me-btn" class="side-out" data-tip="Мій профіль"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg><span id="me-btn-t">Мій профіль</span></button>
         <button id="logout-btn" class="side-out" data-tip="Вийти"><svg viewBox="0 0 24 24"><path d="M14.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6.5a2 2 0 0 0 2-2v-2.5"/><path d="M9.5 12H20m0 0-3-3m3 3-3 3"/></svg><span>Вийти</span></button>
         <div class="side-note">Loomiq · прорахунок<br>та керування замовленнями</div>
         <!-- Яку саме версію віддав браузер. Тричі поспіль ми ловили те саме:
@@ -4470,6 +4592,160 @@ document.getElementById('logout-btn').addEventListener('click', function(){
   fbAuth.signOut();
 });
 
+/* ══════════ Запрошення поштою й свій пароль ══════════
+   Доти акаунт заводили руками в консолі Firebase і передавали пароль у
+   месенджері, а імʼя людини вписував за неї власник. Тепер лист із
+   посиланням шле сам Firebase — свого сервера для цього не треба, лише
+   ввімкнений «вхід за посиланням» у налаштуваннях проєкту.
+
+   Посилання вже доводить, що пошта належить людині: воно прийшло на цю
+   пошту. Тому на екрані першого входу питаємо рівно три речі — імʼя,
+   прізвище й пароль. Права не питаємо й не показуємо: вони стоять там, де їх
+   поставив власник, і людина їх не торкається. */
+const INV_MAIL_KEY = 'lq_invite_mail';
+let inviteBusy = false;
+function inviteUrl(){ return location.origin + location.pathname + '?invite=1'; }
+const inviteErrText = {
+  'auth/operation-not-allowed':
+    'У Firebase не ввімкнено вхід за посиланням. Authentication → Sign-in method → Email/Password → Email link (passwordless sign-in)',
+  'auth/unauthorized-continue-uri':
+    'Домен не дозволено у Firebase. Authentication → Settings → Authorized domains',
+  'auth/invalid-continue-uri': 'Адреса повернення не підходить Firebase',
+  'auth/invalid-email': 'Пошта записана з помилкою',
+  'auth/expired-action-code': 'Посилання застаріло — попросіть надіслати запрошення ще раз',
+  'auth/invalid-action-code': 'Посилання вже використали — попросіть надіслати ще раз',
+  'auth/weak-password': 'Пароль закороткий — треба хоча б 6 знаків',
+  'auth/email-already-in-use': 'На цю пошту вже є вхід — заходьте паролем',
+  'auth/too-many-requests': 'Забагато спроб поспіль — зачекайте кілька хвилин'
+};
+function inviteErr(e){
+  return (inviteErrText[e && e.code] || ('Помилка: ' + ((e && e.message) || 'невідома'))) +
+         ((e && e.code) ? ' [' + e.code + ']' : '');
+}
+/* Надіслати запрошення. Тільки тому, хто ВЖЕ збережений у команді: інакше
+   людина зайде за посиланням і побачить «вас не додали», а власник буде
+   впевнений, що все зробив. */
+async function sendInvite(email){
+  if(!canSetup()){ toast('Запрошення надсилає той, хто налаштовує систему'); return false; }
+  const e = String(email || '').trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+$/.test(e)){ toast('Спершу впишіть пошту'); return false; }
+  if(!((contentData.team) || []).some(p => p.email === e)){
+    toast('Спершу натисніть «Зберегти команду» — запрошення йде тому, хто вже в списку');
+    return false;
+  }
+  try{
+    await fbAuth.sendSignInLinkToEmail(e, { url: inviteUrl(), handleCodeInApp: true });
+    try{ localStorage.setItem(INV_MAIL_KEY, e); }catch(x){}
+    await accLog('invite', 'надіслав запрошення: ' + e);
+    renderAccLog();
+    toast('Лист надіслано на ' + e);
+    return true;
+  }catch(err){
+    console.error(err);
+    alert('Запрошення не надіслалось.\n\n' + inviteErr(err));
+    return false;
+  }
+}
+/* Хто вже пройшов перший вхід. Сам список команди про це не знає: рядок у
+   ньому створює власник, а активує його людина — і записати щось у список
+   вона не може, прав немає. Тому позначку пише вона у свій куточок карти
+   `profiles`, куди правила пускають лише її саму. */
+/* Контент сайту оголошений нижче за код, який його читає. Поки сторінка
+   вантажиться, звертання до нього — не «порожньо», а помилка, і вона вбиває
+   весь скрипт адмінки. Одного разу ми вже так поклали панель цілком, тож
+   читаємо через запобіжник. */
+function contentSafe(){ try{ return contentData || {}; }catch(e){ return {}; } }
+function profileOf(email){
+  const p = contentSafe().profiles || {};
+  return p[aclKeyOf(email)] || null;
+}
+document.getElementById('auth-forgot').addEventListener('click', async function(e){
+  e.preventDefault();
+  const mail = String(document.getElementById('auth-email').value || '').trim();
+  const errEl = document.getElementById('auth-err');
+  const okEl = document.getElementById('auth-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if(!/^[^@\s]+@[^@\s]+$/.test(mail)){
+    errEl.textContent = 'Впишіть пошту в поле вище — на неї прийде лист';
+    errEl.style.display = 'block';
+    return;
+  }
+  try{
+    await fbAuth.sendPasswordResetEmail(mail);
+    okEl.textContent = 'Лист для зміни пароля надіслано на ' + mail;
+    okEl.style.display = 'block';
+  }catch(err){
+    errEl.textContent = inviteErr(err);
+    errEl.style.display = 'block';
+  }
+});
+/* Прийшли за посиланням із листа. Пошту на цьому пристрої ми зазвичай не
+   знаємо: лист надсилали з компʼютера власника, а відкривають його з
+   телефона людини. Тому поле пошти видиме й порожнє, а не «магічно
+   підставлене». */
+(function inviteLanding(){
+  let isLink = false;
+  try{ isLink = fbAuth.isSignInWithEmailLink(location.href); }catch(e){}
+  if(!isLink) return;
+  inviteBusy = true;
+  const gate = document.getElementById('invite-gate');
+  const authGate = document.getElementById('auth-gate');
+  if(authGate) authGate.style.display = 'none';
+  gate.style.display = 'flex';
+  const mailEl = document.getElementById('inv-mail');
+  try{ mailEl.value = localStorage.getItem(INV_MAIL_KEY) || ''; }catch(e){}
+  document.getElementById('invite-form').addEventListener('submit', async function(ev){
+    ev.preventDefault();
+    const errEl = document.getElementById('inv-err');
+    const btn = document.getElementById('inv-submit');
+    const mail = String(mailEl.value || '').trim().toLowerCase();
+    const first = String(document.getElementById('inv-first').value || '').trim();
+    const last = String(document.getElementById('inv-last').value || '').trim();
+    const pass = document.getElementById('inv-pass').value;
+    const pass2 = document.getElementById('inv-pass2').value;
+    const fail = t => { errEl.textContent = t; errEl.style.display = 'block'; };
+    errEl.style.display = 'none';
+    if(!/^[^@\s]+@[^@\s]+$/.test(mail)) return fail('Впишіть пошту, на яку прийшов лист');
+    if(!first) return fail('Впишіть імʼя');
+    if(pass.length < 6) return fail('Пароль має бути хоча б із 6 знаків');
+    if(pass !== pass2) return fail('Паролі не збігаються');
+    btn.disabled = true; btn.textContent = 'Зберігаємо…';
+    try{
+      const res = await fbAuth.signInWithEmailLink(mail, location.href);
+      const user = res.user;
+      /* Акаунт, створений посиланням, пароля ще не має взагалі — його треба
+         привʼязати. Якщо ж людина вже заходила паролем і просто відкрила
+         запрошення вдруге, привʼязка відмовить, і тоді пароль просто
+         міняємо. Обидва шляхи ведуть до одного: вхід поштою й паролем. */
+      try{
+        const cred = firebase.auth.EmailAuthProvider.credential(mail, pass);
+        await user.linkWithCredential(cred);
+      }catch(linkErr){
+        if(linkErr && linkErr.code === 'auth/provider-already-linked') await user.updatePassword(pass);
+        else if(linkErr && linkErr.code === 'auth/credential-already-in-use') { /* уже той самий пароль */ }
+        else await user.updatePassword(pass);
+      }
+      const full = (first + ' ' + last).trim();
+      try{ await user.updateProfile({ displayName: full }); }catch(x){}
+      /* Імʼя пишемо в свій куточок карти профілів. У список команди людина
+         записати не може й не повинна: там лежать права. */
+      try{
+        await PHOTOS_DOC.set({ profiles: { [aclKeyOf(mail)]: {
+          name: full, email: mail, at: new Date().toISOString() } } }, { merge:true });
+      }catch(x){ console.warn('профіль не записався', x); }
+      try{ localStorage.removeItem(INV_MAIL_KEY); }catch(x){}
+      history.replaceState(null, '', location.pathname);
+      gate.style.display = 'none';
+      inviteBusy = false;
+      if(!appStarted){ appStarted = true; init(); }
+    }catch(err){
+      console.error(err);
+      fail(inviteErr(err));
+      btn.disabled = false; btn.textContent = 'Готово';
+    }
+  });
+})();
+
 /* Версія сторінки, яку віддав браузер. document.lastModified для статичного
    файлу — це заголовок Last-Modified, тобто час випуску саме цієї копії.
    Клік перезавантажує з новою адресою: браузер не має з чого взяти кеш. */
@@ -4512,6 +4788,10 @@ function reloadFresh(){ location.href = location.pathname + '?v=' + Date.now(); 
 })();
 fbAuth.onAuthStateChanged(function(user){
   const gate = document.getElementById('auth-gate');
+  /* Перший вхід за запрошенням: вхід уже стався, але пароля ще немає й
+     назватись людина не встигла. Пускати її в адмінку зараз означало б
+     лишити акаунт без пароля — назад на цей екран вона вже не потрапить. */
+  if(inviteBusy){ gate.style.display = 'none'; return; }
   if(user){
     gate.style.display = 'none';
     if(!appStarted){ appStarted = true; init(); }
@@ -10426,7 +10706,7 @@ function renderTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
-      <button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>
+      ${canDelete() ? `<button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>` : ''}
     </div>
   `;
 
@@ -10436,16 +10716,41 @@ function renderTicket(o){
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
-  el.querySelector('[data-act="del"]').addEventListener('click', ()=> deleteOrderCard(o));
+  const delB = el.querySelector('[data-act="del"]');
+  if(delB) delB.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
 
   return el;
 }
 
-// Видалення картки із Канбану (тестові, скасовані, дублі).
+/* Видалення картки із Канбану (тестові, скасовані, дублі).
+
+   Три речі, яких тут довго не було й через які видалення було найнебезпечнішою
+   кнопкою системи:
+     1) окреме право. Доти кнопку бачив кожен, хто бачить дошку, а база пускала
+        кожного, хто може міняти склад;
+     2) підтвердження, яке справді показує, що зникає: номер, клієнт, сума,
+        скільки позицій. «Видалити Іван?» проскакується не читаючи;
+     3) запис у журнал доступу. Видалене замовлення не лишало сліду НІДЕ —
+        ні в стрічці подій (вона зникала разом із карткою), ні в журналі.
+   Відновлення немає навмисно: обіцяти кошик, якого немає, гірше, ніж чесно
+   сказати «назавжди». */
 async function deleteOrderCard(o){
+  if(!canDelete()) return toast('Немає права видаляти замовлення');
   const who = o.orderId || o.name || o.instagram || o.phone || 'замовлення';
-  if(!confirm('Видалити «'+who+'» із Канбану назавжди?')) return;
+  const items = (o.items || []).length;
+  const sum = +o.totalPrice || 0;
+  const lines = ['Видалити замовлення назавжди?', '',
+    'Номер: ' + (o.orderId || '—'),
+    'Клієнт: ' + (o.name || o.instagram || o.phone || '—'),
+    'Позицій: ' + items + (sum ? '   ·   сума: ' + fmt(sum) + ' грн' : ''),
+    '', 'Відновити не можна. Дія піде в журнал доступу.'];
+  if(!confirm(lines.join('\n'))) return;
+  /* Пишемо в журнал ДО видалення: після нього ні номера, ні суми взяти вже
+     нізвідки, а журнал саме для того й потрібен. */
+  await accLog('del', 'видалив замовлення ' + (o.orderId || o.id) +
+    ' · ' + (o.name || o.instagram || o.phone || 'без імені') +
+    ' · позицій ' + items + (sum ? ' · ' + Math.round(sum) + ' грн' : ''));
   orders = orders.filter(x=>x.id !== o.id);
   await storeSet('orders', orders);
   renderBoard();
@@ -14440,7 +14745,7 @@ function renderOrderDrawer(){
         ${odPart(()=> odLogFold(o), 'що відбувалось')}
       </div>
 
-      <button class="od-del-lite" data-act="del">Видалити картку</button>
+      ${canDelete() ? '<button class="od-del-lite" data-act="del">Видалити картку</button>' : ''}
     </div>
     ${/* Унизу закріплено лише те, що натискають щодня: зібрати пропозицію
          й піти в розмову. Видалення — дрібним рядком у кінці стрічки, щоб
@@ -14467,7 +14772,7 @@ function renderOrderDrawer(){
         <button class="od-x" data-od-close2 aria-label="Закрити">✕</button>
       </div>
       <div class="od-body">${odGoodsFold(o)}
-        <button class="od-del-lite" data-act="del">Видалити картку</button>
+        ${canDelete() ? '<button class="od-del-lite" data-act="del">Видалити картку</button>' : ''}
       </div>`;
   }
   panel.innerHTML = odHtml;
@@ -18114,40 +18419,73 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
    Інтерфейс картки — окремо: це не право, а формат. Менеджерський —
    клієнт, гроші, КП. Дизайнерський — макет і розмітка. Виробничий — файли,
    розмірний ряд, фото. */
+/* Кожна галочка має другий рядок, який каже, ЩО САМЕ вона відчиняє. Без
+   нього назва на кшталт «міняти етапи, треки й команду» нічого не пояснює:
+   «треки» — наш внутрішній жаргон, а за одним словом ховається п'ятеро
+   різних дверей. Роздавати права наосліп гірше, ніж не роздавати їх зовсім. */
 const ZONE_NAV = [
   /* «Сьогодні» першим і в усіх ролей: це не ще один розділ, а вхід у роботу.
      Дизайнер бачить у ньому свої макети, виробництво — свої тести, і кожен
      — рівно те, що йому й так видно на дошці. */
-  { key:'today',     label:'Задачі' },
-  { key:'board',     label:'Канбан' },
-  { key:'calc',      label:'Прорахунок' },
-  { key:'settings',  label:'Формування цін' },
-  { key:'photos',    label:'Конструктор сайту' },
-  { key:'reviews',   label:'Відгуки' },
-  { key:'suppliers', label:'Підрядники' },
-  { key:'analytics', label:'Аналітика' },
+  { key:'today',     label:'Задачі',
+    hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
+  { key:'board',     label:'Канбан',
+    hint:'Дошка замовлень і картка замовлення.' },
+  { key:'calc',      label:'Прорахунок',
+    hint:'Конструктор із цінами: зібрати позицію й порахувати вартість.' },
+  { key:'settings',  label:'Формування цін',
+    hint:'Ставки, коефіцієнти, знижки, способи нанесення. Тут задаються ціни для всіх.' },
+  { key:'photos',    label:'Конструктор сайту',
+    hint:'Асортимент, фото виробів, тексти сайту, розмірні сітки.' },
+  { key:'reviews',   label:'Відгуки',
+    hint:'Модерація відгуків із сайту: публікувати чи ні.' },
+  { key:'suppliers', label:'Підрядники',
+    hint:'Список підрядників, їхні ціни й терміни.' },
+  { key:'analytics', label:'Аналітика',
+    hint:'Гроші, конверсія, швидкість роботи відділів.' },
   /* Команда й доступи — теж зона, але з подвійним замком: мало мати її в
      списку розділів, треба ще й право міняти налаштування. Інакше вистачило
      б одної забутої галочки, щоб людина роздала доступи сама собі. */
-  { key:'team',      label:'Команда й доступи' }
+  { key:'team',      label:'Команда й доступи',
+    hint:'Подвійний замок: мало цієї галочки, потрібне ще право «Налаштовувати систему».' }
 ];
 const ZONE_SEE = [
-  { key:'client', label:'Клієнт і контакти' },
-  { key:'chat',   label:'Листування з клієнтом' },
-  { key:'cost',   label:'Собівартість, маржа, закупівля' }
+  { key:'client', label:'Клієнт і контакти',
+    hint:'Імʼя, телефон, пошта, Instagram, адреса доставки.' },
+  { key:'chat',   label:'Листування з клієнтом',
+    hint:'Діалог із клієнтом просто в картці.' },
+  { key:'cost',   label:'Собівартість, маржа, закупівля',
+    hint:'Скільки виріб коштує нам і скільки заробляємо. Ціна для клієнта видно завжди.' }
 ];
 const ZONE_CAN = [
-  { key:'edit',  label:'Міняти склад і кількості' },
-  { key:'pay',   label:'Записувати оплату' },
-  { key:'setup', label:'Міняти етапи, треки й команду' }
+  { key:'edit',  label:'Міняти склад замовлення',
+    hint:'Додавати й прибирати позиції, міняти кількості й розміри, створювати нові картки.' },
+  { key:'pay',   label:'Записувати оплату',
+    hint:'Блок оплат у картці: передоплата, доплата, залишок. Без права блоку не видно взагалі.' },
+  /* Видалення довго було побічним ефектом права на склад: кнопка «Видалити
+     картку» показувалась усім, хто бачить дошку, а база пускала кожного, хто
+     може міняти склад. Замовлення зникало назавжди після одного «ок» і не
+     лишало сліду ніде. Тепер це окреме право, і воно ж пише в журнал. */
+  { key:'del',   label:'Видаляти замовлення',
+    hint:'Прибрати картку з Канбану назавжди. Відновити не можна. Кожне видалення пишеться в журнал доступу.' },
+  { key:'setup', label:'Налаштовувати систему',
+    hint:'Етапи й дошки Канбану, склад команди й доступи, журнал доступу, режим «дивитись як».' }
 ];
+/* Коротке пояснення до самої зони: чотири блоки відповідають на чотири різні
+   питання, і без підпису вони зливаються в одну купу галочок. */
+const ZONE_ABOUT = {
+  nav:    'Куди людина заходить: розділи в лівому меню.',
+  boards: 'Які дошки Канбану їй показувати.',
+  see:    'Що з картки замовлення їй видно.',
+  can:    'Що їй дозволено змінювати.'
+};
 const UI_KINDS = { manager:'Менеджерський', designer:'Дизайнерський', production:'Виробничий' };
 function zoneBoards(){
   return [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
 }
 const ROLE_PRESET = {
   owner:      { ui:'manager',    nav:'*', boards:'*',
-                see:['client','chat','cost'], can:['edit','pay','setup'] },
+                see:['client','chat','cost'], can:['edit','pay','del','setup'] },
   manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
                 boards:'*', see:['client','chat'], can:['edit','pay'] },
   designer:   { ui:'designer',   nav:['today','board'], boards:['design'], see:[], can:[] },
@@ -18183,11 +18521,28 @@ function accOf(member){
    І вихід із нього завжди на видноті: непомічений режим гірший за його
    відсутність. */
 let seeAs = '';
-function seeAsOn(){ return !!seeAs && ROLE_PRESET[seeAs]; }
-function seeAsSet(role){
-  seeAs = (role && ROLE_PRESET[role] && role !== myRole()) ? role : '';
+/* Дивитись можна і по ролі, і очима конкретної людини: «у Олі цього немає» —
+   питання не про роль узагалі, а про Олю з її галочками. Людина позначається
+   як «@пошта», роль — просто ключем. */
+function seeAsPerson(){ return seeAs.charAt(0) === '@' ? seeAs.slice(1) : ''; }
+function seeAsTarget(){
+  const e = seeAsPerson();
+  if(e){ const m = teamMember(e); return m ? accOf(m) : null; }
+  return ROLE_PRESET[seeAs] ? presetOf(seeAs) : null;
+}
+function seeAsLabel(){
+  const e = seeAsPerson();
+  if(e) return personName(e) || e;
+  return ROLES[seeAs] || seeAs;
+}
+function seeAsOn(){ return !!seeAs && !!seeAsTarget(); }
+function seeAsSet(who){
+  const w = String(who || '');
+  const ok = w && (w.charAt(0) === '@' ? !!teamMember(w.slice(1))
+                                       : (ROLE_PRESET[w] && w !== myRole()));
+  seeAs = ok ? w : '';
   try{ sessionStorage.setItem('lq_see_as', seeAs); }catch(e){}
-  if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + (ROLES[seeAs] || seeAs) + '»');
+  if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + seeAsLabel() + '»');
   applySeeAsBar();
   applyRoleUi();
   renderBoard();
@@ -18203,16 +18558,24 @@ function accIntersect(mine, other){
   return { ui: other.ui, nav: cut(mine.nav, other.nav), boards: cut(mine.boards, other.boards),
            see: cut(mine.see, other.see), can: cut(mine.can, other.can) };
 }
+/* Доступів немає взагалі: жодного розділу, жодної дошки, нічого не видно й
+   нічого не можна. Саме це має отримати той, кого в команду не заводили. */
+const ACC_NONE = { ui:'manager', nav:[], boards:[], see:[], can:[] };
 function myAccReal(){
   if(!teamOn()) return presetOf('owner');      // список порожній — доступ повний
   const m = teamMember(myEmail());
-  if(!m) return presetOf('manager');            // кого не завели — менеджер
+  /* Кого немає в списку, той раніше ставав МЕНЕДЖЕРОМ: бачив дошку, клієнтів
+     і всі замовлення. Поки акаунти заводились руками в консолі, це не
+     стріляло. З появою запрошень поштою вхід відкривається сам, і таке
+     припущення стало прямою дірою: зайшов — уже менеджер. Тепер навпаки:
+     кого не завели, той не бачить нічого й читає це на екрані. */
+  if(!m) return ACC_NONE;
   return accOf(m);
 }
 function myAcc(){
   const mine = myAccReal();
   if(!seeAsOn()) return mine;
-  return accIntersect(mine, presetOf(seeAs));
+  return accIntersect(mine, seeAsTarget());
 }
 function applySeeAsBar(){
   let bar = document.getElementById('seeAsBar');
@@ -18222,7 +18585,7 @@ function applySeeAsBar(){
     bar.id = 'seeAsBar';
     document.body.appendChild(bar);
   }
-  bar.innerHTML = '<span>Ви дивитесь очима: <b>' + escapeHtml(ROLES[seeAs] || seeAs) +
+  bar.innerHTML = '<span>Ви дивитесь очима: <b>' + escapeHtml(seeAsLabel()) +
     '</b> — тільки перегляд</span><button data-see-off>Вийти</button>';
   bar.querySelector('[data-see-off]').addEventListener('click', ()=> seeAsSet(''));
   document.body.classList.add('see-as');
@@ -18269,6 +18632,72 @@ function renderAccLog(){
     '<span class="al-x">' + escA(r.text) + '</span></div>').join('')
     : '<div class="sub">Записів ще немає.</div>';
 }
+/* ══════════ Мій профіль ══════════
+   Своє імʼя людина пише сама, і воно головніше за те, що вписав власник.
+   Пароль теж свій: доти його міняли лише через консоль Firebase. Права тут
+   тільки показані — щоб на «а що мені відкрито» відповідав екран. */
+function openMe(){
+  const m = document.getElementById('me-modal');
+  if(!m) return;
+  const mail = myEmail();
+  document.getElementById('me-mail').textContent = mail || '';
+  document.getElementById('me-acc').textContent = accSummary(myAccReal());
+  const full = (personName(mail) || '').split(/\s+/);
+  document.getElementById('me-first').value = full[0] || '';
+  document.getElementById('me-last').value = full.slice(1).join(' ');
+  document.getElementById('me-pass').value = '';
+  document.getElementById('me-pass2').value = '';
+  document.getElementById('me-err').style.display = 'none';
+  m.style.display = 'flex';
+}
+(function wireMe(){
+  const btn = document.getElementById('me-btn');
+  const m = document.getElementById('me-modal');
+  if(!btn || !m) return;
+  btn.addEventListener('click', openMe);
+  document.getElementById('me-cancel').addEventListener('click', ()=>{ m.style.display = 'none'; });
+  m.addEventListener('click', e => { if(e.target === m) m.style.display = 'none'; });
+  document.getElementById('me-form').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const errEl = document.getElementById('me-err');
+    const save = document.getElementById('me-save');
+    const fail = t => { errEl.textContent = t; errEl.style.display = 'block'; };
+    errEl.style.display = 'none';
+    const first = String(document.getElementById('me-first').value || '').trim();
+    const last = String(document.getElementById('me-last').value || '').trim();
+    const p1 = document.getElementById('me-pass').value;
+    const p2 = document.getElementById('me-pass2').value;
+    if(!first) return fail('Впишіть імʼя');
+    if(p1 || p2){
+      if(p1.length < 6) return fail('Пароль має бути хоча б із 6 знаків');
+      if(p1 !== p2) return fail('Паролі не збігаються');
+    }
+    const full = (first + ' ' + last).trim();
+    save.disabled = true; save.textContent = 'Зберігаємо…';
+    try{
+      const user = fbAuth.currentUser;
+      if(p1) await user.updatePassword(p1);
+      try{ await user.updateProfile({ displayName: full }); }catch(x){}
+      await PHOTOS_DOC.set({ profiles: { [aclKeyOf(myEmail())]: {
+        name: full, email: myEmail(), at: new Date().toISOString() } } }, { merge:true });
+      contentData.profiles = Object.assign({}, contentData.profiles,
+        { [aclKeyOf(myEmail())]: { name: full, email: myEmail(), at: new Date().toISOString() } });
+      m.style.display = 'none';
+      toast(p1 ? 'Збережено, пароль змінено' : 'Збережено');
+      try{ renderTeamList(); }catch(x){}
+      try{ renderBoard(); }catch(x){}
+    }catch(err){
+      console.error(err);
+      /* Firebase не міняє пароль, якщо вхід був давно: це не наша примха, а
+         захист. Кажемо, що робити, а не показуємо код помилки. */
+      fail(err && err.code === 'auth/requires-recent-login'
+        ? 'Задля безпеки пароль міняється лише невдовзі після входу. Вийдіть і зайдіть знову.'
+        : inviteErr(err));
+    }finally{
+      save.disabled = false; save.textContent = 'Зберегти';
+    }
+  });
+})();
 function may(group, key){
   const v = (myAcc() || {})[group];
   if(v === '*') return true;
@@ -18322,10 +18751,35 @@ function canSeeCost(){ return may('see', 'cost'); }
 function canSeeChat(){ return may('see', 'chat'); }
 function canEditItems(){ return may('can', 'edit'); }
 function canPay(){ return may('can', 'pay'); }
+function canDelete(){ return may('can', 'del'); }
 function canSetup(){ return may('can', 'setup'); }
 /* У бічному меню людина бачить тільки свої розділи. Дизайнер заходить і
    бачить одну дошку — ніяких вкладок, у які йому нема чого відкривати. */
+/* Людину не завели в команду. Порожня адмінка без пояснень читається як
+   «зламалось» — і людина йде питати, чому нічого не працює. Кажемо прямо, під
+   якою поштою вона зайшла: саме тут майже завжди й помилка, зайшли не тим
+   акаунтом, на який слали запрошення. */
+function applyNoAccess(){
+  const off = teamOn() && !teamMember(myEmail());
+  let el = document.getElementById('no-access');
+  if(!off){ if(el) el.remove(); document.body.classList.remove('no-access'); return true; }
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'no-access';
+    document.body.appendChild(el);
+    el.innerHTML = '<div class="na-box"><b>Вас ще не додали в команду</b>' +
+      '<p>Ви зайшли як <span class="na-mail"></span>. Доступ до замовлень видає той, ' +
+      'хто налаштовує систему: попросіть додати цю пошту в «Команду й доступи».</p>' +
+      '<p class="na-sub">Якщо запрошення приходило на іншу пошту — вийдіть і зайдіть нею.</p>' +
+      '<button type="button">Вийти</button></div>';
+    el.querySelector('button').addEventListener('click', ()=> fbAuth.signOut());
+  }
+  el.querySelector('.na-mail').textContent = myEmail() || '—';
+  document.body.classList.add('no-access');
+  return false;
+}
 function applyRoleUi(){
+  if(!applyNoAccess()) return;
   const nav = (myAcc() || {}).nav;
   const all = nav === '*' || !Array.isArray(nav);
   let firstOk = null;
@@ -18342,6 +18796,11 @@ function applyRoleUi(){
   if(add) add.hidden = !canEditItems();
   const st = document.getElementById('st-toggle');
   if(st) st.hidden = !canSetup();
+  const meT = document.getElementById('me-btn-t');
+  if(meT) meT.textContent = personName(myEmail()) || 'Мій профіль';
+  /* Список «дивитись як» будується з команди, а вона приходить із бази вже
+     після завантаження сторінки. */
+  try{ renderSeeAsPick(); }catch(e){}
   /* Людина стоїть у розділі, який їй закрили, — переводимо в перший
      дозволений. Порожній екран без пояснень гірший за будь-який інший. */
   const cur = document.querySelector('.nav button[data-view].active');
@@ -18365,6 +18824,10 @@ function myBoards(){
   return (mine.length === known.length) ? [] : mine;
 }
 function personName(email){
+  /* Як людина назвалась сама — головніше за те, що за неї вписав власник:
+     власник ставить пошту нашвидкуруч, а прізвище знає лише сам працівник. */
+  const own = profileOf(email);
+  if(own && own.name) return own.name;
   const m = teamMember(email);
   if(m && m.name) return m.name;
   const e = String(email || '').trim();
@@ -18374,12 +18837,33 @@ function myName(){ return personName(myEmail()) || 'я'; }
 /* Галочки однієї зони. Підпис каже, що саме вмикається, — «доступ до
    аналітики» без пояснення нічого не означає. */
 function accBoxes(i, group, list, on){
+  const about = ZONE_ABOUT[group] || '';
   return `<div class="tm-zone"><span class="tm-zone-t">${escapeHtml(
     { nav:'Розділи', boards:'Дошки', see:'Бачить', can:'Може' }[group] || group)}</span>
+    ${about ? `<span class="tm-zone-a">${escapeHtml(about)}</span>` : ''}
     <div class="tm-boxes">${list.map(z=>`
-      <label class="tm-box${on.indexOf(z.key) >= 0 ? ' on' : ''}">
+      <label class="tm-box${on.indexOf(z.key) >= 0 ? ' on' : ''}${z.hint ? ' has-hint' : ''}">
         <input type="checkbox" data-acc="${i}" data-g="${group}" data-k="${escapeHtml(z.key)}"${
-          on.indexOf(z.key) >= 0 ? ' checked' : ''}>${escapeHtml(z.label)}</label>`).join('')}</div></div>`;
+          on.indexOf(z.key) >= 0 ? ' checked' : ''}>
+        <span class="tm-box-t">${escapeHtml(z.label)}${
+          z.hint ? `<i class="tm-box-h">${escapeHtml(z.hint)}</i>` : ''}</span></label>`).join('')}</div></div>`;
+}
+/* Підсумок доступів одним рядком: у згорнутому вигляді має бути видно
+   РЕЗУЛЬТАТ, а не «розгорніть і порахуйте двадцять галочок». Саме цього
+   бракувало найбільше: власник дивиться на список і не знає, хто що бачить. */
+function accSummary(acc){
+  const names = (list, on) => (on === '*' || !Array.isArray(on))
+    ? list.map(x => x.label)
+    : list.filter(x => on.indexOf(x.key) >= 0).map(x => x.label);
+  const part = (title, arr, empty) =>
+    title + ': ' + (arr.length ? arr.join(', ') : empty);
+  const nav = names(ZONE_NAV, acc.nav);
+  return [
+    part('Заходить', nav, 'нікуди'),
+    part('Дошки', names(zoneBoards(), acc.boards), 'жодної'),
+    part('Бачить', names(ZONE_SEE, acc.see), 'тільки виріб'),
+    part('Може', names(ZONE_CAN, acc.can), 'нічого')
+  ].join('  ·  ');
 }
 /* ══════════ Права для правил бази ══════════
    Приховати поле в інтерфейсі — не те саме, що закрити доступ. Правила бази
@@ -18402,16 +18886,33 @@ function aclFromTeam(list){
     const can = (p.acc && p.acc.can) || [];
     const see = (p.acc && p.acc.see) || [];
     out[k] = { edit: can.indexOf('edit') >= 0, pay: can.indexOf('pay') >= 0,
+               del: can.indexOf('del') >= 0,
                setup: can.indexOf('setup') >= 0, cost: see.indexOf('cost') >= 0 };
   });
   return out;
+}
+/* Список для «дивитись як»: спершу ролі, далі поіменно вся команда. Роль
+   відповідає на «що бачить дизайнер узагалі», людина — на «чому в Олі цього
+   немає», і це різні питання. */
+function renderSeeAsPick(){
+  const sel = document.getElementById('see-as-pick');
+  if(!sel) return;
+  const cur = sel.value;
+  const people = (contentSafe().team || []).filter(p => p.email);
+  sel.innerHTML = '<option value="">— своїми очима —</option>' +
+    '<optgroup label="Роль">' +
+    Object.keys(ROLES).map(k => '<option value="' + escA(k) + '">' + escA(ROLES[k]) + '</option>').join('') +
+    '</optgroup>' +
+    (people.length ? '<optgroup label="Людина">' + people.map(p =>
+      '<option value="@' + escA(p.email) + '">' + escA(personName(p.email) || p.email) + '</option>').join('') +
+      '</optgroup>' : '');
+  if(cur) sel.value = cur;
 }
 (function wireSeeAs(){
   const sel = document.getElementById('see-as-pick');
   const go  = document.getElementById('see-as-go');
   if(!sel || !go) return;
-  sel.innerHTML = '<option value="">— своїми очима —</option>' +
-    Object.keys(ROLES).map(k => '<option value="' + escA(k) + '">' + escA(ROLES[k]) + '</option>').join('');
+  renderSeeAsPick();
   go.addEventListener('click', ()=>{
     if(!canSetup()) return toast('Режим перегляду — для того, хто налаштовує систему');
     seeAsSet(sel.value);
@@ -18426,7 +18927,19 @@ function renderTeamList(){
   const box = document.getElementById('team-list');
   if(!box) return;
   const me = myEmail();
-  box.innerHTML = teamList().map((p, i)=>`
+  const saved = (contentData.team) || [];
+  box.innerHTML = teamList().map((p, i)=>{
+    const inTeam = saved.some(s => s.email === p.email && p.email);
+    const prof = p.email ? profileOf(p.email) : null;
+    /* Стан запрошення видно з рядка, а не з памʼяті власника: «надіслав чи ні»
+       і «зайшла вона вже чи лист лежить у спамі» — різні речі, і плутати їх
+       найлегше саме тут. */
+    const state = prof ? '<span class="tm-st tm-st--ok" title="Перший вхід зроблено ' +
+                          escA(dtUa(prof.at)) + '">✓ зайшов</span>'
+                : inTeam ? '<span class="tm-st">запрошення не активоване</span>'
+                : '<span class="tm-st tm-st--new">спершу «Зберегти команду»</span>';
+    const none = !(p.acc.nav || []).length;
+    return `
     <div class="tm-wrap">
       <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
         <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
@@ -18436,16 +18949,32 @@ function renderTeamList(){
         <select class="tm-ui" title="Формат картки замовлення">${Object.keys(UI_KINDS).map(k=>
           `<option value="${k}"${k===p.acc.ui?' selected':''}>${escapeHtml(UI_KINDS[k])}</option>`).join('')}</select>
         <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
+        <button class="tm-inv" data-inv="${i}" ${inTeam ? '' : 'disabled'}
+          title="Надіслати лист із посиланням: людина сама придумає пароль і назветься">✉ ${prof ? 'Ще раз' : 'Запросити'}</button>
         <button class="qr-del" title="Прибрати">🗑</button>
       </div>
+      <div class="tm-sum${none ? ' tm-sum--none' : ''}">${state} ${escapeHtml(accSummary(p.acc))}</div>
       ${teamOpen === i ? `<div class="tm-acc">
         ${accBoxes(i, 'nav', ZONE_NAV, p.acc.nav)}
         ${accBoxes(i, 'boards', zoneBoards(), p.acc.boards)}
         ${accBoxes(i, 'see', ZONE_SEE, p.acc.see)}
         ${accBoxes(i, 'can', ZONE_CAN, p.acc.can)}
+        <div class="tm-tools">
+          ${/* Двадцять галочок новому дизайнеру ніхто не проставляє з нуля —
+               беруть у того, хто вже налаштований, і правлять дві. */''}
+          <label>Скопіювати доступи від
+            <select class="tm-copy" data-copy="${i}">
+              <option value="">— оберіть людину —</option>
+              ${teamList().map((q, j)=> (j === i || !q.email) ? '' :
+                `<option value="${j}">${escapeHtml(q.name || q.email)}</option>`).join('')}
+            </select>
+          </label>
+          <button class="tm-see" data-see="${i}" ${p.email ? '' : 'disabled'}>👁 Подивитись її очима</button>
+        </div>
+        ${none ? '<div class="tm-warn">Жодного розділу — людина побачить порожню адмінку. Увімкніть хоча б «Задачі» або «Канбан».</div>' : ''}
         <div class="sub">Зміна ролі перезаписує ці галочки пресетом. Далі правте руками — саме для цього вони тут.</div>
       </div>` : ''}
-    </div>`).join('') ||
+    </div>`;}).join('') ||
     '<div class="sub">Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».</div>';
   box.querySelectorAll('.tm-row').forEach(row=>{
     const i = +row.dataset.i;
@@ -18467,6 +18996,33 @@ function renderTeamList(){
       teamOpen = (teamOpen === i) ? -1 : i;
       renderTeamList();
     }));
+  box.querySelectorAll('[data-inv]').forEach(b=>
+    b.addEventListener('click', async ()=>{
+      const p = teamList()[+b.dataset.inv];
+      const was = b.textContent;
+      b.disabled = true; b.textContent = 'Шлемо…';
+      await sendInvite(p.email);
+      b.disabled = false; b.textContent = was;
+    }));
+  box.querySelectorAll('[data-copy]').forEach(s=>
+    s.addEventListener('change', ()=>{
+      const to = teamList()[+s.dataset.copy], from = teamList()[+s.value];
+      if(!from) return;
+      /* Копіюємо доступи, але НЕ пошту, імʼя й роль: копіюють саме галочки,
+         а роль лишається тією, яку поставили цій людині. */
+      to.acc = { ui: from.acc.ui, nav: from.acc.nav.slice(), boards: from.acc.boards.slice(),
+                 see: from.acc.see.slice(), can: from.acc.can.slice() };
+      renderTeamList();
+      toast('Доступи скопійовано — не забудьте зберегти');
+    }));
+  box.querySelectorAll('[data-see]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const p = teamList()[+b.dataset.see];
+      if(!p.email) return;
+      if(!((contentData.team) || []).some(s => s.email === p.email))
+        return toast('Спершу збережіть команду');
+      seeAsSet('@' + p.email);
+    }));
   box.querySelectorAll('[data-acc]').forEach(c=>
     c.addEventListener('change', ()=>{
       const p = teamList()[+c.dataset.acc], g = c.dataset.g, k = c.dataset.k;
@@ -18476,6 +19032,7 @@ function renderTeamList(){
       if(!c.checked && at >= 0) list.splice(at, 1);
       c.closest('.tm-box').classList.toggle('on', c.checked);
     }));
+  renderSeeAsPick();
   const me2 = document.getElementById('team-me');
   if(me2) me2.textContent = me
     ? ('Ви зайшли як ' + me + ' — роль: ' + (myRole()==='owner' ? 'власник' : 'менеджер') +
