@@ -51,6 +51,14 @@ service cloud.firestore {
       return request.auth != null
         && (!aclOn() || aclMap().get(aclKey(), {}).get(k, false) == true);
     }
+    // Чи є ця пошта в команді взагалі. Доти достатньо було просто увійти:
+    // хто завів собі акаунт, той читав усі замовлення, бо приховування полів
+    // робив лише інтерфейс. Поки акаунти заводили руками в консолі, це не
+    // стріляло. З появою запрошень поштою вхід відкривається сам, і таке
+    // припущення стало прямою дірою.
+    function known() {
+      return request.auth != null && (!aclOn() || aclKey() in aclMap());
+    }
     function touched(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(keys);
     }
@@ -83,10 +91,20 @@ service cloud.firestore {
     match /loomiq/photos {
       allow read: if true;
       allow create: if request.auth != null;
+      //
+      // Третій виняток — власне імʼя. Людина, яку щойно запросили, називає
+      // себе сама: у список `team` їй писати не можна й не треба, там лежать
+      // права. Тому імʼя йде в карту `profiles`, і кожному дозволено чіпати
+      // рівно СВІЙ ключ у ній, а не чужий і не щось іще в документі.
       allow update: if request.auth != null && (
            may('setup')
         || request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['accessLog', 'orderSeq'])
+        || (
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['profiles'])
+             && request.resource.data.profiles.diff(
+                  resource.data.get('profiles', {})).affectedKeys().hasOnly([aclKey()])
+           )
       ) && (
            !('accessLog' in request.resource.data)
         || !('accessLog' in resource.data)
@@ -150,19 +168,24 @@ service cloud.firestore {
     // Картки Канбану: одна картка = один документ (ліміт 1 МБ на весь Канбан
     // раніше глушив збереження). Доступ лише з адмінки.
     //
-    // Читає кожен, хто увійшов: приховування полів робить інтерфейс, і
-    // розділяти документ ми поки свідомо не беремось — це окрема робота, до
-    // якої треба спершу зрозуміти, які поля кому справді потрібні.
+    // Читає той, хто є в команді. Саме в команді, а не просто «увійшов»:
+    // приховування полів робить інтерфейс, тож для чужого акаунта читання
+    // означало б усі замовлення разом із контактами клієнтів. Розділяти сам
+    // документ по полях ми поки свідомо не беремось — це окрема робота.
     //
     // А от ЗАПИС розділений уже зараз, і саме там, де болить. Дизайнер і
     // виробництво працюють із треками, макетом, фото й контролем — це їм і
     // лишається. Склад, ціни та етап продажу вимагають права «міняти склад»,
     // гроші — права «записувати оплату». Так закривається найчастіше:
     // «випадково змінив ціну» й «випадково перетягнув етап».
+    //
+    // Видалення — окреме право, а не побічний ефект права на склад. Замовлення
+    // зникає назавжди, відновити його нема звідки, і саме тому дозвіл на це
+    // видається окремо й свідомо.
     match /kanbanOrders/{id} {
-      allow read: if request.auth != null;
+      allow read: if known();
       allow create: if request.auth != null && may('edit');
-      allow delete: if request.auth != null && may('edit');
+      allow delete: if request.auth != null && may('del');
       allow update: if request.auth != null
         && (may('edit') || !touched(['items', 'totalPrice', 'totalCost', 'margin',
                                      'marginPct', 'status', 'hist', 'discount']))
@@ -271,9 +294,19 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Все інше (ціни, стан Канбану) — лише авторизованим
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Решта документів проєкту: ціни, товари, службові лічильники.
+    //
+    // Тут довго стояв рекурсивний `match /{document=**}` з дозволом усім, хто
+    // увійшов. У Firestore дозволи СКЛАДАЮТЬСЯ: досить одного правила, яке
+    // пускає, — і решта перевірок не рахується взагалі. Тобто це одне правило
+    // мовчки скасовувало всі права вище: і «міняти склад», і «записувати
+    // оплату», і поділ по ролях. Інтерфейс ховав кнопки, база пускала всіх.
+    //
+    // Тому замість «все інше» — рівно ті документи, які справді є, і без
+    // `loomiq/photos`: у нього свої, тонші правила, і ширший дозвіл поруч
+    // так само перекрив би їх.
+    match /loomiq/{doc} {
+      allow read, write: if doc != 'photos' && known();
     }
   }
 }
