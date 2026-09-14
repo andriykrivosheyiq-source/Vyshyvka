@@ -161,15 +161,22 @@ console.log('═══ ЛІЧИЛЬНИК У ЛІВІЙ ПАНЕЛІ ═══')
   console.log('═══ ГРУПУ ВАРІАНТІВ ОБИРАЮТЬ ЗІ СПИСКУ ═══');
   await fr.click('[data-newgroup]');
   await p.waitForTimeout(400);
+  /* Назв груп більше немає: групи внутрішні, у них номери. Вікно показує
+     наявні групи й кнопку завести наступну — без поля вводу. */
   const gp = await fr.evaluate(() => ({
     box: !!document.querySelector('.pick .is-groups'),
     groups: [...document.querySelectorAll('[data-g]')].map(x => x.dataset.g),
+    labels: [...document.querySelectorAll('.pick [data-g]')].map(x => x.textContent.trim()),
+    add: !!document.querySelector('[data-g-add]'),
     input: !!document.querySelector('#gNew')
   }));
-  console.log('  наявні групи: ' + (gp.groups.join(', ') || 'немає'));
-  ok(gp.box && gp.groups.join() === 'Футболки' && gp.input,
-    'вікно показує групи, які вже є в цьому КП, і поле для нової',
+  console.log('  наявні групи: ' + (gp.labels.join(', ') || 'немає'));
+  ok(gp.box && gp.groups.join() === 'Футболки' && gp.add && !gp.input,
+    'вікно показує наявні групи й кнопку нової, а назву не питає',
     'вибору груп немає: ' + JSON.stringify(gp));
+  ok(/^Група 1/.test(gp.labels[0] || ''),
+    'групи підписані номерами',
+    'групи підписані не номерами: ' + JSON.stringify(gp.labels));
 
   await fr.click('[data-g="Футболки"]');
   await p.waitForTimeout(400);
@@ -178,7 +185,7 @@ console.log('═══ ЛІЧИЛЬНИК У ЛІВІЙ ПАНЕЛІ ═══')
     head: (document.querySelector('.pick-h b') || {}).textContent || ''
   }));
   console.log('  ' + after.head);
-  ok(after.pick && /Футболки/.test(after.head),
+  ok(after.pick && /групу 1/i.test(after.head),
     'клік по наявній групі веде просто в каталог — назву не набирають удруге',
     'у групу не потрапили: ' + JSON.stringify(after));
   try{ fs.unlinkSync(VH); }catch(e){}

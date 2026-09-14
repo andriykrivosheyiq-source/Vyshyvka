@@ -176,7 +176,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      обраний колір лишався видним хіба смужкою по краю, і виглядало це так,
      ніби міняється щось інше, а не за картинкою.
      Відступ до заголовка переїхав на обгортку — там він нічому не заважає. */
-  .hero-logo{max-height:36px; width:auto; display:block;}
+  /* Розмір логотипа підбирається сам. Один межовий розмір по висоті тут не
+     працює: широка горизонтальна плашка при висоті 44 px розтягується через
+     пів шапки, а квадратний значок при тій самій висоті виглядає загубленим.
+     Тому обмежуємо і висоту, і ширину — тоді горизонтальний упирається в
+     ширину, вертикальний у висоту, і обидва важать на око однаково.
+     Менеджер може задати висоту руками; тоді вона стає інлайновою і
+     перебиває це правило. */
+  .hero-logo{height:auto; width:auto; max-height:60px; max-width:260px;
+    object-fit:contain; display:block;}
   /* Розмір задав менеджер — його поважаємо, стеля max-height більше не діє */
   .hero-logo[style*="height"]{max-height:none;}
   /* Поле терміну: підпис, число й пояснення під ним */
@@ -1115,7 +1123,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Груп кілька — між ними потрібна межа, інакше картки читаються як одна
      купа. Назви тут немає (вона наша, внутрішня), тож межу тримає риска й
      сам рядок правила. */
-  .vgroup + .vgroup{margin-top:22px; padding-top:20px; border-top:1px solid var(--line);}
+  .vgroup + .vgroup{margin-top:24px; padding-top:20px; border-top:1px solid var(--line);}
   .vgroup-h{font-size:var(--fs-2); font-weight:600; margin-bottom:10px; display:flex;
     align-items:baseline; gap:8px; color:var(--muted); letter-spacing:.02em;}
   .vgroup-h em{font-style:normal; font-size:var(--fs-1); font-weight:600; letter-spacing:.05em;
@@ -1459,6 +1467,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edpick-i.is-group{flex-direction:row;align-items:center;justify-content:space-between;
     gap:10px;padding:12px 16px;background:#fff;}
   .edpick-i.is-group[data-g-new]{border-style:dashed;}
+  /* Вибір логотипа для шапки: плитки самих картинок. Підпису тут бути не
+     може — логотип упізнають оком, а не за назвою файлу. */
+  .edpick-g.is-logos{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;}
+  .edpick-logo{all:unset;box-sizing:border-box;cursor:pointer;aspect-ratio:1;
+    display:flex;align-items:center;justify-content:center;padding:8px;
+    background:#fff;border:1.5px solid #E6EAF0;border-radius:var(--r-3);}
+  .edpick-logo img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;}
+  .edpick-logo:hover{border-color:#4F5FD4;}
+  .edpick-logo.on{border-color:#0F7B4F;box-shadow:0 0 0 3px rgba(15,123,79,.14);}
+  .edpick-up{display:block;width:100%;margin-top:10px;text-align:center;}
   /* Одне речення про те, чим групи є насправді. Менеджер відкриває це вікно
      раз на тиждень, і без підказки щоразу гадає, чи побачить клієнт назву. */
   .edpick-note{margin-top:10px;font-size:var(--fs-1);line-height:1.45;color:#6B7686;}
@@ -1473,7 +1491,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      жодного заокруглення. Тільки так фон лягає саме ЗА картинку, а рамка
      обрізання показує рівно те, що буде відрізано. */
   .hero-logo-wrap{position:relative; display:inline-block; line-height:0;
-    margin-bottom:20px;}
+    margin-bottom:20px; max-width:100%;}
   /* Старі пропозиції зберігали не колір, а один із двох станів підкладки —
      лишаємо їх робочими, тепер такими самими квадратними. */
   .hero-logo-wrap.plate-light{background:#fff;}
@@ -3162,7 +3180,88 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       edSend({ act:'logoFill', color:'' });
       return true;
     }
+    /* Заміна логотипа. Коли в замовленні лише один файл, вибирати нема з
+       чого — одразу провідник, як було. Коли кілька, спершу показуємо їх:
+       найчастіше потрібне лого вже завантажене на виріб, і вантажити той
+       самий файл удруге безглуздо. */
+    if(a === 'logo' && logoList().length > 1){ openLogoPick(); return true; }
+    /* Перший крок розміру рахуємо від того, що зараз НА ЕКРАНІ. Доти він
+       завжди починався з 44 px: логотип, який автопідбір показував більшим,
+       від натиску «+» ставав меншим. */
+    if(a === 'logosm' || a === 'logobg'){
+      if(!(+OFFER.clientLogoSize)){
+        var im = document.querySelector('.hero-logo');
+        var h = im ? Math.round(im.getBoundingClientRect().height) : 0;
+        if(h > 0){ edSend({ act:a, from:h }); return true; }
+      }
+      return false;
+    }
     return false;
+  }
+  /* Логотипи цього замовлення — ті самі, якими одягали вироби. */
+  function logoList(){
+    var l = OFFER.clientLogoList;
+    return Array.isArray(l) ? l.filter(Boolean) : [];
+  }
+  function openLogoPick(){
+    var list = logoList();
+    var d = document.createElement('div');
+    d.className = 'edpick open';
+    d.innerHTML = '<div class="edpick-c"><div class="edpick-h">Логотип у шапці' +
+      '<button class="edb" data-lx>Закрити</button></div>' +
+      '<div class="edpick-g is-logos">' +
+        list.map(function(u){
+          return '<button class="edpick-logo' + (u === OFFER.clientLogo ? ' on' : '') +
+            '" data-lu="' + esc(u) + '"><img src="' + esc(u) + '" alt=""></button>';
+        }).join('') +
+      '</div>' +
+      '<div class="edpick-note">Це логотипи, завантажені в цьому замовленні. ' +
+        'Можна взяти будь-який або додати окремий файл саме для шапки.</div>' +
+      '<button class="edb edpick-up" data-lfile>＋ Завантажити інший файл</button>' +
+      '</div>';
+    document.body.appendChild(d);
+    var close = function(){ d.remove(); };
+    d.addEventListener('click', function(e){ if(e.target === d) close(); });
+    d.querySelector('[data-lx]').addEventListener('click', close);
+    d.querySelectorAll('[data-lu]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var u = b.dataset.lu;
+        close();
+        if(u === OFFER.clientLogo) return;
+        OFFER.clientLogo = u; OFFER.clientLogoSize = 0; render();
+        edSend({ act:'logopick', url:u });
+      });
+    });
+    d.querySelector('[data-lfile]').addEventListener('click', function(){
+      close(); edSend({ act:'logo' });
+    });
+  }
+  /* Розмір логотипа в шапці.
+
+     Однакова висота для всіх логотипів не працює. Широка горизонтальна
+     плашка при 44 px розтягується через пів шапки, а квадратний значок при
+     тій самій висоті виглядає загубленим — і менеджер щоразу лізе крутити
+     «−» і «+». Око порівнює не висоту, а ПЛОЩУ: саме вона читається як
+     «великий чи маленький».
+
+     Тому висоту рахуємо з пропорцій так, щоб площа виходила приблизно одна:
+     h = √(площа / співвідношення). Межі зверху й знизу лишаються — без них
+     дуже витягнутий логотип став би або ниткою, або колоною. */
+  var LOGO_AREA = 2600, LOGO_MIN_H = 24, LOGO_MAX_H = 60, LOGO_MAX_W = 260;
+  function fitHeroLogo(){
+    var im = document.querySelector('.hero-logo');
+    if(!im || +OFFER.clientLogoSize) return;   // задали руками — не чіпаємо
+    var go = function(){
+      var w = im.naturalWidth, h = im.naturalHeight;
+      if(!w || !h) return;
+      var r = w / h;
+      var hh = Math.max(LOGO_MIN_H, Math.min(LOGO_MAX_H, Math.sqrt(LOGO_AREA / r)));
+      if(hh * r > LOGO_MAX_W) hh = LOGO_MAX_W / r;
+      im.style.height = Math.round(hh) + 'px';
+      im.style.maxHeight = 'none';
+      im.style.maxWidth = '100%';
+    };
+    if(im.complete) go(); else im.addEventListener('load', go, { once:true });
   }
   /* Логотип сам відкриває обрізання, а кружечок поруч міняє фон. Обидва
      потрібні в обох режимах, тож живуть тут, а не в одній із гілок. */
@@ -3826,7 +3925,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               (logoBg() ? ' style="background:' + esc(logoBg()) + '"' : '') + '>' +
               '<img class="hero-logo" src="' + esc(OFFER.clientLogo) + '" alt="" ' +
               (MGR_EDIT_ON() ? 'data-logo-crop="1" title="Натисніть, щоб обрізати" ' : '') +
-              (OFFER.clientLogoSize ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px" ' : '') +
+              /* Задали висоту руками — вона головніша за автопідбір, і межа
+                 по ширині тут уже зайва: менеджер бачив, що робить. */
+              (OFFER.clientLogoSize
+                ? 'style="height:' + (+OFFER.clientLogoSize).toFixed(0) + 'px;max-height:none;max-width:100%" '
+                : '') +
               'onerror="this.style.display=\'none\'">' +
             '</span>' : '') +
         /* Логотип клієнта — на самій сторінці, а не в службовій панелі
@@ -3841,11 +3944,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         (MGR_EDIT_ON()
           ? '<div class="edlogo">' +
               '<button class="edb" data-ed="logo">' +
-                (OFFER.clientLogo ? 'Замінити лого' : '＋ Завантажити лого') + '</button>' +
+                (OFFER.clientLogo
+                  ? (logoList().length > 1 ? 'Обрати лого' : 'Замінити лого')
+                  : '＋ Завантажити лого') + '</button>' +
               (OFFER.clientLogo
                 ? '<span class="edlogo-sz">' +
                     '<button class="edb" data-ed="logosm" title="Менший">−</button>' +
-                    '<b>' + Math.round(+OFFER.clientLogoSize || 44) + ' px</b>' +
+                    /* «Авто» — це не порожньо, а робочий стан: розмір
+                       підібрано за пропорціями картинки. Число зʼявляється
+                       лише тоді, коли менеджер задав його сам. */
+                    '<b>' + (+OFFER.clientLogoSize
+                      ? Math.round(+OFFER.clientLogoSize) + ' px' : 'авто') + '</b>' +
                     '<button class="edb" data-ed="logobg" title="Більший">+</button>' +
                     /* Фон логотипа — справжній колір, а не три вгадані стани.
                        Світлий логотип на світлій шапці зникає, темний на
@@ -6540,6 +6649,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     wireEdit();
     wireTerms();
     wireHeroEdit();
+    /* Підгін розміру — для всіх, а не лише для менеджера: клієнт дивиться на
+       ту саму шапку. */
+    fitHeroLogo();
     wireLogoTools();
     wireKindSwitch();
     wireVariants();

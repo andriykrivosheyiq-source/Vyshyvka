@@ -9023,6 +9023,9 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    /* Усі логотипи замовлення — щоб шапку можна було перемкнути між ними
+       прямо в пропозиції, а не вантажити той самий файл удруге. */
+    clientLogoList: orderLogos(order),
     clientLogoSize: +order.clientLogoSize || 0,
     /* Фон логотипа їде разом із ним. Доти не їхав узагалі: колір зберігався в
        замовленні, а в пропозицію не потрапляв — тому й виглядало, ніби
@@ -16449,9 +16452,21 @@ function itemKind(it){
    а показується старе»: щойно свій логотип не проставився, у шапку стрибала
    картинка з товару, і зрозуміти, що саме зараз показано, було неможливо.
    Немає логотипа — немає й логотипа, стоїть кнопка «Завантажити». */
+/* Логотип у шапці пропозиції.
+
+   Доти він жив сам по собі: менеджер одягав логотипом вироби, а шапка КП
+   лишалась порожньою — і той самий файл доводилось вантажити вдруге, вже
+   туди. Тепер, поки шапці нічого не призначили свідомо, вона бере ПЕРШИЙ
+   логотип замовлення. Той самий, яким одягли перший виріб.
+
+   Саме fallback, а не запис: щойно менеджер обере лого сам, вибір ляже в
+   clientLogo і ця гілка більше не спрацює. Зняв логотип зовсім —
+   clientLogoOff, і тоді шапка порожня, скільки б лого в замовленні не було. */
 function effectiveClientLogo(o){
   if(!o || o.clientLogoOff) return '';
-  return String(o.clientLogo || '').trim();
+  const own = String(o.clientLogo || '').trim();
+  if(own) return own;
+  return orderLogos(o)[0] || '';
 }
 function offerIdxToOrder(o, kind, i){
   let n = -1;
@@ -16816,15 +16831,17 @@ async function offerEdApply(msg){
       offerSaveMark('saving');
       try{
         const url = await uploadCloudinary(f);
-        /* Новий файл ВИТІСНЯЄ попередній. Доти кожне завантаження й кожна
-           обрізка додавали ще один запис, і замовлення тягло за собою десяток
-           майже однакових картинок — з них жодна нікому не була потрібна,
-           крім останньої. Завантажили інший логотип — минулого більше немає,
-           і лінія відкоту починається з чистого аркуша: відкочувати правки
-           попередньої картинки в новій немає сенсу. */
+        /* Новий файл стає логотипом шапки, але список логотипів замовлення
+           НЕ витирає. Доти витирав: рядок `o.logos = [url]` лишав у картці
+           один цей файл, і лого, якими одягли вироби, з неї зникали — а з
+           ними й можливість перемкнути шапку назад.
+
+           Лінія відкоту при цьому починається з чистого аркуша: відкочувати
+           правки попередньої картинки в новій немає сенсу. */
         o.clientLogo = url;
         o.clientLogoOff = false;      // поставили свідомо — заборона знімається
-        o.logos = [url];
+        if(!Array.isArray(o.logos)) o.logos = [];
+        if(o.logos.indexOf(url) < 0) o.logos.push(url);
         o.clientLogoHist = [];
         if(!(await offerEdSave(o))) return;
         renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
@@ -17132,6 +17149,26 @@ async function offerEdApply(msg){
     }
     return;
   }
+  /* Перемкнути шапку на інший логотип замовлення. Файл уже є в базі —
+     вантажити нічого не треба, це просто вибір із того, що вже завантажили
+     на вироби. Розмір при цьому скидаємо: підібраний під попередню картинку,
+     для нової він майже завжди не той. */
+  if(act === 'logopick'){
+    const url = String(msg.url || '').trim();
+    if(!url) return;
+    if(orderLogos(o).indexOf(url) < 0){ toast('Цього логотипа немає в замовленні'); return; }
+    if(o.clientLogo && o.clientLogo !== url){
+      if(!Array.isArray(o.clientLogoHist)) o.clientLogoHist = [];
+      o.clientLogoHist.push(o.clientLogo);
+    }
+    o.clientLogo = url;
+    o.clientLogoOff = false;
+    o.clientLogoSize = 0;
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    offerEdNote('Логотип шапки змінено');
+    return;
+  }
   if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
     if(act === 'logodel'){
       o.clientLogo = '';
@@ -17145,7 +17182,11 @@ async function offerEdApply(msg){
       o.clientLogoHist = [];
     }
     else {
-      const cur = Math.round(+o.clientLogoSize || 44);
+      /* Від чого відлічувати перший крок. Поки розмір не задавали, логотип
+         показує автопідбір, і його висота залежить від пропорцій картинки.
+         Сторінка міряє її на екрані й надсилає сюди — інакше перший натиск
+         «+» стрибав на 52 px і робив великий логотип меншим. */
+      const cur = Math.round(+o.clientLogoSize || +msg.from || 44);
       o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
     }
     if(!(await offerEdSave(o))) return;
