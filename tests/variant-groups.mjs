@@ -79,17 +79,15 @@ const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromiu
 const p = await browser.newPage({ viewport:{ width:1400, height:1000 } });
 const errs = [];
 p.on('pageerror', e => errs.push(e.message.slice(0, 160)));
-/* Назву нової групи питають власним вікном: спершу воно показує групи, які
-   вже є в цьому КП, а поле для нової — другим кроком. Відповідаємо як
-   менеджер, що заводить «Худі». */
-const newGroup = async (name) => {
+/* Куди покласти варіант, питають власним вікном: у ньому перелічені групи,
+   які вже є в цьому КП, і кнопка завести наступну. Назви більше не питають
+   узагалі — менеджер просто каже «нова». */
+const newGroup = async () => {
   await p.waitForTimeout(400);
-  await p.evaluate(n => {
+  await p.evaluate(() => {
     const d = document.querySelector('#offerEd iframe').contentDocument;
-    const inp = d.querySelector('#gNew');
-    inp.value = n;
     d.querySelector('[data-g-add]').click();
-  }, name);
+  });
 };
 await p.route('**://**', r => {
   const u = r.request().url();
@@ -120,8 +118,8 @@ const state = () => p.evaluate(() => (orders[0].items || [])
 console.log('═══ ЯК БУЛО ═══');
 const a0 = await ed();
 console.log('  групи: ' + JSON.stringify(a0.groups) + ' · тиражі: ' + JSON.stringify(a0.qty));
-ok(a0.groups.length === 1 && a0.groups[0] === 'Футболки',
-  'у пропозиції одна група — «Футболки»',
+ok(a0.groups.length === 1 && a0.groups[0] === 'Група 1',
+  'група одна, і вона підписана номером, а не вигаданою назвою',
   'групи не ті: ' + JSON.stringify(a0.groups));
 
 console.log('');
@@ -138,26 +136,26 @@ const menu = await p.evaluate(() => {
   return [...d.querySelectorAll('.menu button')].map(b => b.textContent.trim());
 });
 console.log('  меню: ' + JSON.stringify(menu));
-ok(menu.some(t => /У групу «Футболки»/.test(t)) && menu.some(t => /У нову групу/.test(t)),
-  'меню пропонує і наявну групу, і нову',
+ok(menu.some(t => /^У групу 1$/.test(t)) && menu.some(t => /У нову групу/.test(t)),
+  'меню пропонує і наявну групу за номером, і нову',
   'вибору групи в меню немає: ' + JSON.stringify(menu));
 
 await p.evaluate(() => {
   const d = document.querySelector('#offerEd iframe').contentDocument;
   [...d.querySelectorAll('.menu button')].filter(b => /У нову групу/.test(b.textContent))[0].click();
 });
-await newGroup('Худі');
+await newGroup();
 await p.waitForTimeout(2500);
 const a1 = await ed();
 console.log('  групи: ' + JSON.stringify(a1.groups) + ' · тиражі: ' + JSON.stringify(a1.qty));
 console.log('  ' + JSON.stringify(await state()));
-ok(a1.groups.length === 2 && a1.groups.indexOf('Худі') >= 0 && a1.groups.indexOf('Футболки') >= 0,
-  'груп стало дві: «Футболки» і «Худі»',
+ok(a1.groups.join() === 'Група 1,Група 2',
+  'груп стало дві, і підписані вони номерами по порядку',
   'друга група не завелась: ' + JSON.stringify(a1.groups));
 /* Тираж у групі один на всіх, але в РІЗНИХ групах він різний: 30 футболок
    і 10 худі — це два різні числа, і жодне не має підмінити інше. */
-ok(a1.qty.join('|').indexOf('Футболки:30') >= 0 && a1.qty.join('|').indexOf('Худі:10') >= 0,
-  'тираж у кожної групи свій: 30 футболок і 10 худі',
+ok(a1.qty.join('|').indexOf('Футболки:30') >= 0 && a1.qty.join('|').indexOf(':10') >= 0,
+  'тираж у кожної групи свій: 30 в одній і 10 в другій',
   'тиражі змішались: ' + JSON.stringify(a1.qty));
 
 console.log('');
@@ -178,12 +176,12 @@ const menu2 = await p.evaluate(() => {
 console.log('  меню варіанта: ' + JSON.stringify(menu2));
 /* Своєї ж групи в списку бути не має: «перенести туди, де вже стоїш» — це
    не дія, а привід засумніватись, що система розуміє, де позиція. */
-ok(!menu2.some(t => /У групу «Футболки»/.test(t)) && menu2.some(t => /У групу «Худі»/.test(t)),
+ok(!menu2.some(t => /^У групу 1$/.test(t)) && menu2.some(t => /^У групу 2$/.test(t)),
   'варіанту пропонують чужі групи, а свою — ні',
   'меню варіанта не те: ' + JSON.stringify(menu2));
 await p.evaluate(() => {
   const d = document.querySelector('#offerEd iframe').contentDocument;
-  [...d.querySelectorAll('.menu button')].filter(b => /У групу «Худі»/.test(b.textContent))[0].click();
+  [...d.querySelectorAll('.menu button')].filter(b => /^У групу 2$/.test(b.textContent.trim()))[0].click();
 });
 await p.waitForTimeout(2500);
 const a2 = await ed();
@@ -191,8 +189,8 @@ console.log('  ' + JSON.stringify(await state()));
 ok(a2.groups.length === 2,
   'груп так само дві — перенесення не злило їх в одну',
   'групи злились: ' + JSON.stringify(a2.groups));
-ok((await state()).some(x => /Футболка оверсайз:variant\/Худі:10/.test(x)),
-  'варіант переїхав у «Худі» і взяв тираж групи — 10, а не свої 30',
+ok((await state()).some(x => /Футболка оверсайз:variant\/Група 2:10/.test(x)),
+  'варіант переїхав у другу групу і взяв її тираж — 10, а не свої 30',
   'переїзд не спрацював: ' + JSON.stringify(await state()));
 
 /* І головне — що з цього побачить клієнт. Документ, який лягає за
@@ -204,9 +202,58 @@ const doc = await p.evaluate(() => {
            vqty: d.vqty || null };
 });
 console.log('  у документі: ' + JSON.stringify(doc.vgroups));
-ok(doc.vgroups.some(x => /→ Футболки$/.test(x)) && doc.vgroups.some(x => /→ Худі$/.test(x)),
+ok(doc.vgroups.some(x => /→ Футболки$/.test(x)) && doc.vgroups.some(x => /→ Група 2$/.test(x)),
   'у пропозиції клієнта обидві групи — він відповідає на два питання, а не на одне',
   'групи не доїхали в документ: ' + JSON.stringify(doc.vgroups));
+
+console.log('');
+console.log('═══ КЛІЄНТ НАЗВ ГРУП НЕ БАЧИТЬ ═══');
+/* Назви груп — наш внутрішній спосіб розкласти варіанти на кілька окремих
+   виборів. Вигадані менеджером «Футболки» чи «Який верх?» їхали в документ і
+   читались клієнтом як наші робочі позначки. Тепер над групою стоїть не
+   назва, а правило: з кожної беруть один варіант. */
+{
+  const VH = path.join(ROOT, '_vg_vhost.html');
+  fs.writeFileSync(VH,
+`<!doctype html><meta charset="utf-8"><style>html,body{margin:0}iframe{border:0;width:900px;height:1400px}</style>
+ <iframe id="f" src="offer.html"></iframe><script>
+ window.__prev = o => document.getElementById('f').contentWindow.postMessage(
+   { lqEditInit:true, preview:true, offer:o }, '*');
+ </script>`);
+  const c = await browser.newPage({ viewport:{ width:920, height:1000 } });
+  c.on('pageerror', e => errs.push('клієнт: ' + e.message.slice(0, 160)));
+  await c.route('**://**', r => {
+    const u = r.request().url();
+    if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body:fbstub });
+    if(u.startsWith(HOST)) return r.continue();
+    return r.abort();
+  });
+  await c.goto(HOST + '/_vg_vhost.html', { waitUntil:'domcontentloaded' });
+  await c.waitForTimeout(4000);
+  const built = await p.evaluate(() => offerBuild(orders[0]));
+  await c.evaluate(o => window.__prev(o), built);
+  await c.waitForTimeout(1500);
+  const seen = await c.frames()[1].evaluate(() => {
+    const gs = [...document.querySelectorAll('#variants .vgroup')];
+    return { blocks: gs.length,
+             heads: gs.map(g => ((g.querySelector('.vgroup-h') || {}).textContent || '').trim()),
+             text: (document.getElementById('variants') || {}).innerText || '' };
+  });
+  console.log('  блоків: ' + seen.blocks + ' · підписи: ' + JSON.stringify(seen.heads));
+  ok(seen.blocks === 2, 'клієнт бачить два окремі блоки варіантів',
+    'блоків не два: ' + seen.blocks);
+  ok(!/Футболки|Група 2|Варіанти на вибір/.test(seen.heads.join(' ')),
+    'жодної внутрішньої назви групи над картками немає',
+    'назва групи виїхала до клієнта: ' + JSON.stringify(seen.heads));
+  ok(seen.heads.every(h => /Оберіть один варіант/.test(h)),
+    'замість назви — правило: з кожної групи беруть один варіант',
+    'правила над групами немає: ' + JSON.stringify(seen.heads));
+  ok(!/Футболки|Група 2/.test(seen.text),
+    'і в тексті блоку внутрішніх назв теж немає',
+    'назва групи лишилась у тексті блоку');
+  await c.close();
+  try{ fs.unlinkSync(VH); }catch(e){}
+}
 
 console.log('');
 console.log('помилки сторінки: ' + errs.length);

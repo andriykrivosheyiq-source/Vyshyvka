@@ -1536,9 +1536,24 @@
     padding:7px 9px;margin-top:5px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink);}
   .od-seek-r:hover{border-color:var(--accent);}
   .od-seek-r[disabled]{opacity:.55;cursor:default;}
-  .od-seek-nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .od-seek-ch{flex:none;font-size:10.5px;padding:1px 7px;border-radius:20px;
+  /* Рядок знайденої розмови читається згори вниз: хто, про що, коли.
+     Службовий номер чату — дрібним і останнім, він тут ні про що не каже. */
+  .od-seek-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+  .od-seek-nm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-p{font-size:11.5px;color:var(--ink-soft);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-id{font-size:10.5px;color:var(--muted);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-ch{flex:none;align-self:center;font-size:10.5px;padding:1px 7px;border-radius:20px;
     background:#EEF2FF;color:#3B4A9E;}
+  .od-seek-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .od-seek-more{all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
+    color:var(--accent-deep);background:var(--accent-soft);padding:3px 9px;border-radius:7px;}
+  .od-seek-tried{font-size:10.5px;color:var(--muted);flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-raw{margin:8px 0 0;padding:8px 9px;border-radius:8px;background:var(--paper);
+    border:1px solid var(--line);font-size:10.5px;line-height:1.4;max-height:260px;
+    overflow:auto;white-space:pre-wrap;word-break:break-word;}
   .od-crm-linked{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
   .od-crm-unlink{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
     padding:3px 8px;border-radius:7px;background:var(--canvas);}
@@ -9008,6 +9023,9 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    /* Усі логотипи замовлення — щоб шапку можна було перемкнути між ними
+       прямо в пропозиції, а не вантажити той самий файл удруге. */
+    clientLogoList: orderLogos(order),
     clientLogoSize: +order.clientLogoSize || 0,
     /* Фон логотипа їде разом із ним. Доти не їхав узагалі: колір зберігався в
        замовленні, а в пропозицію не потрапляв — тому й виглядало, ніби
@@ -15238,18 +15256,61 @@ function crmSeekHtml(o){
     return `<div class="od-seek">${head}<div class="od-crm-note">Нічого не знайшлось.
       Спробуйте інший нік або імʼя. Перевірені адреси: <b>${escapeHtml((s.tried||[]).join(', ') || '—')}</b>.</div></div>`;
   }
-  const rows = s.results.map((r, i) => r.chatId
-    ? `<button class="od-seek-r" data-seek="${i}">
-         <span class="od-seek-nm">${escapeHtml(r.name || ('чат ' + r.chatId))}</span>
-         ${r.channel ? `<span class="od-seek-ch">${escapeHtml(r.channel)}</span>` : ''}
-       </button>`
-    // Запис без ідентифікатора чату відкрити нічим. Показуємо його поля —
-    // із них видно, як у цьому акаунті Sitniks називається потрібне.
-    : `<button class="od-seek-r" disabled title="У записі немає ідентифікатора чату. Поля: ${escapeHtml((r.keys||[]).join(', '))}">
-         <span class="od-seek-nm">${escapeHtml(r.name || 'без імені')}</span>
-         <span class="od-seek-ch">без чату</span>
-       </button>`).join('');
-  return `<div class="od-seek">${head}${rows}</div>`;
+  /* Рядок має читатись очима. Ідентифікатор чату — не назва розмови, а
+     службовий номер: він іде дрібним хвостиком, і лише тоді, коли назвати
+     розмову більше нічим. */
+  const row = (r, i) => {
+    const title = r.name || r.nick || (r.peek ? '«' + r.peek + '»' : '') || 'без імені';
+    const tail = [r.nick && r.nick !== r.name ? '@' + r.nick : '', r.when].filter(Boolean).join(' · ');
+    const body =
+      `<span class="od-seek-main">
+         <span class="od-seek-nm">${escapeHtml(title)}</span>
+         ${r.peek && title !== '«' + r.peek + '»'
+            ? `<span class="od-seek-p">${escapeHtml(r.peek)}</span>` : ''}
+         <span class="od-seek-id">${escapeHtml(tail || ('чат ' + r.chatId).slice(0, 26))}</span>
+       </span>
+       ${r.channel ? `<span class="od-seek-ch">${escapeHtml(r.channel)}</span>` : ''}`;
+    return r.chatId
+      ? `<button class="od-seek-r" data-seek="${i}">${body}</button>`
+      // Запис без ідентифікатора чату відкрити нічим. Показуємо його поля —
+      // із них видно, як у цьому акаунті Sitniks називається потрібне.
+      : `<button class="od-seek-r" disabled title="У записі немає ідентифікатора чату. Поля: ${escapeHtml((r.keys||[]).join(', '))}">
+           ${body}<span class="od-seek-ch">без чату</span>
+         </button>`;
+  };
+  /* Головне попередження. Sitniks повернув на вигадане слово те саме, що й на
+     справжній нік, — отже наш параметр пошуку він ігнорує, і перед нами не
+     знайдене, а просто початок списку діалогів. Видавати це за результат
+     пошуку не можна: менеджер обере навмання й привʼяже чужу розмову. */
+  let note = '', list = s.results;
+  if(s.noFilter){
+    const mine = s.mine || [];
+    if(mine.length && !s.showAll){
+      list = mine;
+      note = `<div class="od-crm-note">Sitniks не вміє шукати за цим полем — він віддав просто
+        останні діалоги. Лишили ${mine.length} із ${s.results.length}: у них є «${escapeHtml(s.q)}».${
+          mine.length < s.results.length
+            ? ` <button class="od-seek-more" data-seek-all>Показати решту</button>` : ''}</div>`;
+    } else {
+      list = s.results;
+      note = `<div class="od-crm-note"><b>Це не результат пошуку.</b> Sitniks ігнорує наш
+        параметр і віддає останні ${s.results.length} діалогів акаунта${
+          mine.length ? '' : ', а збігу з «' + escapeHtml(s.q) + '» серед них немає'}.
+        Обирати звідси навмання не варто — знайдіть розмову в самому Sitniks і привʼяжіть
+        за номером замовлення.${mine.length
+          ? ' <button class="od-seek-more" data-seek-mine>Показати лише збіги</button>' : ''}</div>`;
+    }
+  }
+  /* Що саме прислав Sitniks. Потрібно рівно для одного: побачити справжні
+     назви полів у цьому акаунті й прописати їх точно замість здогадок. */
+  const raw = s.showRaw && s.results[0]
+    ? `<pre class="od-seek-raw">${escapeHtml(JSON.stringify(s.results[0].raw, null, 1).slice(0, 2500))}</pre>`
+    : '';
+  const tail = `<div class="od-seek-f">
+      <button class="od-seek-more" data-seek-raw>${s.showRaw ? 'Сховати' : 'Що прислав Sitniks'}</button>
+      <span class="od-seek-tried">${escapeHtml((s.tried || []).join(' · '))}</span>
+    </div>${raw}`;
+  return `<div class="od-seek">${head}${note}${list.map(r => row(r, s.results.indexOf(r))).join('')}${tail}</div>`;
 }
 
 /* Порядок навмисний: спершу чати (у них одразу є ідентифікатор розмови),
@@ -15263,8 +15324,13 @@ const CRM_SEEK_PATHS = [
   { p: '/customers?search=', chats: false }
 ];
 function crmChannelOf(r){
-  const raw = [r.channel, r.source, r.messenger, r.type, r.channelType,
-               r.chat && r.chat.channel].filter(v => typeof v === 'string').join(' ').toLowerCase();
+  /* Канал у Sitniks лежить то вгорі запису, то у вкладеному клієнті, то в
+     останньому повідомленні — залежно від того, який це список. Дивимось у
+     всі три місця: інакше значок каналу зникав саме там, де він потрібен. */
+  const box = [r, r.chat, r.client, r.contact, r.lastMessage].filter(x => x && typeof x === 'object');
+  const raw = box.reduce((a, x) => a.concat(
+    [x.channel, x.source, x.messenger, x.type, x.channelType, x.channelName]), [])
+    .filter(v => typeof v === 'string').join(' ').toLowerCase();
   if(/insta/.test(raw)) return 'Instagram';
   if(/telegram|tg/.test(raw)) return 'Telegram';
   if(/viber/.test(raw)) return 'Viber';
@@ -15272,21 +15338,74 @@ function crmChannelOf(r){
   if(/facebook|messenger|fb/.test(raw)) return 'Facebook';
   return '';
 }
-function crmNormFound(data, isChats){
+function crmListOf(data){
   const arr = Array.isArray(data) ? data
     : (data && (data.items || data.data || data.results || data.chats ||
                 data.clients || data.contacts || data.list)) || [];
-  if(!Array.isArray(arr)) return [];
-  return arr.slice(0, 12).map(r => ({
-    // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
-    // людей це id людини, і розмова за ним не відкриється.
-    chatId: String(r.chatId || r.chat_id || (r.chat && (r.chat.id || r.chat.chatId)) ||
-                   (isChats ? (r.id || '') : '') || ''),
-    name: r.clientName || r.name || r.fullName || r.title || r.username || r.login || '',
-    channel: crmChannelOf(r),
-    keys: Object.keys(r || {}).slice(0, 14)
-  })).filter(r => r.chatId || r.name);
+  return Array.isArray(arr) ? arr : [];
 }
+/* Перший рядок розмови й коли вона була. Саме за ними менеджер упізнає
+   діалог, а не за шістнадцятковим номером: «привіт, цікавить 30 худі» скаже
+   більше, ніж «6aa81c02b81e7a16bf05bec4». Назви полів у Sitniks закриті, тож
+   пробуємо звичні й показуємо те, що знайшлось. */
+function crmPeek(r){
+  const v = [r.lastMessage, r.last_message, r.lastMessageText, r.preview,
+             r.snippet, r.text, r.message, r.body,
+             r.lastMessage && r.lastMessage.text,
+             r.last && r.last.text].find(x => typeof x === 'string' && x.trim());
+  return v ? String(v).replace(/\s+/g, ' ').trim().slice(0, 90) : '';
+}
+function crmWhen(r){
+  const v = [r.lastMessageAt, r.last_message_at, r.updatedAt, r.updated_at,
+             r.createdAt, r.created_at, r.date, r.time,
+             r.lastMessage && r.lastMessage.createdAt].find(x => x);
+  if(!v) return '';
+  const d = new Date(typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : v);
+  return isNaN(d) ? '' : dtUa(d.toISOString());
+}
+function crmNick(r){
+  const v = [r.username, r.userName, r.login, r.nickname, r.nick,
+             r.instagram, r.clientUsername].find(x => typeof x === 'string' && x.trim());
+  return v ? String(v).replace(/^@/, '') : '';
+}
+/* Увесь текст запису одним рядком — за ним ми відсіюємо самі, коли Sitniks
+   не відсіяв. Ідентифікатори сюди не беремо: інакше пошук «81» збігався б із
+   половиною номерів чатів і знаходив би сміття. */
+function crmHay(r){
+  const out = [];
+  const walk = (v, depth) => {
+    if(depth > 3 || v == null) return;
+    if(typeof v === 'string'){ if(!/^[0-9a-f]{16,}$/i.test(v)) out.push(v.toLowerCase()); return; }
+    if(typeof v === 'number'){ return; }
+    if(Array.isArray(v)){ v.slice(0, 20).forEach(x => walk(x, depth + 1)); return; }
+    if(typeof v === 'object') Object.keys(v).slice(0, 30).forEach(k => walk(v[k], depth + 1));
+  };
+  walk(r, 0);
+  return out.join(' ');
+}
+function crmNormFound(data, isChats){
+  return crmListOf(data).slice(0, 25).map(r => {
+    const nick = crmNick(r);
+    const name = r.clientName || r.name || r.fullName || r.title || nick || '';
+    return {
+      // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
+      // людей це id людини, і розмова за ним не відкриється.
+      chatId: String(r.chatId || r.chat_id || (r.chat && (r.chat.id || r.chat.chatId)) ||
+                     (isChats ? (r.id || '') : '') || ''),
+      name, nick, peek: crmPeek(r), when: crmWhen(r),
+      channel: crmChannelOf(r),
+      hay: crmHay(r),
+      keys: Object.keys(r || {}).slice(0, 14),
+      raw: r
+    };
+  }).filter(r => r.chatId || r.name);
+}
+/* Слово, якого в базі бути не може. Ним перевіряємо, чи Sitniks узагалі
+   шукає: якщо у відповідь на нього приходить той самий список, що й на
+   справжній нік, значить наш параметр ігнорують і ми дивимось просто початок
+   списку діалогів. Мовчати про це не можна — менеджер обере навмання. */
+const CRM_NOMATCH = 'zzqx7nomatch7913';
+function crmIds(list){ return (list || []).map(r => r.chatId).join('|'); }
 
 async function crmDoSearch(o, qFromInput){
   const q = String(qFromInput || crmSeekQuery(o)).trim();
@@ -15294,13 +15413,13 @@ async function crmDoSearch(o, qFromInput){
   crmSeek[o.id] = { q, loading: true };
   renderOrderDrawer();
   const tried = [];
-  let results = [], lastErr = '';
+  let results = [], lastErr = '', usedPath = '', noFilter = false;
   for(const cand of CRM_SEEK_PATHS){
     try{
       const data = await crmFetch(cand.p + encodeURIComponent(q));
       tried.push(cand.p.replace(/[?&].*$/, '') + ' ✓');
       const found = crmNormFound(data, cand.chats);
-      if(found.length){ results = found; break; }
+      if(found.length){ results = found; usedPath = cand.p; break; }
     }catch(e){
       // 404/405 — такого ендпоінта просто немає, це не поломка. Решту помилок
       // запамʼятовуємо: якщо не спрацює жоден шлях, покажемо останню.
@@ -15308,7 +15427,21 @@ async function crmDoSearch(o, qFromInput){
       else { tried.push(cand.p.replace(/[?&].*$/, '') + ' ' + (e.status || '')); lastErr = e.message || ''; }
     }
   }
-  crmSeek[o.id] = { q, results, tried,
+  /* Контрольний запит тим самим шляхом. Один зайвий виклик за пошук — мала
+     ціна за те, щоб не видавати перші десять діалогів за знайдене. */
+  if(results.length && usedPath){
+    try{
+      const ctrl = crmNormFound(await crmFetch(usedPath + CRM_NOMATCH),
+                                (CRM_SEEK_PATHS.find(c => c.p === usedPath) || {}).chats);
+      if(ctrl.length && crmIds(ctrl) === crmIds(results)) noFilter = true;
+    }catch(e){ /* контроль не вдався — просто не робимо висновку */ }
+  }
+  /* Sitniks не відсіяв — відсіваємо самі, по всьому тексту запису. Нік у
+     даних зазвичай є, просто не в тому полі, яке ми вгадали. */
+  const needle = q.toLowerCase().replace(/^@/, '');
+  const mine = noFilter ? results.filter(r => r.hay.indexOf(needle) >= 0) : [];
+  crmSeek[o.id] = { q, results, tried, noFilter, usedPath,
+    mine: noFilter ? mine : null, showAll: false, showRaw: false,
     err: (!results.length && lastErr) ? lastErr : '' };
   renderOrderDrawer();
 }
@@ -15731,6 +15864,17 @@ function wireCrmBlock(panel, o){
       if(r) crmPickChat(o, r);
     });
   });
+  const seekToggle = (sel, key, val)=>{
+    const b = panel.querySelector(sel);
+    if(b) b.addEventListener('click', ()=>{
+      const s = crmSeek[o.id]; if(!s) return;
+      s[key] = (val === undefined) ? !s[key] : val;
+      renderOrderDrawer();
+    });
+  };
+  seekToggle('[data-seek-all]',  'showAll', true);
+  seekToggle('[data-seek-mine]', 'showAll', false);
+  seekToggle('[data-seek-raw]',  'showRaw');
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){
@@ -16308,9 +16452,21 @@ function itemKind(it){
    а показується старе»: щойно свій логотип не проставився, у шапку стрибала
    картинка з товару, і зрозуміти, що саме зараз показано, було неможливо.
    Немає логотипа — немає й логотипа, стоїть кнопка «Завантажити». */
+/* Логотип у шапці пропозиції.
+
+   Доти він жив сам по собі: менеджер одягав логотипом вироби, а шапка КП
+   лишалась порожньою — і той самий файл доводилось вантажити вдруге, вже
+   туди. Тепер, поки шапці нічого не призначили свідомо, вона бере ПЕРШИЙ
+   логотип замовлення. Той самий, яким одягли перший виріб.
+
+   Саме fallback, а не запис: щойно менеджер обере лого сам, вибір ляже в
+   clientLogo і ця гілка більше не спрацює. Зняв логотип зовсім —
+   clientLogoOff, і тоді шапка порожня, скільки б лого в замовленні не було. */
 function effectiveClientLogo(o){
   if(!o || o.clientLogoOff) return '';
-  return String(o.clientLogo || '').trim();
+  const own = String(o.clientLogo || '').trim();
+  if(own) return own;
+  return orderLogos(o)[0] || '';
 }
 function offerIdxToOrder(o, kind, i){
   let n = -1;
@@ -16675,15 +16831,17 @@ async function offerEdApply(msg){
       offerSaveMark('saving');
       try{
         const url = await uploadCloudinary(f);
-        /* Новий файл ВИТІСНЯЄ попередній. Доти кожне завантаження й кожна
-           обрізка додавали ще один запис, і замовлення тягло за собою десяток
-           майже однакових картинок — з них жодна нікому не була потрібна,
-           крім останньої. Завантажили інший логотип — минулого більше немає,
-           і лінія відкоту починається з чистого аркуша: відкочувати правки
-           попередньої картинки в новій немає сенсу. */
+        /* Новий файл стає логотипом шапки, але список логотипів замовлення
+           НЕ витирає. Доти витирав: рядок `o.logos = [url]` лишав у картці
+           один цей файл, і лого, якими одягли вироби, з неї зникали — а з
+           ними й можливість перемкнути шапку назад.
+
+           Лінія відкоту при цьому починається з чистого аркуша: відкочувати
+           правки попередньої картинки в новій немає сенсу. */
         o.clientLogo = url;
         o.clientLogoOff = false;      // поставили свідомо — заборона знімається
-        o.logos = [url];
+        if(!Array.isArray(o.logos)) o.logos = [];
+        if(o.logos.indexOf(url) < 0) o.logos.push(url);
         o.clientLogoHist = [];
         if(!(await offerEdSave(o))) return;
         renderOfferEd(); paintCalcTarget(); offerEdPreview(true);
@@ -16991,6 +17149,26 @@ async function offerEdApply(msg){
     }
     return;
   }
+  /* Перемкнути шапку на інший логотип замовлення. Файл уже є в базі —
+     вантажити нічого не треба, це просто вибір із того, що вже завантажили
+     на вироби. Розмір при цьому скидаємо: підібраний під попередню картинку,
+     для нової він майже завжди не той. */
+  if(act === 'logopick'){
+    const url = String(msg.url || '').trim();
+    if(!url) return;
+    if(orderLogos(o).indexOf(url) < 0){ toast('Цього логотипа немає в замовленні'); return; }
+    if(o.clientLogo && o.clientLogo !== url){
+      if(!Array.isArray(o.clientLogoHist)) o.clientLogoHist = [];
+      o.clientLogoHist.push(o.clientLogo);
+    }
+    o.clientLogo = url;
+    o.clientLogoOff = false;
+    o.clientLogoSize = 0;
+    if(!(await offerEdSave(o))) return;
+    offerEdPreview(true);
+    offerEdNote('Логотип шапки змінено');
+    return;
+  }
   if(act === 'logosm' || act === 'logobg' || act === 'logodel'){
     if(act === 'logodel'){
       o.clientLogo = '';
@@ -17004,7 +17182,11 @@ async function offerEdApply(msg){
       o.clientLogoHist = [];
     }
     else {
-      const cur = Math.round(+o.clientLogoSize || 44);
+      /* Від чого відлічувати перший крок. Поки розмір не задавали, логотип
+         показує автопідбір, і його висота залежить від пропорцій картинки.
+         Сторінка міряє її на екрані й надсилає сюди — інакше перший натиск
+         «+» стрибав на 52 px і робив великий логотип меншим. */
+      const cur = Math.round(+o.clientLogoSize || +msg.from || 44);
       o.clientLogoSize = Math.min(180, Math.max(20, cur + (act === 'logobg' ? 8 : -8)));
     }
     if(!(await offerEdSave(o))) return;
