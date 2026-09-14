@@ -93,15 +93,22 @@ console.log('═══ ПОЗИЦІЮ МОЖНА ПЕРЕНЕСТИ У ВАРІ�
     if(b) b.click();
   });
   await p.waitForTimeout(500);
+  /* Назву групи більше не питають: групи внутрішні, у них є номери. Вікно
+     показує наявні групи й дає завести наступну — без жодного поля вводу. */
   const pick = await fr.evaluate(() => ({
     box: !!document.querySelector('.edpick .is-groups'),
     groups: [...document.querySelectorAll('.edpick [data-g]')].map(x => x.dataset.g),
+    labels: [...document.querySelectorAll('.edpick [data-g] .edpick-n')].map(x => x.textContent.trim()),
+    add: !!document.querySelector('.edpick [data-g-new]'),
     input: !!document.querySelector('#edGName')
   }));
-  console.log('  пропонують групи: ' + (pick.groups.join(', ') || 'немає'));
-  ok(pick.box && pick.groups.join() === 'Футболки' && pick.input,
-    'спершу показують групи цього КП, і поруч — поле для нової',
+  console.log('  пропонують: ' + (pick.labels.join(', ') || 'немає'));
+  ok(pick.box && pick.groups.join() === 'Футболки' && pick.add,
+    'показують наявні групи й кнопку завести наступну',
     'вибору групи немає: ' + JSON.stringify(pick));
+  ok(pick.labels.join() === 'Група 1' && !pick.input,
+    'групи підписані номерами, а поля для назви немає — назв більше не вигадують',
+    'назву групи досі питають: ' + JSON.stringify(pick));
 
   await fr.click('.edpick [data-g="Футболки"]');
   await p.waitForTimeout(500);

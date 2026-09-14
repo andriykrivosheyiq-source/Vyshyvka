@@ -2847,9 +2847,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   function edGroupPick(done){
     var groups = variantGroups();
-    /* Одна-єдина група — питати нічого: варіант іде в неї. Діалог із однією
-       кнопкою це зайвий клік на порожньому місці. */
-    if(groups.length === 1){ done(groups[0].name); return; }
+    /* Груп ще немає — питати нічого, заводимо першу. А от коли є навіть одна,
+       вікно потрібне: саме через нього створюють другу, і без нього варіанти
+       мовчки збивались би в одну купу. */
     if(!groups.length){ done(edGroupNext(groups)); return; }
     var box = document.createElement('div');
     box.className = 'edpick open';
