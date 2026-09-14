@@ -1112,8 +1112,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      підряд. Обраний виділяється рамкою й галочкою — тим самим, чим
      позначені додані позиції, щоб «обрано» скрізь виглядало однаково. */
   .vgroup{margin-bottom:12px;}
-  .vgroup-h{font-size:var(--fs-3); font-weight:600; margin-bottom:10px; display:flex;
-    align-items:baseline; gap:8px;}
+  /* Груп кілька — між ними потрібна межа, інакше картки читаються як одна
+     купа. Назви тут немає (вона наша, внутрішня), тож межу тримає риска й
+     сам рядок правила. */
+  .vgroup + .vgroup{margin-top:22px; padding-top:20px; border-top:1px solid var(--line);}
+  .vgroup-h{font-size:var(--fs-2); font-weight:600; margin-bottom:10px; display:flex;
+    align-items:baseline; gap:8px; color:var(--muted); letter-spacing:.02em;}
   .vgroup-h em{font-style:normal; font-size:var(--fs-1); font-weight:600; letter-spacing:.05em;
     text-transform:uppercase; color:#7A6538; background:#FDF0D5; border-radius:var(--r-1);
     padding:2px 6px;}
@@ -1454,6 +1458,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .edpick-g.is-groups{grid-template-columns:1fr;gap:8px;}
   .edpick-i.is-group{flex-direction:row;align-items:center;justify-content:space-between;
     gap:10px;padding:12px 16px;background:#fff;}
+  .edpick-i.is-group[data-g-new]{border-style:dashed;}
+  /* Одне речення про те, чим групи є насправді. Менеджер відкриває це вікно
+     раз на тиждень, і без підказки щоразу гадає, чи побачить клієнт назву. */
+  .edpick-note{margin-top:10px;font-size:var(--fs-1);line-height:1.45;color:#6B7686;}
   .edpick-new{display:flex;gap:8px;margin-top:8px;}
   .edpick-new input{flex:1;font:inherit;font-size:var(--fs-2);color:#1B2430;background:#fff;
     border:1px solid #E6EAF0;border-radius:var(--r-3);padding:12px 16px;}
@@ -2801,35 +2809,65 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     box.querySelectorAll('[data-gid]').forEach(function(b){
       b.addEventListener('click', function(){
         box.classList.remove('open');
+        /* Варіант завжди лягає в конкретну групу. Доти новий варіант із
+           каталогу мовчки падав у першу-ліпшу, і зібрати два окремі вибори
+           можна було лише через «перенести у варіанти» вже наявну позицію. */
+        if(kind === 'variant'){
+          edGroupPick(function(g){
+            edSend({ act:'pick', gid: b.dataset.gid, kind: kind, vgroup: g });
+          });
+          return;
+        }
         edSend({ act:'pick', gid: b.dataset.gid, kind: kind });
       });
     });
   }
-  /* Куди покласти варіант. Спершу — групи, які вже є в цій пропозиції:
-     найчастіше менеджер додає другу футболку до футболок, а не заводить
-     групу з нуля. Поле для нової лишається, але другим кроком — інакше
-     назву доводиться згадувати й набирати слово в слово, а помилка в літері
-     заводить другу групу з тим самим змістом. */
+  /* Куди покласти варіант.
+
+     Раніше тут просили НАЗВУ групи: «Футболки», «Худі», «Який верх?». Це
+     була подвійна помилка. Менеджеру доводилось щоразу вигадувати слово, а
+     потім згадувати його літера в літеру, бо помилка в назві заводила другу
+     групу з тим самим змістом. І головне — вигадана назва їхала в документ
+     до клієнта, хоча групи існують виключно для нас: це спосіб розкласти
+     варіанти на кілька окремих виборів.
+
+     Тепер назви немає взагалі. Є перша група, друга, третя — і кнопка
+     завести наступну. Ім'я генерується само й лишається службовим: у базі
+     воно потрібне як ключ, за яким тримається тираж групи, але не бачить
+     його ні менеджер у полі вводу, ні клієнт у пропозиції. */
+  function edGroupNext(groups){
+    var used = {};
+    groups.forEach(function(g){ used[g.name] = 1; });
+    /* Починаємо з номера, який група й отримає на екрані: так службовий ключ
+       і видимий номер збігаються. */
+    for(var n = groups.length + 1; n < groups.length + 99; n++){
+      if(!used['Група ' + n]) return 'Група ' + n;
+    }
+    return 'Група ' + Date.now();
+  }
   function edGroupPick(done){
     var groups = variantGroups();
+    /* Одна-єдина група — питати нічого: варіант іде в неї. Діалог із однією
+       кнопкою це зайвий клік на порожньому місці. */
+    if(groups.length === 1){ done(groups[0].name); return; }
+    if(!groups.length){ done(edGroupNext(groups)); return; }
     var box = document.createElement('div');
     box.className = 'edpick open';
-    box.innerHTML = '<div class="edpick-c"><div class="edpick-h">У яку групу варіантів' +
+    box.innerHTML = '<div class="edpick-c"><div class="edpick-h">У яку групу' +
       '<button class="edb" data-gx>Закрити</button></div>' +
       '<div class="edpick-g is-groups">' +
-        (groups.length
-          ? groups.map(function(g){
-              return '<button class="edpick-i is-group" data-g="' + esc(g.name) + '">' +
-                '<span class="edpick-n">' + esc(g.name) + '</span>' +
-                '<span class="edpick-p">' + g.idx.length + ' у групі</span></button>';
-            }).join('')
-          : '') +
-        '<div class="edpick-new">' +
-          '<input type="text" maxlength="60" id="edGName" placeholder="Футболки, Худі, Який верх?" ' +
-            'value="' + esc(groups.length ? '' : 'Варіанти на вибір') + '">' +
-          '<button class="edb" data-gadd>Створити</button>' +
-        '</div>' +
-      '</div></div>';
+        groups.map(function(g, i){
+          return '<button class="edpick-i is-group" data-g="' + esc(g.name) + '">' +
+            '<span class="edpick-n">Група ' + (i + 1) + '</span>' +
+            '<span class="edpick-p">' + g.idx.length + ' у групі</span></button>';
+        }).join('') +
+        '<button class="edpick-i is-group" data-g-new>' +
+          '<span class="edpick-n">+ Нова група</span>' +
+          '<span class="edpick-p">окремий вибір</span></button>' +
+      '</div>' +
+      '<div class="edpick-note">Клієнт назв груп не бачить. Це наш спосіб дати ' +
+        'кілька окремих виборів: із кожної групи він бере один варіант.</div>' +
+      '</div>';
     document.body.appendChild(box);
     var close = function(){ box.remove(); };
     box.addEventListener('click', function(e){ if(e.target === box) close(); });
@@ -2837,19 +2875,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     box.querySelectorAll('[data-g]').forEach(function(b2){
       b2.addEventListener('click', function(){ close(); done(b2.dataset.g); });
     });
-    var inp = box.querySelector('#edGName');
-    var add = function(){
-      var n = String(inp.value || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      if(!n){ inp.focus(); return; }
-      close(); done(n);
-    };
-    box.querySelector('[data-gadd]').addEventListener('click', add);
-    inp.addEventListener('keydown', function(e){
-      e.stopPropagation();
-      if(e.key === 'Enter'){ e.preventDefault(); add(); }
-      if(e.key === 'Escape'){ e.preventDefault(); close(); }
+    box.querySelector('[data-g-new]').addEventListener('click', function(){
+      close(); done(edGroupNext(groups));
     });
-    setTimeout(function(){ inp.focus(); }, 30);
   }
   /* Кнопки редагування не мають запускати звичайну поведінку сторінки:
      клік по «прибрати» всередині картки інакше ще й відкрив би галерею. */
@@ -4682,12 +4710,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         'що вам більше підходить</p>' +
       groups.map(function(g){
         var chosen = pick.variant[g.name];
-        /* Назва групи потрібна лише тоді, коли груп кілька — інакше вона
-           переказує заголовок розділу, що стоїть рядком вище.
+        /* Назви групи клієнт не бачить. Групи — наш внутрішній спосіб
+           розкласти варіанти на кілька окремих виборів; підписи на кшталт
+           «Футболки» чи «Який верх?» вигадував менеджер, і вони виїжджали в
+           документ до клієнта.
+
+           Але сам факт, що виборів кілька, приховати не можна: два набори
+           карток підряд читаються як одна купа, з якої беруть щось одне.
+           Тому над кожною групою — не назва, а правило: «Оберіть один
+           варіант». Коли група одна, і цього не треба: те саме написано в
+           заголовку розділу рядком вище.
+
            Бейджа «ще не обрано» немає зовсім: стан і так написаний на кнопці
            кожної картки, а вгорі він лише додавав блоку висоти. */
         return '<div class="vgroup">' +
-          (groups.length > 1 ? '<div class="vgroup-h">' + esc(g.name) + '</div>' : '') +
+          (groups.length > 1 ? '<div class="vgroup-h">Оберіть один варіант</div>' : '') +
           g.idx.map(function(i){
             var v = OFFER.variants[i], st = varState(i);
             var on = String(chosen) === String(i);
