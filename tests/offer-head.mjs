@@ -95,6 +95,43 @@ ok(/^Комерційна пропозиція для ARMORIX$/.test(head.h1.tri
   'заголовок не той: ' + head.h1);
 
 console.log('');
+console.log('═══ ОБКЛАДИНКА ВІД КРАЮ ДО КРАЮ ═══');
+/* Шапка впиралась у ту саму колонку 760 px, що й текст, і на широкому екрані
+   темний блок висів прямокутником із білими полями обабіч — читався як ще
+   одна картка, а не як шапка документа. Тепер фон іде до країв вікна, а сам
+   текст лишається в колонці: інакше заголовок розповзався б на весь монітор. */
+const bleed = await fr.evaluate(() => {
+  const h = document.querySelector('.hero');
+  const w = document.querySelector('.wrap') || document.body;
+  if(!h) return null;
+  const hb = h.getBoundingClientRect(), wb = w.getBoundingClientRect();
+  const t = h.querySelector('h1');
+  const tb = t ? t.getBoundingClientRect() : null;
+  return { hero: Math.round(hb.width), win: document.documentElement.clientWidth,
+           left: Math.round(hb.left), wrap: Math.round(wb.width),
+           text: tb ? Math.round(tb.width) : 0,
+           scroll: document.documentElement.scrollWidth,
+           radius: getComputedStyle(h).borderTopLeftRadius };
+});
+if(!bleed){ console.log('  обкладинки немає'); bad++; }
+else {
+  console.log('  вікно ' + bleed.win + ' · обкладинка ' + bleed.hero +
+              ' (від ' + bleed.left + ') · колонка ' + bleed.wrap + ' · заголовок ' + bleed.text);
+  ok(bleed.left <= 1 && bleed.hero >= bleed.win - 1,
+    'обкладинка займає всю ширину вікна, а не колонку тексту',
+    'обкладинка вужча за вікно: ' + bleed.hero + ' проти ' + bleed.win);
+  ok(bleed.text > 0 && bleed.text <= bleed.wrap,
+    'сам заголовок лишився в колонці — не розповзся на весь екран',
+    'текст виїхав за колонку: ' + bleed.text + ' при колонці ' + bleed.wrap);
+  ok(bleed.scroll <= bleed.win + 1,
+    'горизонтальної прокрутки від цього не зʼявилось',
+    'сторінка поїхала вбік: прокрутка ' + bleed.scroll + ' при вікні ' + bleed.win);
+  ok(parseFloat(bleed.radius) === 0,
+    'кутів у шапки немає — вона частина сторінки, а не картка на ній',
+    'у шапки лишилось заокруглення: ' + bleed.radius);
+}
+
+console.log('');
 console.log('═══ ГОЛОВНА ДІЯ ОДНА ═══');
 console.log('  кнопки в шапці: ' + (head.heroBtns.join(' · ') || 'немає'));
 ok(!head.go, 'кнопки «Подивитись пропозицію» в шапці більше немає',

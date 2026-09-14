@@ -207,6 +207,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      читається стриманість: майже чорна база з ледь помітним нахилом, одне
      тепле світло знизу під кнопкою і тонка світла лінія по верхньому краю,
      як фаска на металі. */
+  /* Ширину шапки задає шар токенів нижче — там вона стає смугою від краю до
+     краю. Тут лишається все інше: колір, підсвітка, фаска. */
   .hero{position:relative; overflow:hidden; color:#fff; border:none; border-radius:0;
     padding:16px var(--pad) 20px; margin:0 calc(var(--pad) * -1) 10px;
     background:linear-gradient(168deg, #131A22 0%, #0A0F15 55%, #0D141C 100%);}
@@ -1519,8 +1521,24 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      блоком усередині нього — тим самим, що й товар вище. */
   .band{background:var(--coal); border-radius:var(--r-4);}
   .est{background:var(--coal); border-radius:var(--r-4);}
-  .hero{border-radius:var(--r-4); margin-left:0; margin-right:0;
+  /* Шапка — виняток із правила вище, і свідомий. Кошторис і смуга дії
+     лишаються картками всередині документа, а шапка — це його верхній край:
+     вона має йти від краю до краю екрана, як обкладинка. Карткою вона
+     впиралась у колонку 760 px, і на комп'ютері темний блок висів
+     прямокутником із білими полями обабіч — читався як ще один товар.
+     Мінусові поля тягнуть фон до країв вікна, а відступи повертають текст у
+     колонку, щоб заголовок не розповзався на весь монітор. Горизонтальної
+     прокрутки від цього не буде: у body стоїть overflow-x:hidden. */
+  .hero{border-radius:0;
+    margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw);
+    padding-left:calc(50vw - 50% + var(--pad));
+    padding-right:calc(50vw - 50% + var(--pad));
     background:linear-gradient(168deg,#232935 0%,var(--coal) 58%,#161A22 100%);}
+  /* На папері вікна немає — 50vw там означає ширину аркуша, і поля поїхали б
+     за обріз. Друк лишаємо як був. */
+  @media print{
+    .hero{margin-left:0; margin-right:0; padding-left:0; padding-right:0;}
+  }
   section.full{margin-left:0; margin-right:0; padding-left:0; padding-right:0;}
   .hero-logo-wrap.plate-dark{background:var(--coal);}
 
