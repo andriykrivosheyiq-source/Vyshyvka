@@ -1546,6 +1546,13 @@
     text-overflow:ellipsis;white-space:nowrap;}
   .od-seek-ch{flex:none;align-self:center;font-size:10.5px;padding:1px 7px;border-radius:20px;
     background:#EEF2FF;color:#3B4A9E;}
+  /* Фільтр над списком. Коли CRM не шукає, це єдиний робочий пошук, тож поле
+     стоїть на видноті, а не ховається за кнопкою. */
+  .od-seek-flt{display:flex;align-items:center;gap:8px;margin:8px 0 4px;}
+  .od-seek-in{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:7px 10px;
+    border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
+  .od-seek-in:focus{outline:none;border-color:var(--accent);}
+  .od-seek-cnt{flex:none;font-size:10.5px;color:var(--muted);font-weight:700;}
   .od-seek-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .od-seek-more{all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
     color:var(--accent-deep);background:var(--accent-soft);padding:3px 9px;border-radius:7px;}
@@ -15278,51 +15285,78 @@ function crmSeekHtml(o){
            ${body}<span class="od-seek-ch">без чату</span>
          </button>`;
   };
-  /* Головне попередження. Sitniks повернув на вигадане слово те саме, що й на
-     справжній нік, — отже наш параметр пошуку він ігнорує, і перед нами не
-     знайдене, а просто початок списку діалогів. Видавати це за результат
-     пошуку не можна: менеджер обере навмання й привʼяже чужу розмову. */
-  let note = '', list = s.results;
-  if(s.noFilter){
-    const mine = s.mine || [];
-    if(mine.length && !s.showAll){
-      list = mine;
-      note = `<div class="od-crm-note">Sitniks не вміє шукати за цим полем — він віддав просто
-        останні діалоги. Лишили ${mine.length} із ${s.results.length}: у них є «${escapeHtml(s.q)}».${
-          mine.length < s.results.length
-            ? ` <button class="od-seek-more" data-seek-all>Показати решту</button>` : ''}</div>`;
-    } else {
-      list = s.results;
-      note = `<div class="od-crm-note"><b>Це не результат пошуку.</b> Sitniks ігнорує наш
-        параметр і віддає останні ${s.results.length} діалогів акаунта${
-          mine.length ? '' : ', а збігу з «' + escapeHtml(s.q) + '» серед них немає'}.
-        Обирати звідси навмання не варто — знайдіть розмову в самому Sitniks і привʼяжіть
-        за номером замовлення.${mine.length
-          ? ' <button class="od-seek-more" data-seek-mine>Показати лише збіги</button>' : ''}</div>`;
-    }
-  }
+  /* Головне попередження. Sitniks ігнорує наш параметр пошуку — отже перед
+     нами не знайдене, а просто початок списку діалогів. Видавати це за
+     результат пошуку не можна: менеджер обере навмання й привʼяже чужу
+     розмову.
+
+     Але й глухого кута тут бути не повинно. Раніше в цьому місці стояла
+     порада «знайдіть розмову в Sitniks і привʼяжіть за номером замовлення» —
+     непридатна, бо на цьому етапі номера ще не існує, це тільки діалог.
+     Тепер замість поради працює фільтр: список у нас уже є, у ньому є імена,
+     і відсіяти по імені можна тут-таки. */
+  const needle = String(s.filter || '').trim().toLowerCase().replace(/^@/, '');
+  let list = s.results;
+  if(s.noFilter && needle) list = s.results.filter(r => r.hay.indexOf(needle) >= 0);
+  const note = s.noFilter
+    ? `<div class="od-crm-note"><b>Sitniks не вміє шукати за нашим параметром.</b>
+         Він віддав ${s.results.length} останніх діалогів акаунта. Впишіть імʼя клієнта —
+         відсіємо зі списку. Саме імʼя, а не нік: у списку діалогів Sitniks віддає імена,
+         і нікнейма в цих даних може не бути взагалі.</div>`
+    : '';
+  /* Поле фільтра стоїть просто над списком, і в ньому вже вписане імʼя
+     клієнта з картки: найчастіше саме воно й потрібне. */
+  const box = `<div class="od-seek-flt">
+      <input type="text" class="od-seek-in" placeholder="Імʼя клієнта" value="${escapeHtml(s.filter || '')}">
+      <span class="od-seek-cnt">${list.length} із ${s.results.length}</span>
+    </div>`;
+  const empty = !list.length
+    ? `<div class="od-crm-note">Серед прочитаних діалогів збігу немає.
+         ${s.more ? 'Спробуйте «Показати ще» — підвантажимо наступні.' :
+                    'Більше сторінок Sitniks не віддає.'}</div>`
+    : '';
+  /* Підвантаження наступних сторінок. Відфільтрувати можна лише те, що
+     встигли прочитати, тож коли пошуку немає, це єдиний спосіб дотягнутись до
+     давнішої розмови. */
+  const more = (s.noFilter && s.more)
+    ? `<button class="od-seek-more" data-seek-more ${s.loadingMore ? 'disabled' : ''}>${
+         s.loadingMore ? 'Вантажимо…' : 'Показати ще'}</button>`
+    : '';
   /* Що саме прислав Sitniks. Потрібно рівно для одного: побачити справжні
      назви полів у цьому акаунті й прописати їх точно замість здогадок. */
   const raw = s.showRaw && s.results[0]
     ? `<pre class="od-seek-raw">${escapeHtml(JSON.stringify(s.results[0].raw, null, 1).slice(0, 2500))}</pre>`
     : '';
   const tail = `<div class="od-seek-f">
+      ${more}
       <button class="od-seek-more" data-seek-raw>${s.showRaw ? 'Сховати' : 'Що прислав Sitniks'}</button>
       <span class="od-seek-tried">${escapeHtml((s.tried || []).join(' · '))}</span>
     </div>${raw}`;
-  return `<div class="od-seek">${head}${note}${list.map(r => row(r, s.results.indexOf(r))).join('')}${tail}</div>`;
+  return `<div class="od-seek">${head}${note}${box}${empty}${
+    list.map(r => row(r, s.results.indexOf(r))).join('')}${tail}</div>`;
 }
 
 /* Порядок навмисний: спершу чати (у них одразу є ідентифікатор розмови),
    далі довідники людей — там нік теж зустрічається, але чат ще треба знайти. */
 const CRM_SEEK_PATHS = [
-  { p: '/chats?search=',     chats: true  },
-  { p: '/chats?query=',      chats: true  },
-  { p: '/chats?phrase=',     chats: true  },
-  { p: '/clients?search=',   chats: false },
-  { p: '/contacts?search=',  chats: false },
-  { p: '/customers?search=', chats: false }
+  { p: '/chats',     chats: true  },
+  { p: '/clients',   chats: false },
+  { p: '/contacts',  chats: false },
+  { p: '/customers', chats: false }
 ];
+/* Як зветься параметр пошуку — невідомо: документація Sitniks закрита. Тому
+   не вгадуємо одним словом, а пробуємо звичні назви й дивимось, чи щось
+   змінилось у відповіді. Знайдене запамʼятовуємо на весь сеанс: перебирати
+   щоразу по сім запитів безглуздо. */
+const CRM_SEEK_PARAMS = ['search', 'q', 'query', 'phrase', 'name', 'text'];
+/* Як зветься сторінка — теж невідомо. Ті самі три звички. */
+const CRM_PAGE_PARAMS = [
+  n => 'page=' + n,
+  n => 'offset=' + ((n - 1) * 50) + '&limit=50',
+  n => 'skip=' + ((n - 1) * 50) + '&take=50'
+];
+let crmParamFound = null;   // '' = перевірили, пошуку немає; null = ще не пробували
+let crmPageFound = null;    // індекс у CRM_PAGE_PARAMS; -1 = сторінок немає
 function crmChannelOf(r){
   /* Канал у Sitniks лежить то вгорі запису, то у вкладеному клієнті, то в
      останньому повідомленні — залежно від того, який це список. Дивимось у
@@ -15384,9 +15418,15 @@ function crmHay(r){
   return out.join(' ');
 }
 function crmNormFound(data, isChats){
-  return crmListOf(data).slice(0, 25).map(r => {
+  return crmListOf(data).slice(0, 50).map(r => {
     const nick = crmNick(r);
-    const name = r.clientName || r.name || r.fullName || r.title || nick || '';
+    /* Імʼя лежить то вгорі запису, то у вкладеному клієнті — залежно від
+       того, який це список. Дивимось в обидва місця: інакше рядок лишався
+       без імені саме там, де воно є, і підписувався текстом повідомлення. */
+    const c = (r.client && typeof r.client === 'object') ? r.client
+            : (r.contact && typeof r.contact === 'object') ? r.contact : {};
+    const name = r.clientName || r.name || r.fullName || r.title ||
+                 c.clientName || c.name || c.fullName || nick || '';
     return {
       // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
       // людей це id людини, і розмова за ним не відкриється.
@@ -15407,42 +15447,97 @@ function crmNormFound(data, isChats){
 const CRM_NOMATCH = 'zzqx7nomatch7913';
 function crmIds(list){ return (list || []).map(r => r.chatId).join('|'); }
 
+function crmUrl(path, param, val, page){
+  const q = [];
+  if(param && val) q.push(param + '=' + encodeURIComponent(val));
+  if(page) q.push(page);
+  return path + (q.length ? '?' + q.join('&') : '');
+}
+/* Завантажити одну сторінку списку. Повертає нормалізовані записи. */
+async function crmPage(cand, param, val, page){
+  const data = await crmFetch(crmUrl(cand.p, param, val, page));
+  return crmNormFound(data, cand.chats);
+}
+/* Чи вміє Sitniks шукати взагалі. Перевіряємо просто: беремо список без
+   параметра, потім із параметром — і дивимось, чи він змінився. Якщо ні,
+   параметр ігнорують, і ми бачимо просто початок списку діалогів.
+   Мовчати про це не можна: менеджер обере навмання. */
+async function crmFindParam(cand, q){
+  if(crmParamFound !== null) return crmParamFound;
+  let plain = [];
+  try{ plain = await crmPage(cand, '', '', ''); }catch(e){ return (crmParamFound = ''); }
+  const base = crmIds(plain);
+  for(const name of CRM_SEEK_PARAMS){
+    try{
+      const got = await crmPage(cand, name, q, '');
+      if(got.length && crmIds(got) !== base) return (crmParamFound = name);
+    }catch(e){ /* немає такого — пробуємо наступний */ }
+  }
+  return (crmParamFound = '');
+}
+/* Чи вміє Sitniks віддавати наступні сторінки. Друга сторінка має
+   відрізнятись від першої — інакше нам просто повертають те саме. */
+async function crmFindPage(cand, st){
+  if(crmPageFound !== null) return crmPageFound;
+  const first = crmIds(st.results);
+  for(let i = 0; i < CRM_PAGE_PARAMS.length; i++){
+    try{
+      const got = await crmPage(cand, st.param, st.q, CRM_PAGE_PARAMS[i](2));
+      if(got.length && crmIds(got) !== first) return (crmPageFound = i);
+    }catch(e){ /* не цей */ }
+  }
+  return (crmPageFound = -1);
+}
 async function crmDoSearch(o, qFromInput){
   const q = String(qFromInput || crmSeekQuery(o)).trim();
   if(!q){ toast('Впишіть інстаграм, імʼя або телефон — за ними й шукаємо'); return; }
   crmSeek[o.id] = { q, loading: true };
   renderOrderDrawer();
   const tried = [];
-  let results = [], lastErr = '', usedPath = '', noFilter = false;
-  for(const cand of CRM_SEEK_PATHS){
+  let results = [], lastErr = '', cand = null, param = '';
+  for(const c of CRM_SEEK_PATHS){
     try{
-      const data = await crmFetch(cand.p + encodeURIComponent(q));
-      tried.push(cand.p.replace(/[?&].*$/, '') + ' ✓');
-      const found = crmNormFound(data, cand.chats);
-      if(found.length){ results = found; usedPath = cand.p; break; }
+      param = await crmFindParam(c, q);
+      results = await crmPage(c, param, q, '');
+      tried.push(c.p + (param ? ' ?' + param : ' (без пошуку)'));
+      if(results.length){ cand = c; break; }
     }catch(e){
       // 404/405 — такого ендпоінта просто немає, це не поломка. Решту помилок
       // запамʼятовуємо: якщо не спрацює жоден шлях, покажемо останню.
-      if(e.status === 404 || e.status === 405) tried.push(cand.p.replace(/[?&].*$/, '') + ' —');
-      else { tried.push(cand.p.replace(/[?&].*$/, '') + ' ' + (e.status || '')); lastErr = e.message || ''; }
+      if(e.status === 404 || e.status === 405) tried.push(c.p + ' —');
+      else { tried.push(c.p + ' ' + (e.status || '')); lastErr = e.message || ''; }
     }
   }
-  /* Контрольний запит тим самим шляхом. Один зайвий виклик за пошук — мала
-     ціна за те, щоб не видавати перші десять діалогів за знайдене. */
-  if(results.length && usedPath){
-    try{
-      const ctrl = crmNormFound(await crmFetch(usedPath + CRM_NOMATCH),
-                                (CRM_SEEK_PATHS.find(c => c.p === usedPath) || {}).chats);
-      if(ctrl.length && crmIds(ctrl) === crmIds(results)) noFilter = true;
-    }catch(e){ /* контроль не вдався — просто не робимо висновку */ }
-  }
-  /* Sitniks не відсіяв — відсіваємо самі, по всьому тексту запису. Нік у
-     даних зазвичай є, просто не в тому полі, яке ми вгадали. */
-  const needle = q.toLowerCase().replace(/^@/, '');
-  const mine = noFilter ? results.filter(r => r.hay.indexOf(needle) >= 0) : [];
-  crmSeek[o.id] = { q, results, tried, noFilter, usedPath,
-    mine: noFilter ? mine : null, showAll: false, showRaw: false,
+  /* Фільтр за замовчуванням — ІМʼЯ клієнта, а не нік. У списку діалогів
+     Sitniks віддає саме імена; нікнейма в цих даних може не бути взагалі, і
+     фільтр по ньому не знайде нічого навіть тоді, коли розмова перед очима. */
+  crmSeek[o.id] = { q, results, tried, cand, param,
+    noFilter: !param,
+    filter: String(o.name || '').trim(),
+    page: 1, more: true, showRaw: false,
     err: (!results.length && lastErr) ? lastErr : '' };
+  renderOrderDrawer();
+}
+/* Підвантажити наступну сторінку списку. Потрібне саме тоді, коли Sitniks не
+   шукає: відфільтрувати можна лише те, що встигли прочитати. */
+async function crmSeekMore(o){
+  const st = crmSeek[o.id];
+  if(!st || !st.cand || st.loadingMore) return;
+  st.loadingMore = true; renderOrderDrawer();
+  try{
+    const mode = await crmFindPage(st.cand, st);
+    if(mode < 0){ st.more = false; }
+    else {
+      const next = st.page + 1;
+      const got = await crmPage(st.cand, st.param, st.q, CRM_PAGE_PARAMS[mode](next));
+      const seen = {};
+      st.results.forEach(r => { seen[r.chatId] = 1; });
+      const fresh = got.filter(r => !seen[r.chatId]);
+      if(!fresh.length) st.more = false;
+      else { st.results = st.results.concat(fresh); st.page = next; }
+    }
+  }catch(e){ st.more = false; }
+  st.loadingMore = false;
   renderOrderDrawer();
 }
 
@@ -15872,9 +15967,21 @@ function wireCrmBlock(panel, o){
       renderOrderDrawer();
     });
   };
-  seekToggle('[data-seek-all]',  'showAll', true);
-  seekToggle('[data-seek-mine]', 'showAll', false);
   seekToggle('[data-seek-raw]',  'showRaw');
+  const moreB = panel.querySelector('[data-seek-more]');
+  if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o));
+  /* Фільтр звужує список на льоту. Перемальовуємо весь блок, тож після
+     перемальовування повертаємо фокус і каретку туди, де вони були: інакше
+     після першої ж літери поле губить фокус і далі друкувати нікуди. */
+  const flt = panel.querySelector('.od-seek-in');
+  if(flt) flt.addEventListener('input', ()=>{
+    const st = crmSeek[o.id]; if(!st) return;
+    st.filter = flt.value;
+    const at = flt.selectionStart;
+    renderOrderDrawer();
+    const again = document.querySelector('.od-seek-in');
+    if(again){ again.focus(); try{ again.setSelectionRange(at, at); }catch(e){} }
+  });
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){

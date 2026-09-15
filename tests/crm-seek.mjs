@@ -45,18 +45,32 @@ const CHATS = Array.from({ length: 10 }, (_, i) => ({
   createdAt: '2026-09-1' + (i % 5) + 'T10:0' + i + ':00Z',
   lastMessage: { text: i === 3 ? 'Вітаю, цікавить 30 худі з вишивкою'
                                : 'Добрий день, підкажіть ціну ' + i },
-  client: { userName: i === 3 ? 'asia_dera' : 'client_' + i, channel: 'instagram' }
+  client: { userName: i === 3 ? 'asia_dera' : 'client_' + i, channel: 'instagram',
+            clientName: i === 3 ? 'Асія Дерещук' : 'Клієнт ' + i }
 }));
 
+/* Друга сторінка списку — щоб було що підвантажувати кнопкою «Показати ще». */
+const PAGE2 = Array.from({ length: 5 }, (_, i) => ({
+  id: '6aa82' + String(i).padStart(2, '0') + 'b81e7a16bf05be' + (30 + i),
+  createdAt: '2026-09-0' + (i % 5) + 'T09:0' + i + ':00Z',
+  lastMessage: { text: i === 2 ? 'Доброго дня, хочу худі з вишивкою' : 'Питання по ціні ' + i },
+  client: { userName: 'old_' + i, channel: 'instagram',
+            clientName: i === 2 ? 'Асія Дерещук' : 'Клієнт ' + i }
+}));
 let mode = 'nofilter';   // 'nofilter' — Sitniks ігнорує параметр; 'real' — шукає
+let asked = [];          // які параметри в нас питали — це й перевіряємо
 const srv = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   if(u.pathname.indexOf('/crm/') === 0){
-    const q = (u.searchParams.get('search') || '').toLowerCase();
-    let out = CHATS;
+    [...u.searchParams.keys()].forEach(k => { if(asked.indexOf(k) < 0) asked.push(k); });
+    const page = +(u.searchParams.get('page') || 1);
+    let out = page > 1 ? (page === 2 ? PAGE2 : []) : CHATS;
     if(mode === 'real'){
-      out = CHATS.filter(c => JSON.stringify(c).toLowerCase().indexOf(q) >= 0)
-                 .map(c => Object.assign({ clientName: 'Асія Дерещук' }, c));
+      /* Справжній пошук живе під іменем «q» — навмисно НЕ під тим, що ми
+         підставляли навмання. Система має знайти його сама. */
+      const q = (u.searchParams.get('q') || '').toLowerCase();
+      out = (q ? CHATS.filter(c => JSON.stringify(c).toLowerCase().indexOf(q) >= 0) : CHATS)
+              .map(c => Object.assign({ clientName: 'Асія Дерещук' }, c));
     }
     res.writeHead(200, { 'Content-Type':'application/json',
                          'Access-Control-Allow-Origin':'*' });
@@ -130,72 +144,132 @@ await p.waitForTimeout(5500);
 await p.click('.ticket:has-text("1000801")');
 await p.waitForTimeout(900);
 
+const read = () => p.evaluate(() => {
+  const box = document.querySelector('.od-seek');
+  if(!box) return { err:'блоку пошуку немає' };
+  return {
+    note: (((box.querySelector('.od-crm-note') || {}).textContent) || '').replace(/\s+/g, ' ').trim(),
+    filter: (box.querySelector('.od-seek-in') || {}).value,
+    cnt: ((box.querySelector('.od-seek-cnt') || {}).textContent || '').trim(),
+    more: !!box.querySelector('[data-seek-more]'),
+    rows: [...box.querySelectorAll('.od-seek-r')].map(r => ({
+      nm: (r.querySelector('.od-seek-nm') || {}).textContent.trim(),
+      p: ((r.querySelector('.od-seek-p') || {}).textContent || '').trim(),
+      id: ((r.querySelector('.od-seek-id') || {}).textContent || '').trim(),
+      ch: ((r.querySelector('.od-seek-ch') || {}).textContent || '').trim() }))
+  };
+});
 const seek = async () => {
   await p.evaluate(() => { const b = document.querySelector('.od-ig-find'); if(b) b.click(); });
-  await p.waitForTimeout(1200);
-  return p.evaluate(() => {
-    const box = document.querySelector('.od-seek');
-    if(!box) return { err:'блоку пошуку немає' };
-    return {
-      note: (box.querySelector('.od-crm-note') || {}).textContent || '',
-      rows: [...box.querySelectorAll('.od-seek-r')].map(r => ({
-        nm: (r.querySelector('.od-seek-nm') || {}).textContent.trim(),
-        p: ((r.querySelector('.od-seek-p') || {}).textContent || '').trim(),
-        id: ((r.querySelector('.od-seek-id') || {}).textContent || '').trim(),
-        ch: ((r.querySelector('.od-seek-ch') || {}).textContent || '').trim() }))
-    };
-  });
+  await p.waitForTimeout(2200);
+  return read();
 };
 
 console.log('═══ SITNIKS НЕ ШУКАЄ — І ПРО ЦЕ СКАЗАНО ═══');
 const r1 = await seek();
 if(r1.err){ console.log('  ' + r1.err); bad++; }
 else {
-  console.log('  ' + r1.note.replace(/\s+/g, ' ').trim().slice(0, 150));
-  r1.rows.forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '') + '  [' + r.id + ']'));
-  ok(/не вміє шукати|не вміє|ігнорує/i.test(r1.note),
+  console.log('  ' + r1.note.slice(0, 150));
+  console.log('  показано: ' + r1.cnt + ' · фільтр: «' + r1.filter + '»');
+  r1.rows.slice(0, 3).forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
+  ok(/не вміє шукати/i.test(r1.note),
     'сказано прямо: це не результат пошуку, а список діалогів',
     'мовчки показали чужі діалоги як знайдене: ' + r1.note.slice(0, 80));
-  ok(r1.rows.length === 1,
-    'відсіяли самі — лишився один діалог зі збігом, а не десять',
-    'на екрані ' + r1.rows.length + ' рядків замість одного');
-  ok(r1.rows.length === 1 && /худі/i.test(r1.rows[0].nm + r1.rows[0].p),
-    'і це саме та розмова: видно, про що вона',
-    'відібрали не той діалог: ' + JSON.stringify(r1.rows[0]));
+  ok(!/номером замовлення/i.test(r1.note),
+    'поради про номер замовлення немає — на цьому етапі його ще не існує',
+    'лишилась непридатна порада про номер замовлення');
+  ok(/Впишіть імʼя клієнта/i.test(r1.note),
+    'замість глухого кута — що саме зробити',
+    'підказки, що робити, немає: ' + r1.note.slice(0, 80));
+  ok(r1.filter === 'Асія',
+    'у полі фільтра вже стоїть імʼя клієнта з картки, а не нік',
+    'у фільтрі не те: «' + r1.filter + '»');
   ok(!r1.rows.some(r => /^чат [0-9a-f]{12,}/.test(r.nm)),
-    'жоден рядок більше не підписаний шістнадцятковим номером',
-    'рядок і далі називається номером чату');
+    'жоден рядок не підписаний шістнадцятковим номером',
+    'рядок називається номером чату');
 }
 
 console.log('');
-console.log('═══ МОЖНА ПОДИВИТИСЬ УСІ Й САМУ ВІДПОВІДЬ ═══');
-const all = await p.evaluate(async () => {
-  const b = document.querySelector('[data-seek-all]'); if(b) b.click();
-  await new Promise(r => setTimeout(r, 300));
-  return document.querySelectorAll('.od-seek .od-seek-r').length;
+console.log('═══ ФІЛЬТР ЗВУЖУЄ СПИСОК ═══');
+/* Імʼя в даних є, нікнейма може не бути зовсім — саме тому фільтруємо по
+   імені. Друкуємо, як людина, і дивимось, що лишилось. */
+const typed = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Дерещук';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 400));
+  const box = document.querySelector('.od-seek');
+  return { rows: box.querySelectorAll('.od-seek-r').length,
+           cnt: (box.querySelector('.od-seek-cnt') || {}).textContent.trim(),
+           focus: document.activeElement === document.querySelector('.od-seek-in') };
 });
-console.log('  після «Показати всі»: ' + all + ' рядків');
-ok(all === 10,
-  'за одним кліком видно весь список, який прислала CRM',
-  'повний список не розгорнувся: ' + all);
+console.log('  ' + typed.cnt + ' · рядків ' + typed.rows);
+ok(typed.rows === 1,
+  'за імʼям лишився один діалог із десяти',
+  'фільтр не звузив список: ' + typed.rows + ' рядків');
+ok(typed.focus,
+  'поле не губить фокус після перемальовування — можна друкувати далі',
+  'після першої літери фокус зник, друкувати нікуди');
+
+console.log('');
+console.log('═══ «ПОКАЗАТИ ЩЕ» ДОТЯГУЄ НАСТУПНІ ═══');
+const more = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = '';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 300));
+  const b = document.querySelector('[data-seek-more]');
+  if(!b) return { err:'кнопки немає' };
+  b.click();
+  await new Promise(r => setTimeout(r, 1800));
+  const box = document.querySelector('.od-seek');
+  return { rows: box.querySelectorAll('.od-seek-r').length };
+});
+console.log('  рядків після підвантаження: ' + (more.rows || more.err));
+ok(more.rows === 15,
+  'наступна сторінка дотягнулась і стала в той самий список',
+  'підвантаження не спрацювало: ' + JSON.stringify(more));
+/* І головне: у дотягнутій сторінці знаходиться той, кого не було в першій. */
+const deep = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Дерещук';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 400));
+  return [...document.querySelectorAll('.od-seek-r .od-seek-nm')].map(x => x.textContent.trim());
+});
+console.log('  ' + JSON.stringify(deep));
+ok(deep.length === 2,
+  'давніша розмова знайшлась саме тому, що список дотягнули',
+  'у дотягнутому списку її не видно: ' + JSON.stringify(deep));
+
+console.log('');
+console.log('═══ ВІДПОВІДЬ CRM ВИДНО ═══');
 const raw = await p.evaluate(async () => {
   const b = document.querySelector('[data-seek-raw]'); if(b) b.click();
   await new Promise(r => setTimeout(r, 300));
   const el = document.querySelector('.od-seek-raw');
   return el ? el.textContent.slice(0, 200) : '';
 });
-console.log('  ' + raw.replace(/\s+/g, ' ').slice(0, 110));
 ok(/lastMessage/.test(raw) && /userName/.test(raw),
   'видно справжню відповідь CRM — саме з неї й дізнаються назви полів',
   'відповідь CRM не показується');
 
 console.log('');
-console.log('═══ КОЛИ CRM СПРАВДІ ШУКАЄ — ЖОДНИХ ПОПЕРЕДЖЕНЬ ═══');
-mode = 'real';
-await p.evaluate(() => { for(const k in crmSeek) delete crmSeek[k]; });
+console.log('═══ СПРАВЖНІЙ ПАРАМЕТР ЗНАХОДИТЬСЯ САМ ═══');
+/* На сервері пошук живе під іменем «q», а ми починали з «search». Система має
+   перебрати звичні назви й знайти робочу, не питаючи нікого. */
+mode = 'real'; asked = [];
+await p.evaluate(() => {
+  for(const k in crmSeek) delete crmSeek[k];
+  crmParamFound = null; crmPageFound = null;
+});
 const r2 = await seek();
+console.log('  питали параметри: ' + asked.join(', '));
 console.log('  ' + (r2.note ? r2.note.slice(0, 90) : '(попереджень немає)'));
-r2.rows.forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '') + '  [' + r.id + ']'));
+r2.rows.forEach(r => console.log('    • ' + r.nm + '  [' + r.id + ']'));
+ok(asked.indexOf('q') >= 0,
+  'система сама дійшла до робочої назви параметра',
+  'робочий параметр не пробували: ' + asked.join(', '));
 ok(!r2.note,
   'коли пошук працює, ніяких пояснень не потрібно — вони б лише заважали',
   'зайве попередження при робочому пошуку: ' + r2.note.slice(0, 80));
@@ -205,6 +279,9 @@ ok(r2.rows.length === 1 && r2.rows[0].nm === 'Асія Дерещук',
 ok(r2.rows.length === 1 && /Instagram/.test(r2.rows[0].ch),
   'і видно канал, з якого прийшла розмова',
   'канал не визначився: ' + JSON.stringify(r2.rows[0]));
+ok(!r2.more,
+  'кнопки підвантаження немає — коли CRM шукає, гортати весь список ні до чого',
+  'кнопка підвантаження лишилась при робочому пошуку');
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
