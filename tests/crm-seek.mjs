@@ -37,34 +37,31 @@ const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text
                '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
                '.webp':'image/webp' };
 
-/* Десять діалогів із номерами підряд — рівно те, що Sitniks віддає на будь-яке
-   слово. Імені вгорі запису немає ніде: воно лежить у вкладеному `client`,
-   і саме тому підпис і вироджувався в номер. */
-const CHATS = Array.from({ length: 10 }, (_, i) => ({
-  id: '6aa81' + String(i).padStart(2, '0') + 'b81e7a16bf05be' + (10 + i),
-  createdAt: '2026-09-1' + (i % 5) + 'T10:0' + i + ':00Z',
+/* Уся стрічка діалогів акаунта. Sitniks віддає її сторінками, і ПЕРША
+   сторінка коротша за наступні — саме на цьому все й ламалось: код брав
+   розмір сторінки за 50, просив offset=50 і пропускав діалоги 11–50.
+   Потрібна розмова лежить рівно в тому пропущеному вікні. */
+const ALL = Array.from({ length: 120 }, (_, i) => ({
+  id: '6aa8' + String(i).padStart(3, '0') + 'b81e7a16bf05be' + (10 + i),
+  createdAt: '2026-09-1' + (i % 5) + 'T10:' + String(i % 60).padStart(2, '0') + ':00Z',
   lastMessage: { text: i === 3 ? 'Вітаю, цікавить 30 худі з вишивкою'
-                               : 'Добрий день, підкажіть ціну ' + i },
+                     : (i === 30 ? 'Доброго дня, хочу худі з вишивкою'
+                                 : 'Добрий день, підкажіть ціну ' + i) },
   client: { userName: i === 3 ? 'asia_dera' : 'client_' + i, channel: 'instagram',
-            clientName: i === 3 ? 'Асія Дерещук' : 'Клієнт ' + i }
+            clientName: (i === 3 || i === 30) ? 'Асія Дерещук' : 'Клієнт ' + i }
 }));
-
-/* Друга сторінка списку — щоб було що підвантажувати кнопкою «Показати ще». */
-const PAGE2 = Array.from({ length: 5 }, (_, i) => ({
-  id: '6aa82' + String(i).padStart(2, '0') + 'b81e7a16bf05be' + (30 + i),
-  createdAt: '2026-09-0' + (i % 5) + 'T09:0' + i + ':00Z',
-  lastMessage: { text: i === 2 ? 'Доброго дня, хочу худі з вишивкою' : 'Питання по ціні ' + i },
-  client: { userName: 'old_' + i, channel: 'instagram',
-            clientName: i === 2 ? 'Асія Дерещук' : 'Клієнт ' + i }
-}));
+const CHATS = ALL.slice(0, 10);   // стільки віддає перший запит, без параметрів
 let mode = 'nofilter';   // 'nofilter' — Sitniks ігнорує параметр; 'real' — шукає
 let asked = [];          // які параметри в нас питали — це й перевіряємо
 const srv = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   if(u.pathname.indexOf('/crm/') === 0){
     [...u.searchParams.keys()].forEach(k => { if(asked.indexOf(k) < 0) asked.push(k); });
-    const page = +(u.searchParams.get('page') || 1);
-    let out = page > 1 ? (page === 2 ? PAGE2 : []) : CHATS;
+    /* Сторінки — зсувом. Перший запит без параметрів віддає рівно десять:
+       саме так поводиться справжній Sitniks, і саме це ламало арифметику. */
+    const off = +(u.searchParams.get('offset') || u.searchParams.get('skip') || 0);
+    const lim = +(u.searchParams.get('limit') || u.searchParams.get('take') || 0);
+    let out = lim ? ALL.slice(off, off + lim) : CHATS;
     if(mode === 'real'){
       /* Справжній пошук живе під іменем «q» — навмисно НЕ під тим, що ми
          підставляли навмання. Система має знайти його сама. */
@@ -165,29 +162,57 @@ const seek = async () => {
   return read();
 };
 
-console.log('═══ SITNIKS НЕ ШУКАЄ — І ПРО ЦЕ СКАЗАНО ═══');
+console.log('═══ ШУКАЄМО ЗА ІМЕНЕМ І ПОКАЗУЄМО ЗБІГ ═══');
+/* Поле одне, і в ньому імʼя клієнта з картки. Раніше пошук починався з
+   нікнейма — а нікнейма в даних Sitniks може не бути взагалі, і розмова з
+   «Анастасія Дера» не знаходилась при повному списку на екрані. */
 const r1 = await seek();
 if(r1.err){ console.log('  ' + r1.err); bad++; }
 else {
-  console.log('  ' + r1.note.slice(0, 150));
-  console.log('  показано: ' + r1.cnt + ' · фільтр: «' + r1.filter + '»');
-  r1.rows.slice(0, 3).forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
-  ok(/не вміє шукати/i.test(r1.note),
-    'сказано прямо: це не результат пошуку, а список діалогів',
-    'мовчки показали чужі діалоги як знайдене: ' + r1.note.slice(0, 80));
+  console.log('  показано: ' + r1.cnt + ' · у полі: «' + r1.filter + '»');
+  r1.rows.forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
+  ok(r1.filter === 'Асія',
+    'у полі одразу стоїть імʼя клієнта з картки, а не нік',
+    'у полі не те: «' + r1.filter + '»');
+  ok(r1.rows.length === 2 && r1.rows.every(r => /Дерещук/.test(r.nm)),
+    'на екрані лише розмови цього клієнта, а не купа чужих',
+    'показали не те: ' + JSON.stringify(r1.rows.map(r => r.nm)));
+  ok(!r1.note,
+    'коли збіг знайшовся, про влаштування чужого API не пишемо — воно тут ні до чого',
+    'зайве пояснення при знайденому збігу: ' + r1.note.slice(0, 90));
   ok(!/номером замовлення/i.test(r1.note),
     'поради про номер замовлення немає — на цьому етапі його ще не існує',
     'лишилась непридатна порада про номер замовлення');
-  ok(/Впишіть імʼя клієнта/i.test(r1.note),
-    'замість глухого кута — що саме зробити',
-    'підказки, що робити, немає: ' + r1.note.slice(0, 80));
-  ok(r1.filter === 'Асія',
-    'у полі фільтра вже стоїть імʼя клієнта з картки, а не нік',
-    'у фільтрі не те: «' + r1.filter + '»');
   ok(!r1.rows.some(r => /^чат [0-9a-f]{12,}/.test(r.nm)),
     'жоден рядок не підписаний шістнадцятковим номером',
     'рядок називається номером чату');
 }
+
+console.log('');
+console.log('═══ ЗБІГУ НЕМАЄ — ТОДІ Й ПОЯСНЮЄМО ═══');
+const none = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Пилипенко';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 400));
+  const box = document.querySelector('.od-seek');
+  return { note: (((box.querySelector('.od-crm-note') || {}).textContent) || '').replace(/\s+/g, ' ').trim(),
+           rows: box.querySelectorAll('.od-seek-r').length };
+});
+console.log('  ' + none.note.slice(0, 120));
+ok(none.rows === 0,
+  'чужих розмов не показуємо, коли шукали не їх',
+  'на екрані чужі діалоги: ' + none.rows);
+ok(/не вміє шукати/i.test(none.note) && /гортаємо список самі/i.test(none.note),
+  'а тепер пояснюємо, чому збігу немає і що робиться далі',
+  'пояснення немає: «' + none.note.slice(0, 90) + '»');
+/* Повертаємо імʼя назад для наступних перевірок. */
+await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Асія';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 300));
+});
 
 console.log('');
 console.log('═══ ФІЛЬТР ЗВУЖУЄ СПИСОК ═══');
@@ -195,7 +220,7 @@ console.log('═══ ФІЛЬТР ЗВУЖУЄ СПИСОК ═══');
    імені. Друкуємо, як людина, і дивимось, що лишилось. */
 const typed = await p.evaluate(async () => {
   const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Дерещук';
+  inp.value = 'Дерещук';   // прізвище, якого немає в жодного іншого
   inp.dispatchEvent(new Event('input', { bubbles:true }));
   await new Promise(r => setTimeout(r, 400));
   const box = document.querySelector('.od-seek');
@@ -204,43 +229,54 @@ const typed = await p.evaluate(async () => {
            focus: document.activeElement === document.querySelector('.od-seek-in') };
 });
 console.log('  ' + typed.cnt + ' · рядків ' + typed.rows);
-ok(typed.rows === 1,
-  'за імʼям лишився один діалог із десяти',
-  'фільтр не звузив список: ' + typed.rows + ' рядків');
+ok(typed.rows === 2 && /із \d\d/.test(typed.cnt),
+  'за імʼям лишились тільки його розмови, решта відсіялась',
+  'фільтр не звузив список: ' + typed.rows + ' рядків із «' + typed.cnt + '»');
 ok(typed.focus,
   'поле не губить фокус після перемальовування — можна друкувати далі',
   'після першої літери фокус зник, друкувати нікуди');
 
 console.log('');
-console.log('═══ «ПОКАЗАТИ ЩЕ» ДОТЯГУЄ НАСТУПНІ ═══');
-const more = await p.evaluate(async () => {
+console.log('═══ СПИСОК ГОРТАЄТЬСЯ БЕЗ ПРОПУСКІВ ═══');
+/* Перший запит віддає десять діалогів, наступні — по пʼятдесят. Перша версія
+   брала розмір сторінки за 50 і просила offset=50: діалоги 11–50 не читались
+   узагалі. Потрібна розмова лежить саме там, тож перевірка проста — чи
+   знайдеться вона й чи немає діри в прочитаному. */
+const scan = await p.evaluate(async () => {
   const inp = document.querySelector('.od-seek-in');
-  inp.value = '';
+  inp.value = 'Дерещук';
   inp.dispatchEvent(new Event('input', { bubbles:true }));
   await new Promise(r => setTimeout(r, 300));
   const b = document.querySelector('[data-seek-more]');
   if(!b) return { err:'кнопки немає' };
   b.click();
-  await new Promise(r => setTimeout(r, 1800));
-  const box = document.querySelector('.od-seek');
-  return { rows: box.querySelectorAll('.od-seek-r').length };
+  for(let k = 0; k < 60 && !document.querySelector('[data-seek-more]'); k++){
+    await new Promise(r => setTimeout(r, 200));
+  }
+  await new Promise(r => setTimeout(r, 600));
+  const st = crmSeek[Object.keys(crmSeek)[0]];
+  const ids = st.results.map(r => r.chatId);
+  return { total: ids.length,
+           uniq: new Set(ids).size,
+           /* Діра в прочитаному: чи всі номери від першого до останнього на
+              місці. Саме дірою й був пропущений проміжок. */
+           gap: ids.some((x, i) => i > 0 && +x.slice(4, 7) !== +ids[i - 1].slice(4, 7) + 1),
+           rows: [...document.querySelectorAll('.od-seek-r .od-seek-nm')].map(x => x.textContent.trim()) };
 });
-console.log('  рядків після підвантаження: ' + (more.rows || more.err));
-ok(more.rows === 15,
-  'наступна сторінка дотягнулась і стала в той самий список',
-  'підвантаження не спрацювало: ' + JSON.stringify(more));
-/* І головне: у дотягнутій сторінці знаходиться той, кого не було в першій. */
-const deep = await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Дерещук';
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(r => setTimeout(r, 400));
-  return [...document.querySelectorAll('.od-seek-r .od-seek-nm')].map(x => x.textContent.trim());
-});
-console.log('  ' + JSON.stringify(deep));
-ok(deep.length === 2,
-  'давніша розмова знайшлась саме тому, що список дотягнули',
-  'у дотягнутому списку її не видно: ' + JSON.stringify(deep));
+console.log('  прочитано ' + scan.total + ' (унікальних ' + scan.uniq +
+            ') · знайдено: ' + JSON.stringify(scan.rows));
+ok(!scan.gap,
+  'прочитано підряд, без пропущеного вікна',
+  'у прочитаному лишилась діра — частину діалогів пропустили');
+ok(scan.total === scan.uniq,
+  'жодного діалогу не прочитано двічі',
+  'є дублікати: ' + scan.total + ' записів, ' + scan.uniq + ' унікальних');
+ok(scan.rows.length === 2,
+  'розмова, що лежала за першою десяткою, знайшлась',
+  'давнішу розмову так і не знайшли: ' + JSON.stringify(scan.rows));
+ok(scan.total < 120,
+  'гортання зупинилось, щойно знайшло — не вивантажувало всю базу',
+  'прочитали весь список замість того, щоб спинитись на збігу');
 
 console.log('');
 console.log('═══ ВІДПОВІДЬ CRM ВИДНО ═══');
