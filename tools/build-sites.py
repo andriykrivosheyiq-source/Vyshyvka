@@ -443,6 +443,19 @@ def main():
             open(path, 'w', encoding='utf-8').write(new)
             print('[%s] версія конструктора → %s' % (name, ver))
 
+    # Каталог знімків читає базовий перелік виробів із коду конструктора.
+    # Збираємо його тут же: інакше після зміни в конструкторі каталог тихо
+    # показував би вчорашній асортимент.
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            'lq_catalog', os.path.join(ROOT, 'tools', 'build-catalog.py'))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.main()
+    except Exception as e:
+        raise BuildError('каталог не зібрався: %s' % e)
+
     wanted = sys.argv[1:] or list(config)
     failed = False
     for site in wanted:
