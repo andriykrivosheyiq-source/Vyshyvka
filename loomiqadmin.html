@@ -15256,12 +15256,17 @@ let crmSeek = {};   // orderId → { q, loading, err, tried, results }
 function crmShow(o){
   return !!(o.crmChatId || o.crmOrder);
 }
+/* За чим шукати розмову. Спершу ІМʼЯ — саме імена Sitniks і віддає в списку
+   діалогів. Нік довго стояв першим, і через це пошук за `asia_dera` не
+   знаходив нічого: нікнейма в тих даних може не бути взагалі, а розмова з
+   «Anastasia Dera» лежала перед очима. */
 function crmSeekQuery(o){
+  const nm = String(o.name || '').trim();
+  if(nm) return nm;
   const ig = String(o.instagram || '').trim()
     .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
     .replace(/[/?].*$/, '').replace(/^@/, '');
   if(ig) return ig;
-  if(String(o.name || '').trim()) return String(o.name).trim();
   return String(o.phone || '').replace(/[^\d+]/g, '');
 }
 function crmSeekBtnHtml(o){
@@ -15271,7 +15276,9 @@ function crmSeekBtnHtml(o){
 function crmSeekHtml(o){
   const s = crmSeek[o.id];
   if(!s) return '';
-  const head = `<div class="od-seek-h">Пошук у Sitniks: «${escapeHtml(s.q || '')}»</div>`;
+  /* Заголовок більше не повторює запит: він стоїть у полі нижче, і писати
+     те саме двічі означало б підказувати людині, що поле не головне. */
+  const head = `<div class="od-seek-h">Розмова в Sitniks</div>`;
   if(s.loading) return `<div class="od-seek">${head}<div class="od-empty">Шукаємо…</div></div>`;
   if(s.err) return `<div class="od-seek">${head}<div class="od-crm-err">${escapeHtml(s.err)}</div></div>`;
   if(!(s.results || []).length){
@@ -15310,30 +15317,31 @@ function crmSeekHtml(o){
      непридатна, бо на цьому етапі номера ще не існує, це тільки діалог.
      Тепер замість поради працює фільтр: список у нас уже є, у ньому є імена,
      і відсіяти по імені можна тут-таки. */
-  const needle = String(s.filter || '').trim().toLowerCase().replace(/^@/, '');
-  let list = s.results;
-  if(s.noFilter && needle) list = s.results.filter(r => r.hay.indexOf(needle) >= 0);
-  const note = s.noFilter
-    ? `<div class="od-crm-note"><b>Sitniks не вміє шукати за нашим параметром.</b>
-         Він віддав ${s.results.length} останніх діалогів акаунта. Впишіть імʼя клієнта —
-         відсіємо зі списку. Саме імʼя, а не нік: у списку діалогів Sitniks віддає імена,
-         і нікнейма в цих даних може не бути взагалі.</div>`
-    : '';
-  /* Поле фільтра стоїть просто над списком, і в ньому вже вписане імʼя
-     клієнта з картки: найчастіше саме воно й потрібне. */
+  /* Пошуку в Sitniks немає, тож шукаємо самі — по тому ж рядку, що й угорі.
+     Двох полів тут бути не повинно: людина вписує імʼя один раз. */
+  const needle = String(s.q || '').trim().toLowerCase().replace(/^@/, '');
+  const hits = (s.noFilter && needle)
+    ? s.results.filter(r => r.hay.indexOf(needle) >= 0) : s.results;
+  const list = (s.noFilter && needle && !s.showAll) ? hits : s.results;
+  /* Поле запиту — одне, і воно ж фільтр. У ньому вже стоїть імʼя клієнта з
+     картки: саме імена Sitniks і віддає в списку діалогів. */
   const box = `<div class="od-seek-flt">
-      <input type="text" class="od-seek-in" placeholder="Імʼя клієнта" value="${escapeHtml(s.filter || '')}">
-      <span class="od-seek-cnt">${list.length} із ${s.results.length}</span>
+      <input type="text" class="od-seek-in" placeholder="Імʼя клієнта" value="${escapeHtml(s.q || '')}">
+      ${s.noFilter ? `<span class="od-seek-cnt">${hits.length} із ${s.results.length}</span>` : ''}
     </div>`;
-  const empty = !list.length
+  /* Пояснення — лише коли є що пояснювати. Коли збіг знайшовся, писати про
+     влаштування чужого API нема потреби: людина бачить свою розмову. */
+  const note = (s.noFilter && !hits.length && !s.loadingMore)
+    ? `<div class="od-crm-note"><b>Sitniks не вміє шукати за нашим параметром.</b>
+         Ми гортаємо список самі й шукаємо за іменем. ${s.capped
+           ? `Перегорнули ${s.results.length} діалогів — збігу немає.`
+           : (s.more ? `Прочитано ${s.results.length}. «Показати ще» — читаємо далі.`
+                     : `Це весь список, який Sitniks віддає.`)}</div>`
+    : '';
+  const empty = (!list.length && !note)
     ? `<div class="od-crm-note">${s.loadingMore
-         ? `Гортаємо список: прочитано ${s.results.length} діалогів…`
-         : (s.capped
-             ? `Перегорнули ${s.results.length} діалогів і збігу не знайшли. Далі шукати
-                таким способом безглуздо: відкрийте розмову в Sitniks і натисніть «↗» —
-                привʼяжемо її за адресою.`
-             : (s.more ? 'Серед прочитаних збігу немає. «Показати ще» — читаємо далі.'
-                       : 'Це весь список, який Sitniks віддає. Збігу в ньому немає.'))}</div>`
+         ? `Шукаємо «${escapeHtml(s.q)}»: прочитано ${s.results.length} діалогів…`
+         : 'Збігу немає.'}</div>`
     : '';
   /* Підвантаження наступних сторінок. Відфільтрувати можна лише те, що
      встигли прочитати, тож коли пошуку немає, це єдиний спосіб дотягнутись до
@@ -15341,7 +15349,11 @@ function crmSeekHtml(o){
   const more = s.noFilter
     ? (s.loadingMore
         ? `<button class="od-seek-more" data-seek-stop>Зупинити · прочитано ${s.results.length}</button>`
-        : (s.more ? `<button class="od-seek-more" data-seek-more>Показати ще</button>` : ''))
+        : [ s.more ? `<button class="od-seek-more" data-seek-more>Показати ще</button>` : '',
+            (needle && hits.length < s.results.length)
+              ? `<button class="od-seek-more" data-seek-all>${s.showAll
+                   ? 'Лише збіги' : 'Усі прочитані · ' + s.results.length}</button>` : ''
+          ].filter(Boolean).join(''))
     : '';
   /* Що саме прислав Sitniks. Потрібно рівно для одного: побачити справжні
      назви полів у цьому акаунті й прописати їх точно замість здогадок. */
@@ -15551,13 +15563,12 @@ async function crmDoSearch(o, qFromInput){
      фільтр по ньому не знайде нічого навіть тоді, коли розмова перед очима. */
   crmSeek[o.id] = { q, results, tried, cand, param,
     noFilter: !param,
-    filter: String(o.name || '').trim(),
-    size: results.length, more: true, showRaw: false,
+    size: results.length, more: true, showRaw: false, showAll: false,
     err: (!results.length && lastErr) ? lastErr : '' };
   renderOrderDrawer();
   /* Імʼя клієнта в нас уже є, а пошуку в Sitniks немає — тож одразу йдемо
      гортати список замість того, щоб чекати сорока кліків по «Показати ще». */
-  if(!param && results.length && crmSeek[o.id].filter) crmSeekMore(o, true);
+  if(!param && results.length && q) crmSeekMore(o, true);
 }
 /* Підвантажити наступну сторінку списку. Потрібне саме тоді, коли Sitniks не
    шукає: відфільтрувати можна лише те, що встигли прочитати. */
@@ -15576,7 +15587,7 @@ async function crmSeekStep(st){
   return fresh.length;
 }
 function crmHit(st){
-  const needle = String(st.filter || '').trim().toLowerCase().replace(/^@/, '');
+  const needle = String(st.q || '').trim().toLowerCase().replace(/^@/, '');
   if(!needle) return 0;
   return st.results.filter(r => r.hay.indexOf(needle) >= 0).length;
 }
@@ -16030,6 +16041,7 @@ function wireCrmBlock(panel, o){
     });
   };
   seekToggle('[data-seek-raw]',  'showRaw');
+  seekToggle('[data-seek-all]',  'showAll');
   const moreB = panel.querySelector('[data-seek-more]');
   if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o, true));
   const stopB = panel.querySelector('[data-seek-stop]');
@@ -16042,7 +16054,7 @@ function wireCrmBlock(panel, o){
   const flt = panel.querySelector('.od-seek-in');
   if(flt) flt.addEventListener('input', ()=>{
     const st = crmSeek[o.id]; if(!st) return;
-    st.filter = flt.value;
+    st.q = flt.value;
     const at = flt.selectionStart;
     renderOrderDrawer();
     const again = document.querySelector('.od-seek-in');

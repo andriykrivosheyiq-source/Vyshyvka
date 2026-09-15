@@ -162,29 +162,57 @@ const seek = async () => {
   return read();
 };
 
-console.log('═══ SITNIKS НЕ ШУКАЄ — І ПРО ЦЕ СКАЗАНО ═══');
+console.log('═══ ШУКАЄМО ЗА ІМЕНЕМ І ПОКАЗУЄМО ЗБІГ ═══');
+/* Поле одне, і в ньому імʼя клієнта з картки. Раніше пошук починався з
+   нікнейма — а нікнейма в даних Sitniks може не бути взагалі, і розмова з
+   «Анастасія Дера» не знаходилась при повному списку на екрані. */
 const r1 = await seek();
 if(r1.err){ console.log('  ' + r1.err); bad++; }
 else {
-  console.log('  ' + r1.note.slice(0, 150));
-  console.log('  показано: ' + r1.cnt + ' · фільтр: «' + r1.filter + '»');
-  r1.rows.slice(0, 3).forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
-  ok(/не вміє шукати/i.test(r1.note),
-    'сказано прямо: це не результат пошуку, а список діалогів',
-    'мовчки показали чужі діалоги як знайдене: ' + r1.note.slice(0, 80));
+  console.log('  показано: ' + r1.cnt + ' · у полі: «' + r1.filter + '»');
+  r1.rows.forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
+  ok(r1.filter === 'Асія',
+    'у полі одразу стоїть імʼя клієнта з картки, а не нік',
+    'у полі не те: «' + r1.filter + '»');
+  ok(r1.rows.length === 2 && r1.rows.every(r => /Дерещук/.test(r.nm)),
+    'на екрані лише розмови цього клієнта, а не купа чужих',
+    'показали не те: ' + JSON.stringify(r1.rows.map(r => r.nm)));
+  ok(!r1.note,
+    'коли збіг знайшовся, про влаштування чужого API не пишемо — воно тут ні до чого',
+    'зайве пояснення при знайденому збігу: ' + r1.note.slice(0, 90));
   ok(!/номером замовлення/i.test(r1.note),
     'поради про номер замовлення немає — на цьому етапі його ще не існує',
     'лишилась непридатна порада про номер замовлення');
-  ok(/Впишіть імʼя клієнта/i.test(r1.note),
-    'замість глухого кута — що саме зробити',
-    'підказки, що робити, немає: ' + r1.note.slice(0, 80));
-  ok(r1.filter === 'Асія',
-    'у полі фільтра вже стоїть імʼя клієнта з картки, а не нік',
-    'у фільтрі не те: «' + r1.filter + '»');
   ok(!r1.rows.some(r => /^чат [0-9a-f]{12,}/.test(r.nm)),
     'жоден рядок не підписаний шістнадцятковим номером',
     'рядок називається номером чату');
 }
+
+console.log('');
+console.log('═══ ЗБІГУ НЕМАЄ — ТОДІ Й ПОЯСНЮЄМО ═══');
+const none = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Пилипенко';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 400));
+  const box = document.querySelector('.od-seek');
+  return { note: (((box.querySelector('.od-crm-note') || {}).textContent) || '').replace(/\s+/g, ' ').trim(),
+           rows: box.querySelectorAll('.od-seek-r').length };
+});
+console.log('  ' + none.note.slice(0, 120));
+ok(none.rows === 0,
+  'чужих розмов не показуємо, коли шукали не їх',
+  'на екрані чужі діалоги: ' + none.rows);
+ok(/не вміє шукати/i.test(none.note) && /гортаємо список самі/i.test(none.note),
+  'а тепер пояснюємо, чому збігу немає і що робиться далі',
+  'пояснення немає: «' + none.note.slice(0, 90) + '»');
+/* Повертаємо імʼя назад для наступних перевірок. */
+await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-in');
+  inp.value = 'Асія';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 300));
+});
 
 console.log('');
 console.log('═══ ФІЛЬТР ЗВУЖУЄ СПИСОК ═══');
