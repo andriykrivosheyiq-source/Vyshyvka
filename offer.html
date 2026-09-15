@@ -6341,6 +6341,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function withEvent(type, note){
     var ev = { type: type, at: new Date().toISOString() };
     if(note) ev.note = String(note).slice(0, 300);
+    /* Сума й склад НА МИТЬ ПОДІЇ. Доти в події були тільки тип і час: у
+       картці стояло «клієнт підтвердив», а що саме й на який чек — менеджер
+       мав шукати окремо. Гірше: після наступної зміни це вже було інше
+       число, і подія починала посилатись на те, чого в ту мить не існувало.
+
+       Рядок складу беремо той самий, що стоїть у клієнта в шапці, — інакше
+       менеджер читав би одне, а клієнт бачив інше. */
+    try{
+      var t = totals();
+      ev.sum = Math.round(t.sum) || 0;
+      ev.qty = t.qty || 0;
+      ev.what = String(madeLine() || '').slice(0, 120);
+    }catch(e){}
     OFFER.events = (OFFER.events || []).concat([ev]).slice(-40);
     return OFFER.events;
   }

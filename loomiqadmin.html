@@ -12216,6 +12216,35 @@ function lastTouchLabel(o){
   const w = waitingMin(o);
   return w >= 60 ? ('клієнт чекає ' + agoUa(o.tgAt)) : ('останнє ' + a + ' тому');
 }
+/* Рядок про дію клієнта. Головне в ньому не сама дія, а ЩО САМЕ людина
+   підтвердила і НА ЯКИЙ ЧЕК: «клієнт підтвердив» без числа змушує лізти в
+   кошторис і звіряти, чи це та сама версія, — а вона до того часу могла вже
+   змінитись. Тому сума й склад беруться з самої події, записані на ту мить.
+
+   Старі КП писали подію без суми. Для них падаємо на останню дію клієнта:
+   голий рядок без числа гірший за число, узяте поруч. */
+function offerEventLine(e, off){
+  const act = (off && off.clientAction) || {};
+  const last = e.type === 'confirmed';
+  const sum = +e.sum || (last ? +act.total || 0 : 0);
+  const qty = +e.qty || (last ? +act.count || 0 : 0);
+  const tail = [];
+  if(e.note) tail.push(String(e.note).slice(0, 80));
+  const what = offerWhatShort(e.what);
+  if(what) tail.push(what);
+  else if(qty) tail.push(qty + ' шт');
+  if(sum) tail.push(fmt(sum) + ' ₴');
+  return 'Клієнт ' + (OFFER_EVENT_UA[e.type] || e.type) +
+         (tail.length ? ' · ' + tail.join(' · ') : '');
+}
+/* Склад — двома позиціями й «+ще N». Рядок історії читають з одного погляду;
+   повний перелік і так стоїть у «Товарах». */
+function offerWhatShort(w){
+  const parts = String(w || '').split('·').map(x => x.trim()).filter(Boolean);
+  if(!parts.length) return '';
+  if(parts.length <= 2) return parts.join(' + ');
+  return parts.slice(0, 2).join(' + ') + ' +ще ' + (parts.length - 2);
+}
 function activityFeed(o){
   const out = [];
   const push = (at, text, kind) => { if(at) out.push({ at:String(at), text, kind: kind || '' }); };
@@ -12237,10 +12266,17 @@ function activityFeed(o){
   const off = o.offerToken && offersByToken[o.offerToken];
   if(off){
     push(off.createdAt, 'Створено пропозицію', 'kp');
-    (off.events || []).forEach(e => {
-      push(e.at, 'Клієнт ' + (OFFER_EVENT_UA[e.type] || e.type) +
-                 (e.note ? ' · ' + e.note : ''), 'client');
-    });
+    (off.events || []).forEach(e => push(e.at, offerEventLine(e, off), 'client'));
+    /* Скільки людина читала й доки догорнула. Питання «він узагалі дивився?»
+       виникає раніше за будь-яке інше, а відповідь на нього сторінка пише
+       щоразу — просто досі її ніхто не показував. */
+    const bh = off.behaviour || {};
+    if(off.clientAt && (+bh.totalSec > 20 || +bh.depthPct > 0)){
+      const mins = Math.round((+bh.totalSec || 0) / 60);
+      push(off.clientAt, 'Клієнт читав ' +
+        (mins >= 1 ? mins + ' хв' : (+bh.totalSec || 0) + ' с') +
+        (+bh.depthPct ? ' · догорнув до ' + Math.round(bh.depthPct) + '%' : ''), 'client');
+    }
   }
   if(o.tgAt && o.tgLast){
     const mine = String(o.tgLast).slice(0, 4) === 'Ви: ';
@@ -12257,8 +12293,11 @@ function activityFeed(o){
   // Найсвіже вгорі: історію читають з кінця, а не з початку
   out.sort((a, b) => b.at.localeCompare(a.at));
   const seen = {};
+  /* Чотирнадцять рядків обрізали стрічку рівно там, де починались дії
+     клієнта: етапи й треки займали її всю, а «відкрив», «змінив», «підтвердив»
+     вилітали першими — тобто саме те, заради чого сюди й заглядають. */
   return out.filter(x => { const k = x.at + x.text; if(seen[k]) return false; seen[k] = 1; return true; })
-            .slice(0, 14);
+            .slice(0, 24);
 }
 
 /* ── Канали звʼязку в картці ──────────────────────────────────────────────
