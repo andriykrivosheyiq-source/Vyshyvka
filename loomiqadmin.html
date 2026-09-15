@@ -15326,16 +15326,22 @@ function crmSeekHtml(o){
       <span class="od-seek-cnt">${list.length} із ${s.results.length}</span>
     </div>`;
   const empty = !list.length
-    ? `<div class="od-crm-note">Серед прочитаних діалогів збігу немає.
-         ${s.more ? 'Спробуйте «Показати ще» — підвантажимо наступні.' :
-                    'Більше сторінок Sitniks не віддає.'}</div>`
+    ? `<div class="od-crm-note">${s.loadingMore
+         ? `Гортаємо список: прочитано ${s.results.length} діалогів…`
+         : (s.capped
+             ? `Перегорнули ${s.results.length} діалогів і збігу не знайшли. Далі шукати
+                таким способом безглуздо: відкрийте розмову в Sitniks і натисніть «↗» —
+                привʼяжемо її за адресою.`
+             : (s.more ? 'Серед прочитаних збігу немає. «Показати ще» — читаємо далі.'
+                       : 'Це весь список, який Sitniks віддає. Збігу в ньому немає.'))}</div>`
     : '';
   /* Підвантаження наступних сторінок. Відфільтрувати можна лише те, що
      встигли прочитати, тож коли пошуку немає, це єдиний спосіб дотягнутись до
      давнішої розмови. */
-  const more = (s.noFilter && s.more)
-    ? `<button class="od-seek-more" data-seek-more ${s.loadingMore ? 'disabled' : ''}>${
-         s.loadingMore ? 'Вантажимо…' : 'Показати ще'}</button>`
+  const more = s.noFilter
+    ? (s.loadingMore
+        ? `<button class="od-seek-more" data-seek-stop>Зупинити · прочитано ${s.results.length}</button>`
+        : (s.more ? `<button class="od-seek-more" data-seek-more>Показати ще</button>` : ''))
     : '';
   /* Що саме прислав Sitniks. Потрібно рівно для одного: побачити справжні
      назви полів у цьому акаунті й прописати їх точно замість здогадок. */
@@ -15364,12 +15370,26 @@ const CRM_SEEK_PATHS = [
    змінилось у відповіді. Знайдене запамʼятовуємо на весь сеанс: перебирати
    щоразу по сім запитів безглуздо. */
 const CRM_SEEK_PARAMS = ['search', 'q', 'query', 'phrase', 'name', 'text'];
-/* Як зветься сторінка — теж невідомо. Ті самі три звички. */
+/* Як зветься сторінка — теж невідомо, тож пробуємо звички. Але рахуємо не
+   «сторінками», а вже ПРОЧИТАНИМИ записами.
+
+   Перша версія брала розмір сторінки за 50 і просила offset=50. Sitniks же
+   першим запитом віддає десять. Виходило, що ми читали діалоги 1–10, потім
+   51–90, а проміжок 11–50 не читали взагалі — і розмова, яка лежала саме
+   там, «не знаходилась» при повному списку на екрані. Тепер зсув завжди
+   дорівнює тому, скільки вже маємо, і пропустити нічого неможливо. */
+const CRM_PAGE_SIZE = 50;
 const CRM_PAGE_PARAMS = [
-  n => 'page=' + n,
-  n => 'offset=' + ((n - 1) * 50) + '&limit=50',
-  n => 'skip=' + ((n - 1) * 50) + '&take=50'
+  (got, size) => 'offset=' + got + '&limit=' + CRM_PAGE_SIZE,
+  (got, size) => 'skip=' + got + '&take=' + CRM_PAGE_SIZE,
+  /* Сторінками — лише якщо знаємо їхній розмір, і лише коли він ділить те,
+     що вже прочитано, націло. Інакше «сторінка 2» знову пропустить хвіст. */
+  (got, size) => (size > 0 && got % size === 0) ? ('page=' + (got / size + 1)) : ''
 ];
+/* Скільки діалогів готові перегорнути, поки шукаємо. Сотня запитів по
+   пʼятдесят — це вже не пошук, а вивантаження бази; на такому треба
+   зупинитись і сказати це прямо. */
+const CRM_SCAN_MAX = 600;
 let crmParamFound = null;   // '' = перевірили, пошуку немає; null = ще не пробували
 let crmPageFound = null;    // індекс у CRM_PAGE_PARAMS; -1 = сторінок немає
 function crmChannelOf(r){
@@ -15495,9 +15515,12 @@ async function crmFindParam(cand, q){
 async function crmFindPage(cand, st){
   if(crmPageFound !== null) return crmPageFound;
   const first = crmIds(st.results);
+  const size = st.results.length;
   for(let i = 0; i < CRM_PAGE_PARAMS.length; i++){
+    const tail = CRM_PAGE_PARAMS[i](size, size);
+    if(!tail) continue;
     try{
-      const got = await crmPage(cand, st.param, st.q, CRM_PAGE_PARAMS[i](2));
+      const got = await crmPage(cand, st.param, st.q, tail);
       if(got.length && crmIds(got) !== first) return (crmPageFound = i);
     }catch(e){ /* не цей */ }
   }
@@ -15529,28 +15552,52 @@ async function crmDoSearch(o, qFromInput){
   crmSeek[o.id] = { q, results, tried, cand, param,
     noFilter: !param,
     filter: String(o.name || '').trim(),
-    page: 1, more: true, showRaw: false,
+    size: results.length, more: true, showRaw: false,
     err: (!results.length && lastErr) ? lastErr : '' };
   renderOrderDrawer();
+  /* Імʼя клієнта в нас уже є, а пошуку в Sitniks немає — тож одразу йдемо
+     гортати список замість того, щоб чекати сорока кліків по «Показати ще». */
+  if(!param && results.length && crmSeek[o.id].filter) crmSeekMore(o, true);
 }
 /* Підвантажити наступну сторінку списку. Потрібне саме тоді, коли Sitniks не
    шукає: відфільтрувати можна лише те, що встигли прочитати. */
-async function crmSeekMore(o){
+/* Прочитати наступну порцію. Повертає, скільки записів додалось. */
+async function crmSeekStep(st){
+  const mode = await crmFindPage(st.cand, st);
+  if(mode < 0){ st.more = false; return 0; }
+  const tail = CRM_PAGE_PARAMS[mode](st.results.length, st.size || st.results.length);
+  if(!tail){ st.more = false; return 0; }
+  const got = await crmPage(st.cand, st.param, st.q, tail);
+  const seen = {};
+  st.results.forEach(r => { seen[r.chatId] = 1; });
+  const fresh = got.filter(r => r.chatId && !seen[r.chatId]);
+  if(!fresh.length){ st.more = false; return 0; }
+  st.results = st.results.concat(fresh);
+  return fresh.length;
+}
+function crmHit(st){
+  const needle = String(st.filter || '').trim().toLowerCase().replace(/^@/, '');
+  if(!needle) return 0;
+  return st.results.filter(r => r.hay.indexOf(needle) >= 0).length;
+}
+/* Гортати самому, поки не знайдеться. Пошуку в Sitniks немає, тож єдиний
+   спосіб дістатись до вчорашньої розмови — прочитати список далі. Робити це
+   кліками по «Показати ще» означає сорок кліків; тому гортаємо самі, поки
+   не буде збігу або поки не впремось у стелю. Зупинити можна будь-коли. */
+async function crmSeekMore(o, auto){
   const st = crmSeek[o.id];
   if(!st || !st.cand || st.loadingMore) return;
-  st.loadingMore = true; renderOrderDrawer();
+  st.loadingMore = true; st.stop = false;
+  renderOrderDrawer();
   try{
-    const mode = await crmFindPage(st.cand, st);
-    if(mode < 0){ st.more = false; }
-    else {
-      const next = st.page + 1;
-      const got = await crmPage(st.cand, st.param, st.q, CRM_PAGE_PARAMS[mode](next));
-      const seen = {};
-      st.results.forEach(r => { seen[r.chatId] = 1; });
-      const fresh = got.filter(r => !seen[r.chatId]);
-      if(!fresh.length) st.more = false;
-      else { st.results = st.results.concat(fresh); st.page = next; }
-    }
+    do{
+      const added = await crmSeekStep(st);
+      renderOrderDrawer();
+      if(!added) break;
+      if(!auto) break;
+      if(crmHit(st)) break;
+      if(st.results.length >= CRM_SCAN_MAX){ st.capped = true; break; }
+    }while(!st.stop && st.more);
   }catch(e){ st.more = false; }
   st.loadingMore = false;
   renderOrderDrawer();
@@ -15984,7 +16031,11 @@ function wireCrmBlock(panel, o){
   };
   seekToggle('[data-seek-raw]',  'showRaw');
   const moreB = panel.querySelector('[data-seek-more]');
-  if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o));
+  if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o, true));
+  const stopB = panel.querySelector('[data-seek-stop]');
+  if(stopB) stopB.addEventListener('click', ()=>{
+    const st = crmSeek[o.id]; if(st) st.stop = true;
+  });
   /* Фільтр звужує список на льоту. Перемальовуємо весь блок, тож після
      перемальовування повертаємо фокус і каретку туди, де вони були: інакше
      після першої ж літери поле губить фокус і далі друкувати нікуди. */
