@@ -56,7 +56,15 @@ const MSGS = [
   /* Пряма ознака від Sitniks, і вона суперечить підпису: у записі стоїть сам
      клієнт, але сказано «вхідне = ні». Слову маємо вірити більше. */
   { id:'m7', createdAt:'2026-09-15T15:40:00Z', text:'Надсилаю пропозицію',
-    isIncoming:false, client:{ clientName:'Anastasia Dera' } }
+    isIncoming:false, client:{ clientName:'Anastasia Dera' } },
+  /* Лист на кілька абзаців із посиланням усередині. Саме такий і виходив
+     кашею: адресу ми виймали, а разом із нею збивали всі переноси. */
+  { id:'m8', createdAt:'2026-09-15T15:45:00Z',
+    text:'Вітаю! Підготувала пропозицію за вашим запитом.\n' +
+         'Тут є візуалізації з вашим брендингом.\n\n' +
+         'Переглянути пропозицію →\nhttps://loomiq.net/offer.html?o=wk4wuvidrxnc\n\n' +
+         'Якщо виникнуть питання — відповім)',
+    user:{ name:'Катерина Шевчук' } }
 ];
 
 let sent = [];
@@ -146,6 +154,8 @@ await p.waitForTimeout(2200);
 
 const feed = () => p.evaluate(() => [...document.querySelectorAll('.cw-feed .od-crm-msg')].map(el => ({
   txt: ((el.querySelector('.od-crm-txt') || {}).textContent || '').trim(),
+  lines: ((el.querySelector('.od-crm-txt') || {}).textContent || '').split('\n').length,
+  gap: /\n\s*\n/.test(((el.querySelector('.od-crm-txt') || {}).textContent || '')),
   mine: el.classList.contains('mine'),
   at: ((el.querySelector('.od-crm-at') || {}).textContent || '').trim()
 })));
@@ -184,13 +194,76 @@ ok(!/Катерина|Олег/.test(by('Футболки') + by('Від 20')),
   'клієнтське повідомлення підписане менеджером');
 
 console.log('');
+console.log('═══ АБЗАЦИ ЛИШАЮТЬСЯ АБЗАЦАМИ ═══');
+/* Лист клієнту пишеться абзацами. Ми виймали з нього адресу — і разом із нею
+   збивали всі переноси в один пробіл: на екрані лишалась суцільна каша. */
+const long = rows.find(r => r.txt.indexOf('Вітаю!') === 0);
+console.log('  рядків: ' + (long || {}).lines + ' · порожній рядок між абзацами: ' +
+            ((long || {}).gap ? 'є' : 'немає'));
+ok(long && long.lines >= 4,
+  'переноси рядків лишились на місці',
+  'повідомлення злиплось в один рядок — та сама каша');
+ok(long && long.gap,
+  'порожній рядок між абзацами теж лишився',
+  'абзаци злиплись в суцільний текст');
+ok(long && long.txt.indexOf('http') < 0,
+  'саму адресу з тексту, як і раніше, виймаємо — вона йде окремою кнопкою',
+  'адреса лишилась у тексті простирадлом');
+const pre = await p.evaluate(() => {
+  const el = document.querySelector('.cw-feed .od-crm-txt');
+  return el ? getComputedStyle(el).whiteSpace : '';
+});
+ok(/pre-wrap/.test(pre),
+  'і браузер їх показує, а не згортає',
+  'переноси є в тексті, але на екрані не видно: ' + pre);
+
+console.log('');
+console.log('═══ ENTER — НОВИЙ РЯДОК, НЕ НАДСИЛАННЯ ═══');
+/* Доти Enter надсилав, і лист вилітав недописаним після першого ж рядка.
+   Про Shift+Enter ніхто не здогадувався. Недописаний лист клієнту не
+   відкликати, тож випадкове надсилання тут дорожче за звичку. */
+sent = [];
+await p.click('.cw-inp');
+await p.keyboard.type('Перший рядок');
+await p.keyboard.press('Enter');
+await p.keyboard.type('Другий рядок');
+await p.waitForTimeout(400);
+const typed = await p.evaluate(() => (document.querySelector('.cw-inp') || {}).value || '');
+console.log('  у полі: ' + JSON.stringify(typed) + ' · надіслано: ' + sent.length);
+ok(typed.indexOf('\n') > 0,
+  'Enter робить новий рядок — лист на кілька абзаців нарешті можна набрати',
+  'Enter не переносить рядок: ' + JSON.stringify(typed));
+ok(!sent.length,
+  'і нічого не надсилає — недописане не вилітає клієнту',
+  'Enter усе одно надіслав: ' + JSON.stringify(sent));
+await p.keyboard.press('Control+Enter');
+await p.waitForTimeout(800);
+console.log('  після Ctrl+Enter надіслано: ' + JSON.stringify(sent));
+ok(sent.length === 1 && /Перший рядок\nДругий рядок/.test(sent[0]),
+  'Ctrl+Enter надсилає, і обидва рядки доходять цілими',
+  'Ctrl+Enter не надіслав або зіпсував текст: ' + JSON.stringify(sent));
+const tip = await p.evaluate(() =>
+  ((document.querySelector('.cw-tip') || {}).textContent || '').trim());
+ok(/Enter/.test(tip) && /надіслати/i.test(tip),
+  'правило написане під полем — здогадуватись не треба: «' + tip + '»',
+  'підказки під полем немає');
+
+console.log('');
 console.log('═══ СВОЄ НАДІСЛАНЕ — ОДРАЗУ ПРАВОРУЧ І ПІДПИСАНЕ ═══');
+/* Перечитування з сервера тут лише заважає: воно поверне стрічку без нашого
+   свіжого рядка, а перевіряємо ми саме те, що показується ДО відповіді.
+   Тому глушимо і сам опит, і відкладені його виклики. */
+await p.evaluate(() => {
+  crmStopPoll();
+  window.crmPollOnce = async () => {};
+  const i = document.querySelector('.cw-inp');
+  i.value = ''; i.dispatchEvent(new Event('input', { bubbles:true }));
+});
+await p.click('.cw-inp');
+await p.keyboard.type('Порахували, надсилаю');
 await p.evaluate(async () => {
-  const inp = document.querySelector('.cw-inp');
-  inp.value = 'Порахували, надсилаю';
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
   document.querySelector('[data-cw-go]').click();
-  await new Promise(r => setTimeout(r, 900));
+  await new Promise(r => setTimeout(r, 500));
 });
 const after = await feed();
 const own = after.find(r => r.txt.indexOf('Порахували') === 0);
@@ -201,6 +274,32 @@ ok(own && own.mine,
 ok(own && own.at && own.at.length > 1,
   'і підписане тим, хто його надіслав',
   'власне повідомлення без підпису');
+
+console.log('');
+console.log('═══ ВЛАСНЕ НАДІСЛАНЕ ЛИШАЄТЬСЯ НАШИМ І ПОТІМ ═══');
+/* Повідомлення, надіслані через API з Loomiq, Sitniks повертає БЕЗ
+   відправника — зовні вони нічим не відрізняються від клієнтських. Доти
+   такий лист ставав ліворуч, щойно стрічку перечитували з сервера. */
+const back = await p.evaluate(async () => {
+  const o = orders[0];
+  const saved = JSON.parse(JSON.stringify(o.crmOut || []));
+  /* Те саме, що прислав би Sitniks: наш текст і жодного відправника. */
+  const list = crmNormMsgs([{ id:'x1', createdAt:'2026-09-15T16:00:00Z',
+    text:'Порахували, надсилаю' }], o);
+  const one = list[0] || {};
+  return { kept: saved.length, mine: !!one.mine, by: one.by || '' };
+});
+console.log('  памʼять: ' + back.kept + ' · бік: ' + (back.mine ? 'наше' : 'клієнтське') +
+            ' · підпис: «' + back.by + '»');
+ok(back.kept > 0,
+  'картка памʼятає, що ми це писали — памʼять переживе перезавантаження',
+  'памʼять про власне надіслане ніде не зберігається');
+ok(back.mine,
+  'перечитане з сервера власне повідомлення лишилось праворуч',
+  'своє ж повідомлення повернулось із сервера ліворуч — та сама помилка');
+ok(back.by && back.by.length > 0,
+  'і підписане тим, хто його надсилав',
+  'підпис загубився після перечитування');
 
 console.log('');
 console.log('═══ СИРА ВІДПОВІДЬ — ЛИШЕ ДЛЯ НАЛАШТУВАННЯ ═══');
