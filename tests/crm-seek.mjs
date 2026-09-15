@@ -1,28 +1,28 @@
-/* Пошук діалогу в Sitniks: не видавати список за знайдене.
+/* Привʼязка розмови Sitniks — за посиланням і тільки за ним.
 
-   ПРОБЛЕМА, ЯК ЇЇ ВИДНО МЕНЕДЖЕРОВІ. Шукаєш нік — і отримуєш десять рядків
-   «чат 6aa81c02b81e7a16bf05bec4», «чат 6aa8199b1444b9f412421772» і так далі.
-   Стільки діалогів із цією людиною не існує, обрати з них неможливо, а
-   обраний навмання привʼязує до картки чужу розмову.
+   ПРОБЛЕМА, ЯК ЇЇ ВИДНО МЕНЕДЖЕРОВІ. Натискаєш «знайти» — і отримуєш десять
+   рядків чужих людей: «Клієнт 12», «Клієнт 13», «чат 6aa81c02b81e7a16bf05bec4».
+   Свого клієнта серед них немає ніколи, а обраний навмання привʼязує до картки
+   чужу розмову.
 
-   ЩО НАСПРАВДІ ВІДБУВАЛОСЬ. Документація Sitniks закрита, назву параметра
-   пошуку ми не знаємо і підставляємо навгад (`?search=`). Невідомий параметр
-   Sitniks просто ігнорує й чемно віддає ПОЧАТОК ЗАГАЛЬНОГО СПИСКУ діалогів.
-   Помилки при цьому немає, тож код вважав, що знайшов. Видно це навіть оком:
-   усі номери йдуть підряд, бо створювались один за одним.
+   ЧОМУ ТАК БУЛО. Документація Sitniks закрита, ендпоінта пошуку в їхньому API
+   не існує. Невідомий параметр (`?search=`, `?q=`) там просто ігнорують і чемно
+   віддають ПОЧАТОК ЗАГАЛЬНОГО СПИСКУ діалогів. Помилки при цьому немає, тож код
+   вважав, що знайшов. Ми обходили це читанням списку сторінками й відсіюванням
+   у себе — але в робочому акаунті сотні роздрібних розмов за півдня: потрібна
+   вже за день лежить на кількатисячній позиції.
 
-   А підпис «чат 6aa8…» зʼявлявся тому, що імені у відповіді немає в жодному
-   з полів, які ми вміємо читати, — і замість назви лишався службовий номер.
+   РІШЕННЯ. Менеджер у цю мить і так стоїть у відкритій розмові в Sitniks. Тож
+   шлях лишився один: вставити адресу звідти. А імʼя, прізвище й нік читаємо з
+   самої розмови — переписувати руками те, що вже написано в CRM, не потрібно.
 
    Перевіряємо:
-     — контрольний запит вигаданим словом викриває, що пошуку немає, і про це
-       сказано прямо, а не мовчки показано десять чужих діалогів;
-     — те, що Sitniks не відсіяв, відсіваємо самі — по всьому тексту запису,
-       включно з вкладеними полями, де нік зазвичай і лежить;
-     — рядок читається очима: перше повідомлення й дата, а номер чату — лише
-       дрібним хвостиком і лише коли назвати розмову більше нічим;
-     — видно, що саме прислав Sitniks, — без цього назви полів не дізнатись;
-     — коли CRM справді шукає, жодних попереджень немає й рядки звичайні.
+     — списку чужих діалогів на екрані немає взагалі, і по нього не ходять;
+     — зі сміття, яке не є посиланням, нічого не привʼязується;
+     — розмова привʼязується за адресою, хоч би де вона лежала в списку;
+     — імʼя й нік із розмови переїжджають у порожні поля картки;
+     — уже вписане руками імʼя відповідь CRM не затирає;
+     — коли в самому діалозі людини немає, читаємо її зі стрічки повідомлень.
 
    Запуск:  node tests/crm-seek.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -37,52 +37,48 @@ const MIME = { '.html':'text/html', '.js':'application/javascript', '.css':'text
                '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
                '.webp':'image/webp' };
 
-/* Уся стрічка діалогів акаунта. Sitniks віддає її сторінками, і ПЕРША
-   сторінка коротша за наступні — саме на цьому все й ламалось: код брав
-   розмір сторінки за 50, просив offset=50 і пропускав діалоги 11–50.
-   Потрібна розмова лежить рівно в тому пропущеному вікні. */
+/* Уся стрічка діалогів акаунта. Потрібна розмова лежить глибоко — рівно там,
+   де її ніколи не побачиш, гортаючи список. */
 const ALL = Array.from({ length: 120 }, (_, i) => ({
   id: '6aa8' + String(i).padStart(3, '0') + 'b81e7a16bf05be' + (10 + i),
   createdAt: '2026-09-1' + (i % 5) + 'T10:' + String(i % 60).padStart(2, '0') + ':00Z',
-  lastMessage: { text: i === 3 ? 'Вітаю, цікавить 30 худі з вишивкою'
-                     : (i === 30 ? 'Доброго дня, хочу худі з вишивкою'
-                                 : 'Добрий день, підкажіть ціну ' + i) },
-  client: { userName: i === 3 ? 'asia_dera' : 'client_' + i, channel: 'instagram',
-            clientName: (i === 3 || i === 30) ? 'Асія Дерещук' : 'Клієнт ' + i }
+  lastMessage: { text: 'Добрий день, підкажіть ціну ' + i },
+  client: { userName: 'client_' + i, channel: 'instagram', clientName: 'Клієнт ' + i }
 }));
-const CHATS = ALL.slice(0, 10);   // стільки віддає перший запит, без параметрів
-let mode = 'nofilter';   // 'nofilter' — Sitniks ігнорує параметр; 'real' — шукає
-let asked = [];          // які параметри в нас питали — це й перевіряємо
+/* Розмова нашого клієнта. Саме її адресу менеджер і вставляє. */
+const MINE = {
+  id: '6aa910231444b9f4123817a1',
+  lastMessage: { text: 'Вітаю, цікавить 30 худі з вишивкою' },
+  client: { userName: 'asia_dera', channel: 'instagram', clientName: 'Асія Дерещук' }
+};
+/* А ця розмова про співрозмовника мовчить — людина є лише в повідомленнях. */
+const MUTE = { id: '6aa9ffff1444b9f41238ffff', lastMessage: { text: 'доброго дня' } };
+const MUTE_MSGS = [
+  { id:'m1', text:'доброго дня', client:{ clientName:'Орися Тиха', userName:'orysia_t' } },
+  { id:'m2', text:'скільки коштує?' }
+];
+ALL.push(MINE, MUTE);
+
+let hits = [];           // які шляхи в нас питали — це теж перевірка
 const srv = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   if(u.pathname.indexOf('/crm/') === 0){
-    [...u.searchParams.keys()].forEach(k => { if(asked.indexOf(k) < 0) asked.push(k); });
-    /* Одна розмова за ідентифікатором — саме так і перевіряється вставлене
-       посилання. Той самий шлях, яким Sitniks віддає діалог. */
+    hits.push(u.pathname + u.search);
+    const json = (code, body) => {
+      res.writeHead(code, { 'Content-Type':'application/json',
+                            'Access-Control-Allow-Origin':'*' });
+      res.end(JSON.stringify(body));
+    };
+    /* Стрічка повідомлень однієї розмови. */
+    const msgs = /^\/crm\/chats\/([0-9a-f]{8,})\/messages$/i.exec(u.pathname);
+    if(msgs) return json(200, msgs[1] === MUTE.id ? MUTE_MSGS : []);
+    /* Одна розмова за ідентифікатором — саме так і перевіряється посилання. */
     const one = /^\/crm\/chats\/([0-9a-f]{8,})$/i.exec(u.pathname);
     if(one){
       const hit = ALL.find(c => c.id === one[1]);
-      res.writeHead(hit ? 200 : 404, { 'Content-Type':'application/json',
-                                       'Access-Control-Allow-Origin':'*' });
-      res.end(JSON.stringify(hit || { error:'not found' }));
-      return;
+      return json(hit ? 200 : 404, hit || { error:'not found' });
     }
-    /* Сторінки — зсувом. Перший запит без параметрів віддає рівно десять:
-       саме так поводиться справжній Sitniks, і саме це ламало арифметику. */
-    const off = +(u.searchParams.get('offset') || u.searchParams.get('skip') || 0);
-    const lim = +(u.searchParams.get('limit') || u.searchParams.get('take') || 0);
-    let out = lim ? ALL.slice(off, off + lim) : CHATS;
-    if(mode === 'real'){
-      /* Справжній пошук живе під іменем «q» — навмисно НЕ під тим, що ми
-         підставляли навмання. Система має знайти його сама. */
-      const q = (u.searchParams.get('q') || '').toLowerCase();
-      out = (q ? CHATS.filter(c => JSON.stringify(c).toLowerCase().indexOf(q) >= 0) : CHATS)
-              .map(c => Object.assign({ clientName: 'Асія Дерещук' }, c));
-    }
-    res.writeHead(200, { 'Content-Type':'application/json',
-                         'Access-Control-Allow-Origin':'*' });
-    res.end(JSON.stringify(out));
-    return;
+    return json(200, []);
   }
   const f = path.join(ROOT, decodeURIComponent(u.pathname).replace(/^\/+/, ''));
   try{
@@ -98,20 +94,26 @@ let bad = 0;
 const ok = (c, good, wrong) => { console.log('  ' + (c ? good + ' ✓' : wrong + ' ✗')); if(!c) bad++; };
 const errs = [];
 
-const ORDER = {
-  id:'1', orderId:'1000801', type:'client', name:'Асія', instagram:'asia_dera',
-  phone:'+380670000801', status:'new', site:'main',
+const mkOrder = (n, extra) => Object.assign({
+  id:String(n), orderId:'100080' + n, type:'client', phone:'+38067000080' + n,
+  status:'new', site:'main',
   tracks:{ design:'new', supply:'todo', test:'wait', prod:'lock', qc:'wait', ship:'wait' },
   createdAt:new Date().toISOString(), hist:[], totalPrice:35140,
   items:[{ kind:'main', name:'Худі', color:'чорне', garmentId:'hoodie', qty:30,
            unitPrice:1171, price:35140 }]
-};
+}, extra);
+/* Картка порожня — саме така й буває, коли людина щойно написала в Instagram. */
+const ORDER = mkOrder(1, { name:'', instagram:'' });
+/* А в цій імʼя й нік уже вписані руками — їх затирати не можна. */
+const ORDER2 = mkOrder(2, { name:'Петро Вписаний', instagram:'ручний_нік' });
+/* Третя — для розмови, що про співрозмовника мовчить. */
+const ORDER3 = mkOrder(3, { name:'', instagram:'' });
 const CONTENT = { team: [], bgApi: { sitniksUrl: HOST + '/crm' } };
 
 function stub(){
   let s = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
   s = s.replace('window.firebase={',
-    'window.__ORDERS=' + JSON.stringify([ORDER]) + ';\n' +
+    'window.__ORDERS=' + JSON.stringify([ORDER, ORDER2, ORDER3]) + ';\n' +
     '  window.__CONTENT=' + JSON.stringify(CONTENT) + ';\n  window.firebase={');
   s = s.replace(
     'Col.prototype.doc=function(){ return new Doc(); };',
@@ -148,234 +150,161 @@ await p.route('**://**', r => {
 });
 await p.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
 await p.waitForTimeout(5500);
-await p.click('.ticket:has-text("1000801")');
-await p.waitForTimeout(900);
 
-const read = () => p.evaluate(() => {
-  const box = document.querySelector('.od-seek');
-  if(!box) return { err:'блоку пошуку немає' };
-  return {
-    note: (((box.querySelector('.od-crm-note') || {}).textContent) || '').replace(/\s+/g, ' ').trim(),
-    filter: (box.querySelector('.od-seek-in') || {}).value,
-    cnt: ((box.querySelector('.od-seek-cnt') || {}).textContent || '').trim(),
-    more: !!box.querySelector('[data-seek-more]'),
-    rows: [...box.querySelectorAll('.od-seek-r')].map(r => ({
-      nm: (r.querySelector('.od-seek-nm') || {}).textContent.trim(),
-      p: ((r.querySelector('.od-seek-p') || {}).textContent || '').trim(),
-      id: ((r.querySelector('.od-seek-id') || {}).textContent || '').trim(),
-      ch: ((r.querySelector('.od-seek-ch') || {}).textContent || '').trim() }))
-  };
-});
-const seek = async () => {
-  await p.evaluate(() => { const b = document.querySelector('.od-ig-find'); if(b) b.click(); });
-  await p.waitForTimeout(2200);
-  return read();
+const openCard = async num => {
+  // Панель попередньої картки перекриває дошку — спершу закриваємо її.
+  await p.evaluate(() => { const b = document.querySelector('[data-od-close]'); if(b) b.click(); });
+  await p.waitForTimeout(500);
+  await p.click('.ticket:has-text("' + num + '")');
+  await p.waitForTimeout(900);
 };
+/* Відкрити блок привʼязки тією ж кнопкою, що й менеджер. */
+const openBind = async () => {
+  await p.evaluate(() => { const b = document.querySelector('.od-ig-find'); if(b) b.click(); });
+  await p.waitForTimeout(500);
+};
+/* Картки в `orders` лежать у порядку дошки, а не в тому, як ми їх подали —
+   тож шукаємо свою за номером, а не за місцем у масиві. */
+const ordOf = num => p.evaluate(n => {
+  const o = orders.find(x => x.orderId === n) || {};
+  return { id:o.crmChatId || '', who:o.crmChatName || '', name:o.name || '',
+           ig:o.ig || '', instagram:o.instagram || '', seek:!!crmSeek[o.id] };
+}, num);
+const paste = url => p.evaluate(async u => {
+  const inp = document.querySelector('.od-seek-url');
+  if(!inp) return { err:'поля для посилання немає' };
+  inp.value = u;
+  document.querySelector('[data-seek-bind]').click();
+  await new Promise(r => setTimeout(r, 1400));
+  return {};
+}, url);
 
-console.log('═══ ШУКАЄМО ЗА ІМЕНЕМ І ПОКАЗУЄМО ЗБІГ ═══');
-/* Поле одне, і в ньому імʼя клієнта з картки. Раніше пошук починався з
-   нікнейма — а нікнейма в даних Sitniks може не бути взагалі, і розмова з
-   «Анастасія Дера» не знаходилась при повному списку на екрані. */
-const r1 = await seek();
-if(r1.err){ console.log('  ' + r1.err); bad++; }
+await openCard('1000801');
+
+console.log('═══ НА ЕКРАНІ ЛИШЕ ПОЛЕ ДЛЯ ПОСИЛАННЯ ═══');
+/* Головне, заради чого все переробляли: купи чужих діалогів більше немає, і
+   по список ми навіть не ходимо. */
+hits = [];
+await openBind();
+const seen = await p.evaluate(() => {
+  const box = document.querySelector('.od-seek');
+  if(!box) return { err:'блоку привʼязки немає' };
+  return { url: !!box.querySelector('.od-seek-url'),
+           go: !!box.querySelector('[data-seek-bind]'),
+           hint: (box.querySelector('.od-seek-hint') || {}).textContent || '',
+           rows: box.querySelectorAll('.od-seek-r, [data-seek]').length,
+           more: box.querySelectorAll('[data-seek-more], [data-seek-all], [data-seek-raw]').length,
+           filter: box.querySelectorAll('.od-seek-in').length,
+           focus: document.activeElement === box.querySelector('.od-seek-url') };
+});
+if(seen.err){ console.log('  ' + seen.err); bad++; }
 else {
-  console.log('  показано: ' + r1.cnt + ' · у полі: «' + r1.filter + '»');
-  r1.rows.forEach(r => console.log('    • ' + r.nm + (r.p ? ' — ' + r.p : '')));
-  ok(r1.filter === 'Асія',
-    'у полі одразу стоїть імʼя клієнта з картки, а не нік',
-    'у полі не те: «' + r1.filter + '»');
-  ok(r1.rows.length === 1 && /Дерещук/.test(r1.rows[0].nm),
-    'на екрані лише розмова цього клієнта, а не купа чужих',
-    'показали не те: ' + JSON.stringify(r1.rows.map(r => r.nm)));
-  ok(!r1.note,
-    'коли збіг знайшовся, про влаштування чужого API не пишемо — воно тут ні до чого',
-    'зайве пояснення при знайденому збігу: ' + r1.note.slice(0, 90));
-  ok(!/номером замовлення/i.test(r1.note),
-    'поради про номер замовлення немає — на цьому етапі його ще не існує',
-    'лишилась непридатна порада про номер замовлення');
-  ok(!r1.rows.some(r => /^чат [0-9a-f]{12,}/.test(r.nm)),
-    'жоден рядок не підписаний шістнадцятковим номером',
-    'рядок називається номером чату');
+  ok(seen.url && seen.go, 'є поле для посилання й кнопка «Привʼязати»',
+     'поля привʼязки немає');
+  ok(!seen.rows, 'жодного чужого діалогу на екрані',
+     'на екрані знову список чужих розмов: ' + seen.rows);
+  ok(!seen.more && !seen.filter,
+     'ні «Показати ще», ні фільтра, ні сирої відповіді — нічого другорядного',
+     'лишились рештки пошуку по списку');
+  ok(!hits.length,
+     'у Sitniks по список діалогів навіть не ходили',
+     'усе одно читали список: ' + hits.join(', '));
+  ok(/скопіюйте адресу/i.test(seen.hint) && /Імʼя й нік/i.test(seen.hint),
+     'підказка каже, що робити і що звідти підтягнеться',
+     'підказка не пояснює дію: «' + seen.hint.trim().slice(0, 90) + '»');
+  ok(seen.focus, 'курсор одразу в полі — можна вставляти без зайвого кліку',
+     'у поле треба ще клікнути окремо');
 }
 
 console.log('');
-console.log('═══ ЗБІГУ НЕМАЄ — ТОДІ Й ПОЯСНЮЄМО ═══');
-const none = await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Пилипенко';
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(r => setTimeout(r, 400));
-  const box = document.querySelector('.od-seek');
-  return { note: (((box.querySelector('.od-crm-note') || {}).textContent) || '').replace(/\s+/g, ' ').trim(),
-           rows: box.querySelectorAll('.od-seek-r').length };
-});
-console.log('  ' + none.note.slice(0, 120));
-ok(none.rows === 0,
-  'чужих розмов не показуємо, коли шукали не їх',
-  'на екрані чужі діалоги: ' + none.rows);
-ok(/збігу немає/i.test(none.note) && /посилання на розмову/i.test(none.note),
-  'а тепер пояснюємо, чому збігу немає і що зробити замість пошуку',
-  'пояснення немає: «' + none.note.slice(0, 90) + '»');
-/* Повертаємо імʼя назад для наступних перевірок. */
-await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Асія';
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(r => setTimeout(r, 300));
-});
+console.log('═══ ЗІ СМІТТЯ НІЧОГО НЕ ПРИВʼЯЗУЄТЬСЯ ═══');
+/* Помилково привʼязана чужа розмова гірша за жодну. */
+await paste('просто текст');
+const junk = await ordOf('1000801');
+ok(!junk.id, 'із тексту, який не є посиланням, нічого не привʼязується',
+   'привʼязали казна-що: ' + junk.id);
 
 console.log('');
-console.log('═══ ФІЛЬТР ЗВУЖУЄ СПИСОК ═══');
-/* Імʼя в даних є, нікнейма може не бути зовсім — саме тому фільтруємо по
-   імені. Друкуємо, як людина, і дивимось, що лишилось. */
-const typed = await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Дерещук';   // прізвище, якого немає в жодного іншого
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(r => setTimeout(r, 400));
-  const box = document.querySelector('.od-seek');
-  return { rows: box.querySelectorAll('.od-seek-r').length,
-           cnt: (box.querySelector('.od-seek-cnt') || {}).textContent.trim(),
-           focus: document.activeElement === document.querySelector('.od-seek-in') };
-});
-console.log('  ' + typed.cnt + ' · рядків ' + typed.rows);
-ok(typed.rows === 1 && /із 10/.test(typed.cnt),
-  'за імʼям лишилась тільки його розмова, решта відсіялась',
-  'фільтр не звузив список: ' + typed.rows + ' рядків із «' + typed.cnt + '»');
-ok(typed.focus,
-  'поле не губить фокус після перемальовування — можна друкувати далі',
-  'після першої літери фокус зник, друкувати нікуди');
-
-console.log('');
-console.log('═══ СПИСОК ГОРТАЄТЬСЯ БЕЗ ПРОПУСКІВ ═══');
-/* Перший запит віддає десять діалогів, наступні — по пʼятдесят. Перша версія
-   брала розмір сторінки за 50 і просила offset=50: діалоги 11–50 не читались
-   узагалі. Потрібна розмова лежить саме там, тож перевірка проста — чи
-   знайдеться вона й чи немає діри в прочитаному. */
-const scan = await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-in');
-  inp.value = 'Дерещук';
-  inp.dispatchEvent(new Event('input', { bubbles:true }));
-  await new Promise(r => setTimeout(r, 300));
-  const b = document.querySelector('[data-seek-more]');
-  if(!b) return { err:'кнопки немає' };
-  b.click();
-  for(let k = 0; k < 60 && !document.querySelector('[data-seek-more]'); k++){
-    await new Promise(r => setTimeout(r, 200));
-  }
-  await new Promise(r => setTimeout(r, 600));
-  const st = crmSeek[Object.keys(crmSeek)[0]];
-  const ids = st.results.map(r => r.chatId);
-  return { total: ids.length,
-           uniq: new Set(ids).size,
-           /* Діра в прочитаному: чи всі номери від першого до останнього на
-              місці. Саме дірою й був пропущений проміжок. */
-           gap: ids.some((x, i) => i > 0 && +x.slice(4, 7) !== +ids[i - 1].slice(4, 7) + 1),
-           rows: [...document.querySelectorAll('.od-seek-r .od-seek-nm')].map(x => x.textContent.trim()) };
-});
-console.log('  прочитано ' + scan.total + ' (унікальних ' + scan.uniq +
-            ') · знайдено: ' + JSON.stringify(scan.rows));
-ok(!scan.gap,
-  'прочитано підряд, без пропущеного вікна',
-  'у прочитаному лишилась діра — частину діалогів пропустили');
-ok(scan.total === scan.uniq,
-  'жодного діалогу не прочитано двічі',
-  'є дублікати: ' + scan.total + ' записів, ' + scan.uniq + ' унікальних');
-ok(scan.rows.length === 2,
-  'розмова, що лежала за першою десяткою, знайшлась після «Показати ще»',
-  'давнішу розмову так і не знайшли: ' + JSON.stringify(scan.rows));
-ok(scan.total < 120,
-  'гортання зупинилось, щойно знайшло — не вивантажувало всю базу',
-  'прочитали весь список замість того, щоб спинитись на збігу');
-
-console.log('');
-console.log('');
-console.log('═══ ВІДПОВІДЬ CRM ВИДНО ═══');
-const raw = await p.evaluate(async () => {
-  const b = document.querySelector('[data-seek-raw]'); if(b) b.click();
-  await new Promise(r => setTimeout(r, 300));
-  const el = document.querySelector('.od-seek-raw');
-  return el ? el.textContent.slice(0, 200) : '';
-});
-ok(/lastMessage/.test(raw) && /userName/.test(raw),
-  'видно справжню відповідь CRM — саме з неї й дізнаються назви полів',
-  'відповідь CRM не показується');
-
-console.log('');
-console.log('═══ СПРАВЖНІЙ ПАРАМЕТР ЗНАХОДИТЬСЯ САМ ═══');
-/* На сервері пошук живе під іменем «q», а ми починали з «search». Система має
-   перебрати звичні назви й знайти робочу, не питаючи нікого. */
-mode = 'real'; asked = [];
-await p.evaluate(() => {
-  for(const k in crmSeek) delete crmSeek[k];
-  crmParamFound = null; crmPageFound = null;
-});
-const r2 = await seek();
-console.log('  питали параметри: ' + asked.join(', '));
-console.log('  ' + (r2.note ? r2.note.slice(0, 90) : '(попереджень немає)'));
-r2.rows.forEach(r => console.log('    • ' + r.nm + '  [' + r.id + ']'));
-ok(asked.indexOf('q') >= 0,
-  'система сама дійшла до робочої назви параметра',
-  'робочий параметр не пробували: ' + asked.join(', '));
-ok(!r2.note,
-  'коли пошук працює, ніяких пояснень не потрібно — вони б лише заважали',
-  'зайве попередження при робочому пошуку: ' + r2.note.slice(0, 80));
-ok(r2.rows.length === 1 && r2.rows[0].nm === 'Асія Дерещук',
-  'рядок підписаний іменем клієнта',
-  'рядок названий не іменем: ' + JSON.stringify(r2.rows));
-ok(r2.rows.length === 1 && /Instagram/.test(r2.rows[0].ch),
-  'і видно канал, з якого прийшла розмова',
-  'канал не визначився: ' + JSON.stringify(r2.rows[0]));
-ok(!r2.more,
-  'кнопки підвантаження немає — коли CRM шукає, гортати весь список ні до чого',
-  'кнопка підвантаження лишилась при робочому пошуку');
-
-console.log('');
-console.log('═══ ПРИВʼЯЗКА ЗА ПОСИЛАННЯМ ═══');
-/* Головний шлях. Пошуку в Sitniks по API немає, а в робочому акаунті сотні
-   діалогів за півдня — потрібна розмова вже за день лежить на кількатисячній
-   позиції. Але менеджер у цю мить і так стоїть у ній відкритій, тож беремо
-   адресу звідти.
-
-   Спершу перевіряємо, що зі сміття нічого не прив'яжеться: помилково
-   привʼязана чужа розмова гірша за жодної. */
-const junk = await p.evaluate(async () => {
-  const inp = document.querySelector('.od-seek-url');
-  if(!inp) return { err:'поля для посилання немає' };
-  inp.value = 'просто текст';
-  document.querySelector('[data-seek-bind]').click();
-  await new Promise(r => setTimeout(r, 700));
-  return { id: orders[0].crmChatId || '' };
-});
-if(junk.err){ console.log('  ' + junk.err); bad++; }
-else ok(!junk.id,
-  'із тексту, який не є посиланням, нічого не привʼязується',
-  'привʼязали казна-що: ' + junk.id);
-
-const DEEP = 'https://web.sitniks.com/1503/chats/dialog/' + ALL[77].id;
-const bound = await p.evaluate(async url => {
-  const inp = document.querySelector('.od-seek-url');
-  inp.value = url;
-  document.querySelector('[data-seek-bind]').click();
-  await new Promise(r => setTimeout(r, 1500));
-  const o = orders[0];
-  return { id: o.crmChatId || '', name: o.crmChatName || '', seek: !!crmSeek[o.id] };
-}, DEEP);
-console.log('  привʼязано: ' + bound.id + ' · ' + bound.name);
-ok(bound.id === ALL[77].id,
-  'розмова привʼязалась за адресою — навіть та, що лежить на 78-й позиції',
-  'привʼязка не спрацювала: ' + JSON.stringify(bound));
-ok(/Клієнт 77/.test(bound.name),
-  'імʼя співрозмовника підтягнулось — видно, кого саме привʼязали',
-  'імені немає: ' + JSON.stringify(bound));
+console.log('═══ ПОСИЛАННЯ ПРИВʼЯЗУЄ РОЗМОВУ Й ТЯГНЕ ЛЮДИНУ В КАРТКУ ═══');
+await paste('https://web.sitniks.com/1503/chats/dialog/' + MINE.id);
+const bound = await ordOf('1000801');
+console.log('  привʼязано ' + bound.id + ' · імʼя «' + bound.name + '» · нік «' + bound.ig + '»');
+ok(bound.id === MINE.id,
+   'розмова привʼязалась за адресою — хоч би де вона лежала в списку',
+   'привʼязка не спрацювала: ' + JSON.stringify(bound));
+ok(bound.name === 'Асія Дерещук',
+   'імʼя з розмови саме стало в картку — руками його не переписують',
+   'імʼя не підтягнулось: «' + bound.name + '»');
+ok(bound.ig === 'asia_dera' && bound.instagram === 'asia_dera',
+   'нік із розмови теж переїхав у картку',
+   'нік не підтягнувся: «' + bound.ig + '» / «' + bound.instagram + '»');
+ok(bound.who === 'Асія Дерещук',
+   'у шапці розмови видно, кого саме привʼязали',
+   'розмова підписана не іменем: «' + bound.who + '»');
 ok(!bound.seek,
-  'блок пошуку закрився — розмова знайдена, шукати більше нічого',
-  'блок пошуку лишився відкритим');
+   'блок привʼязки закрився — розмова знайдена, робити тут більше нічого',
+   'блок привʼязки лишився відкритим');
+console.log('');
+console.log('═══ ПОМИЛКОВУ АДРЕСУ МОЖНА СКАСУВАТИ ═══');
+/* Адреса береться з сусідньої вкладки, тож вставити не ту — звична помилка.
+   Раніше кнопка привʼязки після цього зникала, а блок Sitniks у картці з
+   привʼязаним чатом не показується взагалі: скасувати не було чим. */
+await openBind();
+const back = await p.evaluate(() => {
+  const box = document.querySelector('.od-seek');
+  if(!box) return { err:'блок не відкривається, коли розмова вже привʼязана' };
+  return { who: ((box.querySelector('.od-seek-who') || {}).textContent || '').trim(),
+           unlink: !!box.querySelector('.od-crm-unlink') };
+});
+if(back.err){ console.log('  ' + back.err); bad++; }
+else {
+  ok(back.who === 'Асія Дерещук' && back.unlink,
+     'видно, кого привʼязано, і поруч «Відвʼязати»',
+     'скасувати привʼязку нічим: ' + JSON.stringify(back));
+  const off = await p.evaluate(async () => {
+    document.querySelector('.od-crm-unlink').click();
+    await new Promise(r => setTimeout(r, 600));
+    return (orders.find(x => x.orderId === '1000801') || {}).crmChatId || '';
+  });
+  ok(!off, 'розмова відвʼязалась', 'розмова лишилась привʼязаною: ' + off);
+  // Повертаємо її назад — далі перевіряємо вже інші картки.
+  await paste('https://web.sitniks.com/1503/chats/dialog/' + MINE.id);
+}
+
+console.log('');
+console.log('═══ ВПИСАНЕ РУКАМИ CRM НЕ ЗАТИРАЄ ═══');
+await openCard('1000802');
+await openBind();
+await paste('https://web.sitniks.com/1503/chats/dialog/' + MINE.id);
+const kept = await ordOf('1000802');
+console.log('  імʼя «' + kept.name + '» · нік «' + kept.ig + '»');
+ok(kept.id === MINE.id, 'розмова привʼязалась', 'розмова не привʼязалась');
+ok(kept.name === 'Петро Вписаний' && kept.ig === 'ручний_нік',
+   'вписане руками лишилось як було — правку менеджера відповідь CRM не затирає',
+   'CRM затерла вписане руками: «' + kept.name + '» / «' + kept.ig + '»');
+ok(kept.who === 'Асія Дерещук',
+   'але видно, з ким насправді розмова — розбіжність помітна одразу',
+   'співрозмовника не видно: «' + kept.who + '»');
+
+console.log('');
+console.log('═══ РОЗМОВА МОВЧИТЬ — ЧИТАЄМО ЛЮДИНУ З ПОВІДОМЛЕНЬ ═══');
+/* У самому діалозі співрозмовника може не бути взагалі. Тоді картка лишалась
+   підписаною шістнадцятковим номером — хоча імʼя стоїть під кожним
+   повідомленням. */
+await openCard('1000803');
+await openBind();
+await paste('https://web.sitniks.com/1503/chats/dialog/' + MUTE.id);
+const deep = await ordOf('1000803');
+console.log('  імʼя «' + deep.name + '» · нік «' + deep.ig + '»');
+ok(deep.id === MUTE.id, 'розмова привʼязалась', 'розмова не привʼязалась');
+ok(deep.name === 'Орися Тиха' && deep.ig === 'orysia_t',
+   'людину дочитали зі стрічки повідомлень, коли діалог про неї мовчить',
+   'картка лишилась без людини: «' + deep.name + '» / «' + deep.ig + '»');
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
-                : 'пошук більше не видає початок списку за знайдене');
+                : 'привʼязка за посиланням — єдиний шлях, і людина тягнеться з розмови');
 await browser.close();
 srv.close();
 process.exit(bad ? 1 : 0);
