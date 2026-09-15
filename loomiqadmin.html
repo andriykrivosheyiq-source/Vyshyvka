@@ -1522,7 +1522,13 @@
      на кілька рядків і саме росте під текст. */
   .od-note{width:100%;resize:vertical;line-height:1.5;font-size:13px;
     min-height:56px;padding:10px 12px;border-radius:9px;}
-  /* Пошук діалогу в Sitniks — коли Telegram у клієнта немає */
+  /* Привʼязка розмови Sitniks — коли Telegram у клієнта немає.
+
+     Списку діалогів тут більше немає навмисно. Пошуку в Sitniks по API не
+     існує, тож «пошук» був насправді початком загального списку діалогів —
+     а в робочому акаунті це сотні роздрібних розмов за півдня, серед яких
+     потрібної немає ніколи. Лишилась одна дія: вставити адресу відкритої
+     розмови. */
   .od-igrow{display:flex;gap:6px;align-items:stretch;min-width:0;}
   .od-igrow .od-f{flex:1;min-width:0;}
   .od-ig-find{flex:none;width:32px;border:1px solid var(--line);border-radius:7px;
@@ -1531,46 +1537,17 @@
   .od-seek{margin-top:8px;border:1px solid var(--line);border-radius:10px;
     background:var(--canvas);padding:9px 10px;}
   .od-seek-h{font-size:11.5px;color:var(--ink-soft);margin-bottom:7px;}
-  .od-seek-r{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
-    background:var(--paper);border:1px solid var(--line);border-radius:8px;
-    padding:7px 9px;margin-top:5px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink);}
-  .od-seek-r:hover{border-color:var(--accent);}
-  .od-seek-r[disabled]{opacity:.55;cursor:default;}
-  /* Рядок знайденої розмови читається згори вниз: хто, про що, коли.
-     Службовий номер чату — дрібним і останнім, він тут ні про що не каже. */
-  .od-seek-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
-  .od-seek-nm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .od-seek-p{font-size:11.5px;color:var(--ink-soft);overflow:hidden;
-    text-overflow:ellipsis;white-space:nowrap;}
-  .od-seek-id{font-size:10.5px;color:var(--muted);overflow:hidden;
-    text-overflow:ellipsis;white-space:nowrap;}
-  .od-seek-ch{flex:none;align-self:center;font-size:10.5px;padding:1px 7px;border-radius:20px;
-    background:#EEF2FF;color:#3B4A9E;}
-  /* Привʼязка за посиланням — головний шлях, тож стоїть першим і виглядає як
-     дія, а не як службове поле. */
-  .od-seek-bind{display:flex;align-items:center;gap:8px;margin:8px 0 4px;}
+  .od-seek-now{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .od-seek-who{font-weight:600;font-size:12.5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .od-seek-bind{display:flex;align-items:center;gap:8px;margin:0 0 4px;}
   .od-seek-url{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:8px 10px;
     border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
   .od-seek-url:focus{outline:none;border-color:var(--accent);}
   .od-seek-go{all:unset;cursor:pointer;flex:none;padding:8px 14px;border-radius:8px;
     background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;}
   .od-seek-go[disabled]{opacity:.5;cursor:default;}
-  .od-seek-hint{font-size:10.5px;color:var(--muted);line-height:1.4;margin-bottom:8px;}
-  /* Фільтр над списком. Коли CRM не шукає, це єдиний робочий пошук, тож поле
-     стоїть на видноті, а не ховається за кнопкою. */
-  .od-seek-flt{display:flex;align-items:center;gap:8px;margin:8px 0 4px;}
-  .od-seek-in{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:7px 10px;
-    border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
-  .od-seek-in:focus{outline:none;border-color:var(--accent);}
-  .od-seek-cnt{flex:none;font-size:10.5px;color:var(--muted);font-weight:700;}
-  .od-seek-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
-  .od-seek-more{all:unset;cursor:pointer;font-size:11.5px;font-weight:700;
-    color:var(--accent-deep);background:var(--accent-soft);padding:3px 9px;border-radius:7px;}
-  .od-seek-tried{font-size:10.5px;color:var(--muted);flex:1;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .od-seek-raw{margin:8px 0 0;padding:8px 9px;border-radius:8px;background:var(--paper);
-    border:1px solid var(--line);font-size:10.5px;line-height:1.4;max-height:260px;
-    overflow:auto;white-space:pre-wrap;word-break:break-word;}
+  .od-seek-hint{font-size:10.5px;color:var(--muted);line-height:1.4;}
   .od-crm-linked{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
   .od-crm-unlink{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
     padding:3px 8px;border-radius:7px;background:var(--canvas);}
@@ -15245,188 +15222,75 @@ async function crmFetch(path, options){
   try{ return JSON.parse(text); }catch(e){ return {}; }
 }
 
-/* ── Пошук діалогу за інстаграмом ─────────────────────────────────────────
+/* ── Привʼязка розмови Sitniks ────────────────────────────────────────────
    Половина звернень приходить не в Telegram, а в Instagram — там номера
-   замовлення ще немає, тільки нік. Менеджер ішов шукати людину в Sitniks
+   замовлення ще немає, тільки розмова. Менеджер ішов шукати людину в Sitniks
    руками, і саме на цьому переході губився контекст картки.
 
-   Тому пошук стоїть угорі, біля поля «інстаграм», а не внизу біля стрічки:
-   спершу знаходимо співрозмовника, і аж тоді зʼявляється розмова. Якщо
-   Telegram у клієнта є — кнопки немає взагалі, там розмова вже своя.
+   Пошуку по API в Sitniks немає — документація закрита, і жодна зі звичних
+   назв параметра не працює: невідомий параметр там просто ігнорують і чемно
+   віддають ПОЧАТОК ЗАГАЛЬНОГО СПИСКУ діалогів. Ми довго обходили це читанням
+   списку сторінками й відсіюванням у себе, але в робочому акаунті це сотні
+   роздрібних розмов за півдня: потрібна вже за день лежить на кількатисячній
+   позиції, а на екрані щоразу купа чужих діалогів, серед яких легко привʼязати
+   не ту людину.
 
-   Документація Sitniks закрита, назва ендпоінта пошуку невідома. Тому
-   пробуємо кілька звичних варіантів підряд і чесно показуємо, що відповів
-   сервер: мовчазна порожнеча тут гірша за будь-яку помилку. */
-let crmSeek = {};   // orderId → { q, loading, err, tried, results }
+   Тож лишився один шлях — і саме тому він тут єдиний. Менеджер у цю мить і
+   так стоїть у відкритій розмові в Sitniks: беремо адресу звідти, а імʼя,
+   прізвище й нік читаємо з самої розмови. Переписувати руками те, що вже
+   написано в CRM, не потрібно нікому. */
+let crmSeek = {};   // orderId → { binding, bindErr } — стан поля привʼязки
 
 /* Блок зʼявляється лише тоді, коли розмову вже знайдено. Порожня форма
    «впишіть номер замовлення» стояла в кожній картці й нічого не давала:
-   вхід у Sitniks тепер один — лупа біля інстаграма вгорі. Поле з номером
+   вхід у Sitniks тепер один — кнопка біля ніка вгорі. Поле з номером
    лишається тільки в тих картках, де його колись уже заповнили. */
 function crmShow(o){
   return !!(o.crmChatId || o.crmOrder);
 }
-/* За чим шукати розмову. Спершу ІМʼЯ — саме імена Sitniks і віддає в списку
-   діалогів. Нік довго стояв першим, і через це пошук за `asia_dera` не
-   знаходив нічого: нікнейма в тих даних може не бути взагалі, а розмова з
-   «Anastasia Dera» лежала перед очима. */
-function crmSeekQuery(o){
-  const nm = String(o.name || '').trim();
-  if(nm) return nm;
-  const ig = String(o.instagram || '').trim()
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
-    .replace(/[/?].*$/, '').replace(/^@/, '');
-  if(ig) return ig;
-  return String(o.phone || '').replace(/[^\d+]/g, '');
-}
+/* Кнопка лишається й тоді, коли розмову вже привʼязано. Раніше вона зникала —
+   і скасувати помилкову адресу не було чим: блок Sitniks у картці з привʼязаним
+   чатом не показується взагалі. А вставити не ту адресу легко: вона береться з
+   сусідньої вкладки. */
 function crmSeekBtnHtml(o){
-  if(tgChatOf(o) || o.crmChatId || !crmBase()) return '';
-  return `<button class="od-ig-find" title="Знайти діалог із цим клієнтом у Sitniks">🔍</button>`;
+  if(tgChatOf(o) || !crmBase()) return '';
+  return `<button class="od-ig-find" title="${o.crmChatId
+    ? 'Змінити або відвʼязати розмову Sitniks'
+    : 'Привʼязати розмову з Sitniks за посиланням'}">🔗</button>`;
 }
 function crmSeekHtml(o){
   const s = crmSeek[o.id];
   if(!s) return '';
-  /* Заголовок більше не повторює запит: він стоїть у полі нижче, і писати
-     те саме двічі означало б підказувати людині, що поле не головне. */
-  const head = `<div class="od-seek-h">Розмова в Sitniks</div>`;
-  if(s.loading) return `<div class="od-seek">${head}<div class="od-empty">Шукаємо…</div></div>`;
-  if(s.err) return `<div class="od-seek">${head}<div class="od-crm-err">${escapeHtml(s.err)}</div></div>`;
-  if(!(s.results || []).length){
-    return `<div class="od-seek">${head}<div class="od-crm-note">Нічого не знайшлось.
-      Спробуйте інший нік або імʼя. Перевірені адреси: <b>${escapeHtml((s.tried||[]).join(', ') || '—')}</b>.</div></div>`;
-  }
-  /* Рядок має читатись очима. Ідентифікатор чату — не назва розмови, а
-     службовий номер: він іде дрібним хвостиком, і лише тоді, коли назвати
-     розмову більше нічим. */
-  const row = (r, i) => {
-    const title = r.name || r.nick || (r.peek ? '«' + r.peek + '»' : '') || 'без імені';
-    const tail = [r.nick && r.nick !== r.name ? '@' + r.nick : '', r.when].filter(Boolean).join(' · ');
-    const body =
-      `<span class="od-seek-main">
-         <span class="od-seek-nm">${escapeHtml(title)}</span>
-         ${r.peek && title !== '«' + r.peek + '»'
-            ? `<span class="od-seek-p">${escapeHtml(r.peek)}</span>` : ''}
-         <span class="od-seek-id">${escapeHtml(tail || ('чат ' + r.chatId).slice(0, 26))}</span>
-       </span>
-       ${r.channel ? `<span class="od-seek-ch">${escapeHtml(r.channel)}</span>` : ''}`;
-    return r.chatId
-      ? `<button class="od-seek-r" data-seek="${i}">${body}</button>`
-      // Запис без ідентифікатора чату відкрити нічим. Показуємо його поля —
-      // із них видно, як у цьому акаунті Sitniks називається потрібне.
-      : `<button class="od-seek-r" disabled title="У записі немає ідентифікатора чату. Поля: ${escapeHtml((r.keys||[]).join(', '))}">
-           ${body}<span class="od-seek-ch">без чату</span>
-         </button>`;
-  };
-  /* Головне попередження. Sitniks ігнорує наш параметр пошуку — отже перед
-     нами не знайдене, а просто початок списку діалогів. Видавати це за
-     результат пошуку не можна: менеджер обере навмання й привʼяже чужу
-     розмову.
-
-     Але й глухого кута тут бути не повинно. Раніше в цьому місці стояла
-     порада «знайдіть розмову в Sitniks і привʼяжіть за номером замовлення» —
-     непридатна, бо на цьому етапі номера ще не існує, це тільки діалог.
-     Тепер замість поради працює фільтр: список у нас уже є, у ньому є імена,
-     і відсіяти по імені можна тут-таки. */
-  /* Пошуку в Sitniks немає, тож шукаємо самі — по тому ж рядку, що й угорі.
-     Двох полів тут бути не повинно: людина вписує імʼя один раз. */
-  const keys = crmKeys(s);
-  const hits = (s.noFilter && keys.length)
-    ? s.results.filter(r => crmMatch(s, r)) : s.results;
-  const list = (s.noFilter && keys.length && !s.showAll) ? hits : s.results;
-  /* Головний шлях — вставити посилання на відкриту розмову. Він працює
-     завжди й не залежить ні від пошуку в їхньому API, ні від того, скільки в
-     акаунті діалогів. Тому стоїть першим, а не «якщо не знайшлось». */
-  const bind = `<div class="od-seek-bind">
-      <input type="text" class="od-seek-url" placeholder="Вставте посилання на розмову з Sitniks"
+  /* Коли розмова вже є, сюди повертаються здебільшого через помилку — тож
+     спершу видно, хто привʼязаний, і одразу поруч спосіб це скасувати. */
+  const now = o.crmChatId
+    ? `<div class="od-seek-now">
+         <span class="od-seek-who">${escapeHtml(o.crmChatName || ('чат ' + o.crmChatId))}</span>
+         <button class="od-crm-unlink">Відвʼязати</button>
+       </div>`
+    : '';
+  return `<div class="od-seek">
+    <div class="od-seek-h">Розмова в Sitniks</div>
+    ${now}
+    <div class="od-seek-bind">
+      <input type="text" class="od-seek-url" placeholder="${o.crmChatId
+        ? 'Вставте іншу адресу, щоб замінити' : 'Вставте посилання на розмову'}"
         value="" ${s.binding ? 'disabled' : ''}>
       <button class="od-seek-go" data-seek-bind ${s.binding ? 'disabled' : ''}>${
-        s.binding ? 'Перевіряємо…' : 'Привʼязати'}</button>
+        s.binding ? 'Читаємо…' : (o.crmChatId ? 'Замінити' : 'Привʼязати')}</button>
     </div>
-    <div class="od-seek-hint">Відкрийте розмову в Sitniks і скопіюйте адресу з рядка браузера.</div>
-    ${s.bindErr ? `<div class="od-crm-err">${escapeHtml(s.bindErr)}</div>` : ''}`;
-  /* Пошук за іменем лишається швидким шляхом для свіжих розмов. */
-  const box = `<div class="od-seek-flt">
-      <input type="text" class="od-seek-in" placeholder="Або знайдіть за іменем" value="${escapeHtml(s.q || '')}">
-      ${s.noFilter ? `<span class="od-seek-cnt">${hits.length} із ${s.results.length}</span>` : ''}
-    </div>`;
-  /* Пояснення — лише коли є що пояснювати. Коли збіг знайшовся, писати про
-     влаштування чужого API нема потреби: людина бачить свою розмову. */
-  /* Збігу немає — поле для посилання має бути вже перед очима, а не десь
-     вище: саме в цю мить воно й потрібне. Тому підказка каже прямо, що
-     робити далі, а само поле стоїть першим у блоці. */
-  const note = (s.noFilter && !hits.length && !s.loadingMore)
-    ? `<div class="od-crm-note"><b>Серед свіжих розмов збігу немає.</b>
-         Пошуку в Sitniks по API не існує, тож ми дивимось лише те, що встигли
-         прочитати — зараз ${s.results.length}. Шукати глибше немає сенсу: у вас
-         сотні діалогів за півдня. <b>Вставте посилання на розмову в поле вгорі</b>
-         — відкрийте її в Sitniks і скопіюйте адресу з рядка браузера.</div>`
-    : '';
-  const empty = (!list.length && !note)
-    ? `<div class="od-crm-note">${s.loadingMore
-         ? `Шукаємо «${escapeHtml(s.q)}»: прочитано ${s.results.length} діалогів…`
-         : 'Збігу немає.'}</div>`
-    : '';
-  /* Підвантаження наступних сторінок. Відфільтрувати можна лише те, що
-     встигли прочитати, тож коли пошуку немає, це єдиний спосіб дотягнутись до
-     давнішої розмови. */
-  const more = s.noFilter
-    ? (s.loadingMore
-        ? `<button class="od-seek-more" data-seek-stop>Зупинити · прочитано ${s.results.length}</button>`
-        : [ s.more ? `<button class="od-seek-more" data-seek-more>Показати ще</button>` : '',
-            (keys.length && hits.length < s.results.length)
-              ? `<button class="od-seek-more" data-seek-all>${s.showAll
-                   ? 'Лише збіги' : 'Усі прочитані · ' + s.results.length}</button>` : ''
-          ].filter(Boolean).join(''))
-    : '';
-  /* Що саме прислав Sitniks. Потрібно рівно для одного: побачити справжні
-     назви полів у цьому акаунті й прописати їх точно замість здогадок. */
-  const raw = s.showRaw && s.results[0]
-    ? `<pre class="od-seek-raw">${escapeHtml(JSON.stringify(s.results[0].raw, null, 1).slice(0, 2500))}</pre>`
-    : '';
-  const tail = `<div class="od-seek-f">
-      ${more}
-      <button class="od-seek-more" data-seek-raw>${s.showRaw ? 'Сховати' : 'Що прислав Sitniks'}</button>
-      <span class="od-seek-tried">${escapeHtml((s.tried || []).join(' · '))}</span>
-    </div>${raw}`;
-  return `<div class="od-seek">${head}${bind}${box}${note}${empty}${
-    list.map(r => row(r, s.results.indexOf(r))).join('')}${tail}</div>`;
+    <div class="od-seek-hint">Відкрийте розмову в Sitniks і скопіюйте адресу з рядка
+      браузера. Імʼя й нік підтягнуться з розмови самі.</div>
+    ${s.bindErr ? `<div class="od-crm-err">${escapeHtml(s.bindErr)}</div>` : ''}
+  </div>`;
 }
-
-/* Порядок навмисний: спершу чати (у них одразу є ідентифікатор розмови),
-   далі довідники людей — там нік теж зустрічається, але чат ще треба знайти. */
-const CRM_SEEK_PATHS = [
-  { p: '/chats',     chats: true  },
-  { p: '/clients',   chats: false },
-  { p: '/contacts',  chats: false },
-  { p: '/customers', chats: false }
-];
-/* Як зветься параметр пошуку — невідомо: документація Sitniks закрита. Тому
-   не вгадуємо одним словом, а пробуємо звичні назви й дивимось, чи щось
-   змінилось у відповіді. Знайдене запамʼятовуємо на весь сеанс: перебирати
-   щоразу по сім запитів безглуздо. */
-const CRM_SEEK_PARAMS = ['search', 'q', 'query', 'phrase', 'name', 'text'];
-/* Як зветься сторінка — теж невідомо, тож пробуємо звички. Але рахуємо не
-   «сторінками», а вже ПРОЧИТАНИМИ записами.
-
-   Перша версія брала розмір сторінки за 50 і просила offset=50. Sitniks же
-   першим запитом віддає десять. Виходило, що ми читали діалоги 1–10, потім
-   51–90, а проміжок 11–50 не читали взагалі — і розмова, яка лежала саме
-   там, «не знаходилась» при повному списку на екрані. Тепер зсув завжди
-   дорівнює тому, скільки вже маємо, і пропустити нічого неможливо. */
-const CRM_PAGE_SIZE = 50;
-const CRM_PAGE_PARAMS = [
-  (got, size) => 'offset=' + got + '&limit=' + CRM_PAGE_SIZE,
-  (got, size) => 'skip=' + got + '&take=' + CRM_PAGE_SIZE,
-  /* Сторінками — лише якщо знаємо їхній розмір, і лише коли він ділить те,
-     що вже прочитано, націло. Інакше «сторінка 2» знову пропустить хвіст. */
-  (got, size) => (size > 0 && got % size === 0) ? ('page=' + (got / size + 1)) : ''
-];
-/* Скільки діалогів готові перегорнути, поки шукаємо. Сотня запитів по
-   пʼятдесят — це вже не пошук, а вивантаження бази; на такому треба
-   зупинитись і сказати це прямо. */
-const CRM_SCAN_MAX = 600;
-let crmParamFound = null;   // '' = перевірили, пошуку немає; null = ще не пробували
-let crmPageFound = null;    // індекс у CRM_PAGE_PARAMS; -1 = сторінок немає
+/* Кнопка відкриває поле, друге натискання — закриває. Жодних запитів на
+   цьому кроці немає: питати в Sitniks нема чого, поки немає адреси. */
+function crmSeekOpen(o){
+  if(crmSeek[o.id]) delete crmSeek[o.id];
+  else crmSeek[o.id] = {};
+  renderOrderDrawer();
+}
 function crmChannelOf(r){
   /* Канал у Sitniks лежить то вгорі запису, то у вкладеному клієнті, то в
      останньому повідомленні — залежно від того, який це список. Дивимось у
@@ -15448,224 +15312,41 @@ function crmListOf(data){
                 data.clients || data.contacts || data.list)) || [];
   return Array.isArray(arr) ? arr : [];
 }
-/* Перший рядок розмови й коли вона була. Саме за ними менеджер упізнає
-   діалог, а не за шістнадцятковим номером: «привіт, цікавить 30 худі» скаже
-   більше, ніж «6aa81c02b81e7a16bf05bec4». Назви полів у Sitniks закриті, тож
-   пробуємо звичні й показуємо те, що знайшлось. */
-function crmPeek(r){
-  const v = [r.lastMessage, r.last_message, r.lastMessageText, r.preview,
-             r.snippet, r.text, r.message, r.body,
-             r.lastMessage && r.lastMessage.text,
-             r.last && r.last.text].find(x => typeof x === 'string' && x.trim());
-  return v ? String(v).replace(/\s+/g, ' ').trim().slice(0, 90) : '';
-}
-function crmWhen(r){
-  const v = [r.lastMessageAt, r.last_message_at, r.updatedAt, r.updated_at,
-             r.createdAt, r.created_at, r.date, r.time,
-             r.lastMessage && r.lastMessage.createdAt].find(x => x);
-  if(!v) return '';
-  const d = new Date(typeof v === 'number' ? (v < 1e12 ? v * 1000 : v) : v);
-  return isNaN(d) ? '' : dtUa(d.toISOString());
+/* Хто по той бік розмови. Людина в відповіді Sitniks лежить то вгорі запису,
+   то у вкладеному `client`/`contact` — залежно від того, який це ендпоінт.
+   Тому дивимось в обидва місця: інакше імʼя в відповіді є, але не читається,
+   і картка лишається підписаною шістнадцятковим номером чату. */
+function crmWho(r){
+  return [r, r && r.client, r && r.contact, r && r.chat]
+    .filter(x => x && typeof x === 'object');
 }
 function crmNick(r){
-  const v = [r.username, r.userName, r.login, r.nickname, r.nick,
-             r.instagram, r.clientUsername].find(x => typeof x === 'string' && x.trim());
-  return v ? String(v).replace(/^@/, '') : '';
+  for(const b of crmWho(r)){
+    const v = [b.username, b.userName, b.login, b.nickname, b.nick,
+               b.instagram, b.clientUsername].find(x => typeof x === 'string' && x.trim());
+    if(v) return String(v).trim().replace(/^@/, '');
+  }
+  return '';
 }
-/* Увесь текст запису одним рядком — за ним ми відсіюємо самі, коли Sitniks
-   не відсіяв. Ідентифікатори сюди не беремо: інакше пошук «81» збігався б із
-   половиною номерів чатів і знаходив би сміття. */
-function crmHay(r){
-  const out = [];
-  const walk = (v, depth) => {
-    if(depth > 3 || v == null) return;
-    if(typeof v === 'string'){ if(!/^[0-9a-f]{16,}$/i.test(v)) out.push(v.toLowerCase()); return; }
-    if(typeof v === 'number'){ return; }
-    if(Array.isArray(v)){ v.slice(0, 20).forEach(x => walk(x, depth + 1)); return; }
-    if(typeof v === 'object') Object.keys(v).slice(0, 30).forEach(k => walk(v[k], depth + 1));
-  };
-  walk(r, 0);
-  return out.join(' ');
+function crmName(r){
+  for(const b of crmWho(r)){
+    const v = [b.clientName, b.name, b.fullName, b.title]
+      .find(x => typeof x === 'string' && x.trim());
+    if(v) return String(v).trim();
+  }
+  return '';
 }
+/* Запис Sitniks → те, що ми з нього вміємо прочитати: розмова, імʼя, нік,
+   канал. Більше з нього нічого й не потрібно — саме це й переїжджає в
+   картку після привʼязки. */
 function crmNormFound(data, isChats){
-  return crmListOf(data).slice(0, 50).map(r => {
-    const nick = crmNick(r);
-    /* Імʼя лежить то вгорі запису, то у вкладеному клієнті — залежно від
-       того, який це список. Дивимось в обидва місця: інакше рядок лишався
-       без імені саме там, де воно є, і підписувався текстом повідомлення. */
-    const c = (r.client && typeof r.client === 'object') ? r.client
-            : (r.contact && typeof r.contact === 'object') ? r.contact : {};
-    const name = r.clientName || r.name || r.fullName || r.title ||
-                 c.clientName || c.name || c.fullName || nick || '';
-    return {
-      // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
-      // людей це id людини, і розмова за ним не відкриється.
-      chatId: String(r.chatId || r.chat_id || (r.chat && (r.chat.id || r.chat.chatId)) ||
-                     (isChats ? (r.id || '') : '') || ''),
-      name, nick, peek: crmPeek(r), when: crmWhen(r),
-      channel: crmChannelOf(r),
-      hay: crmHay(r),
-      keys: Object.keys(r || {}).slice(0, 14),
-      raw: r
-    };
-  }).filter(r => r.chatId || r.name);
-}
-/* Слово, якого в базі бути не може. Ним перевіряємо, чи Sitniks узагалі
-   шукає: якщо у відповідь на нього приходить той самий список, що й на
-   справжній нік, значить наш параметр ігнорують і ми дивимось просто початок
-   списку діалогів. Мовчати про це не можна — менеджер обере навмання. */
-const CRM_NOMATCH = 'zzqx7nomatch7913';
-function crmIds(list){ return (list || []).map(r => r.chatId).join('|'); }
-
-function crmUrl(path, param, val, page){
-  const q = [];
-  if(param && val) q.push(param + '=' + encodeURIComponent(val));
-  if(page) q.push(page);
-  return path + (q.length ? '?' + q.join('&') : '');
-}
-/* Завантажити одну сторінку списку. Повертає нормалізовані записи. */
-async function crmPage(cand, param, val, page){
-  const data = await crmFetch(crmUrl(cand.p, param, val, page));
-  return crmNormFound(data, cand.chats);
-}
-/* Чи вміє Sitniks шукати взагалі. Перевіряємо просто: беремо список без
-   параметра, потім із параметром — і дивимось, чи він змінився. Якщо ні,
-   параметр ігнорують, і ми бачимо просто початок списку діалогів.
-   Мовчати про це не можна: менеджер обере навмання. */
-async function crmFindParam(cand, q){
-  if(crmParamFound !== null) return crmParamFound;
-  let plain = [];
-  try{ plain = await crmPage(cand, '', '', ''); }catch(e){ return (crmParamFound = ''); }
-  const base = crmIds(plain);
-  for(const name of CRM_SEEK_PARAMS){
-    try{
-      const got = await crmPage(cand, name, q, '');
-      if(got.length && crmIds(got) !== base) return (crmParamFound = name);
-    }catch(e){ /* немає такого — пробуємо наступний */ }
-  }
-  return (crmParamFound = '');
-}
-/* Чи вміє Sitniks віддавати наступні сторінки. Друга сторінка має
-   відрізнятись від першої — інакше нам просто повертають те саме. */
-async function crmFindPage(cand, st){
-  if(crmPageFound !== null) return crmPageFound;
-  const first = crmIds(st.results);
-  const size = st.results.length;
-  for(let i = 0; i < CRM_PAGE_PARAMS.length; i++){
-    const tail = CRM_PAGE_PARAMS[i](size, size);
-    if(!tail) continue;
-    try{
-      const got = await crmPage(cand, st.param, st.q, tail);
-      if(got.length && crmIds(got) !== first) return (crmPageFound = i);
-    }catch(e){ /* не цей */ }
-  }
-  return (crmPageFound = -1);
-}
-async function crmDoSearch(o, qFromInput){
-  const q = String(qFromInput || crmSeekQuery(o)).trim();
-  if(!q){ toast('Впишіть інстаграм, імʼя або телефон — за ними й шукаємо'); return; }
-  crmSeek[o.id] = { q, loading: true };
-  renderOrderDrawer();
-  const tried = [];
-  let results = [], lastErr = '', cand = null, param = '';
-  for(const c of CRM_SEEK_PATHS){
-    try{
-      param = await crmFindParam(c, q);
-      results = await crmPage(c, param, q, '');
-      tried.push(c.p + (param ? ' ?' + param : ' (без пошуку)'));
-      if(results.length){ cand = c; break; }
-    }catch(e){
-      // 404/405 — такого ендпоінта просто немає, це не поломка. Решту помилок
-      // запамʼятовуємо: якщо не спрацює жоден шлях, покажемо останню.
-      if(e.status === 404 || e.status === 405) tried.push(c.p + ' —');
-      else { tried.push(c.p + ' ' + (e.status || '')); lastErr = e.message || ''; }
-    }
-  }
-  /* Фільтр за замовчуванням — ІМʼЯ клієнта, а не нік. У списку діалогів
-     Sitniks віддає саме імена; нікнейма в цих даних може не бути взагалі, і
-     фільтр по ньому не знайде нічого навіть тоді, коли розмова перед очима. */
-  /* Нік і імʼя тримаємо поруч із запитом: у Sitniks людину може бути
-     підписано будь-яким із них. */
-  const nick = String(o.instagram || '').trim()
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
-    .replace(/[/?].*$/, '').replace(/^@/, '');
-  crmSeek[o.id] = { q, q0: q, nick, name: String(o.name || '').trim(),
-    results, tried, cand, param,
-    noFilter: !param,
-    size: results.length, more: true, showRaw: false, showAll: false,
-    err: (!results.length && lastErr) ? lastErr : '' };
-  renderOrderDrawer();
-  /* Автоматичного гортання тут немає навмисно. У робочому акаунті сотні
-     діалогів за півдня: гортати до потрібного означає десятки запитів і
-     хвилину очікування на кожен пошук. Не знайшлось серед свіжих — швидше
-     вставити посилання на розмову, ніж читати базу. */
-}
-/* Підвантажити наступну сторінку списку. Потрібне саме тоді, коли Sitniks не
-   шукає: відфільтрувати можна лише те, що встигли прочитати. */
-/* Прочитати наступну порцію. Повертає, скільки записів додалось. */
-async function crmSeekStep(st){
-  const mode = await crmFindPage(st.cand, st);
-  if(mode < 0){ st.more = false; return 0; }
-  const tail = CRM_PAGE_PARAMS[mode](st.results.length, st.size || st.results.length);
-  if(!tail){ st.more = false; return 0; }
-  const got = await crmPage(st.cand, st.param, st.q, tail);
-  const seen = {};
-  st.results.forEach(r => { seen[r.chatId] = 1; });
-  const fresh = got.filter(r => r.chatId && !seen[r.chatId]);
-  if(!fresh.length){ st.more = false; return 0; }
-  st.results = st.results.concat(fresh);
-  return fresh.length;
-}
-/* За чим звіряємо рядок списку. Не за одним словом, а за всіма, якими цю
-   людину може бути підписано в Sitniks: імʼя з картки, її нік, те, що
-   менеджер щойно набрав руками.
-
-   Це не примха. У списку діалогів Sitniks частину людей підписано іменем
-   («Власова Ирина»), а частину — ніком («soulvo_l», «tetianatetiana8229»).
-   Пошук лише за іменем не знаходив других, пошук лише за ніком — перших. */
-function crmKeys(st){
-  /* Поки в полі стоїть те, що ми підставили самі, звіряємо за всіма
-     відомими підписами. Щойно менеджер набрав своє — слухаємось лише його:
-     інакше список не звузиться нижче наших здогадок, і людина подумає, що
-     поле не працює. */
-  const own = String(st.q || '').trim();
-  const list = (own && own !== String(st.q0 || '').trim())
-    ? [own] : [st.q, st.nick, st.name];
-  return list
-    .map(x => String(x || '').trim().toLowerCase().replace(/^@/, ''))
-    .filter(x => x.length >= 3)
-    .filter((x, i, a) => a.indexOf(x) === i);
-}
-function crmMatch(st, r){
-  const keys = crmKeys(st);
-  if(!keys.length) return true;
-  return keys.some(k => r.hay.indexOf(k) >= 0);
-}
-function crmHit(st){
-  if(!crmKeys(st).length) return 0;
-  return st.results.filter(r => crmMatch(st, r)).length;
-}
-/* Гортати самому, поки не знайдеться. Пошуку в Sitniks немає, тож єдиний
-   спосіб дістатись до вчорашньої розмови — прочитати список далі. Робити це
-   кліками по «Показати ще» означає сорок кліків; тому гортаємо самі, поки
-   не буде збігу або поки не впремось у стелю. Зупинити можна будь-коли. */
-async function crmSeekMore(o, auto){
-  const st = crmSeek[o.id];
-  if(!st || !st.cand || st.loadingMore) return;
-  st.loadingMore = true; st.stop = false;
-  renderOrderDrawer();
-  try{
-    do{
-      const added = await crmSeekStep(st);
-      renderOrderDrawer();
-      if(!added) break;
-      if(!auto) break;
-      if(crmHit(st)) break;
-      if(st.results.length >= CRM_SCAN_MAX){ st.capped = true; break; }
-    }while(!st.stop && st.more);
-  }catch(e){ st.more = false; }
-  st.loadingMore = false;
-  renderOrderDrawer();
+  return crmListOf(data).slice(0, 50).map(r => ({
+    // id як ідентифікатор чату беремо лише зі списку чатів: у довіднику
+    // людей це id людини, і розмова за ним не відкриється.
+    chatId: String(r.chatId || r.chat_id || (r.chat && (r.chat.id || r.chat.chatId)) ||
+                   (isChats ? (r.id || '') : '') || ''),
+    name: crmName(r), nick: crmNick(r), channel: crmChannelOf(r)
+  })).filter(r => r.chatId || r.name || r.nick);
 }
 
 /* ── Привʼязка за посиланням на розмову ──────────────────────────────────
@@ -15702,18 +15383,23 @@ async function crmBindUrl(o, text){
   const st = crmSeek[o.id] || (crmSeek[o.id] = {});
   st.binding = true; st.bindErr = '';
   renderOrderDrawer();
-  /* Перевіряємо одним запитом, що така розмова справді є, і заразом дістаємо
-     імʼя співрозмовника — щоб менеджер побачив, кого прив'язує. Якщо ендпоінт
-     перевірки закритий, привʼязуємо однаково: ідентифікатор узятий з їхньої ж
-     адреси, вигадати його нізвідки. */
-  let name = '';
+  /* Перевіряємо одним запитом, що така розмова справді є, і заразом читаємо з
+     неї співрозмовника: імʼя, нік, канал. Саме заради цього привʼязка й
+     робиться посиланням — менеджер не має переписувати руками те, що вже
+     написано в Sitniks.
+
+     Дивимось два шляхи: у самому діалозі людина є не завжди, а в стрічці
+     повідомлень вона підписана під кожним. Якщо обидва закриті — привʼязуємо
+     однаково: ідентифікатор узятий з їхньої ж адреси, вигадати його нізвідки. */
+  let who = null;
   for(const path of ['/chats/' + encodeURIComponent(id),
                      '/chats/' + encodeURIComponent(id) + '/messages']){
     try{
       const data = await crmFetch(path);
-      const one = crmNormFound(Array.isArray(data) ? data.slice(0, 1) : [data], true)[0];
-      if(one && one.name){ name = one.name; break; }
-      break;                       // відповів — розмова є, імені просто немає
+      const list = crmNormFound(Array.isArray(data) ? data : [data], true);
+      const one = list.find(r => r.name || r.nick);
+      if(one){ who = one; break; }
+      // Відповів, але назвати людину нічим — шукаємо в наступному місці.
     }catch(e){
       if(e.status && e.status !== 404 && e.status !== 405){
         st.binding = false;
@@ -15724,11 +15410,22 @@ async function crmBindUrl(o, text){
     }
   }
   st.binding = false;
-  await crmPickChat(o, { chatId:id, name: name || (o.name || '') });
+  await crmPickChat(o, { chatId:id, name:(who && who.name) || '',
+                         nick:(who && who.nick) || '', channel:(who && who.channel) || '' });
 }
+/* Привʼязати розмову до картки — і перенести в неї те, що в розмові вже
+   відоме. Порожні поля картки заповнюємо, заповнені не чіпаємо: людина могла
+   виправити імʼя руками, і затирати правку відповіддю CRM не можна. */
 async function crmPickChat(o, r){
   o.crmChatId = String(r.chatId);
-  o.crmChatName = r.name || '';
+  o.crmChatName = r.name || r.nick || '';
+  if(r.name && !String(o.name || '').trim()) o.name = r.name;
+  /* Нік кладемо в поле Instagram лише тоді, коли розмова справді звідти. Якщо
+     Sitniks каже «Viber» чи «Facebook», нік у цьому полі був би неправдою —
+     тоді досить імені співрозмовника, яке підставить chanFill. */
+  if(r.nick && !String(o.ig || '').trim() && !/^(Telegram|Viber|WhatsApp|Facebook)$/.test(r.channel || ''))
+    chanSet(o, 'ig', r.nick);
+  chanFill(o);                       // ніка немає зовсім — лишиться імʼя з розмови
   delete crmSeek[o.id];
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
   crmLoadChat(o);
@@ -16128,32 +15825,10 @@ function wireCrmBlock(panel, o){
     o.crmChatId ? crmLoadChat(o) : crmLoad(o, numEl ? numEl.value : null));
   const unlink = panel.querySelector('.od-crm-unlink');
   if(unlink) unlink.addEventListener('click', ()=> crmUnlink(o));
-  // Пошук живе вгорі картки, біля поля «інстаграм» — але вмикається звідси,
-  // разом з рештою Sitniks: усе про цю CRM в одному місці.
+  // Привʼязка живе вгорі картки, біля ніка — але вмикається звідси, разом з
+  // рештою Sitniks: усе про цю CRM в одному місці.
   const find = panel.querySelector('.od-ig-find');
-  if(find) find.addEventListener('click', ()=>{
-    const ig = panel.querySelector('[data-f="instagram"]');
-    // Нік могли щойно вписати й не зняти фокус — беремо просто з поля.
-    if(ig && ig.value.trim() && ig.value.trim() !== (o.instagram || '')) o.instagram = ig.value.trim();
-    crmDoSearch(o);
-  });
-  panel.querySelectorAll('[data-seek]').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const s = crmSeek[o.id] || {};
-      const r = (s.results || [])[+b.dataset.seek];
-      if(r) crmPickChat(o, r);
-    });
-  });
-  const seekToggle = (sel, key, val)=>{
-    const b = panel.querySelector(sel);
-    if(b) b.addEventListener('click', ()=>{
-      const s = crmSeek[o.id]; if(!s) return;
-      s[key] = (val === undefined) ? !s[key] : val;
-      renderOrderDrawer();
-    });
-  };
-  seekToggle('[data-seek-raw]',  'showRaw');
-  seekToggle('[data-seek-all]',  'showAll');
+  if(find) find.addEventListener('click', ()=> crmSeekOpen(o));
   const urlIn = panel.querySelector('.od-seek-url');
   const bindB = panel.querySelector('[data-seek-bind]');
   const doBind = ()=>{ if(urlIn) crmBindUrl(o, urlIn.value); };
@@ -16163,28 +15838,15 @@ function wireCrmBlock(panel, o){
       e.stopPropagation();
       if(e.key === 'Enter'){ e.preventDefault(); doBind(); }
     });
-    /* Вставили посилання — прив'язуємо одразу, без другого руху: після
+    /* Вставили посилання — привʼязуємо одразу, без другого руху: після
        вставки в цьому полі більше нічого не роблять. */
     urlIn.addEventListener('paste', ()=> setTimeout(doBind, 30));
+    /* Курсор одразу в полі: блок відкрився рівно для того, щоб сюди
+       вставили адресу, і зайвий клік тут ні до чого. */
+    if(!(crmSeek[o.id] || {}).binding && document.activeElement !== urlIn){
+      try{ urlIn.focus(); }catch(e){}
+    }
   }
-  const moreB = panel.querySelector('[data-seek-more]');
-  if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o, true));
-  const stopB = panel.querySelector('[data-seek-stop]');
-  if(stopB) stopB.addEventListener('click', ()=>{
-    const st = crmSeek[o.id]; if(st) st.stop = true;
-  });
-  /* Фільтр звужує список на льоту. Перемальовуємо весь блок, тож після
-     перемальовування повертаємо фокус і каретку туди, де вони були: інакше
-     після першої ж літери поле губить фокус і далі друкувати нікуди. */
-  const flt = panel.querySelector('.od-seek-in');
-  if(flt) flt.addEventListener('input', ()=>{
-    const st = crmSeek[o.id]; if(!st) return;
-    st.q = flt.value;
-    const at = flt.selectionStart;
-    renderOrderDrawer();
-    const again = document.querySelector('.od-seek-in');
-    if(again){ again.focus(); try{ again.setSelectionRange(at, at); }catch(e){} }
-  });
   const go = panel.querySelector('.od-crm-go');
   const inp = panel.querySelector('.od-crm-inp');
   if(go && inp){
