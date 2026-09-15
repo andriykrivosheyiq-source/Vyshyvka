@@ -18,7 +18,10 @@
  *
  *   заголовок  — той самий, що в шапці КП: «Комерційна пропозиція для Grand Cafe»;
  *   опис       — склад і сума: «50 футболок · 42 300 ₴ · дійсна до 12.09»;
- *   картинка   — перший макет позиції, тобто те, що клієнт бачить угорі.
+ *   картинка   — знімок обкладинки цієї ж пропозиції (логотип клієнта і його
+ *                заголовок). Його готує адмінка, відкриваючи сторінку в
+ *                невидимому кадрі з ?shot=1 і кладучи знімок у поле ogImage.
+ *                Немає знімка — беремо перший макет позиції.
  *
  * Сама сторінка не змінюється: воркер лише додає теги в <head> і віддає її
  * далі. Людина відкриває те саме, що й раніше.
@@ -88,6 +91,12 @@ async function offerMeta(token) {
   const hero = String(val(f.heroTitle) || '').trim();
   const title = hero || (who ? 'Комерційна пропозиція для ' + who : 'Комерційна пропозиція');
 
+  /* Знімок обкладинки цієї ж пропозиції — його готує адмінка, відкриваючи
+     сторінку в невидимому кадрі. Це і є «зеро-блок» клієнта: його логотип,
+     його заголовок. Усе інше нижче — запасні шляхи на випадок, коли знімок
+     ще не встиг зробитись. */
+  const og = String(val(f.ogImage) || '').trim();
+
   const items = val(f.items) || [];
   let qty = 0, shot = '';
   const names = [];
@@ -113,7 +122,7 @@ async function offerMeta(token) {
     till ? 'дійсна до ' + till : ''
   ].filter(Boolean).join(' · ');
 
-  return { title, desc, image: shot };
+  return { title, desc, image: og || shot, wide: !!og };
 }
 
 /* Теги вписуємо в <head>, а наявні (загальні для сайту) прибираємо — інакше
@@ -126,6 +135,12 @@ function injectMeta(html, meta, pageUrl) {
     '<meta property="og:title" content="' + esc(meta.title) + '">',
     meta.desc ? '<meta property="og:description" content="' + esc(meta.desc) + '">' : '',
     meta.image ? '<meta property="og:image" content="' + esc(meta.image) + '">' : '',
+    /* Розміри називаємо лише для власного знімка: він рівно 1200×630, і з
+       ними месенджер малює широку картку одразу, не чекаючи, поки сам
+       завантажить файл. Для чужого макета розмір ми не знаємо. */
+    meta.wide ? '<meta property="og:image:width" content="1200">' : '',
+    meta.wide ? '<meta property="og:image:height" content="630">' : '',
+    meta.wide ? '<meta property="og:image:alt" content="' + esc(meta.title) + '">' : '',
     '<meta name="twitter:card" content="' + (meta.image ? 'summary_large_image' : 'summary') + '">',
     '<meta name="twitter:title" content="' + esc(meta.title) + '">',
     meta.desc ? '<meta name="twitter:description" content="' + esc(meta.desc) + '">' : '',

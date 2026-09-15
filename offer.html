@@ -1632,6 +1632,43 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* ── Дрібне, що видає вік інтерфейсу ── */
   .eddate input, .ord-why select{border-radius:var(--r-2);}
   .sl-fold > summary{border-radius:var(--r-2);}
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ЗНІМОК ОБКЛАДИНКИ (?shot=1)
+
+     Цю сторінку відкриває адмінка в невидимому кадрі, щоб зняти заставку
+     посилання. На екрані такого не буває: від сторінки лишається сама
+     обкладинка, розкладена в 1200×630 — рівно той кадр, який показує
+     месенджер.
+
+     Розміри тут свої, більші за екранні. Обкладинка на телефоні має кегль
+     під 390 px завширшки; якби ми зняли її як є й розтягнули до 1200, у
+     заставці був би гігантський розмитий текст. */
+  html.is-shot, html.is-shot body{margin:0; padding:0; width:1200px; height:630px;
+    overflow:hidden; background:#0A0F15;}
+  html.is-shot body > *{display:none !important;}
+  html.is-shot body > .shot-host{display:flex !important;
+    width:1200px; height:630px;}
+  html.is-shot .hero{flex:1; min-width:0; margin:0; border-radius:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:64px 88px;}
+  /* Висоту логотипа менеджер задає інлайном під екран — у кадрі 1200×630
+     вона перетворилась би на марку в кутку. Тому тут розмір свій. */
+  html.is-shot .hero-logo{height:auto !important; width:auto !important;
+    max-height:120px !important; max-width:460px !important; margin:0 0 30px;}
+  html.is-shot .hero-logo-wrap{margin:0 0 30px; padding:14px 20px;}
+  html.is-shot .hero-logo-wrap .hero-logo{margin:0;}
+  html.is-shot .hero h1{font-size:56px !important; line-height:1.1; letter-spacing:-1.2px;
+    margin:0 0 18px; max-width:1000px;}
+  html.is-shot .hero-made{font-size:24px !important; line-height:1.4; margin:0; max-width:900px;}
+  html.is-shot .hero-till{font-size:20px !important; margin-top:14px;}
+  /* Кнопка в заставці — обман: натиснути її в месенджері не можна.
+     Службові кнопки менеджера тим паче не для клієнта. */
+  html.is-shot .hero .btn,
+  html.is-shot .edlogo,
+  html.is-shot .eddate,
+  html.is-shot .hero-body,
+  html.is-shot .hero-photo{display:none !important;}
 </style>
 </head>
 <body>
@@ -2354,6 +2391,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
   // Тестовий режим — за ним показуються заглушки блоків довіри
   var DEMO = /[?&]demo=1/.test(location.search);
+/* ── Режим знімка ──────────────────────────────────────────────────────
+   Месенджер показує заставку посилання ДО того, як у сторінці виконається
+   бодай рядок коду, тож зібрати її зі сторінки він не може. Раніше там
+   стояв один спільний файл на всіх — і клієнт отримував посилання, схоже
+   на рекламу, а не на лист саме йому.
+
+   Тому знімок робить адмінка: відкриває цю саму сторінку в невидимому
+   кадрі з ?shot=1, і сторінка лишає від себе рівно перший екран — той, що
+   і є обкладинкою пропозиції. Знімок кладеться поруч із пропозицією, і
+   воркер підставляє його в теги заставки. */
+  var SHOT = /[?&]shot=1/.test(location.search);
 
   /* ── Режим редагування ────────────────────────────────────────────────
      Менеджер править пропозицію на ній самій, а не в окремій формі: те,
@@ -5971,6 +6019,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     fitMains();
     // Картку перемальовано — повертаємо конструктор на місце
     if(edOpen && ctorReady) ctorMount(null);
+    if(SHOT) shotTrim();
+  }
+
+  /* Лишити від сторінки саму обкладинку — рівно 1200×630, як просить
+     месенджер. Знімати перший екран «як є», разом із рештою сторінки під
+     ним, не вийшло б: обкладинка висока й вузька, а заставка широка, і
+     кадр довелося б різати навмання. */
+  function shotTrim(){
+    var h = document.querySelector('.hero');
+    if(!h || document.documentElement.classList.contains('is-shot')) return;
+    document.documentElement.classList.add('is-shot');
+    /* Решту сторінки саме ХОВАЄМО, а не видаляємо. Спершу тут стояло
+       `body.innerHTML = ''` — і код, який дописується до сторінки після
+       відмальовування, падав на першому ж елементі, якого вже не існувало.
+       Переносимо тільки саму обкладинку; все інше лишається на місці й
+       просто не показується. */
+    var host = document.createElement('div');
+    host.className = 'shot-host';
+    document.body.appendChild(host);
+    host.appendChild(h);
+    /* Кажемо вголос, що знімати вже можна: інакше адмінка зняла б порожню
+       рамку, поки логотип ще їде з мережі. */
+    imagesReady().then(function(){
+      setTimeout(function(){ window.__shotReady = true; }, 150);
+    });
   }
 
   /* Кадр під головне фото ставимо за пропорцією самого знімка.

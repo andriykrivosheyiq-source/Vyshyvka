@@ -1758,6 +1758,7 @@
   .cw-qr-rm:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
   .cw-note{font-size:11.5px;color:#7A5410;background:#FDF7EC;border-radius:8px;
     padding:7px 10px;margin-bottom:7px;line-height:1.45;}
+  .cw-tip{font-size:10.5px;color:var(--muted);margin:5px 3px 0;}
   /* Сира відповідь Sitniks — службове вікно для того, хто налаштовує систему */
   .cw-raw{margin:0 0 7px;padding:8px 9px;border-radius:8px;background:var(--canvas);
     border:1px solid var(--line);font-size:10.5px;line-height:1.4;max-height:240px;
@@ -9063,6 +9064,9 @@ function offerBuild(order){
       instagram: order.instagram || '', phone: order.phone || ''
     },
     clientLogo: logo,
+    /* Заставка посилання — знімок обкладинки цієї ж пропозиції. Лежить у
+       документі, бо читає її воркер, а не сторінка. */
+    ogImage: String(order.offerOg || ''),
     /* Усі логотипи замовлення — щоб шапку можна було перемкнути між ними
        прямо в пропозиції, а не вантажити той самий файл удруге. */
     clientLogoList: orderLogos(order),
@@ -9272,6 +9276,194 @@ function offerShareText(order){
    документ за посиланням і ЗВІРЯЄМО, що туди лягло саме те, що на екрані.
    Обіцянка «можна надсилати» коштує рівно стільки, скільки коштує ця
    перевірка: доти ми казали її, не глянувши, що там насправді. */
+/* ── Заставка посилання ───────────────────────────────────────────────────
+   Месенджер читає теги заставки ДО того, як у сторінці виконається бодай
+   рядок коду, тож зібрати картинку зі сторінки він не може. Через це в
+   переписці стояв один спільний файл на всіх — кепка, худі й свитшот, — і
+   посилання виглядало як реклама, а не як лист саме цьому клієнту.
+
+   Тому кадр робимо самі, 1200×630, і кладемо поруч із пропозицією; воркер
+   підставляє його в теги. Клієнт бачить свій логотип і свій заголовок.
+
+   ЗВІДКИ БЕРЕТЬСЯ ВМІСТ. Не з наших здогадок, а з самої сторінки: відкриваємо
+   пропозицію в невидимому кадрі з ?shot=1 (у цьому режимі від сторінки
+   лишається сама обкладинка) і читаємо з неї готові рядки — заголовок, склад,
+   дату фіксації. Так «Комерційна пропозиція для …» і «30 худі · 60 футболок»
+   рахуються рівно один раз, на сторінці, і в заставці не може опинитись інше
+   число, ніж побачить клієнт.
+
+   Малюємо самі, а не знімаємо екран: бібліотека знімка тягнеться з чужого
+   CDN, мовчки ламається на картинках з іншого домену й перевірити її нічим.
+   Кадр із шести елементів того не вартий. */
+const OG_W = 1200, OG_H = 630;
+/* Відбиток того, що видно в кадрі. Ціни й позиції сюди входять через рядок
+   складу: він у кадрі є. А от нотатки чи оплати — ні, і перезнімати заставку
+   через них не треба. */
+function offerOgKey(o, txt){
+  return [effectiveClientLogo(o), String(o.clientLogoBg || ''),
+          String((txt && txt.title) || ''), String((txt && txt.made) || ''),
+          String((txt && txt.till) || '')].join('|');
+}
+/* Прочитати обкладинку з самої сторінки пропозиції. */
+function offerCover(o){
+  const link = offerUrl(o);
+  if(!link) return Promise.reject(new Error('немає посилання на пропозицію'));
+  const fr = document.createElement('iframe');
+  fr.setAttribute('aria-hidden', 'true');
+  fr.setAttribute('tabindex', '-1');
+  /* Кадр саме 1200 завширшки: сторінка розкладається під свою ширину, і з
+     вужчого кадру приїхали б інші переноси в заголовку. Ховаємо зсувом за
+     екран — display:none не дає сторінці намалюватись зовсім. */
+  fr.style.cssText = 'position:fixed;left:-20000px;top:0;width:' + OG_W + 'px;height:' +
+                     OG_H + 'px;border:0;visibility:hidden;';
+  fr.src = link + '&shot=1';
+  document.body.appendChild(fr);
+  return new Promise((res, rej)=>{
+    const t0 = Date.now();
+    const tick = ()=>{
+      let w = null;
+      try{ w = fr.contentWindow; }catch(e){}
+      if(w && w.__shotReady){
+        const d = fr.contentDocument;
+        const one = sel => ((d.querySelector(sel) || {}).textContent || '').trim();
+        const im = d.querySelector('.hero-logo');
+        const wrap = d.querySelector('.hero-logo-wrap');
+        res({
+          title: one('.hero h1'),
+          made:  one('.hero-made'),
+          till:  one('.hero-till'),
+          logo:  im ? im.getAttribute('src') : '',
+          logoBg: wrap ? (wrap.style.background || '') : ''
+        });
+        return;
+      }
+      if(Date.now() - t0 > 20000) return rej(new Error('сторінка не встигла намалюватись'));
+      setTimeout(tick, 150);
+    };
+    tick();
+  }).finally(()=> fr.remove());
+}
+/* Картинка на полотно. Без crossOrigin полотно «забруднюється» і віддати
+   з нього файл уже не можна — а логотипи лежать на чужому домені. */
+function loadPic(src){
+  return new Promise((res, rej)=>{
+    if(!src) return rej(new Error('немає картинки'));
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = ()=> res(im);
+    im.onerror = ()=> rej(new Error('картинка не завантажилась'));
+    im.src = src;
+    setTimeout(()=> rej(new Error('картинка не встигла')), 12000);
+  });
+}
+/* Текст у кілька рядків із межею по ширині. Заголовки бувають і «для ІТ» і
+   «для Міністерства цифрової трансформації» — другий має переноситись, а не
+   вилазити за кадр. */
+function ogWrap(ctx, text, maxW, maxLines){
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  words.forEach(w => {
+    const probe = cur ? cur + ' ' + w : w;
+    if(ctx.measureText(probe).width <= maxW || !cur) cur = probe;
+    else { lines.push(cur); cur = w; }
+  });
+  if(cur) lines.push(cur);
+  if(lines.length > maxLines){
+    lines.length = maxLines;
+    lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S*$/, '…');
+  }
+  return lines;
+}
+async function offerOgDraw(txt){
+  const c = document.createElement('canvas');
+  c.width = OG_W; c.height = OG_H;
+  const x = c.getContext('2d');
+  // Та сама майже чорна база з нахилом, що й на обкладинці сторінки
+  const g = x.createLinearGradient(0, 0, OG_W * .35, OG_H);
+  g.addColorStop(0, '#232935'); g.addColorStop(.58, '#11151C'); g.addColorStop(1, '#161A22');
+  x.fillStyle = g; x.fillRect(0, 0, OG_W, OG_H);
+  // Тепле світло знизу — воно ж і на сторінці, під кнопкою
+  const w = x.createRadialGradient(OG_W / 2, OG_H * 1.16, 0, OG_W / 2, OG_H * 1.16, OG_W * .58);
+  w.addColorStop(0, 'rgba(232,89,12,.34)'); w.addColorStop(1, 'rgba(232,89,12,0)');
+  x.fillStyle = w; x.fillRect(0, 0, OG_W, OG_H);
+  // Тонка світла лінія по верхньому краю — фаска
+  x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(240, 0, OG_W - 480, 1);
+
+  x.textAlign = 'center';
+  x.textBaseline = 'alphabetic';
+  const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif';
+  const F_TITLE = '700 54px ' + FONT, F_MADE = '400 25px ' + FONT, F_TILL = '600 21px ' + FONT;
+
+  /* Спершу міряємо весь стовпчик, і лише потім малюємо. Доти блок починався
+     від сталого відступу згори — і пропозиція з коротким заголовком висіла в
+     кадрі вгорі, лишаючи під собою чверть порожнечі. */
+  let pic = null;
+  if(txt.pic){
+    const k = Math.min(460 / txt.pic.width, 120 / txt.pic.height, 1);
+    pic = { w: Math.round(txt.pic.width * k), h: Math.round(txt.pic.height * k) };
+  }
+  x.font = F_TITLE;
+  const title = ogWrap(x, txt.title, OG_W - 200, 3);
+  x.font = F_MADE;
+  const made = txt.made ? ogWrap(x, txt.made, OG_W - 240, 2) : [];
+  const H_T = 62, H_M = 34, GAP_LOGO = 46, GAP_TITLE = 22, GAP_TILL = 30;
+
+  let total = (pic ? pic.h + GAP_LOGO : 0) + title.length * H_T;
+  if(made.length) total += GAP_TITLE + made.length * H_M;
+  if(txt.till)    total += GAP_TILL;
+  let y = Math.max(56, Math.round((OG_H - total) / 2));
+
+  if(pic){
+    if(txt.logoBg){
+      x.fillStyle = txt.logoBg;
+      x.fillRect((OG_W - pic.w) / 2 - 20, y - 14, pic.w + 40, pic.h + 28);
+    }
+    x.drawImage(txt.pic, (OG_W - pic.w) / 2, y, pic.w, pic.h);
+    y += pic.h + GAP_LOGO;
+  }
+  x.fillStyle = '#FFFFFF'; x.font = F_TITLE;
+  title.forEach((ln, i) => x.fillText(ln, OG_W / 2, y + 46 + i * H_T));
+  y += title.length * H_T;
+
+  if(made.length){
+    x.fillStyle = 'rgba(255,255,255,.78)'; x.font = F_MADE;
+    made.forEach((ln, i) => x.fillText(ln, OG_W / 2, y + GAP_TITLE + i * H_M));
+    y += GAP_TITLE + made.length * H_M;
+  }
+  if(txt.till){
+    x.fillStyle = 'rgba(255,255,255,.6)'; x.font = F_TILL;
+    x.fillText(txt.till, OG_W / 2, y + GAP_TILL);
+  }
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+}
+const ogBusy = {};
+async function offerOgRefresh(o, force){
+  if(!o || !o.offerToken) return '';
+  if(ogBusy[o.id]) return ogBusy[o.id];
+  const job = (async ()=>{
+    const txt = await offerCover(o);
+    const key = offerOgKey(o, txt);
+    if(!force && o.offerOg && o.offerOgKey === key) return o.offerOg;
+    /* Логотип не доїхав — кадр усе одно кращий за спільну картинку на всіх:
+       у ньому принаймні імʼя клієнта й те, що йому порахували. */
+    try{ txt.pic = await loadPic(txt.logo); }catch(e){ txt.pic = null; }
+    const blob = await offerOgDraw(txt);
+    if(!blob) throw new Error('кадр вийшов порожнім');
+    const url = await uploadCloudinary(blob);
+    o.offerOg = url; o.offerOgKey = key;
+    await fbDb.collection('offers').doc(o.offerToken).set({ ogImage: url }, { merge:true });
+    try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
+    return url;
+  })().catch(e => {
+    /* Заставка — прикраса, а не умова: посилання працює й без неї, і воркер
+       має чим її замінити. Тому мовчки в консоль, без вікон перед менеджером. */
+    console.warn('заставка посилання не оновилась:', e);
+    return '';
+  }).then(v => { delete ogBusy[o.id]; return v; });
+  ogBusy[o.id] = job;
+  return job;
+}
 async function offerCopyAndRefresh(order, text, what){
   copyText(text, what + ' скопійовано — оновлюємо сторінку…');
   /* Момент, коли КП пішло клієнту, ми знаємо точно — оце він і є. Далі м'яч
@@ -9282,6 +9474,10 @@ async function offerCopyAndRefresh(order, text, what){
     setStatus(order, 'kp');
   try{
     const doc = await offerSave(order);
+    /* Заставку готуємо тут же: саме зараз посилання йде клієнту, і саме
+       зараз має бути чим його показати. Чекати не змушуємо — текст уже
+       в буфері, а картинка доїде за секунду-другу. */
+    offerOgRefresh(order);
     const snap = await fbDb.collection('offers').doc(order.offerToken).get();
     const got = snap.exists ? snap.data() : null;
     if(!got) throw new Error('за посиланням порожньо');
@@ -14655,7 +14851,11 @@ function renderOrderDrawer(){
   /* Діалог можна відкрити просто з дошки, кнопкою «Відповісти» — тоді картки
      поруч немає, а оновлювати вікно все одно треба. Усі, хто кличе цю
      функцію після зміни даних, потрапляють сюди, тож перехоплюємо тут. */
-  if(!d || !d.classList.contains('open')){ if(chatWin) renderChatWin(); return; }
+  /* Стрічка живе в обох місцях, і дані в неї одні. Тому оновлюємо зону
+     переписки завжди, а не лише коли картки поруч немає: доти нове
+     повідомлення доходило до картки, а у відкритій розмові його не було. */
+  if(chatWin) renderChatWin();
+  if(!d || !d.classList.contains('open')) return;
   const o = (orders || []).find(x=>x.id === drawerOrderId);
   if(!o){ closeOrderDrawer(); return; }
   const panel = d.querySelector('.od-panel');
@@ -15656,6 +15856,31 @@ function crmPeerKeys(o){
     .map(crmKeyOf).filter(x => x.length >= 2)
     .filter((x, i, a) => a.indexOf(x) === i);
 }
+/* Памʼять про власні надіслані. Sitniks не позначає повідомлення, які пішли
+   через API: у відповіді вони приходять без відправника й зовні нічим не
+   відрізняються від клієнтських. Через це лист, який менеджер щойно написав
+   з Loomiq, ставав ЛІВОРУЧ — і розмова знову читалась неправильно.
+
+   Тримаємо памʼять у самій картці, а не на час сеансу: до перезавантаження
+   адмінки вона жила, після — зникала разом із вкладкою, і вчорашні власні
+   листи знову опинялись не з того боку. Заразом памʼятаємо, ХТО писав. */
+const CRM_OUT_KEEP = 60;
+function crmOutKey(t){ return String(t || '').replace(/\s+/g, ' ').trim().slice(0, 160); }
+function crmOutNote(o, text){
+  const k = crmOutKey(text);
+  if(!k || !o) return;
+  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
+  if(list.some(r => r && r.t === k)) return;
+  list.push({ t: k, by: myName() });
+  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+}
+function crmOutFind(o, text){
+  const k = crmOutKey(text);
+  if(!k) return null;
+  const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
+  for(let i = list.length - 1; i >= 0; i--) if(list[i] && list[i].t === k) return list[i];
+  return null;
+}
 /* Наше повідомлення чи клієнтське. Прямі ознаки — першими: коли Sitniks
    сказав словом, віримо йому.
 
@@ -15701,13 +15926,22 @@ function crmFileKind(u){
   if(/lookaside\.fbsbx\.com|cdninstagram|fbcdn\.net|scontent|t\.me\/|telegram|viber/.test(u)) return 'media';
   return 'link';
 }
+/* Вийнявши адресу, прибираємо за нею тільки зайві ПРОБІЛИ. Тут довго стояло
+   `replace(/\s+/g, ' ')` — і воно збивало в один рядок усе повідомлення разом
+   з абзацами. Лист, який клієнт бачив розбитим на абзаци, у нас виглядав
+   суцільною кашею, і прочитати його було неможливо. */
 function crmSplitFiles(text){
+  const tidy = s => String(s)
+    .replace(/[ \t]+/g, ' ')        // подвійні пробіли — так, переноси — ні
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')     // абзац лишається, порожнеча на пів екрана — ні
+    .trim();
   const urls = String(text).match(CRM_URL_RE) || [];
-  if(!urls.length) return { text: text, files: [] };
+  if(!urls.length) return { text: tidy(text), files: [] };
   let rest = String(text);
-  urls.forEach(u => { rest = rest.replace(u, ' '); });
+  urls.forEach(u => { rest = rest.replace(u, ''); });
   return {
-    text: rest.replace(/\s+/g, ' ').trim(),
+    text: tidy(rest),
     files: urls.map(u => ({ url: u, kind: crmFileKind(u) }))
   };
 }
@@ -15762,13 +15996,17 @@ function crmNormMsgs(data, o){
     const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
     const who = crmMsgWho(m);
-    const mine = crmIsMine(m, text, who, peer);
+    /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
+       здогадуємось за підписом, якого в такому повідомленні немає. */
+    const own = crmOutFind(o, text);
+    const mine = own ? true : crmIsMine(m, text, who, peer);
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
        відправлене, його імʼям підписувати наше повідомлення не можна. */
     const byKey = crmKeyOf(who.name);
-    const by = (mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
-      ? who.name : '';
+    const by = own ? String(own.by || '')
+      : ((mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
+          ? who.name : '');
     return { text: String(text), files: files, mine: mine, by: by,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text || (m.files && m.files.length));
@@ -15841,6 +16079,10 @@ async function crmSend(o, text){
     });
     toast('Надіслано');
     crmSent.add(text.trim());
+    /* Записуємо в картку, що це писали ми: Sitniks поверне це повідомлення
+       без відправника, і впізнати його більше не буде чим. */
+    crmOutNote(o, text.trim());
+    saveOrderMeta(o).catch(e => console.warn(e));
     // Показуємо одразу, щоб не було відчуття, що повідомлення провалилось,
     // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
     /* Підписуємо одразу собою. Sitniks поверне це повідомлення за секунду й
@@ -17786,6 +18028,14 @@ function renderChatWin(toBottom){
   const stick = toBottom || !feedOld ||
     (feedOld.scrollHeight - feedOld.scrollTop - feedOld.clientHeight < 60);
   const oldTop = feedOld ? feedOld.scrollTop : 0;
+  /* Перемальовування не має виривати людину з-під рук. Вікно оновлюється й
+     тоді, коли прийшло нове повідомлення, — а менеджер у цю мить може дописувати
+     лист на три абзаци. Тому запамʼятовуємо, де стояли фокус і каретка, і
+     повертаємо їх на місце; фокус самі ставимо лише при першому відкритті. */
+  const inpOld = box.querySelector('.cw-inp');
+  const keep = (inpOld && document.activeElement === inpOld)
+    ? { at: inpOld.selectionStart, to: inpOld.selectionEnd } : null;
+  const first = !inpOld;
 
   const msgs = chatMsgs(o, chatWin.kind);
   const isTg = chatWin.kind === 'tg';
@@ -17846,17 +18096,24 @@ function renderChatWin(toBottom){
              стояла ближче. */''}
         <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
           isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
-        <button class="cw-go" data-cw-go title="Enter — надіслати">➤</button>
+        <button class="cw-go" data-cw-go title="Надіслати · Ctrl+Enter">➤</button>
       </div>
+      ${/* Правило треба сказати вголос: доти Enter надсилав, про Shift+Enter
+           ніхто не знав, і листи виходили одним рядком. */''}
+      <div class="cw-tip">Enter — новий рядок · Ctrl+Enter або ➤ — надіслати</div>
       <input type="file" accept="image/*" data-cw-file hidden>
     </div>`;
 
   const feedEl = box.querySelector('.cw-feed');
   if(feedEl) feedEl.scrollTop = stick ? feedEl.scrollHeight : oldTop;
-  wireChatWin(box, o);
+  wireChatWin(box, o, first || !!keep);
+  if(keep){
+    const el = box.querySelector('.cw-inp');
+    if(el){ try{ el.setSelectionRange(keep.at, keep.to); }catch(e){} }
+  }
 }
 
-function wireChatWin(box, o){
+function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
   const inp = box.querySelector('.cw-inp');
   const grow = ()=>{ inp.style.height = 'auto';
@@ -17869,10 +18126,16 @@ function wireChatWin(box, o){
     inp.value = ''; chatWin.draft = ''; grow();
     chatSend(o, t);
   };
-  // Enter надсилає, Shift+Enter — новий рядок. Саме так у месенджерах, і
-  // саме цього менеджер очікує пальцями.
+  /* Enter робить НОВИЙ РЯДОК, а надсилає кнопка або Ctrl/⌘+Enter.
+     Довго було навпаки — «як у месенджерах». Але месенджер і КП пишуться
+     по-різному: клієнту йде лист на кілька абзаців, і з Enter-надсиланням
+     він вилітав недописаним після першого ж рядка. Про Shift+Enter ніхто не
+     здогадувався, тож листи виходили суцільною кашею.
+
+     Випадково надіслати недописане тепер неможливо — і це важливіше за
+     звичку: недописаний лист клієнту не відкликати. */
   inp.addEventListener('keydown', e=>{
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
   });
   box.querySelector('[data-cw-go]').addEventListener('click', send);
   box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
@@ -17942,12 +18205,16 @@ function wireChatWin(box, o){
     file.value = '';
     if(f) chatPhoto(o, f, inp.value.trim());
   });
-  inp.focus();
+  if(focusIn) inp.focus();
 }
 
 async function chatSend(o, text){
   if(chatWin.kind === 'tg') await tgSend(o, text);
   else await crmSend(o, text);
+  /* Перемальовуємо саме зону переписки. Доти після надсилання оновлювалась
+     лише картка, і власна репліка зʼявлялась у стрічці аж за секунду —
+     коли приходила відповідь сервера. Виглядало як «не надіслалось». */
+  if(chatWin) renderChatWin(true);
   touchOrder(o);        // написали клієнту — картка йде нагору
   renderBoard();
 }
