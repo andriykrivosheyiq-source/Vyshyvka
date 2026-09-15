@@ -71,7 +71,15 @@ const OFFER = {
   variants:[ base('Футболка базова', { kind:'variant', vgroup:'Група 1' }),
              base('Футболка оверсайз', { kind:'variant', vgroup:'Група 1', unitPrice:760 }) ],
   vqty:{ 'Група 1': 20 },
-  reco:[ base('Кепка', { kind:'reco', qty:20, unitPrice:588, baseUnitPrice:1600 }) ]
+  /* Два рекомендовані з РІЗНИМИ збереженими тиражами: кепка застрягла на
+     одиниці ще з тих часів, коли формула дивилась лише на основні позиції, а
+     світшот устиг синхронізуватись на двадцять. Саме так це й виглядало на
+     екрані: «588 грн/шт · від 1 штуки» поруч із «1 301 грн/шт · від 20
+     штук». Обидва мають вирівнятись по замовленню. */
+  reco:[ base('Кепка', { kind:'reco', qty:1, unitPrice:588, baseUnitPrice:1600, qtyAuto:true }),
+         base('Світшот', { kind:'reco', qty:20, unitPrice:1301, baseUnitPrice:2739, qtyAuto:true }),
+         /* А цьому тираж вписав менеджер руками — його чіпати не можна. */
+         base('Шопер', { kind:'reco', qty:5, unitPrice:300, baseUnitPrice:700, qtyAuto:false }) ]
 };
 
 const fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
@@ -99,18 +107,22 @@ await p.waitForTimeout(1500);
 const fr = p.frames()[1];
 
 console.log('═══ ТИРАЖ РЕКОМЕНДОВАНОГО ═══');
-const kit = await fr.evaluate(() => ({
-  line: ((document.querySelector('.rc-kit') || {}).textContent || '').trim(),
-  price: ((document.querySelector('.rc-p') || {}).textContent || '').trim(),
-  qty: window.__puRecoQty ? window.__puRecoQty() : null
-}));
-console.log('  ' + kit.price + ' · ' + kit.line);
-ok(/від 20 штук/.test(kit.line),
-  'тираж узявся з групи варіантів — «від 20 штук», а не «від 1 штуки»',
-  'тираж і далі не той: «' + kit.line + '»');
-ok(!/від 1 штуки/.test(kit.line),
-  'рядка «від 1 штуки» під ціною в 588 грн більше немає',
-  'лишилось «від 1 штуки» при ціні ' + kit.price);
+const kit = await fr.evaluate(() =>
+  [...document.querySelectorAll('.rc')].map(c => ({
+    nm: ((c.querySelector('.rc-n') || {}).textContent || '').trim(),
+    line: ((c.querySelector('.rc-kit') || {}).textContent || '').trim(),
+    price: ((c.querySelector('.rc-p') || {}).textContent || '').trim() })));
+kit.forEach(k => console.log('  ' + k.nm + ': ' + k.price + ' · ' + k.line));
+ok(kit.length === 3, 'усі три рекомендовані на місці', 'карток ' + kit.length);
+ok(!kit.some(k => /від 1 штуки/.test(k.line)),
+  'рядка «від 1 штуки» при ціні в 588 грн більше немає в жодній картці',
+  'десь лишилось «від 1 штуки»: ' + JSON.stringify(kit));
+ok(kit.filter(k => /Кепка|Світшот/.test(k.nm)).every(k => /від 20 штук/.test(k.line)),
+  'обидва автоматичні тиражі вирівнялись по замовленню — «від 20 штук»',
+  'тиражі розійшлись: ' + JSON.stringify(kit.map(k => k.nm + ':' + k.line)));
+ok(kit.some(k => /Шопер/.test(k.nm) && /від 5 штук/.test(k.line)),
+  'число, вписане менеджером руками, формула не перебиває',
+  'ручний тираж перебило: ' + JSON.stringify(kit));
 
 console.log('');
 console.log('═══ КЛІЄНТ ПОКРУТИВ ТИРАЖ ВАРІАНТІВ ═══');
@@ -123,12 +135,15 @@ const moved = await fr.evaluate(async () => {
   if(!plus) return 'кнопки тиражу немає';
   for(let k = 0; k < 20; k++){ plus.click(); await new Promise(r => setTimeout(r, 30)); }
   await new Promise(r => setTimeout(r, 900));
-  return ((document.querySelector('.rc-kit') || {}).textContent || '').trim();
+  return [...document.querySelectorAll('.rc-kit')].map(x => x.textContent.trim());
 });
-console.log('  ' + moved);
-ok(/від 40 штук/.test(moved),
-  'клієнт поставив 40 — рекомендований пішов за ним',
-  'рекомендований лишився зі старим тиражем: «' + moved + '»');
+console.log('  ' + JSON.stringify(moved));
+ok(moved.filter(t => /від 40 штук/.test(t)).length === 2,
+  'клієнт поставив 40 — обидва автоматичні рекомендовані пішли за ним',
+  'рекомендовані лишились зі старим тиражем: ' + JSON.stringify(moved));
+ok(moved.some(t => /від 5 штук/.test(t)),
+  'а ручний тираж і тут лишився ручним',
+  'ручний тираж поїхав за клієнтом: ' + JSON.stringify(moved));
 
 console.log('');
 console.log('═══ ЦІНА ЗА ШТУКУ ПІДПИСАНА ═══');
@@ -168,6 +183,49 @@ ok(!empty.pay && !empty.zero,
 ok(empty.go === true,
   'підтвердити порожнє не можна — кнопка неактивна',
   'кнопка підтвердження активна при порожньому кошторисі');
+
+console.log('');
+console.log('═══ ДОДАЛИ РЕКОМЕНДОВАНИЙ — ВІН У КОШТОРИСІ ═══');
+/* Рекомендований додають кнопкою на картці, і він має одразу стати в
+   кошторис — навіть коли варіант ще не обрано. Інакше людина тисне «Додати»,
+   бачить «Додано» на картці й порожній кошторис під ним, і не розуміє, чи
+   взагалі щось сталося. */
+const added = await fr.evaluate(async () => {
+  const b = document.querySelector('#recoSec .rc-add');
+  if(!b) return { err:'кнопки «Додати» немає' };
+  b.click();
+  await new Promise(r => setTimeout(r, 900));
+  const e = document.getElementById('estimate');
+  return {
+    mark: (document.querySelector('#recoSec .rc-add') || {}).className || '',
+    names: [...e.querySelectorAll('.est-i-nm')].map(x => x.textContent.trim()),
+    pay: ((e.querySelector('.est-pay b') || {}).textContent || '').trim(),
+    hint: !!e.querySelector('.est-empty'),
+    go: (() => { const g = document.getElementById('estConfirmBtn'); return g ? g.disabled : null; })()
+  };
+});
+if(added.err){ console.log('  ' + added.err); bad++; }
+else {
+  console.log('  у кошторисі: ' + JSON.stringify(added.names) + ' · разом ' + added.pay);
+  ok(/\bon\b/.test(added.mark),
+    'картка позначилась як додана',
+    'картка не позначилась: ' + added.mark);
+  ok(added.names.length === 1 && /Кепка/.test(added.names[0]),
+    'рекомендований став у кошторис, хоч варіант ще не обрано',
+    'кошторис не побачив доданого: ' + JSON.stringify(added.names));
+  ok(!added.hint && /грн$/.test(added.pay),
+    'підказка зникла, зʼявився підсумок',
+    'кошторис лишився порожнім: ' + JSON.stringify(added));
+  ok(added.go === false,
+    'і підтвердити вже можна',
+    'кнопка підтвердження лишилась неактивною');
+}
+/* Прибираємо назад, щоб наступна перевірка починалась із чистого кошторису. */
+await fr.evaluate(async () => {
+  const b = document.querySelector('#recoSec .rc-add');
+  if(b) b.click();
+  await new Promise(r => setTimeout(r, 700));
+});
 
 console.log('');
 console.log('═══ ОБРАЛИ ВАРІАНТ — ЗʼЯВИЛАСЬ ЦІНА ═══');

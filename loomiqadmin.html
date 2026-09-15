@@ -5491,6 +5491,11 @@ function openCalcFor(o, editIdx){
     qty: +it.qty || 0, unitPrice: +it.unitPrice || 0, price: +it.price || 0,
     unitCost: +it.unitCost || 0, cost: +it.cost || 0,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    /* Чи тираж рекомендованого поставила формула, чи його вписав менеджер.
+       Без цього сторінка клієнта не могла відрізнити одне від одного: або
+       мовчала й показувала застаріле число, або перебивала свідоме рішення
+       менеджера. */
+    qtyAuto: itemKind(it) === 'reco' ? (it.qtyAuto !== false) : undefined,
     imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
     calc: it.calc || null, desc: it.desc || null, config: it.config || null
   } : null;
@@ -7022,6 +7027,11 @@ window.__adminSaveClientOrder = async function(payload){
     items.push({
       kind: itemKind(it), vgroup: it.vgroup || '',
       recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    /* Чи тираж рекомендованого поставила формула, чи його вписав менеджер.
+       Без цього сторінка клієнта не могла відрізнити одне від одного: або
+       мовчала й показувала застаріле число, або перебивала свідоме рішення
+       менеджера. */
+    qtyAuto: itemKind(it) === 'reco' ? (it.qtyAuto !== false) : undefined,
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
@@ -8920,6 +8930,11 @@ function offerItem(it, order, itemIdx){
        Рекомендовані й так додаються вручну, тож там прапорець зайвий. */
     optional: itemKind(it) === 'main' ? !!it.optional : false,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    /* Чи тираж рекомендованого поставила формула, чи його вписав менеджер.
+       Без цього сторінка клієнта не могла відрізнити одне від одного: або
+       мовчала й показувала застаріле число, або перебивала свідоме рішення
+       менеджера. */
+    qtyAuto: itemKind(it) === 'reco' ? (it.qtyAuto !== false) : undefined,
     name: it.name || '', color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
     print: it.print || '',
@@ -16241,6 +16256,11 @@ function calcSeedFor(o, editIdx){
     qty: +it.qty || 0, unitPrice: +it.unitPrice || 0, price: +it.price || 0,
     unitCost: +it.unitCost || 0, cost: +it.cost || 0,
     recoNote: it.recoNote || '', recoTag: it.recoTag || '',
+    /* Чи тираж рекомендованого поставила формула, чи його вписав менеджер.
+       Без цього сторінка клієнта не могла відрізнити одне від одного: або
+       мовчала й показувала застаріле число, або перебивала свідоме рішення
+       менеджера. */
+    qtyAuto: itemKind(it) === 'reco' ? (it.qtyAuto !== false) : undefined,
     imgs: (it.mockups || []).slice(), prints: (it.prints || []).slice(),
     calc: it.calc || null, desc: it.desc || null, config: configWithLogos(it),
     /* Товар із каталогу ще не має config — конструктор не мав чого
@@ -16327,17 +16347,28 @@ function offerCatalog(){
    Тому другий крок: немає основних — беремо найбільшу групу варіантів. Це і
    є тираж замовлення, до якого рекомендують. */
 function recoQtyFor(o){
-  const main = (o.items || []).filter(i => itemKind(i) === 'main');
-  if(main.length) return Math.max(1, ...main.map(i => +i.qty || 0), 1);
+  /* Найбільша група замовлення — байдуже, основна вона чи вибір. Доти
+     рахувались ТІЛЬКИ основні позиції, і коли їх не було (уся пропозиція —
+     це вибір), формула падала на одиницю. Під ціною ставало «від 1 штуки»
+     при ціні, порахованій за справжнім тиражем.
+
+     Перший підхід до цієї правки дивився на варіанти лише тоді, коли
+     основних немає зовсім. Цього мало: у пропозиції може бути основна
+     позиція «на вибір», яку клієнт не взяв, — тираж її є, але рекомендувати
+     до неї нема чого. Тому просто беремо максимум по всьому, що в
+     замовленні: і по основних, і по групах варіантів. */
   const vq = o.vqty || {};
   const groups = {};
+  const mains = [];
   (o.items || []).forEach(it=>{
-    if(itemKind(it) !== 'variant') return;
-    const g = it.vgroup || 'Варіанти на вибір';
-    groups[g] = Math.max(groups[g] || 0, +vq[g] || +it.qty || 0);
+    const k = itemKind(it);
+    if(k === 'main') mains.push(+it.qty || 0);
+    else if(k === 'variant'){
+      const g = it.vgroup || 'Варіанти на вибір';
+      groups[g] = Math.max(groups[g] || 0, +vq[g] || +it.qty || 0);
+    }
   });
-  const best = Object.keys(groups).map(g => groups[g]);
-  return Math.max(1, ...best, 1);
+  return Math.max(1, ...mains, ...Object.keys(groups).map(g => groups[g]), 1);
 }
 function syncRecoQty(o){
   const q = recoQtyFor(o);
