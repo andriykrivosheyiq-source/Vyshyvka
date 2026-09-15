@@ -57,6 +57,16 @@ const srv = createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   if(u.pathname.indexOf('/crm/') === 0){
     [...u.searchParams.keys()].forEach(k => { if(asked.indexOf(k) < 0) asked.push(k); });
+    /* Одна розмова за ідентифікатором — саме так і перевіряється вставлене
+       посилання. Той самий шлях, яким Sitniks віддає діалог. */
+    const one = /^\/crm\/chats\/([0-9a-f]{8,})$/i.exec(u.pathname);
+    if(one){
+      const hit = ALL.find(c => c.id === one[1]);
+      res.writeHead(hit ? 200 : 404, { 'Content-Type':'application/json',
+                                       'Access-Control-Allow-Origin':'*' });
+      res.end(JSON.stringify(hit || { error:'not found' }));
+      return;
+    }
     /* Сторінки — зсувом. Перший запит без параметрів віддає рівно десять:
        саме так поводиться справжній Sitniks, і саме це ламало арифметику. */
     const off = +(u.searchParams.get('offset') || u.searchParams.get('skip') || 0);
@@ -174,8 +184,8 @@ else {
   ok(r1.filter === 'Асія',
     'у полі одразу стоїть імʼя клієнта з картки, а не нік',
     'у полі не те: «' + r1.filter + '»');
-  ok(r1.rows.length === 2 && r1.rows.every(r => /Дерещук/.test(r.nm)),
-    'на екрані лише розмови цього клієнта, а не купа чужих',
+  ok(r1.rows.length === 1 && /Дерещук/.test(r1.rows[0].nm),
+    'на екрані лише розмова цього клієнта, а не купа чужих',
     'показали не те: ' + JSON.stringify(r1.rows.map(r => r.nm)));
   ok(!r1.note,
     'коли збіг знайшовся, про влаштування чужого API не пишемо — воно тут ні до чого',
@@ -203,8 +213,8 @@ console.log('  ' + none.note.slice(0, 120));
 ok(none.rows === 0,
   'чужих розмов не показуємо, коли шукали не їх',
   'на екрані чужі діалоги: ' + none.rows);
-ok(/не вміє шукати/i.test(none.note) && /гортаємо список самі/i.test(none.note),
-  'а тепер пояснюємо, чому збігу немає і що робиться далі',
+ok(/збігу немає/i.test(none.note) && /посилання на розмову/i.test(none.note),
+  'а тепер пояснюємо, чому збігу немає і що зробити замість пошуку',
   'пояснення немає: «' + none.note.slice(0, 90) + '»');
 /* Повертаємо імʼя назад для наступних перевірок. */
 await p.evaluate(async () => {
@@ -229,8 +239,8 @@ const typed = await p.evaluate(async () => {
            focus: document.activeElement === document.querySelector('.od-seek-in') };
 });
 console.log('  ' + typed.cnt + ' · рядків ' + typed.rows);
-ok(typed.rows === 2 && /із \d\d/.test(typed.cnt),
-  'за імʼям лишились тільки його розмови, решта відсіялась',
+ok(typed.rows === 1 && /із 10/.test(typed.cnt),
+  'за імʼям лишилась тільки його розмова, решта відсіялась',
   'фільтр не звузив список: ' + typed.rows + ' рядків із «' + typed.cnt + '»');
 ok(typed.focus,
   'поле не губить фокус після перемальовування — можна друкувати далі',
@@ -272,12 +282,13 @@ ok(scan.total === scan.uniq,
   'жодного діалогу не прочитано двічі',
   'є дублікати: ' + scan.total + ' записів, ' + scan.uniq + ' унікальних');
 ok(scan.rows.length === 2,
-  'розмова, що лежала за першою десяткою, знайшлась',
+  'розмова, що лежала за першою десяткою, знайшлась після «Показати ще»',
   'давнішу розмову так і не знайшли: ' + JSON.stringify(scan.rows));
 ok(scan.total < 120,
   'гортання зупинилось, щойно знайшло — не вивантажувало всю базу',
   'прочитали весь список замість того, щоб спинитись на збігу');
 
+console.log('');
 console.log('');
 console.log('═══ ВІДПОВІДЬ CRM ВИДНО ═══');
 const raw = await p.evaluate(async () => {
@@ -318,6 +329,48 @@ ok(r2.rows.length === 1 && /Instagram/.test(r2.rows[0].ch),
 ok(!r2.more,
   'кнопки підвантаження немає — коли CRM шукає, гортати весь список ні до чого',
   'кнопка підвантаження лишилась при робочому пошуку');
+
+console.log('');
+console.log('═══ ПРИВʼЯЗКА ЗА ПОСИЛАННЯМ ═══');
+/* Головний шлях. Пошуку в Sitniks по API немає, а в робочому акаунті сотні
+   діалогів за півдня — потрібна розмова вже за день лежить на кількатисячній
+   позиції. Але менеджер у цю мить і так стоїть у ній відкритій, тож беремо
+   адресу звідти.
+
+   Спершу перевіряємо, що зі сміття нічого не прив'яжеться: помилково
+   привʼязана чужа розмова гірша за жодної. */
+const junk = await p.evaluate(async () => {
+  const inp = document.querySelector('.od-seek-url');
+  if(!inp) return { err:'поля для посилання немає' };
+  inp.value = 'просто текст';
+  document.querySelector('[data-seek-bind]').click();
+  await new Promise(r => setTimeout(r, 700));
+  return { id: orders[0].crmChatId || '' };
+});
+if(junk.err){ console.log('  ' + junk.err); bad++; }
+else ok(!junk.id,
+  'із тексту, який не є посиланням, нічого не привʼязується',
+  'привʼязали казна-що: ' + junk.id);
+
+const DEEP = 'https://web.sitniks.com/1503/chats/dialog/' + ALL[77].id;
+const bound = await p.evaluate(async url => {
+  const inp = document.querySelector('.od-seek-url');
+  inp.value = url;
+  document.querySelector('[data-seek-bind]').click();
+  await new Promise(r => setTimeout(r, 1500));
+  const o = orders[0];
+  return { id: o.crmChatId || '', name: o.crmChatName || '', seek: !!crmSeek[o.id] };
+}, DEEP);
+console.log('  привʼязано: ' + bound.id + ' · ' + bound.name);
+ok(bound.id === ALL[77].id,
+  'розмова привʼязалась за адресою — навіть та, що лежить на 78-й позиції',
+  'привʼязка не спрацювала: ' + JSON.stringify(bound));
+ok(/Клієнт 77/.test(bound.name),
+  'імʼя співрозмовника підтягнулось — видно, кого саме привʼязали',
+  'імені немає: ' + JSON.stringify(bound));
+ok(!bound.seek,
+  'блок пошуку закрився — розмова знайдена, шукати більше нічого',
+  'блок пошуку лишився відкритим');
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
