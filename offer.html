@@ -3565,12 +3565,34 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       return Math.max(m, i == null ? 0 : baseVarQty(i));
     }, 0);
   }
+  /* Тираж усього замовлення таким, яким він є ЗАРАЗ: найбільша основна
+     позиція або найбільша група варіантів. Беремо pick.qty напряму, а не
+     через itemState: itemState рахує ціну, а ціна залежить від тиражу
+     рекомендованих — вийшло б коло. */
+  function liveOrderQty(){
+    var m = liveVariantQty();
+    (OFFER.items || []).forEach(function(it, i){
+      var q = EDIT ? null : pick.qty[i];
+      m = Math.max(m, Math.round(q == null ? (+it.qty || 0) : q));
+    });
+    return m;
+  }
   function baseRecoQty(i){
     var r = OFFER.reco[i] || {};
     var q = EDIT ? null : pick.recoQty[i];
     if(q != null) return Math.max(1, Math.round(q));
-    if(!EDIT && !(OFFER.items || []).length){
-      var lv = liveVariantQty();
+    /* Число, вписане менеджером руками, лишається його: він знає про цього
+       клієнта щось, чого не знає формула. Автоматичне ж число має йти за
+       замовленням — інакше під ціною стоїть учорашній тираж, а найгірше
+       «від 1 штуки» при ціні, порахованій за двадцять.
+
+       Прапорця немає зовсім — документ старий, зібраний до цієї правки. Там
+       нічого не чіпаємо: ціна в ньому порахована саме під записаний тираж, і
+       підмінити одне без другого означало б знову розвести число з підписом.
+       Такі пропозиції вирівнюються самі, щойно менеджер відкриє КП: перед
+       кожним перерахунком адмінка синхронізує тираж рекомендованих. */
+    if(!EDIT && r.qtyAuto === true){
+      var lv = liveOrderQty();
       if(lv > 0) return lv;
     }
     return Math.max(1, Math.round(+r.qty || 1));
