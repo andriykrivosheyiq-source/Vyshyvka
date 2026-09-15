@@ -61,6 +61,10 @@
     /* Округлення самої оболонки — найбільше на екрані: панель контенту й
        колонки воронки. Воно й задає відчуття «вікна в корпусі». */
     --r-shell:24px;
+    /* Ширина панелі замовлення. Живе змінною, бо на неї спирається не лише
+       сама панель: зона переписки стає поруч, і стерегти два однакові числа
+       в різних місцях означає рано чи пізно їх розвести. */
+    --od-w:520px;
 
     /* Тіні дуже обережно: інтерфейс тримається на межах і повітрі */
     --sh-1:0 1px 2px rgba(16,24,40,.05);
@@ -1668,16 +1672,23 @@
     #offerEd .cwin-side .cwin-head{padding-top:10px;}
   }
 
-  /* ── Вікно діалогу ──────────────────────────────────────────────────────
+  /* ── Зона переписки ─────────────────────────────────────────────────────
      Переписуватись у вузькій колонці картки незручно: рядок на два слова,
-     стрічка на пів екрана. Тому розмова відкривається окремим вікном у
-     пропорціях телефона — так, як менеджер звик у месенджері, і без
-     розтягування на весь монітор, де рядок стає нечитабельно довгим. */
-  .cw-wrap{position:fixed;inset:0;z-index:1200;display:none;align-items:center;
-    justify-content:center;background:rgba(15,32,52,.45);padding:16px;}
+     стрічка на пів екрана. Але й попап поверх усього виявився не кращим: він
+     закривав собою і дошку, і саму картку, тож щоб звірити, що людині
+     обіцяли, доводилось закрити розмову, подивитись і відкрити знову.
+
+     Тепер розмова — не вікно поверх, а третя зона робочого місця: меню
+     ліворуч, переписка посередині, картка праворуч. Дошку на цей час ховаємо
+     (у просвіті вона все одно нечитабельна), а закривається зона хрестиком у
+     своєму правому верхньому куті — на межі з карткою.
+
+     Тут описано телефон: на ньому зон немає, розмова займає весь екран.
+     Робоче місце з трьох зон вмикається нижче, від 768 px. */
+  .cw-wrap{position:fixed;inset:0;z-index:1200;display:none;background:#fff;}
   .cw-wrap.open{display:flex;}
-  .cw{width:100%;max-width:420px;height:min(760px,92vh);background:#fff;border-radius:18px;
-    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(15,32,52,.4);}
+  .cw{width:100%;max-width:none;height:100%;background:#fff;
+    display:flex;flex-direction:column;overflow:hidden;}
   .cw-head{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#1F2C44;
     color:#fff;flex:none;}
   .cw-av{width:36px;height:36px;border-radius:50%;flex:none;
@@ -1747,7 +1758,23 @@
   .cw-qr-rm:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
   .cw-note{font-size:11.5px;color:#7A5410;background:#FDF7EC;border-radius:8px;
     padding:7px 10px;margin-bottom:7px;line-height:1.45;}
-  @media(max-width:520px){ .cw-wrap{padding:0;} .cw{max-width:none;height:100%;border-radius:0;} }
+  /* Робоче місце з трьох зон. Переписка стає звичайним сусідом меню всередині
+     оболонки, тож ліву межу рахує сам flex — і згорнуте меню її не ламає.
+     Праву межу тримає ширина картки: коли картка відкрита, зона рівно на
+     просвіт біля неї, коли розмову відкрили з дошки — на всю ширину. */
+  @media(min-width:768px){
+    .cw-wrap{position:relative;inset:auto;z-index:210;
+      margin:10px;height:calc(100vh - 20px);background:transparent;}
+    .cw-wrap.with-card{margin-right:calc(var(--od-w) + 10px);}
+    .cw{border-radius:var(--r-shell);box-shadow:var(--sh-3);}
+    /* Дошка під перепискою не потрібна: у просвіті колонки все одно не
+       читаються, а лишити її означало б тримати на екрані третю смугу, яку
+       ніхто не дивиться. */
+    body.cw-open main{display:none;}
+    /* Хмарка на всю ширину монітора нечитабельна: очі втрачають початок
+       рядка. Тримаємо її в межах довжини, якою користуються месенджери. */
+    .cw-feed .od-crm-msg{max-width:min(84%,620px);}
+  }
   /* Рядки з готовими відповідями в налаштуваннях */
   .qr-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
   .qr-row input{width:150px;flex:none;font-size:13px;padding:8px 10px;border-radius:8px;
@@ -2354,7 +2381,7 @@
 
   /* ── Панель замовлення ── */
   .od-back{background:rgba(16,24,40,.45);}
-  .od-panel{width:min(520px,100%);box-shadow:var(--sh-3);}
+  .od-panel{width:min(var(--od-w),100%);box-shadow:var(--sh-3);}
   .od-head{background:var(--paper);padding:20px 22px 16px;}
   .od-cl-nm{font-size:22px;font-weight:700;letter-spacing:-.02em;}
   .od-pill{border-radius:var(--r-ctl);}
@@ -2869,7 +2896,7 @@
   </aside>
 
   <!-- topbar (mobile only) -->
-  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+  <div class="workarea" style="flex:1;display:flex;flex-direction:column;min-width:0;">
     <header class="topbar">
       <div class="topbar-brand">
         <div class="brand-mark">Lq</div>
@@ -17462,6 +17489,7 @@ window.addEventListener('message', function(e){
    повідомлення, крім однієї літери в chatWin.kind.
    ============================================================ */
 let chatWin = null;   // { id, kind:'tg'|'crm', draft, qr, busy }
+let cwMainTop = 0;    // прокрутка дошки, поки її ховає зона переписки
 
 /* Одна форма повідомлення на обидва джерела — інакше кожну дрібницю
    (час, підпис автора, картинку) довелось би правити у двох місцях. */
@@ -17612,9 +17640,12 @@ function chatWinEl(){
   d.id = 'chatWin';
   d.className = 'cw-wrap';
   d.innerHTML = '<div class="cw"></div>';
-  document.body.appendChild(d);
-  // Клік повз вікно закриває — як у будь-якому модальному вікні
-  d.addEventListener('click', e=>{ if(e.target === d) chatClose(); });
+  /* Зона живе в робочій колонці — там само, де дошка, а не поверх сторінки.
+     Тоді її ліву межу рахує сам макет, і згорнуте меню нічого не зсуває. */
+  (document.querySelector('.workarea') || document.body).appendChild(d);
+  /* Закриття кліком повз вікно тут більше немає: «повз» перестало існувати —
+     праворуч тепер картка, і клік по ній закривав би розмову замість того,
+     щоб зробити те, на що натиснули. Лишаються хрестик і Escape. */
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && chatWin) chatClose(); });
   return d;
 }
@@ -17645,7 +17676,18 @@ function chatOpen(o, kind){
       crmLoadChat(o).then(()=> crmStartPoll(o));
     } else crmStartPoll(o);
   }
-  chatWinEl().classList.add('open');
+  const d = chatWinEl();
+  d.classList.add('open');
+  /* Розмову відкрили з картки — зона стає рівно на просвіт біля неї. З дошки
+     (картки немає) — на всю ширину: лишати порожню смугу під картку, якої
+     немає, немає сенсу. */
+  d.classList.toggle('with-card', !solo);
+  /* Дошка ховається зовсім, а схований елемент забуває прокрутку. Тому
+     запамʼятовуємо її тут і повертаємо при закритті: інакше кожна розмова
+     викидала б менеджера на початок дошки. */
+  const mainEl = document.querySelector('main');
+  cwMainTop = mainEl ? mainEl.scrollTop : 0;
+  document.body.classList.add('cw-open');
   renderChatWin(true);
 }
 function chatClose(){
@@ -17653,6 +17695,9 @@ function chatClose(){
   chatWin = null;
   const d = document.getElementById('chatWin');
   if(d) d.classList.remove('open');
+  document.body.classList.remove('cw-open');
+  const mainEl = document.querySelector('main');
+  if(mainEl && cwMainTop) mainEl.scrollTop = cwMainTop;
   // Підписку, яку відкривало саме вікно, воно ж і згортає
   if(solo){ tgUnwatch(); crmStopPoll(); }
 }
