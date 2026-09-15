@@ -16211,9 +16211,26 @@ function offerCatalog(){
 
    Вписав менеджер своє число — воно фіксується (qtyAuto:false) і більше не
    перебивається: він знає щось про цього клієнта, чого не знає формула. */
+/* Буває, що основних позицій немає зовсім: уся пропозиція — це вибір, і все
+   лежить у варіантах. Доти формула в такому разі падала на одиницю, і під
+   ціною рекомендованого ставало «від 1 штуки» — при тому що сама ціна
+   порахована за справжнім тиражем. Виходило «588 грн від 1 штуки» при старій
+   ціні 1600: число й підпис казали різне.
+
+   Тому другий крок: немає основних — беремо найбільшу групу варіантів. Це і
+   є тираж замовлення, до якого рекомендують. */
 function recoQtyFor(o){
   const main = (o.items || []).filter(i => itemKind(i) === 'main');
-  return Math.max(1, ...main.map(i => +i.qty || 0), 1);
+  if(main.length) return Math.max(1, ...main.map(i => +i.qty || 0), 1);
+  const vq = o.vqty || {};
+  const groups = {};
+  (o.items || []).forEach(it=>{
+    if(itemKind(it) !== 'variant') return;
+    const g = it.vgroup || 'Варіанти на вибір';
+    groups[g] = Math.max(groups[g] || 0, +vq[g] || +it.qty || 0);
+  });
+  const best = Object.keys(groups).map(g => groups[g]);
+  return Math.max(1, ...best, 1);
 }
 function syncRecoQty(o){
   const q = recoQtyFor(o);

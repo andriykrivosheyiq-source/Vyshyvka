@@ -1057,6 +1057,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      дешевшає, а сума потрібна, щоб обіцянку можна було перевірити. */
   .est-more i{display:block; font-style:normal; margin-top:4px;
     color:rgba(255,255,255,.6); font-variant-numeric:tabular-nums;}
+  /* Порожній кошторис говорить, а не показує нулі. Текст світліший за
+     підсумок, але не сірий шум: це єдине, що зараз у блоці є. */
+  .est-empty{margin:4px 0 0; padding:16px 0; font-size:var(--fs-3); line-height:1.55;
+    color:rgba(255,255,255,.78);}
+  .est-cta-go[disabled]{opacity:.45; cursor:default; box-shadow:none;}
   .est-inc{margin-top:20px; font-size:var(--fs-2); line-height:1.55; color:rgba(255,255,255,.55);}
   .est-left{margin-top:10px; font-size:var(--fs-2); line-height:1.55; color:rgba(255,255,255,.55);}
 
@@ -2327,6 +2332,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function money(n){
     return Math.round(+n || 0).toLocaleString('uk-UA').replace(/ /g,' ') + ' грн';
   }
+  /* Ціна за штуку завжди підписана одиницею. Доти «588 грн» стояло без
+     нічого, а окремий підпис «за штуку» з'являвся лише тоді, коли знижки не
+     було, — тобто саме у випадку зі знижкою людина й не бачила, за що це
+     число. «588 грн» під фото футболки при тиражі 20 читається як ціна
+     всього замовлення, а не однієї. */
+  function moneyPer(n){ return money(n) + '/шт'; }
   function plural(n, one, few, many){
     var m10 = n % 10, m100 = n % 100;
     if(m10 === 1 && m100 !== 11) return one;
@@ -3538,10 +3549,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
      документа, а лічильник править замовлення через адмінку. Доти менеджер
      теж міняв лише pick: число зростало на екрані, наступне оновлення
      документа стирало його, і кількість поверталась до тієї, що в складі. */
+  /* Тираж, від якого рахується рекомендований. Своє число клієнта головніше
+     за все; далі — те, що порахувала адмінка.
+
+     Але коли основних позицій немає і вся пропозиція складається з
+     варіантів, тираж живе в групі й клієнт крутить його прямо на сторінці.
+     Тоді записане в документі число застаріває від першого ж кліку, і
+     рекомендований лишався б «від 20 штук» при обраних сорока. Тому в цьому
+     випадку беремо найбільшу групу такою, якою вона є ЗАРАЗ. */
+  function liveVariantQty(){
+    var gs = variantGroups();
+    if(!gs.length) return 0;
+    return gs.reduce(function(m, g){
+      var i = g.idx[0];
+      return Math.max(m, i == null ? 0 : baseVarQty(i));
+    }, 0);
+  }
   function baseRecoQty(i){
     var r = OFFER.reco[i] || {};
     var q = EDIT ? null : pick.recoQty[i];
-    return Math.max(1, Math.round(q == null ? (+r.qty || 1) : q));
+    if(q != null) return Math.max(1, Math.round(q));
+    if(!EDIT && !(OFFER.items || []).length){
+      var lv = liveVariantQty();
+      if(lv > 0) return lv;
+    }
+    return Math.max(1, Math.round(+r.qty || 1));
   }
   function recoState(i){
     var r = OFFER.reco[i] || {};
@@ -4767,7 +4799,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              і саме її людина заплатила б, замовивши штуку. Показуємо, лише
              коли різниця справді є — перекреслення без вигоди дратує. */
           '<div class="prow-l">' +
-            '<span class="pcard-price">' + money(st.unit) + '</span>' +
+            '<span class="pcard-price">' + moneyPer(st.unit) + '</span>' +
             (st.qty && st.base > st.sum
               ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
                 '<span class="pcard-off">−' +
@@ -4879,12 +4911,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                  картках стояли однакові числа кількості. */
               '<div class="pqty">' +
                 '<div class="prow"><div class="prow-l">' +
-                  '<span class="pcard-price">' + money(st.unit) + '</span>' +
+                  '<span class="pcard-price">' + moneyPer(st.unit) + '</span>' +
                   (st.qty && st.base > st.sum
                     ? '<span class="pcard-old">' + money(st.base / st.qty) + '</span>' +
                       '<span class="pcard-off">−' +
                         Math.round((1 - st.sum / st.base) * 100) + '%</span>'
-                    : '<span class="pcard-per">за штуку</span>') +
+                    : '') +
                 '</div></div>' +
                 staleNote(v) +
                 /* Лічильник поруч із кнопкою, як в основних позиціях. Тираж
@@ -5004,12 +5036,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             '</div>' +
             '<div class="pqty">' +
               '<div class="prow">' +
-                '<div class="prow-l"><span class="pcard-price">' + money(rs.unit) + '</span>' +
+                '<div class="prow-l"><span class="pcard-price">' + moneyPer(rs.unit) + '</span>' +
                   (rs.qty && rs.base > rs.sum
                     ? '<span class="pcard-old">' + money(rs.base / rs.qty) + '</span>' +
                       '<span class="pcard-off">−' +
                         Math.round((1 - rs.sum / rs.base) * 100) + '%</span>'
-                    : '<span class="pcard-per">за штуку</span>') + '</div>' +
+                    : '') + '</div>' +
                 /* Терміну тут немає навмисно: він один на все замовлення й
                    написаний в умовах під кошторисом. У картці основної
                    позиції його теж немає — а поруч вони мають виглядати
@@ -5132,6 +5164,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               esc(word(rows.length, 'позиція', 'позиції', 'позицій')) + ' · ' +
               units + ' ' + esc(word(units, 'одиниця', 'одиниці', 'одиниць')) + '</div>' +
           '</div>' +
+          /* Порожній кошторис. Доти він показував «0 позицій · 0 одиниць», дві
+             порожні риски й «0 грн» — і виглядав як поломка. Насправді все
+             гаразд: клієнт просто ще нічого не обрав. Кажемо це прямо й
+             одразу підказуємо, що зробити, щоб побачити ціну. */
+          (!rows.length
+            ? '<div class="est-empty">' +
+                (variantGroups().length
+                  ? 'Оберіть варіант вище — і тут одразу зʼявиться ціна.'
+                  : 'Поки нічого не додано. Додайте позицію вище — і тут одразу зʼявиться ціна.') +
+              '</div>' : '') +
           /* Позиція — один рядок: що це, скільки й почому, і сума справа.
              Ні перекресленої ціни, ні значка відсотка: уся арифметика
              знижки живе внизу й один раз. */
@@ -5167,15 +5209,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           '</div>' +
           /* Підсумок: скільки коштувало б, скільки зняв тираж, скільки
              платити. Знижка названа тут — і більше ніде на сторінці. */
-          '<div class="est-sum">' +
-            (off > 0
-              ? '<div class="est-line"><span>Вартість до знижки</span><b>' +
-                  num(base) + ' грн</b></div>' +
-                '<div class="est-line is-off"><span>Знижка за тираж ' + pct +
-                  '%</span><b>−' + num(off) + ' грн</b></div>'
-              : '') +
-            '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
-          '</div>' +
+          /* Поки нічого не обрано, підсумок не малюємо взагалі: «Разом 0 грн»
+             це не відповідь, а те саме мовчання, лише цифрами. */
+          (rows.length
+            ? '<div class="est-sum">' +
+                (off > 0
+                  ? '<div class="est-line"><span>Вартість до знижки</span><b>' +
+                      num(base) + ' грн</b></div>' +
+                    '<div class="est-line is-off"><span>Знижка за тираж ' + pct +
+                      '%</span><b>−' + num(off) + ' грн</b></div>'
+                  : '') +
+                '<div class="est-pay"><span>Разом</span><b>' + num(t.sum) + ' грн</b></div>' +
+              '</div>'
+            : '') +
           nextStepHint() +
           /* Нанесення, макет і контроль якості вже сидять у ціні за штуку.
              Окремими фінансовими рядками вони б лише вдруге проговорили те
@@ -5203,8 +5249,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
              розуміла, чи спрацювало перше. «Поділитися» лишається — переслати
              підтверджений кошторис бухгалтеру треба саме тепер. */
           '<div class="est-cta">' +
+            /* Підтверджувати поки нічого: кнопка лишається на місці, щоб її
+               було видно, але не вдає, ніби замовлення вже зібране. */
             (OFFER.state === 'confirmed' ? '' :
-              '<button class="btn est-cta-go" id="estConfirmBtn">Підтвердити пропозицію</button>') +
+              '<button class="btn est-cta-go" id="estConfirmBtn"' +
+                (rows.length ? '' : ' disabled') + '>Підтвердити пропозицію</button>') +
             '<button class="btn btn-ghost est-cta-share" id="shareBtn">' + SHARE_IC +
               'Поділитися</button>' +
           '</div>' +
@@ -5258,7 +5307,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               /* Ціна перша, назва під нею — як у вітрині: спершу видно,
                  скільки це коштує, і вже потім читається, що саме. */
               '<div class="rc-money">' +
-                '<span class="rc-p">' + money(rs.unit) + '</span>' +
+                '<span class="rc-p">' + moneyPer(rs.unit) + '</span>' +
                 (off ? '<span class="rc-old">' + money(rs.base / rs.qty) + '</span>' : '') +
               '</div>' +
               '<div class="rc-n">' + esc(r.name) + '</div>' +
@@ -6120,8 +6169,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       var un = document.querySelector('[data-unit="' + i + '"]');
       if(un){
         var st = itemState(i);
-        un.innerHTML = '<span class="pcard-price">' + money(st.unit) + '</span>' +
-                       '<span class="pcard-per">за шт · ' + st.qty + ' шт</span>';
+        un.innerHTML = '<span class="pcard-price">' + moneyPer(st.unit) + '</span>' +
+                       '<span class="pcard-per">' + st.qty + ' шт</span>';
       }
       var sp = document.querySelector('[data-specs="' + i + '"]');
       if(sp) sp.outerHTML = specsHtml(it, i);
