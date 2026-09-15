@@ -17712,7 +17712,11 @@ function renderChatWin(toBottom){
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
         <button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>
-        ${offerUrl(o) ? `<button class="cw-ic" data-cw-kp title="Вставити посилання на КП">🔗</button>` : ''}
+        ${/* Окремої кнопки з посиланням на КП тут немає навмисно. Вона
+             вставляла голу адресу, а в «Заготовках» уже лежить заготовка з
+             підстановкою {кп} — та сама адреса, але разом із текстом, який
+             клієнту й треба прочитати. Дві кнопки на одну дію, і гірша з них
+             стояла ближче. */''}
         <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
           isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
         <button class="cw-go" data-cw-go title="Enter — надіслати">➤</button>
@@ -17800,14 +17804,6 @@ function wireChatWin(box, o){
     });
     mIn.focus();
   }
-  const kpBtn = box.querySelector('[data-cw-kp]');
-  if(kpBtn) kpBtn.addEventListener('click', ()=>{
-    const cur = inp.value.trim();
-    inp.value = (cur ? cur + '\n' : '') + offerUrl(o);
-    chatWin.draft = inp.value;
-    grow(); inp.focus();
-    inp.setSelectionRange(inp.value.length, inp.value.length);
-  });
   const file = box.querySelector('[data-cw-file]');
   box.querySelector('[data-cw-clip]').addEventListener('click', ()=> file.click());
   file.addEventListener('change', ()=>{
