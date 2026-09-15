@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Каталог знімків Loomiq</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Усі вироби Loomiq: модель, колір, ракурс. Знімки для макетів — завантажити по одному або всі одразу.">
+<link rel="icon" href="favicon.svg">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   КАТАЛОГ ЗНІМКІВ
+
+   Сторінка для дизайнера, а не для клієнта. Йому потрібні три речі підряд:
+   знайти виріб, обрати колір, забрати файл. Тому все інше прибрано: ні
+   цін, ні описів, ні кнопок «замовити».
+
+   Оформлення сухе навмисно: на цій сторінці головні — самі знімки, і
+   будь-який колір інтерфейсу поруч із ними починає брехати про колір
+   виробу. Фон нейтральний холодний, акцент один, помаранчевий — той самий,
+   що й на сайті.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  color-scheme:light;
+  --ink:#10151C;      --ink-2:#3A4450;
+  --soft:#59636F;     --muted:#8B95A1;
+  --line:#E4E8ED;     --line-2:#EFF2F5;
+  --paper:#FFFFFF;    --canvas:#F5F7F9;
+  --accent:#E8590C;   --accent-soft:#FDF0E7;  --accent-deep:#C44A08;
+  --ok:#0E7C5A;
+  --r-1:8px; --r-2:12px; --r-3:18px; --r-pill:999px;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--canvas);color:var(--ink);font:15px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;}
+img{max-width:100%;}
+[hidden]{display:none!important;}
+button{font:inherit;color:inherit;}
+
+/* ── Шапка ───────────────────────────────────────────────────────────── */
+.top{position:sticky;top:0;z-index:20;background:rgba(245,247,249,.92);
+  backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--line);
+  padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px;}
+.top-in{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.mark{display:flex;align-items:center;gap:10px;flex:none;}
+.mark b{font-size:17px;letter-spacing:-.3px;}
+.mark span{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);}
+.find{flex:1;min-width:200px;position:relative;}
+.find input{width:100%;font:inherit;font-size:14px;padding:11px 14px 11px 38px;
+  border:1px solid var(--line);border-radius:var(--r-pill);background:var(--paper);
+  color:var(--ink);}
+.find input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent;}
+.find svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;color:var(--muted);pointer-events:none;}
+.count{flex:none;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+/* ── Каркас ──────────────────────────────────────────────────────────── */
+.wrap{max-width:1320px;margin:0 auto;padding:22px 20px calc(80px + env(safe-area-inset-bottom,0px));
+  display:grid;grid-template-columns:238px minmax(0,1fr);gap:26px;align-items:start;}
+@media (max-width:900px){ .wrap{grid-template-columns:1fr;gap:16px;} }
+
+/* ── Список виробів ──────────────────────────────────────────────────── */
+.rail{position:sticky;top:86px;background:var(--paper);border:1px solid var(--line);
+  border-radius:var(--r-3);padding:8px;max-height:calc(100vh - 110px);overflow-y:auto;}
+@media (max-width:900px){ .rail{position:static;max-height:none;display:flex;
+  gap:8px;overflow-x:auto;padding:8px;} }
+.rail-h{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);padding:8px 10px 6px;}
+@media (max-width:900px){ .rail-h{display:none;} }
+.g-b{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  background:none;border:0;border-radius:var(--r-2);padding:8px 10px;cursor:pointer;
+  color:var(--ink);}
+.g-b.on{background:var(--accent-soft);color:var(--accent-deep);}
+.g-b .th{width:34px;height:34px;flex:none;border-radius:var(--r-1);object-fit:contain;
+  background:var(--canvas);border:1px solid var(--line-2);}
+.g-b .nm{flex:1;min-width:0;font-size:13.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.g-b .n{flex:none;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.g-b.on .n{color:var(--accent-deep);}
+@media (max-width:900px){ .g-b{width:auto;flex:none;} .g-b .nm{white-space:nowrap;} }
+@media (hover:hover){ .g-b:hover{background:var(--line-2);} .g-b.on:hover{background:var(--accent-soft);} }
+
+/* ── Виріб ───────────────────────────────────────────────────────────── */
+.prod{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-3);
+  padding:22px 22px 8px;margin-bottom:18px;}
+.prod-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+.prod-h h2{font-size:25px;line-height:1.15;letter-spacing:-.5px;margin:0;}
+.prod-h code{font-size:12px;color:var(--muted);font-family:var(--mono);}
+.prod-s{color:var(--muted);font-size:13px;margin:0 0 16px;}
+.prod-s .new{color:var(--ok);font-weight:600;}
+
+/* Кольори: сам колір і є підпис, тож кружечок великий, а назва поруч */
+.cols{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.col-b{display:flex;align-items:center;gap:8px;background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 13px 5px 6px;
+  cursor:pointer;font-size:13px;}
+.col-b .dot{width:22px;height:22px;border-radius:50%;flex:none;
+  border:1px solid rgba(0,0,0,.14);}
+.col-b.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:600;}
+.col-b[disabled]{opacity:.4;cursor:default;}
+@media (hover:hover){ .col-b:not([disabled]):hover{border-color:var(--accent);} }
+
+/* Ракурси */
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px;
+  margin-bottom:18px;}
+.sh{border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;
+  background:var(--canvas);display:flex;flex-direction:column;}
+.sh .pic{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;
+  background:var(--canvas);}
+.sh .pic img{width:100%;height:100%;object-fit:contain;}
+/* Підпис над кнопкою, а не поруч із нею. Поруч він тиснувся до двох літер:
+   «Перед» ставало «П..», і ракурс доводилось вгадувати по самій картинці. */
+.sh .foot{padding:10px;background:var(--paper);border-top:1px solid var(--line-2);}
+.sh .foot b{display:block;font-size:13px;font-weight:600;margin-bottom:8px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dl{display:block;width:100%;background:var(--ink);color:#fff;border:0;
+  border-radius:var(--r-1);padding:9px 11px;font-size:12.5px;font-weight:600;
+  cursor:pointer;}
+.dl[disabled]{opacity:.55;cursor:default;}
+@media (hover:hover){ .dl:hover{background:#000;} }
+
+.bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  border-top:1px solid var(--line-2);padding:14px 0;}
+.bulk button{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-1);
+  padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+.bulk button[disabled]{opacity:.5;cursor:default;}
+@media (hover:hover){ .bulk button:hover:not([disabled]){border-color:var(--accent);color:var(--accent-deep);} }
+.bulk .note{font-size:12.5px;color:var(--muted);}
+
+/* Повідомлення на весь екран */
+.state{max-width:560px;margin:80px auto;text-align:center;color:var(--soft);}
+.state h1{font-size:26px;color:var(--ink);margin:0 0 8px;letter-spacing:-.4px;}
+.state p{margin:0 0 6px;}
+.spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;margin:0 auto 18px;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){ .spin{animation:none;} }
+
+/* Тост унизу: завантаження йде пачками, і мовчати про це не можна */
+.toast{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;
+  background:var(--ink);color:#fff;border-radius:var(--r-pill);
+  padding:11px 20px;font-size:13.5px;box-shadow:0 12px 30px rgba(16,21,28,.28);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="mark"><b>Loomiq</b><span>каталог знімків</span></div>
+    <label class="find">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Виріб або колір — худі, фліска, пісочний…"
+             autocomplete="off" aria-label="Пошук по каталогу">
+    </label>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+
+<div id="boot" class="state">
+  <div class="spin"></div>
+  <h1>Збираємо каталог</h1>
+  <p>Читаємо перелік виробів і знімки.</p>
+</div>
+
+<main class="wrap" id="app" hidden>
+  <nav class="rail" id="rail" aria-label="Вироби"><div class="rail-h">Вироби</div></nav>
+  <div id="list"></div>
+</main>
+
+<script src="catalog-base.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  'use strict';
+  /* ── Звідки беруться товари ────────────────────────────────────────────
+     З двох місць одразу, і це не примха. Стандартні моделі й кольори
+     прописані в коді конструктора — вони приїхали в catalog-base.js. Усе,
+     що менеджер завів через адмінку (фліски, кітелі, нові кольори до
+     наявних виробів), лежить у базі разом із посиланнями на знімки.
+
+     Перша версія каталогу читала лише файли з репозиторію — і половини
+     товарів у ній не було взагалі: їхні знімки в сховищі, а не тут. */
+  var BASE = window.LQ_BASE || { garments: [], colors: {}, angles: {} };
+  var MAP = {};          // '<виріб>-<колір>-<ракурс>' → адреса знімка
+  var CONTENT = {};      // те, що редагує адмінка
+
+  var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік',
+                  sleeve:'Рукав', side:'Бік', hood:'Капюшон', visor:'Козирок' };
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+    });
+  }
+  function key(gid, cid, side){ return gid + '-' + cid + '-' + side; }
+  /* Адреса знімка. Завантажений через адмінку перекриває файл із
+     репозиторію — так само, як на самому сайті: інакше каталог показував би
+     старий знімок там, де на сайті вже новий. */
+  function picOf(gid, cid, side){
+    var k = key(gid, cid, side);
+    return MAP[k] || ('images/' + k + '.webp');
+  }
+  function nameOf(g){ return (CONTENT.names || {})[g.id] || g.name; }
+
+  /* Які ракурси є в цього виробу. Перед і спина — завжди; решту заводить
+     менеджер в адмінці, і показуємо лише ті, для яких знімок справді є:
+     порожня плитка «Лівий рукав» гірша за її відсутність. */
+  function viewsOf(gid, cid){
+    var out = ['front', 'back'];
+    (BASE.angles[gid] || []).forEach(function(v){ if(out.indexOf(v) < 0) out.push(v); });
+    ((CONTENT.sides || {})[gid] || []).forEach(function(s){
+      if(s && s.id && out.indexOf(s.id) < 0 && MAP[key(gid, cid, s.id)]) out.push(s.id);
+    });
+    var order = (CONTENT.viewOrder || {})[gid];
+    if(Array.isArray(order) && order.length){
+      var pos = {};
+      order.forEach(function(v, i){ pos[v] = i; });
+      out.sort(function(a, b){
+        return (pos[a] == null ? 99 : pos[a]) - (pos[b] == null ? 99 : pos[b]);
+      });
+    }
+    return out;
+  }
+  function sideLabel(gid, id){
+    var own = ((CONTENT.sides || {})[gid] || []).filter(function(s){ return s && s.id === id; })[0];
+    return (own && own.label) || SIDE_UA[id] || id;
+  }
+
+  /* Повний перелік виробів: базові мінус приховані, плюс заведені в
+     адмінці. Порядок і склад ті самі, що в конструкторі, — каталог не має
+     показувати те, чого в продажу немає, і навпаки. */
+  function buildList(){
+    var prod = CONTENT.products || {};
+    var hidden = prod.hidden || [];
+    var pcols = CONTENT.productColors || {};
+    var list = [];
+    BASE.garments.forEach(function(g){
+      if(hidden.indexOf(g.id) >= 0) return;
+      list.push({ id:g.id, name:g.name, colors: BASE.colors[g.id] || [], custom:false });
+    });
+    (prod.custom || []).forEach(function(c){
+      if(!c || !c.id || hidden.indexOf(c.id) >= 0) return;
+      list.push({ id:c.id, name:c.name || c.id, colors:(c.colors || []), custom:true });
+    });
+    list.forEach(function(g){
+      // Кольори, дописані в адмінці, перекривають набір із коду
+      if(Array.isArray(pcols[g.id]) && pcols[g.id].length) g.colors = pcols[g.id];
+      g.name = nameOf(g);
+      g.colors = (g.colors || []).filter(function(c){ return c && c.id; });
+    });
+    return list.filter(function(g){ return g.colors.length; });
+  }
+
+  /* ── Малювання ───────────────────────────────────────────────────────── */
+  var LIST = [], cur = null, pick = {}, q = '';
+
+  function matches(g){
+    if(!q) return true;
+    var hay = (g.name + ' ' + g.id + ' ' +
+      g.colors.map(function(c){ return c.name + ' ' + c.id; }).join(' ')).toLowerCase();
+    return hay.indexOf(q) >= 0;
+  }
+  function shown(){ return LIST.filter(matches); }
+
+  function railHtml(){
+    var vis = shown();
+    return '<div class="rail-h">Вироби</div>' + vis.map(function(g){
+      var c0 = g.colors[0];
+      return '<button class="g-b' + (g.id === cur ? ' on' : '') + '" data-go="' + esc(g.id) + '">' +
+        '<img class="th" src="' + esc(picOf(g.id, c0.id, 'front')) + '" alt="" ' +
+          'onerror="this.style.visibility=\'hidden\'">' +
+        '<span class="nm">' + esc(g.name) + '</span>' +
+        '<span class="n">' + g.colors.length + '</span></button>';
+    }).join('') || '<div class="rail-h">Нічого не знайшлось</div>';
+  }
+
+  function prodHtml(g){
+    var cid = pick[g.id] || g.colors[0].id;
+    var col = g.colors.filter(function(c){ return c.id === cid; })[0] || g.colors[0];
+    var views = viewsOf(g.id, col.id);
+    return '<section class="prod" id="p-' + esc(g.id) + '">' +
+      '<div class="prod-h"><h2>' + esc(g.name) + '</h2><code>' + esc(g.id) + '</code></div>' +
+      '<p class="prod-s">' + g.colors.length + ' ' + plural(g.colors.length, 'колір', 'кольори', 'кольорів') +
+        ' · ' + views.length + ' ' + plural(views.length, 'ракурс', 'ракурси', 'ракурсів') +
+        (g.custom ? ' · <span class="new">заведено в адмінці</span>' : '') + '</p>' +
+      '<div class="cols">' + g.colors.map(function(c){
+        return '<button class="col-b' + (c.id === col.id ? ' on' : '') + '" ' +
+          'data-col="' + esc(g.id) + '|' + esc(c.id) + '">' +
+          '<span class="dot" style="background:' + esc(c.hex || '#ddd') + '"></span>' +
+          esc(c.name || c.id) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="shots">' + views.map(function(v){
+        var url = picOf(g.id, col.id, v);
+        return '<figure class="sh" data-shot="' + esc(url) + '">' +
+          '<div class="pic"><img src="' + esc(url) + '" alt="' + esc(g.name + ', ' +
+            (col.name || col.id) + ', ' + sideLabel(g.id, v)) + '" loading="lazy" ' +
+            'onerror="this.closest(\'.sh\').hidden = true"></div>' +
+          '<figcaption class="foot"><b>' + esc(sideLabel(g.id, v)) + '</b>' +
+          '<button class="dl" data-dl="' + esc(url) + '|' + esc(key(g.id, col.id, v)) +
+            '">Завантажити</button></figcaption></figure>';
+      }).join('') + '</div>' +
+      '<div class="bulk">' +
+        '<button data-all="' + esc(g.id) + '|' + esc(col.id) + '">Усі ракурси цього кольору</button>' +
+        '<button data-all="' + esc(g.id) + '|*">Усі кольори виробу</button>' +
+        '<span class="note">Файли підуть по одному — браузер спитає дозвіл один раз.</span>' +
+      '</div></section>';
+  }
+  function plural(n, one, few, many){
+    var m10 = n % 10, m100 = n % 100;
+    if(m10 === 1 && m100 !== 11) return one;
+    if(m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
+
+  function render(){
+    var vis = shown();
+    document.getElementById('rail').innerHTML = railHtml();
+    document.getElementById('list').innerHTML =
+      vis.map(prodHtml).join('') ||
+      '<div class="state"><h1>Нічого не знайшлось</h1>' +
+      '<p>Спробуйте іншу назву — або очистіть пошук.</p></div>';
+    document.getElementById('count').textContent =
+      vis.length + ' ' + plural(vis.length, 'виріб', 'вироби', 'виробів') + ' · ' +
+      vis.reduce(function(a, g){ return a + g.colors.length; }, 0) + ' кольорів';
+  }
+
+  /* ── Завантаження ─────────────────────────────────────────────────────
+     Через fetch, а не просто посиланням: знімки, завантажені в адмінку,
+     лежать на чужому домені, і атрибут download браузер там ігнорує —
+     файл просто відкривався в сусідній вкладці замість того, щоб зберегтись.
+
+     Імʼя файлу лишаємо системне («hoodie-vanilla-front»): дизайнер отримує
+     сотню знімків і розбирає їх за назвою, а не за порядком. */
+  var toastEl = null, toastT = null;
+  function toast(text){
+    if(!toastEl){
+      toastEl = document.createElement('div');
+      toastEl.className = 'toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = text;
+    toastEl.hidden = false;
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ if(toastEl) toastEl.hidden = true; }, 2600);
+  }
+  function save(blob, name){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+  function ext(url){
+    var m = /\.(webp|png|jpe?g|avif)(?:\?|$)/i.exec(String(url));
+    return m ? m[1].toLowerCase() : 'webp';
+  }
+  function grab(url, name){
+    return fetch(url, { mode:'cors' }).then(function(r){
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      return r.blob();
+    }).then(function(b){ save(b, name + '.' + ext(url)); });
+  }
+  function grabMany(items){
+    if(!items.length) return toast('Тут нема чого завантажувати');
+    var i = 0, bad = 0;
+    toast('Завантажуємо 1 із ' + items.length + '…');
+    (function next(){
+      if(i >= items.length){
+        toast(bad ? ('Готово, не вдалось: ' + bad) : ('Готово · ' + items.length + ' файлів'));
+        return;
+      }
+      var it = items[i++];
+      toast('Завантажуємо ' + i + ' із ' + items.length + '…');
+      grab(it.url, it.name).catch(function(){ bad++; })
+        .then(function(){ setTimeout(next, 220); });
+    })();
+  }
+  /* Знімок є не для кожної пари «колір + ракурс»: у репозиторії файлу може
+     просто не бути. Перевіряємо кожен перед тим, як складати пачку, —
+     інакше дизайнер отримав би півпачки й тишу замість пояснення. */
+  function exists(url){
+    return new Promise(function(res){
+      var im = new Image();
+      im.onload = function(){ res(true); };
+      im.onerror = function(){ res(false); };
+      im.src = url;
+    });
+  }
+  function collect(gid, cid){
+    var g = LIST.filter(function(x){ return x.id === gid; })[0];
+    if(!g) return Promise.resolve([]);
+    var cols = (cid === '*') ? g.colors : g.colors.filter(function(c){ return c.id === cid; });
+    var want = [];
+    cols.forEach(function(c){
+      viewsOf(gid, c.id).forEach(function(v){
+        want.push({ url: picOf(gid, c.id, v), name: key(gid, c.id, v) });
+      });
+    });
+    return Promise.all(want.map(function(w){ return exists(w.url); }))
+      .then(function(okk){ return want.filter(function(_, i){ return okk[i]; }); });
+  }
+
+  /* ── Події ───────────────────────────────────────────────────────────── */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-go],[data-col],[data-dl],[data-all]');
+    if(!b) return;
+    if(b.dataset.go){
+      cur = b.dataset.go;
+      render();
+      var el = document.getElementById('p-' + cur);
+      if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+      return;
+    }
+    if(b.dataset.col){
+      var p = b.dataset.col.split('|');
+      pick[p[0]] = p[1];
+      cur = p[0];
+      render();
+      return;
+    }
+    if(b.dataset.dl){
+      var d = b.dataset.dl.split('|');
+      b.disabled = true;
+      b.textContent = 'Качаємо…';
+      grab(d[0], d[1]).then(function(){
+        b.textContent = 'Завантажено';
+        setTimeout(function(){ b.disabled = false; b.textContent = 'Завантажити'; }, 1400);
+      }).catch(function(err){
+        b.disabled = false; b.textContent = 'Завантажити';
+        toast('Не вдалось: ' + ((err && err.message) || 'немає звʼязку'));
+      });
+      return;
+    }
+    if(b.dataset.all){
+      var a = b.dataset.all.split('|');
+      b.disabled = true;
+      collect(a[0], a[1]).then(function(items){
+        b.disabled = false;
+        grabMany(items);
+      });
+    }
+  });
+  var qEl = document.getElementById('q');
+  qEl.addEventListener('input', function(){
+    q = qEl.value.trim().toLowerCase();
+    render();
+  });
+
+  /* ── Підйом ──────────────────────────────────────────────────────────── */
+  function start(){
+    LIST = buildList();
+    if(!LIST.length){
+      document.getElementById('boot').innerHTML =
+        '<h1>Каталог порожній</h1><p>Жодного виробу зі знімками не знайшлось.</p>';
+      return;
+    }
+    cur = cur || LIST[0].id;
+    document.getElementById('boot').hidden = true;
+    document.getElementById('app').hidden = false;
+    render();
+  }
+  var started = false;
+  function ready(){ if(!started){ started = true; start(); } else render(); }
+
+  var FB = {
+    apiKey: "AIzaSyDf7WmfVlny7T8SBo9N_Xr7TorWYdrDqTc",
+    authDomain: "loomiq-admin.firebaseapp.com",
+    projectId: "loomiq-admin",
+    storageBucket: "loomiq-admin.firebasestorage.app",
+    messagingSenderId: "828527183830",
+    appId: "1:828527183830:web:69895ce3f3c5505d014677"
+  };
+  try{
+    if(!window.firebase) throw new Error('no firebase');
+    if(!firebase.apps.length) firebase.initializeApp(FB);
+    firebase.firestore().collection('loomiq').doc('photos')
+      .onSnapshot(function(snap){
+        var d = snap.exists ? (snap.data() || {}) : {};
+        MAP = d.map || {};
+        CONTENT = d;
+        ready();
+      }, function(e){
+        /* База не відповіла — показуємо те, що є в коді. Половини товарів у
+           ньому немає, і мовчати про це не можна: дизайнер вирішить, що
+           фліски в нас просто не буває. */
+        console.warn('каталог: база не відповіла', e);
+        ready();
+        setTimeout(function(){
+          toast('База не відповіла — показуємо лише стандартні вироби');
+        }, 400);
+      });
+  }catch(e){
+    console.warn('каталог: firebase не піднявся', e);
+    ready();
+  }
+  /* Якщо база мовчить довше кількох секунд — не тримаємо порожній екран. */
+  setTimeout(ready, 6000);
+})();
+</script>
+</body>
+</html>
