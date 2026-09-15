@@ -1758,6 +1758,10 @@
   .cw-qr-rm:hover{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);}
   .cw-note{font-size:11.5px;color:#7A5410;background:#FDF7EC;border-radius:8px;
     padding:7px 10px;margin-bottom:7px;line-height:1.45;}
+  /* Сира відповідь Sitniks — службове вікно для того, хто налаштовує систему */
+  .cw-raw{margin:0 0 7px;padding:8px 9px;border-radius:8px;background:var(--canvas);
+    border:1px solid var(--line);font-size:10.5px;line-height:1.4;max-height:240px;
+    overflow:auto;white-space:pre-wrap;word-break:break-word;}
   /* Робоче місце з трьох зон. Переписка стає звичайним сусідом меню всередині
      оболонки, тож ліву межу рахує сам flex — і згорнуте меню її не ламає.
      Праву межу тримає ширина картки: коли картка відкрита, зона рівно на
@@ -15475,7 +15479,7 @@ async function crmLoadChat(o){
   try{
     const data = await crmFetch('/chats/' + encodeURIComponent(chatId) + '/messages');
     st.rawMsgs = data;
-    const msgs = crmNormMsgs(data);
+    const msgs = crmNormMsgs(data, o);
     if(msgs) st.msgs = msgs;
     else st.noHistory = 'відповідь без списку повідомлень';
   }catch(e){
@@ -15610,15 +15614,62 @@ function crmLongestString(o){
   });
   return best.length >= 2 ? best : '';
 }
-/* Хто автор повідомлення. Поля Sitniks нам невідомі, тож перебираємо все,
-   що зустрічається в подібних API — і прямі ознаки «вихідне», і зворотні
-   «вхідне», бо буває задано лише одне з двох.
+/* Хто підписав повідомлення. Відправник у відповіді Sitniks лежить то вгорі
+   запису, то у вкладеному обʼєкті — так само, як людина в самій розмові.
+   Порядок навмисний: обʼєкт менеджера йде ПЕРЕД клієнтським, бо в наших
+   повідомленнях часто присутні обидва, і клієнт там лише як адресат. */
+function crmMsgWho(m){
+  const box = [m, m.sender, m.from, m.author, m.user, m.manager,
+               m.employee, m.operator, m.client, m.contact]
+    .filter(x => x && typeof x === 'object');
+  const pick = keys => {
+    for(const b of box){
+      const v = keys.map(k => b[k]).find(x => typeof x === 'string' && x.trim());
+      if(v) return String(v).trim();
+    }
+    return '';
+  };
+  return {
+    name: pick(['senderName','authorName','managerName','employeeName',
+                'clientName','fullName','name','title']),
+    nick: pick(['username','userName','login','nickname','nick']).replace(/^@/, '')
+  };
+}
+function crmKeyOf(v){ return String(v || '').trim().toLowerCase().replace(/^@/, ''); }
+/* Повідомлення так, як їх прислав Sitniks. Потрібне рівно для одного:
+   побачити справжні назви полів у цьому акаунті. Беремо перше й останнє —
+   у стрічці вони майже завжди з різних боків, і поле, яким Sitniks їх
+   розрізняє, видно з порівняння одразу. */
+function crmRawSample(o){
+  const d = (crmChat[o.id] || {}).rawMsgs;
+  const arr = Array.isArray(d) ? d
+    : ((d && (d.items || d.data || d.messages || d.results)) || (d ? [d] : []));
+  const list = Array.isArray(arr) ? arr : [arr];
+  if(!list.length) return 'Sitniks не прислав жодного повідомлення.';
+  const pick = list.length > 1 ? [list[0], list[list.length - 1]] : list;
+  return pick.map(x => JSON.stringify(x, null, 1)).join('\n— — —\n').slice(0, 4000);
+}
+/* Підписи співрозмовника — усе, чим цю людину може бути названо в Sitniks.
+   Саме за ними ми й відрізняємо її повідомлення від наших. */
+function crmPeerKeys(o){
+  return [o && o.crmChatName, o && o.name, o && o.ig, o && o.instagram]
+    .map(crmKeyOf).filter(x => x.length >= 2)
+    .filter((x, i, a) => a.indexOf(x) === i);
+}
+/* Наше повідомлення чи клієнтське. Прямі ознаки — першими: коли Sitniks
+   сказав словом, віримо йому.
 
-   Останній рубіж — памʼять про те, що ми самі відправили з цієї картки.
-   Вона рятує, поки справжня назва поля не зʼясована: свої повідомлення
-   праворуч, і менеджер бачить розмову правильно. */
+   Коли не сказав — звіряємо підпис із тим, з ким ця розмова. Це працює без
+   знання назв полів: підписався клієнт — ліворуч, підписався хтось інший —
+   значить хтось із нас, праворуч, і його імʼя ми заразом і показуємо.
+
+   Раніше тут був тільки перебір звичних назв поля «вихідне». У робочому
+   акаунті не збіглась жодна, і вся розмова ставала ліворуч: читати, хто
+   кому що написав, було неможливо.
+
+   Останній рубіж — памʼять про те, що ми самі відправили з цієї картки. */
 const crmSent = new Set();
-function crmIsMine(m, text){
+function crmIsMine(m, text, who, peer){
   if(m.isOutgoing || m.outgoing || m.fromManager || m.isManager || m.isMine || m.mine) return true;
   if(m.isIncoming === true || m.incoming === true || m.fromClient === true) return false;
   if(m.isIncoming === false || m.incoming === false) return true;
@@ -15626,6 +15677,9 @@ function crmIsMine(m, text){
     .filter(v => typeof v === 'string').join(' ').toLowerCase();
   if(/\b(out|outgoing|manager|operator|admin|shop|company|staff)\b/.test(words)) return true;
   if(/\b(in|incoming|client|customer|contact|lead)\b/.test(words)) return false;
+  const sign = [(who || {}).name, (who || {}).nick].map(crmKeyOf).filter(Boolean);
+  if((peer || []).length && sign.length)
+    return !sign.some(s => peer.some(pk => s === pk || s.indexOf(pk) >= 0 || pk.indexOf(s) >= 0));
   return crmSent.has(String(text).trim());
 }
 /* Вкладення приходять голим посиланням просто в тексті — і повідомлення
@@ -15675,7 +15729,8 @@ window.crmMediaFallback = function(el, url, step){
   if(el && el.parentNode) el.parentNode.replaceChild(node, el);
 };
 
-function crmNormMsgs(data){
+function crmNormMsgs(data, o){
+  const peer = crmPeerKeys(o);
   let arr = Array.isArray(data) ? data
           : (Array.isArray(data && data.items) ? data.items
           : (Array.isArray(data && data.data) ? data.data
@@ -15706,8 +15761,15 @@ function crmNormMsgs(data){
     const files = split.files.concat(extra);
     const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
-    const mine = crmIsMine(m, text);
-    return { text: String(text), files: files, mine: mine,
+    const who = crmMsgWho(m);
+    const mine = crmIsMine(m, text, who, peer);
+    /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
+       коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
+       відправлене, його імʼям підписувати наше повідомлення не можна. */
+    const byKey = crmKeyOf(who.name);
+    const by = (mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
+      ? who.name : '';
+    return { text: String(text), files: files, mine: mine, by: by,
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text || (m.files && m.files.length));
   /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
@@ -15754,7 +15816,7 @@ async function crmLoad(o, numFromInput){
         console.log('Sitniks: поля замовлення →', Object.keys(ord || {}).join(', '));
       }catch(e){}
       st.rawMsgs = data;
-      const msgs = crmNormMsgs(data);
+      const msgs = crmNormMsgs(data, o);
       if(msgs) st.msgs = msgs;
       else st.noHistory = 'відповідь без списку повідомлень';
     }catch(e){
@@ -15781,7 +15843,10 @@ async function crmSend(o, text){
     crmSent.add(text.trim());
     // Показуємо одразу, щоб не було відчуття, що повідомлення провалилось,
     // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
-    if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '' });
+    /* Підписуємо одразу собою. Sitniks поверне це повідомлення за секунду й
+       підпис прийде вже від нього — але секунду менеджер дивиться на власну
+       репліку, і вона має бути підписана так само, як решта. */
+    if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '', by: myName() });
     renderOrderDrawer();
     setTimeout(function(){ crmPollOnce(o); }, 1200);
   }catch(e){
@@ -15812,7 +15877,7 @@ async function crmPollOnce(o){
   if(!st || !st.chatId || st.loading) return;
   try{
     const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
-    const msgs = crmNormMsgs(data);
+    const msgs = crmNormMsgs(data, o);
     if(!msgs) return;
     const was = (st.msgs || []).map(m => m.text).join('\u0000');
     const now = msgs.map(m => m.text).join('\u0000');
@@ -17501,7 +17566,7 @@ function chatMsgs(o, kind){
     }));
   }
   return ((crmChat[o.id] || {}).msgs || []).map(m => ({
-    at: m.at, text: m.text, mine: m.mine, kind: 'text', files: m.files || []
+    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, files: m.files || []
   }));
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
@@ -17532,19 +17597,26 @@ function chatRowsHtml(msgs){
     const mark = (m.kind && m.kind !== 'text' && !(m.files || []).length)
       ? `<div class="od-crm-kind">${escapeHtml(TG_KIND_UA[m.kind] || m.kind)} — відкрийте в Telegram</div>` : '';
     const nxt = list[i + 1];
+    /* Група — це не просто «підряд з одного боку», а підряд від однієї
+       ЛЮДИНИ. Інакше дві репліки різних менеджерів злипались в одну, і
+       підпис лишався тільки від останнього: виходило, що написав не той. */
     const grouped = nxt && !!nxt.mine === !!m.mine &&
+                    String(nxt.by || '') === String(m.by || '') &&
                     (nxt.at || '').slice(0, 10) === day;
     // Наведення показує повну дату з секундами: у спорі «коли саме він це
     // написав» хвилин буває замало
     const full = crmFullStamp(m.at);
+    const sign = (!grouped && m.mine && m.by) ? String(m.by).split('@')[0] : '';
     return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}">
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
-        ${time ? `<div class="od-crm-at"${full ? ` title="${escapeHtml(full)}"` : ''}>${
-          escapeHtml(time)}${
-          (!grouped && m.mine && m.by) ? ' · ' + escapeHtml(String(m.by).split('@')[0]) : ''}</div>` : ''}
+        ${/* Підпис показуємо навіть тоді, коли часу ще немає: щойно надіслане
+             повідомлення стоїть у стрічці без позначки часу (її поставить
+             сервер), а хто його написав — відомо вже зараз. */''}
+        ${(time || sign) ? `<div class="od-crm-at"${full ? ` title="${escapeHtml(full)}"` : ''}>${
+          escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -17740,6 +17812,8 @@ function renderChatWin(toBottom){
   // піде посиланням, а не картинкою в чаті.
   const note = (!isTg && chatWin.note)
     ? `<div class="cw-note">Фото в Sitniks надсилається посиланням: клієнт отримає адресу картинки.</div>` : '';
+  const raw = (!isTg && chatWin.raw && canSetup())
+    ? `<pre class="cw-raw">${escapeHtml(crmRawSample(o))}</pre>` : '';
 
   box.innerHTML = `
     <div class="cw-head">
@@ -17748,11 +17822,19 @@ function renderChatWin(toBottom){
         <div class="cw-nm">${escapeHtml(nm)}</div>
         <div class="cw-sub">${escapeHtml(sub)}</div>
       </div>
+      ${/* Що саме прислав Sitniks. Бік розмови й автор беруться з полів, назв
+           яких у закритій документації немає, — тож коли підпис стає не з того
+           боку, це єдиний спосіб побачити справжні назви замість здогадок.
+           Показуємо лише тому, хто налаштовує систему: менеджеру ця кнопка
+           нічого не дає. */''}
+      ${(!isTg && canSetup())
+        ? `<button class="cw-x" data-cw-raw title="Що прислав Sitniks — назви полів у відповіді">{ }</button>`
+        : ''}
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
     <div class="cw-feed">${feed}</div>
     <div class="cw-bar">
-      ${note}${qr}
+      ${raw}${note}${qr}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
@@ -17795,6 +17877,10 @@ function wireChatWin(box, o){
   box.querySelector('[data-cw-go]').addEventListener('click', send);
   box.querySelector('[data-cw-qr]').addEventListener('click', ()=>{
     chatWin.qr = !chatWin.qr; renderChatWin();
+  });
+  const rawB = box.querySelector('[data-cw-raw]');
+  if(rawB) rawB.addEventListener('click', ()=>{
+    chatWin.raw = !chatWin.raw; renderChatWin();
   });
   box.querySelectorAll('[data-qr]').forEach(b=>{
     b.addEventListener('click', ()=>{
