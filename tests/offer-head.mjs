@@ -141,6 +141,51 @@ ok(head.confirm,
   'кнопки підтвердження немає');
 
 console.log('');
+console.log('═══ УСЯ ПРОПОЗИЦІЯ — ЦЕ ВИБІР ═══');
+/* Буває, що основних позицій немає зовсім: усе лежить у варіантах. Доти
+   розділ «Ваша пропозиція» малювався однаково, порожній він чи ні, — і клієнт
+   бачив заголовок, підзаголовок, риску і одразу другий заголовок «Оберіть
+   варіант». Два заголовки впритул, а між ними нічого. */
+const V = { kind:'variant', name:'Футболка оверсайз', color:'Чорний', print:'Вишивка',
+  sizes:'M × 20', qty:20, unitPrice:700, price:14000, basePrice:14000, baseUnitPrice:700,
+  mockups:[PH], prints:[], views:[{ side:'front', label:'Перед', img:PH, show:true }],
+  sides:[], techniques:['Вишивка'], tiers:[], specs:[], about:'', vgroup:'Група 1' };
+await p.evaluate(o => window.__prev(o), Object.assign({}, OFFER, {
+  items: [], variants: [V], vqty:{ 'Група 1': 20 } }));
+await p.waitForTimeout(1200);
+const solo = await fr.evaluate(() => ({
+  titles: [...document.querySelectorAll('section .sec-title')].map(x => x.textContent.trim()),
+  start: !!document.getElementById('offerStart'),
+  variants: !!document.getElementById('variants')
+}));
+console.log('  заголовки: ' + JSON.stringify(solo.titles));
+ok(!solo.start,
+  'порожній розділ основних позицій не малюється зовсім',
+  'порожній розділ лишився на сторінці');
+ok(solo.variants && solo.titles[0] === 'Ваша пропозиція',
+  'назву документа бере на себе блок варіантів — заголовок один',
+  'перший заголовок не той: ' + JSON.stringify(solo.titles));
+ok(solo.titles.filter(t => /Ваша пропозиція|Оберіть варіант/.test(t)).length === 1,
+  'двох заголовків поспіль більше немає',
+  'заголовки досі дублюються: ' + JSON.stringify(solo.titles));
+
+/* А коли основні позиції є, обидва заголовки лишаються: між ними стоять
+   картки товарів, і другий читається як новий крок, а не як дубль. */
+await p.evaluate(o => window.__prev(o), Object.assign({}, OFFER, {
+  variants: [V], vqty:{ 'Група 1': 20 } }));
+await p.waitForTimeout(1200);
+const both = await fr.evaluate(() =>
+  [...document.querySelectorAll('section .sec-title')].map(x => x.textContent.trim()));
+console.log('  зі складом: ' + JSON.stringify(both));
+ok(both.indexOf('Ваша пропозиція') >= 0 && both.indexOf('Оберіть варіант') >= 0,
+  'зі складом обидва заголовки на місці — між ними товари',
+  'заголовки зникли при повному складі: ' + JSON.stringify(both));
+
+/* Повертаємо вихідний документ: далі перевіряють слова на сторінці. */
+await p.evaluate(o => window.__prev(o), OFFER);
+await p.waitForTimeout(1200);
+
+console.log('');
 console.log('═══ СТОРОНА ЗВЕТЬСЯ СПИНОЮ ═══');
 const words = await fr.evaluate(() => {
   document.querySelectorAll('details').forEach(d => { d.open = true; });
