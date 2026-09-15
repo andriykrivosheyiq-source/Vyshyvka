@@ -1546,6 +1546,16 @@
     text-overflow:ellipsis;white-space:nowrap;}
   .od-seek-ch{flex:none;align-self:center;font-size:10.5px;padding:1px 7px;border-radius:20px;
     background:#EEF2FF;color:#3B4A9E;}
+  /* Привʼязка за посиланням — головний шлях, тож стоїть першим і виглядає як
+     дія, а не як службове поле. */
+  .od-seek-bind{display:flex;align-items:center;gap:8px;margin:8px 0 4px;}
+  .od-seek-url{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
+  .od-seek-url:focus{outline:none;border-color:var(--accent);}
+  .od-seek-go{all:unset;cursor:pointer;flex:none;padding:8px 14px;border-radius:8px;
+    background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;}
+  .od-seek-go[disabled]{opacity:.5;cursor:default;}
+  .od-seek-hint{font-size:10.5px;color:var(--muted);line-height:1.4;margin-bottom:8px;}
   /* Фільтр над списком. Коли CRM не шукає, це єдиний робочий пошук, тож поле
      стоїть на видноті, а не ховається за кнопкою. */
   .od-seek-flt{display:flex;align-items:center;gap:8px;margin:8px 0 4px;}
@@ -15323,20 +15333,30 @@ function crmSeekHtml(o){
   const hits = (s.noFilter && needle)
     ? s.results.filter(r => r.hay.indexOf(needle) >= 0) : s.results;
   const list = (s.noFilter && needle && !s.showAll) ? hits : s.results;
-  /* Поле запиту — одне, і воно ж фільтр. У ньому вже стоїть імʼя клієнта з
-     картки: саме імена Sitniks і віддає в списку діалогів. */
+  /* Головний шлях — вставити посилання на відкриту розмову. Він працює
+     завжди й не залежить ні від пошуку в їхньому API, ні від того, скільки в
+     акаунті діалогів. Тому стоїть першим, а не «якщо не знайшлось». */
+  const bind = `<div class="od-seek-bind">
+      <input type="text" class="od-seek-url" placeholder="Вставте посилання на розмову з Sitniks"
+        value="" ${s.binding ? 'disabled' : ''}>
+      <button class="od-seek-go" data-seek-bind ${s.binding ? 'disabled' : ''}>${
+        s.binding ? 'Перевіряємо…' : 'Привʼязати'}</button>
+    </div>
+    <div class="od-seek-hint">Відкрийте розмову в Sitniks і скопіюйте адресу з рядка браузера.</div>
+    ${s.bindErr ? `<div class="od-crm-err">${escapeHtml(s.bindErr)}</div>` : ''}`;
+  /* Пошук за іменем лишається швидким шляхом для свіжих розмов. */
   const box = `<div class="od-seek-flt">
-      <input type="text" class="od-seek-in" placeholder="Імʼя клієнта" value="${escapeHtml(s.q || '')}">
+      <input type="text" class="od-seek-in" placeholder="Або знайдіть за іменем" value="${escapeHtml(s.q || '')}">
       ${s.noFilter ? `<span class="od-seek-cnt">${hits.length} із ${s.results.length}</span>` : ''}
     </div>`;
   /* Пояснення — лише коли є що пояснювати. Коли збіг знайшовся, писати про
      влаштування чужого API нема потреби: людина бачить свою розмову. */
   const note = (s.noFilter && !hits.length && !s.loadingMore)
-    ? `<div class="od-crm-note"><b>Sitniks не вміє шукати за нашим параметром.</b>
-         Ми гортаємо список самі й шукаємо за іменем. ${s.capped
-           ? `Перегорнули ${s.results.length} діалогів — збігу немає.`
-           : (s.more ? `Прочитано ${s.results.length}. «Показати ще» — читаємо далі.`
-                     : `Це весь список, який Sitniks віддає.`)}</div>`
+    ? `<div class="od-crm-note"><b>Серед свіжих розмов збігу немає.</b>
+         Пошуку в Sitniks по API не існує, тож ми дивимось лише те, що встигли
+         прочитати — зараз ${s.results.length}. Шукати глибше немає сенсу: у вас
+         сотні діалогів за півдня. Вставте посилання на розмову — це надійніше й
+         швидше.</div>`
     : '';
   const empty = (!list.length && !note)
     ? `<div class="od-crm-note">${s.loadingMore
@@ -15365,7 +15385,7 @@ function crmSeekHtml(o){
       <button class="od-seek-more" data-seek-raw>${s.showRaw ? 'Сховати' : 'Що прислав Sitniks'}</button>
       <span class="od-seek-tried">${escapeHtml((s.tried || []).join(' · '))}</span>
     </div>${raw}`;
-  return `<div class="od-seek">${head}${note}${box}${empty}${
+  return `<div class="od-seek">${head}${bind}${box}${note}${empty}${
     list.map(r => row(r, s.results.indexOf(r))).join('')}${tail}</div>`;
 }
 
@@ -15566,9 +15586,10 @@ async function crmDoSearch(o, qFromInput){
     size: results.length, more: true, showRaw: false, showAll: false,
     err: (!results.length && lastErr) ? lastErr : '' };
   renderOrderDrawer();
-  /* Імʼя клієнта в нас уже є, а пошуку в Sitniks немає — тож одразу йдемо
-     гортати список замість того, щоб чекати сорока кліків по «Показати ще». */
-  if(!param && results.length && q) crmSeekMore(o, true);
+  /* Автоматичного гортання тут немає навмисно. У робочому акаунті сотні
+     діалогів за півдня: гортати до потрібного означає десятки запитів і
+     хвилину очікування на кожен пошук. Не знайшлось серед свіжих — швидше
+     вставити посилання на розмову, ніж читати базу. */
 }
 /* Підвантажити наступну сторінку списку. Потрібне саме тоді, коли Sitniks не
    шукає: відфільтрувати можна лише те, що встигли прочитати. */
@@ -15614,6 +15635,64 @@ async function crmSeekMore(o, auto){
   renderOrderDrawer();
 }
 
+/* ── Привʼязка за посиланням на розмову ──────────────────────────────────
+   Пошуку в Sitniks по API немає, і обійти це читанням списку не виходить: у
+   робочому акаунті сотні діалогів за півдня, тож потрібна розмова вже через
+   день лежить на кількатисячній позиції. Прочитати стільки — це десятки
+   запитів на кожен пошук.
+
+   Але менеджер у цю мить і так стоїть у відкритій розмові в Sitniks. Тож
+   беремо адресу звідти:
+
+       https://web.sitniks.com/1503/chats/dialog/6aa910231444b9f4123817a1
+                                                 └─ ідентифікатор розмови
+
+   Це працює завжди, незалежно від того, що вміє їхнє API, і не залежить від
+   того, скільки в акаунті діалогів. */
+function crmChatIdFromUrl(text){
+  const t = String(text || '').trim();
+  if(!t) return '';
+  const d = /\/dialog\/([0-9a-f]{8,})/i.exec(t);
+  if(d) return d[1];
+  /* Могли скопіювати сам ідентифікатор, без адреси. */
+  const bare = /^[0-9a-f]{16,}$/i.exec(t);
+  if(bare) return t;
+  const any = /([0-9a-f]{24})/i.exec(t);
+  return any ? any[1] : '';
+}
+async function crmBindUrl(o, text){
+  const id = crmChatIdFromUrl(text);
+  if(!id){
+    toast('Не схоже на посилання з Sitniks — скопіюйте адресу відкритої розмови');
+    return;
+  }
+  const st = crmSeek[o.id] || (crmSeek[o.id] = {});
+  st.binding = true; st.bindErr = '';
+  renderOrderDrawer();
+  /* Перевіряємо одним запитом, що така розмова справді є, і заразом дістаємо
+     імʼя співрозмовника — щоб менеджер побачив, кого прив'язує. Якщо ендпоінт
+     перевірки закритий, привʼязуємо однаково: ідентифікатор узятий з їхньої ж
+     адреси, вигадати його нізвідки. */
+  let name = '';
+  for(const path of ['/chats/' + encodeURIComponent(id),
+                     '/chats/' + encodeURIComponent(id) + '/messages']){
+    try{
+      const data = await crmFetch(path);
+      const one = crmNormFound(Array.isArray(data) ? data.slice(0, 1) : [data], true)[0];
+      if(one && one.name){ name = one.name; break; }
+      break;                       // відповів — розмова є, імені просто немає
+    }catch(e){
+      if(e.status && e.status !== 404 && e.status !== 405){
+        st.binding = false;
+        st.bindErr = e.message || 'не вдалось перевірити';
+        renderOrderDrawer();
+        return;
+      }
+    }
+  }
+  st.binding = false;
+  await crmPickChat(o, { chatId:id, name: name || (o.name || '') });
+}
 async function crmPickChat(o, r){
   o.crmChatId = String(r.chatId);
   o.crmChatName = r.name || '';
@@ -16042,6 +16121,19 @@ function wireCrmBlock(panel, o){
   };
   seekToggle('[data-seek-raw]',  'showRaw');
   seekToggle('[data-seek-all]',  'showAll');
+  const urlIn = panel.querySelector('.od-seek-url');
+  const bindB = panel.querySelector('[data-seek-bind]');
+  const doBind = ()=>{ if(urlIn) crmBindUrl(o, urlIn.value); };
+  if(bindB) bindB.addEventListener('click', doBind);
+  if(urlIn){
+    urlIn.addEventListener('keydown', e=>{
+      e.stopPropagation();
+      if(e.key === 'Enter'){ e.preventDefault(); doBind(); }
+    });
+    /* Вставили посилання — прив'язуємо одразу, без другого руху: після
+       вставки в цьому полі більше нічого не роблять. */
+    urlIn.addEventListener('paste', ()=> setTimeout(doBind, 30));
+  }
   const moreB = panel.querySelector('[data-seek-more]');
   if(moreB) moreB.addEventListener('click', ()=> crmSeekMore(o, true));
   const stopB = panel.querySelector('[data-seek-stop]');
