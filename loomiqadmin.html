@@ -10331,9 +10331,16 @@ const OFFER_STATE_UA = {
   changes:   { label:'Потрібні зміни',     cls:'os-warn' },
   confirmed: { label:'Підтверджено',       cls:'os-ok'   }
 };
+/* Підписи подій клієнта. Перелік має покривати ВСЕ, що вміє записати
+   сторінка: типу, якого тут немає, менеджер побачить сирим — «Клієнт pack».
+   Саме так довго й було з вибором пакета, варіанта і зняттям позиції. */
 const OFFER_EVENT_UA = {
-  opened:'відкрив КП', qty:'змінив кількість', 'reco-add':'додав рекомендацію',
-  'reco-remove':'прибрав рекомендацію', changes:'просить зміни', confirmed:'підтвердив'
+  opened:'відкрив КП', reopened:'відкрив КП ще раз',
+  qty:'змінив кількість', pick:'змінив склад',
+  variant:'обрав варіант', pack:'обрав пакет',
+  'reco-add':'додав рекомендацію', 'reco-remove':'прибрав рекомендацію',
+  share:'переслав КП далі', left:'закрив сторінку',
+  changes:'просить зміни', confirmed:'підтвердив'
 };
 function offerTimeLabel(iso){
   const d = new Date(iso);
@@ -12230,12 +12237,30 @@ function offerEventLine(e, off){
   const qty = +e.qty || (last ? +act.count || 0 : 0);
   const tail = [];
   if(e.note) tail.push(String(e.note).slice(0, 80));
-  const what = offerWhatShort(e.what);
-  if(what) tail.push(what);
-  else if(qty) tail.push(qty + ' шт');
-  if(sum) tail.push(fmt(sum) + ' ₴');
+  /* Пішов зі сторінки — тут важать не гроші, а скільки він над ними сидів.
+     Ставити в цей рядок суму означало б написати «закрив сторінку · 42 300 ₴»,
+     ніби він щось купив. */
+  if(e.type === 'left'){
+    const t = offerReadTail(off);
+    if(t) tail.push(t);
+  } else if(e.type !== 'share'){
+    const what = offerWhatShort(e.what);
+    if(what) tail.push(what);
+    else if(qty) tail.push(qty + ' шт');
+    if(sum) tail.push(fmt(sum) + ' ₴');
+  }
   return 'Клієнт ' + (OFFER_EVENT_UA[e.type] || e.type) +
          (tail.length ? ' · ' + tail.join(' · ') : '');
+}
+/* Скільки читав і доки догорнув. Питання «він узагалі дивився?» виникає
+   раніше за будь-яке інше, а відповідь сторінка пише щоразу. */
+function offerReadTail(off){
+  const b = (off && off.behaviour) || {};
+  const sec = +b.totalSec || 0, deep = +b.depthPct || 0;
+  if(sec < 5 && !deep) return '';
+  const mins = Math.round(sec / 60);
+  return 'читав ' + (mins >= 1 ? mins + ' хв' : sec + ' с') +
+         (deep ? ' · догорнув до ' + Math.round(deep) + '%' : '');
 }
 /* Склад — двома позиціями й «+ще N». Рядок історії читають з одного погляду;
    повний перелік і так стоїть у «Товарах». */
@@ -12267,16 +12292,13 @@ function activityFeed(o){
   if(off){
     push(off.createdAt, 'Створено пропозицію', 'kp');
     (off.events || []).forEach(e => push(e.at, offerEventLine(e, off), 'client'));
-    /* Скільки людина читала й доки догорнула. Питання «він узагалі дивився?»
-       виникає раніше за будь-яке інше, а відповідь на нього сторінка пише
-       щоразу — просто досі її ніхто не показував. */
-    const bh = off.behaviour || {};
-    if(off.clientAt && (+bh.totalSec > 20 || +bh.depthPct > 0)){
-      const mins = Math.round((+bh.totalSec || 0) / 60);
-      push(off.clientAt, 'Клієнт читав ' +
-        (mins >= 1 ? mins + ' хв' : (+bh.totalSec || 0) + ' с') +
-        (+bh.depthPct ? ' · догорнув до ' + Math.round(bh.depthPct) + '%' : ''), 'client');
-    }
+    /* Той самий рядок про читання, але окремо — і лише коли сторінка не
+       встигла записати «закрив». Інакше в історії стояли б два рядки про
+       одне й те саме, один під одним. */
+    const hasLeft = (off.events || []).some(e => e && e.type === 'left');
+    const tail = offerReadTail(off);
+    if(!hasLeft && off.clientAt && tail)
+      push(off.clientAt, 'Клієнт ' + tail, 'client');
   }
   if(o.tgAt && o.tgLast){
     const mine = String(o.tgLast).slice(0, 4) === 'Ви: ';

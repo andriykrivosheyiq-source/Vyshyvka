@@ -6156,6 +6156,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var url = location.href;
     var title = 'Комерційна пропозиція' + (brand().name ? ' · ' + brand().name : '');
     if(window.lqAn) window.lqAn.track('offer_share', {});
+    /* Пересилання — сильний сигнал: рішення ухвалює не одна людина, і
+       менеджер має знати, що КП пішло далі. Доти це летіло лише в аналітику,
+       а в картці клієнта не зʼявлялось узагалі. */
+    saveClient({}, 'share').catch(function(){});
     if(navigator.share){
       navigator.share({ title: title, url: url }).catch(function(){});
       return;
@@ -7399,13 +7403,74 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     render();
     wireSheets();
 
+    /* ── «Пішов зі сторінки» ───────────────────────────────────────────
+       Найцінніший відвідувач для менеджера — той, хто нічого не натиснув:
+       подивився й пішов. Доти про нього не лишалось нічого, крім самого
+       «відкрив»: скільки читав і доки догорнув, сторінка рахувала, але
+       записувала тільки РАЗОМ з якоюсь дією. Хто нічого не робив, той і не
+       зберігався — тобто зникав саме той випадок, який треба розуміти.
+
+       Пишемо через fetch із keepalive: на вивантаженні сторінки бібліотека
+       вже не встигає доправити запит, а keepalive браузер доносить сам.
+
+       Рівно один запис на сеанс: visibilitychange на телефоні спрацьовує при
+       кожному перемиканні застосунку, і без цього в історії була б сотня
+       однакових рядків. */
+    (function(){
+      if(!token) return;
+      var told = false;
+      function encode(v){
+        if(v == null) return { nullValue: null };
+        if(typeof v === 'string') return { stringValue: v };
+        if(typeof v === 'boolean') return { booleanValue: v };
+        if(typeof v === 'number')
+          return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+        if(Array.isArray(v)) return { arrayValue: { values: v.map(encode) } };
+        var f = {};
+        Object.keys(v).forEach(function(k){ if(v[k] !== undefined) f[k] = encode(v[k]); });
+        return { mapValue: { fields: f } };
+      }
+      function leave(){
+        if(told || OFFER.state === 'confirmed') return;
+        var b = behaviourData();
+        // Заглянув на секунду — це не «читав», і рядка про це не треба
+        if((+b.totalSec || 0) < 5) return;
+        told = true;
+        var evs = withEvent('left', '');
+        var mask = '&updateMask.fieldPaths=events' +
+                   '&updateMask.fieldPaths=behaviour' +
+                   '&updateMask.fieldPaths=clientAt';
+        try{
+          fetch(REST + encodeURIComponent(token) + '?key=' + REST_KEY + mask, {
+            method: 'PATCH', keepalive: true,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: {
+              events: encode(evs),
+              behaviour: encode(b),
+              clientAt: encode(new Date().toISOString())
+            } })
+          }).catch(function(){});
+        }catch(e){}
+      }
+      window.addEventListener('pagehide', leave);
+      document.addEventListener('visibilitychange', function(){
+        if(document.visibilityState === 'hidden') leave();
+      });
+    })();
+
     // «Клієнт відкрив КП» — один раз на сеанс, щоб не засмічувати стрічку
     try{
       var seenKey = 'lq_offer_seen_' + token;
       if(OFFER.state !== 'confirmed' && !sessionStorage.getItem(seenKey)){
         sessionStorage.setItem(seenKey, '1');
         if(window.lqAn) window.lqAn.track('offer_open', { token: token });
-        saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state }, 'opened')
+        /* Друге й дальші відкриття не мішаємо з першим: «відкрив ще раз»
+           означає, що людина повернулась подумати, і це інша новина. */
+        var seenBefore = (OFFER.events || []).some(function(e){
+          return e && (e.type === 'opened' || e.type === 'reopened');
+        });
+        saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state },
+                   seenBefore ? 'reopened' : 'opened')
           .catch(function(e){ console.warn('open event failed', e); });
       }
     }catch(e){}
