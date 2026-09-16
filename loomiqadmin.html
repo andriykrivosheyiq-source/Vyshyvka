@@ -4333,9 +4333,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=beca44bc6a"></script>
-<script src="loomiq-fingerprint.js?v=beca44bc6a"></script>
-<script src="loomiq-pricing.js?v=beca44bc6a"></script>
+<script src="loomiq-select.js?v=e0a1df52e7"></script>
+<script src="loomiq-fingerprint.js?v=e0a1df52e7"></script>
+<script src="loomiq-pricing.js?v=e0a1df52e7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -16400,6 +16400,10 @@ function offerEdPush(o){
        записується, тож у клієнта в документі його немає взагалі. */
     const doc = offerClean(offerBuild(o));
     doc.mgr = offerMgrCalc(o);     // тільки в кадр, у базу не потрапляє
+    /* Налаштування карток для Direct — теж службові: як саме менеджер
+       вивів пропозицію картинками, клієнта не стосується, і в його
+       документі цього немає. */
+    doc.cards = o.cards || null;
     /* Свіжий склад замовлення — робоче місце тримає його в кошику
        конструктора, щоб ціна рахувалась від усього тиражу, а не від однієї
        позиції. Без цього сусідні позиції застарівали після кожного
@@ -17042,6 +17046,35 @@ async function offerEdApply(msg){
     o.noDesignFee = !!msg.v;
     if(!(await offerEdSave(o))) return;
     renderBoard(); offerEdPreview(true);
+    return;
+  }
+  /* ── Картки для Direct ──────────────────────────────────────────────
+     Це налаштування ПОКАЗУ, а не даних: який шаблон, у якому порядку, що
+     приховати, який мокап узяти. Товари, ціни й кількості від них не
+     міняються — тож ані перерахунку, ані перечитування кадру тут немає.
+     Зберігаємо тихо, щоб перемикання шаблону не смикало все робоче місце. */
+  if(act === 'cards'){
+    const c = msg.cards;
+    o.cards = (c && typeof c === 'object' && !Array.isArray(c)) ? c : null;
+    await offerEdSave(o);
+    return;
+  }
+  /* Готові картинки прилітають байтами. Завантажує їх адмінка, а не кадр:
+     тут уже є і архів, і переклад імені файлу в латиницю (Chromium мовчки
+     викидає кирилицю з download і зберігає все як «download»). */
+  if(act === 'cardsDownload'){
+    const files = (msg.files || [])
+      .map(f => ({ name: String((f && f.name) || 'kartka.png'),
+                   data: (f && f.data) ? new Uint8Array(f.data) : new Uint8Array(0) }))
+      .filter(f => f.data.length);
+    if(!files.length){ toast('Нема чого завантажувати'); return; }
+    if(files.length === 1)
+      docDownload(URL.createObjectURL(new Blob([files[0].data])), files[0].name);
+    else
+      docDownload(URL.createObjectURL(zipBlob(files)),
+                  'kp-' + (o.orderId || 'loomiq') + '-kartky.zip');
+    toast(files.length === 1 ? 'Картку збережено'
+                             : files.length + ' карток — в архіві');
     return;
   }
   if(act === 'pick'){
