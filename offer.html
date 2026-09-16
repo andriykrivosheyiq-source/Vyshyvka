@@ -263,7 +263,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Галочка «беру» і кількість. Замість трьох фіксованих тиражів — одна
      зрозуміла дія і власне число: клієнту потрібно 43 футболки, а не 30. */
   .pqty{margin-top:10px;}
-  .pqty.off{opacity:.55;}/* Степер на всю ширину виглядав як окрема панель керування. Кількість —
+  /* Приглушення тут довго стояло на стані «ще не додано» — тобто рівно на
+     тому, у якому від клієнта й чекають дії. Єдина кнопка, яку треба
+     натиснути, була намальована напівпрозорою і читалась як неактивна; а
+     вже додана позиція, де робити більше нічого, навпаки світилась. Блок
+     завжди яскравий: те, що позиція не в кошторисі, каже сама кнопка. */
+  /* Степер на всю ширину виглядав як окрема панель керування. Кількість —
      маленьке число, і місця їй треба стільки ж. */
   /* Обраний варіант комплектації — тихим рядком, без вибору */
   .ppick{display:flex; align-items:center; gap:6px; margin-top:10px;
@@ -4895,11 +4900,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               '>' + st.qty + '</b>шт</span>' +
             '<button class="pstep-b plus" data-q="' + i + '" data-d="1" aria-label="Більше">+</button>' +
           '</div>' +
-          /* Зелена частина навмисно менша за лічильник: «Додано» — це стан,
-             а не дія, і змагатись із кількістю за увагу їй нема чого.
-             Головний інтерактив тут один — скільки штук. */
-          '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
-            (on ? TICK + 'Додано' : '+ Додати') + '</button>' +
+          /* Кнопка стоїть лише там, де є що вирішувати.
+
+             Основна позиція — це те, що менеджер уже поклав у пропозицію:
+             якщо вона в цьому блоці, вона вже в замовленні. Кнопка «+ Додати»
+             поруч із нею казала протилежне — ніби це допродаж, який ще треба
+             прийняти, — і клієнт бачив ціну зі знижкою під позицією, яка (за
+             виглядом кнопки) у кошторис не входить.
+
+             Лишається вона тільки в позицій, які менеджер свідомо позначив
+             «варіант на вибір»: там вибір справді за клієнтом, і слова про
+             замовлення сказані прямо. */
+          (it.optional
+            ? '<button class="pbuy' + (on ? ' on' : '') + '" data-on="' + i + '">' +
+                (on ? TICK + 'У замовленні' : '+ Додати до замовлення') + '</button>'
+            : '') +
         '</div>' +
       '</div>';
   }
@@ -5004,7 +5019,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                   '</div>' +
                   '<button class="vbtn' + (on ? ' on' : '') + '" data-vpick="' +
                     esc(g.name) + '|' + i + '">' +
-                    (on ? TICK + 'Обрано' : 'Обрати') + '</button>' +
+                    (on ? TICK + 'Цей варіант у замовленні' : 'Додати цей варіант') + '</button>' +
                 '</div>' +
               '</div>' +
               /* Прорахунок варіанта — на тому самому місці, що й у основної
@@ -5388,7 +5403,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                  замовлення. */
               '<button class="rc-add' + (on ? ' on' : '') + '" data-reco="' + i + '" ' +
                 'aria-pressed="' + (on ? 'true' : 'false') + '">' +
-                (on ? TICK + 'Додано' : '+ Додати') + '</button>' +
+                recoAddLabel(on) + '</button>' +
               edBar('reco', i, null) +
               edSlotHtml('reco', i) +
               /* Прорахунок і тут, у пропонованій картці: доти він зʼявлявся
@@ -6140,6 +6155,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M12 15V3"/><path d="M8 7l4-4 4 4"/>' +
     '<path d="M20 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5"/></svg>';
+  /* Підпис кнопки рекомендації — в одному місці. Він стоїть і в розмітці
+     картки, і в оновленні після натиску: доки це були два різні рядки, вони
+     розходились — розмітка казала одне, а перше ж перемальовування ставило
+     старий текст назад.
+
+     «Додати» без продовження питало «додати куди?»: у кошик, в обране, у
+     замовлення? Кажемо прямо — рекомендація їде в те саме замовлення, яке
+     людина зараз підтверджує. */
+  function recoAddLabel(on){
+    return on ? (TICK + 'У замовленні') : '+ Додати до замовлення';
+  }
+
   function shareBtnHtml(){
     if(EDIT) return '';
     return '<button class="share-b no-print" data-share aria-label="Поділитися пропозицією" ' +
@@ -6156,6 +6183,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     var url = location.href;
     var title = 'Комерційна пропозиція' + (brand().name ? ' · ' + brand().name : '');
     if(window.lqAn) window.lqAn.track('offer_share', {});
+    /* Пересилання — сильний сигнал: рішення ухвалює не одна людина, і
+       менеджер має знати, що КП пішло далі. Доти це летіло лише в аналітику,
+       а в картці клієнта не зʼявлялось узагалі. */
+    saveClient({}, 'share').catch(function(){});
     if(navigator.share){
       navigator.share({ title: title, url: url }).catch(function(){});
       return;
@@ -6307,7 +6338,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       card.classList.toggle('on', on);
       var add = card.querySelector('.rc-add');
       if(add){
-        add.innerHTML = on ? TICK + 'Додано' : '+ Додати';
+        add.innerHTML = recoAddLabel(on);
         add.classList.toggle('on', on);
         add.setAttribute('aria-label', on ? 'Прибрати з пропозиції' : 'Додати до пропозиції');
       }
@@ -7399,13 +7430,74 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     render();
     wireSheets();
 
+    /* ── «Пішов зі сторінки» ───────────────────────────────────────────
+       Найцінніший відвідувач для менеджера — той, хто нічого не натиснув:
+       подивився й пішов. Доти про нього не лишалось нічого, крім самого
+       «відкрив»: скільки читав і доки догорнув, сторінка рахувала, але
+       записувала тільки РАЗОМ з якоюсь дією. Хто нічого не робив, той і не
+       зберігався — тобто зникав саме той випадок, який треба розуміти.
+
+       Пишемо через fetch із keepalive: на вивантаженні сторінки бібліотека
+       вже не встигає доправити запит, а keepalive браузер доносить сам.
+
+       Рівно один запис на сеанс: visibilitychange на телефоні спрацьовує при
+       кожному перемиканні застосунку, і без цього в історії була б сотня
+       однакових рядків. */
+    (function(){
+      if(!token) return;
+      var told = false;
+      function encode(v){
+        if(v == null) return { nullValue: null };
+        if(typeof v === 'string') return { stringValue: v };
+        if(typeof v === 'boolean') return { booleanValue: v };
+        if(typeof v === 'number')
+          return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+        if(Array.isArray(v)) return { arrayValue: { values: v.map(encode) } };
+        var f = {};
+        Object.keys(v).forEach(function(k){ if(v[k] !== undefined) f[k] = encode(v[k]); });
+        return { mapValue: { fields: f } };
+      }
+      function leave(){
+        if(told || OFFER.state === 'confirmed') return;
+        var b = behaviourData();
+        // Заглянув на секунду — це не «читав», і рядка про це не треба
+        if((+b.totalSec || 0) < 5) return;
+        told = true;
+        var evs = withEvent('left', '');
+        var mask = '&updateMask.fieldPaths=events' +
+                   '&updateMask.fieldPaths=behaviour' +
+                   '&updateMask.fieldPaths=clientAt';
+        try{
+          fetch(REST + encodeURIComponent(token) + '?key=' + REST_KEY + mask, {
+            method: 'PATCH', keepalive: true,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: {
+              events: encode(evs),
+              behaviour: encode(b),
+              clientAt: encode(new Date().toISOString())
+            } })
+          }).catch(function(){});
+        }catch(e){}
+      }
+      window.addEventListener('pagehide', leave);
+      document.addEventListener('visibilitychange', function(){
+        if(document.visibilityState === 'hidden') leave();
+      });
+    })();
+
     // «Клієнт відкрив КП» — один раз на сеанс, щоб не засмічувати стрічку
     try{
       var seenKey = 'lq_offer_seen_' + token;
       if(OFFER.state !== 'confirmed' && !sessionStorage.getItem(seenKey)){
         sessionStorage.setItem(seenKey, '1');
         if(window.lqAn) window.lqAn.track('offer_open', { token: token });
-        saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state }, 'opened')
+        /* Друге й дальші відкриття не мішаємо з першим: «відкрив ще раз»
+           означає, що людина повернулась подумати, і це інша новина. */
+        var seenBefore = (OFFER.events || []).some(function(e){
+          return e && (e.type === 'opened' || e.type === 'reopened');
+        });
+        saveClient({ state: OFFER.state === 'created' ? 'opened' : OFFER.state },
+                   seenBefore ? 'reopened' : 'opened')
           .catch(function(e){ console.warn('open event failed', e); });
       }
     }catch(e){}

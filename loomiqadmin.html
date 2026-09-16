@@ -10331,9 +10331,16 @@ const OFFER_STATE_UA = {
   changes:   { label:'Потрібні зміни',     cls:'os-warn' },
   confirmed: { label:'Підтверджено',       cls:'os-ok'   }
 };
+/* Підписи подій клієнта. Перелік має покривати ВСЕ, що вміє записати
+   сторінка: типу, якого тут немає, менеджер побачить сирим — «Клієнт pack».
+   Саме так довго й було з вибором пакета, варіанта і зняттям позиції. */
 const OFFER_EVENT_UA = {
-  opened:'відкрив КП', qty:'змінив кількість', 'reco-add':'додав рекомендацію',
-  'reco-remove':'прибрав рекомендацію', changes:'просить зміни', confirmed:'підтвердив'
+  opened:'відкрив КП', reopened:'відкрив КП ще раз',
+  qty:'змінив кількість', pick:'змінив склад',
+  variant:'обрав варіант', pack:'обрав пакет',
+  'reco-add':'додав рекомендацію', 'reco-remove':'прибрав рекомендацію',
+  share:'переслав КП далі', left:'закрив сторінку',
+  changes:'просить зміни', confirmed:'підтвердив'
 };
 function offerTimeLabel(iso){
   const d = new Date(iso);
@@ -12230,12 +12237,30 @@ function offerEventLine(e, off){
   const qty = +e.qty || (last ? +act.count || 0 : 0);
   const tail = [];
   if(e.note) tail.push(String(e.note).slice(0, 80));
-  const what = offerWhatShort(e.what);
-  if(what) tail.push(what);
-  else if(qty) tail.push(qty + ' шт');
-  if(sum) tail.push(fmt(sum) + ' ₴');
+  /* Пішов зі сторінки — тут важать не гроші, а скільки він над ними сидів.
+     Ставити в цей рядок суму означало б написати «закрив сторінку · 42 300 ₴»,
+     ніби він щось купив. */
+  if(e.type === 'left'){
+    const t = offerReadTail(off);
+    if(t) tail.push(t);
+  } else if(e.type !== 'share'){
+    const what = offerWhatShort(e.what);
+    if(what) tail.push(what);
+    else if(qty) tail.push(qty + ' шт');
+    if(sum) tail.push(fmt(sum) + ' ₴');
+  }
   return 'Клієнт ' + (OFFER_EVENT_UA[e.type] || e.type) +
          (tail.length ? ' · ' + tail.join(' · ') : '');
+}
+/* Скільки читав і доки догорнув. Питання «він узагалі дивився?» виникає
+   раніше за будь-яке інше, а відповідь сторінка пише щоразу. */
+function offerReadTail(off){
+  const b = (off && off.behaviour) || {};
+  const sec = +b.totalSec || 0, deep = +b.depthPct || 0;
+  if(sec < 5 && !deep) return '';
+  const mins = Math.round(sec / 60);
+  return 'читав ' + (mins >= 1 ? mins + ' хв' : sec + ' с') +
+         (deep ? ' · догорнув до ' + Math.round(deep) + '%' : '');
 }
 /* Склад — двома позиціями й «+ще N». Рядок історії читають з одного погляду;
    повний перелік і так стоїть у «Товарах». */
@@ -12267,16 +12292,13 @@ function activityFeed(o){
   if(off){
     push(off.createdAt, 'Створено пропозицію', 'kp');
     (off.events || []).forEach(e => push(e.at, offerEventLine(e, off), 'client'));
-    /* Скільки людина читала й доки догорнула. Питання «він узагалі дивився?»
-       виникає раніше за будь-яке інше, а відповідь на нього сторінка пише
-       щоразу — просто досі її ніхто не показував. */
-    const bh = off.behaviour || {};
-    if(off.clientAt && (+bh.totalSec > 20 || +bh.depthPct > 0)){
-      const mins = Math.round((+bh.totalSec || 0) / 60);
-      push(off.clientAt, 'Клієнт читав ' +
-        (mins >= 1 ? mins + ' хв' : (+bh.totalSec || 0) + ' с') +
-        (+bh.depthPct ? ' · догорнув до ' + Math.round(bh.depthPct) + '%' : ''), 'client');
-    }
+    /* Той самий рядок про читання, але окремо — і лише коли сторінка не
+       встигла записати «закрив». Інакше в історії стояли б два рядки про
+       одне й те саме, один під одним. */
+    const hasLeft = (off.events || []).some(e => e && e.type === 'left');
+    const tail = offerReadTail(off);
+    if(!hasLeft && off.clientAt && tail)
+      push(off.clientAt, 'Клієнт ' + tail, 'client');
   }
   if(o.tgAt && o.tgLast){
     const mine = String(o.tgLast).slice(0, 4) === 'Ви: ';
@@ -20181,6 +20203,7 @@ function renderProductGrid(){
 function openProduct(id){
   prodDetailId = id;
   photoGarmentId = id;
+  colorMoveId = null;                        // панель переносу до іншого товару не тягнемо
   colorWork = effectiveColors(id);           // свіжий робочий список кольорів
   const g = photoCfg(id);
   photoColorId = (g.colors[0]||{}).id;
@@ -20200,12 +20223,26 @@ function renderColorEditor(){
   cur.innerHTML = colorWork.length
     ? colorWork.map((c,i)=>`<span style="display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:4px 9px 4px 5px;font-size:12.5px;">
         <span style="width:20px;height:20px;border-radius:50%;background:${escA(c.hex||'#ccc')};border:1px solid rgba(0,0,0,.15);flex:none;"></span>${escA(c.name)}
+        <button data-pcolmove="${escA(c.id)}" title="Перенести колір і його фото в інший товар"
+          style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:13px;padding:0 2px;">→</button>
         <button data-pcoldel="${i}" title="Прибрати колір" style="all:unset;cursor:pointer;color:var(--ink-soft);font-size:14px;padding:0 2px;">✕</button>
       </span>`).join('')
     : '<span class="sub">Кольорів ще немає — додайте зі спектра нижче.</span>';
   cur.querySelectorAll('[data-pcoldel]').forEach(b=>b.addEventListener('click', ()=>{
     colorWork.splice(Number(b.dataset.pcoldel),1); renderColorEditor();
   }));
+  cur.querySelectorAll('[data-pcolmove]').forEach(b=>b.addEventListener('click', ()=>
+    openColorMove(photoGarmentId, b.dataset.pcolmove)));
+  /* Панель переносу — одразу під кольорами, у тому ж блоці: дія стосується
+     конкретної плитки, і шукати її десь нижче не треба. */
+  let mv = document.getElementById('pcol-move-box');
+  if(!mv){
+    mv = document.createElement('div');
+    mv.id = 'pcol-move-box';
+    cur.parentNode.insertBefore(mv, cur.nextSibling);
+  }
+  mv.innerHTML = colorMoveHtml();
+  wireColorMove(mv);
   // спектр для додавання
   pal.innerHTML = NP_PALETTE.map((c,i)=>{
     const sel = colorWork.some(s=>(s.hex||'').toLowerCase()===c.hex.toLowerCase());
@@ -20215,6 +20252,133 @@ function renderColorEditor(){
     const c = NP_PALETTE[Number(b.dataset.pcoladd)];
     addColorToWork(c.name, c.hex);
   }));
+}
+/* ── Перенести колір в інший товар ────────────────────────────────────────
+   Знімок легко покласти не в той виріб: вантажать по черзі, вибір товару
+   стоїть угорі й не міняється сам. У каталозі це спливає так, що під «Худі
+   базове» стоять широкі моделі без шнурків — фото овера.
+
+   Виправляти це перезавантаженням файлів довго й знову навпомацки. Тому
+   переносимо сам КОЛІР разом із його знімками: опис, розмірна сітка, ціни й
+   область нанесення лишаються там, де були, — вони належать виробу, а не
+   кольору.
+
+   Переносимо саме посилання на знімки. Файл із репозиторію при цьому нікуди
+   не їде: у новому місці просто лежить те саме посилання на нього. */
+function colorMoveKeys(gid){
+  const g = photoCfg(gid);
+  const ids = sidesFor(g).map(x => x.id);
+  // Ракурси, дописані в адмінці, у sidesFor уже враховані; додаємо базові
+  ['front', 'back'].forEach(v => { if(ids.indexOf(v) < 0) ids.push(v); });
+  return ids;
+}
+/* Що саме зараз показується для цієї пари «виріб + колір»: завантажене в
+   адмінку фото або файл із репозиторію. Переносимо те, що видно. */
+function colorMoveShots(gid, cid){
+  const out = [];
+  colorMoveKeys(gid).forEach(v => {
+    const key = gid + '-' + cid + '-' + v;
+    out.push({ side: v, key: key, url: photosMap[key] || ('images/' + key + '.webp'),
+               own: !!photosMap[key] });
+  });
+  return out;
+}
+/* Яку саме плитку зараз переносять. Панель малюється поруч із кольорами, а
+   не окремим вікном: вибір товару зі списку — одна дія, і номер зі списку
+   вписувати руками не треба. */
+let colorMoveId = null;
+function openColorMove(fromId, colorId){
+  colorMoveId = (colorMoveId === colorId) ? null : colorId;
+  renderColorEditor();
+}
+function colorMoveHtml(){
+  if(!colorMoveId) return '';
+  const from = photoCfg(photoGarmentId);
+  const col = (colorWork || []).find(c => c.id === colorMoveId);
+  if(!col){ colorMoveId = null; return ''; }
+  const targets = allPhotoCfg().filter(g => g.id !== photoGarmentId);
+  if(!targets.length) return '<div class="sub">Переносити нема куди — товар один.</div>';
+  const shots = colorMoveShots(photoGarmentId, colorMoveId);
+  const own = shots.filter(x => x.own).length;
+  const nice = g => String(g.name || '').replace(' · свій', '');
+  return `<div id="pcol-move" style="margin:10px 0 14px;padding:12px 13px;border:1px solid var(--accent);
+      border-radius:12px;background:var(--accent-soft);">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">
+      Перенести колір «${escA(col.name)}» з «${escA(nice(from))}»</div>
+    <div class="sub" style="margin-bottom:10px;">Поїдуть тільки колір і його знімки —
+      ${shots.length} ${shots.length === 1 ? 'ракурс' : 'ракурсів'}${
+        own ? ', з них ' + own + ' завантажені в адмінку' : ''}.
+      Опис, розмірна сітка, ціни й область нанесення лишаться на місці.</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="pcol-move-to" style="flex:1;min-width:180px;font-family:inherit;font-size:13.5px;
+        border:1px solid var(--line);border-radius:7px;padding:8px 9px;background:#fff;">
+        ${targets.map(g => `<option value="${escA(g.id)}">${escA(nice(g))}</option>`).join('')}
+      </select>
+      <button class="pc-btn up" id="pcol-move-go" style="flex:none;padding:8px 16px;">Перенести</button>
+      <button class="pc-btn reset" id="pcol-move-no" style="flex:none;padding:8px 14px;">Скасувати</button>
+    </div>
+  </div>`;
+}
+function wireColorMove(box){
+  const go = box.querySelector('#pcol-move-go');
+  if(!go) return;
+  box.querySelector('#pcol-move-no').addEventListener('click', ()=>{
+    colorMoveId = null; renderColorEditor();
+  });
+  go.addEventListener('click', async ()=>{
+    const toId = box.querySelector('#pcol-move-to').value;
+    const col = (colorWork || []).find(c => c.id === colorMoveId);
+    const to = photoCfg(toId);
+    if(!col || !to) return;
+    const nice = g => String(g.name || '').replace(' · свій', '');
+    if((effectiveColors(toId) || []).some(c => c.id === col.id) &&
+       !confirm('У «' + nice(to) + '» уже є колір із таким самим ідентифікатором. ' +
+                'Його знімки буде замінено. Продовжити?')) return;
+    go.disabled = true; go.textContent = 'Переносимо…';
+    try{
+      await moveColorTo(photoGarmentId, toId, col, colorMoveShots(photoGarmentId, col.id));
+      colorMoveId = null;
+      renderColorEditor();
+      toast('Колір «' + col.name + '» перенесено в «' + nice(to) + '»');
+    }catch(e){
+      console.error(e);
+      go.disabled = false; go.textContent = 'Перенести';
+      toast('Не перенеслось: ' + ((e && e.message) || 'помилка збереження'));
+    }
+  });
+}
+async function moveColorTo(fromId, toId, col, shots){
+  const patch = { map: {}, productColors: {} };
+  /* Знімки: у новому місці кладемо те саме посилання, зі старого прибираємо.
+     Прибирати обовʼязково — інакше той самий файл лишиться в обох виробах, і
+     в каталозі буде видно дубль замість виправлення. */
+  shots.forEach(sh => {
+    patch.map[toId + '-' + col.id + '-' + sh.side] = sh.url;
+    if(sh.own) patch.map[sh.key] = firebase.firestore.FieldValue.delete();
+  });
+  /* Списки кольорів беремо ЕФЕКТИВНІ й записуємо повністю: доки в товару не
+     було власного списку, він жив на стандартному з коду, і дописати в нього
+     один колір неможливо — треба матеріалізувати весь. */
+  patch.productColors[fromId] = (effectiveColors(fromId) || []).filter(c => c.id !== col.id);
+  const toCols = (effectiveColors(toId) || []).filter(c => c.id !== col.id);
+  toCols.push({ id: col.id, name: col.name, hex: col.hex || '#cccccc' });
+  patch.productColors[toId] = toCols;
+
+  await PHOTOS_DOC.set(patch, { merge:true });
+
+  /* Показуємо результат одразу, не чекаючи, поки підписка принесе документ:
+     менеджер щойно натиснув і має побачити, що колір поїхав. */
+  shots.forEach(sh => {
+    photosMap[toId + '-' + col.id + '-' + sh.side] = sh.url;
+    if(sh.own) delete photosMap[sh.key];
+  });
+  contentData.productColors = contentData.productColors || {};
+  contentData.productColors[fromId] = patch.productColors[fromId];
+  contentData.productColors[toId] = patch.productColors[toId];
+  colorWork = effectiveColors(photoGarmentId);
+  if(!colorWork.some(c => c.id === photoColorId) && colorWork[0]) photoColorId = colorWork[0].id;
+  renderColorEditor();
+  renderPhotoManager();
 }
 function colorIdFromHex(hex){ return 'h' + String(hex||'').replace('#','').toLowerCase(); }
 function addColorToWork(name, hex){
