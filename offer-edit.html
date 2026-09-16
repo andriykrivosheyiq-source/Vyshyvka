@@ -737,6 +737,56 @@
   .frame{width:100%; height:100%; border:0; display:block; background:#fff;}
   .hide{display:none !important;}
 
+  /* ── Картки для Direct ────────────────────────────────────────────────
+     Той самий склад пропозиції, виведений картинками. Праворуч великий
+     preview — це буквально те саме полотно, яке збережеться у файл, тож
+     дивитись менеджеру треба сюди, а не в уяву. */
+  .cd{flex:1; min-width:0; display:flex; flex-direction:column; background:#F7F9FC;}
+  .cd-bar{flex:none; display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:10px 16px; background:#fff; border-bottom:1px solid #E2E8F0;}
+  .cd-g{display:flex; align-items:center; gap:7px; min-width:0;}
+  .cd-l{font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:#8A93A3; white-space:nowrap;}
+  .cd-seg{display:flex; background:#EEF2F7; border-radius:8px; padding:2px; gap:2px;}
+  .cd-seg button{font:inherit; font-size:12px; font-weight:700; color:#5A6A80;
+    background:none; border:0; border-radius:6px; padding:5px 10px; cursor:pointer;}
+  .cd-seg button.on{background:#fff; color:#22314A; box-shadow:0 1px 2px rgba(16,32,58,.14);}
+  .cd-chk{display:inline-flex; align-items:center; gap:5px; font-size:12px; color:#46546A;
+    cursor:pointer; white-space:nowrap;}
+  .cd-go{margin-left:auto; display:flex; gap:8px;}
+  .cd-go button{font:inherit; font-size:12.5px; font-weight:700; border-radius:9px;
+    padding:8px 14px; cursor:pointer; border:1px solid #D9E1EC; background:#fff; color:#22314A;}
+  .cd-go button.pri{background:#22314A; border-color:#22314A; color:#fff;}
+  .cd-go button:disabled{opacity:.5; cursor:default;}
+  .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:auto;}
+  .cd-prev{flex:1; min-width:0; display:flex; align-items:flex-start; justify-content:center;}
+  .cd-prev canvas{width:100%; height:auto; max-width:1100px; border-radius:12px;
+    box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff; display:block;}
+  .cd-side{flex:0 0 250px; display:flex; flex-direction:column; gap:12px;}
+  .cd-box{background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px;}
+  .cd-box input[type=text], .cd-box textarea{width:100%; font:inherit; font-size:12.5px;
+    color:#22314A; border:1px solid #D9E1EC; border-radius:8px; padding:7px 9px;
+    resize:vertical; box-sizing:border-box;}
+  .cd-box input:focus, .cd-box textarea:focus{outline:none; border-color:#4F5FD4;}
+  .cd-pics{display:flex; gap:6px; flex-wrap:wrap; margin-top:7px;}
+  .cd-pics img{width:48px; height:48px; object-fit:contain; background:#F1F5F9;
+    border:2px solid transparent; border-radius:8px; cursor:pointer;}
+  .cd-pics img.on{border-color:#4F5FD4;}
+  .cd-strip{flex:none; display:flex; gap:8px; overflow-x:auto; padding:10px 16px;
+    background:#fff; border-top:1px solid #E2E8F0;}
+  .cd-card{flex:0 0 132px; border:1px solid #E2E8F0; border-radius:10px; padding:7px;
+    cursor:pointer; background:#fff; position:relative;}
+  .cd-card.on{border-color:#4F5FD4; box-shadow:0 0 0 2px rgba(79,95,212,.16);}
+  .cd-card.off{opacity:.45;}
+  .cd-card img{width:100%; height:64px; object-fit:contain; background:#F1F5F9; border-radius:6px;}
+  .cd-card b{display:block; font-size:11px; font-weight:700; color:#22314A; margin-top:5px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cd-card i{font-style:normal; font-size:10px; color:#8A93A3;}
+  .cd-move{display:flex; gap:4px; margin-top:5px;}
+  .cd-move button{flex:1; font:inherit; font-size:11px; font-weight:700; color:#5A6A80;
+    background:#F1F5F9; border:0; border-radius:5px; padding:3px 0; cursor:pointer;}
+  .cd-note{padding:44px 20px; text-align:center; color:#8A93A3; font-size:13px; line-height:1.6;}
+
   /* Конструктор усередині робочого місця. Це та сама модалка, що на сайті,
      тільки вона більше не модалка: не висить поверх усього й не має власної
      шапки — вона і є вміст цієї сторінки. */
@@ -778,6 +828,9 @@
     <div class="tabs">
       <button class="tab on" data-view="build">Збирання</button>
       <button class="tab" data-view="client">Як бачить клієнт</button>
+      <!-- Той самий склад, виведений картинками для листування. Нічого
+           окремого тут не заводять: картки збираються з позицій вище. -->
+      <button class="tab" data-view="cards">Картки</button>
     </div>
     <span class="save" id="saveMark"></span>
     <div class="list-h">Склад пропозиції</div>
@@ -793,6 +846,14 @@
     </div>
   </main>
   <iframe class="frame hide" id="clientFrame" title="Як бачить клієнт"></iframe>
+  <section class="cd hide" id="paneCards">
+    <div class="cd-bar" id="cdBar"></div>
+    <div class="cd-main">
+      <div class="cd-prev" id="cdPrev"></div>
+      <aside class="cd-side" id="cdSide"></aside>
+    </div>
+    <div class="cd-strip" id="cdStrip"></div>
+  </section>
 </div>
 
 <script>
@@ -816,15 +877,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    var s = document.createElement('script');
-    s.src = 'loomiq-select.js?v=40db2b9038';
-    document.head.appendChild(s);
+    ['loomiq-select.js?v=e0a1df52e7',
+     /* Малювальник карток для Direct. Окремим файлом, бо це той самий
+        зміст, виведений інакше, — і завтра його так само знадобиться
+        підключити з картки замовлення. */
+     'loomiq-cards.js?v=e0a1df52e7'].forEach(function(src){
+      var s = document.createElement('script');
+      s.src = src;
+      document.head.appendChild(s);
+    });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=40db2b9038';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=40db2b9038';
-  var CTOR_JS   = 'loomiq-constructor.js?v=40db2b9038';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=40db2b9038';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=e0a1df52e7';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=e0a1df52e7';
+  var CTOR_JS   = 'loomiq-constructor.js?v=e0a1df52e7';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=e0a1df52e7';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1691,16 +1758,268 @@
   // Кнопка «Зберегти позицію» стоїть у шапці адмінки й просить нас звідти
   function onSaveRequest(){ saveCurrent(); }
 
+  /* ══════════ КАРТКИ ДЛЯ DIRECT ══════════
+     Вкладка не заводить нічого свого. Вона бере той самий OFFER, що й решта
+     робочого місця, і виводить його картинками. Менеджер тут керує ПОКАЗОМ:
+     шаблон, порядок, склад, заголовок, який мокап узяти. Ціни, кількості й
+     мокапи лишаються там, де їх складали, — у «Збиранні».
+
+     Налаштування показу живуть у самому замовленні, тож переживають
+     перезавантаження й видні з будь-якого компʼютера. */
+  var cardCfg = null, cardList = [], cardAt = 0, cardExt = 'png';
+  var cardBusy = false, cardDrawId = 0;
+
+  function cardsCfg(){
+    if(!cardCfg){
+      var saved = (OFFER && OFFER.cards) || {};
+      cardCfg = { tpl: saved.tpl || 'minimal', industry: saved.industry || 'horeca',
+                  order: Array.isArray(saved.order) ? saved.order.slice() : [],
+                  hidden: Object.assign({}, saved.hidden || {}),
+                  fields: Object.assign({}, saved.fields || {}),
+                  by: JSON.parse(JSON.stringify(saved.by || {})) };
+    }
+    return cardCfg;
+  }
+  function cardsSave(){ send({ act:'cards', cards: cardsCfg() }); }
+  function cardsChanged(){ cardsSave(); renderCards(); }
+  function cardsOwn(id){
+    var cfg = cardsCfg();
+    if(!cfg.by[id]) cfg.by[id] = {};
+    return cfg.by[id];
+  }
+
+  function renderCards(){
+    var box = document.getElementById('paneCards');
+    if(!box || box.classList.contains('hide')) return;
+    var prev = document.getElementById('cdPrev');
+    if(!window.LQCards){
+      prev.innerHTML = '<div class="cd-note">Малювальник карток ще вантажиться…</div>';
+      setTimeout(renderCards, 400);
+      return;
+    }
+    var cfg = cardsCfg();
+    cardList = window.LQCards.build(OFFER, cfg);
+    if(!cardList.length){
+      document.getElementById('cdBar').innerHTML = '';
+      document.getElementById('cdSide').innerHTML = '';
+      document.getElementById('cdStrip').innerHTML = '';
+      prev.innerHTML = '<div class="cd-note">Спершу складіть пропозицію — картки ' +
+        'збираються з її позицій.</div>';
+      return;
+    }
+    if(cardAt >= cardList.length) cardAt = 0;
+    renderCardsBar(cfg);
+    renderCardsStrip();
+    renderCardsSide(cfg);
+    drawPreview(cfg);
+  }
+
+  function renderCardsBar(cfg){
+    var L = window.LQCards;
+    var seg = function(name, list, cur){
+      return '<div class="cd-seg">' + list.map(function(t){
+        return '<button data-' + name + '="' + esc(t.id) + '"' +
+               (t.id === cur ? ' class="on"' : '') +
+               (t.note ? ' title="' + esc(t.note) + '"' : '') + '>' + esc(t.name) + '</button>';
+      }).join('') + '</div>';
+    };
+    var html =
+      '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
+      (cfg.tpl === 'industry'
+        ? '<div class="cd-g"><span class="cd-l">Галузь</span>' +
+          seg('ind', L.INDUSTRIES, cfg.industry) + '</div>'
+        : '') +
+      '<div class="cd-g"><span class="cd-l">Показувати</span>' +
+        L.FIELDS.map(function(f){
+          return '<label class="cd-chk"><input type="checkbox" data-fld="' + esc(f.id) + '"' +
+                 (cfg.fields[f.id] === false ? '' : ' checked') + '>' + esc(f.name) + '</label>';
+        }).join('') + '</div>' +
+      '<div class="cd-g"><span class="cd-l">Формат</span>' +
+        seg('ext', [{ id:'png', name:'PNG' }, { id:'jpg', name:'JPG' }], cardExt) + '</div>' +
+      '<div class="cd-go">' +
+        '<button data-dl="one"' + (cardBusy ? ' disabled' : '') + '>⤓ Скачати цю</button>' +
+        '<button class="pri" data-dl="all"' + (cardBusy ? ' disabled' : '') + '>⤓ Скачати всі</button>' +
+      '</div>';
+    var bar = document.getElementById('cdBar');
+    bar.innerHTML = html;
+    bar.querySelectorAll('[data-tpl]').forEach(function(b){
+      b.onclick = function(){ cardsCfg().tpl = b.dataset.tpl; cardsChanged(); };
+    });
+    bar.querySelectorAll('[data-ind]').forEach(function(b){
+      b.onclick = function(){ cardsCfg().industry = b.dataset.ind; cardsChanged(); };
+    });
+    bar.querySelectorAll('[data-ext]').forEach(function(b){
+      b.onclick = function(){ cardExt = b.dataset.ext; renderCardsBar(cardsCfg()); };
+    });
+    bar.querySelectorAll('[data-fld]').forEach(function(c){
+      c.onchange = function(){ cardsCfg().fields[c.dataset.fld] = c.checked; cardsChanged(); };
+    });
+    bar.querySelectorAll('[data-dl]').forEach(function(b){
+      b.onclick = function(){ cardsDownload(b.dataset.dl === 'all'); };
+    });
+  }
+
+  function renderCardsStrip(){
+    var strip = document.getElementById('cdStrip');
+    strip.innerHTML = cardList.map(function(c, i){
+      var pic = c.type === 'set' ? ((c.items[0] || {}).pic || '') : (c.pic || '');
+      return '<div class="cd-card' + (i === cardAt ? ' on' : '') +
+             (c.hidden ? ' off' : '') + '" data-at="' + i + '">' +
+        (pic ? '<img src="' + esc(pic) + '" alt="">' : '<img alt="">') +
+        '<b>' + esc(c.name) + '</b>' +
+        '<i>' + (c.hidden ? 'прихована' : (c.type === 'set' ? 'добірка' : (c.badge || 'позиція'))) + '</i>' +
+        '<span class="cd-move">' +
+          '<button data-mv="' + i + ':-1" title="Раніше">◀</button>' +
+          '<button data-mv="' + i + ':1" title="Пізніше">▶</button>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+    strip.querySelectorAll('[data-at]').forEach(function(el){
+      el.onclick = function(){ cardAt = +el.dataset.at; renderCards(); };
+    });
+    strip.querySelectorAll('[data-mv]').forEach(function(b){
+      b.onclick = function(e){
+        e.stopPropagation();
+        var p = b.dataset.mv.split(':');
+        cardsMove(+p[0], +p[1]);
+      };
+    });
+  }
+
+  /* Порядок зберігаємо СПИСКОМ усіх карток, а не однією переставленою:
+     інакше наступна позиція, додана в «Збиранні», ставала б у випадкове
+     місце — їй просто не було б із чим порівнятись. */
+  function cardsMove(at, d){
+    var to = at + d;
+    if(to < 0 || to >= cardList.length) return;
+    var ids = cardList.map(function(c){ return c.id; });
+    var x = ids[at]; ids[at] = ids[to]; ids[to] = x;
+    cardsCfg().order = ids;
+    if(cardAt === at) cardAt = to;
+    else if(cardAt === to) cardAt = at;
+    cardsChanged();
+  }
+
+  function renderCardsSide(cfg){
+    var c = cardList[cardAt];
+    if(!c) return;
+    var own = (cfg.by || {})[c.id] || {};
+    var side = document.getElementById('cdSide');
+    side.innerHTML =
+      '<div class="cd-box">' +
+        '<span class="cd-l">Заголовок картки</span>' +
+        '<input type="text" id="cdTitle" value="' + esc(own.title || c.name) + '" ' +
+          'placeholder="' + esc(c.name) + '">' +
+        '<div style="height:9px"></div>' +
+        '<span class="cd-l">Короткий опис</span>' +
+        '<textarea id="cdNote" rows="3" placeholder="Необовʼязково">' +
+          esc(own.note != null ? own.note : (c.note || '')) + '</textarea>' +
+      '</div>' +
+      (c.type !== 'set' && (c.pics || []).length > 1
+        ? '<div class="cd-box"><span class="cd-l">Мокап для картки</span>' +
+          '<div class="cd-pics">' + c.pics.map(function(u){
+            return '<img src="' + esc(u) + '" data-pic="' + esc(u) + '"' +
+                   (u === c.pic ? ' class="on"' : '') + ' alt="">';
+          }).join('') + '</div></div>'
+        : '') +
+      '<div class="cd-box">' +
+        '<label class="cd-chk"><input type="checkbox" id="cdHide"' +
+          (c.hidden ? ' checked' : '') + '>Не виводити цю картку</label>' +
+      '</div>';
+    var t = document.getElementById('cdTitle');
+    var n = document.getElementById('cdNote');
+    /* Пишемо на «change», а не на кожну літеру: інакше кожен натиск
+       клавіші летів би в базу й перемальовував полотно. */
+    t.onchange = function(){
+      var v = t.value.trim();
+      if(v && v !== c.name) cardsOwn(c.id).title = v; else delete cardsOwn(c.id).title;
+      cardsChanged();
+    };
+    n.onchange = function(){
+      var v = n.value.trim();
+      if(v) cardsOwn(c.id).note = v; else delete cardsOwn(c.id).note;
+      cardsChanged();
+    };
+    side.querySelectorAll('[data-pic]').forEach(function(im){
+      im.onclick = function(){ cardsOwn(c.id).pic = im.dataset.pic; cardsChanged(); };
+    });
+    document.getElementById('cdHide').onchange = function(){
+      var cfg2 = cardsCfg();
+      if(this.checked) cfg2.hidden[c.id] = true; else delete cfg2.hidden[c.id];
+      cardsChanged();
+    };
+  }
+
+  /* Preview — те саме полотно, що збережеться у файл. Один код на обидва
+     випадки: інакше «як побачить клієнт» рано чи пізно розійдеться з тим,
+     що насправді завантажилось. */
+  function drawPreview(cfg){
+    var c = cardList[cardAt];
+    var prev = document.getElementById('cdPrev');
+    if(!c){ prev.innerHTML = ''; return; }
+    var id = ++cardDrawId;
+    window.LQCards.draw(c, OFFER, cfg).then(function(cv){
+      if(id !== cardDrawId) return;        // менеджер уже перемкнув — цей кадр застарів
+      prev.innerHTML = '';
+      prev.appendChild(cv);
+    }, function(e){
+      if(id !== cardDrawId) return;
+      prev.innerHTML = '<div class="cd-note">Картку намалювати не вдалось: ' +
+                       esc(String((e && e.message) || e)) + '</div>';
+    });
+  }
+
+  /* Файли віддаємо адмінці байтами: завантаження з верхнього вікна
+     надійніше, а архів і латинські імена файлів вона вже вміє — писати це
+     вдруге тут означало б дві різні відповіді на те саме питання. */
+  async function cardsDownload(all){
+    if(cardBusy) return;
+    var cfg = cardsCfg();
+    var want = all
+      ? cardList.filter(function(c){ return !c.hidden; })
+      : (cardList[cardAt] ? [cardList[cardAt]] : []);
+    if(!want.length){ mark('', 'Немає жодної видимої картки'); return; }
+    cardBusy = true;
+    renderCardsBar(cfg);
+    mark('wait', 'Малюю…');
+    try{
+      var files = [];
+      for(var i = 0; i < want.length; i++){
+        var cv = await window.LQCards.draw(want[i], OFFER, cfg);
+        var type = cardExt === 'jpg' ? 'image/jpeg' : 'image/png';
+        var blob = await new Promise(function(r){ cv.toBlob(r, type, 0.92); });
+        if(!blob) continue;
+        files.push({ name: window.LQCards.fileName(want[i], cardList.indexOf(want[i]),
+                                                   OFFER, cardExt),
+                     data: new Uint8Array(await blob.arrayBuffer()) });
+      }
+      if(!files.length) mark('', 'Намалювати не вдалось');
+      else { send({ act:'cardsDownload', files: files }); mark('ok', 'Готово'); }
+    }catch(e){
+      mark('', 'Не вдалось: ' + ((e && e.message) || e));
+    }
+    cardBusy = false;
+    renderCardsBar(cfg);
+  }
+
   /* ── Вкладки ────────────────────────────────────────────────────────── */
   document.querySelectorAll('[data-view]').forEach(function(b){
     b.addEventListener('click', function(){
       document.querySelectorAll('[data-view]').forEach(function(x){ x.classList.toggle('on', x === b); });
-      var client = b.dataset.view === 'client';
+      var view = b.dataset.view;
+      var client = view === 'client', cards = view === 'cards';
       // Ховаємо тільки робоче поле: ліва панель зі складом і перемикачем
       // лишається на місці, інакше не буде чим перемкнутись назад
-      document.getElementById('paneWork').classList.toggle('hide', client);
+      document.getElementById('paneWork').classList.toggle('hide', client || cards);
       var fr = document.getElementById('clientFrame');
       fr.classList.toggle('hide', !client);
+      document.getElementById('paneCards').classList.toggle('hide', !cards);
+      if(cards){
+        /* Незбережене віддаємо перед показом — так само, як клієнтському
+           виглядові. Картка з учорашньою ціною гірша за її відсутність:
+           її ж відправлять клієнту. */
+        if(dirty) saveCurrent().then(renderCards, renderCards); else renderCards();
+      }
       if(client){
         // Перед показом клієнтського вигляду віддаємо адмінці незбережене:
         // інакше менеджер звіряє пропозицію з тим, чого в ній ще немає
@@ -1773,6 +2092,11 @@
       OFFER.reco  = OFFER.reco  || [];
       OFFER.variants = OFFER.variants || [];
       renderList();
+      /* Картки живуть тим самим документом. Налаштування показу перечитуємо
+         з нього ж — інакше те, що менеджер щойно зберіг, лишилось би тільки
+         в цій вкладці до перезавантаження. */
+      cardCfg = null;
+      try{ renderCards(); }catch(e){ console.warn('картки не оновились', e); }
       /* Вкладка «Як бачить клієнт» — окремий кадр, і дані вона отримувала
          РІВНО ОДИН раз, коли її відкрили. Далі менеджер міняв логотип чи
          дату, адмінка справно все зберігала, а кадр показував старе — і

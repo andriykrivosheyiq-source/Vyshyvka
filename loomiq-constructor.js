@@ -1060,9 +1060,16 @@
        мусить як напис — у написа своя разова, свій ескіз і своя ставка за
        площу. Вгадати це нізвідки, тож вирішує менеджер, і його вибір лежить
        на самому шарі: шар цілком їде в config.logos, тож переживає
-       збереження позиції разом з усім іншим. */
+       збереження позиції разом з усім іншим.
+
+       Третій вид — «не рахувати». Дизайн є, а роботи по ньому немає: клієнт
+       приніс готовий файл саме під цей виріб, або те саме нанесення вже
+       підготували в попередньому замовленні. Знімає рівно разові —
+       підготовку макета й додатковий ескіз; саме нанесення рахується як
+       звичайно, тканину прошити все одно треба. */
     function layerKind(l){
-      if(l && (l.kindFix === 'txt' || l.kindFix === 'img')) return l.kindFix;
+      var k = l && l.kindFix;
+      if(k === 'txt' || k === 'img' || k === 'off') return k;
       return isTextLayer(l) ? 'txt' : 'img';
     }
     /* Останній рубіж проти «два лого рахуються як одне».
@@ -1318,6 +1325,10 @@
       };
     }
     window.__priceOrder = priceOrder;   // кошик живе в іншій області видимості
+    /* Склад, який рахується разом із чернеткою. Назовні — щоб питання «хто
+       ділить підготовку макета» мало одну відповідь: доти вона жила тільки
+       тут, а звірити її можна було хіба очима, по рядку «÷ N шт». */
+    window.__lqCartDescriptors = function(){ return cartDescriptors(); };
     // Індекс позиції, яку зараз редагують. Конструктор закрили — редагування скасоване.
     function editIndex(){
       if(window.__pmEditIndex == null) return -1;
@@ -1333,26 +1344,47 @@
     /* ── Чи рахується ця позиція разом із поточною ──────────────────────
        Рекомендовані не рахуються ніколи: клієнт їх ще не додав.
 
-       Варіанти — залежно від групи. Два варіанти ОДНІЄЇ групи не існують
-       разом: клієнт візьме щось одне. Складати їх в один тираж означало б
-       поділити підготовку макета на вироби, яких не буде: п'ять базових і
-       п'ять оверсайзів давали макет ÷10 замість ÷5, і ціна виходила нижчою
-       за справжню. Варіанти ЧУЖИХ груп лишаються — «верх» і «головний убір»
-       справді беруть разом. */
+       ГРУПА ВАРІАНТІВ дає рівно ОДНУ позицію. Скільки б карток у ній не
+       лежало, клієнт візьме щось одне — тираж групи входить у замовлення
+       один раз.
+
+       Доти з ЧУЖОЇ групи бралися ВСІ картки. Дві групи по п'ять штук
+       перетворювались на п'ятнадцять виробів: своя п'ятірка плюс дві чужі.
+       На екрані стояло «850 грн ÷ 15 шт» — числа, якого в замовленні немає
+       й не буде: замовлять десять. Підготовка макета ділилась на вигаданий
+       тираж, ціна виходила нижчою за справжню, а після збереження адмінка
+       рахувала те саме по-своєму — і в КП зʼявлялась третя цифра.
+
+       Тепер від кожної чужої групи береться один представник — ПЕРШИЙ її
+       варіант. Той самий, за яким уже рахується тираж у лівій панелі
+       («10 шт · 2 групи на вибір») і склад словами в шапці пропозиції. */
     function draftGroupOf(){
       var idx = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
       var cur = (idx != null && idx >= 0) ? list[idx] : null;
       return (cur && cur.kind === 'variant') ? (cur.vgroup || 'Варіанти на вибір') : null;
     }
-    function countsWithDraft(it){
+    function vgroupOf(it){ return (it && it.vgroup) || 'Варіанти на вибір'; }
+    /* Чи це перший варіант своєї групи — той, що представляє її в розрахунку.
+       Позицію, яку зараз правлять, пропускаємо: у списку вона живе як
+       чернетка, і якби вона «займала» місце представника, її група зникла б
+       із розрахунку зовсім. */
+    function isGroupLead(list, i, skip){
+      var g = vgroupOf(list[i]);
+      for(var k = 0; k < i; k++){
+        if(k === skip) continue;
+        var o = list[k];
+        if(o && o.kind === 'variant' && vgroupOf(o) === g) return false;
+      }
+      return true;
+    }
+    function countsWithDraft(it, i, list, skip){
       if(!it || it.kind === 'reco') return false;
       if(it.kind !== 'variant') return true;
-      var mine = draftGroupOf();
-      // сама чернетка — варіант: конкурентів із її групи не беремо
-      if(mine != null) return (it.vgroup || 'Варіанти на вибір') !== mine;
-      // чернетка не варіант: чужі варіанти в тираж не входять, їх ще не обрали
-      return false;
+      // сама чернетка — варіант: свою групу представляє вона, конкурентів немає
+      if(vgroupOf(it) === draftGroupOf()) return false;
+      // від чужої групи — один представник, а не всі її картки
+      return isGroupLead(list || [], i, skip);
     }
     function cartDescriptors(){
 
@@ -1360,7 +1392,7 @@
       // Позицію, яку зараз редагують, не рахуємо двічі: у списку вона є як чернетка.
       // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
       var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
-      return list.filter(function(it, i){ return i !== skip && countsWithDraft(it); })
+      return list.filter(function(it, i){ return i !== skip && countsWithDraft(it, i, list, skip); })
         .map(function(it){ return it.desc || null; }).filter(Boolean);
     }
     /* Список описів РАЗОМ із чернеткою, і чернетка стоїть на своєму місці.
@@ -1383,7 +1415,7 @@
       var out = [], at = -1;
       list.forEach(function(it, i){
         if(i === skip){ at = out.length; out.push(d); return; }
-        if(!countsWithDraft(it)) return;
+        if(!countsWithDraft(it, i, list, skip)) return;
         if(it.desc) out.push(it.desc);
       });
       if(at < 0) out.push(d);
@@ -4260,7 +4292,7 @@
 
            Рядки беремо з рушія: він же їх і нарахував, тож стовпчик
            сходиться з підсумком за визначенням. */
-        var KIND_UA = { img:'картинка', txt:'напис' };
+        var KIND_UA = { img:'картинка', txt:'напис', off:'не рахувати' };
         var lines = (P && P.feeLines) ? P.feeLines : [];
         var skets = (P && P.sketches) ? P.sketches : [];
         /* Перемикач виду стоїть саме на разових, а не біля нанесення:
@@ -4269,26 +4301,46 @@
            Крапка поруч означає, що вид обрав менеджер, а не автоматика:
            інакше через тиждень ніхто не згадає, чому напис рахується як
            картинка. */
+        /* Третій пункт — «не рахувати». Дизайн буває готовий: клієнт приніс
+           файл саме під цей виріб, або те саме нанесення вже підготували
+           минулим замовленням. Доти вибирати доводилось між двома платними
+           видами, менеджер писав про це в коментарі — а рахунок усе одно
+           приходив зі зайвим макетом. Знімаються рівно разові: підготовка
+           макета й ескіз. Саме нанесення рахується як звичайно. */
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
-          var fixed = (l.kindFix === 'txt' || l.kindFix === 'img');
-          return ' <select data-mgr-kind="' + di + '" title="Як рахувати цей дизайн" ' +
+          var fixed = (l.kindFix === 'txt' || l.kindFix === 'img' || l.kindFix === 'off');
+          var opt = function(v, txt){
+            return '<option value="' + v + '"' + (kind === v ? ' selected' : '') + '>' + txt + '</option>';
+          };
+          return ' <select data-mgr-kind="' + di + '" ' +
+            'title="Як рахувати цей дизайн: як картинку, як напис — або не рахувати макет узагалі" ' +
             'style="font:inherit;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 4px;' +
             'border:1px solid ' + (fixed ? '#8fb4ee' : '#cdd6e4') + ';background:#eef3fb;' +
             'color:#2f4c8f;cursor:pointer;vertical-align:middle;">' +
-            '<option value="img"' + (kind === 'txt' ? '' : ' selected') + '>картинка</option>' +
-            '<option value="txt"' + (kind === 'txt' ? ' selected' : '') + '>напис</option>' +
+            opt('img', 'картинка') + opt('txt', 'напис') + opt('off', 'не рахувати') +
             '</select>' + (fixed ? ' <span title="Вид обрав менеджер" style="display:inline-block;' +
             'width:5px;height:5px;border-radius:50%;background:#2f4c8f;vertical-align:middle;"></span>' : '');
         }
-        if(lines.length){
+        /* Дизайни, за які не беремо. Вони стоять окремими рядками з власним
+           перемикачем — і саме тому їх можна повернути в оплату: інакше
+           вимкнений дизайн зник би з прорахунку разом із єдиним місцем, де
+           вид міняють. Нуль тут не «безкоштовно», а «роботи не було». */
+        var offs = ((P && P.designNos) ? P.designNos : [])
+          .filter(function(d){ return d && d.kind === 'off'; });
+        if(lines.length || offs.length){
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
             tb += r('Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
                     f.units + ' шт)</span>', money(per), money(perC));
+          });
+          offs.forEach(function(d){
+            tb += r('Підготовка макета' + kindPick(d.i, 'off') +
+                    ' <span style="color:#8a94a6;">(дизайн №' + (d.i + 1) +
+                    ' — макет не рахуємо)</span>', money(0), money(0));
           });
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
@@ -4302,14 +4354,18 @@
              Причина буває трьох видів, і всі три треба назвати вголос,
              інакше цифра виглядає як помилка рахунку. */
           var nos = (P && P.designNos) ? P.designNos : [];
+          /* Дизайн, за який не беремо, — це нанесення, але не макет: у
+             підрахунок макетів він не входить, інакше рядок обіцяв би роботу,
+             якої в рахунку немає. */
+          var paidNos = nos.filter(function(d){ return d && d.kind !== 'off'; });
           if(nos.length > 1){
-            var groups = {}; nos.forEach(function(d){ groups[d.no] = 1; });
+            var groups = {}; paidNos.forEach(function(d){ groups[d.no] = 1; });
             var nGroups = Object.keys(groups).length;
             var why = '';
-            if(nGroups < nos.length){
-              var blank = nos.some(function(d){
+            if(nGroups < paidNos.length){
+              var blank = paidNos.some(function(d){
                 var l = layerAtDesign(d.i); return !l || !l.fp; });
-              var byUrl = nos.some(function(d){
+              var byUrl = paidNos.some(function(d){
                 var l = layerAtDesign(d.i);
                 return l && String(l.fp || '').indexOf('u:') === 0; });
               /* Порожній відбиток тепер майже не трапляється: шар отримує
@@ -4323,7 +4379,9 @@
                          : ' — це той самий малюнок, окремий макет не потрібен');
             }
             tb += r('<span style="color:#8a94a6;">' + nos.length + ' нанесення · ' +
-                    nGroups + (nGroups === 1 ? ' макет' : ' макети') + why + '</span>',
+                    nGroups + (nGroups === 1 ? ' макет'
+                             : (nGroups >= 2 && nGroups <= 4 ? ' макети' : ' макетів')) +
+                    why + '</span>',
                     dash, dash, { muted:true });
           }
         } else {
@@ -4383,7 +4441,7 @@
           e.stopPropagation();
           var l = layerAtDesign(+sel.getAttribute('data-mgr-kind'));
           if(!l) return;
-          l.kindFix = (sel.value === 'txt') ? 'txt' : 'img';
+          l.kindFix = (sel.value === 'txt' || sel.value === 'off') ? sel.value : 'img';
           updatePriceBar();          // ціна, шкала тиражів і сам прорахунок
         };
       });
@@ -5667,7 +5725,7 @@
         designKindFix: (function(){
           var map = {};
           getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
-            if(l && (l.kindFix === 'txt' || l.kindFix === 'img') && l.fp)
+            if(l && (l.kindFix === 'txt' || l.kindFix === 'img' || l.kindFix === 'off') && l.fp)
               map[String(l.fp)] = l.kindFix; }); });
           return Object.keys(map).length ? map : null;
         })(),

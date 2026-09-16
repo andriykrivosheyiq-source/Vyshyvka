@@ -170,6 +170,85 @@ ok(pill.opts.length === 3 && /Не рахувати/.test(pill.opts[2]),
   'пунктів не три: ' + pill.opts.join(', '));
 
 console.log('');
+console.log('═══ ВИБІР У ПРОРАХУНКУ КОНСТРУКТОРА ═══');
+/* Це ІНШИЙ блок, ніж прорахунок КП: менеджер найчастіше сидить саме тут, у
+   відкритій картці товару. Доти третього пункту тут не було — у списку
+   стояли лише «картинка» й «напис», і сказати «за цей макет не беремо» не
+   було де. Рішення доводилось нести в картку замовлення, а конструктор,
+   відкритий наступного разу, повертав дизайн в оплату. */
+const ctor = await b.newPage({ viewport:{ width:1300, height:1000 } });
+ctor.on('pageerror', e => errs.push('КОНСТРУКТОР: ' + e.message.slice(0, 170)));
+await ctor.route('**://**', r => {
+  const u = r.request().url();
+  if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body:fbstub });
+  if(u.startsWith(HOST)) return r.continue();
+  return r.abort();
+});
+await ctor.goto(HOST + '/index.html?manager=1', { waitUntil:'domcontentloaded' });
+await ctor.waitForTimeout(5200);
+const gid = await ctor.evaluate(pricing => {
+  window.SITE_CONTENT = window.SITE_CONTENT || {};
+  window.SITE_CONTENT.pricing = pricing;
+  const el = document.querySelector('[data-garment]');
+  return el ? el.getAttribute('data-garment') : null;
+}, PRICING);
+const lay = (id, fp) => ({ id, url:'https://cdn.test/' + id + '.png', fp, scale:1,
+  frac:0.32, fx:0.3, fy:0.3, ar:1, fill:0.8,
+  opaqueBox:{ x0:0, y0:0, x1:1, y1:1 }, w:60, h:60 });
+await ctor.evaluate(([g, a, bb]) => {
+  window.__editProduct({ garmentId:g, colorId:null, printId:null, qty:{ M:10 },
+    logos:{ front:[{ id:'L1', url:'https://cdn.test/L1.png', fp:a, scale:1, frac:.32,
+                     fx:.3, fy:.3, ar:1, fill:.8, opaqueBox:{x0:0,y0:0,x1:1,y1:1}, w:60, h:60 }],
+             back: [{ id:'L2', url:'https://cdn.test/L2.png', fp:bb, scale:1, frac:.32,
+                     fx:.3, fy:.3, ar:1, fill:.8, opaqueBox:{x0:0,y0:0,x1:1,y1:1}, w:60, h:60 }],
+             left:[], right:[] } }, null, []);
+}, [gid, A, B]);
+await ctor.waitForTimeout(1800);
+const panel = () => ctor.evaluate(() => {
+  const box = document.getElementById('pmMgrCalc');
+  if(!box) return { none:true };
+  return {
+    rows: [...box.querySelectorAll('tr')].map(t => t.innerText.replace(/\s+/g, ' ').trim()),
+    opts: [...box.querySelectorAll('[data-mgr-kind]')].map(s =>
+      [...s.options].map(o => o.textContent)),
+    vals: [...box.querySelectorAll('[data-mgr-kind]')].map(s => s.value),
+    price: (document.querySelector('.pm-num') || {}).textContent || ''
+  };
+});
+let c = await panel();
+if(c.none){ console.log('  прорахунку в картці немає'); bad++; }
+else {
+  console.log('  пункти списку: ' + JSON.stringify(c.opts[0]));
+  ok(c.opts.length > 0 && c.opts.every(o => o.length === 3 && /не рахувати/.test(o[2])),
+    'у списку видів дизайну є третій пункт — «не рахувати»',
+    'у прорахунку конструктора пунктів не три: ' + JSON.stringify(c.opts));
+  const wasPrice = +c.price;
+  c.rows.filter(x => /макет|ескіз/.test(x)).forEach(x => console.log('  ' + x));
+
+  await ctor.evaluate(() => {
+    const s = document.querySelector('#pmMgrCalc [data-mgr-kind]');
+    s.value = 'off'; s.dispatchEvent(new Event('change', { bubbles:true }));
+  });
+  await ctor.waitForTimeout(900);
+  c = await panel();
+  console.log('');
+  c.rows.filter(x => /макет|ескіз/.test(x)).forEach(x => console.log('  ' + x));
+  console.log('  ціна: ' + wasPrice + ' → ' + c.price);
+  ok(c.rows.some(x => /макет не рахуємо/.test(x)),
+    'вимкнений дизайн лишається окремим рядком — його видно й можна повернути',
+    'рядок вимкненого дизайну зник: ' + JSON.stringify(c.rows.filter(x => /макет/.test(x))));
+  ok(c.vals.indexOf('off') >= 0,
+    'і перемикач на цьому рядку тримає «не рахувати» після перерахунку',
+    'перемикач зіскочив: ' + JSON.stringify(c.vals));
+  ok(+c.price < wasPrice,
+    'ціна впала: ' + wasPrice + ' → ' + c.price,
+    'ціна не змінилась: ' + wasPrice + ' → ' + c.price);
+  ok(c.vals.length === 2,
+    'сусідній дизайн лишився зі своїм перемикачем — рішення про кожен окремо',
+    'перемикачів стало ' + c.vals.length);
+}
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 try{ fs.unlinkSync(VH); }catch(e){}
 console.log(bad ? 'розходжень: ' + bad

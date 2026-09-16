@@ -35,6 +35,10 @@ CTOR_FP = 'loomiq-fingerprint.js'
 # малює операційна система, і поруч із рештою інтерфейсу він виглядає як
 # шматок чужої програми.
 CTOR_SEL = 'loomiq-select.js'
+# Картки для Direct — той самий склад пропозиції, виведений картинками.
+# Версію штампуємо разом з рештою: картка малюється з тих самих даних, і
+# застарілий у кеші малювальник дав би картинку, якої в пропозиції немає.
+CTOR_CARDS = 'loomiq-cards.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -430,14 +434,15 @@ def main():
     price = open(os.path.join(ROOT, CTOR_PRICE), encoding='utf-8').read()
     fp = open(os.path.join(ROOT, CTOR_FP), encoding='utf-8').read()
     seljs = open(os.path.join(ROOT, CTOR_SEL), encoding='utf-8').read()
-    ver = ctor_version(base_ctor + css + markup + price + fp + seljs)
+    cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
+    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
         new = txt
-        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL):
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL, CTOR_CARDS):
             new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)
