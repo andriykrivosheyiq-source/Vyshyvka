@@ -3548,7 +3548,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
        із самих варіантів, і їхні ціни рахуються нижче своїми прогонами.
        Доти тут стояв вихід, і в такій пропозиції жодна ціна не була живою:
        вибір варіанта нічого не перераховував. */
-    if(!list.length && !(OFFER.variants || []).length) return null;
+    /* Позиції, які клієнт ще не додав, теж треба порахувати рушієм — нижче,
+       окремими прогонами. Тому порожній список сам по собі ще не привід
+       здаватись: у пропозиції можуть бути самі «варіанти на вибір». */
+    var pending = (OFFER.items || []).filter(function(it, i){ return !isOn(i) && it.desc; });
+    if(!list.length && !pending.length && !(OFFER.variants || []).length) return null;
     var res = [];
     if(list.length){
       /* Ті самі умови, що в адмінці: якщо за дизайн у цьому замовленні не
@@ -3582,6 +3586,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var r = window.LQ.priceOrder(base.concat([d]), priceOpts());
         var mine = r[r.length - 1];
         if(mine) out.vars[vi] = mine;
+      }catch(e){}
+    });
+    /* Позиція, яку клієнт ще НЕ додав, у спільний прогін не входить: інакше
+       вона здешевила б решту замовлення тиражем, якого ніхто не замовляв.
+       Але ціну на її картці однаково має рахувати рушій, а не заморожені
+       пороги з документа.
+
+       Доти було саме так: доки позицію не додали, картка показувала ціну з
+       `tiers` — сходинками 10/20/50/100, — і кожна одиниця нічого не міняла.
+       Щойно клієнт натискав «Додати», число стрибало на інше, порахованe
+       рушієм. Виглядало це як «ціна не рахується», а насправді до і після
+       натиску працювали два різні калькулятори.
+
+       Рахуємо так само, як варіанти: «склад + ЦЯ позиція». Тоді на картці
+       стоїть чесна відповідь на питання «скільки це коштуватиме, якщо
+       візьму», і після додавання число не міняється. */
+    (OFFER.items || []).forEach(function(it, i){
+      if(isOn(i) || !it.desc) return;
+      var d = JSON.parse(JSON.stringify(it.desc));
+      d.units = sub('main', i, Math.max(1, baseQty(i)));
+      try{
+        var r = window.LQ.priceOrder(list.concat([d]), priceOpts());
+        var mine = r[r.length - 1];
+        if(mine) out.main[i] = mine;
       }catch(e){}
     });
     map.forEach(function(m, k){
