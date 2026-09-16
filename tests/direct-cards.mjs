@@ -72,6 +72,10 @@ const OFFER = {
   reco:[ item('reco', 'Кепка', { qty:10, unitPrice:400, price:4000 }),
          item('reco', 'Шопер', { qty:10, unitPrice:300, price:3000 }) ]
 };
+/* Рекомендованих буває більше, ніж влізе на картку: тоді вибирає менеджер. */
+const OFFER6 = JSON.parse(JSON.stringify(OFFER));
+OFFER6.reco = ['Кепка','Шопер','Футболка','Бейсболка','Рюкзак','Бафф']
+  .map((n, i) => item('reco', n, { qty:10, unitPrice:300 + i * 10, price:3000 }));
 
 const fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -198,6 +202,29 @@ ok(shown.title === 'Худі для команди' && shown.note === 'Щіль�
   'підписи менеджера не застосувались: ' + JSON.stringify(shown));
 
 console.log('');
+console.log('═══ РЕКОМЕНДОВАНИХ БІЛЬШЕ, НІЖ ВЛІЗЕ ═══');
+const many = await fr.evaluate(o => {
+  const L = window.LQCards;
+  const auto = L.build(o, {}).filter(c => c.type === 'set')[0];
+  const own = L.build(o, { by:{ reco:{ pick:[4, 1, 5] } } }).filter(c => c.type === 'set')[0];
+  return { pool: auto.pool.length, shown: auto.items.map(x => x.name), max: auto.max,
+           picked: own.items.map(x => x.name),
+           marks: own.pool.filter(r => r.on).map(r => r.name) };
+}, OFFER6);
+console.log('   рекомендованих ' + many.pool + ', на картці: ' + many.shown.join(' · '));
+console.log('   вибір менеджера: ' + many.picked.join(' · '));
+ok(many.shown.length === 4 && many.max === 4,
+  'за замовчуванням на картку йдуть перші чотири — межа, за якою плитки дрібнішають',
+  'на картці позицій ' + many.shown.length);
+ok(many.picked.join() === 'Шопер,Рюкзак,Бафф',
+  'менеджер може обрати, які саме з них показати — і плитки стоять у порядку складу, ' +
+    'а не в порядку його кліків',
+  'вибір менеджера не застосувався або поїхав порядок: ' + many.picked.join(' · '));
+ok(many.marks.join() === many.picked.join(),
+  'і панель показує, з чого саме обирають та що вже обрано',
+  'позначки в списку розійшлись із карткою');
+
+console.log('');
 console.log('═══ ВКЛАДКА В РОБОЧОМУ МІСЦІ ═══');
 await p.evaluate(o => window.__put(o), OFFER);
 await p.waitForTimeout(1200);
@@ -213,6 +240,7 @@ const tabbed = await fr.evaluate(async () => {
     tpls: [...document.querySelectorAll('#cdBar [data-tpl]')].map(b => b.textContent),
     fields: document.querySelectorAll('#cdBar [data-fld]').length,
     dl: [...document.querySelectorAll('#cdBar [data-dl]')].map(b => b.textContent.trim()),
+    head: (document.getElementById('cdPrevH') || {}).textContent || '',
     workHidden: document.getElementById('paneWork').classList.contains('hide')
   };
 });
@@ -230,6 +258,9 @@ else {
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
+  ok(/Як це побачить клієнт/.test(tabbed.head),
+    'над preview сказано, що це вже готовий файл, а не ще одна панель редактора',
+    'підпису над preview немає: «' + tabbed.head + '»');
   ok(tabbed.workHidden,
     'конструктор на час карток ховається — місце віддане preview',
     'робоче поле лишилось поверх карток');
