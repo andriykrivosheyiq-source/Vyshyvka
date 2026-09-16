@@ -4333,9 +4333,9 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=40db2b9038"></script>
-<script src="loomiq-fingerprint.js?v=40db2b9038"></script>
-<script src="loomiq-pricing.js?v=40db2b9038"></script>
+<script src="loomiq-select.js?v=beca44bc6a"></script>
+<script src="loomiq-fingerprint.js?v=beca44bc6a"></script>
+<script src="loomiq-pricing.js?v=beca44bc6a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7926,7 +7926,12 @@ function setItemKindFix(it, fp, kind){
     Object.keys(logos).forEach(side=>{
       (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
         if(!l || String(l.fp || '') !== key) return;
-        if(kind === 'img' || kind === 'txt') l.kindFix = kind; else delete l.kindFix;
+        /* «не рахувати» теж лягає на шар. Без цього вибір жив тільки в мапі
+           за відбитком: у прорахунку стояло «не рахувати», а конструктор,
+           відкривши ту саму позицію, показував «картинка» — і перший же
+           перерахунок повертав макет у ціну. */
+        if(kind === 'img' || kind === 'txt' || kind === 'off') l.kindFix = kind;
+        else delete l.kindFix;
       });
     });
   }
@@ -7997,24 +8002,33 @@ function fillOrderParts(o){
    порахував конструктор у мить збереження: змінився тираж основної позиції —
    і рекомендована показувала стару ціну, хоч поріг уже інший. */
 function fillRecoParts(o, writePrice){
-  const main = (o.items || []).filter(it => itemKind(it) === 'main' && it.desc).map(it => it.desc);
   const keep = upsellMode() === 'keep';
   let touched = false;
-  (o.items || []).forEach(it=>{
+  (o.items || []).forEach((it, i)=>{
     const kd = itemKind(it);
-    /* Варіанти рахуються так само, як рекомендовані: «основні + ЦЕЙ». Вони
-       виключають один одного, тож у спільний склад не входять — інакше три
-       варіанти по десять штук дали б тираж 30 і знижку за вироби, яких ніхто
-       не замовить.
+    /* Рекомендована рахується як «склад + ЦЯ»: разом усі рекомендовані не
+       рахуємо — клієнт може взяти одну, а не всі, і тираж від решти був би
+       вигаданий.
 
-       Різниця одна: варіант — це НЕ допродаж. Він не додається до
-       погодженого складу, а заміняє позицію в ньому, тож поводитись із ним
-       як із «беруть ще зверху» було б неправдою: він не платив би за макет
-       і виходив дешевшим за той самий виріб в основних. */
+       Варіант — інша річ. Він не додається зверху, а ЗАМІНЯЄ собою свою
+       групу в складі: клієнт візьме з неї рівно одну позицію. Тож рахуємо
+       його в повному складі замовлення, де свою групу представляє саме він,
+       а решта груп — своїми першими картками. Конкурентів із власної групи
+       поруч немає: два варіанти однієї групи не існують разом ніколи.
+
+       Доти варіант рахувався як «основні + цей», без інших груп зовсім — і
+       та сама позиція мала в конструкторі одну ціну, а після збереження в
+       КП іншу. */
     if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
+    const base = orderDescriptors(o, kd === 'variant' ? i : null);
     const d = (keep && kd === 'reco') ? Object.assign({}, descOf(it), { upsell:true }) : descOf(it);
-    const res = priceOrder(main.concat([d]), orderPriceOpts(o));
-    const mine = res[res.length - 1];
+    /* Варіант уже стоїть у складі як представник своєї групи — удруге його
+       додавати не можна, інакше тираж подвоївся б. */
+    const at = base.idx.indexOf(i);
+    const list = at >= 0 ? base.list.slice() : base.list.concat([d]);
+    if(at >= 0) list[at] = d;
+    const res = priceOrder(list, orderPriceOpts(o));
+    const mine = res[at >= 0 ? at : res.length - 1];
     if(!mine) return;
     const wasCostShare = (it.parts && +it.parts.costShare) || 0;
     it.parts = mine.parts || null;
@@ -8085,10 +8099,22 @@ function priceCalcHtml(o){
     '</div></details>';
 }
 // Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
-/* Склад, який рахується разом. Ані рекомендовані, ані варіанти сюди не
-   входять: перші клієнт ще не додав, другі виключають один одного. Скласти
-   всі варіанти в один тираж означало б порахувати вироби, яких ніхто не
-   замовить, — і занизити ціну всьому замовленню. */
+/* Склад, який рахується разом: усі основні позиції ПЛЮС по одному варіанту
+   з кожної групи.
+
+   Рекомендовані сюди не входять — клієнт їх ще не додав, кожна рахується
+   окремим прогоном «склад + ця».
+
+   А от група варіантів у замовленні БУДЕ: клієнт візьме з неї рівно одну
+   позицію, і її тираж — частина замовлення, а не здогад. Доти варіанти не
+   рахувались зовсім: три групи по п'ять штук давали склад на нуль виробів,
+   підготовка макета ділилась на саму позицію — і ціна, збережена в КП,
+   розходилась із тією, яку менеджер щойно бачив у конструкторі.
+
+   Групу представляє її ПЕРШИЙ варіант — той самий, за яким ліва панель
+   рахує «10 шт · 2 групи на вибір», а шапка пропозиції — склад словами.
+   swapIdx міняє представника: коли рахуємо конкретний варіант, свою групу
+   представляє саме він. */
 /* Опис позиції для рушія. Ознаку товару підставляємо тут, а не покладаємось
    на те, що вона збереглась у самому описі: позиції, зроблені до появи
    індивідуальних шкал, її не мають, а знижку на виріб треба рахувати і їм. */
@@ -8097,10 +8123,20 @@ function descOf(it){
   const gid = itemGarmentId(it);
   return (gid && it.desc.gid !== gid) ? Object.assign({}, it.desc, { gid }) : it.desc;
 }
-function orderDescriptors(o){
-  const idx = [], list = [];
-  (o.items || []).forEach((it, i)=>{
-    if(itemKind(it) !== 'main' || !it.desc) return;
+function orderDescriptors(o, swapIdx){
+  const items = (o && o.items) || [];
+  const sw = (swapIdx != null && items[swapIdx] && itemKind(items[swapIdx]) === 'variant')
+    ? (items[swapIdx].vgroup || 'Варіанти на вибір') : null;
+  const idx = [], list = [], seen = {};
+  items.forEach((it, i)=>{
+    if(!it || !it.desc) return;
+    const k = itemKind(it);
+    if(k === 'main'){ idx.push(i); list.push(descOf(it)); return; }
+    if(k !== 'variant') return;
+    const g = it.vgroup || 'Варіанти на вибір';
+    if(seen[g]) return;
+    if(g === sw && i !== swapIdx) return;   // цю групу представляє інша картка
+    seen[g] = 1;
     idx.push(i); list.push(descOf(it));
   });
   return { idx, list };
@@ -8345,7 +8381,10 @@ function offerBaseCoef(){
    обсяг — і клієнт бачив «−1%» там, де насправді економив десятки
    відсотків. */
 function sharedPriceAt(order, itemIdx, qty, opts){
-  const { idx, list } = orderDescriptors(order);
+  /* Свою групу представляє САМЕ ця позиція — інакше рядок «від 30 шт» для
+     другого варіанта групи не рахувався б зовсім: у складі стояла перша
+     картка, а цієї в ньому не було. */
+  const { idx, list } = orderDescriptors(order, itemIdx);
   const k = idx.indexOf(itemIdx);
   const u = Math.max(1, +qty || 1);
   if(opts && opts.solo){
@@ -8495,21 +8534,27 @@ function placementTotals(desc){
   return { sell: Math.round(sell), cost: Math.round(cost),
            basePart: Math.round(base), minPart: Math.round(minAdd) };
 }
-/* Хто саме ділить підготовку макета з цією позицією. Для основної — усі
-   основні того самого способу. Для варіанта — основні плюс він сам: інші
-   варіанти його групи в тираж не входять, бо клієнт візьме щось одне. */
+/* Хто саме ділить підготовку макета з цією позицією. Список береться з того
+   самого складу, яким рахує рушій: усі основні плюс по одному варіанту з
+   кожної групи. Для варіанта свою групу представляє він сам — конкурентів
+   поруч немає, бо клієнт візьме щось одне. Рекомендована в склад не входить,
+   вона рахується як «склад + ця», тож дописуємо її окремо. */
 function feeSharers(o, it){
   if(!o || !it || !it.desc || it.desc.bare) return '';
   const mk = it.desc.method === 'embro' ? 'embro' : 'dtf';
   const same = d => d && !d.bare && ((d.method === 'embro' ? 'embro' : 'dtf') === mk);
+  const items = (o.items || []);
+  const self = items.indexOf(it);
+  const kind = itemKind(it);
+  const { idx } = orderDescriptors(o, kind === 'variant' ? self : null);
   const names = [];
-  (o.items || []).forEach(x=>{
-    if(!same(x.desc)) return;
-    const kx = itemKind(x);
-    if(kx === 'reco') return;
-    if(kx === 'variant' && x !== it) return;         // конкурент по групі не рахується
+  idx.forEach(i=>{
+    const x = items[i];
+    if(!same(x && x.desc)) return;
     names.push((x.name || 'позиція') + ' × ' + (+x.qty || 0));
   });
+  if(kind === 'reco' && same(it.desc))
+    names.push((it.name || 'позиція') + ' × ' + (+it.qty || 0));
   return names.length > 1 ? names.join(' · ') : '';
 }
 function offerCalcRows(it, o){
