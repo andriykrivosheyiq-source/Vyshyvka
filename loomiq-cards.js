@@ -111,19 +111,37 @@
 
     /* Рекомендовані — однією карткою на всіх: це не пропозиція взяти
        кожного, а питання «чим доповнити». Чотири позиції — межа, за якою
-       плитки стають дрібнішими за виріб на них. */
-    var reco = (offer.reco || []).filter(function(r){ return r && r.name; }).slice(0, 4);
-    if(reco.length){
+       плитки стають дрібнішими за виріб на них.
+
+       Коли рекомендованих більше, вибирає менеджер. Доти зайві просто
+       мовчки не потрапляли на картку — і не було видно ні того, що їх
+       відкинуто, ні як поставити інші. */
+    var pool = (offer.reco || []).filter(function(r){ return r && r.name; });
+    if(pool.length){
       var own = by['reco'] || {};
+      /* Порядок плиток — той самий, що в складі пропозиції, а не той, у
+         якому менеджер наставив галочок. Інакше зняв і повернув галочку —
+         і позиція без причини переїхала в кінець картки. */
+      var picked = Array.isArray(own.pick)
+        ? own.pick.filter(function(i){ return pool[i]; })
+                  .sort(function(a, b){ return a - b; }).slice(0, 4)
+        : [];
+      if(!picked.length) picked = pool.map(function(r, i){ return i; }).slice(0, 4);
       out.push({
         id: 'reco', kind: 'reco', type: 'set',
         name: own.title || 'Можемо доповнити комплект',
         note: own.note || '',
         term: term,
-        items: reco.map(function(r){
+        items: picked.map(function(i){
+          var r = pool[i];
           return { name: r.name || '', unit: +r.unitPrice || 0,
                    qty: +r.qty || 0, pic: pic(r)[0] || '' };
         }),
+        // Увесь список — щоб панель показала, з чого саме обирають
+        pool: pool.map(function(r, i){
+          return { i: i, name: r.name || '', on: picked.indexOf(i) >= 0 };
+        }),
+        max: 4,
         hidden: !!(cfg.hidden || {})['reco']
       });
     }

@@ -759,7 +759,9 @@
   .cd-go button.pri{background:#22314A; border-color:#22314A; color:#fff;}
   .cd-go button:disabled{opacity:.5; cursor:default;}
   .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:auto;}
-  .cd-prev{flex:1; min-width:0; display:flex; align-items:flex-start; justify-content:center;}
+  .cd-prev-w{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .cd-prev-w .cd-l{align-self:flex-start;}
+  .cd-prev{width:100%; display:flex; align-items:flex-start; justify-content:center;}
   .cd-prev canvas{width:100%; height:auto; max-width:1100px; border-radius:12px;
     box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff; display:block;}
   .cd-side{flex:0 0 250px; display:flex; flex-direction:column; gap:12px;}
@@ -849,7 +851,12 @@
   <section class="cd hide" id="paneCards">
     <div class="cd-bar" id="cdBar"></div>
     <div class="cd-main">
-      <div class="cd-prev" id="cdPrev"></div>
+      <!-- Підпис потрібен: картка на екрані виглядає як ще одна панель
+           редактора, і без слів незрозуміло, що це вже готовий файл. -->
+      <div class="cd-prev-w">
+        <span class="cd-l" id="cdPrevH">Як це побачить клієнт</span>
+        <div class="cd-prev" id="cdPrev"></div>
+      </div>
       <aside class="cd-side" id="cdSide"></aside>
     </div>
     <div class="cd-strip" id="cdStrip"></div>
@@ -877,21 +884,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=e0a1df52e7',
+    ['loomiq-select.js?v=3a69d1429c',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=e0a1df52e7'].forEach(function(src){
+     'loomiq-cards.js?v=3a69d1429c'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=e0a1df52e7';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=e0a1df52e7';
-  var CTOR_JS   = 'loomiq-constructor.js?v=e0a1df52e7';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=e0a1df52e7';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=3a69d1429c';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=3a69d1429c';
+  var CTOR_JS   = 'loomiq-constructor.js?v=3a69d1429c';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=3a69d1429c';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1922,6 +1929,16 @@
                    (u === c.pic ? ' class="on"' : '') + ' alt="">';
           }).join('') + '</div></div>'
         : '') +
+      /* Рекомендованих буває більше, ніж влізе на картку. Хто саме туди
+         піде — вирішує менеджер, а не порядок у списку. */
+      (c.type === 'set' && (c.pool || []).length > c.max
+        ? '<div class="cd-box"><span class="cd-l">Що показати · не більше ' + c.max + '</span>' +
+          c.pool.map(function(r){
+            return '<label class="cd-chk" style="display:flex;margin-top:6px">' +
+              '<input type="checkbox" data-reco="' + r.i + '"' + (r.on ? ' checked' : '') + '>' +
+              esc(r.name) + '</label>';
+          }).join('') + '</div>'
+        : '') +
       '<div class="cd-box">' +
         '<label class="cd-chk"><input type="checkbox" id="cdHide"' +
           (c.hidden ? ' checked' : '') + '>Не виводити цю картку</label>' +
@@ -1942,6 +1959,22 @@
     };
     side.querySelectorAll('[data-pic]').forEach(function(im){
       im.onclick = function(){ cardsOwn(c.id).pic = im.dataset.pic; cardsChanged(); };
+    });
+    side.querySelectorAll('[data-reco]').forEach(function(ch){
+      ch.onchange = function(){
+        var on = [...side.querySelectorAll('[data-reco]')]
+          .filter(function(x){ return x.checked; }).map(function(x){ return +x.dataset.reco; });
+        /* Більше за межу не беремо: плитки стануть дрібнішими за виріб на
+           них, а картка існує рівно заради виробу. */
+        if(on.length > c.max){
+          ch.checked = false;
+          mark('', 'На картку вміщається ' + c.max + ' позиції');
+          return;
+        }
+        if(!on.length){ ch.checked = true; return; }   // порожня добірка — не картка
+        cardsOwn(c.id).pick = on;
+        cardsChanged();
+      };
     });
     document.getElementById('cdHide').onchange = function(){
       var cfg2 = cardsCfg();
