@@ -25,11 +25,34 @@
 (function(){
   'use strict';
 
-  /* 1.6:1 — верхня межа горизонтального формату. У Direct картинка
-     показується цілком, і виробу дістається максимум місця. Ширина 1920 —
-     щоб на сітківці не було видно піксельної сходинки на дрібному тексті. */
-  var W = 1920, H = 1200;
-  var PAD = 96;
+  /* ══════════ ФОРМАТ ══════════
+     Висота стала, ШИРИНА РОСТЕ від кількості фото. Це головне рішення тут,
+     і воно змінює саму природу картки.
+
+     Доти лист був фіксованим прямокутником: один ракурс отримував панель на
+     пів аркуша, решта тулилась поруч дрібнішими. Виходив банер із нав'язаним
+     акцентом — «ось головне фото, а це другорядні», — хоча спина й рукав
+     для клієнта рівно такі самі, як перед: він платить за кожне нанесення.
+
+     Тепер це каталожний лист: усі ракурси рівні, стоять в один ряд
+     однаковими блоками, а лист просто ширшає. Два фото — 1400 × 1000, три —
+     2040, чотири — 2680. Порожніх зон не буває взагалі: їх нема звідки
+     взятись, бо ширина рахується з кількості колонок.
+
+     Менше двох колонок лист не буває. Один ракурс на вузькому аркуші —
+     це вже не каталожний лист, а сторіс: шапці ніде розкластись, назва
+     ламається на три рядки. Тому знімок лишається однією колонкою, а лист
+     тримає ширину на дві й ставить його по центру.
+
+     Висота поділена так: шапка — числа й слова, галерея — виріб. Галереї
+     віддано близько трьох чвертей, і це не компроміс: у листуванні картку
+     відкривають заради виробу, а не заради нашої типографіки. */
+  var H = 1000, PAD = 80, COL = 600, GAP = 40;
+  var HEAD = 224, BOT = 40;            // шапка ≈22 %, галерея ≈74 %
+  function sheetW(n){
+    n = Math.max(2, Math.min(4, n | 0));
+    return PAD * 2 + n * COL + (n - 1) * GAP;
+  }
 
   var SANS  = '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   var SERIF = 'Georgia, "Times New Roman", "Noto Serif", serif';
@@ -82,12 +105,14 @@
      залежить від тиражу, а тираж у листуванні ще обговорюють — картка з
      сумою застаріває на першому ж «а якщо пʼятдесят?». Розмірного ряду
      теж: «S×4 · M×8 · L×8» у Direct не вирішує нічого, досить загальної
-     кількості. Лишаються рівно ті числа, з яких починається кожна
-     розмова: скільки штук, скільки за штуку, коли буде. */
+     кількості. Ба більше — самої кількості теж: тираж у листуванні
+     обговорюють, і число «20 шт» на картці застаріває на першому ж «а якщо
+     пʼятдесят?», тоді як ціна за штуку й термін від нього не залежать.
+     Лишаються рівно два числа, з яких починається кожна розмова: скільки
+     за штуку й коли буде. */
   var FIELDS = [
     { id:'sub',   name:'Колір і нанесення' },
     { id:'about', name:'Опис виробу' },
-    { id:'qty',   name:'Кількість' },
     { id:'unit',  name:'Ціна за штуку' },
     { id:'term',  name:'Термін' },
     { id:'warn',  name:'Застереження' }
@@ -302,27 +327,69 @@
   /* Зменшити шрифт, доки рядок не влізе. Числа тут різної довжини — «20 шт»
      і «7 робочих днів» стоять в одній колонці, — і задавати один кегль на
      всіх означає, що довше значення полізе на сусіда. */
-  function fitFont(x, text, maxW, size, weight, family){
+  function fitFont(x, text, maxW, size, weight, family, min){
     var s = size;
-    while(s > 13){
+    while(s > (min || 13)){
       x.font = weight + ' ' + s + 'px ' + family;
       if(x.measureText(text).width <= maxW) break;
       s -= 2;
     }
     return s;
   }
-  /* Рядок «підпис ліворуч — число праворуч». Підпис міряємо на місці, і
-     число вписуємо в те, що лишилось: інакше довгий підпис і довге число
-     сходяться посередині. */
-  function factRow(x, t, f, X, right, y){
-    var lw = eyebrow(x, f[0], X, y, t.dim, 19);
-    var big = f[2];
-    var s = fitFont(x, f[1], right - X - lw - 32, big ? 46 : 38, big ? '800' : '700', t.body);
-    x.textAlign = 'right';
-    x.fillStyle = big ? t.accent : t.ink;
-    x.font = (big ? '800 ' : '700 ') + s + 'px ' + t.body;
-    x.fillText(f[1], right, y + 6);
-    x.textAlign = 'left';
+  /* Один рядок з трикрапкою. Обрізати «мовчки» тут не можна: у шапці все
+     стоїть по одній лінії, і рядок, що просто скінчився на півслові,
+     читається як помилка вивантаження, а не як «тут є ще». */
+  function clip1(x, s, maxW){
+    s = String(s || '');
+    if(!s || x.measureText(s).width <= maxW) return s;
+    while(s.length > 1 && x.measureText(s + '…').width > maxW) s = s.slice(0, -1);
+    return s.replace(/[\s,;:.—–-]+$/, '') + '…';
+  }
+
+  /* Ширина розрідженого напису — та сама формула, що й у eyebrow, але без
+     малювання: колонку чисел треба зміряти до того, як стало відомо, де
+     вона починається. */
+  function eyebrowW(x, text, size){
+    x.font = '700 ' + size + 'px ' + SANS;
+    var s = String(text || '').toUpperCase(), w = 0;
+    for(var i = 0; i < s.length; i++) w += x.measureText(s[i]).width + size * 0.12;
+    return w;
+  }
+  /* Колонки чисел у шапці. Кожна така, як її вміст, а не однакової
+     ширини на всіх: «240 грн» і «7 робочих днів» у рівних колонках дають
+     праворуч порожнечу, а посередині — дірку. Тому міряємо кожну й
+     ставимо блок упритул до правого поля. */
+  var CELL_GAP = 52;
+  function statCells(x, t, facts){
+    return facts.map(function(f){
+      /* Спершу число, потім підпис — і в жодному разі не в одному виразі:
+         eyebrowW сам перемикає шрифт, і число, зміряне після нього,
+         виходить удвічі вужчим, ніж намалюється. */
+      x.font = (f[2] ? '800 46px ' : '700 38px ') + t.body;
+      var vw = x.measureText(f[1]).width;
+      return { f: f, w: Math.max(vw, eyebrowW(x, f[0], 18)) };
+    });
+  }
+  function statsW(cells){
+    if(!cells.length) return 0;
+    return cells.reduce(function(s, c){ return s + c.w; }, 0) + CELL_GAP * (cells.length - 1);
+  }
+  function drawStats(x, t, cells, X, yLab, yVal){
+    var cx = X;
+    cells.forEach(function(c, i){
+      if(i){
+        x.strokeStyle = t.line; x.lineWidth = 1;
+        x.beginPath();
+        x.moveTo(cx - CELL_GAP / 2, yLab - 26);
+        x.lineTo(cx - CELL_GAP / 2, yVal + 12);
+        x.stroke();
+      }
+      eyebrow(x, c.f[0], cx, yLab, t.dim, 18);
+      x.fillStyle = c.f[2] ? t.accent : t.ink;
+      x.font = (c.f[2] ? '800 46px ' : '700 38px ') + t.body;
+      x.fillText(c.f[1], cx, yVal);
+      cx += c.w + CELL_GAP;
+    });
   }
   function placeholder(x, X, Y, w, h, ink){
     x.fillStyle = ink;
@@ -361,26 +428,28 @@
     }catch(e){ return fallback; }
   }
 
-  /* Футер. Картку пересилають далі — по ній має бути зрозуміло, чия вона й
-     до якої пропозиції належить. Підписуємось тим самим брендом, від якого
-     пішла сама пропозиція: у картці замовлення є перемикач Loomiq / Stvory,
-     і два різні підписи на тих самих даних — це рівно те непорозуміння, від
-     якого той перемикач і заводили. */
+  /* Підпис «чия картка». Картку пересилають далі — по ній має бути
+     зрозуміло, чия вона й до якої пропозиції належить. Підписуємось тим
+     самим брендом, від якого пішла сама пропозиція: у картці замовлення є
+     перемикач Loomiq / Stvory, і два різні підписи на тих самих даних — це
+     рівно те непорозуміння, від якого той перемикач і заводили.
+
+     Стоїть він у верхньому рядку, поруч із логотипом клієнта, а не
+     футером унизу. Унизу він забирав би в галереї смугу заввишки з
+     півсотні пікселів заради двох слів — а галерея тут головна. */
   function brandName(offer){
     var b = (offer || {}).brand;
     return (b && (b.name || b.tagline)) ? String(b.name || '') : '';
   }
-  function footer(x, t, offer){
-    x.fillStyle = t.dim;
-    x.font = '400 22px ' + t.body;
-    var left = 'Комерційна пропозиція' + (offer.orderId ? ' № ' + offer.orderId : '');
-    x.fillText(left, PAD, H - 46);
+  function topMeta(x, t, offer, W){
     var b = brandName(offer);
-    if(b){
-      x.textAlign = 'right';
-      x.fillText(b, W - PAD, H - 46);
-      x.textAlign = 'left';
-    }
+    var s = [b, offer.orderId ? 'КП № ' + offer.orderId : ''].filter(Boolean).join(' · ');
+    if(!s) return;
+    x.fillStyle = t.dim;
+    x.font = '400 20px ' + t.body;
+    x.textAlign = 'right';
+    x.fillText(s, W - PAD, 76);
+    x.textAlign = 'left';
   }
 
   /* Рядки чисел — спільні на всі шаблони: це той самий зміст, і збиратись
@@ -389,8 +458,7 @@
      першою, і саме вона не залежить від того, скільки врешті замовлять. */
   function factsOf(card, show){
     var out = [];
-    if(show('qty') && card.qty) out.push(['Кількість', card.qty + ' шт', false]);
-    if(show('unit') && card.unit) out.push(['Ціна за штуку', money(card.unit), true]);
+    if(show('unit') && card.unit) out.push(['Ціна за 1 шт', money(card.unit), true]);
     if(show('term') && card.term) out.push(['Термін', card.term + ' робочих днів', false]);
     return out;
   }
@@ -405,22 +473,27 @@
     x.fillStyle = t.panel;
     rr(x, X, Y, w, h, 24); x.fill();
   }
+  /* Галерея. Колонки рівні між собою — і тому, що ракурси рівні, і тому,
+     що рівні колонки дають одну сітку на будь-яку кількість фото: підписи
+     й поля стоять там само, що на сусідній картці. Ширину рахувати не
+     треба, вона вже врахована в ширині аркуша. */
   function shotsRow(x, imgs, X, Y, w, h, t){
-    var n = Math.max(1, imgs.length), gap = 26;
-    /* Один знімок на всю ширину виглядав би банером, а не виробом: тримаємо
-       його в межах половини смуги й ставимо по центру. */
-    var full = n === 1 ? Math.min(w, Math.round(h * 1.05)) : w;
+    var n = Math.max(1, imgs.length);
+    /* Один знімок на всю ширину виглядав би банером, а не виробом: лист
+       однаково тримає ширину на дві колонки, тож ставимо його по центру
+       колонкою тієї ж ширини, що й у решти карток. */
+    var full = n === 1 ? Math.min(w, COL) : w;
     var X0 = X + Math.round((w - full) / 2);
-    var cw = (full - gap * (n - 1)) / n;
+    var cw = (full - GAP * (n - 1)) / n;
     for(var i = 0; i < n; i++){
-      var cx = X0 + i * (cw + gap);
+      var cx = X0 + i * (cw + GAP);
       shotPanel(x, t, cx, Y, cw, h);
       if(imgs[i]) fit(x, imgs[i], cx + 26, Y + 26, cw - 52, h - 52);
       else placeholder(x, cx, Y, cw, h, t.ink);
     }
   }
   // Смуга акценту згори — ознака строгого шаблону, а не окрема розкладка
-  function topBar(x, t){
+  function topBar(x, t, W){
     if(!t.table) return 0;
     x.fillStyle = t.accent; x.fillRect(0, 0, W, 14);
     return 14;
@@ -433,16 +506,22 @@
   }
 
   /* ══════════ РОЗКЛАДКА КАРТКИ ══════════
-     Шапка — знімки — смуга чисел. Одна й та сама на будь-яку кількість
-     ракурсів: шаблон відповідає за кольори й типографіку, а не за будову.
+     Два блоки, і межа між ними одна на всі картки: шапка — усе, що
+     словами й числами, галерея — виріб.
 
-     Числа стоять ВНИЗУ смугою в три колонки з розділювачами. Картку в
-     Direct читають згори вниз: спершу виріб, потім «скільки». Ціна в шапці
-     конкурувала б із назвою й читалась раніше, ніж людина встигла подивитись
-     на товар. А головне — нижня смуга дає лінію, на якій усе вирівняне:
-     однакові підписи, однакові числа, однакові колонки. Саме вона й тримає
-     композицію, коли зверху три різні фото. */
-  function paintCard(x, card, t, imgs, show, o){
+     Числа переїхали з нижньої смуги В ШАПКУ, і це не косметика. Нижня
+     смуга працювала, поки лист був фіксованим: галерея впиралась у неї
+     знизу й композицію тримала саме та лінія. Тепер аркуш ширшає під
+     кількість фото — і смуга чисел під галереєю на 2560 пікселів
+     розтягувалась би на всю ту ширину під три слова. Нагорі ж вона
+     зчитується разом із назвою: «що це, почому, коли» — рівно те, з чим
+     людина приходить у Direct, одним поглядом, до того як роздивлятись.
+
+     Праворуч у шапці колонки чисел вирівняні по правому полю, ліворуч —
+     логотип, назва й опис. Застереження йде найнижчим рядком шапки на всю
+     ширину: це виноска, і вона має читатись як виноска, а не як ще одне
+     число. */
+  function paintCard(x, card, t, imgs, show, o, W){
     o = o || {};
     if(t.shape){
       x.fillStyle = t.accent;
@@ -450,81 +529,58 @@
       x.beginPath(); x.arc(W - 180, -140, 560, 0, Math.PI * 2); x.fill();
       x.globalAlpha = 1;
     }
-    topBar(x, t);
+    topBar(x, t, W);
     var right = W - PAD, maxW = right - PAD;
 
-    // ── шапка ──
-    var y = PAD;
-    if(o.logo){ drawLogo(x, o.logo, PAD, y, 42); y += 42 + 28; }
-    x.fillStyle = t.ink; x.font = '800 72px ' + t.display;
-    wrap(x, card.name, maxW, 2).forEach(function(ln){ y += 76; x.fillText(ln, PAD, y); });
+    // ── числа: міряємо першими, бо вони віднімають ширину в назви ──
+    var facts = factsOf(card, show);
+    var cells = statCells(x, t, facts);
+    var sw = statsW(cells);
+    if(sw) drawStats(x, t, cells, right - sw, 122, 174);
+
+    // ── ліва частина шапки ──
+    var leftW = Math.max(240, maxW - (sw ? sw + 72 : 0));
+    if(o.logo) drawLogo(x, o.logo, PAD, 42, 38);
+    x.fillStyle = t.ink;
+    fitFont(x, card.name, leftW, 48, '800', t.display, 32);
+    x.fillText(clip1(x, card.name, leftW), PAD, 140);
     /* Під назвою — один рядок: опис виробу, а немає його — колір і спосіб
        нанесення. Два рядки тут перетворюють шапку на абзац. */
     var lead = (show('about') && card.about) ? card.about
              : ((show('sub') && card.sub) ? card.sub : '');
     if(lead){
-      y += 44; x.fillStyle = t.dim; x.font = '400 28px ' + t.body;
-      x.fillText(wrap(x, lead, maxW, 1)[0] || '', PAD, y);
+      x.fillStyle = t.dim;
+      fitFont(x, lead, leftW, 24, '400', t.body, 19);
+      x.fillText(clip1(x, lead, leftW), PAD, 176);
     }
-    var top = y + 46;
-
-    // ── нижня смуга: рахуємо знизу вгору, щоб знімкам дісталась решта ──
-    var facts = factsOf(card, show);
-    x.font = '400 19px ' + t.body;
-    var warnLines = show('warn') ? wrap(x, WARN, maxW, 2) : [];
-    var warnY = H - 96 - (warnLines.length ? (warnLines.length - 1) * 26 : 0);
-    var valY = warnLines.length ? warnY - 54 : H - 116;
-    var labY = valY - 44;
-    var ruleY = facts.length ? labY - 42 : (warnLines.length ? warnY - 30 : H - 116);
-    var imgBottom = ruleY - 46;
-
-    shotsRow(x, imgs, PAD, top, maxW, Math.max(200, imgBottom - top), t);
-
-    if(facts.length){
-      x.strokeStyle = t.line; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(PAD, ruleY); x.lineTo(right, ruleY); x.stroke();
-      var cw = maxW / facts.length;
-      facts.forEach(function(f, i){
-        var cx = PAD + i * cw + (i ? 34 : 0);
-        eyebrow(x, f[0], cx, labY, t.dim, 19);
-        var s = fitFont(x, f[1], cw - 60, f[2] ? 50 : 44, '800', t.body);
-        x.fillStyle = f[2] ? t.accent : t.ink;
-        x.font = '800 ' + s + 'px ' + t.body;
-        x.fillText(f[1], cx, valY);
-        // Розділювач між колонками — те, що робить смугу смугою
-        if(i){
-          x.strokeStyle = t.line; x.lineWidth = 1;
-          x.beginPath();
-          x.moveTo(PAD + i * cw, labY - 24);
-          x.lineTo(PAD + i * cw, valY + 12);
-          x.stroke();
-        }
-      });
+    /* Застереження — на всю ширину й найдрібнішим кеглем, який ще
+       читається: у вузького аркуша його просто нема куди подіти інакше, а
+       переносити на другий рядок означає їсти в галереї ще 24 пікселі. */
+    if(show('warn')){
+      var ws = fitFont(x, WARN, maxW, 18, '400', t.body);
+      x.fillStyle = t.dim; x.font = '400 ' + ws + 'px ' + t.body;
+      x.fillText(WARN, PAD, HEAD - 16);
     }
-    if(warnLines.length){
-      x.fillStyle = t.dim; x.font = '400 19px ' + t.body;
-      warnLines.forEach(function(ln, i){ x.fillText(ln, PAD, warnY + i * 26); });
-    }
+
+    // ── галерея ──
+    shotsRow(x, imgs, PAD, HEAD, maxW, H - BOT - HEAD, t);
   }
 
   /* Картка рекомендованих. Плитками, бо тут порівнюють, а не роздивляються:
      питання не «який саме цей виріб», а «чим доповнити». */
-  function paintSet(x, card, t, imgs, show, o){
-    var y = PAD + 30;
-    if(o && o.logo){
-      var lk = Math.min(190 / o.logo.width, 42 / o.logo.height);
-      x.drawImage(o.logo, PAD, y - 10, o.logo.width * lk, o.logo.height * lk);
-      y += 78;
-    }
-    eyebrow(x, 'До вашого замовлення', PAD, y, t.accent, 20);
-    y += 74;
-    x.fillStyle = t.ink; x.font = '800 60px ' + t.display;
-    x.fillText(card.name, PAD, y);
+  function paintSet(x, card, t, imgs, show, o, W){
+    topBar(x, t, W);
+    if(o && o.logo) drawLogo(x, o.logo, PAD, 42, 38);
+    eyebrow(x, 'До вашого замовлення', PAD, 118, t.accent, 18);
+    x.fillStyle = t.ink;
+    var maxW = W - PAD * 2;
+    fitFont(x, card.name, maxW, 48, '800', t.display, 32);
+    x.fillText(clip1(x, card.name, maxW), PAD, 176);
 
     var n = Math.max(1, card.items.length);
-    var gap = 38;
-    var tileW = (W - PAD * 2 - gap * (n - 1)) / n;
-    var top = y + 56, tileH = H - top - 150;
+    var gap = GAP;
+    var tileW = (maxW - gap * (n - 1)) / n;
+    var top = HEAD, tileH = H - BOT - HEAD;
     // Місце під підписи: назва, короткий опис і ціна
     var textH = 176;
     card.items.forEach(function(it, i){
@@ -565,6 +621,14 @@
     var fields = cfg.fields || {};
     var show = function(k){ return fields[k] !== false; };
 
+    /* Ширину аркуша задає САМА КАРТКА — скільки в неї колонок, така вона й
+       завширшки. Це єдине місце, де розмір взагалі рахується: далі його
+       передаємо вниз параметром, щоб жоден малювальник не міг узяти власне
+       уявлення про те, де в цього листа правий край. */
+    var cols = card.type === 'set' ? (card.items || []).length
+                                   : (card.shots || []).length;
+    var W = sheetW(cols);
+
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
     var x = cv.getContext('2d');
@@ -578,14 +642,14 @@
 
     if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
-      paintSet(x, card, t, imgs, show, { logo: logo });
+      paintSet(x, card, t, imgs, show, { logo: logo }, W);
     } else {
       var shots = await Promise.all((card.shots || []).map(function(sh){
         return loadImg(sh && sh.url);
       }));
-      paintCard(x, card, t, shots, show, { logo: logo });
+      paintCard(x, card, t, shots, show, { logo: logo }, W);
     }
-    footer(x, t, offer || {});
+    topMeta(x, t, offer || {}, W);
     return cv;
   }
 
@@ -600,7 +664,7 @@
   }
 
   window.LQCards = {
-    W: W, H: H,
+    H: H, sheetW: sheetW,
     TEMPLATES: TEMPLATES, FIELDS: FIELDS, WARN: WARN,
     build: buildCards, draw: drawCard, fileName: fileName, money: money
   };

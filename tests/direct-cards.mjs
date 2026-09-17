@@ -199,7 +199,7 @@ const laid = await fr.evaluate(async ([o]) => {
     const cv = await window.LQCards.draw(window.LQCards.build(off, {})[0], off, { tpl:'minimal' });
     const x = cv.getContext('2d');
     const d = x.getImageData(0, 0, cv.width, cv.height).data;
-    const seen = C.map(()=> ({ x0: 1e9, x1: -1, y1: -1 }));
+    const seen = C.map(()=> ({ x0: 1e9, x1: -1, y0: 1e9, y1: -1 }));
     for(let py = 0; py < cv.height; py += 6){
       for(let px = 0; px < cv.width; px += 6){
         const i = (py * cv.width + px) * 4;
@@ -208,11 +208,12 @@ const laid = await fr.evaluate(async ([o]) => {
           const s = seen[k];
           if(px < s.x0) s.x0 = px;
           if(px > s.x1) s.x1 = px;
+          if(py < s.y0) s.y0 = py;
           if(py > s.y1) s.y1 = py;
         }
       }
     }
-    return { seen, h: cv.height };
+    return { seen, h: cv.height, w: cv.width };
   };
   return { three: await scan(3), one: await scan(1) };
 }, [OFFER]);
@@ -229,9 +230,36 @@ ok(laid.three.seen[0].x1 < laid.three.seen[1].x0 &&
 ok(drawn(laid.one).length === 2,
   'одне нанесення — на полотні все одно два знімки: перед і зад',
   'знімків на полотні: ' + drawn(laid.one).length);
-ok(drawn(laid.three).every(v => v.y1 < laid.three.h * 0.78),
-  'знімки лишаються вгорі — низ віддано смузі чисел',
-  'знімок заліз у смугу чисел: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+/* Ракурси рівноправні: три знімки — три однакові колонки, і колонки ті
+   однакові не приблизно, а до пікселя. Саме на цьому тримається вся
+   розкладка — «головного» фото більше немає. */
+const widths = drawn(laid.three).map(v => v.x1 - v.x0);
+console.log('   ширини знімків: ' + widths.join(' · '));
+ok(widths.every(w => Math.abs(w - widths[0]) <= 12),
+  'колонки рівні між собою — жоден ракурс не «головний»',
+  'колонки різної ширини: ' + widths.join(' · '));
+/* Шапка згори, галерея під нею й до самого низу. Доти числа стояли нижньою
+   смугою — на аркуші, що тепер ширшає до 2560, та смуга розтягувалась би
+   під три слова на всю ширину. */
+ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.20),
+  'знімки починаються під шапкою — верх віддано назві й числам',
+  'знімок заліз у шапку: ' + JSON.stringify(drawn(laid.three).map(v => v.y0)));
+ok(drawn(laid.three).some(v => v.y1 > laid.three.h * 0.85),
+  'і доходять до низу аркуша: галереї віддано близько трьох чвертей висоти',
+  'галерея не дістає низу: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+
+console.log('');
+console.log('═══ ЛИСТ ШИРШАЄ ВІД КІЛЬКОСТІ ФОТО ═══');
+/* Порожніх зон на картці не буває — не тому, що їх ретельно заповнили, а
+   тому, що їх нема звідки взятись: ширина рахується з кількості колонок. */
+console.log('   три ракурси: ' + laid.three.w + '×' + laid.three.h +
+            ' · два: ' + laid.one.w + '×' + laid.one.h);
+ok(laid.three.h === 1000 && laid.one.h === 1000,
+  'висота стала — 1000 пікселів на будь-якій картці',
+  'висота попливла: ' + laid.three.h + ' / ' + laid.one.h);
+ok(laid.one.w === 1400 && laid.three.w === 2040,
+  'а ширина росте: два фото — 1400, три — 2040',
+  'ширина не та: ' + laid.one.w + ' / ' + laid.three.w);
 
 console.log('');
 console.log('═══ КІЛЬКІСТЬ НЕ ДУБЛЮЄТЬСЯ ═══');
@@ -285,8 +313,8 @@ const drew = await fr.evaluate(async o => {
 }, OFFER);
 Object.keys(drew).forEach(k => console.log('   ' + k + ': ' + drew[k].w + '×' + drew[k].h +
   ' · ' + Math.round(drew[k].bytes / 1024) + ' КБ'));
-ok(Object.keys(drew).every(k => drew[k].w === 1920 && drew[k].h === 1200),
-  'формат горизонтальний — 1920×1200, як домовлялись',
+ok(Object.keys(drew).every(k => drew[k].w === 1400 && drew[k].h === 1000),
+  'формат горизонтальний: дві колонки — 1400×1000 на всіх шаблонах',
   'розмір полотна не той: ' + JSON.stringify(drew));
 ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'полотно віддає файл — чужий мокап його не забруднив',
@@ -373,11 +401,11 @@ else {
     'лишились абстрактні шаблони: ' + tabbed.tpls.join(', '));
   ok(tabbed.strip === 5, 'у стрічці всі картки пропозиції',
     'у стрічці ' + tabbed.strip + ' карток');
-  ok(tabbed.canvas && tabbed.canvas.w === 1920,
+  ok(tabbed.canvas && tabbed.canvas.w === 1400 && tabbed.canvas.h === 1000,
     'preview — це те саме полотно, що збережеться у файл',
     'preview не намалювався');
-  ok(tabbed.tpls.length === 5 && tabbed.fields === 6,
-    'шаблони — мінімалістичний і чотири ніші, і шість перемикачів полів',
+  ok(tabbed.tpls.length === 5 && tabbed.fields === 5,
+    'шаблони — мінімалістичний і чотири ніші, і пʼять перемикачів полів',
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
