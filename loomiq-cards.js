@@ -54,8 +54,60 @@
     return PAD * 2 + n * COL + (n - 1) * GAP;
   }
 
-  var SANS  = '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  var SERIF = 'Georgia, "Times New Roman", "Noto Serif", serif';
+  /* ══════════ ШРИФТ ══════════
+     Manrope. Одна гарнітура на всю картку, три ваги — 400, 600, 800.
+     Вибір не за красою: у Direct картку дивляться з телефона, де половина
+     тексту йде кеглем у пʼятнадцять пікселів, а поруч стоїть ціна в сорок
+     чотири. Manrope тримає обидва кінці — відкриті форми не злипаються
+     дрібними, широкі цифри читаються числом, а не візерунком, — і має
+     повну кирилицю, чого більшість геометричних гротесків не мають.
+
+     Системний стек лишається позаду не для краси, а тому, що мережі може й
+     не бути: тоді картка намалюється Inter і не розсиплеться.
+
+     Шрифт тягнемо самі, з цього ж модуля. Полотно бере гарнітуру на момент
+     малювання, тож перед першим кадром чекаємо, доки вона стане доступна —
+     інакше preview намалювався б системним, а файл за секунду вже новим, і
+     «як побачить клієнт» розійшлося б із тим, що завантажилось. Чекаємо не
+     довше двох із половиною секунд: без мережі обидва однаково малюються
+     запасним стеком, і це чесніше, ніж порожній preview. */
+  var SANS = '"Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  var FONT_CSS = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap';
+  var fontP = null;
+  function fontReady(){
+    if(fontP) return fontP;
+    fontP = new Promise(function(res){
+      try{
+        if(!document.querySelector('link[data-lq-font]')){
+          var l = document.createElement('link');
+          l.rel = 'stylesheet'; l.href = FONT_CSS;
+          l.setAttribute('data-lq-font', '1');
+          document.head.appendChild(l);
+        }
+        if(!document.fonts || !document.fonts.load) return res();
+        var done = false, fin = function(){ if(!done){ done = true; res(); } };
+        setTimeout(fin, 2500);
+        Promise.all(['400 16px Manrope', '600 16px Manrope', '800 16px Manrope']
+          .map(function(f){ return document.fonts.load(f, 'Ціна 0123'); })).then(fin, fin);
+      }catch(e){ res(); }
+    });
+    return fontP;
+  }
+  // Акцент блідою підкладкою — для допоміжного, що не має змагатися з ціною
+  function tint(c, a){
+    var r = 0, g = 0, b = 0;
+    if(/^#/.test(c)){
+      var h = c.slice(1);
+      if(h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      r = parseInt(h.slice(0, 2), 16);
+      g = parseInt(h.slice(2, 4), 16);
+      b = parseInt(h.slice(4, 6), 16);
+    } else {
+      var m = String(c).match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+      if(m){ r = +m[1]; g = +m[2]; b = +m[3]; }
+    }
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
 
   /* ── Шаблони ─────────────────────────────────────────────────────────
      Один нейтральний і далі одразу ніші. Абстрактних назв на кшталт
@@ -313,7 +365,7 @@
   // Розріджений капітеллю надпис — ним підписані всі дрібні мітки
   function eyebrow(x, text, X, Y, color, size){
     x.fillStyle = color;
-    x.font = '700 ' + (size || 20) + 'px ' + SANS;
+    x.font = '600 ' + (size || 20) + 'px ' + SANS;
     var s = String(text || '').toUpperCase(), cx = X;
     for(var i = 0; i < s.length; i++){
       x.fillText(s[i], cx, Y);
@@ -347,7 +399,7 @@
      малювання: колонку чисел треба зміряти до того, як стало відомо, де
      вона починається. */
   function eyebrowW(x, text, size){
-    x.font = '700 ' + size + 'px ' + SANS;
+    x.font = '600 ' + size + 'px ' + SANS;
     var s = String(text || '').toUpperCase(), w = 0;
     for(var i = 0; i < s.length; i++) w += x.measureText(s[i]).width + size * 0.12;
     return w;
@@ -469,28 +521,34 @@
   }
   function numbers(x, card, t, show, W){
     var right = W - PAD;
-    var yRule = H - FOOT, yLab = yRule + 48, yVal = yRule + 100;  // 814 · 862 · 914
+    var yRule = H - FOOT, yLab = yRule + 44, yVal = yRule + 94;   // 814 · 858 · 908
     rule(x, t, PAD, right, yRule);
 
-    // ── ціна ──
+    /* Ціна й термін ОДНОГО кегля. Доти ціна була сорок восьмим, термін
+       тридцять восьмим, підписи ще іншим — унизу збиралось три розміри на
+       чотири слова, і смуга читалась як набір різних блоків. Ієрархію
+       тримає колір, а не розмір: ціна акцентом, термін чорнилом. */
+    var VAL = 44;
     var cut = oldPrice(card, show);
-    var priceW = 0, price = (show('unit') && card.unit) ? money(card.unit) : '';
+    var price = (show('unit') && card.unit) ? money(card.unit) : '';
+    var term  = (show('term') && card.term) ? card.term + ' роб. днів' : '';
+
+    var priceW = 0, wasW = 0, offW = 0;
     if(price){
-      x.font = '800 52px ' + t.body;
+      x.font = '800 ' + VAL + 'px ' + t.body;
       priceW = x.measureText(price).width;
       if(cut){
-        x.font = '400 26px ' + t.body;
-        var wasW = x.measureText(cut.was).width;
-        x.font = '800 20px ' + t.body;
-        priceW = Math.max(priceW, wasW + 16 + x.measureText(cut.off).width + 30);
+        x.font = '400 24px ' + t.body;
+        wasW = x.measureText(cut.was).width;
+        x.font = '800 19px ' + t.body;
+        offW = x.measureText(cut.off).width + 26;
+        priceW = Math.max(priceW, wasW + 16 + offW);
       }
       priceW = Math.max(priceW, eyebrowW(x, 'Ціна за 1 шт', 18));
     }
-    // ── термін ──
-    var term = (show('term') && card.term) ? card.term + ' робочих днів' : '';
     var termW = 0;
     if(term){
-      x.font = '700 38px ' + t.body;
+      x.font = '800 ' + VAL + 'px ' + t.body;
       termW = Math.max(x.measureText(term).width, eyebrowW(x, 'Термін виготовлення', 18));
     }
 
@@ -500,22 +558,21 @@
 
     if(price){
       eyebrow(x, 'Ціна за 1 шт', PAD, yLab, t.dim, 18);
-      x.fillStyle = t.accent; x.font = '800 52px ' + t.body;
+      x.fillStyle = t.accent; x.font = '800 ' + VAL + 'px ' + t.body;
       x.fillText(price, PAD, yVal);
       if(cut){
         /* Стара ціна стоїть ПІД новою, а не поруч: поруч вона змагається з
-           нею за той самий рядок, і око спершу читає більше число. */
-        x.fillStyle = t.dim; x.font = '400 26px ' + t.body;
-        var ww = x.measureText(cut.was).width;
-        x.fillText(cut.was, PAD, yVal + 38);
+           нею за той самий рядок і око читає більше число першим. */
+        x.fillStyle = t.dim; x.font = '400 24px ' + t.body;
+        x.fillText(cut.was, PAD, yVal + 36);
         x.strokeStyle = t.dim; x.lineWidth = 2;
-        x.beginPath(); x.moveTo(PAD, yVal + 29); x.lineTo(PAD + ww, yVal + 29); x.stroke();
-        badge(x, t, cut.off, PAD + ww + 16, yVal + 38);
+        x.beginPath(); x.moveTo(PAD, yVal + 28); x.lineTo(PAD + wasW, yVal + 28); x.stroke();
+        badge(x, t, cut.off, PAD + wasW + 16, yVal + 36);
       }
     }
     if(term){
       eyebrow(x, 'Термін виготовлення', tx, yLab, t.dim, 18);
-      x.fillStyle = t.ink; x.font = '700 38px ' + t.body;
+      x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
       x.fillText(term, tx, yVal);
     }
     // розділювачі — те, що робить смугу смугою
@@ -523,27 +580,38 @@
       if(!cx) return;
       x.strokeStyle = t.line; x.lineWidth = 1;
       x.beginPath();
-      x.moveTo(cx - GAPC / 2, yRule + 22);
+      x.moveTo(cx - GAPC / 2, yRule + 20);
       x.lineTo(cx - GAPC / 2, H - 46);
       x.stroke();
     });
-    /* Застереження забирає всю решту ширини праворуч. Якщо її менше за
-       двісті пікселів — числа вийшли задовгі, і дрібний текст у щілину
-       перетворився б на стовпчик по одному слову; тоді його просто немає. */
+    /* Примітка — така сама зона, як дві попередні: підпис капітеллю, під
+       ним текст. Без підпису вона читалась як текст, що випадково заїхав
+       збоку; з підписом унизу стоять три однакові за будовою блоки.
+
+       Якщо місця лишилось менше за двісті пікселів — числа вийшли
+       задовгими, і дрібний текст у щілину перетворився б на стовпчик по
+       одному слову; тоді примітки просто немає. */
     var warnW = right - wx;
     if(show('warn') && warnW >= 200){
-      x.fillStyle = t.dim; x.font = '400 15px ' + t.body;
-      wrap(x, WARN, warnW, 5).forEach(function(ln, i){
-        x.fillText(ln, wx, yLab + i * 21);
-      });
+      eyebrow(x, 'Примітка', wx, yLab, t.dim, 18);
+      x.fillStyle = t.dim;
+      var ns = 15, lines;
+      do {
+        x.font = '400 ' + ns + 'px ' + t.body;
+        lines = wrap(x, WARN, warnW, 0);
+        ns -= 1;
+      } while(lines.length > 4 && ns > 11);
+      lines.forEach(function(ln, i){ x.fillText(ln, wx, yLab + 32 + i * 21); });
     }
   }
+  /* Знижка — допоміжна, тож не залита акцентом, а лише притінена ним:
+     суцільна заливка акцентом на картці одна, і вона в ціни. */
   function badge(x, t, s, X, y){
-    x.font = '800 20px ' + t.body;
+    x.font = '800 19px ' + t.body;
     var w = x.measureText(s).width + 26;
+    x.fillStyle = tint(t.accent, 0.14);
+    rr(x, X, y - 21, w, 29, 14); x.fill();
     x.fillStyle = t.accent;
-    rr(x, X, y - 22, w, 30, 15); x.fill();
-    x.fillStyle = '#FFFFFF';
     x.textAlign = 'center';
     x.fillText(s, X + w / 2, y - 1);
     x.textAlign = 'left';
@@ -735,7 +803,7 @@
         drawShot(x, imgs[i], setS, X + 26, top + 22, tileW - 52, picH - 44);
       else if(!imgs[i]) placeholder(x, X, top, tileW, picH, t.ink);
       var ty = top + picH + 30;
-      x.fillStyle = t.ink; x.font = '700 30px ' + t.body;
+      x.fillStyle = t.ink; x.font = '600 30px ' + t.body;
       wrap(x, it.name, tileW - 52, 2).forEach(function(ln, k){
         x.fillText(ln, X + 26, ty + k * 34);
       });
@@ -764,6 +832,7 @@
     cfg = cfg || {};
     var fields = cfg.fields || {};
     var show = function(k){ return fields[k] !== false; };
+    await fontReady();
 
     /* Ширину аркуша задає САМА КАРТКА — скільки в неї колонок, така вона й
        завширшки. Це єдине місце, де розмір взагалі рахується: далі його
