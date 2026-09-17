@@ -242,8 +242,8 @@ ok(widths.every(w => Math.abs(w - widths[0]) <= 12),
 /* Три сталі смуги: шапка — хто й що, галерея — виріб, низ — числа. Смуги
    сталі навмисно: дві картки поруч у стрічці Direct мають вирівнюватись
    між собою, а не кожна по-своєму. */
-ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.18),
-  'знімки починаються під шапкою — верх віддано логотипу, назві й опису',
+ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.14),
+  'знімки починаються під шапкою — верх віддано логотипу, назві й номеру КП',
   'знімок заліз у шапку: ' + JSON.stringify(drawn(laid.three).map(v => v.y0)));
 ok(drawn(laid.three).every(v => v.y1 < laid.three.h * 0.82),
   'і не залазять у смугу чисел унизу',
@@ -351,6 +351,93 @@ ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'файл не зібрався: ' + JSON.stringify(drew));
 
 console.log('');
+console.log('═══ СТИЛЬ: ЛОГО, ФОН, ТІНЬ ═══');
+/* Мокапи приходять зі своїм тлом, і поки виріб лежить на білій панелі, це
+   непомітно. Щойно під панель стає свій фон або з'являється тінь — стає
+   видно, що виріб приїхав разом зі своїм прямокутником. Перевіряємо, що
+   заливка від країв справді робить тло прозорим, що вона НЕ чіпає світле
+   всередині виробу, і що тінь без прозорості не малюється. */
+const style = await fr.evaluate(async o => {
+  const L = window.LQCards;
+  /* Мокап із білими полями й БІЛОЮ СМУГОЮ всередині виробу: смуга не
+     дотикається країв, отже заливка від країв її проїсти не може. */
+  const mock = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
+    '<rect width="400" height="500" fill="#FFFFFF"/>' +
+    '<rect x="80" y="90" width="240" height="320" fill="#7A1F2B"/>' +
+    '<rect x="150" y="200" width="100" height="40" fill="#FFFFFF"/></svg>');
+  const grad = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
+    '<defs><linearGradient id="g"><stop offset="0" stop-color="#FFFFFF"/>' +
+    '<stop offset="1" stop-color="#101010"/></linearGradient></defs>' +
+    '<rect width="400" height="500" fill="url(#g)"/></svg>');
+  const one = u => ({ items:[Object.assign({}, o.items[0], { mockups:[u], views:[], prints:[] })],
+                      terms:{ deadlineDays:7 }, orderId:'1', clientLogo: o.clientLogo });
+  const shot = async (u, cfg) => {
+    const off = one(u);
+    const cv = await L.draw(L.build(off, {})[0], off, Object.assign({ tpl:'minimal' }, cfg));
+    const x = cv.getContext('2d');
+    return { cv, x, notes: cv.lqNotes || [],
+             png: cv.toDataURL('image/png'),
+             at: (px, py) => Array.from(x.getImageData(px, py, 1, 1).data) };
+  };
+  /* Колір тла аркуша під панеллю. Якщо фон знято — між панеллю й виробом
+     видно панель, а не білий прямокутник мокапа; беремо точку відразу під
+     виробом усередині панелі. */
+  const plain = await shot(mock, {});
+  const cut   = await shot(mock, { cutout:true });
+  const bad   = await shot(grad, { cutout:true });
+  const shade = await shot(mock, { shade:'deep' });
+  const small = await shot(mock, { logo:0.5 });
+  const big   = await shot(mock, { logo:1.8 });
+  const GREEN = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
+    '<rect width="40" height="40" fill="#1E9E4A"/></svg>');
+  const bg    = await shot(mock, { bg:GREEN });
+  /* Зелений фон плюс зняте тло — і білу смугу ВСЕРЕДИНІ виробу стає видно
+     як білу. З'їла б її заливка — на її місці був би зелений фон, і білих
+     пікселів у панелі не лишилось би зовсім. */
+  const both  = await shot(mock, { cutout:true, bg:GREEN });
+  let white = 0;
+  {
+    const d = both.x.getImageData(400, 144, 600, 650).data;
+    for(let i = 0; i < d.length; i += 4 * 3)
+      if(d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) white++;
+  }
+  return {
+    plainPng: plain.png, cutPng: cut.png, shadePng: shade.png,
+    smallPng: small.png, bigPng: big.png,
+    badNotes: bad.notes, goodNotes: cut.notes,
+    /* Точка в панелі, але поза виробом: зі своїм фоном вона має стати
+       зеленою, без нього — лишитись панельно-білою. */
+    bgPix: bg.at(415, 400), plainPix: plain.at(415, 400), white: white
+  };
+}, OFFER);
+console.log('   нотатки на однорідному тлі: ' + JSON.stringify(style.goodNotes));
+console.log('   нотатки на градієнті: ' + style.badNotes.length + ' шт');
+console.log('   точка в панелі зі своїм фоном: ' + style.bgPix.slice(0, 3).join(','));
+ok(style.cutPng !== style.plainPng,
+  'зняття фону справді міняє картку — тло мокапа стає прозорим',
+  'із «прибрати фон» і без нього картка малюється однаково');
+ok(style.goodNotes.length === 0 && style.badNotes.length === 1,
+  'на градієнті фон не знімається мовчки — менеджер бачить рядок, чому саме',
+  'невдале зняття фону не назване словами: ' + JSON.stringify(style.badNotes));
+ok(style.shadePng !== style.cutPng,
+  'тінь малюється поверх знятого фону — по контуру виробу, а не прямокутником',
+  'тінь нічого не змінила');
+ok(style.smallPng !== style.bigPng,
+  'масштаб логотипа справді міняє картку',
+  'повзунок лого ні на що не впливає');
+ok(style.bgPix[1] > 120 && style.bgPix[0] < 120 && style.plainPix[0] > 240,
+  'свій фон малюється під виробом замість білої панелі',
+  'свій фон не проявився: ' + style.bgPix.join(',') + ' проти ' + style.plainPix.join(','));
+console.log('   білих пікселів усередині виробу після зняття фону: ' + style.white);
+ok(style.white > 400,
+  'заливка йде ВІД КРАЇВ, тож біле всередині виробу лишається білим: ' +
+    'білі рукави, шнурки й напис на грудях до країв не дотикаються',
+  'заливка проїла світле всередині виробу: білих пікселів лишилось ' + style.white);
+
+console.log('');
 console.log('═══ ГАРНІТУРА ═══');
 /* Шрифт картка тягне сама, з власного модуля: полотно бере гарнітуру на
    момент малювання, тож про неї має дбати той, хто малює, а не сторінка,
@@ -432,7 +519,12 @@ const tabbed = await fr.evaluate(async () => {
     fields: document.querySelectorAll('#cdBar [data-fld]').length,
     dl: [...document.querySelectorAll('#cdBar [data-dl]')].map(b => b.textContent.trim()),
     head: (document.getElementById('cdPrevH') || {}).textContent || '',
-    workHidden: document.getElementById('paneWork').classList.contains('hide')
+    workHidden: document.getElementById('paneWork').classList.contains('hide'),
+    logo: !!document.getElementById('cdLogo'),
+    cut: !!document.getElementById('cdCut'),
+    shades: [...document.querySelectorAll('#cdBar [data-shade]')].map(b => b.textContent),
+    bgUp: !!document.getElementById('cdBgF'),
+    warnBox: !!document.getElementById('cdWarn')
   };
 });
 if(tabbed.none){ console.log('  вкладки немає'); bad++; }
@@ -452,6 +544,15 @@ else {
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
+  console.log('   стиль: ' + tabbed.shades.join(' / ') +
+              ' · лого ' + (tabbed.logo ? 'є' : 'немає') +
+              ' · фон ' + (tabbed.bgUp ? 'є' : 'немає'));
+  ok(tabbed.logo && tabbed.cut && tabbed.bgUp && tabbed.shades.length === 3,
+    'у смузі є все, чим керують показом: масштаб лого, зняття фону, три стани тіні, свій фон',
+    'смуга стилю неповна: ' + JSON.stringify(tabbed));
+  ok(tabbed.warnBox,
+    'і є місце під рядок про те, що з мокапом не вийшло — просто під кадром, а не тостом',
+    'рядка про невдачу немає');
   ok(/Як це побачить клієнт/.test(tabbed.head),
     'над preview сказано, що це вже готовий файл, а не ще одна панель редактора',
     'підпису над preview немає: «' + tabbed.head + '»');
@@ -488,6 +589,31 @@ ok(!!dl && dl.names.every(n => /^kp-1002700-\d\d-/.test(n)),
   'імена файлів несуть номер КП і порядок — у теці вони ляжуть як у пропозиції',
   'імена файлів не ті: ' + JSON.stringify((dl || {}).names));
 try{ fs.unlinkSync(VH); }catch(e){}
+console.log('');
+console.log('═══ СТИЛЬ ДОЇЖДЖАЄ В ЗАМОВЛЕННЯ ═══');
+/* Налаштування показу живуть у самому замовленні — інакше менеджер
+   налаштував би картку, закрив вкладку й почав спочатку. */
+const styleSent = await fr.evaluate(async () => {
+  const before = window.parent.__sent.length;
+  const rng = document.getElementById('cdLogo');
+  rng.value = '150';
+  rng.dispatchEvent(new Event('input'));
+  rng.dispatchEvent(new Event('change'));
+  document.querySelector('#cdBar [data-shade="deep"]').click();
+  await new Promise(r => setTimeout(r, 1200));
+  const msgs = window.parent.__sent.slice(before).filter(m => m.act === 'cards');
+  return msgs.length ? msgs[msgs.length - 1].cards : null;
+});
+console.log('   у замовлення пішло: ' +
+  JSON.stringify(styleSent && { logo:styleSent.logo, shade:styleSent.shade, cutout:styleSent.cutout }));
+ok(styleSent && Math.abs(styleSent.logo - 1.5) < 0.01 && styleSent.shade === 'deep',
+  'масштаб лого й тінь лягають у замовлення — переживуть перезавантаження',
+  'стиль не доїхав: ' + JSON.stringify(styleSent));
+ok(styleSent && styleSent.cutout === true,
+  'увімкнена тінь сама вмикає зняття фону: тінь будується з прозорості, ' +
+    'і дві галочки, з яких одна без другої не працює, менеджеру не потрібні',
+  'тінь не ввімкнула зняття фону: ' + JSON.stringify(styleSent));
+
 await p.close();
 
 /* ══════════ АДМІНКА ══════════ */

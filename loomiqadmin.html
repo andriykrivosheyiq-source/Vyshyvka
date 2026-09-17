@@ -4454,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7ea3d48ed7"></script>
-<script src="loomiq-fingerprint.js?v=7ea3d48ed7"></script>
-<script src="loomiq-pricing.js?v=7ea3d48ed7"></script>
+<script src="loomiq-select.js?v=2322db9abd"></script>
+<script src="loomiq-fingerprint.js?v=2322db9abd"></script>
+<script src="loomiq-pricing.js?v=2322db9abd"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7ea3d48ed7"></script>
+<script src="loomiq-design.js?v=2322db9abd"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -17233,6 +17233,29 @@ async function offerEdApply(msg){
     const c = msg.cards;
     o.cards = (c && typeof c === 'object' && !Array.isArray(c)) ? c : null;
     await offerEdSave(o);
+    return;
+  }
+  /* Свій фон для квадратиків. Файл прилітає байтами, а вантажить його
+     адмінка — сховище налаштоване тут, і другий завантажувач у кадрі
+     означав би два місця, де щось може зламатись. Назад віддаємо посилання
+     тим самим кадром, що й прислав: рішення, що з ним робити, ухвалює він. */
+  if(act === 'cardsBg'){
+    const f = document.querySelector('#offerEd iframe');
+    const back = (url, err) => {
+      try{
+        if(f && f.contentWindow)
+          f.contentWindow.postMessage({ lqEditInit:true, cardsBg: url || '',
+                                        cardsBgErr: err || '' }, '*');
+      }catch(e){}
+    };
+    const bytes = Array.isArray(msg.data) ? new Uint8Array(msg.data) : null;
+    if(!bytes || !bytes.length){ back('', 'порожній файл'); return; }
+    try{
+      const url = await uploadCloudinaryAuto(new Blob([bytes], { type: msg.type || 'image/png' }));
+      back(url, '');
+      o.cards = Object.assign({}, o.cards || {}, { bg: url });
+      await offerEdSave(o);
+    }catch(e){ back('', (e && e.message) || 'помилка'); }
     return;
   }
   /* Готові картинки прилітають байтами. Завантажує їх адмінка, а не кадр:
