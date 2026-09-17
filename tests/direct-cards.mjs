@@ -109,7 +109,7 @@ console.log('═══ КАРТКИ ЗБИРАЮТЬСЯ САМІ ═══');
 const built = await fr.evaluate(o => {
   if(!window.LQCards) return { none:true };
   return { list: window.LQCards.build(o, {}).map(c => ({ id:c.id, kind:c.kind, type:c.type,
-             name:c.name, qty:c.qty, unit:c.unit, sum:c.sum, term:c.term,
+             name:c.name, qty:c.qty, unit:c.unit, sum:c.sum, term:c.term, sizes:c.sizes,
              n:(c.items || []).length })) };
 }, OFFER);
 if(built.none){ console.log('  малювальник не підключений'); bad++; }
@@ -127,9 +127,13 @@ else {
     'рекомендовані — однією карткою на всіх: питання «чим доповнити»',
     'добірка рекомендованих не зібралась');
   const sw = built.list.filter(c => c.name === 'Світшот')[0] || {};
-  ok(sw.unit === 1100 && sw.sum === 22000 && sw.qty === 20 && sw.term === 7,
+  ok(sw.unit === 1100 && sw.qty === 20 && sw.term === 7,
     'числа беруться з пропозиції, своїх у картки немає',
     'числа картки розійшлись із пропозицією: ' + JSON.stringify(sw));
+  ok(sw.sum === undefined && sw.sizes === undefined,
+    'загальної суми й розмірного ряду на картці немає: сума застаріває від першого ' +
+      '«а якщо пʼятдесят», а розміри в Direct не вирішують нічого',
+    'на картці лишилось зайве: ' + JSON.stringify({ sum:sw.sum, sizes:sw.sizes }));
 }
 
 console.log('');
@@ -148,7 +152,7 @@ const views = await fr.evaluate(([o]) => {
                  [V('front','A'), V('back','B'), V('left','C')]);
   const none = mk('Без', [], []);
   const list = L.build({ items:[three, two, none], terms:{ deadlineDays:7 } }, {});
-  return list.map(c => ({ name:c.name, shots:c.shots, sub:c.sub, sizes:c.sizes }));
+  return list.map(c => ({ name:c.name, shots:c.shots, sub:c.sub }));
 }, [OFFER]);
 views.forEach(v => console.log('   ' + v.name + ' → ' + JSON.stringify(v.shots)));
 ok(views[0].shots.join() === 'A,B,C',
@@ -162,14 +166,66 @@ ok(views[2].shots.join() === 'm0',
   'без нанесення ракурсів немає: ' + JSON.stringify(views[2].shots));
 
 console.log('');
+console.log('═══ РОЗКЛАДКУ ВИБИРАЄ КІЛЬКІСТЬ РАКУРСІВ ═══');
+/* Дивимось не в код, а в пікселі: кожен ракурс фарбуємо своїм кольором і
+   шукаємо його на полотні. Три сторони — три кольори в горішній третині,
+   кожен у своїй колонці. Один ракурс — виріб ліворуч, праворуч його немає.
+
+   Доти три знімки втискались у ліву панель, розраховану на один виріб. */
+const laid = await fr.evaluate(async ([o]) => {
+  const col = (r, g, b) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
+    '<rect width="400" height="500" fill="rgb(' + r + ',' + g + ',' + b + ')"/></svg>');
+  const C = [[220,20,20], [20,180,20], [20,20,220]];
+  const V = (sd, u) => ({ id:sd, side:sd, label:sd, img:u, show:true });
+  const P = sd => ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 });
+  const sides = ['front', 'back', 'left'];
+  const mk = n => Object.assign({}, o.items[0], {
+    prints: sides.slice(0, n).map(P),
+    views: sides.slice(0, n).map((sd, i) => V(sd, col.apply(null, C[i]))),
+    mockups: [] });
+  const near = (d, i, c) => Math.abs(d[i] - c[0]) < 24 && Math.abs(d[i+1] - c[1]) < 24 &&
+                            Math.abs(d[i+2] - c[2]) < 24;
+  const scan = async n => {
+    const off = { items:[mk(n)], terms:{ deadlineDays:7 }, orderId:'1' };
+    const cv = await window.LQCards.draw(window.LQCards.build(off, {})[0], off, { tpl:'minimal' });
+    const x = cv.getContext('2d');
+    const d = x.getImageData(0, 0, cv.width, cv.height).data;
+    // у якій третині ширини трапився кожен колір і чи є він у верхній половині
+    const seen = C.map(()=> ({ thirds:{}, top:false }));
+    for(let py = 0; py < cv.height; py += 6){
+      for(let px = 0; px < cv.width; px += 6){
+        const i = (py * cv.width + px) * 4;
+        for(let k = 0; k < C.length; k++){
+          if(!near(d, i, C[k])) continue;
+          seen[k].thirds[Math.floor(px / (cv.width / 3))] = 1;
+          if(py < cv.height / 2) seen[k].top = true;
+        }
+      }
+    }
+    return seen.map(s => ({ thirds: Object.keys(s.thirds).map(Number).sort(), top: s.top }));
+  };
+  return { three: await scan(3), one: await scan(1) };
+}, [OFFER]);
+console.log('   три ракурси → колонки: ' + laid.three.map(s => s.thirds.join('+')).join(' | '));
+console.log('   один ракурс → колонки: ' + laid.one.map(s => s.thirds.join('+') || '—').join(' | '));
+ok(laid.three.every(s => s.thirds.length && s.top),
+  'три ракурси стоять рядом угорі — кожен у своїй колонці',
+  'три ракурси розкладені не так: ' + JSON.stringify(laid.three));
+ok(laid.three[0].thirds[0] === 0 && laid.three[1].thirds[0] === 1 &&
+   laid.three[2].thirds.indexOf(2) >= 0,
+  'і в тому ж порядку, що сторони нанесення: перед, спина, рукав',
+  'порядок ракурсів поїхав: ' + JSON.stringify(laid.three.map(s => s.thirds)));
+ok(laid.one[0].thirds.length && laid.one[0].thirds.indexOf(2) < 0,
+  'один ракурс лишився зліва, а праворуч — текст, як було до оновлення',
+  'один ракурс розклався не так: ' + JSON.stringify(laid.one[0]));
+
+console.log('');
 console.log('═══ КІЛЬКІСТЬ НЕ ДУБЛЮЄТЬСЯ ═══');
-console.log('   підзаголовок: «' + views[0].sub + '» · розміри окремо: «' + views[0].sizes + '»');
+console.log('   підзаголовок: «' + views[0].sub + '»');
 ok(!/×\s*\d|\d+\s*шт/.test(views[0].sub),
   'у підзаголовку колір і нанесення — без кількості: вона стоїть числом нижче',
   'кількість у підзаголовку повторюється: «' + views[0].sub + '»');
-ok(views[0].sizes === 'M × 20',
-  'розмірний ряд лишається, але окремим рядком',
-  'розмірів немає: «' + views[0].sizes + '»');
 
 /* Рахуємо тут, поки сторінка жива: нижче вона вже закрита. */
 const about = await fr.evaluate(([o]) => {
@@ -190,10 +246,10 @@ const follow = await fr.evaluate(o => {
   changed.items[0].unitPrice = 1234;
   changed.items[0].price = 24680;
   const c = window.LQCards.build(changed, {})[0];
-  return { unit: c.unit, sum: c.sum };
+  return { unit: c.unit };
 }, OFFER);
 console.log('  було 900 грн → стало ' + follow.unit + ' грн');
-ok(follow.unit === 1234 && follow.sum === 24680,
+ok(follow.unit === 1234,
   'картка не тримає власних чисел — вона їх просто показує',
   'картка лишилась зі старою ціною: ' + JSON.stringify(follow));
 
@@ -307,8 +363,8 @@ else {
   ok(tabbed.canvas && tabbed.canvas.w === 1920,
     'preview — це те саме полотно, що збережеться у файл',
     'preview не намалювався');
-  ok(tabbed.tpls.length === 5 && tabbed.fields === 8,
-    'шаблони — мінімалістичний і чотири ніші, і вісім перемикачів полів',
+  ok(tabbed.tpls.length === 5 && tabbed.fields === 6,
+    'шаблони — мінімалістичний і чотири ніші, і шість перемикачів полів',
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
