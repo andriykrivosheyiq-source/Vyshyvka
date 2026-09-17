@@ -39,6 +39,10 @@ CTOR_SEL = 'loomiq-select.js'
 # Версію штампуємо разом з рештою: картка малюється з тих самих даних, і
 # застарілий у кеші малювальник дав би картинку, якої в пропозиції немає.
 CTOR_CARDS = 'loomiq-cards.js'
+# Дизайн-відділ — окремий цикл роботи з макетом. Версію штампуємо разом з
+# рештою: модель станів і екрани мусять їхати однією парою, інакше в кеші
+# лишиться дошка, яка не знає про новий крок.
+CTOR_DESIGN = 'loomiq-design.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -435,14 +439,16 @@ def main():
     fp = open(os.path.join(ROOT, CTOR_FP), encoding='utf-8').read()
     seljs = open(os.path.join(ROOT, CTOR_SEL), encoding='utf-8').read()
     cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
-    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards)
+    design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
+    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
             continue
         txt = open(path, encoding='utf-8').read()
         new = txt
-        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL, CTOR_CARDS):
+        for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
+                      CTOR_CARDS, CTOR_DESIGN):
             new = stamp(new, asset, ver)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)

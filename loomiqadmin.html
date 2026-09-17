@@ -2769,6 +2769,106 @@
      Плитка без межі поверх світлої панелі: межа на кольоровому тлі читається
      як обведення, а не як край блоку. */
   .card{border-radius:var(--r-card);}
+
+  /* ── Дизайн-відділ ──
+     Дошка ліворуч, панель задачі праворуч. Панель саме поруч, а не поверх:
+     дизайнер звіряє макет із ТЗ, і ховати список, доки він це робить,
+     означає змушувати його памʼятати те, що можна показати. */
+  /* Пакет із відділу у виробничій картці — біля машини, а не в чужому розділі */
+  .od-pack{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
+  .od-pack-h{font-weight:700;font-size:13px;}
+  .od-pack-p{font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+  .od-pack-p i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);
+    margin-top:3px;}
+
+  .dz-tabs{display:flex;gap:4px;background:var(--canvas);border-radius:10px;
+    padding:3px;margin-bottom:14px;width:fit-content;}
+  .dz-tab{font:inherit;font-size:13px;font-weight:700;color:var(--ink-soft);
+    background:none;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;}
+  .dz-tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.12);}
+  .dz-wrap{display:flex;gap:16px;align-items:flex-start;}
+  .dz-boards{flex:1;min-width:0;overflow-x:auto;}
+  .dz-board{display:flex;gap:10px;min-width:min-content;}
+  .dz-col{flex:0 0 168px;background:var(--canvas);border-radius:12px;padding:8px;}
+  .dz-col-h{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
+    letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);padding:2px 4px 8px;}
+  .dz-col-h i{margin-left:auto;font-style:normal;font-weight:700;color:var(--ink-soft);}
+  .dz-dot{width:7px;height:7px;border-radius:50%;background:#98A2B3;flex:none;}
+  .dz-dot.is-blue{background:#2E90FA;} .dz-dot.is-violet{background:#7A5AF8;}
+  .dz-dot.is-amber{background:#F79009;} .dz-dot.is-green{background:#12B76A;}
+  .dz-dot.is-cyan{background:#06AED4;} .dz-dot.is-rose{background:#F04438;}
+  .dz-col-b{display:flex;flex-direction:column;gap:6px;}
+  .dz-card{text-align:left;font:inherit;background:#fff;border:1px solid var(--line);
+    border-radius:10px;padding:8px 9px;cursor:pointer;display:block;width:100%;}
+  .dz-card.on{border-color:#2E90FA;box-shadow:0 0 0 2px rgba(46,144,250,.16);}
+  .dz-card b{display:block;font-size:13px;color:var(--ink);}
+  .dz-card span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dz-card i{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);margin-top:4px;}
+  .dz-empty{font-size:11.5px;color:var(--ink-soft);padding:6px 4px;}
+  .dz-panel{flex:0 0 400px;background:#fff;border:1px solid var(--line);border-radius:14px;
+    max-height:calc(100vh - 160px);display:flex;flex-direction:column;overflow:hidden;}
+  .dz-panel.hide{display:none;}
+  .dz-panel-h{flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;
+    border-bottom:1px solid var(--line);font-weight:800;}
+  .dz-state{font-weight:600;font-size:12px;color:var(--ink-soft);}
+  .dz-x{margin-left:auto;font:inherit;font-size:20px;line-height:1;background:none;border:0;
+    color:var(--ink-soft);cursor:pointer;}
+  .dz-panel-b{flex:1;min-height:0;overflow:auto;padding:12px 14px;}
+  .dz-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);margin:14px 0 6px;}
+  .dz-item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
+  .dz-item-h{font-weight:700;font-size:13px;}
+  .dz-item-s{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .dz-pl{font-size:12px;color:var(--ink);margin-top:6px;padding-top:6px;
+    border-top:1px dashed var(--line);}
+  .dz-pl.is-none{color:var(--ink-soft);}
+  .dz-pl i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  /* Посилання на файл стоїть у рядку одразу після розміру — без відступу
+     воно злипається з міліметрами в одне слово. */
+  .dz-pl a,.dz-files a{display:inline-block;font-size:11.5px;margin:4px 8px 0;
+    color:#2E90FA;text-decoration:none;}
+  .dz-pl a:first-of-type{margin-left:8px;}
+  .dz-miss{background:#FEF3F2;border:1px solid #FECDCA;border-radius:10px;padding:8px 10px;
+    font-size:12px;color:#B42318;margin-bottom:10px;}
+  .dz-ok{background:#ECFDF3;border:1px solid #ABEFC6;border-radius:10px;padding:8px 10px;
+    font-size:12px;color:#067647;margin-bottom:10px;}
+  .dz-why{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+  .dz-acts{margin-top:12px;display:flex;flex-direction:column;gap:10px;}
+  .dz-act{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;
+    flex-wrap:wrap;gap:6px;align-items:center;}
+  .dz-l{flex:0 0 100%;font-size:11px;font-weight:800;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-soft);}
+  .dz-act select,.dz-act input,.dz-act textarea{font:inherit;font-size:12.5px;
+    border:1px solid var(--line);border-radius:8px;padding:6px 8px;flex:1;min-width:120px;}
+  .dz-act textarea{flex:0 0 100%;resize:vertical;}
+  .dz-b{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--line);
+    background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;}
+  .dz-b.pri{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .dz-reasons,.dz-checks{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:4px 12px;}
+  .dz-reasons label,.dz-checks label{display:flex;align-items:center;gap:5px;
+    font-size:12px;color:var(--ink);}
+  .dz-checks{border:1px solid var(--line);border-radius:10px;padding:10px;
+    flex-direction:column;gap:6px;}
+  .dz-vers{display:flex;flex-direction:column;gap:8px;}
+  .dz-ver{border:1px solid var(--line);border-radius:10px;padding:9px 10px;}
+  .dz-ver.is-ok{border-color:#ABEFC6;background:#F6FEF9;}
+  .dz-ver-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:13px;}
+  .dz-ver-h i{margin-left:auto;font-style:normal;font-weight:500;font-size:11px;
+    color:var(--ink-soft);}
+  .dz-tag{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    background:var(--canvas);color:var(--ink-soft);border-radius:5px;padding:2px 5px;}
+  .dz-tag.is-ok{background:#ECFDF3;color:#067647;}
+  .dz-thumb{display:block;margin-top:6px;}
+  .dz-thumb img{max-width:100%;max-height:170px;border-radius:8px;display:block;}
+  .dz-note{font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
+  .dz-back{font-size:11.5px;color:#B42318;background:#FEF3F2;border-radius:7px;
+    padding:5px 7px;margin-top:5px;}
+  .dz-back.is-client{color:#B54708;background:#FFFAEB;}
+  @media (max-width:900px){
+    .dz-wrap{flex-direction:column;}
+    .dz-panel{flex:none;width:100%;max-height:none;}
+  }
 </style>
 </head>
 <body>
@@ -2877,6 +2977,9 @@
       <nav class="nav">
         <button data-view="today" data-tip="Задачі"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="m17 16.5 1.6 1.6L22 14.7"/></svg><span>Задачі</span></button>
         <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
+        <!-- Дизайн-відділ: окремий цикл роботи з макетом. Стоїть поруч із
+             Канбаном, бо це те саме замовлення, але інше життя. -->
+        <button data-view="design" data-tip="Дизайн-відділ"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Дизайн-відділ</span></button>
         <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
         <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
@@ -3289,6 +3392,24 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="td-keys">З клавіатури: <kbd>j</kbd><kbd>k</kbd> — рядок,
         <kbd>d</kbd> — виконати, <kbd>t</kbd> — беру, <kbd>s</kbd> — відкласти на завтра,
         <kbd>Enter</kbd> — відкрити картку.</div>
+    </section>
+
+    <!-- ══════════ ДИЗАЙН-ВІДДІЛ ══════════
+         Окремий контур: графіка → погодження клієнта → оцифрування →
+         передача у виробництво. Замовлення те саме, але життя інше, і
+         питання тут інші: чи повне ТЗ, хто відповідальний, чому повернули,
+         яка версія погоджена, чи перевірили файл перед машиною. -->
+    <section id="view-design" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Виробництво макета</div>
+        <h1>Дизайн-відділ</h1>
+        <div class="sub">Замовлення потрапляє спершу до менеджера відділу, а не одразу
+          дизайнеру: спочатку перевіряється повнота ТЗ. Макет іде клієнту теж через
+          перевірку. Кожне повернення записується <b>причиною зі списку</b>, а не текстом
+          у чаті — інакше немає відповіді на питання, на чому відділ спотикається
+          щотижня. Версії не зникають, погоджена замикається.</div>
+      </div>
+      <div id="dzRoot"></div>
     </section>
 
     <section id="view-team" style="display:none;">
@@ -4333,9 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3a69d1429c"></script>
-<script src="loomiq-fingerprint.js?v=3a69d1429c"></script>
-<script src="loomiq-pricing.js?v=3a69d1429c"></script>
+<script src="loomiq-select.js?v=dc3888dd1d"></script>
+<script src="loomiq-fingerprint.js?v=dc3888dd1d"></script>
+<script src="loomiq-pricing.js?v=dc3888dd1d"></script>
+<!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
+     цикл роботи зі своїми станами — тримати його в адмінці разом із
+     продажами означало б мішати два різні життя одного замовлення. -->
+<script src="loomiq-design.js?v=dc3888dd1d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5393,7 +5518,8 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vCalc = document.getElementById('view-calc'); if(vCalc) vCalc.style.display = view==='calc' ? 'block':'none';
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
     const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі'};
+    const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Дизайн-відділ'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -5405,6 +5531,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='analytics' && window.__anOpen) window.__anOpen();
     if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='today') renderToday();
+    if(view==='design') openDesign();
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -14514,12 +14641,50 @@ function artFold(o){
   const sum = !cur ? 'версій ще немає'
     : ('v' + cur.n + ' · ' + (ap.client ? 'погоджено клієнтом'
         : (ap.inner ? 'у клієнта' : (ap.art ? 'чекає відшиву' : 'чекає нашого погодження'))));
+  /* Версії тут і у відділі — ОДИН список: він живе в замовленні, і обидва
+     екрани дивляться на нього. Але веде роботу відділ: там перевірка ТЗ,
+     призначення дизайнера, причини повернень і оцифрування. Тому звідси —
+     посилання туди, а не друга дорога до того самого. */
   const body = `
+    <div class="od-hint">Графіку веде <b>Дизайн-відділ</b> — там ТЗ, причини правок,
+      оцифрування вишивки й пакет у виробництво. Версії спільні: список той самий.
+      <button class="art-b" data-art-dept>Відкрити відділ</button></div>
     ${l.length ? l.slice().reverse().map((v, i) => artVerHtml(o, v, i === 0)).join('')
                : '<div class="od-empty">Версій ще немає. Перша зʼявиться, коли дизайнер надішле макет.</div>'}
     <button class="art-new" data-art-new>+ Нова версія</button>`;
   return odFoldHtml('art', 'Макет', sum, body);
 }
+/* ══════════ Пакет із дизайн-відділу у виробничій картці ══════════
+   Відділ зібрав пакет — і він має доїхати туди, де стоїть машина, а не
+   лишитись у розділі, куди виробництво не заходить. Показуємо рівно те, що
+   потрібно біля голки: яке нанесення, якого розміру, який файл ставити,
+   скільки стібків і якими нитками.
+
+   Пакет приходить у замовлення готовим: перевіряти тут нема чого, це вже
+   пройшло контроль файлів. Немає пакета — блоку теж немає: порожній
+   заголовок «пакет» лише питає «а де він». */
+function prodPackHtml(o){
+  const pk = o && o.designPack;
+  const rows = (pk && pk.items || []).filter(x => (x.places || []).length);
+  if(!rows.length) return '';
+  return `<div class="od-sec">Пакет із дизайн-відділу${
+      pk.at ? ' · ' + escapeHtml(dtUa(pk.at)) : ''}</div>` +
+    rows.map(it => `<div class="od-pack">
+      <div class="od-pack-h">${escapeHtml(it.name || '')}${
+        it.color ? ' · ' + escapeHtml(it.color) : ''}${
+        it.sizes ? ' · ' + escapeHtml(it.sizes) : ''}</div>` +
+      (it.places || []).map(pl => `<div class="od-pack-p">
+        <b>${escapeHtml(pl.label || '')}</b> · ${(pl.mm && pl.mm.w) || 0} × ${
+          (pl.mm && pl.mm.h) || 0} мм${
+          pl.stitches ? ' · ' + pl.stitches + ' стібків' : ''}${
+          (pl.colors || []).length ? ' · ' + escapeHtml(pl.colors.join(', ')) : ''}
+        ${(pl.files || []).map(f =>
+          `<a class="art-file" href="${escapeHtml(docAttachUrl(f.url))}" target="_blank"
+             rel="noopener" download>${escapeHtml(f.name || 'файл')} ↓</a>`).join('')}
+        ${pl.notes ? `<i>${escapeHtml(pl.notes)}</i>` : ''}
+      </div>`).join('') + '</div>').join('');
+}
+
 /* ══════════ Виробнича картка ══════════
    Швачка не має вгадувати. На екрані рівно те, що потрібно біля машини:
    який виріб і скільки якого розміру, які файли ставити, де саме лягає
@@ -14563,6 +14728,7 @@ function odProdHtml(o){
       <div class="od-sec">Стан</div>
       <div class="od-tracks">${trackPill('test','Тест')}${trackPill('prod','Тираж')}${trackPill('qc','Контроль')}</div>
 
+      ${prodPackHtml(o)}
       <div class="od-sec">Файли на машину</div>
       ${v
         ? `<div class="art-ver is-cur">
@@ -15340,6 +15506,16 @@ function renderOrderDrawer(){
   });
   const artNewB = panel.querySelector('[data-art-new]');
   if(artNewB) artNewB.addEventListener('click', ()=> artNew(o));
+  /* Перехід у відділ із відкритою саме цією задачею: питання «а що там з
+     макетом» виникає в картці, а відповідь живе у відділі. Змушувати
+     шукати замовлення там заново — це той самий обхід карток, від якого
+     ми й ідемо. */
+  const artDeptB = panel.querySelector('[data-art-dept]');
+  if(artDeptB) artDeptB.addEventListener('click', ()=>{
+    try{ window.LQDesign.ui.open(o.orderId); }catch(e){}
+    const nav = document.querySelector('.nav [data-view="design"]');
+    if(nav) nav.click();
+  });
   panel.querySelectorAll('[data-art-ok]').forEach(b=>{
     b.addEventListener('click', ()=> artApprove(o, b.dataset.artOk));
   });
@@ -19122,8 +19298,142 @@ function renderQcList(){
    інакше «менеджер не бачить собівартість» обходиться за секунду — обрав
    у списку інше імʼя й дивись. Кого в списку немає — менеджер: нова людина
    не отримує доступ до цифр просто тому, що її забули завести. */
+/* ══════════════════════════════════════════════════════════════════════
+   ДИЗАЙН-ВІДДІЛ: зберігання, доступи, дзеркало в Канбані
+
+   Задача дизайну живе ОКРЕМИМ документом — designJobs/{orderId}. Не в
+   картці замовлення: там ліміт 1 МБ, а тут версії, історія правок і
+   ланцюжок для навчання. Одна активна пропозиція зʼїла б картку цілком.
+
+   Картка при цьому не мовчить: трек «Дизайн» показує стан відділу. Але
+   ПОКАЗУЄ, а не керує — інакше вийшло б два місця, де про один макет
+   написано різне, і саме цього ми й уникаємо.
+   ══════════════════════════════════════════════════════════════════════ */
+const DESIGN_COL = fbDb.collection('designJobs');
+let designJobs = {};              // orderId → задача
+let designWatching = false;
+let designDirty = {};             // що чекає запису
+
+/* Замовлення, які взагалі стосуються відділу. Скасовані й виконані свою
+   дизайнерську долю вже прожили — тримати їх на дошці означає ховати
+   живу роботу за мертвою. Документ при цьому нікуди не дівається. */
+function designOrders(){
+  return (orders || []).filter(o => o && o.orderId &&
+    (o.items || []).length && o.status !== 'cancel' && o.status !== 'done');
+}
+function designJobOf(orderId){
+  const id = String(orderId || '');
+  if(!id) return null;
+  const o = (orders || []).filter(x => x && x.orderId === id)[0];
+  if(!o) return null;
+  let job = designJobs[id];
+  if(!job){
+    job = window.LQDesign.emptyJob(id);
+    /* Замовлення, у якому макет уже малювали до появи відділу, не має
+       починатись із «нових»: версії в картці є, отже робота йшла. Стан
+       виводимо з них — далі його веде вже відділ. Самі версії нікуди не
+       переносимо: вони й лишаються в замовленні, це одне місце на всіх. */
+    if(Array.isArray(o.art) && o.art.length){
+      const last = o.art[o.art.length - 1];
+      const ap = (last && last.approvals) || {};
+      if(ap.client){
+        job.approvedVersion = +last.n || o.art.length;
+        job.state = 'approved'; job.graphic.status = 'done';
+        job.client.decision = 'approved';
+        job.client.decidedAt = ap.client.at || '';
+        job.client.version = job.approvedVersion;
+      } else if(ap.art){
+        job.state = 'review'; job.graphic.status = 'done';
+      } else {
+        job.state = 'design'; job.graphic.status = 'work';
+      }
+      window.LQDesign.ds(job, 'adopt', { versions: o.art.length });
+    }
+    designJobs[id] = job;
+  }
+  window.LQDesign.ensure(job, o);
+  return job;
+}
+function watchDesign(){
+  if(designWatching) return;
+  designWatching = true;
+  DESIGN_COL.onSnapshot(snap=>{
+    snap.forEach(d=>{
+      const v = d.data();
+      if(!v || !v.orderId) return;
+      // Локальні незбережені правки чужим знімком не затираємо
+      if(designDirty[v.orderId]) return;
+      designJobs[v.orderId] = v;
+    });
+    if(document.getElementById('view-design') &&
+       document.getElementById('view-design').style.display !== 'none') openDesign();
+  }, e=> console.warn('designJobs watch', e));
+}
+/* Запис задачі й дзеркало в трек. Обидва разом і в одному місці: розведені
+   по різних кнопках, вони рано чи пізно розходяться. */
+async function designSave(job, o){
+  if(!job || !job.orderId) return;
+  designDirty[job.orderId] = 1;
+  designJobs[job.orderId] = job;
+  try{
+    await DESIGN_COL.doc(job.orderId).set(JSON.parse(JSON.stringify(job)));
+  }catch(e){
+    console.error('design save', e);
+    toast('Задача дизайну не збереглась');
+    throw e;
+  }finally{
+    delete designDirty[job.orderId];
+  }
+  /* Версії макета лежать у замовленні, і дія у відділі щойно могла їх
+     змінити — нову версію, файл, позначку погодження. Тож записуємо й
+     картку. saveOrders пише тільки те, що справді змінилось, тож зайвого
+     тут не буде. */
+  if(o){
+    touchOrder(o);
+    try{ await storeSet('orders', orders); }
+    catch(e){ console.warn('order save after design step', e); }
+    try{ await offerSync(o); }catch(e){}   // клієнт бачить ту саму версію
+  }
+  /* Трек «Дизайн» показує стан відділу — щоб продажник не заходив сюди.
+     Рухаємо його тією самою дорогою, що й усі треки: вона вміє і сповістити
+     клієнта, і перевірити ворота тиражу. Своя копія цієї логіки тут рано чи
+     пізно розійшлася б із загальною. */
+  const step = window.LQDesign.mirror(job);
+  if(o && step && typeof setTrack === 'function') await setTrack(o, 'design', step);
+}
+function openDesign(){
+  const root = document.getElementById('dzRoot');
+  if(!root || !window.LQDesign || !window.LQDesign.ui) return;
+  watchDesign();
+  const me = myEmail() || '';
+  const mine = (accOf(teamMember(me) || {}).ui === 'designer');
+  window.LQDesign.ui.host = {
+    me: ()=> me,
+    name: e => personName(e) || e,
+    orders: designOrders,
+    job: designJobOf,
+    save: designSave,
+    toast: m => toast(m),
+    upload: f => uploadCloudinaryAuto(f),
+    team: ()=> (contentData.team || []).map(m => ({
+      email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
+    onlyMine: ()=> mine,
+    can: ()=> true
+  };
+  /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
+     і показувати її першою означає щодня просити перемкнути вкладку. */
+  if(mine && window.LQDesign.ui.tab() === 'queue') window.LQDesign.ui.setTab('graphic');
+  window.LQDesign.ui.render(root);
+}
+
 const ROLES = { owner:'Власник', manager:'Менеджер',
-                designer:'Дизайнер', production:'Виробництво' };
+                designer:'Дизайнер', production:'Виробництво',
+                /* Три ролі відділу. Менеджер дизайну — воротар: до нього
+                   замовлення потрапляє першим і через нього ж іде до клієнта.
+                   Оцифрувальник і QA — окремі люди, бо це окремі роботи:
+                   малювати й розкладати стібки вміють різні. */
+                designmgr:'Менеджер дизайну', embroidery:'Оцифрування',
+                qa:'Контроль файлів' };
 /* ══════════ Доступи по зонах ══════════
    Роль — це пресет, а не вирок. Люди не діляться на чотири види: буває
    менеджер, якому треба бачити собівартість, і дизайнер, який заодно веде
@@ -19151,6 +19461,9 @@ const ZONE_NAV = [
     hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
   { key:'board',     label:'Канбан',
     hint:'Дошка замовлень і картка замовлення.' },
+  { key:'design',    label:'Дизайн-відділ',
+    hint:'Черга відділу, дошка дизайнера, оцифрування вишивки, перевірка файлів ' +
+         'і пакет у виробництво. Цін і оплат тут немає.' },
   { key:'calc',      label:'Прорахунок',
     hint:'Конструктор із цінами: зібрати позицію й порахувати вартість.' },
   { key:'settings',  label:'Формування цін',
@@ -19208,8 +19521,18 @@ const ROLE_PRESET = {
                 see:['client','chat','cost'], can:['edit','pay','del','setup'] },
   manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
                 boards:'*', see:['client','chat'], can:['edit','pay'] },
-  designer:   { ui:'designer',   nav:['today','board'], boards:['design'], see:[], can:[] },
-  production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] }
+  designer:   { ui:'designer',   nav:['today','board','design'], boards:['design'], see:[], can:[] },
+  /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
+     нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
+     колись переплутають із потрібним. */
+  production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] },
+  /* Менеджер дизайну бачить замовлення цілком — йому треба звірити ТЗ із
+     тим, що продали, — але грошей не бачить: до макета вони стосунку не
+     мають, а зайве поле на екрані колись переплутають із потрібним. */
+  designmgr:  { ui:'manager',    nav:['today','board','design'], boards:['design','test'],
+                see:['client'], can:[] },
+  embroidery: { ui:'designer',   nav:['today','design'], boards:['design'], see:[], can:[] },
+  qa:         { ui:'production', nav:['today','design'], boards:['design','qc'], see:[], can:[] }
 };
 function presetOf(role){
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
