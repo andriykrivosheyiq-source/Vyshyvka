@@ -238,15 +238,18 @@ console.log('   ширини знімків: ' + widths.join(' · '));
 ok(widths.every(w => Math.abs(w - widths[0]) <= 12),
   'колонки рівні між собою — жоден ракурс не «головний»',
   'колонки різної ширини: ' + widths.join(' · '));
-/* Шапка згори, галерея під нею й до самого низу. Доти числа стояли нижньою
-   смугою — на аркуші, що тепер ширшає до 2560, та смуга розтягувалась би
-   під три слова на всю ширину. */
-ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.20),
-  'знімки починаються під шапкою — верх віддано назві й числам',
+/* Три сталі смуги: шапка — хто й що, галерея — виріб, низ — числа. Смуги
+   сталі навмисно: дві картки поруч у стрічці Direct мають вирівнюватись
+   між собою, а не кожна по-своєму. */
+ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.18),
+  'знімки починаються під шапкою — верх віддано логотипу, назві й опису',
   'знімок заліз у шапку: ' + JSON.stringify(drawn(laid.three).map(v => v.y0)));
-ok(drawn(laid.three).some(v => v.y1 > laid.three.h * 0.85),
-  'і доходять до низу аркуша: галереї віддано близько трьох чвертей висоти',
-  'галерея не дістає низу: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+ok(drawn(laid.three).every(v => v.y1 < laid.three.h * 0.82),
+  'і не залазять у смугу чисел унизу',
+  'знімок заліз у числа: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+ok(drawn(laid.three).some(v => v.y1 > laid.three.h * 0.70),
+  'виріб заповнює колонку, а не плаває в ній: порожні поля мокапа обрізаються',
+  'виріб не дістає низу колонки: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
 
 console.log('');
 console.log('═══ ЛИСТ ШИРШАЄ ВІД КІЛЬКОСТІ ФОТО ═══');
@@ -279,6 +282,32 @@ const about = await fr.evaluate(([o]) => {
   return { about: c.about, still: off.about,
            recoNote: !!(set && set.items[0] && set.items[0].note) };
 }, [OFFER]);
+
+console.log('');
+console.log('═══ СТАРА ЦІНА Й ЗНИЖКА ═══');
+/* Своєї «старої ціни» картка не вигадує: бере базову ціну позиції за тим
+   самим правилом, що й сторінка пропозиції — показує, лише якщо вона
+   більша за поточну. Інакше картка й КП рано чи пізно розійшлися б у тому,
+   скільки саме клієнт економить. */
+const cut = await fr.evaluate(async o => {
+  const L = window.LQCards;
+  const hi = JSON.parse(JSON.stringify(o)); hi.items[0].baseUnitPrice = 1200;
+  const lo = JSON.parse(JSON.stringify(o)); lo.items[0].baseUnitPrice = 700;
+  const draw = async (off, fields) =>
+    (await L.draw(L.build(off, {})[0], off, { tpl:'minimal', fields })).toDataURL('image/png');
+  return { base: L.build(hi, {})[0].base,
+           withCut: await draw(hi), noCut: await draw(lo), hidden: await draw(hi, { old:false }) };
+}, OFFER);
+console.log('   базова ціна на картці: ' + cut.base + ' грн (поточна 900)');
+ok(cut.base === 1200,
+  'стара ціна береться з базової ціни позиції — своїх чисел у картки немає',
+  'базова ціна не доїхала: ' + cut.base);
+ok(cut.withCut !== cut.noCut,
+  'перекреслену ціну й «−25 %» показуємо, лише коли базова більша за поточну',
+  'картка зі знижкою й без неї малюються однаково');
+ok(cut.hidden === cut.noCut,
+  'вимкнене поле «Стара ціна» прибирає і перекреслене число, і бейдж',
+  'вимкнене поле однаково щось малює');
 
 console.log('');
 console.log('═══ ЗМІНИЛАСЬ ЦІНА В КП — ЗМІНИЛАСЬ КАРТКА ═══');
@@ -404,8 +433,8 @@ else {
   ok(tabbed.canvas && tabbed.canvas.w === 1400 && tabbed.canvas.h === 1000,
     'preview — це те саме полотно, що збережеться у файл',
     'preview не намалювався');
-  ok(tabbed.tpls.length === 5 && tabbed.fields === 5,
-    'шаблони — мінімалістичний і чотири ніші, і пʼять перемикачів полів',
+  ok(tabbed.tpls.length === 5 && tabbed.fields === 6,
+    'шаблони — мінімалістичний і чотири ніші, і шість перемикачів полів',
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
