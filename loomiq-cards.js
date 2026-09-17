@@ -48,7 +48,7 @@
      низ — числа. Смуги сталі, тож дві картки поруч у стрічці Direct
      вирівняні між собою: назви на одній лінії, ціни на одній лінії. */
   var H = 1000, PAD = 80, COL = 600, GAP = 40;
-  var HEAD = 168, FOOT = 186, BOT = 40;
+  var HEAD = 128, FOOT = 186, BOT = 40;
   function sheetW(n){
     n = Math.max(2, Math.min(4, n | 0));
     return PAD * 2 + n * COL + (n - 1) * GAP;
@@ -463,14 +463,25 @@
   }
 
   /* ══════════ ШАПКА ══════════
-     Логотип клієнта ліворуч і невеликий, назва праворуч ВІД НЬОГО, опис під
-     назвою. Не «логотип, а під ним усе інше»: у стрічці Direct картку
-     пізнають по марці замовника, і марка має стояти поруч із назвою, а не
-     над нею окремим поверхом, що зʼїдає тридцять пікселів висоти. */
+     ОДИН РЯДОК: логотип клієнта, назва виробу, номер КП праворуч. Усе.
+
+     Опис звідси пішов униз, до ціни, і шапка на цьому виграла двічі. У
+     рядку під назвою опис мусив уміщатись у рядок — довші різались
+     трикрапкою на півслові; внизу колонкою він поміщається цілим. А сама
+     шапка перестала бути триповерховою й забирає сто двадцять вісім
+     пікселів замість ста шістдесяти восьми: сорок пікселів дісталось
+     галереї, тобто виробу.
+
+     Розмір логотипа задає менеджер повзунком. Клієнтські логотипи
+     приходять різні — у когось вузький знак, у когось широкий напис у три
+     слова, — і один сталий розмір робить із першого марку на конверті, а з
+     другого вивіску, що тисне назву. Значення одне на всю пропозицію: різні
+     розміри того самого логотипа на сусідніх картках у Direct читаються як
+     помилка складання. */
   function head(x, card, t, show, o, W){
-    var right = W - PAD;
-    var lw = o.logo ? drawLogo(x, o.logo, PAD, 38, 56) : 0;
-    var tx = PAD + (lw ? Math.round(lw) + 36 : 0);
+    var right = W - PAD, mid = HEAD / 2;
+    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
+    var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
 
     var meta = o.meta || '';
     var mw = 0;
@@ -479,24 +490,14 @@
       mw = x.measureText(meta).width;
       x.fillStyle = t.dim;
       x.textAlign = 'right';
-      x.fillText(meta, right, 66);
+      x.fillText(meta, right, mid + 7);
       x.textAlign = 'left';
     }
 
     x.fillStyle = t.ink;
     var nameW = right - (mw ? mw + 48 : 0) - tx;
-    fitFont(x, card.name, nameW, 50, '800', t.display, 32);
-    x.fillText(clip1(x, card.name, nameW), tx, 100);
-
-    /* Під назвою — один рядок: опис виробу, а немає його — колір і спосіб
-       нанесення. Два рядки тут перетворюють шапку на абзац. */
-    var lead = (show('about') && card.about) ? card.about
-             : ((show('sub') && card.sub) ? card.sub : '');
-    if(lead){
-      x.fillStyle = t.dim;
-      fitFont(x, lead, right - tx, 24, '400', t.body, 18);
-      x.fillText(clip1(x, lead, right - tx), tx, 138);
-    }
+    fitFont(x, card.name, nameW, 46, '800', t.display, 30);
+    x.fillText(clip1(x, card.name, nameW), tx, mid + 16);
     rule(x, t, PAD, right, HEAD);
   }
   function rule(x, t, x0, x1, y){
@@ -521,6 +522,22 @@
     if(!unit || base <= unit) return null;
     return { was: money(base), off: '−' + Math.round((base - unit) / base * 100) + ' %' };
   }
+  /* Текстова колонка нижньої смуги: підпис капітеллю, під ним текст, який
+     сам добирає кегль, доки не вміститься у відведені рядки. Опис і
+     примітка — це одна й та сама будова, і код у них має бути один: інакше
+     дві сусідні колонки почнуть по-різному переносити рядки. */
+  function textCell(x, t, lab, s, X, yLab, w, size, color, maxLines){
+    eyebrow(x, lab, X, yLab, t.dim, 18);
+    x.fillStyle = color;
+    var n = size, lines;
+    do {
+      x.font = '400 ' + n + 'px ' + t.body;
+      lines = wrap(x, s, w, 0);
+      n -= 1;
+    } while(lines.length > maxLines && n > 11);
+    var step = Math.round(n * 1.42);
+    lines.forEach(function(ln, i){ x.fillText(ln, X, yLab + 32 + i * step); });
+  }
   function numbers(x, card, t, show, W){
     var right = W - PAD;
     var yRule = H - FOOT, yLab = yRule + 44, yVal = yRule + 94;   // 814 · 858 · 908
@@ -529,11 +546,7 @@
     /* Ціна ЧОРНИЛОМ, а не акцентом. Кольорове число читається як цінник
        розпродажу — а картка йде в переписку, де про ціну домовляються, а
        не де на неї полюють. Акцент на аркуші лишився один, і він на
-       відсотку знижки: там він щось означає, бо позначає різницю.
-
-       Кегль один на всю смугу — жодних «ціна сорок восьмим, підпис
-       тридцять другим»: унизу три розміри на чотири слова читались як
-       набір різних блоків, а не як одна смуга. */
+       відсотку знижки: там він щось означає, бо позначає різницю. */
     var VAL = 44;
     var cut = oldPrice(card, show);
     var price = (show('unit') && card.unit) ? money(card.unit) : '';
@@ -551,8 +564,22 @@
       priceW = Math.max(priceW, eyebrowW(x, 'Ціна за 1 шт', 18));
     }
 
+    /* Опис — той самий, що доти тулився рядком під назвою. Тут він не
+       обмежений одним рядком і читається цілим; чорнилом, бо це слова про
+       виріб, а не службовий дрібний шрифт. Немає опису — беремо колір і
+       спосіб нанесення, як і раніше. */
+    var about = (show('about') && card.about) ? card.about
+              : ((show('sub') && card.sub) ? card.sub : '');
+    var warn = show('warn') ? WARN : '';
+
     var GAPC = 56;
-    var wx = PAD + priceW + (priceW ? GAPC : 0);
+    var x0 = PAD + (priceW ? priceW + GAPC : 0);
+    var rest = right - x0;
+    /* Дві текстові колонки ділять решту порівну. Якщо котроїсь немає —
+       друга забирає все: колонка на пів аркуша краща за колонку на пів
+       аркуша поруч із порожнечею такої ж ширини. */
+    var nText = (about ? 1 : 0) + (warn ? 1 : 0);
+    var cw = nText ? (rest - GAPC * (nText - 1)) / nText : 0;
 
     if(price){
       eyebrow(x, 'Ціна за 1 шт', PAD, yLab, t.dim, 18);
@@ -567,31 +594,29 @@
         x.beginPath(); x.moveTo(PAD, yVal + 28); x.lineTo(PAD + wasW, yVal + 28); x.stroke();
         badge(x, t, cut.off, PAD + wasW + 16, yVal + 36);
       }
-      // розділювач — те, що робить смугу смугою
+    }
+
+    /* Колонка вужча за двісті пікселів — це вже не колонка, а стовпчик по
+       одному слову; тоді тексту просто немає. */
+    var cx = x0;
+    if(cw >= 200){
+      if(about){
+        textCell(x, t, 'Опис', about, cx, yLab, cw, 18, t.ink, 4);
+        cx += cw + GAPC;
+      }
+      if(warn) textCell(x, t, 'Примітка', warn, cx, yLab, cw, 15, t.dim, 4);
+    }
+    // розділювачі — те, що робить смугу смугою
+    var seps = [];
+    if(priceW && nText) seps.push(x0);
+    if(about && warn && cw >= 200) seps.push(x0 + cw + GAPC);
+    seps.forEach(function(sx){
       x.strokeStyle = t.line; x.lineWidth = 1;
       x.beginPath();
-      x.moveTo(wx - GAPC / 2, yRule + 20);
-      x.lineTo(wx - GAPC / 2, H - 46);
+      x.moveTo(sx - GAPC / 2, yRule + 20);
+      x.lineTo(sx - GAPC / 2, H - 46);
       x.stroke();
-    }
-    /* Примітка — така сама зона, як ціна: підпис капітеллю, під ним текст.
-       Без підпису вона читалась як текст, що випадково заїхав збоку.
-
-       Якщо місця лишилось менше за двісті пікселів — ціна вийшла задовгою,
-       і дрібний текст у щілину перетворився б на стовпчик по одному слову;
-       тоді примітки просто немає. */
-    var warnW = right - wx;
-    if(show('warn') && warnW >= 200){
-      eyebrow(x, 'Примітка', wx, yLab, t.dim, 18);
-      x.fillStyle = t.dim;
-      var ns = 15, lines;
-      do {
-        x.font = '400 ' + ns + 'px ' + t.body;
-        lines = wrap(x, WARN, warnW, 0);
-        ns -= 1;
-      } while(lines.length > 4 && ns > 11);
-      lines.forEach(function(ln, i){ x.fillText(ln, wx, yLab + 32 + i * 21); });
-    }
+    });
   }
   /* Знижка — допоміжна, тож не залита акцентом, а лише притінена ним:
      суцільна заливка акцентом на картці одна, і вона в ціни. */
@@ -612,9 +637,12 @@
      нічого, це підпис, який повторює те, що око вже побачило. Виріб ми
      показуємо цілком з кожного боку, а не макрозйомкою, де кроп сам по собі
      незрозумілий, — отже читати там нічого. */
-  function shotPanel(x, t, X, Y, w, h){
-    x.fillStyle = t.panel;
-    rr(x, X, Y, w, h, 24); x.fill();
+  function shotPanel(x, t, X, Y, w, h, bg){
+    x.save();
+    rr(x, X, Y, w, h, 24); x.clip();
+    if(bg) cover(x, bg, X, Y, w, h);
+    else { x.fillStyle = t.panel; x.fillRect(X, Y, w, h); }
+    x.restore();
   }
   /* Галерея. Колонки рівні між собою — і тому, що ракурси рівні, і тому,
      що рівні колонки дають одну сітку на будь-яку кількість фото: підписи
@@ -672,6 +700,108 @@
     return t;
   }
 
+  /* ══════════ ЗНЯТТЯ ФОНУ ══════════
+     Мокапи знято на рівному тлі, і поки виріб лежить на білій панелі, це
+     непомітно. Щойно під панель стає свій фон або з'являється тінь — стає
+     видно, що виріб приїхав разом зі своїм прямокутником.
+
+     Заливаємо ВІД КРАЇВ, а не «знімаємо все, схоже на білий». Різниця
+     принципова: білі рукави, білі шнурки й білий напис на виробі до країв
+     не дотикаються, тож заливка їх не чіпає. Глобальна ж заміна кольору
+     проїла б у білій футболці дірки.
+
+     Дві поступки якості. По-перше, працюємо у зменшеній копії — на картці
+     знімок ніколи не буває ширшим за шістсот пікселів, і рахувати п'ять
+     мільйонів пікселів заради цього безглуздо. По-друге, межу робимо м'якою:
+     пікселі, що потрапили в зону сумніву, стають напівпрозорими, інакше по
+     контуру лишається пилка. Зона сумніву вузька навмисно: широка лишає по
+     краю світлий німб із залишків старого фону, і на своєму фоні цей німб
+     видно краще, ніж пилку, яку він мав прибрати.
+
+     Кути мають зійтися між собою — це і є перевірка, що фон однорідний. Не
+     зійшлись (градієнт, студійна тінь, кадр без полів) — не чіпаємо нічого
+     й кажемо про це менеджеру. Зіпсувати мовчки гірше, ніж не зробити. */
+  var CUT_MAX = 1200;
+  function cutOf(img){
+    if(img.__lqCut !== undefined) return img.__lqCut;
+    var out = null;
+    try{
+      var k = Math.min(CUT_MAX / img.width, CUT_MAX / img.height, 1);
+      var c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      var q = c.getContext('2d', { willReadFrequently: true });
+      q.drawImage(img, 0, 0, c.width, c.height);
+      var im = q.getImageData(0, 0, c.width, c.height), d = im.data;
+      var w = c.width, h = c.height;
+      var at = function(px, py){ var i = (py * w + px) * 4; return [d[i], d[i+1], d[i+2], d[i+3]]; };
+      var cs = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)];
+      // Уже з прозорістю — нема чого знімати
+      if(cs.every(function(p){ return p[3] < 16; })){ img.__lqCut = null; return null; }
+      var dist = function(a, b){
+        var dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+        return Math.sqrt(dr * dr + dg * dg + db * db);
+      };
+      for(var a = 0; a < 4; a++) for(var b = a + 1; b < 4; b++)
+        if(dist(cs[a], cs[b]) > 40){ img.__lqCut = null; return null; }
+      var bg = cs[0];
+
+      var TOL = 52, SOFT = 16;
+      var seen = new Uint8Array(w * h);
+      var st = [];
+      var seed = function(px, py){ var n = py * w + px; if(!seen[n]){ seen[n] = 1; st.push(n); } };
+      for(var px = 0; px < w; px++){ seed(px, 0); seed(px, h - 1); }
+      for(var py = 0; py < h; py++){ seed(0, py); seed(w - 1, py); }
+      while(st.length){
+        var n = st.pop(), nx = n % w, ny = (n - nx) / w, i4 = n * 4;
+        var dd = dist([d[i4], d[i4+1], d[i4+2]], bg);
+        if(dd >= TOL + SOFT) continue;
+        if(dd < TOL){
+          d[i4 + 3] = 0;
+          if(nx > 0)     seed(nx - 1, ny);
+          if(nx < w - 1) seed(nx + 1, ny);
+          if(ny > 0)     seed(nx, ny - 1);
+          if(ny < h - 1) seed(nx, ny + 1);
+        } else {
+          // зона сумніву — напівпрозоро, щоб контур не був пилкою
+          d[i4 + 3] = Math.round(d[i4 + 3] * (dd - TOL) / SOFT);
+        }
+      }
+      q.putImageData(im, 0, 0);
+      out = c;
+    }catch(e){ out = null; }
+    img.__lqCut = out;
+    return out;
+  }
+  /* Джерело, з якого малюємо знімок: сам файл або його версія без фону.
+     Не вдалось — малюємо як є й лишаємо рядок менеджеру. */
+  function srcOf(im, st, notes){
+    if(!im || !st.cutout) return { im: im, cut: false };
+    var c = cutOf(im);
+    if(c) return { im: c, cut: true };
+    if(notes && notes.indexOf(CUT_FAIL) < 0) notes.push(CUT_FAIL);
+    return { im: im, cut: false };
+  }
+  var CUT_FAIL = 'З деяких мокапів фон зняти не вдалось — там фон не однорідний. ' +
+                 'Ці знімки на картці лишились як є.';
+
+  /* Тінь іде по КОНТУРУ виробу, бо полотно будує її з прозорості джерела.
+     Тому вона й можлива лише там, де фон знято: на непрозорому знімку це
+     була б тінь від білого прямокутника. */
+  var SHADE = {
+    soft: { blur: 30, dy: 18, a: 0.20 },
+    deep: { blur: 52, dy: 30, a: 0.34 }
+  };
+
+  /* Свій фон панелі. Вписуємо ЗАПОВНЕННЯМ із обрізанням по центру, а не
+     цілком: фон — це фактура, і біла смуга збоку від неї гірша за
+     втрачений край. */
+  function cover(x, img, X, Y, w, h){
+    var k = Math.max(w / img.width, h / img.height);
+    var iw = img.width * k, ih = img.height * k;
+    x.drawImage(img, X + (w - iw) / 2, Y + (h - ih) / 2, iw, ih);
+  }
+
   /* Ряд знімків. Головне тут не в тому, де стоять колонки, а в тому, що
      масштаб у них СПІЛЬНИЙ.
 
@@ -683,23 +813,35 @@
   /* Спільний кадр на весь ряд: підбираємо його так, щоб найбільший виріб
      ще вписався у відведений прямокутник. Далі всі малюються в тому самому
      масштабі — і стають зіставні між собою. */
-  function rowScale(imgs, bw, bh){
+  function rowScale(srcs, bw, bh){
     var S = Infinity;
-    imgs.forEach(function(im){
+    srcs.forEach(function(sr){
+      var im = sr && sr.im;
       if(!im) return;
       var tr = trimOf(im), A = im.width / im.height;
       S = Math.min(S, bw / ((tr.w / im.width) * A), bh / (tr.h / im.height));
     });
     return S;
   }
-  function drawShot(x, im, S, X, Y, bw, bh){
-    var tr = trimOf(im), A = im.width / im.height;
+  function drawShot(x, sr, S, X, Y, bw, bh, sh){
+    var im = sr.im, tr = trimOf(im), A = im.width / im.height;
     var dw = (tr.w / im.width) * S * A, dh = (tr.h / im.height) * S;
-    x.drawImage(im, tr.x, tr.y, tr.w, tr.h,
-                X + (bw - dw) / 2, Y + (bh - dh) / 2, dw, dh);
+    var dx = X + (bw - dw) / 2, dy = Y + (bh - dh) / 2;
+    // Тінь беремо лише там, де є прозорість: інакше вона обведе прямокутник
+    if(sh && sr.cut){
+      x.save();
+      x.shadowColor = 'rgba(0,0,0,' + sh.a + ')';
+      x.shadowBlur = sh.blur;
+      x.shadowOffsetY = sh.dy;
+      x.drawImage(im, tr.x, tr.y, tr.w, tr.h, dx, dy, dw, dh);
+      x.restore();
+    } else {
+      x.drawImage(im, tr.x, tr.y, tr.w, tr.h, dx, dy, dw, dh);
+    }
   }
-  function shotsRow(x, imgs, X, Y, w, h, t){
-    var n = Math.max(1, imgs.length);
+  function shotsRow(x, srcs, X, Y, w, h, t, st){
+    st = st || {};
+    var n = Math.max(1, srcs.length);
     /* Один знімок на всю ширину виглядав би банером, а не виробом: лист
        однаково тримає ширину на дві колонки, тож ставимо його по центру
        колонкою тієї ж ширини, що й у решти карток. */
@@ -707,13 +849,14 @@
     var X0 = X + Math.round((w - full) / 2);
     var cw = (full - GAP * (n - 1)) / n;
     var IN = 26, bw = cw - IN * 2, bh = h - IN * 2;
-    var S = rowScale(imgs, bw, bh);
+    var S = rowScale(srcs, bw, bh);
 
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
-      shotPanel(x, t, cx, Y, cw, h);
-      if(imgs[i] && isFinite(S)) drawShot(x, imgs[i], S, cx + IN, Y + IN, bw, bh);
-      else if(!imgs[i]) placeholder(x, cx, Y, cw, h, t.ink);
+      shotPanel(x, t, cx, Y, cw, h, st.bg);
+      var sr = srcs[i];
+      if(sr && sr.im && isFinite(S)) drawShot(x, sr, S, cx + IN, Y + IN, bw, bh, st.shade);
+      else if(!(sr && sr.im)) placeholder(x, cx, Y, cw, h, t.ink);
     }
   }
   // Смуга акценту згори — ознака строгого шаблону, а не окрема розкладка
@@ -722,12 +865,16 @@
     x.fillStyle = t.accent; x.fillRect(0, 0, W, 14);
     return 14;
   }
-  // Повертає НАМАЛЬОВАНУ ширину: від неї відлічується початок назви
-  function drawLogo(x, logo, X, Y, maxH){
+  /* Логотип. Y — СЕРЕДИНА рядка, а не верх: масштаб міняє висоту, і при
+     кріпленні за верх логотип із кожним кроком повзунка сповзав би вниз
+     від назви. Повертає намальовану ширину — від неї відлічується початок
+     назви, інакше назва або наїде на логотип, або лишить перед собою
+     випадкову дірку. */
+  function drawLogo(x, logo, X, mid, maxH){
     if(!logo) return 0;
-    var k = Math.min(220 / logo.width, maxH / logo.height);
-    var w = logo.width * k;
-    x.drawImage(logo, X, Y, w, logo.height * k);
+    var k = Math.min(260 * (maxH / 44) / logo.width, maxH / logo.height);
+    var w = logo.width * k, h = logo.height * k;
+    x.drawImage(logo, X, mid - h / 2, w, h);
     return w;
   }
 
@@ -750,7 +897,7 @@
     topBar(x, t, W);
     head(x, card, t, show, o, W);
     // Галерея не впирається в лінійки: 16 пікселів повітря згори й знизу
-    shotsRow(x, imgs, PAD, HEAD + 16, W - PAD * 2, H - FOOT - HEAD - 34, t);
+    shotsRow(x, imgs, PAD, HEAD + 16, W - PAD * 2, H - FOOT - HEAD - 34, t, o.st);
     numbers(x, card, t, show, W);
   }
 
@@ -783,14 +930,14 @@
     /* Плитки — теж ряд, і масштаб у них теж спільний: кепка поруч із худі
        має лишатись кепкою, а не роздуватись до нього. */
     var setS = rowScale(imgs, tileW - 52, tileH - textH - 44);
+    var st = o.st || {};
     card.items.forEach(function(it, i){
       var X = PAD + i * (tileW + gap);
-      x.fillStyle = t.panel;
-      rr(x, X, top, tileW, tileH, 22); x.fill();
+      shotPanel(x, t, X, top, tileW, tileH, st.bg);
       var picH = tileH - textH;
-      if(imgs[i] && isFinite(setS))
-        drawShot(x, imgs[i], setS, X + 26, top + 22, tileW - 52, picH - 44);
-      else if(!imgs[i]) placeholder(x, X, top, tileW, picH, t.ink);
+      if(imgs[i] && imgs[i].im && isFinite(setS))
+        drawShot(x, imgs[i], setS, X + 26, top + 22, tileW - 52, picH - 44, st.shade);
+      else if(!(imgs[i] && imgs[i].im)) placeholder(x, X, top, tileW, picH, t.ink);
       var ty = top + picH + 30;
       x.fillStyle = t.ink; x.font = '600 30px ' + t.body;
       wrap(x, it.name, tileW - 52, 2).forEach(function(ln, k){
@@ -842,16 +989,30 @@
 
     x.fillStyle = t.bg; x.fillRect(0, 0, W, H);
 
-    var o = { logo: logo, meta: metaText(offer) };
+    /* Стиль. Тінь ВИМАГАЄ прозорості — тож увімкнена тінь сама вмикає й
+       зняття фону: пропонувати менеджеру дві галочки, з яких одна без
+       другої не працює, означало б перекласти на нього нашу внутрішню
+       залежність. */
+    var notes = [];
+    var st = {
+      cutout: !!cfg.cutout || !!cfg.shade,
+      shade: SHADE[cfg.shade] || null,
+      bg: await loadImg(cfg.bg || '')
+    };
+    var o = { logo: logo, meta: metaText(offer), logoK: +cfg.logo || 1, st: st };
+
     if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
-      paintSet(x, card, t, imgs, show, o, W);
+      paintSet(x, card, t, imgs.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
     } else {
       var shots = await Promise.all((card.shots || []).map(function(sh){
         return loadImg(sh && sh.url);
       }));
-      paintCard(x, card, t, shots, show, o, W);
+      paintCard(x, card, t, shots.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
     }
+    /* Що пішло не так — віддаємо разом із полотном, а не в консоль: рішення
+       тут ухвалює менеджер, і побачити це має він. */
+    cv.lqNotes = notes;
     return cv;
   }
 

@@ -788,6 +788,23 @@
   .cd-move button{flex:1; font:inherit; font-size:11px; font-weight:700; color:#5A6A80;
     background:#F1F5F9; border:0; border-radius:5px; padding:3px 0; cursor:pointer;}
   .cd-note{padding:44px 20px; text-align:center; color:#8A93A3; font-size:13px; line-height:1.6;}
+  /* Масштаб логотипа й стиль знімків. Стоять у тій самій смузі, що шаблон і
+     поля: усе, що керує ПОКАЗОМ, живе в одному місці, інакше менеджер шукає
+     половину налаштувань у боковій панелі, а половину нагорі. */
+  .cd-rng{display:flex; align-items:center; gap:6px;}
+  .cd-rng input[type=range]{width:96px; accent-color:#4F5FD4;}
+  .cd-rng b{font-size:11.5px; font-weight:700; color:#5A6A80; min-width:36px;}
+  .cd-up{font:inherit; font-size:12px; font-weight:700; color:#22314A; cursor:pointer;
+    border:1px solid #D9E1EC; background:#fff; border-radius:8px; padding:5px 10px;
+    display:inline-flex; align-items:center; gap:6px;}
+  .cd-up img{width:20px; height:20px; object-fit:cover; border-radius:4px;}
+  .cd-up.busy{opacity:.55; cursor:default;}
+  .cd-x{font:inherit; font-size:12px; font-weight:700; color:#8A93A3; background:none;
+    border:0; cursor:pointer; padding:4px;}
+  /* Рядок про те, що пішло не так із мокапом. Не тост: тост зникає, а це
+     стан картки — менеджер має бачити його, доки не змінить налаштування. */
+  .cd-warn{align-self:stretch; font-size:12px; line-height:1.5; color:#8A5A1F;
+    background:#FFF6E6; border:1px solid #F2DFB8; border-radius:9px; padding:8px 11px;}
 
   /* Конструктор усередині робочого місця. Це та сама модалка, що на сайті,
      тільки вона більше не модалка: не висить поверх усього й не має власної
@@ -857,6 +874,7 @@
            редактора, і без слів незрозуміло, що це вже готовий файл. -->
       <div class="cd-prev-w">
         <span class="cd-l" id="cdPrevH">Як це побачить клієнт</span>
+        <div class="cd-warn" id="cdWarn" style="display:none"></div>
         <div class="cd-prev" id="cdPrev"></div>
       </div>
       <aside class="cd-side" id="cdSide"></aside>
@@ -886,21 +904,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=7ea3d48ed7',
+    ['loomiq-select.js?v=2322db9abd',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=7ea3d48ed7'].forEach(function(src){
+     'loomiq-cards.js?v=2322db9abd'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=7ea3d48ed7';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=7ea3d48ed7';
-  var CTOR_JS   = 'loomiq-constructor.js?v=7ea3d48ed7';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=7ea3d48ed7';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=2322db9abd';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=2322db9abd';
+  var CTOR_JS   = 'loomiq-constructor.js?v=2322db9abd';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=2322db9abd';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1776,7 +1794,7 @@
      Налаштування показу живуть у самому замовленні, тож переживають
      перезавантаження й видні з будь-якого компʼютера. */
   var cardCfg = null, cardList = [], cardAt = 0, cardExt = 'png';
-  var cardBusy = false, cardDrawId = 0;
+  var cardBusy = false, cardDrawId = 0, cardBgBusy = false, cardWarn = '';
 
   function cardsCfg(){
     if(!cardCfg){
@@ -1785,11 +1803,41 @@
                   order: Array.isArray(saved.order) ? saved.order.slice() : [],
                   hidden: Object.assign({}, saved.hidden || {}),
                   fields: Object.assign({}, saved.fields || {}),
+                  /* Стиль знімків. Масштаб логотипа — ОДИН на пропозицію:
+                     різний розмір того самого логотипа на сусідніх картках у
+                     Direct читається як помилка складання, а не як задум. */
+                  logo: +saved.logo || 1,
+                  cutout: !!saved.cutout,
+                  shade: saved.shade || '',
+                  bg: saved.bg || '',
                   by: JSON.parse(JSON.stringify(saved.by || {})) };
     }
     return cardCfg;
   }
   function cardsSave(){ send({ act:'cards', cards: cardsCfg() }); }
+
+  /* Свій фон панелей. Файл віддаємо адмінці байтами — тим самим шляхом, що
+     й готові картки: сховище налаштоване там, і другий такий самий
+     завантажувач тут означав би два місця, де щось може зламатись. Назад
+     приходить посилання, і воно лягає в налаштування показу. */
+  function cardsBgPick(f){
+    if(!f || cardBgBusy) return;
+    if(f.size > 8 * 1024 * 1024){
+      cardWarn = 'Фон завеликий — до 8 МБ. Стисніть і спробуйте ще раз.';
+      renderCards(); return;
+    }
+    cardBgBusy = true; cardWarn = ''; renderCardsBar(cardsCfg());
+    var fr = new FileReader();
+    fr.onload = function(){
+      send({ act:'cardsBg', data: Array.from(new Uint8Array(fr.result)), type: f.type || 'image/png' });
+    };
+    fr.onerror = function(){
+      cardBgBusy = false;
+      cardWarn = 'Файл не прочитався.';
+      renderCards();
+    };
+    fr.readAsArrayBuffer(f);
+  }
   function cardsChanged(){ cardsSave(); renderCards(); }
   function cardsOwn(id){
     var cfg = cardsCfg();
@@ -1832,13 +1880,38 @@
                (t.note ? ' title="' + esc(t.note) + '"' : '') + '>' + esc(t.name) + '</button>';
       }).join('') + '</div>';
     };
+    var lp = Math.round((+cfg.logo || 1) * 100);
     var html =
       '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
+      '<div class="cd-g"><span class="cd-l">Лого</span><span class="cd-rng">' +
+        '<input type="range" id="cdLogo" min="50" max="180" step="5" value="' + lp + '">' +
+        '<b>' + lp + '%</b></span></div>' +
       '<div class="cd-g"><span class="cd-l">Показувати</span>' +
         L.FIELDS.map(function(f){
           return '<label class="cd-chk"><input type="checkbox" data-fld="' + esc(f.id) + '"' +
                  (cfg.fields[f.id] === false ? '' : ' checked') + '>' + esc(f.name) + '</label>';
         }).join('') + '</div>' +
+      /* Стиль знімків. «Тінь» без «прибрати фон» неможлива технічно — тінь
+         будується з прозорості, — тож увімкнена тінь сама вмикає зняття
+         фону, а галочка стає неактивною з поясненням. Це чесніше, ніж дві
+         галочки, з яких одна без другої мовчки нічого не робить. */
+      '<div class="cd-g"><span class="cd-l">Стиль</span>' +
+        '<label class="cd-chk" title="' +
+          (cfg.shade ? 'Тінь малюється по контуру виробу, тож фон знімається обовʼязково'
+                     : 'Заливка від країв кадру: білі деталі всередині виробу не зачіпає') + '">' +
+          '<input type="checkbox" id="cdCut"' + (cfg.cutout || cfg.shade ? ' checked' : '') +
+          (cfg.shade ? ' disabled' : '') + '>Прибрати фон</label>' +
+        seg('shade', [{ id:'', name:'Без тіні' }, { id:'soft', name:'Мʼяка' },
+                      { id:'deep', name:'Глибока' }], cfg.shade || '') +
+        (cfg.bg
+          ? '<label class="cd-up"><img src="' + esc(cfg.bg) + '" alt="">Фон' +
+              '<input type="file" accept="image/*" id="cdBgF" hidden></label>' +
+            '<button class="cd-x" id="cdBgX" title="Прибрати свій фон">✕</button>'
+          : '<label class="cd-up' + (cardBgBusy ? ' busy' : '') + '">' +
+              (cardBgBusy ? 'Вантажиться…' : '⤒ Свій фон') +
+              '<input type="file" accept="image/*" id="cdBgF" hidden' +
+              (cardBgBusy ? ' disabled' : '') + '></label>') +
+      '</div>' +
       '<div class="cd-g"><span class="cd-l">Формат</span>' +
         seg('ext', [{ id:'png', name:'PNG' }, { id:'jpg', name:'JPG' }], cardExt) + '</div>' +
       '<div class="cd-go">' +
@@ -1856,6 +1929,32 @@
     bar.querySelectorAll('[data-fld]').forEach(function(c){
       c.onchange = function(){ cardsCfg().fields[c.dataset.fld] = c.checked; cardsChanged(); };
     });
+    bar.querySelectorAll('[data-shade]').forEach(function(b){
+      b.onclick = function(){
+        var cf = cardsCfg();
+        cf.shade = b.dataset.shade;
+        if(cf.shade) cf.cutout = true;   // тінь без прозорості неможлива
+        cardsChanged();
+      };
+    });
+    var rng = document.getElementById('cdLogo');
+    if(rng){
+      var lab = rng.parentElement.querySelector('b');
+      /* Поки тягнуть повзунок — перемальовуємо preview, але не пишемо в
+         базу: інакше один рух ручки дав би два десятки збережень. */
+      rng.oninput = function(){
+        cardsCfg().logo = +rng.value / 100;
+        lab.textContent = rng.value + '%';
+        drawPreview(cardsCfg());
+      };
+      rng.onchange = function(){ cardsSave(); };
+    }
+    var cut = document.getElementById('cdCut');
+    if(cut) cut.onchange = function(){ cardsCfg().cutout = cut.checked; cardsChanged(); };
+    var bgf = document.getElementById('cdBgF');
+    if(bgf) bgf.onchange = function(){ cardsBgPick(bgf.files && bgf.files[0]); };
+    var bgx = document.getElementById('cdBgX');
+    if(bgx) bgx.onclick = function(){ cardsCfg().bg = ''; cardsChanged(); };
     bar.querySelectorAll('[data-dl]').forEach(function(b){
       b.onclick = function(){ cardsDownload(b.dataset.dl === 'all'); };
     });
@@ -1970,6 +2069,15 @@
       if(id !== cardDrawId) return;        // менеджер уже перемкнув — цей кадр застарів
       prev.innerHTML = '';
       prev.appendChild(cv);
+      /* Що малювальник не зміг — кажемо словами тут, під самим кадром.
+         Рішення ухвалює менеджер: лишити як є чи вимкнути зняття фону, — і
+         щоб вирішити, він має бачити і причину, і результат поруч. */
+      var say = (cardWarn ? [cardWarn] : []).concat(cv.lqNotes || []);
+      var box = document.getElementById('cdWarn');
+      if(box){
+        box.innerHTML = say.map(esc).join('<br>');
+        box.style.display = say.length ? '' : 'none';
+      }
     }, function(e){
       if(id !== cardDrawId) return;
       prev.innerHTML = '<div class="cd-note">Картку намалювати не вдалось: ' +
@@ -2070,6 +2178,15 @@
         if(nf && !nf.classList.contains('hide') && nf.contentWindow)
           nf.contentWindow.postMessage({ lqEditInit:true, note: d.note }, '*');
       }catch(e){}
+      return;
+    }
+    /* Фон для квадратиків завантажила адмінка — кладемо посилання в
+       налаштування показу й одразу малюємо. */
+    if(d.cardsBg !== undefined){
+      cardBgBusy = false;
+      if(d.cardsBg){ cardsCfg().bg = String(d.cardsBg); cardWarn = ''; cardsSave(); }
+      else cardWarn = 'Фон не завантажився' + (d.cardsBgErr ? ': ' + d.cardsBgErr : '') + '.';
+      try{ renderCards(); }catch(e){}
       return;
     }
     if(d.catalog) CATALOG = d.catalog;
