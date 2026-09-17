@@ -116,21 +116,36 @@
     var out = [];
 
     var pics = function(it){ return (it.mockups || []).filter(Boolean); };
-    /* Ракурси, які показуємо на картці: СТОРОНИ З НАНЕСЕННЯМ. Одне
-       нанесення — один знімок, три (перед, спина, рукав) — три. Доти
-       картка показувала один-єдиний мокап, і спина з рукавом, за які
-       клієнт платить, на картинку не потрапляли взагалі. */
+    /* Ракурси, які показуємо на картці.
+
+       ПЕРЕД І ЗАД — ЗАВЖДИ, незалежно від того, де саме нанесення. Доти
+       бралися лише сторони з нанесенням, і виріб з одним логотипом на
+       грудях показувався одним знімком — а перше питання у відповідь на
+       таку картинку рівно одне: «а ззаду що?». Клієнт дивиться на виріб, а
+       не на наш перелік сторін.
+
+       Рукав і решта сторін додаються тоді, коли на них справді щось є. */
+    var SIDE_UA = { front:'Спереду', back:'Ззаду', left:'Рукав', right:'Рукав' };
     var shotsOf = function(it){
       var views = (it.views || []).filter(function(v){ return v && v.show !== false && v.img; });
+      var byId = {};
+      views.forEach(function(v){ if(v.side && !byId[v.side]) byId[v.side] = v; });
       var out2 = [];
+      var add = function(v, lb){
+        if(!v || !v.img) return;
+        for(var i = 0; i < out2.length; i++) if(out2[i].url === v.img) return;
+        out2.push({ url: v.img, side: v.side || '',
+                    label: lb || SIDE_UA[v.side] || v.label || '' });
+      };
+      add(byId.front); add(byId.back);
       (it.prints || []).forEach(function(p){
-        var side = p.side || '';
-        var v = views.filter(function(x){ return x.side === side; })[0];
-        var u = v ? v.img : '';
-        if(u && out2.indexOf(u) < 0) out2.push(u);
+        var sd = p.side || '';
+        if(sd === 'front' || sd === 'back') return;
+        add(byId[sd], p.sideLabel && SIDE_UA[sd] ? SIDE_UA[sd] : (p.sideLabel || ''));
       });
-      if(!out2.length) out2 = views.map(function(v){ return v.img; });
-      if(!out2.length) out2 = pics(it);
+      if(!out2.length) views.forEach(function(v){ add(v); });
+      if(!out2.length) pics(it).forEach(function(u){
+        if(out2.length < 3) out2.push({ url:u, side:'', label:'' }); });
       return out2.slice(0, 3);
     };
     // «Колір · Вишивка» — без розмірів: кількість і так стоїть числом нижче,
@@ -143,8 +158,11 @@
       var all = pics(it), shots = shotsOf(it);
       /* Обраний менеджером мокап стає ПЕРШИМ, а не єдиним: решта сторін
          однаково потрібні. */
-      if(own.pic && shots.indexOf(own.pic) < 0) shots = [own.pic].concat(shots).slice(0, 3);
-      else if(own.pic) shots = [own.pic].concat(shots.filter(function(u){ return u !== own.pic; }));
+      if(own.pic){
+        var mine = shots.filter(function(sh){ return sh.url === own.pic; })[0];
+        var rest = shots.filter(function(sh){ return sh.url !== own.pic; });
+        shots = [mine || { url: own.pic, side:'', label:'' }].concat(rest).slice(0, 3);
+      }
       return {
         id: id, kind: kind, type: 'item',
         name: own.title || it.name || 'Позиція',
@@ -156,7 +174,8 @@
         unit: +it.unitPrice || 0,
         term: term,
         shots: shots, pics: all,
-        pic: (own.pic && all.indexOf(own.pic) >= 0) ? own.pic : (shots[0] || all[0] || ''),
+        pic: (own.pic && all.indexOf(own.pic) >= 0) ? own.pic
+           : ((shots[0] && shots[0].url) || all[0] || ''),
         hidden: !!(cfg.hidden || {})[id]
       };
     };
@@ -377,25 +396,24 @@
   }
 
   /* ══════════ РАКУРСИ ══════════
-     Скільки сторін із нанесенням — стільки й знімків, і саме їхня кількість
-     задає розкладку картки:
-
-       один   — виріб на панелі ліворуч, підписи праворуч;
-       два-три — знімки рядом УГОРІ на всю ширину, текст під ними.
-
-     Доти три ракурси втискались у ту саму ліву панель, розраховану на один
-     виріб: великий ліворуч, два дрібні праворуч, і жоден не показаний як
-     слід. Рядом угорі кожен із трьох дістає більше місця, ніж мав «великий»
-     у старій розкладці. */
+     Перед і зад показуємо завжди, рукав — коли на ньому щось є. Підписів
+     під знімками немає навмисно: «Спереду» під фотографією переду не додає
+     нічого, це підпис, який повторює те, що око вже побачило. Виріб ми
+     показуємо цілком з кожного боку, а не макрозйомкою, де кроп сам по собі
+     незрозумілий, — отже читати там нічого. */
   function shotPanel(x, t, X, Y, w, h){
     x.fillStyle = t.panel;
     rr(x, X, Y, w, h, 24); x.fill();
   }
   function shotsRow(x, imgs, X, Y, w, h, t){
-    var n = Math.max(1, imgs.length), gap = 28;
-    var cw = (w - gap * (n - 1)) / n;
+    var n = Math.max(1, imgs.length), gap = 26;
+    /* Один знімок на всю ширину виглядав би банером, а не виробом: тримаємо
+       його в межах половини смуги й ставимо по центру. */
+    var full = n === 1 ? Math.min(w, Math.round(h * 1.05)) : w;
+    var X0 = X + Math.round((w - full) / 2);
+    var cw = (full - gap * (n - 1)) / n;
     for(var i = 0; i < n; i++){
-      var cx = X + i * (cw + gap);
+      var cx = X0 + i * (cw + gap);
       shotPanel(x, t, cx, Y, cw, h);
       if(imgs[i]) fit(x, imgs[i], cx + 26, Y + 26, cw - 52, h - 52);
       else placeholder(x, cx, Y, cw, h, t.ink);
@@ -409,152 +427,85 @@
   }
   function drawLogo(x, logo, X, Y, maxH){
     if(!logo) return 0;
-    var k = Math.min(200 / logo.width, maxH / logo.height);
+    var k = Math.min(230 / logo.width, maxH / logo.height);
     x.drawImage(logo, X, Y, logo.width * k, logo.height * k);
     return maxH;
   }
 
-  /* ══════════ ОДИН РАКУРС: ПАНЕЛЬ ЛІВОРУЧ ══════════
-     Права колонка вирівнюється по ЦЕНТРУ висоти цілим блоком: доти назва
-     стояла зверху, числа знизу, а посередині лишалась діра на пів картки. */
-  function paintSheet(x, card, t, imgs, show, o){
-    o = o || {};
-    var panelW = 900, panelH = H - PAD * 2 - 40;
-    if(t.shape){
-      x.fillStyle = t.accent;
-      x.globalAlpha = 0.10;
-      x.beginPath(); x.arc(W - 220, -80, 620, 0, Math.PI * 2); x.fill();
-      x.globalAlpha = 1;
-    }
-    topBar(x, t);
-    shotPanel(x, t, PAD, PAD, panelW, panelH);
-    if(imgs[0]) fit(x, imgs[0], PAD + 50, PAD + 50, panelW - 100, panelH - 100);
-    else placeholder(x, PAD, PAD, panelW, panelH, t.ink);
+  /* ══════════ РОЗКЛАДКА КАРТКИ ══════════
+     Шапка — знімки — смуга чисел. Одна й та сама на будь-яку кількість
+     ракурсів: шаблон відповідає за кольори й типографіку, а не за будову.
 
-    var X = PAD + panelW + 84, right = W - PAD, maxW = right - X;
-    var logoH = o.logo ? 46 : 0;
-
-    x.font = '800 70px ' + t.display;
-    var nameLines = wrap(x, card.name, maxW, 3);
-    x.font = '400 27px ' + t.body;
-    var subLines = (show('sub') && card.sub) ? wrap(x, card.sub, maxW, 2) : [];
-    x.font = '400 26px ' + t.body;
-    var aboutLines = (show('about') && card.about) ? wrap(x, card.about, maxW, 3) : [];
-    var facts = factsOf(card, show);
-    x.font = '400 19px ' + t.body;
-    var warnLines = show('warn') ? wrap(x, WARN, maxW, 3) : [];
-
-    var headH = (logoH ? logoH + 26 : 0) + nameLines.length * 74 +
-                (subLines.length ? 42 + (subLines.length - 1) * 36 : 0) +
-                (aboutLines.length ? 44 + (aboutLines.length - 1) * 34 : 0);
-    var factsH = facts.length ? 48 + (facts.length - 1) * 84 : 0;
-    var warnH = warnLines.length ? 44 + (warnLines.length - 1) * 26 : 0;
-    var y = Math.max(PAD + 20, Math.round((H - (headH + 86 + factsH + warnH)) / 2));
-
-    if(logoH){ drawLogo(x, o.logo, X, y, logoH); y += logoH + 26; }
-    x.fillStyle = t.ink; x.font = '800 70px ' + t.display;
-    nameLines.forEach(function(ln){ y += 74; x.fillText(ln, X, y); });
-    if(subLines.length){
-      y += 42; x.fillStyle = t.dim; x.font = '400 27px ' + t.body;
-      subLines.forEach(function(ln, i){ x.fillText(ln, X, y + i * 36); });
-      y += (subLines.length - 1) * 36;
-    }
-    if(aboutLines.length){
-      y += 44; x.fillStyle = t.ink; x.font = '400 26px ' + t.body;
-      aboutLines.forEach(function(ln, i){ x.fillText(ln, X, y + i * 34); });
-      y += (aboutLines.length - 1) * 34;
-    }
-    if(facts.length){
-      y += 86;
-      x.strokeStyle = t.line; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(X, y - 48); x.lineTo(right, y - 48); x.stroke();
-      facts.forEach(function(f, i){
-        var yy = y + i * 84;
-        factRow(x, t, f, X, right, yy);
-        if(t.table){
-          x.strokeStyle = t.line; x.lineWidth = 1;
-          x.beginPath(); x.moveTo(X, yy + 30); x.lineTo(right, yy + 30); x.stroke();
-        }
-      });
-      y += (facts.length - 1) * 84;
-    }
-    if(warnLines.length){
-      y += 44; x.fillStyle = t.dim; x.font = '400 19px ' + t.body;
-      warnLines.forEach(function(ln, i){ x.fillText(ln, X, y + i * 26); });
-    }
-  }
-
-  /* ══════════ ДВА-ТРИ РАКУРСИ: ЗНІМКИ ВГОРІ, ТЕКСТ ПІД НИМИ ══════════
-     Виріб показаний з усіх сторін, за які клієнт платить, і кожна сторона
-     дістає однакове місце. Текст іде смугою під ними: ліворуч назва й опис,
-     праворуч числа — так смуга читається одним рухом очей, а не двома. */
-  function paintRow(x, card, t, imgs, show, o){
+     Числа стоять ВНИЗУ смугою в три колонки з розділювачами. Картку в
+     Direct читають згори вниз: спершу виріб, потім «скільки». Ціна в шапці
+     конкурувала б із назвою й читалась раніше, ніж людина встигла подивитись
+     на товар. А головне — нижня смуга дає лінію, на якій усе вирівняне:
+     однакові підписи, однакові числа, однакові колонки. Саме вона й тримає
+     композицію, коли зверху три різні фото. */
+  function paintCard(x, card, t, imgs, show, o){
     o = o || {};
     if(t.shape){
       x.fillStyle = t.accent;
       x.globalAlpha = 0.10;
-      x.beginPath(); x.arc(W - 180, -120, 560, 0, Math.PI * 2); x.fill();
+      x.beginPath(); x.arc(W - 180, -140, 560, 0, Math.PI * 2); x.fill();
       x.globalAlpha = 1;
     }
     topBar(x, t);
+    var right = W - PAD, maxW = right - PAD;
 
+    // ── шапка ──
     var y = PAD;
-    if(o.logo){ drawLogo(x, o.logo, PAD, y - 6, 44); y += 66; }
+    if(o.logo){ drawLogo(x, o.logo, PAD, y, 42); y += 42 + 28; }
+    x.fillStyle = t.ink; x.font = '800 72px ' + t.display;
+    wrap(x, card.name, maxW, 2).forEach(function(ln){ y += 76; x.fillText(ln, PAD, y); });
+    /* Під назвою — один рядок: опис виробу, а немає його — колір і спосіб
+       нанесення. Два рядки тут перетворюють шапку на абзац. */
+    var lead = (show('about') && card.about) ? card.about
+             : ((show('sub') && card.sub) ? card.sub : '');
+    if(lead){
+      y += 44; x.fillStyle = t.dim; x.font = '400 28px ' + t.body;
+      x.fillText(wrap(x, lead, maxW, 1)[0] || '', PAD, y);
+    }
+    var top = y + 46;
 
+    // ── нижня смуга: рахуємо знизу вгору, щоб знімкам дісталась решта ──
     var facts = factsOf(card, show);
-    var textW = Math.round((W - PAD * 2) * 0.56);
-    var factsX = PAD + textW + 60, right = W - PAD;
-
     x.font = '400 19px ' + t.body;
-    var warnLines = show('warn') ? wrap(x, WARN, W - PAD * 2, 2) : [];
-    var warnH = warnLines.length ? warnLines.length * 26 + 20 : 0;
+    var warnLines = show('warn') ? wrap(x, WARN, maxW, 2) : [];
+    var warnY = H - 96 - (warnLines.length ? (warnLines.length - 1) * 26 : 0);
+    var valY = warnLines.length ? warnY - 54 : H - 116;
+    var labY = valY - 44;
+    var ruleY = facts.length ? labY - 42 : (warnLines.length ? warnY - 30 : H - 116);
+    var imgBottom = ruleY - 46;
 
-    // Скільки лишається під текст — і решта йде знімкам
-    x.font = '800 56px ' + t.display;
-    var nameLines = wrap(x, card.name, textW, 2);
-    x.font = '400 25px ' + t.body;
-    var subLines = (show('sub') && card.sub) ? wrap(x, card.sub, textW, 1) : [];
-    x.font = '400 24px ' + t.body;
-    var aboutLines = (show('about') && card.about) ? wrap(x, card.about, textW, 3) : [];
-    var textH = Math.max(
-      nameLines.length * 62 + (subLines.length ? 34 : 0) + (aboutLines.length ? 20 + aboutLines.length * 32 : 0),
-      facts.length * 78);
-    var footH = 92 + warnH;
-    var imgH = H - y - 44 - textH - footH;
+    shotsRow(x, imgs, PAD, top, maxW, Math.max(200, imgBottom - top), t);
 
-    shotsRow(x, imgs, PAD, y, W - PAD * 2, imgH, t);
-    y += imgH + 52;
-
-    var ty = y;
-    x.fillStyle = t.ink; x.font = '800 56px ' + t.display;
-    nameLines.forEach(function(ln){ x.fillText(ln, PAD, ty); ty += 62; });
-    if(subLines.length){
-      x.fillStyle = t.dim; x.font = '400 25px ' + t.body;
-      x.fillText(subLines[0], PAD, ty); ty += 34;
-    }
-    if(aboutLines.length){
-      ty += 20; x.fillStyle = t.ink; x.font = '400 24px ' + t.body;
-      aboutLines.forEach(function(ln, i){ x.fillText(ln, PAD, ty + i * 32); });
-    }
     if(facts.length){
       x.strokeStyle = t.line; x.lineWidth = 2;
-      x.beginPath(); x.moveTo(factsX, y - 46); x.lineTo(right, y - 46); x.stroke();
+      x.beginPath(); x.moveTo(PAD, ruleY); x.lineTo(right, ruleY); x.stroke();
+      var cw = maxW / facts.length;
       facts.forEach(function(f, i){
-        var yy = y + i * 78;
-        factRow(x, t, f, factsX, right, yy);
-        if(t.table){
+        var cx = PAD + i * cw + (i ? 34 : 0);
+        eyebrow(x, f[0], cx, labY, t.dim, 19);
+        var s = fitFont(x, f[1], cw - 60, f[2] ? 50 : 44, '800', t.body);
+        x.fillStyle = f[2] ? t.accent : t.ink;
+        x.font = '800 ' + s + 'px ' + t.body;
+        x.fillText(f[1], cx, valY);
+        // Розділювач між колонками — те, що робить смугу смугою
+        if(i){
           x.strokeStyle = t.line; x.lineWidth = 1;
-          x.beginPath(); x.moveTo(factsX, yy + 28); x.lineTo(right, yy + 28); x.stroke();
+          x.beginPath();
+          x.moveTo(PAD + i * cw, labY - 24);
+          x.lineTo(PAD + i * cw, valY + 12);
+          x.stroke();
         }
       });
     }
     if(warnLines.length){
-      var wy = H - 96 - (warnLines.length - 1) * 26;
       x.fillStyle = t.dim; x.font = '400 19px ' + t.body;
-      warnLines.forEach(function(ln, i){ x.fillText(ln, PAD, wy + i * 26); });
+      warnLines.forEach(function(ln, i){ x.fillText(ln, PAD, warnY + i * 26); });
     }
   }
-
 
   /* Картка рекомендованих. Плитками, бо тут порівнюють, а не роздивляються:
      питання не «який саме цей виріб», а «чим доповнити». */
@@ -629,12 +580,10 @@
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
       paintSet(x, card, t, imgs, show, { logo: logo });
     } else {
-      var shots = await Promise.all((card.shots || []).map(loadImg));
-      /* Розкладку вибирає КІЛЬКІСТЬ РАКУРСІВ, а не шаблон: шаблон задає
-         кольори й типографіку, і однакова картка на різних темах має
-         лишатись однаково влаштованою. */
-      if(shots.filter(Boolean).length >= 2) paintRow(x, card, t, shots, show, { logo: logo });
-      else paintSheet(x, card, t, shots, show, { logo: logo });
+      var shots = await Promise.all((card.shots || []).map(function(sh){
+        return loadImg(sh && sh.url);
+      }));
+      paintCard(x, card, t, shots, show, { logo: logo });
     }
     footer(x, t, offer || {});
     return cv;
