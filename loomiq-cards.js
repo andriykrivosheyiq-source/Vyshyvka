@@ -159,15 +159,20 @@
      теж: «S×4 · M×8 · L×8» у Direct не вирішує нічого, досить загальної
      кількості. Ба більше — самої кількості теж: тираж у листуванні
      обговорюють, і число «20 шт» на картці застаріває на першому ж «а якщо
-     пʼятдесят?», тоді як ціна за штуку й термін від нього не залежать.
-     Лишаються рівно два числа, з яких починається кожна розмова: скільки
-     за штуку й коли буде. */
+     пʼятдесят?», тоді як ціна за штуку від нього не залежить.
+
+     Терміну теж немає. Він тримається на завантаженні виробництва й на
+     тому, коли клієнт затвердить макет, — тобто на двох речах, яких на
+     момент листування ще немає. Названий на картці, він стає обіцянкою,
+     яку картка пережила: її перешлють через тиждень, і відповідати за те
+     число доведеться. У КП термін лишається, бо там він прив'язаний до
+     дати; у Direct лишається одне число, з якого починається розмова, —
+     скільки за штуку. */
   var FIELDS = [
     { id:'sub',   name:'Колір і нанесення' },
     { id:'about', name:'Опис виробу' },
     { id:'unit',  name:'Ціна за штуку' },
     { id:'old',   name:'Стара ціна' },
-    { id:'term',  name:'Термін' },
     { id:'warn',  name:'Застереження' }
   ];
 
@@ -190,7 +195,6 @@
     offer = offer || {};
     cfg = cfg || {};
     var by = cfg.by || {};
-    var term = +(offer.terms || {}).deadlineDays || 0;
     var out = [];
 
     var pics = function(it){ return (it.mockups || []).filter(Boolean); };
@@ -253,7 +257,6 @@
         /* Базова ціна — та сама, з якої сторінка пропозиції рахує «ви
            економите». Своєї старої ціни картка не вигадує. */
         base: +it.baseUnitPrice || 0,
-        term: term,
         shots: shots, pics: all,
         pic: (own.pic && all.indexOf(own.pic) >= 0) ? own.pic
            : ((shots[0] && shots[0].url) || all[0] || ''),
@@ -286,7 +289,6 @@
            питанні рішення й ухвалюють. */
         name: own.title || 'До цього зазвичай беруть',
         note: own.note || '',
-        term: term,
         items: picked.map(function(i){
           var r = pool[i];
           return { name: r.name || '', unit: +r.unitPrice || 0,
@@ -524,16 +526,19 @@
     var yRule = H - FOOT, yLab = yRule + 44, yVal = yRule + 94;   // 814 · 858 · 908
     rule(x, t, PAD, right, yRule);
 
-    /* Ціна й термін ОДНОГО кегля. Доти ціна була сорок восьмим, термін
-       тридцять восьмим, підписи ще іншим — унизу збиралось три розміри на
-       чотири слова, і смуга читалась як набір різних блоків. Ієрархію
-       тримає колір, а не розмір: ціна акцентом, термін чорнилом. */
+    /* Ціна ЧОРНИЛОМ, а не акцентом. Кольорове число читається як цінник
+       розпродажу — а картка йде в переписку, де про ціну домовляються, а
+       не де на неї полюють. Акцент на аркуші лишився один, і він на
+       відсотку знижки: там він щось означає, бо позначає різницю.
+
+       Кегль один на всю смугу — жодних «ціна сорок восьмим, підпис
+       тридцять другим»: унизу три розміри на чотири слова читались як
+       набір різних блоків, а не як одна смуга. */
     var VAL = 44;
     var cut = oldPrice(card, show);
     var price = (show('unit') && card.unit) ? money(card.unit) : '';
-    var term  = (show('term') && card.term) ? card.term + ' роб. днів' : '';
 
-    var priceW = 0, wasW = 0, offW = 0;
+    var priceW = 0, wasW = 0;
     if(price){
       x.font = '800 ' + VAL + 'px ' + t.body;
       priceW = x.measureText(price).width;
@@ -541,24 +546,17 @@
         x.font = '400 24px ' + t.body;
         wasW = x.measureText(cut.was).width;
         x.font = '800 19px ' + t.body;
-        offW = x.measureText(cut.off).width + 26;
-        priceW = Math.max(priceW, wasW + 16 + offW);
+        priceW = Math.max(priceW, wasW + 16 + x.measureText(cut.off).width + 26);
       }
       priceW = Math.max(priceW, eyebrowW(x, 'Ціна за 1 шт', 18));
     }
-    var termW = 0;
-    if(term){
-      x.font = '800 ' + VAL + 'px ' + t.body;
-      termW = Math.max(x.measureText(term).width, eyebrowW(x, 'Термін виготовлення', 18));
-    }
 
     var GAPC = 56;
-    var tx = PAD + priceW + (priceW ? GAPC : 0);
-    var wx = tx + termW + (termW ? GAPC : 0);
+    var wx = PAD + priceW + (priceW ? GAPC : 0);
 
     if(price){
       eyebrow(x, 'Ціна за 1 шт', PAD, yLab, t.dim, 18);
-      x.fillStyle = t.accent; x.font = '800 ' + VAL + 'px ' + t.body;
+      x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
       x.fillText(price, PAD, yVal);
       if(cut){
         /* Стара ціна стоїть ПІД новою, а не поруч: поруч вона змагається з
@@ -569,28 +567,19 @@
         x.beginPath(); x.moveTo(PAD, yVal + 28); x.lineTo(PAD + wasW, yVal + 28); x.stroke();
         badge(x, t, cut.off, PAD + wasW + 16, yVal + 36);
       }
-    }
-    if(term){
-      eyebrow(x, 'Термін виготовлення', tx, yLab, t.dim, 18);
-      x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
-      x.fillText(term, tx, yVal);
-    }
-    // розділювачі — те, що робить смугу смугою
-    [priceW ? tx : 0, termW ? wx : 0].forEach(function(cx){
-      if(!cx) return;
+      // розділювач — те, що робить смугу смугою
       x.strokeStyle = t.line; x.lineWidth = 1;
       x.beginPath();
-      x.moveTo(cx - GAPC / 2, yRule + 20);
-      x.lineTo(cx - GAPC / 2, H - 46);
+      x.moveTo(wx - GAPC / 2, yRule + 20);
+      x.lineTo(wx - GAPC / 2, H - 46);
       x.stroke();
-    });
-    /* Примітка — така сама зона, як дві попередні: підпис капітеллю, під
-       ним текст. Без підпису вона читалась як текст, що випадково заїхав
-       збоку; з підписом унизу стоять три однакові за будовою блоки.
+    }
+    /* Примітка — така сама зона, як ціна: підпис капітеллю, під ним текст.
+       Без підпису вона читалась як текст, що випадково заїхав збоку.
 
-       Якщо місця лишилось менше за двісті пікселів — числа вийшли
-       задовгими, і дрібний текст у щілину перетворився б на стовпчик по
-       одному слову; тоді примітки просто немає. */
+       Якщо місця лишилось менше за двісті пікселів — ціна вийшла задовгою,
+       і дрібний текст у щілину перетворився б на стовпчик по одному слову;
+       тоді примітки просто немає. */
     var warnW = right - wx;
     if(show('warn') && warnW >= 200){
       eyebrow(x, 'Примітка', wx, yLab, t.dim, 18);
