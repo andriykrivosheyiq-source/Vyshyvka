@@ -137,88 +137,132 @@ else {
 }
 
 console.log('');
-console.log('═══ СКІЛЬКИ НАНЕСЕНЬ — СТІЛЬКИ Й РАКУРСІВ ═══');
-/* Клієнт платить за спину й рукав так само, як за перед. Доти картка
-   показувала один-єдиний мокап, і решта сторін на картинку не потрапляла. */
+console.log('═══ ПЕРЕД І ЗАД — ЗАВЖДИ ═══');
+/* Клієнт дивиться на виріб, а не на наш перелік сторін. Картка з одним
+   логотипом на грудях показувала один знімок — і перше питання у відповідь
+   було рівно одне: «а ззаду що?». */
 const views = await fr.evaluate(([o]) => {
   const L = window.LQCards;
   const V = (sd, u) => ({ id:sd, side:sd, label:sd, img:u, show:true });
-  const P = (sd, lb) => ({ side:sd, sideLabel:lb, technique:'Вишивка', widthMm:80, heightMm:45 });
-  const mk = (n, prints, vs) => Object.assign({}, o.items[0], {
-    name:n, prints, views: vs, mockups:['m0'] });
-  const three = mk('Три', [P('front','Перед'), P('back','Спина'), P('left','Рукав')],
-                   [V('front','A'), V('back','B'), V('left','C')]);
-  const two = mk('Дві', [P('front','Перед'), P('back','Спина')],
-                 [V('front','A'), V('back','B'), V('left','C')]);
-  const none = mk('Без', [], []);
-  const list = L.build({ items:[three, two, none], terms:{ deadlineDays:7 } }, {});
-  return list.map(c => ({ name:c.name, shots:c.shots, sub:c.sub }));
+  const P = sd => ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 });
+  const all = [V('front','A'), V('back','B'), V('left','C')];
+  const mk = (n, sides) => Object.assign({}, o.items[0], {
+    name:n, prints: sides.map(P), views: all, mockups:['m0'] });
+  const bare = Object.assign({}, o.items[0], { name:'Без', prints:[], views:[], mockups:['m0'] });
+  const list = L.build({ items:[
+    mk('Тільки перед', ['front']),
+    mk('Перед і спина', ['front','back']),
+    mk('Із рукавом', ['front','back','left']),
+    mk('Тільки спина', ['back']),
+    bare
+  ], terms:{ deadlineDays:7 } }, {});
+  return list.map(c => ({ name:c.name, shots:c.shots.map(sh => sh.url),
+                          labels:c.shots.map(sh => sh.label), sub:c.sub }));
 }, [OFFER]);
 views.forEach(v => console.log('   ' + v.name + ' → ' + JSON.stringify(v.shots)));
-ok(views[0].shots.join() === 'A,B,C',
-  'три сторони з нанесенням — три ракурси на одній картці',
-  'ракурси не ті: ' + JSON.stringify(views[0].shots));
+ok(views[0].shots.join() === 'A,B',
+  'нанесення тільки спереду — на картці все одно перед і зад',
+  'показано не те: ' + JSON.stringify(views[0].shots));
+ok(views[3].shots.join() === 'A,B',
+  'нанесення тільки ззаду — так само перед і зад, і в тому ж порядку',
+  'показано не те: ' + JSON.stringify(views[3].shots));
 ok(views[1].shots.join() === 'A,B',
-  'дві сторони — два ракурси, а не всі наявні знімки',
-  'узято зайвий ракурс: ' + JSON.stringify(views[1].shots));
-ok(views[2].shots.join() === 'm0',
-  'позиція без нанесення падає на звичайний мокап, а не лишається порожньою',
-  'без нанесення ракурсів немає: ' + JSON.stringify(views[2].shots));
+  'перед і спина — два ракурси',
+  'показано не те: ' + JSON.stringify(views[1].shots));
+ok(views[2].shots.join() === 'A,B,C',
+  'зʼявився рукав — додається третім, а не заміняє собою зад',
+  'показано не те: ' + JSON.stringify(views[2].shots));
+ok(views[4].shots.join() === 'm0',
+  'коли ракурсів немає зовсім, лишається звичайний мокап',
+  'без ракурсів картка порожня: ' + JSON.stringify(views[4].shots));
 
 console.log('');
-console.log('═══ РОЗКЛАДКУ ВИБИРАЄ КІЛЬКІСТЬ РАКУРСІВ ═══');
+console.log('═══ РОЗКЛАДКА: ЗНІМКИ ВГОРІ, ЧИСЛА СМУГОЮ ВНИЗУ ═══');
 /* Дивимось не в код, а в пікселі: кожен ракурс фарбуємо своїм кольором і
-   шукаємо його на полотні. Три сторони — три кольори в горішній третині,
-   кожен у своїй колонці. Один ракурс — виріб ліворуч, праворуч його немає.
-
-   Доти три знімки втискались у ліву панель, розраховану на один виріб. */
+   шукаємо його на полотні. */
 const laid = await fr.evaluate(async ([o]) => {
   const col = (r, g, b) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
     '<rect width="400" height="500" fill="rgb(' + r + ',' + g + ',' + b + ')"/></svg>');
   const C = [[220,20,20], [20,180,20], [20,20,220]];
+  const sides = ['front', 'back', 'left'];
   const V = (sd, u) => ({ id:sd, side:sd, label:sd, img:u, show:true });
   const P = sd => ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 });
-  const sides = ['front', 'back', 'left'];
-  const mk = n => Object.assign({}, o.items[0], {
-    prints: sides.slice(0, n).map(P),
-    views: sides.slice(0, n).map((sd, i) => V(sd, col.apply(null, C[i]))),
-    mockups: [] });
   const near = (d, i, c) => Math.abs(d[i] - c[0]) < 24 && Math.abs(d[i+1] - c[1]) < 24 &&
                             Math.abs(d[i+2] - c[2]) < 24;
   const scan = async n => {
-    const off = { items:[mk(n)], terms:{ deadlineDays:7 }, orderId:'1' };
+    const it = Object.assign({}, o.items[0], {
+      prints: sides.slice(0, n).map(P),
+      views: sides.map((sd, i) => V(sd, col.apply(null, C[i]))),
+      mockups: [] });
+    const off = { items:[it], terms:{ deadlineDays:7 }, orderId:'1' };
     const cv = await window.LQCards.draw(window.LQCards.build(off, {})[0], off, { tpl:'minimal' });
     const x = cv.getContext('2d');
     const d = x.getImageData(0, 0, cv.width, cv.height).data;
-    // у якій третині ширини трапився кожен колір і чи є він у верхній половині
-    const seen = C.map(()=> ({ thirds:{}, top:false }));
+    const seen = C.map(()=> ({ x0: 1e9, x1: -1, y0: 1e9, y1: -1 }));
     for(let py = 0; py < cv.height; py += 6){
       for(let px = 0; px < cv.width; px += 6){
         const i = (py * cv.width + px) * 4;
         for(let k = 0; k < C.length; k++){
           if(!near(d, i, C[k])) continue;
-          seen[k].thirds[Math.floor(px / (cv.width / 3))] = 1;
-          if(py < cv.height / 2) seen[k].top = true;
+          const s = seen[k];
+          if(px < s.x0) s.x0 = px;
+          if(px > s.x1) s.x1 = px;
+          if(py < s.y0) s.y0 = py;
+          if(py > s.y1) s.y1 = py;
         }
       }
     }
-    return seen.map(s => ({ thirds: Object.keys(s.thirds).map(Number).sort(), top: s.top }));
+    return { seen, h: cv.height, w: cv.width };
   };
   return { three: await scan(3), one: await scan(1) };
 }, [OFFER]);
-console.log('   три ракурси → колонки: ' + laid.three.map(s => s.thirds.join('+')).join(' | '));
-console.log('   один ракурс → колонки: ' + laid.one.map(s => s.thirds.join('+') || '—').join(' | '));
-ok(laid.three.every(s => s.thirds.length && s.top),
-  'три ракурси стоять рядом угорі — кожен у своїй колонці',
-  'три ракурси розкладені не так: ' + JSON.stringify(laid.three));
-ok(laid.three[0].thirds[0] === 0 && laid.three[1].thirds[0] === 1 &&
-   laid.three[2].thirds.indexOf(2) >= 0,
-  'і в тому ж порядку, що сторони нанесення: перед, спина, рукав',
-  'порядок ракурсів поїхав: ' + JSON.stringify(laid.three.map(s => s.thirds)));
-ok(laid.one[0].thirds.length && laid.one[0].thirds.indexOf(2) < 0,
-  'один ракурс лишився зліва, а праворуч — текст, як було до оновлення',
-  'один ракурс розклався не так: ' + JSON.stringify(laid.one[0]));
+const drawn = s => s.seen.filter(v => v.x1 >= 0);
+console.log('   три нанесення → ракурсів на полотні: ' + drawn(laid.three).length);
+console.log('   одне нанесення → ракурсів на полотні: ' + drawn(laid.one).length);
+ok(drawn(laid.three).length === 3,
+  'три сторони — три знімки рядом угорі',
+  'знімків на полотні: ' + drawn(laid.three).length);
+ok(laid.three.seen[0].x1 < laid.three.seen[1].x0 &&
+   laid.three.seen[1].x1 < laid.three.seen[2].x0,
+  'і в тому ж порядку, що сторони: перед, спина, рукав — без накладань',
+  'знімки налазять один на одного: ' + JSON.stringify(laid.three.seen));
+ok(drawn(laid.one).length === 2,
+  'одне нанесення — на полотні все одно два знімки: перед і зад',
+  'знімків на полотні: ' + drawn(laid.one).length);
+/* Ракурси рівноправні: три знімки — три однакові колонки, і колонки ті
+   однакові не приблизно, а до пікселя. Саме на цьому тримається вся
+   розкладка — «головного» фото більше немає. */
+const widths = drawn(laid.three).map(v => v.x1 - v.x0);
+console.log('   ширини знімків: ' + widths.join(' · '));
+ok(widths.every(w => Math.abs(w - widths[0]) <= 12),
+  'колонки рівні між собою — жоден ракурс не «головний»',
+  'колонки різної ширини: ' + widths.join(' · '));
+/* Три сталі смуги: шапка — хто й що, галерея — виріб, низ — числа. Смуги
+   сталі навмисно: дві картки поруч у стрічці Direct мають вирівнюватись
+   між собою, а не кожна по-своєму. */
+ok(drawn(laid.three).every(v => v.y0 > laid.three.h * 0.18),
+  'знімки починаються під шапкою — верх віддано логотипу, назві й опису',
+  'знімок заліз у шапку: ' + JSON.stringify(drawn(laid.three).map(v => v.y0)));
+ok(drawn(laid.three).every(v => v.y1 < laid.three.h * 0.82),
+  'і не залазять у смугу чисел унизу',
+  'знімок заліз у числа: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+ok(drawn(laid.three).some(v => v.y1 > laid.three.h * 0.70),
+  'виріб заповнює колонку, а не плаває в ній: порожні поля мокапа обрізаються',
+  'виріб не дістає низу колонки: ' + JSON.stringify(drawn(laid.three).map(v => v.y1)));
+
+console.log('');
+console.log('═══ ЛИСТ ШИРШАЄ ВІД КІЛЬКОСТІ ФОТО ═══');
+/* Порожніх зон на картці не буває — не тому, що їх ретельно заповнили, а
+   тому, що їх нема звідки взятись: ширина рахується з кількості колонок. */
+console.log('   три ракурси: ' + laid.three.w + '×' + laid.three.h +
+            ' · два: ' + laid.one.w + '×' + laid.one.h);
+ok(laid.three.h === 1000 && laid.one.h === 1000,
+  'висота стала — 1000 пікселів на будь-якій картці',
+  'висота попливла: ' + laid.three.h + ' / ' + laid.one.h);
+ok(laid.one.w === 1400 && laid.three.w === 2040,
+  'а ширина росте: два фото — 1400, три — 2040',
+  'ширина не та: ' + laid.one.w + ' / ' + laid.three.w);
 
 console.log('');
 console.log('═══ КІЛЬКІСТЬ НЕ ДУБЛЮЄТЬСЯ ═══');
@@ -238,6 +282,32 @@ const about = await fr.evaluate(([o]) => {
   return { about: c.about, still: off.about,
            recoNote: !!(set && set.items[0] && set.items[0].note) };
 }, [OFFER]);
+
+console.log('');
+console.log('═══ СТАРА ЦІНА Й ЗНИЖКА ═══');
+/* Своєї «старої ціни» картка не вигадує: бере базову ціну позиції за тим
+   самим правилом, що й сторінка пропозиції — показує, лише якщо вона
+   більша за поточну. Інакше картка й КП рано чи пізно розійшлися б у тому,
+   скільки саме клієнт економить. */
+const cut = await fr.evaluate(async o => {
+  const L = window.LQCards;
+  const hi = JSON.parse(JSON.stringify(o)); hi.items[0].baseUnitPrice = 1200;
+  const lo = JSON.parse(JSON.stringify(o)); lo.items[0].baseUnitPrice = 700;
+  const draw = async (off, fields) =>
+    (await L.draw(L.build(off, {})[0], off, { tpl:'minimal', fields })).toDataURL('image/png');
+  return { base: L.build(hi, {})[0].base,
+           withCut: await draw(hi), noCut: await draw(lo), hidden: await draw(hi, { old:false }) };
+}, OFFER);
+console.log('   базова ціна на картці: ' + cut.base + ' грн (поточна 900)');
+ok(cut.base === 1200,
+  'стара ціна береться з базової ціни позиції — своїх чисел у картки немає',
+  'базова ціна не доїхала: ' + cut.base);
+ok(cut.withCut !== cut.noCut,
+  'перекреслену ціну й «−25 %» показуємо, лише коли базова більша за поточну',
+  'картка зі знижкою й без неї малюються однаково');
+ok(cut.hidden === cut.noCut,
+  'вимкнене поле «Стара ціна» прибирає і перекреслене число, і бейдж',
+  'вимкнене поле однаково щось малює');
 
 console.log('');
 console.log('═══ ЗМІНИЛАСЬ ЦІНА В КП — ЗМІНИЛАСЬ КАРТКА ═══');
@@ -272,8 +342,8 @@ const drew = await fr.evaluate(async o => {
 }, OFFER);
 Object.keys(drew).forEach(k => console.log('   ' + k + ': ' + drew[k].w + '×' + drew[k].h +
   ' · ' + Math.round(drew[k].bytes / 1024) + ' КБ'));
-ok(Object.keys(drew).every(k => drew[k].w === 1920 && drew[k].h === 1200),
-  'формат горизонтальний — 1920×1200, як домовлялись',
+ok(Object.keys(drew).every(k => drew[k].w === 1400 && drew[k].h === 1000),
+  'формат горизонтальний: дві колонки — 1400×1000 на всіх шаблонах',
   'розмір полотна не той: ' + JSON.stringify(drew));
 ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'полотно віддає файл — чужий мокап його не забруднив',
@@ -360,7 +430,7 @@ else {
     'лишились абстрактні шаблони: ' + tabbed.tpls.join(', '));
   ok(tabbed.strip === 5, 'у стрічці всі картки пропозиції',
     'у стрічці ' + tabbed.strip + ' карток');
-  ok(tabbed.canvas && tabbed.canvas.w === 1920,
+  ok(tabbed.canvas && tabbed.canvas.w === 1400 && tabbed.canvas.h === 1000,
     'preview — це те саме полотно, що збережеться у файл',
     'preview не намалювався');
   ok(tabbed.tpls.length === 5 && tabbed.fields === 6,
