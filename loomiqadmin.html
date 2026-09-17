@@ -2774,6 +2774,13 @@
      Дошка ліворуч, панель задачі праворуч. Панель саме поруч, а не поверх:
      дизайнер звіряє макет із ТЗ, і ховати список, доки він це робить,
      означає змушувати його памʼятати те, що можна показати. */
+  /* Пакет із відділу у виробничій картці — біля машини, а не в чужому розділі */
+  .od-pack{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
+  .od-pack-h{font-weight:700;font-size:13px;}
+  .od-pack-p{font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+  .od-pack-p i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);
+    margin-top:3px;}
+
   .dz-tabs{display:flex;gap:4px;background:var(--canvas);border-radius:10px;
     padding:3px;margin-bottom:14px;width:fit-content;}
   .dz-tab{font:inherit;font-size:13px;font-weight:700;color:var(--ink-soft);
@@ -4447,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fc7747b3bd"></script>
-<script src="loomiq-fingerprint.js?v=fc7747b3bd"></script>
-<script src="loomiq-pricing.js?v=fc7747b3bd"></script>
+<script src="loomiq-select.js?v=dc3888dd1d"></script>
+<script src="loomiq-fingerprint.js?v=dc3888dd1d"></script>
+<script src="loomiq-pricing.js?v=dc3888dd1d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=fc7747b3bd"></script>
+<script src="loomiq-design.js?v=dc3888dd1d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -14647,6 +14654,37 @@ function artFold(o){
     <button class="art-new" data-art-new>+ Нова версія</button>`;
   return odFoldHtml('art', 'Макет', sum, body);
 }
+/* ══════════ Пакет із дизайн-відділу у виробничій картці ══════════
+   Відділ зібрав пакет — і він має доїхати туди, де стоїть машина, а не
+   лишитись у розділі, куди виробництво не заходить. Показуємо рівно те, що
+   потрібно біля голки: яке нанесення, якого розміру, який файл ставити,
+   скільки стібків і якими нитками.
+
+   Пакет приходить у замовлення готовим: перевіряти тут нема чого, це вже
+   пройшло контроль файлів. Немає пакета — блоку теж немає: порожній
+   заголовок «пакет» лише питає «а де він». */
+function prodPackHtml(o){
+  const pk = o && o.designPack;
+  const rows = (pk && pk.items || []).filter(x => (x.places || []).length);
+  if(!rows.length) return '';
+  return `<div class="od-sec">Пакет із дизайн-відділу${
+      pk.at ? ' · ' + escapeHtml(dtUa(pk.at)) : ''}</div>` +
+    rows.map(it => `<div class="od-pack">
+      <div class="od-pack-h">${escapeHtml(it.name || '')}${
+        it.color ? ' · ' + escapeHtml(it.color) : ''}${
+        it.sizes ? ' · ' + escapeHtml(it.sizes) : ''}</div>` +
+      (it.places || []).map(pl => `<div class="od-pack-p">
+        <b>${escapeHtml(pl.label || '')}</b> · ${(pl.mm && pl.mm.w) || 0} × ${
+          (pl.mm && pl.mm.h) || 0} мм${
+          pl.stitches ? ' · ' + pl.stitches + ' стібків' : ''}${
+          (pl.colors || []).length ? ' · ' + escapeHtml(pl.colors.join(', ')) : ''}
+        ${(pl.files || []).map(f =>
+          `<a class="art-file" href="${escapeHtml(docAttachUrl(f.url))}" target="_blank"
+             rel="noopener" download>${escapeHtml(f.name || 'файл')} ↓</a>`).join('')}
+        ${pl.notes ? `<i>${escapeHtml(pl.notes)}</i>` : ''}
+      </div>`).join('') + '</div>').join('');
+}
+
 /* ══════════ Виробнича картка ══════════
    Швачка не має вгадувати. На екрані рівно те, що потрібно біля машини:
    який виріб і скільки якого розміру, які файли ставити, де саме лягає
@@ -14690,6 +14728,7 @@ function odProdHtml(o){
       <div class="od-sec">Стан</div>
       <div class="od-tracks">${trackPill('test','Тест')}${trackPill('prod','Тираж')}${trackPill('qc','Контроль')}</div>
 
+      ${prodPackHtml(o)}
       <div class="od-sec">Файли на машину</div>
       ${v
         ? `<div class="art-ver is-cur">
@@ -19483,7 +19522,10 @@ const ROLE_PRESET = {
   manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
                 boards:'*', see:['client','chat'], can:['edit','pay'] },
   designer:   { ui:'designer',   nav:['today','board','design'], boards:['design'], see:[], can:[] },
-  production: { ui:'production', nav:['today','board','design'], boards:['test','prod','qc'], see:[], can:[] },
+  /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
+     нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
+     колись переплутають із потрібним. */
+  production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] },
   /* Менеджер дизайну бачить замовлення цілком — йому треба звірити ТЗ із
      тим, що продали, — але грошей не бачить: до макета вони стосунку не
      мають, а зайве поле на екрані колись переплутають із потрібним. */

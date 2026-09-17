@@ -361,6 +361,32 @@ ok(pack.print.join() === 'print',
   'позиція з друком іде зі своїм файлом, а не порожньою: шити треба і її',
   'друк у пакеті без файлу: ' + JSON.stringify(pack.print));
 
+/* Пакет має доїхати туди, де стоїть машина. Розділу дизайну у виробництва
+   немає й не треба — отже пакет іде в саму картку замовлення. */
+const toProd = await p.evaluate(() => {
+  const o = orders[0];
+  o.designPack = window.LQDesign.pack(
+    (function(){ const j = window.LQDesign.ensure(window.LQDesign.emptyJob(o.orderId), o);
+      j.approvedVersion = 1;
+      j.stitch.forEach(s => { s.status = 'ok'; s.stitches = 9400;
+        s.colors = ['білий'];
+        s.files.push({ kind:'stitch', name:s.side + '.dst', url:'https://cdn.test/x.dst' }); });
+      return j; })(), o);
+  const html = prodPackHtml(o);
+  const empty = prodPackHtml({ orderId:'x' });
+  return { has: /Пакет із дизайн-відділу/.test(html),
+           files: (html.match(/art-file/g) || []).length,
+           mm: /80 × 45 мм/.test(html), stitches: /9400 стібків/.test(html),
+           empty };
+});
+console.log('   у виробничій картці: файлів ' + toProd.files);
+ok(toProd.has && toProd.files === 3 && toProd.mm && toProd.stitches,
+  'зібраний пакет видно у виробничій картці: нанесення, розмір, стібки й файли',
+  'пакет не доїхав до машини: ' + JSON.stringify(toProd));
+ok(toProd.empty === '',
+  'без пакета блоку немає зовсім — порожній заголовок лише питав би «а де він»',
+  'порожній пакет усе одно малює блок');
+
 console.log('');
 console.log('═══ DATASET ПИШЕТЬСЯ САМ ═══');
 const ds = await p.evaluate(() => {

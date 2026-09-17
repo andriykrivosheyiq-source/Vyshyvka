@@ -1291,8 +1291,12 @@
       var pr = D.packReady(job, o);
       if(!pr.ok) return say('Ще не готово: ' + pr.why.join('; '));
       job.pack = D.pack(job, o);
+      /* Пакет їде в саме замовлення — туди, де його побачить виробництво.
+         Розділу дизайну в них немає й не треба: біля машини має бути
+         картка замовлення, а не ще одне вікно. */
+      o.designPack = job.pack;
       D.ds(job, 'package', { by:m, items:(job.pack.items || []).length });
-      return save(job, o, 'Пакет зібрано');
+      return save(job, o, 'Пакет зібрано — виробництво його бачить');
     }
   }
 })();
