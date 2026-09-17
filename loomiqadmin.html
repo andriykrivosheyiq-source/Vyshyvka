@@ -4454,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=dc3888dd1d"></script>
-<script src="loomiq-fingerprint.js?v=dc3888dd1d"></script>
-<script src="loomiq-pricing.js?v=dc3888dd1d"></script>
+<script src="loomiq-select.js?v=bf61890fba"></script>
+<script src="loomiq-fingerprint.js?v=bf61890fba"></script>
+<script src="loomiq-pricing.js?v=bf61890fba"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=dc3888dd1d"></script>
+<script src="loomiq-design.js?v=bf61890fba"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8457,7 +8457,7 @@ function offerManager(){
 const BRAND_KEYS = ['loomiq', 'stvory'];
 const BRAND_DEFAULTS = {
   loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'' },
-  stvory: { name:'Stvory', tagline:'виробництво мерчу', site:'', logo:'' }
+  stvory: { name:'Створи', tagline:'виробництво мерчу', site:'', logo:'' }
 };
 function brandAll(){
   const saved = cloud.offerBrands || {};
@@ -19534,6 +19534,18 @@ const ROLE_PRESET = {
   embroidery: { ui:'designer',   nav:['today','design'], boards:['design'], see:[], can:[] },
   qa:         { ui:'production', nav:['today','design'], boards:['design','qc'], see:[], can:[] }
 };
+/* ── Зони, яких не існувало, коли складали списки доступів ───────────────
+   Доступи зберігаються СПИСКОМ дозволених розділів. Це правильно, поки
+   розділи не додаються. Щойно зʼявляється новий, кожен, кому колись
+   зберегли набір галочок, перестає його бачити — назавжди й без жодного
+   натяку чому: у його списку такого ключа немає, і взятись йому нізвідки,
+   бо коли список складали, розділу не існувало.
+
+   Тому для НОВИХ зон вирішує пресет ролі, а не старий список. Щойно
+   доступи збережуть заново, поруч ляже `navAll` — перелік зон, які людині
+   справді показували, — і це правило для неї більше не діє: зняту галочку
+   вже ніхто не поверне. */
+const ZONE_NEW = ['design'];
 function presetOf(role){
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
   return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
@@ -19545,9 +19557,17 @@ function accOf(member){
   const a = member && member.acc;
   if(!a || typeof a !== 'object') return base;
   const pick = (v, def) => (v === '*' ? '*' : (Array.isArray(v) ? v.slice() : def));
+  let nav = pick(a.nav, base.nav);
+  if(Array.isArray(nav) && !Array.isArray(a.navAll)){
+    ZONE_NEW.forEach(k=>{
+      if(nav.indexOf(k) >= 0) return;
+      const allowed = base.nav === '*' || (Array.isArray(base.nav) && base.nav.indexOf(k) >= 0);
+      if(allowed) nav.push(k);
+    });
+  }
   return {
     ui: UI_KINDS[a.ui] ? a.ui : base.ui,
-    nav:    pick(a.nav,    base.nav),
+    nav:    nav,
     boards: pick(a.boards, base.boards),
     see:    pick(a.see,    base.see),
     can:    pick(a.can,    base.can)
@@ -20101,7 +20121,11 @@ function renderTeamList(){
                    role: ROLE_PRESET[p.role] ? p.role : 'manager',
                    acc: { ui: UI_KINDS[p.acc.ui] ? p.acc.ui : 'manager',
                           nav: p.acc.nav.slice(), boards: p.acc.boards.slice(),
-                          see: p.acc.see.slice(), can: p.acc.can.slice() } }))
+                          see: p.acc.see.slice(), can: p.acc.can.slice(),
+                          /* Які зони людині взагалі показували в мить
+                             збереження. Без цього переліку зняту галочку не
+                             відрізнити від розділу, якого тоді ще не було. */
+                          navAll: ZONE_NAV.map(z => z.key) } }))
       .filter(p => p.email);
     if(list.length && !list.some(p => (p.acc.see || []).indexOf('cost') >= 0)){
       toast('Хоч комусь має бути видно собівартість — інакше її не побачить ніхто');
