@@ -829,7 +829,9 @@
   <aside class="list" id="paneList">
     <div class="tabs">
       <button class="tab on" data-view="build">Збирання</button>
-      <button class="tab" data-view="client">Як бачить клієнт</button>
+      <!-- Коротко: у вузькій панелі три довгі назви не вміщаються в рядок,
+           а «Сайт» і є те, що там відкривається. -->
+      <button class="tab" data-view="client">Сайт</button>
       <!-- Той самий склад, виведений картинками для листування. Нічого
            окремого тут не заводять: картки збираються з позицій вище. -->
       <button class="tab" data-view="cards">Картки</button>
@@ -884,21 +886,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=dc3888dd1d',
+    ['loomiq-select.js?v=135b28ce88',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=dc3888dd1d'].forEach(function(src){
+     'loomiq-cards.js?v=135b28ce88'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=dc3888dd1d';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=dc3888dd1d';
-  var CTOR_JS   = 'loomiq-constructor.js?v=dc3888dd1d';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=dc3888dd1d';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=135b28ce88';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=135b28ce88';
+  var CTOR_JS   = 'loomiq-constructor.js?v=135b28ce88';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=135b28ce88';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1832,10 +1834,6 @@
     };
     var html =
       '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
-      (cfg.tpl === 'industry'
-        ? '<div class="cd-g"><span class="cd-l">Галузь</span>' +
-          seg('ind', L.INDUSTRIES, cfg.industry) + '</div>'
-        : '') +
       '<div class="cd-g"><span class="cd-l">Показувати</span>' +
         L.FIELDS.map(function(f){
           return '<label class="cd-chk"><input type="checkbox" data-fld="' + esc(f.id) + '"' +
@@ -1851,9 +1849,6 @@
     bar.innerHTML = html;
     bar.querySelectorAll('[data-tpl]').forEach(function(b){
       b.onclick = function(){ cardsCfg().tpl = b.dataset.tpl; cardsChanged(); };
-    });
-    bar.querySelectorAll('[data-ind]').forEach(function(b){
-      b.onclick = function(){ cardsCfg().industry = b.dataset.ind; cardsChanged(); };
     });
     bar.querySelectorAll('[data-ext]').forEach(function(b){
       b.onclick = function(){ cardExt = b.dataset.ext; renderCardsBar(cardsCfg()); };
@@ -1875,38 +1870,18 @@
         (pic ? '<img src="' + esc(pic) + '" alt="">' : '<img alt="">') +
         '<b>' + esc(c.name) + '</b>' +
         '<i>' + (c.hidden ? 'прихована' : (c.type === 'set' ? 'добірка' : (c.badge || 'позиція'))) + '</i>' +
-        '<span class="cd-move">' +
-          '<button data-mv="' + i + ':-1" title="Раніше">◀</button>' +
-          '<button data-mv="' + i + ':1" title="Пізніше">▶</button>' +
-        '</span>' +
       '</div>';
     }).join('');
     strip.querySelectorAll('[data-at]').forEach(function(el){
       el.onclick = function(){ cardAt = +el.dataset.at; renderCards(); };
     });
-    strip.querySelectorAll('[data-mv]').forEach(function(b){
-      b.onclick = function(e){
-        e.stopPropagation();
-        var p = b.dataset.mv.split(':');
-        cardsMove(+p[0], +p[1]);
-      };
-    });
   }
 
-  /* Порядок зберігаємо СПИСКОМ усіх карток, а не однією переставленою:
-     інакше наступна позиція, додана в «Збиранні», ставала б у випадкове
-     місце — їй просто не було б із чим порівнятись. */
-  function cardsMove(at, d){
-    var to = at + d;
-    if(to < 0 || to >= cardList.length) return;
-    var ids = cardList.map(function(c){ return c.id; });
-    var x = ids[at]; ids[at] = ids[to]; ids[to] = x;
-    cardsCfg().order = ids;
-    if(cardAt === at) cardAt = to;
-    else if(cardAt === to) cardAt = at;
-    cardsChanged();
-  }
-
+  /* Кнопок переносу карток тут немає й не було потреби: менеджер не
+     складає з них розповідь, він викачує потрібні. Порядок задає сам склад
+     пропозиції, і другий спосіб його міняти лише питав би «а навіщо».
+     Збережений порядок у налаштуваннях лишається — старі пропозиції, де
+     його колись переставили, малюються як були. */
   function renderCardsSide(cfg){
     var c = cardList[cardAt];
     if(!c) return;
@@ -1923,7 +1898,7 @@
           esc(own.note != null ? own.note : (c.note || '')) + '</textarea>' +
       '</div>' +
       (c.type !== 'set' && (c.pics || []).length > 1
-        ? '<div class="cd-box"><span class="cd-l">Мокап для картки</span>' +
+        ? '<div class="cd-box"><span class="cd-l">Головний ракурс</span>' +
           '<div class="cd-pics">' + c.pics.map(function(u){
             return '<img src="' + esc(u) + '" data-pic="' + esc(u) + '"' +
                    (u === c.pic ? ' class="on"' : '') + ' alt="">';
