@@ -2869,6 +2869,11 @@
   .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
     min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-flex;
     align-items:center;justify-content:center;background:var(--accent);color:#fff;}
+  .dz-pics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .dz-pic{position:relative;display:inline-flex;}
+  .dz-pic-x{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:9px;
+    border:1px solid var(--line);background:#fff;font:inherit;font-size:12px;line-height:1;
+    cursor:pointer;color:var(--ink-soft);}
   .dz-vers{display:flex;flex-direction:column;gap:6px;}
   .dz-ver{display:grid;grid-template-columns:34px 1fr;gap:2px 8px;font-size:12.5px;
     border-left:2px solid var(--line);padding-left:9px;}
@@ -14425,8 +14430,26 @@ function shipUnits(o){
    Це не порада в рядку «наступна дія», а заборона: номер накладної просто
    не запишеться. Порада, яку можна обійти кнопкою, обходиться в перший же
    гарячий день. */
+/* Чи веде це замовлення дизайн-відділ. Не «чи існує задача» — задача
+   заводиться сама на кожне замовлення, — а чи хтось справді нею займався:
+   видав доручення, призначив дизайнера або зібрав пакет.
+
+   Це межа нового процесу. Усе інше живе за старими правилами, і чіпати їх
+   звідси не можна: там інший принцип роботи, і налаштовується він окремо. */
+function inDesignDept(o){
+  if(!o || !o.orderId) return false;
+  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+  if(!job) return false;
+  if(Array.isArray(job.tasks) && job.tasks.length) return true;
+  if(job.graphic && job.graphic.assignee) return true;
+  return !!job.pack;
+}
 function shipGate(o){
   if(!o) return { ok:false, why:'картки немає' };
+  /* Замовлення поза відділом воріт не має: вони частина нового ланцюга, а
+     не загального правила. Інакше правило, про яке домовлялись для одного
+     процесу, мовчки змінило б роботу другого. */
+  if(!inDesignDept(o)) return { ok:true, why:'' };
   const qc = trackOf(o, 'qc');
   if(qc === 'bad') return { ok:false, why:'партія в браку — спершу переробка' };
   if(!trackIsDone(o, 'qc'))
@@ -19745,6 +19768,18 @@ function openDesign(){
        з вибору на екрані: інакше «дизайнер не бачить закупівлю» обходиться
        за секунду. */
     role: ()=> myRole(),
+    /* Кому йде закупівля. Окремого закупника може ще не бути — тоді
+       доручення дістається тому, хто цю роботу й робить сьогодні: першому
+       менеджеру. Порожнє значення означає «нікому», і тоді доручення просто
+       не створюється: краще без нього, ніж комусь навмання. */
+    buyer: ()=>{
+      const t = contentData.team || [];
+      const byRole = r => (t.filter(x => x.role === r && x.email)[0] || {}).email || '';
+      /* Команди ще немає — значить, усе робить одна людина, і це та, хто
+         зараз натиснув. Лишити доручення без адресата означало б загубити
+         саме ту половину передачі, заради якої воно й створюється. */
+      return byRole('supply') || byRole('manager') || byRole('designmgr') || myEmail() || '';
+    },
     can: ()=> true
   };
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,

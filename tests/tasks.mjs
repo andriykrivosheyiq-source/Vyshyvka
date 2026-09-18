@@ -298,6 +298,75 @@ ok(shop.закуп === 'todo,sent,part,got' && shop.сУ === 'part' && shop.сН
   'дошка закупівлі не та: ' + shop.закуп);
 
 console.log('');
+console.log('═══ ДИЗАЙНЕР БЕРЕ САМ, АЛЕ НЕ БІЛЬШЕ ДЕСЯТИ ═══');
+/* Доти роботу мусив роздати менеджер відділу: поки він не дійшов до черги,
+   вільний дизайнер сидів без роботи, а замовлення стояло. Межа — не про
+   людину, а про чергу: одинадцяте замовлення вже нікуди не поспішає, бо й
+   попередні десять стоять. */
+const take = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const o = { orderId:'1842', items:[] };
+  const вільне = D.emptyJob('1842');
+  const взяв = !!D.takeSelf(вільне, o, 'anna@lq', []);
+  const чуже = D.emptyJob('1843');
+  чуже.graphic.assignee = 'petro@lq';
+  const відмова = D.takeSelf(чуже, o, 'anna@lq', []);
+  // десять уже в роботі
+  const busy = [];
+  for(let i = 0; i < D.TAKE_LIMIT; i++)
+    busy.push({ graphic:{ assignee:'anna@lq', status:'work' } });
+  const ще = D.takeSelf(D.emptyJob('1844'), o, 'anna@lq', busy);
+  // зданий не рахується
+  const done = busy.slice(0, D.TAKE_LIMIT - 1)
+    .concat([{ graphic:{ assignee:'anna@lq', status:'done' } }]);
+  const післяЗдачі = !!D.takeSelf(D.emptyJob('1845'), o, 'anna@lq', done);
+  return { взяв, стан: вільне.graphic.status, шар: вільне.state,
+           відмова: !!відмова, межа: D.TAKE_LIMIT,
+           повний: !!(ще && ще.full), післяЗдачі,
+           навантаження: D.loadOf(busy, 'ANNA@lq') };
+});
+console.log('   узяв: ' + take.взяв + ' · межа: ' + take.межа +
+            ' · навантаження: ' + take.навантаження);
+ok(take.взяв && take.стан === 'work' && take.шар === 'design',
+  'дизайнер бере вільне замовлення сам — і воно одразу в роботі',
+  'самостійне взяття не спрацювало: ' + JSON.stringify(take));
+ok(!take.відмова, 'чуже замовлення взяти не можна', 'забрали чужу роботу');
+ok(take.повний,
+  'на одинадцятому система зупиняє: черга, якої не видно, нікому не допомагає',
+  'межа не спрацювала');
+ok(take.післяЗдачі,
+  'здав котресь — місце звільнилось',
+  'після здачі місце не звільнилось');
+ok(take.навантаження === take.межа,
+  'навантаження рахується по пошті, і регістр не заважає',
+  'навантаження порахувалось як ' + take.навантаження);
+
+console.log('');
+console.log('═══ ТЗ І ВКЛАДЕННЯ ═══');
+const brief = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const job = D.emptyJob('1842');
+  const o = { orderId:'1842', items:[] };
+  D.briefSet(job, 'mgr@lq', 'Логотип у два кольори, приклад у вкладенні');
+  D.briefPic(job, 'mgr@lq', { name:'ref.png', url:'u1' });
+  D.briefPic(job, 'mgr@lq', { name:'ref2.png', url:'u2' });
+  D.briefPicDel(job, 0);
+  const t = D.taskAdd(job, o, 'mgr@lq', { kind:'fix', to:'anna@lq', text:'правка' });
+  D.taskFile(job, t.n, 'mgr@lq', { name:'shot.png', url:'u9' });
+  const порожнє = !!D.taskFile(job, t.n, 'mgr@lq', { name:'x' });
+  return { текст: job.brief.text, картинок: job.brief.pics.length,
+           лишилась: job.brief.pics[0] && job.brief.pics[0].name,
+           вкладень: D.taskAt(job, t.n).files.length, порожнє };
+});
+console.log('   ТЗ: «' + brief.текст.slice(0, 40) + '…» · референсів: ' + brief.картинок);
+ok(/два кольори/.test(brief.текст) && brief.картинок === 1 && brief.лишилась === 'ref2.png',
+  'ТЗ живе в задачі текстом і референсами, зайвий референс прибирається',
+  'ТЗ не зберігається: ' + JSON.stringify(brief));
+ok(brief.вкладень === 1 && !brief.порожнє,
+  'до доручення чіпляється скріншот, а порожнє вкладення не приймається',
+  'вкладення не працюють: ' + JSON.stringify(brief));
+
+console.log('');
 ok(!errs.length, 'без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'робота передається дорученням: адресат, причина, результат, розмова');

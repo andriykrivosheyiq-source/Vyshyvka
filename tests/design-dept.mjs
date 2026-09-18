@@ -556,6 +556,47 @@ ok(badge.післяПрийняття === badge.було,
   'прийняте лишилось у лічильнику: ' + badge.післяПрийняття);
 
 console.log('');
+console.log('═══ ПЕРЕДАЧА У ВИРОБНИЦТВО БУДИТЬ ЗАКУПІВЛЮ ═══');
+/* Передача у виробництво — це дві речі одночасно: цех отримує пакет,
+   закупівля отримує потребу. Доти друга половина трималась на памʼяті
+   менеджера, і одяг починали шукати тоді, коли цех уже стояв. */
+const supply = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const о = orders[0];
+  const job = designJobOf(о.orderId);
+  // доводимо задачу до стану «можна збирати пакет»
+  job.approvedVersion = 1;
+  (job.stitch || []).forEach(s => { s.status = 'ok'; });
+  о.tracks = Object.assign({}, о.tracks, { supply:'todo' });
+  const було = D.taskList(job).filter(t => t.kind === 'buy').length;
+  U.setTab('pack'); U.open(о.orderId);
+  U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 300));
+  const кн = document.querySelector('#dzPanel [data-do="pack"]');
+  if(кн) кн.click();
+  await new Promise(r => setTimeout(r, 700));
+  const j2 = designJobOf(о.orderId);
+  const buys = D.taskList(j2).filter(t => t.kind === 'buy');
+  // вдруге не дублюємо
+  const кн2 = document.querySelector('#dzPanel [data-do="pack"]');
+  if(кн2) кн2.click();
+  await new Promise(r => setTimeout(r, 500));
+  const buys2 = D.taskList(designJobOf(о.orderId)).filter(t => t.kind === 'buy');
+  return { було, стало: buys.length, вдруге: buys2.length,
+           текст: (buys[0] && buys[0].text || '').slice(0, 60),
+           кому: !!(buys[0] && buys[0].to) };
+});
+console.log('   доручень на закупівлю: ' + supply.було + ' → ' + supply.стало +
+            ' (після повторного натиску ' + supply.вдруге + ')');
+ok(supply.стало === supply.було + 1 && supply.кому,
+  'зібрали пакет — закупівля одразу отримала доручення з адресатом',
+  'закупівлю не попередили: ' + JSON.stringify(supply));
+ok(supply.вдруге === supply.стало,
+  'удруге те саме доручення не видається — нагадувати про зроблене означає ' +
+    'привчити не читати нагадувань',
+  'доручення продублювалось');
+
+console.log('');
 console.log('═══ КОЖЕН БАЧИТЬ СВОЇ ДОШКИ ═══');
 /* Дошки чужих відділів людині не показуємо — не тому, що таємниця, а тому,
    що зайва вкладка колись буде натиснута замість потрібної. Хто веде
