@@ -460,8 +460,13 @@ else {
   /* Дощок шість: пʼять відділових плюс «Доручення» — вона стоїть першою,
      бо людина відкриває відділ не щоб подивитись на дошку, а щоб дізнатись,
      що їй робити зараз. */
-  ok(ui.shown === 'block' && ui.tabs.length === 6 && ui.tabs[0] === 'Доручення',
-    'розділ відкривається, і першою стоїть дошка доручень',
+  /* Сім дощок. «Доручення» першою — людина відкриває відділ, щоб дізнатись,
+     що їй робити зараз. Далі «Замовлення» — управлінський ланцюг на весь
+     шлях; і вже за ними робочі дошки відділів зі своїми станами. */
+  ok(ui.shown === 'block' && ui.tabs.length === 8 &&
+     ui.tabs[0] === 'Доручення' && ui.tabs[1] === 'Замовлення' &&
+     ui.tabs.indexOf('Закупівля') > 0,
+    'розділ відкривається: доручення, ланцюг замовлення й дошка кожного відділу',
     'розділ не зібрався: ' + JSON.stringify(ui.tabs));
   ok(ui.cols.length === 7 && /Перевірка ТЗ/.test(ui.cols.join(' ')),
     'черга відділу починається з перевірки ТЗ',
@@ -549,6 +554,46 @@ ok(badge.стало === badge.було + 1 && badge.напис === String(badge.
 ok(badge.післяПрийняття === badge.було,
   'прийняте доручення з числа зникає — історія не має щодня нагадувати про себе',
   'прийняте лишилось у лічильнику: ' + badge.післяПрийняття);
+
+console.log('');
+console.log('═══ КОЖЕН БАЧИТЬ СВОЇ ДОШКИ ═══');
+/* Дошки чужих відділів людині не показуємо — не тому, що таємниця, а тому,
+   що зайва вкладка колись буде натиснута замість потрібної. Хто веде
+   відділ, бачить усе: це і є його робота. */
+const seen = await p.evaluate(async () => {
+  const U = window.LQDesign.ui;
+  const back = contentData.team;
+  const тест = async role => {
+    contentData.team = [{ email: myEmail(), name:'Х', role,
+      acc:{ ui:'designer', dirs:['b2b'], nav:['today','design'], boards:['design'], see:[], can:[] } }];
+    U.setTab('tasks');
+    U.render(document.getElementById('dzRoot'));
+    await new Promise(r => setTimeout(r, 250));
+    return [...document.querySelectorAll('#dzRoot .dz-tab')].map(x => x.textContent.trim());
+  };
+  const дизайнер = await тест('designer');
+  const вишивка  = await тест('embroidery');
+  const закупник = await тест('supply');
+  const шеф      = await тест('designmgr');
+  contentData.team = back;
+  U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 250));
+  return { дизайнер, вишивка, закупник, шеф };
+});
+console.log('   дизайнер: ' + seen.дизайнер.join(' · '));
+console.log('   закупник: ' + seen.закупник.join(' · '));
+ok(seen.дизайнер.join() === 'Доручення,Макети',
+  'графічний дизайнер бачить свої доручення й свої макети — і більше нічого',
+  'дизайнеру видно зайве: ' + seen.дизайнер.join(' · '));
+ok(seen.закупник.join() === 'Доручення,Закупівля',
+  'закупник бачить доручення й закупівлю — ні макетів, ні цеху',
+  'закупнику видно зайве: ' + seen.закупник.join(' · '));
+ok(seen.вишивка.join() === 'Доручення,Вишивка',
+  'вишивальний дизайнер — свою дошку',
+  'вишивальнику видно зайве: ' + seen.вишивка.join(' · '));
+ok(seen.шеф.length === 8,
+  'а той, хто веде відділ, бачить увесь ланцюг — це і є його робота',
+  'керівнику дощок бракує: ' + seen.шеф.join(' · '));
 
 const roles = await p.evaluate(() => {
   const src = document.documentElement.innerHTML;

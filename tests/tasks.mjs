@@ -212,6 +212,92 @@ else {
 }
 
 console.log('');
+console.log('═══ ЛАНЦЮГ: ДЕ ЗАМОВЛЕННЯ ЗАРАЗ ═══');
+/* Колонка рахується, а не ставиться руками. Руками поставлений стан рано чи
+   пізно розходиться з тим, що насправді зроблено, — і дошка починає брехати
+   саме тоді, коли на неї найбільше дивляться. */
+const chain = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const job = () => D.emptyJob('1842');
+  const ord = t => ({ orderId:'1842', items:[], tracks:t || {} });
+  const j0 = job();
+  const j1 = job(); j1.state = 'design';
+  const j2 = job(); j2.state = 'client';
+  const j3 = job(); j3.approvedVersion = 2;
+  j3.stitch = [{ key:'0:front', status:'digit' }];
+  const j4 = job(); j4.approvedVersion = 2;
+  j4.stitch = [{ key:'0:front', status:'ok' }];
+  return {
+    нове:      D.chainAt(j0, ord()),
+    дизайн:    D.chainAt(j1, ord()),
+    клієнт:    D.chainAt(j2, ord()),
+    вишивка:   D.chainAt(j3, ord()),
+    виробн:    D.chainAt(j4, ord()),
+    контроль:  D.chainAt(j4, ord({ prod:'done' })),
+    доВідпр:   D.chainAt(j4, ord({ prod:'done', qc:'ok' })),
+    відпр:     D.chainAt(j4, ord({ prod:'done', qc:'ok', ship:'sent' })),
+    брак:      D.chainAt(j4, ord({ prod:'done', qc:'bad' })),
+    колонок:   D.CHAIN.length,
+    господар:  D.CHAIN.every(c => !!D.CHAIN_WHO[c.key])
+  };
+});
+console.log('   ' + ['нове','дизайн','клієнт','вишивка','виробн','контроль','доВідпр','відпр']
+  .map(k => chain[k]).join(' → '));
+ok(chain.нове === 'new' && chain.дизайн === 'design' && chain.клієнт === 'client',
+  'до погодження клієнтом замовлення йде дизайнерськими колонками',
+  'початок ланцюга не той: ' + JSON.stringify(chain));
+ok(chain.вишивка === 'stitch' && chain.виробн === 'prod',
+  'погоджена графіка з недоробленими файлами — це «вишивка», а не «виробництво»: ' +
+    'саме тут найчастіше й губився час',
+  'вишивка й виробництво переплутані');
+ok(chain.контроль === 'qc' && chain.доВідпр === 'ready' && chain.відпр === 'shipped',
+  'далі — контроль, до відправки й відправлено',
+  'кінець ланцюга не той: ' + JSON.stringify(chain));
+ok(chain.брак === 'qc',
+  'бракована партія лишається в контролі, а не їде далі',
+  'брак проскочив у: ' + chain.брак);
+ok(chain.колонок === 8 && chain.господар,
+  'вісім колонок, і в кожної написано, хто тримає замовлення',
+  'колонки без господаря');
+
+console.log('');
+console.log('═══ ЦЕХ І ЗАКУПІВЛЯ: СВОЇ СТАНИ ═══');
+/* Вісім станів цеху з ТЗ. Вони не заміняють треки в картці: трек каже, що
+   зроблено, а дошка — що робити. «Очікуємо одяг» стоїть окремо навмисно:
+   доти замовлення, яке чекає постачальника, виглядало як таке, за яке
+   просто ще не взялись. */
+const shop = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const j = D.emptyJob('1842');
+  const o = t => ({ orderId:'1842', items:[], tracks: t || {} });
+  return {
+    нове:    D.prodAt(j, o()),
+    чекає:   D.prodAt(j, o({ supply:'sent' })),
+    готово:  D.prodAt(j, o({ supply:'got', prod:'ready' })),
+    станки:  D.prodAt(j, o({ supply:'got', prod:'work' })),
+    контр:   D.prodAt(j, o({ prod:'done' })),
+    погодж:  D.prodAt(j, o({ prod:'done', qc:'check' })),
+    можна:   D.prodAt(j, o({ prod:'done', qc:'ok' })),
+    пішло:   D.prodAt(j, o({ prod:'done', qc:'ok', ship:'sent' })),
+    цех: D.PROD.length, закуп: D.SUPPLY.map(x => x.key).join(','),
+    сУ: D.supplyAt(o({ supply:'part' })), сНема: D.supplyAt(o())
+  };
+});
+console.log('   ' + ['нове','чекає','готово','станки','контр','погодж','можна','пішло']
+  .map(k => shop[k]).join(' → '));
+ok(shop.цех === 8 && shop.нове === 'new' && shop.чекає === 'wait' &&
+   shop.станки === 'run' && shop.пішло === 'sent',
+  'у цеху вісім станів, і замовлення проходить їх по порядку',
+  'стани цеху не ті: ' + JSON.stringify(shop));
+ok(shop.погодж === 'appr',
+  'фото є, слова менеджера ще немає — окрема колонка, а не «контроль»: ' +
+    'інакше цех вважає роботу зданою, а вона висить',
+  'очікування погодження не виділилось: ' + shop.погодж);
+ok(shop.закуп === 'todo,sent,part,got' && shop.сУ === 'part' && shop.сНема === 'todo',
+  'у закупівлі свої чотири стани, і жодного зайвого',
+  'дошка закупівлі не та: ' + shop.закуп);
+
+console.log('');
 ok(!errs.length, 'без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'робота передається дорученням: адресат, причина, результат, розмова');
