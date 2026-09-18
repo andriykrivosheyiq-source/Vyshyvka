@@ -138,6 +138,167 @@
         return !!(o.dueAt || o.deadlineDays || o.offerDays); } }
   ];
 
+  /* ══════════ ДОРУЧЕННЯ ══════════
+     Доступами процес не описати. Доступ відповідає на питання «що я бачу»,
+     а тут хтось комусь ДАЄ РОБОТУ: у неї є адресат, строк, результат і
+     розмова навколо неї.
+
+     Замовлення лишається одне — це факт: клієнт, товар, розміри, історія.
+     Доручення — це робота всередині нього, і саме вона лежить на дошках
+     виконавців. Дизайнер бачить не «замовлення №1842», а «правку №3» у
+     ньому; замовлення під нею — контекст, не задача.
+
+     Найважливіше поле — `closedBy`: чим саме доручення закрили. Не «десь
+     зʼявився V3», а «V3 закрив правку №3». Через рік видно не лише що
+     робили, а й навіщо.
+
+     Час між станами не рахуємо окремо: він уже є в самих позначках. */
+  var TASK_KINDS = [
+    { key:'draw',   label:'Намалювати макет',      to:'graphic' },
+    { key:'fix',    label:'Правка макета',          to:'graphic' },
+    { key:'digit',  label:'Оцифрувати',             to:'stitch'  },
+    { key:'refix',  label:'Правка вишивального файлу', to:'stitch' },
+    { key:'buy',    label:'Закупити одяг',          to:'supply'  },
+    { key:'make',   label:'Пошити тираж',           to:'prod'    },
+    { key:'photo',  label:'Фото готової партії',    to:'prod'    }
+  ];
+  /* Причина повернення — це вимірювання, а не ввічливість. Поки вона живе
+     в чаті, питання «де ми найчастіше втрачаємо час» не має відповіді. */
+  var TASK_WHY = [
+    { key:'client',   label:'Клієнтська правка' },
+    { key:'designer', label:'Помилка дизайнера' },
+    { key:'tech',     label:'Технічна проблема' },
+    { key:'prod',     label:'Помилка виробництва' },
+    { key:'brief',    label:'Неповне ТЗ' },
+    { key:'other',    label:'Інше' }
+  ];
+  var TASK_FLOW = [
+    { key:'new',      label:'Видано',    color:'gray'   },
+    { key:'work',     label:'У роботі',  color:'blue'   },
+    { key:'done',     label:'Виконано',  color:'violet' },
+    { key:'accepted', label:'Прийнято',  color:'green', done:true },
+    { key:'returned', label:'Повернуто', color:'amber'  }
+  ];
+
+  function taskList(job){
+    if(!job) return [];
+    if(!Array.isArray(job.tasks)) job.tasks = [];
+    return job.tasks;
+  }
+  function taskAt(job, n){
+    var list = taskList(job);
+    for(var i = 0; i < list.length; i++) if(list[i].n === +n) return list[i];
+    return null;
+  }
+  function taskKind(key){
+    for(var i = 0; i < TASK_KINDS.length; i++) if(TASK_KINDS[i].key === key) return TASK_KINDS[i];
+    return null;
+  }
+  /* Видати доручення. Без адресата не видаємо: «відділ» — не людина, і
+     питати з відділу нема з кого. Без тексту теж: доручення, зміст якого
+     треба вгадувати, повернеться правкою. */
+  function taskAdd(job, o, by, opts){
+    opts = opts || {};
+    var kind = taskKind(opts.kind);
+    if(!kind) return null;
+    if(!opts.to) return null;
+    var txt = String(opts.text || '').trim();
+    if(!txt && kind.key !== 'digit' && kind.key !== 'buy' && kind.key !== 'make') return null;
+    var list = taskList(job);
+    var n = 0;
+    list.forEach(function(t){ if(t.n > n) n = t.n; });
+    var t = {
+      n: n + 1, kind: kind.key, role: kind.to,
+      to: String(opts.to || ''), by: String(by || ''),
+      at: nowIso(), due: String(opts.due || ''),
+      why: String(opts.why || ''),
+      text: txt, files: (opts.files || []).slice(0, 8),
+      ver: +opts.ver || 0,
+      state: 'new', thread: [],
+      startedAt: '', doneAt: '', closedAt: '', closedBy: ''
+    };
+    list.push(t);
+    ds(job, 'task-add', { n: t.n, kind: t.kind, to: t.to, by: by, why: t.why || undefined });
+    return t;
+  }
+  /* Узяв у роботу. Окремий стан, а не дрібниця: різниця між «лежить у
+     черзі» і «людина сидить над цим» — це вся відповідь на питання, чому
+     замовлення стоїть. */
+  function taskStart(job, n, by){
+    var t = taskAt(job, n);
+    if(!t || (t.state !== 'new' && t.state !== 'returned')) return null;
+    t.state = 'work';
+    if(!t.startedAt) t.startedAt = nowIso();
+    ds(job, 'task-start', { n: t.n, by: by });
+    return t;
+  }
+  /* Виконав. `closedBy` — те, чим закрили: версія макета, файл, фото.
+     Без нього доручення закривається словом «готово», яке ні до чого не
+     привʼязане. */
+  function taskDone(job, n, by, closedBy){
+    var t = taskAt(job, n);
+    if(!t || (t.state !== 'work' && t.state !== 'new' && t.state !== 'returned')) return null;
+    t.state = 'done';
+    t.doneAt = nowIso();
+    t.closedBy = String(closedBy || '');
+    ds(job, 'task-done', { n: t.n, by: by, closedBy: t.closedBy || undefined });
+    return t;
+  }
+  function taskAccept(job, n, by){
+    var t = taskAt(job, n);
+    if(!t || t.state !== 'done') return null;
+    t.state = 'accepted';
+    t.closedAt = nowIso();
+    ds(job, 'task-accept', { n: t.n, by: by });
+    return t;
+  }
+  /* Повернути. Причина обовʼязкова — інакше повернення не відрізнити від
+     «просто не сподобалось», і в аналітиці такий запис нічого не важить. */
+  function taskReturn(job, n, by, why, note){
+    var t = taskAt(job, n);
+    if(!t || t.state !== 'done') return null;
+    if(!why) return null;
+    t.state = 'returned';
+    t.why = String(why);
+    t.doneAt = '';
+    taskSay(job, n, by, String(note || ''), true);
+    ds(job, 'task-return', { n: t.n, by: by, why: t.why });
+    return t;
+  }
+  /* Розмова всередині доручення. Саме тут виконавець перепитує — і саме
+     через це доручення перестає бути листом без відповіді. */
+  function taskSay(job, n, by, text, quiet){
+    var t = taskAt(job, n);
+    if(!t) return null;
+    var txt = String(text || '').trim();
+    if(!txt) return null;
+    if(!Array.isArray(t.thread)) t.thread = [];
+    t.thread.push({ by: String(by || ''), at: nowIso(), t: txt });
+    if(t.thread.length > 200) t.thread = t.thread.slice(-200);
+    if(!quiet) ds(job, 'task-say', { n: t.n, by: by });
+    return t;
+  }
+  /* Скільки доручення лежить у виконавця. Це і є SLA: рахувати окремо
+     нема чого, позначки вже стоять. */
+  function taskAge(t, now){
+    if(!t) return 0;
+    var from = t.startedAt || t.at;
+    var to = t.closedAt || t.doneAt || now || nowIso();
+    var a = Date.parse(from), b = Date.parse(to);
+    return (isFinite(a) && isFinite(b) && b > a) ? Math.round((b - a) / 60000) : 0;
+  }
+  function taskOpen(job){
+    return taskList(job).filter(function(t){ return t.state !== 'accepted'; });
+  }
+  /* Доручення однієї людини. Пошта, а не роль: питають із людини. */
+  function tasksOf(job, email){
+    var e = String(email || '').trim().toLowerCase();
+    if(!e) return [];
+    return taskList(job).filter(function(t){
+      return String(t.to || '').trim().toLowerCase() === e;
+    });
+  }
+
   function stepLabel(list, key){
     for(var i = 0; i < list.length; i++) if(list[i].key === key) return list[i].label;
     return key || '';
@@ -161,6 +322,8 @@
       client: { sentAt:'', sentBy:'', decidedAt:'', decision:'', reasons:[], note:'', version:0 },
       approvedVersion: 0,
       stitch: [],
+      /* Доручення — робота всередині замовлення. Див. блок ДОРУЧЕННЯ. */
+      tasks: [],
       pack: null,
       ds: []
     };
@@ -212,6 +375,9 @@
      видаляються: файл, за який заплатили, не має зникати з історії. */
   function ensure(job, order){
     if(!job) job = emptyJob(order && order.orderId);
+    /* Задача, заведена до появи доручень, приходить без цього поля. Краще
+       дописати його тут, ніж класти `job.tasks || []` у двадцяти місцях. */
+    if(!Array.isArray(job.tasks)) job.tasks = [];
     var want = stitchKeys(order), by = {};
     (job.stitch || []).forEach(function(s){ by[s.key] = s; });
     var out = [];
@@ -568,6 +734,10 @@
     QUEUE: QUEUE, GRAPHIC: GRAPHIC, STITCH: STITCH,
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
+    TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
+    taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
+    taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
+    taskSay: taskSay, taskAge: taskAge, taskOpen: taskOpen, tasksOf: tasksOf,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
     needsStitch: needsStitch, briefMissing: briefMissing,
     ds: ds, verNew: verNew, verCur: verCur, verAt: verAt, verLocked: verLocked,
