@@ -261,6 +261,43 @@ ok(chain.колонок === 8 && chain.господар,
   'колонки без господаря');
 
 console.log('');
+console.log('═══ ЦЕХ І ЗАКУПІВЛЯ: СВОЇ СТАНИ ═══');
+/* Вісім станів цеху з ТЗ. Вони не заміняють треки в картці: трек каже, що
+   зроблено, а дошка — що робити. «Очікуємо одяг» стоїть окремо навмисно:
+   доти замовлення, яке чекає постачальника, виглядало як таке, за яке
+   просто ще не взялись. */
+const shop = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const j = D.emptyJob('1842');
+  const o = t => ({ orderId:'1842', items:[], tracks: t || {} });
+  return {
+    нове:    D.prodAt(j, o()),
+    чекає:   D.prodAt(j, o({ supply:'sent' })),
+    готово:  D.prodAt(j, o({ supply:'got', prod:'ready' })),
+    станки:  D.prodAt(j, o({ supply:'got', prod:'work' })),
+    контр:   D.prodAt(j, o({ prod:'done' })),
+    погодж:  D.prodAt(j, o({ prod:'done', qc:'check' })),
+    можна:   D.prodAt(j, o({ prod:'done', qc:'ok' })),
+    пішло:   D.prodAt(j, o({ prod:'done', qc:'ok', ship:'sent' })),
+    цех: D.PROD.length, закуп: D.SUPPLY.map(x => x.key).join(','),
+    сУ: D.supplyAt(o({ supply:'part' })), сНема: D.supplyAt(o())
+  };
+});
+console.log('   ' + ['нове','чекає','готово','станки','контр','погодж','можна','пішло']
+  .map(k => shop[k]).join(' → '));
+ok(shop.цех === 8 && shop.нове === 'new' && shop.чекає === 'wait' &&
+   shop.станки === 'run' && shop.пішло === 'sent',
+  'у цеху вісім станів, і замовлення проходить їх по порядку',
+  'стани цеху не ті: ' + JSON.stringify(shop));
+ok(shop.погодж === 'appr',
+  'фото є, слова менеджера ще немає — окрема колонка, а не «контроль»: ' +
+    'інакше цех вважає роботу зданою, а вона висить',
+  'очікування погодження не виділилось: ' + shop.погодж);
+ok(shop.закуп === 'todo,sent,part,got' && shop.сУ === 'part' && shop.сНема === 'todo',
+  'у закупівлі свої чотири стани, і жодного зайвого',
+  'дошка закупівлі не та: ' + shop.закуп);
+
+console.log('');
 ok(!errs.length, 'без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'робота передається дорученням: адресат, причина, результат, розмова');

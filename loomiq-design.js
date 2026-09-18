@@ -151,6 +151,52 @@
      Порядок перевірок зворотний — від кінця до початку. Так замовлення
      завжди стоїть у найдальшій колонці, якої воно справді досягло: інакше
      воно застрягало б у першій, де щось лишилось незакритим. */
+  /* Виробнича дошка — вісім станів із ТЗ, рівно в тому порядку, у якому
+     цех їх і проживає. Вони не заміняють треки в картці: трек каже, що
+     зроблено, а дошка — що робити. Стан тут теж рахується з фактів.
+
+     «Очікуємо одяг» стоїть раніше за «готово до виробництва» навмисно:
+     доти обидва стани були одним, і замовлення, яке чекає постачальника,
+     виглядало як таке, за яке просто ще не взялись. */
+  var PROD = [
+    { key:'new',    label:'Нове',                color:'gray'   },
+    { key:'wait',   label:'Очікуємо одяг',       color:'amber'  },
+    { key:'ready',  label:'Готово до роботи',    color:'cyan'   },
+    { key:'run',    label:'На станках',          color:'blue'   },
+    { key:'qc',     label:'Контроль якості',     color:'violet' },
+    { key:'appr',   label:'Чекає погодження',    color:'amber'  },
+    { key:'ship',   label:'Можна відправляти',   color:'cyan'   },
+    { key:'sent',   label:'Відправлено',         color:'green', done:true }
+  ];
+  function prodAt(job, o){
+    if(trk(o, 'ship') === 'sent') return 'sent';
+    if(trk(o, 'qc') === 'ok') return 'ship';
+    /* Фото є, слова менеджера ще немає — окрема колонка, а не «контроль».
+       Інакше цех вважає роботу зданою, а вона висить. */
+    if(trk(o, 'qc') === 'check') return 'appr';
+    if(trk(o, 'qc') === 'bad') return 'qc';
+    if(trk(o, 'prod') === 'done') return 'qc';
+    if(trk(o, 'prod') === 'work') return 'run';
+    if(trk(o, 'prod') === 'ready') return 'ready';
+    var sup = trk(o, 'supply');
+    if(sup && sup !== 'got') return 'wait';
+    return 'new';
+  }
+  /* Дошка закупівлі. Чотири стани з ТЗ і жодного зайвого: закупникові не
+     потрібні ні макети, ні виробництво — йому потрібно знати, що замовити
+     й чи приїхало. */
+  var SUPPLY = [
+    { key:'todo',   label:'Треба замовити',      color:'gray'   },
+    { key:'sent',   label:'Замовлено',           color:'blue'   },
+    { key:'part',   label:'У дорозі',            color:'amber'  },
+    { key:'got',    label:'Отримано',            color:'green', done:true }
+  ];
+  function supplyAt(o){
+    var v = trk(o, 'supply');
+    for(var i = 0; i < SUPPLY.length; i++) if(SUPPLY[i].key === v) return v;
+    return 'todo';
+  }
+
   var CHAIN = [
     { key:'new',     label:'Нове',           color:'gray'   },
     { key:'design',  label:'Дизайн',         color:'blue'   },
@@ -814,6 +860,7 @@
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt,
+    PROD: PROD, prodAt: prodAt, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
     taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
@@ -880,7 +927,8 @@
     { key:'graphic', label:'Макети',   role:'designer'  },
     { key:'stitch',  label:'Вишивка',  role:'embroidery'},
     { key:'qa',      label:'QA',       role:'qa'        },
-    { key:'pack',    label:'Пакети',   role:'production'}
+    { key:'pack',    label:'Виробництво', role:'production'},
+    { key:'supply',  label:'Закупівля',   role:'supply'    }
   ];
   var tab = 'queue', openKey = '';
 
@@ -1435,23 +1483,53 @@
       cards = stitchCards('').filter(function(c){
         return c.step === 'qa' || c.step === 'revision' || c.step === 'ok'; }); }
     else if(tab === 'pack'){
-      steps = [{ key:'wait', label:'Ще не готові', color:'gray' },
-               { key:'ready', label:'Готові збирати', color:'cyan' },
-               { key:'done', label:'Передано', color:'green', done:true }];
+      /* Вісім станів цеху замість трьох про пакети. Пакет нікуди не подівся
+         — він і далі збирається в панелі, — але дошка тепер каже те, що
+         справді цікавить біля машини: що шити зараз і чого чекаємо. */
+      steps = D.PROD;
       cards = U.pairs().map(function(p){
         var r = D.packReady(p.job, p.o);
-        return { id: p.o.orderId, step: p.job.pack ? 'done' : (r.ok ? 'ready' : 'wait'),
+        var col = D.prodAt(p.job, p.o);
+        return { id: p.o.orderId, step: col,
           title: '#' + p.o.orderId,
           sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                  .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
-          foot: r.ok ? 'усе на місці' : r.why[0] || '' };
+          foot: r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '') };
+      });
+    }
+    else if(tab === 'supply'){
+      steps = D.SUPPLY;
+      cards = U.pairs().map(function(p){
+        var q = 0;
+        (p.o.items || []).forEach(function(it){
+          if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
+        return { id: p.o.orderId, step: D.supplyAt(p.o),
+          title: '#' + p.o.orderId,
+          sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+                 .map(function(i){ return [i.name, i.color].filter(Boolean).join(' · '); })[0] || '',
+          foot: q ? q + ' шт' : '' };
       });
     }
     else { steps = D.QUEUE; cards = queueCards(); }
 
     var openId = U.tabOpen ? U.tabOpen() : '';
+    /* Дошки чужих відділів людині не показуємо. Не тому, що таємниця, — а
+       тому, що зайва вкладка на екрані колись буде натиснута замість
+       потрібної, і людина півдня дивитиметься не туди. Хто веде відділ,
+       бачить усе: це і є його робота. */
+    var role = (U.host.role && U.host.role()) || '';
+    var full = !role || role === 'owner' || role === 'manager' || role === 'designmgr';
+    var tabs = U.TABS.filter(function(t){
+      return full || t.role === '*' || t.role === role;
+    });
+    if(!tabs.length) tabs = U.TABS.slice(0, 1);
+    if(!tabs.some(function(t){ return t.key === tab; })){
+      tab = tabs[0].key;
+      U.setTab(tab);
+      if(tab === 'tasks'){ steps = D.TASK_FLOW; cards = U.taskCards(false); }
+    }
     root.innerHTML =
-      '<div class="dz-tabs">' + U.TABS.map(function(t){
+      '<div class="dz-tabs">' + tabs.map(function(t){
         return '<button class="dz-tab' + (t.key === tab ? ' on' : '') +
                '" data-tab="' + t.key + '">' + esc(t.label) + '</button>';
       }).join('') + '</div>' +
@@ -1530,6 +1608,29 @@
     return h + '</div>';
   }
 
+  /* Панель закупівлі. Рівно те, що замовляють: що, якого кольору, скільки
+     й до якого числа. Ні макетів, ні цін продажу, ні клієнта — закупникові
+     вони не потрібні, а зайве поле на екрані колись переплутають. */
+  function supplyPanel(p){
+    var o = p.o;
+    var rows = (o.items || []).filter(function(it){ return (it.kind || 'main') !== 'reco'; });
+    return '<div class="dz-panel-h">#' + esc(o.orderId) +
+        '<span class="dz-state">закупівля</span>' +
+        '<button class="dz-x" data-close>×</button></div>' +
+      '<div class="dz-panel-b">' +
+        (o.dueAt ? '<div class="dz-row"><span>Потрібно до</span><b>' +
+                   esc(String(o.dueAt).slice(0, 10)) + '</b></div>' : '') +
+        rows.map(function(it){
+          return '<div class="dz-row"><span>' + esc(it.name || 'Виріб') + '</span><b>' +
+            esc([it.color, (+it.qty || 0) + ' шт'].filter(Boolean).join(' · ')) + '</b></div>' +
+            (it.sizes ? '<div class="dz-row"><span>розміри</span><b>' +
+                        esc(it.sizes) + '</b></div>' : '');
+        }).join('') +
+        '<div class="dz-note">Стан закупівлі ведеться в картці замовлення — ' +
+        'тут видно, що саме замовляти.</div>' +
+      '</div>';
+  }
+
   function panelFor(tab, id){
     /* У ланцюга власної панелі немає: відкрита картка показує ту саму
        чергу відділу. Дублювати те саме двома панелями означало б рано чи
@@ -1556,6 +1657,7 @@
     var pr = U.pairOf(id);
     if(!pr) return '';
     if(tab === 'graphic') return graphicPanel(pr);
+    if(tab === 'supply') return supplyPanel(pr);
     if(tab === 'pack') return packPanel(pr);
     return queuePanel(pr);
   }
