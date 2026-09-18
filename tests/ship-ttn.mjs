@@ -266,6 +266,12 @@ const gate = await p2.evaluate(async () => {
   const o = orders[0];
   o.ttn = ''; o.ttnAt = '';
   o.tracks = Object.assign({}, o.tracks, { qc:'check' });
+  /* Ворота — частина НОВОГО ланцюга, тож спершу заводимо замовлення в
+     відділ. Без цього вони не діють, і це навмисно: у B2B інший принцип
+     роботи, і правило звідси не має його мовчки міняти. */
+  const поза = shipGate(o).ok;
+  designJobs[o.orderId] = Object.assign(LQDesign.emptyJob(o.orderId),
+    { graphic: { status:'work', assignee:'anna@lq', due:'', events:[] } });
   const рано = shipGate(o);
   await shipSetTtn(o, '20450000000001');
   const післяРано = o.ttn || '';
@@ -274,11 +280,14 @@ const gate = await p2.evaluate(async () => {
   o.tracks.qc = trackDoneKey('qc');
   const можна = shipGate(o);
   await shipSetTtn(o, '20450000000002');
-  return { рано: рано.ok, чому: рано.why, післяРано,
+  return { поза, рано: рано.ok, чому: рано.why, післяРано,
            брак: брак.ok, чомуБрак: брак.why,
            можна: можна.ok, номер: o.ttn || '' };
 });
 console.log('   до погодження: ' + gate.чому + ' · брак: ' + gate.чомуБрак);
+ok(gate.поза,
+  'замовлення поза дизайн-відділом воріт не має — у B2B інший принцип роботи',
+  'ворота зачепили замовлення, яке відділ не веде');
 ok(!gate.рано && gate.післяРано === '',
   'поки фото не погоджене, номер накладної не записується — це заборона, ' +
     'а не порада в рядку «наступна дія»',

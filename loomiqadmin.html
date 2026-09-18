@@ -14425,8 +14425,26 @@ function shipUnits(o){
    Це не порада в рядку «наступна дія», а заборона: номер накладної просто
    не запишеться. Порада, яку можна обійти кнопкою, обходиться в перший же
    гарячий день. */
+/* Чи веде це замовлення дизайн-відділ. Не «чи існує задача» — задача
+   заводиться сама на кожне замовлення, — а чи хтось справді нею займався:
+   видав доручення, призначив дизайнера або зібрав пакет.
+
+   Це межа нового процесу. Усе інше живе за старими правилами, і чіпати їх
+   звідси не можна: там інший принцип роботи, і налаштовується він окремо. */
+function inDesignDept(o){
+  if(!o || !o.orderId) return false;
+  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+  if(!job) return false;
+  if(Array.isArray(job.tasks) && job.tasks.length) return true;
+  if(job.graphic && job.graphic.assignee) return true;
+  return !!job.pack;
+}
 function shipGate(o){
   if(!o) return { ok:false, why:'картки немає' };
+  /* Замовлення поза відділом воріт не має: вони частина нового ланцюга, а
+     не загального правила. Інакше правило, про яке домовлялись для одного
+     процесу, мовчки змінило б роботу другого. */
+  if(!inDesignDept(o)) return { ok:true, why:'' };
   const qc = trackOf(o, 'qc');
   if(qc === 'bad') return { ok:false, why:'партія в браку — спершу переробка' };
   if(!trackIsDone(o, 'qc'))
