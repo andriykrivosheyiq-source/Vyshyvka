@@ -323,14 +323,6 @@
   @media (max-width:767px){
     .topbar{display:flex;}
   }
-  /* Перемикач напряму. Два стани, обидва на видноті: людина має бачити не
-     тільки де вона, а й що є друге місце. Випадний список цього не дає. */
-  .dir-switch{display:flex;gap:3px;margin-left:14px;padding:3px;border-radius:999px;background:var(--canvas);}
-  .dir-switch button{font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-soft);
-    background:transparent;border:none;border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap;}
-  .dir-switch button.is-on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);}
-  .dir-switch:empty{display:none;}
-  @media (max-width:700px){ .dir-switch button{padding:6px 10px;font-size:12px;} }
   .topbar-brand{display:flex;align-items:center;gap:9px;}
   .topbar-brand .brand-mark{width:26px;height:26px;border-radius:7px;font-size:11px;}
   .topbar-brand b{font-size:14px;color:#fff;}
@@ -3018,9 +3010,6 @@
         <div class="brand-mark">Lq</div>
         <b>Loomiq</b>
       </div>
-      <!-- Напрям. Стоїть біля назви, а не в налаштуваннях: це не
-           налаштування, а відповідь на питання «де я зараз». -->
-      <div class="dir-switch" id="dir-switch"></div>
       <button class="hamburger" id="hamburger" aria-label="Меню">
         <span></span><span></span><span></span>
       </button>
@@ -4614,39 +4603,7 @@ const STATE_DOC = fbDb.collection('loomiq').doc('state');
 // після кількох замовлень із логотипами нові картки переставали зберігатись.
 // Одне замовлення = один документ: ліміт більше недосяжний, і збій однієї
 // картки не забирає з собою решту.
-/* ══════════ ДВА НАПРЯМИ: B2B І B2C ══════════
-   B2B — те, що працює зараз: логотипи для компаній, іменна пропозиція,
-   узгодження, тираж під замовника. B2C — інший бізнес-процес: принти,
-   фото, приватна людина замість компанії.
-
-   Тримати їх в одній воронці означало б щодня пояснювати кожному, які
-   колонки його, а які чужі. Тому замовлення лежать РІЗНИМИ колекціями, і
-   гроші рахуються по кожному напряму окремо — самі собою, бо аналітика
-   читає ті самі замовлення.
-
-   А от вхід, люди, каталог товарів і постачальники спільні: худі базове
-   чорне — це той самий виріб, кому б його не продавали, а два однакові
-   списки розійшлися б за місяць. Доступ до напряму роздається так само, як
-   доступ до дошки.
-
-   Замовлення між напрямами не переїжджають: це різні речі, а не різні
-   стани однієї. Тому кнопки переносу немає й не планується. */
-const DIRS = [
-  { id:'b2b', label:'B2B · бізнес',  col:'kanbanOrders' },
-  { id:'b2c', label:'B2C · роздріб', col:'b2cOrders' }
-];
-function dirMeta(id){ return DIRS.filter(d => d.id === id)[0] || DIRS[0]; }
-let LQ_DIR = (function(){
-  try{ const v = localStorage.getItem('lq_dir'); if(dirMeta(v).id === v) return v; }catch(e){}
-  return 'b2b';
-})();
-function ordersCol(){ return fbDb.collection(dirMeta(LQ_DIR).col); }
-/* Сумісність: старий код звертався до ORDERS_COL як до готового обʼєкта.
-   Лишаємо ім'я, але тепер це функція напряму — щоб жодне місце не читало
-   колекцію, обрану на момент завантаження сторінки. */
-const ORDERS_COL = { get onSnapshot(){ return ordersCol().onSnapshot.bind(ordersCol()); },
-                     get(){ return ordersCol().get(); },
-                     doc(id){ return ordersCol().doc(id); } };
+const ORDERS_COL = fbDb.collection('kanbanOrders');
 /* ============================================================
    САЙТИ. Кожен сайт має власний документ контенту, тому товари,
    фото, ціни, кейси й FAQ ніколи не змішуються між сайтами.
@@ -5068,11 +5025,11 @@ function ordersSortDesc(list){
   return list.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
 }
 // Жива синхронізація Канбану між вкладками й пристроями.
-let ordersWatching = false, ordersUnwatch = null;
+let ordersWatching = false;
 function watchOrders(){
   if(ordersWatching) return;
   ordersWatching = true;
-  ordersUnwatch = ordersCol().onSnapshot(function(snap){
+  ORDERS_COL.onSnapshot(function(snap){
     const list = [];
     const seen = new Map();
     snap.forEach(d=>{
@@ -5089,48 +5046,6 @@ function watchOrders(){
     ordersWatching = false;
     console.error('orders listen failed', e);
   });
-}
-/* ── Перемикання напряму ──────────────────────────────────────────────
-   Напрям міняє те, ЗВІДКИ читаються замовлення. Тому недостатньо
-   перемалювати дошку: треба відписатись від старої колекції, інакше в
-   пам'яті вкладки лежатимуть замовлення обох напрямів одночасно — і
-   перше ж збереження покладе картку не туди, де їй місце. */
-function dirsAllowed(){
-  const acc = myAcc();
-  /* Напрями роздаються так само, як дошки. Кому нічого не задано —
-     лишається той, що працює зараз: нова галочка не має відбирати доступ
-     у людини, якій його ніхто не знімав. */
-  if(!acc) return DIRS.map(d => d.id);
-  const list = Array.isArray(acc.dirs) ? acc.dirs.filter(Boolean) : null;
-  if(!list || !list.length) return ['b2b'];
-  return list.filter(id => dirMeta(id).id === id);
-}
-function setDir(id){
-  const next = dirMeta(id).id;
-  if(next === LQ_DIR) return;
-  if(dirsAllowed().indexOf(next) < 0) return;
-  LQ_DIR = next;
-  try{ localStorage.setItem('lq_dir', next); }catch(e){}
-  try{ if(ordersUnwatch) ordersUnwatch(); }catch(e){}
-  ordersUnwatch = null; ordersWatching = false;
-  orders = []; ordersSaved = new Map();
-  try{ closeOrderDrawer(); }catch(e){}
-  renderDirSwitch();
-  try{ renderBoard(); }catch(e){}
-  watchOrders();
-}
-function renderDirSwitch(){
-  const box = document.getElementById('dir-switch');
-  if(!box) return;
-  const allow = dirsAllowed();
-  /* Один напрям — перемикати нема чого: кнопка, яка нічого не робить,
-     гірша за її відсутність. */
-  if(allow.length < 2){ box.innerHTML = ''; return; }
-  box.innerHTML = DIRS.filter(d => allow.indexOf(d.id) >= 0).map(d =>
-    '<button type="button" data-dir="' + escA(d.id) + '"' +
-    (d.id === LQ_DIR ? ' class="is-on"' : '') + '>' + escA(d.label) + '</button>').join('');
-  box.querySelectorAll('[data-dir]').forEach(b =>
-    b.addEventListener('click', () => setDir(b.dataset.dir)));
 }
 async function loadOrders(){
   const snap = await ORDERS_COL.get();
@@ -19785,8 +19700,6 @@ const ZONE_CAN = [
 /* Коротке пояснення до самої зони: чотири блоки відповідають на чотири різні
    питання, і без підпису вони зливаються в одну купу галочок. */
 const ZONE_ABOUT = {
-  dirs: 'B2B і B2C — різні бізнес-процеси з різними замовленнями. Кому не ' +
-        'відкрито жодного, лишається B2B.',
   nav:    'Куди людина заходить: розділи в лівому меню.',
   boards: 'Які дошки Канбану їй показувати.',
   see:    'Що з картки замовлення їй видно.',
@@ -19797,10 +19710,10 @@ function zoneBoards(){
   return [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
 }
 const ROLE_PRESET = {
-  owner:      { ui:'manager',    nav:'*', boards:'*', dirs:['b2b','b2c'],
+  owner:      { ui:'manager',    nav:'*', boards:'*',
                 see:['client','chat','cost'], can:['edit','pay','del','setup'] },
   manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
-                boards:'*', dirs:['b2b','b2c'], see:['client','chat'], can:['edit','pay'] },
+                boards:'*', see:['client','chat'], can:['edit','pay'] },
   designer:   { ui:'designer',   nav:['today','board','design'], boards:['design'], see:[], can:[] },
   /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
@@ -19811,7 +19724,7 @@ const ROLE_PRESET = {
      нікому, хто не ухвалює рішення про ціну закупівлі, а зайве поле на
      екрані колись переплутають із потрібним. */
   designmgr:  { ui:'manager',    nav:['today','board','design','calc','photos'], boards:'*',
-                dirs:['b2b','b2c'], see:['client','chat'], can:['edit','pay'] },
+                see:['client','chat'], can:['edit','pay'] },
   /* Закупівля бачить рівно свою дошку: що, якого кольору, яких розмірів,
      скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
   supply:     { ui:'production', nav:['today','board'], boards:['supply'], see:[], can:[] },
@@ -19832,11 +19745,7 @@ const ROLE_PRESET = {
 const ZONE_NEW = ['design'];
 function presetOf(role){
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
-  /* Напрями за замовчуванням — лише B2B: він працює сьогодні. Доступ до
-     B2C видається руками, як і будь-який інший, — інакше новий напрям
-     відкрився б усім у той день, коли його завели. */
-  return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice(),
-           dirs: (p.dirs || ['b2b']).slice() };
+  return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
 }
 /* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
 function accOf(member){
@@ -19858,8 +19767,7 @@ function accOf(member){
     nav:    nav,
     boards: pick(a.boards, base.boards),
     see:    pick(a.see,    base.see),
-    can:    pick(a.can,    base.can),
-    dirs:   pick(a.dirs,   base.dirs)
+    can:    pick(a.can,    base.can)
   };
 }
 /* ══════════ Режим «Дивитись як» ══════════
@@ -20132,15 +20040,6 @@ function applyNoAccess(){
 }
 function applyRoleUi(){
   if(!applyNoAccess()) return;
-  /* Напрям — перше, що робимо: якщо людині відкрито лише B2B, а у вкладці
-     з минулого разу лишився B2C, вона побачила б порожню дошку й вирішила,
-     що замовлення зникли. */
-  const allow = dirsAllowed();
-  if(allow.indexOf(LQ_DIR) < 0 && allow.length){
-    LQ_DIR = allow[0];
-    try{ localStorage.setItem('lq_dir', LQ_DIR); }catch(e){}
-  }
-  renderDirSwitch();
   const nav = (myAcc() || {}).nav;
   const all = nav === '*' || !Array.isArray(nav);
   let firstOk = null;
@@ -20200,7 +20099,7 @@ function myName(){ return personName(myEmail()) || 'я'; }
 function accBoxes(i, group, list, on){
   const about = ZONE_ABOUT[group] || '';
   return `<div class="tm-zone"><span class="tm-zone-t">${escapeHtml(
-    { dirs:'Напрями', nav:'Розділи', boards:'Дошки', see:'Бачить', can:'Може' }[group] || group)}</span>
+    { nav:'Розділи', boards:'Дошки', see:'Бачить', can:'Може' }[group] || group)}</span>
     ${about ? `<span class="tm-zone-a">${escapeHtml(about)}</span>` : ''}
     <div class="tm-boxes">${list.map(z=>`
       <label class="tm-box${on.indexOf(z.key) >= 0 ? ' on' : ''}${z.hint ? ' has-hint' : ''}">
@@ -20316,7 +20215,6 @@ function renderTeamList(){
       </div>
       <div class="tm-sum${none ? ' tm-sum--none' : ''}">${state} ${escapeHtml(accSummary(p.acc))}</div>
       ${teamOpen === i ? `<div class="tm-acc">
-        ${accBoxes(i, 'dirs', DIRS.map(d => ({ key:d.id, label:d.label })), p.acc.dirs)}
         ${accBoxes(i, 'nav', ZONE_NAV, p.acc.nav)}
         ${accBoxes(i, 'boards', zoneBoards(), p.acc.boards)}
         ${accBoxes(i, 'see', ZONE_SEE, p.acc.see)}
@@ -20372,8 +20270,7 @@ function renderTeamList(){
       if(!from) return;
       /* Копіюємо доступи, але НЕ пошту, імʼя й роль: копіюють саме галочки,
          а роль лишається тією, яку поставили цій людині. */
-      to.acc = { ui: from.acc.ui, dirs: (from.acc.dirs || ['b2b']).slice(),
-                 nav: from.acc.nav.slice(), boards: from.acc.boards.slice(),
+      to.acc = { ui: from.acc.ui, nav: from.acc.nav.slice(), boards: from.acc.boards.slice(),
                  see: from.acc.see.slice(), can: from.acc.can.slice() };
       renderTeamList();
       toast('Доступи скопійовано — не забудьте зберегти');
