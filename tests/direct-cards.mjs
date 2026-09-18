@@ -515,6 +515,50 @@ ok(style.white > 400,
   'заливка проїла світле всередині виробу: білих пікселів лишилось ' + style.white);
 
 console.log('');
+console.log('═══ СЛОВНИК ВИРІЗАНИХ ═══');
+/* Вирізання фону — властивість ФАЙЛУ, а не показу: один мокап стоїть у
+   сотні пропозицій, і різати його треба один раз. Картка сама нічого не
+   замовляє й не платить — вона бере готове зі словника; свій алгоритм
+   лишається запасним на те, чого у словнику ще немає. */
+const cuts = await fr.evaluate(async o => {
+  const L = window.LQCards;
+  const mock = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
+    '<rect width="400" height="500" fill="#FFFFFF"/>' +
+    '<rect x="80" y="90" width="240" height="320" fill="#7A1F2B"/></svg>');
+  /* «Вирізане» для проби — суцільний зелений: якщо картка взяла саме його,
+     на місці виробу буде зелений, а не бордовий. */
+  const ready = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
+    '<rect x="80" y="90" width="240" height="320" fill="#1E9E4A"/></svg>');
+  const off = { items:[Object.assign({}, o.items[0], { mockups:[mock], views:[], prints:[] })],
+                terms:{}, orderId:'1', clientLogo:o.clientLogo };
+  const at = async cfg => {
+    const cv = await L.draw(L.build(off, {})[0], off, Object.assign({ tpl:'minimal' }, cfg));
+    const d = cv.getContext('2d').getImageData(Math.round(cv.width / 2), 460, 1, 1).data;
+    return Array.from(d).slice(0, 3);
+  };
+  return {
+    own:  await at({ cutout:true }),
+    dict: await at({ cutout:true, cuts:{ [mock]: ready } }),
+    /* Зняття фону вимкнене — словник не чіпаємо взагалі. */
+    off:  await at({ cuts:{ [mock]: ready } })
+  };
+}, OFFER);
+console.log('   свій алгоритм: ' + cuts.own.join(',') +
+            ' · зі словника: ' + cuts.dict.join(',') +
+            ' · без зняття фону: ' + cuts.off.join(','));
+ok(cuts.dict[1] > 120 && cuts.dict[0] < 120,
+  'є вирізане у словнику — картка бере його, а не ріже вдруге',
+  'словник не підхопився: ' + cuts.dict.join(','));
+ok(cuts.own[0] > 100 && cuts.own[1] < 90,
+  'немає у словнику — лишається свій алгоритм, і картка все одно малюється',
+  'запасний алгоритм не спрацював: ' + cuts.own.join(','));
+ok(cuts.off.join(',') === cuts.own.join(',') || cuts.off[0] > 100,
+  'зняття фону вимкнене — словник не чіпається взагалі',
+  'вимкнене поле все одно лізе у словник: ' + cuts.off.join(','));
+
+console.log('');
 console.log('═══ ГАРНІТУРА ═══');
 /* Шрифт картка тягне сама, з власного модуля: полотно бере гарнітуру на
    момент малювання, тож про неї має дбати той, хто малює, а не сторінка,
@@ -668,6 +712,34 @@ ok(!!dl && dl.names.every(n => /^kp-1002700-\d\d-/.test(n)),
   'імена файлів несуть номер КП і порядок — у теці вони ляжуть як у пропозиції',
   'імена файлів не ті: ' + JSON.stringify((dl || {}).names));
 try{ fs.unlinkSync(VH); }catch(e){}
+console.log('');
+console.log('═══ ПЛАТНУ РОБОТУ ЗАМОВЛЯЄ МЕНЕДЖЕР ═══');
+/* Photoroom коштує грошей за виклик, а картка перемальовується на кожен рух
+   повзунка. Тому кадр запитує «що вже готове» скільки завгодно, а різати
+   просить рівно тоді, коли менеджер сам натиснув «Прибрати фон». */
+const paid = await fr.evaluate(async () => {
+  const seen = () => window.parent.__sent.filter(m => m.act === 'cardsCut');
+  const before = seen().length;
+  // кілька перемальовок поспіль — жодного прохання різати
+  document.querySelector('#cdBar [data-tpl="horeca"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  document.querySelector('#cdBar [data-tpl="minimal"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  const idle = seen().slice(before).filter(m => m.force).length;
+  // а тепер менеджер натискає «Прибрати фон»
+  const cut = document.getElementById('cdCut');
+  cut.checked = true; cut.dispatchEvent(new Event('change'));
+  await new Promise(r => setTimeout(r, 900));
+  return { idle: idle, forced: seen().slice(before).filter(m => m.force).length };
+});
+console.log('   прохань різати без натиску: ' + paid.idle + ' · після натиску: ' + paid.forced);
+ok(paid.idle === 0,
+  'перемальовки нічого не замовляють: сервіс платний, а preview малюється щоразу',
+  'картка замовляє платну роботу сама: ' + paid.idle);
+ok(paid.forced >= 1,
+  'натиснув «Прибрати фон» — оце й є дозвіл витратити виклик сервісу',
+  'натиск нічого не замовив');
+
 console.log('');
 console.log('═══ СТИЛЬ ДОЇЖДЖАЄ В ЗАМОВЛЕННЯ ═══');
 /* Налаштування показу живуть у самому замовленні — інакше менеджер

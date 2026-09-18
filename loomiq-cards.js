@@ -888,6 +888,10 @@
      Не вдалось — малюємо як є й лишаємо рядок менеджеру. */
   function srcOf(im, st, notes){
     if(!im || !st.cutout) return { im: im, cut: false };
+    /* Готове з Photoroom уже підставлене замість оригіналу — тоді різати
+       нема чого, воно вже прозоре. Свій алгоритм лишається запасним: він
+       гірший по краю, але він є завжди й не коштує нічого. */
+    if(im.__lqReady) return { im: im, cut: true };
     var c = cutOf(im);
     if(c) return { im: c, cut: true };
     if(notes && notes.indexOf(CUT_FAIL) < 0) notes.push(CUT_FAIL);
@@ -1150,7 +1154,18 @@
       paintSet(x, card, t, imgs.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
     } else {
       var meta = card.shots || [];
-      var shots = await Promise.all(meta.map(function(sh){ return loadImg(sh && sh.url); }));
+      /* Вирізане Photoroom підставляємо ЗАМІСТЬ оригіналу — по адресі, яку
+         дала адмінка. Словник приходить сюди готовим: картка сама нічого не
+         замовляє й не платить, вона лише бере те, що вже вирізане. */
+      var cuts = cfg.cuts || {};
+      var shots = await Promise.all(meta.map(async function(sh){
+        var u = sh && sh.url;
+        if(st.cutout && u && cuts[u]){
+          var ready = await loadImg(cuts[u]);
+          if(ready){ try{ ready.__lqReady = true; }catch(e){} return ready; }
+        }
+        return loadImg(u);
+      }));
       var art = card.art ? await loadImg(card.art) : null;
       var srcs = shots.map(function(im, i){
         var sh = meta[i] || {};
