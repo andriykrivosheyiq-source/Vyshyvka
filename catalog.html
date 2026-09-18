@@ -59,30 +59,31 @@ button{font:inherit;color:inherit;}
 .count{flex:none;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
 
 /* ── Каркас ──────────────────────────────────────────────────────────── */
-.wrap{max-width:1320px;margin:0 auto;padding:22px 20px calc(80px + env(safe-area-inset-bottom,0px));
-  display:grid;grid-template-columns:238px minmax(0,1fr);gap:26px;align-items:start;}
-@media (max-width:900px){ .wrap{grid-template-columns:1fr;gap:16px;} }
+.wrap{max-width:1320px;margin:0 auto;padding:22px 20px calc(80px + env(safe-area-inset-bottom,0px));}
 
-/* ── Список виробів ──────────────────────────────────────────────────── */
-.rail{position:sticky;top:86px;background:var(--paper);border:1px solid var(--line);
-  border-radius:var(--r-3);padding:8px;max-height:calc(100vh - 110px);overflow-y:auto;}
-@media (max-width:900px){ .rail{position:static;max-height:none;display:flex;
-  gap:8px;overflow-x:auto;padding:8px;} }
-.rail-h{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--muted);padding:8px 10px 6px;}
-@media (max-width:900px){ .rail-h{display:none;} }
-.g-b{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  background:none;border:0;border-radius:var(--r-2);padding:8px 10px;cursor:pointer;
-  color:var(--ink);}
-.g-b.on{background:var(--accent-soft);color:var(--accent-deep);}
-.g-b .th{width:34px;height:34px;flex:none;border-radius:var(--r-1);object-fit:contain;
-  background:var(--canvas);border:1px solid var(--line-2);}
-.g-b .nm{flex:1;min-width:0;font-size:13.5px;font-weight:600;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.g-b .n{flex:none;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
-.g-b.on .n{color:var(--accent-deep);}
-@media (max-width:900px){ .g-b{width:auto;flex:none;} .g-b .nm{white-space:nowrap;} }
-@media (hover:hover){ .g-b:hover{background:var(--line-2);} .g-b.on:hover{background:var(--accent-soft);} }
+/* ── Рівень перший: вироби ───────────────────────────────────────────────
+   Сторінка відкривається сіткою виробів, а не списком усього підряд.
+   Доти збоку стояла стрічка назв, а праворуч одразу всі вироби з усіма
+   кольорами: щоб дійти до потрібного знімка, треба було прокрутити повз
+   десяток чужих. Тепер два кроки — виріб, потім колір, — і на кожному
+   видно рівно те, що зараз потрібно. */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.p-t{display:flex;flex-direction:column;gap:0;background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden;
+  cursor:pointer;text-align:left;padding:0;color:var(--ink);}
+.p-t .th{width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--canvas);
+  border-bottom:1px solid var(--line-2);}
+.p-t .nm{font-size:14.5px;font-weight:650;padding:11px 13px 2px;}
+.p-t .n{font-size:12px;color:var(--muted);padding:0 13px 12px;
+  font-variant-numeric:tabular-nums;}
+@media (hover:hover){ .p-t:hover{border-color:var(--accent);} }
+/* Повернення до сітки. Підписана кнопка, а не гола стрілка: стрілок на
+   сторінці й так дві, і без підпису вони зливаються між собою. */
+.back{display:inline-flex;align-items:center;gap:7px;background:var(--paper);
+  border:1px solid var(--line);border-radius:var(--r-2);padding:8px 14px 8px 11px;
+  font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;
+  margin-bottom:16px;}
+@media (hover:hover){ .back:hover{border-color:var(--accent);color:var(--accent-deep);} }
 
 /* ── Виріб ───────────────────────────────────────────────────────────── */
 .prod{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-3);
@@ -169,7 +170,6 @@ button{font:inherit;color:inherit;}
 </div>
 
 <main class="wrap" id="app" hidden>
-  <nav class="rail" id="rail" aria-label="Вироби"><div class="rail-h">Вироби</div></nav>
   <div id="list"></div>
 </main>
 
@@ -255,7 +255,18 @@ button{font:inherit;color:inherit;}
       g.name = nameOf(g);
       g.colors = (g.colors || []).filter(function(c){ return c && c.id; });
     });
-    return list.filter(function(g){ return g.colors.length; });
+    /* Ходові вироби спершу. Каталог відкривають не щоб подивитись, що в
+       нас є, а щоб узяти знімок футболки чи худі — і вони мають лежати
+       зверху, а не там, куди їх поставив порядок у конфігурації. */
+    var TOP = ['tee','teeover','hoodie','hoodieover','hoodieoverfleece','hoodiezip',
+               'sweat','cap'];
+    return list.filter(function(g){ return g.colors.length; })
+      .map(function(g, i){
+        var t = TOP.indexOf(g.id);
+        return { g:g, r: t < 0 ? TOP.length + i : t };
+      })
+      .sort(function(a, b){ return a.r - b.r; })
+      .map(function(x){ return x.g; });
   }
 
   /* ── Малювання ───────────────────────────────────────────────────────── */
@@ -269,28 +280,41 @@ button{font:inherit;color:inherit;}
   }
   function shown(){ return LIST.filter(matches); }
 
-  function railHtml(){
+  function gridHtml(){
     var vis = shown();
-    return '<div class="rail-h">Вироби</div>' + vis.map(function(g){
+    if(!vis.length) return '';
+    return '<div class="grid">' + vis.map(function(g){
       var c0 = g.colors[0];
-      return '<button class="g-b' + (g.id === cur ? ' on' : '') + '" data-go="' + esc(g.id) + '">' +
-        '<img class="th" src="' + esc(picOf(g.id, c0.id, 'front')) + '" alt="" ' +
-          'onerror="this.style.visibility=\'hidden\'">' +
+      return '<button class="p-t" data-go="' + esc(g.id) + '">' +
+        '<img class="th" src="' + esc(picOf(g.id, c0.id, 'front')) + '" alt="' + esc(g.name) + '" ' +
+          'loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
         '<span class="nm">' + esc(g.name) + '</span>' +
-        '<span class="n">' + g.colors.length + '</span></button>';
-    }).join('') || '<div class="rail-h">Нічого не знайшлось</div>';
+        '<span class="n">' + g.colors.length + ' ' +
+          plural(g.colors.length, 'колір', 'кольори', 'кольорів') + '</span></button>';
+    }).join('') + '</div>';
   }
 
   function prodHtml(g){
     var cid = pick[g.id] || g.colors[0].id;
     var col = g.colors.filter(function(c){ return c.id === cid; })[0] || g.colors[0];
     var views = viewsOf(g.id, col.id);
-    return '<section class="prod" id="p-' + esc(g.id) + '">' +
+    return '<button class="back" data-back="1">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M15 18l-6-6 6-6"/></svg>Усі вироби</button>' +
+      '<section class="prod" id="p-' + esc(g.id) + '">' +
       '<div class="prod-h"><h2>' + esc(g.name) + '</h2><code>' + esc(g.id) + '</code></div>' +
       '<p class="prod-s">' + g.colors.length + ' ' + plural(g.colors.length, 'колір', 'кольори', 'кольорів') +
         ' · ' + views.length + ' ' + plural(views.length, 'ракурс', 'ракурси', 'ракурсів') +
         (g.custom ? ' · <span class="new">заведено в адмінці</span>' : '') + '</p>' +
-      '<div class="cols">' + g.colors.map(function(c){
+      /* Пошук працює й тут: усередині виробу він відсіює кольори. Не
+         ховаємо обраний — інакше сторінка показувала б знімки кольору,
+         якого в списку вже немає. */
+      '<div class="cols">' + g.colors.filter(function(c){
+        if(!q) return true;
+        if(c.id === col.id) return true;
+        return ((c.name || '') + ' ' + c.id).toLowerCase().indexOf(q) >= 0;
+      }).map(function(c){
         return '<button class="col-b' + (c.id === col.id ? ' on' : '') + '" ' +
           'data-col="' + esc(g.id) + '|' + esc(c.id) + '">' +
           '<span class="dot" style="background:' + esc(c.hex || '#ddd') + '"></span>' +
@@ -321,14 +345,19 @@ button{font:inherit;color:inherit;}
 
   function render(){
     var vis = shown();
-    document.getElementById('rail').innerHTML = railHtml();
-    document.getElementById('list').innerHTML =
-      vis.map(prodHtml).join('') ||
-      '<div class="state"><h1>Нічого не знайшлось</h1>' +
+    var g = cur ? LIST.filter(function(x){ return x.id === cur; })[0] : null;
+    var empty = '<div class="state"><h1>Нічого не знайшлось</h1>' +
       '<p>Спробуйте іншу назву — або очистіть пошук.</p></div>';
-    document.getElementById('count').textContent =
-      vis.length + ' ' + plural(vis.length, 'виріб', 'вироби', 'виробів') + ' · ' +
-      vis.reduce(function(a, g){ return a + g.colors.length; }, 0) + ' кольорів';
+    document.getElementById('list').innerHTML =
+      g ? prodHtml(g) : (gridHtml() || empty);
+    /* Лічильник каже про те, що зараз на екрані: у сітці — скільки виробів,
+       усередині виробу — скільки в нього кольорів і ракурсів. Загальна
+       цифра там, де дивляться на один виріб, не означає нічого. */
+    document.getElementById('count').textContent = g
+      ? (g.colors.length + ' ' + plural(g.colors.length, 'колір', 'кольори', 'кольорів'))
+      : (vis.length + ' ' + plural(vis.length, 'виріб', 'вироби', 'виробів') + ' · ' +
+         vis.reduce(function(a, x){ return a + x.colors.length; }, 0) + ' кольорів');
+    window.scrollTo({ top:0, behavior:'auto' });
   }
 
   /* ── Завантаження ─────────────────────────────────────────────────────
@@ -411,20 +440,13 @@ button{font:inherit;color:inherit;}
 
   /* ── Події ───────────────────────────────────────────────────────────── */
   document.addEventListener('click', function(e){
-    var b = e.target.closest('[data-go],[data-col],[data-dl],[data-all]');
+    var b = e.target.closest('[data-go],[data-col],[data-dl],[data-all],[data-back]');
     if(!b) return;
-    if(b.dataset.go){
-      cur = b.dataset.go;
-      render();
-      var el = document.getElementById('p-' + cur);
-      if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-      return;
-    }
+    if(b.dataset.back){ goTo(null, null); return; }
+    if(b.dataset.go){ goTo(b.dataset.go, null); return; }
     if(b.dataset.col){
       var p = b.dataset.col.split('|');
-      pick[p[0]] = p[1];
-      cur = p[0];
-      render();
+      goTo(p[0], p[1]);
       return;
     }
     if(b.dataset.dl){
@@ -455,6 +477,35 @@ button{font:inherit;color:inherit;}
     render();
   });
 
+  /* ── Адреса ──────────────────────────────────────────────────────────
+     Рівень живе в адресі: «#hoodie/black». Тоді посилання на конкретний
+     колір можна кинути колезі, а кнопка «назад» у браузері повертає туди,
+     звідки прийшов, а не викидає зі сторінки. */
+  var hashLock = 0;
+  function goTo(gid, cid){
+    cur = gid || null;
+    if(gid && cid) pick[gid] = cid;
+    hashLock = 1;
+    var want = cur ? ('#' + cur + (pick[cur] ? '/' + pick[cur] : '')) : '#';
+    if(location.hash !== want) location.hash = want;
+    hashLock = 0;
+    render();
+  }
+  function fromHash(){
+    var h = String(location.hash || '').replace(/^#/, '');
+    if(!h){ cur = null; return; }
+    var p = h.split('/');
+    var g = LIST.filter(function(x){ return x.id === p[0]; })[0];
+    if(!g){ cur = null; return; }
+    cur = g.id;
+    if(p[1] && g.colors.some(function(c){ return c.id === p[1]; })) pick[g.id] = p[1];
+  }
+  window.addEventListener('hashchange', function(){
+    if(hashLock) return;
+    fromHash();
+    render();
+  });
+
   /* ── Підйом ──────────────────────────────────────────────────────────── */
   function start(){
     LIST = buildList();
@@ -463,7 +514,7 @@ button{font:inherit;color:inherit;}
         '<h1>Каталог порожній</h1><p>Жодного виробу зі знімками не знайшлось.</p>';
       return;
     }
-    cur = cur || LIST[0].id;
+    fromHash();            // прийшли за посиланням на конкретний виріб чи колір
     document.getElementById('boot').hidden = true;
     document.getElementById('app').hidden = false;
     render();
