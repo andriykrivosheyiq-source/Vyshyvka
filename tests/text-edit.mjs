@@ -275,6 +275,100 @@ ok(edit1 === 1 && one === 1, 'подвійний тап відкрив у пра
   'у правці опинилось: ' + edit1);
 
 console.log('');
+console.log('═══ РАМКА ОБІЙМАЄ ЛІТЕРИ, І БЕРЕТЬСЯ ТОЙ, У КОГО ЦІЛИЛИСЬ ═══');
+/* Шар живе прямокутником — 120×120 на масштаб за пропорцією картинки, — і
+   в напису всередині того прямокутника є поля, без яких обрізало б хвости
+   літер. Рамку малювали по прямокутнику, і виходило двоє неприємностей:
+   ручка масштабу висіла в порожньому місці біля літери (цілишся в букву —
+   шар зменшується), а прямокутники сусідніх написів перекривались майже
+   цілком, і клік діставався тому, чий прямокутник зверху. */
+async function dragBy(from, dx, dy){
+  await p.mouse.move(from.cx, from.cy);
+  await p.mouse.down();
+  await p.waitForTimeout(120);
+  await p.mouse.move(from.cx + dx, from.cy + dy, { steps:12 });
+  await p.waitForTimeout(120);
+  await p.mouse.up();
+  await p.waitForTimeout(500);
+}
+const snap = () => p.evaluate(() => {
+  const out = {};
+  document.querySelectorAll('.pm-draggable-layer').forEach(box => {
+    const tx = box.querySelector('.pm-dl-text');
+    if(!tx) return;
+    const rg = document.createRange(); rg.selectNodeContents(tx);
+    const r = rg.getBoundingClientRect();
+    out[tx.innerText.replace(/\s+/g, ' ').trim()] =
+      { x:r.left, y:r.top, cx:r.left + r.width / 2, cy:r.top + r.height / 2 };
+  });
+  return out;
+});
+// розводимо написи, щоб перевіряти влучання, а не порядок малювання
+let st = await snap();
+const names = Object.keys(st);
+await dragBy(st[names[2]], 90, 150);
+st = await snap(); await dragBy(st[names[1]], -120, 60);
+console.log('   написи стоять: ' + Object.keys(await snap()).join(' · '));
+
+let wrong = [];
+for(const who of names){
+  const before = await snap();
+  if(!before[who]) continue;
+  await dragBy(before[who], 40, -40);
+  const after = await snap();
+  const moved = Object.keys(after).filter(k => before[k] &&
+    Math.abs(after[k].x - before[k].x) + Math.abs(after[k].y - before[k].y) > 6);
+  if(moved.length !== 1 || moved[0] !== who) wrong.push(who + ' → ' + (moved.join(', ') || 'нічого'));
+  const back = await snap();
+  if(back[who]) await dragBy(back[who], -40, 40);
+}
+ok(!wrong.length,
+  'беруть той напис, у літери якого цілились, — а не той, чий прямокутник зверху',
+  'клік пішов не туди: ' + wrong.join(' | '));
+
+const frame = await p.evaluate(() => {
+  const box = [...document.querySelectorAll('.pm-draggable-layer')]
+    .find(b => b.querySelector('.pm-dl-outline') && b.querySelector('.pm-dl-text'));
+  if(!box) return null;
+  const o = box.querySelector('.pm-dl-outline').getBoundingClientRect();
+  const b = box.getBoundingClientRect();
+  const hs = [...box.querySelectorAll('.pm-dl-handle')].map(h => {
+    const r = h.getBoundingClientRect();
+    /* Ручка не має налазити на рамку: інакше в низького напису вона вища за
+       сам напис, і взяти його за букву неможливо. */
+    return r.right <= o.left + 1 || r.left >= o.right - 1 ||
+           r.bottom <= o.top + 1 || r.top >= o.bottom - 1;
+  });
+  return { вужча: o.width < b.width - 4 || o.height < b.height - 4,
+           ручкиЗовні: hs.every(Boolean), ручок: hs.length };
+});
+console.log('   рамка вужча за полотно: ' + (frame && frame.вужча) +
+            ' · ручок поза рамкою: ' + (frame && frame.ручок));
+ok(frame && frame.вужча,
+  'рамка обіймає літери, а не полотно з полями',
+  'рамка так і лишилась по полотну');
+ok(frame && frame.ручкиЗовні,
+  'ручки стоять за межами рамки й не лягають на самі літери',
+  'ручка налазить на текст — узяти напис за букву не вийде');
+
+/* Виділення не має розтікатись на сусідів: рамки перекриваються, і доти
+   протягування по одному напису вело виділення крізь усі, що трапились. */
+st = await snap();
+const solo = Object.keys(st)[0];
+await p.mouse.dblclick(st[solo].cx, st[solo].cy);
+await p.waitForTimeout(500);
+await p.mouse.move(st[solo].cx - 40, st[solo].cy);
+await p.mouse.down();
+await p.mouse.move(st[solo].cx + 420, st[solo].cy + 260, { steps:20 });
+await p.mouse.up();
+await p.waitForTimeout(400);
+const sel = await p.evaluate(() => String(window.getSelection()).replace(/\s+/g, ' ').trim());
+console.log('   протягнув через усі написи, виділилось: «' + sel + '»');
+ok(sel.length > 0 && Object.keys(st).filter(k => k !== solo).every(k => sel.indexOf(k) < 0),
+  'виділення лишається всередині того напису, який правлять',
+  'виділення перекинулось на сусідів: «' + sel + '»');
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'напис виділяється, стилюється по шматках і не втікає з-під курсора');
