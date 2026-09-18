@@ -2862,6 +2862,12 @@
   .dz-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
   .dz-fld input,.dz-fld select{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;
     padding:7px 9px;border:1px solid var(--line);border-radius:8px;}
+  .dz-vers{display:flex;flex-direction:column;gap:6px;}
+  .dz-ver{display:grid;grid-template-columns:34px 1fr;gap:2px 8px;font-size:12.5px;
+    border-left:2px solid var(--line);padding-left:9px;}
+  .dz-ver.is-ok{border-left-color:#1B6B37;}
+  .dz-ver b{grid-row:1 / span 2;font-weight:800;font-variant-numeric:tabular-nums;}
+  .dz-ver i{font-style:normal;font-size:11px;color:var(--muted);}
   .dz-acts{display:flex;gap:7px;margin-top:10px;}
   .dz-act{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;
     flex-wrap:wrap;gap:6px;align-items:center;}

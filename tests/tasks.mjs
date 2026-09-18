@@ -163,6 +163,55 @@ ok(old.є && old.штук === 0, 'задача без поля доручень 
   'стара задача не піднялась: ' + JSON.stringify(old));
 
 console.log('');
+console.log('═══ ВИШИВАЛЬНИЙ ФАЙЛ ТЕЖ МАЄ ВЕРСІЇ ═══');
+/* У макета версії є з самого початку, і саме вони закривають половину
+   суперечок. У стібках вони потрібні ще більше: там правку видно не оком, а
+   машиною, і «ми ж виправили» без номера версії нічого не означає. */
+const vers = await p.evaluate(() => {
+  const D = window.LQDesign;
+  const job = D.emptyJob('1842');
+  const o = { orderId:'1842', items:[{ kind:'main', name:'Худі', qty:50, print:'Вишивка',
+    prints:[{ side:'front', technique:'embro', widthMm:90, heightMm:42 }] }] };
+  D.ensure(job, o);
+  const key = (D.stitchKeys(o)[0] || {}).key;
+  const s = D.stitchAt(job, key);
+  if(!s) return { none:true };
+  // перша здача
+  s.files = [{ name:'v1.dst', url:'u1' }]; s.stitches = 8000;
+  const безФайлу = (() => { const t = D.stitchAt(job, key); const was = t.files;
+    t.files = []; const r = !!D.stitchReady(job, key, 'tar@lq'); t.files = was; return r; })();
+  D.stitchReady(job, key, 'tar@lq');
+  // QA повертає
+  D.qaBack(job, key, 'qa@lq', ['density'], 'щільність завелика');
+  // друга здача
+  s.files = [{ name:'v2.dst', url:'u2' }]; s.stitches = 7600;
+  D.stitchReady(job, key, 'tar@lq');
+  const checks = {}; D.QA_CHECKS.forEach(c => checks[c.key] = true);
+  D.qaPass(job, key, 'qa@lq', checks);
+  const v = D.stitchVers(job, key);
+  return { безФайлу, штук: v.length,
+           перша: v[0] && v[0].files[0].name, друга: v[1] && v[1].files[0].name,
+           чому: (v[1] && v[1].why) || [], ok: v.map(x => !!x.ok) };
+});
+if(vers.none){ console.log('  нанесення не зібралось'); bad++; }
+else {
+  console.log('   версій: ' + vers.штук + ' · ' + vers.перша + ' → ' + vers.друга +
+              ' · через: ' + vers.чому.join(', '));
+  ok(!vers.безФайлу, '«готово» без файлу не приймається — це не готово',
+    'здали порожнє нанесення');
+  ok(vers.штук === 2 && vers.перша === 'v1.dst' && vers.друга === 'v2.dst',
+    'кожна здача лишає версію, і попередня нікуди не дівається',
+    'версій вийшло: ' + vers.штук);
+  ok(vers.чому.join() === 'density',
+    'у версії записано, за що повернули попередню — інакше список каже, ' +
+      'що робили, і мовчить про навіщо',
+    'причина не привʼязалась: ' + JSON.stringify(vers.чому));
+  ok(vers.ok.join() === 'false,true',
+    'погоджена версія позначена назавжди, а не переписується мовчки',
+    'позначки погодження не ті: ' + vers.ok.join(', '));
+}
+
+console.log('');
 ok(!errs.length, 'без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'робота передається дорученням: адресат, причина, результат, розмова');

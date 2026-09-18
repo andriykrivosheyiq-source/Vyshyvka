@@ -617,13 +617,39 @@
     ds(job, 'stitch-assign', { key:key, by:by, to:who, outsource: outsource || undefined });
     return job;
   }
+  /* Кожна здача файлу — ВЕРСІЯ, і попередня нікуди не дівається.
+
+     Доти вишивальний файл був один: правка перезаписувала його, і питання
+     «а що саме змінили після повернення» лишалось без відповіді. У макета
+     версії є з самого початку, і саме вони закривають половину суперечок;
+     у стібках вони потрібні ще більше, бо там правку видно не оком, а
+     машиною.
+
+     Версію робимо саме на здачі, а не на завантаженні файлу: поки людина
+     довантажує другий формат, це та сама робота, а не нова. */
   function stitchReady(job, key, by){
     var s = stitchAt(job, key); if(!s) return null;
     if(!(s.files || []).length) return null;     // «готово» без файлу — не готово
+    if(!Array.isArray(s.versions)) s.versions = [];
+    var back = (s.qa && s.qa.status === 'back') ? (s.qa.reasons || []).slice() : [];
+    s.versions.push({
+      n: s.versions.length + 1, at: nowIso(), by: by || '',
+      files: (s.files || []).map(function(f){ return { name:f.name || '', url:f.url || '' }; }),
+      preview: s.preview || '', stitches: +s.stitches || 0,
+      /* Чому зʼявилась саме ця версія — тобто за що повернули попередню.
+         Без цього список версій каже, ЩО робили, і мовчить про навіщо. */
+      why: back, ok: false
+    });
+    s.ver = s.versions.length;
     s.status = 'qa';
     s.qa.status = '';
-    ds(job, 'stitch-ready', { key:key, by:by, stitches: s.stitches || undefined });
+    ds(job, 'stitch-ready', { key:key, by:by, n: s.ver,
+                              stitches: s.stitches || undefined });
     return job;
+  }
+  function stitchVers(job, key){
+    var s = stitchAt(job, key);
+    return (s && Array.isArray(s.versions)) ? s.versions : [];
   }
   function qaPass(job, key, by, checks){
     var s = stitchAt(job, key); if(!s) return null;
@@ -631,7 +657,11 @@
     if(miss.length) return { miss: miss };        // чекліст неповний — не пропускаємо
     s.qa = { status:'ok', by: by || '', at: nowIso(), checks: checks, reasons: [], note:'' };
     s.status = 'ok';
-    ds(job, 'qa-pass', { key:key, by:by });
+    /* Погоджена версія позначається назавжди: наступна правка заведе нову,
+       а цю вже ніхто не перепише мовчки. */
+    var vs = s.versions || [];
+    if(vs.length) vs[vs.length - 1].ok = true;
+    ds(job, 'qa-pass', { key:key, by:by, n: vs.length || undefined });
     return job;
   }
   function qaBack(job, key, by, reasons, note){
@@ -746,6 +776,7 @@
     sendToClient: sendToClient, clientApprove: clientApprove,
     clientChanges: clientChanges,
     stitchAt: stitchAt, stitchOpen: stitchOpen, stitchAssign: stitchAssign,
+    stitchVers: stitchVers,
     stitchReady: stitchReady, qaPass: qaPass, qaBack: qaBack,
     packReady: packReady, pack: pack,
     mirror: mirror, stateLine: stateLine,
@@ -1164,6 +1195,27 @@
   }
 
   /* ── Панель: оцифрування ───────────────────────────────────────────── */
+  /* Версії вишивального файлу. Показуємо не «останній файл», а шлях: що
+     здали, за що повернули, що вийшло. Саме цей список і відповідає на
+     питання «ми ж виправили» — номером, а не словом. */
+  function stitchVersHtml(job, s){
+    var vs = D.stitchVers(job, s.key);
+    if(!vs.length) return '';
+    return '<div class="dz-sub">Версії файлу</div><div class="dz-vers">' +
+      vs.slice().reverse().map(function(v){
+        var why = (v.why || []).map(function(k){
+          return D.reasonLabel(D.QA_REASONS, k); }).filter(Boolean).join(' · ');
+        return '<div class="dz-ver' + (v.ok ? ' is-ok' : '') + '">' +
+          '<b>V' + v.n + '</b>' +
+          '<span>' + esc((v.files || []).map(function(f){ return f.name; })
+                          .filter(Boolean).join(', ') || 'файл') +
+            (v.stitches ? ' · ' + v.stitches + ' ст.' : '') + '</span>' +
+          '<i>' + esc(dt(v.at)) + (v.ok ? ' · погоджено' : '') +
+            (why ? ' · через: ' + esc(why) : '') + '</i>' +
+        '</div>';
+      }).join('') + '</div>';
+  }
+
   function stitchPanel(p, s){
     var job = p.job, o = p.o;
     var v = D.verAt(o, job.approvedVersion);
@@ -1226,6 +1278,7 @@
           ? '<div class="dz-back">QA повернув: ' + s.qa.reasons.map(function(k){
               return esc(D.reasonLabel(D.QA_REASONS, k)); }).join(' · ') +
             (s.qa.note ? ' — ' + esc(s.qa.note) : '') + '</div>' : '') +
+        stitchVersHtml(job, s) +
         '<div class="dz-acts">' + body + '</div>' +
       '</div>';
   }
