@@ -465,140 +465,60 @@ ok(sale.all !== sale.noValid,
   'поле «Термін дії ціни» ні на що не впливає');
 
 console.log('');
-console.log('═══ СТИЛЬ: ЛОГО, ФОН, ТІНЬ ═══');
-/* Мокапи приходять зі своїм тлом, і поки виріб лежить на білій панелі, це
-   непомітно. Щойно під панель стає свій фон або з'являється тінь — стає
-   видно, що виріб приїхав разом зі своїм прямокутником. Перевіряємо, що
-   заливка від країв справді робить тло прозорим, що вона НЕ чіпає світле
-   всередині виробу, і що тінь без прозорості не малюється. */
-const style = await fr.evaluate(async o => {
+console.log('═══ ФОТО ТОВАРУ ЗАПОВНЮЄ ПЛИТКУ ═══');
+/* Мокапи приходять зі своїм тлом — у базового худі воно, наприклад, не
+   біле, а тепле бежеве. Доти ми те тло вирізали й ставили виріб на свою
+   білу панель: по краю плитки виходив кантик, а на місці бежевого фону —
+   білий прямокутник. Тепер кадр іде як є й перекриває плитку до країв. */
+const fill = await fr.evaluate(async o => {
   const L = window.LQCards;
-  /* Мокап із білими полями й БІЛОЮ СМУГОЮ всередині виробу: смуга не
-     дотикається країв, отже заливка від країв її проїсти не може. */
-  const mock = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  /* Мокап із ТЕПЛИМ фоном і виробом посередині — рівно те, на що скаржився
+     Андрій: фон не білий, а система робила його білим. */
+  const warm = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
-    '<rect width="400" height="500" fill="#FFFFFF"/>' +
-    '<rect x="80" y="90" width="240" height="320" fill="#7A1F2B"/>' +
-    '<rect x="150" y="200" width="100" height="40" fill="#FFFFFF"/></svg>');
-  const grad = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
-    '<defs><linearGradient id="g"><stop offset="0" stop-color="#FFFFFF"/>' +
-    '<stop offset="1" stop-color="#101010"/></linearGradient></defs>' +
-    '<rect width="400" height="500" fill="url(#g)"/></svg>');
-  const one = u => ({ items:[Object.assign({}, o.items[0], { mockups:[u], views:[], prints:[] })],
-                      terms:{ deadlineDays:7 }, orderId:'1', clientLogo: o.clientLogo });
+    '<rect width="400" height="500" fill="#E8DCC8"/>' +
+    '<rect x="80" y="90" width="240" height="320" fill="#7A1F2B"/></svg>');
+  const one = u => ({ items:[Object.assign({}, o.items[0],
+                       { mockups: u ? [u] : [], views:[], prints:[] })],
+                      terms:{ deadlineDays:7 }, orderId:'1', clientLogo:o.clientLogo });
   const shot = async (u, cfg) => {
     const off = one(u);
     const cv = await L.draw(L.build(off, {})[0], off, Object.assign({ tpl:'minimal' }, cfg));
     const x = cv.getContext('2d');
-    return { cv, x, notes: cv.lqNotes || [],
-             png: cv.toDataURL('image/png'),
-             at: (px, py) => Array.from(x.getImageData(px, py, 1, 1).data) };
+    return { png: cv.toDataURL('image/png'), w: cv.width,
+             at: (px, py) => Array.from(x.getImageData(px, py, 1, 1).data).slice(0, 3) };
   };
-  /* Колір тла аркуша під панеллю. Якщо фон знято — між панеллю й виробом
-     видно панель, а не білий прямокутник мокапа; беремо точку відразу під
-     виробом усередині панелі. */
-  const plain = await shot(mock, {});
-  const cut   = await shot(mock, { cutout:true });
-  const bad   = await shot(grad, { cutout:true });
-  const shade = await shot(mock, { shade:'deep' });
-  const small = await shot(mock, { logo:0.5 });
-  const big   = await shot(mock, { logo:1.8 });
+  const plain = await shot(warm, {});
+  const small = await shot(warm, { logo:0.5 });
+  const big   = await shot(warm, { logo:1.8 });
   const GREEN = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">' +
     '<rect width="40" height="40" fill="#1E9E4A"/></svg>');
-  const bg    = await shot(mock, { bg:GREEN });
-  /* Зелений фон плюс зняте тло — і білу смугу ВСЕРЕДИНІ виробу стає видно
-     як білу. З'їла б її заливка — на її місці був би зелений фон, і білих
-     пікселів у панелі не лишилось би зовсім. */
-  const both  = await shot(mock, { cutout:true, bg:GREEN });
-  let white = 0;
-  {
-    const d = both.x.getImageData(400, 144, 600, 650).data;
-    for(let i = 0; i < d.length; i += 4 * 3)
-      if(d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) white++;
-  }
+  const none  = await shot('', { bg:GREEN });
   return {
-    plainPng: plain.png, cutPng: cut.png, shadePng: shade.png,
+    /* Точка біля самого краю плитки: там має бути рідний фон мокапа, а не
+       біла панель під ним. */
+    edge: plain.at(412, 400),
+    /* І точка на виробі — щоб не вийшло, що ми просто залили все тлом. */
+    body: plain.at(Math.round(plain.w / 2), 400),
     smallPng: small.png, bigPng: big.png,
-    badNotes: bad.notes, goodNotes: cut.notes,
-    /* Точка в панелі, але поза виробом: зі своїм фоном вона має стати
-       зеленою, без нього — лишитись панельно-білою. */
-    bgPix: bg.at(415, 400), plainPix: plain.at(415, 400), white: white
+    nonePix: none.at(412, 400)
   };
 }, OFFER);
-console.log('   нотатки на однорідному тлі: ' + JSON.stringify(style.goodNotes));
-console.log('   нотатки на градієнті: ' + style.badNotes.length + ' шт');
-console.log('   точка в панелі зі своїм фоном: ' + style.bgPix.slice(0, 3).join(','));
-ok(style.cutPng !== style.plainPng,
-  'зняття фону справді міняє картку — тло мокапа стає прозорим',
-  'із «прибрати фон» і без нього картка малюється однаково');
-ok(style.goodNotes.length === 0 && style.badNotes.length >= 1 &&
-   style.badNotes.some(n => /не однорідн/.test(n)),
-  'на градієнті фон не знімається мовчки — менеджер бачить рядок, чому саме',
-  'невдале зняття фону не назване словами: ' + JSON.stringify(style.badNotes));
-ok(style.badNotes.some(n => /лишилась із фоном/.test(n)),
-  'і картка тоді лишається З ФОНОМ цілком: половина прозора, половина в білому ' +
-    'прямокутнику виглядає не як «одне не вийшло», а як брак',
-  'картка лишилась напіввирізаною: ' + JSON.stringify(style.badNotes));
-ok(style.shadePng !== style.cutPng,
-  'тінь малюється поверх знятого фону — по контуру виробу, а не прямокутником',
-  'тінь нічого не змінила');
-ok(style.smallPng !== style.bigPng,
+console.log('   край плитки: ' + fill.edge.join(',') + ' · виріб: ' + fill.body.join(','));
+ok(fill.edge[0] > 200 && fill.edge[2] < fill.edge[0] - 15,
+  'по краю плитки стоїть рідний фон мокапа, а не біла панель — кантика немає',
+  'край плитки не фон мокапа: ' + fill.edge.join(','));
+ok(fill.body[0] > 90 && fill.body[1] < 80,
+  'і сам виріб на місці — плитку заповнив кадр, а не суцільна заливка',
+  'виробу на плитці не видно: ' + fill.body.join(','));
+ok(fill.smallPng !== fill.bigPng,
   'масштаб логотипа справді міняє картку',
   'повзунок лого ні на що не впливає');
-ok(style.bgPix[1] > 120 && style.bgPix[0] < 120 && style.plainPix[0] > 240,
-  'свій фон малюється під виробом замість білої панелі',
-  'свій фон не проявився: ' + style.bgPix.join(',') + ' проти ' + style.plainPix.join(','));
-console.log('   білих пікселів усередині виробу після зняття фону: ' + style.white);
-ok(style.white > 400,
-  'заливка йде ВІД КРАЇВ, тож біле всередині виробу лишається білим: ' +
-    'білі рукави, шнурки й напис на грудях до країв не дотикаються',
-  'заливка проїла світле всередині виробу: білих пікселів лишилось ' + style.white);
-
-console.log('');
-console.log('═══ СЛОВНИК ВИРІЗАНИХ ═══');
-/* Вирізання фону — властивість ФАЙЛУ, а не показу: один мокап стоїть у
-   сотні пропозицій, і різати його треба один раз. Картка сама нічого не
-   замовляє й не платить — вона бере готове зі словника; свій алгоритм
-   лишається запасним на те, чого у словнику ще немає. */
-const cuts = await fr.evaluate(async o => {
-  const L = window.LQCards;
-  const mock = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
-    '<rect width="400" height="500" fill="#FFFFFF"/>' +
-    '<rect x="80" y="90" width="240" height="320" fill="#7A1F2B"/></svg>');
-  /* «Вирізане» для проби — суцільний зелений: якщо картка взяла саме його,
-     на місці виробу буде зелений, а не бордовий. */
-  const ready = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500">' +
-    '<rect x="80" y="90" width="240" height="320" fill="#1E9E4A"/></svg>');
-  const off = { items:[Object.assign({}, o.items[0], { mockups:[mock], views:[], prints:[] })],
-                terms:{}, orderId:'1', clientLogo:o.clientLogo };
-  const at = async cfg => {
-    const cv = await L.draw(L.build(off, {})[0], off, Object.assign({ tpl:'minimal' }, cfg));
-    const d = cv.getContext('2d').getImageData(Math.round(cv.width / 2), 460, 1, 1).data;
-    return Array.from(d).slice(0, 3);
-  };
-  return {
-    own:  await at({ cutout:true }),
-    dict: await at({ cutout:true, cuts:{ [mock]: ready } }),
-    /* Зняття фону вимкнене — словник не чіпаємо взагалі. */
-    off:  await at({ cuts:{ [mock]: ready } })
-  };
-}, OFFER);
-console.log('   свій алгоритм: ' + cuts.own.join(',') +
-            ' · зі словника: ' + cuts.dict.join(',') +
-            ' · без зняття фону: ' + cuts.off.join(','));
-ok(cuts.dict[1] > 120 && cuts.dict[0] < 120,
-  'є вирізане у словнику — картка бере його, а не ріже вдруге',
-  'словник не підхопився: ' + cuts.dict.join(','));
-ok(cuts.own[0] > 100 && cuts.own[1] < 90,
-  'немає у словнику — лишається свій алгоритм, і картка все одно малюється',
-  'запасний алгоритм не спрацював: ' + cuts.own.join(','));
-ok(cuts.off.join(',') === cuts.own.join(',') || cuts.off[0] > 100,
-  'зняття фону вимкнене — словник не чіпається взагалі',
-  'вимкнене поле все одно лізе у словник: ' + cuts.off.join(','));
+console.log('   плитка без фото: ' + fill.nonePix.join(','));
+ok(fill.nonePix[1] > 120 && fill.nonePix[0] < 120,
+  'фото немає — тоді під плиткою видно свій фон, як і раніше',
+  'свій фон не проявився: ' + fill.nonePix.join(','));
 
 console.log('');
 console.log('═══ ГАРНІТУРА ═══');
@@ -686,6 +606,7 @@ const tabbed = await fr.evaluate(async () => {
     logo: !!document.getElementById('cdLogo'),
     cut: !!document.getElementById('cdCut'),
     shades: [...document.querySelectorAll('#cdBar [data-shade]')].map(b => b.textContent),
+    cutBulk: !!document.getElementById('cut-all'),
     bgUp: !!document.getElementById('cdBgF'),
     artUp: !!document.getElementById('cdArtF'),
     warnBox: !!document.getElementById('cdWarn'),
@@ -711,13 +632,18 @@ else {
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
-  console.log('   стиль: ' + tabbed.shades.join(' / ') +
-              ' · лого ' + (tabbed.logo ? 'є' : 'немає') +
-              ' · фон ' + (tabbed.bgUp ? 'є' : 'немає'));
-  ok(tabbed.logo && tabbed.cut && tabbed.bgUp && tabbed.artUp && tabbed.shades.length === 3,
-    'у смузі є все, чим керують показом: масштаб лого, свій логотип нанесення, ' +
-      'зняття фону, три стани тіні, свій фон',
+  console.log('   лого ' + (tabbed.logo ? 'є' : 'немає') +
+              ' · фон ' + (tabbed.bgUp ? 'є' : 'немає') +
+              ' · зняття фону ' + (tabbed.cut ? 'є' : 'немає'));
+  ok(tabbed.logo && tabbed.bgUp && tabbed.artUp,
+    'у смузі є все, чим керують показом: масштаб лого, свій логотип нанесення, свій фон',
     'смуга стилю неповна: ' + JSON.stringify(tabbed));
+  /* Зняття фону прибрано зовсім. Фото товару йде на картку як є: рівного
+     тла в мокапах не буває, і будь-яке вирізання лишало по контуру обідок,
+     а на місці бежевого фону — білий прямокутник. */
+  ok(!tabbed.cut && !tabbed.shades.length,
+    'ні галочки «прибрати фон», ні тіні в смузі більше немає',
+    'керування зняттям фону лишилось у смузі');
   ok(tabbed.warnBox,
     'і є місце під рядок про те, що з мокапом не вийшло — просто під кадром, а не тостом',
     'рядка про невдачу немає');
@@ -770,34 +696,6 @@ ok(opened, 'натиснув — налаштування розгорнулис
   'кнопка налаштувань нічого не розкриває');
 
 console.log('');
-console.log('═══ ПЛАТНУ РОБОТУ ЗАМОВЛЯЄ МЕНЕДЖЕР ═══');
-/* Photoroom коштує грошей за виклик, а картка перемальовується на кожен рух
-   повзунка. Тому кадр запитує «що вже готове» скільки завгодно, а різати
-   просить рівно тоді, коли менеджер сам натиснув «Прибрати фон». */
-const paid = await fr.evaluate(async () => {
-  const seen = () => window.parent.__sent.filter(m => m.act === 'cardsCut');
-  const before = seen().length;
-  // кілька перемальовок поспіль — жодного прохання різати
-  document.querySelector('#cdBar [data-tpl="horeca"]').click();
-  await new Promise(r => setTimeout(r, 400));
-  document.querySelector('#cdBar [data-tpl="minimal"]').click();
-  await new Promise(r => setTimeout(r, 400));
-  const idle = seen().slice(before).filter(m => m.force).length;
-  // а тепер менеджер натискає «Прибрати фон»
-  const cut = document.getElementById('cdCut');
-  cut.checked = true; cut.dispatchEvent(new Event('change'));
-  await new Promise(r => setTimeout(r, 900));
-  return { idle: idle, forced: seen().slice(before).filter(m => m.force).length };
-});
-console.log('   прохань різати без натиску: ' + paid.idle + ' · після натиску: ' + paid.forced);
-ok(paid.idle === 0,
-  'перемальовки нічого не замовляють: сервіс платний, а preview малюється щоразу',
-  'картка замовляє платну роботу сама: ' + paid.idle);
-ok(paid.forced >= 1,
-  'натиснув «Прибрати фон» — оце й є дозвіл витратити виклик сервісу',
-  'натиск нічого не замовив');
-
-console.log('');
 console.log('═══ СТИЛЬ ДОЇЖДЖАЄ В ЗАМОВЛЕННЯ ═══');
 /* Налаштування показу живуть у самому замовленні — інакше менеджер
    налаштував би картку, закрив вкладку й почав спочатку. */
@@ -807,20 +705,14 @@ const styleSent = await fr.evaluate(async () => {
   rng.value = '150';
   rng.dispatchEvent(new Event('input'));
   rng.dispatchEvent(new Event('change'));
-  document.querySelector('#cdBar [data-shade="deep"]').click();
   await new Promise(r => setTimeout(r, 1200));
   const msgs = window.parent.__sent.slice(before).filter(m => m.act === 'cards');
   return msgs.length ? msgs[msgs.length - 1].cards : null;
 });
-console.log('   у замовлення пішло: ' +
-  JSON.stringify(styleSent && { logo:styleSent.logo, shade:styleSent.shade, cutout:styleSent.cutout }));
-ok(styleSent && Math.abs(styleSent.logo - 1.5) < 0.01 && styleSent.shade === 'deep',
-  'масштаб лого й тінь лягають у замовлення — переживуть перезавантаження',
+console.log('   у замовлення пішло: ' + JSON.stringify(styleSent && { logo:styleSent.logo }));
+ok(styleSent && Math.abs(styleSent.logo - 1.5) < 0.01,
+  'масштаб лого лягає в замовлення — переживе перезавантаження',
   'стиль не доїхав: ' + JSON.stringify(styleSent));
-ok(styleSent && styleSent.cutout === true,
-  'увімкнена тінь сама вмикає зняття фону: тінь будується з прозорості, ' +
-    'і дві галочки, з яких одна без другої не працює, менеджеру не потрібні',
-  'тінь не ввімкнула зняття фону: ' + JSON.stringify(styleSent));
 
 await p.close();
 
@@ -853,6 +745,37 @@ ok(/\u0414\u043e \u0446\u044c\u043e\u0433\u043e \u0437\u0430\u0437\u0432\u0438\u
   'добірка лишилась без опису або зі старим заголовком');
 
 console.log('');
+console.log('═══ ШАПКА, ЦІНА Й ФОТО ═══');
+/* Шапка: «КП» перед номером нічого не додавало — людина й так тримає в
+   руках картку пропозиції; нік пишемо латиницею, як його й пишуть. */
+ok(/'Inst: @' \+ ig/.test(src) && !/КП № /.test(src),
+  'у підписі стоїть «Inst: @нік» і номер без слова «КП»',
+  'підпис лишився старим');
+ok(/'№' \+ offer\.orderId/.test(src),
+  'номер пропозиції — просто «№12345»',
+  'номер пишеться не так');
+/* Стара ціна стоїть поруч із новою, і без «/шт» читалась як сума за все
+   замовлення. */
+ok(/money\(base\) \+ '\/шт'/.test(src),
+  'перекреслена ціна теж у грн/шт — обидва числа в одних одиницях',
+  'стара ціна лишилась без «/шт»');
+/* Колір і спосіб нанесення більше не підставляються замість опису. */
+ok(!/show\('sub'\) && card\.sub/.test(src),
+  'замість опису більше не підставляється «Чорний · Вишивка» — опис тільки з адмінки',
+  'колір і нанесення досі підміняють опис виробу');
+/* Фото товару йде як є й заповнює плитку: ні вирізання, ні тіні, ні полів
+   навколо, через які й було видно кантик. */
+ok(!/cutOf|__lqCut|SHADE|shadowBlur/.test(src),
+  'зняття фону й тінь із малювальника прибрані',
+  'у малювальнику лишилось вирізання або тінь');
+ok(/x\.drawImage\(im, X \+ bw \/ 2 - cx \* k/.test(src),
+  'кадр малюється цілим і заповнює плитку до країв — кантика по краю немає',
+  'знімок і далі вписується з полями');
+ok(/Math\.max\(fit, cov\)/.test(src),
+  'масштаб ряду враховує і розмір виробу, і перекриття плитки',
+  'масштаб рахується лише по виробу — лишаться порожні поля');
+
+console.log('');
 console.log('═══ АДМІНКА ПРИЙМАЄ НАЛАШТУВАННЯ ПОКАЗУ ═══');
 const ap = await browser.newPage({ viewport:{ width:1400, height:1000 } });
 ap.on('pageerror', e => errs.push('адмінка: ' + e.message.slice(0, 170)));
@@ -881,6 +804,15 @@ const pushed = await ap.evaluate(() => {
 });
 ok(pushed, 'налаштування їдуть у робоче місце тим самим шляхом, що й решта',
   'робоче місце не отримує налаштувань карток');
+/* Пакетне вирізання фону в картці товару теж прибране — разом зі словником
+   вирізаних мокапів і платними викликами сервісу. */
+const noCut = await ap.evaluate(() => ({
+  btn: !!document.getElementById('cut-all'),
+  dict: typeof window.cutMany !== 'undefined' || /CUT_DOC/.test(document.documentElement.innerHTML)
+}));
+ok(!noCut.btn && !noCut.dict,
+  'в адмінці більше немає ні кнопки «вирізати фон», ні словника вирізаних мокапів',
+  'зняття фону лишилось в адмінці: ' + JSON.stringify(noCut));
 
 console.log('');
 ok(!errs.length, 'сторінки без помилок', 'помилки: ' + errs.join(' | '));
