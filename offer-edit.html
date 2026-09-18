@@ -803,6 +803,18 @@
     border:0; cursor:pointer; padding:4px;}
   /* Рядок про те, що пішло не так із мокапом. Не тост: тост зникає, а це
      стан картки — менеджер має бачити його, доки не змінить налаштування. */
+  /* Рамка логотипа на фото моделі. Тягнеться мишею, за кут — масштабується.
+     Стоїть ПОВЕРХ полотна, у тих самих координатах, які віддав малювальник:
+     рахувати ту саму геометрію вдруге тут означало б два різні уявлення про
+     те, де логотип, — одне у файлі, друге під мишею. */
+  .cd-prev{position:relative;}
+  .cd-mark{position:absolute; border:2px dashed rgba(79,95,212,.9); border-radius:3px;
+    cursor:move; touch-action:none; box-shadow:0 0 0 9999px rgba(0,0,0,0); z-index:3;}
+  .cd-mark b{position:absolute; right:-9px; bottom:-9px; width:16px; height:16px;
+    background:#4F5FD4; border:2px solid #fff; border-radius:50%; cursor:nwse-resize;}
+  .cd-mark i{position:absolute; left:0; top:-22px; font-style:normal; font-size:10.5px;
+    font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#4F5FD4;
+    background:#fff; border-radius:4px; padding:1px 5px; white-space:nowrap;}
   .cd-warn{align-self:stretch; font-size:12px; line-height:1.5; color:#8A5A1F;
     background:#FFF6E6; border:1px solid #F2DFB8; border-radius:9px; padding:8px 11px;}
 
@@ -904,21 +916,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=2322db9abd',
+    ['loomiq-select.js?v=5440f4d2ff',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=2322db9abd'].forEach(function(src){
+     'loomiq-cards.js?v=5440f4d2ff'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=2322db9abd';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=2322db9abd';
-  var CTOR_JS   = 'loomiq-constructor.js?v=2322db9abd';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=2322db9abd';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=5440f4d2ff';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=5440f4d2ff';
+  var CTOR_JS   = 'loomiq-constructor.js?v=5440f4d2ff';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=5440f4d2ff';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1795,6 +1807,8 @@
      перезавантаження й видні з будь-якого компʼютера. */
   var cardCfg = null, cardList = [], cardAt = 0, cardExt = 'png';
   var cardBusy = false, cardDrawId = 0, cardBgBusy = false, cardWarn = '';
+  var CARD_MODELS = {};
+  var cardArtBusy = false;
 
   function cardsCfg(){
     if(!cardCfg){
@@ -1807,6 +1821,12 @@
                      різний розмір того самого логотипа на сусідніх картках у
                      Direct читається як помилка складання, а не як задум. */
                   logo: +saved.logo || 1,
+                  /* Логотип нанесення — ОДИН на всю пропозицію. Менеджер
+                     замінює його в будь-якій картці, і решта підхоплюють: це
+                     той самий логотип того самого клієнта, і різні його
+                     версії на сусідніх картках — не варіативність, а
+                     неуважність, яку клієнт помітить. */
+                  art: saved.art || '',
                   cutout: !!saved.cutout,
                   shade: saved.shade || '',
                   bg: saved.bg || '',
@@ -1820,19 +1840,22 @@
      й готові картки: сховище налаштоване там, і другий такий самий
      завантажувач тут означав би два місця, де щось може зламатись. Назад
      приходить посилання, і воно лягає в налаштування показу. */
-  function cardsBgPick(f){
-    if(!f || cardBgBusy) return;
+  function cardsFilePick(f, what){
+    var busy = what === 'art' ? cardArtBusy : cardBgBusy;
+    if(!f || busy) return;
     if(f.size > 8 * 1024 * 1024){
-      cardWarn = 'Фон завеликий — до 8 МБ. Стисніть і спробуйте ще раз.';
+      cardWarn = 'Файл завеликий — до 8 МБ. Стисніть і спробуйте ще раз.';
       renderCards(); return;
     }
-    cardBgBusy = true; cardWarn = ''; renderCardsBar(cardsCfg());
+    if(what === 'art') cardArtBusy = true; else cardBgBusy = true;
+    cardWarn = ''; renderCardsBar(cardsCfg());
     var fr = new FileReader();
     fr.onload = function(){
-      send({ act:'cardsBg', data: Array.from(new Uint8Array(fr.result)), type: f.type || 'image/png' });
+      send({ act:'cardsFile', what: what,
+             data: Array.from(new Uint8Array(fr.result)), type: f.type || 'image/png' });
     };
     fr.onerror = function(){
-      cardBgBusy = false;
+      cardArtBusy = cardBgBusy = false;
       cardWarn = 'Файл не прочитався.';
       renderCards();
     };
@@ -1855,7 +1878,7 @@
       return;
     }
     var cfg = cardsCfg();
-    cardList = window.LQCards.build(OFFER, cfg);
+    cardList = window.LQCards.build(OFFER, Object.assign({ models: CARD_MODELS }, cfg));
     if(!cardList.length){
       document.getElementById('cdBar').innerHTML = '';
       document.getElementById('cdSide').innerHTML = '';
@@ -1884,7 +1907,7 @@
     var html =
       '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
       '<div class="cd-g"><span class="cd-l">Лого</span><span class="cd-rng">' +
-        '<input type="range" id="cdLogo" min="50" max="180" step="5" value="' + lp + '">' +
+        '<input type="range" id="cdLogo" min="50" max="300" step="5" value="' + lp + '">' +
         '<b>' + lp + '%</b></span></div>' +
       '<div class="cd-g"><span class="cd-l">Показувати</span>' +
         L.FIELDS.map(function(f){
@@ -1895,6 +1918,16 @@
          будується з прозорості, — тож увімкнена тінь сама вмикає зняття
          фону, а галочка стає неактивною з поясненням. Це чесніше, ніж дві
          галочки, з яких одна без другої мовчки нічого не робить. */
+      '<div class="cd-g"><span class="cd-l">Нанесення</span>' +
+        (cfg.art
+          ? '<label class="cd-up"><img src="' + esc(cfg.art) + '" alt="">Замінити' +
+              '<input type="file" accept="image/*" id="cdArtF" hidden></label>' +
+            '<button class="cd-x" id="cdArtX" title="Повернути логотип із конструктора">✕</button>'
+          : '<label class="cd-up' + (cardArtBusy ? ' busy' : '') + '">' +
+              (cardArtBusy ? 'Вантажиться…' : '⤒ Свій логотип') +
+              '<input type="file" accept="image/*" id="cdArtF" hidden' +
+              (cardArtBusy ? ' disabled' : '') + '></label>') +
+      '</div>' +
       '<div class="cd-g"><span class="cd-l">Стиль</span>' +
         '<label class="cd-chk" title="' +
           (cfg.shade ? 'Тінь малюється по контуру виробу, тож фон знімається обовʼязково'
@@ -1951,8 +1984,12 @@
     }
     var cut = document.getElementById('cdCut');
     if(cut) cut.onchange = function(){ cardsCfg().cutout = cut.checked; cardsChanged(); };
+    var artf = document.getElementById('cdArtF');
+    if(artf) artf.onchange = function(){ cardsFilePick(artf.files && artf.files[0], 'art'); };
+    var artx = document.getElementById('cdArtX');
+    if(artx) artx.onclick = function(){ cardsCfg().art = ''; cardsChanged(); };
     var bgf = document.getElementById('cdBgF');
-    if(bgf) bgf.onchange = function(){ cardsBgPick(bgf.files && bgf.files[0]); };
+    if(bgf) bgf.onchange = function(){ cardsFilePick(bgf.files && bgf.files[0], 'bg'); };
     var bgx = document.getElementById('cdBgX');
     if(bgx) bgx.onclick = function(){ cardsCfg().bg = ''; cardsChanged(); };
     bar.querySelectorAll('[data-dl]').forEach(function(b){
@@ -2078,11 +2115,101 @@
         box.innerHTML = say.map(esc).join('<br>');
         box.style.display = say.length ? '' : 'none';
       }
+      markUi(cv, c, cfg);
     }, function(e){
       if(id !== cardDrawId) return;
       prev.innerHTML = '<div class="cd-note">Картку намалювати не вдалось: ' +
                        esc(String((e && e.message) || e)) + '</div>';
     });
+  }
+
+  /* ══════════ ЛОГОТИП НА ФОТО МОДЕЛІ ══════════
+     Фото моделі — не мокап: зони нанесення в ньому немає, тож автоматично
+     покласти туди логотип неможливо. Ставить його менеджер — так само, як
+     у конструкторі ставить нанесення на одяг: бере, тягне, за кут міняє
+     розмір.
+
+     Положення зберігаємо ЧАСТКАМИ від фото, а не пікселями. Аркуш у нас
+     розсувається від кількості колонок, preview масштабується під ширину
+     вікна, а файл виходить утричі більший за preview — у пікселях те саме
+     місце щоразу інше, у частках воно одне. */
+  function markUi(cv, card, cfg){
+    var prev = document.getElementById('cdPrev');
+    var old = prev.querySelector('.cd-mark');
+    if(old){ if(old.__off) old.__off(); old.remove(); }
+    var m = cv.lqMark;
+    if(!m || !card || card.type === 'set') return;
+
+    var box = document.createElement('div');
+    box.className = 'cd-mark';
+    box.innerHTML = '<i>Логотип — тягніть</i><b></b>';
+    prev.appendChild(box);
+
+    // Полотно показується зменшеним: усе, що малюємо поверх, ділимо на цей масштаб
+    var k = function(){ return cv.clientWidth / cv.width || 1; };
+    var put = function(r){
+      var s = k();
+      box.style.left   = (cv.offsetLeft + r.x * s) + 'px';
+      box.style.top    = (cv.offsetTop + r.y * s) + 'px';
+      box.style.width  = (r.w * s) + 'px';
+      box.style.height = (r.h * s) + 'px';
+    };
+    var rect = { x:m.logo.x, y:m.logo.y, w:m.logo.w, h:m.logo.h };
+    put(rect);
+
+    var drag = null;
+    var down = function(e, mode){
+      e.preventDefault(); e.stopPropagation();
+      var p = e.touches ? e.touches[0] : e;
+      drag = { mode: mode, x: p.clientX, y: p.clientY, r: Object.assign({}, rect) };
+    };
+    box.addEventListener('mousedown', function(e){ down(e, 'move'); });
+    box.addEventListener('touchstart', function(e){ down(e, 'move'); }, { passive:false });
+    box.querySelector('b').addEventListener('mousedown', function(e){ down(e, 'size'); });
+    box.querySelector('b').addEventListener('touchstart', function(e){ down(e, 'size'); }, { passive:false });
+
+    var move = function(e){
+      if(!drag) return;
+      e.preventDefault();
+      var p = e.touches ? e.touches[0] : e, s = k();
+      var dx = (p.clientX - drag.x) / s, dy = (p.clientY - drag.y) / s;
+      if(drag.mode === 'move'){
+        rect.x = drag.r.x + dx;
+        rect.y = drag.r.y + dy;
+      } else {
+        /* Пропорції нанесення не наші — вони задані самим файлом, і
+           розтягувати його «як зручно» означає збрехати клієнту про те, що
+           він отримає. Тому кут міняє тільки розмір. */
+        var w = Math.max(24, drag.r.w + dx);
+        rect.h = w * (drag.r.h / drag.r.w);
+        rect.w = w;
+      }
+      put(rect);
+    };
+    var up = function(){
+      if(!drag) return;
+      drag = null;
+      var own = cardsOwn(card.id);
+      own.mark = {
+        cx: (rect.x + rect.w / 2 - m.photo.x) / m.photo.w,
+        cy: (rect.y + rect.h / 2 - m.photo.y) / m.photo.h,
+        w: rect.w / m.photo.w
+      };
+      cardsChanged();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('touchmove', move, { passive:false });
+    document.addEventListener('mouseup', up);
+    document.addEventListener('touchend', up);
+    /* Знімаємо слухачі разом із рамкою: preview перемальовується на кожну
+       зміну налаштувань, і без цього за півгодини роботи на документі
+       висіли б сотні однакових обробників. */
+    box.__off = function(){
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchend', up);
+    };
   }
 
   /* Файли віддаємо адмінці байтами: завантаження з верхнього вікна
@@ -2182,12 +2309,20 @@
     }
     /* Фон для квадратиків завантажила адмінка — кладемо посилання в
        налаштування показу й одразу малюємо. */
-    if(d.cardsBg !== undefined){
-      cardBgBusy = false;
-      if(d.cardsBg){ cardsCfg().bg = String(d.cardsBg); cardWarn = ''; cardsSave(); }
-      else cardWarn = 'Фон не завантажився' + (d.cardsBgErr ? ': ' + d.cardsBgErr : '') + '.';
+    if(d.cardsFile !== undefined){
+      var what = d.cardsWhat === 'art' ? 'art' : 'bg';
+      if(what === 'art') cardArtBusy = false; else cardBgBusy = false;
+      if(d.cardsFile){ cardsCfg()[what] = String(d.cardsFile); cardWarn = ''; cardsSave(); }
+      else cardWarn = (what === 'art' ? 'Логотип' : 'Фон') + ' не завантажився' +
+                      (d.cardsFileErr ? ': ' + d.cardsFileErr : '') + '.';
       try{ renderCards(); }catch(e){}
       return;
+    }
+    /* Фото моделей для карток. Приходять окремо від каталогу: адмінка
+       читає їх із головної сторінки, і першого разу вони ще не готові. */
+    if(d.models){
+      CARD_MODELS = d.models || {};
+      try{ if(cardList.length) renderCards(); }catch(e){}
     }
     if(d.catalog) CATALOG = d.catalog;
     if(d.clientUrl) CLIENT_URL = d.clientUrl;

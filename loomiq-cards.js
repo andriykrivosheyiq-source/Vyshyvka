@@ -48,7 +48,7 @@
      низ — числа. Смуги сталі, тож дві картки поруч у стрічці Direct
      вирівняні між собою: назви на одній лінії, ціни на одній лінії. */
   var H = 1000, PAD = 80, COL = 600, GAP = 40;
-  var HEAD = 128, FOOT = 186, BOT = 40;
+  var HEAD = 128, FOOT = 210, BOT = 40;
   function sheetW(n){
     n = Math.max(2, Math.min(4, n | 0));
     return PAD * 2 + n * COL + (n - 1) * GAP;
@@ -173,6 +173,7 @@
     { id:'about', name:'Опис виробу' },
     { id:'unit',  name:'Ціна за штуку' },
     { id:'old',   name:'Стара ціна' },
+    { id:'valid', name:'Термін дії ціни' },
     { id:'warn',  name:'Застереження' }
   ];
 
@@ -208,6 +209,39 @@
 
        Рукав і решта сторін додаються тоді, коли на них справді щось є. */
     var SIDE_UA = { front:'Спереду', back:'Ззаду', left:'Рукав', right:'Рукав' };
+
+    /* ФОТО МОДЕЛІ — перший кадр картки.
+
+       Мокап показує виріб, але не показує, що це одяг: людина в Direct
+       дивиться на розкладений силует і мусить уявити його на комусь. Фото
+       моделі знімає цю роботу з неї. Такі фото в нас уже є — у картці
+       товару, в розділі «Фото моделей», — просто картка про них не знала.
+
+       І тоді ЗАДНІЙ ВИД стає необовʼязковим. Два кадри на картці потрібні
+       завжди, але коли перший — жива фотографія, другим іде перед виробу, а
+       спина додається лише якщо на ній справді щось нанесено. Показувати
+       порожню спину заради симетрії — це віддати колонку нічому. */
+    var modelsOf = function(it){
+      var gid = (it.config && it.config.garmentId) || it.garmentId || '';
+      var list = (cfg.models || {})[gid];
+      if(!Array.isArray(list)) return [];
+      return list.map(function(m){
+        return typeof m === 'string' ? { url: m } : (m || {});
+      }).filter(function(m){ return m.url; });
+    };
+    /* Графіка нанесення — з того самого шару, який конструктор поклав на
+       мокап. Своєї копії картка не тримає: інакше змінений у конструкторі
+       логотип лишався б на картці старим. */
+    var artOf = function(it){
+      if(it.art) return it.art;
+      var lg = (it.config && it.config.logos) || {};
+      var pick = function(side){
+        var arr = lg[side] || [];
+        for(var i = 0; i < arr.length; i++) if(arr[i] && arr[i].url) return arr[i].url;
+        return '';
+      };
+      return pick('front') || pick('back') || pick('left') || pick('right') || '';
+    };
     var shotsOf = function(it){
       var views = (it.views || []).filter(function(v){ return v && v.show !== false && v.img; });
       var byId = {};
@@ -219,16 +253,29 @@
         out2.push({ url: v.img, side: v.side || '',
                     label: lb || SIDE_UA[v.side] || v.label || '' });
       };
-      add(byId.front); add(byId.back);
+      var mp = modelsOf(it)[0];
+      if(mp){
+        out2.push({ url: mp.url, side:'', label:'', model: true,
+                    /* Якір із каталогу: де на цьому фото груди. Менеджер
+                       однаково зможе пересунути, але починати з нуля
+                       щоразу — це робота, яку вже колись зробили. */
+                    mark: (mp.cx != null)
+                      ? { cx: +mp.cx / 100, cy: +mp.cy / 100, w: (+mp.sw || 24) / 100 }
+                      : null });
+        add(byId.front);
+      } else {
+        add(byId.front); add(byId.back);
+      }
       (it.prints || []).forEach(function(p){
         var sd = p.side || '';
-        if(sd === 'front' || sd === 'back') return;
+        if(sd === 'front') return;
+        if(sd === 'back' && !mp) return;      // зад уже стоїть другим кадром
         add(byId[sd], p.sideLabel && SIDE_UA[sd] ? SIDE_UA[sd] : (p.sideLabel || ''));
       });
       if(!out2.length) views.forEach(function(v){ add(v); });
       if(!out2.length) pics(it).forEach(function(u){
         if(out2.length < 3) out2.push({ url:u, side:'', label:'' }); });
-      return out2.slice(0, 3);
+      return out2.slice(0, 4);
     };
     // «Колір · Вишивка» — без розмірів: кількість і так стоїть числом нижче,
     // і повторювати її рядком означає сказати те саме двічі
@@ -240,6 +287,10 @@
       var all = pics(it), shots = shotsOf(it);
       /* Обраний менеджером мокап стає ПЕРШИМ, а не єдиним: решта сторін
          однаково потрібні. */
+      /* Менеджер пересунув логотип на фото моделі — його рішення сильніше
+         за якір із каталогу. Якір лишається початковим положенням, не
+         більше. */
+      if(own.mark) shots.forEach(function(sh){ if(sh.model) sh.mark = own.mark; });
       if(own.pic){
         var mine = shots.filter(function(sh){ return sh.url === own.pic; })[0];
         var rest = shots.filter(function(sh){ return sh.url !== own.pic; });
@@ -257,6 +308,7 @@
         /* Базова ціна — та сама, з якої сторінка пропозиції рахує «ви
            економите». Своєї старої ціни картка не вигадує. */
         base: +it.baseUnitPrice || 0,
+        art: cfg.art || artOf(it),
         shots: shots, pics: all,
         pic: (own.pic && all.indexOf(own.pic) >= 0) ? own.pic
            : ((shots[0] && shots[0].url) || all[0] || ''),
@@ -456,9 +508,40 @@
     var b = (offer || {}).brand;
     return (b && (b.name || b.tagline)) ? String(b.name || '') : '';
   }
-  function metaText(offer){
+  /* До якої дати діє ціна.
+
+     Беремо `validUntil` самої пропозиції — те саме число, що клієнт бачить
+     на сторінці КП. Своєї дати картка не рахує: два різні «діє до» на тих
+     самих даних — це не дрібниця, а привід не вірити жодному з них. Немає
+     дати — рахуємо від сьогодні на стільки днів, скільки стоїть у
+     пропозиції (`holdDays`), бо картку роблять і шлють сьогодні. */
+  var MONTHS = ['січня','лютого','березня','квітня','травня','червня',
+                'липня','серпня','вересня','жовтня','листопада','грудня'];
+  function validText(offer){
+    var t = (offer || {}).terms || {};
+    var d = null;
+    if(t.validUntil){
+      var v = new Date(t.validUntil);
+      if(!isNaN(v)) d = v;
+    }
+    if(!d){
+      var days = +t.holdDays || 5;
+      d = new Date();
+      d.setDate(d.getDate() + days);
+    }
+    return 'Ціна дійсна до ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
+  /* Підпис стоїть УНИЗУ й складається з ніка та номера КП. Назви бренду в
+     ньому немає навмисно: нагорі слово «Створи» було просто словом, а
+     @stvory.ua — дія, яку можна зробити: знайти, підписатись, написати.
+     Два підписи одного бренду на одному аркуші — це повтор, і виграє той,
+     що веде кудись. */
+  function signText(offer){
     offer = offer || {};
-    return [brandName(offer), offer.orderId ? 'КП № ' + offer.orderId : '']
+    var b = offer.brand || {};
+    var ig = String(b.ig || b.instagram || '').replace(/^@?/, '');
+    return [ig ? '@' + ig : '', offer.orderId ? 'КП № ' + offer.orderId : '']
       .filter(Boolean).join(' · ');
   }
 
@@ -478,19 +561,29 @@
      другого вивіску, що тисне назву. Значення одне на всю пропозицію: різні
      розміри того самого логотипа на сусідніх картках у Direct читаються як
      помилка складання. */
+  /* Висота шапки РОСТЕ під логотип. Повзунок доходить до трьохсот
+     відсотків, і при сталій шапці все, що більше за сотню пікселів,
+     упиралось би в стелю: менеджер тягне ручку, а нічого не міняється.
+     Тепер міняється сама смуга — а галерея просто починається нижче. */
+  function headOf(o){
+    var lh = o.logo ? 44 * (o.logoK || 1) : 0;
+    return Math.max(HEAD, Math.round(lh) + 44);
+  }
   function head(x, card, t, show, o, W){
-    var right = W - PAD, mid = HEAD / 2;
+    var right = W - PAD, hh = headOf(o), mid = hh / 2;
     var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
     var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
 
-    var meta = o.meta || '';
+    /* Підпис — угорі праворуч. Унизу він стояв під приміткою й читався як
+       її продовження; тут він на своєму місці: те, чия це картка й до якої
+       пропозиції належить, питають першим, а не останнім. */
     var mw = 0;
-    if(meta){
-      x.font = '400 20px ' + t.body;
-      mw = x.measureText(meta).width;
+    if(o.sign){
+      x.font = '600 19px ' + t.body;
+      mw = x.measureText(o.sign).width;
       x.fillStyle = t.dim;
       x.textAlign = 'right';
-      x.fillText(meta, right, mid + 7);
+      x.fillText(o.sign, right, mid + 7);
       x.textAlign = 'left';
     }
 
@@ -498,7 +591,7 @@
     var nameW = right - (mw ? mw + 48 : 0) - tx;
     fitFont(x, card.name, nameW, 46, '800', t.display, 30);
     x.fillText(clip1(x, card.name, nameW), tx, mid + 16);
-    rule(x, t, PAD, right, HEAD);
+    rule(x, t, PAD, right, hh);
   }
   function rule(x, t, x0, x1, y){
     x.strokeStyle = t.line; x.lineWidth = 2;
@@ -538,7 +631,7 @@
     var step = Math.round(n * 1.42);
     lines.forEach(function(ln, i){ x.fillText(ln, X, yLab + 32 + i * step); });
   }
-  function numbers(x, card, t, show, W){
+  function numbers(x, card, t, show, W, o){
     var right = W - PAD;
     var yRule = H - FOOT, yLab = yRule + 44, yVal = yRule + 94;   // 814 · 858 · 908
     rule(x, t, PAD, right, yRule);
@@ -549,7 +642,13 @@
        відсотку знижки: там він щось означає, бо позначає різницю. */
     var VAL = 44;
     var cut = oldPrice(card, show);
-    var price = (show('unit') && card.unit) ? money(card.unit) : '';
+    var price = (show('unit') && card.unit) ? money(card.unit) + '/шт' : '';
+    /* Тираж повернувся — але як УМОВА ціни, а не окреме число. Різниця
+       велика: «20 шт» окремим блоком застаріває від першого «а якщо
+       пʼятдесят», а «від 20 шт» пояснює, звідки взялась саме ця ціна, і
+       прямо запрошує спитати про більший тираж. */
+    var lab = (card.qty > 1) ? 'Ціна від ' + card.qty + ' шт' : 'Ціна за 1 шт';
+    var till = (price && show('valid')) ? o.valid : '';
 
     var priceW = 0, wasW = 0;
     if(price){
@@ -561,7 +660,11 @@
         x.font = '800 19px ' + t.body;
         priceW = Math.max(priceW, wasW + 16 + x.measureText(cut.off).width + 26);
       }
-      priceW = Math.max(priceW, eyebrowW(x, 'Ціна за 1 шт', 18));
+      if(till){
+        x.font = '400 15px ' + t.body;
+        priceW = Math.max(priceW, x.measureText(till).width);
+      }
+      priceW = Math.max(priceW, eyebrowW(x, lab, 18));
     }
 
     /* Опис — той самий, що доти тулився рядком під назвою. Тут він не
@@ -582,7 +685,7 @@
     var cw = nText ? (rest - GAPC * (nText - 1)) / nText : 0;
 
     if(price){
-      eyebrow(x, 'Ціна за 1 шт', PAD, yLab, t.dim, 18);
+      eyebrow(x, lab, PAD, yLab, t.dim, 18);
       x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
       x.fillText(price, PAD, yVal);
       if(cut){
@@ -593,6 +696,14 @@
         x.strokeStyle = t.dim; x.lineWidth = 2;
         x.beginPath(); x.moveTo(PAD, yVal + 28); x.lineTo(PAD + wasW, yVal + 28); x.stroke();
         badge(x, t, cut.off, PAD + wasW + 16, yVal + 36);
+      }
+      /* Термін дії ціни — під самою ціною, а не окремою зоною. Це не ще
+         один факт про товар, це умова конкретно цього числа, і читатись
+         має разом із ним. Без неї картку зберігають «на подумати» й не
+         повертаються. */
+      if(till){
+        x.fillStyle = t.dim; x.font = '400 15px ' + t.body;
+        x.fillText(till, PAD, yVal + (cut ? 68 : 40));
       }
     }
 
@@ -813,11 +924,37 @@
   /* Спільний кадр на весь ряд: підбираємо його так, щоб найбільший виріб
      ще вписався у відведений прямокутник. Далі всі малюються в тому самому
      масштабі — і стають зіставні між собою. */
+  var MARK0 = { cx: 0.5, cy: 0.45, w: 0.18 };
+  /* Фото моделі заповнює колонку з обрізанням по центру й малюється від
+     краю до краю панелі: живий кадр у білій рамці з полями виглядає як
+     чужа картинка, вставлена в наш бланк, а не як наш виріб на людині. */
+  function drawModel(x, sr, X, Y, w, h, out){
+    var im = sr.im;
+    x.save();
+    rr(x, X, Y, w, h, 24); x.clip();
+    var k = Math.max(w / im.width, h / im.height);
+    var iw = im.width * k, ih = im.height * k;
+    var ix = X + (w - iw) / 2, iy = Y + (h - ih) / 2;
+    x.drawImage(im, ix, iy, iw, ih);
+    if(sr.art){
+      var m = sr.mark || MARK0;
+      var lw = m.w * iw, lh = lw * (sr.art.height / sr.art.width || 1);
+      var lx = ix + m.cx * iw - lw / 2, ly = iy + m.cy * ih - lh / 2;
+      x.drawImage(sr.art, lx, ly, lw, lh);
+      /* Куди саме ліг логотип — віддаємо назовні. Робоче місце малює
+         поверх цього місця рамку, за яку тягнуть, і рахувати ту саму
+         геометрію вдруге там означало б два різні уявлення про те, де
+         логотип: одне в файлі, друге під мишею. */
+      if(out) out.push({ photo: { x: ix, y: iy, w: iw, h: ih },
+                         logo: { x: lx, y: ly, w: lw, h: lh } });
+    }
+    x.restore();
+  }
   function rowScale(srcs, bw, bh){
     var S = Infinity;
     srcs.forEach(function(sr){
       var im = sr && sr.im;
-      if(!im) return;
+      if(!im || sr.model) return;      // фото моделі живе своїм масштабом
       var tr = trimOf(im), A = im.width / im.height;
       S = Math.min(S, bw / ((tr.w / im.width) * A), bh / (tr.h / im.height));
     });
@@ -853,8 +990,9 @@
 
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
-      shotPanel(x, t, cx, Y, cw, h, st.bg);
       var sr = srcs[i];
+      if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h, st.marks); continue; }
+      shotPanel(x, t, cx, Y, cw, h, st.bg);
       if(sr && sr.im && isFinite(S)) drawShot(x, sr, S, cx + IN, Y + IN, bw, bh, st.shade);
       else if(!(sr && sr.im)) placeholder(x, cx, Y, cw, h, t.ink);
     }
@@ -872,7 +1010,7 @@
      випадкову дірку. */
   function drawLogo(x, logo, X, mid, maxH){
     if(!logo) return 0;
-    var k = Math.min(260 * (maxH / 44) / logo.width, maxH / logo.height);
+    var k = Math.min(320 * (maxH / 44) / logo.width, maxH / logo.height);
     var w = logo.width * k, h = logo.height * k;
     x.drawImage(logo, X, mid - h / 2, w, h);
     return w;
@@ -897,8 +1035,9 @@
     topBar(x, t, W);
     head(x, card, t, show, o, W);
     // Галерея не впирається в лінійки: 16 пікселів повітря згори й знизу
-    shotsRow(x, imgs, PAD, HEAD + 16, W - PAD * 2, H - FOOT - HEAD - 34, t, o.st);
-    numbers(x, card, t, show, W);
+    var hh = headOf(o);
+    shotsRow(x, imgs, PAD, hh + 16, W - PAD * 2, H - FOOT - hh - 34, t, o.st);
+    numbers(x, card, t, show, W, o);
   }
 
   /* Картка рекомендованих. Плитками, бо тут порівнюють, а не роздивляються:
@@ -906,25 +1045,28 @@
   function paintSet(x, card, t, imgs, show, o, W){
     o = o || {};
     topBar(x, t, W);
-    var right = W - PAD;
-    var lw = o.logo ? drawLogo(x, o.logo, PAD, 42, 56) : 0;
-    var tx = PAD + (lw ? Math.round(lw) + 36 : 0);
-    if(o.meta){
-      x.fillStyle = t.dim; x.font = '400 20px ' + t.body;
-      x.textAlign = 'right'; x.fillText(o.meta, right, 70); x.textAlign = 'left';
+    var right = W - PAD, hh = headOf(o), mid = hh / 2;
+    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
+    var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
+    var mw = 0;
+    if(o.sign){
+      x.font = '600 19px ' + t.body;
+      mw = x.measureText(o.sign).width;
+      x.fillStyle = t.dim;
+      x.textAlign = 'right'; x.fillText(o.sign, right, mid + 7); x.textAlign = 'left';
     }
-    eyebrow(x, 'До вашого замовлення', tx, 74, t.accent, 18);
+    eyebrow(x, 'До вашого замовлення', tx, mid - 18, t.accent, 18);
     x.fillStyle = t.ink;
-    var maxW = right - tx;
-    fitFont(x, card.name, maxW, 50, '800', t.display, 32);
-    x.fillText(clip1(x, card.name, maxW), tx, 134);
-    rule(x, t, PAD, right, HEAD);
+    var maxW = right - (mw ? mw + 48 : 0) - tx;
+    fitFont(x, card.name, maxW, 44, '800', t.display, 30);
+    x.fillText(clip1(x, card.name, maxW), tx, mid + 26);
+    rule(x, t, PAD, right, hh);
     maxW = W - PAD * 2;
 
     var n = Math.max(1, card.items.length);
     var gap = GAP;
     var tileW = (maxW - gap * (n - 1)) / n;
-    var top = HEAD + 16, tileH = H - BOT - HEAD - 16;
+    var top = hh + 16, tileH = H - BOT - hh - 16;
     // Місце під підписи: назва, короткий опис і ціна
     var textH = 176;
     /* Плитки — теж ряд, і масштаб у них теж спільний: кепка поруч із худі
@@ -993,26 +1135,39 @@
        зняття фону: пропонувати менеджеру дві галочки, з яких одна без
        другої не працює, означало б перекласти на нього нашу внутрішню
        залежність. */
-    var notes = [];
+    var notes = [], marks = [];
     var st = {
+      marks: marks,
       cutout: !!cfg.cutout || !!cfg.shade,
       shade: SHADE[cfg.shade] || null,
       bg: await loadImg(cfg.bg || '')
     };
-    var o = { logo: logo, meta: metaText(offer), logoK: +cfg.logo || 1, st: st };
+    var o = { logo: logo, sign: signText(offer), valid: validText(offer),
+              logoK: +cfg.logo || 1, st: st };
 
     if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
       paintSet(x, card, t, imgs.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
     } else {
-      var shots = await Promise.all((card.shots || []).map(function(sh){
-        return loadImg(sh && sh.url);
-      }));
-      paintCard(x, card, t, shots.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
+      var meta = card.shots || [];
+      var shots = await Promise.all(meta.map(function(sh){ return loadImg(sh && sh.url); }));
+      var art = card.art ? await loadImg(card.art) : null;
+      var srcs = shots.map(function(im, i){
+        var sh = meta[i] || {};
+        /* Фото моделі НЕ чіпаємо зняттям фону: фон у нього справжній, і
+           заливка від країв зʼїла б половину кадру. */
+        var r = sh.model ? { im: im, cut: false } : srcOf(im, st, notes);
+        r.model = !!sh.model;
+        r.mark = sh.mark || null;
+        r.art = sh.model ? art : null;
+        return r;
+      });
+      paintCard(x, card, t, srcs, show, o, W);
     }
     /* Що пішло не так — віддаємо разом із полотном, а не в консоль: рішення
        тут ухвалює менеджер, і побачити це має він. */
     cv.lqNotes = notes;
+    cv.lqMark = marks[0] || null;
     return cv;
   }
 
@@ -1029,6 +1184,7 @@
   window.LQCards = {
     H: H, sheetW: sheetW,
     TEMPLATES: TEMPLATES, FIELDS: FIELDS, WARN: WARN,
+    MARK0: MARK0,
     build: buildCards, draw: drawCard, fileName: fileName, money: money
   };
 })();
