@@ -138,6 +138,41 @@
         return !!(o.dueAt || o.deadlineDays || o.offerDays); } }
   ];
 
+  /* Скільки замовлень дизайнер тримає одночасно. Десять — не красиве
+     число, а межа, за якою черга перестає бути видимою: одинадцяте вже
+     нікуди не поспішає, бо й попередні десять стоять.
+
+     Зупиняє це саме систему, а не людину: узяти більше просто не вийде,
+     доки не здасть. Інакше «я візьму, встигну» перетворюється на десять
+     замовлень, жодне з яких не рухається. */
+  var TAKE_LIMIT = 10;
+  function loadOf(jobs, email){
+    var e = String(email || '').trim().toLowerCase();
+    if(!e) return 0;
+    var n = 0;
+    (jobs || []).forEach(function(j){
+      var g = (j && j.graphic) || {};
+      if(String(g.assignee || '').trim().toLowerCase() !== e) return;
+      if(g.status === 'done') return;
+      n++;
+    });
+    return n;
+  }
+  /* Дизайнер бере замовлення сам. Доти його мусив призначити менеджер
+     відділу — тобто робота стояла, поки він не дійшов до черги. */
+  function takeSelf(job, o, who, jobs){
+    if(!job || !who) return null;
+    var g = job.graphic || (job.graphic = { status:'new', assignee:'', due:'', events:[] });
+    if(g.assignee) return null;                       // вже чиєсь
+    if(loadOf(jobs, who) >= TAKE_LIMIT) return { full: true };
+    g.assignee = who;
+    g.status = 'work';
+    if(job.state === 'new' || job.state === 'check' || job.state === 'assigned')
+      job.state = 'design';
+    ds(job, 'take-self', { by: who });
+    return job;
+  }
+
   /* ══════════ УПРАВЛІНСЬКА ДОШКА ══════════
      Дошка акаунт-менеджера на ВЕСЬ ланцюг: від «щойно завели» до
      «відправлено». Вона не замінює робочі дошки відділів — ті лишаються з
@@ -275,6 +310,31 @@
     { key:'returned', label:'Повернуто', color:'amber'  }
   ];
 
+  /* ТЗ від акаунт-менеджера: текст і референси. Половина переробок
+     народжується саме тут — дизайнер малює за неповним ТЗ, а потім усе
+     переробляється через розмір або приклад, якого ніхто не показав. */
+  function briefSet(job, by, text){
+    if(!job) return null;
+    if(!job.brief) job.brief = { missing: [], note: '', returnedAt: '', returnedBy: '' };
+    job.brief.text = String(text || '').slice(0, 4000);
+    ds(job, 'brief-text', { by: by });
+    return job;
+  }
+  function briefPic(job, by, pic){
+    if(!job || !pic || !pic.url) return null;
+    if(!job.brief) job.brief = {};
+    if(!Array.isArray(job.brief.pics)) job.brief.pics = [];
+    if(job.brief.pics.length >= 12) return null;     // дюжини прикладів вистачить будь-кому
+    job.brief.pics.push({ name: String(pic.name || ''), url: String(pic.url) });
+    ds(job, 'brief-pic', { by: by });
+    return job;
+  }
+  function briefPicDel(job, i){
+    if(!job || !job.brief || !Array.isArray(job.brief.pics)) return null;
+    job.brief.pics.splice(i, 1);
+    return job;
+  }
+
   function taskList(job){
     if(!job) return [];
     if(!Array.isArray(job.tasks)) job.tasks = [];
@@ -362,6 +422,17 @@
   }
   /* Розмова всередині доручення. Саме тут виконавець перепитує — і саме
      через це доручення перестає бути листом без відповіді. */
+  /* Вкладення до доручення. Скріншот пояснює правку краще за абзац тексту,
+     і саме через його відсутність половина правок поверталась уточненням. */
+  function taskFile(job, n, by, file){
+    var t = taskAt(job, n);
+    if(!t || !file || !file.url) return null;
+    if(!Array.isArray(t.files)) t.files = [];
+    if(t.files.length >= 8) return null;
+    t.files.push({ name: String(file.name || ''), url: String(file.url) });
+    ds(job, 'task-file', { n: t.n, by: by });
+    return t;
+  }
   function taskSay(job, n, by, text, quiet){
     var t = taskAt(job, n);
     if(!t) return null;
@@ -410,7 +481,12 @@
       orderId: String(orderId || ''),
       createdAt: nowIso(), updatedAt: nowIso(),
       state: 'new',
-      brief: { missing: [], note: '', returnedAt: '', returnedBy: '' },
+      /* ТЗ живе тут, а не в картці замовлення: у картці лежить те, що
+         ПРОДАЛИ, а тут — те, що треба НАМАЛЮВАТИ. Це різні речі, і
+         зливати їх в одне поле означає щоразу вгадувати, котре з них
+         правильне. Картинки — посиланнями, самі файли в хмарі. */
+      brief: { missing: [], note: '', returnedAt: '', returnedBy: '',
+               text: '', pics: [] },
       /* Версій тут немає навмисно: вони живуть у замовленні. Тут — стан,
          відповідальний, строк і причини повернень. */
       graphic: { status:'new', assignee:'', due:'', events: [] },
@@ -859,12 +935,15 @@
     QUEUE: QUEUE, GRAPHIC: GRAPHIC, STITCH: STITCH,
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
+    TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
     CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt,
     PROD: PROD, prodAt: prodAt, SUPPLY: SUPPLY, supplyAt: supplyAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
     taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
     taskSay: taskSay, taskAge: taskAge, taskOpen: taskOpen, tasksOf: tasksOf,
+    taskFile: taskFile,
+    briefSet: briefSet, briefPic: briefPic, briefPicDel: briefPicDel,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
     needsStitch: needsStitch, briefMissing: briefMissing,
     ds: ds, verNew: verNew, verCur: verCur, verAt: verAt, verLocked: verLocked,
@@ -1003,6 +1082,17 @@
 
   /* ── Вхідні дані задачі: те, що дизайнер має бачити, і нічого зайвого ── */
   function briefHtml(o, job){
+    /* Слова замовника — перше, що має прочитати дизайнер. Склад і
+       міліметри нижче: вони кажуть, що шиємо, а це — що малюємо. */
+    var br = (job && job.brief) || {};
+    var head = '';
+    if(br.text) head += '<div class="dz-note">' + esc(br.text).replace(/\n/g, '<br>') + '</div>';
+    if((br.pics || []).length){
+      head += '<div class="dz-pics">' + br.pics.map(function(pp){
+        return '<a class="dz-thumb" href="' + esc(pp.url) + '" target="_blank" rel="noopener">' +
+               '<img src="' + esc(pp.url) + '" alt=""></a>';
+      }).join('') + '</div>';
+    }
     var rows = (o.items || []).filter(function(it){ return (it.kind || 'main') !== 'reco'; })
       .map(function(it){
         var pl = (it.prints || []).map(function(p){
@@ -1033,7 +1123,7 @@
           miss.map(function(m){ return esc(m.label); }).join(' · ') + '</div>'
         : '<div class="dz-ok">ТЗ повне</div>') +
       (o.why ? '<div class="dz-why">' + esc(o.why) + '</div>' : '') +
-      rows + '</div>';
+      head + rows + '</div>';
   }
 
   /* ── Версії макета ─────────────────────────────────────────────────── */
@@ -1088,14 +1178,22 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  /* Хто скільки тримає — просто в списку вибору. Питання «кому віддати»
+     без цього числа вирішується навмання: менеджер памʼятає двох останніх,
+     а третій стоїть вільний. */
   function teamPick(id, role, cur){
     var list = (host.team ? host.team() : []).filter(function(m){
       return !role || m.role === role || m.role === 'owner';
     });
+    var jobs = pairs().map(function(p){ return p.job; });
     return '<select id="' + id + '"><option value="">— оберіть —</option>' +
       list.map(function(m){
+        var n = D.loadOf(jobs, m.email);
+        var full = n >= D.TAKE_LIMIT;
         return '<option value="' + esc(m.email) + '"' +
-               (m.email === cur ? ' selected' : '') + '>' + esc(m.name || m.email) + '</option>';
+               (m.email === cur ? ' selected' : '') + (full ? ' disabled' : '') + '>' +
+               esc(m.name || m.email) +
+               (n ? ' · ' + n + (full ? ' — повний' : '') : ' · вільний') + '</option>';
       }).join('') + '</select>';
   }
 
@@ -1204,6 +1302,25 @@
   /* ── Панель: черга відділу ─────────────────────────────────────────── */
   /* Видати доручення. Стоїть у черзі, бо це робота менеджера відділу: він
      єдиний бачить усе замовлення й може сказати, що саме треба зробити. */
+  /* Редактор ТЗ — у менеджера відділу. Він єдиний бачить і замовлення, і
+     переписку з клієнтом, тобто може перекласти одне в інше. */
+  function briefEditHtml(job){
+    var br = (job && job.brief) || {};
+    return '<div class="dz-act">' +
+      '<span class="dz-l">Технічне завдання</span>' +
+      '<textarea id="dzBrief" rows="3" placeholder="Що саме малюємо: побажання ' +
+        'клієнта, приклади, обмеження">' + esc(br.text || '') + '</textarea>' +
+      ((br.pics || []).length
+        ? '<div class="dz-pics">' + br.pics.map(function(pp, i){
+            return '<span class="dz-pic"><a class="dz-thumb" href="' + esc(pp.url) +
+              '" target="_blank" rel="noopener"><img src="' + esc(pp.url) + '" alt=""></a>' +
+              '<button class="dz-pic-x" data-do="brief-pic-del" data-i="' + i + '">×</button></span>';
+          }).join('') + '</div>'
+        : '') +
+      '<button class="dz-b" data-do="brief-pic">⤒ Референс</button>' +
+      '<button class="dz-b pri" data-do="brief-save">Зберегти ТЗ</button>' +
+    '</div>';
+  }
   function taskNewHtml(job){
     var open = D.taskOpen(job);
     return '<div class="dz-act">' +
@@ -1228,6 +1345,7 @@
     var job = p.job, o = p.o, g = job.graphic;
     var v = D.verCur(o);
     var acts = [];
+    if(can('designmgr')) acts.push(briefEditHtml(job));
     if(can('designmgr')) acts.push(taskNewHtml(job));
     if(job.state === 'new' || job.state === 'check'){
       acts.push('<div class="dz-act">' +
@@ -1283,10 +1401,28 @@
   }
 
   /* ── Панель: робота дизайнера ──────────────────────────────────────── */
+  /* «Беру сам» — на панелі дизайнера, і тільки поки замовлення нічиє.
+     Доти роботу мусив роздати менеджер відділу: поки він не дійшов до
+     черги, вільний дизайнер сидів без роботи, а замовлення стояло. */
+  function takeHtml(pr){
+    var g2 = pr.job.graphic || {};
+    if(g2.assignee) return '';
+    var m2 = (U.host.me && U.host.me()) || '';
+    if(!m2) return '';
+    var jobs = U.pairs().map(function(x){ return x.job; });
+    var n = D.loadOf(jobs, m2);
+    if(n >= D.TAKE_LIMIT)
+      return '<div class="dz-miss">У роботі вже ' + n + ' замовлень. Нове береться ' +
+             'після того, як здасте котресь із цих — черга, якої не видно, ' +
+             'нікому не допомагає.</div>';
+    return '<div class="dz-act"><span class="dz-l">Замовлення вільне</span>' +
+      '<button class="dz-b pri" data-do="take">Беру собі' +
+      (n ? ' · у роботі ' + n : '') + '</button></div>';
+  }
   function graphicPanel(p){
     var job = p.job, o = p.o, g = job.graphic, v = D.verCur(o);
     var locked = D.verLocked(v);
-    var acts = '<div class="dz-act">' +
+    var acts = takeHtml(p) + '<div class="dz-act">' +
       '<span class="dz-l">Версія макета</span>' +
       '<button class="dz-b" data-do="ver-new">+ Нова версія</button>' +
       (v && !locked
@@ -1571,7 +1707,15 @@
       '<div class="dz-row"><span>Кому</span><b>' + esc(nameOf(t.to)) + '</b></div>' +
       '<div class="dz-row"><span>Видав</span><b>' + esc(nameOf(t.by)) + '</b></div>' +
       (t.closedBy ? '<div class="dz-row"><span>Закрито</span><b>' + esc(t.closedBy) + '</b></div>' : '') +
-      (t.text ? '<div class="dz-note">' + esc(t.text) + '</div>' : '');
+      (t.text ? '<div class="dz-note">' + esc(t.text) + '</div>' : '') +
+      /* Скріншот пояснює правку краще за абзац тексту — саме через його
+         відсутність половина правок поверталась уточненням. */
+      ((t.files || []).length
+        ? '<div class="dz-pics">' + t.files.map(function(f){
+            return '<a class="dz-thumb" href="' + esc(f.url) + '" target="_blank" ' +
+              'rel="noopener"><img src="' + esc(f.url) + '" alt=""></a>';
+          }).join('') + '</div>'
+        : '');
 
     /* Розмова. Без неї доручення — лист без відповіді: виконавець не може
        перепитати, не виходячи з роботи. */
@@ -1584,7 +1728,8 @@
         : '<div class="dz-empty">поки тихо</div>') +
       '</div>' +
       '<div class="dz-say"><input id="dzSay" placeholder="написати…" maxlength="600">' +
-      '<button class="dz-b" data-do="task-say">Сказати</button></div>';
+      '<button class="dz-b" data-do="task-say">Сказати</button>' +
+      '<button class="dz-b" data-do="task-file" title="Додати скріншот або файл">⤒</button></div>';
 
     /* Кнопки — рівно ті, що доречні зараз і саме цій людині. Кнопка, яка
        нічого не робить, гірша за її відсутність. */
@@ -1679,7 +1824,7 @@
     var x = root.querySelector('[data-close]');
     if(x) x.onclick = function(){ U.open(''); render(root); };
     root.querySelectorAll('[data-do]').forEach(function(b){
-      b.onclick = function(){ act(b.dataset.do, root); };
+      b.onclick = function(){ act(b.dataset.do, root, b.dataset); };
     });
     if(wireExtra) wireExtra(root);
   }
@@ -1724,11 +1869,39 @@
     }
   }
 
-  async function act(what, root){
+  async function act(what, root, data){
     var c = ctx();
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
 
+    if(what === 'take'){
+      var jl = U.pairs().map(function(x){ return x.job; });
+      var r = D.takeSelf(job, o, m, jl);
+      if(!r) return say('Замовлення вже комусь належить');
+      if(r.full) return say('У роботі вже ' + D.TAKE_LIMIT + ' — спершу здайте котресь');
+      return save(job, o, 'Узяли собі');
+    }
+    if(what === 'brief-save'){
+      D.briefSet(job, m, val('dzBrief'));
+      return save(job, o, 'ТЗ збережено');
+    }
+    if(what === 'brief-pic-del'){
+      D.briefPicDel(job, +(data && data.i) || 0);
+      return save(job, o, 'Референс прибрано');
+    }
+    if(what === 'brief-pic'){
+      var bf = await upload('image/*');
+      if(!bf) return;
+      if(!D.briefPic(job, m, bf)) return say('Референсів уже досить');
+      return save(job, o, 'Референс додано');
+    }
+    if(what === 'task-file'){
+      if(!c.t) return;
+      var tf = await upload('');
+      if(!tf) return;
+      if(!D.taskFile(job, c.t.n, m, tf)) return say('Вкладень уже досить');
+      return save(job, o, 'Вкладення додано');
+    }
     if(what === 'task-start'){
       if(!c.t || !D.taskStart(job, c.t.n, m)) return;
       return save(job, o, 'Взяли в роботу');
@@ -1880,7 +2053,29 @@
          картка замовлення, а не ще одне вікно. */
       o.designPack = job.pack;
       D.ds(job, 'package', { by:m, items:(job.pack.items || []).length });
-      return save(job, o, 'Пакет зібрано — виробництво його бачить');
+      /* Передача у виробництво — це ДВІ речі одночасно: цех отримує пакет,
+         закупівля отримує потребу. Доти друга половина трималась на
+         памʼяті менеджера, і одяг починали шукати тоді, коли цех уже стояв.
+
+         Доручення видаємо тільки якщо одяг ще не на складі й такого
+         доручення ще немає: нагадувати про зроблене — швидкий спосіб
+         привчити людей не читати нагадувань. */
+      var supDone = String(((o.tracks || {}).supply) || '') === 'got';
+      var supHas = D.taskList(job).some(function(t){
+        return t.kind === 'buy' && t.state !== 'accepted'; });
+      if(!supDone && !supHas){
+        var need = (o.items || []).filter(function(it){
+          return (it.kind || 'main') !== 'reco'; });
+        var txt = need.map(function(it){
+          return [it.name, it.color, ((+it.qty || 0) + ' шт'), it.sizes]
+            .filter(Boolean).join(' · '); }).join('\n');
+        var buyer = (U.host.buyer && U.host.buyer()) || '';
+        if(buyer && txt){
+          D.taskAdd(job, o, m, { kind:'buy', to: buyer, text: txt,
+                                 due: String(o.dueAt || '').slice(0, 10) });
+        }
+      }
+      return save(job, o, 'Пакет зібрано — цех бачить, закупівлю попереджено');
     }
   }
 })();
