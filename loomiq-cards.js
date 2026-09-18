@@ -183,7 +183,7 @@
      на сторінці. Коротше, ніж у КП: на картці це виноска, а не розділ. */
   var WARN = 'Кольори на екрані передаються по-різному — відтінок на виробі ' +
              'може трохи відрізнятись. Пропорції нанесення змінюються від розміру ' +
-             'до розміру: на фото показано M.';
+             'до розміру.';
 
   /* ══════════ СКЛАД КАРТОК ══════════
      Збирається сам, із позицій пропозиції. Менеджер не «створює картку» —
@@ -285,6 +285,25 @@
     var subOf = function(it){
       return [it.color, it.print].filter(Boolean).join(' · ');
     };
+    /* Опис виробу. Порядок пошуку тут не випадковий, а за спаданням
+       користі для клієнта:
+
+         1. опис товару з адмінки — склад тканини, щільність, крій;
+         2. характеристики тієї ж картки товару, якщо опису не заведено;
+         3. і лише як остання соломинка — колір і спосіб нанесення.
+
+       Третій рядок доти був ЄДИНИМ, і на картці стояло «Чорний · Вишивка» —
+       те, що клієнт і так бачить на фото. Питання ж у нього інше: з чого
+       це пошито і чи не сяде після прання. */
+    var specsText = function(it){
+      return (it.specs || []).filter(function(sp){ return sp && sp.value; })
+        .map(function(sp){ return [sp.label, sp.value].filter(Boolean).join(' '); })
+        .join(' · ');
+    };
+    var aboutOf = function(it, own){
+      if(own && own.note != null) return own.note;
+      return it.recoNote || it.about || specsText(it) || '';
+    };
     var card = function(id, kind, it){
       var own = by[id] || {};
       var all = pics(it), shots = shotsOf(it);
@@ -346,7 +365,7 @@
         badge: kind === 'variant' ? 'варіант' : 'позиція',
         name: own.title || it.name || 'Позиція',
         sub: subOf(it),
-        about: own.note != null ? own.note : (it.recoNote || it.about || ''),
+        about: aboutOf(it, own),
         /* Ні розмірного ряду, ні загальної суми тут немає — і не лежить
            мертвим вантажем: чого картка не малює, того вона й не возить. */
         qty: +it.qty || 0,
@@ -587,8 +606,11 @@
     offer = offer || {};
     var b = offer.brand || {};
     var ig = String(b.ig || b.instagram || '').replace(/^@?/, '');
-    return [ig ? '@' + ig : '', offer.orderId ? 'КП № ' + offer.orderId : '']
-      .filter(Boolean).join(' · ');
+    /* Двома рядками, нік згори. В один рядок вони читались як одне
+       службове хвостове клеймо; окремим рядком нік стає тим, чим він є, —
+       адресою, куди можна написати. */
+    return [ig ? 'Інст: @' + ig : '', offer.orderId ? 'КП № ' + offer.orderId : '']
+      .filter(Boolean);
   }
 
   /* ══════════ ШАПКА ══════════
@@ -623,21 +645,26 @@
     /* Підпис — угорі праворуч. Унизу він стояв під приміткою й читався як
        її продовження; тут він на своєму місці: те, чия це картка й до якої
        пропозиції належить, питають першим, а не останнім. */
-    var mw = 0;
-    if(o.sign){
-      x.font = '600 19px ' + t.body;
-      mw = x.measureText(o.sign).width;
-      x.fillStyle = t.dim;
-      x.textAlign = 'right';
-      x.fillText(o.sign, right, mid + 7);
-      x.textAlign = 'left';
-    }
+    var mw = signRows(x, t, o.sign, right, mid);
 
     x.fillStyle = t.ink;
     var nameW = right - (mw ? mw + 48 : 0) - tx;
     fitFont(x, card.name, nameW, 46, '800', t.display, 30);
     x.fillText(clip1(x, card.name, nameW), tx, mid + 16);
     rule(x, t, PAD, right, hh);
+  }
+  function signRows(x, t, rows, right, mid){
+    rows = (rows || []).filter(Boolean);
+    if(!rows.length) return 0;
+    x.font = '600 19px ' + t.body;
+    var w = 0;
+    rows.forEach(function(r){ w = Math.max(w, x.measureText(r).width); });
+    x.fillStyle = t.dim;
+    x.textAlign = 'right';
+    var y0 = mid + 7 - (rows.length - 1) * 13;
+    rows.forEach(function(r, i){ x.fillText(r, right, y0 + i * 26); });
+    x.textAlign = 'left';
+    return w;
   }
   function rule(x, t, x0, x1, y){
     x.strokeStyle = t.line; x.lineWidth = 2;
@@ -666,7 +693,7 @@
      примітка — це одна й та сама будова, і код у них має бути один: інакше
      дві сусідні колонки почнуть по-різному переносити рядки. */
   function textCell(x, t, lab, s, X, yLab, w, size, color, maxLines){
-    eyebrow(x, lab, X, yLab, t.dim, 18);
+    eyebrow(x, lab, X, yLab, t.dim, 21);
     x.fillStyle = color;
     var n = size, lines;
     do {
@@ -674,7 +701,7 @@
       lines = wrap(x, s, w, 0);
       n -= 1;
     } while(lines.length > maxLines && n > 11);
-    var step = Math.round(n * 1.42);
+    var step = Math.round(n * 1.4);
     lines.forEach(function(ln, i){ x.fillText(ln, X, yLab + 32 + i * step); });
   }
   function numbers(x, card, t, show, W, o){
@@ -710,7 +737,7 @@
         x.font = '400 15px ' + t.body;
         priceW = Math.max(priceW, x.measureText(till).width);
       }
-      priceW = Math.max(priceW, eyebrowW(x, lab, 18));
+      priceW = Math.max(priceW, eyebrowW(x, lab, 21));
     }
 
     /* Опис — той самий, що доти тулився рядком під назвою. Тут він не
@@ -727,11 +754,22 @@
     /* Дві текстові колонки ділять решту порівну. Якщо котроїсь немає —
        друга забирає все: колонка на пів аркуша краща за колонку на пів
        аркуша поруч із порожнечею такої ж ширини. */
+    /* Опис і примітка ділять решту НЕ порівну. Опис — те, з чого пошито й
+       чим цей виріб відрізняється від сусіднього: його читають і на ньому
+       ухвалюють рішення. Примітка — виноска, і тепер вона ще й коротша.
+       Тому опису більша частина, примітці менша: вона почнеться правіше й
+       візьме на рядок більше, зате опис читатиметься з одного погляду. */
     var nText = (about ? 1 : 0) + (warn ? 1 : 0);
-    var cw = nText ? (rest - GAPC * (nText - 1)) / nText : 0;
+    var aboutW = 0, warnW2 = 0;
+    if(nText === 2){
+      aboutW = Math.round((rest - GAPC) * 0.6);
+      warnW2 = rest - GAPC - aboutW;
+    } else if(nText === 1){
+      aboutW = warnW2 = rest;
+    }
 
     if(price){
-      eyebrow(x, lab, PAD, yLab, t.dim, 18);
+      eyebrow(x, lab, PAD, yLab, t.dim, 21);
       x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
       x.fillText(price, PAD, yVal);
       if(cut){
@@ -755,18 +793,18 @@
 
     /* Колонка вужча за двісті пікселів — це вже не колонка, а стовпчик по
        одному слову; тоді тексту просто немає. */
-    var cx = x0;
-    if(cw >= 200){
+    var cx = x0, wide = (about ? aboutW : warnW2) >= 200;
+    if(wide){
       if(about){
-        textCell(x, t, 'Опис', about, cx, yLab, cw, 18, t.ink, 4);
-        cx += cw + GAPC;
+        textCell(x, t, 'Опис', about, cx, yLab, aboutW, 22, t.ink, 4);
+        cx += aboutW + GAPC;
       }
-      if(warn) textCell(x, t, 'Примітка', warn, cx, yLab, cw, 15, t.dim, 4);
+      if(warn) textCell(x, t, 'Примітка', warn, cx, yLab, warnW2, 15, t.dim, 5);
     }
     // розділювачі — те, що робить смугу смугою
     var seps = [];
     if(priceW && nText) seps.push(x0);
-    if(about && warn && cw >= 200) seps.push(x0 + cw + GAPC);
+    if(about && warn && wide) seps.push(x0 + aboutW + GAPC);
     seps.forEach(function(sx){
       x.strokeStyle = t.line; x.lineWidth = 1;
       x.beginPath();
@@ -845,8 +883,8 @@
         }
       }
       if(x1 >= 0){
-        x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2);
-        x1 = Math.min(c.width - 1, x1 + 2); y1 = Math.min(c.height - 1, y1 + 2);
+        x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1);
+        x1 = Math.min(c.width - 1, x1 + 1); y1 = Math.min(c.height - 1, y1 + 1);
         var rw = (x1 - x0 + 1) / c.width, rh = (y1 - y0 + 1) / c.height;
         if(rw < 0.94 || rh < 0.94)
           t = { x: x0 / c.width * img.width, y: y0 / c.height * img.height,
@@ -1042,10 +1080,14 @@
        Без тіні вони просто порожнє місце, і виріб через них виглядає
        дрібнішим, ніж є. Тому без тіні поле вужче, а виріб ще й трохи
        виходить за краї коробки — панель однаково обрізана по контуру, тож
-       зайве ховається під її закруглення, а виріб стає більшим на добру
-       шосту частину. */
-    var IN = st.shade ? 26 : 12;
-    var FILL = st.shade ? 1 : 1.07;
+       зайве ховається під її закруглення.
+
+       Без тіні беремо ще сміливіше: краще підрізати виробу край рукава,
+       ніж лишити навколо нього порожню раму. Порожнє поле на картці
+       читається як недороблена картка, а підрізаний рукав — просто як
+       кадр. */
+    var IN = st.shade ? 26 : 10;
+    var FILL = st.shade ? 1 : 1.12;
     var bw = cw - IN * 2, bh = h - IN * 2;
     var S = rowScale(srcs, bw, bh) * FILL;
 
@@ -1114,13 +1156,7 @@
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
     var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
     var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
-    var mw = 0;
-    if(o.sign){
-      x.font = '600 19px ' + t.body;
-      mw = x.measureText(o.sign).width;
-      x.fillStyle = t.dim;
-      x.textAlign = 'right'; x.fillText(o.sign, right, mid + 7); x.textAlign = 'left';
-    }
+    var mw = signRows(x, t, o.sign, right, mid);
     eyebrow(x, 'До вашого замовлення', tx, mid - 18, t.accent, 18);
     x.fillStyle = t.ink;
     var maxW = right - (mw ? mw + 48 : 0) - tx;
