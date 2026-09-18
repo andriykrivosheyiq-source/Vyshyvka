@@ -1794,18 +1794,28 @@
        набору вільно ріже й склеює спани, тож довіряти можна лише тому, що
        текст лежить усередині вузла зі своїми data-атрибутами. */
     function runsFromEl(el, sp){
-      var out = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n;
-      while((n = walk.nextNode())){
-        var t = String(n.nodeValue || '').replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
-        if(!t) continue;
-        var host = n.parentElement;
+      var out = [];
+      /* ПЕРЕНОС РЯДКА — НЕ ТЕКСТОВИЙ ВУЗОЛ.
+
+         Браузер у contenteditable робить новий рядок не символом, а
+         структурою: обгортає його в <div> або ставить <br>. Ми ж ходили
+         самими текстовими вузлами — і перенос просто зникав. На екрані все
+         виглядало правильно, поки напис не перезбирали; після першої ж
+         перезбірки два рядки злипались в один, і виправити це було нічим.
+
+         Тому йдемо деревом, а не текстом: <br> і межа блоку дають '\n'
+         рівно так само, як його дав би набраний символ. */
+      var BLOCK = { DIV:1, P:1, LI:1, SECTION:1, ARTICLE:1, H1:1, H2:1, H3:1 };
+      function styleOf(node){
+        var host = node.parentElement;
         while(host && host !== el && !host.hasAttribute('data-lqr')) host = host.parentElement;
         var d = (host && host !== el) ? host.dataset : {};
-        var r = runStyle(sp, { size:+d.s || 1, color:d.c, font:d.f,
-                               bold: d.b != null ? d.b === '1' : undefined,
-                               italic: d.i != null ? d.i === '1' : undefined,
-                               caps: d.u != null ? d.u === '1' : undefined });
-        r.t = t;
+        return runStyle(sp, { size:+d.s || 1, color:d.c, font:d.f,
+                              bold: d.b != null ? d.b === '1' : undefined,
+                              italic: d.i != null ? d.i === '1' : undefined,
+                              caps: d.u != null ? d.u === '1' : undefined });
+      }
+      function add(r){
         var last = out[out.length - 1];
         // сусідні шматки з однаковим стилем склеюємо: інакше кожна набрана
         // літера ставала б окремим шматком
@@ -1813,6 +1823,27 @@
            last.bold === r.bold && last.italic === r.italic && last.caps === r.caps) last.t += r.t;
         else out.push(r);
       }
+      function brk(node){
+        // Порожній напис переносом не починається
+        if(!out.length || !runsText(out)) return;
+        var r = styleOf(node); r.t = '\n';
+        add(r);
+      }
+      function walk(node){
+        for(var n = node.firstChild; n; n = n.nextSibling){
+          if(n.nodeType === 3){
+            var t = String(n.nodeValue || '').replace(/\u00a0/g, ' ').replace(/\u200b/g, '');
+            if(!t) continue;
+            var r = styleOf(n); r.t = t; add(r);
+            continue;
+          }
+          if(n.nodeType !== 1) continue;
+          if(n.tagName === 'BR'){ brk(n); continue; }
+          if(BLOCK[n.tagName]) brk(n);
+          walk(n);
+        }
+      }
+      walk(el);
       return out;
     }
     function renderLogoLayers(){
@@ -1845,7 +1876,10 @@
             ex.style.zIndex = active ? 10 : 1;
             ex.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
             var tx = ex.querySelector('.pm-dl-text');
-            if(tx && layer.text) styleTextEl(tx, layer.text, bh);
+            if(tx && layer.text){
+              styleTextEl(tx, layer.text, bh);
+              tx.setAttribute('contenteditable', 'true');   // це і є той, що в правці
+            }
             return;
           }
         }
@@ -1861,8 +1895,16 @@
              немає куди покласти «це слово більше, а це іншим кольором».
              Розмітку тримаємо своєю — спани зі стилями шматків, — а вставку
              ззовні чистимо до простого тексту (див. bindTextEl). */
+          /* contenteditable ЛИШЕ на тому написі, який зараз правлять.
+
+             Доти редагованими були всі: тягнення по одному напису захоплювало
+             сусідні, бо браузер веде виділення крізь усі редаговані вузли
+             документа. «Виділяю один — виділяються всі три» — це саме воно, а
+             не наша логіка стилю. Заразом непричетні написи знову стають
+             звичайними шарами: їх можна просто взяти й перенести. */
           ? '<div class="pm-dl-text' + (keepId === layer.id ? ' is-edit' : '') + '" data-tid="' + layer.id + '" ' +
-            'data-ph="Ваш напис" spellcheck="false" contenteditable="true">' +
+            'data-ph="Ваш напис" spellcheck="false" contenteditable="' +
+            (keepId === layer.id ? 'true' : 'false') + '">' +
             runsHtml(layer.text) + '</div>'
           : '<img src="'+layer.url+'" alt="">';
         el.innerHTML =
@@ -2732,6 +2774,10 @@
       var el = pmLogoLayers.querySelector('.pm-dl-text[data-tid="'+layer.id+'"]');
       if(!el) return;
       el.classList.add('is-edit');
+      /* Вузол напису, який правлять, НЕ перебудовується — саме щоб не збити
+         каретку. Отже атрибут йому треба поставити тут: у розмітці він
+         народився нередагованим, бо тоді правки ще не було. */
+      el.setAttribute('contenteditable', 'true');
       el.focus({ preventScroll:true });
       if(again) return;          // уже правимо — каретку не чіпаємо
       if(layer.textPristine){
@@ -2745,8 +2791,29 @@
       if(pm.textEdit == null) return;
       pm.textEdit = null;
       var el = pmLogoLayers.querySelector('.pm-dl-text.is-edit');
-      if(el){ el.classList.remove('is-edit'); el.blur(); }
+      if(el){
+        el.classList.remove('is-edit');
+        el.setAttribute('contenteditable', 'false');   // інакше він і далі ловить виділення
+        el.blur();
+      }
+      try{ var sel = window.getSelection(); if(sel) sel.removeAllRanges(); }catch(e){}
     }
+    /* Esc — вихід із правки. Це те, чого чекають від будь-якого редактора:
+       напис лишається обраним, рамка на місці, і його одразу можна перенести.
+       Доти вийти з правки не було чим узагалі: шар лишався редагованим, а
+       отже нерухомим, до кінця сеансу. */
+    document.addEventListener('keydown', function(e){
+      if(e.key !== 'Escape' || pm.textEdit == null) return;
+      /* Ловимо на перехопленні й гасимо далі: Escape уже закриває сам
+         конструктор, і без цього вихід із напису виносив би людину зі
+         сцени разом із написом. Спершу найглибший рівень — правка тексту;
+         другий Escape уже закриє конструктор, як і раніше. */
+      e.preventDefault();
+      e.stopPropagation();
+      stopTextEdit();
+      renderLogoLayers();
+      renderTabPanel();
+    }, true);
     // Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
     // нікому не потрібен, а платити за нього тим більше.
     function dropPristineText(){
@@ -3107,6 +3174,10 @@
       // Поки напис правлять, дотик не блокуємо: інакше браузер не поставить
       // каретку й не відкриє клавіатуру.
       var editing = !!(layer.text && pm.textEdit === layer.id);
+      /* Взялись за інший шар — попередній напис виходить із правки. Інакше
+         він лишався редагованим назавжди: перенести його вже не виходило,
+         бо будь-яке тягнення по ньому вважалось виділенням тексту. */
+      if(!editing && pm.textEdit != null){ stopTextEdit(); renderLogoLayers(); }
       if(!editing) e.preventDefault();
       var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;

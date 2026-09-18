@@ -58,11 +58,14 @@ await p.waitForTimeout(5000);
 
 // ── відкрити конструктор і завести напис ──────────────────────────────
 const opened = await p.evaluate(async () => {
-  const go = [...document.querySelectorAll('button,a')]
-    .filter(e => /Створити дизайн/i.test(e.textContent || ''))[0];
-  if(!go) return { none:'кнопки конструктора немає' };
-  go.click();
-  await new Promise(r => setTimeout(r, 1500));
+  /* Відкриваємо саме так, як відкриває сайт: через картку товару. Раніше тут
+     тиснулась перша-ліпша кнопка «Створити дизайн» — вона модалку не
+     відкривала, і всі мишачі перевірки нижче йшли по невидимому шару. */
+  if(!window.__openProductModal) return { none:'конструктор не піднявся' };
+  window.__openProductModal('tee');
+  await new Promise(r => setTimeout(r, 1800));
+  const modal = document.getElementById('productModal');
+  if(!modal || !modal.classList.contains('open')) return { none:'модалка товару не відкрилась' };
   const tab = document.querySelector('[data-tab="photo"]');
   if(!tab) return { none:'вкладки дизайну немає' };
   tab.click();
@@ -168,6 +171,108 @@ ok(ent.рядків === 2,
 ok(ent.службових === 0,
   'і не лишив службового символу всередині тексту — він потрібен лише в кінці',
   'службових символів у тексті: ' + ent.службових);
+
+console.log('');
+console.log('═══ ВИХІД ІЗ ПРАВКИ ПОВЕРТАЄ НАПИСУ РУХОМІСТЬ ═══');
+/* Доки напис редагують, миша належить тексту — інакше не виділити й слова.
+   Але вийти з правки не було чим: шар лишався редагованим до кінця сеансу,
+   а отже і нерухомим. Esc — звичний вихід, і закривати ним увесь конструктор
+   не можна: людина ще не договорила з макетом. */
+await p.keyboard.press('Escape');
+await p.waitForTimeout(700);
+const esc = await p.evaluate(() => {
+  const m = document.getElementById('productModal');
+  const lay = document.querySelector('.pm-dl-text').closest('[data-layer-id]');
+  const r = lay.getBoundingClientRect();
+  return { модалка: !!(m && m.classList.contains('open')),
+           редагованих: document.querySelectorAll('.pm-dl-text[contenteditable="true"]').length,
+           x:r.left, y:r.top, cx:r.left + r.width / 2, cy:r.top + r.height / 2 };
+});
+ok(esc.модалка, 'Esc вийшов із правки, а конструктор лишився відкритим',
+  'Esc закрив увесь конструктор');
+ok(esc.редагованих === 0, 'жоден напис більше не в правці',
+  'у правці лишилось: ' + esc.редагованих);
+
+await p.mouse.move(esc.cx, esc.cy);
+await p.mouse.down();
+await p.waitForTimeout(120);
+await p.mouse.move(esc.cx + 70, esc.cy + 40, { steps:12 });
+await p.waitForTimeout(120);
+await p.mouse.up();
+await p.waitForTimeout(600);
+const back = await p.evaluate(g => {
+  const r = document.querySelector('.pm-dl-text').closest('[data-layer-id]').getBoundingClientRect();
+  return Math.round(Math.abs(r.left - g.x) + Math.abs(r.top - g.y));
+}, esc);
+console.log('   зсув після виходу з правки: ' + back + ' px');
+ok(back > 20, 'після виходу напис знову переноситься мишею',
+  'напис так і лишився нерухомим (' + back + ' px)');
+
+console.log('');
+console.log('═══ КІЛЬКА НАПИСІВ ЖИВУТЬ ОКРЕМО ═══');
+/* Написів на виробі буває три-чотири. Правити треба один, а рухатись мали
+   всі одразу: редагованими були всі шари. */
+async function addText(txt){
+  await p.evaluate(() => { const bk = document.getElementById('pmTsBack'); if(bk) bk.click(); });
+  await p.waitForTimeout(700);
+  await p.evaluate(async t => {
+    const add = document.getElementById('pmTextOpen') || document.getElementById('pmTextOpenTile');
+    if(!add) return;
+    add.click();
+    await new Promise(r => setTimeout(r, 800));
+    const el = document.querySelector('.pm-dl-text.is-edit');
+    if(!el) return;
+    el.focus();
+    document.execCommand('insertText', false, t);
+    await new Promise(r => setTimeout(r, 300));
+  }, txt);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(500);
+}
+await addText('ДРУГИЙ');
+await addText('ТРЕТІЙ');
+const many = await p.evaluate(() => ({
+  шарів: document.querySelectorAll('.pm-dl-text').length,
+  редагованих: document.querySelectorAll('.pm-dl-text[contenteditable="true"]').length,
+  коробки: [...document.querySelectorAll('.pm-dl-text')].map(t => {
+    const r = t.closest('[data-layer-id]').getBoundingClientRect();
+    return { x:r.left, y:r.top, cx:r.left + r.width / 2, cy:r.top + r.height / 2 };
+  })
+}));
+console.log('   написів на виробі: ' + many.шарів);
+ok(many.шарів === 3, 'на виробі три окремі написи',
+  'написів вийшло ' + many.шарів);
+ok(many.редагованих === 0, 'і жоден із них не лишився редагованим',
+  'редагованих одночасно: ' + many.редагованих);
+
+const last = many.коробки[many.коробки.length - 1];
+await p.mouse.move(last.cx, last.cy);
+await p.mouse.down();
+await p.waitForTimeout(120);
+await p.mouse.move(last.cx + 60, last.cy + 60, { steps:12 });
+await p.waitForTimeout(120);
+await p.mouse.up();
+await p.waitForTimeout(600);
+const shifts = await p.evaluate(old => [...document.querySelectorAll('.pm-dl-text')].map((t, i) => {
+  const r = t.closest('[data-layer-id]').getBoundingClientRect();
+  return Math.round(Math.abs(r.left - old[i].x) + Math.abs(r.top - old[i].y));
+}), many.коробки);
+console.log('   зсуви написів: ' + shifts.join(' / ') + ' px');
+ok(shifts[shifts.length - 1] > 20, 'узятий напис переїхав за курсором',
+  'напис не зрушив (' + shifts[shifts.length - 1] + ' px)');
+ok(shifts.slice(0, -1).every(v => v <= 2), 'сусідні написи лишились на місці',
+  'за ним поїхали й сусіди: ' + shifts.join(' / '));
+
+const one = await p.evaluate(async g => {
+  const el = document.elementFromPoint(g.cx + 60, g.cy + 60);
+  return el ? 1 : 0;
+}, last);
+await p.mouse.dblclick(last.cx + 60, last.cy + 60);
+await p.waitForTimeout(600);
+const edit1 = await p.evaluate(() =>
+  document.querySelectorAll('.pm-dl-text[contenteditable="true"]').length);
+ok(edit1 === 1 && one === 1, 'подвійний тап відкрив у правку рівно один напис',
+  'у правці опинилось: ' + edit1);
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
