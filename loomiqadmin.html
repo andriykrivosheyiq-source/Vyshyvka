@@ -2863,6 +2863,9 @@
   .dz-fld input,.dz-fld select{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;
     padding:7px 9px;border:1px solid var(--line);border-radius:8px;}
   /* Число на кнопці розділу: скільки доручень чекає саме на цю людину. */
+  .od-trk-age{font-size:10.5px;font-weight:800;opacity:.72;margin-left:2px;
+    font-variant-numeric:tabular-nums;}
+  .od-trk-age.is-hot{opacity:1;color:var(--bad, #A3243B);}
   .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
     min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-flex;
     align-items:center;justify-content:center;background:var(--accent);color:#fff;}
@@ -14164,6 +14167,37 @@ function hoursSince(iso){
   const t = iso ? new Date(iso).getTime() : 0;
   return t ? Math.max(0, Math.round((Date.now() - t) / 36e5)) : 0;
 }
+/* ══════════ СКІЛЬКИ ЦЕ ВЖЕ СТОЇТЬ ══════════
+   Питання «чому замовлення не рухається» доти вимагало прочитати історію
+   до кінця. А відповідь на нього — одне число: скільки трек стоїть у
+   поточному стані.
+
+   Рахувати нема чого заводити: кожен рух треку вже пишеться з часом і
+   автором від самого початку. Тут лише зчитуємо.
+
+   Закритий трек числа не отримує: він уже не стоїть, він зроблений. І
+   мовчимо перші дві години — інакше свіже замовлення виглядало б як
+   прострочене з першої хвилини. */
+function trackAge(o, track){
+  const at = lastTrackAt(o, track);
+  if(!at) return 0;
+  const ms = Date.now() - Date.parse(at);
+  return isFinite(ms) && ms > 0 ? Math.round(ms / 60000) : 0;
+}
+function trackAgeHtml(o, track, cur){
+  const steps = trackSteps(track);
+  const first = (steps[0] || {}).key;
+  if(cur === first) return '';           // ще не починали — нема чому стояти
+  const min = trackAge(o, track);
+  if(min < 120) return '';
+  const h = Math.round(min / 60);
+  const txt = h < 48 ? h + ' год' : Math.round(h / 24) + ' дн';
+  /* Понад три доби — це вже не «йде робота», а «забули». Позначаємо, але
+     без балів і кольорових шкал: одне слово, яке можна пояснити. */
+  const hot = h >= 72 ? ' is-hot' : '';
+  return `<b class="od-trk-age${hot}" title="Стоїть у цьому стані ${escapeHtml(txt)}">${
+    escapeHtml(txt)}</b>`;
+}
 function lastTrackAt(o, track, step){
   const L = (o.trackHist || []).filter(x => x.t === track && (!step || x.s === step));
   return L.length ? L[L.length - 1].at : (o.prodAt || o.createdAt || '');
@@ -15227,7 +15261,8 @@ function odTracksHtml(o){
         ${t.steps.map(s => `<option value="${escapeHtml(s.key)}"${
           s.key === cur ? ' selected' : ''}>${escapeHtml(s.label)}</option>`).join('')}
       </select>
-      ${meta.done ? '<b class="od-trk-ok" title="Трек закритий">✓</b>' : ''}
+      ${meta.done ? '<b class="od-trk-ok" title="Трек закритий">✓</b>'
+                  : trackAgeHtml(o, t.key, cur)}
     </span>`;
   }).join('');
   return `<div class="od-sec">Стан замовлення</div><div class="od-tracks">${rows}</div>`;
