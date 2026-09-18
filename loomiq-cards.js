@@ -274,7 +274,10 @@
       });
       if(!out2.length) views.forEach(function(v){ add(v); });
       if(!out2.length) pics(it).forEach(function(u){
-        if(out2.length < 3) out2.push({ url:u, side:'', label:'' }); });
+        if(out2.length >= 3) return;
+        for(var q = 0; q < out2.length; q++) if(out2[q].url === u) return;
+        out2.push({ url:u, side:'', label:'' });
+      });
       return out2.slice(0, 4);
     };
     // «Колір · Вишивка» — без розмірів: кількість і так стоїть числом нижче,
@@ -291,13 +294,56 @@
          за якір із каталогу. Якір лишається початковим положенням, не
          більше. */
       if(own.mark) shots.forEach(function(sh){ if(sh.model) sh.mark = own.mark; });
+      /* Обраний менеджером мокап ЗАМІНЯЄ кадр, а не додається до нього.
+
+         Саме тут і народжувались близнюки: менеджер тицяв у мокап переду —
+         і той ставав ПЕРШИМ, а ракурс «перед» лишався другим. Той самий
+         перед двома різними файлами, між якими клієнт шукає різницю, якої
+         немає. «Який мокап узяти» — це вибір кадру, а не ще один кадр. */
       if(own.pic){
-        var mine = shots.filter(function(sh){ return sh.url === own.pic; })[0];
-        var rest = shots.filter(function(sh){ return sh.url !== own.pic; });
-        shots = [mine || { url: own.pic, side:'', label:'' }].concat(rest).slice(0, 3);
+        var at = -1;
+        for(var q = 0; q < shots.length; q++) if(shots[q].url === own.pic){ at = q; break; }
+        // Фото моделі лишається першим завжди: вибір мокапа його не стосується
+        var ins = (shots[0] && shots[0].model) ? 1 : 0;
+        if(at >= 0){
+          shots.splice(ins, 0, shots.splice(at, 1)[0]);
+        } else if(shots.length > ins){
+          shots[ins] = { url: own.pic, side: shots[ins].side, label: shots[ins].label };
+        } else {
+          shots.push({ url: own.pic, side:'', label:'' });
+        }
       }
+      /* Один і той самий кадр не може стояти в ряду двічі. Він і не мав би,
+         але дороги до нього три — ракурси, обраний менеджером мокап і
+         запасний список мокапів, — і кожна знає лише про себе. Достатньо,
+         щоб той самий файл приїхав двома дорогами, і в галереї зʼявляється
+         близнюк, якого ніхто не замовляв. Ріжемо межу тут, в одному місці
+         на всі три дороги, а не латаємо кожну окремо. */
+      /* Дублі ріжемо ДВІЧІ — і по файлу, і по стороні виробу.
+
+         По файлу мало: той самий перед приїздить із ракурсів і з мокапів
+         РІЗНИМИ файлами — це два різні рендери одного кадру, адреси в них
+         не збігаються, а в галереї вони стоять як близнюки. Клієнт бачить
+         той самий перед двічі й шукає між ними різницю, якої немає.
+
+         Тому на одну сторону виробу — рівно один кадр. Перший, що дійшов:
+         ракурси йдуть попереду мокапів, і саме ракурс менеджер бачив, коли
+         складав пропозицію. */
+      var wasUrl = {}, wasSide = {};
+      shots = shots.filter(function(sh){
+        if(!sh || !sh.url || wasUrl[sh.url]) return false;
+        if(sh.side && wasSide[sh.side]) return false;
+        wasUrl[sh.url] = 1;
+        if(sh.side) wasSide[sh.side] = 1;
+        return true;
+      }).slice(0, 4);
       return {
         id: id, kind: kind, type: 'item',
+        /* Варіант і головна позиція часто називаються однаково — це той
+           самий виріб в іншому кольорі чи крої. У стрічці вони ставали
+           двома однаковими рядками «позиція», між якими менеджер не мав
+           чим їх розрізнити. */
+        badge: kind === 'variant' ? 'варіант' : 'позиція',
         name: own.title || it.name || 'Позиція',
         sub: subOf(it),
         about: own.note != null ? own.note : (it.recoNote || it.about || ''),
@@ -899,6 +945,9 @@
   }
   var CUT_FAIL = 'З деяких мокапів фон зняти не вдалось — там фон не однорідний. ' +
                  'Ці знімки на картці лишились як є.';
+  var CUT_MIX = 'Фон знявся не з усіх кадрів, тож картка лишилась із фоном: ' +
+                'половина прозора, половина в білому прямокутнику виглядає як брак. ' +
+                'Виріжте фон для всіх мокапів цього товару — і вимикач спрацює.';
 
   /* Тінь іде по КОНТУРУ виробу, бо полотно будує її з прозорості джерела.
      Тому вона й можлива лише там, де фон знято: на непрозорому знімку це
@@ -989,15 +1038,28 @@
     var full = n === 1 ? Math.min(w, COL) : w;
     var X0 = X + Math.round((w - full) / 2);
     var cw = (full - GAP * (n - 1)) / n;
-    var IN = 26, bw = cw - IN * 2, bh = h - IN * 2;
-    var S = rowScale(srcs, bw, bh);
+    /* Поля навколо виробу потрібні ТІЛЬКИ під тінь: їй треба, куди лягти.
+       Без тіні вони просто порожнє місце, і виріб через них виглядає
+       дрібнішим, ніж є. Тому без тіні поле вужче, а виріб ще й трохи
+       виходить за краї коробки — панель однаково обрізана по контуру, тож
+       зайве ховається під її закруглення, а виріб стає більшим на добру
+       шосту частину. */
+    var IN = st.shade ? 26 : 12;
+    var FILL = st.shade ? 1 : 1.07;
+    var bw = cw - IN * 2, bh = h - IN * 2;
+    var S = rowScale(srcs, bw, bh) * FILL;
 
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
       var sr = srcs[i];
       if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h, st.marks); continue; }
       shotPanel(x, t, cx, Y, cw, h, st.bg);
-      if(sr && sr.im && isFinite(S)) drawShot(x, sr, S, cx + IN, Y + IN, bw, bh, st.shade);
+      if(sr && sr.im && isFinite(S)){
+        x.save();
+        rr(x, cx, Y, cw, h, 24); x.clip();
+        drawShot(x, sr, S, cx + IN, Y + IN, bw, bh, st.shade);
+        x.restore();
+      }
       else if(!(sr && sr.im)) placeholder(x, cx, Y, cw, h, t.ink);
     }
   }
@@ -1177,6 +1239,15 @@
         r.art = sh.model ? art : null;
         return r;
       });
+      /* АБО ВСІ КАДРИ ВИРІЗАНІ, АБО ЖОДЕН. Півкартки з прозорим тлом і
+         півкартки з білим прямокутником виглядає не як «одне не вийшло», а
+         як брак: клієнт бачить рвану галерею й не має способу зрозуміти,
+         чому. Краще рівна картка з фоном, ніж нерівна без нього. */
+      var wantCut = srcs.filter(function(r){ return !r.model && r.im; });
+      if(st.cutout && wantCut.length && wantCut.some(function(r){ return !r.cut; })){
+        srcs.forEach(function(r, i){ if(!r.model){ r.im = shots[i]; r.cut = false; } });
+        if(notes.indexOf(CUT_MIX) < 0) notes.push(CUT_MIX);
+      }
       paintCard(x, card, t, srcs, show, o, W);
     }
     /* Що пішло не так — віддаємо разом із полотном, а не в консоль: рішення

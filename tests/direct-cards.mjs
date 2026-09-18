@@ -351,6 +351,43 @@ ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'файл не зібрався: ' + JSON.stringify(drew));
 
 console.log('');
+console.log('═══ БЛИЗНЮКІВ У ГАЛЕРЕЇ НЕ БУВАЄ ═══');
+/* Той самий перед приїздить із ракурсів і з мокапів РІЗНИМИ файлами — це
+   два рендери одного кадру. У галереї вони ставали близнюками, між якими
+   клієнт шукає різницю, якої немає. */
+const twins = await fr.evaluate(o => {
+  const L = window.LQCards;
+  const V = (sd, u) => ({ id:sd, side:sd, label:sd, img:u, show:true });
+  const P = sd => ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 });
+  const it = Object.assign({}, o.items[0], {
+    name:'Худі', views:[V('front','FRONT'), V('back','BACK')], prints:[P('front')],
+    /* Мокапи — інші файли того самого переду й заду: так їх і складає
+       конструктор, окремим рендером. */
+    mockups:['MOCK-FRONT', 'MOCK-BACK'] });
+  const shots = cfg => L.build({ items:[it], terms:{} }, cfg)[0].shots.map(s => s.url);
+  return {
+    plain: shots({}),
+    /* Менеджер тицьнув у мокап переду — він має ЗАМІНИТИ перед, а не стати
+       ще одним кадром поруч із ним. */
+    picked: shots({ by:{ 'main:0': { pic:'MOCK-FRONT' } } }),
+    badge: L.build({ items:[it], variants:[Object.assign({}, it, { kind:'variant' })],
+                     terms:{} }, {}).map(c => c.badge)
+  };
+}, OFFER);
+console.log('   без вибору: ' + twins.plain.join(' · '));
+console.log('   з обраним мокапом: ' + twins.picked.join(' · '));
+ok(twins.plain.length === 2 && new Set(twins.plain).size === 2,
+  'без вибору — два кадри, перед і зад, кожен один раз',
+  'уже без вибору дублі: ' + twins.plain.join(' · '));
+ok(twins.picked.length === 2 && twins.picked[0] === 'MOCK-FRONT' &&
+   twins.picked.indexOf('FRONT') < 0,
+  'обраний мокап ЗАМІНЯЄ кадр, а не додається: «який мокап узяти» — це вибір, а не ще один кадр',
+  'обраний мокап породив близнюка: ' + twins.picked.join(' · '));
+ok(twins.badge.length === 2 && twins.badge[0] === 'позиція' && twins.badge[1] === 'варіант',
+  'варіант у стрічці підписаний варіантом: він часто зветься так само, як головна позиція',
+  'варіант не відрізнити від позиції: ' + JSON.stringify(twins.badge));
+
+console.log('');
 console.log('═══ ФОТО МОДЕЛІ ПЕРШИМ КАДРОМ ═══');
 /* Мокап показує виріб, але не показує, що це одяг: людина дивиться на
    розкладений силует і мусить уявити його на комусь. Фото моделі знімає цю
@@ -496,9 +533,14 @@ console.log('   точка в панелі зі своїм фоном: ' + style
 ok(style.cutPng !== style.plainPng,
   'зняття фону справді міняє картку — тло мокапа стає прозорим',
   'із «прибрати фон» і без нього картка малюється однаково');
-ok(style.goodNotes.length === 0 && style.badNotes.length === 1,
+ok(style.goodNotes.length === 0 && style.badNotes.length >= 1 &&
+   style.badNotes.some(n => /не однорідн/.test(n)),
   'на градієнті фон не знімається мовчки — менеджер бачить рядок, чому саме',
   'невдале зняття фону не назване словами: ' + JSON.stringify(style.badNotes));
+ok(style.badNotes.some(n => /лишилась із фоном/.test(n)),
+  'і картка тоді лишається З ФОНОМ цілком: половина прозора, половина в білому ' +
+    'прямокутнику виглядає не як «одне не вийшло», а як брак',
+  'картка лишилась напіввирізаною: ' + JSON.stringify(style.badNotes));
 ok(style.shadePng !== style.cutPng,
   'тінь малюється поверх знятого фону — по контуру виробу, а не прямокутником',
   'тінь нічого не змінила');
