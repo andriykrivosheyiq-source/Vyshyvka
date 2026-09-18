@@ -2944,18 +2944,32 @@
       renderLogoLayers();
       renderTabPanel();
     }, true);
-    // Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
-    // нікому не потрібен, а платити за нього тим більше.
+    /* Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
+       нікому не потрібен, а платити за нього тим більше.
+
+       Але «не торкнулись» тепер означає буквально: напис і досі каже «Ваш
+       напис». Доти вистачало прапорця, який знімався ЛИШЕ від набору тексту,
+       — а змінити напису колір, кегль чи шрифт прапорця не знімало. Тобто
+       напис, який людина оформила, але не перенабрала, для нас лишався
+       заготовкою; і оскільки прибираються всі заготовки одразу, натиснувши
+       «видалити» на одному написі можна було втратити всі три.
+
+       Зайвий раз запитати в самого напису, що в ньому написано, дешевше за
+       будь-який прапорець: він не буває застарілим. */
+    function isPristineText(l){
+      return !!(l && l.text && l.textPristine &&
+                String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
+    }
     function dropPristineText(){
       var out = false;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(l.text && l.textPristine){ out = true; }
+          if(isPristineText(l)){ out = true; }
         });
       });
       if(!out) return false;
       getViews().forEach(function(side){
-        pm.logos[side] = (pm.logos[side] || []).filter(function(l){ return !(l.text && l.textPristine); });
+        pm.logos[side] = (pm.logos[side] || []).filter(function(l){ return !isPristineText(l); });
       });
       if(!findLayerAnySide(pm.activeLogoId)) pm.activeLogoId = null;
       return true;

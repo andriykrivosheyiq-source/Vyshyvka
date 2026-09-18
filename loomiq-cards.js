@@ -841,12 +841,47 @@
      нічого, це підпис, який повторює те, що око вже побачило. Виріб ми
      показуємо цілком з кожного боку, а не макрозйомкою, де кроп сам по собі
      незрозумілий, — отже читати там нічого. */
-  function shotPanel(x, t, X, Y, w, h, bg){
+  function shotPanel(x, t, X, Y, w, h, bg, tint){
     x.save();
     rr(x, X, Y, w, h, 24); x.clip();
     if(bg) cover(x, bg, X, Y, w, h);
-    else { x.fillStyle = t.panel; x.fillRect(X, Y, w, h); }
+    else { x.fillStyle = tint || t.panel; x.fillRect(X, Y, w, h); }
     x.restore();
+  }
+  /* Колір фону самого мокапа. Потрібен там, де кадр не перекриває плитку до
+     країв: у худі фон білий, у футболки сірий, а панель під ними була одного
+     кольору на всіх — і по краю виходив той самий кантик.
+
+     Беремо кути. Зійшлись між собою — це рівне студійне тло, і ми знаємо
+     його колір точно. Не зійшлись (градієнт, тінь, кадр без полів) — не
+     вгадуємо: лишається панель теми. */
+  function tintOf(img){
+    if(img.__lqTint !== undefined) return img.__lqTint;
+    var out = null;
+    try{
+      var c = document.createElement('canvas');
+      var k = Math.min(64 / img.width, 64 / img.height, 1);
+      c.width = Math.max(2, Math.round(img.width * k));
+      c.height = Math.max(2, Math.round(img.height * k));
+      var q = c.getContext('2d', { willReadFrequently: true });
+      q.drawImage(img, 0, 0, c.width, c.height);
+      var d = q.getImageData(0, 0, c.width, c.height).data, w = c.width, h = c.height;
+      var at = function(px, py){ var i = (py * w + px) * 4; return [d[i], d[i+1], d[i+2], d[i+3]]; };
+      var cs = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)];
+      if(cs.every(function(p){ return p[3] < 16; })){ img.__lqTint = null; return null; }
+      var far = 0;
+      for(var a = 0; a < 4; a++) for(var b2 = a + 1; b2 < 4; b2++){
+        var dr = cs[a][0] - cs[b2][0], dg = cs[a][1] - cs[b2][1], db = cs[a][2] - cs[b2][2];
+        far = Math.max(far, Math.sqrt(dr * dr + dg * dg + db * db));
+      }
+      if(far <= 26){
+        var r = 0, g = 0, b3 = 0;
+        cs.forEach(function(p){ r += p[0]; g += p[1]; b3 += p[2]; });
+        out = 'rgb(' + Math.round(r / 4) + ',' + Math.round(g / 4) + ',' + Math.round(b3 / 4) + ')';
+      }
+    }catch(e){ out = null; }
+    img.__lqTint = out;
+    return out;
   }
   /* Галерея. Колонки рівні між собою — і тому, що ракурси рівні, і тому,
      що рівні колонки дають одну сітку на будь-яку кількість фото: підписи
@@ -969,7 +1004,12 @@
       cov = Math.max(cov, bw / im.width, bh / im.height);
     });
     if(!isFinite(fit)) return fit;
-    return Math.max(fit, cov);
+    /* Виріб має бути цілий. Перекриття плитки беремо лише доти, доки воно
+       не починає різати сам виріб: кадри приходять різних пропорцій, і на
+       високому мокапі «заповнити плитку» означало б зрізати худі рукави й
+       низ. Решту плитки добирає її колір — той самий, що фон мокапа, тож
+       межі все одно не видно. */
+    return Math.max(fit, Math.min(cov, fit));
   }
   /* Знімок малюється ЦІЛИМ кадром, а не обрізаним прямокутником виробу.
 
@@ -1005,7 +1045,7 @@
       var cx = X0 + i * (cw + GAP);
       var sr = srcs[i];
       if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h, st.marks); continue; }
-      shotPanel(x, t, cx, Y, cw, h, st.bg);
+      shotPanel(x, t, cx, Y, cw, h, st.bg, sr && sr.im ? tintOf(sr.im) : null);
       if(sr && sr.im && isFinite(S)){
         x.save();
         rr(x, cx, Y, cw, h, 24); x.clip();
@@ -1088,7 +1128,8 @@
     var st = o.st || {};
     card.items.forEach(function(it, i){
       var X = PAD + i * (tileW + gap);
-      shotPanel(x, t, X, top, tileW, tileH, st.bg);
+      shotPanel(x, t, X, top, tileW, tileH, st.bg,
+                (imgs[i] && imgs[i].im) ? tintOf(imgs[i].im) : null);
       var picH = picH0;
       /* Кадр займає всю верхню частину плитки — без власних полів навколо.
          Обрізаємо його плиткою, тож закруглені кути згори лишаються, а
@@ -1130,7 +1171,13 @@
   async function drawCard(card, offer, cfg){
     cfg = cfg || {};
     var fields = cfg.fields || {};
-    var show = function(k){ return fields[k] !== false; };
+    /* Термін дії ціни — вимкнений за замовчуванням. Рядок «Ціна дійсна до
+       25 вересня» читається як тиск на клієнта, а не як умова, і в Direct
+       на цьому місці корисніше порожньо. Кому треба — вмикає полем. */
+    var OFF_BY_DEFAULT = { valid: 1 };
+    var show = function(k){
+      return OFF_BY_DEFAULT[k] ? fields[k] === true : fields[k] !== false;
+    };
     await fontReady();
 
     /* Ширину аркуша задає САМА КАРТКА — скільки в неї колонок, така вона й
