@@ -1846,6 +1846,94 @@
       walk(el);
       return out;
     }
+    /* ══════════ РАМКА ПО ЛІТЕРАХ, А НЕ ПО ПОЛОТНУ ══════════
+
+       Шар живе прямокутником: 120×120 на масштаб, далі за пропорцією
+       картинки. Це правильно для геометрії — від цього прямокутника
+       рахується все, що їде у виробництво, — але показувати його людині
+       не можна. У напису всередині полотна є поля (без них обрізало б
+       хвости літер), у логотипа — прозорі кути. Рамка обіймала полотно, і
+       виходило, що вона помітно більша за те, що на ній намальовано.
+
+       Двома наслідками, обидва з яких Андрій і описав:
+         — ручка масштабу висіла в куті полотна, тобто на вигляд у
+           порожньому місці біля літери: цілишся в букву, потрапляєш у
+           ручку, і замість переносу шар зменшується;
+         — прямокутники сусідніх написів перекривались майже цілком, і
+           клік по літерах одного напису діставався тому, чий прямокутник
+           виявився зверху. «Тягну за один — їде інший».
+
+       Тому рамка й ручки тепер стоять по МЕЖАХ НЕПРОЗОРОГО (opaqueBox —
+       його ми й так міряємо по пікселях для площі вишивки). Сам шар
+       лишається тим самим прямокутником: жодна цифра виробництва не
+       зрушила. */
+    function inkOf(layer){
+      var ob = layer && layer.opaqueBox;
+      if(!ob || !isFinite(ob.x0) || !isFinite(ob.y0)) return { x0:0, y0:0, x1:1, y1:1 };
+      /* Майже порожній бокс — ознака того, що пікселі не прочитались
+         (CORS, шар ще вантажиться). Краще стара рамка по полотну, ніж
+         рамка в точку. */
+      if(ob.x1 - ob.x0 < 0.05 || ob.y1 - ob.y0 < 0.05) return { x0:0, y0:0, x1:1, y1:1 };
+      return ob;
+    }
+    function applyInkFrame(el, layer){
+      if(!el) return;
+      var ob = inkOf(layer);
+      var L = (ob.x0 * 100) + '%', T = (ob.y0 * 100) + '%';
+      var R = ((1 - ob.x1) * 100) + '%', B = ((1 - ob.y1) * 100) + '%';
+      var out = el.querySelector('.pm-dl-outline');
+      if(out){
+        out.style.left = L; out.style.top = T;
+        out.style.right = R; out.style.bottom = B;
+      }
+      /* Ручки — на кутах тієї самої рамки, але ЦІЛКОМ назовні, а не
+         наполовину, як було при рамці по полотну. Рамка тепер облягає
+         літери впритул, і ручка, зсунута всередину хоч на піксель, лягала б
+         просто на текст: у низького напису вона вища за сам напис, і
+         спроба взяти його за букву потрапляла в «видалити». */
+      var put = function(sel, a, av, b, bv){
+        var h = el.querySelector(sel);
+        if(!h) return;
+        h.style[a] = 'calc(' + av + ' - 24px)';
+        h.style[b] = 'calc(' + bv + ' - 24px)';
+      };
+      put('[data-handle="delete"]', 'top', T, 'left', L);
+      put('[data-handle="rotate"]', 'top', T, 'right', R);
+      put('[data-handle="scale"]',  'bottom', B, 'right', R);
+      put('[data-handle="crop"]',   'bottom', B, 'left', L);
+    }
+    /* Чи є під точкою САМ вміст шару, а не порожній кут його полотна.
+       Рахуємо в системі координат шару: центр рамки лишається центром і
+       після повороту, тож досить розвернути вектор назад на кут шару. */
+    function pointInInk(layer, cx, cy){
+      var el = pmLogoLayers && pmLogoLayers.querySelector('[data-layer-id="' + layer.id + '"]');
+      if(!el) return false;
+      var r = el.getBoundingClientRect();
+      if(!r.width || !r.height) return false;
+      var z = garmentZoom() || 1;
+      var dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+      var a = -(layer.rot || 0) * Math.PI / 180;
+      var lx = (dx * Math.cos(a) - dy * Math.sin(a)) / z;
+      var ly = (dx * Math.sin(a) + dy * Math.cos(a)) / z;
+      var box = layerBox(layer), ob = inkOf(layer);
+      return lx >= (ob.x0 - 0.5) * box.w && lx <= (ob.x1 - 0.5) * box.w &&
+             ly >= (ob.y0 - 0.5) * box.h && ly <= (ob.y1 - 0.5) * box.h;
+    }
+    /* Який шар людина насправді мала на увазі. Перебираємо згори вниз у
+       тому порядку, в якому вони намальовані: обраний піднятий над рештою
+       (z-index), далі — від пізніших до ранніших. Перший, під яким справді
+       є вміст, і є відповідь. Немає жодного — клік нічий, і це теж
+       відповідь: у порожньому куті чужої рамки нічого братись не повинно. */
+    function layerAtPoint(cx, cy){
+      var list = currentLayers();
+      var order = [];
+      list.forEach(function(l){ if(l.id === pm.activeLogoId) order.push(l); });
+      for(var i = list.length - 1; i >= 0; i--)
+        if(list[i].id !== pm.activeLogoId) order.push(list[i]);
+      for(var k = 0; k < order.length; k++)
+        if(pointInInk(order[k], cx, cy)) return order[k];
+      return null;
+    }
     function renderLogoLayers(){
       // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
       // фокус і на телефоні згортає клавіатуру просто посеред набору.
@@ -1880,6 +1968,7 @@
               styleTextEl(tx, layer.text, bh);
               tx.setAttribute('contenteditable', 'true');   // це і є той, що в правці
             }
+            applyInkFrame(ex, layer);
             return;
           }
         }
@@ -1920,6 +2009,7 @@
         pmLogoLayers.appendChild(el);
         var te = el.querySelector('.pm-dl-text');
         if(te){ styleTextEl(te, layer.text, bh); bindTextEl(te, layer); }
+        applyInkFrame(el, layer);
 
         el.querySelector('.pm-dl-img').addEventListener('mousedown', function(e){ onImgDown(e, layer); });
         el.querySelector('.pm-dl-img').addEventListener('touchstart', function(e){ onImgDown(e, layer); }, {passive:false});
@@ -2607,6 +2697,7 @@
           var b = layerBox(layer);
           host.style.width = b.w + 'px'; host.style.height = b.h + 'px';
           styleTextEl(el, layer.text, b.h);
+          applyInkFrame(host, layer);   // літер побільшало — рамка йде за ними
         }
         renderTabPanel(); updatePriceBar();
       }).catch(function(){});
@@ -3171,6 +3262,21 @@
 
     function onImgDown(e, layer){
       e.stopPropagation();
+      /* Слухач висить на прямокутнику шару, а прямокутники сусідів
+         перекриваються. Тому спершу питаємо, під ким із них справді є
+         вміст у цій точці, — і далі працюємо вже з ним. Без цього клік
+         діставався тому, чий прямокутник випадково зверху. */
+      var q = getXY(e);
+      var real = layerAtPoint(q.x, q.y);
+      if(real && real.id !== layer.id) layer = real;
+      else if(!real){
+        /* Порожній кут чужої рамки. Ні за що братись — і нічого не
+           виділяємо: інакше людина тягне порожнечу, а їде сусідній напис. */
+        if(pm.textEdit != null){ stopTextEdit(); }
+        if(pm.activeLogoId != null){ pm.activeLogoId = null; renderLogoLayers(); renderTabPanel(); }
+        dlState = { mode:null };
+        return;
+      }
       // Поки напис правлять, дотик не блокуємо: інакше браузер не поставить
       // каретку й не відкриє клавіатуру.
       var editing = !!(layer.text && pm.textEdit === layer.id);
