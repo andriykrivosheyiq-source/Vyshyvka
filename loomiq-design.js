@@ -788,6 +788,9 @@
   }
 
   var TABS = [
+    /* «Мої доручення» стоїть першою навмисно: людина відкриває відділ не
+       щоб подивитись на дошку, а щоб дізнатись, що їй робити зараз. */
+    { key:'tasks',   label:'Доручення', role:'*'        },
     { key:'queue',   label:'Черга',    role:'designmgr' },
     { key:'graphic', label:'Макети',   role:'designer'  },
     { key:'stitch',  label:'Вишивка',  role:'embroidery'},
@@ -813,6 +816,36 @@
     var l = pairs();
     for(var i = 0; i < l.length; i++) if(l[i].o.orderId === orderId) return l[i];
     return null;
+  }
+
+  /* Доручення на дошку. Виконавцю — тільки свої: чужа робота на власній
+     дошці означає щоденне «а це не моє». Менеджеру відділу — усі, бо його
+     робота саме в тому, щоб бачити, де що стоїть. */
+  function taskCards(all){
+    var mine = String(me() || '').trim().toLowerCase();
+    var out = [];
+    pairs().forEach(function(pr){
+      D.taskList(pr.job).forEach(function(t){
+        if(!all && String(t.to || '').trim().toLowerCase() !== mine) return;
+        var k = D.TASK_KINDS.filter(function(x){ return x.key === t.kind; })[0];
+        var age = D.taskAge(t);
+        out.push({
+          id: pr.o.orderId + '|t' + t.n,
+          step: t.state,
+          title: (k ? k.label : t.kind) + ' №' + t.n,
+          sub: '#' + pr.o.orderId + (t.due ? ' · до ' + t.due : ''),
+          foot: (all ? nameOf(t.to) : '') +
+                (age ? (all ? ' · ' : '') + hm(age) : '')
+        });
+      });
+    });
+    return out;
+  }
+  function hm(min){
+    if(min < 60) return min + ' хв';
+    var h = Math.floor(min / 60), m2 = min % 60;
+    if(h < 24) return h + ' год' + (m2 ? ' ' + m2 + ' хв' : '');
+    return Math.floor(h / 24) + ' дн ' + (h % 24) + ' год';
   }
 
   /* ── Дошка ─────────────────────────────────────────────────────────── */
@@ -944,7 +977,11 @@
     pairs: pairs, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
-    teamPick: teamPick, TABS: TABS
+    teamPick: teamPick, TABS: TABS,
+    taskCards: taskCards, hm: hm,
+    /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
+       Заглушка на випадок, коли модуль піднімають без адмінки. */
+    can: function(){ return true; }
   };
 })();
 
@@ -1019,10 +1056,33 @@
   }
 
   /* ── Панель: черга відділу ─────────────────────────────────────────── */
+  /* Видати доручення. Стоїть у черзі, бо це робота менеджера відділу: він
+     єдиний бачить усе замовлення й може сказати, що саме треба зробити. */
+  function taskNewHtml(job){
+    var open = D.taskOpen(job);
+    return '<div class="dz-act">' +
+      '<span class="dz-l">Видати доручення' +
+        (open.length ? ' <i>(відкритих: ' + open.length + ')</i>' : '') + '</span>' +
+      '<select id="dzTKind"><option value="">— що зробити —</option>' +
+      D.TASK_KINDS.map(function(k){
+        return '<option value="' + esc(k.key) + '">' + esc(k.label) + '</option>'; }).join('') +
+      '</select>' +
+      U.teamPick('dzTTo', '', '') +
+      '<textarea id="dzTText" rows="2" placeholder="що саме зробити"></textarea>' +
+      '<select id="dzTWhy"><option value="">— причина (для правок) —</option>' +
+      D.TASK_WHY.map(function(w){
+        return '<option value="' + esc(w.key) + '">' + esc(w.label) + '</option>'; }).join('') +
+      '</select>' +
+      '<input type="date" id="dzTDue">' +
+      '<button class="dz-b pri" data-do="task-add">Видати</button>' +
+    '</div>';
+  }
+
   function queuePanel(p){
     var job = p.job, o = p.o, g = job.graphic;
     var v = D.verCur(o);
     var acts = [];
+    if(can('designmgr')) acts.push(taskNewHtml(job));
     if(job.state === 'new' || job.state === 'check'){
       acts.push('<div class="dz-act">' +
         '<span class="dz-l">Призначити дизайнера</span>' +
@@ -1246,7 +1306,8 @@
     if(!root) return;
     var tab = U.tab();
     var cards, steps, panel = '';
-    if(tab === 'graphic'){ steps = D.GRAPHIC; cards = graphicCards(); }
+    if(tab === 'tasks'){ steps = D.TASK_FLOW; cards = U.taskCards(U.can('designmgr')); }
+    else if(tab === 'graphic'){ steps = D.GRAPHIC; cards = graphicCards(); }
     else if(tab === 'stitch'){ steps = D.STITCH; cards = stitchCards(''); }
     else if(tab === 'qa'){ steps = D.STITCH.filter(function(s){
         return s.key === 'qa' || s.key === 'revision' || s.key === 'ok'; });
@@ -1287,7 +1348,75 @@
       try{ on.scrollIntoView({ block:'nearest', inline:'center' }); }catch(e){}
     }
   }
+  /* Панель доручення. Усе потрібне для роботи лежить ТУТ: що зробити, від
+     кого, до якого числа, чим закрити й де перепитати. Саме тому виконавцю
+     не треба відкривати картку замовлення — і не треба роздавати доступ до
+     її блоків. */
+  function taskPanel(pr, t){
+    var k = D.TASK_KINDS.filter(function(x){ return x.key === t.kind; })[0];
+    var st = D.TASK_FLOW.filter(function(x){ return x.key === t.state; })[0] || {};
+    var mine = String(t.to || '').trim().toLowerCase() === String((U.host.me && U.host.me()) || '').trim().toLowerCase();
+    var boss = can('designmgr');
+    var why = D.TASK_WHY.filter(function(x){ return x.key === t.why; })[0];
+    var age = D.taskAge(t);
+    var h = '<div class="dz-panel-h"><b>' + esc((k ? k.label : t.kind) + ' №' + t.n) + '</b>' +
+      '<button class="dz-x" data-close>✕</button></div>' +
+      '<div class="dz-panel-b">' +
+      '<div class="dz-chips">' +
+        '<span class="dz-chip is-' + esc(st.color || 'gray') + '">' + esc(st.label || t.state) + '</span>' +
+        (why ? '<span class="dz-chip">' + esc(why.label) + '</span>' : '') +
+        (t.due ? '<span class="dz-chip">до ' + esc(t.due) + '</span>' : '') +
+        (age ? '<span class="dz-chip">' + esc(U.hm(age)) + '</span>' : '') +
+      '</div>' +
+      '<div class="dz-row"><span>Замовлення</span><b>#' + esc(pr.o.orderId) + '</b></div>' +
+      '<div class="dz-row"><span>Кому</span><b>' + esc(nameOf(t.to)) + '</b></div>' +
+      '<div class="dz-row"><span>Видав</span><b>' + esc(nameOf(t.by)) + '</b></div>' +
+      (t.closedBy ? '<div class="dz-row"><span>Закрито</span><b>' + esc(t.closedBy) + '</b></div>' : '') +
+      (t.text ? '<div class="dz-note">' + esc(t.text) + '</div>' : '');
+
+    /* Розмова. Без неї доручення — лист без відповіді: виконавець не може
+       перепитати, не виходячи з роботи. */
+    h += '<div class="dz-sub">Обговорення</div><div class="dz-talk">' +
+      ((t.thread || []).length
+        ? t.thread.map(function(m2){
+            return '<div class="dz-msg"><b>' + esc(nameOf(m2.by)) + '</b>' +
+              '<i>' + esc(dt(m2.at)) + '</i><span>' + esc(m2.t) + '</span></div>';
+          }).join('')
+        : '<div class="dz-empty">поки тихо</div>') +
+      '</div>' +
+      '<div class="dz-say"><input id="dzSay" placeholder="написати…" maxlength="600">' +
+      '<button class="dz-b" data-do="task-say">Сказати</button></div>';
+
+    /* Кнопки — рівно ті, що доречні зараз і саме цій людині. Кнопка, яка
+       нічого не робить, гірша за її відсутність. */
+    if(mine && (t.state === 'new' || t.state === 'returned'))
+      h += '<button class="dz-b pri" data-do="task-start">Беру в роботу</button>';
+    if(mine && t.state === 'work')
+      h += '<div class="dz-fld"><label>Чим закрили</label>' +
+           '<input id="dzClosed" placeholder="V3 · файл · фото" maxlength="60"></div>' +
+           '<button class="dz-b pri" data-do="task-done">Виконано</button>';
+    if(boss && t.state === 'done'){
+      h += '<div class="dz-fld"><label>Причина повернення</label><select id="dzWhy">' +
+        '<option value="">— оберіть —</option>' +
+        D.TASK_WHY.map(function(x){
+          return '<option value="' + esc(x.key) + '">' + esc(x.label) + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div class="dz-fld"><input id="dzBack" placeholder="що саме не так" maxlength="300"></div>' +
+        '<div class="dz-acts">' +
+        '<button class="dz-b pri" data-do="task-accept">Прийняти</button>' +
+        '<button class="dz-b" data-do="task-return">Повернути</button></div>';
+    }
+    return h + '</div>';
+  }
+
   function panelFor(tab, id){
+    if(tab === 'tasks'){
+      var pt = String(id).split('|');
+      var pp = U.pairOf(pt[0]);
+      if(!pp) return '';
+      var tt = D.taskAt(pp.job, String(pt[1] || '').replace(/^t/, ''));
+      return tt ? taskPanel(pp, tt) : '';
+    }
     if(tab === 'stitch' || tab === 'qa'){
       var parts = String(id).split('|');
       var p = U.pairOf(parts[0]);
@@ -1331,8 +1460,13 @@
     var parts = String(id).split('|');
     var p = U.pairOf(parts[0]);
     if(!p) return null;
-    var s = parts[1] ? D.stitchAt(p.job, parts[1]) : null;
-    return { p:p, o:p.o, job:p.job, s:s };
+    /* Ключ доручення виглядає як `1842|t3`. Літера тут не прикраса: без неї
+       номер доручення не відрізнити від ключа нанесення, і панель відкрила
+       б не те. */
+    var t = (parts[1] && /^t\d+$/.test(parts[1]))
+      ? D.taskAt(p.job, parts[1].slice(1)) : null;
+    var s = (parts[1] && !t) ? D.stitchAt(p.job, parts[1]) : null;
+    return { p:p, o:p.o, job:p.job, s:s, t:t };
   }
   function val(id){
     var el = document.getElementById(id);
@@ -1365,6 +1499,46 @@
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
 
+    if(what === 'task-start'){
+      if(!c.t || !D.taskStart(job, c.t.n, m)) return;
+      return save(job, o, 'Взяли в роботу');
+    }
+    if(what === 'task-done'){
+      if(!c.t) return;
+      var by = val('dzClosed');
+      /* Чим закрили — питаємо саме тут, а не «потім у коментарі». Доручення,
+         закрите словом «готово», через рік не скаже, що ж вийшло. */
+      if(!by) return say('Напишіть, чим закрили: версія, файл або фото');
+      if(!D.taskDone(job, c.t.n, m, by)) return;
+      return save(job, o, 'Виконано');
+    }
+    if(what === 'task-accept'){
+      if(!c.t || !D.taskAccept(job, c.t.n, m)) return;
+      return save(job, o, 'Прийнято');
+    }
+    if(what === 'task-return'){
+      if(!c.t) return;
+      var w = val('dzWhy');
+      if(!w) return say('Оберіть причину — без неї повернення нічого не важить');
+      if(!D.taskReturn(job, c.t.n, m, w, val('dzBack'))) return;
+      return save(job, o, 'Повернуто на доопрацювання');
+    }
+    if(what === 'task-say'){
+      if(!c.t) return;
+      var txt = val('dzSay');
+      if(!txt) return;
+      D.taskSay(job, c.t.n, m, txt);
+      return save(job, o, '');
+    }
+    if(what === 'task-add'){
+      var kind = val('dzTKind'), to = val('dzTTo');
+      if(!kind) return say('Оберіть, що доручаєте');
+      if(!to) return say('Оберіть, кому: питати з відділу нема з кого');
+      var t2 = D.taskAdd(job, o, m, { kind: kind, to: to, text: val('dzTText'),
+                                      due: val('dzTDue'), why: val('dzTWhy') });
+      if(!t2) return say('Напишіть, що саме зробити');
+      return save(job, o, 'Доручення №' + t2.n + ' видано');
+    }
     if(what === 'assign'){
       var who = val('dzWho');
       if(!who) return say('Оберіть дизайнера');

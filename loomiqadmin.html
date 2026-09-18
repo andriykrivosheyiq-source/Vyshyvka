@@ -2835,6 +2835,34 @@
     font-size:12px;color:#067647;margin-bottom:10px;}
   .dz-why{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
   .dz-acts{margin-top:12px;display:flex;flex-direction:column;gap:10px;}
+  /* ── Панель доручення ────────────────────────────────────────────────
+     Доручення читають так само, як лист: спершу стан і строк, потім що
+     зробити, потім розмова. Тому й порядок блоків такий. */
+  .dz-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+  .dz-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;
+    background:var(--canvas);color:var(--ink-soft);}
+  .dz-chip.is-gray{background:#EEEEEC;color:#6B6C72;}
+  .dz-chip.is-blue{background:#E4EDFB;color:#2A5AA8;}
+  .dz-chip.is-violet{background:#EDE7FA;color:#5B3FA8;}
+  .dz-chip.is-green{background:#DDF3E3;color:#1B6B37;}
+  .dz-chip.is-amber{background:#FBEBD5;color:#8A5212;}
+  .dz-row{display:flex;gap:8px;align-items:baseline;font-size:12.5px;margin-bottom:5px;}
+  .dz-row span{color:var(--ink-soft);min-width:92px;}
+  .dz-sub{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);margin:14px 0 7px;}
+  .dz-talk{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;}
+  .dz-msg{font-size:12.5px;line-height:1.45;}
+  .dz-msg b{font-weight:700;}
+  .dz-msg i{font-style:normal;color:var(--muted);font-size:11px;margin-left:6px;}
+  .dz-msg span{display:block;margin-top:2px;}
+  .dz-say{display:flex;gap:6px;margin-top:9px;}
+  .dz-say input{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;}
+  .dz-fld{margin-top:10px;}
+  .dz-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
+  .dz-fld input,.dz-fld select{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;
+    padding:7px 9px;border:1px solid var(--line);border-radius:8px;}
+  .dz-acts{display:flex;gap:7px;margin-top:10px;}
   .dz-act{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;
     flex-wrap:wrap;gap:6px;align-items:center;}
   .dz-l{flex:0 0 100%;font-size:11px;font-weight:800;letter-spacing:.04em;
@@ -4454,13 +4482,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=eaa3ca6e6a"></script>
-<script src="loomiq-fingerprint.js?v=eaa3ca6e6a"></script>
-<script src="loomiq-pricing.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-select.js?v=729bba7238"></script>
+<script src="loomiq-fingerprint.js?v=729bba7238"></script>
+<script src="loomiq-pricing.js?v=729bba7238"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-design.js?v=729bba7238"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
