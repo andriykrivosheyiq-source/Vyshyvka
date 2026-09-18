@@ -4463,13 +4463,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0037c84bab"></script>
-<script src="loomiq-fingerprint.js?v=0037c84bab"></script>
-<script src="loomiq-pricing.js?v=0037c84bab"></script>
+<script src="loomiq-select.js?v=7eefbb021c"></script>
+<script src="loomiq-fingerprint.js?v=7eefbb021c"></script>
+<script src="loomiq-pricing.js?v=7eefbb021c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0037c84bab"></script>
+<script src="loomiq-design.js?v=7eefbb021c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8041,17 +8041,74 @@ function orderPriceOpts(o, opts){
 /* Непідтверджений результат AI. Живе тільки в памʼяті вкладки: ні в базі, ні
    в документі його немає, доки менеджер не сказав «залишити». */
 let AI_LOGO = null;
-function itemKindFix(it){
+/* ВИБІР МЕНЕДЖЕРА ЖИВЕ НА ЗАМОВЛЕННІ, А НЕ НА ПОЗИЦІЇ.
+
+   Доти він писався в позицію — і це давало два баги, які на око виглядали
+   як «числа стрибають самі по собі».
+
+   Перший. Той самий зад стоїть на чотирьох позиціях. Менеджер вимикав його
+   на одній — і ціна решти ТРЬОХ зростала: разова підготовка лишалась у
+   рахунку, але ділилась уже не на сорок штук, а на тридцять. Формально
+   послідовно, по суті безглуздо: малюнок один, роботу зробили один раз, і
+   «за нього не беремо тут» не може означати «решта доплачує».
+
+   Другий. Той самий напис стоїть на виробі двічі. Менеджер вимикав перший —
+   і не змінювалось нічого: друга копія платила повну разову. Клікаєш, а
+   ціна та сама.
+
+   Корінь обох — один. Разова оплата належить ДИЗАЙНУ, а не його копії в
+   конкретному місці: макет готують один раз на малюнок, скільки б виробів
+   його не несли. Отже і рішення «як рахувати» належить дизайну, і жити воно
+   має там, де живе замовлення, а не в одній із його позицій.
+
+   Ключ — ВІДБИТОК дизайну. Номери зсуваються, щойно додали чи прибрали
+   малюнок, і позначка поїхала б на сусідній. Відбиток тримає її за
+   конкретним зображенням; замінили файл — відбиток інший, і вид
+   повертається до автоматичного. Це навмисно: інший малюнок — інше рішення.
+
+   Старі замовлення везуть мапу в позиціях. Їх не переписуємо на місці —
+   просто читаємо обидва джерела, замовлення має перевагу. */
+function orderKindFix(o){
+  const out = {};
+  ((o && o.items) || []).forEach(it=>{
+    const m = it && it.designKindFix;
+    if(m && typeof m === 'object') Object.keys(m).forEach(k=>{ out[k] = m[k]; });
+  });
+  const own = o && o.designKindFix;
+  if(own && typeof own === 'object') Object.keys(own).forEach(k=>{ out[k] = own[k]; });
+  return Object.keys(out).length ? out : null;
+}
+// Сумісність: старий виклик на позицію тепер бачить рішення всього замовлення
+function itemKindFix(it, o){
+  if(o) return orderKindFix(o);
   const m = it && it.designKindFix;
   return (m && typeof m === 'object') ? m : null;
 }
-function setItemKindFix(it, fp, kind){
-  if(!it) return;
-  const m = Object.assign({}, itemKindFix(it) || {});
+function setItemKindFix(it, fp, kind, o){
+  if(!it && !o) return;
   const key = String(fp || '');
   if(!key) return;
-  if(kind === 'img' || kind === 'txt' || kind === 'off') m[key] = kind; else delete m[key];
-  it.designKindFix = Object.keys(m).length ? m : null;
+  if(o){
+    const m = Object.assign({}, (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
+    if(kind === 'img' || kind === 'txt' || kind === 'off') m[key] = kind; else delete m[key];
+    o.designKindFix = Object.keys(m).length ? m : null;
+    /* Старі позиційні позначки для цього відбитка прибираємо: два джерела
+       правди про один малюнок — це те саме розходження, від якого ми тут і
+       тікаємо. */
+    (o.items || []).forEach(x=>{
+      if(!x || !x.designKindFix) return;
+      if(x.designKindFix[key] === undefined) return;
+      const c = Object.assign({}, x.designKindFix);
+      delete c[key];
+      x.designKindFix = Object.keys(c).length ? c : null;
+    });
+  }
+  if(!it) return;
+  const m = Object.assign({}, (it.designKindFix && typeof it.designKindFix === 'object') ? it.designKindFix : {});
+  if(!o){
+    if(kind === 'img' || kind === 'txt' || kind === 'off') m[key] = kind; else delete m[key];
+    it.designKindFix = Object.keys(m).length ? m : null;
+  }
   /* І те саме — на сам шар у config.logos. Конструктор читає позицію звідти
      й про мапу за відбитком не знає: без цього рядка менеджер, відкривши
      картку, побачив би в прорахунку «картинка» там, де сам щойно поставив
@@ -8077,8 +8134,10 @@ function setItemKindFix(it, fp, kind){
    де вид має значення: ставка за площу, відро разових, ціна, собівартість,
    маржа, КП, Канбан, PDF. */
 function applyKindFix(o){
+  /* Одна мапа на все замовлення. Раніше кожна позиція мала свою — і той
+     самий малюнок на сусідніх позиціях міг рахуватись по-різному. */
+  const fix = orderKindFix(o);
   (o && o.items || []).forEach(it=>{
-    const fix = itemKindFix(it);
     const d = it && it.desc;
     if(!fix || !d || !Array.isArray(d.designs)) return;
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
@@ -8748,7 +8807,7 @@ function offerCalcRows(it, o){
                 (it.desc.designKinds || [])[di]),
         /* чи це рішення менеджера, а не автоматика — інакше через тиждень
            ніхто не згадає, чому напис рахується як картинка */
-        fixed: !!(itemKindFix(it) || {})[String((it.desc.designs || [])[di] || '')] }
+        fixed: !!(orderKindFix(o) || {})[String((it.desc.designs || [])[di] || '')] }
     : null;
   const seenNo = {};
   (b.designNos || []).forEach(d=>{
@@ -17631,40 +17690,65 @@ async function offerEdApply(msg){
     }
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
-    const was = placementTotals(Object.assign({}, d, { designKinds: kinds }));
     /* Вид приходить явно — «зроби написом», а не «перемкни». Перемикач не
        знав, у якому стані він зараз, і два кліки поспіль із різних місць
        могли повернути все назад. */
     const to = (msg.to === 'txt' || msg.to === 'img' || msg.to === 'off')
       ? msg.to : (kinds[di] === 'txt' ? 'img' : 'txt');
-    kinds[di] = to;
-    d.designKinds = kinds;
-    // і те саме — у пам'ять позиції, щоб пережило наступне збереження
-    setItemKindFix(it, d.designs[di], to);
-    const now = placementTotals(d);
+    const fp = String(d.designs[di] || '');
+
+    /* Рішення стосується ДИЗАЙНУ, а не цієї позиції: той самий малюнок може
+       стояти на виробі двічі й на чотирьох виробах одразу. Тому знімок «як
+       було» беремо з УСІХ позицій, які його несуть, — інакше нанесення
+       перерахувалось би в одній, а в решти лишилось би старим, і сума
+       поїхала б у бік, якого ніхто не просив. */
+    const touched = [];
+    (o.items || []).forEach(x=>{
+      const dx = x && x.desc;
+      if(!dx || !Array.isArray(dx.designs) || dx.designs.indexOf(fp) < 0) return;
+      /* Позиція без площ — стара, збережена до появи designMm2. Вид їй
+         однаково поставимо, але нанесення перерахувати нема з чого: воно
+         оновиться, щойно позицію відкриють і збережуть. */
+      if(!Array.isArray(dx.designMm2) || dx.designMm2.length !== dx.designs.length) return;
+      touched.push({ it: x, was: placementTotals(dx) });
+    });
+
+    setItemKindFix(it, fp, to, o);
+    applyKindFix(o);      // розводимо рішення по всіх позиціях одразу
+
     /* Нанесення пишемо назад у позицію, а собівартість рухаємо рівно на
        різницю: у неї, крім нанесення, входить і сам виріб, і частка
        разових, — перезаписати її цілком означало б стерти решту. */
-    if(was && now){
-      d.coefPart = now.sell;
-      d.basePart = now.basePart;
-      d.minPart  = now.minPart;
-      const dCost = now.cost - was.cost;
+    touched.forEach(t=>{
+      const now = placementTotals(t.it.desc);
+      if(!t.was || !now) return;
+      t.it.desc.coefPart = now.sell;
+      t.it.desc.basePart = now.basePart;
+      t.it.desc.minPart  = now.minPart;
+      const dCost = now.cost - t.was.cost;
       if(dCost){
-        it.unitCost = Math.max(0, Math.round((+it.unitCost || 0) + dCost));
-        it.cost = it.unitCost * (+it.qty || 0);
+        t.it.unitCost = Math.max(0, Math.round((+t.it.unitCost || 0) + dCost));
+        t.it.cost = t.it.unitCost * (+t.it.qty || 0);
       }
-    }
+    });
     if(!(await offerEdSave(o))) return;
     offerEdPreview(true);
     const WORD = { txt:'НАПИС', img:'КАРТИНКА', off:'НЕ РАХУЄМО' };
-    const w = WORD[kinds[di]] || WORD.img;
-    toast(kinds[di] === 'off' ? 'За цей дизайн не беремо'
-                              : ('Дизайн рахується як ' + w.toLowerCase()));
-    offerEdNote(kinds[di] === 'off'
-      ? 'Дизайн №' + (di + 1) + ' — підготовку макета й ескіз не рахуємо. ' +
+    const w = WORD[to] || WORD.img;
+    /* Скільки місць це зачепило — кажемо вголос. Той самий малюнок часто
+       стоїть і двічі на виробі, і на кількох позиціях; не сказати про це
+       означає лишити менеджера гадати, чому поїхали сусідні ціни. */
+    let places = 0;
+    (o.items || []).forEach(x=>{
+      ((x.desc && x.desc.designs) || []).forEach(f=>{ if(String(f || '') === fp) places++; });
+    });
+    const also = places > 1 ? ' · той самий малюнок у ' + places + ' місцях — скрізь' : '';
+    toast((to === 'off' ? 'За цей дизайн не беремо'
+                        : 'Дизайн рахується як ' + w.toLowerCase()) + also);
+    offerEdNote(to === 'off'
+      ? 'Дизайн №' + (di + 1) + ' — підготовку макета й ескіз не рахуємо' + also + '. ' +
         'Саме нанесення рахується як звичайно.'
-      : 'Дизайн №' + (di + 1) + ' рахується як ' + w + ' — за рішенням менеджера');
+      : 'Дизайн №' + (di + 1) + ' рахується як ' + w + ' — за рішенням менеджера' + also);
     return;
   }
   /* Перейменування групи варіантів. Група — це питання до клієнта, тож

@@ -688,7 +688,10 @@ const tabbed = await fr.evaluate(async () => {
     shades: [...document.querySelectorAll('#cdBar [data-shade]')].map(b => b.textContent),
     bgUp: !!document.getElementById('cdBgF'),
     artUp: !!document.getElementById('cdArtF'),
-    warnBox: !!document.getElementById('cdWarn')
+    warnBox: !!document.getElementById('cdWarn'),
+    more: !!document.getElementById('cdMore'),
+    advHidden: !!(document.querySelector('.cd-adv') || {}).classList &&
+               document.querySelector('.cd-adv').classList.contains('hide')
   };
 });
 if(tabbed.none){ console.log('  вкладки немає'); bad++; }
@@ -718,6 +721,10 @@ else {
   ok(tabbed.warnBox,
     'і є місце під рядок про те, що з мокапом не вийшло — просто під кадром, а не тостом',
     'рядка про невдачу немає');
+  ok(tabbed.more && tabbed.advHidden,
+    'налаштування «раз на пропозицію» згорнуті під однією кнопкою: на видноті ' +
+      'лишається те, чим користуються щоразу — розмір лого, формат і вивантаження',
+    'смуга розгорнута повністю: ' + JSON.stringify({ more:tabbed.more, hidden:tabbed.advHidden }));
   ok(/Як це побачить клієнт/.test(tabbed.head),
     'над preview сказано, що це вже готовий файл, а не ще одна панель редактора',
     'підпису над preview немає: «' + tabbed.head + '»');
@@ -754,6 +761,14 @@ ok(!!dl && dl.names.every(n => /^kp-1002700-\d\d-/.test(n)),
   'імена файлів несуть номер КП і порядок — у теці вони ляжуть як у пропозиції',
   'імена файлів не ті: ' + JSON.stringify((dl || {}).names));
 try{ fs.unlinkSync(VH); }catch(e){}
+const opened = await fr.evaluate(async () => {
+  document.getElementById('cdMore').click();
+  await new Promise(r => setTimeout(r, 300));
+  return !document.querySelector('.cd-adv').classList.contains('hide');
+});
+ok(opened, 'натиснув — налаштування розгорнулись другим рядом',
+  'кнопка налаштувань нічого не розкриває');
+
 console.log('');
 console.log('═══ ПЛАТНУ РОБОТУ ЗАМОВЛЯЄ МЕНЕДЖЕР ═══');
 /* Photoroom коштує грошей за виклик, а картка перемальовується на кожен рух

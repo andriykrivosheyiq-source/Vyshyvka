@@ -807,6 +807,17 @@
      Стоїть ПОВЕРХ полотна, у тих самих координатах, які віддав малювальник:
      рахувати ту саму геометрію вдруге тут означало б два різні уявлення про
      те, де логотип, — одне у файлі, друге під мишею. */
+  /* Смуга налаштувань. На видноті лишається те, чим користуються щоразу:
+     розмір лого, формат і саме вивантаження. Решта — шаблон, поля,
+     нанесення, стиль — живе під однією кнопкою: це налаштування «раз на
+     пропозицію», і тримати їх постійно розгорнутими означає щодня
+     показувати менеджеру двадцять кнопок заради двох. */
+  .cd-more{font:inherit; font-size:12.5px; font-weight:700; color:#22314A; cursor:pointer;
+    border:1px solid #D9E1EC; background:#fff; border-radius:9px; padding:7px 12px;}
+  .cd-more.on{background:#22314A; border-color:#22314A; color:#fff;}
+  .cd-adv{flex-basis:100%; display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding-top:10px; margin-top:2px; border-top:1px solid #EEF2F7;}
+  .cd-adv.hide{display:none;}
   .cd-prev{position:relative;}
   .cd-mark{position:absolute; border:2px dashed rgba(79,95,212,.9); border-radius:3px;
     cursor:move; touch-action:none; box-shadow:0 0 0 9999px rgba(0,0,0,0); z-index:3;}
@@ -916,21 +927,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=0037c84bab',
+    ['loomiq-select.js?v=7eefbb021c',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=0037c84bab'].forEach(function(src){
+     'loomiq-cards.js?v=7eefbb021c'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=0037c84bab';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=0037c84bab';
-  var CTOR_JS   = 'loomiq-constructor.js?v=0037c84bab';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=0037c84bab';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=7eefbb021c';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=7eefbb021c';
+  var CTOR_JS   = 'loomiq-constructor.js?v=7eefbb021c';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=7eefbb021c';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1808,7 +1819,7 @@
   var cardCfg = null, cardList = [], cardAt = 0, cardExt = 'png';
   var cardBusy = false, cardDrawId = 0, cardBgBusy = false, cardWarn = '';
   var CARD_MODELS = {};
-  var cardArtBusy = false;
+  var cardArtBusy = false, cardAdv = false;
   /* Вирізані мокапи, які вже є у словнику компанії. Картка їх лише БЕРЕ:
      різати — платна робота, і замовляє її менеджер натисканням, а не
      малювальник кожною перемальовкою. */
@@ -1909,52 +1920,56 @@
       }).join('') + '</div>';
     };
     var lp = Math.round((+cfg.logo || 1) * 100);
+    /* Порядок тут за частотою: що чіпають щоразу — ліворуч і завжди на
+       видноті, що налаштовують раз на пропозицію — під кнопкою. */
     var html =
-      '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
       '<div class="cd-g"><span class="cd-l">Лого</span><span class="cd-rng">' +
         '<input type="range" id="cdLogo" min="50" max="300" step="5" value="' + lp + '">' +
         '<b>' + lp + '%</b></span></div>' +
-      '<div class="cd-g"><span class="cd-l">Показувати</span>' +
-        L.FIELDS.map(function(f){
-          return '<label class="cd-chk"><input type="checkbox" data-fld="' + esc(f.id) + '"' +
-                 (cfg.fields[f.id] === false ? '' : ' checked') + '>' + esc(f.name) + '</label>';
-        }).join('') + '</div>' +
-      /* Стиль знімків. «Тінь» без «прибрати фон» неможлива технічно — тінь
-         будується з прозорості, — тож увімкнена тінь сама вмикає зняття
-         фону, а галочка стає неактивною з поясненням. Це чесніше, ніж дві
-         галочки, з яких одна без другої мовчки нічого не робить. */
-      '<div class="cd-g"><span class="cd-l">Нанесення</span>' +
-        (cfg.art
-          ? '<label class="cd-up"><img src="' + esc(cfg.art) + '" alt="">Замінити' +
-              '<input type="file" accept="image/*" id="cdArtF" hidden></label>' +
-            '<button class="cd-x" id="cdArtX" title="Повернути логотип із конструктора">✕</button>'
-          : '<label class="cd-up' + (cardArtBusy ? ' busy' : '') + '">' +
-              (cardArtBusy ? 'Вантажиться…' : '⤒ Свій логотип') +
-              '<input type="file" accept="image/*" id="cdArtF" hidden' +
-              (cardArtBusy ? ' disabled' : '') + '></label>') +
-      '</div>' +
-      '<div class="cd-g"><span class="cd-l">Стиль</span>' +
-        '<label class="cd-chk" title="' +
-          (cfg.shade ? 'Тінь малюється по контуру виробу, тож фон знімається обовʼязково'
-                     : 'Заливка від країв кадру: білі деталі всередині виробу не зачіпає') + '">' +
-          '<input type="checkbox" id="cdCut"' + (cfg.cutout || cfg.shade ? ' checked' : '') +
-          (cfg.shade ? ' disabled' : '') + '>Прибрати фон</label>' +
-        seg('shade', [{ id:'', name:'Без тіні' }, { id:'soft', name:'Мʼяка' },
-                      { id:'deep', name:'Глибока' }], cfg.shade || '') +
-        (cfg.bg
-          ? '<label class="cd-up"><img src="' + esc(cfg.bg) + '" alt="">Фон' +
-              '<input type="file" accept="image/*" id="cdBgF" hidden></label>' +
-            '<button class="cd-x" id="cdBgX" title="Прибрати свій фон">✕</button>'
-          : '<label class="cd-up' + (cardBgBusy ? ' busy' : '') + '">' +
-              (cardBgBusy ? 'Вантажиться…' : '⤒ Свій фон') +
-              '<input type="file" accept="image/*" id="cdBgF" hidden' +
-              (cardBgBusy ? ' disabled' : '') + '></label>') +
-      '</div>' +
       '<div class="cd-g"><span class="cd-l">Формат</span>' +
         seg('ext', [{ id:'png', name:'PNG' }, { id:'jpg', name:'JPG' }], cardExt) + '</div>' +
+      '<button class="cd-more' + (cardAdv ? ' on' : '') + '" id="cdMore">⚙ Налаштування</button>' +
       '<div class="cd-go">' +
         '<button data-dl="one"' + (cardBusy ? ' disabled' : '') + '>⤓ Скачати цю</button>' +
         '<button class="pri" data-dl="all"' + (cardBusy ? ' disabled' : '') + '>⤓ Скачати всі</button>' +
+      '</div>' +
+      '<div class="cd-adv' + (cardAdv ? '' : ' hide') + '">' +
+        '<div class="cd-g"><span class="cd-l">Шаблон</span>' + seg('tpl', L.TEMPLATES, cfg.tpl) + '</div>' +
+        '<div class="cd-g"><span class="cd-l">Показувати</span>' +
+          L.FIELDS.map(function(f){
+            return '<label class="cd-chk"><input type="checkbox" data-fld="' + esc(f.id) + '"' +
+                   (cfg.fields[f.id] === false ? '' : ' checked') + '>' + esc(f.name) + '</label>';
+          }).join('') + '</div>' +
+        '<div class="cd-g"><span class="cd-l">Нанесення</span>' +
+          (cfg.art
+            ? '<label class="cd-up"><img src="' + esc(cfg.art) + '" alt="">Замінити' +
+                '<input type="file" accept="image/*" id="cdArtF" hidden></label>' +
+              '<button class="cd-x" id="cdArtX" title="Повернути логотип із конструктора">✕</button>'
+            : '<label class="cd-up' + (cardArtBusy ? ' busy' : '') + '">' +
+                (cardArtBusy ? 'Вантажиться…' : '⤒ Свій логотип') +
+                '<input type="file" accept="image/*" id="cdArtF" hidden' +
+                (cardArtBusy ? ' disabled' : '') + '></label>') +
+        '</div>' +
+        /* «Тінь» без «прибрати фон» неможлива технічно — тінь будується з
+           прозорості, — тож увімкнена тінь сама вмикає зняття фону, а
+           галочка стає неактивною з поясненням. */
+        '<div class="cd-g"><span class="cd-l">Стиль</span>' +
+          '<label class="cd-chk" title="' +
+            (cfg.shade ? 'Тінь малюється по контуру виробу, тож фон знімається обовʼязково'
+                       : 'Заливка від країв кадру: білі деталі всередині виробу не зачіпає') + '">' +
+            '<input type="checkbox" id="cdCut"' + (cfg.cutout || cfg.shade ? ' checked' : '') +
+            (cfg.shade ? ' disabled' : '') + '>Прибрати фон</label>' +
+          seg('shade', [{ id:'', name:'Без тіні' }, { id:'soft', name:'Мʼяка' },
+                        { id:'deep', name:'Глибока' }], cfg.shade || '') +
+          (cfg.bg
+            ? '<label class="cd-up"><img src="' + esc(cfg.bg) + '" alt="">Фон' +
+                '<input type="file" accept="image/*" id="cdBgF" hidden></label>' +
+              '<button class="cd-x" id="cdBgX" title="Прибрати свій фон">✕</button>'
+            : '<label class="cd-up' + (cardBgBusy ? ' busy' : '') + '">' +
+                (cardBgBusy ? 'Вантажиться…' : '⤒ Свій фон') +
+                '<input type="file" accept="image/*" id="cdBgF" hidden' +
+                (cardBgBusy ? ' disabled' : '') + '></label>') +
+        '</div>' +
       '</div>';
     var bar = document.getElementById('cdBar');
     bar.innerHTML = html;
@@ -2006,6 +2021,13 @@
     bar.querySelectorAll('[data-dl]').forEach(function(b){
       b.onclick = function(){ cardsDownload(b.dataset.dl === 'all'); };
     });
+    var more = document.getElementById('cdMore');
+    if(more) more.onclick = function(){
+      cardAdv = !cardAdv;
+      /* Перемальовуємо ТІЛЬКИ смугу: перемальовувати кадр заради розгортання
+         панелі означає чекати на малювальник там, де нічого не змінилось. */
+      renderCardsBar(cardsCfg());
+    };
   }
 
   function renderCardsStrip(){
