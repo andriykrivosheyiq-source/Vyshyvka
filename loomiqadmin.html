@@ -4463,13 +4463,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7eefbb021c"></script>
-<script src="loomiq-fingerprint.js?v=7eefbb021c"></script>
-<script src="loomiq-pricing.js?v=7eefbb021c"></script>
+<script src="loomiq-select.js?v=9ae3c785ba"></script>
+<script src="loomiq-fingerprint.js?v=9ae3c785ba"></script>
+<script src="loomiq-pricing.js?v=9ae3c785ba"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7eefbb021c"></script>
+<script src="loomiq-design.js?v=9ae3c785ba"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8830,8 +8830,13 @@ function offerCalcRows(it, o){
     }
     const dup = seenNo[d.no];
     seenNo[d.no] = 1;
+    /* Написи зводяться в один дизайн незалежно від букв, тож «той самий
+       малюнок» про них сказати не можна — і не треба: причина інша.
+       Підготувати другий напис не робота, а набрати інші букви. */
     rows.push(['↳ Дизайн №' + d.no + (d.kind === 'txt' ? ' (напис)' : '') +
-      (dup ? ' — той самий малюнок, що вже порахований вище: окремий макет не потрібен'
+      (dup ? (d.kind === 'txt'
+                ? ' — усі написи замовлення входять в одну підготовку: набрати другий рядок не робота'
+                : ' — той самий малюнок, що вже порахований вище: окремий макет не потрібен')
            : (d.first ? ' — перший, входить у підготовку макета'
                       : ' — окремий, ділиться на ' + d.units + ' шт із цим дизайном')) + how,
       '', 'sub']);

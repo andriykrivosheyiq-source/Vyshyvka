@@ -249,6 +249,47 @@ else {
 }
 
 console.log('');
+console.log('═══ УСІ НАПИСИ ЗАМОВЛЕННЯ — ОДИН ДИЗАЙН ═══');
+/* Підготувати другий напис — не робота: шрифт обрано, техніку налаштовано,
+   лишається набрати інші букви. Оцифрувати другий логотип — робота, і за
+   неї ми беремо. Тому написи зводяться в одну групу незалежно від букв, а
+   логотипи лишаються кожен собою. */
+const txts = await fr.evaluate(([pricing, A, B]) => {
+  window.SITE_CONTENT = window.SITE_CONTENT || {};
+  window.SITE_CONTENT.pricing = pricing;
+  const C = Array.from({length:144},(_,i)=>(i*5+2)%7).join('');
+  const it = (designs, kinds) => ({ method:'embro', units:10, base:300, coefPart:200,
+    pieceFee:0, gid:'tee', designs, designKinds:kinds, bare:false });
+  const fee = list => window.LQ.priceOrder(list).map(r => r.feeShare);
+  const sk = list => window.LQ.priceOrder(list)
+    .map(r => ((r.parts || {}).sketches || []).length);
+  return {
+    /* Три РІЗНІ написи на двох позиціях. */
+    txt3: fee([ it([A, B], ['txt','txt']), it([C], ['txt']) ]),
+    txt3sk: sk([ it([A, B], ['txt','txt']), it([C], ['txt']) ]),
+    /* Один напис — для порівняння: має коштувати рівно стільки ж. */
+    txt1: fee([ it([A], ['txt']), it([A], ['txt']) ]),
+    /* Три різні ЛОГОТИПИ — кожен свій дизайн, за другий і третій ескізи. */
+    img3: fee([ it([A, B], ['img','img']), it([C], ['img']) ]),
+    img3sk: sk([ it([A, B], ['img','img']), it([C], ['img']) ])
+  };
+}, [PRICING, A, B]);
+console.log('  три різні написи:   разові ' + txts.txt3.join(' · ') +
+            ' · ескізів ' + txts.txt3sk.join(' · '));
+console.log('  один напис:         разові ' + txts.txt1.join(' · '));
+console.log('  три різні логотипи: разові ' + txts.img3.join(' · ') +
+            ' · ескізів ' + txts.img3sk.join(' · '));
+ok(txts.txt3sk.every(n => n === 0),
+  'за написи додаткових ескізів немає взагалі: усі написи замовлення — одна підготовка',
+  'за написи виставили ескізи: ' + JSON.stringify(txts.txt3sk));
+ok(txts.txt3.join() === txts.txt1.join(),
+  'три різні написи коштують рівно стільки ж, скільки один: набрати інші букви — не робота',
+  'три написи дорожчі за один: ' + txts.txt3.join(' · ') + ' проти ' + txts.txt1.join(' · '));
+ok(txts.img3sk.some(n => n > 0) && txts.img3[0] > txts.txt3[0],
+  'логотипів це НЕ стосується: кожен інший малюнок лишається окремим дизайном зі своїм ескізом',
+  'логотипи теж злиплись в один: ' + JSON.stringify(txts.img3sk));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 try{ fs.unlinkSync(VH); }catch(e){}
 console.log(bad ? 'розходжень: ' + bad

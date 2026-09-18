@@ -1777,10 +1777,12 @@
         var st = 'font-size:' + r.size + 'em;color:' + r.color +
                  ';font-family:' + textFontCss(r.font) +
                  ';font-weight:' + (r.bold ? 700 : 400) +
-                 ';font-style:' + (r.italic ? 'italic' : 'normal');
+                 ';font-style:' + (r.italic ? 'italic' : 'normal') +
+                 ';text-transform:' + (r.caps ? 'uppercase' : 'none');
         return '<span data-lqr="1" data-s="' + r.size + '" data-c="' + escAttr(r.color) +
                '" data-f="' + escAttr(r.font) + '" data-b="' + (r.bold ? 1 : 0) +
-               '" data-i="' + (r.italic ? 1 : 0) + '" style="' + escAttr(st) + '">' +
+               '" data-i="' + (r.italic ? 1 : 0) + '" data-u="' + (r.caps ? 1 : 0) +
+               '" style="' + escAttr(st) + '">' +
                escAttr(r.t) + '</span>';
       }).join('');
     }
@@ -1797,13 +1799,14 @@
         var d = (host && host !== el) ? host.dataset : {};
         var r = runStyle(sp, { size:+d.s || 1, color:d.c, font:d.f,
                                bold: d.b != null ? d.b === '1' : undefined,
-                               italic: d.i != null ? d.i === '1' : undefined });
+                               italic: d.i != null ? d.i === '1' : undefined,
+                               caps: d.u != null ? d.u === '1' : undefined });
         r.t = t;
         var last = out[out.length - 1];
         // сусідні шматки з однаковим стилем склеюємо: інакше кожна набрана
         // літера ставала б окремим шматком
         if(last && last.size === r.size && last.color === r.color && last.font === r.font &&
-           last.bold === r.bold && last.italic === r.italic) last.t += r.t;
+           last.bold === r.bold && last.italic === r.italic && last.caps === r.caps) last.t += r.t;
         else out.push(r);
       }
       return out;
@@ -2383,7 +2386,13 @@
         color: r.color || sp.color || TEXT_COLORS[0],
         font: r.font || sp.font || TEXT_FONTS[0].id,
         bold: r.bold != null ? !!r.bold : !!sp.bold,
-        italic: r.italic != null ? !!r.italic : !!sp.italic
+        italic: r.italic != null ? !!r.italic : !!sp.italic,
+        /* Великі літери — властивість ШМАТКА, як кегль і колір. Не окреме
+           поле напису: тоді капс можна було б поставити тільки на весь
+           рядок, а просять зазвичай протилежне — одне слово великими, решту
+           як є. І не заміна самого тексту: набране лишається набраним, а
+           капс завжди можна зняти. */
+        caps: r.caps != null ? !!r.caps : !!sp.caps
       };
     }
     // Шматки напису, завжди нормалізовані. Немає власних — увесь текст одним.
@@ -2426,7 +2435,10 @@
       runs.forEach(function(r){
         String(r.t).split('\n').forEach(function(part, i){
           if(i > 0 && n < TXT_MAX_LINES - 1){ lines.push([]); n++; }
-          if(part) lines[lines.length - 1].push({ t: part, st: r });
+          /* Капс застосовуємо тут, а не в самому тексті: набране лишається
+             набраним, тож капс завжди можна зняти, а відбиток дизайну не
+             міняється від перемикання регістру. */
+          if(part) lines[lines.length - 1].push({ t: r.caps ? part.toUpperCase() : part, st: r });
         });
       });
       var out = [], maxW = 0, totalH = 0;
@@ -2515,7 +2527,7 @@
          по собі на них не лягає — і кнопка «жирний» переставала працювати,
          щойно в написі з'являвся хоч один особливий шматок. Нічого не
          виділено — правка лягає на ВСІ шматки. */
-      var keys = ['color','font','bold','italic'].filter(function(k){ return patch && patch[k] != null; });
+      var keys = ['color','font','bold','italic','caps'].filter(function(k){ return patch && patch[k] != null; });
       if(keys.length && Array.isArray(layer.text.runs) && layer.text.runs.length){
         layer.text.runs = layer.text.runs.map(function(r){
           keys.forEach(function(k){ r[k] = patch[k]; });
@@ -2584,11 +2596,24 @@
       el.addEventListener('keydown', function(e){
         if(e.key !== 'Enter') return;
         e.preventDefault();
-        var cur = el.innerText.replace(/[\n\u200b]+$/, '').split('\n').length;
+        /* Невидимі символи в лічильник рядків не йдуть: вони службові, і
+           ліміт спрацьовував раніше, ніж мав би. */
+        var cur = el.innerText.replace(/\u200b/g, '').replace(/\n+$/, '').split('\n').length;
         if(cur >= TXT_MAX_LINES) return;
-        // Порожній наступний рядок браузер не малює, і каретка зістрибує назад
-        // — тримаємо його невидимим символом, який у текст напису не йде.
-        try{ document.execCommand('insertText', false, '\n\u200b'); }catch(err){}
+        /* Невидимий символ потрібен РІВНО в одному випадку: новий рядок
+           порожній і останній — такий рядок браузер не малює, і каретка
+           зістрибує назад. Ставити його завжди означало вкидати службовий
+           символ усередину тексту, коли Enter тиснуть посеред рядка. Саме
+           там каретка й опинялась не там, де її лишили. */
+        var atEnd = true;
+        try{
+          var sel = window.getSelection(), cr = sel.getRangeAt(0);
+          var tail = document.createRange();
+          tail.selectNodeContents(el);
+          tail.setStart(cr.endContainer, cr.endOffset);
+          atEnd = tail.toString().replace(/[\n\u200b\s]/g, '') === '';
+        }catch(err){ atEnd = true; }
+        try{ document.execCommand('insertText', false, atEnd ? '\n\u200b' : '\n'); }catch(err){}
       });
     }
     /* ── Стиль на виділений шматок ──────────────────────────────────────
@@ -2617,7 +2642,8 @@
       var d = (host && host !== el) ? host.dataset : {};
       return runStyle(layer.text, { size:+d.s || 1, color:d.c, font:d.f,
         bold: d.b != null ? d.b === '1' : undefined,
-        italic: d.i != null ? d.i === '1' : undefined });
+        italic: d.i != null ? d.i === '1' : undefined,
+        caps: d.u != null ? d.u === '1' : undefined });
     }
     function applyToSelection(el, layer, patch){
       var r = textSelectionIn(el);
@@ -2637,10 +2663,13 @@
         color: patch.color != null ? patch.color : was.color,
         font: patch.font != null ? patch.font : was.font,
         bold: patch.bold != null ? patch.bold : was.bold,
-        italic: patch.italic != null ? patch.italic : was.italic
+        italic: patch.italic != null ? patch.italic : was.italic,
+        caps: patch.caps != null ? patch.caps : was.caps
       });
       span.dataset.s = st.size; span.dataset.c = st.color; span.dataset.f = st.font;
       span.dataset.b = st.bold ? 1 : 0; span.dataset.i = st.italic ? 1 : 0;
+      span.dataset.u = st.caps ? 1 : 0;
+      span.style.textTransform = st.caps ? 'uppercase' : 'none';
       span.style.fontSize = st.size + 'em';
       span.style.color = st.color;
       span.style.fontFamily = textFontCss(st.font);
@@ -2738,7 +2767,7 @@
       var l = activeTextLayer();
       if(l) return l.text;
       return { t: pm.textDraft || '', font: pm.textFont || TEXT_FONTS[0].id,
-               color: pm.textColor || autoTextColor(), bold: false, italic: false };
+               color: pm.textColor || autoTextColor(), bold: false, italic: false, caps: false };
     }
     function textApply(patch){
       // Вибір запам'ятовуємо: наступний напис має початись там само, де скінчився попередній
@@ -2821,6 +2850,12 @@
           'style="font-weight:700" aria-label="Жирний">B</button>' +
         '<button class="pm-ts-tog' + (sp.italic ? ' on' : '') + '" id="pmTsItal" ' +
           'style="font-style:italic" aria-label="Курсив">I</button>' +
+        /* Великі літери. Не заміна набраного, а перемикач: набране лишається
+           як є, і капс завжди можна зняти. Діє на виділене, а якщо нічого не
+           виділено — на весь напис, як B та I. */
+        '<button class="pm-ts-tog' + (textRuns(sp).every(function(r){ return r.caps; }) ? ' on' : '') +
+          '" id="pmTsCaps" title="Великі літери — для виділеного або всього напису" ' +
+          'aria-label="Великі літери">AA</button>' +
         /* Кегль — двома кнопками, а не полем із числом: тут не набирають
            «14», тут дивляться на макет і роблять трохи більше або трохи
            менше. Діють на виділене, а якщо нічого не виділено — на весь
@@ -3627,12 +3662,20 @@
       if(tsItal) tsItal.addEventListener('click', function(){
         textApply({ italic: !textSpec().italic }); renderTabPanel();
       });
+      var tsCaps = document.getElementById('pmTsCaps');
+      if(tsCaps) tsCaps.addEventListener('click', function(){
+        /* Дивимось на ВЕСЬ напис: якщо капс уже скрізь — знімаємо, інакше
+           ставимо. Читати стан з одного шматка означало б, що кнопка
+           поводиться по-різному залежно від того, де стоїть каретка. */
+        var on = textRuns(textSpec()).every(function(r){ return r.caps; });
+        textApply({ caps: !on }); renderTabPanel();
+      });
       /* Натискання на кнопку панелі забирає фокус із напису, а разом із ним
          зникає виділення — і правка лягає вже не на те слово, яке щойно
          виділили. Гасимо саме mousedown: клік при цьому працює, а фокус
          лишається в тексті. */
       pmTabPanel.querySelectorAll('.pm-ts [data-tc], .pm-tsc [data-tc], #pmTsBold, ' +
-        '#pmTsItal, #pmTsSmall, #pmTsBig').forEach(function(b){
+        '#pmTsItal, #pmTsCaps, #pmTsSmall, #pmTsBig').forEach(function(b){
           b.addEventListener('mousedown', function(e){ e.preventDefault(); });
         });
       var tsSmall = document.getElementById('pmTsSmall');
