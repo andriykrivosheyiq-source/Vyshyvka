@@ -4454,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2322db9abd"></script>
-<script src="loomiq-fingerprint.js?v=2322db9abd"></script>
-<script src="loomiq-pricing.js?v=2322db9abd"></script>
+<script src="loomiq-select.js?v=5440f4d2ff"></script>
+<script src="loomiq-fingerprint.js?v=5440f4d2ff"></script>
+<script src="loomiq-pricing.js?v=5440f4d2ff"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2322db9abd"></script>
+<script src="loomiq-design.js?v=5440f4d2ff"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9111,10 +9111,26 @@ function itemSpecs(it){
              .slice(0, 12)
              .map(r => ({ label: String(r.label).slice(0, 40), value: String(r.value).slice(0, 120) }));
 }
+/* Графіка нанесення — той самий файл, який конструктор поклав на мокап.
+   Картці для Direct він потрібен окремо: фото моделі не мокап, зони
+   нанесення в ньому немає, і логотип туди кладуть поверх. */
+function itemArt(it){
+  const lg = (it && it.config && it.config.logos) || {};
+  for(const side of ['front','back','left','right']){
+    const arr = Array.isArray(lg[side]) ? lg[side] : [];
+    for(const l of arr) if(l && l.url) return l.url;
+  }
+  return '';
+}
 function offerItem(it, order, itemIdx){
   const n = offerItemNumbers(order, itemIdx);
   return {
     kind: itemKind(it),
+    /* Модель одягу й графіка нанесення. І те, і те клієнт бачить на
+       пропозиції так чи так — на мокапах; тут вони потрібні картці, щоб
+       знайти фото моделі для цього крою й покласти на нього нанесення. */
+    garmentId: (it.config && it.config.garmentId) || it.garmentId || '',
+    art: itemArt(it),
     // Група варіантів: клієнт бере по одному з кожної
     vgroup: itemKind(it) === 'variant' ? (it.vgroup || 'Варіанти на вибір') : '',
     /* Варіант на вибір: до клієнта приходить не доданим у кошторис.
@@ -16558,6 +16574,32 @@ function offerEdNote(text){
   if(!f || !f.contentWindow) return;
   try{ f.contentWindow.postMessage({ lqEditInit:true, note: String(text || '') }, '*'); }catch(e){}
 }
+/* Фото моделей для карток Direct. Своє фото з картки товару перебиває
+   стандартне: якщо менеджер завантажив власну зйомку, вона і є правильна.
+   Задні кадри пропускаємо — першим на картці має стояти той, де виріб
+   видно спереду, а спина, якщо на ній щось є, приїде окремою колонкою. */
+let cardModelsCache = null;
+async function cardModelsMap(){
+  if(cardModelsCache) return cardModelsCache;
+  const out = {};
+  try{
+    await loadStandardModels();
+    Object.keys(standardModels || {}).forEach(gid=>{
+      const list = (standardModels[gid] || []).map(m => typeof m === 'string' ? { src:m } : m);
+      const front = list.filter(m => !/-back$/.test(m.src))[0];
+      if(front) out[gid] = [{ url: 'images/' + front.src + '.webp',
+                              cx: front.cx, cy: front.cy, sw: front.sw }];
+    });
+  }catch(e){ console.warn('фото моделей не зібрались', e); }
+  const own = (typeof contentData === 'object' && contentData && contentData.models) || {};
+  Object.keys(own).forEach(gid=>{
+    const u = (own[gid] || []).filter(Boolean)[0];
+    if(u) out[gid] = [{ url: u }];   // своє фото — без якоря, ставить менеджер
+  });
+  cardModelsCache = out;
+  return out;
+}
+
 function offerEdPush(o){
   const f = document.querySelector('#offerEd iframe');
   if(!f || !f.contentWindow) return false;
@@ -16595,7 +16637,14 @@ function offerEdPush(o){
       garmentId: x.garmentId || ''
     }));
     f.contentWindow.postMessage({ lqEditInit:true, catalog: offerCatalog(), offer: doc,
+                                  models: cardModelsCache || {},
                                   editDone: offerEdCloseInline }, '*');
+    /* Фото моделей читаються з index.html і першого разу ще не готові —
+       доганяємо їх окремим повідомленням, щойно зʼявились. */
+    if(!cardModelsCache) cardModelsMap().then(m=>{
+      try{ if(f.contentWindow) f.contentWindow.postMessage({ lqEditInit:true, models:m }, '*'); }
+      catch(e){}
+    });
     offerEdCloseInline = false;
     return true;
   }catch(e){ console.warn('offer push failed', e); return false; }
@@ -17235,17 +17284,22 @@ async function offerEdApply(msg){
     await offerEdSave(o);
     return;
   }
-  /* Свій фон для квадратиків. Файл прилітає байтами, а вантажить його
-     адмінка — сховище налаштоване тут, і другий завантажувач у кадрі
-     означав би два місця, де щось може зламатись. Назад віддаємо посилання
-     тим самим кадром, що й прислав: рішення, що з ним робити, ухвалює він. */
-  if(act === 'cardsBg'){
+  /* Файли для карток: свій фон квадратиків і свій логотип нанесення. Обидва
+     прилітають байтами, а вантажить їх адмінка — сховище налаштоване тут, і
+     другий завантажувач у кадрі означав би два місця, де щось може
+     зламатись. Назад віддаємо посилання тим самим кадром, що й прислав.
+
+     Логотип лягає в налаштування ПРОПОЗИЦІЇ, а не картки: це той самий
+     логотип того самого клієнта, і різні його версії на сусідніх картках —
+     не варіативність, а неуважність, яку клієнт помітить. */
+  if(act === 'cardsFile'){
+    const what = msg.what === 'art' ? 'art' : 'bg';
     const f = document.querySelector('#offerEd iframe');
     const back = (url, err) => {
       try{
         if(f && f.contentWindow)
-          f.contentWindow.postMessage({ lqEditInit:true, cardsBg: url || '',
-                                        cardsBgErr: err || '' }, '*');
+          f.contentWindow.postMessage({ lqEditInit:true, cardsWhat: what,
+                                        cardsFile: url || '', cardsFileErr: err || '' }, '*');
       }catch(e){}
     };
     const bytes = Array.isArray(msg.data) ? new Uint8Array(msg.data) : null;
@@ -17253,7 +17307,7 @@ async function offerEdApply(msg){
     try{
       const url = await uploadCloudinaryAuto(new Blob([bytes], { type: msg.type || 'image/png' }));
       back(url, '');
-      o.cards = Object.assign({}, o.cards || {}, { bg: url });
+      o.cards = Object.assign({}, o.cards || {}, { [what]: url });
       await offerEdSave(o);
     }catch(e){ back('', (e && e.message) || 'помилка'); }
     return;
@@ -21935,8 +21989,16 @@ async function loadStandardModels(){
       const body = scope.slice(scope.indexOf('{')+1, end>0?end:scope.length);
       const re = /(\w+)\s*:\s*\[([\s\S]*?)\]/g; let m;
       while((m = re.exec(body))){
-        const srcs = []; let sm; const sre = /src:\s*'([^']+)'/g;
-        while((sm = sre.exec(m[2]))) srcs.push(sm[1]);
+        /* Беремо не лише файл, а й ЯКІР логотипа — cx/cy/sw, тобто де на
+           цьому фото груди. Картці для Direct він потрібен, щоб покласти
+           нанесення в правильне місце з першого разу, а не примушувати
+           менеджера щоразу ловити його мишею з нуля. */
+        const srcs = []; let sm;
+        const sre = /\{\s*src:\s*'([^']+)'([\s\S]*?)\}\s*(?:,|$)/g;
+        while((sm = sre.exec(m[2]))){
+          const a = /cx:\s*([\d.]+)\s*,\s*cy:\s*([\d.]+)\s*,\s*sw:\s*([\d.]+)/.exec(sm[2] || '');
+          srcs.push(a ? { src: sm[1], cx:+a[1], cy:+a[2], sw:+a[3] } : { src: sm[1] });
+        }
         if(srcs.length) standardModels[m[1]] = srcs;
       }
     }
@@ -21949,10 +22011,10 @@ function renderModelsTab(){
   if(!list.length){
     const std = (standardModels || {})[photoGarmentId];
     if(std && std.length){
-      box.innerHTML = std.map((src,i)=>`
+      box.innerHTML = std.map((m,i)=>`
         <div class="photo-cell" style="opacity:.9;">
           <div class="pc-view">Стандартне ${i+1}</div>
-          <div class="pc-img"><img src="images/${escA(src)}.webp" alt="" onerror="this.style.opacity=.2" style="pointer-events:none;"></div>
+          <div class="pc-img"><img src="images/${escA(typeof m==='string'?m:m.src)}.webp" alt="" onerror="this.style.opacity=.2" style="pointer-events:none;"></div>
           <span class="pc-badge">із сайту</span>
         </div>`).join('');
     } else {

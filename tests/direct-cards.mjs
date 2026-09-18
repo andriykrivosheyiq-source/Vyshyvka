@@ -351,6 +351,83 @@ ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'файл не зібрався: ' + JSON.stringify(drew));
 
 console.log('');
+console.log('═══ ФОТО МОДЕЛІ ПЕРШИМ КАДРОМ ═══');
+/* Мокап показує виріб, але не показує, що це одяг: людина дивиться на
+   розкладений силует і мусить уявити його на комусь. Фото моделі знімає цю
+   роботу з неї — і тоді задній вид стає необовʼязковим: два кадри на
+   картці потрібні завжди, але порожня спина заради симетрії — це віддати
+   колонку нічому. */
+const model = await fr.evaluate(([o, host]) => {
+  const L = window.LQCards;
+  const V = (sd, u) => ({ id:sd, side:sd, label:sd, img:u, show:true });
+  const P = sd => ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 });
+  const all = [V('front','A'), V('back','B'), V('left','C')];
+  const mk = sides => Object.assign({}, o.items[0], {
+    name:'Худі', garmentId:'hoodie', prints: sides.map(P), views: all, mockups:['m0'],
+    config:{ garmentId:'hoodie', logos:{ front:[{ url:'ART' }] } } });
+  const models = { hoodie: [{ url: host + '/images/model-hoodie-man.webp', cx:50, cy:45, sw:32 }] };
+  const shots = (sides, mm) => L.build({ items:[mk(sides)], terms:{} }, { models: mm })[0].shots;
+  return {
+    /* Тільки перед: фото моделі + перед. Спини немає — на ній нічого немає. */
+    one: shots(['front'], models).map(s => (s.model ? 'модель' : s.side)),
+    /* Спина з нанесенням — приїздить окремою колонкою. */
+    back: shots(['front','back'], models).map(s => (s.model ? 'модель' : s.side)),
+    /* Без фото моделі все як було: перед і зад завжди. */
+    none: shots(['front'], {}).map(s => (s.model ? 'модель' : s.side)),
+    mark: (shots(['front'], models)[0] || {}).mark,
+    art: L.build({ items:[mk(['front'])], terms:{} }, { models })[0].art,
+    /* Свій логотип нанесення перебиває той, що приїхав із конструктора, —
+       і перебиває його на ВСІХ картках пропозиції одразу. */
+    own: L.build({ items:[mk(['front']), mk(['front'])], terms:{} },
+                 { models, art:'OWN' }).map(c => c.art)
+  };
+}, [OFFER, HOST]);
+console.log('   тільки перед: ' + model.one.join(' · '));
+console.log('   з нанесенням на спині: ' + model.back.join(' · '));
+console.log('   без фото моделі: ' + model.none.join(' · '));
+ok(model.one.length === 2 && model.one[0] === 'модель' && model.one[1] === 'front',
+  'є фото моделі — воно перше, другим іде перед; спини без нанесення немає',
+  'склад кадрів не той: ' + model.one.join(' · '));
+ok(model.back.length === 3 && model.back[2] === 'back',
+  'спина приїздить окремою колонкою, коли на ній справді щось нанесено',
+  'спина з нанесенням загубилась: ' + model.back.join(' · '));
+ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
+  'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
+  'без фото моделі склад зламався: ' + model.none.join(' · '));
+ok(model.mark && Math.abs(model.mark.cx - 0.5) < 0.01 && Math.abs(model.mark.w - 0.32) < 0.01,
+  'якір із каталогу каже, де на цьому фото груди — менеджер не ловить місце з нуля',
+  'якір не доїхав: ' + JSON.stringify(model.mark));
+ok(model.art === 'ART',
+  'графіка нанесення береться з того самого шару, що ліг на мокап',
+  'нанесення не знайшлось: ' + model.art);
+ok(model.own.length === 2 && model.own.every(a => a === 'OWN'),
+  'замінений логотип підхоплюють УСІ картки пропозиції: різні його версії ' +
+    'на сусідніх картках — не варіативність, а неуважність',
+  'заміна логотипа не розійшлась по картках: ' + JSON.stringify(model.own));
+
+console.log('');
+console.log('═══ УМОВА ЦІНИ, ТЕРМІН ДІЇ Й ПІДПИС ═══');
+const sale = await fr.evaluate(async o => {
+  const L = window.LQCards;
+  const off = JSON.parse(JSON.stringify(o));
+  off.brand = { name:'Створи', ig:'stvory.ua' };
+  off.terms = { validUntil:'2026-09-23T10:00:00.000Z', holdDays:5 };
+  const draw = async f => {
+    const cv = await L.draw(L.build(off, {})[0], off, { tpl:'minimal', fields:f });
+    return cv.toDataURL('image/png');
+  };
+  return { all: await draw({}), noValid: await draw({ valid:false }),
+           qty: L.build(off, {})[0].qty };
+}, OFFER);
+ok(sale.qty === 20,
+  'тираж лишився в даних — але як УМОВА ціни, «від 20 шт», а не окремим числом: ' +
+    'окреме число застаріває від першого «а якщо пʼятдесят»',
+  'тираж загубився: ' + sale.qty);
+ok(sale.all !== sale.noValid,
+  'термін дії ціни малюється й вимикається окремим полем',
+  'поле «Термін дії ціни» ні на що не впливає');
+
+console.log('');
 console.log('═══ СТИЛЬ: ЛОГО, ФОН, ТІНЬ ═══');
 /* Мокапи приходять зі своїм тлом, і поки виріб лежить на білій панелі, це
    непомітно. Щойно під панель стає свій фон або з'являється тінь — стає
@@ -524,6 +601,7 @@ const tabbed = await fr.evaluate(async () => {
     cut: !!document.getElementById('cdCut'),
     shades: [...document.querySelectorAll('#cdBar [data-shade]')].map(b => b.textContent),
     bgUp: !!document.getElementById('cdBgF'),
+    artUp: !!document.getElementById('cdArtF'),
     warnBox: !!document.getElementById('cdWarn')
   };
 });
@@ -539,16 +617,17 @@ else {
   ok(tabbed.canvas && tabbed.canvas.w === 1400 && tabbed.canvas.h === 1000,
     'preview — це те саме полотно, що збережеться у файл',
     'preview не намалювався');
-  ok(tabbed.tpls.length === 5 && tabbed.fields === 5,
-    'шаблони — мінімалістичний і чотири ніші, і пʼять перемикачів полів',
+  ok(tabbed.tpls.length === 5 && tabbed.fields === 6,
+    'шаблони — мінімалістичний і чотири ніші, і шість перемикачів полів',
     'смуга налаштувань неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.dl.length === 2, 'є «скачати цю» і «скачати всі»',
     'кнопок вивантаження немає');
   console.log('   стиль: ' + tabbed.shades.join(' / ') +
               ' · лого ' + (tabbed.logo ? 'є' : 'немає') +
               ' · фон ' + (tabbed.bgUp ? 'є' : 'немає'));
-  ok(tabbed.logo && tabbed.cut && tabbed.bgUp && tabbed.shades.length === 3,
-    'у смузі є все, чим керують показом: масштаб лого, зняття фону, три стани тіні, свій фон',
+  ok(tabbed.logo && tabbed.cut && tabbed.bgUp && tabbed.artUp && tabbed.shades.length === 3,
+    'у смузі є все, чим керують показом: масштаб лого, свій логотип нанесення, ' +
+      'зняття фону, три стани тіні, свій фон',
     'смуга стилю неповна: ' + JSON.stringify(tabbed));
   ok(tabbed.warnBox,
     'і є місце під рядок про те, що з мокапом не вийшло — просто під кадром, а не тостом',
