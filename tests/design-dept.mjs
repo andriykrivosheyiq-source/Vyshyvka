@@ -457,8 +457,11 @@ else {
   console.log('   вкладки: ' + ui.tabs.join(' · '));
   console.log('   колонки черги: ' + ui.cols.join(' · '));
   console.log('   карток: ' + ui.cards);
-  ok(ui.shown === 'block' && ui.tabs.length === 5,
-    'розділ відкривається і має всі пʼять дощок',
+  /* Дощок шість: пʼять відділових плюс «Доручення» — вона стоїть першою,
+     бо людина відкриває відділ не щоб подивитись на дошку, а щоб дізнатись,
+     що їй робити зараз. */
+  ok(ui.shown === 'block' && ui.tabs.length === 6 && ui.tabs[0] === 'Доручення',
+    'розділ відкривається, і першою стоїть дошка доручень',
     'розділ не зібрався: ' + JSON.stringify(ui.tabs));
   ok(ui.cols.length === 7 && /Перевірка ТЗ/.test(ui.cols.join(' ')),
     'черга відділу починається з перевірки ТЗ',
@@ -468,16 +471,105 @@ else {
     'картка відкриває панель із технічним завданням',
     'панель не відкрилась: «' + ui.panel + '»');
 }
+console.log('');
+console.log('═══ ДОРУЧЕННЯ ЖИВЕ В РОЗДІЛІ, А НЕ В РОЗМОВІ ═══');
+/* Наскрізний прохід кнопками: менеджер видає, виконавець бере й закриває,
+   менеджер приймає. Саме цього шару бракувало — доти правку передавали
+   словами, а дізнавались про її долю запитанням. */
+const task = await p.evaluate(async () => {
+  const D = window.LQDesign, U = D.ui;
+  const о = orders[0];
+  const job = designJobOf(о.orderId);
+  const me = myEmail();
+  // менеджер видає
+  const t = D.taskAdd(job, о, me, { kind:'fix', to: me,
+                                    text:'збільшити логотип', why:'client' });
+  designSave(job);
+  U.setTab('tasks');
+  document.querySelector('#dzRoot') && U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 400));
+  const колонки = [...document.querySelectorAll('#dzRoot .dz-col-h')].map(x =>
+    x.textContent.replace(/\s+/g, ' ').trim());
+  const картка = document.querySelector('#dzRoot .dz-card');
+  if(картка) картка.click();
+  await new Promise(r => setTimeout(r, 400));
+  const панель = (document.getElementById('dzPanel') || {}).textContent || '';
+  // виконавець бере й закриває
+  const беру = document.querySelector('#dzPanel [data-do="task-start"]');
+  if(беру) беру.click();
+  await new Promise(r => setTimeout(r, 400));
+  const поле = document.getElementById('dzClosed');
+  if(поле) поле.value = 'V3';
+  const готово = document.querySelector('#dzPanel [data-do="task-done"]');
+  if(готово) готово.click();
+  await new Promise(r => setTimeout(r, 400));
+  const f = D.taskAt(designJobOf(о.orderId), t.n);
+  return { колонки, панель: панель.replace(/\s+/g, ' ').slice(0, 120),
+           стан: f && f.state, закрито: f && f.closedBy };
+});
+console.log('   колонки: ' + task.колонки.join(' · '));
+console.log('   панель: ' + task.панель);
+ok(task.колонки.length === 5 && /Видано/.test(task.колонки.join(' ')),
+  'дошка доручень має свій шлях: видано → у роботі → виконано → прийнято',
+  'колонки доручень не ті: ' + task.колонки.join(' · '));
+ok(/збільшити логотип/.test(task.панель),
+  'панель доручення показує, що саме треба зробити',
+  'зміст доручення не видно: ' + task.панель);
+ok(task.стан === 'done' && task.закрито === 'V3',
+  'виконавець узяв у роботу й закрив доручення конкретною версією',
+  'доручення не пройшло шлях: ' + JSON.stringify(task));
+
+console.log('');
+console.log('═══ ПЕРЕДАЧУ ВИДНО, НЕ ЗАХОДЯЧИ У ВІДДІЛ ═══');
+/* Автоматичні листи тут зайві: усі сидять в адмінці цілий день. Потрібне
+   інше — щоб людина побачила передачу з будь-якого екрана. Тому на кнопці
+   розділу висить число: скільки доручень чекає саме на неї. */
+const badge = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const о = orders[0];
+  const job = designJobOf(о.orderId);
+  const me = myEmail();
+  const було = myTaskCount();
+  const t = D.taskAdd(job, о, me, { kind:'digit', to: me, text:'оцифрувати' });
+  await designSave(job);
+  const стало = myTaskCount();
+  const напис = (document.querySelector('.nav [data-view="design"] .nav-n') || {}).textContent || '';
+  D.taskStart(job, t.n, me);
+  D.taskDone(job, t.n, me, 'DST V1');
+  D.taskAccept(job, t.n, me);
+  await designSave(job);
+  const післяПрийняття = myTaskCount();
+  return { було, стало, напис, післяПрийняття };
+});
+console.log('   було ' + badge.було + ' → стало ' + badge.стало +
+            ' (на кнопці «' + badge.напис + '») → після прийняття ' + badge.післяПрийняття);
+ok(badge.стало === badge.було + 1 && badge.напис === String(badge.стало),
+  'видали доручення — число на кнопці розділу зросло одразу',
+  'число не зʼявилось: ' + JSON.stringify(badge));
+ok(badge.післяПрийняття === badge.було,
+  'прийняте доручення з числа зникає — історія не має щодня нагадувати про себе',
+  'прийняте лишилось у лічильнику: ' + badge.післяПрийняття);
+
 const roles = await p.evaluate(() => {
   const src = document.documentElement.innerHTML;
-  return { mgr: /designmgr:'Менеджер дизайну'/.test(src),
-           emb: /embroidery:'Оцифрування'/.test(src),
+  return { mgr: /designmgr:'Акаунт-менеджер'/.test(src),
+           emb: /embroidery:'Вишивальний дизайнер'/.test(src),
            qa:  /qa:'Контроль файлів'/.test(src),
+           buy: /supply:'Закупівля'/.test(src),
            zone: /key:'design',\s*label:'Дизайн-відділ'/.test(src) };
 });
+/* Акаунт-менеджер веде замовлення від і до, тож роль так і зветься: раніше
+   вона називалась «менеджер дизайну» й обмежувалась воротами відділу. Ключ
+   лишився той самий — він записаний у вже заведених людей. */
 ok(roles.mgr && roles.emb && roles.qa,
-  'три нові ролі заведені: менеджер дизайну, оцифрування, контроль файлів',
+  'ролі відділу заведені: акаунт-менеджер, вишивальний дизайнер, контроль файлів',
   'ролей бракує: ' + JSON.stringify(roles));
+/* Закупівля поки що робота, а не людина: її виконує менеджер. Роль заводимо
+   наперед, щоб окремого закупника заводили одним рядком, а не переробкою
+   доступів усім. */
+ok(roles.buy,
+  'і закупівля заведена окремою роллю — на той день, коли зʼявиться закупник',
+  'ролі закупівлі немає');
 ok(roles.zone,
   'і розділ є в списку зон доступу — його можна видати або забрати',
   'розділу немає в зонах доступу');

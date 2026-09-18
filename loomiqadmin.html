@@ -2835,6 +2835,47 @@
     font-size:12px;color:#067647;margin-bottom:10px;}
   .dz-why{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
   .dz-acts{margin-top:12px;display:flex;flex-direction:column;gap:10px;}
+  /* ── Панель доручення ────────────────────────────────────────────────
+     Доручення читають так само, як лист: спершу стан і строк, потім що
+     зробити, потім розмова. Тому й порядок блоків такий. */
+  .dz-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+  .dz-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;
+    background:var(--canvas);color:var(--ink-soft);}
+  .dz-chip.is-gray{background:#EEEEEC;color:#6B6C72;}
+  .dz-chip.is-blue{background:#E4EDFB;color:#2A5AA8;}
+  .dz-chip.is-violet{background:#EDE7FA;color:#5B3FA8;}
+  .dz-chip.is-green{background:#DDF3E3;color:#1B6B37;}
+  .dz-chip.is-amber{background:#FBEBD5;color:#8A5212;}
+  .dz-row{display:flex;gap:8px;align-items:baseline;font-size:12.5px;margin-bottom:5px;}
+  .dz-row span{color:var(--ink-soft);min-width:92px;}
+  .dz-sub{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);margin:14px 0 7px;}
+  .dz-talk{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;}
+  .dz-msg{font-size:12.5px;line-height:1.45;}
+  .dz-msg b{font-weight:700;}
+  .dz-msg i{font-style:normal;color:var(--muted);font-size:11px;margin-left:6px;}
+  .dz-msg span{display:block;margin-top:2px;}
+  .dz-say{display:flex;gap:6px;margin-top:9px;}
+  .dz-say input{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;}
+  .dz-fld{margin-top:10px;}
+  .dz-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
+  .dz-fld input,.dz-fld select{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;
+    padding:7px 9px;border:1px solid var(--line);border-radius:8px;}
+  /* Число на кнопці розділу: скільки доручень чекає саме на цю людину. */
+  .od-trk-age{font-size:10.5px;font-weight:800;opacity:.72;margin-left:2px;
+    font-variant-numeric:tabular-nums;}
+  .od-trk-age.is-hot{opacity:1;color:var(--bad, #A3243B);}
+  .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
+    min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-flex;
+    align-items:center;justify-content:center;background:var(--accent);color:#fff;}
+  .dz-vers{display:flex;flex-direction:column;gap:6px;}
+  .dz-ver{display:grid;grid-template-columns:34px 1fr;gap:2px 8px;font-size:12.5px;
+    border-left:2px solid var(--line);padding-left:9px;}
+  .dz-ver.is-ok{border-left-color:#1B6B37;}
+  .dz-ver b{grid-row:1 / span 2;font-weight:800;font-variant-numeric:tabular-nums;}
+  .dz-ver i{font-style:normal;font-size:11px;color:var(--muted);}
+  .dz-acts{display:flex;gap:7px;margin-top:10px;}
   .dz-act{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;
     flex-wrap:wrap;gap:6px;align-items:center;}
   .dz-l{flex:0 0 100%;font-size:11px;font-weight:800;letter-spacing:.04em;
@@ -4454,13 +4495,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=eaa3ca6e6a"></script>
-<script src="loomiq-fingerprint.js?v=eaa3ca6e6a"></script>
-<script src="loomiq-pricing.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-select.js?v=729bba7238"></script>
+<script src="loomiq-fingerprint.js?v=729bba7238"></script>
+<script src="loomiq-pricing.js?v=729bba7238"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-design.js?v=729bba7238"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -14126,6 +14167,37 @@ function hoursSince(iso){
   const t = iso ? new Date(iso).getTime() : 0;
   return t ? Math.max(0, Math.round((Date.now() - t) / 36e5)) : 0;
 }
+/* ══════════ СКІЛЬКИ ЦЕ ВЖЕ СТОЇТЬ ══════════
+   Питання «чому замовлення не рухається» доти вимагало прочитати історію
+   до кінця. А відповідь на нього — одне число: скільки трек стоїть у
+   поточному стані.
+
+   Рахувати нема чого заводити: кожен рух треку вже пишеться з часом і
+   автором від самого початку. Тут лише зчитуємо.
+
+   Закритий трек числа не отримує: він уже не стоїть, він зроблений. І
+   мовчимо перші дві години — інакше свіже замовлення виглядало б як
+   прострочене з першої хвилини. */
+function trackAge(o, track){
+  const at = lastTrackAt(o, track);
+  if(!at) return 0;
+  const ms = Date.now() - Date.parse(at);
+  return isFinite(ms) && ms > 0 ? Math.round(ms / 60000) : 0;
+}
+function trackAgeHtml(o, track, cur){
+  const steps = trackSteps(track);
+  const first = (steps[0] || {}).key;
+  if(cur === first) return '';           // ще не починали — нема чому стояти
+  const min = trackAge(o, track);
+  if(min < 120) return '';
+  const h = Math.round(min / 60);
+  const txt = h < 48 ? h + ' год' : Math.round(h / 24) + ' дн';
+  /* Понад три доби — це вже не «йде робота», а «забули». Позначаємо, але
+     без балів і кольорових шкал: одне слово, яке можна пояснити. */
+  const hot = h >= 72 ? ' is-hot' : '';
+  return `<b class="od-trk-age${hot}" title="Стоїть у цьому стані ${escapeHtml(txt)}">${
+    escapeHtml(txt)}</b>`;
+}
 function lastTrackAt(o, track, step){
   const L = (o.trackHist || []).filter(x => x.t === track && (!step || x.s === step));
   return L.length ? L[L.length - 1].at : (o.prodAt || o.createdAt || '');
@@ -14341,9 +14413,31 @@ function shipUnits(o){
 /* Номер накладної — єдине місце, звідки клієнт дізнається, що посилка
    поїхала. Тому запис номера одразу закриває трек відправки й продаж: два
    окремі натискання для однієї події забуваються рівно наполовину. */
+/* ══════════ ВОРОТА ВІДПРАВКИ ══════════
+   Останні ворота ланцюга, і найдорожчі: після відправки виправляти нема
+   чого — виріб уже їде до клієнта.
+
+   Умова одна, зате тверда: акаунт-менеджер подивився фото готової партії й
+   сказав «так». Не «виробництво вважає, що все добре» — виробництво завжди
+   вважає, що все добре, воно щойно це пошило. Саме тому людина, яка шиє, і
+   людина, яка приймає, — різні.
+
+   Це не порада в рядку «наступна дія», а заборона: номер накладної просто
+   не запишеться. Порада, яку можна обійти кнопкою, обходиться в перший же
+   гарячий день. */
+function shipGate(o){
+  if(!o) return { ok:false, why:'картки немає' };
+  const qc = trackOf(o, 'qc');
+  if(qc === 'bad') return { ok:false, why:'партія в браку — спершу переробка' };
+  if(!trackIsDone(o, 'qc'))
+    return { ok:false, why:'акаунт-менеджер ще не погодив готовий виріб' };
+  return { ok:true, why:'' };
+}
 async function shipSetTtn(o, ttn, extra){
   const n = String(ttn || '').trim();
   if(!n) return;
+  const gate = shipGate(o);
+  if(!gate.ok){ toast('Накладну ще рано: ' + gate.why); return; }
   o.ttn = n;
   Object.assign(o, extra || {});
   o.ttnAt = o.ttnAt || new Date().toISOString();
@@ -14374,11 +14468,16 @@ async function shipTrack(o){
 function shipFold(o){
   if(!tracksLive(o)) return '';
   const has = !!o.ttn;
+  const gate = shipGate(o);
+  /* Замкнені ворота показуємо словами, а не схованою кнопкою: людина має
+     розуміти, чого система чекає, інакше вона шукатиме, де це ввімкнути. */
   const body = `
+    ${(!gate.ok && !has) ? `<div class="gate-sum">🔒 ${escapeHtml(gate.why)}</div>` : ''}
     <div class="ship-row">
       <input type="text" inputmode="numeric" maxlength="30" data-ttn
+        ${gate.ok || has ? '' : 'disabled'}
         placeholder="Номер накладної" value="${escapeHtml(o.ttn || '')}">
-      <button class="art-b" data-ttn-save>Записати</button>
+      <button class="art-b" data-ttn-save${gate.ok || has ? '' : ' disabled'}>Записати</button>
     </div>
     ${has ? `<div class="ship-note">
       <a href="https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(o.ttn)}"
@@ -14486,6 +14585,56 @@ const ICO = {
   cal:   '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/></svg>'
 };
 let odFolds = {};
+/* ══════════ ІЗ ЧОГО СКЛАДЕНА КАРТКА ══════════
+   Картка — не суцільна сторінка, а список блоків, і в кожного є ключ.
+   Раніше цей список жив прямо в шаблоні, а виробнича й дизайнерська картки
+   були двома окремими сторінками, написаними руками. Через це поле, додане
+   менеджеру, у виробництва просто не зʼявлялось — і навпаки, щось могло
+   просочитись туди, де йому не місце. Помітити це можна було тільки очима
+   й тільки випадково.
+
+   Тепер список один, і поруч із кожним блоком написано, хто його бачить.
+   Це і є матриця доступу: не двадцять умов по коду, а одна колонка, яку
+   видно цілком.
+
+   `who` — це формат картки (ui), а не роль: ролей більше, ніж форматів, і
+   кілька ролей дивляться на замовлення одними очима.
+
+   Ще одне: виконавцю картка потрібна все рідше. Усе для роботи лежить у
+   самому дорученні — що зробити, від кого, чим закрити. Тому список для
+   дизайнера й виробництва короткий не тому, що ми щось ховаємо, а тому,
+   що їм це просто не потрібно. */
+const CARD_BLOCKS = [
+  { key:'next',  name:'наступна дія',      who:['manager'],                  make:o => odNextHtml(o),   bare:true },
+  { key:'trk',   name:'стан замовлення',   who:['manager'],                  make:o => odTracksHtml(o), bare:true },
+  { key:'rem',   name:'нагадування',       who:['manager'],                  make:o => odRemindFold(o) },
+  { key:'goods', name:'товари',            who:['manager'],                  make:o => odGoodsFold(o) },
+  { key:'extra', name:'додаткові продажі', who:['manager'],                  make:o => odExtraFold(o) },
+  { key:'art',   name:'макет',             who:['manager'],                  make:o => artFold(o) },
+  { key:'rep',   name:'повтор',            who:['manager'],                  make:o => repeatFold(o) },
+  { key:'buy',   name:'закупівля',         who:['manager'],                  make:o => buyFold(o) },
+  { key:'gate',  name:'ворота тиражу',     who:['manager'],                  make:o => gateFold(o) },
+  { key:'fp',    name:'перша одиниця',     who:['manager'],                  make:o => firstPieceFold(o) },
+  { key:'qc',    name:'контроль якості',   who:['manager'],                  make:o => qcFold(o) },
+  { key:'ship',  name:'відправка',         who:['manager'],                  make:o => shipFold(o) },
+  /* Гроші — тільки менеджерська картка, і це не налаштування, а правило:
+     біля машини ціна на екрані нікому не потрібна, а переплутати її з
+     потрібним полем колись устигнуть. */
+  { key:'pay',   name:'оплата',            who:['manager'], money:true,      make:o => odPayFold(o) },
+  { key:'fin',   name:'фінанси',           who:['manager'], money:true,      make:o => odFinFold(o) },
+  { key:'fact',  name:'факт проти плану',  who:['manager'], money:true,      make:o => factFold(o) },
+  { key:'crm',   name:'діалог з клієнтом', who:['manager'], client:true,
+    make:o => (canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
+      ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : '' },
+  { key:'log',   name:'що відбувалось',    who:['manager'],                  make:o => odLogFold(o) }
+];
+function cardBlocksFor(ui){
+  return CARD_BLOCKS.filter(b => b.who.indexOf(ui) >= 0);
+}
+function odBlocksHtml(o, ui){
+  return cardBlocksFor(ui).filter(b => !b.bare)
+    .map(b => odPart(() => b.make(o), b.name)).join('');
+}
 function odFoldHtml(key, title, sum, body){
   const on = !!odFolds[key];
   return `
@@ -15112,7 +15261,8 @@ function odTracksHtml(o){
         ${t.steps.map(s => `<option value="${escapeHtml(s.key)}"${
           s.key === cur ? ' selected' : ''}>${escapeHtml(s.label)}</option>`).join('')}
       </select>
-      ${meta.done ? '<b class="od-trk-ok" title="Трек закритий">✓</b>' : ''}
+      ${meta.done ? '<b class="od-trk-ok" title="Трек закритий">✓</b>'
+                  : trackAgeHtml(o, t.key, cur)}
     </span>`;
   }).join('');
   return `<div class="od-sec">Стан замовлення</div><div class="od-tracks">${rows}</div>`;
@@ -15341,31 +15491,14 @@ function renderOrderDrawer(){
            відкривають картку, і сховану під смугу її просто не побачать.
            Нагадування ж мають дату — смуга сама скаже, коли й про що, тож
            тримати їх розгорнутими весь час немає потреби. */''}
-      ${odPart(()=> odNextHtml(o), 'наступна дія')}
-      ${odPart(()=> odTracksHtml(o), 'стан замовлення')}
+      ${cardBlocksFor('manager').filter(b => b.bare)
+          .map(b => odPart(() => b.make(o), b.name)).join('')}
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="2"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
-      <div class="od-folds">
-        ${odPart(()=> odRemindFold(o), 'нагадування')}
-        ${odPart(()=> odGoodsFold(o), 'товари')}
-        ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
-        ${odPart(()=> artFold(o), 'макет')}
-        ${odPart(()=> repeatFold(o), 'повтор')}
-        ${odPart(()=> buyFold(o), 'закупівля')}
-        ${odPart(()=> gateFold(o), 'ворота тиражу')}
-        ${odPart(()=> firstPieceFold(o), 'перша одиниця')}
-        ${odPart(()=> qcFold(o), 'контроль якості')}
-        ${odPart(()=> shipFold(o), 'відправка')}
-        ${odPart(()=> odPayFold(o), 'оплата')}
-        ${odPart(()=> odFinFold(o), 'фінанси')}
-        ${odPart(()=> factFold(o), 'факт проти плану')}
-        ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
-          ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : ''}
-        ${odPart(()=> odLogFold(o), 'що відбувалось')}
-      </div>
+      <div class="od-folds">${odBlocksHtml(o, 'manager')}</div>
 
       ${canDelete() ? '<button class="od-del-lite" data-act="del">Видалити картку</button>' : ''}
     </div>
@@ -19543,6 +19676,10 @@ function watchDesign(){
       if(designDirty[v.orderId]) return;
       designJobs[v.orderId] = v;
     });
+    /* Доручення міг видати хтось інший із іншої вкладки — число на кнопці
+       має зʼявитись без перезаходу. Це і є все наше сповіщення: усі сидять
+       в адмінці цілий день, лист туди нічого не додасть. */
+    try{ paintTaskBadge(); }catch(e){}
     if(document.getElementById('view-design') &&
        document.getElementById('view-design').style.display !== 'none') openDesign();
   }, e=> console.warn('designJobs watch', e));
@@ -19561,6 +19698,9 @@ async function designSave(job, o){
     throw e;
   }finally{
     delete designDirty[job.orderId];
+    /* Доручення могло щойно зʼявитись або закритись — число на кнопці має
+       це показати одразу, а не після перезаходу. */
+    try{ paintTaskBadge(); }catch(e){}
   }
   /* Версії макета лежать у замовленні, і дія у відділі щойно могла їх
      змінити — нову версію, файл, позначку погодження. Тож записуємо й
@@ -19596,6 +19736,11 @@ function openDesign(){
     team: ()=> (contentData.team || []).map(m => ({
       email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
     onlyMine: ()=> mine,
+    /* Сказати клієнту, не виходячи з відділу. Менеджер доти мусив закрити
+       розділ, знайти діалог, вставити посилання руками — і на кожному з цих
+       кроків щось губилось. Канал беремо той, що вже привʼязаний до
+       замовлення: інших у нас усе одно немає. */
+    tell: (o, text) => designTell(o, text),
     can: ()=> true
   };
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
@@ -19604,14 +19749,45 @@ function openDesign(){
   window.LQDesign.ui.render(root);
 }
 
+/* Повідомлення клієнту з розділу дизайну. Повертає true, якщо справді
+   надіслали, і false — якщо каналу немає: тоді текст лягає в буфер, і
+   менеджер вставляє його сам. Мовчки не зникає ні в якому разі. */
+async function designTell(o, text){
+  const t = String(text || '').trim();
+  if(!o || !t) return false;
+  try{
+    const st = crmChat[o.id];
+    if(st && st.chatId){ await crmSend(o, t); return true; }
+    if(o.tgChatId){ await tgSend(o, t); return true; }
+  }catch(e){ console.error('надсилання', e); }
+  try{ await navigator.clipboard.writeText(t); toast('Каналу немає — текст у буфері'); }
+  catch(e){ toast('Каналу немає, і буфер недоступний'); }
+  return false;
+}
+
 const ROLES = { owner:'Власник', manager:'Менеджер',
                 designer:'Дизайнер', production:'Виробництво',
-                /* Три ролі відділу. Менеджер дизайну — воротар: до нього
-                   замовлення потрапляє першим і через нього ж іде до клієнта.
-                   Оцифрувальник і QA — окремі люди, бо це окремі роботи:
-                   малювати й розкладати стібки вміють різні. */
-                designmgr:'Менеджер дизайну', embroidery:'Оцифрування',
-                qa:'Контроль файлів' };
+                /* Акаунт-менеджер веде замовлення ВІД І ДО: він його
+                   створює, призначає дизайнерів, показує клієнту, повертає
+                   правки, погоджує макет, передає у виробництво, приймає
+                   готовий виріб і дозволяє відправку. Раніше ця роль
+                   називалась «менеджер дизайну» й обмежувалась воротами
+                   відділу — назва відставала від того, що людина робить.
+                   Ключ ролі лишився той самий: він записаний у людей, які
+                   вже заведені, і міняти його означало б роздати всім
+                   доступи наново.
+                   Вишивальний дизайнер і QA — окремі люди, бо це окремі
+                   роботи: малювати й розкладати стібки вміють різні.
+                   Роль зветься саме «вишивальний дизайнер», а не
+                   «оцифрування»: оцифрування — це те, ЩО людина робить,
+                   а в списку людей має стояти те, ХТО вона. */
+                designmgr:'Акаунт-менеджер', embroidery:'Вишивальний дизайнер',
+                qa:'Контроль файлів',
+                /* Закупівля поки що робота, а не людина: її виконує
+                   менеджер. Але роль заводимо зараз — щойно зʼявиться
+                   окремий закупник, його заводять одним рядком, а не
+                   переробкою доступів. */
+                supply:'Закупівля' };
 /* ══════════ Доступи по зонах ══════════
    Роль — це пресет, а не вирок. Люди не діляться на чотири види: буває
    менеджер, якому треба бачити собівартість, і дизайнер, який заодно веде
@@ -19704,11 +19880,15 @@ const ROLE_PRESET = {
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
      колись переплутають із потрібним. */
   production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] },
-  /* Менеджер дизайну бачить замовлення цілком — йому треба звірити ТЗ із
-     тим, що продали, — але грошей не бачить: до макета вони стосунку не
-     мають, а зайве поле на екрані колись переплутають із потрібним. */
-  designmgr:  { ui:'manager',    nav:['today','board','design'], boards:['design','test'],
-                see:['client'], can:[] },
+  /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
+     до відправки. Собівартість лишається у власника — вона не потрібна
+     нікому, хто не ухвалює рішення про ціну закупівлі, а зайве поле на
+     екрані колись переплутають із потрібним. */
+  designmgr:  { ui:'manager',    nav:['today','board','design','calc','photos'], boards:'*',
+                see:['client','chat'], can:['edit','pay'] },
+  /* Закупівля бачить рівно свою дошку: що, якого кольору, яких розмірів,
+     скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
+  supply:     { ui:'production', nav:['today','board'], boards:['supply'], see:[], can:[] },
   embroidery: { ui:'designer',   nav:['today','design'], boards:['design'], see:[], can:[] },
   qa:         { ui:'production', nav:['today','design'], boards:['design','qc'], see:[], can:[] }
 };
@@ -20019,8 +20199,39 @@ function applyNoAccess(){
   document.body.classList.add('no-access');
   return false;
 }
+/* ══════════ СПОВІЩЕННЯ НА ПЕРЕДАЧАХ ══════════
+   Автоматичні листи тут були б зайвими: усі сидять в адмінці цілий день.
+   Потрібне інше — щоб людина побачила передачу, не заходячи у відділ.
+   Тому на кнопці розділу висить число: скільки доручень чекає саме на неї.
+
+   Рахуємо відкриті, а не всі: прийняте доручення — це вже історія, і воно
+   не має щодня нагадувати про себе числом. */
+function myTaskCount(){
+  if(typeof designJobs !== 'object' || !window.LQDesign) return 0;
+  const me = String(myEmail() || '').trim().toLowerCase();
+  if(!me) return 0;
+  let n = 0;
+  Object.keys(designJobs || {}).forEach(id=>{
+    const job = designJobs[id];
+    (window.LQDesign.taskList ? window.LQDesign.taskList(job) : []).forEach(t=>{
+      if(t.state === 'accepted') return;
+      if(String(t.to || '').trim().toLowerCase() === me) n++;
+    });
+  });
+  return n;
+}
+function paintTaskBadge(){
+  const b = document.querySelector('.nav [data-view="design"]');
+  if(!b) return;
+  let dot = b.querySelector('.nav-n');
+  const n = myTaskCount();
+  if(!n){ if(dot) dot.remove(); return; }
+  if(!dot){ dot = document.createElement('i'); dot.className = 'nav-n'; b.appendChild(dot); }
+  dot.textContent = n > 99 ? '99+' : String(n);
+}
 function applyRoleUi(){
   if(!applyNoAccess()) return;
+  try{ paintTaskBadge(); }catch(e){}
   const nav = (myAcc() || {}).nav;
   const all = nav === '*' || !Array.isArray(nav);
   let firstOk = null;
