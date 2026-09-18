@@ -138,6 +138,55 @@
         return !!(o.dueAt || o.deadlineDays || o.offerDays); } }
   ];
 
+  /* ══════════ УПРАВЛІНСЬКА ДОШКА ══════════
+     Дошка акаунт-менеджера на ВЕСЬ ланцюг: від «щойно завели» до
+     «відправлено». Вона не замінює робочі дошки відділів — ті лишаються з
+     власними станами, бо всередині кожного етапу своя кухня. Тут інше
+     питання: де замовлення ЗАРАЗ і хто його тримає.
+
+     Колонка рахується, а не ставиться руками. Руками поставлений стан
+     рано чи пізно розходиться з тим, що насправді зроблено, — і дошка
+     починає брехати саме тоді, коли на неї найбільше дивляться.
+
+     Порядок перевірок зворотний — від кінця до початку. Так замовлення
+     завжди стоїть у найдальшій колонці, якої воно справді досягло: інакше
+     воно застрягало б у першій, де щось лишилось незакритим. */
+  var CHAIN = [
+    { key:'new',     label:'Нове',           color:'gray'   },
+    { key:'design',  label:'Дизайн',         color:'blue'   },
+    { key:'client',  label:'У клієнта',      color:'amber'  },
+    { key:'stitch',  label:'Вишивка',        color:'violet' },
+    { key:'prod',    label:'Виробництво',    color:'cyan'   },
+    { key:'qc',      label:'Контроль',       color:'blue'   },
+    { key:'ready',   label:'До відправки',   color:'amber'  },
+    { key:'shipped', label:'Відправлено',    color:'green', done:true }
+  ];
+  function trk(o, key){ return String(((o || {}).tracks || {})[key] || ''); }
+  function chainAt(job, o){
+    if(trk(o, 'ship') === 'sent' || (o && o.ttn && trk(o, 'ship') === 'ttn')) return 'shipped';
+    if(trk(o, 'qc') === 'ok') return 'ready';
+    if(trk(o, 'qc') === 'check' || trk(o, 'qc') === 'bad' || trk(o, 'prod') === 'done') return 'qc';
+    if(trk(o, 'prod') === 'work' || trk(o, 'prod') === 'ready') return 'prod';
+    /* Вишивка — це коли графіку вже погодив клієнт, а файли ще не всі
+       готові. Саме тут найчастіше й губився час: макет є, на машину нічого
+       не пішло, і зовні виглядає, ніби все гаразд. */
+    if(job && job.approvedVersion){
+      var need = (job.stitch || []).filter(function(x){ return !x.gone; });
+      if(need.length && !need.every(function(x){ return x.status === 'ok'; })) return 'stitch';
+      return 'prod';
+    }
+    if(job && job.state === 'client') return 'client';
+    if(job && job.state === 'new') return 'new';
+    return 'design';
+  }
+  /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
+     кожній колонці — інакше воно щодня ставиться вголос. */
+  var CHAIN_WHO = {
+    new:'акаунт-менеджер', design:'графічний дизайнер', client:'клієнт',
+    stitch:'вишивальний дизайнер', prod:'виробництво', qc:'акаунт-менеджер',
+    ready:'виробництво', shipped:'—'
+  };
+
   /* ══════════ ДОРУЧЕННЯ ══════════
      Доступами процес не описати. Доступ відповідає на питання «що я бачу»,
      а тут хтось комусь ДАЄ РОБОТУ: у неї є адресат, строк, результат і
@@ -764,6 +813,7 @@
     QUEUE: QUEUE, GRAPHIC: GRAPHIC, STITCH: STITCH,
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
+    CHAIN: CHAIN, CHAIN_WHO: CHAIN_WHO, chainAt: chainAt,
     TASK_KINDS: TASK_KINDS, TASK_WHY: TASK_WHY, TASK_FLOW: TASK_FLOW,
     taskList: taskList, taskAt: taskAt, taskAdd: taskAdd, taskStart: taskStart,
     taskDone: taskDone, taskAccept: taskAccept, taskReturn: taskReturn,
@@ -822,6 +872,10 @@
     /* «Мої доручення» стоїть першою навмисно: людина відкриває відділ не
        щоб подивитись на дошку, а щоб дізнатись, що їй робити зараз. */
     { key:'tasks',   label:'Доручення', role:'*'        },
+    /* Управлінська дошка на весь ланцюг. Стоїть поруч із чергою відділу, а
+       не замість неї: черга — це робота менеджера дизайну, ланцюг — це
+       відповідь на питання «де замовлення». */
+    { key:'chain',   label:'Замовлення', role:'designmgr' },
     { key:'queue',   label:'Черга',    role:'designmgr' },
     { key:'graphic', label:'Макети',   role:'designer'  },
     { key:'stitch',  label:'Вишивка',  role:'embroidery'},
@@ -1044,6 +1098,19 @@
   function can(k){ return host().can ? !!host().can(k) : true; }
 
   /* ── Картки дощок ──────────────────────────────────────────────────── */
+  /* Картка ланцюга каже три речі: що це, де воно й хто його тримає. Більше
+     в колонку не влізе, а менше не відповість на жодне питання. */
+  function chainCards(){
+    return U.pairs().map(function(p){
+      var col = D.chainAt(p.job, p.o);
+      var open = D.taskOpen(p.job).length;
+      return { id: p.o.orderId, step: col,
+        title: '#' + p.o.orderId,
+        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+               .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
+        foot: (D.CHAIN_WHO[col] || '') + (open ? ' · доручень ' + open : '') };
+    });
+  }
   function queueCards(){
     return U.pairs().map(function(p){
       var g = p.job.graphic || {};
@@ -1360,6 +1427,7 @@
     var tab = U.tab();
     var cards, steps, panel = '';
     if(tab === 'tasks'){ steps = D.TASK_FLOW; cards = U.taskCards(U.can('designmgr')); }
+    else if(tab === 'chain'){ steps = D.CHAIN; cards = chainCards(); }
     else if(tab === 'graphic'){ steps = D.GRAPHIC; cards = graphicCards(); }
     else if(tab === 'stitch'){ steps = D.STITCH; cards = stitchCards(''); }
     else if(tab === 'qa'){ steps = D.STITCH.filter(function(s){
@@ -1463,6 +1531,13 @@
   }
 
   function panelFor(tab, id){
+    /* У ланцюга власної панелі немає: відкрита картка показує ту саму
+       чергу відділу. Дублювати те саме двома панелями означало б рано чи
+       пізно розійтись між ними. */
+    if(tab === 'chain'){
+      var pc = U.pairOf(id);
+      return pc ? queuePanel(pc) : '';
+    }
     if(tab === 'tasks'){
       var pt = String(id).split('|');
       var pp = U.pairOf(pt[0]);
