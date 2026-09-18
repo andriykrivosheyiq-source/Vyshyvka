@@ -1905,7 +1905,7 @@
     /* Чи є під точкою САМ вміст шару, а не порожній кут його полотна.
        Рахуємо в системі координат шару: центр рамки лишається центром і
        після повороту, тож досить розвернути вектор назад на кут шару. */
-    function pointInInk(layer, cx, cy){
+    function pointInInk(layer, cx, cy, byPixel){
       var el = pmLogoLayers && pmLogoLayers.querySelector('[data-layer-id="' + layer.id + '"]');
       if(!el) return false;
       var r = el.getBoundingClientRect();
@@ -1928,12 +1928,26 @@
          інша річ: дірка всередині належить тому, хто лежить під ним, а не
          йому. Тому для малюнка дивимось у маску форми. Маски немає (пікселі
          не прочитались через CORS) — лишаються межі, як було. */
-      var mask = layer.text ? null : maskOf(layer);
-      if(!mask || !mask.w || !mask.h) return true;
+      if(!byPixel) return true;             // питали лише про межі
+      var mask = maskOf(layer);
+      if(!mask || !mask.w || !mask.h) return false;
       var u = lx / box.w + 0.5, v = ly / box.h + 0.5;
       var mx = Math.min(mask.w - 1, Math.max(0, Math.floor(u * mask.w)));
       var my = Math.min(mask.h - 1, Math.max(0, Math.floor(v * mask.h)));
-      return !!mask.data[my * mask.w + mx];
+      if(!layer.text) return !!mask.data[my * mask.w + mx];
+      /* У напису беремо не саму літеру, а РЯДОК, у якому вона стоїть: є
+         щось ліворуч і щось праворуч у цьому ж рядку — значить, точка
+         всередині слова. Інакше проміжок між двома літерами провалювався
+         б крізь напис, і взяти його можна було б тільки влучивши в саму
+         паличку букви.
+
+         Рядок, а не весь прямокутник: над написом і під ним лишається
+         порожньо, і сусідній шар звідти видно, як і має бути. Малюнкам це
+         правило не годиться — там дірка в кільці саме між двома штрихами
+         одного рядка, і її треба лишити діркою. */
+      var row = my * mask.w, L = -1, R = -1;
+      for(var i = 0; i < mask.w; i++) if(mask.data[row + i]){ if(L < 0) L = i; R = i; }
+      return L >= 0 && mx >= L && mx <= R;
     }
     /* Який шар людина насправді мала на увазі. Перебираємо згори вниз у
        тому порядку, в якому вони намальовані: обраний піднятий над рештою
@@ -1946,8 +1960,23 @@
       list.forEach(function(l){ if(l.id === pm.activeLogoId) order.push(l); });
       for(var i = list.length - 1; i >= 0; i--)
         if(list[i].id !== pm.activeLogoId) order.push(list[i]);
+      /* Два заходи, і саме в такому порядку.
+
+         ПЕРШИЙ — по самому пікселю. Шари стоять один на одному: новий напис
+         зʼявляється зі зсувом у три десятки пікселів, обраний до того ж
+         піднятий над рештою. Якщо питати тільки про межі, то напис, який
+         щойно взяли, накриває сусідів своїм прямокутником і забирає собі
+         всі кліки — «то вибирається, то не вибирається, якийсь редагується,
+         якийсь ні». А от літера під курсором буває рівно одна.
+
+         ДРУГИЙ — по межах, і ТІЛЬКИ для написів. У малюнка порожнє місце
+         всередині рамки належить тому, хто лежить під ним: дірка в кільці
+         на те й дірка. А напис — суцільна річ, і навіть над самою літерою,
+         куди вже не дістає рядок, за нього треба вміти взятись. */
       for(var k = 0; k < order.length; k++)
-        if(pointInInk(order[k], cx, cy)) return order[k];
+        if(pointInInk(order[k], cx, cy, true)) return order[k];
+      for(var q = 0; q < order.length; q++)
+        if(order[q].text && pointInInk(order[q], cx, cy, false)) return order[q];
       return null;
     }
     function renderLogoLayers(){

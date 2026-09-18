@@ -4454,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a42c785031"></script>
-<script src="loomiq-fingerprint.js?v=a42c785031"></script>
-<script src="loomiq-pricing.js?v=a42c785031"></script>
+<script src="loomiq-select.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-fingerprint.js?v=eaa3ca6e6a"></script>
+<script src="loomiq-pricing.js?v=eaa3ca6e6a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a42c785031"></script>
+<script src="loomiq-design.js?v=eaa3ca6e6a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9175,34 +9175,10 @@ function itemAbout(it){
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
   return String(t || '').trim().slice(0, 1600);
 }
-/* Характеристики за замовчуванням — РІВНО ті, що сайт показує на сторінці
-   товару, якому картку ще не заповнили (див. SPECS у конструкторі).
-
-   Доти тут стояв порожній список із міркування «краще нічого, ніж вгадане».
-   Міркування слушне, але наслідок вийшов інший: у пропозиції зникав опис
-   узагалі, хоча на сайті той самий виріб цей опис показує всім підряд. Два
-   різні тексти про один товар — гірше за один неточний, бо клієнт бачить
-   обидва.
-
-   Тож правило просте: у пропозиції стоїть те саме, що на сайті. Хочете
-   точних характеристик саме цього виробу — заповніть їх у картці товару,
-   і вони підуть і туди, і туди. */
-const SITE_DEFAULT_SPECS = [
-  { label:'Матеріал', value:'100% бавовна' }, { label:'Щільність', value:'240 г/м²' },
-  { label:'Крій', value:'оверсайз' }, { label:'Формат', value:'унісекс' },
-  { label:'Нанесення', value:'DTF друк та вишивка' }
-];
-/* Характеристики товару — тканина, щільність, крій, формат. Беремо рівно ті,
-   що менеджер задав у картці ЦІЄЇ моделі: у «Футболки базової» свої, в
-   «Оверсайзу» свої.
-   Типового списку тут більше немає. Він показував «240 г/м², оверсайз» для
-   будь-якого виробу, якому картку ще не заповнили, — і в іменній пропозиції
-   стояло твердження про тканину, якого ніхто не перевіряв. Не заповнено —
-   рядка немає взагалі: порожнє місце чесніше за вгадане число. */
 function itemSpecs(it){
   const gid = itemGarmentId(it);
   const custom = gid && contentData.specs && contentData.specs[gid];
-  const rows = (custom && custom.length) ? custom : SITE_DEFAULT_SPECS;
+  const rows = (custom && custom.length) ? custom : [];
   /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
      картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
      догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
@@ -22104,31 +22080,69 @@ async function loadStandardModels(){
   if(standardModelsLoaded) return standardModels;
   standardModelsLoaded = true;
   standardModels = {};
-  try{
-    const res = await fetch('index.html', {cache:'no-store'});
-    const txt = await res.text();
-    const start = txt.indexOf('var MODEL_PHOTOS');
-    if(start >= 0){
-      const scope = txt.slice(start, start + 6000);
-      const end = scope.indexOf('};');
-      const body = scope.slice(scope.indexOf('{')+1, end>0?end:scope.length);
-      const re = /(\w+)\s*:\s*\[([\s\S]*?)\]/g; let m;
-      while((m = re.exec(body))){
-        /* Беремо не лише файл, а й ЯКІР логотипа — cx/cy/sw, тобто де на
-           цьому фото груди. Картці для Direct він потрібен, щоб покласти
-           нанесення в правильне місце з першого разу, а не примушувати
-           менеджера щоразу ловити його мишею з нуля. */
-        const srcs = []; let sm;
-        const sre = /\{\s*src:\s*'([^']+)'([\s\S]*?)\}\s*(?:,|$)/g;
-        while((sm = sre.exec(m[2]))){
-          const a = /cx:\s*([\d.]+)\s*,\s*cy:\s*([\d.]+)\s*,\s*sw:\s*([\d.]+)/.exec(sm[2] || '');
-          srcs.push(a ? { src: sm[1], cx:+a[1], cy:+a[2], sw:+a[3] } : { src: sm[1] });
-        }
-        if(srcs.length) standardModels[m[1]] = srcs;
-      }
-    }
-  }catch(e){ console.warn('model parse', e); }
+  /* Читаємо з loomiq-constructor.js, а не з index.html. Колись увесь
+     конструктор лежав усередині сторінки, і таблиця фото моделей разом із
+     ним; потім він виїхав в окремий файл, а тут лишилась стара адреса — і
+     фото моделей просто перестали знаходитись. Мовчки: список виходив
+     порожній, у картці товару стояло «додайте свої», а в картку для Direct
+     фото моделі не приїжджало взагалі.
+     index.html лишається запасним варіантом на випадок старої збірки. */
+  for(const file of ['loomiq-constructor.js', 'index.html']){
+    try{
+      const res = await fetch(file, { cache:'no-store' });
+      if(!res.ok) continue;
+      const got = parseModelPhotos(await res.text());
+      if(Object.keys(got).length){ standardModels = got; break; }
+    }catch(e){ console.warn('фото моделей:', file, e); }
+  }
   return standardModels;
+}
+/* Розбір таблиці MODEL_PHOTOS.
+   Рахуємо дужки, а не вгадуємо регуляркою: усередині кожного запису є
+   вкладений масив logos:[{…},{…}], і нежадібний пошук закривної дужки
+   обривався на ньому — через що список виходив порожній навіть там, де
+   таблицю знаходили. */
+function parseModelPhotos(txt){
+  const out = {};
+  const at = String(txt || '').indexOf('var MODEL_PHOTOS');
+  if(at < 0) return out;
+  const open = txt.indexOf('{', at);
+  if(open < 0) return out;
+  const close = matchBrace(txt, open);
+  if(close < 0) return out;
+  const body = txt.slice(open + 1, close);
+  const key = /(\w+)\s*:\s*\[/g;
+  let m;
+  while((m = key.exec(body))){
+    const s0 = m.index + m[0].length - 1;
+    const s1 = matchBrace(body, s0);
+    if(s1 < 0) continue;
+    const list = body.slice(s0 + 1, s1);
+    /* Якір логотипа — cx/cy/sw, тобто де на цьому фото груди. Картці для
+       Direct він потрібен, щоб покласти нанесення з першого разу. Беремо
+       перший: решта — це друга людина в кадрі. */
+    const srcs = [], ends = [];
+    const sre = /src\s*:\s*'([^']+)'/g;
+    let sm;
+    while((sm = sre.exec(list))){ srcs.push(sm[1]); ends.push(sm.index + sm[0].length); }
+    const res = srcs.map((src, n) => {
+      const chunk = list.slice(ends[n], n + 1 < ends.length ? ends[n + 1] : list.length);
+      const a = /cx:\s*([\d.]+)\s*,\s*cy:\s*([\d.]+)\s*,\s*sw:\s*([\d.]+)/.exec(chunk);
+      return a ? { src, cx:+a[1], cy:+a[2], sw:+a[3] } : { src };
+    });
+    if(res.length) out[m[1]] = res;
+    key.lastIndex = s1;
+  }
+  return out;
+}
+function matchBrace(txt, from){
+  let d = 0;
+  for(let k = from; k < txt.length; k++){
+    const c = txt[k];
+    if(c === '{' || c === '[') d++;
+    else if(c === '}' || c === ']'){ d--; if(d === 0) return k; }
+  }
+  return -1;
 }
 function renderModelsTab(){
   const box = document.getElementById('model-cells');

@@ -504,7 +504,7 @@ const fill = await fr.evaluate(async o => {
     /* І точка на виробі — щоб не вийшло, що ми просто залили все тлом. */
     body: plain.at(Math.round(plain.w / 2), 400),
     smallPng: small.png, bigPng: big.png,
-    nonePix: none.at(412, 400)
+    nonePix: none.at(412, 400), sheet: none.at(20, 400)
   };
 }, OFFER);
 console.log('   край плитки: ' + fill.edge.join(',') + ' · виріб: ' + fill.body.join(','));
@@ -517,10 +517,13 @@ ok(fill.body[0] > 90 && fill.body[1] < 80,
 ok(fill.smallPng !== fill.bigPng,
   'масштаб логотипа справді міняє картку',
   'повзунок лого ні на що не впливає');
+/* Немає фото — немає й плитки. Доти на її місці стояв напис «Макет буде
+   додано», тобто половина галереї повідомляла клієнтові, що ми ще не
+   готові. Краще одна картка з одним фото, ніж дві, з яких одна порожня. */
 console.log('   плитка без фото: ' + fill.nonePix.join(','));
-ok(fill.nonePix[1] > 120 && fill.nonePix[0] < 120,
-  'фото немає — тоді під плиткою видно свій фон, як і раніше',
-  'свій фон не проявився: ' + fill.nonePix.join(','));
+ok(fill.nonePix.join(',') === fill.sheet.join(','),
+  'фото немає — плитки теж немає, аркуш лишається чистим',
+  'на місці відсутнього фото щось намальовано: ' + fill.nonePix.join(','));
 
 console.log('');
 console.log('═══ ГАРНІТУРА ═══');
@@ -806,6 +809,49 @@ ok(adm.cards && adm.cards.tpl === 'editorial' && adm.cards.hidden['main:0'] === 
 ok(adm.price === adm.wasPrice,
   'і ціни від зміни шаблону не зрушили — це показ, а не дані',
   'зміна шаблону зрушила ціну: ' + adm.wasPrice + ' → ' + adm.price);
+/* Фото моделей читаються з файлу конструктора. Колись увесь конструктор
+   лежав усередині index.html, потім виїхав в окремий файл — а адмінка й далі
+   шукала таблицю за старою адресою. Мовчки: список виходив порожній, у
+   картці товару стояло «додайте свої», а в картку для Direct фото моделі не
+   приїжджало взагалі. */
+const models = await ap.evaluate(async () => {
+  const std = await loadStandardModels();
+  const forCards = await cardModelsMap();
+  return {
+    виробів: Object.keys(std).length,
+    футболка: (std.tee || []).map(m => m.src),
+    якір: !!((std.tee || [])[0] || {}).cx,
+    вКартки: Object.keys(forCards).length,
+    урл: ((forCards.tee || [])[0] || {}).url || ''
+  };
+});
+console.log('   стандартних фото моделей: ' + models.виробів + ' виробів · футболка: ' +
+            models.футболка.join(', '));
+ok(models.виробів >= 4 && models.футболка.length >= 3,
+  'стандартні фото моделей знаходяться — по кілька на виріб',
+  'фото моделей не розібрались: ' + JSON.stringify(models));
+ok(models.якір,
+  'разом із якорем логотипа — де на цьому фото груди',
+  'якір нанесення не дочитався');
+ok(models.вКартки >= 4 && /model-tee/.test(models.урл),
+  'і йдуть у картки для Direct першим кадром',
+  'у картки фото моделей не потрапляють: ' + models.урл);
+
+/* Не заповнено в адмінці — на картці нічого. Типових характеристик тут
+   немає навмисно: «Крій: оверсайз» на базовій футболці — неправда, а
+   неправда в іменній пропозиції коштує дорожче за порожнє місце. */
+const noSpecs = await ap.evaluate(() => {
+  const before = JSON.stringify(contentData.specs || {});
+  contentData.specs = {};
+  contentData.descriptions = {};
+  const out = { specs: itemSpecs({ garmentId:'tee' }), about: itemAbout({ garmentId:'tee' }) };
+  contentData.specs = JSON.parse(before);
+  return out;
+});
+ok(!noSpecs.specs.length && !noSpecs.about,
+  'товар без заповненої картки не отримує вигаданих характеристик',
+  'звідкись узялись характеристики: ' + JSON.stringify(noSpecs));
+
 const pushed = await ap.evaluate(() => {
   const src = document.documentElement.innerHTML;
   return /doc\.cards\s*=\s*o\.cards/.test(src);
