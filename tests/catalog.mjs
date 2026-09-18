@@ -116,14 +116,23 @@ async function open(doc){
 const p = await open(DOC);
 
 console.log('═══ У КАТАЛОЗІ ВСЕ, А НЕ ПОЛОВИНА ═══');
+/* Сторінка відкривається СІТКОЮ виробів: спершу обирають виріб, потім
+   усередині — колір, і знімки того кольору стоять одразу під ним. */
 const seen = await p.evaluate(() => ({
-  rail: [...document.querySelectorAll('.g-b .nm')].map(x => x.textContent),
+  rail: [...document.querySelectorAll('.p-t .nm')].map(x => x.textContent),
   count: document.getElementById('count').textContent,
-  boot: document.getElementById('boot').hidden
+  boot: document.getElementById('boot').hidden,
+  prods: document.querySelectorAll('.prod').length
 }));
 console.log('  ' + seen.count);
 console.log('  ' + seen.rail.join(' · '));
 ok(seen.boot, 'сторінка піднялась', 'лишився екран завантаження');
+ok(seen.prods === 0 && seen.rail.length > 1,
+  'перший екран — сітка виробів, а не всі вироби з усіма кольорами простирадлом',
+  'на першому екрані вже розгорнуті вироби: ' + seen.prods);
+ok(/^(Футболка|Худі)/.test(seen.rail[0] || ''),
+  'ходові вироби стоять першими: по знімок футболки чи худі приходять найчастіше',
+  'першим стоїть «' + seen.rail[0] + '»');
 ok(seen.rail.indexOf('Фліска базова') >= 0,
   'виріб, заведений лише в адмінці, є в каталозі — саме його й бракувало',
   'товарів з бази в каталозі немає: ' + seen.rail.join(', '));
@@ -133,13 +142,17 @@ ok(seen.rail.indexOf('Шопер') < 0,
 
 console.log('');
 console.log('═══ ЗНІМКИ БЕРУТЬСЯ ЗВІДТИ, ЗВІДКИ Й НА САЙТІ ═══');
-const src = await p.evaluate(() => {
-  const one = id => {
-    const s = document.querySelector('#p-' + id + ' .sh img');
-    return s ? s.getAttribute('src') : '';
-  };
-  return { tee: one('tee'), fleece: one('fleece1'), sweat: one('sweat') };
-});
+/* Заходимо у виріб і дивимось, звідки прийшов знімок. Виріб відкривається
+   плиткою — тією самою дорогою, що й у людини. */
+const openProd = async id => p.evaluate(async gid => {
+  location.hash = '#' + gid;
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await new Promise(r => setTimeout(r, 250));
+  const s = document.querySelector('.sh img');
+  return s ? s.getAttribute('src') : '';
+}, id);
+const src = { tee: await openProd('tee'), fleece: await openProd('fleece1'),
+              sweat: await openProd('sweat') };
 ok(/^data:/.test(src.tee),
   'завантажений в адмінку знімок перекриває файл із репозиторію',
   'показуємо старий файл замість нового: ' + src.tee.slice(0, 50));
@@ -150,8 +163,12 @@ ok(/^images\//.test(src.sweat),
   'а там, де адмінка нічого не міняла, лишається файл із репозиторію',
   'файл із репозиторію підмінено: ' + src.sweat.slice(0, 50));
 
-const capCols = await p.evaluate(() =>
-  [...document.querySelectorAll('#p-cap .col-b')].map(b => b.textContent.trim()));
+const capCols = await p.evaluate(async () => {
+  location.hash = '#cap';
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await new Promise(r => setTimeout(r, 250));
+  return [...document.querySelectorAll('.col-b')].map(b => b.textContent.trim());
+});
 console.log('  кольори кепки: ' + capCols.join(', '));
 ok(capCols.length === 1 && /Смарагдовий/.test(capCols[0]),
   'кольори, дописані в адмінці, перекривають набір із коду',
@@ -160,11 +177,14 @@ ok(capCols.length === 1 && /Смарагдовий/.test(capCols[0]),
 console.log('');
 console.log('═══ ЗНАЙТИ, ОБРАТИ, ЗАБРАТИ ═══');
 const found = await p.evaluate(async () => {
+  location.hash = '#';
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await new Promise(r => setTimeout(r, 200));
   const q = document.getElementById('q');
   q.value = 'фліс';
   q.dispatchEvent(new Event('input', { bubbles:true }));
   await new Promise(r => setTimeout(r, 200));
-  return [...document.querySelectorAll('.prod-h h2')].map(x => x.textContent);
+  return [...document.querySelectorAll('.p-t .nm')].map(x => x.textContent);
 });
 console.log('  «фліс» → ' + found.join(', '));
 ok(found.length && found.every(n => /Фліс/i.test(n)),
@@ -176,7 +196,7 @@ const byColor = await p.evaluate(async () => {
   q.value = 'пісочний';
   q.dispatchEvent(new Event('input', { bubbles:true }));
   await new Promise(r => setTimeout(r, 200));
-  const names = [...document.querySelectorAll('.prod-h h2')].map(x => x.textContent);
+  const names = [...document.querySelectorAll('.p-t .nm')].map(x => x.textContent);
   q.value = '';
   q.dispatchEvent(new Event('input', { bubbles:true }));
   await new Promise(r => setTimeout(r, 200));
@@ -188,14 +208,17 @@ ok(byColor.length > 0 && byColor.length < 10,
   'пошук за кольором не працює: ' + byColor.length);
 
 const swapped = await p.evaluate(async () => {
-  const before = document.querySelector('#p-fleece1 .sh img').getAttribute('src');
-  const b = [...document.querySelectorAll('#p-fleece1 .col-b')]
+  location.hash = '#fleece1';
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await new Promise(r => setTimeout(r, 250));
+  const before = document.querySelector('.sh img').getAttribute('src');
+  const b = [...document.querySelectorAll('.col-b')]
     .filter(x => /Пісочний/.test(x.textContent))[0];
   b.click();
-  await new Promise(r => setTimeout(r, 250));
-  const after = document.querySelector('#p-fleece1 .sh img').getAttribute('src');
-  const on = (document.querySelector('#p-fleece1 .col-b.on') || {}).textContent || '';
-  return { changed: before !== after, on: on.trim() };
+  await new Promise(r => setTimeout(r, 300));
+  const after = document.querySelector('.sh img').getAttribute('src');
+  const on = (document.querySelector('.col-b.on') || {}).textContent || '';
+  return { changed: before !== after, on: on.trim(), hash: location.hash };
 });
 ok(swapped.changed && /Пісочний/.test(swapped.on),
   'вибір кольору міняє знімки',
@@ -235,7 +258,7 @@ console.log('═══ БАЗА МОВЧИТЬ — КАТАЛОГ НЕ ПОРО�
 const p2 = await open(null);
 const offline = await p2.evaluate(() => ({
   boot: document.getElementById('boot').hidden,
-  rail: document.querySelectorAll('.g-b').length,
+  rail: document.querySelectorAll('.p-t').length,
   toast: ((document.querySelector('.toast') || {}).textContent || '').trim()
 }));
 console.log('  виробів ' + offline.rail + ' · ' + offline.toast);

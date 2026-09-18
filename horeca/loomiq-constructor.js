@@ -3105,12 +3105,28 @@
     function onImgDown(e, layer){
       e.stopPropagation();
       // Поки напис правлять, дотик не блокуємо: інакше браузер не поставить
-      // каретку й не відкриє клавіатуру. Перетягування все одно працює —
-      // onDlMove перехопить рух і зупинить прокрутку сам.
-      if(!(layer.text && pm.textEdit === layer.id)) e.preventDefault();
+      // каретку й не відкриє клавіатуру.
+      var editing = !!(layer.text && pm.textEdit === layer.id);
+      if(!editing) e.preventDefault();
       var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;
       if(!wasActive) renderLogoLayers();   // показати рамку/маркери лише при першому виділенні
+
+      /* НАПИС У ПРАВЦІ: рух по літерах — це ВИДІЛЕННЯ, а не перенос шару.
+
+         Доти будь-яке тягнення по тексту починало перетягувати весь напис.
+         Виділити слово було просто неможливо: воно спалахувало й тієї ж
+         миті гасло, бо браузер знімає виділення, щойно під ним поїхав
+         елемент, — а сам напис при цьому виїжджав кудись убік. Коли написів
+         на виробі кілька, за кілька спроб вони й розповзались хто куди.
+
+         Рухати напис нікуди не поділось: перший тап бере шар, і тягнення
+         тоді переносить його, як завжди. У правку заходять ДРУГИМ тапом —
+         і доти, доки з неї не вийшли, миша працює на текст, а не на шар. */
+      if(editing && e.target && e.target.closest && e.target.closest('.pm-dl-text')){
+        dlState = { mode:null };
+        return;
+      }
       lockScroll();
       var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
       if(e.touches && e.touches.length >= 2){
