@@ -14369,9 +14369,31 @@ function shipUnits(o){
 /* Номер накладної — єдине місце, звідки клієнт дізнається, що посилка
    поїхала. Тому запис номера одразу закриває трек відправки й продаж: два
    окремі натискання для однієї події забуваються рівно наполовину. */
+/* ══════════ ВОРОТА ВІДПРАВКИ ══════════
+   Останні ворота ланцюга, і найдорожчі: після відправки виправляти нема
+   чого — виріб уже їде до клієнта.
+
+   Умова одна, зате тверда: акаунт-менеджер подивився фото готової партії й
+   сказав «так». Не «виробництво вважає, що все добре» — виробництво завжди
+   вважає, що все добре, воно щойно це пошило. Саме тому людина, яка шиє, і
+   людина, яка приймає, — різні.
+
+   Це не порада в рядку «наступна дія», а заборона: номер накладної просто
+   не запишеться. Порада, яку можна обійти кнопкою, обходиться в перший же
+   гарячий день. */
+function shipGate(o){
+  if(!o) return { ok:false, why:'картки немає' };
+  const qc = trackOf(o, 'qc');
+  if(qc === 'bad') return { ok:false, why:'партія в браку — спершу переробка' };
+  if(!trackIsDone(o, 'qc'))
+    return { ok:false, why:'акаунт-менеджер ще не погодив готовий виріб' };
+  return { ok:true, why:'' };
+}
 async function shipSetTtn(o, ttn, extra){
   const n = String(ttn || '').trim();
   if(!n) return;
+  const gate = shipGate(o);
+  if(!gate.ok){ toast('Накладну ще рано: ' + gate.why); return; }
   o.ttn = n;
   Object.assign(o, extra || {});
   o.ttnAt = o.ttnAt || new Date().toISOString();
@@ -14402,11 +14424,16 @@ async function shipTrack(o){
 function shipFold(o){
   if(!tracksLive(o)) return '';
   const has = !!o.ttn;
+  const gate = shipGate(o);
+  /* Замкнені ворота показуємо словами, а не схованою кнопкою: людина має
+     розуміти, чого система чекає, інакше вона шукатиме, де це ввімкнути. */
   const body = `
+    ${(!gate.ok && !has) ? `<div class="gate-sum">🔒 ${escapeHtml(gate.why)}</div>` : ''}
     <div class="ship-row">
       <input type="text" inputmode="numeric" maxlength="30" data-ttn
+        ${gate.ok || has ? '' : 'disabled'}
         placeholder="Номер накладної" value="${escapeHtml(o.ttn || '')}">
-      <button class="art-b" data-ttn-save>Записати</button>
+      <button class="art-b" data-ttn-save${gate.ok || has ? '' : ' disabled'}>Записати</button>
     </div>
     ${has ? `<div class="ship-note">
       <a href="https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(o.ttn)}"
