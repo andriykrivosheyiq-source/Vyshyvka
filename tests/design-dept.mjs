@@ -519,6 +519,37 @@ ok(task.стан === 'done' && task.закрито === 'V3',
   'виконавець узяв у роботу й закрив доручення конкретною версією',
   'доручення не пройшло шлях: ' + JSON.stringify(task));
 
+console.log('');
+console.log('═══ ПЕРЕДАЧУ ВИДНО, НЕ ЗАХОДЯЧИ У ВІДДІЛ ═══');
+/* Автоматичні листи тут зайві: усі сидять в адмінці цілий день. Потрібне
+   інше — щоб людина побачила передачу з будь-якого екрана. Тому на кнопці
+   розділу висить число: скільки доручень чекає саме на неї. */
+const badge = await p.evaluate(async () => {
+  const D = window.LQDesign;
+  const о = orders[0];
+  const job = designJobOf(о.orderId);
+  const me = myEmail();
+  const було = myTaskCount();
+  const t = D.taskAdd(job, о, me, { kind:'digit', to: me, text:'оцифрувати' });
+  await designSave(job);
+  const стало = myTaskCount();
+  const напис = (document.querySelector('.nav [data-view="design"] .nav-n') || {}).textContent || '';
+  D.taskStart(job, t.n, me);
+  D.taskDone(job, t.n, me, 'DST V1');
+  D.taskAccept(job, t.n, me);
+  await designSave(job);
+  const післяПрийняття = myTaskCount();
+  return { було, стало, напис, післяПрийняття };
+});
+console.log('   було ' + badge.було + ' → стало ' + badge.стало +
+            ' (на кнопці «' + badge.напис + '») → після прийняття ' + badge.післяПрийняття);
+ok(badge.стало === badge.було + 1 && badge.напис === String(badge.стало),
+  'видали доручення — число на кнопці розділу зросло одразу',
+  'число не зʼявилось: ' + JSON.stringify(badge));
+ok(badge.післяПрийняття === badge.було,
+  'прийняте доручення з числа зникає — історія не має щодня нагадувати про себе',
+  'прийняте лишилось у лічильнику: ' + badge.післяПрийняття);
+
 const roles = await p.evaluate(() => {
   const src = document.documentElement.innerHTML;
   return { mgr: /designmgr:'Акаунт-менеджер'/.test(src),

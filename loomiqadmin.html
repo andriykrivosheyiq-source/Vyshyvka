@@ -2862,6 +2862,10 @@
   .dz-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;}
   .dz-fld input,.dz-fld select{width:100%;box-sizing:border-box;font:inherit;font-size:12.5px;
     padding:7px 9px;border:1px solid var(--line);border-radius:8px;}
+  /* Число на кнопці розділу: скільки доручень чекає саме на цю людину. */
+  .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
+    min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-flex;
+    align-items:center;justify-content:center;background:var(--accent);color:#fff;}
   .dz-vers{display:flex;flex-direction:column;gap:6px;}
   .dz-ver{display:grid;grid-template-columns:34px 1fr;gap:2px 8px;font-size:12.5px;
     border-left:2px solid var(--line);padding-left:9px;}
@@ -19637,6 +19641,10 @@ function watchDesign(){
       if(designDirty[v.orderId]) return;
       designJobs[v.orderId] = v;
     });
+    /* Доручення міг видати хтось інший із іншої вкладки — число на кнопці
+       має зʼявитись без перезаходу. Це і є все наше сповіщення: усі сидять
+       в адмінці цілий день, лист туди нічого не додасть. */
+    try{ paintTaskBadge(); }catch(e){}
     if(document.getElementById('view-design') &&
        document.getElementById('view-design').style.display !== 'none') openDesign();
   }, e=> console.warn('designJobs watch', e));
@@ -19655,6 +19663,9 @@ async function designSave(job, o){
     throw e;
   }finally{
     delete designDirty[job.orderId];
+    /* Доручення могло щойно зʼявитись або закритись — число на кнопці має
+       це показати одразу, а не після перезаходу. */
+    try{ paintTaskBadge(); }catch(e){}
   }
   /* Версії макета лежать у замовленні, і дія у відділі щойно могла їх
      змінити — нову версію, файл, позначку погодження. Тож записуємо й
@@ -19690,12 +19701,33 @@ function openDesign(){
     team: ()=> (contentData.team || []).map(m => ({
       email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
     onlyMine: ()=> mine,
+    /* Сказати клієнту, не виходячи з відділу. Менеджер доти мусив закрити
+       розділ, знайти діалог, вставити посилання руками — і на кожному з цих
+       кроків щось губилось. Канал беремо той, що вже привʼязаний до
+       замовлення: інших у нас усе одно немає. */
+    tell: (o, text) => designTell(o, text),
     can: ()=> true
   };
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
      і показувати її першою означає щодня просити перемкнути вкладку. */
   if(mine && window.LQDesign.ui.tab() === 'queue') window.LQDesign.ui.setTab('graphic');
   window.LQDesign.ui.render(root);
+}
+
+/* Повідомлення клієнту з розділу дизайну. Повертає true, якщо справді
+   надіслали, і false — якщо каналу немає: тоді текст лягає в буфер, і
+   менеджер вставляє його сам. Мовчки не зникає ні в якому разі. */
+async function designTell(o, text){
+  const t = String(text || '').trim();
+  if(!o || !t) return false;
+  try{
+    const st = crmChat[o.id];
+    if(st && st.chatId){ await crmSend(o, t); return true; }
+    if(o.tgChatId){ await tgSend(o, t); return true; }
+  }catch(e){ console.error('надсилання', e); }
+  try{ await navigator.clipboard.writeText(t); toast('Каналу немає — текст у буфері'); }
+  catch(e){ toast('Каналу немає, і буфер недоступний'); }
+  return false;
 }
 
 const ROLES = { owner:'Власник', manager:'Менеджер',
@@ -20132,8 +20164,39 @@ function applyNoAccess(){
   document.body.classList.add('no-access');
   return false;
 }
+/* ══════════ СПОВІЩЕННЯ НА ПЕРЕДАЧАХ ══════════
+   Автоматичні листи тут були б зайвими: усі сидять в адмінці цілий день.
+   Потрібне інше — щоб людина побачила передачу, не заходячи у відділ.
+   Тому на кнопці розділу висить число: скільки доручень чекає саме на неї.
+
+   Рахуємо відкриті, а не всі: прийняте доручення — це вже історія, і воно
+   не має щодня нагадувати про себе числом. */
+function myTaskCount(){
+  if(typeof designJobs !== 'object' || !window.LQDesign) return 0;
+  const me = String(myEmail() || '').trim().toLowerCase();
+  if(!me) return 0;
+  let n = 0;
+  Object.keys(designJobs || {}).forEach(id=>{
+    const job = designJobs[id];
+    (window.LQDesign.taskList ? window.LQDesign.taskList(job) : []).forEach(t=>{
+      if(t.state === 'accepted') return;
+      if(String(t.to || '').trim().toLowerCase() === me) n++;
+    });
+  });
+  return n;
+}
+function paintTaskBadge(){
+  const b = document.querySelector('.nav [data-view="design"]');
+  if(!b) return;
+  let dot = b.querySelector('.nav-n');
+  const n = myTaskCount();
+  if(!n){ if(dot) dot.remove(); return; }
+  if(!dot){ dot = document.createElement('i'); dot.className = 'nav-n'; b.appendChild(dot); }
+  dot.textContent = n > 99 ? '99+' : String(n);
+}
 function applyRoleUi(){
   if(!applyNoAccess()) return;
+  try{ paintTaskBadge(); }catch(e){}
   const nav = (myAcc() || {}).nav;
   const all = nav === '*' || !Array.isArray(nav);
   let firstOk = null;
