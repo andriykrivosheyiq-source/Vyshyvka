@@ -369,6 +369,46 @@ ok(sel.length > 0 && Object.keys(st).filter(k => k !== solo).every(k => sel.inde
   'виділення перекинулось на сусідів: «' + sel + '»');
 
 console.log('');
+console.log('═══ ВИДАЛЯЄТЬСЯ ОДИН НАПИС, А НЕ ВСІ ═══');
+/* Заготовку «Ваш напис» ми прибираємо самі — платити за неї нікому не
+   треба. Але «заготовка» доти визначалась прапорцем, який знімався ЛИШЕ від
+   набору тексту: напис, оформлений і збережений у замовленні, приїжджав
+   назад із тим самим прапорцем. А заготовки прибираються всі одразу — тож
+   натиснувши «видалити» на одному написі, можна було втратити всі три. */
+const src = fs.readFileSync(path.join(ROOT, 'loomiq-constructor.js'), 'utf8');
+ok(/String\(l\.text\.t \|\| ''\)\.trim\(\) === TEXT_PLACEHOLDER/.test(src),
+  'заготовкою вважається тільки той напис, який і досі каже «Ваш напис»',
+  'заготовка й далі визначається самим прапорцем');
+
+const before3 = await snap();
+const gone = await p.evaluate(async who => {
+  const box = [...document.querySelectorAll('.pm-draggable-layer')]
+    .find(b => (b.querySelector('.pm-dl-text') || {}).innerText.replace(/\s+/g, ' ').trim() === who);
+  if(!box) return 'напис не знайшовся';
+  const img = box.querySelector('.pm-dl-img');
+  img.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true,
+    clientX: box.getBoundingClientRect().left + box.getBoundingClientRect().width / 2,
+    clientY: box.getBoundingClientRect().top + box.getBoundingClientRect().height / 2 }));
+  await new Promise(r => setTimeout(r, 400));
+  const h = box.querySelector('.pm-dl-handle--delete');
+  if(!h) return 'ручки видалення немає';
+  h.dispatchEvent(new MouseEvent('mousedown', { bubbles:true, cancelable:true }));
+  await new Promise(r => setTimeout(r, 300));
+  const btn = document.getElementById('pmTrashConfirmBtn');
+  if(!btn) return 'підтвердження немає';
+  btn.click();
+  await new Promise(r => setTimeout(r, 700));
+  return '';
+}, solo);
+if(gone){ console.log('  ' + gone); bad++; }
+const after3 = await snap();
+console.log('   було ' + Object.keys(before3).length + ', лишилось ' + Object.keys(after3).length +
+            ': ' + (Object.keys(after3).join(' · ') || '— порожньо —'));
+ok(Object.keys(after3).length === Object.keys(before3).length - 1,
+  'пішов рівно той напис, який видаляли',
+  'разом із ним пішли й сусідні');
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'напис виділяється, стилюється по шматках і не втікає з-під курсора');

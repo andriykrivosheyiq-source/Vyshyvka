@@ -1916,8 +1916,24 @@
       var lx = (dx * Math.cos(a) - dy * Math.sin(a)) / z;
       var ly = (dx * Math.sin(a) + dy * Math.cos(a)) / z;
       var box = layerBox(layer), ob = inkOf(layer);
-      return lx >= (ob.x0 - 0.5) * box.w && lx <= (ob.x1 - 0.5) * box.w &&
-             ly >= (ob.y0 - 0.5) * box.h && ly <= (ob.y1 - 0.5) * box.h;
+      if(!(lx >= (ob.x0 - 0.5) * box.w && lx <= (ob.x1 - 0.5) * box.w &&
+           ly >= (ob.y0 - 0.5) * box.h && ly <= (ob.y1 - 0.5) * box.h)) return false;
+      /* Усередині меж питаємо ще й саму форму — але тільки в малюнка.
+
+         У напису рамка суцільна навмисно: між двома літерами порожньо, а
+         взяти напис за проміжок людина має право — так поводиться будь-який
+         редактор, і рамка тексту там теж суцільний прямокутник.
+
+         А от лого з просвітом — кільце, літера «О», контурний знак — це
+         інша річ: дірка всередині належить тому, хто лежить під ним, а не
+         йому. Тому для малюнка дивимось у маску форми. Маски немає (пікселі
+         не прочитались через CORS) — лишаються межі, як було. */
+      var mask = layer.text ? null : maskOf(layer);
+      if(!mask || !mask.w || !mask.h) return true;
+      var u = lx / box.w + 0.5, v = ly / box.h + 0.5;
+      var mx = Math.min(mask.w - 1, Math.max(0, Math.floor(u * mask.w)));
+      var my = Math.min(mask.h - 1, Math.max(0, Math.floor(v * mask.h)));
+      return !!mask.data[my * mask.w + mx];
     }
     /* Який шар людина насправді мала на увазі. Перебираємо згори вниз у
        тому порядку, в якому вони намальовані: обраний піднятий над рештою
@@ -2348,6 +2364,24 @@
       }
       return out;
     }
+    /* Маски форми живуть окремо від шарів. Шар їде в замовлення й лягає в
+       базу — масив на кілька тисяч байтів там не потрібен нікому, а от при
+       кожному кліку він потрібен одразу. Тримаємо в памʼяті вкладки, за
+       адресою файлу, і обмежуємо кількість: інакше за довгу сесію менеджера
+       тут осіли б усі логотипи, які він відкривав. */
+    var SHAPE_MASKS = Object.create(null), SHAPE_MASK_KEYS = [];
+    function rememberMask(url, mask){
+      if(!url || !mask) return;
+      if(!SHAPE_MASKS[url]) SHAPE_MASK_KEYS.push(url);
+      SHAPE_MASKS[url] = mask;
+      while(SHAPE_MASK_KEYS.length > 24){
+        var old = SHAPE_MASK_KEYS.shift();
+        if(old !== url) delete SHAPE_MASKS[old];
+      }
+    }
+    function maskOf(layer){
+      return (layer && layer.url) ? SHAPE_MASKS[layer.url] : null;
+    }
     function measureLayerShape(layer, url){
       return loadImgEl(url).then(function(img){
         layer.ar = (img.naturalWidth||1)/(img.naturalHeight||1);
@@ -2357,6 +2391,11 @@
           var m = measureShape(img);
           layer.opaqueBox = m ? m.opaqueBox : { x0:0, y0:0, x1:1, y1:1 };
           layer.fill = m ? m.fill : 1;
+          /* Кладемо під обидві адреси: шар міг уже перейти на очищену
+             версію файлу, поки ми міряли вихідну, — і маска за старим
+             ключем лишилась би нікому не потрібною. */
+          rememberMask(url, m && m.mask);
+          rememberMask(layer.url, m && m.mask);
         }catch(e){ layer.fill = 0.85; layer.opaqueBox = { x0:0, y0:0, x1:1, y1:1 }; }
         try{ layer.fp = imageFingerprint(img, layer.opaqueBox); }catch(e){ layer.fp = ''; }
         /* Пікселі не прочитались — лишається адреса файлу. Порожній відбиток
@@ -2905,18 +2944,32 @@
       renderLogoLayers();
       renderTabPanel();
     }, true);
-    // Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
-    // нікому не потрібен, а платити за нього тим більше.
+    /* Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
+       нікому не потрібен, а платити за нього тим більше.
+
+       Але «не торкнулись» тепер означає буквально: напис і досі каже «Ваш
+       напис». Доти вистачало прапорця, який знімався ЛИШЕ від набору тексту,
+       — а змінити напису колір, кегль чи шрифт прапорця не знімало. Тобто
+       напис, який людина оформила, але не перенабрала, для нас лишався
+       заготовкою; і оскільки прибираються всі заготовки одразу, натиснувши
+       «видалити» на одному написі можна було втратити всі три.
+
+       Зайвий раз запитати в самого напису, що в ньому написано, дешевше за
+       будь-який прапорець: він не буває застарілим. */
+    function isPristineText(l){
+      return !!(l && l.text && l.textPristine &&
+                String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
+    }
     function dropPristineText(){
       var out = false;
       getViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(l.text && l.textPristine){ out = true; }
+          if(isPristineText(l)){ out = true; }
         });
       });
       if(!out) return false;
       getViews().forEach(function(side){
-        pm.logos[side] = (pm.logos[side] || []).filter(function(l){ return !(l.text && l.textPristine); });
+        pm.logos[side] = (pm.logos[side] || []).filter(function(l){ return !isPristineText(l); });
       });
       if(!findLayerAnySide(pm.activeLogoId)) pm.activeLogoId = null;
       return true;

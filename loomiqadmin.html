@@ -4454,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9a17e2878d"></script>
-<script src="loomiq-fingerprint.js?v=9a17e2878d"></script>
-<script src="loomiq-pricing.js?v=9a17e2878d"></script>
+<script src="loomiq-select.js?v=a42c785031"></script>
+<script src="loomiq-fingerprint.js?v=a42c785031"></script>
+<script src="loomiq-pricing.js?v=a42c785031"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9a17e2878d"></script>
+<script src="loomiq-design.js?v=a42c785031"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6324,6 +6324,9 @@ function paintOfferBrands(){
           <label class="field">Сайт
             <input type="url" data-bf="site" value="${escapeHtml(b.site||'')}" placeholder="https://example.com">
           </label>
+          <label class="field">Нік в Instagram (для карток у Direct)
+            <input type="text" data-bf="ig" value="${escapeHtml(b.ig||'')}" placeholder="stvory.ua">
+          </label>
           <label class="field">Логотип (посилання на картинку)
             <input type="url" data-bf="logo" value="${escapeHtml(b.logo||'')}" placeholder="https://…/logo.svg">
           </label>
@@ -6338,7 +6341,8 @@ document.getElementById('brand-save').addEventListener('click', async ()=>{
     if(!row) return;
     const v = f => { const el = row.querySelector('[data-bf="'+f+'"]'); return el ? el.value.trim() : ''; };
     out[k] = { name: v('name') || BRAND_DEFAULTS[k].name, tagline: v('tagline'),
-               site: v('site'), logo: v('logo') };
+               site: v('site'), logo: v('logo'),
+               ig: v('ig').replace(/^@+/, '') };
   });
   await storeSet('offerBrands', out);
   paintOfferBrands();
@@ -8515,8 +8519,8 @@ function offerManager(){
    значення на випадок, коли в базі ще нічого немає. */
 const BRAND_KEYS = ['loomiq', 'stvory'];
 const BRAND_DEFAULTS = {
-  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'' },
-  stvory: { name:'Створи', tagline:'виробництво мерчу', site:'', logo:'' }
+  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'', ig:'' },
+  stvory: { name:'Створи', tagline:'виробництво мерчу', site:'', logo:'', ig:'stvory.ua' }
 };
 function brandAll(){
   const saved = cloud.offerBrands || {};
@@ -8533,7 +8537,12 @@ function brandSnap(key){
   const k = BRAND_KEYS.indexOf(key) >= 0 ? key : BRAND_KEYS[0];
   const b = brandAll()[k];
   return { key: k, name: b.name || BRAND_DEFAULTS[k].name,
-           tagline: b.tagline || '', site: b.site || '', logo: b.logo || '' };
+           tagline: b.tagline || '', site: b.site || '', logo: b.logo || '',
+           /* Нік в Instagram. Саме ним підписані картки для Direct: там
+              людина не переходить на сайт, вона відповідає в тому самому
+              застосунку, де побачила картку. Без цього поля підпис на
+              картці не міг зʼявитись узагалі. */
+           ig: String(b.ig || BRAND_DEFAULTS[k].ig || '').replace(/^@+/, '') };
 }
 
 // Найменший коефіцієнт зі шкали тиражів = ціна без знижки за обсяг.
@@ -8636,7 +8645,16 @@ function itemSidePhoto(it, side){
   return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
 }
 function itemViews(it){
-  const mock = ((it || {}).mockups || []).filter(Boolean);
+  /* Знімок із конструктора належить ТОМУ виробу, на якому його зробили.
+     Позицію можна перевести на інший товар — назва й ціна міняються
+     одразу, а знімки лишаються старими, і в пропозиції під заголовком
+     «Футболка базова» стоїть худі. Тому коли виріб позиції розійшовся з
+     виробом, на якому знято мокап, мокапи не беремо взагалі: чесне фото з
+     каталогу краще за детальний знімок чужого виробу. */
+  const gidNow = (it && it.garmentId) || '';
+  const gidShot = (it && it.config && it.config.garmentId) || '';
+  const stale = !!(gidNow && gidShot && gidNow !== gidShot);
+  const mock = stale ? [] : ((it || {}).mockups || []).filter(Boolean);
   const own = Array.isArray((it || {}).views) ? it.views : null;
   if(own && own.length) return own.map((v, i) => {
     /* Ракурс, узятий із конструктора, і далі показує свіжий знімок: коли
@@ -8644,7 +8662,8 @@ function itemViews(it){
        оновлюється сама. Своє завантажене фото так не перебивається —
        у нього auto вже немає. */
     const a = (v.auto == null || v.auto === '') ? null : +v.auto;
-    const own = (a != null && mock[a]) ? mock[a] : (String(v.img || '') || null);
+    const own = stale ? null
+              : ((a != null && mock[a]) ? mock[a] : (String(v.img || '') || null));
     return { id: v.id || ('v' + i), side: v.side || null,
              label: String(v.label || '').trim() || VIEW_UA[v.side] || ('Вигляд ' + (i + 1)),
              img: own || itemSidePhoto(it, v.side),
@@ -9156,6 +9175,23 @@ function itemAbout(it){
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
   return String(t || '').trim().slice(0, 1600);
 }
+/* Характеристики за замовчуванням — РІВНО ті, що сайт показує на сторінці
+   товару, якому картку ще не заповнили (див. SPECS у конструкторі).
+
+   Доти тут стояв порожній список із міркування «краще нічого, ніж вгадане».
+   Міркування слушне, але наслідок вийшов інший: у пропозиції зникав опис
+   узагалі, хоча на сайті той самий виріб цей опис показує всім підряд. Два
+   різні тексти про один товар — гірше за один неточний, бо клієнт бачить
+   обидва.
+
+   Тож правило просте: у пропозиції стоїть те саме, що на сайті. Хочете
+   точних характеристик саме цього виробу — заповніть їх у картці товару,
+   і вони підуть і туди, і туди. */
+const SITE_DEFAULT_SPECS = [
+  { label:'Матеріал', value:'100% бавовна' }, { label:'Щільність', value:'240 г/м²' },
+  { label:'Крій', value:'оверсайз' }, { label:'Формат', value:'унісекс' },
+  { label:'Нанесення', value:'DTF друк та вишивка' }
+];
 /* Характеристики товару — тканина, щільність, крій, формат. Беремо рівно ті,
    що менеджер задав у картці ЦІЄЇ моделі: у «Футболки базової» свої, в
    «Оверсайзу» свої.
@@ -9166,7 +9202,7 @@ function itemAbout(it){
 function itemSpecs(it){
   const gid = itemGarmentId(it);
   const custom = gid && contentData.specs && contentData.specs[gid];
-  const rows = (custom && custom.length) ? custom : [];
+  const rows = (custom && custom.length) ? custom : SITE_DEFAULT_SPECS;
   /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
      картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
      догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
