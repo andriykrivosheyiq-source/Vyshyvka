@@ -3726,15 +3726,6 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
             <div id="photo-cells" class="photo-cells"></div>
             <!-- Які взагалі ракурси має цей товар. Фото для них — у клітинках вище. -->
             <div id="photo-sides" class="photo-sides"></div>
-            <!-- Вирізання фону для карток Direct. Робимо ПАКЕТОМ і наперед:
-                 сервіс платний, а мокап один і той самий стоїть у сотні
-                 пропозицій — різати його при кожному показі означало б
-                 платити сто разів за ту саму роботу. -->
-            <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
-              <div class="sub" id="cut-summary" style="margin-bottom:10px;">Фон вирізається один раз на файл і далі береться зі словника.</div>
-              <button class="pc-btn up" id="cut-all" style="flex:none;padding:10px 22px;">Вирізати фон для всіх фото цього товару</button>
-              <div class="sub" id="cut-fails" style="margin-top:10px;display:none;color:#8A5A1F;"></div>
-            </div>
             <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">
               <div class="sub" id="pa-summary" style="margin-bottom:10px;">Область нанесення (зона друку/вишивки) ще не задана.</div>
               <button class="pc-btn up" id="pa-open" style="flex:none;padding:10px 22px;">Області нанесення</button>
@@ -4463,13 +4454,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=111bbf929b"></script>
-<script src="loomiq-fingerprint.js?v=111bbf929b"></script>
-<script src="loomiq-pricing.js?v=111bbf929b"></script>
+<script src="loomiq-select.js?v=b8e9e061af"></script>
+<script src="loomiq-fingerprint.js?v=b8e9e061af"></script>
+<script src="loomiq-pricing.js?v=b8e9e061af"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=111bbf929b"></script>
+<script src="loomiq-design.js?v=b8e9e061af"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -16647,116 +16638,6 @@ function offerEdNote(text){
   if(!f || !f.contentWindow) return;
   try{ f.contentWindow.postMessage({ lqEditInit:true, note: String(text || '') }, '*'); }catch(e){}
 }
-/* ══════════ СЛОВНИК ВИРІЗАНИХ МОКАПІВ ══════════
-   Вирізання фону — властивість ФАЙЛУ, а не показу. Один і той самий мокап
-   стоїть у сотні пропозицій, і вирізати його треба один раз, а не сто.
-
-   Чому це взагалі окремий механізм. Наш власний алгоритм — заливка від
-   країв кадру — дешевий і миттєвий, але по контуру лишає світлий обідок, а
-   студійну тінь від виробу не відрізняє взагалі. Photoroom відрізняє: він
-   знає, де тканина, а де її тінь. Але кожен його виклик коштує грошей, а
-   картка перемальовується на кожен рух повзунка — прямий виклик із
-   малювальника спалив би місячний ліміт за день.
-
-   Тому між ними стоїть словник:
-
-       потрібен вирізаний мокап
-          └─ є у словнику? → адреса, нуль запитів, нуль грошей
-             немає?        → Photoroom → у сховище → запис у словник
-                             не вийшло → малюємо як є, кажемо менеджеру
-
-   Словник спільний на всю компанію: вирізав один менеджер — скористались
-   усі. Оригінал у записі теж лишається: якщо Photoroom колись помилиться,
-   буде з чого перевибрати, і ми не загубимо вихідний файл.
-
-   Ключ — хеш адреси, а не сама адреса: у ключах документа Firestore не
-   можна ні крапок, ні скісних. */
-const CUT_DOC = fbDb.collection('loomiq').doc('cutouts');
-let cutMap = null, cutWatch = null;
-function cutKey(url){
-  /* FNV-1a. Не криптографія — нам треба лише коротке стале ім'я поля,
-     однакове на всіх машинах і в усіх вкладках. */
-  let h = 0x811c9dc5;
-  const s = String(url || '');
-  for(let i = 0; i < s.length; i++){
-    h ^= s.charCodeAt(i);
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return 'c' + h.toString(16) + '_' + s.length;
-}
-function watchCuts(){
-  if(cutWatch) return;
-  cutWatch = CUT_DOC.onSnapshot(sn=>{
-    cutMap = (sn.exists ? (sn.data() || {}) : {}).map || {};
-  }, err=>{ console.warn('словник вирізаних', err); cutMap = cutMap || {}; });
-}
-async function cutsReady(){
-  if(cutMap) return cutMap;
-  try{
-    const sn = await CUT_DOC.get();
-    cutMap = (sn.exists ? (sn.data() || {}) : {}).map || {};
-  }catch(e){ console.warn('словник вирізаних', e); cutMap = {}; }
-  watchCuts();
-  return cutMap;
-}
-function cutProxyUrl(){ return String(((contentData || {}).bgApi || {}).proxyUrl || '').trim(); }
-
-/* Вирізати один файл. Повертає адресу вирізаного або кидає помилку з
-   причиною — її показуємо менеджеру словами, а не ховаємо в консоль. */
-async function cutOne(url){
-  const map = await cutsReady();
-  const key = cutKey(url);
-  if(map[key] && map[key].url) return map[key].url;
-
-  const api = cutProxyUrl();
-  if(!api) throw new Error('проксі Photoroom не налаштоване');
-  /* Через проксі шлемо БАЙТИ, а не адресу: воркер приймає тіло-зображення,
-     і так само працює конструктор — дві різні угоди з тим самим воркером
-     означали б, що одна з них колись відстане. */
-  const src = await fetch(url, { mode:'cors' });
-  if(!src.ok) throw new Error('мокап не читається (' + src.status + ')');
-  const blob = await src.blob();
-  const ctrl = new AbortController();
-  const t = setTimeout(()=>ctrl.abort(), 45000);
-  let out;
-  try{
-    const r = await fetch(api, { method:'POST',
-      headers:{ 'Content-Type': blob.type || 'image/png' }, body: blob, signal: ctrl.signal });
-    if(!r.ok) throw new Error('Photoroom ' + r.status);
-    out = await r.blob();
-    if(!out || !/^image\//.test(out.type || '')) throw new Error('Photoroom віддав не зображення');
-  } finally { clearTimeout(t); }
-
-  const dst = await uploadCloudinaryAuto(out);
-  const rec = { url: dst, src: url, at: Date.now(), by: myEmail() };
-  await CUT_DOC.set({ map: { [key]: rec } }, { merge:true });
-  cutMap = Object.assign({}, cutMap || {}, { [key]: rec });
-  return dst;
-}
-/* Вирізати список. Послідовно, а не пачкою: сервіс платний і має ліміт
-   на секунду, і двадцять одночасних запитів він просто відкине. */
-async function cutMany(urls, onStep){
-  const out = {}, fails = [];
-  const list = [...new Set((urls || []).filter(Boolean))];
-  for(let i = 0; i < list.length; i++){
-    try{ out[list[i]] = await cutOne(list[i]); }
-    catch(e){ fails.push({ url: list[i], why: (e && e.message) || 'помилка' }); }
-    if(onStep) onStep(i + 1, list.length, fails.length);
-  }
-  return { map: out, fails };
-}
-/* Готові вирізані для набору адрес — БЕЗ жодного запиту до сервісу.
-   Саме цим живе картка при кожній перемальовці. */
-async function cutsFor(urls){
-  const map = await cutsReady();
-  const out = {};
-  (urls || []).filter(Boolean).forEach(u=>{
-    const r = map[cutKey(u)];
-    if(r && r.url) out[u] = r.url;
-  });
-  return out;
-}
-
 /* Фото моделей для карток Direct. Своє фото з картки товару перебиває
    стандартне: якщо менеджер завантажив власну зйомку, вона і є правильна.
    Задні кадри пропускаємо — першим на картці має стояти той, де виріб
@@ -17475,32 +17356,6 @@ async function offerEdApply(msg){
      Логотип лягає в налаштування ПРОПОЗИЦІЇ, а не картки: це той самий
      логотип того самого клієнта, і різні його версії на сусідніх картках —
      не варіативність, а неуважність, яку клієнт помітить. */
-  /* Картка просить вирізані мокапи. Спершу віддаємо те, що вже є у
-     словнику, — це нуль запитів і нуль грошей, і саме цим живе кожна
-     перемальовка preview. Різати новий файл беремось ЛИШЕ на прямий запит
-     (`force`), тобто коли менеджер сам натиснув «Прибрати фон»: інакше
-     кожне смикання повзунка замовляло б платну роботу. */
-  if(act === 'cardsCut'){
-    const f = document.querySelector('#offerEd iframe');
-    const back = (map, fails) => {
-      try{
-        if(f && f.contentWindow)
-          f.contentWindow.postMessage({ lqEditInit:true, cuts: map || {},
-                                        cutFails: fails || [] }, '*');
-      }catch(e){}
-    };
-    const urls = (msg.urls || []).filter(Boolean);
-    if(!urls.length){ back({}, []); return; }
-    if(!msg.force){ back(await cutsFor(urls), []); return; }
-    const have = await cutsFor(urls);
-    const need = urls.filter(u => !have[u]);
-    if(!need.length){ back(have, []); return; }
-    toast('Вирізаю фон: ' + need.length + (need.length === 1 ? ' мокап' : ' мокапів') + '…');
-    const r = await cutMany(need);
-    back(Object.assign(have, r.map), r.fails.map(x => x.why));
-    if(r.fails.length) toast('Не вирізалось: ' + r.fails.length);
-    return;
-  }
   if(act === 'cardsFile'){
     const what = msg.what === 'art' ? 'art' : 'bg';
     const f = document.querySelector('#offerEd iframe');
@@ -22535,54 +22390,6 @@ async function saveViewOrder(gid, order){
   }catch(e){ console.error(e); toast('Не вдалось зберегти порядок'); }
 }
 
-/* Усі фото цього товару — по кольорах і ракурсах. Саме цей список і
-   вирізаємо пакетом: він скінченний, на відміну від мокапів у замовленнях. */
-function garmentPhotoUrls(gid){
-  const g = photoCfg(gid);
-  const sides = sidesFor(g).map(x => x.id);
-  const out = [];
-  (g.colors || []).forEach(c=>{
-    sides.forEach(v=>{
-      const key = g.id + '-' + c.id + '-' + v;
-      out.push(photosMap[key] || (location.origin + location.pathname.replace(/[^/]*$/, '') + 'images/' + key + '.webp'));
-    });
-  });
-  return out;
-}
-async function cutAllForGarment(){
-  const btn = document.getElementById('cut-all');
-  const sum = document.getElementById('cut-summary');
-  const bad = document.getElementById('cut-fails');
-  if(!btn || btn.disabled) return;
-  if(!cutProxyUrl()){
-    sum.textContent = 'Спершу вкажіть адресу проксі Photoroom у налаштуваннях.';
-    return;
-  }
-  const urls = garmentPhotoUrls(photoGarmentId);
-  const have = await cutsFor(urls);
-  const need = urls.filter(u => !have[u]);
-  if(!need.length){
-    sum.textContent = 'Усі ' + urls.length + ' фото цього товару вже вирізані.';
-    return;
-  }
-  btn.disabled = true;
-  bad.style.display = 'none';
-  /* Показуємо лічильник, а не крутилку: менеджер має бачити, що процес
-     іде, скільки лишилось і скільки вже не вийшло, — інакше на сороковому
-     файлі він вирішить, що все зависло, і перезавантажить сторінку. */
-  const r = await cutMany(need, (i, n, f)=>{
-    sum.textContent = 'Вирізано ' + i + ' з ' + n + (f ? ' · не вийшло: ' + f : '');
-  });
-  btn.disabled = false;
-  sum.textContent = 'Готово: ' + Object.keys(r.map).length + ' з ' + need.length +
-                    ' (усього в товарі ' + urls.length + ').';
-  if(r.fails.length){
-    bad.style.display = '';
-    bad.innerHTML = 'Не вийшло:<br>' + r.fails.slice(0, 8)
-      .map(x => escA(x.url.split('/').pop()) + ' — ' + escA(x.why)).join('<br>') +
-      (r.fails.length > 8 ? '<br>…і ще ' + (r.fails.length - 8) : '');
-  }
-}
 function renderPhotoCells(){
   const box = document.getElementById('photo-cells');
   if(!box) return;
@@ -22605,8 +22412,6 @@ function renderPhotoCells(){
     </div>`;
   }).join('');
   box.querySelectorAll('.pc-btn.up').forEach(b=>b.addEventListener('click', ()=>pickPhoto(b.dataset.key, b)));
-  const cutBtn = document.getElementById('cut-all');
-  if(cutBtn && !cutBtn.__on){ cutBtn.__on = 1; cutBtn.addEventListener('click', cutAllForGarment); }
   box.querySelectorAll('.pc-btn.reset').forEach(b=>b.addEventListener('click', ()=>resetPhoto(b.dataset.key)));
   // перетягування карток фото — задає, яке фото перше, друге, третє
   enableDrag(box, '.photo-cell', ()=>{

@@ -927,21 +927,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=111bbf929b',
+    ['loomiq-select.js?v=b8e9e061af',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=111bbf929b'].forEach(function(src){
+     'loomiq-cards.js?v=b8e9e061af'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=111bbf929b';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=111bbf929b';
-  var CTOR_JS   = 'loomiq-constructor.js?v=111bbf929b';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=111bbf929b';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=b8e9e061af';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=b8e9e061af';
+  var CTOR_JS   = 'loomiq-constructor.js?v=b8e9e061af';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=b8e9e061af';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1820,11 +1820,6 @@
   var cardBusy = false, cardDrawId = 0, cardBgBusy = false, cardWarn = '';
   var CARD_MODELS = {};
   var cardArtBusy = false, cardAdv = false;
-  /* Вирізані мокапи, які вже є у словнику компанії. Картка їх лише БЕРЕ:
-     різати — платна робота, і замовляє її менеджер натисканням, а не
-     малювальник кожною перемальовкою. */
-  var CARD_CUTS = {}, cardCutAsked = '';
-
   function cardsCfg(){
     if(!cardCfg){
       var saved = (OFFER && OFFER.cards) || {};
@@ -1842,8 +1837,6 @@
                      версії на сусідніх картках — не варіативність, а
                      неуважність, яку клієнт помітить. */
                   art: saved.art || '',
-                  cutout: !!saved.cutout,
-                  shade: saved.shade || '',
                   bg: saved.bg || '',
                   by: JSON.parse(JSON.stringify(saved.by || {})) };
     }
@@ -1894,7 +1887,6 @@
     }
     var cfg = cardsCfg();
     cardList = window.LQCards.build(OFFER, Object.assign({ models: CARD_MODELS }, cfg));
-    cardsAskCuts(false);
     if(!cardList.length){
       document.getElementById('cdBar').innerHTML = '';
       document.getElementById('cdSide').innerHTML = '';
@@ -1950,17 +1942,10 @@
                 '<input type="file" accept="image/*" id="cdArtF" hidden' +
                 (cardArtBusy ? ' disabled' : '') + '></label>') +
         '</div>' +
-        /* «Тінь» без «прибрати фон» неможлива технічно — тінь будується з
-           прозорості, — тож увімкнена тінь сама вмикає зняття фону, а
-           галочка стає неактивною з поясненням. */
+        /* Зняття фону й тінь звідси прибрані. Фото товару йде на картку
+           як є, разом зі своїм рідним фоном, і заповнює плитку цілком —
+           тоді ні білих полів, ні кантика по краю просто немає. */
         '<div class="cd-g"><span class="cd-l">Стиль</span>' +
-          '<label class="cd-chk" title="' +
-            (cfg.shade ? 'Тінь малюється по контуру виробу, тож фон знімається обовʼязково'
-                       : 'Заливка від країв кадру: білі деталі всередині виробу не зачіпає') + '">' +
-            '<input type="checkbox" id="cdCut"' + (cfg.cutout || cfg.shade ? ' checked' : '') +
-            (cfg.shade ? ' disabled' : '') + '>Прибрати фон</label>' +
-          seg('shade', [{ id:'', name:'Без тіні' }, { id:'soft', name:'Мʼяка' },
-                        { id:'deep', name:'Глибока' }], cfg.shade || '') +
           (cfg.bg
             ? '<label class="cd-up"><img src="' + esc(cfg.bg) + '" alt="">Фон' +
                 '<input type="file" accept="image/*" id="cdBgF" hidden></label>' +
@@ -1982,15 +1967,6 @@
     bar.querySelectorAll('[data-fld]').forEach(function(c){
       c.onchange = function(){ cardsCfg().fields[c.dataset.fld] = c.checked; cardsChanged(); };
     });
-    bar.querySelectorAll('[data-shade]').forEach(function(b){
-      b.onclick = function(){
-        var cf = cardsCfg();
-        cf.shade = b.dataset.shade;
-        if(cf.shade) cf.cutout = true;   // тінь без прозорості неможлива
-        cardsChanged();
-        if(cf.shade) cardsAskCuts(true);
-      };
-    });
     var rng = document.getElementById('cdLogo');
     if(rng){
       var lab = rng.parentElement.querySelector('b');
@@ -2003,13 +1979,6 @@
       };
       rng.onchange = function(){ cardsSave(); };
     }
-    var cut = document.getElementById('cdCut');
-    if(cut) cut.onchange = function(){
-      cardsCfg().cutout = cut.checked;
-      cardsChanged();
-      /* Натиснув сам — оце й є дозвіл витратити платну роботу сервісу. */
-      if(cut.checked) cardsAskCuts(true);
-    };
     var artf = document.getElementById('cdArtF');
     if(artf) artf.onchange = function(){ cardsFilePick(artf.files && artf.files[0], 'art'); };
     var artx = document.getElementById('cdArtX');
@@ -2135,7 +2104,7 @@
     var prev = document.getElementById('cdPrev');
     if(!c){ prev.innerHTML = ''; return; }
     var id = ++cardDrawId;
-    window.LQCards.draw(c, OFFER, Object.assign({ cuts: CARD_CUTS }, cfg)).then(function(cv){
+    window.LQCards.draw(c, OFFER, cfg).then(function(cv){
       if(id !== cardDrawId) return;        // менеджер уже перемкнув — цей кадр застарів
       prev.innerHTML = '';
       prev.appendChild(cv);
@@ -2154,29 +2123,6 @@
       prev.innerHTML = '<div class="cd-note">Картку намалювати не вдалось: ' +
                        esc(String((e && e.message) || e)) + '</div>';
     });
-  }
-
-  /* Спитати адмінку про вирізані мокапи. Без `force` — це лише «що вже
-     готове»: нуль запитів до сервісу й нуль грошей. З `force` — прохання
-     вирізати те, чого ще немає, і воно йде рівно тоді, коли менеджер сам
-     увімкнув «Прибрати фон». */
-  function cardShotUrls(){
-    var out = [];
-    cardList.forEach(function(c){
-      (c.shots || []).forEach(function(sh){ if(sh && sh.url && !sh.model) out.push(sh.url); });
-      (c.items || []).forEach(function(it){ if(it && it.pic) out.push(it.pic); });
-    });
-    return out;
-  }
-  function cardsAskCuts(force){
-    var cfg = cardsCfg();
-    if(!cfg.cutout && !cfg.shade) return;
-    var urls = cardShotUrls().filter(function(u){ return !CARD_CUTS[u]; });
-    if(!urls.length) return;
-    var sig = (force ? 'f:' : 'q:') + urls.join('|');
-    if(sig === cardCutAsked) return;      // те саме вже питали — не смикаємо вдруге
-    cardCutAsked = sig;
-    send({ act:'cardsCut', urls: urls, force: !!force });
   }
 
   /* ══════════ ЛОГОТИП НА ФОТО МОДЕЛІ ══════════
@@ -2376,14 +2322,6 @@
     }
     /* Фото моделей для карток. Приходять окремо від каталогу: адмінка
        читає їх із головної сторінки, і першого разу вони ще не готові. */
-    /* Вирізані прийшли — кладемо в пам'ять кадру й перемальовуємо. */
-    if(d.cuts){
-      CARD_CUTS = Object.assign({}, CARD_CUTS, d.cuts);
-      cardWarn = (d.cutFails && d.cutFails.length)
-        ? 'Не вдалось вирізати фон: ' + d.cutFails.length + ' (' + esc(d.cutFails[0]) + ')' : '';
-      try{ if(cardList.length) renderCards(); }catch(e){}
-      return;
-    }
     if(d.models){
       CARD_MODELS = d.models || {};
       try{ if(cardList.length) renderCards(); }catch(e){}

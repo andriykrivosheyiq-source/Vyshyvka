@@ -609,7 +609,10 @@
     /* Двома рядками, нік згори. В один рядок вони читались як одне
        службове хвостове клеймо; окремим рядком нік стає тим, чим він є, —
        адресою, куди можна написати. */
-    return [ig ? 'Інст: @' + ig : '', offer.orderId ? 'КП № ' + offer.orderId : '']
+    /* «Inst:» латиницею і номер без слова «КП». Слово нічого не додавало:
+       людина тримає в руках картку пропозиції й так, а зайве службове
+       скорочення лише забирало місце в рядку з номером. */
+    return [ig ? 'Inst: @' + ig : '', offer.orderId ? '№' + offer.orderId : '']
       .filter(Boolean);
   }
 
@@ -686,7 +689,10 @@
     if(!show('old')) return null;
     var base = +card.base || 0, unit = +card.unit || 0;
     if(!unit || base <= unit) return null;
-    return { was: money(base), off: '−' + Math.round((base - unit) / base * 100) + ' %' };
+    /* «/шт» стоїть і на старій ціні теж. Без нього поруч опинялись два
+       числа в різних одиницях — «2 499 грн» і «1 999 грн/шт», — і стара
+       ціна читалась як сума за все замовлення, а не за виріб. */
+    return { was: money(base) + '/шт', off: '−' + Math.round((base - unit) / base * 100) + ' %' };
   }
   /* Текстова колонка нижньої смуги: підпис капітеллю, під ним текст, який
      сам добирає кегль, доки не вміститься у відведені рядки. Опис і
@@ -742,10 +748,13 @@
 
     /* Опис — той самий, що доти тулився рядком під назвою. Тут він не
        обмежений одним рядком і читається цілим; чорнилом, бо це слова про
-       виріб, а не службовий дрібний шрифт. Немає опису — беремо колір і
-       спосіб нанесення, як і раніше. */
-    var about = (show('about') && card.about) ? card.about
-              : ((show('sub') && card.sub) ? card.sub : '');
+       виріб, а не службовий дрібний шрифт.
+
+       Колір і спосіб нанесення сюди більше не підставляються. «Чорний ·
+       Вишивка» — це підпис до того, що клієнт бачить на фото; на місці
+       опису воно вдавало розповідь про виріб, не будучи нею. Немає опису
+       в адмінці — місце лишається порожнім, і це чесніше. */
+    var about = (show('about') && card.about) ? card.about : '';
     var warn = show('warn') ? WARN : '';
 
     var GAPC = 56;
@@ -895,106 +904,6 @@
     return t;
   }
 
-  /* ══════════ ЗНЯТТЯ ФОНУ ══════════
-     Мокапи знято на рівному тлі, і поки виріб лежить на білій панелі, це
-     непомітно. Щойно під панель стає свій фон або з'являється тінь — стає
-     видно, що виріб приїхав разом зі своїм прямокутником.
-
-     Заливаємо ВІД КРАЇВ, а не «знімаємо все, схоже на білий». Різниця
-     принципова: білі рукави, білі шнурки й білий напис на виробі до країв
-     не дотикаються, тож заливка їх не чіпає. Глобальна ж заміна кольору
-     проїла б у білій футболці дірки.
-
-     Дві поступки якості. По-перше, працюємо у зменшеній копії — на картці
-     знімок ніколи не буває ширшим за шістсот пікселів, і рахувати п'ять
-     мільйонів пікселів заради цього безглуздо. По-друге, межу робимо м'якою:
-     пікселі, що потрапили в зону сумніву, стають напівпрозорими, інакше по
-     контуру лишається пилка. Зона сумніву вузька навмисно: широка лишає по
-     краю світлий німб із залишків старого фону, і на своєму фоні цей німб
-     видно краще, ніж пилку, яку він мав прибрати.
-
-     Кути мають зійтися між собою — це і є перевірка, що фон однорідний. Не
-     зійшлись (градієнт, студійна тінь, кадр без полів) — не чіпаємо нічого
-     й кажемо про це менеджеру. Зіпсувати мовчки гірше, ніж не зробити. */
-  var CUT_MAX = 1200;
-  function cutOf(img){
-    if(img.__lqCut !== undefined) return img.__lqCut;
-    var out = null;
-    try{
-      var k = Math.min(CUT_MAX / img.width, CUT_MAX / img.height, 1);
-      var c = document.createElement('canvas');
-      c.width = Math.max(1, Math.round(img.width * k));
-      c.height = Math.max(1, Math.round(img.height * k));
-      var q = c.getContext('2d', { willReadFrequently: true });
-      q.drawImage(img, 0, 0, c.width, c.height);
-      var im = q.getImageData(0, 0, c.width, c.height), d = im.data;
-      var w = c.width, h = c.height;
-      var at = function(px, py){ var i = (py * w + px) * 4; return [d[i], d[i+1], d[i+2], d[i+3]]; };
-      var cs = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)];
-      // Уже з прозорістю — нема чого знімати
-      if(cs.every(function(p){ return p[3] < 16; })){ img.__lqCut = null; return null; }
-      var dist = function(a, b){
-        var dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
-        return Math.sqrt(dr * dr + dg * dg + db * db);
-      };
-      for(var a = 0; a < 4; a++) for(var b = a + 1; b < 4; b++)
-        if(dist(cs[a], cs[b]) > 40){ img.__lqCut = null; return null; }
-      var bg = cs[0];
-
-      var TOL = 52, SOFT = 16;
-      var seen = new Uint8Array(w * h);
-      var st = [];
-      var seed = function(px, py){ var n = py * w + px; if(!seen[n]){ seen[n] = 1; st.push(n); } };
-      for(var px = 0; px < w; px++){ seed(px, 0); seed(px, h - 1); }
-      for(var py = 0; py < h; py++){ seed(0, py); seed(w - 1, py); }
-      while(st.length){
-        var n = st.pop(), nx = n % w, ny = (n - nx) / w, i4 = n * 4;
-        var dd = dist([d[i4], d[i4+1], d[i4+2]], bg);
-        if(dd >= TOL + SOFT) continue;
-        if(dd < TOL){
-          d[i4 + 3] = 0;
-          if(nx > 0)     seed(nx - 1, ny);
-          if(nx < w - 1) seed(nx + 1, ny);
-          if(ny > 0)     seed(nx, ny - 1);
-          if(ny < h - 1) seed(nx, ny + 1);
-        } else {
-          // зона сумніву — напівпрозоро, щоб контур не був пилкою
-          d[i4 + 3] = Math.round(d[i4 + 3] * (dd - TOL) / SOFT);
-        }
-      }
-      q.putImageData(im, 0, 0);
-      out = c;
-    }catch(e){ out = null; }
-    img.__lqCut = out;
-    return out;
-  }
-  /* Джерело, з якого малюємо знімок: сам файл або його версія без фону.
-     Не вдалось — малюємо як є й лишаємо рядок менеджеру. */
-  function srcOf(im, st, notes){
-    if(!im || !st.cutout) return { im: im, cut: false };
-    /* Готове з Photoroom уже підставлене замість оригіналу — тоді різати
-       нема чого, воно вже прозоре. Свій алгоритм лишається запасним: він
-       гірший по краю, але він є завжди й не коштує нічого. */
-    if(im.__lqReady) return { im: im, cut: true };
-    var c = cutOf(im);
-    if(c) return { im: c, cut: true };
-    if(notes && notes.indexOf(CUT_FAIL) < 0) notes.push(CUT_FAIL);
-    return { im: im, cut: false };
-  }
-  var CUT_FAIL = 'З деяких мокапів фон зняти не вдалось — там фон не однорідний. ' +
-                 'Ці знімки на картці лишились як є.';
-  var CUT_MIX = 'Фон знявся не з усіх кадрів, тож картка лишилась із фоном: ' +
-                'половина прозора, половина в білому прямокутнику виглядає як брак. ' +
-                'Виріжте фон для всіх мокапів цього товару — і вимикач спрацює.';
-
-  /* Тінь іде по КОНТУРУ виробу, бо полотно будує її з прозорості джерела.
-     Тому вона й можлива лише там, де фон знято: на непрозорому знімку це
-     була б тінь від білого прямокутника. */
-  var SHADE = {
-    soft: { blur: 30, dy: 18, a: 0.20 },
-    deep: { blur: 52, dy: 30, a: 0.34 }
-  };
-
   /* Свій фон панелі. Вписуємо ЗАПОВНЕННЯМ із обрізанням по центру, а не
      цілком: фон — це фактура, і біла смуга збоку від неї гірша за
      втрачений край. */
@@ -1041,31 +950,43 @@
     }
     x.restore();
   }
+  /* Спільний масштаб ряду — один на всі знімки картки, інакше перед і зад
+     того самого худі стояли б поруч різного розміру.
+
+     Рахуємо його з ДВОХ вимог одразу:
+       1. виріб має вміститись у плитку цілком (по обрізаних межах);
+       2. сам кадр має плитку перекрити, до країв і за краї.
+     Перша дає розмір виробу, друга прибирає порожні поля: беремо більшу з
+     них. Якщо друга переважила — виробу підріжеться край рукава, і це
+     дешевша втрата, ніж біла рамка навколо. */
   function rowScale(srcs, bw, bh){
-    var S = Infinity;
+    var fit = Infinity, cov = 0;
     srcs.forEach(function(sr){
       var im = sr && sr.im;
       if(!im || sr.model) return;      // фото моделі живе своїм масштабом
-      var tr = trimOf(im), A = im.width / im.height;
-      S = Math.min(S, bw / ((tr.w / im.width) * A), bh / (tr.h / im.height));
+      var tr = trimOf(im);
+      fit = Math.min(fit, bw / tr.w, bh / tr.h);
+      cov = Math.max(cov, bw / im.width, bh / im.height);
     });
-    return S;
+    if(!isFinite(fit)) return fit;
+    return Math.max(fit, cov);
   }
-  function drawShot(x, sr, S, X, Y, bw, bh, sh){
-    var im = sr.im, tr = trimOf(im), A = im.width / im.height;
-    var dw = (tr.w / im.width) * S * A, dh = (tr.h / im.height) * S;
-    var dx = X + (bw - dw) / 2, dy = Y + (bh - dh) / 2;
-    // Тінь беремо лише там, де є прозорість: інакше вона обведе прямокутник
-    if(sh && sr.cut){
-      x.save();
-      x.shadowColor = 'rgba(0,0,0,' + sh.a + ')';
-      x.shadowBlur = sh.blur;
-      x.shadowOffsetY = sh.dy;
-      x.drawImage(im, tr.x, tr.y, tr.w, tr.h, dx, dy, dw, dh);
-      x.restore();
-    } else {
-      x.drawImage(im, tr.x, tr.y, tr.w, tr.h, dx, dy, dw, dh);
-    }
+  /* Знімок малюється ЦІЛИМ кадром, а не обрізаним прямокутником виробу.
+
+     Доти ми вирізали з файлу сам виріб і ставили його на свою панель — і по
+     краях виходив той самий кантик, про який казав Андрій: фон мокапа
+     бежевий, панель біла, межа між ними видно. Тепер навпаки: кадр іде як
+     є, разом зі своїм рідним фоном, і заповнює плитку до країв. Панель під
+     ним лишається тільки на випадок, коли фото взагалі не приїхало.
+
+     Масштаб — спільний на ряд, а центруємо по ВИРОБУ, а не по кадру: поля
+     в мокапах несиметричні, і по центру файлу виріб стояв би то вище, то
+     нижче за сусідній. */
+  function drawShot(x, sr, k, X, Y, bw, bh){
+    var im = sr.im, tr = trimOf(im);
+    var cx = tr.x + tr.w / 2, cy = tr.y + tr.h / 2;
+    x.drawImage(im, X + bw / 2 - cx * k, Y + bh / 2 - cy * k,
+                im.width * k, im.height * k);
   }
   function shotsRow(x, srcs, X, Y, w, h, t, st){
     st = st || {};
@@ -1076,20 +997,9 @@
     var full = n === 1 ? Math.min(w, COL) : w;
     var X0 = X + Math.round((w - full) / 2);
     var cw = (full - GAP * (n - 1)) / n;
-    /* Поля навколо виробу потрібні ТІЛЬКИ під тінь: їй треба, куди лягти.
-       Без тіні вони просто порожнє місце, і виріб через них виглядає
-       дрібнішим, ніж є. Тому без тіні поле вужче, а виріб ще й трохи
-       виходить за краї коробки — панель однаково обрізана по контуру, тож
-       зайве ховається під її закруглення.
-
-       Без тіні беремо ще сміливіше: краще підрізати виробу край рукава,
-       ніж лишити навколо нього порожню раму. Порожнє поле на картці
-       читається як недороблена картка, а підрізаний рукав — просто як
-       кадр. */
-    var IN = st.shade ? 26 : 10;
-    var FILL = st.shade ? 1 : 1.12;
-    var bw = cw - IN * 2, bh = h - IN * 2;
-    var S = rowScale(srcs, bw, bh) * FILL;
+    /* Полів навколо знімка більше немає. Кадр іде на всю плитку, до країв
+       і за краї, а зайве зрізає закруглення самої плитки. */
+    var S = rowScale(srcs, cw, h);
 
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
@@ -1099,7 +1009,7 @@
       if(sr && sr.im && isFinite(S)){
         x.save();
         rr(x, cx, Y, cw, h, 24); x.clip();
-        drawShot(x, sr, S, cx + IN, Y + IN, bw, bh, st.shade);
+        drawShot(x, sr, S, cx, Y, cw, h);
         x.restore();
       }
       else if(!(sr && sr.im)) placeholder(x, cx, Y, cw, h, t.ink);
@@ -1173,14 +1083,23 @@
     var textH = 176;
     /* Плитки — теж ряд, і масштаб у них теж спільний: кепка поруч із худі
        має лишатись кепкою, а не роздуватись до нього. */
-    var setS = rowScale(imgs, tileW - 52, tileH - textH - 44);
+    var picH0 = tileH - textH;
+    var setS = rowScale(imgs, tileW, picH0);
     var st = o.st || {};
     card.items.forEach(function(it, i){
       var X = PAD + i * (tileW + gap);
       shotPanel(x, t, X, top, tileW, tileH, st.bg);
-      var picH = tileH - textH;
-      if(imgs[i] && imgs[i].im && isFinite(setS))
-        drawShot(x, imgs[i], setS, X + 26, top + 22, tileW - 52, picH - 44, st.shade);
+      var picH = picH0;
+      /* Кадр займає всю верхню частину плитки — без власних полів навколо.
+         Обрізаємо його плиткою, тож закруглені кути згори лишаються, а
+         знизу кадр рівно межує з підписами. */
+      if(imgs[i] && imgs[i].im && isFinite(setS)){
+        x.save();
+        rr(x, X, top, tileW, tileH, 24); x.clip();
+        x.beginPath(); x.rect(X, top, tileW, picH); x.clip();
+        drawShot(x, imgs[i], setS, X, top, tileW, picH);
+        x.restore();
+      }
       else if(!(imgs[i] && imgs[i].im)) placeholder(x, X, top, tileW, picH, t.ink);
       var ty = top + picH + 30;
       x.fillStyle = t.ink; x.font = '600 30px ' + t.body;
@@ -1233,57 +1152,27 @@
 
     x.fillStyle = t.bg; x.fillRect(0, 0, W, H);
 
-    /* Стиль. Тінь ВИМАГАЄ прозорості — тож увімкнена тінь сама вмикає й
-       зняття фону: пропонувати менеджеру дві галочки, з яких одна без
-       другої не працює, означало б перекласти на нього нашу внутрішню
-       залежність. */
+    /* Фото товару йде на картку таким, яким його зняли. Ні зняття фону, ні
+       тіні тут більше немає: і те, і те вимагало прозорості, а разом із нею
+       — рівного тла в кожному мокапі, якого в житті немає. Замість цього
+       кадр просто заповнює плитку до країв (див. drawShot). */
     var notes = [], marks = [];
-    var st = {
-      marks: marks,
-      cutout: !!cfg.cutout || !!cfg.shade,
-      shade: SHADE[cfg.shade] || null,
-      bg: await loadImg(cfg.bg || '')
-    };
+    var st = { marks: marks, bg: await loadImg(cfg.bg || '') };
     var o = { logo: logo, sign: signText(offer), valid: validText(offer),
               logoK: +cfg.logo || 1, st: st };
 
     if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
-      paintSet(x, card, t, imgs.map(function(im){ return srcOf(im, st, notes); }), show, o, W);
+      paintSet(x, card, t, imgs.map(function(im){ return { im: im }; }), show, o, W);
     } else {
       var meta = card.shots || [];
-      /* Вирізане Photoroom підставляємо ЗАМІСТЬ оригіналу — по адресі, яку
-         дала адмінка. Словник приходить сюди готовим: картка сама нічого не
-         замовляє й не платить, вона лише бере те, що вже вирізане. */
-      var cuts = cfg.cuts || {};
-      var shots = await Promise.all(meta.map(async function(sh){
-        var u = sh && sh.url;
-        if(st.cutout && u && cuts[u]){
-          var ready = await loadImg(cuts[u]);
-          if(ready){ try{ ready.__lqReady = true; }catch(e){} return ready; }
-        }
-        return loadImg(u);
-      }));
+      var shots = await Promise.all(meta.map(function(sh){ return loadImg(sh && sh.url); }));
       var art = card.art ? await loadImg(card.art) : null;
       var srcs = shots.map(function(im, i){
         var sh = meta[i] || {};
-        /* Фото моделі НЕ чіпаємо зняттям фону: фон у нього справжній, і
-           заливка від країв зʼїла б половину кадру. */
-        var r = sh.model ? { im: im, cut: false } : srcOf(im, st, notes);
-        r.model = !!sh.model;
-        r.mark = sh.mark || null;
-        r.art = sh.model ? art : null;
-        return r;
+        return { im: im, model: !!sh.model, mark: sh.mark || null,
+                 art: sh.model ? art : null };
       });
-      /* АБО ВСІ КАДРИ ВИРІЗАНІ, АБО ЖОДЕН. Півкартки з прозорим тлом і
-         півкартки з білим прямокутником виглядає не як «одне не вийшло», а
-         як брак: клієнт бачить рвану галерею й не має способу зрозуміти,
-         чому. Краще рівна картка з фоном, ніж нерівна без нього. */
-      var wantCut = srcs.filter(function(r){ return !r.model && r.im; });
-      if(st.cutout && wantCut.length && wantCut.some(function(r){ return !r.cut; })){
-        srcs.forEach(function(r, i){ if(!r.model){ r.im = shots[i]; r.cut = false; } });
-        if(notes.indexOf(CUT_MIX) < 0) notes.push(CUT_MIX);
-      }
       paintCard(x, card, t, srcs, show, o, W);
     }
     /* Що пішло не так — віддаємо разом із полотном, а не в консоль: рішення
