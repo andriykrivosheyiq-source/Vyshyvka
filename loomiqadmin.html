@@ -14514,6 +14514,56 @@ const ICO = {
   cal:   '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v3M16 3.5v3"/></svg>'
 };
 let odFolds = {};
+/* ══════════ ІЗ ЧОГО СКЛАДЕНА КАРТКА ══════════
+   Картка — не суцільна сторінка, а список блоків, і в кожного є ключ.
+   Раніше цей список жив прямо в шаблоні, а виробнича й дизайнерська картки
+   були двома окремими сторінками, написаними руками. Через це поле, додане
+   менеджеру, у виробництва просто не зʼявлялось — і навпаки, щось могло
+   просочитись туди, де йому не місце. Помітити це можна було тільки очима
+   й тільки випадково.
+
+   Тепер список один, і поруч із кожним блоком написано, хто його бачить.
+   Це і є матриця доступу: не двадцять умов по коду, а одна колонка, яку
+   видно цілком.
+
+   `who` — це формат картки (ui), а не роль: ролей більше, ніж форматів, і
+   кілька ролей дивляться на замовлення одними очима.
+
+   Ще одне: виконавцю картка потрібна все рідше. Усе для роботи лежить у
+   самому дорученні — що зробити, від кого, чим закрити. Тому список для
+   дизайнера й виробництва короткий не тому, що ми щось ховаємо, а тому,
+   що їм це просто не потрібно. */
+const CARD_BLOCKS = [
+  { key:'next',  name:'наступна дія',      who:['manager'],                  make:o => odNextHtml(o),   bare:true },
+  { key:'trk',   name:'стан замовлення',   who:['manager'],                  make:o => odTracksHtml(o), bare:true },
+  { key:'rem',   name:'нагадування',       who:['manager'],                  make:o => odRemindFold(o) },
+  { key:'goods', name:'товари',            who:['manager'],                  make:o => odGoodsFold(o) },
+  { key:'extra', name:'додаткові продажі', who:['manager'],                  make:o => odExtraFold(o) },
+  { key:'art',   name:'макет',             who:['manager'],                  make:o => artFold(o) },
+  { key:'rep',   name:'повтор',            who:['manager'],                  make:o => repeatFold(o) },
+  { key:'buy',   name:'закупівля',         who:['manager'],                  make:o => buyFold(o) },
+  { key:'gate',  name:'ворота тиражу',     who:['manager'],                  make:o => gateFold(o) },
+  { key:'fp',    name:'перша одиниця',     who:['manager'],                  make:o => firstPieceFold(o) },
+  { key:'qc',    name:'контроль якості',   who:['manager'],                  make:o => qcFold(o) },
+  { key:'ship',  name:'відправка',         who:['manager'],                  make:o => shipFold(o) },
+  /* Гроші — тільки менеджерська картка, і це не налаштування, а правило:
+     біля машини ціна на екрані нікому не потрібна, а переплутати її з
+     потрібним полем колись устигнуть. */
+  { key:'pay',   name:'оплата',            who:['manager'], money:true,      make:o => odPayFold(o) },
+  { key:'fin',   name:'фінанси',           who:['manager'], money:true,      make:o => odFinFold(o) },
+  { key:'fact',  name:'факт проти плану',  who:['manager'], money:true,      make:o => factFold(o) },
+  { key:'crm',   name:'діалог з клієнтом', who:['manager'], client:true,
+    make:o => (canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
+      ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : '' },
+  { key:'log',   name:'що відбувалось',    who:['manager'],                  make:o => odLogFold(o) }
+];
+function cardBlocksFor(ui){
+  return CARD_BLOCKS.filter(b => b.who.indexOf(ui) >= 0);
+}
+function odBlocksHtml(o, ui){
+  return cardBlocksFor(ui).filter(b => !b.bare)
+    .map(b => odPart(() => b.make(o), b.name)).join('');
+}
 function odFoldHtml(key, title, sum, body){
   const on = !!odFolds[key];
   return `
@@ -15369,31 +15419,14 @@ function renderOrderDrawer(){
            відкривають картку, і сховану під смугу її просто не побачать.
            Нагадування ж мають дату — смуга сама скаже, коли й про що, тож
            тримати їх розгорнутими весь час немає потреби. */''}
-      ${odPart(()=> odNextHtml(o), 'наступна дія')}
-      ${odPart(()=> odTracksHtml(o), 'стан замовлення')}
+      ${cardBlocksFor('manager').filter(b => b.bare)
+          .map(b => odPart(() => b.make(o), b.name)).join('')}
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
       <textarea class="od-note od-f" data-f="note" rows="2"
         placeholder="Домовленості, які ніде більше не записані: «рахунок на ФОП», «передзвонити після 15:00»…">${escapeHtml(o.note||'')}</textarea>
 
-      <div class="od-folds">
-        ${odPart(()=> odRemindFold(o), 'нагадування')}
-        ${odPart(()=> odGoodsFold(o), 'товари')}
-        ${odPart(()=> odExtraFold(o), 'додаткові продажі')}
-        ${odPart(()=> artFold(o), 'макет')}
-        ${odPart(()=> repeatFold(o), 'повтор')}
-        ${odPart(()=> buyFold(o), 'закупівля')}
-        ${odPart(()=> gateFold(o), 'ворота тиражу')}
-        ${odPart(()=> firstPieceFold(o), 'перша одиниця')}
-        ${odPart(()=> qcFold(o), 'контроль якості')}
-        ${odPart(()=> shipFold(o), 'відправка')}
-        ${odPart(()=> odPayFold(o), 'оплата')}
-        ${odPart(()=> odFinFold(o), 'фінанси')}
-        ${odPart(()=> factFold(o), 'факт проти плану')}
-        ${(canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
-          ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : ''}
-        ${odPart(()=> odLogFold(o), 'що відбувалось')}
-      </div>
+      <div class="od-folds">${odBlocksHtml(o, 'manager')}</div>
 
       ${canDelete() ? '<button class="od-del-lite" data-act="del">Видалити картку</button>' : ''}
     </div>

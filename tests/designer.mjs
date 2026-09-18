@@ -211,6 +211,42 @@ ok(moved.track === 'check' && moved.col === 'На перевірці',
 ok(moved.status === 'paid',
   'етап продажу при цьому не зрушив — це різні речі',
   'дизайнер посунув продаж: ' + moved.status);
+console.log('');
+console.log('═══ МАТРИЦЯ ДОСТУПУ ДО БЛОКІВ ═══');
+/* Картка складена зі списку блоків, і поруч із кожним написано, хто його
+   бачить. Доти цей список жив у шаблоні, а виробнича й дизайнерська картки
+   були окремими сторінками — тож поле, додане менеджеру, у виробництва
+   просто не зʼявлялось, і помітити це можна було лише випадково. */
+const blocks = await p.evaluate(() => {
+  if(typeof CARD_BLOCKS === 'undefined') return { none:true };
+  const усі = CARD_BLOCKS.map(b => b.key);
+  const гроші = CARD_BLOCKS.filter(b => b.money).map(b => b.key);
+  const клієнт = CARD_BLOCKS.filter(b => b.client).map(b => b.key);
+  const безГоспода = CARD_BLOCKS.filter(b => !Array.isArray(b.who) || !b.who.length).map(b => b.key);
+  const чужі = CARD_BLOCKS.filter(b => (b.money || b.client) &&
+    b.who.some(w => w !== 'manager')).map(b => b.key);
+  return { усі, гроші, клієнт, безГоспода, чужі,
+           менеджеру: cardBlocksFor('manager').length,
+           дизайнеру: cardBlocksFor('designer').length,
+           виробництву: cardBlocksFor('production').length };
+});
+if(blocks.none){ console.log('  таблиці блоків немає'); bad++; }
+else {
+  console.log('   блоків: ' + blocks.усі.length + ' · менеджеру ' + blocks.менеджеру +
+              ' · дизайнеру ' + blocks.дизайнеру + ' · виробництву ' + blocks.виробництву);
+  console.log('   гроші: ' + blocks.гроші.join(', ') + ' · клієнт: ' + blocks.клієнт.join(', '));
+  ok(blocks.усі.length >= 15,
+    'картка складена зі списку блоків, і список видно цілком',
+    'блоків замало: ' + blocks.усі.length);
+  ok(!blocks.безГоспода.length,
+    'у кожного блока написано, хто його бачить — німих блоків немає',
+    'блоки без господаря: ' + blocks.безГоспода.join(', '));
+  ok(blocks.гроші.length >= 3 && !blocks.чужі.length,
+    'гроші й діалог із клієнтом — тільки менеджерська картка, і це правило, ' +
+      'а не налаштування: біля машини ціна на екрані нікому не потрібна',
+    'гроші або клієнт просочились: ' + blocks.чужі.join(', '));
+}
+
 await p.close();
 
 console.log('');
