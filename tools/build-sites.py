@@ -467,6 +467,12 @@ def main():
     except Exception as e:
         raise BuildError('каталог не зібрався: %s' % e)
 
+    # Під-сайти збираються з index.html — а його щойно переписала
+    # простановка версій. Читаємо заново: інакше в них лягає позначка
+    # ПОПЕРЕДНЬОГО прогону, адреса спільного файлу не змінюється, і браузер
+    # бере своє з кешу. Зовні це виглядає як «оновив, а змін не видно».
+    base_html = open(BASE, encoding='utf-8').read()
+
     wanted = sys.argv[1:] or list(config)
     failed = False
     for site in wanted:
