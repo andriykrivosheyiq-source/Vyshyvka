@@ -1995,7 +1995,27 @@
       var u = lx / box.w + 0.5, v = ly / box.h + 0.5;
       var mx = Math.min(mask.w - 1, Math.max(0, Math.floor(u * mask.w)));
       var my = Math.min(mask.h - 1, Math.max(0, Math.floor(v * mask.h)));
-      if(!layer.text) return !!mask.data[my * mask.w + mx];
+      if(!layer.text){
+        /* Не «влучив у піксель», а «влучив поруч». Логотип на фото моделі
+           дрібний, у знаку тонкі штрихи — вимагати попадання точно в лінію
+           означає зробити шар таким, що ловиться з третьої спроби. Андрій
+           саме на це й казав: «якось його важко рухається».
+
+           Запас беремо в ЕКРАННИХ пікселях і переводимо в клітинки маски,
+           щоб на дрібному шарі він не з'їв усю рамку, а на великому не став
+           непомітним. Шість пікселів — приблизно товщина пальця на око й
+           половина курсора. */
+        var cell = box.w / mask.w;
+        var slop = Math.max(0, Math.min(3, Math.round(6 / Math.max(1, cell))));
+        for(var sy = my - slop; sy <= my + slop; sy++){
+          if(sy < 0 || sy >= mask.h) continue;
+          for(var sx = mx - slop; sx <= mx + slop; sx++){
+            if(sx < 0 || sx >= mask.w) continue;
+            if(mask.data[sy * mask.w + sx]) return true;
+          }
+        }
+        return false;
+      }
       /* У напису беремо не саму літеру, а РЯДОК, у якому вона стоїть: є
          щось ліворуч і щось праворуч у цьому ж рядку — значить, точка
          всередині слова. Інакше проміжок між двома літерами провалювався
@@ -2119,7 +2139,14 @@
            за клік із перетягуванням самого шару, а нахил потрібен не
            щоразу — на мокапі виріб і так лежить пласко. */
         (active && !layer.text && pm.warpId === layer.id
-          ? quadOf(layer).map(function(pt, ci){
+          ? /* Контур чотирикутника. Без нього видно чотири кути й нічого
+               між ними: яку саме форму ти зараз ліпиш, доводиться уявляти,
+               а на прозорому логотипі — ще й вгадувати. */
+            '<svg class="pm-dl-quad" viewBox="0 0 1 1" preserveAspectRatio="none">' +
+              '<polygon points="' + quadOf(layer).map(function(pt){
+                return pt[0].toFixed(4) + ',' + pt[1].toFixed(4); }).join(' ') + '"/>' +
+            '</svg>' +
+            quadOf(layer).map(function(pt, ci){
               return '<b class="pm-dl-corner" data-corner="' + ci + '" style="left:' +
                      (pt[0] * bw).toFixed(1) + 'px;top:' + (pt[1] * bh).toFixed(1) + 'px"></b>';
             }).join('')
@@ -3504,6 +3531,9 @@
         cn.style.left = (pt[0] * bw).toFixed(1) + 'px';
         cn.style.top  = (pt[1] * bh).toFixed(1) + 'px';
       });
+      var poly = el.querySelector('.pm-dl-quad polygon');
+      if(poly) poly.setAttribute('points', q.map(function(pt){
+        return pt[0].toFixed(4) + ',' + pt[1].toFixed(4); }).join(' '));
     }
 
     function onImgDown(e, layer){
