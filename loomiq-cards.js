@@ -270,7 +270,18 @@
                          : null };
       }
       if(mp && mp.url){
-        out2.push({ url: mp.url, side:'', label:'', model: true, mark: mp.mark || null });
+        /* `baked` — знімок прийшов зі збирання, логотип на ньому вже
+           намальований там, де його поставив менеджер. Класти логотип
+           поверх удруге не можна: буде два.
+
+           Без цієї ознаки кадр — просто фото з каталогу, без нанесення.
+           Логотип на нього картка НЕ домальовує: свого місця вона не знає,
+           а якір «груди взагалі» ставив його мимо — саме про це й казав
+           Андрій, що на кожному другому кадрі лого виїхало вправо й униз.
+           Щоб нанесення зʼявилось, позицію досить перезберегти у збиранні:
+           звідти приїде знімок уже з ним. */
+        out2.push({ url: mp.url, side:'', label:'', model: true,
+                    mark: mp.mark || null, baked: !!mv });
       }
       /* ОБОВʼЯЗКОВІ ДВА КАДРИ: фото на моделі й мокап спереду. Далі —
          рівно ті сторони, на яких СПРАВДІ Є НАНЕСЕННЯ: спина, рукав, бік.
@@ -1008,133 +1019,31 @@
   /* Спільний кадр на весь ряд: підбираємо його так, щоб найбільший виріб
      ще вписався у відведений прямокутник. Далі всі малюються в тому самому
      масштабі — і стають зіставні між собою. */
-  var MARK0 = { cx: 0.5, cy: 0.45, w: 0.18 };
   /* Фото моделі заповнює колонку з обрізанням по центру й малюється від
      краю до краю панелі: живий кадр у білій рамці з полями виглядає як
-     чужа картинка, вставлена в наш бланк, а не як наш виріб на людині. */
-  /* ══════════ НАНЕСЕННЯ ПО ПЕРСПЕКТИВІ ══════════
-     Людина на фото стоїть під кутом, а логотип лягає пласким
-     прямокутником — і вся картка одразу виглядає наліпкою. Потрібно, щоб
-     нанесення лягало по формі тіла.
+     чужа картинка, вставлена в наш бланк, а не як наш виріб на людині.
 
-     Полотно так не вміє: drawImage знає лише зсув, масштаб і поворот.
-     Тому робимо те саме, що роблять усі редактори, — рахуємо перетворення
-     чотирикутника й малюємо картинку дрібною сіткою, де кожна клітинка
-     вже пласка. Десять на десять вистачає: шва не видно, а рахується це
-     швидше за саму перемальовку картки.
-
-     Перетворення саме ПРОЕКТИВНЕ, а не «розтягнути кути»: у проективного
-     дальній край стискається сам, як у житті. Розтягнутий виглядає
-     неправильно рівно тоді, коли нахил помітний, — тобто коли він і
-     потрібен. */
-  function homography(q){
-    var x0 = q[0][0], y0 = q[0][1], x1 = q[1][0], y1 = q[1][1];
-    var x2 = q[2][0], y2 = q[2][1], x3 = q[3][0], y3 = q[3][1];
-    var dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
-    var dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
-    var den = dx1 * dy2 - dx2 * dy1;
-    var g = den ? (dx3 * dy2 - dx2 * dy3) / den : 0;
-    var hh = den ? (dx1 * dy3 - dx3 * dy1) / den : 0;
-    return { a: x1 - x0 + g * x1, b: x3 - x0 + hh * x3, c: x0,
-             d: y1 - y0 + g * y1, e: y3 - y0 + hh * y3, f: y0, g: g, h: hh };
-  }
-  function hmap(H, u, v){
-    var w = H.g * u + H.h * v + 1;
-    if(!w) w = 1e-6;
-    return [ (H.a * u + H.b * v + H.c) / w, (H.d * u + H.e * v + H.f) / w ];
-  }
-  /* Один трикутник: клітинку сітки малюємо двома. Матриця рахується з
-     трьох точок — це звичайне афінне перетворення, яке полотно вже вміє. */
-  function triWarp(x, img, s0, s1, s2, d0, d1, d2){
-    var den = s0[0] * (s2[1] - s1[1]) - s1[0] * s2[1] + s2[0] * s1[1] +
-              (s1[0] - s2[0]) * s0[1];
-    if(!den) return;
-    var m11 = -(s0[1] * (d2[0] - d1[0]) - s1[1] * d2[0] + s2[1] * d1[0] +
-                (s1[1] - s2[1]) * d0[0]) / den;
-    var m12 =  (s1[1] * d2[1] + s0[1] * (d1[1] - d2[1]) - s2[1] * d1[1] +
-                (s2[1] - s1[1]) * d0[1]) / den;
-    var m21 =  (s0[0] * (d2[0] - d1[0]) - s1[0] * d2[0] + s2[0] * d1[0] +
-                (s1[0] - s2[0]) * d0[0]) / den;
-    var m22 = -(s1[0] * d2[1] + s0[0] * (d1[1] - d2[1]) - s2[0] * d1[1] +
-                (s2[0] - s1[0]) * d0[1]) / den;
-    var dx =  (s0[0] * (s2[1] * d1[0] - s1[1] * d2[0]) +
-               s0[1] * (s1[0] * d2[0] - s2[0] * d1[0]) +
-               (s2[0] * s1[1] - s1[0] * s2[1]) * d0[0]) / den;
-    var dy =  (s0[0] * (s2[1] * d1[1] - s1[1] * d2[1]) +
-               s0[1] * (s1[0] * d2[1] - s2[0] * d1[1]) +
-               (s2[0] * s1[1] - s1[0] * s2[1]) * d0[1]) / den;
-    x.save();
-    x.beginPath();
-    x.moveTo(d0[0], d0[1]); x.lineTo(d1[0], d1[1]); x.lineTo(d2[0], d2[1]);
-    x.closePath(); x.clip();
-    x.transform(m11, m12, m21, m22, dx, dy);
-    x.drawImage(img, 0, 0);
-    x.restore();
-  }
-  var WARP_N = 10;
-  function drawWarp(x, img, quad){
-    var H = homography(quad);
-    var iw = img.width, ih = img.height;
-    var pts = [];
-    for(var r = 0; r <= WARP_N; r++){
-      pts[r] = [];
-      for(var c2 = 0; c2 <= WARP_N; c2++) pts[r][c2] = hmap(H, c2 / WARP_N, r / WARP_N);
-    }
-    for(var rr = 0; rr < WARP_N; rr++){
-      for(var cc = 0; cc < WARP_N; cc++){
-        var u0 = cc / WARP_N * iw, u1 = (cc + 1) / WARP_N * iw;
-        var v0 = rr / WARP_N * ih, v1 = (rr + 1) / WARP_N * ih;
-        /* Клітинки перекриваємо на піксель: інакше між ними лишаються
-           волосяні щілини, і логотип виглядає посіченим сіткою. */
-        var s00 = [u0, v0], s10 = [u1 + 1, v0], s11 = [u1 + 1, v1 + 1], s01 = [u0, v1 + 1];
-        var d00 = pts[rr][cc], d10 = pts[rr][cc + 1];
-        var d11 = pts[rr + 1][cc + 1], d01 = pts[rr + 1][cc];
-        triWarp(x, img, s00, s10, s11, d00, d10, d11);
-        triWarp(x, img, s00, s11, s01, d00, d11, d01);
-      }
-    }
-  }
-  /* Чотирикутник нанесення в пікселях кадру. Простий випадок — прямокутник
-     із поворотом; якщо менеджер тягнув кути, беремо саме їх. */
-  function markQuad(m, ix, iy, iw, ih, aw, ah){
-    if(m && m.quad && m.quad.length === 4)
-      return m.quad.map(function(p){ return [ix + p[0] * iw, iy + p[1] * ih]; });
-    var lw = m.w * iw, lh = lw * (ah / aw || 1);
-    var cx = ix + m.cx * iw, cy = iy + m.cy * ih;
-    var a = (+m.rot || 0) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
-    return [[-lw / 2, -lh / 2], [lw / 2, -lh / 2], [lw / 2, lh / 2], [-lw / 2, lh / 2]]
-      .map(function(p){
-        return [cx + p[0] * cs - p[1] * sn, cy + p[0] * sn + p[1] * cs];
-      });
-  }
-
-  function drawModel(x, sr, X, Y, w, h, out){
+     ПЕРСПЕКТИВА ЖИВЕ У ЗБИРАННІ, не тут. Її код поїхав у конструктор
+     разом із самим розміщенням: там менеджер ставить логотип на модель і
+     там же кладе його по формі тіла, а сюди приїжджає вже готовий знімок.
+     Тримати тут другий екземпляр тієї самої математики означало б мати
+     два уявлення про те, як виглядає нанесення. */
+  function drawModel(x, sr, X, Y, w, h){
     var im = sr.im;
     x.save();
     rr(x, X, Y, w, h, 24); x.clip();
     var k = Math.max(w / im.width, h / im.height);
     var iw = im.width * k, ih = im.height * k;
     var ix = X + (w - iw) / 2, iy = Y + (h - ih) / 2;
+    /* Кадр малюється як є. Логотипа картка не кладе: де він стоїть —
+       вирішено у збиранні, і знімок звідти вже з ним.
+
+       Доти картка ставила його сама, за якорем із каталогу: «груди» на
+       фото взагалі, а не на цьому. Виходило мимо — вправо й униз майже
+       на кожному кадрі, — і полагодити це в самій картці було нічим:
+       правильного місця вона просто не знала. Одне джерело правди тут
+       важливіше за можливість підправити наслідок. */
     x.drawImage(im, ix, iy, iw, ih);
-    if(sr.art && !(sr.mark && sr.mark.off)){
-      var m = sr.mark || MARK0;
-      var quad = markQuad(m, ix, iy, iw, ih, sr.art.width, sr.art.height);
-      var qx = quad.map(function(p){ return p[0]; });
-      var qy = quad.map(function(p){ return p[1]; });
-      var lx = Math.min.apply(null, qx), ly = Math.min.apply(null, qy);
-      var lw = Math.max.apply(null, qx) - lx, lh = Math.max.apply(null, qy) - ly;
-      /* Прямий прямокутник малюємо як малювали: сітка тут нічого не додасть,
-         а зайвих сто трикутників на кожну перемальовку — додасть. */
-      if(!m.quad && !+m.rot) x.drawImage(sr.art, lx, ly, lw, lh);
-      else drawWarp(x, sr.art, quad);
-      /* Куди саме ліг логотип — віддаємо назовні. Робоче місце малює
-         поверх цього місця рамку, за яку тягнуть, і рахувати ту саму
-         геометрію вдруге там означало б два різні уявлення про те, де
-         логотип: одне в файлі, друге під мишею. */
-      if(out) out.push({ photo: { x: ix, y: iy, w: iw, h: ih },
-                         logo: { x: lx, y: ly, w: lw, h: lh },
-                         quad: quad });
-    }
     x.restore();
   }
   /* Спільний масштаб ряду — один на всі знімки картки, інакше перед і зад
@@ -1202,7 +1111,7 @@
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
       var sr = srcs[i];
-      if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h, st.marks); continue; }
+      if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h); continue; }
       shotPanel(x, t, cx, Y, cw, h, st.bg, sr && sr.im ? tintOf(sr.im) : null);
       if(sr && sr.im && isFinite(S)){
         x.save();
@@ -1360,12 +1269,12 @@
        тіні тут більше немає: і те, і те вимагало прозорості, а разом із нею
        — рівного тла в кожному мокапі, якого в житті немає. Замість цього
        кадр просто заповнює плитку до країв (див. drawShot). */
-    var notes = [], marks = [];
+    var notes = [];
     if(card.lost && card.lost.length)
       notes.push('Немає фото для сторін із нанесенням: ' + card.lost.join(', ') +
                  '. Додайте ракурс у складі пропозиції — інакше клієнт не побачить ' +
                  'половини роботи.');
-    var st = { marks: marks, bg: await loadImg(cfg.bg || '') };
+    var st = { bg: await loadImg(cfg.bg || '') };
     var o = { logo: logo, sign: signText(offer), valid: validText(offer),
               logoK: +cfg.logo || 1, st: st };
 
@@ -1375,18 +1284,14 @@
     } else {
       var meta = card.shots || [];
       var shots = await Promise.all(meta.map(function(sh){ return loadImg(sh && sh.url); }));
-      var art = card.art ? await loadImg(card.art) : null;
       var srcs = shots.map(function(im, i){
-        var sh = meta[i] || {};
-        return { im: im, model: !!sh.model, mark: sh.mark || null,
-                 art: sh.model ? art : null };
+        return { im: im, model: !!(meta[i] || {}).model };
       });
       paintCard(x, card, t, srcs, show, o, W);
     }
     /* Що пішло не так — віддаємо разом із полотном, а не в консоль: рішення
        тут ухвалює менеджер, і побачити це має він. */
     cv.lqNotes = notes;
-    cv.lqMark = marks[0] || null;
     return cv;
   }
 
@@ -1403,7 +1308,6 @@
   window.LQCards = {
     H: H, sheetW: sheetW,
     TEMPLATES: TEMPLATES, FIELDS: FIELDS, WARN: WARN,
-    MARK0: MARK0, homography: homography, hmap: hmap,
     build: buildCards, draw: drawCard, fileName: fileName, money: money
   };
 })();

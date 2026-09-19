@@ -4500,13 +4500,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6149df294b"></script>
-<script src="loomiq-fingerprint.js?v=6149df294b"></script>
-<script src="loomiq-pricing.js?v=6149df294b"></script>
+<script src="loomiq-select.js?v=986f942b53"></script>
+<script src="loomiq-fingerprint.js?v=986f942b53"></script>
+<script src="loomiq-pricing.js?v=986f942b53"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=6149df294b"></script>
+<script src="loomiq-design.js?v=986f942b53"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9271,10 +9271,28 @@ function itemAbout(it){
   const t = gid && contentData.descriptions && contentData.descriptions[gid];
   return String(t || '').trim().slice(0, 1600);
 }
+/* Стандартні характеристики — ті самі, що показує сторінка товару, коли
+   менеджер своїх не заводив. Список живе тут, вище за обидва місця, де він
+   потрібен: і збірка позиції для пропозиції, і редактор картки товару
+   мусять брати його з одного джерела, інакше вони розійдуться. */
+const DEFAULT_SPECS = [
+  {label:'Матеріал', value:'100% бавовна'}, {label:'Щільність', value:'240 г/м²'},
+  {label:'Крій', value:'оверсайз'}, {label:'Формат', value:'унісекс'},
+  {label:'Нанесення', value:'DTF друк та вишивка'}
+];
 function itemSpecs(it){
   const gid = itemGarmentId(it);
   const custom = gid && contentData.specs && contentData.specs[gid];
-  const rows = (custom && custom.length) ? custom : [];
+  /* Свої характеристики зберігаються тільки тоді, коли менеджер їх
+     ЗМІНИВ: збіг зі стандартними в базу не пишеться. Тому «власних немає»
+     означає не «характеристик немає», а «стоять стандартні» — рівно ті,
+     що сторінка товару й показує.
+
+     Брати тут порожнечу було помилкою: на сайті у «Футболки базової»
+     характеристики є, менеджер їх бачить, а в пропозицію не доїжджало
+     нічого — і клієнт читав саму назву. Джерело одне: що показує
+     сторінка товару, те й їде в пропозицію. */
+  const rows = (custom && custom.length) ? custom : DEFAULT_SPECS;
   /* Дванадцять, а не шість. Шість — це половина того, що менеджер задає в
      картці товару: склад тканини, щільність, крій, комір, манжет, посадка,
      догляд. Обрізане навпіл читається як «тут усе», хоч половина лишилась
@@ -21653,11 +21671,6 @@ function updateMarginHint(){
 }
 
 /* ---------- Назва, опис і характеристики ---------- */
-const DEFAULT_SPECS = [
-  {label:'Матеріал', value:'100% бавовна'}, {label:'Щільність', value:'240 г/м²'},
-  {label:'Крій', value:'оверсайз'}, {label:'Формат', value:'унісекс'},
-  {label:'Нанесення', value:'DTF друк та вишивка'}
-];
 function currentSpecRows(){
   const custom = contentData.specs && contentData.specs[photoGarmentId];
   return (custom && custom.length) ? custom.map(r=>({...r})) : DEFAULT_SPECS.map(r=>({...r}));
