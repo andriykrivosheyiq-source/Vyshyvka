@@ -1366,6 +1366,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   /* Обрізати — четверта ручка шару, поруч із рештою */
   .pm-dl-handle--crop{bottom:-14px;left:-14px;cursor:pointer;}
+  /* Перспектива — пʼята ручка, знизу посередині: усі чотири кути вже
+     зайняті, а класти дві дії в один кут означає промахуватись. */
+  .pm-dl-handle--warp{bottom:-14px;left:50%;margin-left:-12px;cursor:pointer;}
+  .pm-dl-handle--warp.on{background:#111;border-color:#111;}
+  .pm-dl-handle--warp.on svg{stroke:#fff;}
+  /* Кути нахилу. Квадратні й темні — щоб не плутались із круглими білими
+     ручками звичайного шару: це інший режим, і виглядати він має інакше. */
+  .pm-dl-corner{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;z-index:31;
+    background:#fff;border:2px solid #111;border-radius:3px;cursor:crosshair;
+    box-shadow:0 1px 4px rgba(0,0,0,.25);touch-action:none;}
   .pm-dl-handle--scale svg{transform:rotate(90deg);}
   /* Стрілки — по краях фото, як і були: саме вони перемикають. */
   .pm-side-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:8;
@@ -6579,12 +6589,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6149df294b"></script>
-<script src="loomiq-fingerprint.js?v=6149df294b"></script>
-<script src="loomiq-pricing.js?v=6149df294b"></script>
+<script src="loomiq-select.js?v=5bc1d88680"></script>
+<script src="loomiq-fingerprint.js?v=5bc1d88680"></script>
+<script src="loomiq-pricing.js?v=5bc1d88680"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=6149df294b"></script>
+<script src="loomiq-constructor.js?v=5bc1d88680"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

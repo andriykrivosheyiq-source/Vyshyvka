@@ -819,25 +819,6 @@
     padding-top:10px; margin-top:2px; border-top:1px solid #EEF2F7;}
   .cd-adv.hide{display:none;}
   .cd-prev{position:relative;}
-  /* Рамка нанесення. Сама рамка — прямокутник навколо всього, а справжню
-     форму (з нахилом) малює багатокутник усередині: тільки він і показує,
-     як нанесення справді ляже. */
-  .cd-mark{position:absolute; cursor:move; touch-action:none; z-index:3;}
-  .cd-mark-l{position:absolute; inset:0; width:100%; height:100%; overflow:visible;
-    pointer-events:none;}
-  .cd-mark-l polygon{fill:rgba(79,95,212,.10); stroke:#4F5FD4; stroke-width:2;
-    stroke-dasharray:5 4;}
-  .cd-mark .cd-h{position:absolute; width:15px; height:15px; margin:-8px 0 0 -8px;
-    background:#fff; border:2px solid #4F5FD4; border-radius:3px; cursor:crosshair;}
-  .cd-mark .cd-rot,.cd-mark .cd-del{position:absolute; width:22px; height:22px;
-    display:flex; align-items:center; justify-content:center; font-size:13px;
-    font-weight:700; color:#4F5FD4; background:#fff; border:1.5px solid #D8DAF0;
-    border-radius:11px; box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer;}
-  .cd-mark .cd-rot{right:-11px; top:-11px; cursor:grab;}
-  .cd-mark .cd-del{left:-11px; top:-11px; color:#B4324A; border-color:#F0D3D9;}
-  .cd-mark i{position:absolute; left:0; bottom:-22px; font-style:normal; font-size:10.5px;
-    font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#4F5FD4;
-    background:#fff; border-radius:4px; padding:1px 5px; white-space:nowrap;}
   .cd-warn{align-self:stretch; font-size:12px; line-height:1.5; color:#8A5A1F;
     background:#FFF6E6; border:1px solid #F2DFB8; border-radius:9px; padding:8px 11px;}
 
@@ -939,21 +920,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=6149df294b',
+    ['loomiq-select.js?v=5bc1d88680',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=6149df294b'].forEach(function(src){
+     'loomiq-cards.js?v=5bc1d88680'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=6149df294b';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=6149df294b';
-  var CTOR_JS   = 'loomiq-constructor.js?v=6149df294b';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=6149df294b';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=5bc1d88680';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=5bc1d88680';
+  var CTOR_JS   = 'loomiq-constructor.js?v=5bc1d88680';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=5bc1d88680';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2129,7 +2110,6 @@
         box.innerHTML = say.map(esc).join('<br>');
         box.style.display = say.length ? '' : 'none';
       }
-      markUi(cv, c, cfg);
     }, function(e){
       if(id !== cardDrawId) return;
       prev.innerHTML = '<div class="cd-note">Картку намалювати не вдалось: ' +
@@ -2137,162 +2117,19 @@
     });
   }
 
-  /* ══════════ ЛОГОТИП НА ФОТО МОДЕЛІ ══════════
-     Фото моделі — не мокап: зони нанесення в ньому немає, тож автоматично
-     покласти туди логотип неможливо. Ставить його менеджер — так само, як
-     у конструкторі ставить нанесення на одяг: бере, тягне, за кут міняє
-     розмір.
+  /* ══════════ ЧОМУ ТУТ НЕМА РЕДАКТОРА НАНЕСЕННЯ ══════════
+     Був: логотип на фото моделі ставили просто в картці — тягнули, крутили,
+     нахиляли по перспективі. Місце вибрано неправильно, і це видно з
+     наслідку: картка не знає, де на виробі стоїть нанесення, тож починала
+     вигадувати його сама, а потім людина руками виправляла вигадане.
 
-     Положення зберігаємо ЧАСТКАМИ від фото, а не пікселями. Аркуш у нас
-     розсувається від кількості колонок, preview масштабується під ширину
-     вікна, а файл виходить утричі більший за preview — у пікселях те саме
-     місце щоразу інше, у частках воно одне. */
-  /* ══════════ НАНЕСЕННЯ НА ФОТО МОДЕЛІ ══════════
-     Розміщення тут робиться руками — автоматично його не перенести: на
-     фото інша людина в іншому одязі, і наших міліметрів там немає.
+     Тепер джерело одне — ЗБИРАННЯ. Там менеджер вибирає товар, ставить
+     логотип на перед, на спину і на модель, там же й нахиляє його по
+     перспективі. Сюди приїжджає готовий знімок.
 
-     Але набір інструментів має бути той самий, що в конструкторі, інакше
-     людина щоразу згадує, що «тут можна менше». Тож: перенести, змінити
-     розмір, повернути, нахилити по перспективі, прибрати.
-
-     Перспектива — не забаганка: люди на фото стоять під кутом, і плаский
-     прямокутник на грудях виглядає наліпкою. Тягнеш кут — і нанесення
-     лягає по формі. */
-  function markUi(cv, card, cfg){
-    var prev = document.getElementById('cdPrev');
-    var old = prev.querySelector('.cd-mark');
-    if(old){ if(old.__off) old.__off(); old.remove(); }
-    var m = cv.lqMark;
-    if(!m || !card || card.type === 'set') return;
-
-    var own = cardsOwn(card.id);
-    var k = function(){ return cv.clientWidth / cv.width || 1; };
-    var P = m.photo;
-
-    /* Працюємо чотирикутником у частках фото: він однаково описує і
-       простий прямокутник, і повернутий, і нахилений. Пишемо назад теж
-       його — тоді малювальник і редактор бачать те саме. */
-    var quad = (m.quad || []).map(function(p){
-      return [(p[0] - P.x) / P.w, (p[1] - P.y) / P.h];
-    });
-    if(quad.length !== 4) return;
-
-    var box = document.createElement('div');
-    box.className = 'cd-mark';
-    box.innerHTML =
-      '<svg class="cd-mark-l"><polygon points=""></polygon></svg>' +
-      '<i>Тягніть · кути дають перспективу</i>' +
-      '<b class="cd-h cd-h0" data-c="0"></b><b class="cd-h cd-h1" data-c="1"></b>' +
-      '<b class="cd-h cd-h2" data-c="2"></b><b class="cd-h cd-h3" data-c="3"></b>' +
-      '<b class="cd-rot" title="Повернути">⟳</b>' +
-      '<b class="cd-del" title="Прибрати нанесення">✕</b>';
-    prev.appendChild(box);
-
-    var paint = function(){
-      var s = k();
-      var xs = quad.map(function(p){ return P.x + p[0] * P.w; });
-      var ys = quad.map(function(p){ return P.y + p[1] * P.h; });
-      var x0 = Math.min.apply(null, xs), y0 = Math.min.apply(null, ys);
-      var x1 = Math.max.apply(null, xs), y1 = Math.max.apply(null, ys);
-      box.style.left   = (cv.offsetLeft + x0 * s) + 'px';
-      box.style.top    = (cv.offsetTop + y0 * s) + 'px';
-      box.style.width  = ((x1 - x0) * s) + 'px';
-      box.style.height = ((y1 - y0) * s) + 'px';
-      var poly = box.querySelector('polygon');
-      poly.setAttribute('points', xs.map(function(vx, i){
-        return ((vx - x0) * s) + ',' + ((ys[i] - y0) * s); }).join(' '));
-      box.querySelectorAll('.cd-h').forEach(function(hbtn){
-        var i = +hbtn.dataset.c;
-        hbtn.style.left = ((xs[i] - x0) * s) + 'px';
-        hbtn.style.top  = ((ys[i] - y0) * s) + 'px';
-      });
-    };
-    paint();
-
-    var drag = null;
-    var down = function(e, mode, corner){
-      e.preventDefault(); e.stopPropagation();
-      var p = e.touches ? e.touches[0] : e;
-      drag = { mode: mode, corner: corner, x: p.clientX, y: p.clientY,
-               q: quad.map(function(pt){ return pt.slice(); }) };
-    };
-    box.addEventListener('mousedown', function(e){ down(e, 'move'); });
-    box.addEventListener('touchstart', function(e){ down(e, 'move'); }, { passive:false });
-    box.querySelectorAll('.cd-h').forEach(function(hbtn){
-      hbtn.addEventListener('mousedown', function(e){ down(e, 'corner', +hbtn.dataset.c); });
-      hbtn.addEventListener('touchstart', function(e){ down(e, 'corner', +hbtn.dataset.c); },
-        { passive:false });
-    });
-    var rotB = box.querySelector('.cd-rot');
-    rotB.addEventListener('mousedown', function(e){ down(e, 'rot'); });
-    rotB.addEventListener('touchstart', function(e){ down(e, 'rot'); }, { passive:false });
-    box.querySelector('.cd-del').addEventListener('click', function(e){
-      e.preventDefault(); e.stopPropagation();
-      /* Прибрати — це «не показувати нанесення на цьому фото», а не
-         «видалити логотип із замовлення». Друге робиться в конструкторі. */
-      own.mark = { off: true };
-      cardsChanged();
-    });
-
-    var mid = function(q){
-      var sx = 0, sy = 0;
-      q.forEach(function(p){ sx += p[0]; sy += p[1]; });
-      return [sx / 4, sy / 4];
-    };
-    var move = function(e){
-      if(!drag) return;
-      e.preventDefault();
-      var p = e.touches ? e.touches[0] : e, s = k();
-      var dx = (p.clientX - drag.x) / s / P.w, dy = (p.clientY - drag.y) / s / P.h;
-      if(drag.mode === 'move'){
-        quad = drag.q.map(function(pt){ return [pt[0] + dx, pt[1] + dy]; });
-      } else if(drag.mode === 'corner'){
-        quad = drag.q.map(function(pt){ return pt.slice(); });
-        quad[drag.corner] = [drag.q[drag.corner][0] + dx, drag.q[drag.corner][1] + dy];
-      } else {
-        /* Поворот навколо центра. Кут беремо з горизонтального зсуву —
-           так само, як це роблять у конструкторі: тягнеш убік, воно
-           крутиться, і не треба ловити мишею дугу. */
-        var c = mid(drag.q), a = dx * 3.2;
-        var cs = Math.cos(a), sn = Math.sin(a);
-        /* Фото не квадратне, тож перед поворотом переводимо в однакові
-           одиниці, інакше коло виходить овалом. */
-        var ar = P.w / P.h;
-        quad = drag.q.map(function(pt){
-          var ux = (pt[0] - c[0]) * ar, uy = pt[1] - c[1];
-          return [c[0] + (ux * cs - uy * sn) / ar, c[1] + (ux * sn + uy * cs)];
-        });
-      }
-      paint();
-    };
-    var up = function(){
-      if(!drag) return;
-      drag = null;
-      own.mark = {
-        quad: quad.map(function(p){ return [p[0], p[1]]; }),
-        /* Центр і ширину лишаємо теж: за ними малюються старі картки й
-           читається розмір, коли кути ніхто не чіпав. */
-        cx: mid(quad)[0], cy: mid(quad)[1],
-        w: Math.max.apply(null, quad.map(function(p){ return p[0]; })) -
-           Math.min.apply(null, quad.map(function(p){ return p[0]; }))
-      };
-      cardsChanged();
-    };
-    document.addEventListener('mousemove', move);
-    document.addEventListener('touchmove', move, { passive:false });
-    document.addEventListener('mouseup', up);
-    document.addEventListener('touchend', up);
-    /* Знімаємо слухачі разом із рамкою: preview перемальовується на кожну
-       зміну налаштувань, і без цього за півгодини роботи на документі
-       висіли б сотні однакових обробників. */
-    box.__off = function(){
-      document.removeEventListener('mousemove', move);
-      document.removeEventListener('touchmove', move);
-      document.removeEventListener('mouseup', up);
-      document.removeEventListener('touchend', up);
-    };
-  }
-
+     Картка — це те, що побачить клієнт. Дивитись, як воно вийшло, тут
+     можна; пересувати — ні: інакше «як воно насправді» знову розʼїдеться
+     з тим, що показано. */
 
   /* Файли віддаємо адмінці байтами: завантаження з верхнього вікна
      надійніше, а архів і латинські імена файлів вона вже вміє — писати це

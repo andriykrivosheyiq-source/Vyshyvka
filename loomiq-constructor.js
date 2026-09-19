@@ -343,9 +343,43 @@
     function sideLabelOf(gid, id){
       var f = adminSides(gid).filter(function(s){ return s && s.id === id; })[0];
       if(f && f.label) return f.label;
-      return { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік' }[id] || id;
+      return { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік',
+               model:'На моделі' }[id] || id;
     }
     window.__sideLabel = sideLabelOf;
+    /* ══════════ РАКУРС «НА МОДЕЛІ» ══════════
+       Мокап показує виріб, але не показує, що це одяг: клієнт у Direct
+       дивиться на розкладений силует і мусить уявити його на комусь.
+
+       Ракурс тут рівно такий самий, як перед і спина: та сама сцена, ті
+       самі інструменти, логотип ставлять руками. Через це і знімок із
+       нього виходить тим самим шляхом — і картка вже нічого не розміщує
+       сама. Доти вона брала якір із каталогу й ставила логотип туди, де
+       груди «взагалі», а не туди, куди його поставив менеджер: на кожному
+       другому кадрі він виїжджав убік і вниз.
+
+       Ціни ракурс не торкається. Це вітрина того самого нанесення, а не
+       ще одне нанесення: порахувати його означало б продати клієнту
+       логотип двічі. Тому всі підрахунки — вартість, площа, кольори DTF,
+       перелік `prints` — ходять через printViews(), де його немає. */
+    var MODEL_VIEW = 'model';
+    function modelPhotoOf(gid){
+      /* Фото одне — найперше. Їх у каталозі кілька (пара, чоловік, жінка,
+         пара ззаду), але ракурс не галерея: другий кадр тієї самої сцени
+         нічого не додає, а вибір між ними — це ще одне рішення на порожньому
+         місці. */
+      var list = MODEL_PHOTOS[gid];
+      return (list && list[0]) || null;
+    }
+    function modelPhotoSrc(gid){
+      var p = modelPhotoOf(gid);
+      return p ? window.LQ_img('images/' + p.src + '.webp') : '';
+    }
+    function hasModelView(gid){ return !!modelPhotoOf(gid); }
+    // Сторони, на яких СПРАВДІ є нанесення: усе, крім вітрини
+    function printViews(){
+      return getViews().filter(function(v){ return v !== MODEL_VIEW; });
+    }
     function getViews(){
       var saved = adminSides(pm.garmentId);
       var base;
@@ -370,7 +404,12 @@
       // порядок фото, заданий перетягуванням в адмінці (viewOrder)
       var order = ((window.SITE_CONTENT.viewOrder || {})[pm.garmentId]) || [];
       var known = order.filter(function(v){ return base.indexOf(v) !== -1; });
-      return known.concat(base.filter(function(v){ return known.indexOf(v) === -1; }));
+      var out = known.concat(base.filter(function(v){ return known.indexOf(v) === -1; }));
+      /* «На моделі» — останнім. Робота починається з переду, а вітрина —
+         це те, чим вона закінчується: спершу поставили логотип, потім
+         подивились, як воно виглядає на людині. */
+      if(hasModelView(pm.garmentId) && out.indexOf(MODEL_VIEW) < 0) out.push(MODEL_VIEW);
+      return out;
     }
 
     // ---- Власні товари з адмінки (SITE_CONTENT.products) ----
@@ -497,7 +536,7 @@
     // Надбавка за розмір друку: ~25 см ширини ≈ +550 грн (рахуємо всі шари, фронт+бек)
     function logoSurcharge(){
       var total = 0;
-      getViews().forEach(function(side){
+      printViews().forEach(function(side){
         (pm.logos[side]||[]).forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
       });
       return total;
@@ -517,7 +556,7 @@
     // Ключ — origUrl (оригінальний завантажений файл), стабільний і при перемиканні фону.
     function uniqueDesignCount(){
       var seen = {}, n = 0;
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
         var key = l.origUrl || l.url || '';
         if(key && !seen[key]){ seen[key] = 1; n++; }
       }); });
@@ -545,7 +584,7 @@
        за звичайний текст рахувалась разова як за логотип. */
     function feeKindsHere(){
       var out = {};
-      getViews().forEach(function(s){
+      printViews().forEach(function(s){
         (pm.logos[s] || []).forEach(function(l){ out[isTextLayer(l) ? 'txt' : 'img'] = 1; });
       });
       return Object.keys(out);
@@ -588,7 +627,7 @@
       var m = methodCfgNew() || {};
       var grid = m.mode === 'grid';
       var out = [];
-      getViews().forEach(function(side){
+      printViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
           out.push({ side: side, l: l,
             band: grid ? dtfBandCol(m, l) : 0,
@@ -617,12 +656,12 @@
     }
     function applicationRawSum(uOverride){
       var m = methodCfgNew(); if(!m) return 0; var s = 0;
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
         s += (m.mode === 'grid') ? dtfGridRaw(m, l, uOverride) : placementRaw(m, l);
       }); });
       return s;
     }
-    function logoCount(){ var n = 0; getViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
+    function logoCount(){ var n = 0; printViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
     // собівартість за штуку = одяг + нанесення + оплата за штуку
     function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
     /* Собівартість позиції = собівартість за штуку × тираж, і разова
@@ -1096,7 +1135,7 @@
        «Перерахувати дизайни за макетами». */
     function remeasureMissing(){
       var jobs = [];
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
         ensureFp(l);                       // одразу, синхронно — щоб ціна не брехала й секунди
         if(!l.text && l.url && String(l.fp || '').indexOf('u:') === 0)
           jobs.push(measureLayerShape(l, l.url).catch(function(){}));
@@ -1109,7 +1148,7 @@
     // Шар за номером дизайну — тим самим, у якому їх бачить рушій цін
     function layerAtDesign(di){
       var n = 0, out = null;
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
         if(n++ === di) out = l; }); });
       return out;
     }
@@ -1175,7 +1214,7 @@
     function applicationCostNew(){ var ap = applicationParts(); return ap.coefPart + ap.flatPart; }
     function totalAreaMm2(){
       var a = 0;
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ a += layerAreaMm2(l); }); });
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ a += layerAreaMm2(l); }); });
       return a;
     }
     function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
@@ -1290,12 +1329,12 @@
       var m = methodCfgNew();
       var ap = applicationParts();
       var fps = [], kinds = [], mm2s = [];
-      getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
         fps.push(ensureFp(l)); kinds.push(layerKind(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
-        getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
+        printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
       }
       return {
         method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
@@ -1666,9 +1705,14 @@
       var hx = c.hex.replace('#',''), lr = parseInt(hx.substr(0,2),16), lg = parseInt(hx.substr(2,2),16), lb = parseInt(hx.substr(4,2),16);
       pmUploadZone.classList.toggle('pm-upload-zone--dark', (0.299*lr + 0.587*lg + 0.114*lb) > 170);
       // крій має реальні фото-мокапи по кольорах; для власних товарів — лише якщо фото цього боку завантажене
-      var usePhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+pm.side]);
+      /* Фото на моделі одне на крій і від кольору не залежить: це знімок
+         сцени, а не виробу в конкретному кольорі. Тому й береться воно
+         повз звичайну адресу «крій-колір-сторона». */
+      var modelSrc = pm.side === MODEL_VIEW ? modelPhotoSrc(g.id) : '';
+      var usePhoto = !!modelSrc ||
+        (!!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+pm.side]));
       if(usePhoto){
-        var src = window.LQ_img('images/'+g.id+'-'+c.id+'-'+pm.side+'.webp');
+        var src = modelSrc || window.LQ_img('images/'+g.id+'-'+c.id+'-'+pm.side+'.webp');
         if(pmGarmentPhoto.getAttribute('src') !== src) pmGarmentPhoto.setAttribute('src', src);
         pmGarmentPhoto.style.display = '';
         pmGarmentSvg.style.display = 'none';
@@ -1733,6 +1777,27 @@
        розтягнути, обрізати. Доти воно ховалось окремою кнопкою в
        менеджерських інструментах, і на самому дизайні його ніхто не шукав. */
     var HANDLE_CROP_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>';
+    // Нахил: площина, що йде в глибину — рівно те, що ручка й робить
+    var HANDLE_WARP_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10l3 14H4z"/></svg>';
+    /* Чотирикутник шару за замовчуванням — власна рамка як є. Нахилу
+       немає доти, доки менеджер не потягнув кут. */
+    var QUAD0 = [[0,0],[1,0],[1,1],[0,1]];
+    function quadOf(l){ return (l && l.quad && l.quad.length === 4) ? l.quad : QUAD0; }
+    /* Чотирикутник → CSS-перетворення. matrix3d бере ту саму проективну
+       матрицю, що й полотно, тільки стовпцями і з двома зайвими рядками на
+       третій вимір, якого в нас немає. Масштаб 1/bw, 1/bh — бо матриця
+       рахована для одиничного квадрата, а застосовується до рамки в
+       пікселях. */
+    function quadCss(l, bw, bh){
+      if(!l || !l.quad || l.quad.length !== 4 || !(bw > 0) || !(bh > 0)) return '';
+      var H = homography(l.quad.map(function(p){ return [p[0] * bw, p[1] * bh]; }));
+      return 'matrix3d(' + [
+        H.a / bw, H.d / bw, 0, H.g / bw,
+        H.b / bh, H.e / bh, 0, H.h / bh,
+        0, 0, 1, 0,
+        H.c, H.f, 0, 1
+      ].join(',') + ')';
+    }
 
     // Розміри рамки шару — в одному місці: їх треба і при побудові, і при
     // правці на місці, коли шар перебудовувати не можна (загубиться каретка).
@@ -2009,6 +2074,7 @@
               styleTextEl(tx, layer.text, bh);
               tx.setAttribute('contenteditable', 'true');   // це і є той, що в правці
             }
+            applyLayerWarp(ex, layer, bw, bh);
             applyInkFrame(ex, layer);
             return;
           }
@@ -2045,11 +2111,23 @@
             '<div class="pm-dl-handle pm-dl-handle--scale" data-handle="scale">'+HANDLE_SCALE_SVG+'</div>' +
             (layer.text ? '' :
               '<div class="pm-dl-handle pm-dl-handle--crop" data-handle="crop" ' +
-              'title="Обрізати по краях">'+HANDLE_CROP_SVG+'</div>')
+              'title="Обрізати по краях">'+HANDLE_CROP_SVG+'</div>' +
+              '<div class="pm-dl-handle pm-dl-handle--warp' + (pm.warpId === layer.id ? ' on' : '') +
+              '" data-handle="warp" title="Нахилити по формі тіла">'+HANDLE_WARP_SVG+'</div>')
+          : '') +
+        /* Кути показуємо лише в режимі нахилу. Постійно вони б сперечались
+           за клік із перетягуванням самого шару, а нахил потрібен не
+           щоразу — на мокапі виріб і так лежить пласко. */
+        (active && !layer.text && pm.warpId === layer.id
+          ? quadOf(layer).map(function(pt, ci){
+              return '<b class="pm-dl-corner" data-corner="' + ci + '" style="left:' +
+                     (pt[0] * bw).toFixed(1) + 'px;top:' + (pt[1] * bh).toFixed(1) + 'px"></b>';
+            }).join('')
           : '');
         pmLogoLayers.appendChild(el);
         var te = el.querySelector('.pm-dl-text');
         if(te){ styleTextEl(te, layer.text, bh); bindTextEl(te, layer); }
+        applyLayerWarp(el, layer, bw, bh);
         applyInkFrame(el, layer);
 
         el.querySelector('.pm-dl-img').addEventListener('mousedown', function(e){ onImgDown(e, layer); });
@@ -2067,6 +2145,28 @@
             ch.addEventListener('mousedown', openCrop);
             ch.addEventListener('touchstart', openCrop, {passive:false});
           }
+          var wh = el.querySelector('[data-handle="warp"]');
+          if(wh){
+            var toggleWarp = function(e){
+              e.stopPropagation(); e.preventDefault();
+              /* Друге натискання, коли нахил уже стоїть, — це «поверни як
+                 було». Окрема кнопка скидання поруч із перемикачем режиму
+                 читалась би як ще один режим. */
+              if(pm.warpId === layer.id){
+                pm.warpId = null;
+                if(layer.quad){ layer.quad = null; }
+              } else {
+                pm.warpId = layer.id;
+              }
+              renderLogoLayers();
+            };
+            wh.addEventListener('mousedown', toggleWarp);
+            wh.addEventListener('touchstart', toggleWarp, {passive:false});
+          }
+          el.querySelectorAll('[data-corner]').forEach(function(cn){
+            cn.addEventListener('mousedown', function(e){ onCornerDown(e, layer, +cn.dataset.corner); });
+            cn.addEventListener('touchstart', function(e){ onCornerDown(e, layer, +cn.dataset.corner); }, {passive:false});
+          });
         }
       });
     }
@@ -2317,7 +2417,57 @@
       }catch(e){ setStageBg(STAGE_BG_FALLBACK); }   // file:// / taint → беж
     }
     // перемальовуємо зону + підганяємо фон, коли фото-мокап довантажився
-    pmGarmentPhoto.addEventListener('load', function(){ try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
+    /* ── Засів ракурсу «На моделі» ───────────────────────────────────────
+       Ставити той самий логотип удруге, з нуля, — робота, якої можна не
+       робити: він уже є на переді. Переносимо його копію на груди моделі й
+       лишаємо менеджеру рівно те, що машина зробити не може, — посадити
+       його по складках. Саме так Андрій і просив: розміщення руками, але
+       не з порожнього місця.
+
+       Копія, а не той самий шар: на моделі в нього свій масштаб і свій
+       поворот, і правка тут не повинна зрушувати мокап.
+
+       Якір — із каталогу фото моделей: cx/cy кажуть, де на цьому знімку
+       груди, sw — якої там ширини логотип. Без нього копія лягала б у
+       центр кадру, тобто найчастіше на живіт. */
+    function modelSeedGeom(){
+      var p = modelPhotoOf(pm.garmentId); if(!p) return null;
+      var a = (p.logos || [])[0]; if(!a) return null;
+      var b = wrapBox(); if(!(b.w > 0) || !(b.h > 0)) return null;
+      var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
+      if(!(natW > 0) || !(natH > 0)) return null;
+      // прямокутник фото в квадратному контейнері (object-fit:contain)
+      var ar = natW / natH, rw, rh, ox, oy;
+      if(ar >= 1){ rw = 1; rh = 1 / ar; ox = 0; oy = (1 - rh) / 2; }
+      else { rh = 1; rw = ar; oy = 0; ox = (1 - rw) / 2; }
+      return { x: (ox + (+a.cx || 50) / 100 * rw - 0.5) * b.w,
+               y: (oy + (+a.cy || 50) / 100 * rh - 0.5) * b.h,
+               scale: rw * ((+a.sw || 24) / 100) * b.w / 120 };
+    }
+    var wantModelSeed = false;
+    function seedModelLayers(){
+      if(!wantModelSeed || pm.side !== MODEL_VIEW) return;
+      var have = pm.logos[MODEL_VIEW] || (pm.logos[MODEL_VIEW] = []);
+      if(have.length){ wantModelSeed = false; return; }
+      var from = (pm.logos.front || []).filter(function(l){ return l && !isPristineText(l); });
+      if(!from.length){ wantModelSeed = false; return; }
+      var geo = modelSeedGeom();
+      if(!geo) return;                       // фото ще не приїхало — спробуємо на load
+      wantModelSeed = false;
+      from.forEach(function(src, i){
+        var l = JSON.parse(JSON.stringify(src));
+        l.id = Date.now() + i;
+        l.x = geo.x + i * 24;
+        l.y = geo.y + i * 24;
+        l.scale = geo.scale;
+        l.rot = +src.rot || 0;
+        layerSaveFrac(l);
+        have.push(l);
+      });
+      pm.activeLogoId = have.length ? have[0].id : null;
+      try{ renderLogoLayers(); }catch(e){}
+    }
+    pmGarmentPhoto.addEventListener('load', function(){ try{ seedModelLayers(); }catch(e){} try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
     /* Фото не завантажилось — лишити фон від попереднього кольору означало б
        показувати чужий колір без жодного пояснення. Повертаємось до
        нейтрального. */
@@ -3336,6 +3486,24 @@
         var tx = el.querySelector('.pm-dl-text');
         if(tx) styleTextEl(tx, layer.text, bh);
       }
+      applyLayerWarp(el, layer, bw, bh);
+    }
+    /* Нахил накладаємо на ВНУТРІШНІЙ вузол, а не на сам шар: на самому шарі
+       сидять ручки, і перекошені ручки тягнути неможливо. */
+    function applyLayerWarp(el, layer, bw, bh){
+      if(!el) return;
+      var img = el.querySelector('.pm-dl-img');
+      if(!img) return;
+      var css = quadCss(layer, bw, bh);
+      img.style.transformOrigin = css ? '0 0' : '';
+      img.style.transform = css || '';
+      // Кути йдуть за чотирикутником, поки його тягнуть
+      var q = quadOf(layer);
+      el.querySelectorAll('[data-corner]').forEach(function(cn){
+        var pt = q[+cn.dataset.corner] || [0, 0];
+        cn.style.left = (pt[0] * bw).toFixed(1) + 'px';
+        cn.style.top  = (pt[1] * bh).toFixed(1) + 'px';
+      });
     }
 
     function onImgDown(e, layer){
@@ -3420,6 +3588,18 @@
       var p = getXY(e);
       dlState = {mode:'scale', layer:layer, el:el, startX:p.x, startY:p.y, startScale:layer.scale};
     }
+    /* Тягнемо кут нахилу. Стартовий чотирикутник запамʼятовуємо цілим: рахувати
+       його від поточного на кожному русі означало б накопичувати похибку —
+       кут поволі «сповзав» би сам, навіть коли палець стоїть. */
+    function onCornerDown(e, layer, ci){
+      e.stopPropagation(); e.preventDefault(); lockScroll();
+      var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
+      var box = layerBox(layer);
+      var p = getXY(e);
+      dlState = { mode:'corner', layer:layer, el:el, ci:ci,
+                  startX:p.x, startY:p.y, bw:box.w, bh:box.h,
+                  startQuad: quadOf(layer).map(function(pt){ return [pt[0], pt[1]]; }) };
+    }
     function onRotateDown(e, layer, el){
       e.stopPropagation(); e.preventDefault(); lockScroll();
       var rect = el.getBoundingClientRect();
@@ -3450,6 +3630,22 @@
       } else if(dlState.mode === 'rotate'){
         var a = Math.atan2(p.y-dlState.cy, p.x-dlState.cx)*(180/Math.PI);
         layer.rot = dlState.startRot + (a - dlState.startAngle);
+      } else if(dlState.mode === 'corner'){
+        /* Зсув приходить в екранних пікселях, а кут живе в частках рамки
+           шару — причому рамка може бути повернута. Тому спершу знімаємо
+           зум сцени, потім поворот, і лише тоді ділимо на розмір рамки. */
+        var zc = garmentZoom() || 1;
+        var ddx = (p.x - dlState.startX) / zc, ddy = (p.y - dlState.startY) / zc;
+        var ar = -(layer.rot || 0) * Math.PI / 180;
+        var rx = ddx * Math.cos(ar) - ddy * Math.sin(ar);
+        var ry = ddx * Math.sin(ar) + ddy * Math.cos(ar);
+        var q = dlState.startQuad.map(function(pt){ return [pt[0], pt[1]]; });
+        /* Півтори рамки в будь-який бік — межа. Далі чотирикутник
+           вивертається сам у себе, перетворення перестає бути проективним
+           і картинка розлітається клинами. */
+        q[dlState.ci] = [ Math.max(-0.5, Math.min(1.5, dlState.startQuad[dlState.ci][0] + rx / dlState.bw)),
+                          Math.max(-0.5, Math.min(1.5, dlState.startQuad[dlState.ci][1] + ry / dlState.bh)) ];
+        layer.quad = q;
       }
       /* Частку ширини виробу оновлюємо НА КОЖНОМУ русі, а не лише коли жест
          закінчився. Саме в ній живе фізичний розмір нанесення, і саме від неї
@@ -4330,7 +4526,7 @@
       document.getElementById('pmStickyCartSum').textContent = pmAddBtnSum.textContent;
       // Рядок під назвою: спершу нагадує вказати кількість, далі — пояснює,
       // що ціна зібрана з кількох нанесень. Окремого ряду для цього не заводимо.
-      var sidesWithLogo = getViews().filter(function(v){ return (pm.logos[v] || []).length > 0; });
+      var sidesWithLogo = printViews().filter(function(v){ return (pm.logos[v] || []).length > 0; });
       var nLogos2 = logoCount();
       if(u === 0){
         pmQtyWarning.style.display = '';
@@ -4460,7 +4656,7 @@
       /* Знижку показуємо як РІЗНИЦЮ, а не рахуємо окремою формулою: так
          стовпчик сходиться з підсумком до гривні при будь-яких округленнях. */
       var discountAmt = Math.round(base + appSell + pFee + oFeePer - uSell);
-      var areaMm2 = 0; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
+      var areaMm2 = 0; printViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
       var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       var dims = actL ? layerOpaqueDimsMm(actL) : null;
       var money = function(x){ return Math.round(x) + ' грн'; };
@@ -5682,10 +5878,20 @@
       // собою вузол напису на нову сторону.
       stopTextEdit();
       pm.side = side;
+      /* Зайшли на вітрину вперше — просимо засіяти її копією переду. Саме
+         тут, а не в самому засіві: фото моделі в цю мить ще вантажиться, і
+         без його розмірів якір нікуди не перевести. Спрацює або одразу
+         нижче, якщо знімок уже в кеші, або на його `load`. */
+      if(side === MODEL_VIEW) wantModelSeed = true;
+      // Режим нахилу не переїжджає на іншу сторону разом із людиною
+      pm.warpId = null;
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
       updateSideMarks();
       updateSideArrows();
       renderGarment();
+      /* Знімок уже в кеші — події `load` не буде. Пробуємо одразу; якщо
+         розмірів ще немає, засів мовчки почекає на подію. */
+      try{ if(pmGarmentPhoto.complete) seedModelLayers(); }catch(e){}
       if(pm.tab==='photo') renderTabPanel();
     }
     // Свайп для перемикання сторін прибрано — він заважав перетягувати/масштабувати лого.
@@ -5851,15 +6057,122 @@
        робиться цією ж функцією, а не береться з іншого місця: виріб на ньому
        стоїть точно так само, як на макеті з логотипом, і два файли можна
        класти поруч. */
+      /* ══════════ НАНЕСЕННЯ ПО ПЕРСПЕКТИВІ ══════════
+       Код приїхав сюди з малювальника карток, і переїзд тут головне: раніше
+       нахил задавали в самій картці, тобто вже над наслідком. Місце йому —
+       поруч із самим розміщенням: логотип ставлять тут, тут і кладуть його
+       по формі тіла, а картка отримує готовий знімок.
+       Людина на фото стоїть під кутом, а логотип лягає пласким
+       прямокутником — і вся картка одразу виглядає наліпкою. Потрібно, щоб
+       нанесення лягало по формі тіла.
+
+       Полотно так не вміє: drawImage знає лише зсув, масштаб і поворот.
+       Тому робимо те саме, що роблять усі редактори, — рахуємо перетворення
+       чотирикутника й малюємо картинку дрібною сіткою, де кожна клітинка
+       вже пласка. Десять на десять вистачає: шва не видно, а рахується це
+       швидше за саму перемальовку картки.
+
+       Перетворення саме ПРОЕКТИВНЕ, а не «розтягнути кути»: у проективного
+       дальній край стискається сам, як у житті. Розтягнутий виглядає
+       неправильно рівно тоді, коли нахил помітний, — тобто коли він і
+       потрібен. */
+    function homography(q){
+      var x0 = q[0][0], y0 = q[0][1], x1 = q[1][0], y1 = q[1][1];
+      var x2 = q[2][0], y2 = q[2][1], x3 = q[3][0], y3 = q[3][1];
+      var dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
+      var dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+      var den = dx1 * dy2 - dx2 * dy1;
+      var g = den ? (dx3 * dy2 - dx2 * dy3) / den : 0;
+      var hh = den ? (dx1 * dy3 - dx3 * dy1) / den : 0;
+      return { a: x1 - x0 + g * x1, b: x3 - x0 + hh * x3, c: x0,
+               d: y1 - y0 + g * y1, e: y3 - y0 + hh * y3, f: y0, g: g, h: hh };
+    }
+    function hmap(H, u, v){
+      var w = H.g * u + H.h * v + 1;
+      if(!w) w = 1e-6;
+      return [ (H.a * u + H.b * v + H.c) / w, (H.d * u + H.e * v + H.f) / w ];
+    }
+    /* Один трикутник: клітинку сітки малюємо двома. Матриця рахується з
+       трьох точок — це звичайне афінне перетворення, яке полотно вже вміє. */
+    function triWarp(x, img, s0, s1, s2, d0, d1, d2){
+      var den = s0[0] * (s2[1] - s1[1]) - s1[0] * s2[1] + s2[0] * s1[1] +
+                (s1[0] - s2[0]) * s0[1];
+      if(!den) return;
+      var m11 = -(s0[1] * (d2[0] - d1[0]) - s1[1] * d2[0] + s2[1] * d1[0] +
+                  (s1[1] - s2[1]) * d0[0]) / den;
+      var m12 =  (s1[1] * d2[1] + s0[1] * (d1[1] - d2[1]) - s2[1] * d1[1] +
+                  (s2[1] - s1[1]) * d0[1]) / den;
+      var m21 =  (s0[0] * (d2[0] - d1[0]) - s1[0] * d2[0] + s2[0] * d1[0] +
+                  (s1[0] - s2[0]) * d0[0]) / den;
+      var m22 = -(s1[0] * d2[1] + s0[0] * (d1[1] - d2[1]) - s2[0] * d1[1] +
+                  (s2[0] - s1[0]) * d0[1]) / den;
+      var dx =  (s0[0] * (s2[1] * d1[0] - s1[1] * d2[0]) +
+                 s0[1] * (s1[0] * d2[0] - s2[0] * d1[0]) +
+                 (s2[0] * s1[1] - s1[0] * s2[1]) * d0[0]) / den;
+      var dy =  (s0[0] * (s2[1] * d1[1] - s1[1] * d2[1]) +
+                 s0[1] * (s1[0] * d2[1] - s2[0] * d1[1]) +
+                 (s2[0] * s1[1] - s1[0] * s2[1]) * d0[1]) / den;
+      x.save();
+      x.beginPath();
+      x.moveTo(d0[0], d0[1]); x.lineTo(d1[0], d1[1]); x.lineTo(d2[0], d2[1]);
+      x.closePath(); x.clip();
+      x.transform(m11, m12, m21, m22, dx, dy);
+      x.drawImage(img, 0, 0);
+      x.restore();
+    }
+    var WARP_N = 10;
+    function drawWarp(x, img, quad){
+      var H = homography(quad);
+      var iw = img.width, ih = img.height;
+      var pts = [];
+      for(var r = 0; r <= WARP_N; r++){
+        pts[r] = [];
+        for(var c2 = 0; c2 <= WARP_N; c2++) pts[r][c2] = hmap(H, c2 / WARP_N, r / WARP_N);
+      }
+      for(var rr = 0; rr < WARP_N; rr++){
+        for(var cc = 0; cc < WARP_N; cc++){
+          var u0 = cc / WARP_N * iw, u1 = (cc + 1) / WARP_N * iw;
+          var v0 = rr / WARP_N * ih, v1 = (rr + 1) / WARP_N * ih;
+          /* Клітинки перекриваємо на піксель: інакше між ними лишаються
+             волосяні щілини, і логотип виглядає посіченим сіткою. */
+          var s00 = [u0, v0], s10 = [u1 + 1, v0], s11 = [u1 + 1, v1 + 1], s01 = [u0, v1 + 1];
+          var d00 = pts[rr][cc], d10 = pts[rr][cc + 1];
+          var d11 = pts[rr + 1][cc + 1], d01 = pts[rr + 1][cc];
+          triWarp(x, img, s00, s10, s11, d00, d10, d11);
+          triWarp(x, img, s00, s11, s01, d00, d11, d01);
+        }
+      }
+    }
+    /* Чотирикутник нанесення в пікселях кадру. Простий випадок — прямокутник
+       із поворотом; якщо менеджер тягнув кути, беремо саме їх. */
+    function markQuad(m, ix, iy, iw, ih, aw, ah){
+      if(m && m.quad && m.quad.length === 4)
+        return m.quad.map(function(p){ return [ix + p[0] * iw, iy + p[1] * ih]; });
+      var lw = m.w * iw, lh = lw * (ah / aw || 1);
+      var cx = ix + m.cx * iw, cy = iy + m.cy * ih;
+      var a = (+m.rot || 0) * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+      return [[-lw / 2, -lh / 2], [lw / 2, -lh / 2], [lw / 2, lh / 2], [-lw / 2, lh / 2]]
+        .map(function(p){
+          return [cx + p[0] * cs - p[1] * sn, cy + p[0] * sn + p[1] * cs];
+        });
+    }
+
+
     function snapshotSide(side, sizeOverride, asJpeg, bare){
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
         var layers = bare ? [] : pm.logos[snapSide];
         var C = sizeOverride || 500;
-        var hasPhoto = !!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]);
+        /* Вітрина знімається тим самим кодом, що й решта сторін, — інакше
+           знімок і сцена розійшлися б, а саме через це логотип у картці й
+           стояв не там, де його поставили. Різниця одна: адреса фото. Воно
+           одне на крій і кольору не знає. */
+        var modelSrc = snapSide === MODEL_VIEW ? modelPhotoSrc(g.id) : '';
+        var hasPhoto = !!modelSrc ||
+          (!!GARMENT_COLORS[g.id] && (!g.custom || !!window.PHOTO_OVERRIDES[g.id+'-'+c.id+'-'+snapSide]));
         var loadG = hasPhoto
-          ? loadImgEl(window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp'))
+          ? loadImgEl(modelSrc || window.LQ_img('images/'+g.id+'-'+c.id+'-'+snapSide+'.webp'))
               .catch(function(){ return null; })
           : Promise.resolve(null);
         var canvas = document.createElement('canvas'), ctx = null, W = C, H = C;
@@ -5908,7 +6221,18 @@
                 var cx = W/2 + G.fx*W, cy = H/2 + G.fy*W;
                 var w = bw, h = bh;
                 ctx.save(); ctx.translate(cx, cy); ctx.rotate((layer.rot||0)*Math.PI/180);
-                ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
+                /* Нахил по перспективі — той самий чотирикутник, що на сцені,
+                   у частках власної рамки шару. Малюємо сіткою: інакше знімок
+                   вийшов би пласким, а на екрані нанесення лежало б по тілу —
+                   і людина побачила б у картці не те, що збирала. */
+                if(layer.quad && layer.quad.length === 4){
+                  drawWarp(ctx, img, layer.quad.map(function(pt){
+                    return [(pt[0] - 0.5) * w, (pt[1] - 0.5) * h];
+                  }));
+                } else {
+                  ctx.drawImage(img, -w/2, -h/2, w, h);
+                }
+                ctx.restore();
               }).catch(function(){});
             });
           }, Promise.resolve());
@@ -6042,7 +6366,7 @@
            зникне на першому ж перерахунку. */
         designKindFix: (function(){
           var map = {};
-          getViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+          printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
             if(l && (l.kindFix === 'txt' || l.kindFix === 'img' || l.kindFix === 'off') && l.fp)
               map[String(l.fp)] = l.kindFix; }); });
           return Object.keys(map).length ? map : null;
@@ -6052,7 +6376,7 @@
         calc: (function(){
           var m = methodCfgNew();
           var ap = applicationParts();
-          var firstLogo = (function(){ var l = null; getViews().forEach(function(s){ if(!l && (pm.logos[s]||[]).length) l = pm.logos[s][0]; }); return l; })();
+          var firstLogo = (function(){ var l = null; printViews().forEach(function(s){ if(!l && (pm.logos[s]||[]).length) l = pm.logos[s][0]; }); return l; })();
           return {
             base: basePriceNew(),
             coefPart: ap.coefPart,                 // вишивка — під знижкою за тираж
@@ -6060,7 +6384,7 @@
             orderFee: methodOrderFee(),            // разова, ділиться на тираж
             method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
             dtfCols: (m && m.mode === 'grid' && firstLogo)
-              ? (function(){ var cols = []; getViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); }); return cols; })()
+              ? (function(){ var cols = []; printViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); }); return cols; })()
               : []
           };
         })(),
@@ -6076,7 +6400,7 @@
       // Розмір нанесення рахуємо тут, поки відкритий конструктор: далі, у кошику,
       // масштабу зони вже немає. Менеджеру в Канбані потрібні саме міліметри.
       item.prints = [];
-      getViews().forEach(function(side){
+      printViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
           /* Той самий габарит, що показує прорахунок і за яким рахується
              ціна, — по непрозорому вмісту. Доти сюди йшов габарит усього
@@ -7082,7 +7406,7 @@
       if(mmPerFrac == null) mmPerFrac = garmentHeightMm();
       if(!(mmPerFrac > 0)) return;
       var b = wrapBox(), k = 0;
-      getViews().forEach(function(side){
+      printViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
           var p = prints[k++];
           if(!l || +l.frac > 0 || !p) return;

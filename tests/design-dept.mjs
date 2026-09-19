@@ -440,37 +440,37 @@ const ui = await p.evaluate(async () => {
   await new Promise(r => setTimeout(r, 900));
   const cols = [...document.querySelectorAll('#dzRoot .dz-col-h')].map(x =>
     x.textContent.replace(/\s+/g, ' ').trim());
-  const tabs = [...document.querySelectorAll('#dzRoot .dz-tab')].map(x => x.textContent.trim());
+  const ролі = [...document.querySelectorAll('#dzRoot [data-seat] option')].map(x => x.textContent.trim());
   const cards = document.querySelectorAll('#dzRoot .dz-card').length;
   // відкриваємо картку — має зʼявитись панель із ТЗ
   const first = document.querySelector('#dzRoot .dz-card');
   if(first) first.click();
   await new Promise(r => setTimeout(r, 400));
   const panel = (document.getElementById('dzPanel') || {}).textContent || '';
-  return { tabs, cols, cards,
+  return { ролі, cols, cards,
            shown: document.getElementById('view-design').style.display,
            panel: panel.replace(/\s+/g, ' ').slice(0, 140),
            roles: Object.keys(window.ROLES || {}) };
 });
 if(ui.none){ console.log('  кнопки розділу немає'); bad++; }
 else {
-  console.log('   вкладки: ' + ui.tabs.join(' · '));
-  console.log('   колонки черги: ' + ui.cols.join(' · '));
+  console.log('   ролі в перемикачі: ' + ui.ролі.join(' · '));
+  console.log('   колонки дошки: ' + ui.cols.join(' · '));
   console.log('   карток: ' + ui.cards);
-  /* Дощок шість: пʼять відділових плюс «Доручення» — вона стоїть першою,
-     бо людина відкриває відділ не щоб подивитись на дошку, а щоб дізнатись,
-     що їй робити зараз. */
-  /* Сім дощок. «Доручення» першою — людина відкриває відділ, щоб дізнатись,
-     що їй робити зараз. Далі «Замовлення» — управлінський ланцюг на весь
-     шлях; і вже за ними робочі дошки відділів зі своїми станами. */
-  ok(ui.shown === 'block' && ui.tabs.length === 8 &&
-     ui.tabs[0] === 'Доручення' && ui.tabs[1] === 'Замовлення' &&
-     ui.tabs.indexOf('Закупівля') > 0,
-    'розділ відкривається: доручення, ланцюг замовлення й дошка кожного відділу',
-    'розділ не зібрався: ' + JSON.stringify(ui.tabs));
-  ok(ui.cols.length === 7 && /Перевірка ТЗ/.test(ui.cols.join(' ')),
-    'черга відділу починається з перевірки ТЗ',
-    'колонки черги не ті: ' + ui.cols.join(' · '));
+  /* Ролей п'ять, і в кожної одна дошка. Вкладок немає: розкладати ту саму
+     роботу на кілька екранів означало щоразу питати себе, у якому з них
+     дивитись, — а відповідь одна, у своєму. Перемикач бачить тільки
+     власник: співробітник заходить одразу на свою дошку. */
+  ok(ui.shown === 'block' && ui.ролі.length === 5 &&
+     ui.ролі[0] === 'Акаунт-менеджер' &&
+     ui.ролі.indexOf('Закупівля') > 0,
+    'у відділі п\'ять ролей, і перемикач між ними — по одній дошці на кожну',
+    'ролі не зібрались: ' + JSON.stringify(ui.ролі));
+  /* Перша дошка — акаунт-менеджера: увесь ланцюг від «нове» до
+     «відправлено». Це відповідь на питання «де замовлення». */
+  ok(ui.cols.length === 8 && /Відправлено/.test(ui.cols.join(' ')),
+    'починаємо з дошки акаунт-менеджера — увесь шлях замовлення',
+    'колонки дошки не ті: ' + ui.cols.join(' · '));
   ok(ui.cards >= 1, 'замовлення видно на дошці', 'на дошці порожньо');
   ok(/Худі|ТЗ/.test(ui.panel),
     'картка відкриває панель із технічним завданням',
@@ -490,13 +490,11 @@ const task = await p.evaluate(async () => {
   const t = D.taskAdd(job, о, me, { kind:'fix', to: me,
                                     text:'збільшити логотип', why:'client' });
   designSave(job);
-  U.setTab('tasks');
+  U.setTab('graphic'); U.open(о.orderId);
   document.querySelector('#dzRoot') && U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 400));
   const колонки = [...document.querySelectorAll('#dzRoot .dz-col-h')].map(x =>
     x.textContent.replace(/\s+/g, ' ').trim());
-  const картка = document.querySelector('#dzRoot .dz-card');
-  if(картка) картка.click();
   await new Promise(r => setTimeout(r, 400));
   const панель = (document.getElementById('dzPanel') || {}).textContent || '';
   // виконавець бере й закриває
@@ -514,12 +512,15 @@ const task = await p.evaluate(async () => {
 });
 console.log('   колонки: ' + task.колонки.join(' · '));
 console.log('   панель: ' + task.панель);
-ok(task.колонки.length === 5 && /Видано/.test(task.колонки.join(' ')),
-  'дошка доручень має свій шлях: видано → у роботі → виконано → прийнято',
-  'колонки доручень не ті: ' + task.колонки.join(' · '));
-ok(/збільшити логотип/.test(task.панель),
-  'панель доручення показує, що саме треба зробити',
-  'зміст доручення не видно: ' + task.панель);
+/* Окремої дошки доручень більше немає: на дошці стоїть ЗАМОВЛЕННЯ, а
+   доручення лежить у ньому. Тому й перевіряємо не колонки доручень, а те,
+   що виконавець бачить завдання просто в картці й може його там закрити. */
+ok(/Що зробити/.test(task.панель) && /збільшити логотип/.test(task.панель),
+  'завдання видно просто в картці замовлення — окремий екран для цього не потрібен',
+  'завдання в картці не видно: ' + task.панель);
+ok(task.колонки.length === 5 && /Правки/.test(task.колонки.join(' ')),
+  'дизайнер при цьому стоїть на своїй дошці, а не на дошці доручень',
+  'дошка дизайнера не та: ' + task.колонки.join(' · '));
 ok(task.стан === 'done' && task.закрито === 'V3',
   'виконавець узяв у роботу й закрив доручення конкретною версією',
   'доручення не пройшло шлях: ' + JSON.stringify(task));
@@ -569,7 +570,7 @@ const supply = await p.evaluate(async () => {
   (job.stitch || []).forEach(s => { s.status = 'ok'; });
   о.tracks = Object.assign({}, о.tracks, { supply:'todo' });
   const було = D.taskList(job).filter(t => t.kind === 'buy').length;
-  U.setTab('pack'); U.open(о.orderId);
+  U.setTab('prod'); U.open(о.orderId);
   U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 300));
   const кн = document.querySelector('#dzPanel [data-do="pack"]');
@@ -597,20 +598,23 @@ ok(supply.вдруге === supply.стало,
   'доручення продублювалось');
 
 console.log('');
-console.log('═══ КОЖЕН БАЧИТЬ СВОЇ ДОШКИ ═══');
-/* Дошки чужих відділів людині не показуємо — не тому, що таємниця, а тому,
-   що зайва вкладка колись буде натиснута замість потрібної. Хто веде
-   відділ, бачить усе: це і є його робота. */
+console.log('═══ КОЖЕН ЗАХОДИТЬ ОДРАЗУ НА СВОЮ ДОШКУ ═══');
+/* Перемикач ролей — тільки у власника. Співробітнику вибір не потрібен і
+   шкідливий: дай його — колись перемкнеться й пів дня працюватиме не на
+   своєму екрані. Він бачить одну дошку, свою, і назву своєї ролі. */
 const seen = await p.evaluate(async () => {
   const U = window.LQDesign.ui;
   const back = contentData.team;
   const тест = async role => {
     contentData.team = [{ email: myEmail(), name:'Х', role,
       acc:{ ui:'designer', dirs:['b2b'], nav:['today','design'], boards:['design'], see:[], can:[] } }];
-    U.setTab('tasks');
     U.render(document.getElementById('dzRoot'));
     await new Promise(r => setTimeout(r, 250));
-    return [...document.querySelectorAll('#dzRoot .dz-tab')].map(x => x.textContent.trim());
+    const root = document.getElementById('dzRoot');
+    return { перемикач: !!root.querySelector('[data-seat]'),
+             підпис: (root.querySelector('.dz-as') || {}).textContent || '',
+             колонки: [...root.querySelectorAll('.dz-col-h')].map(x =>
+               x.textContent.replace(/\s+/g, ' ').trim()) };
   };
   const дизайнер = await тест('designer');
   const вишивка  = await тест('embroidery');
@@ -621,20 +625,24 @@ const seen = await p.evaluate(async () => {
   await new Promise(r => setTimeout(r, 250));
   return { дизайнер, вишивка, закупник, шеф };
 });
-console.log('   дизайнер: ' + seen.дизайнер.join(' · '));
-console.log('   закупник: ' + seen.закупник.join(' · '));
-ok(seen.дизайнер.join() === 'Доручення,Макети',
-  'графічний дизайнер бачить свої доручення й свої макети — і більше нічого',
-  'дизайнеру видно зайве: ' + seen.дизайнер.join(' · '));
-ok(seen.закупник.join() === 'Доручення,Закупівля',
-  'закупник бачить доручення й закупівлю — ні макетів, ні цеху',
-  'закупнику видно зайве: ' + seen.закупник.join(' · '));
-ok(seen.вишивка.join() === 'Доручення,Вишивка',
-  'вишивальний дизайнер — свою дошку',
-  'вишивальнику видно зайве: ' + seen.вишивка.join(' · '));
-ok(seen.шеф.length === 8,
-  'а той, хто веде відділ, бачить увесь ланцюг — це і є його робота',
-  'керівнику дощок бракує: ' + seen.шеф.join(' · '));
+console.log('   дизайнер: ' + seen.дизайнер.підпис.trim() +
+            ' → ' + seen.дизайнер.колонки.join(' · '));
+console.log('   закупник: ' + seen.закупник.підпис.trim() +
+            ' → ' + seen.закупник.колонки.join(' · '));
+ok(!seen.дизайнер.перемикач && /Графічний дизайнер/.test(seen.дизайнер.підпис),
+  'графічний дизайнер заходить одразу на свою дошку — без вибору',
+  'дизайнеру дали перемикач або не ту дошку: ' + seen.дизайнер.підпис);
+ok(!seen.закупник.перемикач && seen.закупник.колонки.length === 4 &&
+   /Треба замовити/.test(seen.закупник.колонки.join(' ')),
+  'у закупівлі свої чотири стани — ні макетів, ні цеху',
+  'дошка закупівлі не та: ' + seen.закупник.колонки.join(' · '));
+ok(!seen.вишивка.перемикач && /Вишивальний дизайнер/.test(seen.вишивка.підпис),
+  'вишивальний дизайнер — свою',
+  'вишивальнику не та дошка: ' + seen.вишивка.підпис);
+ok(seen.шеф.перемикач,
+  'а той, хто веде відділ, перемикається між ролями: подивитись очима ' +
+    'кожного — це і є його робота',
+  'керівнику перемикача не дали');
 
 const roles = await p.evaluate(() => {
   const src = document.documentElement.innerHTML;
