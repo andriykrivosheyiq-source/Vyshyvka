@@ -8690,6 +8690,27 @@ function itemSidePhoto(it, side){
   const key = g + '-' + c + '-' + side;
   return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
 }
+/* Фото моделі — такий самий ракурс, як перед і спина.
+
+   Доти воно жило окремо: приходило прямо в малювальник карток і ставилось
+   там першим кадром, а логотип на нього клали вже всередині редактора
+   картки. Через це воно було невидиме там, де людина збирає пропозицію, —
+   і збирати його доводилось у другому місці, іншими інструментами.
+
+   Тепер воно просто ракурс: стоїть у тому ж ряду, ховається тією ж
+   галочкою, компонується тими ж руками. Якір грудей із каталогу їде разом
+   із ним, щоб нанесення не ловили з нуля. */
+function itemModelView(it){
+  const gid = itemGarmentId(it);
+  const m = ((typeof cardModelsCache === 'object' && cardModelsCache) || {})[gid];
+  const first = m && m[0];
+  if(!first || !first.url) return null;
+  return { id:'vmodel', side:'model', label:'На моделі', img:first.url,
+           auto:null, show:true, model:true,
+           mark: (first.cx != null)
+             ? { cx:+first.cx / 100, cy:+first.cy / 100, w:(+first.sw || 24) / 100 }
+             : null };
+}
 function itemViews(it){
   /* Знімок із конструктора належить ТОМУ виробу, на якому його зробили.
      Позицію можна перевести на інший товар — назва й ціна міняються
@@ -8701,8 +8722,15 @@ function itemViews(it){
   const gidShot = (it && it.config && it.config.garmentId) || '';
   const stale = !!(gidNow && gidShot && gidNow !== gidShot);
   const mock = stale ? [] : ((it || {}).mockups || []).filter(Boolean);
+  /* Дописуємо фото моделі до будь-якого списку — і свіжого, і збереженого
+     раніше. Позиція могла бути заведена до того, як воно зʼявилось. */
+  const withModel = list => {
+    if(list.some(v => v && v.side === 'model')) return list;
+    const mv = itemModelView(it);
+    return mv ? [mv].concat(list) : list;
+  };
   const own = Array.isArray((it || {}).views) ? it.views : null;
-  if(own && own.length) return own.map((v, i) => {
+  if(own && own.length) return withModel(own.map((v, i) => {
     /* Ракурс, узятий із конструктора, і далі показує свіжий знімок: коли
        менеджер змінив нанесення, підпис лишається його, а картинка
        оновлюється сама. Своє завантажене фото так не перебивається —
@@ -8713,8 +8741,10 @@ function itemViews(it){
     return { id: v.id || ('v' + i), side: v.side || null,
              label: String(v.label || '').trim() || VIEW_UA[v.side] || ('Вигляд ' + (i + 1)),
              img: own || itemSidePhoto(it, v.side),
-             auto: a, show: v.show !== false };
-  });
+             auto: a, show: v.show !== false,
+             model: v.side === 'model' || !!v.model,
+             mark: v.mark || null };
+  }));
   /* Стара позиція без ракурсів. Підписи беремо зі сторін нанесення, а чого
      там немає — добудовуємо: перед і спина мають бути в кожного виробу,
      навіть коли знімка ще не зробили. */
@@ -8730,7 +8760,7 @@ function itemViews(it){
   if(!out.some(v => v.label === 'Спина'))
     out.push({ id:'vb', side:'back', label:'Спина',
                img: itemSidePhoto(it, 'back'), auto:null, show:true });
-  return out;
+  return withModel(out);
 }
 // Записати ракурси в позицію: далі вони живуть самі, від знімків не залежать
 function viewsWrite(o, k, list){
@@ -8741,7 +8771,13 @@ function viewsWrite(o, k, list){
                                    label: String(v.label || '').slice(0, 40),
                                    img: v.img || null,
                                    auto: (v.auto == null || v.auto === '') ? null : +v.auto,
-                                   show: v.show !== false }));
+                                   show: v.show !== false,
+                                   /* Розміщення нанесення на фото моделі —
+                                      частина самого ракурсу, а не картки:
+                                      інакше воно губилось би щоразу, коли
+                                      картку перескладають. */
+                                   model: v.side === 'model' || !!v.model || undefined,
+                                   mark: v.mark || undefined }));
 }
 /* Прорахунок пропозиції очима менеджера — ТОЧНО ТОЙ САМИЙ, що «Прорахунок
    замовлення» на сайті: ті самі рядки, ті самі формулювання, той самий
