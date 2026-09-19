@@ -428,16 +428,15 @@ const model = await fr.evaluate(([o, host]) => {
 console.log('   тільки перед: ' + model.one.join(' · '));
 console.log('   з нанесенням на спині: ' + model.back.join(' · '));
 console.log('   без фото моделі: ' + model.none.join(' · '));
-/* Спина йде на картку ЗАВЖДИ, коли вона є, — а не лише коли на ній щось
-   нанесено. Доти картка лишалась із фото моделі та одним ракурсом, а
-   праворуч зяяло порожнє місце. Клієнт дивиться на спину не через
-   нанесення: він хоче побачити виріб, і чиста спина — теж відповідь. */
-ok(model.one.length === 3 && model.one[0] === 'модель' &&
-   model.one[1] === 'front' && model.one[2] === 'back',
-  'є фото моделі — воно перше, далі перед і спина: порожнього місця не лишається',
+/* ОБОВʼЯЗКОВІ ДВА КАДРИ: фото на моделі й мокап спереду. Далі — рівно ті
+   сторони, на яких СПРАВДІ Є НАНЕСЕННЯ. Чиста спина клієнту нічого не
+   каже, а колонку займає; сторона з нанесенням, навпаки, мусить бути, і
+   аркуш під неї розширюється. */
+ok(model.one.length === 2 && model.one[0] === 'модель' && model.one[1] === 'front',
+  'обовʼязкові два кадри: на моделі й спереду — чистої спини серед них немає',
   'склад кадрів не той: ' + model.one.join(' · '));
 ok(model.back.length === 3 && model.back[2] === 'back',
-  'спина з нанесенням теж на місці',
+  'є нанесення на спині — зʼявляється третій кадр',
   'спина з нанесенням загубилась: ' + model.back.join(' · '));
 ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
   'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
@@ -454,6 +453,10 @@ const asView = await fr.evaluate(([o]) => {
     { id:'vf', side:'front', label:'Перед', img:'F.webp', show:true },
     { id:'vb', side:'back',  label:'Спина', img:'B.webp', show:true }
   ];
+  /* Нанесення на спині ставимо навмисно: перевіряємо ПОРЯДОК кадрів, а
+     спина потрапляє в ряд лише тоді, коли на ній справді щось є. Без
+     нанесення тут перевірявся б уже інший факт. */
+  it.prints = [{ side:'front' }, { side:'back' }];
   const c = L.build({ items:[it], terms:{} }, {})[0];
   const hid = JSON.parse(JSON.stringify(it));
   hid.views[0].show = false;
@@ -631,6 +634,55 @@ ok(many.picked.join() === 'Шопер,Рюкзак,Бафф',
 ok(many.marks.join() === many.picked.join(),
   'і панель показує, з чого саме обирають та що вже обрано',
   'позначки в списку розійшлись із карткою');
+
+console.log('');
+console.log('═══ СТОРОНА З НАНЕСЕННЯМ НЕ ЗНИКАЄ ═══');
+/* Андрій бачив замовлення, де нанесення на спині є, а кадру немає. Способів
+   загубити його виявилось кілька, і кожен мовчазний: ракурс без картинки,
+   ракурс із тією ж адресою, що й перед, і нанесення без указаної сторони. */
+const lost = await fr.evaluate(([o]) => {
+  const L = window.LQCards;
+  const mv = { id:'vmodel', side:'model', label:'На моделі', img:'M.webp',
+               show:true, model:true };
+  const mk = (views, prints) => ({ ...o.items[0], views, prints, mockups:[] });
+  const shots = c => (c.shots || []).map(s => s.model ? 'модель' : (s.side || '—'));
+  const ok3 = L.build({ items:[mk(
+    [mv, { id:'vf', side:'front', img:'F.webp', show:true },
+          { id:'vb', side:'back', img:'B.webp', show:true }],
+    [{ side:'front' }, { side:'back' }])], terms:{} }, {})[0];
+  const noSide = L.build({ items:[mk(
+    [mv, { id:'vf', side:'front', img:'F.webp', show:true },
+          { id:'vb', side:'back', img:'B.webp', show:true }],
+    [{ widthMm:90 }, { widthMm:200 }])], terms:{} }, {})[0];
+  const sleeve = L.build({ items:[mk(
+    [mv, { id:'vf', side:'front', img:'F.webp', show:true },
+          { id:'vs', side:'sleeve', img:'S.webp', show:true }],
+    [{ side:'front' }, { side:'sleeve' }])], terms:{} }, {})[0];
+  const gone = L.build({ items:[mk(
+    [mv, { id:'vf', side:'front', img:'F.webp', show:true }],
+    [{ side:'front' }, { side:'back' }])], terms:{} }, {})[0];
+  return { ok3: shots(ok3), noSide: shots(noSide), sleeve: shots(sleeve),
+           gone: shots(gone), втрачено: gone.lost,
+           ш2: L.sheetW(2), ш3: L.sheetW(3), ш4: L.sheetW(4) };
+}, [OFFER]);
+console.log('   зі спиною: ' + lost.ok3.join(' · ') + ' · з рукавом: ' + lost.sleeve.join(' · '));
+console.log('   аркуш: 2 кадри ' + lost.ш2 + ' · 3 ' + lost.ш3 + ' · 4 ' + lost.ш4);
+ok(lost.ok3.join() === 'модель,front,back',
+  'нанесення на спині — і спина на картці',
+  'спина не додалась: ' + lost.ok3.join(' · '));
+ok(lost.sleeve.join() === 'модель,front,sleeve',
+  'це не про спину: будь-яка сторона з нанесенням отримує свій кадр',
+  'рукав не додався: ' + lost.sleeve.join(' · '));
+ok(lost.noSide.length === 3,
+  'нанесення без указаної сторони — стара позиція — теж не губиться',
+  'стара позиція втратила кадр: ' + lost.noSide.join(' · '));
+ok(lost.ш3 > lost.ш2 && lost.ш4 > lost.ш3,
+  'аркуш розширюється вбік під кожен додатковий кадр',
+  'ширина не росте: ' + [lost.ш2, lost.ш3, lost.ш4].join(' · '));
+ok(lost.втрачено && /ззад/i.test(lost.втрачено.join(' ')),
+  'а якщо фото для сторони немає взагалі — картка каже про це словами, ' +
+    'бо мовчки клієнт не побачить половини роботи',
+  'втрату не назвали: ' + JSON.stringify(lost.втрачено));
 
 console.log('');
 console.log('═══ НАНЕСЕННЯ ПО ПЕРСПЕКТИВІ ═══');

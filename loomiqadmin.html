@@ -4500,13 +4500,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=729bba7238"></script>
-<script src="loomiq-fingerprint.js?v=729bba7238"></script>
-<script src="loomiq-pricing.js?v=729bba7238"></script>
+<script src="loomiq-select.js?v=6149df294b"></script>
+<script src="loomiq-fingerprint.js?v=6149df294b"></script>
+<script src="loomiq-pricing.js?v=6149df294b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=729bba7238"></script>
+<script src="loomiq-design.js?v=6149df294b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8685,8 +8685,16 @@ const VIEW_UA = { front:'Перед', back:'Спина', left:'Лівий бік
 function itemSidePhoto(it, side){
   const cfg = (it || {}).config || {};
   const g = cfg.garmentId || (it || {}).garmentId;
-  const c = cfg.colorId;
-  if(!g || !c || !side) return null;
+  if(!g || !side) return null;
+  let c = cfg.colorId;
+  /* Кольору в позиції може не бути — так буває в старих картках і в тих,
+     що заводили руками. Доти це означало «фото немає взагалі», і ракурс із
+     нанесенням мовчки зникав із картки. Беремо перший колір товару: чуже
+     фото тут краще за порожнє місце, а колір однаково видно на мокапі. */
+  if(!c){
+    try{ c = ((photoCfg(g) || {}).colors || [])[0]?.id || ''; }catch(e){ c = ''; }
+  }
+  if(!c) return null;
   const key = g + '-' + c + '-' + side;
   return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
 }
@@ -8736,8 +8744,14 @@ function itemViews(it){
        оновлюється сама. Своє завантажене фото так не перебивається —
        у нього auto вже немає. */
     const a = (v.auto == null || v.auto === '') ? null : +v.auto;
-    const own = stale ? null
-              : ((a != null && mock[a]) ? mock[a] : (String(v.img || '') || null));
+    let own = stale ? null
+            : ((a != null && mock[a]) ? mock[a] : (String(v.img || '') || null));
+    /* Два ракурси з ОДНІЄЮ адресою — це не два ракурси. Таке трапляється,
+       коли мокап зняли лише спереду, а ракурс спини вказує на нього ж:
+       картка тоді мовчки викидала спину як дублікат, і нанесення на ній
+       ніхто не бачив. Беремо для цієї сторони її власне фото з каталогу. */
+    if(own && i > 0 && own === ((it.views[0] || {}).img || mock[0]))
+      own = itemSidePhoto(it, v.side) || own;
     return { id: v.id || ('v' + i), side: v.side || null,
              label: String(v.label || '').trim() || VIEW_UA[v.side] || ('Вигляд ' + (i + 1)),
              img: own || itemSidePhoto(it, v.side),
