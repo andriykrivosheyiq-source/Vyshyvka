@@ -245,7 +245,10 @@
     var shotsOf = function(it){
       var views = (it.views || []).filter(function(v){ return v && v.show !== false && v.img; });
       var byId = {};
-      views.forEach(function(v){ if(v.side && !byId[v.side]) byId[v.side] = v; });
+      views.forEach(function(v){
+        if(v.side === 'model') return;      // модель іде окремо, першим кадром
+        if(v.side && !byId[v.side]) byId[v.side] = v;
+      });
       var out2 = [];
       var add = function(v, lb){
         if(!v || !v.img) return;
@@ -253,15 +256,21 @@
         out2.push({ url: v.img, side: v.side || '',
                     label: lb || SIDE_UA[v.side] || v.label || '' });
       };
-      var mp = modelsOf(it)[0];
-      if(mp){
-        out2.push({ url: mp.url, side:'', label:'', model: true,
-                    /* Якір із каталогу: де на цьому фото груди. Менеджер
-                       однаково пересуне сам, але починати з нуля щоразу —
-                       це робота, яку вже колись зробили. */
-                    mark: (mp.cx != null)
-                      ? { cx: +mp.cx / 100, cy: +mp.cy / 100, w: (+mp.sw || 24) / 100 }
-                      : null });
+      /* Фото моделі приходить ракурсом — тим самим списком, що перед і
+         спина. Так його видно там, де збирають пропозицію, і ховається
+         воно тією ж галочкою. Окремий канал лишився запасним: позиції,
+         заведені до цієї зміни, ракурсу «на моделі» ще не мають. */
+      var mv = views.filter(function(v){ return v.side === 'model' || v.model; })[0];
+      var mp = mv ? { url: mv.img, mark: mv.mark } : null;
+      if(!mp){
+        var cat = modelsOf(it)[0];
+        if(cat) mp = { url: cat.url,
+                       mark: (cat.cx != null)
+                         ? { cx: +cat.cx / 100, cy: +cat.cy / 100, w: (+cat.sw || 24) / 100 }
+                         : null };
+      }
+      if(mp && mp.url){
+        out2.push({ url: mp.url, side:'', label:'', model: true, mark: mp.mark || null });
       }
       /* Перед і спина — ЗАВЖДИ обидва, коли обидва є.
 
@@ -273,7 +282,7 @@
       add(byId.front); add(byId.back);
       (it.prints || []).forEach(function(p){
         var sd = p.side || '';
-        if(sd === 'front' || sd === 'back') return;   // обидва вже стоять
+        if(sd === 'front' || sd === 'back' || sd === 'model') return;
         add(byId[sd], p.sideLabel && SIDE_UA[sd] ? SIDE_UA[sd] : (p.sideLabel || ''));
       });
       if(!out2.length) views.forEach(function(v){ add(v); });

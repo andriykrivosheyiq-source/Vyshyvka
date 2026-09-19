@@ -442,6 +442,37 @@ ok(model.back.length === 3 && model.back[2] === 'back',
 ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
   'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
   'без фото моделі склад зламався: ' + model.none.join(' · '));
+/* Фото моделі приходить ракурсом — тим самим списком, що перед і спина.
+   Так його видно там, де збирають пропозицію, і ховається воно тією ж
+   галочкою, що й решта. */
+const asView = await fr.evaluate(([o]) => {
+  const L = window.LQCards;
+  const it = JSON.parse(JSON.stringify(o.items[0]));
+  it.views = [
+    { id:'vmodel', side:'model', label:'На моделі', img:'MODEL.webp', show:true,
+      model:true, mark:{ cx:0.42, cy:0.38, w:0.26 } },
+    { id:'vf', side:'front', label:'Перед', img:'F.webp', show:true },
+    { id:'vb', side:'back',  label:'Спина', img:'B.webp', show:true }
+  ];
+  const c = L.build({ items:[it], terms:{} }, {})[0];
+  const hid = JSON.parse(JSON.stringify(it));
+  hid.views[0].show = false;
+  const c2 = L.build({ items:[hid], terms:{} }, {})[0];
+  return { кадри: c.shots.map(s => (s.model ? 'модель' : s.side)),
+           якір: c.shots[0] && c.shots[0].mark,
+           безМоделі: c2.shots.map(s => (s.model ? 'модель' : s.side)) };
+}, [OFFER]);
+console.log('   ракурсом: ' + asView.кадри.join(' · ') +
+            ' · схований: ' + asView.безМоделі.join(' · '));
+ok(asView.кадри.join() === 'модель,front,back',
+  'фото моделі приходить ракурсом і стає першим кадром, перед і спина за ним',
+  'ракурс моделі не підхопився: ' + asView.кадри.join(' · '));
+ok(asView.якір && Math.abs(asView.якір.cx - 0.42) < 0.01,
+  'разом із ним їде розміщення нанесення — його не ловлять заново в картці',
+  'розміщення з ракурсу не доїхало: ' + JSON.stringify(asView.якір));
+ok(asView.безМоделі.join() === 'front,back',
+  'сховали ракурс — фото моделі зникає з картки тією ж галочкою, що й решта',
+  'схований ракурс усе одно намалювався: ' + asView.безМоделі.join(' · '));
 ok(model.mark && Math.abs(model.mark.cx - 0.5) < 0.01 && Math.abs(model.mark.w - 0.32) < 0.01,
   'якір із каталогу каже, де на цьому фото груди — менеджер не ловить місце з нуля',
   'якір не доїхав: ' + JSON.stringify(model.mark));
