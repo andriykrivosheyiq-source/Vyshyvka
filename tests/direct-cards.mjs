@@ -280,7 +280,13 @@ const about = await fr.evaluate(([o]) => {
   const c = window.LQCards.build(two, {})[0];
   const off = window.LQCards.build(two, { fields:{ warn:false, about:false } })[0];
   const set = window.LQCards.build(two, {}).filter(x => x.type === 'set')[0];
-  return { about: c.about, still: off.about,
+  /* Характеристики мають бути ПОПЕРЕДУ опису: опис — це речення, написане
+     людиною, і буває яким завгодно, а характеристики заповнені фактами. */
+  const three = JSON.parse(JSON.stringify(two));
+  three.items[0].specs = [{ label:'Матеріал', value:'футер тринитка' },
+                          { label:'Щільність', value:'330 г/м²' }];
+  const sp = window.LQCards.build(three, {})[0];
+  return { about: c.about, still: off.about, specs: sp.about,
            recoNote: !!(set && set.items[0] && set.items[0].note) };
 }, [OFFER]);
 
@@ -422,11 +428,16 @@ const model = await fr.evaluate(([o, host]) => {
 console.log('   тільки перед: ' + model.one.join(' · '));
 console.log('   з нанесенням на спині: ' + model.back.join(' · '));
 console.log('   без фото моделі: ' + model.none.join(' · '));
-ok(model.one.length === 2 && model.one[0] === 'модель' && model.one[1] === 'front',
-  'є фото моделі — воно перше, другим іде перед; спини без нанесення немає',
+/* Спина йде на картку ЗАВЖДИ, коли вона є, — а не лише коли на ній щось
+   нанесено. Доти картка лишалась із фото моделі та одним ракурсом, а
+   праворуч зяяло порожнє місце. Клієнт дивиться на спину не через
+   нанесення: він хоче побачити виріб, і чиста спина — теж відповідь. */
+ok(model.one.length === 3 && model.one[0] === 'модель' &&
+   model.one[1] === 'front' && model.one[2] === 'back',
+  'є фото моделі — воно перше, далі перед і спина: порожнього місця не лишається',
   'склад кадрів не той: ' + model.one.join(' · '));
 ok(model.back.length === 3 && model.back[2] === 'back',
-  'спина приїздить окремою колонкою, коли на ній справді щось нанесено',
+  'спина з нанесенням теж на місці',
   'спина з нанесенням загубилась: ' + model.back.join(' · '));
 ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
   'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
@@ -742,6 +753,10 @@ ok(/Кольори на екрані передаються по-різному/
 ok(about.about === 'Щільність 320 г/м², петля без начосу',
   'опис виробу доїжджає на картку з картки товару',
   'опису виробу немає: «' + about.about + '»');
+ok(about.specs === 'Матеріал футер тринитка · Щільність 330 г/м²',
+  'а є характеристики — на картку йдуть саме вони: опис буває яким завгодно, ' +
+    'характеристики заповнені фактами',
+  'характеристики не переважили опис: «' + about.specs + '»');
 ok(about.still === about.about,
   'вимкнене поле лишається в даних — його просто не малюють',
   'вимкнення поля стерло дані');
