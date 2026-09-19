@@ -5004,7 +5004,15 @@
     function loadImgEl(src){
       return new Promise(function(resolve, reject){
         var img = new Image();
-        img.crossOrigin = 'anonymous';
+        /* crossOrigin потрібен лише для картинок із ЧУЖОГО сайту: без нього
+           полотно стає «зіпсованим» і знімок не зберегти.
+
+           Але для data: і blob: він шкідливий: адреса своя, заголовків CORS
+           у неї немає в принципі, перевірка не проходить — і картинка
+           вантажиться, показується, має розмір, а на полотно не лягає.
+           Помилки при цьому немає, drawImage просто мовчить. Логотип, який
+           ще не поїхав у сховище, зникав зі знімка беззвучно. */
+        if(!/^(data:|blob:)/i.test(String(src || ''))) img.crossOrigin = 'anonymous';
         img.onload = function(){ resolve(img); };
         img.onerror = reject;
         img.src = src;
@@ -6180,6 +6188,16 @@
               .catch(function(){ return null; })
           : Promise.resolve(null);
         var canvas = document.createElement('canvas'), ctx = null, W = C, H = C;
+        /* `shot` — прямокутник фото всередині полотна, `stage` — той самий
+           прямокутник усередині квадратного контейнера сцени, у частках
+           його сторони. Два різні кадри одного фото: у першому рахує
+           знімок, у другому стоїть логотип. Доти знімок брав частки шару
+           як свої власні — і виходило те, на що Андрій показував пальцем:
+           у збиранні логотип стоїть по центру грудей, у картці з'їхав і
+           змінив розмір. На мокапі фото майже квадратне, різниця мала й
+           непомітна; на фото моделі воно високе, і різниця — це вся ширина
+           полів обабіч. */
+        var shot = null, stage = null;
         var garmentP = loadG.then(function(img){
           /* Полотно тієї самої форми, що знімок виробу, а не квадрат.
              Доти знімок вписувався в квадрат «по меншій стороні», і зверху
@@ -6202,11 +6220,19 @@
           if(!img) return;
           if(Math.abs(r - nat) < 0.001){
             ctx.drawImage(img, 0, 0, W, H);                     // край у край
+            shot = { x:0, y:0, w:W, h:H };
           }else{
             var s = Math.min(W/img.naturalWidth, H/img.naturalHeight);
             var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
             ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);     // не спотворюємо
+            shot = { x:(W-dw)/2, y:(H-dh)/2, w:dw, h:dh };
           }
+          /* Де фото стоїть НА СЦЕНІ — у квадратному контейнері з полями по
+             боках. Саме від цього квадрата збережена геометрія шару, і без
+             цього прямокутника знімок її не відтворить. */
+          var arI = img.naturalWidth / img.naturalHeight;
+          if(arI >= 1) stage = { rw:1, rh:1/arI, ox:0, oy:(1 - 1/arI)/2 };
+          else         stage = { rw:arI, rh:1, ox:(1 - arI)/2, oy:0 };
         });
         garmentP.then(function(){
           return layers.reduce(function(p, layer){
@@ -6218,11 +6244,22 @@
                    мить, — а на телефоні, у вужчому вікні чи при схованому
                    конструкторі вона щоразу інша. */
                 var G = layerGeomFrac(layer);
-                var ar = layer.ar||1, sz = G.frac*W, bw = sz, bh = sz;
+                /* Частки шару збережені від КВАДРАТНОГО КОНТЕЙНЕРА СЦЕНИ, а
+                   не від фото. Переводимо їх спершу в частки самого фото —
+                   там логотип і стоїть, — і вже звідти в пікселі полотна.
+
+                   Без цього переходу знімок ставив логотип так, ніби фото
+                   займає весь контейнер. Займає воно лише свій прямокутник:
+                   на високому фото моделі обабіч лишаються поля, і рівно на
+                   їхню ширину логотип з'їжджав і дрібнішав. */
+                var st = stage || { rw:1, rh:1, ox:0, oy:0 };
+                var sh = shot  || { x:0, y:0, w:W, h:H };
+                var u = (0.5 + G.fx - st.ox) / st.rw;
+                var v = (0.5 + G.fy - st.oy) / st.rh;
+                var ar = layer.ar||1;
+                var sz = (G.frac / st.rw) * sh.w, bw = sz, bh = sz;
                 if(ar>=1) bh = sz/ar; else bw = sz*ar;
-                /* Зсув відлічується від центру виробу й теж у частках
-                   ширини — так само, як його зберігали. */
-                var cx = W/2 + G.fx*W, cy = H/2 + G.fy*W;
+                var cx = sh.x + u * sh.w, cy = sh.y + v * sh.h;
                 var w = bw, h = bh;
                 ctx.save(); ctx.translate(cx, cy); ctx.rotate((layer.rot||0)*Math.PI/180);
                 /* Нахил по перспективі — той самий чотирикутник, що на сцені,
