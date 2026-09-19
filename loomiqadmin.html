@@ -2781,11 +2781,33 @@
   .od-pack-p i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);
     margin-top:3px;}
 
-  .dz-tabs{display:flex;gap:4px;background:var(--canvas);border-radius:10px;
-    padding:3px;margin-bottom:14px;width:fit-content;}
-  .dz-tab{font:inherit;font-size:13px;font-weight:700;color:var(--ink-soft);
-    background:none;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;}
-  .dz-tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.12);}
+  /* Шапка відділу: ліворуч — чия це дошка, праворуч — нове замовлення.
+     Вкладок тут більше немає: у кожної ролі одна дошка, і вибирати з
+     чогось людині не треба. */
+  .dz-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .dz-as{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .dz-as span{font-weight:700;color:var(--ink-soft);}
+  .dz-as b{font-weight:800;color:var(--ink);}
+  .dz-as-sel{font:inherit;font-size:13px;font-weight:800;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 10px;
+    cursor:pointer;}
+  .dz-new{margin-left:auto;}
+  /* Клієнт і строк — рядком під шапкою картки */
+  .dz-who{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;
+    color:var(--ink);padding-bottom:10px;margin-bottom:10px;
+    border-bottom:1px solid var(--line);}
+  .dz-sep{color:var(--ink-soft);}
+  /* Доручення всередині картки. Поточне видно, попередні складені: саме
+     так Андрій і просив — стара правка йде в історію, нова стає на її
+     місце. */
+  .dz-task{background:var(--canvas);border-radius:10px;padding:9px 11px;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;}
+  .dz-task b{font-weight:800;}
+  .dz-task i{font-style:normal;font-size:11.5px;color:var(--ink-soft);}
+  .dz-task .dz-note{flex-basis:100%;margin:0;}
+  .dz-task.old{opacity:.72;margin-top:6px;}
+  .dz-old{margin-top:8px;}
+  .dz-old summary{font-size:12px;font-weight:700;color:var(--ink-soft);cursor:pointer;}
   .dz-wrap{display:flex;gap:16px;align-items:flex-start;}
   .dz-boards{flex:1;min-width:0;overflow-x:auto;}
   .dz-board{display:flex;gap:10px;min-width:min-content;}
@@ -4500,13 +4522,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=986f942b53"></script>
-<script src="loomiq-fingerprint.js?v=986f942b53"></script>
-<script src="loomiq-pricing.js?v=986f942b53"></script>
+<script src="loomiq-select.js?v=5bc1d88680"></script>
+<script src="loomiq-fingerprint.js?v=5bc1d88680"></script>
+<script src="loomiq-pricing.js?v=5bc1d88680"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=986f942b53"></script>
+<script src="loomiq-design.js?v=5bc1d88680"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -19847,6 +19869,16 @@ function openDesign(){
          зараз натиснув. Лишити доручення без адресата означало б загубити
          саме ту половину передачі, заради якої воно й створюється. */
       return byRole('supply') || byRole('manager') || byRole('designmgr') || myEmail() || '';
+    },
+    /* Нове замовлення заводять руками — з сайту й прорахунку вони
+       приходять самі, а тут ідеться про те, що продажник узяв телефоном.
+       Форма для цього вже є в робочому місці; відділ лише відкриває її,
+       а не заводить власну: дві різні форми «нового замовлення» рано чи
+       пізно розійдуться полями й нумерацією. */
+    newOrder: ()=>{
+      const b = document.querySelector('.nav button[data-view="board"]');
+      if(b) b.click();
+      try{ toggleNewOrder(true); }catch(e){ toast('Форма замовлення недоступна'); }
     },
     can: ()=> true
   };

@@ -994,22 +994,36 @@
            d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
   }
 
-  var TABS = [
-    /* «Мої доручення» стоїть першою навмисно: людина відкриває відділ не
-       щоб подивитись на дошку, а щоб дізнатись, що їй робити зараз. */
-    { key:'tasks',   label:'Доручення', role:'*'        },
-    /* Управлінська дошка на весь ланцюг. Стоїть поруч із чергою відділу, а
-       не замість неї: черга — це робота менеджера дизайну, ланцюг — це
-       відповідь на питання «де замовлення». */
-    { key:'chain',   label:'Замовлення', role:'designmgr' },
-    { key:'queue',   label:'Черга',    role:'designmgr' },
-    { key:'graphic', label:'Макети',   role:'designer'  },
-    { key:'stitch',  label:'Вишивка',  role:'embroidery'},
-    { key:'qa',      label:'QA',       role:'qa'        },
-    { key:'pack',    label:'Виробництво', role:'production'},
-    { key:'supply',  label:'Закупівля',   role:'supply'    }
+  /* ══════════ П'ЯТЬ РОЛЕЙ, П'ЯТЬ ДОШОК ══════════
+     Відділ — це не набір екранів, між якими людина обирає. Це п'ять місць
+     роботи, і в кожного своя дошка з його етапами. Людина заходить одразу
+     на свою: обирати їй нема з чого й не треба.
+
+     Вкладок «Доручення», «Замовлення», «Черга», «Макети» більше немає.
+     Розкладати ту саму роботу на кілька екранів означало щоразу питати
+     себе, у якому з них дивитись, — а відповідь одна: у своєму.
+
+     Доручення нікуди не поділись, вони переїхали ВСЕРЕДИНУ КАРТКИ. На
+     дошці стоїть замовлення, а що з ним робити — написано в ньому.
+
+     Контролю окремою роллю немає навмисно: перевіряє акаунт-менеджер, це
+     колонка на його дошці. Він же вирішує, віддавати клієнту чи повертати
+     на правку, — на клієнта відправку ми не передаємо. */
+  var ROLES = [
+    { key:'acct',    label:'Акаунт-менеджер',      role:'designmgr'  },
+    { key:'graphic', label:'Графічний дизайнер',   role:'designer'   },
+    { key:'stitch',  label:'Вишивальний дизайнер', role:'embroidery' },
+    { key:'prod',    label:'Виробництво',          role:'production' },
+    { key:'supply',  label:'Закупівля',            role:'supply'     }
   ];
-  var tab = 'queue', openKey = '';
+  /* Чия це роль з точки зору прав. Власник і керівник бачать усе й
+     перемикаються вручну; решта прив'язана до своєї. */
+  function roleSeat(r){
+    for(var i = 0; i < ROLES.length; i++) if(ROLES[i].role === r) return ROLES[i].key;
+    return '';
+  }
+  function isBoss(r){ return !r || r === 'owner' || r === 'manager' || r === 'designmgr'; }
+  var tab = 'acct', openKey = '';
 
   /* Пари «задача + замовлення». Замовлення лишається джерелом складу, задача
      — джерелом стану: ані те, ані те окремо не відповідає на питання, що з
@@ -1081,6 +1095,74 @@
   }
 
   /* ── Вхідні дані задачі: те, що дизайнер має бачити, і нічого зайвого ── */
+  /* ── Клієнт і строк: перше, що має бути в картці ────────────────────
+     Доти цього в картці не було зовсім: замовлення позначалось номером, а
+     кому воно й до якого числа — питали в менеджера. Номер не відповідає
+     ні на те, ні на те. */
+  function clientHtml(o, job){
+    var c = o.client || {};
+    var who = [c.name, c.company].filter(Boolean).join(' · ');
+    var bits = [];
+    if(who) bits.push('<b>' + esc(who) + '</b>');
+    if(c.phone) bits.push(esc(c.phone));
+    var due = (job && job.due) || o.dueDate || ((o.terms || {}).deadline) || '';
+    if(due) bits.push('до ' + esc(due));
+    if(!bits.length) return '';
+    return '<div class="dz-who">' + bits.join('<span class="dz-sep">·</span>') + '</div>';
+  }
+  /* ── Що зробити мені ────────────────────────────────────────────────
+     Доручення жили окремою дошкою, і виконавець мусив тримати в голові
+     два екрани: що робити — там, чим робити — тут. Тепер завдання лежить
+     у самій картці замовлення, поруч із усім іншим.
+
+     Показуємо ОДНЕ, поточне. Андрій: «якщо дві правки, одне замовлення —
+     просто та правка ховається в історію, і з'являється нова». Так і
+     зроблено: попередні складені під рядок, який їх розгортає. */
+  var SEAT_TASK = { graphic:'graphic', stitch:'stitch', prod:'prod', supply:'supply' };
+  function taskBlockHtml(pr, seat){
+    var want = SEAT_TASK[seat] || '';
+    var all = D.taskList(pr.job).filter(function(t){
+      var k = D.TASK_KINDS.filter(function(x){ return x.key === t.kind; })[0];
+      return !want || (k && k.to === want);
+    });
+    if(!all.length) return '';
+    var live = all.filter(function(t){ return t.state !== 'accepted'; });
+    var cur = live[live.length - 1] || null;
+    var past = all.filter(function(t){ return t !== cur; });
+    var one = function(t, old){
+      var k = D.TASK_KINDS.filter(function(x){ return x.key === t.kind; })[0];
+      var st = D.TASK_FLOW.filter(function(x){ return x.key === t.state; })[0] || {};
+      var why = D.TASK_WHY.filter(function(x){ return x.key === t.why; })[0];
+      var mine = String(t.to || '').trim().toLowerCase() ===
+                 String(me()).trim().toLowerCase();
+      /* Кнопки — рівно ті, що доречні зараз. Показувати всі й гасити
+         частину означає щоразу читати, яка з них жива. */
+      var acts = '';
+      if(!old && mine && t.state === 'new')
+        acts = '<button class="dz-b pri" data-do="task-start" data-t="' + t.n + '">Беру в роботу</button>';
+      else if(!old && mine && t.state === 'work')
+        acts = '<input id="dzClosed" placeholder="Чим закрили: версія, файл, фото">' +
+               '<button class="dz-b pri" data-do="task-done" data-t="' + t.n + '">Готово</button>';
+      else if(!old && t.state === 'done' && (host.can ? host.can('designmgr') : true))
+        acts = '<button class="dz-b pri" data-do="task-accept" data-t="' + t.n + '">Прийняти</button>' +
+               reasonsHtml('dzWhy', D.TASK_WHY) +
+               '<button class="dz-b" data-do="task-return" data-t="' + t.n + '">Повернути</button>';
+      return '<div class="dz-task' + (old ? ' old' : '') + '" data-task="' + esc(t.id) + '">' +
+        '<b>' + esc((k ? k.label : t.kind) + ' №' + t.n) + '</b>' +
+        '<span class="dz-state">' + esc(st.label || t.state) + '</span>' +
+        (why ? '<i>' + esc(why.label) + '</i>' : '') +
+        (t.text ? '<div class="dz-note">' + esc(t.text).replace(/\n/g, '<br>') + '</div>' : '') +
+        (t.closedBy ? '<i>закрито: ' + esc(t.closedBy) + '</i>' : '') +
+        (acts ? '<div class="dz-act">' + acts + '</div>' : '') +
+      '</div>';
+    };
+    return '<div class="dz-h">Що зробити</div>' +
+      (cur ? one(cur, false) : '<div class="dz-miss">Відкритих доручень немає.</div>') +
+      (past.length
+        ? '<details class="dz-old"><summary>Попередні правки · ' + past.length + '</summary>' +
+          past.map(function(t){ return one(t, true); }).join('') + '</details>'
+        : '');
+  }
   function briefHtml(o, job){
     /* Слова замовника — перше, що має прочитати дизайнер. Склад і
        міліметри нижче: вони кажуть, що шиємо, а це — що малюємо. */
@@ -1208,7 +1290,8 @@
     pairs: pairs, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
-    teamPick: teamPick, TABS: TABS,
+    teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
+    clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     taskCards: taskCards, hm: hm,
     /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
        Заглушка на випадок, коли модуль піднімають без адмінки. */
@@ -1394,6 +1477,7 @@
         '<span class="dz-state">' + esc(D.stateLine(job)) + '</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
+        U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct') +
         U.briefHtml(o, job) +
         (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
@@ -1439,6 +1523,7 @@
         '<span class="dz-state">' + esc(D.stepLabel(D.GRAPHIC, g.status)) + '</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
+        U.clientHtml(o, job) + U.taskBlockHtml(p, 'graphic') +
         U.briefHtml(o, job) +
         '<div class="dz-acts">' + acts + '</div>' +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
@@ -1467,7 +1552,10 @@
       }).join('') + '</div>';
   }
 
-  function stitchPanel(p, s){
+  /* `more` — це вже другий і далі файл того самого замовлення: клієнта й
+     доручення в них не повторюємо, інакше панель перетворюється на три
+     копії однієї шапки. */
+  function stitchPanel(p, s, more){
     var job = p.job, o = p.o;
     var v = D.verAt(o, job.approvedVersion);
     var open = D.stitchOpen(job);
@@ -1503,10 +1591,12 @@
             '<button class="dz-b pri" data-do="s-ready">Готово для QA</button></div>'
           : '');
     }
-    return '<div class="dz-panel-h">#' + esc(o.orderId) + ' · ' + esc(s.label) +
+    return (more ? '' :
+        '<div class="dz-panel-h">#' + esc(o.orderId) + ' · ' + esc(s.label) +
         '<span class="dz-state">' + esc(D.stepLabel(D.STITCH, s.status)) + '</span>' +
-        '<button class="dz-x" data-close>×</button></div>' +
+        '<button class="dz-x" data-close>×</button></div>') +
       '<div class="dz-panel-b">' +
+        (more ? '' : U.clientHtml(o, job) + U.taskBlockHtml(p, 'stitch')) +
         '<div class="dz-item"><div class="dz-item-h">' + esc(s.name) +
           (s.color ? ' · ' + esc(s.color) : '') + ' · ' + (+s.qty || 0) + ' шт</div>' +
           '<div class="dz-pl"><b>' + esc(s.label) + '</b> · ' +
@@ -1542,6 +1632,7 @@
         '<span class="dz-state">перевірка файлу</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
+        U.clientHtml(o, p.job) + U.taskBlockHtml(p, 'stitch') +
         '<div class="dz-item"><div class="dz-item-h">' + esc(s.name) + ' · ' +
           esc(s.label) + ' · ' + (s.mm ? s.mm.w + '×' + s.mm.h + ' мм' : '—') + '</div>' +
           '<div class="dz-item-s">' + (+s.stitches || 0) + ' стібків' +
@@ -1578,6 +1669,7 @@
         '<span class="dz-state">' + (pk ? 'пакет зібрано' : (r.ok ? 'готово збирати' : 'не готово')) +
         '</span><button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
+        U.clientHtml(o, job) + U.taskBlockHtml(p, 'prod') +
         (r.ok ? '<div class="dz-ok">Усе на місці</div>'
               : '<div class="dz-miss"><b>Бракує:</b> ' + r.why.map(esc).join(' · ') + '</div>') +
         (pk ? packHtml(pk) : '') +
@@ -1606,73 +1698,92 @@
   }
 
   /* ══════════ ЗБИРАННЯ ЕКРАНА ══════════ */
+  /* Дошка вишивальника — ПО ЗАМОВЛЕННЯХ, а не по файлах. Файлів на одне
+     замовлення буває кілька, і доти кожен стояв окремою карткою: одне
+     замовлення розповзалось по дошці на три-чотири місця, і зібрати його
+     назад можна було тільки в голові. Тепер картка одна, а файли — у ній.
+
+     Колонка рахується за найменш готовим файлом: поки хоч один не зданий,
+     замовлення не здане. */
+  function stitchOrderCards(){
+    var out = [];
+    U.pairs().forEach(function(p){
+      var list = (p.job.stitch || []).filter(function(s){ return !s.gone; });
+      if(!list.length) return;
+      var order = D.STITCH.map(function(x){ return x.key; });
+      var worst = list.reduce(function(acc, s){
+        var i = order.indexOf(s.status || 'wait');
+        return (i >= 0 && i < acc) ? i : acc;
+      }, order.length - 1);
+      var done = list.filter(function(s){ return s.status === 'ok'; }).length;
+      out.push({ id: p.o.orderId, step: order[worst] || 'wait',
+        title: '#' + p.o.orderId,
+        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+               .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
+        foot: 'файлів ' + list.length + ' · готово ' + done });
+    });
+    return out;
+  }
+  function prodCards(){
+    return U.pairs().map(function(p){
+      var r = D.packReady(p.job, p.o);
+      return { id: p.o.orderId, step: D.prodAt(p.job, p.o),
+        title: '#' + p.o.orderId,
+        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+               .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
+        foot: r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '') };
+    });
+  }
+  function supplyCards(){
+    return U.pairs().map(function(p){
+      var q = 0;
+      (p.o.items || []).forEach(function(it){
+        if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
+      return { id: p.o.orderId, step: D.supplyAt(p.o),
+        title: '#' + p.o.orderId,
+        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+               .map(function(i){ return [i.name, i.color].filter(Boolean).join(' · '); })[0] || '',
+        foot: q ? q + ' шт' : '' };
+    });
+  }
+  /* Дошка ролі: етапи і картки. Одне місце, де це вирішується, — інакше
+     дошка й панель почнуть розходитись у тому, що вважати колонкою. */
+  function boardOf(seat){
+    if(seat === 'graphic') return { steps: D.GRAPHIC, cards: graphicCards() };
+    if(seat === 'stitch')  return { steps: D.STITCH,  cards: stitchOrderCards() };
+    if(seat === 'prod')    return { steps: D.PROD,    cards: prodCards() };
+    if(seat === 'supply')  return { steps: D.SUPPLY,  cards: supplyCards() };
+    return { steps: D.CHAIN, cards: chainCards() };     // акаунт-менеджер
+  }
+
+  /* ══════════ ЗБИРАННЯ ЕКРАНА ══════════ */
   function render(root){
     if(!root) return;
-    var tab = U.tab();
-    var cards, steps, panel = '';
-    if(tab === 'tasks'){ steps = D.TASK_FLOW; cards = U.taskCards(U.can('designmgr')); }
-    else if(tab === 'chain'){ steps = D.CHAIN; cards = chainCards(); }
-    else if(tab === 'graphic'){ steps = D.GRAPHIC; cards = graphicCards(); }
-    else if(tab === 'stitch'){ steps = D.STITCH; cards = stitchCards(''); }
-    else if(tab === 'qa'){ steps = D.STITCH.filter(function(s){
-        return s.key === 'qa' || s.key === 'revision' || s.key === 'ok'; });
-      cards = stitchCards('').filter(function(c){
-        return c.step === 'qa' || c.step === 'revision' || c.step === 'ok'; }); }
-    else if(tab === 'pack'){
-      /* Вісім станів цеху замість трьох про пакети. Пакет нікуди не подівся
-         — він і далі збирається в панелі, — але дошка тепер каже те, що
-         справді цікавить біля машини: що шити зараз і чого чекаємо. */
-      steps = D.PROD;
-      cards = U.pairs().map(function(p){
-        var r = D.packReady(p.job, p.o);
-        var col = D.prodAt(p.job, p.o);
-        return { id: p.o.orderId, step: col,
-          title: '#' + p.o.orderId,
-          sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
-                 .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
-          foot: r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '') };
-      });
-    }
-    else if(tab === 'supply'){
-      steps = D.SUPPLY;
-      cards = U.pairs().map(function(p){
-        var q = 0;
-        (p.o.items || []).forEach(function(it){
-          if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
-        return { id: p.o.orderId, step: D.supplyAt(p.o),
-          title: '#' + p.o.orderId,
-          sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
-                 .map(function(i){ return [i.name, i.color].filter(Boolean).join(' · '); })[0] || '',
-          foot: q ? q + ' шт' : '' };
-      });
-    }
-    else { steps = D.QUEUE; cards = queueCards(); }
-
-    var openId = U.tabOpen ? U.tabOpen() : '';
-    /* Дошки чужих відділів людині не показуємо. Не тому, що таємниця, — а
-       тому, що зайва вкладка на екрані колись буде натиснута замість
-       потрібної, і людина півдня дивитиметься не туди. Хто веде відділ,
-       бачить усе: це і є його робота. */
     var role = (U.host.role && U.host.role()) || '';
-    var full = !role || role === 'owner' || role === 'manager' || role === 'designmgr';
-    var tabs = U.TABS.filter(function(t){
-      return full || t.role === '*' || t.role === role;
-    });
-    if(!tabs.length) tabs = U.TABS.slice(0, 1);
-    if(!tabs.some(function(t){ return t.key === tab; })){
-      tab = tabs[0].key;
-      U.setTab(tab);
-      if(tab === 'tasks'){ steps = D.TASK_FLOW; cards = U.taskCards(false); }
-    }
+    var boss = U.isBoss(role);
+    /* Перемикач ролей — тільки у власника. Співробітник заходить одразу у
+       свою дошку: дай йому вибір — колись перемкнеться й пів дня
+       працюватиме не на своєму екрані. */
+    var seat = boss ? U.tab() : (U.roleSeat(role) || U.tab());
+    if(!U.ROLES.some(function(r){ return r.key === seat; })) seat = boss ? 'acct' : 'graphic';
+    if(seat !== U.tab()) U.setTab(seat);
+    var b = boardOf(seat);
+    var openId = U.tabOpen ? U.tabOpen() : '';
+    var cur = U.ROLES.filter(function(r){ return r.key === seat; })[0] || U.ROLES[0];
+    var headHtml = boss
+      ? '<label class="dz-as"><span>Дивлюсь як</span>' +
+          '<select class="dz-as-sel" data-seat>' + U.ROLES.map(function(r){
+            return '<option value="' + r.key + '"' + (r.key === seat ? ' selected' : '') + '>' +
+                   esc(r.label) + '</option>';
+          }).join('') + '</select></label>' +
+        '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>'
+      : '<div class="dz-as"><span>Моя дошка</span><b>' + esc(cur.label) + '</b></div>';
     root.innerHTML =
-      '<div class="dz-tabs">' + tabs.map(function(t){
-        return '<button class="dz-tab' + (t.key === tab ? ' on' : '') +
-               '" data-tab="' + t.key + '">' + esc(t.label) + '</button>';
-      }).join('') + '</div>' +
+      '<div class="dz-top">' + headHtml + '</div>' +
       '<div class="dz-wrap">' +
-        '<div class="dz-boards">' + U.boardHtml(steps, cards) + '</div>' +
+        '<div class="dz-boards">' + U.boardHtml(b.steps, b.cards) + '</div>' +
         '<aside class="dz-panel' + (openId ? '' : ' hide') + '" id="dzPanel">' +
-          (openId ? panelFor(tab, openId) : '') + '</aside>' +
+          (openId ? panelFor(seat, openId) : '') + '</aside>' +
       '</div>';
     wire(root);
     /* Дошка ширша за екран, коли поруч відкрита панель, — і активна картка
@@ -1763,6 +1874,7 @@
         '<span class="dz-state">закупівля</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
+        U.clientHtml(o, p.job) + U.taskBlockHtml(p, 'supply') +
         (o.dueAt ? '<div class="dz-row"><span>Потрібно до</span><b>' +
                    esc(String(o.dueAt).slice(0, 10)) + '</b></div>' : '') +
         rows.map(function(it){
@@ -1776,35 +1888,25 @@
       '</div>';
   }
 
-  function panelFor(tab, id){
-    /* У ланцюга власної панелі немає: відкрита картка показує ту саму
-       чергу відділу. Дублювати те саме двома панелями означало б рано чи
-       пізно розійтись між ними. */
-    if(tab === 'chain'){
-      var pc = U.pairOf(id);
-      return pc ? queuePanel(pc) : '';
-    }
-    if(tab === 'tasks'){
-      var pt = String(id).split('|');
-      var pp = U.pairOf(pt[0]);
-      if(!pp) return '';
-      var tt = D.taskAt(pp.job, String(pt[1] || '').replace(/^t/, ''));
-      return tt ? taskPanel(pp, tt) : '';
-    }
-    if(tab === 'stitch' || tab === 'qa'){
-      var parts = String(id).split('|');
-      var p = U.pairOf(parts[0]);
-      if(!p) return '';
-      var s = D.stitchAt(p.job, parts[1]);
-      if(!s) return '';
-      return tab === 'qa' ? qaPanel(p, s) : stitchPanel(p, s);
-    }
-    var pr = U.pairOf(id);
+  /* Панель — завжди по ЗАМОВЛЕННЮ. Роль вирішує лише, який робочий блок у
+     ній відкритий: дизайнеру — версії макета, вишивальнику — файли,
+     закупівлі — що замовити. Клієнт, побажання й доручення однакові в
+     усіх: це одна картка, показана з різних місць роботи. */
+  function panelFor(seat, id){
+    var pr = U.pairOf(String(id).split('|')[0]);
     if(!pr) return '';
-    if(tab === 'graphic') return graphicPanel(pr);
-    if(tab === 'supply') return supplyPanel(pr);
-    if(tab === 'pack') return packPanel(pr);
-    return queuePanel(pr);
+    if(seat === 'graphic') return graphicPanel(pr);
+    if(seat === 'supply')  return supplyPanel(pr);
+    if(seat === 'prod')    return packPanel(pr);
+    if(seat === 'stitch'){
+      /* Файлів на замовлення буває кілька — показуємо всі підряд, у
+         порядку роботи. Окремими картками на дошці вони більше не стоять:
+         одне замовлення розповзалось по ній на три місця. */
+      var list = (pr.job.stitch || []).filter(function(x){ return !x.gone; });
+      if(!list.length) return stitchPanel(pr, { key:'', label:'', status:'wait' });
+      return list.map(function(x, i){ return stitchPanel(pr, x, i > 0); }).join('');
+    }
+    return queuePanel(pr);           // акаунт-менеджер
   }
 
   window.LQDesign.ui.render = render;
@@ -1815,9 +1917,11 @@
   var wireExtra = null;
 
   function wire(root){
-    root.querySelectorAll('[data-tab]').forEach(function(b){
-      b.onclick = function(){ U.setTab(b.dataset.tab); render(root); };
-    });
+    /* Перемикач ролі. Він НЕ дає прав: дії й далі виконуються від імені
+       того, хто зайшов, і в історію пишеться саме він. Це погляд, а не
+       перевтілення. */
+    var seatSel = root.querySelector('[data-seat]');
+    if(seatSel) seatSel.onchange = function(){ U.setTab(seatSel.value); render(root); };
     root.querySelectorAll('[data-open]').forEach(function(b){
       b.onclick = function(){ U.open(b.dataset.open); render(root); };
     });
@@ -1870,9 +1974,21 @@
   }
 
   async function act(what, root, data){
+    /* Нове замовлення заводять, коли на екрані ще нічого не відкрито, —
+       тому воно йде ДО перевірки контексту. Створює його робоче місце: у
+       відділу немає ні форми клієнта, ні нумерації, і заводити їх удруге
+       означало б мати два різні «нові замовлення». */
+    if(what === 'order-new'){
+      if(host().newOrder) return host().newOrder();
+      return say('Створення замовлення доступне з робочого місця');
+    }
     var c = ctx();
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
+    /* Доручення тепер живе ВСЕРЕДИНІ картки замовлення, а не окремою
+       карткою на дошці. Тому номер приходить не з ключа панелі, а з самої
+       кнопки: на одному замовленні доручень буває кілька. */
+    if(data && data.t && !c.t) c.t = D.taskAt(job, data.t);
 
     if(what === 'take'){
       var jl = U.pairs().map(function(x){ return x.job; });
