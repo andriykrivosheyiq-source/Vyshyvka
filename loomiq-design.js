@@ -1059,7 +1059,7 @@
           id: pr.o.orderId + '|t' + t.n,
           step: t.state,
           title: (k ? k.label : t.kind) + ' №' + t.n,
-          sub: '#' + pr.o.orderId + (t.due ? ' · до ' + t.due : ''),
+          sub: jobNo(pr.job) + (t.due ? ' · до ' + t.due : ''),
           foot: (all ? nameOf(t.to) : '') +
                 (age ? (all ? ' · ' : '') + hm(age) : '')
         });
@@ -1095,6 +1095,19 @@
   }
 
   /* ── Вхідні дані задачі: те, що дизайнер має бачити, і нічого зайвого ── */
+  /* Номер, під яким замовлення живе У ВІДДІЛІ. Номер замовлення сюди не
+     потрапляє взагалі: там свій рахунок — продаж, КП, платіжка, — а тут
+     свій, про макет. Показувати перший там, де живе другий, означає щодня
+     питати, про що саме зараз мова.
+
+     Поки номера немає (стара задача, заведена до цього правила), не
+     вигадуємо його на льоту й не підставляємо чужий: пишемо риску. Номер
+     видасть робоче місце, один раз і назавжди. */
+  function jobNo(job){
+    var n = job && job.no;
+    return n ? ('#' + n) : '#—';
+  }
+
   /* ── Клієнт і строк: перше, що має бути в картці ────────────────────
      Доти цього в картці не було зовсім: замовлення позначалось номером, а
      кому воно й до якого числа — питали в менеджера. Номер не відповідає
@@ -1291,6 +1304,7 @@
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
     teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
+    jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     taskCards: taskCards, hm: hm,
     /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
@@ -1334,7 +1348,7 @@
       var col = D.chainAt(p.job, p.o);
       var open = D.taskOpen(p.job).length;
       return { id: p.o.orderId, step: col,
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: (D.CHAIN_WHO[col] || '') + (open ? ' · доручень ' + open : '') };
@@ -1344,7 +1358,7 @@
     return U.pairs().map(function(p){
       var g = p.job.graphic || {};
       return { id: p.o.orderId, step: p.job.state,
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: (g.assignee ? nameOf(g.assignee) : 'без дизайнера') +
@@ -1359,7 +1373,7 @@
     }).map(function(p){
       var v = D.verCur(p.job);
       return { id: p.o.orderId, step: p.job.graphic.status || 'new',
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: v ? ('v' + v.n + ' · ' + dt(v.at)) : 'версій немає' };
@@ -1372,7 +1386,7 @@
         if(s.gone) return;
         if(filterStatus && s.status !== filterStatus) return;
         out.push({ id: p.o.orderId + '|' + s.key, step: s.status || 'wait',
-          title: '#' + p.o.orderId + ' · ' + (s.label || ''),
+          title: U.jobNo(p.job) + ' · ' + (s.label || ''),
           sub: (s.name || '') + (s.color ? ' · ' + s.color : ''),
           foot: (s.mm ? s.mm.w + '×' + s.mm.h + ' мм' : '') +
                 (s.assignee ? ' · ' + nameOf(s.assignee) : '') +
@@ -1473,7 +1487,7 @@
         '<button class="dz-b" data-do="cl-changes">Записати правки</button>' +
       '</div>');
     }
-    return '<div class="dz-panel-h">#' + esc(o.orderId) +
+    return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + esc(D.stateLine(job)) + '</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
@@ -1519,7 +1533,7 @@
     if(g.status === 'new' || g.status === 'revision')
       acts = '<div class="dz-act"><span class="dz-l">Почати</span>' +
         '<button class="dz-b pri" data-do="start">Взяти в роботу</button></div>' + acts;
-    return '<div class="dz-panel-h">#' + esc(o.orderId) +
+    return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + esc(D.stepLabel(D.GRAPHIC, g.status)) + '</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
@@ -1592,7 +1606,7 @@
           : '');
     }
     return (more ? '' :
-        '<div class="dz-panel-h">#' + esc(o.orderId) + ' · ' + esc(s.label) +
+        '<div class="dz-panel-h">' + U.jobNo(job) + ' · ' + esc(s.label) +
         '<span class="dz-state">' + esc(D.stepLabel(D.STITCH, s.status)) + '</span>' +
         '<button class="dz-x" data-close>×</button></div>') +
       '<div class="dz-panel-b">' +
@@ -1628,7 +1642,7 @@
   function qaPanel(p, s){
     var o = p.o;
     var checks = (s.qa && s.qa.checks) || {};
-    return '<div class="dz-panel-h">#' + esc(o.orderId) + ' · ' + esc(s.label) +
+    return '<div class="dz-panel-h">' + U.jobNo(p.job) + ' · ' + esc(s.label) +
         '<span class="dz-state">перевірка файлу</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
@@ -1665,7 +1679,7 @@
     var job = p.job, o = p.o;
     var r = D.packReady(job, o);
     var pk = job.pack;
-    return '<div class="dz-panel-h">#' + esc(o.orderId) +
+    return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + (pk ? 'пакет зібрано' : (r.ok ? 'готово збирати' : 'не готово')) +
         '</span><button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
@@ -1717,7 +1731,7 @@
       }, order.length - 1);
       var done = list.filter(function(s){ return s.status === 'ok'; }).length;
       out.push({ id: p.o.orderId, step: order[worst] || 'wait',
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: 'файлів ' + list.length + ' · готово ' + done });
@@ -1728,7 +1742,7 @@
     return U.pairs().map(function(p){
       var r = D.packReady(p.job, p.o);
       return { id: p.o.orderId, step: D.prodAt(p.job, p.o),
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '') };
@@ -1740,7 +1754,7 @@
       (p.o.items || []).forEach(function(it){
         if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
       return { id: p.o.orderId, step: D.supplyAt(p.o),
-        title: '#' + p.o.orderId,
+        title: U.jobNo(p.job),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return [i.name, i.color].filter(Boolean).join(' · '); })[0] || '',
         foot: q ? q + ' шт' : '' };
@@ -1870,7 +1884,7 @@
   function supplyPanel(p){
     var o = p.o;
     var rows = (o.items || []).filter(function(it){ return (it.kind || 'main') !== 'reco'; });
-    return '<div class="dz-panel-h">#' + esc(o.orderId) +
+    return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">закупівля</span>' +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
