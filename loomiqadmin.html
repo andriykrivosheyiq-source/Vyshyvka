@@ -7460,22 +7460,63 @@ function orderIdNum(v){
 
    Наявні картки лишаються запобіжником на випадок, якщо лічильник загубився
    (стара база, перший запуск): беремо більше з двох. */
+/* ── ДРУГИЙ СЛІД ЛІЧИЛЬНИКА, У САМОМУ БРАУЗЕРІ ───────────────────────────
+   Хмарний лічильник — головний, але він може не записатись: правила бази
+   публікують руками, і поки цього не зробили, запис відхиляється. Помилку
+   ми при цьому ковтали, а після перезавантаження лічильника вже не було —
+   і номер рахувався від карток на дошці. Видалили найновішу, її номер
+   звільнився, наступне замовлення отримало той самий. Рівно це Андрій і
+   побачив: один номер, дві картки, вчора й сьогодні.
+
+   Тому тримаємо ще один слід — просто тут, у браузері. Він переживає
+   перезавантаження, не залежить від прав у базі й ніколи не зменшується. */
+const ORDER_SEQ_LS = 'lq.orderSeq';
+function orderSeqLocal(){
+  try{ return +(localStorage.getItem(ORDER_SEQ_LS) || 0) || 0; }catch(e){ return 0; }
+}
+function orderSeqLocalSet(n){
+  try{ if(n > orderSeqLocal()) localStorage.setItem(ORDER_SEQ_LS, String(n)); }catch(e){}
+}
 function orderSeqNow(){
   let n = +(contentData && contentData.orderSeq) || 0;
   (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v > n) n = v; });
+  const loc = orderSeqLocal();
+  if(loc > n) n = loc;
   if(n < ORDER_ID_MIN - 1) n = ORDER_ID_MIN - 1;
   return Math.max(n, orderSeq);
 }
+/* Скільки разів поспіль база відмовилась прийняти лічильник. Кажемо про це
+   один раз, а не на кожну картку: людина має дізнатись про поломку, але не
+   через двадцять однакових спливашок. */
+let orderSeqWarned = false;
 function makeOrderId(){
-  orderSeq = orderSeqNow() + 1;
+  let next = orderSeqNow() + 1;
+  /* Номер, який уже стоїть на дошці, не видаємо НІКОЛИ — навіть якщо
+     лічильник чомусь відкотився. Це остання перевірка перед видачею, і
+     саме вона не дає двом карткам зійтись на одному номері. */
+  const busy = {};
+  (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v) busy[v] = 1; });
+  while(busy[next]) next++;
+  orderSeq = next;
   /* Пишемо одразу, не чекаючи збереження самої картки: якщо вкладку
      закрити між цими двома діями, номер усе одно вже витрачений. */
+  orderSeqLocalSet(orderSeq);
   if(contentData) contentData.orderSeq = orderSeq;
+  const біда = e => {
+    console.warn('лічильник номерів не збережено', e);
+    /* Мовчати тут не можна. Саме мовчання й перетворило дрібну відмову в
+       записі на два замовлення з одним номером — а номер живе в КП, у
+       переписці, у платіжці. */
+    if(!orderSeqWarned){
+      orderSeqWarned = true;
+      try{ toast('Лічильник номерів не зберігся в базі — опублікуйте firestore.rules, ' +
+                 'інакше номери можуть повторитись'); }catch(e2){}
+    }
+  };
   try{
     if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
-      PHOTOS_DOC.set({ orderSeq: orderSeq }, { merge:true })
-        .catch(e => console.warn('лічильник номерів не збережено', e));
-  }catch(e){ console.warn('лічильник номерів не збережено', e); }
+      PHOTOS_DOC.set({ orderSeq: orderSeq }, { merge:true }).catch(біда);
+  }catch(e){ біда(e); }
   return String(orderSeq);
 }
 /* Номери, яких у нумерації Канбану немає.

@@ -159,6 +159,54 @@ console.log('═══ СТАРА БАЗА БЕЗ ЛІЧИЛЬНИКА ═══
 }
 
 console.log('');
+console.log('═══ БАЗА НЕ ПРИЙНЯЛА ЛІЧИЛЬНИК — НОМЕР УСЕ ОДНО НЕ ПОВТОРИТЬСЯ ═══');
+/* Саме цей випадок Андрій і побачив: один номер на двох картках, учора й
+   сьогодні. Правила бази публікують руками; поки цього не зробили, запис
+   лічильника відхиляється — а ми цю відмову ковтали. Після перезавантаження
+   лічильника немає, номер рахується від карток на дошці, і варто видалити
+   найновішу, як її номер звільняється.
+
+   Друга вкладка в тому самому браузері — це і є «після перезавантаження».
+   Слід у самому браузері має пережити і відмову бази, і видалення картки. */
+{
+  const ctx = await browser.newContext({ viewport:{ width:1400, height:1000 } });
+  const відкрити = async (ords, content) => {
+    const pg = await ctx.newPage();
+    pg.on('pageerror', e => errs.push(e.message.slice(0, 170)));
+    pg.on('dialog', d => d.accept('ok'));
+    const body = stub(ords, content || {});
+    await pg.route('**://**', r => {
+      const u = r.request().url();
+      if(/gstatic\.com\/firebasejs/.test(u)) return r.fulfill({ contentType:'application/javascript', body });
+      if(u.startsWith(HOST)) return r.continue();
+      return r.abort();
+    });
+    await pg.goto(HOST + '/loomiqadmin.html', { waitUntil:'domcontentloaded' });
+    await pg.waitForTimeout(5500);
+    return pg;
+  };
+  /* Перший сеанс: картка 1000500, база лічильник НЕ зберігає. */
+  const a = await відкрити([order('1', '1000500')], {});
+  const перший = await a.evaluate(() => makeOrderId());
+  await a.close();
+  /* Другий сеанс: тієї картки вже немає — її видалили. Лічильника в базі
+     теж немає. Раніше саме тут номер і повторювався. */
+  const b2 = await відкрити([], {});
+  const другий = await b2.evaluate(() => makeOrderId());
+  const слід = await b2.evaluate(() => localStorage.getItem('lq.orderSeq'));
+  await b2.close();
+  await ctx.close();
+  console.log('  перший сеанс: ' + перший + ' · після видалення картки: ' + другий +
+              ' · слід у браузері: ' + слід);
+  ok(перший === '1000501',
+    'перший номер видається від найбільшого наявного, як і раніше',
+    'перший номер не той: ' + перший);
+  ok(+другий > +перший,
+    'видалену картку забуто, а її номер — ні: наступний більший, а не той самий',
+    'номер повторився: ' + перший + ' і ' + другий);
+}
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad
   ? 'розходжень: ' + bad
