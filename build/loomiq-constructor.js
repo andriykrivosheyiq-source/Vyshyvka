@@ -1742,7 +1742,18 @@
           }
         }catch(e){}
       }
-      pmUploadZone.style.display = currentLayers().length ? 'none' : '';
+      /* На вітрині завантажувати нічого не треба: нанесення сюди
+         переїжджає з переду. Пропонувати тут «завантажте логотип» —
+         значить питати вдруге те, на що вже відповіли, і закривати собою
+         саме те фото, заради якого ракурс і існує. */
+      pmUploadZone.style.display =
+        (pm.side === MODEL_VIEW || currentLayers().length) ? 'none' : '';
+      /* Копії на людей ставимо ТУТ, а не тільки при перемиканні сторони.
+         Позицію відкривають і з картки замовлення, і посиланням, і після
+         збереження — не всі ці дороги проходять через перемикач, і на
+         кожній із них вітрина лишалась порожньою. */
+      if(pm.side === MODEL_VIEW && !pm.modelSeedDone) wantModelSeed = true;
+      try{ if(pmGarmentPhoto.complete) seedModelLayers(); }catch(e){}
       renderLogoLayers();
       renderPrintArea();
       try{ matchStageBg(); }catch(e){}
@@ -2663,6 +2674,8 @@
       var have = pm.logos[MODEL_VIEW] || (pm.logos[MODEL_VIEW] = []);
       if(have.length){ wantModelSeed = false; return; }
       var from = (pm.logos.front || []).filter(function(l){ return l && !isPristineText(l); });
+      /* Переду ще немає — засівати нічим. Позначку не ставимо: щойно
+         нанесення зʼявиться, копії приїдуть самі. */
       if(!from.length){ wantModelSeed = false; return; }
       var spots = modelSeedSpots();
       if(!spots.length) return;              // фото ще не приїхало — спробуємо на load
@@ -2690,6 +2703,7 @@
           have.push(l);
         });
       });
+      pm.modelSeedDone = true;
       pm.activeLogoId = have.length ? have[0].id : null;
       try{ renderLogoLayers(); }catch(e){}
     }
@@ -6122,6 +6136,10 @@
 
     function openProductModal(garmentId, carry){
       zoneOutBySide = {};   // скидаємо стан зони від попереднього товару
+      /* Нова позиція — нова вітрина. Позначка «копії вже поставлені»
+         належить конкретній позиції, а не сеансу: інакше друга позиція
+         поспіль лишилась би з порожнім фото моделі. */
+      pm.modelSeedDone = false;
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
       pm.garmentId = garmentId || GARMENTS[0].id;
