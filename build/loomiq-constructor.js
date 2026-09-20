@@ -2487,19 +2487,31 @@
        Якір — із каталогу фото моделей: cx/cy кажуть, де на цьому знімку
        груди, sw — якої там ширини логотип. Без нього копія лягала б у
        центр кадру, тобто найчастіше на живіт. */
-    function modelSeedGeom(){
-      var p = modelPhotoOf(pm.garmentId); if(!p) return null;
-      var a = (p.logos || [])[0]; if(!a) return null;
-      var b = wrapBox(); if(!(b.w > 0) || !(b.h > 0)) return null;
+    /* Місця на фото, куди лягає нанесення. Їх стільки, скільки ЛЮДЕЙ у
+       кадрі: на парних знімках двоє, і нанесення з переду має бути на
+       обох — обоє ж у цьому виробі. Одна копія на двох читалась би як
+       «одному надрукували, другому ні».
+
+       Координати не вигадуємо: вони лежать у каталозі фото моделей —
+       cx/cy кажуть, де на цьому знімку груди, sw — якої там ширини знак.
+       Беремо лише точки ПЕРЕДНЬОЇ сторони: на парному фото ззаду вони
+       позначені окремо й належать іншому ракурсу. */
+    function modelSeedSpots(){
+      var p = modelPhotoOf(pm.garmentId); if(!p) return [];
+      var spots = (p.logos || []).filter(function(a){ return a && a.side !== 'back'; });
+      if(!spots.length) return [];
+      var b = wrapBox(); if(!(b.w > 0) || !(b.h > 0)) return [];
       var natW = pmGarmentPhoto.naturalWidth, natH = pmGarmentPhoto.naturalHeight;
-      if(!(natW > 0) || !(natH > 0)) return null;
+      if(!(natW > 0) || !(natH > 0)) return [];
       // прямокутник фото в квадратному контейнері (object-fit:contain)
       var ar = natW / natH, rw, rh, ox, oy;
       if(ar >= 1){ rw = 1; rh = 1 / ar; ox = 0; oy = (1 - rh) / 2; }
       else { rh = 1; rw = ar; oy = 0; ox = (1 - rw) / 2; }
-      return { x: (ox + (+a.cx || 50) / 100 * rw - 0.5) * b.w,
-               y: (oy + (+a.cy || 50) / 100 * rh - 0.5) * b.h,
-               scale: rw * ((+a.sw || 24) / 100) * b.w / 120 };
+      return spots.map(function(a){
+        return { x: (ox + (+a.cx || 50) / 100 * rw - 0.5) * b.w,
+                 y: (oy + (+a.cy || 50) / 100 * rh - 0.5) * b.h,
+                 scale: rw * ((+a.sw || 24) / 100) * b.w / 120 };
+      });
     }
     /* ══════════ СМУГА НАХИЛУ ══════════
        Лінійка з поділками, рожева риска посередині, три режими знизу й
@@ -2652,18 +2664,31 @@
       if(have.length){ wantModelSeed = false; return; }
       var from = (pm.logos.front || []).filter(function(l){ return l && !isPristineText(l); });
       if(!from.length){ wantModelSeed = false; return; }
-      var geo = modelSeedGeom();
-      if(!geo) return;                       // фото ще не приїхало — спробуємо на load
+      var spots = modelSeedSpots();
+      if(!spots.length) return;              // фото ще не приїхало — спробуємо на load
       wantModelSeed = false;
-      from.forEach(function(src, i){
-        var l = JSON.parse(JSON.stringify(src));
-        l.id = Date.now() + i;
-        l.x = geo.x + i * 24;
-        l.y = geo.y + i * 24;
-        l.scale = geo.scale;
-        l.rot = +src.rot || 0;
-        layerSaveFrac(l);
-        have.push(l);
+      /* На кожну людину — ВСІ нанесення переду. Двоє людей і два знаки на
+         грудях дають чотири копії, і це правильно: на виробі їх теж два, і
+         на обох людях вони однакові.
+
+         Взаємний зсув між знаками зберігаємо: якщо на переді напис стоїть
+         під логотипом, на моделі він теж має стояти під ним, а не поруч. */
+      var base = from[0];
+      spots.forEach(function(sp, si){
+        from.forEach(function(src, i){
+          var l = JSON.parse(JSON.stringify(src));
+          l.id = Date.now() + si * 100 + i;
+          /* Перший знак сідає точно в точку, решта — на своїй відстані від
+             нього, зменшеній у стільки ж разів, у скільки зменшився сам
+             знак. Інакше на дрібному фото вони роз'їдуться. */
+          var k = (base.scale > 0) ? (sp.scale / base.scale) : 1;
+          l.x = sp.x + ((+src.x || 0) - (+base.x || 0)) * k;
+          l.y = sp.y + ((+src.y || 0) - (+base.y || 0)) * k;
+          l.scale = Math.max(0.04, (+src.scale || 1) * k);
+          l.rot = +src.rot || 0;
+          layerSaveFrac(l);
+          have.push(l);
+        });
       });
       pm.activeLogoId = have.length ? have[0].id : null;
       try{ renderLogoLayers(); }catch(e){}

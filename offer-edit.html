@@ -975,21 +975,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=1270b29c5a',
+    ['loomiq-select.js?v=19b60f1c5a',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=1270b29c5a'].forEach(function(src){
+     'loomiq-cards.js?v=19b60f1c5a'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=1270b29c5a';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=1270b29c5a';
-  var CTOR_JS   = 'loomiq-constructor.js?v=1270b29c5a';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=1270b29c5a';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=19b60f1c5a';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=19b60f1c5a';
+  var CTOR_JS   = 'loomiq-constructor.js?v=19b60f1c5a';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=19b60f1c5a';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2202,6 +2202,33 @@
   /* Preview — те саме полотно, що збережеться у файл. Один код на обидва
      випадки: інакше «як побачить клієнт» рано чи пізно розійдеться з тим,
      що насправді завантажилось. */
+  /* Розбір складу кадрів. Не попередження, а пояснення: коли все на
+     місці, рядок однаково корисний — він показує, що саме поїде клієнту. */
+  var SIDE_UA_DBG = { front:'перед', back:'спина', left:'лівий бік',
+                      right:'правий бік', sleeve:'рукав', model:'на моделі' };
+  function shotsWhy(card){
+    if(!card || card.type === 'set') return [];
+    var it = null;
+    var all = (OFFER.items || []).concat(OFFER.variants || []);
+    var n = +String(card.id || '').split(':')[1];
+    if(String(card.id || '').indexOf('main:') === 0) it = (OFFER.items || [])[n];
+    else if(String(card.id || '').indexOf('variant:') === 0) it = (OFFER.variants || [])[n];
+    if(!it) return [];
+    var кадри = (card.shots || []).map(function(s){
+      return s.model ? 'на моделі' : (SIDE_UA_DBG[s.side] || s.side || 'без сторони'); });
+    var ракурси = (it.views || []).map(function(v){
+      var nm = SIDE_UA_DBG[v.side] || v.side || 'без сторони';
+      if(v.show === false) nm += ' (схований)';
+      if(!v.img) nm += ' (без фото)';
+      return nm;
+    });
+    var нанес = (it.prints || []).map(function(p){
+      return SIDE_UA_DBG[p.side] || p.side || 'без сторони'; });
+    var out = ['Кадри на картці: ' + (кадри.join(' · ') || '—')];
+    out.push('Ракурси в позиції: ' + (ракурси.join(' · ') || '—') +
+             ' · нанесення на: ' + (нанес.join(' · ') || '—'));
+    return out;
+  }
   function drawPreview(cfg){
     var c = cardList[cardAt];
     var prev = document.getElementById('cdPrev');
@@ -2215,6 +2242,14 @@
          Рішення ухвалює менеджер: лишити як є чи вимкнути зняття фону, — і
          щоб вирішити, він має бачити і причину, і результат поруч. */
       var say = (cardWarn ? [cardWarn] : []).concat(cv.lqNotes || []);
+      /* Склад кадрів — словами, під самою карткою.
+
+         «Чому немає спини» ми з'ясовували чотири рази поспіль, і щоразу
+         наосліп: у картці видно лише РЕЗУЛЬТАТ, а рішення про кожен кадр
+         ухвалюється раніше й тихо. Тепер воно сказане вголос: які ракурси
+         є в позиції, які з них стали кадрами, на яких сторонах нанесення.
+         Менеджер бачить причину сам, а не описує наслідок. */
+      say = say.concat(shotsWhy(c));
       var box = document.getElementById('cdWarn');
       if(box){
         box.innerHTML = say.map(esc).join('<br>');

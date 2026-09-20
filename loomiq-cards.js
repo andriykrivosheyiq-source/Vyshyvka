@@ -469,6 +469,10 @@
         items: picked.map(function(i){
           var r = pool[i];
           return { name: r.name || '', unit: +r.unitPrice || 0,
+                   /* Базова ціна — та сама, з якої головні позиції рахують
+                      «ви економите». Перекреслене число й робить із
+                      рекомендованого пропозицію, а не рядок прайсу. */
+                   base: +r.baseUnitPrice || 0,
                    qty: +r.qty || 0, pic: pics(r)[0] || '',
                    /* Плитка з самою назвою нічого не пояснює: «кепка» —
                       яка, з чим, навіщо. Беремо підпис менеджера, а немає
@@ -1264,9 +1268,19 @@
     var gap = GAP;
     var tileW = (maxW - gap * (n - 1)) / n;
     var top = hh + 16, tileH = H - BOT - hh - 16;
-    // Місце під підписи: назва, короткий опис і ціна
-    var textH = 176;
-    /* Плитки — теж ряд, і масштаб у них теж спільний: кепка поруч із худі
+    /* ── ПЛИТКА РЕКОМЕНДОВАНОГО ──────────────────────────────────────
+       Раніше це був рядок прайсу: назва, під нею опис, унизу число. У
+       Direct таке гортають не читаючи — людина дивиться на картинки.
+
+       Тому плитка збудована як маленька картка товару: фото займає дві
+       третини, під ним назва, ціна й перекреслена стара. Кольорова пляма
+       на плитці рівно одна — відсоток знижки: за неї й чіпляється око, бо
+       вона єдина щось обіцяє.
+
+       Опис прибрано з плитки навмисно. Чотири плитки по три рядки тексту
+       читаються як таблиця, а не як вітрина; що це за виріб, каже фото. */
+    var textH = 150;
+    /* Плитки — теж ряд, і розмір у них теж спільний: кепка поруч із худі
        має лишатись кепкою, а не роздуватись до нього. */
     var picH0 = tileH - textH;
     var setZ = rowZoom(imgs, tileW, picH0);
@@ -1287,26 +1301,57 @@
         x.restore();
       }
       else if(!(imgs[i] && imgs[i].im)) placeholder(x, X, top, tileW, picH, t.ink);
-      var ty = top + picH + 30;
-      x.fillStyle = t.ink; x.font = '600 30px ' + t.body;
-      wrap(x, it.name, tileW - 52, 2).forEach(function(ln, k){
-        x.fillText(ln, X + 26, ty + k * 34);
-      });
-      ty += 36;
-      if(it.sub){
-        x.fillStyle = t.dim; x.font = '400 21px ' + t.body;
-        x.fillText(wrap(x, it.sub, tileW - 52, 1)[0] || '', X + 26, ty);
-        ty += 26;
+
+      var PADX = 26, tw = tileW - PADX * 2;
+      var ty = top + picH + 38;
+      x.fillStyle = t.ink;
+      fitFont(x, it.name, tw, 31, '800', t.body, 22);
+      x.fillText(clip1(x, it.name, tw), X + PADX, ty);
+
+      /* Ціна — тим самим ладом, що в головних позиціях: число чорнилом,
+         поруч перекреслена стара, під ними умова тиражу. Людина бачить
+         одну й ту саму будову на всій пропозиції й не перечитує її
+         щоразу заново. */
+      var py = ty + 44;
+      var unit = +it.unit || 0, base = +it.base || 0;
+      if(show('unit') && unit){
+        x.fillStyle = t.ink;
+        x.font = '800 34px ' + t.body;
+        var ps = money(unit) + '/шт';
+        x.fillText(ps, X + PADX, py);
+        var pw = x.measureText(ps).width;
+        if(show('old') && base > unit){
+          /* Стара ціна — дрібним і сірим, одразу за новою. Перекреслення
+             малюємо рискою: у полотна немає line-through. */
+          x.font = '600 21px ' + t.body;
+          x.fillStyle = t.dim;
+          var ws = money(base);
+          var wx = X + PADX + pw + 12;
+          x.fillText(ws, wx, py - 2);
+          var ww = x.measureText(ws).width;
+          x.strokeStyle = t.dim; x.lineWidth = 1.6;
+          x.beginPath();
+          x.moveTo(wx, py - 9); x.lineTo(wx + ww, py - 9);
+          x.stroke();
+          /* Єдина кольорова пляма плитки. Вона тут не прикраса: відсоток
+             — це те, заради чого рекомендоване взагалі дочитують. */
+          var off = '−' + Math.round((base - unit) / base * 100) + ' %';
+          x.font = '800 19px ' + t.body;
+          var ow = x.measureText(off).width;
+          var ox0 = wx + ww + 12, oy0 = py - 24;
+          x.fillStyle = t.accent; x.globalAlpha = 0.12;
+          rr(x, ox0, oy0, ow + 20, 30, 9); x.fill();
+          x.globalAlpha = 1;
+          x.fillStyle = t.accent;
+          x.fillText(off, ox0 + 10, py - 3);
+        }
       }
-      if(show('about') && it.note){
-        x.fillStyle = t.dim; x.font = '400 21px ' + t.body;
-        wrap(x, it.note, tileW - 52, 2).forEach(function(ln, k){
-          x.fillText(ln, X + 26, ty + k * 26);
-        });
-      }
-      if(show('unit') && it.unit){
-        x.fillStyle = t.accent; x.font = '800 32px ' + t.body;
-        x.fillText(money(it.unit), X + 26, top + tileH - 26);
+      /* Тираж — умовою ціни, дрібним і останнім рядком: «від 20 шт»
+         пояснює, звідки взялось число вище, і прямо запрошує спитати про
+         більший тираж. */
+      if(it.qty > 1){
+        x.fillStyle = t.dim; x.font = '400 20px ' + t.body;
+        x.fillText('від ' + it.qty + ' шт', X + PADX, py + 30);
       }
     });
   }
