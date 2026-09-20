@@ -66,6 +66,43 @@
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
+    <!-- ══════════ НАХИЛ НАНЕСЕННЯ ══════════
+         Смуга внизу сцени, як у телефонних редакторах фото. Тягнення за
+         кути ми пробували: точність там ніяка, а що саме виходить —
+         видно тільки постфактум. Тут навпаки: одна величина, видно
+         число, і стрілки на крок, коли мишею не влучити.
+
+         Три режими: горизонталь, вертикаль, поворот. Кожен зі своєю
+         шкалою й своїм значенням. -->
+    <div class="pm-tilt" id="pmTilt" hidden>
+      <div class="pm-tilt-bar">
+        <button class="pm-tilt-arrow" data-tilt-step="-1" aria-label="На поділку менше">‹</button>
+        <div class="pm-tilt-ruler" id="pmTiltRuler">
+          <canvas id="pmTiltCanvas"></canvas>
+          <b class="pm-tilt-needle"></b>
+        </div>
+        <button class="pm-tilt-arrow" data-tilt-step="1" aria-label="На поділку більше">›</button>
+      </div>
+      <div class="pm-tilt-modes">
+        <button class="pm-tilt-mode on" data-tilt-mode="h" title="Нахил по горизонталі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 7.5 20 5v14L4 16.5z"/><path d="M12 6.1v11.8M4 12h16"/>
+            <path d="M8 6.9v10.2M16 5.6v12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="v" title="Нахил по вертикалі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M7.5 4 5 20h14L16.5 4z"/><path d="M6.1 12h11.8M12 4v16"/>
+            <path d="M6.9 16h10.2M5.6 8h12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="r" title="Поворот">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="pm-tilt-reset" id="pmTiltReset" title="Повернути як було">Скинути</button>
+      </div>
+    </div>
+
     <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
     <div id="pmSrcModal" class="pm-src-modal">
       <div class="pm-src-box">
@@ -794,6 +831,24 @@
   .cd-rng{display:flex; align-items:center; gap:6px;}
   .cd-rng input[type=range]{width:96px; accent-color:#4F5FD4;}
   .cd-rng b{font-size:11.5px; font-weight:700; color:#5A6A80; min-width:36px;}
+  /* Колір логотипа — значком. Розкривається в рядок кружечків: їх чотири,
+     вибір очевидний, підписи зайві. */
+  .cd-col-b{border:1px solid #D9E1EC; background:#fff; color:#5A6A80; cursor:pointer;
+    border-radius:8px; width:28px; height:26px; display:inline-flex;
+    align-items:center; justify-content:center; padding:0;}
+  .cd-col-b.on{border-color:#4F5FD4; color:#4F5FD4; background:#F4F6FF;}
+  .cd-cols{display:inline-flex; align-items:center; gap:5px;}
+  .cd-col{width:18px; height:18px; border-radius:50%; cursor:pointer;
+    border:1.5px solid #D9E1EC; display:inline-flex; align-items:center;
+    justify-content:center; font-size:10px; color:#8A8F98; background:#fff;}
+  .cd-col.on{box-shadow:0 0 0 2px #4F5FD4;}
+  /* Угору-вниз — дві половинки однієї кнопки: це один засіб, а не два. */
+  .cd-updn{display:inline-flex; flex-direction:column; border:1px solid #D9E1EC;
+    border-radius:8px; overflow:hidden;}
+  .cd-updn button{font:inherit; font-size:10px; line-height:1; color:#5A6A80;
+    background:#fff; border:0; cursor:pointer; padding:3px 7px;}
+  .cd-updn button:first-child{border-bottom:1px solid #EEF2F7;}
+  .cd-updn button:hover{background:#F4F6FF; color:#4F5FD4;}
   .cd-up{font:inherit; font-size:12px; font-weight:700; color:#22314A; cursor:pointer;
     border:1px solid #D9E1EC; background:#fff; border-radius:8px; padding:5px 10px;
     display:inline-flex; align-items:center; gap:6px;}
@@ -920,21 +975,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=35de9abcf1',
+    ['loomiq-select.js?v=1270b29c5a',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=35de9abcf1'].forEach(function(src){
+     'loomiq-cards.js?v=1270b29c5a'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=35de9abcf1';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=35de9abcf1';
-  var CTOR_JS   = 'loomiq-constructor.js?v=35de9abcf1';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=35de9abcf1';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=1270b29c5a';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=1270b29c5a';
+  var CTOR_JS   = 'loomiq-constructor.js?v=1270b29c5a';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=1270b29c5a';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1812,7 +1867,16 @@
   var cardCfg = null, cardList = [], cardAt = 0, cardExt = 'png';
   var cardBusy = false, cardDrawId = 0, cardBgBusy = false, cardWarn = '';
   var CARD_MODELS = {};
-  var cardArtBusy = false, cardAdv = false;
+  var cardArtBusy = false, cardAdv = false, cardCol = false;
+  /* Кольори логотипа. Не палітра, а відповідь на одне питання: видно чи
+     ні. Чорний — на світлій картці, білий — на темній, сірий — коли знак
+     має відійти на другий план. «Як є» лишає файл недоторканим. */
+  var LOGO_COLS = [
+    { v:'',        n:'Як є' },
+    { v:'#111318', n:'Чорний' },
+    { v:'#FFFFFF', n:'Білий' },
+    { v:'#8A8F98', n:'Сірий' }
+  ];
   function cardsCfg(){
     if(!cardCfg){
       var saved = (OFFER && OFFER.cards) || {};
@@ -1824,6 +1888,13 @@
                      різний розмір того самого логотипа на сусідніх картках у
                      Direct читається як помилка складання, а не як задум. */
                   logo: +saved.logo || 1,
+                  /* Колір логотипа й зсув по висоті. Білий знак на білій
+                     картці не видно взагалі, а логотипи клієнтів найчастіше
+                     саме білі — їх роблять під темний сайт. Автоматично не
+                     перефарбовуємо: «здогадатись» тут означає колись
+                     зіпсувати чийсь фірмовий колір. */
+                  logoCol: saved.logoCol || '',
+                  logoY: +saved.logoY || 0,
                   /* Логотип нанесення — ОДИН на всю пропозицію. Менеджер
                      замінює його в будь-якій картці, і решта підхоплюють: це
                      той самий логотип того самого клієнта, і різні його
@@ -1910,7 +1981,32 @@
     var html =
       '<div class="cd-g"><span class="cd-l">Лого</span><span class="cd-rng">' +
         '<input type="range" id="cdLogo" min="50" max="300" step="5" value="' + lp + '">' +
-        '<b>' + lp + '%</b></span></div>' +
+        '<b>' + lp + '%</b></span>' +
+        /* Колір — значком, а не списком: чіпають його рідко, а місце в
+           смузі коштує дорого. Натиснув — розкрились кружечки. */
+        '<button class="cd-col-b' + (cardCol ? ' on' : '') + '" id="cdColBtn" ' +
+          'title="Колір логотипа">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 0-4H13a2 2 0 0 1 0-4h3.5A4.5 4.5 0 0 0 21 8.5C21 5.5 17 3 12 3z"/>' +
+          '<circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>' +
+          '<circle cx="12" cy="7.5" r="1.1" fill="currentColor" stroke="none"/>' +
+          '<circle cx="16.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/></svg>' +
+        '</button>' +
+        (cardCol
+          ? '<span class="cd-cols">' + LOGO_COLS.map(function(c){
+              return '<b class="cd-col' + ((cfg.logoCol || '') === c.v ? ' on' : '') +
+                     '" data-logocol="' + c.v + '" title="' + c.n + '"' +
+                     (c.v ? ' style="background:' + c.v + '"' : '') + '>' +
+                     (c.v ? '' : '✕') + '</b>';
+            }).join('') + '</span>'
+          : '') +
+        /* Угору-вниз. Логотипи бувають із різною висотою літери, і знак то
+           сідає на лінію назви, то завалюється під неї. */
+        '<span class="cd-updn">' +
+          '<button data-logoy="-4" title="Вище">▴</button>' +
+          '<button data-logoy="4" title="Нижче">▾</button>' +
+        '</span></div>' +
       '<div class="cd-g"><span class="cd-l">Формат</span>' +
         seg('ext', [{ id:'png', name:'PNG' }, { id:'jpg', name:'JPG' }], cardExt) + '</div>' +
       '<button class="cd-more' + (cardAdv ? ' on' : '') + '" id="cdMore">⚙ Налаштування</button>' +
@@ -1975,6 +2071,20 @@
     var artf = document.getElementById('cdArtF');
     if(artf) artf.onchange = function(){ cardsFilePick(artf.files && artf.files[0], 'art'); };
     var artx = document.getElementById('cdArtX');
+    var colB = document.getElementById('cdColBtn');
+    if(colB) colB.onclick = function(){ cardCol = !cardCol; renderCardsBar(cardsCfg()); };
+    bar.querySelectorAll('[data-logocol]').forEach(function(b){
+      b.onclick = function(){ cardsCfg().logoCol = b.dataset.logocol; cardsChanged(); };
+    });
+    bar.querySelectorAll('[data-logoy]').forEach(function(b){
+      b.onclick = function(){
+        var c = cardsCfg();
+        /* Межа є: логотип не має виїжджати за смугу шапки. Сорок пікселів
+           у кожен бік — це вся її висота, далі рухати нема куди. */
+        c.logoY = Math.max(-40, Math.min(40, (+c.logoY || 0) + (+b.dataset.logoy || 0)));
+        cardsChanged();
+      };
+    });
     if(artx) artx.onclick = function(){ cardsCfg().art = ''; cardsChanged(); };
     var bgf = document.getElementById('cdBgF');
     if(bgf) bgf.onchange = function(){ cardsFilePick(bgf.files && bgf.files[0], 'bg'); };

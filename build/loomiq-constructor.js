@@ -1783,6 +1783,45 @@
        немає доти, доки менеджер не потягнув кут. */
     var QUAD0 = [[0,0],[1,0],[1,1],[0,1]];
     function quadOf(l){ return (l && l.quad && l.quad.length === 4) ? l.quad : QUAD0; }
+    /* ══════════ НАХИЛ ОДНИМ ЧИСЛОМ ══════════
+       Кути тягнути ми пробували: точності там немає, а що саме виходить —
+       видно лише постфактум. Тепер нахил задається двома числами, як у
+       телефонних редакторах фото: горизонталь і вертикаль, кожне від −20
+       до 20. Чотирикутник із них рахується сам.
+
+       Що означає число. Двадцять по горизонталі — це «дальній край на
+       двадцять відсотків нижчий за ближній»: рівно те, що робить із
+       прямокутника трапецію, коли дивишся збоку. По вертикалі так само,
+       тільки край не нижчий, а вужчий.
+
+       Обидва разом складаються: спершу звужуємо ряди, потім стискаємо
+       стовпці. Порядок тут не принциповий — важливо, що він СТАЛИЙ, бо
+       інакше те саме число давало б різну форму залежно від того, яким
+       повзунком крутили раніше. */
+    var TILT_MAX = 20;
+    function tiltOf(l){
+      var t = (l && l.tilt) || {};
+      return { h: Math.max(-TILT_MAX, Math.min(TILT_MAX, +t.h || 0)),
+               v: Math.max(-TILT_MAX, Math.min(TILT_MAX, +t.v || 0)) };
+    }
+    function tiltQuad(l){
+      var t = tiltOf(l), f = t.h / 100, g = t.v / 100;
+      if(!f && !g) return null;              // без нахилу чотирикутника не заводимо
+      var pts = [[0,0],[1,0],[1,1],[0,1]];
+      return pts.map(function(p){
+        var u = p[0], w = p[1];
+        var rowK = 1 + g * (1 - 2 * w);      // згори ширше, знизу вужче (або навпаки)
+        var colK = 1 + f * (1 - 2 * u);      // ліворуч вище, праворуч нижче
+        return [ 0.5 + (u - 0.5) * rowK, 0.5 + (w - 0.5) * colK ];
+      });
+    }
+    /* Єдине місце, де нахил перетворюється на геометрію. Усе інше — і
+       сцена, і знімок — читає вже готовий `quad`. */
+    function tiltApply(l){
+      if(!l) return;
+      var q = tiltQuad(l);
+      if(q) l.quad = q; else l.quad = null;
+    }
     /* Чотирикутник → CSS-перетворення. matrix3d бере ту саму проективну
        матрицю, що й полотно, тільки стовпцями і з двома зайвими рядками на
        третій вимір, якого в нас немає. Масштаб 1/bw, 1/bh — бо матриця
@@ -2138,18 +2177,14 @@
         /* Кути показуємо лише в режимі нахилу. Постійно вони б сперечались
            за клік із перетягуванням самого шару, а нахил потрібен не
            щоразу — на мокапі виріб і так лежить пласко. */
-        (active && !layer.text && pm.warpId === layer.id
-          ? /* Контур чотирикутника. Без нього видно чотири кути й нічого
-               між ними: яку саме форму ти зараз ліпиш, доводиться уявляти,
-               а на прозорому логотипі — ще й вгадувати. */
-            '<svg class="pm-dl-quad" viewBox="0 0 1 1" preserveAspectRatio="none">' +
+        /* Контур того, що виходить. Кутів для тягнення більше немає —
+           нахил задається числом на смузі внизу, — але побачити форму
+           корисно: інакше незрозуміло, куди саме вона повело. */
+        (active && !layer.text && pm.warpId === layer.id && layer.quad
+          ? '<svg class="pm-dl-quad" viewBox="0 0 1 1" preserveAspectRatio="none">' +
               '<polygon points="' + quadOf(layer).map(function(pt){
                 return pt[0].toFixed(4) + ',' + pt[1].toFixed(4); }).join(' ') + '"/>' +
-            '</svg>' +
-            quadOf(layer).map(function(pt, ci){
-              return '<b class="pm-dl-corner" data-corner="' + ci + '" style="left:' +
-                     (pt[0] * bw).toFixed(1) + 'px;top:' + (pt[1] * bh).toFixed(1) + 'px"></b>';
-            }).join('')
+            '</svg>'
           : '');
         pmLogoLayers.appendChild(el);
         var te = el.querySelector('.pm-dl-text');
@@ -2176,24 +2211,19 @@
           if(wh){
             var toggleWarp = function(e){
               e.stopPropagation(); e.preventDefault();
-              /* Друге натискання, коли нахил уже стоїть, — це «поверни як
-                 було». Окрема кнопка скидання поруч із перемикачем режиму
-                 читалась би як ще один режим. */
-              if(pm.warpId === layer.id){
-                pm.warpId = null;
-                if(layer.quad){ layer.quad = null; }
-              } else {
-                pm.warpId = layer.id;
-              }
+              /* Кнопка відкриває СМУГУ, а не режим із кутами. Скидання в
+                 ній своє, окремою кнопкою: гасити нахил тим самим
+                 натисканням, що й відкриває панель, означає стерти роботу
+                 тому, хто просто хотів її закрити. */
+              var on = pm.warpId !== layer.id;
+              pm.warpId = on ? layer.id : null;
+              wireTilt();
+              tiltOpen(on);
               renderLogoLayers();
             };
             wh.addEventListener('mousedown', toggleWarp);
             wh.addEventListener('touchstart', toggleWarp, {passive:false});
           }
-          el.querySelectorAll('[data-corner]').forEach(function(cn){
-            cn.addEventListener('mousedown', function(e){ onCornerDown(e, layer, +cn.dataset.corner); });
-            cn.addEventListener('touchstart', function(e){ onCornerDown(e, layer, +cn.dataset.corner); }, {passive:false});
-          });
         }
       });
     }
@@ -2471,6 +2501,150 @@
                y: (oy + (+a.cy || 50) / 100 * rh - 0.5) * b.h,
                scale: rw * ((+a.sw || 24) / 100) * b.w / 120 };
     }
+    /* ══════════ СМУГА НАХИЛУ ══════════
+       Лінійка з поділками, рожева риска посередині, три режими знизу й
+       стрілки на крок. Малюємо її на полотні, а не десятками вузлів:
+       поділок під сотню, і кожна з них у DOM — це зайва робота на кожен
+       рух пальця.
+
+       Риска НЕ їздить: вона завжди по центру, а рухається сама шкала. Так
+       поточне значення завжди в одному місці ока, і не треба ловити
+       поглядом, куди воно поїхало. */
+    var TILT_MODES = {
+      h: { min:-TILT_MAX, max:TILT_MAX, step:1,  big:10, unit:'' },
+      v: { min:-TILT_MAX, max:TILT_MAX, step:1,  big:10, unit:'' },
+      r: { min:-180,      max:180,      step:1,  big:45, unit:'°' }
+    };
+    var tiltMode = 'h';
+    function tiltLayer(){
+      var list = pm.logos[pm.side] || [];
+      for(var i = 0; i < list.length; i++) if(list[i].id === pm.activeLogoId) return list[i];
+      return null;
+    }
+    function tiltValue(l){
+      if(!l) return 0;
+      if(tiltMode === 'r') return Math.round(+l.rot || 0);
+      return Math.round(tiltOf(l)[tiltMode]);
+    }
+    function tiltSet(l, v){
+      if(!l) return;
+      var m = TILT_MODES[tiltMode];
+      v = Math.max(m.min, Math.min(m.max, Math.round(v)));
+      var було = !!l.quad;
+      if(tiltMode === 'r'){ l.rot = v; }
+      else {
+        if(!l.tilt) l.tilt = { h:0, v:0 };
+        l.tilt[tiltMode] = v;
+        tiltApply(l);
+      }
+      /* Контур зʼявляється й зникає разом із самим нахилом, а він живе у
+         розмітці шару. Поки форма не мінялась із «є» на «немає», вузол
+         чіпати не треба: перебудова на кожну поділку — це смикання. */
+      if(!!l.quad !== було) renderLogoLayers();
+      else applyLayerStyle(pmLogoLayers.querySelector('[data-layer-id="' + l.id + '"]'), l);
+      drawTiltRuler();
+    }
+    function drawTiltRuler(){
+      var cv = document.getElementById('pmTiltCanvas');
+      var box = document.getElementById('pmTiltRuler');
+      if(!cv || !box) return;
+      var w = box.clientWidth, h = box.clientHeight;
+      if(!(w > 0) || !(h > 0)) return;
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      var x = cv.getContext('2d');
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      x.clearRect(0, 0, w, h);
+      var m = TILT_MODES[tiltMode], l = tiltLayer(), cur = tiltValue(l);
+      /* Крок у пікселях підбираємо під ширину: на шкалі поворотів поділок
+         утричі більше, і тим самим кроком вона б не влізла. */
+      var PX = tiltMode === 'r' ? 4 : 14;
+      var mid = w / 2;
+      x.textAlign = 'center';
+      x.font = '600 12px system-ui, sans-serif';
+      for(var v = m.min; v <= m.max; v += m.step){
+        var px = mid + (v - cur) * PX;
+        if(px < -30 || px > w + 30) continue;
+        var big = (v % m.big === 0);
+        var tall = big ? 22 : (v % (m.big / 2) === 0 ? 14 : 10);
+        x.strokeStyle = big ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.45)';
+        x.lineWidth = 1;
+        x.beginPath();
+        x.moveTo(Math.round(px) + 0.5, h / 2 - tall / 2);
+        x.lineTo(Math.round(px) + 0.5, h / 2 + tall / 2);
+        x.stroke();
+        if(big && v !== 0){
+          x.fillStyle = 'rgba(255,255,255,.85)';
+          x.fillText(String(v), px, h / 2 - tall / 2 - 6);
+        }
+        /* Нуль позначаємо крапкою, а не числом: підпис «0» під рискою
+           зливається з нею, а крапка читається як «тут початок». */
+        if(v === 0){
+          x.fillStyle = 'rgba(255,255,255,.9)';
+          x.beginPath(); x.arc(px, h / 2 - 20, 2.6, 0, Math.PI * 2); x.fill();
+        }
+      }
+      var lab = document.getElementById('pmTiltVal');
+      if(lab) lab.textContent = cur + (m.unit || '');
+    }
+    function tiltOpen(on){
+      var box = document.getElementById('pmTilt');
+      if(!box) return;
+      box.hidden = !on;
+      if(on){ drawTiltRuler(); }
+    }
+    function wireTilt(){
+      var box = document.getElementById('pmTilt');
+      if(!box || box.__wired) return;
+      box.__wired = 1;
+      var ruler = document.getElementById('pmTiltRuler');
+      var PXof = function(){ return tiltMode === 'r' ? 4 : 14; };
+      var drag = null;
+      var down = function(e){
+        var l = tiltLayer(); if(!l) return;
+        e.preventDefault();
+        var p = getXY(e);
+        drag = { x:p.x, from: tiltValue(l), l:l };
+      };
+      var move = function(e){
+        if(!drag) return;
+        e.preventDefault();
+        var p = getXY(e);
+        /* Тягнемо шкалу, а не риску: рух ліворуч збільшує значення, як і
+           на справжньому коліщатку під пальцем. */
+        tiltSet(drag.l, drag.from - (p.x - drag.x) / PXof());
+      };
+      var up = function(){ drag = null; };
+      ruler.addEventListener('mousedown', down);
+      ruler.addEventListener('touchstart', down, { passive:false });
+      document.addEventListener('mousemove', move);
+      document.addEventListener('touchmove', move, { passive:false });
+      document.addEventListener('mouseup', up);
+      document.addEventListener('touchend', up);
+      box.querySelectorAll('[data-tilt-step]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var l = tiltLayer(); if(!l) return;
+          tiltSet(l, tiltValue(l) + (+b.dataset.tiltStep || 0));
+        });
+      });
+      box.querySelectorAll('[data-tilt-mode]').forEach(function(b){
+        b.addEventListener('click', function(){
+          tiltMode = b.dataset.tiltMode;
+          box.querySelectorAll('[data-tilt-mode]').forEach(function(o){
+            o.classList.toggle('on', o === b); });
+          drawTiltRuler();
+        });
+      });
+      var res = document.getElementById('pmTiltReset');
+      if(res) res.addEventListener('click', function(){
+        var l = tiltLayer(); if(!l) return;
+        l.tilt = { h:0, v:0 }; l.rot = 0; l.quad = null;
+        applyLayerStyle(pmLogoLayers.querySelector('[data-layer-id="' + l.id + '"]'), l);
+        drawTiltRuler();
+      });
+      window.addEventListener('resize', function(){ if(!box.hidden) drawTiltRuler(); });
+    }
+
     var wantModelSeed = false;
     function seedModelLayers(){
       if(!wantModelSeed || pm.side !== MODEL_VIEW) return;
@@ -3526,11 +3700,6 @@
       img.style.transform = css || '';
       // Кути йдуть за чотирикутником, поки його тягнуть
       var q = quadOf(layer);
-      el.querySelectorAll('[data-corner]').forEach(function(cn){
-        var pt = q[+cn.dataset.corner] || [0, 0];
-        cn.style.left = (pt[0] * bw).toFixed(1) + 'px';
-        cn.style.top  = (pt[1] * bh).toFixed(1) + 'px';
-      });
       var poly = el.querySelector('.pm-dl-quad polygon');
       if(poly) poly.setAttribute('points', q.map(function(pt){
         return pt[0].toFixed(4) + ',' + pt[1].toFixed(4); }).join(' '));
@@ -3618,18 +3787,6 @@
       var p = getXY(e);
       dlState = {mode:'scale', layer:layer, el:el, startX:p.x, startY:p.y, startScale:layer.scale};
     }
-    /* Тягнемо кут нахилу. Стартовий чотирикутник запамʼятовуємо цілим: рахувати
-       його від поточного на кожному русі означало б накопичувати похибку —
-       кут поволі «сповзав» би сам, навіть коли палець стоїть. */
-    function onCornerDown(e, layer, ci){
-      e.stopPropagation(); e.preventDefault(); lockScroll();
-      var el = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
-      var box = layerBox(layer);
-      var p = getXY(e);
-      dlState = { mode:'corner', layer:layer, el:el, ci:ci,
-                  startX:p.x, startY:p.y, bw:box.w, bh:box.h,
-                  startQuad: quadOf(layer).map(function(pt){ return [pt[0], pt[1]]; }) };
-    }
     function onRotateDown(e, layer, el){
       e.stopPropagation(); e.preventDefault(); lockScroll();
       var rect = el.getBoundingClientRect();
@@ -3660,22 +3817,9 @@
       } else if(dlState.mode === 'rotate'){
         var a = Math.atan2(p.y-dlState.cy, p.x-dlState.cx)*(180/Math.PI);
         layer.rot = dlState.startRot + (a - dlState.startAngle);
-      } else if(dlState.mode === 'corner'){
-        /* Зсув приходить в екранних пікселях, а кут живе в частках рамки
-           шару — причому рамка може бути повернута. Тому спершу знімаємо
-           зум сцени, потім поворот, і лише тоді ділимо на розмір рамки. */
-        var zc = garmentZoom() || 1;
-        var ddx = (p.x - dlState.startX) / zc, ddy = (p.y - dlState.startY) / zc;
-        var ar = -(layer.rot || 0) * Math.PI / 180;
-        var rx = ddx * Math.cos(ar) - ddy * Math.sin(ar);
-        var ry = ddx * Math.sin(ar) + ddy * Math.cos(ar);
-        var q = dlState.startQuad.map(function(pt){ return [pt[0], pt[1]]; });
-        /* Півтори рамки в будь-який бік — межа. Далі чотирикутник
-           вивертається сам у себе, перетворення перестає бути проективним
-           і картинка розлітається клинами. */
-        q[dlState.ci] = [ Math.max(-0.5, Math.min(1.5, dlState.startQuad[dlState.ci][0] + rx / dlState.bw)),
-                          Math.max(-0.5, Math.min(1.5, dlState.startQuad[dlState.ci][1] + ry / dlState.bh)) ];
-        layer.quad = q;
+        /* Смуга показує те саме число, що й ручка. Якщо вона відкрита,
+           значення під час повороту має їхати разом із виробом. */
+        try{ if(pm.warpId === layer.id) drawTiltRuler(); }catch(e){}
       }
       /* Частку ширини виробу оновлюємо НА КОЖНОМУ русі, а не лише коли жест
          закінчився. Саме в ній живе фізичний розмір нанесення, і саме від неї
@@ -5923,6 +6067,7 @@
       if(side === MODEL_VIEW) wantModelSeed = true;
       // Режим нахилу не переїжджає на іншу сторону разом із людиною
       pm.warpId = null;
+      try{ tiltOpen(false); }catch(e){}
       pm.activeLogoId = (pm.logos[side]&&pm.logos[side].length) ? pm.logos[side][0].id : null;
       updateSideMarks();
       updateSideArrows();

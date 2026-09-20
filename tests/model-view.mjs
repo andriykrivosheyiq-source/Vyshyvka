@@ -129,34 +129,50 @@ console.log('═══ ПЕРСПЕКТИВА — ТУТ ЖЕ, А НЕ В КАР
 ok(await p.evaluate(() => !!document.querySelector('[data-handle="warp"]')),
   'у шара є ручка нахилу',
   'ручки нахилу немає');
-const доВмик = await p.evaluate(() => document.querySelectorAll('[data-corner]').length);
+/* Кути тягнути ми пробували: точності там немає, а що саме виходить —
+   видно лише постфактум. Тепер нахил задається числом на смузі, як у
+   телефонних редакторах фото: три режими й стрілки на крок. */
+const доВмик = await p.evaluate(() => document.getElementById('pmTilt').hidden);
 await p.dispatchEvent('[data-handle="warp"]', 'mousedown');
 await p.waitForTimeout(400);
-const післяВмик = await p.evaluate(() => document.querySelectorAll('[data-corner]').length);
-console.log('   кутів: до ' + доВмик + ' · після ' + післяВмик);
-ok(доВмик === 0 && післяВмик === 4,
-  'кути зʼявляються лише в режимі нахилу — інакше вони б сперечались за клік ' +
-    'із перетягуванням самого шару',
-  'кути поводяться не так: ' + доВмик + ' → ' + післяВмик);
+const післяВмик = await p.evaluate(() => document.getElementById('pmTilt').hidden);
+console.log('   смуга нахилу: до ' + (доВмик ? 'схована' : 'видно') +
+            ' · після ' + (післяВмик ? 'схована' : 'видно'));
+ok(доВмик && !післяВмик,
+  'ручка відкриває смугу нахилу, а не розсипає кути навколо шару',
+  'смуга не відкрилась');
+ok(await p.evaluate(() => document.querySelectorAll('[data-tilt-mode]').length === 3),
+  'режими три: горизонталь, вертикаль і поворот',
+  'режимів не три');
 
-const кут = await p.locator('[data-corner="0"]').boundingBox();
-await p.mouse.move(кут.x + 8, кут.y + 8);
-await p.mouse.down();
-await p.mouse.move(кут.x + 44, кут.y + 20, { steps: 8 });
-await p.mouse.up();
-await p.waitForTimeout(400);
+/* Стрілка — крок рівно на одну поділку. Заради неї все й затівалось:
+   мишею в дрібний нахил не влучити. */
+for(let i = 0; i < 6; i++){ await p.click('[data-tilt-step="1"]'); await p.waitForTimeout(70); }
 const tr = await p.evaluate(() => (document.querySelector('.pm-dl-img').style.transform || ''));
-console.log('   перетворення: ' + (tr.slice(0, 34) || '(немає)'));
+console.log('   після шести кроків: ' + (tr.slice(0, 34) || '(немає)'));
 ok(/^matrix3d\(/.test(tr),
-  'потягнули кут — нанесення лягло по формі, а не лишилось пласким',
+  'шість кроків стрілкою — і нанесення лягло по формі, а не лишилось пласким',
   'нахилу не сталось: ' + (tr || '(порожньо)'));
 
-await p.dispatchEvent('[data-handle="warp"]', 'mousedown');
+/* Поворот — той самий засіб, третім режимом: людині не треба памʼятати,
+   що нахил тут, а поворот десь іще. */
+await p.click('[data-tilt-mode="r"]');
+await p.waitForTimeout(200);
+for(let i = 0; i < 10; i++){ await p.click('[data-tilt-step="1"]'); await p.waitForTimeout(60); }
+const пов = await p.evaluate(() => {
+  const el = document.querySelector('[data-layer-id]');
+  return (el.style.transform || '').match(/rotate\(([^)]*)\)/);
+});
+ok(пов && parseFloat(пов[1]) === 10,
+  'поворот живе на тій самій смузі й рахується в градусах',
+  'поворот не спрацював: ' + JSON.stringify(пов && пов[1]));
+
+await p.click('#pmTiltReset');
 await p.waitForTimeout(400);
 const після = await p.evaluate(() => (document.querySelector('.pm-dl-img').style.transform || ''));
 ok(!після,
-  'повторне натискання повертає як було: окрема кнопка скидання читалась би ' +
-    'як ще один режим',
+  'скидання повертає як було — окремою кнопкою, а не повторним натисканням ' +
+    'тієї, якою панель відкривали',
   'нахил лишився: ' + після);
 
 console.log('');

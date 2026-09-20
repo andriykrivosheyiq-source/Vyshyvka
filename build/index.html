@@ -1370,6 +1370,32 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   .pm-dl-handle--scale{bottom:-14px;right:-14px;cursor:nwse-resize;}
   /* Обрізати — четверта ручка шару, поруч із рештою */
   .pm-dl-handle--crop{bottom:-14px;left:-14px;cursor:pointer;}
+  /* ── Смуга нахилу ──────────────────────────────────────────────────
+     Темна, як у телефонних редакторах: смуга з поділками читається сама,
+     без підписів «що це». Стоїть унизу сцени, поверх неї. */
+  .pm-tilt{position:absolute;left:0;right:0;bottom:0;z-index:40;
+    background:rgba(12,12,14,.93);color:#fff;padding:10px 0 8px;
+    -webkit-user-select:none;user-select:none;}
+  .pm-tilt[hidden]{display:none;}
+  .pm-tilt-bar{display:flex;align-items:center;gap:6px;padding:0 6px;}
+  .pm-tilt-arrow{flex:none;width:34px;height:40px;border:0;background:none;color:#fff;
+    font:700 22px/1 system-ui;cursor:pointer;border-radius:9px;opacity:.75;}
+  .pm-tilt-arrow:hover{opacity:1;background:rgba(255,255,255,.1);}
+  .pm-tilt-ruler{position:relative;flex:1;height:54px;touch-action:none;cursor:ew-resize;}
+  .pm-tilt-ruler canvas{width:100%;height:100%;display:block;}
+  /* Риска поточного значення — рожева, як на зразку: вона єдина кольорова
+     на всій смузі, тож ока шукати не доводиться. */
+  .pm-tilt-needle{position:absolute;left:50%;top:9px;bottom:9px;width:3px;
+    margin-left:-1.5px;background:#E838C8;border-radius:2px;pointer-events:none;}
+  .pm-tilt-modes{display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-top:6px;}
+  .pm-tilt-mode{width:46px;height:40px;border:0;border-radius:11px;cursor:pointer;
+    background:none;color:rgba(255,255,255,.62);display:flex;align-items:center;
+    justify-content:center;}
+  .pm-tilt-mode.on{background:#fff;color:#111;}
+  .pm-tilt-reset{margin-left:10px;border:0;background:none;color:rgba(255,255,255,.62);
+    font:600 13px/1 inherit;cursor:pointer;padding:8px 10px;border-radius:9px;}
+  .pm-tilt-reset:hover{color:#fff;background:rgba(255,255,255,.1);}
   /* Перспектива — пʼята ручка, знизу посередині: усі чотири кути вже
      зайняті, а класти дві дії в один кут означає промахуватись. */
   .pm-dl-handle--warp{bottom:-14px;left:50%;margin-left:-12px;cursor:pointer;}
@@ -3499,6 +3525,43 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
+
+    <!-- ══════════ НАХИЛ НАНЕСЕННЯ ══════════
+         Смуга внизу сцени, як у телефонних редакторах фото. Тягнення за
+         кути ми пробували: точність там ніяка, а що саме виходить —
+         видно тільки постфактум. Тут навпаки: одна величина, видно
+         число, і стрілки на крок, коли мишею не влучити.
+
+         Три режими: горизонталь, вертикаль, поворот. Кожен зі своєю
+         шкалою й своїм значенням. -->
+    <div class="pm-tilt" id="pmTilt" hidden>
+      <div class="pm-tilt-bar">
+        <button class="pm-tilt-arrow" data-tilt-step="-1" aria-label="На поділку менше">‹</button>
+        <div class="pm-tilt-ruler" id="pmTiltRuler">
+          <canvas id="pmTiltCanvas"></canvas>
+          <b class="pm-tilt-needle"></b>
+        </div>
+        <button class="pm-tilt-arrow" data-tilt-step="1" aria-label="На поділку більше">›</button>
+      </div>
+      <div class="pm-tilt-modes">
+        <button class="pm-tilt-mode on" data-tilt-mode="h" title="Нахил по горизонталі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 7.5 20 5v14L4 16.5z"/><path d="M12 6.1v11.8M4 12h16"/>
+            <path d="M8 6.9v10.2M16 5.6v12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="v" title="Нахил по вертикалі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M7.5 4 5 20h14L16.5 4z"/><path d="M6.1 12h11.8M12 4v16"/>
+            <path d="M6.9 16h10.2M5.6 8h12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="r" title="Поворот">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="pm-tilt-reset" id="pmTiltReset" title="Повернути як було">Скинути</button>
+      </div>
+    </div>
 
     <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
     <div id="pmSrcModal" class="pm-src-modal">
@@ -6614,12 +6677,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=35de9abcf1"></script>
-<script src="/loomiq-fingerprint.js?v=119c7499d4"></script>
-<script src="/loomiq-pricing.js?v=119c7499d4"></script>
+<script src="/loomiq-select.js?v=1270b29c5a"></script>
+<script src="/loomiq-fingerprint.js?v=0f9700ee1e"></script>
+<script src="/loomiq-pricing.js?v=0f9700ee1e"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=119c7499d4"></script>
+<script src="loomiq-constructor.js?v=0f9700ee1e"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

@@ -56,6 +56,43 @@
     </div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
+    <!-- ══════════ НАХИЛ НАНЕСЕННЯ ══════════
+         Смуга внизу сцени, як у телефонних редакторах фото. Тягнення за
+         кути ми пробували: точність там ніяка, а що саме виходить —
+         видно тільки постфактум. Тут навпаки: одна величина, видно
+         число, і стрілки на крок, коли мишею не влучити.
+
+         Три режими: горизонталь, вертикаль, поворот. Кожен зі своєю
+         шкалою й своїм значенням. -->
+    <div class="pm-tilt" id="pmTilt" hidden>
+      <div class="pm-tilt-bar">
+        <button class="pm-tilt-arrow" data-tilt-step="-1" aria-label="На поділку менше">‹</button>
+        <div class="pm-tilt-ruler" id="pmTiltRuler">
+          <canvas id="pmTiltCanvas"></canvas>
+          <b class="pm-tilt-needle"></b>
+        </div>
+        <button class="pm-tilt-arrow" data-tilt-step="1" aria-label="На поділку більше">›</button>
+      </div>
+      <div class="pm-tilt-modes">
+        <button class="pm-tilt-mode on" data-tilt-mode="h" title="Нахил по горизонталі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 7.5 20 5v14L4 16.5z"/><path d="M12 6.1v11.8M4 12h16"/>
+            <path d="M8 6.9v10.2M16 5.6v12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="v" title="Нахил по вертикалі">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M7.5 4 5 20h14L16.5 4z"/><path d="M6.1 12h11.8M12 4v16"/>
+            <path d="M6.9 16h10.2M5.6 8h12.8"/></svg>
+        </button>
+        <button class="pm-tilt-mode" data-tilt-mode="r" title="Поворот">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="pm-tilt-reset" id="pmTiltReset" title="Повернути як було">Скинути</button>
+      </div>
+    </div>
+
     <!-- Менеджерський режим: звідки взяти лого — файл чи згенерувати -->
     <div id="pmSrcModal" class="pm-src-modal">
       <div class="pm-src-box">
