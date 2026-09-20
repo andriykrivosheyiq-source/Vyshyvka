@@ -102,8 +102,12 @@ const наСцені = () => p.evaluate(() => {
            v:(lb.top + lb.height / 2 - py) / ph,
            w: lb.width / pw };
 });
-/* Де він на знімку — по самих помаранчевих пікселях. */
-const наЗнімку = side => p.evaluate(async (side) => {
+/* Де він на знімку — по самих помаранчевих пікселях.
+
+   `half` звужує пошук до лівої половини кадру. На фото моделі двоє людей,
+   і нанесення тепер лягає на обох: без цього дві плями міряються як одна
+   велика, і вийшов би центр десь між людьми. */
+const наЗнімку = (side, half) => p.evaluate(async ([side, half]) => {
   const url = await window.__lqSnapSide(side, 800, false);
   const im = new Image();
   await new Promise(r => { im.onload = r; im.src = url; });
@@ -112,7 +116,8 @@ const наЗнімку = side => p.evaluate(async (side) => {
   const x = c.getContext('2d'); x.drawImage(im, 0, 0);
   const d = x.getImageData(0, 0, c.width, c.height).data;
   let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
-  for(let yy = 0; yy < c.height; yy++) for(let xx = 0; xx < c.width; xx++){
+  const lim = half ? Math.round(c.width / 2) : c.width;
+  for(let yy = 0; yy < c.height; yy++) for(let xx = 0; xx < lim; xx++){
     const i = (yy * c.width + xx) * 4;
     if(d[i] > 190 && d[i+1] > 55 && d[i+1] < 130 && d[i+2] < 70){
       if(xx < x0) x0 = xx; if(xx > x1) x1 = xx;
@@ -122,10 +127,10 @@ const наЗнімку = side => p.evaluate(async (side) => {
   if(x1 < 0) return null;
   return { u:((x0 + x1) / 2) / c.width, v:((y0 + y1) / 2) / c.height,
            w:(x1 - x0 + 1) / c.width };
-}, side);
+}, [side, half]);
 
-const проба = async (side, підпис) => {
-  const s = await наСцені(), z = await наЗнімку(side);
+const проба = async (side, підпис, half) => {
+  const s = await наСцені(), z = await наЗнімку(side, half);
   const f = n => (n * 100).toFixed(1) + '%';
   if(!s || !z){ console.log('   ' + підпис + ': не зміряти'); return null; }
   console.log('   ' + підпис + ': сцена ' + f(s.u) + '/' + f(s.v) +
@@ -141,7 +146,8 @@ const перед = await проба('front', 'мокап спереду');
 // на фото моделі: два кроки праворуч
 await p.click('#pmArrowRight'); await p.waitForTimeout(400);
 await p.click('#pmArrowRight'); await p.waitForTimeout(900);
-const модель = await проба('model', 'фото на моделі');
+/* Міряємо ліву людину: на стороні її ж шар стоїть першим. */
+const модель = await проба('model', 'фото на моделі', true);
 
 ok(перед && перед.dx < 1 && перед.dy < 1,
   'на мокапі логотип у знімку стоїть там само, де на сцені',
