@@ -242,6 +242,20 @@
       };
       return pick('front') || pick('back') || pick('left') || pick('right') || '';
     };
+    /* Сторони з нанесенням. Поле називається по-різному залежно від того,
+       звідки позиція прийшла: у картці замовлення це `prints`, а в
+       пропозиції те саме лежить у `sides` — його складає робоче місце,
+       коли збирає позицію для клієнта.
+
+       Картка читала тільки `prints`. У пропозиції такого поля немає
+       взагалі, тож список нанесень завжди виходив порожнім — а разом із
+       ним зникали ВСІ кадри, крім переду й моделі. Саме це Андрій і
+       бачив: спина з логотипом є, а на картці її немає. */
+    var printsOf = function(it){
+      var p = (it && it.prints) || [];
+      if(p.length) return p;
+      return (it && it.sides) || [];
+    };
     var shotsOf = function(it){
       var views = (it.views || []).filter(function(v){ return v && v.show !== false && v.img; });
       var byId = {};
@@ -293,7 +307,7 @@
       add(byId.front);
       if(!mp) add(byId.back);
       var lost = [];
-      (it.prints || []).forEach(function(p){
+      printsOf(it).forEach(function(p){
         var sd = p.side || '';
         if(sd === 'front' || sd === 'model') return;
         /* Нанесення без сторони — стара позиція: сторін тоді не писали.
