@@ -99,7 +99,7 @@ service cloud.firestore {
       allow update: if request.auth != null && (
            may('setup')
         || request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['accessLog', 'orderSeq'])
+             .hasOnly(['accessLog', 'orderSeq', 'designSeq'])
         || (
              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['profiles'])
              && request.resource.data.profiles.diff(

@@ -3093,6 +3093,23 @@
         <div class="sub">Друк — по сітці розмірів листа, вишивка — за 1000 мм², знижки за кількість і терміни. Ціни й собівартість самих товарів задаються в Конструкторі сайту.</div>
       </div>
 
+      <!-- ── СЛУЖБОВІ ДІЇ ──
+           Разові роботи над даними. Живуть тут, а не кнопкою на дошці: їх
+           роблять раз і більше про них не згадують. -->
+      <div class="card">
+        <div class="card-head">
+          <h2>Службові дії</h2>
+          <span class="hint">Разові роботи над даними. Натискати без потреби не треба.</span>
+        </div>
+        <div class="sub" style="margin-bottom:10px;">
+          <b>Однакові номери.</b> Якщо колись два замовлення отримали один номер,
+          тут їх можна розчепити. Найстаршій картці номер лишається — він уже
+          в КП, у переписці, у платіжці. Решта отримують нові, а старий номер
+          записується в їхню історію, щоб його можна було знайти.</div>
+        <button class="btn" id="fix-dup-ids">Знайти й розчепити однакові номери</button>
+        <div class="sub" id="fix-dup-out" style="margin-top:10px;"></div>
+      </div>
+
       <div class="card">
         <div class="card-head">
           <h2>Прорахунок на сайті — модель «від площі»</h2>
@@ -3471,11 +3488,6 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="page-head">
         <div class="eyebrow">Виробництво макета</div>
         <h1>Дизайн-відділ</h1>
-        <div class="sub">Замовлення потрапляє спершу до менеджера відділу, а не одразу
-          дизайнеру: спочатку перевіряється повнота ТЗ. Макет іде клієнту теж через
-          перевірку. Кожне повернення записується <b>причиною зі списку</b>, а не текстом
-          у чаті — інакше немає відповіді на питання, на чому відділ спотикається
-          щотижня. Версії не зникають, погоджена замикається.</div>
       </div>
       <div id="dzRoot"></div>
     </section>
@@ -4522,13 +4534,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=13f8ce4f4f"></script>
-<script src="loomiq-fingerprint.js?v=13f8ce4f4f"></script>
-<script src="loomiq-pricing.js?v=13f8ce4f4f"></script>
+<script src="loomiq-select.js?v=35de9abcf1"></script>
+<script src="loomiq-fingerprint.js?v=35de9abcf1"></script>
+<script src="loomiq-pricing.js?v=35de9abcf1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=13f8ce4f4f"></script>
+<script src="loomiq-design.js?v=35de9abcf1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5781,6 +5793,12 @@ function toggleNewOrder(open){
 /* Ручне створення замовлення прибрано: картки потрапляють у Канбан лише
    з сайту (кошик) або з розділу «Прорахунок». Форма лишається в розмітці,
    але точки входу до неї немає, тому слухачі — захищені. */
+const _fixDup = document.getElementById('fix-dup-ids');
+if(_fixDup) _fixDup.addEventListener('click', ()=>{
+  if(!confirm('Розчепити однакові номери? Найстаршій картці номер лишиться, ' +
+              'решта отримають нові.')) return;
+  fixDuplicateOrderIds().catch(e => { console.error(e); toast('Не вийшло: ' + (e && e.message)); });
+});
 const _openNO = document.getElementById('open-new-order');
 if(_openNO) _openNO.addEventListener('click', ()=> toggleNewOrder(true));
 const _closeNO = document.getElementById('close-new-order');
@@ -19786,6 +19804,97 @@ function designOrders(){
   return (orders || []).filter(o => o && o.orderId &&
     (o.items || []).length && o.status !== 'cancel' && o.status !== 'done');
 }
+/* ── ВЛАСНА НУМЕРАЦІЯ ВІДДІЛУ ────────────────────────────────────────────
+   Відділ не показує номер замовлення. Андрій: «сюди ніякі номера не
+   підтягувати, тут зовсім інші будуть номера, починатись вони з двійки».
+
+   Причина проста: у відділі йде своя робота й свій рахунок. Номер
+   замовлення — це про продаж, про КП і про платіжку; номер відділу — про
+   макет. Показувати перший там, де живе другий, означає щодня питати, про
+   що саме зараз мова.
+
+   Правило те саме, що й для замовлень (PLANS.md, 0.1): номер видається
+   один раз і назавжди, видалений нікому не дістається. І опори ті самі
+   три — лічильник у базі, слід у браузері, перевірка вже виданих. */
+const DESIGN_ID_MIN = 2000001;
+const DESIGN_SEQ_LS = 'lq.designSeq';
+let designSeq = 0;
+let designSeqWarned = false;
+function designNoNum(v){
+  const t = String(v || '');
+  return /^\d{7}$/.test(t) ? +t : 0;
+}
+function designSeqNow(){
+  let n = +(contentData && contentData.designSeq) || 0;
+  Object.keys(designJobs || {}).forEach(k => {
+    const v = designNoNum((designJobs[k] || {}).no); if(v > n) n = v; });
+  let loc = 0;
+  try{ loc = +(localStorage.getItem(DESIGN_SEQ_LS) || 0) || 0; }catch(e){}
+  if(loc > n) n = loc;
+  if(n < DESIGN_ID_MIN - 1) n = DESIGN_ID_MIN - 1;
+  return Math.max(n, designSeq);
+}
+function makeDesignNo(){
+  let next = designSeqNow() + 1;
+  const busy = {};
+  Object.keys(designJobs || {}).forEach(k => {
+    const v = designNoNum((designJobs[k] || {}).no); if(v) busy[v] = 1; });
+  while(busy[next]) next++;
+  designSeq = next;
+  try{ localStorage.setItem(DESIGN_SEQ_LS, String(designSeq)); }catch(e){}
+  if(contentData) contentData.designSeq = designSeq;
+  const біда = e => {
+    console.warn('лічильник номерів відділу не збережено', e);
+    if(!designSeqWarned){
+      designSeqWarned = true;
+      try{ toast('Лічильник номерів дизайн-відділу не зберігся — опублікуйте firestore.rules'); }catch(e2){}
+    }
+  };
+  try{
+    if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
+      PHOTOS_DOC.set({ designSeq: designSeq }, { merge:true }).catch(біда);
+  }catch(e){ біда(e); }
+  return String(designSeq);
+}
+/* ── Розчепити однакові номери ───────────────────────────────────────────
+   Поки лічильник міг відкотитись, два замовлення встигали отримати один
+   номер. Код це більше не допустить (PLANS.md, 0.1), але ті, що вже є, самі
+   не розійдуться: яка з двох карток «справжня», знає тільки людина.
+
+   Правило вибору просте й не потребує рішення: номер лишається НАЙСТАРШІЙ
+   картці. Саме її номер уже поїхав клієнту — у пропозиції, у переписці, у
+   платіжці. Молодші отримують нові, а старий номер лягає в їхню історію:
+   він ще може зустрітись у листуванні, і тоді картку треба знайти. */
+async function fixDuplicateOrderIds(){
+  const out = document.getElementById('fix-dup-out');
+  const say = t => { if(out) out.innerHTML = t; };
+  const by = {};
+  (orders || []).forEach(o => {
+    const v = orderIdNum(o && o.orderId);
+    if(!v) return;
+    (by[v] = by[v] || []).push(o);
+  });
+  const груп = Object.keys(by).filter(k => by[k].length > 1);
+  if(!груп.length){ say('Однакових номерів немає — усі унікальні.'); return; }
+  const рядки = [];
+  груп.forEach(k => {
+    /* Найстарша — за часом створення. Без часу картка вважається старшою
+       за будь-яку з часом: вона з тих, що заведені найпершими. */
+    const list = by[k].slice().sort((a, b) =>
+      String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    list.slice(1).forEach(o => {
+      const було = o.orderId;
+      o.orderId = makeOrderId();
+      o.hist = (o.hist || []).concat([{ s:'renum', at:new Date().toISOString(), from: було }]).slice(-40);
+      рядки.push(було + ' → ' + o.orderId);
+    });
+  });
+  say('Перенумеровано: ' + рядки.length + '<br>' + рядки.join('<br>'));
+  const failed = await saveOrders({});
+  if(!failed.length) toast('Номери розчеплено: ' + рядки.length);
+  renderBoard();
+}
+
 function designJobOf(orderId){
   const id = String(orderId || '');
   if(!id) return null;
@@ -19817,6 +19926,13 @@ function designJobOf(orderId){
     designJobs[id] = job;
   }
   window.LQDesign.ensure(job, o);
+  /* Номер відділу видається один раз — коли замовлення сюди вперше
+     потрапило. Далі він живе в самій задачі й більше не змінюється. */
+  if(!job.no){
+    job.no = makeDesignNo();
+    designJobs[id] = job;
+    try{ designSave(job); }catch(e){ designDirty[id] = 1; }
+  }
   return job;
 }
 function watchDesign(){
