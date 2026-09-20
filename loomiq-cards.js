@@ -700,10 +700,16 @@
     var lh = o.logo ? 44 * (o.logoK || 1) : 0;
     return Math.max(HEAD, Math.round(lh) + 44);
   }
+  /* Повітря між знаком і назвою. Стале й невелике: логотип і назва — це
+     одне ціле, «хто це», а не два окремі написи. Доти відступ рахувався
+     від краю файлу разом із його прозорими полями, і назва опинялась
+     мало не по центру картки. */
+  var LOGO_GAP = 24;
   function head(x, card, t, show, o, W){
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
-    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
-    var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
+    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1),
+                               o.logoCol, o.logoY) : 0;
+    var tx = PAD + (lw ? Math.round(lw) + LOGO_GAP : 0);
 
     /* Підпис — угорі праворуч. Унизу він стояв під приміткою й читався як
        її продовження; тут він на своєму місці: те, чия це картка й до якої
@@ -1055,22 +1061,33 @@
      Перша дає розмір виробу, друга прибирає порожні поля: беремо більшу з
      них. Якщо друга переважила — виробу підріжеться край рукава, і це
      дешевша втрата, ніж біла рамка навколо. */
-  function rowScale(srcs, bw, bh){
-    var fit = Infinity, cov = 0;
+  /* Масштаб рахується від ВИРОБУ, а не від пікселів файлу.
+
+     Тут був баг, який Андрій побачив одразу: на картці перед великий, а
+     спина вдвічі менша. Причина не в оформленні — знімки сторін робляться
+     різного розміру. Сторона з нанесенням знімається на 1600 пікселів,
+     сторона без нанесення — на 900: великий файл потрібен там, де видно
+     макет. А картка застосовувала до всіх кадрів ОДИН множник, і
+     дев'ятисотий кадр виходив майже вдвічі дрібнішим.
+
+     Тепер спільна на ряд не множник, а ПОКАЗАНА ШИРИНА КАДРУ. Кожен кадр
+     розтягується до неї, хоч би скільки в ньому було пікселів. Виріб при
+     цьому лишається сам собою: кепка не роздувається до худі, бо в
+     кадрі вона займає меншу його частку — а частка від кількості пікселів
+     не залежить.
+
+     Ширину беремо найменшу з тих, які витримує кожен кадр: щойно вона
+     більша — чийсь виріб вилізе за плитку. */
+  function rowZoom(srcs, bw, bh){
+    var z = Infinity;
     srcs.forEach(function(sr){
       var im = sr && sr.im;
       if(!im || sr.model) return;      // фото моделі живе своїм масштабом
       var tr = trimOf(im);
-      fit = Math.min(fit, bw / tr.w, bh / tr.h);
-      cov = Math.max(cov, bw / im.width, bh / im.height);
+      if(!(tr.w > 0) || !(tr.h > 0)) return;
+      z = Math.min(z, bw * im.width / tr.w, bh * im.width / tr.h);
     });
-    if(!isFinite(fit)) return fit;
-    /* Виріб має бути цілий. Перекриття плитки беремо лише доти, доки воно
-       не починає різати сам виріб: кадри приходять різних пропорцій, і на
-       високому мокапі «заповнити плитку» означало б зрізати худі рукави й
-       низ. Решту плитки добирає її колір — той самий, що фон мокапа, тож
-       межі все одно не видно. */
-    return Math.max(fit, Math.min(cov, fit));
+    return z;
   }
   /* Знімок малюється ЦІЛИМ кадром, а не обрізаним прямокутником виробу.
 
@@ -1106,17 +1123,17 @@
     var cw = (full - GAP * (n - 1)) / n;
     /* Полів навколо знімка більше немає. Кадр іде на всю плитку, до країв
        і за краї, а зайве зрізає закруглення самої плитки. */
-    var S = rowScale(srcs, cw, h);
+    var Z = rowZoom(srcs, cw, h);
 
     for(var i = 0; i < n; i++){
       var cx = X0 + i * (cw + GAP);
       var sr = srcs[i];
       if(sr && sr.im && sr.model){ drawModel(x, sr, cx, Y, cw, h); continue; }
       shotPanel(x, t, cx, Y, cw, h, st.bg, sr && sr.im ? tintOf(sr.im) : null);
-      if(sr && sr.im && isFinite(S)){
+      if(sr && sr.im && isFinite(Z)){
         x.save();
         rr(x, cx, Y, cw, h, 24); x.clip();
-        drawShot(x, sr, S, cx, Y, cw, h);
+        drawShot(x, sr, Z / sr.im.width, cx, Y, cw, h);
         x.restore();
       }
     }
@@ -1132,11 +1149,72 @@
      від назви. Повертає намальовану ширину — від неї відлічується початок
      назви, інакше назва або наїде на логотип, або лишить перед собою
      випадкову дірку. */
-  function drawLogo(x, logo, X, mid, maxH){
+  /* Межі самого ЗНАКА, без прозорих полів файлу.
+
+     Відступ між логотипом і назвою рахувався від краю ФАЙЛУ, а поля в
+     ньому бувають у півлоготипа завширшки. Виходила дірка на пів шапки, і
+     назва з'їжджала до центру — саме на це Андрій і показував. Тепер
+     міряємо по літері: де знак справді закінчується, там і рахуємо.
+
+     Прозорість — єдина ознака. Білий колір тут не «фон»: логотип цілком
+     може бути білим, і відрізати його як порожнечу означало б лишити від
+     нього нічого. */
+  function inkBox(img){
+    if(img.__lqInk) return img.__lqInk;
+    var t = { x:0, y:0, w:img.width, h:img.height };
+    try{
+      var c = document.createElement('canvas');
+      var k = Math.min(200 / img.width, 200 / img.height, 1);
+      c.width = Math.max(1, Math.round(img.width * k));
+      c.height = Math.max(1, Math.round(img.height * k));
+      var q = c.getContext('2d');
+      q.drawImage(img, 0, 0, c.width, c.height);
+      var d = q.getImageData(0, 0, c.width, c.height).data;
+      var x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+      for(var py = 0; py < c.height; py++) for(var px = 0; px < c.width; px++){
+        if(d[(py * c.width + px) * 4 + 3] < 16) continue;
+        if(px < x0) x0 = px; if(px > x1) x1 = px;
+        if(py < y0) y0 = py; if(py > y1) y1 = py;
+      }
+      if(x1 >= 0) t = { x: x0 / c.width * img.width, y: y0 / c.height * img.height,
+                        w: (x1 - x0 + 1) / c.width * img.width,
+                        h: (y1 - y0 + 1) / c.height * img.height };
+    }catch(e){}
+    try{ img.__lqInk = t; }catch(e){}
+    return t;
+  }
+  /* Логотип одним кольором. Білий знак на білій картці не видно взагалі —
+     а логотипи клієнтів найчастіше саме білі, бо зроблені під темний сайт.
+     Перефарбовуємо цілком: півтони тут ні до чого, знак має читатись. */
+  function monoLogo(logo, col){
+    if(!col) return logo;
+    var key = '__lqMono_' + col;
+    if(logo[key]) return logo[key];
+    try{
+      var c = document.createElement('canvas');
+      c.width = logo.width; c.height = logo.height;
+      var q = c.getContext('2d');
+      q.drawImage(logo, 0, 0);
+      q.globalCompositeOperation = 'source-in';
+      q.fillStyle = col;
+      q.fillRect(0, 0, c.width, c.height);
+      try{ logo[key] = c; }catch(e){}
+      return c;
+    }catch(e){ return logo; }
+  }
+  /* Логотип. Y — СЕРЕДИНА рядка, а не верх: масштаб міняє висоту, і при
+     кріпленні за верх логотип із кожним кроком повзунка сповзав би вниз.
+     Малюємо тільки сам знак: прозорі поля файлу до розкладки не належать.
+     Повертає ширину ЗНАКА — від неї відлічується назва. */
+  function drawLogo(x, logo, X, mid, maxH, col, dy){
     if(!logo) return 0;
-    var k = Math.min(320 * (maxH / 44) / logo.width, maxH / logo.height);
-    var w = logo.width * k, h = logo.height * k;
-    x.drawImage(logo, X, mid - h / 2, w, h);
+    var ink = inkBox(logo);
+    if(!(ink.w > 0) || !(ink.h > 0)) return 0;
+    var k = Math.min(320 * (maxH / 44) / ink.w, maxH / ink.h);
+    var w = ink.w * k, h = ink.h * k;
+    var src = monoLogo(logo, col);
+    x.drawImage(src, ink.x, ink.y, ink.w, ink.h,
+                X, mid - h / 2 + (+dy || 0), w, h);
     return w;
   }
 
@@ -1170,8 +1248,9 @@
     o = o || {};
     topBar(x, t, W);
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
-    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1)) : 0;
-    var tx = PAD + (lw ? Math.round(lw) + 32 : 0);
+    var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1),
+                               o.logoCol, o.logoY) : 0;
+    var tx = PAD + (lw ? Math.round(lw) + LOGO_GAP : 0);
     var mw = signRows(x, t, o.sign, right, mid);
     eyebrow(x, 'До вашого замовлення', tx, mid - 18, t.accent, 18);
     x.fillStyle = t.ink;
@@ -1190,7 +1269,7 @@
     /* Плитки — теж ряд, і масштаб у них теж спільний: кепка поруч із худі
        має лишатись кепкою, а не роздуватись до нього. */
     var picH0 = tileH - textH;
-    var setS = rowScale(imgs, tileW, picH0);
+    var setZ = rowZoom(imgs, tileW, picH0);
     var st = o.st || {};
     card.items.forEach(function(it, i){
       var X = PAD + i * (tileW + gap);
@@ -1200,11 +1279,11 @@
       /* Кадр займає всю верхню частину плитки — без власних полів навколо.
          Обрізаємо його плиткою, тож закруглені кути згори лишаються, а
          знизу кадр рівно межує з підписами. */
-      if(imgs[i] && imgs[i].im && isFinite(setS)){
+      if(imgs[i] && imgs[i].im && isFinite(setZ)){
         x.save();
         rr(x, X, top, tileW, tileH, 24); x.clip();
         x.beginPath(); x.rect(X, top, tileW, picH); x.clip();
-        drawShot(x, imgs[i], setS, X, top, tileW, picH);
+        drawShot(x, imgs[i], setZ / imgs[i].im.width, X, top, tileW, picH);
         x.restore();
       }
       else if(!(imgs[i] && imgs[i].im)) placeholder(x, X, top, tileW, picH, t.ink);
@@ -1276,7 +1355,10 @@
                  'половини роботи.');
     var st = { bg: await loadImg(cfg.bg || '') };
     var o = { logo: logo, sign: signText(offer), valid: validText(offer),
-              logoK: +cfg.logo || 1, st: st };
+              logoK: +cfg.logo || 1,
+              /* Колір і зсув логотипа — рішення менеджера про ОФОРМЛЕННЯ
+                 картки, а не про виріб. Тут їм і місце. */
+              logoCol: cfg.logoCol || '', logoY: +cfg.logoY || 0, st: st };
 
     if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
