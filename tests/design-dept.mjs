@@ -438,6 +438,13 @@ const ui = await p.evaluate(async () => {
   if(!b) return { none:true };
   b.click();
   await new Promise(r => setTimeout(r, 900));
+  /* Спершу — ПОРОЖНЬО. Замовлення в Канбані є, а у відділі його немає,
+     доки картку не завели руками. Доти було навпаки: відділ заводив її
+     собі сам на кожне замовлення, щойно хтось відкривав екран. */
+  const доЗаведення = document.querySelectorAll('#dzRoot .dz-card').length;
+  designJobMake(orders[0].orderId);
+  b.click();
+  await new Promise(r => setTimeout(r, 900));
   const cols = [...document.querySelectorAll('#dzRoot .dz-col-h')].map(x =>
     x.textContent.replace(/\s+/g, ' ').trim());
   const ролі = [...document.querySelectorAll('#dzRoot [data-seat] option')].map(x => x.textContent.trim());
@@ -447,7 +454,7 @@ const ui = await p.evaluate(async () => {
   if(first) first.click();
   await new Promise(r => setTimeout(r, 400));
   const panel = (document.getElementById('dzPanel') || {}).textContent || '';
-  return { ролі, cols, cards,
+  return { ролі, cols, cards, доЗаведення,
            shown: document.getElementById('view-design').style.display,
            panel: panel.replace(/\s+/g, ' ').slice(0, 140),
            roles: Object.keys(window.ROLES || {}) };
@@ -471,7 +478,11 @@ else {
   ok(ui.cols.length === 8 && /Відправлено/.test(ui.cols.join(' ')),
     'починаємо з дошки акаунт-менеджера — увесь шлях замовлення',
     'колонки дошки не ті: ' + ui.cols.join(' · '));
-  ok(ui.cards >= 1, 'замовлення видно на дошці', 'на дошці порожньо');
+  console.log('   до заведення карток: ' + ui.доЗаведення);
+  ok(ui.доЗаведення === 0,
+    'поки картку не завели — у відділі порожньо, хоч замовлення в Канбані й є',
+    'відділ знову набрав собі карток сам: ' + ui.доЗаведення);
+  ok(ui.cards >= 1, 'завели руками — картка зʼявилась', 'картка не зʼявилась і після заведення');
   ok(/Худі|ТЗ/.test(ui.panel),
     'картка відкриває панель із технічним завданням',
     'панель не відкрилась: «' + ui.panel + '»');
@@ -484,7 +495,7 @@ console.log('═══ ДОРУЧЕННЯ ЖИВЕ В РОЗДІЛІ, А НЕ В
 const task = await p.evaluate(async () => {
   const D = window.LQDesign, U = D.ui;
   const о = orders[0];
-  const job = designJobOf(о.orderId);
+  const job = designJobMake(о.orderId);
   const me = myEmail();
   // менеджер видає
   const t = D.taskAdd(job, о, me, { kind:'fix', to: me,
@@ -506,7 +517,7 @@ const task = await p.evaluate(async () => {
   const готово = document.querySelector('#dzPanel [data-do="task-done"]');
   if(готово) готово.click();
   await new Promise(r => setTimeout(r, 400));
-  const f = D.taskAt(designJobOf(о.orderId), t.n);
+  const f = D.taskAt(designJobMake(о.orderId), t.n);
   return { колонки, панель: панель.replace(/\s+/g, ' ').slice(0, 120),
            стан: f && f.state, закрито: f && f.closedBy };
 });
@@ -533,7 +544,7 @@ console.log('═══ ПЕРЕДАЧУ ВИДНО, НЕ ЗАХОДЯЧИ У В�
 const badge = await p.evaluate(async () => {
   const D = window.LQDesign;
   const о = orders[0];
-  const job = designJobOf(о.orderId);
+  const job = designJobMake(о.orderId);
   const me = myEmail();
   const було = myTaskCount();
   const t = D.taskAdd(job, о, me, { kind:'digit', to: me, text:'оцифрувати' });
@@ -564,7 +575,7 @@ console.log('═══ ПЕРЕДАЧА У ВИРОБНИЦТВО БУДИТЬ �
 const supply = await p.evaluate(async () => {
   const D = window.LQDesign, U = D.ui;
   const о = orders[0];
-  const job = designJobOf(о.orderId);
+  const job = designJobMake(о.orderId);
   // доводимо задачу до стану «можна збирати пакет»
   job.approvedVersion = 1;
   (job.stitch || []).forEach(s => { s.status = 'ok'; });
@@ -576,13 +587,13 @@ const supply = await p.evaluate(async () => {
   const кн = document.querySelector('#dzPanel [data-do="pack"]');
   if(кн) кн.click();
   await new Promise(r => setTimeout(r, 700));
-  const j2 = designJobOf(о.orderId);
+  const j2 = designJobMake(о.orderId);
   const buys = D.taskList(j2).filter(t => t.kind === 'buy');
   // вдруге не дублюємо
   const кн2 = document.querySelector('#dzPanel [data-do="pack"]');
   if(кн2) кн2.click();
   await new Promise(r => setTimeout(r, 500));
-  const buys2 = D.taskList(designJobOf(о.orderId)).filter(t => t.kind === 'buy');
+  const buys2 = D.taskList(designJobMake(о.orderId)).filter(t => t.kind === 'buy');
   return { було, стало: buys.length, вдруге: buys2.length,
            текст: (buys[0] && buys[0].text || '').slice(0, 60),
            кому: !!(buys[0] && buys[0].to) };
@@ -667,6 +678,45 @@ ok(roles.buy,
 ok(roles.zone,
   'і розділ є в списку зон доступу — його можна видати або забрати',
   'розділу немає в зонах доступу');
+
+console.log('');
+console.log('═══ ВІДДІЛ НЕ ЗАВОДИТЬ КАРТОК САМ ═══');
+/* Андрій: «я ці номери не додавав, вони повинні бути в канбані, чому вони
+   тут?». І не дарма: функція, яка ЧИТАЄ доручення, його ж і створювала —
+   а питає її дошка, на кожен свій перемальовок. Через це у відділі лежали
+   всі замовлення поспіль: «Кепка потерта» з номером 2000001 і далі всі
+   інші. Виглядало як звʼязок із Канбаном, хоча звʼязку ніхто не хотів.
+
+   Відділ живе окремо. Картка зʼявляється тільки тоді, коли її завели
+   руками — кнопкою «Нове замовлення» або «✎» з картки Канбану. */
+{
+  const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const fn = adm.slice(adm.indexOf('function designJobOf(orderId, make)'),
+                       adm.indexOf('function designJobMake'));
+  ok(/if\(!job && !make\) return null;/.test(fn),
+    'читання доручення більше не створює його — створює лише явна дорога',
+    'дошка досі заводить картку на кожне замовлення');
+  ok(/job: designJobOf,/.test(adm) && !/job: designJobMake/.test(adm),
+    'дошка дістає доручення саме читанням',
+    'дошці віддали функцію, яка створює');
+  ok(/function designJobMake\(orderId\)\{ return designJobOf\(orderId, true\); \}/.test(adm),
+    'створення винесене окремою функцією — щоб випадково не покликати',
+    'створення й читання досі одне й те саме');
+  /* Замовлення з сайту інакше не потрапило б у відділ узагалі. Дорога є —
+     просто нею йдуть свідомо, однією кнопкою з картки. */
+  ok(/data-act="todesign"/.test(adm) && /designJobMake\(o\.orderId\)/.test(adm),
+    'із картки Канбану є кнопка «завести у відділ» — руками, а не само',
+    'дороги з Канбану у відділ немає зовсім');
+  /* Те, що відділ уже насипав собі сам, прибирається однією дією. Картки
+     зі справжньою роботою лишаються: мовчки стерти роботу гірше. */
+  const sw = adm.slice(adm.indexOf('function designJobEmpty'), adm.indexOf('function watchDesign'));
+  ok(/j\.state !== 'new'/.test(sw) && /j\.stitch \|\| \[\]/.test(sw) && /j\.pack/.test(sw),
+    'прибирання чіпає лише порожні картки — де є версії, файли чи пакет, лишається',
+    'прибирання стирає все підряд');
+  ok(/id="design-sweep"/.test(adm),
+    'і воно доступне кнопкою в Службових діях, а не тільки з консолі',
+    'кнопки прибирання немає');
+}
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
