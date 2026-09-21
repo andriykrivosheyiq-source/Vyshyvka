@@ -1964,8 +1964,16 @@
   .od-item-del:hover{background:var(--bad-soft);color:var(--bad);}
   @media (max-width:640px){ .od-panel{width:100%;} }
 
-  /* Кнопка «КП» — з текстом, а не стрілка: їй потрібна своя ширина. */
-  .tc-act--kp{width:auto;padding:0 9px;font-weight:700;letter-spacing:.02em;}
+  /* Кнопка «КП» — з текстом, а не стрілка: їй потрібна своя ширина.
+
+     Чорна, бо на картці це головна дія: стрілки поруч лише пересувають по
+     етапах, а пропозиція — те, заради чого замовлення взагалі існує. У
+     ряду однакових сірих кнопок вона губилась. */
+  .tc-act--kp{width:auto;padding:0 9px;font-weight:700;letter-spacing:.02em;
+    background:var(--ink);color:#fff;}
+  .tc-act--kp:hover:not([disabled]){background:#000;color:#fff;}
+  /* Галочки трохи тихіші за слово: стан підказує, а не кричить. */
+  .tc-act--kp.is-on{letter-spacing:.06em;}
   .t-actions{display:flex;gap:6px;}
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -4543,6 +4551,11 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
 <script src="loomiq-design.js?v=267657df74"></script>
+<!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
+     картки можна було тільки завантажити собі на диск, а тоді вручну
+     перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
+     малювати їх має те саме місце, звідки надсилають. -->
+<script src="loomiq-cards.js?v=267657df74"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -7698,6 +7711,15 @@ function watchTelegramLeads(){
       const wrote = (v.wrote != null) ? (+v.wrote || 0)
                   : ((last && last !== 'почав діалог') ? (+v.msgs || 1) : 0);
       if(o.tgLast !== last || o.tgWrote !== wrote){
+        /* Клієнт написав — картка йде вгору колонки, як і після нашого
+           власного повідомлення. Доти підпис на ній оновлювався, а місце
+           лишалось те саме: нове звернення могло стояти десятим і чекати,
+           доки на нього натраплять очима.
+
+           Піднімаємо лише коли реплік СТАЛО БІЛЬШЕ і ми вже знали, скільки
+           їх було. Без цієї умови перше ж завантаження сторінки підняло б
+           усі картки одночасно — тобто не підняло б жодної. */
+        if(o.tgWrote != null && wrote > (+o.tgWrote || 0)) touchOrder(o);
         o.tgLast = last; o.tgWrote = wrote; o.tgAt = v.lastAt || '';
         // Картка відкрита просто зараз — менеджер це вже читає, підсвічувати
         // непрочитаним немає сенсу.
@@ -12259,6 +12281,53 @@ function chanBtnsHtml(o){
   });
   return out.join('');
 }
+/* ── Кнопка КП і три її ступені ───────────────────────────────────────────
+   Менеджер веде десятки замовлень, і головне питання до кожного одне: ми
+   вже щось надіслали і чи відповіли нам. Доти на кнопці стояла одна
+   позначка — «пропозиція є», — і між «зібрав, але нікому не показав» та
+   «надіслав, клієнт мовчить» різниці не було видно взагалі.
+
+   Читається як у месенджері, тому пояснювати нічого не треба:
+     КП    — пропозиції ще немає;
+     КП ✓  — зібрана;
+     КП ✓✓ — картки пішли в розмову й клієнт після них озвався.
+
+   Друга позначка чіпляється саме за РОЗМОВУ, а не за відкриття сторінки:
+   клієнт може відкрити КП і зникнути, і це не відповідь. А будь-яке його
+   слово після карток — уже розмова, з якої виростає замовлення. */
+/* Чи озвався клієнт ПІСЛЯ того, як ми надіслали картки.
+
+   Рахуємо не за часом, а за лічильником його реплік: у мить відправки
+   запамʼятовуємо, скільки разів клієнт писав, і далі порівнюємо. Час тут
+   був би гіршим мірилом — у Sitniks і Telegram він приходить у різних
+   поясах і форматах, а лічильник ні з чим не плутається.
+
+   Позначку ставимо НАЗАВЖДИ: клієнт відповів один раз, і те, що далі писали
+   ми, цього не скасовує. Інакше друга галочка блимала б від кожного
+   нашого повідомлення. */
+function cardsWroteNow(o){
+  return (+((o || {}).tgWrote) || 0) + (+((o || {}).crmIn) || 0);
+}
+function cardsReplied(o){
+  if(!o || !o.cardsAt) return false;
+  if(o.cardsReplyAt) return true;
+  if(cardsWroteNow(o) <= (+o.cardsWrote || 0)) return false;
+  o.cardsReplyAt = new Date().toISOString();
+  saveOrders({ quiet:true }).catch(e => console.warn('позначка відповіді', e));
+  return true;
+}
+function kpStage(o){
+  if(!o || !o.offerToken) return 0;
+  return cardsReplied(o) ? 2 : 1;
+}
+function kpBtnHtml(o){
+  const s = kpStage(o);
+  const tip = s === 2 ? 'Картки надіслано, клієнт відповів'
+            : s === 1 ? 'Відкрити комерційну пропозицію'
+                      : 'Скласти комерційну пропозицію';
+  return `<button class="tc-act tc-act--kp${s ? ' is-on' : ''}" data-act="kp" ` +
+         `title="${tip}">КП${s === 2 ? ' ✓✓' : (s === 1 ? ' ✓' : '')}</button>`;
+}
 function ticketSummaryHtml(o){
   const off = o.offerToken && offersByToken[o.offerToken];
   const st  = off ? (OFFER_STATE_UA[off.state] || OFFER_STATE_UA.created) : null;
@@ -12363,11 +12432,8 @@ function ticketSummaryHtml(o){
       <span class="tc-spacer"></span>
       ${/* КП прямо з дошки. Доти до редактора пропозиції вела одна дорога —
             відкрити картку й знайти кнопку всередині; а складають його
-            щодня й до кожного замовлення. На самій кнопці видно стан:
-            позначка означає, що пропозиція вже є. */''}
-      <button class="tc-act tc-act--kp" data-act="kp" title="${
-        o.offerToken ? 'Відкрити комерційну пропозицію' : 'Скласти комерційну пропозицію'
-      }">КП${o.offerToken ? ' ✓' : ''}</button>
+            щодня й до кожного замовлення. */''}
+      ${kpBtnHtml(o)}
       <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
       <button class="tc-act" data-act="next" ${canNext?'':'disabled'} title="На крок далі">→</button>
     </div>`;
@@ -15856,6 +15922,11 @@ function renderOrderDrawer(){
     inp.addEventListener('change', async ()=>{
       const f = inp.dataset.f;
       o[f] = inp.value.trim();
+      /* Заповнили поле в картці — картка йде вгору колонки. Доти нагору
+         піднімали лише повідомлення, і замовлення, з яким менеджер щойно
+         пів години працював — вписав телефон, компанію, дедлайн, нотатку, —
+         лишалось там само, під тими, де сьогодні не робили нічого. */
+      touchOrder(o);
       await saveOrderMeta(o);
       // дедлайн змінює підпис «лишилось N днів» — його показує сама панель
       if(f === 'dueAt') renderOrderDrawer();
@@ -16561,19 +16632,46 @@ function crmPeerKeys(o){
    листи знову опинялись не з того боку. Заразом памʼятаємо, ХТО писав. */
 const CRM_OUT_KEEP = 60;
 function crmOutKey(t){ return String(t || '').replace(/\s+/g, ' ').trim().slice(0, 160); }
+/* Кожне надіслане запамʼятовуємо КІЛЬКОМА ключами: цілим текстом і окремо
+   кожною адресою, яка в ньому була.
+
+   Без адрес картинка від нас ставала ліворуч, як клієнтська. Відправляли ми
+   «підпис\nhttps://…», а читаючи стрічку назад, адресу з тексту вирізаємо —
+   інакше повідомлення було б простирадлом на двісті символів замість фото.
+   Виходило, що шукаємо ключ із адресою, маючи на руках текст уже без неї.
+   А в картинки без підпису після вирізання не лишалось узагалі нічого, чим
+   її впізнати. Разом із боком губилось і імʼя менеджера: воно лежить у
+   цьому ж записі.
+
+   Тому ключів кілька, і достатньо збігу за будь-яким. */
+function crmOutKeys(text){
+  const whole = crmOutKey(text);
+  const urls = String(text || '').match(CRM_URL_RE) || [];
+  const rest = crmOutKey(urls.reduce((s, u) => s.replace(u, ''), String(text || '')));
+  return [whole, rest].concat(urls.map(crmOutKey)).filter((k, i, a) => k && a.indexOf(k) === i);
+}
 function crmOutNote(o, text){
-  const k = crmOutKey(text);
-  if(!k || !o) return;
+  if(!o) return;
+  const keys = crmOutKeys(text);
+  if(!keys.length) return;
   const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
-  if(list.some(r => r && r.t === k)) return;
-  list.push({ t: k, by: myName() });
+  const by = myName();
+  keys.forEach(k => {
+    if(list.some(r => r && r.t === k)) return;
+    list.push({ t: k, by: by });
+  });
   if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
 }
-function crmOutFind(o, text){
-  const k = crmOutKey(text);
-  if(!k) return null;
+function crmOutFind(o, text, files){
   const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
-  for(let i = list.length - 1; i >= 0; i--) if(list[i] && list[i].t === k) return list[i];
+  if(!list.length) return null;
+  /* Шукаємо і за текстом, і за адресами вкладень — саме вони лишаються
+     єдиною прикметою повідомлення, у якому крім картинки нічого немає. */
+  const keys = crmOutKeys(text)
+    .concat((files || []).map(f => crmOutKey(f && f.url)))
+    .filter(Boolean);
+  for(let i = list.length - 1; i >= 0; i--)
+    if(list[i] && keys.indexOf(list[i].t) >= 0) return list[i];
   return null;
 }
 /* Наше повідомлення чи клієнтське. Прямі ознаки — першими: коли Sitniks
@@ -16693,7 +16791,7 @@ function crmNormMsgs(data, o){
     const who = crmMsgWho(m);
     /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
        здогадуємось за підписом, якого в такому повідомленні немає. */
-    const own = crmOutFind(o, text);
+    const own = crmOutFind(o, text, files);
     const mine = own ? true : crmIsMine(m, text, who, peer);
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
@@ -16713,7 +16811,20 @@ function crmNormMsgs(data, o){
   list.rawCount = arr.length;
   list.rawKeys = (arr.length && typeof arr[0] === 'object')
     ? Object.keys(arr[0]).slice(0, 14) : [];
+  /* Скільки разів озвався КЛІЄНТ. Число потрібне дошці: по ньому кнопка КП
+     розуміє, чи відповіли на надіслані картки. Дошка самої розмови не
+     читає, тож кладемо його в замовлення — тут, де стрічку вже розібрано
+     на «наше» й «їхнє», і рахувати вдруге ніде не доведеться. */
+  crmNoteIn(o, list.filter(m => !m.mine).length);
   return list;
+}
+function crmNoteIn(o, n){
+  if(!o || !(n >= 0) || (+o.crmIn || 0) === n) return;
+  // Клієнт озвався — картка вгору. Так само, як у Telegram, і з тією самою
+  // умовою: піднімаємо лише коли реплік стало більше, ніж ми вже знали.
+  if(o.crmIn != null && n > (+o.crmIn || 0)) touchOrder(o);
+  o.crmIn = n;
+  saveOrders({ quiet:true }).then(renderBoard).catch(e => console.warn('лічильник реплік', e));
 }
 
 async function crmLoad(o, numFromInput){
@@ -19068,6 +19179,12 @@ async function chatPhoto(o, fileObj, caption){
     if(inp && inp.value.trim() === caption){ inp.value = ''; chatWin.draft = ''; }
     renderChatWin(true);
   }
+  /* Картинка — таке саме повідомлення клієнту, як і лист, і картка від неї
+     так само має піднятись угору колонки. Доти цей рядок стояв лише в
+     дорозі для тексту: написали — картка нагорі, надіслали фото — ні, і
+     замовлення тонуло під тими, де сьогодні не робили нічого. */
+  touchOrder(o);
+  renderBoard();
 }
 
 /* ============================================================
