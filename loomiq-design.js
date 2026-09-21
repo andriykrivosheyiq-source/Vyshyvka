@@ -549,6 +549,12 @@
     /* Задача, заведена до появи доручень, приходить без цього поля. Краще
        дописати його тут, ніж класти `job.tasks || []` у двадцяти місцях. */
     if(!Array.isArray(job.tasks)) job.tasks = [];
+    /* Склад замовлення відділу. Заводиться руками й живе ТУТ, а не в
+       картці Канбану: у Канбані лежить те, що ПРОДАЛИ, а тут те, що треба
+       ЗРОБИТИ, і це різні списки. Клієнт купив двадцять худі — а зробити
+       треба десять чорних із вишивкою спереду й десять бежевих із друком
+       на спині; розкласти це в картці продажу нема куди. */
+    if(!Array.isArray(job.units)) job.units = [];
     var want = stitchKeys(order), by = {};
     (job.stitch || []).forEach(function(s){ by[s.key] = s; });
     var out = [];
@@ -1132,6 +1138,123 @@
      просто та правка ховається в історію, і з'являється нова». Так і
      зроблено: попередні складені під рядок, який їх розгортає. */
   var SEAT_TASK = { graphic:'graphic', stitch:'stitch', prod:'prod', supply:'supply' };
+
+  /* ══════════ СКЛАД ЗАМОВЛЕННЯ: ОДЯГ І ДИЗАЙНИ ══════════════════════════
+     Що тут лежить і чому саме тут.
+
+     У картці Канбану лежить те, що ПРОДАЛИ: двадцять худі за такою ціною.
+     Виробництву цього замало — йому треба знати, що саме шити: десять
+     чорних M із вишивкою спереду, десять бежевих L із друком на спині.
+     Розкласти це в картці продажу нема куди, і доти воно жило в голові
+     менеджера й у листуванні.
+
+     Одиниця — це ОДИН РЯДОК ЗАМОВЛЕННЯ: виріб, колір, розмір, кількість.
+     Дублювання тут не примха: найчастіша дія — «те саме, але беж» і «те
+     саме, але L», і набирати все заново означає шанс помилитись у тому,
+     що мало лишитись однаковим.
+
+     Дизайни лежать УСЕРЕДИНІ одиниці, двома окремими списками. Графіка й
+     вишивка — не два стани одного, а дві різні роботи, які роблять різні
+     люди з різними доступами: графічний дизайнер малює, вишивальний
+     оцифровує. Звести їх в один список означало б показувати кожному
+     половину чужої роботи. */
+  function unitNew(){
+    return { id: 'u' + Date.now() + Math.random().toString(36).slice(2, 6),
+             gid:'', name:'', color:'', size:'', qty:1,
+             graphic: [], stitch: [], note:'' };
+  }
+  function unitsOf(job){ return Array.isArray(job && job.units) ? job.units : []; }
+  function unitAt(job, id){
+    return unitsOf(job).filter(function(u){ return u.id === id; })[0] || null;
+  }
+  function catalog(){
+    try{ return (host().catalog && host().catalog()) || []; }catch(e){ return []; }
+  }
+  function catItem(gid){
+    return catalog().filter(function(g){ return g.id === gid; })[0] || null;
+  }
+  function optsHtml(list, cur, ph){
+    return '<option value="">' + esc(ph || '—') + '</option>' +
+      list.map(function(v){
+        var val = (v && v.id != null) ? v.id : v;
+        var lab = (v && v.name != null) ? v.name : v;
+        return '<option value="' + esc(val) + '"' +
+               (String(val) === String(cur) ? ' selected' : '') + '>' + esc(lab) + '</option>';
+      }).join('');
+  }
+  /* Один дизайн у списку. Стан тут навмисно простий: зроблено чи ні.
+     Докладний контур — версії, причини повернень, оцифрування — уже є
+     нижче, і дублювати його в кожному рядку означало б мати два місця з
+     різними відповідями на те саме питання. */
+  function designRowHtml(u, kind, d, i){
+    return '<div class="dz-dz">' +
+      '<input class="dz-dz-n" data-dz="' + esc(u.id) + '|' + kind + '|' + i + '" ' +
+        'value="' + esc(d.name || '') + '" placeholder="Назва нанесення">' +
+      '<select class="dz-dz-s" data-dzs="' + esc(u.id) + '|' + kind + '|' + i + '">' +
+        optsHtml([{ id:'front', name:'Перед' }, { id:'back', name:'Спина' },
+                  { id:'sleeve', name:'Рукав' }, { id:'other', name:'Інше' }],
+                 d.side, 'Де') +
+      '</select>' +
+      /* Розмір вишивки приходить із мокапу — його ставить дизайнер, і
+         міряти його руками означає мати два числа про один шов. Поки
+         мокапу немає, поле порожнє й чесно про це каже. */
+      '<span class="dz-dz-mm">' + (d.mm && d.mm.w
+        ? (d.mm.w + '×' + d.mm.h + ' мм')
+        : '<i>розмір із мокапу</i>') + '</span>' +
+      '<button class="dz-dz-x" data-do="dz-del" data-dz="' + esc(u.id) + '|' + kind + '|' + i +
+        '" title="Прибрати">×</button>' +
+    '</div>';
+  }
+  function unitHtml(job, u, n){
+    var g = catItem(u.gid);
+    var cols = g ? g.colors : [];
+    var sizes = g ? g.sizes : [];
+    var head = (u.name || 'Одиниця ' + n) +
+      (u.color ? ' · ' + u.color : '') + (u.size ? ' · ' + u.size : '') +
+      ' · ' + (+u.qty || 0) + ' шт';
+    return '<div class="dz-u">' +
+      '<div class="dz-u-h"><b>' + esc(head) + '</b>' +
+        '<span class="dz-u-acts">' +
+          '<button class="dz-b" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
+            'title="Те саме ще раз — далі міняєте колір чи розмір">⧉ Дублювати</button>' +
+          '<button class="dz-b" data-do="u-del" data-u="' + esc(u.id) + '">Прибрати</button>' +
+        '</span></div>' +
+      '<div class="dz-u-f">' +
+        '<label><span>Виріб</span><select data-uf="' + esc(u.id) + '|gid">' +
+          optsHtml(catalog(), u.gid, 'Оберіть виріб') + '</select></label>' +
+        '<label><span>Колір</span><select data-uf="' + esc(u.id) + '|color">' +
+          optsHtml(cols.map(function(c){ return { id:c.name, name:c.name }; }), u.color, 'Колір') +
+        '</select></label>' +
+        '<label><span>Розмір</span><select data-uf="' + esc(u.id) + '|size">' +
+          optsHtml(sizes, u.size, 'Розмір') + '</select></label>' +
+        '<label><span>Кількість</span><input type="number" min="1" ' +
+          'data-uf="' + esc(u.id) + '|qty" value="' + (+u.qty || 1) + '"></label>' +
+      '</div>' +
+      /* Два списки, відбиті один від одного. Це не оформлення: графіку й
+         вишивку роблять різні люди, і кожен має з першого погляду бачити
+         свою половину, а не шукати її серед чужої. */
+      '<div class="dz-u-dz">' +
+        '<div class="dz-u-col"><div class="dz-u-l">Графічний дизайн</div>' +
+          (u.graphic || []).map(function(d, i){ return designRowHtml(u, 'graphic', d, i); }).join('') +
+          '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) + '|graphic">+ Нанесення</button>' +
+        '</div>' +
+        '<div class="dz-u-col"><div class="dz-u-l">Вишивальний дизайн</div>' +
+          (u.stitch || []).map(function(d, i){ return designRowHtml(u, 'stitch', d, i); }).join('') +
+          '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) + '|stitch">+ Нанесення</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  function unitsHtml(job){
+    var list = unitsOf(job);
+    return '<div class="dz-h">Склад замовлення</div>' +
+      (list.length
+        ? list.map(function(u, i){ return unitHtml(job, u, i + 1); }).join('')
+        : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
+          'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
+      '<button class="dz-b pri" data-do="u-add">+ Додати одяг</button>';
+  }
+
   function taskBlockHtml(pr, seat){
     var want = SEAT_TASK[seat] || '';
     var all = D.taskList(pr.job).filter(function(t){
@@ -1306,6 +1429,8 @@
     teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
     jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
+    unitsHtml: unitsHtml, unitsOf: unitsOf, unitAt: unitAt,
+    unitNew: unitNew, catItem: catItem,
     taskCards: taskCards, hm: hm,
     /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
        Заглушка на випадок, коли модуль піднімають без адмінки. */
@@ -1492,6 +1617,9 @@
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
         U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct') +
+        /* Склад — одразу під клієнтом і дорученнями: це перше, що питають
+           про замовлення, і перше, що заповнюють, коли його заводять. */
+        U.unitsHtml(job) +
         U.briefHtml(o, job) +
         (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
@@ -1944,6 +2072,51 @@
     root.querySelectorAll('[data-do]').forEach(function(b){
       b.onclick = function(){ act(b.dataset.do, root, b.dataset); };
     });
+    /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск
+       клавіші летів би в базу й перемальовував панель під руками. */
+    root.querySelectorAll('[data-uf]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var pp = String(el.dataset.uf).split('|');
+        var u = U.unitAt(c.job, pp[0]); if(!u) return;
+        var f = pp[1];
+        if(f === 'qty') u.qty = Math.max(1, Math.round(+el.value || 1));
+        else u[f] = el.value;
+        /* Змінили виріб — колір і розмір від старого тут ні до чого:
+           у нового вони свої, і лишити чужі означає везти у виробництво
+           колір, якого в цього виробу немає. Назву підставляємо з
+           каталогу, щоб у картці стояло людське слово, а не код. */
+        if(f === 'gid'){
+          var g = U.catItem(u.gid);
+          u.name = g ? g.name : '';
+          u.color = ''; u.size = '';
+        }
+        save(c.job, c.o, '');
+      };
+    });
+    root.querySelectorAll('[data-dz]').forEach(function(el){
+      if(el.tagName !== 'INPUT') return;
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var pp = String(el.dataset.dz).split('|');
+        var u = U.unitAt(c.job, pp[0]); if(!u) return;
+        var arr = u[pp[1] === 'stitch' ? 'stitch' : 'graphic'] || [];
+        if(!arr[+pp[2]]) return;
+        arr[+pp[2]].name = el.value;
+        save(c.job, c.o, '');
+      };
+    });
+    root.querySelectorAll('[data-dzs]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var pp = String(el.dataset.dzs).split('|');
+        var u = U.unitAt(c.job, pp[0]); if(!u) return;
+        var arr = u[pp[1] === 'stitch' ? 'stitch' : 'graphic'] || [];
+        if(!arr[+pp[2]]) return;
+        arr[+pp[2]].side = el.value;
+        save(c.job, c.o, '');
+      };
+    });
     if(wireExtra) wireExtra(root);
   }
 
@@ -1999,6 +2172,40 @@
     var c = ctx();
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
+
+    /* ── Склад замовлення ── */
+    if(what === 'u-add'){
+      job.units = U.unitsOf(job).concat([U.unitNew()]);
+      return save(job, o, 'Додано одиницю');
+    }
+    if(what === 'u-dup'){
+      var src = U.unitAt(job, data && data.u);
+      if(!src) return;
+      /* Копія з усім: кольором, розміром, кількістю й обома списками
+         дизайнів. Найчастіша дія — «те саме, але беж», і набирати все
+         заново означає шанс розійтися в тому, що мало лишитись однаковим. */
+      var cp = JSON.parse(JSON.stringify(src));
+      cp.id = U.unitNew().id;
+      var at = U.unitsOf(job).indexOf(src);
+      job.units = U.unitsOf(job).slice(0, at + 1).concat([cp], U.unitsOf(job).slice(at + 1));
+      return save(job, o, 'Дубль — тепер змініть, що треба');
+    }
+    if(what === 'u-del'){
+      var del = U.unitAt(job, data && data.u);
+      if(!del) return;
+      job.units = U.unitsOf(job).filter(function(x){ return x !== del; });
+      return save(job, o, 'Прибрано');
+    }
+    if(what === 'dz-add' || what === 'dz-del'){
+      var pp = String((data && data.dz) || '').split('|');
+      var un = U.unitAt(job, pp[0]);
+      var kk = pp[1] === 'stitch' ? 'stitch' : 'graphic';
+      if(!un) return;
+      if(!Array.isArray(un[kk])) un[kk] = [];
+      if(what === 'dz-add') un[kk].push({ name:'', side:'', mm:null, files:[] });
+      else un[kk].splice(+pp[2], 1);
+      return save(job, o, what === 'dz-add' ? 'Нанесення додано' : 'Прибрано');
+    }
     /* Доручення тепер живе ВСЕРЕДИНІ картки замовлення, а не окремою
        карткою на дошці. Тому номер приходить не з ключа панелі, а з самої
        кнопки: на одному замовленні доручень буває кілька. */

@@ -456,7 +456,7 @@ const ui = await p.evaluate(async () => {
   const panel = (document.getElementById('dzPanel') || {}).textContent || '';
   return { ролі, cols, cards, доЗаведення,
            shown: document.getElementById('view-design').style.display,
-           panel: panel.replace(/\s+/g, ' ').slice(0, 140),
+           panel: panel.replace(/\s+/g, ' ').slice(0, 400),
            roles: Object.keys(window.ROLES || {}) };
 });
 if(ui.none){ console.log('  кнопки розділу немає'); bad++; }
@@ -486,6 +486,12 @@ else {
   ok(/Худі|ТЗ/.test(ui.panel),
     'картка відкриває панель із технічним завданням',
     'панель не відкрилась: «' + ui.panel + '»');
+  /* Склад замовлення — те, чого у картці не було зовсім. У Канбані лежить
+     те, що ПРОДАЛИ; виробництву треба знати, що саме шити: виріб, колір,
+     розмір, кількість. Доти це жило в голові менеджера й у листуванні. */
+  ok(/Склад замовлення/.test(ui.panel),
+    'у картці зʼявився склад замовлення — виріб, колір, розмір, кількість',
+    'складу в картці немає: «' + ui.panel + '»');
 }
 console.log('');
 console.log('═══ ДОРУЧЕННЯ ЖИВЕ В РОЗДІЛІ, А НЕ В РОЗМОВІ ═══');

@@ -2908,6 +2908,45 @@
   .dz-panel-b{flex:1;min-height:0;overflow:auto;padding:12px 14px;}
   .dz-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     color:var(--ink-soft);margin:14px 0 6px;}
+  /* ── Склад замовлення у відділі ──
+     Одиниця — це один рядок замовлення: виріб, колір, розмір, кількість.
+     Картка кожної одиниці окрема й з власною межею: їх у замовленні буває
+     десяток, і суцільним списком вони злипаються в кашу, де незрозуміло,
+     де закінчується одна й починається друга. */
+  .dz-u{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px;
+    background:#fff;}
+  .dz-u-h{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+  .dz-u-h b{font-size:13.5px;color:var(--ink);flex:1;min-width:0;}
+  .dz-u-acts{display:flex;gap:6px;flex:none;}
+  .dz-u-f{display:grid;grid-template-columns:1.4fr 1fr 0.8fr 0.7fr;gap:8px;}
+  .dz-u-f label{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .dz-u-f span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;}
+  .dz-u-f select,.dz-u-f input{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;min-width:0;}
+  .dz-u-f select:focus,.dz-u-f input:focus{border-color:var(--accent);}
+  /* Графіка й вишивка — дві колонки, відбиті одна від одної. Це не
+     оформлення: їх роблять різні люди, і кожен має бачити свою половину з
+     першого погляду, а не шукати її серед чужої. */
+  .dz-u-dz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px;
+    padding-top:11px;border-top:1px dashed var(--line);}
+  .dz-u-col{min-width:0;}
+  .dz-u-l{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:6px;}
+  .dz-dz{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+  .dz-dz-n{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:7px;padding:6px 7px;outline:none;}
+  .dz-dz-s{flex:none;font:inherit;font-size:12px;color:var(--ink-soft);background:#fff;
+    border:1px solid var(--line);border-radius:7px;padding:6px 5px;outline:none;}
+  .dz-dz-mm{flex:none;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
+  .dz-dz-mm i{color:var(--muted);font-style:normal;}
+  .dz-dz-x{all:unset;cursor:pointer;flex:none;color:var(--muted);padding:2px 6px;
+    border-radius:6px;font-size:14px;}
+  .dz-dz-x:hover{background:var(--bad-soft);color:var(--bad);}
+  @media (max-width:760px){
+    .dz-u-f{grid-template-columns:1fr 1fr;}
+    .dz-u-dz{grid-template-columns:1fr;}
+  }
   .dz-item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
   .dz-item-h{font-weight:700;font-size:13px;}
   .dz-item-s{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
@@ -4610,18 +4649,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7b044a02bc"></script>
-<script src="loomiq-fingerprint.js?v=7b044a02bc"></script>
-<script src="loomiq-pricing.js?v=7b044a02bc"></script>
+<script src="loomiq-select.js?v=637c802c21"></script>
+<script src="loomiq-fingerprint.js?v=637c802c21"></script>
+<script src="loomiq-pricing.js?v=637c802c21"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7b044a02bc"></script>
+<script src="loomiq-design.js?v=637c802c21"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=7b044a02bc"></script>
+<script src="loomiq-cards.js?v=637c802c21"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -20896,6 +20935,21 @@ function openDesign(){
     save: designSave,
     toast: m => toast(m),
     upload: f => uploadCloudinaryAuto(f),
+    /* Каталог для відділу: вироби, кольори й розміри — ті самі, що на
+       сайті й у прорахунку. Свого довідника відділ не заводить навмисно:
+       два списки товарів рано чи пізно розійдуться, і «Худі базове» у
+       відділі виявиться не тим «Худі базовим», що в замовленні. */
+    catalog: ()=> allPhotoCfg().map(g => ({
+      id: g.id,
+      name: (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', ''),
+      colors: effectiveColors(g.id).map(c => ({ id: c.id, name: c.name || c.id,
+                                                hex: c.hex || '' })),
+      /* Розміри — з розмірної сітки товару. Немає сітки — беремо
+         звичайний ряд: це краще, ніж порожній список, у якому менеджеру
+         нічого обрати. */
+      sizes: (garmentSizes(g.id).length ? garmentSizes(g.id)
+                                        : ['XS','S','M','L','XL','XXL'])
+    })),
     team: ()=> (contentData.team || []).map(m => ({
       email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
     onlyMine: ()=> mine,
