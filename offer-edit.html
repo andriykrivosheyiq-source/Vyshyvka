@@ -999,21 +999,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=1a985f57e2',
+    ['loomiq-select.js?v=a8a9750640',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=1a985f57e2'].forEach(function(src){
+     'loomiq-cards.js?v=a8a9750640'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=1a985f57e2';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=1a985f57e2';
-  var CTOR_JS   = 'loomiq-constructor.js?v=1a985f57e2';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=1a985f57e2';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=a8a9750640';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=a8a9750640';
+  var CTOR_JS   = 'loomiq-constructor.js?v=a8a9750640';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=a8a9750640';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2191,7 +2191,7 @@
         '<textarea id="cdNote" rows="3" placeholder="Необовʼязково">' +
           esc(own.note != null ? own.note : (c.note || '')) + '</textarea>' +
       '</div>' +
-      (c.type !== 'set' && (c.pics || []).length > 1
+      (c.type === 'item' && (c.pics || []).length > 1
         ? '<div class="cd-box"><span class="cd-l">Головний ракурс</span>' +
           '<div class="cd-pics">' + c.pics.map(function(u){
             return '<img src="' + esc(u) + '" data-pic="' + esc(u) + '"' +
@@ -2207,7 +2207,7 @@
          Зняті лишаються в списку й видно, що вони зняті: інакше повернути
          їх не було б як. Останній зняти не дамо — картка без жодного фото
          це не картка. */
-      (c.type !== 'set' && (c.allShots || []).length > 1
+      (c.type === 'item' && (c.allShots || []).length > 1
         ? '<div class="cd-box"><span class="cd-l">Які кадри показувати</span>' +
           '<div class="cd-shots">' + c.allShots.map(function(sh){
             var off = !!(own.off || {})[sh.url];
@@ -2221,7 +2221,7 @@
         : '') +
       /* Рекомендованих буває більше, ніж влізе на картку. Хто саме туди
          піде — вирішує менеджер, а не порядок у списку. */
-      (c.type === 'set' && (c.pool || []).length > c.max
+      ((c.type === 'set' || c.type === 'cmp') && (c.pool || []).length > c.max
         ? '<div class="cd-box"><span class="cd-l">Що показати · не більше ' + c.max + '</span>' +
           c.pool.map(function(r){
             return '<label class="cd-chk" style="display:flex;margin-top:6px">' +
