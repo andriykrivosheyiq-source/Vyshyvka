@@ -523,7 +523,109 @@
     };
 
     (offer.items || []).forEach(function(it, i){ out.push(card('main:' + i, 'main', it)); });
-    (offer.variants || []).forEach(function(it, i){ out.push(card('variant:' + i, 'variant', it)); });
+
+    /* ══════════ ГРУПА ВАРІАНТІВ — ОДНІЄЮ КАРТКОЮ ══════════
+       Група існує заради ПОРІВНЯННЯ. Клієнт просить порахувати на базовій
+       футболці й на оверсайзі — і це різні вироби: інший матеріал, інша
+       щільність, інша ціна. Або те саме худі в трьох кольорах.
+
+       Доти кожен варіант ішов окремою карткою. Три картинки поспіль, у
+       кожній своя ціна й свої характеристики, — і щоб порівняти щільність,
+       клієнт мусив тримати числа в голові, гортаючи туди-сюди. Він не
+       тримає, він питає «а чим вони відрізняються».
+
+       Тому товари стають КОЛОНКАМИ, а факти — РЯДКАМИ. Око пробігає по
+       рядку «Щільність» і бачить 320 проти 240.
+
+       Окремі картки лишаються запасним шляхом: у групі бувають вироби,
+       які поруч у ряд ставити безглуздо. Формат — той самий перемикач. */
+    var groups = {};
+    (offer.variants || []).forEach(function(it, i){
+      var g = String(it.vgroup || 'Варіанти на вибір');
+      (groups[g] || (groups[g] = [])).push({ it: it, i: i });
+    });
+    Object.keys(groups).forEach(function(g){
+      var list = groups[g];
+      /* Один варіант — це не група: порівнювати нема з чим, і таблиця з
+         однією колонкою читалась би як зламана картка. */
+      if(cfg.cmp === false || list.length < 2){
+        list.forEach(function(r){ out.push(card('variant:' + r.i, 'variant', r.it)); });
+        return;
+      }
+      var id = 'cmp:' + g;
+      var own = by[id] || {};
+      /* Три колонки — межа. На четвертій колонка вужча за виріб у ній, і
+         порівнювати стає нічого. Більше в групі — менеджер обирає, кого
+         показати, так само як у рекомендованих. */
+      var pick = Array.isArray(own.pick)
+        ? own.pick.filter(function(k){ return list[k]; })
+                  .sort(function(a, b){ return a - b; }).slice(0, 3)
+        : [];
+      if(!pick.length) pick = list.map(function(r, k){ return k; }).slice(0, 3);
+      var pool = pick.map(function(k){ return list[k]; });
+      var cols = pool.map(function(r){
+        var c = card('variant:' + r.i, 'variant', r.it);
+        return { id: c.id, name: c.name, sub: c.sub, shots: c.shots,
+                 specs: c.specs, unit: c.unit, base: c.base, qty: c.qty,
+                 lost: c.lost };
+      });
+      /* Рядки таблиці — ОБʼЄДНАННЯ всіх характеристик: в одного варіанта
+         може бути «Щільність», а в другого її не вписали. Порожня клітинка
+         з прочерком чесніша за зниклий рядок: видно, що про цей виріб ми
+         чогось не знаємо. */
+      var labs = [];
+      cols.forEach(function(c){
+        (c.specs || []).forEach(function(sp){
+          var l = String(sp.label || '');
+          if(l && labs.indexOf(l) < 0) labs.push(l);
+        });
+      });
+      var rows = labs.slice(0, 7).map(function(l){
+        var vals = cols.map(function(c){
+          var hit = (c.specs || []).filter(function(sp){ return sp.label === l; })[0];
+          return hit ? String(hit.value || '') : '';
+        });
+        /* Однакове в усіх колонках — блідим, різне — чорнилом. Це головне
+           в усій таблиці: «Формат: унісекс / унісекс» не ховаємо, бо воно
+           заспокоює, але воно гасне, і погляд сам падає на те, що
+           відрізняється. Картка відповідає на «чим вони різні» ще до того,
+           як питання прозвучало. */
+        var same = vals.every(function(v){ return v === vals[0]; });
+        return { label: l, vals: vals, same: same };
+      });
+      /* Скільки рядів кадрів. Сторони теж рядки таблиці: «Спереду» одним
+         рядом, «Ззаду» другим. Так картка росте вниз, а не вшир, і на
+         телефоні лишається читабельною. */
+      var nShot = 0;
+      cols.forEach(function(c){ nShot = Math.max(nShot, (c.shots || []).length); });
+      out.push({
+        id: id, kind: 'cmp', type: 'cmp',
+        badge: 'порівняння',
+        name: own.title || g,
+        note: own.note || '',
+        cols: cols, rows: rows, shotRows: Math.min(nShot, 3),
+        qty: cols[0].qty,
+        pool: list.map(function(r, k){
+          return { i: k, name: r.it.name || '', on: pick.indexOf(k) >= 0 };
+        }),
+        max: 3,
+        /* Сторони з нанесенням, для яких кадру не знайшлось, — по всій
+           групі. Мовчати тут не можна так само, як і в звичайній картці. */
+        lost: (function(){
+          var all = [];
+          cols.forEach(function(c){
+            (c.lost || []).forEach(function(s){ if(all.indexOf(s) < 0) all.push(s); });
+          });
+          return all.length ? all : null;
+        })(),
+        hidden: !!(cfg.hidden || {})[id]
+      });
+      /* Ті, кого в таблицю не взяли, — окремими картками: інакше вони
+         мовчки зникли б із пропозиції взагалі. */
+      list.forEach(function(r, k){
+        if(pick.indexOf(k) < 0) out.push(card('variant:' + r.i, 'variant', r.it));
+      });
+    });
 
     /* Рекомендовані — однією карткою на всіх: це не пропозиція взяти
        кожного, а питання «чим доповнити». Чотири позиції — межа, за якою
@@ -1540,6 +1642,125 @@
     x.fillStyle = g;
     x.fillRect(0, 0, W, H2);
   }
+  /* ══════════ КАРТКА ПОРІВНЯННЯ ══════════
+     Товари — колонки, факти — рядки. Сторони виробу теж рядки: «Спереду»
+     одним рядом, «Ззаду» другим. Тому картка росте ВНИЗ, а ширина лишається
+     на двох-трьох колонках — а саме від ширини залежить, чи буде щось
+     видно на телефоні.
+
+     Опису прозою тут немає навмисно. Характеристик три-чотири рядки, вони
+     й порівнюються; абзац тексту під кожною колонкою перетворив би
+     таблицю на простирадло, у якому вже нічого не зіставиш. */
+  var CMP_LAB = 300;     // ліва колонка з підписами рядків
+  var CMP_ROW = 46;      // висота рядка характеристик
+  var CMP_PIC = 460;     // висота ряду кадрів
+  function cmpW(n){ return PAD * 2 + CMP_LAB + n * COL + (n - 1) * GAP; }
+  function cmpH(card){
+    var shots = Math.max(1, card.shotRows || 1);
+    return HEAD + 16 + shots * (CMP_PIC + GAP) + 40 +
+           (card.rows || []).length * CMP_ROW + 150 + FOOT;
+  }
+  function paintCmp(x, card, t, shots, show, o, W){
+    topBar(x, t, W);
+    head(x, card, t, show, o, W);
+    var cols = card.cols || [];
+    var n = cols.length;
+    var cw = (W - PAD * 2 - CMP_LAB - GAP * (n - 1)) / n;
+    var colX = function(i){ return PAD + CMP_LAB + i * (cw + GAP); };
+    var hh = headOf(o);
+    /* Назви варіантів — над кадрами, бо саме вони називають колонку.
+       Підпис під фото читався б як підпис до фото, а не як заголовок
+       стовпця, і таблиця розсипалась би на окремі картинки. */
+    var y = hh + 16;
+    cols.forEach(function(c, i){
+      x.fillStyle = t.ink;
+      fitFont(x, c.name, cw, 26, '700', t.display, 19);
+      x.fillText(clip1(x, c.name, cw), colX(i), y + 24);
+      if(c.sub){
+        x.fillStyle = tint(t.dim, 0.75);
+        x.font = '400 17px ' + t.body;
+        x.fillText(clip1(x, c.sub, cw), colX(i), y + 50);
+      }
+    });
+    y += 66;
+    /* Кадри рядами. Підпис ряду — у лівій колонці, там само, де підписи
+       характеристик: одна вертикаль підписів на всю картку. */
+    var rowsN = Math.max(1, card.shotRows || 1);
+    for(var r = 0; r < rowsN; r++){
+      var lab = '';
+      for(var k = 0; k < n && !lab; k++){
+        var s0 = (cols[k].shots || [])[r];
+        if(s0) lab = s0.model ? 'На моделі' : (s0.label || '');
+      }
+      if(lab) eyebrow(x, lab, PAD, y + 26, t.dim, 21);
+      for(var i2 = 0; i2 < n; i2++){
+        var sr = (shots[i2] || [])[r];
+        var cx = colX(i2);
+        if(!sr || !sr.im){
+          /* Кадру немає — плитки теж немає. Порожня плитка обіцяла б фото,
+             якого не існує, а прочерк тут зайвий: видно й так. */
+          continue;
+        }
+        if(sr.model){ drawModel(x, sr, cx, y, cw, CMP_PIC, o.st && o.st.picY); continue; }
+        shotPanel(x, t, cx, y, cw, CMP_PIC, (o.st || {}).bg, tintOf(sr.im));
+        var Z = rowZoom([sr], cw, CMP_PIC);
+        if(isFinite(Z)){
+          x.save();
+          rr(x, cx, y, cw, CMP_PIC, 24); x.clip();
+          drawShot(x, sr, Z / sr.im.width, cx, y, cw, CMP_PIC, o.st && o.st.picY);
+          x.restore();
+        }
+      }
+      y += CMP_PIC + GAP;
+    }
+    y += 10;
+    rule(x, t, PAD, W - PAD, y);
+    y += 42;
+    eyebrow(x, 'Про товар', PAD, y, t.dim, 21);
+    y += 34;
+    (card.rows || []).forEach(function(row){
+      x.font = '400 17px ' + t.body;
+      x.fillStyle = tint(t.dim, 0.7);
+      x.fillText(clip1(x, row.label, CMP_LAB - 20), PAD, y);
+      row.vals.forEach(function(v, i){
+        x.font = (row.same ? '400 ' : '600 ') + '19px ' + t.body;
+        x.fillStyle = row.same ? tint(t.dim, 0.62) : t.ink;
+        x.fillText(clip1(x, v || '—', cw), colX(i), y);
+      });
+      y += CMP_ROW;
+    });
+    y += 30;
+    rule(x, t, PAD, W - PAD, y);
+    y += 46;
+    /* Ціна — у кожній колонці своя: у групі вона й різна, і це половина
+       того, заради чого порівнюють. Тираж спільний: беруть один варіант. */
+    eyebrow(x, (card.qty > 1) ? 'Ціна від ' + card.qty + ' шт' : 'Ціна за 1 шт',
+            PAD, y, t.dim, 21);
+    cols.forEach(function(c, i){
+      var px = colX(i);
+      if(!(show('unit') && c.unit)) return;
+      x.fillStyle = t.ink;
+      fitFont(x, money(c.unit) + '/шт', cw, 38, '700', t.body, 26);
+      x.fillText(money(c.unit) + '/шт', px, y + 12);
+      var base = +c.base || 0;
+      if(show('old') && base > c.unit){
+        x.font = '400 20px ' + t.body;
+        x.fillStyle = t.dim;
+        var was = money(base) + '/шт';
+        var ww = x.measureText(was).width;
+        x.fillText(was, px, y + 48);
+        x.strokeStyle = t.dim; x.lineWidth = 1.6;
+        x.beginPath(); x.moveTo(px, y + 41); x.lineTo(px + ww, y + 41); x.stroke();
+        badge(x, t, '−' + Math.round((base - c.unit) / base * 100) + '%', px + ww + 14, y + 48);
+      }
+    });
+    /* Примітка — одна на всю групу й на всю ширину: вона про те, як
+       виглядають кольори на екрані, і до кожної колонки окремо стосунку
+       не має. */
+    var warn = show('warn') ? WARN : '';
+    if(warn) textCell(x, t, 'Примітка', warn, PAD, y + 104, W - PAD * 2, 16, t.dim, 3);
+  }
+
   function paintSet(x, card, t, imgs, show, o, W){
     o = o || {};
     /* Той самий аркуш, що й на решті карток: плитки тут білі, а відділяє
@@ -1702,15 +1923,18 @@
 
        Добірка рекомендованих формату не має: вона й так вітрина з плиток,
        і ділити її навпіл означало б показати два товари замість чотирьох. */
-    var lay = (card.type === 'set') ? 'row' : (cfg.lay === 'grid' ? 'grid' : 'row');
+    var lay = (card.type === 'set' || card.type === 'cmp')
+      ? 'row' : (cfg.lay === 'grid' ? 'grid' : 'row');
     var nShots = (card.shots || []).length;
     var cols = card.type === 'set' ? (card.items || []).length : nShots;
-    var W = (lay === 'grid') ? sheetW(2) : sheetW(cols);
+    var W = (card.type === 'cmp') ? cmpW((card.cols || []).length)
+          : (lay === 'grid') ? sheetW(2) : sheetW(cols);
     /* Другий ряд кадрів додає висоти рівно стільки, скільки займає сам:
        половину галереї плюс просвіт. Один чи два кадри — аркуш лишається
        тієї самої висоти, що й був. */
     var H2 = H;
-    if(lay === 'grid' && nShots > 2) H2 = H + Math.round((H - FOOT - HEAD - 50) / 2) + GAP;
+    if(card.type === 'cmp') H2 = cmpH(card);
+    else if(lay === 'grid' && nShots > 2) H2 = H + Math.round((H - FOOT - HEAD - 50) / 2) + GAP;
 
     var cv = document.createElement('canvas');
     cv.width = W; cv.height = H2;
@@ -1751,7 +1975,18 @@
                  цього листа низ. */
               lay: lay, H: H2 };
 
-    if(card.type === 'set'){
+    if(card.type === 'cmp'){
+      /* Кадри вантажимо колонками: кожна колонка — свій варіант, усередині
+         її ракурси в тому ж порядку, що й рядки таблиці. */
+      var byCol = await Promise.all((card.cols || []).map(async function(c){
+        var list = (c.shots || []).slice(0, card.shotRows || 1);
+        var ims = await Promise.all(list.map(function(sh){ return loadImg(sh && sh.url); }));
+        return ims.map(function(im, k){
+          return { im: im, model: !!(list[k] || {}).model, label: (list[k] || {}).label || '' };
+        });
+      }));
+      paintCmp(x, card, t, byCol, show, o, W);
+    } else if(card.type === 'set'){
       var imgs = await Promise.all(card.items.map(function(it){ return loadImg(it.pic); }));
       paintSet(x, card, t, imgs.map(function(im){ return { im: im }; }), show, o, W);
     } else {
