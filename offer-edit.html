@@ -975,21 +975,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=e94f0945ba',
+    ['loomiq-select.js?v=267657df74',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=e94f0945ba'].forEach(function(src){
+     'loomiq-cards.js?v=267657df74'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=e94f0945ba';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=e94f0945ba';
-  var CTOR_JS   = 'loomiq-constructor.js?v=e94f0945ba';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=e94f0945ba';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=267657df74';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=267657df74';
+  var CTOR_JS   = 'loomiq-constructor.js?v=267657df74';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=267657df74';
 
   function send(msg){
     if(window.parent === window) return;

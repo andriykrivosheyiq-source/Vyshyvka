@@ -800,7 +800,7 @@
 
     x.fillStyle = t.ink;
     var nameW = right - (mw ? mw + 48 : 0) - tx;
-    fitFont(x, card.name, nameW, 46, '800', t.display, 30);
+    fitFont(x, card.name, nameW, 46, '700', t.display, 30);
     x.fillText(clip1(x, card.name, nameW), tx, mid + 16);
     rule(x, t, PAD, right, hh);
   }
@@ -879,7 +879,7 @@
     specs.slice(0, 6).forEach(function(sp){
       x.font = '400 16px ' + t.body;
       var a = x.measureText(String(sp.label || '')).width;
-      x.font = '600 18px ' + t.body;
+      x.font = '500 18px ' + t.body;
       var b = x.measureText(String(sp.value || '')).width;
       w = Math.max(w, a + 12 + b);
     });
@@ -922,12 +922,12 @@
 
     var priceW = 0, wasW = 0;
     if(price){
-      x.font = '800 ' + VAL + 'px ' + t.body;
+      x.font = '700 ' + VAL + 'px ' + t.body;
       priceW = x.measureText(price).width;
       if(cut){
         x.font = '400 24px ' + t.body;
         wasW = x.measureText(cut.was).width;
-        x.font = '800 19px ' + t.body;
+        x.font = '700 19px ' + t.body;
         priceW = Math.max(priceW, wasW + 16 + x.measureText(cut.off).width + 26);
       }
       if(till){
@@ -988,7 +988,7 @@
 
     if(price){
       eyebrow(x, lab, PAD, yLab, t.dim, 21);
-      x.fillStyle = t.ink; x.font = '800 ' + VAL + 'px ' + t.body;
+      x.fillStyle = t.ink; x.font = '700 ' + VAL + 'px ' + t.body;
       x.fillText(price, PAD, yVal);
       if(cut){
         /* Стара ціна стоїть ПІД новою, а не поруч: поруч вона змагається з
@@ -1040,7 +1040,7 @@
   /* Знижка — допоміжна, тож не залита акцентом, а лише притінена ним:
      суцільна заливка акцентом на картці одна, і вона в ціни. */
   function badge(x, t, s, X, y){
-    x.font = '800 19px ' + t.body;
+    x.font = '700 19px ' + t.body;
     var w = x.measureText(s).width + 26;
     x.fillStyle = tint(t.accent, 0.14);
     rr(x, X, y - 21, w, 29, 14); x.fill();
@@ -1413,13 +1413,25 @@
 
      Заголовок один, великий: «Рекомендуємо додати». Дрібного рядка над ним
      немає навмисно — він казав те саме іншими словами. */
-  var SET_BG = '#F3F1EF';
+  /* Аркуш не плаский. Чистий білий від краю до краю читається як
+     незаповнений файл; ледь помітний теплий градієнт згори вниз — як
+     папір. Різниця в кілька відсотків тону, назвати її окремим кольором
+     не можна, але аркуш одразу перестає бути порожнім.
+
+     Тримаємо його СВІТЛИМ: усе, що темніше, починає сперечатися з виробом. */
+  function sheetBg(x, t, W, H2){
+    var g = x.createLinearGradient(0, 0, 0, H2);
+    g.addColorStop(0, '#FFFFFF');
+    g.addColorStop(1, '#F7F6F4');
+    x.fillStyle = g;
+    x.fillRect(0, 0, W, H2);
+  }
   function paintSet(x, card, t, imgs, show, o, W){
     o = o || {};
-    /* Тло перемальовуємо своє. Решта аркуша вже біла, і тут це не примха
-       шаблону, а те, завдяки чому плитки взагалі видно. */
-    x.fillStyle = SET_BG;
-    x.fillRect(0, 0, W, H);
+    /* Той самий аркуш, що й на решті карток: плитки тут білі, а відділяє
+       їх від нього тінь, а не колір. Сірий фон під ними ми пробували — він
+       робив вітрину темнішою за сусідні картки в стрічці. */
+    sheetBg(x, t, W, H);
     topBar(x, t, W);
 
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
@@ -1436,7 +1448,7 @@
     x.fillStyle = t.ink;
     var maxW = right - (mw ? mw + 48 : 0) - tx;
     var title = 'Рекомендуємо додати';
-    fitFont(x, title, maxW, 52, '800', t.display, 34);
+    fitFont(x, title, maxW, 52, '700', t.display, 34);
     x.fillText(clip1(x, title, maxW), tx, mid + 18);
 
     /* Лінійки під шапкою тут немає: плитки нижче й так відбиті тоном, а
@@ -1458,7 +1470,7 @@
 
        TEXT_H — висота підписів. Менша за колишню: фото має займати
        приблизно три чверті плитки, інакше воно перестає бути головним. */
-    var TEXT_H = 150, RAD = 24;
+    var TEXT_H = 166, RAD = 24;
     var picH = tileH - TEXT_H;
     var setZ = rowZoom(imgs, tileW, picH);
     var st = o.st || {};
@@ -1489,7 +1501,7 @@
       var px = X, py = top, pw = tileW, ph = picH;
       x.save();
       rr(x, X, top, tileW, tileH, RAD); x.clip();
-      x.fillStyle = (imgs[i] && imgs[i].im) ? (tintOf(imgs[i].im) || SET_BG) : SET_BG;
+      x.fillStyle = (imgs[i] && imgs[i].im) ? (tintOf(imgs[i].im) || '#F3F1EF') : '#F3F1EF';
       x.fillRect(px, py, pw, ph);
       if(imgs[i] && imgs[i].im && isFinite(setZ)){
         x.beginPath(); x.rect(px, py, pw, ph); x.clip();
@@ -1501,9 +1513,9 @@
       /* Підписи стоять від того самого краю, що й фото: два різні відступи
          в одній плитці око читає як перекіс. */
       var tw = tileW - 52;
-      var ty = top + picH + 30;
+      var ty = top + picH + 46;
       x.fillStyle = t.ink;
-      fitFont(x, it.name, tw, 28, '800', t.body, 21);
+      fitFont(x, it.name, tw, 26, '600', t.body, 20);
       x.fillText(clip1(x, it.name, tw), px + 26, ty);
 
       /* Рядок ціни: число, за ним перекреслена стара, за нею плашка
@@ -1513,7 +1525,7 @@
       var unit = +it.unit || 0, base = +it.base || 0;
       if(show('unit') && unit){
         x.fillStyle = t.ink;
-        x.font = '800 40px ' + t.body;
+        x.font = '700 38px ' + t.body;
         var ps = money(unit) + '/шт';
         x.fillText(ps, tx2, py2);
         var pwid = x.measureText(ps).width;
@@ -1569,7 +1581,7 @@
     var tpl = cfg.tpl || 'minimal';
     var t = themeOf(tpl, accentFrom(logo, '#E8590C'));
 
-    x.fillStyle = t.bg; x.fillRect(0, 0, W, H);
+    sheetBg(x, t, W, H);
 
     /* Фото товару йде на картку таким, яким його зняли. Ні зняття фону, ні
        тіні тут більше немає: і те, і те вимагало прозорості, а разом із нею
