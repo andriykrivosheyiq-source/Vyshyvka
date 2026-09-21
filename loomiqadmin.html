@@ -16935,6 +16935,75 @@ const CRM_PIC_WAYS = [
   { id:'form:attach',   form:'file',  path:id => '/chats/' + id + '/attachments' },
   { id:'form:upload',   form:'file',  path:id => '/chats/' + id + '/messages/upload' }
 ];
+/* ── РОЗВІДКА: ЯКИМ ПОЛЕМ SITNIKS ПРИЙМАЄ КАРТИНКУ ───────────────────────
+   Перебір способів рано чи пізно знайде робочий, але робить це навпомацки
+   й на живій розмові з клієнтом. А відповідь можна спитати прямо, двома
+   способами, і обидва читають, а нічого не надсилають.
+
+   ПЕРШЕ. Багато API вміють описати себе самі. Проксі пропускає будь-який
+   шлях, тож питаємо звичні адреси опису. Відповів хоч один — і гадати не
+   треба взагалі: там перелічено і методи, і назви полів.
+
+   ДРУГЕ. Подивитись, ЯК SITNIKS ВІДДАЄ ВКЛАДЕННЯ НАМ. Коли клієнт
+   надсилає фото, воно приходить із якоюсь назвою поля. Приймають і
+   віддають майже завжди однаково, тож це готова підказка — і вона вже
+   лежить у наявних розмовах, нічого спеціально робити не треба.
+
+   Третій шлях — відкрити власний застосунок Sitniks із вкладкою Network і
+   подивитись, що йде при відправці картинки. Це найточніше, але зробити
+   це може лише людина за компʼютером, тож кнопка тут про перші два. */
+const CRM_DOC_PATHS = ['/openapi.json', '/swagger.json', '/swagger/v1/swagger.json',
+                       '/docs', '/api-docs', '/v1/openapi.json'];
+const CRM_FILE_KEYS = ['attachments','files','media','photos','attachment',
+                       'url','fileUrl','imageUrl','photo','image','file'];
+async function crmSniff(o){
+  const out = [];
+  out.push('ОПИС API');
+  for(const path of CRM_DOC_PATHS){
+    try{
+      const d = await crmFetch(path);
+      const keys = (d && typeof d === 'object') ? Object.keys(d).slice(0, 12).join(', ') : String(d).slice(0, 80);
+      out.push('  ' + path + ' → ВІДПОВІВ: ' + keys);
+      /* Знайшли опис — витягаємо з нього все, що стосується повідомлень:
+         саме там стоїть назва поля, заради якої все й затіяно. */
+      const paths = (d && d.paths) ? Object.keys(d.paths).filter(p => /message|chat|attach|file|upload/i.test(p)) : [];
+      if(paths.length) out.push('    шляхи: ' + paths.slice(0, 20).join(', '));
+    }catch(e){ out.push('  ' + path + ' → ' + (e.status || (e.message || '').slice(0, 40))); }
+  }
+  out.push('');
+  out.push('ЯК SITNIKS ВІДДАЄ ВКЛАДЕННЯ НАМ');
+  const st = crmChat[o.id];
+  let found = null;
+  if(st && st.chatId){
+    try{
+      const d = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
+      const arr = Array.isArray(d) ? d
+        : ((d && (d.items || d.data || d.messages || d.results)) || []);
+      for(const m of arr){
+        if(!m || typeof m !== 'object') continue;
+        const hit = CRM_FILE_KEYS.filter(k => m[k] != null &&
+          !(Array.isArray(m[k]) && !m[k].length) && m[k] !== '');
+        if(hit.length){ found = { m, hit }; break; }
+      }
+      if(found){
+        out.push('  поля з вкладенням: ' + found.hit.join(', '));
+        out.push('  саме повідомлення:');
+        out.push(JSON.stringify(found.m, null, 1).slice(0, 1500));
+      } else {
+        out.push('  у цій розмові жодного повідомлення з вкладенням — ' +
+                 'відкрийте ту, де клієнт надсилав фото, і натисніть ще раз');
+      }
+    }catch(e){ out.push('  стрічку не прочитати: ' + (e.message || '')); }
+  } else out.push('  розмову не привʼязано');
+  out.push('');
+  out.push('ЩО ВЖЕ ПРОБУВАЛИ САМІ');
+  out.push(crmPicLog.length ? crmPicLog.map(s => '  ' + s).join('\n') : '  ще не пробували');
+  const way = String((contentData || {}).crmPicWay || '');
+  out.push(way ? '  робочий спосіб: ' + way : '  робочого способу ще не знайдено');
+  const txt = out.join('\n');
+  console.log(txt);
+  return txt;
+}
 // Скільки в стрічці повідомлень із вкладенням. -1 — стрічку прочитати не вдалось.
 async function crmPicCount(o){
   const st = crmChat[o.id];
@@ -19123,6 +19192,8 @@ function renderChatWin(toBottom){
       `жодним зі способів. Клієнт побачить адресу, а не картинку.</div>` : '';
   const raw = (!isTg && chatWin.raw && canSetup())
     ? `<pre class="cw-raw">${escapeHtml(crmRawSample(o))}</pre>` : '';
+  const sniff = (!isTg && chatWin.sniff && canSetup())
+    ? `<pre class="cw-raw">${escapeHtml(chatWin.sniff)}</pre>` : '';
 
   box.innerHTML = `
     <div class="cw-head">
@@ -19139,11 +19210,19 @@ function renderChatWin(toBottom){
       ${(!isTg && canSetup())
         ? `<button class="cw-x" data-cw-raw title="Що прислав Sitniks — назви полів у відповіді">{ }</button>`
         : ''}
+      ${/* Розвідка способу надіслати картинку. Питати підтримку Sitniks —
+           найкоротший шлях, але не єдиний: API можна спитати, чи опише
+           воно себе саме, а заразом подивитись, ЯКОЮ назвою поля Sitniks
+           віддає вкладення нам. Приймають і віддають зазвичай однаково,
+           тож це вже підказка, і вона лежить у наявних розмовах. */''}
+      ${(!isTg && canSetup())
+        ? `<button class="cw-x" data-cw-sniff title="Знайти, яким полем Sitniks приймає картинку">🔎</button>`
+        : ''}
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
     <div class="cw-feed">${feed}</div>
     <div class="cw-bar">
-      ${raw}${note}${qr}
+      ${raw}${sniff}${note}${qr}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
@@ -19203,6 +19282,13 @@ function wireChatWin(box, o, focusIn){
   const rawB = box.querySelector('[data-cw-raw]');
   if(rawB) rawB.addEventListener('click', ()=>{
     chatWin.raw = !chatWin.raw; renderChatWin();
+  });
+  const snB = box.querySelector('[data-cw-sniff]');
+  if(snB) snB.addEventListener('click', async ()=>{
+    if(chatWin.sniff){ chatWin.sniff = null; renderChatWin(); return; }
+    chatWin.sniff = 'Питаємо Sitniks…'; renderChatWin();
+    chatWin.sniff = await crmSniff(o);
+    renderChatWin();
   });
   box.querySelectorAll('[data-qr]').forEach(b=>{
     b.addEventListener('click', ()=>{
