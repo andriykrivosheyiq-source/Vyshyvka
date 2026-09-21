@@ -2484,6 +2484,45 @@
   /* ── Заготовлені повідомлення в діалозі ──
      Список, який щодня вставляють і час від часу правлять. Тому олівець
      стоїть поруч із кожним рядком, а не десь у налаштуваннях. */
+  /* ── Вибір карток перед відправкою ──
+     Плитка тут — сама картка, зменшена. Показувати замість неї назву було б
+     дивно: перевіряють оком, а не списком. */
+  .cw-cards{border-top:1px solid var(--line);padding:10px 10px 12px;max-height:340px;
+    overflow:auto;}
+  .cw-cd-head{display:flex;flex-direction:column;gap:2px;margin-bottom:9px;}
+  .cw-cd-head b{font-size:13px;font-weight:600;color:var(--ink);}
+  .cw-cd-head span{font-size:11.5px;color:var(--muted);}
+  .cw-cd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px;}
+  .cw-cd{position:relative;display:block;cursor:pointer;border:2px solid var(--line);
+    border-radius:11px;padding:7px;background:#fff;transition:border-color .12s;}
+  .cw-cd.on{border-color:var(--ink);}
+  /* Уже надіслане не ховаємо — воно має бути видно, щоб не надіслати вдруге,
+     але й не тягнути на себе увагу. */
+  .cw-cd.was{opacity:.62;}
+  .cw-cd input{position:absolute;top:10px;left:10px;width:17px;height:17px;margin:0;
+    accent-color:var(--ink);cursor:pointer;z-index:2;}
+  .cw-cd-pic{display:block;border-radius:7px;overflow:hidden;background:var(--canvas);
+    aspect-ratio:16/10;}
+  .cw-cd-pic img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+  .cw-cd-wait{display:block;width:100%;height:100%;
+    background:linear-gradient(90deg,var(--canvas),#EEF1F5,var(--canvas));
+    background-size:200% 100%;animation:cwWait 1.1s linear infinite;}
+  @keyframes cwWait{to{background-position:-200% 0;}}
+  .cw-cd-nm{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-top:6px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cw-cd-was{display:block;font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .cw-cd-warn{display:block;font-size:10.5px;color:var(--warn);margin-top:2px;font-weight:600;}
+  .cw-cd-txt{margin-top:10px;font-size:12px;color:var(--ink-soft);background:var(--canvas);
+    border-radius:9px;padding:8px 10px;white-space:pre-wrap;}
+  .cw-cd-note{font-size:12.5px;color:var(--ink-soft);padding:6px 2px;}
+  .cw-cd-acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+  .cw-cd-go{all:unset;cursor:pointer;background:var(--ink);color:#fff;font-size:13px;
+    font-weight:600;padding:10px 16px;border-radius:var(--r-ctl);}
+  .cw-cd-go[disabled]{opacity:.35;cursor:not-allowed;}
+  .cw-cd-dl,.cw-cd-no{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-soft);
+    padding:10px 12px;border-radius:var(--r-ctl);}
+  .cw-cd-dl:hover,.cw-cd-no:hover{background:var(--canvas);color:var(--ink);}
+
   .cw-qr{max-height:280px;padding:10px;}
   .cw-qr-head{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
   .cw-qr-head b{font-size:13px;font-weight:600;color:var(--ink);}
@@ -19027,19 +19066,260 @@ function chatRowsHtml(msgs){
 
    Підстановки роблять заготовку живою — інакше в чат летіло б «Вітаю,
    {імʼя}» буквально. */
+const CARDS_MSG_DEFAULT =
+  'Підготувала для вас прорахунок 👌\n' +
+  'Нижче — візуалізації з вашим брендингом, ціни й усі деталі.\n' +
+  'Якщо виникнуть питання — із задоволенням на все відповім)\n{картки}';
+const UPSELL_MSG_DEFAULT =
+  'До цього зазвичай беруть ще ось це 👇\n' +
+  'Ціни вже з урахуванням вашого тиражу.\n{допродаж}';
 const QR_DEFAULT = [
   { t:'Вітання', m:'Вітаю! Це {бренд}. Підкажіть, будь ласка, що плануєте нанести і на який одяг — підберемо і порахуємо.' },
   { t:'Тираж',   m:'Підкажіть орієнтовну кількість і розмірний ряд — від тиражу суттєво залежить ціна.' },
   /* Той самий текст, що й у кнопці «Повідомлення клієнту»: клієнт не має
      отримувати два різні листи залежно від того, звідки менеджер натиснув.
      Тому він тут не переписаний, а взятий звідти ж. */
-  { t:'Надсилаю КП', m: OFFER_MSG_DEFAULT },
+  /* ДВА СКРИПТИ З КАРТКАМИ, А НЕ ОДИН ІЗ ПОСИЛАННЯМ.
+
+     Доти заготовка вставляла в чат голу адресу пропозиції. Клієнт мав
+     натиснути, дочекатись, роздивитись у браузері — і більшість не
+     натискала. Картки для Direct малюються рівно заради того, щоб їх
+     ПОБАЧИЛИ в стрічці, не виходячи з розмови.
+
+     Скриптів саме два, бо це дві різні розмови в різний час. Перший — сам
+     прорахунок: основні позиції й групи варіантів. Другий, через день чи
+     через тиждень, — «до цього зазвичай беруть»: тільки рекомендовані.
+     Злиті в один, вони перетворюються на десять картинок поспіль, після
+     яких не відповідають.
+
+     Позначка `{картки}` і `{допродаж}` — не текст, а команда: заготовка з
+     нею не вставляється в поле, а відкриває вибір карток. Сама позначка з
+     листа зникає. Впізнаємо скрипт саме за нею, а не за назвою: назву
+     менеджер перепише як завгодно. */
+  { t:'Надсилаю прорахунок', m: CARDS_MSG_DEFAULT },
+  { t:'Допродаж',            m: UPSELL_MSG_DEFAULT },
   { t:'Оплата',  m:'Працюємо за передоплатою 50%, решта — перед відправкою. Рахунок виставляємо на ФОП.' },
-  { t:'Макет',   m:'Надішліть, будь ласка, логотип у векторі (.ai, .eps, .pdf або .svg). Якщо вектора немає — надішліть що є, підготуємо самі.' }
+  { t:'Макет',   m:'Надішліть, будь ласка, логотип у векторі (.ai, .eps, .pdf або .svg). Якщо вектора немає — надішліть що є, підготуємо самі.' },
+  // Посилання лишається окремою заготовкою: воно теж буває потрібне —
+  // коли клієнт просить «скиньте, я гляну з компʼютера».
+  { t:'Посилання на КП', m: OFFER_MSG_DEFAULT }
 ];
 function quickReplies(){
   const q = (contentData || {}).quickReplies;
   return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
+}
+
+/* ══════════ КАРТКИ ПРЯМО З РОЗМОВИ ══════════════════════════════════════
+   Картки для Direct малювались у вікні пропозиції, і далі їх треба було
+   завантажити собі на диск, знайти в теці й перетягнути в месенджер.
+   Половина цієї дороги — робота, яку ніхто не замовляв.
+
+   Тепер їх надсилають звідти ж, де говорять. Скрипт відкриває не поле
+   вводу, а САМІ КАРТКИ: видно, що саме піде клієнту, і можна зняти зайве.
+   Перевірити перед відправкою важливіше, ніж здається: картка збирається з
+   замовлення автоматично, і в ній може не виявитись фото спини, яке
+   менеджер додати забув.
+
+   Перед картками йде текст скрипта, окремим повідомленням. Так і пишуть у
+   Direct: рядок, за ним кадри. */
+const CARD_SCRIPTS = {
+  kp: { mark:'{картки}',   pick: c => c.kind !== 'reco' },
+  up: { mark:'{допродаж}', pick: c => c.kind === 'reco' }
+};
+function cardScriptOf(text){
+  const t = String(text || '');
+  for(const k in CARD_SCRIPTS) if(t.indexOf(CARD_SCRIPTS[k].mark) >= 0) return k;
+  return '';
+}
+// Позначка — команда, а не текст. У листі клієнту її бути не може.
+function qrNoMarks(text){
+  let t = String(text || '');
+  for(const k in CARD_SCRIPTS) t = t.split(CARD_SCRIPTS[k].mark).join('');
+  return t.replace(/\n{3,}/g, '\n\n').trim();
+}
+/* Намальовані картки тримаємо на час сеансу: малювання займає секунди, а
+   відкривають панель по кілька разів поспіль. Ключ — замовлення, бо картки
+   зібрані саме з нього. */
+const cardPix = {};
+function cardPixDrop(id){
+  const store = cardPix[id];
+  if(!store) return;
+  Object.keys(store).forEach(k => { try{ URL.revokeObjectURL(store[k].url); }catch(e){} });
+  delete cardPix[id];
+}
+async function cardDeckFor(o){
+  if(!window.LQCards) throw new Error('малювальник карток ще вантажиться — спробуйте за секунду');
+  const models = await cardModelsMap().catch(()=> ({}));
+  const offer = offerClean(offerBuild(o));
+  const cfg = Object.assign({ models }, o.cards || {});
+  const list = window.LQCards.build(offer, cfg).filter(c => !c.hidden);
+  if(!list.length) throw new Error('у замовленні немає позицій — картки нема з чого збирати');
+  return { list, cfg, offer };
+}
+async function cardsLoad(o){
+  const st = chatWin && chatWin.cards;
+  if(!st || st.deck) return;
+  st.loading = true; renderChatWin();
+  try{
+    /* Малюємо наново щоразу: склад замовлення й налаштування карток могли
+       змінитись відтоді, як панель відкривали минулого разу, а показувати
+       вчорашню ціну — гірше, ніж зачекати дві секунди. */
+    cardPixDrop(o.id);
+    const deck = await cardDeckFor(o);
+    st.deck = deck;
+    st.pick = {};
+    const sent = o.cardsSent || {};
+    /* Галочки за замовчуванням — за скриптом: прорахунок бере основні
+       позиції й групи, допродаж — тільки рекомендовані. Те, що вже
+       надсилали, не позначаємо: надіслати те саме вдруге — це не турбота,
+       а неуважність, і клієнт її бачить. */
+    deck.list.forEach(c => {
+      st.pick[c.id] = CARD_SCRIPTS[st.kind].pick(c) && !sent[c.id];
+    });
+  }catch(e){ st.err = (e && e.message) || 'не вдалось зібрати картки'; }
+  st.loading = false;
+  renderChatWin();
+  cardsDraw(o);
+}
+async function cardsDraw(o){
+  const st = chatWin && chatWin.cards;
+  if(!st || !st.deck) return;
+  const store = cardPix[o.id] || (cardPix[o.id] = {});
+  for(const c of st.deck.list){
+    if(store[c.id]) continue;
+    try{
+      const cv = await window.LQCards.draw(c, st.deck.offer, st.deck.cfg);
+      const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
+      if(blob) store[c.id] = { blob, url: URL.createObjectURL(blob),
+                               notes: (cv.lqNotes || []).slice() };
+    }catch(e){ console.warn('картка ' + c.id, e); }
+    // Показуємо кожну, щойно готова: чекати на всі мовчки — виглядає як зависання
+    if(chatWin && chatWin.cards === st) renderChatWin();
+  }
+}
+function cardsSentLabel(rec){
+  if(!rec || !rec.at) return '';
+  const d = new Date(rec.at);
+  const day = d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  return 'надіслано ' + day + (rec.by ? ' · ' + String(rec.by).split('@')[0] : '');
+}
+function cardsPanelHtml(o){
+  const st = chatWin.cards;
+  if(!st) return '';
+  if(st.err)
+    return `<div class="cw-cards"><div class="cw-cd-note">${escapeHtml(st.err)}</div>
+      <div class="cw-cd-acts"><button class="cw-cd-no" data-cd-close>Закрити</button></div></div>`;
+  if(st.loading || !st.deck)
+    return `<div class="cw-cards"><div class="cw-cd-note">Збираю картки…</div></div>`;
+  const store = cardPix[o.id] || {};
+  const sent = o.cardsSent || {};
+  const n = st.deck.list.filter(c => st.pick[c.id]).length;
+  const tiles = st.deck.list.map(c => {
+    const pic = store[c.id];
+    const was = cardsSentLabel(sent[c.id]);
+    const warn = (pic && pic.notes && pic.notes.length) ? pic.notes[0] : '';
+    return `<label class="cw-cd${st.pick[c.id] ? ' on' : ''}${was ? ' was' : ''}">
+      <input type="checkbox" data-cd="${escapeHtml(c.id)}"${st.pick[c.id] ? ' checked' : ''}>
+      <span class="cw-cd-pic">${pic
+        ? `<img src="${pic.url}" alt="">`
+        : '<i class="cw-cd-wait"></i>'}</span>
+      <span class="cw-cd-nm">${escapeHtml(c.name || 'Картка')}</span>
+      ${was ? `<span class="cw-cd-was">${escapeHtml(was)}</span>` : ''}
+      ${warn ? `<span class="cw-cd-warn" title="${escapeHtml(warn)}">⚠ неповна</span>` : ''}
+    </label>`;
+  }).join('');
+  return `<div class="cw-cards">
+    <div class="cw-cd-head">
+      <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що надсилаємо</b>
+      <span>натисніть картку, щоб збільшити</span>
+    </div>
+    <div class="cw-cd-grid">${tiles}</div>
+    ${st.text ? `<div class="cw-cd-txt">${escapeHtml(st.text)}</div>` : ''}
+    <div class="cw-cd-acts">
+      <button class="cw-cd-go" data-cd-go${(!n || st.busy) ? ' disabled' : ''}>${
+        st.busy ? escapeHtml(st.busyMsg || 'Надсилаю…')
+                : (n ? 'Надіслати ' + n + ' ' + cardWord(n) : 'Нічого не обрано')}</button>
+      <button class="cw-cd-dl" data-cd-dl${st.busy ? ' disabled' : ''}>Завантажити собі</button>
+      <button class="cw-cd-no" data-cd-close${st.busy ? ' disabled' : ''}>Скасувати</button>
+    </div>
+  </div>`;
+}
+function cardWord(n){
+  const t = n % 10, h = n % 100;
+  if(t === 1 && h !== 11) return 'картку';
+  if(t >= 2 && t <= 4 && (h < 12 || h > 14)) return 'картки';
+  return 'карток';
+}
+/* Відправка. Спершу текст скрипта, далі картки по одній.
+
+   По одній, а не однією каруселлю, бо в Direct карусель — це пост, а не
+   повідомлення: надіслати її в переписку не можна. Зате кожна картка
+   лишається окремим кадром, який клієнт може переслати комусь із колег —
+   а саме так рішення в компаніях і ухвалюють. */
+async function cardsGo(o){
+  const st = chatWin && chatWin.cards;
+  if(!st || !st.deck || st.busy) return;
+  const want = st.deck.list.filter(c => st.pick[c.id]);
+  if(!want.length) return;
+  const store = cardPix[o.id] || {};
+  const isTg = chatWin.kind === 'tg';
+  st.busy = true; st.busyMsg = 'Надсилаю…'; renderChatWin();
+  if(st.text){
+    try{ await chatSend(o, st.text); }
+    catch(e){ console.warn('текст скрипта', e); }
+  }
+  let done = 0, err = '';
+  for(let i = 0; i < want.length; i++){
+    const c = want[i];
+    const pic = store[c.id];
+    if(!pic){ err = 'картка «' + (c.name || c.id) + '» не намалювалась'; break; }
+    st.busyMsg = 'Надсилаю ' + (i + 1) + ' з ' + want.length + '…';
+    renderChatWin();
+    let url = '';
+    try{ url = await uploadCloudinary(pic.blob); }
+    catch(e){ err = 'картка не завантажилась у сховище'; break; }
+    try{
+      if(isTg) await tgSend(o, '', url);
+      else {
+        await crmSendPic(o, url, pic.blob);
+        // Щоб у стрічці вона стала праворуч і з іменем менеджера
+        crmOutNote(o, url); crmSent.add(url);
+      }
+      (o.cardsSent || (o.cardsSent = {}))[c.id] = { at: new Date().toISOString(), by: myName() };
+      done++;
+    }catch(e){ err = (e && e.message) || 'не надіслалось'; break; }
+  }
+  if(done){
+    /* Мить відправки й лічильник реплік клієнта на цю мить. Саме на них
+       тримається друга галочка на кнопці КП: клієнт озвався ПІСЛЯ карток —
+       значить розмова пішла. */
+    o.cardsAt = new Date().toISOString();
+    o.cardsWrote = cardsWroteNow(o);
+    touchOrder(o);
+    try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
+  }
+  st.busy = false; st.busyMsg = '';
+  toast(done
+    ? (done + ' ' + cardWord(done) + ' надіслано' + (err ? ' · далі зупинились: ' + err : ''))
+    : ('Не надіслалось: ' + (err || 'невідома причина')));
+  if(done && !err) chatWin.cards = null;
+  renderChatWin(true);
+  renderBoard();
+}
+/* Запасний шлях: забрати обрані собі й прикріпити руками. Потрібен саме
+   тоді, коли автоматика не спрацювала, — а тоді ж найменше хочеться шукати,
+   де ті картки взяти. */
+function cardsDownload(o){
+  const st = chatWin && chatWin.cards;
+  if(!st || !st.deck) return;
+  const store = cardPix[o.id] || {};
+  const want = st.deck.list.filter(c => st.pick[c.id] && store[c.id]);
+  if(!want.length) return toast('Нічого не обрано');
+  want.forEach((c, i) => {
+    const nm = window.LQCards.fileName(c, st.deck.list.indexOf(c), st.deck.offer, 'jpg');
+    setTimeout(()=> docDownload(store[c.id].url, nm), i * 250);
+  });
+  toast(want.length + ' ' + cardWord(want.length) + ' — у завантаженнях');
 }
 /* ── Заготовки просто у вікні діалога ────────────────────────────────────
    Правити їх треба там, де їх видно в роботі. Доти єдиний вхід був через
@@ -19223,6 +19503,7 @@ function renderChatWin(toBottom){
   } else feed = chatRowsHtml(msgs);
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
+  const cards = chatWin.cards ? cardsPanelHtml(o) : '';
 
   // Sitniks приймає від нас лише текст — чесно попереджаємо, що фото туди
   // піде посиланням, а не картинкою в чаті.
@@ -19261,7 +19542,7 @@ function renderChatWin(toBottom){
     </div>
     <div class="cw-feed">${feed}</div>
     <div class="cw-bar">
-      ${raw}${sniff}${note}${qr}
+      ${raw}${sniff}${note}${cards}${qr}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
@@ -19329,10 +19610,45 @@ function wireChatWin(box, o, focusIn){
     chatWin.sniff = await crmSniff(o);
     renderChatWin();
   });
+  /* Вибір карток: галочки, збільшення, відправка. */
+  box.querySelectorAll('[data-cd]').forEach(ch=>{
+    ch.addEventListener('change', ()=>{
+      if(chatWin.cards) chatWin.cards.pick[ch.dataset.cd] = ch.checked;
+      renderChatWin();
+    });
+  });
+  box.querySelectorAll('.cw-cd-pic img').forEach(im=>{
+    /* Натиснули по самому кадру — дивимось його великим, а не перемикаємо
+       галочку: «перевірити перед відправкою» без можливості роздивитись —
+       це не перевірка. */
+    im.addEventListener('click', e=>{
+      e.preventDefault(); e.stopPropagation();
+      window.open(im.src, '_blank', 'noopener');
+    });
+  });
+  const cdGo = box.querySelector('[data-cd-go]');
+  if(cdGo) cdGo.addEventListener('click', ()=> cardsGo(o));
+  const cdDl = box.querySelector('[data-cd-dl]');
+  if(cdDl) cdDl.addEventListener('click', ()=> cardsDownload(o));
+  const cdNo = box.querySelector('[data-cd-close]');
+  if(cdNo) cdNo.addEventListener('click', ()=>{ chatWin.cards = null; renderChatWin(); });
+
   box.querySelectorAll('[data-qr]').forEach(b=>{
     b.addEventListener('click', ()=>{
       const q = quickReplies()[+b.dataset.qr];
       if(!q) return;
+      /* Скрипт із картками не вставляє текст у поле — він відкриває самі
+         картки. Текст піде разом з ними, окремим повідомленням перед
+         кадрами, і правити його руками тут уже не треба. */
+      const kind = cardScriptOf(q.m);
+      if(kind){
+        chatWin.cards = { kind: kind, text: qrFill(qrNoMarks(q.m), o),
+                          pick:null, deck:null, busy:false, err:'' };
+        chatWin.qr = false;
+        renderChatWin();
+        cardsLoad(o);
+        return;
+      }
       /* Заготовка з посиланням на пропозицію без самої пропозиції — це лист
          «дивіться КП», у якому нічого відкрити. Помітив би це першим клієнт,
          тож не вставляємо взагалі. */
