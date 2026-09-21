@@ -16783,23 +16783,41 @@ function crmNormMsgs(data, o){
       const sp = crmSplitFiles(m);
       return { text: sp.text, files: sp.files, mine: false, at: '' };
     }
-    const rawText = crmPick(m, CRM_TXT_KEYS) || crmLongestString(m);
+    /* «Найдовший рядок в обʼєкті» — здогад на випадок, коли звичних полів
+       тексту немає. Але коли у повідомленні Є вкладення, найдовшим рядком
+       там завжди буде його адреса, і картинка ставала «текстом». Тому
+       здогадуємось лише тоді, коли вкладень немає. */
+    const hasFiles = (Array.isArray(m.attachments) && m.attachments.length) ||
+                     (typeof m.attachmentUrl === 'string' && /^https?:/.test(m.attachmentUrl));
+    const rawText = crmPick(m, CRM_TXT_KEYS) || (hasFiles ? '' : crmLongestString(m));
     const split = crmSplitFiles(rawText);
     const text = split.text;
     // Вкладення можуть приїхати і окремим полем, не лише в тексті
     const extra = [];
+    /* Назви полів тут не вгадані, а взяті з самої відповіді Sitniks:
+         attachments:[{ mediaType:'image', mediaUrl:'…' }] і attachmentUrl.
+       Доти жодної з них у списках не було, і картинки показувались
+       ВИПАДКОВО: текст брався як «найдовший рядок в обʼєкті», а
+       найдовшим там якраз і виявлялась адреса вкладення. Працювало, доки
+       в повідомленні не траплялось довгого тексту. */
     ['attachments','files','media','photos'].forEach(k => {
       const v = m[k];
       if(Array.isArray(v)) v.forEach(x => {
-        const u = (typeof x === 'string') ? x : (x && (x.url || x.link || x.src || x.path));
+        const u = (typeof x === 'string') ? x
+          : (x && (x.mediaUrl || x.url || x.link || x.src || x.path));
         if(u) extra.push({ url: String(u), kind: crmFileKind(u) });
       });
     });
-    ['url','fileUrl','imageUrl','photo','image','file'].forEach(k => {
+    ['attachmentUrl','url','fileUrl','imageUrl','photo','image','file'].forEach(k => {
       const v = m[k];
       if(typeof v === 'string' && /^https?:/.test(v)) extra.push({ url: v, kind: crmFileKind(v) });
     });
-    const files = split.files.concat(extra);
+    /* Одна адреса — одне вкладення. Sitniks кладе ту саму картинку двічі:
+       і в `attachmentUrl`, і в `attachments[].mediaUrl`. Без цього кожне
+       фото показувалось у стрічці двома однаковими. */
+    const seenU = {};
+    const files = split.files.concat(extra)
+      .filter(f => f && f.url && !seenU[f.url] && (seenU[f.url] = 1));
     const at = crmPick(m, CRM_AT_KEYS);
     // «наше» повідомлення визначаємо за будь-якою з ознак, які зустрічаються
     const who = crmMsgWho(m);
@@ -16919,6 +16937,27 @@ async function crmLoad(o, numFromInput){
    сервер відхилить як порожнє повідомлення, і клієнту не прилетить сміття
    від наших пошуків. */
 const CRM_PIC_WAYS = [
+  /* ПЕРШІ ЧОТИРИ — НЕ ЗДОГАДКИ. Це те, як Sitniks САМ описує картинку,
+     коли віддає її нам:
+
+       { messageType:'image', text:'',
+         attachmentUrl:'https://…',
+         attachments:[{ mediaType:'image', mediaUrl:'https://…' }] }
+
+     Жодна з наших попередніх здогадок не збігалася: ми писали `url` і
+     `type`, а в них `mediaUrl` і `mediaType`. Читання й запис у таких
+     API майже завжди однакові, тож пробуємо саме цю форму — спершу
+     цілком, далі по частинах, бо зайве поле дехто відхиляє. Порожній
+     `text` у їхньому ж записі стоїть — отже для картинки він дозволений. */
+  { id:'sitniks-full', json:u => ({ messageType:'image', text:'',
+                                    attachmentUrl:u,
+                                    attachments:[{ mediaType:'image', mediaUrl:u }] }) },
+  { id:'sitniks-list', json:u => ({ messageType:'image',
+                                    attachments:[{ mediaType:'image', mediaUrl:u }] }) },
+  { id:'sitniks-url',  json:u => ({ messageType:'image', attachmentUrl:u }) },
+  { id:'attachmentUrl', json:u => ({ attachmentUrl:u }) },
+  { id:'mediaUrl',     json:u => ({ attachments:[{ mediaType:'image', mediaUrl:u }] }) },
+  // Далі — звичні форми інших CRM, на випадок, що запис у них інший за читання
   { id:'attachments', json:u => ({ attachments:[{ url:u, type:'image' }] }) },
   { id:'files',       json:u => ({ files:[{ url:u }] }) },
   { id:'media',       json:u => ({ media:[{ url:u, type:'image' }] }) },
