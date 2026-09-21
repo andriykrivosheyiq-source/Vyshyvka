@@ -8277,6 +8277,29 @@ function itemKindFix(it, o){
   const m = it && it.designKindFix;
   return (m && typeof m === 'object') ? m : null;
 }
+/* Картинка дизайну за його відбитком — щоб у прорахунку було видно, про
+   який саме малюнок ідеться.
+
+   Шукаємо по ВСЬОМУ замовленню, а не в одній позиції: той самий дизайн
+   стоїть на кількох виробах, і в тій позиції, де рядок малюється, шару з
+   ним може вже й не бути — наприклад, коли нанесення прибрали, а разова
+   лишилась поділеною на решту. */
+function designPic(o, fp){
+  const key = String(fp || '');
+  if(!key) return '';
+  let hit = '';
+  ((o && o.items) || []).some(x => {
+    const logos = x && x.config && x.config.logos;
+    if(!logos || typeof logos !== 'object') return false;
+    return Object.keys(logos).some(side =>
+      (Array.isArray(logos[side]) ? logos[side] : []).some(l => {
+        if(!l || String(l.fp || '') !== key) return false;
+        hit = l.url || l.cleanUrl || l.origUrl || '';
+        return !!hit;
+      }));
+  });
+  return hit;
+}
 function setItemKindFix(it, fp, kind, o){
   if(!it && !o) return;
   const key = String(fp || '');
@@ -9066,6 +9089,13 @@ function offerCalcRows(it, o){
      іде тільки в кадр менеджера. */
   const kindAct = di => (di != null && Array.isArray(it.desc && it.desc.designMm2))
     ? { act:'kind', di: di,
+        /* Сам малюнок, маленьким. У рядку «Підготовка макета — 250 грн»
+           доти не було видно, ПРО ЯКИЙ дизайн ідеться: на позиції їх
+           буває два, і обирати між «картинкою» й «написом» доводилось,
+           тримаючи в голові, котрий із них перший. Найчастіше саме тут
+           і плуталось: напис клієнта позначали картинкою, бо не бачили,
+           що це напис. */
+        pic: designPic(o, (it.desc.designs || [])[di]),
         kind: (function(k){ return (k === 'txt' || k === 'off') ? k : 'img'; })(
                 (it.desc.designKinds || [])[di]),
         /* чи це рішення менеджера, а не автоматика — інакше через тиждень
@@ -18264,11 +18294,26 @@ async function offerEdApply(msg){
      собівартість, свої разові. Далі звичайний перерахунок — і нове число
      їде туди ж, куди й усі: в КП, кошторис, картку, Канбан. */
   if(act === 'designKind'){
+    /* КОЖНА ВІДМОВА ГОВОРИТЬ УГОЛОС.
+
+       Доти половина виходів звідси була мовчазна: менеджер перемикав вид,
+       екран перемальовувався зі старого стану — і виглядало це так, ніби
+       «зберіг, а воно повернулось». Саме на це Андрій і скаржився в
+       рекомендованих. Причина може бути різна, але мовчання — ніколи не
+       відповідь: людина має знати, що саме не дало спрацювати. */
     const k = offerIdxToOrder(o, msg.kind, msg.i);
     const it = k >= 0 && (o.items || [])[k];
-    const d = it && it.desc;
+    if(!it){ toast('Позицію не знайдено — оновіть сторінку пропозиції'); return; }
+    const d = it.desc;
     const di = +msg.di;
-    if(!d || !Array.isArray(d.designs) || !(di >= 0 && di < d.designs.length)) return;
+    if(!d || !Array.isArray(d.designs) || !d.designs.length){
+      toast('У цієї позиції немає розкладу дизайнів — відкрийте її у збиранні й збережіть');
+      return;
+    }
+    if(!(di >= 0 && di < d.designs.length)){
+      toast('Дизайн №' + (di + 1) + ' у цій позиції не знайшовся — оновіть сторінку');
+      return;
+    }
     if(!Array.isArray(d.designMm2) || d.designMm2.length !== d.designs.length){
       toast('Ця позиція збережена давно й не везе площі — відкрийте її й збережіть');
       return;
@@ -18316,7 +18361,15 @@ async function offerEdApply(msg){
         t.it.cost = t.it.unitCost * (+t.it.qty || 0);
       }
     });
-    if(!(await offerEdSave(o))) return;
+    /* Збереження теж мовчало. А не зберегтись воно може цілком буденно —
+       наприклад, коли від нової ставки маржа падає нижче за поріг: тоді
+       спрацьовує запобіжник, і зміну відкочують. Менеджер має чути, що
+       відкотили саме її, а не гадати, чому перемикач «не працює». */
+    if(!(await offerEdSave(o))){
+      toast('Вид дизайну не зберігся — зміну відкотили');
+      offerEdPreview(true);
+      return;
+    }
     offerEdPreview(true);
     const WORD = { txt:'НАПИС', img:'КАРТИНКА', off:'НЕ РАХУЄМО' };
     const w = WORD[to] || WORD.img;
