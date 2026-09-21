@@ -360,10 +360,39 @@
        Колишній третій рядок — колір і спосіб нанесення — прибраний зовсім:
        це підпис до того, що клієнт бачить на фото, і на місці опису воно
        вдавало розповідь про виріб, не будучи нею. */
-    var specsText = function(it){
+    /* Характеристики виробу. Рядок «Нанесення» серед них особливий: у
+       картці товару він описує, ЩО МИ ВМІЄМО — «DTF друк та вишивка», — а
+       на картці конкретного замовлення має стояти те, що справді буде на
+       цих футболках. Клієнт читає її як опис свого замовлення, і «друк та
+       вишивка» на вишитій партії — це просто неправда.
+
+       Беремо з самої позиції: способи, якими зроблено нанесення. Їх може
+       бути й два, якщо на переді друк, а на спині вишивка, — тоді так і
+       пишемо. */
+    var doneWith = function(it){
+      var из = (it.techniques || []).filter(Boolean);
+      if(!из.length) из = (printsOf(it) || []).map(function(p){ return p.technique; }).filter(Boolean);
+      if(!из.length && it.print) из = [it.print];
+      var seen = {}, out = [];
+      из.forEach(function(t){
+        var k = String(t).trim();
+        if(!k || seen[k.toLowerCase()]) return;
+        seen[k.toLowerCase()] = 1; out.push(k);
+      });
+      return out.join(' + ');
+    };
+    var specsOf = function(it){
+      var real = doneWith(it);
       return (it.specs || []).filter(function(sp){ return sp && sp.value; })
-        .map(function(sp){ return [sp.label, sp.value].filter(Boolean).join(' '); })
-        .join(' · ');
+        .map(function(sp){
+          if(real && /нанесенн/i.test(String(sp.label || '')))
+            return { label: sp.label, value: real };
+          return { label: sp.label, value: sp.value };
+        });
+    };
+    var specsText = function(it){
+      return specsOf(it).map(function(sp){
+        return [sp.label, sp.value].filter(Boolean).join(' '); }).join(' · ');
     };
     var aboutOf = function(it, own){
       if(own && own.note != null) return own.note;
@@ -437,6 +466,9 @@
         name: own.title || it.name || 'Позиція',
         sub: subOf(it),
         about: aboutOf(it, own),
+        /* Характеристики окремим списком: нижня смуга розкладає їх у дві
+           колонки, а суцільним реченням вони читаються як абзац дрібним. */
+        specs: (own && own.note != null) ? [] : (it.recoNote ? [] : specsOf(it)),
         /* Ні розмірного ряду, ні загальної суми тут немає — і не лежить
            мертвим вантажем: чого картка не малює, того вона й не возить. */
         qty: +it.qty || 0,
@@ -794,6 +826,29 @@
     var step = Math.round(n * 1.4);
     lines.forEach(function(ln, i){ x.fillText(ln, X, yLab + 32 + i * step); });
   }
+  /* Характеристики у дві колонки. Назва дрібним і сірим, значення під нею
+     чорнилом: так пара читається як одна річ, а не як два слова підряд.
+
+     Скільки рядків у першій колонці — рахуємо, а не ділимо навпіл: при
+     пʼяти характеристиках рівний поділ дає 2+3, і друга колонка виявляється
+     нижчою за першу. Округляємо вгору, і зайвий рядок лишається ліворуч,
+     де око починає читати. */
+  function specCols(x, t, specs, X, yLab, w){
+    eyebrow(x, 'Про товар', X, yLab, t.dim, 21);
+    var list = specs.slice(0, 8);
+    var colW = (w - 28) / 2;
+    var rows = Math.ceil(list.length / 2);
+    var STEP = 46, y0 = yLab + 34;
+    list.forEach(function(sp, i){
+      var col = i < rows ? 0 : 1;
+      var row = i < rows ? i : i - rows;
+      var cx = X + col * (colW + 28), cy = y0 + row * STEP;
+      x.fillStyle = t.dim; x.font = '400 15px ' + t.body;
+      x.fillText(clip1(x, sp.label || '', colW), cx, cy);
+      x.fillStyle = t.ink; x.font = '600 19px ' + t.body;
+      x.fillText(clip1(x, sp.value || '', colW), cx, cy + 22);
+    });
+  }
   function numbers(x, card, t, show, W, o){
     var right = W - PAD;
     var yRule = H - FOOT, yLab = yRule + 44, yVal = yRule + 94;   // 814 · 858 · 908
@@ -889,7 +944,13 @@
     var cx = x0, wide = (about ? aboutW : warnW2) >= 200;
     if(wide){
       if(about){
-        textCell(x, t, 'Опис', about, cx, yLab, aboutW, 22, t.ink, 4);
+        /* Характеристики — СПИСКОМ У ДВІ КОЛОНКИ, а не реченням через
+           крапки. Суцільний рядок «Матеріал 100% поліестер · Щільність
+           300 г/м² · Крій оверсайз · Формат жіноча · Нанесення DTF»
+           читається як дрібний абзац, і клієнт його просто гортає. Пари
+           стовпчиком читаються поглядом: ліворуч про що, праворуч скільки. */
+        if((card.specs || []).length) specCols(x, t, card.specs, cx, yLab, aboutW);
+        else textCell(x, t, 'Про товар', about, cx, yLab, aboutW, 22, t.ink, 4);
         cx += aboutW + GAPC;
       }
       if(warn) textCell(x, t, 'Примітка', warn, cx, yLab, warnW2, 15, t.dim, 5);
