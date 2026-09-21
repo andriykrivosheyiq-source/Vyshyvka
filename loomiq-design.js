@@ -1118,13 +1118,25 @@
      Доти цього в картці не було зовсім: замовлення позначалось номером, а
      кому воно й до якого числа — питали в менеджера. Номер не відповідає
      ні на те, ні на те. */
+  /* Клієнт у шапці картки.
+
+     Поля беремо З ОБОХ МІСЦЬ. Тут стояло тільки `o.client.name`, а в
+     картці Канбану імʼя, телефон і компанія лежать прямо в замовленні —
+     `o.name`, `o.phone`, `o.company`. Через це блок мовчки не малювався
+     ніколи: відділ показував номер і стан, а чиє це замовлення, треба
+     було йти дивитись у Канбан. Саме тому картка й виглядала голою. */
   function clientHtml(o, job){
+    o = o || {};
     var c = o.client || {};
-    var who = [c.name, c.company].filter(Boolean).join(' · ');
+    var name = c.name || o.name || '';
+    var comp = c.company || o.company || '';
+    var tel  = c.phone || o.phone || '';
+    var who = [name, comp].filter(Boolean).join(' · ');
     var bits = [];
     if(who) bits.push('<b>' + esc(who) + '</b>');
-    if(c.phone) bits.push(esc(c.phone));
-    var due = (job && job.due) || o.dueDate || ((o.terms || {}).deadline) || '';
+    if(tel) bits.push('<a href="tel:' + esc(String(tel).replace(/\s+/g, '')) + '">' +
+                      esc(tel) + '</a>');
+    var due = (job && job.due) || o.dueAt || o.dueDate || ((o.terms || {}).deadline) || '';
     if(due) bits.push('до ' + esc(due));
     if(!bits.length) return '';
     return '<div class="dz-who">' + bits.join('<span class="dz-sep">·</span>') + '</div>';
@@ -1253,6 +1265,33 @@
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
           'відділ і дізнається, що шити: виріб, колір, розмір, кількість.</div>') +
       '<button class="dz-b pri" data-do="u-add">+ Додати одяг</button>';
+  }
+
+
+  /* ══════════ ВІДПРАВКА ══════════
+     Останній блок картки, і навмисно ТОНКИЙ. Накладна створюється в картці
+     замовлення — там уже є і Нова пошта, і поле для номера, вписаного
+     руками. Зробити другу таку кнопку тут означало б мати два місця, з
+     яких на одну посилку виїжджають дві накладні.
+
+     Тому відділ показує СТАН і веде туди, де це роблять: скільки всього
+     штук їде, чи номер уже є, і кнопка. */
+  function shipHtml(p){
+    var o = p.o || {}, job = p.job;
+    var q = unitsOf(job).reduce(function(a, u){ return a + (+u.qty || 0); }, 0);
+    if(!q) (o.items || []).forEach(function(it){
+      if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
+    var ttn = String(o.ttn || '').trim();
+    return '<div class="dz-h">Відправка</div>' +
+      '<div class="dz-ship">' +
+        '<div class="dz-ship-l">' +
+          '<b>' + (q ? q + ' шт' : 'кількість ще не вказана') + '</b>' +
+          (ttn ? '<span class="dz-ship-ttn">Накладна ' + esc(ttn) + '</span>'
+               : '<span class="dz-ship-no">накладної ще немає</span>') +
+        '</div>' +
+        '<button class="dz-b" data-do="ship">' +
+          (ttn ? 'Відкрити відправку' : 'Створити накладну') + '</button>' +
+      '</div>';
   }
 
   function taskBlockHtml(pr, seat){
@@ -1429,7 +1468,7 @@
     teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
     jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
-    unitsHtml: unitsHtml, unitsOf: unitsOf, unitAt: unitAt,
+    unitsHtml: unitsHtml, unitsOf: unitsOf, unitAt: unitAt, shipHtml: shipHtml,
     unitNew: unitNew, catItem: catItem,
     taskCards: taskCards, hm: hm,
     /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
@@ -1623,6 +1662,7 @@
         U.briefHtml(o, job) +
         (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
+        U.shipHtml(p) +
       '</div>';
   }
 
@@ -2174,6 +2214,10 @@
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
 
     /* ── Склад замовлення ── */
+    if(what === 'ship'){
+      if(host().ship) return host().ship(o);
+      return say('Відправка доступна з картки замовлення');
+    }
     if(what === 'u-add'){
       job.units = U.unitsOf(job).concat([U.unitNew()]);
       return save(job, o, 'Додано одиницю');

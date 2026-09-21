@@ -2900,9 +2900,30 @@
   .dz-panel{flex:0 0 400px;background:#fff;border:1px solid var(--line);border-radius:14px;
     max-height:calc(100vh - 160px);display:flex;flex-direction:column;overflow:hidden;}
   .dz-panel.hide{display:none;}
-  .dz-panel-h{flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;
-    border-bottom:1px solid var(--line);font-weight:800;}
-  .dz-state{font-weight:600;font-size:12px;color:var(--ink-soft);}
+  /* Шапка картки відділу — та сама система, що й у Канбані: номер великим,
+     стан плашкою поруч. Доти тут стояв самий номер жирним і сірий рядок
+     стану, і картка читалась як службове вікно, а не як робоче місце. */
+  .dz-panel-h{flex:none;display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);font-weight:700;font-size:17px;
+    letter-spacing:-.01em;color:var(--ink);background:var(--paper);}
+  .dz-state{font-weight:600;font-size:11.5px;color:var(--ink-soft);background:var(--canvas);
+    border-radius:var(--r-pill);padding:4px 10px;letter-spacing:0;}
+  /* Клієнт — перший рядок тіла. Головне не «яка це задача», а «чиє це
+     замовлення»: саме з цього питання починається будь-яка розмова про
+     нього. */
+  .dz-who{font-size:13.5px;color:var(--ink);margin-bottom:10px;display:flex;
+    align-items:center;gap:6px;flex-wrap:wrap;}
+  .dz-who b{font-weight:700;}
+  .dz-who a{color:var(--ink-soft);text-decoration:none;}
+  .dz-who a:hover{color:var(--ink);text-decoration:underline;}
+  .dz-sep{color:var(--muted);}
+  /* Відправка — тонкий підсумковий рядок унизу картки. */
+  .dz-ship{display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+    border-radius:12px;padding:10px 12px;background:#fff;}
+  .dz-ship-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .dz-ship-l b{font-size:13.5px;color:var(--ink);}
+  .dz-ship-ttn{font-size:11.5px;color:var(--good);font-weight:600;}
+  .dz-ship-no{font-size:11.5px;color:var(--muted);}
   .dz-x{margin-left:auto;font:inherit;font-size:20px;line-height:1;background:none;border:0;
     color:var(--ink-soft);cursor:pointer;}
   .dz-panel-b{flex:1;min-height:0;overflow:auto;padding:12px 14px;}
@@ -4649,18 +4670,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=637c802c21"></script>
-<script src="loomiq-fingerprint.js?v=637c802c21"></script>
-<script src="loomiq-pricing.js?v=637c802c21"></script>
+<script src="loomiq-select.js?v=12726070f8"></script>
+<script src="loomiq-fingerprint.js?v=12726070f8"></script>
+<script src="loomiq-pricing.js?v=12726070f8"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=637c802c21"></script>
+<script src="loomiq-design.js?v=12726070f8"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=637c802c21"></script>
+<script src="loomiq-cards.js?v=12726070f8"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -20958,6 +20979,16 @@ function openDesign(){
        кроків щось губилось. Канал беремо той, що вже привʼязаний до
        замовлення: інших у нас усе одно немає. */
     tell: (o, text) => designTell(o, text),
+    /* Відправка живе в картці замовлення, і створювати накладну вдруге тут
+       не можна: два місця для однієї дії рано чи пізно дадуть дві накладні
+       на одну посилку. Відділ показує стан і веде туди, де це роблять. */
+    ship: (o)=>{
+      if(!o) return;
+      try{ odFolds.ship = true; }catch(e){}
+      const b = document.querySelector('.nav button[data-view="board"]');
+      if(b) b.click();
+      try{ openOrderDrawer(o); }catch(e){ toast('Картку відкрити не вдалось'); }
+    },
     /* Роль вирішує, які дошки людині показувати. Береться з команди, а не
        з вибору на екрані: інакше «дизайнер не бачить закупівлю» обходиться
        за секунду. */
