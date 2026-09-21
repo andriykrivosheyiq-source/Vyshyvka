@@ -100,6 +100,12 @@
             <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
         </button>
         <button class="pm-tilt-reset" id="pmTiltReset" title="Повернути як було">Скинути</button>
+        <!-- Закрити смугу. Доти виходу з неї не було взагалі: відкрив
+             ручкою — і вона лишалась унизу назавжди, забираючи місце в
+             самого макета. «Скинути» поруч робить інше: повертає нахил, а
+             не ховає панель, — і плутати їх не можна, бо одне з двох
+             знищує роботу. -->
+        <button class="pm-tilt-x" id="pmTiltClose" title="Закрити" aria-label="Закрити">✕</button>
       </div>
     </div>
 
@@ -975,21 +981,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=9c6e7fda5c',
+    ['loomiq-select.js?v=79a6bbcb35',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=9c6e7fda5c'].forEach(function(src){
+     'loomiq-cards.js?v=79a6bbcb35'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=9c6e7fda5c';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=9c6e7fda5c';
-  var CTOR_JS   = 'loomiq-constructor.js?v=9c6e7fda5c';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=9c6e7fda5c';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=79a6bbcb35';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=79a6bbcb35';
+  var CTOR_JS   = 'loomiq-constructor.js?v=79a6bbcb35';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=79a6bbcb35';
 
   function send(msg){
     if(window.parent === window) return;

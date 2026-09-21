@@ -187,6 +187,22 @@ ok(!після,
   'скидання повертає як було — окремою кнопкою, а не повторним натисканням ' +
     'тієї, якою панель відкривали',
   'нахил лишився: ' + після);
+/* Андрій: «вони відкриваються і не закривається». Виходу зі смуги не було
+   взагалі: ручка її відкривала, а закрити не могло ніщо. Смуга лишалась
+   унизу до закриття всього вікна й забирала місце в макета, заради якого
+   все й робиться. «Скинути» поруч — не вихід, а знищення роботи. */
+await p.click('#pmTiltClose');
+await p.waitForTimeout(300);
+ok(await p.evaluate(() => document.getElementById('pmTilt').hidden),
+  'смугу нахилу можна закрити — хрестиком, окремим від «Скинути»',
+  'смуга не закривається');
+await p.dispatchEvent('[data-handle="warp"]', 'mousedown');
+await p.waitForTimeout(300);
+await p.keyboard.press('Escape');
+await p.waitForTimeout(300);
+ok(await p.evaluate(() => document.getElementById('pmTilt').hidden),
+  'і клавішею Esc теж — як закривають будь-яку панель',
+  'Esc смугу не закриває');
 
 console.log('');
 console.log('═══ КОПІЯ ШАРУ — КНОПКОЮ, А НЕ ЗАНОВО ═══');
@@ -205,6 +221,21 @@ await p.evaluate(() => window.__openProductModal('tee'));
 await p.waitForTimeout(700);
 await p.setInputFiles('#pmFileInput', LOGO);
 await p.waitForTimeout(1800);
+/* Тиснемо дубль саме НА МОДЕЛІ — там, де він і потрібен щодня: у старих
+   замовленнях на парному фото лежить одна копія, і доробити її нічим.
+   Перевіряти на переді означало б перевірити не те місце. */
+for(let i = 0; i < 7; i++){
+  const cur = await p.evaluate(() => (document.getElementById('pmSideMarkName') || {}).textContent || '');
+  if(cur === 'На моделі') break;
+  const ще = await p.evaluate(() => {
+    const r = document.getElementById('pmArrowRight');
+    return !!r && r.style.display !== 'none';
+  });
+  if(!ще) break;
+  await p.click('#pmArrowRight'); await p.waitForTimeout(700);
+}
+console.log('   ракурс: ' + await p.evaluate(() =>
+  (document.getElementById('pmSideMarkName') || {}).textContent || ''));
 const шарів = () => p.evaluate(() => document.querySelectorAll('#pmLogoLayers [data-layer-id]').length);
 const було = await шарів();
 const кнопка = await p.evaluate(() => !!document.querySelector('[data-dup]'));
