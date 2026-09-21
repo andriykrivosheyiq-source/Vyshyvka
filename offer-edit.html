@@ -999,21 +999,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=a8a9750640',
+    ['loomiq-select.js?v=9ee20177bf',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=a8a9750640'].forEach(function(src){
+     'loomiq-cards.js?v=9ee20177bf'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=a8a9750640';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=a8a9750640';
-  var CTOR_JS   = 'loomiq-constructor.js?v=a8a9750640';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=a8a9750640';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=9ee20177bf';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=9ee20177bf';
+  var CTOR_JS   = 'loomiq-constructor.js?v=9ee20177bf';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=9ee20177bf';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2207,13 +2207,19 @@
          Зняті лишаються в списку й видно, що вони зняті: інакше повернути
          їх не було б як. Останній зняти не дамо — картка без жодного фото
          це не картка. */
-      (c.type === 'item' && (c.allShots || []).length > 1
-        ? '<div class="cd-box"><span class="cd-l">Які кадри показувати</span>' +
+      ((c.allShots || []).length > 1
+        ? '<div class="cd-box"><span class="cd-l">' +
+            (c.type === 'cmp' ? 'Які ряди кадрів показувати' : 'Які кадри показувати') +
+          '</span>' +
           '<div class="cd-shots">' + c.allShots.map(function(sh){
-            var off = !!(own.off || {})[sh.url];
-            return '<label class="cd-shot' + (off ? ' off' : '') + '">' +
-              '<input type="checkbox" data-shot="' + esc(sh.url) + '"' +
-                (off ? '' : ' checked') + '>' +
+            var k = sh.key || sh.url;
+            var mp = own.off || {};
+            /* Фото на моделі за замовчуванням зняте: воно показує, як виріб
+               сидить на людині, а не сам виріб із нанесенням, а в
+               прорахунку питають передусім про друге. */
+            var on = Object.prototype.hasOwnProperty.call(mp, k) ? !mp[k] : !sh.model;
+            return '<label class="cd-shot' + (on ? '' : ' off') + '">' +
+              '<input type="checkbox" data-shot="' + esc(k) + '"' + (on ? ' checked' : '') + '>' +
               '<img src="' + esc(sh.url) + '" alt="">' +
               '<span>' + esc(sh.model ? 'На моделі' : (sh.label || 'Ракурс')) + '</span>' +
             '</label>';
@@ -2270,8 +2276,11 @@
            тут зайве, бо спроба одна й очевидна. */
         var on = side.querySelectorAll('[data-shot]:checked').length;
         if(!ch.checked && on === 0){ ch.checked = true; return; }
-        if(ch.checked) delete off[ch.dataset.shot]; else off[ch.dataset.shot] = 1;
-        if(!Object.keys(off).length) delete own2.off;
+        /* Пишемо ЯВНЕ рішення, а не видаляємо ключ: «увімкнув» і «не
+           чіпав» — різні стани. У фото на моделі за замовчуванням галочки
+           немає, і без явного нуля ввімкнена вітрина мовчки зникала б при
+           наступному складанні. */
+        off[ch.dataset.shot] = ch.checked ? 0 : 1;
         cardsChanged();
       };
     });

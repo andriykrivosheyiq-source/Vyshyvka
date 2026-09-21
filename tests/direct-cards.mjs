@@ -414,7 +414,11 @@ const model = await fr.evaluate(([o, host]) => {
     name:'Худі', garmentId:'hoodie', prints: sides.map(P), views: all, mockups:['m0'],
     config:{ garmentId:'hoodie', logos:{ front:[{ url:'ART' }] } } });
   const models = { hoodie: [{ url: host + '/images/model-hoodie-man.webp', cx:50, cy:45, sw:32 }] };
-  const shots = (sides, mm) => L.build({ items:[mk(sides)], terms:{} }, { models: mm })[0].shots;
+  /* Дивимось на ПОВНИЙ список кадрів: те, що фото на моделі за
+     замовчуванням зняте галочкою, — інше питання, і воно нижче. Тут
+     перевіряється склад ряду, а не хто з нього вимкнений. */
+  const shots = (sides, mm) =>
+    L.build({ items:[mk(sides)], terms:{} }, { models: mm })[0].allShots;
   return {
     /* Тільки перед: фото моделі + перед. Спини немає — на ній нічого немає. */
     one: shots(['front'], models).map(s => (s.model ? 'модель' : s.side)),
@@ -423,6 +427,20 @@ const model = await fr.evaluate(([o, host]) => {
     /* Без фото моделі все як було: перед і зад завжди. */
     none: shots(['front'], {}).map(s => (s.model ? 'модель' : s.side)),
     mark: (shots(['front'], models)[0] || {}).mark,
+    /* А ось і саме замовчування: у прорахунку клієнт питає передусім про
+       виріб із нанесенням, а не про те, як він сидить на людині. Вітрина
+       вмикається галочкою, і рішення лишається в картці. */
+    типово: L.build({ items:[mk(['front'])], terms:{} }, { models: models })[0]
+              .shots.map(s => (s.model ? 'модель' : s.side)),
+    увімкнена: (function(){
+      var c0 = L.build({ items:[mk(['front'])], terms:{} }, { models: models })[0];
+      var mk0 = (c0.allShots || []).filter(function(z){ return z.model; })[0];
+      var cfg2 = { models: models, by: {} };
+      cfg2.by[c0.id] = { off: {} };
+      cfg2.by[c0.id].off[mk0.key] = 0;
+      return L.build({ items:[mk(['front'])], terms:{} }, cfg2)[0]
+               .shots.map(s => (s.model ? 'модель' : s.side));
+    })(),
     art: L.build({ items:[mk(['front'])], terms:{} }, { models })[0].art,
     /* Свій логотип нанесення перебиває той, що приїхав із конструктора, —
        і перебиває його на ВСІХ картках пропозиції одразу. */
@@ -446,6 +464,18 @@ ok(model.back.length === 3 && model.back[2] === 'back',
 ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
   'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
   'без фото моделі склад зламався: ' + model.none.join(' · '));
+/* Андрій: «давай поки по дефолту без моделей, щоб на них галочка не
+   стояла». У прорахунку питають передусім про виріб із нанесенням, а не
+   про те, як він сидить на людині; вітрина лишається можливістю, а не
+   правилом. */
+console.log('   типово: ' + model.типово.join(' · ') +
+            ' · увімкнена: ' + model.увімкнена.join(' · '));
+ok(model.типово.indexOf('модель') < 0,
+  'фото на моделі за замовчуванням зняте — у прорахунку питають про виріб, а не про те, як він на людині',
+  'модель усе одно лізе на картку сама: ' + model.типово.join(' · '));
+ok(model.увімкнена.indexOf('модель') >= 0,
+  'а галочкою вмикається — і рішення лишається в картці',
+  'увімкнену вітрину не видно: ' + model.увімкнена.join(' · '));
 /* Фото моделі приходить ракурсом — тим самим списком, що перед і спина.
    Так його видно там, де збирають пропозицію, і ховається воно тією ж
    галочкою, що й решта. */
@@ -466,9 +496,9 @@ const asView = await fr.evaluate(([o]) => {
   const hid = JSON.parse(JSON.stringify(it));
   hid.views[0].show = false;
   const c2 = L.build({ items:[hid], terms:{} }, {})[0];
-  return { кадри: c.shots.map(s => (s.model ? 'модель' : s.side)),
-           якір: c.shots[0] && c.shots[0].mark,
-           безМоделі: c2.shots.map(s => (s.model ? 'модель' : s.side)) };
+  return { кадри: (c.allShots || []).map(s => (s.model ? 'модель' : s.side)),
+           якір: (c.allShots || [])[0] && c.allShots[0].mark,
+           безМоделі: (c2.allShots || []).map(s => (s.model ? 'модель' : s.side)) };
 }, [OFFER]);
 console.log('   ракурсом: ' + asView.кадри.join(' · ') +
             ' · схований: ' + asView.безМоделі.join(' · '));
@@ -984,7 +1014,7 @@ const імена = await fr.evaluate(([o]) => {
   const views = [mv, { id:'vf', side:'front', img:'F.webp', show:true },
                      { id:'vb', side:'back',  img:'B.webp', show:true }];
   const сторони = [{ side:'front' }, { side:'back' }];
-  const кадри = it => (L.build({ items:[it], terms:{} }, {})[0].shots || [])
+  const кадри = it => (L.build({ items:[it], terms:{} }, {})[0].allShots || [])
     .map(s => s.model ? 'модель' : (s.side || '—'));
   const base = { ...o.items[0], views, mockups:[] };
   return { картка:  кадри({ ...base, prints: сторони, sides: undefined }),
@@ -1009,7 +1039,9 @@ const lost = await fr.evaluate(([o]) => {
   const mv = { id:'vmodel', side:'model', label:'На моделі', img:'M.webp',
                show:true, model:true };
   const mk = (views, prints) => ({ ...o.items[0], views, prints, mockups:[] });
-  const shots = c => (c.shots || []).map(s => s.model ? 'модель' : (s.side || '—'));
+  /* Повний список: вимкнена галочкою вітрина тут ні до чого — питання в
+     тому, чи кадр узагалі знайшовся. */
+  const shots = c => (c.allShots || c.shots || []).map(s => s.model ? 'модель' : (s.side || '—'));
   const ok3 = L.build({ items:[mk(
     [mv, { id:'vf', side:'front', img:'F.webp', show:true },
           { id:'vb', side:'back', img:'B.webp', show:true }],
@@ -1091,12 +1123,34 @@ const tabbed = await fr.evaluate(async () => {
     warnBox: !!document.getElementById('cdWarn'),
     more: !!document.getElementById('cdMore'),
     advHidden: !!(document.querySelector('.cd-adv') || {}).classList &&
-               document.querySelector('.cd-adv').classList.contains('hide')
+               document.querySelector('.cd-adv').classList.contains('hide'),
+    /* Вибір кадрів і перемикач формату — НА САМІЙ вкладці, а не десь у
+       налаштуваннях. Обидва стосуються того, що менеджер зараз бачить на
+       екрані, і шукати їх деінде він не піде. */
+    кадрів: document.querySelectorAll('#cdSide [data-shot]').length,
+    форматів: document.querySelectorAll('#cdBar [data-lay]').length,
+    видно: (function(){
+      const b = document.querySelector('#cdSide [data-shot]');
+      if(!b) return null;
+      const r = b.closest('.cd-shot').getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height) };
+    })()
   };
 });
 if(tabbed.none){ console.log('  вкладки немає'); bad++; }
 else {
   console.log('   карток у стрічці: ' + tabbed.strip + ' · шаблони: ' + tabbed.tpls.join(', '));
+  console.log('   вибір кадрів: ' + tabbed.кадрів + ' галочок ' + JSON.stringify(tabbed.видно) +
+              ' · форматів: ' + tabbed.форматів);
+  ok(tabbed.кадрів > 1,
+    'вибір кадрів стоїть на самій вкладці «Картки», а не десь у налаштуваннях',
+    'галочок вибору кадрів на вкладці немає');
+  ok(tabbed.видно && tabbed.видно.w > 0 && tabbed.видно.h > 0,
+    'і його справді видно на екрані, а не тільки в розмітці',
+    'блок вибору кадрів нульового розміру: ' + JSON.stringify(tabbed.видно));
+  ok(tabbed.форматів === 2,
+    'перемикач формату — два значки в тій самій смузі, де й решта показу',
+    'перемикача форматів на вкладці немає');
   console.log('   preview: ' + (tabbed.canvas ? tabbed.canvas.w + '×' + tabbed.canvas.h : 'немає'));
   ok(!/Editorial|Corporate|Industry/.test(tabbed.tpls.join()),
     'абстрактних назв шаблонів більше немає — менеджер обирає, кому надсилає',
