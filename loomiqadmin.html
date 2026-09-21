@@ -1440,6 +1440,9 @@
   .od-foot .od-kp:hover{background:var(--accent-deep);}
   .od-foot .od-kp-link{flex:none;padding:0 14px;background:#fff;color:var(--ink-soft);
     border:1px solid var(--line);border-radius:10px;}
+  /* Замовлення вже у відділі — кнопка це показує. Інакше менеджер тисне її
+     вдруге, не знаючи, заводив уже чи ні. */
+  .od-foot .od-kp-link.is-on{background:var(--ink);color:#fff;border-color:var(--ink);}
   .od-foot .tc-ch-b{flex:none;margin:0;padding:0 15px;display:flex;align-items:center;
     font-size:12px;font-weight:700;color:#fff;border-radius:10px;}
   .od-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -3174,6 +3177,13 @@
           записується в їхню історію, щоб його можна було знайти.</div>
         <button class="btn" id="fix-dup-ids">Знайти й розчепити однакові номери</button>
         <div class="sub" id="fix-dup-out" style="margin-top:10px;"></div>
+        <div class="sub" style="margin:16px 0 10px;">
+          <b>Дизайн-відділ: прибрати чуже.</b> Відділ колись заводив собі картку
+          на КОЖНЕ замовлення Канбану — щойно хтось відкривав екран. Через це там
+          лежать замовлення, яких туди ніхто не клав. Тепер він так не робить, а
+          те, що вже насипалось, прибирається тут. Картки, де вже є робота —
+          версії, здані файли, доручення, зібраний пакет, — лишаються.</div>
+        <button class="btn" id="design-sweep">Прибрати порожні картки дизайн-відділу</button>
       </div>
 
       <div class="card">
@@ -5864,6 +5874,10 @@ function toggleNewOrder(open){
 /* Ручне створення замовлення прибрано: картки потрапляють у Канбан лише
    з сайту (кошик) або з розділу «Прорахунок». Форма лишається в розмітці,
    але точки входу до неї немає, тому слухачі — захищені. */
+const _dSweep = document.getElementById('design-sweep');
+if(_dSweep) _dSweep.addEventListener('click', ()=>{
+  designSweep().catch(e => { console.error(e); toast('Не вийшло: ' + (e && e.message)); });
+});
 const _fixDup = document.getElementById('fix-dup-ids');
 if(_fixDup) _fixDup.addEventListener('click', ()=>{
   if(!confirm('Розчепити однакові номери? Найстаршій картці номер лишиться, ' +
@@ -14764,19 +14778,21 @@ function shipUnits(o){
    Це не порада в рядку «наступна дія», а заборона: номер накладної просто
    не запишеться. Порада, яку можна обійти кнопкою, обходиться в перший же
    гарячий день. */
-/* Чи веде це замовлення дизайн-відділ. Не «чи існує задача» — задача
-   заводиться сама на кожне замовлення, — а чи хтось справді нею займався:
-   видав доручення, призначив дизайнера або зібрав пакет.
+/* Чи веде це замовлення дизайн-відділ.
+
+   Тепер відповідь проста: картка у відділі є — значить веде. Доти було
+   інакше, бо відділ заводив картку САМ на кожне замовлення, і саме
+   існування картки нічого не означало; доводилось питати, чи хтось нею
+   справді займався — видав доручення, призначив дизайнера, зібрав пакет.
+   Відколи картки заводять руками, ця здогадка зайва: її наявність і є
+   відповіддю.
 
    Це межа нового процесу. Усе інше живе за старими правилами, і чіпати їх
    звідси не можна: там інший принцип роботи, і налаштовується він окремо. */
 function inDesignDept(o){
   if(!o || !o.orderId) return false;
-  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
-  if(!job) return false;
-  if(Array.isArray(job.tasks) && job.tasks.length) return true;
-  if(job.graphic && job.graphic.assignee) return true;
-  return !!job.pack;
+  const jobs = (typeof designJobs === 'object' && designJobs) ? designJobs : null;
+  return !!(jobs && jobs[o.orderId]);
 }
 function shipGate(o){
   if(!o) return { ok:false, why:'картки немає' };
@@ -15874,6 +15890,15 @@ function renderOrderDrawer(){
         title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
       <button class="od-kp-link" data-doc="copylink"
         title="Скопіювати лише посилання">🔗</button>` : ''}
+      ${/* Дорога у відділ — РУКАМИ, однією кнопкою. Відділ живе окремо й
+           сам нічого до себе не тягне; але замовлення з сайту інакше не
+           потрапило б туди взагалі, а робота над макетом по ньому цілком
+           може знадобитись. Тому дорога є, просто нею йдуть свідомо. */''}
+      ${may('nav', 'design') ? (inDesignDept(o)
+        ? `<button class="od-kp-link is-on" data-act="todesign"
+             title="Замовлення вже у дизайн-відділі — відкрити">✎</button>`
+        : `<button class="od-kp-link" data-act="todesign"
+             title="Завести це замовлення в дизайн-відділ">✎</button>`) : ''}
     </div>`);
   }catch(e){
     console.error('картка: шаблон не зібрався', e);
@@ -16012,6 +16037,17 @@ function renderOrderDrawer(){
     }));
   panel.querySelectorAll('[data-act="offered"]').forEach(b=>
     b.addEventListener('click', ()=> openOfferEditor(o)));
+  panel.querySelectorAll('[data-act="todesign"]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const було = inDesignDept(o);
+      if(!було){
+        const j = designJobMake(o.orderId);
+        if(!j){ toast('Не вдалось завести картку у відділі'); return; }
+        toast('Заведено у дизайн-відділ · ' + (j.no || ''));
+      }
+      const nav = document.querySelector('.nav button[data-view="design"]');
+      if(nav) nav.click();
+    }));
   const chanInp = panel.querySelector('.od-chan-h');
   if(chanInp) chanInp.addEventListener('change', async ()=>{
     chanSet(o, chanActive(o), chanInp.value);
@@ -20706,12 +20742,25 @@ async function fixDuplicateOrderIds(){
   renderBoard();
 }
 
-function designJobOf(orderId){
+/* ВІДДІЛ НЕ ЗАВОДИТЬ КАРТОК САМ.
+
+   Доти ця функція створювала доручення на КОЖНЕ замовлення Канбану, щойно
+   її спитали, — а питає її дошка, на кожен свій перемальовок. Через це у
+   відділі лежали всі замовлення поспіль, яких туди ніхто не клав: «Кепка
+   потерта» з номером 2000001, і далі всі інші. Виглядало це як зв'язок із
+   Канбаном, хоча зв'язку ніхто не хотів: відділ живе окремо, і картка
+   зʼявляється в ньому тільки тоді, коли її створили руками.
+
+   Тому читання тепер саме читання. Створює — лише designJobMake, і лише з
+   кнопки. Номер видається в мить створення, звідси й починається своя
+   нумерація з двійки. */
+function designJobOf(orderId, make){
   const id = String(orderId || '');
   if(!id) return null;
   const o = (orders || []).filter(x => x && x.orderId === id)[0];
   if(!o) return null;
   let job = designJobs[id];
+  if(!job && !make) return null;
   if(!job){
     job = window.LQDesign.emptyJob(id);
     /* Замовлення, у якому макет уже малювали до появи відділу, не має
@@ -20745,6 +20794,39 @@ function designJobOf(orderId){
     try{ designSave(job); }catch(e){ designDirty[id] = 1; }
   }
   return job;
+}
+// Завести картку у відділі. Єдина дорога сюди — кнопка, і це навмисно.
+function designJobMake(orderId){ return designJobOf(orderId, true); }
+/* Прибрати те, що відділ насипав собі сам.
+
+   Картки, у яких уже є справжня робота — версії, здані файли, доручення,
+   зібраний пакет, — не чіпаємо: мовчки стерти роботу гірше, ніж лишити
+   зайву картку. Решту прибираємо: їх ніхто не заводив. */
+function designJobEmpty(j){
+  if(!j) return true;
+  if(j.state && j.state !== 'new') return false;
+  if(+j.approvedVersion) return false;
+  if((j.stitch || []).length || (j.tasks || []).length) return false;
+  if(j.pack) return false;
+  if((j.client || {}).sentAt || (j.client || {}).decision) return false;
+  if((j.graphic || {}).status && j.graphic.status !== 'new') return false;
+  const b = j.brief || {};
+  return !(b.text || (b.pics || []).length || (b.missing || []).length || b.note);
+}
+async function designSweep(){
+  const all = Object.keys(designJobs || {});
+  const dead = all.filter(k => designJobEmpty(designJobs[k]));
+  if(!dead.length){ toast('Порожніх карток у відділі немає'); return; }
+  if(!confirm('У відділі ' + all.length + ' карток, із них ' + dead.length +
+    ' порожніх — їх відділ завів собі сам.\n\nПрибрати ' + dead.length + '?\n\n' +
+    'Ті, де вже є робота (версії, здані файли, доручення), лишаться.')) return;
+  let gone = 0;
+  for(const k of dead){
+    try{ await DESIGN_COL.doc(k).delete(); delete designJobs[k]; delete designDirty[k]; gone++; }
+    catch(e){ console.warn('design sweep', k, e); }
+  }
+  toast('Прибрано ' + gone + ' — лишилось ' + Object.keys(designJobs).length);
+  try{ openDesign(); }catch(e){}
 }
 function watchDesign(){
   if(designWatching) return;
@@ -20847,6 +20929,22 @@ function openDesign(){
       const b = document.querySelector('.nav button[data-view="board"]');
       if(b) b.click();
       try{ toggleNewOrder(true); }catch(e){ toast('Форма замовлення недоступна'); }
+      /* Заведене звідси замовлення має зʼявитись У ВІДДІЛІ — заради цього
+         кнопку й тиснули. Доти воно просто лягало в Канбан, а у відділ
+         потрапляло тим самим гуртом, що й усі інші. Ловимо саме ту картку,
+         яка після цього зʼявилась, і заводимо на неї доручення. */
+      const was = new Set((orders || []).map(o => o && o.orderId));
+      let left = 40;
+      const wait = setInterval(()=>{
+        const fresh = (orders || []).filter(o => o && o.orderId && !was.has(o.orderId))[0];
+        if(fresh){
+          clearInterval(wait);
+          designJobMake(fresh.orderId);
+          try{ openDesign(); }catch(e){}
+          return;
+        }
+        if(--left <= 0) clearInterval(wait);
+      }, 500);
     },
     can: ()=> true
   };
