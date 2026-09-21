@@ -975,21 +975,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=267657df74',
+    ['loomiq-select.js?v=9c6e7fda5c',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=267657df74'].forEach(function(src){
+     'loomiq-cards.js?v=9c6e7fda5c'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=267657df74';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=267657df74';
-  var CTOR_JS   = 'loomiq-constructor.js?v=267657df74';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=267657df74';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=9c6e7fda5c';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=9c6e7fda5c';
+  var CTOR_JS   = 'loomiq-constructor.js?v=9c6e7fda5c';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=9c6e7fda5c';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2155,6 +2155,17 @@
               esc(r.name) + '</label>';
           }).join('') + '</div>'
         : '') +
+      /* Рівень кадру. Картка підрізає знімок знизу — щоб на фото моделі
+         ніколи не втратити голову. Але знімки різні: на одному виріб стоїть
+         угорі кадру, на іншому внизу, і одне правило на всіх вгадати не
+         може. Нуль — як було, верх кадру недоторканний; далі кадр
+         опускається, і видно його низ. Значення своє для кожної картки. */
+      '<div class="cd-box">' +
+        '<span class="cd-l">Рівень кадру</span>' +
+        '<span class="cd-rng"><input type="range" id="cdPicY" min="0" max="100" step="5" ' +
+          'value="' + (+own.picY || 0) + '"><b>' +
+          ((+own.picY || 0) ? (+own.picY || 0) + '%' : 'верх') + '</b></span>' +
+      '</div>' +
       '<div class="cd-box">' +
         '<label class="cd-chk"><input type="checkbox" id="cdHide"' +
           (c.hidden ? ' checked' : '') + '>Не виводити цю картку</label>' +
@@ -2192,6 +2203,23 @@
         cardsChanged();
       };
     });
+    /* Тягнемо — перемальовуємо одразу, але в базу пишемо, коли відпустили.
+       Рівень підбирають оком, і показувати наслідок треба в ту саму мить;
+       а писати кожен крок повзунка в базу означало б сотню записів на один
+       рух пальця. */
+    var pv = document.getElementById('cdPicY');
+    if(pv){
+      var picYSet = function(save){
+        var v = +pv.value || 0;
+        if(v) cardsOwn(c.id).picY = v; else delete cardsOwn(c.id).picY;
+        var lab = pv.parentNode.querySelector('b');
+        if(lab) lab.textContent = v ? v + '%' : 'верх';
+        if(save) cardsSave();
+        drawPreview(cardsCfg());
+      };
+      pv.oninput  = function(){ picYSet(false); };
+      pv.onchange = function(){ picYSet(true); };
+    }
     document.getElementById('cdHide').onchange = function(){
       var cfg2 = cardsCfg();
       if(this.checked) cfg2.hidden[c.id] = true; else delete cfg2.hidden[c.id];
