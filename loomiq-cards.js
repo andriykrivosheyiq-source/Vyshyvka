@@ -1391,112 +1391,138 @@
     numbers(x, card, t, show, W, o);
   }
 
-  /* Картка рекомендованих. Плитками, бо тут порівнюють, а не роздивляються:
-     питання не «який саме цей виріб», а «чим доповнити». */
+  /* ══════════ КАРТКА РЕКОМЕНДОВАНИХ ══════════
+     Тут не роздивляються один виріб — тут ВИБИРАЮТЬ із кількох. Тому й
+     будова інша: не аркуш із галереєю, а вітрина з окремих карток товару.
+
+     Аркуш під ними світло-сірий, а самі плитки білі — єдина картка, де
+     так. Без цього вони зникають: білі плитки на білому аркуші не
+     відділити нічим, крім меж, а межі ми не малюємо. Тон розділяє тихіше
+     за будь-яку лінію.
+
+     Заголовок один, великий: «Рекомендуємо додати». Дрібного рядка над ним
+     немає навмисно — він казав те саме іншими словами. */
+  var SET_BG = '#F3F1EF';
   function paintSet(x, card, t, imgs, show, o, W){
     o = o || {};
+    /* Тло перемальовуємо своє. Решта аркуша вже біла, і тут це не примха
+       шаблону, а те, завдяки чому плитки взагалі видно. */
+    x.fillStyle = SET_BG;
+    x.fillRect(0, 0, W, H);
     topBar(x, t, W);
+
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
     var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1),
                                o.logoCol, o.logoY) : 0;
     var tx = PAD + (lw ? Math.round(lw) + LOGO_GAP : 0);
+    if(lw){
+      var dvx = tx + Math.round(LOGO_GAP / 2) - 1;
+      x.strokeStyle = t.line; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(dvx, mid - 22); x.lineTo(dvx, mid + 22); x.stroke();
+      tx = dvx + LOGO_GAP;
+    }
     var mw = signRows(x, t, o.sign, right, mid);
-    eyebrow(x, 'До вашого замовлення', tx, mid - 18, t.accent, 18);
     x.fillStyle = t.ink;
     var maxW = right - (mw ? mw + 48 : 0) - tx;
-    fitFont(x, card.name, maxW, 44, '800', t.display, 30);
-    x.fillText(clip1(x, card.name, maxW), tx, mid + 26);
-    rule(x, t, PAD, right, hh);
-    maxW = W - PAD * 2;
+    var title = 'Рекомендуємо додати';
+    fitFont(x, title, maxW, 52, '800', t.display, 34);
+    x.fillText(clip1(x, title, maxW), tx, mid + 18);
 
+    /* Лінійки під шапкою тут немає: плитки нижче й так відбиті тоном, а
+       риска поверх сірого читалась би як шов. */
     var n = Math.max(1, card.items.length);
-    var gap = GAP;
-    var tileW = (maxW - gap * (n - 1)) / n;
-    var top = hh + 16, tileH = H - BOT - hh - 16;
-    /* ── ПЛИТКА РЕКОМЕНДОВАНОГО ──────────────────────────────────────
-       Раніше це був рядок прайсу: назва, під нею опис, унизу число. У
-       Direct таке гортають не читаючи — людина дивиться на картинки.
+    var gap = 28;
+    var full = W - PAD * 2;
+    var tileW = (full - gap * (n - 1)) / n;
+    var top = hh + 8, tileH = H - BOT - top;
 
-       Тому плитка збудована як маленька картка товару: фото займає дві
-       третини, під ним назва, ціна й перекреслена стара. Кольорова пляма
-       на плитці рівно одна — відсоток знижки: за неї й чіпляється око, бо
-       вона єдина щось обіцяє.
+    /* Підписи всередині плитки: назва, ціна, умова тиражу. Висота стала —
+       плитки в ряду мають закінчуватись на одній лінії, інакше ряд
+       розсипається. */
+    /* Числа звірені зі зразком, а не вигадані.
 
-       Опис прибрано з плитки навмисно. Чотири плитки по три рядки тексту
-       читаються як таблиця, а не як вітрина; що це за виріб, каже фото. */
-    var textH = 150;
-    /* Плитки — теж ряд, і розмір у них теж спільний: кепка поруч із худі
-       має лишатись кепкою, а не роздуватись до нього. */
-    var picH0 = tileH - textH;
-    var setZ = rowZoom(imgs, tileW, picH0);
+       INSET — поле між фото й краєм плитки. Вісімнадцять читались як рамка
+       навколо знімка; на зразку фото стоїть майже впритул, і плитка
+       сприймається як картка товару, а не як знімок у паспарту.
+
+       TEXT_H — висота підписів. Менша за колишню: фото має займати
+       приблизно три чверті плитки, інакше воно перестає бути головним. */
+    var TEXT_H = 150, RAD = 24;
+    var picH = tileH - TEXT_H;
+    var setZ = rowZoom(imgs, tileW, picH);
     var st = o.st || {};
+
     card.items.forEach(function(it, i){
       var X = PAD + i * (tileW + gap);
-      shotPanel(x, t, X, top, tileW, tileH, st.bg,
-                (imgs[i] && imgs[i].im) ? tintOf(imgs[i].im) : null);
-      var picH = picH0;
-      /* Кадр займає всю верхню частину плитки — без власних полів навколо.
-         Обрізаємо його плиткою, тож закруглені кути згори лишаються, а
-         знизу кадр рівно межує з підписами. */
+      /* Сама плитка — біла картка. Вона й є тим, що клієнт сприймає як
+         «товар»: усе інше на аркуші лише її обрамляє.
+
+         Під нею мʼяка тінь. Без неї біле на сірому лежить пласко, як
+         залита область; тінь піднімає плитку над аркушем — і саме це
+         перетворює її на картку. Тінь широка й ледь помітна: різка читалась
+         би як наліпка. */
+      x.save();
+      x.shadowColor = 'rgba(17,20,24,.10)';
+      x.shadowBlur = 28;
+      x.shadowOffsetY = 8;
+      x.fillStyle = t.panel;
+      rr(x, X, top, tileW, tileH, RAD); x.fill();
+      x.restore();
+
+      /* Фото ВПРИТУЛ до краю плитки — без жодного поля. Поле навколо нього
+         читалось як паспарту: знімок у рамці, а не товар.
+
+         Верхні кути йому дає сама плитка: ріжемо по її контуру й малюємо
+         прямокутником. Знизу край рівний, і на ньому починаються підписи —
+         межі між фото й текстом не треба, її тримає сам зріз. */
+      var px = X, py = top, pw = tileW, ph = picH;
+      x.save();
+      rr(x, X, top, tileW, tileH, RAD); x.clip();
+      x.fillStyle = (imgs[i] && imgs[i].im) ? (tintOf(imgs[i].im) || SET_BG) : SET_BG;
+      x.fillRect(px, py, pw, ph);
       if(imgs[i] && imgs[i].im && isFinite(setZ)){
-        x.save();
-        rr(x, X, top, tileW, tileH, 24); x.clip();
-        x.beginPath(); x.rect(X, top, tileW, picH); x.clip();
-        drawShot(x, imgs[i], setZ / imgs[i].im.width, X, top, tileW, picH);
-        x.restore();
+        x.beginPath(); x.rect(px, py, pw, ph); x.clip();
+        drawShot(x, imgs[i], setZ / imgs[i].im.width, px, py, pw, ph);
       }
-      else if(!(imgs[i] && imgs[i].im)) placeholder(x, X, top, tileW, picH, t.ink);
+      x.restore();
+      if(!(imgs[i] && imgs[i].im)) placeholder(x, px, py, pw, ph, t.ink);
 
-      var PADX = 26, tw = tileW - PADX * 2;
-      var ty = top + picH + 38;
+      /* Підписи стоять від того самого краю, що й фото: два різні відступи
+         в одній плитці око читає як перекіс. */
+      var tw = tileW - 52;
+      var ty = top + picH + 30;
       x.fillStyle = t.ink;
-      fitFont(x, it.name, tw, 31, '800', t.body, 22);
-      x.fillText(clip1(x, it.name, tw), X + PADX, ty);
+      fitFont(x, it.name, tw, 28, '800', t.body, 21);
+      x.fillText(clip1(x, it.name, tw), px + 26, ty);
 
-      /* Ціна — тим самим ладом, що в головних позиціях: число чорнилом,
-         поруч перекреслена стара, під ними умова тиражу. Людина бачить
-         одну й ту саму будову на всій пропозиції й не перечитує її
-         щоразу заново. */
-      var py = ty + 44;
+      /* Рядок ціни: число, за ним перекреслена стара, за нею плашка
+         знижки. Усе в одну лінію — так читається як одна думка «стільки
+         замість стільки», а не три окремі факти. */
+      var py2 = ty + 52, tx2 = px + 26;
       var unit = +it.unit || 0, base = +it.base || 0;
       if(show('unit') && unit){
         x.fillStyle = t.ink;
-        x.font = '800 34px ' + t.body;
+        x.font = '800 40px ' + t.body;
         var ps = money(unit) + '/шт';
-        x.fillText(ps, X + PADX, py);
-        var pw = x.measureText(ps).width;
+        x.fillText(ps, tx2, py2);
+        var pwid = x.measureText(ps).width;
         if(show('old') && base > unit){
-          /* Стара ціна — дрібним і сірим, одразу за новою. Перекреслення
-             малюємо рискою: у полотна немає line-through. */
-          x.font = '600 21px ' + t.body;
+          x.font = '400 21px ' + t.body;
           x.fillStyle = t.dim;
-          var ws = money(base);
-          var wx = X + PADX + pw + 12;
-          x.fillText(ws, wx, py - 2);
+          var ws = money(base) + '/шт';
+          var wx = tx2 + pwid + 20;
+          x.fillText(ws, wx, py2 - 3);
           var ww = x.measureText(ws).width;
           x.strokeStyle = t.dim; x.lineWidth = 1.6;
           x.beginPath();
-          x.moveTo(wx, py - 9); x.lineTo(wx + ww, py - 9);
-          x.stroke();
-          /* Єдина кольорова пляма плитки. Вона тут не прикраса: відсоток
-             — це те, заради чого рекомендоване взагалі дочитують. */
-          var off = '−' + Math.round((base - unit) / base * 100) + ' %';
-          x.font = '800 19px ' + t.body;
-          var ow = x.measureText(off).width;
-          var ox0 = wx + ww + 12, oy0 = py - 24;
-          x.fillStyle = t.accent; x.globalAlpha = 0.12;
-          rr(x, ox0, oy0, ow + 20, 30, 9); x.fill();
-          x.globalAlpha = 1;
-          x.fillStyle = t.accent;
-          x.fillText(off, ox0 + 10, py - 3);
+          x.moveTo(wx, py2 - 10); x.lineTo(wx + ww, py2 - 10); x.stroke();
+          var off = '−' + Math.round((base - unit) / base * 100) + '%';
+          badge(x, t, off, wx + ww + 16, py2 - 3);
         }
       }
-      /* Тираж — умовою ціни, дрібним і останнім рядком: «від 20 шт»
-         пояснює, звідки взялось число вище, і прямо запрошує спитати про
-         більший тираж. */
       if(it.qty > 1){
         x.fillStyle = t.dim; x.font = '400 20px ' + t.body;
-        x.fillText('від ' + it.qty + ' шт', X + PADX, py + 30);
+        x.fillText('Ціна від ' + it.qty + ' шт', tx2, py2 + 34);
       }
     });
   }
