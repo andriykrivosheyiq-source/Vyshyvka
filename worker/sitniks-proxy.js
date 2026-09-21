@@ -39,18 +39,30 @@ export default {
 
     const target = SITNIKS_BASE + url.pathname + url.search;
 
+    /* Тіло веземо БАЙТАМИ і з його власним Content-Type.
+
+       Доти воно читалось як текст, а заголовок ставився `application/json`
+       завжди. Для листів це працювало, а от файл так не проходить: у
+       multipart тіло двійкове, і в самому заголовку стоїть межа частин
+       (`boundary=...`) — вирізавши її, ми перетворювали вкладення на кашу,
+       якої приймач не розбирає. Вийшло б «Sitniks не вміє картинок», хоча
+       не вміли ми.
+
+       Свій заголовок ставимо лише тоді, коли його не прислали зовсім: тоді
+       це наш власний JSON, і назвати його треба самим. */
     let body;
-    if (request.method !== 'GET' && request.method !== 'HEAD') body = await request.text();
+    if (request.method !== 'GET' && request.method !== 'HEAD') body = await request.arrayBuffer();
+    const ctype = request.headers.get('Content-Type') || 'application/json';
 
     let res;
     try {
       res = await fetch(target, {
         method: request.method,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': ctype,
           'Authorization': 'Bearer ' + env.SITNIKS_API_KEY,
         },
-        body: body || undefined,
+        body: (body && body.byteLength) ? body : undefined,
       });
     } catch (e) {
       return json({ error: 'upstream', detail: String(e).slice(0, 200) }, 502, cors);
