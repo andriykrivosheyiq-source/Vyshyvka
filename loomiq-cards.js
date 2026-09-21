@@ -230,6 +230,17 @@
     if(Object.prototype.hasOwnProperty.call(off, k)) return !off[k];
     return !(sh && sh.model);
   }
+  /* Назва картки порівняння. Беремо перше слово назви виробу — «Худі
+     оверсайз» і «Худі базове» дають «худі», — і складаємо зрозумілу фразу.
+     Слова спільного немає (у групі різні вироби) — лишаємо назву групи,
+     яку вписав менеджер: вона хоч щось та означає. */
+  function cmpTitle(g, cols){
+    var first = function(n){ return String(n || '').trim().split(/\s+/)[0] || ''; };
+    var w = first((cols[0] || {}).name).toLowerCase();
+    if(!w) return g;
+    var same = cols.every(function(c){ return first(c.name).toLowerCase() === w; });
+    return same ? ('Варіанти ' + w + ' на вибір') : g;
+  }
   function buildCards(offer, cfg){
     offer = offer || {};
     cfg = cfg || {};
@@ -641,7 +652,10 @@
       out.push({
         id: id, kind: 'cmp', type: 'cmp',
         badge: 'порівняння',
-        name: own.title || g,
+        /* Заголовок. «Група 1» нічого не каже клієнтові — він не знає, що
+           в нас там за групи. Складаємо його з самого виробу: «Варіанти
+           худі на вибір». Свій заголовок менеджера, як і скрізь, сильніший. */
+        name: own.title || cmpTitle(g, cols),
         note: own.note || '',
         cols: cols, rows: rows, shotRows: Math.min(nShot, 3),
         allShots: allShots,
@@ -1692,114 +1706,124 @@
      Опису прозою тут немає навмисно. Характеристик три-чотири рядки, вони
      й порівнюються; абзац тексту під кожною колонкою перетворив би
      таблицю на простирадло, у якому вже нічого не зіставиш. */
-  var CMP_LAB = 300;     // ліва колонка з підписами рядків
-  var CMP_ROW = 46;      // висота рядка характеристик
-  var CMP_PIC = 460;     // висота ряду кадрів
-  function cmpW(n){ return PAD * 2 + CMP_LAB + n * COL + (n - 1) * GAP; }
+  /* Геометрія смуги. Кадри вузькі навмисно: у порівнянні вони показують,
+     ПРО ЩО йдеться, а роздивляються виріб на його власній картці. */
+  var CMP_PW = 250;      // ширина кадру
+  var CMP_PH = 330;      // висота кадру, вона ж висота смуги
+  var CMP_TXT = 520;     // текстова колонка смуги
+  function cmpW(nShots){
+    var pics = Math.max(1, nShots || 1);
+    return PAD * 2 + pics * CMP_PW + (pics - 1) * 16 + GAP + CMP_TXT;
+  }
   function cmpH(card){
-    var shots = Math.max(1, card.shotRows || 1);
-    return HEAD + 16 + shots * (CMP_PIC + GAP) + 40 +
-           (card.rows || []).length * CMP_ROW + 150 + FOOT;
+    var n = Math.max(1, (card.cols || []).length);
+    /* Смуга + розділювач під нею. Під останньою смугою розділювача немає —
+       його місце займає сама примітка. */
+    return HEAD + 24 + n * (CMP_PH + 34) + 130;
   }
   function paintCmp(x, card, t, shots, show, o, W){
     topBar(x, t, W);
     head(x, card, t, show, o, W);
     var cols = card.cols || [];
-    var n = cols.length;
-    var cw = (W - PAD * 2 - CMP_LAB - GAP * (n - 1)) / n;
-    var colX = function(i){ return PAD + CMP_LAB + i * (cw + GAP); };
-    var hh = headOf(o);
-    /* Назви варіантів — над кадрами, бо саме вони називають колонку.
-       Підпис під фото читався б як підпис до фото, а не як заголовок
-       стовпця, і таблиця розсипалась би на окремі картинки. */
-    var y = hh + 16;
-    cols.forEach(function(c, i){
-      x.fillStyle = t.ink;
-      fitFont(x, c.name, cw, 26, '700', t.display, 19);
-      x.fillText(clip1(x, c.name, cw), colX(i), y + 24);
-      if(c.sub){
-        x.fillStyle = tint(t.dim, 0.75);
-        x.font = '400 17px ' + t.body;
-        x.fillText(clip1(x, c.sub, cw), colX(i), y + 50);
-      }
-    });
-    y += 66;
-    /* Кадри рядами. Підпис ряду — у лівій колонці, там само, де підписи
-       характеристик: одна вертикаль підписів на всю картку. */
-    var rowsN = Math.max(1, card.shotRows || 1);
-    for(var r = 0; r < rowsN; r++){
-      var lab = '';
-      for(var k = 0; k < n && !lab; k++){
-        var s0 = (cols[k].shots || [])[r];
-        if(s0) lab = s0.model ? 'На моделі' : (s0.label || '');
-      }
-      if(lab) eyebrow(x, lab, PAD, y + 26, t.dim, 21);
-      for(var i2 = 0; i2 < n; i2++){
-        var sr = (shots[i2] || [])[r];
-        var cx = colX(i2);
-        if(!sr || !sr.im){
-          /* Кадру немає — плитки теж немає. Порожня плитка обіцяла б фото,
-             якого не існує, а прочерк тут зайвий: видно й так. */
-          continue;
-        }
-        if(sr.model){ drawModel(x, sr, cx, y, cw, CMP_PIC, o.st && o.st.picY); continue; }
-        shotPanel(x, t, cx, y, cw, CMP_PIC, (o.st || {}).bg, tintOf(sr.im));
-        var Z = rowZoom([sr], cw, CMP_PIC);
+    var y = headOf(o) + 24;
+    cols.forEach(function(c, ci){
+      /* ── КАДРИ ЛІВОРУЧ ──
+         Доти товари стояли колонками, а факти рядками. Таблиця зіставляла
+         точно, але читати її в Direct із телефона незручно: очі бігають
+         угору-вниз по вузьких стовпцях, а вертикальні межі ріжуть аркуш.
+
+         Тепер кожен товар — своя смуга, і в ній усе про нього поруч: що
+         це, скільки коштує, з чого зроблено. Смуги розділені лінією, і
+         порівняння йде зверху вниз — так само, як гортають стрічку. */
+      var px = PAD;
+      (shots[ci] || []).forEach(function(sr, k){
+        var cx = px + k * (CMP_PW + 16);
+        if(!sr || !sr.im) return;
+        if(sr.model){ drawModel(x, sr, cx, y, CMP_PW, CMP_PH, o.st && o.st.picY); return; }
+        shotPanel(x, t, cx, y, CMP_PW, CMP_PH, (o.st || {}).bg, tintOf(sr.im));
+        var Z = rowZoom([sr], CMP_PW, CMP_PH);
         if(isFinite(Z)){
           x.save();
-          rr(x, cx, y, cw, CMP_PIC, 24); x.clip();
-          drawShot(x, sr, Z / sr.im.width, cx, y, cw, CMP_PIC, o.st && o.st.picY);
+          rr(x, cx, y, CMP_PW, CMP_PH, 20); x.clip();
+          drawShot(x, sr, Z / sr.im.width, cx, y, CMP_PW, CMP_PH, o.st && o.st.picY);
           x.restore();
         }
-      }
-      y += CMP_PIC + GAP;
-    }
-    y += 10;
-    rule(x, t, PAD, W - PAD, y);
-    y += 42;
-    eyebrow(x, 'Про товар', PAD, y, t.dim, 21);
-    y += 34;
-    (card.rows || []).forEach(function(row){
-      x.font = '400 17px ' + t.body;
-      x.fillStyle = tint(t.dim, 0.7);
-      x.fillText(clip1(x, row.label, CMP_LAB - 20), PAD, y);
-      row.vals.forEach(function(v, i){
-        x.font = (row.same ? '400 ' : '600 ') + '19px ' + t.body;
-        x.fillStyle = row.same ? tint(t.dim, 0.62) : t.ink;
-        x.fillText(clip1(x, v || '—', cw), colX(i), y);
       });
-      y += CMP_ROW;
-    });
-    y += 30;
-    rule(x, t, PAD, W - PAD, y);
-    y += 46;
-    /* Ціна — у кожній колонці своя: у групі вона й різна, і це половина
-       того, заради чого порівнюють. Тираж спільний: беруть один варіант. */
-    eyebrow(x, (card.qty > 1) ? 'Ціна від ' + card.qty + ' шт' : 'Ціна за 1 шт',
-            PAD, y, t.dim, 21);
-    cols.forEach(function(c, i){
-      var px = colX(i);
-      if(!(show('unit') && c.unit)) return;
+      /* ── ТЕКСТ ПРАВОРУЧ: назва, під нею ціна, під нею склад ── */
+      var nShots = Math.max(1, (shots[ci] || []).length);
+      var tx = PAD + nShots * CMP_PW + (nShots - 1) * 16 + GAP;
+      var tw = W - PAD - tx;
+      var ty = y + 34;
       x.fillStyle = t.ink;
-      fitFont(x, money(c.unit) + '/шт', cw, 38, '700', t.body, 26);
-      x.fillText(money(c.unit) + '/шт', px, y + 12);
-      var base = +c.base || 0;
-      if(show('old') && base > c.unit){
-        x.font = '400 20px ' + t.body;
-        x.fillStyle = t.dim;
-        var was = money(base) + '/шт';
-        var ww = x.measureText(was).width;
-        x.fillText(was, px, y + 48);
-        x.strokeStyle = t.dim; x.lineWidth = 1.6;
-        x.beginPath(); x.moveTo(px, y + 41); x.lineTo(px + ww, y + 41); x.stroke();
-        badge(x, t, '−' + Math.round((base - c.unit) / base * 100) + '%', px + ww + 14, y + 48);
+      fitFont(x, c.name, tw, 30, '700', t.display, 22);
+      x.fillText(clip1(x, c.name, tw), tx, ty);
+      if(c.sub){
+        ty += 30;
+        x.fillStyle = tint(t.dim, 0.75);
+        x.font = '400 17px ' + t.body;
+        x.fillText(clip1(x, c.sub, tw), tx, ty);
+      }
+      ty += 58;
+      if(show('unit') && c.unit){
+        x.fillStyle = t.ink;
+        x.font = '700 36px ' + t.body;
+        var pr = money(c.unit) + '/шт';
+        x.fillText(pr, tx, ty);
+        var pw = x.measureText(pr).width;
+        var base = +c.base || 0;
+        if(show('old') && base > c.unit){
+          x.font = '400 19px ' + t.body;
+          x.fillStyle = t.dim;
+          var was = money(base);
+          var wx = tx + pw + 20, ww = x.measureText(was).width;
+          x.fillText(was, wx, ty - 4);
+          x.strokeStyle = t.dim; x.lineWidth = 1.6;
+          x.beginPath(); x.moveTo(wx, ty - 10); x.lineTo(wx + ww, ty - 10); x.stroke();
+          badge(x, t, '−' + Math.round((base - c.unit) / base * 100) + '%', wx + ww + 14, ty - 4);
+        }
+        ty += 20;
+        x.fillStyle = tint(t.dim, 0.7);
+        x.font = '400 15px ' + t.body;
+        x.fillText((card.qty > 1) ? 'ціна від ' + card.qty + ' шт' : 'ціна за 1 шт', tx, ty);
+      }
+      ty += 46;
+      /* Склад — парами «про що / скільки». Однакове в усіх товарах
+         бліднішає: воно лишається видимим, бо заспокоює, але погляд сам
+         падає на те, що відрізняється. */
+      (card.rows || []).slice(0, 5).forEach(function(row){
+        var v = row.vals[ci] || '—';
+        x.font = '400 16px ' + t.body;
+        x.fillStyle = tint(t.dim, 0.65);
+        var lw = x.measureText(row.label).width;
+        x.fillText(row.label, tx, ty);
+        x.font = (row.same ? '400 ' : '600 ') + '17px ' + t.body;
+        x.fillStyle = row.same ? tint(t.dim, 0.6) : t.ink;
+        x.fillText(clip1(x, v, tw - lw - 14), tx + lw + 14, ty);
+        ty += 29;
+      });
+      y += CMP_PH;
+      /* Розділювач між смугами. Під останньою його немає: далі йде
+         примітка, і дві лінії поспіль читались би як порожній блок. */
+      if(ci < cols.length - 1){
+        y += 17;
+        rule(x, t, PAD, W - PAD, y);
+        y += 17;
       }
     });
-    /* Примітка — одна на всю групу й на всю ширину: вона про те, як
-       виглядають кольори на екрані, і до кожної колонки окремо стосунку
-       не має. */
+    /* ── ПРИМІТКА ОДНА, ВНИЗУ ──
+       Плюс опис картки, якщо менеджер його вписав. Доти опис у праву
+       панель писався, у картку клався — і ніде не малювався: скільки не
+       пиши, на аркуші порожньо. */
+    y += 40;
+    rule(x, t, PAD, W - PAD, y);
+    y += 44;
+    var note = String(card.note || '').trim();
     var warn = show('warn') ? WARN : '';
-    if(warn) textCell(x, t, 'Примітка', warn, PAD, y + 104, W - PAD * 2, 16, t.dim, 3);
+    if(note){
+      textCell(x, t, 'Про добірку', note, PAD, y, W - PAD * 2, 17, t.ink, 3);
+      y += 78;
+    }
+    if(warn) textCell(x, t, 'Примітка', warn, PAD, y, W - PAD * 2, 15, t.dim, 3);
   }
 
   function paintSet(x, card, t, imgs, show, o, W){
@@ -1823,7 +1847,14 @@
     var mw = signRows(x, t, o.sign, right, mid);
     x.fillStyle = t.ink;
     var maxW = right - (mw ? mw + 48 : 0) - tx;
-    var title = 'Рекомендуємо додати';
+    /* Заголовок вітрини — з картки, а не зашитий тут.
+
+       Доти в цьому рядку стояв сталий текст, а поле «Заголовок картки» в
+       правій панелі писалось у картку й нікуди не доїжджало: менеджер
+       міняв його, зберігав, і на аркуші лишалось те саме слово. Виглядало
+       це як поломка збереження, хоча зберігалось усе — просто малювальник
+       на збережене не дивився. */
+    var title = card.name || 'Рекомендуємо додати';
     // Той самий кегль, що й у назви виробу: обидва аркуші йдуть у Direct
     // поруч, і різні за розміром шапки читались би як різні набори.
     fitFont(x, title, maxW, 44, '700', t.display, 30);
@@ -1968,7 +1999,7 @@
       ? 'row' : (cfg.lay === 'grid' ? 'grid' : 'row');
     var nShots = (card.shots || []).length;
     var cols = card.type === 'set' ? (card.items || []).length : nShots;
-    var W = (card.type === 'cmp') ? cmpW((card.cols || []).length)
+    var W = (card.type === 'cmp') ? cmpW(card.shotRows)
           : (lay === 'grid') ? sheetW(2) : sheetW(cols);
     /* Другий ряд кадрів додає висоти рівно стільки, скільки займає сам:
        половину галереї плюс просвіт. Один чи два кадри — аркуш лишається
