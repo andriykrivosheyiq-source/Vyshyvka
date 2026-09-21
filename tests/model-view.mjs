@@ -243,23 +243,73 @@ ok(кнопка,
   'кнопка «Дублювати» стоїть у нижньому ряду інструментів менеджера',
   'кнопки дублювання немає');
 if(кнопка){
-  await p.click('[data-dup]');
-  await p.waitForTimeout(500);
-  const стало = await шарів();
-  console.log('   шарів: ' + було + ' → ' + стало);
-  ok(стало === було + 1,
-    'копія лягає поруч — і картинки, і напису',
-    'копії не зʼявилось: ' + було + ' → ' + стало);
-  /* Рівно під оригіналом копії не було б видно, і здавалося б, що кнопка
-     не працює. Тому вона лягає зі зсувом — далі її й тягнуть на місце. */
-  const різні = await p.evaluate(() => {
-    const l = Array.from(document.querySelectorAll('#pmLogoLayers [data-layer-id]'))
-      .map(e => { const r = e.getBoundingClientRect(); return Math.round(r.left) + ',' + Math.round(r.top); });
-    return new Set(l).size === l.length;
+  /* Прибираємо одну з двох копій — і дістаємо рівно те, що лежить у старих
+     замовленнях: на парному фото один у мерчі, другий просто так. */
+  const місця = () => p.evaluate(() =>
+    Array.from(document.querySelectorAll('#pmLogoLayers [data-layer-id]'))
+      .map(e => { const r = e.getBoundingClientRect();
+                  return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; }));
+  const пара = await місця();
+  /* Кнопка видалення живе на АКТИВНІЙ мініатюрі — спершу вибираємо ту, що
+     на вітрині, і аж тоді прибираємо. */
+  await p.evaluate(() => {
+    const t = [...document.querySelectorAll('.pm-photo-thumb[data-side="model"]')].pop();
+    if(t) t.click();
   });
-  ok(різні,
-    'копія зі зсувом — інакше здавалось би, що кнопка нічого не зробила',
-    'копія лягла точно під оригіналом');
+  await p.waitForTimeout(400);
+  await p.evaluate(() => {
+    const d = document.querySelector('.pm-photo-thumb[data-side="model"] [data-del]');
+    if(d) d.click();
+  });
+  await p.waitForTimeout(400);
+  // Видалення питає підтвердження — своїм вікном, не браузерним
+  await p.evaluate(() => {
+    const b = document.getElementById('pmTrashConfirmBtn');
+    if(b) b.click();
+  });
+  await p.waitForTimeout(500);
+  const сам = await шарів();
+  console.log('   було ' + було + ' · лишили ' + сам);
+  ok(сам === 1, 'копію прибрали — лишилась одна', 'не вийшло лишити одну: ' + сам);
+
+  /* Прибрану копію не повертаємо від кожного перемикання ракурсу: менеджер
+     міг зняти її свідомо, і сперечатися з ним не можна. Досипаємо один раз
+     на відкриття виробу — саме тоді, коли замовлення дістають зі сховища. */
+  /* Вітрина стоїть останньою, тож ідемо звідси вліво й повертаємось. */
+  await p.click('#pmArrowLeft');  await p.waitForTimeout(600);
+  await p.click('#pmArrowRight'); await p.waitForTimeout(800);
+  ok(await шарів() === 1,
+    'прибрана копія не повертається сама від перемикання ракурсу — це було б суперечкою з менеджером',
+    'копія повернулась, хоч її зняли навмисно');
+
+  /* А тепер — кнопка. На вітрині копія має поїхати ДО ВІЛЬНОЇ ЛЮДИНИ, а не
+     на палець убік: дублюють тут рівно заради того, щоб вдягнути другого.
+     Зсув на двадцять шість пікселів ховав копію за оригіналом, і виглядало
+     це так, ніби кнопка не працює. */
+  await p.click('[data-dup]');
+  await p.waitForTimeout(600);
+  const стало = await шарів();
+  const де = await місця();
+  console.log('   після дубля: ' + стало + ' · ' + JSON.stringify(де));
+  ok(стало === 2,
+    'копія лягає поруч — і картинки, і напису',
+    'копії не зʼявилось: ' + сам + ' → ' + стало);
+  if(де.length === 2){
+    const крок = Math.abs(де[0].x - де[1].x);
+    const ширина = await p.evaluate(() =>
+      Math.round(document.getElementById('pmGarmentWrap').getBoundingClientRect().width));
+    console.log('   між копіями ' + крок + ' px при ширині кадру ' + ширина);
+    ok(крок > ширина * 0.15,
+      'копія поїхала до другої людини, а не сховалась за оригіналом',
+      'копія лягла майже на оригінал: ' + крок + ' px при ширині ' + ширина);
+    /* І саме туди, де стояла прибрана: точка на фото та сама, отже й
+       нанесення сяде на груди, а не на плече. */
+    const влучив = пара.some(t => Math.abs(t.x - де[1].x) < ширина * 0.08 ||
+                                  Math.abs(t.x - де[0].x) < ширина * 0.08);
+    ok(влучив,
+      'і стала рівно на ту людину, з якої копію знімали — на груди, а не поруч',
+      'копія сіла не в точку: ' + JSON.stringify({ пара, де }));
+  }
 }
 
 console.log('');
