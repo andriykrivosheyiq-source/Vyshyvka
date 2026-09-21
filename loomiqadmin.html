@@ -1965,15 +1965,8 @@
   @media (max-width:640px){ .od-panel{width:100%;} }
 
   /* Кнопка «КП» — з текстом, а не стрілка: їй потрібна своя ширина.
-
-     Чорна, бо на картці це головна дія: стрілки поруч лише пересувають по
-     етапах, а пропозиція — те, заради чого замовлення взагалі існує. У
-     ряду однакових сірих кнопок вона губилась. */
-  .tc-act--kp{width:auto;padding:0 9px;font-weight:700;letter-spacing:.02em;
-    background:var(--ink);color:#fff;}
-  .tc-act--kp:hover:not([disabled]){background:#000;color:#fff;}
-  /* Галочки трохи тихіші за слово: стан підказує, а не кричить. */
-  .tc-act--kp.is-on{letter-spacing:.06em;}
+     Сам вигляд кнопки стоїть нижче, після спільного правила .tc-act. */
+  .tc-act--kp{width:auto;padding:0 9px;font-weight:700;letter-spacing:.02em;}
   .t-actions{display:flex;gap:6px;}
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -2364,6 +2357,21 @@
   .tc-task.t-none{background:transparent;color:var(--muted);border:0;padding:2px 0;}
   .tc-act{background:transparent;color:var(--muted);padding:7px 10px;border-radius:var(--r-sm);}
   .tc-act:hover:not([disabled]){background:var(--canvas);color:var(--ink);}
+  /* Кнопка «КП» — чорна, бо на картці це головна дія: стрілки поруч лише
+     пересувають по етапах, а пропозиція — те, заради чого замовлення й
+     існує. У ряду однакових сірих кнопок вона губилась.
+
+     Стоїть саме ТУТ, після спільного `.tc-act`. Вище вона вже була — і не
+     працювала: правило `.tc-act{background:transparent}` нижче в файлі має
+     ту саму вагу, а отже перемагає останнє. Колір мовчки скидався.
+
+     І не блідне разом з іншими: решта дій на картці проявляється під
+     мишею, а ця має бути видно з відстані, не наводячи. */
+  .tc-act--kp{background:var(--ink);color:#fff;}
+  .tc-act--kp:hover:not([disabled]){background:#000;color:#fff;}
+  .tc-acts .tc-act--kp{opacity:1;}
+  /* Галочки трохи вільніше за слово: стан підказує, а не кричить. */
+  .tc-act--kp.is-on{letter-spacing:.06em;}
   .tc-trk{font-size:11.5px;font-weight:600;padding:2px 9px;}
 
   /* ── Шапка розділу й панель інструментів ── */
@@ -4544,18 +4552,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=267657df74"></script>
-<script src="loomiq-fingerprint.js?v=267657df74"></script>
-<script src="loomiq-pricing.js?v=267657df74"></script>
+<script src="loomiq-select.js?v=9c6e7fda5c"></script>
+<script src="loomiq-fingerprint.js?v=9c6e7fda5c"></script>
+<script src="loomiq-pricing.js?v=9c6e7fda5c"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=267657df74"></script>
+<script src="loomiq-design.js?v=9c6e7fda5c"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=267657df74"></script>
+<script src="loomiq-cards.js?v=9c6e7fda5c"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>

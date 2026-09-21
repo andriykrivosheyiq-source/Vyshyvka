@@ -3677,6 +3677,43 @@
         try{ renderRecommended(); }catch(e){}   // рекомендовані одягають те саме лого
       }).catch(function(){});
     }
+    /* Копія шару — того самого, що вже стоїть: і картинки, і напису.
+
+       Навіщо. Одне й те саме нанесення часто потрібне двічі: на фото з
+       двома людьми — на кожній, на виробі — на грудях і на рукаві. Доти
+       єдиним способом було завантажити той самий файл удруге, а для
+       напису — набрати його вдруге, слово в слово, тим самим шрифтом і
+       кольором. Різниця в одну літеру чи один кегль — і на виробі два
+       схожі, але різні написи.
+
+       Копія лягає з невеликим зсувом: рівно під оригіналом її не було б
+       видно, і здавалося б, що кнопка не працює. Стає активною одразу —
+       далі її й тягнуть на місце.
+
+       Ціну перераховуємо: на самому виробі це справді друге нанесення, і
+       площа зросла. На вітрині «На моделі» ціна не зрушить — той ракурс у
+       підрахунках не бере участі взагалі. */
+    function dupLayer(src){
+      if(!src) return;
+      var side = sideOfLayer(src.id) || pm.side;
+      var list = pm.logos[side] || (pm.logos[side] = []);
+      var l = JSON.parse(JSON.stringify(src));
+      l.id = Date.now();
+      /* Пікселі шару лежать у розмірі того превʼю, де його ставили, а
+         вікно відтоді могло змінитись. Переводимо частки назад у пікселі
+         ПЕРЕД зсувом — інакше копія лягла б за старими координатами. */
+      layerApplyFrac(l);
+      l.x = (+l.x || 0) + 26;
+      l.y = (+l.y || 0) + 26;
+      layerSaveFrac(l);
+      list.push(l);
+      pm.activeLogoId = l.id;
+      if(pm.side !== side){ pm.side = side; renderGarment(); }
+      renderLogoLayers();
+      renderTabPanel();
+      updatePriceBar();
+      try{ renderRecommended(); }catch(e){}
+    }
     // Перегенерація: той самий шар, нова картинка. Позиція, розмір і поворот
     // лишаються — менеджеру не треба вкотре вирівнювати логотип.
     function replaceLayerImage(layer, origUrl, cleanUrl){
@@ -4059,6 +4096,14 @@
             var recolorOn = pm.recolorFor === actL.id;
             html += '<div class="pm-mgr-tools">' +
               '<button class="pm-mgr-tool" data-ai-regen="'+actL.id+'">✨ Перегенерувати</button>' +
+              /* Копія того самого — і картинки, і напису. Найчастіше вона
+                 потрібна на фото з двома людьми: нанесення туди переїжджає
+                 з переду саме стільки разів, скільки людей на кадрі, але в
+                 замовленнях, зібраних до того, як ми це навчились робити,
+                 лежить одна копія — і доробити її було нічим. Те саме
+                 щодня потрібне й на самому виробі: один знак на грудях і
+                 такий самий на рукаві. */
+              '<button class="pm-mgr-tool" data-dup="'+actL.id+'">⧉ Дублювати</button>' +
               '<button class="pm-mgr-tool" data-crop="'+actL.id+'">✂ Обрізати</button>' +
               '<button class="pm-mgr-tool" data-recolor="'+actL.id+'">🎨 Колір нитки</button>' +
               (actL.recolorFrom ? '<button class="pm-mgr-tool" data-recolor-reset="'+actL.id+'">↩ Повернути колір</button>' : '') +
@@ -4276,6 +4321,12 @@
           var id = Number(el.dataset.aiRegen);
           var layer = findLayerAnySide(id);
           if(layer && window.__pmOpenAi) window.__pmOpenAi(layer);
+        });
+      });
+      pmTabPanel.querySelectorAll('[data-dup]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var layer = findLayerAnySide(Number(el.dataset.dup));
+          if(layer) dupLayer(layer);
         });
       });
       pmTabPanel.querySelectorAll('[data-crop]').forEach(function(el){
