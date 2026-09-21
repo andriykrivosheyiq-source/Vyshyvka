@@ -1964,6 +1964,8 @@
   .od-item-del:hover{background:var(--bad-soft);color:var(--bad);}
   @media (max-width:640px){ .od-panel{width:100%;} }
 
+  /* Кнопка «КП» — з текстом, а не стрілка: їй потрібна своя ширина. */
+  .tc-act--kp{width:auto;padding:0 9px;font-weight:700;letter-spacing:.02em;}
   .t-actions{display:flex;gap:6px;}
   .t-actions button{all:unset;flex:1;text-align:center;font-size:11px;cursor:pointer;background:var(--canvas);padding:7px 0;border-radius:7px;color:var(--ink-soft);font-weight:500;}
   .t-actions button:hover:not([disabled]){background:var(--accent-soft);color:var(--accent-deep);}
@@ -4534,13 +4536,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=7b5c70cc71"></script>
-<script src="loomiq-fingerprint.js?v=7b5c70cc71"></script>
-<script src="loomiq-pricing.js?v=7b5c70cc71"></script>
+<script src="loomiq-select.js?v=267657df74"></script>
+<script src="loomiq-fingerprint.js?v=267657df74"></script>
+<script src="loomiq-pricing.js?v=267657df74"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=7b5c70cc71"></script>
+<script src="loomiq-design.js?v=267657df74"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8646,7 +8648,12 @@ function offerManager(){
    значення на випадок, коли в базі ще нічого немає. */
 const BRAND_KEYS = ['loomiq', 'stvory'];
 const BRAND_DEFAULTS = {
-  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'', ig:'' },
+  /* Нік в Instagram у обох вивісок один: акаунт у виробництва один, і
+     відповідають клієнту з нього ж. Порожнім він тут стояв з недогляду — і
+     через це підпис на картках для Direct не зʼявлявся взагалі на всьому,
+     що йшло від Loomiq, тобто майже на всьому. Своє значення для кожного
+     бренду вписується в Налаштуваннях і перебиває це. */
+  loomiq: { name:'Loomiq', tagline:'виробництво мерчу', site:'https://loomiq.net', logo:'', ig:'stvory.ua' },
   stvory: { name:'Створи', tagline:'виробництво мерчу', site:'', logo:'', ig:'stvory.ua' }
 };
 function brandAll(){
@@ -11426,13 +11433,6 @@ function renderTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
-      ${/* КП прямо з дошки. Доти до редактора пропозиції вела одна дорога —
-           відкрити картку, знайти кнопку всередині; а відкривають його
-           щодня й до кожного замовлення. Тут же видно й стан: складена
-           пропозиція чи її ще немає. */''}
-      <button data-act="kp" style="flex:none;"
-        title="${o.offerToken ? 'Відкрити комерційну пропозицію' : 'Скласти комерційну пропозицію'}">${
-        o.offerToken ? 'КП ✓' : 'КП'}</button>
       ${canDelete() ? `<button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>` : ''}
     </div>
   `;
@@ -11443,8 +11443,6 @@ function renderTicket(o){
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
-  const kpB = el.querySelector('[data-act="kp"]');
-  if(kpB) kpB.addEventListener('click', e => { e.stopPropagation(); openOfferEditor(o); });
   const delB = el.querySelector('[data-act="del"]');
   if(delB) delB.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -12363,6 +12361,13 @@ function ticketSummaryHtml(o){
             Тут лишається те, що роблять щодня — рух по етапах. */''}
       ${chanBtnsHtml(o)}
       <span class="tc-spacer"></span>
+      ${/* КП прямо з дошки. Доти до редактора пропозиції вела одна дорога —
+            відкрити картку й знайти кнопку всередині; а складають його
+            щодня й до кожного замовлення. На самій кнопці видно стан:
+            позначка означає, що пропозиція вже є. */''}
+      <button class="tc-act tc-act--kp" data-act="kp" title="${
+        o.offerToken ? 'Відкрити комерційну пропозицію' : 'Скласти комерційну пропозицію'
+      }">КП${o.offerToken ? ' ✓' : ''}</button>
       <button class="tc-act" data-act="prev" ${canPrev?'':'disabled'} title="На крок назад">←</button>
       <button class="tc-act" data-act="next" ${canNext?'':'disabled'} title="На крок далі">→</button>
     </div>`;
@@ -12437,6 +12442,8 @@ function buildTicket(o){
       window.open(url, '_blank', 'noopener');
     });
   });
+  const kp = el.querySelector('[data-act="kp"]');
+  if(kp) kp.addEventListener('click', e => { e.stopPropagation(); openOfferEditor(o); });
   const dl = el.querySelector('[data-act="del"]');
   if(dl) dl.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
