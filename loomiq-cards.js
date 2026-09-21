@@ -759,7 +759,22 @@
     var right = W - PAD, hh = headOf(o), mid = hh / 2;
     var lw = o.logo ? drawLogo(x, o.logo, PAD, mid, 44 * (o.logoK || 1),
                                o.logoCol, o.logoY) : 0;
+    /* Риска між знаком і назвою. Це два різні голоси: ліворуч — чий це
+       бренд, праворуч — що за виріб. Без розділювача вони читаються як
+       одне ціле, і назва товару виглядає частиною логотипа.
+
+       Риска коротка й тонка, по висоті рядка: вона розділяє, а не
+       креслить. Довга лінія на всю шапку сперечалась би з тією, що під
+       нею, і шапка перетворилась би на таблицю. */
     var tx = PAD + (lw ? Math.round(lw) + LOGO_GAP : 0);
+    if(lw){
+      var dx = tx + Math.round(LOGO_GAP / 2) - 1;
+      x.strokeStyle = t.line; x.lineWidth = 2;
+      x.beginPath();
+      x.moveTo(dx, mid - 22); x.lineTo(dx, mid + 22);
+      x.stroke();
+      tx = dx + LOGO_GAP;
+    }
 
     /* Підпис — угорі праворуч. Унизу він стояв під приміткою й читався як
        її продовження; тут він на своєму місці: те, чия це картка й до якої
@@ -826,27 +841,29 @@
     var step = Math.round(n * 1.4);
     lines.forEach(function(ln, i){ x.fillText(ln, X, yLab + 32 + i * step); });
   }
-  /* Характеристики у дві колонки. Назва дрібним і сірим, значення під нею
-     чорнилом: так пара читається як одна річ, а не як два слова підряд.
+  /* Характеристики — ОДНА КОЛОНКА, рядок за рядком, у тому порядку, у
+     якому їх заведено в картці товару.
 
-     Скільки рядків у першій колонці — рахуємо, а не ділимо навпіл: при
-     пʼяти характеристиках рівний поділ дає 2+3, і друга колонка виявляється
-     нижчою за першу. Округляємо вгору, і зайвий рядок лишається ліворуч,
-     де око починає читати. */
-  function specCols(x, t, specs, X, yLab, w){
+     Дві колонки тут пробували: читач мусить сам вирішити, чи йти йому
+     вниз, чи вбік, — і на п'яти коротких парах ця робота не окупається.
+     Один стовпчик читається згори вниз без жодного рішення.
+
+     Назва й значення в одному рядку: назва сірим, значення чорнилом
+     одразу за нею. Пара тримається разом, а колонка лишається вузькою. */
+  function specRows(x, t, specs, X, yLab, w){
     eyebrow(x, 'Про товар', X, yLab, t.dim, 21);
-    var list = specs.slice(0, 8);
-    var colW = (w - 28) / 2;
-    var rows = Math.ceil(list.length / 2);
-    var STEP = 46, y0 = yLab + 34;
+    var list = specs.slice(0, 6);
+    var STEP = 27, y0 = yLab + 34;
     list.forEach(function(sp, i){
-      var col = i < rows ? 0 : 1;
-      var row = i < rows ? i : i - rows;
-      var cx = X + col * (colW + 28), cy = y0 + row * STEP;
-      x.fillStyle = t.dim; x.font = '400 15px ' + t.body;
-      x.fillText(clip1(x, sp.label || '', colW), cx, cy);
-      x.fillStyle = t.ink; x.font = '600 19px ' + t.body;
-      x.fillText(clip1(x, sp.value || '', colW), cx, cy + 22);
+      var y = y0 + i * STEP;
+      x.font = '400 16px ' + t.body;
+      var lab = String(sp.label || '');
+      var lw = x.measureText(lab).width;
+      x.fillStyle = t.dim;
+      x.fillText(lab, X, y);
+      x.font = '600 18px ' + t.body;
+      x.fillStyle = t.ink;
+      x.fillText(clip1(x, String(sp.value || ''), w - lw - 12), X + lw + 12, y);
     });
   }
   function numbers(x, card, t, show, W, o){
@@ -949,7 +966,7 @@
            300 г/м² · Крій оверсайз · Формат жіноча · Нанесення DTF»
            читається як дрібний абзац, і клієнт його просто гортає. Пари
            стовпчиком читаються поглядом: ліворуч про що, праворуч скільки. */
-        if((card.specs || []).length) specCols(x, t, card.specs, cx, yLab, aboutW);
+        if((card.specs || []).length) specRows(x, t, card.specs, cx, yLab, aboutW);
         else textCell(x, t, 'Про товар', about, cx, yLab, aboutW, 22, t.ink, 4);
         cx += aboutW + GAPC;
       }
