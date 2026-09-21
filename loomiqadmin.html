@@ -4591,18 +4591,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=79a6bbcb35"></script>
-<script src="loomiq-fingerprint.js?v=79a6bbcb35"></script>
-<script src="loomiq-pricing.js?v=79a6bbcb35"></script>
+<script src="loomiq-select.js?v=79c7834b16"></script>
+<script src="loomiq-fingerprint.js?v=79c7834b16"></script>
+<script src="loomiq-pricing.js?v=79c7834b16"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=79a6bbcb35"></script>
+<script src="loomiq-design.js?v=79c7834b16"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=79a6bbcb35"></script>
+<script src="loomiq-cards.js?v=79c7834b16"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8472,7 +8472,7 @@ function priceCalcHtml(o){
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
     lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
-    rows.push('<div class="t-calc-item"><div class="t-calc-name">' + escapeHtml(it.name || '—') + '</div>' +
+    rows.push('<div class="t-calc-item"><div class="t-calc-name">' + escapeHtml(itemName(it) || '—') + '</div>' +
       lines.map(l=>'<div class="t-calc-row' + (l[2] === 'disc' ? ' is-disc' : '') +
         (l[2] === 'note' ? ' is-note' : '') + (l[2] === 'sum' ? ' is-sum' : '') +
         '"><span>' + escapeHtml(l[0]) + '</span><b>' + escapeHtml(l[1]) + '</b></div>').join('') +
@@ -9179,7 +9179,7 @@ function offerMgrCalc(o){
       const price = Math.round(+it.price || 0);
       const cost  = Math.round(+it.cost  || 0);
       const box = { rows: offerCalcRows(it, o), qty: +it.qty || 0, price,
-                    name: it.name || '',
+                    name: itemName(it),
                     meta: [it.color, it.print, it.sizes].filter(Boolean).join(' · ') };
       if(out.cost){
         box.cost = cost;
@@ -9375,6 +9375,23 @@ function logoPrevUrl(o){
 function itemGarmentId(it){
   return (it && it.config && it.config.garmentId) || (it && it.garmentId) || '';
 }
+/* Назва позиції — ЖИВА, а не та, що була в мить додавання.
+
+   Назву товару міняють у Конструкторі сайту, і доти зміна діяла лише на
+   каталог і на нові позиції: у вже зібраних замовленнях лишалось старе
+   слово. Виходило, що те саме худі в Канбані, у КП і на сайті звалось
+   по-різному — залежно від того, коли його поклали в замовлення. Клієнт
+   бачить обидві назви, бо КП відкриває поруч із сайтом.
+
+   Беремо перейменування за ідентифікатором виробу. Немає перейменування —
+   лишається те, що записано в позиції: рекомендовані з чужого прайсу й
+   разові роботи взагалі не мають ідентифікатора, і вигадувати їм назву
+   нема з чого. */
+function itemName(it){
+  const gid = itemGarmentId(it);
+  const over = gid && (contentData.names || {})[gid];
+  return over || (it && it.name) || '';
+}
 /* Розмірна сітка в тому вигляді, у якому її читає клієнт.
    У базі сітка лежить рядками-обʼєктами: {size:'M', A:71, B:53}, а мірки
    (що таке A і що таке B) — окремим списком колонок у того ж товару.
@@ -9489,7 +9506,7 @@ function offerItem(it, order, itemIdx){
        мовчала й показувала застаріле число, або перебивала свідоме рішення
        менеджера. */
     qtyAuto: itemKind(it) === 'reco' ? (it.qtyAuto !== false) : undefined,
-    name: it.name || '', color: it.color || '',
+    name: itemName(it), color: it.color || '',
     sizes: it.sizes || '', qty: n.qty,
     print: it.print || '',
     techniques: [...new Set((it.prints||[]).map(p=>p.technique).filter(Boolean))],
@@ -12009,7 +12026,7 @@ function orderItemsHtml(o, want){
     return `
       <div class="t-web-item">
         <div class="t-web-head">
-          <span class="t-web-name">${escapeHtml(it.name||'—')}${recoBadgeHtml(it)}</span>
+          <span class="t-web-name">${escapeHtml(itemName(it)||'—')}${recoBadgeHtml(it)}</span>
           <span class="t-web-price">${fmt(it.price)} ₴</span>
         </div>
         ${/* Розкладка по розмірах — те, що піде у виробництво. Показуємо
@@ -15212,7 +15229,7 @@ function prodPackHtml(o){
   return `<div class="od-sec">Пакет із дизайн-відділу${
       pk.at ? ' · ' + escapeHtml(dtUa(pk.at)) : ''}</div>` +
     rows.map(it => `<div class="od-pack">
-      <div class="od-pack-h">${escapeHtml(it.name || '')}${
+      <div class="od-pack-h">${escapeHtml(itemName(it))}${
         it.color ? ' · ' + escapeHtml(it.color) : ''}${
         it.sizes ? ' · ' + escapeHtml(it.sizes) : ''}</div>` +
       (it.places || []).map(pl => `<div class="od-pack-p">
@@ -15294,7 +15311,7 @@ function odProdHtml(o){
       <div class="od-sec">Що шиємо</div>
       ${items.map(it=>`
         <div class="t-web-item">
-          <div class="t-web-head"><span class="t-web-name">${escapeHtml(it.name || '—')}</span></div>
+          <div class="t-web-head"><span class="t-web-name">${escapeHtml(itemName(it) || '—')}</span></div>
           <div class="t-web-meta">${escapeHtml(it.color || '')}${
             sizeQtyText(it) ? ' · ' + escapeHtml(sizeQtyText(it))
               : ((+it.qty) ? ' · ' + (+it.qty) + ' шт' : '')}</div>
@@ -15357,7 +15374,7 @@ function odDesignerHtml(o){
       <div class="od-sec">Що шиємо</div>
       ${items.map(it=>`
         <div class="t-web-item">
-          <div class="t-web-head"><span class="t-web-name">${escapeHtml(it.name || '—')}</span></div>
+          <div class="t-web-head"><span class="t-web-name">${escapeHtml(itemName(it) || '—')}</span></div>
           <div class="t-web-meta">${escapeHtml(it.color || '')}${
             sizeQtyText(it) ? ' · ' + escapeHtml(sizeQtyText(it))
               : ((+it.qty) ? ' · ' + (+it.qty) + ' шт' : '')}</div>

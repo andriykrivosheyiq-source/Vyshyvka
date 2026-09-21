@@ -2681,18 +2681,61 @@
       window.addEventListener('resize', function(){ if(!box.hidden) drawTiltRuler(); });
     }
 
+    /* Точки, де на цьому фото ЩЕ НІКОГО НЕМАЄ.
+
+       «Зайнята» — та, біля якої вже стоїть якийсь шар. Порівнюємо відстань,
+       а не тотожність: менеджер міг посунути копію на пару сантиметрів по
+       грудях, і вона від цього не перестала бути нанесенням на цю людину.
+       За межу беремо пʼяту частину ширини кадру — приблизно ширина торса,
+       і сплутати сусідніх людей на ній уже не можна. */
+    function modelFreeSpots(have){
+      var spots = modelSeedSpots();
+      if(!spots.length) return [];
+      var b = wrapBox();
+      var near = (b.w || 300) * 0.2;
+      return spots.filter(function(sp){
+        return !(have || []).some(function(l){
+          layerApplyFrac(l);
+          var dx = (+l.x || 0) - sp.x, dy = (+l.y || 0) - sp.y;
+          return Math.sqrt(dx * dx + dy * dy) < near;
+        });
+      });
+    }
     var wantModelSeed = false;
     function seedModelLayers(){
       if(!wantModelSeed || pm.side !== MODEL_VIEW) return;
       var have = pm.logos[MODEL_VIEW] || (pm.logos[MODEL_VIEW] = []);
-      if(have.length){ wantModelSeed = false; return; }
       var from = (pm.logos.front || []).filter(function(l){ return l && !isPristineText(l); });
       /* Переду ще немає — засівати нічим. Позначку не ставимо: щойно
          нанесення зʼявиться, копії приїдуть самі. */
       if(!from.length){ wantModelSeed = false; return; }
-      var spots = modelSeedSpots();
-      if(!spots.length) return;              // фото ще не приїхало — спробуємо на load
+      /* ДОСІЮЄМО, А НЕ ТІЛЬКИ СІЄМО З НУЛЯ.
+
+         Доти будь-який уже наявний шар зупиняв засів цілком: `have.length`
+         — і виходимо. Через це замовлення, зібрані до того, як ми навчились
+         класти нанесення на обох людей, назавжди лишались з однією копією:
+         на парному фото один у мерчі, другий просто так. Полагодити це
+         було нічим, окрім як руками.
+
+         Тепер дивимось не «чи є хоч щось», а «яких людей на кадрі ще не
+         вдягнено», і досипаємо рівно туди. Робимо це ОДИН раз на відкриття
+         виробу: менеджер міг зайву копію свідомо прибрати, і повертати її
+         щоразу, коли він перемкнувся на вітрину й назад, означало б
+         сперечатися з ним. */
+      var all = modelSeedSpots();
+      if(!all.length) return;                // фото ще не приїхало — спробуємо на load
+      var spots = all;
+      if(have.length){
+        if(pm.modelTopped){ wantModelSeed = false; return; }
+        pm.modelTopped = true;
+        spots = modelFreeSpots(have);
+        if(!spots.length){ wantModelSeed = false; return; }
+      }
       wantModelSeed = false;
+      /* Цю вітрину вже заповнювали — більше не чіпаємо. Позначку ставимо і
+         після першого засіву теж: якщо менеджер зараз прибере зайву копію,
+         вона не має повертатись від наступного ж перемикання ракурсу. */
+      pm.modelTopped = true;
       /* На кожну людину — ВСІ нанесення переду. Двоє людей і два знаки на
          грудях дають чотири копії, і це правильно: на виробі їх теж два, і
          на обох людях вони однакові.
@@ -2700,6 +2743,7 @@
          Взаємний зсув між знаками зберігаємо: якщо на переді напис стоїть
          під логотипом, на моделі він теж має стояти під ним, а не поруч. */
       var base = from[0];
+      var added = [];
       spots.forEach(function(sp, si){
         from.forEach(function(src, i){
           var l = JSON.parse(JSON.stringify(src));
@@ -2714,10 +2758,16 @@
           l.rot = +src.rot || 0;
           layerSaveFrac(l);
           have.push(l);
+          added.push(l);
         });
       });
       pm.modelSeedDone = true;
-      pm.activeLogoId = have.length ? have[0].id : null;
+      /* Активним робимо ПЕРШИЙ із щойно доданих, а не перший у списку: коли
+         досипали копію на другу людину, менеджер зараз працює саме з нею, і
+         підсунути йому натомість старий шар — це змусити шукати на кадрі,
+         що ж додалось. */
+      if(added.length) pm.activeLogoId = added[0].id;
+      else if(!pm.activeLogoId && have.length) pm.activeLogoId = have[0].id;
       try{ renderLogoLayers(); }catch(e){}
       /* І панель теж. Засів майже завжди спізнюється: фото моделі в мить
          перемикання ще вантажиться, тож копії зʼявляються вже після того,
@@ -3724,8 +3774,23 @@
          вікно відтоді могло змінитись. Переводимо частки назад у пікселі
          ПЕРЕД зсувом — інакше копія лягла б за старими координатами. */
       layerApplyFrac(l);
-      l.x = (+l.x || 0) + 26;
-      l.y = (+l.y || 0) + 26;
+      /* НА ВІТРИНІ КОПІЯ ЇДЕ ДО НАСТУПНОЇ ЛЮДИНИ, а не на двадцять шість
+         пікселів убік. На фото з двома людьми дублюють рівно заради цього —
+         вдягнути другого, — а зсув на палець виглядав так, ніби кнопка
+         нічого не зробила: копія ховалась за оригіналом. Вільних людей
+         немає — тоді звичайний зсув, це вже свідоме «хочу два знаки на
+         одному». */
+      var free = (side === MODEL_VIEW) ? modelFreeSpots(list) : [];
+      if(free.length){
+        var sp = free[0];
+        l.x = sp.x;
+        l.y = sp.y;
+        // Розмір теж від точки: на дальшій людині виріб на фото менший
+        if(sp.scale > 0) l.scale = Math.max(0.04, sp.scale);
+      } else {
+        l.x = (+l.x || 0) + 26;
+        l.y = (+l.y || 0) + 26;
+      }
       layerSaveFrac(l);
       list.push(l);
       pm.activeLogoId = l.id;
@@ -6212,6 +6277,10 @@
          належить конкретній позиції, а не сеансу: інакше друга позиція
          поспіль лишилась би з порожнім фото моделі. */
       pm.modelSeedDone = false;
+      /* І «досипали копії на вільних людей» — теж заново. Досипаємо раз на
+         відкриття виробу: якщо менеджер зайву копію свідомо прибрав, вона
+         не має повертатись від кожного перемикання ракурсу й назад. */
+      pm.modelTopped = false;
       // виріб міг бути знятий з продажу (старий кошик, посилання) — беремо перший наявний
       if(garmentId && !GARMENTS.some(function(g){ return g.id === garmentId; })) garmentId = null;
       pm.garmentId = garmentId || GARMENTS[0].id;
