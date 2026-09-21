@@ -2128,6 +2128,15 @@
   .prod-card .pcard-img img{width:100%;height:100%;object-fit:contain;}
   .prod-card .pcard-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px;}
   .prod-card .pcard-name{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.25;}
+  /* Олівець біля назви. Тихий, доки на картку не навели: сітку гортають
+     очима, і двадцять олівців поспіль читались би як частина назв. */
+  .pcard-ren{all:unset;cursor:pointer;margin-left:5px;font-size:12px;color:var(--muted);
+    padding:1px 4px;border-radius:5px;opacity:0;transition:opacity .12s;}
+  .prod-card:hover .pcard-ren,.pcard-ren:focus-visible{opacity:1;}
+  .pcard-ren:hover{background:var(--canvas);color:var(--ink);}
+  /* Куди привів олівець. Секунда підсвітки — щоб око знайшло поле серед
+     решти панелі, а не шукало його заново. */
+  #info-name.is-lit{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   .prod-card .pcard-price{font-size:12px;color:var(--ink-soft);}
   .prod-card .pcard-drag{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.9);border-radius:7px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
   .prod-card .pcard-x{position:absolute;top:36px;left:6px;z-index:3;width:24px;height:24px;
@@ -4591,18 +4600,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9ee20177bf"></script>
-<script src="loomiq-fingerprint.js?v=9ee20177bf"></script>
-<script src="loomiq-pricing.js?v=9ee20177bf"></script>
+<script src="loomiq-select.js?v=de7864d21f"></script>
+<script src="loomiq-fingerprint.js?v=de7864d21f"></script>
+<script src="loomiq-pricing.js?v=de7864d21f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9ee20177bf"></script>
+<script src="loomiq-design.js?v=de7864d21f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9ee20177bf"></script>
+<script src="loomiq-cards.js?v=de7864d21f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -22067,11 +22076,37 @@ function renderProductGrid(){
       </div>
       <div class="pcard-img">${img?`<img src="${escA(img)}" alt="" onerror="this.style.display='none'">`:''}</div>
       <div class="pcard-body">
-        <div class="pcard-name">${escA(dispName)}</div>
+        ${/* Перейменувати — прямо тут, олівцем біля назви.
+
+             Поле «Назва товару на сайті» й раніше було, але всередині
+             товару, третім блоком униз, і знайти його не виходило: людина
+             дивиться на сітку товарів, бачить назву й шукає, де її
+             виправити, саме тут. Олівець веде туди ж, куди й раніше, —
+             просто тепер туди є дорога від того місця, де виникає
+             питання. */''}
+        <div class="pcard-name">${escA(dispName)}<button class="pcard-ren"
+          data-ren="${p.id}" title="Перейменувати товар">✎</button></div>
         <div class="pcard-price">${escA(priceTxt||'')}</div>
       </div>
     </div>`;
   }).join('');
+  grid.querySelectorAll('[data-ren]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      e.stopPropagation();
+      openProduct(b.dataset.ren);
+      /* Відкриваємо товар і ведемо просто до поля: підсвічуємо, ставимо
+         курсор і виділяємо текст. Інакше людина знову опиняється на
+         початку довгої панелі й шукає те саме. */
+      setTimeout(()=>{
+        const el = document.getElementById('info-name');
+        if(!el) return;
+        el.scrollIntoView({ block:'center', behavior:'smooth' });
+        el.focus(); el.select();
+        el.classList.add('is-lit');
+        setTimeout(()=> el.classList.remove('is-lit'), 1600);
+      }, 120);
+    });
+  });
   /* Хрестик на картці. Свій товар видаляється назавжди, вбудований —
      ховається: він приходить зі списку в коді, і «видалити» його можна
      хіба що з каталогу. Приховане повертається тим самим значком, тож
