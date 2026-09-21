@@ -213,6 +213,23 @@
      Кожен варіант іде СВОЄЮ карткою: у Direct надсилають картинки по одній,
      і виріб, стиснутий до половини кадру заради сусіда, втрачає рівно те,
      заради чого картку й шлють. */
+  /* Чи показувати цей кадр.
+
+     Рішення менеджера лежить у `own.off` і важить більше за будь-яке наше
+     правило. А от ЗА ЗАМОВЧУВАННЯМ фото на моделі знято: воно показує, як
+     виріб сидить на людині, а не сам виріб з нанесенням, і в прорахунку
+     клієнт питає передусім про друге. Кому потрібна вітрина — вмикає
+     галочкою, і це рішення лишається в картці.
+
+     Зберігаємо саме нуль, а не видалення ключа: «менеджер увімкнув» і
+     «менеджер не чіпав» — різні стани, і плутати їх не можна, інакше
+     ввімкнена модель мовчки зникала б при наступному складанні. */
+  function shotOn(own, sh){
+    var off = (own && own.off) || {};
+    var k = sh && (sh.key || sh.url);
+    if(Object.prototype.hasOwnProperty.call(off, k)) return !off[k];
+    return !(sh && sh.model);
+  }
   function buildCards(offer, cfg){
     offer = offer || {};
     cfg = cfg || {};
@@ -486,8 +503,8 @@
          Повний список веземо окремо (`allShots`): робоче місце має
          показати й зняті теж, інакше повернути їх не було б як. Останній
          кадр зняти не можна — картка без жодного фото це не картка. */
-      var off = own.off || {};
-      var keep = shots.filter(function(sh){ return !off[sh.url]; });
+      shots.forEach(function(sh){ sh.key = sh.url; });
+      var keep = shots.filter(function(sh){ return shotOn(own, sh); });
       var allShots = shots;
       shots = keep.length ? keep : shots.slice(0, 1);
       return {
@@ -565,9 +582,32 @@
       var pool = pick.map(function(k){ return list[k]; });
       var cols = pool.map(function(r){
         var c = card('variant:' + r.i, 'variant', r.it);
-        return { id: c.id, name: c.name, sub: c.sub, shots: c.shots,
+        return { id: c.id, name: c.name, sub: c.sub, shots: c.allShots || c.shots,
                  specs: c.specs, unit: c.unit, base: c.base, qty: c.qty,
                  lost: c.lost };
+      });
+      /* ЯКІ РЯДИ КАДРІВ ПОКАЗУВАТИ. У таблиці сторони — це рядки, і знімає
+         менеджер саме РЯД, а не окремий кадр: прибрати спину в одного
+         варіанта й лишити в другого означало б порівнювати різне з різним.
+
+         Тому ключ тут — сторона, а не адреса картинки: у кожної колонки
+         свій файл переду, і адресою їх не звʼяжеш. */
+      var sideKey = function(sh){ return sh.model ? 'model' : (sh.side || sh.label || 'i'); };
+      var allShots = [];
+      cols.forEach(function(c){
+        (c.shots || []).forEach(function(sh){
+          var k = sideKey(sh);
+          if(allShots.some(function(z){ return z.key === k; })) return;
+          allShots.push({ key: k, url: sh.url, side: sh.side || '',
+                          label: sh.label || '', model: !!sh.model });
+        });
+      });
+      var rowsOn = allShots.filter(function(sh){ return shotOn(own, sh); });
+      if(!rowsOn.length) rowsOn = allShots.slice(0, 1);
+      var onKey = {};
+      rowsOn.forEach(function(sh){ onKey[sh.key] = 1; });
+      cols.forEach(function(c){
+        c.shots = (c.shots || []).filter(function(sh){ return onKey[sideKey(sh)]; });
       });
       /* Рядки таблиці — ОБʼЄДНАННЯ всіх характеристик: в одного варіанта
          може бути «Щільність», а в другого її не вписали. Порожня клітинка
@@ -604,6 +644,7 @@
         name: own.title || g,
         note: own.note || '',
         cols: cols, rows: rows, shotRows: Math.min(nShot, 3),
+        allShots: allShots,
         qty: cols[0].qty,
         pool: list.map(function(r, k){
           return { i: k, name: r.it.name || '', on: pick.indexOf(k) >= 0 };
