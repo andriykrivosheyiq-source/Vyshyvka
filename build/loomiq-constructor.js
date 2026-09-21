@@ -2665,6 +2665,15 @@
         applyLayerStyle(pmLogoLayers.querySelector('[data-layer-id="' + l.id + '"]'), l);
         drawTiltRuler();
       });
+      /* Вихід зі смуги. Доти його не було: ручка нахилу її відкривала, а
+         закрити не могло ніщо — ні та сама ручка, ні клавіша. Смуга
+         лишалась унизу до закриття всього вікна й забирала місце в макета,
+         заради якого все й робиться. */
+      var cls = document.getElementById('pmTiltClose');
+      if(cls) cls.addEventListener('click', function(){ pm.warpId = null; tiltOpen(false); });
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape' && !box.hidden){ pm.warpId = null; tiltOpen(false); }
+      });
       window.addEventListener('resize', function(){ if(!box.hidden) drawTiltRuler(); });
     }
 
@@ -2706,6 +2715,14 @@
       pm.modelSeedDone = true;
       pm.activeLogoId = have.length ? have[0].id : null;
       try{ renderLogoLayers(); }catch(e){}
+      /* І панель теж. Засів майже завжди спізнюється: фото моделі в мить
+         перемикання ще вантажиться, тож копії зʼявляються вже після того,
+         як панель намалювалась, — а намалювалась вона для порожньої
+         сторони. Через це на вітрині не було ні мініатюр нанесення, ні
+         нижнього ряду інструментів: ні «Дублювати», ні «Обрізати», ні
+         кольору нитки. Виглядало так, ніби кнопок просто немає — хоч
+         досить було перемкнути вкладку туди-назад, щоб вони зʼявились. */
+      try{ renderTabPanel(); }catch(e){}
     }
     pmGarmentPhoto.addEventListener('load', function(){ try{ seedModelLayers(); }catch(e){} try{ renderPrintArea(); }catch(e){} try{ matchStageBg(); }catch(e){} });
     /* Фото не завантажилось — лишити фон від попереднього кольору означало б
