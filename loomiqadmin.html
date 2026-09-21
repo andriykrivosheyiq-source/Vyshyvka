@@ -4534,13 +4534,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fe9af1fa33"></script>
-<script src="loomiq-fingerprint.js?v=fe9af1fa33"></script>
-<script src="loomiq-pricing.js?v=fe9af1fa33"></script>
+<script src="loomiq-select.js?v=7b5c70cc71"></script>
+<script src="loomiq-fingerprint.js?v=7b5c70cc71"></script>
+<script src="loomiq-pricing.js?v=7b5c70cc71"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=fe9af1fa33"></script>
+<script src="loomiq-design.js?v=7b5c70cc71"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -11426,6 +11426,13 @@ function renderTicket(o){
     <div class="t-actions">
       <button data-act="prev" ${canPrev?'':'disabled'}>← Назад</button>
       <button data-act="next" ${canNext?'':'disabled'}>Далі →</button>
+      ${/* КП прямо з дошки. Доти до редактора пропозиції вела одна дорога —
+           відкрити картку, знайти кнопку всередині; а відкривають його
+           щодня й до кожного замовлення. Тут же видно й стан: складена
+           пропозиція чи її ще немає. */''}
+      <button data-act="kp" style="flex:none;"
+        title="${o.offerToken ? 'Відкрити комерційну пропозицію' : 'Скласти комерційну пропозицію'}">${
+        o.offerToken ? 'КП ✓' : 'КП'}</button>
       ${canDelete() ? `<button data-act="del" title="Видалити замовлення" style="flex:none;background:var(--bad-soft);color:var(--bad);">🗑</button>` : ''}
     </div>
   `;
@@ -11436,6 +11443,8 @@ function renderTicket(o){
   el.querySelector('[data-act="prev"]').addEventListener('click', async ()=>{
     if(canPrev){ setStatus(o, statusFlow()[statusIdx-1].key); await storeSet('orders', orders); renderBoard(); }
   });
+  const kpB = el.querySelector('[data-act="kp"]');
+  if(kpB) kpB.addEventListener('click', e => { e.stopPropagation(); openOfferEditor(o); });
   const delB = el.querySelector('[data-act="del"]');
   if(delB) delB.addEventListener('click', ()=> deleteOrderCard(o));
   wireDocsBlock(el, o);
@@ -18769,6 +18778,15 @@ function msgWord(n){
 }
 function chatOrder(){ return chatWin && (orders || []).find(x => x.id === chatWin.id); }
 function chatOpen(o, kind){
+  /* Розмову з дошки відкривали САМУ, без замовлення. А говорять у ній
+     рівно про нього: що замовили, на скільки, коли відправка, скільки
+     сплачено. Усе це доводилось згадувати або закривати розмову й лізти в
+     картку — і повертатись назад.
+
+     Тому картку відкриваємо поруч. Вона ж далі бере на себе підписку на
+     стрічку й позначку «прочитано», тож окремий режим «вікно саме по
+     собі» лишається тільки для випадків, коли картку відкрити не вдалось. */
+  if(drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
   // solo — вікно відкрили з дошки, без картки. Тоді підписку на розмову й
   // позначку «прочитано» бере на себе воно саме: інакше стрічка була б
   // мертвою, а лічильник пропущених не гаснув би ніколи.
