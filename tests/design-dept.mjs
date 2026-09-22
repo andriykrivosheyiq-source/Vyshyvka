@@ -743,33 +743,29 @@ console.log('═══ ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ ══�
    робила рівно те, чого просили не робити. */
 {
   const своє = await p.evaluate(async () => {
-    const було = (window.orders || []).length;
-    const job = await designJobNew();
-    const o = designOrders().filter(x => x.orderId === job.orderId)[0];
-    return { номер: job.no || 0, ключ: job.orderId,
-             уКанбані: (window.orders || []).length - було,
-             уВідділі: !!o, своє: !!(o && o.solo) };
+    const made = await designJobNew();
+    const o = orders.find(x => x.orderId === made.orderId);   // `orders` — let, на window його немає
+    return { номер: made.orderId, напрям: o && o.dir,
+             уВідділі: designOrders().some(x => x.orderId === made.orderId),
+             наДошці: (typeof boardPass === 'function') && boardPass(o) };
   });
   console.log('   ' + JSON.stringify(своє));
-  ok(своє.уКанбані === 0,
-    'заведене у відділі замовлення в Канбан не потрапляє — його там просто немає',
-    'картка лягла в Канбан: ' + JSON.stringify(своє));
-  ok(своє.уВідділі && своє.своє,
-    'зате воно є у відділі й виглядає там як звичайне замовлення',
-    'у відділі його не видно: ' + JSON.stringify(своє));
-  ok(своє.номер >= 2000001,
-    'номер свій, відділовий — з двійки, а не з Канбану',
-    'номер не з нумерації відділу: ' + JSON.stringify(своє));
-  ok(/^d/.test(своє.ключ || ''),
-    'ключ починається з літери — його ніколи не сплутати з номером замовлення',
-    'ключ виглядає як номер замовлення: ' + JSON.stringify(своє));
+  ok(своє.наДошці === false,
+    'заведене тут замовлення на дошку Канбану не потрапляє — інший напрям',
+    'замовлення B2C лягло на дошку Канбану: ' + JSON.stringify(своє));
+  ok(своє.уВідділі && своє.напрям === 'b2c',
+    'зате воно є в B2C і позначене напрямом',
+    'у напрямі його не видно: ' + JSON.stringify(своє));
+  ok(/^50000/.test(своє.номер || ''),
+    'номер свій, із пʼятірки — напрям видно з першої цифри',
+    'номер не з ряду B2C: ' + JSON.stringify(своє));
   /* КЛІЄНТ — ЦЕ НІК І РОЗМОВА, А НЕ АНКЕТА. Андрій: «там тільки нік, і
      така сама логіка, як з карточкою в Канбані — нік і по діалогу шукаємо,
      по номеру діалогу». Імʼя, вписане руками, за тиждень розходиться з
      тим, як людина підписана в Direct, і знайти її за ним уже не виходить. */
   const adm = fs.readFileSync(path.join(ROOT, 'loomiq-design.js'), 'utf8');
   const кл = adm.slice(adm.indexOf('function clientHtml'), adm.indexOf('var SEAT_TASK'));
-  ok(/data-bind/.test(кл) && !/data-of="name"/.test(кл) && !/data-of="phone"/.test(кл),
+  ok(/data-bind/.test(кл) && /o\.crmChatId/.test(кл),
     'клієнта не вписують анкетою — привʼязують розмову, і нік приходить із неї',
     'у картці досі анкета з імʼям і телефоном замість привʼязки розмови');
   ok(/data-do="chat"/.test(кл),
@@ -778,12 +774,12 @@ console.log('═══ ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ ══�
   const хост = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const bnd = хост.slice(хост.indexOf('async function designBindChat'),
                          хост.indexOf('function designUnbindChat'));
-  ok(/crmChatIdFromUrl/.test(bnd) && /job\.own\.nick/.test(bnd),
+  ok(/crmChatIdFromUrl/.test(bnd) && /o\.crmChatName = nick/.test(bnd),
     'привʼязка йде тим самим механізмом, що й у Канбані — адресою розмови',
     'у відділу свій спосіб привʼязки: дві дороги до однієї розмови розійдуться');
-  ok(/crmChatId: c\.chatId/.test(хост),
-    'привʼязана розмова стає розмовою самого замовлення — стрічка й чернетка на місці',
-    'розмова привʼязана, але картка про неї не знає');
+  ok(/o\.crmChatId = id/.test(bnd) && /saveOrderMeta\(o\)/.test(bnd),
+    'розмова привʼязується до самого замовлення тими самими полями, що й у Канбані',
+    'у напряму свої поля розмови — дві дороги до однієї переписки розійдуться');
   const host = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const nw = host.slice(host.indexOf('newOrder: async ()'), host.indexOf('newOrder: async ()') + 420);
   ok(!/data-view="board"/.test(nw) && /designJobNew/.test(nw),

@@ -1130,15 +1130,18 @@
     /* ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ. У нього немає картки в Канбані, звідки
        взялись би імʼя й телефон, — і саме тому воно й заводиться тут:
        відділ живе окремо. Тож клієнта вписують прямо в картці. */
-    if(o.solo){
-      var own = (job && job.own) || {};
+    if(o.dir === 'b2c'){
       /* Клієнт тут — нік і привʼязана розмова, а не анкета. Імʼя, вписане
          руками, за тиждень розходиться з тим, як людина підписана в
          Direct, і знайти її за ним уже не виходить. Привʼязана розмова
-         дає і нік, і канал, і саму переписку — усе таким, як воно є. */
-      if(own.chatId)
+         дає і нік, і канал, і саму переписку — усе таким, як воно є.
+
+         Поля тут ТІ САМІ, що в картці Канбану: замовлення B2C — звичайне
+         замовлення, просто іншого напряму. Своїх полів у нього немає. */
+      if(o.crmChatId)
         return '<div class="dz-own is-on">' +
-          '<div class="dz-own-who"><span>Клієнт</span><b>' + esc(own.nick || ('чат ' + own.chatId)) + '</b></div>' +
+          '<div class="dz-own-who"><span>Клієнт</span><b>' +
+            esc(o.crmChatName || ('чат ' + o.crmChatId)) + '</b></div>' +
           '<div class="dz-own-acts">' +
             '<button class="dz-b pri" data-do="chat">Переписка</button>' +
             '<button class="dz-b" data-do="unbind">Відвʼязати</button>' +
@@ -1307,7 +1310,7 @@
     /* У власного замовлення відділу немає картки в Канбані, а отже й
        кнопки «створити накладну»: накладні робить робоче місце продажу.
        Тут номер просто записують — цього досить, щоб знати, чим поїхало. */
-    if(o.solo)
+    if(o.dir === 'b2c')
       return '<div class="dz-h">Відправка</div>' +
         '<div class="dz-ship">' +
           '<div class="dz-ship-l"><b>' +
@@ -2153,16 +2156,16 @@
         var v = String(el.value || '').trim();
         if(!v) return;
         el.disabled = true;
-        Promise.resolve(host().bind ? host().bind(c.job, v) : false)
+        Promise.resolve(host().bind ? host().bind(c.o, v) : false)
           .then(function(){ render(document.getElementById('dzRoot')); })
           .catch(function(e){ console.error(e); el.disabled = false; });
       };
     });
     root.querySelectorAll('[data-of]').forEach(function(el){
       el.onchange = function(){
-        var c = ctx(); if(!c) return;
-        if(!c.job.own) c.job.own = {};
-        c.job.own[el.dataset.of] = String(el.value || '').trim();
+        var c = ctx(); if(!c || !c.o) return;
+        // Пишемо в САМЕ замовлення: своїх полів у напряму немає.
+        c.o[el.dataset.of] = String(el.value || '').trim();
         save(c.job, c.o, '');
       };
     });
@@ -2275,7 +2278,7 @@
       return say('Переписка недоступна');
     }
     if(what === 'unbind'){
-      if(host().unbind) host().unbind(job);
+      if(host().unbind) host().unbind(o);
       return render(document.getElementById('dzRoot'));
     }
     if(what === 'u-add'){
