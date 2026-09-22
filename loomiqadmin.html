@@ -1724,6 +1724,15 @@
     border-radius:50%;background:rgba(17,24,39,.72);color:#fff;font-size:11px;line-height:1;
     display:flex;align-items:center;justify-content:center;}
   .cw-tr-x:hover{background:var(--bad);}
+  .pic-big{position:fixed;inset:0;z-index:9000;display:none;align-items:center;
+    justify-content:center;background:rgba(12,16,24,.82);padding:28px;cursor:zoom-out;}
+  .pic-big.open{display:flex;}
+  .pic-big img{max-width:100%;max-height:100%;border-radius:10px;
+    box-shadow:0 18px 60px rgba(0,0,0,.5);}
+  .cw-cd-big{all:unset;cursor:zoom-in;position:absolute;top:8px;right:8px;width:24px;height:24px;
+    border-radius:50%;background:rgba(17,24,39,.72);color:#fff;font-size:12px;
+    display:flex;align-items:center;justify-content:center;}
+  .cw-cd-big:hover{background:var(--ink);}
   .cw-tr-add{all:unset;cursor:pointer;width:58px;height:58px;border-radius:10px;flex:none;
     border:1px dashed var(--line);color:var(--ink-soft);font-size:20px;
     display:flex;align-items:center;justify-content:center;}
@@ -16874,17 +16883,36 @@ function crmOutKeys(text){
   const rest = crmOutKey(urls.reduce((s, u) => s.replace(u, ''), String(text || '')));
   return [whole, rest].concat(urls.map(crmOutKey)).filter((k, i, a) => k && a.indexOf(k) === i);
 }
+/* ТА САМА ПАМʼЯТЬ, АЛЕ ЩЕ Й НА ЧАС ВКЛАДКИ.
+
+   Запис у картці потрібен на завтра — щоб і після перезавантаження було
+   видно, хто що писав. Але сама картка між тим ЗАМІНЮЄТЬСЯ: знімок бази
+   приходить за секунду після відправки й привозить ще ту версію, у якій
+   нашого запису немає. Доки збереження долетить назад, власне
+   повідомлення встигає стати ліворуч і без підпису — саме це й було
+   видно в робочій адмінці.
+
+   Тому та сама прикмета лежить ще й тут, у вкладці. Вона переживає будь-
+   яку підміну картки, а в базу пишеться своєю чергою. */
+const crmOutHere = {};
+function crmOutList(o){
+  const own = Array.isArray(o && o.crmOut) ? o.crmOut : [];
+  const here = (o && crmOutHere[o.id]) || [];
+  return here.length ? own.concat(here) : own;
+}
+function crmOutPush(o, rec){
+  if(!o || !rec || !rec.t) return;
+  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
+  if(!list.some(r => r && r.t === rec.t)) list.push(rec);
+  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+  const here = crmOutHere[o.id] || (crmOutHere[o.id] = []);
+  if(!here.some(r => r && r.t === rec.t)) here.push(rec);
+  if(here.length > CRM_OUT_KEEP) crmOutHere[o.id] = here.slice(-CRM_OUT_KEEP);
+}
 function crmOutNote(o, text){
   if(!o) return;
-  const keys = crmOutKeys(text);
-  if(!keys.length) return;
-  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
   const by = myName();
-  keys.forEach(k => {
-    if(list.some(r => r && r.t === k)) return;
-    list.push({ t: k, by: by });
-  });
-  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+  crmOutKeys(text).forEach(k => crmOutPush(o, { t: k, by: by }));
 }
 /* КАРТИНКА ВІД НАС — ПРАВОРУЧ.
 
@@ -16912,15 +16940,12 @@ function crmOutId(res){
 }
 function crmOutSent(o, res){
   if(!o) return '';
-  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
-  const by = myName();
   const id = crmOutId(res);
-  list.push(id ? { t:'#' + id, by: by } : { t:'@' + Date.now(), by: by });
-  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+  crmOutPush(o, { t: id ? ('#' + id) : ('@' + Date.now()), by: myName() });
   return id;
 }
 function crmOutOwn(o, m, files){
-  const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
+  const list = crmOutList(o);
   if(!list.length || !m || typeof m !== 'object') return null;
   const id = m.id || m.messageId || m.message_id || m.uuid;
   if(id != null && id !== ''){
@@ -16940,7 +16965,7 @@ function crmOutOwn(o, m, files){
   return null;
 }
 function crmOutFind(o, text, files){
-  const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
+  const list = crmOutList(o);
   if(!list.length) return null;
   /* Шукаємо і за текстом, і за адресами вкладень — саме вони лишаються
      єдиною прикметою повідомлення, у якому крім картинки нічого немає. */
@@ -19565,6 +19590,8 @@ function cardsPanelHtml(o){
       <span class="cw-cd-pic">${pic
         ? `<img src="${pic.url}" alt="">`
         : '<i class="cw-cd-wait"></i>'}</span>
+      ${pic ? `<button class="cw-cd-big" data-cd-big="${escapeHtml(c.id)}"
+        title="Роздивитись">🔍</button>` : ''}
       <span class="cw-cd-nm">${escapeHtml(c.name || 'Картка')}</span>
       ${was ? `<span class="cw-cd-was">${escapeHtml(was)}</span>` : ''}
       ${warn ? `<span class="cw-cd-warn" title="${escapeHtml(warn)}">⚠ неповна</span>` : ''}
@@ -19573,10 +19600,9 @@ function cardsPanelHtml(o){
   return `<div class="cw-cards">
     <div class="cw-cd-head">
       <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що готуємо</b>
-      <span>зніміть зайве · картки ляжуть у поле, надішлете самі</span>
+      <span>🔍 — роздивитись · зніміть зайве · текст уже в полі, надішлете самі</span>
     </div>
     <div class="cw-cd-grid">${tiles}</div>
-    ${st.text ? `<div class="cw-cd-txt">${escapeHtml(st.text)}</div>` : ''}
     <div class="cw-cd-acts">
       <button class="cw-cd-go" data-cd-go${n ? '' : ' disabled'}>${
         n ? 'У поле — ' + n + ' ' + cardWord(n) : 'Нічого не обрано'}</button>
@@ -19620,10 +19646,6 @@ function cardsToDraft(o){
     pics.push({ blob: store[c.id].blob, url: URL.createObjectURL(store[c.id].blob),
                 cardId: c.id });
   });
-  if(st.text){
-    const cur = String(chatWin.draft || '').trim();
-    chatWin.draft = (cur ? cur + '\n' : '') + st.text;
-  }
   chatWin.cards = null;
   renderChatWin();
   const el = document.querySelector('.cw-inp');
@@ -19928,6 +19950,29 @@ function chatTrayHtml(){
    без цього рядка кожна переглянута картинка лишалась би висіти до
    перезавантаження сторінки. */
 function chatDropPic(p){ if(p && p.url) try{ URL.revokeObjectURL(p.url); }catch(e){} }
+/* РОЗДИВИТИСЬ КАРТИНКУ — ТУТ, А НЕ В НОВІЙ ВКЛАДЦІ.
+
+   Спершу мініатюра відкривалась через `window.open`. На адресу виду
+   `blob:` браузер дивиться як на спробу відкрити вікно без причини й
+   мовчки її блокує — натиснув, і не сталось нічого. Тому показуємо своїм
+   шаром: працює завжди, закривається натисканням або Escape. */
+function picBig(url){
+  if(!url) return;
+  let d = document.getElementById('picBig');
+  if(!d){
+    d = document.createElement('div');
+    d.id = 'picBig'; d.className = 'pic-big';
+    d.addEventListener('click', picBigOff);
+    document.body.appendChild(d);
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') picBigOff(); });
+  }
+  d.innerHTML = '<img src="' + escapeHtml(url) + '" alt="">';
+  d.classList.add('open');
+}
+function picBigOff(){
+  const d = document.getElementById('picBig');
+  if(d){ d.classList.remove('open'); d.innerHTML = ''; }
+}
 /* Плитка зʼявляється ОДРАЗУ, ще порожня, і лише потім наповнюється.
 
    Андрій: «я вам завантажу вже 4 картинки і нічого не відправляється».
@@ -19971,7 +20016,9 @@ function wireChatWin(box, o, focusIn){
   const send = ()=>{
     const t = inp.value.trim();
     const pics = chatPics();
-    if((!t && !pics.length) || chatWin.picsBusy) return;
+    if(chatWin.picsBusy) return;
+    // Мовчазна кнопка — найгірше: людина тисне й не розуміє, що не так.
+    if(!t && !pics.length) return toast('Напишіть повідомлення або додайте фото');
     // Половину пачки надіслати гірше, ніж зачекати секунду.
     if(pics.some(x => !x.url)){ toast('Картинки ще готуються — секунду'); return; }
     inp.value = ''; chatWin.draft = ''; grow();
@@ -20020,6 +20067,11 @@ function wireChatWin(box, o, focusIn){
       window.open(im.src, '_blank', 'noopener');
     });
   });
+  box.querySelectorAll('[data-cd-big]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const pic = (cardPix[o.id] || {})[b.dataset.cdBig];
+    if(pic) picBig(pic.url);
+  }));
   const cdGo = box.querySelector('[data-cd-go]');
   if(cdGo) cdGo.addEventListener('click', ()=> cardsToDraft(o));
   const cdDl = box.querySelector('[data-cd-dl]');
@@ -20037,8 +20089,12 @@ function wireChatWin(box, o, focusIn){
          заготовка. Надсилає тільки ➤, і тільки коли менеджер перечитав. */
       const kind = cardScriptOf(q.m);
       if(kind){
-        chatWin.cards = { kind: kind, text: qrFill(qrNoMarks(q.m), o),
-                          pick:null, deck:null, busy:false, err:'' };
+        /* Текст іде в поле ТІЄЇ Ж МИТІ, а не після вибору карток. Доти він
+           показувався всередині панелі, і виглядало це як «повідомлення
+           кудись поділось»: у полі порожньо, правити нічого. */
+        const was = String(chatWin.draft || '').trim();
+        chatWin.draft = (was ? was + '\n' : '') + qrFill(qrNoMarks(q.m), o);
+        chatWin.cards = { kind: kind, pick:null, deck:null, err:'' };
         chatWin.qr = false;
         renderChatWin();
         cardsLoad(o);
@@ -20113,7 +20169,7 @@ function wireChatWin(box, o, focusIn){
   // Роздивитись перед відправкою — те, заради чого смужка й зʼявилась.
   box.querySelectorAll('[data-cw-big]').forEach(img => img.addEventListener('click', ()=>{
     const p = chatPics()[+img.dataset.cwBig];
-    if(p) window.open(p.url, '_blank');
+    if(p) picBig(p.url);
   }));
   /* Вставка з буфера. Скриншот у Windows лягає саме туди, і йти через
      «зберегти файл → скріпка → знайти файл» заради нього — три зайві дії. */
@@ -20202,8 +20258,11 @@ async function chatSendPics(o, pics, text){
     cards.forEach(x => { sent[x.cardId] = { at: now, by: myName() }; });
     o.cardsAt = now;
     o.cardsWrote = cardsWroteNow(o);
-    saveOrderMeta(o).catch(e => console.warn(e));
   }
+  /* Зберігаємо ЗАВЖДИ, а не лише після карток. У памʼяті картки лежить
+     прикмета, за якою власне фото впізнають у стрічці; звичайне фото цей
+     рядок обходило — і назавтра воно ставало ліворуч, як клієнтське. */
+  saveOrderMeta(o).catch(e => console.warn(e));
   pics.forEach(chatDropPic);
   chatWin.picsBusy = false;
   if(text){ try{ await chatSend(o, text); }catch(e){ console.warn(e); } }
