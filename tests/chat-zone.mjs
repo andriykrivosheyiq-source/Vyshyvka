@@ -511,21 +511,38 @@ console.log('═══ СМУЖКА: СПЕРШУ ПОКАЗАТИ, ПОТІМ �
 {
   await p.evaluate(async () => { await openOrderDrawer(orders[0]); chatOpen(orders[0], 'tg'); });
   await p.waitForTimeout(700);
-  const тр = await p.evaluate(async () => {
-    const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-    const bin = atob(b64), arr = new Uint8Array(bin.length);
-    for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    const f = n => new File([arr], n, { type:'image/png' });
-    await chatTake([f('a.png'), f('b.png'), f('c.png')]);
-    return { плиток: document.querySelectorAll('.cw-tray .cw-tr').length,
-             додати: !!document.querySelector('.cw-tray [data-cw-clip]'),
-             хрестик: !!document.querySelector('.cw-tray [data-cw-unpic]'),
-             збільшити: !!document.querySelector('.cw-tray [data-cw-big]') };
-  });
+  /* Через САМЕ ПОЛЕ ВИБОРУ, а не викликом у обхід нього. Перший варіант
+     цієї смужки на вигляд працював, а на живій адмінці не брав жодної
+     картинки: `file.files` — живий список, і `file.value = ''` спорожнював
+     його разом із вибраним. Перевірка в обхід поля цього не бачила. */
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64');
+  await p.locator('[data-cw-file]').setInputFiles(
+    ['a.png','b.png','c.png'].map(name => ({ name, mimeType:'image/png', buffer:PNG })));
+  await p.waitForTimeout(700);
+  const тр = await p.evaluate(() => ({
+    плиток: document.querySelectorAll('.cw-tray .cw-tr').length,
+    готових: document.querySelectorAll('.cw-tray .cw-tr img').length,
+    додати: !!document.querySelector('.cw-tray [data-cw-clip]'),
+    хрестик: !!document.querySelector('.cw-tray [data-cw-unpic]'),
+    збільшити: !!document.querySelector('.cw-tray [data-cw-big]') }));
   console.log('   ' + JSON.stringify(тр));
-  ok(тр.плиток === 3,
+  ok(тр.плиток === 3 && тр.готових === 3,
     'вибране лежить у смужці й чекає — три картинки разом, а не три окремі відправки',
     'смужки немає або картинки в ній не збираються: ' + JSON.stringify(тр));
+  /* Плитка мусить стати ВИДИМОЮ одразу, ще порожньою: велике фото
+     зменшується помітну мить, і доти людина не розуміла, вибралось воно
+     взагалі чи ні. Андрій: «завантажу 4 картинки — і нічого». */
+  const adm1 = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const бере = adm1.slice(adm1.indexOf('async function chatTake'),
+                          adm1.indexOf('function wireChatWin'));
+  ok(бере.indexOf('renderChatWin()') < бере.indexOf('await shrinkImage'),
+    'місце під картинку зʼявляється одразу, ще до того, як вона готова',
+    'смужка зʼявляється аж після обробки — і вибір виглядає як «нічого не сталось»');
+  ok(/cw-tr--wait/.test(adm1) && /@keyframes cwWait/.test(adm1),
+    'порожня плитка миготить — видно, що картинка саме завантажується',
+    'порожня плитка нерухома й читається як поламана');
   ok(тр.додати && тр.хрестик && тр.збільшити,
     'до зібраного можна додати ще, зайве прибрати, а мініатюру збільшити',
     'смужка без керування: ' + JSON.stringify(тр));
@@ -547,6 +564,9 @@ console.log('═══ СМУЖКА: СПЕРШУ ПОКАЗАТИ, ПОТІМ �
   ok(/chatWin\.pics = pics/.test(пік),
     'не надіслалось — зібране повертається у смужку, а не зникає разом із роботою',
     'при збої картинки губляться');
+  ok(/pics\.some\(x => !x\.url\)/.test(adm1),
+    'поки картинки готуються, відправка чекає — половину пачки не шлемо',
+    'можна надіслати пачку, у якій частина картинок ще не готова');
   await p.evaluate(() => { chatWin.pics.forEach(chatDropPic); chatWin.pics = []; renderChatWin(); });
 }
 
