@@ -13,6 +13,7 @@
      — біля кожної заготовки є олівець;
      — правка тексту зберігається в базу й одразу видно в списку;
      — можна завести нову заготовку;
+     — скрипти з картками доходять і в акаунт, у якого вже є свій список;
      — вставка підставляє свіже посилання на КП, а не текст із {кп}.
 
    Запуск:  node tests/quick-replies.mjs      (з кореня репозиторію)  */
@@ -119,16 +120,42 @@ const panel = await p.evaluate(() => {
     head:(box.querySelector('.cw-qr-head') || {}).textContent.replace(/\s+/g,' ').trim(),
     rows:box.querySelectorAll('.cw-qr-row').length,
     pens:box.querySelectorAll('[data-qr-edit]:not(.cw-qr-add)').length,
-    add:!!box.querySelector('.cw-qr-add')
+    add:!!box.querySelector('.cw-qr-add'),
+    всього:quickReplies().length
   };
 });
 console.log('  ' + panel.head);
 ok(/Заготовлені повідомлення/.test(panel.head) && /змінити текст/.test(panel.head),
   'панель пояснює, що з нею робити',
   'панель нічого не пояснює: ' + panel.head);
-ok(panel.rows === 2 && panel.pens === 2 && panel.add,
+ok(panel.rows === panel.всього && panel.pens === panel.всього && panel.add,
   'біля кожної заготовки олівець, унизу — «нова»',
   'список не той: ' + JSON.stringify(panel));
+
+console.log('');
+console.log('═══ СКРИПТИ З КАРТКАМИ ДОХОДЯТЬ І ДО СВОГО СПИСКУ ═══');
+/* Стандартний набір бачить лише той, у кого свого немає. У робочому
+   акаунті свій список склали давно — і два скрипти з картками, додані
+   пізніше, не зʼявились там ніколи. Андрій: «передивляюсь заготовки, немає
+   цих прорахунок і допродажу». Тобто вся робота з картками з розмови в
+   нього просто не існувала. */
+const сід = await p.evaluate(() => ({
+  список: quickReplies().map(q => q.t),
+  картки: quickReplies().some(q => /\{картки\}/.test(q.m)),
+  допродаж: quickReplies().some(q => /\{допродаж\}/.test(q.m)),
+  своє: quickReplies()[0].t,
+  мітка: (window.__SET || []).some(x => x && x.qrSeed)
+}));
+console.log('  ' + сід.список.join(' · '));
+ok(сід.картки && сід.допродаж,
+  'скрипти прорахунку й допродажу зʼявились у списку, якого вони не знали',
+  'скриптів із картками так і немає: ' + JSON.stringify(сід));
+ok(сід.своє === 'КП готове' && сід.список.length === 4,
+  'дописані в кінець — свої заготовки лишились на своїх місцях',
+  'свій список перебито: ' + JSON.stringify(сід));
+ok(сід.мітка,
+  'про доведення лишається запис — свідомо прибраний скрипт назад не повернеться',
+  'позначки немає: скрипт повертатиметься щоразу, скільки його не прибирай');
 
 console.log('');
 console.log('═══ ПРАВКА ЗБЕРІГАЄТЬСЯ ═══');
@@ -145,11 +172,11 @@ const saved = await p.evaluate(() => {
            shown:[...document.querySelectorAll('.cw-qr-t')].map(x => x.textContent.trim()) };
 });
 console.log('  у базі: ' + JSON.stringify((saved.wrote || []).map(q => q.t)));
-ok(saved.wrote && saved.wrote.length === 2 && saved.wrote[1].t === 'Нагадування 2' &&
+ok(saved.wrote && saved.wrote.length === 4 && saved.wrote[1].t === 'Нагадування 2' &&
    /ще актуальна/.test(saved.wrote[1].m),
   'відредагований текст пішов у базу',
   'правка не збереглась: ' + JSON.stringify(saved.wrote));
-ok(saved.shown.join() === 'КП готове,Нагадування 2',
+ok(saved.shown.slice(0, 2).join() === 'КП готове,Нагадування 2',
   'і одразу видно в списку — без перезаходу',
   'список не оновився: ' + saved.shown.join(','));
 
@@ -163,7 +190,7 @@ await p.click('[data-qr-save]');
 await p.waitForTimeout(800);
 const added = await p.evaluate(() => quickReplies().map(q => q.t));
 console.log('  ' + added.join(' · '));
-ok(added.length === 3 && added[2] === 'Оплата',
+ok(added.length === 5 && added[4] === 'Оплата',
   'нова заготовка стає в кінець списку',
   'нову заготовку не додано: ' + added.join(','));
 
