@@ -724,6 +724,18 @@
     .ticket--compact{padding:16px;display:flex;flex-direction:column;gap:8px;}
   .ticket--eye{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
   .tc-top{display:flex;align-items:center;gap:6px;}
+  /* НАПРЯМ ВИДНО ДО ТОГО, ЯК ЩОСЬ ПРОЧИТАЮТЬ.
+
+     Розділи двох напрямів схожі між собою як дві краплі, і людина, яка
+     працює в обох, легко почне робити роботу не там. Тонка смуга вгорі й
+     підпис біля назви знімають це питання раніше, ніж воно виникне. */
+  #view-design.is-b2c{position:relative;}
+  #view-design.is-b2c::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,#7C3AED,#C026D3);border-radius:3px;}
+  .dir-tag{margin-left:10px;font-size:11.5px;font-weight:600;letter-spacing:.02em;
+    color:#7C3AED;background:#F5F1FE;border-radius:999px;padding:3px 9px;
+    vertical-align:middle;white-space:nowrap;}
+  .nav button[data-view="design"].active{color:#7C3AED;}
   .tc-spacer{flex:1;}
   /* Кружечок непрочитаних. Один на обидва канали й у тому самому кутку, що
      й у месенджері: око шукає його там, не читаючи картку. */
@@ -3678,10 +3690,10 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
          передача у виробництво. Замовлення те саме, але життя інше, і
          питання тут інші: чи повне ТЗ, хто відповідальний, чому повернули,
          яка версія погоджена, чи перевірили файл перед машиною. -->
-    <section id="view-design" style="display:none;">
+    <section id="view-design" class="is-b2c" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Виробництво макета</div>
-        <h1>B2C</h1>
+        <h1>B2C <span class="dir-tag">приватні замовлення · номери з 5</span></h1>
       </div>
       <div id="dzRoot"></div>
     </section>
@@ -21848,6 +21860,16 @@ function myDirs(){
   return memberDirs(teamMember(myEmail()));
 }
 function canDir(dir){ return myDirs().indexOf(dir) >= 0; }
+/* ГРОШІ РАХУЮТЬСЯ ОКРЕМО В КОЖНОМУ НАПРЯМІ.
+
+   Замовлення обох напрямів лежать в одній колекції — так картка, чати й
+   пошук працюють тим самим кодом. Але підсумок, зліплений з двох різних
+   бізнесів, не означає нічого: середній чек B2B і B2C відрізняється в
+   десять разів, і разом вони дають число, якого немає в природі.
+
+   Аналітика — розділ B2B (він і в меню поруч із Канбаном). Коли в B2C
+   набереться, що рахувати, у нього буде своя. */
+function anOrders(){ return (orders || []).filter(o => orderDir(o) === 'b2b'); }
 // Ролі, чия робота — сам макет. Див. виняток у applyRoleUi.
 const DESIGN_SEATS = { designer:1, embroidery:1, qa:1, designmgr:1 };
 /* ══════════ Доступи по зонах ══════════
@@ -25870,7 +25892,7 @@ async function init(){
   }
   function periodOrders(days){
     var from = days[0], to = days[days.length - 1];
-    return (orders || []).filter(function(o){
+    return anOrders().filter(function(o){
       if(!inRange(o.createdAt, from, to)) return false;
       if(AN.site && (o.site || 'main') !== AN.site) return false;
       return true;
@@ -25953,7 +25975,7 @@ async function init(){
      подія, а залишок. */
   function moneyReport(days){
     var from = days[0], to = days[days.length - 1];
-    var mine = (orders || []).filter(function(o){
+    var mine = anOrders().filter(function(o){
       return !AN.site || (o.site || 'main') === AN.site;
     });
     var R = { cash:0, revenue:0, cost:0, paidN:0,
@@ -26159,7 +26181,7 @@ async function init(){
       return byCh[c];
     };
     ords.forEach(function(o){ cell(chOf(o)).n++; });
-    (orders || []).forEach(function(o){
+    anOrders().forEach(function(o){
       if(AN.site && (o.site || 'main') !== AN.site) return;
       var price = +o.totalPrice || 0, cost = +o.totalCost || 0;
       if(isPaidOrder(o) && paidDay(o) >= from && paidDay(o) <= to){
@@ -26528,7 +26550,7 @@ async function init(){
 
   /* ── 4. ПРОДАЖІ ───────────────────────────────────────────── */
   function renderSales(days, ords){
-    var mine = (orders || []).filter(function(o){ return !AN.site || (o.site || 'main') === AN.site; });
+    var mine = anOrders().filter(function(o){ return !AN.site || (o.site || 'main') === AN.site; });
 
     var byStatus = {};
     mine.forEach(function(o){
