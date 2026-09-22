@@ -179,6 +179,49 @@ ok(sums.some(s => /Може: [^·]*Видаляти замовлення/.test(s
   'право видалення не потрапило в підсумок');
 
 console.log('');
+console.log('═══ РОЛЬ ПІДПИСАНА НАПРЯМОМ ═══');
+/* У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
+   B2C — різні люди з різними обовʼязками. Тому в списку вони стоять
+   окремими рядками, а не роллю з галочкою десь поруч: так видно з першого
+   погляду, кого куди заводять, і неможливо видати доступ трохи не туди. */
+const ролі = await p.evaluate(() => {
+  const sel = document.querySelector('#team-list .tm-role');
+  const opts = [...(sel ? sel.options : [])].map(o => o.textContent.trim());
+  return { рядків:opts.length, менеджери:opts.filter(t => /^Менеджер/.test(t)),
+           власник:opts[0] };
+});
+console.log('   ' + JSON.stringify(ролі.менеджери));
+ok(ролі.менеджери.join() === 'Менеджер B2B,Менеджер B2C,Менеджер · B2B і B2C',
+  'у списку окремі рядки на кожен напрям, і окремий — для того, хто в обох',
+  'ролі без напряму: ' + JSON.stringify(ролі));
+ok(ролі.власник === 'Власник',
+  'власникові напрям не підписують — у нього все й так',
+  'власник теж розділений на напрями: ' + JSON.stringify(ролі));
+/* Напрям закриває розділ надійніше за галочку: галочку можна забути зняти,
+   і менеджер B2C побачив би Канбан із чужими замовленнями. */
+const розділи = await p.evaluate(() => {
+  const було = JSON.stringify(contentData.team || []);
+  const тест = dirs => {
+    contentData.team = [{ email:myEmail(), name:'Я', role:'manager', dirs:dirs,
+      acc:{ ui:'manager', nav:['today','board','design'], boards:['sale'],
+            see:['client'], can:['edit'] } }];
+    teamDraft = null; applyRoleUi();
+    return [...document.querySelectorAll('.nav button[data-view]')]
+      .filter(b => !b.hidden).map(b => b.dataset.view);
+  };
+  const b2b = тест(['b2b']), b2c = тест(['b2c']);
+  contentData.team = JSON.parse(було); teamDraft = null; applyRoleUi();
+  return { b2b, b2c };
+});
+console.log('   ' + JSON.stringify(розділи));
+ok(розділи.b2b.indexOf('board') >= 0 && розділи.b2b.indexOf('design') < 0,
+  'менеджер B2B бачить Канбан і не бачить B2C — він навіть не знає, що той є',
+  'менеджерові B2B видно чужий напрям: ' + JSON.stringify(розділи));
+ok(розділи.b2c.indexOf('design') >= 0 && розділи.b2c.indexOf('board') < 0,
+  'менеджер B2C бачить свій напрям і не бачить Канбану',
+  'менеджерові B2C видно Канбан: ' + JSON.stringify(розділи));
+
+console.log('');
 console.log('═══ ЗАПРОШЕННЯ ЙДЕ НА ПОШТУ ═══');
 const inv = await p.evaluate(async () => {
   window.__AUTH = [];
