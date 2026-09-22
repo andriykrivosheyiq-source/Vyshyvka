@@ -17128,43 +17128,64 @@ async function crmLoad(o, numFromInput){
    сервер відхилить як порожнє повідомлення, і клієнту не прилетить сміття
    від наших пошуків. */
 const CRM_PIC_WAYS = [
-  /* ПЕРШІ ЧОТИРИ — НЕ ЗДОГАДКИ. Це те, як Sitniks САМ описує картинку,
-     коли віддає її нам:
+  /* ПОЛЕ НАЗИВАЄТЬСЯ `attachments`, І В НЬОМУ АДРЕСИ РЯДКАМИ.
 
-       { messageType:'image', text:'',
-         attachmentUrl:'https://…',
-         attachments:[{ mediaType:'image', mediaUrl:'https://…' }] }
+     Це вже не здогад. Sitniks сам сказав це помилкою на нашу спробу:
 
-     Жодна з наших попередніх здогадок не збігалася: ми писали `url` і
-     `type`, а в них `mediaUrl` і `mediaType`. Читання й запис у таких
-     API майже завжди однакові, тож пробуємо саме цю форму — спершу
-     цілком, далі по частинах, бо зайве поле дехто відхиляє. Порожній
-     `text` у їхньому ж записі стоїть — отже для картинки він дозволений. */
-  { id:'sitniks-full', json:u => ({ messageType:'image', text:'',
-                                    attachmentUrl:u,
-                                    attachments:[{ mediaType:'image', mediaUrl:u }] }) },
-  { id:'sitniks-list', json:u => ({ messageType:'image',
-                                    attachments:[{ mediaType:'image', mediaUrl:u }] }) },
-  { id:'sitniks-url',  json:u => ({ messageType:'image', attachmentUrl:u }) },
-  { id:'attachmentUrl', json:u => ({ attachmentUrl:u }) },
-  { id:'mediaUrl',     json:u => ({ attachments:[{ mediaType:'image', mediaUrl:u }] }) },
-  // Далі — звичні форми інших CRM, на випадок, що запис у них інший за читання
-  { id:'attachments', json:u => ({ attachments:[{ url:u, type:'image' }] }) },
-  { id:'files',       json:u => ({ files:[{ url:u }] }) },
-  { id:'media',       json:u => ({ media:[{ url:u, type:'image' }] }) },
-  { id:'imageUrl',    json:u => ({ imageUrl:u }) },
-  { id:'fileUrl',     json:u => ({ fileUrl:u }) },
-  { id:'photo',       json:u => ({ photo:u }) },
-  { id:'image',       json:u => ({ image:u }) },
-  { id:'url-image',   json:u => ({ type:'image', url:u }) },
-  { id:'payload',     json:u => ({ attachment:{ type:'image', payload:{ url:u } } }) },
-  // Те саме, але файлом, а не адресою: частина CRM приймає лише так
-  { id:'form:file',     form:'file',  path:id => '/chats/' + id + '/messages' },
-  { id:'form:image',    form:'image', path:id => '/chats/' + id + '/messages' },
-  { id:'form:msg-file', form:'file',  path:id => '/chats/' + id + '/messages/file' },
-  { id:'form:attach',   form:'file',  path:id => '/chats/' + id + '/attachments' },
-  { id:'form:upload',   form:'file',  path:id => '/chats/' + id + '/messages/upload' }
+       HTTP 400 ["each_attachment_must_be_a_valid_url"]
+
+     Ми клали туди обʼєкти `{ mediaType, mediaUrl }` — рівно в тій формі, у
+     якій він ВІДДАЄ вкладення нам, — а він хоче масив адрес. Читання й
+     запис у нього різні, і саме на цьому припущенні ми й помилялись.
+
+     Порядок: спершу голі адреси, далі з текстом (раптом порожнє
+     повідомлення не приймається), далі з типом. Решта — старі здогадки,
+     які так і лишились неперевіреними: до них черга не дійшла, бо після
+     пʼятої спроби Sitniks почав віддавати 429. */
+  { id:'attach-url',   many:true,  json:u => ({ attachments:u }) },
+  { id:'attach-text',  many:true,  json:u => ({ text:'', attachments:u }) },
+  { id:'attach-type',  many:true,  json:u => ({ messageType:'image', attachments:u }) },
+  /* Ці дві форми Sitniks ПРИЙМАВ — і не робив нічого: вкладення в стрічці
+     не зʼявлялось, а клієнту летіло порожнє повідомлення. Тому їх тут
+     більше немає: спосіб, який мовчки шле клієнту пустоту, гірший за
+     спосіб, який чесно відмовляє. */
+  { id:'files',       many:true,  json:u => ({ files:u }) },
+  { id:'media',       many:true,  json:u => ({ media:u }) },
+  { id:'imageUrl',    many:false, json:u => ({ imageUrl:u[0] }) },
+  { id:'photo',       many:false, json:u => ({ photo:u[0] }) },
+  // Те саме, але файлом, а не адресою: на випадок, якщо адресу він бере
+  // лише зі свого сховища
+  { id:'form:file',     many:true, form:'file',  path:id => '/chats/' + id + '/messages' },
+  { id:'form:image',    many:true, form:'image', path:id => '/chats/' + id + '/messages' },
+  { id:'form:msg-file', many:true, form:'file',  path:id => '/chats/' + id + '/messages/file' },
+  { id:'form:attach',   many:true, form:'file',  path:id => '/chats/' + id + '/attachments' }
 ];
+/* Sitniks рахує запити. Перебір бив у нього чергою без пауз, і після
+   пʼятої спроби він почав відповідати 429 — чотирнадцять способів із
+   дев'ятнадцяти тоді взагалі не перевірились, а виглядало це як «жоден не
+   працює». Тому між спробами пауза, а на 429 чекаємо довше й пробуємо той
+   самий спосіб ще раз.
+
+   Секунда, а не більше: Андрій каже, що в Sitniks паузи саме до секунди.
+   Довша пауза нічого б не додала, зате перебір усіх способів тягнувся б
+   пів хвилини — і менеджер устиг би вирішити, що адмінка зависла. */
+const CRM_PIC_GAP = 1000;
+const CRM_PIC_COOL = 4000;
+/* ПАЧКОЮ, А НЕ ПО ОДНІЙ.
+
+   У Direct кілька фото в одному повідомленні йдуть пачкою — одним блоком,
+   який гортають. Саме тому поле зветься `attachments` і саме тому воно
+   МАСИВ: одне повідомлення, кілька адрес. Ми ж досі слали кожну картку
+   окремим запитом, тобто робили з однієї пачки пʼять повідомлень підряд.
+
+   Тож картки одного скрипта складаємо в один масив і шлемо одним запитом.
+   Клієнт бачить звичну пачку, а не чергу окремих сповіщень, і Sitniks
+   рахує це як один запит — заразом і з обмеженням частоти легше.
+
+   Способи, які беруть лише одну адресу (`imageUrl`, `photo`), для пачки не
+   годяться: вони мовчки надіслали б першу картку й загубили решту. Тому в
+   них стоїть `many:false`, і на пачці їх не пробуємо взагалі. */
+function crmPicList(v){ return Array.isArray(v) ? v.filter(Boolean) : (v ? [v] : []); }
 /* ── РОЗВІДКА: ЯКИМ ПОЛЕМ SITNIKS ПРИЙМАЄ КАРТИНКУ ───────────────────────
    Перебір способів рано чи пізно знайде робочий, але робить це навпомацки
    й на живій розмові з клієнтом. А відповідь можна спитати прямо, двома
@@ -17244,35 +17265,63 @@ async function crmPicCount(o){
     return list.filter(m => (m.files || []).length).length;
   }catch(e){ return -1; }
 }
-function crmPicTry(way, chatId, url, blob){
+function crmPicTry(way, chatId, urls, blobs){
   const id = encodeURIComponent(chatId);
   if(way.json)
     return crmFetch('/chats/' + id + '/messages',
-      { method:'POST', body: JSON.stringify(way.json(url)) });
+      { method:'POST', body: JSON.stringify(way.json(urls)) });
   const fd = new FormData();
-  // Імʼя файлу за його справжнім типом: частина приймачів дивиться саме на
-  // розширення, і .jpg на webp вони відхилять як пошкоджений файл.
-  const ty = String((blob && blob.type) || '');
-  const ext = /webp/.test(ty) ? 'webp' : /png/.test(ty) ? 'png' : 'jpg';
-  fd.append(way.form, blob, 'kartka.' + ext);
+  blobs.forEach((b, i) => {
+    // Імʼя файлу за його справжнім типом: частина приймачів дивиться саме на
+    // розширення, і .jpg на webp вони відхилять як пошкоджений файл.
+    const ty = String((b && b.type) || '');
+    const ext = /webp/.test(ty) ? 'webp' : /png/.test(ty) ? 'png' : 'jpg';
+    fd.append(way.form, b, 'kartka-' + (i + 1) + '.' + ext);
+  });
   return crmFetch(way.path(id), { method:'POST', body: fd });
 }
 let crmPicLog = [];
+const crmWait = ms => new Promise(r => setTimeout(r, ms));
 async function crmSendPic(o, url, blob){
   const st = crmChat[o.id];
   if(!st || !st.chatId) throw new Error('розмову не привʼязано');
+  const urls = crmPicList(url), blobs = crmPicList(blob);
+  if(!urls.length) throw new Error('немає що надсилати');
   const known = String((contentData || {}).crmPicWay || '');
-  const ways = CRM_PIC_WAYS.slice();
+  let ways = CRM_PIC_WAYS.filter(w => w.many || urls.length === 1);
   const k = ways.findIndex(w => w.id === known);
-  if(k > 0) ways.unshift(ways.splice(k, 1)[0]);   // відомий спосіб — першим
+  if(k > 0){ ways = ways.slice(); ways.unshift(ways.splice(k, 1)[0]); }  // відомий спосіб — першим
   const before = await crmPicCount(o);
   crmPicLog = [];
-  for(const w of ways){
-    try{ await crmPicTry(w, st.chatId, url, blob); }
-    catch(e){ crmPicLog.push(w.id + ' → ' + (e.message || 'відмова')); continue; }
+  for(let i = 0; i < ways.length; i++){
+    const w = ways[i];
+    /* Пауза перед кожною наступною спробою. Доти перебір бив у Sitniks
+       чергою запитів без жодного проміжку, і після пʼятої спроби він
+       відповідав 429 — решта способів тоді не перевірялась узагалі, а в
+       журналі це виглядало як «жоден не працює». */
+    if(i) await crmWait(CRM_PIC_GAP);
+    let sent = false;
+    for(let attempt = 0; attempt < 2 && !sent; attempt++){
+      try{ await crmPicTry(w, st.chatId, urls, blobs); sent = true; }
+      catch(e){
+        /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
+           довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
+           зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен, і
+           ми лише зіпсуємо собі журнал хибними відмовами. */
+        if(e && e.status === 429){
+          if(attempt === 0){ await crmWait(CRM_PIC_COOL); continue; }
+          crmPicLog.push(w.id + ' → Sitniks обмежив частоту запитів');
+          const stop = new Error('Sitniks обмежив частоту запитів — зачекайте хвилину й спробуйте ще раз');
+          stop.log = crmPicLog; stop.status = 429;
+          throw stop;
+        }
+        crmPicLog.push(w.id + ' → ' + (e.message || 'відмова'));
+      }
+    }
+    if(!sent) continue;
     /* Стрічка оновлюється не миттєво: даємо Sitniks секунди дві, інакше
        правильний спосіб виглядав би невдалим. */
-    await new Promise(r => setTimeout(r, 2000));
+    await crmWait(2000);
     const after = await crmPicCount(o);
     /* Стрічку прочитати не вдалось — перевірити нічим, віримо відповіді
        сервера. Це гірше за перевірку, але краще, ніж не надіслати. */
@@ -19425,12 +19474,16 @@ function cardWord(n){
   if(t >= 2 && t <= 4 && (h < 12 || h > 14)) return 'картки';
   return 'карток';
 }
-/* Відправка. Спершу текст скрипта, далі картки по одній.
+/* Відправка. Спершу текст скрипта, далі картки.
 
-   По одній, а не однією каруселлю, бо в Direct карусель — це пост, а не
-   повідомлення: надіслати її в переписку не можна. Зате кожна картка
-   лишається окремим кадром, який клієнт може переслати комусь із колег —
-   а саме так рішення в компаніях і ухвалюють. */
+   В Instagram кілька фото в одному повідомленні йдуть ПАЧКОЮ — одним
+   блоком, який гортають. Так пише людина, і так має писати й адмінка: пʼять
+   карток окремими повідомленнями — це пʼять сповіщень клієнту підряд і
+   стіна однакових кадрів у стрічці. Тому в Sitniks шлемо всі вибрані
+   картки одним запитом, масивом адрес (див. CRM_PIC_WAYS).
+
+   Telegram так не вміє — там кожне фото окреме повідомлення, — тож для
+   нього лишається черга по одній. */
 async function cardsGo(o){
   const st = chatWin && chatWin.cards;
   if(!st || !st.deck || st.busy) return;
@@ -19444,25 +19497,36 @@ async function cardsGo(o){
     catch(e){ console.warn('текст скрипта', e); }
   }
   let done = 0, err = '';
-  for(let i = 0; i < want.length; i++){
+  /* Спершу всі картки у сховище, і лише потім відправка. Так пачка їде
+     одним запитом, а не складається по дорозі. */
+  const pack = [];
+  for(let i = 0; i < want.length && !err; i++){
     const c = want[i];
     const pic = store[c.id];
     if(!pic){ err = 'картка «' + (c.name || c.id) + '» не намалювалась'; break; }
-    st.busyMsg = 'Надсилаю ' + (i + 1) + ' з ' + want.length + '…';
+    st.busyMsg = 'Готую ' + (i + 1) + ' з ' + want.length + '…';
     renderChatWin();
-    let url = '';
-    try{ url = await uploadCloudinary(pic.blob); }
-    catch(e){ err = 'картка не завантажилась у сховище'; break; }
-    try{
-      if(isTg) await tgSend(o, '', url);
-      else {
-        await crmSendPic(o, url, pic.blob);
-        // Щоб у стрічці вона стала праворуч і з іменем менеджера
-        crmOutNote(o, url); crmSent.add(url);
+    try{ pack.push({ card:c, url: await uploadCloudinary(pic.blob), blob: pic.blob }); }
+    catch(e){ err = 'картка не завантажилась у сховище'; }
+  }
+  const mark = c => { (o.cardsSent || (o.cardsSent = {}))[c.id] = { at: new Date().toISOString(), by: myName() }; };
+  if(pack.length && !err){
+    st.busyMsg = 'Надсилаю…'; renderChatWin();
+    if(isTg){
+      for(let i = 0; i < pack.length; i++){
+        st.busyMsg = 'Надсилаю ' + (i + 1) + ' з ' + pack.length + '…';
+        renderChatWin();
+        try{ await tgSend(o, '', pack[i].url); mark(pack[i].card); done++; }
+        catch(e){ err = (e && e.message) || 'не надіслалось'; break; }
       }
-      (o.cardsSent || (o.cardsSent = {}))[c.id] = { at: new Date().toISOString(), by: myName() };
-      done++;
-    }catch(e){ err = (e && e.message) || 'не надіслалось'; break; }
+    }else{
+      try{
+        await crmSendPic(o, pack.map(p => p.url), pack.map(p => p.blob));
+        // Щоб у стрічці вони стали праворуч і з іменем менеджера
+        pack.forEach(p => { crmOutNote(o, p.url); crmSent.add(p.url); mark(p.card); });
+        done = pack.length;
+      }catch(e){ err = (e && e.message) || 'не надіслалось'; }
+    }
   }
   if(done){
     /* Мить відправки й лічильник реплік клієнта на цю мить. Саме на них
