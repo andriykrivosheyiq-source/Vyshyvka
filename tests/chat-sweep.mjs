@@ -166,6 +166,49 @@ ok(згас,
   'кружечок лишається й після відповіді');
 
 console.log('');
+console.log('═══ СПИСОК РОЗМОВ: НАЙСВІЖІШІ ВГОРІ ═══');
+/* Канбан упорядкований ЗА ПРОЦЕСОМ, переписка живе ЗА ЧАСОМ. Це два різні
+   порядки, і жоден не заміняє другого. */
+const список = await p.evaluate(async () => {
+  window.__CHATS = [
+    { id:'chat-77', lastMessage:{ text:'А є розмір L?',
+      createdAt:'2026-09-22T12:00:00.000Z' } },
+    { id:'chat-99', username:'nova.people', lastMessage:{ text:'Скільки коштує худі?',
+      createdAt:'2026-09-22T12:30:00.000Z' } }
+  ];
+  await crmSweepOnce();
+  renderChats('b2b');
+  const rows = [...document.querySelectorAll('#chatsRoot .chl-row')];
+  return { рядків:rows.length,
+           перший:(rows[0] || {}).textContent ? rows[0].querySelector('.chl-who').textContent : '',
+           безЗамовлення:rows.filter(r => r.classList.contains('free')).length,
+           чекають:rows.filter(r => r.classList.contains('waits')).length };
+});
+console.log('   ' + JSON.stringify(список));
+ok(список.рядків === 2,
+  'у списку і розмови замовлень, і ті, у яких замовлення ще немає',
+  'список неповний: ' + JSON.stringify(список));
+ok(список.перший === 'nova.people',
+  'найсвіжіша розмова стоїть першою — як у мобільному Direct',
+  'порядок не за часом: ' + JSON.stringify(список));
+ok(список.безЗамовлення === 1,
+  'розмова без замовлення видно окремо — саме такі й губляться найчастіше',
+  'нова людина без картки ніде не видно: ' + JSON.stringify(список));
+ok(список.чекають === 2,
+  'видно, у кого останнє слово за клієнтом',
+  'неопрацьовані не позначені: ' + JSON.stringify(список));
+
+const лічильник = await p.evaluate(() => {
+  paintChatBadges();
+  const el = document.querySelector('[data-nav-n="chats"]');
+  return { число:(el && el.textContent) || '', сховано:!!(el && el.hidden) };
+});
+console.log('   ' + JSON.stringify(лічильник));
+ok(лічильник.число === '2' && !лічильник.сховано,
+  'число стоїть у меню — видно, що є неотримана відповідь, не заходячи в розділ',
+  'у меню нічого не видно: ' + JSON.stringify(лічильник));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'розмови в Direct дошка бачить сама, і жодна не губиться');

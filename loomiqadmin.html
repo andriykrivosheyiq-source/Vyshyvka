@@ -736,6 +736,36 @@
     color:#7C3AED;background:#F5F1FE;border-radius:999px;padding:3px 9px;
     vertical-align:middle;white-space:nowrap;}
   .nav button[data-view="design"].active{color:#7C3AED;}
+  /* Список розмов: рядок читається зліва направо як речення — хто, звідки,
+     що написав, коли. Число стоїть останнім, у тому самому кутку, що й на
+     картці. */
+  .chl{display:flex;flex-direction:column;gap:6px;max-width:900px;}
+  .chl-empty{font-size:13px;color:var(--ink-soft);padding:14px 2px;line-height:1.5;}
+  .chl-row{all:unset;cursor:pointer;display:grid;align-items:center;gap:4px 12px;
+    grid-template-columns:minmax(120px,1.2fr) auto minmax(0,2.4fr) auto auto;
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;}
+  .chl-row:hover{border-color:var(--ink-soft);}
+  .chl-row.waits{border-left:3px solid var(--bad);}
+  .chl-row.free{background:var(--canvas);}
+  .chl-who{font-size:13.5px;font-weight:700;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .chl-ch{font-size:11px;color:var(--muted);white-space:nowrap;}
+  .chl-txt{font-size:12.5px;color:var(--ink-soft);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .chl-at{font-size:11.5px;color:var(--muted);white-space:nowrap;
+    font-variant-numeric:tabular-nums;}
+  .chl-n{min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--bad);
+    color:#fff;font-size:11px;font-weight:800;line-height:19px;text-align:center;
+    font-variant-numeric:tabular-nums;}
+  /* Число в меню — щоб не заходити в розділ заради перевірки. */
+  .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
+    min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:9px;
+    background:var(--bad);color:#fff;padding:0 5px;}
+  .nav-n[hidden]{display:none;}
+  @media (max-width:760px){
+    .chl-row{grid-template-columns:1fr auto auto;}
+    .chl-ch,.chl-txt{grid-column:1/-1;}
+  }
   .tc-spacer{flex:1;}
   /* Кружечок непрочитаних. Один на обидва канали й у тому самому кутку, що
      й у месенджері: око шукає його там, не читаючи картку. */
@@ -3246,6 +3276,8 @@
         <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
         <!-- Дизайн-відділ: окремий цикл роботи з макетом. Стоїть поруч із
              Канбаном, бо це те саме замовлення, але інше життя. -->
+        <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
+        <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
         <button data-view="design" data-tip="B2C — приватні замовлення"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>B2C</span></button>
         <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
@@ -3690,6 +3722,14 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
          передача у виробництво. Замовлення те саме, але життя інше, і
          питання тут інші: чи повне ТЗ, хто відповідальний, чому повернули,
          яка версія погоджена, чи перевірили файл перед машиною. -->
+    <section id="view-chats" style="display:none;">
+      <div class="page-head"><h1>Чати B2B</h1></div>
+      <div id="chatsRoot" class="chl"></div>
+    </section>
+    <section id="view-chatsc" class="is-b2c" style="display:none;">
+      <div class="page-head"><h1>Чати B2C <span class="dir-tag">приватні замовлення</span></h1></div>
+      <div id="chatscRoot" class="chl"></div>
+    </section>
     <section id="view-design" class="is-b2c" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Виробництво макета</div>
@@ -5810,7 +5850,10 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
     const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'B2C'};
+    const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
+    const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'B2C',
+      chats:'Чати B2B', chatsc:'Чати B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -5823,6 +5866,8 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     if(view==='team'){ renderTeamList(); renderAccLog(); }
     if(view==='today') renderToday();
     if(view==='design') openDesign();
+    if(view==='chats') renderChats('b2b');
+    if(view==='chatsc') renderChats('b2c');
     if(view==='calc'){
       paintCalcTarget();
       // Прорахунок працює лише з головним сайтом і без режиму редагування:
@@ -17640,6 +17685,7 @@ async function crmPollOnce(o){
    погляду, бреше вже за хвилину. */
 const CRM_SWEEP_MS = 60000;
 let crmSweepTimer = null, crmSweepBusy = false;
+let crmInbox = [];      // розмови, у яких замовлення ще немає
 /* Останнє повідомлення розмови лежить у списку то під одним імʼям, то під
    іншим — залежно від того, який це ендпоінт. Дивимось у всі звичні. */
 function crmRowLast(r){
@@ -17663,16 +17709,24 @@ async function crmSweepOnce(){
   if(crmSweepBusy || !crmBase() || document.hidden) return;
   const byChat = {};
   (orders || []).forEach(o => { if(o && o.crmChatId) byChat[String(o.crmChatId)] = o; });
-  if(!Object.keys(byChat).length) return;
   crmSweepBusy = true;
   try{
     const rows = crmListOf(await crmFetch('/chats'));
     let touched = false;
+    crmInbox = [];
     rows.forEach(r => {
       const id = String((r && (r.chatId || r.chat_id || r.id)) || '');
-      const o = id && byChat[id];
-      if(!o) return;
-      const info = crmSweepRow(r, o);
+      if(!id) return;
+      const o = byChat[id];
+      const info = crmSweepRow(r, o || {});
+      /* Розмова без замовлення. Тримаємо її окремо: на дошці їй місця
+         немає, а в списку розмов вона потрібна найбільше — саме такі й
+         губляться. */
+      if(!o){
+        if(info) crmInbox.push({ chatId:id, nick:crmNick(r) || crmName(r),
+                                 at:info.at, text:info.text, mine:info.mine });
+        return;
+      }
       if(!info || info.at <= String(o.crmAt || '')) return;
       o.crmAt = info.at;
       o.crmLast = info.text.slice(0, 160);
@@ -17692,11 +17746,135 @@ async function crmSweepOnce(){
       try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
       renderBoard();
     }
+    chatsLive();      // список розмов живий: нове піднімається саме
   }catch(e){
     /* 429 чи тимчасовий збій — просто пропускаємо такт. Наступний буде за
        хвилину, і нічого страшного не сталось. */
     if(!(e && e.status === 429)) console.warn('обхід розмов', e);
   }finally{ crmSweepBusy = false; }
+}
+/* ══════════ СПИСОК РОЗМОВ ══════════════════════════════════════════════
+   Канбан упорядкований ЗА ПРОЦЕСОМ: картка стоїть у своїй колонці, і якщо
+   їх тридцять, свіже повідомлення все одно треба знайти очима. Переписка
+   живе ЗА ЧАСОМ: хто написав останнім, той найвище. Це два різні порядки,
+   і жоден не заміняє другого.
+
+   Поводиться список так, як мобільний Direct, і це не про красу, а про
+   звичку: менеджер уже вміє ним користуватись. Нове повідомлення піднімає
+   розмову вгору живцем, без перезаходу.
+
+   Розділи роздільні — свій на кожен напрям. Один список із перемикачем був
+   би тим самим змішуванням, від якого ми й розділяємось: фільтр рано чи
+   пізно злітає, і менеджер відповідає не своєму клієнту. */
+function chatsRows(dir){
+  const out = [];
+  (orders || []).forEach(o => {
+    if(orderDir(o) !== dir) return;
+    if(!o.crmChatId && !tgChatOf(o)) return;
+    out.push({
+      o: o,
+      who: orderName(o) || o.crmChatName || ('замовлення ' + (o.orderId || '')),
+      channel: tgChatOf(o) ? 'Telegram' : 'Instagram',
+      at: orderActivityAt(o),
+      text: String(o.crmLast || o.tgLast || '').replace(/\s+/g, ' ').slice(0, 90),
+      n: orderUnread(o),
+      waits: orderWaiting(o)
+    });
+  });
+  /* Розмови, у яких замовлення ще немає. Саме вони губляться найчастіше:
+     людина написала вперше, картки немає — отже на дошці її немає ніде.
+     Показуємо в обох напрямах, бо чого вона хоче, поки не знає ніхто; хто
+     перший заведе замовлення, той і вирішить напрям. */
+  const bound = {};
+  (orders || []).forEach(o => { if(o && o.crmChatId) bound[String(o.crmChatId)] = 1; });
+  (crmInbox || []).forEach(r => {
+    if(bound[r.chatId]) return;
+    out.push({ free:r, who:r.nick || ('чат ' + r.chatId), channel:'Instagram',
+               at:r.at, text:String(r.text || '').replace(/\s+/g, ' ').slice(0, 90),
+               n:r.mine ? 0 : 1, waits:!r.mine });
+  });
+  return out.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+function chatsHtml(dir){
+  const rows = chatsRows(dir);
+  if(!rows.length)
+    return '<div class="chl-empty">Розмов поки немає. Вони зʼявляться тут, ' +
+           'щойно клієнт напише — найсвіжіші згори.</div>';
+  return rows.map((r, i) => `
+    <button class="chl-row${r.waits ? ' waits' : ''}${r.free ? ' free' : ''}" data-chl="${i}">
+      <span class="chl-who">${escapeHtml(r.who)}</span>
+      <span class="chl-ch">${escapeHtml(r.channel)}${r.free ? ' · без замовлення' : ''}</span>
+      <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
+      <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
+      ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
+    </button>`).join('');
+}
+function crmDayShort(at){
+  const s = String(at || '');
+  if(!s) return '';
+  const d = new Date(s);
+  if(isNaN(+d)) return '';
+  const today = new Date().toISOString().slice(0, 10);
+  return s.slice(0, 10) === today
+    ? d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' })
+    : d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+}
+function renderChats(dir){
+  const root = document.getElementById(dir === 'b2c' ? 'chatscRoot' : 'chatsRoot');
+  if(!root) return;
+  const rows = chatsRows(dir);
+  root.innerHTML = chatsHtml(dir);
+  root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
+    const r = rows[+b.dataset.chl];
+    if(!r) return;
+    if(r.o){ await openOrderDrawer(r.o); chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm'); return; }
+    /* Розмова без замовлення. Заводимо його тут-таки, у ЦЬОМУ напрямі, і
+       одразу привʼязуємо: інакше менеджер мав би створити картку, потім
+       знайти ту саму розмову в Sitniks і скопіювати адресу. */
+    if(!confirm('Завести замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') +
+                ' для «' + (r.who || 'цієї розмови') + '»?')) return;
+    try{
+      const o = await chatsNewOrder(dir, r.free);
+      await openOrderDrawer(o);
+      chatOpen(o, 'crm');
+    }catch(e){ console.error(e); toast('Замовлення не створилось'); }
+  }));
+}
+async function chatsNewOrder(dir, r){
+  const st = dir === 'b2c' ? B2C_STATUS : firstStatusKey();
+  const o = {
+    id: cryptoId(), dir: dir, type:'client', status: st,
+    orderId: makeOrderId(dir), source:'переписка', site:'main',
+    name: r.nick || '', phone:'', company:'', instagram:'',
+    crmChatId: r.chatId, crmChatName: r.nick || '',
+    items: [], totalPrice:0, totalCost:0, margin:0, marginPct:0,
+    createdAt: new Date().toISOString(), touchedAt: new Date().toISOString(),
+    hist: [{ s:st, at:new Date().toISOString() }]
+  };
+  orders.unshift(o);
+  await storeSet('orders', orders);
+  if(dir === 'b2c') designJobMake(o.orderId);
+  renderBoard();
+  return o;
+}
+/* Число поруч із назвою розділу: видно, що є неотримана відповідь, не
+   заходячи туди. Саме число, а не крапка — «одне питання» і «людина
+   написала пʼять разів» це різні за терміновістю речі. */
+function paintChatBadges(){
+  ['b2b', 'b2c'].forEach(dir => {
+    const el = document.querySelector('[data-nav-n="' + (dir === 'b2c' ? 'chatsc' : 'chats') + '"]');
+    if(!el) return;
+    const n = chatsRows(dir).reduce((a, r) => a + (r.waits ? 1 : 0), 0);
+    el.textContent = n ? String(n) : '';
+    el.hidden = !n;
+  });
+}
+function chatsLive(){
+  const v = document.querySelector('.nav button[data-view].active');
+  const k = v && v.dataset.view;
+  if(k === 'chats') renderChats('b2b');
+  if(k === 'chatsc') renderChats('b2c');
+  try{ paintChatBadges(); }catch(e){}
 }
 function crmSweepStart(){
   if(crmSweepTimer) return;
@@ -21899,6 +22077,10 @@ const ZONE_NAV = [
     hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
   { key:'board',     label:'Канбан',
     hint:'Дошка замовлень і картка замовлення.' },
+  { key:'chats',     label:'Чати B2B',
+    hint:'Усі розмови напряму, найсвіжіші вгорі. Тут видно, кому ще не відповіли.' },
+  { key:'chatsc',    label:'Чати B2C',
+    hint:'Те саме для приватних замовлень.' },
   { key:'design',    label:'B2C',
     hint:'Черга відділу, дошка дизайнера, оцифрування вишивки, перевірка файлів ' +
          'і пакет у виробництво. Цін і оплат тут немає.' },
@@ -22333,6 +22515,8 @@ function applyRoleUi(){
        напряму, немає й розділу. Менеджер одного напряму навіть не знає, що
        існує інший. */
     if(b.dataset.view === 'board' && !canDir('b2b')) on = false;
+    if(b.dataset.view === 'chats' && !canDir('b2b')) on = false;
+    if(b.dataset.view === 'chatsc' && !canDir('b2c')) on = false;
     /* Виняток, і він тимчасовий. Робота з макетом — ТЗ, версії, причини
        правок — поки живе тільки в цьому розділі, і в B2B своєї такої дошки
        ще немає. Закрити його дизайнеру B2B зараз означало б забрати в нього
