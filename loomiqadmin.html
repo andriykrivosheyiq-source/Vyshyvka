@@ -17361,16 +17361,6 @@ async function crmSniff(o){
   console.log(txt);
   return txt;
 }
-// Скільки в стрічці повідомлень із вкладенням. -1 — стрічку прочитати не вдалось.
-async function crmPicCount(o){
-  const st = crmChat[o.id];
-  if(!st || !st.chatId) return -1;
-  try{
-    const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
-    const list = crmNormMsgs(data, o) || [];
-    return list.filter(m => (m.files || []).length).length;
-  }catch(e){ return -1; }
-}
 function crmPicTry(way, chatId, urls, blobs){
   const id = encodeURIComponent(chatId);
   if(way.json)
@@ -17388,6 +17378,24 @@ function crmPicTry(way, chatId, urls, blobs){
 }
 let crmPicLog = [];
 const crmWait = ms => new Promise(r => setTimeout(r, ms));
+/* ПРИЙНЯЛИ — ЗУПИНЯЄМОСЬ. НАСТУПНИЙ СПОСІБ ПРОБУЄМО ЛИШЕ ПІСЛЯ ВІДМОВИ.
+
+   Доти успіх перевірявся так: надіслали — перечитали стрічку Sitniks —
+   подивились, чи побільшало в ній повідомлень із вкладенням. Виявилось, що
+   Sitniks НЕ ПОВЕРТАЄ нам наші власні вкладення: у стрічці розмови, куди
+   ми щойно надіслали картинку, її немає. Тобто перевірка не могла
+   спрацювати ніколи — і кожен спосіб оголошувався невдалим, хоча
+   спрацював.
+
+   А далі найгірше: після «невдачі» перебір ішов до наступного способу й
+   надсилав картинку ЗНОВУ. Андрій отримав три однакові картки поспіль,
+   потім посилання, а текст — аж через дві хвилини, бо стояв у черзі за
+   ними.
+
+   Помилка була не в паузах, а в правилі. «Прийнято» означає, що клієнту
+   вже пішло; пробувати після цього щось іще — це надсилати вдруге. Тому
+   правило тепер одне: відповів 200 — зупинились і запамʼятали. Наступний
+   спосіб пробуємо лише після справжньої відмови. */
 async function crmSendPic(o, url, blob){
   const st = crmChat[o.id];
   if(!st || !st.chatId) throw new Error('розмову не привʼязано');
@@ -17397,23 +17405,19 @@ async function crmSendPic(o, url, blob){
   let ways = CRM_PIC_WAYS.filter(w => w.many || urls.length === 1);
   const k = ways.findIndex(w => w.id === known);
   if(k > 0){ ways = ways.slice(); ways.unshift(ways.splice(k, 1)[0]); }  // відомий спосіб — першим
-  const before = await crmPicCount(o);
   crmPicLog = [];
   for(let i = 0; i < ways.length; i++){
     const w = ways[i];
-    /* Пауза перед кожною наступною спробою. Доти перебір бив у Sitniks
-       чергою запитів без жодного проміжку, і після пʼятої спроби він
-       відповідав 429 — решта способів тоді не перевірялась узагалі, а в
-       журналі це виглядало як «жоден не працює». */
+    /* Пауза перед кожною наступною спробою: Sitniks рахує запити, і черга
+       без проміжків добігала до 429 на пʼятій спробі. */
     if(i) await crmWait(CRM_PIC_GAP);
-    let sent = false, res = null;
-    for(let attempt = 0; attempt < 2 && !sent; attempt++){
-      try{ res = await crmPicTry(w, st.chatId, urls, blobs); sent = true; }
+    let res = null, ok = false;
+    for(let attempt = 0; attempt < 2 && !ok; attempt++){
+      try{ res = await crmPicTry(w, st.chatId, urls, blobs); ok = true; }
       catch(e){
         /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
            довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
-           зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен, і
-           ми лише зіпсуємо собі журнал хибними відмовами. */
+           зупиняємо перебір увесь, бо далі однаково відмовлятиме кожен. */
         if(e && e.status === 429){
           if(attempt === 0){ await crmWait(CRM_PIC_COOL); continue; }
           crmPicLog.push(w.id + ' → Sitniks обмежив частоту запитів');
@@ -17424,42 +17428,17 @@ async function crmSendPic(o, url, blob){
         crmPicLog.push(w.id + ' → ' + (e.message || 'відмова'));
       }
     }
-    if(!sent) continue;
-    /* ЧЕКАЄМО ДОВШЕ Й ПЕРЕПИТУЄМО КІЛЬКА РАЗІВ.
-
-       Доти на перевірку давалось рівно дві секунди. Але Sitniks не просто
-       передає нашу адресу далі: він завантажує картинку до себе й аж потім
-       віддає в Instagram. На великому кадрі це довше за дві секунди — і
-       правильний спосіб оголошувався невдалим. Далі перебір ішов до
-       наступного способу, тобто слав клієнту ЩЕ ОДНЕ повідомлення, і так
-       до кінця списку, а завершувалось усе посиланням.
-
-       Тому перепитуємо стрічку кілька разів із наростаючою паузою: щойно
-       вкладення зʼявилось — зупиняємось, і зайвих повідомлень немає. */
-    let after = before;
-    for(const pause of [1800, 2200, 3000, 4000]){
-      await crmWait(pause);
-      after = await crmPicCount(o);
-      if(before < 0 || after > before) break;
+    if(!ok) continue;
+    crmPicLog.push(w.id + ' → ПРИЙНЯВ');
+    if(w.id !== known){
+      contentData.crmPicWay = w.id;
+      try{ await PHOTOS_DOC.set({ crmPicWay: w.id }, { merge:true }); }catch(e){ console.warn(e); }
     }
-    /* Стрічку прочитати не вдалось — перевірити нічим. Тоді віримо
-       відповіді сервера, але НЕ мовчимо про це: «надіслано» і «здається,
-       надіслано» — різні речі, і плутати їх не можна. */
-    if(before < 0 || after > before){
-      st.blind = before < 0;
-      crmPicLog.push(w.id + ' → СПРАЦЮВАВ' + (before < 0 ? ' (стрічка недоступна, без перевірки)' : ''));
-      if(w.id !== known){
-        contentData.crmPicWay = w.id;
-        try{ await PHOTOS_DOC.set({ crmPicWay: w.id }, { merge:true }); }catch(e){ console.warn(e); }
-      }
-      /* Тепер — і ЧИМ упізнати цю картинку в стрічці. Відповідь на нашу ж
-         відправку тримає номер створеного повідомлення; його ми й кладемо
-         в памʼять, а адреси Cloudinary там марні: Sitniks їх не переказує
-         (див. crmOutOwn). */
-      crmOutSent(o, res);
-      return w.id;
-    }
-    crmPicLog.push(w.id + ' → прийняв, але вкладення в стрічці не зʼявилось');
+    /* Чим упізнати цю картинку в стрічці: відповідь тримає номер
+       створеного повідомлення. Адреси Cloudinary тут марні — Sitniks їх не
+       переказує (див. crmOutOwn). */
+    crmOutSent(o, res);
+    return w.id;
   }
   console.warn('Sitniks: жоден спосіб надіслати картинку не спрацював\n' + crmPicLog.join('\n'));
   const err = new Error('Sitniks не прийняв картинку жодним із ' + ways.length + ' способів');
@@ -20295,26 +20274,30 @@ async function chatSendPics(o, pics, text){
   }else{
     try{
       const way = await crmSendPic(o, urls, blobs);
-      const st0 = crmChat[o.id] || {};
       /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
          забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
          Адреси кладемо про запас, а справжня прикмета — номер
          повідомлення, і його запамʼятав сам crmSendPic. */
       urls.forEach(u => { crmOutNote(o, u); crmSent.add(u); });
-      saveOrderMeta(o).catch(e => console.warn(e));
       chatWin.note = false;
-      toast(st0.blind
-        ? (picWord(urls.length) + ' надіслано, але перевірити не вдалось — гляньте в Instagram')
-        : (picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : '')));
+      toast(picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : ''));
     }catch(e){
-      /* Жоден спосіб не пройшов — тоді хоч посиланням, щоб робота не
-         спинилась. Але кажемо прямо, що клієнт побачить адресу, а не
-         картинку: мовчазна підміна тут найгірша. */
+      /* НІЯКОГО ПОСИЛАННЯ ЗАМІСТЬ КАРТИНКИ. Раніше тут спрацьовував
+         запасний шлях: не пройшла картинка — летіла її адреса, щоб робота
+         не спинилась. Андрій: «повинна бути тільки картинка». І він має
+         рацію: синє посилання в Direct майже ніхто не відкриває, тобто
+         замість картки клієнт отримував порожнє місце.
+
+         Тому не надсилаємо нічого. Картинки повертаються у смужку, текст —
+         у поле, і менеджер вирішує сам: спробувати ще раз чи написати
+         інакше. Половина відправки гірша за жодної. */
       console.warn('Sitniks photo', e);
-      chatWin.note = true;
-      for(const u of urls){ try{ await crmSend(o, u); }catch(e2){ console.warn(e2); } }
-      toast('Картинка пішла посиланням: ' + (e.message || 'Sitniks не прийняв вкладення') +
-            ' · подробиці — кнопка 🔎 у шапці розмови');
+      back();
+      chatWin.draft = text || chatWin.draft || '';
+      renderChatWin();
+      toast('Картинку не прийняли: ' + (e.message || 'Sitniks відмовив') +
+            ' · нічого не надіслано, спробуйте ще раз');
+      return;
     }
   }
   /* Тепер — позначка на самих картках. Ставить її саме відправка: панель
