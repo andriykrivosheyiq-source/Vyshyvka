@@ -24543,7 +24543,15 @@ function uploadCloudinaryAuto(blob){
 /* Розширення за справжнім типом. Доти файл ішов у Cloudinary без імені —
    браузер називав його просто «blob», і адреса могла лишитись без
    розширення зовсім. Приймачі картинок часто дивляться саме на нього й
-   адресу без розширення за картинку не вважають. */
+   адресу без розширення за картинку не вважають.
+
+   АЛЕ ІМʼЯ БУВАЄ НЕ ДО ЧОГО. Через це вивантаження йдуть не лише файли:
+   макети й логотипи з конструктора приїжджають текстовим рядком
+   (`data:image/png;base64,…`), і хмара такий рядок приймає навмисно. А
+   додати імʼя до рядка браузер не дозволяє — кидає помилку одразу. Через
+   неї збереження позиції обривалось на першому ж зображенні, і напис
+   «Зберігаємо…» лишався назавжди: до рядка, який його міняє, справа не
+   доходила. Тож імʼя ставимо тільки справжньому файлу. */
 function picFileName(blob){
   if(blob && blob.name) return blob.name;
   const t = String((blob && blob.type) || '');
@@ -24555,7 +24563,8 @@ function uploadCloudinary(blob){
   return new Promise((resolve, reject)=>{
     if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
     const fd = new FormData();
-    fd.append('file', blob, picFileName(blob));
+    if(blob instanceof Blob) fd.append('file', blob, picFileName(blob));
+    else fd.append('file', blob);
     fd.append('upload_preset', CLOUDINARY.preset);
     const ctrl = new AbortController();
     /* Хвилина, а не тридцять секунд. Макети йдуть по шість одразу, ділять
