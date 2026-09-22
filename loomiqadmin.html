@@ -725,6 +725,11 @@
   .ticket--eye{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
   .tc-top{display:flex;align-items:center;gap:6px;}
   .tc-spacer{flex:1;}
+  /* Кружечок непрочитаних. Один на обидва канали й у тому самому кутку, що
+     й у месенджері: око шукає його там, не читаючи картку. */
+  .tc-un{flex:none;min-width:19px;height:19px;padding:0 5px;border-radius:10px;
+    background:var(--bad);color:#fff;font-size:11px;font-weight:800;line-height:19px;
+    text-align:center;font-variant-numeric:tabular-nums;}
     .tc-date{font-size:11px;color:#A3ACBA;}
   /* Скільки картка стоїть в етапі. Мовчить, поки все гаразд, — інакше в
      кожній картці був би ще один шумний напис. */
@@ -7855,10 +7860,28 @@ function tgUnreadCount(o){
   return Math.max(0, (+o.tgWrote || 0) - (+o.tgSeenWrote || 0));
 }
 /* Коли картка востаннє «ожила». Нове повідомлення піднімає її нагору колонки:
-   інакше свіжа розмова тонула під замовленнями, заведеними раніше. */
+   інакше свіжа розмова тонула під замовленнями, заведеними раніше.
+
+   Instagram сюди доти не входив зовсім: рахувався лише Telegram, і картка з
+   листуванням у Direct поводилась так, ніби в ній нічого не відбувається. */
 function orderActivityAt(o){
-  const a = String((o && o.tgAt) || ''), b = String((o && o.createdAt) || '');
-  return a > b ? a : b;
+  let t = String((o && o.createdAt) || '');
+  [(o && o.tgAt), (o && o.crmAt)].forEach(v => { v = String(v || ''); if(v > t) t = v; });
+  return t;
+}
+/* ── СКІЛЬКИ КЛІЄНТ НАПИСАВ І ЩЕ ЧЕКАЄ ──────────────────────────────────
+   Один лічильник на обидва канали. Доти він був тільки в Telegram, і та
+   сама ситуація в Direct не показувалась нічим: менеджер бачив спокійну
+   картку, поки людина чекала другу годину.
+
+   «Чекає» — це коли останнє слово за клієнтом, а не коли ми не відкривали.
+   Прочитати й забути легко, і лічильник, який гасне від погляду, бреше вже
+   за хвилину. */
+function orderUnread(o){
+  return (tgUnreadCount(o) || 0) + (+((o && o.crmUnread) || 0) || 0);
+}
+function orderWaiting(o){
+  return !!(tgUnread(o) || (o && o.crmTheirs));
 }
 function watchTelegramLeads(){
   if(tgLeadsWatching) return;
@@ -11222,7 +11245,7 @@ function boardMatch(o, q){
 }
 function boardFlagPass(o, key){
   switch(key){
-    case 'unread':  return tgUnread(o);
+    case 'unread':  return orderWaiting(o);
     case 'overdue': return taskState(o).kind === 'overdue';
     case 'notask':  return taskState(o).kind === 'none' && o.status !== 'done' && o.status !== 'cancel';
     case 'waiting': return waitingMin(o) >= 60;
@@ -12573,6 +12596,7 @@ function ticketSummaryHtml(o){
         { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(',', '')
     : '';
   const unread = tgUnreadCount(o);
+  const waitN = orderUnread(o);
   const actAt = orderActivityAt(o);
   const actTime = actAt ? new Date(actAt).toLocaleTimeString('uk-UA',
         { hour:'2-digit', minute:'2-digit' }) : '';
@@ -12602,6 +12626,12 @@ function ticketSummaryHtml(o){
             з посилання нижче. Показуємо лише те, що ВІДБУЛОСЬ у клієнта. */
         (st && off.state !== 'created')
           ? `<span class="t-os-tag ${st.cls}">${escapeHtml(st.label)}</span>` : ''}
+      ${/* Кружечок стоїть в останньому кутку, який око проходить, читаючи
+            картку, — і саме тому його видно навіть краєм зору, коли колонка
+            прокручується повз. */''}
+      ${orderWaiting(o) ? `<span class="tc-un" title="${
+          waitN ? 'Клієнт написав ' + waitN + ' і чекає на відповідь'
+                : 'Останнє слово за клієнтом'}">${waitN || ''}</span>` : ''}
     </div>
     <div class="tc-who">${avatarHtml(orderName(o) || orderPhone(o))}
       <div class="tc-who-t">
@@ -17161,6 +17191,13 @@ function crmNormMsgs(data, o){
      читає, тож кладемо його в замовлення — тут, де стрічку вже розібрано
      на «наше» й «їхнє», і рахувати вдруге ніде не доведеться. */
   crmNoteIn(o, list.filter(m => !m.mine).length);
+  /* Скільки клієнт написав ПІСЛЯ нашої останньої відповіді. Фоновий обхід
+     рахує це спостереженнями й може недорахувати (три репліки за одну
+     хвилину він побачить як одну); тут же стрічка перед нами вся, тож
+     переписуємо точним числом. */
+  let tail = 0;
+  for(let i = list.length - 1; i >= 0 && !list[i].mine; i--) tail++;
+  if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
   return list;
 }
 function crmNoteIn(o, n){
@@ -17472,6 +17509,7 @@ async function crmSend(o, text){
     toast('Надіслано');
     crmSent.add(text.trim());
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
+    crmAnswered(o);              // відповіли — кружечок згасає
     /* Записуємо в картку, що це писали ми: Sitniks поверне це повідомлення
        без відправника, і впізнати його більше не буде чим. */
     crmOutNote(o, text.trim());
@@ -17522,6 +17560,106 @@ async function crmPollOnce(o){
   }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
 }
 
+/* ══════════ ФОНОВЕ ОПИТУВАННЯ: ЩОБ ЖОДЕН ДІАЛОГ НЕ ЗАГУБИВСЯ ═══════════
+
+   Telegram і Instagram улаштовані по-різному, і це корінь усього.
+
+   Telegram САМ ШТОВХАЄ повідомлення в базу: бот записує їх, і дошка бачить
+   їх одразу, навіть якщо ніхто нічого не відкривав. Тому в Telegram-карток
+   давно є і лічильник, і підняття вгору колонки.
+
+   Sitniks не штовхає нічого. Адмінка дізнається про повідомлення лише тоді,
+   коли сама спитає, — а питала вона доти ТІЛЬКИ ту розмову, яка зараз
+   відкрита. Поки менеджер не відкрив діалог, для дошки його не існувало: ні
+   лічильника, ні підняття. А половина звернень приходить саме в Instagram,
+   тож це не дрібниця, а дірка в самій основі.
+
+   Тому один запит на хвилину на ВСЮ адмінку. Sitniks віддає список
+   діалогів, найсвіжіші згори, з останнім повідомленням у кожному — цього
+   досить, щоб знати, у кого щось нове й чиє там останнє слово. По запиту на
+   картку робити не можна: у робочому акаунті їх сотні.
+
+   Хвилина затримки — свідома ціна. Миттєво було б вебхуком, але чи вміє його
+   Sitniks, невідомо; опитування працює незалежно від їхньої відповіді.
+
+   ПРАВИЛО: розмова неопрацьована, доки ОСТАННЄ СЛОВО ЗА КЛІЄНТОМ. Не «доки
+   не прочитали»: прочитати й забути легко, і лічильник, який гасне від
+   погляду, бреше вже за хвилину. */
+const CRM_SWEEP_MS = 60000;
+let crmSweepTimer = null, crmSweepBusy = false;
+/* Останнє повідомлення розмови лежить у списку то під одним імʼям, то під
+   іншим — залежно від того, який це ендпоінт. Дивимось у всі звичні. */
+function crmRowLast(r){
+  const m = r && (r.lastMessage || r.last_message || r.lastMsg || r.message);
+  return (m && typeof m === 'object') ? m : null;
+}
+function crmSweepRow(r, o){
+  const last = crmRowLast(r);
+  const box = last || r;
+  const at = String(crmPick(box, CRM_AT_KEYS) || '');
+  if(!at) return null;
+  const text = String(crmPick(box, CRM_TXT_KEYS) || '');
+  /* Чиє воно. Без цього наша ж відповідь піднімала б картку й нарощувала
+     лічильник — тобто система повідомляла б нам про нас самих. */
+  const mine = last
+    ? crmIsMine(last, text, crmMsgWho(last), crmPeerKeys(o))
+    : false;
+  return { at, text, mine };
+}
+async function crmSweepOnce(){
+  if(crmSweepBusy || !crmBase() || document.hidden) return;
+  const byChat = {};
+  (orders || []).forEach(o => { if(o && o.crmChatId) byChat[String(o.crmChatId)] = o; });
+  if(!Object.keys(byChat).length) return;
+  crmSweepBusy = true;
+  try{
+    const rows = crmListOf(await crmFetch('/chats'));
+    let touched = false;
+    rows.forEach(r => {
+      const id = String((r && (r.chatId || r.chat_id || r.id)) || '');
+      const o = id && byChat[id];
+      if(!o) return;
+      const info = crmSweepRow(r, o);
+      if(!info || info.at <= String(o.crmAt || '')) return;
+      o.crmAt = info.at;
+      o.crmLast = info.text.slice(0, 160);
+      o.crmTheirs = !info.mine;
+      if(!info.mine){
+        /* Скільки клієнт написав після нашої останньої відповіді. Точне
+           число дає лише сама стрічка, і коли розмову відкриють, воно
+           перепишеться (див. crmNoteIn). А доти рахуємо спостереженнями:
+           це менше за правду, але ніколи не більше, і «одиниця» чесніше за
+           порожнечу. */
+        o.crmUnread = (+o.crmUnread || 0) + 1;
+        touchOrder(o);      // клієнт озвався — картка вгору колонки
+      }
+      touched = true;
+    });
+    if(touched){
+      try{ await saveOrders({ quiet:true }); }catch(e){ console.warn('обхід розмов', e); }
+      renderBoard();
+    }
+  }catch(e){
+    /* 429 чи тимчасовий збій — просто пропускаємо такт. Наступний буде за
+       хвилину, і нічого страшного не сталось. */
+    if(!(e && e.status === 429)) console.warn('обхід розмов', e);
+  }finally{ crmSweepBusy = false; }
+}
+function crmSweepStart(){
+  if(crmSweepTimer) return;
+  crmSweepOnce();
+  crmSweepTimer = setInterval(crmSweepOnce, CRM_SWEEP_MS);
+  /* Повернулись на вкладку — питаємо одразу, не чекаючи такту: саме в цю
+     мить людина й хоче побачити, чи не відповіли. */
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) crmSweepOnce(); });
+}
+/* Ми відповіли — лічильник згасає. Саме відповіли, а не відкрили: інакше
+   він гаснув би від погляду, і «непрацьовано» перестало б щось означати. */
+function crmAnswered(o){
+  if(!o) return;
+  o.crmUnread = 0;
+  o.crmTheirs = false;
+}
 function crmStartPoll(o){
   crmStopPoll();
   crmTimer = setInterval(function(){
@@ -20295,6 +20433,7 @@ async function chatSendPics(o, pics, text){
          Адреси кладемо про запас, а справжня прикмета — номер
          повідомлення, і його запамʼятав сам crmSendPic. */
       urls.forEach(u => { crmOutNote(o, u); crmSent.add(u); });
+      crmAnswered(o);            // відповіли картинкою — теж відповіли
       chatWin.note = false;
       toast(picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : ''));
     }catch(e){
@@ -24676,6 +24815,7 @@ async function init(){
   watchWebOrders();   // підписуємось на нові замовлення вже після входу
   watchWebLeads();    // і на заявки без товару
   watchTelegramLeads(); // і на звернення з Telegram
+  crmSweepStart();      // і фоновий обхід розмов Sitniks — щоб не губились
 
   // Контент сайту — живо тримаємо весь документ і оновлюємо активну вкладку конструктора
   let photosUnsub = null;
