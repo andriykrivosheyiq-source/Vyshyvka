@@ -3234,7 +3234,7 @@
         <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
         <!-- Дизайн-відділ: окремий цикл роботи з макетом. Стоїть поруч із
              Канбаном, бо це те саме замовлення, але інше життя. -->
-        <button data-view="design" data-tip="Дизайн-відділ"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Дизайн-відділ</span></button>
+        <button data-view="design" data-tip="B2C — приватні замовлення"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>B2C</span></button>
         <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
         <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
@@ -3681,7 +3681,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
     <section id="view-design" style="display:none;">
       <div class="page-head">
         <div class="eyebrow">Виробництво макета</div>
-        <h1>Дизайн-відділ</h1>
+        <h1>B2C</h1>
       </div>
       <div id="dzRoot"></div>
     </section>
@@ -5798,7 +5798,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vTeam = document.getElementById('view-team'); if(vTeam) vTeam.style.display = view==='team' ? 'block':'none';
     const vToday = document.getElementById('view-today'); if(vToday) vToday.style.display = view==='today' ? 'block':'none';
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Дизайн-відділ'};
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
@@ -7661,12 +7661,36 @@ function offerUrl(o){
 
    Наступний беремо від найбільшого наявного. Старі дев'ятизначні номери в
    рахунок не йдуть — інакше лічильник одразу стрибнув би за сто мільйонів. */
-const ORDER_ID_MIN = 1000001;
-let orderSeq = 0;
+/* ── ДВА НАПРЯМИ, ДВА РЯДИ НОМЕРІВ ───────────────────────────────────────
+   У компанії два різні бізнеси: B2B (компанії, тиражі, КП) і B2C (приватні
+   люди, принти, фото). Різні менеджери, різні етапи, різні ролі — і
+   плутати їх не можна.
+
+   Напрям видно ПО САМОМУ НОМЕРУ, і це найнадійніше з усього, що ми можемо
+   зробити: номер живе не лише в адмінці, а в КП, у переписці, у платіжці,
+   на скріншоті. Хто б куди його не переслав, з першої цифри зрозуміло, про
+   що мова.
+
+   Ряди ведуться окремо. Спільний лічильник тут був би пасткою: щойно
+   зʼявилось перше замовлення з пʼятірки, наступне B2B отримало б номер за
+   пʼять мільйонів — і нумерація Канбану, яка йде з 2024 року, обірвалась
+   би стрибком. Тому кожен ряд рахує тільки свої номери. */
+const ORDER_ID_MIN = 1000001;        // B2B — як було
+const ORDER_ID_MIN_C = 5000001;      // B2C
+let orderSeq = 0, orderSeqC = 0;
 function orderIdNum(v){
   const s = String(v || '');
   return /^\d{7}$/.test(s) ? +s : 0;
 }
+/* Напрям замовлення. Поле `dir` головніше за номер: воно й є правдою, а
+   номер лише показує її людині. Старі картки поля не мають зовсім — і не
+   повинні: усе, що заведено до цього дня, це B2B. */
+function orderDir(o){ return ((o && o.dir) === 'b2c') ? 'b2c' : 'b2b'; }
+function dirIsC(dir){ return dir === 'b2c'; }
+function dirMin(dir){ return dirIsC(dir) ? ORDER_ID_MIN_C : ORDER_ID_MIN; }
+// Напрям за самим номером — щоб і без поля `dir` було видно, чий він.
+function numDir(v){ const n = orderIdNum(v); return (n >= ORDER_ID_MIN_C) ? 'b2c' : 'b2b'; }
+function numInDir(v, dir){ const n = orderIdNum(v); return n ? (numDir(n) === dir ? n : 0) : 0; }
 /* ── Номер видається раз і назавжди ──────────────────────────────────────
    Доти наступний номер брався від найбільшого НАЯВНОГО на дошці. Видалили
    останню картку — і її номер видавався наступній: у двох різних замовлень
@@ -7692,37 +7716,43 @@ function orderIdNum(v){
    Тому тримаємо ще один слід — просто тут, у браузері. Він переживає
    перезавантаження, не залежить від прав у базі й ніколи не зменшується. */
 const ORDER_SEQ_LS = 'lq.orderSeq';
-function orderSeqLocal(){
-  try{ return +(localStorage.getItem(ORDER_SEQ_LS) || 0) || 0; }catch(e){ return 0; }
+// Ключі й поля в кожного ряду свої: інакше два напрями ділили б один слід
+// і лічильник одного затирав би інший.
+function seqKey(dir){ return dirIsC(dir) ? (ORDER_SEQ_LS + 'C') : ORDER_SEQ_LS; }
+function seqField(dir){ return dirIsC(dir) ? 'orderSeqC' : 'orderSeq'; }
+function orderSeqLocal(dir){
+  try{ return +(localStorage.getItem(seqKey(dir)) || 0) || 0; }catch(e){ return 0; }
 }
-function orderSeqLocalSet(n){
-  try{ if(n > orderSeqLocal()) localStorage.setItem(ORDER_SEQ_LS, String(n)); }catch(e){}
+function orderSeqLocalSet(n, dir){
+  try{ if(n > orderSeqLocal(dir)) localStorage.setItem(seqKey(dir), String(n)); }catch(e){}
 }
-function orderSeqNow(){
-  let n = +(contentData && contentData.orderSeq) || 0;
-  (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v > n) n = v; });
-  const loc = orderSeqLocal();
+function orderSeqNow(dir){
+  let n = +(contentData && contentData[seqField(dir)]) || 0;
+  // Дивимось лише СВОЇ номери: чужий ряд тут нічого не означає.
+  (orders || []).forEach(o => { const v = numInDir(o.orderId, dir); if(v > n) n = v; });
+  const loc = orderSeqLocal(dir);
   if(loc > n) n = loc;
-  if(n < ORDER_ID_MIN - 1) n = ORDER_ID_MIN - 1;
-  return Math.max(n, orderSeq);
+  if(n < dirMin(dir) - 1) n = dirMin(dir) - 1;
+  return Math.max(n, dirIsC(dir) ? orderSeqC : orderSeq);
 }
 /* Скільки разів поспіль база відмовилась прийняти лічильник. Кажемо про це
    один раз, а не на кожну картку: людина має дізнатись про поломку, але не
    через двадцять однакових спливашок. */
 let orderSeqWarned = false;
-function makeOrderId(){
-  let next = orderSeqNow() + 1;
+function makeOrderId(dir){
+  dir = dirIsC(dir) ? 'b2c' : 'b2b';
+  let next = orderSeqNow(dir) + 1;
   /* Номер, який уже стоїть на дошці, не видаємо НІКОЛИ — навіть якщо
      лічильник чомусь відкотився. Це остання перевірка перед видачею, і
      саме вона не дає двом карткам зійтись на одному номері. */
   const busy = {};
   (orders || []).forEach(o => { const v = orderIdNum(o.orderId); if(v) busy[v] = 1; });
   while(busy[next]) next++;
-  orderSeq = next;
+  if(dirIsC(dir)) orderSeqC = next; else orderSeq = next;
   /* Пишемо одразу, не чекаючи збереження самої картки: якщо вкладку
      закрити між цими двома діями, номер усе одно вже витрачений. */
-  orderSeqLocalSet(orderSeq);
-  if(contentData) contentData.orderSeq = orderSeq;
+  orderSeqLocalSet(next, dir);
+  if(contentData) contentData[seqField(dir)] = next;
   const біда = e => {
     console.warn('лічильник номерів не збережено', e);
     /* Мовчати тут не можна. Саме мовчання й перетворило дрібну відмову в
@@ -7736,9 +7766,9 @@ function makeOrderId(){
   };
   try{
     if(typeof PHOTOS_DOC !== 'undefined' && PHOTOS_DOC)
-      PHOTOS_DOC.set({ orderSeq: orderSeq }, { merge:true }).catch(біда);
+      PHOTOS_DOC.set({ [seqField(dir)]: next }, { merge:true }).catch(біда);
   }catch(e){ біда(e); }
-  return String(orderSeq);
+  return String(next);
 }
 /* Номери, яких у нумерації Канбану немає.
 
@@ -15403,9 +15433,10 @@ function artFold(o){
      призначення дизайнера, причини повернень і оцифрування. Тому звідси —
      посилання туди, а не друга дорога до того самого. */
   const body = `
-    <div class="od-hint">Графіку веде <b>Дизайн-відділ</b> — там ТЗ, причини правок,
-      оцифрування вишивки й пакет у виробництво. Версії спільні: список той самий.
-      <button class="art-b" data-art-dept>Відкрити відділ</button></div>
+    <div class="od-hint">Версії макета живуть тут, у картці — і тут же їх бачить
+      клієнт у пропозиції.${inDesignDept(o) ? ' У цього замовлення є ще й картка ' +
+      'дизайну: там ТЗ, причини правок і оцифрування вишивки.' : ''}
+      ${inDesignDept(o) ? '<button class="art-b" data-art-dept>Відкрити картку дизайну</button>' : ''}</div>
     ${l.length ? l.slice().reverse().map((v, i) => artVerHtml(o, v, i === 0)).join('')
                : '<div class="od-empty">Версій ще немає. Перша зʼявиться, коли дизайнер надішле макет.</div>'}
     <button class="art-new" data-art-new>+ Нова версія</button>`;
@@ -16033,15 +16064,19 @@ function renderOrderDrawer(){
         title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
       <button class="od-kp-link" data-doc="copylink"
         title="Скопіювати лише посилання">🔗</button>` : ''}
-      ${/* Дорога у відділ — РУКАМИ, однією кнопкою. Відділ живе окремо й
-           сам нічого до себе не тягне; але замовлення з сайту інакше не
-           потрапило б туди взагалі, а робота над макетом по ньому цілком
-           може знадобитись. Тому дорога є, просто нею йдуть свідомо. */''}
-      ${may('nav', 'design') ? (inDesignDept(o)
-        ? `<button class="od-kp-link is-on" data-act="todesign"
-             title="Замовлення вже у дизайн-відділі — відкрити">✎</button>`
-        : `<button class="od-kp-link" data-act="todesign"
-             title="Завести це замовлення в дизайн-відділ">✎</button>`) : ''}
+      ${/* ДОРОГИ З КАНБАНУ В B2C БІЛЬШЕ НЕМАЄ.
+
+           Поки «Дизайн-відділ» був відділом, кнопка мала сенс: замовлення
+           з сайту інакше не потрапило б туди взагалі. Тепер це не відділ, а
+           НАПРЯМ — інший бізнес, інші менеджери, інші етапи. Перетягнути
+           замовлення Канбану в B2C означає зробити рівно те змішування, від
+           якого ми й розділяємось: воно опинилось би в чужій воронці, з
+           чужим номером і в чужого менеджера.
+
+           Робота над макетом по замовленню B2B нікуди не ділась — вона
+           лишається в самій картці, де версії й були. */''}
+      ${inDesignDept(o) ? `<button class="od-kp-link is-on" data-act="todesign"
+             title="Замовлення вже має картку дизайну — відкрити">✎</button>` : ''}
     </div>`);
   }catch(e){
     console.error('картка: шаблон не зібрався', e);
@@ -21359,7 +21394,7 @@ async function fixDuplicateOrderIds(){
       String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
     list.slice(1).forEach(o => {
       const було = o.orderId;
-      o.orderId = makeOrderId();
+      o.orderId = makeOrderId(orderDir(o));   // ряд у кожного напряму свій
       o.hist = (o.hist || []).concat([{ s:'renum', at:new Date().toISOString(), from: було }]).slice(-40);
       рядки.push(було + ' → ' + o.orderId);
     });
@@ -21732,7 +21767,7 @@ const ZONE_NAV = [
     hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
   { key:'board',     label:'Канбан',
     hint:'Дошка замовлень і картка замовлення.' },
-  { key:'design',    label:'Дизайн-відділ',
+  { key:'design',    label:'B2C',
     hint:'Черга відділу, дошка дизайнера, оцифрування вишивки, перевірка файлів ' +
          'і пакет у виробництво. Цін і оплат тут немає.' },
   { key:'calc',      label:'Прорахунок',
