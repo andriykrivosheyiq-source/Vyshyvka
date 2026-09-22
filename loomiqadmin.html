@@ -19576,7 +19576,7 @@ async function cardsDraw(o){
                                notes: (cv.lqNotes || []).slice() };
     }catch(e){ console.warn('картка ' + c.id, e); }
     // Показуємо кожну, щойно готова: чекати на всі мовчки — виглядає як зависання
-    if(chatWin && chatWin.cards === st) renderChatWin();
+    if(chatWin && chatWin.cards === st){ cardsSync(o); renderChatWin(); }
   }
 }
 function cardsSentLabel(rec){
@@ -19614,15 +19614,15 @@ function cardsPanelHtml(o){
   }).join('');
   return `<div class="cw-cards">
     <div class="cw-cd-head">
-      <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що готуємо</b>
-      <span>🔍 — роздивитись · зніміть зайве · текст уже в полі, надішлете самі</span>
+      <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що вже в полі</b>
+      <span>🔍 — роздивитись · зніміть зайве · текст уже в полі, надішлете самі ➤</span>
     </div>
     <div class="cw-cd-grid">${tiles}</div>
     <div class="cw-cd-acts">
-      <button class="cw-cd-go" data-cd-go${n ? '' : ' disabled'}>${
-        n ? 'У поле — ' + n + ' ' + cardWord(n) : 'Нічого не обрано'}</button>
+      <button class="cw-cd-go" data-cd-go>${
+        n ? 'Готово — ' + n + ' ' + cardWord(n) + ' у полі' : 'Нічого не обрано'}</button>
       <button class="cw-cd-dl" data-cd-dl>Завантажити собі</button>
-      <button class="cw-cd-no" data-cd-close>Скасувати</button>
+      <button class="cw-cd-no" data-cd-close>Прибрати всі</button>
     </div>
   </div>`;
 }
@@ -19632,42 +19632,41 @@ function cardWord(n){
   if(t >= 2 && t <= 4 && (h < 12 || h > 14)) return 'картки';
   return 'карток';
 }
-/* Картки звідси НЕ ВІДПРАВЛЯЮТЬСЯ. Вони лягають у смужку над полем вводу,
-   а текст скрипта — у саме поле.
+/* КАРТКИ ЛЯГАЮТЬ У СМУЖКУ ОДРАЗУ, БЕЗ ЖОДНОЇ ОКРЕМОЇ ДІЇ.
 
-   Андрій: «любі заготовки автоматом не відправляються, вони одразу
-   спочатку попадають сюди в блок, де написати клієнту, потім ми
-   перечитуємо, можливо, щось підкориговуємо і потім відправляємо».
+   Доти між «натиснув заготовку» і «картка готова до відправки» стояла ще
+   одна кнопка. Здавалося, що це дрібниця, поки не стало видно наслідок: у
+   полі вже лежав текст, панель виглядала як просто показ — і менеджер
+   тиснув ➤. Клієнту летів самий текст, а картка лишалась у панелі. У
+   звіті це видно рядком «ЩО ВЖЕ ПРОБУВАЛИ САМІ: ще не пробували» —
+   відправка картинки не запускалась жодного разу.
 
-   Правило те саме, що й для звичайної заготовки, і причина та сама: лист
-   клієнту майже завжди дописують під конкретну людину, а надіслане назад
-   не забереш. Тому панель лише ГОТУЄ — надсилає кнопка ➤, коли менеджер
-   усе перечитав. Вибір карток при цьому лишається тут: у смужці видно
-   мініатюри, а чим саме є кожна картка, з назвою й позначкою «неповна»,
-   видно лише в панелі. */
-function cardsToDraft(o){
+   Тепер галочки в панелі й вміст смужки — це одне й те саме. Зняли
+   галочку — плитка зникла зі смужки, поставили — зʼявилась. Панель ні
+   про що більше не питає: вона показує, ЩО САМЕ лежить у смужці, з
+   назвою, датою «надіслано» й позначкою «неповна», яких на маленькій
+   мініатюрі не видно.
+
+   Надсилає, як і все інше, тільки ➤ — і тільки коли менеджер перечитав. */
+function cardsSync(o){
   const st = chatWin && chatWin.cards;
   if(!st || !st.deck) return;
-  const want = st.deck.list.filter(c => st.pick[c.id]);
-  if(!want.length) return toast('Нічого не обрано');
   const store = cardPix[o.id] || {};
-  if(want.some(c => !store[c.id])) return toast('Картки ще малюються — секунду');
   const pics = chatWin.pics || (chatWin.pics = []);
-  const room = want.slice(0, Math.max(0, CHAT_PICS_MAX - pics.length));
-  room.forEach(c => {
-    /* Своя адреса на ту саму картинку. Смужка свою адресу по дорозі
+  for(let i = pics.length - 1; i >= 0; i--){
+    const id = pics[i].cardId;
+    if(id && !st.pick[id]) chatDropPic(pics.splice(i, 1)[0]);
+  }
+  st.deck.list.forEach(c => {
+    if(!st.pick[c.id] || !store[c.id]) return;
+    if(pics.some(x => x.cardId === c.id)) return;
+    if(pics.length >= CHAT_PICS_MAX) return;
+    /* Своя адреса на ту саму картинку: смужка свою адресу по дорозі
        звільняє, і спільна вбила б мініатюру в самій панелі. `cardId`
        потрібен, щоб після відправки позначити картку надісланою. */
     pics.push({ blob: store[c.id].blob, url: URL.createObjectURL(store[c.id].blob),
                 cardId: c.id });
   });
-  chatWin.cards = null;
-  renderChatWin();
-  const el = document.querySelector('.cw-inp');
-  if(el){ el.focus(); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
-  toast(room.length < want.length
-    ? ('У поле стало ' + room.length + ' — більше за раз не надсилаємо')
-    : (room.length + ' ' + cardWord(room.length) + ' у полі — перечитайте й надішліть'));
 }
 /* Запасний шлях: забрати обрані собі й прикріпити руками. Потрібен саме
    тоді, коли автоматика не спрацювала, — а тоді ж найменше хочеться шукати,
@@ -20070,6 +20069,7 @@ function wireChatWin(box, o, focusIn){
   box.querySelectorAll('[data-cd]').forEach(ch=>{
     ch.addEventListener('change', ()=>{
       if(chatWin.cards) chatWin.cards.pick[ch.dataset.cd] = ch.checked;
+      cardsSync(o);            // галочка одразу змінює те, що лежить у смужці
       renderChatWin();
     });
   });
@@ -20079,7 +20079,7 @@ function wireChatWin(box, o, focusIn){
        це не перевірка. */
     im.addEventListener('click', e=>{
       e.preventDefault(); e.stopPropagation();
-      window.open(im.src, '_blank', 'noopener');
+      picBig(im.src);
     });
   });
   box.querySelectorAll('[data-cd-big]').forEach(b => b.addEventListener('click', e => {
@@ -20088,11 +20088,22 @@ function wireChatWin(box, o, focusIn){
     if(pic) picBig(pic.url);
   }));
   const cdGo = box.querySelector('[data-cd-go]');
-  if(cdGo) cdGo.addEventListener('click', ()=> cardsToDraft(o));
+  if(cdGo) cdGo.addEventListener('click', ()=>{ chatWin.cards = null; renderChatWin();
+    const el = document.querySelector('.cw-inp');
+    if(el){ el.focus(); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} } });
   const cdDl = box.querySelector('[data-cd-dl]');
   if(cdDl) cdDl.addEventListener('click', ()=> cardsDownload(o));
   const cdNo = box.querySelector('[data-cd-close]');
-  if(cdNo) cdNo.addEventListener('click', ()=>{ chatWin.cards = null; renderChatWin(); });
+  if(cdNo) cdNo.addEventListener('click', ()=>{
+    /* Закриваючи панель цією кнопкою, картки зі смужки ЗАБИРАЄМО. Інакше
+       «Скасувати» лишало б їх напоготові — і вони пішли б клієнту від
+       наступного ➤, хоча людина щойно сказала «не треба». */
+    const st = chatWin.cards;
+    if(st) st.pick = {};
+    cardsSync(o);
+    chatWin.cards = null;
+    renderChatWin();
+  });
 
   box.querySelectorAll('[data-qr]').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -20220,14 +20231,47 @@ async function chatSend(o, text){
 
    Картинки йдуть ПАЧКОЮ — одним повідомленням із кількома адресами, як і
    пише людина в Direct. Telegram так не вміє, там кожне фото окреме. */
+/* ФОРМАТ, ЯКИЙ ПРИЙМАЧ РОЗУМІЄ.
+
+   Instagram у Direct бере jpeg, png і gif. Webp він не бере — а наш
+   зменшувач робить саме webp щоразу, коли в картинці є прозорість:
+   логотипи, вирізані макети, скриншоти з прозорим тлом. Така картинка
+   доходить до Sitniks і зупиняється там: у CRM вона є, у клієнта немає, і
+   зрозуміти, чому одні фото доходять, а інші ні, неможливо.
+
+   Тому перед відправкою webp перекладаємо в png: прозорість лишається,
+   формат стає тим, який приймач розуміє. Картки малюються в jpeg і цього
+   рядка навіть не помічають. */
+function picSendable(blob){
+  if(!/webp/i.test((blob && blob.type) || '')) return Promise.resolve(blob);
+  return new Promise(resolve => {
+    const img = new Image();
+    const src = URL.createObjectURL(blob);
+    const done = b => { try{ URL.revokeObjectURL(src); }catch(e){} resolve(b || blob); };
+    img.onload = ()=>{
+      const cv = document.createElement('canvas');
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.getContext('2d').drawImage(img, 0, 0);
+      cv.toBlob(done, 'image/png');
+    };
+    img.onerror = ()=> done(null);
+    img.src = src;
+  });
+}
 async function chatSendPics(o, pics, text){
   if(!pics.length) return;
   const isTg = chatWin.kind === 'tg';
   chatWin.pics = []; chatWin.picsBusy = true;
   renderChatWin(true);
   const back = ()=>{ chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin(); };
-  let urls = [];
-  try{ for(const p of pics) urls.push(await uploadCloudinary(p.blob)); }
+  let urls = [], blobs = [];
+  try{
+    for(const p of pics){
+      const b = await picSendable(p.blob);
+      blobs.push(b);
+      urls.push(await uploadCloudinary(b));
+    }
+  }
   catch(e){
     console.warn('chat photo', e);
     back();
@@ -20241,7 +20285,7 @@ async function chatSendPics(o, pics, text){
     }
   }else{
     try{
-      const way = await crmSendPic(o, urls, pics.map(p => p.blob));
+      const way = await crmSendPic(o, urls, blobs);
       const st0 = crmChat[o.id] || {};
       /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
          забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
@@ -24468,11 +24512,22 @@ function uploadCloudinaryAuto(blob){
       .catch(err=>{ clearTimeout(t); reject(err); });
   });
 }
+/* Розширення за справжнім типом. Доти файл ішов у Cloudinary без імені —
+   браузер називав його просто «blob», і адреса могла лишитись без
+   розширення зовсім. Приймачі картинок часто дивляться саме на нього й
+   адресу без розширення за картинку не вважають. */
+function picFileName(blob){
+  if(blob && blob.name) return blob.name;
+  const t = String((blob && blob.type) || '');
+  const ext = /png/.test(t) ? 'png' : /webp/.test(t) ? 'webp'
+            : /gif/.test(t) ? 'gif' : /svg/.test(t) ? 'svg' : 'jpg';
+  return 'loomiq.' + ext;
+}
 function uploadCloudinary(blob){
   return new Promise((resolve, reject)=>{
     if(!CLOUDINARY.cloud || !CLOUDINARY.preset){ reject(new Error('cloudinary-not-configured')); return; }
     const fd = new FormData();
-    fd.append('file', blob);
+    fd.append('file', blob, picFileName(blob));
     fd.append('upload_preset', CLOUDINARY.preset);
     const ctrl = new AbortController();
     /* Хвилина, а не тридцять секунд. Макети йдуть по шість одразу, ділять
