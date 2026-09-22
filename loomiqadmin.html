@@ -2945,6 +2945,15 @@
   .dz-who a{color:var(--ink-soft);text-decoration:none;}
   .dz-who a:hover{color:var(--ink);text-decoration:underline;}
   .dz-sep{color:var(--muted);}
+  /* Клієнт власного замовлення відділу: у нього немає картки в Канбані,
+     звідки взялись би імʼя й телефон, — тож їх вписують просто тут. */
+  .dz-own{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+  .dz-own-f{display:flex;flex-direction:column;gap:3px;min-width:140px;flex:1;}
+  .dz-own-f>span{font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--muted);}
+  .dz-own-f>input{font:inherit;font-size:13.5px;border:1px solid var(--line);
+    border-radius:10px;padding:7px 10px;background:#fff;color:var(--ink);}
+  .dz-own-f>input:focus{outline:none;border-color:var(--accent);}
   /* Відправка — тонкий підсумковий рядок унизу картки. */
   .dz-ship{display:flex;align-items:center;gap:10px;border:1px solid var(--line);
     border-radius:12px;padding:10px 12px;background:#fff;}
@@ -4698,18 +4707,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=12726070f8"></script>
-<script src="loomiq-fingerprint.js?v=12726070f8"></script>
-<script src="loomiq-pricing.js?v=12726070f8"></script>
+<script src="loomiq-select.js?v=f2bc447b5a"></script>
+<script src="loomiq-fingerprint.js?v=f2bc447b5a"></script>
+<script src="loomiq-pricing.js?v=f2bc447b5a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=12726070f8"></script>
+<script src="loomiq-design.js?v=f2bc447b5a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=12726070f8"></script>
+<script src="loomiq-cards.js?v=f2bc447b5a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -21098,9 +21107,34 @@ let designDirty = {};             // що чекає запису
 /* Замовлення, які взагалі стосуються відділу. Скасовані й виконані свою
    дизайнерську долю вже прожили — тримати їх на дошці означає ховати
    живу роботу за мертвою. Документ при цьому нікуди не дівається. */
+/* ВЛАСНІ ЗАМОВЛЕННЯ ВІДДІЛУ.
+
+   Андрій, багато разів: «дизайн-відділ окремо живе від Kanban». Кнопка
+   «+ Нове замовлення» доти кидала в Канбан і відкривала там його форму —
+   з телефоном, каналом, сумою, — а картка лягала в чужий розділ. Тобто
+   робила рівно те, чого просили не робити.
+
+   Тепер відділ заводить замовлення СОБІ. Такі картки не лежать у `orders`
+   зовсім, а живуть у самій колекції відділу — отже їх не бачить ні дошка,
+   ні аналітика, ні списки, і фільтрувати їх ніде не треба: у тих місцях їх
+   просто немає. Номер у них свій, відділовий, з двійки.
+
+   Для решти відділу вони виглядають як звичайне замовлення: той самий
+   склад, ті самі дизайни. Різниця лише в тому, звідки взялись дані про
+   клієнта — тут їх вписують прямо в картці. */
+function designSoloOrder(job){
+  const c = (job && job.own) || {};
+  return { orderId: job.orderId, solo: true, name: c.name || '', phone: c.phone || '',
+           company: c.company || '', ttn: c.ttn || '', items: [],
+           createdAt: job.createdAt || '' };
+}
 function designOrders(){
-  return (orders || []).filter(o => o && o.orderId &&
+  const kan = (orders || []).filter(o => o && o.orderId &&
     (o.items || []).length && o.status !== 'cancel' && o.status !== 'done');
+  const solo = Object.keys(designJobs || {})
+    .filter(k => designJobs[k] && designJobs[k].solo)
+    .map(k => designSoloOrder(designJobs[k]));
+  return kan.concat(solo);
 }
 /* ── ВЛАСНА НУМЕРАЦІЯ ВІДДІЛУ ────────────────────────────────────────────
    Відділ не показує номер замовлення. Андрій: «сюди ніякі номера не
@@ -21208,6 +21242,13 @@ async function fixDuplicateOrderIds(){
 function designJobOf(orderId, make){
   const id = String(orderId || '');
   if(!id) return null;
+  /* Власна картка відділу не має пари в Канбані — і не повинна мати.
+     Замовлення для неї збирається з неї самої. */
+  const solo = designJobs[id];
+  if(solo && solo.solo){
+    window.LQDesign.ensure(solo, designSoloOrder(solo));
+    return solo;
+  }
   const o = (orders || []).filter(x => x && x.orderId === id)[0];
   if(!o) return null;
   let job = designJobs[id];
@@ -21248,6 +21289,22 @@ function designJobOf(orderId, make){
 }
 // Завести картку у відділі. Єдина дорога сюди — кнопка, і це навмисно.
 function designJobMake(orderId){ return designJobOf(orderId, true); }
+/* Власне замовлення відділу. Номер свій, картка порожня, клієнта вписують
+   прямо в ній. Ключ документа починається з літери — так його ніколи не
+   сплутати з номером замовлення Канбану, навіть випадково. */
+async function designJobNew(){
+  const no = makeDesignNo();
+  const id = 'd' + no;
+  const job = window.LQDesign.emptyJob(id);
+  job.no = no;
+  job.solo = true;
+  job.own = { name:'', company:'', phone:'', ttn:'' };
+  job.createdAt = new Date().toISOString();
+  designJobs[id] = job;
+  window.LQDesign.ensure(job, designSoloOrder(job));
+  try{ await designSave(job); }catch(e){ console.warn(e); }
+  return job;
+}
 /* Прибрати те, що відділ насипав собі сам.
 
    Картки, у яких уже є справжня робота — версії, здані файли, доручення,
@@ -21320,7 +21377,7 @@ async function designSave(job, o){
      змінити — нову версію, файл, позначку погодження. Тож записуємо й
      картку. saveOrders пише тільки те, що справді змінилось, тож зайвого
      тут не буде. */
-  if(o){
+  if(o && !o.solo){
     touchOrder(o);
     try{ await storeSet('orders', orders); }
     catch(e){ console.warn('order save after design step', e); }
@@ -21331,7 +21388,7 @@ async function designSave(job, o){
      клієнта, і перевірити ворота тиражу. Своя копія цієї логіки тут рано чи
      пізно розійшлася б із загальною. */
   const step = window.LQDesign.mirror(job);
-  if(o && step && typeof setTrack === 'function') await setTrack(o, 'design', step);
+  if(o && !o.solo && step && typeof setTrack === 'function') await setTrack(o, 'design', step);
 }
 function openDesign(){
   const root = document.getElementById('dzRoot');
@@ -21401,26 +21458,14 @@ function openDesign(){
        Форма для цього вже є в робочому місці; відділ лише відкриває її,
        а не заводить власну: дві різні форми «нового замовлення» рано чи
        пізно розійдуться полями й нумерацією. */
-    newOrder: ()=>{
-      const b = document.querySelector('.nav button[data-view="board"]');
-      if(b) b.click();
-      try{ toggleNewOrder(true); }catch(e){ toast('Форма замовлення недоступна'); }
-      /* Заведене звідси замовлення має зʼявитись У ВІДДІЛІ — заради цього
-         кнопку й тиснули. Доти воно просто лягало в Канбан, а у відділ
-         потрапляло тим самим гуртом, що й усі інші. Ловимо саме ту картку,
-         яка після цього зʼявилась, і заводимо на неї доручення. */
-      const was = new Set((orders || []).map(o => o && o.orderId));
-      let left = 40;
-      const wait = setInterval(()=>{
-        const fresh = (orders || []).filter(o => o && o.orderId && !was.has(o.orderId))[0];
-        if(fresh){
-          clearInterval(wait);
-          designJobMake(fresh.orderId);
-          try{ openDesign(); }catch(e){}
-          return;
-        }
-        if(--left <= 0) clearInterval(wait);
-      }, 500);
+    newOrder: async ()=>{
+      const job = await designJobNew();
+      toast('Замовлення ' + (job.no ? '№' + job.no : '') + ' заведено');
+      try{
+        window.LQDesign.ui.setTab('queue');
+        window.LQDesign.ui.open(job.orderId);
+      }catch(e){}
+      try{ openDesign(); }catch(e){}
     },
     can: ()=> true
   };

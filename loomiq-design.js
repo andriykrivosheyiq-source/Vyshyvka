@@ -1127,6 +1127,20 @@
      було йти дивитись у Канбан. Саме тому картка й виглядала голою. */
   function clientHtml(o, job){
     o = o || {};
+    /* ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ. У нього немає картки в Канбані, звідки
+       взялись би імʼя й телефон, — і саме тому воно й заводиться тут:
+       відділ живе окремо. Тож клієнта вписують прямо в картці. */
+    if(o.solo){
+      var own = (job && job.own) || {};
+      var fld = function(k, label, ph){
+        return '<label class="dz-own-f"><span>' + esc(label) + '</span>' +
+          '<input data-of="' + k + '" value="' + esc(own[k] || '') +
+          '" placeholder="' + esc(ph) + '"></label>';
+      };
+      return '<div class="dz-own">' + fld('name', 'Клієнт', 'імʼя') +
+        fld('company', 'Компанія', 'необовʼязково') +
+        fld('phone', 'Телефон', '+380…') + '</div>';
+    }
     var c = o.client || {};
     var name = c.name || o.name || '';
     var comp = c.company || o.company || '';
@@ -1282,6 +1296,17 @@
     if(!q) (o.items || []).forEach(function(it){
       if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
     var ttn = String(o.ttn || '').trim();
+    /* У власного замовлення відділу немає картки в Канбані, а отже й
+       кнопки «створити накладну»: накладні робить робоче місце продажу.
+       Тут номер просто записують — цього досить, щоб знати, чим поїхало. */
+    if(o.solo)
+      return '<div class="dz-h">Відправка</div>' +
+        '<div class="dz-ship">' +
+          '<div class="dz-ship-l"><b>' +
+            (q ? q + ' шт' : 'кількість ще не вказана') + '</b></div>' +
+          '<label class="dz-own-f"><span>Накладна</span>' +
+            '<input data-of="ttn" value="' + esc(ttn) + '" placeholder="номер ТТН"></label>' +
+        '</div>';
     return '<div class="dz-h">Відправка</div>' +
       '<div class="dz-ship">' +
         '<div class="dz-ship-l">' +
@@ -2114,6 +2139,14 @@
     });
     /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск
        клавіші летів би в базу й перемальовував панель під руками. */
+    root.querySelectorAll('[data-of]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        if(!c.job.own) c.job.own = {};
+        c.job.own[el.dataset.of] = String(el.value || '').trim();
+        save(c.job, c.o, '');
+      };
+    });
     root.querySelectorAll('[data-uf]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c) return;
