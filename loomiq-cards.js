@@ -558,6 +558,19 @@
         /* Ні розмірного ряду, ні загальної суми тут немає — і не лежить
            мертвим вантажем: чого картка не малює, того вона й не возить. */
         qty: +it.qty || 0,
+        /* ТИРАЖ, ЗА ЯКИМ ПОРАХОВАНА ЦІНА, — НЕ ТЕ САМЕ, ЩО КІЛЬКІСТЬ ЦІЄЇ
+           ПОЗИЦІЇ.
+
+           Базовий товар чотири штуки, рекомендований теж чотири — але
+           логотип той самий, макет уже готовий, і поріг тиражу рахується на
+           вісім. Ціна саме така й виходить. А підпис під нею казав «від 4
+           шт» — тобто називав ціну восьми штук ціною чотирьох, і виглядало
+           це як помилка в прорахунку.
+
+           Беремо число з самого рушія: `groupQty` — це той обсяг, за яким
+           він узяв коефіцієнт. Немає його (стара картка) — лишається
+           кількість позиції, як було. */
+        tier: (it.parts && +it.parts.groupQty) || (+it.qty || 0),
         unit: +it.unitPrice || 0,
         /* Базова ціна — та сама, з якої сторінка пропозиції рахує «ви
            економите». Своєї старої ціни картка не вигадує. */
@@ -617,7 +630,7 @@
       var cols = pool.map(function(r){
         var c = card('variant:' + r.i, 'variant', r.it);
         return { id: c.id, name: c.name, sub: c.sub, shots: c.allShots || c.shots,
-                 specs: c.specs, unit: c.unit, base: c.base, qty: c.qty,
+                 specs: c.specs, unit: c.unit, base: c.base, qty: c.qty, tier: c.tier,
                  lost: c.lost };
       });
       /* ЯКІ РЯДИ КАДРІВ ПОКАЗУВАТИ. У таблиці сторони — це рядки, і знімає
@@ -683,6 +696,7 @@
         cols: cols, rows: rows, shotRows: Math.min(nShot, 3),
         allShots: allShots,
         qty: cols[0].qty,
+        tier: cols[0].tier || cols[0].qty,
         pool: list.map(function(r, k){
           return { i: k, name: r.it.name || '', on: pick.indexOf(k) >= 0 };
         }),
@@ -1132,7 +1146,8 @@
        велика: «20 шт» окремим блоком застаріває від першого «а якщо
        пʼятдесят», а «від 20 шт» пояснює, звідки взялась саме ця ціна, і
        прямо запрошує спитати про більший тираж. */
-    var lab = (card.qty > 1) ? 'Ціна від ' + card.qty + ' шт' : 'Ціна за 1 шт';
+    var tierN = card.tier || card.qty;
+    var lab = (tierN > 1) ? 'Ціна від ' + tierN + ' шт' : 'Ціна за 1 шт';
     var till = (price && show('valid')) ? o.valid : '';
 
     var priceW = 0, wasW = 0;
@@ -1817,7 +1832,8 @@
         ty += 24;
         x.fillStyle = tint(t.dim, 0.7);
         x.font = '400 15px ' + t.body;
-        x.fillText((card.qty > 1) ? 'ціна від ' + card.qty + ' шт' : 'ціна за 1 шт', tx, ty);
+        var tq = card.tier || card.qty;
+        x.fillText((tq > 1) ? 'ціна від ' + tq + ' шт' : 'ціна за 1 шт', tx, ty);
       }
       ty += 44;
       /* Склад — парами «про що / скільки». Однакове в усіх товарах
@@ -1996,9 +2012,10 @@
           badge(x, t, off, wx + ww + 16, py2 - 3);
         }
       }
-      if(it.qty > 1){
+      var tq2 = it.tier || it.qty;
+      if(tq2 > 1){
         x.fillStyle = t.dim; x.font = '400 20px ' + t.body;
-        x.fillText('Ціна від ' + it.qty + ' шт', tx2, py2 + 34);
+        x.fillText('Ціна від ' + tq2 + ' шт', tx2, py2 + 34);
       }
     });
   }
