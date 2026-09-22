@@ -1709,6 +1709,20 @@
   .cw-empty{margin:auto;max-width:250px;text-align:center;font-size:12.5px;line-height:1.55;
     color:#8A94A6;}
   .cw-bar{flex:none;background:#fff;border-top:1px solid var(--line);padding:8px 9px;}
+  /* Смужка зібраного до відправки. Доти вибрана картинка летіла клієнту
+     тієї ж миті: роздивитись її, додати другу чи передумати було ніколи. */
+  .cw-tray{display:flex;flex-wrap:wrap;gap:7px;padding:2px 2px 9px;}
+  .cw-tr{position:relative;width:58px;height:58px;border-radius:10px;overflow:hidden;
+    border:1px solid var(--line);background:var(--canvas);flex:none;}
+  .cw-tr img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+  .cw-tr-x{all:unset;cursor:pointer;position:absolute;top:2px;right:2px;width:18px;height:18px;
+    border-radius:50%;background:rgba(17,24,39,.72);color:#fff;font-size:11px;line-height:1;
+    display:flex;align-items:center;justify-content:center;}
+  .cw-tr-x:hover{background:var(--bad);}
+  .cw-tr-add{all:unset;cursor:pointer;width:58px;height:58px;border-radius:10px;flex:none;
+    border:1px dashed var(--line);color:var(--ink-soft);font-size:20px;
+    display:flex;align-items:center;justify-content:center;}
+  .cw-tr-add:hover{border-color:var(--accent);color:var(--accent-deep);}
   .cw-row{display:flex;align-items:flex-end;gap:7px;}
   .cw-inp{flex:1;min-width:0;font:inherit;font-size:14px;line-height:1.45;border:1px solid var(--line);
     border-radius:18px;padding:11px 15px;resize:none;max-height:130px;background:var(--canvas);}
@@ -16867,6 +16881,59 @@ function crmOutNote(o, text){
   });
   if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
 }
+/* КАРТИНКА ВІД НАС — ПРАВОРУЧ.
+
+   Памʼять за адресою на картинках не спрацьовує ніколи, і це не недогляд,
+   а влаштування Sitniks: нашу адресу він клієнту не переказує, а ЗАБИРАЄ
+   картинку до себе й у стрічці віддає її вже своєю, на CDN Instagram. Ми
+   ж звіряли ту, що надсилали, — рядки різні завжди, збігу не було жодного
+   разу, і власне фото ставало ліворуч, як клієнтське.
+
+   Тому беремо прикмети, які від адрес не залежать:
+
+     — НОМЕР повідомлення з відповіді Sitniks на нашу ж відправку. Точна
+       прикмета: збіг за нею — це знання, а не здогад;
+     — МИТЬ відправки — лише якщо номера у відповіді не виявилось. Тоді
+       наше те повідомлення з вкладенням, що зʼявилось у стрічці поруч із
+       нашою відправкою. Здогад, і він може помилитись на клієнтському
+       фото, надісланому тієї ж хвилини, — тому це запасний шлях, і
+       вмикається він сам, тільки коли номера немає. */
+const CRM_OUT_WIN = 120000;
+function crmOutId(res){
+  if(!res || typeof res !== 'object') return '';
+  const d = res.data || res.message || res.result || res;
+  const v = d && (d.id || d.messageId || d.message_id || d.uuid);
+  return (v == null || v === '') ? '' : String(v);
+}
+function crmOutSent(o, res){
+  if(!o) return '';
+  const list = Array.isArray(o.crmOut) ? o.crmOut : (o.crmOut = []);
+  const by = myName();
+  const id = crmOutId(res);
+  list.push(id ? { t:'#' + id, by: by } : { t:'@' + Date.now(), by: by });
+  if(list.length > CRM_OUT_KEEP) o.crmOut = list.slice(-CRM_OUT_KEEP);
+  return id;
+}
+function crmOutOwn(o, m, files){
+  const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
+  if(!list.length || !m || typeof m !== 'object') return null;
+  const id = m.id || m.messageId || m.message_id || m.uuid;
+  if(id != null && id !== ''){
+    for(let i = list.length - 1; i >= 0; i--)
+      if(list[i] && list[i].t === '#' + id) return list[i];
+  }
+  // За часом — лише вкладення: текст ми впізнаємо самим текстом, точно.
+  if(!(files && files.length)) return null;
+  const at = Date.parse(crmPick(m, CRM_AT_KEYS) || '');
+  if(!at) return null;
+  for(let i = list.length - 1; i >= 0; i--){
+    const r = list[i];
+    if(!r || String(r.t).charAt(0) !== '@') continue;
+    const ms = +String(r.t).slice(1);
+    if(ms && Math.abs(at - ms) <= CRM_OUT_WIN) return r;
+  }
+  return null;
+}
 function crmOutFind(o, text, files){
   const list = Array.isArray(o && o.crmOut) ? o.crmOut : [];
   if(!list.length) return null;
@@ -17014,7 +17081,7 @@ function crmNormMsgs(data, o){
     const who = crmMsgWho(m);
     /* Своє надіслане впізнаємо першими: тут ми знаємо напевно, а не
        здогадуємось за підписом, якого в такому повідомленні немає. */
-    const own = crmOutFind(o, text, files);
+    const own = crmOutOwn(o, m, files) || crmOutFind(o, text, files);
     const mine = own ? true : crmIsMine(m, text, who, peer);
     /* Підпис ставимо лише під нашими — і лише якщо це справді не клієнт:
        коли в записі є сам тільки клієнт, а «наше» ми вирішили памʼяттю про
@@ -17300,9 +17367,9 @@ async function crmSendPic(o, url, blob){
        відповідав 429 — решта способів тоді не перевірялась узагалі, а в
        журналі це виглядало як «жоден не працює». */
     if(i) await crmWait(CRM_PIC_GAP);
-    let sent = false;
+    let sent = false, res = null;
     for(let attempt = 0; attempt < 2 && !sent; attempt++){
-      try{ await crmPicTry(w, st.chatId, urls, blobs); sent = true; }
+      try{ res = await crmPicTry(w, st.chatId, urls, blobs); sent = true; }
       catch(e){
         /* 429 — це не «спосіб не годиться», а «зачасто питаємо». Чекаємо
            довше й пробуємо ЦЕЙ САМИЙ спосіб ще раз; не допоміг і вдруге —
@@ -17331,6 +17398,11 @@ async function crmSendPic(o, url, blob){
         contentData.crmPicWay = w.id;
         try{ await PHOTOS_DOC.set({ crmPicWay: w.id }, { merge:true }); }catch(e){ console.warn(e); }
       }
+      /* Тепер — і ЧИМ упізнати цю картинку в стрічці. Відповідь на нашу ж
+         відправку тримає номер створеного повідомлення; його ми й кладемо
+         в памʼять, а адреси Cloudinary там марні: Sitniks їх не переказує
+         (див. crmOutOwn). */
+      crmOutSent(o, res);
       return w.id;
     }
     crmPicLog.push(w.id + ' → прийняв, але вкладення в стрічці не зʼявилось');
@@ -17344,12 +17416,13 @@ async function crmSend(o, text){
   const st = crmChat[o.id];
   if(!st || !st.chatId || !text.trim()) return;
   try{
-    await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
+    const res = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
       method: 'POST',
       body: JSON.stringify({ text: text.trim() })
     });
     toast('Надіслано');
     crmSent.add(text.trim());
+    crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
     /* Записуємо в картку, що це писали ми: Sitniks поверне це повідомлення
        без відправника, і впізнати його більше не буде чим. */
     crmOutNote(o, text.trim());
@@ -19691,6 +19764,8 @@ function chatOpen(o, kind){
 }
 function chatClose(){
   const solo = chatWin && chatWin.solo;
+  // Незібране фото нікуди не піде — зате памʼять під мініатюри звільнимо.
+  chatPics().forEach(chatDropPic);
   chatWin = null;
   const d = document.getElementById('chatWin');
   if(d) d.classList.remove('open');
@@ -19782,6 +19857,7 @@ function renderChatWin(toBottom){
     <div class="cw-feed">${feed}</div>
     <div class="cw-bar">
       ${raw}${sniff}${note}${cards}${qr}
+      ${chatTrayHtml()}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
@@ -19798,7 +19874,7 @@ function renderChatWin(toBottom){
       ${/* Правило треба сказати вголос: доти Enter надсилав, про Shift+Enter
            ніхто не знав, і листи виходили одним рядком. */''}
       <div class="cw-tip">Enter — новий рядок · Ctrl+Enter або ➤ — надіслати</div>
-      <input type="file" accept="image/*" data-cw-file hidden>
+      <input type="file" accept="image/*" multiple data-cw-file hidden>
     </div>`;
 
   const feedEl = box.querySelector('.cw-feed');
@@ -19810,6 +19886,47 @@ function renderChatWin(toBottom){
   }
 }
 
+/* ── СМУЖКА ЗІБРАНОГО ДО ВІДПРАВКИ ───────────────────────────────────────
+   Доти скріпка надсилала картинку тієї ж миті, як її вибрали. Роздивитись
+   її перед відправкою, докласти другу чи передумати було ніде, а підпис
+   доводилось писати ПІСЛЯ — дочекавшись, поки фото долетить, і набираючи
+   текст заново, хоча думка була вже тоді, коли картинку вибирали.
+
+   Тепер вибране лежить тут, скільки треба: додати ще, прибрати зайве,
+   натиснути на мініатюру й роздивитись у повний розмір. Текст пишеться
+   тим самим полем і тієї ж миті, а «Надіслати» відправляє все разом. */
+const CHAT_PICS_MAX = 10;
+function chatPics(){ return (chatWin && chatWin.pics) || []; }
+function chatTrayHtml(){
+  const pics = chatPics();
+  if(!pics.length) return '';
+  const tail = chatWin.picsBusy
+    ? '<span class="cw-tip" style="align-self:center">Надсилаємо…</span>'
+    : '<button class="cw-tr-add" data-cw-clip title="Додати ще">+</button>';
+  return '<div class="cw-tray">' + pics.map((p, i) =>
+    '<div class="cw-tr"><img src="' + escapeHtml(p.url) + '" alt="" data-cw-big="' + i + '">' +
+    (chatWin.picsBusy ? '' :
+      '<button class="cw-tr-x" data-cw-unpic="' + i + '" title="Прибрати">\u2715</button>') +
+    '</div>').join('') + tail + '</div>';
+}
+/* Адреси мініатюр живуть у памʼяті вкладки, і браузер сам їх не прибирає:
+   без цього рядка кожна переглянута картинка лишалась би висіти до
+   перезавантаження сторінки. */
+function chatDropPic(p){ if(p && p.url) try{ URL.revokeObjectURL(p.url); }catch(e){} }
+async function chatTake(list){
+  const pics = chatWin.pics || (chatWin.pics = []);
+  let skipped = 0;
+  for(const f of Array.from(list || [])){
+    if(!/^image\//.test(f.type || '') || pics.length >= CHAT_PICS_MAX){ skipped++; continue; }
+    try{
+      const blob = await shrinkImage(f);
+      pics.push({ blob: blob, url: URL.createObjectURL(blob) });
+    }catch(e){ console.warn('фото', e); skipped++; }
+  }
+  if(skipped) toast('Додаються лише фото, і не більше ' + CHAT_PICS_MAX + ' за раз');
+  renderChatWin();
+}
+
 function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
   const inp = box.querySelector('.cw-inp');
@@ -19819,9 +19936,11 @@ function wireChatWin(box, o, focusIn){
   inp.addEventListener('input', ()=>{ chatWin.draft = inp.value; grow(); });
   const send = ()=>{
     const t = inp.value.trim();
-    if(!t) return;
+    const pics = chatPics();
+    if((!t && !pics.length) || chatWin.picsBusy) return;
     inp.value = ''; chatWin.draft = ''; grow();
-    chatSend(o, t);
+    if(pics.length) chatSendPics(o, pics, t);
+    else chatSend(o, t);
   };
   /* Enter робить НОВИЙ РЯДОК, а надсилає кнопка або Ctrl/⌘+Enter.
      Довго було навпаки — «як у месенджерах». Але месенджер і КП пишуться
@@ -19938,11 +20057,30 @@ function wireChatWin(box, o, focusIn){
     mIn.focus();
   }
   const file = box.querySelector('[data-cw-file]');
-  box.querySelector('[data-cw-clip]').addEventListener('click', ()=> file.click());
+  // Скріпок дві: у рядку вводу й «+» у смужці. Обидві роблять те саме.
+  box.querySelectorAll('[data-cw-clip]').forEach(b => b.addEventListener('click', ()=> file.click()));
   file.addEventListener('change', ()=>{
-    const f = file.files && file.files[0];
+    const list = file.files;
     file.value = '';
-    if(f) chatPhoto(o, f, inp.value.trim());
+    if(list && list.length) chatTake(list);
+  });
+  box.querySelectorAll('[data-cw-unpic]').forEach(b => b.addEventListener('click', ()=>{
+    const pics = chatPics();
+    chatDropPic(pics.splice(+b.dataset.cwUnpic, 1)[0]);
+    renderChatWin();
+  }));
+  // Роздивитись перед відправкою — те, заради чого смужка й зʼявилась.
+  box.querySelectorAll('[data-cw-big]').forEach(img => img.addEventListener('click', ()=>{
+    const p = chatPics()[+img.dataset.cwBig];
+    if(p) window.open(p.url, '_blank');
+  }));
+  /* Вставка з буфера. Скриншот у Windows лягає саме туди, і йти через
+     «зберегти файл → скріпка → знайти файл» заради нього — три зайві дії. */
+  inp.addEventListener('paste', e => {
+    const items = Array.from((e.clipboardData || {}).items || []);
+    const imgs = items.filter(it => /^image\//.test(it.type || ''))
+                      .map(it => it.getAsFile()).filter(Boolean);
+    if(imgs.length){ e.preventDefault(); chatTake(imgs); }
   });
   if(focusIn) inp.focus();
 }
@@ -19961,59 +20099,70 @@ async function chatSend(o, text){
 /* Фото: спершу в Cloudinary. Telegram забирає картинку за адресою сам, і
    гнати заради нього байти через воркер не треба. Sitniks приймає по-різному
    залежно від акаунта — тому тримаємо напоготові і адресу, і самі байти, і
-   віддаємо те, що він візьме (див. crmSendPic). */
-async function chatPhoto(o, fileObj, caption){
-  if(!/^image\//.test(fileObj.type || '')){ toast('Можна прикріплювати лише фото'); return; }
-  toast('Завантажуємо фото…');
-  let url = '', small = null;
-  try{
-    small = await shrinkImage(fileObj);
-    url = await uploadCloudinary(small);
-  }catch(e){
+   віддаємо те, що він візьме (див. crmSendPic).
+
+   ПОРЯДОК: спершу картинки, під ними підпис — окремим повідомленням.
+   Андрій: «фотки спочатку відправляються окремим повідомленням, і потім
+   внизу ще окремим повідомленням підпис». Так воно й читається: кадри, а
+   під ними рядок про них.
+
+   Картинки йдуть ПАЧКОЮ — одним повідомленням із кількома адресами, як і
+   пише людина в Direct. Telegram так не вміє, там кожне фото окреме. */
+async function chatSendPics(o, pics, text){
+  if(!pics.length) return;
+  const isTg = chatWin.kind === 'tg';
+  chatWin.pics = []; chatWin.picsBusy = true;
+  renderChatWin(true);
+  const back = ()=>{ chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin(); };
+  let urls = [];
+  try{ for(const p of pics) urls.push(await uploadCloudinary(p.blob)); }
+  catch(e){
     console.warn('chat photo', e);
+    back();
     toast('Фото не завантажилось — спробуйте ще раз');
     return;
   }
-  if(chatWin.kind === 'tg'){
-    const inp = document.querySelector('.cw-inp');
-    if(inp && inp.value.trim() === caption){ inp.value = ''; chatWin.draft = ''; }
-    await tgSend(o, caption || '', url);
+  if(isTg){
+    for(const u of urls){
+      try{ await tgSend(o, '', u); }
+      catch(e){ console.warn('tg photo', e); back(); toast('Фото не надіслалось'); return; }
+    }
   }else{
-    /* Підпис іде ОКРЕМИМ повідомленням і першим — так і пишуть у Direct:
-       рядок тексту, за ним кадри. Заразом це робить безпечним пошук
-       способу надіслати картинку: спроба йде з порожнім текстом, і
-       неправильний спосіб сервер відхилить як порожнє повідомлення, а не
-       надішле клієнту наше сміття. */
-    if(caption) await crmSend(o, caption);
     try{
-      const way = await crmSendPic(o, url, small);
-      /* Впізнати власне вкладення в стрічці можна лише за адресою: Sitniks
-         повертає наші повідомлення без відправника. Без цього картинка
-         стане ліворуч, як клієнтська, і без імені менеджера. */
-      crmOutNote(o, url);
-      crmSent.add(url);
+      const way = await crmSendPic(o, urls, pics.map(p => p.blob));
+      /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
+         забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
+         Адреси кладемо про запас, а справжня прикмета — номер
+         повідомлення, і його запамʼятав сам crmSendPic. */
+      urls.forEach(u => { crmOutNote(o, u); crmSent.add(u); });
       saveOrderMeta(o).catch(e => console.warn(e));
-      toast('Картинку надіслано' + (way ? ' (' + way + ')' : ''));
       chatWin.note = false;
+      toast(picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : ''));
     }catch(e){
       /* Жоден спосіб не пройшов — тоді хоч посиланням, щоб робота не
          спинилась. Але кажемо прямо, що клієнт побачить адресу, а не
          картинку: мовчазна підміна тут найгірша. */
       console.warn('Sitniks photo', e);
       chatWin.note = true;
-      await crmSend(o, url);
+      for(const u of urls){ try{ await crmSend(o, u); }catch(e2){ console.warn(e2); } }
       toast('Картинка пішла посиланням: ' + (e.message || 'Sitniks не прийняв вкладення'));
     }
-    const inp = document.querySelector('.cw-inp');
-    if(inp && inp.value.trim() === caption){ inp.value = ''; chatWin.draft = ''; }
-    renderChatWin(true);
   }
+  pics.forEach(chatDropPic);
+  chatWin.picsBusy = false;
+  if(text){ try{ await chatSend(o, text); }catch(e){ console.warn(e); } }
+  renderChatWin(true);
   /* Картинка — таке саме повідомлення клієнту, як і лист, і картка від неї
      так само має піднятись угору колонки. Доти цей рядок стояв лише в
      дорозі для тексту: написали — картка нагорі, надіслали фото — ні, і
      замовлення тонуло під тими, де сьогодні не робили нічого. */
   touchOrder(o);
   renderBoard();
+}
+function picWord(n){
+  const t = n % 10, h = n % 100;
+  if(t === 1 && h !== 11) return 'Картинку';
+  return n + ' ' + ((t >= 2 && t <= 4 && (h < 12 || h > 14)) ? 'картинки' : 'картинок');
 }
 
 /* ============================================================

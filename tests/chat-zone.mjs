@@ -500,6 +500,85 @@ console.log('═══ КАРТИНКА В SITNIKS — ВКЛАДЕННЯМ, А 
 }
 
 console.log('');
+console.log('═══ СМУЖКА: СПЕРШУ ПОКАЗАТИ, ПОТІМ НАДІСЛАТИ ═══');
+/* Андрій: «коли я вибрав її, воно автоматично вибирається і відправляється,
+   хоча я дуже спочатку її побачити, можливо, якісь повідомлення під ним ще
+   написати і тільки потім відправити. Можливо, я хочу ще три картинки».
+
+   Скріпка надсилала картинку тієї ж миті, як її вибрали: подивитись,
+   докласти другу чи передумати було ніде, а підпис доводилось писати вже
+   після — дочекавшись, поки фото долетить, і набираючи текст заново. */
+{
+  await p.evaluate(async () => { await openOrderDrawer(orders[0]); chatOpen(orders[0], 'tg'); });
+  await p.waitForTimeout(700);
+  const тр = await p.evaluate(async () => {
+    const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const bin = atob(b64), arr = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const f = n => new File([arr], n, { type:'image/png' });
+    await chatTake([f('a.png'), f('b.png'), f('c.png')]);
+    return { плиток: document.querySelectorAll('.cw-tray .cw-tr').length,
+             додати: !!document.querySelector('.cw-tray [data-cw-clip]'),
+             хрестик: !!document.querySelector('.cw-tray [data-cw-unpic]'),
+             збільшити: !!document.querySelector('.cw-tray [data-cw-big]') };
+  });
+  console.log('   ' + JSON.stringify(тр));
+  ok(тр.плиток === 3,
+    'вибране лежить у смужці й чекає — три картинки разом, а не три окремі відправки',
+    'смужки немає або картинки в ній не збираються: ' + JSON.stringify(тр));
+  ok(тр.додати && тр.хрестик && тр.збільшити,
+    'до зібраного можна додати ще, зайве прибрати, а мініатюру збільшити',
+    'смужка без керування: ' + JSON.stringify(тр));
+  const після = await p.evaluate(() => {
+    document.querySelector('.cw-tray [data-cw-unpic]').click();
+    return document.querySelectorAll('.cw-tray .cw-tr').length;
+  });
+  ok(після === 2, 'зайва картинка прибирається до відправки, а не після неї',
+    'хрестик не прибирає: лишилось ' + після);
+  /* Порядок Андрій назвав прямо: «фотки спочатку відправляються окремим
+     повідомленням, і потім внизу ще окремим повідомленням підпис». */
+  const adm0 = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const пік = adm0.slice(adm0.indexOf('async function chatSendPics'),
+                         adm0.indexOf('function picWord'));
+  ok(пік.indexOf('crmSendPic(o, urls') < пік.indexOf('if(text)') &&
+     /await chatSend\(o, text\)/.test(пік),
+    'спершу картинки пачкою, під ними підпис — окремим повідомленням',
+    'підпис іде не після картинок або не окремо');
+  ok(/chatWin\.pics = pics/.test(пік),
+    'не надіслалось — зібране повертається у смужку, а не зникає разом із роботою',
+    'при збої картинки губляться');
+  await p.evaluate(() => { chatWin.pics.forEach(chatDropPic); chatWin.pics = []; renderChatWin(); });
+}
+
+console.log('');
+console.log('═══ НАША КАРТИНКА — ПРАВОРУЧ ═══');
+/* Sitniks не переказує клієнту нашу адресу: він забирає картинку до себе й
+   у стрічці віддає її вже своєю, на CDN Instagram. Памʼять за адресою на
+   картинках тому не спрацьовує ніколи, і власне фото ставало ліворуч, як
+   клієнтське. Прикмета — номер повідомлення з відповіді на нашу відправку. */
+{
+  const бік = await p.evaluate(() => {
+    const o = { id:'1', name:'Оксана' };
+    crmOutSent(o, { id:'m-77' });
+    const наше = (crmNormMsgs([{ id:'m-77', attachments:['https://lookaside.fbsbx.com/x'],
+      createdAt:'2026-09-22T10:00:00.000Z' }], o) || [])[0] || {};
+    const чуже = (crmNormMsgs([{ id:'m-88', attachments:['https://lookaside.fbsbx.com/y'],
+      createdAt:'2026-09-22T10:00:00.000Z' }], o) || [])[0] || {};
+    return { наше:!!наше.mine, підпис:наше.by || '', чуже:!!чуже.mine };
+  });
+  console.log('   ' + JSON.stringify(бік));
+  ok(бік.наше,
+    'картинку від нас упізнаємо за номером повідомлення — вона стане праворуч',
+    'власна картинка знову ліворуч: ' + JSON.stringify(бік));
+  ok(!!бік.підпис,
+    'і підписана менеджером, який її надіслав',
+    'підпису під власною картинкою немає');
+  ok(!бік.чуже,
+    'а чужа лишається ліворуч — номер її не збігається з жодною нашою',
+    'клієнтська картинка помилково стала нашою');
+}
+
+console.log('');
 console.log('═══ КАРТКА ЙДЕ ВГОРУ ВІД БУДЬ-ЯКОЇ ДІЇ ═══');
 /* Andрій: «наслав картинку — картка в канбані не підстрибнула вгору, хоча
    повинна». Рядок, що піднімає картку, стояв лише в дорозі для ТЕКСТУ.
@@ -508,7 +587,7 @@ console.log('═══ КАРТКА ЙДЕ ВГОРУ ВІД БУДЬ-ЯКОЇ �
 {
   const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const між = (a, b) => adm.slice(adm.indexOf(a), adm.indexOf(b, adm.indexOf(a)));
-  const фото = між('async function chatPhoto', '\n}\n');
+  const фото = між('async function chatSendPics', '\nfunction picWord');
   ok(/touchOrder\(o\)/.test(фото),
     'надіслана картинка піднімає картку так само, як лист',
     'після картинки картка лишається на місці');
