@@ -2925,8 +2925,15 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dz-card i{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);margin-top:4px;}
   .dz-empty{font-size:11.5px;color:var(--ink-soft);padding:6px 4px;}
-  .dz-panel{flex:0 0 400px;background:#fff;border:1px solid var(--line);border-radius:14px;
-    max-height:calc(100vh - 160px);display:flex;flex-direction:column;overflow:hidden;}
+  /* Панель відділу — повноцінна права зона, а не вузьке віконце збоку.
+     У ній і заповнюють, і завантажують усе: та сама роль, що в картки
+     замовлення на дошці, отже й ширина, і тінь, і липка позиція мають бути
+     ті самі. На 400 пікселях склад замовлення з кольорами й розмірами
+     перетворювався на стовпчик із переносами. */
+  .dz-panel{flex:0 0 min(520px,46vw);background:#fff;border:1px solid var(--line);
+    border-radius:14px;position:sticky;top:12px;align-self:flex-start;
+    max-height:calc(100vh - 120px);display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:-8px 0 30px rgba(15,32,52,.10);}
   .dz-panel.hide{display:none;}
   /* Шапка картки відділу — та сама система, що й у Канбані: номер великим,
      стан плашкою поруч. Доти тут стояв самий номер жирним і сірий рядок
@@ -2948,6 +2955,15 @@
   /* Клієнт власного замовлення відділу: у нього немає картки в Канбані,
      звідки взялись би імʼя й телефон, — тож їх вписують просто тут. */
   .dz-own{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+  .dz-own.is-on{align-items:center;justify-content:space-between;
+    border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;}
+  .dz-own-who{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .dz-own-who>span{font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--muted);}
+  .dz-own-who>b{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .dz-own-acts{display:flex;gap:6px;flex:none;}
+  .dz-own-hint{flex:1 0 100%;font-size:11px;color:var(--muted);line-height:1.45;}
   .dz-own-f{display:flex;flex-direction:column;gap:3px;min-width:140px;flex:1;}
   .dz-own-f>span{font-size:10.5px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--muted);}
@@ -4707,18 +4723,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f2bc447b5a"></script>
-<script src="loomiq-fingerprint.js?v=f2bc447b5a"></script>
-<script src="loomiq-pricing.js?v=f2bc447b5a"></script>
+<script src="loomiq-select.js?v=584d77ee0b"></script>
+<script src="loomiq-fingerprint.js?v=584d77ee0b"></script>
+<script src="loomiq-pricing.js?v=584d77ee0b"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f2bc447b5a"></script>
+<script src="loomiq-design.js?v=584d77ee0b"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f2bc447b5a"></script>
+<script src="loomiq-cards.js?v=584d77ee0b"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -21107,8 +21123,13 @@ let designDirty = {};             // що чекає запису
    клієнта — тут їх вписують прямо в картці. */
 function designSoloOrder(job){
   const c = (job && job.own) || {};
-  return { orderId: job.orderId, solo: true, name: c.name || '', phone: c.phone || '',
-           company: c.company || '', ttn: c.ttn || '', items: [],
+  /* `id` тут не зайвий: на ньому тримається все, що адмінка знає про
+     розмову — стрічка, чернетка, памʼять про власні повідомлення. Сам
+     обʼєкт складається наново щоразу, а `id` лишається той самий, отже й
+     розмова не губиться. */
+  return { id: job.orderId, orderId: job.orderId, solo: true, items: [],
+           ttn: c.ttn || '', ig: c.nick || '', name: c.nick || '',
+           crmChatId: c.chatId || '', crmChatName: c.nick || '',
            createdAt: job.createdAt || '' };
 }
 function designOrders(){
@@ -21272,6 +21293,47 @@ function designJobOf(orderId, make){
 }
 // Завести картку у відділі. Єдина дорога сюди — кнопка, і це навмисно.
 function designJobMake(orderId){ return designJobOf(orderId, true); }
+/* КЛІЄНТ У ВІДДІЛІ — ЦЕ НІК І РОЗМОВА, А НЕ АНКЕТА.
+
+   Спершу тут стояли поля «Клієнт / Компанія / Телефон». Андрій: «там
+   тільки нік, і така сама логіка, як з карточкою в Канбані — нік і по
+   діалогу шукаємо, по номеру діалогу».
+
+   Він має рацію, і не лише через зайві поля. Імʼя, вписане руками, за
+   тиждень розходиться з тим, як людина підписана в Direct, і знайти її за
+   ним уже не виходить. А привʼязана розмова — це і нік, і канал, і сама
+   переписка, і все воно приходить із Sitniks саме таким, як є. Тому
+   привʼязуємо тим самим способом, що й у Канбані: адресою відкритої
+   розмови, у якій лежить її номер. */
+async function designBindChat(job, text){
+  const id = crmChatIdFromUrl(text);
+  if(!id){
+    toast('Не схоже на посилання з Sitniks — скопіюйте адресу відкритої розмови');
+    return false;
+  }
+  let who = null;
+  for(const path of ['/chats/' + encodeURIComponent(id),
+                     '/chats/' + encodeURIComponent(id) + '/messages']){
+    try{
+      const data = await crmFetch(path);
+      const list = crmNormFound(Array.isArray(data) ? data : [data], true);
+      const one = list.find(r => r.name || r.nick);
+      if(one){ who = one; break; }
+    }catch(e){ /* закрито — привʼяжемо за самим номером */ }
+  }
+  if(!job.own) job.own = {};
+  job.own.chatId = id;
+  job.own.nick = (who && (who.nick || who.name)) || job.own.nick || ('чат ' + id);
+  try{ await designSave(job); }catch(e){ console.warn(e); }
+  toast('Розмову привʼязано: ' + job.own.nick);
+  return true;
+}
+function designUnbindChat(job){
+  if(!job || !job.own) return;
+  delete job.own.chatId; delete job.own.nick;
+  designSave(job).catch(e => console.warn(e));
+  toast('Розмову відвʼязано');
+}
 /* Власне замовлення відділу. Номер свій, картка порожня, клієнта вписують
    прямо в ній. Ключ документа починається з літери — так його ніколи не
    сплутати з номером замовлення Канбану, навіть випадково. */
@@ -21281,7 +21343,7 @@ async function designJobNew(){
   const job = window.LQDesign.emptyJob(id);
   job.no = no;
   job.solo = true;
-  job.own = { name:'', company:'', phone:'', ttn:'' };
+  job.own = { nick:'', chatId:'', ttn:'' };
   job.createdAt = new Date().toISOString();
   designJobs[id] = job;
   window.LQDesign.ensure(job, designSoloOrder(job));
@@ -21410,6 +21472,13 @@ function openDesign(){
        кроків щось губилось. Канал беремо той, що вже привʼязаний до
        замовлення: інших у нас усе одно немає. */
     tell: (o, text) => designTell(o, text),
+    /* Привʼязка розмови й сама переписка — тим самим механізмом, що й у
+       Канбані. Свій тут заводити нема чого: розмова одна, і читати її
+       двома різними способами означає рано чи пізно розійтися в тому, що
+       вже прочитано. */
+    bind: (job, url) => designBindChat(job, url),
+    unbind: job => designUnbindChat(job),
+    chat: o => { try{ chatOpen(o, 'crm'); }catch(e){ toast('Розмову відкрити не вдалось'); } },
     /* Відправка живе в картці замовлення, і створювати накладну вдруге тут
        не можна: два місця для однієї дії рано чи пізно дадуть дві накладні
        на одну посилку. Відділ показує стан і веде туди, де це роблять. */

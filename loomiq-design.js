@@ -1132,14 +1132,22 @@
        відділ живе окремо. Тож клієнта вписують прямо в картці. */
     if(o.solo){
       var own = (job && job.own) || {};
-      var fld = function(k, label, ph){
-        return '<label class="dz-own-f"><span>' + esc(label) + '</span>' +
-          '<input data-of="' + k + '" value="' + esc(own[k] || '') +
-          '" placeholder="' + esc(ph) + '"></label>';
-      };
-      return '<div class="dz-own">' + fld('name', 'Клієнт', 'імʼя') +
-        fld('company', 'Компанія', 'необовʼязково') +
-        fld('phone', 'Телефон', '+380…') + '</div>';
+      /* Клієнт тут — нік і привʼязана розмова, а не анкета. Імʼя, вписане
+         руками, за тиждень розходиться з тим, як людина підписана в
+         Direct, і знайти її за ним уже не виходить. Привʼязана розмова
+         дає і нік, і канал, і саму переписку — усе таким, як воно є. */
+      if(own.chatId)
+        return '<div class="dz-own is-on">' +
+          '<div class="dz-own-who"><span>Клієнт</span><b>' + esc(own.nick || ('чат ' + own.chatId)) + '</b></div>' +
+          '<div class="dz-own-acts">' +
+            '<button class="dz-b pri" data-do="chat">Переписка</button>' +
+            '<button class="dz-b" data-do="unbind">Відвʼязати</button>' +
+          '</div></div>';
+      return '<div class="dz-own">' +
+        '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
+          '<input data-bind placeholder="вставте адресу відкритої розмови"></label>' +
+        '<div class="dz-own-hint">Відкрийте розмову в Sitniks і скопіюйте адресу ' +
+          'з рядка браузера. Нік підтягнеться з неї сам.</div></div>';
     }
     var c = o.client || {};
     var name = c.name || o.name || '';
@@ -2139,6 +2147,17 @@
     });
     /* Поля складу пишуться на «change», а не на кожну літеру: кожен натиск
        клавіші летів би в базу й перемальовував панель під руками. */
+    root.querySelectorAll('[data-bind]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var v = String(el.value || '').trim();
+        if(!v) return;
+        el.disabled = true;
+        Promise.resolve(host().bind ? host().bind(c.job, v) : false)
+          .then(function(){ render(document.getElementById('dzRoot')); })
+          .catch(function(e){ console.error(e); el.disabled = false; });
+      };
+    });
     root.querySelectorAll('[data-of]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c) return;
@@ -2250,6 +2269,14 @@
     if(what === 'ship'){
       if(host().ship) return host().ship(o);
       return say('Відправка доступна з картки замовлення');
+    }
+    if(what === 'chat'){
+      if(host().chat) return host().chat(o);
+      return say('Переписка недоступна');
+    }
+    if(what === 'unbind'){
+      if(host().unbind) host().unbind(job);
+      return render(document.getElementById('dzRoot'));
     }
     if(what === 'u-add'){
       job.units = U.unitsOf(job).concat([U.unitNew()]);

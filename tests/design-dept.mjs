@@ -763,11 +763,27 @@ console.log('═══ ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ ══�
   ok(/^d/.test(своє.ключ || ''),
     'ключ починається з літери — його ніколи не сплутати з номером замовлення',
     'ключ виглядає як номер замовлення: ' + JSON.stringify(своє));
-  /* Клієнта в такої картки нізвідки взяти — отже його вписують тут. */
+  /* КЛІЄНТ — ЦЕ НІК І РОЗМОВА, А НЕ АНКЕТА. Андрій: «там тільки нік, і
+     така сама логіка, як з карточкою в Канбані — нік і по діалогу шукаємо,
+     по номеру діалогу». Імʼя, вписане руками, за тиждень розходиться з
+     тим, як людина підписана в Direct, і знайти її за ним уже не виходить. */
   const adm = fs.readFileSync(path.join(ROOT, 'loomiq-design.js'), 'utf8');
-  ok(/if\(o\.solo\)/.test(adm) && /data-of="/.test(adm),
-    'клієнта й накладну власного замовлення вписують прямо в картці відділу',
-    'у власної картки немає де вказати клієнта');
+  const кл = adm.slice(adm.indexOf('function clientHtml'), adm.indexOf('var SEAT_TASK'));
+  ok(/data-bind/.test(кл) && !/data-of="name"/.test(кл) && !/data-of="phone"/.test(кл),
+    'клієнта не вписують анкетою — привʼязують розмову, і нік приходить із неї',
+    'у картці досі анкета з імʼям і телефоном замість привʼязки розмови');
+  ok(/data-do="chat"/.test(кл),
+    'привʼязана розмова відкривається просто з картки відділу',
+    'переписку з картки відділу не відкрити');
+  const хост = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+  const bnd = хост.slice(хост.indexOf('async function designBindChat'),
+                         хост.indexOf('function designUnbindChat'));
+  ok(/crmChatIdFromUrl/.test(bnd) && /job\.own\.nick/.test(bnd),
+    'привʼязка йде тим самим механізмом, що й у Канбані — адресою розмови',
+    'у відділу свій спосіб привʼязки: дві дороги до однієї розмови розійдуться');
+  ok(/crmChatId: c\.chatId/.test(хост),
+    'привʼязана розмова стає розмовою самого замовлення — стрічка й чернетка на місці',
+    'розмова привʼязана, але картка про неї не знає');
   const host = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const nw = host.slice(host.indexOf('newOrder: async ()'), host.indexOf('newOrder: async ()') + 420);
   ok(!/data-view="board"/.test(nw) && /designJobNew/.test(nw),
