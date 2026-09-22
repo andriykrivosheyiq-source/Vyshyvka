@@ -7598,6 +7598,7 @@ window.__adminSaveClientOrder = async function(payload){
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
       target.items.splice(ri, 1, ...items);
+      logoEchoWarn(target, was, items);
     } else {
       target.items = (target.items || []).concat(items);
     }
@@ -9830,6 +9831,44 @@ function offerItem(it, order, itemIdx){
     tierQty: (it.parts && +it.parts.groupQty) || 0,
     tiers: offerTiers(order, itemIdx)
   };
+}
+/* ══════════ ОДИН ЛОГОТИП НА КІЛЬКА ПОЗИЦІЙ ═══════════════════════════
+   У пропозиції може бути світшот, футболка й кепка з ОДНИМ І ТИМ САМИМ
+   логотипом. Фізично це один друк, один файл, одна підготовка макета. А в
+   адмінці кожна позиція носить свою копію — і коли менеджер міняє логотип
+   на світшоті, на футболці лишається старий.
+
+   Наслідок не косметичний: клієнт отримує КП, де той самий логотип виглядає
+   по-різному на сусідніх картках, і першим це помічає саме він.
+
+   ЧОМУ МИ НЕ МІНЯЄМО ЇХ САМІ. Логотип у позиції — не просто адреса файлу: на
+   ньому стоїть намальований макет, знімок виробу з нанесенням. Підмінити
+   адресу, не перемалювавши макет, означає лишити на картинці старий
+   логотип, а у файлі новий — тобто зробити розходження ще непомітнішим, ніж
+   воно було. Перемалювати ж макет уміє тільки конструктор, і тільки
+   відкривши ту позицію.
+
+   Тому кажемо вголос і показуємо, які саме позиції тепер розходяться. Це
+   те саме попередження, про яке домовлялись, — просто воно чесне про те,
+   що зробить машина, а що людина. */
+function logoFilesOf(it){
+  return (it && it.prints || []).map(p => String((p && p.file) || '')).filter(Boolean);
+}
+function logoEchoWarn(order, was, items){
+  const wasFiles = logoFilesOf(was);
+  const nowFiles = items.reduce((a, it) => a.concat(logoFilesOf(it)), []);
+  // Пішов зі складу саме той файл, що був, — це і є зміна логотипа.
+  const gone = wasFiles.filter(f => nowFiles.indexOf(f) < 0);
+  if(!gone.length) return;
+  const hit = (order.items || []).filter(it =>
+    items.indexOf(it) < 0 && logoFilesOf(it).some(f => gone.indexOf(f) >= 0));
+  if(!hit.length) return;
+  const names = hit.map(it => it.name || 'позиція').join(', ');
+  toast('Цей самий логотип стоїть ще на ' + hit.length + ' ' +
+        (hit.length === 1 ? 'позиції' : 'позиціях') + ': ' + names +
+        ' — їх треба перезібрати, інакше в КП будуть два різні логотипи');
+  order.hist = (order.hist || []).concat([{ s:'logo-echo', at:new Date().toISOString(),
+                                            from: names }]).slice(-40);
 }
 function offerBuild(order){
   const items = (order.items || []).map((it, i) => offerItem(it, order, i));
