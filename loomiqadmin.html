@@ -17416,13 +17416,28 @@ async function crmSendPic(o, url, blob){
       }
     }
     if(!sent) continue;
-    /* Стрічка оновлюється не миттєво: даємо Sitniks секунди дві, інакше
-       правильний спосіб виглядав би невдалим. */
-    await crmWait(2000);
-    const after = await crmPicCount(o);
-    /* Стрічку прочитати не вдалось — перевірити нічим, віримо відповіді
-       сервера. Це гірше за перевірку, але краще, ніж не надіслати. */
+    /* ЧЕКАЄМО ДОВШЕ Й ПЕРЕПИТУЄМО КІЛЬКА РАЗІВ.
+
+       Доти на перевірку давалось рівно дві секунди. Але Sitniks не просто
+       передає нашу адресу далі: він завантажує картинку до себе й аж потім
+       віддає в Instagram. На великому кадрі це довше за дві секунди — і
+       правильний спосіб оголошувався невдалим. Далі перебір ішов до
+       наступного способу, тобто слав клієнту ЩЕ ОДНЕ повідомлення, і так
+       до кінця списку, а завершувалось усе посиланням.
+
+       Тому перепитуємо стрічку кілька разів із наростаючою паузою: щойно
+       вкладення зʼявилось — зупиняємось, і зайвих повідомлень немає. */
+    let after = before;
+    for(const pause of [1800, 2200, 3000, 4000]){
+      await crmWait(pause);
+      after = await crmPicCount(o);
+      if(before < 0 || after > before) break;
+    }
+    /* Стрічку прочитати не вдалось — перевірити нічим. Тоді віримо
+       відповіді сервера, але НЕ мовчимо про це: «надіслано» і «здається,
+       надіслано» — різні речі, і плутати їх не можна. */
     if(before < 0 || after > before){
+      st.blind = before < 0;
       crmPicLog.push(w.id + ' → СПРАЦЮВАВ' + (before < 0 ? ' (стрічка недоступна, без перевірки)' : ''));
       if(w.id !== known){
         contentData.crmPicWay = w.id;
@@ -20227,6 +20242,7 @@ async function chatSendPics(o, pics, text){
   }else{
     try{
       const way = await crmSendPic(o, urls, pics.map(p => p.blob));
+      const st0 = crmChat[o.id] || {};
       /* Впізнати власне вкладення в стрічці за адресою не вийде: Sitniks
          забирає картинку до себе й віддає вже своєю (див. crmOutOwn).
          Адреси кладемо про запас, а справжня прикмета — номер
@@ -20234,7 +20250,9 @@ async function chatSendPics(o, pics, text){
       urls.forEach(u => { crmOutNote(o, u); crmSent.add(u); });
       saveOrderMeta(o).catch(e => console.warn(e));
       chatWin.note = false;
-      toast(picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : ''));
+      toast(st0.blind
+        ? (picWord(urls.length) + ' надіслано, але перевірити не вдалось — гляньте в Instagram')
+        : (picWord(urls.length) + ' надіслано' + (way ? ' (' + way + ')' : '')));
     }catch(e){
       /* Жоден спосіб не пройшов — тоді хоч посиланням, щоб робота не
          спинилась. Але кажемо прямо, що клієнт побачить адресу, а не
@@ -20242,7 +20260,8 @@ async function chatSendPics(o, pics, text){
       console.warn('Sitniks photo', e);
       chatWin.note = true;
       for(const u of urls){ try{ await crmSend(o, u); }catch(e2){ console.warn(e2); } }
-      toast('Картинка пішла посиланням: ' + (e.message || 'Sitniks не прийняв вкладення'));
+      toast('Картинка пішла посиланням: ' + (e.message || 'Sitniks не прийняв вкладення') +
+            ' · подробиці — кнопка 🔎 у шапці розмови');
     }
   }
   /* Тепер — позначка на самих картках. Ставить її саме відправка: панель
