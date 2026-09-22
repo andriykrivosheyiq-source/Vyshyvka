@@ -19410,6 +19410,46 @@ function quickReplies(){
   const q = (contentData || {}).quickReplies;
   return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
 }
+/* СТАНДАРТНІ ЗАГОТОВКИ ДОХОДЯТЬ І ДО НАЛАШТОВАНОГО АКАУНТА.
+
+   Стандартний список бачить лише той, у кого свого немає. У робочому
+   акаунті свій список склали давно — і два скрипти з картками, додані
+   пізніше, не зʼявились там ніколи. Андрій: «передивляюсь заготовки, немає
+   цих прорахунок і допродажу». Тобто вся робота з картками з розмови в
+   нього просто не існувала.
+
+   Тому нові скрипти доводимо один раз: чого немає за ПОЗНАЧКОЮ, те
+   дописуємо в кінець списку. Саме за позначкою, а не за назвою: назву
+   менеджер перепише як завгодно, і впізнати скрипт по ній не вийде.
+
+   Один раз означає один: лишається запис, що вже доводили, і скрипт, який
+   менеджер свідомо прибрав, назад не повернеться. */
+const QR_SEED = 1;
+let qrSeeding = false;
+async function qrSeedOnce(){
+  if(qrSeeding || !canSetup() || !contentLoaded) return;
+  const cur = (contentData || {}).quickReplies;
+  if(!Array.isArray(cur) || !cur.length) return;   // свого списку немає — стандартний покажеться сам
+  if(+(contentData.qrSeed || 0) >= QR_SEED) return;
+  const have = cur.map(q => String((q && q.m) || '')).join('\n');
+  const add = QR_DEFAULT.filter(q => {
+    const sc = CARD_SCRIPTS[cardScriptOf(q.m)];
+    return sc && have.indexOf(sc.mark) < 0;
+  });
+  qrSeeding = true;
+  try{
+    if(add.length){
+      const list = cur.map(q => ({ t:q.t, m:q.m })).concat(add.map(q => ({ t:q.t, m:q.m })));
+      await PHOTOS_DOC.set({ quickReplies: list, qrSeed: QR_SEED }, { merge:true });
+      contentData.quickReplies = list;
+      toast('У заготовки додано: ' + add.map(q => q.t).join(', '));
+    }else{
+      await PHOTOS_DOC.set({ qrSeed: QR_SEED }, { merge:true });
+    }
+    contentData.qrSeed = QR_SEED;
+  }catch(e){ console.warn('заготовки', e); }
+  qrSeeding = false;
+}
 
 /* ══════════ КАРТКИ ПРЯМО З РОЗМОВИ ══════════════════════════════════════
    Картки для Direct малювались у вікні пропозиції, і далі їх треба було
@@ -19532,17 +19572,16 @@ function cardsPanelHtml(o){
   }).join('');
   return `<div class="cw-cards">
     <div class="cw-cd-head">
-      <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що надсилаємо</b>
-      <span>натисніть картку, щоб збільшити</span>
+      <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що готуємо</b>
+      <span>зніміть зайве · картки ляжуть у поле, надішлете самі</span>
     </div>
     <div class="cw-cd-grid">${tiles}</div>
     ${st.text ? `<div class="cw-cd-txt">${escapeHtml(st.text)}</div>` : ''}
     <div class="cw-cd-acts">
-      <button class="cw-cd-go" data-cd-go${(!n || st.busy) ? ' disabled' : ''}>${
-        st.busy ? escapeHtml(st.busyMsg || 'Надсилаю…')
-                : (n ? 'Надіслати ' + n + ' ' + cardWord(n) : 'Нічого не обрано')}</button>
-      <button class="cw-cd-dl" data-cd-dl${st.busy ? ' disabled' : ''}>Завантажити собі</button>
-      <button class="cw-cd-no" data-cd-close${st.busy ? ' disabled' : ''}>Скасувати</button>
+      <button class="cw-cd-go" data-cd-go${n ? '' : ' disabled'}>${
+        n ? 'У поле — ' + n + ' ' + cardWord(n) : 'Нічого не обрано'}</button>
+      <button class="cw-cd-dl" data-cd-dl>Завантажити собі</button>
+      <button class="cw-cd-no" data-cd-close>Скасувати</button>
     </div>
   </div>`;
 }
@@ -19552,76 +19591,46 @@ function cardWord(n){
   if(t >= 2 && t <= 4 && (h < 12 || h > 14)) return 'картки';
   return 'карток';
 }
-/* Відправка. Спершу текст скрипта, далі картки.
+/* Картки звідси НЕ ВІДПРАВЛЯЮТЬСЯ. Вони лягають у смужку над полем вводу,
+   а текст скрипта — у саме поле.
 
-   В Instagram кілька фото в одному повідомленні йдуть ПАЧКОЮ — одним
-   блоком, який гортають. Так пише людина, і так має писати й адмінка: пʼять
-   карток окремими повідомленнями — це пʼять сповіщень клієнту підряд і
-   стіна однакових кадрів у стрічці. Тому в Sitniks шлемо всі вибрані
-   картки одним запитом, масивом адрес (див. CRM_PIC_WAYS).
+   Андрій: «любі заготовки автоматом не відправляються, вони одразу
+   спочатку попадають сюди в блок, де написати клієнту, потім ми
+   перечитуємо, можливо, щось підкориговуємо і потім відправляємо».
 
-   Telegram так не вміє — там кожне фото окреме повідомлення, — тож для
-   нього лишається черга по одній. */
-async function cardsGo(o){
+   Правило те саме, що й для звичайної заготовки, і причина та сама: лист
+   клієнту майже завжди дописують під конкретну людину, а надіслане назад
+   не забереш. Тому панель лише ГОТУЄ — надсилає кнопка ➤, коли менеджер
+   усе перечитав. Вибір карток при цьому лишається тут: у смужці видно
+   мініатюри, а чим саме є кожна картка, з назвою й позначкою «неповна»,
+   видно лише в панелі. */
+function cardsToDraft(o){
   const st = chatWin && chatWin.cards;
-  if(!st || !st.deck || st.busy) return;
+  if(!st || !st.deck) return;
   const want = st.deck.list.filter(c => st.pick[c.id]);
-  if(!want.length) return;
+  if(!want.length) return toast('Нічого не обрано');
   const store = cardPix[o.id] || {};
-  const isTg = chatWin.kind === 'tg';
-  st.busy = true; st.busyMsg = 'Надсилаю…'; renderChatWin();
+  if(want.some(c => !store[c.id])) return toast('Картки ще малюються — секунду');
+  const pics = chatWin.pics || (chatWin.pics = []);
+  const room = want.slice(0, Math.max(0, CHAT_PICS_MAX - pics.length));
+  room.forEach(c => {
+    /* Своя адреса на ту саму картинку. Смужка свою адресу по дорозі
+       звільняє, і спільна вбила б мініатюру в самій панелі. `cardId`
+       потрібен, щоб після відправки позначити картку надісланою. */
+    pics.push({ blob: store[c.id].blob, url: URL.createObjectURL(store[c.id].blob),
+                cardId: c.id });
+  });
   if(st.text){
-    try{ await chatSend(o, st.text); }
-    catch(e){ console.warn('текст скрипта', e); }
+    const cur = String(chatWin.draft || '').trim();
+    chatWin.draft = (cur ? cur + '\n' : '') + st.text;
   }
-  let done = 0, err = '';
-  /* Спершу всі картки у сховище, і лише потім відправка. Так пачка їде
-     одним запитом, а не складається по дорозі. */
-  const pack = [];
-  for(let i = 0; i < want.length && !err; i++){
-    const c = want[i];
-    const pic = store[c.id];
-    if(!pic){ err = 'картка «' + (c.name || c.id) + '» не намалювалась'; break; }
-    st.busyMsg = 'Готую ' + (i + 1) + ' з ' + want.length + '…';
-    renderChatWin();
-    try{ pack.push({ card:c, url: await uploadCloudinary(pic.blob), blob: pic.blob }); }
-    catch(e){ err = 'картка не завантажилась у сховище'; }
-  }
-  const mark = c => { (o.cardsSent || (o.cardsSent = {}))[c.id] = { at: new Date().toISOString(), by: myName() }; };
-  if(pack.length && !err){
-    st.busyMsg = 'Надсилаю…'; renderChatWin();
-    if(isTg){
-      for(let i = 0; i < pack.length; i++){
-        st.busyMsg = 'Надсилаю ' + (i + 1) + ' з ' + pack.length + '…';
-        renderChatWin();
-        try{ await tgSend(o, '', pack[i].url); mark(pack[i].card); done++; }
-        catch(e){ err = (e && e.message) || 'не надіслалось'; break; }
-      }
-    }else{
-      try{
-        await crmSendPic(o, pack.map(p => p.url), pack.map(p => p.blob));
-        // Щоб у стрічці вони стали праворуч і з іменем менеджера
-        pack.forEach(p => { crmOutNote(o, p.url); crmSent.add(p.url); mark(p.card); });
-        done = pack.length;
-      }catch(e){ err = (e && e.message) || 'не надіслалось'; }
-    }
-  }
-  if(done){
-    /* Мить відправки й лічильник реплік клієнта на цю мить. Саме на них
-       тримається друга галочка на кнопці КП: клієнт озвався ПІСЛЯ карток —
-       значить розмова пішла. */
-    o.cardsAt = new Date().toISOString();
-    o.cardsWrote = cardsWroteNow(o);
-    touchOrder(o);
-    try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
-  }
-  st.busy = false; st.busyMsg = '';
-  toast(done
-    ? (done + ' ' + cardWord(done) + ' надіслано' + (err ? ' · далі зупинились: ' + err : ''))
-    : ('Не надіслалось: ' + (err || 'невідома причина')));
-  if(done && !err) chatWin.cards = null;
-  renderChatWin(true);
-  renderBoard();
+  chatWin.cards = null;
+  renderChatWin();
+  const el = document.querySelector('.cw-inp');
+  if(el){ el.focus(); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
+  toast(room.length < want.length
+    ? ('У поле стало ' + room.length + ' — більше за раз не надсилаємо')
+    : (room.length + ' ' + cardWord(room.length) + ' у полі — перечитайте й надішліть'));
 }
 /* Запасний шлях: забрати обрані собі й прикріпити руками. Потрібен саме
    тоді, коли автоматика не спрацювала, — а тоді ж найменше хочеться шукати,
@@ -20012,7 +20021,7 @@ function wireChatWin(box, o, focusIn){
     });
   });
   const cdGo = box.querySelector('[data-cd-go]');
-  if(cdGo) cdGo.addEventListener('click', ()=> cardsGo(o));
+  if(cdGo) cdGo.addEventListener('click', ()=> cardsToDraft(o));
   const cdDl = box.querySelector('[data-cd-dl]');
   if(cdDl) cdDl.addEventListener('click', ()=> cardsDownload(o));
   const cdNo = box.querySelector('[data-cd-close]');
@@ -20022,9 +20031,10 @@ function wireChatWin(box, o, focusIn){
     b.addEventListener('click', ()=>{
       const q = quickReplies()[+b.dataset.qr];
       if(!q) return;
-      /* Скрипт із картками не вставляє текст у поле — він відкриває самі
-         картки. Текст піде разом з ними, окремим повідомленням перед
-         кадрами, і правити його руками тут уже не треба. */
+      /* Скрипт із картками спершу показує САМІ КАРТКИ: видно, що піде
+         клієнту, і можна зняти зайве. Але й він нічого не надсилає —
+         вибране лягає у смужку, а текст у поле, як і будь-яка інша
+         заготовка. Надсилає тільки ➤, і тільки коли менеджер перечитав. */
       const kind = cardScriptOf(q.m);
       if(kind){
         chatWin.cards = { kind: kind, text: qrFill(qrNoMarks(q.m), o),
@@ -20178,6 +20188,21 @@ async function chatSendPics(o, pics, text){
       for(const u of urls){ try{ await crmSend(o, u); }catch(e2){ console.warn(e2); } }
       toast('Картинка пішла посиланням: ' + (e.message || 'Sitniks не прийняв вкладення'));
     }
+  }
+  /* Тепер — позначка на самих картках. Ставить її саме відправка: панель
+     лише готує, і до цієї миті ніхто ще не знає, чи дійшло.
+
+     Мить відправки й лічильник реплік клієнта на неї — те, на чому
+     тримається друга галочка на кнопці КП: клієнт озвався ПІСЛЯ карток,
+     значить розмова пішла. */
+  const cards = pics.filter(x => x.cardId);
+  if(cards.length){
+    const sent = o.cardsSent || (o.cardsSent = {});
+    const now = new Date().toISOString();
+    cards.forEach(x => { sent[x.cardId] = { at: now, by: myName() }; });
+    o.cardsAt = now;
+    o.cardsWrote = cardsWroteNow(o);
+    saveOrderMeta(o).catch(e => console.warn(e));
   }
   pics.forEach(chatDropPic);
   chatWin.picsBusy = false;
@@ -24433,6 +24458,7 @@ async function init(){
     loadStatuses();
     loadTracks();
     applyRoleUi();
+    qrSeedOnce();        // скрипти з картками доводимо й до налаштованого акаунта
     const bv = document.getElementById('view-board');
     if(bv && bv.style.display !== 'none' && !typing0){
       renderBoard();
