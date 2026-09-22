@@ -21801,6 +21801,55 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
                    окремий закупник, його заводять одним рядком, а не
                    переробкою доступів. */
                 supply:'Закупівля' };
+/* ══════════ РОЛЬ У СПИСКУ ПІДПИСАНА НАПРЯМОМ ══════════════════════════
+   У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
+   B2C — це різні люди з різними обовʼязками. Тому в списку вони й стоять
+   окремими рядками: «Менеджер B2B», «Менеджер B2C». Так видно з першого
+   погляду, кого куди заводять, і неможливо видати доступ трохи не туди.
+
+   Усередині це роль плюс напрями — два поля замість вісімнадцяти наборів
+   налаштувань, які розійшлися б за місяць. Але людина цього не бачить:
+   вона обирає готовий рядок.
+
+   Хто працює в обох (буває у виробництві й закупівлі) — має обидва напрями,
+   і тоді дошки в нього дві. Власник має все завжди.
+
+   Старі записи напрямів не мають зовсім — і не повинні: усе, що заведено до
+   появи розділення, це B2B. */
+const DIRS = { b2b:'B2B', b2c:'B2C' };
+function memberDirs(m){
+  if(!m) return ['b2b'];
+  if(m.role === 'owner') return ['b2b', 'b2c'];
+  const d = Array.isArray(m.dirs) ? m.dirs.filter(x => DIRS[x]) : [];
+  return d.length ? d : ['b2b'];
+}
+// Значення рядка списку: `manager|b2c`, `production|b2b,b2c`.
+function roleValue(m){ return (m && m.role ? m.role : 'manager') + '|' + memberDirs(m).join(','); }
+function roleTitle(role, dirs){
+  const nm = ROLES[role] || role;
+  if(role === 'owner') return nm;
+  const d = (dirs || []).map(k => DIRS[k]).filter(Boolean);
+  return d.length === 2 ? (nm + ' · B2B і B2C') : (nm + ' ' + (d[0] || 'B2B'));
+}
+/* Рядки списку. На кожну роль, крім власника, три: свій напрям, другий і
+   обидва. Порядок навмисно такий, щоб однакові ролі стояли поруч — око
+   шукає «менеджера», а вже потім напрям. */
+function roleOptions(){
+  const out = [{ v:'owner|b2b,b2c', t:ROLES.owner }];
+  Object.keys(ROLES).forEach(k => {
+    if(k === 'owner') return;
+    [['b2b'], ['b2c'], ['b2b','b2c']].forEach(d =>
+      out.push({ v:k + '|' + d.join(','), t:roleTitle(k, d) }));
+  });
+  return out;
+}
+function myDirs(){
+  if(!teamOn()) return ['b2b', 'b2c'];
+  return memberDirs(teamMember(myEmail()));
+}
+function canDir(dir){ return myDirs().indexOf(dir) >= 0; }
+// Ролі, чия робота — сам макет. Див. виняток у applyRoleUi.
+const DESIGN_SEATS = { designer:1, embroidery:1, qa:1, designmgr:1 };
 /* ══════════ Доступи по зонах ══════════
    Роль — це пресет, а не вирок. Люди не діляться на чотири види: буває
    менеджер, якому треба бачити собівартість, і дизайнер, який заодно веде
@@ -22061,7 +22110,7 @@ function renderAccLog(){
   box.innerHTML = L.length ? L.slice(0, 200).map(r =>
     '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
     '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
-      (r.role ? ' <i>' + escA(ROLES[r.role] || r.role) + '</i>' : '') + '</span>' +
+      (r.role ? ' <i>' + escA(roleTitle(r.role, memberDirs(r))) + '</i>' : '') + '</span>' +
     '<span class="al-k al-k--' + escA(r.kind) + '">' + escA(WORD[r.kind] || r.kind) + '</span>' +
     '<span class="al-x">' + escA(r.text) + '</span></div>').join('')
     : '<div class="sub">Записів ще немає.</div>';
@@ -22146,6 +22195,7 @@ function teamList(){
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
       role: ROLE_PRESET[p.role] ? p.role : 'manager',
+      dirs: memberDirs(p),        // напрями людини — свої або B2B за замовчуванням
       /* Доступи розкриваємо в явний список одразу: далі з ними працюють
          галочками, а «*» у галочці не поставиш. */
       acc: accExpand(accOf(p))
@@ -22254,6 +22304,20 @@ function applyRoleUi(){
        міняти налаштування тут не одна з галочок, а умова входу: хто не може
        міняти етапи й команду, той і роздавати доступи не має. */
     if(b.dataset.view === 'team' && !canSetup()) on = false;
+    /* НАПРЯМ ЗАКРИВАЄ РОЗДІЛ НАДІЙНІШЕ ЗА ГАЛОЧКУ.
+
+       Галочку можна забути зняти — і менеджер B2C побачив би Канбан із
+       чужими замовленнями. Тут же це не налаштування, а умова: немає
+       напряму, немає й розділу. Менеджер одного напряму навіть не знає, що
+       існує інший. */
+    if(b.dataset.view === 'board' && !canDir('b2b')) on = false;
+    /* Виняток, і він тимчасовий. Робота з макетом — ТЗ, версії, причини
+       правок — поки живе тільки в цьому розділі, і в B2B своєї такої дошки
+       ще немає. Закрити його дизайнеру B2B зараз означало б забрати в нього
+       робоче місце, нічого не давши натомість. Тож дизайнерські ролі
+       заходять сюди незалежно від напряму — рівно до того кроку, коли в
+       B2B зʼявиться власна дошка дизайну. */
+    if(b.dataset.view === 'design' && !canDir('b2c') && !DESIGN_SEATS[myRole()]) on = false;
     b.hidden = !on;
     if(on && !firstOk) firstOk = b;
   });
@@ -22409,8 +22473,9 @@ function renderTeamList(){
       <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
         <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
         <input class="tm-name" type="text" maxlength="40" placeholder="імʼя" value="${escapeHtml(p.name)}">
-        <select class="tm-role" title="Роль заповнює галочки нижче">${Object.keys(ROLES).map(k=>
-          `<option value="${k}"${k===p.role?' selected':''}>${escapeHtml(ROLES[k])}</option>`).join('')}</select>
+        <select class="tm-role" title="Роль і напрям — вона ж заповнює галочки нижче">${
+          roleOptions().map(op => `<option value="${escapeHtml(op.v)}"${
+            op.v === roleValue(p) ? ' selected' : ''}>${escapeHtml(op.t)}</option>`).join('')}</select>
         <select class="tm-ui" title="Формат картки замовлення">${Object.keys(UI_KINDS).map(k=>
           `<option value="${k}"${k===p.acc.ui?' selected':''}>${escapeHtml(UI_KINDS[k])}</option>`).join('')}</select>
         <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
@@ -22447,8 +22512,17 @@ function renderTeamList(){
     row.querySelector('.tm-name').addEventListener('input', e=> teamList()[i].name = e.target.value);
     row.querySelector('.tm-role').addEventListener('change', e=>{
       const p = teamList()[i];
-      p.role = e.target.value;
+      const parts = String(e.target.value || '').split('|');
+      p.role = ROLE_PRESET[parts[0]] ? parts[0] : 'manager';
+      p.dirs = String(parts[1] || 'b2b').split(',').filter(x => DIRS[x]);
+      if(!p.dirs.length) p.dirs = ['b2b'];
       p.acc = accExpand(presetOf(p.role));   // роль — це пресет, і він заповнює галочки
+      /* Напрям вирішує й розділи: у Канбан ходить B2B, у B2C — B2C. Інакше
+         людині довелось би знімати чужий розділ руками, а забувши це
+         зробити, вона б його бачила. */
+      if(p.role !== 'owner') p.acc.nav = (p.acc.nav || []).filter(k =>
+        (k !== 'board'  || p.dirs.indexOf('b2b') >= 0) &&
+        (k !== 'design' || p.dirs.indexOf('b2c') >= 0));
       renderTeamList();
     });
     row.querySelector('.tm-ui').addEventListener('change', e=>{ teamList()[i].acc.ui = e.target.value; });
@@ -22521,6 +22595,7 @@ function renderTeamList(){
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
                    role: ROLE_PRESET[p.role] ? p.role : 'manager',
+                   dirs: memberDirs(p),
                    acc: { ui: UI_KINDS[p.acc.ui] ? p.acc.ui : 'manager',
                           nav: p.acc.nav.slice(), boards: p.acc.boards.slice(),
                           see: p.acc.see.slice(), can: p.acc.can.slice(),
