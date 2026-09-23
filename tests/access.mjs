@@ -1,19 +1,25 @@
-/* Доступи по зонах: роль — це пресет, а не вирок.
+/* Доступи по зонах: галочки стоять у РОЛІ, а не в людині.
 
-   Люди не діляться на чотири види. Буває менеджер, якому треба бачити
-   собівартість, і дизайнер, який заодно веде конструктор сайту. Тому роль
-   лише заповнює галочки, а далі кожному вмикається рівно те, що потрібно:
-   розділи меню, дошки, що видно в картці, що можна міняти. Формат картки —
-   окремо: це не право, а вигляд.
+   Спершу роль лише ЗАПОВНЮВАЛА галочки, а далі кожному вмикали своє.
+   Звучало гнучко, а виходило навпаки: у пʼяти менеджерів пʼять різних
+   наборів, і на питання «що бачить менеджер» чесної відповіді немає. Через
+   півроку ніхто не памʼятає, чому в однієї є собівартість, а в другої ні.
+
+   Тому роль тепер — окремий запис зі своїм набором прав, а людині її просто
+   призначають. Треба комусь інакше — заводять НОВУ РОЛЬ: тоді і назва є, і
+   наступного разу її дадуть другому такому ж. Формат картки всередині ролі:
+   це не право, а вигляд.
 
    Перевіряємо:
-     — людина бачить у меню тільки свої розділи, і її не лишає на закритому;
+     — людина бачить у меню тільки розділи своєї ролі, і її не лишає на
+       закритому;
      — дошки в перемикачі — тільки її;
      — «бачить» і «може» справді щось міняють у картці, а не малюють
        галочку в налаштуваннях;
-     — роль перезаписує галочки пресетом, а власні галочки живуть далі;
-     — кого немає в списку — менеджер, а порожній список означає повний
-       доступ (інакше перше збереження замкнуло б систему).
+     — двом людям з однією роллю видно те саме, а старі індивідуальні
+       набори вже нічого не означають;
+     — кого немає в списку — не бачить нічого, а порожній список означає
+       повний доступ (інакше перше збереження замкнуло б систему).
 
    Запуск:  node tests/access.mjs      (з кореня репозиторію)  */
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
@@ -52,20 +58,29 @@ const ORDER = {
            qty:50, unitPrice:500, price:25000, unitCost:300, cost:15000 }]
 };
 
-/* Двоє людей із однаковою роллю «менеджер», але різними галочками — саме те,
-   заради чого все це й робиться. */
+/* Окрема роль під окрему роботу — саме те, заради чого все це й робиться.
+   «Продажі з собівартістю» це не менеджер із домальованою галочкою, а роль
+   із назвою: її видно в списку, і наступного разу її дадуть другому
+   такому ж. */
+const ROLE_DEFS = [
+  { key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*',
+    see:['client','chat','cost'], can:['edit','pay','del','setup'] },
+  { key:'sales', name:'Продажі з собівартістю', ui:'manager',
+    nav:['board','analytics'], boards:['sale','design'],
+    see:['client','cost'], can:[] },
+  { key:'designer', name:'Дизайнер', ui:'designer',
+    nav:['today','board','design'], boards:['design'], see:[], can:[] }
+];
 const TEAM = [
   { email:'owner@loomiq', name:'Андрій', role:'owner' },
-  { email:'test@loomiq',  name:'Марія',  role:'manager',
-    acc:{ ui:'manager', nav:['board','analytics'], boards:['sale','design'],
-          see:['client','cost'], can:[] } }
+  { email:'test@loomiq',  name:'Марія',  role:'sales' }
 ];
 
 function stub(email, team){
   let s = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
   s = s.replace('window.firebase={',
     'window.__ORDERS=' + JSON.stringify([ORDER]) + ';\n' +
-    '  window.__CONTENT=' + JSON.stringify({ team }) + ';\n  window.firebase={');
+    '  window.__CONTENT=' + JSON.stringify({ team, roles: ROLE_DEFS }) + ';\n  window.firebase={');
   s = s.replace(/email:'test@loomiq'/g, "email:'" + email + "'");
   s = s.replace(
     'Col.prototype.doc=function(){ return new Doc(); };',
@@ -120,13 +135,13 @@ const view = await p.evaluate(() => ({
 console.log('  роль ' + view.role + ' · інтерфейс ' + view.ui);
 console.log('  розділи: ' + view.nav.join(', ') + ' · дошки: ' + view.boards.join(', '));
 ok(view.nav.join() === 'board,analytics',
-  'у меню лише ті розділи, які їй увімкнули — не за роллю, а за галочками',
+  'у меню лише ті розділи, які відкриває її роль',
   'розділи не ті: ' + view.nav.join(','));
 ok(view.boards.join() === 'sale,design',
   'у перемикачі лише її дошки',
   'дошки не ті: ' + view.boards.join(','));
 ok(view.cost === true,
-  'менеджер із галочкою «собівартість» її бачить — роль тут ні до чого',
+  'роль із собівартістю її показує — і це видно з назви ролі, а не з галочки в людині',
   'галочка собівартості не спрацювала');
 ok(view.chat === false && view.edit === false && view.pay === false && view.setup === false,
   'а те, чого не вмикали, вимкнене — включно з листуванням і оплатою',
@@ -164,20 +179,26 @@ ok(card.qty === 0 && card.del === 0,
   'склад можна міняти без права: ' + JSON.stringify(card));
 
 console.log('');
-console.log('═══ РОЛЬ — ПРЕСЕТ, А НЕ ВИРОК ═══');
-const preset = await p.evaluate(() => {
-  const a = accOf({ role:'designer' });
-  const b = accOf({ role:'manager', acc:{ ui:'manager', nav:['board'], boards:['sale'],
-                                          see:['cost'], can:['pay'] } });
-  return { d:{ ui:a.ui, nav:a.nav, boards:a.boards }, m:{ see:b.see, can:b.can, nav:b.nav } };
+console.log('═══ ОДНА РОЛЬ — ОДНА ВІДПОВІДЬ ═══');
+const однаково = await p.evaluate(() => {
+  const а = accOf({ email:'a@b', role:'sales' });
+  /* Старий індивідуальний набір галочок. Такі лишились у записах від часів,
+     коли права роздавали поштучно, — і саме вони робили роль приблизною.
+     Запис нікуди не дівся, але вже нічого не означає. */
+  const б = accOf({ email:'c@d', role:'sales',
+    acc:{ ui:'manager', nav:'*', boards:'*', see:['client','chat','cost'],
+          can:['edit','pay','del','setup'] } });
+  const д = accOf({ email:'e@f', role:'designer' });
+  return { однакові: JSON.stringify(а) === JSON.stringify(б), свої: б.can.join(),
+           інша: { ui:д.ui, boards:д.boards.join() } };
 });
-console.log('  дизайнер за пресетом: ' + JSON.stringify(preset.d));
-ok(preset.d.ui === 'designer' && preset.d.boards.join() === 'design',
-  'людина без власних галочок працює за пресетом ролі',
-  'пресет ролі не спрацював: ' + JSON.stringify(preset.d));
-ok(preset.m.see.join() === 'cost' && preset.m.can.join() === 'pay',
-  'а власні галочки головніші за пресет',
-  'власні галочки загубились: ' + JSON.stringify(preset.m));
+console.log('  дві людини однієї ролі: ' + JSON.stringify(однаково));
+ok(однаково.однакові && !однаково.свої,
+  'двом людям з однією роллю видно те саме — старі власні галочки вже нічого не значать',
+  'роль досі приблизна: ' + JSON.stringify(однаково));
+ok(однаково.інша.ui === 'designer' && однаково.інша.boards === 'design',
+  'а інша роль відкриває інше — і це записано в ній, а не в людях',
+  'роль нічого не вирішує: ' + JSON.stringify(однаково));
 await p.close();
 
 console.log('');
@@ -217,7 +238,7 @@ console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad
   ? 'розходжень: ' + bad
-  : 'кожному видно рівно те, що йому вмикали');
+  : 'кожному видно рівно те, що відкриває його роль');
 await browser.close();
 srv.close();
 process.exit(bad ? 1 : 0);

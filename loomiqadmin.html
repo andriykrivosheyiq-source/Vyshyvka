@@ -1943,6 +1943,118 @@
   .tm-see[disabled]{opacity:.45;cursor:default;}
   .tm-warn{font-size:12px;line-height:1.45;color:var(--bad);background:var(--bad-soft);
     border-radius:9px;padding:8px 10px;margin-bottom:8px;}
+  /* ══════════ ДВІ ЗОНИ: КОРИСТУВАЧІ Й РОЛІ ══════════════════════════════
+     Ліворуч від крапки з комою тут стоїть одна думка: галочки живуть у
+     ролях, люди — у таблиці. Тому вкладки зверху, а не перемикач збоку:
+     це не фільтр одного списку, це два різні списки. */
+  .tm-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+  .tm-tab{all:unset;cursor:pointer;padding:9px 16px;font-size:13.5px;font-weight:700;
+    color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .tm-tab:hover{color:var(--ink);}
+  .tm-tab.is-on{color:var(--accent-deep);border-bottom-color:var(--accent);}
+  .tm-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  .tm-search{flex:1 1 260px;min-width:0;font:inherit;font-size:13px;padding:9px 12px;
+    border:1px solid var(--line);border-radius:var(--r-sm);background:#fff;color:var(--ink);}
+  .tm-search:focus{outline:none;border-color:var(--accent);}
+  /* Кнопки переїхали сюди зі споду картки: дію шукають там, де список. */
+  .tm-tools{margin:0;margin-left:auto;gap:8px;}
+  .tm-tools .pc-btn,.tm-tools .btn{padding:9px 16px !important;font-size:13px;}
+  /* Підвкладки — це той самий список під іншим питанням: «усі» й «ще не
+     зайшли». Число поруч важливіше за назву: саме воно й каже, чи є робота. */
+  .tm-sub-tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .tm-sub-b{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;
+    padding:5px 12px;border-radius:var(--r-pill);font-size:12.5px;font-weight:700;
+    color:var(--ink-soft);background:var(--canvas);}
+  .tm-sub-b:hover{color:var(--ink);}
+  .tm-sub-b.is-on{background:var(--accent-soft);color:var(--accent-deep);}
+  .tm-sub-b i{font-style:normal;font-size:11px;font-weight:800;opacity:.65;
+    font-variant-numeric:tabular-nums;}
+  /* ── Таблиця людей ─────────────────────────────────────────────────── */
+  .tu-head,.tu-row{display:grid;align-items:center;gap:10px;
+    grid-template-columns:minmax(190px,1.6fr) minmax(170px,1.4fr) minmax(150px,1.1fr) 92px 92px 132px;}
+  .tu-head{padding:0 10px 7px;font-size:10.5px;font-weight:800;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);}
+  .tu-body{display:flex;flex-direction:column;}
+  .tu-row{padding:9px 10px;border-bottom:1px solid var(--line-soft);}
+  .tu-row:hover{background:var(--canvas);}
+  .tu-who{display:flex;align-items:center;gap:9px;min-width:0;}
+  .tu-ava{flex:none;width:32px;height:32px;border-radius:50%;background:var(--accent-soft);
+    color:var(--accent-deep);font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;}
+  .tu-nm{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;}
+  .tu-row input,.tu-row select{font:inherit;font-size:13px;padding:6px 9px;min-width:0;
+    border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);}
+  .tu-row input:hover,.tu-row select:hover{border-color:var(--line);background:#fff;}
+  .tu-row input:focus,.tu-row select:focus{outline:none;border-color:var(--accent);background:#fff;}
+  .tu-nm .tm-phone{font-size:11.5px;color:var(--ink-soft);}
+  .tu-mail,.tu-role{min-width:0;}
+  .tu-mail input,.tu-role select{width:100%;}
+  .tu-dt{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .tu-act{display:flex;align-items:center;justify-content:flex-end;gap:2px;}
+  .tu-act .tm-inv,.tu-act .tm-see{padding:5px 8px;font-size:13px;background:transparent;
+    border:none;color:var(--muted);}
+  .tu-act .tm-inv:hover,.tu-act .tm-see:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .tu-act .qr-del{padding:5px 7px;}
+  /* ── Ролі: список ліворуч, налаштування праворуч ───────────────────── */
+  .tm-roles{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:18px;align-items:start;}
+  .tr-list{border:1px solid var(--line);border-radius:var(--r-ctl);background:#fff;
+    padding:10px;display:flex;flex-direction:column;gap:2px;}
+  .tr-list .tm-bar{margin:0 2px 6px;gap:8px;}
+  .tr-list .tm-bar b{font-size:10.5px;font-weight:800;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);}
+  .tr-add{all:unset;cursor:pointer;margin-left:auto;font-size:12px;font-weight:700;
+    color:var(--accent-deep);padding:4px 10px;border-radius:var(--r-pill);background:var(--accent-soft);}
+  .tr-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;
+    border-radius:var(--r-sm);}
+  .tr-row:hover{background:var(--canvas);}
+  .tr-row.is-on{background:var(--accent-soft);}
+  .tr-nm{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--ink);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tr-row.is-on .tr-nm{color:var(--accent-deep);}
+  .tr-n{flex:none;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .tr-act{flex:none;display:flex;gap:1px;opacity:0;}
+  .tr-row:hover .tr-act,.tr-row.is-on .tr-act{opacity:1;}
+  .tr-act button{all:unset;cursor:pointer;padding:4px 6px;border-radius:7px;
+    font-size:12px;color:var(--muted);}
+  .tr-act button:hover{background:#fff;color:var(--ink);}
+  .tr-del:hover{color:var(--bad) !important;}
+  .tr-edit{border:1px solid var(--line);border-radius:var(--r-ctl);background:#fff;padding:16px 18px;}
+  .tr-edit--none{color:var(--ink-soft);font-size:13px;line-height:1.55;}
+  .tr-edit-h{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:14px;
+    text-wrap:balance;}
+  .tr-f{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;max-width:380px;}
+  .tr-f>span{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);}
+  .tr-f input,.tr-f select{font:inherit;font-size:13px;padding:8px 10px;border-radius:var(--r-sm);
+    border:1px solid var(--line);background:#fff;color:var(--ink);}
+  .tr-f input:focus,.tr-f select:focus{outline:none;border-color:var(--accent);}
+  .tr-sec{padding-top:12px;margin-top:12px;border-top:1px solid var(--line-soft);}
+  .tr-sec-h{margin-bottom:8px;}
+  .tr-sec-h b{display:block;font-size:12.5px;font-weight:800;color:var(--ink);}
+  .tr-sec-h span{font-size:11.5px;color:var(--muted);}
+  .tr-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;}
+  .tr-box{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 9px;
+    border-radius:var(--r-sm);font-size:12.5px;color:var(--ink-soft);}
+  .tr-box:hover{background:var(--canvas);}
+  .tr-box.on{color:var(--ink);}
+  .tr-box input{margin:0;flex:none;accent-color:var(--accent);}
+  .tr-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;
+    padding-top:14px;border-top:1px solid var(--line);}
+  .tr-cancel,.tr-save{all:unset;cursor:pointer;padding:9px 20px;border-radius:var(--r-sm);
+    font-size:13px;font-weight:700;}
+  .tr-cancel{color:var(--ink-soft);border:1px solid var(--line);}
+  .tr-cancel:hover{background:var(--canvas);color:var(--ink);}
+  .tr-save{background:var(--accent);color:#fff;}
+  .tr-save:hover{background:var(--accent-deep);}
+  @media(max-width:900px){
+    .tm-roles{grid-template-columns:1fr;}
+    .tu-head{display:none;}
+    .tu-row{grid-template-columns:1fr;gap:6px;padding:12px 10px;
+      border-bottom:1px solid var(--line);}
+    .tu-row input,.tu-row select{border-color:var(--line);background:#fff;}
+    .tu-dt{font-size:11px;}
+    .tu-act{justify-content:flex-start;}
+  }
   /* Гроші в картці. Залишок — головне число тут: саме його менеджер шукає
      перед тим, як віддати замовлення у виробництво. */
   .od-money{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;}
@@ -3769,11 +3881,11 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
       <div class="card">
         <div class="card-head">
-          <h2>Команда і ролі</h2>
-          <span class="hint">Пошта — та сама, якою людина заходить в адмінку. Роль лише заповнює галочки: далі кожному вмикається рівно те, що потрібно — розділи меню, дошки, що видно в картці й що можна міняти. Формат картки окремо: менеджерський показує клієнта й гроші, дизайнерський — макет, виробничий — файли й розмірний ряд. Кого немає в списку — працює як менеджер.</span>
+          <h2>Користувачі й ролі</h2>
+          <span class="hint">Дві вкладки, бо це два різні питання. <b>Користувачі</b> — хто в нас працює: імʼя, пошта входу, роль, коли завели й коли міняли. Жодних галочок: людині лише призначають роль. <b>Ролі</b> — що роль означає: розділи меню, дошки, що видно в картці, що дозволено міняти й у якому форматі показувати картку. Права стоять у ролі, а не в людині, — тому на питання «що бачить менеджер» завжди є одна відповідь. Треба комусь інакше — заводять нову роль, а не правлять людину. Кого немає в списку — працює як менеджер.</span>
         </div>
         <div id="team-list"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        <div id="team-tools-home" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
           <button class="pc-btn up" id="team-add" style="flex:none;padding:10px 22px;">+ Додати людину</button>
           <button class="pc-btn" id="team-find" style="flex:none;padding:10px 18px;"
             title="Зібрати пошти людей із замовлень, журналу прав і доручень">↺ Відновити зі слідів</button>
@@ -22185,7 +22297,7 @@ function memberDirs(m){
 // Значення рядка списку: `manager|b2c`, `production|b2b,b2c`.
 function roleValue(m){ return (m && m.role ? m.role : 'manager') + '|' + memberDirs(m).join(','); }
 function roleTitle(role, dirs){
-  const nm = ROLES[role] || role;
+  const nm = roleName(role);
   if(role === 'owner') return nm;
   const d = (dirs || []).map(k => DIRS[k]).filter(Boolean);
   return d.length === 2 ? (nm + ' · B2B і B2C') : (nm + ' ' + (d[0] || 'B2B'));
@@ -22193,12 +22305,15 @@ function roleTitle(role, dirs){
 /* Рядки списку. На кожну роль, крім власника, три: свій напрям, другий і
    обидва. Порядок навмисно такий, щоб однакові ролі стояли поруч — око
    шукає «менеджера», а вже потім напрям. */
+/* Ролі беремо зі збережених, а не з вбудованого списку: щойно завели нову
+   роль, вона має зʼявитись у виборі людини тим самим рухом — інакше роль є,
+   а призначити її нікому. */
 function roleOptions(){
-  const out = [{ v:'owner|b2b,b2c', t:ROLES.owner }];
-  Object.keys(ROLES).forEach(k => {
-    if(k === 'owner') return;
+  const out = [{ v:'owner|b2b,b2c', t:roleName('owner') }];
+  roleDefs().forEach(r => {
+    if(!r || r.key === 'owner') return;
     [['b2b'], ['b2c'], ['b2b','b2c']].forEach(d =>
-      out.push({ v:k + '|' + d.join(','), t:roleTitle(k, d) }));
+      out.push({ v:r.key + '|' + d.join(','), t:roleTitle(r.key, d) }));
   });
   return out;
 }
@@ -22342,15 +22457,58 @@ const ROLE_PRESET = {
    списку новий розділ не бачить ніхто з уже заведених: у їхніх збережених
    галочках його просто немає, і кожному довелось би вмикати руками. */
 const ZONE_NEW = ['design', 'chats', 'chatsc'];
+/* ══════════ РОЛЬ — СУТНІСТЬ, А НЕ ПРЕСЕТ ══════════════════════════════
+   Доти роль лише ЗАПОВНЮВАЛА галочки, а далі кожному вмикали своє. Звучало
+   гнучко, а виходило навпаки: у пʼяти менеджерів пʼять різних наборів, і на
+   питання «що бачить менеджер» чесної відповіді немає. Через півроку ніхто
+   не памʼятає, чому в однієї є собівартість, а в другої немає.
+
+   Тому роль тепер — окремий запис зі своїм набором прав. Людині її просто
+   призначають. Треба комусь інакше — заводять НОВУ РОЛЬ, а не правлять
+   людину: тоді і назва є, і наступного разу її дадуть другому такому ж.
+
+   Права лишились наші, а не абстрактні «читати / створити / оновити /
+   видалити». Наші відповідають на питання, які справді бувають: куди
+   заходить, які дошки бачить, чи видно собівартість, чи можна вносити
+   оплату. Сітка CRUD виглядала б рівніше, але половина її клітинок не
+   означала б нічого. */
+function roleDefs(){
+  /* contentSafe, а не contentData: ролі питають і до того, як вміст
+     оголошений, — наприклад, коли вгорі сторінки збирається список «дивитись
+     як». Пряме звертання там не «порожньо», а помилка, яка вбиває решту
+     скрипта. */
+  const saved = contentSafe().roles;
+  if(Array.isArray(saved) && saved.length) return saved;
+  // Першого разу збираємо з вбудованих: починати з порожнечі нікому не треба.
+  return Object.keys(ROLE_PRESET).map(k => ({
+    key:k, name:ROLES[k] || k, ui:ROLE_PRESET[k].ui,
+    nav:ROLE_PRESET[k].nav, boards:ROLE_PRESET[k].boards,
+    see:ROLE_PRESET[k].see.slice(), can:ROLE_PRESET[k].can.slice() }));
+}
+function roleDef(key){
+  const k = String(key || '');
+  return roleDefs().filter(r => r && r.key === k)[0] || null;
+}
+function roleName(key){
+  const r = roleDef(key);
+  return (r && r.name) || ROLES[key] || key || '—';
+}
 function presetOf(role){
+  const r = roleDef(role);
+  if(r) return { ui:r.ui, nav:r.nav, boards:r.boards,
+                 see:Array.isArray(r.see) ? r.see.slice() : [],
+                 can:Array.isArray(r.can) ? r.can.slice() : [] };
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
   return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
 }
 /* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
 function accOf(member){
-  const role = (member && ROLE_PRESET[member.role]) ? member.role : 'manager';
+  const role = (member && roleDef(member.role)) ? member.role : 'manager';
   const base = presetOf(role);
-  const a = member && member.acc;
+  /* Індивідуальних доступів більше немає: що бачить людина, вирішує її
+     роль, і тільки вона. Старі збережені набори лишаються в записі, але
+     нічого вже не означають — інакше «роль» знову стала б приблизною. */
+  const a = null;
   if(!a || typeof a !== 'object') return base;
   const pick = (v, def) => (v === '*' ? '*' : (Array.isArray(v) ? v.slice() : def));
   let nav = pick(a.nav, base.nav);
@@ -22387,18 +22545,18 @@ function seeAsPerson(){ return seeAs.charAt(0) === '@' ? seeAs.slice(1) : ''; }
 function seeAsTarget(){
   const e = seeAsPerson();
   if(e){ const m = teamMember(e); return m ? accOf(m) : null; }
-  return ROLE_PRESET[seeAs] ? presetOf(seeAs) : null;
+  return roleDef(seeAs) ? presetOf(seeAs) : null;
 }
 function seeAsLabel(){
   const e = seeAsPerson();
   if(e) return personName(e) || e;
-  return ROLES[seeAs] || seeAs;
+  return roleName(seeAs);
 }
 function seeAsOn(){ return !!seeAs && !!seeAsTarget(); }
 function seeAsSet(who){
   const w = String(who || '');
   const ok = w && (w.charAt(0) === '@' ? !!teamMember(w.slice(1))
-                                       : (ROLE_PRESET[w] && w !== myRole()));
+                                       : (!!roleDef(w) && w !== myRole()));
   seeAs = ok ? w : '';
   try{ sessionStorage.setItem('lq_see_as', seeAs); }catch(e){}
   if(seeAs) accLog('seeas', 'увійшов у режим «дивитись як ' + seeAsLabel() + '»');
@@ -22586,10 +22744,14 @@ function teamList(){
     teamDraft = ((contentData.team) || []).map(p => ({
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
-      role: ROLE_PRESET[p.role] ? p.role : 'manager',
+      role: roleDef(p.role) ? p.role : 'manager',
       dirs: memberDirs(p),        // напрями людини — свої або B2B за замовчуванням
-      /* Доступи розкриваємо в явний список одразу: далі з ними працюють
-         галочками, а «*» у галочці не поставиш. */
+      phone: String(p.phone || '').trim(),
+      createdAt: p.createdAt || '',
+      updatedAt: p.updatedAt || '',
+      /* Доступи розкриваємо в явний список: далі їх показують галочками, а
+         «*» у галочці не поставиш. Беруться вони З РОЛІ — своїх у людини
+         більше немає. */
       acc: accExpand(accOf(p))
     }));
     /* Рядок засновника має бути в списку ЗАВЖДИ — інакше «його не можна
@@ -22738,7 +22900,7 @@ function myRole(){
   if(!teamMember(myEmail()) && isOwnerEmail(myEmail())) return 'owner';
   const m = teamMember(myEmail());
   const r = m && m.role;
-  return ROLE_PRESET[r] ? r : 'manager';
+  return roleDef(r) ? r : 'manager';
 }
 function canSeeCost(){ return may('see', 'cost'); }
 function canSeeChat(){ return may('see', 'chat'); }
@@ -22941,7 +23103,7 @@ function renderSeeAsPick(){
   const people = (contentSafe().team || []).filter(p => p.email);
   sel.innerHTML = '<option value="">— своїми очима —</option>' +
     '<optgroup label="Роль">' +
-    Object.keys(ROLES).map(k => '<option value="' + escA(k) + '">' + escA(ROLES[k]) + '</option>').join('') +
+    roleDefs().map(r => '<option value="' + escA(r.key) + '">' + escA(r.name || r.key) + '</option>').join('') +
     '</optgroup>' +
     (people.length ? '<optgroup label="Людина">' + people.map(p =>
       '<option value="@' + escA(p.email) + '">' + escA(personName(p.email) || p.email) + '</option>').join('') +
@@ -22963,129 +23125,223 @@ function renderSeeAsPick(){
      зберігається. */
   try{ const s = sessionStorage.getItem('lq_see_as'); if(s) seeAs = s; }catch(e){}
 })();
+/* ══════════ ДВІ ЗОНИ: РОЛІ Й КОРИСТУВАЧІ ══════════════════════════════
+   Доти це був один список, де в кожного рядка розгорталось двадцять
+   галочок. Виглядало компактно, а читалось погано: щоб відповісти «що
+   бачить менеджер», доводилось розгорнути пʼятьох менеджерів і звірити їх
+   між собою.
+
+   Тому розділили за питаннями, які ставлять насправді:
+
+     РОЛІ — «що означає бути менеджером». Одне місце, один набір галочок,
+     одна відповідь. Треба комусь інакше — заводять нову роль.
+
+     КОРИСТУВАЧІ — «хто в нас працює і хто він». Таблиця без жодних
+     галочок: імʼя, пошта, роль списком, коли завели, коли міняли.
+
+   Порядок вкладок саме такий: удевʼятьох із десяти заходять по людину, а
+   не по роль. */
+let tmTab = 'users', tmSub = 'team', tmQ = '', roleOpen = '', rolesDraft = null;
+function rolesList(){
+  if(!rolesDraft) rolesDraft = JSON.parse(JSON.stringify(roleDefs()));
+  return rolesDraft;
+}
+const ZONE_GROUPS = [
+  { g:'nav',    t:'Розділи',         s:'Куди людина заходить у меню.' },
+  { g:'boards', t:'Дошки',           s:'Які дошки їй показувати.' },
+  { g:'see',    t:'Бачить у картці', s:'Що з картки замовлення їй видно.' },
+  { g:'can',    t:'Може робити',     s:'Які дії їй дозволені.' }
+];
+function zoneItems(g){
+  return g === 'nav' ? ZONE_NAV : g === 'boards' ? zoneBoards()
+       : g === 'see' ? ZONE_SEE : ZONE_CAN;
+}
+function roleHas(r, g, k){
+  const v = r && r[g];
+  if(v === '*') return true;
+  return Array.isArray(v) && v.indexOf(k) >= 0;
+}
+function tmTabsHtml(){
+  return '<div class="tm-tabs">' +
+    [['users','Користувачі'], ['roles','Ролі']].map(t =>
+      '<button class="tm-tab' + (tmTab === t[0] ? ' is-on' : '') +
+      '" data-tmtab="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
+}
+/* Дата з роком і без години. «Заведено 11.01» без року нічого не каже: люди
+   працюють роками, і саме рік відповідає на питання «це давній чи новий». */
+function tmDate(iso){
+  const d = iso ? new Date(iso) : null;
+  if(!d || isNaN(d)) return '—';
+  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+/* ── Користувачі ─────────────────────────────────────────────────────── */
+function tmUsersHtml(){
+  const saved = (contentData.team) || [];
+  const q = tmQ.trim().toLowerCase();
+  const rows = teamList().map((p, i) => ({ p, i })).filter(({p}) =>
+    !q || (p.email + ' ' + (p.name || '') + ' ' + (p.phone || '')).toLowerCase().indexOf(q) >= 0);
+  const invRows = rows.filter(({p}) => p.email && !profileOf(p.email));
+  const show = tmSub === 'inv' ? invRows : rows;
+  const head = '<div class="tm-bar">' +
+    '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
+      escapeHtml(tmQ) + '">' +
+    '<span id="tm-tools" class="tm-tools"></span></div>' +
+    '<div class="tm-sub-tabs">' +
+      [['team','Команда', rows.length], ['inv','Запрошення', invRows.length]].map(t =>
+        '<button class="tm-sub-b' + (tmSub === t[0] ? ' is-on' : '') + '" data-tmsub="' + t[0] +
+        '">' + t[1] + ' <i>' + t[2] + '</i></button>').join('') + '</div>';
+  if(!show.length)
+    return head + '<div class="sub" style="padding:14px 2px;">' +
+      (tmSub === 'inv' ? 'Усі, кого завели, вже зайшли — запрошувати нема кого.'
+                       : (q ? 'За цим запитом нікого немає.'
+                            : 'Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».')) +
+      '</div>';
+  const body = show.map(function(r){
+    const p = r.p, i = r.i;
+    const inTeam = !!(p.email && saved.some(s => s.email === p.email));
+    const prof = p.email ? profileOf(p.email) : null;
+    const code = isCodeRoot(p.email), pinned = !code && isRootEmail(p.email);
+    const first = String(p.name || p.email || '?').trim().charAt(0).toUpperCase() || '?';
+    return '<div class="tu-row" data-i="' + i + '">' +
+      '<div class="tu-who"><span class="tu-ava">' + escapeHtml(first) + '</span>' +
+        '<span class="tu-nm"><input class="tm-name" maxlength="40" placeholder="імʼя" value="' +
+          escapeHtml(p.name) + '"><input class="tm-phone" maxlength="24" placeholder="телефон" value="' +
+          escapeHtml(p.phone || '') + '"></span></div>' +
+      '<div class="tu-mail"><input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="' +
+        escapeHtml(p.email) + '"></div>' +
+      '<div class="tu-role"><select class="tm-role">' + roleOptions().map(op =>
+        '<option value="' + escapeHtml(op.v) + '"' + (op.v === roleValue(p) ? ' selected' : '') +
+        '>' + escapeHtml(op.t) + '</option>').join('') + '</select></div>' +
+      '<div class="tu-dt">' + escapeHtml(tmDate(p.createdAt)) + '</div>' +
+      '<div class="tu-dt">' + escapeHtml(tmDate(p.updatedAt)) + '</div>' +
+      '<div class="tu-act">' +
+        (prof ? '' : '<button class="tm-inv" data-inv="' + i + '"' + (inTeam ? '' : ' disabled') +
+          ' title="Надіслати лист із посиланням: людина сама придумає пароль">✉</button>') +
+        '<button class="tm-see" data-see="' + i + '"' + (p.email ? '' : ' disabled') +
+          ' title="Подивитись її очима">👁</button>' +
+        (code ? '<span class="tm-lock" title="Засновник системи: прибрати неможливо">🔒</span>'
+              : '<button class="tm-pin' + (pinned ? ' is-on' : '') + '" data-pin="' + i +
+                '" title="' + (pinned ? 'Закріплено — натисніть, щоб відкріпити'
+                                      : 'Закріпити: цю пошту не можна буде прибрати') + '">📌</button>' +
+                (pinned ? '' : '<button class="qr-del" title="Прибрати">🗑</button>')) +
+      '</div></div>';
+  }).join('');
+  const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
+  const goneHtml = gone.length ? '<div class="tm-gone"><div class="tm-gone-h">Прибрані — можна повернути</div>' +
+    gone.map((g, j) => '<div class="tm-gone-row"><b>' + escapeHtml(g.name || g.email || '') +
+      '</b><span>' + escapeHtml(g.email || '') + '</span><span>' + escapeHtml(tmDate(g.goneAt)) +
+      '</span><button class="tm-back" data-back="' + j + '">Повернути</button></div>').join('') +
+    '</div>' : '';
+  return head + '<div class="tu-head"><span>Користувач</span><span>Електронна пошта</span>' +
+    '<span>Роль</span><span>Заведено</span><span>Змінено</span><span>Дії</span></div>' +
+    '<div class="tu-body">' + body + '</div>' + goneHtml;
+}
+/* ── Ролі ────────────────────────────────────────────────────────────── */
+function tmRolesHtml(){
+  const list = rolesList();
+  const cur = list.filter(r => r.key === roleOpen)[0] || null;
+  const used = {};
+  ((contentData.team) || []).forEach(p => { used[p.role] = (used[p.role] || 0) + 1; });
+  const left = '<div class="tr-list"><div class="tm-bar"><b>Роль</b>' +
+    '<button class="tr-add">+ Додати роль</button></div>' +
+    list.map(r => '<div class="tr-row' + (r.key === roleOpen ? ' is-on' : '') + '" data-rk="' +
+      escapeHtml(r.key) + '"><span class="tr-nm">' + escapeHtml(r.name || r.key) + '</span>' +
+      '<span class="tr-n">' + (used[r.key] ? used[r.key] + ' люд.' : '—') + '</span>' +
+      '<span class="tr-act"><button class="tr-ed" data-red="' + escapeHtml(r.key) + '" title="Налаштувати">✎</button>' +
+      '<button class="tr-del" data-rdel="' + escapeHtml(r.key) + '" title="Прибрати роль">🗑</button></span></div>').join('') +
+    '</div>';
+  if(!cur) return '<div class="tm-roles">' + left +
+    '<div class="tr-edit tr-edit--none">Оберіть роль зліва — і побачите, ' +
+    'що саме вона відкриває. Або заведіть нову: окрема роль краща за «ту саму роль, ' +
+    'але цій людині ще собівартість».</div></div>';
+  const secs = ZONE_GROUPS.map(gr => '<div class="tr-sec"><div class="tr-sec-h"><b>' + gr.t +
+    '</b><span>' + gr.s + '</span></div><div class="tr-boxes">' +
+    zoneItems(gr.g).map(z => '<label class="tr-box' + (roleHas(cur, gr.g, z.key) ? ' on' : '') + '"' +
+      (z.hint ? ' title="' + escapeHtml(z.hint) + '"' : '') + '>' +
+      '<input type="checkbox" data-rz="' + gr.g + '|' + escapeHtml(z.key) + '"' +
+      (roleHas(cur, gr.g, z.key) ? ' checked' : '') + '><span>' + escapeHtml(z.label) + '</span>' +
+      '</label>').join('') +
+    '</div></div>').join('');
+  return '<div class="tm-roles">' + left +
+    '<div class="tr-edit"><div class="tr-edit-h">Що відкриває роль «' +
+      escapeHtml(cur.name || cur.key) + '»</div>' +
+    '<label class="tr-f"><span>Назва ролі</span><input class="tr-name" maxlength="40" value="' +
+      escapeHtml(cur.name || '') + '"></label>' +
+    '<label class="tr-f"><span>Формат картки замовлення</span><select class="tr-ui">' +
+      Object.keys(UI_KINDS).map(k => '<option value="' + k + '"' + (k === cur.ui ? ' selected' : '') +
+        '>' + escapeHtml(UI_KINDS[k]) + '</option>').join('') + '</select></label>' +
+    secs +
+    '<div class="tr-acts"><button class="tr-cancel">Скасувати</button>' +
+    '<button class="tr-save">Зберегти</button></div></div></div>';
+}
 function renderTeamList(){
   const box = document.getElementById('team-list');
   if(!box) return;
   const me = myEmail();
-  const saved = (contentData.team) || [];
-  box.innerHTML = teamList().map((p, i)=>{
-    const inTeam = saved.some(s => s.email === p.email && p.email);
-    const prof = p.email ? profileOf(p.email) : null;
-    /* Стан запрошення видно з рядка, а не з памʼяті власника: «надіслав чи ні»
-       і «зайшла вона вже чи лист лежить у спамі» — різні речі, і плутати їх
-       найлегше саме тут. */
-    const state = prof ? '<span class="tm-st tm-st--ok" title="Перший вхід зроблено ' +
-                          escA(dtUa(prof.at)) + '">✓ зайшов</span>'
-                : inTeam ? '<span class="tm-st">запрошення не активоване</span>'
-                : '<span class="tm-st tm-st--new">спершу «Зберегти команду»</span>';
-    const none = !(p.acc.nav || []).length;
-    return `
-    <div class="tm-wrap">
-      <div class="tm-row${p.email && p.email === me ? ' is-me' : ''}" data-i="${i}">
-        <input class="tm-mail" type="email" maxlength="120" placeholder="пошта входу" value="${escapeHtml(p.email)}">
-        <input class="tm-name" type="text" maxlength="40" placeholder="імʼя" value="${escapeHtml(p.name)}">
-        <select class="tm-role" title="Роль і напрям — вона ж заповнює галочки нижче">${
-          roleOptions().map(op => `<option value="${escapeHtml(op.v)}"${
-            op.v === roleValue(p) ? ' selected' : ''}>${escapeHtml(op.t)}</option>`).join('')}</select>
-        <select class="tm-ui" title="Формат картки замовлення">${Object.keys(UI_KINDS).map(k=>
-          `<option value="${k}"${k===p.acc.ui?' selected':''}>${escapeHtml(UI_KINDS[k])}</option>`).join('')}</select>
-        <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
-        <button class="tm-inv" data-inv="${i}" ${inTeam ? '' : 'disabled'}
-          title="Надіслати лист із посиланням: людина сама придумає пароль і назветься">✉ ${prof ? 'Ще раз' : 'Запросити'}</button>
-        ${isCodeRoot(p.email)
-          ? '<span class="tm-lock" title="Засновник системи: прибрати неможливо">🔒</span>'
-          : (isRootEmail(p.email)
-            ? '<button class="tm-lock tm-pin is-on" data-pin="' + i +
-              '" title="Закріплено — натисніть, щоб відкріпити">📌</button>'
-            : '<button class="tm-lock tm-pin" data-pin="' + i +
-              '" title="Закріпити: цю пошту не можна буде прибрати">📌</button>' +
-              '<button class="qr-del" title="Прибрати">🗑</button>')}
-      </div>
-      <div class="tm-sum${none ? ' tm-sum--none' : ''}">${state} ${escapeHtml(accSummary(p.acc))}</div>
-      ${teamOpen === i ? `<div class="tm-acc">
-        ${accBoxes(i, 'nav', ZONE_NAV, p.acc.nav)}
-        ${accBoxes(i, 'boards', zoneBoards(), p.acc.boards)}
-        ${accBoxes(i, 'see', ZONE_SEE, p.acc.see)}
-        ${accBoxes(i, 'can', ZONE_CAN, p.acc.can)}
-        <div class="tm-tools">
-          ${/* Двадцять галочок новому дизайнеру ніхто не проставляє з нуля —
-               беруть у того, хто вже налаштований, і правлять дві. */''}
-          <label>Скопіювати доступи від
-            <select class="tm-copy" data-copy="${i}">
-              <option value="">— оберіть людину —</option>
-              ${teamList().map((q, j)=> (j === i || !q.email) ? '' :
-                `<option value="${j}">${escapeHtml(q.name || q.email)}</option>`).join('')}
-            </select>
-          </label>
-          <button class="tm-see" data-see="${i}" ${p.email ? '' : 'disabled'}>👁 Подивитись її очима</button>
-        </div>
-        ${none ? '<div class="tm-warn">Жодного розділу — людина побачить порожню адмінку. Увімкніть хоча б «Задачі» або «Канбан».</div>' : ''}
-        <div class="sub">Зміна ролі перезаписує ці галочки пресетом. Далі правте руками — саме для цього вони тут.</div>
-      </div>` : ''}
-    </div>`;}).join('') ||
-    '<div class="sub">Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».</div>';
-  /* ПРИБРАНІ ЛЕЖАТЬ ПОРУЧ, А НЕ ЗНИКАЮТЬ.
-
-     Людину прибирають одним натисканням, а налаштовували її доступи пів
-     години. Помилкове натискання не має коштувати цієї півгодини, а «ой,
-     я випадково» — бути причиною виставляти двадцять галочок наново. Тому
-     прибраний іде не в нікуди, а сюди, разом зі своїми доступами, і
-     повертається однією кнопкою. */
-  const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
-  if(gone.length){
-    box.insertAdjacentHTML('beforeend', '<div class="tm-gone">' +
-      '<div class="tm-gone-h">Прибрані — можна повернути</div>' +
-      gone.map((g, j)=> '<div class="tm-gone-row"><b>' +
-        escapeHtml(g.name || g.email || '') + '</b><span>' + escapeHtml(g.email || '') +
-        '</span><span>' + escapeHtml(dayUa(g.goneAt) || '') + '</span>' +
-        '<button class="tm-back" data-back="' + j + '">Повернути</button></div>').join('') +
-      '</div>');
-    box.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', ()=>{
-      const j = +b.dataset.back;
-      const g = (contentData.teamGone || [])[j];
-      if(!g) return;
-      const cur = teamList();
-      if(cur.some(x => String(x.email || '').toLowerCase() === String(g.email || '').toLowerCase()))
-        return toast('Ця людина вже в списку');
-      const back = Object.assign({}, g); delete back.goneAt;
-      cur.push(back);
-      contentData.teamGone = (contentData.teamGone || []).filter((x, k) => k !== j);
-      renderTeamList();
-      toast('Повернули — не забудьте «Зберегти команду»');
-    }));
-  }
-  box.querySelectorAll('[data-pin]').forEach(b => b.addEventListener('click', ()=>{
-    const p = teamList()[+b.dataset.pin];
-    if(p) rootPin(p.email, !isRootEmail(p.email));
-  }));
-  box.querySelectorAll('.tm-row').forEach(row=>{
+  /* Кнопки під списком — ті самі вузли з обробниками, навішаними один раз
+     при завантаженні. Перед тим як стерти вміст, виймаємо їх у їхній
+     постійний дім: інакше innerHTML знищить їх разом із розміткою, і
+     «Зберегти команду» зникне зі сторінки назавжди. */
+  const home0 = document.getElementById('team-tools-home');
+  if(home0) ['team-add', 'team-find', 'team-save'].forEach(id=>{
+    const b = document.getElementById(id);
+    if(b) home0.appendChild(b);
+  });
+  box.innerHTML = tmTabsHtml() +
+    '<div class="tm-pane">' + (tmTab === 'roles' ? tmRolesHtml() : tmUsersHtml()) + '</div>';
+  /* Кнопки лишаються тими самими вузлами, просто переїжджають у панель:
+     так їхні обробники, навішані один раз при завантаженні, не губляться
+     від кожного перемальовування. */
+  const tools = box.querySelector('#tm-tools');
+  const home = document.getElementById('team-tools-home');
+  const btns = ['team-add', 'team-find', 'team-save']
+    .map(id => document.getElementById(id)).filter(Boolean);
+  btns.forEach(b => (tools || home || box).appendChild(b));
+  if(home) home.style.display = tools ? 'none' : 'flex';
+  wireTeamPane(box);
+  renderSeeAsPick();
+  const me2 = document.getElementById('team-me');
+  if(me2) me2.textContent = me
+    ? ('Ви зайшли як ' + me + ' — роль: ' + roleName(myRole()) +
+       (teamOn() ? '' : ' (список порожній, тому доступ повний)'))
+    : '';
+}
+function wireTeamPane(box){
+  box.querySelectorAll('[data-tmtab]').forEach(b => b.addEventListener('click', ()=>{
+    tmTab = b.dataset.tmtab; renderTeamList(); }));
+  box.querySelectorAll('[data-tmsub]').forEach(b => b.addEventListener('click', ()=>{
+    tmSub = b.dataset.tmsub; renderTeamList(); }));
+  const q = box.querySelector('.tm-search');
+  if(q) q.addEventListener('input', ()=>{
+    tmQ = q.value;
+    const at = q.selectionStart;
+    renderTeamList();
+    const nq = document.querySelector('.tm-search');
+    if(nq){ nq.focus(); try{ nq.setSelectionRange(at, at); }catch(e){} }
+  });
+  /* ── користувачі ── */
+  box.querySelectorAll('.tu-row').forEach(row=>{
     const i = +row.dataset.i;
-    row.querySelector('.tm-mail').addEventListener('input', e=>{
-      teamDirty = true; teamList()[i].email = e.target.value; });
-    row.querySelector('.tm-name').addEventListener('input', e=>{
-      teamDirty = true; teamList()[i].name = e.target.value; });
-    row.querySelector('.tm-role').addEventListener('change', e=>{
+    const touch = ()=>{ teamDirty = true;
+      const p = teamList()[i]; if(p) p.updatedAt = new Date().toISOString(); };
+    const on = (sel, key)=>{ const el = row.querySelector(sel); if(!el) return;
+      el.addEventListener('input', ()=>{ touch(); teamList()[i][key] = el.value; }); };
+    on('.tm-mail', 'email'); on('.tm-name', 'name'); on('.tm-phone', 'phone');
+    const r = row.querySelector('.tm-role');
+    if(r) r.addEventListener('change', ()=>{
       const p = teamList()[i];
-      const parts = String(e.target.value || '').split('|');
-      teamDirty = true;
-      p.role = ROLE_PRESET[parts[0]] ? parts[0] : 'manager';
+      const parts = String(r.value || '').split('|');
+      touch();
+      p.role = roleDef(parts[0]) ? parts[0] : 'manager';
       p.dirs = String(parts[1] || 'b2b').split(',').filter(x => DIRS[x]);
       if(!p.dirs.length) p.dirs = ['b2b'];
-      p.acc = accExpand(presetOf(p.role));   // роль — це пресет, і він заповнює галочки
-      /* Напрям вирішує й розділи: у Канбан ходить B2B, у B2C — B2C. Інакше
-         людині довелось би знімати чужий розділ руками, а забувши це
-         зробити, вона б його бачила. */
-      if(p.role !== 'owner') p.acc.nav = (p.acc.nav || []).filter(k =>
-        (k !== 'board'  || p.dirs.indexOf('b2b') >= 0) &&
-        (k !== 'design' || p.dirs.indexOf('b2c') >= 0));
+      p.acc = accExpand(presetOf(p.role));
       renderTeamList();
     });
-    row.querySelector('.tm-ui').addEventListener('change', e=>{
-      teamDirty = true; teamList()[i].acc.ui = e.target.value; });
     const del = row.querySelector('.qr-del');
     if(del) del.addEventListener('click', ()=>{
       const p = teamList()[i];
-      if(isRootEmail(p.email)) return toast('Засновника прибрати не можна');
+      if(isRootEmail(p.email)) return toast('Закріплену пошту прибрати не можна');
       if(String(p.email || '').trim().toLowerCase() === myEmail())
         return toast('Себе прибрати не можна — ви втратите доступ до власної адмінки');
       if(p.email && !confirm('Прибрати ' + (p.name || p.email) +
@@ -23096,56 +23352,120 @@ function renderTeamList(){
         gone.push(Object.assign({}, p, { goneAt: new Date().toISOString() }));
         contentData.teamGone = gone.slice(-30);
       }
-      teamDirty = true; teamList().splice(i,1); teamOpen = -1; renderTeamList(); });
+      teamDirty = true; teamList().splice(i, 1); renderTeamList();
+    });
   });
-  box.querySelectorAll('[data-more]').forEach(b=>
-    b.addEventListener('click', ()=>{
-      const i = +b.dataset.more;
-      teamOpen = (teamOpen === i) ? -1 : i;
-      renderTeamList();
-    }));
-  box.querySelectorAll('[data-inv]').forEach(b=>
-    b.addEventListener('click', async ()=>{
-      const p = teamList()[+b.dataset.inv];
-      const was = b.textContent;
-      b.disabled = true; b.textContent = 'Шлемо…';
-      await sendInvite(p.email);
-      b.disabled = false; b.textContent = was;
-    }));
-  box.querySelectorAll('[data-copy]').forEach(s=>
-    s.addEventListener('change', ()=>{
-      const to = teamList()[+s.dataset.copy], from = teamList()[+s.value];
-      if(!from) return;
-      /* Копіюємо доступи, але НЕ пошту, імʼя й роль: копіюють саме галочки,
-         а роль лишається тією, яку поставили цій людині. */
-      to.acc = { ui: from.acc.ui, nav: from.acc.nav.slice(), boards: from.acc.boards.slice(),
-                 see: from.acc.see.slice(), can: from.acc.can.slice() };
-      renderTeamList();
-      toast('Доступи скопійовано — не забудьте зберегти');
-    }));
-  box.querySelectorAll('[data-see]').forEach(b=>
-    b.addEventListener('click', ()=>{
-      const p = teamList()[+b.dataset.see];
-      if(!p.email) return;
-      if(!((contentData.team) || []).some(s => s.email === p.email))
-        return toast('Спершу збережіть команду');
-      seeAsSet('@' + p.email);
-    }));
-  box.querySelectorAll('[data-acc]').forEach(c=>
-    c.addEventListener('change', ()=>{
-      const p = teamList()[+c.dataset.acc], g = c.dataset.g, k = c.dataset.k;
-      const list = p.acc[g];
-      const at = list.indexOf(k);
-      if(c.checked && at < 0) list.push(k);
-      if(!c.checked && at >= 0) list.splice(at, 1);
-      c.closest('.tm-box').classList.toggle('on', c.checked);
-    }));
-  renderSeeAsPick();
-  const me2 = document.getElementById('team-me');
-  if(me2) me2.textContent = me
-    ? ('Ви зайшли як ' + me + ' — роль: ' + (myRole()==='owner' ? 'власник' : 'менеджер') +
-       (teamOn() ? '' : ' (список порожній, тому доступ повний)'))
-    : '';
+  box.querySelectorAll('[data-pin]').forEach(b => b.addEventListener('click', ()=>{
+    const p = teamList()[+b.dataset.pin];
+    if(p) rootPin(p.email, !isRootEmail(p.email));
+  }));
+  /* Запрошення: лист із посиланням, по якому людина сама придумає пароль.
+     Йде тільки тому, хто ВЖЕ збережений, — інакше вона зайде й побачить
+     «вас не додали», а той, хто запрошував, буде впевнений, що все зробив. */
+  box.querySelectorAll('[data-inv]').forEach(b => b.addEventListener('click', async ()=>{
+    const p = teamList()[+b.dataset.inv];
+    if(!p) return;
+    b.disabled = true;
+    const was = b.textContent;
+    b.textContent = '…';
+    try{ await sendInvite(p.email); }
+    finally{ b.disabled = false; b.textContent = was; }
+  }));
+  box.querySelectorAll('[data-see]').forEach(b => b.addEventListener('click', ()=>{
+    const p = teamList()[+b.dataset.see];
+    if(!p || !p.email) return;
+    if(!canSetup()) return toast('Режим перегляду — для того, хто налаштовує систему');
+    const e = String(p.email).trim().toLowerCase();
+    if(!teamMember(e))
+      return toast('Спершу «Зберегти команду» — чужими очима дивимось на збережені права');
+    seeAsSet('@' + e);
+  }));
+  box.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', ()=>{
+    const j = +b.dataset.back;
+    const g = (contentData.teamGone || [])[j];
+    if(!g) return;
+    const cur = teamList();
+    if(cur.some(x => String(x.email || '').toLowerCase() === String(g.email || '').toLowerCase()))
+      return toast('Ця людина вже в списку');
+    const back = Object.assign({}, g); delete back.goneAt;
+    cur.push(back);
+    contentData.teamGone = (contentData.teamGone || []).filter((x, k) => k !== j);
+    teamDirty = true; renderTeamList();
+    toast('Повернули — не забудьте «Зберегти команду»');
+  }));
+  /* ── ролі ── */
+  box.querySelectorAll('[data-red]').forEach(b => b.addEventListener('click', ()=>{
+    roleOpen = b.dataset.red; renderTeamList(); }));
+  box.querySelectorAll('.tr-row').forEach(r => r.addEventListener('click', e=>{
+    if(e.target.closest('button')) return;
+    roleOpen = r.dataset.rk; renderTeamList(); }));
+  const radd = box.querySelector('.tr-add');
+  if(radd) radd.addEventListener('click', ()=>{
+    const list = rolesList();
+    const key = 'r' + Date.now().toString(36);
+    list.push({ key: key, name:'Нова роль', ui:'manager', nav:['today','board'],
+                boards:['sale'], see:['client'], can:[] });
+    roleOpen = key; renderTeamList();
+    toast('Роль створено — назвіть її й позначте, що вона відкриває');
+  });
+  box.querySelectorAll('[data-rdel]').forEach(b => b.addEventListener('click', ()=>{
+    const k = b.dataset.rdel;
+    const n = ((contentData.team) || []).filter(p => p.role === k).length;
+    if(n) return toast('Цю роль має ' + n + ' люд. — спершу переведіть їх на іншу');
+    if(!confirm('Прибрати роль «' + roleName(k) + '»?')) return;
+    rolesDraft = rolesList().filter(r => r.key !== k);
+    if(roleOpen === k) roleOpen = '';
+    rolesSave();
+  }));
+  const rn = box.querySelector('.tr-name');
+  if(rn) rn.addEventListener('input', ()=>{
+    const r = rolesList().filter(x => x.key === roleOpen)[0];
+    if(r) r.name = rn.value;
+  });
+  const ru = box.querySelector('.tr-ui');
+  if(ru) ru.addEventListener('change', ()=>{
+    const r = rolesList().filter(x => x.key === roleOpen)[0];
+    if(r) r.ui = ru.value;
+  });
+  box.querySelectorAll('[data-rz]').forEach(c => c.addEventListener('change', ()=>{
+    const r = rolesList().filter(x => x.key === roleOpen)[0];
+    if(!r) return;
+    const parts = String(c.dataset.rz).split('|');
+    const g = parts[0], k = parts[1];
+    /* «*» означає «усе». Щойно галочку зняли, список має стати явним —
+       інакше зняте повернулось би само при наступному новому розділі. */
+    if(r[g] === '*') r[g] = zoneItems(g).map(z => z.key);
+    if(!Array.isArray(r[g])) r[g] = [];
+    const at = r[g].indexOf(k);
+    if(c.checked && at < 0) r[g].push(k);
+    if(!c.checked && at >= 0) r[g].splice(at, 1);
+    c.closest('.tr-box').classList.toggle('on', c.checked);
+  }));
+  const rc = box.querySelector('.tr-cancel');
+  if(rc) rc.addEventListener('click', ()=>{ rolesDraft = null; roleOpen = ''; renderTeamList(); });
+  const rs = box.querySelector('.tr-save');
+  if(rs) rs.addEventListener('click', rolesSave);
+}
+async function rolesSave(){
+  if(!contentLoaded) return toast('Дані ще вантажаться — зачекайте секунду');
+  const list = rolesList().map(r => ({ key:String(r.key || ''), name:String(r.name || '').trim() || r.key,
+    ui: UI_KINDS[r.ui] ? r.ui : 'manager',
+    nav: r.nav === '*' ? '*' : (Array.isArray(r.nav) ? r.nav.slice() : []),
+    boards: r.boards === '*' ? '*' : (Array.isArray(r.boards) ? r.boards.slice() : []),
+    see: Array.isArray(r.see) ? r.see.slice() : [],
+    can: Array.isArray(r.can) ? r.can.slice() : [] })).filter(r => r.key);
+  /* Хоч одна роль має вміти налаштовувати: інакше найближче збереження
+     замкне систему так само, як список команди без власника. */
+  if(!list.some(r => r.can === '*' || (r.can || []).indexOf('setup') >= 0))
+    return toast('Хоч одна роль має вміти міняти налаштування — інакше систему не налаштує ніхто');
+  try{
+    await PHOTOS_DOC.set({ roles: list }, { merge:true });
+    contentData.roles = list;
+    rolesDraft = null;
+    await accLog('rights', 'ролі: ' + list.map(r => r.name).join(', '));
+    applyRoleUi(); renderTeamList();
+    toast('Ролі збережено');
+  }catch(e){ console.error(e); toast('Ролі не збереглись'); }
 }
 (function(){
   /* ══════════ ВІДНОВЛЕННЯ КОМАНДИ ЗІ СЛІДІВ ═══════════════════════════
@@ -23203,6 +23523,7 @@ function renderTeamList(){
       'вони ніде не зберігаються, крім самого списку.')) return;
     teamDirty = true;
     add.forEach(e => cur.push({ email:e, name:'', role:'manager', dirs:['b2b'],
+                                phone:'', createdAt:new Date().toISOString(), updatedAt:'',
                                 acc: accExpand(presetOf('manager')) }));
     renderTeamList();
     toast('Додали ' + add.length + ' — перевірте ролі й натисніть «Зберегти команду»');
@@ -23214,9 +23535,16 @@ function renderTeamList(){
     // у якому власника немає, і самому лишитись без цифр.
     const first = !teamList().length;
     teamList().push({ email: first ? myEmail() : '', name: '', role: first ? 'owner' : 'manager',
+                      dirs: first ? ['b2b','b2c'] : ['b2b'],
+                      phone:'', createdAt:new Date().toISOString(), updatedAt:'',
                       acc: accExpand(presetOf(first ? 'owner' : 'manager')) });
     teamOpen = teamList().length - 1;
+    teamDirty = true;
+    tmTab = 'users'; tmSub = 'team'; tmQ = '';
     renderTeamList();
+    const rows = document.querySelectorAll('#team-list .tu-row');
+    const last = rows[rows.length - 1];
+    if(last){ const m = last.querySelector('.tm-mail'); if(m) m.focus(); }
   });
   document.getElementById('team-save').addEventListener('click', async ()=>{
     /* Те саме правило, що й для журналу, і з тієї самої причини: список
@@ -23226,8 +23554,14 @@ function renderTeamList(){
     const list = teamList()
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
-                   role: ROLE_PRESET[p.role] ? p.role : 'manager',
+                   role: roleDef(p.role) ? p.role : 'manager',
                    dirs: memberDirs(p),
+                   phone: String(p.phone||'').trim(),
+                   /* Коли завели й коли востаннє чіпали. Питання «а хто це
+                      додав минулого тижня» виникає рано чи пізно, і журнал
+                      на нього відповідає лише доти, доки не переповнився. */
+                   createdAt: p.createdAt || new Date().toISOString(),
+                   updatedAt: p.updatedAt || '',
                    acc: { ui: UI_KINDS[p.acc.ui] ? p.acc.ui : 'manager',
                           nav: p.acc.nav.slice(), boards: p.acc.boards.slice(),
                           see: p.acc.see.slice(), can: p.acc.can.slice(),
