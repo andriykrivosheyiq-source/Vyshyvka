@@ -992,6 +992,7 @@
   function verPic(v){ return (v && (v.wilcom || v.photo)) || ''; }
   function nameOf(e){ return (host.name && host.name(e)) || e || '—'; }
   function say(m){ if(host.toast) host.toast(m); }
+  function can(k){ return host.can ? !!host.can(k) : true; }
   function dt(s){
     if(!s) return '';
     var d = new Date(s);
@@ -1144,7 +1145,7 @@
             esc(o.crmChatName || ('чат ' + o.crmChatId)) + '</b></div>' +
           '<div class="dz-own-acts">' +
             '<button class="dz-b pri" data-do="chat">Переписка</button>' +
-            '<button class="dz-b" data-do="unbind">Відвʼязати</button>' +
+            (can('bind') ? '<button class="dz-b" data-do="unbind">Відвʼязати</button>' : '') +
           '</div></div>';
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
@@ -1507,9 +1508,9 @@
     unitsHtml: unitsHtml, unitsOf: unitsOf, unitAt: unitAt, shipHtml: shipHtml,
     unitNew: unitNew, catItem: catItem,
     taskCards: taskCards, hm: hm,
-    /* `can` живе в панелі дій нижче, а картки доручень потрібні вже тут.
-       Заглушка на випадок, коли модуль піднімають без адмінки. */
-    can: function(){ return true; }
+    /* Одна відповідь на всі модулі: права питає робоче місце, а не кожен
+       модуль сам. Без адмінки (модуль піднятий окремо) дозволено все. */
+    can: can
   };
 })();
 
@@ -2255,7 +2256,37 @@
     }
   }
 
+  /* ── ЩО ЦІЙ РОЛІ ДОЗВОЛЕНО ────────────────────────────────────────────
+     Відділ довго був «або весь відкритий, або весь закритий»: хто бачить
+     розділ, той і вантажить макети, і погоджує їх за клієнта, і збирає
+     пакет у виробництво. Тепер кожна з цих робіт має власне право, а тут —
+     єдине місце, де вони звіряються. Замок стоїть на самій дії, а не лише
+     на кнопці: кнопку можна сховати, дію — ні. */
+  var ACT_CAN = {
+    'order-new':'new',
+    'take':'art', 'start':'art', 'ver-new':'art', 'ver-file':'art',
+    'ver-prev':'art', 'to-review':'art', 'u-add':'art', 'u-dup':'art',
+    'u-del':'art', 'dz-add':'art', 'dz-del':'art',
+    'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
+    'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
+    'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
+    'assign':'approve', 'task-add':'approve',
+    's-assign':'stitch', 's-file':'stitch', 's-prev':'stitch',
+    's-save':'stitch', 's-test':'stitch', 's-done':'stitch',
+    'qa-ok':'qc', 'qa-no':'qc', 'qa-save':'qc',
+    'pack':'pack', 'ship':'pack',
+    'unbind':'bind', 'bind':'bind'
+  };
+  var CAN_SAY = {
+    art:'Вантажити макети', approve:'Погоджувати макет',
+    stitch:'Оцифровувати вишивку', qc:'Закривати контроль файлів',
+    pack:'Збирати пакет у виробництво', bind:'Привʼязувати розмови',
+    new:'Створювати замовлення'
+  };
   async function act(what, root, data){
+    var need = ACT_CAN[what];
+    if(need && !can(need))
+      return say(CAN_SAY[need] + ' — не ваша зона');
     /* Нове замовлення заводять, коли на екрані ще нічого не відкрито, —
        тому воно йде ДО перевірки контексту. Створює його робоче місце: у
        відділу немає ні форми клієнта, ні нумерації, і заводити їх удруге

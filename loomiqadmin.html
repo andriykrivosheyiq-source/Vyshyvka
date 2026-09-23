@@ -2032,7 +2032,11 @@
   .tr-sec-h{margin-bottom:8px;}
   .tr-sec-h b{display:block;font-size:12.5px;font-weight:800;color:var(--ink);}
   .tr-sec-h span{font-size:11.5px;color:var(--muted);}
-  .tr-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;}
+  .tr-boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px;}
+  .tr-sub{margin-top:10px;}
+  .tr-sub:first-child{margin-top:0;}
+  .tr-sub-h{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 4px 9px;}
   .tr-box{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 9px;
     border-radius:var(--r-sm);font-size:12.5px;color:var(--ink-soft);}
   .tr-box:hover{background:var(--canvas);}
@@ -4916,18 +4920,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=053be0577b"></script>
-<script src="loomiq-fingerprint.js?v=053be0577b"></script>
-<script src="loomiq-pricing.js?v=053be0577b"></script>
+<script src="loomiq-select.js?v=636489d2fb"></script>
+<script src="loomiq-fingerprint.js?v=636489d2fb"></script>
+<script src="loomiq-pricing.js?v=636489d2fb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=053be0577b"></script>
+<script src="loomiq-design.js?v=636489d2fb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=053be0577b"></script>
+<script src="loomiq-cards.js?v=636489d2fb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6832,6 +6836,9 @@ document.getElementById('brand-save').addEventListener('click', async ()=>{
 });
 
 document.getElementById('sp-save').addEventListener('click', async ()=>{
+  /* Ціни задаються для всіх одразу — і для сайту теж. Тому це окреме
+     право, а не наслідок того, що людина бачить розділ. */
+  if(!canPricing()) return toast('Міняти формування цін — не ваша зона');
   const numV = id=>{ const el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
   const dtf = Object.assign({ mode:'grid' }, readDtfGrid(), {
     tiers: readSpTiers('dtf'),     // знижки за кількість саме для друку
@@ -11996,7 +12003,7 @@ function renderTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket';
   el.dataset.oid = o.id;      // щоб знайти картку після перемальовування дошки
-  el.draggable = true;
+  el.draggable = canStage();
   el.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', o.id));
 
   const goodMargin = o.margin >= 0;
@@ -13090,7 +13097,7 @@ function buildTicket(o){
   const el = document.createElement('div');
   el.className = 'ticket ticket--compact' + (orderNeedsEye(o) ? ' ticket--eye' : '');
   el.dataset.oid = o.id;      // щоб знайти картку після перемальовування дошки
-  el.draggable = true;
+  el.draggable = canStage();
   el.addEventListener('dragstart', e=>{
     e.dataTransfer.setData('text/plain', o.id);
     el.classList.add('dragging');
@@ -15827,7 +15834,8 @@ function odProdHtml(o){
     const cc = STATUS_COLORS[st.color] || STATUS_COLORS.gray;
     return `<span class="od-trk" style="background:${cc.bg};color:${cc.head};">
       <i>${escapeHtml(title)}</i>
-      <select class="od-trk-sel" data-track="${escapeHtml(key)}" style="color:${cc.head};">
+      <select class="od-trk-sel" data-track="${escapeHtml(key)}" style="color:${cc.head};"${
+        canStage() ? '' : ' disabled'}>
         ${trackSteps(key).map(x=>`<option value="${escapeHtml(x.key)}"${
           x.key === trackOf(o, key) ? ' selected' : ''}>${escapeHtml(x.label)}</option>`).join('')}
       </select></span>`;
@@ -15924,7 +15932,8 @@ function odDesignerHtml(o){
       </div>
       <div class="od-deal-row">
         <span class="od-pill od-pill-st" style="background:${c.bg};color:${c.head};">
-          <select class="od-trk-sel" data-track="design" title="Стан макета" style="color:${c.head};">
+          <select class="od-trk-sel" data-track="design" title="Стан макета" style="color:${c.head};"${
+            canStage() ? '' : ' disabled'}>
             ${trackSteps('design').map(st=>`<option value="${escapeHtml(st.key)}"${
               st.key === trackOf(o, 'design') ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
           </select>
@@ -16137,7 +16146,8 @@ function odTracksHtml(o){
     return `<span class="od-trk" style="background:${c.bg};color:${c.head};">
       <i>${escapeHtml(t.label)}</i>
       <select class="od-trk-sel" data-track="${escapeHtml(t.key)}"
-              title="${escapeHtml(t.label)}" style="color:${c.head};">
+              title="${escapeHtml(t.label)}" style="color:${c.head};"${
+              canStage() ? '' : ' disabled'}>
         ${t.steps.map(s => `<option value="${escapeHtml(s.key)}"${
           s.key === cur ? ' selected' : ''}>${escapeHtml(s.label)}</option>`).join('')}
       </select>
@@ -16332,20 +16342,21 @@ function renderOrderDrawer(){
            «де воно і в кого», і читати їх треба разом. */''}
       <div class="od-deal-row">
         <span class="od-pill od-pill-st" style="background:${sc.bg};color:${sc.head};">
-          <select class="od-stage" title="Етап угоди" style="color:${sc.head};">
+          <select class="od-stage" title="Етап угоди" style="color:${sc.head};"${
+            canStage() ? '' : ' disabled'}>
             ${STATUSES.map(st=>`<option value="${escapeHtml(st.key)}"${
               st.key === o.status ? ' selected' : ''}>${escapeHtml(st.label)}</option>`).join('')}
           </select>
           ${age ? `<b class="od-pill-age${heat ? ' is-' + heat : ''}">${escapeHtml(age)}</b>` : ''}
         </span>
         <span class="od-pill od-pill-mgr" title="Відповідальний менеджер">
-          <select class="od-mgr-sel">
+          <select class="od-mgr-sel"${canAssign() ? '' : ' disabled'}>
             ${/* Короткий підпис: у рядку на двох поле вузьке, і «—
                  відповідальний —» у ньому просто обрізалось. */''}
             <option value="">Хто веде?</option>
             ${teamOptionsHtml(o.mgrEmail)}
           </select>
-          ${myEmail() && o.mgrEmail !== myEmail()
+          ${myEmail() && o.mgrEmail !== myEmail() && canAssign()
             ? '<button class="od-pill-me" data-mgr-me title="Взяти замовлення собі">Мені</button>' : ''}
         </span>
       </div>
@@ -16906,7 +16917,7 @@ function crmShow(o){
    чатом не показується взагалі. А вставити не ту адресу легко: вона береться з
    сусідньої вкладки. */
 function crmSeekBtnHtml(o){
-  if(tgChatOf(o) || !crmBase()) return '';
+  if(tgChatOf(o) || !crmBase() || !canBindChat()) return '';
   return `<button class="od-ig-find" title="${o.crmChatId
     ? 'Змінити або відвʼязати розмову Sitniks'
     : 'Привʼязати розмову з Sitniks за посиланням'}">🔗</button>`;
@@ -17070,6 +17081,7 @@ async function crmBindUrl(o, text){
    відоме. Порожні поля картки заповнюємо, заповнені не чіпаємо: людина могла
    виправити імʼя руками, і затирати правку відповіддю CRM не можна. */
 async function crmPickChat(o, r){
+  if(!canBindChat()){ toast('Привʼязувати розмови — не ваша зона'); return; }
   o.crmChatId = String(r.chatId);
   o.crmChatName = r.name || r.nick || '';
   if(r.name && !String(o.name || '').trim()) o.name = r.name;
@@ -18101,6 +18113,7 @@ function renderChats(dir){
     /* Розмова без замовлення. Заводимо його тут-таки, у ЦЬОМУ напрямі, і
        одразу привʼязуємо: інакше менеджер мав би створити картку, потім
        знайти ту саму розмову в Sitniks і скопіювати адресу. */
+    if(!canNewOrder()) return toast('Заводити замовлення — не ваша зона');
     if(!confirm('Завести замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') +
                 ' для «' + (r.who || 'цієї розмови') + '»?')) return;
     try{
@@ -20355,9 +20368,12 @@ function qrPanelHtml(o){
         <span class="cw-qr-t">${escapeHtml(q.t || 'Заготовка')}</span>
         <span class="cw-qr-m">${escapeHtml(qrFill(q.m, o).replace(/\n/g, ' '))}</span>
       </button>
-      <button class="cw-qr-e" data-qr-edit="${i}" title="Змінити заготовку">✎</button>
+      ${canQuick() ? `<button class="cw-qr-e" data-qr-edit="${i}" title="Змінити заготовку">✎</button>` : ''}
     </div>`).join('');
-  return head + rows + (ed === 'new' ? qrEditHtml({ t:'', m:'' }, 'new')
+  /* Заготовки спільні на всіх: змінена тут фраза піде від імені кожного
+     менеджера. Тому вставляти їх може будь-хто, а правити — окреме право. */
+  return head + rows + (!canQuick() ? ''
+    : ed === 'new' ? qrEditHtml({ t:'', m:'' }, 'new')
     : `<button class="cw-qr-add" data-qr-edit="new">＋ Нова заготовка</button>`);
 }
 function qrEditHtml(q, i){
@@ -20553,13 +20569,17 @@ function renderChatWin(toBottom){
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
     <div class="cw-feed">${feed}</div>
+    ${/* Читати листування й писати в нього — різні права. Без права на
+         відповідь показуємо рядок замість поля: порожній низ вікна
+         виглядав би поламаним, а поле, з якого нічого не йде, — гірше. */''}
+    ${!canWrite() ? `<div class="cw-bar"><div class="cw-tip">Листування доступне для читання: писати клієнту ця роль не може.</div></div>` : `
     <div class="cw-bar">
       ${raw}${sniff}${note}${cards}${qr}
       ${chatTrayHtml()}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
           title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
-        <button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>
+        ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
         ${/* Окремої кнопки з посиланням на КП тут немає навмисно. Вона
              вставляла голу адресу, а в «Заготовках» уже лежить заготовка з
              підстановкою {кп} — та сама адреса, але разом із текстом, який
@@ -20573,6 +20593,7 @@ function renderChatWin(toBottom){
            ніхто не знав, і листи виходили одним рядком. */''}
       <div class="cw-tip">Enter — новий рядок · Ctrl+Enter або ➤ — надіслати</div>
       <input type="file" accept="image/*" multiple data-cw-file hidden>
+    </div>`}
     </div>`;
 
   const feedEl = box.querySelector('.cw-feed');
@@ -20805,6 +20826,7 @@ function wireChatWin(box, o, focusIn){
     const stop = ()=>{ chatWin.qrEdit = null; chatWin.draft = inp.value; renderChatWin(); };
     ed.querySelector('[data-qr-cancel]').addEventListener('click', stop);
     ed.querySelector('[data-qr-save]').addEventListener('click', async ()=>{
+      if(!canQuick()) return toast('Заготовки спільні на всіх — правити їх ця роль не може');
       const m = String(mIn.value || '').trim();
       if(!m) return toast('Порожня заготовка нічого не варта');
       const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
@@ -20816,6 +20838,7 @@ function wireChatWin(box, o, focusIn){
     });
     const del = ed.querySelector('[data-qr-del]');
     if(del) del.addEventListener('click', async ()=>{
+      if(!canQuick()) return toast('Заготовки спільні на всіх — правити їх ця роль не може');
       const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
       const i = +ed.dataset.ed;
       if(!confirm('Прибрати заготовку «' + (list[i].t || list[i].m.slice(0, 30)) + '»?')) return;
@@ -20859,6 +20882,7 @@ function wireChatWin(box, o, focusIn){
 }
 
 async function chatSend(o, text){
+  if(!canWrite()){ toast('Писати клієнту — не ваша зона'); return; }
   if(chatWin.kind === 'tg') await tgSend(o, text);
   else await crmSend(o, text);
   /* Перемальовуємо саме зону переписки. Доти після надсилання оновлювалась
@@ -20909,6 +20933,7 @@ function picSendable(blob){
   });
 }
 async function chatSendPics(o, pics, text){
+  if(!canSendFiles()){ toast('Надсилати файли — не ваша зона'); return; }
   if(!pics.length) return;
   const isTg = chatWin.kind === 'tg';
   chatWin.pics = []; chatWin.picsBusy = true;
@@ -21072,6 +21097,7 @@ async function loadReviewsAdmin(){
     wrap.querySelectorAll('button[data-act]').forEach(b=>{
       b.addEventListener('click', async ()=>{
         const id=b.dataset.id, act=b.dataset.act;
+        if(!canReviews()) return toast('Відгуки на сайті — не ваша зона');
         const card = b.closest('.card');
         if(act==='edit'){
           card.querySelector('.rv-text').style.display='none';
@@ -21162,6 +21188,10 @@ function contentReadFailed(e){
 /* Дозвіл писати склад товарів. Порожній масив custom пишемо лише тоді, коли
    ми справді прочитали документ і там справді порожньо. */
 function canWriteProducts(){
+  if(!canCatalog()){
+    toast('Міняти товари й сайт — не ваша зона');
+    return false;
+  }
   if(contentLoaded) return true;
   toast('Дані сайту ще не прочитані — збереження скасовано, щоб не стерти товари');
   return false;
@@ -22225,7 +22255,18 @@ function openDesign(){
       }catch(e){}
       try{ openDesign(); }catch(e){}
     },
-    can: ()=> true
+    /* Єдине місце, де відділ питає про права. Ключ `designmgr` лишився
+       історичним: ним відділ питає «ця людина веде замовлення?» — а це
+       рівно те саме, що право погоджувати макет за клієнта. */
+    can: k => k === 'designmgr' ? canApprove()
+            : k === 'art'    ? canArt()
+            : k === 'approve'? canApprove()
+            : k === 'stitch' ? canStitch()
+            : k === 'qc'     ? canQc()
+            : k === 'pack'   ? canPack()
+            : k === 'bind'   ? canBindChat()
+            : k === 'new'    ? canNewOrder()
+            : true
   };
   /* Дизайнер відкриває одразу свою дошку: черга відділу — не його робота,
      і показувати її першою означає щодня просити перемкнути вкладку. */
@@ -22296,8 +22337,8 @@ function memberDirs(m){
 }
 // Значення рядка списку: `manager|b2c`, `production|b2b,b2c`.
 function roleValue(m){ return (m && m.role ? m.role : 'manager') + '|' + memberDirs(m).join(','); }
-function roleTitle(role, dirs){
-  const nm = roleName(role);
+function roleTitle(role, dirs, name){
+  const nm = name || roleName(role);
   if(role === 'owner') return nm;
   const d = (dirs || []).map(k => DIRS[k]).filter(Boolean);
   return d.length === 2 ? (nm + ' · B2B і B2C') : (nm + ' ' + (d[0] || 'B2B'));
@@ -22309,11 +22350,16 @@ function roleTitle(role, dirs){
    роль, вона має зʼявитись у виборі людини тим самим рухом — інакше роль є,
    а призначити її нікому. */
 function roleOptions(){
-  const out = [{ v:'owner|b2b,b2c', t:roleName('owner') }];
-  roleDefs().forEach(r => {
+  /* Коли у вкладці «Ролі» є незбережена чернетка, вибір читає саме її.
+     Інакше щойно заведена роль є в одному місці й немає в другому, і
+     виходить рівно те, від чого йшли: «одні ролі тут, другі там». */
+  const list = (typeof rolesDraft !== 'undefined' && rolesDraft) ? rolesDraft : roleDefs();
+  const own = list.filter(r => r && r.key === 'owner')[0];
+  const out = own ? [{ v:'owner|b2b,b2c', t:own.name || 'Власник' }] : [];
+  list.forEach(r => {
     if(!r || r.key === 'owner') return;
     [['b2b'], ['b2c'], ['b2b','b2c']].forEach(d =>
-      out.push({ v:r.key + '|' + d.join(','), t:roleTitle(r.key, d) }));
+      out.push({ v:r.key + '|' + d.join(','), t:roleTitle(r.key, d, r.name) }));
   });
   return out;
 }
@@ -22394,20 +22440,119 @@ const ZONE_SEE = [
   { key:'cost',   label:'Собівартість, маржа, закупівля',
     hint:'Скільки виріб коштує нам і скільки заробляємо. Ціна для клієнта видно завжди.' }
 ];
+/* ── ЩО ЛЮДИНА МОЖЕ РОБИТИ ────────────────────────────────────────────
+   Довго тут стояло чотири галочки: склад, оплата, видалення, налаштування.
+   «Куди зайти» описувалось добре — дванадцять розділів і сім дощок, — а «що
+   там робити» майже ніяк. Розділ чатів або відкритий повністю, або
+   закритий: відкрив — і людина вже й пише клієнту, і править спільні
+   заготовки, і відвʼязує розмову від замовлення. Те саме з цінами, з
+   каталогом, з макетами.
+
+   Тому дій стало більше, і вони розкладені по ділянках роботи: замовлення,
+   переписка, дизайн, каталог. Кожна з них — не рядок у списку, а замок:
+   немає права — немає й кнопки. Кнопка, яка є й не працює, гірша за
+   відсутню: людина вважає, що зламалось.
+
+   Зберігаються всі одним списком `can` — ділянка потрібна лише для того,
+   щоб їх було видно очима, а не однією купою з двадцяти галочок. */
 const ZONE_CAN = [
-  { key:'edit',  label:'Міняти склад замовлення',
-    hint:'Додавати й прибирати позиції, міняти кількості й розміри, створювати нові картки.' },
-  { key:'pay',   label:'Записувати оплату',
+  { key:'new',   sec:'order', label:'Створювати замовлення',
+    hint:'Кнопка «Нова картка» на дошці й заведення замовлення з прорахунку.' },
+  { key:'edit',  sec:'order', label:'Міняти склад замовлення',
+    hint:'Додавати й прибирати позиції, міняти кількості й розміри.' },
+  { key:'stage', sec:'order', label:'Двигати замовлення далі',
+    hint:'Перетягувати картку між колонками, міняти етап у картці, рухати дизайн, тираж, контроль і відправку.' },
+  { key:'assign',sec:'order', label:'Призначати відповідального',
+    hint:'Міняти менеджера замовлення. Без права рядок видно, але він не міняється.' },
+  { key:'pay',   sec:'order', label:'Записувати оплату',
     hint:'Блок оплат у картці: передоплата, доплата, залишок. Без права блоку не видно взагалі.' },
   /* Видалення довго було побічним ефектом права на склад: кнопка «Видалити
      картку» показувалась усім, хто бачить дошку, а база пускала кожного, хто
      може міняти склад. Замовлення зникало назавжди після одного «ок» і не
      лишало сліду ніде. Тепер це окреме право, і воно ж пише в журнал. */
-  { key:'del',   label:'Видаляти замовлення',
+  { key:'del',   sec:'order', label:'Видаляти замовлення',
     hint:'Прибрати картку з Канбану назавжди. Відновити не можна. Кожне видалення пишеться в журнал доступу.' },
-  { key:'setup', label:'Налаштовувати систему',
+  /* Вивантаження — єдине, звідки база йде за межі системи, і єдина дія, яку
+     неможливо відкотити: файл уже в когось на комп'ютері. */
+  { key:'export',sec:'order', label:'Вивантажувати базу у файл',
+    hint:'Зберегти список замовлень або закупівлю таблицею. Кожне вивантаження пишеться в журнал доступу з числом рядків.' },
+
+  { key:'write', sec:'chat',  label:'Писати клієнту',
+    hint:'Надсилати повідомлення в Telegram і Instagram. Без права листування видно, але поля для відповіді немає.' },
+  { key:'files', sec:'chat',  label:'Надсилати картинки й файли',
+    hint:'Смужка вкладень у переписці: фото виробів, макети, картки-скрипти.' },
+  { key:'quick', sec:'chat',  label:'Правити заготовки відповідей',
+    hint:'Заготовки спільні на всіх: змінена тут фраза піде від імені кожного менеджера.' },
+  { key:'bind',  sec:'chat',  label:'Привʼязувати розмову до замовлення',
+    hint:'Звести розмову з карткою й відвʼязати її. Відвʼязана розмова втрачає звʼязок із замовленням, і знайти її знову важко.' },
+
+  { key:'art',   sec:'design',label:'Вантажити макети',
+    hint:'Додавати версії макета в картку замовлення й у дошку дизайну.' },
+  { key:'approve',sec:'design',label:'Погоджувати макет за клієнта',
+    hint:'Позначити версію прийнятою, коли клієнт сказав «так» голосом. Далі замовлення йде у виробництво.' },
+  { key:'stitch',sec:'design',label:'Оцифровувати вишивку',
+    hint:'Робота з файлом вишивки: стібки, щільність, пробний вишив.' },
+  { key:'qc',    sec:'design',label:'Закривати контроль файлів',
+    hint:'Остання перевірка перед виробництвом: підтвердити, що файл готовий, або повернути на правку.' },
+  { key:'pack',  sec:'design',label:'Збирати пакет у виробництво',
+    hint:'Передати готові файли, розміри й кількості на виробництво.' },
+
+  { key:'pricing',sec:'cat',  label:'Міняти формування цін',
+    hint:'Ставки, коефіцієнти, знижки, способи нанесення. Ціни задаються для всіх одразу — і для сайту теж.' },
+  { key:'catalog',sec:'cat',  label:'Міняти товари й фото сайту',
+    hint:'Асортимент, кольори, фото виробів, тексти сайту, розмірні сітки. Це те, що бачать клієнти.' },
+  { key:'reviews',sec:'cat',  label:'Публікувати відгуки',
+    hint:'Пускати відгук із сайту в публікацію або ховати його.' },
+  { key:'suppliers',sec:'cat',label:'Правити підрядників',
+    hint:'Список підрядників, їхні ціни й терміни.' },
+
+  { key:'setup', sec:'sys',   label:'Налаштовувати систему',
     hint:'Етапи й дошки Канбану, склад команди й доступи, журнал доступу, режим «дивитись як».' }
 ];
+/* Ділянки — тільки для очей: зберігається все одним списком. */
+const CAN_SECS = [
+  { key:'order',  t:'Замовлення' },
+  { key:'chat',   t:'Переписка' },
+  { key:'design', t:'Дизайн і виробництво' },
+  { key:'cat',    t:'Каталог, ціни, сайт' },
+  { key:'sys',    t:'Система' }
+];
+/* ── ПРАВА, ЯКИХ НЕ ІСНУВАЛО, КОЛИ РОЛЬ ЗБЕРІГАЛИ ──────────────────────
+   Та сама пастка, що й із розділами, тільки дорожча. Роль зберігається
+   СПИСКОМ дозволеного. Щойно зʼявляється нове право, кожна вже збережена
+   роль його не має — і менеджер, який учора писав клієнтам, зранку не може
+   написати нікому. Нового права в його списку немає, і взятись йому
+   нізвідки: коли список складали, права не існувало.
+
+   Тому для нових прав дивимось, що людина могла РАНІШЕ, і видаємо рівно
+   стільки ж: хто бачив листування — той і писав, хто міняв склад — той і
+   двигав етапи. Це не щедрість, це збереження статус-кво.
+
+   Щойно роль збережуть заново, поруч ляже `canAll` — перелік прав, які
+   існували в мить збереження, — і правило для неї більше не діє: зняту
+   галочку вже ніхто не поверне. */
+const CAN_FROM = {
+  new:'can:edit', stage:'can:edit', assign:'can:edit',
+  export:'see:cost',
+  write:'see:chat', files:'see:chat', quick:'see:chat', bind:'see:chat',
+  art:'nav:design', approve:'nav:design', stitch:'nav:design',
+  qc:'nav:design', pack:'nav:design',
+  pricing:'nav:settings', catalog:'nav:photos',
+  reviews:'nav:reviews', suppliers:'nav:suppliers'
+};
+/* Роль, збережена до появи нових прав, добирає їх за тим, що могла раніше. */
+function canFill(r){
+  if(!r || r.can === '*' || Array.isArray(r.canAll)) return r;
+  const has = (g, k) => r[g] === '*' || (Array.isArray(r[g]) && r[g].indexOf(k) >= 0);
+  const can = Array.isArray(r.can) ? r.can.slice() : [];
+  Object.keys(CAN_FROM).forEach(k=>{
+    if(can.indexOf(k) >= 0) return;
+    const from = CAN_FROM[k].split(':');
+    if(has(from[0], from[1])) can.push(k);
+  });
+  r.can = can;
+  return r;
+}
 /* Коротке пояснення до самої зони: чотири блоки відповідають на чотири різні
    питання, і без підпису вони зливаються в одну купу галочок. */
 const ZONE_ABOUT = {
@@ -22495,37 +22640,21 @@ function roleName(key){
 }
 function presetOf(role){
   const r = roleDef(role);
-  if(r) return { ui:r.ui, nav:r.nav, boards:r.boards,
-                 see:Array.isArray(r.see) ? r.see.slice() : [],
-                 can:Array.isArray(r.can) ? r.can.slice() : [] };
-  const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
-  return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
+  const src = r || ROLE_PRESET[role] || ROLE_PRESET.manager;
+  return canFill({ ui:src.ui, nav:src.nav, boards:src.boards,
+    see:Array.isArray(src.see) ? src.see.slice() : [],
+    can: src.can === '*' ? '*' : (Array.isArray(src.can) ? src.can.slice() : []),
+    canAll: Array.isArray(src.canAll) ? src.canAll : null });
 }
 /* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
 function accOf(member){
-  const role = (member && roleDef(member.role)) ? member.role : 'manager';
-  const base = presetOf(role);
   /* Індивідуальних доступів більше немає: що бачить людина, вирішує її
-     роль, і тільки вона. Старі збережені набори лишаються в записі, але
-     нічого вже не означають — інакше «роль» знову стала б приблизною. */
-  const a = null;
-  if(!a || typeof a !== 'object') return base;
-  const pick = (v, def) => (v === '*' ? '*' : (Array.isArray(v) ? v.slice() : def));
-  let nav = pick(a.nav, base.nav);
-  if(Array.isArray(nav) && !Array.isArray(a.navAll)){
-    ZONE_NEW.forEach(k=>{
-      if(nav.indexOf(k) >= 0) return;
-      const allowed = base.nav === '*' || (Array.isArray(base.nav) && base.nav.indexOf(k) >= 0);
-      if(allowed) nav.push(k);
-    });
-  }
-  return {
-    ui: UI_KINDS[a.ui] ? a.ui : base.ui,
-    nav:    nav,
-    boards: pick(a.boards, base.boards),
-    see:    pick(a.see,    base.see),
-    can:    pick(a.can,    base.can)
-  };
+     роль, і тільки вона. Старі збережені набори галочок лишаються в записі
+     людини, але нічого вже не означають — інакше «роль» знову стала б
+     приблизною, і на питання «що бачить менеджер» знову не було б
+     відповіді. */
+  const role = (member && roleDef(member.role)) ? member.role : 'manager';
+  return presetOf(role);
 }
 /* ══════════ Режим «Дивитись як» ══════════
    Потрібен щодня: коли налаштовуєш ролі, коли людина каже «у мене цього
@@ -22908,6 +23037,26 @@ function canEditItems(){ return may('can', 'edit'); }
 function canPay(){ return may('can', 'pay'); }
 function canDelete(){ return may('can', 'del'); }
 function canSetup(){ return may('can', 'setup'); }
+/* Дії, кожна зі своїм замком. Правило скрізь одне: немає права — немає й
+   кнопки. Кнопка, яка є й не працює, гірша за відсутню — людина вважає, що
+   зламалась система, і йде питати, замість того щоб просто працювати. */
+function canNewOrder(){ return may('can', 'new'); }
+function canStage(){ return may('can', 'stage'); }
+function canAssign(){ return may('can', 'assign'); }
+function canExport(){ return may('can', 'export'); }
+function canWrite(){ return canSeeChat() && may('can', 'write'); }
+function canSendFiles(){ return canWrite() && may('can', 'files'); }
+function canQuick(){ return canSeeChat() && may('can', 'quick'); }
+function canBindChat(){ return canSeeChat() && may('can', 'bind'); }
+function canArt(){ return may('can', 'art'); }
+function canApprove(){ return may('can', 'approve'); }
+function canStitch(){ return may('can', 'stitch'); }
+function canQc(){ return may('can', 'qc'); }
+function canPack(){ return may('can', 'pack'); }
+function canPricing(){ return may('can', 'pricing'); }
+function canCatalog(){ return may('can', 'catalog'); }
+function canReviews(){ return may('can', 'reviews'); }
+function canSuppliers(){ return may('can', 'suppliers'); }
 /* У бічному меню людина бачить тільки свої розділи. Дизайнер заходить і
    бачить одну дошку — ніяких вкладок, у які йому нема чого відкривати. */
 /* Людину не завели в команду. Порожня адмінка без пояснень читається як
@@ -22995,7 +23144,7 @@ function applyRoleUi(){
     if(on && !firstOk) firstOk = b;
   });
   const add = document.getElementById('board-add');
-  if(add) add.hidden = !canEditItems();
+  if(add) add.hidden = !canNewOrder();
   const st = document.getElementById('st-toggle');
   if(st) st.hidden = !canSetup();
   const meT = document.getElementById('me-btn-t');
@@ -23150,7 +23299,7 @@ const ZONE_GROUPS = [
   { g:'nav',    t:'Розділи',         s:'Куди людина заходить у меню.' },
   { g:'boards', t:'Дошки',           s:'Які дошки їй показувати.' },
   { g:'see',    t:'Бачить у картці', s:'Що з картки замовлення їй видно.' },
-  { g:'can',    t:'Може робити',     s:'Які дії їй дозволені.' }
+  { g:'can',    t:'Може робити',     s:'Які дії їй дозволені. Немає права — немає й кнопки.' }
 ];
 function zoneItems(g){
   return g === 'nav' ? ZONE_NAV : g === 'boards' ? zoneBoards()
@@ -23337,14 +23486,27 @@ function tmRolesHtml(){
     '<div class="tr-edit tr-edit--none">Оберіть роль зліва — і побачите, ' +
     'що саме вона відкриває. Або заведіть нову: окрема роль краща за «ту саму роль, ' +
     'але цій людині ще собівартість».</div></div>';
-  const secs = ZONE_GROUPS.map(gr => '<div class="tr-sec"><div class="tr-sec-h"><b>' + gr.t +
-    '</b><span>' + gr.s + '</span></div><div class="tr-boxes">' +
-    zoneItems(gr.g).map(z => '<label class="tr-box' + (roleHas(cur, gr.g, z.key) ? ' on' : '') + '"' +
+  const boxes = (g, items) => '<div class="tr-boxes">' +
+    items.map(z => '<label class="tr-box' + (roleHas(cur, g, z.key) ? ' on' : '') + '"' +
       (z.hint ? ' title="' + escapeHtml(z.hint) + '"' : '') + '>' +
-      '<input type="checkbox" data-rz="' + gr.g + '|' + escapeHtml(z.key) + '"' +
-      (roleHas(cur, gr.g, z.key) ? ' checked' : '') + '><span>' + escapeHtml(z.label) + '</span>' +
-      '</label>').join('') +
-    '</div></div>').join('');
+      '<input type="checkbox" data-rz="' + g + '|' + escapeHtml(z.key) + '"' +
+      (roleHas(cur, g, z.key) ? ' checked' : '') + '><span>' + escapeHtml(z.label) + '</span>' +
+      '</label>').join('') + '</div>';
+  const secs = ZONE_GROUPS.map(gr => {
+    const items = zoneItems(gr.g);
+    /* Двадцять із чимось дій однією купою не читаються взагалі. Тому
+       всередині «Може робити» вони ще й розкладені по ділянках роботи —
+       замовлення, переписка, дизайн, каталог. Зберігаються все одно одним
+       списком: ділянка потрібна оку, а не базі. */
+    const body = gr.g !== 'can' ? boxes(gr.g, items)
+      : CAN_SECS.map(sc => {
+          const part = items.filter(z => (z.sec || 'sys') === sc.key);
+          return part.length ? '<div class="tr-sub"><div class="tr-sub-h">' +
+            escapeHtml(sc.t) + '</div>' + boxes(gr.g, part) + '</div>' : '';
+        }).join('');
+    return '<div class="tr-sec"><div class="tr-sec-h"><b>' + gr.t +
+      '</b><span>' + gr.s + '</span></div>' + body + '</div>';
+  }).join('');
   return '<div class="tm-roles">' + left +
     '<div class="tr-edit"><div class="tr-edit-h">Що відкриває роль «' +
       escapeHtml(cur.name || cur.key) + '»</div>' +
@@ -23486,8 +23648,11 @@ function wireTeamPane(box){
   if(radd) radd.addEventListener('click', ()=>{
     const list = rolesList();
     const key = 'r' + Date.now().toString(36);
-    list.push({ key: key, name:'Нова роль', ui:'manager', nav:['today','board'],
-                boards:['sale'], see:['client'], can:[] });
+    /* Порожня навмисно: нехай усе, що роль відкриває, буде поставлено
+       руками й на видноті. Стартовий набір «як у менеджера» зручний рівно
+       доти, доки в ньому не лишиться забута галочка. */
+    list.push({ key: key, name:'Нова роль', ui:'manager', nav:[],
+                boards:[], see:[], can:[], canAll: ZONE_CAN.map(z => z.key) });
     roleOpen = key; renderTeamList();
     toast('Роль створено — назвіть її й позначте, що вона відкриває');
   });
@@ -23536,7 +23701,11 @@ async function rolesSave(){
     nav: r.nav === '*' ? '*' : (Array.isArray(r.nav) ? r.nav.slice() : []),
     boards: r.boards === '*' ? '*' : (Array.isArray(r.boards) ? r.boards.slice() : []),
     see: Array.isArray(r.see) ? r.see.slice() : [],
-    can: Array.isArray(r.can) ? r.can.slice() : [] })).filter(r => r.key);
+    can: r.can === '*' ? '*' : (Array.isArray(r.can) ? r.can.slice() : []),
+    /* Які права взагалі існували в мить збереження. Без цього переліку
+       зняту галочку не відрізнити від права, якого тоді ще не було, — і
+       зняте поверталось би саме при кожному оновленні системи. */
+    canAll: ZONE_CAN.map(z => z.key) })).filter(r => r.key);
   /* Хоч одна роль має вміти налаштовувати: інакше найближче збереження
      замкне систему так само, як список команди без власника. */
   if(!list.some(r => r.can === '*' || (r.can || []).indexOf('setup') >= 0))
@@ -25182,6 +25351,7 @@ function buySheetCsv(){
   const b = document.getElementById('buy-csv');
   if(!b) return;
   b.addEventListener('click', () => {
+    if(!canExport()) return toast('Вивантаження бази — не ваша зона');
     const blob = new Blob([buySheetCsv()], { type:'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -25197,6 +25367,7 @@ function buySheetCsv(){
 
 /* Додавання з перевіркою на двійника — і тут, і з картки товару. */
 async function supAdd(name, url){
+  if(!canSuppliers()){ toast('Правити підрядників — не ваша зона'); return null; }
   name = String(name || '').trim();
   if(!name){ toast('Введіть назву'); return null; }
   const list = supAll();
