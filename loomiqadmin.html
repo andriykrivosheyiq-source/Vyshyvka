@@ -7600,6 +7600,41 @@ window.__adminSaveClientOrder = async function(payload){
         }
         if(was.recoNote && !nu.recoNote) nu.recoNote = was.recoNote;
         if(was.optional != null) nu.optional = was.optional;
+        /* ВИД ДИЗАЙНУ — РІШЕННЯ МЕНЕДЖЕРА, А НЕ ВЛАСТИВІСТЬ ФАЙЛУ.
+
+           «Картинка» чи «напис» міняє ставку за площу, а отже й ціну. Ставить
+           це людина в прорахунку, дивлячись на сам малюнок. Конструктор про
+           таке рішення не знає нічого: він бачить шар і щоразу присилає
+           «картинка». Тому кожне «Зберегти позицію» тихо повертало вид
+           назад — менеджер ставив «напис», зберігав, перезаходив, а там
+           знову «картинка».
+
+           Переносимо за ВІДБИТКОМ малюнка, а не за номером у списку: номер
+           зсувається, щойно додали чи прибрали нанесення, і вид переїхав би
+           на чужий дизайн. Замінили файл — відбиток інший, рішення не
+           переноситься, і вид повертається до автоматичного. Це навмисно:
+           інший малюнок — інше рішення. */
+        const wasD = was.desc, nuD = nu.desc;
+        if(wasD && nuD && Array.isArray(wasD.designs) && Array.isArray(nuD.designs)){
+          const byFp = {};
+          wasD.designs.forEach((fp, di)=>{
+            const k = (wasD.designKinds || [])[di];
+            if(fp && (k === 'txt' || k === 'off')) byFp[String(fp)] = k;
+          });
+          if(Object.keys(byFp).length){
+            const kinds = Array.isArray(nuD.designKinds) ? nuD.designKinds.slice() : [];
+            while(kinds.length < nuD.designs.length) kinds.push('img');
+            nuD.designs.forEach((fp, di)=>{
+              const k = byFp[String(fp || '')];
+              if(k) kinds[di] = k;
+            });
+            nuD.designKinds = kinds;
+            /* І в мапу замовлення — щоб рішення лишалось, навіть коли цю
+               позицію потім приберуть, а той самий малюнок стоятиме на
+               сусідній. */
+            Object.keys(byFp).forEach(fp => setItemKindFix(null, fp, byFp[fp], target));
+          }
+        }
       });
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
@@ -22230,7 +22265,10 @@ const ROLE_PRESET = {
    доступи збережуть заново, поруч ляже `navAll` — перелік зон, які людині
    справді показували, — і це правило для неї більше не діє: зняту галочку
    вже ніхто не поверне. */
-const ZONE_NEW = ['design'];
+/* Розділи, яких не існувало, коли людині роздавали доступи. Без цього
+   списку новий розділ не бачить ніхто з уже заведених: у їхніх збережених
+   галочках його просто немає, і кожному довелось би вмикати руками. */
+const ZONE_NEW = ['design', 'chats', 'chatsc'];
 function presetOf(role){
   const p = ROLE_PRESET[role] || ROLE_PRESET.manager;
   return { ui:p.ui, nav:p.nav, boards:p.boards, see:p.see.slice(), can:p.can.slice() };
