@@ -456,6 +456,22 @@
       if(!GARMENTS.length) GARMENTS = BASE_GARMENTS.slice();
     }
     applyCustomProducts();
+/* ШАР, ЯКИЙ СХОВАЛИ, НЕ ІСНУЄ ДЛЯ ВИРОБНИЦТВА.
+
+   Видимість потрібна, щоб подивитись, що лежить під шаром, не прибираючи
+   його. Але напівсхований шар — найгірше з можливого: на екрані його немає,
+   а в рахунку й у файлі на виробництво він є. Тому правило просте: схований
+   не малюється, не рахується в ціні, не потрапляє у знімок і не їде в
+   тираж. У списку шарів він при цьому видимий — щоб не забувся назавжди.
+
+   Коли ховати нічого (а так майже завжди), віддаємо той самий масив: копія
+   на кожен перерахунок ціни нікому не потрібна. */
+    function inkLayers(side){
+      var l = pm.logos[side] || [];
+      for(var i = 0; i < l.length; i++)
+        if(l[i] && l[i].hidden) return l.filter(function(x){ return x && !x.hidden; });
+      return l;
+    }
     function ensureLogoSides(){ getViews().forEach(function(v){ if(!pm.logos[v]) pm.logos[v] = []; }); }
 
     function getGarment(){ return GARMENTS.find(function(g){return g.id===pm.garmentId;}) || GARMENTS[0]; }
@@ -537,7 +553,7 @@
     function logoSurcharge(){
       var total = 0;
       printViews().forEach(function(side){
-        (pm.logos[side]||[]).forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
+        inkLayers(side).forEach(function(l){ total += Math.round(logoWidthCm(l) * 22 / 5) * 5; });
       });
       return total;
     }
@@ -556,7 +572,7 @@
     // Ключ — origUrl (оригінальний завантажений файл), стабільний і при перемиканні фону.
     function uniqueDesignCount(){
       var seen = {}, n = 0;
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         var key = l.origUrl || l.url || '';
         if(key && !seen[key]){ seen[key] = 1; n++; }
       }); });
@@ -585,7 +601,7 @@
     function feeKindsHere(){
       var out = {};
       printViews().forEach(function(s){
-        (pm.logos[s] || []).forEach(function(l){ out[isTextLayer(l) ? 'txt' : 'img'] = 1; });
+        inkLayers(s).forEach(function(l){ out[isTextLayer(l) ? 'txt' : 'img'] = 1; });
       });
       return Object.keys(out);
     }
@@ -628,7 +644,7 @@
       var grid = m.mode === 'grid';
       var out = [];
       printViews().forEach(function(side){
-        (pm.logos[side] || []).forEach(function(l){
+        inkLayers(side).forEach(function(l){
           out.push({ side: side, l: l,
             band: grid ? dtfBandCol(m, l) : 0,
             mm2: layerInkMm2(l) });
@@ -656,12 +672,12 @@
     }
     function applicationRawSum(uOverride){
       var m = methodCfgNew(); if(!m) return 0; var s = 0;
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         s += (m.mode === 'grid') ? dtfGridRaw(m, l, uOverride) : placementRaw(m, l);
       }); });
       return s;
     }
-    function logoCount(){ var n = 0; printViews().forEach(function(side){ n += (pm.logos[side] || []).length; }); return n; }
+    function logoCount(){ var n = 0; printViews().forEach(function(side){ n += inkLayers(side).length; }); return n; }
     // собівартість за штуку = одяг + нанесення + оплата за штуку
     function unitCost(){ return garmentCost() + applicationCostSum() + methodPieceCost(); }
     /* Собівартість позиції = собівартість за штуку × тираж, і разова
@@ -858,6 +874,39 @@
     /* Стан активного шару однією стрічкою — для перевірки з консолі. Найчастіше
        треба саме відбиток: за ним рушій вирішує, чи це той самий дизайн, а
        отже й чи брати додатковий ескіз. */
+/* ══════════ ВІКНО В СТОС ШАРІВ — ДЛЯ ПЕРЕВІРОК ═════════════════════════
+   Правила з PLANS.md §11 стосуються того, що всередині: який шар узявся
+   кліком, у якому порядку вони лежать, чи пропускає замкнений. Перевіряти
+   це через екран означало б перевіряти не правило, а рендер. Тому
+   найтонший можливий місток: прочитати стос, посунути шар, спитати «хто
+   під цією точкою». Нічого, чого не робить сама панель. */
+    window.__lqLayers = {
+      list: function(side){
+        return (pm.logos[side || pm.side] || []).map(function(l, i){
+          return { id:l.id, i:i, text:!!l.text, locked:!!l.locked, hidden:!!l.hidden };
+        });
+      },
+      active: function(id){ if(id !== undefined) pm.activeLogoId = id; return pm.activeLogoId; },
+      set: function(id, k, v){ var l = findLayerAnySide(id); if(l) l[k] = v; return !!l; },
+      move: function(id, how){ return layerMove(id, how); },
+      at: function(x, y){ var l = layerAtPoint(x, y); return l ? l.id : null; },
+      /* Скласти всі шари в одну точку — щоб довести, який із них візьме
+         клік. Інакше вони просто не перетинаються, і питання не виникає.
+         Повертаємо ЕКРАННУ середину стосу: питання «хто під точкою»
+         ставиться в тих самих координатах, що й у справжнього кліка. */
+      stack: function(){
+        (pm.logos[pm.side] || []).forEach(function(z){
+          z.x = 0; z.y = 0; layerSaveFrac(z);
+        });
+        renderLogoLayers();
+        var el = pmLogoLayers && pmLogoLayers.querySelector('.pm-draggable-layer');
+        if(!el) return null;
+        var r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      },
+      draw: function(){ renderLogoLayers(); renderTabPanel(); },
+      dup: function(id){ var l = findLayerAnySide(id); if(l) dupLayer(l); }
+    };
     window.__lqLayerInfo = function(){
       var l = findLayerAnySide(pm.activeLogoId) || currentLayers()[0];
       if(!l) return null;
@@ -1135,7 +1184,7 @@
        «Перерахувати дизайни за макетами». */
     function remeasureMissing(){
       var jobs = [];
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         ensureFp(l);                       // одразу, синхронно — щоб ціна не брехала й секунди
         if(!l.text && l.url && String(l.fp || '').indexOf('u:') === 0)
           jobs.push(measureLayerShape(l, l.url).catch(function(){}));
@@ -1148,7 +1197,7 @@
     // Шар за номером дизайну — тим самим, у якому їх бачить рушій цін
     function layerAtDesign(di){
       var n = 0, out = null;
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         if(n++ === di) out = l; }); });
       return out;
     }
@@ -1214,7 +1263,7 @@
     function applicationCostNew(){ var ap = applicationParts(); return ap.coefPart + ap.flatPart; }
     function totalAreaMm2(){
       var a = 0;
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ a += layerAreaMm2(l); }); });
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){ a += layerAreaMm2(l); }); });
       return a;
     }
     function unitPriceBeforeDiscount(){ var ap = applicationParts(); return basePriceNew() + ap.coefPart + ap.flatPart + methodPieceFee(); }
@@ -1329,12 +1378,12 @@
       var m = methodCfgNew();
       var ap = applicationParts();
       var fps = [], kinds = [], mm2s = [];
-      printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+      printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         fps.push(ensureFp(l)); kinds.push(layerKind(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
-        printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
+        printViews().forEach(function(side){ inkLayers(side).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); });
       }
       return {
         method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
@@ -1616,6 +1665,57 @@
     function activeLayer(){ return currentLayers().find(function(l){return l.id===pm.activeLogoId;}); }
     // Логотип за id, у якій би стороні він не лежав — вкладка «Фото» показує всі сторони,
     // тож перемикачі й інструменти мають знаходити лого поза поточним ракурсом.
+/* ══════════ НОМЕР ШАРУ ВИДАЄТЬСЯ РАЗ І НЕ ПОВТОРЮЄТЬСЯ ══════════════════
+   Доти номером були показання годинника — `Date.now()`. Два шари, заведені
+   в одну мілісекунду, діставали ОДНАКОВИЙ номер: так буває при дублюванні,
+   при дзеркаленні на фото моделі, при швидкому додаванні кількох написів.
+
+   Далі все ламалось само: виділення зберігає НОМЕР, а пошук шару бере
+   ПЕРШИЙ із таким номером. Клікаєш один напис — правиться інший. Тягнеш
+   другий — їде перший. Саме це й виглядало як «то вибирається, то не
+   вибирається».
+
+   Годинник лишився початком відліку — щоб номери нових шарів не налізли на
+   номери тих, що вже збережені в позиціях, — але далі працює лічильник: ще
+   один шар у ту саму мілісекунду просто дістає наступне число. */
+    var lastLayerId = 0;
+    function newLayerId(){
+      var t = Date.now();
+      lastLayerId = (t > lastLayerId) ? t : (lastLayerId + 1);
+      return lastLayerId;
+    }
+    /* Позицію відкрили наново — її шари везуть свої номери. Присуваємо
+       лічильник за найбільший із них, інакше наступний новий шар міг би
+       дістати номер, який уже зайнятий. */
+    function seedLayerIds(){
+      Object.keys(pm.logos || {}).forEach(function(v){
+        (pm.logos[v] || []).forEach(function(l){
+          var n = +(l && l.id) || 0;
+          if(n > lastLayerId) lastLayerId = n;
+        });
+      });
+    }
+/* ══════════ ПОРЯДОК ШАРІВ ══════════════════════════════════════════════
+   Стос — це список. Перший найнижчий, останній найвищий, новий лягає
+   нагорі. Міняють порядок двома способами, і обидва ведуть сюди: тягнення
+   рядка в списку шарів і кнопки на самому шарі.
+
+   «На самий верх» і «на самий низ» окремо: на десятьох шарах тиснути
+   «підняти» девʼять разів ніхто не буде. */
+    function layerMove(id, how){
+      var side = sideOfLayer(id);
+      if(!side) return false;
+      var list = pm.logos[side] || [];
+      var at = -1;
+      for(var i = 0; i < list.length; i++) if(list[i].id === id){ at = i; break; }
+      if(at < 0) return false;
+      var to = how === 'up' ? at + 1 : how === 'down' ? at - 1
+             : how === 'top' ? list.length - 1 : how === 'bottom' ? 0 : +how;
+      to = Math.max(0, Math.min(list.length - 1, to));
+      if(to === at) return false;
+      list.splice(to, 0, list.splice(at, 1)[0]);
+      return true;
+    }
     function findLayerAnySide(id){
       var found = null;
       getViews().forEach(function(v){
@@ -2080,35 +2180,68 @@
       for(var i = 0; i < mask.w; i++) if(mask.data[row + i]){ if(L < 0) L = i; R = i; }
       return L >= 0 && mx >= L && mx <= R;
     }
-    /* Який шар людина насправді мала на увазі. Перебираємо згори вниз у
-       тому порядку, в якому вони намальовані: обраний піднятий над рештою
-       (z-index), далі — від пізніших до ранніших. Перший, під яким справді
-       є вміст, і є відповідь. Немає жодного — клік нічий, і це теж
-       відповідь: у порожньому куті чужої рамки нічого братись не повинно. */
-    function layerAtPoint(cx, cy){
+    /* ══════════ ЯКИЙ ШАР ЛЮДИНА МАЛА НА УВАЗІ ══════════════════════════
+       ПРАВИЛО ОДНЕ, І ВИНЯТКІВ У НЬОГО НЕМАЄ: клік бере ВЕРХНІЙ шар, під
+       яким у цій точці є вміст. Так у Figma, так у Canva, так у Printful —
+       і саме тому воно передбачуване.
+
+       Раніше тут був виняток: обраний шар перевіряли першим. Звучало
+       турботливо, а на ділі взятий шар забирав собі всі кліки в межах
+       своєї рамки, і сусід під ним ставав недосяжним. Виняток прибрано.
+
+       «Вміст» — це непрозорий піксель, а не прямокутник рамки: дірка в
+       кільці лишається діркою, і крізь неї береться те, що під ним. Для
+       напису вміст — це РЯДОК літер: над написом і під ним порожньо, і
+       сусід звідти береться вільно.
+
+       Замкнений шар пропускає кліки далі — на те він і замок. Схований не
+       існує для кліка взагалі. */
+    function layerHitList(cx, cy){
       var list = currentLayers();
-      var order = [];
-      list.forEach(function(l){ if(l.id === pm.activeLogoId) order.push(l); });
-      for(var i = list.length - 1; i >= 0; i--)
-        if(list[i].id !== pm.activeLogoId) order.push(list[i]);
-      /* Два заходи, і саме в такому порядку.
+      var out = [];
+      /* Згори вниз: останній у списку намальований найвище. */
+      for(var i = list.length - 1; i >= 0; i--){
+        var l = list[i];
+        if(!l || l.hidden || l.locked) continue;
+        /* Два заходи, і саме в такому порядку.
 
-         ПЕРШИЙ — по самому пікселю. Шари стоять один на одному: новий напис
-         зʼявляється зі зсувом у три десятки пікселів, обраний до того ж
-         піднятий над рештою. Якщо питати тільки про межі, то напис, який
-         щойно взяли, накриває сусідів своїм прямокутником і забирає собі
-         всі кліки — «то вибирається, то не вибирається, якийсь редагується,
-         якийсь ні». А от літера під курсором буває рівно одна.
+           ПЕРШИЙ — по самому пікселю: літера під курсором буває рівно одна,
+           а рамка накриває сусідів цілком.
 
-         ДРУГИЙ — по межах, і ТІЛЬКИ для написів. У малюнка порожнє місце
-         всередині рамки належить тому, хто лежить під ним: дірка в кільці
-         на те й дірка. А напис — суцільна річ, і навіть над самою літерою,
-         куди вже не дістає рядок, за нього треба вміти взятись. */
-      for(var k = 0; k < order.length; k++)
-        if(pointInInk(order[k], cx, cy, true)) return order[k];
-      for(var q = 0; q < order.length; q++)
-        if(order[q].text && pointInInk(order[q], cx, cy, false)) return order[q];
-      return null;
+           ДРУГИЙ — по межах, і ТІЛЬКИ для написів. У малюнка порожнє місце
+           всередині рамки належить тому, хто лежить під ним. А напис —
+           суцільна річ, і навіть над самою літерою, куди вже не дістає
+           рядок, за нього треба вміти взятись. */
+        if(pointInInk(l, cx, cy, true)) out.push(l);
+        else if(l.text && pointInInk(l, cx, cy, false)) out.push(l);
+      }
+      return out;
+    }
+    /* ПОВТОРНИЙ КЛІК У ТУ САМУ ТОЧКУ ЙДЕ ГЛИБШЕ.
+
+       Це заміна Ctrl+кліку з Figma: клавіатури на телефоні немає, а
+       дістатись нижнього шару треба. Клікнув удруге майже в те саме місце —
+       узявся наступний під ним; після найнижчого коло замикається й
+       починається згори. Зрушив палець далі, ніж на пів пальця, — це вже
+       новий клік, і він знову бере верхній.
+
+       Головний спосіб дістатись нижнього шару все одно список: на десятьох
+       шарах полотно перестає бути інструментом вибору. */
+    var HIT_SAME = 24;          // «та сама точка» в пікселях прев'ю
+    var lastHit = null;         // { x, y, id }
+    function layerAtPoint(cx, cy){
+      var hits = layerHitList(cx, cy);
+      if(!hits.length){ lastHit = null; return null; }
+      var same = lastHit && Math.abs(lastHit.x - cx) <= HIT_SAME &&
+                            Math.abs(lastHit.y - cy) <= HIT_SAME;
+      var pick = hits[0];
+      if(same){
+        var at = -1;
+        for(var i = 0; i < hits.length; i++) if(hits[i].id === lastHit.id){ at = i; break; }
+        if(at >= 0) pick = hits[(at + 1) % hits.length];
+      }
+      lastHit = { x: cx, y: cy, id: pick.id };
+      return pick;
     }
     function renderLogoLayers(){
       // Шар, який зараз правлять, НЕ перебудовуємо: заміна вузла збиває
@@ -2129,15 +2262,26 @@
       Array.prototype.slice.call(pmLogoLayers.children).forEach(function(c){
         if(keepId == null || Number(c.dataset.layerId) !== keepId) c.remove();
       });
-      currentLayers().forEach(function(layer){
+      /* ПОРЯДОК — ЦЕ МІСЦЕ В СПИСКУ, І БІЛЬШЕ НІЩО.
+
+         Доти кожен шар стояв із z-index 1, а обраний — з 10. Тобто накласти
+         один на одного було справді нічим, а «стрибок» — це обраний
+         вискакував наверх і падав назад, щойно виділення знімали.
+
+         Тепер перший у списку — найнижчий, останній — найвищий, і виділення
+         на це не впливає взагалі: обраний дістає рамку й маркери, а не
+         нове місце. Те, що видно на макеті, і є те, що буде на виробі. */
+      currentLayers().forEach(function(layer, li){
+        if(layer.hidden) return;        // сховане не малюється — див. inkLayers
         var active = pm.activeLogoId === layer.id;
+        var zi = li + 1;
         var rot = layer.rot || 0;
         var box = layerBox(layer), bw = box.w, bh = box.h;
         if(keepId != null && layer.id === keepId){
           var ex = pmLogoLayers.querySelector('[data-layer-id="'+layer.id+'"]');
           if(ex){
             ex.style.width = bw + 'px'; ex.style.height = bh + 'px';
-            ex.style.zIndex = active ? 10 : 1;
+            ex.style.zIndex = zi;
             ex.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
             var tx = ex.querySelector('.pm-dl-text');
             if(tx && layer.text){
@@ -2154,7 +2298,7 @@
         el.dataset.layerId = layer.id;
         el.style.width = bw + 'px';
         el.style.height = bh + 'px';
-        el.style.zIndex = active ? 10 : 1;
+        el.style.zIndex = zi;
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
         var inner = layer.text
           /* contenteditable="true", а не plaintext-only: у звичайному тексті
@@ -2743,7 +2887,7 @@
       spots.forEach(function(sp, si){
         from.forEach(function(src, i){
           var l = JSON.parse(JSON.stringify(src));
-          l.id = Date.now() + si * 100 + i;
+          l.id = newLayerId();
           /* Перший знак сідає точно в точку, решта — на своїй відстані від
              нього, зменшеній у стільки ж разів, у скільки зменшився сам
              знак. Інакше на дрібному фото вони роз'їдуться. */
@@ -3531,6 +3675,98 @@
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
     // Панель форматування: назад · шрифт · B · I · колір. Без рамки й підписів —
     // що роблять ці кнопки, видно з них самих, а висота на першому екрані дорога.
+/* ══════════ СПИСОК ШАРІВ ═══════════════════════════════════════════════
+   Доти його не було ніде. Побачити, скільки шарів, який під яким, вибрати
+   той, що повністю накритий сусідом, — було неможливо в принципі: єдиний
+   спосіб дістатись шару полягав у тому, щоб влучити в нього пальцем.
+
+   Так це й вирішено скрізь — у Figma, Canva, Printful, Printify. Список
+   там не зручність, а головний інструмент: коли шарів більше трьох,
+   полотно перестає годитись для вибору.
+
+   Порядок у списку — зверху найвищий шар, як у всіх редакторах. Тобто
+   список іде задом наперед відносно масиву, де останній намальований
+   найвище.
+
+   Список не зникає ні в режимі напису, ні при виділенні: він завжди на
+   своєму місці, інакше ним не можна користуватись саме тоді, коли він
+   найпотрібніший. */
+    /* Назва рядка — те, за чим людина впізнає свій шар. Для напису це самі
+       літери, для файлу — його імʼя. Малюнок, вбудований прямо в адресу
+       (data:), імені не має взагалі: показувати замість нього початок
+       кодування гірше, ніж чесне «Зображення» з номером. */
+    function layerRowName(l, n){
+      if(l && l.text) return String((l.text.t || '')).replace(/\s+/g, ' ').trim().slice(0, 28) || 'Напис';
+      var u = String((l && (l.origUrl || l.url)) || '');
+      if(!u || /^data:|^blob:/.test(u)) return 'Зображення' + (n ? ' ' + n : '');
+      var nm = u.split('?')[0].split('/').pop() || '';
+      try{ nm = decodeURIComponent(nm); }catch(e){}
+      nm = nm.replace(/\.[a-z0-9]+$/i, '');
+      /* Хмара дописує до імені випадковий хвіст — людині він нічого не каже. */
+      nm = nm.replace(/[_-][a-z0-9]{6,}$/i, '');
+      return nm.slice(0, 28) || ('Зображення' + (n ? ' ' + n : ''));
+    }
+    var LL_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>' +
+      '<circle cx="12" cy="12" r="3"/></svg>';
+    var LL_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/>' +
+      '<path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.3 4.1"/>' +
+      '<path d="M6.5 6.6C3.8 8.2 2 12 2 12s3.5 7 10 7a10 10 0 0 0 3.6-.7"/></svg>';
+    var LL_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/>' +
+      '<path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+    var LL_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/>' +
+      '<path d="M8 10V7a4 4 0 0 1 7.4-2"/></svg>';
+    var LL_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
+    var LL_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>';
+    var LL_DEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/>' +
+      '<path d="M6 7l1 13h10l1-13"/></svg>';
+    function layerListHtml(){
+      var list = currentLayers();
+      if(!list.length) return '';
+      var rows = '';
+      /* Зверху найвищий — тому списком ідемо з кінця масиву. */
+      for(var i = list.length - 1; i >= 0; i--){
+        var l = list[i];
+        var on = pm.activeLogoId === l.id;
+        var pic = l.url || l.cleanUrl || l.origUrl || '';
+        rows += '<div class="pm-ll-row' + (on ? ' is-on' : '') + (l.hidden ? ' is-off' : '') +
+            '" data-ll="' + l.id + '">' +
+          '<span class="pm-ll-pic"' + (pic ? ' style="background-image:url(&quot;' +
+            pic.replace(/"/g, '%22') + '&quot;)"' : '') + '></span>' +
+          '<span class="pm-ll-nm">' + escAttr(layerRowName(l, i + 1)) + '</span>' +
+          '<span class="pm-ll-acts">' +
+            '<button class="pm-ll-b" data-ll-up="' + l.id + '"' + (i === list.length - 1 ? ' disabled' : '') +
+              ' aria-label="Підняти" title="Підняти на щабель">' + LL_UP + '</button>' +
+            '<button class="pm-ll-b" data-ll-down="' + l.id + '"' + (i === 0 ? ' disabled' : '') +
+              ' aria-label="Опустити" title="Опустити на щабель">' + LL_DOWN + '</button>' +
+            '<button class="pm-ll-b' + (l.hidden ? ' on' : '') + '" data-ll-eye="' + l.id + '" ' +
+              'aria-label="Показати чи сховати" title="' + (l.hidden
+                ? 'Схований: не рахується в ціні й не їде у виробництво'
+                : 'Сховати — подивитись, що під ним') + '">' +
+              (l.hidden ? LL_EYE_OFF : LL_EYE) + '</button>' +
+            '<button class="pm-ll-b' + (l.locked ? ' on' : '') + '" data-ll-lock="' + l.id + '" ' +
+              'aria-label="Замкнути" title="' + (l.locked
+                ? 'Замкнений: кліки проходять крізь нього'
+                : 'Замкнути — щоб не хапався, поки працюєте з іншим') + '">' +
+              (l.locked ? LL_LOCK : LL_OPEN) + '</button>' +
+            '<button class="pm-ll-b pm-ll-del" data-ll-del="' + l.id + '" ' +
+              'aria-label="Прибрати" title="Прибрати шар">' + LL_DEL + '</button>' +
+          '</span></div>';
+      }
+      var hid = list.filter(function(l){ return l.hidden; }).length;
+      return '<div class="pm-ll">' +
+        '<div class="pm-ll-h"><b>Шари</b><span>' + list.length + ' на цій стороні · зверху той, що попереду</span></div>' +
+        rows +
+        (hid ? '<div class="pm-ll-note">Схованих: ' + hid +
+               ' — вони не рахуються в ціні й не поїдуть у виробництво.</div>' : '') +
+        '</div>';
+    }
     function textStripHtml(){
       var sp = textSpec();
       if(pm.textScreen === 'colors') return textColorsHtml(sp);
@@ -3538,8 +3774,10 @@
       var msg = textWarnHtml();
       var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
         '<div class="pm-ts">' +
-        '<button class="pm-ts-back" id="pmTsBack" aria-label="Назад до дизайну">' + TS_BACK +
-          '<b>Назад</b></button>' +
+        /* Смуга більше не окремий режим, тож «назад» іти нікуди: кнопка
+           просто знімає виділення з напису. */
+        '<button class="pm-ts-back" id="pmTsBack" aria-label="Зняти виділення з напису">' + TS_BACK +
+          '<b>Готово</b></button>' +
         '<button class="pm-ts-sel" data-tsdrop="font" ' +
           'style="font-family:' + f.css.replace('__SF__', 'inherit') + '">' +
           '<span>' + f.name + '</span>' + TS_CHEV + '</button>' +
@@ -3594,18 +3832,52 @@
     }
     // Екран палітри: зразки лишились у панелі, тут — лише точний підбір.
     // Назви кольору немає: вона займала рядок, а що обирають — і так видно.
+/* ══════════ КОЛІР ОБИРАЮТЬ, А НЕ НАМАЦУЮТЬ ══════════════════════════════
+   Доти тут стояв квадрат «насиченість × яскравість» і повзунок відтінку —
+   той самий, що в графічних редакторах. На миші він терпимий, пальцем —
+   ні: щоб дістати потрібний тон, у нього треба ЦІЛИТИСЬ, а палець закриває
+   рівно те місце, куди цілиться. Ще й результат щоразу трохи інший, і
+   повторити його наступного разу неможливо.
+
+   А кольорів у роботі небагато. Нитка й плівка бувають конкретні, і
+   потрібно не «якийсь синій», а «той самий синій, що й минулого разу».
+   Тому сітка: рядок — колір, у рядку — його відтінки від світлого до
+   темного. Натиснув — і готово, без прицілювання й без «а який це був».
+
+   Точний відтінок нікуди не дівся: поле з піпеткою стоїть зверху для тих
+   рідких випадків, коли в клієнта фірмовий колір із точним кодом. */
+    var COLOR_ROWS = [
+      { t:'Нейтральні', c:['#ffffff', '#f2f2f2', '#c9ccd1', '#8e8e93', '#4a4a4a', '#111111'] },
+      { t:'Червоні',    c:['#ffd9d9', '#f08080', '#e02b2b', '#c8102e', '#8c1220', '#5a0d16'] },
+      { t:'Помаранч і жовтий', c:['#ffe9c7', '#ffc46b', '#f26b21', '#ffd400', '#c9a227', '#8a6d10'] },
+      { t:'Зелені',     c:['#dff3e3', '#7cb342', '#2e9e4f', '#1b7a43', '#14532d', '#0c3320'] },
+      { t:'Бірюза й блакить', c:['#d6f3f1', '#7fd1c1', '#00a3ad', '#1e88e5', '#0b3d91', '#07245a'] },
+      { t:'Фіолет і рожевий', c:['#efe4fb', '#b490e8', '#6a3da8', '#f4b9cd', '#e75480', '#9c2c50'] },
+      { t:'Бежеві й коричневі', c:['#f3e8db', '#d8c3a5', '#b08968', '#8a5a33', '#6b4423', '#402814'] }
+    ];
     function textColorsHtml(sp){
-      var cur = pm.pickColor || sp.color || TEXT_COLORS[0];
-      var hsv = hexToHsv(cur);
-      return '<div class="pm-scr">' +
+      var cur = String(pm.pickColor || sp.color || TEXT_COLORS[0]).toLowerCase();
+      var rows = COLOR_ROWS.map(function(r){
+        return '<div class="pm-cg-row"><span class="pm-cg-t">' + r.t + '</span>' +
+          '<span class="pm-cg-sw">' + r.c.map(function(c){
+            return '<button class="pm-cg-b' + (c.toLowerCase() === cur ? ' on' : '') +
+              '" data-tc="' + c + '" style="background:' + c + '" ' +
+              'title="' + colorName(c) + '" aria-label="' + colorName(c) + '"></button>';
+          }).join('') + '</span></div>';
+      }).join('');
+      /* `pm-scr--flow`: цей екран більше не накриває панель, а стоїть у ній
+         звичайним блоком — тому й розтягуватись на всю висоту йому не
+         можна, інакше він лягає поверх плиток. */
+      return '<div class="pm-scr pm-scr--flow">' +
         '<button class="pm-scr-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '<b>Назад</b></button>' +
         '<div class="pm-scr-body">' +
-          '<div class="pm-ts-sv" id="pmTsSv" style="background:' + svBg(hsv.h) + '">' +
-            '<i class="pm-ts-dot" style="left:' + (hsv.s*100).toFixed(1) + '%;top:' +
-              ((1-hsv.v)*100).toFixed(1) + '%;background:' + cur + '"></i>' +
+          '<div class="pm-cg-now">' +
+            '<span class="pm-cg-dot" style="background:' + cur + '"></span>' +
+            '<b>' + colorName(cur) + '</b>' +
+            '<label class="pm-cg-exact">Точний відтінок' +
+              '<input type="color" id="pmTsExact" value="' + cur + '" aria-label="Точний відтінок"></label>' +
           '</div>' +
-          '<input type="range" class="pm-ts-sl" id="pmTsH" min="0" max="360" value="' + Math.round(hsv.h) + '" ' +
-            'style="background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" aria-label="Відтінок">' +
+          '<div class="pm-cg">' + rows + '</div>' +
         '</div></div>';
     }
     // Список гарнітур живе поза панеллю, у body: інакше його ріже прокрутка
@@ -3715,9 +3987,32 @@
       }
       var hasClean = !!cleanUrl;
       var url = hasClean?cleanUrl:origUrl;
-      var off = pm.logos[pm.side].length * 24;   // невеликий зсув, щоб кожне нове лого було видно окремо
+      /* НОВИЙ ШАР ЛЯГАЄ В ЦЕНТР ЗОНИ, А НЕ СХОДАМИ ВІД НЕЇ.
+
+         Доти зсув рахувався як «24 × скільки вже є» — і ніколи не
+         скидався. Три написи розходились на 72 пікселі по діагоналі,
+         десять картинок — на 216, а прибраний середній зсуву решти не
+         повертав. Виглядало це як купа, що з'їжджає з виробу.
+
+         Зсув потрібен лише для того, щоб новий шар не сховався РІВНО за
+         попереднім. Тож зсуваємо не від кількості, а від зайнятості: поки
+         точка зайнята, відходимо на крок і пробуємо знову. Три кроки —
+         межа: далі новий шар просто лягає в центр, бо загубити його в
+         кутку гірше, ніж покласти поверх. */
       var anc = printAreaAnchorPx() || {x:0, y:0};   // нове лого лягає в центр зони нанесення
-      var layer = {id:Date.now(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
+      var off = (function(){
+        var here = pm.logos[pm.side] || [], STEP = 22;
+        for(var k = 0; k <= 3; k++){
+          var d = k * STEP, busy = false;
+          for(var i = 0; i < here.length; i++){
+            if(Math.abs((+here[i].x || 0) - (anc.x + d)) < STEP / 2 &&
+               Math.abs((+here[i].y || 0) - (anc.y + d)) < STEP / 2){ busy = true; break; }
+          }
+          if(!busy) return d;
+        }
+        return 0;
+      })();
+      var layer = {id:newLayerId(), origUrl:origUrl, cleanUrl:cleanUrl||origUrl,
         url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1,
         // Ознака «це напис» лишається на шарі: за нею і редагування, і окремі ціни
         text: textSpec ? JSON.parse(JSON.stringify(textSpec)) : null};
@@ -3765,7 +4060,7 @@
       var side = sideOfLayer(src.id) || pm.side;
       var list = pm.logos[side] || (pm.logos[side] = []);
       var l = JSON.parse(JSON.stringify(src));
-      l.id = Date.now();
+      l.id = newLayerId();
       /* Пікселі шару лежать у розмірі того превʼю, де його ставили, а
          вікно відтоді могло змінитись. Переводимо частки назад у пікселі
          ПЕРЕД зсувом — інакше копія лягла б за старими координатами. */
@@ -4083,11 +4378,19 @@
       var html = '';
       if(pm.tab === 'photo'){
         var layers = currentLayers();
-        if(textMode()){
-          // Режим напису: замість плиток — смуга оформлення. Поле набору
-          // лишається на макеті, тут лише те, чим напис оформлюють.
-          html = textStripHtml();
-        } else {
+        {
+          /* ОФОРМЛЕННЯ НАПИСУ ЖИВЕ В ГОЛОВНІЙ ПАНЕЛІ, А НЕ ЗАМІСТЬ НЕЇ.
+
+             Доти смуга оформлення ПІДМІНЯЛА всю панель: щойно обраний шар
+             ставав написом, зникали і список шарів, і плитки, і кнопка
+             «додати». А щойно виділення знімалось — зникала сама смуга.
+             Тому вона й «то є, то пропадає»: вона не ховалась, вона просто
+             жила окремим режимом, у який треба було потрапити.
+
+             Тепер панель одна й та сама завжди: список шарів, плитки,
+             інструменти шару — а оформлення напису стає ще одним блоком
+             унизу, поруч зі «Звести логотип в один колір». Обрали напис —
+             блок є. Обрали картинку — його немає, бо оформлювати нічого. */
           // Показуємо лого з УСІХ сторін одразу. Інакше клієнт бачить одну картинку
           // і не розуміє, за що саме ціна: перемикати сторони, щоб порахувати
           // нанесення, він не буде. Сторони розділяє риска, підписів немає —
@@ -4107,7 +4410,8 @@
              файл для кожного виробу окремо було найдовшою частиною збирання
              пропозиції. Самі ми лого нікуди не ставимо: для футболки це груди,
              для кепки центр, для худі спина — за менеджера не вгадаєш. */
-          html = '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">' +
+          html = layerListHtml() +
+            '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">' +
             orderLogosHtml();
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
@@ -4211,6 +4515,8 @@
               '</div>';
             }
           }
+          /* Оформлення напису — останнім блоком, під інструментами шару. */
+          if(activeTextLayer()) html += textStripHtml();
         }
         // Текст — той самий логотип, лише намальований нами. Тому йде тим самим
         // шляхом: стає шаром, тягнеться, масштабується й рахується за площею.
@@ -4221,9 +4527,10 @@
         // плитками він читався б як «додай ще щось», а це інша дія. Заголовок
         // відділяє його від дизайну, розмір друку йде в той самий рядок справа,
         // щоб не займати окремий.
-        // У режимі напису спосіб нанесення не показуємо: він стосується всього
-        // виробу й обирається на основному екрані, а тут лише оформлюють текст.
-        if(logoCount() > 0 && !textMode()){
+        // Спосіб нанесення стосується всього виробу, тож стоїть на місці
+        // завжди — окремого «режиму напису», у якому його ховали, більше
+        // немає.
+        if(logoCount() > 0){
           html += '<div class="pm-way-head"><span class="pm-lbl">Нанесення</span>' +
             '<button class="pm-way-info" id="pmWayInfo" aria-label="Чим відрізняються способи">ⓘ</button>' +
             '<span class="pm-way-size" id="pmPrintSize"></span></div>' +
@@ -4378,6 +4685,51 @@
       var addMore = document.getElementById('pmPhotoAddMore');
       if(addMore) addMore.addEventListener('click', function(){ window.__pmPickLogoSource(); });
       // Логотип замовлення — кладемо як звичайне лого, на поточну сторону
+      /* ── Список шарів ── */
+      pmTabPanel.querySelectorAll('[data-ll]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          if(e.target.closest('button')) return;      // дії мають свої обробники
+          var id = Number(el.dataset.ll);
+          var l = findLayerAnySide(id);
+          if(!l) return;
+          /* Зі списку беруться навіть замкнені й сховані: список на те й
+             існує, щоб дістатись того, до чого на макеті не дотягнутись. */
+          if(l.text){ openTextBar(l); return; }
+          stopTextEdit();
+          pm.activeLogoId = id;
+          renderLogoLayers(); renderTabPanel();
+        });
+      });
+      var llDo = function(attr, how){
+        pmTabPanel.querySelectorAll('[' + attr + ']').forEach(function(el){
+          el.addEventListener('click', function(e){
+            e.stopPropagation();
+            var id = Number(el.getAttribute(attr));
+            if(how(id) === false) return;
+            renderLogoLayers(); renderTabPanel(); updatePriceBar();
+          });
+        });
+      };
+      llDo('data-ll-up',   function(id){ return layerMove(id, 'up'); });
+      llDo('data-ll-down', function(id){ return layerMove(id, 'down'); });
+      llDo('data-ll-eye',  function(id){
+        var l = findLayerAnySide(id); if(!l) return false;
+        l.hidden = !l.hidden;
+        /* Сховали той, що зараз обраний, — виділення знімаємо: рамка на
+           порожньому місці бентежить більше, ніж її відсутність. */
+        if(l.hidden && pm.activeLogoId === id){ stopTextEdit(); pm.activeLogoId = null; }
+      });
+      llDo('data-ll-lock', function(id){
+        var l = findLayerAnySide(id); if(!l) return false;
+        l.locked = !l.locked;
+        if(l.locked && pm.activeLogoId === id){ stopTextEdit(); pm.activeLogoId = null; }
+      });
+      pmTabPanel.querySelectorAll('[data-ll-del]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.stopPropagation();
+          openDeleteConfirm(Number(el.dataset.llDel));
+        });
+      });
       pmTabPanel.querySelectorAll('[data-order-logo]').forEach(function(el){
         var u = orderLogos()[Number(el.dataset.orderLogo)];
         if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
@@ -4462,13 +4814,21 @@
       if(tOpen) tOpen.addEventListener('click', function(){ openTextBar(null); });
       var tsBack = document.getElementById('pmTsBack');
       if(tsBack) tsBack.addEventListener('click', function(){ closeTextBar(); });
-      pmTabPanel.querySelectorAll('.pm-tsc [data-tc]').forEach(function(el){
+      /* Натиснув зразок — і готово. Панель не перебудовуємо: перемальовуємо
+         лише позначку на самому зразку, щоб сітка не стрибала під пальцем. */
+      pmTabPanel.querySelectorAll('[data-tc]').forEach(function(el){
         el.addEventListener('click', function(){
           pm.pickColor = el.dataset.tc;
           textApply({ color: el.dataset.tc });
-          pmTabPanel.querySelectorAll('.pm-tsc [data-tc]').forEach(function(b){
+          pmTabPanel.querySelectorAll('[data-tc]').forEach(function(b){
             b.classList.toggle('on', b === el);
           });
+          var dot = pmTabPanel.querySelector('.pm-cg-dot');
+          if(dot) dot.style.background = el.dataset.tc;
+          var nm = pmTabPanel.querySelector('.pm-cg-now b');
+          if(nm) nm.textContent = colorName(el.dataset.tc);
+          var ex = document.getElementById('pmTsExact');
+          if(ex) ex.value = el.dataset.tc;
         });
       });
       var tsBold = document.getElementById('pmTsBold');
@@ -4523,17 +4883,17 @@
       // Один рівень інтерфейсу за раз: екран кольору заміняє панель цілком
       pmTabPanel.querySelectorAll('[data-tsnav]').forEach(function(el){
         el.addEventListener('click', function(){
-          tsLock = 0; pm.textScreen = el.dataset.tsnav === 'main' ? null : el.dataset.tsnav;
+          tsLock = 0;
+          pm.textScreen = el.dataset.tsnav === 'main' ? null : el.dataset.tsnav;
+          if(pm.textScreen === 'colors'){
+            /* Фокус із напису однаково злітає — знімаємо режим правки чесно,
+               інакше повернення в набір потім не спрацьовувало. */
+            stopTextEdit();
+            pm.textDrop = null;
+            pm.pickColor = textSpec().color;
+          }
           renderTabPanel();
         });
-      });
-      var tsCol = document.getElementById('pmTsColor');
-      if(tsCol) tsCol.addEventListener('click', function(){
-        // Фокус із напису однаково злітає — знімаємо режим правки чесно,
-        // інакше повернення в набір потім не спрацьовувало.
-        stopTextEdit();
-        pm.textDrop = null; pm.textScreen = 'colors';
-        pm.pickColor = textSpec().color; renderTabPanel();
       });
       pmTabPanel.querySelectorAll('[data-tsdrop]').forEach(function(el){
         el.addEventListener('click', function(){
@@ -4541,50 +4901,18 @@
           renderTabPanel();
         });
       });
+      /* Точний відтінок — для рідкого випадку, коли в клієнта фірмовий
+         колір із кодом. Решту обирають зі сітки. */
       (function(){
-        var sv = document.getElementById('pmTsSv');
-        if(!sv) return;
-        var H = document.getElementById('pmTsH');
-        var dot = sv.querySelector('.pm-ts-dot');
-        var cur = hexToHsv(pm.pickColor || textSpec().color || TEXT_COLORS[0]);
-        var st = { h: +H.value, s: cur.s, v: cur.v };
-        // Поки водять пальцем, панель перебудовувати не можна: вузол палітри
-        // замінився б новим, а жест лишився б на старому — і колір зривався в чорний.
-        tsLock = 1;
-        function paint(){
-          var hex = hsvToHex(st.h, st.s, st.v);
-          pm.pickColor = hex;
-          sv.style.background = svBg(st.h);
-          dot.style.left = (st.s*100).toFixed(1) + '%';
-          dot.style.top = ((1-st.v)*100).toFixed(1) + '%';
-          dot.style.background = hex;
-          textApply({ color: hex });      // видно одразу на виробі
-        }
-        function pick(e){
-          var r = sv.getBoundingClientRect();
-          if(!r.width || !r.height) return;
-          var t = (e.touches && e.touches[0]) || e;
-          st.s = Math.min(1, Math.max(0, (t.clientX - r.left) / r.width));
-          st.v = 1 - Math.min(1, Math.max(0, (t.clientY - r.top) / r.height));
-          paint();
-        }
-        function move(e){ if(e.cancelable) e.preventDefault(); pick(e); }
-        function up(){
-          window.removeEventListener('mousemove', move);
-          window.removeEventListener('touchmove', move);
-          window.removeEventListener('mouseup', up);
-          window.removeEventListener('touchend', up);
-        }
-        function down(e){
-          e.preventDefault(); pick(e);
-          window.addEventListener('mousemove', move);
-          window.addEventListener('touchmove', move, {passive:false});
-          window.addEventListener('mouseup', up);
-          window.addEventListener('touchend', up);
-        }
-        sv.addEventListener('mousedown', down);
-        sv.addEventListener('touchstart', down, {passive:false});
-        H.addEventListener('input', function(){ st.h = +H.value; paint(); });
+        var ex = document.getElementById('pmTsExact');
+        if(!ex) return;
+        ex.addEventListener('input', function(){
+          pm.pickColor = ex.value;
+          textApply({ color: ex.value });
+        });
+        /* Перемальовуємо лише коли палець уже відпустили: інакше сітка
+           перебудовується під час перетягування й губить жест. */
+        ex.addEventListener('change', function(){ renderTabPanel(); });
       })();
       renderFontList();
 
@@ -5002,7 +5330,7 @@
       /* Знижку показуємо як РІЗНИЦЮ, а не рахуємо окремою формулою: так
          стовпчик сходиться з підсумком до гривні при будь-яких округленнях. */
       var discountAmt = Math.round(base + appSell + pFee + oFeePer - uSell);
-      var areaMm2 = 0; printViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
+      var areaMm2 = 0; printViews().forEach(function(s){ inkLayers(s).forEach(function(l){ areaMm2 += layerInkMm2(l); }); });
       var actL = currentLayers().find(function(x){return x.id===pm.activeLogoId;}) || currentLayers()[0];
       var dims = actL ? layerOpaqueDimsMm(actL) : null;
       var money = function(x){ return Math.round(x) + ' грн'; };
@@ -6525,7 +6853,7 @@
       return new Promise(function(resolve){
         var g = getGarment(), c = getColor();
         var snapSide = side;
-        var layers = bare ? [] : pm.logos[snapSide];
+        var layers = bare ? [] : inkLayers(snapSide);   // схований шар у знімок не потрапляє
         var C = sizeOverride || 500;
         /* Вітрина знімається тим самим кодом, що й решта сторін, — інакше
            знімок і сцена розійшлися б, а саме через це логотип у картці й
@@ -6758,7 +7086,7 @@
            зникне на першому ж перерахунку. */
         designKindFix: (function(){
           var map = {};
-          printViews().forEach(function(side){ (pm.logos[side] || []).forEach(function(l){
+          printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
             if(l && (l.kindFix === 'txt' || l.kindFix === 'img' || l.kindFix === 'off') && l.fp)
               map[String(l.fp)] = l.kindFix; }); });
           return Object.keys(map).length ? map : null;
@@ -6768,7 +7096,7 @@
         calc: (function(){
           var m = methodCfgNew();
           var ap = applicationParts();
-          var firstLogo = (function(){ var l = null; printViews().forEach(function(s){ if(!l && (pm.logos[s]||[]).length) l = pm.logos[s][0]; }); return l; })();
+          var firstLogo = (function(){ var l = null; printViews().forEach(function(s){ if(!l && inkLayers(s).length) l = pm.logos[s][0]; }); return l; })();
           return {
             base: basePriceNew(),
             coefPart: ap.coefPart,                 // вишивка — під знижкою за тираж
@@ -6776,7 +7104,7 @@
             orderFee: methodOrderFee(),            // разова, ділиться на тираж
             method: (m && m.mode === 'grid') ? 'dtf' : 'embro',
             dtfCols: (m && m.mode === 'grid' && firstLogo)
-              ? (function(){ var cols = []; printViews().forEach(function(s){ (pm.logos[s]||[]).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); }); return cols; })()
+              ? (function(){ var cols = []; printViews().forEach(function(s){ inkLayers(s).forEach(function(l){ cols.push(dtfBandCol(m, l)); }); }); return cols; })()
               : []
           };
         })(),
@@ -6793,7 +7121,7 @@
       // масштабу зони вже немає. Менеджеру в Канбані потрібні саме міліметри.
       item.prints = [];
       printViews().forEach(function(side){
-        (pm.logos[side] || []).forEach(function(l){
+        inkLayers(side).forEach(function(l){
           /* Той самий габарит, що показує прорахунок і за яким рахується
              ціна, — по непрозорому вмісту. Доти сюди йшов габарит усього
              прямокутника картинки, і в картці замовлення стояв один розмір,
@@ -7614,7 +7942,7 @@
         var boxW = o.w * rw * wrapW;
         var scale = Math.max(0.15, Math.min(3, (o.ar >= 1 ? boxW : boxW / o.ar) / 120));
         return {
-          id: Date.now() + i,
+          id: newLayerId(),
           origUrl: src.origUrl || o.url, cleanUrl: src.cleanUrl || o.url, url: o.url,
           x: Math.round(x), y: Math.round(y), scale: scale, rot: o.rot || 0,
           removeBg: !!src.removeBg, ar: o.ar || 1,
@@ -7825,6 +8153,7 @@
       pm.printId = cfg.printId;
       pm.qty = Object.assign({}, cfg.qty);
       pm.logos = JSON.parse(JSON.stringify(cfg.logos));
+      seedLayerIds();   // номери відкритої позиції — початок відліку для нових
       openProductModal(cfg.garmentId);
       // Відкриття картки скидає тираж (новий виріб рахує менеджер сам) —
       // але позицію ми не відкриваємо, а повертаємо, і її тираж уже відомий
