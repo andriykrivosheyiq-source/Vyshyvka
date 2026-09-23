@@ -883,7 +883,11 @@
     window.__lqLayers = {
       list: function(side){
         return (pm.logos[side || pm.side] || []).map(function(l, i){
-          return { id:l.id, i:i, text:!!l.text, locked:!!l.locked, hidden:!!l.hidden };
+          /* `ar` — пропорція самого малюнка. За нею видно, чи справді напис
+             став ширшим, а не лише посунувся повзунок: сам вузол на екрані
+             має сталу рамку, і його ширина нічого не доводить. */
+          return { id:l.id, i:i, text:!!l.text, locked:!!l.locked, hidden:!!l.hidden,
+                   ar:+(l.ar || 0).toFixed(4) };
         });
       },
       active: function(id){ if(id !== undefined) pm.activeLogoId = id; return pm.activeLogoId; },
@@ -905,6 +909,14 @@
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       },
       draw: function(){ renderLogoLayers(); renderTabPanel(); },
+      text: function(id, t){
+        var l = findLayerAnySide(id);
+        if(l && l.text) updateTextLayer(l, { t: String(t), runs: null });
+        return !!l;
+      },
+      /* Вийти з напису — те саме, що клікнути повз нього. */
+      leave: function(){ stopTextEdit(); var g = dropPristineText();
+        renderLogoLayers(); renderTabPanel(); if(g) updatePriceBar(); return g; },
       dup: function(id){ var l = findLayerAnySide(id); if(l) dupLayer(l); }
     };
     window.__lqLayerInfo = function(){
@@ -1965,12 +1977,13 @@
       var k = bh / pngH;
       el.style.fontFamily = textFontCss(sp.font);
       el.style.fontSize   = (TXT_FS * k).toFixed(2) + 'px';
-      el.style.lineHeight = TXT_LH;
+      el.style.lineHeight = textLH(sp);
       el.style.fontWeight = sp.bold ? '700' : '400';
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
       el.style.padding    = (TXT_PAD * k).toFixed(2) + 'px';
       el.style.textAlign  = textAlign(sp);
+      el.style.letterSpacing = (textLS(sp) * TXT_FS * k).toFixed(2) + 'px';
       el.style.webkitTextStroke = '';
       // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
       // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
@@ -2979,7 +2992,10 @@
             + '|' + ((spec && spec.font) || '')
             + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '')
             + '|' + runsKey
-            + '|' + ((spec && spec.align) || 'center');
+            + '|' + ((spec && spec.align) || 'center')
+            /* Інтервал і розрідження — теж інша робота на верстаті: стібки
+               лягають інакше, і макет під них готують окремо. */
+            + '|' + textLH(spec).toFixed(2) + '|' + textLS(spec).toFixed(3);
       var out = '';
       for(var i = 0; i < 64; i++){
         var h = (2166136261 ^ i) >>> 0;
@@ -3167,6 +3183,40 @@
    зробила б картинку в десятки тисяч пікселів заввишки. Дванадцять — це
    вчетверо більше за найдовший напис, який колись просили. */
     var TXT_FS = 200, TXT_PAD = 28, TXT_LH = 1.18, TXT_MAX_LINES = 12;
+/* ══════════ ІНТЕРВАЛ І РОЗРІДЖЕННЯ ══════════════════════════════════════
+   Це властивості ВСЬОГО напису, а не окремого шматка: рядок не може стояти
+   щільніше наполовину, як і не може бути вирівняний ліворуч наполовину.
+   Тому вони живуть поруч із вирівнюванням, а не в шматках.
+
+   Міжрядковий потрібен постійно: у два рядки напис лягає то надто тісно,
+   то з дірою — залежно від гарнітури. Розрідження потрібне рідше, але
+   рівно там, де без нього не обійтись: короткі слова великими літерами
+   («STVORY») без нього виглядають злиплими, і саме так їх найчастіше й
+   вишивають.
+
+   Межі свідомо вузькі. Міжрядковий нижче 0.8 злипає рядки в кашу, вище
+   2.0 розриває напис на окремі слова; розрідження за 0.4 em перетворює
+   слово на набір літер. Дати повзунок «від нуля до нескінченності»
+   означало б дати зіпсувати макет одним рухом. */
+    var TXT_LH_MIN = 0.8, TXT_LH_MAX = 2.0, TXT_LH_STEP = 0.06;
+    var TXT_LS_MIN = -0.05, TXT_LS_MAX = 0.4, TXT_LS_STEP = 0.02;
+    function textLH(sp){
+      var v = +(sp && sp.lh);
+      if(!isFinite(v) || v <= 0) return TXT_LH;
+      return Math.max(TXT_LH_MIN, Math.min(TXT_LH_MAX, v));
+    }
+    function textLS(sp){
+      var v = +(sp && sp.ls);
+      if(!isFinite(v)) return 0;
+      return Math.max(TXT_LS_MIN, Math.min(TXT_LS_MAX, v));
+    }
+    /* Розрідження на полотні вміє не кожен браузер. Де вміє — міряємо й
+       малюємо ним; де ні — додаємо ширину самі, щоб рамка не розійшлася з
+       картинкою. */
+    var LS_NATIVE = (function(){
+      try{ return 'letterSpacing' in document.createElement('canvas').getContext('2d'); }
+      catch(e){ return false; }
+    })();
     function textLines(t){
       return String(t || '').split('\n').map(function(x){ return x.trim(); })
                .filter(Boolean).slice(0, TXT_MAX_LINES);
@@ -3243,16 +3293,25 @@
         });
       });
       var out = [], maxW = 0, totalH = 0;
+      var lsEm = textLS(sp);
       lines.forEach(function(segs){
         if(!segs.length) return;                     // порожні рядки не малюємо
         var w = 0, fs = 0;
         segs.forEach(function(g){
+          var gfs = TXT_FS * (g.st.size || 1);
+          var lsPx = lsEm * gfs;
           mc.font = runFontCss(g.st);
+          if(LS_NATIVE) mc.letterSpacing = lsPx.toFixed(2) + 'px';
           g.w = mc.measureText(g.t).width;
+          /* Без рідної підтримки ширину додаємо самі — рівно стільки, скільки
+             додасть відступ між літерами. */
+          if(!LS_NATIVE && lsPx) g.w += lsPx * g.t.length;
+          g.ls = lsPx;
           w += g.w;
-          fs = Math.max(fs, TXT_FS * g.st.size);
+          fs = Math.max(fs, gfs);
         });
-        var band = fs * TXT_LH;
+        if(LS_NATIVE) mc.letterSpacing = '0px';
+        var band = fs * textLH(sp);
         out.push({ segs: segs, w: w, fs: fs, band: band });
         maxW = Math.max(maxW, w);
         totalH += band;
@@ -3291,9 +3350,18 @@
         ln.segs.forEach(function(g){
           x.font = runFontCss(g.st);
           x.fillStyle = g.st.color;
-          x.fillText(g.t, cx, baseline);
-          cx += g.w;
+          if(LS_NATIVE) x.letterSpacing = (g.ls || 0).toFixed(2) + 'px';
+          if(LS_NATIVE || !g.ls){ x.fillText(g.t, cx, baseline); cx += g.w; }
+          else {
+            /* Браузер розрідження не вміє — розставляємо літери самі, щоб
+               картинка збіглася з поміряною шириною. */
+            for(var q = 0; q < g.t.length; q++){
+              x.fillText(g.t[q], cx, baseline);
+              cx += x.measureText(g.t[q]).width + g.ls;
+            }
+          }
         });
+        if(LS_NATIVE) x.letterSpacing = '0px';
         top += ln.band;
       });
       return c.toDataURL('image/png');
@@ -3567,8 +3635,13 @@
       e.preventDefault();
       e.stopPropagation();
       stopTextEdit();
+      /* Вийшли з напису, у якому нічого не лишилось, — прибираємо його тут
+         же. Невидимий шар із власною разовою підготовкою макета — найгірше,
+         що може лишитись на виробі. */
+      var gone = dropPristineText();
       renderLogoLayers();
       renderTabPanel();
+      if(gone) updatePriceBar();
     }, true);
     /* Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
        нікому не потрібен, а платити за нього тим більше.
@@ -3582,9 +3655,21 @@
 
        Зайвий раз запитати в самого напису, що в ньому написано, дешевше за
        будь-який прапорець: він не буває застарілим. */
+    /* НАПИС БЕЗ ЛІТЕР НЕ ІСНУЄ.
+
+       Два випадки, і обидва ведуть до одного: шар є, а напису немає.
+
+       Перший — заготовка «Ваш напис», якої не торкались: вийшли з неї, і
+       вона зникає сама, щоб зразок не поїхав у виробництво.
+
+       Другий — напис, із якого СТЕРЛИ все. Доти він лишався невидимим
+       шаром: на екрані нічого, а в прорахунку окремий дизайн зі своєю
+       разовою підготовкою макета. Знайти його було ніде — саме тому, що
+       його не видно. */
     function isPristineText(l){
-      return !!(l && l.text && l.textPristine &&
-                String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
+      if(!l || !l.text) return false;
+      if(!String(l.text.t || '').replace(/\s+/g, '')) return true;   // порожній
+      return !!(l.textPristine && String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
     }
     function dropPristineText(){
       var out = false;
@@ -3616,6 +3701,9 @@
       if(patch.color) pm.textColor = patch.color;
       var l = activeTextLayer();
       if(!l) return;
+      /* Інтервал і розрідження — властивості ВСЬОГО напису: рядок не може
+         стояти щільніше наполовину. Тому вони йдуть повз виділення. */
+      if(patch.lh != null || patch.ls != null){ updateTextLayer(l, patch); return; }
       /* Є виділення — правка лягає лише на нього. Саме заради цього тут і
          з'явилися шматки: «оце слово іншим кольором», а не весь напис. */
       var el = activeTextEl();
@@ -3669,6 +3757,12 @@
         right:  bars([14, 9, 14, 9], [6, 11, 6, 11])
       };
     })();
+    /* Значок «інтервали»: стрілка вниз між двома рядками — саме те, що
+       робить міжрядковий, і те, за чим його впізнають в інших редакторах. */
+    var TS_SPACE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 4h16"/><path d="M4 20h16"/><path d="M12 8v8"/>' +
+      '<path d="M9.5 10.5 12 8l2.5 2.5"/><path d="M9.5 13.5 12 16l2.5-2.5"/></svg>';
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -3770,6 +3864,7 @@
     function textStripHtml(){
       var sp = textSpec();
       if(pm.textScreen === 'colors') return textColorsHtml(sp);
+      if(pm.textScreen === 'space')  return textSpaceHtml(sp);
       var f = textFont(sp.font);
       var msg = textWarnHtml();
       var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
@@ -3804,6 +3899,10 @@
         /* Вирівнювання діє на весь напис, а не на виділене: рядок не може
            стояти ліворуч наполовину. Тому це три положення одного
            перемикача, а не три незалежні кнопки. */
+        /* Інтервали — окремим екраном, а не ще двома парами кнопок у смузі:
+           їх чіпають рідше, ніж кегль, а місця вони з'їли б стільки ж. */
+        '<button class="pm-ts-tog" data-tsnav="space" title="Міжрядковий інтервал і розрідження" ' +
+          'aria-label="Інтервали">' + TS_SPACE + '</button>' +
         '<span class="pm-ts-al">' +
           ['left','center','right'].map(function(a){
             return '<button class="pm-ts-tog pm-ts-alb' + (textAlign(sp) === a ? ' on' : '') +
@@ -3855,6 +3954,32 @@
       { t:'Фіолет і рожевий', c:['#efe4fb', '#b490e8', '#6a3da8', '#f4b9cd', '#e75480', '#9c2c50'] },
       { t:'Бежеві й коричневі', c:['#f3e8db', '#d8c3a5', '#b08968', '#8a5a33', '#6b4423', '#402814'] }
     ];
+/* Екран інтервалів. Два повзунки з числом поруч: тут дивляться на макет і
+   роблять «трохи тісніше» або «трохи вільніше», а не набирають 1.24. Число
+   лишається на видноті, щоб той самий напис можна було повторити. */
+    function textSpaceHtml(sp){
+      var lh = textLH(sp), ls = textLS(sp);
+      var row = function(key, lab, hint, val, mn, mx, st, show){
+        return '<div class="pm-sp-row">' +
+          '<div class="pm-sp-h"><b>' + lab + '</b><span>' + hint + '</span>' +
+            '<i class="pm-sp-v">' + show + '</i></div>' +
+          '<div class="pm-sp-line">' +
+            '<button class="pm-sp-b" data-sp="' + key + '" data-d="-1" aria-label="Менше">−</button>' +
+            '<input type="range" class="pm-sp-sl" data-spr="' + key + '" min="' + mn + '" max="' + mx +
+              '" step="' + st + '" value="' + val + '" aria-label="' + lab + '">' +
+            '<button class="pm-sp-b" data-sp="' + key + '" data-d="1" aria-label="Більше">+</button>' +
+          '</div></div>';
+      };
+      return '<div class="pm-scr pm-scr--flow">' +
+        '<button class="pm-scr-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '<b>Назад</b></button>' +
+        '<div class="pm-scr-body">' +
+          row('lh', 'Міжрядковий', 'відстань між рядками', lh.toFixed(2),
+              TXT_LH_MIN, TXT_LH_MAX, TXT_LH_STEP, lh.toFixed(2)) +
+          row('ls', 'Розрідження', 'відстань між літерами', ls.toFixed(2),
+              TXT_LS_MIN, TXT_LS_MAX, TXT_LS_STEP, (ls * 100).toFixed(0) + '%') +
+          '<button class="pm-sp-reset" data-sp-reset>Повернути звичайні</button>' +
+        '</div></div>';
+    }
     function textColorsHtml(sp){
       var cur = String(pm.pickColor || sp.color || TEXT_COLORS[0]).toLowerCase();
       var rows = COLOR_ROWS.map(function(r){
@@ -4181,7 +4306,13 @@
       /* Взялись за інший шар — попередній напис виходить із правки. Інакше
          він лишався редагованим назавжди: перенести його вже не виходило,
          бо будь-яке тягнення по ньому вважалось виділенням тексту. */
-      if(!editing && pm.textEdit != null){ stopTextEdit(); renderLogoLayers(); }
+      if(!editing && pm.textEdit != null){
+        stopTextEdit();
+        /* Попередній напис могли стерти дочиста — тоді він зникає разом із
+           виходом із нього, а не лишається невидимим шаром. */
+        if(dropPristineText()) updatePriceBar();
+        renderLogoLayers();
+      }
       if(!editing) e.preventDefault();
       var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;
@@ -4901,6 +5032,43 @@
           renderTabPanel();
         });
       });
+      /* Інтервали. Кнопки «−» і «+» для дрібного кроку, повзунок для
+         великого — одне не заміняє другого: пальцем зручніше тягнути,
+         мишею точніше клацати. */
+      (function(){
+        var LIM = { lh:[TXT_LH_MIN, TXT_LH_MAX, TXT_LH_STEP],
+                    ls:[TXT_LS_MIN, TXT_LS_MAX, TXT_LS_STEP] };
+        var cur = function(k){ return k === 'lh' ? textLH(textSpec()) : textLS(textSpec()); };
+        var put = function(k, v){
+          var L = LIM[k];
+          v = Math.max(L[0], Math.min(L[1], Math.round(v / L[2]) * L[2]));
+          var patch = {}; patch[k] = v;
+          textApply(patch);
+          renderTabPanel();
+        };
+        pmTabPanel.querySelectorAll('[data-sp]').forEach(function(el){
+          el.addEventListener('click', function(){
+            var k = el.dataset.sp;
+            put(k, cur(k) + (+el.dataset.d) * LIM[k][2]);
+          });
+        });
+        pmTabPanel.querySelectorAll('[data-spr]').forEach(function(el){
+          /* Поки тягнуть — міняємо напис, але панель не перебудовуємо:
+             інакше повзунок замінився б новим просто під пальцем. */
+          el.addEventListener('input', function(){
+            var patch = {}; patch[el.dataset.spr] = +el.value;
+            textApply(patch);
+            var v = el.closest('.pm-sp-row').querySelector('.pm-sp-v');
+            if(v) v.textContent = el.dataset.spr === 'lh'
+              ? (+el.value).toFixed(2) : Math.round(+el.value * 100) + '%';
+          });
+          el.addEventListener('change', function(){ renderTabPanel(); });
+        });
+        var rst = pmTabPanel.querySelector('[data-sp-reset]');
+        if(rst) rst.addEventListener('click', function(){
+          textApply({ lh: TXT_LH, ls: 0 }); renderTabPanel();
+        });
+      })();
       /* Точний відтінок — для рідкого випадку, коли в клієнта фірмовий
          колір із кодом. Решту обирають зі сітки. */
       (function(){
