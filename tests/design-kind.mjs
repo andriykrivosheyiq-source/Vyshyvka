@@ -501,6 +501,45 @@ console.log('═══ «ЗБЕРЕГТИ ПОЗИЦІЮ» НЕ ЗАБИРАЄ �
 }
 
 console.log('');
+console.log('═══ ОДИН МАЛЮНОК — ОДНЕ РІШЕННЯ, НАВІТЬ ПРИ РІЗНИХ ВІДБИТКАХ ═══');
+/* Андрій: «я напис вибрав в основному товарі, в рекомендованих, по ідеї,
+   той ж самий надпис… не підтягується, що це надпис».
+
+   Відбиток знімається з пікселів, але коли їх прочитати не вдалось, шар
+   дістає запасний — хеш власної адреси. Той самий логотип, доданий до
+   рекомендованої позиції окремо, лежить у сховищі під іншою адресою: два
+   різні відбитки на один малюнок, і рішення до сусідньої позиції не
+   доходило. */
+{
+  const луна = await admin.evaluate(() => {
+    const url = 'https://cdn/eva.png';
+    const o = { id:'k', orderId:'1000071', items:[
+      { name:'Світшот', desc:{ designs:['fp-A'], designKinds:['img'] },
+        config:{ logos:{ front:[{ fp:'fp-A', url:url }] } } },
+      { name:'Футболка', kind:'reco', desc:{ designs:['fp-B'], designKinds:['img'] },
+        config:{ logos:{ front:[{ fp:'fp-B', url:url }] } } },
+      { name:'Кепка', desc:{ designs:['fp-C'], designKinds:['img'] },
+        config:{ logos:{ front:[{ fp:'fp-C', url:'https://cdn/inshiy.png' }] } } }
+    ]};
+    setItemKindFix(o.items[0], 'fp-A', 'txt', o);
+    applyKindFix(o);
+    return { мапа:Object.keys(o.designKindFix || {}).sort().join(','),
+             види:o.items.map(x => x.desc.designKinds[0]).join(','),
+             шари:o.items.map(x => (x.config.logos.front[0].kindFix || '—')).join(',') };
+  });
+  console.log('   ' + JSON.stringify(луна));
+  ok(луна.види === 'txt,txt,img',
+    'вибір на основному товарі підтягнувся в рекомендований — малюнок той самий',
+    'рекомендована лишилась «картинкою»: ' + JSON.stringify(луна));
+  ok(!/fp-C/.test(луна.мапа) && луна.шари.split(',')[2] === '—',
+    'а чужий малюнок не зачепило — рішення про цей, а не про всі підряд',
+    'рішення розповзлось на інший логотип: ' + JSON.stringify(луна));
+  ok(луна.шари.split(',')[1] === 'txt',
+    'і сам шар рекомендованої памʼятає вид — конструктор читає саме звідти',
+    'конструктор наступного разу знову покаже «картинка»: ' + JSON.stringify(луна));
+}
+
+console.log('');
 console.log(bad ? 'є розходження: ' + bad : 'перемикач на місці й робить те, що обіцяє');
 try{ fs.unlinkSync(VHOST); }catch(e){}
 await browser.close();
