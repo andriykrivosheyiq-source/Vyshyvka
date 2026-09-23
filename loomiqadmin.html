@@ -5000,18 +5000,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=caf4b0a1c7"></script>
-<script src="loomiq-fingerprint.js?v=caf4b0a1c7"></script>
-<script src="loomiq-pricing.js?v=caf4b0a1c7"></script>
+<script src="loomiq-select.js?v=65e88b9f74"></script>
+<script src="loomiq-fingerprint.js?v=65e88b9f74"></script>
+<script src="loomiq-pricing.js?v=65e88b9f74"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=caf4b0a1c7"></script>
+<script src="loomiq-design.js?v=65e88b9f74"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=caf4b0a1c7"></script>
+<script src="loomiq-cards.js?v=65e88b9f74"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9076,7 +9076,11 @@ function priceCalcHtml(o){
   (o.items || []).forEach(it=>{
     if(itemKind(it) !== 'main' || !it.parts) return;
     const b = it.parts;
-    const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+    const pre = b.garmentBase + b.appBase;
+    /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+       нанесення округлені разом, а не кожен окремо. Старі замовлення
+       `unitBase` не мають — їм лишається попередній шлях. */
+    const post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
     const lines = [];
     lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
     // DTF: знижка за тираж уже в ціні аркуша — окремим рядком не дублюємо
@@ -9786,7 +9790,11 @@ function offerCalcRows(it, o){
   const b = it.parts;
   if(!b) return null;
   const rows = [];
-  const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+  const pre = b.garmentBase + b.appBase;
+  /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+     нанесення округлені разом, а не кожен окремо. Старі замовлення
+     `unitBase` не мають — їм лишається попередній шлях. */
+  const post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
   /* До якої групи належить варіант і скільки виробів у розрахунку. Саме тут
      і виникає питання «чому макет ділиться на десять»: відповідь у тому, що
      потрапило в тираж, а це видно лише звідси. */
