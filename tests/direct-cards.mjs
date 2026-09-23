@@ -206,8 +206,11 @@ const laid = await fr.evaluate(async ([o]) => {
     const x = cv.getContext('2d');
     const d = x.getImageData(0, 0, cv.width, cv.height).data;
     const seen = C.map(()=> ({ x0: 1e9, x1: -1, y0: 1e9, y1: -1 }));
-    for(let py = 0; py < cv.height; py += 6){
-      for(let px = 0; px < cv.width; px += 6){
+    /* Крок сканування — логічний, а не піксельний: полотно стало густішим,
+       і піксельний крок мовчки почав би придивлятись удвічі пильніше. */
+    const S0 = cv.lqScale || 1;
+    for(let py = 0; py < cv.height; py += 6 * S0){
+      for(let px = 0; px < cv.width; px += 6 * S0){
         const i = (py * cv.width + px) * 4;
         for(let k = 0; k < C.length; k++){
           if(!near(d, i, C[k])) continue;
@@ -219,7 +222,16 @@ const laid = await fr.evaluate(async ([o]) => {
         }
       }
     }
-    return { seen, h: cv.height, w: cv.width };
+    /* Полотно малюється густіше, ніж розкладається: розкладку міряємо в
+       логічних точках, інакше перевірка сперечалась би з щільністю пікселів,
+       а не з розкладкою. */
+    const S = cv.lqScale || 1;
+    seen.forEach(v => {
+      if(v.x1 < 0) return;              // цього кольору на полотні не було
+      v.x0 = Math.round(v.x0 / S); v.x1 = Math.round(v.x1 / S);
+      v.y0 = Math.round(v.y0 / S); v.y1 = Math.round(v.y1 / S);
+    });
+    return { seen, h: Math.round(cv.height / S), w: Math.round(cv.width / S) };
   };
   return { three: await scan(3), one: await scan(1) };
 }, [OFFER]);
@@ -343,13 +355,17 @@ const drew = await fr.evaluate(async o => {
     const list = window.LQCards.build(o, { tpl:t });
     const cv = await window.LQCards.draw(list[0], o, { tpl:t, industry:'horeca' });
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-    out[t] = { w: cv.width, h: cv.height, bytes: blob ? blob.size : 0 };
+    const S = cv.lqScale || 1;
+    out[t] = { w: Math.round(cv.width / S), h: Math.round(cv.height / S),
+               px: cv.width, bytes: blob ? blob.size : 0 };
   }
   // добірка рекомендованих малюється своєю розкладкою
   const set = window.LQCards.build(o, {}).filter(c => c.type === 'set')[0];
   const cs = await window.LQCards.draw(set, o, { tpl:'minimal' });
   const sb = await new Promise(r => cs.toBlob(r, 'image/jpeg', 0.92));
-  out.set = { w: cs.width, h: cs.height, bytes: sb ? sb.size : 0 };
+  out.set = { w: Math.round(cs.width / (cs.lqScale || 1)),
+              h: Math.round(cs.height / (cs.lqScale || 1)),
+              px: cs.width, bytes: sb ? sb.size : 0 };
   return out;
 }, OFFER);
 Object.keys(drew).forEach(k => console.log('   ' + k + ': ' + drew[k].w + '×' + drew[k].h +
@@ -357,6 +373,17 @@ Object.keys(drew).forEach(k => console.log('   ' + k + ': ' + drew[k].w + '×' +
 ok(Object.keys(drew).every(k => drew[k].w === 1400 && drew[k].h === 1000),
   'формат горизонтальний: дві колонки — 1400×1000 на всіх шаблонах',
   'розмір полотна не той: ' + JSON.stringify(drew));
+/* Андрій: «зроби викачку файлів в кращій якості, щоб було класно видно ці
+   логотипи… бо зараз поки погано це все видно».
+
+   Розкладка рахується в логічних точках, і колись у стільки ж пікселів вона
+   й малювалась. Знімок виробу на 1600 px стискався в плитку на шістсот —
+   разом із ним стискався логотип, і саме цю пляму клієнт отримував у
+   Direct. Тепер полотно вдвічі густіше, а координати масштабуються назад:
+   жодне число в розкладці не змінилось, змінилась лише щільність. */
+ok(Object.keys(drew).every(k => drew[k].px === drew[k].w * 2),
+  'аркуш малюється вдвічі густіше, ніж розкладається — дрібний логотип лишається видним',
+  'полотно знову малюється точка в точку: ' + JSON.stringify(drew));
 ok(Object.keys(drew).every(k => drew[k].bytes > 4000),
   'полотно віддає файл — чужий мокап його не забруднив',
   'файл не зібрався: ' + JSON.stringify(drew));
@@ -601,8 +628,9 @@ const формати = await fr.evaluate(async o => {
   const міра = async lay => {
     const c = L.build(off, { lay })[0];
     const cv = await L.draw(c, off, { lay });
-    return { w: cv.width, h: cv.height, кадрів: (c.shots || []).length,
-             усіх: (c.allShots || []).length };
+    const S = cv.lqScale || 1;
+    return { w: Math.round(cv.width / S), h: Math.round(cv.height / S),
+             кадрів: (c.shots || []).length, усіх: (c.allShots || []).length };
   };
   return { ряд: await міра('row'), сітка: await міра('grid') };
 }, OFFER);
@@ -841,8 +869,10 @@ const fill = await fr.evaluate(async o => {
     const off = one(u);
     const cv = await L.draw(L.build(off, {})[0], off, Object.assign({ tpl:'minimal' }, cfg));
     const x = cv.getContext('2d');
-    return { png: cv.toDataURL('image/png'), w: cv.width,
-             at: (px, py) => Array.from(x.getImageData(px, py, 1, 1).data).slice(0, 3) };
+    const S = cv.lqScale || 1;
+    return { png: cv.toDataURL('image/png'), w: Math.round(cv.width / S),
+             at: (px, py) => Array.from(
+               x.getImageData(Math.round(px * S), Math.round(py * S), 1, 1).data).slice(0, 3) };
   };
   const plain = await shot(warm, {});
   const small = await shot(warm, { logo:0.5 });
@@ -1189,7 +1219,8 @@ const tabbed = await fr.evaluate(async () => {
   const cv = document.querySelector('#cdPrev canvas');
   return {
     strip: document.querySelectorAll('#cdStrip .cd-card').length,
-    canvas: cv ? { w: cv.width, h: cv.height } : null,
+    canvas: cv ? { w: Math.round(cv.width / (cv.lqScale || 1)),
+                   h: Math.round(cv.height / (cv.lqScale || 1)), px: cv.width } : null,
     tpls: [...document.querySelectorAll('#cdBar [data-tpl]')].map(b => b.textContent),
     fields: document.querySelectorAll('#cdBar [data-fld]').length,
     dl: [...document.querySelectorAll('#cdBar [data-dl]')].map(b => b.textContent.trim()),

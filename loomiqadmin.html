@@ -4920,18 +4920,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=636489d2fb"></script>
-<script src="loomiq-fingerprint.js?v=636489d2fb"></script>
-<script src="loomiq-pricing.js?v=636489d2fb"></script>
+<script src="loomiq-select.js?v=c2bb583e31"></script>
+<script src="loomiq-fingerprint.js?v=c2bb583e31"></script>
+<script src="loomiq-pricing.js?v=c2bb583e31"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=636489d2fb"></script>
+<script src="loomiq-design.js?v=c2bb583e31"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=636489d2fb"></script>
+<script src="loomiq-cards.js?v=c2bb583e31"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -20244,7 +20244,9 @@ async function cardsDraw(o){
     if(store[c.id]) continue;
     try{
       const cv = await window.LQCards.draw(c, st.deck.offer, st.deck.cfg);
-      const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
+      /* 0.95, а не 0.92: різниця у вазі — відсотки, а на дрібному тексті
+         й тонких лініях логотипа саме вона й з'їдалась артефактами. */
+      const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.95));
       if(blob) store[c.id] = { blob, url: URL.createObjectURL(blob),
                                notes: (cv.lqNotes || []).slice() };
     }catch(e){ console.warn('картка ' + c.id, e); }
@@ -26149,7 +26151,19 @@ async function resetPhoto(key){
    Тепер: маленькі файли йдуть як є, великі зменшуються у формат з альфа-каналом. */
 function shrinkImage(file){
   return new Promise((resolve, reject)=>{
-    const MAX = 1400, MAX_BYTES = 1.5 * 1024 * 1024;
+    /* ЧЕРЕЗ ЦЕ ВУЗЬКЕ МІСЦЕ ПРОХОДИТЬ УСЕ, ЩО ВИХОДИТЬ НАЗОВНІ.
+
+       Фото виробу для сайту, логотип клієнта, картинка, яку менеджер тягне
+       в переписку, — усі вони тут стискались до 1400 px і 0.85. Для фото
+       тла це непомітно, а для нанесення — ні: на вишивці саме дрібні
+       деталі й зникали першими, і клієнт отримував у Direct пляму замість
+       свого логотипа.
+
+       2200 px і 0.92 — вага росте приблизно вдвічі (сотні кілобайтів, не
+       мегабайти), зате дрібне лишається дрібним, а не зникає. Ліміт узагалі
+       потрібен: фото з телефона приходять на 4000 px і по 8 МБ, і саме
+       через них колись не довантажувались макети. */
+    const MAX = 2200, MAX_BYTES = 3 * 1024 * 1024;
     const img = new Image();
     img.onload = ()=>{
       const w0 = img.naturalWidth, h0 = img.naturalHeight;
@@ -26167,7 +26181,7 @@ function shrinkImage(file){
         for(let i = 3; i < d.length; i += 4){ if(d[i] < 250){ hasAlpha = true; break; } }
       }catch(e){ hasAlpha = /png|webp|gif/i.test(file.type || ''); }
       const type = hasAlpha ? 'image/webp' : 'image/jpeg';
-      cv.toBlob(b=> b?resolve(b):reject(new Error('blob')), type, hasAlpha ? 0.92 : 0.85);
+      cv.toBlob(b=> b?resolve(b):reject(new Error('blob')), type, hasAlpha ? 0.95 : 0.92);
     };
     img.onerror = ()=>reject(new Error('img'));
     img.src = URL.createObjectURL(file);
