@@ -687,6 +687,13 @@
   .t-calc-row.is-disc,.t-calc-row.is-disc b{color:#128a4a;}
   .t-calc-row.is-note{color:var(--muted);font-size:11.5px;}
   .t-calc-row.is-sum{font-weight:700;}
+  /* Вивантаження прорахунку. Кнопки маленькі й сірі: ними користуються,
+     коли щось не збіглося, а не щодня. */
+  .t-calc-dg{display:flex;gap:6px;margin-top:10px;padding-top:8px;
+    border-top:1px solid var(--line-soft);}
+  .t-calc-dg button{all:unset;cursor:pointer;font-size:11.5px;color:var(--muted);
+    padding:4px 9px;border-radius:7px;border:1px solid var(--line);background:#fff;}
+  .t-calc-dg button:hover{color:var(--ink);border-color:var(--ink-soft);}
   .t-margin{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;
     border-radius:10px;padding:11px 14px;margin-top:8px;font-variant-numeric:tabular-nums;}
   .t-margin.good{background:var(--good-soft);color:var(--good);}
@@ -9141,7 +9148,110 @@ function priceCalcHtml(o){
     rows.join('') +
     (adj ? '<div class="t-calc-row is-note"><span>Ручна поправка до суми</span><b>' +
       (adj > 0 ? '+' : '') + adj + ' ₴</b></div>' : '') +
+    '<div class="t-calc-dg">' +
+      '<button type="button" data-calc-dg="file">Зберегти прорахунок</button>' +
+      '<button type="button" data-calc-dg="copy">Скопіювати</button>' +
+    '</div>' +
     '</div></details>';
+}
+/* ══════════ ВИВАНТАЖЕННЯ ПРОРАХУНКУ ══════════
+   «Дуже дивно рахує разову за дизайн» — і далі півгодини переказу по
+   скріншотах: скільки штук, який спосіб, скільки макетів. Переказ завжди
+   неповний, а поламане сидить якраз у тому, що переказати забули.
+
+   Тут лежить усе, з чого рушій робить ціну, і все, що він повернув:
+   описи позицій (це буквально його вхід), налаштування замовлення, модель
+   цін і результат — разом із рядками, які менеджер бачить у «Як склалась
+   ціна». Цього досить, щоб повторити рахунок деінде й побачити, де саме
+   число розійшлось: у вході, у рушії чи вже в розкладі.
+
+   Клієнта тут немає навмисно: ні імені, ні телефону, ні ніка, ні переписки.
+   Для розбору поломки вони не потрібні, а файл ходитиме по руках.
+
+   Кнопки живуть усередині «Як склалась ціна», тобто під тим самим правом
+   бачити гроші, що й весь фінансовий згорток. */
+function calcDumpRows(o){
+  const d = document.createElement('div');
+  d.innerHTML = priceCalcHtml(o) || '';
+  return [...d.querySelectorAll('.t-calc-item')].map(el => ({
+    позиція: ((el.querySelector('.t-calc-name') || {}).textContent || '').trim(),
+    рядки: [...el.querySelectorAll('.t-calc-row')].map(r =>
+      ((r.querySelector('span') || {}).textContent || '').trim() + '  =  ' +
+      ((r.querySelector('b') || {}).textContent || '').trim())
+  }));
+}
+function calcDump(o){
+  fillOrderParts(o);
+  const { idx, list } = orderDescriptors(o);
+  const opts = orderPriceOpts(o);
+  let res = null, engineErr = null;
+  try{ res = priceOrder(list, opts); }
+  catch(e){ engineErr = String(e && e.message || e); }
+  const items = (o.items || []).map((it, i) => ({
+    рядок: i,
+    рід: itemKind(it),
+    назва: it.name || '',
+    виріб: (typeof itemGarmentId === 'function') ? itemGarmentId(it) : (it.garmentId || ''),
+    колір: it.color || '',
+    тираж: +it.qty || 0,
+    група: it.vgroup || null,
+    /* Чи пішла позиція в спільний прогін: рекомендовані й другі варіанти
+       групи рахуються окремо, і саме тут видно, хто ділить разову. */
+    уПрогоні: idx.indexOf(i) >= 0,
+    ділятьРазову: feeSharers(o, it),
+    заШтуку: +it.unitPrice || 0,
+    сума: +it.price || 0,
+    разоваНаОдиницю: +it.feeShare || 0,
+    опис: descOf(it),
+    розклад: it.parts || null,
+    нанесення: (it.prints || []).map(pr => ({
+      бік: pr.side || '', спосіб: pr.technique || '',
+      ширинаММ: pr.widthMm, висотаММ: pr.heightMm,
+      вид: pr.kind || '', відбиток: pr.fp || '' }))
+  }));
+  return {
+    що: 'Loomiq · діагностика прорахунку',
+    коли: new Date().toISOString(),
+    збірка: ((document.getElementById('side-build') || {}).textContent || '').trim(),
+    замовлення: {
+      номер: o.orderId || '', напрям: o.dir || '', стан: o.status || '',
+      безОплатиЗаДизайн: !!o.noDesignFee,
+      ручнаПоправка: +o.feeAdj || 0,
+      сума: +o.totalPrice || 0, собівартість: +o.totalCost || 0
+    },
+    видДизайну: { автоматично: o.designKinds || null, словоМенеджера: o.designKindFix || null },
+    позиції: items,
+    рушій: { вхід: list, умови: opts, вихід: res, збій: engineErr },
+    розкладНаЕкрані: calcDumpRows(o),
+    /* Дві копії моделі цін навмисно. Рушій читає SITE_CONTENT — саме за
+       нею й пораховано те, що вище. Адмінка ж показує свій contentData, і
+       він буває свіжіший: менеджер щойно правив ставки. Розбіжність між
+       цими двома — окрема поломка, і побачити її можна лише поруч. */
+    модельЦін: {
+      рушія: (window.SITE_CONTENT || {}).pricing || null,
+      адмінки: (typeof curSitePricing === 'function') ? curSitePricing() : null
+    }
+  };
+}
+function calcDumpText(o){ return JSON.stringify(calcDump(o), null, 2); }
+function calcDumpDo(o, how){
+  let txt;
+  try{ txt = calcDumpText(o); }
+  catch(e){ console.error(e); toast('Не вдалось зібрати прорахунок'); return; }
+  const name = 'прорахунок-' + (o.orderId || 'замовлення') + '.json';
+  if(how === 'copy'){
+    const done = () => toast('Прорахунок скопійовано — можна вставляти');
+    if(navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(done, ()=> toast('Буфер недоступний — збережіть файлом'));
+    else toast('Буфер недоступний — збережіть файлом');
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([txt], { type:'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  toast('Збережено ' + name);
 }
 // Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
 /* Склад, який рахується разом: усі основні позиції ПЛЮС по одному варіанту
@@ -16817,6 +16927,9 @@ function renderOrderDrawer(){
   });
   panel.querySelectorAll('[data-art-ok]').forEach(b=>{
     b.addEventListener('click', ()=> artApprove(o, b.dataset.artOk));
+  });
+  panel.querySelectorAll('[data-calc-dg]').forEach(b=>{
+    b.addEventListener('click', ()=> calcDumpDo(o, b.dataset.calcDg));
   });
   const artAddB = panel.querySelector('[data-art-add]');
   if(artAddB) artAddB.addEventListener('click', ()=>{
