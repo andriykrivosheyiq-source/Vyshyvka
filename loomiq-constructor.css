@@ -562,6 +562,29 @@
      висоту, решта простору — під сам вибір. Заголовки прибрані: вони
      з'їдали рядок, а що саме обирають, видно й так. */
   .pm-scr{display:flex;align-items:stretch;gap:10px;padding:0 14px;height:100%;}
+/* ── Інтервали напису ─────────────────────────────────────────────────
+     Кнопки «−» і «+» для дрібного кроку, повзунок для великого: пальцем
+     зручніше тягнути, мишею точніше клацати. Число поруч лишається на
+     видноті, щоб той самий напис можна було повторити. */
+  .pm-sp-row{margin-bottom:12px;}
+.pm-sp-h{display:flex;align-items:baseline;gap:7px;margin-bottom:5px;}
+.pm-sp-h b{font-size:12.5px;font-weight:700;color:#111;}
+.pm-sp-h span{font-size:11px;color:#a0a0a0;flex:1;min-width:0;}
+.pm-sp-v{font-style:normal;font-size:12px;font-weight:700;color:#2f4c8f;
+    font-variant-numeric:tabular-nums;}
+.pm-sp-line{display:flex;align-items:center;gap:8px;}
+.pm-sp-b{all:unset;box-sizing:border-box;width:44px;height:38px;border-radius:10px;
+    background:#f2f2f2;color:#111;font-size:17px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex:none;}
+.pm-sp-b:active{background:#e2e2e2;}
+.pm-sp-sl{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:6px;
+    border-radius:3px;background:#e6e6e6;}
+.pm-sp-sl::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+    border-radius:50%;background:#111;cursor:pointer;}
+.pm-sp-sl::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#111;}
+.pm-sp-reset{all:unset;cursor:pointer;font-size:12px;font-weight:600;color:#8a8a8a;
+    padding:6px 2px;}
+.pm-sp-reset:hover{color:#111;}
 /* Палітра тепер стоїть у панелі звичайним блоком, а не накриває її. */
   .pm-scr--flow{height:auto;padding-bottom:12px;align-items:flex-start;}
 .pm-scr--flow .pm-scr-back{align-self:stretch;min-height:56px;}

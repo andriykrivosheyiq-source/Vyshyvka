@@ -261,6 +261,72 @@ ok(палітра.висота >= 40,
   'зразок замалий: ' + палітра.висота + ' px');
 
 console.log('');
+console.log('═══ ІНТЕРВАЛ І РОЗРІДЖЕННЯ ═══');
+/* Це властивості ВСЬОГО напису, а не окремого шматка: рядок не може стояти
+   щільніше наполовину. Потрібні постійно: у два рядки напис лягає то надто
+   тісно, то з дірою, а короткі слова великими літерами без розрідження
+   виглядають злиплими — і саме так їх найчастіше й вишивають. */
+const інтервали = await p.evaluate(async () => {
+  /* Повертаємось із палітри на саму смугу — звідти й відкривають інтервали. */
+  const back = document.querySelector('[data-tsnav="main"]');
+  if(back) back.click();
+  await new Promise(r => setTimeout(r, 400));
+  const b = document.querySelector('[data-tsnav="space"]');
+  if(!b) return { кнопки:false };
+  b.click();
+  await new Promise(r => setTimeout(r, 500));
+  const sl = [...document.querySelectorAll('.pm-sp-sl')].map(e => e.dataset.spr);
+  /* Напис має справді стати ШИРШИМ — інакше повзунок є, а нічого не робить.
+     Міряємо пропорцію самого малюнка, а не вузол на екрані: у вузла рамка
+     стала, і його ширина нічого не доводить. */
+  const L = window.__lqLayers;
+  const arOf = () => (L.list().filter(x => x.text)[0] || {}).ar;
+  const w0 = arOf();
+  const ls = document.querySelector('[data-spr="ls"]');
+  if(ls){ ls.value = '0.3'; ls.dispatchEvent(new Event('input', { bubbles:true })); }
+  await new Promise(r => setTimeout(r, 900));
+  const w1 = arOf();
+  const el = () => document.querySelector('.pm-draggable-layer .pm-dl-text');
+  const крок = document.querySelector('[data-sp="lh"][data-d="1"]');
+  const lh0 = el() ? parseFloat(getComputedStyle(el()).lineHeight) : 0;
+  if(крок) крок.click();
+  await new Promise(r => setTimeout(r, 600));
+  const lh1 = el() ? parseFloat(getComputedStyle(el()).lineHeight) : 0;
+  return { кнопки:true, повзунки:sl, розрідження:{ було:w0, стало:w1 },
+           рядок:{ було:Math.round(lh0), стало:Math.round(lh1) } };
+});
+console.log('   ' + JSON.stringify(інтервали));
+ok(інтервали.кнопки && (інтервали.повзунки || []).join() === 'lh,ls',
+  'міжрядковий і розрідження стоять в одному вікні з рештою оформлення',
+  'екрана інтервалів немає: ' + JSON.stringify(інтервали));
+ok(інтервали.розрідження && інтервали.розрідження.стало > інтервали.розрідження.було,
+  'розрідження справді розсуває літери — напис стає ширшим, а не лише їде повзунок',
+  'напис не змінився: ' + JSON.stringify(інтервали.розрідження));
+ok(інтервали.рядок && інтервали.рядок.стало > інтервали.рядок.було,
+  'міжрядковий справді розсуває рядки',
+  'рядки не розсунулись: ' + JSON.stringify(інтервали.рядок));
+
+console.log('');
+console.log('═══ НАПИС БЕЗ ЛІТЕР НЕ ІСНУЄ ═══');
+/* Доти напис, із якого стерли все, лишався невидимим шаром: на екрані
+   нічого, а в прорахунку окремий дизайн зі своєю разовою підготовкою
+   макета. Знайти його було ніде — саме тому, що його не видно. */
+const стерли = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const txt = L.list().filter(x => x.text)[0];
+  if(!txt) return { помилка:'напису в стосі немає' };
+  L.active(txt.id);
+  L.text(txt.id, '');                   // стерли дочиста — саме так це й роблять
+  const до = L.list().length;
+  L.leave();                            // і вийшли з напису
+  return { до, після:L.list().length, лишився:L.list().some(x => x.id === txt.id) };
+});
+console.log('   ' + JSON.stringify(стерли));
+ok(!стерли.лишився && стерли.після === стерли.до - 1,
+  'напис, із якого стерли все, зникає разом із виходом із нього',
+  'порожній напис лишився невидимим шаром: ' + JSON.stringify(стерли));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'шари слухаються: порядок свій, виділення передбачуване, список на місці');
