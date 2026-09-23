@@ -210,6 +210,29 @@ const дрібний = await p.evaluate(async () => {
   return { бік:Math.round(r.width), накрито, береться:L.at(c.x, c.y) === id };
 });
 console.log('   ' + JSON.stringify(дрібний));
+/* Андрій: «в маленького легко нажимать дополнительные кнопки, а у большого
+   сложно». Відсув задумувався для дрібних, а дістався всім: розмір шару
+   брався з `offsetWidth`, а вузол міряють у мить, коли розмітка ще не
+   перерахувалась — нуль замість ширини робив «дрібним» будь-який шар, і
+   маркери великого логотипа відлітали в порожнє місце біля коміра. */
+const великий = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const id = L.list()[0].id;
+  L.set(id, 'scale', 1); L.active(id); L.draw();
+  await new Promise(r => setTimeout(r, 500));
+  const el = document.querySelector('[data-layer-id="' + id + '"]');
+  const out = el.querySelector('.pm-dl-outline').getBoundingClientRect();
+  const far = [...el.querySelectorAll('.pm-dl-handle')].map(h => {
+    const q = h.getBoundingClientRect();
+    return Math.round(Math.max(out.left - q.right, q.left - out.right,
+                               out.top - q.bottom, q.top - out.bottom));
+  });
+  return { контур:Math.round(out.width), найдальший:Math.max.apply(null, far) };
+});
+console.log('   ' + JSON.stringify(великий));
+ok(великий.контур > 60 && великий.найдальший <= 10,
+  'у великого шару маркери тримаються самої рамки, а не відлітають від неї',
+  'маркери великого шару стоять задалеко: ' + JSON.stringify(великий));
 ok(дрібний.бік < 40,
   'шар справді дрібний — саме на таких маркери й сходились над ним',
   'шар не дрібний, перевірка ні про що: ' + JSON.stringify(дрібний));
@@ -219,6 +242,42 @@ ok(!дрібний.накрито,
 ok(дрібний.береться,
   'і клік у його середину бере саме його',
   'дрібний шар не береться: ' + JSON.stringify(дрібний));
+
+console.log('');
+console.log('═══ КНОПКИ ОБРАНОГО ШАРУ НАТИСКАЮТЬСЯ, ХОЧ БИ ХТО ЛЕЖАВ ЗВЕРХУ ═══');
+/* Андрій: «кнопки у великого просто не натискаються, зображення добре
+   рухається». Доти обраний шар піднімався над рештою — і його маркери були
+   зверху заодно. Коли підйом прибрали (він і давав стрибок), маркери
+   лишились на своєму поверсі: прямокутник шару, що лежить вище, накриває їх
+   і зʼїдає клік. Зображення при цьому рухається, бо перенос питає, хто під
+   точкою, і сам знаходить потрібний шар. */
+const кнопки = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const list = L.list();
+  const низ = list[0].id, верх = list[list.length - 1].id;
+  /* Верхній шар робимо великим і кладемо в ту саму точку — так він накриває
+     маркери нижнього, як воно й буває на виробі. */
+  L.set(верх, 'scale', 1.6);
+  L.stack();
+  L.active(низ);                 // обраний — НИЖНІЙ
+  L.draw();
+  await new Promise(r => setTimeout(r, 400));
+  const el = document.querySelector('[data-layer-id="' + низ + '"]');
+  const h = el && el.querySelector('[data-handle="scale"]');
+  if(!h) return { помилка:'маркера немає' };
+  const q = h.getBoundingClientRect();
+  const x = Math.round(q.left + q.width / 2), y = Math.round(q.top + q.height / 2);
+  const під = document.elementFromPoint(x, y);
+  /* Під точкою може стояти сам значок усередині маркера — тому питаємо не
+     клас вузла, а чи належить він маркеру взагалі. */
+  return { маркер:!!(під && під.closest && під.closest('.pm-dl-handle')),
+           чий:!!(під && під.closest && під.closest('[data-layer-id]'))
+                 ? під.closest('[data-layer-id]').dataset.layerId : '' };
+});
+console.log('   ' + JSON.stringify(кнопки));
+ok(кнопки.маркер,
+  'у точці маркера лежить сам маркер, а не прямокутник сусіднього шару',
+  'маркер накритий чужим шаром і клік до нього не доходить: ' + JSON.stringify(кнопки));
 
 console.log('');
 console.log('═══ ЗАМОК І ВИДИМІСТЬ ═══');

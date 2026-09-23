@@ -2147,11 +2147,22 @@
          Тому рахуємо, скільки місця лишилось між ручками, і якщо менше за
          їхній розмір, відсуваємо кожну назовні рівно на нестачу. Шар
          лишається вільним, а ручки — там, де їх шукає око: по кутах. */
-      var HW = 24, GAP = 14;                 // ручка й просвіт під палець
-      var bw = el.offsetWidth || 0, bh = el.offsetHeight || 0;
-      var inkW = bw * (ob.x1 - ob.x0), inkH = bh * (ob.y1 - ob.y0);
-      var padX = Math.max(0, (HW * 2 + GAP - inkW) / 2);
-      var padY = Math.max(0, (HW * 2 + GAP - inkH) / 2);
+      /* Розмір беремо з самої геометрії шару, а не з `offsetWidth`: вузол
+         міряють у мить, коли розмітка ще не перерахувалась, і нуль замість
+         ширини робив «дрібним» будь-який шар. Саме через це маркери
+         відлітали й від великого логотипа — цілитись доводилось у порожнє
+         місце біля коміра.
+
+         Поріг — ОДНА ручка на бік, а не дві з просвітом. Дві ручки по
+         протилежних кутах шару на пʼятдесят пікселів одна одній не
+         заважають: вони стоять по кутах, а середина лишається вільною.
+         Заважають вони тоді, коли шар вужчий за них самих — тоді й
+         відсуваємо, рівно на нестачу. */
+      var HW = 24;
+      var box = layerBox(layer);
+      var inkW = (box.w || 0) * (ob.x1 - ob.x0), inkH = (box.h || 0) * (ob.y1 - ob.y0);
+      var padX = Math.max(0, (HW * 2 - inkW) / 2);
+      var padY = Math.max(0, (HW * 2 - inkH) / 2);
       var put = function(sel, a, av, b, bv){
         var h = el.querySelector(sel);
         if(!h) return;
@@ -2340,6 +2351,7 @@
           if(ex){
             ex.style.width = bw + 'px'; ex.style.height = bh + 'px';
             ex.style.zIndex = zi;
+            ex.style.pointerEvents = active ? '' : 'none';
             ex.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
             var tx = ex.querySelector('.pm-dl-text');
             if(tx && layer.text){
@@ -2357,6 +2369,19 @@
         el.style.width = bw + 'px';
         el.style.height = bh + 'px';
         el.style.zIndex = zi;
+        /* КНОПКИ ОБРАНОГО ШАРУ МАЮТЬ БУТИ ДОСЯЖНІ, ХОЧ БИ ХТО ЛЕЖАВ ЗВЕРХУ.
+
+           Доти обраний шар піднімався над рештою (z-index 10) — і його
+           маркери були зверху заодно. Коли підйом прибрали (він і давав
+           стрибок), маркери лишились на своєму поверсі: прямокутник шару,
+           що лежить вище, накриває їх і зʼїдає клік. Зображення при цьому
+           рухається, бо перенос питає layerAtPoint і сам знаходить потрібний
+           шар, — а от кнопка просто не натискається.
+
+           Тому неактивні шари не перехоплюють дотик узагалі: вибір і так
+           вирішує layerAtPoint по пікселях, а не те, чий прямокутник зверху.
+           Клік крізь них ловить сцена — див. обробник на pmGarmentWrap. */
+        el.style.pointerEvents = active ? '' : 'none';
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
         var inner = layer.text
           /* contenteditable="true", а не plaintext-only: у звичайному тексті
@@ -4336,7 +4361,7 @@
          діставався тому, чий прямокутник випадково зверху. */
       var q = getXY(e);
       var real = layerAtPoint(q.x, q.y);
-      if(real && real.id !== layer.id) layer = real;
+      if(real && (!layer || real.id !== layer.id)) layer = real;
       else if(!real){
         /* Порожній кут чужої рамки. Ні за що братись — і нічого не
            виділяємо: інакше людина тягне порожнечу, а їде сусідній напис. */
@@ -4494,10 +4519,28 @@
     window.addEventListener('mouseup', onDlUp);
     window.addEventListener('touchend', onDlUp);
 
+    /* Неактивні шари дотику не ловлять — щоб не забирати клік у маркерів
+       обраного. Отже їхній вибір ловить сама сцена: питає, хто під точкою,
+       і віддає його тому самому обробнику, що й раніше. */
+    (function(){
+      var wrap = document.getElementById('pmGarmentWrap');
+      if(!wrap) return;
+      var pick = function(e){
+        if(e.target.closest('.pm-draggable-layer')) return;   // обраний обробить себе сам
+        var q = getXY(e);
+        if(!layerAtPoint(q.x, q.y)) return;                   // під точкою порожньо
+        onImgDown(e, null);
+      };
+      wrap.addEventListener('mousedown', pick);
+      wrap.addEventListener('touchstart', pick, { passive:false });
+    })();
     // Deselect active layer when tapping the garment background
     document.getElementById('pmGarmentWrap').addEventListener('click', function(e){
       if(e.target.closest('.pm-draggable-layer')) return;
       if(dlGuard) return;
+      /* Під точкою є шар — його щойно взяли на mousedown, знімати виділення
+         не можна. */
+      try{ var q = getXY(e); if(layerAtPoint(q.x, q.y)) return; }catch(x){}
       if(pm.activeLogoId !== null){
         var wasText = !!activeTextLayer();
         stopTextEdit();
