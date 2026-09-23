@@ -740,6 +740,46 @@
      що написав, коли. Число стоїть останнім, у тому самому кутку, що й на
      картці. */
   .chl{display:flex;flex-direction:column;gap:6px;max-width:900px;}
+  /* ── Чати: ліворуч список, праворуч переписка ─────────────────────────
+     Так це влаштовано в Direct, у Telegram і скрізь, де листуються: око
+     шукає наступну розмову там само, де щойно читало попередню. */
+  .ch2{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px;
+    align-items:stretch;min-height:520px;}
+  .ch2-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:72vh;
+    padding-right:2px;}
+  /* У вузькій колонці рядок читається згори вниз, а не вряд: імʼя й час у
+     першому рядку, під ними — початок останнього повідомлення. Саме так
+     виглядає список у Direct, і саме за цим початком розмову й упізнають. */
+  .ch2-list .chl-row{grid-template-columns:1fr auto auto;gap:2px 8px;padding:10px 12px;
+    align-items:center;}
+  .ch2-list .chl-who{grid-area:1/1/2/3;}
+  .ch2-list .chl-at {grid-area:1/3/2/4;}
+  .ch2-list .chl-txt{grid-area:2/1/3/2;}
+  .ch2-list .chl-ch {grid-area:2/2/3/3;}
+  .ch2-list .chl-n  {grid-area:2/3/3/4;justify-self:end;}
+  .ch2-view{position:relative;min-width:0;border:1px solid var(--line);border-radius:var(--r-card);
+    background:var(--paper);overflow:hidden;display:flex;}
+  .ch2-view>.cw-inline{flex:1;min-width:0;}
+  .ch2-none{margin:auto;text-align:center;padding:30px 24px;max-width:340px;
+    display:flex;flex-direction:column;gap:7px;}
+  .ch2-none b{font-size:14px;color:var(--ink);}
+  .ch2-none span{font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
+  /* Той самий вузол розмови, що й над дошкою, — просто в потоці колонки. */
+  .cw-wrap.cw-inline{position:relative;inset:auto;z-index:1;display:none;
+    border-radius:var(--r-card);}
+  .cw-wrap.cw-inline.open{display:flex;}
+  .cw-wrap.cw-inline.with-card{margin-right:0;}
+  .chl-row.is-on{border-color:var(--accent);background:var(--accent-soft);}
+  /* Номер замовлення в шапці розмови — єдина дорога до картки звідси. */
+  .cw-oid{all:unset;cursor:pointer;flex:none;font-size:11.5px;font-weight:700;
+    color:#fff;background:rgba(255,255,255,.16);border-radius:var(--r-pill);
+    padding:4px 10px;font-variant-numeric:tabular-nums;}
+  .cw-oid:hover{background:rgba(255,255,255,.28);}
+  @media (max-width:900px){
+    .ch2{grid-template-columns:1fr;}
+    .ch2-list{max-height:none;}
+    .ch2-view{min-height:60vh;}
+  }
   .chl-empty{font-size:13px;color:var(--ink-soft);padding:14px 2px;line-height:1.5;}
   .chl-row{all:unset;cursor:pointer;display:grid;align-items:center;gap:4px 12px;
     grid-template-columns:minmax(120px,1.2fr) auto minmax(0,2.4fr) auto auto;
@@ -17978,7 +18018,11 @@ async function crmPollOnce(o){
    погляду, бреше вже за хвилину. */
 const CRM_SWEEP_MS = 60000;
 let crmSweepTimer = null, crmSweepBusy = false;
-let crmInbox = [];      // розмови, у яких замовлення ще немає
+/* Розмови, у яких замовлення ще немає. У розділі їх більше не показуємо —
+   там лише те, що ми самі привʼязали, — але обхід їх усе одно читає: саме з
+   цього списку видно, що звʼязок із Sitniks живий, і сюди ж дивляться,
+   коли розбираються, чому розмова не підтягнулась. */
+let crmInbox = [];
 /* Останнє повідомлення розмови лежить у списку то під одним імʼям, то під
    іншим — залежно від того, який це ендпоінт. Дивимось у всі звичні. */
 function crmRowLast(r){
@@ -18074,29 +18118,35 @@ function chatsRows(dir){
       waits: orderWaiting(o)
     });
   });
-  /* Розмови, у яких замовлення ще немає. Саме вони губляться найчастіше:
-     людина написала вперше, картки немає — отже на дошці її немає ніде.
-     Показуємо в обох напрямах, бо чого вона хоче, поки не знає ніхто; хто
-     перший заведе замовлення, той і вирішить напрям. */
-  const bound = {};
-  (orders || []).forEach(o => { if(o && o.crmChatId) bound[String(o.crmChatId)] = 1; });
-  (crmInbox || []).forEach(r => {
-    if(bound[r.chatId]) return;
-    out.push({ free:r, who:r.nick || ('чат ' + r.chatId), channel:'Instagram',
-               at:r.at, text:String(r.text || '').replace(/\s+/g, ' ').slice(0, 90),
-               n:r.mine ? 0 : 1, waits:!r.mine });
-  });
+  /* СЮДИ ПОТРАПЛЯЄ ТІЛЬКИ ТЕ, ЩО МИ САМІ ЗАВЕЛИ.
+
+     Був тут ще один шматок: обхід питає Sitniks про ВЕСЬ список розмов, і
+     кожна, не привʼязана до замовлення, лягала в цей список — ще й в обидва
+     напрями одразу. Задум був добрий: людина написала вперше, картки немає,
+     отже на дошці її немає ніде.
+
+     А вийшла копія Direct усередині CRM. Кілька десятків чужих діалогів, у
+     яких нічого не відбувається, у B2B і в B2C водночас, і серед них ті
+     кілька, з якими справді працюють. Розділ перестав відповідати на
+     питання, заради якого існує: «кому я ще не відповів».
+
+     Тому правило: розмова зʼявляється в розділі тоді, коли її привʼязали до
+     замовлення цього напряму, і тільки тоді. Хто написав уперше — живе в
+     самому Instagram, доки з нього не зробили замовлення. */
   return out.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
 }
 function chatsHtml(dir){
   const rows = chatsRows(dir);
   if(!rows.length)
-    return '<div class="chl-empty">Розмов поки немає. Вони зʼявляться тут, ' +
-           'щойно клієнт напише — найсвіжіші згори.</div>';
+    return '<div class="chl-empty">Розмов тут поки немає. Вони зʼявляються, ' +
+           'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
+           'кнопкою 🔗 біля клієнта.</div>';
   return rows.map((r, i) => `
-    <button class="chl-row${r.waits ? ' waits' : ''}${r.free ? ' free' : ''}" data-chl="${i}">
+    <button class="chl-row${r.waits ? ' waits' : ''}${
+      chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
       <span class="chl-who">${escapeHtml(r.who)}</span>
-      <span class="chl-ch">${escapeHtml(r.channel)}${r.free ? ' · без замовлення' : ''}</span>
+      <span class="chl-ch">${escapeHtml(r.channel)}${
+        r.o && r.o.orderId ? ' · ' + escapeHtml(r.o.orderId) : ''}</span>
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
@@ -18112,44 +18162,61 @@ function crmDayShort(at){
     ? d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' })
     : d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
 }
+/* ══════════ ДВІ КОЛОНКИ, ЯК У DIRECT ══════════════════════════════════
+   Ліворуч список розмов, праворуч сама переписка. Натиснув рядок — розмова
+   відкрилась тут же, без переходів і без проміжних кнопок.
+
+   Доти клік вів в інше місце: відкривалась КАРТКА замовлення, а вікно
+   переписки випливало поверх неї. Тобто розділ «Чати» насправді був
+   списком посилань на дошку, і щоб відповісти двом людям поспіль,
+   доводилось щоразу вертатись назад.
+
+   Картка нікуди не поділась — на неї веде номер замовлення в шапці
+   розмови. Але вона тепер наслідок, а не умова: у розділі чатів
+   відповідають, а не ведуть замовлення. */
+function chatsHostId(dir){ return dir === 'b2c' ? 'chatscView' : 'chatsView'; }
 function renderChats(dir){
   const root = document.getElementById(dir === 'b2c' ? 'chatscRoot' : 'chatsRoot');
   if(!root) return;
   const rows = chatsRows(dir);
-  root.innerHTML = chatsHtml(dir);
+  const host = chatsHostId(dir);
+  /* Вузол переписки один на всю адмінку, і він може зараз стояти саме тут.
+     Виймаємо його ПЕРЕД тим, як стерти вміст, інакше innerHTML знищить його
+     разом із розміткою — разом із живою підпискою на стрічку. */
+  const cw = document.getElementById('chatWin');
+  const parked = cw && cw.parentNode === document.getElementById(host);
+  if(parked) (document.querySelector('.workarea') || document.body).appendChild(cw);
+  root.innerHTML = '<div class="ch2">' +
+      '<div class="ch2-list">' + chatsHtml(dir) + '</div>' +
+      '<div class="ch2-view" id="' + host + '"></div>' +
+    '</div>';
+  if(parked) chatsMount(dir);
+  else chatsViewEmpty(dir);
   root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
     const r = rows[+b.dataset.chl];
-    if(!r) return;
-    if(r.o){ await openOrderDrawer(r.o); chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm'); return; }
-    /* Розмова без замовлення. Заводимо його тут-таки, у ЦЬОМУ напрямі, і
-       одразу привʼязуємо: інакше менеджер мав би створити картку, потім
-       знайти ту саму розмову в Sitniks і скопіювати адресу. */
-    if(!canNewOrder()) return toast('Заводити замовлення — не ваша зона');
-    if(!confirm('Завести замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') +
-                ' для «' + (r.who || 'цієї розмови') + '»?')) return;
-    try{
-      const o = await chatsNewOrder(dir, r.free);
-      await openOrderDrawer(o);
-      chatOpen(o, 'crm');
-    }catch(e){ console.error(e); toast('Замовлення не створилось'); }
+    if(!r || !r.o) return;
+    chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir) });
+    renderChats(dir);
   }));
 }
-async function chatsNewOrder(dir, r){
-  const st = dir === 'b2c' ? B2C_STATUS : firstStatusKey();
-  const o = {
-    id: cryptoId(), dir: dir, type:'client', status: st,
-    orderId: makeOrderId(dir), source:'переписка', site:'main',
-    name: r.nick || '', phone:'', company:'', instagram:'',
-    crmChatId: r.chatId, crmChatName: r.nick || '',
-    items: [], totalPrice:0, totalCost:0, margin:0, marginPct:0,
-    createdAt: new Date().toISOString(), touchedAt: new Date().toISOString(),
-    hist: [{ s:st, at:new Date().toISOString() }]
-  };
-  orders.unshift(o);
-  await storeSet('orders', orders);
-  if(dir === 'b2c') designJobMake(o.orderId);
-  renderBoard();
-  return o;
+/* Поки нічого не обрано — праворуч не порожнеча, а підказка: порожня
+   половина екрана читається як «зламалось». */
+function chatsViewEmpty(dir){
+  const v = document.getElementById(chatsHostId(dir));
+  if(!v) return;
+  v.innerHTML = '<div class="ch2-none">' +
+    '<b>Оберіть розмову зліва</b>' +
+    '<span>Вона відкриється тут. Розмови зʼявляються в списку, коли їх ' +
+    'привʼязують до замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') + '.</span></div>';
+}
+// Поставити вузол переписки в праву колонку цього розділу.
+function chatsMount(dir){
+  const v = document.getElementById(chatsHostId(dir));
+  const cw = document.getElementById('chatWin');
+  if(!v || !cw) return;
+  v.innerHTML = '';
+  cw.classList.add('cw-inline');
+  v.appendChild(cw);
 }
 /* Число поруч із назвою розділу: видно, що є неотримана відповідь, не
    заходячи туди. Саме число, а не крапка — «одне питання» і «людина
@@ -20452,7 +20519,7 @@ function msgWord(n){
   return 'повідомлень';
 }
 function chatOrder(){ return chatWin && (orders || []).find(x => x.id === chatWin.id); }
-function chatOpen(o, kind){
+function chatOpen(o, kind, opts){
   /* Розмову з дошки відкривали САМУ, без замовлення. А говорять у ній
      рівно про нього: що замовили, на скільки, коли відправка, скільки
      сплачено. Усе це доводилось згадувати або закривати розмову й лізти в
@@ -20461,12 +20528,16 @@ function chatOpen(o, kind){
      Тому картку відкриваємо поруч. Вона ж далі бере на себе підписку на
      стрічку й позначку «прочитано», тож окремий режим «вікно саме по
      собі» лишається тільки для випадків, коли картку відкрити не вдалось. */
-  if(drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
+  /* У розділі «Чати» картку НЕ відкриваємо: там відповідають, а не ведуть
+     замовлення. На картку веде номер у шапці розмови — коли він справді
+     знадобиться. */
+  const host = opts && opts.host;
+  if(!host && drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
   // solo — вікно відкрили з дошки, без картки. Тоді підписку на розмову й
   // позначку «прочитано» бере на себе воно саме: інакше стрічка була б
   // мертвою, а лічильник пропущених не гаснув би ніколи.
-  const solo = drawerOrderId !== o.id;
-  chatWin = { id: o.id, kind, solo,
+  const solo = host ? true : (drawerOrderId !== o.id);
+  chatWin = { id: o.id, kind, solo, dir: host ? orderDir(o) : null,
               draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
                                     : (crmChat[o.id] || {}).draft) || '' };
   if(solo){
@@ -20483,6 +20554,15 @@ function chatOpen(o, kind){
   }
   const d = chatWinEl();
   d.classList.add('open');
+  /* Вікно стоїть або поверх робочої зони (з дошки), або просто в правій
+     колонці розділу чатів — тим самим вузлом, щоб не тримати двох. */
+  d.classList.toggle('cw-inline', !!host);
+  if(host){
+    const v = document.getElementById(host);
+    if(v){ v.innerHTML = ''; v.appendChild(d); }
+  } else if(d.parentNode !== (document.querySelector('.workarea') || document.body)){
+    (document.querySelector('.workarea') || document.body).appendChild(d);
+  }
   /* Розмову відкрили з картки — зона стає рівно на просвіт біля неї. З дошки
      (картки немає) — на всю ширину: лишати порожню смугу під картку, якої
      немає, немає сенсу. */
@@ -20492,11 +20572,14 @@ function chatOpen(o, kind){
      викидала б менеджера на початок дошки. */
   const mainEl = document.querySelector('main');
   cwMainTop = mainEl ? mainEl.scrollTop : 0;
-  document.body.classList.add('cw-open');
+  // Дошку ховаємо лише тоді, коли розмова стоїть поверх неї.
+  if(!host) document.body.classList.add('cw-open');
+  else document.body.classList.remove('cw-open');
   renderChatWin(true);
 }
 function chatClose(){
   const solo = chatWin && chatWin.solo;
+  const dir = chatWin && chatWin.dir;
   // Незібране фото нікуди не піде — зате памʼять під мініатюри звільнимо.
   chatPics().forEach(chatDropPic);
   chatWin = null;
@@ -20507,6 +20590,9 @@ function chatClose(){
   if(mainEl && cwMainTop) mainEl.scrollTop = cwMainTop;
   // Підписку, яку відкривало саме вікно, воно ж і згортає
   if(solo){ tgUnwatch(); crmStopPoll(); }
+  /* Закрили розмову в розділі чатів — праворуч знову підказка, а не
+     порожнеча, і список перемальовується без позначки «обрана». */
+  if(dir){ try{ renderChats(dir); }catch(e){} }
 }
 
 function renderChatWin(toBottom){
@@ -20569,6 +20655,11 @@ function renderChatWin(toBottom){
         <div class="cw-nm">${escapeHtml(nm)}</div>
         <div class="cw-sub">${escapeHtml(sub)}</div>
       </div>
+      ${/* Картка — на один дотик, але не замість розмови. У розділі чатів
+           відповідають; коли справді треба глянути склад чи оплату,
+           натискають номер. */''}
+      ${o.orderId ? `<button class="cw-oid" data-cw-card title="Відкрити картку замовлення">${
+        escapeHtml(o.orderId)}</button>` : ''}
       ${/* Що саме прислав Sitniks. Бік розмови й автор беруться з полів, назв
            яких у закритій документації немає, — тож коли підпис стає не з того
            боку, це єдиний спосіб побачити справжні назви замість здогадок.
@@ -20710,6 +20801,8 @@ async function chatTake(list){
 
 function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
+  const card = box.querySelector('[data-cw-card]');
+  if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
   const inp = box.querySelector('.cw-inp');
   const grow = ()=>{ inp.style.height = 'auto';
                      inp.style.height = Math.min(inp.scrollHeight, 130) + 'px'; };
@@ -20897,7 +20990,10 @@ function wireChatWin(box, o, focusIn){
                       .map(it => it.getAsFile()).filter(Boolean);
     if(imgs.length){ e.preventDefault(); chatTake(imgs); }
   });
-  if(focusIn) inp.focus();
+  /* Фокус — так, прокрутка сторінки — ні. Розмова в розділі чатів стоїть у
+     потоці, і звичайний focus() тягне сторінку до поля: список зверху
+     виїжджав за край, і замість трьох розмов лишалась одна. */
+  if(focusIn){ try{ inp.focus({ preventScroll:true }); }catch(e){ inp.focus(); } }
 }
 
 async function chatSend(o, text){
