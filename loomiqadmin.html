@@ -22410,7 +22410,10 @@ function myAccReal(){
      стріляло. З появою запрошень поштою вхід відкривається сам, і таке
      припущення стало прямою дірою: зайшов — уже менеджер. Тепер навпаки:
      кого не завели, той не бачить нічого й читає це на екрані. */
-  if(!m) return ACC_NONE;
+  /* Господар заходить завжди — навіть якщо його пошта колись зникне зі
+     списку. Без цього єдиною дорогою назад у власну адмінку лишалась би
+     консоль бази. */
+  if(!m) return isOwnerEmail(myEmail()) ? presetOf('owner') : ACC_NONE;
   return accOf(m);
 }
 function myAcc(){
@@ -22583,8 +22586,16 @@ function teamMember(email){
 /* Поки команду не завели, система працює як раніше — усе видно. Інакше
    перше ж збереження порожнього списку сховало б цифри від самого власника. */
 function teamOn(){ return (((contentData.team) || []).length > 0); }
+/* Господар системи — той, хто налаштував команду першим. Його пошта
+   заходить завжди, навіть якщо зі списку вона колись зникне: інакше
+   єдиною дорогою назад лишалась би консоль бази. */
+function isOwnerEmail(e){
+  const own = String((contentData || {}).ownerEmail || '').trim().toLowerCase();
+  return !!own && own === String(e || '').trim().toLowerCase();
+}
 function myRole(){
   if(!teamOn()) return 'owner';
+  if(!teamMember(myEmail()) && isOwnerEmail(myEmail())) return 'owner';
   const m = teamMember(myEmail());
   const r = m && m.role;
   return ROLE_PRESET[r] ? r : 'manager';
@@ -22602,7 +22613,7 @@ function canSetup(){ return may('can', 'setup'); }
    якою поштою вона зайшла: саме тут майже завжди й помилка, зайшли не тим
    акаунтом, на який слали запрошення. */
 function applyNoAccess(){
-  const off = teamOn() && !teamMember(myEmail());
+  const off = teamOn() && !teamMember(myEmail()) && !isOwnerEmail(myEmail());
   let el = document.getElementById('no-access');
   if(!off){ if(el) el.remove(); document.body.classList.remove('no-access'); return true; }
   if(!el){
@@ -22973,7 +22984,20 @@ function renderTeamList(){
       return;
     }
     if(list.length && !list.some(p => p.email === myEmail())){
-      if(!confirm('Вас немає в списку. Після збереження ви працюватимете як менеджер і не бачитимете собівартість. Зберегти?')) return;
+      /* СЕБЕ ЗІ СПИСКУ ПРИБРАТИ НЕ МОЖНА.
+
+         Доти тут стояло питання «зберегти?». Воно казало неправду: людина
+         не «працюватиме як менеджер», вона взагалі втрачає адмінку — бо
+         щойно список став непорожнім, той, кого в ньому немає, бачить
+         замість неї табличку «вас ще не додали в команду». І виправити це
+         вже нізвідки: розділ доступів теж за цією табличкою.
+
+         Так і сталось: власник налаштовував ролі, зберіг список без себе —
+         і замкнув себе у власній системі. Жодне попередження тут не
+         допомагає, бо на питання «зберегти?» відповідають «так». Тому
+         просто не даємо. */
+      toast('Себе зі списку прибрати не можна — інакше ви втратите доступ до власної адмінки');
+      return;
     }
     /* Що саме змінилось у правах — важливіше за «список збережено»: через
        півроку питання буде «хто відкрив йому собівартість», а не «коли». */
@@ -22983,8 +23007,15 @@ function renderTeamList(){
                      .map(p => p.email + (before[p.email] === undefined ? ' (нов.)' : ''));
     const gone = Object.keys(before).filter(e => !list.some(p => p.email === e));
     try{
-      await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list) }, { merge:true });
+      /* ЗАПАСНИЙ КЛЮЧ. Навіть коли список колись усе-таки втратить свого
+         господаря — через правку з іншої вкладки, збій запису, перенесення
+         бази, — адмінка має лишитись відкритою хоч комусь. Тому памʼятаємо,
+         хто налаштував команду першим, і ця пошта заходить завжди. */
+      const own = String(contentData.ownerEmail || myEmail() || '').toLowerCase();
+      await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list),
+                             ownerEmail: own }, { merge:true });
       contentData.team = list;
+      contentData.ownerEmail = own;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
                                    acc: accExpand(p.acc) }));
       applyRoleUi();
