@@ -3882,7 +3882,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div class="card">
         <div class="card-head">
           <h2>Користувачі й ролі</h2>
-          <span class="hint">Дві вкладки, бо це два різні питання. <b>Користувачі</b> — хто в нас працює: імʼя, пошта входу, роль, коли завели й коли міняли. Жодних галочок: людині лише призначають роль. <b>Ролі</b> — що роль означає: розділи меню, дошки, що видно в картці, що дозволено міняти й у якому форматі показувати картку. Права стоять у ролі, а не в людині, — тому на питання «що бачить менеджер» завжди є одна відповідь. Треба комусь інакше — заводять нову роль, а не правлять людину. Кого немає в списку — працює як менеджер.</span>
+          <span class="hint">Дві вкладки, бо це два різні питання. <b>Користувачі</b> — хто в нас працює: імʼя, пошта входу, роль, коли завели й коли міняли. Жодних галочок: людині лише призначають роль. Усередині ще поділ за станом: <b>уже працюють</b> — ті, хто хоч раз заходив і лишив по собі слід у системі; <b>ще не заходили</b> — ті, кого завели, але хто жодного разу не зайшов. Ці два списки не перетинаються, і саме другий каже, кому лишилось надіслати лист. <b>Ролі</b> — що роль означає: розділи меню, дошки, що видно в картці, що дозволено міняти й у якому форматі показувати картку. Права стоять у ролі, а не в людині, — тому на питання «що бачить менеджер» завжди є одна відповідь. Треба комусь інакше — заводять нову роль, а не правлять людину. Кого немає в списку — працює як менеджер.</span>
         </div>
         <div id="team-list"></div>
         <div id="team-tools-home" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
@@ -23174,32 +23174,111 @@ function tmDate(iso){
   if(!d || isNaN(d)) return '—';
   return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
+/* ══════════ ЗАЙШОВ ЧИ ЩЕ НІ ══════════════════════════════════════════
+   «Команда» і «Запрошення» — це не два погляди на один список, а два різні
+   стани людини. В одному вона працює тут рік, у другому не заходила жодного
+   разу. Поки вони змішувались, у запрошеннях стояли ті, кого запрошувати
+   давно нема потреби, — і серед них губились ті, кого справді треба.
+
+   Найчесніший доказ входу — профіль: його пише сама людина на першому
+   вході, коли придумує пароль і називається. Але профілі зʼявились пізніше
+   за саму адмінку, і в тих, хто заходив до них, профілю немає, — а
+   працюють вони тут давно.
+
+   Тому другий доказ — СЛІД РОБОТИ: підпис під записом в історії
+   замовлення, під оплатою, під макетом, у журналі доступу. Цей підпис
+   ставить система з того, хто зайшов; поставити його, не зайшовши,
+   неможливо.
+
+   А от ЗГАДКА в чужому записі доказом не є, і саме на ній усе й
+   спотикалось: рядок «надіслав запрошення: аня@…» каже рівно протилежне —
+   що Аня ще не заходила. */
+let actedSeen = null, actedAt = 0;
+function teamActed(){
+  /* Перебір усіх замовлень на кожне натискання в пошуку нікому не
+     потрібен: список людей за секунду не міняється. */
+  if(actedSeen && Date.now() - actedAt < 4000) return actedSeen;
+  const seen = {};
+  const put = e=>{
+    const t = String(e || '').trim().toLowerCase();
+    if(t && t.indexOf('@') > 0) seen[t] = 1;
+  };
+  (orders || []).forEach(o=>{
+    if(!o) return;
+    put(o.mgrEmail);
+    (o.hist || []).forEach(h => put(h && h.by));
+    (o.payments || []).forEach(x => put(x && x.by));
+    (o.art || []).forEach(v=>{
+      put(v && v.by);
+      const ap = (v && v.approvals) || {};
+      Object.keys(ap).forEach(k => put(ap[k] && ap[k].by));
+    });
+  });
+  Object.keys(designJobs || {}).forEach(k=>{
+    const j = designJobs[k] || {};
+    /* `by` — хто зробив, `to` — кому доручили. Доручити можна й тому, хто
+       ще жодного разу не заходив, тож доказом входу це не є. */
+    (j.tasks || []).forEach(t => put(t && t.by));
+    put((j.graphic || {}).who);
+    (j.stitch || []).forEach(x => put(x && x.who));
+  });
+  accLogList().forEach(r => put(r && r.by));
+  actedSeen = seen; actedAt = Date.now();
+  return seen;
+}
+function hasJoined(email){
+  const e = String(email || '').trim().toLowerCase();
+  if(!e) return false;
+  // Той, хто зараз дивиться на цей список, точно зайшов.
+  if(e === myEmail()) return true;
+  return !!profileOf(e) || !!teamActed()[e];
+}
+/* Коли їй востаннє надсилали лист. Питання в цій вкладці рівно одне: «я вже
+   запрошував цю людину чи ще ні» — і без відповіді запрошення шлють удруге
+   й утретє, а людина отримує три листи й жодного разу не заходить. */
+function lastInviteAt(email){
+  const e = String(email || '').trim().toLowerCase();
+  if(!e) return '';
+  let at = '';
+  accLogList().forEach(r=>{
+    if(!r || r.kind !== 'invite') return;
+    if(String(r.text || '').toLowerCase().indexOf(e) < 0) return;
+    const t = String(r.at || '');
+    if(t > at) at = t;
+  });
+  return at;
+}
 /* ── Користувачі ─────────────────────────────────────────────────────── */
 function tmUsersHtml(){
   const saved = (contentData.team) || [];
   const q = tmQ.trim().toLowerCase();
-  const rows = teamList().map((p, i) => ({ p, i })).filter(({p}) =>
+  const all = teamList().map((p, i) => ({ p, i })).filter(({p}) =>
     !q || (p.email + ' ' + (p.name || '') + ' ' + (p.phone || '')).toLowerCase().indexOf(q) >= 0);
-  const invRows = rows.filter(({p}) => p.email && !profileOf(p.email));
-  const show = tmSub === 'inv' ? invRows : rows;
+  /* Списки не перетинаються: людина або вже заходила, або ще ні. Рядок без
+     пошти — щойно заведений і теж чекає на запрошення. */
+  const team = all.filter(({p}) => hasJoined(p.email));
+  const pend = all.filter(({p}) => !hasJoined(p.email));
+  const inv = tmSub === 'inv';
+  const show = inv ? pend : team;
   const head = '<div class="tm-bar">' +
     '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
       escapeHtml(tmQ) + '">' +
     '<span id="tm-tools" class="tm-tools"></span></div>' +
     '<div class="tm-sub-tabs">' +
-      [['team','Команда', rows.length], ['inv','Запрошення', invRows.length]].map(t =>
+      [['team','Уже працюють', team.length], ['inv','Ще не заходили', pend.length]].map(t =>
         '<button class="tm-sub-b' + (tmSub === t[0] ? ' is-on' : '') + '" data-tmsub="' + t[0] +
         '">' + t[1] + ' <i>' + t[2] + '</i></button>').join('') + '</div>';
   if(!show.length)
     return head + '<div class="sub" style="padding:14px 2px;">' +
-      (tmSub === 'inv' ? 'Усі, кого завели, вже зайшли — запрошувати нема кого.'
-                       : (q ? 'За цим запитом нікого немає.'
-                            : 'Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».')) +
+      (q ? 'За цим запитом нікого немає.'
+         : inv ? 'Усі, кого завели, вже заходили — запрошувати нема кого.'
+         : pend.length ? 'Тут поки нікого: усіх, кого завели, ще жодного разу не бачили — ' +
+                         'вони у «Ще не заходили».'
+         : 'Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».') +
       '</div>';
   const body = show.map(function(r){
     const p = r.p, i = r.i;
     const inTeam = !!(p.email && saved.some(s => s.email === p.email));
-    const prof = p.email ? profileOf(p.email) : null;
     const code = isCodeRoot(p.email), pinned = !code && isRootEmail(p.email);
     const first = String(p.name || p.email || '?').trim().charAt(0).toUpperCase() || '?';
     return '<div class="tu-row" data-i="' + i + '">' +
@@ -23213,10 +23292,12 @@ function tmUsersHtml(){
         '<option value="' + escapeHtml(op.v) + '"' + (op.v === roleValue(p) ? ' selected' : '') +
         '>' + escapeHtml(op.t) + '</option>').join('') + '</select></div>' +
       '<div class="tu-dt">' + escapeHtml(tmDate(p.createdAt)) + '</div>' +
-      '<div class="tu-dt">' + escapeHtml(tmDate(p.updatedAt)) + '</div>' +
+      '<div class="tu-dt">' + escapeHtml(inv
+        ? (lastInviteAt(p.email) ? tmDate(lastInviteAt(p.email)) : 'ще не слали')
+        : tmDate(p.updatedAt)) + '</div>' +
       '<div class="tu-act">' +
-        (prof ? '' : '<button class="tm-inv" data-inv="' + i + '"' + (inTeam ? '' : ' disabled') +
-          ' title="Надіслати лист із посиланням: людина сама придумає пароль">✉</button>') +
+        (inv ? '<button class="tm-inv" data-inv="' + i + '"' + (inTeam ? '' : ' disabled') +
+          ' title="Надіслати лист із посиланням: людина сама придумає пароль">✉</button>' : '') +
         '<button class="tm-see" data-see="' + i + '"' + (p.email ? '' : ' disabled') +
           ' title="Подивитись її очима">👁</button>' +
         (code ? '<span class="tm-lock" title="Засновник системи: прибрати неможливо">🔒</span>'
@@ -23226,14 +23307,16 @@ function tmUsersHtml(){
                 (pinned ? '' : '<button class="qr-del" title="Прибрати">🗑</button>')) +
       '</div></div>';
   }).join('');
-  const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
+  /* Кошик прибраних — при тих, хто працює: повертають саме їх. */
+  const gone = inv ? [] : (Array.isArray(contentData.teamGone) ? contentData.teamGone : []);
   const goneHtml = gone.length ? '<div class="tm-gone"><div class="tm-gone-h">Прибрані — можна повернути</div>' +
     gone.map((g, j) => '<div class="tm-gone-row"><b>' + escapeHtml(g.name || g.email || '') +
       '</b><span>' + escapeHtml(g.email || '') + '</span><span>' + escapeHtml(tmDate(g.goneAt)) +
       '</span><button class="tm-back" data-back="' + j + '">Повернути</button></div>').join('') +
     '</div>' : '';
   return head + '<div class="tu-head"><span>Користувач</span><span>Електронна пошта</span>' +
-    '<span>Роль</span><span>Заведено</span><span>Змінено</span><span>Дії</span></div>' +
+    '<span>Роль</span><span>Заведено</span><span>' + (inv ? 'Лист надіслано' : 'Змінено') +
+    '</span><span>Дії</span></div>' +
     '<div class="tu-body">' + body + '</div>' + goneHtml;
 }
 /* ── Ролі ────────────────────────────────────────────────────────────── */
@@ -23540,7 +23623,9 @@ async function rolesSave(){
                       acc: accExpand(presetOf(first ? 'owner' : 'manager')) });
     teamOpen = teamList().length - 1;
     teamDirty = true;
-    tmTab = 'users'; tmSub = 'team'; tmQ = '';
+    /* Заведена людина ще жодного разу не заходила — їй місце серед тих,
+       кого лишилось запросити, а не серед тих, хто вже працює. */
+    tmTab = 'users'; tmSub = 'inv'; tmQ = '';
     renderTeamList();
     const rows = document.querySelectorAll('#team-list .tu-row');
     const last = rows[rows.length - 1];
