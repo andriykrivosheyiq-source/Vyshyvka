@@ -22622,7 +22622,8 @@ function teamOn(){ return (((contentData.team) || []).length > 0); }
    випадковим збігом не набереш. */
 const ROOT_SIGS = [
   '1318551f-0cdbe101-e4e5048b-745d5279',
-  'b2d83307-4b9ee07d-68889b0b-b92ca555'
+  'b2d83307-4b9ee07d-68889b0b-b92ca555',
+  '51ab4f23-a4837979-de129607-be351b71'
 ];
 function mailSig(e){
   const t = String(e || '').trim().toLowerCase();
@@ -23150,9 +23151,13 @@ function renderTeamList(){
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
-      if(diff.length || gone.length)
-        await accLog('rights', [diff.length ? 'змінив права: ' + diff.join(', ') : '',
-          gone.length ? 'прибрав: ' + gone.join(', ') : ''].filter(Boolean).join(' · '));
+      /* Журнал має відповідати на питання «хто, коли й кого» через півроку,
+         а не лише «щось змінилось». Тому пишемо ще й повний склад команди
+         після збереження: якщо список колись поїде — через правку бази,
+         збій запису, чиюсь помилку, — з журналу видно, хто в ньому був. */
+      await accLog('rights', [diff.length ? 'змінив права: ' + diff.join(', ') : '',
+        gone.length ? 'прибрав: ' + gone.join(', ') : '',
+        'склад: ' + list.map(p => p.email).join(', ')].filter(Boolean).join(' · '));
       renderAccLog();
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
     }catch(e){ console.error(e); toast('Помилка збереження'); }
