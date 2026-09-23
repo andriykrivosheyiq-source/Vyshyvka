@@ -184,6 +184,9 @@ console.log('═══ ДОСТУПИ — ОКРЕМИЙ РОЗДІЛ, І ТІЛ
     'розділу немає в меню: ' + seen.nav.join(','));
 
   await boss.evaluate(() => {
+    /* Оксана тут ще нічого не робила, тож її рядок серед тих, кого ще не
+       бачили: «уже працюють» і «ще не заходили» — два стани людини. */
+    tmSub = 'inv';
     const b = document.querySelector('.nav button[data-view="team"]');
     if(b) b.click();
   });

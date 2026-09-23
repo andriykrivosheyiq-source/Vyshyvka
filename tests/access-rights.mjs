@@ -27,6 +27,9 @@
      — чужа пошта бачить екран «вас не додали», а не чужі замовлення;
      — запрошення шлеться на пошту з тієї самої сторінки, і лише тому, хто
        вже збережений у команді;
+     — «уже працюють» і «ще не заходили» — два стани людини, а не два
+       погляди на один список: перетину між ними немає, а доказом входу є
+       слід роботи, а не наявність профілю;
      — галочки живуть у РОЛІ, а не в людині: у рядку людини їх немає жодної,
        тому на питання «що бачить менеджер» є одна відповідь, а не пʼять;
      — роль — окремий запис: її видно списком, можна назвати й завести нову;
@@ -187,13 +190,20 @@ console.log('═══ ГАЛОЧКИ ЖИВУТЬ У РОЛІ, А НЕ В ЛЮ�
    — усі галочки. Треба комусь інакше — заводять НОВУ РОЛЬ. */
 await p.evaluate(() => { document.querySelector('.nav button[data-view="team"]').click(); });
 await p.waitForTimeout(600);
-const зони = await p.evaluate(() => ({
-  вкладки:[...document.querySelectorAll('#team-list [data-tmtab]')].map(b => b.textContent.trim()),
-  галочок:document.querySelectorAll('#team-list .tu-row input[type=checkbox]').length,
-  людей:document.querySelectorAll('#team-list .tu-row').length,
-  ролейВРядку:document.querySelectorAll('#team-list .tu-row .tm-role').length,
-  колонки:[...document.querySelectorAll('#team-list .tu-head span')].map(s => s.textContent.trim())
-}));
+const зони = await p.evaluate(() => {
+  /* Обидва зайшли: один — бо це ми й дивимось його очима, другий лишив
+     підпис у журналі. Слід роботи й є доказом входу. */
+  contentData.accessLog = [{ at:'2026-05-02T09:00:00.000Z', by:'owner@loomiq',
+                             kind:'export', text:'вивантажив базу' }];
+  actedSeen = null; renderTeamList();
+  return {
+    вкладки:[...document.querySelectorAll('#team-list [data-tmtab]')].map(b => b.textContent.trim()),
+    галочок:document.querySelectorAll('#team-list .tu-row input[type=checkbox]').length,
+    людей:document.querySelectorAll('#team-list .tu-row').length,
+    ролейВРядку:document.querySelectorAll('#team-list .tu-row .tm-role').length,
+    колонки:[...document.querySelectorAll('#team-list .tu-head span')].map(s => s.textContent.trim())
+  };
+});
 console.log('   ' + JSON.stringify(зони));
 ok(зони.вкладки.join() === 'Користувачі,Ролі',
   'дві зони, а не один список: окремо люди, окремо права',
@@ -204,6 +214,43 @@ ok(зони.галочок === 0 && зони.ролейВРядку === зони
 ok(зони.колонки.indexOf('Заведено') >= 0 && зони.колонки.indexOf('Змінено') >= 0,
   'видно, коли людину завели й коли її востаннє чіпали',
   'дат у таблиці немає: ' + JSON.stringify(зони));
+/* «Уже працюють» і «Ще не заходили» — два СТАНИ людини, а не два погляди на
+   один список. Доти вони перетинались: у запрошеннях стояли ті, хто працює
+   тут роками, бо профілі зʼявились пізніше за саму адмінку і в давніх
+   працівників їх немає. Доказом входу став слід роботи — підпис, який
+   ставить система з того, хто зайшов. */
+const стани = await p.evaluate(async () => {
+  contentData.accessLog = [{ at:'2026-05-02T09:00:00.000Z', by:'owner@loomiq',
+                             kind:'export', text:'вивантажив базу' },
+                           { at:'2026-09-21T09:00:00.000Z', by:'owner@loomiq',
+                             kind:'invite', text:'надіслав запрошення: nova@loomiq' }];
+  contentData.team = contentData.team.concat([{ email:'nova@loomiq', name:'Нова', role:'designer' }]);
+  teamDraft = null; actedSeen = null;
+  const пошти = () => [...document.querySelectorAll('#team-list .tm-mail')].map(x => x.value);
+  tmSub = 'team'; renderTeamList(); const працюють = пошти();
+  tmSub = 'inv';  renderTeamList(); const чекають = пошти();
+  const лист = [...document.querySelectorAll('#team-list .tu-row')]
+    .map(r => r.querySelectorAll('.tu-dt')[1].textContent.trim());
+  const конверти = document.querySelectorAll('#team-list [data-inv]').length;
+  tmSub = 'team'; renderTeamList();
+  const безКонвертів = document.querySelectorAll('#team-list [data-inv]').length;
+  return { працюють, чекають, лист, конверти, безКонвертів,
+           перетин: працюють.filter(e => чекають.indexOf(e) >= 0) };
+});
+console.log('   ' + JSON.stringify(стани));
+ok(стани.працюють.join() === 'owner@loomiq,test@loomiq' && стани.чекають.join() === 'nova@loomiq',
+  'хто лишив по собі слід у системі — той уже працює, а не «чекає на запрошення»',
+  'стани переплутані: ' + JSON.stringify(стани));
+ok(!стани.перетин.length,
+  'жодна людина не стоїть одразу в обох списках — це два стани, а не два фільтри',
+  'та сама людина і працює, і запрошена: ' + JSON.stringify(стани.перетин));
+ok(стани.лист.join() === '21.09.2026',
+  'видно, коли листа вже надсилали — інакше його шлють удруге й утретє',
+  'дати листа немає: ' + JSON.stringify(стани.лист));
+ok(стани.конверти === 1 && стани.безКонвертів === 0,
+  'конверт стоїть лише в того, кого ще не бачили',
+  'запрошення пропонують і тим, хто тут працює: ' + JSON.stringify(стани));
+
 /* Роль — запис зі своїм набором прав, а не рядок у коді: її можна
    перейменувати, змінити й завести нову, не чіпаючи нікого з людей. */
 const ролезона = await p.evaluate(async () => {
@@ -361,7 +408,9 @@ const шпилька = await p.evaluate(async () => {
   contentData.rootSigs = [];
   contentData.team = [{ email:'andriy@loomiq', name:'Андрій', role:'manager',
                         acc:{ ui:'manager', nav:['board'], boards:['sale'], see:[], can:['setup'] } }];
-  teamDraft = null; renderTeamList();
+  /* Андрій тут нічого ще не робив, тож його рядок — серед тих, кого ще не
+     бачили. Шпилька має бути в нього й там. */
+  teamDraft = null; actedSeen = null; tmSub = 'inv'; renderTeamList();
   const було_ = { кошик:!!document.querySelector('#team-list .qr-del'),
                   шпилька:!!document.querySelector('#team-list [data-pin]') };
   await rootPin('andriy@loomiq', true);
@@ -371,7 +420,7 @@ const шпилька = await p.evaluate(async () => {
   await rootPin('andriy@loomiq', false);
   const зняли = isRootEmail('andriy@loomiq');
   contentData.rootSigs = []; contentData.team = JSON.parse(було);
-  teamDraft = null; renderTeamList();
+  teamDraft = null; tmSub = 'team'; renderTeamList();
   return { було_, стало, зняли };
 });
 console.log('   ' + JSON.stringify(шпилька));
@@ -472,21 +521,23 @@ ok(сліди.indexOf('nastya@loomiq') >= 0 && сліди.indexOf('vova@loomiq')
 console.log('');
 console.log('═══ ЗАПРОШЕННЯ ЙДЕ НА ПОШТУ ═══');
 const inv = await p.evaluate(async (TEAM) => {
-  /* Попередні перевірки лишили в базі чужий список — повертаємо свій:
-     запрошення йде лише тому, хто в базі вже є, і без цього кроку ми
-     перевіряли б не кнопку, а наслідок попереднього тесту. */
+  /* Попередні перевірки лишили в базі чужий список і чужий журнал —
+     повертаємо свій: запрошення йде лише тому, хто в базі вже є і хто ще
+     жодного разу не заходив. Без цього кроку ми перевіряли б не кнопку, а
+     наслідок попереднього тесту. */
   contentData.team = JSON.parse(JSON.stringify(TEAM));
-  teamDraft = null; renderTeamList();
+  contentData.accessLog = [];
+  teamDraft = null; actedSeen = null; tmSub = 'inv'; renderTeamList();
   window.__AUTH = [];
   const btns = [...document.querySelectorAll('#team-list [data-inv]')];
   const offBefore = btns.map(b => b.disabled);
-  const мій = btns.find(b => (b.closest('.tu-row').querySelector('.tm-mail') || {}).value === 'test@loomiq');
-  if(мій) мій.click();
+  const рядок = btns.find(b => (b.closest('.tu-row').querySelector('.tm-mail') || {}).value === 'owner@loomiq');
+  if(рядок) рядок.click();
   await new Promise(r => setTimeout(r, 400));
   return { offBefore, кнопок:btns.length, log: window.__AUTH.slice() };
 }, TEAM);
 console.log('  ' + JSON.stringify(inv.log));
-ok(inv.log.length === 1 && inv.log[0].op === 'invite' && inv.log[0].mail === 'test@loomiq',
+ok(inv.log.length === 1 && inv.log[0].op === 'invite' && inv.log[0].mail === 'owner@loomiq',
   'кнопка шле лист саме тій людині, біля якої стоїть',
   'запрошення не пішло або пішло не туди: ' + JSON.stringify(inv.log));
 ok(inv.log.length === 1 && /invite=1/.test(String(inv.log[0].url || '')),
@@ -497,7 +548,7 @@ const notSaved = await p.evaluate(async () => {
   window.__AUTH = [];
   teamList().push({ email:'new@loomiq', name:'Нова', role:'designer',
                     acc: accExpand(presetOf('designer')) });
-  renderTeamList();
+  tmSub = 'inv'; renderTeamList();
   const b = [...document.querySelectorAll('#team-list [data-inv]')].pop();
   const off = b.disabled;
   b.click();
