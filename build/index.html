@@ -6391,14 +6391,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
     if(b.feeShare){
-      // feeShare — уся разова частка разом з ескізами. Базову підготовку показуємо
-      // як залишок, інакше ескізи порахувались би двічі й рядки не зійшлись би з
-      // ціною за штуку.
+      /* Разова в картинки й у напису — окремі, і діляться на різні тиражі.
+         Один рядок на обидві брехав: `feeTotal` складав разові всіх видів, а
+         `feeUnits` не складався, а перезаписувався останнім видом. Поки на
+         виробі один вид, різниці немає; щойно й логотип, і напис — число
+         ставало вигаданим і не сходилось із самою ціною. */
+      var KIND_UA = { img:'картинка', txt:'напис' };
       var sk = (b.sketches || []).map(function(s){
         return { s: s, share: Math.round(s.fee / (s.units || 1)) };
       });
-      var base = b.feeShare - sk.reduce(function(a, x){ return a + x.share; }, 0);
-      if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт', base + ' грн']);
+      var fl = (b.feeLines || []).map(function(f){
+        return { f: f, share: Math.round(f.fee / (f.units || 1)) };
+      });
+      var skSum = sk.reduce(function(a, x){ return a + x.share; }, 0);
+      if(!fl.length){
+        var base = b.feeShare - skSum;      // старий розклад рядків не має
+        if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт', base + ' грн']);
+      } else {
+        var diff = b.feeShare - skSum - fl.reduce(function(a, x){ return a + x.share; }, 0);
+        fl.forEach(function(x, i){
+          var v = x.share + (i === 0 ? diff : 0);
+          var kd = fl.length > 1 ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
+          rows.push(['Підготовка макета' + kd + ' · ' + x.f.fee + ' грн на ' + x.f.units + ' шт',
+                     v + ' грн']);
+        });
+      }
       sk.forEach(function(x){
         rows.push(['Додатковий ескіз · ' + x.s.fee + ' грн на ' + x.s.units + ' шт', x.share + ' грн']);
       });
