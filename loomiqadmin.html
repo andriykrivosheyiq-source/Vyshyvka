@@ -8588,13 +8588,47 @@ function designPic(o, fp){
   });
   return hit;
 }
+/* ОДИН МАЛЮНОК — ОДНЕ РІШЕННЯ, НАВІТЬ КОЛИ ВІДБИТКИ РІЗНІ.
+
+   Відбиток знімається з пікселів. Але коли їх прочитати не вдалось —
+   картинка не встигла домалюватись, файл із чужого домену, позиція
+   збережена давно, — шар дістає запасний відбиток: хеш власної адреси.
+
+   А той самий логотип, доданий до рекомендованої позиції окремо, лежить у
+   сховищі під іншою адресою. Виходить два різні відбитки на один і той
+   самий малюнок — і рішення «це напис», поставлене на основному товарі, до
+   рекомендованого не доходило: менеджер бачив там «картинка» і не розумів,
+   чому вибір не підхопився.
+
+   Тому рішення розходиться ще й за АДРЕСОЮ ФАЙЛУ: усі відбитки, за якими
+   стоїть та сама картинка, отримують той самий вид. Адреса — не така
+   надійна прикмета, як пікселі, зате вона є завжди. */
+function fpAliases(o, fp){
+  const url = String(designPic(o, fp) || '');
+  const out = [String(fp || '')];
+  if(!url) return out;
+  ((o && o.items) || []).forEach(x=>{
+    const logos = x && x.config && x.config.logos;
+    if(!logos || typeof logos !== 'object') return;
+    Object.keys(logos).forEach(side=>{
+      (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+        if(!l || !l.fp) return;
+        const u = l.url || l.cleanUrl || l.origUrl || '';
+        if(u === url && out.indexOf(String(l.fp)) < 0) out.push(String(l.fp));
+      });
+    });
+  });
+  return out;
+}
 function setItemKindFix(it, fp, kind, o){
   if(!it && !o) return;
   const key = String(fp || '');
   if(!key) return;
   if(o){
     const m = Object.assign({}, (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
-    if(kind === 'img' || kind === 'txt' || kind === 'off') m[key] = kind; else delete m[key];
+    fpAliases(o, key).forEach(k=>{
+      if(kind === 'img' || kind === 'txt' || kind === 'off') m[k] = kind; else delete m[k];
+    });
     o.designKindFix = Object.keys(m).length ? m : null;
     /* Старі позиційні позначки для цього відбитка прибираємо: два джерела
        правди про один малюнок — це те саме розходження, від якого ми тут і
@@ -8605,6 +8639,27 @@ function setItemKindFix(it, fp, kind, o){
       const c = Object.assign({}, x.designKindFix);
       delete c[key];
       x.designKindFix = Object.keys(c).length ? c : null;
+    });
+  }
+  /* І на самі шари — в УСІХ позиціях, а не лише в тій, з якої натиснули.
+     Конструктор читає вид саме звідти, і без цього рекомендована позиція,
+     відкрита наступного разу, показала б «картинка» там, де людина щойно
+     поставила «напис». */
+  if(o){
+    const url = String(designPic(o, key) || '');
+    const keys = fpAliases(o, key);
+    (o.items || []).forEach(x=>{
+      const logos = x && x.config && x.config.logos;
+      if(!logos || typeof logos !== 'object') return;
+      Object.keys(logos).forEach(side=>{
+        (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+          if(!l) return;
+          const u = l.url || l.cleanUrl || l.origUrl || '';
+          if(keys.indexOf(String(l.fp || '')) < 0 && !(url && u === url)) return;
+          if(kind === 'img' || kind === 'txt' || kind === 'off') l.kindFix = kind;
+          else delete l.kindFix;
+        });
+      });
     });
   }
   if(!it) return;
