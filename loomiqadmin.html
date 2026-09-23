@@ -2576,7 +2576,13 @@
      дивно: перевіряють оком, а не списком. */
   .cw-cards{border-top:1px solid var(--line);padding:10px 10px 12px;max-height:340px;
     overflow:auto;}
-  .cw-cd-head{display:flex;flex-direction:column;gap:2px;margin-bottom:9px;}
+  .cw-cd-head{display:grid;grid-template-columns:1fr auto;align-items:start;
+    gap:2px 8px;margin-bottom:9px;}
+  .cw-cd-head b,.cw-cd-head span{grid-column:1;}
+  .cw-cd-x{all:unset;cursor:pointer;grid-column:2;grid-row:1/3;align-self:center;
+    width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:13px;color:var(--ink-soft);}
+  .cw-cd-x:hover{background:var(--canvas);color:var(--ink);}
   .cw-cd-head b{font-size:13px;font-weight:600;color:var(--ink);}
   .cw-cd-head span{font-size:11.5px;color:var(--muted);}
   .cw-cd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px;}
@@ -20033,6 +20039,11 @@ function cardsPanelHtml(o){
     <div class="cw-cd-head">
       <b>${st.kind === 'up' ? 'Допродаж' : 'Прорахунок'} — що вже в полі</b>
       <span>🔍 — роздивитись · зніміть зайве · текст уже в полі, надішлете самі ➤</span>
+      ${/* Хрестик закриває саму панель і НІЧОГО не чіпає: картки лишаються
+           в полі, готові до відправки. Це не те саме, що «Прибрати всі», і
+           саме тому обидва потрібні: одне ховає вікно, друге скасовує
+           підготовку. */''}
+      <button class="cw-cd-x" data-cd-hide title="Сховати панель — картки лишаться в полі">✕</button>
     </div>
     <div class="cw-cd-grid">${tiles}</div>
     <div class="cw-cd-acts">
@@ -20510,6 +20521,8 @@ function wireChatWin(box, o, focusIn){
     if(el){ el.focus(); try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} } });
   const cdDl = box.querySelector('[data-cd-dl]');
   if(cdDl) cdDl.addEventListener('click', ()=> cardsDownload(o));
+  const cdHide = box.querySelector('[data-cd-hide]');
+  if(cdHide) cdHide.addEventListener('click', ()=>{ chatWin.cards = null; renderChatWin(); });
   const cdNo = box.querySelector('[data-cd-close]');
   if(cdNo) cdNo.addEventListener('click', ()=>{
     /* Закриваючи панель цією кнопкою, картки зі смужки ЗАБИРАЄМО. Інакше
@@ -20750,6 +20763,10 @@ async function chatSendPics(o, pics, text){
   saveOrderMeta(o).catch(e => console.warn(e));
   pics.forEach(chatDropPic);
   chatWin.picsBusy = false;
+  /* Надіслали — панель зникає сама. Вона показує, ЩО ЛЕЖИТЬ У ПОЛІ; коли в
+     полі вже нічого немає, вона висить порожньою обіцянкою, і менеджер
+     мимоволі чекає від неї ще одної дії. */
+  if(!chatPics().length) chatWin.cards = null;
   if(text){ try{ await chatSend(o, text); }catch(e){ console.warn(e); } }
   renderChatWin(true);
   /* Картинка — таке саме повідомлення клієнту, як і лист, і картка від неї
