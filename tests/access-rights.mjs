@@ -266,6 +266,32 @@ ok(ключ.повернувся,
 ok(!ключ.замкнувся && ключ.роль === 'owner',
   'і навіть за відсутності в списку він заходить власником, а не впирається в «вас не додали»',
   'засновник замкнувся у власній системі: ' + JSON.stringify(ключ));
+/* «Його не можна прибрати» лишається обіцянкою, якої не видно, доки рядка
+   немає на екрані. Адресу засновника впізнають за підписом скрізь, де він
+   хоч раз щось робив, — тож рядок ставимо самі. */
+const рядок = await p.evaluate(async () => {
+  const було = JSON.stringify(contentData.team || []);
+  ROOT_SIGS.push(mailSig(myEmail()));
+  contentData.team = [{ email:'hto@inshiy', name:'Хтось', role:'manager',
+                        acc:{ ui:'manager', nav:['board'], boards:['sale'], see:[], can:[] } }];
+  teamDraft = null;
+  document.querySelector('.nav button[data-view="team"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const рядки = [...document.querySelectorAll('#team-list .tm-row')];
+  const мій = рядки.find(r => (r.querySelector('.tm-mail') || {}).value === myEmail());
+  const out = { зʼявився:!!мій, замок:!!(мій && мій.querySelector('.tm-lock')),
+                кошик:!!(мій && мій.querySelector('.qr-del')) };
+  ROOT_SIGS.pop();
+  contentData.team = JSON.parse(було); teamDraft = null; renderTeamList();
+  return out;
+});
+console.log('   ' + JSON.stringify(рядок));
+ok(рядок.зʼявився,
+  'рядок засновника стоїть у списку сам, навіть якщо в збереженому його немає',
+  'засновника в списку не видно: ' + JSON.stringify(рядок));
+ok(рядок.замок && !рядок.кошик,
+  'і замість кошика в нього замок — прибрати нічим',
+  'засновника можна прибрати кнопкою: ' + JSON.stringify(рядок));
 
 console.log('');
 console.log('═══ КОМАНДУ МОЖНА ЗІБРАТИ ЗІ СЛІДІВ ═══');
