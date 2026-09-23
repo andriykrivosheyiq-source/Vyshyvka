@@ -128,14 +128,22 @@ console.log('═══ ДОСТУПИ — ОКРЕМИЙ РОЗДІЛ, І ТІЛ
      він бачити не має, навіть якщо той стоїть у його списку розділів. */
   const TEAM = [
     { email:'boss@loomiq.net', name:'Андрій', role:'owner' },
-    { email:'mgr@loomiq.net',  name:'Оксана', role:'manager',
-      acc:{ ui:'manager', nav:['board','calc','team'], boards:'*',
-            see:['client','chat'], can:['edit','pay'] } }
+    { email:'mgr@loomiq.net',  name:'Оксана', role:'manager' }
+  ];
+  /* Галочки живуть у ролі, а не в людині, — тому й розділ доступів стоїть у
+     ролі менеджера. Саме це тут і перевіряють: галочка є, а розділу немає,
+     бо права міняти налаштування в ролі немає. */
+  const ROLE_DEFS = [
+    { key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*',
+      see:['client','chat','cost'], can:['edit','pay','del','setup'] },
+    { key:'manager', name:'Менеджер', ui:'manager',
+      nav:['board','calc','team'], boards:'*',
+      see:['client','chat'], can:['edit','pay'] }
   ];
   const mk = async (who) => {
     let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
     fbstub = fbstub.replace('window.firebase={',
-      'window.__CONTENT=' + JSON.stringify({ team: TEAM }) + ';\n' +
+      'window.__CONTENT=' + JSON.stringify({ team: TEAM, roles: ROLE_DEFS }) + ';\n' +
       '  window.__WHO=' + JSON.stringify(who) + ';\n  window.firebase={');
     fbstub = fbstub.replace(
       'Col.prototype.doc=function(){ return new Doc(); };',

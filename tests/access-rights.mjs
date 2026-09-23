@@ -27,7 +27,9 @@
      — чужа пошта бачить екран «вас не додали», а не чужі замовлення;
      — запрошення шлеться на пошту з тієї самої сторінки, і лише тому, хто
        вже збережений у команді;
-     — підсумок доступів видно в рядку, не розгортаючи галочки;
+     — галочки живуть у РОЛІ, а не в людині: у рядку людини їх немає жодної,
+       тому на питання «що бачить менеджер» є одна відповідь, а не пʼять;
+     — роль — окремий запис: її видно списком, можна назвати й завести нову;
      — своє імʼя людина міняє сама, і воно головніше за вписане власником.
 
    Запуск:  node tests/access-rights.mjs      (з кореня репозиторію)  */
@@ -65,14 +67,24 @@ const ORDER = {
   items:[{ kind:'main', name:'Футболка BASIC', color:'чорна', garmentId:'tshirt',
            qty:50, unitPrice:500, price:25000, unitCost:300, cost:15000 }]
 };
-/* Менеджер зі складом і оплатою, але БЕЗ видалення — рівно той випадок, через
-   який усе й затівалось: людина щодня працює із замовленнями й не має права
-   стерти жодне. */
+/* Ролі тепер записи в базі, а не рядки в коді: галочки живуть у ролі, а в
+   людини лишились імʼя, пошта й роль. Тому фікстура заводить їх так само, як
+   це зробив би власник руками. Менеджер тут зі складом, оплатою й
+   налаштуванням, але БЕЗ видалення — рівно той випадок, через який усе й
+   затівалось: людина щодня працює із замовленнями й не має права стерти
+   жодне. */
+const ROLE_DEFS = [
+  { key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*',
+    see:['client','chat','cost'], can:['edit','pay','del','setup'] },
+  { key:'manager', name:'Менеджер', ui:'manager',
+    nav:['today','board','team'], boards:['sale','design'],
+    see:['client','cost'], can:['edit','pay','setup'] },
+  { key:'designer', name:'Дизайнер', ui:'designer',
+    nav:['today','board','design'], boards:['design'], see:[], can:[] }
+];
 const TEAM = [
   { email:'owner@loomiq', name:'Андрій', role:'owner' },
-  { email:'test@loomiq',  name:'Марія',  role:'manager',
-    acc:{ ui:'manager', nav:['board','team'], boards:['sale','design'],
-          see:['client','cost'], can:['edit','pay','setup'] } }
+  { email:'test@loomiq',  name:'Марія',  role:'manager' }
 ];
 
 function stub(email, team, extra){
@@ -123,7 +135,7 @@ async function open(email, team, extra){
 }
 
 console.log('═══ ПРАВА НАЗИВАЮТЬСЯ ЗРОЗУМІЛО ═══');
-const p = await open('test@loomiq', TEAM);
+const p = await open('test@loomiq', TEAM, { roles: ROLE_DEFS });
 const rights = await p.evaluate(() => ({
   can: ZONE_CAN.map(z => ({ k:z.key, l:z.label, h:(z.hint || '').length })),
   noHint: [].concat(ZONE_CAN, ZONE_SEE, ZONE_NAV).filter(z => !z.hint).map(z => z.key),
@@ -165,18 +177,59 @@ ok(refused === before.orders,
   'замовлення зникло попри відсутність права');
 
 console.log('');
-console.log('═══ ПІДСУМОК ДОСТУПІВ ВИДНО В РЯДКУ ═══');
+console.log('═══ ГАЛОЧКИ ЖИВУТЬ У РОЛІ, А НЕ В ЛЮДИНІ ═══');
+/* Доти роль лише ЗАПОВНЮВАЛА галочки, а далі кожному вмикали своє. Звучало
+   гнучко, а виходило навпаки: у пʼяти менеджерів пʼять різних наборів, і на
+   питання «що бачить менеджер» чесної відповіді немає. Через півроку ніхто
+   не памʼятає, чому в однієї є собівартість, а в другої немає.
+
+   Тому зони дві й вони не змішуються: у людини — імʼя, пошта й роль, у ролі
+   — усі галочки. Треба комусь інакше — заводять НОВУ РОЛЬ. */
 await p.evaluate(() => { document.querySelector('.nav button[data-view="team"]').click(); });
 await p.waitForTimeout(600);
-const sums = await p.evaluate(() =>
-  [...document.querySelectorAll('#team-list .tm-sum')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-sums.forEach(s => console.log('  ' + s.slice(0, 120)));
-ok(sums.length === 2 && sums.every(s => /Заходить:/.test(s) && /Може:/.test(s)),
-  'під кожною людиною видно результат, а не «розгорніть і порахуйте галочки»',
-  'підсумку немає: ' + JSON.stringify(sums));
-ok(sums.some(s => /Може: [^·]*Видаляти замовлення/.test(s)),
-  'у власника в підсумку видно й право на видалення',
-  'право видалення не потрапило в підсумок');
+const зони = await p.evaluate(() => ({
+  вкладки:[...document.querySelectorAll('#team-list [data-tmtab]')].map(b => b.textContent.trim()),
+  галочок:document.querySelectorAll('#team-list .tu-row input[type=checkbox]').length,
+  людей:document.querySelectorAll('#team-list .tu-row').length,
+  ролейВРядку:document.querySelectorAll('#team-list .tu-row .tm-role').length,
+  колонки:[...document.querySelectorAll('#team-list .tu-head span')].map(s => s.textContent.trim())
+}));
+console.log('   ' + JSON.stringify(зони));
+ok(зони.вкладки.join() === 'Користувачі,Ролі',
+  'дві зони, а не один список: окремо люди, окремо права',
+  'вкладок «Користувачі / Ролі» немає: ' + JSON.stringify(зони));
+ok(зони.галочок === 0 && зони.ролейВРядку === зони.людей && зони.людей === 2,
+  'у людини жодної галочки — лише роль: тому «що бачить менеджер» має одну відповідь',
+  'у рядку людини досі роздають права поштучно: ' + JSON.stringify(зони));
+ok(зони.колонки.indexOf('Заведено') >= 0 && зони.колонки.indexOf('Змінено') >= 0,
+  'видно, коли людину завели й коли її востаннє чіпали',
+  'дат у таблиці немає: ' + JSON.stringify(зони));
+/* Роль — запис зі своїм набором прав, а не рядок у коді: її можна
+   перейменувати, змінити й завести нову, не чіпаючи нікого з людей. */
+const ролезона = await p.evaluate(async () => {
+  tmTab = 'roles'; roleOpen = 'manager'; renderTeamList();
+  await new Promise(r => setTimeout(r, 150));
+  const out = {
+    ролей:document.querySelectorAll('#team-list .tr-row').length,
+    назва:!!document.querySelector('#team-list .tr-name'),
+    секцій:[...document.querySelectorAll('#team-list .tr-sec-h b')].map(b => b.textContent.trim()),
+    галочок:document.querySelectorAll('#team-list .tr-box input[type=checkbox]').length,
+    нова:!!document.querySelector('#team-list .tr-add'),
+    видалення:!!document.querySelector('#team-list .tr-box input[data-rz="can|del"]')
+  };
+  tmTab = 'users'; roleOpen = ''; renderTeamList();
+  return out;
+});
+console.log('   ' + JSON.stringify(ролезона));
+ok(ролезона.ролей === ROLE_DEFS.length && ролезона.назва && ролезона.нова,
+  'роль — окремий запис: її видно списком, її можна назвати й завести нову',
+  'ролі не стали сутністю: ' + JSON.stringify(ролезона));
+ok(ролезона.секцій.join() === 'Розділи,Дошки,Бачить у картці,Може робити',
+  'права розкладені по чотирьох питаннях, а не звалені в купу галочок',
+  'секцій прав немає: ' + JSON.stringify(ролезона));
+ok(ролезона.видалення,
+  'право на видалення роздається саме тут — у ролі',
+  'права видалення в ролі немає: ' + JSON.stringify(ролезона));
 
 console.log('');
 console.log('═══ РОЛЬ ПІДПИСАНА НАПРЯМОМ ═══');
@@ -201,15 +254,21 @@ ok(ролі.власник === 'Власник',
    і менеджер B2C побачив би Канбан із чужими замовленнями. */
 const розділи = await p.evaluate(() => {
   const було = JSON.stringify(contentData.team || []);
+  /* Заводимо роль, якій відкриті ОБИДВА розділи — Канбан і B2C. Саме тоді й
+     видно, що відрізає напрям, а не список галочок. Заодно це перевіряє, що
+     нова роль справді працює: вона тут не з коду, її щойно завели. */
+  const булиРолі = contentData.roles;
+  contentData.roles = roleDefs().concat([{ key:'both', name:'Обидва напрями',
+    ui:'manager', nav:['today','board','design'], boards:['sale'],
+    see:['client'], can:['edit'] }]);
   const тест = dirs => {
-    contentData.team = [{ email:myEmail(), name:'Я', role:'manager', dirs:dirs,
-      acc:{ ui:'manager', nav:['today','board','design'], boards:['sale'],
-            see:['client'], can:['edit'] } }];
+    contentData.team = [{ email:myEmail(), name:'Я', role:'both', dirs:dirs }];
     teamDraft = null; applyRoleUi();
     return [...document.querySelectorAll('.nav button[data-view]')]
       .filter(b => !b.hidden).map(b => b.dataset.view);
   };
   const b2b = тест(['b2b']), b2c = тест(['b2c']);
+  contentData.roles = булиРолі;
   contentData.team = JSON.parse(було); teamDraft = null; applyRoleUi();
   return { b2b, b2c };
 });
@@ -277,7 +336,7 @@ const рядок = await p.evaluate(async () => {
   teamDraft = null;
   document.querySelector('.nav button[data-view="team"]').click();
   await new Promise(r => setTimeout(r, 300));
-  const рядки = [...document.querySelectorAll('#team-list .tm-row')];
+  const рядки = [...document.querySelectorAll('#team-list .tu-row')];
   const мій = рядки.find(r => (r.querySelector('.tm-mail') || {}).value === myEmail());
   const out = { зʼявився:!!мій, замок:!!(мій && мій.querySelector('.tm-lock')),
                 кошик:!!(мій && мій.querySelector('.qr-del')) };
@@ -412,14 +471,20 @@ ok(сліди.indexOf('nastya@loomiq') >= 0 && сліди.indexOf('vova@loomiq')
 
 console.log('');
 console.log('═══ ЗАПРОШЕННЯ ЙДЕ НА ПОШТУ ═══');
-const inv = await p.evaluate(async () => {
+const inv = await p.evaluate(async (TEAM) => {
+  /* Попередні перевірки лишили в базі чужий список — повертаємо свій:
+     запрошення йде лише тому, хто в базі вже є, і без цього кроку ми
+     перевіряли б не кнопку, а наслідок попереднього тесту. */
+  contentData.team = JSON.parse(JSON.stringify(TEAM));
+  teamDraft = null; renderTeamList();
   window.__AUTH = [];
-  const btns = [...document.querySelectorAll('#team-list .tm-inv')];
+  const btns = [...document.querySelectorAll('#team-list [data-inv]')];
   const offBefore = btns.map(b => b.disabled);
-  btns[1].click();
+  const мій = btns.find(b => (b.closest('.tu-row').querySelector('.tm-mail') || {}).value === 'test@loomiq');
+  if(мій) мій.click();
   await new Promise(r => setTimeout(r, 400));
-  return { offBefore, log: window.__AUTH.slice() };
-});
+  return { offBefore, кнопок:btns.length, log: window.__AUTH.slice() };
+}, TEAM);
 console.log('  ' + JSON.stringify(inv.log));
 ok(inv.log.length === 1 && inv.log[0].op === 'invite' && inv.log[0].mail === 'test@loomiq',
   'кнопка шле лист саме тій людині, біля якої стоїть',
@@ -433,7 +498,7 @@ const notSaved = await p.evaluate(async () => {
   teamList().push({ email:'new@loomiq', name:'Нова', role:'designer',
                     acc: accExpand(presetOf('designer')) });
   renderTeamList();
-  const b = [...document.querySelectorAll('#team-list .tm-inv')].pop();
+  const b = [...document.querySelectorAll('#team-list [data-inv]')].pop();
   const off = b.disabled;
   b.click();
   await new Promise(r => setTimeout(r, 300));
@@ -470,7 +535,7 @@ await p.close();
 console.log('');
 console.log('═══ ВЛАСНИК: ВИДАЛЕННЯ Є, І ВОНО ЛИШАЄ СЛІД ═══');
 {
-  const po = await open('owner@loomiq', TEAM);
+  const po = await open('owner@loomiq', TEAM, { roles: ROLE_DEFS });
   await po.click('.ticket:has-text("1000801")');
   await po.waitForTimeout(900);
   const has = await po.evaluate(() => ({
@@ -496,7 +561,7 @@ console.log('═══ ВЛАСНИК: ВИДАЛЕННЯ Є, І ВОНО ЛИШ
 console.log('');
 console.log('═══ ЧУЖА ПОШТА НЕ БАЧИТЬ НІЧОГО ═══');
 {
-  const ps = await open('stranger@loomiq', TEAM);
+  const ps = await open('stranger@loomiq', TEAM, { roles: ROLE_DEFS });
   const st = await ps.evaluate(() => ({
     screen: !!document.getElementById('no-access'),
     mail: (document.querySelector('#no-access .na-mail') || {}).textContent || '',
