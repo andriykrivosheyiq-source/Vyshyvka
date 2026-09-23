@@ -66,14 +66,25 @@ const ORDER = {
    «Продажі з собівартістю» це не менеджер із домальованою галочкою, а роль
    із назвою: її видно в списку, і наступного разу її дадуть другому
    такому ж. */
+/* `navAll` і `canAll` — перелік розділів і прав, які існували в мить
+   збереження. Саме так виглядає роль, збережена сьогодні: її беруть
+   буквально, нічого не добираючи. Роль без цих міток — стара, і для неї є
+   окрема перевірка нижче. */
+const ALL_NAV = ['today','board','chats','chatsc','design','calc','settings',
+                 'photos','reviews','suppliers','analytics','team'];
+const ALL_CAN = ['new','edit','stage','assign','pay','del','export',
+                 'write','files','quick','bind',
+                 'art','approve','stitch','qc','pack',
+                 'pricing','catalog','reviews','suppliers','setup'];
+const повна = r => Object.assign({ navAll:ALL_NAV, canAll:ALL_CAN }, r);
 const ROLE_DEFS = [
-  { key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*',
-    see:['client','chat','cost'], can:['edit','pay','del','setup'] },
-  { key:'sales', name:'Продажі з собівартістю', ui:'manager',
+  повна({ key:'owner', name:'Власник', ui:'manager', nav:'*', boards:'*',
+    see:['client','chat','cost'], can:ALL_CAN.slice() }),
+  повна({ key:'sales', name:'Продажі з собівартістю', ui:'manager',
     nav:['board','analytics'], boards:['sale','design'],
-    see:['client','cost'], can:[] },
-  { key:'designer', name:'Дизайнер', ui:'designer',
-    nav:['today','board','design'], boards:['design'], see:[], can:[] }
+    see:['client','cost'], can:[] }),
+  повна({ key:'designer', name:'Дизайнер', ui:'designer',
+    nav:['today','board','design'], boards:['design'], see:[], can:[] })
 ];
 const TEAM = [
   { email:'owner@loomiq', name:'Андрій', role:'owner' },

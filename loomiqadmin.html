@@ -22313,39 +22313,28 @@ const ROLES = { owner:'Власник', manager:'Менеджер',
                    окремий закупник, його заводять одним рядком, а не
                    переробкою доступів. */
                 supply:'Закупівля' };
-/* ══════════ РОЛЬ У СПИСКУ ПІДПИСАНА НАПРЯМОМ ══════════════════════════
+/* ══════════ НАПРЯМ ЖИВЕ В РОЛІ, А НЕ ПОРУЧ ІЗ НЕЮ ══════════════════════
    У компанії два різні бізнеси, і ролі в них різні: менеджер B2B і менеджер
-   B2C — це різні люди з різними обовʼязками. Тому в списку вони й стоять
-   окремими рядками: «Менеджер B2B», «Менеджер B2C». Так видно з першого
-   погляду, кого куди заводять, і неможливо видати доступ трохи не туди.
+   B2C — різні люди з різними обовʼязками. Якийсь час напрям зберігався
+   ОКРЕМИМ полем людини, а щоб його десь вибрати, кожна роль домножувалась у
+   списку на три рядки: «Менеджер B2B», «Менеджер B2C», «Менеджер · B2B і
+   B2C». Виходило те, від чого й тікали: у вкладці «Ролі» вісім записів, а у
+   виборі людини двадцять пʼять, і половини з них не існує.
 
-   Усередині це роль плюс напрями — два поля замість вісімнадцяти наборів
-   налаштувань, які розійшлися б за місяць. Але людина цього не бачить:
-   вона обирає готовий рядок.
+   А напрям при цьому не робив нічого, крім вмикання чотирьох розділів меню
+   — Канбану, двох чатів і B2C, — і ті чотири розділи вже й так є галочками
+   в самій ролі. Тобто це був другий вимикач на ті самі двері.
 
-   Хто працює в обох (буває у виробництві й закупівлі) — має обидва напрями,
-   і тоді дошки в нього дві. Власник має все завжди.
+   Тому напрям прибрано як окрему сутність. Потрібен менеджер B2C — заводять
+   роль «Менеджер B2C» і ставлять їй «Чати B2C» і «B2C» без «Канбану». Роль
+   стала єдиним джерелом: у виборі людини рівно те, що є у вкладці «Ролі»,
+   одним рядком на роль.
 
-   Старі записи напрямів не мають зовсім — і не повинні: усе, що заведено до
-   появи розділення, це B2B. */
-const DIRS = { b2b:'B2B', b2c:'B2C' };
-function memberDirs(m){
-  if(!m) return ['b2b'];
-  if(m.role === 'owner') return ['b2b', 'b2c'];
-  const d = Array.isArray(m.dirs) ? m.dirs.filter(x => DIRS[x]) : [];
-  return d.length ? d : ['b2b'];
-}
-// Значення рядка списку: `manager|b2c`, `production|b2b,b2c`.
-function roleValue(m){ return (m && m.role ? m.role : 'manager') + '|' + memberDirs(m).join(','); }
-function roleTitle(role, dirs, name){
-  const nm = name || roleName(role);
-  if(role === 'owner') return nm;
-  const d = (dirs || []).map(k => DIRS[k]).filter(Boolean);
-  return d.length === 2 ? (nm + ' · B2B і B2C') : (nm + ' ' + (d[0] || 'B2B'));
-}
-/* Рядки списку. На кожну роль, крім власника, три: свій напрям, другий і
-   обидва. Порядок навмисно такий, щоб однакові ролі стояли поруч — око
-   шукає «менеджера», а вже потім напрям. */
+   Розділення самих замовлень на напрямі не трималось ніколи: у B2C свої
+   номери з 5 і свій розділ, на Канбан вони не потрапляють у будь-якому
+   разі. */
+// Значення рядка списку — ключ ролі, і більше нічого.
+function roleValue(m){ return (m && m.role ? m.role : 'manager'); }
 /* Ролі беремо зі збережених, а не з вбудованого списку: щойно завели нову
    роль, вона має зʼявитись у виборі людини тим самим рухом — інакше роль є,
    а призначити її нікому. */
@@ -22354,20 +22343,9 @@ function roleOptions(){
      Інакше щойно заведена роль є в одному місці й немає в другому, і
      виходить рівно те, від чого йшли: «одні ролі тут, другі там». */
   const list = (typeof rolesDraft !== 'undefined' && rolesDraft) ? rolesDraft : roleDefs();
-  const own = list.filter(r => r && r.key === 'owner')[0];
-  const out = own ? [{ v:'owner|b2b,b2c', t:own.name || 'Власник' }] : [];
-  list.forEach(r => {
-    if(!r || r.key === 'owner') return;
-    [['b2b'], ['b2c'], ['b2b','b2c']].forEach(d =>
-      out.push({ v:r.key + '|' + d.join(','), t:roleTitle(r.key, d, r.name) }));
-  });
-  return out;
+  return list.filter(r => r && r.key)
+             .map(r => ({ v:r.key, t:r.name || r.key }));
 }
-function myDirs(){
-  if(!teamOn()) return ['b2b', 'b2c'];
-  return memberDirs(teamMember(myEmail()));
-}
-function canDir(dir){ return myDirs().indexOf(dir) >= 0; }
 /* ГРОШІ РАХУЮТЬСЯ ОКРЕМО В КОЖНОМУ НАПРЯМІ.
 
    Замовлення обох напрямів лежать в одній колекції — так картка, чати й
@@ -22378,8 +22356,6 @@ function canDir(dir){ return myDirs().indexOf(dir) >= 0; }
    Аналітика — розділ B2B (він і в меню поруч із Канбаном). Коли в B2C
    набереться, що рахувати, у нього буде своя. */
 function anOrders(){ return (orders || []).filter(o => orderDir(o) === 'b2b'); }
-// Ролі, чия робота — сам макет. Див. виняток у applyRoleUi.
-const DESIGN_SEATS = { designer:1, embroidery:1, qa:1, designmgr:1 };
 /* ══════════ Доступи по зонах ══════════
    Роль — це пресет, а не вирок. Люди не діляться на чотири види: буває
    менеджер, якому треба бачити собівартість, і дизайнер, який заодно веде
@@ -22540,17 +22516,23 @@ const CAN_FROM = {
   pricing:'nav:settings', catalog:'nav:photos',
   reviews:'nav:reviews', suppliers:'nav:suppliers'
 };
-/* Роль, збережена до появи нових прав, добирає їх за тим, що могла раніше. */
-function canFill(r){
-  if(!r || r.can === '*' || Array.isArray(r.canAll)) return r;
+/* Роль, збережена до появи нового розділу чи права, добирає їх за тим, що
+   могла раніше. Маркер (`navAll`, `canAll`) каже, що роль уже повна. */
+function roleFill(r){
+  if(!r) return r;
   const has = (g, k) => r[g] === '*' || (Array.isArray(r[g]) && r[g].indexOf(k) >= 0);
-  const can = Array.isArray(r.can) ? r.can.slice() : [];
-  Object.keys(CAN_FROM).forEach(k=>{
-    if(can.indexOf(k) >= 0) return;
-    const from = CAN_FROM[k].split(':');
-    if(has(from[0], from[1])) can.push(k);
-  });
-  r.can = can;
+  const grow = (g, map, mark)=>{
+    if(r[g] === '*' || Array.isArray(r[mark])) return;
+    const cur = Array.isArray(r[g]) ? r[g].slice() : [];
+    Object.keys(map).forEach(k=>{
+      if(cur.indexOf(k) >= 0) return;
+      const from = map[k].split(':');
+      if(has(from[0], from[1])) cur.push(k);
+    });
+    r[g] = cur;
+  };
+  grow('nav', NAV_FROM, 'navAll');
+  grow('can', CAN_FROM, 'canAll');
   return r;
 }
 /* Коротке пояснення до самої зони: чотири блоки відповідають на чотири різні
@@ -22565,43 +22547,65 @@ const UI_KINDS = { manager:'Менеджерський', designer:'Дизайн�
 function zoneBoards(){
   return [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
 }
+/* ── Стартовий набір ролей ──────────────────────────────────────────────
+   Не вирок і не зразок — просто вісім ролей, із яких зручніше починати, ніж
+   із порожнечі. Їх перейменовують, переналаштовують і видаляють, як
+   будь-які інші; недоторканний лише власник, бо без нього систему не
+   налаштує ніхто.
+
+   Напрям у них теж заданий розділами, а не окремим полем: у менеджера
+   Канбан і «Чати B2B», в акаунт-менеджера ще й «Чати B2C» та «B2C». Хто
+   веде тільки приватні замовлення — це окрема роль, і її заводять руками.
+
+   Кожен пресет несе `navAll` і `canAll`: це перелік розділів і прав, які
+   існували в мить, коли пресет складали. Завдяки їм добір за старими
+   правами (нижче) їх не чіпає — вони вже повні. */
+const ALL_CAN = ZONE_CAN.map(z => z.key);
+const ALL_NAV = ZONE_NAV.map(z => z.key);
+function preset(p){ return Object.assign({ navAll:ALL_NAV, canAll:ALL_CAN }, p); }
 const ROLE_PRESET = {
-  owner:      { ui:'manager',    nav:'*', boards:'*',
-                see:['client','chat','cost'], can:['edit','pay','del','setup'] },
-  manager:    { ui:'manager',    nav:['today','board','calc','photos','reviews','suppliers'],
-                boards:'*', see:['client','chat'], can:['edit','pay'] },
-  designer:   { ui:'designer',   nav:['today','board','design'], boards:['design'], see:[], can:[] },
+  owner:      preset({ ui:'manager', nav:'*', boards:'*',
+                see:['client','chat','cost'], can:ALL_CAN.slice() }),
+  manager:    preset({ ui:'manager',
+                nav:['today','board','chats','calc','photos','reviews','suppliers'],
+                boards:'*', see:['client','chat'],
+                can:['new','edit','stage','assign','pay','write','files','quick','bind','art'] }),
+  designer:   preset({ ui:'designer', nav:['today','board','design'], boards:['design'],
+                see:[], can:['art','stage'] }),
   /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
      колись переплутають із потрібним. */
-  production: { ui:'production', nav:['today','board'], boards:['test','prod','qc'], see:[], can:[] },
+  production: preset({ ui:'production', nav:['today','board'], boards:['test','prod','qc'],
+                see:[], can:['stage'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
-     до відправки. Собівартість лишається у власника — вона не потрібна
-     нікому, хто не ухвалює рішення про ціну закупівлі, а зайве поле на
-     екрані колись переплутають із потрібним. */
-  designmgr:  { ui:'manager',    nav:['today','board','design','calc','photos'], boards:'*',
-                see:['client','chat'], can:['edit','pay'] },
+     до відправки, в обох напрямах. Собівартість лишається у власника — вона
+     не потрібна нікому, хто не ухвалює рішення про ціну закупівлі, а зайве
+     поле на екрані колись переплутають із потрібним. */
+  designmgr:  preset({ ui:'manager',
+                nav:['today','board','chats','chatsc','design','calc','photos'], boards:'*',
+                see:['client','chat'],
+                can:['new','edit','stage','assign','pay','write','files','quick','bind',
+                     'art','approve','pack'] }),
   /* Закупівля бачить рівно свою дошку: що, якого кольору, яких розмірів,
      скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
-  supply:     { ui:'production', nav:['today','board'], boards:['supply'], see:[], can:[] },
-  embroidery: { ui:'designer',   nav:['today','design'], boards:['design'], see:[], can:[] },
-  qa:         { ui:'production', nav:['today','design'], boards:['design','qc'], see:[], can:[] }
+  supply:     preset({ ui:'production', nav:['today','board'], boards:['supply'],
+                see:[], can:['stage','export'] }),
+  embroidery: preset({ ui:'designer', nav:['today','design'], boards:['design'],
+                see:[], can:['stitch'] }),
+  qa:         preset({ ui:'production', nav:['today','design'], boards:['design','qc'],
+                see:[], can:['qc'] })
 };
-/* ── Зони, яких не існувало, коли складали списки доступів ───────────────
-   Доступи зберігаються СПИСКОМ дозволених розділів. Це правильно, поки
-   розділи не додаються. Щойно зʼявляється новий, кожен, кому колись
-   зберегли набір галочок, перестає його бачити — назавжди й без жодного
-   натяку чому: у його списку такого ключа немає, і взятись йому нізвідки,
-   бо коли список складали, розділу не існувало.
+/* ── Розділи, яких не існувало, коли роль зберігали ─────────────────────
+   Роль зберігається СПИСКОМ дозволених розділів. Це правильно, поки розділи
+   не додаються. Щойно зʼявляється новий, кожен, хто має цю роль, перестає
+   його бачити — назавжди й без жодного натяку чому: у списку такого ключа
+   немає, і взятись йому нізвідки, бо коли список складали, розділу не
+   існувало. Саме так одного разу й зникли чати.
 
-   Тому для НОВИХ зон вирішує пресет ролі, а не старий список. Щойно
-   доступи збережуть заново, поруч ляже `navAll` — перелік зон, які людині
-   справді показували, — і це правило для неї більше не діє: зняту галочку
-   вже ніхто не поверне. */
-/* Розділи, яких не існувало, коли людині роздавали доступи. Без цього
-   списку новий розділ не бачить ніхто з уже заведених: у їхніх збережених
-   галочках його просто немає, і кожному довелось би вмикати руками. */
-const ZONE_NEW = ['design', 'chats', 'chatsc'];
+   Тому нові розділи добираються за тим, що роль мала РАНІШЕ: хто веде
+   Канбан — бачить і чати цього напряму; хто працює в дизайні — бачить
+   приватні розмови. */
+const NAV_FROM = { chats:'nav:board', chatsc:'nav:design', design:'boards:design' };
 /* ══════════ РОЛЬ — СУТНІСТЬ, А НЕ ПРЕСЕТ ══════════════════════════════
    Доти роль лише ЗАПОВНЮВАЛА галочки, а далі кожному вмикали своє. Звучало
    гнучко, а виходило навпаки: у пʼяти менеджерів пʼять різних наборів, і на
@@ -22625,10 +22629,8 @@ function roleDefs(){
   const saved = contentSafe().roles;
   if(Array.isArray(saved) && saved.length) return saved;
   // Першого разу збираємо з вбудованих: починати з порожнечі нікому не треба.
-  return Object.keys(ROLE_PRESET).map(k => ({
-    key:k, name:ROLES[k] || k, ui:ROLE_PRESET[k].ui,
-    nav:ROLE_PRESET[k].nav, boards:ROLE_PRESET[k].boards,
-    see:ROLE_PRESET[k].see.slice(), can:ROLE_PRESET[k].can.slice() }));
+  return Object.keys(ROLE_PRESET).map(k => Object.assign({ key:k, name:ROLES[k] || k },
+    JSON.parse(JSON.stringify(ROLE_PRESET[k]))));
 }
 function roleDef(key){
   const k = String(key || '');
@@ -22641,9 +22643,12 @@ function roleName(key){
 function presetOf(role){
   const r = roleDef(role);
   const src = r || ROLE_PRESET[role] || ROLE_PRESET.manager;
-  return canFill({ ui:src.ui, nav:src.nav, boards:src.boards,
+  return roleFill({ ui:src.ui,
+    nav: src.nav === '*' ? '*' : (Array.isArray(src.nav) ? src.nav.slice() : []),
+    boards:src.boards,
     see:Array.isArray(src.see) ? src.see.slice() : [],
     can: src.can === '*' ? '*' : (Array.isArray(src.can) ? src.can.slice() : []),
+    navAll: Array.isArray(src.navAll) ? src.navAll : null,
     canAll: Array.isArray(src.canAll) ? src.canAll : null });
 }
 /* Доступи людини: свої, якщо їх налаштували, інакше — пресет ролі. */
@@ -22788,7 +22793,7 @@ function renderAccLog(){
   box.innerHTML = L.length ? L.slice(0, 800).map(r =>
     '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
     '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
-      (r.role ? ' <i>' + escA(roleTitle(r.role, memberDirs(r))) + '</i>' : '') + '</span>' +
+      (r.role ? ' <i>' + escA(roleName(r.role)) + '</i>' : '') + '</span>' +
     '<span class="al-k al-k--' + escA(r.kind) + '">' + escA(WORD[r.kind] || r.kind) + '</span>' +
     '<span class="al-x">' + escA(r.text) + '</span></div>').join('')
     : '<div class="sub">Записів ще немає.</div>';
@@ -22874,7 +22879,6 @@ function teamList(){
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
       role: roleDef(p.role) ? p.role : 'manager',
-      dirs: memberDirs(p),        // напрями людини — свої або B2B за замовчуванням
       phone: String(p.phone || '').trim(),
       createdAt: p.createdAt || '',
       updatedAt: p.updatedAt || '',
@@ -22968,9 +22972,9 @@ function rootKeep(list){
     });
     if(!mail) return;                       // ця пошта тут ще не зʼявлялась
     const was = have[mail];
-    if(was){ was.role = 'owner'; was.acc = accExpand(presetOf('owner')); was.dirs = ['b2b','b2c']; return; }
+    if(was){ was.role = 'owner'; was.acc = accExpand(presetOf('owner')); return; }
     list.push({ email: mail, name: (teamMember(mail) || {}).name || '',
-                role: 'owner', dirs: ['b2b','b2c'],
+                role: 'owner',
                 acc: Object.assign(accExpand(presetOf('owner')),
                                    { navAll: ZONE_NAV.map(z => z.key) }) });
   });
@@ -23124,22 +23128,12 @@ function applyRoleUi(){
        міняти налаштування тут не одна з галочок, а умова входу: хто не може
        міняти етапи й команду, той і роздавати доступи не має. */
     if(b.dataset.view === 'team' && !canSetup()) on = false;
-    /* НАПРЯМ ЗАКРИВАЄ РОЗДІЛ НАДІЙНІШЕ ЗА ГАЛОЧКУ.
-
-       Галочку можна забути зняти — і менеджер B2C побачив би Канбан із
-       чужими замовленнями. Тут же це не налаштування, а умова: немає
-       напряму, немає й розділу. Менеджер одного напряму навіть не знає, що
-       існує інший. */
-    if(b.dataset.view === 'board' && !canDir('b2b')) on = false;
-    if(b.dataset.view === 'chats' && !canDir('b2b')) on = false;
-    if(b.dataset.view === 'chatsc' && !canDir('b2c')) on = false;
-    /* Виняток, і він тимчасовий. Робота з макетом — ТЗ, версії, причини
-       правок — поки живе тільки в цьому розділі, і в B2B своєї такої дошки
-       ще немає. Закрити його дизайнеру B2B зараз означало б забрати в нього
-       робоче місце, нічого не давши натомість. Тож дизайнерські ролі
-       заходять сюди незалежно від напряму — рівно до того кроку, коли в
-       B2B зʼявиться власна дошка дизайну. */
-    if(b.dataset.view === 'design' && !canDir('b2c') && !DESIGN_SEATS[myRole()]) on = false;
+    /* НАПРЯМ ТУТ І ЗАДАЄТЬСЯ: Канбан і «Чати B2B» — це B2B, «B2C» і «Чати
+       B2C» — це B2C. Окремого поля «напрям» більше немає: воно вмикало рівно
+       ці чотири розділи, тобто було другим вимикачем на ті самі двері, і
+       щоб його десь вибрати, кожна роль у списку людей домножувалась на три
+       рядки. Менеджер одного напряму так само не знає, що існує інший, —
+       просто це сказано галочкою, а не окремим полем. */
     b.hidden = !on;
     if(on && !firstOk) firstOk = b;
   });
@@ -23575,11 +23569,8 @@ function wireTeamPane(box){
     const r = row.querySelector('.tm-role');
     if(r) r.addEventListener('change', ()=>{
       const p = teamList()[i];
-      const parts = String(r.value || '').split('|');
       touch();
-      p.role = roleDef(parts[0]) ? parts[0] : 'manager';
-      p.dirs = String(parts[1] || 'b2b').split(',').filter(x => DIRS[x]);
-      if(!p.dirs.length) p.dirs = ['b2b'];
+      p.role = roleDef(r.value) ? r.value : 'manager';
       p.acc = accExpand(presetOf(p.role));
       renderTeamList();
     });
@@ -23651,8 +23642,8 @@ function wireTeamPane(box){
     /* Порожня навмисно: нехай усе, що роль відкриває, буде поставлено
        руками й на видноті. Стартовий набір «як у менеджера» зручний рівно
        доти, доки в ньому не лишиться забута галочка. */
-    list.push({ key: key, name:'Нова роль', ui:'manager', nav:[],
-                boards:[], see:[], can:[], canAll: ZONE_CAN.map(z => z.key) });
+    list.push({ key: key, name:'Нова роль', ui:'manager', nav:[], boards:[], see:[], can:[],
+                navAll: ZONE_NAV.map(z => z.key), canAll: ZONE_CAN.map(z => z.key) });
     roleOpen = key; renderTeamList();
     toast('Роль створено — назвіть її й позначте, що вона відкриває');
   });
@@ -23699,12 +23690,12 @@ async function rolesSave(){
   const list = rolesList().map(r => ({ key:String(r.key || ''), name:String(r.name || '').trim() || r.key,
     ui: UI_KINDS[r.ui] ? r.ui : 'manager',
     nav: r.nav === '*' ? '*' : (Array.isArray(r.nav) ? r.nav.slice() : []),
+    /* Які розділи взагалі існували в мить збереження — щоб зняту галочку
+       не переплутати з розділом, якого тоді ще не було. */
+    navAll: ZONE_NAV.map(z => z.key),
     boards: r.boards === '*' ? '*' : (Array.isArray(r.boards) ? r.boards.slice() : []),
     see: Array.isArray(r.see) ? r.see.slice() : [],
     can: r.can === '*' ? '*' : (Array.isArray(r.can) ? r.can.slice() : []),
-    /* Які права взагалі існували в мить збереження. Без цього переліку
-       зняту галочку не відрізнити від права, якого тоді ще не було, — і
-       зняте поверталось би саме при кожному оновленні системи. */
     canAll: ZONE_CAN.map(z => z.key) })).filter(r => r.key);
   /* Хоч одна роль має вміти налаштовувати: інакше найближче збереження
      замкне систему так само, як список команди без власника. */
@@ -23774,7 +23765,7 @@ async function rolesSave(){
       add.join('\n') + '\n\nДодати їх? Ролі й доступи доведеться виставити — ' +
       'вони ніде не зберігаються, крім самого списку.')) return;
     teamDirty = true;
-    add.forEach(e => cur.push({ email:e, name:'', role:'manager', dirs:['b2b'],
+    add.forEach(e => cur.push({ email:e, name:'', role:'manager',
                                 phone:'', createdAt:new Date().toISOString(), updatedAt:'',
                                 acc: accExpand(presetOf('manager')) }));
     renderTeamList();
@@ -23787,7 +23778,6 @@ async function rolesSave(){
     // у якому власника немає, і самому лишитись без цифр.
     const first = !teamList().length;
     teamList().push({ email: first ? myEmail() : '', name: '', role: first ? 'owner' : 'manager',
-                      dirs: first ? ['b2b','b2c'] : ['b2b'],
                       phone:'', createdAt:new Date().toISOString(), updatedAt:'',
                       acc: accExpand(presetOf(first ? 'owner' : 'manager')) });
     teamOpen = teamList().length - 1;
@@ -23809,7 +23799,6 @@ async function rolesSave(){
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
                    role: roleDef(p.role) ? p.role : 'manager',
-                   dirs: memberDirs(p),
                    phone: String(p.phone||'').trim(),
                    /* Коли завели й коли востаннє чіпали. Питання «а хто це
                       додав минулого тижня» виникає рано чи пізно, і журнал
@@ -23888,7 +23877,8 @@ async function rolesSave(){
       contentData.team = list;
       contentData.ownerEmail = own;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
-                                   dirs: memberDirs(p), acc: accExpand(p.acc) }));
+                                   phone:p.phone, createdAt:p.createdAt,
+                                   updatedAt:p.updatedAt, acc: accExpand(p.acc) }));
       teamDirty = false;      // збережене — вже не «чиясь незбережена робота»
       applyRoleUi();
       renderTeamList();
