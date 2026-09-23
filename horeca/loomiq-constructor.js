@@ -1217,6 +1217,62 @@
         if(n++ === di) out = l; }); });
       return out;
     }
+    /* ВИД ДИЗАЙНУ — ЦЕ РІШЕННЯ ПРО МАЛЮНОК, А НЕ ПРО ПОЗИЦІЮ.
+
+       Менеджер збирає пропозицію: футболка, худі, шопер — і на всіх той
+       самий напис, надісланий клієнтом картинкою. Він перемикає його на
+       «напис» у поточній позиції, а решта кошика лишається з «картинкою».
+       Разова за напис ділиться на одну позицію замість трьох, і те саме
+       зображення рахується двічі — як напис і як логотип. Ціна в кошику
+       після цього неправдива, і найгірше, що вона виглядає правдоподібно.
+
+       Тому вибір їде за ВІДБИТКОМ: той самий малюнок — той самий вид,
+       скрізь, де він стоїть. Рівно так це вже працює в адмінці, де
+       `applyKindFix` розкладає мапу по всьому замовленню; тут бракувало
+       другої половини — самого кошика.
+
+       Пишемо у три місця, бо читають із трьох: шар (він їде в config.logos
+       і повертається з позицією), опис для рушія (з нього рахується ціна) і
+       мапа `designKindFix` (її адмінка накладає поверх автоматики перед
+       кожним перерахунком). Розійшовшись, вони й давали «перемкнув, а воно
+       повернулось». */
+    function spreadKindFix(fp, kind){
+      fp = String(fp || '');
+      if(!fp) return 0;
+      var n = 0;
+      // 1. Чернетка: той самий малюнок може стояти на кількох боках виробу.
+      printViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          if(l && String(l.fp || '') === fp){ l.kindFix = kind; n++; }
+        });
+      });
+      // 2. Позиції, які вже лежать у кошику.
+      var list = (typeof cartItems !== 'undefined' && cartItems)
+               ? cartItems : (window.__cartItems || []);
+      list.forEach(function(it){
+        if(!it) return;
+        var has = false, d = it.desc;
+        if(d && Array.isArray(d.designs)){
+          if(!Array.isArray(d.designKinds)) d.designKinds = [];
+          d.designs.forEach(function(f, i){
+            if(String(f || '') !== fp) return;
+            d.designKinds[i] = kind; has = true;
+          });
+        }
+        var logos = it.config && it.config.logos;
+        if(logos) Object.keys(logos).forEach(function(side){
+          (logos[side] || []).forEach(function(l){
+            if(l && String(l.fp || '') === fp){ l.kindFix = kind; has = true; }
+          });
+        });
+        if(!has) return;
+        it.designKindFix = it.designKindFix || {};
+        it.designKindFix[fp] = kind;
+        n++;
+      });
+      return n;
+    }
+    window.__lqSpreadKind = spreadKindFix;   // для перевірок
     function baseForIndex(m, idx){
       return (window.LQ && window.LQ.baseForIndex) ? window.LQ.baseForIndex(m, idx) : 0;
     }
@@ -5885,8 +5941,16 @@
           e.stopPropagation();
           var l = layerAtDesign(+sel.getAttribute('data-mgr-kind'));
           if(!l) return;
-          l.kindFix = (sel.value === 'txt' || sel.value === 'off') ? sel.value : 'img';
+          var kind = (sel.value === 'txt' || sel.value === 'off') ? sel.value : 'img';
+          /* Без відбитка рішення нікуди не поширити — лишаємо його хоч на
+             самому шарі, інакше перемикач просто нічого не зробить. */
+          ensureFp(l);
+          if(l.fp) spreadKindFix(l.fp, kind); else l.kindFix = kind;
           updatePriceBar();          // ціна, шкала тиражів і сам прорахунок
+          /* Кошик перерахувати обовʼязково: змінилась не наша позиція, а
+             спільна разова — отже й ціни сусідніх позицій. */
+          try{ if(typeof renderCart === 'function') renderCart(); }catch(e2){}
+          try{ if(typeof cartPersist === 'function') cartPersist(); }catch(e2){}
         };
       });
       var clr = out.querySelector('[data-mgr-clear]');
