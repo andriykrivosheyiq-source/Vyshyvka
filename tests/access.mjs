@@ -18,6 +18,10 @@
        галочку в налаштуваннях;
      — двом людям з однією роллю видно те саме, а старі індивідуальні
        набори вже нічого не означають;
+     — кожна галочка «може робити» — справжній замок: немає права, немає й
+       кнопки, а не «кнопка є, але не спрацює»;
+     — роль, збережена до появи нового права, не втрачає того, що могла:
+       хто бачив листування, той і пише далі;
      — кого немає в списку — не бачить нічого, а порожній список означає
        повний доступ (інакше перше збереження замкнуло б систему).
 
@@ -189,18 +193,94 @@ const однаково = await p.evaluate(() => {
     acc:{ ui:'manager', nav:'*', boards:'*', see:['client','chat','cost'],
           can:['edit','pay','del','setup'] } });
   const д = accOf({ email:'e@f', role:'designer' });
-  return { однакові: JSON.stringify(а) === JSON.stringify(б), свої: б.can.join(),
+  return { однакові: JSON.stringify(а) === JSON.stringify(б),
+           зайве: б.can.filter(k => ['setup','del','edit','pay'].indexOf(k) >= 0),
            інша: { ui:д.ui, boards:д.boards.join() } };
 });
 console.log('  дві людини однієї ролі: ' + JSON.stringify(однаково));
-ok(однаково.однакові && !однаково.свої,
+ok(однаково.однакові && !однаково.зайве.length,
   'двом людям з однією роллю видно те саме — старі власні галочки вже нічого не значать',
   'роль досі приблизна: ' + JSON.stringify(однаково));
 ok(однаково.інша.ui === 'designer' && однаково.інша.boards === 'design',
   'а інша роль відкриває інше — і це записано в ній, а не в людях',
   'роль нічого не вирішує: ' + JSON.stringify(однаково));
-await p.close();
 
+console.log('');
+console.log('═══ КОЖНА ГАЛОЧКА — СПРАВЖНІЙ ЗАМОК ═══');
+/* Доти «що там робити» не описувалось майже ніяк: розділ чатів або
+   відкритий повністю, або закритий. Відкрив — і людина вже й пише клієнту, і
+   править спільні заготовки, і відвʼязує розмову від замовлення. Те саме з
+   цінами, каталогом і макетами.
+
+   Тепер у кожної дії власне право. Правило одне: НЕМАЄ ПРАВА — НЕМАЄ Й
+   КНОПКИ. Кнопка, яка є й не працює, гірша за відсутню: людина вважає, що
+   зламалась система, і йде питати, замість того щоб працювати. */
+const замки = await p.evaluate(async () => {
+  const було = JSON.stringify(contentData.roles || []);
+  /* Роль, якій відкрито геть усе, крім однієї дії. Так видно рівно те, що
+     відрізає САМА дія, а не сусідні галочки. */
+  const крім = k => {
+    contentData.roles = [{ key:'sales', name:'Проба', ui:'manager', nav:'*', boards:'*',
+      see:['client','chat','cost'],
+      can: ZONE_CAN.map(z => z.key).filter(x => x !== k),
+      canAll: ZONE_CAN.map(z => z.key) }];
+    contentData.team = [{ email:myEmail(), name:'Я', role:'sales', dirs:['b2b','b2c'] }];
+    teamDraft = null; applyRoleUi();
+  };
+  const out = {};
+  крім('new');    out.new    = { є:!document.getElementById('board-add').hidden };
+  крім('');       out.newOn  = { є:!document.getElementById('board-add').hidden };
+  крім('stage');  renderBoard();
+  out.stage = { тягнеться:[...document.querySelectorAll('.ticket')].some(t => t.draggable) };
+  крім('');       renderBoard();
+  out.stageOn = { тягнеться:[...document.querySelectorAll('.ticket')].some(t => t.draggable) };
+  /* Картка замовлення: етап, відповідальний, привʼязка розмови. */
+  const карта = () => { renderOrderDrawer(); const d = document.getElementById('orderDrawer');
+    return { етап:!!(d.querySelector('.od-stage') || {}).disabled,
+             хтоВеде:!!(d.querySelector('.od-mgr-sel') || {}).disabled }; };
+  await openOrderDrawer(orders[0]);
+  крім('stage');  Object.assign(out, { етапЗамкнено: карта().етап });
+  крім('assign'); Object.assign(out, { вестиЗамкнено: карта().хтоВеде });
+  крім('');       Object.assign(out, { обидваВільні: !карта().етап && !карта().хтоВеде });
+  closeOrderDrawer();
+  contentData.roles = JSON.parse(було); teamDraft = null; applyRoleUi();
+  return out;
+});
+console.log('   ' + JSON.stringify(замки));
+ok(!замки.new.є && замки.newOn.є,
+  'без права «створювати замовлення» кнопки «Нова картка» немає зовсім',
+  'кнопка заведення лишилась: ' + JSON.stringify(замки));
+ok(!замки.stage.тягнеться && замки.stageOn.тягнеться,
+  'без права «двигати далі» картку не перетягнути — вона просто не береться',
+  'картку тягають без права: ' + JSON.stringify(замки));
+ok(замки.етапЗамкнено && замки.вестиЗамкнено && замки.обидваВільні,
+  'етап і відповідальний у картці міняються лише з відповідним правом',
+  'поля картки не звіряються з правами: ' + JSON.stringify(замки));
+
+console.log('');
+console.log('═══ СТАРА РОЛЬ НЕ ВТРАЧАЄ ТОГО, ЩО МОГЛА ═══');
+/* Роль зберігається СПИСКОМ дозволеного. Щойно зʼявляється нове право,
+   кожна вже збережена роль його не має — і менеджер, який учора писав
+   клієнтам, зранку не може написати нікому. Тому для нових прав дивимось,
+   що людина могла раніше, і видаємо рівно стільки ж. */
+const старе = await p.evaluate(() => {
+  const було = JSON.stringify(contentData.roles || []);
+  /* Рівно так роль і виглядала до появи нових прав: дві дії й жодного
+     `canAll` — переліку прав, які тоді взагалі існували. */
+  contentData.roles = [{ key:'old', name:'Давня', ui:'manager',
+    nav:['board','chats','settings'], boards:'*',
+    see:['client','chat','cost'], can:['edit','pay'] }];
+  const a = presetOf('old');
+  contentData.roles = JSON.parse(було); teamDraft = null;
+  return { can:a.can.slice().sort() };
+});
+console.log('   ' + JSON.stringify(старе.can));
+ok(старе.can.indexOf('write') >= 0 && старе.can.indexOf('stage') >= 0 &&
+   старе.can.indexOf('pricing') >= 0 && старе.can.indexOf('del') < 0,
+  'хто бачив листування — той і пише; хто міняв склад — той і двигає; а чого не мав, того й не отримав',
+  'стара роль поїхала: ' + JSON.stringify(старе));
+
+await p.close();
 console.log('');
 console.log('═══ ЗАПОБІЖНИКИ ═══');
 {
