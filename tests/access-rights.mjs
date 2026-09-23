@@ -333,6 +333,48 @@ ok(/const ACC_LOG_MAX = 3000;/.test(
   'журнал закороткий');
 
 console.log('');
+console.log('═══ НЕ ПИШЕМО ТЕ, ЧОГО НЕ ЧИТАЛИ ═══');
+/* Журнал і список команди зберігаються ЦІЛИМ масивом: беремо наявний,
+   міняємо, кладемо назад. Поки документ іще не приїхав із бази, «наявний» —
+   порожній, і такий запис не додає рядок, а стирає все, лишивши одне. Саме
+   так одного дня обнулився журнал, а команда схудла до однієї людини. */
+const цілість = await p.evaluate(async () => {
+  const було = JSON.stringify(contentData.team || []);
+  const логБув = (contentData.accessLog || []).slice();
+  contentData.accessLog = [{ at:'', by:'a@b', kind:'rights', text:'старий запис' }];
+  contentLoaded = false;
+  await accLog('rights', 'новий запис');
+  const журналЦілий = (contentData.accessLog || []).length === 1 &&
+                      contentData.accessLog[0].text === 'старий запис';
+  contentLoaded = true;
+  /* І різке схуднення списку: людей прибирають по одному, через кошик, і
+     кожне прибирання лишає слід. Список, коротший на кількох, яких ніхто не
+     прибирав, — це наслідок збою, а не чиєсь рішення. */
+  contentData.team = [{ email:'a@b' }, { email:'c@d' }, { email:'e@f' },
+                      { email:'g@h' }, { email:'i@j' }, { email:'k@l' }];
+  contentData.teamGone = [];
+  teamDraft = [{ email:myEmail(), name:'Я', role:'owner', dirs:['b2b','b2c'],
+                 acc: accExpand(presetOf('owner')) }];
+  window.__T = [];
+  const realToast = window.toast; window.toast = m => window.__T.push(String(m));
+  document.getElementById('team-save').click();
+  await new Promise(r => setTimeout(r, 400));
+  window.toast = realToast;
+  const сказано = window.__T.join(' | ');
+  const усписку = (contentData.team || []).length;
+  contentData.accessLog = логБув; contentData.team = JSON.parse(було);
+  teamDraft = null; teamDirty = false; renderTeamList();
+  return { журналЦілий, сказано, усписку };
+});
+console.log('   ' + JSON.stringify(цілість));
+ok(цілість.журналЦілий,
+  'запис у журнал до того, як документ прочитано, пропускається — а не стирає журнал',
+  'журнал обнуляється одним записом: ' + JSON.stringify(цілість));
+ok(/зникло б/.test(цілість.сказано) && цілість.усписку === 6,
+  'список, який раптом схуд на кількох, не зберігається — це втрата, а не рішення',
+  'команда мовчки схудла: ' + JSON.stringify(цілість));
+
+console.log('');
 console.log('═══ КОМАНДУ МОЖНА ЗІБРАТИ ЗІ СЛІДІВ ═══');
 /* Список команди — єдиний запис, який ніде більше не дублюється: пропав, і
    відновлювати нема з чого. А пропасти він може буденно: правка в базі,
