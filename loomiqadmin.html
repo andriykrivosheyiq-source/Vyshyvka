@@ -22473,9 +22473,16 @@ function accLogList(){
   return Array.isArray(a) ? a : [];
 }
 async function accLog(kind, text){
-  /* Мовчазний журнал гірший за відсутній: якщо запис не пройшов, кажемо в
-     консоль, але саму дію не зупиняємо — інакше збій журналу зупиняв би
-     роботу. */
+  /* НЕ ПИШЕМО ТЕ, ЧОГО НЕ ЧИТАЛИ.
+
+     Журнал зберігається цілим масивом: беремо наявний, дописуємо рядок,
+     кладемо назад. Поки документ іще не приїхав із бази, «наявний» —
+     порожній, і такий запис не додає рядок, а СТИРАЄ ВЕСЬ ЖУРНАЛ, лишивши
+     один. Саме так він одного дня й обнулився.
+
+     Те саме стосується будь-якого списку, що живе одним полем: команди,
+     заготовок, етапів. Правило одне на всі — не читали, не пишемо. */
+  if(!contentLoaded){ console.warn('журнал: документ ще не прочитано, запис пропущено'); return; }
   try{
     const row = { at:new Date().toISOString(), by:(myEmail() || ''),
                   role:myRole(), kind:String(kind || ''), text:String(text || '').slice(0, 160) };
@@ -22573,6 +22580,7 @@ function may(group, key){
 function myUi(){ return (myAcc() || {}).ui || 'manager'; }
 let teamDraft = null;
 let teamOpen = -1;      // чиї доступи зараз розгорнуті
+let teamDirty = false;  // чернетку вже правили руками — перебудовувати не можна
 function teamList(){
   if(!teamDraft){
     teamDraft = ((contentData.team) || []).map(p => ({
@@ -23052,11 +23060,14 @@ function renderTeamList(){
   }));
   box.querySelectorAll('.tm-row').forEach(row=>{
     const i = +row.dataset.i;
-    row.querySelector('.tm-mail').addEventListener('input', e=> teamList()[i].email = e.target.value);
-    row.querySelector('.tm-name').addEventListener('input', e=> teamList()[i].name = e.target.value);
+    row.querySelector('.tm-mail').addEventListener('input', e=>{
+      teamDirty = true; teamList()[i].email = e.target.value; });
+    row.querySelector('.tm-name').addEventListener('input', e=>{
+      teamDirty = true; teamList()[i].name = e.target.value; });
     row.querySelector('.tm-role').addEventListener('change', e=>{
       const p = teamList()[i];
       const parts = String(e.target.value || '').split('|');
+      teamDirty = true;
       p.role = ROLE_PRESET[parts[0]] ? parts[0] : 'manager';
       p.dirs = String(parts[1] || 'b2b').split(',').filter(x => DIRS[x]);
       if(!p.dirs.length) p.dirs = ['b2b'];
@@ -23069,7 +23080,8 @@ function renderTeamList(){
         (k !== 'design' || p.dirs.indexOf('b2c') >= 0));
       renderTeamList();
     });
-    row.querySelector('.tm-ui').addEventListener('change', e=>{ teamList()[i].acc.ui = e.target.value; });
+    row.querySelector('.tm-ui').addEventListener('change', e=>{
+      teamDirty = true; teamList()[i].acc.ui = e.target.value; });
     const del = row.querySelector('.qr-del');
     if(del) del.addEventListener('click', ()=>{
       const p = teamList()[i];
@@ -23084,7 +23096,7 @@ function renderTeamList(){
         gone.push(Object.assign({}, p, { goneAt: new Date().toISOString() }));
         contentData.teamGone = gone.slice(-30);
       }
-      teamList().splice(i,1); teamOpen = -1; renderTeamList(); });
+      teamDirty = true; teamList().splice(i,1); teamOpen = -1; renderTeamList(); });
   });
   box.querySelectorAll('[data-more]').forEach(b=>
     b.addEventListener('click', ()=>{
@@ -23189,6 +23201,7 @@ function renderTeamList(){
     if(!confirm('Знайшли ' + add.length + ' пошт, яких у списку немає:\n\n' +
       add.join('\n') + '\n\nДодати їх? Ролі й доступи доведеться виставити — ' +
       'вони ніде не зберігаються, крім самого списку.')) return;
+    teamDirty = true;
     add.forEach(e => cur.push({ email:e, name:'', role:'manager', dirs:['b2b'],
                                 acc: accExpand(presetOf('manager')) }));
     renderTeamList();
@@ -23206,6 +23219,10 @@ function renderTeamList(){
     renderTeamList();
   });
   document.getElementById('team-save').addEventListener('click', async ()=>{
+    /* Те саме правило, що й для журналу, і з тієї самої причини: список
+       команди живе одним полем, і зберегти його, не прочитавши, означає
+       стерти всіх, крім тих, хто випадково опинився в чернетці. */
+    if(!contentLoaded) return toast('Дані ще вантажаться — зачекайте секунду й спробуйте ще раз');
     const list = teamList()
       .map(p => ({ email: String(p.email||'').trim().toLowerCase(),
                    name: String(p.name||'').trim(),
@@ -23219,6 +23236,22 @@ function renderTeamList(){
                              відрізнити від розділу, якого тоді ще не було. */
                           navAll: ZONE_NAV.map(z => z.key) } }))
       .filter(p => p.email);
+    /* РІЗКЕ СХУДНЕННЯ СПИСКУ — ЦЕ НЕ РІШЕННЯ, А ВТРАТА.
+
+       Людей прибирають по одному, через кошик, і кожне прибирання лишає
+       слід у «Прибраних». Коли ж список раптом коротший на кілька людей,
+       яких ніхто не прибирав, — це не те, що хтось хотів зробити. Це
+       наслідок: чернетка зібралась до того, як приїхали дані, чи хтось
+       правив базу руками. Таке треба спинити й сказати вголос. */
+    const було = ((contentData.team) || []).length;
+    const прибрані = (contentData.teamGone || []).length;
+    if(було > list.length + прибрані){
+      const втрата = було - list.length;
+      toast('У списку було ' + було + ', зберігаємо ' + list.length +
+            ' — зникло б ' + втрата + '. Це схоже на втрату даних, а не на ваше рішення. ' +
+            'Оновіть сторінку й спробуйте ще раз');
+      return;
+    }
     if(list.length && !list.some(p => (p.acc.see || []).indexOf('cost') >= 0)){
       toast('Хоч комусь має бути видно собівартість — інакше її не побачить ніхто');
       return;
@@ -23267,7 +23300,8 @@ function renderTeamList(){
       contentData.team = list;
       contentData.ownerEmail = own;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,
-                                   acc: accExpand(p.acc) }));
+                                   dirs: memberDirs(p), acc: accExpand(p.acc) }));
+      teamDirty = false;      // збережене — вже не «чиясь незбережена робота»
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
@@ -25652,6 +25686,13 @@ async function init(){
     // Етапи воронки живуть у тому ж документі — перечитуємо й перемальовуємо
     loadStatuses();
     loadTracks();
+    /* Чернетка команди могла зібратись ДО того, як приїхав документ, — і
+       тоді вона порожня. Перебудовуємо її, поки людина в ній нічого не
+       міняла: інакше вона так і лишиться порожньою, а збереження стерло б
+       усіх. Зачеплену чернетку не чіпаємо — це чиясь незбережена робота. */
+    if(!teamDirty) teamDraft = null;
+    try{ if(document.getElementById('view-team') &&
+           document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
     applyRoleUi();
     qrSeedOnce();        // скрипти з картками доводимо й до налаштованого акаунта
     const bv = document.getElementById('view-board');
