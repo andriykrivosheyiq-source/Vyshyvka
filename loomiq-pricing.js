@@ -258,6 +258,7 @@
           bare: true, coef: gc, gcoef: gc, garmentQty: garmentQty(it),
           groupQty: volFor(it, 'bare'), upsell: !!it.upsell,
           garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gc),
+          unitBase: Math.round((+it.base || 0) * gc),
           appBase: 0, app: 0, pieceFee: +it.pieceFee || 0,
           feeShare: 0, feeTotal: 0, feeUnits: 0, sketches: []
         } };
@@ -354,6 +355,17 @@
         designNos: designNos,
         garmentBase: +it.base || 0, garment: Math.round((+it.base || 0) * gcv),
         appBase: (+it.coefPart || 0) + flat, app: Math.round((+it.coefPart || 0) * c) + flat,
+        /* ВИРІБ І НАНЕСЕННЯ РАЗОМ, ОКРУГЛЕНІ ОДИН РАЗ — рівно так, як це
+           робить `unit` двома рядками вище.
+
+           `garment` і `app` округлені кожен окремо, і для розкладу цього
+           досить рівно доти, доки їх не складають: 610×0.95 = 579.5 → 580,
+           205×0.93 = 190.65 → 191, разом 771, а ціна за штуку — 770, бо
+           770.15 округлилось один раз. Розклад показував на гривню більше,
+           ніж коштує позиція, і саме на цю гривню менеджер і не міг
+           зійтись. Тримаємо тут те саме число, що в ціні, щоб розклад
+           залишався поясненням ціни, а не другою її версією. */
+        unitBase: Math.round((+it.base || 0) * gcv + (+it.coefPart || 0) * c) + flat,
         basePart: +it.basePart || 0, minPart: +it.minPart || 0,
         gridPriced: mk === 'dtf' && flat > 0,
         pieceFee: +it.pieceFee || 0,

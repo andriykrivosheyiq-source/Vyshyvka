@@ -6352,7 +6352,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!b) return null;
     var rows = [];
     var pre = b.garmentBase + b.appBase;
-    var post = b.garment + b.app;
+    /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+       нанесення округлені разом, а не кожен окремо. Старі замовлення
+       `unitBase` не мають — їм лишається попередній шлях. */
+    var post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
     rows.push(['Виріб · ' + item.name, b.garmentBase + ' грн']);
     // DTF: знижка за тираж уже всередині ціни аркуша, окремим рядком її не показуємо —
     // інакше здається, що відсоток порахували не від тієї суми.
@@ -6774,12 +6777,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=caf4b0a1c7"></script>
-<script src="loomiq-fingerprint.js?v=caf4b0a1c7"></script>
-<script src="loomiq-pricing.js?v=caf4b0a1c7"></script>
+<script src="loomiq-select.js?v=65e88b9f74"></script>
+<script src="loomiq-fingerprint.js?v=65e88b9f74"></script>
+<script src="loomiq-pricing.js?v=65e88b9f74"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=caf4b0a1c7"></script>
+<script src="loomiq-constructor.js?v=65e88b9f74"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
