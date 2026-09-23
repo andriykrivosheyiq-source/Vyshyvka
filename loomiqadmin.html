@@ -6103,6 +6103,12 @@ function paintCalcTarget(){
 function openCalcFor(o, editIdx){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
+  /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
+     в конструктор. Мапа за відбитком лежить у замовленні, а конструктор
+     читає вид із `config.logos`: без цього рядка позиція, збережена до того,
+     як вид поставили на сусідній, відкривається з автоматичним видом — і
+     перше ж «Зберегти позицію» повертає його в ціну. */
+  try{ applyKindFix(o); }catch(e){ console.warn('вид дизайну', e); }
   /* Позицію віддаємо конструктору цілком: він відновить із неї виріб, колір,
      розміри й логотипи, а після «Оновити» поверне нову версію на те саме
      місце. Макети передаємо посиланнями — вони вже в хмарі. */
@@ -7737,41 +7743,27 @@ window.__adminSaveClientOrder = async function(payload){
         }
         if(was.recoNote && !nu.recoNote) nu.recoNote = was.recoNote;
         if(was.optional != null) nu.optional = was.optional;
-        /* ВИД ДИЗАЙНУ — РІШЕННЯ МЕНЕДЖЕРА, А НЕ ВЛАСТИВІСТЬ ФАЙЛУ.
+        /* ВИД ДИЗАЙНУ: ПЕРЕМАГАЄ ОСТАННЯ ЗМІНА, А НЕ ПЕРША.
 
-           «Картинка» чи «напис» міняє ставку за площу, а отже й ціну. Ставить
-           це людина в прорахунку, дивлячись на сам малюнок. Конструктор про
-           таке рішення не знає нічого: він бачить шар і щоразу присилає
-           «картинка». Тому кожне «Зберегти позицію» тихо повертало вид
-           назад — менеджер ставив «напис», зберігав, перезаходив, а там
-           знову «картинка».
+           Тут довго стояв захист від протилежної біди. Вважалось, що
+           конструктор про рішення менеджера не знає й щоразу присилає
+           «картинка», — тому вид брали зі СТАРОЇ збереженої версії й
+           накладали поверх нової.
 
-           Переносимо за ВІДБИТКОМ малюнка, а не за номером у списку: номер
-           зсувається, щойно додали чи прибрали нанесення, і вид переїхав би
-           на чужий дизайн. Замінили файл — відбиток інший, рішення не
-           переноситься, і вид повертається до автоматичного. Це навмисно:
-           інший малюнок — інше рішення. */
-        const wasD = was.desc, nuD = nu.desc;
-        if(wasD && nuD && Array.isArray(wasD.designs) && Array.isArray(nuD.designs)){
-          const byFp = {};
-          wasD.designs.forEach((fp, di)=>{
-            const k = (wasD.designKinds || [])[di];
-            if(fp && (k === 'txt' || k === 'off')) byFp[String(fp)] = k;
-          });
-          if(Object.keys(byFp).length){
-            const kinds = Array.isArray(nuD.designKinds) ? nuD.designKinds.slice() : [];
-            while(kinds.length < nuD.designs.length) kinds.push('img');
-            nuD.designs.forEach((fp, di)=>{
-              const k = byFp[String(fp || '')];
-              if(k) kinds[di] = k;
-            });
-            nuD.designKinds = kinds;
-            /* І в мапу замовлення — щоб рішення лишалось, навіть коли цю
-               позицію потім приберуть, а той самий малюнок стоятиме на
-               сусідній. */
-            Object.keys(byFp).forEach(fp => setItemKindFix(null, fp, byFp[fp], target));
-          }
-        }
+           Конструктор давно присилає рішення сам: воно лежить на шарі й їде
+           разом із позицією в `designKindFix`. А захист лишився — і став тим
+           самим багом навпаки: старе затирало нове. Менеджер міняв вид,
+           бачив на екрані правильний поділ, зберігав — і вид відкочувався.
+           Гірше: переносились тільки «напис» і «не рахувати», тож поставивши
+           раз «напис», повернути «картинку» не можна було вже ніколи.
+
+           Тепер беремо те, що менеджер щойно поставив, і воно вирішує.
+           Нічого зі старої версії не тягнемо: рішення їде туди й назад саме,
+           а мапа замовлення дає йому пережити навіть видалення цієї
+           позиції. */
+        const fresh = nu.designKindFix;
+        if(fresh && typeof fresh === 'object')
+          Object.keys(fresh).forEach(fp => setItemKindFix(null, fp, fresh[fp], target));
       });
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
@@ -8833,9 +8825,10 @@ function applyKindFix(o){
   /* Одна мапа на все замовлення. Раніше кожна позиція мала свою — і той
      самий малюнок на сусідніх позиціях міг рахуватись по-різному. */
   const fix = orderKindFix(o);
+  if(!fix) return;
   (o && o.items || []).forEach(it=>{
     const d = it && it.desc;
-    if(!fix || !d || !Array.isArray(d.designs)) return;
+    if(!d || !Array.isArray(d.designs)) return;
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
     d.designs.forEach((fp, i)=>{
@@ -8843,6 +8836,24 @@ function applyKindFix(o){
       if(want === 'img' || want === 'txt' || want === 'off') kinds[i] = want;
     });
     d.designKinds = kinds;
+  });
+  /* І НАЗАД НА ШАРИ — інакше рішення нікуди не підвантажується.
+
+     Мапа за відбитком лежить у замовленні, а конструктор читає вид із
+     `config.logos`. Позиція, збережена до того, як рішення поставили, свого
+     `kindFix` не має — і відкривши її, менеджер бачив «картинка» там, де сам
+     щойно поставив «напис» на сусідній. Рішення було, просто до цієї позиції
+     воно не доїжджало. */
+  (o && o.items || []).forEach(it=>{
+    const logos = it && it.config && it.config.logos;
+    if(!logos || typeof logos !== 'object') return;
+    Object.keys(logos).forEach(side=>{
+      (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+        if(!l) return;
+        const want = fix[String(l.fp || '')];
+        if(want === 'img' || want === 'txt' || want === 'off') l.kindFix = want;
+      });
+    });
   });
 }
 /* Дизайн без відбитка рушій вважає «невідомим» і приєднує до першої групи:
@@ -18513,6 +18524,12 @@ function configWithLogos(it){
 function calcSeedFor(o, editIdx){
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
+  /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
+     в конструктор. Мапа за відбитком лежить у замовленні, а конструктор
+     читає вид із `config.logos`: без цього рядка позиція, збережена до того,
+     як вид поставили на сусідній, відкривається з автоматичним видом — і
+     перше ж «Зберегти позицію» повертає його в ціну. */
+  try{ applyKindFix(o); }catch(e){ console.warn('вид дизайну', e); }
   const it = (calcEdit != null) ? (o.items || [])[calcEdit] : null;
   // Позицію віддаємо конструктору цілком — він відновить виріб, колір,
   // розміри й логотипи, а «Оновити» поверне нову версію на те саме місце.
