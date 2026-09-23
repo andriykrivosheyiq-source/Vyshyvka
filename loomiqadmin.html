@@ -258,6 +258,31 @@
   .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .nav button:hover{background:#20262F;color:#E6E8EC;}
   .nav button.active{background:var(--side-2);color:#fff;font-weight:600;}
+  /* ── Група «Налаштування» ──
+     Ставки, сітки, підрядники, доступи — це пʼять розділів, у які заходять
+     раз на тиждень, і доти вони стояли просто в списку, між замовленнями й
+     аналітикою. Меню читалось як звалище: щоденне й рідкісне однаковим
+     кеглем, одне під одним. Тепер рідкісне складено в одну кнопку внизу. */
+  .nav-grp{display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;
+    border-top:1px solid #262E38;}
+  .nav .nav-grp-x{margin-left:auto;display:flex;flex:none;transition:transform .16s;}
+  .nav .nav-grp-x svg{width:16px;height:16px;}
+  .nav-grp.is-open > .nav-grp-h .nav-grp-x{transform:rotate(180deg);}
+  /* Група згорнута, а всередині неї відкритий розділ: без цього не видно
+     взагалі, де ти стоїш. */
+  .nav-grp.has-active:not(.is-open) > .nav-grp-h{background:#20262F;color:#E6E8EC;}
+  .nav-grp-b{display:none;flex-direction:column;gap:2px;margin-left:12px;padding-left:10px;
+    border-left:1px solid #262E38;}
+  .nav-grp.is-open > .nav-grp-b{display:flex;}
+  /* Згорнуте меню — самі іконки, вкладати нікуди: пункти йдуть поспіль, а
+     заголовок групи прибираємо. */
+  .sidebar.is-folded .nav-grp{margin-top:6px;padding-top:6px;}
+  .sidebar.is-folded .nav-grp-h{display:none;}
+  .sidebar.is-folded .nav-grp .nav-grp-b{display:flex;margin:0;padding:0;border-left:0;}
+  /* «Прорахунок» лишився розділом, але перестав бути пунктом меню: у нього
+     заходять із картки замовлення, а не зі списку зліва. Кнопка жива —
+     нею ж картка й перемикає вид, — просто її не показують. */
+  .nav button.nav-off{display:none !important;}
   .side-out{all:unset;cursor:pointer;color:var(--side-txt);font-size:13.5px;display:flex;
     align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-ctl);
     box-sizing:border-box;width:100%;position:relative;}
@@ -3451,19 +3476,27 @@
       </div>
       <nav class="nav">
         <button data-view="today" data-tip="Задачі"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="m17 16.5 1.6 1.6L22 14.7"/></svg><span>Задачі</span></button>
-        <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
-        <!-- Дизайн-відділ: окремий цикл роботи з макетом. Стоїть поруч із
-             Канбаном, бо це те саме замовлення, але інше життя. -->
+        <button data-view="board" class="active" data-tip="Замовлення B2B"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Замовлення B2B</span></button>
         <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
+        <!-- Дизайн-відділ — це ті самі замовлення, лише приватні: тому він
+             стоїть не осторонь, а другою парою «замовлення + чати». -->
+        <button data-view="design" data-tip="Замовлення B2C — приватні"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Замовлення B2C</span></button>
         <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
-        <button data-view="design" data-tip="B2C — приватні замовлення"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>B2C</span></button>
-        <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
-        <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
-        <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
-        <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
-        <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
-        <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
         <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
+        <button data-view="calc" class="nav-off" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
+        <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
+             тиждень. Внизу й під однією кнопкою, щоб щоденне не губилось
+             серед рідкісного. -->
+        <div class="nav-grp" id="nav-set">
+          <button type="button" class="nav-grp-h" data-tip="Налаштування" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.8h0a1.9 1.9 0 0 1 1.9 1.9v.5a1.5 1.5 0 0 0 2.2 1.3l.4-.2a1.9 1.9 0 0 1 2.4.7l.3.5a1.9 1.9 0 0 1-.6 2.5l-.4.3a1.5 1.5 0 0 0 0 2.6l.4.3a1.9 1.9 0 0 1 .6 2.5l-.3.5a1.9 1.9 0 0 1-2.4.7l-.4-.2a1.5 1.5 0 0 0-2.2 1.3v.5A1.9 1.9 0 0 1 12 21.2h0a1.9 1.9 0 0 1-1.9-1.9v-.5a1.5 1.5 0 0 0-2.2-1.3l-.4.2a1.9 1.9 0 0 1-2.4-.7l-.3-.5a1.9 1.9 0 0 1 .6-2.5l.4-.3a1.5 1.5 0 0 0 0-2.6l-.4-.3a1.9 1.9 0 0 1-.6-2.5l.3-.5a1.9 1.9 0 0 1 2.4-.7l.4.2a1.5 1.5 0 0 0 2.2-1.3v-.5A1.9 1.9 0 0 1 12 2.8z"/></svg><span>Налаштування</span><i class="nav-grp-x"><svg viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg></i></button>
+          <div class="nav-grp-b">
+            <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
+            <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
+            <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
+            <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
+            <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
+          </div>
+        </div>
       </nav>
       <div class="sidebar-foot">
         <!-- Своє імʼя й свій пароль людина міняє сама. Доти імʼя за неї
@@ -6009,12 +6042,51 @@ async function askCtorPass(){
   toast('Невірний пароль');
   return false;
 }
-document.querySelectorAll('.nav button').forEach(btn=>{
+/* Група розділів у меню. Заголовок сам по собі нікуди не веде — він лише
+   показує й ховає свої пункти, тож у нього немає `data-view` і обробник
+   розділів його не чіпає. */
+function navGrpOpen(g, on){
+  g.classList.toggle('is-open', !!on);
+  const h = g.querySelector('.nav-grp-h');
+  if(h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
+}
+function navGrpSync(){
+  document.querySelectorAll('.nav-grp').forEach(g=>{
+    /* Розділ усередині групи відкрили не мишею, а кодом — з картки
+       замовлення або після зміни доступів. Група має розкритись сама,
+       інакше людина стоїть у розділі, якого в меню не видно. */
+    const on = !!g.querySelector('button[data-view].active');
+    g.classList.toggle('has-active', on);
+    if(on) navGrpOpen(g, true);
+    /* Усі пункти групи закриті доступами — ховаємо й заголовок: кнопка,
+       яка розгортає порожнечу, гірша за її відсутність. */
+    const h = g.querySelector('.nav-grp-h');
+    if(h) h.hidden = !g.querySelector('button[data-view]:not([hidden])');
+  });
+}
+(function wireNavGroups(){
+  document.querySelectorAll('.nav-grp').forEach(g=>{
+    const h = g.querySelector('.nav-grp-h');
+    if(!h) return;
+    const key = 'lq_nav_' + (g.id || 'grp');
+    let saved = false;
+    try{ saved = localStorage.getItem(key) === '1'; }catch(e){}
+    navGrpOpen(g, saved);
+    h.addEventListener('click', ()=>{
+      const on = !g.classList.contains('is-open');
+      navGrpOpen(g, on);
+      try{ localStorage.setItem(key, on ? '1' : '0'); }catch(e){}
+    });
+  });
+  try{ navGrpSync(); }catch(e){}
+})();
+document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
     const view = btn.dataset.view;
     if(view === 'photos' && !(await askCtorPass())) return;
-    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    try{ navGrpSync(); }catch(e){}
     /* На телефоні меню лежить поверх сторінки: не закрити його після вибору
        означає показати людині її ж меню замість розділу, який вона щойно
        відкрила. */
@@ -6032,7 +6104,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'B2C',
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
       chats:'Чати B2B', chatsc:'Чати B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
@@ -22527,13 +22599,13 @@ const ZONE_NAV = [
      — рівно те, що йому й так видно на дошці. */
   { key:'today',     label:'Задачі',
     hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
-  { key:'board',     label:'Канбан',
+  { key:'board',     label:'Замовлення B2B',
     hint:'Дошка замовлень і картка замовлення.' },
   { key:'chats',     label:'Чати B2B',
     hint:'Усі розмови напряму, найсвіжіші вгорі. Тут видно, кому ще не відповіли.' },
   { key:'chatsc',    label:'Чати B2C',
     hint:'Те саме для приватних замовлень.' },
-  { key:'design',    label:'B2C',
+  { key:'design',    label:'Замовлення B2C',
     hint:'Черга відділу, дошка дизайнера, оцифрування вишивки, перевірка файлів ' +
          'і пакет у виробництво. Цін і оплат тут немає.' },
   { key:'calc',      label:'Прорахунок',
@@ -23283,6 +23355,7 @@ function applyRoleUi(){
     b.hidden = !on;
     if(on && !firstOk) firstOk = b;
   });
+  try{ navGrpSync(); }catch(e){}
   const add = document.getElementById('board-add');
   if(add) add.hidden = !canNewOrder();
   const st = document.getElementById('st-toggle');

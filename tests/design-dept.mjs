@@ -678,7 +678,7 @@ const roles = await p.evaluate(() => {
            emb: /embroidery:'Вишивальний дизайнер'/.test(src),
            qa:  /qa:'Контроль файлів'/.test(src),
            buy: /supply:'Закупівля'/.test(src),
-           zone: /key:'design',\s*label:'B2C'/.test(src) };
+           zone: /key:'design',\s*label:'Замовлення B2C'/.test(src) };
 });
 /* Акаунт-менеджер веде замовлення від і до, тож роль так і зветься: раніше
    вона називалась «менеджер дизайну» й обмежувалась воротами відділу. Ключ
