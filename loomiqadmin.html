@@ -1904,6 +1904,18 @@
   .tm-row .tm-mail{flex:1 1 220px;min-width:0;}
   .tm-row .tm-name{flex:0 1 160px;min-width:0;}
   .tm-row .tm-role{flex:none;}
+  .tm-lock{flex:none;width:30px;text-align:center;font-size:14px;opacity:.55;cursor:default;}
+  /* Прибрані лежать поруч, а не зникають: помилкове натискання не має
+     коштувати людині доступів, які налаштовували пів години. */
+  .tm-gone{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .tm-gone-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:7px;}
+  .tm-gone-row{display:flex;align-items:center;gap:10px;font-size:12.5px;
+    color:var(--ink-soft);padding:5px 0;}
+  .tm-gone-row b{color:var(--ink);font-weight:600;}
+  .tm-back{all:unset;cursor:pointer;margin-left:auto;font-size:12px;font-weight:600;
+    color:var(--accent-deep);border:1px solid var(--line);border-radius:8px;padding:4px 10px;}
+  .tm-back:hover{background:var(--canvas);}
   .tm-row.is-me{background:var(--accent-soft);border-radius:10px;padding:6px 8px;margin-left:-8px;}
   /* Запрошення поштою: кнопка поруч із людиною, стан — рядком під нею. */
   .tm-inv{all:unset;cursor:pointer;flex:none;padding:7px 12px;border-radius:8px;
@@ -22586,12 +22598,78 @@ function teamMember(email){
 /* Поки команду не завели, система працює як раніше — усе видно. Інакше
    перше ж збереження порожнього списку сховало б цифри від самого власника. */
 function teamOn(){ return (((contentData.team) || []).length > 0); }
-/* Господар системи — той, хто налаштував команду першим. Його пошта
-   заходить завжди, навіть якщо зі списку вона колись зникне: інакше
-   єдиною дорогою назад лишалась би консоль бази. */
+/* ══════════ ДВІ ПОШТИ, ЯКІ НЕ МОЖНА ВТРАТИТИ ═══════════════════════════
+   Власник налаштовував ролі, зберіг список без себе — і замкнувся у
+   власній системі: розділ доступів теж за табличкою «вас ще не додали в
+   команду». Повернутись можна було лише через консоль бази.
+
+   Так не має бути в жодній системі, де є доступи. Тому в господарів є два
+   рівні:
+
+     — ЗАСНОВНИКИ. Дві пошти, вписані в сам код. Вони заходять завжди, з
+       повними правами, і прибрати їх зі списку неможливо ні кнопкою, ні
+       збереженням, ні правкою бази: щоразу, коли команда зберігається, їх
+       ставлять назад. Це не налаштування, а властивість системи.
+
+     — ГОСПОДАР ЗА ЗАПИСОМ. Той, хто налаштував команду першим. Запасний
+       ключ на випадок, якщо система колись працюватиме в іншій компанії, де
+       засновники інші.
+
+   ПОШТИ ТУТ НЕ ЛЕЖАТЬ ВІДКРИТО. Ця сторінка публічна, і дві особисті
+   адреси в її тексті — подарунок спамерам. Тому тримаємо не адреси, а їхні
+   підписи: чотири незалежні хеші від одного рядка. Порахувати підпис із
+   адреси легко, відновити адресу з підпису — ні, а чотирьох хешів разом
+   випадковим збігом не набереш. */
+const ROOT_SIGS = [
+  '1318551f-0cdbe101-e4e5048b-745d5279',
+  'b2d83307-4b9ee07d-68889b0b-b92ca555'
+];
+function mailSig(e){
+  const t = String(e || '').trim().toLowerCase();
+  if(!t) return '';
+  return [0x811c9dc5, 0x01000193, 0x9e3779b9, 0x85ebca6b].map(seed=>{
+    let x = seed >>> 0;
+    for(let i = 0; i < t.length; i++){
+      x = (x ^ t.charCodeAt(i)) >>> 0;
+      x = Math.imul(x, 16777619) >>> 0;
+    }
+    return ('0000000' + x.toString(16)).slice(-8);
+  }).join('-');
+}
+/* Засновник у списку команди: є — лишається з повними правами, немає —
+   дописуємо. Список, у якому їх немає, просто не існує. */
+function rootKeep(list){
+  const have = {};
+  (list || []).forEach(p => { have[String(p.email || '').trim().toLowerCase()] = p; });
+  const known = ((contentData && contentData.team) || []).concat(list || []);
+  ROOT_SIGS.forEach(sigKey=>{
+    // Адресу засновника беремо з того, хто вже заходив: у коді лежить лише підпис.
+    let mail = '';
+    [myEmail()].concat(known.map(p => p && p.email)).some(e=>{
+      const t = String(e || '').trim().toLowerCase();
+      if(t && mailSig(t) === sigKey){ mail = t; return true; }
+      return false;
+    });
+    if(!mail) return;                       // ця пошта тут ще не зʼявлялась
+    const was = have[mail];
+    if(was){ was.role = 'owner'; was.acc = accExpand(presetOf('owner')); was.dirs = ['b2b','b2c']; return; }
+    list.push({ email: mail, name: (teamMember(mail) || {}).name || '',
+                role: 'owner', dirs: ['b2b','b2c'],
+                acc: Object.assign(accExpand(presetOf('owner')),
+                                   { navAll: ZONE_NAV.map(z => z.key) }) });
+  });
+  return list;
+}
+function isRootEmail(e){
+  const t = String(e || '').trim().toLowerCase();
+  return !!t && ROOT_SIGS.indexOf(mailSig(t)) >= 0;
+}
+/* Господар системи — засновник або той, хто налаштував команду першим. */
 function isOwnerEmail(e){
+  const t = String(e || '').trim().toLowerCase();
+  if(isRootEmail(t)) return true;
   const own = String((contentData || {}).ownerEmail || '').trim().toLowerCase();
-  return !!own && own === String(e || '').trim().toLowerCase();
+  return !!own && own === t;
 }
 function myRole(){
   if(!teamOn()) return 'owner';
@@ -22852,7 +22930,9 @@ function renderTeamList(){
         <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
         <button class="tm-inv" data-inv="${i}" ${inTeam ? '' : 'disabled'}
           title="Надіслати лист із посиланням: людина сама придумає пароль і назветься">✉ ${prof ? 'Ще раз' : 'Запросити'}</button>
-        <button class="qr-del" title="Прибрати">🗑</button>
+        ${isRootEmail(p.email)
+          ? '<span class="tm-lock" title="Засновник: цю пошту прибрати не можна">🔒</span>'
+          : '<button class="qr-del" title="Прибрати">🗑</button>'}
       </div>
       <div class="tm-sum${none ? ' tm-sum--none' : ''}">${state} ${escapeHtml(accSummary(p.acc))}</div>
       ${teamOpen === i ? `<div class="tm-acc">
@@ -22877,6 +22957,36 @@ function renderTeamList(){
       </div>` : ''}
     </div>`;}).join('') ||
     '<div class="sub">Список порожній — поки всі бачать усе. Натисніть «+ Додати людину».</div>';
+  /* ПРИБРАНІ ЛЕЖАТЬ ПОРУЧ, А НЕ ЗНИКАЮТЬ.
+
+     Людину прибирають одним натисканням, а налаштовували її доступи пів
+     години. Помилкове натискання не має коштувати цієї півгодини, а «ой,
+     я випадково» — бути причиною виставляти двадцять галочок наново. Тому
+     прибраний іде не в нікуди, а сюди, разом зі своїми доступами, і
+     повертається однією кнопкою. */
+  const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
+  if(gone.length){
+    box.insertAdjacentHTML('beforeend', '<div class="tm-gone">' +
+      '<div class="tm-gone-h">Прибрані — можна повернути</div>' +
+      gone.map((g, j)=> '<div class="tm-gone-row"><b>' +
+        escapeHtml(g.name || g.email || '') + '</b><span>' + escapeHtml(g.email || '') +
+        '</span><span>' + escapeHtml(dayUa(g.goneAt) || '') + '</span>' +
+        '<button class="tm-back" data-back="' + j + '">Повернути</button></div>').join('') +
+      '</div>');
+    box.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', ()=>{
+      const j = +b.dataset.back;
+      const g = (contentData.teamGone || [])[j];
+      if(!g) return;
+      const cur = teamList();
+      if(cur.some(x => String(x.email || '').toLowerCase() === String(g.email || '').toLowerCase()))
+        return toast('Ця людина вже в списку');
+      const back = Object.assign({}, g); delete back.goneAt;
+      cur.push(back);
+      contentData.teamGone = (contentData.teamGone || []).filter((x, k) => k !== j);
+      renderTeamList();
+      toast('Повернули — не забудьте «Зберегти команду»');
+    }));
+  }
   box.querySelectorAll('.tm-row').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.tm-mail').addEventListener('input', e=> teamList()[i].email = e.target.value);
@@ -22897,7 +23007,20 @@ function renderTeamList(){
       renderTeamList();
     });
     row.querySelector('.tm-ui').addEventListener('change', e=>{ teamList()[i].acc.ui = e.target.value; });
-    row.querySelector('.qr-del').addEventListener('click', ()=>{
+    const del = row.querySelector('.qr-del');
+    if(del) del.addEventListener('click', ()=>{
+      const p = teamList()[i];
+      if(isRootEmail(p.email)) return toast('Засновника прибрати не можна');
+      if(String(p.email || '').trim().toLowerCase() === myEmail())
+        return toast('Себе прибрати не можна — ви втратите доступ до власної адмінки');
+      if(p.email && !confirm('Прибрати ' + (p.name || p.email) +
+        ' із команди?\n\nЛюдина одразу втратить доступ. Повернути її можна ' +
+        'тут же, у «Прибраних», — доступи збережуться.')) return;
+      if(p.email){
+        const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone.slice() : [];
+        gone.push(Object.assign({}, p, { goneAt: new Date().toISOString() }));
+        contentData.teamGone = gone.slice(-30);
+      }
       teamList().splice(i,1); teamOpen = -1; renderTeamList(); });
   });
   box.querySelectorAll('[data-more]').forEach(b=>
@@ -23011,9 +23134,15 @@ function renderTeamList(){
          господаря — через правку з іншої вкладки, збій запису, перенесення
          бази, — адмінка має лишитись відкритою хоч комусь. Тому памʼятаємо,
          хто налаштував команду першим, і ця пошта заходить завжди. */
+      /* Засновників дописуємо назад ЗАВЖДИ — байдуже, що там у списку.
+         Це не перевірка «а чи не забули», а властивість системи: втратити
+         їх не можна ні кнопкою, ні правкою бази, ні випадковим збігом. */
+      rootKeep(list);
       const own = String(contentData.ownerEmail || myEmail() || '').toLowerCase();
       await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list),
-                             ownerEmail: own }, { merge:true });
+                             ownerEmail: own,
+                             teamGone: (contentData.teamGone || []).slice(-30) },
+                           { merge:true });
       contentData.team = list;
       contentData.ownerEmail = own;
       teamDraft = list.map(p => ({ email:p.email, name:p.name, role:p.role,

@@ -229,6 +229,45 @@ ok(розділи.b2c.indexOf('design') >= 0 && розділи.b2c.indexOf('boar
   'менеджерові B2C видно Канбан: ' + JSON.stringify(розділи));
 
 console.log('');
+console.log('═══ ДОСТУП НЕ ВТРАЧАЄТЬСЯ НІКОЛИ ═══');
+/* Власник налаштовував ролі, зберіг список без себе — і замкнувся у
+   власній системі: розділ доступів теж за табличкою «вас ще не додали в
+   команду». Повернутись можна було лише через консоль бази. Так не має
+   бути в жодній системі, де є доступи. */
+const ключ = await p.evaluate(() => {
+  const було = JSON.stringify(contentData.team || []);
+  const mail = myEmail();
+  /* Справжніх адрес засновників тут немає навмисно: у коді лежать самі
+     підписи, і в перевірці їм теж не місце. Тому підписуємо тестову пошту
+     й дивимось, як поводиться сам механізм. */
+  ROOT_SIGS.push(mailSig(mail));
+  const свій = isRootEmail(mail);
+  const підписи = ROOT_SIGS.every(x => x.indexOf('@') < 0);
+  // Список без засновника: збереження має дописати його назад.
+  const list = [{ email:'hto@inshiy', name:'Хтось', role:'manager', dirs:['b2b'],
+                  acc:{ ui:'manager', nav:['board'], boards:['sale'], see:[], can:[] } }];
+  rootKeep(list);
+  const повернувся = list.some(p => String(p.email).toLowerCase() === mail);
+  // І сама табличка «вас не додали» засновнику не показується.
+  contentData.team = list.filter(p => String(p.email).toLowerCase() !== mail);
+  const замкнувся = !applyNoAccess();
+  const роль = myRole();
+  ROOT_SIGS.pop();
+  contentData.team = JSON.parse(було); teamDraft = null; applyRoleUi();
+  return { свій, підписи, повернувся, замкнувся, роль };
+});
+console.log('   ' + JSON.stringify(ключ));
+ok(ключ.свій && ключ.підписи,
+  'пошту засновника впізнають за підписом — самої адреси в коді немає',
+  'засновника не впізнано, або адреса лежить у сторінці відкритим текстом');
+ok(ключ.повернувся,
+  'список, збережений без засновника, дописує його назад — втратити його неможливо',
+  'засновник зник зі списку: ' + JSON.stringify(ключ));
+ok(!ключ.замкнувся && ключ.роль === 'owner',
+  'і навіть за відсутності в списку він заходить власником, а не впирається в «вас не додали»',
+  'засновник замкнувся у власній системі: ' + JSON.stringify(ключ));
+
+console.log('');
 console.log('═══ ЗАПРОШЕННЯ ЙДЕ НА ПОШТУ ═══');
 const inv = await p.evaluate(async () => {
   window.__AUTH = [];
