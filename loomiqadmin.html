@@ -3771,6 +3771,8 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="team-list"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
           <button class="pc-btn up" id="team-add" style="flex:none;padding:10px 22px;">+ Додати людину</button>
+          <button class="pc-btn" id="team-find" style="flex:none;padding:10px 18px;"
+            title="Зібрати пошти людей із замовлень, журналу прав і доручень">↺ Відновити зі слідів</button>
           <button class="btn btn-accent" id="team-save" style="flex:none;">Зберегти команду</button>
         </div>
         <div class="sub" id="team-me" style="margin-top:10px;"></div>
@@ -23074,6 +23076,64 @@ function renderTeamList(){
     : '';
 }
 (function(){
+  /* ══════════ ВІДНОВЛЕННЯ КОМАНДИ ЗІ СЛІДІВ ═══════════════════════════
+     Список команди — єдиний запис, який ніде більше не дублюється: пропав,
+     і відновлювати нема з чого. А пропасти він може буденно: правка в базі,
+     збережений не той список, чиясь помилка. Саме це й сталось.
+
+     Але самі ЛЮДИ по системі розсипані всюди. Кожне замовлення памʼятає
+     свого відповідального, кожна оплата — хто її вніс, кожен запис історії
+     — хто його зробив, кожне доручення — кому воно. Журнал прав памʼятає,
+     кого й коли заводили. Це не список команди, але це всі, хто тут
+     працював, — і цього досить, щоб зібрати його наново.
+
+     Ролі й галочки звідси не візьмеш: їх ніде більше немає. Тому ставимо
+     людей у список і лишаємо людині розставити доступи — це хвилина, а не
+     година згадування, кого взагалі забули. */
+  function teamTraces(){
+    const seen = {};
+    const put = e=>{
+      const t = String(e || '').trim().toLowerCase();
+      if(t && t.indexOf('@') > 0) seen[t] = (seen[t] || 0) + 1;
+    };
+    (orders || []).forEach(o=>{
+      if(!o) return;
+      put(o.mgrEmail);
+      (o.hist || []).forEach(h => put(h && h.by));
+      (o.payments || []).forEach(x => put(x && x.by));
+      (o.art || []).forEach(v=>{
+        put(v && v.by);
+        const ap = (v && v.approvals) || {};
+        Object.keys(ap).forEach(k => put(ap[k] && ap[k].by));
+      });
+    });
+    Object.keys(designJobs || {}).forEach(k=>{
+      const j = designJobs[k] || {};
+      (j.tasks || []).forEach(t => { put(t && t.to); put(t && t.by); });
+      put((j.graphic || {}).who);
+      (j.stitch || []).forEach(x => put(x && x.who));
+    });
+    accLogList().forEach(r=>{
+      put(r && r.by);
+      String((r && r.text) || '').split(/[\s,·]+/).forEach(put);
+    });
+    return Object.keys(seen).sort((a, b) => seen[b] - seen[a]);
+  }
+  const find = document.getElementById('team-find');
+  if(find) find.addEventListener('click', ()=>{
+    const cur = teamList();
+    const have = {};
+    cur.forEach(p => { have[String(p.email || '').trim().toLowerCase()] = 1; });
+    const add = teamTraces().filter(e => !have[e]);
+    if(!add.length) return toast('Нових пошт не знайшлось — усі, хто тут працював, уже в списку');
+    if(!confirm('Знайшли ' + add.length + ' пошт, яких у списку немає:\n\n' +
+      add.join('\n') + '\n\nДодати їх? Ролі й доступи доведеться виставити — ' +
+      'вони ніде не зберігаються, крім самого списку.')) return;
+    add.forEach(e => cur.push({ email:e, name:'', role:'manager', dirs:['b2b'],
+                                acc: accExpand(presetOf('manager')) }));
+    renderTeamList();
+    toast('Додали ' + add.length + ' — перевірте ролі й натисніть «Зберегти команду»');
+  });
   const add = document.getElementById('team-add');
   if(!add) return;
   add.addEventListener('click', ()=>{

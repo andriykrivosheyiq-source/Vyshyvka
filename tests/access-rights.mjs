@@ -268,6 +268,42 @@ ok(!ключ.замкнувся && ключ.роль === 'owner',
   'засновник замкнувся у власній системі: ' + JSON.stringify(ключ));
 
 console.log('');
+console.log('═══ КОМАНДУ МОЖНА ЗІБРАТИ ЗІ СЛІДІВ ═══');
+/* Список команди — єдиний запис, який ніде більше не дублюється: пропав, і
+   відновлювати нема з чого. А пропасти він може буденно: правка в базі,
+   збережений не той список, чиясь помилка.
+
+   Але самі люди по системі розсипані всюди: кожне замовлення памʼятає свого
+   відповідального, кожна оплата — хто її вніс, журнал прав — кого заводили.
+   Цього досить, щоб зібрати список наново. */
+const сліди = await p.evaluate(async () => {
+  const було = JSON.stringify(contentData.team || []);
+  orders.push({ id:'t1', orderId:'1000900', mgrEmail:'olesya@loomiq',
+                hist:[{ s:'kp', by:'maryna@loomiq' }],
+                payments:[{ sum:1, by:'ira@loomiq' }], items:[] });
+  contentData.accessLog = [{ at:'', by:'vova@loomiq', kind:'rights',
+                             text:'змінив права: nastya@loomiq (нов.)' }];
+  contentData.team = [];
+  teamDraft = null;
+  document.querySelector('.nav button[data-view="team"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  document.getElementById('team-find').click();
+  await new Promise(r => setTimeout(r, 300));
+  const пошти = teamList().map(x => x.email).sort();
+  contentData.team = JSON.parse(було); teamDraft = null;
+  orders.pop(); renderTeamList();
+  return пошти;
+});
+console.log('   ' + JSON.stringify(сліди));
+ok(сліди.indexOf('olesya@loomiq') >= 0 && сліди.indexOf('maryna@loomiq') >= 0 &&
+   сліди.indexOf('ira@loomiq') >= 0,
+  'людей збирає із замовлень: відповідальний, історія, оплати',
+  'сліди в замовленнях не читаються: ' + JSON.stringify(сліди));
+ok(сліди.indexOf('nastya@loomiq') >= 0 && сліди.indexOf('vova@loomiq') >= 0,
+  'і з журналу прав — там видно, кого колись заводили і хто це робив',
+  'журнал прав не переглядається: ' + JSON.stringify(сліди));
+
+console.log('');
 console.log('═══ ЗАПРОШЕННЯ ЙДЕ НА ПОШТУ ═══');
 const inv = await p.evaluate(async () => {
   window.__AUTH = [];
