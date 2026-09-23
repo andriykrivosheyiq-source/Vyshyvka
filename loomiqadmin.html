@@ -1905,6 +1905,10 @@
   .tm-row .tm-name{flex:0 1 160px;min-width:0;}
   .tm-row .tm-role{flex:none;}
   .tm-lock{flex:none;width:30px;text-align:center;font-size:14px;opacity:.55;cursor:default;}
+  .tm-pin{all:unset;cursor:pointer;width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.35;flex:none;}
+  .tm-pin:hover{background:var(--canvas);opacity:.8;}
+  .tm-pin.is-on{opacity:1;}
   /* Прибрані лежать поруч, а не зникають: помилкове натискання не має
      коштувати людині доступів, які налаштовували пів години. */
   .tm-gone{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
@@ -22458,7 +22462,12 @@ function applySeeAsBar(){
    Журнал бачить тільки той, хто налаштовує систему, і він не редагується
    взагалі — ні ким. Тому пишемо додаванням у сам документ сайту, а не
    правкою: правити нічого. */
-const ACC_LOG_MAX = 400;
+/* Журнал — єдиний слід, коли щось поїхало: список команди, доступи, чиясь
+   правка. Чотириста рядків витрачались за кілька місяців, а питання «хто це
+   зробив» виникає саме тоді, коли подія вже старенька. Тримаємо більше:
+   рядок важить десятки байтів, а відповідь на таке питання — набагато
+   більше. */
+const ACC_LOG_MAX = 3000;
 function accLogList(){
   const a = (contentData || {}).accessLog;
   return Array.isArray(a) ? a : [];
@@ -22482,7 +22491,7 @@ function renderAccLog(){
   if(!canSetup()){ box.innerHTML = '<div class="sub">Журнал бачить тільки той, хто налаштовує систему.</div>'; return; }
   const L = accLogList().slice().reverse();
   const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК', open:'відкрив' };
-  box.innerHTML = L.length ? L.slice(0, 200).map(r =>
+  box.innerHTML = L.length ? L.slice(0, 800).map(r =>
     '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
     '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
       (r.role ? ' <i>' + escA(roleTitle(r.role, memberDirs(r))) + '</i>' : '') + '</span>' +
@@ -22668,9 +22677,46 @@ function rootKeep(list){
   });
   return list;
 }
-function isRootEmail(e){
+/* ЗАКРІПЛЕНІ РУКАМИ.
+
+   Три підписи в коді — це господарі системи, і змінити їх може лише
+   розробник. Але закріпити треба буває й інших: другого власника, головного
+   менеджера, людину, без якої компанія стане. Диктувати їхні адреси в код
+   безглуздо — вони міняються частіше за релізи.
+
+   Тому є другий список, у базі. Він слабший — разом із базою його можна
+   втратити, — зате ним розпоряджається сам власник, просто зі списку
+   команди. Три підписи з коду лишаються підлогою, нижче за яку не впаде
+   ніколи. */
+function pinnedSigs(){
+  const a = (contentData || {}).rootSigs;
+  return Array.isArray(a) ? a.filter(x => typeof x === 'string') : [];
+}
+function isCodeRoot(e){
   const t = String(e || '').trim().toLowerCase();
   return !!t && ROOT_SIGS.indexOf(mailSig(t)) >= 0;
+}
+function isRootEmail(e){
+  const t = String(e || '').trim().toLowerCase();
+  if(!t) return false;
+  const sig = mailSig(t);
+  return ROOT_SIGS.indexOf(sig) >= 0 || pinnedSigs().indexOf(sig) >= 0;
+}
+async function rootPin(email, on){
+  const t = String(email || '').trim().toLowerCase();
+  if(!t || t.indexOf('@') < 0) return toast('Спершу впишіть пошту');
+  if(isCodeRoot(t)) return toast('Ця пошта закріплена в самій системі — знімати нічим');
+  const sig = mailSig(t);
+  const list = pinnedSigs().filter(x => x !== sig);
+  if(on) list.push(sig);
+  contentData.rootSigs = list;
+  try{
+    await PHOTOS_DOC.set({ rootSigs: list }, { merge:true });
+    await accLog('rights', (on ? 'закріпив: ' : 'відкріпив: ') + t);
+  }catch(e){ console.warn('закріплення', e); toast('Не збереглось'); return; }
+  renderTeamList();
+  toast(on ? 'Закріплено — цю пошту більше не прибрати'
+           : 'Відкріплено — тепер її можна прибрати');
 }
 /* Господар системи — засновник або той, хто налаштував команду першим. */
 function isOwnerEmail(e){
@@ -22938,9 +22984,14 @@ function renderTeamList(){
         <button class="tm-more" data-more="${i}">${teamOpen === i ? 'Згорнути' : 'Доступи'}</button>
         <button class="tm-inv" data-inv="${i}" ${inTeam ? '' : 'disabled'}
           title="Надіслати лист із посиланням: людина сама придумає пароль і назветься">✉ ${prof ? 'Ще раз' : 'Запросити'}</button>
-        ${isRootEmail(p.email)
-          ? '<span class="tm-lock" title="Засновник: цю пошту прибрати не можна">🔒</span>'
-          : '<button class="qr-del" title="Прибрати">🗑</button>'}
+        ${isCodeRoot(p.email)
+          ? '<span class="tm-lock" title="Засновник системи: прибрати неможливо">🔒</span>'
+          : (isRootEmail(p.email)
+            ? '<button class="tm-lock tm-pin is-on" data-pin="' + i +
+              '" title="Закріплено — натисніть, щоб відкріпити">📌</button>'
+            : '<button class="tm-lock tm-pin" data-pin="' + i +
+              '" title="Закріпити: цю пошту не можна буде прибрати">📌</button>' +
+              '<button class="qr-del" title="Прибрати">🗑</button>')}
       </div>
       <div class="tm-sum${none ? ' tm-sum--none' : ''}">${state} ${escapeHtml(accSummary(p.acc))}</div>
       ${teamOpen === i ? `<div class="tm-acc">
@@ -22995,6 +23046,10 @@ function renderTeamList(){
       toast('Повернули — не забудьте «Зберегти команду»');
     }));
   }
+  box.querySelectorAll('[data-pin]').forEach(b => b.addEventListener('click', ()=>{
+    const p = teamList()[+b.dataset.pin];
+    if(p) rootPin(p.email, !isRootEmail(p.email));
+  }));
   box.querySelectorAll('.tm-row').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.tm-mail').addEventListener('input', e=> teamList()[i].email = e.target.value);

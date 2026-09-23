@@ -293,6 +293,45 @@ ok(рядок.замок && !рядок.кошик,
   'і замість кошика в нього замок — прибрати нічим',
   'засновника можна прибрати кнопкою: ' + JSON.stringify(рядок));
 
+/* Три підписи в коді — господарі системи, і міняє їх лише розробник. Але
+   закріпити треба буває й інших: другого власника, головного менеджера.
+   Диктувати їхні адреси в код безглуздо — вони міняються частіше за релізи.
+   Тому закріплення є і в самому списку. */
+const шпилька = await p.evaluate(async () => {
+  const було = JSON.stringify(contentData.team || []);
+  contentData.rootSigs = [];
+  contentData.team = [{ email:'andriy@loomiq', name:'Андрій', role:'manager',
+                        acc:{ ui:'manager', nav:['board'], boards:['sale'], see:[], can:['setup'] } }];
+  teamDraft = null; renderTeamList();
+  const було_ = { кошик:!!document.querySelector('#team-list .qr-del'),
+                  шпилька:!!document.querySelector('#team-list [data-pin]') };
+  await rootPin('andriy@loomiq', true);
+  const стало = { закріплено:isRootEmail('andriy@loomiq'),
+                  кошик:!!document.querySelector('#team-list .qr-del'),
+                  усписку:(contentData.rootSigs || []).length };
+  await rootPin('andriy@loomiq', false);
+  const зняли = isRootEmail('andriy@loomiq');
+  contentData.rootSigs = []; contentData.team = JSON.parse(було);
+  teamDraft = null; renderTeamList();
+  return { було_, стало, зняли };
+});
+console.log('   ' + JSON.stringify(шпилька));
+ok(шпилька.було_.шпилька && шпилька.було_.кошик,
+  'у звичайної людини є і кошик, і шпилька — закріпити можна будь-кого зі списку',
+  'закріпити людину зі списку нічим: ' + JSON.stringify(шпилька));
+ok(шпилька.стало.закріплено && !шпилька.стало.кошик,
+  'закріпили — кошик зник, прибрати нічим',
+  'закріплення не діє: ' + JSON.stringify(шпилька));
+ok(!шпилька.зняли,
+  'і його можна зняти — закріплене руками не стає вироком',
+  'закріплене руками не знімається: ' + JSON.stringify(шпилька));
+/* Журнал — єдиний слід, коли щось поїхало, а питання «хто це зробив»
+   виникає саме тоді, коли подія вже старенька. */
+ok(/const ACC_LOG_MAX = 3000;/.test(
+     fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8')),
+  'журнал тримає тисячі записів, а не сотні — інакше слід зникає раніше за питання',
+  'журнал закороткий');
+
 console.log('');
 console.log('═══ КОМАНДУ МОЖНА ЗІБРАТИ ЗІ СЛІДІВ ═══');
 /* Список команди — єдиний запис, який ніде більше не дублюється: пропав, і
