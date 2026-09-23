@@ -163,7 +163,9 @@ ok(!longer.cut,
 
 console.log('');
 console.log('═══ ТРЕТІЙ ВИД ДИЗАЙНУ В ПРОРАХУНКУ ═══');
-await p.click('.nav button[data-view="calc"]');
+/* «Прорахунок» більше не пункт меню — у нього заходять із картки
+   замовлення. Кнопка жива, просто її не показують. */
+await p.evaluate(() => document.querySelector('.nav button[data-view="calc"]').click());
 await p.waitForTimeout(600);
 const kinds = await p.evaluate(() => ({
   list: (typeof APP_KINDS !== 'undefined') ? APP_KINDS.map(k => k.k + ':' + k.label) : [],
