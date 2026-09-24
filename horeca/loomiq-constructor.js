@@ -7041,11 +7041,44 @@
         '</span>';
       }).join('');
     }
+    /* ГАЛЕРЕЯ НАЗОВНІ. Макети належать усьому замовленню, тож і показувати
+       їх правильно там, де видно замовлення цілком, — у колонці складу
+       робочого місця, а не на сцені однієї позиції. Сама сцена їх більше не
+       малює: два однакові ряди на екрані читались би як два різні набори.
+
+       Кладемо звідти так само, як клали тут: на поточну сторону відкритої
+       позиції, тим самим файлом. */
+    window.__lqOrderArt = {
+      list: function(){
+        return orderDesigns().map(function(d){
+          return { url:d.url, from:d.from, tone: LQO_TONE[d.url] || '' };
+        });
+      },
+      place: function(i){
+        var d = orderDesigns()[i];
+        if(!d || (!d.url && !d.text)) return false;
+        addLogo(d.url, d.url, d.text || null, d);
+        return true;
+      },
+      drop: function(i){
+        var d = orderDesigns()[i];
+        if(!d) return false;
+        var k = d.url || ('fp:' + d.fp);
+        if(k) LQO_DROP[k] = 1;
+        return true;
+      },
+      /* Колір самого макета міряється асинхронно; коли міра готова —
+         кличемо назад, щоб плитки перефарбувались. */
+      tone: function(url, done){ return orderTone(url, done); }
+    };
     /* Смужка макетів на сцені. Живе окремо від панелі й перемальовується
        разом із нею: склад замовлення міняється, поки позицію правлять. */
     function renderOrderArt(){
       var box = document.getElementById('pmOrderArt');
+      try{ if(window.__lqArtOut) window.__lqArtOut(); }catch(e){}
       if(!box) return;
+      /* Колонка складу взяла галерею на себе — на сцені її більше немає. */
+      if(window.__lqArtOut){ box.hidden = true; box.innerHTML = ''; return; }
       var list = orderDesigns();
       if(!list.length){ box.hidden = true; box.innerHTML = ''; return; }
       box.hidden = false;
