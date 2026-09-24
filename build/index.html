@@ -1171,10 +1171,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      квадратиків угорі читається як частина чогось сусіднього. */
   .lqo-box{margin:0 0 10px;padding:9px 10px 10px;border:1px solid #E3E8EF;border-radius:13px;
     background:#F8FAFC;}
+  /* Підказка ОКРЕМИМ РЯДКОМ, а не поруч. Поруч вона трималась на відступі
+     між елементами — а варто стилям не доїхати, як «10 макетів» і
+     «натисніть…» злипались в одне слово. Окремий рядок читається однаково
+     за будь-яких обставин. */
   .lqo-l{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
-    color:#5A6576;margin-bottom:7px;display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline;}
-  .lqo-l i{font-style:normal;font-weight:600;font-size:10.5px;letter-spacing:0;
-    text-transform:none;color:#8A93A3;}
+    color:#5A6576;margin-bottom:7px;}
+  .lqo-l i{display:block;margin-top:3px;font-style:normal;font-weight:600;font-size:10.5px;
+    letter-spacing:0;text-transform:none;color:#8A93A3;}
   .lqo-box .lqo-row{flex-wrap:wrap;}
   .lqo-row{display:flex;gap:8px;flex:0 0 auto;align-items:center;}
   .lqo-b{all:unset;cursor:pointer;flex:0 0 auto;width:50px;height:50px;border-radius:11px;
@@ -6802,12 +6806,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=04b89c4a6e"></script>
-<script src="/loomiq-fingerprint.js?v=95544a7035"></script>
-<script src="/loomiq-pricing.js?v=95544a7035"></script>
+<script src="/loomiq-select.js?v=bc319e9fe8"></script>
+<script src="/loomiq-fingerprint.js?v=214526230d"></script>
+<script src="/loomiq-pricing.js?v=214526230d"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=95544a7035"></script>
+<script src="loomiq-constructor.js?v=214526230d"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

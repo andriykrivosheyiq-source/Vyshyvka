@@ -49,9 +49,14 @@ CTOR_HTML = 'loomiq-constructor-body.html'
 MARKUP_FROM = '<!-- Product configurator modal -->'
 MARKUP_TO = '<!-- floating action buttons:'
 # За цими ознаками правило вважається конструкторським
+# `.lqo-` — галерея макетів замовлення. Без неї в цьому переліку весь блок
+# їхав у пропозицію без жодного правила: плитки виходили сірими рисочками
+# без картинок, а підпис злипався в один рядок. На самому сайті все
+# виглядало правильно, бо там стилі беруться просто з index.html, — і саме
+# тому поламане було видно лише там, де з ним працюють.
 CTOR_SELECTORS = re.compile(
     r'(?:^|[\s,>+~])(?:\.pm-|\.pmm-|#pm[A-Z]|#productModal|\.contact-modal|\.catalog-modal'
-    r'|\.product\b|\.sheet|\.tsel|\.dl-|\.zone-|#legalPage|\.swatch)', re.I)
+    r'|\.product\b|\.sheet|\.tsel|\.dl-|\.zone-|\.lqo-|#legalPage|\.swatch)', re.I)
 
 HERO_CONTROLS = """    <div class="hero-slide-controls">
       <div class="hero-slide-dots" id="heroSlideDots"></div>
