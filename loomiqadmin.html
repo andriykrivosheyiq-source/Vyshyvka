@@ -5020,18 +5020,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=c427f54038"></script>
-<script src="loomiq-fingerprint.js?v=c427f54038"></script>
-<script src="loomiq-pricing.js?v=c427f54038"></script>
+<script src="loomiq-select.js?v=c68f8238f1"></script>
+<script src="loomiq-fingerprint.js?v=c68f8238f1"></script>
+<script src="loomiq-pricing.js?v=c68f8238f1"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=c427f54038"></script>
+<script src="loomiq-design.js?v=c68f8238f1"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=c427f54038"></script>
+<script src="loomiq-cards.js?v=c68f8238f1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -18974,6 +18974,12 @@ function configWithLogos(it){
   return out;
 }
 function calcSeedFor(o, editIdx){
+  /* Конструктор рахує позицію РАЗОМ із рештою замовлення, і робить це своїм
+     примірником рушія. Отже все, за чим рушій упізнає дизайни, має поїхати
+     туди разом зі складом — зокрема адреси файлів. Без них у кадрі копії
+     одного логотипа знову стають різними макетами, хоч в адмінці вони вже
+     зведені: два примірники рушія рахують те саме замовлення по-різному. */
+  try{ fillDesignUrls(o); }catch(e){ console.warn('адреси дизайнів', e); }
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
   /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
