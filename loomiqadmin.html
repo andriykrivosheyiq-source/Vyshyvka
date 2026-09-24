@@ -1542,6 +1542,21 @@
     border:2px solid currentColor;border-right-color:transparent;vertical-align:-2px;
     animation:cw-turn .7s linear infinite;}
   .cw-busy{display:inline-flex;align-items:center;gap:6px;}
+  /* Лічильник вікна відповіді. Поки часу вдосталь — блідий рядок, який не
+     відволікає; під кінець бурштиновий; коли зачинилось — червоний. Три
+     стани, а не два: «лишилось пів дня» і «вже пізно» — різні новини. */
+  .cw-win{font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:2px;
+    display:flex;align-items:center;gap:5px;}
+  .cw-win::before{content:'';width:6px;height:6px;border-radius:50%;background:#9AA4B2;flex:none;}
+  .cw-win.is-soon{color:#9A6B12;}
+  .cw-win.is-soon::before{background:#E0A020;}
+  .cw-win.is-out{color:#C4342A;font-weight:800;}
+  .cw-win.is-out::before{background:#E0392B;}
+  /* Смуга над полем, коли вікно вже зачинилось. Стоїть на дорозі, а не
+     збоку: тут ухвалюють рішення писати. */
+  .cw-dead{font-size:12px;line-height:1.45;font-weight:600;color:#8E2018;
+    background:#FFF1EF;border:1px solid #F3C6C0;border-radius:11px;padding:9px 11px;
+    margin-bottom:8px;}
   .cw-go.is-busy{background:#3A465E;}
   .cw-go.is-busy .cw-spin{border-color:#fff;border-right-color:transparent;}
   @keyframes cw-turn{to{transform:rotate(360deg);}}
@@ -18299,6 +18314,11 @@ function crmNormMsgs(data, o){
      слід, а не як звернення: рахувати його за «клієнт написав» означало б
      тримати кружечок непрочитаного на тому, чого вже немає. */
   const живі = list.filter(m => !m.gone);
+  /* Точний час останньої репліки клієнта — від нього Instagram відлічує
+     сім днів на відповідь. Фоновий обхід бачить лише останнє повідомлення
+     розмови; тут перед нами вся стрічка, тож число чесніше. */
+  const остання = живі.filter(m => !m.mine && m.at).map(m => m.at).sort().pop();
+  if(остання && остання !== String(o.crmInAt || '')) o.crmInAt = остання;
   crmNoteIn(o, живі.filter(m => !m.mine).length);
   /* Скільки клієнт написав ПІСЛЯ нашої останньої відповіді. Фоновий обхід
      рахує це спостереженнями й може недорахувати (три репліки за одну
@@ -18743,6 +18763,63 @@ function crmRowLast(r){
   const m = r && (r.lastMessage || r.last_message || r.lastMsg || r.message);
   return (m && typeof m === 'object') ? m : null;
 }
+/* ══════════ ВІКНО ВІДПОВІДІ: СІМ ДНІВ ══════════════════════════════════
+
+   Instagram не дає писати клієнтові, коли заманеться. Відлік іде від
+   ОСТАННЬОЇ РЕПЛІКИ КЛІЄНТА, і триває сім діб; далі канал закривається.
+   Найгірше в цьому те, як воно виглядає збоку: Sitniks лист приймає, у
+   нашій стрічці він стоїть, а до людини не доходить. Менеджер дізнається
+   про це через день-два — або не дізнається зовсім.
+
+   Тому рахуємо самі й кажемо вголос: скільки лишилось, поки ще є, і що
+   вікно зачинене, коли вже немає.
+
+   Час зберігається без позначки поясу (його зрізає нормалізація стрічки),
+   а приходить в UTC — тож і читаємо як UTC. Помилка на кілька годин у
+   семиденному вікні нічого не важить, а от добова — важить, і саме її це
+   й уникає. */
+const CRM_WIN_MS = 7 * 24 * 60 * 60 * 1000;
+function crmTime(s){
+  const t = String(s || '').trim();
+  if(!t) return 0;
+  const n = Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(t) ? t : (t.replace(' ', 'T') + 'Z'));
+  return isNaN(n) ? 0 : n;
+}
+/* Коли клієнт озвався востаннє. Відкрита стрічка знає це точно; закрита —
+   з того, що лишив фоновий обхід. */
+function crmLastInAt(o){
+  const st = (o && crmChat[o.id]) || {};
+  const live = (st.msgs || []).filter(m => m && !m.gone && !m.mine && m.at)
+                              .map(m => m.at).sort().pop();
+  if(live) return live;
+  if(o && o.crmInAt) return String(o.crmInAt);
+  // Стара картка без окремого поля: годиться й crmAt, коли остання репліка їхня
+  return (o && o.crmTheirs && o.crmAt) ? String(o.crmAt) : '';
+}
+function crmWindow(o){
+  const at = crmLastInAt(o);
+  if(!at) return null;                 // клієнт ще не писав — рахувати нема від чого
+  const t = crmTime(at);
+  if(!t) return null;
+  const left = t + CRM_WIN_MS - Date.now();
+  /* `since` — скільки МИНУЛО від репліки клієнта. Виводити його з `left`
+     на місці виклику виявилось пасткою: «лишилось мінус дві доби» плюс сім
+     дає пʼять, а минуло девʼять. Тому число рахується тут, один раз і
+     правильно. */
+  return { at: at, left: left, since: Date.now() - t, closed: left <= 0,
+           /* Менше двох діб — уже варто поспішати. Саме тут попередження
+              ще щось міняє: за дві доби встигнути можна, за дві години —
+              як пощастить. */
+           soon: left > 0 && left <= 48 * 60 * 60 * 1000 };
+}
+function crmLeftLabel(ms){
+  const m = Math.max(0, Math.round(Math.abs(ms) / 60000));
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  if(d >= 1) return d + ' ' + (d === 1 ? 'день' : (d < 5 ? 'дні' : 'днів')) +
+                    (h ? ' ' + h + ' год' : '');
+  if(h >= 1) return h + ' ' + (h === 1 ? 'година' : (h < 5 ? 'години' : 'годин'));
+  return m + ' хв';
+}
 function crmSweepRow(r, o){
   const last = crmRowLast(r);
   const box = last || r;
@@ -18782,6 +18859,11 @@ async function crmSweepOnce(){
       o.crmAt = info.at;
       o.crmLast = info.text.slice(0, 160);
       o.crmTheirs = !info.mine;
+      /* Коли клієнт озвався востаннє. Від цієї миті Instagram відлічує сім
+         днів, у які нашу відповідь ще доставлять; далі лист іде в нікуди.
+         Тримаємо в замовленні окремо від crmAt: та — «остання репліка
+         взагалі», а вікно рахується САМЕ від клієнтської. */
+      if(!info.mine) o.crmInAt = info.at;
       if(!info.mine){
         /* Скільки клієнт написав після нашої останньої відповіді. Точне
            число дає лише сама стрічка, і коли розмову відкриють, воно
@@ -21462,6 +21544,9 @@ function renderChatWin(toBottom){
   const keepFeed = !!feedOld && feedOld.__sig === feedSig;
   // Відправка триває — і текстова, і фото: кнопка одна, стан один
   const busy = !!(chatWin.sending || chatWin.picsBusy);
+  /* Вікно відповіді рахуємо лише для Instagram: у Telegram такого
+     обмеження немає, і вигадувати його там означало б лякати дарма. */
+  const win = isTg ? null : crmWindow(o);
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
   const cards = chatWin.cards ? cardsPanelHtml(o) : '';
@@ -21482,6 +21567,16 @@ function renderChatWin(toBottom){
       <div class="cw-who">
         <div class="cw-nm">${escapeHtml(nm)}</div>
         <div class="cw-sub">${escapeHtml(sub)}</div>
+        ${/* Скільки лишилось вікна відповіді. Стоїть у шапці, під ніком:
+             саме там менеджер дивиться, з ким він розмовляє, — і разом із
+             цим має бачити, чи розмова ще жива. */''}
+        ${win ? `<div class="cw-win ${win.closed ? 'is-out' : (win.soon ? 'is-soon' : '')}"
+          title="${escapeHtml(win.closed
+            ? 'Instagram дає сім діб від останньої репліки клієнта. Вони минули — Sitniks лист прийме, а до людини він не дійде.'
+            : 'Instagram дає сім діб від останньої репліки клієнта. Далі канал закривається.')}">${
+          win.closed
+            ? 'Вікно відповіді закрите · ' + escapeHtml(crmLeftLabel(win.left)) + ' тому'
+            : 'Вікно відповіді · лишилось ' + escapeHtml(crmLeftLabel(win.left))}</div>` : ''}
       </div>
       ${/* Картка — на один дотик, але не замість розмови. У розділі чатів
            відповідають; коли справді треба глянути склад чи оплату,
@@ -21513,6 +21608,13 @@ function renderChatWin(toBottom){
     ${!canWrite() ? `<div class="cw-bar"><div class="cw-tip">Листування доступне для читання: писати клієнту ця роль не може.</div></div>` : `
     <div class="cw-bar">
       ${raw}${sniff}${note}${cards}${qr}
+      ${/* Смуга просто над полем — там, де ухвалюють рішення писати. У
+           шапці стоїть лічильник, і поки час є, цього досить; коли часу
+           немає, попередження мусить бути на дорозі, а не збоку. */''}
+      ${(win && win.closed) ? `<div class="cw-dead">Вікно відповіді Instagram закрите —
+        клієнт не писав ${escapeHtml(crmLeftLabel(win.since))}.
+        Sitniks лист прийме, а до людини він не дійде. Напишіть з іншого каналу
+        або дочекайтесь, поки клієнт озветься сам.</div>` : ''}
       ${chatTrayHtml()}
       <div class="cw-row">
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
@@ -21673,6 +21775,16 @@ function wireChatWin(box, o, focusIn){
     if(!t && !pics.length) return toast('Напишіть повідомлення або додайте фото');
     // Половину пачки надіслати гірше, ніж зачекати секунду.
     if(pics.some(x => !x.url)){ toast('Картинки ще готуються — секунду'); return; }
+    /* Вікно закрите — питаємо прямо. Не забороняємо: Sitniks буває має
+       інший канал, та й менеджер може знати про цього клієнта більше за
+       нас. Але надіслати НАОСЛІП, не знаючи, що лист нікуди не піде, він
+       не повинен. */
+    const w = (chatWin.kind === 'tg') ? null : crmWindow(o);
+    if(w && w.closed && !confirm(
+        'Вікно відповіді Instagram закрите: клієнт не писав ' +
+        crmLeftLabel(w.since) + '.\n\n' +
+        'Sitniks лист прийме, а до людини він найімовірніше не дійде.\n' +
+        'Усе одно надіслати?')) return;
     inp.value = ''; chatWin.draft = ''; grow();
     chatWin.sending = true;
     const go = pics.length ? chatSendPics(o, pics, t) : chatSend(o, t);
