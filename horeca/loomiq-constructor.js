@@ -6907,6 +6907,10 @@
 
        Логотипи з картки клієнта йдуть слідом за ними: вони теж «те, що
        можна покласти», просто ще не стоять ніде. */
+    /* Макети, прибрані зі смужки руками. Живуть на час сеансу: це не
+       рішення про замовлення, а прибирання на своєму столі, і переносити
+       його в базу — значить нав’язати сусідньому менеджеру. */
+    var LQO_DROP = {};
     function orderDesigns(){
       var out = [], was = {};
       var add = function(l, from){
@@ -6924,7 +6928,7 @@
            «10 макетів» вони роздували, а користі не давали жодної. */
         if(!u && !l.text) return;
         var key = u || (fp ? 'fp:' + fp : '');
-        if(!key || was[key]) return;
+        if(!key || was[key] || LQO_DROP[key]) return;
         was[key] = 1;
         out.push({ url:u, fp:fp, text:l.text || null, from:from || '',
                    frac:(+l.frac > 0 ? +l.frac : 0),
@@ -6967,14 +6971,74 @@
           addLogo(d.url, d.url, d.text || null, d);
         });
       });
+      /* ПРИБРАТИ МАКЕТ ЗІ СМУЖКИ. Саме зі смужки, а не з замовлення: у
+         довгій роботі там назбирується десяток файлів, з яких половина —
+         старі спроби, і шукати серед них потрібний стає довше, ніж
+         завантажити заново.
+
+         На самих виробах і в цінах макет лишається недоторканим: смужка
+         показує, ЩО МОЖНА ПОКЛАСТИ, і прибрати звідти зайве — це прибрати
+         з переліку пропозицій, а не з роботи. Тому й підтвердження тут
+         немає: втратити нічого не можна, а повернути — перезавантаженням
+         позиції, де цей макет стоїть. */
+      root.querySelectorAll('[data-order-drop]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          var d = orderDesigns()[Number(el.dataset.orderDrop)];
+          if(!d) return;
+          var k = d.url || ('fp:' + d.fp);
+          if(k) LQO_DROP[k] = 1;
+          renderOrderArt();
+          try{ renderTabPanel(); }catch(e2){}
+        });
+      });
+    }
+    /* ЯКОГО КОЛЬОРУ САМ МАКЕТ. Білий логотип на білій плитці не видно
+       взагалі: менеджер бачив ряд порожніх квадратів. Міряємо середню
+       яскравість непрозорих пікселів і вдягаємо плитку в протилежне.
+
+       Міряємо раз на файл і памʼятаємо: у смужці ті самі макети
+       перемальовуються щоразу, коли панель оновлюється. Не вдалось
+       прочитати пікселі (чужий домен без CORS) — лишається середньо-сіра
+       плитка, на якій видно і чорне, і біле. */
+    var LQO_TONE = {};
+    function orderTone(url, done){
+      if(!url) return '';
+      if(LQO_TONE[url] !== undefined) return LQO_TONE[url];
+      LQO_TONE[url] = '';
+      var im = new Image();
+      im.crossOrigin = 'anonymous';
+      im.onload = function(){
+        try{
+          var c = document.createElement('canvas'); c.width = c.height = 16;
+          var x = c.getContext('2d', { willReadFrequently:true });
+          x.drawImage(im, 0, 0, 16, 16);
+          var d = x.getImageData(0, 0, 16, 16).data, сума = 0, n = 0;
+          for(var i = 0; i < d.length; i += 4){
+            if(d[i+3] < 40) continue;                       // прозоре поле не рахуємо
+            сума += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+            n++;
+          }
+          LQO_TONE[url] = n ? (сума / n > 150 ? 'on-dark' : 'on-light') : '';
+        }catch(e){ LQO_TONE[url] = ''; }
+        if(done) done();
+      };
+      im.onerror = function(){ LQO_TONE[url] = ''; };
+      im.src = url;
+      return '';
     }
     function orderTilesHtml(list){
       return list.map(function(d, i){
         var hint = d.from
           ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
           : 'Логотип замовлення — поставити на цю сторону';
-        return '<button class="lqo-b" data-order-logo="' + i + '" ' +
-               'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>';
+        var tone = orderTone(d.url, renderOrderArt);
+        return '<span class="lqo-t">' +
+          '<button class="lqo-b ' + tone + '" data-order-logo="' + i + '" ' +
+          'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>' +
+          '<button class="lqo-x" data-order-drop="' + i + '" ' +
+          'title="Прибрати зі списку макетів — на самих виробах він лишиться">✕</button>' +
+        '</span>';
       }).join('');
     }
     /* Смужка макетів на сцені. Живе окремо від панелі й перемальовується
