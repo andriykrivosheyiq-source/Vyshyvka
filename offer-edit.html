@@ -1031,21 +1031,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=c846b8d783',
+    ['loomiq-select.js?v=e65e9a9eb3',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=c846b8d783'].forEach(function(src){
+     'loomiq-cards.js?v=e65e9a9eb3'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=c846b8d783';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=c846b8d783';
-  var CTOR_JS   = 'loomiq-constructor.js?v=c846b8d783';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=c846b8d783';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=e65e9a9eb3';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=e65e9a9eb3';
+  var CTOR_JS   = 'loomiq-constructor.js?v=e65e9a9eb3';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=e65e9a9eb3';
 
   function send(msg){
     if(window.parent === window) return;
@@ -2257,11 +2257,13 @@
           '</span>' +
           '<div class="cd-shots">' + c.allShots.map(function(sh){
             var k = sh.key || sh.url;
-            var mp = own.off || {};
-            /* Фото на моделі за замовчуванням зняте: воно показує, як виріб
-               сидить на людині, а не сам виріб із нанесенням, а в
-               прорахунку питають передусім про друге. */
-            var on = Object.prototype.hasOwnProperty.call(mp, k) ? !mp[k] : !sh.model;
+            /* Чи стоїть кадр на картці — питаємо в самого малювальника, а
+               не повторюємо його правило тут. Своя копія вже одного разу
+               розійшлась: менеджер бачив усі ракурси позначеними, хоча на
+               картці стояли два, — ставив галочку ще раз і вирішував, що
+               робоче місце не зберігає. Правило одне, і воно там, де
+               картка справді складається. */
+            var on = window.LQCards.shotOn(own, sh);
             return '<label class="cd-shot' + (on ? '' : ' off') + '">' +
               '<input type="checkbox" data-shot="' + esc(k) + '"' + (on ? ' checked' : '') + '>' +
               '<img src="' + esc(sh.url) + '" alt="">' +
