@@ -210,6 +210,50 @@ ok(Math.abs(g2[0].h - m[0].h) <= 4 && Math.abs(g2[0].w - m[0].w) <= 4,
   'на сірому фоні виріб іншого розміру: ' + g2[0].w + '×' + g2[0].h +
     ' проти ' + m[0].w + '×' + m[0].h);
 
+/* ── СІТКА: МАСШТАБ СПІЛЬНИЙ, ОТЖЕ Й ОБМЕЖЕННЯ СПІЛЬНЕ ─────────────────
+   У сітці 2×2 масштаб один на всі чотири кадри, а рахувався він лише за
+   двома першими. Виріб, який у третьому кадрі займає більшу частку свого
+   кадру, у плитку не вміщався — і його різало. */
+console.log('');
+console.log('═══ СІТКА 2×2: РІЖЕ НЕ ПЕРШІ ДВА, А ТРЕТІЙ ═══');
+const ВЕЛ = { x:40, y:120, w:520, h:700 };   // виріб майже на весь кадр
+const сітка = JSON.parse(JSON.stringify(OFFER));
+сітка.items[0].views = [
+  V('front', shot(C[0][0], C[0][1], C[0][2])),
+  V('back',  shot(C[1][0], C[1][1], C[1][2])),
+  V('left',  shot(20, 160, 20, ВЕЛ)),
+  V('right', shot(160, 20, 160, ВЕЛ))];
+сітка.items[0].prints = ['front','back','left','right'].map(sd =>
+  ({ side:sd, sideLabel:sd, technique:'Вишивка', widthMm:80, heightMm:45 }));
+const g4 = await fr.evaluate(async a => {
+  const [off, C2] = a;
+  const cv = await window.LQCards.draw(window.LQCards.build(off, {})[0], off,
+    { tpl:'minimal', lay:'grid' });
+  const x = cv.getContext('2d');
+  const d = x.getImageData(0, 0, cv.width, cv.height).data;
+  const near = (i, c) => Math.abs(d[i] - c[0]) < 26 && Math.abs(d[i+1] - c[1]) < 26 &&
+                         Math.abs(d[i+2] - c[2]) < 26;
+  const box = C2.map(()=> ({ x0:1e9, x1:-1, y0:1e9, y1:-1 }));
+  for(let py = 0; py < cv.height; py += 2)
+    for(let px = 0; px < cv.width; px += 2){
+      const i = (py * cv.width + px) * 4;
+      for(let k = 0; k < C2.length; k++){
+        if(!near(i, C2[k])) continue;
+        const b = box[k];
+        if(px < b.x0) b.x0 = px; if(px > b.x1) b.x1 = px;
+        if(py < b.y0) b.y0 = py; if(py > b.y1) b.y1 = py;
+      }
+    }
+  return box.map(b => b.x1 < 0 ? null : { w:b.x1 - b.x0, h:b.y1 - b.y0 });
+}, [сітка, [[20,160,20], [160,20,160]]]);
+const ЧАСТКА4 = ВЕЛ.h / ВЕЛ.w;
+g4.forEach((b, i) => console.log('  кадр ' + (i + 3) + ': ' +
+  (b ? b.w + '×' + b.h + ' · частка ' + (b.h / b.w).toFixed(2) +
+       ' (очікуємо ' + ЧАСТКА4.toFixed(2) + ')' : 'не знайшли')));
+g4.forEach((b, i) => ok(b && Math.abs(b.h / b.w - ЧАСТКА4) < 0.05,
+  'кадр ' + (i + 3) + ' у сітці: виріб цілий',
+  'кадр ' + (i + 3) + ': обрізано — ' + (b ? (b.h / b.w).toFixed(2) : 'не знайшли')));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 try{ fs.unlinkSync(VH); }catch(e){}
