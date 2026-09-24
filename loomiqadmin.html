@@ -9386,6 +9386,40 @@ function calcDump(o){
       return [];
     })(),
     розклад: it.parts || null,
+    /* ЗАКРЕСЛЕНА ЦІНА — окремим розділом.
+
+       Андрій: «на сайті худі базове коштує одне, а в картці закреслена сума
+       інша». Число це виводиться аж чотирма шляхами, і доки не видно, який
+       із них спрацював і що дав кожен, розбіжність не пояснити: та сама
+       позиція, та сама модель цін, а числа різні.
+
+       Тому веземо всі чотири поруч: збережену разом із замовленням, чесний
+       прогін однією штукою, складання з уже порахованих частин і
+       розкручену назад формулу. Сайт рахує своє «було» рівно першим
+       способом — прогоном на найменшому порозі, — тож розбіжність із ним
+       видно одразу. */
+    закреслена: (function(){
+      const q1 = offerFirstTierQty(o, i);
+      const шлях = (f) => { try{ const v = f(); return (v == null) ? null : Math.round(v); }
+                            catch(e){ return 'збій: ' + (e && e.message || e); } };
+      const n = offerItemNumbers(o, i);
+      return {
+        показано: n.baseUnit, показуємо: !n.noBase, вигода: n.save,
+        найменшийПоріг: q1,
+        збережена: +it.baseUnit1 || null,
+        прогономОднією: шлях(() => soloOneUnit(descOf(it), o)),
+        прогономНаПорозі: шлях(() => sharedPriceAt(o, i, q1, { solo:true })),
+        зЧастин: (function(){
+          const b = it.parts;
+          if(!b || b.bare || b.garmentBase == null) return null;
+          const sk = (b.sketches || []).reduce((a2, s) => a2 + (+s.fee || 0), 0);
+          return Math.round((+b.garmentBase || 0) + (+b.appBase || 0) +
+                            (+b.pieceFee || 0) + (+b.feeTotal || 0) + sk);
+        })(),
+        /* Те, що справді повернув ланцюжок шляхів, — його й показує картка. */
+        обранийШлях: шлях(() => offerOneUnitPrice(o, i))
+      };
+    })(),
     нанесення: (it.prints || []).map(pr => ({
       бік: pr.side || '', спосіб: pr.technique || '',
       ширинаММ: pr.widthMm, висотаММ: pr.heightMm,
@@ -9561,13 +9595,18 @@ function repriceOrder(o){
   return list.length > 0 ||
          (o.items || []).some(it => itemKind(it) !== 'main' && it.desc);
 }
-/* Скільки коштувала б позиція, замовлена ОДНІЄЮ штукою й нічого більше:
+/* Скільки коштувала б позиція, замовлена САМА Й НА НАЙМЕНШОМУ ПОРОЗІ:
    виріб + нанесення + за штуку + повна разова підготовка. Склад замовлення
-   тут ні до чого — рахуємо саму позицію. */
+   тут ні до чого — рахуємо саму позицію. Це те саме число, що сторінка
+   товару показує першим рядком шкали, і від нього ж вона рахує відсоток. */
 function soloOneUnit(desc, o){
   if(!desc) return null;
   try{
-    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })], orderPriceOpts(o));
+    /* Тираж — найменший поріг шкали, а не жорстка одиниця: саме на ньому
+       рахує «було» сторінка товару, і саме з нею клієнт звіряє картку. */
+    const поріг = firstTierQtyFor(desc);
+    const r = priceOrder([Object.assign({}, desc, { units:поріг, upsell:false })],
+                         orderPriceOpts(o));
     const u = (r[0] && +r[0].unit) || 0;
     return u > 0 ? u : null;
   }catch(e){ return null; }
@@ -9788,10 +9827,17 @@ function sharedPriceAt(order, itemIdx, qty, opts){
 /* Найменший поріг тиражу для позиції — те саме, що pt[0].min на сайті.
    Від ціни на цьому порозі сайт і рахує відсоток знижки. */
 function offerFirstTierQty(order, itemIdx){
-  const item = order.items[itemIdx];
+  return firstTierQtyFor((order.items[itemIdx] || {}).desc);
+}
+/* Той самий поріг, але від самого опису позиції. Потрібен там, де індексу
+   в замовленні немає, — і потрібен саме СПІЛЬНИЙ: «було» рахувалось у двох
+   місцях двома тиражами (одна штука тут, найменший поріг там), і щойно
+   найменший поріг переставав бути одиницею, картка й сайт починали
+   показувати різні числа за тією самою позицією. */
+function firstTierQtyFor(desc){
   const p = curSitePricing();
   if(!p) return 1;
-  const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
+  const mk = (desc && desc.method === 'embro') ? 'embro' : 'dtf';
   const m = (p.methods || {})[mk] || {};
   const list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
   if(!Array.isArray(list) || !list.length) return 1;
