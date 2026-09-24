@@ -1521,6 +1521,18 @@
   .od-crm-msg.mine .od-crm-kind{color:rgba(255,255,255,.7);}
   .od-crm-at{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
   .od-crm-msg.mine .od-crm-at{color:rgba(255,255,255,.55);}
+  /* ВИДАЛЕНЕ. Не сховане й не сіре — саме червоне: мовчазна діра в
+     переписці небезпечніша за будь-яку репліку в ній. Сам текст лишається
+     читабельним, бо він і є те, заради чого слід зберігають; червоніє
+     облямівка й рядок над ним. Наше видалене лишається праворуч, тільки
+     блідне: бік розмови видалення не міняє. */
+  .od-crm-msg.gone{border-color:#E0392B;background:#FFF4F3;
+    box-shadow:0 0 0 1px rgba(224,57,43,.18);}
+  .od-crm-msg.mine.gone{background:#4A2530;border-color:#E0392B;}
+  .od-crm-gone{font-size:10.5px;font-weight:700;color:#E0392B;margin-bottom:4px;
+    letter-spacing:.02em;}
+  .od-crm-msg.mine.gone .od-crm-gone{color:#FF9B90;}
+  .od-crm-msg.gone .od-crm-txt{opacity:.82;}
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
   .od-crm-inp{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;
     padding:9px 11px;resize:vertical;}
@@ -18077,6 +18089,89 @@ window.crmMediaFallback = function(el, url, step){
   if(el && el.parentNode) el.parentNode.replaceChild(node, el);
 };
 
+/* ── ВИДАЛЕНЕ ПОВІДОМЛЕННЯ ЧЕРВОНІЄ, А НЕ ЗНИКАЄ ──────────────────────
+
+   Андрій: «якщо клієнт або ми видалили повідомлення в чаті — щоб воно
+   горіло червоним».
+
+   Мовчазне зникнення — найгірше, що може статись із перепискою. Клієнт
+   написав вимогу й прибрав її; менеджер пообіцяв термін і стер. Розмова
+   після цього виглядає бездоганно, а домовленість була. Хто дивиться в
+   чат назавтра, не бачить навіть діри на тому місці.
+
+   Sitniks про видалення не каже нічого (у частини записів трапляється
+   позначка, у більшості — ні), тож упізнаємо його самі: повідомлення
+   стояло в стрічці й зникло з наступної відповіді. Слід кладемо в саме
+   замовлення — інакше він живе рівно до перезавантаження сторінки, тобто
+   не живе взагалі.
+
+   ОДНЕ АЛЕ, і воно важливе: відповідь буває обрізаною згори. Усе, що
+   давніше за найстаріше повідомлення цієї відповіді, могло просто не
+   влізти — і фарбувати його червоним було б наклепом.
+
+   Відрізняємо так. Обрізання йде З ГОЛОВИ й рівно на стільки, на скільки
+   виріс хвіст: прийшло три нові репліки — випало три найдавніші. Видалення
+   ж виймає повідомлення звідки завгодно й нічого натомість не додає. Тож
+   мовчимо лише про ті найдавніші, яких рівно стільки, скільки цього разу
+   прибуло нових. Нічого не прибуло — значить нічого й не обрізали, і все
+   зникле зникло не саме. */
+const CRM_GONE_KEEP = 40;
+function crmMsgKey(m){
+  return crmOutKey(m && m.text) + '|' +
+         (((m && m.files) || []).map(f => (f && f.url) || '').join(' ')).slice(0, 200);
+}
+function crmMarkGone(o, list){
+  if(!o || !Array.isArray(list)) return list;
+  const now = {};
+  list.forEach(m => { now[crmMsgKey(m)] = 1; });
+  const gone = Array.isArray(o.crmGone) ? o.crmGone : (o.crmGone = []);
+  const було = ((crmChat[o.id] || {}).msgs || []).filter(m => m && !m.gone);
+  const булоKeys = {};
+  було.forEach(m => { булоKeys[crmMsgKey(m)] = 1; });
+  const прибуло = list.filter(m => !булоKeys[crmMsgKey(m)]).length;
+  const голова = {};
+  if(прибуло) було.slice(0, прибуло).forEach(m => { голова[crmMsgKey(m)] = 1; });
+  /* І ЩЕ ОДНА ОБЕРЕЖНІСТЬ. Видаляють по одному, зрідка по два. Коли ж із
+     розмови зникає одразу половина, це не видалення, а неповна відповідь:
+     Sitniks віддав шматок, збився на сторінці, повернув порожнє поле. Якби
+     ми повірили такій відповіді, вся переписка спалахнула б червоним — і
+     назад її вже не відбілити, слід лежить у замовленні. Тож мовчимо: не
+     показати видалене гірше, ніж показати, але оголосити видаленою цілу
+     розмову гірше за все. */
+  const зникло = було.filter(m => !now[crmMsgKey(m)] && !голова[crmMsgKey(m)]).length;
+  const віримо = !(зникло > 2 && зникло * 3 > було.length);
+  if(!віримо) console.warn('Sitniks віддав неповну стрічку (' + зникло + ' із ' +
+                           було.length + ') — видаленими не вважаємо');
+  let змін = false;
+  if(віримо) було.forEach(m => {
+    const k = crmMsgKey(m);
+    if(!k || k === '|' || now[k]) return;
+    if(голова[k]) return;                       // не влізло у відповідь, а не видалено
+    if(gone.some(g => g && g.t === k)) return;
+    gone.push({ t:k, at:m.at || '', text:m.text || '', mine:!!m.mine, by:m.by || '',
+                files:((m.files || []).map(f => f && f.url).filter(Boolean)).slice(0, 4) });
+    змін = true;
+  });
+  /* Повернулось — отже не видаляли: у Sitniks трапляється, що повідомлення
+     випадає з однієї відповіді й приїжджає в наступній. Червоне, яке
+     зникає саме, гірше за червоне, якого не було. */
+  const живі = gone.filter(g => g && !now[g.t]);
+  if(живі.length !== gone.length){ змін = true; }
+  o.crmGone = (живі.length > CRM_GONE_KEEP) ? живі.slice(-CRM_GONE_KEEP) : живі;
+  /* Ставимо назад на своє місце за часом: видалене має читатись там, де
+     воно стояло в розмові, а не купкою в кінці. */
+  o.crmGone.forEach(g => {
+    const row = { text:g.text || '', mine:!!g.mine, by:g.by || '', at:g.at || '', gone:true,
+                  files:(g.files || []).map(u => ({ url:u, kind:crmFileKind(u) })) };
+    let at = list.length;
+    if(g.at) for(let i = 0; i < list.length; i++){
+      if(list[i].at && list[i].at > g.at){ at = i; break; }
+    }
+    list.splice(at, 0, row);
+  });
+  if(змін) saveOrderMeta(o).catch(e => console.warn('слід видаленого', e));
+  return list;
+}
 function crmNormMsgs(data, o){
   const peer = crmPeerKeys(o);
   let arr = Array.isArray(data) ? data
@@ -18140,6 +18235,9 @@ function crmNormMsgs(data, o){
       : ((mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
           ? who.name : '');
     return { text: String(text), files: files, mine: mine, by: by,
+             /* Коли Sitniks усе ж сказав словом, що повідомлення видалене, —
+                віримо йому одразу, не чекаючи, поки воно зникне зі стрічки. */
+             gone: !!(m.deleted || m.isDeleted || m.is_deleted || m.deletedAt),
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text || (m.files && m.files.length));
   /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
@@ -18147,6 +18245,36 @@ function crmNormMsgs(data, o){
   const withAt = list.filter(m => m.at);
   if(withAt.length > 1 && withAt[0].at > withAt[withAt.length - 1].at) list.reverse();
   else if(!withAt.length && list.length > 1) list.reverse();
+  /* РАЗ ПОКАЗАНЕ НАШИМ — НАШИМ І ЛИШАЄТЬСЯ.
+
+     Андрій: «вліво пригає знову наше повідомлення». Саме ПРИГАЄ: спершу
+     репліка стоїть праворуч, а за секунду, коли стрічку перечитано з
+     Sitniks, перестрибує ліворуч і без підпису.
+
+     Бік визначається ланцюжком ознак, і кожна ланка в ньому може не
+     спрацювати: прямого поля «вихідне» в цьому акаунті немає, підпис
+     приходить клієнтський, памʼять про відправлене живе у вкладці й гине
+     при перезавантаженні. Ланцюжок латати марно — він і так із чотирьох
+     здогадів.
+
+     Але одне ми знаємо твердо: якщо це повідомлення вже стояло праворуч,
+     воно наше. Розмова не переписується заднім числом. Тому бік, показаний
+     раніше, перечитуванням не скасовується — і заразом лягає в памʼять
+     картки, щоб пережити перезавантаження. */
+  const було = ((crmChat[o && o.id] || {}).msgs) || [];
+  if(було.length){
+    const наші = {};
+    було.forEach(m => { if(m && m.mine) наші[crmMsgKey(m)] = String(m.by || ''); });
+    list.forEach(m => {
+      if(m.mine) return;
+      const k = crmMsgKey(m);
+      if(!Object.prototype.hasOwnProperty.call(наші, k)) return;
+      m.mine = true;
+      if(!m.by) m.by = наші[k];
+      if(m.text) crmOutNote(o, m.text);
+    });
+  }
+  crmMarkGone(o, list);
   list.rawCount = arr.length;
   list.rawKeys = (arr.length && typeof arr[0] === 'object')
     ? Object.keys(arr[0]).slice(0, 14) : [];
@@ -18154,13 +18282,17 @@ function crmNormMsgs(data, o){
      розуміє, чи відповіли на надіслані картки. Дошка самої розмови не
      читає, тож кладемо його в замовлення — тут, де стрічку вже розібрано
      на «наше» й «їхнє», і рахувати вдруге ніде не доведеться. */
-  crmNoteIn(o, list.filter(m => !m.mine).length);
+  /* Лічильники рахуємо по ЖИВИХ репліках. Видалене стоїть у стрічці як
+     слід, а не як звернення: рахувати його за «клієнт написав» означало б
+     тримати кружечок непрочитаного на тому, чого вже немає. */
+  const живі = list.filter(m => !m.gone);
+  crmNoteIn(o, живі.filter(m => !m.mine).length);
   /* Скільки клієнт написав ПІСЛЯ нашої останньої відповіді. Фоновий обхід
      рахує це спостереженнями й може недорахувати (три репліки за одну
      хвилину він побачить як одну); тут же стрічка перед нами вся, тож
      переписуємо точним числом. */
   let tail = 0;
-  for(let i = list.length - 1; i >= 0 && !list[i].mine; i--) tail++;
+  for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) tail++;
   if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
   return list;
 }
@@ -18516,11 +18648,20 @@ async function crmPollOnce(o){
     const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
     const msgs = crmNormMsgs(data, o);
     if(!msgs) return;
-    const was = (st.msgs || []).map(m => m.text).join('\u0000');
-    const now = msgs.map(m => m.text).join('\u0000');
+    /* Прикмета стрічки — не лише тексти. Бік, підпис, вкладення й слід
+       видаленого теж міняють те, що людина бачить; порівнюючи самі тексти,
+       ми пропускали саме ці зміни, а перемальовували й тоді, коли не
+       змінилось нічого. Одне й друге однаково погано: перше не показує
+       нового, друге смикає екран під руками. */
+    const sig = l => (l || []).map(m => [m.text, m.mine ? 1 : 0, m.gone ? 1 : 0, m.by || '',
+      (m.files || []).map(f => f && f.url).join(' ')].join('\u0001')).join('\u0000');
+    const was = sig(st.msgs);
+    const now = sig(msgs);
     if(was === now) return;
     st.msgs = msgs;
     renderOrderDrawer();
+    // Вікно діалогу — окреме від картки, і воно теж має побачити нове
+    if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin();
   }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
 }
 
@@ -18804,9 +18945,26 @@ function crmStartPoll(o){
 }
 
 function wireCrmBlock(panel, o){
-  // Розмова читається знизу вгору: показуємо останнє повідомлення, а не перше.
+  /* Розмова читається знизу вгору, тож за замовчуванням показуємо останнє.
+     Але «за замовчуванням» — це до першого дотику: доти цей рядок тягнув
+     стрічку вниз на КОЖНОМУ перемальовуванні картки. А картка
+     перемальовується від будь-якої дрібниці — свого ж запису в базу,
+     чужої правки, такту опитування. Менеджер відгортав розмову на
+     позавчора, і за секунду її змітало назад у кінець. Тому памʼятаємо,
+     де він стоїть, і липнемо до дна лише поки він сам біля дна. */
   const feedEl = panel.querySelector('.od-crm-feed');
-  if(feedEl) feedEl.scrollTop = feedEl.scrollHeight;
+  if(feedEl){
+    const st = crmChat[o.id] || {};
+    const стик = st.feedStick !== false;
+    const треба = стик ? feedEl.scrollHeight : (+st.feedTop || 0);
+    if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
+    feedEl.addEventListener('scroll', ()=>{
+      const s = crmChat[o.id];
+      if(!s) return;
+      s.feedTop = feedEl.scrollTop;
+      s.feedStick = feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 60;
+    });
+  }
   if((crmChat[o.id] || {}).chatId){ if(!crmTimer) crmStartPoll(o); }
   else crmStopPoll();
   const load = panel.querySelector('.od-crm-load');
@@ -20679,12 +20837,13 @@ let cwMainTop = 0;    // прокрутка дошки, поки її ховає
 function chatMsgs(o, kind){
   if(kind === 'tg'){
     return ((tgChat[o.id] || {}).msgs || []).map(m => ({
-      at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by,
+      at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by, gone: !!m.gone,
       files: m.file ? [{ url: m.file, kind: 'img' }] : []
     }));
   }
   return ((crmChat[o.id] || {}).msgs || []).map(m => ({
-    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, files: m.files || []
+    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
+    files: m.files || []
   }));
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
@@ -20733,7 +20892,10 @@ function chatRowsHtml(msgs){
        відповідь має стояти при кожному. */
     const sign = (m.mine && m.by) ? String(m.by).split('@')[0] : '';
     return sep + `
-      <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}">
+      <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}${
+        m.gone ? ' gone' : ''}">
+        ${m.gone ? `<div class="od-crm-gone">Видалено ${
+          m.mine ? 'нами' : 'клієнтом'} — у чаті цього більше немає</div>` : ''}
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
@@ -21239,6 +21401,21 @@ function renderChatWin(toBottom){
       ? 'Людина відкрила бота, але ще нічого не написала. Можна написати першим — вона отримає повідомлення в Telegram.'
       : 'Повідомлень поки немає.'}</div>`;
   } else feed = chatRowsHtml(msgs);
+  /* СТРІЧКУ НЕ ПЕРЕБИРАЄМО, КОЛИ В НІЙ НІЧОГО НЕ ЗМІНИЛОСЬ.
+
+     Андрій: «пригає діалог постійно». Вікно перемальовується щочотири
+     секунди — стільки триває крок опитування, — і разом із ним щоразу
+     народжувалась уся стрічка заново. Для тексту це непомітно, а от кожна
+     картинка в ній стає НОВИМ елементом: браузер бере її з кеша, але
+     висоту до завантаження не знає, стрічка на мить складається й
+     розправляється назад. Саме це й читається як «пригає», і що більше в
+     розмові карток, то сильніше.
+
+     Тому порівнюємо стрічку з тією, що вже стоїть, і коли вона та сама —
+     повертаємо на місце СТАРИЙ вузол. Картинки в ньому вже завантажені й
+     виміряні, прокрутка ціла, виділений текст не злітає. */
+  const feedSig = feed;
+  const keepFeed = !!feedOld && feedOld.__sig === feedSig;
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
   const cards = chatWin.cards ? cardsPanelHtml(o) : '';
@@ -21283,7 +21460,7 @@ function renderChatWin(toBottom){
         : ''}
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
-    <div class="cw-feed">${feed}</div>
+    <div class="cw-feed">${keepFeed ? '' : feed}</div>
     ${/* Читати листування й писати в нього — різні права. Без права на
          відповідь показуємо рядок замість поля: порожній низ вікна
          виглядав би поламаним, а поле, з якого нічого не йде, — гірше. */''}
@@ -21311,8 +21488,22 @@ function renderChatWin(toBottom){
     </div>`}
     </div>`;
 
-  const feedEl = box.querySelector('.cw-feed');
-  if(feedEl) feedEl.scrollTop = stick ? feedEl.scrollHeight : oldTop;
+  let feedEl = box.querySelector('.cw-feed');
+  if(feedEl && keepFeed){
+    /* Старий вузол на своє місце — з усіма завантаженими картинками. */
+    feedEl.parentNode.replaceChild(feedOld, feedEl);
+    feedEl = feedOld;
+  } else if(feedEl){
+    feedEl.__sig = feedSig;
+  }
+  /* Прокрутку чіпаємо лише коли є що міняти: липке дно опускає стрічку
+     вниз, а в решті випадків вона має лишитись рівно там, де стояла. Тут
+     теж було смикання — при поверненні старого вузла присвоєння того
+     самого числа безпечне, а от «підтягнути вниз» без потреби ні. */
+  if(feedEl){
+    const треба = stick ? feedEl.scrollHeight : oldTop;
+    if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
+  }
   wireChatWin(box, o, first || !!keep);
   if(keep){
     const el = box.querySelector('.cw-inp');
