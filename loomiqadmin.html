@@ -6482,6 +6482,35 @@ function normalizeSitePricing(p){
   delete p.enabled; delete p.leadTime;
   return p;
 }
+/* РУШІЙ ЦІН ЧИТАЄ SITE_CONTENT, А НЕ contentData.
+
+   Рушій один на весь Loomiq і живе в окремому файлі. Модель цін він бере
+   звідти, куди її кладе сторінка, — з `window.SITE_CONTENT.pricing`. Сайт,
+   сторінка клієнта й кадр пропозиції це роблять. Адмінка — ні: вона тримала
+   модель у своєму `contentData` і нікому її не показувала.
+
+   Наслідок був тихий і повний: у самій адмінці рушій не бачив цін узагалі й
+   на будь-який прогін чесно повертав нулі. `repriceOrder` бачив нулі,
+   вирішував, що модель не приїхала, і лишав збережені ціни як є —
+   правильна, до речі, обережність, лише причина була не та. А `parts` при
+   цьому не записувались ніде, тож «Як склалась ціна» лишалась порожньою, і
+   поділ разових не було звідки взяти: ні підготовки макета, ні ескізів, ні
+   тиражів, на які вони діляться.
+
+   Виглядало це не як поломка, а як тиша: ціни в картці стояли ті, що
+   порахував конструктор, і на око все було гаразд.
+
+   Кладемо модель туди, звідки її читає рушій, і оновлюємо разом із
+   документом: у режимі «дивитись як» і після кожної правки цін адмінка
+   мусить рахувати тим самим, чим рахує сайт. */
+function syncSiteContent(){
+  try{
+    window.SITE_CONTENT = window.SITE_CONTENT || {};
+    window.SITE_CONTENT.pricing = curSitePricing();
+    window.SITE_CONTENT.products = (contentData && contentData.products) || {};
+    window.SITE_CONTENT.names = (contentData && contentData.names) || {};
+  }catch(e){ console.warn('модель цін для рушія не оновилась', e); }
+}
 function curSitePricing(){
   const p = contentData.pricing;
   return normalizeSitePricing(p ? JSON.parse(JSON.stringify(p)) : JSON.parse(JSON.stringify(DEFAULT_SITE_PRICING)));
@@ -26926,6 +26955,7 @@ async function init(){
     photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     contentLoaded = true;
+    syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки
     contentReadOk();
     photosMap = contentData.map || {};
     refreshSiteList();   // копії сайтів живуть у тому ж документі
