@@ -26,6 +26,7 @@ import fs from 'node:fs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const PORT = 8877;
@@ -122,7 +123,9 @@ await p.waitForTimeout(5500);
 await p.evaluate(pr => {
   window.SITE_CONTENT = window.SITE_CONTENT || {};
   window.SITE_CONTENT.pricing = pr;
+  contentData.pricing = pr;       // адмінка показує свою копію — хай буде та сама
   repriceOrder(orders[0]);
+  recalcOrderTotals(orders[0]);
 }, PRICING);
 
 console.log('═══ РАЗОВА ЗА ДИЗАЙН ДІЛИТЬСЯ ПО ВИДАХ ═══');
@@ -141,12 +144,12 @@ console.log('');
 console.log('═══ РОЗКЛАД КАЖЕ ТЕ САМЕ, ЩО Й ЦІНА ═══');
 const rows = await p.evaluate(() => calcDump(orders[0]).розкладНаЕкрані);
 const худі = rows.find(r => /ХУДІ/i.test(r.позиція)) || { рядки:[] };
-худі.рядки.forEach(r => console.log('  ' + r));
-const fee = худі.рядки.filter(r => /Підготовка макета/.test(r));
-const сума = fee.reduce((a, r) => a + (+(r.split('=').pop().replace(/[^\d-]/g, '')) || 0), 0);
-ok(fee.length === 2 && /картинка/.test(fee[0]) && /напис/.test(fee[1]),
+худі.рядки.forEach(r => console.log('  ' + r.назва + '  =  ' + r.сума));
+const fee = худі.рядки.filter(r => /Підготовка макета/.test(r.назва));
+const сума = fee.reduce((a, r) => a + r.число, 0);
+ok(fee.length === 2 && /картинка/.test(fee[0].назва) && /напис/.test(fee[1].назва),
   'у розкладі два рядки — картинка й напис, кожен зі своїм тиражем',
-  'розклад склав разові в одне число: ' + JSON.stringify(fee));
+  'розклад склав разові в одне число: ' + JSON.stringify(fee.map(x => x.назва)));
 ok(сума === split.feeShare,
   'сума рядків сходиться з разовою в ціні за штуку: ' + сума + ' ₴',
   'рядки й ціна кажуть різне: ' + сума + ' ₴ проти ' + split.feeShare + ' ₴');
@@ -217,6 +220,40 @@ ok(/^\{\s*"що"/.test(ui.copied) && /Прорахунок скопійован�
 ok(ui.seeCost === true,
   'і живе під правом бачити гроші — разом з усім фінансовим згортком',
   'розклад показали тому, кому гроші не видно');
+
+/* ── Друга половина: файл має перевірятись програмою, а не очима ──────── */
+console.log('');
+console.log('═══ ФАЙЛ ПЕРЕВІРЯЄТЬСЯ ОДНІЄЮ КОМАНДОЮ ═══');
+const TMP = path.join(ROOT, 'tests', '.calc-dump-tmp.json');
+fs.writeFileSync(TMP, txt);
+const run = f => new Promise(res => {
+  const c = spawn('node', [path.join(ROOT, 'tools', 'check-calc.mjs'), f]);
+  let out = '';
+  c.stdout.on('data', d => out += d);
+  c.stderr.on('data', d => out += d);
+  c.on('close', code => res({ code, out }));
+});
+const good = await run(TMP);
+good.out.split('\n').filter(l => /підготовка ·|ескіз №|разом |Усе сходиться|НЕ СХОДИТЬСЯ/.test(l))
+  .forEach(l => console.log('  ' + l.trim()));
+ok(good.code === 0 && /Усе сходиться/.test(good.out),
+  'на здоровому замовленні перевіряльник мовчки каже «сходиться»',
+  'перевіряльник знайшов розходження там, де його немає:\n' + good.out);
+ok(/підготовка · картинка · 700 ₴ ÷ 10 шт/.test(good.out) &&
+   /підготовка · напис · 400 ₴ ÷ 15 шт/.test(good.out),
+  'і показує поділ разових по видах — те, заради чого все й робилось',
+  'поділу разових у звіті немає');
+
+/* Ламаємо одне число — перевіряльник має назвати саме його. */
+const зламане = JSON.parse(txt);
+зламане.позиції[0].заШтуку += 7;
+const BAD = path.join(ROOT, 'tests', '.calc-dump-bad.json');
+fs.writeFileSync(BAD, JSON.stringify(зламане));
+const badRun = await run(BAD);
+ok(badRun.code === 1 && /НЕ СХОДИТЬСЯ/.test(badRun.out) && /застаріла|розкладі/.test(badRun.out),
+  'а підроблену ціну знаходить і називає',
+  'підроблену ціну пропустив:\n' + badRun.out);
+try{ fs.unlinkSync(TMP); fs.unlinkSync(BAD); }catch(e){}
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
