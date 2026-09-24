@@ -5842,6 +5842,25 @@
            видами, менеджер писав про це в коментарі — а рахунок усе одно
            приходив зі зайвим макетом. Знімаються рівно разові: підготовка
            макета й ескіз. Саме нанесення рахується як звичайно. */
+        /* САМ МАЛЮНОК У РЯДКУ.
+
+           «Два дизайни, хоча там один» — це не завжди помилка рахунку:
+           підготовка макета належить усьому замовленню, а ескіз — конкретному
+           малюнку, і на одному виробі вони стоять поруч. Але перевірити це на
+           екрані було нічим: два однакові рядки «картинка», і про який саме
+           малюнок ідеться — невідомо.
+
+           Тепер видно: якщо в рядках той самий малюнок двічі — це помилка, і
+           її видно одразу; якщо різні — рахунок чесний, і сперечатись нема
+           про що. */
+        function designPic(di){
+          var l = layerAtDesign(di);
+          var u = layerUrl(l);
+          if(!u) return '';
+          return '<img src="' + u + '" alt="" style="width:20px;height:20px;' +
+            'object-fit:contain;vertical-align:middle;margin-right:5px;' +
+            'border-radius:4px;background:#fff;border:1px solid #e2e8f0;">';
+        }
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
@@ -5868,19 +5887,19 @@
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
-            tb += r('Підготовка макета' + kindPick(f.di, f.kind) +
+            tb += r(designPic(f.di) + 'Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
                     f.units + ' шт)</span>', money(per), money(perC));
           });
           offs.forEach(function(d){
-            tb += r('Підготовка макета' + kindPick(d.i, 'off') +
+            tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, 'off') +
                     ' <span style="color:#8a94a6;">(дизайн №' + (d.i + 1) +
                     ' — макет не рахуємо)</span>', money(0), money(0));
           });
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
-            tb += r('Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
+            tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
                     x.units + ' шт)</span>', money(per), money(perC));
           });
