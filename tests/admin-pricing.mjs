@@ -246,6 +246,51 @@ ok(рахунок.ескізів === 1,
   'і ескіз рівно один — за другу картинку, а не за третю неіснуючу',
   'ескізів: ' + рахунок.ескізів);
 
+/* ── ПЛАТИТЬ ТОЙ, НА КОМУ ЦЕЙ МАЛЮНОК СТОЇТЬ ────────────────────────────
+   Підготовка макета — це робота над КОНКРЕТНИМ малюнком. Доти вона ділилась
+   на всі вироби способу й лягала на кожну позицію, байдуже, чи є на ній той
+   самий малюнок: кепка зі своїм власним логотипом платила частку за
+   підготовку чужого макета плюс ескіз за свій — два макети в рахунку там, де
+   на виробі один. Тепер обидві разові рахуються за самим макетом і діляться
+   рівно на ті вироби, де цей малюнок є. */
+console.log('');
+console.log('═══ ЧУЖИЙ МАКЕТ НЕ ОПЛАЧУЄТЬСЯ ═══');
+const чужий = await p.evaluate(() => {
+  const A = Array.from({ length:144 }, (_, i) => (i * 7) % 10).join('');
+  const B = Array.from({ length:144 }, (_, i) => (i * 3 + 1) % 10).join('');
+  const шар = (fp, url) => ({ id:'L' + fp.slice(0, 3), url, fp, scale:1, frac:.3,
+                              fx:.3, fy:.3, ar:1, fill:.8, w:60, h:60 });
+  const o = orders[0];
+  o.items = [
+    { kind:'main', name:'Худі', garmentId:'hoodie', qty:10, unitPrice:0, price:0,
+      config:{ logos:{ front:[шар(A, 'https://cdn.test/a.png')] } },
+      desc:{ method:'embro', gid:'hoodie', units:10, base:1430, coefPart:500,
+             basePart:150, minPart:0, pieceFee:75, bare:false,
+             designs:[A], designKinds:['img'], designMm2:[4000], dtfCols:[] } },
+    { kind:'main', name:'Кепка', garmentId:'cap', qty:3, unitPrice:0, price:0,
+      config:{ logos:{ front:[шар(B, 'https://cdn.test/b.png')] } },
+      desc:{ method:'embro', gid:'cap', units:3, base:360, coefPart:225,
+             basePart:100, minPart:0, pieceFee:75, bare:false,
+             designs:[B], designKinds:['img'], designMm2:[300], dtfCols:[] } }
+  ];
+  repriceOrder(o);
+  const рядки = x => [].concat((x.parts.feeLines || []).map(l => 'підготовка ' + l.fee + '÷' + l.units),
+                               (x.parts.sketches || []).map(k => 'ескіз ' + k.fee + '÷' + k.units));
+  return { худі: рядки(o.items[0]), кепка: рядки(o.items[1]),
+           разові: o.items.map(x => x.parts.feeShare) };
+});
+console.log('  худі:  ' + чужий.худі.join(' · '));
+console.log('  кепка: ' + чужий.кепка.join(' · '));
+ok(чужий.худі.join() === 'підготовка 850÷10',
+  'худі платить підготовку СВОГО макета, поділену на свої 10 виробів',
+  'на худі не те: ' + JSON.stringify(чужий.худі));
+ok(чужий.кепка.join() === 'ескіз 350÷3',
+  'кепка платить рівно за свій малюнок — і нічого за чужу підготовку',
+  'кепка везе чужий макет: ' + JSON.stringify(чужий.кепка));
+ok(чужий.разові[1] === 117,
+  'разові на кепці — 117 ₴/шт, а не 117 плюс частка чужих 850',
+  'разові на кепці: ' + чужий.разові[1] + ' ₴/шт');
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad

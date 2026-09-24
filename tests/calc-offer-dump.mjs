@@ -236,8 +236,8 @@ const кривий = JSON.parse(JSON.stringify(dump));
 const DEN = path.join(ROOT, 'tests', '.calc-offer-den.json');
 fs.writeFileSync(DEN, JSON.stringify(кривий));
 const denRun = await run(DEN);
-console.log('  ' + (denRun.out.match(/а виробів із цим видом[^\n]*/) || ['—'])[0].trim());
-ok(denRun.code === 1 && /а виробів із цим видом/.test(denRun.out),
+console.log('  ' + (denRun.out.match(/а виробів із цим макетом[^\n]*/) || ['—'])[0].trim());
+ok(denRun.code === 1 && /а виробів із цим макетом/.test(denRun.out),
   'разова, поділена не на ті вироби, знаходиться й показує, на які мала ділитись',
   'кривий знаменник пройшов повз:\n' + denRun.out.slice(-600));
 try{ fs.unlinkSync(DEN); }catch(e){}
