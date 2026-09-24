@@ -805,13 +805,35 @@
     padding:8px 14px; cursor:pointer; border:1px solid #D9E1EC; background:#fff; color:#22314A;}
   .cd-go button.pri{background:#22314A; border-color:#22314A; color:#fff;}
   .cd-go button:disabled{opacity:.5; cursor:default;}
-  .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:auto;}
-  .cd-prev-w{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  /* ПЕРЕГЛЯД МАЄ ВМІЩАТИСЬ, А НЕ ПРОКРУЧУВАТИСЬ.
+
+     Тут полотно завжди розтягувалось на всю ширину панелі, а висоту брало
+     за пропорцією. Для широкої картки це добре. Але картка порівняння й
+     сітка 2×2 ростуть УНИЗ — і така картка ставала вищою за панель, тобто
+     видно було лише її верх, а решту доводилось шукати прокруткою. На
+     екрані це читалось як «виріб обрізало», хоч сам файл був цілий: різала
+     не картка, а вікно, у якому її показують.
+
+     Тепер полотно вписується в панель цілком — і по ширині, і по висоті.
+     Картку видно всю, хай би якої вона висоти. Роздивитись деталі можна в
+     самому файлі: для цього поруч і стоїть «Скачати цю». */
+  .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:hidden;}
+  .cd-prev-w{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
+    align-items:center; gap:8px;}
   .cd-prev-w .cd-l{align-self:flex-start;}
-  .cd-prev{width:100%; display:flex; align-items:flex-start; justify-content:center;}
-  .cd-prev canvas{width:100%; height:auto; max-width:1100px; border-radius:12px;
-    box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff; display:block;}
-  .cd-side{flex:0 0 250px; display:flex; flex-direction:column; gap:12px;}
+  .cd-prev{flex:1; min-height:0; width:100%; display:flex;
+    align-items:center; justify-content:center;}
+  /* `auto` тут із !important не від безсилля: сам малювальник ставить
+     полотну точні width/height у стилі елемента — це його логічний розмір
+     при подвійній щільності. Інлайновий стиль сильніший за будь-яке
+     правило, тож без !important обмеження вище тиснули б кожен бік окремо,
+     і картку сплющувало б замість вписування. */
+  .cd-prev canvas{max-width:min(100%, 1100px); max-height:100%;
+    width:auto !important; height:auto !important;
+    border-radius:12px; box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff;
+    display:block;}
+  .cd-side{flex:0 0 250px; min-height:0; overflow:auto;
+    display:flex; flex-direction:column; gap:12px;}
   .cd-box{background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px;}
   .cd-box input[type=text], .cd-box textarea{width:100%; font:inherit; font-size:12.5px;
     color:#22314A; border:1px solid #D9E1EC; border-radius:8px; padding:7px 9px;
