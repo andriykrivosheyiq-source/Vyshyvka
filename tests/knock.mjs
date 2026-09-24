@@ -67,8 +67,15 @@ stub = stub.replace('var fs=function(){ return { collection:function(){ return n
   'var fs=function(){ return { collection:function(n){ var c=new Col(); c.__n=n; return c; },');
 /* Запамʼятовуємо, що саме пішло в базу: слід має бути НЕ тільки на екрані. */
 stub = stub.replace('Doc.prototype.set=function(',
-  'Doc.prototype.set=function(d){ try{ window.__WROTE=(window.__WROTE||[]).concat([d]); }catch(e){} return Doc.prototype.__set.apply(this, arguments); };\n' +
+  'Doc.prototype.set=function(d){ try{ window.__WROTE=(window.__WROTE||[]).concat([d]); }catch(e){}\n' +
+  '    if(window.__FAIL){ var er=new Error(window.__FAIL.msg||"denied"); er.code=window.__FAIL.code; return Promise.reject(er); }\n' +
+  '    if(d && d.team) window.__DOCTEAM = window.__DROP ? d.team.filter(function(p){ return p.email!==window.__DROP; }) : d.team;\n' +
+  '    return Doc.prototype.__set.apply(this, arguments); };\n' +
   '  Doc.prototype.__set=function(');
+/* Перечитування документа — те, чим збереження перевіряє саме себе. */
+stub = stub.replace("Doc.prototype.get=function(){ return Promise.resolve(new Snap('x', null)); };",
+  "Doc.prototype.get=function(){ return Promise.resolve(new Snap('x',\n" +
+  '    window.__DOCTEAM ? { team: window.__DOCTEAM } : null)); };');
 
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const open = async mail => {
@@ -276,6 +283,59 @@ ok(вернули.кнопки && вернули.імʼя === 'Анна' && ве
   'повернулись імʼя, роль і саме ті розділи, які були — сліди цього не вміють',
   'знімок повернув не те: ' + JSON.stringify(вернули));
 await guard.close();
+
+/* ── Третє: мовчазна відмова бази ─────────────────────────────────────── */
+console.log('');
+console.log('═══ БАЗА ВІДМОВИЛА — ПРИЧИНА ЛИШАЄТЬСЯ НА ЕКРАНІ ═══');
+const deny = await open('boss@loomiq.net');
+const відмова = await deny.evaluate(async () => {
+  document.querySelector('.nav button[data-view="team"]').click();
+  window.__FAIL = { code:'permission-denied', msg:'Missing or insufficient permissions.' };
+  teamDirty = true;
+  document.getElementById('team-save').click();
+  await new Promise(r => setTimeout(r, 400));
+  window.__FAIL = null;
+  const bar = document.querySelector('.tm-alarm-t');
+  return { текст: bar ? bar.textContent : '' };
+});
+console.log('  ' + відмова.текст.slice(0, 120) + '…');
+ok(/setup/.test(відмова.текст) && /permission-denied/.test(відмова.текст),
+  'сказано словами бази й названо, що саме лікувати — а не «помилка збереження»',
+  'причина не показана: ' + відмова.текст);
+
+const живе = await deny.evaluate(async () => {
+  /* Смуга не має зникати сама: людина йде читати, повертається — і бачить. */
+  renderTeamList();
+  const bar = document.querySelector('.tm-alarm-t');
+  return !!bar;
+});
+ok(живе, 'смуга лишається на екрані, поки причину не полагодять',
+  'смуга зникла з першим перемальовуванням');
+
+console.log('');
+console.log('═══ БАЗА ПРИЙНЯЛА, АЛЕ ЛЮДИНИ В ДОКУМЕНТІ НЕМАЄ ═══');
+const мовчки = await deny.evaluate(async () => {
+  contentData.team = [
+    { email:'boss@loomiq.net', name:'Володимир', role:'owner' },
+    { email:'mgr@loomiq.net',  name:'Ігор',      role:'manager' }
+  ];
+  teamDraft = null; teamPulled = {}; teamDirty = false;
+  teamList();
+  /* Документ мовчки викидає саме її — рівно те, що виглядає як «додав,
+     оновив, і вони знову пропали». */
+  window.__DROP = 'mgr@loomiq.net';
+  teamDirty = true;
+  document.getElementById('team-save').click();
+  await new Promise(r => setTimeout(r, 500));
+  window.__DROP = null;
+  const bar = document.querySelector('.tm-alarm-t');
+  return { текст: bar ? bar.textContent : '' };
+});
+console.log('  ' + мовчки.текст.slice(0, 130) + '…');
+ok(/mgr@loomiq\.net/.test(мовчки.текст) && /тиснути «зберегти» ще раз/.test(мовчки.текст),
+  'перечитали документ, побачили, кого в ньому немає, і сказали не тиснути по колу',
+  'мовчазна втрата лишилась мовчазною: ' + мовчки.текст);
+await deny.close();
 
 console.log('');
 ok(!errs.length, 'сторінки без помилок', 'помилки: ' + errs.join(' | '));
