@@ -1984,6 +1984,17 @@
   /* Прибрані лежать поруч, а не зникають: помилкове натискання не має
      коштувати людині доступів, які налаштовували пів години. */
   .tm-gone{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .tm-knock{border:1px solid #F0C36D;background:#FFF9EC;border-radius:12px;
+    padding:12px 14px;margin-bottom:14px;}
+  .tm-knock-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    color:#8A5A00;margin-bottom:8px;}
+  .tm-knock-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;}
+  .tm-knock-row b{font-size:13.5px;}
+  .tm-knock-row span{font-size:12px;color:var(--ink-soft);}
+  .tm-knock-add{margin-left:auto;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+    padding:6px 12px;border-radius:8px;border:1px solid #E0A93B;background:#fff;color:#8A5A00;}
+  .tm-knock-add:hover{background:#8A5A00;color:#fff;border-color:#8A5A00;}
+  .tm-knock-s{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
   .tm-gone-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     color:var(--muted);margin-bottom:7px;}
   .tm-gone-row{display:flex;align-items:center;gap:10px;font-size:12.5px;
@@ -23180,7 +23191,8 @@ function renderAccLog(){
   if(!box) return;
   if(!canSetup()){ box.innerHTML = '<div class="sub">Журнал бачить тільки той, хто налаштовує систему.</div>'; return; }
   const L = accLogList().slice().reverse();
-  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК', open:'відкрив' };
+  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК',
+                 open:'відкрив', knock:'СТУКАВ' };
   box.innerHTML = L.length ? L.slice(0, 800).map(r =>
     '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
     '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
@@ -23458,10 +23470,40 @@ function canSuppliers(){ return may('can', 'suppliers'); }
    «зламалось» — і людина йде питати, чому нічого не працює. Кажемо прямо, під
    якою поштою вона зайшла: саме тут майже завжди й помилка, зайшли не тим
    акаунтом, на який слали запрошення. */
+/* СТУК У ДВЕРІ.
+
+   Доти заблокований вхід не лишав узагалі нічого: людина впиралась у
+   табличку, а власник дізнавався про це з Telegram — якщо взагалі
+   дізнавався. Саме так і виглядав день, коли менеджери загубили доступ:
+   екран каже «попросіть додати», а попросити можна лише месенджером, і в
+   самій системі про це жодного сліду.
+
+   Тепер кожна така спроба пише рядок у журнал. Журнал — єдине, у що
+   заблокована людина має право писати (правила бази дозволяють їй лише
+   дописувати `accessLog`), і саме його читає той, хто налаштовує доступи.
+   Далі список у «Команді й доступах» показує ці пошти окремо, з кнопкою
+   «додати»: втрачений доступ повертається двома кліками, а не листуванням.
+
+   Раз на пів години з пристрою: людина тисне «оновити» десяток разів
+   поспіль, і десять однакових рядків журналу — це вже не слід, а шум. */
+const KNOCK_GAP = 30 * 60 * 1000;
+function knockAtDoor(){
+  const mail = String(myEmail() || '').trim().toLowerCase();
+  if(!mail || !contentLoaded) return;
+  const key = 'lq_knock_' + mail;
+  try{
+    const was = +localStorage.getItem(key) || 0;
+    if(Date.now() - was < KNOCK_GAP) return;
+    localStorage.setItem(key, String(Date.now()));
+  }catch(e){}
+  /* Роль тут писати нема чого — людини немає в команді. */
+  accLog('knock', 'спроба входу без доступу: ' + mail);
+}
 function applyNoAccess(){
   const off = teamOn() && !teamMember(myEmail()) && !isOwnerEmail(myEmail());
   let el = document.getElementById('no-access');
   if(!off){ if(el) el.remove(); document.body.classList.remove('no-access'); return true; }
+  try{ knockAtDoor(); }catch(e){}
   if(!el){
     el = document.createElement('div');
     el.id = 'no-access';
@@ -23469,7 +23511,9 @@ function applyNoAccess(){
     el.innerHTML = '<div class="na-box"><b>Вас ще не додали в команду</b>' +
       '<p>Ви зайшли як <span class="na-mail"></span>. Доступ до замовлень видає той, ' +
       'хто налаштовує систему: попросіть додати цю пошту в «Команду й доступи».</p>' +
-      '<p class="na-sub">Якщо запрошення приходило на іншу пошту — вийдіть і зайдіть нею.</p>' +
+      '<p class="na-sub">Ми записали вашу спробу — той, хто налаштовує доступи, ' +
+      'побачить її в «Команді й доступах». Якщо запрошення приходило на іншу пошту — ' +
+      'вийдіть і зайдіть нею.</p>' +
       '<button type="button">Вийти</button></div>';
     el.querySelector('button').addEventListener('click', ()=> fbAuth.signOut());
   }
@@ -23783,6 +23827,22 @@ function lastInviteAt(email){
   });
   return at;
 }
+/* Хто заходив, але в команду не потрапив. Береться з журналу: інших слідів
+   така людина лишити не може — писати їй у базу нікуди. */
+function knockList(){
+  const team = {};
+  (teamList() || []).forEach(p => { if(p.email) team[String(p.email).trim().toLowerCase()] = 1; });
+  const out = {};
+  accLogList().forEach(r => {
+    if(r.kind !== 'knock') return;
+    const e = String(r.by || '').trim().toLowerCase();
+    if(!e || team[e]) return;
+    const x = out[e] = out[e] || { email:e, n:0, at:'' };
+    x.n++;
+    if(String(r.at || '') > x.at) x.at = r.at || '';
+  });
+  return Object.keys(out).map(k => out[k]).sort((a, b) => (a.at < b.at ? 1 : -1));
+}
 /* ── Користувачі ─────────────────────────────────────────────────────── */
 function tmUsersHtml(){
   const saved = (contentData.team) || [];
@@ -23795,7 +23855,19 @@ function tmUsersHtml(){
   const pend = all.filter(({p}) => !hasJoined(p.email));
   const inv = tmSub === 'inv';
   const show = inv ? pend : team;
-  const head = '<div class="tm-bar">' +
+  /* Смуга стоїть НАД усім іншим і не ховається у вкладку: людина вже не
+     може працювати, і кожна година тут — це година простою. */
+  const knocks = knockList();
+  const knockHtml = knocks.length
+    ? '<div class="tm-knock"><div class="tm-knock-h">Заходили, але доступу немає</div>' +
+      knocks.slice(0, 10).map(k => '<div class="tm-knock-row"><b>' + escapeHtml(k.email) +
+        '</b><span>' + (k.n > 1 ? k.n + ' спроби · ' : '') + escapeHtml(tmDate(k.at)) + '</span>' +
+        '<button class="tm-knock-add" data-knock="' + escapeHtml(k.email) +
+        '">+ Додати в команду</button></div>').join('') +
+      '<div class="tm-knock-s">Додайте — і не забудьте «Зберегти команду»: ' +
+      'доступ зʼявиться одразу, перезаходити не треба.</div></div>'
+    : '';
+  const head = knockHtml + '<div class="tm-bar">' +
     '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
       escapeHtml(tmQ) + '">' +
     '<span id="tm-tools" class="tm-tools"></span></div>' +
@@ -23942,6 +24014,33 @@ function wireTeamPane(box){
     tmTab = b.dataset.tmtab; renderTeamList(); }));
   box.querySelectorAll('[data-tmsub]').forEach(b => b.addEventListener('click', ()=>{
     tmSub = b.dataset.tmsub; renderTeamList(); }));
+  /* Повернути доступ тому, хто в нього впирається. Роль ставимо звичайну
+     менеджерську: підвищити її — окреме рішення, а от лишити людину без
+     роботи ще на день через вибір ролі не можна. */
+  box.querySelectorAll('[data-knock]').forEach(b => b.addEventListener('click', ()=>{
+    const mail = String(b.dataset.knock || '').trim().toLowerCase();
+    if(!mail) return;
+    const list = teamList();
+    if(list.some(p => String(p.email || '').trim().toLowerCase() === mail))
+      return toast('Ця пошта вже у списку — лишилось зберегти');
+    /* Людина могла тут працювати: тоді її рядок лежить у «Прибраних» разом
+       із доступами, і повертати треба саме його, а не заводити новий. */
+    const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
+    const був = gone.filter(g => String(g.email || '').trim().toLowerCase() === mail)[0];
+    list.push(був
+      ? Object.assign({}, був, { updatedAt:'', acc: accExpand(був.acc || presetOf(був.role)) })
+      : { email: mail, name:'', role:'manager', phone:'',
+          createdAt:new Date().toISOString(), updatedAt:'',
+          acc: accExpand(presetOf('manager')) });
+    if(був) contentData.teamGone = gone.filter(g =>
+      String(g.email || '').trim().toLowerCase() !== mail);
+    teamOpen = list.length - 1;
+    teamDirty = true;
+    tmSub = 'team';
+    renderTeamList();
+    toast(був ? 'Повернули з «Прибраних» — натисніть «Зберегти команду»'
+              : 'Додали як менеджера — натисніть «Зберегти команду»');
+  }));
   const q = box.querySelector('.tm-search');
   if(q) q.addEventListener('input', ()=>{
     tmQ = q.value;
