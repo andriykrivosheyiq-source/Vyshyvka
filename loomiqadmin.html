@@ -1497,6 +1497,13 @@
     border:1px solid var(--line);}
   .od-crm-day{align-self:center;font-size:10.5px;color:var(--ink-soft);background:var(--paper);
     border-radius:20px;padding:2px 10px;margin:4px 0 2px;flex:none;}
+  /* Межа непрочитаного — риска на всю ширину з написом посередині. Саме
+     риска, а не плашка: вона ДІЛИТЬ розмову, і це має бути видно з
+     півпогляду, не читаючи. */
+  .od-crm-new{flex:none;align-self:stretch;display:flex;align-items:center;gap:8px;
+    margin:8px 0 4px;font-size:10.5px;font-weight:800;letter-spacing:.04em;
+    text-transform:uppercase;color:#C4342A;}
+  .od-crm-new::before,.od-crm-new::after{content:'';flex:1;height:1px;background:#F0C2BC;}
   .od-crm-msg{max-width:84%;background:var(--paper);border:1px solid var(--line);
     border-radius:14px 14px 14px 4px;padding:8px 11px;align-self:flex-start;flex:none;
     box-shadow:0 1px 2px rgba(15,32,52,.04);}
@@ -20982,6 +20989,29 @@ function chatMsgs(o, kind){
 function chatRowsHtml(msgs){
   let lastDay = '';
   const list = msgs || [];
+  /* ── МЕЖА НЕПРОЧИТАНОГО ────────────────────────────────────────────────
+     Андрій: «одразу заходиш в діалог, одразу бачиш непрочитане
+     повідомлення». Доти розмова відкривалась просто в кінці: якщо клієнт
+     написав пʼять разів, менеджер бачив пʼяте й мусив гортати вгору,
+     вгадуючи, звідки почалось те, чого він ще не читав.
+
+     Межа стоїть там, де починається остання суцільна черга клієнтських
+     реплік — тобто все, що надійшло ПІСЛЯ нашої останньої відповіді. Це та
+     сама величина, яку показує кружечок на картці, тож дошка й розмова
+     кажуть одне й те саме.
+
+     Коли відповіді не було взагалі, межу не малюємо: риска над першим же
+     рядком розмови нічого не відділяє. */
+  let межа = -1;
+  {
+    let i = list.length - 1, n = 0;
+    while(i >= 0 && list[i] && (list[i].gone || !list[i].mine)){
+      if(!list[i].gone) n++;
+      i--;
+    }
+    if(n > 0 && i >= 0) межа = i + 1;
+  }
+  const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone).length : 0;
   return list.map((m, i) => {
     const day = (m.at || '').slice(0, 10);
     let sep = '';
@@ -20989,6 +21019,11 @@ function chatRowsHtml(msgs){
       lastDay = day;
       sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`;
     }
+    /* Межа йде ПІСЛЯ дати, а не перед: спершу «сьогодні», потім «нові».
+       Навпаки виходило б, що нове почалось учора, а дата стоїть під ним. */
+    if(i === межа)
+      sep += `<div class="od-crm-new" data-crm-new>` +
+        `${новихN === 1 ? 'нове повідомлення' : 'нових повідомлень · ' + новихN}</div>`;
     const time = (m.at || '').slice(11, 16);
     // Помітка лише тоді, коли самого файлу немає. Фото, яке воркер переклав
     // у Cloudinary, показуємо картинкою — «відкрийте в Telegram» тут було б
@@ -21507,7 +21542,14 @@ function renderChatWin(toBottom){
   const inpOld = box.querySelector('.cw-inp');
   const keep = (inpOld && document.activeElement === inpOld)
     ? { at: inpOld.selectionStart, to: inpOld.selectionEnd } : null;
-  const first = !inpOld;
+  /* «Перший показ» — це перший показ ЦІЄЇ розмови, а не порожній вузол.
+     Доти воно визначалось наявністю поля вводу — а поле лишається від
+     попередньої розмови, і перехід між діалогами першим показом не
+     вважався. Наслідок видно рівно там, де він найдорожчий: відкриваєш
+     наступний чат, а він стає в кінці стрічки замість межі непрочитаного,
+     і фокус у поле не йде. */
+  const first = !chatWin.drawn;
+  chatWin.drawn = true;
 
   const msgs = chatMsgs(o, chatWin.kind);
   const isTg = chatWin.kind === 'tg';
@@ -21654,7 +21696,21 @@ function renderChatWin(toBottom){
      теж було смикання — при поверненні старого вузла присвоєння того
      самого числа безпечне, а от «підтягнути вниз» без потреби ні. */
   if(feedEl){
-    const треба = stick ? feedEl.scrollHeight : oldTop;
+    let треба = stick ? feedEl.scrollHeight : oldTop;
+    /* ВІДКРИЛИ РОЗМОВУ — СТАЄМО НА МЕЖІ НЕПРОЧИТАНОГО, а не в самому кінці.
+       Коли клієнт написав пʼять разів, кінець стрічки показує пʼяте, а
+       перші чотири лишаються вище — і менеджер гортає вгору, вгадуючи,
+       звідки читати. Так поводиться будь-який месенджер: відкрив і стоїш
+       там, де скінчилось прочитане.
+
+       Тільки при ПЕРШІЙ побудові вікна: далі стрічка живе своїм життям, і
+       смикати її на кожному такті опитування не можна. */
+    if(first){
+      const мітка = feedEl.querySelector('[data-crm-new]');
+      /* Трохи вище самої риски: так видно, на що саме відповідали
+         останнім, і межа не прилипає до верхнього краю. */
+      if(мітка) треба = Math.max(0, мітка.offsetTop - 46);
+    }
     if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
   }
   wireChatWin(box, o, first || !!keep);
