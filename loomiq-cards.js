@@ -1389,31 +1389,51 @@
       var bg = (function(){
         var pts = [[0,0], [c.width-1,0], [0,c.height-1], [c.width-1,c.height-1],
                    [(c.width>>1),0], [(c.width>>1),c.height-1]];
-        var r = 0, g = 0, b = 0, a = 0, n = 0;
+        var got = [];
         pts.forEach(function(pt){
           var i = (pt[1] * c.width + pt[0]) * 4;
           if(d[i+3] < 24) return;
-          r += d[i]; g += d[i+1]; b += d[i+2]; a += d[i+3]; n++;
+          got.push([d[i], d[i+1], d[i+2]]);
         });
-        if(!n) return null;
-        return { r:r/n, g:g/n, b:b/n, a:a/n };
+        if(!got.length) return null;
+        var r = 0, g = 0, b = 0;
+        got.forEach(function(p2){ r += p2[0]; g += p2[1]; b += p2[2]; });
+        r /= got.length; g /= got.length; b /= got.length;
+        /* ДОПУСК ПІДБИРАЄМО ПІД САМ КАДР, А НЕ НАВМАННЯ.
+
+           Фіксовані 14 одиниць — це багато для чистого фону й мало для
+           шумного. А головне: БІЛЕ ПОЛО на світло-сірому папері відрізняється
+           від фону всього на десяток одиниць. З широким допуском виріб
+           цілком потрапляв у «фон», меж у нього не лишалось — і картка
+           підрізала його зверху, бо вважала виробом самі темні деталі:
+           комір, шов, вишивку.
+
+           Тому дивимось, наскільки самі кути розходяться між собою. Фон
+           рівний — допуск вузький, і біле поло від нього відрізняється.
+           Фон із градієнтом — допуск ширший, бо інакше градієнт почали б
+           рахувати за виріб. */
+        var dev = 0;
+        got.forEach(function(p2){
+          dev = Math.max(dev, Math.abs(p2[0] - r), Math.abs(p2[1] - g), Math.abs(p2[2] - b));
+        });
+        return { r:r, g:g, b:b, near: Math.max(5, Math.min(12, dev + 3)) };
       })();
-      /* Наскільки близько до фону — ще фон. Вужче не можна: у мокапі фон
-         має шум і легкий градієнт. Ширше теж не можна: світлий виріб на
-         світлому фоні почне зникати. */
-      var BG_NEAR = 14;
       var isBg = function(i){
         if(!bg) return false;
-        return Math.abs(d[i] - bg.r) <= BG_NEAR &&
-               Math.abs(d[i+1] - bg.g) <= BG_NEAR &&
-               Math.abs(d[i+2] - bg.b) <= BG_NEAR;
+        return Math.abs(d[i] - bg.r) <= bg.near &&
+               Math.abs(d[i+1] - bg.g) <= bg.near &&
+               Math.abs(d[i+2] - bg.b) <= bg.near;
       };
       var x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
       for(var py = 0; py < c.height; py++){
         for(var px = 0; px < c.width; px++){
           var i = (py * c.width + px) * 4;
           if(d[i + 3] < 24) continue;                               // прозоре
-          if(d[i] > 243 && d[i+1] > 243 && d[i+2] > 243) continue;   // майже біле
+          /* «Майже біле — це фон» лишається ЛИШЕ там, де кольору фону взяти
+             нізвідки: кадр прозорий по кутах. Інакше це правило зʼїдало б
+             білі вироби — а білих футболок і поло в нас не менше, ніж
+             чорних. Коли фон відомий, він і вирішує. */
+          if(!bg && d[i] > 243 && d[i+1] > 243 && d[i+2] > 243) continue;
           if(isBg(i)) continue;                                      // колір фону кадру
           if(px < x0) x0 = px;
           if(px > x1) x1 = px;

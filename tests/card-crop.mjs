@@ -254,6 +254,57 @@ g4.forEach((b, i) => ok(b && Math.abs(b.h / b.w - ЧАСТКА4) < 0.05,
   'кадр ' + (i + 3) + ' у сітці: виріб цілий',
   'кадр ' + (i + 3) + ': обрізано — ' + (b ? (b.h / b.w).toFixed(2) : 'не знайшли')));
 
+/* ── БІЛИЙ ВИРІБ НА СВІТЛОМУ ПАПЕРІ ────────────────────────────────────
+   Біле поло на світло-сірому мокапі відрізняється від фону на десяток
+   одиниць. З широким допуском воно цілком потрапляло у «фон»: меж у виробу
+   не лишалось, за виріб бралися самі темні деталі — комір, шов, вишивка, —
+   і картка підрізала його зверху. Білих футболок і поло в нас не менше, ніж
+   чорних, тож це не рідкісний випадок. */
+console.log('');
+console.log('═══ БІЛИЙ ВИРІБ НА СВІТЛОМУ ФОНІ ═══');
+const білий = (box) => {
+  const B = box || G;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900">' +
+    '<rect width="600" height="900" fill="#EFEFEC"/>' +
+    '<rect x="' + B.x + '" y="' + B.y + '" width="' + B.w + '" height="' + B.h +
+    '" fill="rgb(250,250,232)"/>' +
+    /* Темна деталь усередині — комір із вишивкою. Саме її система й брала
+       за весь виріб, коли біле зникало у фоні. */
+    '<rect x="' + (B.x + B.w / 2 - 30) + '" y="' + (B.y + 40) +
+    '" width="60" height="50" fill="#3A3A3A"/></svg>');
+};
+const бл = JSON.parse(JSON.stringify(OFFER));
+бл.items[0].views = [V('front', білий()), V('back', білий())];
+/* Шукаємо саме БІЛИЙ прямокутник — він і є виріб. */
+const wm = await fr.evaluate(async a => {
+  const [off] = a;
+  const cv = await window.LQCards.draw(window.LQCards.build(off, {})[0], off, { tpl:'minimal' });
+  const x = cv.getContext('2d');
+  const d = x.getImageData(0, 0, cv.width, cv.height).data;
+  const b = { x0:1e9, x1:-1, y0:1e9, y1:-1 };
+  for(let py = 0; py < cv.height; py += 2)
+    for(let px = 0; px < cv.width; px += 2){
+      const i = (py * cv.width + px) * 4;
+      /* Виріб майже білий (усі канали > 243, тобто старе правило вважало б
+         його фоном), але з ледь помітною теплотою — і цим відрізняється від
+         самого аркуша картки. */
+      if(!(d[i] > 245 && d[i+1] > 245 && d[i+2] > 225 && d[i+2] < 240)) continue;
+      if(px < b.x0) b.x0 = px; if(px > b.x1) b.x1 = px;
+      if(py < b.y0) b.y0 = py; if(py > b.y1) b.y1 = py;
+    }
+  return b.x1 < 0 ? null : { w:b.x1 - b.x0, h:b.y1 - b.y0 };
+}, [бл]);
+console.log('  білий виріб на полотні: ' + (wm ? wm.w + '×' + wm.h +
+  ' · частка ' + (wm.h / wm.w).toFixed(2) : 'не знайшли'));
+ok(wm && Math.abs(wm.h / wm.w - ЧАСТКА) < 0.06,
+  'білий виріб знайдено цілим — його не сплутали з фоном',
+  'білий виріб обрізало: ' + (wm ? (wm.h / wm.w).toFixed(2) : '—') +
+    ' замість ' + ЧАСТКА.toFixed(2));
+ok(wm && Math.abs(wm.h - m[0].h) <= 40,
+  'і того самого розміру, що темний виріб — колір не міняє масштабу',
+  'білий виріб іншого розміру: ' + (wm ? wm.h : '—') + ' проти ' + m[0].h);
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 try{ fs.unlinkSync(VH); }catch(e){}
