@@ -1236,14 +1236,34 @@
        мапа `designKindFix` (її адмінка накладає поверх автоматики перед
        кожним перерахунком). Розійшовшись, вони й давали «перемкнув, а воно
        повернулось». */
-    function spreadKindFix(fp, kind){
+    /* Адреса файлу малюнка. Відбиток знімається з пікселів, а пікселі в
+       того самого логотипа на різних виробах різні: інший розмір, інший
+       ракурс, інший рендер. Тому саме ФАЙЛ, а не відбиток, і є найнадійнішою
+       ознакою «це той самий малюнок». */
+    function layerUrl(l){
+      return String((l && (l.url || l.cleanUrl || l.origUrl)) || '');
+    }
+    function spreadKindFix(fp, kind, url){
       fp = String(fp || '');
-      if(!fp) return 0;
+      url = String(url || '');
+      if(!fp && !url) return 0;
+      var same = function(l){
+        if(!l) return false;
+        if(fp && String(l.fp || '') === fp) return true;
+        /* ТОЙ САМИЙ ФАЙЛ — ТОЙ САМИЙ ДИЗАЙН.
+
+           Доти рішення їхало лише за відбитком, і цього не вистачало рівно
+           там, де воно найпотрібніше: один напис на худі й на світшоті — це
+           два різні рендери, тож і відбитки різні. Менеджер перемикав напис
+           на одному виробі, на другому лишалась «картинка», і рушій брав за
+           неї окремий макет. */
+        return !!url && layerUrl(l) === url;
+      };
       var n = 0;
       // 1. Чернетка: той самий малюнок може стояти на кількох боках виробу.
       printViews().forEach(function(side){
         (pm.logos[side] || []).forEach(function(l){
-          if(l && String(l.fp || '') === fp){ l.kindFix = kind; n++; }
+          if(same(l)){ l.kindFix = kind; n++; }
         });
       });
       // 2. Позиції, які вже лежать у кошику.
@@ -1251,23 +1271,32 @@
                ? cartItems : (window.__cartItems || []);
       list.forEach(function(it){
         if(!it) return;
+        /* Відбитки, які на цій позиції належать тому самому малюнку: свій і
+           всі, що лежать на шарах із тим самим файлом. */
+        var keys = {};
+        if(fp) keys[fp] = 1;
+        var logos = it.config && it.config.logos;
+        if(logos) Object.keys(logos).forEach(function(side){
+          (logos[side] || []).forEach(function(l){
+            if(same(l) && l.fp) keys[String(l.fp)] = 1;
+          });
+        });
         var has = false, d = it.desc;
         if(d && Array.isArray(d.designs)){
           if(!Array.isArray(d.designKinds)) d.designKinds = [];
           d.designs.forEach(function(f, i){
-            if(String(f || '') !== fp) return;
+            if(!keys[String(f || '')]) return;
             d.designKinds[i] = kind; has = true;
           });
         }
-        var logos = it.config && it.config.logos;
         if(logos) Object.keys(logos).forEach(function(side){
           (logos[side] || []).forEach(function(l){
-            if(l && String(l.fp || '') === fp){ l.kindFix = kind; has = true; }
+            if(same(l)){ l.kindFix = kind; has = true; }
           });
         });
         if(!has) return;
         it.designKindFix = it.designKindFix || {};
-        it.designKindFix[fp] = kind;
+        Object.keys(keys).forEach(function(k){ it.designKindFix[k] = kind; });
         n++;
       });
       return n;
@@ -5945,7 +5974,19 @@
           /* Без відбитка рішення нікуди не поширити — лишаємо його хоч на
              самому шарі, інакше перемикач просто нічого не зробить. */
           ensureFp(l);
-          if(l.fp) spreadKindFix(l.fp, kind); else l.kindFix = kind;
+          var url = layerUrl(l);
+          if(l.fp || url) spreadKindFix(l.fp, kind, url); else l.kindFix = kind;
+          /* У ПРОПОЗИЦІЇ РІШЕННЯ МАЄ ЛЯГТИ В БАЗУ ОДРАЗУ.
+
+             Тут кошик — це склад замовлення, і лежить він КОПІЄЮ: назад
+             зберігається лише та позиція, яку правлять. Тобто сусідні
+             позиції мінялись у памʼяті й губились, щойно менеджер відкривав
+             наступну — звідси «перемкнув в одному, а в іншому одязі не
+             підтягнулось і не збереглось». Рішення про малюнок належить
+             усьому замовленню, тож і записує його адмінка, одразу. */
+          try{
+            if(window.__lqKindFix) window.__lqKindFix(l.fp || '', url, kind);
+          }catch(e2){}
           updatePriceBar();          // ціна, шкала тиражів і сам прорахунок
           /* Кошик перерахувати обовʼязково: змінилась не наша позиція, а
              спільна разова — отже й ціни сусідніх позицій. */
