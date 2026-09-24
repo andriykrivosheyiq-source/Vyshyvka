@@ -5020,18 +5020,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e65e9a9eb3"></script>
-<script src="loomiq-fingerprint.js?v=e65e9a9eb3"></script>
-<script src="loomiq-pricing.js?v=e65e9a9eb3"></script>
+<script src="loomiq-select.js?v=114fa5fd05"></script>
+<script src="loomiq-fingerprint.js?v=114fa5fd05"></script>
+<script src="loomiq-pricing.js?v=114fa5fd05"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=e65e9a9eb3"></script>
+<script src="loomiq-design.js?v=114fa5fd05"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=e65e9a9eb3"></script>
+<script src="loomiq-cards.js?v=114fa5fd05"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8903,6 +8903,22 @@ function designPic(o, fp){
 function fpAliases(o, fp){
   const url = String(designPic(o, fp) || '');
   const out = [String(fp || '')];
+  /* СХОЖІ ВІДБИТКИ — теж цей самий малюнок. Рушій цін групує дизайни за
+     схожістю, і рішення менеджера має накривати рівно ту саму групу:
+     інакше воно лягає на одну копію, а сусідня лишається з автоматичним
+     видом — і один макет починає нести два протилежні рішення. Це не
+     здогад: у замовленні 1000057 два відбитки напису розійшлись на 0.0156
+     при порозі 0.03, і підготовка ділилась на два вироби замість пʼяти. */
+  const LQ = window.LQ;
+  if(LQ && typeof LQ.sameFingerprint === 'function'){
+    ((o && o.items) || []).forEach(x=>{
+      ((x && x.desc && x.desc.designs) || []).forEach(f=>{
+        const t = String(f || '');
+        if(!t || out.indexOf(t) >= 0) return;
+        if(LQ.sameFingerprint(t, String(fp || ''))) out.push(t);
+      });
+    });
+  }
   if(!url) return out;
   ((o && o.items) || []).forEach(x=>{
     const logos = x && x.config && x.config.logos;
@@ -9012,6 +9028,41 @@ function setItemKindFix(it, fp, kind, o){
    систему — і вона стоїть ПЕРЕД будь-яким розрахунком, тож вибір діє скрізь,
    де вид має значення: ставка за площу, відро разових, ціна, собівартість,
    маржа, КП, Канбан, PDF. */
+/* Який вид менеджер поставив ЦЬОМУ макетові.
+
+   Точний збіг рядка — перший і головний шлях: те саме зображення, те саме
+   рішення. Але відбиток знімається з пікселів, а пікселі того самого
+   малюнка на сусідньому виробі трохи інші: інший розмір, інше згладжування,
+   знятий чи не знятий фон. Рушій цін це передбачає й ГРУПУЄ дизайни за
+   схожістю — а рішення менеджера доти шукалось лише за точним рядком.
+
+   Наслідок бачив Андрій у замовленні 1000057: два відбитки напису, які
+   рушій вважає одним макетом (відстань 0.0156 при порозі 0.03), несли
+   протилежні рішення — «напис» і «не рахувати». Позначена копія виходила з
+   поділу, і підготовка ділилась на два вироби замість пʼяти: 240 ₴/шт
+   замість 96. А ще два рішення висіли в порожнечі взагалі — їхні макети
+   перезберегли, відбиток змінився, і ключ більше ні на що не вказував.
+
+   Тому за точним збігом іде схожість — та сама, якою групує рушій. Один
+   макет — одне рішення. Коли схожих ключів кілька й вони різні, беремо
+   найближчий: ближчий відбиток — ближча копія того самого малюнка. */
+function kindWanted(fix, fp){
+  const key = String(fp || '');
+  if(!key || !fix) return null;
+  const точно = fix[key];
+  if(точно === 'img' || точно === 'txt' || точно === 'off') return точно;
+  const LQ = window.LQ;
+  if(!LQ || typeof LQ.sameFingerprint !== 'function') return null;
+  let best = null, dist = 1;
+  Object.keys(fix).forEach(k=>{
+    const v = fix[k];
+    if(v !== 'img' && v !== 'txt' && v !== 'off') return;
+    if(!LQ.sameFingerprint(k, key)) return;
+    const d = (typeof LQ.fpDistance === 'function') ? LQ.fpDistance(k, key) : 0;
+    if(best === null || d < dist){ best = v; dist = d; }
+  });
+  return best;
+}
 function applyKindFix(o){
   /* Одна мапа на все замовлення. Раніше кожна позиція мала свою — і той
      самий малюнок на сусідніх позиціях міг рахуватись по-різному. */
@@ -9023,7 +9074,7 @@ function applyKindFix(o){
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
     d.designs.forEach((fp, i)=>{
-      const want = fix[String(fp || '')];
+      const want = kindWanted(fix, fp);
       if(want === 'img' || want === 'txt' || want === 'off') kinds[i] = want;
     });
     d.designKinds = kinds;
