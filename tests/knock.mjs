@@ -185,6 +185,98 @@ ok(новий.роль === 'manager' && новий.доступи,
   'нову пошту завели без прав: ' + JSON.stringify(новий));
 await boss.close();
 
+/* ── Друге: список не має худнути сам ──────────────────────────────────── */
+console.log('');
+console.log('═══ ЗНИКНУТИ МОЖЕ ЛИШЕ ТОЙ, КОГО ПРИБРАЛИ РУКАМИ ═══');
+const guard = await open('boss@loomiq.net');
+const спроба = await guard.evaluate(async () => {
+  document.querySelector('.nav button[data-view="team"]').click();
+  /* Рівно те, що ставалось: у кошику «Прибраних» за місяці назбиралось
+     багато записів, і старий лічильник через них пропускав зникнення. */
+  contentData.teamGone = Array.from({ length:12 }, (_, i) => ({
+    email:'old' + i + '@loomiq.net', name:'Стар' + i, role:'manager',
+    goneAt:'2026-08-01T08:00:00.000Z' }));
+  contentData.team = [
+    { email:'boss@loomiq.net', name:'Володимир', role:'owner' },
+    { email:'mgr@loomiq.net',  name:'Ігор',      role:'manager' },
+    { email:'anna@loomiq.net', name:'Анна',      role:'manager' },
+    { email:'kate@loomiq.net', name:'Катя',      role:'manager' }
+  ];
+  teamDraft = null; teamPulled = {}; teamDirty = false;
+  teamList();
+  /* Чернетка «схудла» сама — саме так, як це й ставалось. */
+  teamDraft = teamDraft.filter(p => p.email === 'boss@loomiq.net');
+  teamDirty = true;
+  let сказано = '';
+  const orig = window.toast; window.toast = t => { сказано = t; };
+  window.__WROTE = [];
+  document.getElementById('team-save').click();
+  await new Promise(r => setTimeout(r, 400));
+  window.toast = orig;
+  return { сказано, записів: (window.__WROTE || []).filter(d => d && d.team).length,
+           уБазі: (contentData.team || []).length };
+});
+console.log('  ' + спроба.сказано);
+ok(спроба.записів === 0 && спроба.уБазі === 4,
+  'збереження спинилось — у базі лишились усі четверо',
+  'список схуд у базі: ' + JSON.stringify(спроба));
+ok(/зникло б 3/.test(спроба.сказано) &&
+   /mgr@loomiq\.net/.test(спроба.сказано) && /ніхто не прибирав/.test(спроба.сказано),
+  'і сказано поіменно, хто саме зник би — а не «схоже на втрату»',
+  'попередження без імен: ' + спроба.сказано);
+
+const свідомо = await guard.evaluate(async () => {
+  teamDraft = null; teamPulled = {}; teamDirty = false;
+  teamList();
+  /* А тепер те саме, але людину прибрали руками — це вже рішення. */
+  const i = teamList().findIndex(p => p.email === 'kate@loomiq.net');
+  teamPulled['kate@loomiq.net'] = 1;
+  teamList().splice(i, 1);
+  teamDirty = true;
+  let сказано = '';
+  const orig = window.toast; window.toast = t => { сказано = t; };
+  window.__WROTE = [];
+  document.getElementById('team-save').click();
+  await new Promise(r => setTimeout(r, 400));
+  window.toast = orig;
+  const w = (window.__WROTE || []).filter(d => d && d.team).pop();
+  return { сказано, склад: w ? w.team.map(p => p.email) : null,
+           знімок: w && w.teamBak ? w.teamBak.list.map(p => p.email) : null };
+});
+console.log('  ' + свідомо.сказано + ' · ' + JSON.stringify(свідомо.склад));
+ok(свідомо.склад && свідомо.склад.indexOf('kate@loomiq.net') < 0 &&
+   свідомо.склад.indexOf('mgr@loomiq.net') >= 0,
+  'а прибрати людину свідомо — можна: захист про втрату, а не про заборону',
+  'свідоме прибирання не пройшло: ' + JSON.stringify(свідомо));
+ok(свідомо.знімок && свідомо.знімок.length === 4,
+  'і поруч ліг знімок попереднього складу — з ролями й доступами',
+  'знімка немає: ' + JSON.stringify(свідомо.знімок));
+
+console.log('');
+console.log('═══ ЗНІМОК ПОВЕРТАЄ ЛЮДЕЙ РАЗОМ ІЗ ПРАВАМИ ═══');
+const вернули = await guard.evaluate(() => {
+  contentData.team = [{ email:'boss@loomiq.net', name:'Володимир', role:'owner' }];
+  contentData.teamBak = { at:new Date().toISOString(), by:'boss@loomiq.net', list:[
+    { email:'boss@loomiq.net', name:'Володимир', role:'owner' },
+    { email:'anna@loomiq.net', name:'Анна', role:'manager',
+      acc:{ ui:'manager', nav:['board','chats'], boards:['sale'], see:['client'], can:['edit'] } }
+  ] };
+  teamDraft = null; teamPulled = {}; teamDirty = false;
+  renderTeamList();
+  const b = document.getElementById('team-bak');
+  if(!b) return { кнопки:false };
+  b.click();
+  const p = teamList().filter(x => x.email === 'anna@loomiq.net')[0];
+  return { кнопки:true, імʼя: p && p.name, роль: p && p.role,
+           розділи: p && p.acc && p.acc.nav };
+});
+console.log('  ' + JSON.stringify(вернули));
+ok(вернули.кнопки && вернули.імʼя === 'Анна' && вернули.роль === 'manager' &&
+   (вернули.розділи || []).join() === 'board,chats',
+  'повернулись імʼя, роль і саме ті розділи, які були — сліди цього не вміють',
+  'знімок повернув не те: ' + JSON.stringify(вернули));
+await guard.close();
+
 console.log('');
 ok(!errs.length, 'сторінки без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad

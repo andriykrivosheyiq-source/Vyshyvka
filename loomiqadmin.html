@@ -1995,6 +1995,10 @@
     padding:6px 12px;border-radius:8px;border:1px solid #E0A93B;background:#fff;color:#8A5A00;}
   .tm-knock-add:hover{background:#8A5A00;color:#fff;border-color:#8A5A00;}
   .tm-knock-s{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  .tm-knock--bak{border-color:#9DC3E6;background:#F1F7FD;}
+  .tm-knock--bak .tm-knock-h{color:#1B4F7E;}
+  .tm-knock--bak .tm-knock-add{border-color:#4E8FC7;color:#1B4F7E;}
+  .tm-knock--bak .tm-knock-add:hover{background:#1B4F7E;color:#fff;border-color:#1B4F7E;}
   .tm-gone-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     color:var(--muted);margin-bottom:7px;}
   .tm-gone-row{display:flex;align-items:center;gap:10px;font-size:12.5px;
@@ -23276,8 +23280,18 @@ function myUi(){ return (myAcc() || {}).ui || 'manager'; }
 let teamDraft = null;
 let teamOpen = -1;      // чиї доступи зараз розгорнуті
 let teamDirty = false;  // чернетку вже правили руками — перебудовувати не можна
+/* Кого прибрали руками саме в цій чернетці. Зникнути зі списку має право
+   лише той, кого прибрали свідомо; решта — це втрата, і її треба спинити. */
+let teamPulled = {};
 function teamList(){
   if(!teamDraft){
+    /* ПОКИ ДОКУМЕНТ НЕ ПРИЇХАВ — СПИСКУ НЕМАЄ, А НЕ «СПИСОК ПОРОЖНІЙ».
+
+       Чернетка запамʼятовується першим же зверненням. Зібрана з порожнечі,
+       вона такою й лишається — а далі засновників дописує rootKeep, і на
+       екрані стоять рівно три пошти. Саме цей список і зберігався поверх
+       живого. */
+    if(!contentLoaded) return [];
     teamDraft = ((contentData.team) || []).map(p => ({
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
@@ -23867,7 +23881,29 @@ function tmUsersHtml(){
       '<div class="tm-knock-s">Додайте — і не забудьте «Зберегти команду»: ' +
       'доступ зʼявиться одразу, перезаходити не треба.</div></div>'
     : '';
-  const head = knockHtml + '<div class="tm-bar">' +
+  /* Попередній склад, збережений перед останнім записом. Він, на відміну
+     від слідів, тримає ролі й доступи — і саме тому потрібен у той день,
+     коли список раптом схуд. */
+  const bak = (contentData.teamBak && Array.isArray(contentData.teamBak.list))
+    ? contentData.teamBak : null;
+  const bakLost = bak
+    ? bak.list.filter(x => x && x.email &&
+        !teamList().some(p => String(p.email || '').trim().toLowerCase() ===
+                              String(x.email).trim().toLowerCase()))
+    : [];
+  const bakHtml = bakLost.length
+    ? '<div class="tm-knock tm-knock--bak"><div class="tm-knock-h">' +
+      'У попередньому складі було більше людей</div>' +
+      '<div class="tm-knock-row"><b>' + bakLost.length + ' ' +
+      (bakLost.length === 1 ? 'людина' : (bakLost.length < 5 ? 'людини' : 'людей')) +
+      '</b><span>' + escapeHtml(bakLost.map(x => x.email).slice(0, 4).join(', ')) +
+      (bakLost.length > 4 ? ' та інші' : '') + ' · знімок від ' +
+      escapeHtml(tmDate(bak.at)) + '</span>' +
+      '<button class="tm-knock-add" id="team-bak">Повернути з ролями</button></div>' +
+      '<div class="tm-knock-s">Це знімок списку перед останнім збереженням — ' +
+      'на відміну від слідів, у ньому лежать ролі й доступи.</div></div>'
+    : '';
+  const head = knockHtml + bakHtml + '<div class="tm-bar">' +
     '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
       escapeHtml(tmQ) + '">' +
     '<span id="tm-tools" class="tm-tools"></span></div>' +
@@ -24017,6 +24053,29 @@ function wireTeamPane(box){
   /* Повернути доступ тому, хто в нього впирається. Роль ставимо звичайну
      менеджерську: підвищити її — окреме рішення, а от лишити людину без
      роботи ще на день через вибір ролі не можна. */
+  const bakB = box.querySelector('#team-bak');
+  if(bakB) bakB.addEventListener('click', ()=>{
+    const bak = (contentData.teamBak && Array.isArray(contentData.teamBak.list))
+      ? contentData.teamBak.list : [];
+    const list = teamList();
+    const have = {};
+    list.forEach(p => { have[String(p.email || '').trim().toLowerCase()] = 1; });
+    let n = 0;
+    bak.forEach(x => {
+      const e = String((x && x.email) || '').trim().toLowerCase();
+      if(!e || have[e]) return;
+      /* Роль і доступи беремо зі знімка як є — саме заради них він і
+         лежить. Немає доступів (старий запис) — даємо пресет ролі. */
+      list.push({ email:e, name:String(x.name || ''), role: roleDef(x.role) ? x.role : 'manager',
+                  phone:String(x.phone || ''), createdAt:x.createdAt || new Date().toISOString(),
+                  updatedAt:'', acc: accExpand(x.acc || presetOf(x.role)) });
+      delete teamPulled[e];
+      n++;
+    });
+    if(!n) return toast('Усі, хто був у знімку, вже в списку');
+    teamDirty = true; tmSub = 'team'; renderTeamList();
+    toast('Повернули ' + n + ' — перевірте й натисніть «Зберегти команду»');
+  });
   box.querySelectorAll('[data-knock]').forEach(b => b.addEventListener('click', ()=>{
     const mail = String(b.dataset.knock || '').trim().toLowerCase();
     if(!mail) return;
@@ -24079,6 +24138,7 @@ function wireTeamPane(box){
         gone.push(Object.assign({}, p, { goneAt: new Date().toISOString() }));
         contentData.teamGone = gone.slice(-30);
       }
+      if(p.email) teamPulled[String(p.email).trim().toLowerCase()] = 1;
       teamDirty = true; teamList().splice(i, 1); renderTeamList();
     });
   });
@@ -24304,19 +24364,30 @@ async function rolesSave(){
                              відрізнити від розділу, якого тоді ще не було. */
                           navAll: ZONE_NAV.map(z => z.key) } }))
       .filter(p => p.email);
-    /* РІЗКЕ СХУДНЕННЯ СПИСКУ — ЦЕ НЕ РІШЕННЯ, А ВТРАТА.
+    /* ЗНИКНУТИ МОЖЕ ЛИШЕ ТОЙ, КОГО ПРИБРАЛИ РУКАМИ.
 
-       Людей прибирають по одному, через кошик, і кожне прибирання лишає
-       слід у «Прибраних». Коли ж список раптом коротший на кілька людей,
-       яких ніхто не прибирав, — це не те, що хтось хотів зробити. Це
-       наслідок: чернетка зібралась до того, як приїхали дані, чи хтось
-       правив базу руками. Таке треба спинити й сказати вголос. */
-    const було = ((contentData.team) || []).length;
-    const прибрані = (contentData.teamGone || []).length;
-    if(було > list.length + прибрані){
-      const втрата = було - list.length;
-      toast('У списку було ' + було + ', зберігаємо ' + list.length +
-            ' — зникло б ' + втрата + '. Це схоже на втрату даних, а не на ваше рішення. ' +
+       Доти тут стояв лічильник: «було більше, ніж зберігаємо плюс скільки
+       колись прибрали». Він виглядав розумно й не працював. «Скільки колись
+       прибрали» — це весь кошик «Прибраних», а він накопичується місяцями й
+       тримає до тридцяти записів. Через рік захист пропускав зникнення
+       тридцяти людей поспіль: 12 > 3 + 15 — неправда, отже зберігаємо три.
+
+       Саме так список і схуднув до самих засновників: чернетка зібралась до
+       того, як приїхали дані, rootKeep дописав трьох — і збереження пройшло
+       мовчки, бо арифметика захисту зійшлась.
+
+       Тепер правило не про кількість, а поіменне: кожна пошта, яка була в
+       списку, мусить або лишитись у ньому, або бути прибраною руками саме
+       зараз. Усе інше — втрата, і вона спиняється з іменами. */
+    const було = ((contentData.team) || []).map(p => String(p.email || '').trim().toLowerCase())
+                   .filter(Boolean);
+    const тепер = {};
+    list.forEach(p => { тепер[p.email] = 1; });
+    const зникли = було.filter(e => !тепер[e] && !teamPulled[e]);
+    if(зникли.length){
+      toast('Зі списку зникло б ' + зникли.length + ': ' + зникли.slice(0, 3).join(', ') +
+            (зникли.length > 3 ? ' та ще ' + (зникли.length - 3) : '') +
+            '. Їх ніхто не прибирав — це втрата, а не ваше рішення. ' +
             'Оновіть сторінку й спробуйте ще раз');
       return;
     }
@@ -24361,8 +24432,19 @@ async function rolesSave(){
          їх не можна ні кнопкою, ні правкою бази, ні випадковим збігом. */
       rootKeep(list);
       const own = String(contentData.ownerEmail || myEmail() || '').toLowerCase();
+      /* ЗНІМОК ПОПЕРЕДНЬОГО СКЛАДУ — З РОЛЯМИ Й ДОСТУПАМИ.
+
+         «Відновити зі слідів» збирає лише пошти: ролі й права ніде, крім
+         самого списку, не лежать, і після відновлення все одно доводиться
+         виставляти їх людині за людиною. Тому перед кожним записом кладемо
+         поруч те, що було. Один знімок, не історія: потрібен він рівно в
+         той день, коли список поїхав. */
+      const був = Array.isArray(contentData.team) ? contentData.team : [];
       await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list),
                              ownerEmail: own,
+                             teamBak: був.length
+                               ? { at:new Date().toISOString(), by:(myEmail() || ''), list: був }
+                               : (contentData.teamBak || null),
                              teamGone: (contentData.teamGone || []).slice(-30) },
                            { merge:true });
       contentData.team = list;
@@ -24371,6 +24453,7 @@ async function rolesSave(){
                                    phone:p.phone, createdAt:p.createdAt,
                                    updatedAt:p.updatedAt, acc: accExpand(p.acc) }));
       teamDirty = false;      // збережене — вже не «чиясь незбережена робота»
+      teamPulled = {};
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
@@ -26773,7 +26856,7 @@ async function init(){
        тоді вона порожня. Перебудовуємо її, поки людина в ній нічого не
        міняла: інакше вона так і лишиться порожньою, а збереження стерло б
        усіх. Зачеплену чернетку не чіпаємо — це чиясь незбережена робота. */
-    if(!teamDirty) teamDraft = null;
+    if(!teamDirty){ teamDraft = null; teamPulled = {}; }
     try{ if(document.getElementById('view-team') &&
            document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
     applyRoleUi();
