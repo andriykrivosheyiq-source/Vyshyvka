@@ -4749,6 +4749,8 @@
              другий макет у рахунку. */
           html = orderLogosHtml() + layerListHtml() +
             '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">';
+          /* На сцені є свій кут для макетів — тоді в панелі їх немає, і
+             висоту вона віддає ціні. orderLogosHtml() це сам і вирішує. */
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
@@ -5066,18 +5068,10 @@
           openDeleteConfirm(Number(el.dataset.llDel));
         });
       });
-      pmTabPanel.querySelectorAll('[data-order-logo]').forEach(function(el){
-        var d = orderDesigns()[Number(el.dataset.orderLogo)];
-        if(d && d.url) el.style.backgroundImage = 'url("' + d.url.replace(/"/g, '%22') + '")';
-        /* Кладемо ТОЙ САМИЙ файл і повторюємо розмір із місцем, як на
-           сусідній позиції. Виріб інший, тож ідеально не збіжиться — але
-           попадання «майже туди» економить усю роботу, а зона нанесення
-           однаково попередить, якщо макет із неї вийшов. */
-        el.addEventListener('click', function(){
-          if(!d || (!d.url && !d.text)) return;
-          addLogo(d.url, d.url, d.text || null, d);
-        });
-      });
+      wireOrderArt(pmTabPanel);
+      /* Смужка макетів на сцені — разом із панеллю: склад замовлення
+         міняється, поки позицію правлять, і смужка має це бачити. */
+      try{ renderOrderArt(); }catch(e){}
       pmTabPanel.querySelectorAll('.pm-photo-thumb').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.id), side = el.dataset.side;
@@ -6956,23 +6950,56 @@
        це все «що можна покласти на виріб», і розділяти їх на два поверхи
        немає за чим. Саму картинку ставимо з коду, а не в атрибут style:
        у data-URI трапляються лапки, і розмітка від них розсипається. */
+    /* Плитки живуть у двох місцях — на сцені й у панелі, — тож і чіпляння
+       одне на обидва. Друга копія цього коду рано чи пізно розійшлася б із
+       першою, і половина плиток перестала б класти макет. */
+    function wireOrderArt(root){
+      if(!root) return;
+      root.querySelectorAll('[data-order-logo]').forEach(function(el){
+        var d = orderDesigns()[Number(el.dataset.orderLogo)];
+        if(d && d.url) el.style.backgroundImage = 'url("' + d.url.replace(/"/g, '%22') + '")';
+        /* Кладемо ТОЙ САМИЙ файл і повторюємо розмір із місцем, як на
+           сусідній позиції. Виріб інший, тож ідеально не збіжиться — але
+           попадання «майже туди» економить усю роботу, а зона нанесення
+           однаково попередить, якщо макет із неї вийшов. */
+        el.addEventListener('click', function(){
+          if(!d || (!d.url && !d.text)) return;
+          addLogo(d.url, d.url, d.text || null, d);
+        });
+      });
+    }
+    function orderTilesHtml(list){
+      return list.map(function(d, i){
+        var hint = d.from
+          ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
+          : 'Логотип замовлення — поставити на цю сторону';
+        return '<button class="lqo-b" data-order-logo="' + i + '" ' +
+               'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>';
+      }).join('');
+    }
+    /* Смужка макетів на сцені. Живе окремо від панелі й перемальовується
+       разом із нею: склад замовлення міняється, поки позицію правлять. */
+    function renderOrderArt(){
+      var box = document.getElementById('pmOrderArt');
+      if(!box) return;
+      var list = orderDesigns();
+      if(!list.length){ box.hidden = true; box.innerHTML = ''; return; }
+      box.hidden = false;
+      box.innerHTML = '<div class="lqo-cap" title="Макети цього замовлення — ' +
+        'натисніть, і макет ляже на цю сторону тим самим файлом">МАКЕТИ ' +
+        list.length + '</div>' + orderTilesHtml(list);
+      wireOrderArt(box);
+    }
+    /* Той самий блок для панелі — лишається для сайту, де сцени з вільними
+       кутами немає, а панель одна на все. */
     function orderLogosHtml(){
       var list = orderDesigns();
-      if(!list.length) return '';
-      /* Підпис обовʼязковий. Без нього це просто ряд квадратиків угорі
-         панелі, і здогадатись, що натиск кладе готовий макет на виріб,
-         нема з чого. */
+      if(!list.length || document.getElementById('pmOrderArt')) return '';
       var скільки = list.length === 1 ? 'один макет'
         : (list.length < 5 ? list.length + ' макети' : list.length + ' макетів');
       return '<div class="lqo-box"><div class="lqo-l">Макети замовлення · ' + скільки +
         '<i>натисніть — ляже на цю сторону тим самим файлом</i></div>' +
-        '<div class="lqo-row">' + list.map(function(d, i){
-          var hint = d.from
-            ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
-            : 'Логотип замовлення — поставити на цю сторону';
-          return '<button class="lqo-b" data-order-logo="' + i + '" ' +
-                 'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>';
-        }).join('') + '</div></div>';
+        '<div class="lqo-row">' + orderTilesHtml(list) + '</div></div>';
     }
     function syncAddLabels(){
       var edit = !!pm.editing;
