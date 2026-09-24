@@ -205,6 +205,114 @@ if(спокій.є){
 }
 
 console.log('');
+console.log('═══ ВІДПРАВКУ ВИДНО, І НАДІСЛАТИ ДВІЧІ НЕМОЖЛИВО ═══');
+/* Андрій: «коли відправляємо повідомлення, щоб одразу показали, що воно
+   відправилось, і можливо грузить, щоб не відправляли декілька разів, бо
+   буває таке з картинками, що відправляєш, воно потім висне».
+
+   Ловимо повільний сервер: тримаємо відповідь дві секунди й дивимось, що
+   діється на екрані весь цей час. Доти не діялось нічого — і саме це
+   читається як «застрягло». */
+const відправка = await p.evaluate(async (відп) => {
+  const o = orders[0];
+  crmChat[o.id] = { chatId:'c83', clientName:'Марта Паращук' };
+  o.crmOut = []; o.crmGone = [];
+  crmChat[o.id].msgs = crmNormMsgs(відп, o);
+  chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 400));
+  /* Повільний Sitniks: відповідає лише коли ми його відпустимо. */
+  let пустити = null, викликів = 0;
+  const був = window.crmFetch;
+  window.crmFetch = function(url, opts){
+    if(!opts || opts.method !== 'POST') return був.apply(this, arguments);
+    викликів++;
+    return new Promise(r => { пустити = () => r({ id:'new1' }); });
+  };
+  window.crmPollOnce = async () => {};
+  const inp = document.querySelector('#chatWin .cw-inp');
+  inp.value = 'Порахували, надсилаю за годину';
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  document.querySelector('[data-cw-go]').click();
+  await new Promise(r => setTimeout(r, 250));
+  const під = {
+    бульбашка: !!document.querySelector('#chatWin .od-crm-msg.pending'),
+    напис: ((document.querySelector('#chatWin .od-crm-msg.pending .od-crm-at') || {})
+             .textContent || '').trim(),
+    кнопка: !!(document.querySelector('[data-cw-go]') || {}).disabled,
+    крутилка: !!document.querySelector('[data-cw-go] .cw-spin')
+  };
+  /* Другий і третій натиск, поки перший ще летить. */
+  document.querySelector('[data-cw-go]').click();
+  document.querySelector('[data-cw-go]').click();
+  await new Promise(r => setTimeout(r, 150));
+  пустити();
+  await new Promise(r => setTimeout(r, 600));
+  const після = {
+    кнопка: !!(document.querySelector('[data-cw-go]') || {}).disabled,
+    ще: !!document.querySelector('#chatWin .od-crm-msg.pending')
+  };
+  window.crmFetch = був;
+  return { під, після, викликів };
+}, ВІДПОВІДЬ);
+console.log('   поки летить: бульбашка ' + (відправка.під.бульбашка ? 'є' : 'немає') +
+            ' · «' + відправка.під.напис + '» · кнопка ' +
+            (відправка.під.кнопка ? 'заблокована' : 'активна'));
+ok(відправка.під.бульбашка && /надсилаю/.test(відправка.під.напис),
+  'репліка стоїть у стрічці одразу, з позначкою «надсилаю…» — як у будь-якому месенджері',
+  'поки лист летить, на екрані не діється нічого — саме це й читається як «застрягло»');
+ok(відправка.під.кнопка && відправка.під.крутилка,
+  'кнопка гасне й крутиться — видно, що система зайнята',
+  'кнопка лишилась активною, вигляд той самий, що й до натиску');
+ok(відправка.викликів === 1,
+  'три натиски поспіль дали РІВНО ОДНУ відправку',
+  'клієнт отримав ' + відправка.викликів + ' однакових повідомлення');
+ok(!відправка.після.кнопка && !відправка.після.ще,
+  'сервер відповів — позначка знялась, кнопка ожила',
+  'після відповіді сервера кнопка або позначка лишились висіти');
+
+console.log('');
+console.log('═══ НЕ НАДІСЛАЛОСЬ — ТЕКСТ ПОВЕРТАЄТЬСЯ В ПОЛЕ ═══');
+/* Лист на три абзаци, який зник разом із відмовою сервера, не відновити
+   нізвідки: поле чистилось одразу при натиску. */
+const збій = await p.evaluate(async (відп) => {
+  const o = orders[0];
+  crmChat[o.id] = { chatId:'c83', clientName:'Марта Паращук' };
+  o.crmOut = []; o.crmGone = [];
+  crmChat[o.id].msgs = crmNormMsgs(відп, o);
+  chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 400));
+  const був = window.crmFetch;
+  window.crmFetch = function(url, opts){
+    if(!opts || opts.method !== 'POST') return був.apply(this, arguments);
+    return Promise.reject(new Error('канал закритий'));
+  };
+  window.crmPollOnce = async () => {};
+  const текст = 'Перший абзац.\nДругий абзац.\nТретій абзац.';
+  const inp = document.querySelector('#chatWin .cw-inp');
+  inp.value = текст;
+  inp.dispatchEvent(new Event('input', { bubbles:true }));
+  document.querySelector('[data-cw-go]').click();
+  await new Promise(r => setTimeout(r, 700));
+  const res = {
+    уПолі: (document.querySelector('#chatWin .cw-inp') || {}).value || '',
+    привид: !!document.querySelector('#chatWin .od-crm-msg.pending'),
+    кнопка: !!(document.querySelector('[data-cw-go]') || {}).disabled
+  };
+  window.crmFetch = був;
+  return res;
+}, ВІДПОВІДЬ);
+console.log('   у полі: «' + збій.уПолі.replace(/\n/g, ' ⏎ ') + '»');
+ok(збій.уПолі.indexOf('Третій абзац') >= 0,
+  'написане повернулось у поле цілим — правити є що',
+  'лист зник разом із відмовою сервера: «' + збій.уПолі + '»');
+ok(!збій.привид,
+  'і привида «надсилаю…» у стрічці не лишилось — дві відповіді на одне питання зайві',
+  'у стрічці висить бульбашка, якої немає в клієнта');
+ok(!збій.кнопка,
+  'кнопка ожила — можна спробувати ще раз',
+  'кнопка лишилась заблокованою після збою: надіслати вже нічим');
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'розмова стоїть спокійно й нічого не ховає');
