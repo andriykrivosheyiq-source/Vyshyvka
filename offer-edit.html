@@ -1009,21 +1009,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=9015cf1f77',
+    ['loomiq-select.js?v=3c57da0ac0',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=9015cf1f77'].forEach(function(src){
+     'loomiq-cards.js?v=3c57da0ac0'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=9015cf1f77';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=9015cf1f77';
-  var CTOR_JS   = 'loomiq-constructor.js?v=9015cf1f77';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=9015cf1f77';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=3c57da0ac0';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=3c57da0ac0';
+  var CTOR_JS   = 'loomiq-constructor.js?v=3c57da0ac0';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=3c57da0ac0';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1579,6 +1579,15 @@
       // Привʼязку й насіння адмінка кладе сюди повідомленням, тож шукати
       // нема де: усе вже в цьому вікні
       return (window.__adminOfferTarget || window.__adminSaveClientOrder) ? window : null;
+    };
+    /* Вид дизайну — рішення про МАЛЮНОК, тобто про все замовлення, а не про
+       позицію, яку зараз правлять. Кошик тут лежить копією й зберігається
+       лише тією позицією, тож тримати таке рішення в памʼяті кадру не можна:
+       воно згорить на першому ж переході. Передаємо адмінці — вона розкладе
+       його по всіх позиціях і запише. */
+    W.__lqKindFix = W.__lqKindFix || function(fp, url, kind){
+      send({ act:'kindFix', fp:String(fp || ''), url:String(url || ''),
+             kind:(kind === 'txt' || kind === 'off') ? kind : 'img' });
     };
     W.__adminSaveClientOrder = W.__adminSaveClientOrder || function(payload){
       return new Promise(function(res, rej){

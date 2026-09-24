@@ -178,6 +178,56 @@ ok(back.join() === 'txt',
   'позицію відкрили заново — вид лишився тим, який поставив менеджер',
   'вибір злетів при поверненні: ' + back.join(','));
 
+/* ── ТОЙ САМИЙ ФАЙЛ, АЛЕ ІНШИЙ ВІДБИТОК ───────────────────────────────
+   Це і є випадок, через який «перемкнув в одному — в іншому одязі не
+   підтягнулось». Один напис на худі та на світшоті — два різні рендери:
+   розмір інший, ракурс інший, отже й відбиток інший. Рішення мусить іти за
+   ФАЙЛОМ малюнка, бо він у них спільний. */
+console.log('');
+console.log('═══ ІНШИЙ ВИРІБ — ІНШИЙ ВІДБИТОК, АЛЕ ТОЙ САМИЙ ФАЙЛ ═══');
+const FP_INSHY = Array.from({ length:64 }, (_, i) => (i * 7 + 2) % 5).join('');
+const різні = await p.evaluate(async ([fp2, url]) => {
+  /* Сусідня позиція має ТОЙ САМИЙ файл, але відбиток знявся інший. */
+  const it = (window.__cartItems || [])[0];
+  it.desc.designs = [fp2];
+  it.desc.designKinds = ['img'];
+  it.designKindFix = null;
+  Object.keys(it.config.logos).forEach(s2 =>
+    (it.config.logos[s2] || []).forEach(l => { l.fp = fp2; delete l.kindFix; }));
+  /* І перемикаємо вид у чернетці — так, як це робить менеджер. */
+  const sel = document.querySelector('#pmMgrCalc [data-mgr-kind]');
+  sel.value = 'txt'; sel.dispatchEvent(new Event('change', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 800));
+  return { види: it.desc.designKinds, шар: (it.config.logos.front[0] || {}).kindFix,
+           мапа: it.designKindFix && it.designKindFix[fp2] };
+}, [FP_INSHY, 'https://cdn.test/logo.png']);
+console.log('  ' + JSON.stringify(різні));
+ok(різні.види.join() === 'txt' && різні.шар === 'txt' && різні.мапа === 'txt',
+  'той самий файл — той самий вид, хоч відбитки й різні',
+  'сусідня позиція з тим самим файлом лишилась картинкою: ' + JSON.stringify(різні));
+
+console.log('');
+console.log('═══ У ПРОПОЗИЦІЇ РІШЕННЯ ЙДЕ В АДМІНКУ ═══');
+const лист = await p.evaluate(async () => {
+  const sent = [];
+  window.__lqKindFix = (fp, url, kind) => sent.push({ fp:String(fp).slice(0, 8), url, kind });
+  const sel = document.querySelector('#pmMgrCalc [data-mgr-kind]');
+  sel.value = 'off'; sel.dispatchEvent(new Event('change', { bubbles:true }));
+  await new Promise(r => setTimeout(r, 600));
+  delete window.__lqKindFix;
+  return sent;
+});
+console.log('  ' + JSON.stringify(лист));
+ok(лист.length === 1 && лист[0].kind === 'off' && /logo\.png/.test(лист[0].url),
+  'кадр каже адмінці: цей малюнок — ось такого виду; далі записує вона',
+  'адмінка нічого не отримала: ' + JSON.stringify(лист));
+const адмін = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
+ok(/act === 'kindFix'/.test(адмін) && /kindFixKeys/.test(адмін) &&
+   /offerEdSave\(o\)/.test(адмін.slice(адмін.indexOf("act === 'kindFix'"),
+                                        адмін.indexOf("act === 'kindFix'") + 1800)),
+  'і адмінка це приймає, розкладає по відбитках і одразу зберігає',
+  'адмінка не обробляє рішення про вид');
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad

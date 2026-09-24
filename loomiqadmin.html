@@ -5020,18 +5020,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9015cf1f77"></script>
-<script src="loomiq-fingerprint.js?v=9015cf1f77"></script>
-<script src="loomiq-pricing.js?v=9015cf1f77"></script>
+<script src="loomiq-select.js?v=3c57da0ac0"></script>
+<script src="loomiq-fingerprint.js?v=3c57da0ac0"></script>
+<script src="loomiq-pricing.js?v=3c57da0ac0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9015cf1f77"></script>
+<script src="loomiq-design.js?v=3c57da0ac0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9015cf1f77"></script>
+<script src="loomiq-cards.js?v=3c57da0ac0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -8916,6 +8916,29 @@ function fpAliases(o, fp){
     });
   });
   return out;
+}
+/* Усі відбитки, які насправді належать ОДНОМУ малюнку.
+
+   Відбиток знімається з пікселів, а пікселі того самого логотипа на різних
+   виробах різні: інший розмір, інший ракурс, інший рендер. Тому до відбитка
+   додаємо адресу файлу — вона в них спільна, і саме за нею рішення менеджера
+   знаходить свої копії на сусідніх позиціях. */
+function kindFixKeys(o, fp, url){
+  const out = {};
+  const add = k => { const t = String(k || ''); if(t) out[t] = 1; };
+  if(fp) fpAliases(o, fp).forEach(add);
+  const u = String(url || '');
+  if(u) ((o && o.items) || []).forEach(x=>{
+    const logos = x && x.config && x.config.logos;
+    if(!logos || typeof logos !== 'object') return;
+    Object.keys(logos).forEach(side=>{
+      (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+        if(!l || !l.fp) return;
+        if(l.url === u || l.cleanUrl === u || l.origUrl === u) add(l.fp);
+      });
+    });
+  });
+  return Object.keys(out);
 }
 function setItemKindFix(it, fp, kind, o){
   if(!it && !o) return;
@@ -19437,6 +19460,35 @@ async function offerEdApply(msg){
      саме там менеджер і бачить числа, які не сходяться: у картці замовлення
      рекомендованих і груп варіантів немає взагалі. Робить це адмінка —
      у кадру пропозиції немає ні моделі цін, ні самого замовлення. */
+  /* Менеджер перемкнув вид дизайну в конструкторі. Це рішення про малюнок,
+     а не про позицію: кладемо його в мапу замовлення, розкладаємо по всіх
+     позиціях і одразу зберігаємо. Доти воно жило в памʼяті кадру й зникало
+     на переході до наступної позиції. */
+  if(act === 'kindFix'){
+    const kind = (msg.kind === 'txt' || msg.kind === 'off') ? msg.kind : 'img';
+    const keys = kindFixKeys(o, msg.fp, msg.url);
+    if(!keys.length) return;
+    const m = Object.assign({},
+      (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
+    keys.forEach(k => { m[k] = kind; });
+    o.designKindFix = m;
+    /* Прибираємо позиційні позначки про ці ж відбитки: два джерела правди
+       про один малюнок — це те саме розходження, від якого ми тікаємо. */
+    (o.items || []).forEach(x=>{
+      if(!x || !x.designKindFix) return;
+      const c = Object.assign({}, x.designKindFix);
+      let ch = false;
+      keys.forEach(k => { if(c[k] !== undefined){ delete c[k]; ch = true; } });
+      if(ch) x.designKindFix = Object.keys(c).length ? c : null;
+    });
+    applyKindFix(o);
+    repriceOrder(o);
+    recalcOrderTotals(o);
+    if(!(await offerEdSave(o))) return;
+    renderBoard();
+    offerEdPreview(true);
+    return;
+  }
   if(act === 'calcDump'){
     calcDumpDo(o, msg.how === 'copy' ? 'copy' : 'file');
     return;
