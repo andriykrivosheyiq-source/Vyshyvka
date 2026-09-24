@@ -195,6 +195,57 @@ ok((dump.розкладНаЕкрані || []).length === 2,
   'і розклад з екрана — той, який читає менеджер',
   'розкладу на екрані немає');
 
+/* ── ДВІ КАРТИНКИ МАЮТЬ РАХУВАТИСЬ ЯК ДВІ ───────────────────────────────
+   Відбиток знімається з пікселів, а пікселі того самого логотипа на різних
+   виробах різні: інший розмір виробу, інший ракурс, інший рендер. Худі й
+   світшот із одним логотипом давали два несхожі відбитки — і рушій чесно
+   рахував два макети. У замовленні дві картинки, у рахунку три. */
+console.log('');
+console.log('═══ ОДИН ФАЙЛ НА ДВОХ ВИРОБАХ — ОДИН МАКЕТ ═══');
+const рахунок = await p.evaluate(() => {
+  const ЛОГО = 'https://cdn.test/logo-a.png';
+  const ДРУГЕ = 'https://cdn.test/logo-b.png';
+  const шар = (fp, url) => ({ id:'L' + fp.slice(0, 4), url, fp, scale:1, frac:.3,
+                              fx:.3, fy:.3, ar:1, fill:.8, w:60, h:60 });
+  const fpA1 = Array.from({ length:144 }, (_, i) => (i * 7) % 10).join('');
+  /* Той самий файл, але знятий з іншого виробу — відбиток інший. */
+  const fpA2 = Array.from({ length:144 }, (_, i) => (i * 5 + 3) % 10).join('');
+  const fpB  = Array.from({ length:144 }, (_, i) => (i * 3 + 1) % 10).join('');
+  const o = orders[0];
+  o.items = [
+    { kind:'main', name:'Худі', garmentId:'hoodie', qty:10, unitPrice:0, price:0,
+      config:{ logos:{ front:[шар(fpA1, ЛОГО)], back:[шар(fpB, ДРУГЕ)] } },
+      desc:{ method:'embro', gid:'hoodie', units:10, base:1430, coefPart:500,
+             basePart:150, minPart:0, pieceFee:75, bare:false,
+             designs:[fpA1, fpB], designKinds:['img','img'],
+             designMm2:[4000, 4000], dtfCols:[] } },
+    { kind:'main', name:'Світшот', garmentId:'sweat', qty:5, unitPrice:0, price:0,
+      config:{ logos:{ front:[шар(fpA2, ЛОГО)] } },
+      desc:{ method:'embro', gid:'sweat', units:5, base:1050, coefPart:500,
+             basePart:150, minPart:0, pieceFee:75, bare:false,
+             designs:[fpA2], designKinds:['img'], designMm2:[4000], dtfCols:[] } }
+  ];
+  repriceOrder(o);
+  const b = o.items[0].parts || {};
+  return { груп: (b.designNos || []).map(d => d.no),
+           ескізів: (b.sketches || []).length,
+           адреси: o.items.map(x => (x.desc.designUrls || []).map(u => u.slice(-10))),
+           світшотГрупа: ((o.items[1].parts || {}).designNos || []).map(d => d.no) };
+});
+console.log('  адреси відновлені: ' + JSON.stringify(рахунок.адреси));
+console.log('  групи на худі: ' + рахунок.груп.join(', ') +
+            ' · на світшоті: ' + рахунок.світшотГрупа.join(', '));
+ok(JSON.stringify(рахунок.адреси) === JSON.stringify([['logo-a.png','logo-b.png'],['logo-a.png']]),
+  'адреси файлів відновились із самого замовлення — старі пропозиції теж лікуються',
+  'адреси не відновились: ' + JSON.stringify(рахунок.адреси));
+ok(рахунок.груп.join() === '1,2' && рахунок.світшотГрупа.join() === '1',
+  'дві картинки — дві групи, і логотип зі світшота потрапив у ту саму, що на худі',
+  'груп вийшло не стільки: худі ' + рахунок.груп.join(',') +
+    ' · світшот ' + рахунок.світшотГрупа.join(','));
+ok(рахунок.ескізів === 1,
+  'і ескіз рівно один — за другу картинку, а не за третю неіснуючу',
+  'ескізів: ' + рахунок.ескізів);
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad

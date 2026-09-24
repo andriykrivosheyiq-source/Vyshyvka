@@ -1478,9 +1478,13 @@
     function draftDescriptor(){
       var m = methodCfgNew();
       var ap = applicationParts();
-      var fps = [], kinds = [], mm2s = [];
+      var fps = [], kinds = [], mm2s = [], urls = [];
       printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         fps.push(ensureFp(l)); kinds.push(layerKind(l));
+        /* Адреса файлу — друга особа дизайну. Відбиток знімається з пікселів
+           і в копій одного малюнка на різних виробах різний; файл у них
+           спільний, і саме за ним рушій зводить їх в один макет. */
+        urls.push(layerUrl(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -1500,6 +1504,8 @@
         pieceFee: methodPieceFee(),
         dtfCols: cols,
         designs: fps,
+        // Адреси файлів дизайнів — по одній на кожен, у тому самому порядку
+        designUrls: urls,
         // Вид кожного дизайну — за ним разові оплати діляться на текст і картинку.
         // Старі замовлення цього поля не мають, там усе рахується як картинка.
         designKinds: kinds,
