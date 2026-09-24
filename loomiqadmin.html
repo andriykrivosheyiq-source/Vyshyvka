@@ -9177,11 +9177,23 @@ function priceCalcHtml(o){
 function calcDumpRows(o){
   const d = document.createElement('div');
   d.innerHTML = priceCalcHtml(o) || '';
+  /* Рід рядка їде разом із текстом. Без нього перевіряльник не відрізнить
+     доданок від підсумку й не зможе сказати, чи сходиться розклад: у тексті
+     «Ціна за штуку» нічим не відрізняється від «Виріб · Худі». */
+  const рід = r => r.classList.contains('is-sum') ? 'підсумок'
+                 : r.classList.contains('is-disc') ? 'знижка'
+                 : r.classList.contains('is-note') ? 'примітка' : 'доданок';
+  const num = t => {
+    const m = String(t).replace(/\u2212/g, '-').replace(/\s/g, '').match(/-?\d+/);
+    return m ? +m[0] : 0;
+  };
   return [...d.querySelectorAll('.t-calc-item')].map(el => ({
     позиція: ((el.querySelector('.t-calc-name') || {}).textContent || '').trim(),
-    рядки: [...el.querySelectorAll('.t-calc-row')].map(r =>
-      ((r.querySelector('span') || {}).textContent || '').trim() + '  =  ' +
-      ((r.querySelector('b') || {}).textContent || '').trim())
+    рядки: [...el.querySelectorAll('.t-calc-row')].map(r => {
+      const назва = ((r.querySelector('span') || {}).textContent || '').trim();
+      const сума = ((r.querySelector('b') || {}).textContent || '').trim();
+      return { рід: рід(r), назва, сума, число: num(сума) };
+    })
   }));
 }
 function calcDump(o){
