@@ -64,17 +64,20 @@ const PRICING = {
 };
 const CONTENT = { team:[{ email:'test@loomiq', name:'Андрій', role:'owner' }] };
 const FP = Array.from({ length:144 }, (_, i) => (i * 7) % 10).join('');
+/* Другий логотип — щоб зʼявився ДОДАТКОВИЙ ЕСКІЗ: перша група дизайнів
+   входить у підготовку, кожна наступна коштує окремо. */
+const FP2 = Array.from({ length:144 }, (_, i) => (i * 3 + 1) % 10).join('');
 
 /* Рівно те, що на екрані в менеджера: основних позицій немає, три
    рекомендовані та дві групи по два варіанти. */
-const item = (kind, name, gid, qty, extra) => Object.assign({
+const item = (kind, name, gid, qty, extra, fp) => Object.assign({
   kind, name, garmentId:gid, color:'Чорний', print:'Вишивка', sizes:'M × ' + qty,
   qty, unitPrice:0, price:0, unitCost:0, cost:0,
   mockups:[], prints:[], views:[], sides:[], techniques:['Вишивка'],
   tiers:[], specs:[], about:'',
   desc:{ method:'embro', gid, units:qty, base:600, coefPart:200,
          basePart:0, minPart:0, pieceFee:0, bare:false,
-         designs:[FP], designKinds:['img'], designMm2:[1200], dtfCols:[] }
+         designs:[fp || FP], designKinds:['img'], designMm2:[1200], dtfCols:[] }
 }, extra || {});
 const ORDER = {
   id:'1', orderId:'1000057', type:'client', status:'kp', site:'main',
@@ -87,8 +90,8 @@ const ORDER = {
     item('reco',    'Світшот',           'sweat',      3),
     item('variant', 'Худі оверсайз',     'hoodieover', 2, { vgroup:'Група 1' }),
     item('variant', 'Худі базове',       'hoodie',     2, { vgroup:'Група 1' }),
-    item('variant', 'Поло базове',       'polo',       3, { vgroup:'Група 2' }),
-    item('variant', 'Поло оверсайз',     'poloover',   3, { vgroup:'Група 2' })
+    item('variant', 'Поло базове',       'polo',       3, { vgroup:'Група 2' }, FP2),
+    item('variant', 'Поло оверсайз',     'poloover',   3, { vgroup:'Група 2' }, FP2)
   ]
 };
 
@@ -204,12 +207,40 @@ const run = f => new Promise(res => {
 const good = await run(TMP);
 good.out.split('\n').filter(l => /варіант ·|рекомендована ·|Група|разом |Усе сходиться|НЕ СХОДИТЬСЯ/.test(l))
   .slice(0, 14).forEach(l => console.log('  ' + l.replace(/^\s+/, '')));
+console.log('  ── поділ разових ──');
+good.out.split('\n').filter(l => /підготовка ·|ескіз №|рахувалась із|взялась|один раз|ділить/.test(l))
+  .slice(0, 16).forEach(l => console.log('  ' + l.replace(/^\s+/, '')));
 ok(good.code === 0 && /Усе сходиться/.test(good.out),
   'на здоровій пропозиції перевіряльник каже «сходиться»',
   'знайшов розходження там, де його немає:\n' + good.out);
 ok(/рекомендована · Світшот/.test(good.out) && /Група 1/.test(good.out),
   'і називає кожну позицію та кожну групу поіменно',
   'у звіті немає складу пропозиції');
+
+console.log('');
+console.log('═══ ЕСКІЗ ЗА ДРУГИЙ ЛОГОТИП ═══');
+const ескізи = dump.позиції.filter(x => ((x.розклад || {}).sketches || []).length)
+  .map(x => x.назва + ': ' + x.розклад.sketches.map(k => k.fee + '₴÷' + k.units).join(', '));
+ескізи.forEach(x => console.log('  ' + x));
+ok(ескізи.length > 0,
+  'другий логотип дав додатковий ескіз — перша група входить у підготовку, наступні ні',
+  'на двох різних логотипах ескізу немає зовсім');
+ok(/ескіз №2/.test(good.out) && /рівно один раз/.test(good.out),
+  'і перевіряльник каже, що ескіз зібрався із замовлення рівно один раз',
+  'ескіз не звірено: ' + (good.out.match(/ескіз[^\n]*/g) || []).join(' | '));
+
+console.log('');
+console.log('═══ ПІДРОБЛЕНИЙ ЗНАМЕННИК ЗНАХОДИТЬСЯ ═══');
+const кривий = JSON.parse(JSON.stringify(dump));
+(кривий.позиції.find(x => ((x.розклад || {}).feeLines || []).length).розклад.feeLines)[0].units += 4;
+const DEN = path.join(ROOT, 'tests', '.calc-offer-den.json');
+fs.writeFileSync(DEN, JSON.stringify(кривий));
+const denRun = await run(DEN);
+console.log('  ' + (denRun.out.match(/а виробів із цим видом[^\n]*/) || ['—'])[0].trim());
+ok(denRun.code === 1 && /а виробів із цим видом/.test(denRun.out),
+  'разова, поділена не на ті вироби, знаходиться й показує, на які мала ділитись',
+  'кривий знаменник пройшов повз:\n' + denRun.out.slice(-600));
+try{ fs.unlinkSync(DEN); }catch(e){}
 
 const зламане = JSON.parse(JSON.stringify(dump));
 зламане.вилка.до += 500;
