@@ -408,6 +408,80 @@ ok(питання.постів === 1,
   'після згоди лист не пішов, відправок: ' + питання.постів);
 
 console.log('');
+console.log('═══ ВІДКРИВ РОЗМОВУ — ВИДНО, ЗВІДКИ НЕПРОЧИТАНЕ ═══');
+/* Андрій: «одразу заходиш в діалог, одразу бачиш непрочитане
+   повідомлення». Доти розмова відкривалась просто в кінці: клієнт написав
+   пʼять разів — менеджер бачив пʼяте й гортав угору, вгадуючи, звідки
+   читати. */
+const межа = await p.evaluate(async () => {
+  const o = orders[0];
+  const мить = (хв) => new Date(Date.now() - хв * 60000)
+    .toISOString().replace('T', ' ').slice(0, 16);
+  /* Розмова навмисно довга: на короткій стрічці гортати нема чого, і
+     перевірка «стали на межі, а не в кінці» нічого б не доводила. */
+  const давні = [];
+  for(let k = 0; k < 24; k++)
+    давні.push({ text:'Рядок розмови номер ' + (k + 1), mine: k % 2 === 1,
+                 at: мить(900 - k * 20), by: k % 2 === 1 ? 'Володимир' : '' });
+  /* І непрочитаного теж багато: коли хвіст коротший за висоту вікна, «на
+     межі» й «у кінці» — та сама точка, і перевіряти нема чого. */
+  const нові = [{ text:'А є оверсайз?', mine:false, at: мить(40) }];
+  for(let k = 0; k < 14; k++)
+    нові.push({ text:'І ще питання номер ' + (k + 1), mine:false, at: мить(39 - k) });
+  crmChat[o.id] = { chatId:'c83', clientName:'Марта', msgs: давні.concat(
+    [{ text:'Порахували, надсилаю', mine:true, at: мить(390), by:'Володимир' }],
+    нові) };
+  chatClose();
+  chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 500));
+  const feed = document.querySelector('#chatWin .cw-feed');
+  const мітка = feed && feed.querySelector('[data-crm-new]');
+  const рядки = [...feed.querySelectorAll('.od-crm-msg')];
+  /* Що саме стоїть одразу під міткою — має бути перша з непрочитаних. */
+  let перший = '';
+  if(мітка){
+    let n = мітка.nextElementSibling;
+    while(n && !n.classList.contains('od-crm-msg')) n = n.nextElementSibling;
+    перший = n ? n.textContent.trim().slice(0, 14) : '';
+  }
+  return { є:!!мітка, напис: мітка ? мітка.textContent.trim() : '',
+           перший,
+           /* Прокрутка стала на мітці, а не в самому кінці стрічки. */
+           стоїмоНаМітці: !!(мітка && Math.abs(feed.scrollTop - Math.max(0, мітка.offsetTop - 46)) < 4),
+           вКінці: feed.scrollHeight - feed.scrollTop - feed.clientHeight < 4,
+           рядків: рядки.length };
+});
+console.log('   мітка: «' + межа.напис + '» · під нею: «' + межа.перший + '»');
+ok(межа.є && /15/.test(межа.напис),
+  'над першим непрочитаним стоїть риска з числом — видно, скільки клієнт устиг написати',
+  'межі непрочитаного немає: ' + JSON.stringify(межа));
+ok(межа.перший.indexOf('А є оверсайз') === 0,
+  'і вона рівно там, де скінчилась наша остання відповідь',
+  'риска стоїть не на тому місці, під нею: «' + межа.перший + '»');
+ok(межа.стоїмоНаМітці && !межа.вКінці,
+  'розмова відкрилась НА МЕЖІ, а не в кінці — гортати вгору не треба',
+  'відкрились у кінці стрічки, як і раніше');
+
+const безМежі = await p.evaluate(async () => {
+  const o = orders[0];
+  const мить = (хв) => new Date(Date.now() - хв * 60000)
+    .toISOString().replace('T', ' ').slice(0, 16);
+  /* Усе прочитано: останнє слово за нами. Риски бути не повинно. */
+  crmChat[o.id] = { chatId:'c83', clientName:'Марта', msgs:[
+    { text:'А є оверсайз?', mine:false, at: мить(40) },
+    { text:'Є, надсилаю', mine:true, at: мить(30), by:'Володимир' }
+  ]};
+  chatClose(); chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 400));
+  const feed = document.querySelector('#chatWin .cw-feed');
+  return { мітка: !!feed.querySelector('[data-crm-new]'),
+           вКінці: feed.scrollHeight - feed.scrollTop - feed.clientHeight < 4 };
+});
+ok(!безМежі.мітка && безМежі.вКінці,
+  'коли останнє слово за нами — риски немає, і розмова відкривається в кінці',
+  'риска висить там, де все прочитано');
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'розмова стоїть спокійно й нічого не ховає');
