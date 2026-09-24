@@ -938,6 +938,13 @@
      найпотрібніша. */
   .od-head{position:relative;padding:14px 18px 13px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#fff 0%,var(--canvas) 100%);}
+  /* «Цю картку зараз править Оксана». Бурштин, а не червоний: це не
+     помилка й не заборона, а відомість, від якої залежить, чи варто зараз
+     щось міняти. Червоне тут кричало б про те, що ще не сталось. */
+  .od-together{display:flex;align-items:center;gap:6px;margin:-2px 0 9px;padding:7px 10px;
+    border-radius:10px;background:#FFF6E6;border:1px solid #F0DCB0;
+    font-size:12px;font-weight:600;color:#8A6410;line-height:1.35;}
+  .od-together b{font-weight:800;}
   .od-head-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:32px;}
   /* ── Хто це ─────────────────────────────────────────────────────────────
      Імʼя великим і канал під ним: картка перестає бути безликою. Доти імʼя
@@ -5317,6 +5324,60 @@ let PHOTOS_DOC = {
   }
 };
 
+/* ══════════ ХТО ЩЕ СИДИТЬ У ЦІЙ КАРТЦІ ═══════════════════════════════
+
+   Замовлення пишеться ЦІЛИМ документом, тож двоє в одній картці неминуче
+   затирають одне одного: останній зберіг — той і правий. Технічно це
+   лікується записом полями, але половину полів у нас правлять разом
+   (склад і суми — те саме), тож поле-за-полем дало б лише інший спосіб
+   зіпсувати.
+
+   Тому чесніше сказати вголос: «цю картку зараз править Оксана». Людина
+   бачить це до того, як почала, і або зачекає, або домовиться — так це й
+   вирішують у житті, а не блокуваннями.
+
+   Позначки живуть в окремому документі, а не поруч із налаштуваннями:
+   вони переписуються щохвилини, і тримати їх у тому самому документі, де
+   команда, ролі й ціни, означало б довбати найважливіший запис системи.
+
+   Своя мітка оновлюється не частіше разу на 25 секунд, чужа вважається
+   живою 90 — тобто дві пропущені мітки поспіль означають, що людина пішла. */
+const PRESENCE_DOC = fbDb.collection('loomiq').doc('presence');
+const PRESENCE_TTL = 90000, PRESENCE_EVERY = 25000;
+let presenceMap = {}, presenceAt = {}, presenceWatching = false, presenceTimer = null;
+function presenceWatch(){
+  if(presenceWatching) return;
+  presenceWatching = true;
+  try{
+    PRESENCE_DOC.onSnapshot(sn=>{
+      presenceMap = (sn && sn.exists && sn.data()) ? (sn.data().at || {}) : {};
+      /* Перемальовуємо лише те, де мітку видно: смикати дошку через чужу
+         присутність у чужій картці — це шум. */
+      try{ if(drawerOrderId) renderOrderDrawer(); }catch(e){}
+    }, e => { presenceWatching = false; console.warn('присутність', e); });
+  }catch(e){ presenceWatching = false; }
+}
+function presenceTouch(id){
+  if(!id) return;
+  const now = Date.now();
+  if(presenceAt[id] > now - PRESENCE_EVERY) return;
+  presenceAt[id] = now;
+  const me = myName();
+  if(!me) return;
+  try{ PRESENCE_DOC.set({ at: { [id]: { by: me, t: new Date().toISOString() } } },
+                        { merge:true }).catch(e => console.warn('присутність', e)); }
+  catch(e){ console.warn('присутність', e); }
+}
+/* Хто ще в цій картці, крім мене. Порожньо — значить нікого. */
+function presenceOther(id){
+  const r = presenceMap && presenceMap[id];
+  if(!r || !r.by) return null;
+  if(String(r.by) === String(myName())) return null;
+  const t = Date.parse(r.t || '');
+  if(!t || Date.now() - t > PRESENCE_TTL) return null;
+  return { by: String(r.by).split('@')[0], at: r.t };
+}
+
 /* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
 const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
 
@@ -5642,6 +5703,45 @@ let ordersSaved = new Map();
 function ordersSortDesc(list){
   return list.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
 }
+/* ЯКУ КАРТКУ ЗАРАЗ ТРИМАЮТЬ У РУКАХ. Захищаємо від знімка саме її, а не
+   будь-яку розбіжність із базою.
+
+   Спокуса була інша: вважати «недописаною» кожну картку, чий вміст не
+   збігається з останнім записом. На перший погляд це ширший захист, на
+   ділі — пастка. Адмінка чіпає картки й без участі людини: нормалізує
+   старі поля, доставляє ручну поправку, перераховує підсумки. Після
+   будь-якого такого дотику картка назавжди лишалась би «своєю», і чужі
+   зміни перестали б доїжджати зовсім — тобто дошка тихо показувала б
+   вчорашнє.
+
+   Недописане живе рівно там, де його вводять: відкрита картка, відкрите
+   робоче місце пропозиції, відкрита розмова. Їх і бережемо. */
+function ordersHeld(){
+  const out = {};
+  if(typeof drawerOrderId !== 'undefined' && drawerOrderId) out[drawerOrderId] = 1;
+  try{ if(offerEd && offerEd.id) out[offerEd.id] = 1; }catch(e){}
+  try{ if(chatWin && chatWin.id) out[chatWin.id] = 1; }catch(e){}
+  return out;
+}
+function mйБрудний(мій, знане, тримаємо){
+  if(!мій) return false;
+  if(знане == null) return true;            // у базі її ще немає — тим паче не чіпаємо
+  if(!тримаємо) return false;
+  return JSON.stringify(мій) !== знане;
+}
+/* Ту саму картку правлять двоє. Мовчати тут не можна: наш наступний запис
+   іде ЦІЛИМ документом і затре чужі правки, навіть якщо вони в іншому полі.
+   Кажемо один раз на картку й не частіше разу на пів хвилини — інакше
+   попередження саме стане шумом, від якого відмахуються. */
+const ordersClashAt = {};
+function ordersClash(ids){
+  const now = Date.now();
+  const нові = ids.filter(n => !(ordersClashAt[n] > now - 30000));
+  if(!нові.length) return;
+  нові.forEach(n => { ordersClashAt[n] = now; });
+  toast('Картку ' + нові.join(', ') + ' щойно змінив хтось іще. Ваші правки на екрані ' +
+        'збережено не було — збережіть їх, і вони переважать чужі.');
+}
 // Жива синхронізація Канбану між вкладками й пристроями.
 let ordersWatching = false;
 function watchOrders(){
@@ -5650,14 +5750,53 @@ function watchOrders(){
   ORDERS_COL.onSnapshot(function(snap){
     const list = [];
     const seen = new Map();
+    /* ══════════ ЧУЖИЙ ЗНІМОК НЕ ЗНИЩУЄ НЕДОПИСАНОГО ══════════
+
+       Доти цей обробник робив `orders = list` — заміняв УВЕСЬ масив тим,
+       що приїхало з бази. А знімок приходить від будь-якої зміни: сусідній
+       менеджер посунув чужу картку, фоновий обхід записав лічильник
+       реплік, спрацював автозапис. І в ту саму мить усе, що лежало в
+       памʼяті незбереженим, зникало разом зі старим масивом: склад
+       пропозиції, який щойно правили, повернутий логотип, вписаний тираж.
+
+       Найгірше, що воно не падало. Правки просто відкочувались на екрані,
+       і виглядало це як «адмінка сама скидає, що я роблю».
+
+       Тепер картку з незбереженими правками знімок НЕ ЧІПАЄ: своє
+       лишається своїм. А коли її тим часом змінив ще хтось — кажемо про це
+       вголос, бо наш наступний запис піде цілим документом і чуже затре. */
+    const було = new Map();
+    (orders || []).forEach(o => { if(o && o.id) було.set(o.id, o); });
+    const спір = [];
+    const тримаємо = ordersHeld();
+    let мої = 0;
     snap.forEach(d=>{
       const o = d.data() || {};
       o.id = o.id || d.id;
+      const json = JSON.stringify(o);
+      const мій = було.get(o.id);
+      const знане = ordersSaved.get(o.id);
+      const брудний = !!mйБрудний(мій, знане, !!тримаємо[o.id]);
+      if(брудний){
+        list.push(мій);                 // свої правки лишаються на екрані
+        seen.set(o.id, знане == null ? json : знане);
+        мої++;
+        if(знане != null && json !== знане) спір.push(мій.orderId || мій.id);
+        return;
+      }
       list.push(o);
-      seen.set(o.id, JSON.stringify(o));
+      seen.set(o.id, json);
+    });
+    /* Картка, створена щойно й ще не записана, у знімку відсутня — але
+       губити її не можна тим паче. */
+    було.forEach((o, id)=>{
+      if(seen.has(id)) return;
+      if(ordersSaved.has(id)) return;   // була в базі й зникла — значить справді видалена
+      list.push(o);
     });
     orders = ordersSortDesc(list);
     ordersSaved = seen;
+    if(спір.length) ordersClash(спір);
     const board = document.getElementById('view-board');
     if(board && board.style.display !== 'none') renderBoard();
   }, function(e){
@@ -14235,6 +14374,16 @@ function closeOrderDrawer(){
 }
 async function openOrderDrawer(o){
   drawerOrderId = o.id;
+  /* Відкрив картку — інші про це знають. Мітка оновлюється й далі, поки
+     картка відкрита: без цього «Оксана тут» гасло б за півтори хвилини,
+     хоча вона нікуди не пішла. */
+  presenceWatch();
+  presenceTouch(o.id);
+  if(presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(()=>{
+    if(drawerOrderId !== o.id || document.hidden) return;
+    presenceTouch(o.id);
+  }, PRESENCE_EVERY);
   const off = o.offerToken && offersByToken[o.offerToken];
   // Побачив — значить опрацював: підсвітка картки гасне.
   if(off && o.offerSeen !== off.state){
@@ -16913,8 +17062,15 @@ function renderOrderDrawer(){
      з собою склад замовлення — його видно й у запасному вигляді. */
   let odHtml;
   try{
+  const разом = presenceOther(o.id);
   odHtml = isProd() ? odProdHtml(o) : (isDesigner() ? odDesignerHtml(o) : `
     <div class="od-head">
+      ${/* ХТО ЩЕ В ЦІЙ КАРТЦІ. Стоїть найпершим рядком, до всього іншого:
+           дізнатись про це після того, як перебив чужу правку, — запізно.
+           Не блокування, а попередження: домовитись голосом швидше, ніж
+           чекати, поки система когось відпустить. */''}
+      ${разом ? `<div class="od-together">Цю картку зараз править
+        <b>${escapeHtml(разом.by)}</b> — збережете обидва, лишиться останній</div>` : ''}
       ${/* Спершу — хто це. Канал із ніком стоїть у шапці, а не в розділі
            нижче: питання «де ми з цією людиною розмовляємо» виникає раніше
            за «як її звати», і відповідь на нього — головна дія з картки.
