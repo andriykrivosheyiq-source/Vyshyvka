@@ -4733,9 +4733,18 @@
              файл для кожного виробу окремо було найдовшою частиною збирання
              пропозиції. Самі ми лого нікуди не ставимо: для футболки це груди,
              для кепки центр, для худі спина — за менеджера не вгадаєш. */
-          html = layerListHtml() +
-            '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">' +
-            orderLogosHtml();
+          /* ГАЛЕРЕЯ МАКЕТІВ — ПЕРШИМ РЯДКОМ ПАНЕЛІ.
+
+             Спершу вона стояла всередині ряду плиток, поруч із «додати»:
+             місце логічне, бо це теж «що покласти на виріб». Але Андрій її
+             там просто не побачив — і мав рацію. Це не ще одна кнопка
+             додавання, а відповідь на питання «що вже є в цьому
+             замовленні», і ставити її треба ДО того, як людина потягнеться
+             завантажувати файл удруге. Саме повторне завантаження ми тут і
+             намагаємось відвернути: другий файл того самого логотипа — це
+             другий макет у рахунку. */
+          html = orderLogosHtml() + layerListHtml() +
+            '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">';
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
@@ -6940,13 +6949,20 @@
     function orderLogosHtml(){
       var list = orderDesigns();
       if(!list.length) return '';
-      return '<div class="lqo-row">' + list.map(function(d, i){
+      /* Підпис обовʼязковий. Без нього це просто ряд квадратиків угорі
+         панелі, і здогадатись, що натиск кладе готовий макет на виріб,
+         нема з чого. */
+      var скільки = list.length === 1 ? 'один макет'
+        : (list.length < 5 ? list.length + ' макети' : list.length + ' макетів');
+      return '<div class="lqo-box"><div class="lqo-l">Макети замовлення · ' + скільки +
+        '<i>натисніть — ляже на цю сторону тим самим файлом</i></div>' +
+        '<div class="lqo-row">' + list.map(function(d, i){
           var hint = d.from
             ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
             : 'Логотип замовлення — поставити на цю сторону';
           return '<button class="lqo-b" data-order-logo="' + i + '" ' +
                  'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>';
-        }).join('') + '</div><div class="lqo-sep"></div>';
+        }).join('') + '</div></div>';
     }
     function syncAddLabels(){
       var edit = !!pm.editing;
