@@ -1996,6 +1996,11 @@
   .tm-knock-add:hover{background:#8A5A00;color:#fff;border-color:#8A5A00;}
   .tm-knock-s{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
   .tm-knock--bak{border-color:#9DC3E6;background:#F1F7FD;}
+  .tm-alarm{border:1px solid #D98A8A;background:#FDF3F3;border-radius:12px;
+    padding:12px 14px;margin-bottom:14px;}
+  .tm-alarm-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    color:#A3243B;margin-bottom:6px;}
+  .tm-alarm-t{font-size:12.5px;line-height:1.55;color:#6B2330;}
   .tm-knock--bak .tm-knock-h{color:#1B4F7E;}
   .tm-knock--bak .tm-knock-add{border-color:#4E8FC7;color:#1B4F7E;}
   .tm-knock--bak .tm-knock-add:hover{background:#1B4F7E;color:#fff;border-color:#1B4F7E;}
@@ -23283,6 +23288,35 @@ let teamDirty = false;  // чернетку вже правили руками �
 /* Кого прибрали руками саме в цій чернетці. Зникнути зі списку має право
    лише той, кого прибрали свідомо; решта — це втрата, і її треба спинити. */
 let teamPulled = {};
+/* ЧОМУ ЗБЕРЕЖЕННЯ НЕ ДІЙШЛО — НЕ СПЛИВАЮЧИМ ПОВІДОМЛЕННЯМ.
+
+   «Додав, оновлюю — вони знову пропадають» означає рівно одне: запис до бази
+   не дійшов. Доти про це казав тост на дві секунди, і його просто не встигали
+   прочитати — а далі людина тиснула «зберегти» ще раз, знову не бачила
+   причини й вирішувала, що список зникає сам.
+
+   Тому причина лишається на екрані, поки її не полагодять, і називає себе
+   словами бази: відмова правил, переповнений документ, збій мережі — це різні
+   біди з різним лікуванням. */
+let teamAlarm = '';
+/* Що саме сказала база — людськими словами. Код відмови лишаємо: без нього
+   не зрозуміти, у чому річ, а з ним відповідь знаходиться за хвилину. */
+function teamWhy(e){
+  const code = String((e && e.code) || '').toLowerCase();
+  const msg = String((e && e.message) || e || '');
+  if(code.indexOf('permission-denied') >= 0 || /insufficient permissions/i.test(msg))
+    return 'Правила бази не пускають цей запис. Найімовірніше, у вашої пошти немає ' +
+           'позначки «setup» у карті доступів — саме її перевіряють правила, і поки ' +
+           'її немає, ніякі налаштування не зберігаються. Лікується один раз у консолі ' +
+           'Firebase: loomiq/photos → acl → ваш ключ → setup: true.';
+  if(code.indexOf('resource-exhausted') >= 0 || code.indexOf('invalid-argument') >= 0 ||
+     /too large|exceeds the maximum/i.test(msg))
+    return 'Документ уперся в межу розміру (1 МБ). Поки він не схудне, жодна нова ' +
+           'людина в нього не влізе.';
+  if(code.indexOf('unavailable') >= 0 || code.indexOf('deadline') >= 0)
+    return 'База не відповіла — схоже на мережу. Спробуйте ще раз.';
+  return msg || 'Невідома відмова.';
+}
 function teamList(){
   if(!teamDraft){
     /* ПОКИ ДОКУМЕНТ НЕ ПРИЇХАВ — СПИСКУ НЕМАЄ, А НЕ «СПИСОК ПОРОЖНІЙ».
@@ -23903,7 +23937,11 @@ function tmUsersHtml(){
       '<div class="tm-knock-s">Це знімок списку перед останнім збереженням — ' +
       'на відміну від слідів, у ньому лежать ролі й доступи.</div></div>'
     : '';
-  const head = knockHtml + bakHtml + '<div class="tm-bar">' +
+  const alarmHtml = teamAlarm
+    ? '<div class="tm-alarm"><div class="tm-alarm-h">Список не зберігся</div>' +
+      '<div class="tm-alarm-t">' + escapeHtml(teamAlarm) + '</div></div>'
+    : '';
+  const head = alarmHtml + knockHtml + bakHtml + '<div class="tm-bar">' +
     '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
       escapeHtml(tmQ) + '">' +
     '<span id="tm-tools" class="tm-tools"></span></div>' +
@@ -24095,7 +24133,10 @@ function wireTeamPane(box){
       String(g.email || '').trim().toLowerCase() !== mail);
     teamOpen = list.length - 1;
     teamDirty = true;
-    tmSub = 'team';
+    /* Вкладку обираємо ту, у якій людину справді видно: доданий, але ще не
+       баченний системою рядок живе серед тих, кого лишилось запросити. Інакше
+       людина тисне «додати» й не бачить нічого. */
+    tmSub = hasJoined(mail) ? 'team' : 'inv';
     renderTeamList();
     toast(був ? 'Повернули з «Прибраних» — натисніть «Зберегти команду»'
               : 'Додали як менеджера — натисніть «Зберегти команду»');
@@ -24465,8 +24506,35 @@ async function rolesSave(){
         gone.length ? 'прибрав: ' + gone.join(', ') : '',
         'склад: ' + list.map(p => p.email).join(', ')].filter(Boolean).join(' · '));
       renderAccLog();
+      /* ЧИТАЄМО НАЗАД. Firestore міг прийняти виклик, а документ лишити
+         іншим — правила пускають не все, поле могло не влізти, запис міг
+         піти в кеш і не доїхати. Поки ми не подивились, «збережено» — це
+         припущення, і саме воно змушувало тиснути кнопку по колу. */
+      let лягло = null;
+      try{
+        const snap = await PHOTOS_DOC.get({ source:'server' });
+        лягло = ((snap && snap.data && snap.data()) || {}).team || null;
+      }catch(e){ console.warn('перечитати документ не вдалось', e); }
+      if(Array.isArray(лягло)){
+        const є = {};
+        лягло.forEach(p => { є[String((p && p.email) || '').trim().toLowerCase()] = 1; });
+        const немає = list.map(p => p.email).filter(e => !є[e]);
+        if(немає.length){
+          teamAlarm = 'База прийняла запит, але в документі цих людей немає: ' +
+            немає.join(', ') + '. Отже запис не пройшов — тиснути «зберегти» ще раз ' +
+            'марно, поки причина не зникне.';
+          renderTeamList();
+          return;
+        }
+      }
+      teamAlarm = '';
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
-    }catch(e){ console.error(e); toast('Помилка збереження'); }
+    }catch(e){
+      console.error(e);
+      teamAlarm = teamWhy(e) + (e && e.code ? '  [' + e.code + ']' : '');
+      renderTeamList();
+      toast('Не збереглось — причина над списком');
+    }
   });
 })();
 document.getElementById('clarity-save').addEventListener('click', async ()=>{
