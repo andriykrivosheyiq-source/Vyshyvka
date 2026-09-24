@@ -9198,6 +9198,10 @@ function calcDumpRows(o){
 }
 function calcDump(o){
   fillOrderParts(o);
+  /* Рекомендовані рахуються кожна окремо — «основні + ця», — і без цього
+     рядка в них немає розкладу зовсім. Саме їх найчастіше й перевіряють:
+     на екрані збирання вони стоять першими. */
+  try{ fillRecoParts(o, false); }catch(e){}
   const { idx, list } = orderDescriptors(o);
   const opts = orderPriceOpts(o);
   let res = null, engineErr = null;
@@ -9239,6 +9243,34 @@ function calcDump(o){
     позиції: items,
     рушій: { вхід: list, умови: opts, вихід: res, збій: engineErr },
     розкладНаЕкрані: calcDumpRows(o),
+    /* Екран збирання пропозиції рахує НЕ ТЕ САМЕ, що картка: там, крім
+       основних позицій, стоять рекомендовані (кожна як «склад + вона») і
+       групи варіантів (клієнт візьме з групи одну). Через це сума — вилка,
+       а не число, і перевіряти її треба окремо. */
+    розкладПропозиції: (function(){
+      try{ return offerMgrCalc(o); }catch(e){ return null; }
+    })(),
+    вилка: (function(){
+      const main = (o.items || []).filter(x => itemKind(x) === 'main');
+      const sum = main.reduce((a2, x) => a2 + Math.round(+x.price || 0), 0);
+      const g = {};
+      (o.items || []).forEach(x => {
+        if(itemKind(x) !== 'variant') return;
+        const k = x.vgroup || 'Варіанти на вибір';
+        (g[k] = g[k] || []).push({ назва: itemName(x), сума: Math.round(+x.price || 0),
+                                   тираж: +x.qty || 0 });
+      });
+      const груп = Object.keys(g);
+      let lo = 0, hi = 0, vq = 0;
+      груп.forEach(k => {
+        const sums = g[k].map(x => x.сума);
+        lo += Math.min.apply(null, sums);
+        hi += Math.max.apply(null, sums);
+        vq += g[k][0].тираж;
+      });
+      return { основні: sum, штукОсновних: main.reduce((a2, x) => a2 + (+x.qty || 0), 0),
+               групи: g, штукУГрупах: vq, від: sum + lo, до: sum + hi };
+    })(),
     /* Дві копії моделі цін навмисно. Рушій читає SITE_CONTENT — саме за
        нею й пораховано те, що вище. Адмінка ж показує свій contentData, і
        він буває свіжіший: менеджер щойно правив ставки. Розбіжність між
@@ -19334,6 +19366,14 @@ async function offerEdApply(msg){
   /* «За дизайн не беремо» — рішення про все замовлення, тож і живе воно на
      замовленні. Перерахунок робить offerEdSave: він проходить по всіх
      позиціях тим самим рушієм, лише вже без разових. */
+  /* Вивантаження прорахунку прямо з екрана збирання. Кнопка стоїть там, бо
+     саме там менеджер і бачить числа, які не сходяться: у картці замовлення
+     рекомендованих і груп варіантів немає взагалі. Робить це адмінка —
+     у кадру пропозиції немає ні моделі цін, ні самого замовлення. */
+  if(act === 'calcDump'){
+    calcDumpDo(o, msg.how === 'copy' ? 'copy' : 'file');
+    return;
+  }
   if(act === 'nofee'){
     o.noDesignFee = !!msg.v;
     if(!(await offerEdSave(o))) return;
