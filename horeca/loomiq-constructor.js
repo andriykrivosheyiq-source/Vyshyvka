@@ -4266,7 +4266,10 @@
       renderGarment(); renderTabPanel();
       if(dropped) updatePriceBar();
     }
-    function addLogo(origUrl, cleanUrl, textSpec){
+    /* `like` — макет, з якого беремо розмір, місце й вид: так лягає плитка
+       з галереї макетів замовлення. Без нього все як було: новий шар у
+       центр зони, розмір за замовчуванням. */
+    function addLogo(origUrl, cleanUrl, textSpec, like){
       if(window.lqAn){
         window.lqAn.step('design');
         window.lqAn.track(textSpec ? 'text_add' : 'logo_upload', { garment: pm.garmentId, side: pm.side });
@@ -4302,6 +4305,20 @@
         url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1,
         // Ознака «це напис» лишається на шарі: за нею і редагування, і окремі ціни
         text: textSpec ? JSON.parse(JSON.stringify(textSpec)) : null};
+      /* Макет із галереї стає на місце й на розмір свого двійника з
+         сусідньої позиції. Виріб інший, тож збіг приблизний — але це
+         набагато ближче до потрібного, ніж центр зони, і рухати доводиться
+         рідко. Вид дизайну («напис», «не рахувати») переїжджає разом із
+         ним: це рішення про сам малюнок, а не про виріб під ним. */
+      if(like){
+        var b0 = wrapBox();
+        if(+like.frac > 0 && b0.w) layer.scale = Math.max(0.04, Math.min(5, (like.frac * b0.w) / 120));
+        if(like.fx != null && b0.w) layer.x = like.fx * b0.w;
+        if(like.fy != null && b0.h) layer.y = like.fy * b0.h;
+        if(like.rot) layer.rot = +like.rot || 0;
+        if(like.kindFix) layer.kindFix = like.kindFix;
+        if(like.fp) layer.fp = String(like.fp);
+      }
       layerSaveFrac(layer);            // розмір і місце — одразу в частках
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
@@ -5041,9 +5058,16 @@
         });
       });
       pmTabPanel.querySelectorAll('[data-order-logo]').forEach(function(el){
-        var u = orderLogos()[Number(el.dataset.orderLogo)];
-        if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
-        el.addEventListener('click', function(){ if(u) addLogo(u, u, null); });
+        var d = orderDesigns()[Number(el.dataset.orderLogo)];
+        if(d && d.url) el.style.backgroundImage = 'url("' + d.url.replace(/"/g, '%22') + '")';
+        /* Кладемо ТОЙ САМИЙ файл і повторюємо розмір із місцем, як на
+           сусідній позиції. Виріб інший, тож ідеально не збіжиться — але
+           попадання «майже туди» економить усю роботу, а зона нанесення
+           однаково попередить, якщо макет із неї вийшов. */
+        el.addEventListener('click', function(){
+          if(!d || (!d.url && !d.text)) return;
+          addLogo(d.url, d.url, d.text || null, d);
+        });
       });
       pmTabPanel.querySelectorAll('.pm-photo-thumb').forEach(function(el){
         el.addEventListener('click', function(){
@@ -6862,16 +6886,70 @@
       var l = t && t.logos;
       return Array.isArray(l) ? l.filter(function(u){ return typeof u === 'string' && u; }) : [];
     }
+    /* ── ГАЛЕРЕЯ МАКЕТІВ ЗАМОВЛЕННЯ ──────────────────────────────────────
+
+       ЩО БУЛО НЕ ТАК. Той самий логотип менеджер завантажував на кожну
+       позицію окремо: на худі в групі 1, потім на худі в групі 2, потім на
+       світшот. Файл щоразу новий — інші пікселі після очищення фону, інша
+       адреса. А рушій цін впізнає макет саме за пікселями: однакова
+       картинка з двох різних файлів дає два різні відбитки, і замовлення з
+       трьома дизайнами рахується як пʼять. Клієнт платить за підготовку
+       макетів, яких не робили.
+
+       Пояснити це машині неможливо: два файли справді різні. Тож питання
+       не в тому, як їх упізнати, а в тому, щоб другого файлу взагалі не
+       зʼявлялось. Усі макети, які вже є в замовленні, лежать тут плиткою —
+       натиснув, і на виріб лягає ТОЙ САМИЙ файл, із тим самим відбитком і
+       тим самим розміром, що на сусідній позиції.
+
+       Логотипи з картки клієнта йдуть слідом за ними: вони теж «те, що
+       можна покласти», просто ще не стоять ніде. */
+    function orderDesigns(){
+      var out = [], was = {};
+      var add = function(l, from){
+        if(!l) return;
+        var u = String(l.url || l.cleanUrl || l.origUrl || '');
+        if(u.slice(0, 4) !== 'http') u = '';
+        var fp = String(l.fp || '');
+        /* Ключ — адреса файлу, і лише коли її немає — відбиток. Один файл
+           не може стояти в галереї двічі, хай би на скількох виробах він
+           лежав. */
+        var key = u || (fp ? 'fp:' + fp : '');
+        if(!key || was[key]) return;
+        was[key] = 1;
+        out.push({ url:u, fp:fp, text:l.text || null, from:from || '',
+                   frac:(+l.frac > 0 ? +l.frac : 0),
+                   fx:(l.fx != null ? +l.fx : null), fy:(l.fy != null ? +l.fy : null),
+                   rot:+l.rot || 0, removeBg:!!l.removeBg,
+                   kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
+                     ? l.kindFix : null });
+      };
+      var cart = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      cart.forEach(function(it){
+        var lg = it && it.config && it.config.logos;
+        if(!lg || typeof lg !== 'object') return;
+        Object.keys(lg).forEach(function(side){
+          (Array.isArray(lg[side]) ? lg[side] : []).forEach(function(l){
+            add(l, (it && it.name) || '');
+          });
+        });
+      });
+      orderLogos().forEach(function(u){ add({ url:u }, ''); });
+      return out;
+    }
     /* Плитки логотипів стоять першими в тому самому ряду, що й дизайни:
        це все «що можна покласти на виріб», і розділяти їх на два поверхи
        немає за чим. Саму картинку ставимо з коду, а не в атрибут style:
        у data-URI трапляються лапки, і розмітка від них розсипається. */
     function orderLogosHtml(){
-      var list = orderLogos();
+      var list = orderDesigns();
       if(!list.length) return '';
-      return '<div class="lqo-row">' + list.map(function(u, i){
+      return '<div class="lqo-row">' + list.map(function(d, i){
+          var hint = d.from
+            ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
+            : 'Логотип замовлення — поставити на цю сторону';
           return '<button class="lqo-b" data-order-logo="' + i + '" ' +
-                 'title="Логотип замовлення — поставити на цю сторону"></button>';
+                 'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>';
         }).join('') + '</div><div class="lqo-sep"></div>';
     }
     function syncAddLabels(){

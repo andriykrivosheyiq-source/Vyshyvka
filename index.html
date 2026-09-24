@@ -6777,12 +6777,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=e65e9a9eb3"></script>
-<script src="loomiq-fingerprint.js?v=e65e9a9eb3"></script>
-<script src="loomiq-pricing.js?v=e65e9a9eb3"></script>
+<script src="loomiq-select.js?v=114fa5fd05"></script>
+<script src="loomiq-fingerprint.js?v=114fa5fd05"></script>
+<script src="loomiq-pricing.js?v=114fa5fd05"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=e65e9a9eb3"></script>
+<script src="loomiq-constructor.js?v=114fa5fd05"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
@@ -7670,8 +7670,31 @@ window.LOOMIQ_CONFIG = {
                 qty: cfg.qty || null, logos:{} };
     Object.keys(cfg.logos || {}).forEach(function(side){
       out.logos[side] = (cfg.logos[side] || []).map(function(l){
+        /* ЩО САМЕ ЦЕ ЗА МАКЕТ — а не лише де він лежить.
+
+           Досі зберігалась сама геометрія. Через це в замовленні не
+           лишалось ані відбитка дизайну, ані адреси його файлу — а на них
+           спирається половина системи: пошук тієї самої картинки на
+           сусідніх позиціях, поширення виду «картинка/напис», галерея
+           макетів замовлення, картинка дизайну в розкладі ціни. Усе це
+           мовчки не працювало не тому, що погано написане, а тому, що
+           дивитись не було на що.
+
+           Адресу беремо ЛИШЕ мережеву: base64 сюди класти не можна, саме
+           через нього документ колись і переставав уміщатись у Firestore.
+           Відбиток — рядок на три сотні знаків, і це вся його вага. */
+        var u = String(l.url || l.cleanUrl || l.origUrl || '');
+        if(u.slice(0, 4) !== 'http') u = '';
         return { x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
-                 fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null };
+                 fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null,
+                 url:u, fp:String(l.fp || ''),
+                 /* Розмір і місце в частках — щоб той самий макет можна було
+                    покласти на сусідній виріб так, як він стоїть тут. */
+                 frac:(l.frac != null ? l.frac : null),
+                 fx:(l.fx != null ? l.fx : null), fy:(l.fy != null ? l.fy : null),
+                 text:l.text || null,
+                 kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
+                   ? l.kindFix : null };
       });
     });
     return out;
