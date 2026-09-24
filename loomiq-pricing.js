@@ -158,9 +158,13 @@
        частині. Допродаж із таким самим дизайном за макет не платить: його
        вже підготували, і брати за нього вдруге немає за що. */
     function buildFees(mine, mk, kind, doneReps){
-      var flat = [];                     // відбитки цього виду, у порядку появи
+      var flat = [], flatU = [];          // відбитки цього виду й адреси їхніх файлів
       mine.forEach(function(it){
-        (it.designs || []).forEach(function(fp, i){ if(kindOf(it, i) === kind) flat.push(fp || ''); });
+        (it.designs || []).forEach(function(fp, i){
+          if(kindOf(it, i) !== kind) return;
+          flat.push(fp || '');
+          flatU.push(String((it.designUrls || [])[i] || ''));
+        });
       });
       if(!flat.length) return null;
       var cfg = methodCfgKind((p.methods || {})[mk] || {}, kind === 'txt');
@@ -174,7 +178,7 @@
          змінюється — групи дизайнів так само рахуються, просто коштують нуль,
          і в прорахунку менеджер бачить рядки з нулями, а не порожнє місце. */
       if(opts.noDesignFee) cfg = { orderFee:0, orderCost:0, sketchFee:0, sketchCost:0 };
-      var g = designGroups(flat);
+      var g = designGroups(flat, flatU);
       /* УСІ НАПИСИ ЗАМОВЛЕННЯ — ОДИН ДИЗАЙН.
 
          Підготувати другий напис — це не нова робота: шрифт обрано, техніку
@@ -472,13 +476,34 @@
      Дизайном такий рядок лишається: разова підготовка за нього береться, як
      і за будь-який інший. Ми лише не беремо грошей за ДРУГИЙ макет, поки не
      можемо показати, чим він відрізняється від першого. */
-  function designGroups(fps){
-    var reps = [], index = new Array(fps.length), blank = false;
+  /* ТОЙ САМИЙ ФАЙЛ — ОДИН МАКЕТ.
+
+     Відбиток знімається з ПІКСЕЛІВ, а пікселі того самого логотипа на різних
+     виробах різні: інший розмір виробу, інший ракурс, інший рендер. Худі й
+     світшот із одним логотипом давали два несхожі відбитки — і рушій чесно
+     рахував два макети. Менеджер бачив у замовленні дві картинки, а в рахунку
+     три, і пояснити це було нічим.
+
+     Тому дизайн має другу, надійнішу особу — адресу свого файлу. Вона в
+     копій одного малюнка спільна незалежно від того, як його намалювали на
+     виробі. Збіг адрес важливіший за схожість пікселів: пікселі можуть
+     розійтись, файл — ні.
+
+     Схожість лишається для того, де адреси немає або вона різна: той самий
+     малюнок, завантажений двічі окремими файлами, все одно має лишитись
+     одним макетом. */
+  function designGroups(fps, urls){
+    urls = urls || [];
+    var reps = [], repU = [], index = new Array(fps.length), blank = false;
     fps.forEach(function(fp, n){
-      if(!fp){ blank = true; return; }
+      var u = String(urls[n] || '');
+      if(!fp && !u){ blank = true; return; }
       var k = -1;
-      for(var i = 0; i < reps.length; i++){ if(sameFingerprint(reps[i], fp)){ k = i; break; } }
-      if(k < 0){ reps.push(fp); k = reps.length - 1; }
+      for(var i = 0; i < reps.length; i++){
+        if(u && repU[i] && u === repU[i]){ k = i; break; }
+        if(fp && reps[i] && sameFingerprint(reps[i], fp)){ k = i; break; }
+      }
+      if(k < 0){ reps.push(fp); repU.push(u); k = reps.length - 1; }
       index[n] = k;
     });
     if(blank){

@@ -5020,18 +5020,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3c57da0ac0"></script>
-<script src="loomiq-fingerprint.js?v=3c57da0ac0"></script>
-<script src="loomiq-pricing.js?v=3c57da0ac0"></script>
+<script src="loomiq-select.js?v=c427f54038"></script>
+<script src="loomiq-fingerprint.js?v=c427f54038"></script>
+<script src="loomiq-pricing.js?v=c427f54038"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3c57da0ac0"></script>
+<script src="loomiq-design.js?v=c427f54038"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3c57da0ac0"></script>
+<script src="loomiq-cards.js?v=c427f54038"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9060,6 +9060,31 @@ function applyKindFix(o){
 
    Синхронно й без завантаження картинок — тому це можна робити перед кожним
    розрахунком, а не окремою дією, про яку треба памʼятати. */
+/* АДРЕСИ ФАЙЛІВ ДИЗАЙНІВ — ДЛЯ ЗАМОВЛЕНЬ, ЯКІ ЇХ ЩЕ НЕ МАЮТЬ.
+
+   Рушій зводить копії одного малюнка в один макет за адресою файлу: пікселі
+   на різних виробах різні, файл спільний. Конструктор кладе ці адреси в опис
+   позиції при збереженні — але замовлення, зроблені раніше, їх не мають, і
+   чекати, поки менеджер перезбереже кожну позицію, означало б лишити старі
+   пропозиції з вигаданою кількістю макетів.
+
+   Тому відновлюємо їх на льоту: у самому замовленні лежать шари з
+   відбитками й адресами, і зіставити одне з одним можна тут. Порядок брати
+   звідти не можна — беремо за відбитком, це надійніше. */
+function fillDesignUrls(o){
+  ((o && o.items) || []).forEach(it=>{
+    const d = it && it.desc;
+    if(!d || !Array.isArray(d.designs) || !d.designs.length) return;
+    const have = Array.isArray(d.designUrls) ? d.designUrls.slice() : [];
+    let touched = false;
+    d.designs.forEach((fp, i)=>{
+      if(have[i]) return;
+      const u = designPic(o, fp);
+      if(u){ have[i] = u; touched = true; }
+    });
+    if(touched || !Array.isArray(d.designUrls)) d.designUrls = have;
+  });
+}
 function fillMissingFp(o){
   const url = (window.LQ && window.LQ.urlFingerprint) ? window.LQ.urlFingerprint : null;
   if(!url) return;
@@ -9076,6 +9101,7 @@ function fillMissingFp(o){
 }
 function fillOrderParts(o){
   fillMissingFp(o);   // безіменний дизайн склеюється з першим — дамо йому імʼя
+  fillDesignUrls(o);  // копії одного малюнка — один макет, і впізнає їх файл
   applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
@@ -9442,6 +9468,7 @@ function repriceOrder(o){
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
   syncVariantQty(o);   // у групі варіантів тираж один на всіх
   fillMissingFp(o);    // дизайн без відбитка інакше склеїться з першим
+  fillDesignUrls(o);   // копії одного малюнка — один макет, і впізнає їх файл
   applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
