@@ -98,6 +98,31 @@
      Фіксована висота сцени в vh рахувалась від вікна БРАУЗЕРА, а конструктор
      тут живе у вужчій рамці всередині адмінки, тож макет обрізало. */
   .lq-embed #productModal .pm-stage img{max-height:100%;object-fit:contain;}
+/* Логотипи замовлення: завантажені один раз у картці клієнта, доступні
+     кожному товару. Навмисно НЕ ставимо їх на виріб самі — для футболки це
+     груди, для кепки центр, для худі спина; вгадати за менеджера не можна. */
+  /* Галерея макетів замовлення — першим блоком панелі «Дизайн». Обведення
+     й підпис потрібні саме тому, що блок стоїть перед усім: без них ряд
+     квадратиків угорі читається як частина чогось сусіднього. */
+  .lqo-box{margin:0 0 10px;padding:9px 10px 10px;border:1px solid #E3E8EF;border-radius:13px;
+    background:#F8FAFC;}
+/* Підказка ОКРЕМИМ РЯДКОМ, а не поруч. Поруч вона трималась на відступі
+     між елементами — а варто стилям не доїхати, як «10 макетів» і
+     «натисніть…» злипались в одне слово. Окремий рядок читається однаково
+     за будь-яких обставин. */
+  .lqo-l{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:#5A6576;margin-bottom:7px;}
+.lqo-l i{display:block;margin-top:3px;font-style:normal;font-weight:600;font-size:10.5px;
+    letter-spacing:0;text-transform:none;color:#8A93A3;}
+.lqo-box .lqo-row{flex-wrap:wrap;}
+.lqo-row{display:flex;gap:8px;flex:0 0 auto;align-items:center;}
+.lqo-b{all:unset;cursor:pointer;flex:0 0 auto;width:50px;height:50px;border-radius:11px;
+    border:1.5px dashed #C3CBD8;background:#fff center/70% no-repeat;position:relative;
+    transition:border-color .12s,transform .12s;}
+.lqo-b:hover{border-color:#111;border-style:solid;transform:translateY(-1px);}
+.lqo-b::after{content:'+';position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;
+    border-radius:9px;background:#111;color:#fff;font-size:12px;line-height:17px;text-align:center;}
+.lqo-sep{flex:0 0 auto;width:1px;height:34px;background:#E3E8EF;margin:0 2px;}
 .pm-pill{
     width:38px;height:38px;border-radius:19px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.5);
     display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;
