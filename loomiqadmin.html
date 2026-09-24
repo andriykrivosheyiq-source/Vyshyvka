@@ -1533,6 +1533,19 @@
     letter-spacing:.02em;}
   .od-crm-msg.mine.gone .od-crm-gone{color:#FF9B90;}
   .od-crm-msg.gone .od-crm-txt{opacity:.82;}
+  /* ЩЕ ЛЕТИТЬ. Бульбашка стоїть у стрічці одразу, просто приглушена: так
+     видно, що система прийняла лист і працює, а не проковтнула його. */
+  .od-crm-msg.pending{opacity:.62;}
+  /* Крутилка — одна на всю переписку: і в кнопці «надіслати», і в смужці
+     з фото. Без неї «надсилаємо» виглядає як застиглий напис. */
+  .cw-spin{display:inline-block;width:13px;height:13px;border-radius:50%;
+    border:2px solid currentColor;border-right-color:transparent;vertical-align:-2px;
+    animation:cw-turn .7s linear infinite;}
+  .cw-busy{display:inline-flex;align-items:center;gap:6px;}
+  .cw-go.is-busy{background:#3A465E;}
+  .cw-go.is-busy .cw-spin{border-color:#fff;border-right-color:transparent;}
+  @keyframes cw-turn{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){ .cw-spin{animation-duration:2.4s;} }
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
   .od-crm-inp{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;
     padding:9px 11px;resize:vertical;}
@@ -18597,11 +18610,31 @@ async function crmSendPic(o, url, blob){
 async function crmSend(o, text){
   const st = crmChat[o.id];
   if(!st || !st.chatId || !text.trim()) return;
+  /* БУЛЬБАШКА ЗʼЯВЛЯЄТЬСЯ ОДРАЗУ, А НЕ ПІСЛЯ ВІДПОВІДІ СЕРВЕРА.
+
+     Доти власна репліка лягала в стрічку тільки після успішного POST — а
+     він триває секунду-дві, і всю цю секунду екран не відповідав нічим.
+     Так поводиться зіпсована програма, а не повільна мережа: у будь-якому
+     месенджері репліка стоїть у стрічці одразу, просто з позначкою, що
+     ще летить.
+
+     Позначку знімає відповідь сервера; якщо ж він відмовив — бульбашку
+     прибираємо зовсім, а текст повертаємо в поле. Червоний привид
+     «не надіслано» поруч із тим самим текстом у полі був би двома
+     відповідями на одне питання. */
+  const свій = { text: text.trim(), mine: true, at: '', by: myName(), pending: true };
+  if(st.msgs) st.msgs.push(свій);
+  renderOrderDrawer();
+  if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin(true);
+  const зняти = ()=>{
+    if(st.msgs){ const at = st.msgs.indexOf(свій); if(at >= 0) st.msgs.splice(at, 1); }
+  };
   try{
     const res = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
       method: 'POST',
       body: JSON.stringify({ text: text.trim() })
     });
+    свій.pending = false;
     toast('Надіслано');
     crmSent.add(text.trim());
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
@@ -18610,18 +18643,25 @@ async function crmSend(o, text){
        без відправника, і впізнати його більше не буде чим. */
     crmOutNote(o, text.trim());
     saveOrderMeta(o).catch(e => console.warn(e));
-    // Показуємо одразу, щоб не було відчуття, що повідомлення провалилось,
-    // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
-    /* Підписуємо одразу собою. Sitniks поверне це повідомлення за секунду й
-       підпис прийде вже від нього — але секунду менеджер дивиться на власну
-       репліку, і вона має бути підписана так само, як решта. */
-    if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '', by: myName() });
+    /* Бульбашка вже стоїть у стрічці — просто знімаємо з неї позначку «ще
+       летить». Через паузу перечитуємо з сервера: там воно вже з часом і в
+       правильному порядку, і наша копія тихо заміститься. */
     renderOrderDrawer();
+    if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin();
     setTimeout(function(){ crmPollOnce(o); }, 1200);
   }catch(e){
     // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
     // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
-    toast('Не надіслалось: ' + (e.message || ''));
+    зняти();
+    /* Текст повертаємо в поле — рівно там його й правитимуть. Лист на три
+       абзаци, який зник разом із відмовою сервера, не відновити нізвідки:
+       доти поле чистилось одразу при натиску, і при збої написане просто
+       пропадало. */
+    if(chatWin && chatWin.id === o.id)
+      chatWin.draft = (String(chatWin.draft || '').trim() ? chatWin.draft + '\n' : '') + text;
+    renderOrderDrawer();
+    if(chatWin && chatWin.id === o.id) renderChatWin();
+    toast('Не надіслалось: ' + (e.message || '') + ' · текст повернувся в поле');
     console.warn('sitniks send', e, 'обʼєкт замовлення:', st.raw);
   }
 }
@@ -20843,7 +20883,7 @@ function chatMsgs(o, kind){
   }
   return ((crmChat[o.id] || {}).msgs || []).map(m => ({
     at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
-    files: m.files || []
+    pending: !!m.pending, files: m.files || []
   }));
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
@@ -20893,7 +20933,7 @@ function chatRowsHtml(msgs){
     const sign = (m.mine && m.by) ? String(m.by).split('@')[0] : '';
     return sep + `
       <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}${
-        m.gone ? ' gone' : ''}">
+        m.gone ? ' gone' : ''}${m.pending ? ' pending' : ''}">
         ${m.gone ? `<div class="od-crm-gone">Видалено ${
           m.mine ? 'нами' : 'клієнтом'} — у чаті цього більше немає</div>` : ''}
         ${crmFilesHtml(m.files)}
@@ -20902,8 +20942,12 @@ function chatRowsHtml(msgs){
         ${/* Підпис показуємо навіть тоді, коли часу ще немає: щойно надіслане
              повідомлення стоїть у стрічці без позначки часу (її поставить
              сервер), а хто його написав — відомо вже зараз. */''}
-        ${(time || sign) ? `<div class="od-crm-at"${full ? ` title="${escapeHtml(full)}"` : ''}>${
-          escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
+        ${/* «Надсилаю…» замість часу, поки репліка ще летить: часу в неї
+             поки що немає й бути не може, а сказати щось треба. */''}
+        ${(time || sign || m.pending) ? `<div class="od-crm-at"${
+          full ? ` title="${escapeHtml(full)}"` : ''}>${
+          m.pending ? 'надсилаю…' + (sign ? ' · ' + escapeHtml(sign) : '')
+                    : escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -21416,6 +21460,8 @@ function renderChatWin(toBottom){
      виміряні, прокрутка ціла, виділений текст не злітає. */
   const feedSig = feed;
   const keepFeed = !!feedOld && feedOld.__sig === feedSig;
+  // Відправка триває — і текстова, і фото: кнопка одна, стан один
+  const busy = !!(chatWin.sending || chatWin.picsBusy);
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
   const cards = chatWin.cards ? cardsPanelHtml(o) : '';
@@ -21479,7 +21525,12 @@ function renderChatWin(toBottom){
              стояла ближче. */''}
         <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
           isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
-        <button class="cw-go" data-cw-go title="Надіслати · Ctrl+Enter">➤</button>
+        ${/* Поки лист летить — кнопка гасне й крутиться. Це і є відповідь
+             на «натиснув, і не зрозуміло, чи пішло»: видно, що система
+             зайнята, і другий натиск фізично неможливий. */''}
+        <button class="cw-go${busy ? ' is-busy' : ''}" data-cw-go${busy ? ' disabled' : ''}
+          title="${busy ? 'Надсилаємо…' : 'Надіслати · Ctrl+Enter'}">${
+          busy ? '<i class="cw-spin"></i>' : '➤'}</button>
       </div>
       ${/* Правило треба сказати вголос: доти Enter надсилав, про Shift+Enter
            ніхто не знав, і листи виходили одним рядком. */''}
@@ -21525,8 +21576,11 @@ function chatPics(){ return (chatWin && chatWin.pics) || []; }
 function chatTrayHtml(){
   const pics = chatPics();
   if(!pics.length) return '';
+  /* Напис не просто «надсилаємо», а З ЧИСЛОМ: коли фото чотири, «надсилаємо»
+     не каже, скільки з них уже пішло, і чекання здається довшим, ніж є. */
   const tail = chatWin.picsBusy
-    ? '<span class="cw-tip" style="align-self:center">Надсилаємо…</span>'
+    ? '<span class="cw-tip cw-busy" style="align-self:center">' +
+      '<i class="cw-spin"></i>Надсилаємо ' + pics.length + '…</span>'
     : '<button class="cw-tr-add" data-cw-clip title="Додати ще">+</button>';
   return '<div class="cw-tray">' + pics.map((p, i) =>
     '<div class="cw-tr' + (p.url ? '' : ' cw-tr--wait') + '">' +
@@ -21604,17 +21658,29 @@ function wireChatWin(box, o, focusIn){
                      inp.style.height = Math.min(inp.scrollHeight, 130) + 'px'; };
   grow();
   inp.addEventListener('input', ()=>{ chatWin.draft = inp.value; grow(); });
+  /* НАДІСЛАТИ МОЖНА РІВНО ОДИН РАЗ.
+
+     Доти від повторного натиску рятувало те, що поле чиститься: другий
+     натиск не бачив тексту й мовчав. З картинками так не виходило — там
+     прапорець глушив натиск БЕЗ ЖОДНОЇ ознаки, і збоку це виглядало як
+     «застрягло». Тепер стан один на обидва шляхи, і він видимий: кнопка
+     гасне й крутиться, поки відправка триває. */
   const send = ()=>{
     const t = inp.value.trim();
     const pics = chatPics();
-    if(chatWin.picsBusy) return;
+    if(chatWin.picsBusy || chatWin.sending) return;
     // Мовчазна кнопка — найгірше: людина тисне й не розуміє, що не так.
     if(!t && !pics.length) return toast('Напишіть повідомлення або додайте фото');
     // Половину пачки надіслати гірше, ніж зачекати секунду.
     if(pics.some(x => !x.url)){ toast('Картинки ще готуються — секунду'); return; }
     inp.value = ''; chatWin.draft = ''; grow();
-    if(pics.length) chatSendPics(o, pics, t);
-    else chatSend(o, t);
+    chatWin.sending = true;
+    const go = pics.length ? chatSendPics(o, pics, t) : chatSend(o, t);
+    Promise.resolve(go).catch(e => console.warn('відправка', e)).then(()=>{
+      chatWin.sending = false;
+      if(document.getElementById('chatWin')) renderChatWin();
+    });
+    renderChatWin(true);
   };
   /* Enter робить НОВИЙ РЯДОК, а надсилає кнопка або Ctrl/⌘+Enter.
      Довго було навпаки — «як у месенджерах». Але месенджер і КП пишуться
@@ -21847,7 +21913,19 @@ async function chatSendPics(o, pics, text){
   if(!canSendFiles()){ toast('Надсилати файли — не ваша зона'); return; }
   if(!pics.length) return;
   const isTg = chatWin.kind === 'tg';
-  chatWin.pics = []; chatWin.picsBusy = true;
+  /* СМУЖКА ЛИШАЄТЬСЯ НА МІСЦІ, ПОКИ ЙДЕ ВІДПРАВКА.
+
+     Доти вона очищалась ПЕРШИМ рядком — і разом із нею зникав напис
+     «Надсилаємо…», бо він живе всередині неї. Виходило так: натиснув,
+     фото зникли, поле порожнє, і три-чотири секунди, поки картинка
+     вантажиться в хмару й далі в Sitniks, на екрані не діється нічого.
+     Рівно це Андрій і називає «відправляєш, воно висне». Людина тисне ще
+     раз — і другий натиск мовчки не робить нічого, бо його глушить
+     прапорець.
+
+     Тепер смужка стоїть із позначкою «надсилаємо», і зникає лише тоді,
+     коли справді надіслано. */
+  chatWin.picsBusy = true;
   renderChatWin(true);
   const back = ()=>{ chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin(); };
   let urls = [], blobs = [];
@@ -21917,7 +21995,11 @@ async function chatSendPics(o, pics, text){
      прикмета, за якою власне фото впізнають у стрічці; звичайне фото цей
      рядок обходило — і назавтра воно ставало ліворуч, як клієнтське. */
   saveOrderMeta(o).catch(e => console.warn(e));
+  /* Аж тепер прибираємо смужку — коли справді надіслано. Доти вона зникала
+     першим рядком, ще до завантаження в хмару, і при збої фото доводилось
+     шукати заново. */
   pics.forEach(chatDropPic);
+  chatWin.pics = (chatWin.pics || []).filter(x => pics.indexOf(x) < 0);
   chatWin.picsBusy = false;
   /* Надіслали — панель зникає сама. Вона показує, ЩО ЛЕЖИТЬ У ПОЛІ; коли в
      полі вже нічого немає, вона висить порожньою обіцянкою, і менеджер
