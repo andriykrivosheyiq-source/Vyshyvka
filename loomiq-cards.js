@@ -228,7 +228,11 @@
     var off = (own && own.off) || {};
     var k = sh && (sh.key || sh.url);
     if(Object.prototype.hasOwnProperty.call(off, k)) return !off[k];
-    return !(sh && sh.model);
+    /* Фото моделі й «зайві» ракурси (ті, на яких нанесення не позначено)
+       за замовчуванням зняті: у ряд картка складає те, про що питають
+       передусім, — сам виріб із нанесенням. Решта чекає в списку, доки
+       менеджер її не поставить. */
+    return !(sh && (sh.model || sh.extra));
   }
   /* Родовий множини назви виробу: «футболка» → «футболок», «світшот» →
      «світшотів», «худі» → «худі».
@@ -413,6 +417,44 @@
       if(out2.lost) cut.lost = out2.lost;
       return cut;
     };
+    /* РЕШТА РАКУРСІВ ПОЗИЦІЇ — ті, що в ряд самі не потрапили.
+
+       Ряд картка складає з нанесень: перед, модель і ті сторони, на яких
+       справді щось є. Це правильно для картки, але не для робочого місця.
+       У позиції є спина — порожня, без нанесення, — і менеджер хоче
+       поставити її на картку руками: показати, який виріб ззаду. Доти
+       такого кадру не було навіть у списку «які кадри показувати», і
+       додати його не було як взагалі — хіба правкою самого замовлення.
+
+       Тому веземо всі ракурси позиції, включно зі схованими: сховали його
+       в конструкторі для клієнтського перегляду, а не для картки. Зняті за
+       замовчуванням (`extra`), щоб уже зібрані картки лишились такими, як
+       були, — але видно їх, і галочка поруч. */
+    var restShots = function(it, have){
+      var wasUrl = {}, wasSide = {};
+      (have || []).forEach(function(sh){
+        if(!sh) return;
+        if(sh.url) wasUrl[sh.url] = 1;
+        if(sh.side) wasSide[sh.side] = 1;
+      });
+      var out = [];
+      var add = function(u, side, label, model){
+        if(!u || wasUrl[u]) return;
+        if(side && wasSide[side]) return;
+        wasUrl[u] = 1;
+        if(side) wasSide[side] = 1;
+        out.push({ url: u, side: side || '', model: !!model, extra: true,
+                   label: label || SIDE_UA[side] || '' });
+      };
+      (it.views || []).forEach(function(v){
+        if(!v || !v.img) return;
+        var md = v.side === 'model' || !!v.model;
+        add(v.img, md ? '' : (v.side || ''), md ? '' : (v.label || ''), md);
+      });
+      modelsOf(it).forEach(function(m){ add(m.url, '', '', true); });
+      pics(it).forEach(function(u){ add(u, '', '', false); });
+      return out.slice(0, 6);
+    };
     // «Колір · Вишивка» — без розмірів: кількість і так стоїть числом нижче,
     // і повторювати її рядком означає сказати те саме двічі
     var subOf = function(it){
@@ -538,9 +580,15 @@
          показати й зняті теж, інакше повернути їх не було б як. Останній
          кадр зняти не можна — картка без жодного фото це не картка. */
       shots.forEach(function(sh){ sh.key = sh.url; });
+      /* Ракурси, яких у ряду немає, — окремим хвостом того самого списку.
+         Вони зняті, тож на саму картку не впливають, але менеджер їх
+         бачить і може поставити. */
+      restShots(it, shots).forEach(function(sh){ sh.key = sh.url; shots.push(sh); });
       var keep = shots.filter(function(sh){ return shotOn(own, sh); });
       var allShots = shots;
-      shots = keep.length ? keep : shots.slice(0, 1);
+      /* Чотири кадри — межа ряду: далі аркуш росте вшир, а виріб у колонці
+         стає дрібнішим за підпис під ним. */
+      shots = (keep.length ? keep : shots.slice(0, 1)).slice(0, 4);
       return {
         allShots: allShots,
         id: id, kind: kind, type: 'item',
@@ -644,9 +692,15 @@
       cols.forEach(function(c){
         (c.shots || []).forEach(function(sh){
           var k = sideKey(sh);
-          if(allShots.some(function(z){ return z.key === k; })) return;
+          var був = allShots.filter(function(z){ return z.key === k; })[0];
+          /* Той самий ряд в одній колонці може бути «зайвим», а в другій —
+             робочим: спина без нанесення в одного варіанта й зі спинним
+             логотипом у другого. Ряд тоді робочий: досить, щоб він був
+             потрібен хоч комусь. */
+          if(був){ if(!sh.extra) був.extra = false; return; }
           allShots.push({ key: k, url: sh.url, side: sh.side || '',
-                          label: sh.label || '', model: !!sh.model });
+                          label: sh.label || '', model: !!sh.model,
+                          extra: !!sh.extra });
         });
       });
       var rowsOn = allShots.filter(function(sh){ return shotOn(own, sh); });

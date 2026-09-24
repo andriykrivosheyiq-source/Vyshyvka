@@ -441,11 +441,13 @@ const model = await fr.evaluate(([o, host]) => {
     name:'Худі', garmentId:'hoodie', prints: sides.map(P), views: all, mockups:['m0'],
     config:{ garmentId:'hoodie', logos:{ front:[{ url:'ART' }] } } });
   const models = { hoodie: [{ url: host + '/images/model-hoodie-man.webp', cx:50, cy:45, sw:32 }] };
-  /* Дивимось на ПОВНИЙ список кадрів: те, що фото на моделі за
-     замовчуванням зняте галочкою, — інше питання, і воно нижче. Тут
-     перевіряється склад ряду, а не хто з нього вимкнений. */
+  /* Дивимось на СКЛАД РЯДУ до галочок: те, що фото на моделі за
+     замовчуванням зняте, — інше питання, і воно нижче. Хвіст `extra` сюди
+     не входить: це ракурси, яких у ряду немає й не буде, доки менеджер сам
+     їх не поставить, — їх перевіряємо окремо. */
+  const ряд = c => (c.allShots || []).filter(s => !s.extra);
   const shots = (sides, mm) =>
-    L.build({ items:[mk(sides)], terms:{} }, { models: mm })[0].allShots;
+    ряд(L.build({ items:[mk(sides)], terms:{} }, { models: mm })[0]);
   return {
     /* Тільки перед: фото моделі + перед. Спини немає — на ній нічого немає. */
     one: shots(['front'], models).map(s => (s.model ? 'модель' : s.side)),
@@ -467,6 +469,24 @@ const model = await fr.evaluate(([o, host]) => {
       cfg2.by[c0.id].off[mk0.key] = 0;
       return L.build({ items:[mk(['front'])], terms:{} }, cfg2)[0]
                .shots.map(s => (s.model ? 'модель' : s.side));
+    })(),
+    /* Ракурси, яких у ряду немає: спина без нанесення, рукав, запасний
+       мокап. Менеджер мусить їх бачити — інакше поставити спину на картку
+       можна лише правкою самого замовлення. */
+    запас: (L.build({ items:[mk(['front'])], terms:{} }, { models: models })[0]
+              .allShots || []).filter(s => s.extra).map(s => s.side || 'мокап'),
+    /* І вони справді зняті: уже зібрані картки лишаються такими, як були. */
+    рядІзЗапасом: L.build({ items:[mk(['front'])], terms:{} }, { models: models })[0]
+                    .shots.map(s => (s.model ? 'модель' : (s.side || 'мокап'))),
+    /* А коли менеджер поставив галочку — спина стає кадром картки. */
+    спинаРуками: (function(){
+      var c0 = L.build({ items:[mk(['front'])], terms:{} }, { models: models })[0];
+      var bk = (c0.allShots || []).filter(function(z){ return z.side === 'back'; })[0];
+      var cfg2 = { models: models, by: {} };
+      cfg2.by[c0.id] = { off: {} };
+      cfg2.by[c0.id].off[bk.key] = 0;
+      return L.build({ items:[mk(['front'])], terms:{} }, cfg2)[0]
+               .shots.map(s => (s.model ? 'модель' : (s.side || 'мокап')));
     })(),
     art: L.build({ items:[mk(['front'])], terms:{} }, { models })[0].art,
     /* Свій логотип нанесення перебиває той, що приїхав із конструктора, —
@@ -491,6 +511,21 @@ ok(model.back.length === 3 && model.back[2] === 'back',
 ok(model.none.length === 2 && model.none[0] === 'front' && model.none[1] === 'back',
   'немає фото моделі — перед і зад, як було: два кадри на картці потрібні завжди',
   'без фото моделі склад зламався: ' + model.none.join(' · '));
+/* АЛЕ У СПИСКУ ВОНА Є. Андрій: «задню сторону не показало і в правій
+   панелі також її немає, щоб додати вручну». Ряд картка складає сама, і
+   чистої спини там справді не треба — а от відмовити менеджеру в праві
+   поставити її руками ми не можемо: він знає про це замовлення більше за
+   правило. Тож усі ракурси позиції їдуть у список, зняті. */
+console.log('   у списку понад ряд: ' + model.запас.join(' · '));
+ok(model.запас.indexOf('back') >= 0,
+  'спина без нанесення лишається в списку кадрів — її можна поставити руками',
+  'спини немає навіть у списку: ' + model.запас.join(' · '));
+ok(model.рядІзЗапасом.indexOf('back') < 0,
+  'і за замовчуванням вона зняте: зібрані картки лишились такими, як були',
+  'спина влізла в ряд сама: ' + model.рядІзЗапасом.join(' · '));
+ok(model.спинаРуками.indexOf('back') >= 0,
+  'поставив галочку — спина стає кадром картки',
+  'галочка на спині нічого не дала: ' + model.спинаРуками.join(' · '));
 /* Андрій: «давай поки по дефолту без моделей, щоб на них галочка не
    стояла». У прорахунку питають передусім про виріб із нанесенням, а не
    про те, як він сидить на людині; вітрина лишається можливістю, а не
@@ -523,9 +558,12 @@ const asView = await fr.evaluate(([o]) => {
   const hid = JSON.parse(JSON.stringify(it));
   hid.views[0].show = false;
   const c2 = L.build({ items:[hid], terms:{} }, {})[0];
-  return { кадри: (c.allShots || []).map(s => (s.model ? 'модель' : s.side)),
-           якір: (c.allShots || [])[0] && c.allShots[0].mark,
-           безМоделі: (c2.allShots || []).map(s => (s.model ? 'модель' : s.side)) };
+  /* Знову склад РЯДУ: хвіст `extra` — це те, що менеджер може поставити
+     руками, і до того, як картка складається сама, він стосунку не має. */
+  const ряд2 = x => (x.allShots || []).filter(s => !s.extra);
+  return { кадри: ряд2(c).map(s => (s.model ? 'модель' : s.side)),
+           якір: ряд2(c)[0] && ряд2(c)[0].mark,
+           безМоделі: ряд2(c2).map(s => (s.model ? 'модель' : s.side)) };
 }, [OFFER]);
 console.log('   ракурсом: ' + asView.кадри.join(' · ') +
             ' · схований: ' + asView.безМоделі.join(' · '));

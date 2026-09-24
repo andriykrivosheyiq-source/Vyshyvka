@@ -5892,6 +5892,15 @@
                     ' <span style="color:#8a94a6;">(дизайн №' + (d.i + 1) +
                     ' — макет не рахуємо)</span>', money(0), money(0));
           });
+          /* Дизайни, макет яких уже оплачено погодженою частиною. Грошей за
+             них немає, але рядок потрібен: у ньому живе перемикач виду, і
+             без нього напис на рекомендованій позиції нічим перемкнути. */
+          ((P && P.designNos) ? P.designNos : []).filter(function(d){ return d && d.done; })
+            .forEach(function(d){
+              tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, d.kind) +
+                      ' <span style="color:#8a94a6;">(уже оплачена основними позиціями)</span>',
+                      money(0), money(0));
+            });
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
