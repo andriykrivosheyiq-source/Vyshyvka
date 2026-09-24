@@ -1984,6 +1984,73 @@
        рядка. Тримаємо її в межах довжини, якою користуються месенджери. */
     .cw-feed .od-crm-msg{max-width:min(84%,620px);}
   }
+  /* ══════════ ТЕЛЕФОН ══════════════════════════════════════════════════
+
+     Компʼютерна версія складалась для миші й великого екрана: дрібні цілі
+     поруч, підписи в один рядок, усе видно одразу. На телефоні ці самі
+     рішення працюють проти себе — у шапці розмови чотири рядки тексту
+     налазять на кнопки, у кнопку 28 пікселів пальцем не влучити, а поле з
+     чотирнадцятим кеглем змушує iOS наблизити екран при кожному дотику й
+     лишити його наближеним.
+
+     Правила прості й перевірені практикою месенджерів:
+       • ціль для пальця — не менше 40 px;
+       • у полі вводу не менше 16 px, інакше Safari сам наблизить сторінку;
+       • у шапці лишається те, що потрібно в розмові, решта ховається;
+       • низ екрана поважає смугу жестів iPhone (safe-area). */
+  @media (max-width:767px){
+    /* ШАПКА РОЗМОВИ. Імʼя й рядок під ним — одним стовпчиком, який чесно
+       стискається; усе, що не потрібне в розмові, зникає. */
+    .cw-head{padding:8px 10px;gap:8px;align-items:center;}
+    .cw-av{width:34px;height:34px;}
+    .cw-who{min-width:0;flex:1;}
+    .cw-nm{font-size:15px;}
+    .cw-sub{font-size:11px;}
+    /* Лічильник вікна відповіді в один рядок і без переносу: на телефоні
+       він розтягувався на три рядки й накривав кнопки. */
+    .cw-win{font-size:10.5px;margin-top:1px;white-space:nowrap;overflow:hidden;
+      text-overflow:ellipsis;}
+    /* Службові кнопки налаштувальника — не на телефоні: там із ними не
+       працюють, а місця в шапці вони зʼїдають більше за все інше. */
+    .cw-head [data-cw-raw],.cw-head [data-cw-sniff]{display:none;}
+    .cw-oid{font-size:12px;padding:8px 10px;min-height:36px;display:flex;align-items:center;}
+    .cw-x{font-size:20px;padding:9px 11px;min-width:42px;text-align:center;}
+    /* ПОЛЕ ВВОДУ. 16 px — не про красу: менший кегль змушує Safari
+       наблизити сторінку при дотику й лишити її такою. */
+    .cw-inp{font-size:16px;padding:10px 13px;min-height:42px;}
+    .cw-go{width:46px;height:46px;}
+    .cw-ic{width:42px;height:42px;}
+    /* «⚡ Заготовки» текстом займає третину смуги, і поле для листа лишалось
+       завширшки в два слова. На телефоні лишається сам знак: те саме місце,
+       той самий дотик, утричі менше ширини. */
+    .cw-bar .cw-ic--txt{width:42px;padding:0;justify-content:center;}
+    .cw-bar .cw-ic-l{display:none;}
+    /* Підказка про Ctrl+Enter на телефоні — неправда: там немає Ctrl. */
+    .cw-row + .cw-tip{display:none;}
+    .cw-bar{padding:8px 9px calc(8px + env(safe-area-inset-bottom));}
+    .cw-feed{padding:10px 10px 6px;}
+    .cw-feed .od-crm-msg{max-width:88%;}
+    /* КАРТКА ЗАМОВЛЕННЯ. Стан і менеджер стояли поруч двома вузькими
+       пігулками — назва етапу в них не вміщалась і різалась на «КП н…».
+       На телефоні їм вистачає ширини по черзі. */
+    .od-deal-row{flex-wrap:wrap;}
+    .od-head .od-pill-st,.od-head .od-pill-mgr{flex:1 1 100%;min-width:0;}
+    .od-head .od-pill-mgr{margin-top:7px;margin-left:0;}
+    /* Дотик пальцем по каналу зв’язку: 30 px — це промах через раз. */
+    .od-head .od-ch-b{width:40px;height:40px;}
+    .od-x{font-size:20px;padding:8px 10px;min-width:40px;}
+    /* Поля картки — той самий кегль, що й у розмові, і з тієї ж причини. */
+    .od-f,.od-crm-inp,.od-panel input[type=text],.od-panel input[type=tel],
+    .od-panel input[type=number],.od-panel textarea,.od-panel select{font-size:16px;}
+    /* Дата здачі набрана моноширинним дрібним — гарно на моніторі, але це
+       теж поле вводу, і Safari наближає екран так само, як від будь-якого
+       іншого. Кегль тут не про читабельність. */
+    .od-meta .od-due-inp{font-size:16px;}
+    .od-panel{padding-bottom:env(safe-area-inset-bottom);}
+    /* Смужка макетів на телефоні стоїть на всю ширину сцени й гортається
+       пальцем — вертикальний стовпчик там зайняв би пів виробу. */
+    .lqo-side{gap:7px;}
+  }
   /* Рядки з готовими відповідями в налаштуваннях */
   .qr-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
   .qr-row input{width:150px;flex:none;font-size:13px;padding:8px 10px;border-radius:8px;
@@ -21815,8 +21882,12 @@ function renderChatWin(toBottom){
         або дочекайтесь, поки клієнт озветься сам.</div>` : ''}
       ${chatTrayHtml()}
       <div class="cw-row">
+        ${/* Підпис окремим вузлом: на телефоні він ховається, і кнопка стає
+             самим знаком. Текстом вона з’їдала третину смуги, а поле для
+             листа лишалось завширшки в два слова. */''}
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
-          title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
+          title="Заготовлені повідомлення — вставити або відредагувати">⚡<span
+          class="cw-ic-l">Заготовки</span></button>
         ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
         ${/* Окремої кнопки з посиланням на КП тут немає навмисно. Вона
              вставляла голу адресу, а в «Заготовках» уже лежить заготовка з
