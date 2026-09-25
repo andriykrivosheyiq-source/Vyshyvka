@@ -779,10 +779,30 @@
   /* ── Чати: ліворуч список, праворуч переписка ─────────────────────────
      Так це влаштовано в Direct, у Telegram і скрізь, де листуються: око
      шукає наступну розмову там само, де щойно читало попередню. */
+  /* РОЗДІЛ РОЗМОВ ЗАЙМАЄ РІВНО ВІКНО Й САМ НЕ КРУТИТЬСЯ.
+
+     Тут уже є дві власні прокрутки — список ліворуч і стрічка праворуч, —
+     і третя, зовнішня, перетворює роботу на смикання: щоб дочитати
+     повідомлення, доводилось крутити спершу сторінку, потім стрічку.
+     Тому вікно фіксується по висоті, а крутиться лише те, що всередині. */
+  main.is-chat{overflow:hidden;display:flex;flex-direction:column;padding-bottom:22px;}
+  /* Розділи перемикаються інлайновим `style="display:…"`, а інлайн сильніший
+     за стиль — тож зробити секцію flex-колонкою звідси неможливо. Висоту їй
+     дає сам flex вікна, а вміст беремо від неї у відсотках: так ланцюг
+     тримається без боротьби зі специфічністю. */
+  main.is-chat > section{flex:1;min-height:0;}
+  main.is-chat .page-head{flex:none;margin-bottom:14px;}
+  main.is-chat .chl{height:calc(100% - 52px);min-height:0;
+    display:flex;flex-direction:column;}
   .ch2{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px;
     align-items:stretch;min-height:520px;}
+  main.is-chat .ch2{flex:1;min-height:0;}
   .ch2-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:72vh;
     padding-right:2px;}
+  /* У фіксованому вікні список міряється не від висоти екрана, а від того,
+     що йому лишилось: інакше «72% екрана» не збігається з висотою колонки
+     й список або обрізає останні розмови, або вилазить за край. */
+  main.is-chat .ch2-list{max-height:none;min-height:0;}
   /* У вузькій колонці рядок читається згори вниз, а не вряд: імʼя й час у
      першому рядку, під ними — початок останнього повідомлення. Саме так
      виглядає список у Direct, і саме за цим початком розмову й упізнають. */
@@ -795,14 +815,43 @@
   .ch2-list .chl-n  {grid-area:2/3/3/4;justify-self:end;}
   .ch2-view{position:relative;min-width:0;border:1px solid var(--line);border-radius:var(--r-card);
     background:var(--paper);overflow:hidden;display:flex;}
-  .ch2-view>.cw-inline{flex:1;min-width:0;}
+  main.is-chat .ch2-view{min-height:0;}
+  /* Діалог — на всю праву частину, від верху до низу. Доти він займав
+     стільки, скільки займали повідомлення, і низ колонки лишався порожнім,
+     а поле вводу плавало посеред екрана. */
+  .ch2-view>.cw-inline{flex:1;min-width:0;min-height:0;}
+  main.is-chat .cw-wrap.cw-inline{height:100%;}
+  /* Усередині вікна розмови крутиться РІВНО стрічка: шапка з номером
+     замовлення й поле вводу стоять на місці. */
+  /* Стрічка крутиться, шапка з номером замовлення й поле вводу стоять. */
+  main.is-chat .cw-wrap.cw-inline .cw{height:100%;border-radius:0;box-shadow:none;}
+  /* КАРТКА ЗАМОВЛЕННЯ НАКРИВАЄ САМЕ ДІАЛОГ, А НЕ ВЕСЬ ЕКРАН.
+
+     Звідси, з розмови, у картку заходять, щоб подивитись склад і ціну й
+     повернутись назад у ту саму розмову. Тому вона стає рівно на місце
+     діалогу: список розмов ліворуч лишається на видноті, і після закриття
+     не треба шукати, де ви були.
+
+     Ширша за звичайну навмисно — у ній таблиця позицій, а колонка діалогу
+     все одно ширша за 520 пікселів, і лишати їх порожніми нема за чим. */
+  @media (min-width:1100px){
+    body.chat-view .od-panel{
+      width:min(calc(100vw - 220px - 340px - 64px), 860px);
+      border-top-left-radius:var(--r-card);border-bottom-left-radius:var(--r-card);}
+  }
   .ch2-none{margin:auto;text-align:center;padding:30px 24px;max-width:340px;
     display:flex;flex-direction:column;gap:7px;}
   .ch2-none b{font-size:14px;color:var(--ink);}
   .ch2-none span{font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
   /* Той самий вузол розмови, що й над дошкою, — просто в потоці колонки. */
+  /* ВБУДОВАНИЙ ДІАЛОГ БЕРЕ ВИСОТУ КОЛОНКИ, А НЕ ЕКРАНА.
+
+     Плаваюча розмова над дошкою — це окреме вікно з полем і власною
+     висотою в 100vh. Вбудована стоїть усередині колонки розділу, і та сама
+     висота означає рівно одне: діалог вищий за своє місце, і його ріже
+     знизу. Саме це й було видно — «діалоги також якось обрізає». */
   .cw-wrap.cw-inline{position:relative;inset:auto;z-index:1;display:none;
-    border-radius:var(--r-card);}
+    border-radius:var(--r-card);margin:0;height:100%;}
   .cw-wrap.cw-inline.open{display:flex;}
   .cw-wrap.cw-inline.with-card{margin-right:0;}
   .chl-row.is-on{border-color:var(--accent);background:var(--accent-soft);}
@@ -1985,11 +2034,17 @@
     .cw-wrap{position:relative;inset:auto;z-index:210;
       margin:10px;height:calc(100vh - 20px);background:transparent;}
     .cw-wrap.with-card{margin-right:calc(var(--od-w) + 10px);}
+    /* Вбудована розмова місця під картку не звільняє: картка накриває саме
+       її колонку, а список розмов ліворуч лишається на видноті. */
+    .cw-wrap.cw-inline{margin:0;height:100%;}
     .cw{border-radius:var(--r-shell);box-shadow:var(--sh-3);}
     /* Дошка під перепискою не потрібна: у просвіті колонки все одно не
        читаються, а лишити її означало б тримати на екрані третю смугу, яку
        ніхто не дивиться. */
-    body.cw-open main{display:none;}
+    /* Дошка під плаваючою перепискою не потрібна: у просвіті колонки все
+       одно не читаються. Але в розділі розмов переписка ВБУДОВАНА — і
+       ховати там main означало б сховати сам розділ разом із нею. */
+    body.cw-open main:not(.is-chat){display:none;}
     /* Хмарка на всю ширину монітора нечитабельна: очі втрачають початок
        рядка. Тримаємо її в межах довжини, якою користуються месенджери. */
     .cw-feed .od-crm-msg{max-width:min(84%,620px);}
@@ -3491,6 +3546,21 @@
   /* Дія, потрібна рідко й лише на помилку: лишається доступною, але не
      тягне на себе увагу поруч із головною кнопкою. */
   .dz-b.dz-quiet{border-color:transparent;color:var(--muted);padding:4px 8px;}
+  /* Написати клієнту — унизу блока, кольором каналу: очима вона
+     знаходиться за півсекунди, і ні з чим іншим не плутається. */
+  .dz-write{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .dz-ig{all:unset;cursor:pointer;display:block;text-align:center;font-size:13px;
+    font-weight:700;color:#fff;border-radius:10px;padding:10px 14px;
+    background:linear-gradient(90deg,#833AB4,#C13584,#E1306C);}
+  .dz-ig:hover{filter:brightness(1.06);}
+  /* Вибір дизайнера — сам собі дія, тож виглядає як кнопка. */
+  .dz-addwho{font:inherit;font-size:12px;font-weight:700;color:var(--accent-deep);
+    background:var(--accent-soft);border:1px solid transparent;border-radius:8px;
+    padding:6px 8px;cursor:pointer;outline:none;width:100%;box-sizing:border-box;}
+  .dz-addwho:hover{border-color:var(--accent);}
+  .dz-ds select{font:inherit;font-size:12px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:7px;padding:6px 7px;outline:none;
+    flex:1;min-width:0;}
   .dz-b.dz-quiet:hover{border-color:var(--line);color:var(--ink);}
   .dz-sent{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
     color:#1B6B3A;background:#E7F6EC;border-radius:8px;padding:6px 9px;}
@@ -5332,18 +5402,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=eb8e8bf319"></script>
-<script src="loomiq-fingerprint.js?v=eb8e8bf319"></script>
-<script src="loomiq-pricing.js?v=eb8e8bf319"></script>
+<script src="loomiq-select.js?v=ef9ac52a04"></script>
+<script src="loomiq-fingerprint.js?v=ef9ac52a04"></script>
+<script src="loomiq-pricing.js?v=ef9ac52a04"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=eb8e8bf319"></script>
+<script src="loomiq-design.js?v=ef9ac52a04"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=eb8e8bf319"></script>
+<script src="loomiq-cards.js?v=ef9ac52a04"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6642,6 +6712,22 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
       chats:'Чати B2B', chatsc:'Чати B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
+    /* РОЗДІЛ РОЗМОВ НЕ ПРОКРУЧУЄТЬСЯ САМ.
+
+       Скрізь в адмінці прокручується вміст вікна — картки, таблиці, списки
+       ростуть донизу, і це правильно. Але в розмовах так не можна: там уже
+       є ДВІ власні прокрутки, список ліворуч і стрічка праворуч, і третя,
+       зовнішня, перетворює роботу на смикання. Андрій: «мало того, що мені
+       ще екран треба крутити, ще й сам діалог».
+
+       Тому на цих двох розділах вікно фіксується по висоті, а крутиться
+       тільки те, що всередині. */
+    const вікно = document.querySelector('main');
+    const вРозмовах = (view === 'chats' || view === 'chatsc');
+    if(вікно) вікно.classList.toggle('is-chat', вРозмовах);
+    /* Позначка на body — щоб картка замовлення знала, що її відкривають
+       саме з розмови, і стала на місце діалогу, а не поверх усього. */
+    document.body.classList.toggle('chat-view', вРозмовах);
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
     if(view==='settings') paintSitePricing();
     if(view==='garments') paintGarmentList();

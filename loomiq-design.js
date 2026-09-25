@@ -1402,6 +1402,16 @@
     try{ if(host.whoLabel) return String(host.whoLabel(o) || ''); }catch(e){}
     return String((o && o.crmChatName) || '');
   }
+  /* Кнопка розмови внизу блока. Немає привʼязаної розмови — немає й
+     кнопки: обіцяти дію, яка нічого не відкриє, гірше за її відсутність. */
+  function writeHtml(o){
+    var є = false;
+    try{ є = !!(host.hasChat && host.hasChat(o)); }catch(e){}
+    if(!o || !є) return '';
+    return '<div class="dz-write">' +
+      '<button class="dz-ig" data-do="chat">Написати в Instagram</button>' +
+    '</div>';
+  }
   function clientHtml(o, job){
     o = o || {};
     /* ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ. У нього немає картки в Канбані, звідки
@@ -1422,18 +1432,15 @@
          Підписуємо ніком: саме за ним людину й знаходять. Імʼя профілю
          міняють, нік — майже ніколи, тож «чат 17293…» замість нього це
          втрачений контакт. */
+      /* Привʼязали — і по тому. Тут лишається лише те, КИМ є клієнт: імʼя
+         й нік. Дія «написати» стоїть унизу блока замовлення, як у B2B, —
+         угорі вона плуталась із прибиранням привʼязки, а потрібна саме
+         тоді, коли замовлення вже прочитане. */
       if(o.crmChatId)
         return '<div class="dz-own is-on">' +
           '<div class="dz-own-who"><span>Клієнт</span><b>' +
             esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b></div>' +
-          '<div class="dz-own-acts">' +
-            '<button class="dz-b pri" data-do="chat">Написати</button>' +
-            /* Відвʼязати лишається, але тихою кнопкою: адресу беруть із
-               сусідньої вкладки, і вставити не ту легко — без цієї дії
-               помилкову привʼязку не виправити ніяк. */
-            (can('bind') ? '<button class="dz-b dz-quiet" data-do="unbind" ' +
-              'title="Привʼязали не ту розмову — відвʼязати">×</button>' : '') +
-          '</div></div>';
+        '</div>';
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
           '<input data-bind placeholder="вставте адресу відкритої розмови"></label>' +
@@ -1683,11 +1690,14 @@
              'інакше оцифруємо те, що ще поміняється.</div>';
     var role = kind === 'stitch' ? 'embroidery' : 'designer';
     var готово = !!u.gid;
+    /* ЗАМІНИТИ ДИЗАЙНЕРА — ТИМ САМИМ СПИСКОМ. Обрав іншого, і він на місці
+       попереднього: окрема дія «замінити» нічого б не додала, крім ще
+       одного натискання й ще одного питання «а де вона». */
     return '<div class="dz-ds">' +
-        '<span class="dz-l">' + (d.who ? 'Дизайнер' : 'Кому віддаємо') + '</span>' +
-        teamPick('dzTo-' + key.replace(/[^\w-]/g, '_'), role, d.who || '') +
-        '<button class="dz-b" data-do="dz-attach" data-dz="' + key + '">' +
-          (d.who ? 'Змінити' : 'Прикріпити') + '</button>' +
+        '<span class="dz-l">Дизайнер</span>' +
+        '<select data-dzwho="' + key + '">' +
+          '<option value="">— оберіть —</option>' + teamOpts(role, d.who || '') +
+        '</select>' +
       '</div>' +
       (d.sentAt
         ? '<div class="dz-sent">ТЗ відправлено ' + esc(dt(d.sentAt)) +
@@ -1700,8 +1710,20 @@
               'Відправити дизайнеру</button>'
             : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє, ' +
               'і відправляти нема чого.</div>')
-        : '<div class="dz-miss">Прикріпіть дизайнера — тоді зʼявиться ' +
-          '«Відправити дизайнеру».</div>');
+        : '');
+  }
+  /* ДОДАТИ ДИЗАЙНЕРА — ОДНИМ КРОКОМ.
+
+     Доти це було двома: кнопка заводила порожній рядок, і лише всередині
+     нього обирали людину. Порожній рядок ні про що не каже, а другий крок
+     забувають — і на виробі висить «нанесення» без нікого.
+
+     Тепер вибір і є дією: обрав зі списку — дизайнера прикріплено. */
+  function dzAddHtml(u, kind){
+    var role = kind === 'stitch' ? 'embroidery' : 'designer';
+    return '<select class="dz-addwho" data-dzadd="' + esc(u.id) + '|' + kind + '">' +
+      '<option value="">+ Додати дизайнера</option>' + teamOpts(role, '') +
+    '</select>';
   }
   /* Списки дизайнів веде ядро — воно ж і дописує полям, яких у старих
      задачах немає. Малювати їх треба тим самим списком, інакше панель
@@ -1857,15 +1879,13 @@
           '<div class="dz-u-col"><div class="dz-u-l">Графічний дизайн</div>' +
           dzList(u, 'graphic').map(function(d, i){
             return designRowHtml(u, 'graphic', d, i, ro, job); }).join('') +
-          (ro ? '' : '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) +
-                '|graphic">+ Додати дизайнера</button>') +
+          (ro ? '' : dzAddHtml(u, 'graphic')) +
         '</div>') +
         (only === 'graphic' ? '' :
           '<div class="dz-u-col"><div class="dz-u-l">Вишивальний дизайн</div>' +
           dzList(u, 'stitch').map(function(d, i){
             return designRowHtml(u, 'stitch', d, i, ro, job); }).join('') +
-          (ro ? '' : '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) +
-                '|stitch">+ Додати дизайнера</button>') +
+          (ro ? '' : dzAddHtml(u, 'stitch')) +
         '</div>') +
       '</div>' +
     '</div>';
@@ -2081,20 +2101,40 @@
   /* Хто скільки тримає — просто в списку вибору. Питання «кому віддати»
      без цього числа вирішується навмання: менеджер памʼятає двох останніх,
      а третій стоїть вільний. */
-  function teamPick(id, role, cur){
-    var list = (host.team ? host.team() : []).filter(function(m){
+  /* КОГО МОЖНА ПОСТАВИТИ НА ЦЮ РОБОТУ.
+
+     Список фільтрується за роллю навмисно: віддати вишивку графічному
+     легко, а помічають це через день, коли файл уже не той. Але сам себе
+     менеджер поставити не міг ніяк — а без цього неможливо пройти шлях
+     замовлення й побачити, що бачить дизайнер.
+
+     Тому себе показуємо ОКРЕМИМ рядком угорі й підписуємо чесно: це для
+     перевірки, а не для щоденної роботи. Коли зʼявляться живі дизайнери,
+     міняти нічого не доведеться — рядок просто перестане бути потрібним. */
+  function teamOpts(role, cur){
+    var all = (host.team ? host.team() : []);
+    var list = all.filter(function(m){
       return !role || m.role === role || m.role === 'owner';
     });
     var jobs = pairs().map(function(p){ return p.job; });
+    var me = (host.me && host.me()) || '';
+    var опт = function(m, мітка){
+      var n = D.loadOf(jobs, m.email);
+      var full = n >= D.TAKE_LIMIT;
+      return '<option value="' + esc(m.email) + '"' +
+             (m.email === cur ? ' selected' : '') + (full ? ' disabled' : '') + '>' +
+             esc(мітка || m.name || m.email) +
+             (n ? ' · ' + n + (full ? ' — повний' : '') : ' · вільний') + '</option>';
+    };
+    var out = '';
+    var я = all.filter(function(m){ return m.email === me; })[0];
+    if(я && !list.some(function(m){ return m.email === me; }))
+      out += опт(я, 'Я · для перевірки');
+    return out + list.map(function(m){ return опт(m); }).join('');
+  }
+  function teamPick(id, role, cur){
     return '<select id="' + id + '"><option value="">— оберіть —</option>' +
-      list.map(function(m){
-        var n = D.loadOf(jobs, m.email);
-        var full = n >= D.TAKE_LIMIT;
-        return '<option value="' + esc(m.email) + '"' +
-               (m.email === cur ? ' selected' : '') + (full ? ' disabled' : '') + '>' +
-               esc(m.name || m.email) +
-               (n ? ' · ' + n + (full ? ' — повний' : '') : ' · вільний') + '</option>';
-      }).join('') + '</select>';
+      teamOpts(role, cur) + '</select>';
   }
 
   window.LQDesign.ui = {
@@ -2108,10 +2148,11 @@
     pairs: pairs, pairOf: pairOf,
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
-    teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
+    teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
     jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
-    unitsHtml: unitsHtml, dueHtml: dueHtml, unitsOf: unitsOf, unitAt: unitAt,
+    unitsHtml: unitsHtml, dueHtml: dueHtml, writeHtml: writeHtml,
+    unitsOf: unitsOf, unitAt: unitAt,
     shipHtml: shipHtml,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
@@ -2363,6 +2404,10 @@
         (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
         U.shipHtml(p) +
+        /* Написати клієнту — унизу блока замовлення, як у B2B. Саме тут
+           вона й потрібна: замовлення вже прочитане, і наступна дія — щось
+           сказати людині. Угорі вона плуталась із привʼязкою. */
+        U.writeHtml(o) +
       '</div>';
   }
 
@@ -2866,6 +2911,42 @@
     });
     /* Поля самого замовлення — термін і коментар. Пишуться на задачу, а не
        на одиницю: вони про все замовлення разом. */
+    /* Вибір дизайнера — і є дія. Окремої кнопки «прикріпити» немає
+       навмисно: другий крок забувають, і на виробі лишається рядок без
+       нікого. Цей самий список і замінює дизайнера: обрав іншого — він на
+       місці попереднього. */
+    root.querySelectorAll('[data-dzadd]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var who = String(el.value || '');
+        if(!who) return;
+        var pp = String(el.dataset.dzadd).split('|');
+        var u = U.unitAt(c.job, pp[0]);
+        var k = pp[1] === 'stitch' ? 'stitch' : 'graphic';
+        if(!u) return;
+        var d = D.dzNew();
+        D.dzAttach(d, who, (host().me && host().me()) || '');
+        D.dzList(u, k).push(d);
+        /* Щойно доданий дизайн одразу розгорнутий: наступна дія — або
+           дописати назву, або відправити ТЗ, і обидві всередині. */
+        U.DZ_OPEN[pp[0] + '|' + k + '|' + (D.dzList(u, k).length - 1)] = 1;
+        save(c.job, c.o, U.whoName(who) + ' · тепер можна відправити ТЗ');
+      };
+    });
+    root.querySelectorAll('[data-dzwho]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c) return;
+        var pp = String(el.dataset.dzwho).split('|');
+        var u = U.unitAt(c.job, pp[0]);
+        var k = pp[1] === 'stitch' ? 'stitch' : 'graphic';
+        var d = u && D.dzAt(u, k, pp[2]);
+        if(!d) return;
+        var who = String(el.value || '');
+        if(!who){ d.who = ''; return save(c.job, c.o, 'Дизайнера знято'); }
+        D.dzAttach(d, who, (host().me && host().me()) || '');
+        save(c.job, c.o, U.whoName(who));
+      };
+    });
     root.querySelectorAll('[data-jf]').forEach(function(el){
       el.onchange = function(){
         var c = ctx(); if(!c) return;
@@ -2959,7 +3040,7 @@
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
     'dz-open':'', 'dz-say':'', 'dz-file':'', 'dz-ver':'',
-    'dz-send':'art', 'dz-attach':'art', 'dz-ok':'art', 'dz-unok':'art',
+    'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
     'assign':'approve', 'task-add':'approve',
@@ -3093,7 +3174,7 @@
       return save(job, o, what === 'dz-add' ? 'Нанесення додано' : 'Прибрано');
     }
     /* ── Один дизайн: розмова, версії, передача ── */
-    if(what === 'dz-open' || what === 'dz-send' || what === 'dz-attach' || what === 'dz-ver' ||
+    if(what === 'dz-open' || what === 'dz-send' || what === 'dz-ver' ||
        what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
@@ -3108,13 +3189,6 @@
         U.DZ_OPEN[dkey] = 1;
         if(D.dzUnseen(dd, m)){ D.dzSeen(dd, m); return save(job, o, ''); }
         return render(root);
-      }
-      if(what === 'dz-attach'){
-        var toEl = document.getElementById('dzTo-' + dkey.replace(/[^\w-]/g, '_'));
-        var to = toEl ? String(toEl.value || '') : '';
-        if(!to) return say('Оберіть людину — «дизайнерам» це нікому');
-        D.dzAttach(dd, to, m);
-        return save(job, o, U.whoName(to) + ' · тепер можна відправити ТЗ');
       }
       if(what === 'dz-send'){
         if(!dd.who) return say('Спершу прикріпіть дизайнера');
