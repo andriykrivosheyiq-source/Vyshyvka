@@ -64,6 +64,19 @@
         <button type="button" class="pm-dl-opt" data-dl="bare" role="menuitem">Пустий виріб<small>той самий колір, без нанесення</small></button>
       </div>
     </div>
+    <!-- ══════════ МАКЕТИ ЗАМОВЛЕННЯ ══════════
+         Смужка у правому верхньому куті сцени, під кнопкою «скачати».
+         Спершу вона стояла блоком у панелі «Дизайн» — і з'їдала висоту,
+         відтісняючи ціну вниз. Андрій: «щоб знизу воно не забивало там
+         ціну». Тут вона не займає панелі жодного пікселя й видна на будь-
+         якій вкладці: перемкнув на «Розмір» — макети лишились перед очима.
+
+         Наповнює її конструктор; порожня — не малюється зовсім. -->
+    <!-- Порожній навмисно: галерея макетів переїхала в колонку складу
+         робочого місця, бо належить усьому замовленню, а не виробу під
+         нею. Вузол лишається як запасне місце для сайту, де такої колонки
+         немає; конструктор наповнює його лише там. -->
+    <div class="lqo-side" id="pmOrderArt" hidden></div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
     <!-- ══════════ НАХИЛ НАНЕСЕННЯ ══════════
@@ -707,7 +720,38 @@
     padding:0;}
   .vg-add:hover{background:#F1F5FA; color:#1B2536;}
   .list-add{width:100%; margin-top:8px;}
+  /* МАКЕТИ ЗАМОВЛЕННЯ — над підсумком, у колонці складу. Це перелік того,
+     що вже є в цьому КП: один файл, скільки б виробів його не несли. Тут
+     видно, що він належить замовленню, а не виробу під ним. */
+  .ordart{flex:none;border-top:1px solid #E2E8F0;padding:9px 12px 10px;}
+  .ordart[hidden]{display:none;}
+  .ordart-l{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:#7B8698;margin-bottom:7px;}
+  .ordart-l i{display:block;margin-top:2px;font-style:normal;font-weight:600;font-size:10px;
+    letter-spacing:0;text-transform:none;color:#94A0B2;}
+  .ordart-row{display:flex;flex-wrap:wrap;gap:7px;}
+  .ordart-t{position:relative;flex:0 0 auto;width:42px;height:42px;}
+  /* Тло під макет: світлий — на темне, темний — на світле. Білий логотип на
+     білій плитці не видно взагалі, і ряд читається як порожні квадрати. */
+  .ordart-b{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:42px;height:42px;
+    border-radius:10px;border:1.5px dashed #C3CBD8;background:#9AA3AE center/76% no-repeat;
+    transition:border-color .12s,transform .12s;}
+  .ordart-b.on-dark{background-color:#22272F;border-color:rgba(255,255,255,.22);}
+  .ordart-b.on-light{background-color:#F2F4F7;border-color:#C9D2DE;}
+  .ordart-b:hover{border-color:#111;border-style:solid;transform:translateY(-1px);}
+  .ordart-b::after{content:'+';position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;
+    border-radius:8px;background:#111;color:#fff;font-size:11px;line-height:15px;text-align:center;}
+  .ordart-x{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:9px;
+    border:none;background:#11151C;color:#fff;font-size:11px;line-height:15px;padding:0;
+    cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
+  .ordart-t:hover .ordart-x,.ordart-x:focus-visible{opacity:1;}
+  .ordart-no{font-size:11px;color:#94A0B2;line-height:1.4;}
+  @media (max-width:760px){ .ordart-x{opacity:1;} }
   .list-f{flex:none; border-top:1px solid #E2E8F0; padding:10px 12px; font-size:12px; color:#5A6A80;}
+  .list-f .dg{display:flex;gap:6px;width:100%;margin-top:8px;}
+  .list-f .dg button{flex:1;font:inherit;font-size:11px;font-weight:600;color:#64748B;
+      padding:5px 8px;border-radius:7px;border:1px solid #E2E8F0;background:#fff;cursor:pointer;}
+  .list-f .dg button:hover{color:#0F172A;border-color:#94A3B8;}
   .list-f b{display:block; font-size:18px; font-weight:800; letter-spacing:-.3px;
     color:#1B2536; margin-top:2px; font-variant-numeric:tabular-nums;}
   .list-f span{display:block; font-size:11.5px; color:#8A93A3; margin-top:2px;}
@@ -801,13 +845,35 @@
     padding:8px 14px; cursor:pointer; border:1px solid #D9E1EC; background:#fff; color:#22314A;}
   .cd-go button.pri{background:#22314A; border-color:#22314A; color:#fff;}
   .cd-go button:disabled{opacity:.5; cursor:default;}
-  .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:auto;}
-  .cd-prev-w{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  /* ПЕРЕГЛЯД МАЄ ВМІЩАТИСЬ, А НЕ ПРОКРУЧУВАТИСЬ.
+
+     Тут полотно завжди розтягувалось на всю ширину панелі, а висоту брало
+     за пропорцією. Для широкої картки це добре. Але картка порівняння й
+     сітка 2×2 ростуть УНИЗ — і така картка ставала вищою за панель, тобто
+     видно було лише її верх, а решту доводилось шукати прокруткою. На
+     екрані це читалось як «виріб обрізало», хоч сам файл був цілий: різала
+     не картка, а вікно, у якому її показують.
+
+     Тепер полотно вписується в панель цілком — і по ширині, і по висоті.
+     Картку видно всю, хай би якої вона висоти. Роздивитись деталі можна в
+     самому файлі: для цього поруч і стоїть «Скачати цю». */
+  .cd-main{flex:1; min-height:0; display:flex; gap:16px; padding:16px; overflow:hidden;}
+  .cd-prev-w{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;
+    align-items:center; gap:8px;}
   .cd-prev-w .cd-l{align-self:flex-start;}
-  .cd-prev{width:100%; display:flex; align-items:flex-start; justify-content:center;}
-  .cd-prev canvas{width:100%; height:auto; max-width:1100px; border-radius:12px;
-    box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff; display:block;}
-  .cd-side{flex:0 0 250px; display:flex; flex-direction:column; gap:12px;}
+  .cd-prev{flex:1; min-height:0; width:100%; display:flex;
+    align-items:center; justify-content:center;}
+  /* `auto` тут із !important не від безсилля: сам малювальник ставить
+     полотну точні width/height у стилі елемента — це його логічний розмір
+     при подвійній щільності. Інлайновий стиль сильніший за будь-яке
+     правило, тож без !important обмеження вище тиснули б кожен бік окремо,
+     і картку сплющувало б замість вписування. */
+  .cd-prev canvas{max-width:min(100%, 1100px); max-height:100%;
+    width:auto !important; height:auto !important;
+    border-radius:12px; box-shadow:0 8px 34px rgba(16,32,58,.16); background:#fff;
+    display:block;}
+  .cd-side{flex:0 0 250px; min-height:0; overflow:auto;
+    display:flex; flex-direction:column; gap:12px;}
   .cd-box{background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px;}
   .cd-box input[type=text], .cd-box textarea{width:100%; font:inherit; font-size:12.5px;
     color:#22314A; border:1px solid #D9E1EC; border-radius:8px; padding:7px 9px;
@@ -951,10 +1017,23 @@
     <span class="save" id="saveMark"></span>
     <div class="list-h">Склад пропозиції</div>
     <div class="list-b" id="listBody"></div>
+    <!-- МАКЕТИ ЗАМОВЛЕННЯ. Стояли на сцені конкретної позиції — і читались
+         як «макети цієї футболки». Насправді вони належать усьому КП:
+         один файл, який лягає на скільки завгодно виробів і рахується як
+         один макет. Тому й місце їм тут, у колонці замовлення, над
+         підсумком — поруч зі складом, а не поруч із виробом.
+         Наповнює конструктор; порожньо — блока немає зовсім. -->
+    <div class="ordart" id="ordArt" hidden></div>
     <!-- Сума — тільки основних позицій. Рекомендовані клієнт ще не обрав, і
          рахувати їх наперед означало б показувати менеджеру суму, якої
          немає. -->
-    <div class="list-f">Разом<b id="listSum">—</b><span id="listMeta"></span></div>
+    <div class="list-f">Разом<b id="listSum">—</b><span id="listMeta"></span>
+      <!-- Числа на цьому екрані найчастіше й доводиться перевіряти: тут, на
+           відміну від картки замовлення, стоять рекомендовані й групи
+           варіантів, а сума — вилка. Файл збирає адмінка: у цього кадру
+           немає ні моделі цін, ні самого замовлення. -->
+      <span class="dg"><button type="button" data-dg="file">Зберегти прорахунок</button><button type="button" data-dg="copy">Скопіювати</button></span>
+    </div>
   </aside>
   <main class="work" id="paneWork">
     <div class="stage" id="stage">
@@ -999,21 +1078,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=34d9065a9f',
+    ['loomiq-select.js?v=b17cc4b8a7',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=34d9065a9f'].forEach(function(src){
+     'loomiq-cards.js?v=b17cc4b8a7'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=34d9065a9f';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=34d9065a9f';
-  var CTOR_JS   = 'loomiq-constructor.js?v=34d9065a9f';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=34d9065a9f';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=b17cc4b8a7';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=b17cc4b8a7';
+  var CTOR_JS   = 'loomiq-constructor.js?v=b17cc4b8a7';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=b17cc4b8a7';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1210,6 +1289,57 @@
     '</div>' +
     (open ? calcHtml(rows) : '');
   }
+  /* ── МАКЕТИ ЗАМОВЛЕННЯ ─────────────────────────────────────────────────
+
+     Список веде конструктор: він один знає, що лежить на позиціях, і він
+     же вміє покласти макет на поточну сторону. Ми лише малюємо його тут,
+     у колонці складу, — бо макет належить ЗАМОВЛЕННЮ, а не виробу під
+     ним. На сцені позиції ці плитки читались як «макети цієї футболки»,
+     і ділити їх на всі вироби ніхто не збирався.
+
+     Конструктор смикає нас назад щоразу, коли перемальовує свою панель:
+     склад міняється, поки позицію правлять. */
+  window.__lqArtOut = function(){ try{ renderOrdArt(); }catch(e){} };
+  function renderOrdArt(){
+    var box = document.getElementById('ordArt');
+    if(!box) return;
+    var api = window.__lqOrderArt;
+    var list = (api && api.list()) || [];
+    if(!list.length){ box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    var скільки = list.length === 1 ? 'один макет'
+      : (list.length < 5 ? list.length + ' макети' : list.length + ' макетів');
+    box.innerHTML = '<div class="ordart-l">Макети замовлення · ' + скільки +
+      '<i>натисніть — ляже на відкриту позицію тим самим файлом</i></div>' +
+      '<div class="ordart-row">' + list.map(function(d, i){
+        var hint = d.from
+          ? 'Макет замовлення (' + d.from + ') — покласти на відкриту позицію'
+          : 'Логотип замовлення — покласти на відкриту позицію';
+        return '<span class="ordart-t">' +
+          '<button type="button" class="ordart-b ' + (d.tone || '') + '" data-art="' + i + '" ' +
+          'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>' +
+          '<button type="button" class="ordart-x" data-art-x="' + i + '" ' +
+          'title="Прибрати зі списку — на виробах макет лишиться">✕</button>' +
+        '</span>';
+      }).join('') + '</div>';
+    box.querySelectorAll('[data-art]').forEach(function(el){
+      var d = list[Number(el.dataset.art)];
+      if(d && d.url) el.style.backgroundImage = 'url("' + d.url.replace(/"/g, '%22') + '")';
+      /* Колір макета міряється асинхронно — щойно готово, перефарбуємось. */
+      if(d && d.url && !d.tone && api.tone) api.tone(d.url, renderOrdArt);
+      el.addEventListener('click', function(){
+        if(!api.place(Number(el.dataset.art)))
+          mark('', 'Відкрийте позицію — макет кладеться на неї');
+      });
+    });
+    box.querySelectorAll('[data-art-x]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        api.drop(Number(el.dataset.artX));
+        renderOrdArt();
+      });
+    });
+  }
   function renderList(){
     var box = document.getElementById('listBody');
     if(!OFFER){ box.innerHTML = ''; return; }
@@ -1290,11 +1420,15 @@
     if(groups.length) parts.push(vq + ' шт · ' + groups.length + ' ' +
       (groups.length === 1 ? 'група на вибір' : (groups.length < 5 ? 'групи на вибір' : 'груп на вибір')));
     document.getElementById('listMeta').textContent = parts.join(' + ') || 'порожня пропозиція';
+    renderOrdArt();
     box.querySelectorAll('[data-pick]').forEach(function(el){
       el.addEventListener('click', function(){
         var p = el.dataset.pick.split(':');
         pickItem(p[0], +p[1]);
       });
+    });
+    document.querySelectorAll('.list-f .dg button').forEach(function(b){
+      b.onclick = function(){ send({ act:'calcDump', how: b.dataset.dg }); };
     });
     var fx = document.getElementById('fpFix');
     if(fx) fx.addEventListener('click', function(){
@@ -1566,6 +1700,15 @@
       // Привʼязку й насіння адмінка кладе сюди повідомленням, тож шукати
       // нема де: усе вже в цьому вікні
       return (window.__adminOfferTarget || window.__adminSaveClientOrder) ? window : null;
+    };
+    /* Вид дизайну — рішення про МАЛЮНОК, тобто про все замовлення, а не про
+       позицію, яку зараз правлять. Кошик тут лежить копією й зберігається
+       лише тією позицією, тож тримати таке рішення в памʼяті кадру не можна:
+       воно згорить на першому ж переході. Передаємо адмінці — вона розкладе
+       його по всіх позиціях і запише. */
+    W.__lqKindFix = W.__lqKindFix || function(fp, url, kind){
+      send({ act:'kindFix', fp:String(fp || ''), url:String(url || ''),
+             kind:(kind === 'txt' || kind === 'off') ? kind : 'img' });
     };
     W.__adminSaveClientOrder = W.__adminSaveClientOrder || function(payload){
       return new Promise(function(res, rej){
@@ -2213,11 +2356,13 @@
           '</span>' +
           '<div class="cd-shots">' + c.allShots.map(function(sh){
             var k = sh.key || sh.url;
-            var mp = own.off || {};
-            /* Фото на моделі за замовчуванням зняте: воно показує, як виріб
-               сидить на людині, а не сам виріб із нанесенням, а в
-               прорахунку питають передусім про друге. */
-            var on = Object.prototype.hasOwnProperty.call(mp, k) ? !mp[k] : !sh.model;
+            /* Чи стоїть кадр на картці — питаємо в самого малювальника, а
+               не повторюємо його правило тут. Своя копія вже одного разу
+               розійшлась: менеджер бачив усі ракурси позначеними, хоча на
+               картці стояли два, — ставив галочку ще раз і вирішував, що
+               робоче місце не зберігає. Правило одне, і воно там, де
+               картка справді складається. */
+            var on = window.LQCards.shotOn(own, sh);
             return '<label class="cd-shot' + (on ? '' : ' off') + '">' +
               '<input type="checkbox" data-shot="' + esc(k) + '"' + (on ? ' checked' : '') + '>' +
               '<img src="' + esc(sh.url) + '" alt="">' +

@@ -887,7 +887,11 @@
     window.__lqLayers = {
       list: function(side){
         return (pm.logos[side || pm.side] || []).map(function(l, i){
-          return { id:l.id, i:i, text:!!l.text, locked:!!l.locked, hidden:!!l.hidden };
+          /* `ar` — пропорція самого малюнка. За нею видно, чи справді напис
+             став ширшим, а не лише посунувся повзунок: сам вузол на екрані
+             має сталу рамку, і його ширина нічого не доводить. */
+          return { id:l.id, i:i, text:!!l.text, locked:!!l.locked, hidden:!!l.hidden,
+                   ar:+(l.ar || 0).toFixed(4) };
         });
       },
       active: function(id){ if(id !== undefined) pm.activeLogoId = id; return pm.activeLogoId; },
@@ -909,6 +913,14 @@
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       },
       draw: function(){ renderLogoLayers(); renderTabPanel(); },
+      text: function(id, t){
+        var l = findLayerAnySide(id);
+        if(l && l.text) updateTextLayer(l, { t: String(t), runs: null });
+        return !!l;
+      },
+      /* Вийти з напису — те саме, що клікнути повз нього. */
+      leave: function(){ stopTextEdit(); var g = dropPristineText();
+        renderLogoLayers(); renderTabPanel(); if(g) updatePriceBar(); return g; },
       dup: function(id){ var l = findLayerAnySide(id); if(l) dupLayer(l); }
     };
     window.__lqLayerInfo = function(){
@@ -1205,6 +1217,91 @@
         if(n++ === di) out = l; }); });
       return out;
     }
+    /* ВИД ДИЗАЙНУ — ЦЕ РІШЕННЯ ПРО МАЛЮНОК, А НЕ ПРО ПОЗИЦІЮ.
+
+       Менеджер збирає пропозицію: футболка, худі, шопер — і на всіх той
+       самий напис, надісланий клієнтом картинкою. Він перемикає його на
+       «напис» у поточній позиції, а решта кошика лишається з «картинкою».
+       Разова за напис ділиться на одну позицію замість трьох, і те саме
+       зображення рахується двічі — як напис і як логотип. Ціна в кошику
+       після цього неправдива, і найгірше, що вона виглядає правдоподібно.
+
+       Тому вибір їде за ВІДБИТКОМ: той самий малюнок — той самий вид,
+       скрізь, де він стоїть. Рівно так це вже працює в адмінці, де
+       `applyKindFix` розкладає мапу по всьому замовленню; тут бракувало
+       другої половини — самого кошика.
+
+       Пишемо у три місця, бо читають із трьох: шар (він їде в config.logos
+       і повертається з позицією), опис для рушія (з нього рахується ціна) і
+       мапа `designKindFix` (її адмінка накладає поверх автоматики перед
+       кожним перерахунком). Розійшовшись, вони й давали «перемкнув, а воно
+       повернулось». */
+    /* Адреса файлу малюнка. Відбиток знімається з пікселів, а пікселі в
+       того самого логотипа на різних виробах різні: інший розмір, інший
+       ракурс, інший рендер. Тому саме ФАЙЛ, а не відбиток, і є найнадійнішою
+       ознакою «це той самий малюнок». */
+    function layerUrl(l){
+      return String((l && (l.url || l.cleanUrl || l.origUrl)) || '');
+    }
+    function spreadKindFix(fp, kind, url){
+      fp = String(fp || '');
+      url = String(url || '');
+      if(!fp && !url) return 0;
+      var same = function(l){
+        if(!l) return false;
+        if(fp && String(l.fp || '') === fp) return true;
+        /* ТОЙ САМИЙ ФАЙЛ — ТОЙ САМИЙ ДИЗАЙН.
+
+           Доти рішення їхало лише за відбитком, і цього не вистачало рівно
+           там, де воно найпотрібніше: один напис на худі й на світшоті — це
+           два різні рендери, тож і відбитки різні. Менеджер перемикав напис
+           на одному виробі, на другому лишалась «картинка», і рушій брав за
+           неї окремий макет. */
+        return !!url && layerUrl(l) === url;
+      };
+      var n = 0;
+      // 1. Чернетка: той самий малюнок може стояти на кількох боках виробу.
+      printViews().forEach(function(side){
+        (pm.logos[side] || []).forEach(function(l){
+          if(same(l)){ l.kindFix = kind; n++; }
+        });
+      });
+      // 2. Позиції, які вже лежать у кошику.
+      var list = (typeof cartItems !== 'undefined' && cartItems)
+               ? cartItems : (window.__cartItems || []);
+      list.forEach(function(it){
+        if(!it) return;
+        /* Відбитки, які на цій позиції належать тому самому малюнку: свій і
+           всі, що лежать на шарах із тим самим файлом. */
+        var keys = {};
+        if(fp) keys[fp] = 1;
+        var logos = it.config && it.config.logos;
+        if(logos) Object.keys(logos).forEach(function(side){
+          (logos[side] || []).forEach(function(l){
+            if(same(l) && l.fp) keys[String(l.fp)] = 1;
+          });
+        });
+        var has = false, d = it.desc;
+        if(d && Array.isArray(d.designs)){
+          if(!Array.isArray(d.designKinds)) d.designKinds = [];
+          d.designs.forEach(function(f, i){
+            if(!keys[String(f || '')]) return;
+            d.designKinds[i] = kind; has = true;
+          });
+        }
+        if(logos) Object.keys(logos).forEach(function(side){
+          (logos[side] || []).forEach(function(l){
+            if(same(l)){ l.kindFix = kind; has = true; }
+          });
+        });
+        if(!has) return;
+        it.designKindFix = it.designKindFix || {};
+        Object.keys(keys).forEach(function(k){ it.designKindFix[k] = kind; });
+        n++;
+      });
+      return n;
+    }
+    window.__lqSpreadKind = spreadKindFix;   // для перевірок
     function baseForIndex(m, idx){
       return (window.LQ && window.LQ.baseForIndex) ? window.LQ.baseForIndex(m, idx) : 0;
     }
@@ -1381,9 +1478,13 @@
     function draftDescriptor(){
       var m = methodCfgNew();
       var ap = applicationParts();
-      var fps = [], kinds = [], mm2s = [];
+      var fps = [], kinds = [], mm2s = [], urls = [];
       printViews().forEach(function(side){ inkLayers(side).forEach(function(l){
         fps.push(ensureFp(l)); kinds.push(layerKind(l));
+        /* Адреса файлу — друга особа дизайну. Відбиток знімається з пікселів
+           і в копій одного малюнка на різних виробах різний; файл у них
+           спільний, і саме за ним рушій зводить їх в один макет. */
+        urls.push(layerUrl(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -1403,6 +1504,8 @@
         pieceFee: methodPieceFee(),
         dtfCols: cols,
         designs: fps,
+        // Адреси файлів дизайнів — по одній на кожен, у тому самому порядку
+        designUrls: urls,
         // Вид кожного дизайну — за ним разові оплати діляться на текст і картинку.
         // Старі замовлення цього поля не мають, там усе рахується як картинка.
         designKinds: kinds,
@@ -1691,13 +1794,30 @@
     /* Позицію відкрили наново — її шари везуть свої номери. Присуваємо
        лічильник за найбільший із них, інакше наступний новий шар міг би
        дістати номер, який уже зайнятий. */
+/* ЗБЕРЕЖЕНІ ПОЗИЦІЇ ВЕЗУТЬ СТАРІ НОМЕРИ — ВКЛЮЧНО З ОДНАКОВИМИ.
+
+   Видавати нові номери правильно — цього мало. Позиції, зібрані раніше,
+   уже лежать у замовленнях, і в них номери від годинника: два шари,
+   заведені в одну мілісекунду, мають той самий. Відкриваєш таку позицію —
+   і бачиш рівно те, від чого тікали: в обох шарів одночасно свої маркери,
+   бо `активний === номер` правда для обох; тягнеш дрібний, а їде великий,
+   бо пошук за номером віддає перший.
+
+   Тому номери не лише продовжуємо, а й ЛАГОДИМО: перший шар із таким
+   номером лишає його собі, решта дістає нові. Робиться це при кожному
+   малюванні — воно і дешеве (шарів одиниці), і гарантує, що жоден дотик не
+   станеться раніше за лагодження. */
     function seedLayerIds(){
+      var seen = {}, fixed = 0;
       Object.keys(pm.logos || {}).forEach(function(v){
         (pm.logos[v] || []).forEach(function(l){
-          var n = +(l && l.id) || 0;
-          if(n > lastLayerId) lastLayerId = n;
+          if(!l) return;
+          var n = +l.id || 0;
+          if(!n || seen[n]){ l.id = newLayerId(); fixed++; }
+          else { seen[n] = 1; if(n > lastLayerId) lastLayerId = n; }
         });
       });
+      return fixed;
     }
 /* ══════════ ПОРЯДОК ШАРІВ ══════════════════════════════════════════════
    Стос — це список. Перший найнижчий, останній найвищий, новий лягає
@@ -1969,12 +2089,13 @@
       var k = bh / pngH;
       el.style.fontFamily = textFontCss(sp.font);
       el.style.fontSize   = (TXT_FS * k).toFixed(2) + 'px';
-      el.style.lineHeight = TXT_LH;
+      el.style.lineHeight = textLH(sp);
       el.style.fontWeight = sp.bold ? '700' : '400';
       el.style.fontStyle  = sp.italic ? 'italic' : 'normal';
       el.style.color      = sp.color || TEXT_COLORS[0];
       el.style.padding    = (TXT_PAD * k).toFixed(2) + 'px';
       el.style.textAlign  = textAlign(sp);
+      el.style.letterSpacing = (textLS(sp) * TXT_FS * k).toFixed(2) + 'px';
       el.style.webkitTextStroke = '';
       // Canvas і браузер міряють ту саму гарнітуру трохи по-різному, тож напис
       // міг вилазити за рамку. Підганяємо кегль під фактичну ширину — і те,
@@ -2106,16 +2227,47 @@
          літери впритул, і ручка, зсунута всередину хоч на піксель, лягала б
          просто на текст: у низького напису вона вища за сам напис, і
          спроба взяти його за букву потрапляла в «видалити». */
+      /* ДРІБНОМУ ШАРУ РУЧКИ ВИНОСЯТЬСЯ ДАЛІ.
+
+         Ручка — 24 px, і на кутах їх чотири. Поки шар більший за них, усе
+         гаразд: вони стоять по кутах і нікому не заважають. А на шарі
+         завбільшки з саму ручку вони сходяться над ним і накривають його
+         цілком — і взятись за сам шар стає нічим. Саме це й виглядає як
+         «натискаю на маленьку картинку, а вона не натискається».
+
+         Тому рахуємо, скільки місця лишилось між ручками, і якщо менше за
+         їхній розмір, відсуваємо кожну назовні рівно на нестачу. Шар
+         лишається вільним, а ручки — там, де їх шукає око: по кутах. */
+      /* Розмір беремо з самої геометрії шару, а не з `offsetWidth`: вузол
+         міряють у мить, коли розмітка ще не перерахувалась, і нуль замість
+         ширини робив «дрібним» будь-який шар. Саме через це маркери
+         відлітали й від великого логотипа — цілитись доводилось у порожнє
+         місце біля коміра.
+
+         Поріг — ОДНА ручка на бік, а не дві з просвітом. Дві ручки по
+         протилежних кутах шару на пʼятдесят пікселів одна одній не
+         заважають: вони стоять по кутах, а середина лишається вільною.
+         Заважають вони тоді, коли шар вужчий за них самих — тоді й
+         відсуваємо, рівно на нестачу. */
+      var HW = 24;
+      var box = layerBox(layer);
+      var inkW = (box.w || 0) * (ob.x1 - ob.x0), inkH = (box.h || 0) * (ob.y1 - ob.y0);
+      var padX = Math.max(0, (HW * 2 - inkW) / 2);
+      var padY = Math.max(0, (HW * 2 - inkH) / 2);
       var put = function(sel, a, av, b, bv){
         var h = el.querySelector(sel);
         if(!h) return;
-        h.style[a] = 'calc(' + av + ' - 24px)';
-        h.style[b] = 'calc(' + bv + ' - 24px)';
+        h.style[a] = 'calc(' + av + ' - ' + (HW + (a === 'top' || a === 'bottom' ? padY : padX)).toFixed(1) + 'px)';
+        h.style[b] = 'calc(' + bv + ' - ' + (HW + (b === 'top' || b === 'bottom' ? padY : padX)).toFixed(1) + 'px)';
       };
       put('[data-handle="delete"]', 'top', T, 'left', L);
       put('[data-handle="rotate"]', 'top', T, 'right', R);
       put('[data-handle="scale"]',  'bottom', B, 'right', R);
       put('[data-handle="crop"]',   'bottom', B, 'left', L);
+      /* Кнопка нахилу стоїть посередині низу — її теж треба відсунути, і
+         саме вниз, інакше вона сідає просто на дрібний шар. */
+      var wp = el.querySelector('[data-handle="warp"]');
+      if(wp) wp.style.bottom = 'calc(' + B + ' - ' + (HW + padY).toFixed(1) + 'px)';
     }
     /* Чи є під точкою САМ вміст шару, а не порожній кут його полотна.
        Рахуємо в системі координат шару: центр рамки лишається центром і
@@ -2253,6 +2405,10 @@
       /* Контейнер міг змінити ширину — вікно, колонка збоку, поворот
          телефона. Перераховуємо пікселі з часток, щоб лого лишилось там
          само й того самого фізичного розміру. */
+      /* Спершу лагодимо номери, і тільки потім малюємо: інакше два шари з
+         однаковим номером обидва вважали б себе обраними — і на екрані
+         зʼявилось би два набори маркерів на одну рамку. */
+      seedLayerIds();
       currentLayers().forEach(layerApplyFrac);
       var keepId = pm.textEdit;
       /* …але лишати його можна тільки поки він на видимій стороні. Інакше
@@ -2286,6 +2442,7 @@
           if(ex){
             ex.style.width = bw + 'px'; ex.style.height = bh + 'px';
             ex.style.zIndex = zi;
+            ex.style.pointerEvents = active ? '' : 'none';
             ex.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
             var tx = ex.querySelector('.pm-dl-text');
             if(tx && layer.text){
@@ -2303,6 +2460,19 @@
         el.style.width = bw + 'px';
         el.style.height = bh + 'px';
         el.style.zIndex = zi;
+        /* КНОПКИ ОБРАНОГО ШАРУ МАЮТЬ БУТИ ДОСЯЖНІ, ХОЧ БИ ХТО ЛЕЖАВ ЗВЕРХУ.
+
+           Доти обраний шар піднімався над рештою (z-index 10) — і його
+           маркери були зверху заодно. Коли підйом прибрали (він і давав
+           стрибок), маркери лишились на своєму поверсі: прямокутник шару,
+           що лежить вище, накриває їх і зʼїдає клік. Зображення при цьому
+           рухається, бо перенос питає layerAtPoint і сам знаходить потрібний
+           шар, — а от кнопка просто не натискається.
+
+           Тому неактивні шари не перехоплюють дотик узагалі: вибір і так
+           вирішує layerAtPoint по пікселях, а не те, чий прямокутник зверху.
+           Клік крізь них ловить сцена — див. обробник на pmGarmentWrap. */
+        el.style.pointerEvents = active ? '' : 'none';
         el.style.transform = 'translate(calc(-50% + '+layer.x+'px), calc(-50% + '+layer.y+'px)) rotate('+rot+'deg)';
         var inner = layer.text
           /* contenteditable="true", а не plaintext-only: у звичайному тексті
@@ -2983,7 +3153,10 @@
             + '|' + ((spec && spec.font) || '')
             + '|' + ((spec && spec.bold) ? 'b' : '') + ((spec && spec.italic) ? 'i' : '')
             + '|' + runsKey
-            + '|' + ((spec && spec.align) || 'center');
+            + '|' + ((spec && spec.align) || 'center')
+            /* Інтервал і розрідження — теж інша робота на верстаті: стібки
+               лягають інакше, і макет під них готують окремо. */
+            + '|' + textLH(spec).toFixed(2) + '|' + textLS(spec).toFixed(3);
       var out = '';
       for(var i = 0; i < 64; i++){
         var h = (2166136261 ^ i) >>> 0;
@@ -3171,6 +3344,40 @@
    зробила б картинку в десятки тисяч пікселів заввишки. Дванадцять — це
    вчетверо більше за найдовший напис, який колись просили. */
     var TXT_FS = 200, TXT_PAD = 28, TXT_LH = 1.18, TXT_MAX_LINES = 12;
+/* ══════════ ІНТЕРВАЛ І РОЗРІДЖЕННЯ ══════════════════════════════════════
+   Це властивості ВСЬОГО напису, а не окремого шматка: рядок не може стояти
+   щільніше наполовину, як і не може бути вирівняний ліворуч наполовину.
+   Тому вони живуть поруч із вирівнюванням, а не в шматках.
+
+   Міжрядковий потрібен постійно: у два рядки напис лягає то надто тісно,
+   то з дірою — залежно від гарнітури. Розрідження потрібне рідше, але
+   рівно там, де без нього не обійтись: короткі слова великими літерами
+   («STVORY») без нього виглядають злиплими, і саме так їх найчастіше й
+   вишивають.
+
+   Межі свідомо вузькі. Міжрядковий нижче 0.8 злипає рядки в кашу, вище
+   2.0 розриває напис на окремі слова; розрідження за 0.4 em перетворює
+   слово на набір літер. Дати повзунок «від нуля до нескінченності»
+   означало б дати зіпсувати макет одним рухом. */
+    var TXT_LH_MIN = 0.8, TXT_LH_MAX = 2.0, TXT_LH_STEP = 0.06;
+    var TXT_LS_MIN = -0.05, TXT_LS_MAX = 0.4, TXT_LS_STEP = 0.02;
+    function textLH(sp){
+      var v = +(sp && sp.lh);
+      if(!isFinite(v) || v <= 0) return TXT_LH;
+      return Math.max(TXT_LH_MIN, Math.min(TXT_LH_MAX, v));
+    }
+    function textLS(sp){
+      var v = +(sp && sp.ls);
+      if(!isFinite(v)) return 0;
+      return Math.max(TXT_LS_MIN, Math.min(TXT_LS_MAX, v));
+    }
+    /* Розрідження на полотні вміє не кожен браузер. Де вміє — міряємо й
+       малюємо ним; де ні — додаємо ширину самі, щоб рамка не розійшлася з
+       картинкою. */
+    var LS_NATIVE = (function(){
+      try{ return 'letterSpacing' in document.createElement('canvas').getContext('2d'); }
+      catch(e){ return false; }
+    })();
     function textLines(t){
       return String(t || '').split('\n').map(function(x){ return x.trim(); })
                .filter(Boolean).slice(0, TXT_MAX_LINES);
@@ -3247,16 +3454,25 @@
         });
       });
       var out = [], maxW = 0, totalH = 0;
+      var lsEm = textLS(sp);
       lines.forEach(function(segs){
         if(!segs.length) return;                     // порожні рядки не малюємо
         var w = 0, fs = 0;
         segs.forEach(function(g){
+          var gfs = TXT_FS * (g.st.size || 1);
+          var lsPx = lsEm * gfs;
           mc.font = runFontCss(g.st);
+          if(LS_NATIVE) mc.letterSpacing = lsPx.toFixed(2) + 'px';
           g.w = mc.measureText(g.t).width;
+          /* Без рідної підтримки ширину додаємо самі — рівно стільки, скільки
+             додасть відступ між літерами. */
+          if(!LS_NATIVE && lsPx) g.w += lsPx * g.t.length;
+          g.ls = lsPx;
           w += g.w;
-          fs = Math.max(fs, TXT_FS * g.st.size);
+          fs = Math.max(fs, gfs);
         });
-        var band = fs * TXT_LH;
+        if(LS_NATIVE) mc.letterSpacing = '0px';
+        var band = fs * textLH(sp);
         out.push({ segs: segs, w: w, fs: fs, band: band });
         maxW = Math.max(maxW, w);
         totalH += band;
@@ -3295,9 +3511,18 @@
         ln.segs.forEach(function(g){
           x.font = runFontCss(g.st);
           x.fillStyle = g.st.color;
-          x.fillText(g.t, cx, baseline);
-          cx += g.w;
+          if(LS_NATIVE) x.letterSpacing = (g.ls || 0).toFixed(2) + 'px';
+          if(LS_NATIVE || !g.ls){ x.fillText(g.t, cx, baseline); cx += g.w; }
+          else {
+            /* Браузер розрідження не вміє — розставляємо літери самі, щоб
+               картинка збіглася з поміряною шириною. */
+            for(var q = 0; q < g.t.length; q++){
+              x.fillText(g.t[q], cx, baseline);
+              cx += x.measureText(g.t[q]).width + g.ls;
+            }
+          }
         });
+        if(LS_NATIVE) x.letterSpacing = '0px';
         top += ln.band;
       });
       return c.toDataURL('image/png');
@@ -3571,8 +3796,13 @@
       e.preventDefault();
       e.stopPropagation();
       stopTextEdit();
+      /* Вийшли з напису, у якому нічого не лишилось, — прибираємо його тут
+         же. Невидимий шар із власною разовою підготовкою макета — найгірше,
+         що може лишитись на виробі. */
+      var gone = dropPristineText();
       renderLogoLayers();
       renderTabPanel();
+      if(gone) updatePriceBar();
     }, true);
     /* Заготовку, якої так і не торкнулись, прибираємо: «Ваш напис» на виробі
        нікому не потрібен, а платити за нього тим більше.
@@ -3586,9 +3816,21 @@
 
        Зайвий раз запитати в самого напису, що в ньому написано, дешевше за
        будь-який прапорець: він не буває застарілим. */
+    /* НАПИС БЕЗ ЛІТЕР НЕ ІСНУЄ.
+
+       Два випадки, і обидва ведуть до одного: шар є, а напису немає.
+
+       Перший — заготовка «Ваш напис», якої не торкались: вийшли з неї, і
+       вона зникає сама, щоб зразок не поїхав у виробництво.
+
+       Другий — напис, із якого СТЕРЛИ все. Доти він лишався невидимим
+       шаром: на екрані нічого, а в прорахунку окремий дизайн зі своєю
+       разовою підготовкою макета. Знайти його було ніде — саме тому, що
+       його не видно. */
     function isPristineText(l){
-      return !!(l && l.text && l.textPristine &&
-                String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
+      if(!l || !l.text) return false;
+      if(!String(l.text.t || '').replace(/\s+/g, '')) return true;   // порожній
+      return !!(l.textPristine && String(l.text.t || '').trim() === TEXT_PLACEHOLDER);
     }
     function dropPristineText(){
       var out = false;
@@ -3620,6 +3862,9 @@
       if(patch.color) pm.textColor = patch.color;
       var l = activeTextLayer();
       if(!l) return;
+      /* Інтервал і розрідження — властивості ВСЬОГО напису: рядок не може
+         стояти щільніше наполовину. Тому вони йдуть повз виділення. */
+      if(patch.lh != null || patch.ls != null){ updateTextLayer(l, patch); return; }
       /* Є виділення — правка лягає лише на нього. Саме заради цього тут і
          з'явилися шматки: «оце слово іншим кольором», а не весь напис. */
       var el = activeTextEl();
@@ -3673,6 +3918,12 @@
         right:  bars([14, 9, 14, 9], [6, 11, 6, 11])
       };
     })();
+    /* Значок «інтервали»: стрілка вниз між двома рядками — саме те, що
+       робить міжрядковий, і те, за чим його впізнають в інших редакторах. */
+    var TS_SPACE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 4h16"/><path d="M4 20h16"/><path d="M12 8v8"/>' +
+      '<path d="M9.5 10.5 12 8l2.5 2.5"/><path d="M9.5 13.5 12 16l2.5-2.5"/></svg>';
     var TS_CHEV = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
     var TS_BACK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
@@ -3774,6 +4025,7 @@
     function textStripHtml(){
       var sp = textSpec();
       if(pm.textScreen === 'colors') return textColorsHtml(sp);
+      if(pm.textScreen === 'space')  return textSpaceHtml(sp);
       var f = textFont(sp.font);
       var msg = textWarnHtml();
       var h = '<div class="pm-text-strip"><div class="pm-ts-card">' +
@@ -3808,6 +4060,10 @@
         /* Вирівнювання діє на весь напис, а не на виділене: рядок не може
            стояти ліворуч наполовину. Тому це три положення одного
            перемикача, а не три незалежні кнопки. */
+        /* Інтервали — окремим екраном, а не ще двома парами кнопок у смузі:
+           їх чіпають рідше, ніж кегль, а місця вони з'їли б стільки ж. */
+        '<button class="pm-ts-tog" data-tsnav="space" title="Міжрядковий інтервал і розрідження" ' +
+          'aria-label="Інтервали">' + TS_SPACE + '</button>' +
         '<span class="pm-ts-al">' +
           ['left','center','right'].map(function(a){
             return '<button class="pm-ts-tog pm-ts-alb' + (textAlign(sp) === a ? ' on' : '') +
@@ -3859,6 +4115,32 @@
       { t:'Фіолет і рожевий', c:['#efe4fb', '#b490e8', '#6a3da8', '#f4b9cd', '#e75480', '#9c2c50'] },
       { t:'Бежеві й коричневі', c:['#f3e8db', '#d8c3a5', '#b08968', '#8a5a33', '#6b4423', '#402814'] }
     ];
+/* Екран інтервалів. Два повзунки з числом поруч: тут дивляться на макет і
+   роблять «трохи тісніше» або «трохи вільніше», а не набирають 1.24. Число
+   лишається на видноті, щоб той самий напис можна було повторити. */
+    function textSpaceHtml(sp){
+      var lh = textLH(sp), ls = textLS(sp);
+      var row = function(key, lab, hint, val, mn, mx, st, show){
+        return '<div class="pm-sp-row">' +
+          '<div class="pm-sp-h"><b>' + lab + '</b><span>' + hint + '</span>' +
+            '<i class="pm-sp-v">' + show + '</i></div>' +
+          '<div class="pm-sp-line">' +
+            '<button class="pm-sp-b" data-sp="' + key + '" data-d="-1" aria-label="Менше">−</button>' +
+            '<input type="range" class="pm-sp-sl" data-spr="' + key + '" min="' + mn + '" max="' + mx +
+              '" step="' + st + '" value="' + val + '" aria-label="' + lab + '">' +
+            '<button class="pm-sp-b" data-sp="' + key + '" data-d="1" aria-label="Більше">+</button>' +
+          '</div></div>';
+      };
+      return '<div class="pm-scr pm-scr--flow">' +
+        '<button class="pm-scr-back" data-tsnav="main" aria-label="Назад">' + TS_BACK + '<b>Назад</b></button>' +
+        '<div class="pm-scr-body">' +
+          row('lh', 'Міжрядковий', 'відстань між рядками', lh.toFixed(2),
+              TXT_LH_MIN, TXT_LH_MAX, TXT_LH_STEP, lh.toFixed(2)) +
+          row('ls', 'Розрідження', 'відстань між літерами', ls.toFixed(2),
+              TXT_LS_MIN, TXT_LS_MAX, TXT_LS_STEP, (ls * 100).toFixed(0) + '%') +
+          '<button class="pm-sp-reset" data-sp-reset>Повернути звичайні</button>' +
+        '</div></div>';
+    }
     function textColorsHtml(sp){
       var cur = String(pm.pickColor || sp.color || TEXT_COLORS[0]).toLowerCase();
       var rows = COLOR_ROWS.map(function(r){
@@ -3984,7 +4266,10 @@
       renderGarment(); renderTabPanel();
       if(dropped) updatePriceBar();
     }
-    function addLogo(origUrl, cleanUrl, textSpec){
+    /* `like` — макет, з якого беремо розмір, місце й вид: так лягає плитка
+       з галереї макетів замовлення. Без нього все як було: новий шар у
+       центр зони, розмір за замовчуванням. */
+    function addLogo(origUrl, cleanUrl, textSpec, like){
       if(window.lqAn){
         window.lqAn.step('design');
         window.lqAn.track(textSpec ? 'text_add' : 'logo_upload', { garment: pm.garmentId, side: pm.side });
@@ -4020,6 +4305,20 @@
         url:url, x:anc.x+off, y:anc.y+off, scale:defaultLogoScale(), rot:0, removeBg:hasClean, ar:1,
         // Ознака «це напис» лишається на шарі: за нею і редагування, і окремі ціни
         text: textSpec ? JSON.parse(JSON.stringify(textSpec)) : null};
+      /* Макет із галереї стає на місце й на розмір свого двійника з
+         сусідньої позиції. Виріб інший, тож збіг приблизний — але це
+         набагато ближче до потрібного, ніж центр зони, і рухати доводиться
+         рідко. Вид дизайну («напис», «не рахувати») переїжджає разом із
+         ним: це рішення про сам малюнок, а не про виріб під ним. */
+      if(like){
+        var b0 = wrapBox();
+        if(+like.frac > 0 && b0.w) layer.scale = Math.max(0.04, Math.min(5, (like.frac * b0.w) / 120));
+        if(like.fx != null && b0.w) layer.x = like.fx * b0.w;
+        if(like.fy != null && b0.h) layer.y = like.fy * b0.h;
+        if(like.rot) layer.rot = +like.rot || 0;
+        if(like.kindFix) layer.kindFix = like.kindFix;
+        if(like.fp) layer.fp = String(like.fp);
+      }
       layerSaveFrac(layer);            // розмір і місце — одразу в частках
       pm.logos[pm.side].push(layer);   // кілька лого на одній стороні
       pm.activeLogoId = layer.id;
@@ -4170,7 +4469,7 @@
          діставався тому, чий прямокутник випадково зверху. */
       var q = getXY(e);
       var real = layerAtPoint(q.x, q.y);
-      if(real && real.id !== layer.id) layer = real;
+      if(real && (!layer || real.id !== layer.id)) layer = real;
       else if(!real){
         /* Порожній кут чужої рамки. Ні за що братись — і нічого не
            виділяємо: інакше людина тягне порожнечу, а їде сусідній напис. */
@@ -4185,7 +4484,13 @@
       /* Взялись за інший шар — попередній напис виходить із правки. Інакше
          він лишався редагованим назавжди: перенести його вже не виходило,
          бо будь-яке тягнення по ньому вважалось виділенням тексту. */
-      if(!editing && pm.textEdit != null){ stopTextEdit(); renderLogoLayers(); }
+      if(!editing && pm.textEdit != null){
+        stopTextEdit();
+        /* Попередній напис могли стерти дочиста — тоді він зникає разом із
+           виходом із нього, а не лишається невидимим шаром. */
+        if(dropPristineText()) updatePriceBar();
+        renderLogoLayers();
+      }
       if(!editing) e.preventDefault();
       var wasActive = pm.activeLogoId === layer.id;
       pm.activeLogoId = layer.id;
@@ -4322,10 +4627,28 @@
     window.addEventListener('mouseup', onDlUp);
     window.addEventListener('touchend', onDlUp);
 
+    /* Неактивні шари дотику не ловлять — щоб не забирати клік у маркерів
+       обраного. Отже їхній вибір ловить сама сцена: питає, хто під точкою,
+       і віддає його тому самому обробнику, що й раніше. */
+    (function(){
+      var wrap = document.getElementById('pmGarmentWrap');
+      if(!wrap) return;
+      var pick = function(e){
+        if(e.target.closest('.pm-draggable-layer')) return;   // обраний обробить себе сам
+        var q = getXY(e);
+        if(!layerAtPoint(q.x, q.y)) return;                   // під точкою порожньо
+        onImgDown(e, null);
+      };
+      wrap.addEventListener('mousedown', pick);
+      wrap.addEventListener('touchstart', pick, { passive:false });
+    })();
     // Deselect active layer when tapping the garment background
     document.getElementById('pmGarmentWrap').addEventListener('click', function(e){
       if(e.target.closest('.pm-draggable-layer')) return;
       if(dlGuard) return;
+      /* Під точкою є шар — його щойно взяли на mousedown, знімати виділення
+         не можна. */
+      try{ var q = getXY(e); if(layerAtPoint(q.x, q.y)) return; }catch(x){}
       if(pm.activeLogoId !== null){
         var wasText = !!activeTextLayer();
         stopTextEdit();
@@ -4414,9 +4737,20 @@
              файл для кожного виробу окремо було найдовшою частиною збирання
              пропозиції. Самі ми лого нікуди не ставимо: для футболки це груди,
              для кепки центр, для худі спина — за менеджера не вгадаєш. */
-          html = layerListHtml() +
-            '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">' +
-            orderLogosHtml();
+          /* ГАЛЕРЕЯ МАКЕТІВ — ПЕРШИМ РЯДКОМ ПАНЕЛІ.
+
+             Спершу вона стояла всередині ряду плиток, поруч із «додати»:
+             місце логічне, бо це теж «що покласти на виріб». Але Андрій її
+             там просто не побачив — і мав рацію. Це не ще одна кнопка
+             додавання, а відповідь на питання «що вже є в цьому
+             замовленні», і ставити її треба ДО того, як людина потягнеться
+             завантажувати файл удруге. Саме повторне завантаження ми тут і
+             намагаємось відвернути: другий файл того самого логотипа — це
+             другий макет у рахунку. */
+          html = orderLogosHtml() + layerListHtml() +
+            '<div class="pm-photo-filled'+(logoCount() === 0 ? ' is-empty' : '')+'">';
+          /* На сцені є свій кут для макетів — тоді в панелі їх немає, і
+             висоту вона віддає ціні. orderLogosHtml() це сам і вирішує. */
           groups.forEach(function(gr, gi){
             var isCur = gr.side === pm.side;   // 'multi' лишається для приглушення чужих боків
             html += '<div class="pm-photo-group'+(isCur?'':' is-other')+'">';
@@ -4734,11 +5068,10 @@
           openDeleteConfirm(Number(el.dataset.llDel));
         });
       });
-      pmTabPanel.querySelectorAll('[data-order-logo]').forEach(function(el){
-        var u = orderLogos()[Number(el.dataset.orderLogo)];
-        if(u) el.style.backgroundImage = 'url("' + u.replace(/"/g, '%22') + '")';
-        el.addEventListener('click', function(){ if(u) addLogo(u, u, null); });
-      });
+      wireOrderArt(pmTabPanel);
+      /* Смужка макетів на сцені — разом із панеллю: склад замовлення
+         міняється, поки позицію правлять, і смужка має це бачити. */
+      try{ renderOrderArt(); }catch(e){}
       pmTabPanel.querySelectorAll('.pm-photo-thumb').forEach(function(el){
         el.addEventListener('click', function(){
           var id = Number(el.dataset.id), side = el.dataset.side;
@@ -4905,6 +5238,43 @@
           renderTabPanel();
         });
       });
+      /* Інтервали. Кнопки «−» і «+» для дрібного кроку, повзунок для
+         великого — одне не заміняє другого: пальцем зручніше тягнути,
+         мишею точніше клацати. */
+      (function(){
+        var LIM = { lh:[TXT_LH_MIN, TXT_LH_MAX, TXT_LH_STEP],
+                    ls:[TXT_LS_MIN, TXT_LS_MAX, TXT_LS_STEP] };
+        var cur = function(k){ return k === 'lh' ? textLH(textSpec()) : textLS(textSpec()); };
+        var put = function(k, v){
+          var L = LIM[k];
+          v = Math.max(L[0], Math.min(L[1], Math.round(v / L[2]) * L[2]));
+          var patch = {}; patch[k] = v;
+          textApply(patch);
+          renderTabPanel();
+        };
+        pmTabPanel.querySelectorAll('[data-sp]').forEach(function(el){
+          el.addEventListener('click', function(){
+            var k = el.dataset.sp;
+            put(k, cur(k) + (+el.dataset.d) * LIM[k][2]);
+          });
+        });
+        pmTabPanel.querySelectorAll('[data-spr]').forEach(function(el){
+          /* Поки тягнуть — міняємо напис, але панель не перебудовуємо:
+             інакше повзунок замінився б новим просто під пальцем. */
+          el.addEventListener('input', function(){
+            var patch = {}; patch[el.dataset.spr] = +el.value;
+            textApply(patch);
+            var v = el.closest('.pm-sp-row').querySelector('.pm-sp-v');
+            if(v) v.textContent = el.dataset.spr === 'lh'
+              ? (+el.value).toFixed(2) : Math.round(+el.value * 100) + '%';
+          });
+          el.addEventListener('change', function(){ renderTabPanel(); });
+        });
+        var rst = pmTabPanel.querySelector('[data-sp-reset]');
+        if(rst) rst.addEventListener('click', function(){
+          textApply({ lh: TXT_LH, ls: 0 }); renderTabPanel();
+        });
+      })();
       /* Точний відтінок — для рідкого випадку, коли в клієнта фірмовий
          колір із кодом. Решту обирають зі сітки. */
       (function(){
@@ -5499,6 +5869,25 @@
            видами, менеджер писав про це в коментарі — а рахунок усе одно
            приходив зі зайвим макетом. Знімаються рівно разові: підготовка
            макета й ескіз. Саме нанесення рахується як звичайно. */
+        /* САМ МАЛЮНОК У РЯДКУ.
+
+           «Два дизайни, хоча там один» — це не завжди помилка рахунку:
+           підготовка макета належить усьому замовленню, а ескіз — конкретному
+           малюнку, і на одному виробі вони стоять поруч. Але перевірити це на
+           екрані було нічим: два однакові рядки «картинка», і про який саме
+           малюнок ідеться — невідомо.
+
+           Тепер видно: якщо в рядках той самий малюнок двічі — це помилка, і
+           її видно одразу; якщо різні — рахунок чесний, і сперечатись нема
+           про що. */
+        function designPic(di){
+          var l = layerAtDesign(di);
+          var u = layerUrl(l);
+          if(!u) return '';
+          return '<img src="' + u + '" alt="" style="width:20px;height:20px;' +
+            'object-fit:contain;vertical-align:middle;margin-right:5px;' +
+            'border-radius:4px;background:#fff;border:1px solid #e2e8f0;">';
+        }
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
@@ -5525,19 +5914,28 @@
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
-            tb += r('Підготовка макета' + kindPick(f.di, f.kind) +
+            tb += r(designPic(f.di) + 'Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
                     f.units + ' шт)</span>', money(per), money(perC));
           });
           offs.forEach(function(d){
-            tb += r('Підготовка макета' + kindPick(d.i, 'off') +
+            tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, 'off') +
                     ' <span style="color:#8a94a6;">(дизайн №' + (d.i + 1) +
                     ' — макет не рахуємо)</span>', money(0), money(0));
           });
+          /* Дизайни, макет яких уже оплачено погодженою частиною. Грошей за
+             них немає, але рядок потрібен: у ньому живе перемикач виду, і
+             без нього напис на рекомендованій позиції нічим перемкнути. */
+          ((P && P.designNos) ? P.designNos : []).filter(function(d){ return d && d.done; })
+            .forEach(function(d){
+              tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, d.kind) +
+                      ' <span style="color:#8a94a6;">(уже оплачена основними позиціями)</span>',
+                      money(0), money(0));
+            });
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
-            tb += r('Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
+            tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
                     x.units + ' шт)</span>', money(per), money(perC));
           });
@@ -5633,8 +6031,28 @@
           e.stopPropagation();
           var l = layerAtDesign(+sel.getAttribute('data-mgr-kind'));
           if(!l) return;
-          l.kindFix = (sel.value === 'txt' || sel.value === 'off') ? sel.value : 'img';
+          var kind = (sel.value === 'txt' || sel.value === 'off') ? sel.value : 'img';
+          /* Без відбитка рішення нікуди не поширити — лишаємо його хоч на
+             самому шарі, інакше перемикач просто нічого не зробить. */
+          ensureFp(l);
+          var url = layerUrl(l);
+          if(l.fp || url) spreadKindFix(l.fp, kind, url); else l.kindFix = kind;
+          /* У ПРОПОЗИЦІЇ РІШЕННЯ МАЄ ЛЯГТИ В БАЗУ ОДРАЗУ.
+
+             Тут кошик — це склад замовлення, і лежить він КОПІЄЮ: назад
+             зберігається лише та позиція, яку правлять. Тобто сусідні
+             позиції мінялись у памʼяті й губились, щойно менеджер відкривав
+             наступну — звідси «перемкнув в одному, а в іншому одязі не
+             підтягнулось і не збереглось». Рішення про малюнок належить
+             усьому замовленню, тож і записує його адмінка, одразу. */
+          try{
+            if(window.__lqKindFix) window.__lqKindFix(l.fp || '', url, kind);
+          }catch(e2){}
           updatePriceBar();          // ціна, шкала тиражів і сам прорахунок
+          /* Кошик перерахувати обовʼязково: змінилась не наша позиція, а
+             спільна разова — отже й ціни сусідніх позицій. */
+          try{ if(typeof renderCart === 'function') renderCart(); }catch(e2){}
+          try{ if(typeof cartPersist === 'function') cartPersist(); }catch(e2){}
         };
       });
       var clr = out.querySelector('[data-mgr-clear]');
@@ -6471,17 +6889,214 @@
       var l = t && t.logos;
       return Array.isArray(l) ? l.filter(function(u){ return typeof u === 'string' && u; }) : [];
     }
+    /* ── ГАЛЕРЕЯ МАКЕТІВ ЗАМОВЛЕННЯ ──────────────────────────────────────
+
+       ЩО БУЛО НЕ ТАК. Той самий логотип менеджер завантажував на кожну
+       позицію окремо: на худі в групі 1, потім на худі в групі 2, потім на
+       світшот. Файл щоразу новий — інші пікселі після очищення фону, інша
+       адреса. А рушій цін впізнає макет саме за пікселями: однакова
+       картинка з двох різних файлів дає два різні відбитки, і замовлення з
+       трьома дизайнами рахується як пʼять. Клієнт платить за підготовку
+       макетів, яких не робили.
+
+       Пояснити це машині неможливо: два файли справді різні. Тож питання
+       не в тому, як їх упізнати, а в тому, щоб другого файлу взагалі не
+       зʼявлялось. Усі макети, які вже є в замовленні, лежать тут плиткою —
+       натиснув, і на виріб лягає ТОЙ САМИЙ файл, із тим самим відбитком і
+       тим самим розміром, що на сусідній позиції.
+
+       Логотипи з картки клієнта йдуть слідом за ними: вони теж «те, що
+       можна покласти», просто ще не стоять ніде. */
+    /* Макети, прибрані зі смужки руками. Живуть на час сеансу: це не
+       рішення про замовлення, а прибирання на своєму столі, і переносити
+       його в базу — значить нав’язати сусідньому менеджеру. */
+    var LQO_DROP = {};
+    function orderDesigns(){
+      var out = [], was = {};
+      var add = function(l, from){
+        if(!l) return;
+        var u = String(l.url || l.cleanUrl || l.origUrl || '');
+        if(u.slice(0, 4) !== 'http') u = '';
+        var fp = String(l.fp || '');
+        /* Ключ — адреса файлу, і лише коли її немає — відбиток. Один файл
+           не може стояти в галереї двічі, хай би на скількох виробах він
+           лежав. */
+        /* Макет без файлу в галереї не потрібен. Показати його нічим —
+           плитка виходить порожнім сірим квадратом, — і покласти на виріб
+           теж: класти нема чого. Такі записи лишились від старих позицій,
+           де в замовленні зберігалась сама геометрія шару. Лічильник
+           «10 макетів» вони роздували, а користі не давали жодної. */
+        if(!u && !l.text) return;
+        var key = u || (fp ? 'fp:' + fp : '');
+        if(!key || was[key] || LQO_DROP[key]) return;
+        was[key] = 1;
+        out.push({ url:u, fp:fp, text:l.text || null, from:from || '',
+                   frac:(+l.frac > 0 ? +l.frac : 0),
+                   fx:(l.fx != null ? +l.fx : null), fy:(l.fy != null ? +l.fy : null),
+                   rot:+l.rot || 0, removeBg:!!l.removeBg,
+                   kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
+                     ? l.kindFix : null });
+      };
+      var cart = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      cart.forEach(function(it){
+        var lg = it && it.config && it.config.logos;
+        if(!lg || typeof lg !== 'object') return;
+        Object.keys(lg).forEach(function(side){
+          (Array.isArray(lg[side]) ? lg[side] : []).forEach(function(l){
+            add(l, (it && it.name) || '');
+          });
+        });
+      });
+      orderLogos().forEach(function(u){ add({ url:u }, ''); });
+      return out;
+    }
     /* Плитки логотипів стоять першими в тому самому ряду, що й дизайни:
        це все «що можна покласти на виріб», і розділяти їх на два поверхи
        немає за чим. Саму картинку ставимо з коду, а не в атрибут style:
        у data-URI трапляються лапки, і розмітка від них розсипається. */
+    /* Плитки живуть у двох місцях — на сцені й у панелі, — тож і чіпляння
+       одне на обидва. Друга копія цього коду рано чи пізно розійшлася б із
+       першою, і половина плиток перестала б класти макет. */
+    function wireOrderArt(root){
+      if(!root) return;
+      root.querySelectorAll('[data-order-logo]').forEach(function(el){
+        var d = orderDesigns()[Number(el.dataset.orderLogo)];
+        if(d && d.url) el.style.backgroundImage = 'url("' + d.url.replace(/"/g, '%22') + '")';
+        /* Кладемо ТОЙ САМИЙ файл і повторюємо розмір із місцем, як на
+           сусідній позиції. Виріб інший, тож ідеально не збіжиться — але
+           попадання «майже туди» економить усю роботу, а зона нанесення
+           однаково попередить, якщо макет із неї вийшов. */
+        el.addEventListener('click', function(){
+          if(!d || (!d.url && !d.text)) return;
+          addLogo(d.url, d.url, d.text || null, d);
+        });
+      });
+      /* ПРИБРАТИ МАКЕТ ЗІ СМУЖКИ. Саме зі смужки, а не з замовлення: у
+         довгій роботі там назбирується десяток файлів, з яких половина —
+         старі спроби, і шукати серед них потрібний стає довше, ніж
+         завантажити заново.
+
+         На самих виробах і в цінах макет лишається недоторканим: смужка
+         показує, ЩО МОЖНА ПОКЛАСТИ, і прибрати звідти зайве — це прибрати
+         з переліку пропозицій, а не з роботи. Тому й підтвердження тут
+         немає: втратити нічого не можна, а повернути — перезавантаженням
+         позиції, де цей макет стоїть. */
+      root.querySelectorAll('[data-order-drop]').forEach(function(el){
+        el.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          var d = orderDesigns()[Number(el.dataset.orderDrop)];
+          if(!d) return;
+          var k = d.url || ('fp:' + d.fp);
+          if(k) LQO_DROP[k] = 1;
+          renderOrderArt();
+          try{ renderTabPanel(); }catch(e2){}
+        });
+      });
+    }
+    /* ЯКОГО КОЛЬОРУ САМ МАКЕТ. Білий логотип на білій плитці не видно
+       взагалі: менеджер бачив ряд порожніх квадратів. Міряємо середню
+       яскравість непрозорих пікселів і вдягаємо плитку в протилежне.
+
+       Міряємо раз на файл і памʼятаємо: у смужці ті самі макети
+       перемальовуються щоразу, коли панель оновлюється. Не вдалось
+       прочитати пікселі (чужий домен без CORS) — лишається середньо-сіра
+       плитка, на якій видно і чорне, і біле. */
+    var LQO_TONE = {};
+    function orderTone(url, done){
+      if(!url) return '';
+      if(LQO_TONE[url] !== undefined) return LQO_TONE[url];
+      LQO_TONE[url] = '';
+      var im = new Image();
+      im.crossOrigin = 'anonymous';
+      im.onload = function(){
+        try{
+          var c = document.createElement('canvas'); c.width = c.height = 16;
+          var x = c.getContext('2d', { willReadFrequently:true });
+          x.drawImage(im, 0, 0, 16, 16);
+          var d = x.getImageData(0, 0, 16, 16).data, сума = 0, n = 0;
+          for(var i = 0; i < d.length; i += 4){
+            if(d[i+3] < 40) continue;                       // прозоре поле не рахуємо
+            сума += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+            n++;
+          }
+          LQO_TONE[url] = n ? (сума / n > 150 ? 'on-dark' : 'on-light') : '';
+        }catch(e){ LQO_TONE[url] = ''; }
+        if(done) done();
+      };
+      im.onerror = function(){ LQO_TONE[url] = ''; };
+      im.src = url;
+      return '';
+    }
+    function orderTilesHtml(list){
+      return list.map(function(d, i){
+        var hint = d.from
+          ? 'Макет замовлення (' + d.from + ') — поставити на цю сторону тим самим файлом'
+          : 'Логотип замовлення — поставити на цю сторону';
+        var tone = orderTone(d.url, renderOrderArt);
+        return '<span class="lqo-t">' +
+          '<button class="lqo-b ' + tone + '" data-order-logo="' + i + '" ' +
+          'title="' + String(hint).replace(/"/g, '&quot;') + '"></button>' +
+          '<button class="lqo-x" data-order-drop="' + i + '" ' +
+          'title="Прибрати зі списку макетів — на самих виробах він лишиться">✕</button>' +
+        '</span>';
+      }).join('');
+    }
+    /* ГАЛЕРЕЯ НАЗОВНІ. Макети належать усьому замовленню, тож і показувати
+       їх правильно там, де видно замовлення цілком, — у колонці складу
+       робочого місця, а не на сцені однієї позиції. Сама сцена їх більше не
+       малює: два однакові ряди на екрані читались би як два різні набори.
+
+       Кладемо звідти так само, як клали тут: на поточну сторону відкритої
+       позиції, тим самим файлом. */
+    window.__lqOrderArt = {
+      list: function(){
+        return orderDesigns().map(function(d){
+          return { url:d.url, from:d.from, tone: LQO_TONE[d.url] || '' };
+        });
+      },
+      place: function(i){
+        var d = orderDesigns()[i];
+        if(!d || (!d.url && !d.text)) return false;
+        addLogo(d.url, d.url, d.text || null, d);
+        return true;
+      },
+      drop: function(i){
+        var d = orderDesigns()[i];
+        if(!d) return false;
+        var k = d.url || ('fp:' + d.fp);
+        if(k) LQO_DROP[k] = 1;
+        return true;
+      },
+      /* Колір самого макета міряється асинхронно; коли міра готова —
+         кличемо назад, щоб плитки перефарбувались. */
+      tone: function(url, done){ return orderTone(url, done); }
+    };
+    /* Смужка макетів на сцені. Живе окремо від панелі й перемальовується
+       разом із нею: склад замовлення міняється, поки позицію правлять. */
+    function renderOrderArt(){
+      var box = document.getElementById('pmOrderArt');
+      try{ if(window.__lqArtOut) window.__lqArtOut(); }catch(e){}
+      if(!box) return;
+      /* Колонка складу взяла галерею на себе — на сцені її більше немає. */
+      if(window.__lqArtOut){ box.hidden = true; box.innerHTML = ''; return; }
+      var list = orderDesigns();
+      if(!list.length){ box.hidden = true; box.innerHTML = ''; return; }
+      box.hidden = false;
+      box.innerHTML = '<div class="lqo-cap" title="Макети цього замовлення — ' +
+        'натисніть, і макет ляже на цю сторону тим самим файлом">МАКЕТИ ' +
+        list.length + '</div>' + orderTilesHtml(list);
+      wireOrderArt(box);
+    }
+    /* Той самий блок для панелі — лишається для сайту, де сцени з вільними
+       кутами немає, а панель одна на все. */
     function orderLogosHtml(){
-      var list = orderLogos();
-      if(!list.length) return '';
-      return '<div class="lqo-row">' + list.map(function(u, i){
-          return '<button class="lqo-b" data-order-logo="' + i + '" ' +
-                 'title="Логотип замовлення — поставити на цю сторону"></button>';
-        }).join('') + '</div><div class="lqo-sep"></div>';
+      var list = orderDesigns();
+      if(!list.length || document.getElementById('pmOrderArt')) return '';
+      var скільки = list.length === 1 ? 'один макет'
+        : (list.length < 5 ? list.length + ' макети' : list.length + ' макетів');
+      return '<div class="lqo-box"><div class="lqo-l">Макети замовлення · ' + скільки +
+        '<i>натисніть — ляже на цю сторону тим самим файлом</i></div>' +
+        '<div class="lqo-row">' + orderTilesHtml(list) + '</div></div>';
     }
     function syncAddLabels(){
       var edit = !!pm.editing;

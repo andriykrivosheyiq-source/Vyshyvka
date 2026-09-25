@@ -471,6 +471,67 @@ console.log('помилки сторінок:', errs.length);
 errs.slice(0, 5).forEach(e => console.log(' ', e));
 if(errs.length) bad++;
 console.log('');
+console.log('═══ РАЗОВА КАРТИНКИ Й РАЗОВА НАПИСУ — ОКРЕМІ РЯДКИ ═══');
+/* Андрій: «як формується оплата за дизайни в кожній одиниці, дуже дивно і
+   щось поломалось».
+
+   У розкладі стояв ОДИН рядок: «Підготовка макета · feeTotal ₴ на feeUnits
+   шт». `feeTotal` складав разові ВСІХ видів — і картинки, і напису, — а
+   `feeUnits` при цьому не складався, а ПЕРЕЗАПИСУВАВСЯ останнім видом.
+
+   Поки на позиції один вид, різниці немає. А щойно на виробі й логотип, і
+   напис — число ставало вигаданим: «1100 ₴ на 5 шт», хоч 1100 ÷ 5 = 220, а
+   в рядку стояло 150. Ціна рахувалась чесно, по кожному виду окремо; брехав
+   саме підпис — і не сходився сам із собою. */
+{
+  const розклад = await admin.evaluate(s => window.eval(s), SETUP + `
+    const mk = (name, units, designs, kinds, mm2) => Object.assign(
+      __mk(name, 'main', '', designs, mm2),
+      { qty:units, desc: Object.assign(__mk(name,'main','',designs,mm2).desc,
+        { units, designs, designKinds:kinds, designMm2:mm2 }) });
+    /* Позиція A несе і логотип, і напис; позиція B — тільки логотип.
+       Отже разова картинки ділиться на 10 шт, разова напису — на 5. */
+    const o = { id:'f', orderId:'1000057', name:'Проба', items:[
+      mk('Футболка', 5, ['LOGO','TEXT'], ['img','txt'], [4000, 2000]),
+      mk('Худі',     5, ['LOGO'],        ['img'],        [4000]) ]};
+    orders.length = 0; orders.push(o);
+    repriceOrder(o); recalcOrderTotals(o);
+    const html = priceCalcHtml(o);
+    const b = o.items[0].parts || {};
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const it0 = doc.querySelector('.t-calc-item');
+    const rows = it0 ? [...it0.querySelectorAll('.t-calc-row')] : [];
+    JSON.stringify({
+      feeTotal:b.feeTotal, feeUnits:b.feeUnits, feeShare:b.feeShare,
+      разові:(b.feeLines || []).map(f => f.kind + ':' + f.fee + '/' + f.units),
+      рядки:rows.filter(r => /Підготовка макета/.test(r.querySelector('span').textContent))
+                .map(r => r.querySelector('span').textContent + ' → ' + r.querySelector('b').textContent)
+    });
+  `).then(JSON.parse);
+  console.log('   ' + JSON.stringify(розклад.разові) + ' · feeTotal ' + розклад.feeTotal +
+              ' на ' + розклад.feeUnits + ' шт, а насправді ' + розклад.feeShare + ' ₴/шт');
+  розклад.рядки.forEach(r => console.log('   ' + r));
+  ok(розклад.разові.length === 2,
+    'рушій рахує разову кожного виду окремо — своя ставка й свій тираж',
+    'разові злиплись в одну: ' + JSON.stringify(розклад.разові));
+  ok(розклад.рядки.length === 2,
+    'і в розкладі їх теж дві — стільки рядків, скільки видів',
+    'у розкладі одне число на обидва види: ' + JSON.stringify(розклад.рядки));
+  /* Головне: підпис і значення в кожному рядку мають сходитись між собою. */
+  const збіг = розклад.рядки.every(t => {
+    const m = t.match(/(\d+)\s*₴ на (\d+) шт → (\d+)/);
+    return m && Math.abs(Math.round(+m[1] / +m[2]) - +m[3]) <= 1;
+  });
+  ok(збіг,
+    'у кожному рядку підпис ділиться рівно в те число, що стоїть поруч',
+    'підпис і значення розходяться: ' + JSON.stringify(розклад.рядки));
+  const сума = розклад.рядки.reduce((a, t) => a + (+(t.match(/→ (\d+)/) || [0,0])[1]), 0);
+  ok(сума === розклад.feeShare,
+    'а разом вони дають рівно ту частку разових, що сидить у ціні за штуку',
+    'рядки не сходяться з ціною: ' + сума + ' проти ' + розклад.feeShare);
+}
+
+console.log('');
 console.log('═══ ПЕРЕМАГАЄ ОСТАННЯ ЗМІНА, А НЕ ПЕРША ═══');
 /* Андрій, двічі: «я змінюю на надпис, потім зберігаю і воно наче
    збереглось, перезаходжу, а воно не збереглось» і «воно мені дає змінити,

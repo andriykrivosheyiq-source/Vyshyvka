@@ -1163,6 +1163,68 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   /* Логотипи замовлення: завантажені один раз у картці клієнта, доступні
      кожному товару. Навмисно НЕ ставимо їх на виріб самі — для футболки це
      груди, для кепки центр, для худі спина; вгадати за менеджера не можна. */
+  /* ГАЛЕРЕЯ МАКЕТІВ — СМУЖКОЮ НА САМІЙ СЦЕНІ, справа вгорі.
+
+     Блоком у панелі вона з'їдала висоту й відтісняла ціну вниз. Тут вона
+     не коштує панелі нічого й лишається перед очима на будь-якій вкладці.
+     Стоїть під кнопкою «скачати» (та сидить на 18px) і не доростає до
+     стрілки перемикання сторін: більше пʼяти плиток — гортається. */
+  /* СТОЇТЬ УНИЗУ ПРАВОРУЧ І ЛЕЖИТЬ УПОПЕРЕК.
+
+     Спершу смужка була вертикальна, вгорі справа — і налазила на кнопку
+     перемикання ракурсу, яка сидить посеред правого краю. Пересувати
+     кнопку означало б посунути те, чим користуються щохвилини, заради
+     того, чим користуються зрідка. Унизу праворуч вільно в будь-якому
+     режимі: там немає ні стрілок, ні кнопки «скачати», ні підпису
+     сторони — він по центру. */
+  .lqo-side{position:absolute;bottom:20px;right:16px;z-index:8;display:flex;
+    align-items:center;gap:6px;max-width:min(62%,420px);overflow-x:auto;overflow-y:hidden;
+    padding:6px 8px;border-radius:13px;
+    background:rgba(255,255,255,.90);border:1px solid rgba(15,32,52,.10);
+    box-shadow:0 4px 14px rgba(15,32,52,.12);scrollbar-width:thin;}
+  .lqo-side[hidden]{display:none;}
+  .lqo-side .lqo-cap{flex:0 0 auto;font-size:9px;font-weight:800;letter-spacing:.04em;
+    color:#8A93A3;line-height:1.1;text-align:center;width:34px;}
+  /* Плитка з макетом. Обгортка тримає розмір і кнопку «прибрати», а сама
+     плитка — картинку на фоні, підібраному під неї. */
+  .lqo-t{position:relative;flex:0 0 auto;width:42px;height:42px;}
+  .lqo-side .lqo-b{width:42px;height:42px;border-radius:10px;background-size:76%;
+    border-style:solid;border-color:rgba(15,32,52,.14);}
+  /* КОНТРАСТ ПІД МАКЕТ. Білий логотип на білій плитці не видно взагалі —
+     менеджер бачив ряд порожніх квадратів і не розумів, що там лежить.
+     Тепер плитка вдягається під свій малюнок: світлий — на темну, темний —
+     на світлу. Поки колір не зміряно, стоїть середньо-сіра: на ній видно
+     і чорне, і біле, просто гірше, ніж на своїй. */
+  .lqo-side .lqo-b{background-color:#9AA3AE;}
+  .lqo-side .lqo-b.on-dark{background-color:#22272F;border-color:rgba(255,255,255,.18);}
+  .lqo-side .lqo-b.on-light{background-color:#F2F4F7;border-color:rgba(15,32,52,.16);}
+  .lqo-side .lqo-b::after{width:15px;height:15px;border-radius:8px;font-size:11px;
+    line-height:14px;right:-3px;bottom:-3px;}
+  /* Прибрати макет зі смужки. Ховається, доки на плитку не навели: ряд із
+     хрестиком на кожній плитці читається як «усе це можна зламати». */
+  .lqo-x{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:9px;
+    border:none;background:#11151C;color:#fff;font-size:11px;line-height:15px;padding:0;
+    cursor:pointer;opacity:0;transition:opacity .12s;z-index:2;}
+  .lqo-t:hover .lqo-x,.lqo-x:focus-visible{opacity:1;}
+  @media (max-width:760px){
+    .lqo-side{bottom:8px;right:8px;left:8px;max-width:none;}
+    .lqo-side .lqo-cap{display:none;}
+    .lqo-x{opacity:1;}
+  }
+  /* Той самий блок, але в панелі — лишається для сайту, де сцени з
+     кутами немає. Обведення й підпис потрібні саме тому, що блок стоїть
+     перед усім: без них ряд квадратиків читається як частина сусіднього. */
+  .lqo-box{margin:0 0 10px;padding:9px 10px 10px;border:1px solid #E3E8EF;border-radius:13px;
+    background:#F8FAFC;}
+  /* Підказка ОКРЕМИМ РЯДКОМ, а не поруч. Поруч вона трималась на відступі
+     між елементами — а варто стилям не доїхати, як «10 макетів» і
+     «натисніть…» злипались в одне слово. Окремий рядок читається однаково
+     за будь-яких обставин. */
+  .lqo-l{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:#5A6576;margin-bottom:7px;}
+  .lqo-l i{display:block;margin-top:3px;font-style:normal;font-weight:600;font-size:10.5px;
+    letter-spacing:0;text-transform:none;color:#8A93A3;}
+  .lqo-box .lqo-row{flex-wrap:wrap;}
   .lqo-row{display:flex;gap:8px;flex:0 0 auto;align-items:center;}
   .lqo-b{all:unset;cursor:pointer;flex:0 0 auto;width:50px;height:50px;border-radius:11px;
     border:1.5px dashed #C3CBD8;background:#fff center/70% no-repeat;position:relative;
@@ -1637,6 +1699,29 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
      висоту, решта простору — під сам вибір. Заголовки прибрані: вони
      з'їдали рядок, а що саме обирають, видно й так. */
   .pm-scr{display:flex;align-items:stretch;gap:10px;padding:0 14px;height:100%;}
+  /* ── Інтервали напису ─────────────────────────────────────────────────
+     Кнопки «−» і «+» для дрібного кроку, повзунок для великого: пальцем
+     зручніше тягнути, мишею точніше клацати. Число поруч лишається на
+     видноті, щоб той самий напис можна було повторити. */
+  .pm-sp-row{margin-bottom:12px;}
+  .pm-sp-h{display:flex;align-items:baseline;gap:7px;margin-bottom:5px;}
+  .pm-sp-h b{font-size:12.5px;font-weight:700;color:#111;}
+  .pm-sp-h span{font-size:11px;color:#a0a0a0;flex:1;min-width:0;}
+  .pm-sp-v{font-style:normal;font-size:12px;font-weight:700;color:#2f4c8f;
+    font-variant-numeric:tabular-nums;}
+  .pm-sp-line{display:flex;align-items:center;gap:8px;}
+  .pm-sp-b{all:unset;box-sizing:border-box;width:44px;height:38px;border-radius:10px;
+    background:#f2f2f2;color:#111;font-size:17px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex:none;}
+  .pm-sp-b:active{background:#e2e2e2;}
+  .pm-sp-sl{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:6px;
+    border-radius:3px;background:#e6e6e6;}
+  .pm-sp-sl::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+    border-radius:50%;background:#111;cursor:pointer;}
+  .pm-sp-sl::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#111;}
+  .pm-sp-reset{all:unset;cursor:pointer;font-size:12px;font-weight:600;color:#8a8a8a;
+    padding:6px 2px;}
+  .pm-sp-reset:hover{color:#111;}
   /* Палітра тепер стоїть у панелі звичайним блоком, а не накриває її. */
   .pm-scr--flow{height:auto;padding-bottom:12px;align-items:flex-start;}
   .pm-scr--flow .pm-scr-back{align-self:stretch;min-height:56px;}
@@ -3587,6 +3672,19 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button type="button" class="pm-dl-opt" data-dl="bare" role="menuitem">Пустий виріб<small>той самий колір, без нанесення</small></button>
       </div>
     </div>
+    <!-- ══════════ МАКЕТИ ЗАМОВЛЕННЯ ══════════
+         Смужка у правому верхньому куті сцени, під кнопкою «скачати».
+         Спершу вона стояла блоком у панелі «Дизайн» — і з'їдала висоту,
+         відтісняючи ціну вниз. Андрій: «щоб знизу воно не забивало там
+         ціну». Тут вона не займає панелі жодного пікселя й видна на будь-
+         якій вкладці: перемкнув на «Розмір» — макети лишились перед очима.
+
+         Наповнює її конструктор; порожня — не малюється зовсім. -->
+    <!-- Порожній навмисно: галерея макетів переїхала в колонку складу
+         робочого місця, бо належить усьому замовленню, а не виробу під
+         нею. Вузол лишається як запасне місце для сайту, де такої колонки
+         немає; конструктор наповнює його лише там. -->
+    <div class="lqo-side" id="pmOrderArt" hidden></div>
     <input type="file" id="pmFileInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
 
     <!-- ══════════ НАХИЛ НАНЕСЕННЯ ══════════
@@ -6353,7 +6451,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     if(!b) return null;
     var rows = [];
     var pre = b.garmentBase + b.appBase;
-    var post = b.garment + b.app;
+    /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+       нанесення округлені разом, а не кожен окремо. Старі замовлення
+       `unitBase` не мають — їм лишається попередній шлях. */
+    var post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
     rows.push(['Виріб · ' + item.name, b.garmentBase + ' грн']);
     // DTF: знижка за тираж уже всередині ціни аркуша, окремим рядком її не показуємо —
     // інакше здається, що відсоток порахували не від тієї суми.
@@ -6377,14 +6478,31 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
     if(b.pieceFee) rows.push(['Обробка виробу', b.pieceFee + ' грн']);
     if(b.feeShare){
-      // feeShare — уся разова частка разом з ескізами. Базову підготовку показуємо
-      // як залишок, інакше ескізи порахувались би двічі й рядки не зійшлись би з
-      // ціною за штуку.
+      /* Разова в картинки й у напису — окремі, і діляться на різні тиражі.
+         Один рядок на обидві брехав: `feeTotal` складав разові всіх видів, а
+         `feeUnits` не складався, а перезаписувався останнім видом. Поки на
+         виробі один вид, різниці немає; щойно й логотип, і напис — число
+         ставало вигаданим і не сходилось із самою ціною. */
+      var KIND_UA = { img:'картинка', txt:'напис' };
       var sk = (b.sketches || []).map(function(s){
         return { s: s, share: Math.round(s.fee / (s.units || 1)) };
       });
-      var base = b.feeShare - sk.reduce(function(a, x){ return a + x.share; }, 0);
-      if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт', base + ' грн']);
+      var fl = (b.feeLines || []).map(function(f){
+        return { f: f, share: Math.round(f.fee / (f.units || 1)) };
+      });
+      var skSum = sk.reduce(function(a, x){ return a + x.share; }, 0);
+      if(!fl.length){
+        var base = b.feeShare - skSum;      // старий розклад рядків не має
+        if(base > 0) rows.push(['Підготовка макета · ' + b.feeTotal + ' грн на ' + b.feeUnits + ' шт', base + ' грн']);
+      } else {
+        var diff = b.feeShare - skSum - fl.reduce(function(a, x){ return a + x.share; }, 0);
+        fl.forEach(function(x, i){
+          var v = x.share + (i === 0 ? diff : 0);
+          var kd = fl.length > 1 ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
+          rows.push(['Підготовка макета' + kd + ' · ' + x.f.fee + ' грн на ' + x.f.units + ' шт',
+                     v + ' грн']);
+        });
+      }
       sk.forEach(function(x){
         rows.push(['Додатковий ескіз · ' + x.s.fee + ' грн на ' + x.s.units + ' шт', x.share + ' грн']);
       });
@@ -6758,12 +6876,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=34d9065a9f"></script>
-<script src="/loomiq-fingerprint.js?v=dac5d49f2a"></script>
-<script src="/loomiq-pricing.js?v=dac5d49f2a"></script>
+<script src="/loomiq-select.js?v=b17cc4b8a7"></script>
+<script src="/loomiq-fingerprint.js?v=aecd0061d0"></script>
+<script src="/loomiq-pricing.js?v=aecd0061d0"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=dac5d49f2a"></script>
+<script src="loomiq-constructor.js?v=aecd0061d0"></script>
 
 <script>
 /* Interactive logo designer — step 02 */
@@ -7651,8 +7769,31 @@ window.LOOMIQ_CONFIG = {
                 qty: cfg.qty || null, logos:{} };
     Object.keys(cfg.logos || {}).forEach(function(side){
       out.logos[side] = (cfg.logos[side] || []).map(function(l){
+        /* ЩО САМЕ ЦЕ ЗА МАКЕТ — а не лише де він лежить.
+
+           Досі зберігалась сама геометрія. Через це в замовленні не
+           лишалось ані відбитка дизайну, ані адреси його файлу — а на них
+           спирається половина системи: пошук тієї самої картинки на
+           сусідніх позиціях, поширення виду «картинка/напис», галерея
+           макетів замовлення, картинка дизайну в розкладі ціни. Усе це
+           мовчки не працювало не тому, що погано написане, а тому, що
+           дивитись не було на що.
+
+           Адресу беремо ЛИШЕ мережеву: base64 сюди класти не можна, саме
+           через нього документ колись і переставав уміщатись у Firestore.
+           Відбиток — рядок на три сотні знаків, і це вся його вага. */
+        var u = String(l.url || l.cleanUrl || l.origUrl || '');
+        if(u.slice(0, 4) !== 'http') u = '';
         return { x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
-                 fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null };
+                 fill:l.fill, removeBg:!!l.removeBg, opaqueBox:l.opaqueBox || null,
+                 url:u, fp:String(l.fp || ''),
+                 /* Розмір і місце в частках — щоб той самий макет можна було
+                    покласти на сусідній виріб так, як він стоїть тут. */
+                 frac:(l.frac != null ? l.frac : null),
+                 fx:(l.fx != null ? l.fx : null), fy:(l.fy != null ? l.fy : null),
+                 text:l.text || null,
+                 kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
+                   ? l.kindFix : null };
       });
     });
     return out;

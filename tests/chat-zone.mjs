@@ -106,7 +106,9 @@ const zones = () => p.evaluate(() => {
   const cw = document.querySelector('.cw-wrap.open');
   const mainEl = document.querySelector('main');
   const panel = document.querySelector('#orderDrawer.open .od-panel');
-  const x = cw && cw.querySelector('.cw-x');
+  /* Саме кнопка закриття, а не «перша з класом»: у шапці поруч живуть
+     інші кнопки того ж вигляду, і порядок серед них не обіцяний. */
+  const x = cw && cw.querySelector('[data-cw-close]');
   return {
     chat: box(cw),
     nav: box(document.querySelector('.sidebar')),
@@ -153,7 +155,7 @@ else {
 
 console.log('');
 console.log('═══ ЗАКРИЛИ РОЗМОВУ — КАРТКА ЛИШИЛАСЬ ═══');
-await p.evaluate(() => { document.querySelector('.cw-x').click(); });
+await p.evaluate(() => { document.querySelector('[data-cw-close]').click(); });
 await p.waitForTimeout(600);
 const afterChat = await zones();
 ok(!afterChat.chat, 'розмова закрилась', 'розмова не закрилась');

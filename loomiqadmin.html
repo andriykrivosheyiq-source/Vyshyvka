@@ -258,6 +258,31 @@
   .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .nav button:hover{background:#20262F;color:#E6E8EC;}
   .nav button.active{background:var(--side-2);color:#fff;font-weight:600;}
+  /* ── Група «Налаштування» ──
+     Ставки, сітки, підрядники, доступи — це пʼять розділів, у які заходять
+     раз на тиждень, і доти вони стояли просто в списку, між замовленнями й
+     аналітикою. Меню читалось як звалище: щоденне й рідкісне однаковим
+     кеглем, одне під одним. Тепер рідкісне складено в одну кнопку внизу. */
+  .nav-grp{display:flex;flex-direction:column;gap:2px;margin-top:8px;padding-top:8px;
+    border-top:1px solid #262E38;}
+  .nav .nav-grp-x{margin-left:auto;display:flex;flex:none;transition:transform .16s;}
+  .nav .nav-grp-x svg{width:16px;height:16px;}
+  .nav-grp.is-open > .nav-grp-h .nav-grp-x{transform:rotate(180deg);}
+  /* Група згорнута, а всередині неї відкритий розділ: без цього не видно
+     взагалі, де ти стоїш. */
+  .nav-grp.has-active:not(.is-open) > .nav-grp-h{background:#20262F;color:#E6E8EC;}
+  .nav-grp-b{display:none;flex-direction:column;gap:2px;margin-left:12px;padding-left:10px;
+    border-left:1px solid #262E38;}
+  .nav-grp.is-open > .nav-grp-b{display:flex;}
+  /* Згорнуте меню — самі іконки, вкладати нікуди: пункти йдуть поспіль, а
+     заголовок групи прибираємо. */
+  .sidebar.is-folded .nav-grp{margin-top:6px;padding-top:6px;}
+  .sidebar.is-folded .nav-grp-h{display:none;}
+  .sidebar.is-folded .nav-grp .nav-grp-b{display:flex;margin:0;padding:0;border-left:0;}
+  /* «Прорахунок» лишився розділом, але перестав бути пунктом меню: у нього
+     заходять із картки замовлення, а не зі списку зліва. Кнопка жива —
+     нею ж картка й перемикає вид, — просто її не показують. */
+  .nav button.nav-off{display:none !important;}
   .side-out{all:unset;cursor:pointer;color:var(--side-txt);font-size:13.5px;display:flex;
     align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-ctl);
     box-sizing:border-box;width:100%;position:relative;}
@@ -662,6 +687,13 @@
   .t-calc-row.is-disc,.t-calc-row.is-disc b{color:#128a4a;}
   .t-calc-row.is-note{color:var(--muted);font-size:11.5px;}
   .t-calc-row.is-sum{font-weight:700;}
+  /* Вивантаження прорахунку. Кнопки маленькі й сірі: ними користуються,
+     коли щось не збіглося, а не щодня. */
+  .t-calc-dg{display:flex;gap:6px;margin-top:10px;padding-top:8px;
+    border-top:1px solid var(--line-soft);}
+  .t-calc-dg button{all:unset;cursor:pointer;font-size:11.5px;color:var(--muted);
+    padding:4px 9px;border-radius:7px;border:1px solid var(--line);background:#fff;}
+  .t-calc-dg button:hover{color:var(--ink);border-color:var(--ink-soft);}
   .t-margin{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;
     border-radius:10px;padding:11px 14px;margin-top:8px;font-variant-numeric:tabular-nums;}
   .t-margin.good{background:var(--good-soft);color:var(--good);}
@@ -740,6 +772,46 @@
      що написав, коли. Число стоїть останнім, у тому самому кутку, що й на
      картці. */
   .chl{display:flex;flex-direction:column;gap:6px;max-width:900px;}
+  /* ── Чати: ліворуч список, праворуч переписка ─────────────────────────
+     Так це влаштовано в Direct, у Telegram і скрізь, де листуються: око
+     шукає наступну розмову там само, де щойно читало попередню. */
+  .ch2{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px;
+    align-items:stretch;min-height:520px;}
+  .ch2-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:72vh;
+    padding-right:2px;}
+  /* У вузькій колонці рядок читається згори вниз, а не вряд: імʼя й час у
+     першому рядку, під ними — початок останнього повідомлення. Саме так
+     виглядає список у Direct, і саме за цим початком розмову й упізнають. */
+  .ch2-list .chl-row{grid-template-columns:1fr auto auto;gap:2px 8px;padding:10px 12px;
+    align-items:center;}
+  .ch2-list .chl-who{grid-area:1/1/2/3;}
+  .ch2-list .chl-at {grid-area:1/3/2/4;}
+  .ch2-list .chl-txt{grid-area:2/1/3/2;}
+  .ch2-list .chl-ch {grid-area:2/2/3/3;}
+  .ch2-list .chl-n  {grid-area:2/3/3/4;justify-self:end;}
+  .ch2-view{position:relative;min-width:0;border:1px solid var(--line);border-radius:var(--r-card);
+    background:var(--paper);overflow:hidden;display:flex;}
+  .ch2-view>.cw-inline{flex:1;min-width:0;}
+  .ch2-none{margin:auto;text-align:center;padding:30px 24px;max-width:340px;
+    display:flex;flex-direction:column;gap:7px;}
+  .ch2-none b{font-size:14px;color:var(--ink);}
+  .ch2-none span{font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
+  /* Той самий вузол розмови, що й над дошкою, — просто в потоці колонки. */
+  .cw-wrap.cw-inline{position:relative;inset:auto;z-index:1;display:none;
+    border-radius:var(--r-card);}
+  .cw-wrap.cw-inline.open{display:flex;}
+  .cw-wrap.cw-inline.with-card{margin-right:0;}
+  .chl-row.is-on{border-color:var(--accent);background:var(--accent-soft);}
+  /* Номер замовлення в шапці розмови — єдина дорога до картки звідси. */
+  .cw-oid{all:unset;cursor:pointer;flex:none;font-size:11.5px;font-weight:700;
+    color:#fff;background:rgba(255,255,255,.16);border-radius:var(--r-pill);
+    padding:4px 10px;font-variant-numeric:tabular-nums;}
+  .cw-oid:hover{background:rgba(255,255,255,.28);}
+  @media (max-width:900px){
+    .ch2{grid-template-columns:1fr;}
+    .ch2-list{max-height:none;}
+    .ch2-view{min-height:60vh;}
+  }
   .chl-empty{font-size:13px;color:var(--ink-soft);padding:14px 2px;line-height:1.5;}
   .chl-row{all:unset;cursor:pointer;display:grid;align-items:center;gap:4px 12px;
     grid-template-columns:minmax(120px,1.2fr) auto minmax(0,2.4fr) auto auto;
@@ -866,6 +938,13 @@
      найпотрібніша. */
   .od-head{position:relative;padding:14px 18px 13px;border-bottom:1px solid var(--line);
     background:linear-gradient(180deg,#fff 0%,var(--canvas) 100%);}
+  /* «Цю картку зараз править Оксана». Бурштин, а не червоний: це не
+     помилка й не заборона, а відомість, від якої залежить, чи варто зараз
+     щось міняти. Червоне тут кричало б про те, що ще не сталось. */
+  .od-together{display:flex;align-items:center;gap:6px;margin:-2px 0 9px;padding:7px 10px;
+    border-radius:10px;background:#FFF6E6;border:1px solid #F0DCB0;
+    font-size:12px;font-weight:600;color:#8A6410;line-height:1.35;}
+  .od-together b{font-weight:800;}
   .od-head-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:32px;}
   /* ── Хто це ─────────────────────────────────────────────────────────────
      Імʼя великим і канал під ним: картка перестає бути безликою. Доти імʼя
@@ -1425,6 +1504,13 @@
     border:1px solid var(--line);}
   .od-crm-day{align-self:center;font-size:10.5px;color:var(--ink-soft);background:var(--paper);
     border-radius:20px;padding:2px 10px;margin:4px 0 2px;flex:none;}
+  /* Межа непрочитаного — риска на всю ширину з написом посередині. Саме
+     риска, а не плашка: вона ДІЛИТЬ розмову, і це має бути видно з
+     півпогляду, не читаючи. */
+  .od-crm-new{flex:none;align-self:stretch;display:flex;align-items:center;gap:8px;
+    margin:8px 0 4px;font-size:10.5px;font-weight:800;letter-spacing:.04em;
+    text-transform:uppercase;color:#C4342A;}
+  .od-crm-new::before,.od-crm-new::after{content:'';flex:1;height:1px;background:#F0C2BC;}
   .od-crm-msg{max-width:84%;background:var(--paper);border:1px solid var(--line);
     border-radius:14px 14px 14px 4px;padding:8px 11px;align-self:flex-start;flex:none;
     box-shadow:0 1px 2px rgba(15,32,52,.04);}
@@ -1449,6 +1535,52 @@
   .od-crm-msg.mine .od-crm-kind{color:rgba(255,255,255,.7);}
   .od-crm-at{font-size:10px;color:var(--ink-soft);margin-top:3px;text-align:right;}
   .od-crm-msg.mine .od-crm-at{color:rgba(255,255,255,.55);}
+  /* ВИДАЛЕНЕ. Не сховане й не сіре — саме червоне: мовчазна діра в
+     переписці небезпечніша за будь-яку репліку в ній. Сам текст лишається
+     читабельним, бо він і є те, заради чого слід зберігають; червоніє
+     облямівка й рядок над ним. Наше видалене лишається праворуч, тільки
+     блідне: бік розмови видалення не міняє. */
+  .od-crm-msg.gone{border-color:#E0392B;background:#FFF4F3;
+    box-shadow:0 0 0 1px rgba(224,57,43,.18);}
+  .od-crm-msg.mine.gone{background:#4A2530;border-color:#E0392B;}
+  .od-crm-gone{font-size:10.5px;font-weight:700;color:#E0392B;margin-bottom:4px;
+    letter-spacing:.02em;}
+  .od-crm-msg.mine.gone .od-crm-gone{color:#FF9B90;}
+  .od-crm-msg.gone .od-crm-txt{opacity:.82;}
+  /* ЩЕ ЛЕТИТЬ. Бульбашка стоїть у стрічці одразу, просто приглушена: так
+     видно, що система прийняла лист і працює, а не проковтнула його. */
+  .od-crm-msg.pending{opacity:.62;}
+  /* Крутилка — одна на всю переписку: і в кнопці «надіслати», і в смужці
+     з фото. Без неї «надсилаємо» виглядає як застиглий напис. */
+  .cw-spin{display:inline-block;width:13px;height:13px;border-radius:50%;
+    border:2px solid currentColor;border-right-color:transparent;vertical-align:-2px;
+    animation:cw-turn .7s linear infinite;}
+  .cw-busy{display:inline-flex;align-items:center;gap:6px;}
+  /* Лічильник вікна відповіді. Поки часу вдосталь — блідий рядок, який не
+     відволікає; під кінець бурштиновий; коли зачинилось — червоний. Три
+     стани, а не два: «лишилось пів дня» і «вже пізно» — різні новини. */
+  .cw-win{font-size:11px;font-weight:600;color:var(--ink-soft);margin-top:2px;
+    display:flex;align-items:center;gap:5px;}
+  .cw-win::before{content:'';width:6px;height:6px;border-radius:50%;background:#9AA4B2;flex:none;}
+  .cw-win.is-soon{color:#9A6B12;}
+  .cw-win.is-soon::before{background:#E0A020;}
+  .cw-win.is-out{color:#C4342A;font-weight:800;}
+  .cw-win.is-out::before{background:#E0392B;}
+  /* Смуга над полем, коли вікно вже зачинилось. Стоїть на дорозі, а не
+     збоку: тут ухвалюють рішення писати. */
+  .cw-dead{font-size:12px;line-height:1.45;font-weight:600;color:#8E2018;
+    background:#FFF1EF;border:1px solid #F3C6C0;border-radius:11px;padding:9px 11px;
+    margin-bottom:8px;}
+  /* Позначка «прочитано». Приглушена, поки є непрочитане, і світиться,
+     коли розмову закрито оком: стан кнопки й є відповідь на питання
+     «я це вже дивився?». */
+  .cw-seen{opacity:.55;font-size:15px;}
+  .cw-seen:hover{opacity:.9;}
+  .cw-seen.is-on{opacity:1;}
+  .cw-go.is-busy{background:#3A465E;}
+  .cw-go.is-busy .cw-spin{border-color:#fff;border-right-color:transparent;}
+  @keyframes cw-turn{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){ .cw-spin{animation-duration:2.4s;} }
   .od-crm-send{display:flex;gap:8px;align-items:flex-end;}
   .od-crm-inp{flex:1;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;
     padding:9px 11px;resize:vertical;}
@@ -1858,6 +1990,73 @@
        рядка. Тримаємо її в межах довжини, якою користуються месенджери. */
     .cw-feed .od-crm-msg{max-width:min(84%,620px);}
   }
+  /* ══════════ ТЕЛЕФОН ══════════════════════════════════════════════════
+
+     Компʼютерна версія складалась для миші й великого екрана: дрібні цілі
+     поруч, підписи в один рядок, усе видно одразу. На телефоні ці самі
+     рішення працюють проти себе — у шапці розмови чотири рядки тексту
+     налазять на кнопки, у кнопку 28 пікселів пальцем не влучити, а поле з
+     чотирнадцятим кеглем змушує iOS наблизити екран при кожному дотику й
+     лишити його наближеним.
+
+     Правила прості й перевірені практикою месенджерів:
+       • ціль для пальця — не менше 40 px;
+       • у полі вводу не менше 16 px, інакше Safari сам наблизить сторінку;
+       • у шапці лишається те, що потрібно в розмові, решта ховається;
+       • низ екрана поважає смугу жестів iPhone (safe-area). */
+  @media (max-width:767px){
+    /* ШАПКА РОЗМОВИ. Імʼя й рядок під ним — одним стовпчиком, який чесно
+       стискається; усе, що не потрібне в розмові, зникає. */
+    .cw-head{padding:8px 10px;gap:8px;align-items:center;}
+    .cw-av{width:34px;height:34px;}
+    .cw-who{min-width:0;flex:1;}
+    .cw-nm{font-size:15px;}
+    .cw-sub{font-size:11px;}
+    /* Лічильник вікна відповіді в один рядок і без переносу: на телефоні
+       він розтягувався на три рядки й накривав кнопки. */
+    .cw-win{font-size:10.5px;margin-top:1px;white-space:nowrap;overflow:hidden;
+      text-overflow:ellipsis;}
+    /* Службові кнопки налаштувальника — не на телефоні: там із ними не
+       працюють, а місця в шапці вони зʼїдають більше за все інше. */
+    .cw-head [data-cw-raw],.cw-head [data-cw-sniff]{display:none;}
+    .cw-oid{font-size:12px;padding:8px 10px;min-height:36px;display:flex;align-items:center;}
+    .cw-x{font-size:20px;padding:9px 11px;min-width:42px;text-align:center;}
+    /* ПОЛЕ ВВОДУ. 16 px — не про красу: менший кегль змушує Safari
+       наблизити сторінку при дотику й лишити її такою. */
+    .cw-inp{font-size:16px;padding:10px 13px;min-height:42px;}
+    .cw-go{width:46px;height:46px;}
+    .cw-ic{width:42px;height:42px;}
+    /* «⚡ Заготовки» текстом займає третину смуги, і поле для листа лишалось
+       завширшки в два слова. На телефоні лишається сам знак: те саме місце,
+       той самий дотик, утричі менше ширини. */
+    .cw-bar .cw-ic--txt{width:42px;padding:0;justify-content:center;}
+    .cw-bar .cw-ic-l{display:none;}
+    /* Підказка про Ctrl+Enter на телефоні — неправда: там немає Ctrl. */
+    .cw-row + .cw-tip{display:none;}
+    .cw-bar{padding:8px 9px calc(8px + env(safe-area-inset-bottom));}
+    .cw-feed{padding:10px 10px 6px;}
+    .cw-feed .od-crm-msg{max-width:88%;}
+    /* КАРТКА ЗАМОВЛЕННЯ. Стан і менеджер стояли поруч двома вузькими
+       пігулками — назва етапу в них не вміщалась і різалась на «КП н…».
+       На телефоні їм вистачає ширини по черзі. */
+    .od-deal-row{flex-wrap:wrap;}
+    .od-head .od-pill-st,.od-head .od-pill-mgr{flex:1 1 100%;min-width:0;}
+    .od-head .od-pill-mgr{margin-top:7px;margin-left:0;}
+    /* Дотик пальцем по каналу зв’язку: 30 px — це промах через раз. */
+    .od-head .od-ch-b{width:40px;height:40px;}
+    .od-x{font-size:20px;padding:8px 10px;min-width:40px;}
+    /* Поля картки — той самий кегль, що й у розмові, і з тієї ж причини. */
+    .od-f,.od-crm-inp,.od-panel input[type=text],.od-panel input[type=tel],
+    .od-panel input[type=number],.od-panel textarea,.od-panel select{font-size:16px;}
+    /* Дата здачі набрана моноширинним дрібним — гарно на моніторі, але це
+       теж поле вводу, і Safari наближає екран так само, як від будь-якого
+       іншого. Кегль тут не про читабельність. */
+    .od-meta .od-due-inp{font-size:16px;}
+    .od-panel{padding-bottom:env(safe-area-inset-bottom);}
+    /* Смужка макетів на телефоні стоїть на всю ширину сцени й гортається
+       пальцем — вертикальний стовпчик там зайняв би пів виробу. */
+    .lqo-side{gap:7px;}
+  }
   /* Рядки з готовими відповідями в налаштуваннях */
   .qr-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}
   .qr-row input{width:150px;flex:none;font-size:13px;padding:8px 10px;border-radius:8px;
@@ -1912,6 +2111,26 @@
   /* Прибрані лежать поруч, а не зникають: помилкове натискання не має
      коштувати людині доступів, які налаштовували пів години. */
   .tm-gone{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .tm-knock{border:1px solid #F0C36D;background:#FFF9EC;border-radius:12px;
+    padding:12px 14px;margin-bottom:14px;}
+  .tm-knock-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    color:#8A5A00;margin-bottom:8px;}
+  .tm-knock-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;}
+  .tm-knock-row b{font-size:13.5px;}
+  .tm-knock-row span{font-size:12px;color:var(--ink-soft);}
+  .tm-knock-add{margin-left:auto;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+    padding:6px 12px;border-radius:8px;border:1px solid #E0A93B;background:#fff;color:#8A5A00;}
+  .tm-knock-add:hover{background:#8A5A00;color:#fff;border-color:#8A5A00;}
+  .tm-knock-s{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  .tm-knock--bak{border-color:#9DC3E6;background:#F1F7FD;}
+  .tm-alarm{border:1px solid #D98A8A;background:#FDF3F3;border-radius:12px;
+    padding:12px 14px;margin-bottom:14px;}
+  .tm-alarm-h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    color:#A3243B;margin-bottom:6px;}
+  .tm-alarm-t{font-size:12.5px;line-height:1.55;color:#6B2330;}
+  .tm-knock--bak .tm-knock-h{color:#1B4F7E;}
+  .tm-knock--bak .tm-knock-add{border-color:#4E8FC7;color:#1B4F7E;}
+  .tm-knock--bak .tm-knock-add:hover{background:#1B4F7E;color:#fff;border-color:#1B4F7E;}
   .tm-gone-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     color:var(--muted);margin-bottom:7px;}
   .tm-gone-row{display:flex;align-items:center;gap:10px;font-size:12.5px;
@@ -3411,19 +3630,27 @@
       </div>
       <nav class="nav">
         <button data-view="today" data-tip="Задачі"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="m17 16.5 1.6 1.6L22 14.7"/></svg><span>Задачі</span></button>
-        <button data-view="board" class="active" data-tip="Канбан"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Канбан</span></button>
-        <!-- Дизайн-відділ: окремий цикл роботи з макетом. Стоїть поруч із
-             Канбаном, бо це те саме замовлення, але інше життя. -->
+        <button data-view="board" class="active" data-tip="Замовлення B2B"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Замовлення B2B</span></button>
         <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
+        <!-- Дизайн-відділ — це ті самі замовлення, лише приватні: тому він
+             стоїть не осторонь, а другою парою «замовлення + чати». -->
+        <button data-view="design" data-tip="Замовлення B2C — приватні"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Замовлення B2C</span></button>
         <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
-        <button data-view="design" data-tip="B2C — приватні замовлення"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>B2C</span></button>
-        <button data-view="calc" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
-        <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
-        <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
-        <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
-        <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
-        <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
         <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
+        <button data-view="calc" class="nav-off" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
+        <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
+             тиждень. Внизу й під однією кнопкою, щоб щоденне не губилось
+             серед рідкісного. -->
+        <div class="nav-grp" id="nav-set">
+          <button type="button" class="nav-grp-h" data-tip="Налаштування" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.8h0a1.9 1.9 0 0 1 1.9 1.9v.5a1.5 1.5 0 0 0 2.2 1.3l.4-.2a1.9 1.9 0 0 1 2.4.7l.3.5a1.9 1.9 0 0 1-.6 2.5l-.4.3a1.5 1.5 0 0 0 0 2.6l.4.3a1.9 1.9 0 0 1 .6 2.5l-.3.5a1.9 1.9 0 0 1-2.4.7l-.4-.2a1.5 1.5 0 0 0-2.2 1.3v.5A1.9 1.9 0 0 1 12 21.2h0a1.9 1.9 0 0 1-1.9-1.9v-.5a1.5 1.5 0 0 0-2.2-1.3l-.4.2a1.9 1.9 0 0 1-2.4-.7l-.3-.5a1.9 1.9 0 0 1 .6-2.5l.4-.3a1.5 1.5 0 0 0 0-2.6l-.4-.3a1.9 1.9 0 0 1-.6-2.5l.3-.5a1.9 1.9 0 0 1 2.4-.7l.4.2a1.5 1.5 0 0 0 2.2-1.3v-.5A1.9 1.9 0 0 1 12 2.8z"/></svg><span>Налаштування</span><i class="nav-grp-x"><svg viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg></i></button>
+          <div class="nav-grp-b">
+            <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
+            <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
+            <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
+            <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
+            <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
+          </div>
+        </div>
       </nav>
       <div class="sidebar-foot">
         <!-- Своє імʼя й свій пароль людина міняє сама. Доти імʼя за неї
@@ -4920,18 +5147,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=34d9065a9f"></script>
-<script src="loomiq-fingerprint.js?v=34d9065a9f"></script>
-<script src="loomiq-pricing.js?v=34d9065a9f"></script>
+<script src="loomiq-select.js?v=b17cc4b8a7"></script>
+<script src="loomiq-fingerprint.js?v=b17cc4b8a7"></script>
+<script src="loomiq-pricing.js?v=b17cc4b8a7"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=34d9065a9f"></script>
+<script src="loomiq-design.js?v=b17cc4b8a7"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=34d9065a9f"></script>
+<script src="loomiq-cards.js?v=b17cc4b8a7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5169,6 +5396,60 @@ let PHOTOS_DOC = {
     return ()=>{ try{u1();}catch(e){} if(u2){ try{u2();}catch(e){} } };
   }
 };
+
+/* ══════════ ХТО ЩЕ СИДИТЬ У ЦІЙ КАРТЦІ ═══════════════════════════════
+
+   Замовлення пишеться ЦІЛИМ документом, тож двоє в одній картці неминуче
+   затирають одне одного: останній зберіг — той і правий. Технічно це
+   лікується записом полями, але половину полів у нас правлять разом
+   (склад і суми — те саме), тож поле-за-полем дало б лише інший спосіб
+   зіпсувати.
+
+   Тому чесніше сказати вголос: «цю картку зараз править Оксана». Людина
+   бачить це до того, як почала, і або зачекає, або домовиться — так це й
+   вирішують у житті, а не блокуваннями.
+
+   Позначки живуть в окремому документі, а не поруч із налаштуваннями:
+   вони переписуються щохвилини, і тримати їх у тому самому документі, де
+   команда, ролі й ціни, означало б довбати найважливіший запис системи.
+
+   Своя мітка оновлюється не частіше разу на 25 секунд, чужа вважається
+   живою 90 — тобто дві пропущені мітки поспіль означають, що людина пішла. */
+const PRESENCE_DOC = fbDb.collection('loomiq').doc('presence');
+const PRESENCE_TTL = 90000, PRESENCE_EVERY = 25000;
+let presenceMap = {}, presenceAt = {}, presenceWatching = false, presenceTimer = null;
+function presenceWatch(){
+  if(presenceWatching) return;
+  presenceWatching = true;
+  try{
+    PRESENCE_DOC.onSnapshot(sn=>{
+      presenceMap = (sn && sn.exists && sn.data()) ? (sn.data().at || {}) : {};
+      /* Перемальовуємо лише те, де мітку видно: смикати дошку через чужу
+         присутність у чужій картці — це шум. */
+      try{ if(drawerOrderId) renderOrderDrawer(); }catch(e){}
+    }, e => { presenceWatching = false; console.warn('присутність', e); });
+  }catch(e){ presenceWatching = false; }
+}
+function presenceTouch(id){
+  if(!id) return;
+  const now = Date.now();
+  if(presenceAt[id] > now - PRESENCE_EVERY) return;
+  presenceAt[id] = now;
+  const me = myName();
+  if(!me) return;
+  try{ PRESENCE_DOC.set({ at: { [id]: { by: me, t: new Date().toISOString() } } },
+                        { merge:true }).catch(e => console.warn('присутність', e)); }
+  catch(e){ console.warn('присутність', e); }
+}
+/* Хто ще в цій картці, крім мене. Порожньо — значить нікого. */
+function presenceOther(id){
+  const r = presenceMap && presenceMap[id];
+  if(!r || !r.by) return null;
+  if(String(r.by) === String(myName())) return null;
+  const t = Date.parse(r.t || '');
+  if(!t || Date.now() - t > PRESENCE_TTL) return null;
+  return { by: String(r.by).split('@')[0], at: r.t };
+}
 
 /* Cloudinary — куди завантажуються фото товарів (той самий акаунт, що й для відгуків) */
 const CLOUDINARY = { cloud: 'kmdoab3e', preset: 'v8gljepg' };
@@ -5495,6 +5776,45 @@ let ordersSaved = new Map();
 function ordersSortDesc(list){
   return list.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
 }
+/* ЯКУ КАРТКУ ЗАРАЗ ТРИМАЮТЬ У РУКАХ. Захищаємо від знімка саме її, а не
+   будь-яку розбіжність із базою.
+
+   Спокуса була інша: вважати «недописаною» кожну картку, чий вміст не
+   збігається з останнім записом. На перший погляд це ширший захист, на
+   ділі — пастка. Адмінка чіпає картки й без участі людини: нормалізує
+   старі поля, доставляє ручну поправку, перераховує підсумки. Після
+   будь-якого такого дотику картка назавжди лишалась би «своєю», і чужі
+   зміни перестали б доїжджати зовсім — тобто дошка тихо показувала б
+   вчорашнє.
+
+   Недописане живе рівно там, де його вводять: відкрита картка, відкрите
+   робоче місце пропозиції, відкрита розмова. Їх і бережемо. */
+function ordersHeld(){
+  const out = {};
+  if(typeof drawerOrderId !== 'undefined' && drawerOrderId) out[drawerOrderId] = 1;
+  try{ if(offerEd && offerEd.id) out[offerEd.id] = 1; }catch(e){}
+  try{ if(chatWin && chatWin.id) out[chatWin.id] = 1; }catch(e){}
+  return out;
+}
+function mйБрудний(мій, знане, тримаємо){
+  if(!мій) return false;
+  if(знане == null) return true;            // у базі її ще немає — тим паче не чіпаємо
+  if(!тримаємо) return false;
+  return JSON.stringify(мій) !== знане;
+}
+/* Ту саму картку правлять двоє. Мовчати тут не можна: наш наступний запис
+   іде ЦІЛИМ документом і затре чужі правки, навіть якщо вони в іншому полі.
+   Кажемо один раз на картку й не частіше разу на пів хвилини — інакше
+   попередження саме стане шумом, від якого відмахуються. */
+const ordersClashAt = {};
+function ordersClash(ids){
+  const now = Date.now();
+  const нові = ids.filter(n => !(ordersClashAt[n] > now - 30000));
+  if(!нові.length) return;
+  нові.forEach(n => { ordersClashAt[n] = now; });
+  toast('Картку ' + нові.join(', ') + ' щойно змінив хтось іще. Ваші правки на екрані ' +
+        'збережено не було — збережіть їх, і вони переважать чужі.');
+}
 // Жива синхронізація Канбану між вкладками й пристроями.
 let ordersWatching = false;
 function watchOrders(){
@@ -5503,14 +5823,53 @@ function watchOrders(){
   ORDERS_COL.onSnapshot(function(snap){
     const list = [];
     const seen = new Map();
+    /* ══════════ ЧУЖИЙ ЗНІМОК НЕ ЗНИЩУЄ НЕДОПИСАНОГО ══════════
+
+       Доти цей обробник робив `orders = list` — заміняв УВЕСЬ масив тим,
+       що приїхало з бази. А знімок приходить від будь-якої зміни: сусідній
+       менеджер посунув чужу картку, фоновий обхід записав лічильник
+       реплік, спрацював автозапис. І в ту саму мить усе, що лежало в
+       памʼяті незбереженим, зникало разом зі старим масивом: склад
+       пропозиції, який щойно правили, повернутий логотип, вписаний тираж.
+
+       Найгірше, що воно не падало. Правки просто відкочувались на екрані,
+       і виглядало це як «адмінка сама скидає, що я роблю».
+
+       Тепер картку з незбереженими правками знімок НЕ ЧІПАЄ: своє
+       лишається своїм. А коли її тим часом змінив ще хтось — кажемо про це
+       вголос, бо наш наступний запис піде цілим документом і чуже затре. */
+    const було = new Map();
+    (orders || []).forEach(o => { if(o && o.id) було.set(o.id, o); });
+    const спір = [];
+    const тримаємо = ordersHeld();
+    let мої = 0;
     snap.forEach(d=>{
       const o = d.data() || {};
       o.id = o.id || d.id;
+      const json = JSON.stringify(o);
+      const мій = було.get(o.id);
+      const знане = ordersSaved.get(o.id);
+      const брудний = !!mйБрудний(мій, знане, !!тримаємо[o.id]);
+      if(брудний){
+        list.push(мій);                 // свої правки лишаються на екрані
+        seen.set(o.id, знане == null ? json : знане);
+        мої++;
+        if(знане != null && json !== знане) спір.push(мій.orderId || мій.id);
+        return;
+      }
       list.push(o);
-      seen.set(o.id, JSON.stringify(o));
+      seen.set(o.id, json);
+    });
+    /* Картка, створена щойно й ще не записана, у знімку відсутня — але
+       губити її не можна тим паче. */
+    було.forEach((o, id)=>{
+      if(seen.has(id)) return;
+      if(ordersSaved.has(id)) return;   // була в базі й зникла — значить справді видалена
+      list.push(o);
     });
     orders = ordersSortDesc(list);
     ordersSaved = seen;
+    if(спір.length) ordersClash(спір);
     const board = document.getElementById('view-board');
     if(board && board.style.display !== 'none') renderBoard();
   }, function(e){
@@ -5969,12 +6328,51 @@ async function askCtorPass(){
   toast('Невірний пароль');
   return false;
 }
-document.querySelectorAll('.nav button').forEach(btn=>{
+/* Група розділів у меню. Заголовок сам по собі нікуди не веде — він лише
+   показує й ховає свої пункти, тож у нього немає `data-view` і обробник
+   розділів його не чіпає. */
+function navGrpOpen(g, on){
+  g.classList.toggle('is-open', !!on);
+  const h = g.querySelector('.nav-grp-h');
+  if(h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
+}
+function navGrpSync(){
+  document.querySelectorAll('.nav-grp').forEach(g=>{
+    /* Розділ усередині групи відкрили не мишею, а кодом — з картки
+       замовлення або після зміни доступів. Група має розкритись сама,
+       інакше людина стоїть у розділі, якого в меню не видно. */
+    const on = !!g.querySelector('button[data-view].active');
+    g.classList.toggle('has-active', on);
+    if(on) navGrpOpen(g, true);
+    /* Усі пункти групи закриті доступами — ховаємо й заголовок: кнопка,
+       яка розгортає порожнечу, гірша за її відсутність. */
+    const h = g.querySelector('.nav-grp-h');
+    if(h) h.hidden = !g.querySelector('button[data-view]:not([hidden])');
+  });
+}
+(function wireNavGroups(){
+  document.querySelectorAll('.nav-grp').forEach(g=>{
+    const h = g.querySelector('.nav-grp-h');
+    if(!h) return;
+    const key = 'lq_nav_' + (g.id || 'grp');
+    let saved = false;
+    try{ saved = localStorage.getItem(key) === '1'; }catch(e){}
+    navGrpOpen(g, saved);
+    h.addEventListener('click', ()=>{
+      const on = !g.classList.contains('is-open');
+      navGrpOpen(g, on);
+      try{ localStorage.setItem(key, on ? '1' : '0'); }catch(e){}
+    });
+  });
+  try{ navGrpSync(); }catch(e){}
+})();
+document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
     const view = btn.dataset.view;
     if(view === 'photos' && !(await askCtorPass())) return;
-    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    try{ navGrpSync(); }catch(e){}
     /* На телефоні меню лежить поверх сторінки: не закрити його після вибору
        означає показати людині її ж меню замість розділу, який вона щойно
        відкрила. */
@@ -5992,7 +6390,7 @@ document.querySelectorAll('.nav button').forEach(btn=>{
     const vDz = document.getElementById('view-design'); if(vDz) vDz.style.display = view==='design' ? 'block':'none';
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
-    const tags = {settings:'Формування цін', garments:'Товари', board:'Канбан', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'B2C',
+    const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
       chats:'Чати B2B', chatsc:'Чати B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
@@ -6342,6 +6740,35 @@ function normalizeSitePricing(p){
   }
   delete p.enabled; delete p.leadTime;
   return p;
+}
+/* РУШІЙ ЦІН ЧИТАЄ SITE_CONTENT, А НЕ contentData.
+
+   Рушій один на весь Loomiq і живе в окремому файлі. Модель цін він бере
+   звідти, куди її кладе сторінка, — з `window.SITE_CONTENT.pricing`. Сайт,
+   сторінка клієнта й кадр пропозиції це роблять. Адмінка — ні: вона тримала
+   модель у своєму `contentData` і нікому її не показувала.
+
+   Наслідок був тихий і повний: у самій адмінці рушій не бачив цін узагалі й
+   на будь-який прогін чесно повертав нулі. `repriceOrder` бачив нулі,
+   вирішував, що модель не приїхала, і лишав збережені ціни як є —
+   правильна, до речі, обережність, лише причина була не та. А `parts` при
+   цьому не записувались ніде, тож «Як склалась ціна» лишалась порожньою, і
+   поділ разових не було звідки взяти: ні підготовки макета, ні ескізів, ні
+   тиражів, на які вони діляться.
+
+   Виглядало це не як поломка, а як тиша: ціни в картці стояли ті, що
+   порахував конструктор, і на око все було гаразд.
+
+   Кладемо модель туди, звідки її читає рушій, і оновлюємо разом із
+   документом: у режимі «дивитись як» і після кожної правки цін адмінка
+   мусить рахувати тим самим, чим рахує сайт. */
+function syncSiteContent(){
+  try{
+    window.SITE_CONTENT = window.SITE_CONTENT || {};
+    window.SITE_CONTENT.pricing = curSitePricing();
+    window.SITE_CONTENT.products = (contentData && contentData.products) || {};
+    window.SITE_CONTENT.names = (contentData && contentData.names) || {};
+  }catch(e){ console.warn('модель цін для рушія не оновилась', e); }
 }
 function curSitePricing(){
   const p = contentData.pricing;
@@ -8735,6 +9162,22 @@ function designPic(o, fp){
 function fpAliases(o, fp){
   const url = String(designPic(o, fp) || '');
   const out = [String(fp || '')];
+  /* СХОЖІ ВІДБИТКИ — теж цей самий малюнок. Рушій цін групує дизайни за
+     схожістю, і рішення менеджера має накривати рівно ту саму групу:
+     інакше воно лягає на одну копію, а сусідня лишається з автоматичним
+     видом — і один макет починає нести два протилежні рішення. Це не
+     здогад: у замовленні 1000057 два відбитки напису розійшлись на 0.0156
+     при порозі 0.03, і підготовка ділилась на два вироби замість пʼяти. */
+  const LQ = window.LQ;
+  if(LQ && typeof LQ.sameFingerprint === 'function'){
+    ((o && o.items) || []).forEach(x=>{
+      ((x && x.desc && x.desc.designs) || []).forEach(f=>{
+        const t = String(f || '');
+        if(!t || out.indexOf(t) >= 0) return;
+        if(LQ.sameFingerprint(t, String(fp || ''))) out.push(t);
+      });
+    });
+  }
   if(!url) return out;
   ((o && o.items) || []).forEach(x=>{
     const logos = x && x.config && x.config.logos;
@@ -8748,6 +9191,29 @@ function fpAliases(o, fp){
     });
   });
   return out;
+}
+/* Усі відбитки, які насправді належать ОДНОМУ малюнку.
+
+   Відбиток знімається з пікселів, а пікселі того самого логотипа на різних
+   виробах різні: інший розмір, інший ракурс, інший рендер. Тому до відбитка
+   додаємо адресу файлу — вона в них спільна, і саме за нею рішення менеджера
+   знаходить свої копії на сусідніх позиціях. */
+function kindFixKeys(o, fp, url){
+  const out = {};
+  const add = k => { const t = String(k || ''); if(t) out[t] = 1; };
+  if(fp) fpAliases(o, fp).forEach(add);
+  const u = String(url || '');
+  if(u) ((o && o.items) || []).forEach(x=>{
+    const logos = x && x.config && x.config.logos;
+    if(!logos || typeof logos !== 'object') return;
+    Object.keys(logos).forEach(side=>{
+      (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
+        if(!l || !l.fp) return;
+        if(l.url === u || l.cleanUrl === u || l.origUrl === u) add(l.fp);
+      });
+    });
+  });
+  return Object.keys(out);
 }
 function setItemKindFix(it, fp, kind, o){
   if(!it && !o) return;
@@ -8821,6 +9287,41 @@ function setItemKindFix(it, fp, kind, o){
    систему — і вона стоїть ПЕРЕД будь-яким розрахунком, тож вибір діє скрізь,
    де вид має значення: ставка за площу, відро разових, ціна, собівартість,
    маржа, КП, Канбан, PDF. */
+/* Який вид менеджер поставив ЦЬОМУ макетові.
+
+   Точний збіг рядка — перший і головний шлях: те саме зображення, те саме
+   рішення. Але відбиток знімається з пікселів, а пікселі того самого
+   малюнка на сусідньому виробі трохи інші: інший розмір, інше згладжування,
+   знятий чи не знятий фон. Рушій цін це передбачає й ГРУПУЄ дизайни за
+   схожістю — а рішення менеджера доти шукалось лише за точним рядком.
+
+   Наслідок бачив Андрій у замовленні 1000057: два відбитки напису, які
+   рушій вважає одним макетом (відстань 0.0156 при порозі 0.03), несли
+   протилежні рішення — «напис» і «не рахувати». Позначена копія виходила з
+   поділу, і підготовка ділилась на два вироби замість пʼяти: 240 ₴/шт
+   замість 96. А ще два рішення висіли в порожнечі взагалі — їхні макети
+   перезберегли, відбиток змінився, і ключ більше ні на що не вказував.
+
+   Тому за точним збігом іде схожість — та сама, якою групує рушій. Один
+   макет — одне рішення. Коли схожих ключів кілька й вони різні, беремо
+   найближчий: ближчий відбиток — ближча копія того самого малюнка. */
+function kindWanted(fix, fp){
+  const key = String(fp || '');
+  if(!key || !fix) return null;
+  const точно = fix[key];
+  if(точно === 'img' || точно === 'txt' || точно === 'off') return точно;
+  const LQ = window.LQ;
+  if(!LQ || typeof LQ.sameFingerprint !== 'function') return null;
+  let best = null, dist = 1;
+  Object.keys(fix).forEach(k=>{
+    const v = fix[k];
+    if(v !== 'img' && v !== 'txt' && v !== 'off') return;
+    if(!LQ.sameFingerprint(k, key)) return;
+    const d = (typeof LQ.fpDistance === 'function') ? LQ.fpDistance(k, key) : 0;
+    if(best === null || d < dist){ best = v; dist = d; }
+  });
+  return best;
+}
 function applyKindFix(o){
   /* Одна мапа на все замовлення. Раніше кожна позиція мала свою — і той
      самий малюнок на сусідніх позиціях міг рахуватись по-різному. */
@@ -8832,7 +9333,7 @@ function applyKindFix(o){
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
     d.designs.forEach((fp, i)=>{
-      const want = fix[String(fp || '')];
+      const want = kindWanted(fix, fp);
       if(want === 'img' || want === 'txt' || want === 'off') kinds[i] = want;
     });
     d.designKinds = kinds;
@@ -8869,6 +9370,31 @@ function applyKindFix(o){
 
    Синхронно й без завантаження картинок — тому це можна робити перед кожним
    розрахунком, а не окремою дією, про яку треба памʼятати. */
+/* АДРЕСИ ФАЙЛІВ ДИЗАЙНІВ — ДЛЯ ЗАМОВЛЕНЬ, ЯКІ ЇХ ЩЕ НЕ МАЮТЬ.
+
+   Рушій зводить копії одного малюнка в один макет за адресою файлу: пікселі
+   на різних виробах різні, файл спільний. Конструктор кладе ці адреси в опис
+   позиції при збереженні — але замовлення, зроблені раніше, їх не мають, і
+   чекати, поки менеджер перезбереже кожну позицію, означало б лишити старі
+   пропозиції з вигаданою кількістю макетів.
+
+   Тому відновлюємо їх на льоту: у самому замовленні лежать шари з
+   відбитками й адресами, і зіставити одне з одним можна тут. Порядок брати
+   звідти не можна — беремо за відбитком, це надійніше. */
+function fillDesignUrls(o){
+  ((o && o.items) || []).forEach(it=>{
+    const d = it && it.desc;
+    if(!d || !Array.isArray(d.designs) || !d.designs.length) return;
+    const have = Array.isArray(d.designUrls) ? d.designUrls.slice() : [];
+    let touched = false;
+    d.designs.forEach((fp, i)=>{
+      if(have[i]) return;
+      const u = designPic(o, fp);
+      if(u){ have[i] = u; touched = true; }
+    });
+    if(touched || !Array.isArray(d.designUrls)) d.designUrls = have;
+  });
+}
 function fillMissingFp(o){
   const url = (window.LQ && window.LQ.urlFingerprint) ? window.LQ.urlFingerprint : null;
   if(!url) return;
@@ -8885,6 +9411,7 @@ function fillMissingFp(o){
 }
 function fillOrderParts(o){
   fillMissingFp(o);   // безіменний дизайн склеюється з першим — дамо йому імʼя
+  fillDesignUrls(o);  // копії одного малюнка — один макет, і впізнає їх файл
   applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
@@ -8923,12 +9450,51 @@ function fillRecoParts(o, writePrice){
        КП іншу. */
     if(!it || (kd !== 'reco' && kd !== 'variant') || !it.desc) return;
     const base = orderDescriptors(o, kd === 'variant' ? i : null);
-    const d = (keep && kd === 'reco') ? Object.assign({}, descOf(it), { upsell:true }) : descOf(it);
+    /* РЕКОМЕНДОВАНА НЕ ПЛАТИТЬ ЗА ГОТОВИЙ МАКЕТ.
+
+       Доти це вмикалось окремим налаштуванням, а за замовчуванням
+       рекомендована платила свою частку за ті самі макети, які склад уже
+       оплатив повністю у своєму прогоні. На живому замовленні з пропозиції
+       збиралось 2295 ₴ за роботу на 1550 ₴: ту саму підготовку оплачували
+       двічі — і складом, і кожною рекомендованою окремо.
+
+       Тепер рекомендована завжди рахується в окремому відрі разових, де
+       макети погодженої частини вже позначені оплаченими. Платить вона рівно
+       за те, що додає: за свій новий дизайн, якщо він є, і нічого — якщо
+       малюнок той самий. Це ще й найкращий аргумент у переписці: «додайте
+       кепку — макет готовий, платите тільки за виріб і вишивку».
+
+       Знижки за тираж це не стосується: вона й далі рахується від усього
+       прогону, бо вироби в ньому шиються разом. */
+    const d = (kd === 'reco') ? Object.assign({}, descOf(it), { upsell:true }) : descOf(it);
     /* Варіант уже стоїть у складі як представник своєї групи — удруге його
        додавати не можна, інакше тираж подвоївся б. */
-    const at = base.idx.indexOf(i);
-    const list = at >= 0 ? base.list.slice() : base.list.concat([d]);
-    if(at >= 0) list[at] = d;
+    /* ПОЗИЦІЯ СТОЇТЬ НА СВОЄМУ МІСЦІ У СКЛАДІ, А НЕ В КІНЦІ.
+
+       Порядок тут не косметика. Перша група дизайнів входить у підготовку
+       макета, кожна наступна коштує ескіз — а яка група буде першою,
+       вирішує саме порядок, у якому дизайни приходять у рушій. Кинули
+       рекомендовану в кінець — вона потрапляє в іншу групу, ніж потрапить у
+       замовленні.
+
+       Конструктор давно тримає чернетку на її місці й пояснює це тим самим
+       рядком. Адмінка ж дописувала рекомендовану в кінець — і ті самі
+       позиції рахувались двома різними списками. Звідси й «у підрахунку
+       одна ціна, а зліва інша»: розбіжність у кілька гривень, яка не
+       пояснюється нічим і тому виглядає як помилка рахунку. */
+    let at = base.idx.indexOf(i);
+    let list;
+    if(at >= 0){ list = base.list.slice(); list[at] = d; }
+    else {
+      const keep = {};
+      base.idx.forEach((n, k) => { keep[n] = base.list[k]; });
+      list = []; at = -1;
+      (o.items || []).forEach((x, n) => {
+        if(n === i){ at = list.length; list.push(d); return; }
+        if(keep[n]) list.push(keep[n]);
+      });
+      if(at < 0){ at = list.length; list.push(d); }
+    }
     const res = priceOrder(list, orderPriceOpts(o));
     const mine = res[at >= 0 ? at : res.length - 1];
     if(!mine) return;
@@ -8957,7 +9523,11 @@ function priceCalcHtml(o){
   (o.items || []).forEach(it=>{
     if(itemKind(it) !== 'main' || !it.parts) return;
     const b = it.parts;
-    const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+    const pre = b.garmentBase + b.appBase;
+    /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+       нанесення округлені разом, а не кожен окремо. Старі замовлення
+       `unitBase` не мають — їм лишається попередній шлях. */
+    const post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
     const lines = [];
     lines.push(['Виріб · ' + (it.name || '—'), b.garmentBase + ' ₴']);
     // DTF: знижка за тираж уже в ціні аркуша — окремим рядком не дублюємо
@@ -8977,11 +9547,42 @@ function priceCalcHtml(o){
       Math.round((1 - b.coef) * 100) + '% (' + b.groupQty + ' шт у замовленні)', '−' + (pre - post) + ' ₴', 'disc']);
     if(b.pieceFee) lines.push(['Обробка виробу', b.pieceFee + ' ₴']);
     if(b.feeShare){
-      // feeShare містить і базову разову, і ескізи. Базову показуємо як залишок,
-      // щоб рядки сходились із ціною за штуку, а ескізи не рахувались двічі.
+      /* РАЗОВА В КАРТИНКИ Й У НАПИСА — ОКРЕМІ, І ДІЛЯТЬСЯ НА РІЗНІ ТИРАЖІ.
+
+         Тут довго стояв один рядок: «Підготовка макета · feeTotal ₴ на
+         feeUnits шт». `feeTotal` складав разові ВСІХ видів — і картинки, і
+         напису, — а `feeUnits` при цьому не складався, а ПЕРЕЗАПИСУВАВСЯ
+         останнім видом. Поки на позиції був один вид, різниці не було. А
+         щойно на виробі опинялись і логотип, і напис, число ставало
+         вигаданим: 1100 ₴ на 5 шт замість 700 на десять і 400 на пʼять.
+
+         Найгірше, що воно не сходилось із самою ціною: ціна рахується
+         чесно, по кожному виду окремо, а в розкладі стояла одна цифра,
+         поділена не на те. Звідси й «оплата за дизайни в кожній одиниці
+         дуже дивна»: рядок і підсумок казали різне.
+
+         Тепер стільки рядків, скільки видів, і кожен зі своїм тиражем —
+         рівно так, як його рахує рушій і як показує прорахунок у
+         конструкторі. */
+      const KIND_UA = { img:'картинка', txt:'напис' };
       const sk = (b.sketches || []).map(s=>({ s, share: Math.round(s.fee / (s.units || 1)) }));
-      const base = b.feeShare - sk.reduce((a,x)=>a + x.share, 0);
-      if(base > 0) lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', base + ' ₴']);
+      const fl = (b.feeLines || []).map(f=>({ f, share: Math.round(f.fee / (f.units || 1)) }));
+      const skSum = sk.reduce((a,x)=>a + x.share, 0);
+      if(!fl.length){
+        /* Старий розклад рядків не має — показуємо як було, одним числом. */
+        const base = b.feeShare - skSum;
+        if(base > 0) lines.push(['Підготовка макета · ' + b.feeTotal + ' ₴ на ' + b.feeUnits + ' шт', base + ' ₴']);
+      } else {
+        /* Копійки від округлення кладемо на перший рядок — щоб сума рядків
+           сходилась із ціною за штуку до гривні. */
+        let diff = b.feeShare - skSum - fl.reduce((a,x)=>a + x.share, 0);
+        fl.forEach((x, i)=>{
+          const v = x.share + (i === 0 ? diff : 0);
+          const kind = fl.length > 1 ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
+          lines.push(['Підготовка макета' + kind + ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт',
+                      v + ' ₴']);
+        });
+      }
       sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
@@ -8998,7 +9599,213 @@ function priceCalcHtml(o){
     rows.join('') +
     (adj ? '<div class="t-calc-row is-note"><span>Ручна поправка до суми</span><b>' +
       (adj > 0 ? '+' : '') + adj + ' ₴</b></div>' : '') +
+    '<div class="t-calc-dg">' +
+      '<button type="button" data-calc-dg="file">Зберегти прорахунок</button>' +
+      '<button type="button" data-calc-dg="copy">Скопіювати</button>' +
+    '</div>' +
     '</div></details>';
+}
+/* ══════════ ВИВАНТАЖЕННЯ ПРОРАХУНКУ ══════════
+   «Дуже дивно рахує разову за дизайн» — і далі півгодини переказу по
+   скріншотах: скільки штук, який спосіб, скільки макетів. Переказ завжди
+   неповний, а поламане сидить якраз у тому, що переказати забули.
+
+   Тут лежить усе, з чого рушій робить ціну, і все, що він повернув:
+   описи позицій (це буквально його вхід), налаштування замовлення, модель
+   цін і результат — разом із рядками, які менеджер бачить у «Як склалась
+   ціна». Цього досить, щоб повторити рахунок деінде й побачити, де саме
+   число розійшлось: у вході, у рушії чи вже в розкладі.
+
+   Клієнта тут немає навмисно: ні імені, ні телефону, ні ніка, ні переписки.
+   Для розбору поломки вони не потрібні, а файл ходитиме по руках.
+
+   Кнопки живуть усередині «Як склалась ціна», тобто під тим самим правом
+   бачити гроші, що й весь фінансовий згорток. */
+function calcDumpRows(o){
+  const d = document.createElement('div');
+  d.innerHTML = priceCalcHtml(o) || '';
+  /* Рід рядка їде разом із текстом. Без нього перевіряльник не відрізнить
+     доданок від підсумку й не зможе сказати, чи сходиться розклад: у тексті
+     «Ціна за штуку» нічим не відрізняється від «Виріб · Худі». */
+  const рід = r => r.classList.contains('is-sum') ? 'підсумок'
+                 : r.classList.contains('is-disc') ? 'знижка'
+                 : r.classList.contains('is-note') ? 'примітка' : 'доданок';
+  const num = t => {
+    const m = String(t).replace(/\u2212/g, '-').replace(/\s/g, '').match(/-?\d+/);
+    return m ? +m[0] : 0;
+  };
+  return [...d.querySelectorAll('.t-calc-item')].map(el => ({
+    позиція: ((el.querySelector('.t-calc-name') || {}).textContent || '').trim(),
+    рядки: [...el.querySelectorAll('.t-calc-row')].map(r => {
+      const назва = ((r.querySelector('span') || {}).textContent || '').trim();
+      const сума = ((r.querySelector('b') || {}).textContent || '').trim();
+      return { рід: рід(r), назва, сума, число: num(сума) };
+    })
+  }));
+}
+function calcDump(o){
+  fillOrderParts(o);
+  /* Рекомендовані рахуються кожна окремо — «основні + ця», — і без цього
+     рядка в них немає розкладу зовсім. Саме їх найчастіше й перевіряють:
+     на екрані збирання вони стоять першими. */
+  try{ fillRecoParts(o, false); }catch(e){}
+  const { idx, list } = orderDescriptors(o);
+  const opts = orderPriceOpts(o);
+  let res = null, engineErr = null;
+  try{ res = priceOrder(list, opts); }
+  catch(e){ engineErr = String(e && e.message || e); }
+  const items = (o.items || []).map((it, i) => ({
+    рядок: i,
+    рід: itemKind(it),
+    назва: it.name || '',
+    виріб: (typeof itemGarmentId === 'function') ? itemGarmentId(it) : (it.garmentId || ''),
+    колір: it.color || '',
+    тираж: +it.qty || 0,
+    група: it.vgroup || null,
+    /* Чи пішла позиція в спільний прогін: рекомендовані й другі варіанти
+       групи рахуються окремо, і саме тут видно, хто ділить разову. */
+    уПрогоні: idx.indexOf(i) >= 0,
+    ділятьРазову: feeSharers(o, it),
+    заШтуку: +it.unitPrice || 0,
+    сума: +it.price || 0,
+    разоваНаОдиницю: +it.feeShare || 0,
+    опис: descOf(it),
+    /* З КИМ САМЕ ЦЯ ПОЗИЦІЯ РАХУВАЛАСЬ.
+
+       Без цього переліку поділ разових перевірити неможливо: «850 ₴ ÷ 15 шт»
+       нічого не доводить, поки не видно, звідки взялись ті пʼятнадцять.
+       Прогони різні: основні й представники груп рахуються разом; кожен
+       інший варіант — у складі, де свою групу представляє він; кожна
+       рекомендована — окремо, як «склад + вона». Саме тут і ховаються
+       питання «чому макет ділиться на десять, а не на пʼять». */
+    прогін: (function(){
+      const kd = itemKind(it);
+      if(kd === 'main') return idx.slice();
+      if(kd === 'variant'){
+        const own = orderDescriptors(o, i).idx;
+        return own.indexOf(i) >= 0 ? own : own.concat([i]);
+      }
+      if(kd === 'reco'){
+        /* Той самий порядок, що й у самому рахунку: позиція стоїть на
+           своєму місці у складі, а не в кінці. */
+        const у = {}; idx.forEach(n => { у[n] = 1; });
+        const out = [];
+        (o.items || []).forEach((x, n) => { if(n === i || у[n]) out.push(n); });
+        return out.indexOf(i) >= 0 ? out : out.concat([i]);
+      }
+      return [];
+    })(),
+    розклад: it.parts || null,
+    /* ЗАКРЕСЛЕНА ЦІНА — окремим розділом.
+
+       Андрій: «на сайті худі базове коштує одне, а в картці закреслена сума
+       інша». Число це виводиться аж чотирма шляхами, і доки не видно, який
+       із них спрацював і що дав кожен, розбіжність не пояснити: та сама
+       позиція, та сама модель цін, а числа різні.
+
+       Тому веземо всі чотири поруч: збережену разом із замовленням, чесний
+       прогін однією штукою, складання з уже порахованих частин і
+       розкручену назад формулу. Сайт рахує своє «було» рівно першим
+       способом — прогоном на найменшому порозі, — тож розбіжність із ним
+       видно одразу. */
+    закреслена: (function(){
+      const q1 = offerFirstTierQty(o, i);
+      const шлях = (f) => { try{ const v = f(); return (v == null) ? null : Math.round(v); }
+                            catch(e){ return 'збій: ' + (e && e.message || e); } };
+      const n = offerItemNumbers(o, i);
+      return {
+        показано: n.baseUnit, показуємо: !n.noBase, вигода: n.save,
+        найменшийПоріг: q1,
+        збережена: +it.baseUnit1 || null,
+        прогономОднією: шлях(() => soloOneUnit(descOf(it), o)),
+        прогономНаПорозі: шлях(() => sharedPriceAt(o, i, q1, { solo:true })),
+        зЧастин: (function(){
+          const b = it.parts;
+          if(!b || b.bare || b.garmentBase == null) return null;
+          const sk = (b.sketches || []).reduce((a2, s) => a2 + (+s.fee || 0), 0);
+          return Math.round((+b.garmentBase || 0) + (+b.appBase || 0) +
+                            (+b.pieceFee || 0) + (+b.feeTotal || 0) + sk);
+        })(),
+        /* Те, що справді повернув ланцюжок шляхів, — його й показує картка. */
+        обранийШлях: шлях(() => offerOneUnitPrice(o, i))
+      };
+    })(),
+    нанесення: (it.prints || []).map(pr => ({
+      бік: pr.side || '', спосіб: pr.technique || '',
+      ширинаММ: pr.widthMm, висотаММ: pr.heightMm,
+      вид: pr.kind || '', відбиток: pr.fp || '' }))
+  }));
+  return {
+    що: 'Loomiq · діагностика прорахунку',
+    коли: new Date().toISOString(),
+    збірка: ((document.getElementById('side-build') || {}).textContent || '').trim(),
+    замовлення: {
+      номер: o.orderId || '', напрям: o.dir || '', стан: o.status || '',
+      безОплатиЗаДизайн: !!o.noDesignFee,
+      ручнаПоправка: +o.feeAdj || 0,
+      сума: +o.totalPrice || 0, собівартість: +o.totalCost || 0
+    },
+    видДизайну: { автоматично: o.designKinds || null, словоМенеджера: o.designKindFix || null },
+    позиції: items,
+    рушій: { вхід: list, умови: opts, вихід: res, збій: engineErr },
+    розкладНаЕкрані: calcDumpRows(o),
+    /* Екран збирання пропозиції рахує НЕ ТЕ САМЕ, що картка: там, крім
+       основних позицій, стоять рекомендовані (кожна як «склад + вона») і
+       групи варіантів (клієнт візьме з групи одну). Через це сума — вилка,
+       а не число, і перевіряти її треба окремо. */
+    розкладПропозиції: (function(){
+      try{ return offerMgrCalc(o); }catch(e){ return null; }
+    })(),
+    вилка: (function(){
+      const main = (o.items || []).filter(x => itemKind(x) === 'main');
+      const sum = main.reduce((a2, x) => a2 + Math.round(+x.price || 0), 0);
+      const g = {};
+      (o.items || []).forEach(x => {
+        if(itemKind(x) !== 'variant') return;
+        const k = x.vgroup || 'Варіанти на вибір';
+        (g[k] = g[k] || []).push({ назва: itemName(x), сума: Math.round(+x.price || 0),
+                                   тираж: +x.qty || 0 });
+      });
+      const груп = Object.keys(g);
+      let lo = 0, hi = 0, vq = 0;
+      груп.forEach(k => {
+        const sums = g[k].map(x => x.сума);
+        lo += Math.min.apply(null, sums);
+        hi += Math.max.apply(null, sums);
+        vq += g[k][0].тираж;
+      });
+      return { основні: sum, штукОсновних: main.reduce((a2, x) => a2 + (+x.qty || 0), 0),
+               групи: g, штукУГрупах: vq, від: sum + lo, до: sum + hi };
+    })(),
+    /* Дві копії моделі цін навмисно. Рушій читає SITE_CONTENT — саме за
+       нею й пораховано те, що вище. Адмінка ж показує свій contentData, і
+       він буває свіжіший: менеджер щойно правив ставки. Розбіжність між
+       цими двома — окрема поломка, і побачити її можна лише поруч. */
+    модельЦін: {
+      рушія: (window.SITE_CONTENT || {}).pricing || null,
+      адмінки: (typeof curSitePricing === 'function') ? curSitePricing() : null
+    }
+  };
+}
+function calcDumpText(o){ return JSON.stringify(calcDump(o), null, 2); }
+function calcDumpDo(o, how){
+  let txt;
+  try{ txt = calcDumpText(o); }
+  catch(e){ console.error(e); toast('Не вдалось зібрати прорахунок'); return; }
+  const name = 'прорахунок-' + (o.orderId || 'замовлення') + '.json';
+  if(how === 'copy'){
+    const done = () => toast('Прорахунок скопійовано — можна вставляти');
+    if(navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(done, ()=> toast('Буфер недоступний — збережіть файлом'));
+    else toast('Буфер недоступний — збережіть файлом');
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([txt], { type:'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  toast('Збережено ' + name);
 }
 // Дескриптори позицій замовлення (лише ті, що мають розклад із сайту)
 /* Склад, який рахується разом: усі основні позиції ПЛЮС по одному варіанту
@@ -9051,6 +9858,7 @@ function repriceOrder(o){
   if(typeof syncRecoQty === 'function') syncRecoQty(o);
   syncVariantQty(o);   // у групі варіантів тираж один на всіх
   fillMissingFp(o);    // дизайн без відбитка інакше склеїться з першим
+  fillDesignUrls(o);   // копії одного малюнка — один макет, і впізнає їх файл
   applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
@@ -9097,13 +9905,18 @@ function repriceOrder(o){
   return list.length > 0 ||
          (o.items || []).some(it => itemKind(it) !== 'main' && it.desc);
 }
-/* Скільки коштувала б позиція, замовлена ОДНІЄЮ штукою й нічого більше:
+/* Скільки коштувала б позиція, замовлена САМА Й НА НАЙМЕНШОМУ ПОРОЗІ:
    виріб + нанесення + за штуку + повна разова підготовка. Склад замовлення
-   тут ні до чого — рахуємо саму позицію. */
+   тут ні до чого — рахуємо саму позицію. Це те саме число, що сторінка
+   товару показує першим рядком шкали, і від нього ж вона рахує відсоток. */
 function soloOneUnit(desc, o){
   if(!desc) return null;
   try{
-    const r = priceOrder([Object.assign({}, desc, { units:1, upsell:false })], orderPriceOpts(o));
+    /* Тираж — найменший поріг шкали, а не жорстка одиниця: саме на ньому
+       рахує «було» сторінка товару, і саме з нею клієнт звіряє картку. */
+    const поріг = firstTierQtyFor(desc);
+    const r = priceOrder([Object.assign({}, desc, { units:поріг, upsell:false })],
+                         orderPriceOpts(o));
     const u = (r[0] && +r[0].unit) || 0;
     return u > 0 ? u : null;
   }catch(e){ return null; }
@@ -9324,10 +10137,17 @@ function sharedPriceAt(order, itemIdx, qty, opts){
 /* Найменший поріг тиражу для позиції — те саме, що pt[0].min на сайті.
    Від ціни на цьому порозі сайт і рахує відсоток знижки. */
 function offerFirstTierQty(order, itemIdx){
-  const item = order.items[itemIdx];
+  return firstTierQtyFor((order.items[itemIdx] || {}).desc);
+}
+/* Той самий поріг, але від самого опису позиції. Потрібен там, де індексу
+   в замовленні немає, — і потрібен саме СПІЛЬНИЙ: «було» рахувалось у двох
+   місцях двома тиражами (одна штука тут, найменший поріг там), і щойно
+   найменший поріг переставав бути одиницею, картка й сайт починали
+   показувати різні числа за тією самою позицією. */
+function firstTierQtyFor(desc){
   const p = curSitePricing();
   if(!p) return 1;
-  const mk = (item.desc && item.desc.method === 'embro') ? 'embro' : 'dtf';
+  const mk = (desc && desc.method === 'embro') ? 'embro' : 'dtf';
   const m = (p.methods || {})[mk] || {};
   const list = (m.tiers && m.tiers.length) ? m.tiers : p.tiers;
   if(!Array.isArray(list) || !list.length) return 1;
@@ -9533,7 +10353,11 @@ function offerCalcRows(it, o){
   const b = it.parts;
   if(!b) return null;
   const rows = [];
-  const pre = b.garmentBase + b.appBase, post = b.garment + b.app;
+  const pre = b.garmentBase + b.appBase;
+  /* Знижку рахуємо від того самого числа, що лежить у ціні: виріб і
+     нанесення округлені разом, а не кожен окремо. Старі замовлення
+     `unitBase` не мають — їм лишається попередній шлях. */
+  const post = (b.unitBase != null) ? b.unitBase : (b.garment + b.app);
   /* До якої групи належить варіант і скільки виробів у розрахунку. Саме тут
      і виникає питання «чому макет ділиться на десять»: відповідь у тому, що
      потрапило в тираж, а це видно лише звідси. */
@@ -9670,9 +10494,14 @@ function offerCalcRows(it, o){
 
   /* Чому допродаж вийшов дешевшим — треба сказати рядком, інакше цифра
      виглядає як помилка: та сама вишивка, а ціна нижча за основну позицію. */
-  if(b.upsell && b.freeDesigns)
+  /* Дизайни, макет яких уже оплатила погоджена частина. Грошей за них
+     немає, але рядок потрібен: у ньому живе перемикач виду, і без нього
+     напис на рекомендованій позиції нічим перемкнути — саме той напис, який
+     і має злитися з рештою написів замовлення. */
+  (b.designNos || []).filter(d => d && d.done).forEach(d => {
     rows.push(['Підготовка макета — уже оплачена основними позиціями',
-               '0 грн', 'disc']);
+               '0 грн', 'disc', kindAct(d.i)]);
+  });
   rows.push(['Ціна за штуку', Math.round(+it.unitPrice || 0) + ' грн', 'sum']);
   rows.push([(+it.qty || 0) + ' шт', Math.round(+it.price || 0) + ' грн', 'sum']);
   return rows;
@@ -13618,6 +14447,16 @@ function closeOrderDrawer(){
 }
 async function openOrderDrawer(o){
   drawerOrderId = o.id;
+  /* Відкрив картку — інші про це знають. Мітка оновлюється й далі, поки
+     картка відкрита: без цього «Оксана тут» гасло б за півтори хвилини,
+     хоча вона нікуди не пішла. */
+  presenceWatch();
+  presenceTouch(o.id);
+  if(presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(()=>{
+    if(drawerOrderId !== o.id || document.hidden) return;
+    presenceTouch(o.id);
+  }, PRESENCE_EVERY);
   const off = o.offerToken && offersByToken[o.offerToken];
   // Побачив — значить опрацював: підсвітка картки гасне.
   if(off && o.offerSeen !== off.state){
@@ -16296,8 +17135,15 @@ function renderOrderDrawer(){
      з собою склад замовлення — його видно й у запасному вигляді. */
   let odHtml;
   try{
+  const разом = presenceOther(o.id);
   odHtml = isProd() ? odProdHtml(o) : (isDesigner() ? odDesignerHtml(o) : `
     <div class="od-head">
+      ${/* ХТО ЩЕ В ЦІЙ КАРТЦІ. Стоїть найпершим рядком, до всього іншого:
+           дізнатись про це після того, як перебив чужу правку, — запізно.
+           Не блокування, а попередження: домовитись голосом швидше, ніж
+           чекати, поки система когось відпустить. */''}
+      ${разом ? `<div class="od-together">Цю картку зараз править
+        <b>${escapeHtml(разом.by)}</b> — збережете обидва, лишиться останній</div>` : ''}
       ${/* Спершу — хто це. Канал із ніком стоїть у шапці, а не в розділі
            нижче: питання «де ми з цією людиною розмовляємо» виникає раніше
            за «як її звати», і відповідь на нього — головна дія з картки.
@@ -16674,6 +17520,9 @@ function renderOrderDrawer(){
   });
   panel.querySelectorAll('[data-art-ok]').forEach(b=>{
     b.addEventListener('click', ()=> artApprove(o, b.dataset.artOk));
+  });
+  panel.querySelectorAll('[data-calc-dg]').forEach(b=>{
+    b.addEventListener('click', ()=> calcDumpDo(o, b.dataset.calcDg));
   });
   const artAddB = panel.querySelector('[data-art-add]');
   if(artAddB) artAddB.addEventListener('click', ()=>{
@@ -17504,6 +18353,89 @@ window.crmMediaFallback = function(el, url, step){
   if(el && el.parentNode) el.parentNode.replaceChild(node, el);
 };
 
+/* ── ВИДАЛЕНЕ ПОВІДОМЛЕННЯ ЧЕРВОНІЄ, А НЕ ЗНИКАЄ ──────────────────────
+
+   Андрій: «якщо клієнт або ми видалили повідомлення в чаті — щоб воно
+   горіло червоним».
+
+   Мовчазне зникнення — найгірше, що може статись із перепискою. Клієнт
+   написав вимогу й прибрав її; менеджер пообіцяв термін і стер. Розмова
+   після цього виглядає бездоганно, а домовленість була. Хто дивиться в
+   чат назавтра, не бачить навіть діри на тому місці.
+
+   Sitniks про видалення не каже нічого (у частини записів трапляється
+   позначка, у більшості — ні), тож упізнаємо його самі: повідомлення
+   стояло в стрічці й зникло з наступної відповіді. Слід кладемо в саме
+   замовлення — інакше він живе рівно до перезавантаження сторінки, тобто
+   не живе взагалі.
+
+   ОДНЕ АЛЕ, і воно важливе: відповідь буває обрізаною згори. Усе, що
+   давніше за найстаріше повідомлення цієї відповіді, могло просто не
+   влізти — і фарбувати його червоним було б наклепом.
+
+   Відрізняємо так. Обрізання йде З ГОЛОВИ й рівно на стільки, на скільки
+   виріс хвіст: прийшло три нові репліки — випало три найдавніші. Видалення
+   ж виймає повідомлення звідки завгодно й нічого натомість не додає. Тож
+   мовчимо лише про ті найдавніші, яких рівно стільки, скільки цього разу
+   прибуло нових. Нічого не прибуло — значить нічого й не обрізали, і все
+   зникле зникло не саме. */
+const CRM_GONE_KEEP = 40;
+function crmMsgKey(m){
+  return crmOutKey(m && m.text) + '|' +
+         (((m && m.files) || []).map(f => (f && f.url) || '').join(' ')).slice(0, 200);
+}
+function crmMarkGone(o, list){
+  if(!o || !Array.isArray(list)) return list;
+  const now = {};
+  list.forEach(m => { now[crmMsgKey(m)] = 1; });
+  const gone = Array.isArray(o.crmGone) ? o.crmGone : (o.crmGone = []);
+  const було = ((crmChat[o.id] || {}).msgs || []).filter(m => m && !m.gone);
+  const булоKeys = {};
+  було.forEach(m => { булоKeys[crmMsgKey(m)] = 1; });
+  const прибуло = list.filter(m => !булоKeys[crmMsgKey(m)]).length;
+  const голова = {};
+  if(прибуло) було.slice(0, прибуло).forEach(m => { голова[crmMsgKey(m)] = 1; });
+  /* І ЩЕ ОДНА ОБЕРЕЖНІСТЬ. Видаляють по одному, зрідка по два. Коли ж із
+     розмови зникає одразу половина, це не видалення, а неповна відповідь:
+     Sitniks віддав шматок, збився на сторінці, повернув порожнє поле. Якби
+     ми повірили такій відповіді, вся переписка спалахнула б червоним — і
+     назад її вже не відбілити, слід лежить у замовленні. Тож мовчимо: не
+     показати видалене гірше, ніж показати, але оголосити видаленою цілу
+     розмову гірше за все. */
+  const зникло = було.filter(m => !now[crmMsgKey(m)] && !голова[crmMsgKey(m)]).length;
+  const віримо = !(зникло > 2 && зникло * 3 > було.length);
+  if(!віримо) console.warn('Sitniks віддав неповну стрічку (' + зникло + ' із ' +
+                           було.length + ') — видаленими не вважаємо');
+  let змін = false;
+  if(віримо) було.forEach(m => {
+    const k = crmMsgKey(m);
+    if(!k || k === '|' || now[k]) return;
+    if(голова[k]) return;                       // не влізло у відповідь, а не видалено
+    if(gone.some(g => g && g.t === k)) return;
+    gone.push({ t:k, at:m.at || '', text:m.text || '', mine:!!m.mine, by:m.by || '',
+                files:((m.files || []).map(f => f && f.url).filter(Boolean)).slice(0, 4) });
+    змін = true;
+  });
+  /* Повернулось — отже не видаляли: у Sitniks трапляється, що повідомлення
+     випадає з однієї відповіді й приїжджає в наступній. Червоне, яке
+     зникає саме, гірше за червоне, якого не було. */
+  const живі = gone.filter(g => g && !now[g.t]);
+  if(живі.length !== gone.length){ змін = true; }
+  o.crmGone = (живі.length > CRM_GONE_KEEP) ? живі.slice(-CRM_GONE_KEEP) : живі;
+  /* Ставимо назад на своє місце за часом: видалене має читатись там, де
+     воно стояло в розмові, а не купкою в кінці. */
+  o.crmGone.forEach(g => {
+    const row = { text:g.text || '', mine:!!g.mine, by:g.by || '', at:g.at || '', gone:true,
+                  files:(g.files || []).map(u => ({ url:u, kind:crmFileKind(u) })) };
+    let at = list.length;
+    if(g.at) for(let i = 0; i < list.length; i++){
+      if(list[i].at && list[i].at > g.at){ at = i; break; }
+    }
+    list.splice(at, 0, row);
+  });
+  if(змін) saveOrderMeta(o).catch(e => console.warn('слід видаленого', e));
+  return list;
+}
 function crmNormMsgs(data, o){
   const peer = crmPeerKeys(o);
   let arr = Array.isArray(data) ? data
@@ -17567,6 +18499,9 @@ function crmNormMsgs(data, o){
       : ((mine && who.name && !peer.some(pk => byKey === pk || byKey.indexOf(pk) >= 0))
           ? who.name : '');
     return { text: String(text), files: files, mine: mine, by: by,
+             /* Коли Sitniks усе ж сказав словом, що повідомлення видалене, —
+                віримо йому одразу, не чекаючи, поки воно зникне зі стрічки. */
+             gone: !!(m.deleted || m.isDeleted || m.is_deleted || m.deletedAt),
              at: at ? String(at).replace('T',' ').slice(0,16) : '' };
   }).filter(m => m.text || (m.files && m.files.length));
   /* Sitniks віддає найновіше першим, і розмова читалась догори ногами.
@@ -17574,6 +18509,36 @@ function crmNormMsgs(data, o){
   const withAt = list.filter(m => m.at);
   if(withAt.length > 1 && withAt[0].at > withAt[withAt.length - 1].at) list.reverse();
   else if(!withAt.length && list.length > 1) list.reverse();
+  /* РАЗ ПОКАЗАНЕ НАШИМ — НАШИМ І ЛИШАЄТЬСЯ.
+
+     Андрій: «вліво пригає знову наше повідомлення». Саме ПРИГАЄ: спершу
+     репліка стоїть праворуч, а за секунду, коли стрічку перечитано з
+     Sitniks, перестрибує ліворуч і без підпису.
+
+     Бік визначається ланцюжком ознак, і кожна ланка в ньому може не
+     спрацювати: прямого поля «вихідне» в цьому акаунті немає, підпис
+     приходить клієнтський, памʼять про відправлене живе у вкладці й гине
+     при перезавантаженні. Ланцюжок латати марно — він і так із чотирьох
+     здогадів.
+
+     Але одне ми знаємо твердо: якщо це повідомлення вже стояло праворуч,
+     воно наше. Розмова не переписується заднім числом. Тому бік, показаний
+     раніше, перечитуванням не скасовується — і заразом лягає в памʼять
+     картки, щоб пережити перезавантаження. */
+  const було = ((crmChat[o && o.id] || {}).msgs) || [];
+  if(було.length){
+    const наші = {};
+    було.forEach(m => { if(m && m.mine) наші[crmMsgKey(m)] = String(m.by || ''); });
+    list.forEach(m => {
+      if(m.mine) return;
+      const k = crmMsgKey(m);
+      if(!Object.prototype.hasOwnProperty.call(наші, k)) return;
+      m.mine = true;
+      if(!m.by) m.by = наші[k];
+      if(m.text) crmOutNote(o, m.text);
+    });
+  }
+  crmMarkGone(o, list);
   list.rawCount = arr.length;
   list.rawKeys = (arr.length && typeof arr[0] === 'object')
     ? Object.keys(arr[0]).slice(0, 14) : [];
@@ -17581,13 +18546,34 @@ function crmNormMsgs(data, o){
      розуміє, чи відповіли на надіслані картки. Дошка самої розмови не
      читає, тож кладемо його в замовлення — тут, де стрічку вже розібрано
      на «наше» й «їхнє», і рахувати вдруге ніде не доведеться. */
-  crmNoteIn(o, list.filter(m => !m.mine).length);
+  /* Лічильники рахуємо по ЖИВИХ репліках. Видалене стоїть у стрічці як
+     слід, а не як звернення: рахувати його за «клієнт написав» означало б
+     тримати кружечок непрочитаного на тому, чого вже немає. */
+  const живі = list.filter(m => !m.gone);
+  /* Точний час останньої репліки клієнта — від нього Instagram відлічує
+     сім днів на відповідь. Фоновий обхід бачить лише останнє повідомлення
+     розмови; тут перед нами вся стрічка, тож число чесніше. */
+  const остання = живі.filter(m => !m.mine && m.at).map(m => m.at).sort().pop();
+  if(остання && остання !== String(o.crmInAt || '')) o.crmInAt = остання;
+  crmNoteIn(o, живі.filter(m => !m.mine).length);
   /* Скільки клієнт написав ПІСЛЯ нашої останньої відповіді. Фоновий обхід
      рахує це спостереженнями й може недорахувати (три репліки за одну
      хвилину він побачить як одну); тут же стрічка перед нами вся, тож
      переписуємо точним числом. */
   let tail = 0;
-  for(let i = list.length - 1; i >= 0 && !list[i].mine; i--) tail++;
+  for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) tail++;
+  /* Прочитане руками більше не непрочитане. Без цієї межі наступний же
+     такт опитування перерахував би хвіст і повернув кружечок — тобто
+     кнопка «прочитано» працювала б рівно до наступної секунди. */
+  const межа = crmSeenAt(o);
+  if(межа){
+    let свіжих = 0;
+    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--)
+      if(!живі[i].at || живі[i].at > межа) свіжих++;
+    tail = свіжих;
+    /* Клієнт озвався після позначки — межа своє відслужила. */
+    if(!tail) o.crmTheirs = false; else o.crmSeen = '';
+  }
   if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
   return list;
 }
@@ -17892,11 +18878,31 @@ async function crmSendPic(o, url, blob){
 async function crmSend(o, text){
   const st = crmChat[o.id];
   if(!st || !st.chatId || !text.trim()) return;
+  /* БУЛЬБАШКА ЗʼЯВЛЯЄТЬСЯ ОДРАЗУ, А НЕ ПІСЛЯ ВІДПОВІДІ СЕРВЕРА.
+
+     Доти власна репліка лягала в стрічку тільки після успішного POST — а
+     він триває секунду-дві, і всю цю секунду екран не відповідав нічим.
+     Так поводиться зіпсована програма, а не повільна мережа: у будь-якому
+     месенджері репліка стоїть у стрічці одразу, просто з позначкою, що
+     ще летить.
+
+     Позначку знімає відповідь сервера; якщо ж він відмовив — бульбашку
+     прибираємо зовсім, а текст повертаємо в поле. Червоний привид
+     «не надіслано» поруч із тим самим текстом у полі був би двома
+     відповідями на одне питання. */
+  const свій = { text: text.trim(), mine: true, at: '', by: myName(), pending: true };
+  if(st.msgs) st.msgs.push(свій);
+  renderOrderDrawer();
+  if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin(true);
+  const зняти = ()=>{
+    if(st.msgs){ const at = st.msgs.indexOf(свій); if(at >= 0) st.msgs.splice(at, 1); }
+  };
   try{
     const res = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages', {
       method: 'POST',
       body: JSON.stringify({ text: text.trim() })
     });
+    свій.pending = false;
     toast('Надіслано');
     crmSent.add(text.trim());
     crmOutSent(o, res);          // ще й за номером повідомлення, якщо він є
@@ -17905,18 +18911,25 @@ async function crmSend(o, text){
        без відправника, і впізнати його більше не буде чим. */
     crmOutNote(o, text.trim());
     saveOrderMeta(o).catch(e => console.warn(e));
-    // Показуємо одразу, щоб не було відчуття, що повідомлення провалилось,
-    // і через паузу перечитуємо з сервера: там воно вже з часом і в порядку.
-    /* Підписуємо одразу собою. Sitniks поверне це повідомлення за секунду й
-       підпис прийде вже від нього — але секунду менеджер дивиться на власну
-       репліку, і вона має бути підписана так само, як решта. */
-    if(st.msgs) st.msgs.push({ text: text.trim(), mine: true, at: '', by: myName() });
+    /* Бульбашка вже стоїть у стрічці — просто знімаємо з неї позначку «ще
+       летить». Через паузу перечитуємо з сервера: там воно вже з часом і в
+       правильному порядку, і наша копія тихо заміститься. */
     renderOrderDrawer();
+    if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin();
     setTimeout(function(){ crmPollOnce(o); }, 1200);
   }catch(e){
     // 400 тут — відома невирішена проблема: Sitniks може не знати, у який
     // саме канал слати, або вікно відповіді закрите. Показуємо його текст.
-    toast('Не надіслалось: ' + (e.message || ''));
+    зняти();
+    /* Текст повертаємо в поле — рівно там його й правитимуть. Лист на три
+       абзаци, який зник разом із відмовою сервера, не відновити нізвідки:
+       доти поле чистилось одразу при натиску, і при збої написане просто
+       пропадало. */
+    if(chatWin && chatWin.id === o.id)
+      chatWin.draft = (String(chatWin.draft || '').trim() ? chatWin.draft + '\n' : '') + text;
+    renderOrderDrawer();
+    if(chatWin && chatWin.id === o.id) renderChatWin();
+    toast('Не надіслалось: ' + (e.message || '') + ' · текст повернувся в поле');
     console.warn('sitniks send', e, 'обʼєкт замовлення:', st.raw);
   }
 }
@@ -17943,11 +18956,20 @@ async function crmPollOnce(o){
     const data = await crmFetch('/chats/' + encodeURIComponent(st.chatId) + '/messages');
     const msgs = crmNormMsgs(data, o);
     if(!msgs) return;
-    const was = (st.msgs || []).map(m => m.text).join('\u0000');
-    const now = msgs.map(m => m.text).join('\u0000');
+    /* Прикмета стрічки — не лише тексти. Бік, підпис, вкладення й слід
+       видаленого теж міняють те, що людина бачить; порівнюючи самі тексти,
+       ми пропускали саме ці зміни, а перемальовували й тоді, коли не
+       змінилось нічого. Одне й друге однаково погано: перше не показує
+       нового, друге смикає екран під руками. */
+    const sig = l => (l || []).map(m => [m.text, m.mine ? 1 : 0, m.gone ? 1 : 0, m.by || '',
+      (m.files || []).map(f => f && f.url).join(' ')].join('\u0001')).join('\u0000');
+    const was = sig(st.msgs);
+    const now = sig(msgs);
     if(was === now) return;
     st.msgs = msgs;
     renderOrderDrawer();
+    // Вікно діалогу — окреме від картки, і воно теж має побачити нове
+    if(chatWin && chatWin.id === o.id && chatWin.kind === 'crm') renderChatWin();
   }catch(e){ /* тимчасовий збій мережі не має ламати картку */ }
 }
 
@@ -17978,12 +19000,73 @@ async function crmPollOnce(o){
    погляду, бреше вже за хвилину. */
 const CRM_SWEEP_MS = 60000;
 let crmSweepTimer = null, crmSweepBusy = false;
-let crmInbox = [];      // розмови, у яких замовлення ще немає
+/* Розмови, у яких замовлення ще немає. У розділі їх більше не показуємо —
+   там лише те, що ми самі привʼязали, — але обхід їх усе одно читає: саме з
+   цього списку видно, що звʼязок із Sitniks живий, і сюди ж дивляться,
+   коли розбираються, чому розмова не підтягнулась. */
+let crmInbox = [];
 /* Останнє повідомлення розмови лежить у списку то під одним імʼям, то під
    іншим — залежно від того, який це ендпоінт. Дивимось у всі звичні. */
 function crmRowLast(r){
   const m = r && (r.lastMessage || r.last_message || r.lastMsg || r.message);
   return (m && typeof m === 'object') ? m : null;
+}
+/* ══════════ ВІКНО ВІДПОВІДІ: СІМ ДНІВ ══════════════════════════════════
+
+   Instagram не дає писати клієнтові, коли заманеться. Відлік іде від
+   ОСТАННЬОЇ РЕПЛІКИ КЛІЄНТА, і триває сім діб; далі канал закривається.
+   Найгірше в цьому те, як воно виглядає збоку: Sitniks лист приймає, у
+   нашій стрічці він стоїть, а до людини не доходить. Менеджер дізнається
+   про це через день-два — або не дізнається зовсім.
+
+   Тому рахуємо самі й кажемо вголос: скільки лишилось, поки ще є, і що
+   вікно зачинене, коли вже немає.
+
+   Час зберігається без позначки поясу (його зрізає нормалізація стрічки),
+   а приходить в UTC — тож і читаємо як UTC. Помилка на кілька годин у
+   семиденному вікні нічого не важить, а от добова — важить, і саме її це
+   й уникає. */
+const CRM_WIN_MS = 7 * 24 * 60 * 60 * 1000;
+function crmTime(s){
+  const t = String(s || '').trim();
+  if(!t) return 0;
+  const n = Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(t) ? t : (t.replace(' ', 'T') + 'Z'));
+  return isNaN(n) ? 0 : n;
+}
+/* Коли клієнт озвався востаннє. Відкрита стрічка знає це точно; закрита —
+   з того, що лишив фоновий обхід. */
+function crmLastInAt(o){
+  const st = (o && crmChat[o.id]) || {};
+  const live = (st.msgs || []).filter(m => m && !m.gone && !m.mine && m.at)
+                              .map(m => m.at).sort().pop();
+  if(live) return live;
+  if(o && o.crmInAt) return String(o.crmInAt);
+  // Стара картка без окремого поля: годиться й crmAt, коли остання репліка їхня
+  return (o && o.crmTheirs && o.crmAt) ? String(o.crmAt) : '';
+}
+function crmWindow(o){
+  const at = crmLastInAt(o);
+  if(!at) return null;                 // клієнт ще не писав — рахувати нема від чого
+  const t = crmTime(at);
+  if(!t) return null;
+  const left = t + CRM_WIN_MS - Date.now();
+  /* `since` — скільки МИНУЛО від репліки клієнта. Виводити його з `left`
+     на місці виклику виявилось пасткою: «лишилось мінус дві доби» плюс сім
+     дає пʼять, а минуло девʼять. Тому число рахується тут, один раз і
+     правильно. */
+  return { at: at, left: left, since: Date.now() - t, closed: left <= 0,
+           /* Менше двох діб — уже варто поспішати. Саме тут попередження
+              ще щось міняє: за дві доби встигнути можна, за дві години —
+              як пощастить. */
+           soon: left > 0 && left <= 48 * 60 * 60 * 1000 };
+}
+function crmLeftLabel(ms){
+  const m = Math.max(0, Math.round(Math.abs(ms) / 60000));
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+  if(d >= 1) return d + ' ' + (d === 1 ? 'день' : (d < 5 ? 'дні' : 'днів')) +
+                    (h ? ' ' + h + ' год' : '');
+  if(h >= 1) return h + ' ' + (h === 1 ? 'година' : (h < 5 ? 'години' : 'годин'));
+  return m + ' хв';
 }
 function crmSweepRow(r, o){
   const last = crmRowLast(r);
@@ -18024,6 +19107,11 @@ async function crmSweepOnce(){
       o.crmAt = info.at;
       o.crmLast = info.text.slice(0, 160);
       o.crmTheirs = !info.mine;
+      /* Коли клієнт озвався востаннє. Від цієї миті Instagram відлічує сім
+         днів, у які нашу відповідь ще доставлять; далі лист іде в нікуди.
+         Тримаємо в замовленні окремо від crmAt: та — «остання репліка
+         взагалі», а вікно рахується САМЕ від клієнтської. */
+      if(!info.mine) o.crmInAt = info.at;
       if(!info.mine){
         /* Скільки клієнт написав після нашої останньої відповіді. Точне
            число дає лише сама стрічка, і коли розмову відкриють, воно
@@ -18074,29 +19162,35 @@ function chatsRows(dir){
       waits: orderWaiting(o)
     });
   });
-  /* Розмови, у яких замовлення ще немає. Саме вони губляться найчастіше:
-     людина написала вперше, картки немає — отже на дошці її немає ніде.
-     Показуємо в обох напрямах, бо чого вона хоче, поки не знає ніхто; хто
-     перший заведе замовлення, той і вирішить напрям. */
-  const bound = {};
-  (orders || []).forEach(o => { if(o && o.crmChatId) bound[String(o.crmChatId)] = 1; });
-  (crmInbox || []).forEach(r => {
-    if(bound[r.chatId]) return;
-    out.push({ free:r, who:r.nick || ('чат ' + r.chatId), channel:'Instagram',
-               at:r.at, text:String(r.text || '').replace(/\s+/g, ' ').slice(0, 90),
-               n:r.mine ? 0 : 1, waits:!r.mine });
-  });
+  /* СЮДИ ПОТРАПЛЯЄ ТІЛЬКИ ТЕ, ЩО МИ САМІ ЗАВЕЛИ.
+
+     Був тут ще один шматок: обхід питає Sitniks про ВЕСЬ список розмов, і
+     кожна, не привʼязана до замовлення, лягала в цей список — ще й в обидва
+     напрями одразу. Задум був добрий: людина написала вперше, картки немає,
+     отже на дошці її немає ніде.
+
+     А вийшла копія Direct усередині CRM. Кілька десятків чужих діалогів, у
+     яких нічого не відбувається, у B2B і в B2C водночас, і серед них ті
+     кілька, з якими справді працюють. Розділ перестав відповідати на
+     питання, заради якого існує: «кому я ще не відповів».
+
+     Тому правило: розмова зʼявляється в розділі тоді, коли її привʼязали до
+     замовлення цього напряму, і тільки тоді. Хто написав уперше — живе в
+     самому Instagram, доки з нього не зробили замовлення. */
   return out.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
 }
 function chatsHtml(dir){
   const rows = chatsRows(dir);
   if(!rows.length)
-    return '<div class="chl-empty">Розмов поки немає. Вони зʼявляться тут, ' +
-           'щойно клієнт напише — найсвіжіші згори.</div>';
+    return '<div class="chl-empty">Розмов тут поки немає. Вони зʼявляються, ' +
+           'коли розмову привʼязують до замовлення цього напряму — у картці, ' +
+           'кнопкою 🔗 біля клієнта.</div>';
   return rows.map((r, i) => `
-    <button class="chl-row${r.waits ? ' waits' : ''}${r.free ? ' free' : ''}" data-chl="${i}">
+    <button class="chl-row${r.waits ? ' waits' : ''}${
+      chatWin && chatWin.id === (r.o || {}).id ? ' is-on' : ''}" data-chl="${i}">
       <span class="chl-who">${escapeHtml(r.who)}</span>
-      <span class="chl-ch">${escapeHtml(r.channel)}${r.free ? ' · без замовлення' : ''}</span>
+      <span class="chl-ch">${escapeHtml(r.channel)}${
+        r.o && r.o.orderId ? ' · ' + escapeHtml(r.o.orderId) : ''}</span>
       <span class="chl-txt">${escapeHtml(r.text || '—')}</span>
       <span class="chl-at">${escapeHtml(crmDayShort(r.at))}</span>
       ${r.n ? `<span class="chl-n">${r.n}</span>` : ''}
@@ -18112,44 +19206,61 @@ function crmDayShort(at){
     ? d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' })
     : d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
 }
+/* ══════════ ДВІ КОЛОНКИ, ЯК У DIRECT ══════════════════════════════════
+   Ліворуч список розмов, праворуч сама переписка. Натиснув рядок — розмова
+   відкрилась тут же, без переходів і без проміжних кнопок.
+
+   Доти клік вів в інше місце: відкривалась КАРТКА замовлення, а вікно
+   переписки випливало поверх неї. Тобто розділ «Чати» насправді був
+   списком посилань на дошку, і щоб відповісти двом людям поспіль,
+   доводилось щоразу вертатись назад.
+
+   Картка нікуди не поділась — на неї веде номер замовлення в шапці
+   розмови. Але вона тепер наслідок, а не умова: у розділі чатів
+   відповідають, а не ведуть замовлення. */
+function chatsHostId(dir){ return dir === 'b2c' ? 'chatscView' : 'chatsView'; }
 function renderChats(dir){
   const root = document.getElementById(dir === 'b2c' ? 'chatscRoot' : 'chatsRoot');
   if(!root) return;
   const rows = chatsRows(dir);
-  root.innerHTML = chatsHtml(dir);
+  const host = chatsHostId(dir);
+  /* Вузол переписки один на всю адмінку, і він може зараз стояти саме тут.
+     Виймаємо його ПЕРЕД тим, як стерти вміст, інакше innerHTML знищить його
+     разом із розміткою — разом із живою підпискою на стрічку. */
+  const cw = document.getElementById('chatWin');
+  const parked = cw && cw.parentNode === document.getElementById(host);
+  if(parked) (document.querySelector('.workarea') || document.body).appendChild(cw);
+  root.innerHTML = '<div class="ch2">' +
+      '<div class="ch2-list">' + chatsHtml(dir) + '</div>' +
+      '<div class="ch2-view" id="' + host + '"></div>' +
+    '</div>';
+  if(parked) chatsMount(dir);
+  else chatsViewEmpty(dir);
   root.querySelectorAll('[data-chl]').forEach(b => b.addEventListener('click', async ()=>{
     const r = rows[+b.dataset.chl];
-    if(!r) return;
-    if(r.o){ await openOrderDrawer(r.o); chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm'); return; }
-    /* Розмова без замовлення. Заводимо його тут-таки, у ЦЬОМУ напрямі, і
-       одразу привʼязуємо: інакше менеджер мав би створити картку, потім
-       знайти ту саму розмову в Sitniks і скопіювати адресу. */
-    if(!canNewOrder()) return toast('Заводити замовлення — не ваша зона');
-    if(!confirm('Завести замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') +
-                ' для «' + (r.who || 'цієї розмови') + '»?')) return;
-    try{
-      const o = await chatsNewOrder(dir, r.free);
-      await openOrderDrawer(o);
-      chatOpen(o, 'crm');
-    }catch(e){ console.error(e); toast('Замовлення не створилось'); }
+    if(!r || !r.o) return;
+    chatOpen(r.o, tgChatOf(r.o) ? 'tg' : 'crm', { host: chatsHostId(dir) });
+    renderChats(dir);
   }));
 }
-async function chatsNewOrder(dir, r){
-  const st = dir === 'b2c' ? B2C_STATUS : firstStatusKey();
-  const o = {
-    id: cryptoId(), dir: dir, type:'client', status: st,
-    orderId: makeOrderId(dir), source:'переписка', site:'main',
-    name: r.nick || '', phone:'', company:'', instagram:'',
-    crmChatId: r.chatId, crmChatName: r.nick || '',
-    items: [], totalPrice:0, totalCost:0, margin:0, marginPct:0,
-    createdAt: new Date().toISOString(), touchedAt: new Date().toISOString(),
-    hist: [{ s:st, at:new Date().toISOString() }]
-  };
-  orders.unshift(o);
-  await storeSet('orders', orders);
-  if(dir === 'b2c') designJobMake(o.orderId);
-  renderBoard();
-  return o;
+/* Поки нічого не обрано — праворуч не порожнеча, а підказка: порожня
+   половина екрана читається як «зламалось». */
+function chatsViewEmpty(dir){
+  const v = document.getElementById(chatsHostId(dir));
+  if(!v) return;
+  v.innerHTML = '<div class="ch2-none">' +
+    '<b>Оберіть розмову зліва</b>' +
+    '<span>Вона відкриється тут. Розмови зʼявляються в списку, коли їх ' +
+    'привʼязують до замовлення ' + (dir === 'b2c' ? 'B2C' : 'B2B') + '.</span></div>';
+}
+// Поставити вузол переписки в праву колонку цього розділу.
+function chatsMount(dir){
+  const v = document.getElementById(chatsHostId(dir));
+  const cw = document.getElementById('chatWin');
+  if(!v || !cw) return;
+  v.innerHTML = '';
+  cw.classList.add('cw-inline');
+  v.appendChild(cw);
 }
 /* Число поруч із назвою розділу: видно, що є неотримана відповідь, не
    заходячи туди. Саме число, а не крапка — «одне питання» і «людина
@@ -18204,9 +19315,26 @@ function crmStartPoll(o){
 }
 
 function wireCrmBlock(panel, o){
-  // Розмова читається знизу вгору: показуємо останнє повідомлення, а не перше.
+  /* Розмова читається знизу вгору, тож за замовчуванням показуємо останнє.
+     Але «за замовчуванням» — це до першого дотику: доти цей рядок тягнув
+     стрічку вниз на КОЖНОМУ перемальовуванні картки. А картка
+     перемальовується від будь-якої дрібниці — свого ж запису в базу,
+     чужої правки, такту опитування. Менеджер відгортав розмову на
+     позавчора, і за секунду її змітало назад у кінець. Тому памʼятаємо,
+     де він стоїть, і липнемо до дна лише поки він сам біля дна. */
   const feedEl = panel.querySelector('.od-crm-feed');
-  if(feedEl) feedEl.scrollTop = feedEl.scrollHeight;
+  if(feedEl){
+    const st = crmChat[o.id] || {};
+    const стик = st.feedStick !== false;
+    const треба = стик ? feedEl.scrollHeight : (+st.feedTop || 0);
+    if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
+    feedEl.addEventListener('scroll', ()=>{
+      const s = crmChat[o.id];
+      if(!s) return;
+      s.feedTop = feedEl.scrollTop;
+      s.feedStick = feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 60;
+    });
+  }
   if((crmChat[o.id] || {}).chatId){ if(!crmTimer) crmStartPoll(o); }
   else crmStopPoll();
   const load = panel.querySelector('.od-crm-load');
@@ -18522,6 +19650,12 @@ function configWithLogos(it){
   return out;
 }
 function calcSeedFor(o, editIdx){
+  /* Конструктор рахує позицію РАЗОМ із рештою замовлення, і робить це своїм
+     примірником рушія. Отже все, за чим рушій упізнає дизайни, має поїхати
+     туди разом зі складом — зокрема адреси файлів. Без них у кадрі копії
+     одного логотипа знову стають різними макетами, хоч в адмінці вони вже
+     зведені: два примірники рушія рахують те саме замовлення по-різному. */
+  try{ fillDesignUrls(o); }catch(e){ console.warn('адреси дизайнів', e); }
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
   /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
@@ -19031,6 +20165,43 @@ async function offerEdApply(msg){
   /* «За дизайн не беремо» — рішення про все замовлення, тож і живе воно на
      замовленні. Перерахунок робить offerEdSave: він проходить по всіх
      позиціях тим самим рушієм, лише вже без разових. */
+  /* Вивантаження прорахунку прямо з екрана збирання. Кнопка стоїть там, бо
+     саме там менеджер і бачить числа, які не сходяться: у картці замовлення
+     рекомендованих і груп варіантів немає взагалі. Робить це адмінка —
+     у кадру пропозиції немає ні моделі цін, ні самого замовлення. */
+  /* Менеджер перемкнув вид дизайну в конструкторі. Це рішення про малюнок,
+     а не про позицію: кладемо його в мапу замовлення, розкладаємо по всіх
+     позиціях і одразу зберігаємо. Доти воно жило в памʼяті кадру й зникало
+     на переході до наступної позиції. */
+  if(act === 'kindFix'){
+    const kind = (msg.kind === 'txt' || msg.kind === 'off') ? msg.kind : 'img';
+    const keys = kindFixKeys(o, msg.fp, msg.url);
+    if(!keys.length) return;
+    const m = Object.assign({},
+      (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
+    keys.forEach(k => { m[k] = kind; });
+    o.designKindFix = m;
+    /* Прибираємо позиційні позначки про ці ж відбитки: два джерела правди
+       про один малюнок — це те саме розходження, від якого ми тікаємо. */
+    (o.items || []).forEach(x=>{
+      if(!x || !x.designKindFix) return;
+      const c = Object.assign({}, x.designKindFix);
+      let ch = false;
+      keys.forEach(k => { if(c[k] !== undefined){ delete c[k]; ch = true; } });
+      if(ch) x.designKindFix = Object.keys(c).length ? c : null;
+    });
+    applyKindFix(o);
+    repriceOrder(o);
+    recalcOrderTotals(o);
+    if(!(await offerEdSave(o))) return;
+    renderBoard();
+    offerEdPreview(true);
+    return;
+  }
+  if(act === 'calcDump'){
+    calcDumpDo(o, msg.how === 'copy' ? 'copy' : 'file');
+    return;
+  }
   if(act === 'nofee'){
     o.noDesignFee = !!msg.v;
     if(!(await offerEdSave(o))) return;
@@ -19950,10 +21121,39 @@ function renderOfferEd(){
         // а логотипи клієнтів бувають важкі
         const url = await uploadCloudinary(f);
         await addOrderLogo(o, url);
+        /* І СТАВИМО ЙОГО В ШАПКУ.
+
+           Кнопка стоїть у шапці редактора пропозиції, поруч із брендом і
+           посиланням, — тобто серед того, що стосується самого документа.
+           Натискаючи її, менеджер хоче побачити логотип у шапці КП, і це
+           єдине очікування, яке вона може справдити.
+
+           Доти вона лише дописувала файл у кінець списку логотипів
+           замовлення. Шапка бере звідти ПЕРШИЙ — отже, поки список був
+           порожній, логотип зʼявлявся, а щойно в замовленні вже був хоч один
+           логотип із виробу, новий не зʼявлявся ніде: смужки зі списком у
+           шапці теж немає. Дія була, наслідку — жодного.
+
+           Список замовлення при цьому нікуди не дівся: файл лишається
+           доступним усім товарам, як і був. */
+        o.clientLogo = url;
+        o.clientLogoOff = false;
+        try{ await saveOrderMeta(o); }catch(e2){ console.warn('логотип у шапці', e2); }
         renderOfferEd();
         paintCalcTarget();          // конструктор має побачити новий логотип одразу
-        toast('Логотип додано — тепер він доступний усім товарам');
-      }catch(e){ console.error(e); toast('Не вдалось завантажити'); }
+        offerEdPreview(true);       // і шапка пропозиції — теж, одразу
+        toast('Логотип у шапці — і доступний усім товарам');
+      }catch(e){
+        console.error(e);
+        /* Причина, а не «не вдалось». Найчастіша — хмара для картинок ще не
+           налаштована, і тоді нічого не завантажиться ніколи, скільки не
+           тисни. Це лікується один раз у налаштуваннях, але спершу про це
+           треба дізнатись. */
+        const why = String((e && e.message) || e || '');
+        toast(/not-configured/.test(why)
+          ? 'Сховище картинок не налаштоване — Налаштування → Конструктор сайту'
+          : ('Не вдалось завантажити: ' + (why.slice(0, 60) || 'невідома причина')));
+      }
     });
     inp.click();
   });
@@ -20007,12 +21207,13 @@ let cwMainTop = 0;    // прокрутка дошки, поки її ховає
 function chatMsgs(o, kind){
   if(kind === 'tg'){
     return ((tgChat[o.id] || {}).msgs || []).map(m => ({
-      at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by,
+      at: m.at, text: m.text, mine: m.mine, kind: m.kind, by: m.by, gone: !!m.gone,
       files: m.file ? [{ url: m.file, kind: 'img' }] : []
     }));
   }
   return ((crmChat[o.id] || {}).msgs || []).map(m => ({
-    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, files: m.files || []
+    at: m.at, text: m.text, mine: m.mine, kind: 'text', by: m.by, gone: !!m.gone,
+    pending: !!m.pending, files: m.files || []
   }));
 }
 /* Повідомлення підряд від однієї сторони стоять щільніше й з менш зрізаними
@@ -20026,9 +21227,97 @@ function chatMsgs(o, kind){
 
    Підпис менеджера залишився під останнім: він у групі той самий, і
    повторювати його щоразу — це вже шум, а не відомість. */
+/* ══════════ «ПРОЧИТАНО» РУКАМИ ═══════════════════════════════════════
+
+   Непрочитане система рахує сама: скільки клієнт написав після нашої
+   останньої відповіді. Правило добре рівно настільки, наскільки вона
+   правильно розрізняє, де чия репліка, — а розрізняє вона ланцюжком
+   здогадів, бо прямої ознаки Sitniks не дає. Варто нашій відповіді поїхати
+   ліворуч, як розмова спалахує «непрочитаною», хоча клієнт там не сказав
+   ні слова. Андрій це й побачив: «по факту це наші просто діалоги в ліву
+   сторону полетіли».
+
+   Тому додаємо те, чого бракувало: людина дивиться й каже сама. Позначка
+   ставиться на МИТЬ останнього повідомлення, а не просто «нуль»: інакше
+   наступний же такт опитування перерахував би хвіст і повернув кружечок.
+   Знімається так само одним дотиком — помилився або хочеш повернутись
+   пізніше. */
+function chatWaiting(o, kind){
+  if(!o) return false;
+  if(kind === 'tg') return tgUnread(o);
+  return !!(o.crmTheirs || (+o.crmUnread || 0) > 0);
+}
+/* До якої миті розмову прочитано. Усе давніше або рівне не рахується
+   непрочитаним — ні в кружечку на картці, ні рискою в стрічці. */
+function crmSeenAt(o){ return String((o && o.crmSeen) || ''); }
+function chatSeenToggle(o, kind){
+  if(!o) return;
+  const було = chatWaiting(o, kind);
+  if(kind === 'tg'){
+    if(було){ o.tgSeen = o.tgAt; o.tgSeenWrote = +o.tgWrote || 0; }
+    else { o.tgSeen = ''; o.tgSeenWrote = null; }
+  } else if(було){
+    /* Мить останньої репліки в стрічці, а як її немає — час картки. */
+    const st = crmChat[o.id] || {};
+    const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
+    o.crmSeen = остання || o.crmAt || new Date().toISOString().replace('T', ' ').slice(0, 16);
+    o.crmUnread = 0; o.crmTheirs = false;
+  } else {
+    o.crmSeen = '';
+    /* Повертаємо рівно те, що система рахує сама: хвіст клієнтських реплік
+       після нашої останньої відповіді. Вигадувати одиницю не можна — вона
+       розійдеться з тим, що покаже наступний такт. */
+    const st = crmChat[o.id] || {};
+    let хвіст = 0;
+    const живі = (st.msgs || []).filter(m => m && !m.gone);
+    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) хвіст++;
+    o.crmUnread = хвіст || 1;
+    o.crmTheirs = true;
+  }
+  saveOrders({ quiet:true }).then(renderBoard).catch(e => console.warn('прочитано', e));
+  renderBoard();
+  renderChatWin();
+  try{ renderOrderDrawer(); }catch(e){}
+  toast(було ? 'Позначено прочитаним' : 'Повернуто в непрочитані');
+}
 function chatRowsHtml(msgs){
   let lastDay = '';
   const list = msgs || [];
+  /* ── МЕЖА НЕПРОЧИТАНОГО ────────────────────────────────────────────────
+     Андрій: «одразу заходиш в діалог, одразу бачиш непрочитане
+     повідомлення». Доти розмова відкривалась просто в кінці: якщо клієнт
+     написав пʼять разів, менеджер бачив пʼяте й мусив гортати вгору,
+     вгадуючи, звідки почалось те, чого він ще не читав.
+
+     Межа стоїть там, де починається остання суцільна черга клієнтських
+     реплік — тобто все, що надійшло ПІСЛЯ нашої останньої відповіді. Це та
+     сама величина, яку показує кружечок на картці, тож дошка й розмова
+     кажуть одне й те саме.
+
+     Коли відповіді не було взагалі, межу не малюємо: риска над першим же
+     рядком розмови нічого не відділяє. */
+  let межа = -1;
+  {
+    let i = list.length - 1, n = 0;
+    while(i >= 0 && list[i] && (list[i].gone || !list[i].mine)){
+      if(!list[i].gone) n++;
+      i--;
+    }
+    if(n > 0 && i >= 0) межа = i + 1;
+  }
+  /* Прочитане руками риски не має. Менеджер сказав «я це бачив» — і
+     повертати йому червону смугу на тому ж місці означає не вірити. */
+  if(межа >= 0){
+    const до = (typeof crmSeenAt === 'function' && chatWin)
+      ? crmSeenAt((orders || []).find(x => x.id === chatWin.id)) : '';
+    if(до){
+      let свіже = -1;
+      for(let k = межа; k < list.length; k++)
+        if(list[k] && !list[k].gone && (!list[k].at || list[k].at > до)){ свіже = k; break; }
+      межа = свіже;
+    }
+  }
+  const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone).length : 0;
   return list.map((m, i) => {
     const day = (m.at || '').slice(0, 10);
     let sep = '';
@@ -20036,6 +21325,11 @@ function chatRowsHtml(msgs){
       lastDay = day;
       sep = `<div class="od-crm-day">${escapeHtml(crmDayLabel(day))}</div>`;
     }
+    /* Межа йде ПІСЛЯ дати, а не перед: спершу «сьогодні», потім «нові».
+       Навпаки виходило б, що нове почалось учора, а дата стоїть під ним. */
+    if(i === межа)
+      sep += `<div class="od-crm-new" data-crm-new>` +
+        `${новихN === 1 ? 'нове повідомлення' : 'нових повідомлень · ' + новихN}</div>`;
     const time = (m.at || '').slice(11, 16);
     // Помітка лише тоді, коли самого файлу немає. Фото, яке воркер переклав
     // у Cloudinary, показуємо картинкою — «відкрийте в Telegram» тут було б
@@ -20061,15 +21355,22 @@ function chatRowsHtml(msgs){
        відповідь має стояти при кожному. */
     const sign = (m.mine && m.by) ? String(m.by).split('@')[0] : '';
     return sep + `
-      <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}">
+      <div class="od-crm-msg ${m.mine ? 'mine' : ''}${grouped ? ' grouped' : ''}${
+        m.gone ? ' gone' : ''}${m.pending ? ' pending' : ''}">
+        ${m.gone ? `<div class="od-crm-gone">Видалено ${
+          m.mine ? 'нами' : 'клієнтом'} — у чаті цього більше немає</div>` : ''}
         ${crmFilesHtml(m.files)}
         ${m.text ? `<div class="od-crm-txt">${escapeHtml(m.text)}</div>` : ''}
         ${mark}
         ${/* Підпис показуємо навіть тоді, коли часу ще немає: щойно надіслане
              повідомлення стоїть у стрічці без позначки часу (її поставить
              сервер), а хто його написав — відомо вже зараз. */''}
-        ${(time || sign) ? `<div class="od-crm-at"${full ? ` title="${escapeHtml(full)}"` : ''}>${
-          escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
+        ${/* «Надсилаю…» замість часу, поки репліка ще летить: часу в неї
+             поки що немає й бути не може, а сказати щось треба. */''}
+        ${(time || sign || m.pending) ? `<div class="od-crm-at"${
+          full ? ` title="${escapeHtml(full)}"` : ''}>${
+          m.pending ? 'надсилаю…' + (sign ? ' · ' + escapeHtml(sign) : '')
+                    : escapeHtml([time, sign].filter(Boolean).join(' · '))}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -20452,7 +21753,7 @@ function msgWord(n){
   return 'повідомлень';
 }
 function chatOrder(){ return chatWin && (orders || []).find(x => x.id === chatWin.id); }
-function chatOpen(o, kind){
+function chatOpen(o, kind, opts){
   /* Розмову з дошки відкривали САМУ, без замовлення. А говорять у ній
      рівно про нього: що замовили, на скільки, коли відправка, скільки
      сплачено. Усе це доводилось згадувати або закривати розмову й лізти в
@@ -20461,12 +21762,16 @@ function chatOpen(o, kind){
      Тому картку відкриваємо поруч. Вона ж далі бере на себе підписку на
      стрічку й позначку «прочитано», тож окремий режим «вікно саме по
      собі» лишається тільки для випадків, коли картку відкрити не вдалось. */
-  if(drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
+  /* У розділі «Чати» картку НЕ відкриваємо: там відповідають, а не ведуть
+     замовлення. На картку веде номер у шапці розмови — коли він справді
+     знадобиться. */
+  const host = opts && opts.host;
+  if(!host && drawerOrderId !== o.id){ try{ openOrderDrawer(o); }catch(e){ console.warn(e); } }
   // solo — вікно відкрили з дошки, без картки. Тоді підписку на розмову й
   // позначку «прочитано» бере на себе воно саме: інакше стрічка була б
   // мертвою, а лічильник пропущених не гаснув би ніколи.
-  const solo = drawerOrderId !== o.id;
-  chatWin = { id: o.id, kind, solo,
+  const solo = host ? true : (drawerOrderId !== o.id);
+  chatWin = { id: o.id, kind, solo, dir: host ? orderDir(o) : null,
               draft: (kind === 'tg' ? (tgChat[o.id] || {}).draft
                                     : (crmChat[o.id] || {}).draft) || '' };
   if(solo){
@@ -20483,6 +21788,15 @@ function chatOpen(o, kind){
   }
   const d = chatWinEl();
   d.classList.add('open');
+  /* Вікно стоїть або поверх робочої зони (з дошки), або просто в правій
+     колонці розділу чатів — тим самим вузлом, щоб не тримати двох. */
+  d.classList.toggle('cw-inline', !!host);
+  if(host){
+    const v = document.getElementById(host);
+    if(v){ v.innerHTML = ''; v.appendChild(d); }
+  } else if(d.parentNode !== (document.querySelector('.workarea') || document.body)){
+    (document.querySelector('.workarea') || document.body).appendChild(d);
+  }
   /* Розмову відкрили з картки — зона стає рівно на просвіт біля неї. З дошки
      (картки немає) — на всю ширину: лишати порожню смугу під картку, якої
      немає, немає сенсу. */
@@ -20492,11 +21806,14 @@ function chatOpen(o, kind){
      викидала б менеджера на початок дошки. */
   const mainEl = document.querySelector('main');
   cwMainTop = mainEl ? mainEl.scrollTop : 0;
-  document.body.classList.add('cw-open');
+  // Дошку ховаємо лише тоді, коли розмова стоїть поверх неї.
+  if(!host) document.body.classList.add('cw-open');
+  else document.body.classList.remove('cw-open');
   renderChatWin(true);
 }
 function chatClose(){
   const solo = chatWin && chatWin.solo;
+  const dir = chatWin && chatWin.dir;
   // Незібране фото нікуди не піде — зате памʼять під мініатюри звільнимо.
   chatPics().forEach(chatDropPic);
   chatWin = null;
@@ -20507,6 +21824,9 @@ function chatClose(){
   if(mainEl && cwMainTop) mainEl.scrollTop = cwMainTop;
   // Підписку, яку відкривало саме вікно, воно ж і згортає
   if(solo){ tgUnwatch(); crmStopPoll(); }
+  /* Закрили розмову в розділі чатів — праворуч знову підказка, а не
+     порожнеча, і список перемальовується без позначки «обрана». */
+  if(dir){ try{ renderChats(dir); }catch(e){} }
 }
 
 function renderChatWin(toBottom){
@@ -20528,7 +21848,14 @@ function renderChatWin(toBottom){
   const inpOld = box.querySelector('.cw-inp');
   const keep = (inpOld && document.activeElement === inpOld)
     ? { at: inpOld.selectionStart, to: inpOld.selectionEnd } : null;
-  const first = !inpOld;
+  /* «Перший показ» — це перший показ ЦІЄЇ розмови, а не порожній вузол.
+     Доти воно визначалось наявністю поля вводу — а поле лишається від
+     попередньої розмови, і перехід між діалогами першим показом не
+     вважався. Наслідок видно рівно там, де він найдорожчий: відкриваєш
+     наступний чат, а він стає в кінці стрічки замість межі непрочитаного,
+     і фокус у поле не йде. */
+  const first = !chatWin.drawn;
+  chatWin.drawn = true;
 
   const msgs = chatMsgs(o, chatWin.kind);
   const isTg = chatWin.kind === 'tg';
@@ -20548,6 +21875,27 @@ function renderChatWin(toBottom){
       ? 'Людина відкрила бота, але ще нічого не написала. Можна написати першим — вона отримає повідомлення в Telegram.'
       : 'Повідомлень поки немає.'}</div>`;
   } else feed = chatRowsHtml(msgs);
+  /* СТРІЧКУ НЕ ПЕРЕБИРАЄМО, КОЛИ В НІЙ НІЧОГО НЕ ЗМІНИЛОСЬ.
+
+     Андрій: «пригає діалог постійно». Вікно перемальовується щочотири
+     секунди — стільки триває крок опитування, — і разом із ним щоразу
+     народжувалась уся стрічка заново. Для тексту це непомітно, а от кожна
+     картинка в ній стає НОВИМ елементом: браузер бере її з кеша, але
+     висоту до завантаження не знає, стрічка на мить складається й
+     розправляється назад. Саме це й читається як «пригає», і що більше в
+     розмові карток, то сильніше.
+
+     Тому порівнюємо стрічку з тією, що вже стоїть, і коли вона та сама —
+     повертаємо на місце СТАРИЙ вузол. Картинки в ньому вже завантажені й
+     виміряні, прокрутка ціла, виділений текст не злітає. */
+  const feedSig = feed;
+  const keepFeed = !!feedOld && feedOld.__sig === feedSig;
+  // Відправка триває — і текстова, і фото: кнопка одна, стан один
+  const busy = !!(chatWin.sending || chatWin.picsBusy);
+  /* Вікно відповіді рахуємо лише для Instagram: у Telegram такого
+     обмеження немає, і вигадувати його там означало б лякати дарма. */
+  const win = isTg ? null : crmWindow(o);
+  const прочитано = !chatWaiting(o, chatWin.kind);
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
   const cards = chatWin.cards ? cardsPanelHtml(o) : '';
@@ -20568,7 +21916,22 @@ function renderChatWin(toBottom){
       <div class="cw-who">
         <div class="cw-nm">${escapeHtml(nm)}</div>
         <div class="cw-sub">${escapeHtml(sub)}</div>
+        ${/* Скільки лишилось вікна відповіді. Стоїть у шапці, під ніком:
+             саме там менеджер дивиться, з ким він розмовляє, — і разом із
+             цим має бачити, чи розмова ще жива. */''}
+        ${win ? `<div class="cw-win ${win.closed ? 'is-out' : (win.soon ? 'is-soon' : '')}"
+          title="${escapeHtml(win.closed
+            ? 'Instagram дає сім діб від останньої репліки клієнта. Вони минули — Sitniks лист прийме, а до людини він не дійде.'
+            : 'Instagram дає сім діб від останньої репліки клієнта. Далі канал закривається.')}">${
+          win.closed
+            ? 'Вікно відповіді закрите · ' + escapeHtml(crmLeftLabel(win.left)) + ' тому'
+            : 'Вікно відповіді · лишилось ' + escapeHtml(crmLeftLabel(win.left))}</div>` : ''}
       </div>
+      ${/* Картка — на один дотик, але не замість розмови. У розділі чатів
+           відповідають; коли справді треба глянути склад чи оплату,
+           натискають номер. */''}
+      ${o.orderId ? `<button class="cw-oid" data-cw-card title="Відкрити картку замовлення">${
+        escapeHtml(o.orderId)}</button>` : ''}
       ${/* Що саме прислав Sitniks. Бік розмови й автор беруться з полів, назв
            яких у закритій документації немає, — тож коли підпис стає не з того
            боку, це єдиний спосіб побачити справжні назви замість здогадок.
@@ -20585,19 +21948,46 @@ function renderChatWin(toBottom){
       ${(!isTg && canSetup())
         ? `<button class="cw-x" data-cw-sniff title="Знайти, яким полем Sitniks приймає картинку">🔎</button>`
         : ''}
+      ${/* ПРОЧИТАНО — РУКАМИ.
+
+           Непрочитане система рахує сама: скільки клієнт написав після
+           нашої останньої відповіді. Правило добре, поки вона правильно
+           розрізняє, де чия репліка, — а вона розрізняє її ланцюжком
+           здогадів, і Sitniks їй у цьому не помічник. Варто нашій
+           відповіді поїхати ліворуч, як розмова стає «непрочитаною», хоча
+           там немає жодного слова клієнта.
+
+           Тому останнє слово лишається за людиною: подивився — натиснув.
+           І назад так само: помилився або хочеш повернутись до розмови
+           пізніше — зняв позначку, кружечок повертається. */''}
+      <button class="cw-x cw-seen${прочитано ? ' is-on' : ''}" data-cw-seen
+        title="${прочитано ? 'Позначити непрочитаним — кружечок повернеться'
+                           : 'Позначити прочитаним — зняти кружечок із картки'}"
+        aria-label="${прочитано ? 'Позначити непрочитаним' : 'Позначити прочитаним'}">👁</button>
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
-    <div class="cw-feed">${feed}</div>
+    <div class="cw-feed">${keepFeed ? '' : feed}</div>
     ${/* Читати листування й писати в нього — різні права. Без права на
          відповідь показуємо рядок замість поля: порожній низ вікна
          виглядав би поламаним, а поле, з якого нічого не йде, — гірше. */''}
     ${!canWrite() ? `<div class="cw-bar"><div class="cw-tip">Листування доступне для читання: писати клієнту ця роль не може.</div></div>` : `
     <div class="cw-bar">
       ${raw}${sniff}${note}${cards}${qr}
+      ${/* Смуга просто над полем — там, де ухвалюють рішення писати. У
+           шапці стоїть лічильник, і поки час є, цього досить; коли часу
+           немає, попередження мусить бути на дорозі, а не збоку. */''}
+      ${(win && win.closed) ? `<div class="cw-dead">Вікно відповіді Instagram закрите —
+        клієнт не писав ${escapeHtml(crmLeftLabel(win.since))}.
+        Sitniks лист прийме, а до людини він не дійде. Напишіть з іншого каналу
+        або дочекайтесь, поки клієнт озветься сам.</div>` : ''}
       ${chatTrayHtml()}
       <div class="cw-row">
+        ${/* Підпис окремим вузлом: на телефоні він ховається, і кнопка стає
+             самим знаком. Текстом вона з’їдала третину смуги, а поле для
+             листа лишалось завширшки в два слова. */''}
         <button class="cw-ic cw-ic--txt${chatWin.qr ? ' on' : ''}" data-cw-qr
-          title="Заготовлені повідомлення — вставити або відредагувати">⚡ Заготовки</button>
+          title="Заготовлені повідомлення — вставити або відредагувати">⚡<span
+          class="cw-ic-l">Заготовки</span></button>
         ${canSendFiles() ? '<button class="cw-ic" data-cw-clip title="Прикріпити фото">📎</button>' : ''}
         ${/* Окремої кнопки з посиланням на КП тут немає навмисно. Вона
              вставляла голу адресу, а в «Заготовках» уже лежить заготовка з
@@ -20606,7 +21996,12 @@ function renderChatWin(toBottom){
              стояла ближче. */''}
         <textarea class="cw-inp" rows="1" placeholder="${escapeHtml(
           isTg ? 'Написати в Telegram…' : 'Написати клієнту…')}">${escapeHtml(chatWin.draft || '')}</textarea>
-        <button class="cw-go" data-cw-go title="Надіслати · Ctrl+Enter">➤</button>
+        ${/* Поки лист летить — кнопка гасне й крутиться. Це і є відповідь
+             на «натиснув, і не зрозуміло, чи пішло»: видно, що система
+             зайнята, і другий натиск фізично неможливий. */''}
+        <button class="cw-go${busy ? ' is-busy' : ''}" data-cw-go${busy ? ' disabled' : ''}
+          title="${busy ? 'Надсилаємо…' : 'Надіслати · Ctrl+Enter'}">${
+          busy ? '<i class="cw-spin"></i>' : '➤'}</button>
       </div>
       ${/* Правило треба сказати вголос: доти Enter надсилав, про Shift+Enter
            ніхто не знав, і листи виходили одним рядком. */''}
@@ -20615,8 +22010,36 @@ function renderChatWin(toBottom){
     </div>`}
     </div>`;
 
-  const feedEl = box.querySelector('.cw-feed');
-  if(feedEl) feedEl.scrollTop = stick ? feedEl.scrollHeight : oldTop;
+  let feedEl = box.querySelector('.cw-feed');
+  if(feedEl && keepFeed){
+    /* Старий вузол на своє місце — з усіма завантаженими картинками. */
+    feedEl.parentNode.replaceChild(feedOld, feedEl);
+    feedEl = feedOld;
+  } else if(feedEl){
+    feedEl.__sig = feedSig;
+  }
+  /* Прокрутку чіпаємо лише коли є що міняти: липке дно опускає стрічку
+     вниз, а в решті випадків вона має лишитись рівно там, де стояла. Тут
+     теж було смикання — при поверненні старого вузла присвоєння того
+     самого числа безпечне, а от «підтягнути вниз» без потреби ні. */
+  if(feedEl){
+    let треба = stick ? feedEl.scrollHeight : oldTop;
+    /* ВІДКРИЛИ РОЗМОВУ — СТАЄМО НА МЕЖІ НЕПРОЧИТАНОГО, а не в самому кінці.
+       Коли клієнт написав пʼять разів, кінець стрічки показує пʼяте, а
+       перші чотири лишаються вище — і менеджер гортає вгору, вгадуючи,
+       звідки читати. Так поводиться будь-який месенджер: відкрив і стоїш
+       там, де скінчилось прочитане.
+
+       Тільки при ПЕРШІЙ побудові вікна: далі стрічка живе своїм життям, і
+       смикати її на кожному такті опитування не можна. */
+    if(first){
+      const мітка = feedEl.querySelector('[data-crm-new]');
+      /* Трохи вище самої риски: так видно, на що саме відповідали
+         останнім, і межа не прилипає до верхнього краю. */
+      if(мітка) треба = Math.max(0, мітка.offsetTop - 46);
+    }
+    if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
+  }
   wireChatWin(box, o, first || !!keep);
   if(keep){
     const el = box.querySelector('.cw-inp');
@@ -20638,8 +22061,11 @@ function chatPics(){ return (chatWin && chatWin.pics) || []; }
 function chatTrayHtml(){
   const pics = chatPics();
   if(!pics.length) return '';
+  /* Напис не просто «надсилаємо», а З ЧИСЛОМ: коли фото чотири, «надсилаємо»
+     не каже, скільки з них уже пішло, і чекання здається довшим, ніж є. */
   const tail = chatWin.picsBusy
-    ? '<span class="cw-tip" style="align-self:center">Надсилаємо…</span>'
+    ? '<span class="cw-tip cw-busy" style="align-self:center">' +
+      '<i class="cw-spin"></i>Надсилаємо ' + pics.length + '…</span>'
     : '<button class="cw-tr-add" data-cw-clip title="Додати ще">+</button>';
   return '<div class="cw-tray">' + pics.map((p, i) =>
     '<div class="cw-tr' + (p.url ? '' : ' cw-tr--wait') + '">' +
@@ -20710,22 +22136,48 @@ async function chatTake(list){
 
 function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
+  const seenB = box.querySelector('[data-cw-seen]');
+  if(seenB) seenB.addEventListener('click', ()=> chatSeenToggle(o, chatWin.kind));
+  const card = box.querySelector('[data-cw-card]');
+  if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
   const inp = box.querySelector('.cw-inp');
   const grow = ()=>{ inp.style.height = 'auto';
                      inp.style.height = Math.min(inp.scrollHeight, 130) + 'px'; };
   grow();
   inp.addEventListener('input', ()=>{ chatWin.draft = inp.value; grow(); });
+  /* НАДІСЛАТИ МОЖНА РІВНО ОДИН РАЗ.
+
+     Доти від повторного натиску рятувало те, що поле чиститься: другий
+     натиск не бачив тексту й мовчав. З картинками так не виходило — там
+     прапорець глушив натиск БЕЗ ЖОДНОЇ ознаки, і збоку це виглядало як
+     «застрягло». Тепер стан один на обидва шляхи, і він видимий: кнопка
+     гасне й крутиться, поки відправка триває. */
   const send = ()=>{
     const t = inp.value.trim();
     const pics = chatPics();
-    if(chatWin.picsBusy) return;
+    if(chatWin.picsBusy || chatWin.sending) return;
     // Мовчазна кнопка — найгірше: людина тисне й не розуміє, що не так.
     if(!t && !pics.length) return toast('Напишіть повідомлення або додайте фото');
     // Половину пачки надіслати гірше, ніж зачекати секунду.
     if(pics.some(x => !x.url)){ toast('Картинки ще готуються — секунду'); return; }
+    /* Вікно закрите — питаємо прямо. Не забороняємо: Sitniks буває має
+       інший канал, та й менеджер може знати про цього клієнта більше за
+       нас. Але надіслати НАОСЛІП, не знаючи, що лист нікуди не піде, він
+       не повинен. */
+    const w = (chatWin.kind === 'tg') ? null : crmWindow(o);
+    if(w && w.closed && !confirm(
+        'Вікно відповіді Instagram закрите: клієнт не писав ' +
+        crmLeftLabel(w.since) + '.\n\n' +
+        'Sitniks лист прийме, а до людини він найімовірніше не дійде.\n' +
+        'Усе одно надіслати?')) return;
     inp.value = ''; chatWin.draft = ''; grow();
-    if(pics.length) chatSendPics(o, pics, t);
-    else chatSend(o, t);
+    chatWin.sending = true;
+    const go = pics.length ? chatSendPics(o, pics, t) : chatSend(o, t);
+    Promise.resolve(go).catch(e => console.warn('відправка', e)).then(()=>{
+      chatWin.sending = false;
+      if(document.getElementById('chatWin')) renderChatWin();
+    });
+    renderChatWin(true);
   };
   /* Enter робить НОВИЙ РЯДОК, а надсилає кнопка або Ctrl/⌘+Enter.
      Довго було навпаки — «як у месенджерах». Але месенджер і КП пишуться
@@ -20897,7 +22349,10 @@ function wireChatWin(box, o, focusIn){
                       .map(it => it.getAsFile()).filter(Boolean);
     if(imgs.length){ e.preventDefault(); chatTake(imgs); }
   });
-  if(focusIn) inp.focus();
+  /* Фокус — так, прокрутка сторінки — ні. Розмова в розділі чатів стоїть у
+     потоці, і звичайний focus() тягне сторінку до поля: список зверху
+     виїжджав за край, і замість трьох розмов лишалась одна. */
+  if(focusIn){ try{ inp.focus({ preventScroll:true }); }catch(e){ inp.focus(); } }
 }
 
 async function chatSend(o, text){
@@ -20955,7 +22410,19 @@ async function chatSendPics(o, pics, text){
   if(!canSendFiles()){ toast('Надсилати файли — не ваша зона'); return; }
   if(!pics.length) return;
   const isTg = chatWin.kind === 'tg';
-  chatWin.pics = []; chatWin.picsBusy = true;
+  /* СМУЖКА ЛИШАЄТЬСЯ НА МІСЦІ, ПОКИ ЙДЕ ВІДПРАВКА.
+
+     Доти вона очищалась ПЕРШИМ рядком — і разом із нею зникав напис
+     «Надсилаємо…», бо він живе всередині неї. Виходило так: натиснув,
+     фото зникли, поле порожнє, і три-чотири секунди, поки картинка
+     вантажиться в хмару й далі в Sitniks, на екрані не діється нічого.
+     Рівно це Андрій і називає «відправляєш, воно висне». Людина тисне ще
+     раз — і другий натиск мовчки не робить нічого, бо його глушить
+     прапорець.
+
+     Тепер смужка стоїть із позначкою «надсилаємо», і зникає лише тоді,
+     коли справді надіслано. */
+  chatWin.picsBusy = true;
   renderChatWin(true);
   const back = ()=>{ chatWin.pics = pics; chatWin.picsBusy = false; renderChatWin(); };
   let urls = [], blobs = [];
@@ -21025,7 +22492,11 @@ async function chatSendPics(o, pics, text){
      прикмета, за якою власне фото впізнають у стрічці; звичайне фото цей
      рядок обходило — і назавтра воно ставало ліворуч, як клієнтське. */
   saveOrderMeta(o).catch(e => console.warn(e));
+  /* Аж тепер прибираємо смужку — коли справді надіслано. Доти вона зникала
+     першим рядком, ще до завантаження в хмару, і при збої фото доводилось
+     шукати заново. */
   pics.forEach(chatDropPic);
+  chatWin.pics = (chatWin.pics || []).filter(x => pics.indexOf(x) < 0);
   chatWin.picsBusy = false;
   /* Надіслали — панель зникає сама. Вона показує, ЩО ЛЕЖИТЬ У ПОЛІ; коли в
      полі вже нічого немає, вона висить порожньою обіцянкою, і менеджер
@@ -22400,13 +23871,13 @@ const ZONE_NAV = [
      — рівно те, що йому й так видно на дошці. */
   { key:'today',     label:'Задачі',
     hint:'Особистий список: що горить, що чекає відповіді, що прострочено.' },
-  { key:'board',     label:'Канбан',
+  { key:'board',     label:'Замовлення B2B',
     hint:'Дошка замовлень і картка замовлення.' },
   { key:'chats',     label:'Чати B2B',
     hint:'Усі розмови напряму, найсвіжіші вгорі. Тут видно, кому ще не відповіли.' },
   { key:'chatsc',    label:'Чати B2C',
     hint:'Те саме для приватних замовлень.' },
-  { key:'design',    label:'B2C',
+  { key:'design',    label:'Замовлення B2C',
     hint:'Черга відділу, дошка дизайнера, оцифрування вишивки, перевірка файлів ' +
          'і пакет у виробництво. Цін і оплат тут немає.' },
   { key:'calc',      label:'Прорахунок',
@@ -22808,7 +24279,8 @@ function renderAccLog(){
   if(!box) return;
   if(!canSetup()){ box.innerHTML = '<div class="sub">Журнал бачить тільки той, хто налаштовує систему.</div>'; return; }
   const L = accLogList().slice().reverse();
-  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК', open:'відкрив' };
+  const WORD = { export:'ЕКСПОРТ', rights:'ПРАВА', seeas:'ДИВИТИСЬ ЯК',
+                 open:'відкрив', knock:'СТУКАВ' };
   box.innerHTML = L.length ? L.slice(0, 800).map(r =>
     '<div class="al-row"><span class="al-t">' + escA(dtUa(r.at)) + '</span>' +
     '<span class="al-w">' + escA(personName(r.by) || r.by || '—') +
@@ -22892,8 +24364,47 @@ function myUi(){ return (myAcc() || {}).ui || 'manager'; }
 let teamDraft = null;
 let teamOpen = -1;      // чиї доступи зараз розгорнуті
 let teamDirty = false;  // чернетку вже правили руками — перебудовувати не можна
+/* Кого прибрали руками саме в цій чернетці. Зникнути зі списку має право
+   лише той, кого прибрали свідомо; решта — це втрата, і її треба спинити. */
+let teamPulled = {};
+/* ЧОМУ ЗБЕРЕЖЕННЯ НЕ ДІЙШЛО — НЕ СПЛИВАЮЧИМ ПОВІДОМЛЕННЯМ.
+
+   «Додав, оновлюю — вони знову пропадають» означає рівно одне: запис до бази
+   не дійшов. Доти про це казав тост на дві секунди, і його просто не встигали
+   прочитати — а далі людина тиснула «зберегти» ще раз, знову не бачила
+   причини й вирішувала, що список зникає сам.
+
+   Тому причина лишається на екрані, поки її не полагодять, і називає себе
+   словами бази: відмова правил, переповнений документ, збій мережі — це різні
+   біди з різним лікуванням. */
+let teamAlarm = '';
+/* Що саме сказала база — людськими словами. Код відмови лишаємо: без нього
+   не зрозуміти, у чому річ, а з ним відповідь знаходиться за хвилину. */
+function teamWhy(e){
+  const code = String((e && e.code) || '').toLowerCase();
+  const msg = String((e && e.message) || e || '');
+  if(code.indexOf('permission-denied') >= 0 || /insufficient permissions/i.test(msg))
+    return 'Правила бази не пускають цей запис. Найімовірніше, у вашої пошти немає ' +
+           'позначки «setup» у карті доступів — саме її перевіряють правила, і поки ' +
+           'її немає, ніякі налаштування не зберігаються. Лікується один раз у консолі ' +
+           'Firebase: loomiq/photos → acl → ваш ключ → setup: true.';
+  if(code.indexOf('resource-exhausted') >= 0 || code.indexOf('invalid-argument') >= 0 ||
+     /too large|exceeds the maximum/i.test(msg))
+    return 'Документ уперся в межу розміру (1 МБ). Поки він не схудне, жодна нова ' +
+           'людина в нього не влізе.';
+  if(code.indexOf('unavailable') >= 0 || code.indexOf('deadline') >= 0)
+    return 'База не відповіла — схоже на мережу. Спробуйте ще раз.';
+  return msg || 'Невідома відмова.';
+}
 function teamList(){
   if(!teamDraft){
+    /* ПОКИ ДОКУМЕНТ НЕ ПРИЇХАВ — СПИСКУ НЕМАЄ, А НЕ «СПИСОК ПОРОЖНІЙ».
+
+       Чернетка запамʼятовується першим же зверненням. Зібрана з порожнечі,
+       вона такою й лишається — а далі засновників дописує rootKeep, і на
+       екрані стоять рівно три пошти. Саме цей список і зберігався поверх
+       живого. */
+    if(!contentLoaded) return [];
     teamDraft = ((contentData.team) || []).map(p => ({
       email: String(p.email || '').trim().toLowerCase(),
       name: String(p.name || '').trim(),
@@ -23086,10 +24597,40 @@ function canSuppliers(){ return may('can', 'suppliers'); }
    «зламалось» — і людина йде питати, чому нічого не працює. Кажемо прямо, під
    якою поштою вона зайшла: саме тут майже завжди й помилка, зайшли не тим
    акаунтом, на який слали запрошення. */
+/* СТУК У ДВЕРІ.
+
+   Доти заблокований вхід не лишав узагалі нічого: людина впиралась у
+   табличку, а власник дізнавався про це з Telegram — якщо взагалі
+   дізнавався. Саме так і виглядав день, коли менеджери загубили доступ:
+   екран каже «попросіть додати», а попросити можна лише месенджером, і в
+   самій системі про це жодного сліду.
+
+   Тепер кожна така спроба пише рядок у журнал. Журнал — єдине, у що
+   заблокована людина має право писати (правила бази дозволяють їй лише
+   дописувати `accessLog`), і саме його читає той, хто налаштовує доступи.
+   Далі список у «Команді й доступах» показує ці пошти окремо, з кнопкою
+   «додати»: втрачений доступ повертається двома кліками, а не листуванням.
+
+   Раз на пів години з пристрою: людина тисне «оновити» десяток разів
+   поспіль, і десять однакових рядків журналу — це вже не слід, а шум. */
+const KNOCK_GAP = 30 * 60 * 1000;
+function knockAtDoor(){
+  const mail = String(myEmail() || '').trim().toLowerCase();
+  if(!mail || !contentLoaded) return;
+  const key = 'lq_knock_' + mail;
+  try{
+    const was = +localStorage.getItem(key) || 0;
+    if(Date.now() - was < KNOCK_GAP) return;
+    localStorage.setItem(key, String(Date.now()));
+  }catch(e){}
+  /* Роль тут писати нема чого — людини немає в команді. */
+  accLog('knock', 'спроба входу без доступу: ' + mail);
+}
 function applyNoAccess(){
   const off = teamOn() && !teamMember(myEmail()) && !isOwnerEmail(myEmail());
   let el = document.getElementById('no-access');
   if(!off){ if(el) el.remove(); document.body.classList.remove('no-access'); return true; }
+  try{ knockAtDoor(); }catch(e){}
   if(!el){
     el = document.createElement('div');
     el.id = 'no-access';
@@ -23097,7 +24638,9 @@ function applyNoAccess(){
     el.innerHTML = '<div class="na-box"><b>Вас ще не додали в команду</b>' +
       '<p>Ви зайшли як <span class="na-mail"></span>. Доступ до замовлень видає той, ' +
       'хто налаштовує систему: попросіть додати цю пошту в «Команду й доступи».</p>' +
-      '<p class="na-sub">Якщо запрошення приходило на іншу пошту — вийдіть і зайдіть нею.</p>' +
+      '<p class="na-sub">Ми записали вашу спробу — той, хто налаштовує доступи, ' +
+      'побачить її в «Команді й доступах». Якщо запрошення приходило на іншу пошту — ' +
+      'вийдіть і зайдіть нею.</p>' +
       '<button type="button">Вийти</button></div>';
     el.querySelector('button').addEventListener('click', ()=> fbAuth.signOut());
   }
@@ -23156,6 +24699,7 @@ function applyRoleUi(){
     b.hidden = !on;
     if(on && !firstOk) firstOk = b;
   });
+  try{ navGrpSync(); }catch(e){}
   const add = document.getElementById('board-add');
   if(add) add.hidden = !canNewOrder();
   const st = document.getElementById('st-toggle');
@@ -23410,6 +24954,22 @@ function lastInviteAt(email){
   });
   return at;
 }
+/* Хто заходив, але в команду не потрапив. Береться з журналу: інших слідів
+   така людина лишити не може — писати їй у базу нікуди. */
+function knockList(){
+  const team = {};
+  (teamList() || []).forEach(p => { if(p.email) team[String(p.email).trim().toLowerCase()] = 1; });
+  const out = {};
+  accLogList().forEach(r => {
+    if(r.kind !== 'knock') return;
+    const e = String(r.by || '').trim().toLowerCase();
+    if(!e || team[e]) return;
+    const x = out[e] = out[e] || { email:e, n:0, at:'' };
+    x.n++;
+    if(String(r.at || '') > x.at) x.at = r.at || '';
+  });
+  return Object.keys(out).map(k => out[k]).sort((a, b) => (a.at < b.at ? 1 : -1));
+}
 /* ── Користувачі ─────────────────────────────────────────────────────── */
 function tmUsersHtml(){
   const saved = (contentData.team) || [];
@@ -23422,7 +24982,45 @@ function tmUsersHtml(){
   const pend = all.filter(({p}) => !hasJoined(p.email));
   const inv = tmSub === 'inv';
   const show = inv ? pend : team;
-  const head = '<div class="tm-bar">' +
+  /* Смуга стоїть НАД усім іншим і не ховається у вкладку: людина вже не
+     може працювати, і кожна година тут — це година простою. */
+  const knocks = knockList();
+  const knockHtml = knocks.length
+    ? '<div class="tm-knock"><div class="tm-knock-h">Заходили, але доступу немає</div>' +
+      knocks.slice(0, 10).map(k => '<div class="tm-knock-row"><b>' + escapeHtml(k.email) +
+        '</b><span>' + (k.n > 1 ? k.n + ' спроби · ' : '') + escapeHtml(tmDate(k.at)) + '</span>' +
+        '<button class="tm-knock-add" data-knock="' + escapeHtml(k.email) +
+        '">+ Додати в команду</button></div>').join('') +
+      '<div class="tm-knock-s">Додайте — і не забудьте «Зберегти команду»: ' +
+      'доступ зʼявиться одразу, перезаходити не треба.</div></div>'
+    : '';
+  /* Попередній склад, збережений перед останнім записом. Він, на відміну
+     від слідів, тримає ролі й доступи — і саме тому потрібен у той день,
+     коли список раптом схуд. */
+  const bak = (contentData.teamBak && Array.isArray(contentData.teamBak.list))
+    ? contentData.teamBak : null;
+  const bakLost = bak
+    ? bak.list.filter(x => x && x.email &&
+        !teamList().some(p => String(p.email || '').trim().toLowerCase() ===
+                              String(x.email).trim().toLowerCase()))
+    : [];
+  const bakHtml = bakLost.length
+    ? '<div class="tm-knock tm-knock--bak"><div class="tm-knock-h">' +
+      'У попередньому складі було більше людей</div>' +
+      '<div class="tm-knock-row"><b>' + bakLost.length + ' ' +
+      (bakLost.length === 1 ? 'людина' : (bakLost.length < 5 ? 'людини' : 'людей')) +
+      '</b><span>' + escapeHtml(bakLost.map(x => x.email).slice(0, 4).join(', ')) +
+      (bakLost.length > 4 ? ' та інші' : '') + ' · знімок від ' +
+      escapeHtml(tmDate(bak.at)) + '</span>' +
+      '<button class="tm-knock-add" id="team-bak">Повернути з ролями</button></div>' +
+      '<div class="tm-knock-s">Це знімок списку перед останнім збереженням — ' +
+      'на відміну від слідів, у ньому лежать ролі й доступи.</div></div>'
+    : '';
+  const alarmHtml = teamAlarm
+    ? '<div class="tm-alarm"><div class="tm-alarm-h">Список не зберігся</div>' +
+      '<div class="tm-alarm-t">' + escapeHtml(teamAlarm) + '</div></div>'
+    : '';
+  const head = alarmHtml + knockHtml + bakHtml + '<div class="tm-bar">' +
     '<input class="tm-search" placeholder="Пошук за імʼям, поштою чи телефоном" value="' +
       escapeHtml(tmQ) + '">' +
     '<span id="tm-tools" class="tm-tools"></span></div>' +
@@ -23569,6 +25167,59 @@ function wireTeamPane(box){
     tmTab = b.dataset.tmtab; renderTeamList(); }));
   box.querySelectorAll('[data-tmsub]').forEach(b => b.addEventListener('click', ()=>{
     tmSub = b.dataset.tmsub; renderTeamList(); }));
+  /* Повернути доступ тому, хто в нього впирається. Роль ставимо звичайну
+     менеджерську: підвищити її — окреме рішення, а от лишити людину без
+     роботи ще на день через вибір ролі не можна. */
+  const bakB = box.querySelector('#team-bak');
+  if(bakB) bakB.addEventListener('click', ()=>{
+    const bak = (contentData.teamBak && Array.isArray(contentData.teamBak.list))
+      ? contentData.teamBak.list : [];
+    const list = teamList();
+    const have = {};
+    list.forEach(p => { have[String(p.email || '').trim().toLowerCase()] = 1; });
+    let n = 0;
+    bak.forEach(x => {
+      const e = String((x && x.email) || '').trim().toLowerCase();
+      if(!e || have[e]) return;
+      /* Роль і доступи беремо зі знімка як є — саме заради них він і
+         лежить. Немає доступів (старий запис) — даємо пресет ролі. */
+      list.push({ email:e, name:String(x.name || ''), role: roleDef(x.role) ? x.role : 'manager',
+                  phone:String(x.phone || ''), createdAt:x.createdAt || new Date().toISOString(),
+                  updatedAt:'', acc: accExpand(x.acc || presetOf(x.role)) });
+      delete teamPulled[e];
+      n++;
+    });
+    if(!n) return toast('Усі, хто був у знімку, вже в списку');
+    teamDirty = true; tmSub = 'team'; renderTeamList();
+    toast('Повернули ' + n + ' — перевірте й натисніть «Зберегти команду»');
+  });
+  box.querySelectorAll('[data-knock]').forEach(b => b.addEventListener('click', ()=>{
+    const mail = String(b.dataset.knock || '').trim().toLowerCase();
+    if(!mail) return;
+    const list = teamList();
+    if(list.some(p => String(p.email || '').trim().toLowerCase() === mail))
+      return toast('Ця пошта вже у списку — лишилось зберегти');
+    /* Людина могла тут працювати: тоді її рядок лежить у «Прибраних» разом
+       із доступами, і повертати треба саме його, а не заводити новий. */
+    const gone = Array.isArray(contentData.teamGone) ? contentData.teamGone : [];
+    const був = gone.filter(g => String(g.email || '').trim().toLowerCase() === mail)[0];
+    list.push(був
+      ? Object.assign({}, був, { updatedAt:'', acc: accExpand(був.acc || presetOf(був.role)) })
+      : { email: mail, name:'', role:'manager', phone:'',
+          createdAt:new Date().toISOString(), updatedAt:'',
+          acc: accExpand(presetOf('manager')) });
+    if(був) contentData.teamGone = gone.filter(g =>
+      String(g.email || '').trim().toLowerCase() !== mail);
+    teamOpen = list.length - 1;
+    teamDirty = true;
+    /* Вкладку обираємо ту, у якій людину справді видно: доданий, але ще не
+       баченний системою рядок живе серед тих, кого лишилось запросити. Інакше
+       людина тисне «додати» й не бачить нічого. */
+    tmSub = hasJoined(mail) ? 'team' : 'inv';
+    renderTeamList();
+    toast(був ? 'Повернули з «Прибраних» — натисніть «Зберегти команду»'
+              : 'Додали як менеджера — натисніть «Зберегти команду»');
+  }));
   const q = box.querySelector('.tm-search');
   if(q) q.addEventListener('input', ()=>{
     tmQ = q.value;
@@ -23607,6 +25258,7 @@ function wireTeamPane(box){
         gone.push(Object.assign({}, p, { goneAt: new Date().toISOString() }));
         contentData.teamGone = gone.slice(-30);
       }
+      if(p.email) teamPulled[String(p.email).trim().toLowerCase()] = 1;
       teamDirty = true; teamList().splice(i, 1); renderTeamList();
     });
   });
@@ -23832,19 +25484,30 @@ async function rolesSave(){
                              відрізнити від розділу, якого тоді ще не було. */
                           navAll: ZONE_NAV.map(z => z.key) } }))
       .filter(p => p.email);
-    /* РІЗКЕ СХУДНЕННЯ СПИСКУ — ЦЕ НЕ РІШЕННЯ, А ВТРАТА.
+    /* ЗНИКНУТИ МОЖЕ ЛИШЕ ТОЙ, КОГО ПРИБРАЛИ РУКАМИ.
 
-       Людей прибирають по одному, через кошик, і кожне прибирання лишає
-       слід у «Прибраних». Коли ж список раптом коротший на кілька людей,
-       яких ніхто не прибирав, — це не те, що хтось хотів зробити. Це
-       наслідок: чернетка зібралась до того, як приїхали дані, чи хтось
-       правив базу руками. Таке треба спинити й сказати вголос. */
-    const було = ((contentData.team) || []).length;
-    const прибрані = (contentData.teamGone || []).length;
-    if(було > list.length + прибрані){
-      const втрата = було - list.length;
-      toast('У списку було ' + було + ', зберігаємо ' + list.length +
-            ' — зникло б ' + втрата + '. Це схоже на втрату даних, а не на ваше рішення. ' +
+       Доти тут стояв лічильник: «було більше, ніж зберігаємо плюс скільки
+       колись прибрали». Він виглядав розумно й не працював. «Скільки колись
+       прибрали» — це весь кошик «Прибраних», а він накопичується місяцями й
+       тримає до тридцяти записів. Через рік захист пропускав зникнення
+       тридцяти людей поспіль: 12 > 3 + 15 — неправда, отже зберігаємо три.
+
+       Саме так список і схуднув до самих засновників: чернетка зібралась до
+       того, як приїхали дані, rootKeep дописав трьох — і збереження пройшло
+       мовчки, бо арифметика захисту зійшлась.
+
+       Тепер правило не про кількість, а поіменне: кожна пошта, яка була в
+       списку, мусить або лишитись у ньому, або бути прибраною руками саме
+       зараз. Усе інше — втрата, і вона спиняється з іменами. */
+    const було = ((contentData.team) || []).map(p => String(p.email || '').trim().toLowerCase())
+                   .filter(Boolean);
+    const тепер = {};
+    list.forEach(p => { тепер[p.email] = 1; });
+    const зникли = було.filter(e => !тепер[e] && !teamPulled[e]);
+    if(зникли.length){
+      toast('Зі списку зникло б ' + зникли.length + ': ' + зникли.slice(0, 3).join(', ') +
+            (зникли.length > 3 ? ' та ще ' + (зникли.length - 3) : '') +
+            '. Їх ніхто не прибирав — це втрата, а не ваше рішення. ' +
             'Оновіть сторінку й спробуйте ще раз');
       return;
     }
@@ -23889,8 +25552,19 @@ async function rolesSave(){
          їх не можна ні кнопкою, ні правкою бази, ні випадковим збігом. */
       rootKeep(list);
       const own = String(contentData.ownerEmail || myEmail() || '').toLowerCase();
+      /* ЗНІМОК ПОПЕРЕДНЬОГО СКЛАДУ — З РОЛЯМИ Й ДОСТУПАМИ.
+
+         «Відновити зі слідів» збирає лише пошти: ролі й права ніде, крім
+         самого списку, не лежать, і після відновлення все одно доводиться
+         виставляти їх людині за людиною. Тому перед кожним записом кладемо
+         поруч те, що було. Один знімок, не історія: потрібен він рівно в
+         той день, коли список поїхав. */
+      const був = Array.isArray(contentData.team) ? contentData.team : [];
       await PHOTOS_DOC.set({ team: list, acl: aclFromTeam(list),
                              ownerEmail: own,
+                             teamBak: був.length
+                               ? { at:new Date().toISOString(), by:(myEmail() || ''), list: був }
+                               : (contentData.teamBak || null),
                              teamGone: (contentData.teamGone || []).slice(-30) },
                            { merge:true });
       contentData.team = list;
@@ -23899,6 +25573,7 @@ async function rolesSave(){
                                    phone:p.phone, createdAt:p.createdAt,
                                    updatedAt:p.updatedAt, acc: accExpand(p.acc) }));
       teamDirty = false;      // збережене — вже не «чиясь незбережена робота»
+      teamPulled = {};
       applyRoleUi();
       renderTeamList();
       try{ renderBoard(); }catch(e){}
@@ -23910,8 +25585,35 @@ async function rolesSave(){
         gone.length ? 'прибрав: ' + gone.join(', ') : '',
         'склад: ' + list.map(p => p.email).join(', ')].filter(Boolean).join(' · '));
       renderAccLog();
+      /* ЧИТАЄМО НАЗАД. Firestore міг прийняти виклик, а документ лишити
+         іншим — правила пускають не все, поле могло не влізти, запис міг
+         піти в кеш і не доїхати. Поки ми не подивились, «збережено» — це
+         припущення, і саме воно змушувало тиснути кнопку по колу. */
+      let лягло = null;
+      try{
+        const snap = await PHOTOS_DOC.get({ source:'server' });
+        лягло = ((snap && snap.data && snap.data()) || {}).team || null;
+      }catch(e){ console.warn('перечитати документ не вдалось', e); }
+      if(Array.isArray(лягло)){
+        const є = {};
+        лягло.forEach(p => { є[String((p && p.email) || '').trim().toLowerCase()] = 1; });
+        const немає = list.map(p => p.email).filter(e => !є[e]);
+        if(немає.length){
+          teamAlarm = 'База прийняла запит, але в документі цих людей немає: ' +
+            немає.join(', ') + '. Отже запис не пройшов — тиснути «зберегти» ще раз ' +
+            'марно, поки причина не зникне.';
+          renderTeamList();
+          return;
+        }
+      }
+      teamAlarm = '';
       toast(list.length ? ('Збережено: ' + list.length) : 'Список очищено — доступ знову повний');
-    }catch(e){ console.error(e); toast('Помилка збереження'); }
+    }catch(e){
+      console.error(e);
+      teamAlarm = teamWhy(e) + (e && e.code ? '  [' + e.code + ']' : '');
+      renderTeamList();
+      toast('Не збереглось — причина над списком');
+    }
   });
 })();
 document.getElementById('clarity-save').addEventListener('click', async ()=>{
@@ -26285,6 +27987,7 @@ async function init(){
     photosUnsub = PHOTOS_DOC.onSnapshot(function(snap){
     contentData = snap.exists ? (snap.data() || {}) : {};
     contentLoaded = true;
+    syncSiteContent();      // рушій цін має бачити модель одразу, а не після правки
     contentReadOk();
     photosMap = contentData.map || {};
     refreshSiteList();   // копії сайтів живуть у тому ж документі
@@ -26301,7 +28004,7 @@ async function init(){
        тоді вона порожня. Перебудовуємо її, поки людина в ній нічого не
        міняла: інакше вона так і лишиться порожньою, а збереження стерло б
        усіх. Зачеплену чернетку не чіпаємо — це чиясь незбережена робота. */
-    if(!teamDirty) teamDraft = null;
+    if(!teamDirty){ teamDraft = null; teamPulled = {}; }
     try{ if(document.getElementById('view-team') &&
            document.getElementById('view-team').style.display !== 'none') renderTeamList(); }catch(e){}
     applyRoleUi();

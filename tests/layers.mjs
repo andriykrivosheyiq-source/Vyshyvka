@@ -85,6 +85,32 @@ ok(номери.унікальних === номери.стало,
   'скільки шарів, стільки й різних номерів — однакових не буває',
   'номери збіглись: ' + JSON.stringify(номери));
 
+/* Видавати нові номери правильно — цього мало. Позиції, зібрані раніше, уже
+   лежать у замовленнях, і в них номери від годинника. Відкриваєш таку
+   позицію — і бачиш рівно те, від чого тікали. Андрій: «нажимаю на маленьку
+   картинку, она не нажимается и не двигается, нажимаю на большую — и
+   выбираются две и двигаются две». */
+const старі = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const list = L.list();
+  const a = list[0].id, b = list[1].id;
+  L.set(b, 'id', a);                    // рівно так виглядає збережена позиція
+  L.active(a);
+  L.draw();
+  await new Promise(r => setTimeout(r, 300));
+  const after = L.list();
+  return { однакових:after.length - new Set(after.map(x => x.id)).size,
+           маркерів:document.querySelectorAll('.pm-draggable-layer [data-handle="scale"]').length,
+           шарів:after.length };
+});
+console.log('   ' + JSON.stringify(старі));
+ok(старі.однакових === 0,
+  'позиція, збережена зі старими номерами, лагодиться при відкритті',
+  'однакові номери доїхали з бази: ' + JSON.stringify(старі));
+ok(старі.маркерів <= 1,
+  'маркери показує рівно один шар — не два одночасно на одну рамку',
+  'два набори маркерів водночас: ' + JSON.stringify(старі));
+
 console.log('');
 console.log('═══ ПОРЯДОК — ЦЕ МІСЦЕ В СПИСКУ, І ВИДІЛЕННЯ ЙОГО НЕ ЧІПАЄ ═══');
 const порядок = await p.evaluate(async () => {
@@ -158,6 +184,100 @@ console.log('   ' + JSON.stringify(глибше));
 ok(глибше.перший && глибше.другий && глибше.перший !== глибше.другий,
   'повторний клік у ту саму точку йде глибше — так дістають нижній шар без клавіатури',
   'другий клік бере той самий шар: ' + JSON.stringify(глибше));
+
+console.log('');
+console.log('═══ ДРІБНИЙ ШАР НЕ НАКРИТИЙ ВЛАСНИМИ МАРКЕРАМИ ═══');
+/* Маркер — 24 px, і на кутах їх чотири. Поки шар більший за них, усе
+   гаразд. А на шарі завбільшки з сам маркер вони сходяться над ним і
+   накривають його цілком: «натискаю на маленьку картинку, а вона не
+   натискається». */
+const дрібний = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const id = L.list()[L.list().length - 1].id;
+  L.set(id, 'scale', 0.16); L.active(id); L.draw();
+  await new Promise(r => setTimeout(r, 500));
+  const el = document.querySelector('[data-layer-id="' + id + '"]');
+  const r = el.getBoundingClientRect();
+  const c = { x:r.left + r.width / 2, y:r.top + r.height / 2 };
+  const накрито = [...el.querySelectorAll('.pm-dl-handle')].some(h => {
+    const q = h.getBoundingClientRect();
+    return c.x > q.left && c.x < q.right && c.y > q.top && c.y < q.bottom;
+  });
+  /* Спершу питаємо про далеку точку: попередні перевірки лишили за собою
+     памʼять про «ту саму точку», і без цього клік пішов би глибше замість
+     того, щоб узяти верхній. */
+  L.at(c.x + 500, c.y + 500);
+  return { бік:Math.round(r.width), накрито, береться:L.at(c.x, c.y) === id };
+});
+console.log('   ' + JSON.stringify(дрібний));
+/* Андрій: «в маленького легко нажимать дополнительные кнопки, а у большого
+   сложно». Відсув задумувався для дрібних, а дістався всім: розмір шару
+   брався з `offsetWidth`, а вузол міряють у мить, коли розмітка ще не
+   перерахувалась — нуль замість ширини робив «дрібним» будь-який шар, і
+   маркери великого логотипа відлітали в порожнє місце біля коміра. */
+const великий = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const id = L.list()[0].id;
+  L.set(id, 'scale', 1); L.active(id); L.draw();
+  await new Promise(r => setTimeout(r, 500));
+  const el = document.querySelector('[data-layer-id="' + id + '"]');
+  const out = el.querySelector('.pm-dl-outline').getBoundingClientRect();
+  const far = [...el.querySelectorAll('.pm-dl-handle')].map(h => {
+    const q = h.getBoundingClientRect();
+    return Math.round(Math.max(out.left - q.right, q.left - out.right,
+                               out.top - q.bottom, q.top - out.bottom));
+  });
+  return { контур:Math.round(out.width), найдальший:Math.max.apply(null, far) };
+});
+console.log('   ' + JSON.stringify(великий));
+ok(великий.контур > 60 && великий.найдальший <= 10,
+  'у великого шару маркери тримаються самої рамки, а не відлітають від неї',
+  'маркери великого шару стоять задалеко: ' + JSON.stringify(великий));
+ok(дрібний.бік < 40,
+  'шар справді дрібний — саме на таких маркери й сходились над ним',
+  'шар не дрібний, перевірка ні про що: ' + JSON.stringify(дрібний));
+ok(!дрібний.накрито,
+  'жоден маркер не накриває середину дрібного шару — за нього є чим узятись',
+  'маркери лягли просто на шар: ' + JSON.stringify(дрібний));
+ok(дрібний.береться,
+  'і клік у його середину бере саме його',
+  'дрібний шар не береться: ' + JSON.stringify(дрібний));
+
+console.log('');
+console.log('═══ КНОПКИ ОБРАНОГО ШАРУ НАТИСКАЮТЬСЯ, ХОЧ БИ ХТО ЛЕЖАВ ЗВЕРХУ ═══');
+/* Андрій: «кнопки у великого просто не натискаються, зображення добре
+   рухається». Доти обраний шар піднімався над рештою — і його маркери були
+   зверху заодно. Коли підйом прибрали (він і давав стрибок), маркери
+   лишились на своєму поверсі: прямокутник шару, що лежить вище, накриває їх
+   і зʼїдає клік. Зображення при цьому рухається, бо перенос питає, хто під
+   точкою, і сам знаходить потрібний шар. */
+const кнопки = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const list = L.list();
+  const низ = list[0].id, верх = list[list.length - 1].id;
+  /* Верхній шар робимо великим і кладемо в ту саму точку — так він накриває
+     маркери нижнього, як воно й буває на виробі. */
+  L.set(верх, 'scale', 1.6);
+  L.stack();
+  L.active(низ);                 // обраний — НИЖНІЙ
+  L.draw();
+  await new Promise(r => setTimeout(r, 400));
+  const el = document.querySelector('[data-layer-id="' + низ + '"]');
+  const h = el && el.querySelector('[data-handle="scale"]');
+  if(!h) return { помилка:'маркера немає' };
+  const q = h.getBoundingClientRect();
+  const x = Math.round(q.left + q.width / 2), y = Math.round(q.top + q.height / 2);
+  const під = document.elementFromPoint(x, y);
+  /* Під точкою може стояти сам значок усередині маркера — тому питаємо не
+     клас вузла, а чи належить він маркеру взагалі. */
+  return { маркер:!!(під && під.closest && під.closest('.pm-dl-handle')),
+           чий:!!(під && під.closest && під.closest('[data-layer-id]'))
+                 ? під.closest('[data-layer-id]').dataset.layerId : '' };
+});
+console.log('   ' + JSON.stringify(кнопки));
+ok(кнопки.маркер,
+  'у точці маркера лежить сам маркер, а не прямокутник сусіднього шару',
+  'маркер накритий чужим шаром і клік до нього не доходить: ' + JSON.stringify(кнопки));
 
 console.log('');
 console.log('═══ ЗАМОК І ВИДИМІСТЬ ═══');
@@ -259,6 +379,72 @@ ok(!палітра.спіраль,
 ok(палітра.висота >= 40,
   'зразок під палець, а не під курсор — інакше «натискаю один, натискається інший»',
   'зразок замалий: ' + палітра.висота + ' px');
+
+console.log('');
+console.log('═══ ІНТЕРВАЛ І РОЗРІДЖЕННЯ ═══');
+/* Це властивості ВСЬОГО напису, а не окремого шматка: рядок не може стояти
+   щільніше наполовину. Потрібні постійно: у два рядки напис лягає то надто
+   тісно, то з дірою, а короткі слова великими літерами без розрідження
+   виглядають злиплими — і саме так їх найчастіше й вишивають. */
+const інтервали = await p.evaluate(async () => {
+  /* Повертаємось із палітри на саму смугу — звідти й відкривають інтервали. */
+  const back = document.querySelector('[data-tsnav="main"]');
+  if(back) back.click();
+  await new Promise(r => setTimeout(r, 400));
+  const b = document.querySelector('[data-tsnav="space"]');
+  if(!b) return { кнопки:false };
+  b.click();
+  await new Promise(r => setTimeout(r, 500));
+  const sl = [...document.querySelectorAll('.pm-sp-sl')].map(e => e.dataset.spr);
+  /* Напис має справді стати ШИРШИМ — інакше повзунок є, а нічого не робить.
+     Міряємо пропорцію самого малюнка, а не вузол на екрані: у вузла рамка
+     стала, і його ширина нічого не доводить. */
+  const L = window.__lqLayers;
+  const arOf = () => (L.list().filter(x => x.text)[0] || {}).ar;
+  const w0 = arOf();
+  const ls = document.querySelector('[data-spr="ls"]');
+  if(ls){ ls.value = '0.3'; ls.dispatchEvent(new Event('input', { bubbles:true })); }
+  await new Promise(r => setTimeout(r, 900));
+  const w1 = arOf();
+  const el = () => document.querySelector('.pm-draggable-layer .pm-dl-text');
+  const крок = document.querySelector('[data-sp="lh"][data-d="1"]');
+  const lh0 = el() ? parseFloat(getComputedStyle(el()).lineHeight) : 0;
+  if(крок) крок.click();
+  await new Promise(r => setTimeout(r, 600));
+  const lh1 = el() ? parseFloat(getComputedStyle(el()).lineHeight) : 0;
+  return { кнопки:true, повзунки:sl, розрідження:{ було:w0, стало:w1 },
+           рядок:{ було:Math.round(lh0), стало:Math.round(lh1) } };
+});
+console.log('   ' + JSON.stringify(інтервали));
+ok(інтервали.кнопки && (інтервали.повзунки || []).join() === 'lh,ls',
+  'міжрядковий і розрідження стоять в одному вікні з рештою оформлення',
+  'екрана інтервалів немає: ' + JSON.stringify(інтервали));
+ok(інтервали.розрідження && інтервали.розрідження.стало > інтервали.розрідження.було,
+  'розрідження справді розсуває літери — напис стає ширшим, а не лише їде повзунок',
+  'напис не змінився: ' + JSON.stringify(інтервали.розрідження));
+ok(інтервали.рядок && інтервали.рядок.стало > інтервали.рядок.було,
+  'міжрядковий справді розсуває рядки',
+  'рядки не розсунулись: ' + JSON.stringify(інтервали.рядок));
+
+console.log('');
+console.log('═══ НАПИС БЕЗ ЛІТЕР НЕ ІСНУЄ ═══');
+/* Доти напис, із якого стерли все, лишався невидимим шаром: на екрані
+   нічого, а в прорахунку окремий дизайн зі своєю разовою підготовкою
+   макета. Знайти його було ніде — саме тому, що його не видно. */
+const стерли = await p.evaluate(async () => {
+  const L = window.__lqLayers;
+  const txt = L.list().filter(x => x.text)[0];
+  if(!txt) return { помилка:'напису в стосі немає' };
+  L.active(txt.id);
+  L.text(txt.id, '');                   // стерли дочиста — саме так це й роблять
+  const до = L.list().length;
+  L.leave();                            // і вийшли з напису
+  return { до, після:L.list().length, лишився:L.list().some(x => x.id === txt.id) };
+});
+console.log('   ' + JSON.stringify(стерли));
+ok(!стерли.лишився && стерли.після === стерли.до - 1,
+  'напис, із якого стерли все, зникає разом із виходом із нього',
+  'порожній напис лишився невидимим шаром: ' + JSON.stringify(стерли));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
