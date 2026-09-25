@@ -4268,6 +4268,20 @@
 
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
+        <!-- ДОДАТКОВІ ПОСЛУГИ ПРИВАТНОГО ЗАМОВЛЕННЯ.
+             Роздріб — це виріб плюс кілька дрібниць: розробка ескізу,
+             терміновість, упаковка. Набирати їх щоразу руками означає
+             мати чотири різні ціни на ту саму роботу в чотирьох
+             замовленнях. Тут вони задаються раз, а менеджер лише обирає. -->
+        <div class="tl-divider" style="margin-top:18px;">Додаткові послуги (B2C)</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Дрібниці, які додають до приватного замовлення поверх вартості виробу:
+          розробка ескізу, терміновість, упаковка. Менеджер обирає їх зі списку,
+          а не вписує руками — інакше та сама робота коштує щоразу по-різному.
+        </div>
+        <div id="sp-extras"></div>
+        <div class="add-row-btn" id="sp-extra-add">+ Додати послугу</div>
+
         <div class="tl-divider" style="margin-top:18px;">Запобіжник маржі</div>
         <div class="sub" style="margin-bottom:8px;">
           Нижче за цей відсоток позицію в пропозицію не додати — адмінка відмовить і
@@ -4843,6 +4857,17 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
               <label class="field" style="flex:1;min-width:150px;">
                 <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Собівартість товару, грн</span>
                 <input id="pc-cost" type="number" min="0" style="width:100%;" placeholder="0">
+              </label>
+              <!-- РОЗДРІБНА ЦІНА — ОКРЕМЕ ЧИСЛО, А НЕ ФОРМУЛА.
+                   У корпоративному замовленні ціна це машина: шкала за
+                   тиражем, площа нанесення, поділ підготовки макета між
+                   виробами. У приватному нічого з цього немає — там беруть
+                   одну футболку, і ціна в неї просто є. Тому тут число, і
+                   тільки воно. Порожнє = беремо базову, щоб замовлення не
+                   спинялось через незаповнене поле. -->
+              <label class="field" style="flex:1;min-width:150px;">
+                <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Роздрібна ціна (B2C), грн</span>
+                <input id="pc-retail" type="number" min="0" style="width:100%;" placeholder="як базова">
               </label>
             </div>
             <div id="pc-margin" class="sub" style="margin-bottom:12px;"></div>
@@ -5467,18 +5492,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=160751443f"></script>
-<script src="loomiq-fingerprint.js?v=160751443f"></script>
-<script src="loomiq-pricing.js?v=160751443f"></script>
+<script src="loomiq-select.js?v=31b51901a5"></script>
+<script src="loomiq-fingerprint.js?v=31b51901a5"></script>
+<script src="loomiq-pricing.js?v=31b51901a5"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=160751443f"></script>
+<script src="loomiq-design.js?v=31b51901a5"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=160751443f"></script>
+<script src="loomiq-cards.js?v=31b51901a5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5503,7 +5528,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '160751443f';
+var LQ_VER = '31b51901a5';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -7402,6 +7427,7 @@ function paintSitePricing(){
   paintSpTiers(mDtf.tiers && mDtf.tiers.length ? mDtf.tiers : p.tiers, 'dtf');
   paintSpTiers(mEmb.tiers && mEmb.tiers.length ? mEmb.tiers : p.tiers, 'emb');
   paintSpTiers(p.garmentTiers || [], 'gar');     // порожньо = знижки на виріб не задані
+  paintExtras(p.extras || []);                  // додаткові послуги приватних замовлень
 }
 // Надбавки термінів по кількості — генерик для методу ('dtf' | 'emb')
 function paintLeadTiers(key, tiers){
@@ -7530,6 +7556,40 @@ function paintSpTiers(tiers, key){
     const rows = readSpTiers(key); rows.splice(Number(b.dataset.spTdel),1); paintSpTiers(rows, key);
   }));
 }
+/* ══════════ ДОДАТКОВІ ПОСЛУГИ ПРИВАТНОГО ЗАМОВЛЕННЯ ══════════
+
+   Роздріб — це виріб плюс кілька дрібниць: розробка ескізу, терміновість,
+   упаковка. Набирати їх щоразу руками означає мати чотири різні ціни на ту
+   саму роботу в чотирьох замовленнях, і жодної відповіді на питання
+   «скільки в нас коштує ескіз».
+
+   Тут вони задаються раз, а менеджер лише обирає зі списку. Нічого, крім
+   назви й ціни: ніяких коефіцієнтів і шкал — у роздрібу їх немає. */
+function paintExtras(list){
+  const box = document.getElementById('sp-extras');
+  if(!box) return;
+  box.innerHTML = (list || []).map((x, i) => `
+    <div class="sp-extra-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+      <input data-ex-name type="text" value="${escapeHtml(x.name || '')}" placeholder="назва послуги"
+        style="flex:1;min-width:180px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <input data-ex-price type="number" min="0" step="1" value="${x.price == null ? '' : x.price}" placeholder="грн"
+        style="width:110px;font-family:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:7px;padding:8px 9px;">
+      <button class="pc-btn reset" data-ex-del="${i}" style="flex:none;padding:7px 10px;">✕</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-ex-del]').forEach(b => b.addEventListener('click', ()=>{
+    const rows = readExtras(); rows.splice(Number(b.dataset.exDel), 1); paintExtras(rows);
+  }));
+}
+function readExtras(){
+  const box = document.getElementById('sp-extras');
+  if(!box) return [];
+  return Array.from(box.querySelectorAll('.sp-extra-row')).map(r => ({
+    name: String(r.querySelector('[data-ex-name]').value || '').trim(),
+    price: Math.max(0, Math.round(parseFloat(r.querySelector('[data-ex-price]').value) || 0))
+  /* Порожній рядок — це не послуга, а забутий рядок. Зберігати його
+     означало б показувати менеджеру порожній пункт у списку вибору. */
+  })).filter(x => x.name);
+}
 function readSpTiers(key){
   const box = document.getElementById('sp-tiers-' + key);
   if(!box) return [];
@@ -7580,6 +7640,10 @@ function paintSpProducts(p){
     paintSpTiers(rows, key);
   });
 });
+(function(){
+  const b = document.getElementById('sp-extra-add');
+  if(b) b.addEventListener('click', ()=>{ paintExtras(readExtras().concat([{ name:'', price:0 }])); });
+})();
 document.getElementById('sp-dtf-row-add').addEventListener('click', dtfAddRow);
 // відсоток поруч із коефіцієнтом — оновлюємо в усіх таблицях знижок
 ['dtf','emb','gar','pc'].forEach(key=>{
@@ -7763,6 +7827,9 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     garmentTiers: readSpTiers('gar'),
     // Поріг маржі: нижче нього адмінка не дає додати позицію в пропозицію
     minMarginPct: numV('sp-minmargin'),
+    /* Додаткові послуги приватних замовлень: назва й ціна, більше нічого.
+       Шкал і коефіцієнтів у роздрібу немає. */
+    extras: readExtras(),
     /* Що робити з цінами при допродажу: 'all' — перерахувати весь склад
        (як було завжди), 'keep' — погоджене не рухати, виграш віддати новому. */
     upsellMode: (document.getElementById('sp-upsell') || {}).value || 'all'
@@ -23486,7 +23553,7 @@ async function deleteCustomProduct(id){
 })();
 
 /* Живий перерахунок прибутку при вводі */
-['pc-baseprice','pc-cost'].forEach(function(id){
+['pc-baseprice','pc-cost','pc-retail'].forEach(function(id){
   const el = document.getElementById(id);
   if(el) el.addEventListener('input', updateMarginHint);
 });
@@ -23520,13 +23587,15 @@ document.getElementById('pc-save').addEventListener('click', async ()=>{
   const label = document.getElementById('pc-label').value.trim();
   const bp = parseFloat(document.getElementById('pc-baseprice').value);
   const cost = parseFloat(document.getElementById('pc-cost').value);
+  const retail = parseFloat(document.getElementById('pc-retail').value);
   const hide = document.getElementById('pc-hide').checked;
   const apps = ['embro', 'dtf'].filter(k =>
     (document.getElementById('pc-app-' + k) || {}).checked);
   const DEL = firebase.firestore.FieldValue.delete();
   let hidden = (prod.hidden || []).filter(x=>x!==id);
   if(hide) hidden.push(id);
-  const upd = { products: { hidden, priceLabels:{}, cost:{}, apps:{} }, pricing: { basePrices:{} } };
+  const upd = { products: { hidden, priceLabels:{}, cost:{}, apps:{}, retail:{} },
+                pricing: { basePrices:{} } };
   /* Жоден спосіб не знятий — виріб, на який нічого не нанести. Такого не
      буває, і мовчки зберегти це означало б зробити товар непродаваним. */
   if(!apps.length){ toast('Хоч один спосіб нанесення має лишитись'); return; }
@@ -23534,6 +23603,7 @@ document.getElementById('pc-save').addEventListener('click', async ()=>{
   upd.products.priceLabels[id] = label ? label : DEL;   // порожнє = авто «від [базова ціна]»
   upd.products.cost[id]        = (cost>0) ? cost : DEL;
   upd.pricing.basePrices[id]   = (bp>0) ? bp : DEL;
+  upd.products.retail[id]      = (retail>0) ? retail : DEL;
   /* Своя шкала знижок. Пишемо тільки коли її справді редагували: інакше
      кожне збереження ціни клало б товару копію загальної шкали, і той
      назавжди відвʼязався б від неї мовчки. */
@@ -27345,10 +27415,16 @@ function renderPriceCost(){
   const labEl = document.getElementById('pc-label');
   const bpEl = document.getElementById('pc-baseprice');
   const costEl = document.getElementById('pc-cost');
+  const retEl = document.getElementById('pc-retail');
   const hideEl = document.getElementById('pc-hide');
   if(labEl){ labEl.value = labels[id] !== undefined ? labels[id] : ''; labEl.placeholder = (bp>0) ? ('авто: від '+bp+' грн') : 'авто'; }
   if(bpEl) bpEl.value = bp === '' ? '' : bp;
   if(costEl) costEl.value = (costs[id] != null) ? costs[id] : '';
+  if(retEl){
+    const r = (prod.retail || {})[id];
+    retEl.value = (r != null) ? r : '';
+    retEl.placeholder = (bp > 0) ? ('як базова: ' + bp) : 'як базова';
+  }
   if(hideEl) hideEl.checked = (prod.hidden || []).includes(id);
   /* Способи нанесення. Показуємо те, що діє ЗАРАЗ, — разом із запасним
      шляхом за назвою: інакше на флісі стояли б дві галочки, а конструктор
