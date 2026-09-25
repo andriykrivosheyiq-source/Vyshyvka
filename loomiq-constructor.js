@@ -6949,31 +6949,55 @@
        рішення про замовлення, а прибирання на своєму столі, і переносити
        його в базу — значить нав’язати сусідньому менеджеру. */
     var LQO_DROP = {};
+    /* Прибрані макети памʼятаємо ще й описами, а не самими ключами. Плитка
+       тепер одна на весь макет, скільки б файлів за нею не стояло, — і
+       прибрати її за адресою ОДНОГО з них замало: на місце прибраної тут
+       же виходив наступний двійник, і плитка виглядала невидаленною. */
+    var LQO_GONE = [];
+    /* ГАЛЕРЕЯ ПОКАЗУЄ РІВНО ТЕ, ЩО РУШІЙ РАХУЄ ЯК МАКЕТИ.
+
+       Доти плитки зводились за адресою файлу, а гроші — за тим, що вважає
+       одним дизайном рушій цін. Дві різні відповіді на те саме питання, і
+       обидві на екрані: у галереї три однакові на вигляд квадратики, у
+       рахунку три підготовки макета — а логотип насправді один, просто
+       завантажений тричі (кожне зняття фону віддає СВІЙ файл).
+
+       Тепер правило одне й спільне з рушієм: той самий файл або досить
+       схожі пікселі — один макет, одна плитка. Кількість плиток стала
+       чесною відповіддю на питання «скільки макетів я оплачую»: скільки їх
+       тут, стільки й у рахунку. */
+    function sameArt(a, b){
+      if(a.url && b.url && a.url === b.url) return true;
+      /* Напис звіряємо за самим написом: пікселів у нього ще немає в мить,
+         коли його щойно набрали. */
+      if(a.text || b.text) return !!(a.text && b.text &&
+        String(a.text.value || '') === String(b.text.value || ''));
+      return !!(a.fp && b.fp && window.LQ && window.LQ.sameFingerprint &&
+                window.LQ.sameFingerprint(a.fp, b.fp));
+    }
     function orderDesigns(){
-      var out = [], was = {};
+      var out = [];
       var add = function(l, from){
         if(!l) return;
         var u = String(l.url || l.cleanUrl || l.origUrl || '');
         if(u.slice(0, 4) !== 'http') u = '';
         var fp = String(l.fp || '');
-        /* Ключ — адреса файлу, і лише коли її немає — відбиток. Один файл
-           не може стояти в галереї двічі, хай би на скількох виробах він
-           лежав. */
         /* Макет без файлу в галереї не потрібен. Показати його нічим —
            плитка виходить порожнім сірим квадратом, — і покласти на виріб
            теж: класти нема чого. Такі записи лишились від старих позицій,
            де в замовленні зберігалась сама геометрія шару. Лічильник
            «10 макетів» вони роздували, а користі не давали жодної. */
         if(!u && !l.text) return;
-        var key = u || (fp ? 'fp:' + fp : '');
-        if(!key || was[key] || LQO_DROP[key]) return;
-        was[key] = 1;
-        out.push({ url:u, fp:fp, text:l.text || null, from:from || '',
-                   frac:(+l.frac > 0 ? +l.frac : 0),
-                   fx:(l.fx != null ? +l.fx : null), fy:(l.fy != null ? +l.fy : null),
-                   rot:+l.rot || 0, removeBg:!!l.removeBg,
-                   kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
-                     ? l.kindFix : null });
+        var d = { url:u, fp:fp, text:l.text || null, from:from || '',
+                  frac:(+l.frac > 0 ? +l.frac : 0),
+                  fx:(l.fx != null ? +l.fx : null), fy:(l.fy != null ? +l.fy : null),
+                  rot:+l.rot || 0, removeBg:!!l.removeBg,
+                  kindFix:(l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off')
+                    ? l.kindFix : null };
+        if(LQO_DROP[u] || (fp && LQO_DROP['fp:' + fp])) return;
+        for(var g = 0; g < LQO_GONE.length; g++) if(sameArt(LQO_GONE[g], d)) return;
+        for(var i = 0; i < out.length; i++) if(sameArt(out[i], d)) return;
+        out.push(d);
       };
       var cart = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
       cart.forEach(function(it){
@@ -6983,6 +7007,19 @@
           (Array.isArray(lg[side]) ? lg[side] : []).forEach(function(l){
             add(l, (it && it.name) || '');
           });
+        });
+      });
+      /* МАКЕТИ ВІДКРИТОЇ ПОЗИЦІЇ — ТЕЖ МАКЕТИ ЗАМОВЛЕННЯ.
+
+         Галерея збиралась тільки з кошика, а позиція потрапляє в кошик
+         лише після збереження. Через це щойно доданий логотип у галереї не
+         зʼявлявся зовсім: менеджер клав його на виріб, шукав у смужці, щоб
+         покласти на решту, — і не знаходив. Виглядало це як «додається
+         тільки перший». Кладемо сюди й те, що лежить на відкритій позиції
+         просто зараз. */
+      Object.keys(pm.logos || {}).forEach(function(side){
+        (Array.isArray(pm.logos[side]) ? pm.logos[side] : []).forEach(function(l){
+          add(l, '');
         });
       });
       orderLogos().forEach(function(u){ add({ url:u }, ''); });
@@ -7026,6 +7063,7 @@
           if(!d) return;
           var k = d.url || ('fp:' + d.fp);
           if(k) LQO_DROP[k] = 1;
+          LQO_GONE.push(d);
           renderOrderArt();
           try{ renderTabPanel(); }catch(e2){}
         });
@@ -7103,6 +7141,7 @@
         if(!d) return false;
         var k = d.url || ('fp:' + d.fp);
         if(k) LQO_DROP[k] = 1;
+        LQO_GONE.push(d);
         return true;
       },
       /* Колір самого макета міряється асинхронно; коли міра готова —
