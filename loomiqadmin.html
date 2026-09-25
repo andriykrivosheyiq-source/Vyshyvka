@@ -3563,7 +3563,14 @@
   .dz-u-note textarea:focus{border-color:var(--accent);}
   /* Строк — у шапці панелі, поруч із номером: це рамка всього замовлення,
      і читають її до складу, а не після нього. */
-  .dz-due{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto;}
+  .dz-term{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto;}
+  .dz-term span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;}
+  .dz-term input{width:58px;font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:5px 7px;outline:none;
+    text-align:center;}
+  .dz-term input:focus{border-color:var(--accent);}
+  .dz-due{display:flex;align-items:center;gap:6px;flex:none;}
   .dz-due span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
     letter-spacing:.04em;font-weight:600;white-space:nowrap;}
   .dz-due input{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
@@ -3808,8 +3815,21 @@
   .nav-n{margin-left:auto;font-style:normal;font-size:11px;font-weight:800;
     min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-flex;
     align-items:center;justify-content:center;background:var(--accent);color:#fff;}
-  .dz-pics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-  .dz-pic{position:relative;display:inline-flex;}
+  /* Картинки квадратиками, по дві в ряд у колонці картки. Референсів буває
+     пʼять, і кожен на пів картки означає, що склад доводиться шукати
+     прокруткою. Квадратик каже «вона тут є»; роздивитись — натиском. */
+  .dz-pics{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+    gap:6px;margin-top:8px;}
+  .dz-pic{position:relative;display:block;}
+  .dz-pic-b{all:unset;cursor:zoom-in;display:block;width:100%;aspect-ratio:1;
+    background:#F4F6F9;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .dz-pic-b img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dz-pic-b:hover{border-color:var(--accent);}
+  /* Перегляд на весь екран: людина лишається в картці, і закриття повертає
+     її рівно туди, де була. */
+  .dz-lightbox{background:rgba(15,32,52,.82);cursor:zoom-out;}
+  .dz-lightbox img{max-width:92vw;max-height:92vh;border-radius:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.4);}
   .dz-pic-x{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:9px;
     border:1px solid var(--line);background:#fff;font:inherit;font-size:12px;line-height:1;
     cursor:pointer;color:var(--ink-soft);}
@@ -3978,6 +3998,7 @@
         <div class="nav-grp" id="nav-set">
           <button type="button" class="nav-grp-h" data-tip="Налаштування" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.8h0a1.9 1.9 0 0 1 1.9 1.9v.5a1.5 1.5 0 0 0 2.2 1.3l.4-.2a1.9 1.9 0 0 1 2.4.7l.3.5a1.9 1.9 0 0 1-.6 2.5l-.4.3a1.5 1.5 0 0 0 0 2.6l.4.3a1.9 1.9 0 0 1 .6 2.5l-.3.5a1.9 1.9 0 0 1-2.4.7l-.4-.2a1.5 1.5 0 0 0-2.2 1.3v.5A1.9 1.9 0 0 1 12 21.2h0a1.9 1.9 0 0 1-1.9-1.9v-.5a1.5 1.5 0 0 0-2.2-1.3l-.4.2a1.9 1.9 0 0 1-2.4-.7l-.3-.5a1.9 1.9 0 0 1 .6-2.5l.4-.3a1.5 1.5 0 0 0 0-2.6l-.4-.3a1.9 1.9 0 0 1-.6-2.5l.3-.5a1.9 1.9 0 0 1 2.4-.7l.4.2a1.5 1.5 0 0 0 2.2-1.3v-.5A1.9 1.9 0 0 1 12 2.8z"/></svg><span>Налаштування</span><i class="nav-grp-x"><svg viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg></i></button>
           <div class="nav-grp-b">
+            <button data-view="b2c" data-tip="Налаштування приватних замовлень"><svg viewBox="0 0 24 24"><path d="M12 3.5 4.5 7v10L12 20.5 19.5 17V7z"/><path d="M4.5 7 12 10.5 19.5 7M12 10.5v10"/></svg><span>Налаштування B2C</span></button>
             <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
             <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
             <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
@@ -4282,20 +4303,6 @@
 
         <div class="sub" style="margin-top:16px;">Базові ціни виробів і висота задаються у картці кожного товару (Конструктор сайту → Товари), а не тут.</div>
 
-        <!-- ДОДАТКОВІ ПОСЛУГИ ПРИВАТНОГО ЗАМОВЛЕННЯ.
-             Роздріб — це виріб плюс кілька дрібниць: розробка ескізу,
-             терміновість, упаковка. Набирати їх щоразу руками означає
-             мати чотири різні ціни на ту саму роботу в чотирьох
-             замовленнях. Тут вони задаються раз, а менеджер лише обирає. -->
-        <div class="tl-divider" style="margin-top:18px;">Додаткові послуги (B2C)</div>
-        <div class="sub" style="margin-bottom:8px;">
-          Дрібниці, які додають до приватного замовлення поверх вартості виробу:
-          розробка ескізу, терміновість, упаковка. Менеджер обирає їх зі списку,
-          а не вписує руками — інакше та сама робота коштує щоразу по-різному.
-        </div>
-        <div id="sp-extras"></div>
-        <div class="add-row-btn" id="sp-extra-add">+ Додати послугу</div>
-
         <div class="tl-divider" style="margin-top:18px;">Запобіжник маржі</div>
         <div class="sub" style="margin-bottom:8px;">
           Нижче за цей відсоток позицію в пропозицію не додати — адмінка відмовить і
@@ -4449,6 +4456,48 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>B2C <span class="dir-tag">приватні замовлення · номери з 5</span></h1>
       </div>
       <div id="dzRoot"></div>
+    </section>
+
+    <!-- ══════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════
+         Окремим розділом навмисно. Формування цін — це машина
+         корпоративного замовлення: шкали за тиражем, площа нанесення,
+         поділ підготовки макета. У роздрібу цього немає зовсім, і класти
+         його поруч означало б щоразу згадувати, яка з двох моделей діє
+         зараз. Тут лежить рівно те, що стосується B2C. -->
+    <section id="view-b2c" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Довідник</div>
+        <h1>Налаштування B2C</h1>
+        <div class="sub">Приватне замовлення рахується просто: ціна виробу плюс кілька
+          послуг. Ціна самого виробу задається в його картці (Конструктор сайту → Товари),
+          поле «Роздрібна ціна». Тут — те, що додається зверху, і терміни.</div>
+      </div>
+
+      <div class="card">
+        <div class="tl-divider">Додаткові послуги</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Дрібниці, які додають до замовлення поверх вартості виробу: розробка ескізу,
+          терміновість, упаковка. Менеджер обирає їх зі списку, а не вписує руками —
+          інакше та сама робота коштує щоразу по-різному, і питання «скільки в нас
+          коштує ескіз» лишається без відповіді.
+        </div>
+        <div id="sp-extras"></div>
+        <div class="add-row-btn" id="sp-extra-add">+ Додати послугу</div>
+
+        <div class="tl-divider" style="margin-top:22px;">Термін виготовлення</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Скільки днів іде замовлення від заповнення картки. Менеджер може змінити
+          строк у самій картці — це лише заготовка, з якої він починає. Дата готовності
+          рахується від дня, коли картку завели, і видно її на дошці.
+        </div>
+        <label class="field" style="display:block;max-width:220px;">
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Днів на замовлення</span>
+          <input id="b2c-days" type="number" min="1" max="120" step="1" style="width:100%;" placeholder="14">
+        </label>
+        <div style="margin-top:14px;">
+          <button class="pc-btn up" id="b2c-save" style="padding:9px 18px;">Зберегти</button>
+        </div>
+      </div>
     </section>
 
     <section id="view-team" style="display:none;">
@@ -5506,18 +5555,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3b9bc78d92"></script>
-<script src="loomiq-fingerprint.js?v=3b9bc78d92"></script>
-<script src="loomiq-pricing.js?v=3b9bc78d92"></script>
+<script src="loomiq-select.js?v=ce349dc75f"></script>
+<script src="loomiq-fingerprint.js?v=ce349dc75f"></script>
+<script src="loomiq-pricing.js?v=ce349dc75f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3b9bc78d92"></script>
+<script src="loomiq-design.js?v=ce349dc75f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3b9bc78d92"></script>
+<script src="loomiq-cards.js?v=ce349dc75f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5542,7 +5591,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3b9bc78d92';
+var LQ_VER = 'ce349dc75f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -6854,6 +6903,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
        відкрила. */
     if(typeof closeSidebar === 'function') closeSidebar();
     document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
+    const vB2c = document.getElementById('view-b2c'); if(vB2c) vB2c.style.display = view==='b2c' ? 'block':'none';
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
@@ -6867,7 +6917,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
     const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
-      chats:'Чати B2B', chatsc:'Чати B2C'};
+      chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     /* РОЗДІЛ РОЗМОВ НЕ ПРОКРУЧУЄТЬСЯ САМ.
@@ -6888,6 +6938,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     document.body.classList.toggle('chat-view', вРозмовах);
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
     if(view==='settings') paintSitePricing();
+    if(view==='b2c') paintB2c();
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
@@ -7441,7 +7492,6 @@ function paintSitePricing(){
   paintSpTiers(mDtf.tiers && mDtf.tiers.length ? mDtf.tiers : p.tiers, 'dtf');
   paintSpTiers(mEmb.tiers && mEmb.tiers.length ? mEmb.tiers : p.tiers, 'emb');
   paintSpTiers(p.garmentTiers || [], 'gar');     // порожньо = знижки на виріб не задані
-  paintExtras(p.extras || []);                  // додаткові послуги приватних замовлень
 }
 // Надбавки термінів по кількості — генерик для методу ('dtf' | 'emb')
 function paintLeadTiers(key, tiers){
@@ -7604,6 +7654,35 @@ function readExtras(){
      означало б показувати менеджеру порожній пункт у списку вибору. */
   })).filter(x => x.name);
 }
+/* ══════════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════════
+   Окремо від формування цін навмисно: там машина корпоративного
+   замовлення — шкали за тиражем, площа нанесення, поділ підготовки макета.
+   У роздрібу цього немає, і класти одне поруч з іншим означає щоразу
+   згадувати, яка з двох моделей діє зараз. */
+function b2cCfg(){
+  const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
+  return { extras: Array.isArray(c.extras) ? c.extras : [],
+           days: (+c.days > 0) ? Math.round(+c.days) : 0 };
+}
+function paintB2c(){
+  const c = b2cCfg();
+  paintExtras(c.extras);
+  const d = document.getElementById('b2c-days');
+  if(d) d.value = c.days || '';
+}
+(function(){
+  const b = document.getElementById('b2c-save');
+  if(!b) return;
+  b.addEventListener('click', async ()=>{
+    const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
+    const b2c = { extras: readExtras(), days: days || null };
+    try{
+      await PHOTOS_DOC.set({ b2c }, { merge:true });
+      contentData.b2c = b2c;
+      toast('Збережено');
+    }catch(e){ console.error(e); toast('Не збереглось'); }
+  });
+})();
 function readSpTiers(key){
   const box = document.getElementById('sp-tiers-' + key);
   if(!box) return [];
@@ -7841,9 +7920,6 @@ document.getElementById('sp-save').addEventListener('click', async ()=>{
     garmentTiers: readSpTiers('gar'),
     // Поріг маржі: нижче нього адмінка не дає додати позицію в пропозицію
     minMarginPct: numV('sp-minmargin'),
-    /* Додаткові послуги приватних замовлень: назва й ціна, більше нічого.
-       Шкал і коефіцієнтів у роздрібу немає. */
-    extras: readExtras(),
     /* Що робити з цінами при допродажу: 'all' — перерахувати весь склад
        (як було завжди), 'keep' — погоджене не рухати, виграш віддати новому. */
     upsellMode: (document.getElementById('sp-upsell') || {}).value || 'all'
@@ -24504,6 +24580,9 @@ function openDesign(){
        каналу, і відділу знати про них нічого: він питає одне — чи можна
        натиснути й написати. */
     hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
+    /* Типовий термін виготовлення. Лежить у налаштуваннях B2C — одне місце
+       на всі замовлення, з якого менеджер починає. */
+    b2cDays: () => b2cCfg().days,
     /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
        місце — воно й ходить у Sitniks. */
     whoLabel: o => crmWhoLabel(o),
