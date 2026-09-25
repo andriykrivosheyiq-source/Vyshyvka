@@ -1498,7 +1498,12 @@
     return unitsOf(job).filter(function(u){ return u.id === id; })[0] || null;
   }
   function catalog(){
-    try{ return (host().catalog && host().catalog()) || []; }catch(e){ return []; }
+    /* `host` тут ОБʼЄКТ, а не функція: у цьому модулі його кладе робоче
+       місце через `LQDesign.ui.host = {...}`. Виклик `host()` кидав виняток,
+       виняток мовчки ковтався — і каталог виробів завжди приходив порожнім.
+       Тобто вибір одягу у відділі не працював узагалі, і зовні це виглядало
+       як «список порожній», а не як поломка. */
+    try{ return (host.catalog && host.catalog()) || []; }catch(e){ return []; }
   }
   function catItem(gid){
     return catalog().filter(function(g){ return g.id === gid; })[0] || null;
@@ -1698,6 +1703,11 @@
         : '<div class="dz-miss">Прикріпіть дизайнера — тоді зʼявиться ' +
           '«Відправити дизайнеру».</div>');
   }
+  /* Списки дизайнів веде ядро — воно ж і дописує полям, яких у старих
+     задачах немає. Малювати їх треба тим самим списком, інакше панель
+     побачить сирі дані без `vers`/`thread` і розсиплеться на першому ж
+     зверненні до них. */
+  function dzList(u, kind){ return D.dzList(u, kind); }
   function designRowHtml(u, kind, d, i, ro, job){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
