@@ -2046,7 +2046,12 @@
     var сума = 0;
     try{ сума = (host.orderSum && host.orderSum(o)) || 0; }catch(e){}
     if(!сума) сума = +((o || {}).totalPrice) || 0;
-    var пре = Math.max(0, Math.round(+((o || {}).prepaid) || 0));
+    /* Скільки вже прийшло. Сума привʼязаних платежів — головна, бо вона
+       з банку; вписане руками лишається запасним шляхом для готівки й для
+       часу, поки банки ще не підключені. */
+    var зБанку = 0;
+    try{ зБанку = (host.paid && host.paid(o)) || 0; }catch(e){}
+    var пре = Math.max(0, Math.round(зБанку || +((o || {}).prepaid) || 0));
     var лишок = Math.max(0, Math.round(сума - пре));
     return '<details class="dz-fold">' +
       '<summary>Гроші' +
@@ -2056,9 +2061,12 @@
       '<div class="dz-money">' +
         '<div class="dz-money-r"><span>Разом за замовлення</span><b>' +
           esc(грн(сума)) + '</b></div>' +
-        '<label class="dz-own-f"><span>Передоплата</span>' +
-          '<input type="number" min="0" step="1" data-of="prepaid" value="' +
-          (пре || '') + '" placeholder="скільки вже прийшло"></label>' +
+        (зБанку
+          ? '<div class="dz-money-r"><span>Надійшло за платежами</span><b>' +
+            esc(грн(зБанку)) + '</b></div>'
+          : '<label class="dz-own-f"><span>Передоплата</span>' +
+            '<input type="number" min="0" step="1" data-of="prepaid" value="' +
+            (пре || '') + '" placeholder="скільки вже прийшло"></label>') +
         '<div class="dz-money-r is-left"><span>Залишок до оплати</span><b>' +
           esc(грн(лишок)) + '</b></div>' +
       '</div>' +
