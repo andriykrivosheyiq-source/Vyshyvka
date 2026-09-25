@@ -366,6 +366,25 @@
 
            Один макет — одна разова, і платять її ті, кому він потрібен. */
         var свій = (f.unitsOf[gi] || 1);
+        /* ЧИ НЕ ТОЙ САМИЙ ЦЕ МАЛЮНОК, ЗАВАНТАЖЕНИЙ ДВІЧІ.
+
+           Найчастіше непорозуміння в прорахунку виглядає так: логотип на
+           вигляд один, а підготовка ділиться не на всі вироби. Причина
+           майже завжди одна — файл клали окремо на кожну позицію, після
+           зняття фону пікселі вийшли різні, і для рушія це два макети. Він
+           не помиляється: два різні файли справді два.
+
+           Довести це він не може, а от запідозрити — цілком: сусідній
+           макет того самого виду, який ЗНАЧНО ближчий за випадковий, майже
+           напевно той самий логотип. Межу беремо вчетверо ширшу за ту, на
+           якій ще зводимо в один: усе, що ближче, варте питання, але не
+           варте мовчазного злиття. */
+        var близнюк = false;
+        for(var q = 0; q < f.groups.count; q++){
+          if(q === gi || !f.groups.reps[q] || !f.groups.reps[gi]) continue;
+          var d = fpDistance(f.groups.reps[q], f.groups.reps[gi]);
+          if(d > FP_SAME && d <= FP_SAME * 4){ близнюк = true; break; }
+        }
         if(gi === f.firstIdx){
           feeShare += (+f.cfg.orderFee || 0) / свій;
           costShare += (+f.cfg.orderCost || 0) / свій;
@@ -374,13 +393,13 @@
              Без нього прорахунок не може сказати адмінці, який саме дизайн
              перемикають на рядку «Підготовка макета». */
           feeLines.push({ kind: kind, di: i, gi: gi, first: true,
-                          fee: +f.cfg.orderFee || 0,
+                          fee: +f.cfg.orderFee || 0, twin: близнюк,
                           cost: +f.cfg.orderCost || 0, units: свій });
         } else {
           feeShare += (+f.cfg.sketchFee || 0) / свій;
           costShare += (+f.cfg.sketchCost || 0) / свій;
           sketches.push({ kind: kind, di: i, gi: gi, no: gi + 1,
-                          fee: +f.cfg.sketchFee || 0,
+                          fee: +f.cfg.sketchFee || 0, twin: близнюк,
                           cost: +f.cfg.sketchCost || 0, units: свій });
         }
       });

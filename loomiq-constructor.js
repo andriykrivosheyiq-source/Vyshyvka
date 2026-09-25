@@ -1577,6 +1577,23 @@
       // від чужої групи — один представник, а не всі її картки
       return isGroupLead(list || [], i, skip);
     }
+    /* ХТО З ЦЬОГО СПИСКУ — ДОПРОДАЖ.
+
+       Рекомендована позиція рахується інакше за погоджену: у неї власне
+       відро разових, і макет, уже оплачений основним складом, для неї
+       безплатний. Пропозиція це знає й показує 882 ₴/шт; конструктор про
+       допродаж не знав нічого — і та сама футболка виходила в ньому 1005,
+       бо платила повну підготовку сама. Два числа за одну позицію на двох
+       сусідніх екранах, і жодної підказки, котре з них правда.
+
+       Ознака лежить у самій позиції (`kind`), просто в опис вона доти не
+       доїжджала: опис складає конструктор, а рід позиції жив поруч. */
+    function descUpsell(it, d){
+      if(!d) return d;
+      var reco = it ? (it.kind === 'reco')
+                    : (window.__pmAddKind === 'reco');
+      return reco ? Object.assign({}, d, { upsell:true }) : d;
+    }
     function cartDescriptors(){
 
       var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
@@ -1584,7 +1601,7 @@
       // Щойно конструктор закрито — редагування скасовано, стара версія лишається як є.
       var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
       return list.filter(function(it, i){ return i !== skip && countsWithDraft(it, i, list, skip); })
-        .map(function(it){ return it.desc || null; }).filter(Boolean);
+        .map(function(it){ return it.desc ? descUpsell(it, it.desc) : null; }).filter(Boolean);
     }
     /* Список описів РАЗОМ із чернеткою, і чернетка стоїть на своєму місці.
        Порядок тут не косметика: додатковий ескіз ділиться на вироби своєї
@@ -1602,18 +1619,37 @@
          футболка рахується двічі, тираж стає 2 замість 1, зʼявляється чужа
          знижка й підготовка макета ділиться навпіл. */
       var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
-      if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([d]);
+      /* Чернетка теж носить ознаку допродажу — за родом тієї позиції, яку
+         правлять. Інакше рекомендована, поки її редагують, рахувалась би
+         як погоджена й платила повну підготовку макета. */
+      var чернетка = descUpsell(list[skip] || null, d);
+      if(skip == null || skip < 0 || !list[skip]) return cartDescriptors().concat([чернетка]);
       var out = [], at = -1;
       list.forEach(function(it, i){
-        if(i === skip){ at = out.length; out.push(d); return; }
+        if(i === skip){ at = out.length; out.push(чернетка); return; }
         if(!countsWithDraft(it, i, list, skip)) return;
-        if(it.desc) out.push(it.desc);
+        if(it.desc) out.push(descUpsell(it, it.desc));
       });
-      if(at < 0) out.push(d);
+      if(at < 0) out.push(чернетка);
       return out;
     }
-    // Де в цьому списку лежить чернетка — щоб узяти саме її рядок результату
-    function draftAt(list, d){ var k = list.indexOf(d); return k < 0 ? list.length - 1 : k; }
+    /* Де в цьому списку лежить чернетка. Шукаємо не за посиланням: опис
+       чернетки міг бути перезібраний із позначкою допродажу, і тоді це вже
+       інший обʼєкт. Беремо той, що не належить жодній позиції кошика. */
+    function draftAt(list, d){
+      var k = list.indexOf(d);
+      if(k >= 0) return k;
+      var cart = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+      var свої = cart.map(function(it){ return it && it.desc; });
+      for(var i = 0; i < list.length; i++){
+        if(свої.indexOf(list[i]) >= 0) continue;
+        /* Той самий опис, лише з доданою ознакою: звіряємо за тиражем і
+           набором дизайнів — цього досить, щоб не сплутати з сусідом. */
+        if(list[i] && d && list[i].units === d.units &&
+           String((list[i].designs || []).join()) === String((d.designs || []).join())) return i;
+      }
+      return list.length - 1;
+    }
 
     function unitPrice(){
       if(sitePricing()){
@@ -5884,6 +5920,18 @@
             'object-fit:contain;vertical-align:middle;margin-right:5px;' +
             'border-radius:4px;background:#fff;border:1px solid #e2e8f0;">';
         }
+        /* Підказка про близнюка. Стоїть рівно там, де людина читає число,
+           яке її здивувало, — у рядку підготовки, а не окремим
+           повідомленням збоку. І каже, що саме робити, а не «щось не так». */
+        function близнюкПідказка(f){
+          if(!f || !f.twin) return '';
+          return ' <span title="Схоже, той самий логотип завантажено двічі: ' +
+            'після зняття фону пікселі різні, і рушій бачить два макети. ' +
+            'Покладіть його на всі вироби з галереї макетів — тоді підготовка ' +
+            'поділиться на всіх." style="font-size:10.5px;font-weight:700;color:#8A6410;' +
+            'background:#FFF6E6;border:1px solid #F0DCB0;border-radius:6px;padding:1px 5px;' +
+            'white-space:nowrap;">схоже на сусідній макет</span>';
+        }
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
@@ -5910,9 +5958,15 @@
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
+            /* «Схоже на інший макет замовлення». Найчастіше непорозуміння
+               в прорахунку: логотип на вигляд один, а підготовка ділиться
+               не на всі вироби. Причина майже завжди та сама — файл клали
+               окремо на кожну позицію, після зняття фону пікселі вийшли
+               різні, і це вже два макети. Рушій не помиляється, просто
+               мовчить; тепер не мовчить. */
             tb += r(designPic(f.di) + 'Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
-                    f.units + ' шт)</span>', money(per), money(perC));
+                    f.units + ' шт)</span>' + близнюкПідказка(f), money(per), money(perC));
           });
           offs.forEach(function(d){
             tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, 'off') +
@@ -5933,7 +5987,7 @@
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
             tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
-                    x.units + ' шт)</span>', money(per), money(perC));
+                    x.units + ' шт)</span>' + близнюкПідказка(x), money(per), money(perC));
           });
           /* Скільки нанесень і скільки з них ОКРЕМИХ макетів. Найчастіше
              непорозуміння: два логотипи — спереду й ззаду, — а разова одна.

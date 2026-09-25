@@ -5168,18 +5168,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=b17cc4b8a7"></script>
-<script src="loomiq-fingerprint.js?v=b17cc4b8a7"></script>
-<script src="loomiq-pricing.js?v=b17cc4b8a7"></script>
+<script src="loomiq-select.js?v=afe0ee7fed"></script>
+<script src="loomiq-fingerprint.js?v=afe0ee7fed"></script>
+<script src="loomiq-pricing.js?v=afe0ee7fed"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=b17cc4b8a7"></script>
+<script src="loomiq-design.js?v=afe0ee7fed"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=b17cc4b8a7"></script>
+<script src="loomiq-cards.js?v=afe0ee7fed"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9567,6 +9567,23 @@ function fillRecoParts(o, writePrice){
   });
   return touched;
 }
+/* «ЧОМУ ПІДГОТОВКА НЕ ДІЛИТЬСЯ НА ВСІ ВИРОБИ»
+
+   Найчастіше питання про разові виглядає так: логотип на вигляд один, а
+   підготовка ділиться не на весь тираж. Рушій при цьому не помиляється —
+   файл клали окремо на кожну позицію, після зняття фону пікселі вийшли
+   різні, і для нього це справді два макети.
+
+   Довести це він не може, а запідозрити — цілком: сусідній макет, значно
+   ближчий за випадковий, майже напевно той самий логотип. Тоді він ставить
+   на рядку `twin`, а ми кажемо це вголос — рівно там, де людина читає
+   число, яке її здивувало, і з готовою дією, а не «щось не так».
+
+   Рядки розкладу екрануються, тож підказка тут словами, без розмітки. */
+const TWIN_NOTE = ' · схоже на сусідній макет: той самий файл, покладений окремо на кожну ' +
+  'позицію, рахується як два — покладіть його з галереї макетів на всі вироби, ' +
+  'і підготовка поділиться на всіх';
+function twinNote(f){ return (f && f.twin) ? TWIN_NOTE : ''; }
 function priceCalcHtml(o){
   fillOrderParts(o);            // розклад рахуємо на льоту, збережених цін не чіпаємо
   const rows = [];
@@ -9629,11 +9646,12 @@ function priceCalcHtml(o){
         fl.forEach((x, i)=>{
           const v = x.share + (i === 0 ? diff : 0);
           const kind = fl.length > 1 ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
-          lines.push(['Підготовка макета' + kind + ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт',
-                      v + ' ₴']);
+          lines.push(['Підготовка макета' + kind + ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт' +
+                      twinNote(x.f), v + ' ₴']);
         });
       }
-      sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
+      sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт' +
+                                 twinNote(x.s), x.share + ' ₴']));
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
     lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
@@ -10519,11 +10537,11 @@ function offerCalcRows(it, o){
           left -= share;
           rows.push(['Підготовка макета' + (l.kind === 'txt' ? ' (напис)' : ' (картинка)') +
                      ' — ' + l.fee + ' грн разово, ділиться на ' + (l.units || 1) +
-                     ' шт цього способу', share + ' грн', '', kindAct(l.di)]);
+                     ' шт цього способу' + twinNote(l), share + ' грн', '', kindAct(l.di)]);
         });
       } else {
         rows.push(['Підготовка макета — ' + b.feeTotal + ' грн разово, ділиться на ' +
-                   b.feeUnits + ' шт цього способу', base + ' грн', '',
+                   b.feeUnits + ' шт цього способу' + twinNote(lines[0]), base + ' грн', '',
                    kindAct(lines.length ? lines[0].di : null)]);
       }
       /* Не просто «ділиться на 10 шт», а НА ЯКІ САМЕ позиції. Це найчастіше
@@ -10538,8 +10556,8 @@ function offerCalcRows(it, o){
                                (x.s.no ? ' до дизайну №' + x.s.no : '') +
                                (x.s.kind === 'txt' ? ' (напис)' : '') +
                                ' — ' + x.s.fee + ' грн разово, ділиться на ' +
-                               x.s.units + ' шт із цим дизайном', x.share + ' грн', '',
-                               kindAct(x.s.di)]));
+                               x.s.units + ' шт із цим дизайном' + twinNote(x.s),
+                               x.share + ' грн', '', kindAct(x.s.di)]));
   }
 
   /* Чому допродаж вийшов дешевшим — треба сказати рядком, інакше цифра
