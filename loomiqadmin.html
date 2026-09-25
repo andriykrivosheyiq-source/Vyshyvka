@@ -6112,32 +6112,58 @@ function loadStatuses(){
    потім дивитимуться ворота тиражу.
    ============================================================ */
 const TRACK_DEFAULTS = [
-  { key:'design', label:'Дизайн', steps:[
+  /* ДОШКИ B2B — рівно ті, що є ролями в цій роботі, і в тому порядку, у
+     якому замовлення через них проходить: продаж → акаунт → графіка →
+     вишивальна підготовка → виробництво → закупки.
+
+     Андрій: «більше ніяких дошок не повинно бути». Тому нижче тільки вони;
+     решта треків, які система вміє вести (тест, контроль, відправка),
+     лишається в самій картці замовлення — там їхні кроки й далі
+     проставляються, — але окремої дошки під них немає, бо окремої людини
+     під них теж немає. */
+  { key:'acct', label:'Аккаунт-менеджер', steps:[
+    { key:'new',    label:'Нові',                   color:'gray' },
+    { key:'brief',  label:'Уточнюємо',              color:'blue' },
+    { key:'wait',   label:'Чекаємо на клієнта',     color:'amber' },
+    { key:'ok',     label:'Погоджено',              color:'green', done:true }
+  ]},
+  { key:'design', label:'Графічний дизайнер', steps:[
     { key:'new',    label:'Нові',                   color:'gray' },
     { key:'work',   label:'В роботі',               color:'blue' },
     { key:'check',  label:'На перевірці',           color:'violet' },
     { key:'fix',    label:'Правки',                 color:'amber' },
     { key:'ok',     label:'Макет погоджено',        color:'green', done:true }
   ]},
-  { key:'supply', label:'Одяг', steps:[
+  { key:'embro', label:'Вишивальний дизайнер', steps:[
+    { key:'new',    label:'Нові',                   color:'gray' },
+    { key:'prog',   label:'Програмування',          color:'blue' },
+    { key:'sample', label:'Пробний вишив',          color:'violet' },
+    { key:'fix',    label:'Правки',                 color:'amber' },
+    { key:'ok',     label:'Програму готово',        color:'green', done:true }
+  ]},
+  { key:'prod', label:'Виробництво', steps:[
+    { key:'lock',   label:'Заблоковано',            color:'gray' },
+    { key:'ready',  label:'Готово до тиражу',       color:'cyan' },
+    { key:'work',   label:'У виробництві',          color:'blue' },
+    { key:'done',   label:'Готово',                 color:'green', done:true }
+  ]},
+  { key:'supply', label:'Закупки', steps:[
     { key:'todo',   label:'Треба замовити',         color:'gray' },
     { key:'sent',   label:'Замовлено',              color:'blue' },
     { key:'part',   label:'Частково отримано',      color:'amber' },
     { key:'got',    label:'Отримано',               color:'green', done:true },
     { key:'issue',  label:'Проблема',               color:'rose',  off:true }
   ]},
+  /* Нижче — треки БЕЗ своєї дошки. Кроки в картці лишаються (їх проставляє
+     контроль і відправка), у перемикач дошок вони не потрапляють: див.
+     BOARD_HIDDEN. Викидати їх зовсім не можна — на них тримаються ворота
+     тиражу, брак і ТТН. */
   { key:'test', label:'Тест', steps:[
     { key:'wait',   label:'Очікує',                 color:'gray' },
     { key:'work',   label:'У роботі',               color:'blue' },
     { key:'inner',  label:'На внутрішній перевірці',color:'violet' },
     { key:'client', label:'У клієнта',              color:'amber' },
     { key:'ok',     label:'Тест погоджено',         color:'green', done:true }
-  ]},
-  { key:'prod', label:'Тираж', steps:[
-    { key:'lock',   label:'Заблоковано',            color:'gray' },
-    { key:'ready',  label:'Готово до тиражу',       color:'cyan' },
-    { key:'work',   label:'У виробництві',          color:'blue' },
-    { key:'done',   label:'Готово',                 color:'green', done:true }
   ]},
   { key:'qc', label:'Контроль', steps:[
     { key:'wait',   label:'Очікує',                 color:'gray' },
@@ -6151,6 +6177,9 @@ const TRACK_DEFAULTS = [
     { key:'sent',   label:'Відправлено',            color:'green', done:true }
   ]}
 ];
+/* Треки без власної дошки. Не видалені, а саме сховані з перемикача: їхні
+   кроки живуть у картці й на них спираються ворота тиражу, брак і ТТН. */
+const BOARD_HIDDEN = ['test', 'qc', 'ship'];
 let TRACKS = TRACK_DEFAULTS.map(t => ({ key:t.key, label:t.label,
   steps:t.steps.map(s => Object.assign({}, s)) }));
 function loadTracks(){
@@ -12626,24 +12655,24 @@ function boardTrackNow(){
   if(!mine.length) return boardTrack;
   return mine.indexOf(boardTrack) >= 0 ? boardTrack : mine[0];
 }
-const BOARD_ICON = { sale:'💬', design:'🎨', supply:'📦', test:'🧵',
-                     prod:'⚙️', qc:'✅', ship:'🚚' };
+const BOARD_ICON = { sale:'💬', acct:'🤝', design:'🎨', embro:'🧵',
+                     prod:'⚙️', supply:'📦', test:'🧪', qc:'✅', ship:'🚚' };
 function renderBoardSwitch(){
   const sel = document.getElementById('board-track');
   if(!sel) return;
   const mine = myBoards();
-  /* Одна дошка — перемикати нічого. Кілька своїх — перемикач лишається, але
-     в ньому тільки вони. Порожній список означає «усі», а не «жодної». */
-  if(mine.length === 1){ sel.hidden = true; return; }
-  sel.hidden = false;
   const cur = boardTrackNow();
   const all = zoneBoards();
   const opts = mine.length ? all.filter(t => mine.indexOf(t.key) >= 0) : all;
-  /* Значок перед назвою — не прикраса: у перемикачі з семи однакових слів
-     око чіпляється саме за нього, і «я не туди дивлюсь» стається рідше. */
+  /* Значок перед назвою — не прикраса: у перемикачі з однакових слів око
+     чіпляється саме за нього, і «я не туди дивлюсь» стається рідше. */
   sel.innerHTML = opts.map(o =>
     `<option value="${escapeHtml(o.key)}"${o.key === cur ? ' selected' : ''}>${
       BOARD_ICON[o.key] || '▫'} ${escapeHtml(o.label)}</option>`).join('');
+  /* Одна дошка — перемикати нічого, ховаємо. Але список усередині все одно
+     переписуємо: схований перемикач зі списком чужих дошок — це розмітка,
+     яка бреше, і першим на неї натрапляє той, хто читає її кодом. */
+  sel.hidden = (mine.length === 1);
   if(window.LQSelect) LQSelect.scan(sel.parentNode || document);
 }
 function renderTrackBoard(){
@@ -24035,7 +24064,12 @@ const ZONE_ABOUT = {
 };
 const UI_KINDS = { manager:'Менеджерський', designer:'Дизайнерський', production:'Виробничий' };
 function zoneBoards(){
-  return [{ key:'sale', label:'Продажі' }].concat(TRACKS.map(t => ({ key:t.key, label:t.label })));
+  /* Рівно шість дошок B2B: продажі й пʼять ролей, через які замовлення
+     справді проходить. Треки без своєї людини сюди не потрапляють — вони
+     живуть кроками в картці. */
+  return [{ key:'sale', label:'Продажі' }].concat(
+    TRACKS.filter(t => BOARD_HIDDEN.indexOf(t.key) < 0)
+          .map(t => ({ key:t.key, label:t.label })));
 }
 /* ── Стартовий набір ролей ──────────────────────────────────────────────
    Не вирок і не зразок — просто вісім ролей, із яких зручніше починати, ніж
@@ -24065,7 +24099,7 @@ const ROLE_PRESET = {
   /* Виробництву окремий розділ не потрібен: зібраний пакет приходить до
      нього в ту саму виробничу картку, біля машини. Зайвий розділ на екрані
      колись переплутають із потрібним. */
-  production: preset({ ui:'production', nav:['today','board'], boards:['test','prod','qc'],
+  production: preset({ ui:'production', nav:['today','board'], boards:['prod'],
                 see:[], can:['stage'] }),
   /* Акаунт-менеджер веде весь ланцюг, тож і бачить його весь: від продажу
      до відправки, в обох напрямах. Собівартість лишається у власника — вона
@@ -24080,9 +24114,11 @@ const ROLE_PRESET = {
      скільки й до якого числа. Ні макетів, ні клієнта, ні цін продажу. */
   supply:     preset({ ui:'production', nav:['today','board'], boards:['supply'],
                 see:[], can:['stage','export'] }),
-  embroidery: preset({ ui:'designer', nav:['today','design'], boards:['design'],
+  /* Вишивальний дизайнер має свою дошку: він програмує машину, і це окрема
+     робота з окремою чергою, а не частина графічного дизайну. */
+  embroidery: preset({ ui:'designer', nav:['today','board','design'], boards:['embro'],
                 see:[], can:['stitch'] }),
-  qa:         preset({ ui:'production', nav:['today','design'], boards:['design','qc'],
+  qa:         preset({ ui:'production', nav:['today','design'], boards:['design'],
                 see:[], can:['qc'] })
 };
 /* ── Розділи, яких не існувало, коли роль зберігали ─────────────────────
