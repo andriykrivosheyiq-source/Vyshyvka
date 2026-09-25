@@ -1606,6 +1606,24 @@
     document.body.appendChild(el);
     PICK = { el: el };
   }
+  /* Перегляд однієї картинки. Те саме вікно, що й каталог: одна поведінка
+     на обидва випадки — клацнув повз, натиснув Escape, і воно закрилось. */
+  function picOpen(url){
+    if(!url) return;
+    pickClose();
+    var el = document.createElement('div');
+    el.className = 'dz-pick dz-lightbox';
+    el.innerHTML = '<img src="' + esc(url) + '" alt="">';
+    el.addEventListener('click', function(){ pickClose(); });
+    var esk = function(ev){
+      if(ev.key !== 'Escape') return;
+      document.removeEventListener('keydown', esk, true);
+      pickClose();
+    };
+    document.addEventListener('keydown', esk, true);
+    document.body.appendChild(el);
+    PICK = { el: el };
+  }
   function pickCard(v, name, pic, swatch){
     return '<button type="button" class="dz-pick-c" data-pick="' + esc(v) + '">' +
       (pic ? '<span class="dz-pick-i"><img src="' + esc(pic) + '" alt="" ' +
@@ -1903,10 +1921,17 @@
          стилі, і референси до них різні: спільна купа зверху змушує
          дизайнера гадати, що з неї стосується його виробу. */
       '<div class="dz-u-pics">' +
+        /* Квадратиками, а не полотнами. Референсів буває пʼять, і кожен на
+           пів картки означає, що склад замовлення доводиться шукати
+           прокруткою. Квадратик каже «вона тут є», а роздивитись її можна
+           натиском — і саме тоді, коли треба. */
         ((u.pics || []).length
           ? '<div class="dz-pics">' + u.pics.map(function(pp, i){
-              return '<span class="dz-pic"><a class="dz-thumb" href="' + esc(pp.url) +
-                '" target="_blank" rel="noopener"><img src="' + esc(pp.url) + '" alt=""></a>' +
+              return '<span class="dz-pic">' +
+                '<button type="button" class="dz-pic-b" data-do="pic-open" ' +
+                  'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
+                  '<img src="' + esc(pp.url) + '" alt="" loading="lazy">' +
+                '</button>' +
                 (ro ? '' : '<button class="dz-pic-x" data-do="u-pic-del" data-u="' + esc(u.id) +
                 '" data-i="' + i + '">×</button>') + '</span>';
             }).join('') + '</div>'
@@ -1948,15 +1973,42 @@
 
      Термін — датою, а не словом «терміново». «Терміново» через тиждень
      нічого не означає; 14.10 означає рівно те саме й через місяць. */
+  /* ТЕРМІН І ДАТА ГОТОВНОСТІ.
+
+     Термін — скільки днів іде замовлення; дата — коли ми його обіцяємо.
+     Друге рахується з першого від дня, коли картку завели, але лишається
+     редагованим: обіцянка — це рішення менеджера, а не наслідок формули.
+     Змінили строк — дата перерахувалась; змінили дату руками — вона й
+     лишиться, і саме її побачить дошка. */
+  function daysDefault(){
+    try{ return (host.b2cDays && host.b2cDays()) || 0; }catch(e){ return 0; }
+  }
+  function readyFrom(job){
+    var d = +((job || {}).days) || daysDefault();
+    if(!d) return '';
+    var від = new Date(String((job || {}).createdAt || '') || Date.now());
+    if(isNaN(від)) від = new Date();
+    від.setDate(від.getDate() + d);
+    return від.toISOString().slice(0, 10);
+  }
+  function termHtml(job){
+    var d = +((job || {}).days) || '';
+    return '<label class="dz-term" title="Скільки днів іде замовлення від дня, ' +
+      'коли завели картку"><span>Днів</span>' +
+      '<input type="number" min="1" max="120" value="' + (d || '') + '" ' +
+      'placeholder="' + (daysDefault() || '—') + '" data-jf="days"></label>';
+  }
   function dueHtml(job){
     var late = false;
     if(job && job.due){
       var d0 = new Date(job.due + 'T23:59:59');
       late = !isNaN(d0) && d0.getTime() < Date.now();
     }
-    return '<label class="dz-due' + (late ? ' late' : '') + '" title="До якого числа ' +
-      'замовлення чекають"><span>Треба до</span>' +
-      '<input type="date" value="' + esc((job && job.due) || '') + '" data-jf="due"></label>';
+    return termHtml(job) +
+      '<label class="dz-due' + (late ? ' late' : '') + '" title="Коли обіцяємо — ' +
+      'рахується від терміну, але міняється руками"><span>Готово</span>' +
+      '<input type="date" value="' + esc((job && job.due) || readyFrom(job)) + '" ' +
+      'data-jf="due"></label>';
   }
   function unitsHtml(job, opt){
     var list = unitsOf(job);
@@ -2269,11 +2321,12 @@
     teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
     jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
-    unitsHtml: unitsHtml, dueHtml: dueHtml, writeHtml: writeHtml,
+    unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
     unitsOf: unitsOf, unitAt: unitAt,
     shipHtml: shipHtml,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
+    picOpen: picOpen,
     DZ_OPEN: DZ_OPEN, whoName: whoName,
     taskCards: taskCards, hm: hm,
     /* Одна відповідь на всі модулі: права питає робоче місце, а не кожен
@@ -3099,8 +3152,16 @@
       el.onchange = function(){
         var c = ctx(); if(!c) return;
         var f = el.dataset.jf;
-        if(f !== 'due' && f !== 'note') return;
-        c.job[f] = String(el.value || '').trim();
+        if(f !== 'due' && f !== 'note' && f !== 'days') return;
+        if(f === 'days'){
+          c.job.days = Math.max(0, Math.round(+el.value || 0)) || null;
+          /* Змінили строк — дата обіцянки перерахувалась. Руками виправлену
+             дату не чіпаємо: обіцянка належить менеджеру, а не формулі. */
+          if(!c.job.dueSet) c.job.due = U.readyFrom(c.job);
+        } else {
+          c.job[f] = String(el.value || '').trim();
+          if(f === 'due') c.job.dueSet = !!c.job.due;
+        }
         save(c.job, c.o, '');
       };
     });
@@ -3148,14 +3209,37 @@
     var el = document.getElementById(id);
     return el ? String(el.value || '').trim() : '';
   }
-  async function pickFile(accept){
+  async function pickFile(accept, many){
     return new Promise(function(res){
       var inp = document.createElement('input');
       inp.type = 'file';
       if(accept) inp.accept = accept;
-      inp.onchange = function(){ res(inp.files && inp.files[0]); };
+      /* Картинок до замовлення кладуть жменю за раз: клієнт присилає п’ять
+         референсів одним повідомленням. Вибирати їх по одному — це пʼять
+         однакових діалогів і пʼять записів у базу замість одного. */
+      if(many) inp.multiple = true;
+      inp.onchange = function(){
+        var l = Array.prototype.slice.call(inp.files || []);
+        res(many ? l : l[0]);
+      };
       inp.click();
     });
+  }
+  /* Кілька файлів у хмару підряд. Один не прийнявся — решта їде далі: у
+     жмені референсів один зіпсований файл не привід загубити чотири. */
+  async function uploadMany(accept){
+    var list = await pickFile(accept, true);
+    if(!list || !list.length) return [];
+    say(list.length > 1 ? ('Завантажую ' + list.length + '…') : 'Завантажую…');
+    var out = [];
+    for(var i = 0; i < list.length; i++){
+      try{
+        var url = await host().upload(list[i]);
+        if(url) out.push({ url: url, name: list[i].name });
+      }catch(e){ console.warn('файл не прийнявся', e); }
+    }
+    if(out.length < list.length) say('Прийнялось ' + out.length + ' із ' + list.length);
+    return out;
   }
   async function upload(accept){
     var f = await pickFile(accept);
@@ -3183,7 +3267,7 @@
     'u-del':'art', 'dz-add':'art', 'dz-del':'art',
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
-    'u-pic':'art', 'u-pic-del':'art',
+    'u-pic':'art', 'u-pic-del':'art', 'pic-open':'',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -3297,13 +3381,21 @@
         save(job, o, pu.size || 'Розмір знімемо, коли буде відомий');
       });
     }
+    /* Подивитись картинку на весь екран. Вікно, а не нова вкладка: людина
+       лишається в картці, і закриття повертає її рівно туди, де була. */
+    if(what === 'pic-open'){
+      U.picOpen(data && data.url);
+      return;
+    }
     if(what === 'u-pic'){
       var upu = U.unitAt(job, data && data.u);
       if(!upu) return;
-      var upf = await upload('image/*');
-      if(!upf) return;
-      if(!D.unitPic(upu, upf)) return say('Картинок уже досить');
-      return save(job, o, 'Картинку додано');
+      var upl = await uploadMany('image/*');
+      if(!upl.length) return;
+      var взято = 0;
+      upl.forEach(function(f){ if(D.unitPic(upu, f)) взято++; });
+      if(!взято) return say('Картинок уже досить');
+      return save(job, o, взято > 1 ? ('Додано ' + взято) : 'Картинку додано');
     }
     if(what === 'u-pic-del'){
       var dpu = U.unitAt(job, data && data.u);

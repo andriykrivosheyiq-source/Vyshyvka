@@ -116,8 +116,13 @@ const shut = await p.evaluate(`(() => {
            aria: g.querySelector('.nav-grp-h').getAttribute('aria-expanded') };
 })()`);
 console.log('  всередині: ' + shut.inDom.join(', ') + ' · видно: ' + shut.seen);
-ok(shut.inDom.join() === 'settings,photos,reviews,suppliers,team',
-  'у групі саме пʼять розділів: ціни, конструктор, відгуки, підрядники, доступи',
+/* Налаштування приватних замовлень стоять окремим розділом, а не в тому
+   самому блоці, що формування цін: там машина корпоративного замовлення —
+   шкали за тиражем, площа нанесення, поділ підготовки макета, — а в
+   роздрібу цього немає зовсім. Поруч вони змушували б щоразу згадувати,
+   яка з двох моделей діє зараз. */
+ok(shut.inDom.join() === 'b2c,settings,photos,reviews,suppliers,team',
+  'у групі шість розділів: B2C, ціни, конструктор, відгуки, підрядники, доступи',
   'склад групи не той: ' + shut.inDom.join(','));
 ok(!shut.open && shut.seen === 0 && shut.aria === 'false',
   'згорнута група не показує жодного свого пункту',
@@ -137,8 +142,8 @@ const open = await p.evaluate(`(() => {
            active: (document.querySelector('.nav button[data-view].active') || {}).dataset.view };
 })()`);
 console.log('  видно пунктів: ' + open.seen + ' · розділ на екрані: ' + open.active);
-ok(open.seen === 5,
-  'клік по заголовку показує всі пʼять пунктів',
+ok(open.seen === 6,
+  'клік по заголовку показує всі шість пунктів',
   'група не розкрилась: ' + JSON.stringify(open));
 ok(open.still === 'block' && open.active === 'calc',
   'сам заголовок розділів не перемикає — людина лишилась там, де була',
@@ -157,7 +162,7 @@ const auto = await p.evaluate(`(() => {
            on: (document.getElementById('view-suppliers') || {}).style.display };
 })()`);
 console.log('  розкрита: ' + auto.open + ' · видно: ' + auto.seen + ' · розділ: ' + auto.on);
-ok(auto.open && auto.seen === 5 && auto.on === 'block',
+ok(auto.open && auto.seen === 6 && auto.on === 'block',
   'відкритий розділ видно в меню, навіть коли групу перед тим згорнули',
   'людина стоїть у розділі, якого в меню не видно: ' + JSON.stringify(auto));
 
