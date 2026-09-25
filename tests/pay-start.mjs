@@ -136,14 +136,16 @@ ok(after.prodAt && after.pay === 1,
 ok(after.status === 'paid',
   'картка сама стала в «Оплачено» — руками її більше не тягнуть',
   'картка лишилась у ' + after.status);
-ok(Object.keys(after.tracks).join() === 'design,supply,test,prod,qc,ship' &&
+/* Заводяться ВСІ треки, а не лише ті, що мають дошку: тест, контроль і
+   відправка так само проходять кроки, просто в картці. */
+ok(Object.keys(after.tracks).join() === 'acct,design,embro,prod,supply,test,qc,ship' &&
    after.tracks.design === 'new' && after.tracks.prod === 'lock',
-  'усі шість треків заведені на своїх перших кроках',
+  'усі треки заведені на своїх перших кроках',
   'треки заведені не так: ' + JSON.stringify(after.tracks));
 ok(after.hist === 0,
-  'у стрічку це не сиплеться шістьма однаковими рядками — подія одна',
+  'у стрічку це не сиплеться однаковими рядками — подія одна',
   'треки нашуміли в історії: ' + after.hist + ' записів');
-ok(after.strip === 6,
+ok(after.strip === 8,
   'смуга стану зʼявилась у картці',
   'смуги стану немає: ' + after.strip);
 ok(after.task.length === 1 && /^Передати макет дизайнеру: Футболка BASIC · чорна × 50/.test(after.task[0]),

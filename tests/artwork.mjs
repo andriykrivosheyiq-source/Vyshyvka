@@ -226,7 +226,8 @@ await p.waitForTimeout(400);
 const feed = await p.evaluate(() =>
   [...document.querySelectorAll('#orderDrawer .od-feed .od-fe')].map(x => x.textContent.replace(/\s+/g,' ').trim()));
 feed.slice(0, 3).forEach(x => console.log('  │ ' + x));
-ok(feed.some(x => /Тест: Тест погоджено/.test(x)) && feed.some(x => /Дизайн: Правки/.test(x)),
+ok(feed.some(x => /Тест: Тест погоджено/.test(x)) &&
+   feed.some(x => /Графічний дизайнер: Правки/.test(x)),
   'рухи, які зробили погодження, стоять у стрічці нарівні з рештою',
   'стрічка не бачить рухів від погоджень');
 
