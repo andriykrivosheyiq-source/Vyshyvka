@@ -33,15 +33,53 @@
   'use strict';
 
   /* ── Черга відділу. Її веде менеджер дизайну ────────────────────────── */
+  /* ── Воронка B2C ──────────────────────────────────────────────────────
+
+     Колонки названі тим, що в них насправді відбувається, і кожна
+     міняється РУКОЮ МЕНЕДЖЕРА, а не сама. Доти замовлення зʼявлялось у
+     дизайнера ще до того, як його встигли зібрати: картинки не докладені,
+     коментаря немає, а картка вже «у роботі».
+
+     Правки клієнта — окрема колонка навмисно. Вони губились найчастіше:
+     клієнт щось написав, менеджер переказав дизайнеру словом, і зовні
+     замовлення так і стояло «у клієнта», хоч клієнт давно відповів. */
   var QUEUE = [
-    { key:'new',      label:'Нові',              color:'gray'   },
-    { key:'check',    label:'Перевірка ТЗ',      color:'violet' },
-    { key:'assigned', label:'Призначено',        color:'cyan'   },
-    { key:'design',   label:'У роботі',          color:'blue'   },
-    { key:'review',   label:'На перевірці',      color:'amber'  },
-    { key:'client',   label:'У клієнта',         color:'amber'  },
-    { key:'approved', label:'Погоджено',         color:'green', done:true }
+    { key:'new',      label:'Нові',                        color:'gray'   },
+    { key:'graphic',  label:'У графічного дизайнера',      color:'blue'   },
+    { key:'client',   label:'У клієнта на погодженні',     color:'amber'  },
+    { key:'fixes',    label:'Правки клієнта',              color:'red'    },
+    { key:'stitch',   label:'У вишивального дизайнера',    color:'violet' },
+    { key:'done',     label:'Погоджено',                   color:'green', done:true }
   ];
+  /* У ЯКІЙ КОЛОНЦІ СТОЇТЬ ЗАМОВЛЕННЯ.
+
+     Виводимо з того, що справді сталось, а не з окремого поля «стан».
+     Поле легко розходиться з дійсністю: його ставлять в одному місці, а
+     роботу роблять у десяти. Тут навпаки — колонка не може збрехати, бо
+     вона і є переказ роботи. */
+  function queueAt(job){
+    if(!job) return 'new';
+    var units = jobUnits(job);
+    var графіка = [], вишивка = [];
+    units.forEach(function(u){
+      dzList(u, 'graphic').forEach(function(d){ графіка.push(d); });
+      dzList(u, 'stitch').forEach(function(d){ вишивка.push(d); });
+    });
+    /* Клієнт написав правки — це найважливіше, що зараз є на замовленні,
+       хай би де воно стояло доти. */
+    var правки = графіка.concat(вишивка).some(function(d){
+      return d.sentAt && d.status === 'revision'; });
+    if(правки) return 'fixes';
+    if(вишивка.some(function(d){ return d.sentAt && d.status !== 'approved'; }))
+      return 'stitch';
+    var передані = графіка.filter(function(d){ return d.sentAt; });
+    if(!передані.length) return 'new';
+    /* Версія в клієнта — це момент, коли ми показали макет і чекаємо. */
+    if(передані.some(function(d){ return d.status === 'review'; })) return 'client';
+    if(передані.every(function(d){ return d.status === 'approved'; }))
+      return вишивка.length ? 'stitch' : 'done';
+    return 'graphic';
+  }
 
   /* ── Дошка графічного дизайнера ─────────────────────────────────────── */
   var GRAPHIC = [
@@ -357,6 +395,9 @@
 
      Версії є і в графічних, і у вишивальних: оцифрування теж повертають на
      переробку, і теж треба знати, котрий файл останній. */
+  /* Склад замовлення — те саме, що бачить панель. Свій доступ тут навмисно:
+     ядро не має залежати від шару, який його ж і малює. */
+  function jobUnits(job){ return Array.isArray(job && job.units) ? job.units : []; }
   function dzId(){ return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
   function dzNew(){
     return { id: dzId(), name:'', side:'', mm:null, files:[],
@@ -382,17 +423,63 @@
   function dzName(d, i){
     return String((d && d.name) || '').trim() || ('Нанесення ' + ((+i || 0) + 1));
   }
-  /* Передати конкретній людині. Ім’я тут важить: «передали дизайнерам» —
-     це нікому, і роботу піднімає той, хто першим помітив. */
-  function dzSend(d, who, by){
+  /* ПРИКРІПИТИ ДИЗАЙНЕРА — ЩЕ НЕ ПЕРЕДАТИ.
+
+     Це дві різні дії, і плутати їх не можна. Прикріпили — людина має доступ
+     і бачить, що на неї щось збирають; передали — ТЗ поїхало, робота
+     почалась, картка зрушила на дошці.
+
+     Доти цього поділу не було, і замовлення зʼявлялось у дизайнера ще до
+     того, як менеджер устиг зібрати ТЗ: картинки не докладені, коментаря
+     немає, а робота вже «в роботі». Тепер поки не натиснуто «Відправити
+     дизайнеру» — у нього нічого не рухається. */
+  function dzAttach(d, who, by){
     if(!d || !who) return null;
     d.who = String(who);
+    d.attachedBy = String(by || '');
+    d.attachedAt = nowIso();
+    return d;
+  }
+  /* Передати. Імʼя тут важить: «передали дизайнерам» — це нікому, і роботу
+     піднімає той, хто першим помітив. */
+  function dzSend(d, by){
+    if(!d || !d.who) return null;
     d.sentBy = String(by || '');
     d.sentAt = nowIso();
     if(d.status === 'new' || d.status === 'revision') d.status = 'work';
     d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'sent',
                     text: 'Передано в роботу', seen: [String(by || '')] });
     return d;
+  }
+  /* Чи це замовлення вже пішло в роботу — хоч одним дизайном свого виду.
+     Саме за цим дошка дизайнера й вирішує, показувати картку чи ні. */
+  function sentAny(job, kind){
+    return jobUnits(job).some(function(u){
+      return dzList(u, kind).some(function(d){ return !!d.sentAt; });
+    });
+  }
+  /* ЧИ ЧЕКАЄ ХТОСЬ НА ВІДПОВІДЬ.
+
+     Дизайнер питає в розмові по дизайну й лишається без відповіді — робота
+     стоїть, а з дошки цього не видно зовсім: картка так і висить «у
+     роботі». Тому питаємо дані: останнє слово не наше, відповіді на нього
+     не було, і минуло більш як півдня. */
+  var WAIT_MS = 12 * 3600 * 1000;
+  function waiting(job, forEmail){
+    var out = 0;
+    jobUnits(job).forEach(function(u){
+      ['graphic','stitch'].forEach(function(k){
+        dzList(u, k).forEach(function(d){
+          var last = (d.thread || [])[d.thread.length - 1];
+          if(!last || !last.at) return;
+          if(forEmail && String(last.by || '') === String(forEmail)) return;
+          if(last.kind === 'ok') return;          // погодження відповіді не чекає
+          if(Date.now() - new Date(last.at).getTime() < WAIT_MS) return;
+          out++;
+        });
+      });
+    });
+    return out;
   }
   /* Нова версія. Номер послідовний і НЕ переривається: клієнт каже «беремо
      другу», і другою має лишитись саме та, яку він бачив. */
@@ -1087,7 +1174,7 @@
   }
 
   window.LQDesign = {
-    QUEUE: QUEUE, GRAPHIC: GRAPHIC, STITCH: STITCH,
+    QUEUE: QUEUE, GRAPHIC: GRAPHIC, STITCH: STITCH, queueAt: queueAt,
     MGR_REASONS: MGR_REASONS, CLIENT_REASONS: CLIENT_REASONS,
     QA_REASONS: QA_REASONS, QA_CHECKS: QA_CHECKS, BRIEF: BRIEF,
     TAKE_LIMIT: TAKE_LIMIT, loadOf: loadOf, takeSelf: takeSelf,
@@ -1100,7 +1187,8 @@
     taskFile: taskFile,
     briefSet: briefSet, briefPic: briefPic, briefPicDel: briefPicDel,
     unitPic: unitPic, unitPicDel: unitPicDel,
-    dzNew: dzNew, dzList: dzList, dzAt: dzAt, dzName: dzName, dzSend: dzSend,
+    dzNew: dzNew, dzList: dzList, dzAt: dzAt, dzName: dzName,
+    dzAttach: dzAttach, dzSend: dzSend, sentAny: sentAny, waiting: waiting,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
@@ -1235,6 +1323,13 @@
   }
 
   /* ── Дошка ─────────────────────────────────────────────────────────── */
+  /* Дата коротко: «14.10». Рік на дошці не потрібен — усе, що далі за рік,
+     там і не стоїть. */
+  function dueShort(v){
+    var d = new Date(String(v || '') + 'T00:00:00');
+    if(isNaN(d)) return String(v || '');
+    return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  }
   function boardHtml(steps, cards){
     return '<div class="dz-board">' + steps.map(function(s){
       var mine = cards.filter(function(c){ return c.step === s.key; });
@@ -1243,12 +1338,34 @@
           esc(s.label) + '<i>' + mine.length + '</i></div>' +
         '<div class="dz-col-b">' +
           (mine.length ? mine.map(function(c){
-            return '<button class="dz-card' + (c.id === openKey ? ' on' : '') +
+            /* Строк, розмова, непрочитане й «чекають на відповідь» — на
+               самій картці. Це саме ті питання, які задають дошці: що
+               горить, де стоїть і кому писати. Відповідати на них
+               відкриванням кожної картки означає не відповідати зовсім. */
+            var late = c.due && new Date(c.due + 'T23:59:59').getTime() < Date.now();
+            return '<div class="dz-card-w">' +
+              '<button class="dz-card' + (c.id === openKey ? ' on' : '') +
                    '" data-open="' + esc(c.id) + '">' +
-              '<b>' + esc(c.title) + '</b>' +
+              '<b>' + esc(c.title) +
+                (c.due ? '<em class="dz-card-due' + (late ? ' late' : '') + '">до ' +
+                         esc(dueShort(c.due)) + '</em>' : '') + '</b>' +
               (c.sub ? '<span>' + esc(c.sub) + '</span>' : '') +
               (c.foot ? '<i>' + esc(c.foot) + '</i>' : '') +
-            '</button>';
+              ((c.unseen || c.wait)
+                ? '<span class="dz-card-m">' +
+                    (c.unseen ? '<b class="dz-m-new">' + c.unseen + ' нових</b>' : '') +
+                    /* «Чекають на відповідь» — найтихіша поломка відділу:
+                       дизайнер спитав і стоїть, а картка виглядає робочою. */
+                    (c.wait ? '<b class="dz-m-wait">чекають відповіді</b>' : '') +
+                  '</span>'
+                : '') +
+            '</button>' +
+            /* Розмова з клієнтом — просто з картки. Доти менеджер мусив
+               вийти з відділу, знайти діалог і повернутись; на кожному з
+               цих кроків щось губилось. */
+            (c.chat ? '<button class="dz-card-ig" data-do="chat" data-id="' + esc(c.id) +
+                      '" title="Відкрити розмову з клієнтом">Instagram</button>' : '') +
+            '</div>';
           }).join('') : '<div class="dz-empty">порожньо</div>') +
         '</div></div>';
     }).join('') + '</div>';
@@ -1525,24 +1642,46 @@
       '</div>' +
     '</div>';
   }
-  function dzSendHtml(u, kind, d, i){
+  /* ПРИКРІПИТИ Й ВІДПРАВИТИ — ДВІ РІЗНІ ДІЇ, І ЦЕ НАВМИСНО.
+
+     Прикріпили дизайнера — він має доступ і бачить, що на нього збирають
+     замовлення. Відправили — ТЗ поїхало, робота почалась, картка зрушила на
+     дошці. Доти цього поділу не було, і замовлення зʼявлялось у дизайнера
+     ще до того, як менеджер устиг докласти картинки.
+
+     Кнопка «Відправити» зʼявляється лише тоді, коли є що відправляти: без
+     виробу ТЗ не ТЗ, а порожній бланк. Про це кажемо рядком, а не сірою
+     кнопкою, — інакше виглядає як поломка. */
+  function dzSendHtml(u, kind, d, i, job){
     var key = esc(u.id) + '|' + kind + '|' + i;
     /* Вишивальному передавати нема чого, поки графіку не затвердили:
-       оцифровувати доведеться те, що ще поміняють. Кажемо це рядком, а не
-       мовчазно вимкненою кнопкою — інакше виглядає як поломка. */
+       оцифровувати доведеться те, що ще поміняють. */
     if(kind === 'stitch' && !D.graphicOk(u))
       return '<div class="dz-miss">Спершу треба затвердити графіку цього виробу — ' +
              'інакше оцифруємо те, що ще поміняється.</div>';
     var role = kind === 'stitch' ? 'embroidery' : 'designer';
+    var готово = !!u.gid;
     return '<div class="dz-ds">' +
-      '<span class="dz-l">' + (d.who ? 'Передано: ' + esc(whoName(d.who)) : 'Кому передати') +
-      '</span>' + teamPick('dzTo-' + key.replace(/[^\w-]/g, '_'), role, d.who || '') +
-      '<button class="dz-b pri" data-do="dz-send" data-dz="' + key + '">' +
-        (d.who ? 'Передати іншому' : 'Передати') + '</button>' +
-    '</div>';
+        '<span class="dz-l">' + (d.who ? 'Дизайнер' : 'Кому віддаємо') + '</span>' +
+        teamPick('dzTo-' + key.replace(/[^\w-]/g, '_'), role, d.who || '') +
+        '<button class="dz-b" data-do="dz-attach" data-dz="' + key + '">' +
+          (d.who ? 'Змінити' : 'Прикріпити') + '</button>' +
+      '</div>' +
+      (d.sentAt
+        ? '<div class="dz-sent">ТЗ відправлено ' + esc(dt(d.sentAt)) +
+          ' · ' + esc(whoName(d.who)) +
+          '<button class="dz-b" data-do="dz-send" data-dz="' + key + '">Надіслати ще раз</button>' +
+          '</div>'
+        : d.who
+        ? (готово
+            ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key + '">' +
+              'Відправити дизайнеру</button>'
+            : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє, ' +
+              'і відправляти нема чого.</div>')
+        : '<div class="dz-miss">Прикріпіть дизайнера — тоді зʼявиться ' +
+          '«Відправити дизайнеру».</div>');
   }
-  function dzList(u, kind){ return D.dzList(u, kind); }
-  function designRowHtml(u, kind, d, i, ro){
+  function designRowHtml(u, kind, d, i, ro, job){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
     var нових = D.dzUnseen(d, me);
@@ -1576,7 +1715,7 @@
         '<em>' + (відкрито ? 'згорнути' : 'відкрити') + '</em>' +
       '</button>' +
       (відкрито
-        ? '<div class="dz-dz-b">' + (ro ? '' : dzSendHtml(u, kind, d, i)) +
+        ? '<div class="dz-dz-b">' + (ro ? '' : dzSendHtml(u, kind, d, i, job)) +
             dzVersHtml(u, kind, d, i, ro) + dzThreadHtml(u, kind, d, i) +
             /* Затверджує менеджер: він єдиний читає переписку з клієнтом.
                Дизайнер, який погоджує сам себе, — це і є той випадок, коли
@@ -1652,11 +1791,20 @@
         '<label><span>Кількість</span><input type="number" min="1" ' +
           'data-uf="' + esc(u.id) + '|qty" value="' + (+u.qty || 1) + '"></label>' +
       '</div>') +
+      /* Коментар іде ПЕРЕД картинками: спершу словами, що треба, потім
+         показ. Підпису над полем немає навмисно — слово «Коментар» уже
+         стоїть усередині, і другий раз його писати нема чого. */
+      (ro
+        ? (u.note ? '<div class="dz-u-ronote"><i>Коментар менеджера</i>' +
+                    esc(u.note) + '</div>' : '')
+        : '<label class="dz-u-note">' +
+        '<textarea rows="2" data-uf="' + esc(u.id) + '|note" ' +
+          'placeholder="Коментар — словами клієнта">' + esc(u.note || '') +
+        '</textarea></label>') +
       /* Картинки саме до цього типу одягу. У замовленні буває два різні
          стилі, і референси до них різні: спільна купа зверху змушує
          дизайнера гадати, що з неї стосується його виробу. */
       '<div class="dz-u-pics">' +
-        '<div class="dz-u-l">Картинки до цього одягу</div>' +
         ((u.pics || []).length
           ? '<div class="dz-pics">' + u.pics.map(function(pp, i){
               return '<span class="dz-pic"><a class="dz-thumb" href="' + esc(pp.url) +
@@ -1671,13 +1819,6 @@
       /* Правка до типу одягу. Менеджер копіює сюди слова клієнта з
          переписки — і вони їдуть разом із виробом, а не лишаються в чаті,
          куди дизайнер не має доступу. */
-      (ro
-        ? (u.note ? '<div class="dz-u-ronote"><i>Правка менеджера</i>' +
-                    esc(u.note) + '</div>' : '')
-        : '<label class="dz-u-note"><span>Правка / коментар до цього одягу</span>' +
-        '<textarea rows="2" data-uf="' + esc(u.id) + '|note" ' +
-          'placeholder="Що саме поміняти — словами клієнта">' + esc(u.note || '') +
-        '</textarea></label>') +
       /* Два списки, відбиті один від одного. Це не оформлення: графіку й
          вишивку роблять різні люди, і кожен має з першого погляду бачити
          свою половину, а не шукати її серед чужої. */
@@ -1688,16 +1829,16 @@
         (only === 'stitch' ? '' :
           '<div class="dz-u-col"><div class="dz-u-l">Графічний дизайн</div>' +
           dzList(u, 'graphic').map(function(d, i){
-            return designRowHtml(u, 'graphic', d, i, ro); }).join('') +
+            return designRowHtml(u, 'graphic', d, i, ro, job); }).join('') +
           (ro ? '' : '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) +
-                '|graphic">+ Нанесення</button>') +
+                '|graphic">+ Додати дизайнера</button>') +
         '</div>') +
         (only === 'graphic' ? '' :
           '<div class="dz-u-col"><div class="dz-u-l">Вишивальний дизайн</div>' +
           dzList(u, 'stitch').map(function(d, i){
-            return designRowHtml(u, 'stitch', d, i, ro); }).join('') +
+            return designRowHtml(u, 'stitch', d, i, ro, job); }).join('') +
           (ro ? '' : '<button class="dz-b" data-do="dz-add" data-dz="' + esc(u.id) +
-                '|stitch">+ Нанесення</button>') +
+                '|stitch">+ Додати дизайнера</button>') +
         '</div>') +
       '</div>' +
     '</div>';
@@ -1711,21 +1852,15 @@
 
      Термін — датою, а не словом «терміново». «Терміново» через тиждень
      нічого не означає; 14.10 означає рівно те саме й через місяць. */
-  function headHtml(job){
+  function dueHtml(job){
     var late = false;
     if(job && job.due){
       var d0 = new Date(job.due + 'T23:59:59');
       late = !isNaN(d0) && d0.getTime() < Date.now();
     }
-    return '<div class="dz-head">' +
-      '<label class="dz-due' + (late ? ' late' : '') + '"><span>Треба до</span>' +
-        '<input type="date" id="dzDue" value="' + esc((job && job.due) || '') + '" ' +
-          'data-jf="due"></label>' +
-      '<label class="dz-note"><span>Коментар менеджера</span>' +
-        '<textarea rows="2" data-jf="note" placeholder="Що важливо знати про це ' +
-          'замовлення — піде далі разом із ним">' + esc((job && job.note) || '') +
-        '</textarea></label>' +
-    '</div>';
+    return '<label class="dz-due' + (late ? ' late' : '') + '" title="До якого числа ' +
+      'замовлення чекають"><span>Треба до</span>' +
+      '<input type="date" value="' + esc((job && job.due) || '') + '" data-jf="due"></label>';
   }
   function unitsHtml(job, opt){
     var list = unitsOf(job);
@@ -1949,7 +2084,7 @@
     teamPick: teamPick, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
     jobNo: jobNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
-    unitsHtml: unitsHtml, headHtml: headHtml, unitsOf: unitsOf, unitAt: unitAt,
+    unitsHtml: unitsHtml, dueHtml: dueHtml, unitsOf: unitsOf, unitAt: unitAt,
     shipHtml: shipHtml,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
@@ -2002,28 +2137,74 @@
         foot: (D.CHAIN_WHO[col] || '') + (open ? ' · доручень ' + open : '') };
     });
   }
+  /* Що показати на картці, крім назви. Три речі, які й тримають роботу:
+     хто нею зайнятий, чи хтось чекає на відповідь і чи є непрочитане. */
+  function cardMarks(job, me){
+    var чекає = D.waiting(job, me);
+    var нових = 0;
+    U.unitsOf(job).forEach(function(u){
+      ['graphic','stitch'].forEach(function(k){
+        D.dzList(u, k).forEach(function(d){ нових += D.dzUnseen(d, me); });
+      });
+    });
+    return { wait: чекає, unseen: нових };
+  }
+  function unitNames(job, o){
+    var з = U.unitsOf(job).map(function(u){ return u.name; }).filter(Boolean);
+    if(з.length) return з.slice(0, 2).join(' · ');
+    return (o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
+      .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · ');
+  }
   function queueCards(){
+    var m = (host().me && host().me()) || '';
     return U.pairs().map(function(p){
-      var g = p.job.graphic || {};
-      return { id: p.o.orderId, step: p.job.state,
+      var mk = cardMarks(p.job, m);
+      return { id: p.o.orderId, step: D.queueAt(p.job),
         title: U.jobNo(p.job),
-        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
-               .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
-        foot: (g.assignee ? nameOf(g.assignee) : 'без дизайнера') +
-              (g.due ? ' · до ' + esc(g.due) : '') };
+        sub: unitNames(p.job, p.o),
+        /* Строк — на картці, а не всередині: питання «що горить» задають
+           саме дошці, і відповідати на нього відкриванням кожної картки
+           означає не відповідати зовсім. */
+        due: p.job.due || '', chat: !!(p.o.igUser || p.o.chatId || p.o.threadUrl),
+        wait: mk.wait, unseen: mk.unseen,
+        foot: unitWho(p.job) };
     });
   }
+  /* Кому це віддано. Імена, а не «призначено»: питання завжди про людину. */
+  function unitWho(job){
+    var хто = {};
+    U.unitsOf(job).forEach(function(u){
+      ['graphic','stitch'].forEach(function(k){
+        D.dzList(u, k).forEach(function(d){ if(d.who) хто[d.who] = 1; });
+      });
+    });
+    var l = Object.keys(хто);
+    return l.length ? l.map(nameOf).slice(0, 2).join(' · ') : 'ще нікому не передано';
+  }
+  /* ДОШКА ДИЗАЙНЕРА ПОКАЗУЄ ЛИШЕ ПЕРЕДАНЕ.
+
+     Доти сюди потрапляли всі замовлення відділу — і те, яке менеджер ще
+     навіть не зібрав. Дизайнер бачив роботу, якої йому не давали, а
+     менеджер не мав чим позначити «ось тепер бери». Тепер картка
+     зʼявляється рівно від натискання «Відправити дизайнеру». */
   function graphicCards(){
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
     return U.pairs().filter(function(p){
-      return !only || !p.job.graphic.assignee || p.job.graphic.assignee === m;
+      if(!D.sentAny(p.job, 'graphic')) return false;
+      if(!only) return true;
+      return U.unitsOf(p.job).some(function(u){
+        return D.dzList(u, 'graphic').some(function(d){
+          return d.sentAt && (!d.who || d.who === m); });
+      });
     }).map(function(p){
       var v = D.verCur(p.job);
+      var mk = cardMarks(p.job, m);
       return { id: p.o.orderId, step: p.job.graphic.status || 'new',
         title: U.jobNo(p.job),
-        sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
-               .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
+        sub: unitNames(p.job, p.o),
+        due: p.job.due || '', chat: !!(p.o.igUser || p.o.chatId || p.o.threadUrl),
+        wait: mk.wait, unseen: mk.unseen,
         foot: v ? ('v' + v.n + ' · ' + dt(v.at)) : 'версій немає' };
     });
   }
@@ -2135,14 +2316,14 @@
         '<button class="dz-b" data-do="cl-changes">Записати правки</button>' +
       '</div>');
     }
+    /* Строк — у шапці, поруч із номером. Це рамка всього замовлення, і
+       читати її треба до складу, а не після нього. */
     return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + esc(D.stateLine(job)) + '</span>' +
+        U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
         U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct') +
-        /* Рамка всього замовлення — термін і коментар — стоїть НАД складом:
-           її читають перш, ніж дивитись на вироби. */
-        U.headHtml(job) +
         /* Склад — одразу під клієнтом і дорученнями: це перше, що питають
            про замовлення, і перше, що заповнюють, коли його заводять. */
         U.unitsHtml(job) +
@@ -2190,6 +2371,7 @@
         '<button class="dz-b pri" data-do="start">Взяти в роботу</button></div>' + acts;
     return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + esc(D.stepLabel(D.GRAPHIC, g.status)) + '</span>' +
+        U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
         U.clientHtml(o, job) + U.taskBlockHtml(p, 'graphic') +
@@ -2197,7 +2379,7 @@
            склад — робота менеджера, і одне випадкове натискання «Прибрати»
            тут коштувало б замовлення. Своя половина дизайнів лишається
            повною: розмова й версії — це і є його робота. */
-        U.headHtml(job) + U.unitsHtml(job, { ro:true, only:'graphic' }) +
+        U.unitsHtml(job, { ro:true, only:'graphic' }) +
         U.briefHtml(o, job) +
         '<div class="dz-acts">' + acts + '</div>' +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
@@ -2275,7 +2457,7 @@
              тільки його половина дизайнів. Без цього він не бачив ні
              коментаря менеджера, ні картинок, ні терміну — і питав це
              голосом у того ж менеджера. */
-          U.headHtml(job) + U.unitsHtml(job, { ro:true, only:'stitch' })) +
+          U.unitsHtml(job, { ro:true, only:'stitch' })) +
         '<div class="dz-item"><div class="dz-item-h">' + esc(s.name) +
           (s.color ? ' · ' + esc(s.color) : '') + ' · ' + (+s.qty || 0) + ' шт</div>' +
           '<div class="dz-pl"><b>' + esc(s.label) + '</b> · ' +
@@ -2745,7 +2927,7 @@
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
     'dz-open':'', 'dz-say':'', 'dz-file':'', 'dz-ver':'',
-    'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
+    'dz-send':'art', 'dz-attach':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
     'assign':'approve', 'task-add':'approve',
@@ -2773,6 +2955,13 @@
       if(host().newOrder) return host().newOrder();
       return say('Створення замовлення доступне з робочого місця');
     }
+    /* Розмова відкривається й з дошки, де картка ще не відкрита, — тож
+       вона йде ДО перевірки контексту, як і створення замовлення. */
+    if(what === 'chat' && data && data.id){
+      var cp0 = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
+      if(cp0 && host().chat) return host().chat(cp0.o);
+      return say('Переписка недоступна');
+    }
     var c = ctx();
     if(!c) return;
     var job = c.job, o = c.o, s = c.s, m = (host().me && host().me()) || '';
@@ -2783,7 +2972,14 @@
       return say('Відправка доступна з картки замовлення');
     }
     if(what === 'chat'){
-      if(host().chat) return host().chat(o);
+      /* Кнопка стоїть і на картці дошки, і в панелі. З дошки картка ще не
+         відкрита, тож замовлення шукаємо за номером із самої кнопки. */
+      var co = o;
+      if(data && data.id){
+        var cp = U.pairs().filter(function(x){ return x.o.orderId === data.id; })[0];
+        if(cp) co = cp.o;
+      }
+      if(host().chat) return host().chat(co);
       return say('Переписка недоступна');
     }
     if(what === 'unbind'){
@@ -2865,7 +3061,7 @@
       return save(job, o, what === 'dz-add' ? 'Нанесення додано' : 'Прибрано');
     }
     /* ── Один дизайн: розмова, версії, передача ── */
-    if(what === 'dz-open' || what === 'dz-send' || what === 'dz-ver' ||
+    if(what === 'dz-open' || what === 'dz-send' || what === 'dz-attach' || what === 'dz-ver' ||
        what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
@@ -2881,14 +3077,20 @@
         if(D.dzUnseen(dd, m)){ D.dzSeen(dd, m); return save(job, o, ''); }
         return render(root);
       }
-      if(what === 'dz-send'){
+      if(what === 'dz-attach'){
         var toEl = document.getElementById('dzTo-' + dkey.replace(/[^\w-]/g, '_'));
         var to = toEl ? String(toEl.value || '') : '';
-        if(!to) return say('Оберіть, кому передати — «дизайнерам» це нікому');
+        if(!to) return say('Оберіть людину — «дизайнерам» це нікому');
+        D.dzAttach(dd, to, m);
+        return save(job, o, U.whoName(to) + ' · тепер можна відправити ТЗ');
+      }
+      if(what === 'dz-send'){
+        if(!dd.who) return say('Спершу прикріпіть дизайнера');
+        if(!du.gid) return say('Оберіть виріб — без нього ТЗ порожнє');
         if(dk === 'stitch' && !D.graphicOk(du))
           return say('Спершу затвердіть графіку цього виробу');
-        D.dzSend(dd, to, m);
-        return save(job, o, 'Передано · ' + U.whoName(to));
+        D.dzSend(dd, m);
+        return save(job, o, 'ТЗ відправлено · ' + U.whoName(dd.who));
       }
       if(what === 'dz-ver'){
         var vf = await upload('');

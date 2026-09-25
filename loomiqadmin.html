@@ -3337,6 +3337,9 @@
   .dz-dot.is-blue{background:#2E90FA;} .dz-dot.is-violet{background:#7A5AF8;}
   .dz-dot.is-amber{background:#F79009;} .dz-dot.is-green{background:#12B76A;}
   .dz-dot.is-cyan{background:#06AED4;} .dz-dot.is-rose{background:#F04438;}
+  /* Правки клієнта — червона колонка навмисно: саме вони губились
+     найчастіше й саме їх треба помітити першими. */
+  .dz-dot.is-red{background:#E4572E;}
   .dz-col-b{display:flex;flex-direction:column;gap:10px;}
   /* Картка більша: у неї вміщається те саме, що в квиток Канбану, — і
      читається вона так само з відстані витягнутої руки. */
@@ -3458,18 +3461,36 @@
   .dz-u-note textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
     border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;resize:vertical;}
   .dz-u-note textarea:focus{border-color:var(--accent);}
-  /* Рамка замовлення: коли треба й що сказав менеджер. Термін вузький і
-     стоїть першим — його читають поглядом, а не вчитуючись. */
-  .dz-head{display:grid;grid-template-columns:150px 1fr;gap:10px;margin-bottom:12px;}
-  .dz-head label{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .dz-head span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
-    letter-spacing:.04em;font-weight:600;}
-  .dz-head input,.dz-head textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
-    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;}
-  .dz-head textarea{resize:vertical;}
-  .dz-head input:focus,.dz-head textarea:focus{border-color:var(--accent);}
+  /* Строк — у шапці панелі, поруч із номером: це рамка всього замовлення,
+     і читають її до складу, а не після нього. */
+  .dz-due{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto;}
+  .dz-due span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;white-space:nowrap;}
+  .dz-due input{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:5px 7px;outline:none;}
+  .dz-due input:focus{border-color:var(--accent);}
   /* Строк вийшов — це видно, а не написано дрібним поруч. */
   .dz-due.late input{border-color:#E4572E;color:#B03A1A;font-weight:700;}
+  /* Строк на самій картці дошки: питання «що горить» задають саме дошці. */
+  .dz-card-due{float:right;font-style:normal;font-size:10.5px;font-weight:700;
+    color:var(--ink-soft);background:#EEF1F5;border-radius:6px;padding:1px 6px;}
+  .dz-card-due.late{background:#FDECEA;color:#B03A1A;}
+  .dz-card-w{position:relative;}
+  .dz-card-m{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+  .dz-card-m b{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;}
+  .dz-m-new{background:#E4572E;color:#fff;}
+  /* «Чекають відповіді» — найтихіша поломка відділу: дизайнер спитав і
+     стоїть, а картка виглядає робочою. */
+  .dz-m-wait{background:#FFF4E0;color:#8A6410;}
+  .dz-card-ig{all:unset;cursor:pointer;display:block;margin:6px 0 0;font-size:11px;
+    font-weight:700;color:#C13584;background:#FCEEF5;border-radius:7px;padding:4px 9px;
+    text-align:center;}
+  .dz-card-ig:hover{background:#F8DDEB;}
+  /* Передача: прикріпити — одне, відправити — інше. */
+  .dz-b.wide{display:block;width:100%;box-sizing:border-box;text-align:center;}
+  .dz-sent{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
+    color:#1B6B3A;background:#E7F6EC;border-radius:8px;padding:6px 9px;}
+  .dz-sent .dz-b{margin-left:auto;}
   /* Каталог поверх панелі. Вибір одягу списком назв не працює: «худі
      базове» від «худі оверсайз» у ньому не відрізнити, а кольори взагалі
      читаються як слова, хоч це кольори. */
@@ -5307,18 +5328,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=4531383593"></script>
-<script src="loomiq-fingerprint.js?v=4531383593"></script>
-<script src="loomiq-pricing.js?v=4531383593"></script>
+<script src="loomiq-select.js?v=f201662754"></script>
+<script src="loomiq-fingerprint.js?v=f201662754"></script>
+<script src="loomiq-pricing.js?v=f201662754"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=4531383593"></script>
+<script src="loomiq-design.js?v=f201662754"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=4531383593"></script>
+<script src="loomiq-cards.js?v=f201662754"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
