@@ -258,9 +258,12 @@ const back = await p.evaluate(() => {
 });
 if(back.err){ console.log('  ' + back.err); bad++; }
 else {
-  ok(back.who === 'Асія Дерещук' && back.unlink,
-     'видно, кого привʼязано, і поруч «Відвʼязати»',
-     'скасувати привʼязку нічим: ' + JSON.stringify(back));
+  /* НІК ПОПЕРЕДУ ІМЕНІ. Саме за ніком людину й знаходять: імʼя профілю
+     міняють, нік — майже ніколи. Доти в підписі стояло тільки імʼя, і
+     знайти ту саму розмову через тиждень не виходило. */
+  ok(/@asia_dera/.test(back.who) && /Асія Дерещук/.test(back.who) && back.unlink,
+     'видно нік і імʼя привʼязаного, і поруч «Відвʼязати»: ' + back.who,
+     'підпис привʼязаного неповний: ' + JSON.stringify(back));
   const off = await p.evaluate(async () => {
     document.querySelector('.od-crm-unlink').click();
     await new Promise(r => setTimeout(r, 600));

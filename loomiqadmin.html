@@ -3488,6 +3488,10 @@
   .dz-card-ig:hover{background:#F8DDEB;}
   /* Передача: прикріпити — одне, відправити — інше. */
   .dz-b.wide{display:block;width:100%;box-sizing:border-box;text-align:center;}
+  /* Дія, потрібна рідко й лише на помилку: лишається доступною, але не
+     тягне на себе увагу поруч із головною кнопкою. */
+  .dz-b.dz-quiet{border-color:transparent;color:var(--muted);padding:4px 8px;}
+  .dz-b.dz-quiet:hover{border-color:var(--line);color:var(--ink);}
   .dz-sent{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
     color:#1B6B3A;background:#E7F6EC;border-radius:8px;padding:6px 9px;}
   .dz-sent .dz-b{margin-left:auto;}
@@ -5328,18 +5332,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f201662754"></script>
-<script src="loomiq-fingerprint.js?v=f201662754"></script>
-<script src="loomiq-pricing.js?v=f201662754"></script>
+<script src="loomiq-select.js?v=57a00bc5dc"></script>
+<script src="loomiq-fingerprint.js?v=57a00bc5dc"></script>
+<script src="loomiq-pricing.js?v=57a00bc5dc"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f201662754"></script>
+<script src="loomiq-design.js?v=57a00bc5dc"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f201662754"></script>
+<script src="loomiq-cards.js?v=57a00bc5dc"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -14767,12 +14771,25 @@ function chanMigrate(o){
    Тому підставляємо те, що знаємо: імʼя зі співрозмовника, а як і його
    немає — сам номер чату. Це не вигадка, а те саме, чим ми його
    розрізняємо. */
+/* Як підписана привʼязана розмова: нік і, якщо є, імʼя профілю. Одне
+   місце на всі екрани — інакше картка, шухляда й відділ підписують того
+   самого клієнта по-різному. */
+function crmWhoLabel(o){
+  const nick = String((o && o.crmNick) || '').trim();
+  const name = String((o && o.crmChatName) || '').trim();
+  if(nick && name && name.toLowerCase() !== nick.toLowerCase()) return '@' + nick + ' · ' + name;
+  if(nick) return '@' + nick;
+  return name;
+}
 function chanFallback(o, k){
   if(k === 'tg'){
     return String(o.name || '').trim() || (tgChatOf(o) ? 'чат ' + tgChatOf(o) : '');
   }
   if(k === 'ig'){
-    return String(o.crmChatName || '').trim() || (o.crmChatId ? 'чат ' + o.crmChatId : '');
+    /* Нік попереду імені: саме за ним людину й знаходять. Імʼя профілю
+       міняють, нік — майже ніколи, тож «чат 17293…» замість нього це
+       втрачений контакт. */
+    return crmWhoLabel(o) || (o.crmChatId ? 'чат ' + o.crmChatId : '');
   }
   return '';
 }
@@ -18176,7 +18193,7 @@ function crmSeekHtml(o){
      спершу видно, хто привʼязаний, і одразу поруч спосіб це скасувати. */
   const now = o.crmChatId
     ? `<div class="od-seek-now">
-         <span class="od-seek-who">${escapeHtml(o.crmChatName || ('чат ' + o.crmChatId))}</span>
+         <span class="od-seek-who">${escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</span>
          <button class="od-crm-unlink">Відвʼязати</button>
        </div>`
     : '';
@@ -18331,6 +18348,16 @@ async function crmPickChat(o, r){
   if(!canBindChat()){ toast('Привʼязувати розмови — не ваша зона'); return; }
   o.crmChatId = String(r.chatId);
   o.crmChatName = r.name || r.nick || '';
+  /* НІК ЗБЕРІГАЄМО ОКРЕМО, А НЕ ЛИШЕ В ПОЛІ INSTAGRAM.
+
+     У полі Instagram він опиняється тільки тоді, коли розмова справді
+     звідти, — і це правильно, бо в Telegram чи Viber він там був би
+     неправдою. Але знайти людину за ніком треба однаково, хай би з якого
+     каналу вона писала: імʼя профілю міняють, нік — майже ніколи.
+
+     Тому кладемо його своїм полем. Воно ні з чим не конкурує й нічого не
+     затирає: це просто те, чим підписана розмова. */
+  if(r.nick) o.crmNick = String(r.nick).replace(/^@/, '');
   if(r.name && !String(o.name || '').trim()) o.name = r.name;
   /* Нік кладемо в поле Instagram лише тоді, коли розмова справді звідти. Якщо
      Sitniks каже «Viber» чи «Facebook», нік у цьому полі був би неправдою —
@@ -18343,7 +18370,7 @@ async function crmPickChat(o, r){
   crmLoadChat(o);
 }
 async function crmUnlink(o){
-  delete o.crmChatId; delete o.crmChatName;
+  delete o.crmChatId; delete o.crmChatName; delete o.crmNick;
   delete crmChat[o.id];
   crmStopPoll();
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
@@ -18378,7 +18405,7 @@ function crmBlockHtml(o){
   // чого, показуємо самого співрозмовника і спосіб відчепити його від картки.
   const head = o.crmChatId
     ? `<div class="od-crm-linked">
-         <span class="od-crm-who">${escapeHtml(o.crmChatName || ('чат ' + o.crmChatId))}</span>
+         <span class="od-crm-who">${escapeHtml(crmWhoLabel(o) || ('чат ' + o.crmChatId))}</span>
          <button class="od-crm-load">Оновити</button>
          <button class="od-crm-unlink">Відвʼязати</button>
        </div>`
@@ -21660,6 +21687,43 @@ function chatWaiting(o, kind){
 /* До якої миті розмову прочитано. Усе давніше або рівне не рахується
    непрочитаним — ні в кружечку на картці, ні рискою в стрічці. */
 function crmSeenAt(o){ return String((o && o.crmSeen) || ''); }
+/* ПОЗНАЧИТИ РОЗМОВУ ПРОЧИТАНОЮ — ОДНЕ МІСЦЕ НА ВСІ ПРИВОДИ.
+
+   Приводів два: відкрили й прочитали, або натиснули око. Вони мають робити
+   рівно те саме, інакше око «спрацьовує», а відкривання ні, і менеджер не
+   розуміє, за яким правилом число зникає.
+
+   Нічого не міняємо, коли непрочитаного й не було: зайвий запис у базу на
+   кожне відкривання розмови — це сотні записів за день ні за чим. */
+function chatMarkRead(o, kind){
+  if(!o || !chatWaiting(o, kind)) return false;
+  if(kind === 'tg'){ o.tgSeen = o.tgAt; o.tgSeenWrote = +o.tgWrote || 0; }
+  else {
+    /* Мить останньої репліки в стрічці, а як її немає — час картки. Саме
+       мить, а не «прочитано»: інакше наступний такт опитування перерахує
+       хвіст і поверне число назад. */
+    const st = crmChat[o.id] || {};
+    const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
+    o.crmSeen = остання || o.crmAt || new Date().toISOString().replace('T', ' ').slice(0, 16);
+    o.crmUnread = 0; o.crmTheirs = false;
+  }
+  /* Число біля розділу гасне ТІЄЇ Ж МИТІ, а не з наступним тактом. Запис у
+     базу йде своїм ходом — чекати на мережу, щоб прибрати цифру, яка вже
+     неправдива, немає жодних підстав. */
+  chatsRepaint();
+  saveOrders({ quiet:true }).then(chatsRepaint)
+    .catch(e => console.warn('прочитано', e));
+  return true;
+}
+/* Перемалювати все, що показує непрочитане: дошку, список розмов і число
+   біля розділу. Доти число оновлювалось лише поки ви стоїте на вкладці
+   чатів — тобто саме тоді, коли на нього вже не дивляться. */
+function chatsRepaint(){
+  try{ renderBoard(); }catch(e){}
+  /* chatsLive перемальовує і список розмов, і число біля розділу — тобто
+     обидва місця, де непрочитане видно. */
+  try{ chatsLive(); }catch(e){}
+}
 function chatSeenToggle(o, kind){
   if(!o) return;
   const було = chatWaiting(o, kind);
@@ -21684,8 +21748,15 @@ function chatSeenToggle(o, kind){
     o.crmUnread = хвіст || 1;
     o.crmTheirs = true;
   }
-  saveOrders({ quiet:true }).then(renderBoard).catch(e => console.warn('прочитано', e));
-  renderBoard();
+  /* Натиск на око — це вже свідома дія, а не просто «дивлюсь». Тож і риску
+     «нові» він знімає одразу: менеджер сказав «я це бачив», і повертати
+     йому червону смугу на тому ж місці означає не вірити. Відкривання
+     розмови риску лишає — там вона ще потрібна, щоб знати, звідки читати. */
+  if(chatWin && chatWin.id === o.id) chatWin.mark = crmSeenAt(o);
+  /* Те саме перемальовування, що й при звичайному прочитанні: число біля
+     розділу має згаснути від натиску, а не з наступним тактом. */
+  saveOrders({ quiet:true }).then(chatsRepaint).catch(e => console.warn('прочитано', e));
+  chatsRepaint();
   renderChatWin();
   try{ renderOrderDrawer(); }catch(e){}
   toast(було ? 'Позначено прочитаним' : 'Повернуто в непрочитані');
@@ -21718,8 +21789,15 @@ function chatRowsHtml(msgs){
   /* Прочитане руками риски не має. Менеджер сказав «я це бачив» — і
      повертати йому червону смугу на тому ж місці означає не вірити. */
   if(межа >= 0){
-    const до = (typeof crmSeenAt === 'function' && chatWin)
-      ? crmSeenAt((orders || []).find(x => x.id === chatWin.id)) : '';
+    /* Межу беремо ТУ, ЩО БУЛА В МИТЬ ВІДКРИТТЯ, а не поточну. Відкривання
+       розмови саме ставить позначку «прочитано» — і якби риска рахувалась
+       від неї, вона зникала б тієї ж секунди, разом із єдиною відповіддю на
+       питання «звідки читати». Поки розмова відкрита, риска стоїть; наступне
+       відкриття її вже не покаже, і це правильно: прочитане новим не буває. */
+    const до = (chatWin && chatWin.mark != null)
+      ? chatWin.mark
+      : ((typeof crmSeenAt === 'function' && chatWin)
+        ? crmSeenAt((orders || []).find(x => x.id === chatWin.id)) : '');
     if(до){
       let свіже = -1;
       for(let k = межа; k < list.length; k++)
@@ -22266,6 +22344,10 @@ function renderChatWin(toBottom){
      і фокус у поле не йде. */
   const first = !chatWin.drawn;
   chatWin.drawn = true;
+  /* Позначка прочитаного, якою вона була ДО того, як ми відкрили розмову.
+     Саме від неї й малюється риска «нові повідомлення» весь час, поки
+     вікно відкрите. */
+  if(first) chatWin.mark = crmSeenAt(o);
 
   const msgs = chatMsgs(o, chatWin.kind);
   const isTg = chatWin.kind === 'tg';
@@ -22450,6 +22532,18 @@ function renderChatWin(toBottom){
     }
     if(Math.abs(feedEl.scrollTop - треба) > 1) feedEl.scrollTop = треба;
   }
+  /* ВІДКРИВ І ПРОЧИТАВ — ЛІЧИЛЬНИК ГАСНЕ ОДРАЗУ.
+
+     Доти він гаснув лише від відповіді або від натиску на око, і виглядало
+     це поломкою: розмову прочитано, а в лівій панелі так і висить «1» —
+     причому висить, поки не мине такт опитування. Число, яке бреше про
+     стан, гірше за його відсутність: на нього перестають дивитись.
+
+     Позначку ставимо ПІСЛЯ того, як стрічку вже намальовано, — тоді риска
+     «нові повідомлення» на цьому показі лишається на місці, і людина
+     бачить, звідки читати. Зникне вона вже наступного відкриття, і це
+     правильно: те, що прочитали, новим більше не буває. */
+  if(first) chatMarkRead(o, chatWin.kind);
   wireChatWin(box, o, first || !!keep);
   if(keep){
     const el = box.querySelector('.cw-inp');
@@ -24117,6 +24211,13 @@ function openDesign(){
       sizes: (garmentSizes(g.id).length ? garmentSizes(g.id)
                                         : ['XS','S','M','L','XL','XXL'])
     })),
+    /* Чи є з ким листуватись. Поля розмови в замовленні свої для кожного
+       каналу, і відділу знати про них нічого: він питає одне — чи можна
+       натиснути й написати. */
+    hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
+    /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
+       місце — воно й ходить у Sitniks. */
+    whoLabel: o => crmWhoLabel(o),
     team: ()=> (contentData.team || []).map(m => ({
       email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
     onlyMine: ()=> mine,

@@ -1396,6 +1396,12 @@
      `o.name`, `o.phone`, `o.company`. Через це блок мовчки не малювався
      ніколи: відділ показував номер і стан, а чиє це замовлення, треба
      було йти дивитись у Канбан. Саме тому картка й виглядала голою. */
+  /* Як підписана привʼязана розмова. Робоче місце знає це краще за відділ —
+     воно й читає Sitniks; тут лише питаємо. */
+  function whoLabel(o){
+    try{ if(host.whoLabel) return String(host.whoLabel(o) || ''); }catch(e){}
+    return String((o && o.crmChatName) || '');
+  }
   function clientHtml(o, job){
     o = o || {};
     /* ВЛАСНЕ ЗАМОВЛЕННЯ ВІДДІЛУ. У нього немає картки в Канбані, звідки
@@ -1409,13 +1415,24 @@
 
          Поля тут ТІ САМІ, що в картці Канбану: замовлення B2C — звичайне
          замовлення, просто іншого напряму. Своїх полів у нього немає. */
+      /* Привʼязали — і по тому. Поля для адреси тут більше немає: розмова
+         зафіксована, а форма для її введення на місці зафіксованого
+         виглядає так, ніби нічого не зафіксовано.
+
+         Підписуємо ніком: саме за ним людину й знаходять. Імʼя профілю
+         міняють, нік — майже ніколи, тож «чат 17293…» замість нього це
+         втрачений контакт. */
       if(o.crmChatId)
         return '<div class="dz-own is-on">' +
           '<div class="dz-own-who"><span>Клієнт</span><b>' +
-            esc(o.crmChatName || ('чат ' + o.crmChatId)) + '</b></div>' +
+            esc(whoLabel(o) || ('чат ' + o.crmChatId)) + '</b></div>' +
           '<div class="dz-own-acts">' +
-            '<button class="dz-b pri" data-do="chat">Переписка</button>' +
-            (can('bind') ? '<button class="dz-b" data-do="unbind">Відвʼязати</button>' : '') +
+            '<button class="dz-b pri" data-do="chat">Написати</button>' +
+            /* Відвʼязати лишається, але тихою кнопкою: адресу беруть із
+               сусідньої вкладки, і вставити не ту легко — без цієї дії
+               помилкову привʼязку не виправити ніяк. */
+            (can('bind') ? '<button class="dz-b dz-quiet" data-do="unbind" ' +
+              'title="Привʼязали не ту розмову — відвʼязати">×</button>' : '') +
           '</div></div>';
       return '<div class="dz-own">' +
         '<label class="dz-own-f"><span>Розмова в Sitniks</span>' +
@@ -2149,6 +2166,11 @@
     });
     return { wait: чекає, unseen: нових };
   }
+  /* Чи є привʼязана розмова. Поля її зберігання належать робочому місцю, а
+     не відділу: відділ питає одне — чи можна натиснути й написати. */
+  function hasChat(o){
+    try{ return !!(host().hasChat && host().hasChat(o)); }catch(e){ return false; }
+  }
   function unitNames(job, o){
     var з = U.unitsOf(job).map(function(u){ return u.name; }).filter(Boolean);
     if(з.length) return з.slice(0, 2).join(' · ');
@@ -2165,7 +2187,7 @@
         /* Строк — на картці, а не всередині: питання «що горить» задають
            саме дошці, і відповідати на нього відкриванням кожної картки
            означає не відповідати зовсім. */
-        due: p.job.due || '', chat: !!(p.o.igUser || p.o.chatId || p.o.threadUrl),
+        due: p.job.due || '', chat: hasChat(p.o),
         wait: mk.wait, unseen: mk.unseen,
         foot: unitWho(p.job) };
     });
@@ -2203,7 +2225,7 @@
       return { id: p.o.orderId, step: p.job.graphic.status || 'new',
         title: U.jobNo(p.job),
         sub: unitNames(p.job, p.o),
-        due: p.job.due || '', chat: !!(p.o.igUser || p.o.chatId || p.o.threadUrl),
+        due: p.job.due || '', chat: hasChat(p.o),
         wait: mk.wait, unseen: mk.unseen,
         foot: v ? ('v' + v.n + ' · ' + dt(v.at)) : 'версій немає' };
     });
