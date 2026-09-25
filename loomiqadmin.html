@@ -6078,13 +6078,35 @@ async function saveOrders(opts){
   const failed = [];
   for(const [id, json] of cur){
     if(ordersSaved.get(id) === json) continue;
-    const size = new Blob([json]).size;
+    let body = json, size = new Blob([body]).size;
+    /* ВАЖКУ КАРТКУ РОЗВАНТАЖУЄМО ДО ЗАПИСУ, А НЕ ПІСЛЯ ВІДМОВИ.
+
+       Картинка, що лишилась текстом замість посилання, важить сотні
+       кілобайт — три такі, і база вже не приймає документ. Ловити це
+       відмовою пізно: менеджер бачить «НЕ ЗБЕРЕЖЕНО» й не знає ні чому, ні
+       що робити, а робота вже зроблена. Тому чистимо самі, щойно картка
+       підійшла до межі, і мовчки — це прибирання, а не подія. */
+    if(size > ORDER_SOFT){
+      const live = (orders || []).filter(x => x && x.id === id)[0];
+      if(live){
+        try{
+          const moved = await slimOrderNow(live);
+          if(moved){
+            body = JSON.stringify(live);
+            size = new Blob([body]).size;
+            console.info('order slimmed', id, moved, size);
+          }
+        }catch(e){ console.warn('order slim failed', id, e); }
+      }
+    }
     try{
-      await ORDERS_COL.doc(id).set(JSON.parse(json));
-      ordersSaved.set(id, json);
+      await ORDERS_COL.doc(id).set(JSON.parse(body));
+      ordersSaved.set(id, body);
     }catch(e){
       console.error('order save failed', id, size, e);
-      failed.push({ id, size, e });
+      failed.push({ id, size, e, parts: (function(){
+        try{ return orderWeigh(JSON.parse(body)); }catch(e2){ return []; }
+      })() });
     }
   }
   for(const id of [...ordersSaved.keys()]){
@@ -6094,9 +6116,21 @@ async function saveOrders(opts){
   }
   if(failed.length && !quiet){
     const f = failed[0];
+    /* Якщо картка завелика — кажемо, ЩО САМЕ важке й що з цим робити.
+       «invalid-argument» і число кілобайт не допомагають нікому: чистити
+       наосліп нема сенсу, а розробник однаково спитає те саме. */
+    const тяжко = f.size && f.size > ORDER_HARD;
+    const де = (f.parts || []).slice(0, 3)
+      .map(p => '  • ' + p.name + ' — ' + Math.round(p.b / 1024) + ' КБ').join('\n');
     alert('НЕ ЗБЕРЕЖЕНО замовлення: ' + ((f.e && (f.e.code || f.e.message)) || 'невідома помилка') +
           (f.size ? '\nРозмір картки: ' + Math.round(f.size/1024) + ' КБ (ліміт 1024)' : '') +
-          '\n\nЗробіть скриншот і покажіть розробнику.');
+          (тяжко && де ? '\n\nНайважче в картці:\n' + де : '') +
+          (тяжко
+            ? '\n\nМайже завжди це макет, який лишився в картці текстом ' +
+              'замість посилання: хмара не відповіла під час збереження позиції. ' +
+              'Відкрийте цю позицію й збережіть її ще раз — макет піде в хмару, ' +
+              'і картка схудне. Роботу не закривайте: на екрані вона ціла.'
+            : '\n\nЗробіть скриншот і покажіть розробнику.'));
   }
   return failed;
 }
@@ -8203,6 +8237,66 @@ async function migrateOrdersToCollection(){
    тільки геометрію: розмір, місце, поворот — а самої картинки не було. Тому
    при повторному відкритті позиції макет виявлявся порожнім: логотип «зникав».
    Data-URL сюди не кладемо ніколи — документ замовлення обмежений 1 МБ. */
+/* ══════════ КАРТКА НЕ МАЄ ВПИРАТИСЬ У ЛІМІТ ══════════
+
+   Firestore не приймає документ більший за 1 МБ і каже про це словом
+   `invalid-argument` — тобто нічого не каже. Менеджер бачить «НЕ ЗБЕРЕЖЕНО»
+   й не знає ні чому, ні що робити; робота при цьому вже зроблена й лежить
+   тільки на екрані.
+
+   Роздуває картку майже завжди одне: картинка, що лишилась текстом
+   (`data:image/png;base64,…`) замість посилання. Так буває, коли хмара не
+   відповіла під час збереження позиції, і макет лишився в самій картці —
+   один такий макет це 300–700 КБ, три вже за лімітом.
+
+   Доти це чистилось лише один раз, під час переїзду сховища. Тепер —
+   перед КОЖНИМ записом важкої картки: важчає вона поступово, а ламається
+   раптом, і чекати наступного переїзду означає чекати вічно. */
+const ORDER_HARD = 1024 * 1024;      // стільки не прийме база
+const ORDER_SOFT = 700 * 1024;       // а звідси вже розвантажуємо самі
+/* З ЧОГО СКЛАДАЄТЬСЯ ВАГА. Без цього «1716 КБ» не каже нічого: чистити
+   наосліп нема сенсу, а питати менеджера, що він клав, — тим більше. */
+function orderWeigh(o){
+  const out = [];
+  const add = (name, v) => { const b = jsonBytes(v); if(b > 2048) out.push({ name, b }); };
+  (o.items || []).forEach((it, i)=>{
+    const n = 'позиція ' + (i + 1) + ' · ' + (it.name || '');
+    add(n + ' · макети', it.mockups);
+    add(n + ' · файли друку', it.prints);
+    add(n + ' · конструктор', it.config);
+  });
+  add('версії макета', o.art);
+  add('переписка', o.crmMsgs);
+  add('фото', o.photos);
+  return out.sort((a, b) => b.b - a.b);
+}
+/* Розвантажити ОДНУ картку: усе, що лежить текстом, — у хмару, посилання —
+   в базу. Хмара не відповіла — лишаємо як є: краще важка картка, ніж
+   загублений макет, і наступний запис спробує ще раз. */
+async function slimOrderNow(o){
+  const isData = v => typeof v === 'string' && /^data:/i.test(v);
+  let moved = 0;
+  const up = async v => {
+    try{ const u = await uploadCloudinary(v); if(u){ moved++; return u; } }catch(e){}
+    return v;
+  };
+  for(const it of (o.items || [])){
+    if((it.mockups || []).some(isData)){
+      const mk = [];
+      for(const m of it.mockups) mk.push(isData(m) ? await up(m) : m);
+      it.mockups = mk;
+    }
+    for(const p of (it.prints || [])) if(isData(p.file)) p.file = await up(p.file);
+    /* Конструктор везе в картці лише те, за чим позицію можна відкрити
+       наново. Усе інше — сміття попередніх відкривань. */
+    if(jsonBytes(it.config) > 4096) it.config = slimOrderConfig(it.config);
+  }
+  for(const v of (o.art || [])){
+    if(isData(v && v.url)) v.url = await up(v.url);
+    for(const f of ((v && v.files) || [])) if(isData(f.url)) f.url = await up(f.url);
+  }
+  return moved;
+}
 function slimOrderConfig(cfg, filesBySide){
   if(!cfg) return null;
   const out = { garmentId: cfg.garmentId || null, colorId: cfg.colorId || null,
