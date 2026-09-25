@@ -3464,6 +3464,53 @@
   .dz-x{margin-left:auto;font:inherit;font-size:20px;line-height:1;background:none;border:0;
     color:var(--ink-soft);cursor:pointer;}
   .dz-panel-b{flex:1;min-height:0;overflow:auto;padding:12px 14px;}
+  /* ── Картка читається згори вниз ──
+     Доти всі блоки мали однакову вагу: заголовки того самого розміру,
+     поля того самого вигляду, жодного просвіту між зонами. Око не мало за
+     що зачепитись і щоразу розбирало картку заново. Тепер між зонами є
+     повітря, а заголовок зони видно як заголовок. */
+  .dz-panel-b > .dz-h{margin-top:22px;font-size:11px;font-weight:800;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    padding-bottom:7px;border-bottom:1px solid var(--line-soft);}
+  .dz-panel-b > .dz-h:first-child{margin-top:4px;}
+  .dz-u{margin-bottom:12px;}
+  /* Згорнутий блок: те, що потрібне двічі за замовлення, не має займати
+     місце решту часу. Головне видно й згорнутим. */
+  .dz-fold{margin-top:22px;border:1px solid var(--line);border-radius:10px;
+    background:#fff;}
+  .dz-fold > summary{cursor:pointer;list-style:none;padding:10px 12px;
+    font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .dz-fold > summary::-webkit-details-marker{display:none;}
+  .dz-fold > summary::after{content:'▾';margin-left:auto;font-size:12px;color:var(--muted);}
+  .dz-fold[open] > summary::after{content:'▴';}
+  .dz-fold > summary b{font-size:12.5px;font-weight:700;color:var(--ink);
+    text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
+  .dz-fold > summary i{font-size:11.5px;font-style:normal;font-weight:500;
+    color:var(--muted);text-transform:none;letter-spacing:0;}
+  .dz-fold > .dz-ship{padding:0 12px 12px;}
+  /* Дані для накладної: чотири поля, які завжди потрібні гуртом. */
+  .dz-ship-f{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 12px 10px;}
+  .dz-ship-f .dz-own-f{margin:0;}
+  /* Гроші: два числа й одна дія між ними. Залишок — найбільше, бо саме
+     його питають у мить відправки. */
+  .dz-money{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px;}
+  .dz-money-r{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    font-size:12.5px;color:var(--ink-soft);}
+  .dz-money-r b{font-size:15px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;}
+  .dz-money-r.is-left{padding-top:10px;border-top:1px solid var(--line-soft);}
+  .dz-money-r.is-left b{font-size:19px;}
+  @media (max-width:520px){ .dz-ship-f{grid-template-columns:1fr;} }
+  /* Номер одиниці й дії — тонкою смужкою над вибіркою. Назву виріб каже
+     сам, кнопками; дублювати її заголовком нема за чим. */
+  .dz-u-n{font-style:normal;font-size:10.5px;font-weight:800;color:var(--muted);
+    background:var(--canvas);border-radius:6px;padding:2px 7px;}
+  .dz-ib{all:unset;cursor:pointer;flex:none;width:26px;height:26px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;font-size:13px;
+    color:var(--ink-soft);}
+  .dz-ib:hover{background:var(--canvas);color:var(--ink);}
+  .dz-ib-x:hover{background:#FDECEA;color:#B03A1A;}
   .dz-h{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     color:var(--ink-soft);margin:14px 0 6px;}
   /* ── Склад замовлення у відділі ──
@@ -3474,8 +3521,7 @@
   .dz-u{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:10px;
     background:#fff;}
   .dz-u-h{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
-  .dz-u-h b{font-size:13.5px;color:var(--ink);flex:1;min-width:0;}
-  .dz-u-acts{display:flex;gap:6px;flex:none;}
+  .dz-u-acts{display:flex;gap:4px;flex:none;margin-left:auto;}
   .dz-u-f{display:grid;grid-template-columns:1.4fr 1fr 0.8fr 0.7fr;gap:8px;}
   .dz-u-f label{display:flex;flex-direction:column;gap:3px;min-width:0;}
   .dz-u-f span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
@@ -3531,6 +3577,11 @@
     color:var(--ink-soft);background:#EEF1F5;border-radius:6px;padding:1px 6px;}
   .dz-card-due.late{background:#FDECEA;color:#B03A1A;}
   .dz-card-w{position:relative;}
+  /* Сума — головне число картки: за ним обирають, за що братись. Велике
+     замовлення має бути видно, не вчитуючись. */
+  .dz-card-sum{display:block;font-size:15px;font-weight:700;color:var(--ink);
+    margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .dz-card-sum.big{font-size:19px;}
   .dz-card-m{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
   .dz-card-m b{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;}
   .dz-m-new{background:#E4572E;color:#fff;}
@@ -3558,7 +3609,11 @@
   .dz-b.dz-quiet{border-color:transparent;color:var(--muted);padding:4px 8px;}
   /* Написати клієнту — унизу блока, кольором каналу: очима вона
      знаходиться за півсекунди, і ні з чим іншим не плутається. */
-  .dz-write{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  /* Нижня смужка картки. Стоїть на дні панелі й не їде зі змістом: у
+     картці десяток блоків, і кнопка «в кінці» означає «догортайте до неї».
+     А потрібна вона тоді, коли щось прочитали й хочуть відповісти. */
+  .dz-write{flex:none;padding:12px 14px;border-top:1px solid var(--line);
+    background:var(--paper);}
   .dz-ig{all:unset;cursor:pointer;display:block;text-align:center;font-size:13px;
     font-weight:700;color:#fff;border-radius:10px;padding:10px 14px;
     background:linear-gradient(90deg,#833AB4,#C13584,#E1306C);}
@@ -5412,18 +5467,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=9d32ce8536"></script>
-<script src="loomiq-fingerprint.js?v=9d32ce8536"></script>
-<script src="loomiq-pricing.js?v=9d32ce8536"></script>
+<script src="loomiq-select.js?v=160751443f"></script>
+<script src="loomiq-fingerprint.js?v=160751443f"></script>
+<script src="loomiq-pricing.js?v=160751443f"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=9d32ce8536"></script>
+<script src="loomiq-design.js?v=160751443f"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=9d32ce8536"></script>
+<script src="loomiq-cards.js?v=160751443f"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5448,7 +5503,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '9d32ce8536';
+var LQ_VER = '160751443f';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

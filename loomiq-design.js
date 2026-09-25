@@ -1349,7 +1349,10 @@
               '<b>' + esc(c.title) +
                 (c.due ? '<em class="dz-card-due' + (late ? ' late' : '') + '">до ' +
                          esc(dueShort(c.due)) + '</em>' : '') + '</b>' +
-              (c.sub ? '<span>' + esc(c.sub) + '</span>' : '') +
+              /* Сума — великим. Між двадцятьма картками обирають за нею, і
+                 чим більше замовлення, тим помітнішим воно має бути. */
+              (c.sum ? '<span class="dz-card-sum' + (c.sum >= 20000 ? ' big' : '') + '">' +
+                       esc(money(c.sum)) + '</span>' : '') +
               (c.foot ? '<i>' + esc(c.foot) + '</i>' : '') +
               ((c.unseen || c.wait)
                 ? '<span class="dz-card-m">' +
@@ -1798,16 +1801,20 @@
     opt = opt || {};
     var ro = !!opt.ro, only = opt.only || '';
     var g = catItem(u.gid);
-    var head = (u.name || 'Одиниця ' + n) +
-      (u.color ? ' · ' + u.color : '') + (u.size ? ' · ' + u.size : '') +
-      ' · ' + (+u.qty || 0) + ' шт';
+    /* Заголовка з назвою тут більше немає. Він переказував рівно те, що
+       стоїть рядком нижче в самій вибірці — «Футболка базова · Чорний · M ·
+       2 шт» над кнопками, які це й показують. Два підписи того самого
+       нічого не додають, а місце й увагу забирають обидва. */
     return '<div class="dz-u">' +
-      '<div class="dz-u-h"><b>' + esc(head) + '</b>' +
-        (ro ? '' : '<span class="dz-u-acts">' +
-          '<button class="dz-b" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
-            'title="Те саме ще раз — далі міняєте колір чи розмір">⧉ Дублювати</button>' +
-          '<button class="dz-b" data-do="u-del" data-u="' + esc(u.id) + '">Прибрати</button>' +
-        '</span>') + '</div>' +
+      (ro ? '' : '<div class="dz-u-h"><i class="dz-u-n">' + n + '</i>' +
+        '<span class="dz-u-acts">' +
+          /* Значками, а не словами: дії дрібні, повторювані й самі себе
+             пояснюють. Слова тут важили більше за саму дію. */
+          '<button class="dz-ib" data-do="u-dup" data-u="' + esc(u.id) + '" ' +
+            'title="Те саме ще раз — далі міняєте колір чи розмір">⧉</button>' +
+          '<button class="dz-ib dz-ib-x" data-do="u-del" data-u="' + esc(u.id) + '" ' +
+            'title="Прибрати цей одяг">🗑</button>' +
+        '</span></div>') +
       /* Три кнопки замість трьох списків: кожна відкриває каталог. Порожня
          кнопка каже «оберіть», а не показує порожній рядок, — бо колір і
          розмір тут законно бувають ще невідомі, і мовчазний прочерк не
@@ -1928,6 +1935,44 @@
 
      Тому відділ показує СТАН і веде туди, де це роблять: скільки всього
      штук їде, чи номер уже є, і кнопка. */
+  /* ══════════ ГРОШІ ЗАМОВЛЕННЯ ══════════
+
+     Три числа й одна дія. Сума — те, що клієнт має заплатити; передоплата —
+     те, що вже прийшло; залишок — різниця, і саме його питають, коли
+     пакують посилку («накладений платіж скільки?»).
+
+     Порахувати залишок у голові можна, але саме там його й помиляються:
+     сума лежить в одному місці, передоплата в іншому, а відповідь потрібна
+     в мить відправки. Тому число стоїть готовим.
+
+     Прив’язати саму оплату — окремою дією, яку ми ще налаштуємо. Поки
+     передоплату вписують рукою: це чесно відповідає на питання «скільки
+     лишилось» і нічого не вдає. */
+  function moneyHtml(o){
+    var сума = 0;
+    try{ сума = (host.orderSum && host.orderSum(o)) || 0; }catch(e){}
+    if(!сума) сума = +((o || {}).totalPrice) || 0;
+    var пре = Math.max(0, Math.round(+((o || {}).prepaid) || 0));
+    var лишок = Math.max(0, Math.round(сума - пре));
+    return '<details class="dz-fold">' +
+      '<summary>Гроші' +
+        (сума ? '<b>' + esc(грн(сума)) + '</b>' : '<i>суми ще немає</i>') +
+        (пре ? '<i>передоплата ' + esc(грн(пре)) + '</i>' : '') +
+      '</summary>' +
+      '<div class="dz-money">' +
+        '<div class="dz-money-r"><span>Разом за замовлення</span><b>' +
+          esc(грн(сума)) + '</b></div>' +
+        '<label class="dz-own-f"><span>Передоплата</span>' +
+          '<input type="number" min="0" step="1" data-of="prepaid" value="' +
+          (пре || '') + '" placeholder="скільки вже прийшло"></label>' +
+        '<div class="dz-money-r is-left"><span>Залишок до оплати</span><b>' +
+          esc(грн(лишок)) + '</b></div>' +
+      '</div>' +
+    '</details>';
+  }
+  function грн(n){
+    return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+  }
   function shipHtml(p){
     var o = p.o || {}, job = p.job;
     var q = unitsOf(job).reduce(function(a, u){ return a + (+u.qty || 0); }, 0);
@@ -1937,14 +1982,45 @@
     /* У власного замовлення відділу немає картки в Канбані, а отже й
        кнопки «створити накладну»: накладні робить робоче місце продажу.
        Тут номер просто записують — цього досить, щоб знати, чим поїхало. */
+    /* Відправка цікавить рівно двічі за все замовлення, а місце займає
+       щоразу. Тому вона згорнута й підписана тим, що в ній насправді
+       шукають, — номером накладної. Коли номер уже є, він видно й
+       згорнутою: інакше довелось би розгортати, щоб дізнатись, чи він є. */
+    /* ВІДПРАВКА — ЦЕ ДАНІ ДЛЯ НАКЛАДНОЇ, А НЕ НОМЕР.
+
+       Приватне замовлення їде посилкою, і номер накладної не вводять
+       руками — його видає Нова пошта за тим, що ми їй скажемо: місто,
+       відділення або адреса, телефон, імʼя. Тому тут лежить саме це, а
+       номер зʼявляється як результат.
+
+       Блок згорнутий: за все замовлення в нього заходять двічі, а місце
+       він займав би весь час. Головне видно й згорнутим — номер, якщо він
+       уже є, і чого бракує, якщо ще ні. */
+    var пош = o.ship || {};
+    var поле = function(k, підпис, ph, тип){
+      return '<label class="dz-own-f"><span>' + esc(підпис) + '</span>' +
+        '<input type="' + (тип || 'text') + '" data-sf="' + k + '" value="' +
+        esc(пош[k] || '') + '" placeholder="' + esc(ph) + '"></label>';
+    };
+    var бракує = ['city','office','phone','name'].filter(function(k){ return !пош[k]; }).length;
     if(o.dir === 'b2c')
-      return '<div class="dz-h">Відправка</div>' +
+      return '<details class="dz-fold">' +
+        '<summary>Відправка' + (ttn ? '<b>' + esc(ttn) + '</b>' :
+          '<i>' + (бракує ? 'даних бракує: ' + бракує : 'дані є, накладної ще немає') + '</i>') +
+        '</summary>' +
+        '<div class="dz-ship-f">' +
+          поле('name', 'Імʼя та прізвище', 'на кого оформити') +
+          поле('phone', 'Телефон', '+380…', 'tel') +
+          поле('city', 'Місто', 'куди їде') +
+          поле('office', 'Відділення або адреса', '№ відділення чи вулиця') +
+        '</div>' +
         '<div class="dz-ship">' +
           '<div class="dz-ship-l"><b>' +
             (q ? q + ' шт' : 'кількість ще не вказана') + '</b></div>' +
           '<label class="dz-own-f"><span>Накладна</span>' +
             '<input data-of="ttn" value="' + esc(ttn) + '" placeholder="номер ТТН"></label>' +
-        '</div>';
+        '</div></details>' +
+        moneyHtml(o);
     return '<div class="dz-h">Відправка</div>' +
       '<div class="dz-ship">' +
         '<div class="dz-ship-l">' +
@@ -2228,31 +2304,58 @@
     return (o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
       .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · ');
   }
+  /* СКІЛЬКИ ГРОШЕЙ У ЗАМОВЛЕННІ.
+
+     Не заради звіту: на дошці стоїть двадцять карток, і між ними треба
+     обирати, за яку братись першою. Назви одягу цього питання не
+     вирішують — «футболка» стоїть і в замовленні на дві штуки, і в
+     замовленні на двісті. Сума вирішує з одного погляду, тому вона й
+     велика: чим більша, тим помітніша. */
+  function jobSum(o){
+    var s = +((o || {}).totalPrice) || 0;
+    if(!s) s = ((o || {}).items || []).reduce(function(a, it){
+      return a + (Math.round(+it.price || 0) || 0); }, 0);
+    return s;
+  }
+  function money(n){
+    return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+  }
+  /* ДЕ ЗАМОВЛЕННЯ ЗАРАЗ — словами, а не роллю.
+
+     Доти тут писалось «акаунт-менеджер»: підпис колонки, той самий на всіх
+     картках колонки. Він не казав нічого — колонка й так підписана. Питання
+     інше: у кого воно на руках і чого чекає. */
+  function jobWhere(job){
+    var передані = [], чекають = [];
+    U.unitsOf(job).forEach(function(u){
+      ['graphic','stitch'].forEach(function(k){
+        D.dzList(u, k).forEach(function(d){
+          if(!d.sentAt) return;
+          if(d.status === 'approved') return;
+          (d.status === 'review' ? чекають : передані).push(d.who);
+        });
+      });
+    });
+    if(чекають.length) return 'чекає погодження · ' + nameOf(чекають[0]);
+    if(передані.length) return 'у роботі · ' + nameOf(передані[0]);
+    return 'ще не передано';
+  }
   function queueCards(){
     var m = (host().me && host().me()) || '';
     return U.pairs().map(function(p){
       var mk = cardMarks(p.job, m);
       return { id: p.o.orderId, step: D.queueAt(p.job),
         title: U.jobNo(p.job),
-        sub: unitNames(p.job, p.o),
+        /* Назв одягу тут немає навмисно: вони довгі, однакові в половині
+           карток і на питання «за що братись» не відповідають. */
+        sum: jobSum(p.o),
         /* Строк — на картці, а не всередині: питання «що горить» задають
            саме дошці, і відповідати на нього відкриванням кожної картки
            означає не відповідати зовсім. */
         due: p.job.due || '', chat: hasChat(p.o),
         wait: mk.wait, unseen: mk.unseen,
-        foot: unitWho(p.job) };
+        foot: jobWhere(p.job) };
     });
-  }
-  /* Кому це віддано. Імена, а не «призначено»: питання завжди про людину. */
-  function unitWho(job){
-    var хто = {};
-    U.unitsOf(job).forEach(function(u){
-      ['graphic','stitch'].forEach(function(k){
-        D.dzList(u, k).forEach(function(d){ if(d.who) хто[d.who] = 1; });
-      });
-    });
-    var l = Object.keys(хто);
-    return l.length ? l.map(nameOf).slice(0, 2).join(' · ') : 'ще нікому не передано';
   }
   /* ДОШКА ДИЗАЙНЕРА ПОКАЗУЄ ЛИШЕ ПЕРЕДАНЕ.
 
@@ -2301,25 +2404,6 @@
   /* ── Панель: черга відділу ─────────────────────────────────────────── */
   /* Видати доручення. Стоїть у черзі, бо це робота менеджера відділу: він
      єдиний бачить усе замовлення й може сказати, що саме треба зробити. */
-  /* Редактор ТЗ — у менеджера відділу. Він єдиний бачить і замовлення, і
-     переписку з клієнтом, тобто може перекласти одне в інше. */
-  function briefEditHtml(job){
-    var br = (job && job.brief) || {};
-    return '<div class="dz-act">' +
-      '<span class="dz-l">Технічне завдання</span>' +
-      '<textarea id="dzBrief" rows="3" placeholder="Що саме малюємо: побажання ' +
-        'клієнта, приклади, обмеження">' + esc(br.text || '') + '</textarea>' +
-      ((br.pics || []).length
-        ? '<div class="dz-pics">' + br.pics.map(function(pp, i){
-            return '<span class="dz-pic"><a class="dz-thumb" href="' + esc(pp.url) +
-              '" target="_blank" rel="noopener"><img src="' + esc(pp.url) + '" alt=""></a>' +
-              '<button class="dz-pic-x" data-do="brief-pic-del" data-i="' + i + '">×</button></span>';
-          }).join('') + '</div>'
-        : '') +
-      '<button class="dz-b" data-do="brief-pic">⤒ Референс</button>' +
-      '<button class="dz-b pri" data-do="brief-save">Зберегти ТЗ</button>' +
-    '</div>';
-  }
   function taskNewHtml(job){
     var open = D.taskOpen(job);
     return '<div class="dz-act">' +
@@ -2344,21 +2428,15 @@
     var job = p.job, o = p.o, g = job.graphic;
     var v = D.verCur(o);
     var acts = [];
-    if(can('designmgr')) acts.push(briefEditHtml(job));
+    /* Окремого «Технічного завдання» тут більше немає. Воно писалось двічі:
+       у власному блоці «що саме малюємо» і в коментарі до конкретного
+       одягу. Два місця для того самого — це щоразу питання, котре з них
+       правда; коментар лишається один і стоїть при виробі, якого
+       стосується.
+
+       «Повернути продажнику» пішло звідти ж: замовлення веде той самий
+       менеджер, який його й зібрав, і повертати його нема кому. */
     if(can('designmgr')) acts.push(taskNewHtml(job));
-    if(job.state === 'new' || job.state === 'check'){
-      acts.push('<div class="dz-act">' +
-        '<span class="dz-l">Призначити дизайнера</span>' +
-        U.teamPick('dzWho', 'designer', g.assignee) +
-        '<input type="date" id="dzDue" value="' + esc(g.due || '') + '">' +
-        '<button class="dz-b pri" data-do="assign">Віддати в роботу</button>' +
-      '</div>' +
-      '<div class="dz-act">' +
-        '<span class="dz-l">Повернути продажнику</span>' +
-        '<textarea id="dzBriefNote" rows="2" placeholder="Чого саме бракує"></textarea>' +
-        '<button class="dz-b" data-do="brief-back">Повернути</button>' +
-      '</div>');
-    }
     if(job.state === 'review' && g.status === 'review'){
       acts.push('<div class="dz-act">' +
         '<span class="dz-l">Перевірка макета v' + (v ? v.n : '—') + '</span>' +
@@ -2404,11 +2482,12 @@
         (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
         '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
         U.shipHtml(p) +
-        /* Написати клієнту — унизу блока замовлення, як у B2B. Саме тут
-           вона й потрібна: замовлення вже прочитане, і наступна дія — щось
-           сказати людині. Угорі вона плуталась із привʼязкою. */
-        U.writeHtml(o) +
-      '</div>';
+      '</div>' +
+      /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
+         У картці десяток блоків, і кнопка в кінці означає «догортайте до
+         неї»; а потрібна вона рівно тоді, коли щось прочитали й хочуть
+         відповісти — тобто будь-коли. */
+      U.writeHtml(o);
   }
 
   /* ── Панель: робота дизайнера ──────────────────────────────────────── */
@@ -2886,6 +2965,17 @@
         var c = ctx(); if(!c || !c.o) return;
         // Пишемо в САМЕ замовлення: своїх полів у напряму немає.
         c.o[el.dataset.of] = String(el.value || '').trim();
+        save(c.job, c.o, '');
+      };
+    });
+    /* Дані для накладної лежать разом, окремим полем замовлення: їх
+       чотири, вони завжди потрібні гуртом, і розкладати їх по картці
+       поштучно означало б збирати адресу по крихтах у мить відправки. */
+    root.querySelectorAll('[data-sf]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c || !c.o) return;
+        if(!c.o.ship || typeof c.o.ship !== 'object') c.o.ship = {};
+        c.o.ship[el.dataset.sf] = String(el.value || '').trim();
         save(c.job, c.o, '');
       };
     });
