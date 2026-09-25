@@ -158,7 +158,13 @@ const кон = fs.readFileSync(path.join(ROOT, 'loomiq-constructor.js'), 'utf8')
    із функцією, а не в ній, тож при виїмці коду його треба оголосити: тут
    нічого не прибирали, отже перелік порожній. */
 const odRaw = /function orderDesigns\(\)\{[\s\S]*?\n    \}/.exec(кон);
-const od = odRaw ? ['var LQO_DROP = {};\n' + odRaw[0]] : null;
+/* `sameArt` — правило «це той самий макет», спільне з рушієм цін. Воно
+   живе поруч із галереєю, бо ним же зводяться плитки: скільки плиток, стільки
+   й макетів у рахунку. Виймаємо разом, інакше галерея без нього не зібралась
+   би зовсім. */
+const saRaw = /function sameArt\(a, b\)\{[\s\S]*?\n    \}/.exec(кон);
+const od = (odRaw && saRaw)
+  ? ['var LQO_DROP = {}, LQO_GONE = [];\n' + saRaw[0] + '\n' + odRaw[0]] : null;
 ok(!!od, 'галерею знайдено в коді конструктора', 'orderDesigns не знайшлась');
 if(od){
   const список = await p.evaluate((код) => {
@@ -174,7 +180,11 @@ if(od){
       { name:'Шопер', config:{ logos:{ front:[шар('https://cdn/інше.png','C')] } } }
     ];
     const orderLogos = () => ['https://cdn/з-картки.png'];
-    const f = new Function('cartItems', 'orderLogos', код + '; return orderDesigns;')(cartItems, orderLogos);
+    /* Відкрита позиція — теж частина замовлення. Тут вона порожня: цей
+       розділ про кошик, а щойно доданий макет перевіряється нижче. */
+    const pm = { logos:{} };
+    const f = new Function('cartItems', 'orderLogos', 'pm',
+                           код + '; return orderDesigns;')(cartItems, orderLogos, pm);
     return f().map(d => ({ url:d.url, fp:d.fp, from:d.from, frac:d.frac,
                            fx:d.fx, kindFix:d.kindFix }));
   }, od[0]);
@@ -192,6 +202,41 @@ if(od){
   ok(список.some(d => /з-картки/.test(d.url)),
     'логотипи з картки клієнта лишаються в тому ж ряду — вони теж «що можна покласти»',
     'логотип із картки клієнта зник із галереї');
+
+  /* ОДИН ЛОГОТИП, ТРИ ФАЙЛИ — ОДНА ПЛИТКА.
+
+     Саме так це й виглядало в живому замовленні: у смужці три однакові на
+     вигляд квадратики, у рахунку три підготовки макета. Логотип один,
+     просто завантажений тричі — кожне зняття фону віддає СВІЙ файл, і
+     адреси в них різні. Плитки зводились за адресою, тому й троїлись.
+
+     Тепер вони зводяться тим самим правилом, що й гроші: адреса АБО досить
+     схожі пікселі. Кількість плиток стала чесною відповіддю на питання
+     «скільки макетів я оплачую». */
+  const троє = await p.evaluate((код) => {
+    const ОСН   = '4'.repeat(432) + '|' + '4'.repeat(144);
+    const БЛИЗЬ = f => f.repeat(150) + '4'.repeat(432 - 150) + '|' + '4'.repeat(144);
+    const шар = (url, fp) => ({ url, fp, frac:0.3, fx:0, fy:0, rot:0, removeBg:true });
+    const cartItems = [
+      { name:'Футболка', config:{ logos:{ front:[шар('https://cdn/cm-1.png', ОСН)] } } },
+      { name:'Худі',     config:{ logos:{ front:[шар('https://cdn/cm-2.png', БЛИЗЬ('5'))] } } },
+      { name:'Світшот',  config:{ logos:{ front:[шар('https://cdn/cm-3.png', БЛИЗЬ('3'))] } } }
+    ];
+    /* Щойно доданий макет лежить на ВІДКРИТІЙ позиції й ще не в кошику.
+       Доти він у галереї не зʼявлявся зовсім — виглядало як «додається
+       тільки перший». */
+    const pm = { logos:{ front:[шар('https://cdn/нове.png', '0'.repeat(432) + '|' + '4'.repeat(144))] } };
+    const f2 = new Function('cartItems', 'orderLogos', 'pm',
+                            код + '; return orderDesigns;')(cartItems, () => [], pm);
+    return f2().map(d => d.url);
+  }, od[0]);
+  console.log('   у галереї: ' + троє.map(u => u.split('/').pop()).join(' · '));
+  ok(троє.filter(u => /cm-/.test(u)).length === 1,
+    'той самий логотип із трьох різних файлів стоїть однією плиткою',
+    'логотип розʼїхався на кілька плиток: ' + JSON.stringify(троє));
+  ok(троє.some(u => /нове/.test(u)),
+    'щойно доданий макет відкритої позиції одразу видно в галереї',
+    'новий макет у галерею не потрапив — саме це й виглядало як «додається тільки перший»');
 }
 
 console.log('');
@@ -224,7 +269,10 @@ if(olh && od){
     od[0].replace('var cart = (typeof cartItems !== \'undefined\' && cartItems) ? cartItems : [];',
       'var cart = [{ name:"Худі", config:{ logos:{ front:[{ url:"https://cdn/a.png", fp:"A" }] } } },' +
       ' { name:"Кепка", config:{ logos:{ front:[{ url:"https://cdn/b.png", fp:"B" }] } } }];')
-      .replace('orderLogos().forEach', '[].forEach'),
+      .replace('orderLogos().forEach', '[].forEach')
+      /* Відкритої позиції в цих перевірках немає — тут ідеться про розмітку
+         блока, а не про те, звідки беруться макети. */
+      .replace('Object.keys(pm.logos || {})', 'Object.keys({})'),
     olh[0]
   ]);
   console.log('   ' + (вигляд.є.match(/<div class="lqo-l">([^<]*)/) || [])[1]);
@@ -287,7 +335,10 @@ if(olh && od){
   }, [
     od[0].replace('var cart = (typeof cartItems !== \'undefined\' && cartItems) ? cartItems : [];',
       'var cart = [{ name:"Худі", config:{ logos:{ front:[{ url:"https://cdn/a.png", fp:"A" }] } } }];')
-      .replace('orderLogos().forEach', '[].forEach'),
+      .replace('orderLogos().forEach', '[].forEach')
+      /* Відкритої позиції в цих перевірках немає — тут ідеться про розмітку
+         блока, а не про те, звідки беруться макети. */
+      .replace('Object.keys(pm.logos || {})', 'Object.keys({})'),
     olh[0]
   ]);
   ok(уПанелі.без,

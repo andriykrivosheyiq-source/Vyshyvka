@@ -694,6 +694,10 @@
   .t-calc-dg button{all:unset;cursor:pointer;font-size:11.5px;color:var(--muted);
     padding:4px 9px;border-radius:7px;border:1px solid var(--line);background:#fff;}
   .t-calc-dg button:hover{color:var(--ink);border-color:var(--ink-soft);}
+  /* Версія рушія — довідка, а не дія: тримається праворуч і не тягне на себе
+     увагу, поки її не шукають. */
+  .t-calc-ver{margin-left:auto;align-self:center;font-size:11px;color:var(--muted);
+    font-variant-numeric:tabular-nums;cursor:help;}
   .t-margin{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;
     border-radius:10px;padding:11px 14px;margin-top:8px;font-variant-numeric:tabular-nums;}
   .t-margin.good{background:var(--good-soft);color:var(--good);}
@@ -5168,18 +5172,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0360019fac"></script>
-<script src="loomiq-fingerprint.js?v=0360019fac"></script>
-<script src="loomiq-pricing.js?v=0360019fac"></script>
+<script src="loomiq-select.js?v=9c61a2520d"></script>
+<script src="loomiq-fingerprint.js?v=9c61a2520d"></script>
+<script src="loomiq-pricing.js?v=9c61a2520d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0360019fac"></script>
+<script src="loomiq-design.js?v=9c61a2520d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=0360019fac"></script>
+<script src="loomiq-cards.js?v=9c61a2520d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9652,8 +9656,32 @@ function priceCalcHtml(o){
     '<div class="t-calc-dg">' +
       '<button type="button" data-calc-dg="file">Зберегти прорахунок</button>' +
       '<button type="button" data-calc-dg="copy">Скопіювати</button>' +
+      '<span class="t-calc-ver" title="Версія рушія цін, який зараз відкритий у ' +
+        'браузері. Якщо виправлене досі не виправлене — найчастіше браузер ' +
+        'тримає стару версію: оновіть сторінку з Ctrl+Shift+R.">рушій ' +
+        escapeHtml(engineVersion()) + '</span>' +
     '</div>' +
     '</div></details>';
+}
+/* ЯКА ВЕРСІЯ РУШІЯ ЗАРАЗ ВІДКРИТА.
+
+   «Нічого не змінилось» — і ні менеджер, ні той, хто правив, не можуть
+   сказати, чи браузер узагалі взяв новий код. Сторінка своєї версії не
+   має, скрипти приходять із позначкою в адресі — але подивитись на неї
+   можна було лише в інструментах розробника.
+
+   Тому беремо позначку прямо з адреси завантаженого файлу рушія й пишемо
+   її там, де питання про гроші й ставлять. Одна секунда замість години
+   здогадок.
+
+   Скрипт міг приїхати без позначки (локальний запуск, старий кадр) — тоді
+   так і кажемо, а не вигадуємо номер. */
+function engineVersion(){
+  try{
+    const s = document.querySelector('script[src*="loomiq-pricing.js"]');
+    const m = s && /[?&]v=([A-Za-z0-9]+)/.exec(s.getAttribute('src') || '');
+    return m ? m[1] : 'без позначки';
+  }catch(e){ return 'невідома'; }
 }
 /* ══════════ ВИВАНТАЖЕННЯ ПРОРАХУНКУ ══════════
    «Дуже дивно рахує разову за дизайн» — і далі півгодини переказу по
@@ -10475,8 +10503,23 @@ function offerCalcRows(it, o){
        рушій приєднує дизайн до першої групи. Менеджеру це треба бачити: від
        цього залежить, чи довіряти номеру групи. */
     const fp = String(((it.desc && it.desc.designs) || [])[d.i] || '');
-    const how = !fp ? ' · відбиток не знявся, приєднано до першого макета'
-              : (fp.indexOf('u:') === 0 ? ' · звірено за файлом, не за пікселями' : '');
+    let how = !fp ? ' · відбиток не знявся, приєднано до першого макета'
+            : (fp.indexOf('u:') === 0 ? ' · звірено за файлом, не за пікселями' : '');
+    /* НАСКІЛЬКИ БЛИЗЬКО ПІДІЙШЛО — ЦИФРОЮ.
+
+       «Логотип один, а рахує два» неможливо було ні довести, ні спростувати:
+       на екрані видно картинки, а рушій рахує за відбитками, яких не видно
+       зовсім. Тепер видно обидві ознаки, за якими він вирішує.
+
+       Межа злиття — 8%: усе, що ближче, вже один макет. Тож коли тут стоїть
+       «9%», причина не в логіці груп, а в тому, що пікселі справді
+       розійшлись — і рятує лише спільна адреса файлу. Коли її немає, так і
+       написано: саме це й треба виправити, поклавши макет із галереї. */
+    if(d.near != null && d.near > 0)
+      how += ' · найближчий інший макет: ' + Math.round(d.near * 100) +
+             '% різниці (зводимо до 8%)';
+    if(fp && fp.indexOf('u:') !== 0)
+      how += d.byFile ? ' · адреса файлу відома' : ' · адреси файлу немає, звіряємо лише пікселі';
     /* Дизайн, за який не беремо. Він стоїть окремим рядком із власним
        перемикачем — і саме тому його можна повернути в оплату: інакше
        вимкнений дизайн зник би з прорахунку разом із єдиним місцем, де вид
