@@ -482,6 +482,67 @@ ok(!безМежі.мітка && безМежі.вКінці,
   'риска висить там, де все прочитано');
 
 console.log('');
+console.log('═══ «ПРОЧИТАНО» РУКАМИ, І НАЗАД ТЕЖ ═══');
+/* Андрій: «бачу, де є глюки: діалог не прочитаний від клієнта, але по
+   факту це наші просто діалоги в ліву сторону полетіли». Система рахує
+   непрочитане ланцюжком здогадів про те, де чия репліка, — і варто нашій
+   відповіді поїхати ліворуч, як розмова спалахує непрочитаною. Останнє
+   слово має лишатись за людиною. */
+const око = await p.evaluate(async () => {
+  const o = orders[0];
+  const мить = хв => new Date(Date.now() - хв * 60000).toISOString().replace('T', ' ').slice(0, 16);
+  const стрічка = () => [
+    { text:'Порахували', mine:true, at: мить(60), by:'Володимир' },
+    { text:'А є оверсайз?', mine:false, at: мить(20) },
+    { text:'І скільки на 30?', mine:false, at: мить(10) }
+  ];
+  o.crmSeen = ''; o.crmUnread = 2; o.crmTheirs = true;
+  crmChat[o.id] = { chatId:'c83', clientName:'Марта', msgs: стрічка() };
+  chatClose(); chatOpen(o, 'crm');
+  await new Promise(r => setTimeout(r, 400));
+  const до = { кнопка: !!document.querySelector('[data-cw-seen]'),
+               світиться: !!document.querySelector('[data-cw-seen].is-on'),
+               риска: !!document.querySelector('#chatWin [data-crm-new]'),
+               чекає: chatWaiting(o, 'crm') };
+  document.querySelector('[data-cw-seen]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const після = { світиться: !!document.querySelector('[data-cw-seen].is-on'),
+                  риска: !!document.querySelector('#chatWin [data-crm-new]'),
+                  чекає: chatWaiting(o, 'crm'), непрочитаних: +o.crmUnread || 0 };
+  /* Найголовніше: наступний такт опитування не має повернути кружечок. */
+  crmChat[o.id].msgs = crmNormMsgs([
+    { id:'a', text:'Порахували', createdAt: мить(60).replace(' ', 'T') + ':00Z' },
+    { id:'b', text:'А є оверсайз?', createdAt: мить(20).replace(' ', 'T') + ':00Z' },
+    { id:'c', text:'І скільки на 30?', createdAt: мить(10).replace(' ', 'T') + ':00Z' }
+  ], o);
+  const післяТакту = { чекає: chatWaiting(o, 'crm'), непрочитаних: +o.crmUnread || 0 };
+  /* І назад: зняв позначку — кружечок повернувся. */
+  crmChat[o.id].msgs = стрічка();
+  renderChatWin();
+  document.querySelector('[data-cw-seen]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const назад = { світиться: !!document.querySelector('[data-cw-seen].is-on'),
+                  риска: !!document.querySelector('#chatWin [data-crm-new]'),
+                  чекає: chatWaiting(o, 'crm'), непрочитаних: +o.crmUnread || 0 };
+  return { до, після, післяТакту, назад };
+});
+console.log('   до: чекає ' + око.до.чекає + ' · після: чекає ' + око.після.чекає +
+            ' · після такту: чекає ' + око.післяТакту.чекає +
+            ' · назад: ' + око.назад.непрочитаних);
+ok(око.до.кнопка && !око.до.світиться && око.до.чекає,
+  'у шапці є позначка «прочитано», і поки розмова непрочитана вона приглушена',
+  'кнопки прочитання немає або вона світиться там, де є непрочитане');
+ok(!око.після.чекає && око.після.світиться && !око.після.риска,
+  'натиснув — кружечок зник, кнопка засвітилась, риска в стрічці прибралась',
+  'позначка нічого не змінила: ' + JSON.stringify(око.після));
+ok(!око.післяТакту.чекає && око.післяТакту.непрочитаних === 0,
+  'і наступний такт опитування кружечка НЕ повертає — інакше кнопка живе секунду',
+  'опитування затерло позначку: ' + JSON.stringify(око.післяТакту));
+ok(око.назад.чекає && !око.назад.світиться && око.назад.непрочитаних === 2,
+  'зняв позначку — повернулось рівно те, що система рахує сама: дві репліки',
+  'назад не повернулось: ' + JSON.stringify(око.назад));
+
+console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 console.log(bad ? 'розходжень: ' + bad
                 : 'розмова стоїть спокійно й нічого не ховає');

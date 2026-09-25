@@ -1571,6 +1571,12 @@
   .cw-dead{font-size:12px;line-height:1.45;font-weight:600;color:#8E2018;
     background:#FFF1EF;border:1px solid #F3C6C0;border-radius:11px;padding:9px 11px;
     margin-bottom:8px;}
+  /* Позначка «прочитано». Приглушена, поки є непрочитане, і світиться,
+     коли розмову закрито оком: стан кнопки й є відповідь на питання
+     «я це вже дивився?». */
+  .cw-seen{opacity:.55;font-size:15px;}
+  .cw-seen:hover{opacity:.9;}
+  .cw-seen.is-on{opacity:1;}
   .cw-go.is-busy{background:#3A465E;}
   .cw-go.is-busy .cw-spin{border-color:#fff;border-right-color:transparent;}
   @keyframes cw-turn{to{transform:rotate(360deg);}}
@@ -18556,6 +18562,18 @@ function crmNormMsgs(data, o){
      переписуємо точним числом. */
   let tail = 0;
   for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) tail++;
+  /* Прочитане руками більше не непрочитане. Без цієї межі наступний же
+     такт опитування перерахував би хвіст і повернув кружечок — тобто
+     кнопка «прочитано» працювала б рівно до наступної секунди. */
+  const межа = crmSeenAt(o);
+  if(межа){
+    let свіжих = 0;
+    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--)
+      if(!живі[i].at || живі[i].at > межа) свіжих++;
+    tail = свіжих;
+    /* Клієнт озвався після позначки — межа своє відслужила. */
+    if(!tail) o.crmTheirs = false; else o.crmSeen = '';
+  }
   if((+o.crmUnread || 0) !== tail){ o.crmUnread = tail; o.crmTheirs = tail > 0; }
   return list;
 }
@@ -21209,6 +21227,59 @@ function chatMsgs(o, kind){
 
    Підпис менеджера залишився під останнім: він у групі той самий, і
    повторювати його щоразу — це вже шум, а не відомість. */
+/* ══════════ «ПРОЧИТАНО» РУКАМИ ═══════════════════════════════════════
+
+   Непрочитане система рахує сама: скільки клієнт написав після нашої
+   останньої відповіді. Правило добре рівно настільки, наскільки вона
+   правильно розрізняє, де чия репліка, — а розрізняє вона ланцюжком
+   здогадів, бо прямої ознаки Sitniks не дає. Варто нашій відповіді поїхати
+   ліворуч, як розмова спалахує «непрочитаною», хоча клієнт там не сказав
+   ні слова. Андрій це й побачив: «по факту це наші просто діалоги в ліву
+   сторону полетіли».
+
+   Тому додаємо те, чого бракувало: людина дивиться й каже сама. Позначка
+   ставиться на МИТЬ останнього повідомлення, а не просто «нуль»: інакше
+   наступний же такт опитування перерахував би хвіст і повернув кружечок.
+   Знімається так само одним дотиком — помилився або хочеш повернутись
+   пізніше. */
+function chatWaiting(o, kind){
+  if(!o) return false;
+  if(kind === 'tg') return tgUnread(o);
+  return !!(o.crmTheirs || (+o.crmUnread || 0) > 0);
+}
+/* До якої миті розмову прочитано. Усе давніше або рівне не рахується
+   непрочитаним — ні в кружечку на картці, ні рискою в стрічці. */
+function crmSeenAt(o){ return String((o && o.crmSeen) || ''); }
+function chatSeenToggle(o, kind){
+  if(!o) return;
+  const було = chatWaiting(o, kind);
+  if(kind === 'tg'){
+    if(було){ o.tgSeen = o.tgAt; o.tgSeenWrote = +o.tgWrote || 0; }
+    else { o.tgSeen = ''; o.tgSeenWrote = null; }
+  } else if(було){
+    /* Мить останньої репліки в стрічці, а як її немає — час картки. */
+    const st = crmChat[o.id] || {};
+    const остання = (st.msgs || []).filter(m => m && m.at).map(m => m.at).sort().pop();
+    o.crmSeen = остання || o.crmAt || new Date().toISOString().replace('T', ' ').slice(0, 16);
+    o.crmUnread = 0; o.crmTheirs = false;
+  } else {
+    o.crmSeen = '';
+    /* Повертаємо рівно те, що система рахує сама: хвіст клієнтських реплік
+       після нашої останньої відповіді. Вигадувати одиницю не можна — вона
+       розійдеться з тим, що покаже наступний такт. */
+    const st = crmChat[o.id] || {};
+    let хвіст = 0;
+    const живі = (st.msgs || []).filter(m => m && !m.gone);
+    for(let i = живі.length - 1; i >= 0 && !живі[i].mine; i--) хвіст++;
+    o.crmUnread = хвіст || 1;
+    o.crmTheirs = true;
+  }
+  saveOrders({ quiet:true }).then(renderBoard).catch(e => console.warn('прочитано', e));
+  renderBoard();
+  renderChatWin();
+  try{ renderOrderDrawer(); }catch(e){}
+  toast(було ? 'Позначено прочитаним' : 'Повернуто в непрочитані');
+}
 function chatRowsHtml(msgs){
   let lastDay = '';
   const list = msgs || [];
@@ -21233,6 +21304,18 @@ function chatRowsHtml(msgs){
       i--;
     }
     if(n > 0 && i >= 0) межа = i + 1;
+  }
+  /* Прочитане руками риски не має. Менеджер сказав «я це бачив» — і
+     повертати йому червону смугу на тому ж місці означає не вірити. */
+  if(межа >= 0){
+    const до = (typeof crmSeenAt === 'function' && chatWin)
+      ? crmSeenAt((orders || []).find(x => x.id === chatWin.id)) : '';
+    if(до){
+      let свіже = -1;
+      for(let k = межа; k < list.length; k++)
+        if(list[k] && !list[k].gone && (!list[k].at || list[k].at > до)){ свіже = k; break; }
+      межа = свіже;
+    }
   }
   const новихN = (межа >= 0) ? list.slice(межа).filter(m => m && !m.gone).length : 0;
   return list.map((m, i) => {
@@ -21812,6 +21895,7 @@ function renderChatWin(toBottom){
   /* Вікно відповіді рахуємо лише для Instagram: у Telegram такого
      обмеження немає, і вигадувати його там означало б лякати дарма. */
   const win = isTg ? null : crmWindow(o);
+  const прочитано = !chatWaiting(o, chatWin.kind);
 
   const qr = chatWin.qr ? `<div class="cw-qr">${qrPanelHtml(o)}</div>` : '';
   const cards = chatWin.cards ? cardsPanelHtml(o) : '';
@@ -21864,6 +21948,22 @@ function renderChatWin(toBottom){
       ${(!isTg && canSetup())
         ? `<button class="cw-x" data-cw-sniff title="Знайти, яким полем Sitniks приймає картинку">🔎</button>`
         : ''}
+      ${/* ПРОЧИТАНО — РУКАМИ.
+
+           Непрочитане система рахує сама: скільки клієнт написав після
+           нашої останньої відповіді. Правило добре, поки вона правильно
+           розрізняє, де чия репліка, — а вона розрізняє її ланцюжком
+           здогадів, і Sitniks їй у цьому не помічник. Варто нашій
+           відповіді поїхати ліворуч, як розмова стає «непрочитаною», хоча
+           там немає жодного слова клієнта.
+
+           Тому останнє слово лишається за людиною: подивився — натиснув.
+           І назад так само: помилився або хочеш повернутись до розмови
+           пізніше — зняв позначку, кружечок повертається. */''}
+      <button class="cw-x cw-seen${прочитано ? ' is-on' : ''}" data-cw-seen
+        title="${прочитано ? 'Позначити непрочитаним — кружечок повернеться'
+                           : 'Позначити прочитаним — зняти кружечок із картки'}"
+        aria-label="${прочитано ? 'Позначити непрочитаним' : 'Позначити прочитаним'}">👁</button>
       <button class="cw-x" data-cw-close aria-label="Закрити">✕</button>
     </div>
     <div class="cw-feed">${keepFeed ? '' : feed}</div>
@@ -22036,6 +22136,8 @@ async function chatTake(list){
 
 function wireChatWin(box, o, focusIn){
   box.querySelector('[data-cw-close]').addEventListener('click', chatClose);
+  const seenB = box.querySelector('[data-cw-seen]');
+  if(seenB) seenB.addEventListener('click', ()=> chatSeenToggle(o, chatWin.kind));
   const card = box.querySelector('[data-cw-card]');
   if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
   const inp = box.querySelector('.cw-inp');
