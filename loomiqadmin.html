@@ -3522,13 +3522,12 @@
     background:#fff;}
   .dz-u-h{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
   .dz-u-acts{display:flex;gap:4px;flex:none;margin-left:auto;}
-  .dz-u-f{display:grid;grid-template-columns:1.4fr 1fr 0.8fr 0.7fr;gap:8px;}
-  .dz-u-f label{display:flex;flex-direction:column;gap:3px;min-width:0;}
-  .dz-u-f span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
-    letter-spacing:.04em;font-weight:600;}
-  .dz-u-f select,.dz-u-f input{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
-    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;min-width:0;}
-  .dz-u-f select:focus,.dz-u-f input:focus{border-color:var(--accent);}
+  /* Один ряд: виріб · колір · розмір · кількість. Підписи всередині полів —
+     ряд заголовків над ними займав рядок і не додавав нічого. */
+  .dz-u-f{display:grid;grid-template-columns:1.6fr 1fr 0.7fr 0.55fr;gap:6px;}
+  .dz-qty{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;text-align:center;
+    border:1px solid var(--line);border-radius:8px;padding:7px 4px;outline:none;min-width:0;}
+  .dz-qty:focus{border-color:var(--accent);}
   /* Виріб, колір і розмір обираються з каталогу — тобто це кнопки, а не
      поля. Виглядають як поля навмисно: ряд має читатись однією смужкою, а
      не розпадатись на «три кнопки й одне поле». */
@@ -3579,6 +3578,7 @@
   .dz-card-w{position:relative;}
   /* Сума — головне число картки: за ним обирають, за що братись. Велике
      замовлення має бути видно, не вчитуючись. */
+  .dz-card-nick{display:block;font-size:11.5px;color:var(--accent);margin-top:2px;}
   .dz-card-sum{display:block;font-size:15px;font-weight:700;color:var(--ink);
     margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
   .dz-card-sum.big{font-size:19px;}
@@ -3588,9 +3588,18 @@
   /* «Чекають відповіді» — найтихіша поломка відділу: дизайнер спитав і
      стоїть, а картка виглядає робочою. */
   .dz-m-wait{background:#FFF4E0;color:#8A6410;}
-  .dz-card-ig{all:unset;cursor:pointer;display:block;margin:6px 0 0;font-size:11px;
-    font-weight:700;color:#C13584;background:#FCEEF5;border-radius:7px;padding:4px 9px;
-    text-align:center;}
+  /* Кнопка розмови лежить усередині картки, в її нижньому краї: окремим
+     елементом під карткою вона читалась як чужа й зʼїжджала з краю. */
+  .dz-card-w{position:relative;display:flex;flex-direction:column;
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;}
+  .dz-card-w:hover{border-color:#C3CBD8;box-shadow:0 4px 14px rgba(15,32,52,.08);}
+  .dz-card-w > .dz-card{border:0;border-radius:0;background:transparent;}
+  .dz-card-w > .dz-card:hover{box-shadow:none;}
+  .dz-card-w > .dz-card.on{box-shadow:inset 0 0 0 2px rgba(46,144,250,.35);}
+  .dz-card-ig{all:unset;cursor:pointer;display:block;font-size:11px;
+    font-weight:700;color:#C13584;background:#FCEEF5;padding:7px 9px;
+    text-align:center;border-top:1px solid var(--line);}
   .dz-card-ig:hover{background:#F8DDEB;}
   /* Передача: прикріпити — одне, відправити — інше. */
   .dz-b.wide{display:block;width:100%;box-sizing:border-box;text-align:center;}
@@ -3680,13 +3689,18 @@
   .dz-dz{border:1px solid var(--line);border-radius:9px;padding:6px;margin-bottom:6px;
     background:#fff;}
   .dz-dz.open{border-color:#C3CBD8;box-shadow:0 3px 12px rgba(15,32,52,.07);}
-  .dz-dz-r{display:flex;align-items:center;gap:5px;}
+  .dz-dz-t{display:flex;align-items:center;gap:6px;padding:2px;}
+  .dz-dz-go{all:unset;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;
+    gap:7px;padding:5px 6px;border-radius:7px;font-size:12px;color:var(--ink-soft);}
+  .dz-dz-go:hover{background:var(--canvas);}
+  .dz-dz-go > b{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--ink);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Стан — під іменем, а не поруч: удвох в один рядок вони не влазять у
+     вузьку колонку, і обидва виходять обрізаними. */
+  .dz-dz-go{flex-wrap:wrap;}
+  .dz-dz-go > .dz-dz-st{flex:none;}
   /* Смужка стану: чи передано, кому, скільки версій і чи є непрочитане.
      Вона ж і кнопка — розгортати блок за окремий значок означає цілитись. */
-  .dz-dz-t{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;width:100%;
-    box-sizing:border-box;margin-top:6px;padding:4px 2px;font-size:11px;color:var(--ink-soft);}
-  .dz-dz-t:hover{color:var(--ink);}
-  .dz-dz-t em{margin-left:auto;font-style:normal;color:var(--muted);}
   .dz-dz-st{font-style:normal;font-weight:700;padding:1px 7px;border-radius:6px;
     background:#EEF1F5;color:var(--ink-soft);}
   .dz-dz-st.s-work{background:#EAF2FE;color:#1B4F9C;}
@@ -3695,7 +3709,7 @@
   .dz-dz-st.s-approved{background:#E7F6EC;color:#1B6B3A;}
   /* Непрочитане — числом, і воно ж піднімає картку в дизайнера. Крапка без
      числа не каже, одна там правка чи сім. */
-  .dz-dz-new{flex:none;min-width:17px;height:17px;border-radius:9px;background:#E4572E;
+  .dz-dz-new{flex:none;margin-left:auto;min-width:17px;height:17px;border-radius:9px;background:#E4572E;
     color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;
     justify-content:center;padding:0 5px;}
   .dz-dz-b{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
@@ -5492,18 +5506,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=31b51901a5"></script>
-<script src="loomiq-fingerprint.js?v=31b51901a5"></script>
-<script src="loomiq-pricing.js?v=31b51901a5"></script>
+<script src="loomiq-select.js?v=3b9bc78d92"></script>
+<script src="loomiq-fingerprint.js?v=3b9bc78d92"></script>
+<script src="loomiq-pricing.js?v=3b9bc78d92"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=31b51901a5"></script>
+<script src="loomiq-design.js?v=3b9bc78d92"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=31b51901a5"></script>
+<script src="loomiq-cards.js?v=3b9bc78d92"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5528,7 +5542,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '31b51901a5';
+var LQ_VER = '3b9bc78d92';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
