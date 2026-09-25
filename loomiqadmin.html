@@ -3312,7 +3312,20 @@
   .dz-wrap{display:flex;gap:16px;align-items:flex-start;}
   .dz-boards{flex:1;min-width:0;overflow-x:auto;}
   .dz-board{display:flex;gap:10px;min-width:min-content;}
-  .dz-col{flex:0 0 168px;background:var(--canvas);border-radius:12px;padding:8px;}
+  /* ── ВОРОНКА B2C ЖИВЕ ЗА ТИМИ САМИМИ ПРАВИЛАМИ, ЩО Й B2B ──────────────
+
+     Андрій: «в замовленнях B2B все класно виглядає, повністю притиснута
+     права панелька, все вижимається; B2C це не так, вона якась своя».
+
+     І це була не примха вигляду. Людина працює в обох напрямах щодня, і
+     коли та сама дія виглядає по-різному, вона щоразу наново вчиться
+     читати екран. Тому колонки, картки й права панель тут — ті самі, що в
+     Канбані: колонка без підкладки, картка біла на аркуші, панель
+     притиснута до правого краю на всю висоту, а решта екрана гасне.
+
+     Наповнення лишається своє: у B2C інші кроки й інші поля. Однакова
+     оболонка, різний зміст — саме так і має бути. */
+  .dz-col{flex:0 0 232px;background:transparent;border-radius:12px;padding:4px 6px 12px;}
   .dz-col-h{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;
     letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);padding:2px 4px 8px;}
   .dz-col-h i{margin-left:auto;font-style:normal;font-weight:700;color:var(--ink-soft);}
@@ -3320,25 +3333,30 @@
   .dz-dot.is-blue{background:#2E90FA;} .dz-dot.is-violet{background:#7A5AF8;}
   .dz-dot.is-amber{background:#F79009;} .dz-dot.is-green{background:#12B76A;}
   .dz-dot.is-cyan{background:#06AED4;} .dz-dot.is-rose{background:#F04438;}
-  .dz-col-b{display:flex;flex-direction:column;gap:6px;}
-  .dz-card{text-align:left;font:inherit;background:#fff;border:1px solid var(--line);
-    border-radius:10px;padding:8px 9px;cursor:pointer;display:block;width:100%;}
+  .dz-col-b{display:flex;flex-direction:column;gap:10px;}
+  /* Картка більша: у неї вміщається те саме, що в квиток Канбану, — і
+     читається вона так само з відстані витягнутої руки. */
+  .dz-card{text-align:left;font:inherit;background:var(--paper);border:1px solid var(--line);
+    border-radius:var(--r-card,14px);padding:13px 14px;cursor:pointer;display:block;width:100%;
+    box-shadow:0 1px 2px rgba(15,32,52,.05);transition:border-color .12s,box-shadow .12s;}
+  .dz-card:hover{border-color:#C3CBD8;box-shadow:0 4px 14px rgba(15,32,52,.08);}
   .dz-card.on{border-color:#2E90FA;box-shadow:0 0 0 2px rgba(46,144,250,.16);}
-  .dz-card b{display:block;font-size:13px;color:var(--ink);}
-  .dz-card span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;
+  .dz-card b{display:block;font-size:14px;font-weight:700;color:var(--ink);}
+  .dz-card span{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .dz-card i{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);margin-top:4px;}
+  .dz-card i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
   .dz-empty{font-size:11.5px;color:var(--ink-soft);padding:6px 4px;}
-  /* Панель відділу — повноцінна права зона, а не вузьке віконце збоку.
-     У ній і заповнюють, і завантажують усе: та сама роль, що в картки
-     замовлення на дошці, отже й ширина, і тінь, і липка позиція мають бути
-     ті самі. На 400 пікселях склад замовлення з кольорами й розмірами
-     перетворювався на стовпчик із переносами. */
-  .dz-panel{flex:0 0 min(520px,46vw);background:#fff;border:1px solid var(--line);
-    border-radius:14px;position:sticky;top:12px;align-self:flex-start;
-    max-height:calc(100vh - 120px);display:flex;flex-direction:column;overflow:hidden;
-    box-shadow:-8px 0 30px rgba(15,32,52,.10);}
+  /* Панель відділу — та сама права зона, що й картка замовлення в Канбані:
+     притиснута до краю на всю висоту, тієї самої ширини, з тією самою
+     тінню. Доти вона стояла стовпчиком у потоці — і читалась як «щось
+     своє», хоча роль у неї рівно та сама. */
+  .dz-panel{position:fixed;top:0;right:0;bottom:0;z-index:200;
+    width:min(var(--od-w),100%);background:#fff;border:0;border-radius:0;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
   .dz-panel.hide{display:none;}
+  /* Решта екрана гасне, поки панель відкрита: увага там, де працюють. */
+  .dz-wrap:has(> .dz-panel:not(.hide))::after{content:'';position:fixed;inset:0;z-index:199;
+    background:rgba(16,24,40,.45);}
   /* Шапка картки відділу — та сама система, що й у Канбані: номер великим,
      стан плашкою поруч. Доти тут стояв самий номер жирним і сірий рядок
      стану, і картка читалась як службове вікно, а не як робоче місце. */
@@ -3521,7 +3539,10 @@
   .dz-back.is-client{color:#B54708;background:#FFFAEB;}
   @media (max-width:900px){
     .dz-wrap{flex-direction:column;}
-    .dz-panel{flex:none;width:100%;max-height:none;}
+    /* На вузькому екрані панель займає його весь — так само, як картка
+       замовлення в Канбані: один рівень на екран. */
+    .dz-panel{width:100%;max-height:none;}
+    .dz-col{flex:0 0 min(84vw,272px);}
   }
 </style>
 </head>
@@ -23693,6 +23714,18 @@ async function designSave(job, o){
 function openDesign(){
   const root = document.getElementById('dzRoot');
   if(!root || !window.LQDesign || !window.LQDesign.ui) return;
+  /* Панель відділу закривається тим самим рухом, що й картка замовлення:
+     Escape. Доти єдиним способом був хрестик у її шапці — а рука, звикла
+     до Канбану, тиснула Escape й нічого не діставала. Однакова оболонка —
+     це ще й однакові клавіші, а не лише однакові рамки. */
+  if(!openDesign.esc){
+    openDesign.esc = true;
+    document.addEventListener('keydown', e=>{
+      if(e.key !== 'Escape' || chatWin) return;
+      const x = document.querySelector('#dzRoot .dz-panel:not(.hide) [data-close]');
+      if(x) x.click();
+    });
+  }
   watchDesign();
   const me = myEmail() || '';
   const mine = (accOf(teamMember(me) || {}).ui === 'designer');
