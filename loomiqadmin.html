@@ -3545,6 +3545,16 @@
   .dz-b.wide{display:block;width:100%;box-sizing:border-box;text-align:center;}
   /* Дія, потрібна рідко й лише на помилку: лишається доступною, але не
      тягне на себе увагу поруч із головною кнопкою. */
+  /* Смужка «вийшла нова версія». Унизу й спокійна: це не помилка, а
+     новина, і перебивати нею роботу не можна — людина може саме зараз
+     писати клієнту. */
+  #lq-newver{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:3000;
+    display:flex;align-items:center;gap:12px;max-width:min(680px,calc(100vw - 24px));
+    background:var(--ink);color:#fff;border-radius:12px;padding:11px 14px;
+    box-shadow:0 10px 30px rgba(15,32,52,.28);font-size:13px;line-height:1.4;}
+  #lq-newver button{all:unset;cursor:pointer;flex:none;background:#fff;color:var(--ink);
+    font-weight:700;font-size:13px;border-radius:9px;padding:7px 14px;}
+  #lq-newver button:hover{background:#EEF1F5;}
   .dz-b.dz-quiet{border-color:transparent;color:var(--muted);padding:4px 8px;}
   /* Написати клієнту — унизу блока, кольором каналу: очима вона
      знаходиться за півсекунди, і ні з чим іншим не плутається. */
@@ -5402,21 +5412,75 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ef9ac52a04"></script>
-<script src="loomiq-fingerprint.js?v=ef9ac52a04"></script>
-<script src="loomiq-pricing.js?v=ef9ac52a04"></script>
+<script src="loomiq-select.js?v=9d32ce8536"></script>
+<script src="loomiq-fingerprint.js?v=9d32ce8536"></script>
+<script src="loomiq-pricing.js?v=9d32ce8536"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ef9ac52a04"></script>
+<script src="loomiq-design.js?v=9d32ce8536"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ef9ac52a04"></script>
+<script src="loomiq-cards.js?v=9d32ce8536"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ══════════ СТОРІНКА САМА ПОМІЧАЄ, ЩО ВИЙШЛА НОВА ══════════
+
+   Позначка `?v=` в адресах рятує лише скрипти. У самої сторінки адреси з
+   позначкою немає, тож браузер тримає її стільки, скільки вважає за
+   потрібне, — і людина дивиться на вчорашню розмітку з учорашніми стилями,
+   хоч скрипти вже нові. Зовні це не відрізнити від «нічого не зробили», і
+   саме так воно й виглядало: «я не бачу змін ні в чатах, ні в канбані».
+
+   Тому питаємо збірку: крихітний build.json із номером. Не збігається з
+   тим, із яким нас відкрили, — кажемо про це смужкою внизу й даємо кнопку,
+   яка перезавантажує сторінку повз кеш. Мовчки не перезавантажуємо ніколи:
+   людина може саме зараз писати клієнту.
+
+   Номер підставляє збірка. Поки її не проганяли, тут `dev` — і перевірка
+   просто мовчить, бо порівнювати нема з чим.
+
+   Назва НЕ `LQ_BUILD`: так уже зветься мітка цього завантаження, якою
+   адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
+   порівнювати з нею версію збірки безглуздо — а однакові імена в одній
+   області видимості просто затирають одне одного. */
+var LQ_VER = '9d32ce8536';
+(function(){
+  if(LQ_VER === 'dev') return;
+  var сказано = false;
+  function показати(нова){
+    if(сказано) return;
+    сказано = true;
+    var d = document.createElement('div');
+    d.id = 'lq-newver';
+    d.innerHTML = '<span>Вийшла нова версія адмінки (' + нова + '). ' +
+      'Поточна сторінка стара — частина змін у ній не працюватиме.</span>' +
+      '<button type="button">Оновити</button>';
+    d.querySelector('button').onclick = function(){
+      /* Повз кеш: звичайне перезавантаження браузер часто віддає з нього ж,
+         і кнопка виглядала б зламаною. */
+      location.replace(location.pathname + '?v=' + нова + location.hash);
+    };
+    document.body.appendChild(d);
+  }
+  function спитати(){
+    if(сказано || document.hidden) return;
+    fetch('build.json?t=' + Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){ if(j && j.v && j.v !== LQ_VER) показати(j.v); })
+      .catch(function(){});
+  }
+  /* Питаємо раз на пʼять хвилин і щоразу, коли повертаються на вкладку:
+     саме тоді людина й починає роботу заново. */
+  setTimeout(спитати, 4000);
+  setInterval(спитати, 300000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) спитати(); });
+})();
+</script>
 <script>
 /* Якщо бібліотека Firebase не долетіла (мобільний інтернет, блокувальник
    реклами, корпоративний Wi-Fi, офлайн), наступний скрипт падає на першому

@@ -445,7 +445,26 @@ def main():
     seljs = open(os.path.join(ROOT, CTOR_SEL), encoding='utf-8').read()
     cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
     design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
-    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design)
+    # НОМЕР ЗБІРКИ РАХУЄМО Й ЗІ СТОРІНОК ТЕЖ.
+    #
+    # Доти він брався лише з файлів рушіїв — а правка в самій сторінці
+    # (розмітка, стилі, обробники) номера не рухала. Виходило найгірше:
+    # сторінка змінилась, номер той самий, тож ні позначка в адресах
+    # скриптів, ні перевірка «чи вийшла нова версія» цього не помічали. З
+    # боку менеджера це виглядало як «нічого не зробили».
+    #
+    # Самі позначки з тексту сторінок прибираємо перед рахунком: інакше
+    # номер залежав би від номера, і жодне число не збіглося б двічі.
+    pages_src = ''
+    for name in STAMPED:
+        pp = os.path.join(ROOT, name)
+        if not os.path.exists(pp):
+            continue
+        t = open(pp, encoding='utf-8').read()
+        t = re.sub(r'\?v=[A-Za-z0-9]+', '?v=', t)
+        t = re.sub(r"LQ_VER\s*=\s*'[^']*'", "LQ_VER = ''", t)
+        pages_src += t
+    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design + pages_src)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
@@ -455,9 +474,19 @@ def main():
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
                       CTOR_CARDS, CTOR_DESIGN):
             new = stamp(new, asset, ver)
+        # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
+        # адреси немає, браузер тримає його стільки, скільки схоче, — і людина
+        # дивиться на вчорашню сторінку з новими скриптами. Найгірше, що зовні
+        # це не відрізнити від «нічого не зробили».
+        new = re.sub(r"LQ_VER\s*=\s*'[^']*'", "LQ_VER = '" + ver + "'", new)
         if new != txt:
             open(path, 'w', encoding='utf-8').write(new)
             print('[%s] версія конструктора → %s' % (name, ver))
+
+    # Той самий номер окремим файлом — його і питає сторінка, щоб дізнатись,
+    # чи не вийшла нова збірка. Файл крихітний, тож перевірка нічого не варта.
+    open(os.path.join(ROOT, 'build.json'), 'w', encoding='utf-8').write(
+        '{"v":"%s"}\n' % ver)
 
     # Каталог знімків читає базовий перелік виробів із коду конструктора.
     # Збираємо його тут же: інакше після зміни в конструкторі каталог тихо
