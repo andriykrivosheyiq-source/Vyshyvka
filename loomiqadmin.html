@@ -3696,6 +3696,16 @@
   .dz-dz{border:1px solid var(--line);border-radius:9px;padding:6px;margin-bottom:6px;
     background:#fff;}
   .dz-dz.open{border-color:#C3CBD8;box-shadow:0 3px 12px rgba(15,32,52,.07);}
+  /* Список цін: назва ліворуч, число праворуч, рядки однакової висоти —
+     погляд іде по числах, а не стрибає за назвами. */
+  .b2c-p-row{display:flex;align-items:center;gap:12px;padding:7px 0;
+    border-bottom:1px solid var(--line-soft);}
+  .b2c-p-row:last-child{border-bottom:0;}
+  .b2c-p-n{flex:1;min-width:0;font-size:13.5px;color:var(--ink);}
+  .b2c-p-row input{width:150px;flex:none;font:inherit;font-size:13.5px;
+    border:1px solid var(--line);border-radius:7px;padding:8px 9px;outline:none;
+    text-align:right;font-variant-numeric:tabular-nums;}
+  .b2c-p-row input:focus{border-color:var(--accent);}
   .dz-dz-t{display:flex;align-items:center;gap:6px;padding:2px;}
   .dz-dz-go{all:unset;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;
     gap:7px;padding:5px 6px;border-radius:7px;font-size:12px;color:var(--ink-soft);}
@@ -4474,7 +4484,20 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       </div>
 
       <div class="card">
-        <div class="tl-divider">Додаткові послуги</div>
+        <!-- ЦІНИ СПИСКОМ, А НЕ ПО КАРТКАХ.
+             Ціна лежить у картці товару — там їй і місце, бо вона належить
+             саме виробу. Але заповнюють їх ГУРТОМ, за один захід: відкрити
+             дев'ять карток, щоб проставити дев'ять чисел, ніхто не буде, і
+             половина лишиться незаповненою. Тому тут той самий список, у
+             який просто вписують ціни підряд. -->
+        <div class="tl-divider">Ціни виробів у роздріб</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Скільки коштує виріб у приватному замовленні. Порожнє — береться базова ціна
+          товару. Це те саме поле, що в картці товару: заповнити можна тут гуртом.
+        </div>
+        <div id="b2c-prices"></div>
+
+        <div class="tl-divider" style="margin-top:22px;">Додаткові послуги</div>
         <div class="sub" style="margin-bottom:8px;">
           Дрібниці, які додають до замовлення поверх вартості виробу: розробка ескізу,
           терміновість, упаковка. Менеджер обирає їх зі списку, а не вписує руками —
@@ -5555,18 +5578,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ce349dc75f"></script>
-<script src="loomiq-fingerprint.js?v=ce349dc75f"></script>
-<script src="loomiq-pricing.js?v=ce349dc75f"></script>
+<script src="loomiq-select.js?v=51b8bf6f75"></script>
+<script src="loomiq-fingerprint.js?v=51b8bf6f75"></script>
+<script src="loomiq-pricing.js?v=51b8bf6f75"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ce349dc75f"></script>
+<script src="loomiq-design.js?v=51b8bf6f75"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ce349dc75f"></script>
+<script src="loomiq-cards.js?v=51b8bf6f75"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5591,7 +5614,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ce349dc75f';
+var LQ_VER = '51b8bf6f75';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -7669,6 +7692,39 @@ function paintB2c(){
   paintExtras(c.extras);
   const d = document.getElementById('b2c-days');
   if(d) d.value = c.days || '';
+  paintB2cPrices();
+}
+/* Усі товари списком, з полем ціни навпроти кожного. Порожнє поле каже, що
+   візьметься базова ціна, і показує її ж підказкою — інакше «порожньо»
+   читалось би як «безкоштовно». */
+function paintB2cPrices(){
+  const box = document.getElementById('b2c-prices');
+  if(!box) return;
+  const prod = contentData.products || {};
+  const retail = prod.retail || {};
+  const pricing = curSitePricing();
+  const bp = pricing.basePrices || {};
+  box.innerHTML = allPhotoCfg().map(g => {
+    const base = (bp[g.id] != null) ? bp[g.id]
+               : (DEFAULT_SITE_PRICING.basePrices[g.id] != null ? DEFAULT_SITE_PRICING.basePrices[g.id] : '');
+    const name = (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', '');
+    return `<div class="b2c-p-row">
+      <span class="b2c-p-n">${escapeHtml(name)}</span>
+      <input data-b2c-price="${escapeHtml(g.id)}" type="number" min="0" step="1"
+        value="${retail[g.id] != null ? retail[g.id] : ''}"
+        placeholder="${base ? ('як базова: ' + base) : 'як базова'}">
+    </div>`;
+  }).join('');
+}
+function readB2cPrices(){
+  const box = document.getElementById('b2c-prices');
+  const out = {};
+  if(!box) return out;
+  box.querySelectorAll('[data-b2c-price]').forEach(el=>{
+    const v = Math.max(0, Math.round(parseFloat(el.value) || 0));
+    if(v > 0) out[el.dataset.b2cPrice] = v;
+  });
+  return out;
 }
 (function(){
   const b = document.getElementById('b2c-save');
@@ -7676,9 +7732,18 @@ function paintB2c(){
   b.addEventListener('click', async ()=>{
     const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
     const b2c = { extras: readExtras(), days: days || null };
+    /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
+       список цін рано чи пізно розійшовся б із першим, і з двох чисел було
+       б невідомо, яке справжнє. */
+    const цін = readB2cPrices();
+    const DEL = firebase.firestore.FieldValue.delete();
+    const retail = {};
+    allPhotoCfg().forEach(g => { retail[g.id] = (цін[g.id] > 0) ? цін[g.id] : DEL; });
     try{
-      await PHOTOS_DOC.set({ b2c }, { merge:true });
+      await PHOTOS_DOC.set({ b2c, products: { retail } }, { merge:true });
       contentData.b2c = b2c;
+      contentData.products = contentData.products || {};
+      contentData.products.retail = цін;
       toast('Збережено');
     }catch(e){ console.error(e); toast('Не збереглось'); }
   });
