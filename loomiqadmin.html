@@ -3425,6 +3425,87 @@
   .dz-u-f select,.dz-u-f input{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
     border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;min-width:0;}
   .dz-u-f select:focus,.dz-u-f input:focus{border-color:var(--accent);}
+  /* Виріб, колір і розмір обираються з каталогу — тобто це кнопки, а не
+     поля. Виглядають як поля навмисно: ряд має читатись однією смужкою, а
+     не розпадатись на «три кнопки й одне поле». */
+  .dz-pickb{font:inherit;font-size:12.5px;color:var(--ink-soft);background:#fff;text-align:left;
+    border:1px dashed var(--line);border-radius:8px;padding:7px 8px;cursor:pointer;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:flex;align-items:center;gap:6px;}
+  .dz-pickb.on{color:var(--ink);font-weight:600;border-style:solid;}
+  .dz-pickb:hover:not(:disabled){border-color:var(--accent);color:var(--ink);}
+  .dz-pickb:disabled{opacity:.5;cursor:not-allowed;}
+  .dz-sw{flex:none;width:12px;height:12px;border-radius:50%;border:1px solid rgba(15,32,52,.18);}
+  /* ТЗ дизайнера: ті самі поля, але читаються. Підпис дрібним над
+     значенням, щоб ряд сканувався поглядом, а не вчитувався. */
+  .dz-u-ro{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink);}
+  .dz-u-ro span{display:flex;align-items:center;gap:5px;font-weight:600;}
+  .dz-u-ro i{font-style:normal;font-size:10.5px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.04em;}
+  .dz-u-ro .dz-sw{width:12px;height:12px;border-radius:50%;
+    border:1px solid rgba(15,32,52,.18);}
+  .dz-u-ronote{margin-top:11px;font-size:12.5px;color:var(--ink);background:#FFF6E6;
+    border:1px solid #F0DCB0;border-radius:9px;padding:8px 10px;white-space:pre-wrap;}
+  .dz-u-ronote i{display:block;font-style:normal;font-size:10.5px;font-weight:700;
+    color:#8A6410;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+  .dz-dz-ro{flex:1;min-width:0;font-size:12.5px;color:var(--ink);}
+  /* Одна колонка, коли дизайнеру показують лише його половину. */
+  .dz-u-dz.one{grid-template-columns:1fr;}
+  .dz-u-pics{margin-top:11px;}
+  .dz-u-note{display:flex;flex-direction:column;gap:3px;margin-top:11px;}
+  .dz-u-note span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;}
+  .dz-u-note textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;resize:vertical;}
+  .dz-u-note textarea:focus{border-color:var(--accent);}
+  /* Рамка замовлення: коли треба й що сказав менеджер. Термін вузький і
+     стоїть першим — його читають поглядом, а не вчитуючись. */
+  .dz-head{display:grid;grid-template-columns:150px 1fr;gap:10px;margin-bottom:12px;}
+  .dz-head label{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .dz-head span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;}
+  .dz-head input,.dz-head textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;}
+  .dz-head textarea{resize:vertical;}
+  .dz-head input:focus,.dz-head textarea:focus{border-color:var(--accent);}
+  /* Строк вийшов — це видно, а не написано дрібним поруч. */
+  .dz-due.late input{border-color:#E4572E;color:#B03A1A;font-weight:700;}
+  /* Каталог поверх панелі. Вибір одягу списком назв не працює: «худі
+     базове» від «худі оверсайз» у ньому не відрізнити, а кольори взагалі
+     читаються як слова, хоч це кольори. */
+  .dz-pick{position:fixed;inset:0;z-index:260;background:rgba(15,32,52,.42);
+    display:flex;align-items:center;justify-content:center;padding:20px;}
+  .dz-pick-w{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);
+    width:min(760px,100%);max-height:min(76vh,720px);display:flex;flex-direction:column;
+    overflow:hidden;}
+  .dz-pick-h{flex:none;display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);}
+  .dz-pick-h b{font-size:15px;color:var(--ink);}
+  .dz-pick-h i{font-style:normal;font-size:12px;color:var(--ink-soft);}
+  .dz-pick-h .dz-x{margin-left:auto;}
+  .dz-pick-b{flex:1;min-height:0;overflow:auto;padding:14px 16px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;
+    align-content:start;}
+  /* Розміри — не картки на пів екрана, а ряд плашок: їх десяток і вони
+     короткі. */
+  .dz-pick-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;}
+  .dz-pick-row .dz-pick-c{width:auto;min-width:74px;}
+  .dz-pick-c{font:inherit;text-align:center;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;gap:7px;color:var(--ink);}
+  .dz-pick-c:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(15,32,52,.08);}
+  .dz-pick-i{display:block;width:100%;aspect-ratio:1;display:flex;align-items:center;
+    justify-content:center;background:#F4F6F9;border-radius:9px;overflow:hidden;}
+  .dz-pick-i img{max-width:100%;max-height:100%;object-fit:contain;}
+  .dz-pick-s{display:block;width:34px;height:34px;border-radius:50%;
+    border:1px solid rgba(15,32,52,.18);}
+  .dz-pick-n{font-size:12.5px;font-weight:600;line-height:1.25;}
+  @media (max-width:767px){
+    .dz-head{grid-template-columns:1fr;}
+    .dz-pick{padding:0;}
+    .dz-pick-w{width:100%;max-height:100%;height:100%;border-radius:0;}
+    .dz-pick-b{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));}
+  }
   /* Графіка й вишивка — дві колонки, відбиті одна від одної. Це не
      оформлення: їх роблять різні люди, і кожен має бачити свою половину з
      першого погляду, а не шукати її серед чужої. */
@@ -3433,7 +3514,61 @@
   .dz-u-col{min-width:0;}
   .dz-u-l{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     color:var(--ink-soft);margin-bottom:6px;}
-  .dz-dz{display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+  /* Один дизайн — власний блок із межею. Розмова, версії й передача
+     належать конкретному нанесенню, тож і межа в нього своя: інакше на
+     виробі з трьома нанесеннями незрозуміло, де закінчується одне. */
+  .dz-dz{border:1px solid var(--line);border-radius:9px;padding:6px;margin-bottom:6px;
+    background:#fff;}
+  .dz-dz.open{border-color:#C3CBD8;box-shadow:0 3px 12px rgba(15,32,52,.07);}
+  .dz-dz-r{display:flex;align-items:center;gap:5px;}
+  /* Смужка стану: чи передано, кому, скільки версій і чи є непрочитане.
+     Вона ж і кнопка — розгортати блок за окремий значок означає цілитись. */
+  .dz-dz-t{all:unset;cursor:pointer;display:flex;align-items:center;gap:7px;width:100%;
+    box-sizing:border-box;margin-top:6px;padding:4px 2px;font-size:11px;color:var(--ink-soft);}
+  .dz-dz-t:hover{color:var(--ink);}
+  .dz-dz-t em{margin-left:auto;font-style:normal;color:var(--muted);}
+  .dz-dz-st{font-style:normal;font-weight:700;padding:1px 7px;border-radius:6px;
+    background:#EEF1F5;color:var(--ink-soft);}
+  .dz-dz-st.s-work{background:#EAF2FE;color:#1B4F9C;}
+  .dz-dz-st.s-review{background:#FFF4E0;color:#8A6410;}
+  .dz-dz-st.s-revision{background:#FDECEA;color:#B03A1A;}
+  .dz-dz-st.s-approved{background:#E7F6EC;color:#1B6B3A;}
+  /* Непрочитане — числом, і воно ж піднімає картку в дизайнера. Крапка без
+     числа не каже, одна там правка чи сім. */
+  .dz-dz-new{flex:none;min-width:17px;height:17px;border-radius:9px;background:#E4572E;
+    color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;
+    justify-content:center;padding:0 5px;}
+  .dz-dz-b{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+    display:flex;flex-direction:column;gap:9px;}
+  .dz-ds{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .dz-ds select{font:inherit;font-size:12px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:7px;padding:6px 7px;outline:none;flex:1;min-width:0;}
+  /* Версії — знизу вгору: остання найпотрібніша, і гортати до неї щоразу
+     означає читати список задом наперед. */
+  .dz-dv{display:flex;flex-direction:column;gap:5px;}
+  .dz-dv-i{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;
+    border:1px solid var(--line);border-radius:8px;padding:6px 8px;}
+  .dz-dv-i.on{border-color:#1B6B3A;background:#F4FBF6;}
+  .dz-dv-i b{font-size:12px;color:var(--ink);}
+  .dz-dv-i span{color:var(--ink-soft);}
+  .dz-dv-i a{color:var(--accent);text-decoration:none;}
+  .dz-dv-i a:hover{text-decoration:underline;}
+  .dz-dv-ok{margin-left:auto;font-style:normal;font-weight:700;color:#1B6B3A;}
+  .dz-dv-i .dz-b{margin-left:auto;}
+  .dz-dt{display:flex;flex-direction:column;gap:7px;}
+  .dz-dt-l{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;}
+  .dz-dt-m{font-size:12px;color:var(--ink);background:#F6F8FA;border-radius:9px;
+    padding:6px 9px;display:flex;flex-direction:column;gap:2px;}
+  .dz-dt-m.k-ok{background:#E7F6EC;}
+  .dz-dt-m.k-ver{background:#EAF2FE;}
+  .dz-dt-m.new{box-shadow:inset 3px 0 0 #E4572E;}
+  .dz-dt-h{font-size:10.5px;color:var(--muted);}
+  .dz-dt-t{white-space:pre-wrap;}
+  .dz-dt a{color:var(--accent);text-decoration:none;font-size:11.5px;}
+  .dz-dt textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;resize:vertical;}
+  .dz-dt textarea:focus{border-color:var(--accent);}
+  .dz-dt-b{display:flex;gap:6px;flex-wrap:wrap;}
   .dz-dz-n{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--ink);background:#fff;
     border:1px solid var(--line);border-radius:7px;padding:6px 7px;outline:none;}
   .dz-dz-s{flex:none;font:inherit;font-size:12px;color:var(--ink-soft);background:#fff;
@@ -5172,18 +5307,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6c1c2e1697"></script>
-<script src="loomiq-fingerprint.js?v=6c1c2e1697"></script>
-<script src="loomiq-pricing.js?v=6c1c2e1697"></script>
+<script src="loomiq-select.js?v=4531383593"></script>
+<script src="loomiq-fingerprint.js?v=4531383593"></script>
+<script src="loomiq-pricing.js?v=4531383593"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=6c1c2e1697"></script>
+<script src="loomiq-design.js?v=4531383593"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=6c1c2e1697"></script>
+<script src="loomiq-cards.js?v=4531383593"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -23854,8 +23989,13 @@ function openDesign(){
     catalog: ()=> allPhotoCfg().map(g => ({
       id: g.id,
       name: (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', ''),
+      /* Фото виробу й фото кожного кольору. Відділ обирає одяг тим самим
+         каталогом, що й усі: списком назв «худі базове» від «худі оверсайз»
+         не відрізнити, а на знімку видно з першого погляду. */
+      pic: prodThumb(g),
       colors: effectiveColors(g.id).map(c => ({ id: c.id, name: c.name || c.id,
-                                                hex: c.hex || '' })),
+                                                hex: c.hex || '',
+                                                pic: photoUrlFor(g.id, c.id, 'front') })),
       /* Розміри — з розмірної сітки товару. Немає сітки — беремо
          звичайний ряд: це краще, ніж порожній список, у якому менеджеру
          нічого обрати. */
@@ -26175,6 +26315,12 @@ function renderProductsTab(){
   }
 }
 
+/* Адреса знімка виробу в конкретному кольорі. Ключ той самий, що й скрізь:
+   <виріб>-<колір>-<ракурс>; перевизначення з налаштувань має перевагу. */
+function photoUrlFor(gid, colorId, view){
+  const key = String(gid || '') + '-' + String(colorId || '') + '-' + String(view || 'front');
+  return (photosMap && photosMap[key]) ? photosMap[key] : ('images/' + key + '.webp');
+}
 /* Мініатюра товару = фронт-фото першого кольору (override або стандартне) */
 function prodThumb(g){
   const c0 = (g.colors && g.colors[0]) ? g.colors[0].id : null;
