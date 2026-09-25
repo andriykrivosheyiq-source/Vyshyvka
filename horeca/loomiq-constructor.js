@@ -5924,18 +5924,6 @@
             'object-fit:contain;vertical-align:middle;margin-right:5px;' +
             'border-radius:4px;background:#fff;border:1px solid #e2e8f0;">';
         }
-        /* Підказка про близнюка. Стоїть рівно там, де людина читає число,
-           яке її здивувало, — у рядку підготовки, а не окремим
-           повідомленням збоку. І каже, що саме робити, а не «щось не так». */
-        function близнюкПідказка(f){
-          if(!f || !f.twin) return '';
-          return ' <span title="Схоже, той самий логотип завантажено двічі: ' +
-            'після зняття фону пікселі різні, і рушій бачить два макети. ' +
-            'Покладіть його на всі вироби з галереї макетів — тоді підготовка ' +
-            'поділиться на всіх." style="font-size:10.5px;font-weight:700;color:#8A6410;' +
-            'background:#FFF6E6;border:1px solid #F0DCB0;border-radius:6px;padding:1px 5px;' +
-            'white-space:nowrap;">схоже на сусідній макет</span>';
-        }
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
@@ -5970,7 +5958,7 @@
                мовчить; тепер не мовчить. */
             tb += r(designPic(f.di) + 'Підготовка макета' + kindPick(f.di, f.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(f.fee) + ' грн ÷ ' +
-                    f.units + ' шт)</span>' + близнюкПідказка(f), money(per), money(perC));
+                    f.units + ' шт)</span>', money(per), money(perC));
           });
           offs.forEach(function(d){
             tb += r(designPic(d.i) + 'Підготовка макета' + kindPick(d.i, 'off') +
@@ -5991,7 +5979,7 @@
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
             tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
-                    x.units + ' шт)</span>' + близнюкПідказка(x), money(per), money(perC));
+                    x.units + ' шт)</span>', money(per), money(perC));
           });
           /* Скільки нанесень і скільки з них ОКРЕМИХ макетів. Найчастіше
              непорозуміння: два логотипи — спереду й ззаду, — а разова одна.
