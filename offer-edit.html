@@ -1078,21 +1078,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=65b25cd719',
+    ['loomiq-select.js?v=6c1c2e1697',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=65b25cd719'].forEach(function(src){
+     'loomiq-cards.js?v=6c1c2e1697'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=65b25cd719';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=65b25cd719';
-  var CTOR_JS   = 'loomiq-constructor.js?v=65b25cd719';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=65b25cd719';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=6c1c2e1697';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=6c1c2e1697';
+  var CTOR_JS   = 'loomiq-constructor.js?v=6c1c2e1697';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=6c1c2e1697';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1709,6 +1709,13 @@
     W.__lqKindFix = W.__lqKindFix || function(fp, url, kind){
       send({ act:'kindFix', fp:String(fp || ''), url:String(url || ''),
              kind:(kind === 'txt' || kind === 'off') ? kind : 'img' });
+    };
+    /* «Це той самий макет» — так само рішення про МАЛЮНОК, не про позицію,
+       і так само має пережити перехід до наступної. Порожній `to` означає
+       «роз’єднати»: малюнок знову рахується своїм макетом. */
+    W.__lqSameFix = W.__lqSameFix || function(fp, url, to){
+      send({ act:'sameFix', fp:String(fp || ''), url:String(url || ''),
+             to:String(to || '') });
     };
     W.__adminSaveClientOrder = W.__adminSaveClientOrder || function(payload){
       return new Promise(function(res, rej){

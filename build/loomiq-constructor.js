@@ -1480,7 +1480,17 @@
         /* Адреса файлу — друга особа дизайну. Відбиток знімається з пікселів
            і в копій одного малюнка на різних виробах різний; файл у них
            спільний, і саме за ним рушій зводить їх в один макет. */
-        urls.push(layerUrl(l));
+        /* `sameAs` — слово менеджера «це той самий макет, що й отой». Воно
+           заміняє адресу файлу канонічною, і далі рушій зводить їх сам, тим
+           самим правилом, що й справжні копії одного файлу. Окремої логіки
+           для «зведених вручну» немає навмисно: що менше правил ділять одну
+           роботу, то менше місць, де вони розійдуться.
+
+           Потрібне це тому, що пікселі відповісти не можуть: на живому
+           замовленні копії одного логотипа розходяться на 4%, а РІЗНІ
+           логотипи — на 4.8%. Автоматика тут або зіллє чуже, або розділить
+           своє; менеджер бачить обидва малюнки й знає точно. */
+        urls.push(String(l.sameAs || '') || layerUrl(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -5920,6 +5930,38 @@
             'object-fit:contain;vertical-align:middle;margin-right:5px;' +
             'border-radius:4px;background:#fff;border:1px solid #e2e8f0;">';
         }
+        /* «ЦЕ ТОЙ САМИЙ МАКЕТ» — СЛОВО МЕНЕДЖЕРА.
+
+           Той самий логотип, завантажений двічі, — два файли з різними
+           пікселями, і рушій чесно рахує два макети. Розвʼязати це
+           автоматично не можна: на живому замовленні копії одного логотипа
+           розходяться на 4%, а РІЗНІ логотипи — на 4.8%. Поріг між ними не
+           існує; ми вже пробували й зʼїли чужий дизайн разом із оплатою за
+           нього.
+
+           Менеджер бачить обидва малюнки й знає точно. Одне натискання —
+           і ескіз зливається з основним макетом: адреса файлу стає
+           канонічною, а далі все робить те саме правило, що зводить
+           справжні копії. Кнопка стоїть на рядку ескізу — тобто рівно на
+           тих грошах, які вона прибирає.
+
+           Найкраще, звісно, не доводити до цього: покласти макет із галереї,
+           і файл буде той самий із самого початку. Але замовлення, зібрані
+           раніше, вже такі, як вони є. */
+        function samePick(x, canonDi){
+          var l = layerAtDesign(x.di);
+          if(!l || canonDi == null || canonDi === x.di) return '';
+          var разом = !!l.sameAs;
+          return ' <button type="button" data-mgr-same="' + x.di + '" ' +
+            'data-mgr-canon="' + canonDi + '" ' +
+            'title="' + (разом
+              ? 'Зараз цей малюнок рахується як той самий макет. Натисніть, щоб знову рахувати окремо.'
+              : 'Якщо це той самий логотип, просто завантажений окремо, — натисніть, і підготовка поділиться на всі вироби разом із основним макетом.') +
+            '" style="font:inherit;font-size:10.5px;font-weight:700;border-radius:6px;' +
+            'padding:1px 6px;cursor:pointer;vertical-align:middle;border:1px solid ' +
+            (разом ? '#8fb4ee;background:#eef3fb;color:#2f4c8f;' : '#cdd6e4;background:#fff;color:#5b6577;') +
+            '">' + (разом ? 'зведено — роз’єднати' : 'це той самий макет') + '</button>';
+        }
         function kindPick(di, kind){
           var l = layerAtDesign(di);
           if(!l) return '';
@@ -5973,9 +6015,14 @@
           skets.forEach(function(x, i){
             var per = x.units > 0 ? Math.round(x.fee / x.units) : 0;
             var perC = x.units > 0 ? Math.round(x.cost / x.units) : 0;
+            /* Зводити ескіз є з чим лише тоді, коли основний макет того
+               самого виду в цьому прорахунку є. Інакше кнопка обіцяла б
+               дію, якій нема куди вести. */
+            var основний = lines.filter(function(f){ return f.kind === x.kind; })[0];
             tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
-                    x.units + ' шт)</span>', money(per), money(perC));
+                    x.units + ' шт)</span>' +
+                    samePick(x, основний ? основний.di : null), money(per), money(perC));
           });
           /* Скільки нанесень і скільки з них ОКРЕМИХ макетів. Найчастіше
              непорозуміння: два логотипи — спереду й ззаду, — а разова одна.
@@ -6091,6 +6138,28 @@
              спільна разова — отже й ціни сусідніх позицій. */
           try{ if(typeof renderCart === 'function') renderCart(); }catch(e2){}
           try{ if(typeof cartPersist === 'function') cartPersist(); }catch(e2){}
+        };
+      });
+      /* «Це той самий макет». Пишемо канонічну адресу на сам шар — і далі
+         все робить звичайне зведення за файлом. Рішення належить малюнку,
+         а не позиції, тож його одразу забирає адмінка: інакше воно згорить
+         на переході до наступної позиції, як колись вид дизайну. */
+      out.querySelectorAll('[data-mgr-same]').forEach(function(btn){
+        btn.onclick = function(e){
+          e.stopPropagation();
+          var l = layerAtDesign(+btn.getAttribute('data-mgr-same'));
+          var c = layerAtDesign(+btn.getAttribute('data-mgr-canon'));
+          if(!l || !c) return;
+          ensureFp(l);
+          var canon = l.sameAs ? '' : layerUrl(c);
+          if(canon) l.sameAs = canon; else delete l.sameAs;
+          try{
+            if(window.__lqSameFix) window.__lqSameFix(l.fp || '', layerUrl(l), canon);
+          }catch(e2){}
+          updatePriceBar();
+          try{ if(typeof renderCart === 'function') renderCart(); }catch(e2){}
+          try{ if(typeof cartPersist === 'function') cartPersist(); }catch(e2){}
+          try{ renderTabPanel(); }catch(e2){}
         };
       });
       var clr = out.querySelector('[data-mgr-clear]');

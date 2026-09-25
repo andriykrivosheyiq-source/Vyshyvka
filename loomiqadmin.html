@@ -5172,18 +5172,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=65b25cd719"></script>
-<script src="loomiq-fingerprint.js?v=65b25cd719"></script>
-<script src="loomiq-pricing.js?v=65b25cd719"></script>
+<script src="loomiq-select.js?v=6c1c2e1697"></script>
+<script src="loomiq-fingerprint.js?v=6c1c2e1697"></script>
+<script src="loomiq-pricing.js?v=6c1c2e1697"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=65b25cd719"></script>
+<script src="loomiq-design.js?v=6c1c2e1697"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=65b25cd719"></script>
+<script src="loomiq-cards.js?v=6c1c2e1697"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -9269,6 +9269,44 @@ function kindFixKeys(o, fp, url){
   });
   return Object.keys(out);
 }
+/* «ЦЕ ТОЙ САМИЙ МАКЕТ» — РІШЕННЯ МЕНЕДЖЕРА ПРО МАЛЮНОК.
+
+   Той самий логотип, завантажений двічі, — два файли з різними пікселями, і
+   рушій чесно рахує два макети. Автоматично цього не розвʼязати: на живому
+   замовленні копії одного логотипа розходяться на 4%, а РІЗНІ логотипи — на
+   4.8%. Порогу між ними не існує, і спроба його поставити колись зʼїла
+   чужий дизайн разом з оплатою за нього.
+
+   Тому рішення ухвалює менеджер — він бачить обидва малюнки. Зберігаємо
+   його так само, як вид дизайну: мапою на всьому замовленні, за ВІДБИТКОМ
+   малюнка. Номери зсуваються, щойно щось додали, а відбиток тримає рішення
+   за конкретним зображенням; замінили файл — рішення відпало, бо це вже
+   інший малюнок.
+
+   Значення — канонічна адреса файлу. Далі жодної окремої логіки: рушій
+   зводить макети за адресою, і зведені вручну йдуть тим самим шляхом, що й
+   справжні копії одного файлу. */
+function orderSameFix(o){
+  const m = o && o.designSameFix;
+  return (m && typeof m === 'object' && Object.keys(m).length) ? m : null;
+}
+/* Слово менеджера — в описи позицій, ПЕРЕД будь-яким рахунком. Підміняємо
+   адресу файлу канонічною, і зведення робить звичайне правило. */
+function applySameFix(o){
+  const fix = orderSameFix(o);
+  if(!fix) return;
+  ((o && o.items) || []).forEach(it=>{
+    const d = it && it.desc;
+    if(!d || !Array.isArray(d.designs)) return;
+    const urls = Array.isArray(d.designUrls) ? d.designUrls.slice() : [];
+    let touched = false;
+    d.designs.forEach((fp, i)=>{
+      const to = fix[String(fp || '')];
+      if(to && urls[i] !== to){ urls[i] = to; touched = true; }
+    });
+    if(touched) d.designUrls = urls;
+  });
+}
 function setItemKindFix(it, fp, kind, o){
   if(!it && !o) return;
   const key = String(fp || '');
@@ -9466,6 +9504,7 @@ function fillMissingFp(o){
 function fillOrderParts(o){
   fillMissingFp(o);   // безіменний дизайн склеюється з першим — дамо йому імʼя
   fillDesignUrls(o);  // копії одного малюнка — один макет, і впізнає їх файл
+  applySameFix(o);    // слово менеджера «це той самий макет» — перед рахунком
   applyKindFix(o);
   const { idx, list } = orderDescriptors(o);
   if(!list.length) return;
@@ -9824,6 +9863,10 @@ function calcDump(o){
       сума: +o.totalPrice || 0, собівартість: +o.totalCost || 0
     },
     видДизайну: { автоматично: o.designKinds || null, словоМенеджера: o.designKindFix || null },
+    /* Які макети менеджер звів руками. Без цього рядка прорахунок неможливо
+       повторити: рушій зведе їх за адресою файлу, а звідки взялась та
+       адреса, з вивантаження не видно. */
+    зведеніМакети: o.designSameFix || null,
     позиції: items,
     рушій: { вхід: list, умови: opts, вихід: res, збій: engineErr },
     розкладНаЕкрані: calcDumpRows(o),
@@ -9937,6 +9980,7 @@ function repriceOrder(o){
   syncVariantQty(o);   // у групі варіантів тираж один на всіх
   fillMissingFp(o);    // дизайн без відбитка інакше склеїться з першим
   fillDesignUrls(o);   // копії одного малюнка — один макет, і впізнає їх файл
+  applySameFix(o);     // і слово про те, що два малюнки — один макет
   applyKindFix(o);     // слово менеджера про вид дизайну — перед будь-яким рахунком
   const { idx, list } = orderDescriptors(o);
   /* Порожній склад — ще не привід зупинятись. Пропозиція може складатись із
@@ -19749,6 +19793,10 @@ function calcSeedFor(o, editIdx){
      одного логотипа знову стають різними макетами, хоч в адмінці вони вже
      зведені: два примірники рушія рахують те саме замовлення по-різному. */
   try{ fillDesignUrls(o); }catch(e){ console.warn('адреси дизайнів', e); }
+  /* Зведені вручну макети мають поїхати в конструктор уже зведеними: він
+     рахує позицію своїм примірником рушія, і без цього два примірники
+     показали б різну кількість макетів на тому самому замовленні. */
+  try{ applySameFix(o); }catch(e){ console.warn('зведення макетів', e); }
   calcTarget = o.id;
   calcEdit = (editIdx == null) ? null : +editIdx;
   /* Рішення менеджера про вид дизайну — на шари ПЕРЕД тим, як позиція піде
@@ -20284,6 +20332,25 @@ async function offerEdApply(msg){
       if(ch) x.designKindFix = Object.keys(c).length ? c : null;
     });
     applyKindFix(o);
+    repriceOrder(o);
+    recalcOrderTotals(o);
+    if(!(await offerEdSave(o))) return;
+    renderBoard();
+    offerEdPreview(true);
+    return;
+  }
+  /* Менеджер сказав, що два малюнки — один макет (або роз’єднав їх назад).
+     Пікселі цього не вирішують: копії одного логотипа й різні логотипи
+     стоять на тій самій відстані. Кладемо рішення в мапу замовлення за
+     відбитком і одразу перераховуємо — воно міняє разові, тобто гроші. */
+  if(act === 'sameFix'){
+    const keys = kindFixKeys(o, msg.fp, msg.url);
+    if(!keys.length) return;
+    const to = String(msg.to || '');
+    const m = Object.assign({},
+      (o.designSameFix && typeof o.designSameFix === 'object') ? o.designSameFix : {});
+    keys.forEach(k => { if(to) m[k] = to; else delete m[k]; });
+    o.designSameFix = Object.keys(m).length ? m : null;
     repriceOrder(o);
     recalcOrderTotals(o);
     if(!(await offerEdSave(o))) return;
