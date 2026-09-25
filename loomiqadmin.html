@@ -3696,6 +3696,86 @@
   .dz-dz{border:1px solid var(--line);border-radius:9px;padding:6px;margin-bottom:6px;
     background:#fff;}
   .dz-dz.open{border-color:#C3CBD8;box-shadow:0 3px 12px rgba(15,32,52,.07);}
+  /* ── ФІНАНСИ ──
+     Рух читається зліва направо як рядок виписки: коли, від кого, куди
+     прийшло, скільки, до чого належить. Сума праворуч і моноширинними
+     цифрами — очі йдуть по стовпчику чисел, а не по тексту. */
+  .fin-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+  .fin-tabs{display:flex;gap:4px;flex-wrap:wrap;}
+  .fin-tab{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-soft);
+    padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:#fff;}
+  .fin-tab:hover{border-color:var(--ink-soft);color:var(--ink);}
+  .fin-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;}
+  .fin-bar input[type=search],.fin-bar select{font:inherit;font-size:13px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;outline:none;}
+  .fin-bar input[type=search]{flex:1;min-width:200px;}
+  .fin-bar #fin-add{margin-left:auto;}
+  .fin-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);
+    padding:0 0 10px;}
+  .fin-sum b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .fin-sum .is-in b{color:#1B6B3A;}
+  .fin-sum .is-out b{color:#B03A1A;}
+  .fin-row{display:grid;grid-template-columns:110px 1fr 150px 130px 170px;gap:12px;
+    align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:13px;}
+  .fin-row:last-child{border-bottom:0;}
+  .fin-at{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;}
+  .fin-who{min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .fin-who b{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .fin-who i{font-style:normal;font-size:11.5px;color:var(--ink-soft);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fin-acc{font-size:12px;color:var(--ink-soft);}
+  .fin-amt{text-align:right;font-weight:700;font-size:14px;color:#B03A1A;
+    font-variant-numeric:tabular-nums;}
+  .fin-amt.is-in{color:#1B6B3A;}
+  .fin-chip{all:unset;cursor:pointer;font-size:11.5px;color:var(--ink-soft);
+    border:1px dashed var(--line);border-radius:7px;padding:5px 9px;display:inline-block;}
+  .fin-chip:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .fin-chip.on{border-style:solid;border-color:#1B6B3A;background:#E7F6EC;color:#1B6B3A;
+    font-weight:600;}
+  .fin-chip i{font-style:normal;color:#B03A1A;}
+  .fin-none{padding:22px 0;color:var(--ink-soft);font-size:13px;}
+  /* Вікно привʼязки: підказки зверху, пошук нижче, підпис останнім. */
+  .fin-modal{position:fixed;inset:0;z-index:300;background:rgba(15,32,52,.42);
+    display:flex;align-items:center;justify-content:center;padding:20px;}
+  .fin-w{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);
+    width:min(560px,100%);max-height:min(82vh,760px);display:flex;flex-direction:column;
+    overflow:hidden;}
+  .fin-h{flex:none;display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid var(--line);}
+  .fin-h b{font-size:20px;font-variant-numeric:tabular-nums;}
+  .fin-h span{font-size:12px;color:var(--ink-soft);}
+  .fin-h .dz-x{margin-left:auto;}
+  .fin-b{flex:1;min-height:0;overflow:auto;padding:14px 16px;
+    display:flex;flex-direction:column;gap:9px;}
+  .fin-desc{font-size:13px;color:var(--ink);background:var(--canvas);border-radius:9px;
+    padding:9px 11px;}
+  .fin-desc i{display:block;font-style:normal;font-size:12px;color:var(--ink-soft);
+    margin-top:3px;}
+  .fin-now{font-size:13px;display:flex;align-items:center;gap:10px;}
+  .fin-l{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin-top:6px;}
+  .fin-guess,.fin-found{display:flex;flex-direction:column;gap:6px;}
+  .fin-g{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:9px;
+    border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13px;}
+  .fin-g:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .fin-g b{font-variant-numeric:tabular-nums;}
+  .fin-g span{flex:1;min-width:0;color:var(--ink-soft);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .fin-g i{font-style:normal;font-size:11px;color:var(--accent-deep);}
+  .fin-find{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;outline:none;}
+  .fin-find:focus{border-color:var(--accent);}
+  .fin-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .fin-tag{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-soft);
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;}
+  .fin-tag.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600;}
+  @media (max-width:900px){
+    .fin-row{grid-template-columns:1fr auto;gap:4px 10px;}
+    .fin-at{grid-area:1/1/2/2;} .fin-acc{grid-area:1/2/2/3;text-align:right;}
+    .fin-who{grid-area:2/1/3/3;} .fin-amt{grid-area:3/1/4/2;text-align:left;}
+    .fin-link{grid-area:3/2/4/3;text-align:right;}
+  }
   /* Список цін: назва ліворуч, число праворуч, рядки однакової висоти —
      погляд іде по числах, а не стрибає за назвами. */
   .b2c-p-row{display:flex;align-items:center;gap:12px;padding:7px 0;
@@ -4001,6 +4081,7 @@
         <button data-view="design" data-tip="Замовлення B2C — приватні"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Замовлення B2C</span></button>
         <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
         <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
+        <button data-view="fin" data-tip="Фінанси — платежі з банків"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18M7 15h4"/></svg><span>Фінанси</span></button>
         <button data-view="calc" class="nav-off" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
         <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
              тиждень. Внизу й під однією кнопкою, щоб щоденне не губилось
@@ -4466,6 +4547,45 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <h1>B2C <span class="dir-tag">приватні замовлення · номери з 5</span></h1>
       </div>
       <div id="dzRoot"></div>
+    </section>
+
+    <!-- ══════ ФІНАНСИ ══════
+         Гроші лежать у пʼяти банках: один ФОП на Приваті й чотири на Моно.
+         Питання щодня одне — «клієнт заплатив?», — і доти на нього
+         відповідали пʼятьма вкладками банку й памʼяттю. Тут усі рухи
+         одним списком, і кожен можна привʼязати до замовлення.
+
+         Прийом самих виписок робить Cloudflare Worker: адмінка — статична
+         сторінка, банку нікуди в неї стукати, а ключ від виписки ФОПа не
+         може лежати в коді, який віддається браузеру. -->
+    <section id="view-fin" style="display:none;">
+      <div class="page-head">
+        <div class="eyebrow">Гроші</div>
+        <h1>Фінанси</h1>
+        <div class="sub">Усі рухи по рахунках одним списком. Платіж можна привʼязати
+          до замовлення й підписати — передоплата чи доплата, — і залишок у картці
+          перерахується сам.</div>
+      </div>
+
+      <div class="card">
+        <div class="fin-bar">
+          <div class="fin-tabs" id="fin-accs"></div>
+          <input type="search" id="fin-q" placeholder="Пошук: сума, призначення, платник, номер">
+          <select id="fin-kind">
+            <option value="">усі рухи</option>
+            <option value="in">надходження</option>
+            <option value="out">витрати</option>
+          </select>
+          <select id="fin-link">
+            <option value="">привʼязка будь-яка</option>
+            <option value="no">не привʼязані</option>
+            <option value="yes">привʼязані</option>
+          </select>
+          <button class="pc-btn up" id="fin-add" title="Записати платіж руками">+ Платіж</button>
+        </div>
+        <div id="fin-sum" class="fin-sum"></div>
+        <div id="fin-list"></div>
+      </div>
     </section>
 
     <!-- ══════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════
@@ -5578,18 +5698,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=51b8bf6f75"></script>
-<script src="loomiq-fingerprint.js?v=51b8bf6f75"></script>
-<script src="loomiq-pricing.js?v=51b8bf6f75"></script>
+<script src="loomiq-select.js?v=13255bc299"></script>
+<script src="loomiq-fingerprint.js?v=13255bc299"></script>
+<script src="loomiq-pricing.js?v=13255bc299"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=51b8bf6f75"></script>
+<script src="loomiq-design.js?v=13255bc299"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=51b8bf6f75"></script>
+<script src="loomiq-cards.js?v=13255bc299"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5614,7 +5734,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '51b8bf6f75';
+var LQ_VER = '13255bc299';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -6927,6 +7047,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     if(typeof closeSidebar === 'function') closeSidebar();
     document.getElementById('view-settings').style.display  = view==='settings'  ? 'block':'none';
     const vB2c = document.getElementById('view-b2c'); if(vB2c) vB2c.style.display = view==='b2c' ? 'block':'none';
+    const vFin = document.getElementById('view-fin'); if(vFin) vFin.style.display = view==='fin' ? 'block':'none';
     document.getElementById('view-garments').style.display  = view==='garments'  ? 'block':'none';
     document.getElementById('view-board').style.display     = view==='board'     ? 'block':'none';
     document.getElementById('view-reviews').style.display   = view==='reviews'   ? 'block':'none';
@@ -6940,7 +7061,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     const vCh = document.getElementById('view-chats'); if(vCh) vCh.style.display = view==='chats' ? 'block':'none';
     const vChC = document.getElementById('view-chatsc'); if(vChC) vChC.style.display = view==='chatsc' ? 'block':'none';
     const tags = {settings:'Формування цін', garments:'Товари', board:'Замовлення B2B', reviews:'Відгуки', photos:'Конструктор сайту', calc:'Прорахунок', suppliers:'Підрядники', analytics:'Аналітика', team:'Команда й доступи', today:'Задачі', design:'Замовлення B2C',
-      chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C'};
+      chats:'Чати B2B', chatsc:'Чати B2C', b2c:'Налаштування B2C', fin:'Фінанси'};
     const pageTag = document.getElementById('page-tag');
     if(pageTag) pageTag.textContent = tags[view];
     /* РОЗДІЛ РОЗМОВ НЕ ПРОКРУЧУЄТЬСЯ САМ.
@@ -6962,6 +7083,7 @@ document.querySelectorAll('.nav button[data-view]').forEach(btn=>{
     if(view==='board'){ refreshGarmentSelect(); renderBoard(); watchWebOrders(); watchWebLeads(); watchTelegramLeads(); }
     if(view==='settings') paintSitePricing();
     if(view==='b2c') paintB2c();
+    if(view==='fin'){ watchPayments(); renderFin(); }
     if(view==='garments') paintGarmentList();
     if(view==='reviews') loadReviewsAdmin();
     if(view==='photos') renderCtor();
@@ -7677,6 +7799,285 @@ function readExtras(){
      означало б показувати менеджеру порожній пункт у списку вибору. */
   })).filter(x => x.name);
 }
+/* ══════════ ФІНАНСИ ══════════
+
+   Гроші лежать у пʼяти банках: один ФОП на Приваті й чотири на Моно.
+   Питання щодня одне — «клієнт заплатив?», — і доти на нього відповідали
+   пʼятьма вкладками банку й памʼяттю.
+
+   Тут усі рухи одним списком. Платіж можна привʼязати до замовлення й
+   підписати: передоплата чи доплата. Привʼязане одразу видно в картці —
+   залишок до оплати перераховується сам.
+
+   ЧОМУ ВИПИСКИ ПРИЙМАЄ НЕ АДМІНКА. Вона статична сторінка: банку нікуди в
+   неї стукати, а ключ від виписки ФОПа не може лежати в коді, який
+   віддається браузеру. Тому Монобанк шле вебхук у Cloudflare Worker, той
+   кладе рух у базу, а адмінка його просто бачить. Привату вебхуків не
+   видає зовсім — його виписку Worker опитує сам, раз на кілька хвилин.
+
+   Рухи лежать ОКРЕМОЮ колекцією, як замовлення: їх тисячі, вони ростуть
+   щодня й до жодного замовлення більшість із них не належить. */
+const PAY_COL = fbDb.collection('payments');
+let payments = [];
+let payWatching = false;
+let finView = { acc:'', kind:'', link:'', q:'' };
+function watchPayments(){
+  if(payWatching) return;
+  payWatching = true;
+  /* Останні пів року: далі в них ніхто не заглядає, а тягнути всю історію
+     щоразу означає секунди очікування на порожньому місці. */
+  const від = new Date(Date.now() - 183 * 864e5).toISOString();
+  PAY_COL.where('at', '>=', від).onSnapshot(snap => {
+    const l = [];
+    snap.forEach(d => { const v = d.data() || {}; v.id = d.id; l.push(v); });
+    l.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+    payments = l;
+    if((document.getElementById('view-fin') || {}).style.display === 'block') renderFin();
+  }, e => console.warn('платежі', e));
+}
+/* Рахунки — довідник. Назва людська («ФОП Моно · основний»), бо в списку
+   рухів має бути видно, куди саме прийшло, а не номер картки. */
+function finAccounts(){
+  const l = ((contentData.fin || {}).accounts) || [];
+  return Array.isArray(l) && l.length ? l : [
+    { id:'mono1', name:'Моно ФОП 1', bank:'mono' },
+    { id:'mono2', name:'Моно ФОП 2', bank:'mono' },
+    { id:'mono3', name:'Моно ФОП 3', bank:'mono' },
+    { id:'mono4', name:'Моно ФОП 4', bank:'mono' },
+    { id:'privat1', name:'Приват ФОП', bank:'privat' }
+  ];
+}
+function finAccName(id){
+  const a = finAccounts().filter(x => x.id === id)[0];
+  return a ? a.name : (id || '—');
+}
+function payMoney(n){
+  const v = Math.round(+n || 0);
+  return (v > 0 ? '+' : v < 0 ? '−' : '') +
+    String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+}
+function payDate(s){
+  const d = new Date(String(s || ''));
+  if(isNaN(d)) return String(s || '');
+  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' }) + ' ' +
+         d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
+}
+/* ЯКІ ЗАМОВЛЕННЯ ПІДХОДЯТЬ ПІД ЦЕЙ ПЛАТІЖ.
+
+   Зіставляти руками — це шукати серед сотень карток ту, де сума збігається.
+   Тому пропонуємо самі, і кажемо ЧОМУ саме ці: номер у призначенні, рівна
+   сума, схоже імʼя. Рішення лишається за менеджером — підказка не
+   привʼязує нічого сама, бо помилка тут це чужі гроші в чужій картці. */
+function payGuess(p){
+  const сума = Math.abs(Math.round(+p.amount || 0));
+  const текст = String((p.desc || '') + ' ' + (p.counter || '')).toLowerCase();
+  const out = [];
+  (orders || []).forEach(o => {
+    if(!o || !o.orderId) return;
+    const чому = [];
+    if(o.orderId && текст.indexOf(String(o.orderId).toLowerCase()) >= 0) чому.push('номер у призначенні');
+    const всього = Math.round(+o.totalPrice || 0);
+    const внесено = payPaid(o.orderId);
+    if(сума && всього && сума === всього) чому.push('сума збігається');
+    else if(сума && всього && сума === Math.max(0, всього - внесено)) чому.push('рівно залишок');
+    const хто = String(o.name || '').toLowerCase().split(/\s+/).filter(x => x.length > 3);
+    if(хто.length && хто.some(w => текст.indexOf(w) >= 0)) чому.push('імʼя платника');
+    const нік = String(o.crmNick || o.ig || '').replace(/^@/, '').toLowerCase();
+    if(нік.length > 3 && текст.indexOf(нік) >= 0) чому.push('нік');
+    if(чому.length) out.push({ o, чому });
+  });
+  /* Найпевніші вгорі: номер у призначенні важить більше за збіг суми, бо
+     однакова сума буває в десятьох замовленнях, а номер — в одному. */
+  out.sort((a, b) => b.чому.length - a.чому.length);
+  return out.slice(0, 6);
+}
+/* Скільки вже внесено за замовленням — сумою привʼязаних надходжень. */
+function payPaid(orderId){
+  const id = String(orderId || '');
+  if(!id) return 0;
+  return (payments || []).reduce((a, p) =>
+    a + ((String(p.orderId || '') === id && (+p.amount || 0) > 0) ? Math.round(+p.amount) : 0), 0);
+}
+function finRows(){
+  const q = String(finView.q || '').trim().toLowerCase();
+  return (payments || []).filter(p => {
+    if(finView.acc && p.acc !== finView.acc) return false;
+    const дохід = (+p.amount || 0) > 0;
+    if(finView.kind === 'in' && !дохід) return false;
+    if(finView.kind === 'out' && дохід) return false;
+    if(finView.link === 'no' && p.orderId) return false;
+    if(finView.link === 'yes' && !p.orderId) return false;
+    if(!q) return true;
+    return [p.desc, p.counter, p.orderId, String(Math.abs(Math.round(+p.amount || 0)))]
+      .some(v => String(v || '').toLowerCase().indexOf(q) >= 0);
+  });
+}
+function renderFin(){
+  const accs = document.getElementById('fin-accs');
+  if(accs) accs.innerHTML = ['<button class="fin-tab' + (finView.acc ? '' : ' on') +
+      '" data-fin-acc="">Усі рахунки</button>']
+    .concat(finAccounts().map(a => '<button class="fin-tab' +
+      (finView.acc === a.id ? ' on' : '') + '" data-fin-acc="' + escapeHtml(a.id) + '">' +
+      escapeHtml(a.name) + '</button>')).join('');
+  const rows = finRows();
+  const дохід = rows.reduce((s, p) => s + Math.max(0, Math.round(+p.amount || 0)), 0);
+  const витрата = rows.reduce((s, p) => s + Math.max(0, -Math.round(+p.amount || 0)), 0);
+  const sum = document.getElementById('fin-sum');
+  if(sum) sum.innerHTML = rows.length
+    ? '<span>Рухів: <b>' + rows.length + '</b></span>' +
+      '<span class="is-in">Надійшло: <b>' + payMoney(дохід) + '</b></span>' +
+      '<span class="is-out">Витрачено: <b>' + payMoney(-витрата) + '</b></span>'
+    : '';
+  const box = document.getElementById('fin-list');
+  if(!box) return;
+  if(!rows.length){
+    box.innerHTML = '<div class="fin-none">' + (payments.length
+      ? 'За цим добором рухів немає.'
+      : 'Рухів ще немає. Вони зʼявляться, коли підключимо банки — або запишіть платіж руками.') +
+      '</div>';
+    return;
+  }
+  box.innerHTML = rows.map(p => {
+    const дохід = (+p.amount || 0) > 0;
+    const o = p.orderId ? (orders || []).filter(x => x.orderId === p.orderId)[0] : null;
+    return '<div class="fin-row' + (дохід ? '' : ' is-out') + '" data-fin-id="' + escapeHtml(p.id) + '">' +
+      '<span class="fin-at">' + escapeHtml(payDate(p.at)) + '</span>' +
+      '<span class="fin-who"><b>' + escapeHtml(p.counter || (дохід ? 'Надходження' : 'Витрата')) + '</b>' +
+        (p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : '') + '</span>' +
+      '<span class="fin-acc">' + escapeHtml(finAccName(p.acc)) + '</span>' +
+      '<span class="fin-amt' + (дохід ? ' is-in' : '') + '">' + escapeHtml(payMoney(p.amount)) + '</span>' +
+      '<span class="fin-link">' +
+        (p.orderId
+          ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
+            escapeHtml('#' + p.orderId + (p.tag === 'prepay' ? ' · передоплата'
+              : p.tag === 'final' ? ' · доплата' : '')) +
+            (o ? '' : ' <i>картки немає</i>') + '</button>'
+          : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
+      '</span>' +
+    '</div>';
+  }).join('');
+}
+/* Привʼязати платіж до замовлення. Вікно, а не рядок у списку: тут треба
+   і побачити підказки, і знайти руками, і сказати, чим це є — передоплатою
+   чи доплатою. У рядку списку на це немає місця, а без підпису сума лягає
+   в картку без значення. */
+function finOpen(id){
+  const p = (payments || []).filter(x => x.id === id)[0];
+  if(!p) return;
+  const guess = payGuess(p);
+  const d = document.createElement('div');
+  d.className = 'fin-modal';
+  d.innerHTML = `<div class="fin-w">
+    <div class="fin-h"><b>${escapeHtml(payMoney(p.amount))}</b>
+      <span>${escapeHtml(payDate(p.at))} · ${escapeHtml(finAccName(p.acc))}</span>
+      <button class="dz-x" data-fin-x>×</button></div>
+    <div class="fin-b">
+      ${p.counter || p.desc ? `<div class="fin-desc">${escapeHtml(p.counter || '')}${
+        p.desc ? '<i>' + escapeHtml(p.desc) + '</i>' : ''}</div>` : ''}
+      ${p.orderId ? `<div class="fin-now">Зараз привʼязано до
+        <b>#${escapeHtml(p.orderId)}</b>
+        <button class="dz-b" data-fin-unlink>Відвʼязати</button></div>` : ''}
+      ${guess.length ? `<div class="fin-l">Схоже на ці замовлення</div>
+        <div class="fin-guess">${guess.map(g => `
+          <button class="fin-g" data-fin-pick="${escapeHtml(g.o.orderId)}">
+            <b>#${escapeHtml(g.o.orderId)}</b>
+            <span>${escapeHtml(orderName(g.o) || g.o.crmChatName || '')}</span>
+            <i>${escapeHtml(g.чому.join(' · '))}</i>
+          </button>`).join('')}</div>`
+        : `<div class="fin-none">Схожих замовлень не знайшлось — знайдіть за номером.</div>`}
+      <div class="fin-l">Знайти за номером або імʼям</div>
+      <input type="search" class="fin-find" placeholder="номер замовлення, імʼя, нік">
+      <div class="fin-found"></div>
+      <div class="fin-l">Чим є цей платіж</div>
+      <div class="fin-tags">
+        <button class="fin-tag${p.tag === 'prepay' ? ' on' : ''}" data-fin-tag="prepay">Передоплата</button>
+        <button class="fin-tag${p.tag === 'final' ? ' on' : ''}" data-fin-tag="final">Доплата</button>
+        <button class="fin-tag${p.tag ? '' : ' on'}" data-fin-tag="">Без підпису</button>
+      </div>
+    </div>
+  </div>`;
+  let обране = p.orderId || '';
+  let тег = p.tag || '';
+  const закрити = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if(e.key === 'Escape') закрити(); };
+  document.addEventListener('keydown', esc, true);
+  const зберегти = async () => {
+    try{
+      await PAY_COL.doc(p.id).set({ orderId: обране || null, tag: тег || null,
+        linkedBy: myEmail() || '', linkedAt: new Date().toISOString() }, { merge:true });
+      p.orderId = обране; p.tag = тег;
+      toast(обране ? ('Привʼязано до #' + обране) : 'Відвʼязано');
+      renderFin();
+    }catch(e){ console.error(e); toast('Не збереглось'); }
+  };
+  d.addEventListener('click', async e => {
+    if(e.target === d || e.target.hasAttribute('data-fin-x')) return закрити();
+    const pick = e.target.closest && e.target.closest('[data-fin-pick]');
+    if(pick){ обране = pick.dataset.finPick; await зберегти(); return закрити(); }
+    if(e.target.hasAttribute('data-fin-unlink')){ обране = ''; тег = '';
+      await зберегти(); return закрити(); }
+    const tag = e.target.closest && e.target.closest('[data-fin-tag]');
+    if(tag){
+      тег = tag.dataset.finTag;
+      d.querySelectorAll('[data-fin-tag]').forEach(b =>
+        b.classList.toggle('on', b.dataset.finTag === тег));
+      if(обране) await зберегти();
+    }
+  });
+  /* Пошук руками. Підказки закривають більшість випадків, але не всі:
+     клієнт платить із чужої картки й без номера, і тоді шукають очима. */
+  const find = d.querySelector('.fin-find');
+  const found = d.querySelector('.fin-found');
+  find.addEventListener('input', ()=>{
+    const q = find.value.trim().toLowerCase();
+    if(q.length < 2){ found.innerHTML = ''; return; }
+    const l = (orders || []).filter(o => o && o.orderId &&
+      [o.orderId, o.name, o.company, o.crmNick, o.ig]
+        .some(v => String(v || '').toLowerCase().indexOf(q) >= 0)).slice(0, 8);
+    found.innerHTML = l.length ? l.map(o => `
+      <button class="fin-g" data-fin-pick="${escapeHtml(o.orderId)}">
+        <b>#${escapeHtml(o.orderId)}</b>
+        <span>${escapeHtml(orderName(o) || o.crmChatName || '')}</span>
+        <i>${escapeHtml(fmt(o.totalPrice) + ' ₴')}</i>
+      </button>`).join('') : '<div class="fin-none">Нічого не знайшлось.</div>';
+  });
+  document.body.appendChild(d);
+  find.focus();
+}
+/* Записати платіж руками. Потрібно доти, доки банки не підключені, і далі
+   теж: готівка, переказ на картку, повернення. */
+async function finAddManual(){
+  const сума = prompt('Сума, грн. Витрата — з мінусом.');
+  if(сума === null) return;
+  const n = Math.round(parseFloat(String(сума).replace(',', '.')) || 0);
+  if(!n) return toast('Сума не схожа на число');
+  const хто = prompt('Від кого або за що') || '';
+  const accs = finAccounts();
+  try{
+    await PAY_COL.add({ at: new Date().toISOString(), amount: n, ccy:'UAH',
+      acc: (finView.acc || (accs[0] && accs[0].id) || ''), counter: хто.trim(),
+      desc:'', src:'manual', by: myEmail() || '' });
+    toast('Записано');
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+}
+(function(){
+  const root = document.getElementById('view-fin');
+  if(!root) return;
+  root.addEventListener('click', e => {
+    const acc = e.target.closest && e.target.closest('[data-fin-acc]');
+    if(acc){ finView.acc = acc.dataset.finAcc; return renderFin(); }
+    const open = e.target.closest && e.target.closest('[data-fin-open]');
+    if(open) return finOpen(open.dataset.finOpen);
+    if(e.target.id === 'fin-add') return finAddManual();
+  });
+  ['fin-kind','fin-link'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('change', ()=>{
+      finView[id === 'fin-kind' ? 'kind' : 'link'] = el.value; renderFin(); });
+  });
+  const q = document.getElementById('fin-q');
+  if(q) q.addEventListener('input', ()=>{ finView.q = q.value; renderFin(); });
+})();
 /* ══════════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════════
    Окремо від формування цін навмисно: там машина корпоративного
    замовлення — шкали за тиражем, площа нанесення, поділ підготовки макета.
@@ -24648,6 +25049,9 @@ function openDesign(){
     /* Типовий термін виготовлення. Лежить у налаштуваннях B2C — одне місце
        на всі замовлення, з якого менеджер починає. */
     b2cDays: () => b2cCfg().days,
+    /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
+       платежів. Рахує робоче місце: воно й тримає список рухів. */
+    paid: o => payPaid(o && o.orderId),
     /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
        місце — воно й ходить у Sitniks. */
     whoLabel: o => crmWhoLabel(o),
