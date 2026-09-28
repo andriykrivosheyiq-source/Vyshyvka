@@ -3675,6 +3675,15 @@
   .dz-card-w.is-fix{border-color:#FECDCA;box-shadow:inset 3px 0 0 #E4572E;}
   .dz-m-fix{background:#E4572E;color:#fff;}
   .dz-card-due.soon{background:#FEF8E7;color:#8A6410;}
+  /* Складена зона. Шапка стає кнопкою — і мусить виглядати натискуваною,
+     інакше за нею просто не заходять. */
+  .dz-z.is-fold > .dz-z-h{all:unset;box-sizing:border-box;width:100%;cursor:pointer;
+    display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--zs);}
+  .dz-z.is-fold > .dz-z-h:hover{filter:brightness(.98);}
+  .dz-z.is-fold:not(.open) > .dz-z-h{border-bottom:0;}
+  .dz-z-a{font-style:normal;font-size:11px;color:var(--muted);flex:none;}
+  .dz-z.is-fold .dz-z-s{margin-left:auto;}
+  .dz-z.z-gray  {--z:#9AA5B5;--zs:#F4F6F9;--zi:#5A6675;}
   .dz-z.z-blue  {--z:#2E90FA;--zs:#EFF6FF;--zi:#1B4B82;}
   .dz-z.z-violet{--z:#7C3AED;--zs:#F4F0FF;--zi:#4C2189;}
   .dz-z.z-red   {--z:#E4572E;--zs:#FDF1EC;--zi:#8F3317;}
@@ -3844,6 +3853,10 @@
   .dz-dz-ro{flex:1;min-width:0;font-size:12.5px;color:var(--ink);}
   /* Одна колонка, коли дизайнеру показують лише його половину. */
   .dz-u-dz.one{grid-template-columns:1fr;}
+  /* Відкритий дизайн займає всю ширину: у півколонки картка на перевірку
+     перетворюється на стовпчик із двох слів у рядок, і перевіряти по ній
+     нічого. Порожня колонка сусіда при цьому стискається в рядок-кнопку. */
+  .dz-u-dz.is-open{grid-template-columns:1fr;}
   .dz-u-pics{margin-top:11px;}
   .dz-u-note{display:flex;flex-direction:column;gap:3px;margin-top:11px;}
   .dz-u-note span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
@@ -3985,6 +3998,86 @@
      першого погляду, а не шукати її серед чужої. */
   .dz-u-dz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px;
     padding-top:11px;border-top:1px dashed var(--line);}
+  /* ── Назва позиції в шапці ──
+     Праворуч від номера стояла порожнеча на пів картки, а назва виробу
+     читалась лише з кнопки вибору нижче. Тепер вона тут, де її й шукають. */
+  .dz-u-name{flex:1;min-width:0;font-size:12px;color:var(--ink-soft);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Кнопку «Картинка» ставимо ПОРУЧ із мініатюрами, а не під ними: під ними
+     вона з'їдала рядок висоти в кожній позиції, а позицій буває шість. */
+  .dz-u-pics.has{display:flex;align-items:flex-start;gap:8px;}
+  .dz-u-pics.has .dz-pics{flex:1;min-width:0;}
+  .dz-u-pics.has > .dz-b{flex:none;margin-top:0;}
+  /* ── Рядок дизайну: тільки вибір людини ── */
+  .dz-dz-t{display:flex;align-items:center;gap:6px;}
+  .dz-dz-who{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:7px;padding:6px 7px;
+    outline:none;cursor:pointer;}
+  .dz-dz-who:hover{border-color:var(--accent);}
+  .dz-dz-v{flex:none;font-size:10.5px;font-weight:700;color:var(--ink-soft);
+    background:var(--canvas);border-radius:5px;padding:2px 5px;}
+  .dz-dz-go{all:unset;cursor:pointer;flex:none;width:22px;height:22px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;font-size:11px;
+    color:var(--ink-soft);}
+  .dz-dz-go:hover{background:var(--canvas);color:var(--ink);}
+  /* Непрочитане — як пропущені: саме за цим числом видно, що в колонці щось
+     відбувається. Червоне навмисно: воно має зачіпати око. */
+  .dz-dz.has-new{border-color:#F2B8B5;}
+  .dz-dz-new{flex:none;min-width:18px;text-align:center;font-size:10.5px;
+    font-weight:800;color:#fff;background:#E4572E;border-radius:999px;padding:2px 6px;}
+  /* ── Картка на перевірку ──
+     Менеджер дивиться не на список файлів, а на те, що піде клієнту. */
+  .dz-chk{border:1px solid var(--line);border-radius:10px;background:#fff;
+    overflow:hidden;margin-bottom:8px;}
+  .dz-chk-top{display:flex;gap:10px;padding:9px;}
+  .dz-chk-i{all:unset;cursor:zoom-in;flex:none;width:74px;height:74px;border-radius:8px;
+    overflow:hidden;background:var(--canvas);border:1px solid var(--line);}
+  .dz-chk-i img{width:100%;height:100%;object-fit:contain;display:block;}
+  .dz-chk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .dz-chk-t b{font-size:13px;font-weight:700;color:var(--ink);}
+  .dz-chk-t span{font-size:11px;color:var(--muted);}
+  .dz-chk-t i{font-style:normal;font-size:11.5px;color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;}
+  .dz-chk-n{color:var(--ink) !important;}
+  .dz-chk-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    padding:8px 9px;border-top:1px solid var(--line-soft);background:var(--canvas);}
+  .dz-chk-b .dz-b.pri{margin-left:auto;}
+  /* Надіслано — це стан, а не кнопка: натискати вдруге нема за чим, і
+     кнопка, яка нічого не змінить, лише просить помилитись. */
+  .dz-chk-sent{margin-left:auto;font-size:11.5px;font-weight:600;color:#0A6B4A;
+    background:#EDF9F3;border-radius:7px;padding:5px 9px;}
+  /* ── Вікно правки ── */
+  .dz-fixw .dz-fix-w{background:var(--paper);border-radius:14px;width:min(460px,100%);
+    padding:14px;display:flex;flex-direction:column;gap:9px;
+    box-shadow:0 20px 60px rgba(15,32,52,.32);}
+  .dz-fix-h{display:flex;align-items:center;}
+  .dz-fix-h b{font-size:14px;font-weight:700;color:var(--ink);}
+  .dz-fix-h .dz-x{margin-left:auto;}
+  .dz-fix-t{font:inherit;font-size:13px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:10px;padding:10px;outline:none;resize:vertical;}
+  .dz-fix-t:focus{border-color:var(--accent);}
+  .dz-fix-f{font-size:11.5px;color:var(--muted);min-height:14px;}
+  .dz-fix-b{display:flex;gap:8px;}
+  .dz-fix-b .dz-b.pri{margin-left:auto;}
+  /* ── Історія ──
+     Сухі події, і тільки вони. Слова лежать у розмові при дизайні, куди їх
+     і писали; другий чат унизу картки нікому не потрібен. */
+  .dz-hist{display:flex;flex-direction:column;gap:4px;}
+  .dz-hist-r{display:flex;align-items:baseline;gap:8px;font-size:11.5px;
+    color:var(--ink-soft);}
+  .dz-hist-r i{flex:none;font-style:normal;color:var(--muted);
+    font-variant-numeric:tabular-nums;width:88px;}
+  .dz-hist-r b{flex:none;font-weight:700;color:var(--ink);}
+  .dz-hist-r span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .dz-hist-r.k-fix b{color:#B03A1A;}
+  .dz-hist-r.k-ok b{color:#0A6B4A;}
+  .dz-hist-r.k-tell b{color:#1B4B82;}
+  .dz-hist-r.k-no b{color:#B03A1A;}
+  /* Напрям заготовки — щоб було видно, кому вона піде. */
+  .cw-qr-dir{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);}
+  .cw-qr-dir select{font:inherit;font-size:12.5px;padding:6px 8px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);outline:none;}
   .dz-u-col{min-width:0;border-radius:9px;padding:7px;background:var(--canvas);}
   .dz-u-l{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:baseline;gap:6px;}
@@ -6093,19 +6186,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=109095f23d"></script>
-<script src="loomiq-fingerprint.js?v=109095f23d"></script>
-<script src="loomiq-pricing.js?v=109095f23d"></script>
+<script src="loomiq-select.js?v=0858825ab0"></script>
+<script src="loomiq-fingerprint.js?v=0858825ab0"></script>
+<script src="loomiq-pricing.js?v=0858825ab0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=109095f23d"></script>
-<script src="loomiq-mock.js?v=109095f23d"></script>
+<script src="loomiq-design.js?v=0858825ab0"></script>
+<script src="loomiq-mock.js?v=0858825ab0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=109095f23d"></script>
+<script src="loomiq-cards.js?v=0858825ab0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6130,7 +6223,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '109095f23d';
+var LQ_VER = '0858825ab0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -23386,11 +23479,78 @@ const QR_DEFAULT = [
   { t:'Макет',   m:'Надішліть, будь ласка, логотип у векторі (.ai, .eps, .pdf або .svg). Якщо вектора немає — надішліть що є, підготуємо самі.' },
   // Посилання лишається окремою заготовкою: воно теж буває потрібне —
   // коли клієнт просить «скиньте, я гляну з компʼютера».
-  { t:'Посилання на КП', m: OFFER_MSG_DEFAULT }
+  { t:'Посилання на КП', m: OFFER_MSG_DEFAULT },
+  /* Показ макета. Заготовки з позначками {макет} і {правки} іде клієнту
+     САМА, коли менеджер тисне «Надіслати клієнту» в картці: текст тут для
+     того, щоб його можна було переписати під себе, а не щоб вставляти
+     рукою. Свої для кожного напряму — компанії й приватній людині про той
+     самий макет пишуть різними словами. */
+  { t:'Макет готовий · B2C', dir:'b2c',
+    m:'{макет} Зробили макет — подивіться, будь ласка 🙌\n\nЯкщо все подобається, ' +
+      'беремо в роботу. Якщо щось поміняти — напишіть, що саме, виправимо.' },
+  { t:'Внесли правки · B2C', dir:'b2c',
+    m:'{правки} Виправили — ось оновлений макет ({версія}). Подивіться, ' +
+      'будь ласка: тепер так, як треба?' },
+  { t:'Макет на погодження · B2B', dir:'b2b',
+    m:'{макет} Надсилаємо макет на погодження ({версія}). Розміри нанесення ' +
+      'вказані на самій картці.\n\nЯкщо все влаштовує — запускаємо у виробництво. ' +
+      'Якщо потрібні зміни, напишіть, будь ласка, які саме.' },
+  { t:'Макет після правок · B2B', dir:'b2b',
+    m:'{правки} Внесли правки — {версія} на погодження. Решта параметрів ' +
+      'без змін.' }
 ];
 function quickReplies(){
   const q = (contentData || {}).quickReplies;
   return (Array.isArray(q) && q.length) ? q : QR_DEFAULT;
+}
+/* ── ЗАГОТОВКИ РІЗНИХ НАПРЯМІВ ────────────────────────────────────────────
+
+   Андрій: «B2B одні скрипти, B2C інші… просто щоб вони не були однакові».
+
+   Він має рацію, і це не про ввічливість. Компанії пишуть «виставимо рахунок
+   на ФОП, працюємо за передоплатою 50%»; приватній людині в Директ таке
+   слати нема сенсу — вона платить одразу й повністю, і половина слів у
+   листі про неї не про неї. А B2C-заготовка з «ти» в листі до відділу
+   закупівель виглядає так само не туди.
+
+   Тому в заготовки зʼявився напрям: порожній означає «годиться обом», а
+   `b2b`/`b2c` — тільки своєму. Порожній лишається за замовчуванням, щоб усе
+   вже написане працювало так само, як працювало. */
+function qrDirOf(q){
+  const d = String((q && q.dir) || '').toLowerCase();
+  return (d === 'b2b' || d === 'b2c') ? d : '';
+}
+function quickRepliesFor(o){
+  const dir = orderDir(o);
+  return quickReplies().filter(q => { const d = qrDirOf(q); return !d || d === dir; });
+}
+/* ── СКРИПТ ЗА ПОЗНАЧКОЮ ──────────────────────────────────────────────────
+
+   Показ макета клієнту робиться з картки одним натиском, і текст до нього
+   не пишуть руками щоразу — його беруть звідси. Позначка в тілі заготовки
+   каже, який це скрипт; назву менеджер перепише як завгодно, і впізнати
+   скрипт по ній не вийде.
+
+   Немає заготовки — беремо запасну. Мовчазне порожнє повідомлення тут
+   гірше за просте: клієнт отримав би картинку без жодного слова. */
+const SCRIPT_MARK = { design1:'{макет}', design2:'{правки}' };
+const SCRIPT_FALL = {
+  design1:'Підготували макет — подивіться, будь ласка. Якщо все добре, ' +
+          'беремо в роботу; якщо щось поміняти — напишіть, що саме.',
+  design2:'Внесли правки — ось оновлений макет. Подивіться, будь ласка.'
+};
+function scriptFor(o, key, vars){
+  const mark = SCRIPT_MARK[key] || '';
+  let t = '';
+  if(mark){
+    const q = quickRepliesFor(o).filter(x => String((x && x.m) || '').indexOf(mark) >= 0)[0];
+    t = q ? String(q.m) : '';
+  }
+  if(!t) t = SCRIPT_FALL[key] || '';
+  return t.replace(/\{макет\}|\{правки\}/g, '')
+          .replace(/\{версія\}/g, 'v' + (((vars || {}).v) || 1))
+          .replace(/\{імʼя\}|\{ім'я\}/g, String((o && (o.crmChatName || o.name)) || '').split(' ')[0] || '')
+          .trim();
 }
 /* СТАНДАРТНІ ЗАГОТОВКИ ДОХОДЯТЬ І ДО НАЛАШТОВАНОГО АКАУНТА.
 
@@ -23406,7 +23566,7 @@ function quickReplies(){
 
    Один раз означає один: лишається запис, що вже доводили, і скрипт, який
    менеджер свідомо прибрав, назад не повернеться. */
-const QR_SEED = 1;
+const QR_SEED = 2;
 let qrSeeding = false;
 async function qrSeedOnce(){
   if(qrSeeding || !canSetup() || !contentLoaded) return;
@@ -23415,13 +23575,29 @@ async function qrSeedOnce(){
   if(+(contentData.qrSeed || 0) >= QR_SEED) return;
   const have = cur.map(q => String((q && q.m) || '')).join('\n');
   const add = QR_DEFAULT.filter(q => {
-    const sc = CARD_SCRIPTS[cardScriptOf(q.m)];
-    return sc && have.indexOf(sc.mark) < 0;
+    const m = String(q.m || '');
+    const sc = CARD_SCRIPTS[cardScriptOf(m)];
+    if(sc) return have.indexOf(sc.mark) < 0;
+    /* Скрипти показу макета доводимо тим самим шляхом: за позначкою в тілі,
+       а не за назвою. Назву менеджер перепише як завгодно, і впізнати
+       скрипт по ній не вийде — а доводити його треба один раз, не щоразу. */
+    const mark = Object.keys(SCRIPT_MARK).map(k => SCRIPT_MARK[k])
+      .filter(x => m.indexOf(x) >= 0)[0];
+    if(!mark) return false;
+    /* Кожен напрям свій: у B2B і B2C та сама позначка, і рахувати треба
+       пару «позначка + напрям», інакше доїде тільки перший із двох. */
+    const d = qrDirOf(q);
+    return !cur.some(x => String((x && x.m) || '').indexOf(mark) >= 0 &&
+                          qrDirOf(x) === d);
   });
   qrSeeding = true;
   try{
     if(add.length){
-      const list = cur.map(q => ({ t:q.t, m:q.m })).concat(add.map(q => ({ t:q.t, m:q.m })));
+      /* Напрям несемо далі. Доти сівалка перескладала список із двох полів
+         і мовчки знімала `dir` з УСІХ заготовок — тобто після першого ж
+         доведення B2B-скрипти починали показуватись у B2C і навпаки. */
+      const без = q => { const o = { t:q.t, m:q.m }; const d = qrDirOf(q); if(d) o.dir = d; return o; };
+      const list = cur.map(без).concat(add.map(без));
       await PHOTOS_DOC.set({ quickReplies: list, qrSeed: QR_SEED }, { merge:true });
       contentData.quickReplies = list;
       toast('У заготовки додано: ' + add.map(q => q.t).join(', '));
@@ -23650,14 +23826,23 @@ function qrPanelHtml(o){
       <b>Заготовлені повідомлення</b>
       <span>натисніть, щоб вставити · ✎ — змінити текст</span>
     </div>`;
-  const rows = L.map((q, i)=> ed === i ? qrEditHtml(q, i) : `
+  /* Показуємо тільки свої: B2B-заготовка з «виставимо рахунок на ФОП» у
+     розмові з приватною людиною виглядає як лист не туди. Номер у списку
+     лишається ПОЧАТКОВИЙ — за ним заготовку відкривають на правку, і
+     перенумерувати їх означало б редагувати не ту. */
+  const dir = orderDir(o);
+  const rows = L.map((q, i)=> {
+    const d = qrDirOf(q);
+    if(d && d !== dir) return '';
+    return ed === i ? qrEditHtml(q, i) : `
     <div class="cw-qr-row">
       <button class="cw-qr-b" data-qr="${i}">
         <span class="cw-qr-t">${escapeHtml(q.t || 'Заготовка')}</span>
         <span class="cw-qr-m">${escapeHtml(qrFill(q.m, o).replace(/\n/g, ' '))}</span>
       </button>
       ${canQuick() ? `<button class="cw-qr-e" data-qr-edit="${i}" title="Змінити заготовку">✎</button>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
   /* Заготовки спільні на всіх: змінена тут фраза піде від імені кожного
      менеджера. Тому вставляти їх може будь-хто, а правити — окреме право. */
   return head + rows + (!canQuick() ? ''
@@ -23672,7 +23857,19 @@ function qrEditHtml(q, i){
       <textarea class="cw-qr-in-m" rows="6" maxlength="900"
                 placeholder="текст повідомлення">${escapeHtml(q.m || '')}</textarea>
       <div class="cw-qr-hint">{кп} — посилання на пропозицію, {імʼя}, {бренд}, {номер}.
-        Підставляються в мить вставки, тож посилання завжди свіже.</div>
+        Підставляються в мить вставки, тож посилання завжди свіже.<br>
+        {макет} і {правки} — це показ макета з картки замовлення: заготовка з
+        такою позначкою іде клієнту сама, коли менеджер тисне «Надіслати
+        клієнту». {версія} підставить v1, v2…</div>
+      <!-- Напрям. Компанії пишуть «виставимо рахунок на ФОП»; приватній
+           людині в Директ таке слати нема сенсу, і навпаки. «Обом» лишається
+           за замовчуванням — усе вже написане працює, як працювало. -->
+      <label class="cw-qr-dir"><span>Кому</span>
+        <select class="cw-qr-in-d">
+          <option value=""${qrDirOf(q) ? '' : ' selected'}>Обом напрямам</option>
+          <option value="b2b"${qrDirOf(q) === 'b2b' ? ' selected' : ''}>Тільки B2B</option>
+          <option value="b2c"${qrDirOf(q) === 'b2c' ? ' selected' : ''}>Тільки B2C</option>
+        </select></label>
       <div class="cw-qr-acts">
         <button class="cw-qr-ok" data-qr-save>Зберегти</button>
         <button class="cw-qr-no" data-qr-cancel>Скасувати</button>
@@ -23681,9 +23878,15 @@ function qrEditHtml(q, i){
     </div>`;
 }
 async function qrStore(list){
-  const clean = list.map(q => ({ t: String(q.t || '').trim().slice(0, 40),
-                                 m: String(q.m || '').trim().slice(0, 900) }))
-                    .filter(q => q.m);
+  const clean = list.map(q => {
+    const o = { t: String(q.t || '').trim().slice(0, 40),
+                m: String(q.m || '').trim().slice(0, 900) };
+    /* Порожній напрям не пишемо взагалі: «обом» — це відсутність обмеження,
+       і зберігати її полем означало б мати два способи сказати те саме. */
+    const d = qrDirOf(q);
+    if(d) o.dir = d;
+    return o;
+  }).filter(q => q.m);
   await PHOTOS_DOC.set({ quickReplies: clean }, { merge:true });
   /* Знімок бази прийде своєю чергою, але вікно має оновитись одразу —
      інакше здається, що збереження не спрацювало. */
@@ -24284,17 +24487,19 @@ function wireChatWin(box, o, focusIn){
       if(!canQuick()) return toast('Заготовки спільні на всіх — правити їх ця роль не може');
       const m = String(mIn.value || '').trim();
       if(!m) return toast('Порожня заготовка нічого не варта');
-      const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
+      const list = quickReplies().map(q => ({ t:q.t, m:q.m, dir: qrDirOf(q) }));
+      const dEl = ed.querySelector('.cw-qr-in-d');
+      const dir = dEl ? String(dEl.value || '') : '';
       const i = ed.dataset.ed;
-      if(i === 'new') list.push({ t:tIn.value, m });
-      else { list[+i] = { t:tIn.value, m }; }
+      if(i === 'new') list.push({ t:tIn.value, m, dir });
+      else { list[+i] = { t:tIn.value, m, dir }; }
       try{ await qrStore(list); toast('Заготовку збережено'); stop(); }
       catch(e){ console.error(e); toast('Не збереглось'); }
     });
     const del = ed.querySelector('[data-qr-del]');
     if(del) del.addEventListener('click', async ()=>{
       if(!canQuick()) return toast('Заготовки спільні на всіх — правити їх ця роль не може');
-      const list = quickReplies().map(q => ({ t:q.t, m:q.m }));
+      const list = quickReplies().map(q => ({ t:q.t, m:q.m, dir: qrDirOf(q) }));
       const i = +ed.dataset.ed;
       if(!confirm('Прибрати заготовку «' + (list[i].t || list[i].m.slice(0, 30)) + '»?')) return;
       list.splice(i, 1);
@@ -25764,6 +25969,25 @@ function openDesign(){
     team: ()=> (contentData.team || []).map(m => ({
       email: m.email || '', name: personName(m.email) || m.email || '', role: m.role || '' })),
     onlyMine: ()=> mine,
+    /* НАДІСЛАТИ КАРТИНКУ КЛІЄНТУ, НЕ ВІДКРИВАЮЧИ РОЗМОВИ.
+
+       Перевіряють макети пачкою: десять карток підряд. Кожне «відкрий
+       розмову — встав картинку — напиши текст — повернись» це пів хвилини й
+       шанс повернутись не туди. Механізм той самий, що й у чаті, — Sitniks
+       приймає файл тим самим способом; різниця лише в тому, що відділу не
+       треба для цього нікуди йти. */
+    tellPic: async (o, url, text) => {
+      try{
+        if(text) await designTell(o, text);
+        await crmSendPic(o, url, null);
+        return true;
+      }catch(e){ console.error('надсилання картинки', e); return false; }
+    },
+    /* Заготовка повідомлення. Своя для B2B і своя для B2C — і своя для
+       першого показу макета й для наступних: «подивіться, як вийшло» і
+       «внесли правки» це різні листи, і слати перший удруге виглядає так,
+       ніби ми забули, про що йшлося. */
+    script: (o, key, vars) => scriptFor(o, key, vars),
     /* Сказати клієнту, не виходячи з відділу. Менеджер доти мусив закрити
        розділ, знайти діалог, вставити посилання руками — і на кожному з цих
        кроків щось губилось. Канал беремо той, що вже привʼязаний до
