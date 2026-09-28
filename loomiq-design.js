@@ -605,7 +605,7 @@
   /* Файлів у версії буває кілька: сам макет і мокап на виріб. Приймаємо і
      один, і список — інакше дизайнер здавав би їх двома версіями, і номер,
      який ми називаємо клієнту, зростав би вдвічі швидше за роботу. */
-  function dzVer(d, by, file, note){
+  function dzVer(d, by, file, note, place){
     if(!d) return null;
     var n = d.vers.length + 1;
     var список = (Array.isArray(file) ? file : (file ? [file] : []))
@@ -613,6 +613,11 @@
       .map(function(f){ return { name:String(f.name || ''), url:String(f.url) }; });
     d.vers.push({ n: n, at: nowIso(), by: String(by || ''),
                   files: список,
+                  /* Розміщення їде РАЗОМ із версією, а не окремо збоку.
+                     Версій буває чотири, і в кожної своє розташування; одне
+                     число «на дизайн» означало б, що виробництво шиє за
+                     міркою від макета, який уже переробили. */
+                  place: place || null,
                   note: String(note || '') });
     d.status = 'review';
     d.thread.push({ at: nowIso(), by: String(by || ''), kind:'ver',
@@ -1663,6 +1668,16 @@
        як «список порожній», а не як поломка. */
     try{ return (host.catalog && host.catalog()) || []; }catch(e){ return []; }
   }
+  /* Знімок саме цього виробу саме цього кольору — із каталогу. Кольору
+     може ще не бути; тоді лишається загальне фото виробу, і це чесніше за
+     чужий колір. */
+  function unitPhoto(u){
+    var g = catItem(u && u.gid);
+    if(!g) return '';
+    var c = (g.colors || []).filter(function(x){
+      return String(x.name || x.id) === String(u.color || ''); })[0];
+    return (c && c.pic) || g.pic || '';
+  }
   function catItem(gid){
     return catalog().filter(function(g){ return g.id === gid; })[0] || null;
   }
@@ -1795,6 +1810,16 @@
                    approved:'затверджено' };
   var SIDE_UA = { front:'Перед', back:'Спина', sleeve:'Рукав', other:'Інше' };
   function dzNameOf(d, i){ return D.dzName(d, i); }
+  /* Розміщення одним рядком — і тими самими словами, що у вікні мокапу:
+     різні формулювання того самого числа читаються як різні числа. */
+  function placeLine(pl){
+    if(!pl || !pl.wCm) return '';
+    var см = function(n){
+      return (Math.round((+n || 0) * 10) / 10).toString().replace('.', ',') + ' см'; };
+    return см(pl.wCm) + ' × ' + см(pl.hCm) + ' · від горловини ' + см(pl.topCm) +
+      (pl.sideCm ? ' · від центру ' + (pl.sideCm > 0 ? '+' : '−') + см(Math.abs(pl.sideCm)) : '') +
+      (pl.size ? ' · на ' + pl.size : '');
+  }
   function dzVersHtml(u, kind, d, i, ro){
     if(!d.vers.length) return '';
     var key = esc(u.id) + '|' + kind + '|' + i;
@@ -1809,6 +1834,17 @@
           return '<a href="' + esc(f.url) + '" download="' + esc(f.name || 'макет') +
                  '" target="_blank" rel="noopener">⤓ ' + esc(f.name || 'файл') + '</a>';
         }).join('') +
+        /* Розміщення — просто при версії, а не в чужому файлі. Питання «а
+           скільки сантиметрів» задають саме тут, дивлячись на версію. */
+        (v.place && v.place.wCm
+          ? '<i class="dz-dv-p">' + esc(placeLine(v.place)) + '</i>' : '') +
+        /* ОДИН АРКУШ ДЛЯ ВСІХ. Його пересилають — у Директ, підряднику, в
+           цех, — скрізь, де відкрити нашу адмінку не можна, а знати, що і
+           як шити, треба. Три файли й усний переказ на цьому шляху
+           губляться, аркуш — ні. */
+        ((v.files || []).length >= 2
+          ? '<button class="dz-b dz-quiet" data-do="dz-card" data-dz="' + key +
+            '" data-v="' + v.n + '">⤓ Картка</button>' : '') +
         (обрана ? '<i class="dz-dv-ok">обрана</i>'
                 : ro ? ''
                 : '<button class="dz-b" data-do="dz-ok" data-dz="' + key +
@@ -2811,6 +2847,7 @@
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
     dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, DZ_STATE: DZ_STATE,
+    unitPhoto: unitPhoto,
     taskCards: taskCards, hm: hm,
     /* Одна відповідь на всі модулі: права питає робоче місце, а не кожен
        модуль сам. Без адмінки (модуль піднятий окремо) дозволено все. */
@@ -2927,6 +2964,11 @@
   }
   function money(n){
     return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
+  }
+  /* Сантиметри одним записом на весь модуль: різні способи написати те саме
+     число читаються як різні числа. */
+  function мсм(n){
+    return (Math.round((+n || 0) * 10) / 10).toString().replace('.', ',') + ' см';
   }
   /* ДЕ ЗАМОВЛЕННЯ ЗАРАЗ — словами, а не роллю.
 
@@ -3199,15 +3241,73 @@
     if(l === null) return '';
     return l < 0 ? ('прострочено на ' + U.hm(-l)) : ('лишилось ' + U.hm(l));
   }
-  /* Знімок саме цього виробу саме цього кольору — із каталогу. Кольору
-     може ще не бути; тоді лишається загальне фото виробу, і це чесніше за
-     чужий колір. */
-  function unitPhoto(u){
-    var g = U.catItem(u && u.gid);
-    if(!g) return '';
-    var c = (g.colors || []).filter(function(x){
-      return String(x.name || x.id) === String(u.color || ''); })[0];
-    return (c && c.pic) || g.pic || '';
+  /* ══════════ ЗДАЧА: МАКЕТ → МОКАП → НАДІСЛАТИ ══════════
+
+     Три кроки, і другий не можна пропустити. Андрій: «ми без мокапу не
+     можемо відправити».
+
+     Причина не в порядку заради порядку. Клієнту в Директ іде мокап, а не
+     файл із логотипом на прозорому тлі: за самим файлом не видно ні
+     розміру, ні місця, ні того, як воно виглядає на чорному. Доти мокап
+     робили «якщо згадали», і половина макетів ішла клієнту голим файлом —
+     після чого починалось листування замість погодження.
+
+     Тому кнопка «Надіслати» зʼявляється тільки третьою. Перші дві не
+     сховані й не сірі: людина бачить увесь шлях і те, на якому вона кроці. */
+  function handHtml(u, d, key){
+    var чер = d.draft || {};
+    var крок = !чер.art ? 1 : !чер.mock ? 2 : 3;
+    var фото = U.unitPhoto(u);
+    return '<div class="dz-w-send">' +
+      '<div class="dz-steps">' +
+        ['Макет', 'Мокап', 'Надіслати'].map(function(t, i){
+          return '<i class="dz-step' + (крок > i + 1 ? ' done' : крок === i + 1 ? ' on' : '') +
+            '">' + (i + 1) + '. ' + t + '</i>';
+        }).join('') +
+      '</div>' +
+      (чер.art
+        ? '<div class="dz-draft">' +
+            '<img src="' + esc(чер.art.url) + '" alt="">' +
+            (чер.mock ? '<img src="' + esc(чер.mock.png) + '" alt="">' : '') +
+            '<div class="dz-draft-t">' +
+              '<b>' + esc(чер.art.name || 'макет') + '</b>' +
+              (чер.mock
+                ? '<span>' + esc(placeTxt(чер.mock)) + '</span>'
+                : '<span>мокапу ще немає</span>') +
+            '</div>' +
+            '<button class="dz-ib dz-ib-x" data-do="dz-art-del" data-dz="' + key +
+              '" title="Прибрати й завантажити інший">🗑</button>' +
+          '</div>'
+        : '') +
+      (крок === 1
+        ? '<button class="dz-b pri wide" data-do="dz-art" data-dz="' + key + '">' +
+          '⤒ Завантажити макет</button>'
+        : крок === 2
+        ? (фото
+            ? '<button class="dz-b pri wide" data-do="dz-mock" data-dz="' + key + '">' +
+              '◱ Створити мокап</button>'
+            : '<div class="dz-miss">У цього виробу немає фото в каталозі — покласти ' +
+              'макет нема на що. Скажіть менеджеру: фото додають у каталог товарів.</div>')
+        : '<button class="dz-b wide" data-do="dz-mock" data-dz="' + key + '">' +
+          '◱ Переробити мокап</button>') +
+      '<textarea rows="2" data-dzsay="' + key + '" ' +
+        'placeholder="Коментар до макета — якщо є що сказати"></textarea>' +
+      (крок === 3
+        ? '<button class="dz-b pri wide" data-do="dz-hand" data-dz="' + key + '">' +
+          'Надіслати · буде v' + (d.vers.length + 1) + '</button>'
+        : '<div class="dz-miss is-calm">Без мокапу не надсилаємо: клієнту йде ' +
+          'макет на виробі, а не файл на прозорому тлі — за ним не видно ні ' +
+          'розміру, ні місця.</div>') +
+    '</div>';
+  }
+  /* Розміщення одним рядком. Нулі означають, що виріб на фото не розмічений
+     або в товару немає сітки, — і тоді краще сказати це, ніж показати
+     «0 см», яке виглядає як виміряне. */
+  function placeTxt(m){
+    if(!m || !m.wCm) return 'розміщення не порахувалось';
+    return 'ширина ' + мсм(m.wCm) + ' · від горловини ' + мсм(m.topCm) +
+      (m.sideCm ? ' · від центру ' + (m.sideCm > 0 ? '+' : '−') + мсм(Math.abs(m.sideCm)) : '') +
+      (m.size ? ' · на ' + m.size : '');
   }
   function dzWorkHtml(x, i){
     var u = x.u, d = x.d;
@@ -3261,13 +3361,13 @@
          лежить у нас у каталозі — і доти дизайнер шукав його руками на
          сайті або питав менеджера. Тепер він поруч із роботою, у тому
          кольорі, який стоїть у складі. */
-      (unitPhoto(u)
+      (U.unitPhoto(u)
         ? '<div class="dz-w-mock">' +
-            '<img src="' + esc(unitPhoto(u)) + '" alt="" loading="lazy">' +
+            '<img src="' + esc(U.unitPhoto(u)) + '" alt="" loading="lazy">' +
             '<div class="dz-w-mock-t"><b>Фото виробу для мокапу</b>' +
               '<span>' + esc([(g && g.name) || u.name, u.color].filter(Boolean).join(' · ')) +
               '</span></div>' +
-            '<a class="dz-b" href="' + esc(unitPhoto(u)) + '" download="' +
+            '<a class="dz-b" href="' + esc(U.unitPhoto(u)) + '" download="' +
               esc('виріб-' + ((g && g.name) || 'фото')) + '" target="_blank" rel="noopener">' +
               '⤓ Скачати</a>' +
           '</div>'
@@ -3282,14 +3382,7 @@
             '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
             '<button class="dz-b" data-do="dz-no" data-dz="' + key + '">Не братиму</button>' +
           '</div>'
-        : '<div class="dz-w-send">' +
-            '<textarea rows="2" data-dzsay="' + key + '" ' +
-              'placeholder="Коментар до макета — якщо є що сказати"></textarea>' +
-            '<button class="dz-b pri wide" data-do="dz-hand" data-dz="' + key + '">' +
-              '⤒ Прикріпити файл і надіслати' +
-              (d.vers.length ? ' · буде v' + (d.vers.length + 1) : ' · буде v1') +
-            '</button>' +
-          '</div>') +
+        : handHtml(u, d, key)) +
       /* Розмова по цьому нанесенню — унизу: її читають після роботи, а не
          замість неї. */
       U.dzThreadHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true }) +
@@ -3718,6 +3811,11 @@
   }
 
   window.LQDesign.ui.render = render;
+  /* Дії назовні — щоб їх можна було перевірити повз інтерфейс. Половина
+     заборон тут саме в дії, а не в кнопці: сховати кнопку легко, і тоді
+     перевірка «без мокапу не відправимо» перевіряла б верстку, а не
+     заборону. */
+  window.LQDesign.ui.act = act;
   window.LQDesign.ui.panelFor = panelFor;
   window.LQDesign.ui.save = save;
   window.LQDesign.ui.can = can;
@@ -3946,6 +4044,22 @@
     if(out.length < list.length) say('Прийнялось ' + out.length + ' із ' + list.length);
     return out;
   }
+  /* МОКАП ПРИХОДИТЬ КАРТИНКОЮ В ПАМʼЯТІ, А НЕ ФАЙЛОМ З ДИСКА.
+
+     Класти його в картку як `data:` не можна: картка їде в базу, де на
+     документ є ліміт, і один мокап зʼїв би його цілком. Тому переводимо в
+     звичайний файл і кладемо в сховище тим самим шляхом, що й усе інше. */
+  async function uploadDataUrl(dataUrl, name){
+    try{
+      var blob = await (await fetch(dataUrl)).blob();
+      try{ blob.name = name; }catch(e){}
+      var f = (typeof File === 'function')
+        ? new File([blob], name || 'file.png', { type: blob.type || 'image/png' })
+        : blob;
+      var url = await host().upload(f);
+      return url ? { url: url, name: name || 'мокап.png' } : null;
+    }catch(e){ console.error(e); return null; }
+  }
   async function upload(accept){
     var f = await pickFile(accept);
     if(!f) return null;
@@ -3980,7 +4094,7 @@
     /* Взяти, відмовитись і здати роботу — дії ВИКОНАВЦЯ, не складу. Якби
        вони лежали під зоною «art», дизайнер не зміг би ні взяти те, що
        йому дали, ні повернути те, чого не потягне. */
-    'dz-take':'', 'dz-no':'', 'dz-hand':'',
+    'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -4159,7 +4273,9 @@
     /* ── Один дизайн: розмова, версії, передача ── */
     if(what === 'dz-open' || what === 'dz-send' || what === 'dz-ver' ||
        what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok' ||
-       what === 'dz-take' || what === 'dz-no' || what === 'dz-hand'){
+       what === 'dz-take' || what === 'dz-no' || what === 'dz-hand' ||
+       what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
+       what === 'dz-card'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
       var dk = dp[1] === 'stitch' ? 'stitch' : 'graphic';
@@ -4207,22 +4323,107 @@
          і половина макетів висіла прикріпленою, але не зданою: дизайнер
          вважав, що віддав, менеджер не бачив нічого. Тепер файл і є
          здача, а коментар їде разом із ним. */
+      /* ── Здача: макет → мокап → надіслати ── */
+      if(what === 'dz-art'){
+        var af = await upload('image/*');
+        if(!af) return;
+        dd.draft = { art: { name:String(af.name || ''), url:String(af.url) } };
+        return save(job, o, 'Макет завантажено — тепер мокап');
+      }
+      if(what === 'dz-art-del'){
+        dd.draft = null;
+        return save(job, o, 'Прибрано');
+      }
+      if(what === 'dz-mock'){
+        if(!window.LQMock) return say('Вікно мокапу не завантажилось');
+        var чер = dd.draft || {};
+        if(!чер.art) return say('Спершу завантажте макет');
+        var фото = U.unitPhoto(du);
+        if(!фото) return say('У цього виробу немає фото в каталозі');
+        var g0 = U.catItem(du.gid);
+        return window.LQMock.open({
+          base: фото, art: чер.art.url, gid: du.gid, size: du.size || '',
+          name: [(g0 && g0.name) || du.name, du.color, du.size].filter(Boolean).join(' · '),
+          box: (чер.mock && чер.mock.box) || null,
+          onDone: async function(res){
+            /* Мокап зібрався в браузері як data:URL. Класти його в картку
+               таким не можна: картка їде в базу, а там ліміт на документ, і
+               один мокап зʼїв би його цілком. Тому — у сховище, як усі
+               інші файли. */
+            var up = await uploadDataUrl(res.png, 'мокап.png');
+            if(!up || !up.url) return say('Мокап не зберігся у сховищі');
+            dd.draft = dd.draft || {};
+            dd.draft.mock = { png: up.url, box: res.box, size: res.size,
+                              wCm: res.wCm, hCm: res.hCm,
+                              topCm: res.topCm, sideCm: res.sideCm };
+            save(job, o, 'Мокап готовий' +
+              (res.wCm ? ' · ширина ' + res.wCm + ' см' : ''));
+          }
+        });
+      }
       if(what === 'dz-hand'){
-        /* Кілька файлів одразу: макет і мокап на виріб — це одна здача, а
-           не дві версії. Номер версії ми називаємо клієнту, і рости вдвічі
-           швидше за роботу він не має. */
-        var hfs = await uploadMany('');
-        if(!hfs.length) return;
-        var hf = hfs;
+        var чер2 = dd.draft || {};
+        if(!чер2.art) return say('Спершу завантажте макет');
+        /* БЕЗ МОКАПУ НЕ НАДСИЛАЄМО. Це не формальність: клієнту йде макет на
+           виробі, а не файл на прозорому тлі — за ним не видно ні розміру,
+           ні місця, і замість погодження починається листування. */
+        if(!чер2.mock) return say('Без мокапу не надсилаємо — зробіть його');
         var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var hTxt = hEl ? String(hEl.value || '').trim() : '';
-        D.dzVer(dd, m, hf, hTxt);
+        D.dzVer(dd, m, [чер2.art, { name:'мокап.png', url: чер2.mock.png }], hTxt,
+          { wCm: чер2.mock.wCm, hCm: чер2.mock.hCm, topCm: чер2.mock.topCm,
+            sideCm: чер2.mock.sideCm, size: чер2.mock.size });
         if(hTxt) D.dzSay(dd, m, hTxt, null);
         if(hEl) hEl.value = '';
         /* `dzSay` після версії відкотив би стан у «на правках»: вона для
            слів менеджера, а не для супровідного коментаря до здачі. */
         dd.status = 'review';
+        dd.draft = null;
         return save(job, o, 'Надіслано · версія ' + dd.vers.length);
+      }
+      /* ══════════ АРКУШ ДЛЯ МЕНЕДЖЕРА ══════════
+
+         Горизонтальна картка: ліворуч макет, праворуч мокап, під ними
+         розміщення великими числами, а внизу склад і примітка. Одна
+         картинка замість трьох файлів і усного переказу.
+
+         Качається одразу файлом, а не відкривається вкладкою: її беруть,
+         щоб переслати, і зайвий крок «зберегти як» на цьому шляху означає,
+         що перешлють посилання на адмінку, куди в клієнта доступу немає. */
+      if(what === 'dz-card'){
+        if(!window.LQMock) return say('Малювальник картки не завантажився');
+        var cv2 = (dd.vers || []).filter(function(v){ return +v.n === +(data && data.v); })[0]
+                  || dd.vers[dd.vers.length - 1];
+        if(!cv2) return say('Версії ще немає');
+        var fs2 = cv2.files || [];
+        var g2 = U.catItem(du.gid);
+        say('Збираю картку…');
+        var png = await window.LQMock.card({
+          art: (fs2[0] || {}).url,
+          mock: (fs2[1] || {}).url,
+          title: U.jobNo(job) + ' · v' + cv2.n,
+          sub: [(g2 && g2.name) || du.name, du.color, du.size,
+                ((+du.qty || 0) + ' шт')].filter(Boolean).join(' · '),
+          nums: cv2.place && cv2.place.wCm
+            ? [['ШИРИНА', мсм(cv2.place.wCm)], ['ВИСОТА', мсм(cv2.place.hCm)],
+               ['ВІД ГОРЛОВИНИ', мсм(cv2.place.topCm)],
+               ['ВІД ЦЕНТРУ', (cv2.place.sideCm > 0 ? '+' : cv2.place.sideCm < 0 ? '−' : '') +
+                              мсм(Math.abs(cv2.place.sideCm))],
+               ['РОЗМІР', String(cv2.place.size || du.size || '—')]]
+            : [],
+          lines: [
+            [(g2 && g2.name) || du.name, du.color, du.size,
+             ((+du.qty || 0) + ' шт')].filter(Boolean).join(' · '),
+            du.note || '',
+            cv2.note || ''
+          ].filter(Boolean)
+        });
+        if(!png) return say('Картка не зібралась');
+        var a2 = document.createElement('a');
+        a2.href = png;
+        a2.download = 'Макет-' + (o.orderId || '') + '-v' + cv2.n + '.png';
+        document.body.appendChild(a2); a2.click(); a2.remove();
+        return say('Картку збережено');
       }
       if(what === 'dz-ver'){
         var vf = await upload('');

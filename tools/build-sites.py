@@ -43,6 +43,10 @@ CTOR_CARDS = 'loomiq-cards.js'
 # рештою: модель станів і екрани мусять їхати однією парою, інакше в кеші
 # лишиться дошка, яка не знає про новий крок.
 CTOR_DESIGN = 'loomiq-design.js'
+# Мокап — макет на фото виробу й сантиметри під ним. Окремим файлом, бо це
+# власна річ із власним вікном і власною арифметикою; версію штампуємо
+# разом з рештою: розмітка виробу й підрахунок мусять їхати однією парою.
+CTOR_MOCK = 'loomiq-mock.js'
 CTOR_CSS = 'loomiq-constructor.css'
 CTOR_HTML = 'loomiq-constructor-body.html'
 # З чого починається й чим закінчується розмітка конструктора в index.html
@@ -445,6 +449,7 @@ def main():
     seljs = open(os.path.join(ROOT, CTOR_SEL), encoding='utf-8').read()
     cards = open(os.path.join(ROOT, CTOR_CARDS), encoding='utf-8').read()
     design = open(os.path.join(ROOT, CTOR_DESIGN), encoding='utf-8').read()
+    mockjs = open(os.path.join(ROOT, CTOR_MOCK), encoding='utf-8').read()
     # НОМЕР ЗБІРКИ РАХУЄМО Й ЗІ СТОРІНОК ТЕЖ.
     #
     # Доти він брався лише з файлів рушіїв — а правка в самій сторінці
@@ -464,7 +469,7 @@ def main():
         t = re.sub(r'\?v=[A-Za-z0-9]+', '?v=', t)
         t = re.sub(r"LQ_VER\s*=\s*'[^']*'", "LQ_VER = ''", t)
         pages_src += t
-    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design + pages_src)
+    ver = ctor_version(base_ctor + css + markup + price + fp + seljs + cards + design + mockjs + pages_src)
     for name in STAMPED:
         path = os.path.join(ROOT, name)
         if not os.path.exists(path):
@@ -472,7 +477,7 @@ def main():
         txt = open(path, encoding='utf-8').read()
         new = txt
         for asset in (CTOR, CTOR_CSS, CTOR_HTML, CTOR_PRICE, CTOR_FP, CTOR_SEL,
-                      CTOR_CARDS, CTOR_DESIGN):
+                      CTOR_CARDS, CTOR_DESIGN, CTOR_MOCK):
             new = stamp(new, asset, ver)
         # Версія САМОЇ сторінки. Позначка в адресі рятує лише скрипти: у HTML
         # адреси немає, браузер тримає його стільки, скільки схоче, — і людина

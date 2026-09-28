@@ -3558,6 +3558,93 @@
   .dz-w-when{flex:none;font-size:11.5px;color:var(--ink-soft);
     background:var(--canvas);border-radius:8px;padding:7px 10px;}
   .dz-w-when b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+  /* ── Здача трьома кроками ──
+     Макет → мокап → надіслати. Другий не пропускається: клієнту йде макет
+     на виробі, а не файл на прозорому тлі. Кроки видно всі одразу — людина
+     має бачити шлях і те, на якому вона місці, а не натикатись на
+     несподівану заборону в кінці. */
+  .dz-steps{display:flex;gap:6px;}
+  .dz-step{flex:1;font-style:normal;font-size:10.5px;font-weight:700;
+    letter-spacing:.02em;text-align:center;border-radius:7px;padding:5px 4px;
+    background:var(--canvas);color:var(--muted);}
+  .dz-step.on{background:var(--ink);color:#fff;}
+  .dz-step.done{background:#EDF9F3;color:#0A6B4A;}
+  .dz-draft{display:flex;align-items:center;gap:9px;background:var(--canvas);
+    border-radius:9px;padding:8px 9px;}
+  .dz-draft img{flex:none;width:44px;height:44px;object-fit:contain;border-radius:7px;
+    background:#fff;border:1px solid var(--line);}
+  .dz-draft-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .dz-draft-t b{font-size:12px;font-weight:700;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .dz-draft-t span{font-size:11px;color:var(--muted);}
+  /* Розміщення при версії: питання «а скільки сантиметрів» задають саме
+     тут, дивлячись на версію, а не в чужому файлі. */
+  .dz-dv-p{display:block;font-style:normal;font-size:11px;color:var(--ink-soft);
+    background:var(--canvas);border-radius:6px;padding:3px 7px;margin-top:4px;
+    font-variant-numeric:tabular-nums;}
+  /* ══════════ ВІКНО МОКАПУ ══════════
+     Ліворуч фото виробу з макетом, який тягають мишею; праворуч — числа.
+     Числа праворуч, а не під картинкою, навмисно: їх читають ОДНОЧАСНО з
+     тим, як рухають макет, і гортати до них означає не читати. */
+  .mko-wrap{position:fixed;inset:0;z-index:400;background:rgba(15,32,52,.55);
+    display:flex;align-items:center;justify-content:center;padding:20px;}
+  .mko-w{background:var(--paper);border-radius:16px;width:min(1080px,100%);
+    max-height:100%;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 24px 70px rgba(15,32,52,.34);}
+  .mko-h{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    border-bottom:1px solid var(--line);}
+  .mko-h b{font-size:14px;font-weight:700;color:var(--ink);}
+  .mko-x{all:unset;cursor:pointer;margin-left:auto;width:30px;height:30px;
+    border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:19px;color:var(--ink-soft);}
+  .mko-x:hover{background:var(--canvas);color:var(--ink);}
+  .mko-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 260px;gap:14px;
+    padding:14px;overflow:auto;}
+  .mko-stage{position:relative;background:var(--canvas);border-radius:12px;
+    overflow:hidden;display:flex;align-items:center;justify-content:center;
+    min-height:360px;user-select:none;}
+  .mko-base{max-width:100%;max-height:100%;display:block;object-fit:contain;}
+  .mko-art{position:absolute;cursor:move;outline:1px dashed rgba(124,58,237,.8);}
+  .mko-art img{width:100%;height:100%;display:block;pointer-events:none;}
+  /* Кут для масштабу. Тягнемо тільки за нього: тягнути за край означало б
+     розтягнути макет непропорційно — а це вже не той логотип, який
+     погодив клієнт. */
+  .mko-gr{position:absolute;right:-6px;bottom:-6px;width:13px;height:13px;
+    border-radius:4px;background:#7C3AED;cursor:nwse-resize;}
+  /* Розмітка виробу: дві вертикалі по ширині й лінія по горловині. Її
+     роблять ОДИН РАЗ на товар — далі фото вже знає свій масштаб. */
+  .mko-cal{position:absolute;inset:0;pointer-events:none;}
+  .mko-cal-v{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;
+    background:#E4572E;pointer-events:auto;cursor:ew-resize;}
+  .mko-cal-v::after{content:'';position:absolute;left:-7px;top:50%;margin-top:-8px;
+    width:16px;height:16px;border-radius:50%;background:#E4572E;}
+  .mko-cal-y{position:absolute;left:0;right:0;height:2px;margin-top:-1px;
+    background:#2E90FA;pointer-events:auto;cursor:ns-resize;}
+  .mko-cal-y::after{content:'';position:absolute;top:-7px;left:50%;margin-left:-8px;
+    width:16px;height:16px;border-radius:50%;background:#2E90FA;}
+  .mko-side{display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .mko-num{display:flex;flex-direction:column;gap:6px;}
+  .mko-n{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    font-size:12px;color:var(--ink-soft);}
+  .mko-n b{font-size:16px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;}
+  .mko-note{font-size:11.5px;line-height:1.45;color:var(--ink-soft);
+    background:var(--canvas);border-radius:9px;padding:9px 10px;}
+  .mko-note b{color:var(--ink);}
+  .mko-cal-b{all:unset;cursor:pointer;text-align:center;font-size:12px;font-weight:600;
+    color:var(--ink-soft);background:var(--canvas);border-radius:9px;padding:9px;}
+  .mko-cal-b:hover{background:#EEF1F5;color:var(--ink);}
+  .mko-acts{margin-top:auto;display:flex;gap:8px;}
+  .mko-b{all:unset;cursor:pointer;flex:1;text-align:center;font-size:12.5px;
+    font-weight:600;color:var(--ink);background:#fff;border:1px solid var(--line);
+    border-radius:9px;padding:10px;}
+  .mko-b:hover{border-color:var(--accent);}
+  .mko-b.pri{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700;}
+  .mko-b.pri:hover{background:#2c3b58;}
+  .mko-b[disabled]{opacity:.55;cursor:default;}
+  /* На вузькому екрані числа йдуть під картинку: інакше колонка в 260 px
+     зʼїдає половину сцени, і рухати макет ніде. */
+  @media (max-width:860px){ .mko-body{grid-template-columns:1fr;} }
   .dz-w-take{display:flex;gap:8px;}
   .dz-w-take .dz-b{flex:1;text-align:center;justify-content:center;}
   .dz-w-send{display:flex;flex-direction:column;gap:7px;}
@@ -5987,18 +6074,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=6706df50cf"></script>
-<script src="loomiq-fingerprint.js?v=6706df50cf"></script>
-<script src="loomiq-pricing.js?v=6706df50cf"></script>
+<script src="loomiq-select.js?v=623603d419"></script>
+<script src="loomiq-fingerprint.js?v=623603d419"></script>
+<script src="loomiq-pricing.js?v=623603d419"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=6706df50cf"></script>
+<script src="loomiq-design.js?v=623603d419"></script>
+<script src="loomiq-mock.js?v=623603d419"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=6706df50cf"></script>
+<script src="loomiq-cards.js?v=623603d419"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6023,7 +6111,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '6706df50cf';
+var LQ_VER = '623603d419';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -16317,6 +16405,61 @@ function garmentSizes(gid){
   });
   return out.slice(0, 12);
 }
+/* ── ШИРИНА ВИРОБУ В САНТИМЕТРАХ ────────────────────────────────────────
+   Заради неї й потрібна вся розмірна сітка тут: мокап рахує розміщення в
+   сантиметрах, а щоб перевести пікселі фото в сантиметри, треба знати, на
+   скільки сантиметрів той виріб на фото. Беремо колонку «Ширина» — ту, що
+   вимірюється від шва під рукавом до шва, тобто рівно видиму ширину виробу
+   на фронтальному знімку.
+
+   Мірки в кожного товару свої, тому колонку шукаємо за підписом, а не за
+   буквою: у кітеля другою мірою стоїть обхват грудей, і брати її як ширину
+   означало б помилитись удвічі.
+
+   Розміру немає в сітці — повертаємо нуль, і мокап чесно каже, що
+   сантиметрів не буде. Вигадати тут гірше, ніж не сказати: за цим числом
+   шиють. */
+function scRowsOf(gid){
+  const rows = gid && contentData.sizecharts && contentData.sizecharts[gid];
+  return Array.isArray(rows) ? rows : [];
+}
+function garmentWidthCm(gid, size){
+  const rows = scRowsOf(gid);
+  if(!rows.length || !size) return 0;
+  const cols = scColsOf(gid);
+  /* Спершу за підписом, далі — друга мірка за порядком: у стандартній
+     сітці це саме ширина, і товарів, де підпис не міняли, більшість. */
+  let key = (cols.filter(c => /ширин/i.test(c.label || ''))[0] || {}).key;
+  if(!key) key = (cols[1] || cols[0] || {}).key || 'B';
+  const хочемо = String(size).trim().toLowerCase();
+  for(const r of rows){
+    if(Array.isArray(r)){
+      if(String(r[0] || '').trim().toLowerCase() !== хочемо) continue;
+      const i = ['A','B','C','D'].indexOf(key);
+      return Math.max(0, parseFloat(String(r[i + 1]).replace(',', '.')) || 0);
+    }
+    const s = String((r && (r.size || (r.c && r.c[0]))) || '').trim().toLowerCase();
+    if(s !== хочемо) continue;
+    const v = r[key] != null ? r[key] : (r.c ? r.c[['A','B','C','D'].indexOf(key) + 1] : 0);
+    return Math.max(0, parseFloat(String(v).replace(',', '.')) || 0);
+  }
+  return 0;
+}
+/* Розмітка виробу на фото — при ТОВАРІ, а не при замовленні: знімок один на
+   всі замовлення, і розмічати його вдруге означає мати дві різні правди про
+   ту саму картинку. */
+function mockCal(gid){
+  const m = (contentData.mockcal || {})[gid];
+  return (m && m.x2 > m.x1) ? m : null;
+}
+async function mockCalSave(gid, c){
+  if(!gid || !c) return;
+  if(!contentData.mockcal) contentData.mockcal = {};
+  const v = { x1:+c.x1, x2:+c.x2, y:+c.y };
+  contentData.mockcal[gid] = v;
+  try{ await PHOTOS_DOC.set({ mockcal: { [gid]: v } }, { merge:true }); }
+  catch(e){ console.warn('розмітка виробу не збереглась', e); }
+}
 function sizeQty(it){ return (it && it.sizeQty && typeof it.sizeQty === 'object') ? it.sizeQty : {}; }
 function sizeQtySum(it){
   const m = sizeQty(it);
@@ -25467,6 +25610,15 @@ function openDesign(){
   watchPayments();
   const me = myEmail() || '';
   const mine = (accOf(teamMember(me) || {}).ui === 'designer');
+  /* Вікно мокапу питає рівно три речі: розмітку виробу на фото, ширину
+     виробу для потрібного розміру й куди сказати людині, що щось пішло не
+     так. Каталог і збереження воно не чіпає — це робота панелі. */
+  if(window.LQMock) window.LQMock.host = {
+    cal: gid => mockCal(gid),
+    calSave: (gid, c) => mockCalSave(gid, c),
+    widthCm: (gid, size) => garmentWidthCm(gid, size),
+    toast: m => toast(m)
+  };
   window.LQDesign.ui.host = {
     me: ()=> me,
     name: e => personName(e) || e,
@@ -25506,6 +25658,12 @@ function openDesign(){
        клієнту ми обіцяємо посилку, а дизайнеру треба знати, чи встигає він
        сьогодні. */
     dzHours: () => b2cCfg().dzHours,
+    /* Мокап рахує сантиметри з розмірної сітки товару — тієї самої, що
+       показана клієнту на сайті. Свою тут заводити нема чого: дві сітки
+       рано чи пізно розійдуться, і виробництво пошиє по чужій. */
+    widthCm: (gid, size) => garmentWidthCm(gid, size),
+    cal: gid => mockCal(gid),
+    calSave: (gid, c) => mockCalSave(gid, c),
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
        платежів. Рахує робоче місце: воно й тримає список рухів. */
     paid: o => payPaid(o && o.orderId),
