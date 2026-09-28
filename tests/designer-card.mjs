@@ -203,7 +203,10 @@ await p.evaluate(() => { document.querySelector('[data-open]').click(); });
 await p.waitForTimeout(600);
 const кар = await p.evaluate(() => {
   const a = document.querySelector('.dz-panel .dz-pic-dl');
-  return { є: !!a, скачує: a ? a.hasAttribute('download') : false,
+  /* Скачування зроблене ДІЄЮ, а не атрибутом `download`: він працює лише на
+     своєму домені, а картинки лежать у Cloudinary — і посилання мовчки
+     відкривало б їх у вкладці замість того, щоб зберегти. */
+  return { є: !!a, скачує: !!(a && a.dataset && a.dataset.url),
            коментар: /Логотип менше/.test(document.querySelector('.dz-panel').textContent),
            мокап: !!document.querySelector('.dz-w-mock'),
            дата: /14\.10/.test(document.querySelector('.dz-panel').textContent) };
@@ -366,6 +369,101 @@ ok(/зайнятий/.test(відмова.причина),
 ok(!відмова.карток,
   'і з дошки дизайнера картка зникла — робота не його',
   'картка лишилась у дизайнера після відмови');
+
+console.log('\n═══ СКАЧУВАННЯ СПРАВДІ СКАЧУЄ ═══');
+/* ТИХА ПОЛОМКА, ЯКУ ЛЕГКО НЕ ПОМІТИТИ.
+
+   Посилання з атрибутом `download` скачує ТІЛЬКИ СВІЙ ДОМЕН. Наші фото й
+   макети лежать у Cloudinary, тобто на чужому, — і браузер атрибут мовчки
+   ігнорує й просто відкриває картинку у вкладці. Ніякої помилки, ніякого
+   повідомлення: людина тисне «Скачати», бачить картинку й не розуміє, чому
+   файлу немає. Андрій: «тут справа є можливість качати, але вона чомусь не
+   качається».
+
+   Тому перевіряємо не вигляд кнопки, а механізм: жодне скачування в картці
+   не має покладатись на `download` у посиланні. */
+/* Заводимо картку наново: попередня перевірка закінчилась відмовою, і
+   роботи в дизайнера більше немає — качати нічого. */
+await p.evaluate(ЗАВЕСТИ);
+await p.waitForTimeout(600);
+await p.evaluate(() => { document.querySelector('[data-open]').click(); });
+await p.waitForTimeout(500);
+await p.evaluate(() => { document.querySelector('[data-do="dz-take"]').click(); });
+await p.waitForTimeout(700);
+const качання = await p.evaluate(() => {
+  const кнопки = [...document.querySelectorAll('.dz-panel [data-do="dz-dl"]')];
+  return {
+    кнопок: кнопки.length,
+    посилання: [...document.querySelectorAll('.dz-panel a[download]')].map(a => a.getAttribute('href')),
+    адреси: кнопки.map(b => b.dataset.url).filter(Boolean).length
+  };
+});
+console.log('  ' + JSON.stringify(качання));
+ok(качання.кнопок >= 2,
+  'скачування зроблене дією, а не посиланням: кнопок ' + качання.кнопок,
+  'кнопок скачування не знайдено');
+ok(!качання.посилання.length,
+  'і жодного `download` на посиланні — на чужому домені він не працює',
+  'лишились посилання з download, і на Cloudinary вони мовчки не спрацюють: ' +
+    JSON.stringify(качання.посилання));
+ok(качання.адреси === качання.кнопок,
+  'у кожної кнопки є адреса файлу',
+  'є кнопки скачування без адреси');
+/* І сама дія бере файл, а не покладається на браузер: перевіряємо на
+   чужому домені, який у цьому наборі просто не відповідає, — кнопка мусить
+   сказати це вголос, а не мовчати. */
+const спроба = await p.evaluate(async () => {
+  window.__SAID = [];
+  const t = window.toast;
+  window.toast = m => { window.__SAID.push(String(m)); try{ t(m); }catch(e){} };
+  window.__OPEN = 0;
+  window.open = () => { window.__OPEN++; return null; };
+  const b = document.querySelector('.dz-panel [data-do="dz-dl"]');
+  b.dataset.url = 'https://res.cloudinary.com/x/недосяжне.png';
+  b.click();
+  await new Promise(r => setTimeout(r, 1200));
+  return { сказано: window.__SAID.join(' | '), відкрито: window.__OPEN };
+});
+console.log('  ' + JSON.stringify(спроба));
+ok(/не віддався|Збережено/.test(спроба.сказано),
+  'а коли файл не віддався — сказано словами, а не мовчазна порожнеча: ' +
+    спроба.сказано,
+  'кнопка мовчить, коли нічого не сталось: ' + спроба.сказано);
+
+/* І головне: на файлі, який ВІДДАЄТЬСЯ, воно справді зберігає. Попередня
+   перевірка показала лише, що ми не мовчимо на відмову; ця — що робота
+   робиться. Ловимо саме збереження, підмінивши створення посилання. */
+const збереглось = await p.evaluate(async () => {
+  window.__DL = [];
+  const був = document.createElement.bind(document);
+  document.createElement = tag => {
+    const el = був(tag);
+    if(String(tag).toLowerCase() === 'a'){
+      const клік = el.click.bind(el);
+      el.click = () => { if(el.download) window.__DL.push({ name: el.download,
+        blob: String(el.href).indexOf('blob:') === 0 }); клік(); };
+    }
+    return el;
+  };
+  const b = document.querySelector('.dz-panel [data-do="dz-dl"]');
+  /* Однопіксельний PNG у самій адресі: він завжди доступний і не залежить
+     ні від мережі, ні від чужого домену. */
+  b.dataset.url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  b.dataset.name = 'референс';
+  b.click();
+  await new Promise(r => setTimeout(r, 900));
+  document.createElement = був;
+  return { збережено: window.__DL };
+});
+console.log('  ' + JSON.stringify(збереглось));
+ok(збереглось.збережено.length === 1 && збереглось.збережено[0].blob,
+  'а доступний файл справді зберігається — і саме файлом, а не адресою',
+  'файл не зберігся: ' + JSON.stringify(збереглось));
+/* Розширення дописується: без нього Windows не знає, чим відкривати, і
+   файл лягає «без типу». */
+ok(/\.png$/.test((збереглось.збережено[0] || {}).name || ''),
+  'з розширенням за типом файлу: ' + (збереглось.збережено[0] || {}).name,
+  'файл зберігся без розширення: ' + JSON.stringify(збереглось.збережено));
 
 console.log('\n═══ КАРТКА РОЗДІЛЕНА: ЩО ПРИЙШЛО / ЩО ВІДПОВІДАЮ ═══');
 /* Андрій: «повинна бути розділена тезешка — те, що в них прийшло, і потім
