@@ -1942,8 +1942,9 @@
         /* Файл версії — зі скачуванням. Його відкривають не подивитись, а
            забрати: менеджер шле його клієнту, дизайнер бере назад у роботу. */
         (v.files || []).map(function(f){
-          return '<a href="' + esc(f.url) + '" download="' + esc(f.name || 'макет') +
-                 '" target="_blank" rel="noopener">⤓ ' + esc(f.name || 'файл') + '</a>';
+          return '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
+                 esc(f.url) + '" data-name="' + esc(f.name || 'макет') + '">⤓ ' +
+                 esc(f.name || 'файл') + '</button>';
         }).join('') +
         /* Розміщення — просто при версії, а не в чужому файлі. Питання «а
            скільки сантиметрів» задають саме тут, дивлячись на версію. */
@@ -3569,9 +3570,9 @@
                 'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
                 '<img src="' + esc(pp.url) + '" alt="" loading="lazy">' +
               '</button>' +
-              '<a class="dz-pic-dl" href="' + esc(pp.url) + '" download="' +
-                esc(pp.name || ('референс-' + (k + 1))) + '" target="_blank" ' +
-                'rel="noopener" title="Скачати">⤓</a>' +
+              '<button type="button" class="dz-pic-dl" data-do="dz-dl" data-url="' +
+                esc(pp.url) + '" data-name="' + esc(pp.name || ('референс-' + (k + 1))) +
+                '" title="Скачати">⤓</button>' +
             '</span>';
           }).join('') + '</div>'
         : '<div class="dz-miss is-calm">Картинок до цього виробу не додали.</div>') +
@@ -3591,9 +3592,9 @@
             '<div class="dz-w-mock-t"><b>Фото виробу для мокапу</b>' +
               '<span>' + esc([(g && g.name) || u.name, u.color].filter(Boolean).join(' · ')) +
               '</span></div>' +
-            '<a class="dz-b" href="' + esc(U.unitPhoto(u)) + '" download="' +
-              esc('виріб-' + ((g && g.name) || 'фото')) + '" target="_blank" rel="noopener">' +
-              '⤓ Скачати</a>' +
+            '<button type="button" class="dz-b" data-do="dz-dl" data-url="' +
+              esc(U.unitPhoto(u)) + '" data-name="' +
+              esc('виріб-' + ((g && g.name) || 'фото')) + '">⤓ Скачати</button>' +
           '</div>'
         : '') +
       /* Що відповісти. Файл і коментар разом, однією дією: доти «додати
@@ -4321,7 +4322,7 @@
     'u-del':'art', 'dz-add':'art', 'dz-del':'art',
     'brief-save':'art', 'brief-pic':'art', 'brief-pic-del':'art',
     'u-pick-gid':'art', 'u-pick-color':'art', 'u-pick-size':'art',
-    'u-pic':'art', 'u-pic-del':'art', 'pic-open':'',
+    'u-pic':'art', 'u-pic-del':'art', 'pic-open':'', 'dz-dl':'',
     /* Розмову по дизайну ведуть обидві сторони: менеджер пише правку,
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
@@ -4473,6 +4474,58 @@
         pu.size = String(sz || '');
         save(job, o, pu.size || 'Розмір знімемо, коли буде відомий');
       });
+    }
+    /* ══════════ СКАЧАТИ ФАЙЛ ══════════
+
+       Тут була тиха поломка, яку легко не помітити: посилання з атрибутом
+       `download` СКАЧУЄ ТІЛЬКИ СВІЙ ДОМЕН. Наші фото й макети лежать у
+       Cloudinary, тобто на чужому, — і браузер атрибут мовчки ігнорує й
+       просто відкриває картинку у вкладці. Ніякої помилки, ніякого
+       повідомлення: людина тисне «Скачати», бачить картинку й не розуміє,
+       чому файлу немає. Андрій: «тут справа є можливість качати, але вона
+       чомусь не качається».
+
+       Тому забираємо файл самі й віддаємо його вже як свій. Cloudinary
+       дозволяє це читати (CORS відкритий), і саме так адмінка вже збирає
+       архів макетів — інакше ця сама стіна впиралась би і там.
+
+       Не вийшло — кажемо ЧОМУ і відкриваємо у вкладці: краще ручне
+       «зберегти як», ніж кнопка, що мовчки нічого не робить. */
+    if(what === 'dz-dl'){
+      var dlUrl = String((data && data.url) || '');
+      if(!dlUrl) return say('Файлу немає');
+      say('Завантажую…');
+      try{
+        var r = await fetch(dlUrl, { mode:'cors', credentials:'omit' });
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        var blob = await r.blob();
+        /* Розширення беремо з адреси: без нього Windows не знає, чим
+           відкривати, і файл лягає «без типу». */
+        var ext = (/\.(png|jpe?g|webp|svg|pdf|ai|eps|zip|dst|pes)(?:$|[?#])/i.exec(dlUrl) || [])[1];
+        /* Адреса не завжди має розширення: Cloudinary віддає перетворені
+           картинки без нього взагалі. Тоді питаємо сам файл — він знає
+           свій тип, і це надійніше за здогад з адреси. */
+        if(!ext){
+          var mt = String(blob.type || '').split(';')[0];
+          ext = { 'image/png':'png', 'image/jpeg':'jpg', 'image/webp':'webp',
+                  'image/svg+xml':'svg', 'application/pdf':'pdf',
+                  'application/zip':'zip' }[mt] || '';
+        }
+        var nm = String((data && data.name) || 'файл').replace(/[\\/:*?"<>|]+/g, '-');
+        if(ext && nm.toLowerCase().indexOf('.' + ext.toLowerCase()) < 0) nm += '.' + ext.toLowerCase();
+        var ou = URL.createObjectURL(blob);
+        var la = document.createElement('a');
+        la.href = ou; la.download = nm;
+        document.body.appendChild(la); la.click(); la.remove();
+        /* Відкликаємо не одразу: Safari встигає почати завантаження не
+           раніше наступного такту, і миттєве звільнення ламало його. */
+        setTimeout(function(){ URL.revokeObjectURL(ou); }, 4000);
+        return say('Збережено · ' + nm);
+      }catch(e){
+        console.error('скачування', e);
+        try{ window.open(dlUrl, '_blank', 'noopener'); }catch(e2){}
+        return say('Файл не віддався напряму — відкрив у вкладці, збережіть звідти');
+      }
     }
     /* Подивитись картинку на весь екран. Вікно, а не нова вкладка: людина
        лишається в картці, і закриття повертає її рівно туди, де була. */
