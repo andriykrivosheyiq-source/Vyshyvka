@@ -3517,6 +3517,72 @@
   .dz-z-b{padding:11px;}
   .dz-z-b > .dz-h:first-child{margin-top:0;}
   .dz-z-b > :last-child{margin-bottom:0;}
+  /* ══════════ РОБОТА ДИЗАЙНЕРА ══════════
+
+     Один виріб — один блок: що шиємо, скільки лишилось часу, що просив
+     клієнт словами, картинки й місце, куди класти готове. Нічого про
+     клієнта, нічого про гроші — дизайнеру вони не потрібні, а бачити їх
+     означає мати доступ до чужого контакту без жодної причини. */
+  .dz-w{flex:none;border:1px solid var(--line);border-radius:11px;background:#fff;
+    padding:11px;display:flex;flex-direction:column;gap:10px;}
+  .dz-w.is-fix{border-color:#FECDCA;box-shadow:inset 3px 0 0 #E4572E;}
+  .dz-w-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .dz-w-h b{font-size:13.5px;font-weight:700;color:var(--ink);}
+  .dz-w-c{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
+    color:var(--ink-soft);background:var(--canvas);border-radius:6px;padding:2px 7px;}
+  /* Годинник, а не дата. «До 14 жовтня» сьогодні не рухає нікого. */
+  .dz-w-t{margin-left:auto;font-style:normal;font-size:11.5px;font-weight:700;
+    border-radius:6px;padding:2px 8px;background:#EDF9F3;color:#0A6B4A;
+    font-variant-numeric:tabular-nums;}
+  .dz-w-t.soon{background:#FEF8E7;color:#8A6410;}
+  .dz-w-t.late{background:#FDECEA;color:#B03A1A;}
+  .dz-w-fix{font-size:12px;font-weight:700;color:#B42318;background:#FEF3F2;
+    border-radius:8px;padding:7px 9px;}
+  .dz-w-note{font-size:12.5px;color:var(--ink);background:var(--canvas);
+    border-radius:9px;padding:9px 10px;white-space:pre-wrap;}
+  .dz-w-note i{display:block;font-style:normal;font-size:10.5px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  /* Фото виробу для мокапу: клієнту в Директ іде не сам макет, а макет НА
+     ВИРОБІ. Доти дизайнер шукав цей знімок руками на сайті. */
+  .dz-w-mock{display:flex;align-items:center;gap:10px;background:var(--canvas);
+    border-radius:9px;padding:8px 9px;}
+  .dz-w-mock img{flex:none;width:44px;height:44px;object-fit:cover;border-radius:7px;
+    background:#fff;border:1px solid var(--line);}
+  .dz-w-mock-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .dz-w-mock-t b{font-size:12px;font-weight:700;color:var(--ink);}
+  .dz-w-mock-t span{font-size:11px;color:var(--muted);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .dz-w-mock .dz-b{flex:none;text-decoration:none;}
+  /* Дата замовлення — тихим рядком: дизайнер працює за своїм годинником,
+     але «здам завтра» звучить інакше, коли відправка сьогодні. */
+  .dz-w-when{flex:none;font-size:11.5px;color:var(--ink-soft);
+    background:var(--canvas);border-radius:8px;padding:7px 10px;}
+  .dz-w-when b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .dz-w-take{display:flex;gap:8px;}
+  .dz-w-take .dz-b{flex:1;text-align:center;justify-content:center;}
+  .dz-w-send{display:flex;flex-direction:column;gap:7px;}
+  .dz-w-send textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:8px 9px;outline:none;resize:vertical;}
+  .dz-w-send textarea:focus{border-color:var(--accent);}
+  /* Скачати просто з мініатюри. Дизайнеру потрібен не перегляд, а файл у
+     себе: доти шлях до нього був «відкрити — правою кнопкою — зберегти
+     як», тричі за кожен референс. */
+  .dz-pic-dl{position:absolute;left:3px;bottom:3px;width:20px;height:20px;
+    border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;text-decoration:none;color:#fff;background:rgba(15,32,52,.62);}
+  .dz-pic-dl:hover{background:var(--ink);}
+  /* Розмова, яку тільки читають: відповідає дизайнер роботою, а не третьою
+     кнопкою «Файл», що нікуди нічого не рухає. */
+  .dz-dt.is-ro{padding-top:2px;}
+  /* Строк у шапці панелі — той самий годинник, що й на картці. */
+  .dz-duo-t{cursor:default;}
+  .dz-duo-t.soon{border-color:#F0D48A;background:#FEF8E7;}
+  .dz-duo-t.soon b{color:#8A6410;}
+  /* Правка на дошці — найгучніше, що буває: робота вже зроблена, і її
+     просять переробити. Побачити це наступного дня коштує дня. */
+  .dz-card-w.is-fix{border-color:#FECDCA;box-shadow:inset 3px 0 0 #E4572E;}
+  .dz-m-fix{background:#E4572E;color:#fff;}
+  .dz-card-due.soon{background:#FEF8E7;color:#8A6410;}
   .dz-z.z-blue  {--z:#2E90FA;--zs:#EFF6FF;--zi:#1B4B82;}
   .dz-z.z-violet{--z:#7C3AED;--zs:#F4F0FF;--zi:#4C2189;}
   .dz-z.z-red   {--z:#E4572E;--zs:#FDF1EC;--zi:#8F3317;}
@@ -4847,6 +4913,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Днів на замовлення</span>
           <input id="b2c-days" type="number" min="1" max="120" step="1" style="width:100%;" placeholder="14">
         </label>
+
+        <div class="tl-divider" style="margin-top:22px;">Строк дизайнера</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Скільки годин дається на макет після передачі. Це НЕ строк замовлення:
+          клієнту ми обіцяємо готову посилку, а дизайнеру потрібен свій годинник —
+          «до 14 жовтня» сьогодні не рухає нікого, а «лишилось 5 год» рухає.
+          Відлік іде від передачі, а не від того, коли дизайнер її помітив;
+          повернули на правку — доба починається заново.
+        </div>
+        <label class="field" style="display:block;max-width:220px;">
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Годин на макет</span>
+          <input id="b2c-dzhours" type="number" min="1" max="720" step="1" style="width:100%;" placeholder="24">
+        </label>
         <div style="margin-top:14px;">
           <button class="pc-btn up" id="b2c-save" style="padding:9px 18px;">Зберегти</button>
         </div>
@@ -5908,18 +5987,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=69109fd33a"></script>
-<script src="loomiq-fingerprint.js?v=69109fd33a"></script>
-<script src="loomiq-pricing.js?v=69109fd33a"></script>
+<script src="loomiq-select.js?v=6706df50cf"></script>
+<script src="loomiq-fingerprint.js?v=6706df50cf"></script>
+<script src="loomiq-pricing.js?v=6706df50cf"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=69109fd33a"></script>
+<script src="loomiq-design.js?v=6706df50cf"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=69109fd33a"></script>
+<script src="loomiq-cards.js?v=6706df50cf"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5944,7 +6023,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '69109fd33a';
+var LQ_VER = '6706df50cf';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8435,13 +8514,18 @@ async function finAddManual(){
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
-           days: (+c.days > 0) ? Math.round(+c.days) : 0 };
+           days: (+c.days > 0) ? Math.round(+c.days) : 0,
+           /* Годин на макет. Доба — домовленість, а не закон природи, і
+              міняти її не має означати правку коду. */
+           dzHours: (+c.dzHours > 0) ? Math.round(+c.dzHours) : 24 };
 }
 function paintB2c(){
   const c = b2cCfg();
   paintExtras(c.extras);
   const d = document.getElementById('b2c-days');
   if(d) d.value = c.days || '';
+  const h = document.getElementById('b2c-dzhours');
+  if(h) h.value = (c.dzHours === 24) ? '' : c.dzHours;
   paintB2cPrices();
 }
 /* Усі товари списком, з полем ціни навпроти кожного. Порожнє поле каже, що
@@ -8493,7 +8577,9 @@ function readB2cPrices(){
   if(!b) return;
   b.addEventListener('click', async ()=>{
     const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
-    const b2c = { extras: readExtras(), days: days || null };
+    const dzHours = Math.max(0, Math.round(parseFloat(
+      (document.getElementById('b2c-dzhours') || {}).value) || 0));
+    const b2c = { extras: readExtras(), days: days || null, dzHours: dzHours || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
        б невідомо, яке справжнє. */
@@ -25416,6 +25502,10 @@ function openDesign(){
     /* Типовий термін виготовлення. Лежить у налаштуваннях B2C — одне місце
        на всі замовлення, з якого менеджер починає. */
     b2cDays: () => b2cCfg().days,
+    /* Скільки годин дизайнеру на макет. Свій годинник, не строк замовлення:
+       клієнту ми обіцяємо посилку, а дизайнеру треба знати, чи встигає він
+       сьогодні. */
+    dzHours: () => b2cCfg().dzHours,
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
        платежів. Рахує робоче місце: воно й тримає список рухів. */
     paid: o => payPaid(o && o.orderId),

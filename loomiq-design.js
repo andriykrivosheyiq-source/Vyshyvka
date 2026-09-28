@@ -484,9 +484,90 @@
     if(!d || !d.who) return null;
     d.sentBy = String(by || '');
     d.sentAt = nowIso();
-    if(d.status === 'new' || d.status === 'revision') d.status = 'work';
+    /* ПЕРЕДАЛИ — ЩЕ НЕ «В РОБОТІ».
+
+       Доти передача одразу ставила «в роботі», і дошка дизайнера брехала:
+       картка виглядала взятою, хоч людина її ще не бачила. Різниця важлива
+       рівно тоді, коли строк горить: «передали годину тому й тиша» і
+       «робить уже годину» — це два різні дзвінки.
+
+       Тепер передане чекає в «Нових», поки дизайнер не скаже «беру». */
+    if(d.status === 'new' || d.status === 'revision') d.status = 'sent';
     d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'sent',
                     text: 'Передано в роботу', seen: [String(by || '')] });
+    return d;
+  }
+  /* ── СТРОК ДИЗАЙНЕРА ────────────────────────────────────────────────────
+
+     Це НЕ той строк, що стоїть у шапці замовлення. Клієнту ми обіцяємо
+     готову посилку через два тижні; дизайнеру на макет дається доба — і
+     саме її він має бачити, бо на «до 14 жовтня» сьогодні не реагує ніхто.
+
+     Рахуємо від ПЕРЕДАЧІ, а не від підтвердження. Інакше годинник вмикає
+     сам виконавець: не натиснув «беру» — і строк не йде, хоч робота вже
+     лежить. Правки починають свій відлік наново: повернули о шостій —
+     доба йде з шостої, а не з позавчора.
+
+     Скільки саме годин — число з налаштувань. Доба це домовленість, а не
+     закон природи, і міняти її не має означати правку коду. */
+  var DZ_HOURS = 24;
+  function dzFrom(d){
+    if(!d || !d.sentAt) return '';
+    /* Остання правка від когось іншого перезапускає годинник: те, що
+       прийшло після здачі версії, — це нова робота, а не прострочена. */
+    var from = d.sentAt;
+    (d.thread || []).forEach(function(m){
+      if(m.kind === 'fix' || m.kind === 'sent') from = m.at || from;
+    });
+    return from;
+  }
+  function dzDue(d, hours){
+    var f = dzFrom(d);
+    if(!f) return 0;
+    var t = new Date(f).getTime();
+    if(isNaN(t)) return 0;
+    return t + (Math.max(1, +hours || DZ_HOURS) * 3600 * 1000);
+  }
+  /* Скільки лишилось — у хвилинах. Відʼємне означає «прострочено на».
+     Затверджене й здане більше не тікає: строк стосується роботи, яка
+     триває, а не тієї, що вже в менеджера. */
+  function dzLeft(d, hours){
+    if(!d || !d.sentAt) return null;
+    if(d.status === 'approved' || d.status === 'review') return null;
+    var due = dzDue(d, hours);
+    if(!due) return null;
+    return Math.round((due - Date.now()) / 60000);
+  }
+  /* ── ВЗЯВ / НЕ БЕРУ ─────────────────────────────────────────────────────
+
+     Дизайнер не мовчазний приймач роботи. Він може бути завантажений,
+     хворий або просто не робити цей тип нанесення — і тоді замовлення
+     мусить повернутись менеджеру ЗАРАЗ, а не за добу, коли строк уже
+     вийшов і ніхто нічого не малював.
+
+     Тому дві кнопки, і обидві однаково законні. «Беру» вмикає роботу;
+     «Не братиму» знімає дизайнера й повертає рядок менеджеру порожнім —
+     із причиною в розмові, щоб наступного разу віддали комусь іншому. */
+  function dzTake(d, by){
+    if(!d || !d.sentAt) return null;
+    if(d.status !== 'sent' && d.status !== 'revision') return d;
+    d.status = 'work';
+    d.takenAt = nowIso();
+    d.thread.push({ at: d.takenAt, by: String(by || ''), kind:'take',
+                    text: 'Взяв у роботу', seen: [String(by || '')] });
+    return d;
+  }
+  function dzDecline(d, by, why){
+    if(!d) return null;
+    var хто = d.who;
+    d.thread.push({ at: nowIso(), by: String(by || ''), kind:'no',
+                    text: 'Не братиму' + (why ? ': ' + String(why) : ''),
+                    seen: [String(by || '')] });
+    /* Знімаємо і виконавця, і передачу: інакше рядок лишається «переданим»
+       нікому, і менеджер бачить роботу в дорозі, якої ніхто не везе. */
+    d.who = ''; d.sentAt = ''; d.sentBy = '';
+    d.status = 'new';
+    d.declinedBy = String(хто || '');
     return d;
   }
   /* Чи це замовлення вже пішло в роботу — хоч одним дизайном свого виду.
@@ -521,11 +602,17 @@
   }
   /* Нова версія. Номер послідовний і НЕ переривається: клієнт каже «беремо
      другу», і другою має лишитись саме та, яку він бачив. */
+  /* Файлів у версії буває кілька: сам макет і мокап на виріб. Приймаємо і
+     один, і список — інакше дизайнер здавав би їх двома версіями, і номер,
+     який ми називаємо клієнту, зростав би вдвічі швидше за роботу. */
   function dzVer(d, by, file, note){
     if(!d) return null;
     var n = d.vers.length + 1;
+    var список = (Array.isArray(file) ? file : (file ? [file] : []))
+      .filter(function(f){ return f && f.url; })
+      .map(function(f){ return { name:String(f.name || ''), url:String(f.url) }; });
     d.vers.push({ n: n, at: nowIso(), by: String(by || ''),
-                  files: file ? [{ name:String(file.name || ''), url:String(file.url) }] : [],
+                  files: список,
                   note: String(note || '') });
     d.status = 'review';
     d.thread.push({ at: nowIso(), by: String(by || ''), kind:'ver',
@@ -1227,6 +1314,9 @@
     unitPic: unitPic, unitPicDel: unitPicDel,
     dzNew: dzNew, dzList: dzList, dzAt: dzAt, dzName: dzName,
     dzAttach: dzAttach, dzSend: dzSend, sentAny: sentAny, waiting: waiting,
+    /* Строк дизайнера й дві його відповіді на передачу. */
+    dzTake: dzTake, dzDecline: dzDecline, dzDue: dzDue, dzLeft: dzLeft,
+    DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
@@ -1357,7 +1447,9 @@
     if(min < 60) return min + ' хв';
     var h = Math.floor(min / 60), m2 = min % 60;
     if(h < 24) return h + ' год' + (m2 ? ' ' + m2 + ' хв' : '');
-    return Math.floor(h / 24) + ' дн ' + (h % 24) + ' год';
+    /* «1 дн 0 год» — сміття: нуль тут не додає нічого, крім довжини. */
+    var г = h % 24;
+    return Math.floor(h / 24) + ' дн' + (г ? ' ' + г + ' год' : '');
   }
 
   /* ── Дошка ─────────────────────────────────────────────────────────── */
@@ -1381,10 +1473,19 @@
                горить, де стоїть і кому писати. Відповідати на них
                відкриванням кожної картки означає не відповідати зовсім. */
             var late = c.due && new Date(c.due + 'T23:59:59').getTime() < Date.now();
-            return '<div class="dz-card-w">' +
+            /* СТРОК ДИЗАЙНЕРА — ГОДИННИК, А НЕ ДАТА.
+
+               «До 14 жовтня» сьогодні не означає нічого й не рухає нікого.
+               «Лишилось 5 год» рухає — і саме тому в дизайнера стоїть воно,
+               а дата лишається менеджеру, який обіцяє її клієнту. */
+            var годинник = (c.left === null || c.left === undefined) ? '' :
+              '<em class="dz-card-due' + (c.left < 0 ? ' late' : c.left < 180 ? ' soon' : '') +
+              '">' + esc(c.left < 0 ? ('прострочено ' + hm(-c.left)) : ('лишилось ' + hm(c.left))) +
+              '</em>';
+            return '<div class="dz-card-w' + (c.fix ? ' is-fix' : '') + '">' +
               '<button class="dz-card' + (c.id === openKey ? ' on' : '') +
                    '" data-open="' + esc(c.id) + '">' +
-              '<b>' + esc(c.title) +
+              '<b>' + esc(c.title) + годинник +
                 (c.due ? '<em class="dz-card-due' + (late ? ' late' : '') + '">до ' +
                          esc(dueShort(c.due)) + '</em>' : '') + '</b>' +
               /* Нік — одразу під номером: за ним клієнта й упізнають. */
@@ -1394,8 +1495,12 @@
               (c.sum ? '<span class="dz-card-sum' + (c.sum >= 20000 ? ' big' : '') + '">' +
                        esc(c.sumTxt || c.sum) + '</span>' : '') +
               (c.foot ? '<i>' + esc(c.foot) + '</i>' : '') +
-              ((c.unseen || c.wait)
+              ((c.unseen || c.wait || c.fix)
                 ? '<span class="dz-card-m">' +
+                    /* Правка від менеджера — найгучніше, що буває на цій
+                       дошці: робота вже зроблена, і її просять переробити.
+                       Побачити це наступного дня коштує дня. */
+                    (c.fix ? '<b class="dz-m-fix">правка</b>' : '') +
                     (c.unseen ? '<b class="dz-m-new">' + c.unseen + ' нових</b>' : '') +
                     /* «Чекають на відповідь» — найтихіша поломка відділу:
                        дизайнер спитав і стоїть, а картка виглядає робочою. */
@@ -1685,8 +1790,9 @@
     var m = (host.team ? host.team() : []).filter(function(x){ return x.email === email; })[0];
     return (m && (m.name || m.email)) || email || '';
   }
-  var DZ_STATE = { new:'не передано', work:'у роботі', review:'на перевірці',
-                   revision:'на правках', approved:'затверджено' };
+  var DZ_STATE = { new:'не передано', sent:'передано, чекає', work:'у роботі',
+                   review:'на перевірці', revision:'на правках',
+                   approved:'затверджено' };
   var SIDE_UA = { front:'Перед', back:'Спина', sleeve:'Рукав', other:'Інше' };
   function dzNameOf(d, i){ return D.dzName(d, i); }
   function dzVersHtml(u, kind, d, i, ro){
@@ -1697,9 +1803,11 @@
       return '<div class="dz-dv-i' + (обрана ? ' on' : '') + '">' +
         '<b>Версія ' + v.n + '</b>' +
         '<span>' + esc(whoName(v.by)) + ' · ' + esc(dt(v.at)) + '</span>' +
+        /* Файл версії — зі скачуванням. Його відкривають не подивитись, а
+           забрати: менеджер шле його клієнту, дизайнер бере назад у роботу. */
         (v.files || []).map(function(f){
-          return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' +
-                 esc(f.name || 'файл') + '</a>';
+          return '<a href="' + esc(f.url) + '" download="' + esc(f.name || 'макет') +
+                 '" target="_blank" rel="noopener">⤓ ' + esc(f.name || 'файл') + '</a>';
         }).join('') +
         (обрана ? '<i class="dz-dv-ok">обрана</i>'
                 : ro ? ''
@@ -1711,10 +1819,14 @@
   /* Розмова по дизайну. Правка, скопійована з переписки з клієнтом, лежить
      рівно при тому нанесенні, якого стосується, — дизайнеру не треба
      здогадуватись, що саме «завелике». */
-  function dzThreadHtml(u, kind, d, i){
+  function dzThreadHtml(u, kind, d, i, opt){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
-    return '<div class="dz-dt">' +
+    /* У дизайнера розмова тільки читається: відповідає він роботою —
+       файлом і коментарем при ньому, — а не третьою кнопкою «Файл», яка
+       нічого нікуди не рухає. */
+    var ro = !!(opt && opt.ro);
+    return '<div class="dz-dt' + (ro ? ' is-ro' : '') + '">' +
       (d.thread.length
         ? '<div class="dz-dt-l">' + d.thread.slice(-30).map(function(m){
             var нове = String(m.by || '') !== me && (m.seen || []).indexOf(me) < 0;
@@ -1725,14 +1837,15 @@
                         esc(m.file.name || 'файл') + '</a>' : '') +
             '</div>';
           }).join('') + '</div>'
-        : '<div class="dz-miss">Правок і повідомлень ще немає.</div>') +
-      '<textarea rows="2" data-dzsay="' + key + '" placeholder="Правка — словами клієнта, ' +
-        'скопійованими з переписки"></textarea>' +
-      '<div class="dz-dt-b">' +
-        '<button class="dz-b pri" data-do="dz-say" data-dz="' + key + '">Надіслати правку</button>' +
-        '<button class="dz-b" data-do="dz-file" data-dz="' + key + '">⤒ Файл</button>' +
-        '<button class="dz-b" data-do="dz-ver" data-dz="' + key + '">+ Версія</button>' +
-      '</div>' +
+        : '<div class="dz-miss is-calm">Правок і повідомлень ще немає.</div>') +
+      (ro ? '' :
+        '<textarea rows="2" data-dzsay="' + key + '" placeholder="Правка — словами клієнта, ' +
+          'скопійованими з переписки"></textarea>' +
+        '<div class="dz-dt-b">' +
+          '<button class="dz-b pri" data-do="dz-say" data-dz="' + key + '">Надіслати правку</button>' +
+          '<button class="dz-b" data-do="dz-file" data-dz="' + key + '">⤒ Файл</button>' +
+          '<button class="dz-b" data-do="dz-ver" data-dz="' + key + '">+ Версія</button>' +
+        '</div>') +
     '</div>';
   }
   /* ПРИКРІПИТИ Й ВІДПРАВИТИ — ДВІ РІЗНІ ДІЇ, І ЦЕ НАВМИСНО.
@@ -2695,6 +2808,9 @@
     pickOpen: pickOpen,
     picOpen: picOpen,
     DZ_OPEN: DZ_OPEN, whoName: whoName,
+    /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
+       самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
+    dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, DZ_STATE: DZ_STATE,
     taskCards: taskCards, hm: hm,
     /* Одна відповідь на всі модулі: права питає робоче місце, а не кожен
        модуль сам. Без адмінки (модуль піднятий окремо) дозволено все. */
@@ -2838,26 +2954,71 @@
      навіть не зібрав. Дизайнер бачив роботу, якої йому не давали, а
      менеджер не мав чим позначити «ось тепер бери». Тепер картка
      зʼявляється рівно від натискання «Відправити дизайнеру». */
+  /* СКІЛЬКИ ГОДИН ДАЄМО НА МАКЕТ. Число з налаштувань; доба — домовленість,
+     а не закон природи, і міняти її не має означати правку коду. */
+  function dzHours(){
+    try{ return (host().dzHours && host().dzHours()) || D.DZ_HOURS; }
+    catch(e){ return D.DZ_HOURS; }
+  }
+  /* Мої дизайни в цьому замовленні — рівно ті, що передані мені. */
+  function myDz(job, kind, m){
+    var out = [];
+    U.unitsOf(job).forEach(function(u){
+      D.dzList(u, kind).forEach(function(d){
+        if(!d.sentAt) return;
+        if(m && d.who && d.who !== m) return;
+        out.push({ u: u, d: d });
+      });
+    });
+    return out;
+  }
+  /* У ЯКІЙ КОЛОНЦІ СТОЇТЬ ЗАМОВЛЕННЯ В ДИЗАЙНЕРА.
+
+     Раніше колонку давав `job.graphic.status` — один стан на все
+     замовлення, який ніхто не рухав відколи робота пішла по дизайнах. Через
+     це картка вічно висіла в «Нових», хоч версії вже здавались.
+
+     Тепер колонку каже сама робота, і в найгіршому стані: якщо хоч десь
+     лежить правка — це «Правки», бо саме за неї сідають першою. */
+  var DZ_STEP = ['revision', 'sent', 'work', 'review', 'approved'];
+  function dzStep(list){
+    var є = {};
+    list.forEach(function(x){ є[x.d.status || 'sent'] = 1; });
+    for(var i = 0; i < DZ_STEP.length; i++) if(є[DZ_STEP[i]]) return DZ_STEP[i];
+    return 'sent';
+  }
+  var DZ_COL = { sent:'new', work:'work', review:'review',
+                 revision:'revision', approved:'done', 'new':'new' };
   function graphicCards(){
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
-    return U.pairs().filter(function(p){
-      if(!D.sentAny(p.job, 'graphic')) return false;
-      if(!only) return true;
-      return U.unitsOf(p.job).some(function(u){
-        return D.dzList(u, 'graphic').some(function(d){
-          return d.sentAt && (!d.who || d.who === m); });
+    var год = dzHours();
+    return U.pairs().map(function(p){
+      var mine = myDz(p.job, 'graphic', only ? m : '');
+      if(!mine.length) return null;
+      var st = dzStep(mine);
+      /* Строк — найгостріший із моїх: коли їх два, працюють по тому, що
+         горить, а не по середньому. */
+      var лишок = null;
+      mine.forEach(function(x){
+        var l = D.dzLeft(x.d, год);
+        if(l === null) return;
+        if(лишок === null || l < лишок) лишок = l;
       });
-    }).map(function(p){
-      var v = D.verCur(p.job);
-      var mk = cardMarks(p.job, m);
-      return { id: p.o.orderId, step: p.job.graphic.status || 'new',
+      var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m); }, 0);
+      var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
+      return { id: p.o.orderId, step: DZ_COL[st] || 'new',
         title: U.jobNo(p.job),
+        /* НІ ІМЕНІ КЛІЄНТА, НІ СУМИ, НІ РОЗМОВИ. Дизайнеру вони не
+           потрібні для роботи, а бачити їх означає мати доступ до чужих
+           грошей і чужого контакту без жодної на те причини. */
         sub: unitNames(p.job, p.o),
-        due: p.job.due || '', chat: hasChat(p.o),
-        wait: mk.wait, unseen: mk.unseen,
-        foot: v ? ('v' + v.n + ' · ' + dt(v.at)) : 'версій немає' };
-    });
+        left: лишок, unseen: нових,
+        /* Правка — найгучніша позначка на дошці: за неї сідають першою. */
+        fix: st === 'revision',
+        foot: (верс ? 'v' + верс : 'версій ще немає') +
+              (mine.length > 1 ? ' · нанесень ' + mine.length : '') };
+    }).filter(Boolean);
   }
   function stitchCards(filterStatus){
     var out = [];
@@ -3007,36 +3168,164 @@
       '<button class="dz-b pri" data-do="take">Беру собі' +
       (n ? ' · у роботі ' + n : '') + '</button></div>';
   }
-  function graphicPanel(p){
-    var job = p.job, o = p.o, g = job.graphic, v = D.verCur(o);
-    var locked = D.verLocked(v);
-    var acts = takeHtml(p) + '<div class="dz-act">' +
-      '<span class="dz-l">Версія макета</span>' +
-      '<button class="dz-b" data-do="ver-new">+ Нова версія</button>' +
-      (v && !locked
-        ? '<button class="dz-b" data-do="ver-file">Додати файл</button>' +
-          '<button class="dz-b" data-do="ver-prev">Візуалізація</button>'
+  /* ══════════════════════════════════════════════════════════════════════
+     ПАНЕЛЬ ДИЗАЙНЕРА
+
+     Тут працює людина, яка малює, — і більше нічого про це замовлення не
+     робить. Отже, у картці має лишитись рівно те, з чого малюють: що за
+     виріб, якого кольору, скільки штук, що просив клієнт словами й
+     картинками. І скільки часу лишилось.
+
+     Чого тут НЕМАЄ і чому:
+
+       • Клієнта. Ні імені, ні телефону, ні ніка, ні кнопки «Написати в
+         Instagram». Дизайнеру вони не потрібні для роботи, а бачити їх
+         означає мати доступ до чужого контакту без жодної причини — і
+         рано чи пізно написати клієнту повз менеджера.
+
+       • Суми. Те саме: за скільки продали, дизайнера не стосується, а
+         велике число в картці непомітно міняє ставлення до роботи.
+
+       • Дати здачі замовлення. Вона стоїть у менеджера, бо він її й
+         обіцяє. Дизайнер бачить СВІЙ строк — годинник на добу, — бо «до
+         14 жовтня» сьогодні не рухає нікого.
+
+     Дві відповіді на передачу: «Беру» й «Не братиму». Друга однаково
+     законна: завантажений або хворий дизайнер мусить повернути роботу
+     ЗАРАЗ, а не за добу, коли строк уже вийшов і ніхто нічого не малював.
+     ══════════════════════════════════════════════════════════════════════ */
+  function dzLeftTxt(d){
+    var l = D.dzLeft(d, dzHours());
+    if(l === null) return '';
+    return l < 0 ? ('прострочено на ' + U.hm(-l)) : ('лишилось ' + U.hm(l));
+  }
+  /* Знімок саме цього виробу саме цього кольору — із каталогу. Кольору
+     може ще не бути; тоді лишається загальне фото виробу, і це чесніше за
+     чужий колір. */
+  function unitPhoto(u){
+    var g = U.catItem(u && u.gid);
+    if(!g) return '';
+    var c = (g.colors || []).filter(function(x){
+      return String(x.name || x.id) === String(u.color || ''); })[0];
+    return (c && c.pic) || g.pic || '';
+  }
+  function dzWorkHtml(x, i){
+    var u = x.u, d = x.d;
+    var key = esc(u.id) + '|graphic|' + D.dzList(u, 'graphic').indexOf(d);
+    var g = U.catItem(u.gid);
+    var l = D.dzLeft(d, dzHours());
+    var м = (host().me && host().me()) || '';
+    var нових = D.dzUnseen(d, м);
+    return '<div class="dz-w' + (d.status === 'revision' ? ' is-fix' : '') + '">' +
+      '<div class="dz-w-h">' +
+        '<b>' + esc((g && g.name) || u.name || 'Виріб') + '</b>' +
+        (u.color ? '<span class="dz-w-c">' +
+          (u.colorHex ? '<i class="dz-sw" style="background:' + esc(u.colorHex) + '"></i>' : '') +
+          esc(u.color) + '</span>' : '') +
+        (u.size ? '<span class="dz-w-c">' + esc(u.size) + '</span>' : '') +
+        '<span class="dz-w-c">' + (+u.qty || 0) + ' шт</span>' +
+        (l === null ? '' : '<em class="dz-w-t' + (l < 0 ? ' late' : l < 180 ? ' soon' : '') +
+          '">' + esc(dzLeftTxt(d)) + '</em>') +
+      '</div>' +
+      /* Правка стоїть НАД роботою, а не в кінці розмови: її й треба
+         прочитати перш, ніж відкривати файл. */
+      (d.status === 'revision'
+        ? '<div class="dz-w-fix">Повернули на правку' +
+          (нових ? ' · нового ' + нових : '') + '</div>' : '') +
+      (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
+                esc(u.note) + '</div>' : '') +
+      /* Картинки зі СКАЧУВАННЯМ просто з мініатюри. Дизайнеру потрібен не
+         перегляд, а файл у себе на машині: доти шлях до нього був
+         «відкрити — правою кнопкою — зберегти як», тричі за кожен
+         референс. */
+      ((u.pics || []).length
+        ? '<div class="dz-pics">' + u.pics.map(function(pp, k){
+            return '<span class="dz-pic">' +
+              '<button type="button" class="dz-pic-b" data-do="pic-open" ' +
+                'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
+                '<img src="' + esc(pp.url) + '" alt="" loading="lazy">' +
+              '</button>' +
+              '<a class="dz-pic-dl" href="' + esc(pp.url) + '" download="' +
+                esc(pp.name || ('референс-' + (k + 1))) + '" target="_blank" ' +
+                'rel="noopener" title="Скачати">⤓</a>' +
+            '</span>';
+          }).join('') + '</div>'
+        : '<div class="dz-miss is-calm">Картинок до цього виробу не додали.</div>') +
+      /* Версії — шлях роботи, а не «останній файл». Саме цей список і
+         відповідає на «ми ж виправляли» номером, а не словом. */
+      U.dzVersHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), true) +
+      /* ФОТО ВИРОБУ — ОСНОВА ДЛЯ МОКАПУ.
+
+         Клієнту в Директ іде не сам макет, а макет НА ВИРОБІ: «подивіться,
+         як гарно вийшло». Знімок саме цього виробу саме цього кольору
+         лежить у нас у каталозі — і доти дизайнер шукав його руками на
+         сайті або питав менеджера. Тепер він поруч із роботою, у тому
+         кольорі, який стоїть у складі. */
+      (unitPhoto(u)
+        ? '<div class="dz-w-mock">' +
+            '<img src="' + esc(unitPhoto(u)) + '" alt="" loading="lazy">' +
+            '<div class="dz-w-mock-t"><b>Фото виробу для мокапу</b>' +
+              '<span>' + esc([(g && g.name) || u.name, u.color].filter(Boolean).join(' · ')) +
+              '</span></div>' +
+            '<a class="dz-b" href="' + esc(unitPhoto(u)) + '" download="' +
+              esc('виріб-' + ((g && g.name) || 'фото')) + '" target="_blank" rel="noopener">' +
+              '⤓ Скачати</a>' +
+          '</div>'
         : '') +
-      (v && !locked && g.status !== 'review'
-        ? '<button class="dz-b pri" data-do="to-review">Віддати на перевірку</button>' : '') +
+      /* Що відповісти. Файл і коментар разом, однією дією: доти «додати
+         файл» і «віддати на перевірку» були двома кнопками, і половина
+         макетів висіла прикріпленою, але не зданою. */
+      (d.status === 'approved'
+        ? '<div class="dz-ok">Затверджено · версія ' + ((d.ok && d.ok.ver) || '—') + '</div>'
+        : d.status === 'sent'
+        ? '<div class="dz-w-take">' +
+            '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
+            '<button class="dz-b" data-do="dz-no" data-dz="' + key + '">Не братиму</button>' +
+          '</div>'
+        : '<div class="dz-w-send">' +
+            '<textarea rows="2" data-dzsay="' + key + '" ' +
+              'placeholder="Коментар до макета — якщо є що сказати"></textarea>' +
+            '<button class="dz-b pri wide" data-do="dz-hand" data-dz="' + key + '">' +
+              '⤒ Прикріпити файл і надіслати' +
+              (d.vers.length ? ' · буде v' + (d.vers.length + 1) : ' · буде v1') +
+            '</button>' +
+          '</div>') +
+      /* Розмова по цьому нанесенню — унизу: її читають після роботи, а не
+         замість неї. */
+      U.dzThreadHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true }) +
     '</div>';
-    if(g.status === 'new' || g.status === 'revision')
-      acts = '<div class="dz-act"><span class="dz-l">Почати</span>' +
-        '<button class="dz-b pri" data-do="start">Взяти в роботу</button></div>' + acts;
-    return '<div class="dz-panel-h">' + U.jobNo(p.job) +
-        '<span class="dz-state">' + esc(D.stepLabel(D.GRAPHIC, g.status)) + '</span>' +
-        U.dueHtml(job) +
+  }
+  function graphicPanel(p){
+    var job = p.job, o = p.o;
+    var only = host().onlyMine && host().onlyMine();
+    var m = (host().me && host().me()) || '';
+    var mine = myDz(job, 'graphic', only ? m : '');
+    var st = dzStep(mine);
+    var лишок = null;
+    mine.forEach(function(x){
+      var l = D.dzLeft(x.d, dzHours());
+      if(l === null) return;
+      if(лишок === null || l < лишок) лишок = l;
+    });
+    return '<div class="dz-panel-h">' + U.jobNo(job) +
+        '<span class="dz-state">' + esc(D.stepLabel(D.GRAPHIC, DZ_COL[st] || 'new')) + '</span>' +
+        (лишок === null ? '' :
+          '<span class="dz-duo dz-duo-t' + (лишок < 0 ? ' late' : лишок < 180 ? ' soon' : '') +
+          '"><span>Строк</span><b>' +
+          esc(лишок < 0 ? ('−' + U.hm(-лишок)) : U.hm(лишок)) + '</b></span>') +
         '<button class="dz-x" data-close>×</button></div>' +
-      '<div class="dz-panel-b">' +
-        U.clientHtml(o, job) + U.taskBlockHtml(p, 'graphic') +
-        /* ТЗ дизайнера: рамка замовлення й склад — тільки читати. Правити
-           склад — робота менеджера, і одне випадкове натискання «Прибрати»
-           тут коштувало б замовлення. Своя половина дизайнів лишається
-           повною: розмова й версії — це і є його робота. */
-        U.unitsHtml(job, { ro:true, only:'graphic' }) +
-        U.briefHtml(o, job) +
-        '<div class="dz-acts">' + acts + '</div>' +
-        '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
+      '<div class="dz-panel-b is-zones">' +
+        /* Дата замовлення — тихим рядком. Дизайнер працює за своїм
+           годинником, але знати, коли посилка має виїхати, йому корисно:
+           «здам завтра» звучить інакше, коли відправка сьогодні. */
+        (job.due
+          ? '<div class="dz-w-when">Замовлення обіцяне клієнту до <b>' +
+            esc(U.dueTxt(job.due)) + '</b></div>'
+          : '') +
+        U.taskBlockHtml(p, 'graphic') +
+        (mine.length
+          ? mine.map(dzWorkHtml).join('')
+          : '<div class="dz-miss is-calm">Це замовлення вам не передавали.</div>') +
       '</div>';
   }
 
@@ -3292,7 +3581,11 @@
                    esc(r.label) + '</option>';
           }).join('') + '</select></label>' +
         '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>'
-      : '<div class="dz-as"><span>Моя дошка</span><b>' + esc(cur.label) + '</b></div>';
+      /* Співробітнику не пишемо, хто він. Дошка в нього одна, зайти на чужу
+         він не може — і підпис «Моя дошка · Графічний дизайнер» просто
+         повторював те, що він і так про себе знає. Андрій: «чому він тут
+         бачить, що це є — графічний дизайнер він». */
+      : '';
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
       '<div class="dz-wrap">' +
@@ -3684,6 +3977,10 @@
        дизайнер відповідає й кладе версію. Тому тут не зона складу, а
        просто «хто у відділі» — інакше дизайнер не зміг би відповісти. */
     'dz-open':'', 'dz-say':'', 'dz-file':'', 'dz-ver':'',
+    /* Взяти, відмовитись і здати роботу — дії ВИКОНАВЦЯ, не складу. Якби
+       вони лежали під зоною «art», дизайнер не зміг би ні взяти те, що
+       йому дали, ні повернути те, чого не потягне. */
+    'dz-take':'', 'dz-no':'', 'dz-hand':'',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -3861,7 +4158,8 @@
     }
     /* ── Один дизайн: розмова, версії, передача ── */
     if(what === 'dz-open' || what === 'dz-send' || what === 'dz-ver' ||
-       what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok'){
+       what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok' ||
+       what === 'dz-take' || what === 'dz-no' || what === 'dz-hand'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
       var dk = dp[1] === 'stitch' ? 'stitch' : 'graphic';
@@ -3883,6 +4181,48 @@
           return say('Спершу затвердіть графіку цього виробу');
         D.dzSend(dd, m);
         return save(job, o, 'ТЗ відправлено · ' + U.whoName(dd.who));
+      }
+      /* ── Дві відповіді дизайнера на передачу ──
+         «Беру» вмикає роботу; «Не братиму» повертає рядок менеджеру
+         порожнім, із причиною в розмові. Друга однаково законна: людина
+         буває завантажена або хвора, і мовчазне «висить добу» коштує
+         дорожче за чесне «віддайте іншому». */
+      if(what === 'dz-take'){
+        D.dzTake(dd, m);
+        return save(job, o, 'Взяли в роботу');
+      }
+      if(what === 'dz-no'){
+        var чому = '';
+        try{ чому = window.prompt('Чому не берете? Менеджеру треба знати, ' +
+              'кому віддати замість вас.') || ''; }catch(e){}
+        /* Порожня причина — це відмова без відповіді, і менеджер лишається
+           з тим самим питанням. Тому питаємо один раз і чекаємо слова. */
+        if(!String(чому).trim()) return say('Без причини не повертаємо — напишіть рядок');
+        D.dzDecline(dd, m, String(чому).trim());
+        return save(job, o, 'Повернули менеджеру');
+      }
+      /* ЗДАТИ РОБОТУ — ОДНІЄЮ ДІЄЮ.
+
+         Доти це були дві кнопки: «Додати файл» і «Віддати на перевірку», —
+         і половина макетів висіла прикріпленою, але не зданою: дизайнер
+         вважав, що віддав, менеджер не бачив нічого. Тепер файл і є
+         здача, а коментар їде разом із ним. */
+      if(what === 'dz-hand'){
+        /* Кілька файлів одразу: макет і мокап на виріб — це одна здача, а
+           не дві версії. Номер версії ми називаємо клієнту, і рости вдвічі
+           швидше за роботу він не має. */
+        var hfs = await uploadMany('');
+        if(!hfs.length) return;
+        var hf = hfs;
+        var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var hTxt = hEl ? String(hEl.value || '').trim() : '';
+        D.dzVer(dd, m, hf, hTxt);
+        if(hTxt) D.dzSay(dd, m, hTxt, null);
+        if(hEl) hEl.value = '';
+        /* `dzSay` після версії відкотив би стан у «на правках»: вона для
+           слів менеджера, а не для супровідного коментаря до здачі. */
+        dd.status = 'review';
+        return save(job, o, 'Надіслано · версія ' + dd.vers.length);
       }
       if(what === 'dz-ver'){
         var vf = await upload('');
