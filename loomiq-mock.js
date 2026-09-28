@@ -350,6 +350,19 @@
     x.arcTo(a, b, a + w, b, r);
     x.closePath();
   }
+  /* Перенос по словах. Canvas сам цього не вміє: довгий рядок він малює
+     рівно, доки не вийде за край аркуша й далі в нікуди. */
+  function wrap(x, text, w, font){
+    x.font = font;
+    var out = [], рядок = '';
+    String(text).split(/\s+/).forEach(function(сл){
+      var спроба = рядок ? рядок + ' ' + сл : сл;
+      if(x.measureText(спроба).width > w && рядок){ out.push(рядок); рядок = сл; }
+      else рядок = спроба;
+    });
+    if(рядок) out.push(рядок);
+    return out.slice(0, 4);
+  }
   function fit(x, im, a, b, w, h){
     if(!im) return;
     var k = Math.min(w / im.width, h / im.height);
@@ -357,9 +370,27 @@
     x.drawImage(im, a + (w - ww) / 2, b + (h - hh) / 2, ww, hh);
   }
   async function card(data){
-    var W2 = 1600, H2 = 1000;
+    var W2 = 1600;
     var макет = await img(data.art);
     var мокап = await img(data.mock);
+    /* ВИСОТА РАХУЄТЬСЯ, А НЕ ЗАШИТА.
+
+       Аркуш росте: у когось чотири числа розміщення, у когось жодного; у
+       когось два рядки складу, у когось чотири; примітка буває на рядок і
+       на чотири. Фіксовані 1000 px означали б, що в одних випадках унизу
+       пів аркуша порожнечі, а в інших примітка просто не влазить і
+       мовчки зникає — а вона саме та, заради якої аркуш і роблять. */
+    var смуга = (data.wideCm > 0 && data.artCm > 0);
+    var рядківНоти = 0;
+    var проба = document.createElement('canvas').getContext('2d');
+    if(data.note) рядківНоти = wrap(проба, String(data.note), W2 - 112 - 36,
+                                    '400 15px Inter, system-ui, sans-serif').length;
+    var H2 = 146 + 520 + 48
+      + (смуга ? 80 : 0)
+      + ((data.nums || []).length ? 112 : 0)
+      + 12 + Math.min(4, (data.lines || []).length) * 27 + 8
+      + (рядківНоти ? 22 + рядківНоти * 22 + 18 : 0)
+      + 40;
     var cv = document.createElement('canvas');
     cv.width = W2; cv.height = H2;
     var x = cv.getContext('2d');
@@ -385,6 +416,34 @@
     });
 
     var y = top + cellH + 48;
+    /* ══════════ ШИРИНА НАНЕСЕННЯ ПРОТИ ШИРИНИ ВИРОБУ ══════════
+
+       «23,7 см» саме по собі нічого не каже: багато це чи мало, залежить
+       від того, на чому воно лежить. На дитячій футболці це через увесь
+       перед, на XXL — скромний значок посередині.
+
+       Тому малюємо пропорцію: сіра смуга — виріб, кольорова всередині —
+       нанесення. Одного погляду досить, щоб сказати «завелике» або «ок», а
+       числа поруч лишаються для тих, хто шитиме. */
+    if(data.wideCm > 0 && data.artCm > 0){
+      var bw = W2 - 112, bh = 46;
+      x.fillStyle = '#EDEFF3'; round(x, 56, y, bw, bh, 12); x.fill();
+      var частка = Math.max(0.02, Math.min(1, data.artCm / data.wideCm));
+      var aw = bw * частка;
+      /* Нанесення там, де воно й стоїть на виробі: зсув від центру теж
+         видно, бо «по центру» і «зліва на грудях» це різні макети. */
+      var зсув = (+data.sideCm || 0) / data.wideCm * bw;
+      var ax = 56 + (bw - aw) / 2 + зсув;
+      ax = Math.max(56, Math.min(56 + bw - aw, ax));
+      x.fillStyle = '#7C3AED'; round(x, ax, y + 6, aw, bh - 12, 8); x.fill();
+      x.fillStyle = '#7C8798'; x.font = '600 13px Inter, system-ui, sans-serif';
+      x.fillText('ШИРИНА ВИРОБУ ' + String(data.wideCm).replace('.', ',') + ' СМ', 56, y - 10);
+      x.textAlign = 'right';
+      x.fillText('НАНЕСЕННЯ ' + String(data.artCm).replace('.', ',') + ' СМ · ' +
+                 Math.round(частка * 100) + '%', 56 + bw, y - 10);
+      x.textAlign = 'left';
+      y += bh + 34;
+    }
     /* Розміщення — рядком великих чисел. Саме їх шукають у цьому аркуші, і
        шукати їх у суцільному тексті означає не знайти. */
     var числа = data.nums || [];
@@ -400,12 +459,37 @@
       });
       y += 112;
     }
+    /* Трохи повітря перед текстом: рядок, приліплений до низу плиток із
+       числами, читається як їхній підпис, а не як окрема річ. */
+    y += 12;
     x.fillStyle = '#0F2034'; x.font = '600 18px Inter, system-ui, sans-serif';
     (data.lines || []).slice(0, 4).forEach(function(t, i){
       x.fillStyle = i ? '#4A5768' : '#0F2034';
       x.font = (i ? '400 17px ' : '600 19px ') + 'Inter, system-ui, sans-serif';
       x.fillText(String(t).slice(0, 140), 56, y + 8 + i * 27);
+      y += 0;
     });
+    y += 8 + Math.min(4, (data.lines || []).length) * 27;
+
+    /* ══════════ ПРИМІТКА ДЛЯ КЛІЄНТА ══════════
+
+       Те, що ми й доти писали в кожному повідомленні руками: колір на
+       екрані відрізняється від тканини, монітори показують по-різному,
+       розташування — приблизне до сантиметра. Писати це щоразу заново
+       означає одного разу не написати — і саме тоді отримати «а в мене
+       інший відтінок».
+
+       Тут воно їде разом із картинкою, тож губитись немає де. Текст лежить
+       у налаштуваннях: він міняється частіше за код. */
+    if(data.note){
+      var nw = W2 - 112;
+      x.fillStyle = '#F7F4FF';
+      var рядки = wrap(x, String(data.note), nw - 36, '400 15px Inter, system-ui, sans-serif');
+      var nh = 22 + рядки.length * 22;
+      round(x, 56, y, nw, nh, 12); x.fill();
+      x.fillStyle = '#4C2189'; x.font = '400 15px Inter, system-ui, sans-serif';
+      рядки.forEach(function(t, i){ x.fillText(t, 74, y + 30 + i * 22); });
+    }
     return cv.toDataURL('image/png');
   }
 

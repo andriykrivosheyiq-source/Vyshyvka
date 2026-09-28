@@ -4411,12 +4411,21 @@
                               мсм(Math.abs(cv2.place.sideCm))],
                ['РОЗМІР', String(cv2.place.size || du.size || '—')]]
             : [],
-          lines: [
-            [(g2 && g2.name) || du.name, du.color, du.size,
-             ((+du.qty || 0) + ' шт')].filter(Boolean).join(' · '),
-            du.note || '',
-            cv2.note || ''
-          ].filter(Boolean)
+          /* Склад тут не повторюємо: він уже стоїть підзаголовком угорі
+             аркуша. Лишається те, чого там немає, — слова менеджера й
+             дизайнера про саме цей макет. */
+          lines: [du.note || '', cv2.note || ''].filter(Boolean),
+          /* Смуга «виріб проти нанесення». «23,7 см» саме по собі нічого не
+             каже: багато це чи мало, залежить від того, на чому воно лежить. */
+          wideCm: window.LQMock.widthCm(du.gid, (cv2.place || {}).size || du.size),
+          artCm: (cv2.place || {}).wCm || 0,
+          sideCm: (cv2.place || {}).sideCm || 0,
+          /* Застереження для клієнта — те, що доти писали руками в кожному
+             повідомленні. Тут воно їде разом із картинкою, тож губитись
+             немає де. */
+          note: (function(){
+            try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
+          })()
         });
         if(!png) return say('Картка не зібралась');
         var a2 = document.createElement('a');
