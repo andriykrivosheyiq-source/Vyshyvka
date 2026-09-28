@@ -772,9 +772,14 @@
      Розділи двох напрямів схожі між собою як дві краплі, і людина, яка
      працює в обох, легко почне робити роботу не там. Тонка смуга вгорі й
      підпис біля назви знімають це питання раніше, ніж воно виникне. */
-  #view-design.is-b2c{position:relative;}
-  #view-design.is-b2c::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-    background:linear-gradient(90deg,#7C3AED,#C026D3);border-radius:3px;}
+  /* Смуга стоїть НАД заголовком, а не поверх нього. Доти вона висіла на
+     `top:0` тієї самої коробки, де починається текст, — і перекреслювала
+     напис, через що виглядала не позначкою, а недоглядом. Відступ зверху
+     дає їй власне місце, і вона нарешті читається як те, чим є. */
+  #view-design.is-b2c,#view-chatsc.is-b2c{position:relative;padding-top:14px;}
+  #view-design.is-b2c::before,#view-chatsc.is-b2c::before{content:'';position:absolute;
+    top:0;left:0;right:0;height:4px;border-radius:999px;
+    background:linear-gradient(90deg,#7C3AED,#C026D3);}
   .dir-tag{margin-left:10px;font-size:11.5px;font-weight:600;letter-spacing:.02em;
     color:#7C3AED;background:#F5F1FE;border-radius:999px;padding:3px 9px;
     vertical-align:middle;white-space:nowrap;}
@@ -4889,13 +4894,16 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
       <div id="chatsRoot" class="chl"></div>
     </section>
     <section id="view-chatsc" class="is-b2c" style="display:none;">
-      <div class="page-head"><h1>Чати B2C <span class="dir-tag">приватні замовлення</span></h1></div>
+      <div class="page-head"><h1>Чати B2C</h1></div>
       <div id="chatscRoot" class="chl"></div>
     </section>
+    <!-- Назва розділу — одне слово. «Виробництво макета» над нею і «приватні
+         замовлення · номери з 5» поруч казали те, що людина вже знає: вона
+         сама щойно натиснула цей пункт меню. Напрям лишається видно смугою
+         вгорі — її помічають краєм ока, не читаючи. -->
     <section id="view-design" class="is-b2c" style="display:none;">
       <div class="page-head">
-        <div class="eyebrow">Виробництво макета</div>
-        <h1>B2C <span class="dir-tag">приватні замовлення · номери з 5</span></h1>
+        <h1>B2C</h1>
       </div>
       <div id="dzRoot"></div>
     </section>
@@ -5000,6 +5008,17 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Днів на замовлення</span>
           <input id="b2c-days" type="number" min="1" max="120" step="1" style="width:100%;" placeholder="14">
         </label>
+
+        <div class="tl-divider" style="margin-top:22px;">Примітка до макета</div>
+        <div class="sub" style="margin-bottom:8px;">
+          Їде на картці макета, яку менеджер качає й надсилає клієнту. Те, що
+          доти писали руками в кожному повідомленні: колір на екрані відрізняється
+          від тканини, розташування приблизне до сантиметра. Писати це щоразу
+          заново означає одного разу не написати — і саме тоді почути «а в мене
+          інший відтінок».
+        </div>
+        <textarea id="b2c-note" rows="3" style="width:100%;max-width:640px;"
+          placeholder="Колір виробу на екрані може відрізнятись від тканини: монітори передають відтінки по-різному. Розміри нанесення вказані з точністю до сантиметра."></textarea>
 
         <div class="tl-divider" style="margin-top:22px;">Строк дизайнера</div>
         <div class="sub" style="margin-bottom:8px;">
@@ -6074,19 +6093,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=623603d419"></script>
-<script src="loomiq-fingerprint.js?v=623603d419"></script>
-<script src="loomiq-pricing.js?v=623603d419"></script>
+<script src="loomiq-select.js?v=a36c45b912"></script>
+<script src="loomiq-fingerprint.js?v=a36c45b912"></script>
+<script src="loomiq-pricing.js?v=a36c45b912"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=623603d419"></script>
-<script src="loomiq-mock.js?v=623603d419"></script>
+<script src="loomiq-design.js?v=a36c45b912"></script>
+<script src="loomiq-mock.js?v=a36c45b912"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=623603d419"></script>
+<script src="loomiq-cards.js?v=a36c45b912"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6111,7 +6130,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '623603d419';
+var LQ_VER = 'a36c45b912';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8498,6 +8517,12 @@ function finAccEdit(id){
       <label class="fin-f"><span>Залишок на рахунку, грн</span>
         <input id="fa-start" type="number" step="1" value="${a.start != null ? a.start : ''}"
           placeholder="скільки є зараз"></label>
+      <!-- IBAN потрібен не для краси: і Монобанк, і Приват віддають рухи
+           окремо по кожному рахунку, і без номера Worker не знає, у котрий
+           із чотирьох ФОПів класти те, що приїхало. -->
+      <label class="fin-f"><span>IBAN</span>
+        <input id="fa-iban" value="${escapeHtml(a.iban || '')}"
+          placeholder="UA00 3220 0100 0000 0000 0000 0000"></label>
       <div class="fin-note">Поки банк не підключено, залишок рахується від цього числа
         плюс усі рухи, які ми знаємо. Коли підключимо — його казатиме сам банк.</div>
       <div class="fin-l">Підключення банку</div>
@@ -8508,10 +8533,18 @@ function finAccEdit(id){
            читається кожним, хто її відкрив.<br><br>
            Команда: <code>npx wrangler secret put MONO_TOKEN_${escapeHtml(a.id)}</code>`
         : a.bank === 'privat'
-        ? `Приват вебхуків не дає — виписку опитує Worker раз на кілька хвилин.
-           Потрібні <b>merchant id</b> і пароль із Приват24 для бізнесу, теж
-           секретами Worker'а.<br><br>
-           Команда: <code>npx wrangler secret put PRIVAT_${escapeHtml(a.id)}</code>`
+        ? `Приват для бізнесу теж підключається, просто інакше. Вебхуків він не
+           дає — виписку забирає Worker сам, раз на кілька хвилин; тому платіж
+           зʼявиться не миттєво, а протягом цього часу.<br><br>
+           У Приват24 для бізнесу це зветься <b>Автоклієнт</b>:
+           <i>Налаштування → Автоклієнт → Створити токен</i>. Він видає
+           <b>client-id</b> і <b>token</b>, а рухи питаються по конкретному
+           рахунку — тому IBAN вище має бути заповнений.<br><br>
+           Обидва значення — <b>секретами Cloudflare Worker</b>, не сюди:
+           сторінка адмінки віддається браузеру, і все в ній читається кожним,
+           хто її відкрив.<br><br>
+           <code>npx wrangler secret put PRIVAT_ID_${escapeHtml(a.id)}</code><br>
+           <code>npx wrangler secret put PRIVAT_TOKEN_${escapeHtml(a.id)}</code>`
         : 'Рухи по цьому рахунку записуються руками.'}</div>
       <label class="fin-chk"><input type="checkbox" id="fa-linked"${a.linked ? ' checked' : ''}>
         <span>Банк підключено — Worker уже шле рухи</span></label>
@@ -8531,6 +8564,7 @@ function finAccEdit(id){
       a.bank = d.querySelector('#fa-bank').value;
       const st = d.querySelector('#fa-start').value;
       if(String(st).trim() === '') delete a.start; else a.start = Math.round(+st || 0);
+      a.iban = d.querySelector('#fa-iban').value.replace(/\s+/g, ' ').trim();
       a.linked = d.querySelector('#fa-linked').checked;
       await finAccsSave(accs);
       toast('Збережено');
@@ -8599,13 +8633,22 @@ async function finAddManual(){
    замовлення — шкали за тиражем, площа нанесення, поділ підготовки макета.
    У роздрібу цього немає, і класти одне поруч з іншим означає щоразу
    згадувати, яка з двох моделей діє зараз. */
+/* Застереження, яке ми писали в кожному повідомленні руками. Тепер воно
+   їде на картці макета; у налаштуваннях його можна переписати під себе. */
+const B2C_NOTE = 'Колір виробу на екрані може відрізнятись від тканини: ' +
+  'монітори передають відтінки по-різному. Розміри нанесення вказані з ' +
+  'точністю до сантиметра.';
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
            days: (+c.days > 0) ? Math.round(+c.days) : 0,
            /* Годин на макет. Доба — домовленість, а не закон природи, і
               міняти її не має означати правку коду. */
-           dzHours: (+c.dzHours > 0) ? Math.round(+c.dzHours) : 24 };
+           dzHours: (+c.dzHours > 0) ? Math.round(+c.dzHours) : 24,
+           /* Примітка на картці макета. Порожньої не буває: якщо її не
+              заповнили, беремо ту, яку й доти писали руками, — інакше
+              картка поїде клієнту без застереження про колір. */
+           note: String(c.note || '').trim() || B2C_NOTE };
 }
 function paintB2c(){
   const c = b2cCfg();
@@ -8614,6 +8657,8 @@ function paintB2c(){
   if(d) d.value = c.days || '';
   const h = document.getElementById('b2c-dzhours');
   if(h) h.value = (c.dzHours === 24) ? '' : c.dzHours;
+  const n = document.getElementById('b2c-note');
+  if(n) n.value = (c.note === B2C_NOTE) ? '' : c.note;
   paintB2cPrices();
 }
 /* Усі товари списком, з полем ціни навпроти кожного. Порожнє поле каже, що
@@ -8667,7 +8712,9 @@ function readB2cPrices(){
     const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
     const dzHours = Math.max(0, Math.round(parseFloat(
       (document.getElementById('b2c-dzhours') || {}).value) || 0));
-    const b2c = { extras: readExtras(), days: days || null, dzHours: dzHours || null };
+    const note = String((document.getElementById('b2c-note') || {}).value || '').trim();
+    const b2c = { extras: readExtras(), days: days || null, dzHours: dzHours || null,
+                  note: note || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
        б невідомо, яке справжнє. */
@@ -25658,6 +25705,8 @@ function openDesign(){
        клієнту ми обіцяємо посилку, а дизайнеру треба знати, чи встигає він
        сьогодні. */
     dzHours: () => b2cCfg().dzHours,
+    /* Примітка на картці макета — та сама на всі замовлення. */
+    cardNote: () => b2cCfg().note,
     /* Мокап рахує сантиметри з розмірної сітки товару — тієї самої, що
        показана клієнту на сайті. Свою тут заводити нема чого: дві сітки
        рано чи пізно розійдуться, і виробництво пошиє по чужій. */
