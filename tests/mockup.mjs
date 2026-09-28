@@ -132,7 +132,10 @@ console.log('\n═══ ТРИ КРОКИ, І ДРУГИЙ НЕ ПРОПУСТ�
 const кроки = await p.evaluate(() => ({
   видно: [...document.querySelectorAll('.dz-step')].map(s => s.textContent.trim()),
   на: ((document.querySelector('.dz-step.on') || {}).textContent || '').trim(),
-  кнопки: [...document.querySelectorAll('.dz-w-send .dz-b')].map(b => b.textContent.trim())
+  /* Дивимось саме на БЛОК ЗДАЧІ. Поруч із ним тепер є вільна репліка зі
+     своєю кнопкою «Надіслати» — і вона тут ні до чого: писати менеджеру
+     можна завжди, а здавати роботу — лише з мокапом. */
+  кнопки: [...document.querySelectorAll('.dz-hand .dz-b')].map(b => b.textContent.trim())
 }));
 console.log('  ' + JSON.stringify(кроки));
 ok(кроки.видно.length === 3 && /Мокап/.test(кроки.видно.join(' ')),
@@ -141,8 +144,8 @@ ok(кроки.видно.length === 3 && /Мокап/.test(кроки.видно
 ok(/Макет/.test(кроки.на),
   'і людина бачить, на якому вона місці',
   'поточний крок не позначений: ' + кроки.на);
-ok(!кроки.кнопки.some(t => /Надіслати/.test(t)),
-  'надіслати ще не можна: макета немає',
+ok(!кроки.кнопки.some(t => /Здати/.test(t)),
+  'здати ще не можна: макета немає',
   'здача доступна з порожніми руками: ' + JSON.stringify(кроки.кнопки));
 
 console.log('\n═══ БЕЗ МОКАПУ НЕ ВІДПРАВЛЯЄМО ═══');
@@ -158,7 +161,7 @@ const без = await p.evaluate(async () => {
     '<rect width="120" height="60" fill="#E4572E"/></svg>') } };
   U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 250));
-  const кн = [...document.querySelectorAll('.dz-w-send .dz-b')].map(b => b.textContent.trim());
+  const кн = [...document.querySelectorAll('.dz-hand .dz-b')].map(b => b.textContent.trim());
   /* Тиснемо здачу напряму: кнопки немає, але дія існує — і мусить сама
      сказати «ні». Інакше її можна було б викликати повз інтерфейс. */
   window.__SAID = [];
@@ -170,9 +173,9 @@ console.log('  ' + JSON.stringify(без));
 ok(без.кнопки.some(t => /Створити мокап/.test(t)),
   'після макета зʼявилась кнопка мокапу',
   'кнопки мокапу немає: ' + JSON.stringify(без.кнопки));
-ok(!без.кнопки.some(t => /Надіслати/.test(t)),
-  'а «Надіслати» ще немає',
-  'здача доступна без мокапу');
+ok(!без.кнопки.some(t => /Здати/.test(t)),
+  'а «Здати» ще немає',
+  'здача доступна без мокапу: ' + JSON.stringify(без.кнопки));
 ok(без.версій === 0 && /мокап/i.test(без.сказано),
   'і навіть викликана напряму здача не проходить, ще й каже чому: ' + без.сказано,
   'здача без мокапу пройшла: ' + JSON.stringify(без));

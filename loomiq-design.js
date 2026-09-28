@@ -3454,47 +3454,75 @@
     var крок = !чер.art ? 1 : !чер.mock ? 2 : 3;
     var фото = U.unitPhoto(u);
     return '<div class="dz-w-send">' +
-      '<div class="dz-steps">' +
-        ['Макет', 'Мокап', 'Надіслати'].map(function(t, i){
-          return '<i class="dz-step' + (крок > i + 1 ? ' done' : крок === i + 1 ? ' on' : '') +
-            '">' + (i + 1) + '. ' + t + '</i>';
-        }).join('') +
-      '</div>' +
-      (чер.art
-        ? '<div class="dz-draft">' +
-            '<img src="' + esc(чер.art.url) + '" alt="">' +
-            (чер.mock ? '<img src="' + esc(чер.mock.png) + '" alt="">' : '') +
-            '<div class="dz-draft-t">' +
-              '<b>' + esc(чер.art.name || 'макет') + '</b>' +
-              (чер.mock
-                ? '<span>' + esc(placeTxt(чер.mock)) + '</span>'
-                : '<span>мокапу ще немає</span>') +
-            '</div>' +
-            '<button class="dz-ib dz-ib-x" data-do="dz-art-del" data-dz="' + key +
-              '" title="Прибрати й завантажити інший">🗑</button>' +
-          '</div>'
-        : '') +
-      (крок === 1
-        ? '<button class="dz-b pri wide" data-do="dz-art" data-dz="' + key + '">' +
-          '⤒ Завантажити макет</button>'
-        : крок === 2
-        ? (фото
-            ? '<button class="dz-b pri wide" data-do="dz-mock" data-dz="' + key + '">' +
-              '◱ Створити мокап</button>'
-            : '<div class="dz-miss">У цього виробу немає фото в каталозі — покласти ' +
-              'макет нема на що. Скажіть менеджеру: фото додають у каталог товарів.</div>')
-        : '<button class="dz-b wide" data-do="dz-mock" data-dz="' + key + '">' +
-          '◱ Переробити мокап</button>') +
+      /* Межа між «що прийшло» і «що відповідаю». Андрій: «повинна бути
+         розділена тезешка — те, що в них прийшло, і потім уже зона, де ми
+         надсилаємо файли». Доти це йшло одним потоком, і зона відповіді
+         губилась між картинками: люди догортували до кінця й не бачили, що
+         писати можна тут. */
+      '<div class="dz-w-l">Відповісти</div>' +
+      /* ДВІ РІЗНІ ВІДПОВІДІ, І ДРУГУ ДОТИ БУЛО НЕМОЖЛИВО ДАТИ.
+
+         Здати роботу й спитати «логотип білий чи молочний?» — не одне й те
+         саме. Доти тут була одна кнопка, і та вимагала мокапу: щоб поставити
+         питання, дизайнер мусив або зробити мокап нізащо, або писати
+         менеджеру повз систему — у Телеграм, звідки відповідь не
+         повертається в замовлення й губиться назавжди.
+
+         Тепер поле тексту спільне, а кнопки дві: проста репліка йде вільно,
+         здача версії — з макетом і мокапом. */
       '<textarea rows="2" data-dzsay="' + key + '" ' +
-        'placeholder="Коментар до макета — якщо є що сказати"></textarea>' +
-      (крок === 3
-        ? '<button class="dz-b pri wide" data-do="dz-hand" data-dz="' + key + '">' +
-          'Надіслати · буде v' + (d.vers.length + 1) + '</button>'
-        : '<div class="dz-miss is-calm">Без мокапу не надсилаємо: клієнту йде ' +
-          'макет на виробі, а не файл на прозорому тлі — за ним не видно ні ' +
-          'розміру, ні місця.</div>') +
-    '</div>';
+        'placeholder="Написати менеджеру — питання, уточнення, що завгодно"></textarea>' +
+      '<div class="dz-w-row">' +
+        '<button class="dz-b" data-do="dz-msg" data-dz="' + key + '">Надіслати</button>' +
+        '<button class="dz-b dz-quiet" data-do="dz-msg-file" data-dz="' + key +
+          '" title="Просто файл, без здачі версії">⤒ Файл</button>' +
+      '</div>' +
+      /* ── Здача версії — окремим блоком, зі своїми трьома кроками ── */
+      '<div class="dz-hand">' +
+        '<div class="dz-hand-h">Здати роботу</div>' +
+        '<div class="dz-steps">' +
+          ['Макет', 'Мокап', 'Надіслати'].map(function(t, i){
+            return '<i class="dz-step' + (крок > i + 1 ? ' done' : крок === i + 1 ? ' on' : '') +
+              '">' + (i + 1) + '. ' + t + '</i>';
+          }).join('') +
+        '</div>' +
+        (чер.art
+          ? '<div class="dz-draft">' +
+              '<img src="' + esc(чер.art.url) + '" alt="">' +
+              (чер.mock ? '<img src="' + esc(чер.mock.png) + '" alt="">' : '') +
+              '<div class="dz-draft-t">' +
+                '<b>' + esc(чер.art.name || 'макет') + '</b>' +
+                (чер.mock
+                  ? '<span>' + esc(placeTxt(чер.mock)) + '</span>'
+                  : '<span>мокапу ще немає</span>') +
+              '</div>' +
+              '<button class="dz-ib dz-ib-x" data-do="dz-art-del" data-dz="' + key +
+                '" title="Прибрати й завантажити інший">🗑</button>' +
+            '</div>'
+          : '') +
+        (крок === 1
+          ? '<button class="dz-b pri wide" data-do="dz-art" data-dz="' + key + '">' +
+            '⤒ Завантажити макет</button>'
+          : крок === 2
+          ? (фото
+              ? '<button class="dz-b pri wide" data-do="dz-mock" data-dz="' + key + '">' +
+                '◱ Створити мокап</button>'
+              : '<div class="dz-miss">У цього виробу немає фото в каталозі — покласти ' +
+                'макет нема на що. Скажіть менеджеру: фото додають у каталог товарів.</div>')
+          : '<div class="dz-w-row">' +
+              '<button class="dz-b" data-do="dz-mock" data-dz="' + key + '">◱ Переробити мокап</button>' +
+              '<button class="dz-b pri" data-do="dz-hand" data-dz="' + key + '">' +
+              'Здати · буде v' + (d.vers.length + 1) + '</button>' +
+            '</div>') +
+        (крок < 3
+          ? '<div class="dz-miss is-calm">Клієнту йде макет на виробі, а не файл на ' +
+            'прозорому тлі — за ним не видно ні розміру, ні місця. Тому здача ' +
+            'без мокапу не проходить. Просто написати менеджеру можна вище, ' +
+            'без усього цього.</div>'
+          : '') +
+      '</div>';
   }
+
   /* Розміщення одним рядком. Нулі означають, що виріб на фото не розмічений
      або в товару немає сітки, — і тоді краще сказати це, ніж показати
      «0 см», яке виглядає як виміряне. */
@@ -3527,6 +3555,7 @@
       (d.status === 'revision'
         ? '<div class="dz-w-fix">Повернули на правку' +
           (нових ? ' · нового ' + нових : '') + '</div>' : '') +
+      '<div class="dz-w-l">Що прийшло</div>' +
       (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                 esc(u.note) + '</div>' : '') +
       /* Картинки зі СКАЧУВАННЯМ просто з мініатюри. Дизайнеру потрібен не
@@ -3603,13 +3632,14 @@
           esc(лишок < 0 ? ('−' + U.hm(-лишок)) : U.hm(лишок)) + '</b></span>') +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b is-zones">' +
-        /* Дата замовлення — тихим рядком. Дизайнер працює за своїм
-           годинником, але знати, коли посилка має виїхати, йому корисно:
-           «здам завтра» звучить інакше, коли відправка сьогодні. */
-        (job.due
-          ? '<div class="dz-w-when">Замовлення обіцяне клієнту до <b>' +
-            esc(U.dueTxt(job.due)) + '</b></div>'
-          : '') +
+        /* Дата, обіцяна клієнту, звідси пішла. Андрій: «у адмінці самого
+           дизайнера не потрібно писати замовлення обіцяно до такого-то
+           числа — у них просто повинен бути строк, коли їм потрібно здати».
+
+           Він має рацію: у дизайнера свій годинник, і дві дати поруч —
+           «здати за 8 годин» і «посилка 14 жовтня» — не доповнюють одна
+           одну, а сперечаються. Друга щоразу виглядає як запас часу,
+           якого немає. */
         U.taskBlockHtml(p, 'graphic') +
         (mine.length
           ? mine.map(dzWorkHtml).join('')
@@ -4300,6 +4330,7 @@
        вони лежали під зоною «art», дизайнер не зміг би ні взяти те, що
        йому дали, ні повернути те, чого не потягне. */
     'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
+    'dz-msg':'', 'dz-msg-file':'',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -4480,7 +4511,8 @@
        what === 'dz-file' || what === 'dz-say' || what === 'dz-ok' || what === 'dz-unok' ||
        what === 'dz-take' || what === 'dz-no' || what === 'dz-hand' ||
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
-       what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix'){
+       what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
+       what === 'dz-msg' || what === 'dz-msg-file'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
       var dk = dp[1] === 'stitch' ? 'stitch' : 'graphic';
@@ -4502,6 +4534,32 @@
           return say('Спершу затвердіть графіку цього виробу');
         D.dzSend(dd, m);
         return save(job, o, 'ТЗ відправлено · ' + U.whoName(dd.who));
+      }
+      /* ПРОСТО НАПИСАТИ — БЕЗ ФАЙЛУ Й БЕЗ МОКАПУ.
+
+         Питання «логотип білий чи молочний?» — це не здача роботи. Доти
+         єдина кнопка вимагала мокапу, і щоб спитати, дизайнер мусив або
+         зробити мокап нізащо, або писати менеджеру в Телеграм — звідки
+         відповідь не повертається в замовлення й губиться назавжди.
+
+         Репліка дизайнера НЕ кидає дизайн у «правки»: це його слово, а не
+         повернення роботи. Саме на цьому воно й плуталось. */
+      if(what === 'dz-msg' || what === 'dz-msg-file'){
+        var mEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var mTxt = mEl ? String(mEl.value || '').trim() : '';
+        var mF = null;
+        if(what === 'dz-msg-file'){
+          mF = await upload('');
+          if(!mF) return;
+        }
+        if(!mTxt && !mF) return say('Напишіть щось або прикріпіть файл');
+        var був = dd.status;
+        D.dzSay(dd, m, mTxt, mF);
+        /* `dzSay` переводить «на перевірці» в «на правках»: вона написана
+           для слів МЕНЕДЖЕРА. Своє слово стан не міняє. */
+        dd.status = був;
+        if(mEl) mEl.value = '';
+        return save(job, o, 'Надіслано');
       }
       /* ── Дві відповіді дизайнера на передачу ──
          «Беру» вмикає роботу; «Не братиму» повертає рядок менеджеру
