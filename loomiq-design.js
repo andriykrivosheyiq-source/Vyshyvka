@@ -1771,7 +1771,7 @@
         : d.who
         ? (готово
             ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key + '">' +
-              'Відправити дизайнеру</button>'
+              'Передати замовлення ' + esc(whoName(d.who)) + '</button>'
             : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє, ' +
               'і відправляти нема чого.</div>')
         : '');
@@ -1794,6 +1794,39 @@
      побачить сирі дані без `vers`/`thread` і розсиплеться на першому ж
      зверненні до них. */
   function dzList(u, kind){ return D.dzList(u, kind); }
+  /* ══════════ КОЛІР КАЖЕ, ЧИ ПЕРЕДАЛИ ══════════
+
+     Андрій: «щоб якось там загоралось — жовтеньким, коли передано
+     графічному, зелененьким, коли вже передали вишивальному».
+
+     Це не оформлення. У картці з чотирьох позицій питання «а це вже
+     передали?» задають на кожну, і відповідь доти лежала всередині
+     згорнутого рядка дизайну — тобто її не бачили, поки не відкриють усі
+     чотири. Колір відповідає на неї зразу, і саме він же відрізняє «ще не
+     віддали нікому» від «віддали й чекаємо».
+
+     Зелений у графіки означає НЕ «графіку затвердили», а «робота пішла
+     далі»: вишивальному вже передали те, що вона намалювала. Доти
+     бурштиновий — замовлення в роботі, і це ще не кінець. */
+  function dzSentAny(u, kind){
+    return dzList(u, kind).some(function(d){ return !!d.sentAt; });
+  }
+  function dzColState(u, kind){
+    if(kind === 'graphic')
+      return dzSentAny(u, 'stitch') ? 'done' : dzSentAny(u, 'graphic') ? 'sent' : '';
+    var list = dzList(u, 'stitch');
+    if(list.length && list.every(function(d){ return !!d.ok; })) return 'done';
+    return dzSentAny(u, 'stitch') ? 'sent' : '';
+  }
+  function dzColHtml(u, kind){
+    var st = dzColState(u, kind);
+    var назва = kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн';
+    var слово = st === 'done'
+      ? (kind === 'stitch' ? 'затверджено' : 'пішло далі')
+      : st === 'sent' ? 'передано' : '';
+    return '<div class="dz-u-l' + (st ? ' is-' + st : '') + '">' + назва +
+      (слово ? '<i>' + слово + '</i>' : '') + '</div>';
+  }
   function designRowHtml(u, kind, d, i, ro, job){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
@@ -1816,7 +1849,9 @@
          скільки версій і чи є непрочитане. */
       '<div class="dz-dz-t' + (відкрито ? ' on' : '') + '">' +
         '<button type="button" class="dz-dz-go" data-do="dz-open" data-dz="' + key + '">' +
-          '<b>' + esc(whoName(d.who) || 'дизайнера не обрано') + '</b>' +
+          /* Коротко: у колонці півпанелі «дизайнера не обрано» все одно
+             обрізалось на «диза…», тобто не казало нічого. */
+          '<b>' + esc(whoName(d.who) || 'не обрано') + '</b>' +
           '<i class="dz-dz-st s-' + esc(d.status || 'new') + '">' +
             esc(DZ_STATE[d.status] || 'не передано') + '</i>' +
           (d.vers.length ? '<span>v' + d.vers.length + '</span>' : '') +
@@ -1827,20 +1862,36 @@
       '</div>' +
       (відкрито
         ? '<div class="dz-dz-b">' + (ro ? '' : dzSendHtml(u, kind, d, i, job)) +
-            dzVersHtml(u, kind, d, i, ro) + dzThreadHtml(u, kind, d, i) +
-            /* Затверджує менеджер: він єдиний читає переписку з клієнтом.
-               Дизайнер, який погоджує сам себе, — це і є той випадок, коли
-               макет іде в машину повз усіх. */
-            (ro ? ''
-              : d.ok
-              ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">' +
-                'Зняти затвердження</button>'
-              : '<div class="dz-dt-b">' +
-                  '<button class="dz-b pri" data-do="dz-ok" data-dz="' + key +
-                    '" data-how="client">Клієнт погодив</button>' +
-                  '<button class="dz-b" data-do="dz-ok" data-dz="' + key +
-                    '" data-how="acct">Погодив акаунт-менеджер</button>' +
-                '</div>') +
+            /* ПОКИ НЕ ПЕРЕДАЛИ — НІЧОГО, КРІМ ВИБОРУ ДИЗАЙНЕРА.
+
+               Доти щойно доданий дизайн одразу розкривав усе: правку, файл,
+               «+ Версія», «Клієнт погодив», «Погодив акаунт-менеджер». Це
+               питання про роботу, якої ще ніхто не починав, — дизайнера ще
+               навіть не повідомили. Половина з цих кнопок у такий момент
+               або нічого не робить, або робить неправду: затвердити можна
+               версію, а версій нуль.
+
+               Тепер спершу одне: кого. Далі кнопка «Відправити дизайнеру» —
+               і рівно після неї зʼявляється все інше, бо тільки тоді воно
+               про щось. */
+            (!d.sentAt
+              ? (ro ? '' : '<div class="dz-miss is-calm">Оберіть дизайнера й відправте ' +
+                  'йому ТЗ. Версії, правки й погодження зʼявляться тут же — ' +
+                  'після передачі, коли їм буде про що казати.</div>')
+              : dzVersHtml(u, kind, d, i, ro) + dzThreadHtml(u, kind, d, i) +
+                /* Затверджує менеджер: він єдиний читає переписку з клієнтом.
+                   Дизайнер, який погоджує сам себе, — це і є той випадок,
+                   коли макет іде в машину повз усіх. */
+                (ro ? ''
+                  : d.ok
+                  ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">' +
+                    'Зняти затвердження</button>'
+                  : '<div class="dz-dt-b">' +
+                      '<button class="dz-b pri" data-do="dz-ok" data-dz="' + key +
+                        '" data-how="client">Клієнт погодив</button>' +
+                      '<button class="dz-b" data-do="dz-ok" data-dz="' + key +
+                        '" data-how="acct">Погодив акаунт-менеджер</button>' +
+                    '</div>')) +
           '</div>'
         : '') +
     '</div>';
@@ -1865,7 +1916,11 @@
        2 шт» над кнопками, які це й показують. Два підписи того самого
        нічого не додають, а місце й увагу забирають обидва. */
     return '<div class="dz-u">' +
-      (ro ? '' : '<div class="dz-u-h"><i class="dz-u-n">' + n + '</i>' +
+      (ro ? '' : '<div class="dz-u-h"><i class="dz-u-n is-' +
+        (dzColState(u, 'graphic') || 'none') + '" title="' +
+        (dzColState(u, 'graphic') === 'done' ? 'передано вишивальному дизайнеру'
+          : dzColState(u, 'graphic') === 'sent' ? 'передано графічному дизайнеру'
+          : 'ще нікому не передано') + '">' + n + '</i>' +
         '<span class="dz-u-acts">' +
           /* Значками, а не словами: дії дрібні, повторювані й самі себе
              пояснюють. Слова тут важили більше за саму дію. */
@@ -1950,13 +2005,15 @@
          чого робити у вишивальних файлах, і навпаки. */
       '<div class="dz-u-dz' + (only ? ' one' : '') + '">' +
         (only === 'stitch' ? '' :
-          '<div class="dz-u-col"><div class="dz-u-l">Графічний дизайн</div>' +
+          '<div class="dz-u-col is-' + (dzColState(u, 'graphic') || 'none') + '">' +
+          dzColHtml(u, 'graphic') +
           dzList(u, 'graphic').map(function(d, i){
             return designRowHtml(u, 'graphic', d, i, ro, job); }).join('') +
           (ro ? '' : dzAddHtml(u, 'graphic')) +
         '</div>') +
         (only === 'graphic' ? '' :
-          '<div class="dz-u-col"><div class="dz-u-l">Вишивальний дизайн</div>' +
+          '<div class="dz-u-col is-' + (dzColState(u, 'stitch') || 'none') + '">' +
+          dzColHtml(u, 'stitch') +
           dzList(u, 'stitch').map(function(d, i){
             return designRowHtml(u, 'stitch', d, i, ro, job); }).join('') +
           (ro ? '' : dzAddHtml(u, 'stitch')) +
@@ -1983,6 +2040,134 @@
   function daysDefault(){
     try{ return (host.b2cDays && host.b2cDays()) || 0; }catch(e){ return 0; }
   }
+  /* ══════════ ВИБІР ДАТИ ══════════
+
+     Дату здачі ставлять у кожній картці, і доти це було полем `type=date`:
+     три числа через точку, з роком, які треба набрати з клавіатури або
+     догребтись до них стрілками. Рік у ньому найгірший — усе, що ми
+     обіцяємо, стоїть у цьому році або в наступному місяці, і писати його
+     щоразу означає набирати чотири цифри, які й так відомі.
+
+     Тепер кнопка показує «08.09» і відкриває місяць сіткою: око знаходить
+     потрібне число, а палець його натискає. Плюс дві найчастіші відповіді
+     готовими — «через тиждень» і «через два», бо саме так менеджер і
+     думає про строк.
+
+     Рік у самій кнопці зʼявляється тільки тоді, коли дата НЕ цьогорічна, —
+     інакше «08.09» через півроку читалось би як минуле. */
+  var CAL = null;
+  var CAL_M = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+               'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function calIso(d){
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function calParse(v){
+    var d = new Date(String(v || '') + 'T00:00:00');
+    return isNaN(d) ? null : d;
+  }
+  function calClose(){
+    if(CAL && CAL.parentNode) CAL.parentNode.removeChild(CAL);
+    CAL = null;
+  }
+  /* Сітка місяця. Тиждень починається з понеділка — так пишуть усі
+     календарі, з якими людина має справу поза цим екраном. */
+  function calGrid(рік, міс, обрано){
+    var перше = new Date(рік, міс, 1);
+    var зсув = (перше.getDay() + 6) % 7;
+    var днів = new Date(рік, міс + 1, 0).getDate();
+    var сьогодні = calIso(new Date());
+    var out = '';
+    var i;
+    for(i = 0; i < зсув; i++) out += '<span class="dz-cal-e"></span>';
+    for(i = 1; i <= днів; i++){
+      var v = рік + '-' + pad2(міс + 1) + '-' + pad2(i);
+      var вих = ((зсув + i - 1) % 7) >= 5;
+      out += '<button type="button" class="dz-cal-d' +
+        (v === обрано ? ' on' : '') + (v === сьогодні ? ' today' : '') +
+        (вих ? ' off' : '') + '" data-cal-d="' + v + '">' + i + '</button>';
+    }
+    return out;
+  }
+  function calPaint(){
+    if(!CAL) return;
+    var обрано = CAL.__v || '';
+    CAL.innerHTML = '<div class="dz-cal-h">' +
+        '<button type="button" class="dz-cal-a" data-cal-m="-1">‹</button>' +
+        '<b>' + CAL_M[CAL.__m] + ' ' + CAL.__y + '</b>' +
+        '<button type="button" class="dz-cal-a" data-cal-m="1">›</button>' +
+      '</div>' +
+      '<div class="dz-cal-w"><i>пн</i><i>вт</i><i>ср</i><i>чт</i><i>пт</i>' +
+        '<i class="off">сб</i><i class="off">нд</i></div>' +
+      '<div class="dz-cal-g">' + calGrid(CAL.__y, CAL.__m, обрано) + '</div>' +
+      /* Найчастіші дві відповіді готовими: строк називають тижнями, а не
+         числами, і переводити «через два тижні» в дату — зайва арифметика,
+         у якій і помиляються. */
+      '<div class="dz-cal-f">' +
+        '<button type="button" class="dz-cal-q" data-cal-plus="7">+ тиждень</button>' +
+        '<button type="button" class="dz-cal-q" data-cal-plus="14">+ два</button>' +
+        (обрано ? '<button type="button" class="dz-cal-q is-x" data-cal-clear>прибрати</button>' : '') +
+      '</div>';
+  }
+  function calOpen(btn, value, onPick){
+    calClose();
+    var d = calParse(value) || new Date();
+    var el = document.createElement('div');
+    el.className = 'dz-cal';
+    el.__y = d.getFullYear(); el.__m = d.getMonth();
+    el.__v = calParse(value) ? calIso(d) : '';
+    CAL = el;
+    calPaint();
+    document.body.appendChild(el);
+    /* Ставимо під кнопкою, але не за краєм екрана: картка стоїть праворуч,
+       і календар, вирівняний по лівому краю кнопки, наполовину виїжджав би
+       за вікно. */
+    var r = btn.getBoundingClientRect();
+    var ш = el.offsetWidth || 250, в = el.offsetHeight || 280;
+    var лів = Math.min(r.left, window.innerWidth - ш - 10);
+    var вер = r.bottom + 6;
+    if(вер + в > window.innerHeight - 8) вер = Math.max(8, r.top - в - 6);
+    el.style.left = Math.max(8, лів) + 'px';
+    el.style.top = вер + 'px';
+    el.addEventListener('click', function(e){
+      var t = e.target.closest ? e.target : null;
+      var крок = t && t.closest('[data-cal-m]');
+      if(крок){
+        var к = +крок.getAttribute('data-cal-m');
+        var n = new Date(el.__y, el.__m + к, 1);
+        el.__y = n.getFullYear(); el.__m = n.getMonth();
+        return calPaint();
+      }
+      var плюс = t && t.closest('[data-cal-plus]');
+      if(плюс){
+        var від = new Date();
+        від.setDate(від.getDate() + (+плюс.getAttribute('data-cal-plus') || 0));
+        calClose();
+        return onPick(calIso(від));
+      }
+      if(t && t.closest('[data-cal-clear]')){ calClose(); return onPick(''); }
+      var день = t && t.closest('[data-cal-d]');
+      if(!день) return;
+      calClose();
+      onPick(день.getAttribute('data-cal-d'));
+    });
+    /* Клацнули повз — закрилось. Разом із Escape це два звичні способи
+       вийти, і жоден із них не змінює дату. */
+    var повз = function(ev){
+      if(el.contains(ev.target) || btn.contains(ev.target)) return;
+      document.removeEventListener('mousedown', повз, true);
+      calClose();
+    };
+    var esk = function(ev){
+      if(ev.key !== 'Escape') return;
+      ev.stopPropagation();
+      document.removeEventListener('keydown', esk, true);
+      document.removeEventListener('mousedown', повз, true);
+      calClose();
+    };
+    setTimeout(function(){ document.addEventListener('mousedown', повз, true); }, 0);
+    document.addEventListener('keydown', esk, true);
+  }
   function readyFrom(job){
     var d = +((job || {}).days) || daysDefault();
     if(!d) return '';
@@ -1998,21 +2183,35 @@
       '<input type="number" min="1" max="120" value="' + (d || '') + '" ' +
       'placeholder="' + (daysDefault() || '—') + '" data-jf="days"></label>';
   }
+  /* Дата коротко: «08.09». Рік дописуємо тільки тоді, коли він не цей, —
+     інакше через півроку те саме «08.09» читалось би як давно минуле. */
+  function dueTxt(v){
+    var d = calParse(v);
+    if(!d) return '';
+    var свій = d.getFullYear() === new Date().getFullYear();
+    return pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) +
+      (свій ? '' : '.' + String(d.getFullYear()).slice(2));
+  }
   function dueHtml(job){
+    var v = (job && job.due) || readyFrom(job);
     var late = false;
-    if(job && job.due){
-      var d0 = new Date(job.due + 'T23:59:59');
+    if(v){
+      var d0 = new Date(v + 'T23:59:59');
       late = !isNaN(d0) && d0.getTime() < Date.now();
     }
+    /* Кнопка, а не поле. Поле `type=date` просило набрати три числа з
+       роком; тут око бачить «08.09», а натиск відкриває місяць сіткою. */
     return termHtml(job) +
-      '<label class="dz-due' + (late ? ' late' : '') + '" title="Коли обіцяємо — ' +
-      'рахується від терміну, але міняється руками"><span>Готово</span>' +
-      '<input type="date" value="' + esc((job && job.due) || readyFrom(job)) + '" ' +
-      'data-jf="due"></label>';
+      '<button type="button" class="dz-duo' + (late ? ' late' : '') +
+        (v ? '' : ' none') + '" data-cal="due" title="Коли обіцяємо — ' +
+        'рахується від терміну, але міняється натиском">' +
+        '<span>Готово</span><b>' + esc(v ? dueTxt(v) : 'обрати') + '</b></button>';
   }
   function unitsHtml(job, opt){
     var list = unitsOf(job);
-    return '<div class="dz-h">Склад замовлення</div>' +
+    /* Заголовок пропускаємо, коли склад стоїть у зоні: зона вже підписана,
+       і другий підпис того самого — це рядок, який нічого не додає. */
+    return ((opt && opt.bare) ? '' : '<div class="dz-h">Склад замовлення</div>') +
       (list.length
         ? list.map(function(u, i){ return unitHtml(job, u, i + 1, opt); }).join('')
         : '<div class="dz-miss">Складу ще немає. Додайте одяг — саме з нього ' +
@@ -2042,35 +2241,169 @@
      Прив’язати саму оплату — окремою дією, яку ми ще налаштуємо. Поки
      передоплату вписують рукою: це чесно відповідає на питання «скільки
      лишилось» і нічого не вдає. */
-  function moneyHtml(o){
-    var сума = 0;
-    try{ сума = (host.orderSum && host.orderSum(o)) || 0; }catch(e){}
-    if(!сума) сума = +((o || {}).totalPrice) || 0;
-    /* Скільки вже прийшло. Сума привʼязаних платежів — головна, бо вона
-       з банку; вписане руками лишається запасним шляхом для готівки й для
-       часу, поки банки ще не підключені. */
-    var зБанку = 0;
-    try{ зБанку = (host.paid && host.paid(o)) || 0; }catch(e){}
-    var пре = Math.max(0, Math.round(зБанку || +((o || {}).prepaid) || 0));
-    var лишок = Math.max(0, Math.round(сума - пре));
-    return '<details class="dz-fold">' +
-      '<summary>Гроші' +
-        (сума ? '<b>' + esc(грн(сума)) + '</b>' : '<i>суми ще немає</i>') +
-        (пре ? '<i>передоплата ' + esc(грн(пре)) + '</i>' : '') +
-      '</summary>' +
-      '<div class="dz-money">' +
-        '<div class="dz-money-r"><span>Разом за замовлення</span><b>' +
-          esc(грн(сума)) + '</b></div>' +
-        (зБанку
-          ? '<div class="dz-money-r"><span>Надійшло за платежами</span><b>' +
-            esc(грн(зБанку)) + '</b></div>'
-          : '<label class="dz-own-f"><span>Передоплата</span>' +
-            '<input type="number" min="0" step="1" data-of="prepaid" value="' +
-            (пре || '') + '" placeholder="скільки вже прийшло"></label>') +
-        '<div class="dz-money-r is-left"><span>Залишок до оплати</span><b>' +
-          esc(грн(лишок)) + '</b></div>' +
+  /* ══════════ ЗОНИ КАРТКИ ══════════
+
+     Картка приватного замовлення — це пʼять різних розмов в одному вікні:
+     хто клієнт, що шиємо й хто це малює, скільки грошей, куди їде. Доти
+     вони йшли одним потоком, розділені однаковими сірими підписами, і очима
+     в ньому місце не знаходилось — картку доводилось читати підряд, згори
+     до низу, щоразу.
+
+     Тепер у кожної зони свій колір і свій значок, і колір той самий, що у
+     воронці: синій — клієнт, фіолетовий — склад і дизайн, зелений — гроші,
+     бурштиновий — відправка. Знайти потрібне стало питанням кольору, а не
+     читання.
+
+     Зони НЕ ЗГОРТАЮТЬСЯ, і це рішення, а не недоробка. Складена зона
+     ховає рівно те, через що замовлення й стоїть: незаповнену адресу,
+     непризначеного дизайнера, невнесену передоплату. Картку відкривають,
+     щоб побачити стан цілком, — а кожен зайвий натиск на шляху до нього
+     означає, що його не побачать. Гроші й Відправка доти були складеними
+     саме так і саме тому розгорнуті тут.
+
+     Підпис у шапці зони — не окраса: він каже головне, не змушуючи читати
+     зону. «3 позиції · 12 шт», «5 400 ₴ · лишилось 2 400», «є дані, ТТН
+     немає». */
+  function zoneHtml(колір, значок, назва, підпис, вміст){
+    if(!вміст) return '';
+    return '<section class="dz-z z-' + колір + '">' +
+      '<div class="dz-z-h"><i class="dz-z-i">' + значок + '</i>' +
+        '<b>' + esc(назва) + '</b>' +
+        (підпис ? '<span class="dz-z-s">' + esc(підпис) + '</span>' : '') +
       '</div>' +
-    '</details>';
+      '<div class="dz-z-b">' + вміст + '</div>' +
+    '</section>';
+  }
+  /* ══════════ СКІЛЬКИ КОШТУЄ — З ПРАЙСУ, А НЕ З ГОЛОВИ ══════════
+
+     Доти сума приватного замовлення бралась із `totalPrice` — поля, яке в
+     таких замовленнях ніхто не заповнює: вони заводяться прямо у відділі,
+     без прорахунку. Тобто в картці стояв нуль, а справжню суму менеджер
+     тримав у голові й переказував клієнту наново щоразу.
+
+     Тепер вона рахується з того, що вже стоїть у складі: виріб × кількість
+     за роздрібною ціною з налаштувань B2C. Ціну дає робоче місце — довідник
+     товарів один, і заводити у відділі свій означало б розійтися з ним за
+     тиждень.
+
+     Рядок за рядком, а не одним числом: коли сума виглядає не так, питання
+     завжди «а за що саме», і відповідь мусить бути тут же. */
+  function retailOf(gid){
+    try{ return Math.max(0, Math.round((host.retail && host.retail(gid)) || 0)); }
+    catch(e){ return 0; }
+  }
+  function sumRows(job){
+    return unitsOf(job).map(function(u){
+      var g = catItem(u.gid);
+      var ціна = retailOf(u.gid);
+      var к = Math.max(0, Math.round(+u.qty || 0));
+      return { name: (g && g.name) || u.name || 'без виробу',
+               color: u.color || '', qty: к, price: ціна, sum: ціна * к,
+               нема: !!u.gid && !ціна };
+    });
+  }
+  function orderSum(o, job){
+    var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
+    if(з) return з;
+    /* Складу ще немає або ціни не заповнені — лишається те, що порахував
+       прорахунок. Нуль показуємо як нуль: вигадана сума гірша за її
+       відсутність. */
+    var зХоста = 0;
+    try{ зХоста = (host.orderSum && host.orderSum(o)) || 0; }catch(e){}
+    return зХоста || +((o || {}).totalPrice) || 0;
+  }
+  function paidOf(o){
+    try{ return Math.max(0, Math.round((host.paid && host.paid(o)) || 0)); }
+    catch(e){ return 0; }
+  }
+  function moneySub(o, job){
+    var сума = orderSum(o, job);
+    if(!сума) return 'суми ще немає';
+    var пре = paidOf(o) || Math.max(0, Math.round(+((o || {}).prepaid) || 0));
+    var лишок = Math.max(0, сума - пре);
+    return грн(сума) + (пре ? ' · лишилось ' + грн(лишок) : '');
+  }
+  /* ══════════ ПЕРЕДОПЛАТА — ПЛАТЕЖЕМ, А НЕ ЧИСЛОМ ══════════
+
+     Вписана руками передоплата — це слово менеджера проти виписки. Вона
+     сходиться, поки її пишуть уважно, і розходиться саме тоді, коли треба
+     відповісти «а скільки вже прийшло»: число в картці є, а рух у банку
+     невідомо який.
+
+     Тому суму тут не пишуть. Її ОБИРАЮТЬ зі списку надходжень, які вже
+     лежать у Фінансах: платіж прив'язується до замовлення, і сума в картці
+     стає наслідком того, що справді прийшло на рахунок. Кожен платіж
+     підписується — передоплата, оплата, доплата, наложка, — бо 3000 ₴ за
+     новим замовленням і 3000 ₴ доплати за старим це різні речі. */
+  var PAY_TAG = { prepay:'Передоплата', pay:'Оплата', final:'Доплата', cod:'Наложка' };
+  function payWrap(o){
+    try{ return (host.payments && host.payments(o)) || null; }catch(e){ return null; }
+  }
+  function payRowsHtml(o){
+    var w = payWrap(o);
+    if(!w) return '';
+    var свої = w.linked || [], вільні = w.free || [];
+    return '<div class="dz-pay">' +
+      (свої.length
+        ? свої.map(function(p){
+            return '<div class="dz-pay-r">' +
+              '<b>' + esc(грн(p.amount)) + '</b>' +
+              '<span>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + '</span>' +
+              '<select data-payt="' + esc(p.id) + '" title="Чим це є">' +
+                Object.keys(PAY_TAG).map(function(k){
+                  return '<option value="' + k + '"' + (p.tag === k ? ' selected' : '') +
+                    '>' + esc(PAY_TAG[k]) + '</option>'; }).join('') +
+              '</select>' +
+              '<button class="dz-ib dz-ib-x" data-do="pay-off" data-p="' + esc(p.id) +
+                '" title="Відвʼязати платіж">🗑</button>' +
+            '</div>';
+          }).join('')
+        : '<div class="dz-miss">Платежів до цього замовлення ще не привʼязано.</div>') +
+      (вільні.length
+        ? '<button class="dz-b pri" data-do="pay-pick">+ Привʼязати платіж' +
+          ' <i>· вільних ' + вільні.length + '</i></button>'
+        : '<div class="dz-miss">Непривʼязаних надходжень у Фінансах немає. ' +
+          'Платіж зʼявиться там сам, коли підключимо банк, — або його можна ' +
+          'записати руками в розділі Фінанси.</div>') +
+    '</div>';
+  }
+  function moneyBody(o, job){
+    var rows = sumRows(job);
+    var сума = orderSum(o, job);
+    var пре = paidOf(o);
+    /* Вписана руками передоплата лишається читаною, поки банки не
+       підключені й у старих картках: викидати її означало б мовчки
+       занизити внесене. Але нового поля для неї немає — нове вводять
+       платежем. */
+    var рукою = Math.max(0, Math.round(+((o || {}).prepaid) || 0));
+    var внесено = пре + (пре ? 0 : рукою);
+    var лишок = Math.max(0, сума - внесено);
+    return '<div class="dz-money">' +
+      (rows.length
+        ? '<div class="dz-sum">' + rows.map(function(r){
+            return '<div class="dz-sum-r' + (r.нема ? ' no' : '') + '">' +
+              '<span>' + esc(r.name) + (r.color ? ' · ' + esc(r.color) : '') + '</span>' +
+              '<i>' + r.qty + ' × ' + esc(грн(r.price)) + '</i>' +
+              '<b>' + esc(грн(r.sum)) + '</b>' +
+            '</div>';
+          }).join('') +
+          (rows.some(function(r){ return r.нема; })
+            ? '<div class="dz-miss">Для виділених виробів роздрібної ціни ще ' +
+              'немає. Заповніть її в Налаштуваннях B2C — і сума порахується сама.</div>'
+            : '') +
+        '</div>'
+        : '') +
+      '<div class="dz-money-r"><span>Разом за замовлення</span><b>' +
+        esc(грн(сума)) + '</b></div>' +
+      (рукою && !пре
+        ? '<div class="dz-money-r"><span>Внесено (вписано руками)</span><b>' +
+          esc(грн(рукою)) + '</b></div>'
+        : '<div class="dz-money-r"><span>Надійшло за платежами</span><b>' +
+          esc(грн(пре)) + '</b></div>') +
+      '<div class="dz-money-r is-left"><span>Залишок до оплати</span><b>' +
+        esc(грн(лишок)) + '</b></div>' +
+      payRowsHtml(o) +
+    '</div>';
   }
   function грн(n){
     return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₴';
@@ -2105,12 +2438,11 @@
         esc(пош[k] || '') + '" placeholder="' + esc(ph) + '"></label>';
     };
     var бракує = ['city','office','phone','name'].filter(function(k){ return !пош[k]; }).length;
+    /* Розгорнуто, а не складено. Складений блок ховав рівно те, через що
+       посилка й не їде: незаповнену адресу. Підпис зони каже стан, а поля
+       стоять відкритими — заповнити їх можна, не відкриваючи нічого. */
     if(o.dir === 'b2c')
-      return '<details class="dz-fold">' +
-        '<summary>Відправка' + (ttn ? '<b>' + esc(ttn) + '</b>' :
-          '<i>' + (бракує ? 'даних бракує: ' + бракує : 'дані є, накладної ще немає') + '</i>') +
-        '</summary>' +
-        '<div class="dz-ship-f">' +
+      return '<div class="dz-ship-f">' +
           поле('name', 'Імʼя та прізвище', 'на кого оформити') +
           поле('phone', 'Телефон', '+380…', 'tel') +
           поле('city', 'Місто', 'куди їде') +
@@ -2121,8 +2453,7 @@
             (q ? q + ' шт' : 'кількість ще не вказана') + '</b></div>' +
           '<label class="dz-own-f"><span>Накладна</span>' +
             '<input data-of="ttn" value="' + esc(ttn) + '" placeholder="номер ТТН"></label>' +
-        '</div></details>' +
-        moneyHtml(o);
+        '</div>';
     return '<div class="dz-h">Відправка</div>' +
       '<div class="dz-ship">' +
         '<div class="dz-ship-l">' +
@@ -2133,6 +2464,27 @@
         '<button class="dz-b" data-do="ship">' +
           (ttn ? 'Відкрити відправку' : 'Створити накладну') + '</button>' +
       '</div>';
+  }
+  /* Те саме без власного заголовка — коли блок стоїть у підписаній зоні. */
+  function shipBody(p){
+    return shipHtml(p).replace('<div class="dz-h">Відправка</div>', '');
+  }
+  /* Підписи зон. Кажуть головне, не змушуючи зону читати: «4 позиції ·
+     12 шт», «ТТН 2045…», «даних бракує: 2». Порожній підпис нічого не
+     означає — його просто немає. */
+  function shipSub(o){
+    var ttn = String((o || {}).ttn || '').trim();
+    if(ttn) return 'ТТН ' + ttn;
+    var пош = (o || {}).ship || {};
+    var бракує = ['city','office','phone','name'].filter(function(k){ return !пош[k]; }).length;
+    return бракує ? ('даних бракує: ' + бракує) : 'дані є, накладної ще немає';
+  }
+  function unitsSub(job){
+    var list = unitsOf(job);
+    if(!list.length) return '';
+    var шт = list.reduce(function(a, u){ return a + (Math.max(0, +u.qty || 0)); }, 0);
+    return list.length + ' ' + (list.length === 1 ? 'позиція' : 'позиції') +
+      (шт ? ' · ' + шт + ' шт' : '');
   }
 
   function taskBlockHtml(pr, seat){
@@ -2331,9 +2683,16 @@
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
     unitsOf: unitsOf, unitAt: unitAt,
-    shipHtml: shipHtml,
+    shipHtml: shipHtml, shipBody: shipBody,
+    /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
+       картку з них, а не малюють кожна свій варіант того самого. */
+    zoneHtml: zoneHtml, unitsSub: unitsSub, shipSub: shipSub,
+    moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum,
+    /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
+    calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
+    pickOpen: pickOpen,
     picOpen: picOpen,
     DZ_OPEN: DZ_OPEN, whoName: whoName,
     taskCards: taskCards, hm: hm,
@@ -2589,18 +2948,38 @@
     }
     /* Строк — у шапці, поруч із номером. Це рамка всього замовлення, і
        читати її треба до складу, а не після нього. */
+    /* ══════════ КАРТКА ЗОНАМИ ══════════
+
+       Доти все це йшло одним потоком: клієнт, склад, кнопки, версії,
+       відправка, гроші — розділені однаковими сірими підписами. Читати
+       таке можна тільки підряд, а питання до картки завжди точкові: «куди
+       їде?», «скільки лишилось доплатити?», «кому передали спину?».
+
+       Тепер це чотири зони свого кольору, і колір той самий, що у воронці.
+       Порядок — робочий, а не формальний: спершу кому це (клієнт), потім
+       що робимо (склад і дизайн), потім чи погоджено, далі гроші й
+       наостанок куди їде. Саме в такому порядку картку й заповнюють. */
     return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + esc(D.stateLine(job)) + '</span>' +
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
-      '<div class="dz-panel-b">' +
-        U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct') +
-        /* Склад — одразу під клієнтом і дорученнями: це перше, що питають
-           про замовлення, і перше, що заповнюють, коли його заводять. */
-        U.unitsHtml(job) +
-        (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
-        '<div class="dz-h">Версії</div>' + U.versionsHtml(job, o) +
-        U.shipHtml(p) +
+      '<div class="dz-panel-b is-zones">' +
+        U.zoneHtml('blue', '👤', 'Клієнт', '',
+          U.clientHtml(o, job) + U.taskBlockHtml(p, 'acct')) +
+        /* Склад — одразу під клієнтом: це перше, що питають про
+           замовлення, і перше, що заповнюють, коли його заводять. */
+        U.zoneHtml('violet', '👕', 'Склад і дизайн', U.unitsSub(job),
+          U.unitsHtml(job, { bare:true })) +
+        /* Погодження зʼявляється лише тоді, коли є що погоджувати. Зона
+           «версій ще немає» у свіжій картці — це колір і місце, віддані за
+           повідомлення, що нічого не сталось. */
+        ((acts.length || ((o && o.art) || []).length)
+          ? U.zoneHtml('red', '✔', 'Погодження', '',
+              (acts.length ? '<div class="dz-acts">' + acts.join('') + '</div>' : '') +
+              (((o && o.art) || []).length ? U.versionsHtml(job, o) : ''))
+          : '') +
+        U.zoneHtml('green', '₴', 'Гроші', U.moneySub(o, job), U.moneyBody(o, job)) +
+        U.zoneHtml('amber', '📦', 'Відправка', U.shipSub(o), U.shipBody(p)) +
       '</div>' +
       /* Написати клієнту — у ЗАФІКСОВАНІЙ нижній смужці, а не в потоці.
          У картці десяток блоків, і кнопка в кінці означає «догортайте до
@@ -3173,6 +3552,31 @@
         save(c.job, c.o, '');
       };
     });
+    /* Дата здачі — календарем. Кнопка сама відкриває місяць сіткою, і
+       відповідь приходить назад одним значенням: жодного розбору тексту,
+       жодних «31.02». */
+    root.querySelectorAll('[data-cal]').forEach(function(b){
+      b.onclick = function(e){
+        e.preventDefault(); e.stopPropagation();
+        var c = ctx(); if(!c) return;
+        U.calOpen(b, c.job.due || U.readyFrom(c.job), function(v){
+          c.job.due = v || '';
+          c.job.dueSet = !!v;
+          save(c.job, c.o, v ? ('Готово ' + U.dueTxt(v)) : 'Дату прибрано');
+        });
+      };
+    });
+    /* Чим є цей платіж. Підпис — половина сенсу привʼязки: 3000 ₴ за новим
+       замовленням і 3000 ₴ доплати за старим це різні речі, і без підпису
+       сума лягає в картку без значення. */
+    root.querySelectorAll('[data-payt]').forEach(function(el){
+      el.onchange = function(){
+        var c = ctx(); if(!c || !host().payTag) return;
+        Promise.resolve(host().payTag(el.dataset.payt, el.value))
+          .then(function(){ render(document.getElementById('dzRoot')); })
+          .catch(function(e){ console.error(e); });
+      };
+    });
     root.querySelectorAll('[data-dz]').forEach(function(el){
       if(el.tagName !== 'INPUT') return;
       el.onchange = function(){
@@ -3338,6 +3742,40 @@
     if(what === 'unbind'){
       if(host().unbind) host().unbind(o);
       return render(document.getElementById('dzRoot'));
+    }
+    /* ПЕРЕДОПЛАТУ ОБИРАЮТЬ, А НЕ ПИШУТЬ.
+
+       Список — це надходження, які вже лежать у Фінансах і ще нікуди не
+       привʼязані. Менеджер бачить суму, дату, рахунок і призначення платежу
+       й обирає своє; сума в картці стає наслідком того, що справді прийшло
+       на рахунок, а не того, що згадали. */
+    if(what === 'pay-pick'){
+      var w = host().payments && host().payments(o);
+      var вільні = (w && w.free) || [];
+      if(!вільні.length)
+        return say('Непривʼязаних надходжень немає — подивіться в Фінансах');
+      return U.pickOpen('Який платіж за цим замовленням',
+        'Тільки ті надходження, що ще нікуди не привʼязані',
+        вільні.map(function(p){
+          return '<button type="button" class="dz-pick-c is-pay" data-pick="' +
+            esc(p.id) + '">' +
+            '<span class="dz-pick-n"><b>' + esc(money(p.amount)) + '</b>' +
+              '<i>' + esc(p.at || '') + (p.acc ? ' · ' + esc(p.acc) : '') + '</i>' +
+              (p.desc ? '<i>' + esc(p.desc) + '</i>' : '') +
+            '</span></button>';
+        }).join(''),
+        function(id){
+          if(!host().payLink) return say('Привʼязка платежів недоступна');
+          Promise.resolve(host().payLink(o, id))
+            .then(function(){ render(document.getElementById('dzRoot')); })
+            .catch(function(e){ console.error(e); say('Привʼязати не вдалось'); });
+        });
+    }
+    if(what === 'pay-off'){
+      if(!host().payUnlink) return say('Відвʼязка платежів недоступна');
+      return Promise.resolve(host().payUnlink((data && data.p) || ''))
+        .then(function(){ render(document.getElementById('dzRoot')); })
+        .catch(function(e){ console.error(e); say('Відвʼязати не вдалось'); });
     }
     if(what === 'u-add'){
       job.units = U.unitsOf(job).concat([U.unitNew()]);

@@ -3481,6 +3481,131 @@
     padding-bottom:7px;border-bottom:1px solid var(--line-soft);}
   .dz-panel-b > .dz-h:first-child{margin-top:4px;}
   .dz-u{margin-bottom:12px;}
+  /* ══════════ ЗОНИ КАРТКИ ══════════
+
+     Картка приватного замовлення — пʼять різних розмов в одному вікні:
+     клієнт, склад і дизайн, погодження, гроші, відправка. Доти вони йшли
+     одним потоком, розділені однаковими сірими підписами, і очима місце в
+     ньому не знаходилось: картку читали підряд щоразу.
+
+     Кожна зона має свій колір, і колір той самий, що у воронці, — синій
+     клієнт, фіолетовий склад, зелені гроші, бурштинова відправка. Смужка
+     ліворуч тримає зону вкупі, а не просто фарбує її: видно, де вона
+     починається й де закінчується.
+
+     Зони НЕ ЗГОРТАЮТЬСЯ. Складена зона ховає рівно те, через що замовлення
+     й стоїть, — незаповнену адресу, невнесену передоплату. */
+  .dz-panel-b.is-zones{padding:10px 12px 14px;display:flex;flex-direction:column;gap:11px;}
+  /* `flex:none` тут не косметика. Зони лежать у колонці з прокруткою, а
+     елемент гнучкої колонки за замовчуванням стискається — і зона складу,
+     найвища з усіх, ужималась до чужого зросту, відрізавши половину
+     виробу разом із дизайнерами. Зовні це виглядало як загадкова друга
+     прокрутка всередині картки. */
+  .dz-z{flex:none;border:1px solid var(--line);border-left:3px solid var(--z);
+    border-radius:11px;background:#fff;overflow:hidden;
+    --z:var(--line);--zs:var(--canvas);--zi:var(--ink-soft);}
+  .dz-z-h{display:flex;align-items:center;gap:8px;padding:8px 11px;
+    background:var(--zs);border-bottom:1px solid var(--line-soft);}
+  .dz-z-i{font-style:normal;font-size:13px;line-height:1;flex:none;
+    filter:saturate(.9);}
+  .dz-z-h b{font-size:11px;font-weight:800;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--zi);}
+  /* Підпис зони каже головне, не змушуючи зону читати: «4 позиції · 12 шт»,
+     «5 400 ₴ · лишилось 2 400», «даних бракує: 2». */
+  .dz-z-s{margin-left:auto;font-size:11.5px;color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;text-align:right;min-width:0;}
+  .dz-z-b{padding:11px;}
+  .dz-z-b > .dz-h:first-child{margin-top:0;}
+  .dz-z-b > :last-child{margin-bottom:0;}
+  .dz-z.z-blue  {--z:#2E90FA;--zs:#EFF6FF;--zi:#1B4B82;}
+  .dz-z.z-violet{--z:#7C3AED;--zs:#F4F0FF;--zi:#4C2189;}
+  .dz-z.z-red   {--z:#E4572E;--zs:#FDF1EC;--zi:#8F3317;}
+  .dz-z.z-green {--z:#0E9F6E;--zs:#EDF9F3;--zi:#0A6B4A;}
+  .dz-z.z-amber {--z:#D99A0B;--zs:#FEF8E7;--zi:#8A6410;}
+  /* Всередині зони блоки вже не мають власних відступів «між зонами»:
+     зона їх і задає. */
+  .dz-z-b .dz-fold,.dz-z-b .dz-ship,.dz-z-b .dz-money{margin-top:0;}
+  .dz-z-b .dz-money,.dz-z-b .dz-ship-f{padding:0;}
+  .dz-z-b .dz-ship-f{padding-bottom:10px;}
+  /* ── Сума з прайсу, рядок за рядком ──
+     Коли сума виглядає не так, питання завжди «а за що саме» — і відповідь
+     мусить стояти тут же, а не в іншому розділі. */
+  .dz-sum{display:flex;flex-direction:column;gap:5px;padding-bottom:9px;
+    border-bottom:1px solid var(--line-soft);}
+  .dz-sum-r{display:flex;align-items:baseline;gap:8px;font-size:12.5px;color:var(--ink);}
+  .dz-sum-r span{flex:1;min-width:0;}
+  .dz-sum-r i{font-style:normal;font-size:11.5px;color:var(--muted);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .dz-sum-r b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  /* Виріб без ціни видно: інакше він мовчки додає нуль до суми, і сума
+     виглядає порахованою. */
+  .dz-sum-r.no{color:#8F3317;}
+  .dz-sum-r.no b::after{content:' ?';}
+  /* ── Привʼязані платежі ──
+     Передоплату не пишуть рукою: її обирають зі списку надходжень. Тут
+     видно, що саме привʼязано, і чим воно є. */
+  .dz-pay{display:flex;flex-direction:column;gap:7px;padding-top:10px;
+    border-top:1px solid var(--line-soft);}
+  .dz-pay-r{display:flex;align-items:center;gap:8px;font-size:12px;
+    background:#EDF9F3;border-radius:8px;padding:6px 8px;}
+  .dz-pay-r > b{font-weight:800;color:#0A6B4A;font-variant-numeric:tabular-nums;
+    white-space:nowrap;}
+  .dz-pay-r > span{flex:1;min-width:0;color:var(--ink-soft);font-size:11.5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dz-pay-r select{font:inherit;font-size:11.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:7px;padding:4px 6px;outline:none;flex:none;}
+  .dz-pick-c.is-pay{flex-direction:row;align-items:center;text-align:left;}
+  .dz-pick-c.is-pay .dz-pick-n{display:flex;flex-direction:column;gap:2px;}
+  .dz-pick-c.is-pay b{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .dz-pick-c.is-pay i{font-style:normal;font-size:11.5px;color:var(--muted);}
+  /* ══════════ ДАТА ЗДАЧІ — КАЛЕНДАРЕМ ══════════
+
+     Поле `type=date` просило набрати три числа з роком. Рік у ньому
+     найгірший: усе, що ми обіцяємо, стоїть у цьому році, і набирати його
+     щоразу означає чотири цифри, які й так відомі. Тепер кнопка показує
+     «08.09», а натиск відкриває місяць сіткою. */
+  .dz-duo{all:unset;cursor:pointer;flex:none;display:flex;align-items:center;gap:6px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;}
+  .dz-duo:hover{border-color:var(--accent);}
+  .dz-duo span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;font-weight:600;}
+  .dz-duo b{font-size:13px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;}
+  .dz-duo.none b{font-weight:500;color:var(--muted);}
+  /* Строк вийшов — це видно, а не написано дрібним поруч. */
+  .dz-duo.late{border-color:#E4572E;background:#FDECEA;}
+  .dz-duo.late b{color:#B03A1A;}
+  .dz-cal{position:fixed;z-index:400;width:250px;box-sizing:border-box;
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 14px 38px rgba(15,32,52,.22);padding:9px;}
+  .dz-cal-h{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+  .dz-cal-h b{flex:1;text-align:center;font-size:12.5px;font-weight:700;color:var(--ink);}
+  .dz-cal-a{all:unset;cursor:pointer;width:26px;height:26px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;font-size:15px;
+    color:var(--ink-soft);}
+  .dz-cal-a:hover{background:var(--canvas);color:var(--ink);}
+  .dz-cal-w,.dz-cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .dz-cal-w i{font-style:normal;font-size:10px;font-weight:700;color:var(--muted);
+    text-align:center;text-transform:uppercase;letter-spacing:.03em;padding-bottom:3px;}
+  .dz-cal-w i.off{color:#C3A08A;}
+  .dz-cal-e{display:block;}
+  .dz-cal-d{all:unset;cursor:pointer;height:29px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;
+    color:var(--ink);font-variant-numeric:tabular-nums;}
+  .dz-cal-d:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .dz-cal-d.off{color:#9A7A66;}
+  /* Сьогодні позначене колом, а обране — залите: це різні речі, і плутати
+     їх означає обрати сьогоднішнє замість того, що хотіли. */
+  .dz-cal-d.today{box-shadow:inset 0 0 0 1px var(--line);font-weight:700;}
+  .dz-cal-d.on{background:var(--accent);color:#fff;font-weight:800;}
+  .dz-cal-f{display:flex;gap:5px;margin-top:8px;padding-top:8px;
+    border-top:1px solid var(--line-soft);}
+  .dz-cal-q{all:unset;cursor:pointer;flex:1;text-align:center;font-size:11px;
+    font-weight:600;color:var(--ink-soft);background:var(--canvas);
+    border-radius:7px;padding:6px 4px;}
+  .dz-cal-q:hover{background:var(--accent-soft);color:var(--accent-deep);}
+  .dz-cal-q.is-x{flex:none;padding:6px 9px;}
+  .dz-cal-q.is-x:hover{background:#FDECEA;color:#B03A1A;}
   /* Згорнутий блок: те, що потрібне двічі за замовлення, не має займати
      місце решту часу. Головне видно й згорнутим. */
   .dz-fold{margin-top:22px;border:1px solid var(--line);border-radius:10px;
@@ -3611,10 +3736,18 @@
   .dz-card-w > .dz-card{border:0;border-radius:0;background:transparent;}
   .dz-card-w > .dz-card:hover{box-shadow:none;}
   .dz-card-w > .dz-card.on{box-shadow:inset 0 0 0 2px rgba(46,144,250,.35);}
-  .dz-card-ig{all:unset;cursor:pointer;display:block;font-size:11px;
-    font-weight:700;color:#C13584;background:#FCEEF5;padding:7px 9px;
-    text-align:center;border-top:1px solid var(--line);}
-  .dz-card-ig:hover{background:#F8DDEB;}
+  /* ЯРКО, ЯК У B2B. Доти кнопка була бліда — рожевий текст на майже білому,
+     і на картці її не було видно взагалі: Андрій казав «не бачу я
+     Instagram», і мав рацію. Це головна дія картки на дошці: побачив
+     замовлення — написав клієнту. Тому вона в кольорах самого каналу,
+     тими самими, що й кнопка в панелі: одна дія, один вигляд. */
+  .dz-card-ig{all:unset;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:6px;font-size:11.5px;font-weight:800;
+    letter-spacing:.01em;color:#fff;padding:8px 9px;
+    background:linear-gradient(90deg,#833AB4,#C13584,#E1306C);}
+  .dz-card-ig::before{content:'◉';font-size:11px;opacity:.9;}
+  .dz-card-ig:hover{filter:brightness(1.07);}
+  .dz-card-ig:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;}
   /* Передача: прикріпити — одне, відправити — інше. */
   .dz-b.wide{display:block;width:100%;box-sizing:border-box;text-align:center;}
   /* Дія, потрібна рідко й лише на помилку: лишається доступною, але не
@@ -3694,9 +3827,29 @@
      першого погляду, а не шукати її серед чужої. */
   .dz-u-dz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px;
     padding-top:11px;border-top:1px dashed var(--line);}
-  .dz-u-col{min-width:0;}
+  .dz-u-col{min-width:0;border-radius:9px;padding:7px;background:var(--canvas);}
   .dz-u-l{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--ink-soft);margin-bottom:6px;}
+    color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:baseline;gap:6px;}
+  .dz-u-l i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.02em;
+    border-radius:5px;padding:1px 5px;}
+  /* ══════════ КОЛІР КАЖЕ, ЧИ ПЕРЕДАЛИ ══════════
+
+     Андрій: «щоб загоралось — жовтеньким, коли передано графічному,
+     зелененьким, коли вже передали вишивальному».
+
+     У картці з чотирьох позицій питання «а це вже передали?» задають на
+     кожну, і відповідь доти лежала всередині згорнутого рядка дизайну —
+     тобто її не бачили, поки не відкриють усі чотири. */
+  .dz-u-col.is-sent{background:#FEF8E7;box-shadow:inset 2px 0 0 #D99A0B;}
+  .dz-u-col.is-sent .dz-u-l{color:#8A6410;}
+  .dz-u-col.is-sent .dz-u-l i{background:#F6E2B0;color:#7A5709;}
+  .dz-u-col.is-done{background:#EDF9F3;box-shadow:inset 2px 0 0 #0E9F6E;}
+  .dz-u-col.is-done .dz-u-l{color:#0A6B4A;}
+  .dz-u-col.is-done .dz-u-l i{background:#C9EFDD;color:#07543A;}
+  /* Номер позиції — той самий світлофор, але видний згори, не вчитуючись
+     у колонки: жовтий — у графічного, зелений — пішло на вишивку. */
+  .dz-u-n.is-sent{background:#F6E2B0;color:#7A5709;}
+  .dz-u-n.is-done{background:#C9EFDD;color:#07543A;}
   /* Один дизайн — власний блок із межею. Розмова, версії й передача
      належать конкретному нанесенню, тож і межа в нього своя: інакше на
      виробі з трьома нанесеннями незрозуміло, де закінчується одне. */
@@ -3908,6 +4061,10 @@
   .dz-pl a:first-of-type{margin-left:8px;}
   .dz-miss{background:#FEF3F2;border:1px solid #FECDCA;border-radius:10px;padding:8px 10px;
     font-size:12px;color:#B42318;margin-bottom:10px;}
+  /* Той самий блок, але спокійний. Червоне означає «щось не так»; а «ще не
+     передали» — це не поломка, це початок роботи, і фарбувати його як
+     помилку означає привчити не читати червоне взагалі. */
+  .dz-miss.is-calm{background:var(--canvas);border-color:var(--line);color:var(--ink-soft);}
   .dz-ok{background:#ECFDF3;border:1px solid #ABEFC6;border-radius:10px;padding:8px 10px;
     font-size:12px;color:#067647;margin-bottom:10px;}
   .dz-why{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
@@ -5751,18 +5908,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d96e4d5af5"></script>
-<script src="loomiq-fingerprint.js?v=d96e4d5af5"></script>
-<script src="loomiq-pricing.js?v=d96e4d5af5"></script>
+<script src="loomiq-select.js?v=69109fd33a"></script>
+<script src="loomiq-fingerprint.js?v=69109fd33a"></script>
+<script src="loomiq-pricing.js?v=69109fd33a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d96e4d5af5"></script>
+<script src="loomiq-design.js?v=69109fd33a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d96e4d5af5"></script>
+<script src="loomiq-cards.js?v=69109fd33a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5787,7 +5944,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd96e4d5af5';
+var LQ_VER = '69109fd33a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8308,6 +8465,18 @@ function paintB2cPrices(){
         placeholder="${base ? ('як базова: ' + base) : 'як базова'}">
     </div>`;
   }).join('');
+}
+/* СКІЛЬКИ КОШТУЄ ЦЕЙ ВИРІБ У РОЗДРІБ.
+   Одна відповідь на всю адмінку: заповнена роздрібна ціна, а якщо її немає
+   — базова, та сама, що на сайті. Порожньої відповіді тут бути не може:
+   картка, у якій виріб коштує «нічого», потім їде клієнту з такою сумою. */
+function retailPrice(gid){
+  const prod = contentData.products || {};
+  const своя = (prod.retail || {})[gid];
+  if(+своя > 0) return Math.round(+своя);
+  const bp = (curSitePricing().basePrices) || {};
+  const база = (bp[gid] != null) ? bp[gid] : DEFAULT_SITE_PRICING.basePrices[gid];
+  return Math.max(0, Math.round(+база || 0));
 }
 function readB2cPrices(){
   const box = document.getElementById('b2c-prices');
@@ -25204,6 +25373,12 @@ function openDesign(){
     });
   }
   watchDesign();
+  /* Платежі потрібні самій картці: передоплату в ній обирають зі списку
+     надходжень, а не пишуть числом. Доти підписка вмикалась лише при вході
+     у Фінанси — тобто в картці список був порожній, і вона чесно казала
+     «вільних надходжень немає», хоч вони були. Підписка одна на сеанс і
+     вмикається повторно без шкоди. */
+  watchPayments();
   const me = myEmail() || '';
   const mine = (accOf(teamMember(me) || {}).ui === 'designer');
   window.LQDesign.ui.host = {
@@ -25244,6 +25419,33 @@ function openDesign(){
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
        платежів. Рахує робоче місце: воно й тримає список рухів. */
     paid: o => payPaid(o && o.orderId),
+    /* Роздрібна ціна виробу. Відділ рахує суму замовлення з неї, а не з
+       поля `totalPrice`: приватні замовлення заводяться прямо у відділі,
+       без прорахунку, і те поле в них лишається порожнім. Довідник цін
+       один — той, що в Налаштуваннях B2C. */
+    retail: gid => retailPrice(gid),
+    /* НАДХОДЖЕННЯ ДЛЯ КАРТКИ.
+       Привʼязані до цього замовлення — і вільні, яких ще нікуди не
+       привʼязали. Відділ не пише суму передоплати руками: він обирає
+       платіж, і сума стає наслідком того, що справді прийшло на рахунок. */
+    payments: o => {
+      const id = String((o && o.orderId) || '');
+      const рядок = p => ({ id: p.id, amount: Math.round(+p.amount || 0),
+        at: payDate(p.at), acc: finAccName(p.acc), tag: p.tag || 'prepay',
+        desc: [p.counter, p.desc].filter(Boolean).join(' · ') });
+      return {
+        linked: (payments || []).filter(p => id && String(p.orderId || '') === id)
+                               .map(рядок),
+        /* Тільки надходження: витрати в передоплату не потрапляють ніколи, і
+           показувати їх у цьому списку означало б дати їх туди привʼязати. */
+        free: (payments || []).filter(p => !p.orderId && (+p.amount || 0) > 0)
+                             .map(рядок)
+      };
+    },
+    payLink: (o, id) => PAY_COL.doc(id).set(
+      { orderId: String((o && o.orderId) || ''), tag: 'prepay' }, { merge:true }),
+    payUnlink: id => PAY_COL.doc(id).set({ orderId: null, tag: null }, { merge:true }),
+    payTag: (id, tag) => PAY_COL.doc(id).set({ tag: tag || null }, { merge:true }),
     /* Як підписаний клієнт: нік і, якщо є, імʼя профілю. Читає це робоче
        місце — воно й ходить у Sitniks. */
     whoLabel: o => crmWhoLabel(o),
