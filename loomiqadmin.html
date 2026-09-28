@@ -255,6 +255,13 @@
   }
   .nav button svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;
     stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+  /* Емодзі замість штрихової іконки. Лінійні значки в темному меню всі
+     однакові на око: щоб відрізнити один від одного, доводиться читати
+     підпис. Кольорова емодзі впізнається periферійним зором, і меню
+     перестає бути суцільною сірою колонкою. Ширина фіксована — інакше
+     підписи не вирівнюються, бо емодзі різної ширини. */
+  .nav-e{font-style:normal;font-size:15px;line-height:1;width:20px;flex:none;
+    text-align:center;filter:saturate(.92);}
   .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .nav button:hover{background:#20262F;color:#E6E8EC;}
   .nav button.active{background:var(--side-2);color:#fff;font-weight:600;}
@@ -3700,6 +3707,40 @@
      Рух читається зліва направо як рядок виписки: коли, від кого, куди
      прийшло, скільки, до чого належить. Сума праворуч і моноширинними
      цифрами — очі йдуть по стовпчику чисел, а не по тексту. */
+  /* Рахунки зверху: перше питання до грошей — «скільки в нас є», і воно
+     має мати відповідь без жодного натиску. */
+  .fin-accs-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;
+    font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);}
+  .fin-accs-h button{margin-left:auto;}
+  .fin-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;}
+  .fin-c{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:3px;
+    border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fff;}
+  .fin-c:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(15,32,52,.07);}
+  .fin-c.is-all{cursor:default;background:var(--canvas);border-style:dashed;}
+  .fin-c.is-all:hover{border-color:var(--line);box-shadow:none;}
+  .fin-c-b{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .fin-c-on{font-style:normal;color:#12B76A;font-size:9px;}
+  .fin-c-off{font-style:normal;color:var(--line);font-size:9px;}
+  .fin-c-n{font-size:13px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .fin-c-s{font-size:19px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:2px;}
+  .fin-f{display:flex;flex-direction:column;gap:4px;}
+  .fin-f span{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);}
+  .fin-f input,.fin-f select{font:inherit;font-size:13px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;outline:none;background:#fff;}
+  .fin-f input:focus,.fin-f select:focus{border-color:var(--accent);}
+  .fin-note{font-size:12px;line-height:1.5;color:var(--ink-soft);background:var(--canvas);
+    border-radius:9px;padding:10px 12px;}
+  .fin-note code{font-family:var(--mono);font-size:11.5px;background:#fff;
+    border:1px solid var(--line);border-radius:6px;padding:2px 6px;display:inline-block;
+    margin-top:4px;}
+  .fin-chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);}
+  .fin-acts{display:flex;gap:8px;margin-top:6px;}
+  .fin-acts .reset{margin-left:auto;}
   .fin-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
   .fin-tabs{display:flex;gap:4px;flex-wrap:wrap;}
   .fin-tab{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-soft);
@@ -4073,28 +4114,28 @@
         </button>
       </div>
       <nav class="nav">
-        <button data-view="today" data-tip="Задачі"><svg viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h10"/><path d="m17 16.5 1.6 1.6L22 14.7"/></svg><span>Задачі</span></button>
-        <button data-view="board" class="active" data-tip="Замовлення B2B"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Замовлення B2B</span></button>
-        <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
+        <button data-view="today" data-tip="Задачі"><i class="nav-e">📋</i><span>Задачі</span></button>
+        <button data-view="board" class="active" data-tip="Замовлення B2B"><i class="nav-e">🧵</i><span>Замовлення B2B</span></button>
+        <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
         <!-- Дизайн-відділ — це ті самі замовлення, лише приватні: тому він
              стоїть не осторонь, а другою парою «замовлення + чати». -->
-        <button data-view="design" data-tip="Замовлення B2C — приватні"><svg viewBox="0 0 24 24"><path d="M3.5 20.5s2-.5 3.5-2 1.5-3.5 0-5-3.5-1-5 .5.5 4 1.5 6.5z"/><path d="m9 13.5 9-9a2.1 2.1 0 0 1 3 3l-9 9"/></svg><span>Замовлення B2C</span></button>
-        <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
-        <button data-view="analytics" data-tip="Аналітика"><svg viewBox="0 0 24 24"><path d="M4 19.5V10M10 19.5V4.5M16 19.5v-6M21 19.5H3"/></svg><span>Аналітика</span></button>
-        <button data-view="fin" data-tip="Фінанси — платежі з банків"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18M7 15h4"/></svg><span>Фінанси</span></button>
-        <button data-view="calc" class="nav-off" data-tip="Прорахунок"><svg viewBox="0 0 24 24"><rect x="4.5" y="2.5" width="15" height="19" rx="3"/><path d="M8 7h8M8 11.5h3M13 11.5h3M8 16h3M13 16h3"/></svg><span>Прорахунок</span></button>
+        <button data-view="design" data-tip="Замовлення B2C — приватні"><i class="nav-e">🎨</i><span>Замовлення B2C</span></button>
+        <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
+        <button data-view="analytics" data-tip="Аналітика"><i class="nav-e">📈</i><span>Аналітика</span></button>
+        <button data-view="fin" data-tip="Фінанси — платежі з банків"><i class="nav-e">💳</i><span>Фінанси</span></button>
+        <button data-view="calc" class="nav-off" data-tip="Прорахунок"><i class="nav-e">🧮</i><span>Прорахунок</span></button>
         <!-- Ставки, сітки, підрядники, доступи — сюди заходять раз на
              тиждень. Внизу й під однією кнопкою, щоб щоденне не губилось
              серед рідкісного. -->
         <div class="nav-grp" id="nav-set">
-          <button type="button" class="nav-grp-h" data-tip="Налаштування" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.8h0a1.9 1.9 0 0 1 1.9 1.9v.5a1.5 1.5 0 0 0 2.2 1.3l.4-.2a1.9 1.9 0 0 1 2.4.7l.3.5a1.9 1.9 0 0 1-.6 2.5l-.4.3a1.5 1.5 0 0 0 0 2.6l.4.3a1.9 1.9 0 0 1 .6 2.5l-.3.5a1.9 1.9 0 0 1-2.4.7l-.4-.2a1.5 1.5 0 0 0-2.2 1.3v.5A1.9 1.9 0 0 1 12 21.2h0a1.9 1.9 0 0 1-1.9-1.9v-.5a1.5 1.5 0 0 0-2.2-1.3l-.4.2a1.9 1.9 0 0 1-2.4-.7l-.3-.5a1.9 1.9 0 0 1 .6-2.5l.4-.3a1.5 1.5 0 0 0 0-2.6l-.4-.3a1.9 1.9 0 0 1-.6-2.5l.3-.5a1.9 1.9 0 0 1 2.4-.7l.4.2a1.5 1.5 0 0 0 2.2-1.3v-.5A1.9 1.9 0 0 1 12 2.8z"/></svg><span>Налаштування</span><i class="nav-grp-x"><svg viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg></i></button>
+          <button type="button" class="nav-grp-h" data-tip="Налаштування" aria-expanded="false"><i class="nav-e">🛠</i><span>Налаштування</span><i class="nav-grp-x"><svg viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg></i></button>
           <div class="nav-grp-b">
-            <button data-view="b2c" data-tip="Налаштування приватних замовлень"><svg viewBox="0 0 24 24"><path d="M12 3.5 4.5 7v10L12 20.5 19.5 17V7z"/><path d="M4.5 7 12 10.5 19.5 7M12 10.5v10"/></svg><span>Налаштування B2C</span></button>
-            <button data-view="settings" data-tip="Формування цін"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15" cy="12" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Формування цін</span></button>
-            <button data-view="photos" data-tip="Конструктор сайту"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3 9h18"/><circle cx="6.5" cy="6.8" r=".9"/></svg><span>Конструктор сайту</span></button>
-            <button data-view="reviews" data-tip="Відгуки"><svg viewBox="0 0 24 24"><path d="M20.5 12.5c0 3.8-3.8 6.9-8.5 6.9-1 0-2-.1-2.9-.4L4 20.5l1.4-3.6C4 15.7 3.5 14.2 3.5 12.5c0-3.8 3.8-6.9 8.5-6.9s8.5 3.1 8.5 6.9z"/></svg><span>Відгуки</span></button>
-            <button data-view="suppliers" data-tip="Підрядники"><svg viewBox="0 0 24 24"><path d="M3.5 8.5 12 4l8.5 4.5v7L12 20l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v7"/></svg><span>Підрядники</span></button>
-            <button data-view="team" data-tip="Команда й доступи"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.2a5.5 5.5 0 0 1 3 4.8"/></svg><span>Команда й доступи</span></button>
+            <button data-view="b2c" data-tip="Налаштування приватних замовлень"><i class="nav-e">⚙️</i><span>Налаштування B2C</span></button>
+            <button data-view="settings" data-tip="Формування цін"><i class="nav-e">💰</i><span>Формування цін</span></button>
+            <button data-view="photos" data-tip="Конструктор сайту"><i class="nav-e">🖼</i><span>Конструктор сайту</span></button>
+            <button data-view="reviews" data-tip="Відгуки"><i class="nav-e">⭐</i><span>Відгуки</span></button>
+            <button data-view="suppliers" data-tip="Підрядники"><i class="nav-e">📦</i><span>Підрядники</span></button>
+            <button data-view="team" data-tip="Команда й доступи"><i class="nav-e">👥</i><span>Команда й доступи</span></button>
           </div>
         </div>
       </nav>
@@ -4565,6 +4606,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div class="sub">Усі рухи по рахунках одним списком. Платіж можна привʼязати
           до замовлення й підписати — передоплата чи доплата, — і залишок у картці
           перерахується сам.</div>
+      </div>
+
+      <!-- РАХУНКИ ЗВЕРХУ, РУХИ ВНИЗУ.
+           Перше питання до грошей — «скільки в нас є», і воно має мати
+           відповідь без жодного натиску. Друге — «звідки взялось», і воно
+           вже нижче, списком. -->
+      <div class="card">
+        <div class="fin-accs-h">
+          <span>Рахунки</span>
+          <button class="pc-btn" id="fin-acc-add">+ Рахунок</button>
+        </div>
+        <div id="fin-cards" class="fin-cards"></div>
       </div>
 
       <div class="card">
@@ -5698,18 +5751,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=13255bc299"></script>
-<script src="loomiq-fingerprint.js?v=13255bc299"></script>
-<script src="loomiq-pricing.js?v=13255bc299"></script>
+<script src="loomiq-select.js?v=d96e4d5af5"></script>
+<script src="loomiq-fingerprint.js?v=d96e4d5af5"></script>
+<script src="loomiq-pricing.js?v=d96e4d5af5"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=13255bc299"></script>
+<script src="loomiq-design.js?v=d96e4d5af5"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=13255bc299"></script>
+<script src="loomiq-cards.js?v=d96e4d5af5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -5734,7 +5787,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '13255bc299';
+var LQ_VER = 'd96e4d5af5';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -7836,21 +7889,73 @@ function watchPayments(){
   }, e => console.warn('платежі', e));
 }
 /* Рахунки — довідник. Назва людська («ФОП Моно · основний»), бо в списку
-   рухів має бути видно, куди саме прийшло, а не номер картки. */
+   рухів має бути видно, куди саме прийшло, а не номер картки.
+
+   За замовчуванням — пʼять, як у житті: чотири Моно й один Приват. Їх
+   можна перейменувати, додати ще або прибрати: рахунки відкривають і
+   закривають, і жорсткий список означав би, що система відстає від
+   дійсності з першого ж місяця. */
+const FIN_BANKS = { mono:'Монобанк', privat:'ПриватБанк', other:'Інший' };
+const FIN_DEFAULT_ACCS = [
+  { id:'mono1', name:'Моно ФОП 1', bank:'mono' },
+  { id:'mono2', name:'Моно ФОП 2', bank:'mono' },
+  { id:'mono3', name:'Моно ФОП 3', bank:'mono' },
+  { id:'mono4', name:'Моно ФОП 4', bank:'mono' },
+  { id:'privat1', name:'Приват ФОП', bank:'privat' }
+];
 function finAccounts(){
-  const l = ((contentData.fin || {}).accounts) || [];
-  return Array.isArray(l) && l.length ? l : [
-    { id:'mono1', name:'Моно ФОП 1', bank:'mono' },
-    { id:'mono2', name:'Моно ФОП 2', bank:'mono' },
-    { id:'mono3', name:'Моно ФОП 3', bank:'mono' },
-    { id:'mono4', name:'Моно ФОП 4', bank:'mono' },
-    { id:'privat1', name:'Приват ФОП', bank:'privat' }
-  ];
+  const l = ((contentData.fin || {}).accounts);
+  return (Array.isArray(l) && l.length) ? l : FIN_DEFAULT_ACCS;
+}
+/* СКІЛЬКИ НА РАХУНКУ. Поки банк не підключено, це початковий залишок
+   плюс усі рухи, які ми знаємо. Коли підключимо — банк казатиме точно, і
+   число просто стане чеснішим; рахунок від цього не зміниться. */
+function finBalance(id){
+  const a = finAccounts().filter(x => x.id === id)[0] || {};
+  if(a.balance != null) return Math.round(+a.balance || 0);
+  const старт = Math.round(+a.start || 0);
+  return (payments || []).reduce((s, p) =>
+    s + ((p.acc === id) ? Math.round(+p.amount || 0) : 0), старт);
+}
+async function finAccsSave(list){
+  const fin = Object.assign({}, contentData.fin || {}, { accounts: list });
+  try{
+    await PHOTOS_DOC.set({ fin }, { merge:true });
+    contentData.fin = fin;
+    renderFin();
+  }catch(e){ console.error(e); toast('Не збереглось'); }
+}
+/* Картка рахунку: назва, банк, скільки на ньому. Натиск відкриває
+   налаштування — перейменувати, вказати залишок, підключити банк. */
+function renderFinCards(){
+  const box = document.getElementById('fin-cards');
+  if(!box) return;
+  const accs = finAccounts();
+  const разом = accs.reduce((s, a) => s + finBalance(a.id), 0);
+  box.innerHTML = accs.map(a => {
+    const b = finBalance(a.id);
+    const жив = !!a.linked;
+    return '<button class="fin-c" data-fin-acc-edit="' + escapeHtml(a.id) + '">' +
+      '<span class="fin-c-b">' + escapeHtml(FIN_BANKS[a.bank] || a.bank || '—') +
+        (жив ? '<i class="fin-c-on" title="Банк підключено">●</i>'
+             : '<i class="fin-c-off" title="Банк ще не підключено">○</i>') + '</span>' +
+      '<span class="fin-c-n">' + escapeHtml(a.name || a.id) + '</span>' +
+      '<span class="fin-c-s">' + escapeHtml(payMoney(b).replace('+', '')) + '</span>' +
+    '</button>';
+  }).join('') +
+    '<div class="fin-c is-all"><span class="fin-c-b">Разом</span>' +
+      '<span class="fin-c-n">на всіх рахунках</span>' +
+      '<span class="fin-c-s">' + escapeHtml(payMoney(разом).replace('+', '')) + '</span></div>';
 }
 function finAccName(id){
   const a = finAccounts().filter(x => x.id === id)[0];
   return a ? a.name : (id || '—');
 }
+/* Чим є цей платіж. Слова ті самі, якими про гроші говорять уголос: не
+   «частковий розрахунок», а «передоплата». Наложка окремо від доплати
+   навмисно — вона приходить від пошти, а не від клієнта, і питання «чи
+   дійшли гроші за посилку» зовсім інше за «чи доплатив клієнт». */
+const PAY_TAGS = { prepay:'Передоплата', pay:'Оплата', final:'Доплата', cod:'Наложка' };
 function payMoney(n){
   const v = Math.round(+n || 0);
   return (v > 0 ? '+' : v < 0 ? '−' : '') +
@@ -7913,6 +8018,7 @@ function finRows(){
   });
 }
 function renderFin(){
+  renderFinCards();
   const accs = document.getElementById('fin-accs');
   if(accs) accs.innerHTML = ['<button class="fin-tab' + (finView.acc ? '' : ' on') +
       '" data-fin-acc="">Усі рахунки</button>']
@@ -7949,8 +8055,8 @@ function renderFin(){
       '<span class="fin-link">' +
         (p.orderId
           ? '<button class="fin-chip on" data-fin-open="' + escapeHtml(p.id) + '">' +
-            escapeHtml('#' + p.orderId + (p.tag === 'prepay' ? ' · передоплата'
-              : p.tag === 'final' ? ' · доплата' : '')) +
+            escapeHtml('#' + p.orderId +
+              (PAY_TAGS[p.tag] ? ' · ' + PAY_TAGS[p.tag].toLowerCase() : '')) +
             (o ? '' : ' <i>картки немає</i>') + '</button>'
           : '<button class="fin-chip" data-fin-open="' + escapeHtml(p.id) + '">привʼязати</button>') +
       '</span>' +
@@ -7989,10 +8095,10 @@ function finOpen(id){
       <input type="search" class="fin-find" placeholder="номер замовлення, імʼя, нік">
       <div class="fin-found"></div>
       <div class="fin-l">Чим є цей платіж</div>
-      <div class="fin-tags">
-        <button class="fin-tag${p.tag === 'prepay' ? ' on' : ''}" data-fin-tag="prepay">Передоплата</button>
-        <button class="fin-tag${p.tag === 'final' ? ' on' : ''}" data-fin-tag="final">Доплата</button>
-        <button class="fin-tag${p.tag ? '' : ' on'}" data-fin-tag="">Без підпису</button>
+      <div class="fin-tags">${Object.keys(PAY_TAGS).map(k =>
+        `<button class="fin-tag${p.tag === k ? ' on' : ''}" data-fin-tag="${k}">${
+          PAY_TAGS[k]}</button>`).join('')}<button class="fin-tag${
+        p.tag ? '' : ' on'}" data-fin-tag="">Без підпису</button>
       </div>
     </div>
   </div>`;
@@ -8044,6 +8150,89 @@ function finOpen(id){
   document.body.appendChild(d);
   find.focus();
 }
+/* Налаштування одного рахунку. Тут же й підключення банку — але ключ
+   вводиться НЕ ТУТ: він живе секретом у Cloudflare Worker, бо адмінка
+   віддається браузеру, і будь-що в ній читається кожним, хто відкрив
+   сторінку. Тому вікно каже, що саме зробити, і лишає позначку «підключено»,
+   коли Worker уже шле рухи. */
+function finAccEdit(id){
+  const accs = finAccounts().map(a => Object.assign({}, a));
+  const a = accs.filter(x => x.id === id)[0];
+  if(!a) return;
+  const d = document.createElement('div');
+  d.className = 'fin-modal';
+  d.innerHTML = `<div class="fin-w">
+    <div class="fin-h"><b>${escapeHtml(a.name || a.id)}</b>
+      <span>${escapeHtml(FIN_BANKS[a.bank] || '')}</span>
+      <button class="dz-x" data-fin-x>×</button></div>
+    <div class="fin-b">
+      <label class="fin-f"><span>Назва</span>
+        <input id="fa-name" value="${escapeHtml(a.name || '')}" placeholder="ФОП Моно · основний"></label>
+      <label class="fin-f"><span>Банк</span>
+        <select id="fa-bank">${Object.keys(FIN_BANKS).map(k =>
+          `<option value="${k}"${a.bank === k ? ' selected' : ''}>${FIN_BANKS[k]}</option>`).join('')}</select></label>
+      <label class="fin-f"><span>Залишок на рахунку, грн</span>
+        <input id="fa-start" type="number" step="1" value="${a.start != null ? a.start : ''}"
+          placeholder="скільки є зараз"></label>
+      <div class="fin-note">Поки банк не підключено, залишок рахується від цього числа
+        плюс усі рухи, які ми знаємо. Коли підключимо — його казатиме сам банк.</div>
+      <div class="fin-l">Підключення банку</div>
+      <div class="fin-note">${a.bank === 'mono'
+        ? `Монобанк шле надходження одразу. Потрібен токен ФОПа з
+           <b>api.monobank.ua</b>, і він кладеться <b>секретом у Cloudflare Worker</b>,
+           а не сюди: сторінка адмінки віддається браузеру, і все в ній
+           читається кожним, хто її відкрив.<br><br>
+           Команда: <code>npx wrangler secret put MONO_TOKEN_${escapeHtml(a.id)}</code>`
+        : a.bank === 'privat'
+        ? `Приват вебхуків не дає — виписку опитує Worker раз на кілька хвилин.
+           Потрібні <b>merchant id</b> і пароль із Приват24 для бізнесу, теж
+           секретами Worker'а.<br><br>
+           Команда: <code>npx wrangler secret put PRIVAT_${escapeHtml(a.id)}</code>`
+        : 'Рухи по цьому рахунку записуються руками.'}</div>
+      <label class="fin-chk"><input type="checkbox" id="fa-linked"${a.linked ? ' checked' : ''}>
+        <span>Банк підключено — Worker уже шле рухи</span></label>
+      <div class="fin-acts">
+        <button class="pc-btn up" id="fa-save">Зберегти</button>
+        <button class="pc-btn reset" id="fa-del">Прибрати рахунок</button>
+      </div>
+    </div>
+  </div>`;
+  const закрити = () => { d.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if(e.key === 'Escape') закрити(); };
+  document.addEventListener('keydown', esc, true);
+  d.addEventListener('click', async e => {
+    if(e.target === d || e.target.hasAttribute('data-fin-x')) return закрити();
+    if(e.target.id === 'fa-save'){
+      a.name = d.querySelector('#fa-name').value.trim() || a.id;
+      a.bank = d.querySelector('#fa-bank').value;
+      const st = d.querySelector('#fa-start').value;
+      if(String(st).trim() === '') delete a.start; else a.start = Math.round(+st || 0);
+      a.linked = d.querySelector('#fa-linked').checked;
+      await finAccsSave(accs);
+      toast('Збережено');
+      return закрити();
+    }
+    if(e.target.id === 'fa-del'){
+      /* Рухи по прибраному рахунку нікуди не діваються: гроші були, і
+         стерти рядок виписки означало б зробити підсумок неправдою. */
+      if(!confirm('Прибрати рахунок «' + (a.name || a.id) + '»?\n\nРухи по ньому лишаться в списку.')) return;
+      await finAccsSave(accs.filter(x => x.id !== a.id));
+      toast('Прибрано');
+      return закрити();
+    }
+  });
+  document.body.appendChild(d);
+  d.querySelector('#fa-name').focus();
+}
+async function finAccAdd(){
+  const name = prompt('Назва рахунку');
+  if(name === null) return;
+  const n = String(name).trim();
+  if(!n) return;
+  const accs = finAccounts().map(a => Object.assign({}, a));
+  accs.push({ id:'acc' + Date.now().toString(36), name:n, bank:'mono' });
+  await finAccsSave(accs);
+}
 /* Записати платіж руками. Потрібно доти, доки банки не підключені, і далі
    теж: готівка, переказ на картку, повернення. */
 async function finAddManual(){
@@ -8066,9 +8255,12 @@ async function finAddManual(){
   root.addEventListener('click', e => {
     const acc = e.target.closest && e.target.closest('[data-fin-acc]');
     if(acc){ finView.acc = acc.dataset.finAcc; return renderFin(); }
+    const edit = e.target.closest && e.target.closest('[data-fin-acc-edit]');
+    if(edit) return finAccEdit(edit.dataset.finAccEdit);
     const open = e.target.closest && e.target.closest('[data-fin-open]');
     if(open) return finOpen(open.dataset.finOpen);
     if(e.target.id === 'fin-add') return finAddManual();
+    if(e.target.id === 'fin-acc-add') return finAccAdd();
   });
   ['fin-kind','fin-link'].forEach(id => {
     const el = document.getElementById(id);
