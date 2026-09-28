@@ -132,7 +132,10 @@ console.log('');
 console.log('═══ РОЗДІЛ ЗВЕТЬСЯ «ЗАМОВЛЕННЯ B2C» ═══');
 const меню = await p.evaluate(() => {
   const b = document.querySelector('.nav button[data-view="design"]');
-  return { підпис:((b && b.textContent) || '').trim(),
+  /* Читаємо саме підпис, а не всю кнопку: поруч із підписом у кнопці стоїть
+     ще й значок розділу, і він до назви не належить. */
+  const t = b && (b.querySelector('span') || b);
+  return { підпис:((t && t.textContent) || '').trim(),
            відділ:/Дизайн-відділ/.test(document.body.innerText) };
 });
 console.log('   ' + JSON.stringify(меню));
