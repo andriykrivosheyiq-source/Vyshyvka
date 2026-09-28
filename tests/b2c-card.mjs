@@ -198,26 +198,29 @@ console.log('\n═══ ДО ПЕРЕДАЧІ — ЛИШЕ ВИБІР ДИЗА�
    аккаунт менеджер. Поки цього не потрібно, бо ми ще ж не передали
    нікому.» Половина цих кнопок у такий момент або нічого не робить, або
    робить неправду: затвердити можна версію, а версій нуль. */
+/* Вибір дизайнера тепер стоїть у САМОМУ рядку, не всередині: доти імʼя
+   писалось у заголовку, а той самий список ховався під ним, і виходило два
+   способи сказати одне. */
 await p.evaluate(() => { const b = document.querySelector('[data-do="dz-open"]'); if(b) b.click(); });
 await p.waitForTimeout(500);
 const до = await p.evaluate(() => {
-  const b = document.querySelector('.dz-dz.open .dz-dz-b');
-  if(!b) return null;
-  return { кнопки: [...b.querySelectorAll('button')].map(x => x.textContent.trim()),
-           списків: b.querySelectorAll('select').length,
-           полів: b.querySelectorAll('textarea').length };
+  const r = document.querySelector('.dz-dz');
+  const b = r && r.querySelector('.dz-dz-b');
+  return { вРядку: r ? r.querySelectorAll('.dz-dz-t select').length : 0,
+           кнопки: [...(b ? b.querySelectorAll('button') : [])].map(x => x.textContent.trim()),
+           полів: b ? b.querySelectorAll('textarea').length : 0 };
 });
 console.log('  ' + JSON.stringify(до));
-ok(до && до.списків === 1,
-  'є рівно один список — кого призначаємо',
+ok(до.вРядку === 1,
+  'є рівно один список — кого призначаємо, і він же весь рядок',
   'вибору дизайнера немає або він не один: ' + JSON.stringify(до));
-ok(до && !до.кнопки.length && !до.полів,
+ok(!до.кнопки.length && !до.полів,
   'і більше нічого: ні версій, ні правок, ні погоджень',
-  'до передачі показано зайве: ' + JSON.stringify(до && до.кнопки));
+  'до передачі показано зайве: ' + JSON.stringify(до.кнопки));
 
 console.log('\n═══ ПРИЗНАЧИЛИ → ЗʼЯВИЛАСЬ ПЕРЕДАЧА ═══');
 await p.evaluate(() => {
-  const s = document.querySelector('.dz-dz.open [data-dzwho]');
+  const s = document.querySelector('.dz-dz [data-dzwho]');
   s.value = 'art@loomiq';
   s.dispatchEvent(new Event('change'));
 });
@@ -286,6 +289,15 @@ ok(/is-done/.test(зелень.колонка) && /is-done/.test(зелень.н
   'зеленого не сталось: ' + JSON.stringify(зелень));
 
 console.log('\n═══ СУМА — З ПРАЙСУ, А НЕ З ГОЛОВИ ═══');
+/* Зона грошей тепер складена: за день у картку заходять по десять разів, і
+   щоразу проминають блок, у якому сьогодні нічого не змінилось. Розкриваємо
+   її так само, як це робить людина. */
+await p.evaluate(async () => {
+  const b = [...document.querySelectorAll('[data-fold]')].filter(x => /Гроші/.test(x.textContent))[0];
+  if(b) b.click();
+  await new Promise(r => setTimeout(r, 400));
+});
+await p.waitForTimeout(500);
 /* Доти сума бралась із `totalPrice` — поля, якого в приватних замовленнях
    немає: вони заводяться прямо у відділі, без прорахунку. Тобто в картці
    стояв нуль, а справжню суму менеджер тримав у голові. */

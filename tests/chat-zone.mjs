@@ -461,7 +461,7 @@ console.log('═══ КАРТКИ НАДСИЛАЮТЬ ІЗ САМОЇ РОЗ�
      там ніколи. Андрій: «немає цих прорахунок і допродажу». */
   const сід = adm.slice(adm.indexOf('async function qrSeedOnce'),
                         adm.indexOf('/* ══════════ КАРТКИ ПРЯМО З РОЗМОВИ'));
-  ok(/cardScriptOf\(q\.m\)/.test(сід) && /have\.indexOf\(sc\.mark\)/.test(сід),
+  ok(/CARD_SCRIPTS\[cardScriptOf\(/.test(сід) && /have\.indexOf\(sc\.mark\)/.test(сід),
     'скрипти з картками доводяться і в акаунт зі своїм списком заготовок — за позначкою',
     'у налаштованому акаунті скриптів із картками не буде ніколи');
   ok(/contentData\.qrSeed \|\| 0\) >= QR_SEED/.test(сід),
