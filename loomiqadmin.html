@@ -6093,19 +6093,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a36c45b912"></script>
-<script src="loomiq-fingerprint.js?v=a36c45b912"></script>
-<script src="loomiq-pricing.js?v=a36c45b912"></script>
+<script src="loomiq-select.js?v=109095f23d"></script>
+<script src="loomiq-fingerprint.js?v=109095f23d"></script>
+<script src="loomiq-pricing.js?v=109095f23d"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a36c45b912"></script>
-<script src="loomiq-mock.js?v=a36c45b912"></script>
+<script src="loomiq-design.js?v=109095f23d"></script>
+<script src="loomiq-mock.js?v=109095f23d"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a36c45b912"></script>
+<script src="loomiq-cards.js?v=109095f23d"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6130,7 +6130,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a36c45b912';
+var LQ_VER = '109095f23d';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8238,7 +8238,12 @@ function watchPayments(){
    можна перейменувати, додати ще або прибрати: рахунки відкривають і
    закривають, і жорсткий список означав би, що система відстає від
    дійсності з першого ж місяця. */
-const FIN_BANKS = { mono:'Монобанк', privat:'ПриватБанк', other:'Інший' };
+/* Нова пошта стоїть тут не помилково. Накладений платіж — це гроші, які
+   приходять нам так само, як банківські, просто іншою дорогою: пошта збирає
+   їх з отримувача й переказує пачкою. Щоб вони лягли в підсумок, а не
+   губились, у них має бути свій рахунок. */
+const FIN_BANKS = { mono:'Монобанк', privat:'ПриватБанк',
+                    np:'Нова пошта · накладений платіж', other:'Інший' };
 const FIN_DEFAULT_ACCS = [
   { id:'mono1', name:'Моно ФОП 1', bank:'mono' },
   { id:'mono2', name:'Моно ФОП 2', bank:'mono' },
@@ -8545,6 +8550,16 @@ function finAccEdit(id){
            хто її відкрив.<br><br>
            <code>npx wrangler secret put PRIVAT_ID_${escapeHtml(a.id)}</code><br>
            <code>npx wrangler secret put PRIVAT_TOKEN_${escapeHtml(a.id)}</code>`
+        : a.bank === 'np'
+        ? `Накладений платіж. Нова пошта збирає гроші з отримувача на
+           відділенні й переказує їх нам пачкою — за кілька днів і зі своїм
+           номером переказу. Тому рух зʼявляється тут не в мить видачі
+           посилки, а коли гроші справді виплачені: інакше в підсумку
+           стояли б гроші, яких на рахунку ще немає.<br><br>
+           Окремого ключа не треба — береться той самий, що й для накладних:
+           <code>npx wrangler secret put NP_API_KEY</code>.<br><br>
+           Рахунок може бути тільки один: виплати приходять спільним
+           потоком, і ділити його між ФОПами нема за чим.`
         : 'Рухи по цьому рахунку записуються руками.'}</div>
       <label class="fin-chk"><input type="checkbox" id="fa-linked"${a.linked ? ' checked' : ''}>
         <span>Банк підключено — Worker уже шле рухи</span></label>
