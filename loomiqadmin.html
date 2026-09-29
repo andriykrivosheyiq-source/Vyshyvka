@@ -3910,10 +3910,32 @@
   .dz-dz-ro{flex:1;min-width:0;font-size:12.5px;color:var(--ink);}
   /* Одна колонка, коли дизайнеру показують лише його половину. */
   .dz-u-dz.one{grid-template-columns:1fr;}
-  /* Відкритий дизайн займає всю ширину: у півколонки картка на перевірку
-     перетворюється на стовпчик із двох слів у рядок, і перевіряти по ній
-     нічого. Порожня колонка сусіда при цьому стискається в рядок-кнопку. */
-  .dz-u-dz.is-open{grid-template-columns:1fr;}
+  /* ── ВІДКРИТА ОДНА ПОЛОВИНА, ДРУГА — СМУЖКОЮ ──
+     Як бокова панель у Телеграмі на компʼютері. Половина екрана доти
+     завжди була зайнята тим, що зараз не роблять: до погодження —
+     порожньою вишивкою з написом «чекає», після погодження — готовою
+     графікою. А картці на перевірку півширини мало: у ній вона
+     перетворюється на стовпчик із двох слів у рядок. */
+  .dz-u-dz.is-g{grid-template-columns:minmax(0,1fr) 40px;}
+  .dz-u-dz.is-s{grid-template-columns:40px minmax(0,1fr);}
+  /* Смужка нічого не ховає: іконка, колір стану й лічильник непрочитаного
+     видно й згорнутою. Половина, у яку повідомлення падають безслідно, —
+     це гірше за дві тісні колонки. */
+  .dz-u-rail{all:unset;cursor:pointer;box-sizing:border-box;border-radius:9px;
+    background:var(--canvas);border:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:8px 0;min-height:120px;transition:background .12s;}
+  .dz-u-rail:hover{background:#EEF2F7;}
+  .dz-u-rail-i{flex:none;font-size:15px;line-height:1;color:var(--ink-soft);}
+  .dz-u-rail-t{writing-mode:vertical-rl;text-orientation:mixed;
+    font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap;}
+  .dz-u-rail-n{flex:none;min-width:17px;text-align:center;font-size:10px;
+    font-weight:800;color:#fff;background:#E4572E;border-radius:999px;padding:1px 4px;}
+  .dz-u-rail.is-sent{background:#FEF8E7;border-color:#F0D79A;}
+  .dz-u-rail.is-sent .dz-u-rail-i,.dz-u-rail.is-sent .dz-u-rail-t{color:#8A6410;}
+  .dz-u-rail.is-done{background:#EDF9F3;border-color:#B7E8D2;}
+  .dz-u-rail.is-done .dz-u-rail-i,.dz-u-rail.is-done .dz-u-rail-t{color:#0A6B4A;}
   .dz-u-pics{margin-top:11px;}
   .dz-u-note{display:flex;flex-direction:column;gap:3px;margin-top:11px;}
   .dz-u-note span{font-size:10.5px;color:var(--muted);text-transform:uppercase;
@@ -4438,7 +4460,12 @@
   .dz-dz-x:hover{background:var(--bad-soft);color:var(--bad);}
   @media (max-width:760px){
     .dz-u-f{gap:5px;}
-    .dz-u-dz{grid-template-columns:1fr;}
+    /* На телефоні колонок немає взагалі — усе стовпчиком, і смужка стає
+       звичайною кнопкою на всю ширину: вертикальний підпис у 40 px тут
+       читався б боком, а місця він не економить. */
+    .dz-u-dz,.dz-u-dz.is-g,.dz-u-dz.is-s{grid-template-columns:1fr;}
+    .dz-u-rail{flex-direction:row;justify-content:center;min-height:0;padding:9px;}
+    .dz-u-rail-t{writing-mode:horizontal-tb;}
   }
   .dz-item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
   .dz-item-h{font-weight:700;font-size:13px;}
@@ -6332,19 +6359,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2db2104676"></script>
-<script src="loomiq-fingerprint.js?v=2db2104676"></script>
-<script src="loomiq-pricing.js?v=2db2104676"></script>
+<script src="loomiq-select.js?v=8c8915a49a"></script>
+<script src="loomiq-fingerprint.js?v=8c8915a49a"></script>
+<script src="loomiq-pricing.js?v=8c8915a49a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2db2104676"></script>
-<script src="loomiq-mock.js?v=2db2104676"></script>
+<script src="loomiq-design.js?v=8c8915a49a"></script>
+<script src="loomiq-mock.js?v=8c8915a49a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2db2104676"></script>
+<script src="loomiq-cards.js?v=8c8915a49a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6369,7 +6396,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2db2104676';
+var LQ_VER = '8c8915a49a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;

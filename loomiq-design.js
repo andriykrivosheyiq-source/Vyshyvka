@@ -2166,6 +2166,62 @@
     if(list.length && list.every(function(d){ return !!d.ok; })) return 'done';
     return dzSentAny(u, 'stitch') ? 'sent' : '';
   }
+  /* ══════════ ВІДКРИТА ОДНА ПОЛОВИНА, ДРУГА — СМУЖКОЮ ══════════
+
+     Андрій: «як тільки ми узгодили ескіз, відкривається вже зона більша…
+     таким чином ми економимо місце в самому, в цій карточці і більш
+     зрозуміло становиться. Якщо ми захочемо, ми можемо відкрити ту зону,
+     передивитися, як там було. Якщо ні, то дивимося ту зону, з якою
+     працюємо».
+
+     Доти обидві колонки стояли поруч по півширини незалежно від того, у
+     якій іде робота. Половина екрана щоразу була зайнята тим, що зараз не
+     роблять: до погодження — порожньою вишивкою з написом «чекає», після
+     погодження — графікою, яка вже готова. А картці на перевірку півширини
+     мало: вона перетворюється на стовпчик із двох слів у рядок.
+
+     Тепер як бокова панель у Телеграмі: відкрита одна, друга згорнута у
+     смужку з іконкою, кольором стану й лічильником непрочитаного. Нічого
+     не ховається зовсім — видно, що друга половина існує і в якому вона
+     стані; натиснув — вона розкрилась, а сусідня згорнулась.
+
+     Яка відкрита — вирішує РОБОТА, а не памʼять: поки ескіз не погоджено,
+     відкрита графіка; погодили — сама відкривається вишивка, бо саме з
+     цієї миті робота туди й переходить. Натиснули руками — ваш вибір діє
+     до кінця сеансу. У базі цього немає навмисно: це спосіб читання, а не
+     факт про замовлення, і навʼязувати його сусідньому менеджеру нема за
+     що. */
+  var SIDE = {};
+  function sideAuto(u){
+    var g = dzList(u, 'graphic');
+    return (g.length && D.graphicOk(u)) ? 'stitch' : 'graphic';
+  }
+  function sideOf(u){
+    var s = SIDE[(u || {}).id];
+    return (s === 'graphic' || s === 'stitch') ? s : sideAuto(u);
+  }
+  /* Скільки непрочитаного в половині. Лічильник на смужці — єдине, що
+     змушує туди зазирнути, і без нього згорнута половина була б місцем,
+     куди повідомлення падають безслідно. */
+  function dzUnseenCol(u, kind){
+    var me = (host.me && host.me()) || '';
+    if(!me) return 0;
+    return dzList(u, kind).reduce(function(a, d){ return a + D.dzUnseen(d, me); }, 0);
+  }
+  var SIDE_ICO = { graphic:'\u270E', stitch:'\u2726' };
+  var SIDE_NM = { graphic:'Графіка', stitch:'Вишивка' };
+  function railHtml(u, kind){
+    var st = dzColState(u, kind);
+    var n = dzUnseenCol(u, kind);
+    return '<button type="button" class="dz-u-rail' + (st ? ' is-' + st : '') +
+      '" data-do="u-side" data-u="' + esc(u.id) + '" data-side="' + kind +
+      '" title="' + (kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн') +
+      ' — розгорнути">' +
+      '<span class="dz-u-rail-i">' + SIDE_ICO[kind] + '</span>' +
+      (n ? '<span class="dz-u-rail-n">' + n + '</span>' : '') +
+      '<span class="dz-u-rail-t">' + SIDE_NM[kind] + '</span>' +
+    '</button>';
+  }
   function dzColHtml(u, kind){
     var st = dzColState(u, kind);
     var назва = kind === 'stitch' ? 'Вишивальний дизайн' : 'Графічний дизайн';
@@ -2536,8 +2592,12 @@
          бачити обидві половини одночасно, а не гортати між ними. Складати
          їх в одну колонку більше не треба: рядки дизайну тепер короткі, у
          них немає ні розмови, ні списку версій. */
-      '<div class="dz-u-dz' + (only ? ' one' : '') + '">' +
+      /* Яку половину тримаємо відкритою. Дизайнеру показують лише його
+         половину (`only`) — там вибору немає й смужки теж. */
+      (function(бік){ return '<div class="dz-u-dz' + (only ? ' one'
+        : (бік === 'stitch' ? ' is-s' : ' is-g')) + '">' +
         (only === 'stitch' ? '' :
+         (!only && бік !== 'graphic') ? railHtml(u, 'graphic') :
           '<div class="dz-u-col is-' + (dzColState(u, 'graphic') || 'none') + '">' +
           dzColHtml(u, 'graphic') +
           /* Рядок заводиться САМ. Доти його треба було створити кнопкою, і
@@ -2553,6 +2613,7 @@
              кожному й щоразу пропонувала зробити те, чого не роблять. */
         '</div>') +
         (only === 'graphic' ? '' :
+         (!only && бік !== 'stitch') ? railHtml(u, 'stitch') :
           '<div class="dz-u-col is-' + (dzColState(u, 'stitch') || 'none') + '">' +
           dzColHtml(u, 'stitch') +
           (dzList(u, 'stitch').length
@@ -2565,7 +2626,7 @@
                      робили б під макет, який ще поміняють. */
                   : '<div class="dz-miss is-calm">Чекає: графіку ще не погодили.</div>')) +
         '</div>') +
-      '</div>' +
+      '</div>'; })(only || sideOf(u)) +
     '</div>';
   }
   /* ── КОМЕНТАР МЕНЕДЖЕРА Й ТЕРМІНОВІСТЬ ───────────────────────────────
@@ -3264,7 +3325,7 @@
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
     teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
-    jobNo: jobNo, unitNo: unitNo,
+    jobNo: jobNo, unitNo: unitNo, SIDE: SIDE, sideOf: sideOf,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
     unitsOf: unitsOf, unitAt: unitAt,
@@ -4719,6 +4780,14 @@
       return Promise.resolve(host().payUnlink((data && data.p) || ''))
         .then(function(){ render(document.getElementById('dzRoot')); })
         .catch(function(e){ console.error(e); say('Відвʼязати не вдалось'); });
+    }
+    /* Перемкнути половину: відкрита стає смужкою, смужка — відкритою.
+       Нічого не зберігаємо — це спосіб читання, а не подія в замовленні. */
+    if(what === 'u-side'){
+      var su = String((data && data.u) || '');
+      if(!su) return;
+      U.SIDE[su] = (data && data.side) === 'stitch' ? 'stitch' : 'graphic';
+      return render(root);
     }
     if(what === 'u-add'){
       job.units = U.unitsOf(job).concat([U.unitNew()]);

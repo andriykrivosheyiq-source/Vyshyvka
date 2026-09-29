@@ -588,7 +588,11 @@ const стара = await p.evaluate(async () => {
   return { помилки: були,
            намалювалось: !!document.querySelector('.dz-u'),
            поля: !!document.querySelector('.dz-u-f'),
-           колонки: document.querySelectorAll('.dz-u-col').length,
+           /* Половин дві, але відкрита одна, а друга — смужкою: рахуємо
+              обидві разом, бо перевіряємо, що позиція намалювалась цілком,
+              а не яка з них зараз ширша. */
+           колонки: document.querySelectorAll('.dz-u-col').length +
+                    document.querySelectorAll('.dz-u-rail').length,
            /* І поля дописались — щоб наступний дотик до них теж не впав. */
            pics: Array.isArray(job.units[0].pics) };
 });
@@ -652,14 +656,21 @@ console.log('\n═══ ПОГОДИЛИ → ВІДКРИЛАСЬ ВИШИВК�
    макет, який ще поміняють. А погодили — відкривається, і передати можна
    саме ту версію, про яку домовились. */
 const вишивка = await p.evaluate(() => {
-  const кол = document.querySelectorAll('.dz-u-col')[1];
+  /* Після погодження відкрита половина рівно одна — вишивальна: робота
+     перейшла туди, і місце пішло за нею. Графіка згорнулась у смужку. */
+  const кол = document.querySelector('.dz-u-col');
   return { текст: кол.textContent.replace(/\s+/g, ' ').trim().slice(0, 60),
-           вибір: кол.querySelectorAll('select').length };
+           вибір: кол.querySelectorAll('select').length,
+           смужка: (document.querySelector('.dz-u-rail') || {}).dataset
+             ? document.querySelector('.dz-u-rail').dataset.side : '' };
 });
 console.log('  ' + JSON.stringify(вишивка));
 ok(вишивка.вибір === 1 && !/ще не погодили/.test(вишивка.текст),
   'вишивальна колонка відкрилась і просить обрати дизайнера',
   'вишивка й далі закрита: ' + вишивка.текст);
+ok(/ВИШИВАЛЬНИЙ/i.test(вишивка.текст) && вишивка.смужка === 'graphic',
+  'і місце пішло за роботою: вишивка розгорнута, готова графіка — смужкою',
+  'половини не помінялись: ' + JSON.stringify(вишивка));
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.slice(0, 3).join(' | '));
