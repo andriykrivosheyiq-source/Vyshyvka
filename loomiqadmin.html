@@ -1517,6 +1517,17 @@
   .od-sec{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
     color:#9AA5B5;margin-top:6px;}
   .od-empty{font-size:11px;color:var(--muted);}
+  /* Макет у роздрібній картці: вікно у відділ, а не друга дорога до нього. */
+  .od-dz-l{display:flex;flex-direction:column;gap:6px;margin:8px 0;}
+  .od-dz-r{display:flex;align-items:center;gap:9px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:9px;background:#fff;}
+  .od-dz-r.is-ok{border-color:#ABEFC6;background:#F5FDF8;}
+  .od-dz-i{flex:none;width:42px;height:42px;border-radius:7px;overflow:hidden;
+    background:var(--canvas);border:1px solid var(--line);}
+  .od-dz-i img{width:100%;height:100%;object-fit:contain;display:block;}
+  .od-dz-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .od-dz-t b{font-size:12px;font-weight:700;color:var(--ink);}
+  .od-dz-t i{font-style:normal;font-size:11px;color:var(--muted);}
   /* «Зібрати в конструкторі» — головна дія в складі замовлення */
   .od-build{display:block;width:100%;margin:10px 0 4px;padding:11px 12px;border:1px dashed #C7D2E0;
     border-radius:11px;background:#F7FAFF;color:#1668c4;font:inherit;font-size:13px;
@@ -4105,16 +4116,32 @@
   .dz-chk-i{width:58px;height:58px;}
   .dz-chk-dl{margin-top:2px;}
   .dz-chk-t b{display:block;}
-  /* Коротка стрічка: що сказали й що відповіли. Три рядки, не чат. */
-  .dz-tail{display:flex;flex-direction:column;gap:3px;padding:0 9px 8px;}
+  /* Коротка стрічка: що сказали й що відповіли. Три рядки, не чат.
+     Текст НЕ ріжеться: правка, обрізана на половині, нічого не варта — у
+     ній уся суть після коми, і менеджер не міг прочитати навіть те, що
+     сам щойно відправив. Тому імʼя й дата пішли лівою колонкою одне під
+     одним, а текст займає всю ширину й переноситься. */
+  .dz-tail{display:flex;flex-direction:column;gap:5px;padding:0 9px 8px;}
   .dz-tail-more{font-style:normal;font-size:10.5px;color:var(--muted);}
-  .dz-tail-r{display:flex;align-items:baseline;gap:6px;font-size:11.5px;
+  .dz-tail-all{all:unset;cursor:pointer;align-self:flex-start;font-size:10.5px;
+    font-weight:600;color:var(--brand,#1B4B82);padding:2px 0;}
+  .dz-tail-all:hover{text-decoration:underline;}
+  .dz-tail-r{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;
     color:var(--ink-soft);}
-  .dz-tail-r b{flex:none;font-weight:700;color:var(--ink);}
-  .dz-tail-r span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
-    white-space:nowrap;}
-  .dz-tail-r i{flex:none;font-style:normal;font-size:10.5px;color:var(--muted);}
-  .dz-tail-r.is-tell b{color:#1B4B82;}
+  .dz-tail-w{flex:none;width:76px;display:flex;flex-direction:column;line-height:1.25;}
+  .dz-tail-w b{font-weight:700;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .dz-tail-w i{font-style:normal;font-size:10px;color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  .dz-tail-x{flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;
+    line-height:1.4;}
+  .dz-tail-r.is-tell .dz-tail-w b{color:#1B4B82;}
+  /* Версія без аркуша — сказано прямо. Мовчазна підміна мокапом виглядає
+     так, ніби аркуш і є ця футболка з лого, і саме вона їде клієнту. */
+  .dz-chk-no{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    margin:0 9px 8px;padding:7px 9px;border-radius:8px;background:#FFF8E6;
+    border:1px solid #F5E1A8;font-size:11px;color:#7A5A12;}
+  .dz-chk-no .dz-b{flex:none;font-size:11px;padding:5px 9px;}
   /* Вибір версії: показуємо саме те, що поїде, — щоб обирали очима. */
   .dz-pick-c .dz-pick-n i{display:block;font-style:normal;font-size:11px;
     color:var(--muted);font-weight:500;margin-top:2px;}
@@ -5208,13 +5235,17 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 
         <div class="tl-divider" style="margin-top:22px;">Термін виготовлення</div>
         <div class="sub" style="margin-bottom:8px;">
-          Скільки днів іде замовлення від заповнення картки. Менеджер може змінити
-          строк у самій картці — це лише заготовка, з якої він починає. Дата готовності
-          рахується від дня, коли картку завели, і видно її на дошці.
+          Скільки <b>робочих</b> днів іде замовлення від заповнення картки. Субота
+          й неділя не рахуються: цех у ці дні не працює, і обіцяти по календарю
+          означає щоразу обіцяти на два дні раніше, ніж вийде. Порожнє поле — це
+          сім робочих днів, з якими ми й працюємо щодня; вписувати сюди щось
+          треба лише тоді, коли строк інший. Менеджер однаково може поставити в
+          самій картці будь-яку дату календарем — це лише заготовка, з якої він
+          починає.
         </div>
         <label class="field" style="display:block;max-width:220px;">
-          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Днів на замовлення</span>
-          <input id="b2c-days" type="number" min="1" max="120" step="1" style="width:100%;" placeholder="14">
+          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Робочих днів на замовлення</span>
+          <input id="b2c-days" type="number" min="1" max="120" step="1" style="width:100%;" placeholder="7">
         </label>
 
         <div class="tl-divider" style="margin-top:22px;">Примітка до макета</div>
@@ -6301,19 +6332,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=3b3a8aafd9"></script>
-<script src="loomiq-fingerprint.js?v=3b3a8aafd9"></script>
-<script src="loomiq-pricing.js?v=3b3a8aafd9"></script>
+<script src="loomiq-select.js?v=2db2104676"></script>
+<script src="loomiq-fingerprint.js?v=2db2104676"></script>
+<script src="loomiq-pricing.js?v=2db2104676"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=3b3a8aafd9"></script>
-<script src="loomiq-mock.js?v=3b3a8aafd9"></script>
+<script src="loomiq-design.js?v=2db2104676"></script>
+<script src="loomiq-mock.js?v=2db2104676"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=3b3a8aafd9"></script>
+<script src="loomiq-cards.js?v=2db2104676"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6338,7 +6369,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '3b3a8aafd9';
+var LQ_VER = '2db2104676';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8858,13 +8889,25 @@ async function finAddManual(){
    згадувати, яка з двох моделей діє зараз. */
 /* Застереження, яке ми писали в кожному повідомленні руками. Тепер воно
    їде на картці макета; у налаштуваннях його можна переписати під себе. */
+/* Скільки робочих днів іде роздрібне замовлення, якщо не домовлялись
+   інакше. Робочих, а не календарних: субота й неділя в цеху нікого не
+   ріжуть, і обіцяти по календарю означає щоразу обіцяти на два дні
+   раніше, ніж вийде. */
+const B2C_DAYS = 7;
 const B2C_NOTE = 'Колір виробу на екрані може відрізнятись від тканини: ' +
   'монітори передають відтінки по-різному. Розміри нанесення вказані з ' +
   'точністю до сантиметра.';
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
-           days: (+c.days > 0) ? Math.round(+c.days) : 0,
+           /* Сім РОБОЧИХ днів — це те, за скільки ми справді віддаємо
+              роздрібне замовлення, і саме з цим числом менеджер працює
+              щодня. Доти тут стояв нуль, і це означало «строку немає»:
+              картка відкривалась без дати готовності, і поставити її
+              можна було лише зайшовши спершу в налаштування. Тобто
+              найчастіший випадок вимагав найбільше рухів. Тепер число
+              стоїть одразу, а руками міняють тільки виняток. */
+           days: (+c.days > 0) ? Math.round(+c.days) : B2C_DAYS,
            /* Годин на макет. Доба — домовленість, а не закон природи, і
               міняти її не має означати правку коду. */
            dzHours: (+c.dzHours > 0) ? Math.round(+c.dzHours) : 24,
@@ -8877,7 +8920,7 @@ function paintB2c(){
   const c = b2cCfg();
   paintExtras(c.extras);
   const d = document.getElementById('b2c-days');
-  if(d) d.value = c.days || '';
+  if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
   const h = document.getElementById('b2c-dzhours');
   if(h) h.value = (c.dzHours === 24) ? '' : c.dzHours;
   const n = document.getElementById('b2c-note');
@@ -18437,12 +18480,13 @@ const CARD_BLOCKS = [
   { key:'trk',   name:'стан замовлення',   who:['manager'],                  make:o => odTracksHtml(o), bare:true },
   { key:'rem',   name:'нагадування',       who:['manager'],                  make:o => odRemindFold(o) },
   { key:'goods', name:'товари',            who:['manager'],                  make:o => odGoodsFold(o) },
-  { key:'extra', name:'додаткові продажі', who:['manager'],                  make:o => odExtraFold(o) },
-  { key:'art',   name:'макет',             who:['manager'],                  make:o => artFold(o) },
-  { key:'rep',   name:'повтор',            who:['manager'],                  make:o => repeatFold(o) },
-  { key:'buy',   name:'закупівля',         who:['manager'],                  make:o => buyFold(o) },
-  { key:'gate',  name:'ворота тиражу',     who:['manager'],                  make:o => gateFold(o) },
-  { key:'fp',    name:'перша одиниця',     who:['manager'],                  make:o => firstPieceFold(o) },
+  { key:'extra', name:'додаткові продажі', who:['manager'], dir:'b2b',       make:o => odExtraFold(o) },
+  { key:'art',   name:'макет',             who:['manager'], dir:'b2b',       make:o => artFold(o) },
+  { key:'dz',    name:'макет (B2C)',       who:['manager'], dir:'b2c',       make:o => odDzFold(o) },
+  { key:'rep',   name:'повтор',            who:['manager'], dir:'b2b',       make:o => repeatFold(o) },
+  { key:'buy',   name:'закупівля',         who:['manager'], dir:'b2b',       make:o => buyFold(o) },
+  { key:'gate',  name:'ворота тиражу',     who:['manager'], dir:'b2b',       make:o => gateFold(o) },
+  { key:'fp',    name:'перша одиниця',     who:['manager'], dir:'b2b',       make:o => firstPieceFold(o) },
   { key:'qc',    name:'контроль якості',   who:['manager'],                  make:o => qcFold(o) },
   { key:'ship',  name:'відправка',         who:['manager'],                  make:o => shipFold(o) },
   /* Гроші — тільки менеджерська картка, і це не налаштування, а правило:
@@ -18450,17 +18494,33 @@ const CARD_BLOCKS = [
      потрібним полем колись устигнуть. */
   { key:'pay',   name:'оплата',            who:['manager'], money:true,      make:o => odPayFold(o) },
   { key:'fin',   name:'фінанси',           who:['manager'], money:true,      make:o => odFinFold(o) },
-  { key:'fact',  name:'факт проти плану',  who:['manager'], money:true,      make:o => factFold(o) },
+  { key:'fact',  name:'факт проти плану',  who:['manager'], money:true, dir:'b2b', make:o => factFold(o) },
   { key:'crm',   name:'діалог з клієнтом', who:['manager'], client:true,
     make:o => (canSeeChat() && crmShow(o) && !chanHasChat(o, 'ig'))
       ? odFoldHtml('crm', 'Діалог з клієнтом (Sitniks)', '', crmBlockHtml(o)) : '' },
   { key:'log',   name:'що відбувалось',    who:['manager'],                  make:o => odLogFold(o) }
 ];
-function cardBlocksFor(ui){
-  return CARD_BLOCKS.filter(b => b.who.indexOf(ui) >= 0);
+/* ── B2B І B2C — ДВІ РІЗНІ КАРТКИ З ОДНОГО ШАБЛОНУ ──────────────────────
+
+   Доти картка була одна на обидва напрями, і в роздрібному замовленні на
+   одну футболку з Інстаграму відкривались ворота тиражу, перша одиниця,
+   закупівля партії й факт проти плану. Це не просто зайве — це чужа
+   машина: вона питає про рішення, яких у роздрібі не ухвалюють, і кожне з
+   них менеджер мусив мовчки прогортати. Найгірше було з КП: у B2C його
+   немає взагалі, а кнопка «Зібрати КП» стояла внизу найпомітнішою.
+
+   Тому в кожного блоку тепер є напрям. Немає поля — блок спільний (клієнт,
+   гроші, відправка, розмова: це те саме в обох). `dir` каже, що блок
+   належить одній машині й у другій його бути не повинно.
+
+   Розділяємо саме тут, списком, а не двома шаблонами: два шаблони на одну
+   картку розійдуться першою ж правкою, і половину виправлень доведеться
+   робити двічі — а забути вдруге легко. */
+function cardBlocksFor(ui, dir){
+  return CARD_BLOCKS.filter(b => b.who.indexOf(ui) >= 0 && (!b.dir || !dir || b.dir === dir));
 }
 function odBlocksHtml(o, ui){
-  return cardBlocksFor(ui).filter(b => !b.bare)
+  return cardBlocksFor(ui, orderDir(o)).filter(b => !b.bare)
     .map(b => odPart(() => b.make(o), b.name)).join('');
 }
 function odFoldHtml(key, title, sum, body){
@@ -18702,6 +18762,61 @@ function artVerHtml(o, v, isCur){
       <button class="art-b" data-art-back>Повернути</button>
     </div>` : ''}
   </div>`;
+}
+/* ── МАКЕТ У РОЗДРІБІ ───────────────────────────────────────────────────
+
+   B2B веде версії тут, у картці: там макет — частина тиражу, і погоджує
+   його ціла черга людей. У роздрібі все інакше: там один виріб, один
+   дизайнер і одна розмова, і вся ця робота вже живе у відділі дизайну —
+   з передачею, годинником, правками й погодженням ескіза.
+
+   Тому тут НЕ друга дорога до того самого, а вікно в неї: видно, на чому
+   зупинились і що бачить клієнт, а працюють у відділі. Дві дороги до
+   одного макета — це рано чи пізно дві різні правди про те, яка версія
+   погоджена. */
+function odDzFold(o){
+  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+  if(!job) return '';
+  let rows = [], всього = 0, готових = 0;
+  try{
+    const U = (window.LQDesign || {}).ui || {};
+    const units = Array.isArray(job.units) ? job.units : [];
+    units.forEach(u=>{
+      ['graphic', 'stitch'].forEach(kind=>{
+        (Array.isArray(u[kind]) ? u[kind] : []).forEach((d, i)=>{
+          всього++;
+          const v = (d.vers || [])[(d.vers || []).length - 1];
+          const ok = !!d.ok;
+          if(ok) готових++;
+          /* Превʼю — той самий аркуш, що й у відділі: третій файл версії.
+             Показувати тут мокап, коли клієнту їде аркуш, означає дивитись
+             на інший документ, ніж той, про який говориш. */
+          const pic = v ? (((v.files || [])[2] || (v.files || [])[1] || (v.files || [])[0] || {}).url || '') : '';
+          const no = (U.unitNo ? U.unitNo(job, u) : (o.orderId || ''));
+          const стан = ok ? 'ескіз погоджений'
+            : (v ? ('версія ' + v.n + (v.sentToClient ? ' · надіслано клієнту' : ' · клієнту не надсилали'))
+                 : ((U.DZ_STATE || {})[d.status] || 'не передано'));
+          rows.push(`
+            <div class="od-dz-r${ok ? ' is-ok' : ''}">
+              ${pic ? `<span class="od-dz-i"><img src="${escapeHtml(pic)}" alt="" loading="lazy"
+                onerror="this.style.opacity=0"></span>` : '<span class="od-dz-i"></span>'}
+              <span class="od-dz-t"><b>${escapeHtml(no)}${
+                kind === 'stitch' ? ' · вишивка' : ''}</b><i>${escapeHtml(стан)}</i></span>
+            </div>`);
+        });
+      });
+    });
+  }catch(e){ console.warn('макет B2C', e); }
+  const body = `
+    <div class="od-hint">Макет роздрібного замовлення ведеться у відділі дизайну:
+      там передача дизайнеру, годинник, правки й погодження ескіза. Тут видно
+      тільки, на чому зупинились — щоб не питати про це в іншому місці.</div>
+    ${rows.length ? `<div class="od-dz-l">${rows.join('')}</div>`
+                  : '<div class="od-empty">нанесень ще не заводили</div>'}
+    <button class="art-b" data-art-dept>Відкрити у відділі дизайну →</button>`;
+  return odFoldHtml('dz', 'Макет',
+    всього ? (готових === всього ? 'погоджено' : готових + ' з ' + всього + ' погоджено')
+           : 'порожньо', body);
 }
 function artFold(o){
   const l = artList(o), cur = artCur(o);
@@ -19211,9 +19326,16 @@ function renderOrderDrawer(){
      після перемальовування. */
   const keepScroll = (panel.querySelector('.od-body') || {}).scrollTop || 0;
   /* Дата в шапці без року й без хвилин: рік у роботі один і той самий, а
-     хвилина створення нікому не потрібна — потрібно «коли це було». */
-  const created = o.createdAt
-    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
+     хвилина створення нікому не потрібна — потрібно «коли це було».
+     Беремо не лише `createdAt`: картки,
+     заведені з розмови й зі старих імпортів, його не мають, і в них дата
+     просто зникала — замовлення виглядало так, ніби воно нізвідки. Перший
+     запис в історії етапів — теж день, коли воно зʼявилось, і це чесніше
+     за порожнє місце. */
+  const bornAt = o.createdAt || ((o.hist || [])[0] || {}).at || o.touchedAt || '';
+  const bornD = bornAt ? new Date(bornAt) : null;
+  const created = (bornD && !isNaN(bornD))
+    ? bornD.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
   const due = dueInfo(o);
   const sc = statusColor(o.status);
   const age = stageWord(o), heat = stageHeat(o), snz = snoozedTill(o);
@@ -19331,7 +19453,7 @@ function renderOrderDrawer(){
            відкривають картку, і сховану під смугу її просто не побачать.
            Нагадування ж мають дату — смуга сама скаже, коли й про що, тож
            тримати їх розгорнутими весь час немає потреби. */''}
-      ${cardBlocksFor('manager').filter(b => b.bare)
+      ${cardBlocksFor('manager', orderDir(o)).filter(b => b.bare)
           .map(b => odPart(() => b.make(o), b.name)).join('')}
 
       <div class="od-sec">Нотатка менеджера · тільки для нас</div>
@@ -19350,13 +19472,28 @@ function renderOrderDrawer(){
            пропозиція; посилання останнє, його беруть уже наприкінці.
            Зʼявиться ще один канал — стане поруч із першим. */''}
       ${chanBtnsHtml(o)}
-      <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
-      ${/* Дві дії поруч: готове повідомлення (те, що надсилають) і сама
-           адреса (коли текст уже написаний у переписці). */''}
-      ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copymsg"
-        title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
-      <button class="od-kp-link" data-doc="copylink"
-        title="Скопіювати лише посилання">🔗</button>` : ''}
+      ${/* КП — ЦЕ B2B І ТІЛЬКИ B2B.
+
+           У роздрібі комерційної пропозиції немає: там не збирають
+           документ на тираж, а показують макет і беруть оплату. Кнопка
+           «Зібрати КП» стояла внизу найпомітнішою й у роздрібній картці
+           теж — тобто найбільше місця займала дія, якої в цій роботі не
+           існує. Натиснута випадково, вона ще й заводила клієнту сторінку
+           пропозиції, посилання на яку нікому не потрібне.
+
+           Замість неї в роздрібі — дорога до макета: саме її там і
+           тиснуть щодня. */''}
+      ${dirIsC(orderDir(o)) ? `
+        <button class="od-kp" data-art-dept>✎ Макет у відділі</button>
+      ` : `
+        <button class="od-kp" data-act="offered">✦ ${(o.items||[]).length ? 'Редагувати КП' : 'Зібрати КП'}</button>
+        ${/* Дві дії поруч: готове повідомлення (те, що надсилають) і сама
+             адреса (коли текст уже написаний у переписці). */''}
+        ${offerUrl(o) ? `<button class="od-kp-link" data-doc="copymsg"
+          title="Скопіювати повідомлення клієнту разом із посиланням">💬</button>
+        <button class="od-kp-link" data-doc="copylink"
+          title="Скопіювати лише посилання">🔗</button>` : ''}
+      `}
       ${/* ДОРОГИ З КАНБАНУ В B2C БІЛЬШЕ НЕМАЄ.
 
            Поки «Дизайн-відділ» був відділом, кнопка мала сенс: замовлення
@@ -19604,12 +19741,14 @@ function renderOrderDrawer(){
      макетом» виникає в картці, а відповідь живе у відділі. Змушувати
      шукати замовлення там заново — це той самий обхід карток, від якого
      ми й ідемо. */
-  const artDeptB = panel.querySelector('[data-art-dept]');
-  if(artDeptB) artDeptB.addEventListener('click', ()=>{
+  /* Кнопок у картку веде дві — у блоці «Макет» і закріплена внизу, — і
+     `querySelector` вішав обробник тільки на першу: друга мовчки нічого не
+     робила. Мовчазна кнопка гірша за її відсутність. */
+  panel.querySelectorAll('[data-art-dept]').forEach(b=> b.addEventListener('click', ()=>{
     try{ window.LQDesign.ui.open(o.orderId); }catch(e){}
     const nav = document.querySelector('.nav [data-view="design"]');
     if(nav) nav.click();
-  });
+  }));
   panel.querySelectorAll('[data-art-ok]').forEach(b=>{
     b.addEventListener('click', ()=> artApprove(o, b.dataset.artOk));
   });
