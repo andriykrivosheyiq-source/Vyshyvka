@@ -3434,7 +3434,7 @@
      Картка замовлення в Канбані лишається вужчою: там читають текст, а не
      працюють у двох колонках. */
   .dz-panel{position:fixed;top:0;right:0;bottom:0;z-index:200;
-    width:min(760px,100%);background:#fff;border:0;border-radius:0;
+    width:min(560px,100%);background:#fff;border:0;border-radius:0;
     display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
   .dz-panel.hide{display:none;}
   /* Решта екрана гасне, поки панель відкрита: увага там, де працюють. */
@@ -3703,8 +3703,14 @@
   .dz-card-due.soon{background:#FEF8E7;color:#8A6410;}
   /* Складена зона. Шапка стає кнопкою — і мусить виглядати натискуваною,
      інакше за нею просто не заходять. */
+  /* Складена смужка — вища за розгорнуту шапку. Вона тут не заголовок, а
+     сама по собі рядок, у який тиснуть: тонка смужка з дрібним написом
+     читалась як підпис до порожнечі, і в неї просто не цілились. */
   .dz-z.is-fold > .dz-z-h{all:unset;box-sizing:border-box;width:100%;cursor:pointer;
-    display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--zs);}
+    display:flex;align-items:center;gap:9px;padding:14px 13px;background:var(--zs);}
+  .dz-z.is-fold > .dz-z-h b{font-size:11.5px;}
+  .dz-z.is-fold .dz-z-s{font-size:12.5px;}
+  .dz-z.is-fold .dz-z-i{font-size:15px;}
   .dz-z.is-fold > .dz-z-h:hover{filter:brightness(.98);}
   .dz-z.is-fold:not(.open) > .dz-z-h{border-bottom:0;}
   /* Стрілка складеної зони — помітна. Дрібна «▾» не читалась як «тут можна
@@ -4078,9 +4084,11 @@
   .dz-chk-t i{font-style:normal;font-size:11.5px;color:var(--ink-soft);
     font-variant-numeric:tabular-nums;}
   .dz-chk-n{color:var(--ink) !important;}
-  .dz-chk-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  .dz-chk-b{display:flex;align-items:center;gap:8px;
     padding:8px 9px;border-top:1px solid var(--line-soft);background:var(--canvas);}
-  .dz-chk-b .dz-b.pri{margin-left:auto;}
+  .dz-chk-b .dz-b{flex:1;text-align:center;justify-content:center;}
+  .dz-chk-dl{flex:none;align-self:flex-start;margin:9px 9px 0 0;}
+  .dz-chk-top{align-items:flex-start;}
   /* Надіслано — це стан, а не кнопка: натискати вдруге нема за чим, і
      кнопка, яка нічого не змінить, лише просить помилитись. */
   .dz-chk-sent{margin-left:auto;font-size:11.5px;font-weight:600;color:#0A6B4A;
@@ -6264,19 +6272,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=68dc5bbaf3"></script>
-<script src="loomiq-fingerprint.js?v=68dc5bbaf3"></script>
-<script src="loomiq-pricing.js?v=68dc5bbaf3"></script>
+<script src="loomiq-select.js?v=30d179f2fc"></script>
+<script src="loomiq-fingerprint.js?v=30d179f2fc"></script>
+<script src="loomiq-pricing.js?v=30d179f2fc"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=68dc5bbaf3"></script>
-<script src="loomiq-mock.js?v=68dc5bbaf3"></script>
+<script src="loomiq-design.js?v=30d179f2fc"></script>
+<script src="loomiq-mock.js?v=30d179f2fc"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=68dc5bbaf3"></script>
+<script src="loomiq-cards.js?v=30d179f2fc"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6301,7 +6309,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '68dc5bbaf3';
+var LQ_VER = '30d179f2fc';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -26022,6 +26030,18 @@ function openDesign(){
     dzHours: () => b2cCfg().dzHours,
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
+    /* Наші контакти для шапки аркуша — ті самі, що в комерційній
+       пропозиції. Аркуш доходить до цеху й до підрядника, і питання «а це
+       від кого» має отримати відповідь на самому аркуші. */
+    contacts: () => {
+      const c = (contentData && contentData.contacts) || {};
+      const l = [];
+      if(c.phone) l.push(c.phone);
+      if(c.email) l.push(c.email);
+      if(c.telegram) l.push('Telegram: ' + String(c.telegram).replace(/^https?:\/\//, ''));
+      l.push('loomiq.net');
+      return l;
+    },
     /* Мокап рахує сантиметри з розмірної сітки товару — тієї самої, що
        показана клієнту на сайті. Свою тут заводити нема чого: дві сітки
        рано чи пізно розійдуться, і виробництво пошиє по чужій. */
