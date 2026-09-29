@@ -1553,6 +1553,23 @@
     var n = job && job.no;
     return n ? ('#' + n) : '#—';
   }
+  /* ПІДПИС ПОЗИЦІЇ: НОМЕР, А ЗА ПОТРЕБИ — Й ЇЇ МІСЦЕ В ЗАМОВЛЕННІ.
+
+     Одна позиція — досить номера: «#2000001». Дві й більше — без номера
+     позиції не зрозуміти, про який саме виріб мова: «#2000001-1» і
+     «#2000001-2». Саме так їх і називають уголос, і саме так має бути
+     підписаний файл, що поїде в цех.
+
+     Правило одне на все: картка перевірки, назва аркуша, імʼя файлу,
+     історія. Три різні підписи про ту саму роботу вже коштували нам
+     розмови «а це взагалі про що». */
+  function unitNo(job, u){
+    var list = unitsOf(job);
+    var n = jobNo(job);
+    if(list.length < 2) return n;
+    var i = list.indexOf(u);
+    return n + '-' + (i >= 0 ? i + 1 : '?');
+  }
 
   /* ── Клієнт і строк: перше, що має бути в картці ────────────────────
      Доти цього в картці не було зовсім: замовлення позначалось номером, а
@@ -2270,51 +2287,87 @@
   function dzCardHtml(u, kind, d, i, job, o, key, ro){
     var v = d.vers[d.vers.length - 1];
     if(!v) return '<div class="dz-wait">Передали дизайнеру · очікуємо макет</div>';
-    var мокап = (v.files || [])[1] || (v.files || [])[0] || {};
+    /* У ПРЕВʼЮ — САМ АРКУШ, А НЕ ПРОСТО МОКАП.
+
+       Андрій: «ми не бачимо тільки футболку з лого, ми бачимо одразу і саму
+       карточку». Він має рацію: клієнту йде аркуш, і перевіряти треба саме
+       те, що поїде, — разом із примітками й розмірами. Доти побачити його
+       можна було тільки скачавши, тобто перевірка починалась із
+       завантаження файлу.
+
+       Аркуш малюється при здачі версії й лежить у ній третім файлом; немає
+       його (стара версія) — показуємо мокап, як і доти. */
+    var аркуш = (v.files || [])[2] || null;
+    var мокап = аркуш || (v.files || [])[1] || (v.files || [])[0] || {};
     var надіслано = !!v.sentToClient;
-    return '<div class="dz-chk">' +
+    var погоджено = !!d.ok;
+    return '<div class="dz-chk' + (погоджено ? ' is-ok' : '') + '">' +
       '<div class="dz-chk-top">' +
         (мокап.url
           ? '<button type="button" class="dz-chk-i" data-do="pic-open" data-url="' +
             esc(мокап.url) + '" title="Подивитись на весь екран">' +
             '<img src="' + esc(мокап.url) + '" alt="" loading="lazy"></button>'
           : '') +
-        /* Розмірів тут немає навмисно. «23,7 см × 9,5 см · від горловини
-           14,9 · на M» — це виробнича мірка: вона потрібна цеху й уже
-           стоїть в аркуші, який качають. Менеджер у цю мить вирішує одне —
-           показувати клієнту чи повертати на правку, — і чотири числа між
-           ним і цим рішенням лише забирають місце.
-
-           Лишається те, за чим упізнають роботу: сама картинка, підпис
-           «номер · версія» і слова дизайнера, якщо вони є. */
         '<div class="dz-chk-t">' +
-          /* НОМЕР ТУТ — ТОЙ САМИЙ, ЩО В ШАПЦІ. Доти підпис версії брав номер
-             ЗАМОВЛЕННЯ, а шапка — номер відділу: у картці стояло «#2000001»
-             вгорі й «5001 · v1» посередині, і два різні числа про ту саму
-             роботу перетворювали кожну розмову на зʼясування, про що мова. */
-          '<b>' + esc(jobNo(job) + ' · v' + v.n) + '</b>' +
+          /* Номер ТОЙ САМИЙ, що в шапці, плюс місце позиції, коли їх кілька:
+             «#2000001-2 · v1». Так їх і називають уголос. */
+          '<b>' + esc(unitNo(job, u) + ' · v' + v.n) + '</b>' +
+          (ro ? '' : '<button class="dz-ib dz-chk-dl" data-do="dz-card" data-dz="' + key +
+            '" data-v="' + v.n + '" title="Скачати аркуш для цеху">⤓</button>') +
+          /* Слова дизайнера про саме цю версію — тут, а не в стрічці:
+             вони пояснюють роботу, на яку дивишся, а не розмову навколо неї. */
           (v.note ? '<i class="dz-chk-n">' + esc(v.note) + '</i>' : '') +
+          (погоджено
+            ? '<i class="dz-chk-ok">погоджено · v' + ((d.ok && d.ok.ver) || v.n) + '</i>'
+            : '') +
         '</div>' +
-        (ro ? '' : '<button class="dz-ib dz-chk-dl" data-do="dz-card" data-dz="' + key +
-          '" data-v="' + v.n + '" title="Скачати аркуш для цеху">⤓</button>') +
       '</div>' +
+      /* ── Коротка стрічка: що сказали й що відповіли ──
+         Три останні рядки, і жодного чату: решта лежить в Історії. Без них
+         картка мовчала — правку відправили, а слідів її в тому місці, де
+         приймають рішення, не лишалось. */
+      dzTailHtml(d) +
       (ro ? '' :
-      /* Дві дії — в один рядок, зліва й справа: це вибір «повернути або
-         показати», і поставлені одна під одну вони читаються як послідовність
-         кроків, якою не є. Аркуш звідси пішов угору, до самої картинки:
-         він потрібен цеху раз на замовлення, а місце під кнопками забирав
-         у кожній позиції. */
+      /* Три дії, компактно, в один рядок: погодити, повернути, показати.
+         Це вибір, а не послідовність кроків, і поставлені стовпчиком вони
+         читались би саме як кроки. */
       '<div class="dz-chk-b">' +
-        (d.ok
-          ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">Зняти затвердження</button>'
-          : '<button class="dz-b" data-do="dz-fix" data-dz="' + key + '">Правка</button>') +
+        (погоджено
+          ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">Зняти</button>'
+          : '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
+            '" title="Клієнт сказав «беремо» — робота йде далі й відкривається вишивка">' +
+            '✓ Погоджено</button>') +
+        '<button class="dz-b" data-do="dz-fix" data-dz="' + key + '">Правка</button>' +
         (надіслано
-          ? '<span class="dz-chk-sent">Надіслано ' + esc(dt(v.sentToClient)) + '</span>'
-          : '<button class="dz-b pri" data-do="dz-tell" data-dz="' + key +
-            '" data-v="' + v.n + '">Надіслати клієнту</button>') +
+          ? '<span class="dz-chk-sent" title="' + esc(dt(v.sentToClient)) + '">Надіслано</span>'
+          : '') +
+        '<button class="dz-b pri" data-do="dz-tell-pick" data-dz="' + key +
+          '">Надіслати</button>' +
       '</div>') +
     '</div>';
   }
+  /* Останні слова по цьому дизайну — три рядки. Не чат: він увесь в
+     Історії. Тут рівно стільки, щоб побачити, на чому зупинились, не
+     виходячи з рішення. */
+  function dzTailHtml(d){
+    var all = (d.thread || []).filter(function(m){
+      return m.kind === 'fix' || m.kind === 'file' || m.kind === 'tell';
+    });
+    if(!all.length) return '';
+    var три = all.slice(-3);
+    return '<div class="dz-tail">' +
+      (all.length > три.length
+        ? '<i class="dz-tail-more">ще ' + (all.length - три.length) + ' — в історії</i>' : '') +
+      три.map(function(m){
+        return '<div class="dz-tail-r' + (m.kind === 'tell' ? ' is-tell' : '') + '">' +
+          '<b>' + esc(whoName(m.by)) + '</b>' +
+          '<span>' + esc(m.text || (m.file && m.file.name) || 'файл') + '</span>' +
+          '<i>' + esc(dt(m.at)) + '</i>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
 
 
   /* ТЗ ДИЗАЙНЕРА — ТЕ САМЕ, АЛЕ БЕЗ КЕРМА.
@@ -3160,7 +3213,7 @@
     boardHtml: boardHtml, briefHtml: briefHtml, versionsHtml: versionsHtml,
     reasonsHtml: reasonsHtml, pickedReasons: pickedReasons, noteOf: noteOf,
     teamPick: teamPick, teamOpts: teamOpts, ROLES: ROLES, roleSeat: roleSeat, isBoss: isBoss,
-    jobNo: jobNo,
+    jobNo: jobNo, unitNo: unitNo,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
     unitsOf: unitsOf, unitAt: unitAt,
@@ -4522,6 +4575,7 @@
        йому дали, ні повернути те, чого не потягне. */
     'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
+    'dz-tell-pick':'art', 'dz-ok-pick':'art',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
     'mgr-ok':'approve', 'revise':'approve', 'to-client':'approve',
     'cl-ok':'approve', 'cl-changes':'approve', 'brief-back':'approve',
@@ -4622,11 +4676,19 @@
     if(what === 'u-dup'){
       var src = U.unitAt(job, data && data.u);
       if(!src) return;
-      /* Копія з усім: кольором, розміром, кількістю й обома списками
-         дизайнів. Найчастіша дія — «те саме, але беж», і набирати все
-         заново означає шанс розійтися в тому, що мало лишитись однаковим. */
+      /* Копія бере ВИРІБ, а не роботу. Доти вона тягла й списки дизайнів —
+         і в новій позиції вже стояв призначений дизайнер, якого туди ніхто
+         не призначав, ще й без можливості обрати іншого. Андрій: «два рази
+         дизайнер вставився… я не призначав який саме».
+
+         Дизайн — не властивість виробу. Це окреме призначення, окрема
+         передача й окрема історія версій; копіювати його означає віддати
+         новій позиції чужу зроблену роботу. Найчастіша дія тут — «те саме,
+         але беж», і саме «те саме» — це виріб, колір, розмір, кількість,
+         коментар і картинки. */
       var cp = JSON.parse(JSON.stringify(src));
       cp.id = U.unitNew().id;
+      cp.graphic = []; cp.stitch = [];
       var at = U.unitsOf(job).indexOf(src);
       job.units = U.unitsOf(job).slice(0, at + 1).concat([cp], U.unitsOf(job).slice(at + 1));
       return save(job, o, 'Дубль — тепер змініть, що треба');
@@ -4756,7 +4818,8 @@
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
-       what === 'dz-swap' || what === 'dz-reply'){
+       what === 'dz-swap' || what === 'dz-reply' ||
+       what === 'dz-tell-pick' || what === 'dz-ok-pick'){
       var dp = String((data && data.dz) || '').split('|');
       var du = U.unitAt(job, dp[0]);
       var dk = dp[1] === 'stitch' ? 'stitch' : 'graphic';
@@ -4896,13 +4959,23 @@
       if(what === 'dz-hand'){
         var чер2 = dd.draft || {};
         if(!чер2.art) return say('Спершу завантажте макет');
+        /* Аркуш збирається ТУТ, у мить здачі, і лягає у версію третім
+           файлом. Доти його малювали лише на вимогу, при скачуванні, — і
+           побачити те, що поїде клієнту, можна було тільки завантаживши
+           файл. Тобто перевірка починалась із походу в теку «Завантаження».
+
+           Малюємо його від імені дизайнера, бо саме його робота в ньому й
+           зафіксована; менеджер потім качає вже готовий. */
         /* БЕЗ МОКАПУ НЕ НАДСИЛАЄМО. Це не формальність: клієнту йде макет на
            виробі, а не файл на прозорому тлі — за ним не видно ні розміру,
            ні місця, і замість погодження починається листування. */
         if(!чер2.mock) return say('Без мокапу не надсилаємо — зробіть його');
         var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var hTxt = hEl ? String(hEl.value || '').trim() : '';
-        D.dzVer(dd, m, [чер2.art, { name:'мокап.png', url: чер2.mock.png }], hTxt,
+        var файли = [чер2.art, { name:'мокап.png', url: чер2.mock.png }];
+        var аркушФайл = await sheetFile(job, o, du, чер2, dd.vers.length + 1);
+        if(аркушФайл) файли.push(аркушФайл);
+        D.dzVer(dd, m, файли, hTxt,
           { wCm: чер2.mock.wCm, hCm: чер2.mock.hCm, topCm: чер2.mock.topCm,
             sideCm: чер2.mock.sideCm, size: чер2.mock.size });
         if(hTxt) D.dzSay(dd, m, hTxt, null);
@@ -4913,7 +4986,43 @@
         dd.draft = null;
         return save(job, o, 'Надіслано · версія ' + dd.vers.length);
       }
-      /* ══════════ АРКУШ ДЛЯ МЕНЕДЖЕРА ══════════
+      /* ЗІБРАТИ АРКУШ. Один збирач на два випадки — здачу версії й скачування
+     на вимогу: два різні означали б, що аркуш у картці й аркуш у теці
+     колись розійдуться, і ніхто не помітить котрий із них правда. */
+  async function sheetPng(job, o, u, ver, place, note){
+    if(!window.LQMock) return null;
+    var g = U.catItem(u.gid), pl = place || {};
+    var fs = (ver && ver.files) || [];
+    return await window.LQMock.card({
+      art: (fs[0] || {}).url, mock: (fs[1] || {}).url,
+      title: U.unitNo(job, u) + ' · версія ' + (ver ? ver.n : 1),
+      nums: [
+        ['Виріб', (g && g.name) || u.name || '—'],
+        ['Колір', u.color || '—'],
+        ['Розмір', u.size || '—'],
+        ['Кількість', (+u.qty || 0) + ' шт'],
+        ['Нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
+      ],
+      wideCm: window.LQMock.widthCm(u.gid, pl.size || u.size),
+      artCm: pl.wCm || 0, sideCm: pl.sideCm || 0,
+      contacts: (function(){
+        try{ return (host().contacts && host().contacts()) || []; }catch(e){ return []; }
+      })(),
+      note: note || (function(){
+        try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
+      })()
+    });
+  }
+  /* Той самий аркуш, але одразу файлом у сховищі — щоб лягти у версію. */
+  async function sheetFile(job, o, u, чер, n){
+    try{
+      var png = await sheetPng(job, o, u,
+        { n: n, files: [чер.art, { url: чер.mock.png }] }, чер.mock, null);
+      if(!png) return null;
+      return await uploadDataUrl(png, 'аркуш-v' + n + '.png');
+    }catch(e){ console.error('аркуш', e); return null; }
+  }
+  /* ══════════ АРКУШ ДЛЯ МЕНЕДЖЕРА ══════════
 
          Горизонтальна картка: ліворуч макет, праворуч мокап, під ними
          розміщення великими числами, а внизу склад і примітка. Одна
@@ -4923,50 +5032,54 @@
          щоб переслати, і зайвий крок «зберегти як» на цьому шляху означає,
          що перешлють посилання на адмінку, куди в клієнта доступу немає. */
       if(what === 'dz-card'){
-        if(!window.LQMock) return say('Малювальник картки не завантажився');
         var cv2 = (dd.vers || []).filter(function(x){ return +x.n === +(data && data.v); })[0]
                   || dd.vers[dd.vers.length - 1];
         if(!cv2) return say('Версії ще немає');
-        var fs2 = cv2.files || [];
-        var g2 = U.catItem(du.gid);
-        var pl = cv2.place || {};
+        /* Аркуш уже лежить у версії — качаємо його, а не малюємо наново:
+           намальований удруге міг би відрізнятись від того, що бачив
+           менеджер у картці й що пішло клієнту. */
+        var готовий = (cv2.files || [])[2];
+        if(готовий && готовий.url)
+          return act('dz-dl', root, { url: готовий.url,
+            name: 'Макет-' + U.unitNo(job, du).replace('#', '') + '-v' + cv2.n });
+        /* Старі версії аркуша не мають — збираємо на вимогу. */
         say('Збираю аркуш…');
-        var png = await window.LQMock.card({
-          art: (fs2[0] || {}).url,
-          mock: (fs2[1] || {}).url,
-          /* Назва аркуша — той самий номер, що в шапці картки й на самій
-             версії. Три різні числа про одну роботу вже коштували нам
-             розмови «а це взагалі про що». */
-          title: U.jobNo(job) + ' · версія ' + cv2.n,
-          /* Характеристики рядком, як у комерційній пропозиції: підпис
-             капітеллю, значення великим. Перше — виріб, бо саме з нього
-             починають читати. */
-          nums: [
-            ['Виріб', (g2 && g2.name) || du.name || '—'],
-            ['Колір', du.color || '—'],
-            ['Розмір', du.size || '—'],
-            ['Кількість', (+du.qty || 0) + ' шт'],
-            ['Нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
-          ],
-          wideCm: window.LQMock.widthCm(du.gid, pl.size || du.size),
-          artCm: pl.wCm || 0,
-          sideCm: pl.sideCm || 0,
-          /* Наші контакти в шапці — ті самі, що в комерційній пропозиції:
-             аркуш доходить до цеху й до підрядника, і питання «а це від
-             кого» має відповідь на самому аркуші. */
-          contacts: (function(){
-            try{ return (host().contacts && host().contacts()) || []; }catch(e){ return []; }
-          })(),
-          note: (function(){
-            try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
-          })()
-        });
+        var png = await sheetPng(job, o, du, cv2, cv2.place, null);
         if(!png) return say('Аркуш не зібрався');
         var a2 = document.createElement('a');
         a2.href = png;
-        a2.download = 'Макет-' + U.jobNo(job).replace('#', '') + '-v' + cv2.n + '.png';
+        a2.download = 'Макет-' + U.unitNo(job, du).replace('#', '') + '-v' + cv2.n + '.png';
         document.body.appendChild(a2); a2.click(); a2.remove();
         return say('Аркуш збережено');
+      }
+      /* ══════════ ЯКУ САМЕ ВЕРСІЮ ══════════
+
+         І надсилання, і погодження питають версію. Доти обидва мовчки
+         брали останню — і це неправда рівно тоді, коли версій кілька:
+         клієнт часто каже «беремо другу», подивившись третю, і «остання»
+         тут означає не те, про що домовились.
+
+         Одна версія — питати нема про що, і вікна немає: зайве натискання
+         там, де вибору не існує, дратує більше за його відсутність. */
+      if(what === 'dz-tell-pick' || what === 'dz-ok-pick'){
+        var дія = what === 'dz-ok-pick' ? 'dz-ok' : 'dz-tell';
+        var vs = (dd.vers || []).slice();
+        if(!vs.length) return say('Версії ще немає');
+        if(vs.length === 1)
+          return act(дія, root, { dz: dkey, v: vs[0].n, how: 'client' });
+        return U.pickOpen(
+          дія === 'dz-ok' ? 'Яку версію погодив клієнт' : 'Яку версію надіслати',
+          'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
+          vs.slice().reverse().map(function(v){
+            var f = (v.files || [])[2] || (v.files || [])[1] || (v.files || [])[0] || {};
+            return '<button type="button" class="dz-pick-c" data-pick="' + v.n + '">' +
+              (f.url ? '<span class="dz-pick-i"><img src="' + esc(f.url) +
+                '" alt="" onerror="this.style.opacity=0"></span>' : '') +
+              '<span class="dz-pick-n">v' + v.n + '<i>' + esc(dt(v.at)) +
+                (v.sentToClient ? ' · надіслано' : '') + '</i></span>' +
+            '</button>';
+          }).join(''),
+          function(n){ act(дія, root, { dz: dkey, v: n, how: 'client' }); });
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
@@ -4989,7 +5102,10 @@
                  || dd.vers[dd.vers.length - 1];
         if(!tv) return say('Версії ще немає');
         if(!host().tellPic) return say('Надсилання картинок недоступне');
-        var мок = (tv.files || [])[1] || (tv.files || [])[0] || {};
+        /* Клієнту йде АРКУШ, а не голий мокап: на ньому наші контакти,
+           розміри й примітка про колір. Немає аркуша (стара версія) —
+           шлемо мокап, як і доти. */
+        var мок = (tv.files || [])[2] || (tv.files || [])[1] || (tv.files || [])[0] || {};
         if(!мок.url) return say('У версії немає файлу — нема чого слати');
         /* Перша версія чи наступна — різні слова. Номер версії тут же, щоб
            клієнт бачив, про яку саме мова. */
@@ -5044,11 +5160,13 @@
         return save(job, o, 'Правку надіслано');
       }
       if(what === 'dz-ok'){
-        /* Затвердити може і клієнт, і акаунт-менеджер: обидва читають ту
-           саму переписку, і чекати саме клієнтського слова в месенджері
-           означало б зупиняти роботу через формальність. */
-        D.dzOk(dd, m, (data && data.how) || 'acct', data && data.v);
-        return save(job, o, 'Затверджено');
+        /* «Ескіз погоджений» — це слово КЛІЄНТА, після якого робота йде
+           далі: саме з цієї миті відкривається вишивка, і оцифровують
+           рівно ту версію, про яку домовились. Тому в історію лягає і хто
+           натиснув, і яку версію погодили. */
+        D.dzOk(dd, m, (data && data.how) || 'client', data && data.v);
+        return save(job, o, 'Ескіз погоджений · v' +
+          ((dd.ok && dd.ok.ver) || dd.vers.length));
       }
       D.dzUnok(dd);
       return save(job, o, 'Затвердження знято');
