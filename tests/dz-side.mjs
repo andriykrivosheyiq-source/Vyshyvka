@@ -59,7 +59,7 @@ const CONTENT = {
 const ORDERS = [
   { id:'1', orderId:'2000101', type:'client', dir:'b2c', name:'Асія',
     status:'prorahunok', site:'main', payments:[], hist:[],
-    createdAt:'2026-09-25T09:00:00.000Z', items:[] }
+    createdAt:'2026-09-25T09:00:00.000Z', crmNick:'asia_dera', items:[] }
 ];
 
 let fbstub = fs.readFileSync(path.join(ROOT, 'tests/fbstub.js'), 'utf8');
@@ -292,6 +292,65 @@ ok(!дизайнер.смужка && дизайнер.одна,
 ok(!дизайнер.вишивка,
   'і чужої половини він не бачить узагалі',
   'графічному дизайнеру видно вишивальну половину');
+
+console.log('\n═══ ШАПКА ВІДДІЛУ Й ПОШУК ═══');
+/* Андрій: «додати нове замовлення присунути вліво… дивлюсь як
+   акаунт-менеджер — правий верх, оце ж тільки для мене. І ще пошук додати,
+   щоб можна було шукати по номеру чи по контакту, чи ще по імені». */
+const шапка = await p.evaluate(async () => {
+  const U = window.LQDesign.ui;
+  U.setTab('acct'); U.open('');
+  U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 400));
+  const діти = [...document.querySelectorAll('.dz-top > *')];
+  const л = діти.map(x => x.className);
+  const нове = document.querySelector('.dz-new');
+  const роль = document.querySelector('.dz-as');
+  return { порядок: л,
+    /* Геометрія, а не порядок у розмітці: «нове замовлення» має стояти
+       ЛІВІШЕ за перемикач ролі. */
+    новеЛівіше: !!(нове && роль &&
+      нове.getBoundingClientRect().left < роль.getBoundingClientRect().left),
+    пошук: !!document.querySelector('[data-seek]'),
+    карток: document.querySelectorAll('.dz-card').length };
+});
+console.log('  ' + JSON.stringify(шапка));
+ok(шапка.новеЛівіше,
+  '«+ Нове замовлення» ліворуч, «Дивлюсь як» праворуч',
+  'порядок у шапці не той: ' + JSON.stringify(шапка.порядок));
+ok(шапка.пошук, 'і пошук на місці', 'пошуку в шапці немає');
+
+const знайшов = await p.evaluate(async () => {
+  const крок = async v => {
+    const i = document.querySelector('[data-seek]');
+    i.value = v; i.dispatchEvent(new Event('input'));
+    await new Promise(r => setTimeout(r, 300));
+    return { карток: document.querySelectorAll('.dz-card').length,
+             фокус: document.activeElement === document.querySelector('[data-seek]') };
+  };
+  const пусто = await крок('замовлення-якого-немає');
+  const заНомером = await крок('2000101');
+  const заНіком = await крок('asia');
+  /* Хрестик прибирає фільтр — інакше вийти з нього можна лише стиранням
+     руками, а забутий фільтр виглядає як порожня дошка. */
+  document.querySelector('[data-do="seek-off"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  return { пусто, заНомером, заНіком,
+           після: document.querySelectorAll('.dz-card').length };
+});
+console.log('  ' + JSON.stringify(знайшов));
+ok(!знайшов.пусто.карток && знайшов.заНомером.карток === 1,
+  'пошук по номеру знаходить саме її, а чуже ховає',
+  'пошук по номеру не спрацював: ' + JSON.stringify(знайшов));
+ok(знайшов.заНіком.карток === 1,
+  'і по ніку клієнта теж — за ним її й називають у розмові',
+  'по ніку не знайшлось: ' + JSON.stringify(знайшов.заНіком));
+ok(знайшов.заНомером.фокус,
+  'а курсор лишається в полі: дошка перемальовується, друкувати можна далі',
+  'фокус злітає з поля, і друга літера йде в порожнечу');
+ok(знайшов.після === 1,
+  'хрестик повертає всі картки',
+  'фільтр не скидається: карток ' + знайшов.після);
 
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
