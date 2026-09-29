@@ -205,18 +205,19 @@ await p.evaluate(() => { const b = document.querySelector('[data-do="dz-open"]')
 await p.waitForTimeout(500);
 const до = await p.evaluate(() => {
   const r = document.querySelector('.dz-dz');
-  const b = r && r.querySelector('.dz-dz-b');
-  return { вРядку: r ? r.querySelectorAll('.dz-dz-t select').length : 0,
-           кнопки: [...(b ? b.querySelectorAll('button') : [])].map(x => x.textContent.trim()),
-           полів: b ? b.querySelectorAll('textarea').length : 0 };
+  return { списків: r ? r.querySelectorAll('select').length : 0,
+           кнопки: [...(r ? r.querySelectorAll('button') : [])].map(x => x.textContent.trim()),
+           полів: r ? r.querySelectorAll('textarea').length : 0 };
 });
 console.log('  ' + JSON.stringify(до));
-ok(до.вРядку === 1,
+ok(до.списків === 1,
   'є рівно один список — кого призначаємо, і він же весь рядок',
   'вибору дизайнера немає або він не один: ' + JSON.stringify(до));
+/* Кнопки передачі ще немає: передавати нікому, і сіра кнопка тут гірша за
+   її відсутність — вона обіцяє дію, якої не буде. */
 ok(!до.кнопки.length && !до.полів,
-  'і більше нічого: ні версій, ні правок, ні погоджень',
-  'до передачі показано зайве: ' + JSON.stringify(до.кнопки));
+  'і більше нічого: ні кнопки передачі, ні версій, ні правок',
+  'до вибору дизайнера показано зайве: ' + JSON.stringify(до.кнопки));
 
 console.log('\n═══ ПРИЗНАЧИЛИ → ЗʼЯВИЛАСЬ ПЕРЕДАЧА ═══');
 await p.evaluate(() => {
@@ -234,8 +235,8 @@ await p.waitForTimeout(300);
 const передати = await p.evaluate(() =>
   [...document.querySelectorAll('[data-do="dz-send"]')].map(b => b.textContent.trim()));
 console.log('  ' + JSON.stringify(передати));
-ok(передати.length === 1 && /Передати замовлення/.test(передати[0]),
-  'кнопка передачі зʼявилась і названа людиною: ' + передати[0],
+ok(передати.length === 1 && /Передати дизайнеру/.test(передати[0]),
+  'кнопка передачі зʼявилась: ' + передати[0],
   'кнопки передачі немає: ' + JSON.stringify(передати));
 /* Досі це були дві дії й одна назва: «прикріпити» й «відправити»
    виглядали однаково, і половина замовлень зависала між ними. */
