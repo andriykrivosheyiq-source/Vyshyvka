@@ -4084,11 +4084,40 @@
   .dz-chk-t i{font-style:normal;font-size:11.5px;color:var(--ink-soft);
     font-variant-numeric:tabular-nums;}
   .dz-chk-n{color:var(--ink) !important;}
-  .dz-chk-b{display:flex;align-items:center;gap:8px;
+  /* Три дії в один рядок, компактно: погодити, повернути, показати. Це
+     вибір, а не послідовність кроків, і стовпчиком вони читались би саме
+     як кроки. Кнопки дрібні навмисно — місця в колонці мало, а тиснуть їх
+     не поспішаючи. */
+  .dz-chk-b{display:flex;align-items:center;gap:5px;flex-wrap:wrap;
     padding:8px 9px;border-top:1px solid var(--line-soft);background:var(--canvas);}
-  .dz-chk-b .dz-b{flex:1;text-align:center;justify-content:center;}
-  .dz-chk-dl{flex:none;align-self:flex-start;margin:9px 9px 0 0;}
+  .dz-chk-b .dz-b{flex:1 1 auto;min-width:0;text-align:center;justify-content:center;
+    font-size:11.5px;padding:7px 8px;}
+  /* «Ескіз погоджений» — зелена з галочкою: це не просто ще одна дія, а та
+     сама, після якої робота йде далі, і плутати її з «Правкою» дорого. */
+  .dz-b.ok{background:#0E9F6E;border-color:#0E9F6E;color:#fff;font-weight:700;}
+  .dz-b.ok:hover{background:#0A7F58;border-color:#0A7F58;}
+  .dz-chk.is-ok{border-color:#ABEFC6;}
+  .dz-chk-ok{display:block;font-style:normal;font-size:11px;font-weight:700;
+    color:#0A6B4A;margin-top:2px;}
+  /* Картинка менша, а значок скачування — ПІД назвою: доти він стояв поруч
+     і виштовхував назву на два рядки. */
   .dz-chk-top{align-items:flex-start;}
+  .dz-chk-i{width:58px;height:58px;}
+  .dz-chk-dl{margin-top:2px;}
+  .dz-chk-t b{display:block;}
+  /* Коротка стрічка: що сказали й що відповіли. Три рядки, не чат. */
+  .dz-tail{display:flex;flex-direction:column;gap:3px;padding:0 9px 8px;}
+  .dz-tail-more{font-style:normal;font-size:10.5px;color:var(--muted);}
+  .dz-tail-r{display:flex;align-items:baseline;gap:6px;font-size:11.5px;
+    color:var(--ink-soft);}
+  .dz-tail-r b{flex:none;font-weight:700;color:var(--ink);}
+  .dz-tail-r span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;}
+  .dz-tail-r i{flex:none;font-style:normal;font-size:10.5px;color:var(--muted);}
+  .dz-tail-r.is-tell b{color:#1B4B82;}
+  /* Вибір версії: показуємо саме те, що поїде, — щоб обирали очима. */
+  .dz-pick-c .dz-pick-n i{display:block;font-style:normal;font-size:11px;
+    color:var(--muted);font-weight:500;margin-top:2px;}
   /* Надіслано — це стан, а не кнопка: натискати вдруге нема за чим, і
      кнопка, яка нічого не змінить, лише просить помилитись. */
   .dz-chk-sent{margin-left:auto;font-size:11.5px;font-weight:600;color:#0A6B4A;
@@ -6272,19 +6301,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=30d179f2fc"></script>
-<script src="loomiq-fingerprint.js?v=30d179f2fc"></script>
-<script src="loomiq-pricing.js?v=30d179f2fc"></script>
+<script src="loomiq-select.js?v=3b3a8aafd9"></script>
+<script src="loomiq-fingerprint.js?v=3b3a8aafd9"></script>
+<script src="loomiq-pricing.js?v=3b3a8aafd9"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=30d179f2fc"></script>
-<script src="loomiq-mock.js?v=30d179f2fc"></script>
+<script src="loomiq-design.js?v=3b3a8aafd9"></script>
+<script src="loomiq-mock.js?v=3b3a8aafd9"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=30d179f2fc"></script>
+<script src="loomiq-cards.js?v=3b3a8aafd9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6309,7 +6338,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '30d179f2fc';
+var LQ_VER = '3b3a8aafd9';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -20899,9 +20928,24 @@ const crmWait = ms => new Promise(r => setTimeout(r, ms));
    вже пішло; пробувати після цього щось іще — це надсилати вдруге. Тому
    правило тепер одне: відповів 200 — зупинились і запамʼятали. Наступний
    спосіб пробуємо лише після справжньої відмови. */
+/* ІДЕНТИФІКАТОР РОЗМОВИ ЛЕЖИТЬ У ЗАМОВЛЕННІ, А НЕ В ПАМʼЯТІ СЕАНСУ.
+
+   `crmChat` — це кеш відкритої переписки: він заповнюється, лише коли
+   розмову ВІДКРИВАЛИ в розділі чатів. У відділі її не відкривають — там
+   тиснуть «Надіслати клієнту» просто з картки, — і надсилання падало з
+   «розмову не привʼязано», хоч привʼязка була: номер розмови записаний у
+   самому замовленні з тієї миті, як її привʼязали.
+
+   Тому питаємо обидва джерела: спершу памʼять, бо там свіжіше, потім саме
+   замовлення. Андрій: «надіслати клієнту, привʼязка не працює». */
+function crmChatIdOf(o){
+  const st = crmChat[o && o.id];
+  return String((st && st.chatId) || (o && o.crmChatId) || '');
+}
 async function crmSendPic(o, url, blob){
-  const st = crmChat[o.id];
-  if(!st || !st.chatId) throw new Error('розмову не привʼязано');
+  const chatId = crmChatIdOf(o);
+  if(!chatId) throw new Error('розмову не привʼязано');
+  const st = crmChat[o.id] || { chatId };
   const urls = crmPicList(url), blobs = crmPicList(blob);
   if(!urls.length) throw new Error('немає що надсилати');
   const known = String((contentData || {}).crmPicWay || '');
@@ -20949,8 +20993,10 @@ async function crmSendPic(o, url, blob){
   throw err;
 }
 async function crmSend(o, text){
-  const st = crmChat[o.id];
-  if(!st || !st.chatId || !text.trim()) return;
+  const chatId = crmChatIdOf(o);
+  if(!chatId || !text.trim()) return;
+  const st = crmChat[o.id] || (crmChat[o.id] = { chatId });
+  if(!st.chatId) st.chatId = chatId;
   /* БУЛЬБАШКА ЗʼЯВЛЯЄТЬСЯ ОДРАЗУ, А НЕ ПІСЛЯ ВІДПОВІДІ СЕРВЕРА.
 
      Доти власна репліка лягала в стрічку тільки після успішного POST — а
