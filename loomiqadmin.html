@@ -899,6 +899,15 @@
     min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:9px;
     background:var(--bad);color:#fff;padding:0 5px;}
   .nav-n[hidden]{display:none;}
+  /* ПОРОЖНІЙ КРУЖЕЧОК НЕ МАЛЮЄТЬСЯ. Андрій: «по ліву панель чомусь є
+     кружочки пусті — вони ж повинні зʼявлятися тоді, коли є якісь
+     повідомлення». Мали рацію: значок має мінімальну ширину й червоне тло,
+     тож порожній він усе одно видно — червона крапка, яка нічого не
+     означає. Ховали його лише атрибутом, і до першого підрахунку (а надто
+     якщо той упав) він висів на екрані й просив зайти туди, де нічого
+     немає. Тепер правило стоїть у самому стилі, і жоден збій лічильника
+     його не обійде. */
+  .nav-n:empty{display:none;}
   @media (max-width:760px){
     .chl-row{grid-template-columns:1fr auto auto;}
     .chl-ch,.chl-txt{grid-column:1/-1;}
@@ -3367,7 +3376,24 @@
   /* Шапка відділу: ліворуч — чия це дошка, праворуч — нове замовлення.
      Вкладок тут більше немає: у кожної ролі одна дошка, і вибирати з
      чогось людині не треба. */
+  /* Шапка відділу: дія ліворуч, пошук посередині, роль праворуч. Перемикач
+     ролі притиснутий до правого краю — він потрібен одній людині й раз на
+     день, а «нове замовлення» тиснуть щодня, і воно має лежати під рукою
+     там, звідки око починає читати. */
   .dz-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .dz-top .dz-as{margin-left:auto;}
+  /* Пошук росте на всю вільну ширину, але не безмежно: рядок на пів екрана
+     виглядає як поле вводу тексту, а не як пошук. */
+  .dz-seek{flex:1;min-width:0;max-width:420px;display:flex;align-items:center;gap:7px;
+    background:#fff;border:1px solid var(--line);border-radius:9px;padding:0 10px;}
+  .dz-seek:focus-within{border-color:var(--accent);}
+  .dz-seek i{flex:none;font-style:normal;font-size:14px;color:var(--muted);}
+  .dz-seek input{flex:1;min-width:0;font:inherit;font-size:13px;color:var(--ink);
+    background:none;border:0;outline:none;padding:8px 0;}
+  .dz-seek input::-webkit-search-cancel-button{display:none;}
+  .dz-seek-x{all:unset;cursor:pointer;flex:none;color:var(--muted);font-size:15px;
+    line-height:1;padding:2px 4px;border-radius:5px;}
+  .dz-seek-x:hover{background:var(--canvas);color:var(--ink);}
   .dz-as{display:flex;align-items:center;gap:8px;font-size:13px;}
   .dz-as span{font-weight:700;color:var(--ink-soft);}
   .dz-as b{font-weight:800;color:var(--ink);}
@@ -3677,6 +3703,10 @@
   .dz-w-l{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;
     letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
   .dz-w-l::after{content:'';flex:1;height:1px;background:var(--line-soft);}
+  /* Розмова з менеджером — у самому низу, власним блоком. Доти поле стояло
+     між ТЗ і завантаженням файлу: дизайнер відкривав картку, щоб віддати
+     роботу, і першим натикався на порожнє поле для листа. */
+  .dz-w-say{display:flex;flex-direction:column;gap:7px;}
   .dz-w-row{display:flex;gap:8px;}
   .dz-w-row .dz-b{flex:1;text-align:center;justify-content:center;}
   .dz-w-row .dz-b.dz-quiet{flex:none;}
@@ -4722,11 +4752,11 @@
       <nav class="nav">
         <button data-view="today" data-tip="Задачі"><i class="nav-e">📋</i><span>Задачі</span></button>
         <button data-view="board" class="active" data-tip="Замовлення B2B"><i class="nav-e">🧵</i><span>Замовлення B2B</span></button>
-        <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2B</span><i class="nav-n" data-nav-n="chats"></i></button>
+        <button data-view="chats" data-tip="Чати B2B — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2B</span><i class="nav-n" data-nav-n="chats" hidden></i></button>
         <!-- Дизайн-відділ — це ті самі замовлення, лише приватні: тому він
              стоїть не осторонь, а другою парою «замовлення + чати». -->
         <button data-view="design" data-tip="Замовлення B2C — приватні"><i class="nav-e">🎨</i><span>Замовлення B2C</span></button>
-        <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc"></i></button>
+        <button data-view="chatsc" data-tip="Чати B2C — кому ще не відповіли"><i class="nav-e">💬</i><span>Чати B2C</span><i class="nav-n" data-nav-n="chatsc" hidden></i></button>
         <button data-view="analytics" data-tip="Аналітика"><i class="nav-e">📈</i><span>Аналітика</span></button>
         <button data-view="fin" data-tip="Фінанси — платежі з банків"><i class="nav-e">💳</i><span>Фінанси</span></button>
         <button data-view="calc" class="nav-off" data-tip="Прорахунок"><i class="nav-e">🧮</i><span>Прорахунок</span></button>
@@ -6389,19 +6419,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=569384519d"></script>
-<script src="loomiq-fingerprint.js?v=569384519d"></script>
-<script src="loomiq-pricing.js?v=569384519d"></script>
+<script src="loomiq-select.js?v=d8124c88cb"></script>
+<script src="loomiq-fingerprint.js?v=d8124c88cb"></script>
+<script src="loomiq-pricing.js?v=d8124c88cb"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=569384519d"></script>
-<script src="loomiq-mock.js?v=569384519d"></script>
+<script src="loomiq-design.js?v=d8124c88cb"></script>
+<script src="loomiq-mock.js?v=d8124c88cb"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=569384519d"></script>
+<script src="loomiq-cards.js?v=d8124c88cb"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6426,7 +6456,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '569384519d';
+var LQ_VER = 'd8124c88cb';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -21464,10 +21494,34 @@ async function crmSweepOnce(){
    Розділи роздільні — свій на кожен напрям. Один список із перемикачем був
    би тим самим змішуванням, від якого ми й розділяємось: фільтр рано чи
    пізно злітає, і менеджер відповідає не своєму клієнту. */
+/* ЯКІ ЗАМОВЛЕННЯ ВВАЖАЮТЬСЯ «НАШИМИ» ДЛЯ ЦЬОГО РОЗДІЛУ ЧАТІВ.
+
+   Було просте правило: напрям замовлення дорівнює напряму розділу. На ділі
+   воно розходилось із тим, що людина бачить на екрані. Відділ дизайну B2C
+   показує не лише свої замовлення, а й ті замовлення Канбану, у яких
+   картка дизайну вже заведена: дороги туди більше немає, але зроблену
+   роботу ховати не можна. Виходило, що замовлення стоїть у відділі B2C, а
+   розмова по ньому — у чатах B2B, і в B2C її немає ніде.
+
+   Андрій: «саме те, що є в картках замовлення B2C, повинно бути в чатах
+   B2C, щоб можна було це все маякувати, бачити, щоб ми нічого не
+   втратили».
+
+   Тому чати B2C беруть рівно той самий список, що й відділ. Замовлення,
+   яке видно в обох місцях, буде й у обох списках чатів — і це чесно: воно
+   справді ведеться з двох боків, і загубити його гірше, ніж показати
+   двічі. B2B при цьому не міняється взагалі: там як було, так і лишилось. */
+function chatsOrders(dir){
+  if(dir === 'b2c'){
+    try{ return designOrders(); }
+    catch(e){ console.warn('чати B2C', e);
+      return (orders || []).filter(o => orderDir(o) === 'b2c'); }
+  }
+  return (orders || []).filter(o => orderDir(o) === 'b2b');
+}
 function chatsRows(dir){
   const out = [];
-  (orders || []).forEach(o => {
-    if(orderDir(o) !== dir) return;
+  chatsOrders(dir).forEach(o => {
     if(!o.crmChatId && !tgChatOf(o)) return;
     out.push({
       o: o,
@@ -24126,17 +24180,52 @@ function cardsSync(o){
 /* Запасний шлях: забрати обрані собі й прикріпити руками. Потрібен саме
    тоді, коли автоматика не спрацювала, — а тоді ж найменше хочеться шукати,
    де ті картки взяти. */
-function cardsDownload(o){
+async function cardsDownload(o){
   const st = chatWin && chatWin.cards;
   if(!st || !st.deck) return;
   const store = cardPix[o.id] || {};
   const want = st.deck.list.filter(c => st.pick[c.id] && store[c.id]);
   if(!want.length) return toast('Нічого не обрано');
-  want.forEach((c, i) => {
-    const nm = window.LQCards.fileName(c, st.deck.list.indexOf(c), st.deck.offer, 'jpg');
-    setTimeout(()=> docDownload(store[c.id].url, nm), i * 250);
-  });
-  toast(want.length + ' ' + cardWord(want.length) + ' — у завантаженнях');
+  /* ОДИН АРХІВ, А НЕ ПʼЯТЬ ОКРЕМИХ ФАЙЛІВ.
+
+     Доти картки летіли по одній, через чверть секунди кожна. Андрій: «коли
+     ми скачати всі натискаємо, то качаються всі окремими фотками, не
+     зіпкою».
+
+     Це не смак. Кілька завантажень поспіль браузер віддає неохоче: Chrome
+     питає «дозволити кілька завантажень?», Opera мовчки блокує все після
+     першого, а кожне наступне натискання відлітає все далі від справжнього
+     кліку — і перестає вважатись його наслідком. Плюс пʼять файлів у теці
+     «Завантаження» треба потім зібрати руками, щоб переслати.
+
+     Архів адмінка вже вміє: той самий `zipBlob`, яким їдуть макети
+     замовлення й картки з редактора КП. Одна картка архіву не потребує —
+     її віддаємо як є. */
+  if(want.length === 1){
+    const c = want[0];
+    docDownload(store[c.id].url,
+      window.LQCards.fileName(c, st.deck.list.indexOf(c), st.deck.offer, 'jpg'));
+    return toast('Картку збережено');
+  }
+  toast('Пакую…');
+  const files = [];
+  const used = {};
+  for(const c of want){
+    let name = window.LQCards.fileName(c, st.deck.list.indexOf(c), st.deck.offer, 'jpg');
+    /* Два однакові імені в архіві — це один файл замість двох: другий
+       мовчки затирає перший. */
+    if(used[name]){
+      const dot = name.lastIndexOf('.');
+      name = name.slice(0, dot) + '-' + (++used[name]) + name.slice(dot);
+    } else used[name] = 1;
+    try{
+      files.push({ name, data: new Uint8Array(await store[c.id].blob.arrayBuffer()) });
+    }catch(e){ console.warn('картка не прочиталась', name, e); }
+  }
+  if(!files.length) return toast('Жодна картка не прочиталась');
+  docDownload(URL.createObjectURL(zipBlob(files)),
+              'kartky-' + (o.orderId || 'loomiq') + '.zip');
+  toast(files.length + ' ' + cardWord(files.length) + ' — одним архівом');
 }
 /* ── Заготовки просто у вікні діалога ────────────────────────────────────
    Правити їх треба там, де їх видно в роботі. Доти єдиний вхід був через

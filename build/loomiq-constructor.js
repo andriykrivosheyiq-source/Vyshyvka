@@ -7619,7 +7619,19 @@
         var g = getGarment(), c = getColor();
         var snapSide = side;
         var layers = bare ? [] : inkLayers(snapSide);   // схований шар у знімок не потрапляє
-        var C = sizeOverride || 500;
+        /* `'max'` — знімати в тій роздільності, яку має саме це фото.
+
+           Доти для скачування стояло число 2000, і воно вгадувало: фото
+           виробу в каталозі бувають і 1200 px, і 2400. Менше — і ми
+           розтягували 1200 до 2000, тобто видавали розмитий файл за
+           великий; більше — і віддавали половину того, що маємо. Андрій:
+           «я думаю, що вона ще не скачується в гарній якості».
+
+           Тепер беремо натуральну ширину знімка (у розумних межах) — те,
+           що є, без домальовування й без втрат. Решта викликів (картки
+           КП, збереження позиції) ходять сюди з числом і не міняються. */
+        var натуральна = sizeOverride === 'max';
+        var C = натуральна ? 2000 : (sizeOverride || 500);
         /* Вітрина знімається тим самим кодом, що й решта сторін, — інакше
            знімок і сцена розійшлися б, а саме через це логотип у картці й
            стояв не там, де його поставили. Різниця одна: адреса фото. Воно
@@ -7652,7 +7664,9 @@
           var nat = (img && img.naturalWidth && img.naturalHeight)
                   ? img.naturalHeight / img.naturalWidth : 1;
           var r = Math.max(0.5, Math.min(2, nat));   // запобіжник від дивних файлів
-          H = Math.round(C * r);
+          if(натуральна && img && img.naturalWidth)
+            W = Math.max(1200, Math.min(4000, img.naturalWidth));
+          H = Math.round(W * r);
           canvas.width = W; canvas.height = H;
           ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
@@ -7761,20 +7775,48 @@
         if(busy) return;
         busy = true;
         var back = mark ? mark() : null;
-        // висока роздільна здатність для завантаження
-        snapshotSide(pm.side, 2000, false, bare).then(function(url){
-          if(url){
-            /* Виріб і колір беремо звідти ж, звідки їх бере сам знімок. У
-               pm.colorId лежить те, що ВИБРАЛИ руками, а поки не вибрали —
-               там порожньо, і в імені файла з'являлось «null». */
-            var g = getGarment(), c = getColor();
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = 'mockup-' + ((g && g.id) || 'item') + '-' + ((c && c.id) || 'color') +
-                         '-' + pm.side + (bare ? '-blank' : '') + '.png';
-            document.body.appendChild(a); a.click(); a.remove();
+        /* ЧОМУ BLOB, А НЕ data:.
+
+           Знімок ішов у `<a download>` адресою `data:image/png;base64,…`.
+           На 500 px це кілька сотень кілобайт і працює; на роздільності для
+           скачування той самий рядок — мегабайтів десять, а браузер
+           відмовляється переходити на такі довгі data:-адреси. Відмовляється
+           МОВЧКИ: помилки немає, події немає, просто нічого не відбувається.
+           Саме це Андрій і бачив: «скачати з дизайном або скачати пусту —
+           воно чомусь не скачується».
+
+           Blob такої межі не має взагалі: адреса коротка, дані лежать у
+           памʼяті. Прибираємо її одразу після натиску — інакше кожне
+           скачування лишає по десять мегабайтів до перезавантаження
+           сторінки. */
+        snapshotSide(pm.side, 'max', false, bare).then(function(url){
+          if(!url){
+            /* Мовчазний провал гірший за відмову: людина тисне вдруге й
+               втретє, і щоразу нічого. Кажемо прямо. */
+            /* Своїх сповіщень у конструкторі немає, а кнопка ця бачить
+               тільки менеджера — тож звичайне вікно тут доречне: головне,
+               щоб людина дізналась, що натиск не спрацював. */
+            try{ alert('Знімок не зібрався — спробуйте ще раз'); }catch(e){}
+            busy = false; if(back) back();
+            return;
           }
-          busy = false; if(back) back();
+          /* Виріб і колір беремо звідти ж, звідки їх бере сам знімок. У
+             pm.colorId лежить те, що ВИБРАЛИ руками, а поки не вибрали —
+             там порожньо, і в імені файла з'являлось «null». */
+          var g = getGarment(), c = getColor();
+          var імя = 'mockup-' + ((g && g.id) || 'item') + '-' + ((c && c.id) || 'color') +
+                    '-' + pm.side + (bare ? '-blank' : '') + '.png';
+          fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
+            var href = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = href; a.download = імя;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function(){ URL.revokeObjectURL(href); }, 60000);
+          }).catch(function(){
+            /* Навіть якщо blob не вийшов — не мовчимо: відкриваємо знімок
+               вкладкою, звідки його можна зберегти руками. */
+            try{ window.open(url, '_blank', 'noopener'); }catch(e){}
+          }).then(function(){ busy = false; if(back) back(); });
         }).catch(function(){ busy = false; if(back) back(); });
       }
       /* Кнопка на час підготовки каже, що зайнята: знімок на 2000 px не
