@@ -1669,7 +1669,26 @@
              pics: [],
              graphic: [], stitch: [], note:'' };
   }
-  function unitsOf(job){ return Array.isArray(job && job.units) ? job.units : []; }
+  /* ПОЗИЦІЇ ЗІ СТАРОЇ БАЗИ ПРИХОДЯТЬ НЕПОВНИМИ, І ЦЕ НЕ ВИНЯТОК.
+
+     Замовлення, заведені до появи картинок при виробі, лежать без поля
+     `pics` зовсім. Один `.map` по ньому — і весь розділ падає з «Cannot read
+     properties of undefined», хоч дані цілком справні: просто вони старші
+     за код.
+
+     Дописувати бракуючі поля в кожному місці, де їх читають, — це двадцять
+     місць і дев'ятнадцять шансів забути. Тому дописуємо їх ТУТ, там, де
+     позиції беруть, — так само, як `dzList` уже робить для дизайнів. */
+  function unitsOf(job){
+    var l = Array.isArray(job && job.units) ? job.units : [];
+    l.forEach(function(u){
+      if(!u) return;
+      if(!Array.isArray(u.pics)) u.pics = [];
+      if(!Array.isArray(u.graphic)) u.graphic = [];
+      if(!Array.isArray(u.stitch)) u.stitch = [];
+    });
+    return l;
+  }
   function unitAt(job, id){
     return unitsOf(job).filter(function(u){ return u.id === id; })[0] || null;
   }
@@ -2392,8 +2411,13 @@
            пів картки означає, що склад замовлення доводиться шукати
            прокруткою. Квадратик каже «вона тут є», а роздивитись її можна
            натиском — і саме тоді, коли треба. */
+        /* `u.pics || []` — не перестраховка. Позиції, заведені до появи
+           картинок, приходять із бази БЕЗ цього поля зовсім, і `.map` на
+           ньому валив увесь розділ: «Cannot read properties of undefined».
+           Нові дані такої дірки не мають, старі — мають, і живуть вони в
+           одній базі. */
         '<div class="dz-pics">' +
-          u.pics.map(function(pp, i){
+          (u.pics || []).map(function(pp, i){
               return '<span class="dz-pic">' +
                 '<button type="button" class="dz-pic-b" data-do="pic-open" ' +
                   'data-url="' + esc(pp.url) + '" title="' + esc(pp.name || 'Подивитись') + '">' +
