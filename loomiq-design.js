@@ -2288,17 +2288,26 @@
            Лишається те, за чим упізнають роботу: сама картинка, підпис
            «номер · версія» і слова дизайнера, якщо вони є. */
         '<div class="dz-chk-t">' +
-          '<b>' + esc(((o && o.orderId) || '') + ' · v' + v.n) + '</b>' +
+          /* НОМЕР ТУТ — ТОЙ САМИЙ, ЩО В ШАПЦІ. Доти підпис версії брав номер
+             ЗАМОВЛЕННЯ, а шапка — номер відділу: у картці стояло «#2000001»
+             вгорі й «5001 · v1» посередині, і два різні числа про ту саму
+             роботу перетворювали кожну розмову на зʼясування, про що мова. */
+          '<b>' + esc(jobNo(job) + ' · v' + v.n) + '</b>' +
           (v.note ? '<i class="dz-chk-n">' + esc(v.note) + '</i>' : '') +
         '</div>' +
+        (ro ? '' : '<button class="dz-ib dz-chk-dl" data-do="dz-card" data-dz="' + key +
+          '" data-v="' + v.n + '" title="Скачати аркуш для цеху">⤓</button>') +
       '</div>' +
       (ro ? '' :
+      /* Дві дії — в один рядок, зліва й справа: це вибір «повернути або
+         показати», і поставлені одна під одну вони читаються як послідовність
+         кроків, якою не є. Аркуш звідси пішов угору, до самої картинки:
+         він потрібен цеху раз на замовлення, а місце під кнопками забирав
+         у кожній позиції. */
       '<div class="dz-chk-b">' +
-        '<button class="dz-b" data-do="dz-card" data-dz="' + key +
-          '" data-v="' + v.n + '">⤓ Аркуш</button>' +
         (d.ok
           ? '<button class="dz-b" data-do="dz-unok" data-dz="' + key + '">Зняти затвердження</button>'
-          : '<button class="dz-b" data-do="dz-fix" data-dz="' + key + '">Правка дизайнеру</button>') +
+          : '<button class="dz-b" data-do="dz-fix" data-dz="' + key + '">Правка</button>') +
         (надіслано
           ? '<span class="dz-chk-sent">Надіслано ' + esc(dt(v.sentToClient)) + '</span>'
           : '<button class="dz-b pri" data-do="dz-tell" data-dz="' + key +
@@ -4915,47 +4924,49 @@
          що перешлють посилання на адмінку, куди в клієнта доступу немає. */
       if(what === 'dz-card'){
         if(!window.LQMock) return say('Малювальник картки не завантажився');
-        var cv2 = (dd.vers || []).filter(function(v){ return +v.n === +(data && data.v); })[0]
+        var cv2 = (dd.vers || []).filter(function(x){ return +x.n === +(data && data.v); })[0]
                   || dd.vers[dd.vers.length - 1];
         if(!cv2) return say('Версії ще немає');
         var fs2 = cv2.files || [];
         var g2 = U.catItem(du.gid);
-        say('Збираю картку…');
+        var pl = cv2.place || {};
+        say('Збираю аркуш…');
         var png = await window.LQMock.card({
           art: (fs2[0] || {}).url,
           mock: (fs2[1] || {}).url,
-          title: U.jobNo(job) + ' · v' + cv2.n,
-          sub: [(g2 && g2.name) || du.name, du.color, du.size,
-                ((+du.qty || 0) + ' шт')].filter(Boolean).join(' · '),
-          nums: cv2.place && cv2.place.wCm
-            ? [['ШИРИНА', мсм(cv2.place.wCm)], ['ВИСОТА', мсм(cv2.place.hCm)],
-               ['ВІД ГОРЛОВИНИ', мсм(cv2.place.topCm)],
-               ['ВІД ЦЕНТРУ', (cv2.place.sideCm > 0 ? '+' : cv2.place.sideCm < 0 ? '−' : '') +
-                              мсм(Math.abs(cv2.place.sideCm))],
-               ['РОЗМІР', String(cv2.place.size || du.size || '—')]]
-            : [],
-          /* Склад тут не повторюємо: він уже стоїть підзаголовком угорі
-             аркуша. Лишається те, чого там немає, — слова менеджера й
-             дизайнера про саме цей макет. */
-          lines: [du.note || '', cv2.note || ''].filter(Boolean),
-          /* Смуга «виріб проти нанесення». «23,7 см» саме по собі нічого не
-             каже: багато це чи мало, залежить від того, на чому воно лежить. */
-          wideCm: window.LQMock.widthCm(du.gid, (cv2.place || {}).size || du.size),
-          artCm: (cv2.place || {}).wCm || 0,
-          sideCm: (cv2.place || {}).sideCm || 0,
-          /* Застереження для клієнта — те, що доти писали руками в кожному
-             повідомленні. Тут воно їде разом із картинкою, тож губитись
-             немає де. */
+          /* Назва аркуша — той самий номер, що в шапці картки й на самій
+             версії. Три різні числа про одну роботу вже коштували нам
+             розмови «а це взагалі про що». */
+          title: U.jobNo(job) + ' · версія ' + cv2.n,
+          /* Характеристики рядком, як у комерційній пропозиції: підпис
+             капітеллю, значення великим. Перше — виріб, бо саме з нього
+             починають читати. */
+          nums: [
+            ['Виріб', (g2 && g2.name) || du.name || '—'],
+            ['Колір', du.color || '—'],
+            ['Розмір', du.size || '—'],
+            ['Кількість', (+du.qty || 0) + ' шт'],
+            ['Нанесення', pl.wCm ? (мсм(pl.wCm) + ' × ' + мсм(pl.hCm)) : '—']
+          ],
+          wideCm: window.LQMock.widthCm(du.gid, pl.size || du.size),
+          artCm: pl.wCm || 0,
+          sideCm: pl.sideCm || 0,
+          /* Наші контакти в шапці — ті самі, що в комерційній пропозиції:
+             аркуш доходить до цеху й до підрядника, і питання «а це від
+             кого» має відповідь на самому аркуші. */
+          contacts: (function(){
+            try{ return (host().contacts && host().contacts()) || []; }catch(e){ return []; }
+          })(),
           note: (function(){
             try{ return (host().cardNote && host().cardNote()) || ''; }catch(e){ return ''; }
           })()
         });
-        if(!png) return say('Картка не зібралась');
+        if(!png) return say('Аркуш не зібрався');
         var a2 = document.createElement('a');
         a2.href = png;
-        a2.download = 'Макет-' + (o.orderId || '') + '-v' + cv2.n + '.png';
+        a2.download = 'Макет-' + U.jobNo(job).replace('#', '') + '-v' + cv2.n + '.png';
         document.body.appendChild(a2); a2.click(); a2.remove();
-        return say('Картку збережено');
+        return say('Аркуш збережено');
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
