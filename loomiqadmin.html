@@ -3424,8 +3424,17 @@
      притиснута до краю на всю висоту, тієї самої ширини, з тією самою
      тінню. Доти вона стояла стовпчиком у потоці — і читалась як «щось
      своє», хоча роль у неї рівно та сама. */
+  /* ШИРША ЗА КАРТКУ ЗАМОВЛЕННЯ, І НАВМИСНО.
+
+     Тут стоять ДВІ колонки роботи поруч — графіка й вишивка, — і в кожній
+     картка з мокапом, розміщенням у сантиметрах і трьома діями. У 500 px
+     це все складається в стовпчик із двох слів у рядок: «23,7 см × 9,5 / см
+     · від / горловини». Перевіряти по такому неможливо.
+
+     Картка замовлення в Канбані лишається вужчою: там читають текст, а не
+     працюють у двох колонках. */
   .dz-panel{position:fixed;top:0;right:0;bottom:0;z-index:200;
-    width:min(var(--od-w),100%);background:#fff;border:0;border-radius:0;
+    width:min(760px,100%);background:#fff;border:0;border-radius:0;
     display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
   .dz-panel.hide{display:none;}
   /* Решта екрана гасне, поки панель відкрита: увага там, де працюють. */
@@ -3698,7 +3707,13 @@
     display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--zs);}
   .dz-z.is-fold > .dz-z-h:hover{filter:brightness(.98);}
   .dz-z.is-fold:not(.open) > .dz-z-h{border-bottom:0;}
-  .dz-z-a{font-style:normal;font-size:11px;color:var(--muted);flex:none;}
+  /* Стрілка складеної зони — помітна. Дрібна «▾» не читалась як «тут можна
+     відкрити»: люди просто не знали, що блок розкривається, і ходили
+     дивитись гроші в інший розділ. */
+  .dz-z-a{font-style:normal;font-size:15px;line-height:1;color:var(--zi);flex:none;
+    width:22px;height:22px;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;background:rgba(255,255,255,.7);}
+  .dz-z.is-fold > .dz-z-h:hover .dz-z-a{background:#fff;}
   .dz-z.is-fold .dz-z-s{margin-left:auto;}
   .dz-z.z-gray  {--z:#9AA5B5;--zs:#F4F6F9;--zi:#5A6675;}
   .dz-z.z-blue  {--z:#2E90FA;--zs:#EFF6FF;--zi:#1B4B82;}
@@ -3840,7 +3855,15 @@
   .dz-u-acts{display:flex;gap:4px;flex:none;margin-left:auto;}
   /* Один ряд: виріб · колір · розмір · кількість. Підписи всередині полів —
      ряд заголовків над ними займав рядок і не додавав нічого. */
-  .dz-u-f{display:grid;grid-template-columns:1.6fr 1fr 0.7fr 0.55fr;gap:6px;}
+  /* Номер, поля й дії — ОДНА лінія. Сітка в чотири колонки тут не годиться:
+     номер і дії мають свою ширину, а виріб має забирати решту. Flex робить
+     це сам, і рядок не розсипається на два. */
+  .dz-u-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .dz-u-f .dz-pickb{min-width:0;}
+  .dz-u-f .dz-pickb:nth-of-type(1){flex:2 1 120px;}
+  .dz-u-f .dz-pickb:nth-of-type(2){flex:1 1 84px;}
+  .dz-u-f .dz-pickb:nth-of-type(3){flex:0 1 66px;}
+  .dz-u-f .dz-qty{flex:0 0 54px;}
   .dz-qty{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;text-align:center;
     border:1px solid var(--line);border-radius:8px;padding:7px 4px;outline:none;min-width:0;}
   .dz-qty:focus{border-color:var(--accent);}
@@ -3881,6 +3904,7 @@
   .dz-u-note textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
     border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;resize:vertical;}
   .dz-u-note textarea:focus{border-color:var(--accent);}
+  .dz-u-note textarea[data-grow]{resize:none;overflow:hidden;}
   /* Строк — у шапці панелі, поруч із номером: це рамка всього замовлення,
      і читають її до складу, а не після нього. */
   .dz-term{display:flex;align-items:center;gap:6px;flex:none;margin-left:auto;}
@@ -4022,9 +4046,7 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* Кнопку «Картинка» ставимо ПОРУЧ із мініатюрами, а не під ними: під ними
      вона з'їдала рядок висоти в кожній позиції, а позицій буває шість. */
-  .dz-u-pics.has{display:flex;align-items:flex-start;gap:8px;}
-  .dz-u-pics.has .dz-pics{flex:1;min-width:0;}
-  .dz-u-pics.has > .dz-b{flex:none;margin-top:0;}
+  /* «+» стоїть у тому самому ряду, тією самою плиткою. */
   /* ── Рядок дизайну: тільки вибір людини ── */
   .dz-dz-t{display:flex;align-items:center;gap:6px;}
   .dz-dz-who{flex:1;min-width:0;font:inherit;font-size:12px;color:var(--ink);
@@ -4095,7 +4117,41 @@
   .cw-qr-dir{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);}
   .cw-qr-dir select{font:inherit;font-size:12.5px;padding:6px 8px;border-radius:8px;
     border:1px solid var(--line);background:#fff;color:var(--ink);outline:none;}
-  .dz-u-col{min-width:0;border-radius:9px;padding:7px;background:var(--canvas);}
+  /* ── Рядок позиції: номер, поля й дії в одну лінію ── */
+  .dz-u-f .dz-u-n{flex:none;align-self:center;}
+  .dz-u-f .dz-u-acts{flex:none;display:flex;gap:2px;}
+  /* Кнопка «додати картинку» — плитка в ряду картинок, а не окрема кнопка
+     збоку: та читалась як чужа річ і розривала ряд. */
+  .dz-pic-add{all:unset;cursor:pointer;box-sizing:border-box;width:100%;aspect-ratio:1;
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    color:var(--muted);background:var(--canvas);border:1px dashed var(--line);
+    border-radius:8px;}
+  .dz-pic-add:hover{border-color:var(--accent);color:var(--accent-deep);
+    background:var(--accent-soft);}
+  /* ── Хто робить ── */
+  .dz-dz-who{display:flex;align-items:center;gap:6px;}
+  .dz-dz-who b{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--ink);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dz-dz-who i{flex:1;font-style:normal;font-size:12px;color:var(--muted);}
+  .dz-dz-sel{width:100%;box-sizing:border-box;font:inherit;font-size:12px;
+    color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:7px;
+    padding:6px 7px;outline:none;cursor:pointer;}
+  .dz-dz-sel:hover{border-color:var(--accent);}
+  /* Передали й чекаємо. Це стан, а не дія: кнопки тут немає, бо передавати
+     вдруге нічого. */
+  .dz-wait{font-size:11.5px;color:var(--ink-soft);background:var(--canvas);
+    border-radius:8px;padding:8px 9px;}
+  /* Питання дизайнера — не чат, а один рядок і поле відповіді. */
+  .dz-ask{background:#FEF8E7;border:1px solid #F0D48A;border-radius:9px;
+    padding:8px 9px;display:flex;flex-direction:column;gap:6px;}
+  .dz-ask-h{font-size:10.5px;font-weight:700;color:#8A6410;}
+  .dz-ask-t{font-size:12.5px;color:var(--ink);white-space:pre-wrap;}
+  .dz-ask textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:7px 8px;outline:none;
+    resize:none;overflow:hidden;}
+  .dz-ask textarea:focus{border-color:var(--accent);}
+  .dz-u-col{min-width:0;border-radius:9px;padding:7px;background:var(--canvas);
+    display:flex;flex-direction:column;gap:7px;}
   .dz-u-l{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:baseline;gap:6px;}
   .dz-u-l i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.02em;
@@ -4317,7 +4373,7 @@
     border-radius:6px;font-size:14px;}
   .dz-dz-x:hover{background:var(--bad-soft);color:var(--bad);}
   @media (max-width:760px){
-    .dz-u-f{grid-template-columns:1fr 1fr;}
+    .dz-u-f{gap:5px;}
     .dz-u-dz{grid-template-columns:1fr;}
   }
   .dz-item{border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;}
@@ -6208,19 +6264,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=58fec2d322"></script>
-<script src="loomiq-fingerprint.js?v=58fec2d322"></script>
-<script src="loomiq-pricing.js?v=58fec2d322"></script>
+<script src="loomiq-select.js?v=90d64b5d62"></script>
+<script src="loomiq-fingerprint.js?v=90d64b5d62"></script>
+<script src="loomiq-pricing.js?v=90d64b5d62"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=58fec2d322"></script>
-<script src="loomiq-mock.js?v=58fec2d322"></script>
+<script src="loomiq-design.js?v=90d64b5d62"></script>
+<script src="loomiq-mock.js?v=90d64b5d62"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=58fec2d322"></script>
+<script src="loomiq-cards.js?v=90d64b5d62"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6245,7 +6301,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '58fec2d322';
+var LQ_VER = '90d64b5d62';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -25702,17 +25758,34 @@ async function designBindChat(o, text){
       if(one){ who = one; break; }
     }catch(e){ /* закрито — привʼяжемо за самим номером */ }
   }
-  const nick = (who && (who.nick || who.name)) || o.crmChatName || ('чат ' + id);
+  /* НІК І ІМʼЯ — ДВА РІЗНІ ПОЛЯ, І ЗЛИПАТИСЬ ЇМ НЕ МОЖНА.
+
+     Доти сюди клалось одне значення: нік, якщо він був, інакше імʼя, — і
+     все це лягало в `crmChatName`. Поле `crmNick` не заповнювалось ніколи, а
+     підпис клієнта будується саме з нього: «@нік · Імʼя». Через це ніків у
+     картках не було видно взагалі — Андрій: «в клієнта нік чомусь зараз не
+     видно».
+
+     Зовні це виглядало як «нік не підтягується», хоча Sitniks його чесно
+     віддавав, а ми самі його викидали рядком нижче. */
+  if(who && who.nick) o.crmNick = String(who.nick).replace(/^@/, '');
+  const імʼя = (who && who.name) || '';
+  const підпис = імʼя || (who && who.nick) || o.crmChatName || ('чат ' + id);
   o.crmChatId = id;
-  o.crmChatName = nick;
-  if(!o.name) o.name = nick;
+  o.crmChatName = підпис;
+  if(!o.name) o.name = підпис;
+  /* Нік із розмови Instagram кладемо й у канал: за ним людину знаходять і
+     з картки Канбану, не лише у відділі. */
+  if(o.crmNick && !String(o.ig || '').trim() &&
+     !/^(Telegram|Viber|WhatsApp|Facebook)$/.test((who && who.channel) || ''))
+    chanSet(o, 'ig', o.crmNick);
   try{ await saveOrderMeta(o); }catch(e){ console.warn(e); }
-  toast('Розмову привʼязано: ' + nick);
+  toast('Розмову привʼязано: ' + crmWhoLabel(o));
   return true;
 }
 function designUnbindChat(o){
   if(!o) return;
-  delete o.crmChatId; delete o.crmChatName;
+  delete o.crmChatId; delete o.crmChatName; delete o.crmNick;
   saveOrderMeta(o).catch(e => console.warn(e));
   toast('Розмову відвʼязано');
 }
