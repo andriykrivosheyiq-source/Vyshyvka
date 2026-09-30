@@ -3900,6 +3900,12 @@
   .dz-hand-h{font-size:10.5px;font-weight:800;letter-spacing:.05em;
     text-transform:uppercase;color:var(--muted);}
   .dz-w-take{display:flex;gap:8px;}
+  /* Черга відділу: робота нічия, її бере перший. Підпис над кнопкою, щоб
+     було ясно, чому кнопка одна й чому поспішати. */
+  .dz-w-take.is-q{flex-direction:column;align-items:stretch;}
+  .dz-w-q{font-size:12px;font-weight:600;color:#0e7490;background:#ecfeff;
+    border:1px solid #a5f3fc;border-radius:8px;padding:6px 10px;}
+  .dz-u-who.is-q{color:#0e7490;}
   .dz-w-take .dz-b{flex:1;text-align:center;justify-content:center;}
   .dz-w-send{display:flex;flex-direction:column;gap:7px;}
   .dz-w-send textarea{font:inherit;font-size:12.5px;color:var(--ink);background:#fff;
@@ -6700,19 +6706,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=979b455933"></script>
-<script src="loomiq-fingerprint.js?v=979b455933"></script>
-<script src="loomiq-pricing.js?v=979b455933"></script>
+<script src="loomiq-select.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-fingerprint.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-pricing.js?v=2ab1a3a8fe"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=979b455933"></script>
-<script src="loomiq-mock.js?v=979b455933"></script>
+<script src="loomiq-design.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-mock.js?v=2ab1a3a8fe"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=979b455933"></script>
+<script src="loomiq-cards.js?v=2ab1a3a8fe"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6737,7 +6743,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '979b455933';
+var LQ_VER = '2ab1a3a8fe';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9561,6 +9567,10 @@ function b2cCfg(){
            /* Годин на макет. Доба — домовленість, а не закон природи, і
               міняти її не має означати правку коду. */
            dzHours: (+c.dzHours > 0) ? Math.round(+c.dzHours) : 24,
+           /* Скільки замовлень дизайнер може тримати в роботі одночасно.
+              Нуль — без обмеження: доки число не поставили, черга працює
+              вільно, як Андрій і просив спершу. */
+           dzLimit: (+c.dzLimit > 0) ? Math.round(+c.dzLimit) : 0,
            /* Примітка на картці макета. Порожньої не буває: якщо її не
               заповнили, беремо ту, яку й доти писали руками, — інакше
               картка поїде клієнту без застереження про колір. */
@@ -9590,7 +9600,15 @@ function paintB2cTerms(){
              placeholder="${t.h}" value="${cur[k] === t.h ? '' : cur[k]}">
       <span class="b2c-term-h">год</span>
     </label>`;
-  }).join('');
+  }).join('') +
+  /* Обмеження черги — поруч зі строками: і те, і те про те, скільки роботи
+     людина тримає в руках. */
+  `<label class="b2c-term">
+      <span class="b2c-term-t"><b>Одночасно в роботі</b><i>скільки замовлень графічний дизайнер може взяти з черги, поки не здасть попередні на перевірку; порожньо — без обмеження</i></span>
+      <input type="number" min="0" max="50" step="1" id="b2c-dzlimit"
+             placeholder="—" value="${b2cCfg().dzLimit || ''}">
+      <span class="b2c-term-h">зам.</span>
+    </label>`;
 }
 function readB2cTerms(){
   const out = {};
@@ -9685,8 +9703,10 @@ function retailCost(gid){
     /* `dzHours` лишається записаним тим самим числом, що й строк графіки:
        його читають старі збірки, які ще можуть бути відкриті в сусідній
        вкладці, і мовчки змінити їм строк було б гірше за зайве поле. */
+    const dzLimit = Math.max(0, Math.round(parseFloat((document.getElementById('b2c-dzlimit') || {}).value) || 0));
     const b2c = { extras: readExtras(), days: days || null,
                   terms: Object.keys(terms).length ? terms : null,
+                  dzLimit: dzLimit || null,
                   dzHours: terms.graphic || null,
                   note: note || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
@@ -27311,6 +27331,9 @@ function openDesign(){
     /* Строки решти етапів — тим самим шляхом: відділ питає, робоче місце
        відповідає. Свого джерела в нього немає й бути не повинно. */
     terms: () => b2cTerms(),
+    /* Скільки замовлень дизайнер може тримати в роботі одночасно (0 — без
+       обмеження). Відділ питає, налаштування відповідають. */
+    dzLimit: () => b2cCfg().dzLimit,
     /* Графік дизайнера. Відділ не знає нічого про команду — він питає, чи
        цей день у цієї людини вихідний, і все. */
     dayOff: (who, iso) => shiftOff(who, iso),
