@@ -4530,8 +4530,63 @@
   .b2c-p-row{display:flex;align-items:center;gap:12px;padding:7px 0;
     border-bottom:1px solid var(--line-soft);}
   .b2c-p-row:last-child{border-bottom:0;}
+  /* Підпис колонок: два числа поспіль без підпису неминуче переплутають. */
+  .b2c-p-head{display:flex;align-items:center;gap:12px;padding-bottom:6px;}
+  .b2c-p-head span{flex:1;}
+  /* ── Фінанси: вкладки й аналітика ── */
+  .fin-top{display:flex;gap:6px;margin-bottom:14px;}
+  .fin-top-b{all:unset;cursor:pointer;font-size:13.5px;font-weight:700;
+    color:var(--ink-soft);padding:8px 16px;border-radius:10px;background:var(--canvas);}
+  .fin-top-b:hover{color:var(--ink);}
+  .fin-top-b.on{background:var(--ink);color:#fff;}
+  .fin-an-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .fin-an-bar select{font:inherit;font-size:13.5px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:9px;background:#fff;}
+  .an-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+  .an-c{display:flex;flex-direction:column;gap:4px;padding:11px 12px;
+    border:1px solid var(--line);border-radius:11px;background:#fff;}
+  .an-c span{font-size:11px;font-weight:600;letter-spacing:.03em;
+    text-transform:uppercase;color:var(--muted);}
+  .an-c b{font-size:19px;font-weight:800;color:var(--ink);
+    font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  /* Чистий прибуток — єдине число, заради якого це все й дивляться. */
+  .an-c.is-net{background:#F5FDF8;border-color:#ABEFC6;}
+  .an-c.is-net b{color:#0A6B4A;}
+  .an-ad{font:inherit;font-size:19px;font-weight:800;color:var(--ink);
+    border:0;outline:none;background:none;padding:0;width:100%;
+    font-variant-numeric:tabular-nums;}
+  .an-ad:disabled{color:var(--muted);}
+  .an-h{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:18px 0 8px;}
+  .an-note{font-size:12px;color:var(--ink-soft);background:#FFF8E6;
+    border:1px solid #F5E1A8;border-radius:9px;padding:8px 10px;margin-bottom:10px;}
+  .an-tags{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .an-tag{display:flex;flex-direction:column;gap:2px;padding:10px 11px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .an-tag span{font-size:11.5px;color:var(--muted);}
+  .an-tag b{font-size:15px;font-weight:800;color:var(--ink);
+    font-variant-numeric:tabular-nums;}
+  .an-tag i{font-style:normal;font-size:11px;color:var(--muted);}
+  .an-t{width:100%;border-collapse:collapse;font-size:13px;}
+  .an-t th{text-align:right;font-size:11px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;
+    border-bottom:1px solid var(--line);}
+  .an-t th:first-child,.an-t td:first-child{text-align:left;}
+  .an-t td{text-align:right;padding:8px;border-bottom:1px solid var(--line-soft);
+    font-variant-numeric:tabular-nums;color:var(--ink);}
+  .an-t tr.on td{background:var(--canvas);font-weight:700;}
+  .an-empty{text-align:center !important;color:var(--muted);}
+  @media (max-width:900px){
+    .an-row{grid-template-columns:repeat(2,1fr);}
+    .an-tags{grid-template-columns:repeat(2,1fr);}
+  }
+  .b2c-p-head i{flex:none;width:132px;text-align:right;font-style:normal;
+    font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);}
   .b2c-p-n{flex:1;min-width:0;font-size:13.5px;color:var(--ink);}
-  .b2c-p-row input{width:150px;flex:none;font:inherit;font-size:13.5px;
+  /* Два поля в рядку — ціна й собівартість. Вужчі, ніж було одне: разом
+     вони займають ту саму ширину, і рядок не розсипається. */
+  .b2c-p-row input{width:132px;flex:none;font:inherit;font-size:13.5px;
     border:1px solid var(--line);border-radius:7px;padding:8px 9px;outline:none;
     text-align:right;font-variant-numeric:tabular-nums;}
   .b2c-p-row input:focus{border-color:var(--accent);}
@@ -5333,10 +5388,22 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
           перерахується сам.</div>
       </div>
 
-      <!-- РАХУНКИ ЗВЕРХУ, РУХИ ВНИЗУ.
-           Перше питання до грошей — «скільки в нас є», і воно має мати
-           відповідь без жодного натиску. Друге — «звідки взялось», і воно
-           вже нижче, списком. -->
+      <!-- ДВІ ВКЛАДКИ: РАХУНКИ Й АНАЛІТИКА.
+
+           «Рахунки» відповідають на питання «скільки в нас є і звідки
+           взялось» — це щоденна робота, і вона лишається рівно такою, як
+           була. «Аналітика» відповідає на інше питання: «скільки ми
+           продали й чи заробили», і напрями в ній розділені, бо B2B і B2C
+           — різні бізнеси з різними цінами й різною собівартістю.
+
+           Одним списком ці два питання не відповідаються: у першому важить
+           кожен платіж окремо, у другому — жоден, важать тільки підсумки. -->
+      <div class="fin-top">
+        <button class="fin-top-b on" data-fin-tab="acc">Рахунки</button>
+        <button class="fin-top-b" data-fin-tab="an">Аналітика</button>
+      </div>
+
+      <div id="fin-pane-acc">
       <div class="card">
         <div class="fin-accs-h">
           <span>Рахунки</span>
@@ -5364,6 +5431,21 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <div id="fin-sum" class="fin-sum"></div>
         <div id="fin-list"></div>
       </div>
+      </div>
+
+      <div id="fin-pane-an" hidden>
+        <div class="card">
+          <div class="fin-an-bar">
+            <select id="fin-an-per"></select>
+            <div class="fin-tabs" id="fin-an-dir">
+              <button class="fin-tab on" data-an-dir="b2c">B2C</button>
+              <button class="fin-tab" data-an-dir="b2b">B2B</button>
+              <button class="fin-tab" data-an-dir="">Разом</button>
+            </div>
+          </div>
+          <div id="fin-an"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ══════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════
@@ -5390,9 +5472,13 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
              який просто вписують ціни підряд. -->
         <div class="tl-divider">Ціни виробів у роздріб</div>
         <div class="sub" style="margin-bottom:8px;">
-          Скільки коштує виріб у приватному замовленні. Порожнє — береться базова ціна
-          товару. Це те саме поле, що в картці товару: заповнити можна тут гуртом.
+          Скільки коштує виріб у приватному замовленні й скільки він коштує нам.
+          Порожня ціна — береться базова ціна товару. Порожня собівартість — це не
+          нуль, а «невідомо»: по такому виробу прибуток не рахується зовсім, бо
+          нуль означав би, що він дістався безкоштовно, і прибуток вийшов би
+          завищеним рівно на вартість тканини.
         </div>
+        <div class="b2c-p-head"><span></span><i>ціна клієнту</i><i>собівартість</i></div>
         <div id="b2c-prices"></div>
 
         <div class="tl-divider" style="margin-top:22px;">Додаткові послуги</div>
@@ -6505,19 +6591,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=c1b1cc67d7"></script>
-<script src="loomiq-fingerprint.js?v=c1b1cc67d7"></script>
-<script src="loomiq-pricing.js?v=c1b1cc67d7"></script>
+<script src="loomiq-select.js?v=ae31110f87"></script>
+<script src="loomiq-fingerprint.js?v=ae31110f87"></script>
+<script src="loomiq-pricing.js?v=ae31110f87"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=c1b1cc67d7"></script>
-<script src="loomiq-mock.js?v=c1b1cc67d7"></script>
+<script src="loomiq-design.js?v=ae31110f87"></script>
+<script src="loomiq-mock.js?v=ae31110f87"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=c1b1cc67d7"></script>
+<script src="loomiq-cards.js?v=ae31110f87"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6542,7 +6628,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'c1b1cc67d7';
+var LQ_VER = 'ae31110f87';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8629,6 +8715,98 @@ const PAY_COL = fbDb.collection('payments');
 let payments = [];
 let payWatching = false;
 let finView = { acc:'', kind:'', link:'', q:'' };
+let finAn = { tab:'acc', dir:'b2c', per:'' };
+/* ── АНАЛІТИКА ФІНАНСІВ ──────────────────────────────────────────────────
+
+   Рухи по рахунках відповідають на питання «звідки взялось». Аналітика — на
+   інше: «скільки ми продали й чи заробили». Це не той самий список із
+   підсумком унизу: там важить кожен платіж окремо, тут не важить жоден —
+   важать тільки підсумки.
+
+   Напрями розділені, бо B2B і B2C — різні бізнеси. У першого ціна йде з
+   прорахунку зі шкалами за тиражем, у другого — з прайсу; собівартість теж
+   рахується по-різному. Скласти їх в одне число можна (вкладка «Разом»),
+   але за замовчуванням вони окремо, інакше вигідний тираж ховає збитковий
+   роздріб і навпаки.
+
+   Місяць — одиниця, у якій про це думають: реклама йде місячним бюджетом,
+   зарплата місячна, і «за останні 30 днів» ні з чим не порівняти. */
+function finMonths(n){
+  const out = [];
+  const d = new Date();
+  for(let i = 0; i < (n || 12); i++){
+    out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+    d.setMonth(d.getMonth() - 1);
+  }
+  return out;
+}
+function finMonthLabel(m){
+  const [y, mm] = String(m || '').split('-');
+  const назви = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+                 'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+  return (назви[(+mm || 1) - 1] || m) + ' ' + y;
+}
+function finOrderMonth(o){
+  const t = o && (o.createdAt || ((o.hist || [])[0] || {}).at);
+  if(!t) return '';
+  const d = new Date(t);
+  return isNaN(d) ? '' : (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+}
+/* Рекламу нізвідки взяти автоматично: бюджети живуть у кабінетах, і тягнути
+   їх сюди — окрема історія з чужими ключами. Тому просто число на місяць і
+   напрям, вписане руками. */
+function finAdOf(month, dir){
+  const a = (contentData || {}).ads || {};
+  return Math.max(0, Math.round(+((a[month] || {})[dir || 'all']) || 0));
+}
+async function finAdSet(month, dir, sum){
+  const a = JSON.parse(JSON.stringify((contentData || {}).ads || {}));
+  a[month] = a[month] || {};
+  const n = Math.max(0, Math.round(+sum || 0));
+  if(n > 0) a[month][dir || 'all'] = n;
+  else delete a[month][dir || 'all'];
+  if(!Object.keys(a[month]).length) delete a[month];
+  contentData.ads = a;
+  try{ await PHOTOS_DOC.set({ ads: a }, { merge:true }); }
+  catch(e){ console.error('реклама', e); toast('Бюджет не зберігся'); }
+}
+/* Підсумки одного місяця по одному напряму. Рахуємо з двох джерел і не
+   змішуємо їх: замовлення кажуть, на скільки ми продали, платежі — скільки
+   грошей справді прийшло. Це різні числа, і саме різниця між ними і є
+   «лишилось отримати». */
+function finStats(month, dir){
+  const свої = (orders || []).filter(o => o && o.orderId &&
+    o.status !== 'cancel' &&
+    (!dir || orderDir(o) === dir) &&
+    (!month || finOrderMonth(o) === month));
+  const ids = {};
+  свої.forEach(o => { if(o.orderId) ids[o.orderId] = 1; });
+  let сума = 0, соб = 0, безСоб = 0;
+  свої.forEach(o => {
+    сума += Math.round(+o.totalPrice || 0);
+    const c = Math.round(+o.totalCost || 0);
+    if(c > 0) соб += c; else if(+o.totalPrice > 0) безСоб++;
+  });
+  const теги = { prepay:0, pay:0, final:0, cod:0, інше:0 };
+  let надійшло = 0;
+  (payments || []).forEach(p => {
+    const n = Math.round(+p.amount || 0);
+    if(n <= 0) return;
+    if(!ids[String(p.orderId || '')]) return;
+    надійшло += n;
+    if(теги[p.tag] !== undefined) теги[p.tag] += n; else теги.інше += n;
+  });
+  const реклама = finAdOf(month, dir);
+  /* Прибуток рахуємо тільки тоді, коли собівартість відома по ВСІХ
+     замовленнях місяця. Часткова відповідь тут гірша за мовчання: вона
+     виглядає як прибуток і завжди більша за справжній. */
+  const повна = соб > 0 && !безСоб;
+  return { замовлень: свої.length, сума, соб, безСоб, повна, надійшло,
+           лишилось: Math.max(0, сума - надійшло), теги, реклама,
+           валовий: повна ? (сума - соб) : null,
+           чистий: повна ? (сума - соб - реклама) : null,
+           чек: свої.length ? Math.round(сума / свої.length) : 0 };
+}
 function watchPayments(){
   if(payWatching) return;
   payWatching = true;
@@ -8777,7 +8955,93 @@ function finRows(){
       .some(v => String(v || '').toLowerCase().indexOf(q) >= 0);
   });
 }
+/* Один малювальник на всю аналітику. Числа зверху — ті, які питають щодня;
+   розбивка надходжень — рівно за тими підписами, які менеджер і так ставить
+   на платежах; реклама — єдине поле, яке тут заповнюють руками. */
+function renderFinAn(){
+  const box = document.getElementById('fin-an');
+  if(!box) return;
+  const місяці = finMonths(12);
+  const per = document.getElementById('fin-an-per');
+  if(per && per.options.length !== місяці.length + 1){
+    per.innerHTML = '<option value="">За весь час</option>' +
+      місяці.map(m => `<option value="${m}">${escapeHtml(finMonthLabel(m))}</option>`).join('');
+  }
+  if(per) per.value = finAn.per || '';
+  document.querySelectorAll('#fin-an-dir [data-an-dir]').forEach(b =>
+    b.classList.toggle('on', (b.dataset.anDir || '') === (finAn.dir || '')));
+  const m = finAn.per || '';
+  const st = finStats(m, finAn.dir);
+  const гр = n => fmt(Math.round(n || 0)) + ' ₴';
+  const ч = (v, всього) => всього ? Math.round(v / всього * 100) + '%' : '0%';
+  const ТЕГИ = [['prepay','Передоплати'],['pay','Оплати'],['final','Доплати'],
+                ['cod','Наложки'],['інше','Без підпису']];
+  box.innerHTML = `
+    <div class="an-row">
+      <div class="an-c"><span>Замовлень</span><b>${st.замовлень}</b></div>
+      <div class="an-c"><span>Сума замовлень</span><b>${гр(st.сума)}</b></div>
+      <div class="an-c"><span>Надійшло</span><b>${гр(st.надійшло)}</b></div>
+      <div class="an-c"><span>Лишилось отримати</span><b>${гр(st.лишилось)}</b></div>
+    </div>
+    ${/* Прибуток — окремим рядком і тільки коли собівартість відома по всіх
+         замовленнях. Інакше чесно кажемо, скількох не вистачає: число, яке
+         виглядає прибутком, але ним не є, коштує дорожче за його
+         відсутність. */''}
+    <div class="an-row">
+      <div class="an-c"><span>Собівартість</span><b>${st.повна ? гр(st.соб) : '—'}</b></div>
+      <div class="an-c"><span>Валовий прибуток</span><b>${
+        st.валовий === null ? '—' : гр(st.валовий)}</b></div>
+      <div class="an-c"><span>Реклама</span>
+        <input class="an-ad" type="number" min="0" step="1" data-an-ad
+          value="${st.реклама || ''}" placeholder="0"${m ? '' : ' disabled'}></div>
+      <div class="an-c is-net"><span>Чистий прибуток</span><b>${
+        st.чистий === null ? '—' : гр(st.чистий)}</b></div>
+    </div>
+    ${!m ? '<div class="an-note">Рекламу вписують по місяцях — оберіть місяць угорі.</div>' : ''}
+    ${st.безСоб ? `<div class="an-note">Прибутку немає: у ${st.безСоб} ${
+      st.безСоб === 1 ? 'замовленні' : 'замовленнях'} не вписана собівартість.
+      Вписати її можна в Налаштуваннях B2C, поруч із ціною.</div>` : ''}
+    <div class="an-h">Звідки надійшло</div>
+    <div class="an-tags">${ТЕГИ.map(([k, l]) => `
+      <div class="an-tag"><span>${escapeHtml(l)}</span>
+        <b>${гр(st.теги[k])}</b><i>${ч(st.теги[k], st.надійшло)}</i></div>`).join('')}</div>
+    <div class="an-h">Середній чек</div>
+    <div class="an-row">
+      <div class="an-c"><span>Середній чек</span><b>${гр(st.чек)}</b></div>
+      <div class="an-c"><span>Реклама на замовлення</span><b>${
+        st.замовлень ? гр(st.реклама / st.замовлень) : '—'}</b></div>
+      <div class="an-c"><span>Частка реклами в сумі</span><b>${
+        st.сума ? ч(st.реклама, st.сума) : '—'}</b></div>
+    </div>
+    <div class="an-h">По місяцях</div>
+    <table class="an-t"><thead><tr><th>Місяць</th><th>Замовлень</th><th>Сума</th>
+      <th>Надійшло</th><th>Реклама</th><th>Чистий</th></tr></thead><tbody>${
+      місяці.map(mm => {
+        const r = finStats(mm, finAn.dir);
+        if(!r.замовлень && !r.надійшло && !r.реклама) return '';
+        return `<tr${mm === m ? ' class="on"' : ''}><td>${escapeHtml(finMonthLabel(mm))}</td>
+          <td>${r.замовлень}</td><td>${гр(r.сума)}</td><td>${гр(r.надійшло)}</td>
+          <td>${r.реклама ? гр(r.реклама) : '—'}</td>
+          <td>${r.чистий === null ? '—' : гр(r.чистий)}</td></tr>`;
+      }).join('') || '<tr><td colspan="6" class="an-empty">Поки порожньо</td></tr>'}
+    </tbody></table>`;
+  const ad = box.querySelector('[data-an-ad]');
+  if(ad) ad.addEventListener('change', async ()=>{
+    await finAdSet(m, finAn.dir, ad.value);
+    renderFinAn();
+  });
+}
 function renderFin(){
+  /* Вкладку перемальовуємо завжди: рухи й аналітика дивляться на ті самі
+     дані, і показувати вчорашній підсумок поруч зі свіжим списком означає
+     мати два різні числа про той самий день. */
+  const acc = document.getElementById('fin-pane-acc');
+  const an = document.getElementById('fin-pane-an');
+  if(acc) acc.hidden = finAn.tab !== 'acc';
+  if(an) an.hidden = finAn.tab !== 'an';
+  document.querySelectorAll('[data-fin-tab]').forEach(b =>
+    b.classList.toggle('on', b.dataset.finTab === finAn.tab));
+  if(finAn.tab === 'an'){ try{ renderFinAn(); }catch(e){ console.warn('аналітика', e); } }
   renderFinCards();
   const accs = document.getElementById('fin-accs');
   if(accs) accs.innerHTML = ['<button class="fin-tab' + (finView.acc ? '' : ' on') +
@@ -9054,6 +9318,20 @@ async function finAddManual(){
   });
   const q = document.getElementById('fin-q');
   if(q) q.addEventListener('input', ()=>{ finView.q = q.value; renderFin(); });
+  /* Вкладки, період і напрям. Три перемикачі, і всі троє ведуть в одне
+     перемальовування: два різні шляхи до того самого екрана колись
+     розійшлися б у тому, що вважати поточним вибором. */
+  document.querySelectorAll('[data-fin-tab]').forEach(b =>
+    b.addEventListener('click', ()=>{ finAn.tab = b.dataset.finTab; renderFin(); }));
+  const per = document.getElementById('fin-an-per');
+  if(per) per.addEventListener('change', ()=>{ finAn.per = per.value; renderFinAn(); });
+  const dirs = document.getElementById('fin-an-dir');
+  if(dirs) dirs.addEventListener('click', e => {
+    const b = e.target.closest ? e.target.closest('[data-an-dir]') : null;
+    if(!b) return;
+    finAn.dir = b.dataset.anDir || '';
+    renderFinAn();
+  });
 })();
 /* ══════════ НАЛАШТУВАННЯ ПРИВАТНИХ ЗАМОВЛЕНЬ ══════════
    Окремо від формування цін навмисно: там машина корпоративного
@@ -9203,6 +9481,7 @@ function paintB2cPrices(){
   if(!box) return;
   const prod = contentData.products || {};
   const retail = prod.retail || {};
+  const cost = prod.retailCost || {};
   const pricing = curSitePricing();
   const bp = pricing.basePrices || {};
   box.innerHTML = allPhotoCfg().map(g => {
@@ -9214,6 +9493,18 @@ function paintB2cPrices(){
       <input data-b2c-price="${escapeHtml(g.id)}" type="number" min="0" step="1"
         value="${retail[g.id] != null ? retail[g.id] : ''}"
         placeholder="${base ? ('як базова: ' + base) : 'як базова'}">
+      ${/* СОБІВАРТІСТЬ ПОРУЧ ІЗ ЦІНОЮ, А НЕ В ІНШОМУ МІСЦІ.
+
+           Без неї аналітика вміє тільки виручку: скільки нам заплатили.
+           «Продали на 32 тисячі» без собівартості не відповідає на головне
+           питання — чи ми на цьому заробили. А заводити її окремим
+           списком означає, що список цін і список собівартостей колись
+           розійдуться складом: у першому виріб є, у другому його забули.
+
+           Тому два поля в одному рядку: вписуючи ціну, людина бачить, що
+           поруч порожня собівартість, і це найкращий момент її згадати. */''}
+      <input data-b2c-cost="${escapeHtml(g.id)}" type="number" min="0" step="1"
+        value="${cost[g.id] != null ? cost[g.id] : ''}" placeholder="собівартість">
     </div>`;
   }).join('');
 }
@@ -9239,6 +9530,24 @@ function readB2cPrices(){
   });
   return out;
 }
+function readB2cCosts(){
+  const box = document.getElementById('b2c-prices');
+  const out = {};
+  if(!box) return out;
+  box.querySelectorAll('[data-b2c-cost]').forEach(el=>{
+    const v = Math.max(0, Math.round(parseFloat(el.value) || 0));
+    if(v > 0) out[el.dataset.b2cCost] = v;
+  });
+  return out;
+}
+/* Скільки цей виріб коштує НАМ. Порожня собівартість — це не нуль, а
+   «невідомо»: нуль означав би, що виріб дістався безкоштовно, і прибуток
+   вийшов би завищеним рівно на вартість тканини. Тому там, де її не
+   вписали, прибуток не рахуємо зовсім і кажемо про це прямо. */
+function retailCost(gid){
+  const c = ((contentData.products || {}).retailCost || {})[gid];
+  return (+c > 0) ? Math.round(+c) : 0;
+}
 (function(){
   const b = document.getElementById('b2c-save');
   if(!b) return;
@@ -9257,14 +9566,19 @@ function readB2cPrices(){
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
        б невідомо, яке справжнє. */
     const цін = readB2cPrices();
+    const собів = readB2cCosts();
     const DEL = firebase.firestore.FieldValue.delete();
-    const retail = {};
-    allPhotoCfg().forEach(g => { retail[g.id] = (цін[g.id] > 0) ? цін[g.id] : DEL; });
+    const retail = {}, retailCost = {};
+    allPhotoCfg().forEach(g => {
+      retail[g.id] = (цін[g.id] > 0) ? цін[g.id] : DEL;
+      retailCost[g.id] = (собів[g.id] > 0) ? собів[g.id] : DEL;
+    });
     try{
-      await PHOTOS_DOC.set({ b2c, products: { retail } }, { merge:true });
+      await PHOTOS_DOC.set({ b2c, products: { retail, retailCost } }, { merge:true });
       contentData.b2c = b2c;
       contentData.products = contentData.products || {};
       contentData.products.retail = цін;
+      contentData.products.retailCost = собів;
       toast('Збережено');
     }catch(e){ console.error(e); toast('Не збереглось'); }
   });
@@ -26584,8 +26898,47 @@ async function migrateSoloJobs(){
 }
 /* Запис задачі й дзеркало в трек. Обидва разом і в одному місці: розведені
    по різних кнопках, вони рано чи пізно розходяться. */
+/* ── СУМА РОЗДРІБНОГО ЗАМОВЛЕННЯ ЖИВЕ В САМОМУ ЗАМОВЛЕННІ ───────────────
+
+   Відділ рахував суму правильно — виріб × кількість по роздрібних цінах, —
+   але лишав її в себе: показував у смузі «Гроші» й нікуди не записував.
+   Сума ж замовлення береться з поля, яке заповнює прорахунок B2B; у
+   роздробу прорахунку немає, поле лишалось порожнім, і всі, хто на нього
+   дивиться, бачили нуль. Звідси й «Це замовлення 0 ₴» у картці клієнта
+   поруч із «За весь час 14 768 ₴».
+
+   Тепер порахована сума лягає в замовлення щоразу, коли міняється склад.
+   Одна сума на всю систему: на дошці, у картці, у фінансах, у залишку
+   «сплачено / лишилось».
+
+   B2B не чіпаємо: там сума приходить із прорахунку, і перебивати її
+   роздрібною формулою не можна — вона рахується зовсім інакше. */
+function b2cSumWrite(job, o){
+  if(!o || orderDir(o) !== 'b2c') return false;
+  const U = (window.LQDesign || {}).ui;
+  if(!U || !U.orderSum) return false;
+  let сума = 0, соб = { sum:0, full:false };
+  try{
+    сума = Math.max(0, Math.round(U.orderSum(o, job) || 0));
+    соб = U.orderCost(job) || соб;
+  }catch(e){ console.warn('сума B2C', e); return false; }
+  let змінилось = false;
+  if(Math.round(+o.totalPrice || 0) !== сума){ o.totalPrice = сума; змінилось = true; }
+  /* Собівартість пишемо тільки повну. Часткова гірша за порожню: вона
+     виглядає як відповідь і дає прибуток, більший за справжній. */
+  const c = соб.full ? Math.round(соб.sum) : 0;
+  if(Math.round(+o.totalCost || 0) !== c){ o.totalCost = c; змінилось = true; }
+  const марж = (сума && c) ? (сума - c) : 0;
+  if(Math.round(+o.margin || 0) !== марж){
+    o.margin = марж;
+    o.marginPct = (сума && c) ? Math.round(марж / сума * 1000) / 10 : 0;
+    змінилось = true;
+  }
+  return змінилось;
+}
 async function designSave(job, o){
   if(!job || !job.orderId) return;
+  try{ b2cSumWrite(job, o); }catch(e){ console.warn('сума B2C', e); }
   designDirty[job.orderId] = 1;
   designJobs[job.orderId] = job;
   try{
@@ -26733,6 +27086,7 @@ function openDesign(){
        без прорахунку, і те поле в них лишається порожнім. Довідник цін
        один — той, що в Налаштуваннях B2C. */
     retail: gid => retailPrice(gid),
+    cost: gid => retailCost(gid),
     /* НАДХОДЖЕННЯ ДЛЯ КАРТКИ.
        Привʼязані до цього замовлення — і вільні, яких ще нікуди не
        привʼязали. Відділ не пише суму передоплати руками: він обирає
