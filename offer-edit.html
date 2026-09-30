@@ -1078,21 +1078,21 @@
   /* Випадаючі списки одного вигляду на весь Loomiq. Вантажимо просто тут:
      панель редактора живе кадром і власного <head> зі скриптами не має. */
   (function(){
-    ['loomiq-select.js?v=0d277497cd',
+    ['loomiq-select.js?v=192b5dda55',
      /* Малювальник карток для Direct. Окремим файлом, бо це той самий
         зміст, виведений інакше, — і завтра його так само знадобиться
         підключити з картки замовлення. */
-     'loomiq-cards.js?v=0d277497cd'].forEach(function(src){
+     'loomiq-cards.js?v=192b5dda55'].forEach(function(src){
       var s = document.createElement('script');
       s.src = src;
       document.head.appendChild(s);
     });
   })();
 
-  var CTOR_FP    = 'loomiq-fingerprint.js?v=0d277497cd';
-  var CTOR_PRICE = 'loomiq-pricing.js?v=0d277497cd';
-  var CTOR_JS   = 'loomiq-constructor.js?v=0d277497cd';
-  var CTOR_CSS  = 'loomiq-constructor.css?v=0d277497cd';
+  var CTOR_FP    = 'loomiq-fingerprint.js?v=192b5dda55';
+  var CTOR_PRICE = 'loomiq-pricing.js?v=192b5dda55';
+  var CTOR_JS   = 'loomiq-constructor.js?v=192b5dda55';
+  var CTOR_CSS  = 'loomiq-constructor.css?v=192b5dda55';
 
   function send(msg){
     if(window.parent === window) return;
@@ -1110,6 +1110,50 @@
   }
 
   /* ── Список позицій ─────────────────────────────────────────────────── */
+  /* ЖИВА ЦІНА З ПРОРАХУНКУ.
+
+     Андрій: ліва панель має «просто тянути з розрахунку в один в один».
+     Конструктор віддає ціни одним прогоном рушія — тим самим, з якого
+     складено «Прорахунок (для менеджера)»: відкрита позиція й усі, що
+     рахуються разом із нею. Позиції кошика йдуть у тому ж порядку, що й
+     позиції замовлення, тож i-та позиція виду kind — це i-та позиція
+     кошика з тим самим видом. Живої ціни немає (конструктор ще не
+     відкрито, рекомендована чи варіант поза прогоном) — показуємо
+     збережену, як і доти. */
+  function liveOf(kind, i){
+    try{
+      if(!window.__lqLivePrices || !window.cartItems || !window.cartItems.length) return null;
+      var lp = window.__lqLivePrices();
+      if(!lp) return null;
+      var n = -1, ci = -1;
+      for(var k = 0; k < window.cartItems.length; k++){
+        var x = window.cartItems[k] || {};
+        var kd = (x.kind === 'reco' || x.kind === 'variant') ? x.kind : 'main';
+        if(kd !== kind) continue;
+        if(++n === i){ ci = k; break; }
+      }
+      return ci >= 0 ? (lp.by[ci] || null) : null;
+    }catch(e){ return null; }
+  }
+  function priced(it, kind, i){
+    var lv = liveOf(kind, i);
+    if(!lv || !(+lv.unit)) return it;
+    return Object.assign({}, it, { unitPrice: lv.unit, qty: lv.qty, sum: lv.sum, live: true });
+  }
+  /* Прорахунок перерахувався — панель за ним. Не частіше за кадр і не під
+     руками, коли менеджер саме вписує тираж у панелі. */
+  var livePend = false;
+  window.__lqOnPrice = function(){
+    if(livePend) return;
+    livePend = true;
+    requestAnimationFrame(function(){
+      livePend = false;
+      var a = document.activeElement;
+      var box = document.getElementById('listBody');
+      if(a && box && box.contains(a) && a.isContentEditable) return;
+      try{ renderList(); }catch(e){}
+    });
+  };
   function itemsOf(kind){
     if(kind === 'reco') return OFFER.reco || [];
     if(kind === 'variant') return OFFER.variants || [];
@@ -1239,7 +1283,8 @@
       return '<div' + cls + '><span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span></div>';
     }).join('') + '</div>';
   }
-  function rowHtml(it, kind, i){
+  function rowHtml(it0, kind, i){
+    var it = priced(it0, kind, i);
     var on = cur && cur.kind === kind && cur.i === i;
     var img = (it.mockups || []).filter(Boolean)[0] || '';
     var key = kind + ':' + i;
@@ -1396,8 +1441,11 @@
         '<textarea class="why-t" id="whyText" rows="3"></textarea>' +
       '</div>';
     var lineSum = function(it){ return (+it.sum || (+it.unitPrice || 0) * (+it.qty || 0)); };
-    var sum = main.reduce(function(a, it){ return a + lineSum(it); }, 0);
-    var qty = main.reduce(function(a, it){ return a + (+it.qty || 0); }, 0);
+    /* Сума — з тих самих живих цін, що й рядки: інакше рядок казав би одне,
+       а «Разом» — інше. */
+    var mainP = main.map(function(it, i){ return priced(it, 'main', i); });
+    var sum = mainP.reduce(function(a, it){ return a + lineSum(it); }, 0);
+    var qty = mainP.reduce(function(a, it){ return a + (+it.qty || 0); }, 0);
     /* Варіанти в суму не додаються — клієнт візьме один із групи. Але й
        мовчати про них не можна: пропозиція, зібрана з самих варіантів,
        показувала «0 грн · порожня пропозиція» й не мінялась ні від чого.
@@ -1405,7 +1453,7 @@
     var groups = variantGroups();
     var lo = 0, hi = 0, vq = 0;
     groups.forEach(function(g){
-      var sums = g.idx.map(function(i){ return lineSum(itemsOf('variant')[i]); });
+      var sums = g.idx.map(function(i){ return lineSum(priced(itemsOf('variant')[i], 'variant', i)); });
       if(!sums.length) return;
       lo += Math.min.apply(null, sums);
       hi += Math.max.apply(null, sums);
@@ -2689,6 +2737,10 @@
     if(d.target !== undefined) window.__adminOfferTarget = d.target;
     if(d.offer){
       OFFER = d.offer || {};
+      /* Рішення замовлення — у конструктор: ним він рахує чернетку, і з
+         ними вона рахується так само, як в адмінці. */
+      window.__lqSameFixMap = OFFER.sameFix || null;
+      window.__lqKindFixMap = OFFER.kindFix || null;
       OFFER.items = OFFER.items || [];
       OFFER.reco  = OFFER.reco  || [];
       OFFER.variants = OFFER.variants || [];

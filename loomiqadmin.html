@@ -6766,19 +6766,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=0d277497cd"></script>
-<script src="loomiq-fingerprint.js?v=0d277497cd"></script>
-<script src="loomiq-pricing.js?v=0d277497cd"></script>
+<script src="loomiq-select.js?v=192b5dda55"></script>
+<script src="loomiq-fingerprint.js?v=192b5dda55"></script>
+<script src="loomiq-pricing.js?v=192b5dda55"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=0d277497cd"></script>
-<script src="loomiq-mock.js?v=0d277497cd"></script>
+<script src="loomiq-design.js?v=192b5dda55"></script>
+<script src="loomiq-mock.js?v=192b5dda55"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=0d277497cd"></script>
+<script src="loomiq-cards.js?v=192b5dda55"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6803,7 +6803,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '0d277497cd';
+var LQ_VER = '192b5dda55';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -12295,6 +12295,16 @@ function kindWanted(fix, fp){
   });
   return best;
 }
+/* Чи це НАБРАНИЙ напис (шар із текстом), а не картинка. Такий дизайн
+   картинкою не рахується ніколи: Андрій — «якщо ми написали текст, він вже
+   сам по собі не може бути картинкою». */
+function designTyped(it, fp){
+  const key = String(fp || '');
+  const logos = it && it.config && it.config.logos;
+  if(!key || !logos || typeof logos !== 'object') return false;
+  return Object.keys(logos).some(side =>
+    (Array.isArray(logos[side]) ? logos[side] : []).some(l => l && l.text && String(l.fp || '') === key));
+}
 function applyKindFix(o){
   /* Одна мапа на все замовлення. Раніше кожна позиція мала свою — і той
      самий малюнок на сусідніх позиціях міг рахуватись по-різному. */
@@ -12306,7 +12316,8 @@ function applyKindFix(o){
     const kinds = Array.isArray(d.designKinds) ? d.designKinds.slice() : [];
     while(kinds.length < d.designs.length) kinds.push('img');
     d.designs.forEach((fp, i)=>{
-      const want = kindWanted(fix, fp);
+      let want = kindWanted(fix, fp);
+      if(want === 'img' && designTyped(it, fp)) want = 'txt';
       if(want === 'img' || want === 'txt' || want === 'off') kinds[i] = want;
     });
     d.designKinds = kinds;
@@ -13422,7 +13433,8 @@ function offerCalcRows(it, o){
                 (it.desc.designKinds || [])[di]),
         /* чи це рішення менеджера, а не автоматика — інакше через тиждень
            ніхто не згадає, чому напис рахується як картинка */
-        fixed: !!(orderKindFix(o) || {})[String((it.desc.designs || [])[di] || '')] }
+        fixed: !!(orderKindFix(o) || {})[String((it.desc.designs || [])[di] || '')],
+        typed: designTyped(it, (it.desc.designs || [])[di]) }
     : null;
   const seenNo = {};
   (b.designNos || []).forEach(d=>{
@@ -22845,6 +22857,10 @@ function offerEdPush(o){
        записується, тож у клієнта в документі його немає взагалі. */
     const doc = offerClean(offerBuild(o));
     doc.mgr = offerMgrCalc(o);     // тільки в кадр, у базу не потрапляє
+    /* Рішення замовлення про макети — конструктору, щоб чернетка рахувалась
+       тими самими даними, що й тут. Теж лише в кадр. */
+    doc.sameFix = orderSameFix(o) || null;
+    doc.kindFix = orderKindFix(o) || null;
     /* Налаштування карток для Direct — теж службові: як саме менеджер
        вивів пропозицію картинками, клієнта не стосується, і в його
        документі цього немає. */
