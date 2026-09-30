@@ -872,6 +872,13 @@
     color:#fff;background:rgba(255,255,255,.16);border-radius:var(--r-pill);
     padding:4px 10px;font-variant-numeric:tabular-nums;}
   .cw-oid:hover{background:rgba(255,255,255,.28);}
+  /* Замовлень по одній розмові буває кілька — тоді вони стоять поруч, а
+     відкрите підсвічене. Підпис напряму дрібним: «5000001» і «2000043» на
+     око не відрізнити, а «B2B» і «B2C» відрізняються одразу. */
+  .cw-oid i{font-style:normal;font-size:9px;font-weight:800;letter-spacing:.06em;
+    margin-left:5px;opacity:.7;}
+  .cw-oid.is-on{background:#fff;color:#1F2C44;}
+  .cw-oid.is-on:hover{background:#fff;}
   @media (max-width:900px){
     .ch2{grid-template-columns:1fr;}
     .ch2-list{max-height:none;}
@@ -3394,6 +3401,22 @@
   .dz-seek-x{all:unset;cursor:pointer;flex:none;color:var(--muted);font-size:15px;
     line-height:1;padding:2px 4px;border-radius:5px;}
   .dz-seek-x:hover{background:var(--canvas);color:var(--ink);}
+  /* Значок календаря на кнопці строку: доти вона виглядала як напис, і те,
+     що на неї треба натиснути, доводилось вгадувати. */
+  .dz-duo-c{flex:none;font-style:normal;font-size:12px;line-height:1;opacity:.75;}
+  /* Строк у роздрібній картці замовлення — той самий вигляд, що у відділі. */
+  .od-due-c{display:inline-flex;align-items:center;gap:7px;}
+  .od-due-b{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+    border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:#fff;}
+  .od-due-b:hover{border-color:var(--accent);}
+  .od-due-b b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .od-due-b.late{border-color:#E4572E;background:#FDECEA;}
+  .od-due-b.late b{color:#B03A1A;}
+  /* Надіслано — це стан, а не кнопка: натискати вдруге нема за чим, і
+     кнопка, яка нічого не змінить, лише просить помилитись. */
+  .dz-b.is-sent{flex:1 1 auto;text-align:center;justify-content:center;
+    font-size:11.5px;padding:7px 8px;color:#0A6B4A;background:#EDF9F3;
+    border:1px solid #C9EFDD;border-radius:8px;font-weight:600;cursor:default;}
   .dz-as{display:flex;align-items:center;gap:8px;font-size:13px;}
   .dz-as span{font-weight:700;color:var(--ink-soft);}
   .dz-as b{font-weight:800;color:var(--ink);}
@@ -6419,19 +6442,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d8124c88cb"></script>
-<script src="loomiq-fingerprint.js?v=d8124c88cb"></script>
-<script src="loomiq-pricing.js?v=d8124c88cb"></script>
+<script src="loomiq-select.js?v=f82cf1ae6a"></script>
+<script src="loomiq-fingerprint.js?v=f82cf1ae6a"></script>
+<script src="loomiq-pricing.js?v=f82cf1ae6a"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d8124c88cb"></script>
-<script src="loomiq-mock.js?v=d8124c88cb"></script>
+<script src="loomiq-design.js?v=f82cf1ae6a"></script>
+<script src="loomiq-mock.js?v=f82cf1ae6a"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d8124c88cb"></script>
+<script src="loomiq-cards.js?v=f82cf1ae6a"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6456,7 +6479,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd8124c88cb';
+var LQ_VER = 'f82cf1ae6a';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -8760,7 +8783,7 @@ function finOpen(id){
       ${guess.length ? `<div class="fin-l">Схоже на ці замовлення</div>
         <div class="fin-guess">${guess.map(g => `
           <button class="fin-g" data-fin-pick="${escapeHtml(g.o.orderId)}">
-            <b>#${escapeHtml(g.o.orderId)}</b>
+            <b>#${escapeHtml(showNo(g.o))}</b>
             <span>${escapeHtml(orderName(g.o) || g.o.crmChatName || '')}</span>
             <i>${escapeHtml(g.чому.join(' · '))}</i>
           </button>`).join('')}</div>`
@@ -8812,11 +8835,11 @@ function finOpen(id){
     const q = find.value.trim().toLowerCase();
     if(q.length < 2){ found.innerHTML = ''; return; }
     const l = (orders || []).filter(o => o && o.orderId &&
-      [o.orderId, o.name, o.company, o.crmNick, o.ig]
+      [o.orderId, showNo(o), o.name, o.company, o.crmNick, o.ig]
         .some(v => String(v || '').toLowerCase().indexOf(q) >= 0)).slice(0, 8);
     found.innerHTML = l.length ? l.map(o => `
       <button class="fin-g" data-fin-pick="${escapeHtml(o.orderId)}">
-        <b>#${escapeHtml(o.orderId)}</b>
+        <b>#${escapeHtml(showNo(o))}</b>
         <span>${escapeHtml(orderName(o) || o.crmChatName || '')}</span>
         <i>${escapeHtml(fmt(o.totalPrice) + ' ₴')}</i>
       </button>`).join('') : '<div class="fin-none">Нічого не знайшлось.</div>';
@@ -10414,6 +10437,32 @@ function orderIdNum(v){
    номер лише показує її людині. Старі картки поля не мають зовсім — і не
    повинні: усе, що заведено до цього дня, це B2B. */
 function orderDir(o){ return ((o && o.dir) === 'b2c') ? 'b2c' : 'b2b'; }
+/* ── ОДИН НОМЕР НА ОЧАХ ──────────────────────────────────────────────────
+
+   Роздрібне замовлення має два номери, і це вийшло історично. Відділ
+   дизайну колись був окремою річчю зі своїм рахунком — з двійки, — а
+   потім став усім B2C. Номер замовлення при цьому лишився свій, з
+   пʼятірки. Тепер та сама робота має два імені: у відділі вона
+   «#2000043», у картці замовлення «5000001», і людина, яка переходить з
+   одного місця в друге, бачить чуже число.
+
+   Андрій: «номер повинен починатися з двоєчки». Так він його й називає
+   уголос, так він стоїть на аркуші, який їде клієнту.
+
+   Тому на очах лишається один — номер відділу. У базі нічого не
+   перейменовуємо: `orderId` і далі ключ, за яким усе звʼязане, і чіпати
+   його означало б розірвати звʼязки в оплатах, накладних і переписці
+   заради вигляду. Міняється рівно те, що показують.
+
+   B2B це не стосується взагалі: там номер один і завжди був один. */
+function showNo(o){
+  if(!o) return '';
+  if(orderDir(o) === 'b2c'){
+    const j = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+    if(j && j.no) return String(j.no);
+  }
+  return String(o.orderId || '');
+}
 function dirIsC(dir){ return dir === 'b2c'; }
 function dirMin(dir){ return dirIsC(dir) ? ORDER_ID_MIN_C : ORDER_ID_MIN; }
 // Напрям за самим номером — щоб і без поля `dir` було видно, чий він.
@@ -19396,6 +19445,27 @@ function closeAllOrders(){
   if(d) d.classList.remove('open');
 }
 
+/* Дата здачі роздрібного замовлення — та сама, що у відділі. Малюємо її
+   тим самим інструментом (кнопка + календар сіткою), бо це буквально одне
+   значення: `job.due`. Другого поля тут бути не повинно — два поля про
+   одну дату завжди розходяться, і тоді жодному не віриш. */
+function odDueB2cHtml(o){
+  const U = (window.LQDesign || {}).ui;
+  const job = (typeof designJobs === 'object' && designJobs) ? designJobs[o.orderId] : null;
+  if(!U || !job)
+    return `<span title="Коли здавати">${ICO.cal}Здати до <b>—</b></span>`;
+  let v = '', л = null;
+  try{
+    v = job.due || U.readyFrom(job) || '';
+    л = v ? U.leftTxt(v) : null;
+  }catch(e){ console.warn('строк', e); }
+  return `<span class="od-due-c" title="Коли обіцяємо — той самий строк, що й у відділі">
+      <button type="button" class="od-due-b${л && л.late ? ' late' : ''}" data-due-cal>
+        ${ICO.cal}Здати до <b>${escapeHtml(v ? U.dueTxt(v) : 'обрати дату')}</b></button>
+      ${л ? `<b class="od-pill-age ${л.late ? 'is-bad' : (л.soon ? 'is-warn' : '')}">${
+        escapeHtml(л.txt)}</b>` : ''}
+    </span>`;
+}
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
   /* Діалог можна відкрити просто з дошки, кнопкою «Відповісти» — тоді картки
@@ -19523,14 +19593,27 @@ function renderOrderDrawer(){
       <div class="od-meta">
         <span title="Номер замовлення">${ICO.tag}${o.orderId
           ? `<button class="od-oid-b" data-copy-oid title="Натисніть, щоб скопіювати номер">${
-              escapeHtml(o.orderId)}</button>`
+              escapeHtml(showNo(o))}</button>`
           : '<b>—</b>'}</span>
         ${created ? `<span title="Коли прийшло">${ICO.clock}<b>${escapeHtml(created)}</b></span>` : ''}
-        <span title="Коли здавати">${ICO.cal}Здати до
+        ${/* ДАТА ЙДЕ В КАРТКУ СВОГО НАПРЯМУ, І ВОНА ОДНА.
+
+             Андрій: «дата йде тільки в ту картку, звідки приходить, з B2C
+             чи B2B». У роздрібі строк живе у відділі — там його ставлять,
+             там рахують дні й лишок. А картка замовлення показувала своє
+             власне порожнє поле «Здати до дд.мм.гггг», яке ніхто ніколи не
+             заповнював: два поля про одне й те саме, і жодне з них не
+             правда.
+
+             Тепер у B2C тут та сама дата, той самий календар і той самий
+             лишок, що й у відділі. B2B лишається як був — там це поле й
+             є єдиним. */''}
+        ${dirIsC(orderDir(o)) ? odDueB2cHtml(o)
+          : `<span title="Коли здавати">${ICO.cal}Здати до
           <input class="od-f od-due-inp" data-f="dueAt" type="date" value="${escapeHtml(o.dueAt||'')}">
           ${due ? `<b class="od-pill-age ${due.cls === 'due-late' ? 'is-bad' : (due.cls === 'due-soon' ? 'is-warn' : '')}">${
             due.days < 0 ? 'прострочено ' + (-due.days) + ' дн'
-                         : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}</span>
+                         : (due.days === 0 ? 'сьогодні' : due.days + ' дн')}</b>` : ''}</span>`}
       </div>
       ${snz ? `<div class="od-sub">Відкладено до ${escapeHtml(dayUa(snz))} — до цієї дати картки на дошці немає</div>` : ''}
       ${o.status === 'cancel' && o.lostReason
@@ -19875,9 +19958,32 @@ function renderOrderDrawer(){
   const vidBtn = panel.querySelector('.od-trace-vid');
   if(vidBtn) vidBtn.addEventListener('click', ()=>
     copyText(vidBtn.dataset.vid, 'Мітка скопійована — вставте у фільтр lq_vid у Clarity'));
+  /* Календар строку в роздрібній картці. Той самий віджет, що у відділі, і
+     та сама дата: пишемо в `job.due`, а не в окреме поле картки. Обрана
+     дата переписує число днів — два числа в шапці мають говорити одне й те
+     саме, інакше на них перестають дивитись. */
+  const dueB = panel.querySelector('[data-due-cal]');
+  if(dueB) dueB.addEventListener('click', e => {
+    e.preventDefault();
+    const U = (window.LQDesign || {}).ui;
+    const job = designJobs[o.orderId];
+    if(!U || !job) return;
+    U.calOpen(dueB, job.due || U.readyFrom(job), async v => {
+      job.due = v || '';
+      job.dueSet = !!v;
+      if(v){
+        const n = U.daysBetween(String(job.createdAt || o.createdAt || '').slice(0, 10) ||
+                                U.calIso(new Date()), v);
+        job.days = n > 0 ? n : null;
+      } else job.days = null;
+      try{ await designSave(job, o); }catch(e2){ console.warn(e2); }
+      renderOrderDrawer(); renderBoard();
+      try{ window.LQDesign.ui.render(document.getElementById('dzRoot')); }catch(e2){}
+    });
+  });
   const oidEl = panel.querySelector('[data-copy-oid]');
   if(oidEl) oidEl.addEventListener('click', ()=>
-    copyText(o.orderId, 'Номер ' + o.orderId + ' скопійовано'));
+    copyText(showNo(o), 'Номер ' + showNo(o) + ' скопійовано'));
   panel.querySelectorAll('[data-chat]').forEach(b=>{
     b.addEventListener('click', ()=> chatOpen(o, b.dataset.chat));
   });
@@ -21519,13 +21625,33 @@ function chatsOrders(dir){
   }
   return (orders || []).filter(o => orderDir(o) === 'b2b');
 }
+/* ── ОДНА РОЗМОВА, ДВА ЗАМОВЛЕННЯ ────────────────────────────────────────
+
+   Клієнт замовив футболки на компанію, а через місяць худі собі. Розмова
+   в Direct у нього одна, а замовлень два — одне B2B, друге B2C. Доти
+   система мовчки брала одне з них і відкривала його картку; яке саме —
+   вирішував порядок у списку. Андрій: «відкриваю, і справа відкривається
+   зовсім інша карточка».
+
+   Вгадати тут не можна в принципі: система не знає, про яке з двох він
+   зараз думає. Тому вона й не вгадує — показує обидва й дає обрати, а
+   відкриває те, що відповідає місцю, звідки прийшли. */
+function ordersOfChat(o){
+  if(!o) return [];
+  const cid = String(o.crmChatId || '');
+  const tid = String(tgChatOf(o) || '');
+  if(!cid && !tid) return [o];
+  return (orders || []).filter(x => x && (
+    (cid && String(x.crmChatId || '') === cid) ||
+    (tid && String(tgChatOf(x) || '') === tid)));
+}
 function chatsRows(dir){
   const out = [];
   chatsOrders(dir).forEach(o => {
     if(!o.crmChatId && !tgChatOf(o)) return;
     out.push({
       o: o,
-      who: orderName(o) || o.crmChatName || ('замовлення ' + (o.orderId || '')),
+      who: orderName(o) || o.crmChatName || ('замовлення ' + showNo(o)),
       channel: tgChatOf(o) ? 'Telegram' : 'Instagram',
       at: orderActivityAt(o),
       text: String(o.crmLast || o.tgLast || '').replace(/\s+/g, ' ').slice(0, 90),
@@ -23869,12 +23995,17 @@ const QR_DEFAULT = [
      того, щоб його можна було переписати під себе, а не щоб вставляти
      рукою. Свої для кожного напряму — компанії й приватній людині про той
      самий макет пишуть різними словами. */
+  /* Починаємо з привітання. Андрій: «добрий день, внесли правки». У Direct
+     макет прилітає картинкою серед дня, часто після паузи в кілька годин, —
+     і повідомлення без привітання читається як продовження розмови, якої
+     щойно не було. */
   { t:'Макет готовий · B2C', dir:'b2c',
-    m:'{макет} Зробили макет — подивіться, будь ласка 🙌\n\nЯкщо все подобається, ' +
-      'беремо в роботу. Якщо щось поміняти — напишіть, що саме, виправимо.' },
+    m:'{макет} Добрий день! Зробили макет — подивіться, будь ласка 🙌\n\n' +
+      'Якщо все подобається, беремо в роботу. Якщо щось поміняти — напишіть, ' +
+      'що саме, виправимо.' },
   { t:'Внесли правки · B2C', dir:'b2c',
-    m:'{правки} Виправили — ось оновлений макет ({версія}). Подивіться, ' +
-      'будь ласка: тепер так, як треба?' },
+    m:'{правки} Добрий день! Внесли правки — ось оновлений макет ({версія}). ' +
+      'Подивіться, будь ласка: тепер так, як треба?' },
   { t:'Макет на погодження · B2B', dir:'b2b',
     m:'{макет} Надсилаємо макет на погодження ({версія}). Розміри нанесення ' +
       'вказані на самій картці.\n\nЯкщо все влаштовує — запускаємо у виробництво. ' +
@@ -23918,10 +24049,21 @@ function quickRepliesFor(o){
    Немає заготовки — беремо запасну. Мовчазне порожнє повідомлення тут
    гірше за просте: клієнт отримав би картинку без жодного слова. */
 const SCRIPT_MARK = { design1:'{макет}', design2:'{правки}' };
+/* Запасний текст — на випадок, коли заготовку прибрали зовсім. Свій для
+   кожного напряму: приватній людині пишуть інакше, ніж компанії, і мовчазна
+   підміна одного другим помітна саме клієнту. */
 const SCRIPT_FALL = {
-  design1:'Підготували макет — подивіться, будь ласка. Якщо все добре, ' +
-          'беремо в роботу; якщо щось поміняти — напишіть, що саме.',
-  design2:'Внесли правки — ось оновлений макет. Подивіться, будь ласка.'
+  b2c: {
+    design1:'Добрий день! Зробили макет — подивіться, будь ласка 🙌 Якщо все ' +
+            'подобається, беремо в роботу. Якщо щось поміняти — напишіть, що саме.',
+    design2:'Добрий день! Внесли правки — ось оновлений макет. Подивіться, ' +
+            'будь ласка: тепер так, як треба?'
+  },
+  b2b: {
+    design1:'Підготували макет — подивіться, будь ласка. Якщо все добре, ' +
+            'беремо в роботу; якщо щось поміняти — напишіть, що саме.',
+    design2:'Внесли правки — ось оновлений макет. Подивіться, будь ласка.'
+  }
 };
 function scriptFor(o, key, vars){
   const mark = SCRIPT_MARK[key] || '';
@@ -23930,7 +24072,7 @@ function scriptFor(o, key, vars){
     const q = quickRepliesFor(o).filter(x => String((x && x.m) || '').indexOf(mark) >= 0)[0];
     t = q ? String(q.m) : '';
   }
-  if(!t) t = SCRIPT_FALL[key] || '';
+  if(!t) t = (SCRIPT_FALL[orderDir(o)] || SCRIPT_FALL.b2b)[key] || '';
   return t.replace(/\{макет\}|\{правки\}/g, '')
           .replace(/\{версія\}/g, 'v' + (((vars || {}).v) || 1))
           .replace(/\{імʼя\}|\{ім'я\}/g, String((o && (o.crmChatName || o.name)) || '').split(' ')[0] || '')
@@ -23950,7 +24092,11 @@ function scriptFor(o, key, vars){
 
    Один раз означає один: лишається запис, що вже доводили, і скрипт, який
    менеджер свідомо прибрав, назад не повернеться. */
-const QR_SEED = 2;
+/* Третє доведення: заготовки показу макета в B2C. Перевірка «позначка +
+   напрям» зʼявилась пізніше за саме доведення, і в акаунтах, де воно вже
+   пройшло, роздрібних скриптів так і не стало — надсилання йшло запасним
+   текстом, без привітання. */
+const QR_SEED = 3;
 let qrSeeding = false;
 async function qrSeedOnce(){
   if(qrSeeding || !canSetup() || !contentLoaded) return;
@@ -24524,8 +24670,18 @@ function renderChatWin(toBottom){
       ${/* Картка — на один дотик, але не замість розмови. У розділі чатів
            відповідають; коли справді треба глянути склад чи оплату,
            натискають номер. */''}
-      ${o.orderId ? `<button class="cw-oid" data-cw-card title="Відкрити картку замовлення">${
-        escapeHtml(o.orderId)}</button>` : ''}
+      ${(()=>{ const л = ordersOfChat(o);
+        if(л.length < 2)
+          return o.orderId ? `<button class="cw-oid" data-cw-card title="Відкрити картку замовлення">${
+            escapeHtml(showNo(o))}</button>` : '';
+        /* Замовлень по цій розмові кілька — показуємо всі. Відкрите
+           підсвічене, решта натискаються. Нічого не ховається, і ніколи не
+           буває незрозуміло, на яке саме ви зараз дивитесь. */
+        return л.map(x => `<button class="cw-oid${x.id === o.id ? ' is-on' : ''}"
+            data-cw-go="${escapeHtml(x.id)}"
+            title="${x.id === o.id ? 'Це замовлення відкрите' : 'Перейти на це замовлення'}">${
+            escapeHtml(showNo(x))}<i>${orderDir(x) === 'b2c' ? 'B2C' : 'B2B'}</i></button>`).join('');
+      })()}
       ${/* Що саме прислав Sitniks. Бік розмови й автор беруться з полів, назв
            яких у закритій документації немає, — тож коли підпис стає не з того
            боку, це єдиний спосіб побачити справжні назви замість здогадок.
@@ -24746,6 +24902,16 @@ function wireChatWin(box, o, focusIn){
   if(seenB) seenB.addEventListener('click', ()=> chatSeenToggle(o, chatWin.kind));
   const card = box.querySelector('[data-cw-card]');
   if(card) card.addEventListener('click', ()=>{ try{ openOrderDrawer(o); }catch(e){} });
+  /* Перехід на інше замовлення тієї самої розмови. Переписку не
+     перевідкриваємо — вона та сама людина й ті самі повідомлення; міняється
+     тільки картка праворуч і те, чиїм замовленням ми зараз зайняті. */
+  box.querySelectorAll('[data-cw-go]').forEach(b => b.addEventListener('click', ()=>{
+    const t = (orders || []).find(x => x.id === b.dataset.cwGo);
+    if(!t || t.id === o.id) return;
+    chatWin.id = t.id;
+    try{ openOrderDrawer(t); }catch(e){ console.warn(e); }
+    renderChatWin();
+  }));
   const inp = box.querySelector('.cw-inp');
   const grow = ()=>{ inp.style.height = 'auto';
                      inp.style.height = Math.min(inp.scrollHeight, 130) + 'px'; };
