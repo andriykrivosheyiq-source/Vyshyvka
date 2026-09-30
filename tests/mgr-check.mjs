@@ -209,10 +209,12 @@ console.log('\n═══ У КОЛОНЦІ ДИЗАЙНУ — ТІЛЬКИ ПО�
    відкриває цю колонку двічі за замовлення — призначити людину й перевірити
    роботу; усе інше доводилось обходити очима щоразу. */
 const рядок = await p.evaluate(() => {
-  const r = document.querySelector('.dz-dz');
-  return { хто: ((r.querySelector('.dz-dz-who b') || {}).textContent || '').trim(),
-           списків: r.querySelectorAll('select').length,
-           олівець: !!r.querySelector('[data-do="dz-swap"]'),
+  const r = document.querySelector('.dz-u-col');
+  /* Хто робить — у шапці зони, а не рядком під нею: доти капсула
+     «ПЕРЕДАНО» й імʼя стояли двома написами поспіль про одну річ. */
+  return { хто: ((r.querySelector('.dz-u-l .dz-u-who') || {}).textContent || '').trim(),
+           списків: r.querySelectorAll('.dz-u-l select').length,
+           олівець: !!r.querySelector('.dz-u-l [data-do="dz-swap"]'),
            текст: r.textContent.replace(/\s+/g, ' ').trim(),
            часів: (r.textContent.match(/Передано в роботу|Взяв у роботу/g) || []).length,
            кнопки: [...r.querySelectorAll('.dz-b')].map(b => b.textContent.trim()) };
