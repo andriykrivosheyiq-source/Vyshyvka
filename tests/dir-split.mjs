@@ -205,11 +205,13 @@ const b2c = await p.evaluate(async () => {
   await openOrderDrawer(o);
   await new Promise(r => setTimeout(r, 400));
   const d = document.getElementById('orderDrawer');
-  const зони = [...d.querySelectorAll('.od-fold-t')].map(x => x.textContent.trim());
+  /* Роздрібне замовлення праворуч — картка відділу, та сама, що в Канбані
+     B2C (Андрій: «тут повинна бути тільки ця картка»). */
+  const зони = [...d.querySelectorAll('.dz-z-h b')].map(x => x.textContent.trim());
   return { зони,
     кп: !!d.querySelector('[data-act="offered"]'),
-    доВідділу: !!d.querySelector('.od-foot [data-art-dept]'),
-    дата: ((d.querySelector('.od-meta') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    відділ: !!d.querySelector('.dz-solo'),
+    дата: ((d.querySelector('[data-cal="due"]') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
     /* Дивимось не лише на те, що намалювалось (половина зон ховається сама,
        поки замовлення не оплачене), а й на сам список блоків напряму. */
     блоки: cardBlocksFor('manager', 'b2c').map(b => b.key) };
@@ -217,17 +219,17 @@ const b2c = await p.evaluate(async () => {
 console.log('  ' + JSON.stringify(b2c.зони) + ' | КП:' + b2c.кп);
 ok(!b2c.кп, 'кнопки «Зібрати КП» в роздрібній картці немає',
   'КП лишилось у B2C');
-ok(b2c.доВідділу,
-  'а на її місці — дорога до макета: саме її тут тиснуть щодня',
-  'у роздрібній картці немає дороги до макета');
+ok(b2c.відділ,
+  'праворуч — картка відділу: макет і вся робота над ним просто тут',
+  'у панелі не картка відділу');
 ok(!b2c.блоки.some(k => ['gate', 'fp', 'fact', 'extra', 'buy', 'rep', 'art'].indexOf(k) >= 0),
   'і чужої машини теж немає: ні воріт тиражу, ні першої одиниці, ні факту проти плану',
   'у роздрібну картку залізли зони тиражу: ' + b2c.блоки.join(', '));
-ok(b2c.зони.some(z => /^Макет$/.test(z)),
-  'зате є «Макет» — вікно у відділ, де цю роботу й ведуть',
-  'у роздрібній картці немає блоку макета');
-ok(/25\.09/.test(b2c.дата),
-  'і дата, коли замовлення прийшло, стоїть у шапці: ' + b2c.дата,
+ok(b2c.зони.indexOf('Склад і дизайн') >= 0,
+  'зате є «Склад і дизайн» — там цю роботу й ведуть',
+  'у роздрібній картці немає складу й дизайну: ' + JSON.stringify(b2c.зони));
+ok(/\d{2}\.\d{2}/.test(b2c.дата),
+  'і дата готовності стоїть у шапці: ' + b2c.дата,
   'дата з шапки зникла: ' + b2c.дата);
 
 console.log('\n═══ А В КОРПОРАТИВНІЙ НІЧОГО НЕ ЗЛАМАЛОСЬ ═══');
@@ -359,7 +361,7 @@ const номер = await p.evaluate(async () => {
   const d = document.getElementById('orderDrawer');
   const b2b = orders.filter(x => x.dir !== 'b2c')[0];
   return { показ: showNo(o), сховане: o.orderId,
-           уШапці: ((d.querySelector('.od-oid-b') || {}).textContent || '').trim(),
+           уШапці: ((d.querySelector('.dz-panel-id b') || {}).textContent || '').replace('#', '').trim(),
            b2bНеЗачепило: showNo(b2b) === b2b.orderId };
 });
 console.log('  ' + JSON.stringify(номер));
@@ -388,8 +390,8 @@ const дата = await p.evaluate(async () => {
      вже друге. Тому знімаємо показники B2C до переходу, а не після. */
   const d = document.getElementById('orderDrawer');
   const було = {
-    b2c: ((d.querySelector('.od-due-b') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-    лишок: ((d.querySelector('.od-due-c .od-pill-age') || {}).textContent || '').trim(),
+    b2c: ((d.querySelector('[data-cal="due"]') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    лишок: ((d.querySelector('[data-cal="due"] .dz-duo-l') || d.querySelector('[data-cal="due"]') || {}).textContent || '').trim(),
     старePоле: !!d.querySelector('[data-f="dueAt"]')
   };
   const b2b = orders.filter(x => x.dir !== 'b2c')[0];

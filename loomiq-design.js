@@ -4199,6 +4199,7 @@
     return Promise.resolve(p).then(function(){
       if(msg) say(msg);
       render(document.getElementById('dzRoot'));
+      if(SOLO && SOLO.root && SOLO.root.isConnected) renderPanel(SOLO.root, SOLO.id);
     }, function(e){
       console.error(e); say('Не збереглось');
     });
@@ -5293,8 +5294,37 @@
     });
   }
   /* ══════════ ЗБИРАННЯ ЕКРАНА ══════════ */
+  /* ══════════ КАРТКА ВІДДІЛУ БЕЗ ДОШКИ ══════════
+
+     Андрій: те саме B2C-замовлення праворуч у розмові відкривалось старою
+     B2B-карткою — «Звернення», «Наступна дія», «Нагадування», — а в
+     Канбані відділу зовсім іншою. «Тут повинна бути тільки ця картка, яка
+     у нас насправді є».
+
+     Тож робоче місце кладе картку відділу в свою праву панель: той самий
+     шаблон, ті самі дії й лічильники, лише без дошки навколо. Дії, що
+     закінчуються перемальовуванням, малюють саме цю панель. */
+  var SOLO = null;
+  function renderPanel(root, id, opt){
+    if(!root) return;
+    SOLO = { root: root, id: String(id || ''), onClose: (opt && opt.onClose) || (SOLO && SOLO.root === root ? SOLO.onClose : null) };
+    var _p = root.querySelector('.dz-panel-b');
+    var _top = _p ? _p.scrollTop : 0;
+    U.setTab('acct');
+    U.open(SOLO.id);
+    var html = panelFor('acct', SOLO.id);
+    root.innerHTML = '<aside class="dz-panel dz-solo" id="dzPanelSolo">' + html + '</aside>';
+    wire(root);
+    try{ sheetAuto(root); }catch(e){ console.warn('аркуш', e); }
+    if(_top){ var _p2 = root.querySelector('.dz-panel-b'); if(_p2) _p2.scrollTop = _top; }
+    return !!html;
+  }
   function render(root){
     if(!root) return;
+    if(SOLO && root === SOLO.root){
+      if(!root.isConnected){ SOLO = null; return; }
+      return renderPanel(root, SOLO.id);
+    }
     /* ПРОКРУТКА ЛИШАЄТЬСЯ НА МІСЦІ.
 
        Андрій: «я натиснув гроші, оце що підкрилось — воно підпригнуло саме
@@ -5501,6 +5531,8 @@
   }
 
   window.LQDesign.ui.render = render;
+  window.LQDesign.ui.renderPanel = renderPanel;
+  window.LQDesign.ui.soloOff = function(){ SOLO = null; };
   /* Дії назовні — щоб їх можна було перевірити повз інтерфейс. Половина
      заборон тут саме в дії, а не в кнопці: сховати кнопку легко, і тоді
      перевірка «без мокапу не відправимо» перевіряла б верстку, а не
@@ -5540,7 +5572,15 @@
       b.onclick = function(){ U.open(b.dataset.open); render(root); };
     });
     var x = root.querySelector('[data-close]');
-    if(x) x.onclick = function(){ U.open(''); render(root); };
+    if(x) x.onclick = function(){
+      /* У робочому місці хрестик закриває його панель, а не дошку відділу. */
+      if(SOLO && root === SOLO.root){
+        var cb = SOLO.onClose; SOLO = null; U.open('');
+        if(cb) cb();
+        return;
+      }
+      U.open(''); render(root);
+    };
     root.querySelectorAll('[data-do]').forEach(function(b){
       b.onclick = function(){ act(b.dataset.do, root, b.dataset); };
     });
