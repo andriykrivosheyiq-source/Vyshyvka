@@ -6495,7 +6495,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         });
       }
       sk.forEach(function(x){
-        rows.push(['Додатковий ескіз · ' + x.s.fee + ' грн на ' + x.s.units + ' шт', x.share + ' грн']);
+        rows.push([(x.s.kind === 'txt' ? 'Ескіз напису · ' : 'Додатковий ескіз · ') +
+          x.s.fee + ' грн на ' + x.s.units + ' шт', x.share + ' грн']);
       });
     }
     rows.push(['Ціна за штуку', item.unitPrice + ' грн', 'sum']);
@@ -6867,12 +6868,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції. Іде перед
      конструктором: той на нього спирається. -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="/loomiq-select.js?v=a9249897eb"></script>
-<script src="/loomiq-fingerprint.js?v=f0c0af8102"></script>
-<script src="/loomiq-pricing.js?v=f0c0af8102"></script>
+<script src="/loomiq-select.js?v=979b455933"></script>
+<script src="/loomiq-fingerprint.js?v=e652e6897e"></script>
+<script src="/loomiq-pricing.js?v=e652e6897e"></script>
 <!-- Конструктор — спільний файл сайту й пропозиції (loomiq-constructor.js).
      Підключається після основного скрипта: він читає його глобальні змінні. -->
-<script src="loomiq-constructor.js?v=f0c0af8102"></script>
+<script src="loomiq-constructor.js?v=e652e6897e"></script>
 
 <script>
 /* Interactive logo designer — step 02 */

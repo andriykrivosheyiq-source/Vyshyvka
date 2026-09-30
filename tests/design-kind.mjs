@@ -452,7 +452,7 @@ console.log('═══ У РЯДКУ ВИДНО, ПРО ЯКИЙ ДИЗАЙН І
 {
   const adm = fs.readFileSync(path.join(ROOT, 'loomiqadmin.html'), 'utf8');
   const off = fs.readFileSync(path.join(ROOT, 'offer.html'), 'utf8');
-  ok(/function designPic\(o, fp\)/.test(adm) && /pic: designPic\(o,/.test(adm),
+  ok(/function designPic\(o, fp(, asKey)?\)/.test(adm) && /pic: designPic\(o,/.test(adm),
     'у рядок прорахунку їде сам малюнок — за відбитком дизайну',
     'малюнок у рядок не потрапляє');
   /* Шукаємо по всьому замовленню: той самий дизайн стоїть на кількох
@@ -504,19 +504,23 @@ console.log('═══ РАЗОВА КАРТИНКИ Й РАЗОВА НАПИС�
     JSON.stringify({
       feeTotal:b.feeTotal, feeUnits:b.feeUnits, feeShare:b.feeShare,
       разові:(b.feeLines || []).map(f => f.kind + ':' + f.fee + '/' + f.units),
-      рядки:rows.filter(r => /Підготовка макета/.test(r.querySelector('span').textContent))
+      ескізи:(b.sketches || []).map(f => f.kind + ':' + f.fee + '/' + f.units),
+      рядки:rows.filter(r => /Підготовка макета|Ескіз напису/.test(r.querySelector('span').textContent))
                 .map(r => r.querySelector('span').textContent + ' → ' + r.querySelector('b').textContent)
     });
   `).then(JSON.parse);
   console.log('   ' + JSON.stringify(розклад.разові) + ' · feeTotal ' + розклад.feeTotal +
               ' на ' + розклад.feeUnits + ' шт, а насправді ' + розклад.feeShare + ' ₴/шт');
   розклад.рядки.forEach(r => console.log('   ' + r));
-  ok(розклад.разові.length === 2,
-    'рушій рахує разову кожного виду окремо — своя ставка й свій тираж',
-    'разові злиплись в одну: ' + JSON.stringify(розклад.разові));
+  /* Повна підготовка одна на спосіб і стоїть на логотипі (10 шт), напис
+     поруч — ескіз напису зі своїм тиражем (5 шт). */
+  ok(розклад.разові.length === 1 && /^img:\d+\/10$/.test(розклад.разові[0]) &&
+     розклад.ескізи.length === 1 && /^txt:\d+\/5$/.test(розклад.ескізи[0]),
+    'підготовку несе логотип на своїх 10 шт, напис — ескіз напису на своїх 5',
+    'разові розкладені не так: ' + JSON.stringify(розклад));
   ok(розклад.рядки.length === 2,
-    'і в розкладі їх теж дві — стільки рядків, скільки видів',
-    'у розкладі одне число на обидва види: ' + JSON.stringify(розклад.рядки));
+    'і в розкладі два рядки — підготовка й ескіз напису, кожен зі своїм тиражем',
+    'у розкладі не ті рядки: ' + JSON.stringify(розклад.рядки));
   /* Головне: підпис і значення в кожному рядку мають сходитись між собою. */
   const збіг = розклад.рядки.every(t => {
     const m = t.match(/(\d+)\s*₴ на (\d+) шт → (\d+)/);

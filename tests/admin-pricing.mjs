@@ -139,7 +139,8 @@ const ціни = await p.evaluate(() => {
   return { перерахувало: було,
            ціни: o.items.map(x => +x.unitPrice || 0),
            розклад: o.items.map(x => !!x.parts),
-           разові: (o.items[0].parts || {}).feeLines || null };
+           разові: ((o.items[0].parts || {}).feeLines || []).concat(
+             ((o.items[0].parts || {}).sketches || []).map(k => Object.assign({ ескіз:true }, k))) };
 });
 console.log('  ' + JSON.stringify(ціни.ціни) + ' ₴/шт · розклад: ' + JSON.stringify(ціни.розклад));
 ok(ціни.перерахувало && ціни.ціни.every(x => x > 0),
@@ -150,12 +151,12 @@ ok(ціни.розклад.every(Boolean),
   'розкладу немає: ' + JSON.stringify(ціни.розклад));
 console.log('  разові на худі: ' +
   (ціни.разові || []).map(l => l.kind + ' ' + l.fee + '₴÷' + l.units).join(' · '));
-ok((ціни.разові || []).length === 2,
-  'на виробі з логотипом і написом — два рядки разових, кожен зі своїм тиражем',
+ok((ціни.разові || []).length === 2 && (ціни.разові || []).filter(l => l.ескіз).length === 1,
+  'на виробі з логотипом і написом — підготовка й ескіз напису, кожен зі своїм тиражем',
   'разові злились в одне: ' + JSON.stringify(ціни.разові));
-ok((ціни.разові || []).some(l => l.kind === 'img' && l.units === 10) &&
-   (ціни.разові || []).some(l => l.kind === 'txt' && l.units === 15),
-  'логотип ділиться на свої 10 виробів, напис — на всі 15',
+ok((ціни.разові || []).some(l => l.kind === 'img' && !l.ескіз && l.units === 10) &&
+   (ціни.разові || []).some(l => l.kind === 'txt' && l.ескіз && l.units === 15),
+  'підготовку несе логотип на своїх 10 виробах, ескіз напису ділиться на всі 15',
   'поділ не той: ' + JSON.stringify(ціни.разові));
 
 console.log('');
@@ -167,15 +168,15 @@ const розклад = await p.evaluate(() => {
   return { карток: d.querySelectorAll('.t-calc-item').length,
            рядки: [...d.querySelectorAll('.t-calc-row')]
                     .map(r => (r.querySelector('span') || {}).textContent || '')
-                    .filter(t => /Підготовка макета/.test(t)) };
+                    .filter(t => /Підготовка макета|Ескіз напису/.test(t)) };
 });
 розклад.рядки.forEach(t => console.log('  ' + t));
 ok(розклад.карток === 2,
   'розклад є в обох позицій',
   'карток у розкладі: ' + розклад.карток);
-ok(розклад.рядки.length >= 2 && розклад.рядки.some(t => /картинка/.test(t)) &&
-   розклад.рядки.some(t => /напис/.test(t)),
-  'і в ньому видно підготовку макета окремо за картинку й за напис',
+ok(розклад.рядки.length >= 2 && розклад.рядки.some(t => /Підготовка макета/.test(t)) &&
+   розклад.рядки.some(t => /Ескіз напису/.test(t)),
+  'і в ньому видно окремо підготовку за логотип і ескіз напису',
   'підготовки в розкладі немає: ' + JSON.stringify(розклад.рядки));
 
 console.log('');
@@ -319,7 +320,8 @@ const порядок = await p.evaluate(() => {
   const рек = o.items[0];
   /* А тепер те саме, але списком у порядку самих позицій — так його будує
      конструктор. Ціна мусить збігтись до копійки. */
-  const свій = LQ.priceOrder([o.items[0].desc, o.items[1].desc], {});
+  /* Рекомендовану конструктор позначає допродажем (descUpsell) — так і тут. */
+  const свій = LQ.priceOrder([Object.assign({}, o.items[0].desc, { upsell:true }), o.items[1].desc], {});
   return { адмінка: +рек.unitPrice || 0, конструктор: свій[0].unit,
            рядки: (рек.parts.feeLines || []).map(l => l.fee + '÷' + l.units)
                     .concat((рек.parts.sketches || []).map(k => 'ескіз ' + k.fee + '÷' + k.units)) };

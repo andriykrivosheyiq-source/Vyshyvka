@@ -6700,19 +6700,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=a9249897eb"></script>
-<script src="loomiq-fingerprint.js?v=a9249897eb"></script>
-<script src="loomiq-pricing.js?v=a9249897eb"></script>
+<script src="loomiq-select.js?v=979b455933"></script>
+<script src="loomiq-fingerprint.js?v=979b455933"></script>
+<script src="loomiq-pricing.js?v=979b455933"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=a9249897eb"></script>
-<script src="loomiq-mock.js?v=a9249897eb"></script>
+<script src="loomiq-design.js?v=979b455933"></script>
+<script src="loomiq-mock.js?v=979b455933"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=a9249897eb"></script>
+<script src="loomiq-cards.js?v=979b455933"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6737,7 +6737,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'a9249897eb';
+var LQ_VER = '979b455933';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -10690,6 +10690,47 @@ async function slimOrderNow(o){
   }
   return moved;
 }
+/* АДРЕСИ ДИЗАЙНІВ В ОПИСІ — ТІ САМІ, ЩО В ШАРАХ ПІСЛЯ ЗБЕРЕЖЕННЯ.
+
+   Свіжо завантажений логотип живе в конструкторі як data-URL, і саме ним
+   він потрапляв в опис позиції. Шар же при збереженні отримує адресу в
+   хмарі. Тож після повторного відкриття чернетка знала дизайн за однією
+   адресою, а збережені сусіди — за іншою: той самий файл уже не зводився
+   сам із собою, і ціна змінювалась без жодної правки. Заразом data-URL
+   роздував документ. Підставляємо хмарну адресу того самого файлу. */
+function descFiles(d, upFrom, prints){
+  if(!d || !Array.isArray(d.designUrls)) return d || null;
+  const urls = d.designUrls.map((u, i)=>{
+    u = String(u || '');
+    if(!/^data:/i.test(u)) return u;
+    if(upFrom[u]) return upFrom[u];
+    const f = String(((prints || [])[i] || {}).file || '');
+    return /^https?:/i.test(f) ? f : '';
+  });
+  return Object.assign({}, d, { designUrls: urls });
+}
+/* Опис напису — лише прості значення й шматки. Картинок і службових
+   кешів у ньому бути не може, але й довіряти цьому не будемо. */
+function slimText(t){
+  const out = {};
+  Object.keys(t || {}).forEach(k=>{
+    const v = t[k];
+    if(v == null || typeof v === 'function') return;
+    if(typeof v === 'string'){ if(!/^data:/i.test(v)) out[k] = v.slice(0, 2000); return; }
+    if(typeof v === 'number' || typeof v === 'boolean'){ out[k] = v; return; }
+    if(k === 'runs' && Array.isArray(v)){
+      out.runs = v.slice(0, 200).map(r=>{
+        const o = {};
+        Object.keys(r || {}).forEach(rk=>{
+          const rv = r[rk];
+          if(typeof rv === 'string' || typeof rv === 'number' || typeof rv === 'boolean') o[rk] = rv;
+        });
+        return o;
+      });
+    }
+  });
+  return out;
+}
 function slimOrderConfig(cfg, filesBySide){
   if(!cfg) return null;
   const out = { garmentId: cfg.garmentId || null, colorId: cfg.colorId || null,
@@ -10708,8 +10749,23 @@ function slimOrderConfig(cfg, filesBySide){
       url, origUrl: url, cleanUrl: url,
       // Напис лишається написом: без цього після повторного відкриття його
       // не можна було переписати, лише видалити й набрати заново
-      text: l.text ? { t:String(l.text.t||''), font:l.text.font||'', color:l.text.color||'',
-                       bold:!!l.text.bold, italic:!!l.text.italic } : null,
+      /* Напис їде ЦІЛИМ: шматки різним кольором і кеглем, вирівнювання,
+         інтервали. Доти зберігались лише букви, шрифт і колір — і після
+         повторного відкриття напис не тільки втрачав оформлення, а й
+         діставав інший відбиток: рахунок бачив «новий напис» там, де його
+         ніхто не міняв. */
+      text: l.text ? slimText(l.text) : null,
+      /* ОСОБА ДИЗАЙНУ Й РІШЕННЯ МЕНЕДЖЕРА ПРО НЬОГО.
+
+         Відбиток — те, за чим рушій зводить копії одного малюнка, і ключ,
+         за яким живуть «це напис», «не рахувати» і «той самий макет». Доти
+         він тут відкидався: позицію відкривали — конструктор знімав
+         відбиток наново, виходив інший, і рішення менеджера до шару вже не
+         доходило. Звідси «поставив напис, оновив — знову картинка» і
+         «перезайшов, нічого не міняв — інша ціна». */
+      fp: String(l.fp || '').slice(0, 4000) || null,
+      kindFix: (l.kindFix === 'img' || l.kindFix === 'txt' || l.kindFix === 'off') ? l.kindFix : null,
+      sameAs: /^https?:/i.test(String(l.sameAs || '')) ? l.sameAs : null,
       x:l.x, y:l.y, scale:l.scale, rot:l.rot, ar:l.ar,
       frac: l.frac != null ? l.frac : null,
       fx: l.fx != null ? l.fx : null,
@@ -10776,8 +10832,10 @@ window.__adminSaveClientOrder = async function(payload){
     // і одне замовлення могло саме по собі перевищити ліміт документа.
     const prints = [];
     const filesBySide = {};      // адреси логотипів по сторонах — для конфігурації
+    const upFrom = {};           // data-URL файлу → його адреса в хмарі
     for(const p of (it.prints || [])){
       let file = p.file || null;
+      const src = file;
       if(file && /^data:/i.test(file)){
         // при збої лишаємо оригінал: втратити файл клієнта гірше, ніж роздути документ
         try{ file = (await uploadCloudinary(file)) || file; }
@@ -10792,6 +10850,7 @@ window.__adminSaveClientOrder = async function(payload){
                     mark: markClean(p.mark),
                     file: file || null });
       (filesBySide[p.side||''] = filesBySide[p.side||''] || []).push(file || null);
+      if(src && file && src !== file) upFrom[src] = file;
     }
     items.push({
       kind: itemKind(it), vgroup: it.vgroup || '',
@@ -10804,11 +10863,16 @@ window.__adminSaveClientOrder = async function(payload){
       name: it.name||'', color: it.color||'', print: it.print||'', sizes: it.sizes||'',
       qty: +it.qty||0, unitPrice: +it.unitPrice||0, price: +it.price||0,
       unitCost: +it.unitCost||0, cost: +it.cost||0,
-      mockups, views, prints, calc: it.calc||null, desc: it.desc||null, config: slimOrderConfig(it.config, filesBySide),
+      mockups, views, prints, calc: it.calc||null, desc: descFiles(it.desc, upFrom, prints), config: slimOrderConfig(it.config, filesBySide),
       /* Розклад нанесення від конструктора: рядок на кожне зображення з
          формулою, з якої вийшла сума. Відновити його потім нізвідки — він
          живе тільки поки конструктор відкритий. */
       calcLines: Array.isArray(it.calcLines) ? it.calcLines.slice(0, 12) : null,
+      /* Рішення менеджера про вид дизайну, яке конструктор поклав на
+         позицію. Нижче воно переходить у мапу замовлення. Доти це поле тут
+         відсіювалось — і код, який мав його підхопити, не отримував нічого:
+         рішення доходило лише окремим повідомленням, а його могло й не бути. */
+      designKindFix: (it.designKindFix && typeof it.designKindFix === 'object') ? it.designKindFix : null,
       // Товар і підрядник фіксуються тут-і-зараз. Якщо товар потім переведуть
       // на іншого підрядника, це замовлення має лишитись зі своїм.
       garmentId: (it.config && it.config.garmentId) || it.garmentId || null,
@@ -10888,6 +10952,7 @@ window.__adminSaveClientOrder = async function(payload){
         const fresh = nu.designKindFix;
         if(fresh && typeof fresh === 'object')
           Object.keys(fresh).forEach(fp => setItemKindFix(null, fp, fresh[fp], target));
+        delete nu.designKindFix;          // далі живе мапою замовлення
       });
       // Редагували наявну позицію — кладемо нову версію на її ж місце,
       // щоб порядок у кошторисі не стрибав, а решта позицій лишилась.
@@ -11851,7 +11916,7 @@ function itemKindFix(it, o){
    стоїть на кількох виробах, і в тій позиції, де рядок малюється, шару з
    ним може вже й не бути — наприклад, коли нанесення прибрали, а разова
    лишилась поділеною на решту. */
-function designPic(o, fp){
+function designPic(o, fp, asKey){
   const key = String(fp || '');
   if(!key) return '';
   let hit = '';
@@ -11861,7 +11926,9 @@ function designPic(o, fp){
     return Object.keys(logos).some(side =>
       (Array.isArray(logos[side]) ? logos[side] : []).some(l => {
         if(!l || String(l.fp || '') !== key) return false;
-        hit = l.url || l.cleanUrl || l.origUrl || '';
+        /* Для рахунку перефарбований логотип — той самий файл, з якого
+           фарбували; для показу — той, що на виробі. */
+        hit = (asKey && l.recolorFrom) || l.url || l.cleanUrl || l.origUrl || '';
         return !!hit;
       }));
   });
@@ -11901,15 +11968,39 @@ function fpAliases(o, fp){
       });
     });
   }
-  if(!url) return out;
+  /* ОСОБА ДИЗАЙНУ — ТА САМА, ЗА ЯКОЮ ЗВОДИТЬ РАХУНОК.
+
+     Рушій вважає одним макетом дизайни зі спільною адресою файлу в описі
+     позиції (designUrls) — і перефарбований логотип там несе адресу
+     вихідного файлу. Рішення менеджера мусить накривати рівно ту саму
+     групу. Доти воно шукало копії за адресою, яку видно на виробі, — а в
+     перефарбованого вона інша, і «не рахувати», поставлене на бежевому
+     логотипі, не доходило до білого на сусідній позиції: рахунок бачив
+     один макет із двома протилежними рішеннями. */
+  const keys = {};
+  const addKey = k => { k = String(k || ''); if(k) keys[k] = 1; };
+  addKey(designPic(o, fp, true));
   ((o && o.items) || []).forEach(x=>{
+    const d = x && x.desc;
+    ((d && d.designs) || []).forEach((f, i)=>{
+      if(String(f || '') === String(fp || '')) addKey(((d.designUrls || [])[i]));
+    });
+  });
+  if(url) addKey(url);
+  if(!Object.keys(keys).length) return out;
+  const push = f => { f = String(f || ''); if(f && out.indexOf(f) < 0) out.push(f); };
+  ((o && o.items) || []).forEach(x=>{
+    const d = x && x.desc;
+    ((d && d.designs) || []).forEach((f, i)=>{
+      if(keys[String(((d.designUrls || [])[i]) || '')]) push(f);
+    });
     const logos = x && x.config && x.config.logos;
     if(!logos || typeof logos !== 'object') return;
     Object.keys(logos).forEach(side=>{
       (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
         if(!l || !l.fp) return;
         const u = l.url || l.cleanUrl || l.origUrl || '';
-        if(u === url && out.indexOf(String(l.fp)) < 0) out.push(String(l.fp));
+        if(keys[u] || keys[String(l.recolorFrom || '')] || keys[String(l.sameAs || '')]) push(l.fp);
       });
     });
   });
@@ -11932,11 +12023,52 @@ function kindFixKeys(o, fp, url){
     Object.keys(logos).forEach(side=>{
       (Array.isArray(logos[side]) ? logos[side] : []).forEach(l=>{
         if(!l || !l.fp) return;
-        if(l.url === u || l.cleanUrl === u || l.origUrl === u) add(l.fp);
+        if(l.url === u || l.cleanUrl === u || l.origUrl === u ||
+           l.recolorFrom === u || l.sameAs === u) add(l.fp);
       });
     });
+    /* І за адресою в описі позиції — нею рушій і зводить копії одного
+       малюнка, зокрема перефарбовані. */
+    const d = x && x.desc;
+    ((d && d.designs) || []).forEach((f, i)=>{ if(String(((d.designUrls || [])[i]) || '') === u) add(f); });
   });
   return Object.keys(out);
+}
+/* Вид дизайну з конструктора — на все замовлення. Окремою функцією, щоб
+   робоче місце й перевірки йшли тим самим кодом. */
+function kindFixApply(o, fp, url, kind){
+  kind = (kind === 'txt' || kind === 'off') ? kind : 'img';
+  const keys = kindFixKeys(o, fp, url);
+  if(!keys.length) return false;
+  const m = Object.assign({},
+    (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
+  keys.forEach(k => { m[k] = kind; });
+  o.designKindFix = m;
+  /* Прибираємо позиційні позначки про ці ж відбитки: два джерела правди
+     про один малюнок — це те саме розходження, від якого ми тікаємо. */
+  (o.items || []).forEach(x=>{
+    if(!x || !x.designKindFix) return;
+    const c = Object.assign({}, x.designKindFix);
+    let ch = false;
+    keys.forEach(k => { if(c[k] !== undefined){ delete c[k]; ch = true; } });
+    if(ch) x.designKindFix = Object.keys(c).length ? c : null;
+  });
+  applyKindFix(o);
+  repriceOrder(o);
+  recalcOrderTotals(o);
+  return true;
+}
+function sameFixApply(o, fp, url, to){
+  const keys = kindFixKeys(o, fp, url);
+  if(!keys.length) return false;
+  to = String(to || '');
+  const m = Object.assign({},
+    (o.designSameFix && typeof o.designSameFix === 'object') ? o.designSameFix : {});
+  keys.forEach(k => { if(to) m[k] = to; else delete m[k]; });
+  o.designSameFix = Object.keys(m).length ? m : null;
+  repriceOrder(o);
+  recalcOrderTotals(o);
+  return true;
 }
 /* «ЦЕ ТОЙ САМИЙ МАКЕТ» — РІШЕННЯ МЕНЕДЖЕРА ПРО МАЛЮНОК.
 
@@ -12150,7 +12282,7 @@ function fillDesignUrls(o){
     let touched = false;
     d.designs.forEach((fp, i)=>{
       if(have[i]) return;
-      const u = designPic(o, fp);
+      const u = designPic(o, fp, true);
       if(u){ have[i] = u; touched = true; }
     });
     if(touched || !Array.isArray(d.designUrls)) d.designUrls = have;
@@ -12266,6 +12398,7 @@ function fillRecoParts(o, writePrice){
     if(writePrice && +mine.unit){
       it.unitPrice = mine.unit;
       it.price = Math.round(mine.unit * (+it.qty || 0));
+      it.feeShare = mine.feeShare;   // частка разових — разом із ціною, а не з минулого рахунку
       /* Разом із ціною рухається й собівартість: у неї входить частка
          підготовки макета, а допродаж її не платить. Інакше маржа
          рекомендованої позиції показувала б збиток там, де його немає. */
@@ -12340,12 +12473,15 @@ function priceCalcHtml(o){
         let diff = b.feeShare - skSum - fl.reduce((a,x)=>a + x.share, 0);
         fl.forEach((x, i)=>{
           const v = x.share + (i === 0 ? diff : 0);
-          const kind = fl.length > 1 ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
+          /* Повна підготовка тепер одна на спосіб і стоїть на логотипі.
+             Напис її несе лише тоді, коли логотипів немає, — це й кажемо. */
+          const kind = (fl.length > 1 || x.f.kind === 'txt') ? ' · ' + (KIND_UA[x.f.kind] || x.f.kind) : '';
           lines.push(['Підготовка макета' + kind + ' · ' + x.f.fee + ' ₴ на ' + x.f.units + ' шт',
                       v + ' ₴']);
         });
       }
-      sk.forEach(x=> lines.push(['Додатковий ескіз · ' + x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
+      sk.forEach(x=> lines.push([(x.s.kind === 'txt' ? 'Ескіз напису · ' : 'Додатковий ескіз · ') +
+        x.s.fee + ' ₴ на ' + x.s.units + ' шт', x.share + ' ₴']));
     }
     lines.push(['Ціна за штуку', (+it.unitPrice || 0) + ' ₴', 'sum']);
     lines.push([(+it.qty || 0) + ' шт', (+it.price || 0) + ' ₴', 'sum']);
@@ -23302,25 +23438,7 @@ async function offerEdApply(msg){
      позиціях і одразу зберігаємо. Доти воно жило в памʼяті кадру й зникало
      на переході до наступної позиції. */
   if(act === 'kindFix'){
-    const kind = (msg.kind === 'txt' || msg.kind === 'off') ? msg.kind : 'img';
-    const keys = kindFixKeys(o, msg.fp, msg.url);
-    if(!keys.length) return;
-    const m = Object.assign({},
-      (o.designKindFix && typeof o.designKindFix === 'object') ? o.designKindFix : {});
-    keys.forEach(k => { m[k] = kind; });
-    o.designKindFix = m;
-    /* Прибираємо позиційні позначки про ці ж відбитки: два джерела правди
-       про один малюнок — це те саме розходження, від якого ми тікаємо. */
-    (o.items || []).forEach(x=>{
-      if(!x || !x.designKindFix) return;
-      const c = Object.assign({}, x.designKindFix);
-      let ch = false;
-      keys.forEach(k => { if(c[k] !== undefined){ delete c[k]; ch = true; } });
-      if(ch) x.designKindFix = Object.keys(c).length ? c : null;
-    });
-    applyKindFix(o);
-    repriceOrder(o);
-    recalcOrderTotals(o);
+    if(!kindFixApply(o, msg.fp, msg.url, msg.kind)) return;
     if(!(await offerEdSave(o))) return;
     renderBoard();
     offerEdPreview(true);
@@ -23331,15 +23449,7 @@ async function offerEdApply(msg){
      стоять на тій самій відстані. Кладемо рішення в мапу замовлення за
      відбитком і одразу перераховуємо — воно міняє разові, тобто гроші. */
   if(act === 'sameFix'){
-    const keys = kindFixKeys(o, msg.fp, msg.url);
-    if(!keys.length) return;
-    const to = String(msg.to || '');
-    const m = Object.assign({},
-      (o.designSameFix && typeof o.designSameFix === 'object') ? o.designSameFix : {});
-    keys.forEach(k => { if(to) m[k] = to; else delete m[k]; });
-    o.designSameFix = Object.keys(m).length ? m : null;
-    repriceOrder(o);
-    recalcOrderTotals(o);
+    if(!sameFixApply(o, msg.fp, msg.url, msg.to)) return;
     if(!(await offerEdSave(o))) return;
     renderBoard();
     offerEdPreview(true);
