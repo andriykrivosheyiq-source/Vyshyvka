@@ -525,11 +525,22 @@
      того, як менеджер устиг зібрати ТЗ: картинки не докладені, коментаря
      немає, а робота вже «в роботі». Тепер поки не натиснуто «Відправити
      дизайнеру» — у нього нічого не рухається. */
-  function dzAttach(d, who, by){
+  function dzAttach(d, who, by, name){
     if(!d || !who) return null;
+    var був = d.who;
     d.who = String(who);
     d.attachedBy = String(by || '');
     d.attachedAt = nowIso();
+    /* Призначення — теж подія розмови, а не тихе поле. Доти воно ніде не
+       лишало сліду: дизайнер відкривав картку й бачив роботу, не знаючи, коли
+       і від кого вона взялась, а менеджер через тиждень не міг сказати, чи
+       передавав узагалі. */
+    /* Кладемо пошту, а не готовий напис: імена в команді міняються, а
+       пошта ні. Підпис збирається при показі — тоді він завжди свіжий. */
+    if(був !== d.who)
+      d.thread.push({ at: d.attachedAt, by: String(by || ''), kind:'who',
+                      who: d.who, text: 'Виконавець — ' + String(name || who),
+                      seen: [String(by || '')] });
     return d;
   }
   /* Передати. Імʼя тут важить: «передали дизайнерам» — це нікому, і роботу
@@ -785,6 +796,22 @@
     d.thread.push({ at: d.ok.at, by: String(by || ''), kind:'ok',
                     text: (how === 'client' ? 'Клієнт погодив' : 'Погодив акаунт-менеджер') +
                           (n ? ' · версія ' + n : ''), seen: [String(by || '')] });
+    return d;
+  }
+  /* ПРОСТО СЛОВО, А НЕ ПОВЕРНЕННЯ РОБОТИ.
+
+     `dzSay` означає «поверніть і переробіть»: вона кидає дизайн у «правки»
+     й рухає картку на дошці. Але менеджер пише й інше — «клієнт поїхав,
+     відповість завтра», «зроби спершу спину». Якщо кожне таке слово
+     повертає роботу, дизайнер щоразу кидає те, що робить, а дошка бреше
+     про стан. */
+  function dzNote(d, by, text, file){
+    if(!d) return null;
+    var t = String(text || '').trim();
+    if(!t && !(file && file.url)) return d;
+    d.thread.push({ at: nowIso(), by: String(by || ''), kind:'note',
+                    text: t, file: (file && file.url) ? file : null,
+                    seen: [String(by || '')] });
     return d;
   }
   /* ПОКАЗАЛИ КЛІЄНТУ — ЦЕ ОКРЕМА ПОДІЯ, А НЕ ПРАВКА.
@@ -1466,7 +1493,7 @@
     dzTake: dzTake, dzDecline: dzDecline, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
-    dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk,
+    dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
     offDay: offDay, setDayOff: setDayOff,
     stageLeft: stageLeft, trackFrom: trackFrom, STAGE: STAGE,
     addWorkHours: addWorkHours, workMs: workMs,
@@ -2279,7 +2306,7 @@
          пропускаємо: версія каже все те саме й показує роботу. */
       if(m.kind === 'ver') return;
       потік.push({ at: m.at, by: m.by, kind: m.kind, text: m.text, file: m.file,
-                   seen: m.seen });
+                   who: m.who, seen: m.seen });
     });
     (d.vers || []).forEach(function(v){
       потік.push({ at: v.at, by: v.by, ver: v, text: v.note || '' });
@@ -2294,6 +2321,16 @@
             var v = m.ver;
             var прев = v ? (((v.files || [])[2] || (v.files || [])[1] ||
                             (v.files || [])[0] || {}).url || '') : '';
+            /* Подія — не репліка. «Передано в роботу» ніхто не «казав», це
+               сталось; і поставлене бульбашкою поруч зі словами воно
+               змушує щоразу розрізняти, де людина, а де система. */
+            var подія = !v && ['sent','take','no','ok','tell','who'].indexOf(m.kind) >= 0;
+            if(подія)
+              return '<div class="dz-ch-e"><span>' +
+                esc(m.kind === 'who' && m.who
+                    ? ('Виконавець — ' + whoName(m.who))
+                    : (m.text || '')) + '</span>' +
+                '<i>' + esc(whoName(m.by)) + ' · ' + esc(dt(m.at)) + '</i></div>';
             return '<div class="dz-ch-m' + (свій ? ' own' : '') +
               (нове ? ' new' : '') + (v ? ' is-ver' : '') + '">' +
               '<span class="dz-ch-w">' + esc(whoName(m.by)) + ' · ' + esc(dt(m.at)) +
@@ -2301,11 +2338,24 @@
               '</span>' +
               (v
                 ? '<span class="dz-ch-v">' +
-                    (прев ? '<img src="' + esc(прев) + '" alt="" loading="lazy">' : '') +
+                    /* Картинку відкривають натиском, як у месенджері: дрібне
+                       превʼю відповідає на «що це», але не на «а як воно
+                       насправді». Доти для цього треба було скачати файл. */
+                    (прев ? '<button type="button" class="dz-ch-i" data-do="pic-open" ' +
+                      'data-url="' + esc(прев) + '" title="Подивитись на весь екран">' +
+                      '<img src="' + esc(прев) + '" alt="" loading="lazy"></button>' : '') +
                     '<b>Версія ' + v.n + '</b>' +
                     (v.place && v.place.wCm
                       ? '<i>' + esc(placeLine(v.place)) + '</i>' : '') +
                   '</span>' +
+                  /* Решта файлів версії — теж плитками: макет, мокап, аркуш
+                     видно поруч, і зрозуміло, що саме з них качаєш. */
+                  '<span class="dz-ch-p">' + (v.files || []).filter(function(f){
+                      return f && f.url && f.url !== прев; }).map(function(f){
+                    return '<button type="button" class="dz-ch-i" data-do="pic-open" ' +
+                      'data-url="' + esc(f.url) + '" title="' + esc(f.name || 'файл') + '">' +
+                      '<img src="' + esc(f.url) + '" alt="" loading="lazy" ' +
+                      'onerror="this.style.opacity=0"></button>'; }).join('') + '</span>' +
                   '<span class="dz-ch-f">' + (v.files || []).map(function(f){
                     return '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
                       esc(f.url) + '" data-name="' + esc(f.name || 'макет') + '">⤓ ' +
@@ -2319,9 +2369,15 @@
                   '</span>'
                 : '') +
               (m.text ? '<span class="dz-ch-t">' + esc(m.text) + '</span>' : '') +
-              (m.file && !v ? '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
-                esc(m.file.url) + '" data-name="' + esc(m.file.name || 'файл') + '">⤓ ' +
-                esc(m.file.name || 'файл') + '</button>' : '') +
+              (m.file && !v
+                ? (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(String(m.file.url))
+                    ? '<button type="button" class="dz-ch-i" data-do="pic-open" data-url="' +
+                      esc(m.file.url) + '" title="' + esc(m.file.name || 'картинка') + '">' +
+                      '<img src="' + esc(m.file.url) + '" alt="" loading="lazy"></button>'
+                    : '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
+                      esc(m.file.url) + '" data-name="' + esc(m.file.name || 'файл') + '">⤓ ' +
+                      esc(m.file.name || 'файл') + '</button>')
+                : '') +
             '</div>';
           }).join('') + '</div>'
         : '<div class="dz-miss is-calm">Тут буде розмова з менеджером.</div>') +
@@ -2593,8 +2649,11 @@
             ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key +
               '">Передати дизайнеру</button>'
             : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє.</div>'))
-        : (питання ? dzAskHtml(питання, key) : '') +
-          dzCardHtml(u, kind, d, i, job, o, key, ro)) +
+        /* Окремого блока «питання дизайнера» більше немає: воно стоїть у
+           самій стрічці, і непрочитане там позначене. Доти те саме
+           повідомлення було видно двічі — і відповідали на нього теж
+           двічі, бо зверху воно не гасло. */
+        : dzCardHtml(u, kind, d, i, job, o, key, ro)) +
     '</div>';
   }
   /* Питання дизайнера — не чат, а один рядок і поле відповіді. Андрій:
@@ -2676,7 +2735,23 @@
          Три останні рядки, і жодного чату: решта лежить в Історії. Без них
          картка мовчала — правку відправили, а слідів її в тому місці, де
          приймають рішення, не лишалось. */
-      dzTailHtml(d, key) +
+      /* ПЕРЕПИСКА, А НЕ ТРИ ОСТАННІ РЯДКИ.
+
+         Доти тут стояв хвіст: три повідомлення й кнопка «всі». Розмова ж
+         одна на двох, і коли в дизайнера вона повна, а в менеджера —
+         обрізана, вони говорять про різне: він відповідає на те, що бачить,
+         а не на те, що написали. Тепер обидва дивляться в один потік,
+         дзеркально: своє праворуч, чуже ліворуч. */
+      (ro ? '' : dzChatHtml(u, kind, d, i, {}) +
+        '<div class="dz-chk-say">' +
+          '<textarea rows="1" data-grow data-dzsay="' + key + '" ' +
+            'placeholder="Написати дизайнеру"></textarea>' +
+          /* «Написати», а не «Надіслати»: на цій самій картці «Надіслати»
+             вже означає «показати клієнту». Два однакові слова на дві різні
+             дії в одному місці — це помилка, яку зробить кожен, і не раз. */
+          '<button class="dz-b" data-do="dz-note" data-dz="' + key +
+            '" title="Просто слово — роботу не повертає">Написати</button>' +
+        '</div>') +
       (ro ? '' :
       /* Три дії, компактно, в один рядок: погодити, повернути, показати.
          Це вибір, а не послідовність кроків, і поставлені стовпчиком вони
@@ -2927,16 +3002,13 @@
                                      dzList(u, 'graphic').length); }).join('')
             : (ro ? '<div class="dz-miss is-calm">Графіку не замовляли.</div>'
                   : designRowHtml(u, 'graphic', D.dzNew(), 0, ro, job, opt.o, 1))) +
-          /* «+ ЩЕ ДИЗАЙН» — ОДНА КНОПКА ВНИЗУ, А НЕ В КОЖНОМУ РЯДКУ.
+          /* «+ ЩЕ ДИЗАЙН» ЗВІДСИ ПІШЛО.
 
-             Доти вона стояла при кожному дизайні й щоразу пропонувала
-             завести другий — і його заводили випадково. Але на одному
-             виробі справді буває два різні нанесення, які малює одна
-             людина: лого на груди й великий принт на спину. Тому кнопка
-             лишається, але дрібна, внизу, там, де її шукають свідомо. */
-          (ro || !dzList(u, 'graphic').length ? '' :
-            '<button type="button" class="dz-more" data-do="dz-add" data-dz="' +
-            esc(u.id) + '|graphic">+ ще дизайн</button>') +
+             Менеджер передає позицію ОДИН раз, а скільки в ній нанесень —
+             вирішує дизайнер, коли розкладає роботу на виробі. Андрій:
+             «це буде один дизайн робити, розміщувати на одязі». Кнопка
+             пропонувала менеджеру рішення, якого він не ухвалює, і другий
+             рядок заводили випадково. */
           /* «+ Додати дизайнера» звідси пішло. Другий графічний дизайнер на
              одному виробі — випадок на сто замовлень, а кнопка стояла в
              кожному й щоразу пропонувала зробити те, чого не роблять. */
@@ -2955,9 +3027,7 @@
                   /* Оцифровувати нема чого, поки графіку не затвердили: файл
                      робили б під макет, який ще поміняють. */
                   : '<div class="dz-miss is-calm">Чекає: графіку ще не погодили.</div>')) +
-          (ro || !dzList(u, 'stitch').length ? '' :
-            '<button type="button" class="dz-more" data-do="dz-add" data-dz="' +
-            esc(u.id) + '|stitch">+ ще дизайн</button>') +
+
         '</div>') +
       '</div>'; })(only || sideOf(u)) +
     '</div>';
@@ -5198,7 +5268,7 @@
         var k = pp[1] === 'stitch' ? 'stitch' : 'graphic';
         if(!u) return;
         var d = D.dzNew();
-        D.dzAttach(d, who, (host().me && host().me()) || '');
+        D.dzAttach(d, who, (host().me && host().me()) || '', U.whoName(who));
         D.dzList(u, k).push(d);
         /* Щойно доданий дизайн одразу розгорнутий: наступна дія — або
            дописати назву, або відправити ТЗ, і обидві всередині. */
@@ -5224,7 +5294,7 @@
         if(!d) return;
         var who = String(el.value || '');
         if(!who){ d.who = ''; return save(c.job, c.o, 'Дизайнера знято'); }
-        D.dzAttach(d, who, (host().me && host().me()) || '');
+        D.dzAttach(d, who, (host().me && host().me()) || '', U.whoName(who));
         save(c.job, c.o, U.whoName(who));
       };
     });
@@ -5705,7 +5775,7 @@
        what === 'dz-take' || what === 'dz-no' || what === 'dz-hand' ||
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
-       what === 'dz-sheet' || what === 'dz-tail' ||
+       what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
        what === 'dz-tell-pick' || what === 'dz-ok-pick'){
@@ -6084,6 +6154,16 @@
          само, де макет, а не в кінці списку повідомлень. Вікно лягає
          поверх, приймає текст і файл, і лишається в історії — саме за нею
          потім і відновлюють, чому третя версія відрізняється від другої. */
+      /* Слово менеджера, яке НЕ повертає роботу. Для повернення є «Правка»
+         — окрема кнопка з окремим вікном, і саме вона рухає картку. */
+      if(what === 'dz-note'){
+        var nEl = document.querySelector('[data-dzsay="' + dkey + '"]');
+        var nTxt = nEl ? String(nEl.value || '').trim() : '';
+        if(!nTxt) return say('Напишіть щось');
+        D.dzNote(dd, m, nTxt, null);
+        if(nEl) nEl.value = '';
+        return save(job, o, 'Надіслано дизайнеру');
+      }
       if(what === 'dz-fix'){
         return U.fixOpen(async function(txt, file){
           if(!txt && !file) return;
