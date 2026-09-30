@@ -338,7 +338,8 @@ const правка = await p.evaluate(async () => {
            колонка: k ? (k.querySelector('.dz-col-h') || {}).textContent.replace(/\d+$/, '').trim() : '',
            червона: c ? c.className : '',
            позначка: !!document.querySelector('.dz-m-fix'),
-           нових: ((document.querySelector('.dz-m-new') || {}).textContent || '').trim() };
+           /* Пропущене — кружечком у куті картки. */
+           нових: ((document.querySelector('.dz-card-n') || {}).textContent || '').trim() };
 });
 console.log('  ' + JSON.stringify(правка));
 ok(/Правки/.test(правка.колонка),
@@ -579,7 +580,7 @@ const віддано = await p.evaluate(async () => {
   const здача = document.querySelector('.dz-panel .dz-w-send');
   return {
     бульбашок: бульб.length,
-    версій: document.querySelectorAll('.dz-panel .dz-ch-v b').length,
+    версій: document.querySelectorAll('.dz-panel .dz-ch-vn').length,
     /* Дублікату немає: подія «Версія 1» і сама версія — один рядок. */
     дублів: бульб.filter(b => /^\s*\S+ · [\d.: ]+Версія 1\s*$/.test(
       b.textContent.replace(/\s+/g, ' '))).length,
@@ -588,7 +589,9 @@ const віддано = await p.evaluate(async () => {
     /* Переписка нижча за здачу: туди дивляться після натискання. */
     нижчеЗдачі: !!(версія && здача &&
       версія.getBoundingClientRect().top > здача.getBoundingClientRect().top),
-    файлів: document.querySelectorAll('.dz-panel .dz-ch-f .dz-dl').length
+    /* Скачування — просто на плитках картинок (⤓ у куті), без окремого рядка. */
+    файлів: document.querySelectorAll('.dz-panel .dz-tile-a [data-do="dz-dl"]').length,
+    рядокФайлів: document.querySelectorAll('.dz-panel .dz-ch-f').length
   };
 });
 console.log('  ' + JSON.stringify(віддано));
@@ -601,9 +604,9 @@ ok(віддано.своїПраворуч >= 1,
 ok(віддано.нижчеЗдачі,
   'переписка під здачею — там, куди дивишся одразу після натискання',
   'переписка знову над кнопкою, яку щойно натиснули');
-ok(віддано.файлів >= 2,
-  'і файли версії качаються просто з повідомлення',
-  'файлів у повідомленні версії немає');
+ok(віддано.файлів >= 2 && !віддано.рядокФайлів,
+  'і файли версії качаються просто з плиток — окремого рядка скачувань немає',
+  'скачування у версії не ті: ' + JSON.stringify(віддано));
 
 console.log('\n═══ ЗДАЧА — ОДНА КНОПКА Й ОДНЕ ВІКНО ═══');
 const здача = await p.evaluate(() => {

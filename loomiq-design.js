@@ -586,7 +586,10 @@
        прийшло після здачі версії, — це нова робота, а не прострочена. */
     var from = d.sentAt;
     (d.thread || []).forEach(function(m){
-      if(m.kind === 'fix' || m.kind === 'sent' || m.kind === 'queue') from = m.at || from;
+      /* Годинник перезапускає лише правка МЕНЕДЖЕРА: своє слово дизайнера
+         (питання, уточнення) його строку не подовжує. */
+      if((m.kind === 'fix' && msgRole(m, d) === 'acct') || m.kind === 'sent' || m.kind === 'queue')
+        from = m.at || from;
     });
     return from;
   }
@@ -844,12 +847,16 @@
   /* Файлів у версії буває кілька: сам макет і мокап на виріб. Приймаємо і
      один, і список — інакше дизайнер здавав би їх двома версіями, і номер,
      який ми називаємо клієнту, зростав би вдвічі швидше за роботу. */
-  function dzVer(d, by, file, note, place){
+  function dzVer(d, by, file, note, place, role){
     if(!d) return null;
     var n = d.vers.length + 1;
     var список = (Array.isArray(file) ? file : (file ? [file] : []))
       .filter(function(f){ return f && f.url; })
-      .map(function(f){ return { name:String(f.name || ''), url:String(f.url) }; });
+      .map(function(f){
+        var x = { name:String(f.name || ''), url:String(f.url) };
+        if(f.role) x.role = String(f.role);
+        if(f.hash) x.hash = String(f.hash);
+        return x; });
     d.vers.push({ n: n, at: nowIso(), by: String(by || ''),
                   files: список,
                   /* Розміщення їде РАЗОМ із версією, а не окремо збоку.
@@ -860,9 +867,51 @@
                   note: String(note || '') });
     d.status = 'review';
     d.thread.push({ at: nowIso(), by: String(by || ''), kind:'ver',
-                    text: 'Версія ' + n, seen: [String(by || '')] });
+                    text: 'Версія ' + n, seen: [String(by || '')],
+                    role: role ? String(role) : undefined });
     return d;
   }
+  /* ФАЙЛИ ВЕРСІЇ — ЗА РОЛЛЮ, А НЕ ЗА НОМЕРОМ.
+
+     Доти «третій файл» вважався аркушем, другий — мокапом, перший —
+     макетом. Так клала файли стара здача. Нова кладе інакше: спершу мокапи
+     кожної сторони, потім самі роботи, — і на виробі з переду й спини
+     «третім» ставала робота: картка показувала її замість аркуша, а
+     клієнту їхав голий файл. Тепер кожен файл знає, що він такое (`role`),
+     а старі версії розпізнаються за тим, як їх клала своя здача. */
+  function verParts(v){
+    var fs = (v && v.files) || [];
+    var хеш = fs.some(function(f){ return f && f.hash; });
+    var out = { work: [], mock: [], sheet: null };
+    fs.forEach(function(f, i){
+      if(!f || !f.url) return;
+      var r = f.role ||
+        (/^аркуш/i.test(String(f.name || '')) ? 'sheet'
+          : хеш ? (f.hash ? 'work' : 'mock')
+          : (i === 0 ? 'work' : i === 1 ? 'mock' : 'sheet'));
+      if(r === 'sheet'){ if(!out.sheet) out.sheet = f; }
+      else if(r === 'work') out.work.push(f);
+      else out.mock.push(f);
+    });
+    return out;
+  }
+  /* ХТО СКАЗАВ — РОЛЬ, А НЕ ЛЮДИНА.
+
+     Андрій тестує всіма ролями з однієї пошти, і «моє» за поштою ставило
+     праворуч усе: не видно, хто що пише. Та й у житті це правильніше:
+     менеджер, що підміняє колегу, — все одно «наш бік». Нові повідомлення
+     несуть роль; старі розпізнаємо так: написав виконавець цього дизайну
+     або це версія — дизайнер, інакше — акаунт-менеджер. */
+  function msgRole(m, d, kind){
+    if(m && m.role) return String(m.role);
+    var k = kind === 'stitch' ? 'stitch' : 'graphic';
+    if(m && m.kind === 'ver') return k;
+    if(m && d && m.by && String(m.by) === String(d.who || '')) return k;
+    return 'acct';
+  }
+  /* Що рахується пропущеним: слова, файли й здані версії. Події («передано»,
+     «взяв», «погоджено») — не повідомлення, і світитись від них нема чого. */
+  var TALK = ['fix', 'file', 'note', 'ver', 'msg'];
   function dzVerFile(d, n, file){
     var v = d && d.vers.filter(function(x){ return x.n === +n; })[0];
     if(!v || !file || !file.url) return null;
@@ -871,15 +920,17 @@
   }
   /* Правка або просто слово. Менеджер копіює сюди те, що написав клієнт, —
      і воно лежить при тому дизайні, якого стосується. */
-  function dzSay(d, by, text, file){
+  function dzSay(d, by, text, file, role){
     if(!d || (!text && !file)) return null;
     d.thread.push({ at: nowIso(), by: String(by || ''), kind: text ? 'fix' : 'file',
                     text: String(text || ''),
                     file: file ? { name:String(file.name || ''), url:String(file.url) } : null,
-                    seen: [String(by || '')] });
+                    seen: [String(by || '')], role: role ? String(role) : undefined });
     /* Правка повертає дизайн у роботу: інакше він лишається «на перевірці»,
-       хоч перевірка вже сказала своє. */
-    if(d.status === 'review') d.status = 'revision';
+       хоч перевірка вже сказала своє. Андрій: будь-яке слово менеджера
+       дизайнеру — це правка («або правку, або сказав щось скинути»), тож і
+       роботу, яка ще йде, воно ставить у «Правки» з новим відліком. */
+    if(d.status === 'review' || (role === 'acct' && d.status === 'work')) d.status = 'revision';
     return d;
   }
   /* Затвердження. Його дає або клієнт, або акаунт-менеджер — вони обидва
@@ -903,13 +954,13 @@
      відповість завтра», «зроби спершу спину». Якщо кожне таке слово
      повертає роботу, дизайнер щоразу кидає те, що робить, а дошка бреше
      про стан. */
-  function dzNote(d, by, text, file){
+  function dzNote(d, by, text, file, role){
     if(!d) return null;
     var t = String(text || '').trim();
     if(!t && !(file && file.url)) return d;
     d.thread.push({ at: nowIso(), by: String(by || ''), kind:'note',
                     text: t, file: (file && file.url) ? file : null,
-                    seen: [String(by || '')] });
+                    seen: [String(by || '')], role: role ? String(role) : undefined });
     return d;
   }
   /* ПОКАЗАЛИ КЛІЄНТУ — ЦЕ ОКРЕМА ПОДІЯ, А НЕ ПРАВКА.
@@ -933,19 +984,32 @@
   }
   /* Скільки в цій розмові непрочитаного для конкретної людини. Саме за цим
      числом картка дизайнера піднімається вгору й позначається. */
-  function dzUnseen(d, email){
+  /* З роллю — пропущене для людини В ЦІЙ РОЛІ: те, що написала інша роль,
+     і що в цій ролі ще не відкривали. Прочитане позначається й поштою, й
+     «пошта|роль»: один і той самий тестувальник у двох ролях бачить своє
+     непрочитане в кожній окремо, а звичайна людина — як і доти. */
+  function dzUnseen(d, email, role, kind){
     var me = String(email || '');
     if(!me || !d) return 0;
+    var tok = role ? me + '|' + role : '';
     return (d.thread || []).filter(function(m){
-      return String(m.by || '') !== me && (m.seen || []).indexOf(me) < 0;
+      if(!role) return String(m.by || '') !== me && (m.seen || []).indexOf(me) < 0;
+      if(TALK.indexOf(m.kind) < 0) return false;
+      if(msgRole(m, d, kind) === role) return false;
+      var seen = m.seen || [];
+      if(seen.indexOf(tok) >= 0) return false;
+      if(String(m.by || '') !== me && seen.indexOf(me) >= 0) return false;
+      return true;
     }).length;
   }
-  function dzSeen(d, email){
+  function dzSeen(d, email, role){
     var me = String(email || '');
     if(!me || !d) return null;
+    var tok = role ? me + '|' + role : '';
     (d.thread || []).forEach(function(m){
       if(!Array.isArray(m.seen)) m.seen = [];
-      if(m.seen.indexOf(me) < 0) m.seen.push(me);
+      if(m.seen.indexOf(me) < 0 && String(m.by || '') !== me) m.seen.push(me);
+      if(tok && m.seen.indexOf(tok) < 0) m.seen.push(tok);
     });
     return d;
   }
@@ -1590,6 +1654,7 @@
     /* Строк дизайнера й дві його відповіді на передачу. */
     dzTake: dzTake, dzDecline: dzDecline,
     dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
+    verParts: verParts, msgRole: msgRole,
     dzAutoQueue: dzAutoQueue, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
@@ -1817,7 +1882,7 @@
               '<em class="dz-card-h' + (c.left < 0 ? ' late' : c.left < 180 ? ' soon' : '') +
               '">' + esc(c.left < 0 ? ('прострочено ' + hm(-c.left)) : ('лишилось ' + hm(c.left))) +
               '</em>';
-            return '<div class="dz-card-w' + (c.fix ? ' is-fix' : '') + '">' +
+            return '<div class="dz-card-w' + (c.fix ? ' is-fix' : '') + (c.unseen ? ' has-n' : '') + '">' +
               '<button class="dz-card' + (c.id === openKey ? ' on' : '') +
                    '" data-open="' + esc(c.id) + '">' +
               '<b>' + esc(c.title) + годинник +
@@ -1831,13 +1896,17 @@
               (c.sum ? '<span class="dz-card-sum' + (c.sum >= 20000 ? ' big' : '') + '">' +
                        esc(c.sumTxt || c.sum) + '</span>' : '') +
               (c.foot ? '<i>' + esc(c.foot) + '</i>' : '') +
-              ((c.unseen || c.wait || c.fix)
+              /* Пропущене з розмов усередині картки — кружечком у куті
+                 самої картки. Андрій: не підписувати, від кого, — зайшли й
+                 побачили біля потрібної зони. */
+              (c.unseen ? '<span class="dz-card-n" title="Пропущених повідомлень: ' + c.unseen + '">' +
+                          c.unseen + '</span>' : '') +
+              ((c.wait || c.fix)
                 ? '<span class="dz-card-m">' +
                     /* Правка від менеджера — найгучніше, що буває на цій
                        дошці: робота вже зроблена, і її просять переробити.
                        Побачити це наступного дня коштує дня. */
                     (c.fix ? '<b class="dz-m-fix">правка</b>' : '') +
-                    (c.unseen ? '<b class="dz-m-new">' + c.unseen + ' нових</b>' : '') +
                     /* «Чекають на відповідь» — найтихіша поломка відділу:
                        дизайнер спитав і стоїть, а картка виглядає робочою. */
                     (c.wait ? '<b class="dz-m-wait">чекають відповіді</b>' : '') +
@@ -1851,7 +1920,9 @@
                Кнопка стоїть УСЕРЕДИНІ картки, а не під нею: окремий елемент
                поруч читався як чужий і з'їжджав з її краю. */
             (c.chat ? '<button class="dz-card-ig" data-do="chat" data-id="' + esc(c.id) +
-                      '" title="Відкрити розмову з клієнтом">Instagram</button>' : '') +
+                      '" title="Відкрити розмову з клієнтом">Instagram' +
+                      (c.igN ? '<span class="dz-ig-n" title="Клієнт написав, не прочитано">' + c.igN + '</span>' : '') +
+                      '</button>' : '') +
             '</div>';
           }).join('') : '<div class="dz-empty">порожньо</div>') +
         '</div></div>';
@@ -1908,12 +1979,21 @@
   }
   /* Кнопка розмови внизу блока. Немає привʼязаної розмови — немає й
      кнопки: обіцяти дію, яка нічого не відкриє, гірше за її відсутність. */
+  /* СМУЖКА INSTAGRAM ЗАКРІПЛЕНА ЗАВЖДИ. Андрій: «внизу інстаграма
+     закріплене повідомлення має бути». Доти вона зникала, щойно розмову не
+     привʼязано, — і виглядало так, ніби її прибрали. Тепер вона стоїть
+     завжди: є розмова — кнопка й кружечок пропущених від клієнта; немає —
+     так і сказано. */
   function writeHtml(o){
-    var є = false;
+    var є = false, n = 0;
     try{ є = !!(host.hasChat && host.hasChat(o)); }catch(e){}
-    if(!o || !є) return '';
-    return '<div class="dz-write">' +
-      '<button class="dz-ig" data-do="chat">Написати в Instagram</button>' +
+    try{ n = +((host.clientUnread && host.clientUnread(o)) || 0) || 0; }catch(e){}
+    if(!o) return '';
+    return '<div class="dz-write' + (є ? '' : ' is-off') + '">' +
+      (є ? '<button class="dz-ig" data-do="chat">Написати в Instagram' +
+             (n ? '<span class="dz-ig-n" title="Клієнт написав, не прочитано">' + n + '</span>' : '') +
+           '</button>'
+         : '<span class="dz-write-off">Розмову з клієнтом не привʼязано</span>') +
     '</div>';
   }
   function clientHtml(o, job){
@@ -2394,33 +2474,75 @@
      Тепер один потік. Здача версії — теж повідомлення, з превʼю й файлами:
      вона і є те, що дизайнер «сказав». Свої репліки праворуч, чужі ліворуч
      — так виглядає будь-який месенджер, і вчитися тут нема чому. */
+  /* Плитка файлу: клік по картинці — подивитись, праворуч зверху 👁 і ⤓.
+     Скачування стоїть просто на картинці: окремий рядок кнопок під нею
+     повторював те саме, тільки іменами файлів, які нічого не кажуть. */
+  function tileHtml(f, name, label){
+    if(!f || !f.url) return '';
+    var dl = name || f.name || 'файл';
+    return '<span class="dz-tile">' +
+      '<button type="button" class="dz-tile-i" data-do="pic-open" data-url="' + esc(f.url) +
+        '" title="' + esc(label || 'Подивитись') + '">' +
+        '<img src="' + esc(f.url) + '" alt="" loading="lazy" onerror="this.style.opacity=0"></button>' +
+      '<span class="dz-tile-a">' +
+        '<button type="button" data-do="pic-open" data-url="' + esc(f.url) + '" title="Подивитись">👁</button>' +
+        '<button type="button" data-do="dz-dl" data-url="' + esc(f.url) + '" data-name="' + esc(dl) +
+          '" title="Скачати">⤓</button>' +
+      '</span>' +
+      (label ? '<i class="dz-tile-l">' + esc(label) + '</i>' : '') +
+    '</span>';
+  }
+  /* ВЕРСІЯ — ТРИ КАРТИНКИ В РЯД: з чого зробили, мокап, картка.
+
+     Андрій: «підряд три картинки… з якого ми зробили дизайн, потім мокап і
+     потім оцю карточку. І підписуємо версія така-то». Сантиметрів і
+     відстаней від горловини тут більше немає: вони на самій картці, і
+     повторені рядком під нею лише розтягували повідомлення. */
+  function verTilesHtml(v, base){
+    var p = D.verParts(v);
+    var t = [];
+    p.work.forEach(function(f, k){
+      t.push(tileHtml(f, base + '-робота' + (p.work.length > 1 ? '-' + (k + 1) : ''), 'робота')); });
+    p.mock.forEach(function(f, k){
+      t.push(tileHtml(f, base + '-мокап' + (p.mock.length > 1 ? '-' + (k + 1) : ''), 'мокап')); });
+    if(p.sheet) t.push(tileHtml(p.sheet, base + '-картка', 'картка'));
+    return '<span class="dz-tiles">' + t.join('') + '</span>';
+  }
+  /* Хто дивиться. У картці менеджера — акаунт-менеджер, на дошці
+     дизайнера — його роль. Праворуч стоїть саме ця роль. */
   function dzChatHtml(u, kind, d, i, opt){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
     var ro = !!(opt && opt.ro);
+    var as = (opt && opt.as) || 'acct';
+    var tok = me + '|' + as;
     var потік = [];
     (d.thread || []).forEach(function(m){
       /* Здача версії лежить у стрічці двічі: подією `ver` і самою версією.
-         Доти це було потрібно — списки різні, і кожен мав знати про здачу.
          В одному потоці це два однакові рядки підряд, тож короткий
-         пропускаємо: версія каже все те саме й показує роботу. */
+         пропускаємо: версія каже все те саме й показує роботу. Але її
+         позначки прочитаного — у події, звідти й беремо. */
       if(m.kind === 'ver') return;
       потік.push({ at: m.at, by: m.by, kind: m.kind, text: m.text, file: m.file,
-                   who: m.who, seen: m.seen });
+                   who: m.who, seen: m.seen, role: D.msgRole(m, d, kind) });
     });
     (d.vers || []).forEach(function(v){
-      потік.push({ at: v.at, by: v.by, ver: v, text: v.note || '' });
+      var ev = (d.thread || []).filter(function(m){
+        return m.kind === 'ver' && m.text === 'Версія ' + v.n; })[0] || {};
+      потік.push({ at: v.at, by: v.by, ver: v, text: v.note || '', seen: ev.seen || [],
+                   role: ev.role || (kind === 'stitch' ? 'stitch' : 'graphic') });
     });
     потік.sort(function(a, b){
       return String(a.at || '').localeCompare(String(b.at || '')); });
+    var номер = String((opt && opt.no) || '').replace('#', '');
     return '<div class="dz-ch' + (ro ? ' is-ro' : '') + '">' +
       (потік.length
         ? '<div class="dz-ch-l">' + потік.slice(-40).map(function(m){
-            var свій = String(m.by || '') === me;
-            var нове = !свій && !m.ver && (m.seen || []).indexOf(me) < 0;
+            var свій = m.role === as;
+            var sn = m.seen || [];
+            var нове = !свій && sn.indexOf(tok) < 0 &&
+                       !(String(m.by || '') !== me && sn.indexOf(me) >= 0);
             var v = m.ver;
-            var прев = v ? (((v.files || [])[2] || (v.files || [])[1] ||
-                            (v.files || [])[0] || {}).url || '') : '';
             /* Подія — не репліка. «Передано в роботу» ніхто не «казав», це
                сталось; і поставлене бульбашкою поруч зі словами воно
                змушує щоразу розрізняти, де людина, а де система. */
@@ -2437,50 +2559,21 @@
                 (v && v.sentToClient ? ' · клієнту ' + esc(dt(v.sentToClient)) : '') +
               '</span>' +
               (v
-                ? '<span class="dz-ch-v">' +
-                    /* Картинку відкривають натиском, як у месенджері: дрібне
-                       превʼю відповідає на «що це», але не на «а як воно
-                       насправді». Доти для цього треба було скачати файл. */
-                    (прев ? '<button type="button" class="dz-ch-i" data-do="pic-open" ' +
-                      'data-url="' + esc(прев) + '" title="Подивитись на весь екран">' +
-                      '<img src="' + esc(прев) + '" alt="" loading="lazy"></button>' : '') +
-                    '<b>Версія ' + v.n + '</b>' +
-                    (v.place && v.place.wCm
-                      ? '<i>' + esc(placeLine(v.place)) + '</i>' : '') +
-                  '</span>' +
-                  /* Решта файлів версії — теж плитками: макет, мокап, аркуш
-                     видно поруч, і зрозуміло, що саме з них качаєш. */
-                  '<span class="dz-ch-p">' + (v.files || []).filter(function(f){
-                      return f && f.url && f.url !== прев; }).map(function(f){
-                    return '<button type="button" class="dz-ch-i" data-do="pic-open" ' +
-                      'data-url="' + esc(f.url) + '" title="' + esc(f.name || 'файл') + '">' +
-                      '<img src="' + esc(f.url) + '" alt="" loading="lazy" ' +
-                      'onerror="this.style.opacity=0"></button>'; }).join('') + '</span>' +
-                  '<span class="dz-ch-f">' + (v.files || []).map(function(f){
-                    return '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
-                      esc(f.url) + '" data-name="' + esc(f.name || 'макет') + '">⤓ ' +
-                      esc(f.name || 'файл') + '</button>'; }).join('') +
-                    /* Аркуш — окремою кнопкою: його пересилають далі, і
-                       шукати його серед трьох однакових імен файлів
-                       означає щоразу відкривати не той. */
-                    ((v.files || []).length >= 2
-                      ? '<button type="button" class="dz-b dz-quiet" data-do="dz-card" ' +
-                        'data-dz="' + key + '" data-v="' + v.n + '">⤓ Картка</button>' : '') +
-                  '</span>'
+                ? '<b class="dz-ch-vn">Версія ' + v.n + '</b>' +
+                  verTilesHtml(v, (номер ? номер + '-' : '') + 'v' + v.n)
                 : '') +
               (m.text ? '<span class="dz-ch-t">' + esc(m.text) + '</span>' : '') +
               (m.file && !v
                 ? (/\.(png|jpe?g|webp|gif)(\?|$)/i.test(String(m.file.url))
-                    ? '<button type="button" class="dz-ch-i" data-do="pic-open" data-url="' +
-                      esc(m.file.url) + '" title="' + esc(m.file.name || 'картинка') + '">' +
-                      '<img src="' + esc(m.file.url) + '" alt="" loading="lazy"></button>'
+                    ? '<span class="dz-tiles">' + tileHtml(m.file, m.file.name, '') + '</span>'
                     : '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
                       esc(m.file.url) + '" data-name="' + esc(m.file.name || 'файл') + '">⤓ ' +
                       esc(m.file.name || 'файл') + '</button>')
                 : '') +
             '</div>';
           }).join('') + '</div>'
-        : '<div class="dz-miss is-calm">Тут буде розмова з менеджером.</div>') +
+        : '<div class="dz-miss is-calm">Тут буде розмова з ' +
+          (as === 'acct' ? 'дизайнером' : 'менеджером') + '.</div>') +
     '</div>';
   }
   function dzThreadHtml(u, kind, d, i, opt){
@@ -2635,7 +2728,7 @@
   function dzUnseenCol(u, kind){
     var me = (host.me && host.me()) || '';
     if(!me) return 0;
-    return dzList(u, kind).reduce(function(a, d){ return a + D.dzUnseen(d, me); }, 0);
+    return dzList(u, kind).reduce(function(a, d){ return a + D.dzUnseen(d, me, 'acct', kind); }, 0);
   }
   var SIDE_ICO = { graphic:'\u270E', stitch:'\u2726' };
   var SIDE_NM = { graphic:'Графіка', stitch:'Вишивка' };
@@ -2701,8 +2794,15 @@
             teamOpts(роль, '') +
           '</select>';
     }
+    /* ПРОПУЩЕНЕ — ТАМ, ЗВІДКИ ВОНО ПРИЙШЛО. Андрій: «від графічного
+       дизайнера — біля графічного дизайнера висить стільки то пропущених,
+       біля вишивки — біля вишивки». Натиснув — прочитав, число гасне. */
+    var нових = ro ? 0 : dzUnseenCol(u, kind);
     return '<div class="dz-u-l' + (st ? ' is-' + st : '') + '">' +
-      '<span class="dz-u-lt">' + назва + '</span>' + хто + '</div>';
+      '<span class="dz-u-lt">' + назва + '</span>' +
+      (нових ? '<button type="button" class="dz-unread" data-do="dz-seen" data-u="' + esc(u.id) +
+        '" data-side="' + kind + '" title="Позначити прочитаним">' + нових + '</button>' : '') +
+      хто + '</div>';
   }
   /* ══════════ РЯДОК ДИЗАЙНУ В МЕНЕДЖЕРА — МІНІМУМ ══════════
 
@@ -2819,17 +2919,19 @@
   /* Розмова з дизайнером — той самий вигляд, що й у нього самого: ті самі
      бульбашки, ті самі центровані статуси. Не «схожа», а та сама, бо це
      буквально один потік на двох. */
-  function dzTalkHtml(u, kind, d, i, key, ro){
+  function dzTalkHtml(u, kind, d, i, key, ro, job){
     if(ro) return '';
-    return dzChatHtml(u, kind, d, i, {}) +
+    return dzChatHtml(u, kind, d, i, { as:'acct', no: job ? unitNo(job, u) : '' }) +
       '<div class="dz-chk-say">' +
         '<textarea rows="1" data-grow data-dzsay="' + key + '" ' +
           'placeholder="Написати дизайнеру"></textarea>' +
         /* «Написати», а не «Надіслати»: на цій самій картці «Надіслати»
            вже означає «показати клієнту». Два однакові слова на дві різні
            дії в одному місці — це помилка, яку зробить кожен, і не раз. */
+        /* Будь-яке слово менеджера дизайнеру — правка: робота йде в
+           «Правки», строк дизайнера починається заново. */
         '<button class="dz-b" data-do="dz-note" data-dz="' + key +
-          '" title="Просто слово — роботу не повертає">Написати</button>' +
+          '" title="Дизайнер отримає це як правку">Написати</button>' +
       '</div>';
   }
   function dzCardHtml(u, kind, d, i, job, o, key, ro){
@@ -2843,7 +2945,7 @@
        Головне ж інше: поки макета немає, менеджеру нема чим написати
        дизайнеру — а саме в цей час і питають «ти взяв?», «коли буде?».
        Тому розмова відкривається з миті передачі, а не з першої версії. */
-    if(!v) return dzTalkHtml(u, kind, d, i, key, ro);
+    if(!v) return dzTalkHtml(u, kind, d, i, key, ro, job);
     /* У ПРЕВʼЮ — САМ АРКУШ, А НЕ ПРОСТО МОКАП.
 
        Андрій: «ми не бачимо тільки футболку з лого, ми бачимо одразу і саму
@@ -2854,8 +2956,9 @@
 
        Аркуш малюється при здачі версії й лежить у ній третім файлом; немає
        його (стара версія) — показуємо мокап, як і доти. */
-    var аркуш = (v.files || [])[2] || null;
-    var мокап = аркуш || (v.files || [])[1] || (v.files || [])[0] || {};
+    var частини = D.verParts(v);
+    var аркуш = частини.sheet;
+    var мокап = аркуш || частини.mock[0] || частини.work[0] || {};
     /* Версія без аркуша — це версія, здана до того, як аркуш зʼявився.
        Доти тут стояла смужка з кнопкою «Зібрати аркуш». Андрій: формат
        дизайну має бути вже тут, а не за натиском, — і він має рацію:
@@ -2899,7 +3002,7 @@
          обрізана, вони говорять про різне: він відповідає на те, що бачить,
          а не на те, що написали. Тепер обидва дивляться в один потік,
          дзеркально: своє праворуч, чуже ліворуч. */
-      dzTalkHtml(u, kind, d, i, key, ro) +
+      dzTalkHtml(u, kind, d, i, key, ro, job) +
       (ro ? '' :
       /* Три дії, компактно, в один рядок: погодити, повернути, показати.
          Це вибір, а не послідовність кроків, і поставлені стовпчиком вони
@@ -2910,7 +3013,9 @@
           : '<button class="dz-b ok" data-do="dz-ok-pick" data-dz="' + key +
             '" title="Клієнт сказав «беремо» — робота йде далі й відкривається вишивка">' +
             '✓ Погоджено</button>') +
-        '<button class="dz-b" data-do="dz-fix" data-dz="' + key + '">Правка</button>' +
+        /* Кнопки «Правка» більше немає: будь-яке повідомлення менеджера
+           дизайнеру вже й є правкою — написав у розмові, і робота
+           повернулась. Лишились дві дії: погодити й показати клієнту. */
         /* ОДНА ВЕРСІЯ — ОДНЕ НАДСИЛАННЯ.
 
            Доти поруч стояли напис «Надіслано» І жива кнопка «Надіслати» —
@@ -4052,6 +4157,37 @@
   var esc = U.esc, dt = U.dt, nameOf = U.nameOf, say = U.say;
 
   function host(){ return U.host; }
+  /* Вікно «Надіслати клієнту?»: картка, що поїде, і текст повідомлення.
+     Повертає текст (можливо, поправлений) або null, якщо передумали. */
+  function tellConfirm(url, text, title){
+    return new Promise(function(res){
+      var w = document.createElement('div');
+      w.className = 'dz-pick dz-cf';
+      w.innerHTML = '<div class="dz-cf-b" role="dialog" aria-label="Надіслати клієнту">' +
+        '<div class="dz-cf-h">Надіслати клієнту' + (title ? ' · ' + U.esc(title) : '') + '</div>' +
+        '<img class="dz-cf-i" src="' + U.esc(url) + '" alt="">' +
+        '<textarea class="dz-cf-t" rows="4">' + U.esc(text || '') + '</textarea>' +
+        '<div class="dz-cf-f">' +
+          '<button type="button" class="dz-b" data-cf="no">Скасувати</button>' +
+          '<button type="button" class="dz-b pri" data-cf="yes">Надіслати</button>' +
+        '</div></div>';
+      var done = function(v){ if(w.parentNode) w.parentNode.removeChild(w); res(v); };
+      w.addEventListener('click', function(e){
+        var b = e.target.closest('[data-cf]');
+        if(b) return done(b.dataset.cf === 'yes' ? String(w.querySelector('.dz-cf-t').value || '') : null);
+        if(e.target === w) done(null);
+      });
+      document.body.appendChild(w);
+      var y = w.querySelector('[data-cf="yes"]'); if(y) y.focus();
+    });
+  }
+  /* У якій ролі зараз дивляться: на дошці графічного — графічний
+     дизайнер, вишивального — вишивальний, решта — акаунт-менеджер. Від
+     цього залежить, що стоїть праворуч і що рахується пропущеним. */
+  function asRole(){
+    var t = U.tab();
+    return t === 'graphic' ? 'graphic' : t === 'stitch' ? 'stitch' : 'acct';
+  }
   function save(job, o, msg){
     job.updatedAt = new Date().toISOString();
     try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
@@ -4102,6 +4238,9 @@
         sum: jobSum(p.o), sumTxt: money(jobSum(p.o)),
         due: p.job.due || p.job.readyAt || '',
         chat: hasChat(p.o),
+        /* Пропущене від клієнта — кружечком на кнопці Instagram, від
+           дизайнерів — кружечком на самій картці. */
+        igN: clientUnread(p.o),
         wait: mk.wait, unseen: mk.unseen,
         foot: jobWhere(p.job) + (open ? ' · доручень ' + open : '') };
     });
@@ -4121,7 +4260,7 @@
     var нових = 0;
     U.unitsOf(job).forEach(function(u){
       ['graphic','stitch'].forEach(function(k){
-        D.dzList(u, k).forEach(function(d){ нових += D.dzUnseen(d, me); });
+        D.dzList(u, k).forEach(function(d){ нових += D.dzUnseen(d, me, 'acct', k); });
       });
     });
     return { wait: чекає, unseen: нових };
@@ -4130,6 +4269,9 @@
      не відділу: відділ питає одне — чи можна натиснути й написати. */
   function hasChat(o){
     try{ return !!(host().hasChat && host().hasChat(o)); }catch(e){ return false; }
+  }
+  function clientUnread(o){
+    try{ return +((host().clientUnread && host().clientUnread(o)) || 0) || 0; }catch(e){ return 0; }
   }
   function unitNames(job, o){
     var з = U.unitsOf(job).map(function(u){ return u.name; }).filter(Boolean);
@@ -4269,7 +4411,7 @@
         if(l === null) return;
         if(лишок === null || l < лишок) лишок = l;
       });
-      var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m); }, 0);
+      var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m, 'graphic', 'graphic'); }, 0);
       var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
       return { id: p.o.orderId, step: DZ_COL[st] || 'new',
         title: U.jobNo(p.job),
@@ -4623,7 +4765,7 @@
     var g = U.catItem(u.gid);
     var l = D.dzLeft(d, dzHours());
     var м = (host().me && host().me()) || '';
-    var нових = D.dzUnseen(d, м);
+    var нових = D.dzUnseen(d, м, 'graphic', 'graphic');
     return '<div class="dz-w' + (d.status === 'revision' ? ' is-fix' : '') + '">' +
       '<div class="dz-w-h">' +
         '<b>' + esc((g && g.name) || u.name || 'Виріб') + '</b>' +
@@ -4632,6 +4774,8 @@
           esc(u.color) + '</span>' : '') +
         (u.size ? '<span class="dz-w-c">' + esc(u.size) + '</span>' : '') +
         '<span class="dz-w-c">' + (+u.qty || 0) + ' шт</span>' +
+        (нових ? '<button type="button" class="dz-unread" data-do="dz-seen" data-u="' + esc(u.id) +
+          '" data-side="graphic" title="Пропущене від менеджера — позначити прочитаним">' + нових + '</button>' : '') +
         (l === null ? '' : '<em class="dz-w-t' + (l < 0 ? ' late' : l < 180 ? ' soon' : '') +
           '">' + esc(dzLeftTxt(d)) + '</em>') +
       '</div>' +
@@ -4721,7 +4865,7 @@
          щоб зрозуміти, на чому зупинились, їх доводилось складати в голові
          за часом. */
       U.zoneHtml('green', '\uD83D\uDCAC', 'Переписка', '',
-        U.dzChatHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true }) +
+        U.dzChatHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true, as:'graphic' }) +
         (d.status === 'approved' || d.status === 'sent' ? '' : sayHtml(key))) +
     '</div>';
   }
@@ -5024,8 +5168,9 @@
       ['graphic', 'stitch'].forEach(function(kind){
         D.dzList(u, kind).forEach(function(d){
           var v = (d.vers || [])[(d.vers || []).length - 1];
-          if(!v || ((v.files || [])[2] || {}).url) return;
-          if(!((v.files || [])[0] || {}).url) return;
+          var vp = v && D.verParts(v);
+          if(!v || vp.sheet) return;
+          if(!vp.work.length || !vp.mock.length) return;
           var k = c.o.orderId + '|' + u.id + '|' + kind + '|' + v.n;
           if(SHEET_TRY[k]) return;
           SHEET_TRY[k] = 1;
@@ -5844,6 +5989,21 @@
     }
     /* Перемкнути половину: відкрита стає смужкою, смужка — відкритою.
        Нічого не зберігаємо — це спосіб читання, а не подія в замовленні. */
+    /* Прочитали пропущене в зоні: гасимо рівно те, на що натиснули. */
+    if(what === 'dz-seen'){
+      var ру = asRole(), зміни = 0;
+      var cu = data && data.u ? U.unitAt(job, data.u) : null;
+      var ks = data && data.side ? [data.side === 'stitch' ? 'stitch' : 'graphic'] : ['graphic', 'stitch'];
+      (cu ? [cu] : U.unitsOf(job)).forEach(function(uu){
+        ks.forEach(function(k){
+          D.dzList(uu, k).forEach(function(d){
+            if(ру !== 'acct' && d.who && d.who !== m) return;
+            if(D.dzUnseen(d, m, ру, k)){ D.dzSeen(d, m, ру); зміни++; }
+          });
+        });
+      });
+      return зміни ? save(job, o, '') : render(root);
+    }
     if(what === 'u-side'){
       var su = String((data && data.u) || '');
       if(!su) return;
@@ -6021,7 +6181,7 @@
            людина дивиться просто на нього, означає брехати лічильником. */
         if(U.DZ_OPEN[dkey]){ delete U.DZ_OPEN[dkey]; return render(root); }
         U.DZ_OPEN[dkey] = 1;
-        if(D.dzUnseen(dd, m)){ D.dzSeen(dd, m); return save(job, o, ''); }
+        if(D.dzUnseen(dd, m, asRole(), dk)){ D.dzSeen(dd, m, asRole()); return save(job, o, ''); }
         return render(root);
       }
       if(what === 'dz-send' && dd.pool && !dd.who){
@@ -6055,11 +6215,9 @@
           if(!mF) return;
         }
         if(!mTxt && !mF) return say('Напишіть щось або прикріпіть файл');
-        var був = dd.status;
-        D.dzSay(dd, m, mTxt, mF);
-        /* `dzSay` переводить «на перевірці» в «на правках»: вона написана
-           для слів МЕНЕДЖЕРА. Своє слово стан не міняє. */
-        dd.status = був;
+        /* Слово дизайнера — не правка: стан роботи й строк воно не міняє. */
+        D.dzNote(dd, m, mTxt, mF, dk);
+        D.dzSeen(dd, m, dk);
         if(mEl) mEl.value = '';
         return save(job, o, 'Надіслано');
       }
@@ -6085,12 +6243,10 @@
         var rEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var rTxt = rEl ? String(rEl.value || '').trim() : '';
         if(!rTxt) return say('Напишіть відповідь');
-        var rSt = dd.status;
-        D.dzSay(dd, m, rTxt, null);
-        dd.status = rSt;
+        D.dzSay(dd, m, rTxt, null, 'acct');
         /* Питання відпрацьоване — знімаємо з нього «непрочитане», інакше
            воно висітиме в колонці й після відповіді. */
-        D.dzSeen(dd, m);
+        D.dzSeen(dd, m, 'acct');
         if(rEl) rEl.value = '';
         return save(job, o, 'Відповідь надіслано');
       }
@@ -6178,15 +6334,25 @@
               var s = res.sides[i];
               var up = await uploadDataUrl(s.png, 'мокап-' + s.side + '.png');
               if(!up || !up.url) return say('Мокап не зберігся у сховищі');
-              файли.push({ name: s.label + '.png', url: up.url });
+              файли.push({ name: s.label + '.png', url: up.url, role:'mock' });
               s.places.forEach(function(p){
                 місця.push({ side:s.side, label:s.label, name:p.name,
                              wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm }); });
             }
+            /* Робота з прибраним фоном зібралась у браузері як data-URL —
+               кладемо в сховище, як і мокапи. Особа роботи (хеш) лишається
+               від вихідного файлу: це той самий дизайн, лише без тла. */
+            for(var wi = 0; wi < (res.works || []).length; wi++){
+              var ww = res.works[wi];
+              if(!/^data:/i.test(String(ww.url || ''))) continue;
+              var wu = await uploadDataUrl(ww.url, (ww.name || 'робота').replace(/\.\w+$/, '') + '-без-фону.png');
+              if(!wu || !wu.url) return say('Робота без фону не зберіглась у сховищі');
+              ww.url = wu.url;
+            }
             /* Самі роботи теж кладемо у версію: вишивальному дизайнеру
                потрібні вони, а не мокап, і клієнту йде аркуш. */
             (res.works || []).forEach(function(w){
-              файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '' }); });
+              файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '', role:'work' }); });
             var hEl2 = document.querySelector('[data-dzsay="' + dkey + '"]');
             var hTxt2 = hEl2 ? String(hEl2.value || '').trim() : '';
             D.dzVer(dd, m, файли, hTxt2, {
@@ -6198,7 +6364,7 @@
                  одне число «на дизайн» тут неможливе, бо їх кілька. */
               wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
               topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
-            });
+            }, dk);
             dd.status = 'review';
             dd.draft = null;
             if(hEl2) hEl2.value = '';
@@ -6249,7 +6415,8 @@
         if(!чер2.mock) return say('Без мокапу не надсилаємо — зробіть його');
         var hEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var hTxt = hEl ? String(hEl.value || '').trim() : '';
-        var файли = [чер2.art, { name:'мокап.png', url: чер2.mock.png }];
+        var файли = [Object.assign({}, чер2.art, { role:'work' }),
+                     { name:'мокап.png', url: чер2.mock.png, role:'mock' }];
         say('Збираю аркуш…');
         var аркушФайл = await sheetFile(job, o, du, чер2, dd.vers.length + 1);
         /* АРКУШ НЕ ЗІБРАВСЯ — ПРО ЦЕ ТРЕБА СКАЗАТИ.
@@ -6257,12 +6424,12 @@
            у картці менеджер бачив мокап і вважав, що це і є аркуш, а клієнту
            їхав мокап без контактів і без примітки про колір. Мовчазна
            підміна гірша за відмову: її помічають уже з боку клієнта. */
-        if(аркушФайл) файли.push(аркушФайл);
+        if(аркушФайл) файли.push(Object.assign({}, аркушФайл, { role:'sheet' }));
         else say('Аркуш не зібрався — версія піде без нього, зберіть кнопкою в картці');
         D.dzVer(dd, m, файли, hTxt,
           { wCm: чер2.mock.wCm, hCm: чер2.mock.hCm, topCm: чер2.mock.topCm,
-            sideCm: чер2.mock.sideCm, size: чер2.mock.size });
-        if(hTxt) D.dzSay(dd, m, hTxt, null);
+            sideCm: чер2.mock.sideCm, size: чер2.mock.size }, dk);
+        if(hTxt) D.dzNote(dd, m, hTxt, null, dk);
         if(hEl) hEl.value = '';
         /* `dzSay` після версії відкотив би стан у «на правках»: вона для
            слів менеджера, а не для супровідного коментаря до здачі. */
@@ -6276,9 +6443,9 @@
   async function sheetPng(job, o, u, ver, place, note){
     if(!window.LQMock) return null;
     var g = U.catItem(u.gid), pl = place || {};
-    var fs = (ver && ver.files) || [];
+    var vp = D.verParts(ver);
     return await window.LQMock.card({
-      art: (fs[0] || {}).url, mock: (fs[1] || {}).url,
+      art: (vp.work[0] || {}).url, mock: (vp.mock[0] || {}).url,
       title: U.unitNo(job, u) + ' · версія ' + (ver ? ver.n : 1),
       nums: [
         ['Виріб', (g && g.name) || u.name || '—'],
@@ -6316,18 +6483,20 @@
      у версії, далі всі троє беруть уже готовий. Другого разу не буде, і
      різних аркушів на одну версію теж. */
   async function sheetGet(job, o, u, ver){
-    var є = (ver && ver.files || [])[2];
-    if(є && є.url) return є;
+    var vp = D.verParts(ver);
+    if(vp.sheet) return vp.sheet;
     var fs = (ver && ver.files) || [];
-    if(!fs[0] || !fs[0].url) return null;
+    if(!vp.work.length || !vp.mock.length) return null;
     try{
       var png = await sheetPng(job, o, u, ver, ver.place, null);
       if(!png) return null;
       var up = await uploadDataUrl(png, 'аркуш-v' + (ver.n || 1) + '.png');
       if(!up || !up.url) return null;
+      /* Аркуш ДОПИСУЄМО з позначкою ролі, а не кладемо на третє місце:
+         на виробі з переду й спини там стояла робота, і її затирало. */
       ver.files = fs.slice();
-      ver.files[2] = up;
-      return up;
+      ver.files.push({ name: up.name || ('аркуш-v' + (ver.n || 1) + '.png'), url: up.url, role:'sheet' });
+      return ver.files[ver.files.length - 1];
     }catch(e){ console.error('аркуш', e); return null; }
   }
   /* ══════════ АРКУШ ДЛЯ МЕНЕДЖЕРА ══════════
@@ -6368,7 +6537,7 @@
            картка, скачування й лист клієнту будуть про один документ.
            Намальований щоразу наново міг би розійтися з тим, що менеджер
            бачив на екрані, — і ніхто б не сказав, котрий із двох правда. */
-        var готовий = (cv2.files || [])[2];
+        var готовий = D.verParts(cv2).sheet;
         if(!готовий || !готовий.url){
           say('Збираю аркуш…');
           готовий = await sheetGet(job, o, du, cv2);
@@ -6397,7 +6566,8 @@
           дія === 'dz-ok' ? 'Яку версію погодив клієнт' : 'Яку версію надіслати',
           'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
           vs.slice().reverse().map(function(v){
-            var f = (v.files || [])[2] || (v.files || [])[1] || (v.files || [])[0] || {};
+            var vpp = D.verParts(v);
+            var f = vpp.sheet || vpp.mock[0] || vpp.work[0] || {};
             return '<button type="button" class="dz-pick-c" data-pick="' + v.n + '">' +
               (f.url ? '<span class="dz-pick-i"><img src="' + esc(f.url) +
                 '" alt="" onerror="this.style.opacity=0"></span>' : '') +
@@ -6433,7 +6603,7 @@
            збираємо тут і кладемо у версію, а не підмінюємо мокапом: мокап
            без примітки про колір — це саме той лист, після якого клієнт
            каже «а в мене інший відтінок». */
-        var мок = (tv.files || [])[2];
+        var мок = D.verParts(tv).sheet;
         if(!мок || !мок.url){
           say('Збираю аркуш…');
           мок = await sheetGet(job, o, du, tv);
@@ -6446,6 +6616,12 @@
         var txt = '';
         try{ txt = (host().script && host().script(o, перша ? 'design1' : 'design2', {
           v: tv.n })) || ''; }catch(e){}
+        /* ПІДТВЕРДЖЕННЯ: ЩО САМЕ ПІДЕ КЛІЄНТУ. Андрій: «повинно бути
+           підтвердження, що саме ми надсилаємо… картинка і текст. Якщо все
+           правильно — надсилаємо». Текст можна поправити тут же. */
+        var остаточно = await tellConfirm(мок.url, txt, U.unitNo(job, du) + ' · версія ' + tv.n);
+        if(остаточно === null) return;
+        txt = остаточно;
         say('Надсилаю…');
         var вийшло = false;
         try{ вийшло = await host().tellPic(o, мок.url, txt); }
@@ -6471,34 +6647,35 @@
         var nEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var nTxt = nEl ? String(nEl.value || '').trim() : '';
         if(!nTxt) return say('Напишіть щось');
-        D.dzNote(dd, m, nTxt, null);
+        D.dzSay(dd, m, nTxt, null, 'acct');
+        D.dzSeen(dd, m, 'acct');
         if(nEl) nEl.value = '';
-        return save(job, o, 'Надіслано дизайнеру');
+        return save(job, o, 'Правку надіслано дизайнеру');
       }
       if(what === 'dz-fix'){
         return U.fixOpen(async function(txt, file){
           if(!txt && !file) return;
-          D.dzSay(dd, m, txt, file);
+          D.dzSay(dd, m, txt, file, 'acct');
           await save(job, o, 'Правку надіслано');
         });
       }
       if(what === 'dz-ver'){
         var vf = await upload('');
         if(!vf) return;
-        D.dzVer(dd, m, vf, '');
+        D.dzVer(dd, m, vf, '', null, dk);
         return save(job, o, 'Версія ' + dd.vers.length);
       }
       if(what === 'dz-file'){
         var df = await upload('');
         if(!df) return;
-        D.dzSay(dd, m, '', df);
+        D.dzSay(dd, m, '', df, 'acct');
         return save(job, o, 'Файл додано');
       }
       if(what === 'dz-say'){
         var sEl = document.querySelector('[data-dzsay="' + dkey + '"]');
         var txt = sEl ? String(sEl.value || '').trim() : '';
         if(!txt) return say('Напишіть, що саме поміняти');
-        D.dzSay(dd, m, txt, null);
+        D.dzSay(dd, m, txt, null, 'acct');
         if(sEl) sEl.value = '';
         return save(job, o, 'Правку надіслано');
       }

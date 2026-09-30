@@ -3824,6 +3824,15 @@
   .dz-ch-p{display:flex;flex-wrap:wrap;gap:5px;}
   /* ── Вікно здачі: роботи, сторони, нанесення ── */
   .mko-w.is-work{width:min(1040px,96vw);}
+  /* Фон роботи: три стани поруч, обраний залитий. */
+  .mko-bg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 14px 10px;font-size:12px;}
+  .mko-bg>span{color:var(--muted);font-weight:600;margin-right:2px;}
+  .mko-bg-b{all:unset;cursor:pointer;padding:5px 10px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;font-weight:600;color:var(--ink);}
+  .mko-bg-b.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .mko-bg-b[disabled]{opacity:.5;cursor:default;}
+  .mko-bg-b:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .mko-bg-w{font-style:normal;color:var(--muted);}
   .mko-works{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;
     border-bottom:1px solid var(--line);}
   .mko-wk{all:unset;cursor:pointer;width:56px;height:56px;border-radius:9px;
@@ -4299,6 +4308,57 @@
   /* Каталог поверх панелі. Вибір одягу списком назв не працює: «худі
      базове» від «худі оверсайз» у ньому не відрізнити, а кольори взагалі
      читаються як слова, хоч це кольори. */
+  /* ── Пропущене: кружечок там, звідки прийшло ── */
+  .dz-unread{all:unset;cursor:pointer;flex:none;min-width:18px;height:18px;padding:0 5px;
+    box-sizing:border-box;border-radius:9px;background:#e11d48;color:#fff;font-size:11px;
+    font-weight:800;line-height:18px;text-align:center;letter-spacing:0;text-transform:none;
+    font-variant-numeric:tabular-nums;}
+  .dz-unread:focus-visible{outline:2px solid #e11d48;outline-offset:2px;}
+  /* Картка обрізає все, що виходить за край, тож кружечок стоїть усередині кута. */
+  .dz-card-n{position:absolute;top:7px;right:7px;z-index:2;min-width:21px;height:21px;
+    padding:0 6px;box-sizing:border-box;border-radius:11px;background:#e11d48;color:#fff;
+    font-size:11.5px;font-weight:800;line-height:21px;text-align:center;
+    box-shadow:0 0 0 2px var(--paper,#fff),0 2px 6px rgba(225,29,72,.35);
+    font-variant-numeric:tabular-nums;pointer-events:none;}
+  .dz-card-ig,.dz-ig{position:relative;}
+  .dz-ig-n{position:absolute;top:-8px;right:-8px;min-width:18px;height:18px;padding:0 5px;
+    box-sizing:border-box;border-radius:9px;background:#e11d48;color:#fff;font-size:11px;
+    font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--paper,#fff);
+    font-variant-numeric:tabular-nums;}
+  .dz-card-w.has-n .dz-card>b{padding-right:28px;}
+  /* Загальне правило для підписів картки (.dz-card span) робило число сірим. */
+  .dz-card .dz-card-n{display:block;margin:0;color:#fff;font-size:11.5px;}
+  /* Пропущене від клієнта — червоним кружечком НАД кнопкою Instagram, а не
+     блідим усередині неї: на градієнті біле число губилось. */
+  .dz-card-ig{overflow:visible;}
+  .dz-card-ig .dz-ig-n{top:-10px;right:10px;min-width:21px;height:21px;line-height:21px;
+    border-radius:11px;font-size:11.5px;background:#e11d48;color:#fff;
+    box-shadow:0 0 0 2px var(--paper,#fff),0 2px 6px rgba(225,29,72,.35);}
+  .dz-write.is-off{background:var(--paper);}
+  .dz-write-off{display:block;text-align:center;font-size:12.5px;color:var(--muted);}
+  /* ── Версія в розмові: три плитки з оком і скачуванням на самих картинках ── */
+  .dz-ch-vn{display:block;font-size:12.5px;font-weight:800;margin:2px 0 6px;}
+  .dz-tiles{display:flex;gap:6px;flex-wrap:wrap;}
+  .dz-tile{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:3px;}
+  .dz-tile-i{all:unset;cursor:zoom-in;width:92px;height:92px;border-radius:9px;overflow:hidden;
+    background:#fff;border:1px solid var(--line);display:block;}
+  .dz-tile-i img{width:100%;height:100%;object-fit:contain;display:block;}
+  .dz-tile-i:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .dz-tile-a{position:absolute;top:4px;right:4px;display:flex;gap:3px;}
+  .dz-tile-a button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:6px;
+    background:rgba(15,32,52,.72);color:#fff;font-size:12px;line-height:22px;text-align:center;}
+  .dz-tile-a button:hover{background:rgba(15,32,52,.9);}
+  .dz-tile-a button:focus-visible{outline:2px solid #fff;}
+  .dz-tile-l{font-style:normal;font-size:10.5px;color:var(--muted);}
+  /* ── Надіслати клієнту: що саме піде ── */
+  .dz-cf-b{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);width:min(520px,100%);
+    max-height:90vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .dz-cf-h{font-weight:800;font-size:15px;}
+  .dz-cf-i{width:100%;max-height:52vh;object-fit:contain;border-radius:10px;
+    border:1px solid var(--line);background:#fff;}
+  .dz-cf-t{width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;border:1px solid var(--line);
+    border-radius:10px;padding:9px 11px;resize:vertical;}
+  .dz-cf-f{display:flex;gap:8px;justify-content:flex-end;}
   .dz-pick{position:fixed;inset:0;z-index:260;background:rgba(15,32,52,.42);
     display:flex;align-items:center;justify-content:center;padding:20px;}
   .dz-pick-w{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);
@@ -6706,19 +6766,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=2ab1a3a8fe"></script>
-<script src="loomiq-fingerprint.js?v=2ab1a3a8fe"></script>
-<script src="loomiq-pricing.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-select.js?v=0d277497cd"></script>
+<script src="loomiq-fingerprint.js?v=0d277497cd"></script>
+<script src="loomiq-pricing.js?v=0d277497cd"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=2ab1a3a8fe"></script>
-<script src="loomiq-mock.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-design.js?v=0d277497cd"></script>
+<script src="loomiq-mock.js?v=0d277497cd"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=2ab1a3a8fe"></script>
+<script src="loomiq-cards.js?v=0d277497cd"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6743,7 +6803,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '2ab1a3a8fe';
+var LQ_VER = '0d277497cd';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -19709,7 +19769,8 @@ function odDzFold(o){
           /* Превʼю — той самий аркуш, що й у відділі: третій файл версії.
              Показувати тут мокап, коли клієнту їде аркуш, означає дивитись
              на інший документ, ніж той, про який говориш. */
-          const pic = v ? (((v.files || [])[2] || (v.files || [])[1] || (v.files || [])[0] || {}).url || '') : '';
+          const vp = v ? window.LQDesign.verParts(v) : null;
+          const pic = vp ? ((vp.sheet || vp.mock[0] || vp.work[0] || {}).url || '') : '';
           const no = (U.unitNo ? U.unitNo(job, u) : (o.orderId || ''));
           const стан = ok ? 'ескіз погоджений'
             : (v ? ('версія ' + v.n + (v.sentToClient ? ' · надіслано клієнту' : ' · клієнту не надсилали'))
@@ -27282,6 +27343,9 @@ function openDesign(){
     cal: (gid, side) => mockCal(gid, side),
     calSave: (gid, c, side) => mockCalSave(gid, c, side),
     widthCm: (gid, size) => garmentWidthCm(gid, size),
+    /* Адреса Worker-проксі PhotoRoom — та сама, що в конструкторі сайту.
+       Ключ живе лише в секретах Worker. */
+    bgUrl: () => ((contentData || {}).bgApi || {}).proxyUrl || '',
     toast: m => toast(m)
   };
   /* Ядро рахує строки й мусить знати про вихідні. Але команди воно не
@@ -27321,6 +27385,9 @@ function openDesign(){
        каналу, і відділу знати про них нічого: він питає одне — чи можна
        натиснути й написати. */
     hasChat: o => !!(o && (chanHasChat(o, 'ig') || chanHasChat(o, 'tg'))),
+    /* Скільки клієнт написав і ми не прочитали — те саме число, що на
+       картці Канбану. Відділ малює його кружечком на Instagram. */
+    clientUnread: o => { try{ return orderUnread(o) || 0; }catch(e){ return 0; } },
     /* Типовий термін виготовлення. Лежить у налаштуваннях B2C — одне місце
        на всі замовлення, з якого менеджер починає. */
     b2cDays: () => b2cCfg().days,

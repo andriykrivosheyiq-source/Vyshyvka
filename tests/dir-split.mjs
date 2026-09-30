@@ -296,7 +296,7 @@ const стрічка = await p.evaluate(async ([довга]) => {
     /* Текст не ріжеться: у правці вся суть після коми. */
     перенос: (() => { const x = document.querySelector('.dz-chk .dz-ch-t');
       return x ? getComputedStyle(x).whiteSpace : ''; })(),
-    плиток: document.querySelectorAll('.dz-chk .dz-ch-i').length,
+    плиток: document.querySelectorAll('.dz-chk .dz-tile').length,
     поле: !!document.querySelector('.dz-chk-say textarea')
   };
 }, [ДОВГА]);
