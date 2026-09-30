@@ -1513,12 +1513,24 @@
   function nameOf(e){ return (host.name && host.name(e)) || e || '—'; }
   function say(m){ if(host.toast) host.toast(m); }
   function can(k){ return host.can ? !!host.can(k) : true; }
+  /* ЧАС — КИЇВСЬКИЙ, А НЕ ТОЙ, ЩО НА ПРИСТРОЇ.
+
+     Андрій: «CRM щоб працювала по київському часу, всі діалоги і т. д.».
+
+     Без цього те саме повідомлення в Києві підписане 14:30, а в дизайнера,
+     який поїхав до Польщі, — 13:30. Люди починають звірятись між собою й
+     виходить, що «о котрій ти написав» немає однієї відповіді. А строки
+     рахуються від міток, і зсув на годину в кінці доби — це вже інший день.
+
+     Тому всюди одна зона. Не «за замовчуванням», а завжди: ноутбук у
+     відпустці не має міняти час у замовленні. */
+  var TZ = 'Europe/Kyiv';
   function dt(s){
     if(!s) return '';
     var d = new Date(s);
     if(isNaN(d)) return '';
-    return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' }) + ' ' +
-           d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
+    return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', timeZone:TZ }) + ' ' +
+           d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit', timeZone:TZ });
   }
 
   /* Тільки година й хвилина. На кнопці «Надіслано» повний штамп із датою
@@ -1528,7 +1540,7 @@
     if(!s) return '';
     var d = new Date(s);
     if(isNaN(d)) return '';
-    return d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
+    return d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit', timeZone:TZ });
   }
 
   /* ══════════ П'ЯТЬ РОЛЕЙ, П'ЯТЬ ДОШОК ══════════
@@ -1645,7 +1657,7 @@
   function dueShort(v){
     var d = new Date(String(v || '') + 'T00:00:00');
     if(isNaN(d)) return String(v || '');
-    return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+    return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
   }
   function boardHtml(steps, cards){
     return '<div class="dz-board">' + steps.map(function(s){
@@ -2241,6 +2253,80 @@
   /* Розмова по дизайну. Правка, скопійована з переписки з клієнтом, лежить
      рівно при тому нанесенні, якого стосується, — дизайнеру не треба
      здогадуватись, що саме «завелике». */
+  /* ── ПЕРЕПИСКА ЗАМІСТЬ ЖУРНАЛУ ───────────────────────────────────────
+
+     Андрій: «історія тут не повинна була бути взагалі саме у дизайнера. Він
+     щось написав — і в форматі переписки воно тут виглядало. Надіслали
+     менеджеру — можна по праву сторону; коли тобі менеджер пише — по ліву.
+     Тоді буде максимально зручне спілкування».
+
+     Доти в дизайнера було три різні списки про одну розмову: перелік
+     версій, стрічка повідомлень і журнал подій. Щоб зрозуміти, на чому
+     зупинились, доводилось читати всі три й складати їх у голові за часом.
+
+     Тепер один потік. Здача версії — теж повідомлення, з превʼю й файлами:
+     вона і є те, що дизайнер «сказав». Свої репліки праворуч, чужі ліворуч
+     — так виглядає будь-який месенджер, і вчитися тут нема чому. */
+  function dzChatHtml(u, kind, d, i, opt){
+    var key = esc(u.id) + '|' + kind + '|' + i;
+    var me = (host.me && host.me()) || '';
+    var ro = !!(opt && opt.ro);
+    var потік = [];
+    (d.thread || []).forEach(function(m){
+      /* Здача версії лежить у стрічці двічі: подією `ver` і самою версією.
+         Доти це було потрібно — списки різні, і кожен мав знати про здачу.
+         В одному потоці це два однакові рядки підряд, тож короткий
+         пропускаємо: версія каже все те саме й показує роботу. */
+      if(m.kind === 'ver') return;
+      потік.push({ at: m.at, by: m.by, kind: m.kind, text: m.text, file: m.file,
+                   seen: m.seen });
+    });
+    (d.vers || []).forEach(function(v){
+      потік.push({ at: v.at, by: v.by, ver: v, text: v.note || '' });
+    });
+    потік.sort(function(a, b){
+      return String(a.at || '').localeCompare(String(b.at || '')); });
+    return '<div class="dz-ch' + (ro ? ' is-ro' : '') + '">' +
+      (потік.length
+        ? '<div class="dz-ch-l">' + потік.slice(-40).map(function(m){
+            var свій = String(m.by || '') === me;
+            var нове = !свій && !m.ver && (m.seen || []).indexOf(me) < 0;
+            var v = m.ver;
+            var прев = v ? (((v.files || [])[2] || (v.files || [])[1] ||
+                            (v.files || [])[0] || {}).url || '') : '';
+            return '<div class="dz-ch-m' + (свій ? ' own' : '') +
+              (нове ? ' new' : '') + (v ? ' is-ver' : '') + '">' +
+              '<span class="dz-ch-w">' + esc(whoName(m.by)) + ' · ' + esc(dt(m.at)) +
+                (v && v.sentToClient ? ' · клієнту ' + esc(dt(v.sentToClient)) : '') +
+              '</span>' +
+              (v
+                ? '<span class="dz-ch-v">' +
+                    (прев ? '<img src="' + esc(прев) + '" alt="" loading="lazy">' : '') +
+                    '<b>Версія ' + v.n + '</b>' +
+                    (v.place && v.place.wCm
+                      ? '<i>' + esc(placeLine(v.place)) + '</i>' : '') +
+                  '</span>' +
+                  '<span class="dz-ch-f">' + (v.files || []).map(function(f){
+                    return '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
+                      esc(f.url) + '" data-name="' + esc(f.name || 'макет') + '">⤓ ' +
+                      esc(f.name || 'файл') + '</button>'; }).join('') +
+                    /* Аркуш — окремою кнопкою: його пересилають далі, і
+                       шукати його серед трьох однакових імен файлів
+                       означає щоразу відкривати не той. */
+                    ((v.files || []).length >= 2
+                      ? '<button type="button" class="dz-b dz-quiet" data-do="dz-card" ' +
+                        'data-dz="' + key + '" data-v="' + v.n + '">⤓ Картка</button>' : '') +
+                  '</span>'
+                : '') +
+              (m.text ? '<span class="dz-ch-t">' + esc(m.text) + '</span>' : '') +
+              (m.file && !v ? '<button type="button" class="dz-dl" data-do="dz-dl" data-url="' +
+                esc(m.file.url) + '" data-name="' + esc(m.file.name || 'файл') + '">⤓ ' +
+                esc(m.file.name || 'файл') + '</button>' : '') +
+            '</div>';
+          }).join('') + '</div>'
+        : '<div class="dz-miss is-calm">Тут буде розмова з менеджером.</div>') +
+    '</div>';
+  }
   function dzThreadHtml(u, kind, d, i, opt){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
@@ -2459,7 +2545,7 @@
      клієнту нема чого — обидві до того або нічого не роблять, або роблять
      неправду.
      ══════════════════════════════════════════════════════════════════════ */
-  function designRowHtml(u, kind, d, i, ro, job, o){
+  function designRowHtml(u, kind, d, i, ro, job, o, всього){
     var key = esc(u.id) + '|' + kind + '|' + i;
     var me = (host.me && host.me()) || '';
     var роль = kind === 'stitch' ? 'embroidery' : 'designer';
@@ -2473,7 +2559,19 @@
       if((m.seen || []).indexOf(me) >= 0) return;
       питання = m;
     });
+    /* ПІДПИС ДИЗАЙНУ — КОЛИ ЇХ КІЛЬКА.
+
+       Андрій: «графічний дизайнер має можливість відправити один дизайн і
+       другий дизайн, окремо підписати — дизайн 1, дизайн 2, щоб потім ми
+       розрахували, скільки повинні розрахувати з дизайнером».
+
+       Один дизайн підпису не потребує: про нього й так ясно, про що мова.
+       Два — потребують обовʼязково, інакше «зроби менше» стосується
+       невідомо якого з них, а в кінці місяця нема з чого порахувати, за
+       скільки робіт платити. */
     return '<div class="dz-dz' + (питання ? ' has-new' : '') + '">' +
+      ((+всього || 0) > 1
+        ? '<div class="dz-dz-no">Дизайн ' + (i + 1) + '</div>' : '') +
       /* Хто робить — рядком угорі. Доти тут стояв список, який лишався
          списком і після вибору: людина обрана, а поле й далі пропонує
          обирати, ніби нічого не сталось. */
@@ -2825,9 +2923,20 @@
              Тепер колонка одразу пропонує обрати дизайнера. */
           (dzList(u, 'graphic').length
             ? dzList(u, 'graphic').map(function(d, i){
-                return designRowHtml(u, 'graphic', d, i, ro, job, opt.o); }).join('')
+                return designRowHtml(u, 'graphic', d, i, ro, job, opt.o,
+                                     dzList(u, 'graphic').length); }).join('')
             : (ro ? '<div class="dz-miss is-calm">Графіку не замовляли.</div>'
-                  : designRowHtml(u, 'graphic', D.dzNew(), 0, ro, job, opt.o))) +
+                  : designRowHtml(u, 'graphic', D.dzNew(), 0, ro, job, opt.o, 1))) +
+          /* «+ ЩЕ ДИЗАЙН» — ОДНА КНОПКА ВНИЗУ, А НЕ В КОЖНОМУ РЯДКУ.
+
+             Доти вона стояла при кожному дизайні й щоразу пропонувала
+             завести другий — і його заводили випадково. Але на одному
+             виробі справді буває два різні нанесення, які малює одна
+             людина: лого на груди й великий принт на спину. Тому кнопка
+             лишається, але дрібна, внизу, там, де її шукають свідомо. */
+          (ro || !dzList(u, 'graphic').length ? '' :
+            '<button type="button" class="dz-more" data-do="dz-add" data-dz="' +
+            esc(u.id) + '|graphic">+ ще дизайн</button>') +
           /* «+ Додати дизайнера» звідси пішло. Другий графічний дизайнер на
              одному виробі — випадок на сто замовлень, а кнопка стояла в
              кожному й щоразу пропонувала зробити те, чого не роблять. */
@@ -2838,13 +2947,17 @@
           dzColHtml(u, 'stitch') +
           (dzList(u, 'stitch').length
             ? dzList(u, 'stitch').map(function(d, i){
-                return designRowHtml(u, 'stitch', d, i, ro, job, opt.o); }).join('')
+                return designRowHtml(u, 'stitch', d, i, ro, job, opt.o,
+                                     dzList(u, 'stitch').length); }).join('')
             : (ro ? '<div class="dz-miss is-calm">Вишивку не замовляли.</div>'
                   : D.graphicOk(u)
                   ? designRowHtml(u, 'stitch', D.dzNew(), 0, ro, job, opt.o)
                   /* Оцифровувати нема чого, поки графіку не затвердили: файл
                      робили б під макет, який ще поміняють. */
                   : '<div class="dz-miss is-calm">Чекає: графіку ще не погодили.</div>')) +
+          (ro || !dzList(u, 'stitch').length ? '' :
+            '<button type="button" class="dz-more" data-do="dz-add" data-dz="' +
+            esc(u.id) + '|stitch">+ ще дизайн</button>') +
         '</div>') +
       '</div>'; })(only || sideOf(u)) +
     '</div>';
@@ -3694,7 +3807,8 @@
     DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, whoName: whoName,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
-    dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, DZ_STATE: DZ_STATE,
+    dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, dzChatHtml: dzChatHtml,
+    DZ_STATE: DZ_STATE,
     unitPhoto: unitPhoto,
     taskCards: taskCards, hm: hm,
     /* Одна відповідь на всі модулі: права питає робоче місце, а не кожен
@@ -4324,14 +4438,15 @@
          кнопкою, яку щойно натиснули, — і не казав головного: що роботу
          віддано. Тепер він стоїть там, куди дивишся після натискання, і
          кожен рядок починається зі слова «надіслано» й часу. */
-      (d.vers.length
-        ? '<div class="dz-w-l">Надіслано менеджеру</div>' +
-          U.dzVersHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), true)
-        : '') +
-      /* ── РОЗМОВА З МЕНЕДЖЕРОМ — У САМОМУ НИЗУ ── */
-      '<div class="dz-w-l">Розмова з менеджером</div>' +
+      /* ── ПЕРЕПИСКА — ОДИН ПОТІК І В САМОМУ НИЗУ ──
+
+         Окремого списку версій тут більше немає. Здача — теж повідомлення,
+         з превʼю й файлами: доти про одну розмову було три різні списки, і
+         щоб зрозуміти, на чому зупинились, їх доводилось складати в голові
+         за часом. */
+      '<div class="dz-w-l">Переписка</div>' +
+      U.dzChatHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true }) +
       (d.status === 'approved' || d.status === 'sent' ? '' : sayHtml(key)) +
-      U.dzThreadHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true }) +
     '</div>';
   }
   function graphicPanel(p){

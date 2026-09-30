@@ -284,7 +284,9 @@ const версія = await p.evaluate(async () => {
   U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 250));
   return { при: (d.vers[0].place || {}).wCm,
-           видно: ((document.querySelector('.dz-dv-p') || {}).textContent || '').trim(),
+           /* Окремого списку версій у дизайнера більше немає: здача лягає в
+              переписку повідомленням, і розміщення стоїть у ньому ж. */
+           видно: ((document.querySelector('.dz-ch-v i') || {}).textContent || '').trim(),
            картка: !!document.querySelector('[data-do="dz-card"]') };
 });
 console.log('  ' + JSON.stringify(версія));

@@ -3785,6 +3785,39 @@
   /* Розмова з менеджером — у самому низу, власним блоком. Доти поле стояло
      між ТЗ і завантаженням файлу: дизайнер відкривав картку, щоб віддати
      роботу, і першим натикався на порожнє поле для листа. */
+  /* ── ПЕРЕПИСКА ДИЗАЙНЕРА Й МЕНЕДЖЕРА ──
+     Свої репліки праворуч, чужі ліворуч — як у будь-якому месенджері.
+     Доти це був журнал однакових рядків, і хто кому сказав, читалось лише
+     з підпису. */
+  .dz-ch{display:flex;flex-direction:column;gap:8px;}
+  .dz-ch-l{display:flex;flex-direction:column;gap:7px;max-height:420px;overflow:auto;
+    padding:2px;}
+  .dz-ch-m{max-width:82%;align-self:flex-start;display:flex;flex-direction:column;gap:3px;
+    background:var(--canvas);border-radius:12px;border-top-left-radius:4px;
+    padding:8px 10px;}
+  .dz-ch-m.own{align-self:flex-end;background:#EAF2FF;
+    border-radius:12px;border-top-right-radius:4px;}
+  .dz-ch-m.new{box-shadow:inset 2px 0 0 #E4572E;}
+  .dz-ch-m.is-ver{background:#EDF9F3;}
+  .dz-ch-m.is-ver.own{background:#EDF9F3;}
+  .dz-ch-w{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .dz-ch-t{font-size:12.5px;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;
+    line-height:1.45;}
+  /* Здача версії — теж повідомлення, але видно з першого погляду, що це
+     робота, а не слова. */
+  .dz-ch-v{display:flex;align-items:center;gap:9px;}
+  .dz-ch-v img{flex:none;width:46px;height:46px;object-fit:contain;border-radius:7px;
+    background:#fff;border:1px solid var(--line);}
+  .dz-ch-v b{font-size:13px;font-weight:700;color:#0A6B4A;}
+  .dz-ch-v i{font-style:normal;font-size:11px;color:var(--ink-soft);}
+  .dz-ch-f{display:flex;flex-wrap:wrap;gap:5px;}
+  /* Підпис дизайну — коли їх на виробі кілька. Один підпису не потребує. */
+  .dz-dz-no{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:5px;}
+  /* «+ ще дизайн» — дрібним і внизу: її шукають свідомо, а не натикаються. */
+  .dz-more{all:unset;cursor:pointer;display:block;text-align:center;
+    font-size:11px;font-weight:600;color:var(--muted);padding:6px 0;border-radius:7px;}
+  .dz-more:hover{background:#fff;color:var(--ink);}
   .dz-w-say{display:flex;flex-direction:column;gap:7px;}
   .dz-w-row{display:flex;gap:8px;}
   .dz-w-row .dz-b{flex:1;text-align:center;justify-content:center;}
@@ -6591,19 +6624,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=ae31110f87"></script>
-<script src="loomiq-fingerprint.js?v=ae31110f87"></script>
-<script src="loomiq-pricing.js?v=ae31110f87"></script>
+<script src="loomiq-select.js?v=df08032d98"></script>
+<script src="loomiq-fingerprint.js?v=df08032d98"></script>
+<script src="loomiq-pricing.js?v=df08032d98"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=ae31110f87"></script>
-<script src="loomiq-mock.js?v=ae31110f87"></script>
+<script src="loomiq-design.js?v=df08032d98"></script>
+<script src="loomiq-mock.js?v=df08032d98"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=ae31110f87"></script>
+<script src="loomiq-cards.js?v=df08032d98"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6628,7 +6661,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'ae31110f87';
+var LQ_VER = 'df08032d98';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -7172,7 +7205,7 @@ document.getElementById('auth-forgot').addEventListener('click', async function(
   const d = new Date(document.lastModified);
   el.textContent = isNaN(d) ? 'оновити версію'
     : 'версія від ' + d.toLocaleString('uk-UA',
-        { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
   el.addEventListener('click', reloadFresh);
 })();
 function reloadFresh(){ location.href = location.pathname + '?v=' + Date.now(); }
@@ -8902,8 +8935,8 @@ function payMoney(n){
 function payDate(s){
   const d = new Date(String(s || ''));
   if(isNaN(d)) return String(s || '');
-  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' }) + ' ' +
-         d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
+  return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' }) + ' ' +
+         d.toLocaleTimeString('uk-UA', { timeZone:'Europe/Kyiv', hour:'2-digit', minute:'2-digit' });
 }
 /* ЯКІ ЗАМОВЛЕННЯ ПІДХОДЯТЬ ПІД ЦЕЙ ПЛАТІЖ.
 
@@ -10306,7 +10339,7 @@ function addWorkingDays(fromDate, days){
 }
 
 function fmtDate(d){
-  return d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',weekday:'short'});
+  return d.toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',weekday:'short'});
 }
 
 function deadlineLabel(qty, fromDate, techniques){
@@ -14969,7 +15002,7 @@ const OFFER_EVENT_UA = {
 function offerTimeLabel(iso){
   const d = new Date(iso);
   if(isNaN(d)) return '';
-  return d.toLocaleString('uk-UA', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  return d.toLocaleString('uk-UA', { timeZone:'Europe/Kyiv',day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
 }
 /* Копіюємо СИНХРОННО, прямо в обробнику: після await браузер на телефоні вже
    не вважає це дією користувача і мовчки відмовляє в доступі до буфера.
@@ -15544,7 +15577,7 @@ function renderTicket(o){
     : `<div style="font-size:11px;color:var(--muted);">без нанесення</div>`;
 
   const createdDate = o.createdAt
-    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    ? new Date(o.createdAt).toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
     : '';
 
   // cost breakdown: garment cost vs applications cost
@@ -15583,7 +15616,7 @@ function renderTicket(o){
       const d = new Date(o.deadline);
       const now = new Date();
       const isOverdue = d < now && o.status !== 'done';
-      const dStr = d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',weekday:'short'});
+      const dStr = d.toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',weekday:'short'});
       return `<div class="t-deadline">
         <div>
           <div class="d-label">Термін відправки</div>
@@ -16320,7 +16353,7 @@ function dueInfo(o){
   if(isNaN(d)) return null;
   const today = new Date(); today.setHours(0,0,0,0);
   const days = Math.round((d - today) / 86400000);
-  return { label: d.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}),
+  return { label: d.toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit'}),
            days, cls: days < 0 ? 'due-late' : (days <= 2 ? 'due-soon' : '') };
 }
 async function saveOrderEdit(o){
@@ -16481,13 +16514,13 @@ function ticketSummaryHtml(o){
      видно поруч, у рядку останнього повідомлення. */
   const date = o.createdAt
     ? new Date(o.createdAt).toLocaleString('uk-UA',
-        { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(',', '')
+        { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).replace(',', '')
     : '';
   const unread = tgUnreadCount(o);
   const waitN = orderUnread(o);
   const actAt = orderActivityAt(o);
   const actTime = actAt ? new Date(actAt).toLocaleTimeString('uk-UA',
-        { hour:'2-digit', minute:'2-digit' }) : '';
+        { timeZone:'Europe/Kyiv', hour:'2-digit', minute:'2-digit' }) : '';
   chanMigrate(o);   // старе поле instagram розкладаємо по каналах
   const units = orderUnits(o), pos = (o.items||[]).length;
   const due = dueInfo(o);
@@ -16691,7 +16724,7 @@ function agoUa(iso){
 function dtUa(iso){
   const d = iso ? new Date(iso) : null;
   if(!d || isNaN(d)) return '';
-  return d.toLocaleString('uk-UA', { day:'2-digit', month:'2-digit',
+  return d.toLocaleString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit',
                                      hour:'2-digit', minute:'2-digit' }).replace(',', '');
 }
 
@@ -16750,7 +16783,7 @@ function stageWord(o){
 function dayUa(d){
   var x = new Date(String(d) + 'T12:00:00');
   if(isNaN(x)) return String(d || '');
-  return x.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  return x.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
 }
 function snoozedTill(o){
   var d = (o && o.snoozeUntil) || '';
@@ -16854,7 +16887,7 @@ function dueWordUa(due){
   if(n === 0) return 'сьогодні';
   if(n === 1) return 'завтра';
   const d = new Date(String(due) + 'T00:00:00');
-  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
 }
 /* Стан картки за наступною дією. «none» — теж стан, і найгірший: картка,
    про яку ніхто не домовився, що з нею робити далі. */
@@ -19887,7 +19920,7 @@ function allOrdersHtml(o){
           <span class="ao-oid">${escapeHtml(x.orderId || 'без номера')}</span>
           <span class="ao-st" style="background:${c.bg};color:${c.head};">${escapeHtml(st.label)}</span>
           <span class="ao-d">${escapeHtml(x.createdAt
-            ? new Date(x.createdAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'2-digit'})
+            ? new Date(x.createdAt).toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',year:'2-digit'})
             : '—')}</span>
           <b class="ao-s">${fmt(x.totalPrice)} ₴</b>
           ${x.id === o.id ? '<span class="ao-cur">ця картка</span>' : ''}
@@ -19971,7 +20004,7 @@ function renderOrderDrawer(){
   const bornAt = o.createdAt || ((o.hist || [])[0] || {}).at || o.touchedAt || '';
   const bornD = bornAt ? new Date(bornAt) : null;
   const created = (bornD && !isNaN(bornD))
-    ? bornD.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}) : '';
+    ? bornD.toLocaleDateString('uk-UA',{ timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit'}) : '';
   const due = dueInfo(o);
   const sc = statusColor(o.status);
   const age = stageWord(o), heat = stageHeat(o), snz = snoozedTill(o);
@@ -20982,7 +21015,7 @@ function crmDayLabel(day){
   const diff = Math.round((today - d) / 86400000);
   if(diff === 0) return 'сьогодні';
   if(diff === 1) return 'вчора';
-  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'long' });
+  return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'long' });
 }
 /* Повна позначка часу — для підказки на наведення. «Сьогодні» й «вчора»
    зручні, поки розмова свіжа; коли до неї повертаються через місяць, потрібні
@@ -20991,7 +21024,7 @@ function crmFullStamp(at){
   if(!at) return '';
   const d = new Date(at);
   if(isNaN(d)) return String(at);
-  return d.toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric',
+  return d.toLocaleString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', year:'numeric',
     hour:'2-digit', minute:'2-digit', second:'2-digit' });
 }
 
@@ -22177,8 +22210,8 @@ function crmDayShort(at){
   if(isNaN(+d)) return '';
   const today = new Date().toISOString().slice(0, 10);
   return s.slice(0, 10) === today
-    ? d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' })
-    : d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+    ? d.toLocaleTimeString('uk-UA', { timeZone:'Europe/Kyiv', hour:'2-digit', minute:'2-digit' })
+    : d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
 }
 /* ══════════ ДВІ КОЛОНКИ, ЯК У DIRECT ══════════════════════════════════
    Ліворуч список розмов, праворуч сама переписка. Натиснув рядок — розмова
@@ -24709,7 +24742,7 @@ async function cardsDraw(o){
 function cardsSentLabel(rec){
   if(!rec || !rec.at) return '';
   const d = new Date(rec.at);
-  const day = d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit' });
+  const day = d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit' });
   return 'надіслано ' + day + (rec.by ? ' · ' + String(rec.by).split('@')[0] : '');
 }
 function cardsPanelHtml(o){
@@ -28326,7 +28359,7 @@ function tmTabsHtml(){
 function tmDate(iso){
   const d = iso ? new Date(iso) : null;
   if(!d || isNaN(d)) return '—';
-  return d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' });
+  return d.toLocaleDateString('uk-UA', { timeZone:'Europe/Kyiv', day:'2-digit', month:'2-digit', year:'numeric' });
 }
 /* ══════════ ЗАЙШОВ ЧИ ЩЕ НІ ══════════════════════════════════════════
    «Команда» і «Запрошення» — це не два погляди на один список, а два різні
