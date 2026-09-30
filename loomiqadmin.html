@@ -4195,6 +4195,11 @@
   #lq-newver button{all:unset;cursor:pointer;flex:none;background:#fff;color:var(--ink);
     font-weight:700;font-size:13px;border-radius:9px;padding:7px 14px;}
   #lq-newver button:hover{background:#EEF1F5;}
+  /* Рядок версії в меню, коли сторінка стара. Його бачать щодня, і саме на
+     нього дивляться, коли питають «а в мене свіже?». */
+  #side-build.is-old{color:#fff;background:#E4572E;border-radius:8px;
+    padding:6px 9px;font-weight:700;cursor:pointer;}
+  #side-build.is-old:hover{background:#C2441F;}
   .dz-b.dz-quiet{border-color:transparent;color:var(--muted);padding:4px 8px;}
   /* Написати клієнту — унизу блока, кольором каналу: очима вона
      знаходиться за півсекунди, і ні з чим іншим не плутається. */
@@ -6629,19 +6634,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=fea5382432"></script>
-<script src="loomiq-fingerprint.js?v=fea5382432"></script>
-<script src="loomiq-pricing.js?v=fea5382432"></script>
+<script src="loomiq-select.js?v=1cd9637c33"></script>
+<script src="loomiq-fingerprint.js?v=1cd9637c33"></script>
+<script src="loomiq-pricing.js?v=1cd9637c33"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=fea5382432"></script>
-<script src="loomiq-mock.js?v=fea5382432"></script>
+<script src="loomiq-design.js?v=1cd9637c33"></script>
+<script src="loomiq-mock.js?v=1cd9637c33"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=fea5382432"></script>
+<script src="loomiq-cards.js?v=1cd9637c33"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6666,13 +6671,31 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'fea5382432';
+var LQ_VER = '1cd9637c33';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
   function показати(нова){
     if(сказано) return;
     сказано = true;
+    /* СТАРА СТОРІНКА МАЄ СКАЗАТИ ПРО СЕБЕ ТАМ, КУДИ ДИВЛЯТЬСЯ.
+
+       Смуга внизу екрана вже була — і її не помічали: вона лежить у кутку,
+       поверх неї стає то вікно, то підказка, а людина тим часом читає
+       середину екрана й дивується, чому нічого не змінилось.
+
+       Тому кажемо це ще й у рядку версії в меню: він і так підписаний
+       «версія від …», його бачать щодня, і саме на нього дивляться, коли
+       виникає питання «а в мене свіже?». Червоний рядок у меню пропустити
+       важче, ніж смугу в кутку. */
+    try{
+      var side = document.getElementById('side-build');
+      if(side){
+        side.classList.add('is-old');
+        side.textContent = 'стара версія — натисніть, щоб оновити';
+        side.title = 'Свіжа збірка: ' + нова;
+      }
+    }catch(e){}
     var d = document.createElement('div');
     d.id = 'lq-newver';
     d.innerHTML = '<span>Вийшла нова версія адмінки (' + нова + '). ' +
