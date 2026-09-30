@@ -3535,6 +3535,11 @@
     width:min(560px,100%);background:#fff;border:0;border-radius:0;
     display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--sh-3);}
   .dz-panel.hide{display:none;}
+  /* Картка відділу в правій панелі робочого місця (розмова, пошук): та сама
+     картка, але панель уже є — стаємо в неї, а не поверх екрана. */
+  .od-panel.is-dept{padding:0;overflow:hidden;}
+  .dz-panel.dz-solo{position:absolute;inset:0;width:100%;z-index:auto;box-shadow:none;
+    border-radius:inherit;}
   /* Решта екрана гасне, поки панель відкрита: увага там, де працюють. */
   .dz-wrap:has(> .dz-panel:not(.hide))::after{content:'';position:fixed;inset:0;z-index:199;
     background:rgba(16,24,40,.45);}
@@ -6771,19 +6776,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=d06cc56bbe"></script>
-<script src="loomiq-fingerprint.js?v=d06cc56bbe"></script>
-<script src="loomiq-pricing.js?v=d06cc56bbe"></script>
+<script src="loomiq-select.js?v=5aef8baacd"></script>
+<script src="loomiq-fingerprint.js?v=5aef8baacd"></script>
+<script src="loomiq-pricing.js?v=5aef8baacd"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=d06cc56bbe"></script>
-<script src="loomiq-mock.js?v=d06cc56bbe"></script>
+<script src="loomiq-design.js?v=5aef8baacd"></script>
+<script src="loomiq-mock.js?v=5aef8baacd"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=d06cc56bbe"></script>
+<script src="loomiq-cards.js?v=5aef8baacd"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6808,7 +6813,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'd06cc56bbe';
+var LQ_VER = '5aef8baacd';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -17493,6 +17498,8 @@ function closeOrderDrawer(){
   if(!sidebar || !sidebar.classList.contains('open'))
     document.body.classList.remove('menu-open');
   drawerOrderId = null;
+  /* Картка відділу в панелі більше не жива — перемальовувати її нема куди. */
+  try{ if(window.LQDesign && window.LQDesign.ui.soloOff) window.LQDesign.ui.soloOff(); }catch(e){}
   if(typeof chatClose === 'function') chatClose();
   if(typeof crmStopPoll === 'function') crmStopPoll();
   if(typeof tgUnwatch === 'function') tgUnwatch();
@@ -20327,6 +20334,19 @@ function odDueB2cHtml(o){
         escapeHtml(л.txt)}</b>` : ''}
     </span>`;
 }
+function deptInDrawer(o, panel){
+  const U = window.LQDesign && window.LQDesign.ui;
+  if(!U || !U.renderPanel || !o || !o.orderId) return false;
+  try{
+    if(!designJobOf(o.orderId)) designJobOf(o.orderId, true);   // задача відділу — одна на замовлення
+    panel.classList.add('is-dept');
+    return !!U.renderPanel(panel, o.orderId, { onClose: closeOrderDrawer });
+  }catch(e){
+    console.warn('картка відділу в панелі', e);
+    panel.classList.remove('is-dept');
+    return false;
+  }
+}
 function renderOrderDrawer(){
   const d = document.getElementById('orderDrawer');
   /* Діалог можна відкрити просто з дошки, кнопкою «Відповісти» — тоді картки
@@ -20340,6 +20360,13 @@ function renderOrderDrawer(){
   const o = (orders || []).find(x=>x.id === drawerOrderId);
   if(!o){ closeOrderDrawer(); return; }
   const panel = d.querySelector('.od-panel');
+  /* B2C-ЗАМОВЛЕННЯ — КАРТКОЮ ВІДДІЛУ. Андрій: у розмові праворуч
+     відкривалась стара B2B-картка («Звернення», «Наступна дія»,
+     «Нагадування»), а в Канбані відділу — зовсім інша. «Тут повинна бути
+     тільки ця картка, яка у нас насправді є». Тож для приватного
+     замовлення малюємо ту саму картку відділу, з тими самими діями. */
+  if(orderDir(o) === 'b2c' && deptInDrawer(o, panel)) return;
+  panel.classList.remove('is-dept');
   /* Панель перемальовується цілком, а разом із нею обнуляється прокрутка —
      і менеджера викидало нагору щоразу, коли він щось натискав унизу картки
      (найпомітніше на діалозі з клієнтом). Запамʼятовуємо позицію і повертаємо
