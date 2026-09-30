@@ -3401,6 +3401,39 @@
   .dz-seek-x{all:unset;cursor:pointer;flex:none;color:var(--muted);font-size:15px;
     line-height:1;padding:2px 4px;border-radius:5px;}
   .dz-seek-x:hover{background:var(--canvas);color:var(--ink);}
+  /* Строки етапів у налаштуваннях: рядок на етап, число праворуч. */
+  .b2c-terms{display:flex;flex-direction:column;gap:8px;max-width:640px;}
+  .b2c-term{display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:10px;background:#fff;}
+  .b2c-term-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .b2c-term-t b{font-size:13px;font-weight:700;color:var(--ink);}
+  .b2c-term-t i{font-style:normal;font-size:11.5px;color:var(--muted);}
+  .b2c-term input{flex:none;width:86px;text-align:right;}
+  .b2c-term-h{flex:none;font-size:12px;color:var(--muted);}
+  /* ── Графік дизайнера: місяць галочками ── */
+  .dz-shift{flex:none;}
+  .dz-sh-w{background:var(--paper);border-radius:14px;width:min(360px,100%);
+    padding:14px;display:flex;flex-direction:column;gap:10px;
+    box-shadow:0 20px 60px rgba(15,32,52,.32);}
+  .dz-sh-h{display:flex;align-items:center;}
+  .dz-sh-h b{font-size:14px;font-weight:700;color:var(--ink);}
+  .dz-sh-h .dz-x{position:static;margin-left:auto;}
+  .dz-sh-who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);}
+  .dz-sh-who select{flex:1;min-width:0;font:inherit;font-size:13px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .dz-sh-nav{display:flex;align-items:center;justify-content:space-between;}
+  .dz-sh-nav b{font-size:13px;font-weight:700;color:var(--ink);}
+  .dz-sh-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .dz-sh-e{display:block;}
+  .dz-sh-d{all:unset;cursor:pointer;text-align:center;font-size:12.5px;
+    padding:7px 0;border-radius:8px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  .dz-sh-d:hover{border-color:var(--accent);}
+  .dz-sh-d.today{font-weight:800;}
+  /* Вихідний — сірий і закреслений: у нього годинник стоїть. */
+  .dz-sh-d.off{background:var(--canvas);color:var(--muted);text-decoration:line-through;
+    border-color:transparent;}
+  .dz-sh-n{font-size:11.5px;color:var(--muted);line-height:1.45;}
   /* Значок календаря на кнопці строку: доти вона виглядала як напис, і те,
      що на неї треба натиснути, доводилось вгадувати. */
   .dz-duo-c{flex:none;font-style:normal;font-size:12px;line-height:1;opacity:.75;}
@@ -5392,18 +5425,18 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
         <textarea id="b2c-note" rows="3" style="width:100%;max-width:640px;"
           placeholder="Колір виробу на екрані може відрізнятись від тканини: монітори передають відтінки по-різному. Розміри нанесення вказані з точністю до сантиметра."></textarea>
 
-        <div class="tl-divider" style="margin-top:22px;">Строк дизайнера</div>
+        <div class="tl-divider" style="margin-top:22px;">Строки етапів</div>
         <div class="sub" style="margin-bottom:8px;">
-          Скільки годин дається на макет після передачі. Це НЕ строк замовлення:
-          клієнту ми обіцяємо готову посилку, а дизайнеру потрібен свій годинник —
-          «до 14 жовтня» сьогодні не рухає нікого, а «лишилось 5 год» рухає.
-          Відлік іде від передачі, а не від того, коли дизайнер її помітив;
-          повернули на правку — доба починається заново.
+          Скільки <b>годин</b> дається кожному, хто бере роботу в руки. Це НЕ строк
+          замовлення: клієнту ми обіцяємо готову посилку, а всередині потрібен свій
+          годинник — «до 14 жовтня» сьогодні не рухає нікого, а «лишилось 5 год»
+          рухає. Відлік іде від <b>передачі</b>, а не від того, коли людина її
+          помітила; повернули на правку — відлік починається заново.
+          Годинник іде цілодобово: коли брати роботу, людина вирішує сама.
+          Зупиняють його лише відмічені вихідні, і тільки в дизайнерів —
+          графік вони виставляють собі у відділі.
         </div>
-        <label class="field" style="display:block;max-width:220px;">
-          <span style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Годин на макет</span>
-          <input id="b2c-dzhours" type="number" min="1" max="720" step="1" style="width:100%;" placeholder="24">
-        </label>
+        <div id="b2c-terms" class="b2c-terms"></div>
         <div style="margin-top:14px;">
           <button class="pc-btn up" id="b2c-save" style="padding:9px 18px;">Зберегти</button>
         </div>
@@ -6465,19 +6498,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f17cc9445a"></script>
-<script src="loomiq-fingerprint.js?v=f17cc9445a"></script>
-<script src="loomiq-pricing.js?v=f17cc9445a"></script>
+<script src="loomiq-select.js?v=0ca9af6f66"></script>
+<script src="loomiq-fingerprint.js?v=0ca9af6f66"></script>
+<script src="loomiq-pricing.js?v=0ca9af6f66"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f17cc9445a"></script>
-<script src="loomiq-mock.js?v=f17cc9445a"></script>
+<script src="loomiq-design.js?v=0ca9af6f66"></script>
+<script src="loomiq-mock.js?v=0ca9af6f66"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f17cc9445a"></script>
+<script src="loomiq-cards.js?v=0ca9af6f66"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6502,7 +6535,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f17cc9445a';
+var LQ_VER = '0ca9af6f66';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9032,6 +9065,76 @@ const B2C_DAYS = 9;
 const B2C_NOTE = 'Колір виробу на екрані може відрізнятись від тканини: ' +
   'монітори передають відтінки по-різному. Розміри нанесення вказані з ' +
   'точністю до сантиметра.';
+/* ── СТРОКИ ЕТАПІВ ───────────────────────────────────────────────────────
+
+   Доти годинник у системі був один: доба дизайнеру на макет. Решта
+   ланцюга жила без строку взагалі — замовлення могло лежати в закупника
+   тиждень, і ніде це не світилось, бо ніде не було записано, скільки воно
+   там має лежати.
+
+   Тепер строк є в кожного, хто бере роботу в руки. Усі в ГОДИНАХ і всі
+   рахуються від ПЕРЕДАЧІ, а не від того, коли людина її помітила: інакше
+   строк починається тоді, коли зручно виконавцю.
+
+   Годинник іде цілодобово. Андрій: «вони ж самі будуть вибирати, коли
+   прийняти замовлення» — тобто ніч тут не привід, а частина рішення.
+   Зупиняють його тільки відмічені вихідні, і тільки в дизайнерів. */
+const B2C_TERMS = {
+  graphic: { label:'Графічний дизайнер', hint:'від передачі ТЗ до зданого макета', h:24 },
+  stitch:  { label:'Вишивальний дизайнер', hint:'від погодження ескіза до оцифровки', h:24 },
+  acct:    { label:'Акаунт-менеджер', hint:'від приходу замовлення до передачі у виробництво', h:48 },
+  supply:  { label:'Закупівля', hint:'від того, як закупник узяв, до закритої закупівлі', h:48 },
+  prod:    { label:'Виробництво', hint:'від отриманого пакета до передачі на відправку', h:72 }
+};
+function b2cTerms(){
+  const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
+  const t = (c.terms && typeof c.terms === 'object') ? c.terms : {};
+  const out = {};
+  Object.keys(B2C_TERMS).forEach(k => {
+    out[k] = (+t[k] > 0) ? Math.round(+t[k]) : B2C_TERMS[k].h;
+  });
+  /* Строк графіки колись стояв окремим полем `dzHours`, і в робочих
+     акаунтах він там і лежить. Поважаємо його: людина це число вводила. */
+  const старий = +((contentData.b2c || {}).dzHours);
+  if(!(+t.graphic > 0) && старий > 0) out.graphic = Math.round(старий);
+  return out;
+}
+/* ── ГРАФІК ДИЗАЙНЕРА ────────────────────────────────────────────────────
+
+   Графік є ТІЛЬКИ в дизайнерів. Андрій перебрав уголос виробництво,
+   закупника й менеджерів і в кожного його зняв: «тільки у дизайнерів є
+   графік, який вони виписують».
+
+   Це не спрощення заради спрощення. Графік має сенс там, де строк короткий
+   і особистий: доба на макет, видана в пʼятницю, без графіка стає
+   прострочкою в понеділок. У виробництва й закупівлі строки довгі, і день
+   туди-сюди в них нічого не вирішує, а пʼять календарів вихідних ніхто не
+   вестиме.
+
+   Зберігаємо ДНІ, ЯКІ НЕ ПРАЦЮЄМО, а не робочі: їх менше, і порожній
+   графік чесно означає «працюю щодня». */
+function shiftsAll(){
+  const s = (contentData || {}).shifts;
+  return (s && typeof s === 'object') ? s : {};
+}
+function shiftOff(email, iso){
+  const l = shiftsAll()[String(email || '').trim().toLowerCase()];
+  return Array.isArray(l) && l.indexOf(String(iso || '')) >= 0;
+}
+async function shiftSet(email, iso, off){
+  const key = String(email || '').trim().toLowerCase();
+  if(!key || !iso) return;
+  const all = JSON.parse(JSON.stringify(shiftsAll()));
+  const l = Array.isArray(all[key]) ? all[key] : [];
+  const i = l.indexOf(iso);
+  if(off && i < 0) l.push(iso);
+  if(!off && i >= 0) l.splice(i, 1);
+  l.sort();
+  all[key] = l;
+  contentData.shifts = all;
+  try{ await PHOTOS_DOC.set({ shifts: all }, { merge:true }); }
+  catch(e){ console.error('графік', e); toast('Графік не зберігся'); }
+}
 function b2cCfg(){
   const c = (contentData.b2c && typeof contentData.b2c === 'object') ? contentData.b2c : {};
   return { extras: Array.isArray(c.extras) ? c.extras : [],
@@ -9056,11 +9159,34 @@ function paintB2c(){
   paintExtras(c.extras);
   const d = document.getElementById('b2c-days');
   if(d) d.value = (c.days === B2C_DAYS) ? '' : (c.days || '');
-  const h = document.getElementById('b2c-dzhours');
-  if(h) h.value = (c.dzHours === 24) ? '' : c.dzHours;
+  paintB2cTerms();
   const n = document.getElementById('b2c-note');
   if(n) n.value = (c.note === B2C_NOTE) ? '' : c.note;
   paintB2cPrices();
+}
+/* Пʼять рядків, по одному на етап. Порожнє поле означає заготовку й
+   показує її ж підказкою: «порожньо» інакше читалось би як «без строку». */
+function paintB2cTerms(){
+  const box = document.getElementById('b2c-terms');
+  if(!box) return;
+  const cur = b2cTerms();
+  box.innerHTML = Object.keys(B2C_TERMS).map(k => {
+    const t = B2C_TERMS[k];
+    return `<label class="b2c-term">
+      <span class="b2c-term-t"><b>${escapeHtml(t.label)}</b><i>${escapeHtml(t.hint)}</i></span>
+      <input type="number" min="1" max="720" step="1" data-term="${escapeHtml(k)}"
+             placeholder="${t.h}" value="${cur[k] === t.h ? '' : cur[k]}">
+      <span class="b2c-term-h">год</span>
+    </label>`;
+  }).join('');
+}
+function readB2cTerms(){
+  const out = {};
+  document.querySelectorAll('#b2c-terms [data-term]').forEach(el => {
+    const n = Math.max(0, Math.round(parseFloat(el.value) || 0));
+    if(n > 0) out[el.dataset.term] = n;
+  });
+  return out;
 }
 /* Усі товари списком, з полем ціни навпроти кожного. Порожнє поле каже, що
    візьметься базова ціна, і показує її ж підказкою — інакше «порожньо»
@@ -9111,10 +9237,14 @@ function readB2cPrices(){
   if(!b) return;
   b.addEventListener('click', async ()=>{
     const days = Math.max(0, Math.round(parseFloat(document.getElementById('b2c-days').value) || 0));
-    const dzHours = Math.max(0, Math.round(parseFloat(
-      (document.getElementById('b2c-dzhours') || {}).value) || 0));
+    const terms = readB2cTerms();
     const note = String((document.getElementById('b2c-note') || {}).value || '').trim();
-    const b2c = { extras: readExtras(), days: days || null, dzHours: dzHours || null,
+    /* `dzHours` лишається записаним тим самим числом, що й строк графіки:
+       його читають старі збірки, які ще можуть бути відкриті в сусідній
+       вкладці, і мовчки змінити їм строк було б гірше за зайве поле. */
+    const b2c = { extras: readExtras(), days: days || null,
+                  terms: Object.keys(terms).length ? terms : null,
+                  dzHours: terms.graphic || null,
                   note: note || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
        список цін рано чи пізно розійшовся б із першим, і з двох чисел було
@@ -26514,6 +26644,9 @@ function openDesign(){
     widthCm: (gid, size) => garmentWidthCm(gid, size),
     toast: m => toast(m)
   };
+  /* Ядро рахує строки й мусить знати про вихідні. Але команди воно не
+     бачить — тож питає гачком, а відповідає на нього робоче місце. */
+  try{ window.LQDesign.setDayOff((who, iso) => shiftOff(who, iso)); }catch(e){ console.warn(e); }
   window.LQDesign.ui.host = {
     me: ()=> me,
     name: e => personName(e) || e,
@@ -26552,7 +26685,19 @@ function openDesign(){
     /* Скільки годин дизайнеру на макет. Свій годинник, не строк замовлення:
        клієнту ми обіцяємо посилку, а дизайнеру треба знати, чи встигає він
        сьогодні. */
-    dzHours: () => b2cCfg().dzHours,
+    dzHours: () => b2cTerms().graphic,
+    /* Строки решти етапів — тим самим шляхом: відділ питає, робоче місце
+       відповідає. Свого джерела в нього немає й бути не повинно. */
+    terms: () => b2cTerms(),
+    /* Графік дизайнера. Відділ не знає нічого про команду — він питає, чи
+       цей день у цієї людини вихідний, і все. */
+    dayOff: (who, iso) => shiftOff(who, iso),
+    /* Хто з дизайнерів у графіку — щоб той, хто призначає роботу, бачив,
+       кого сьогодні немає. */
+    shiftSet: (who, iso, off) => shiftSet(who, iso, off),
+    designers: () => (contentData.team || [])
+      .filter(p => p && p.email && (p.role === 'designer' || p.role === 'designmgr'))
+      .map(p => ({ email:p.email, name:p.name || p.email })),
     /* Примітка на картці макета — та сама на всі замовлення. */
     cardNote: () => b2cCfg().note,
     /* Наші контакти для шапки аркуша — ті самі, що в комерційній

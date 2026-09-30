@@ -521,12 +521,83 @@
     });
     return from;
   }
+  /* ── ГРАФІК ДИЗАЙНЕРА ────────────────────────────────────────────────
+
+     Строк у добу, виданий у пʼятницю ввечері, у понеділок уранці вже
+     прострочений — хоча ніхто нічого не порушив: людина не працює у
+     вихідні, і ми про це знаємо. Годинник, який кричить на того, хто ні в
+     чому не винен, перестають читати взагалі, і тоді він не працює й тоді,
+     коли справді треба.
+
+     Тому в дизайнера є графік: він сам відмічає, які дні працює. У
+     невідмічені дні годинник СТОЇТЬ — не «прощає» заднім числом, а саме
+     не тікає. Видали в пʼятницю о 17:00 з добою — здати треба до
+     понеділка 17:00.
+
+     Графік питаємо в робочого місця: відділ не знає нічого про команду й
+     знати не мусить. Немає графіка — вихідних немає, усе як доти. */
+  /* Ядро не знає ні команди, ні налаштувань — і знати не мусить. Графік
+     воно питає гачком, який ставить робоче місце; гачка немає — вихідних
+     немає, і все працює рівно як доти. */
+  var DAY_OFF = null;
+  function setDayOff(fn){ DAY_OFF = (typeof fn === 'function') ? fn : null; }
+  function offDay(who, d){
+    if(!DAY_OFF) return false;
+    try{ return !!DAY_OFF(String(who || ''), calISO(d)); }
+    catch(e){ return false; }
+  }
+  function calISO(d){
+    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) +
+      '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+  }
+  function dayStart(t){
+    var d = new Date(t);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  /* Додати `hours` РОБОЧИХ годин від мітки, пропускаючи вихідні цілком.
+     Ідемо по днях, а не по хвилинах: днів тут щонайбільше кілька десятків,
+     а хвилин — десятки тисяч, і різниця в тому, чи встигне сторінка
+     намалюватись. Стелю ставимо навмисно: графік, у якому відмічено все
+     підряд вихідними, не має підвішувати браузер назавжди. */
+  var OFF_MAX = 400;
+  function addWorkHours(from, hours, who){
+    var лишилось = Math.max(1, +hours || DZ_HOURS) * 3600000;
+    var t = new Date(from);
+    var кроків = 0;
+    while(лишилось > 0 && кроків++ < OFF_MAX){
+      if(offDay(who, t)){
+        t = dayStart(t.getTime() + 86400000);
+        continue;
+      }
+      var кінець = dayStart(t).getTime() + 86400000;
+      var вільно = кінець - t.getTime();
+      if(вільно >= лишилось) return t.getTime() + лишилось;
+      лишилось -= вільно;
+      t = new Date(кінець);
+    }
+    return t.getTime();
+  }
+  /* Скільки РОБОЧОГО часу між двома мітками. Вихідні не рахуються: у них
+     годинник стоїть, а не тікає повільніше. */
+  function workMs(from, to, who){
+    if(to <= from) return to - from;
+    var сума = 0;
+    var t = new Date(from);
+    var кроків = 0;
+    while(t.getTime() < to && кроків++ < OFF_MAX){
+      var кінець = Math.min(dayStart(t).getTime() + 86400000, to);
+      if(!offDay(who, t)) сума += кінець - t.getTime();
+      t = new Date(кінець);
+    }
+    return сума;
+  }
   function dzDue(d, hours){
     var f = dzFrom(d);
     if(!f) return 0;
     var t = new Date(f).getTime();
     if(isNaN(t)) return 0;
-    return t + (Math.max(1, +hours || DZ_HOURS) * 3600 * 1000);
+    return addWorkHours(t, hours, d && d.who);
   }
   /* Скільки лишилось — у хвилинах. Відʼємне означає «прострочено на».
      Затверджене й здане більше не тікає: строк стосується роботи, яка
@@ -536,7 +607,12 @@
     if(d.status === 'approved' || d.status === 'review') return null;
     var due = dzDue(d, hours);
     if(!due) return null;
-    return Math.round((due - Date.now()) / 60000);
+    /* У вихідний лічильник стоїть на місці: між «зараз» і строком
+       рахуємо тільки робочий час. Прострочення ж — реальне: якщо строк
+       уже позаду, глибину його ховати нема за чим. */
+    var зараз = Date.now();
+    if(due <= зараз) return Math.round((due - зараз) / 60000);
+    return Math.round(workMs(зараз, due, d && d.who) / 60000);
   }
   /* ── ВЗЯВ / НЕ БЕРУ ─────────────────────────────────────────────────────
 
@@ -1337,6 +1413,8 @@
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk,
+    offDay: offDay, setDayOff: setDayOff,
+    addWorkHours: addWorkHours, workMs: workMs,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
     needsStitch: needsStitch, briefMissing: briefMissing,
     ds: ds, verNew: verNew, verCur: verCur, verAt: verAt, verLocked: verLocked,
@@ -3527,8 +3605,8 @@
     unitsSub: unitsSub, shipSub: shipSub,
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
-    calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG,
-    daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt,
+    calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
+    daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
@@ -4465,6 +4543,102 @@
         await act('dz-sheet', root, { dz: треба[i].key, v: треба[i].v.n, quiet: 1 });
     })();
   }
+  /* ── ГРАФІК ДИЗАЙНЕРА: МІСЯЦЬ ГАЛОЧКАМИ ──────────────────────────────
+
+     Андрій: «нехай там стоїть графік… вони просто вставлять графік роботи
+     свій, і на кожен місяць вони виставляли галочками, які вони працюють,
+     і тоді в них не будуть рахувати ці дні».
+
+     Сітка місяця, у якій день або робочий, або ні. Натиск перемикає.
+     Зберігаємо ДНІ, ЯКІ НЕ ПРАЦЮЄМО: їх менше, і порожній графік чесно
+     означає «працюю щодня», а не «не працюю ніколи».
+
+     Дизайнер бачить свій; той, хто призначає роботу, — будь-чий, бо
+     питання «кому віддати сьогодні» без цього не має відповіді. */
+  var SHIFT = null;
+  function shiftClose(){
+    if(SHIFT && SHIFT.parentNode) SHIFT.parentNode.removeChild(SHIFT);
+    SHIFT = null;
+  }
+  function shiftOff(who, iso){
+    try{ return !!(host().dayOff && host().dayOff(who, iso)); }catch(e){ return false; }
+  }
+  function shiftPaint(root){
+    if(!SHIFT) return;
+    var y = SHIFT.__y, m = SHIFT.__m, who = SHIFT.__who;
+    var перше = new Date(y, m, 1);
+    var зсув = (перше.getDay() + 6) % 7;
+    var днів = new Date(y, m + 1, 0).getDate();
+    var сьогодні = U.calIso(new Date());
+    var люди = [];
+    try{ люди = (host().designers && host().designers()) || []; }catch(e){}
+    var сітка = '';
+    var i;
+    for(i = 0; i < зсув; i++) сітка += '<span class="dz-sh-e"></span>';
+    for(i = 1; i <= днів; i++){
+      var iso = y + '-' + U.pad2(m + 1) + '-' + U.pad2(i);
+      var off = shiftOff(who, iso);
+      сітка += '<button type="button" class="dz-sh-d' + (off ? ' off' : '') +
+        (iso === сьогодні ? ' today' : '') + '" data-sh-d="' + iso + '">' + i + '</button>';
+    }
+    SHIFT.innerHTML =
+      '<div class="dz-sh-w">' +
+        '<div class="dz-sh-h"><b>Графік роботи</b>' +
+          '<button type="button" class="dz-x" data-sh-x>×</button></div>' +
+        (люди.length > 1
+          ? '<label class="dz-sh-who"><span>Чий</span><select data-sh-who>' +
+            люди.map(function(p){
+              return '<option value="' + esc(p.email) + '"' +
+                (p.email === who ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+            }).join('') + '</select></label>'
+          : '') +
+        '<div class="dz-sh-nav">' +
+          '<button type="button" class="dz-cal-a" data-sh-m="-1">‹</button>' +
+          '<b>' + (U.CAL_M ? U.CAL_M[m] : (m + 1)) + ' ' + y + '</b>' +
+          '<button type="button" class="dz-cal-a" data-sh-m="1">›</button>' +
+        '</div>' +
+        '<div class="dz-cal-w"><i>пн</i><i>вт</i><i>ср</i><i>чт</i><i>пт</i>' +
+          '<i class="off">сб</i><i class="off">нд</i></div>' +
+        '<div class="dz-sh-g">' + сітка + '</div>' +
+        '<div class="dz-sh-n">Сірий день — вихідний: у нього годинник стоїть, ' +
+          'і строк на макет не тікає. Натисніть, щоб перемкнути.</div>' +
+      '</div>';
+  }
+  function shiftOpen(root, who){
+    shiftClose();
+    var el = document.createElement('div');
+    el.className = 'dz-fixw';
+    var t = new Date();
+    el.__y = t.getFullYear(); el.__m = t.getMonth(); el.__who = who;
+    SHIFT = el;
+    shiftPaint(root);
+    document.body.appendChild(el);
+    el.addEventListener('click', async function(e){
+      var t2 = e.target.closest ? e.target : null;
+      if(!t2) return;
+      if(t2.closest('[data-sh-x]') || t2 === el) return shiftClose();
+      var крок = t2.closest('[data-sh-m]');
+      if(крок){
+        var n = new Date(el.__y, el.__m + (+крок.getAttribute('data-sh-m') || 0), 1);
+        el.__y = n.getFullYear(); el.__m = n.getMonth();
+        return shiftPaint(root);
+      }
+      var день = t2.closest('[data-sh-d]');
+      if(!день) return;
+      var iso = день.getAttribute('data-sh-d');
+      var було = shiftOff(el.__who, iso);
+      try{ if(host().shiftSet) await host().shiftSet(el.__who, iso, !було); }
+      catch(e2){ console.error('графік', e2); }
+      shiftPaint(root);
+      render(root);
+    });
+    el.addEventListener('change', function(e){
+      var sel = e.target.closest ? e.target.closest('[data-sh-who]') : null;
+      if(!sel) return;
+      el.__who = sel.value;
+      shiftPaint(root);
+    });
+  }
   /* ══════════ ЗБИРАННЯ ЕКРАНА ══════════ */
   function render(root){
     if(!root) return;
@@ -4508,9 +4682,16 @@
        по всіх колонках; а знають про неї рівно одне: номер, нік або імʼя,
        яким її назвав клієнт у розмові. */
     var шук = U.seek ? U.seek() : '';
+    /* Графік показуємо тим, кого він стосується: дизайнеру — свій,
+       власнику — будь-чий, бо саме він і призначає роботу. Виробництву,
+       закупівлі й менеджерам графіка немає: у них строки довгі, і день
+       туди-сюди нічого не вирішує. */
+    var графік = (boss || seat === 'graphic' || seat === 'stitch')
+      ? '<button class="dz-b dz-shift" data-do="shift" title="Які дні працюємо — ' +
+        'у вихідні годинник стоїть">🗓 Графік</button>' : '';
     var headHtml = boss
       ? '<button class="dz-b pri dz-new" data-do="order-new">+ Нове замовлення</button>' +
-        seekHtml(шук) +
+        seekHtml(шук) + графік +
         '<label class="dz-as"><span>Дивлюсь як</span>' +
           '<select class="dz-as-sel" data-seat>' + U.ROLES.map(function(r){
             return '<option value="' + r.key + '"' + (r.key === seat ? ' selected' : '') + '>' +
@@ -4522,7 +4703,7 @@
          бачить, що це є — графічний дизайнер він».
 
          А пошук йому потрібен так само: своїх карток теж буває багато. */
-      : seekHtml(шук);
+      : (seekHtml(шук) + графік);
     root.innerHTML =
       '<div class="dz-top">' + headHtml + '</div>' +
       '<div class="dz-wrap">' +
@@ -5043,6 +5224,18 @@
        тоді, коли на дошці нічого не знайшлось, тобто коли відкривати нічого
        й не було. Поставлений нижче, він мовчки нічого не робив — і вийти з
        фільтра можна було лише стерши його руками. */
+    /* Графік відкривається з дошки, де жодна картка ще не обрана, — тож
+       іде ДО перевірки контексту, як і створення замовлення. */
+    if(what === 'shift'){
+      var хто = (host().me && host().me()) || '';
+      if(U.isBoss((host().role && host().role()) || '')){
+        var л = [];
+        try{ л = (host().designers && host().designers()) || []; }catch(e){}
+        if(л.length) хто = (л.filter(function(p){ return p.email === хто; })[0] || л[0]).email;
+      }
+      if(!хто) return say('Спершу зайдіть під своєю поштою');
+      return shiftOpen(root, хто);
+    }
     if(what === 'seek-off'){
       U.seekSet('');
       return render(root);
