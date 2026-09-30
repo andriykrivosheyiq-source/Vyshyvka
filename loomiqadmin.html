@@ -3702,8 +3702,8 @@
   .dz-step{flex:1;font-style:normal;font-size:10.5px;font-weight:700;
     letter-spacing:.02em;text-align:center;border-radius:7px;padding:5px 4px;
     background:var(--canvas);color:var(--muted);}
-  .dz-step.on{background:var(--ink);color:#fff;}
-  .dz-step.done{background:#EDF9F3;color:#0A6B4A;}
+  /* Заливка звідси пішла — див. нижче: чорний прямокутник читався як
+     кнопка, і на крок тиснули замість того, щоб його робити. */
   .dz-draft{display:flex;align-items:center;gap:9px;background:var(--canvas);
     border-radius:9px;padding:8px 9px;}
   .dz-draft img{flex:none;width:44px;height:44px;object-fit:contain;border-radius:7px;
@@ -3816,6 +3816,32 @@
   .dz-ch-v b{font-size:13px;font-weight:700;color:#0A6B4A;}
   .dz-ch-v i{font-style:normal;font-size:11px;color:var(--ink-soft);}
   .dz-ch-f{display:flex;flex-wrap:wrap;gap:5px;}
+  /* Картинки в стрічці — плитками, як у месенджері: натиск відкриває на
+     весь екран. Доти, щоб подивитись, треба було скачати файл. */
+  .dz-ch-i{all:unset;cursor:zoom-in;flex:none;width:46px;height:46px;border-radius:7px;
+    overflow:hidden;background:#fff;border:1px solid var(--line);}
+  .dz-ch-i img{width:100%;height:100%;object-fit:contain;display:block;}
+  .dz-ch-p{display:flex;flex-wrap:wrap;gap:5px;}
+  /* Подія — не репліка: «Передано в роботу» ніхто не казав, це сталось.
+     Тому вона рядком посередині, а не бульбашкою з боку. */
+  .dz-ch-e{align-self:center;max-width:92%;text-align:center;display:flex;
+    flex-direction:column;gap:1px;padding:4px 10px;border-radius:999px;
+    background:var(--canvas);}
+  .dz-ch-e span{font-size:11px;font-weight:600;color:var(--ink-soft);}
+  .dz-ch-e i{font-style:normal;font-size:10px;color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  /* Поле відповіді менеджера — під самою стрічкою, одним рядком. */
+  .dz-chk-say{display:flex;align-items:flex-end;gap:6px;padding:0 9px 9px;}
+  .dz-chk-say textarea{flex:1;min-width:0;font:inherit;font-size:12px;resize:none;
+    border:1px solid var(--line);border-radius:9px;padding:7px 9px;outline:none;
+    background:#fff;max-height:110px;}
+  .dz-chk-say textarea:focus{border-color:var(--accent);}
+  .dz-chk-say .dz-b{flex:none;font-size:11.5px;padding:7px 10px;}
+  /* Кроки здачі — обводкою, а не чорною заливкою: заливка читається як
+     кнопка, і на неї тиснуть замість того, щоб робити крок. */
+  .dz-step{border:1px solid var(--line);background:#fff;color:var(--muted);}
+  .dz-step.on{border-color:var(--ink);color:var(--ink);background:#fff;font-weight:700;}
+  .dz-step.done{border-color:#ABEFC6;color:#0A6B4A;background:#F5FDF8;}
   /* Підпис дизайну — коли їх на виробі кілька. Один підпису не потребує. */
   .dz-dz-no{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
     color:var(--muted);margin-bottom:5px;}
@@ -6634,19 +6660,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1cd9637c33"></script>
-<script src="loomiq-fingerprint.js?v=1cd9637c33"></script>
-<script src="loomiq-pricing.js?v=1cd9637c33"></script>
+<script src="loomiq-select.js?v=1baa3dc4a0"></script>
+<script src="loomiq-fingerprint.js?v=1baa3dc4a0"></script>
+<script src="loomiq-pricing.js?v=1baa3dc4a0"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1cd9637c33"></script>
-<script src="loomiq-mock.js?v=1cd9637c33"></script>
+<script src="loomiq-design.js?v=1baa3dc4a0"></script>
+<script src="loomiq-mock.js?v=1baa3dc4a0"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1cd9637c33"></script>
+<script src="loomiq-cards.js?v=1baa3dc4a0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6671,7 +6697,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1cd9637c33';
+var LQ_VER = '1baa3dc4a0';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
