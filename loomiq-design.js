@@ -2801,7 +2801,10 @@
     return '<div class="dz-u-l' + (st ? ' is-' + st : '') + '">' +
       '<span class="dz-u-lt">' + назва + '</span>' +
       (нових ? '<button type="button" class="dz-unread" data-do="dz-seen" data-u="' + esc(u.id) +
-        '" data-side="' + kind + '" title="Позначити прочитаним">' + нових + '</button>' : '') +
+        '" data-side="' + kind + '" title="Позначити прочитаним">' + нових + '</button>' +
+        /* Око — як у розмовах: подивився й позначив прочитаним одним дотиком. */
+        '<button type="button" class="dz-eye" data-do="dz-seen" data-u="' + esc(u.id) +
+        '" data-side="' + kind + '" title="Позначити прочитаним" aria-label="Позначити прочитаним">\uD83D\uDC41</button>' : '') +
       хто + '</div>';
   }
   /* ══════════ РЯДОК ДИЗАЙНУ В МЕНЕДЖЕРА — МІНІМУМ ══════════
@@ -4775,7 +4778,9 @@
         (u.size ? '<span class="dz-w-c">' + esc(u.size) + '</span>' : '') +
         '<span class="dz-w-c">' + (+u.qty || 0) + ' шт</span>' +
         (нових ? '<button type="button" class="dz-unread" data-do="dz-seen" data-u="' + esc(u.id) +
-          '" data-side="graphic" title="Пропущене від менеджера — позначити прочитаним">' + нових + '</button>' : '') +
+          '" data-side="graphic" title="Пропущене від менеджера — позначити прочитаним">' + нових + '</button>' +
+          '<button type="button" class="dz-eye" data-do="dz-seen" data-u="' + esc(u.id) +
+          '" data-side="graphic" title="Позначити прочитаним" aria-label="Позначити прочитаним">\uD83D\uDC41</button>' : '') +
         (l === null ? '' : '<em class="dz-w-t' + (l < 0 ? ' late' : l < 180 ? ' soon' : '') +
           '">' + esc(dzLeftTxt(d)) + '</em>') +
       '</div>' +

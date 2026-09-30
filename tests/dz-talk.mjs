@@ -192,12 +192,14 @@ ok(картка.очі === 3 && картка.скач === 3 && !картка.р�
 ok(картка.іг === '3', 'внизу, у закріпленій смужці Instagram, — 3 від клієнта', 'смужка: «' + картка.іг + '»');
 ok(!картка.правка, 'кнопки «Правка» немає — правка пишеться просто в розмові', 'кнопка «Правка» лишилась');
 
-await p.evaluate(() => document.querySelector('.dz-panel .dz-u-l .dz-unread').click());
+const око = await p.evaluate(() => !!document.querySelector('.dz-panel .dz-u-l .dz-eye'));
+ok(око, 'поруч із лічильником у шапці зони — 👁, щоб позначити прочитаним', 'ока біля зони немає');
+await p.evaluate(() => document.querySelector('.dz-panel .dz-u-l .dz-eye').click());
 await p.waitForTimeout(600);
 const прочит = await p.evaluate(() => ({
   зона: !!document.querySelector('.dz-panel .dz-u-l .dz-unread'),
   кут: !!(document.querySelector('[data-open="2000101"]').closest('.dz-card-w').querySelector('.dz-card-n')) }));
-ok(!прочит.зона && !прочит.кут, 'натиснули кружечок — прочитано, і в зоні, і на картці Канбану',
+ok(!прочит.зона && !прочит.кут, 'натиснули 👁 — прочитано, і в зоні, і на картці Канбану',
    'не погасло: ' + JSON.stringify(прочит));
 
 /* ── очима графічного дизайнера ── */
