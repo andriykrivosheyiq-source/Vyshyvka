@@ -264,6 +264,60 @@
     { key:'part',   label:'У дорозі',            color:'amber'  },
     { key:'got',    label:'Отримано',            color:'green', done:true }
   ];
+  /* ── СТРОК ЕТАПУ ─────────────────────────────────────────────────────
+
+     Годинник дизайнера показував, скільки лишилось, — і саме тому роботу
+     там віддавали вчасно. Решта ланцюга жила без строку: замовлення могло
+     лежати в закупника тиждень, і ніде це не світилось, бо ніде не було
+     записано, скільки воно там має лежати.
+
+     Мітки початку не заводимо нові — вони вже є. Кожен рух треку лягає в
+     `trackHist` разом із часом, а пакет у виробництво має власну мітку.
+     Заводити другий запис про те саме означало б колись побачити дві різні
+     відповіді на питання «коли це почалось».
+
+     Готовий етап годинника не має: строк стосується роботи, яка триває, а
+     не тієї, що вже комусь віддана. */
+  function trackFrom(o, key){
+    var h = (o && o.trackHist) || [];
+    for(var i = 0; i < h.length; i++)
+      if(h[i] && h[i].t === key && h[i].at) return h[i].at;
+    return '';
+  }
+  var STAGE = {
+    /* Акаунт-менеджер веде замовлення від приходу до передачі у
+       виробництво: далі воно вже не в нього. */
+    acct: {
+      from: function(job, o){ return (job && job.createdAt) || (o && o.createdAt) || ''; },
+      done: function(job, o){
+        return !!(job && job.pack) || !!trk(o, 'prod') || trk(o, 'ship') === 'sent'; }
+    },
+    supply: {
+      from: function(job, o){ return trackFrom(o, 'supply'); },
+      done: function(job, o){ return trk(o, 'supply') === 'got'; }
+    },
+    /* Виробництво рахуємо від зібраного пакета — це і є мить, коли робота
+       туди потрапила. Пакета немає (старе замовлення) — від першого руху
+       свого треку. */
+    prod: {
+      from: function(job, o){
+        return (job && job.pack && job.pack.at) || trackFrom(o, 'prod'); },
+      done: function(job, o){
+        return trk(o, 'qc') === 'ok' || trk(o, 'ship') === 'sent'; }
+    }
+  };
+  function stageLeft(job, o, kind, hours){
+    var st = STAGE[kind];
+    if(!st || !(+hours > 0)) return null;
+    if(st.done(job, o)) return null;
+    var f = st.from(job, o);
+    if(!f) return null;
+    var t = new Date(f).getTime();
+    if(isNaN(t)) return null;
+    /* Графік є тільки в дизайнерів — тут вихідних немає, і годинник іде
+       рівно. Саме тому й передаємо порожнього виконавця. */
+    return Math.round((addWorkHours(t, hours, '') - Date.now()) / 60000);
+  }
   function supplyAt(o){
     var v = trk(o, 'supply');
     for(var i = 0; i < SUPPLY.length; i++) if(SUPPLY[i].key === v) return v;
@@ -1414,6 +1468,7 @@
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk,
     offDay: offDay, setDayOff: setDayOff,
+    stageLeft: stageLeft, trackFrom: trackFrom, STAGE: STAGE,
     addWorkHours: addWorkHours, workMs: workMs,
     emptyJob: emptyJob, ensure: ensure, stitchKeys: stitchKeys,
     needsStitch: needsStitch, briefMissing: briefMissing,
@@ -1615,8 +1670,12 @@
                «До 14 жовтня» сьогодні не означає нічого й не рухає нікого.
                «Лишилось 5 год» рухає — і саме тому в дизайнера стоїть воно,
                а дата лишається менеджеру, який обіцяє її клієнту. */
+            /* Годинник етапу й обіцянка клієнту — різні речі, і класи в них
+               різні. Доти обидва були `dz-card-due`, і «лишилось 5 год»
+               стояло поруч із «лишилось 4 дні» однаковим на вигляд: два
+               різні строки, які читаються як один. */
             var годинник = (c.left === null || c.left === undefined) ? '' :
-              '<em class="dz-card-due' + (c.left < 0 ? ' late' : c.left < 180 ? ' soon' : '') +
+              '<em class="dz-card-h' + (c.left < 0 ? ' late' : c.left < 180 ? ' soon' : '') +
               '">' + esc(c.left < 0 ? ('прострочено ' + hm(-c.left)) : ('лишилось ' + hm(c.left))) +
               '</em>';
             return '<div class="dz-card-w' + (c.fix ? ' is-fix' : '') + '">' +
@@ -3675,6 +3734,10 @@
       var mk = cardMarks(p.job, m);
       return { id: p.o.orderId, step: col,
         title: U.jobNo(p.job),
+        /* Свій годинник — від приходу замовлення до передачі у
+           виробництво. Доти тут не світилось нічого, і замовлення могло
+           простояти в акаунта тиждень непоміченим. */
+        left: D.stageLeft(p.job, p.o, 'acct', termHours('acct')),
         nick: cardNick(p.o),
         /* Число й готовий напис разом: рахує його шар панелі, а малює шар
            дошки — і лізти одному в помічники іншого означає рано чи пізно
@@ -3766,6 +3829,26 @@
      зʼявляється рівно від натискання «Відправити дизайнеру». */
   /* СКІЛЬКИ ГОДИН ДАЄМО НА МАКЕТ. Число з налаштувань; доба — домовленість,
      а не закон природи, і міняти її не має означати правку коду. */
+  /* Строки етапів беремо в робочого місця — там вони й налаштовуються.
+     Немає відповіді (стара збірка) — лишаємось без годинника, а не з
+     вигаданим числом: годинник, який рахує невідомо від чого, гірший за
+     його відсутність. */
+  /* Той самий годинник, що на картці, але в шапці відкритої панелі. Один
+     збирач на всі етапи: п'ять однакових шматків розмітки колись
+     розійшлися б у дрібницях, і тоді «лишилось 5 год» у двох місцях
+     означало б різне. */
+  function clockHtml(min){
+    if(min === null || min === undefined) return '';
+    return '<span class="dz-duo dz-duo-t' +
+      (min < 0 ? ' late' : min < 180 ? ' soon' : '') + '"><span>Строк</span><b>' +
+      esc(min < 0 ? ('−' + U.hm(-min)) : U.hm(min)) + '</b></span>';
+  }
+  function termHours(kind){
+    try{
+      var t = (host().terms && host().terms()) || {};
+      return +t[kind] || 0;
+    }catch(e){ return 0; }
+  }
   function dzHours(){
     try{ return (host().dzHours && host().dzHours()) || D.DZ_HOURS; }
     catch(e){ return D.DZ_HOURS; }
@@ -3947,6 +4030,7 @@
         '<span class="dz-panel-id"><b>' + U.jobNo(p.job) + '</b>' +
           '<span class="dz-state"><i class="dz-dot is-' + esc(крок.color || 'gray') +
           '"></i>' + esc(крок.label || D.stateLine(job)) + '</span></span>' +
+        clockHtml(D.stageLeft(job, o, 'acct', termHours('acct'))) +
         U.dueHtml(job) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b is-zones">' +
@@ -4406,7 +4490,8 @@
     var pk = job.pack;
     return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">' + (pk ? 'пакет зібрано' : (r.ok ? 'готово збирати' : 'не готово')) +
-        '</span><button class="dz-x" data-close>×</button></div>' +
+        '</span>' + clockHtml(D.stageLeft(job, o, 'prod', termHours('prod'))) +
+        '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
         U.clientHtml(o, job) + U.taskBlockHtml(p, 'prod') +
         (r.ok ? '<div class="dz-ok">Усе на місці</div>'
@@ -4479,6 +4564,7 @@
       var r = D.packReady(p.job, p.o);
       return { id: p.o.orderId, step: D.prodAt(p.job, p.o),
         title: U.jobNo(p.job),
+        left: D.stageLeft(p.job, p.o, 'prod', termHours('prod')),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return i.name; }).filter(Boolean).slice(0, 2).join(' · '),
         foot: r.ok ? (p.job.pack ? 'пакет зібрано' : 'усе на місці') : (r.why[0] || '') };
@@ -4491,6 +4577,7 @@
         if((it.kind || 'main') !== 'reco') q += (+it.qty || 0); });
       return { id: p.o.orderId, step: D.supplyAt(p.o),
         title: U.jobNo(p.job),
+        left: D.stageLeft(p.job, p.o, 'supply', termHours('supply')),
         sub: (p.o.items || []).filter(function(i){ return (i.kind||'main') !== 'reco'; })
                .map(function(i){ return [i.name, i.color].filter(Boolean).join(' · '); })[0] || '',
         foot: q ? q + ' шт' : '' };
@@ -4805,6 +4892,7 @@
     var rows = (o.items || []).filter(function(it){ return (it.kind || 'main') !== 'reco'; });
     return '<div class="dz-panel-h">' + U.jobNo(p.job) +
         '<span class="dz-state">закупівля</span>' +
+        clockHtml(D.stageLeft(p.job, o, 'supply', termHours('supply'))) +
         '<button class="dz-x" data-close>×</button></div>' +
       '<div class="dz-panel-b">' +
         U.clientHtml(o, p.job) + U.taskBlockHtml(p, 'supply') +

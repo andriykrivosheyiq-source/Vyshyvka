@@ -182,7 +182,9 @@ console.log('\n═══ СВІЙ ГОДИННИК, А НЕ ДАТА ЗАМОВ�
 /* «До 14 жовтня» сьогодні не рухає нікого. «Лишилось 5 год» рухає. */
 const строк = await p.evaluate(() => {
   const к = document.querySelector('.dz-card-w');
-  const т = (к.querySelector('.dz-card-due') || {}).textContent || '';
+  /* Годинник етапу має свій клас: обіцянка клієнту й внутрішній строк —
+     різні речі, і однаковими на вигляд вони читались як один. */
+  const т = (к.querySelector('.dz-card-h') || {}).textContent || '';
   return { напис: т.trim(), датаЗамовлення: /14\.10/.test(к.textContent) };
 });
 console.log('  ' + JSON.stringify(строк));
@@ -343,7 +345,7 @@ ok(/\d/.test(правка.нових),
    прострочена. Інакше дизайнер отримував би картку, вже червону від
    народження. */
 const наново = await p.evaluate(() => {
-  const c = document.querySelector('.dz-card-w .dz-card-due');
+  const c = document.querySelector('.dz-card-w .dz-card-h');
   return (c ? c.textContent : '').trim();
 });
 console.log('  ' + наново);
