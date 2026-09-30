@@ -1167,8 +1167,32 @@
        підготували в попередньому замовленні. Знімає рівно разові —
        підготовку макета й додатковий ескіз; саме нанесення рахується як
        звичайно, тканину прошити все одно треба. */
+    /* Рішення замовлення, які адмінка тримає на рівні ВСЬОГО замовлення:
+       «той самий макет» (відбиток → канонічна адреса) і вид дизайну
+       (відбиток → картинка / напис / не рахувати). Робоче місце кладе їх
+       сюди, щоб чернетка рахувалась тими самими даними, що й адмінка:
+       інакше позиція, збережена до того, як позначки почали жити на шарах,
+       рахувалась тут одним макетом, а в лівій панелі — іншим. */
+    function orderMap(name){
+      var m = window[name];
+      return (m && typeof m === 'object') ? m : null;
+    }
+    function mapHit(m, fp){
+      if(!m || !fp) return null;
+      if(m[fp] != null) return m[fp];
+      var hit = null;
+      if(window.LQ && window.LQ.sameFingerprint) Object.keys(m).forEach(function(k){
+        if(hit == null && window.LQ.sameFingerprint(k, fp)) hit = m[k];
+      });
+      return hit;
+    }
     function layerKind(l){
       var k = l && l.kindFix;
+      if(!(k === 'txt' || k === 'img' || k === 'off')) k = mapHit(orderMap('__lqKindFixMap'), l && l.fp);
+      /* НАБРАНИЙ НАПИС КАРТИНКОЮ НЕ БУВАЄ. Андрій: «якщо ми написали текст,
+         він вже сам по собі не може бути картинкою». Лишається «напис» або
+         «не рахувати» (напис уже оплачений минулим замовленням). */
+      if(l && l.text) return k === 'off' ? 'off' : 'txt';
       if(k === 'txt' || k === 'img' || k === 'off') return k;
       return isTextLayer(l) ? 'txt' : 'img';
     }
@@ -1500,7 +1524,8 @@
            замовленні копії одного логотипа розходяться на 4%, а РІЗНІ
            логотипи — на 4.8%. Автоматика тут або зіллє чуже, або розділить
            своє; менеджер бачить обидва малюнки й знає точно. */
-        urls.push(String(l.sameAs || '') || layerKey(l));
+        urls.push(String(l.sameAs || '') || String(mapHit(orderMap('__lqSameFixMap'), l.fp) || '') ||
+                  layerKey(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -5610,6 +5635,9 @@
        запис у базу й перебудову сторінки — і редактор смикався б під руками
        ще до того, як людина щось вирішила. */
     function updatePriceBar(){
+      /* Ліва панель робочого місця тягне ціни звідси ж — смикаємо її
+         щоразу, коли перераховується прорахунок. */
+      try{ if(window.__lqOnPrice) setTimeout(window.__lqOnPrice, 0); }catch(e){}
       var u = totalUnits();
       var cmW = currentLayers().length ? activeLogoWidthCm() : 0;
       // Колір у дужках біля назви — так він не займає окремого рядка у вкладці
@@ -5984,7 +6012,7 @@
             'style="font:inherit;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 4px;' +
             'border:1px solid ' + (fixed ? '#8fb4ee' : '#cdd6e4') + ';background:#eef3fb;' +
             'color:#2f4c8f;cursor:pointer;vertical-align:middle;">' +
-            opt('img', 'картинка') + opt('txt', 'напис') + opt('off', 'не рахувати') +
+            (l.text ? '' : opt('img', 'картинка')) + opt('txt', 'напис') + opt('off', 'не рахувати') +
             '</select>' + (fixed ? ' <span title="Вид обрав менеджер" style="display:inline-block;' +
             'width:5px;height:5px;border-radius:50%;background:#2f4c8f;vertical-align:middle;"></span>' : '');
         }
@@ -6055,7 +6083,10 @@
              якої в рахунку немає. */
           var paidNos = nos.filter(function(d){ return d && d.kind !== 'off'; });
           if(nos.length > 1){
-            var groups = {}; paidNos.forEach(function(d){ groups[d.no] = 1; });
+            /* Макет — це вид + номер: логотип №1 і напис №1 — два різні
+               дизайни, а не один (доти рядок казав «1 макет» під двома
+               разовими). */
+            var groups = {}; paidNos.forEach(function(d){ groups[d.kind + '#' + d.no] = 1; });
             var nGroups = Object.keys(groups).length;
             var why = '';
             if(nGroups < paidNos.length){
@@ -9040,6 +9071,41 @@
        прорахунок менеджера. Саме це число має збігатись із тим, що адмінка
        покаже в лівій панелі після збереження, і з тим, що вийде після
        повторного відкриття позиції. */
+    /* ЦІНИ ДЛЯ ЛІВОЇ ПАНЕЛІ — ТІ САМІ, ЩО В ПРОРАХУНКУ.
+
+       Андрій: «з лівої панелі перебудувати логіку, щоб воно просто тянуло
+       з розрахунку в один в один». Доти панель показувала ціну, збережену
+       адмінкою, і оновлювалась лише після запису: у прорахунку вже 1796, а
+       зліва ще 1725 — і незрозуміло, котра правда.
+
+       Тепер панель питає тут: один прогін рушія на кошик разом із
+       чернеткою — рівно той, з якого складено «Прорахунок (для
+       менеджера)». Номери — позиції кошика (їх порядок збігається з
+       позиціями замовлення). */
+    window.__lqLivePrices = function(){
+      try{
+        if(!sitePricing()) return null;
+        var list = (typeof cartItems !== 'undefined' && cartItems) ? cartItems : [];
+        var skip = (window.__lqEditOnly != null) ? +window.__lqEditOnly : editIndex();
+        if(skip == null || skip < 0 || !list[skip]) return null;
+        var d = draftDescriptor();
+        var чернетка = descUpsell(list[skip], d);
+        var out = [], idx = [];
+        list.forEach(function(it, i){
+          if(i === skip){ out.push(чернетка); idx.push(i); return; }
+          if(!countsWithDraft(it, i, list, skip)) return;
+          if(it.desc){ out.push(descUpsell(it, it.desc)); idx.push(i); }
+        });
+        var r = priceOrder(out);
+        var by = {};
+        idx.forEach(function(ci, k){
+          if(!r[k]) return;
+          var q = (ci === skip) ? (d.units || 0) : (+list[ci].qty || 0);
+          by[ci] = { unit: r[k].unit, qty: q, sum: r[k].unit * q };
+        });
+        return { edit: skip, by: by };
+      }catch(e){ return null; }
+    };
     window.__lqDraftShared = function(){
       try{
         var d = draftDescriptor();
