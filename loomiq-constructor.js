@@ -1239,6 +1239,16 @@
     function layerUrl(l){
       return String((l && (l.url || l.cleanUrl || l.origUrl)) || '');
     }
+    /* ОСОБА ДИЗАЙНУ ДЛЯ РАХУНКУ — ВИХІДНИЙ ФАЙЛ, А НЕ ПЕРЕФАРБОВАНИЙ.
+
+       Перефарбування кладе в шар новий файл: той самий логотип білою ниткою
+       й бежевою — два різні файли. Для рахунку це давало другий дизайн і
+       зайвий ескіз, хоча програма вишивки та сама, міняється лише нитка.
+       Тому зводимо за файлом, з якого фарбували. Показуємо ж, як і раніше,
+       той, що на виробі. */
+    function layerKey(l){
+      return String((l && l.recolorFrom) || '') || layerUrl(l);
+    }
     function spreadKindFix(fp, kind, url){
       fp = String(fp || '');
       url = String(url || '');
@@ -1253,7 +1263,7 @@
            два різні рендери, тож і відбитки різні. Менеджер перемикав напис
            на одному виробі, на другому лишалась «картинка», і рушій брав за
            неї окремий макет. */
-        return !!url && layerUrl(l) === url;
+        return !!url && layerKey(l) === url;
       };
       var n = 0;
       // 1. Чернетка: той самий малюнок може стояти на кількох боках виробу.
@@ -1490,7 +1500,7 @@
            замовленні копії одного логотипа розходяться на 4%, а РІЗНІ
            логотипи — на 4.8%. Автоматика тут або зіллє чуже, або розділить
            своє; менеджер бачить обидва малюнки й знає точно. */
-        urls.push(String(l.sameAs || '') || layerUrl(l));
+        urls.push(String(l.sameAs || '') || layerKey(l));
         mm2s.push(Math.round(layerInkMm2(l))); }); });
       var cols = [];
       if(m && m.mode === 'grid'){
@@ -5984,7 +5994,13 @@
            вид міняють. Нуль тут не «безкоштовно», а «роботи не було». */
         var offs = ((P && P.designNos) ? P.designNos : [])
           .filter(function(d){ return d && d.kind === 'off'; });
-        if(lines.length || offs.length){
+        /* Позиція може не нести повної підготовки зовсім: вона одна на
+           спосіб і стоїть на логотипі, який буває на СУСІДНІЙ позиції. Тоді
+           тут лише ескізи — і їх теж показуємо рядками з перемикачем. Доти
+           такий прорахунок згортався в один рядок «Підготовка макета», і
+           перемкнути вид дизайну на цій позиції було ніде. */
+        var doneNos = ((P && P.designNos) ? P.designNos : []).filter(function(d){ return d && d.done; });
+        if(lines.length || offs.length || skets.length || doneNos.length){
           lines.forEach(function(f){
             var per = f.units > 0 ? Math.round(f.fee / f.units) : 0;
             var perC = f.units > 0 ? Math.round(f.cost / f.units) : 0;
@@ -6018,8 +6034,13 @@
             /* Зводити ескіз є з чим лише тоді, коли основний макет того
                самого виду в цьому прорахунку є. Інакше кнопка обіцяла б
                дію, якій нема куди вести. */
-            var основний = lines.filter(function(f){ return f.kind === x.kind; })[0];
-            tb += r(designPic(x.di) + 'Додатковий ескіз ' + (i + 1) + kindPick(x.di, x.kind) +
+            /* Повна підготовка одна на спосіб і стоїть на логотипі, тож
+               основного НАПИСУ поруч може й не бути. Тоді зводити є з
+               іншим написом цього ж прорахунку. */
+            var основний = lines.filter(function(f){ return f.kind === x.kind; })[0] ||
+              skets.filter(function(y){ return y !== x && y.kind === x.kind; })[0];
+            tb += r(designPic(x.di) + (x.kind === 'txt' ? 'Ескіз напису ' : 'Додатковий ескіз ') +
+                    (i + 1) + kindPick(x.di, x.kind) +
                     ' <span style="color:#8a94a6;">(' + Math.round(x.fee) + ' грн ÷ ' +
                     x.units + ' шт)</span>' +
                     samePick(x, основний ? основний.di : null), money(per), money(perC));
@@ -6120,7 +6141,7 @@
           /* Без відбитка рішення нікуди не поширити — лишаємо його хоч на
              самому шарі, інакше перемикач просто нічого не зробить. */
           ensureFp(l);
-          var url = layerUrl(l);
+          var url = layerKey(l);
           if(l.fp || url) spreadKindFix(l.fp, kind, url); else l.kindFix = kind;
           /* У ПРОПОЗИЦІЇ РІШЕННЯ МАЄ ЛЯГТИ В БАЗУ ОДРАЗУ.
 
@@ -6151,10 +6172,10 @@
           var c = layerAtDesign(+btn.getAttribute('data-mgr-canon'));
           if(!l || !c) return;
           ensureFp(l);
-          var canon = l.sameAs ? '' : layerUrl(c);
+          var canon = l.sameAs ? '' : layerKey(c);
           if(canon) l.sameAs = canon; else delete l.sameAs;
           try{
-            if(window.__lqSameFix) window.__lqSameFix(l.fp || '', layerUrl(l), canon);
+            if(window.__lqSameFix) window.__lqSameFix(l.fp || '', layerKey(l), canon);
           }catch(e2){}
           updatePriceBar();
           try{ if(typeof renderCart === 'function') renderCart(); }catch(e2){}
@@ -9014,6 +9035,17 @@
     };
     window.__lqCalcLines = function(){
       try{ return calcLinesForItem(Math.max(1, totalUnits() || 1)); }catch(e){ return []; }
+    };
+    /* Чернетка ОЧИМА СПІЛЬНОГО РАХУНКУ — разом із кошиком, як її бачить
+       прорахунок менеджера. Саме це число має збігатись із тим, що адмінка
+       покаже в лівій панелі після збереження, і з тим, що вийде після
+       повторного відкриття позиції. */
+    window.__lqDraftShared = function(){
+      try{
+        var d = draftDescriptor();
+        var sh = sharedDraftParts();
+        return { desc: d, unit: sh ? sh.unit : -1, parts: sh ? sh.parts : null };
+      }catch(e){ return { err: String(e && e.message || e) }; }
     };
     window.__lqDraftDesc = function(){
       try{
