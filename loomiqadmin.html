@@ -3391,7 +3391,9 @@
   .dz-top .dz-as{margin-left:auto;}
   /* Пошук росте на всю вільну ширину, але не безмежно: рядок на пів екрана
      виглядає як поле вводу тексту, а не як пошук. */
-  .dz-seek{flex:1;min-width:0;max-width:420px;display:flex;align-items:center;gap:7px;
+  /* Пошук займає всю вільну ширину між дією й перемикачем ролі: шукають
+     за ніком і за іменем, а вони довгі. */
+  .dz-seek{flex:1;min-width:0;display:flex;align-items:center;gap:7px;
     background:#fff;border:1px solid var(--line);border-radius:9px;padding:0 10px;}
   .dz-seek:focus-within{border-color:var(--accent);}
   .dz-seek i{flex:none;font-style:normal;font-size:14px;color:var(--muted);}
@@ -3456,7 +3458,10 @@
   .dz-as-sel{font:inherit;font-size:13px;font-weight:800;color:var(--ink);
     background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 10px;
     cursor:pointer;}
-  .dz-new{margin-left:auto;}
+  /* «+ Нове замовлення» стоїть першим і зліва, на одній лінії із заголовком
+     розділу. `margin-left:auto` тут лишився з тих часів, коли кнопка була
+     праворуч, — і мовчки відсував її від краю на всю вільну ширину. */
+  .dz-new{flex:none;}
   /* Клієнт і строк — рядком під шапкою картки */
   .dz-who{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13px;
     color:var(--ink);padding-bottom:10px;margin-bottom:10px;
@@ -6624,19 +6629,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=df08032d98"></script>
-<script src="loomiq-fingerprint.js?v=df08032d98"></script>
-<script src="loomiq-pricing.js?v=df08032d98"></script>
+<script src="loomiq-select.js?v=fea5382432"></script>
+<script src="loomiq-fingerprint.js?v=fea5382432"></script>
+<script src="loomiq-pricing.js?v=fea5382432"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=df08032d98"></script>
-<script src="loomiq-mock.js?v=df08032d98"></script>
+<script src="loomiq-design.js?v=fea5382432"></script>
+<script src="loomiq-mock.js?v=fea5382432"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=df08032d98"></script>
+<script src="loomiq-cards.js?v=fea5382432"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6661,7 +6666,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'df08032d98';
+var LQ_VER = 'fea5382432';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
