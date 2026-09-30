@@ -83,6 +83,8 @@
 
   /* ── Дошка графічного дизайнера ─────────────────────────────────────── */
   var GRAPHIC = [
+    /* Передано відділу, а не людині: висить у всіх, бере перший. */
+    { key:'queue',    label:'Черга відділу',     color:'cyan'   },
     { key:'new',      label:'Нові',              color:'gray'   },
     { key:'work',     label:'В роботі',          color:'blue'   },
     { key:'review',   label:'На перевірці',      color:'violet' },
@@ -383,7 +385,9 @@
       return x.sentAt && x.status === 'revision'; })) return 'fixes';
     if(вишивка.some(function(x){ return x.sentAt && x.status !== 'approved'; }))
       return 'stitch';
-    var передані = графіка.filter(function(x){ return x.sentAt; });
+    /* У черзі відділу ще ніхто не працює — замовлення лишається «Новим»,
+       а в «У графічного дизайнера» переходить само, щойно хтось узяв. */
+    var передані = графіка.filter(function(x){ return x.sentAt && !dzInQueue(x); });
     if(!передані.length) return 'new';
     if(передані.some(function(x){ return x.status === 'review'; })) return 'client';
     if(передані.every(function(x){ return x.status === 'approved'; }))
@@ -582,7 +586,7 @@
        прийшло після здачі версії, — це нова робота, а не прострочена. */
     var from = d.sentAt;
     (d.thread || []).forEach(function(m){
-      if(m.kind === 'fix' || m.kind === 'sent') from = m.at || from;
+      if(m.kind === 'fix' || m.kind === 'sent' || m.kind === 'queue') from = m.at || from;
     });
     return from;
   }
@@ -697,6 +701,100 @@
     d.thread.push({ at: d.takenAt, by: String(by || ''), kind:'take',
                     text: 'Взяв у роботу', seen: [String(by || '')] });
     return d;
+  }
+  /* ══════════ ЧЕРГА ВІДДІЛУ ══════════
+
+     Андрій: «ми їх перевели, щоб дизайнери самі могли брати ці
+     замовлення… воно висить в них, що вони можуть взяти це замовлення».
+
+     Передати можна не людині, а ВІДДІЛУ: виконавця немає, робота висить у
+     черзі в усіх графічних дизайнерів, і перший, хто натиснув «Беру»,
+     стає виконавцем. Годинник іде з миті передачі у відділ — черга не
+     місце, де замовлення лежить непомітно, — і зупиняється, коли роботу
+     здали на перевірку, як і в переданої людині.
+
+     Відмовитись від взятого дизайнер не може. Забрати роботу — тільки
+     акаунт-менеджер: повернути в чергу або віддати іншому. */
+  function dzInQueue(d){ return !!(d && d.pool && !d.who && d.sentAt); }
+  function dzQueue(d, by){
+    if(!d) return null;
+    d.who = ''; d.pool = true;
+    d.sentBy = String(by || '');
+    d.sentAt = nowIso();
+    if(d.status === 'new' || d.status === 'revision' || d.status === 'work' || !d.status) d.status = 'sent';
+    d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'queue',
+                    text: 'Передано у відділ — чекає, хто візьме', seen: [String(by || '')] });
+    return d;
+  }
+  /* «Беру» з черги. Хтось устиг раніше — повертаємо його, і нічого не
+     чіпаємо: друге натискання не має перебивати перше. */
+  function dzClaim(d, by){
+    if(!d || !by) return null;
+    if(d.who && d.who !== String(by)) return { taken: d.who };
+    if(!dzInQueue(d)) return d.who === String(by) ? d : null;
+    d.who = String(by); d.pool = false;
+    d.status = 'work';
+    d.takenAt = nowIso();
+    d.thread.push({ at: d.takenAt, by: String(by), kind:'take',
+                    text: 'Взяв у роботу з черги', seen: [String(by)] });
+    return d;
+  }
+  /* Акаунт-менеджер забирає роботу в дизайнера. Версії лишаються при
+     дизайні — це історія роботи, а не власність людини. Годинник
+     починається наново: наступному виконавцю доба від його старту, а не
+     від чужого. */
+  function dzRecall(d, by, toWho, name){
+    if(!d) return null;
+    var був = d.who;
+    if(!toWho){
+      d.who = ''; d.pool = true;
+      d.sentBy = String(by || ''); d.sentAt = nowIso();
+      if(d.status !== 'approved') d.status = 'sent';
+      d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'queue',
+                      text: (був ? 'Забрано в ' + String(name || був) + ' · ' : '') +
+                            'повернуто в чергу відділу', seen: [String(by || '')] });
+      return d;
+    }
+    if(toWho === був) return d;
+    d.pool = false;
+    dzAttach(d, toWho, by, name);
+    d.sentBy = String(by || ''); d.sentAt = nowIso();
+    if(d.status !== 'approved') d.status = 'sent';
+    d.thread.push({ at: d.sentAt, by: String(by || ''), kind:'sent',
+                    text: 'Передано в роботу', seen: [String(by || '')] });
+    return d;
+  }
+  /* ЗАПОВНИЛИ — І ВОНО ПІШЛО. Андрій: «як тільки заповнили замовлення…
+     вони самі можуть взяти його». Позиція стає в чергу сама, щойно в ній
+     є що малювати: обрано виріб і є ТЗ — слова або хоча б картинка (своя
+     чи загальна до замовлення). Без ТЗ не ставимо: інакше дизайнер
+     схопить половину, поки менеджер ще пише.
+
+     Тільки поки замовлення ще «Нове» і в позиції немає жодного рішення
+     менеджера: обрав людину чи вже поставив у чергу — це його слово, і
+     автоматика його не перебиває. Старі замовлення, що давно поїхали
+     далі, теж не чіпаємо. */
+  function unitFilled(job, u){
+    if(!u || !u.gid) return false;
+    var b = (job && job.brief) || {};
+    return !!(String(u.note || '').trim() || (u.pics || []).length ||
+              String(b.text || '').trim() || (b.pics || []).length);
+  }
+  function dzAutoQueue(job, o, by){
+    if(!job || chainAt(job, o) !== 'new') return 0;
+    var n = 0;
+    jobUnits(job).forEach(function(u){
+      if(!unitFilled(job, u)) return;
+      var l = dzList(u, 'graphic');
+      if(l.length) return;
+      var d = dzNew();
+      l.push(d);
+      dzQueue(d, by);
+      d.auto = true;
+      d.thread[d.thread.length - 1].text = 'Замовлення заповнене — стало в чергу відділу';
+      n++;
+    });
+    return n;
   }
   function dzDecline(d, by, why){
     if(!d) return null;
@@ -1490,7 +1588,9 @@
     dzNew: dzNew, dzList: dzList, dzAt: dzAt, dzName: dzName,
     dzAttach: dzAttach, dzSend: dzSend, sentAny: sentAny, waiting: waiting,
     /* Строк дизайнера й дві його відповіді на передачу. */
-    dzTake: dzTake, dzDecline: dzDecline, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    dzTake: dzTake, dzDecline: dzDecline,
+    dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
+    dzAutoQueue: dzAutoQueue, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -2324,7 +2424,7 @@
             /* Подія — не репліка. «Передано в роботу» ніхто не «казав», це
                сталось; і поставлене бульбашкою поруч зі словами воно
                змушує щоразу розрізняти, де людина, а де система. */
-            var подія = !v && ['sent','take','no','ok','tell','who'].indexOf(m.kind) >= 0;
+            var подія = !v && ['sent','take','no','ok','tell','who','queue'].indexOf(m.kind) >= 0;
             if(подія)
               return '<div class="dz-ch-e"><span>' +
                 esc(m.kind === 'who' && m.who
@@ -2568,10 +2668,27 @@
     var роль = kind === 'stitch' ? 'embroidery' : 'designer';
     var key = esc(u.id) + '|' + kind + '|0';
     var хто;
-    if(d && d.who){
+    /* Черга відділу — лише в графіки. Вишивальників переведемо на нову
+       схему окремо, тоді й у них зʼявиться своя черга. */
+    var черга = kind === 'graphic'
+      ? '<option value="@queue">Черга відділу — бере перший</option>' : '';
+    if(d && !ro && SWAP[key] && (d.who || d.pool)){
+      хто = '<select class="dz-u-sel" data-dzwho="' + key + '">' +
+          '<option value="">— кому віддати —</option>' + черга +
+          teamOpts(роль, d.who || '') +
+        '</select>' +
+        '<button type="button" class="dz-ib" data-do="dz-swap" data-dz="' + key +
+          '" title="Не міняти">×</button>';
+    } else if(d && d.who){
       хто = '<b class="dz-u-who">' + esc(whoName(d.who)) + '</b>' +
         (ro ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
-          'data-dz="' + key + '" title="Замінити дизайнера">\u270E</button>');
+          'data-dz="' + key + '" title="Забрати або віддати іншому">\u270E</button>');
+    } else if(d && d.pool){
+      хто = '<b class="dz-u-who is-q">Черга відділу' +
+          (d.sentAt ? ' · чекає ' + esc(hm(Math.max(0, Math.round((Date.now() - new Date(d.sentAt).getTime()) / 60000)))) : '') +
+        '</b>' +
+        (ro ? '' : '<button type="button" class="dz-ib" data-do="dz-swap" ' +
+          'data-dz="' + key + '" title="Віддати конкретному дизайнеру">\u270E</button>');
     } else if(ro){
       хто = '<i class="dz-u-no">дизайнера не обрано</i>';
     } else {
@@ -2580,7 +2697,7 @@
       хто = (kind === 'stitch' && !D.graphicOk(u))
         ? '<i class="dz-u-no">чекає погодження графіки</i>'
         : '<select class="dz-u-sel" data-dzwho="' + key + '">' +
-            '<option value="">— оберіть дизайнера —</option>' +
+            '<option value="">— оберіть дизайнера —</option>' + черга +
             teamOpts(роль, '') +
           '</select>';
     }
@@ -2658,11 +2775,11 @@
       /* Хто робить — у шапці зони, а не тут: доти капсула «ПЕРЕДАНО» й
          імʼя стояли двома рядками поспіль про одну річ. */
       /* ② → ③ → ③′ → ④ */
-      (!d.who ? ''
+      ((!d.who && !d.pool) ? ''
         : !d.sentAt
         ? (ro ? '' : (u.gid
             ? '<button class="dz-b pri wide" data-do="dz-send" data-dz="' + key +
-              '">Передати дизайнеру</button>'
+              '">' + (d.pool && !d.who ? 'Передати у відділ' : 'Передати дизайнеру') + '</button>'
             : '<div class="dz-miss">Оберіть виріб — без нього ТЗ порожнє.</div>'))
         /* Окремого блока «питання дизайнера» більше немає: воно стоїть у
            самій стрічці, і непрочитане там позначене. Доти те саме
@@ -2819,6 +2936,8 @@
   /* Хто розгорнув стрічку цілком. Як і DZ_OPEN — у памʼяті вкладки, не в
      базі: це спосіб читання, а не факт про замовлення. */
   var TAIL_ALL = {};
+  /* Відкритий список «кому віддати» біля імені виконавця — стан показу, не подія. */
+  var SWAP = {};
   function dzTailHtml(d, key){
     var all = (d.thread || []).filter(function(m){
       return m.kind === 'fix' || m.kind === 'file' || m.kind === 'tell';
@@ -3905,7 +4024,7 @@
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
     pickOpen: pickOpen, fixOpen: fixOpen, histHtml: histHtml, histSub: histSub,
     picOpen: picOpen,
-    DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, whoName: whoName,
+    DZ_OPEN: DZ_OPEN, TAIL_ALL: TAIL_ALL, SWAP: SWAP, whoName: whoName,
     /* Версії й розмова по одному дизайну — панель дизайнера малює їх тими
        самими функціями, що й менеджер: різні мали б розійтись за тиждень. */
     dzVersHtml: dzVersHtml, dzThreadHtml: dzThreadHtml, dzChatHtml: dzChatHtml,
@@ -3935,6 +4054,8 @@
   function host(){ return U.host; }
   function save(job, o, msg){
     job.updatedAt = new Date().toISOString();
+    try{ D.dzAutoQueue(job, o, (host().me && host().me()) || ''); }
+    catch(e){ console.warn('черга відділу', e); }
     var p = host().save ? host().save(job, o) : Promise.resolve();
     return Promise.resolve(p).then(function(){
       if(msg) say(msg);
@@ -4089,6 +4210,20 @@
     try{ return (host().dzHours && host().dzHours()) || D.DZ_HOURS; }
     catch(e){ return D.DZ_HOURS; }
   }
+  /* Скільки замовлень дизайнер зараз тримає в роботі: передані йому, ще
+     не здані на перевірку й не затверджені. За цим числом і працює ліміт
+     «одночасно в роботі» з налаштувань. */
+  function busyOrders(m){
+    if(!m) return 0;
+    return U.pairs().filter(function(p){
+      return U.unitsOf(p.job).some(function(u){
+        return D.dzList(u, 'graphic').some(function(d){
+          return d.who === m && d.sentAt &&
+            (d.status === 'sent' || d.status === 'work' || d.status === 'revision');
+        });
+      });
+    }).length;
+  }
   /* Мої дизайни в цьому замовленні — рівно ті, що передані мені. */
   function myDz(job, kind, m){
     var out = [];
@@ -4109,14 +4244,14 @@
 
      Тепер колонку каже сама робота, і в найгіршому стані: якщо хоч десь
      лежить правка — це «Правки», бо саме за неї сідають першою. */
-  var DZ_STEP = ['revision', 'sent', 'work', 'review', 'approved'];
+  var DZ_STEP = ['revision', 'queue', 'sent', 'work', 'review', 'approved'];
   function dzStep(list){
     var є = {};
-    list.forEach(function(x){ є[x.d.status || 'sent'] = 1; });
+    list.forEach(function(x){ є[D.dzInQueue(x.d) ? 'queue' : (x.d.status || 'sent')] = 1; });
     for(var i = 0; i < DZ_STEP.length; i++) if(є[DZ_STEP[i]]) return DZ_STEP[i];
     return 'sent';
   }
-  var DZ_COL = { sent:'new', work:'work', review:'review',
+  var DZ_COL = { queue:'queue', sent:'new', work:'work', review:'review',
                  revision:'revision', approved:'done', 'new':'new' };
   function graphicCards(){
     var only = host().onlyMine && host().onlyMine();
@@ -4556,10 +4691,17 @@
       U.zoneHtml('violet', '\u21E7', 'Здати роботу', '',
         (d.status === 'approved'
           ? '<div class="dz-ok">Затверджено · версія ' + ((d.ok && d.ok.ver) || '—') + '</div>'
+          /* «Не братиму» звідси пішло: Андрій вирішив, що відмовитись від
+             роботи дизайнер не може — забрати її в нього може тільки
+             акаунт-менеджер. Лишилась одна дія. */
+          : D.dzInQueue(d)
+          ? '<div class="dz-w-take is-q">' +
+              '<span class="dz-w-q">У черзі відділу — бере той, хто перший натисне</span>' +
+              '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
+            '</div>'
           : d.status === 'sent'
           ? '<div class="dz-w-take">' +
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
-              '<button class="dz-b" data-do="dz-no" data-dz="' + key + '">Не братиму</button>' +
             '</div>'
           : handHtml(u, d, key))) +
       /* НАДІСЛАНІ ВЕРСІЇ — ОДРАЗУ ПІД ЗДАЧЕЮ.
@@ -5345,8 +5487,23 @@
         }
         if(!d) return;
         var who = String(el.value || '');
-        if(!who){ d.who = ''; return save(c.job, c.o, 'Дизайнера знято'); }
-        D.dzAttach(d, who, (host().me && host().me()) || '', U.whoName(who));
+        var хтоЯ = (host().me && host().me()) || '';
+        delete U.SWAP[String(el.dataset.dzwho)];
+        /* Робота вже передана — це «забрати або віддати іншому»: з подією
+           в розмові й новим відліком строку. */
+        if(d.sentAt && who){
+          var доЧерги = who === '@queue';
+          if(!доЧерги && who === d.who) return render(root);
+          D.dzRecall(d, хтоЯ, доЧерги ? '' : who, доЧерги ? U.whoName(d.who) : U.whoName(who));
+          return save(c.job, c.o, доЧерги ? 'Повернуто в чергу відділу' : 'Передано · ' + U.whoName(who));
+        }
+        if(who === '@queue'){
+          d.who = ''; d.pool = true;
+          return save(c.job, c.o, 'Черга відділу');
+        }
+        if(!who){ d.who = ''; d.pool = false; return save(c.job, c.o, 'Дизайнера знято'); }
+        d.pool = false;
+        D.dzAttach(d, who, хтоЯ, U.whoName(who));
         save(c.job, c.o, U.whoName(who));
       };
     });
@@ -5867,6 +6024,11 @@
         if(D.dzUnseen(dd, m)){ D.dzSeen(dd, m); return save(job, o, ''); }
         return render(root);
       }
+      if(what === 'dz-send' && dd.pool && !dd.who){
+        if(!du.gid) return say('Оберіть виріб — без нього ТЗ порожнє');
+        D.dzQueue(dd, m);
+        return save(job, o, 'Передано у відділ — чекає, хто візьме');
+      }
       if(what === 'dz-send'){
         if(!dd.who) return say('Спершу прикріпіть дизайнера');
         if(!du.gid) return say('Оберіть виріб — без нього ТЗ порожнє');
@@ -5908,8 +6070,14 @@
          відмовою. Поки цього рішення немає, кнопка стоїть на місці (щоб
          потім не переставляти) і чесно каже, що функції немає. Мовчазна
          кнопка була б гіршою за її відсутність. */
+      /* ЗАБРАТИ АБО ВІДДАТИ ІНШОМУ — ТІЛЬКИ АКАУНТ-МЕНЕДЖЕР.
+
+         ✎ біля імені відкриває той самий список, що й при першому виборі,
+         з «Чергою відділу» зверху. Обрав — і робота вже в іншого (або
+         знову в черзі), з подією в розмові. */
       if(what === 'dz-swap'){
-        return say('Заміна дизайнера поки не автоматизована — зверніться до адміністратора');
+        if(U.SWAP[dkey]) delete U.SWAP[dkey]; else U.SWAP[dkey] = 1;
+        return render(root);
       }
       /* Відповідь менеджера на питання дизайнера. Стан роботи від неї не
          міняється: це слово, а не повернення на правку. */
@@ -5932,6 +6100,17 @@
          буває завантажена або хвора, і мовчазне «висить добу» коштує
          дорожче за чесне «віддайте іншому». */
       if(what === 'dz-take'){
+        if(D.dzInQueue(dd) || (dd.pool && dd.who && dd.who !== m)){
+          var ліміт = +((host().dzLimit && host().dzLimit()) || 0);
+          var тримаю = busyOrders(m);
+          if(ліміт > 0 && тримаю >= ліміт && D.dzInQueue(dd))
+            return say('У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
+                       ') — здайте щось на перевірку, щоб узяти нове');
+          var взяв = D.dzClaim(dd, m);
+          if(взяв && взяв.taken){ render(root); return say('Уже взяв(ла) ' + U.whoName(взяв.taken)); }
+          if(!взяв) return;
+          return save(job, o, 'Взяли з черги в роботу');
+        }
         D.dzTake(dd, m);
         return save(job, o, 'Взяли в роботу');
       }

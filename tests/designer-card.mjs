@@ -99,9 +99,7 @@ const browser = await chromium.launch({
   executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const p = await browser.newPage({ viewport:{ width:1500, height:940 } });
 p.on('pageerror', e => errs.push(e.message.slice(0, 180)));
-/* «Не братиму» питає причину: без неї менеджер лишається з тим самим
-   питанням «а кому тепер». */
-p.on('dialog', d => d.accept('зайнятий іншим замовленням'));
+p.on('dialog', d => d.accept(''));
 await p.route('**://**', r => {
   const u = r.request().url();
   if(/gstatic\.com\/firebasejs/.test(u))
@@ -245,13 +243,15 @@ ok(!кар.дата,
   'а чужої дати в картці немає — у дизайнера свій годинник',
   'дата замовлення й далі стоїть у дизайнера');
 
-console.log('\n═══ «БЕРУ» І «НЕ БРАТИМУ» ═══');
+console.log('\n═══ «БЕРУ» — І НІЯКОГО «НЕ БРАТИМУ» ═══');
 const до = await p.evaluate(() => [...document.querySelectorAll('.dz-w .dz-b')]
   .map(b => b.textContent.trim()));
 console.log('  ' + JSON.stringify(до));
-ok(до.some(t => /Беру/.test(t)) && до.some(t => /Не братиму/.test(t)),
-  'обидві відповіді на передачу поруч і однаково доступні',
-  'кнопок «беру» / «не братиму» немає: ' + JSON.stringify(до));
+/* Андрій: відмовитись дизайнер не може — забрати роботу може тільки
+   акаунт-менеджер. */
+ok(до.some(t => /Беру/.test(t)) && !до.some(t => /Не братиму/.test(t)),
+  'одна відповідь на передачу — «Беру в роботу»; відмовитись дизайнер не може',
+  'кнопки не ті: ' + JSON.stringify(до));
 ok(!до.some(t => /надіслати/i.test(t)),
   'а здавати ще нема чого: роботу не починали',
   'здача показана до того, як роботу взяли');
@@ -362,31 +362,20 @@ ok(/лишилось/.test(наново) && !/прострочено/.test(на�
   'і строк пішов наново: правка — це нова робота, а не прострочена стара',
   'після правки строк лишився старим: ' + наново);
 
-console.log('\n═══ «НЕ БРАТИМУ» ПОВЕРТАЄ РОБОТУ ═══');
-/* Завантажений або хворий дизайнер мусить повернути роботу ЗАРАЗ, а не за
-   добу, коли строк уже вийшов і ніхто нічого не малював. */
+console.log('\n═══ ВІДМОВИТИСЬ НЕ МОЖНА ═══');
+/* Андрій: «відмовитись дизайнер не може, тільки може акаунт-менеджер в
+   нього забрати замовлення». */
 await p.evaluate(ЗАВЕСТИ);
 await p.waitForTimeout(600);
 await p.evaluate(() => { document.querySelector('[data-open]').click(); });
 await p.waitForTimeout(500);
-await p.evaluate(() => { document.querySelector('[data-do="dz-no"]').click(); });
-await p.waitForTimeout(900);
-const відмова = await p.evaluate(() => {
-  const d = window.LQDesign.dzList(designJobs['2000101'].units[0], 'graphic')[0];
-  return { хто: d.who, передано: d.sentAt, стан: d.status,
-           причина: (d.thread.filter(m => m.kind === 'no')[0] || {}).text || '',
-           карток: document.querySelectorAll('.dz-card-w').length };
-});
+const відмова = await p.evaluate(() => ({
+  кнопка: !!document.querySelector('[data-do="dz-no"]'),
+  беру: !!document.querySelector('[data-do="dz-take"]') }));
 console.log('  ' + JSON.stringify(відмова));
-ok(!відмова.хто && !відмова.передано && відмова.стан === 'new',
-  'дизайнера знято, передачу скасовано — рядок знову порожній у менеджера',
-  'після відмови рядок лишився переданим: ' + JSON.stringify(відмова));
-ok(/зайнятий/.test(відмова.причина),
-  'причина записана в розмову: ' + відмова.причина,
-  'причини відмови ніде немає');
-ok(!відмова.карток,
-  'і з дошки дизайнера картка зникла — робота не його',
-  'картка лишилась у дизайнера після відмови');
+ok(!відмова.кнопка && відмова.беру,
+  'у переданої роботи лише «Беру в роботу» — кнопки відмови немає',
+  'кнопки: ' + JSON.stringify(відмова));
 
 console.log('\n═══ СКАЧУВАННЯ СПРАВДІ СКАЧУЄ ═══');
 /* ТИХА ПОЛОМКА, ЯКУ ЛЕГКО НЕ ПОМІТИТИ.
