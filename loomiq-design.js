@@ -338,6 +338,10 @@
     { key:'design',  label:'У графічного дизайнера',    color:'blue'   },
     { key:'client',  label:'У клієнта на погодженні',   color:'amber'  },
     { key:'fixes',   label:'Правки клієнта',            color:'red'    },
+    /* Ескіз погоджено, позиція в черзі вишивального відділу, але ще ніхто
+       не взяв. Андрій: окремий статус — інакше «у вишивального» брехало б,
+       поки роботу ніхто не почав. */
+    { key:'stitchq', label:'Черга вишивки',             color:'amber'  },
     { key:'stitch',  label:'У вишивального дизайнера',  color:'violet' },
     { key:'prod',    label:'Виробництво',               color:'cyan'   },
     { key:'ready',   label:'До відправки',              color:'amber'  },
@@ -381,24 +385,32 @@
     if(!графіка.length && !вишивка.length) return '';
     /* Клієнт написав правки — це найважливіше, що зараз є на замовленні,
        хай би де воно стояло доти. */
-    if(графіка.concat(вишивка).some(function(x){
+    /* Правка вишивальному — це робота вишивки, а не «правки клієнта». */
+    if(графіка.some(function(x){
       return x.sentAt && x.status === 'revision'; })) return 'fixes';
-    if(вишивка.some(function(x){ return x.sentAt && x.status !== 'approved'; }))
-      return 'stitch';
+    /* Вишивка йде: хтось узяв — «У вишивального», ще ніхто — «Черга вишивки». */
+    var вРоботі = вишивка.filter(function(x){ return x.sentAt && x.status !== 'approved'; });
+    if(вРоботі.length)
+      return вРоботі.every(function(x){ return dzInQueue(x); }) ? 'stitchq' : 'stitch';
     /* У черзі відділу ще ніхто не працює — замовлення лишається «Новим»,
        а в «У графічного дизайнера» переходить само, щойно хтось узяв. */
     var передані = графіка.filter(function(x){ return x.sentAt && !dzInQueue(x); });
     if(!передані.length) return 'new';
     if(передані.some(function(x){ return x.status === 'review'; })) return 'client';
-    if(передані.every(function(x){ return x.status === 'approved'; }))
-      return вишивка.length ? 'stitch' : 'prod';
+    /* Ескіз погоджено. У виробництво — коли погоджено ВСІ вишивальні дизайни
+       замовлення (Андрій: усі B2C-позиції йдуть через вишивку); поки
+       вишивку ще не завели — це черга вишивки. */
+    if(передані.every(function(x){ return x.status === 'approved'; })){
+      if(!вишивка.length) return 'stitchq';
+      return вишивка.every(function(x){ return x.status === 'approved'; }) ? 'prod' : 'stitch';
+    }
     return 'design';
   }
   /* Хто зараз тримає замовлення. Питання «а чиє це» має мати відповідь у
      кожній колонці — інакше воно щодня ставиться вголос. */
   var CHAIN_WHO = {
     new:'акаунт-менеджер', design:'графічний дизайнер', client:'клієнт',
-    fixes:'графічний дизайнер', stitch:'вишивальний дизайнер',
+    fixes:'графічний дизайнер', stitchq:'вишивальний відділ', stitch:'вишивальний дизайнер',
     prod:'виробництво', qc:'акаунт-менеджер', ready:'виробництво', shipped:'—'
   };
 
@@ -784,8 +796,9 @@
               String(b.text || '').trim() || (b.pics || []).length);
   }
   function dzAutoQueue(job, o, by){
-    if(!job || chainAt(job, o) !== 'new') return 0;
-    var n = 0;
+    if(!job) return 0;
+    var n = dzAutoStitch(job, by);
+    if(chainAt(job, o) !== 'new') return n;
     jobUnits(job).forEach(function(u){
       if(!unitFilled(job, u)) return;
       var l = dzList(u, 'graphic');
@@ -795,6 +808,31 @@
       dzQueue(d, by);
       d.auto = true;
       d.thread[d.thread.length - 1].text = 'Замовлення заповнене — стало в чергу відділу';
+      n++;
+    });
+    return n;
+  }
+  /* ЕСКІЗ ПОГОДЖЕНО — ВИШИВКА СТАЄ В ЧЕРГУ САМА.
+
+     Андрій: «вишивка ставиться в чергу сама, якщо графічний ескіз
+     одобрений клієнтом». Щойно на позиції погоджено всі графічні дизайни,
+     а вишивального ще немає, заводимо його в чергу вишивального відділу.
+     Разом із ним їде посилання на погоджену версію: оцифровують рівно те,
+     про що домовились із клієнтом. Рішення менеджера (обрав людину сам)
+     автоматика не перебиває. */
+  function dzAutoStitch(job, by){
+    var n = 0;
+    jobUnits(job).forEach(function(u){
+      var g = dzList(u, 'graphic');
+      if(!g.length || !g.every(function(d){ return !!d.ok; })) return;
+      var l = dzList(u, 'stitch');
+      if(l.length) return;
+      var d = dzNew();
+      d.from = g.map(function(x, i){ return { i: i, ver: (x.ok && x.ok.ver) || x.vers.length }; });
+      l.push(d);
+      dzQueue(d, by);
+      d.auto = true;
+      d.thread[d.thread.length - 1].text = 'Ескіз погоджено — стало в чергу вишивки';
       n++;
     });
     return n;
@@ -882,9 +920,12 @@
   function verParts(v){
     var fs = (v && v.files) || [];
     var хеш = fs.some(function(f){ return f && f.hash; });
-    var out = { work: [], mock: [], sheet: null };
+    var out = { work: [], mock: [], sheet: null, shot: [], machine: [] };
     fs.forEach(function(f, i){
       if(!f || !f.url) return;
+      /* Вишивка: файл для машини (DST/EMB) і скрін дизайну з Wilcom. */
+      if(f.role === 'machine'){ out.machine.push(f); return; }
+      if(f.role === 'shot'){ out.shot.push(f); return; }
       var r = f.role ||
         (/^аркуш/i.test(String(f.name || '')) ? 'sheet'
           : хеш ? (f.hash ? 'work' : 'mock')
@@ -1655,7 +1696,7 @@
     dzTake: dzTake, dzDecline: dzDecline,
     dzInQueue: dzInQueue, dzQueue: dzQueue, dzClaim: dzClaim, dzRecall: dzRecall,
     verParts: verParts, msgRole: msgRole,
-    dzAutoQueue: dzAutoQueue, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
+    dzAutoQueue: dzAutoQueue, dzAutoStitch: dzAutoStitch, unitFilled: unitFilled, dzDue: dzDue, dzLeft: dzLeft, dzTold: dzTold,
     DZ_HOURS: DZ_HOURS,
     dzVer: dzVer, dzVerFile: dzVerFile, dzSay: dzSay, dzOk: dzOk, dzUnok: dzUnok,
     dzUnseen: dzUnseen, dzSeen: dzSeen, graphicOk: graphicOk, dzNote: dzNote,
@@ -2506,6 +2547,16 @@
     p.mock.forEach(function(f, k){
       t.push(tileHtml(f, base + '-мокап' + (p.mock.length > 1 ? '-' + (k + 1) : ''), 'мокап')); });
     if(p.sheet) t.push(tileHtml(p.sheet, base + '-картка', 'картка'));
+    p.shot.forEach(function(f, k){
+      t.push(tileHtml(f, base + '-wilcom' + (p.shot.length > 1 ? '-' + (k + 1) : ''), 'скрін Wilcom')); });
+    /* Файл для машини — не картинка: плитка з назвою й скачуванням. */
+    p.machine.forEach(function(f){
+      var ext = (String(f.name || '').match(/\.(\w+)$/) || ['', 'файл'])[1].toUpperCase();
+      t.push('<span class="dz-tile"><button type="button" class="dz-tile-i dz-tile-f" data-do="dz-dl" ' +
+        'data-url="' + esc(f.url) + '" data-name="' + esc(f.name || (base + '.' + ext.toLowerCase())) +
+        '" title="Скачати ' + esc(f.name || 'файл') + '"><b>' + esc(ext) + '</b><i>⤓</i></button>' +
+        '<i class="dz-tile-l">для машини</i></span>');
+    });
     return '<span class="dz-tiles">' + t.join('') + '</span>';
   }
   /* Хто дивиться. У картці менеджера — акаунт-менеджер, на дошці
@@ -2763,8 +2814,7 @@
     var хто;
     /* Черга відділу — лише в графіки. Вишивальників переведемо на нову
        схему окремо, тоді й у них зʼявиться своя черга. */
-    var черга = kind === 'graphic'
-      ? '<option value="@queue">Черга відділу — бере перший</option>' : '';
+    var черга = '<option value="@queue">Черга відділу — бере перший</option>';
     if(d && !ro && SWAP[key] && (d.who || d.pool)){
       хто = '<select class="dz-u-sel" data-dzwho="' + key + '">' +
           '<option value="">— кому віддати —</option>' + черга +
@@ -2961,7 +3011,7 @@
        його (стара версія) — показуємо мокап, як і доти. */
     var частини = D.verParts(v);
     var аркуш = частини.sheet;
-    var мокап = аркуш || частини.mock[0] || частини.work[0] || {};
+    var мокап = аркуш || частини.mock[0] || частини.shot[0] || частини.work[0] || {};
     /* Версія без аркуша — це версія, здана до того, як аркуш зʼявився.
        Доти тут стояла смужка з кнопкою «Зібрати аркуш». Андрій: формат
        дизайну має бути вже тут, а не за натиском, — і він має рацію:
@@ -2983,7 +3033,7 @@
           /* Номер ТОЙ САМИЙ, що в шапці, плюс місце позиції, коли їх кілька:
              «#2000001-2 · v1». Так їх і називають уголос. */
           '<b>' + esc(unitNo(job, u) + ' · v' + v.n) + '</b>' +
-          (ro ? '' : '<button class="dz-ib dz-chk-dl" data-do="dz-card" data-dz="' + key +
+          ((ro || kind === 'stitch') ? '' : '<button class="dz-ib dz-chk-dl" data-do="dz-card" data-dz="' + key +
             '" data-v="' + v.n + '" title="Скачати аркуш для цеху">⤓</button>') +
           /* Слова дизайнера про саме цю версію — тут, а не в стрічці:
              вони пояснюють роботу, на яку дивишся, а не розмову навколо неї. */
@@ -3030,7 +3080,9 @@
            Тепер кнопка одна й на тому самому місці. Надіслали — вона
            гасне й каже, коли це було. Прийшла нова версія — оживає сама,
            бо це вже інший ескіз, і його справді треба показати. */
-        (надіслано
+        /* Вишивку клієнту не показуємо — її погоджує лише менеджер. */
+        (kind === 'stitch' ? ''
+          : надіслано
           ? '<span class="dz-b is-sent" title="Цю версію вже показали клієнту ' +
             esc(dt(v.sentToClient)) + '">Надіслано ' + esc(hhmm(v.sentToClient)) + '</span>'
           : '<button class="dz-b pri" data-do="dz-tell-pick" data-dz="' + key +
@@ -4117,6 +4169,7 @@
     seek: seek, seekSet: seekSet, seekHit: seekHit,
     clientHtml: clientHtml, taskBlockHtml: taskBlockHtml,
     unitsHtml: unitsHtml, dueHtml: dueHtml, readyFrom: readyFrom, writeHtml: writeHtml,
+    verTilesHtml: verTilesHtml,
     unitsOf: unitsOf, unitAt: unitAt,
     shipHtml: shipHtml, shipBody: shipBody,
     /* Зони картки, їхні підписи й сам підрахунок суми. Панелі складають
@@ -4160,6 +4213,53 @@
   var esc = U.esc, dt = U.dt, nameOf = U.nameOf, say = U.say;
 
   function host(){ return U.host; }
+  /* Вікно здачі вишивки: два обовʼязкові файли й необовʼязкове слово. */
+  function stitchUpOpen(done){
+    var st = { file: null, shot: null };
+    var w = document.createElement('div');
+    w.className = 'dz-pick dz-cf dz-su';
+    var paint = function(){
+      w.innerHTML = '<div class="dz-cf-b" role="dialog" aria-label="Здати вишивку">' +
+        '<div class="dz-cf-h">Здати вишивку</div>' +
+        '<div class="dz-su-r"><span>Файл для машини <i>DST або EMB</i></span>' +
+          (st.file ? '<b class="dz-su-ok">' + U.esc(st.file.name || 'файл') + '</b>' : '') +
+          '<button type="button" class="dz-b" data-su="file">' + (st.file ? 'Замінити' : '⤒ Вибрати файл') + '</button></div>' +
+        '<div class="dz-su-r"><span>Скрін дизайну з Wilcom</span>' +
+          (st.shot ? '<img class="dz-su-i" src="' + U.esc(st.shot.url) + '" alt="">' : '') +
+          '<button type="button" class="dz-b" data-su="shot">' + (st.shot ? 'Замінити' : '⤒ Вибрати скрін') + '</button></div>' +
+        '<textarea class="dz-cf-t" rows="2" placeholder="Слово менеджеру — за бажанням"></textarea>' +
+        '<div class="dz-cf-f">' +
+          '<button type="button" class="dz-b" data-su="no">Скасувати</button>' +
+          '<button type="button" class="dz-b pri" data-su="go"' + (st.file && st.shot ? '' : ' disabled') + '>Надіслати</button>' +
+        '</div></div>';
+    };
+    var close = function(){ if(w.parentNode) w.parentNode.removeChild(w); };
+    w.addEventListener('click', async function(e){
+      var b = e.target.closest('[data-su]');
+      if(!b){ if(e.target === w) close(); return; }
+      var k = b.dataset.su;
+      if(k === 'no') return close();
+      if(k === 'file'){
+        var f = await upload('.dst,.emb,.DST,.EMB');
+        if(!f) return;
+        if(!/\.(dst|emb)$/i.test(String(f.name || ''))) return say('Потрібен файл DST або EMB');
+        st.file = f; var t0 = w.querySelector('.dz-cf-t').value; paint(); w.querySelector('.dz-cf-t').value = t0; return;
+      }
+      if(k === 'shot'){
+        var sh = await upload('image/*');
+        if(!sh) return;
+        st.shot = sh; var t1 = w.querySelector('.dz-cf-t').value; paint(); w.querySelector('.dz-cf-t').value = t1; return;
+      }
+      if(k === 'go'){
+        if(!st.file || !st.shot) return say('Потрібні обидва файли: DST/EMB і скрін з Wilcom');
+        var note = String(w.querySelector('.dz-cf-t').value || '').trim();
+        close();
+        return done({ file: st.file, shot: st.shot, note: note });
+      }
+    });
+    paint();
+    document.body.appendChild(w);
+  }
   /* Вікно «Надіслати клієнту?»: картка, що поїде, і текст повідомлення.
      Повертає текст (можливо, поправлений) або null, якщо передумали. */
   function tellConfirm(url, text, title){
@@ -4359,11 +4459,12 @@
   /* Скільки замовлень дизайнер зараз тримає в роботі: передані йому, ще
      не здані на перевірку й не затверджені. За цим числом і працює ліміт
      «одночасно в роботі» з налаштувань. */
-  function busyOrders(m){
+  function busyOrders(m, kind){
     if(!m) return 0;
+    var k = kind === 'stitch' ? 'stitch' : 'graphic';
     return U.pairs().filter(function(p){
       return U.unitsOf(p.job).some(function(u){
-        return D.dzList(u, 'graphic').some(function(d){
+        return D.dzList(u, k).some(function(d){
           return d.who === m && d.sentAt &&
             (d.status === 'sent' || d.status === 'work' || d.status === 'revision');
         });
@@ -4399,12 +4500,25 @@
   }
   var DZ_COL = { queue:'queue', sent:'new', work:'work', review:'review',
                  revision:'revision', approved:'done', 'new':'new' };
-  function graphicCards(){
+  /* Години на роботу — зі строків етапів: графіка й вишивка мають свої. */
+  function kindHours(kind){
+    if(kind === 'stitch'){
+      var t = {};
+      try{ t = (host().terms && host().terms()) || {}; }catch(e){}
+      return (+t.stitch > 0) ? +t.stitch : D.DZ_HOURS;
+    }
+    return dzHours();
+  }
+  /* ВИШИВАЛЬНІ — ТАК САМО, ЯК ГРАФІЧНІ. Андрій: «те саме, що ми зробили для
+     графічних, зробимо для вишивальних». Одна дошка на дві ролі: черга
+     відділу, нові, в роботі, на перевірці, правки, готово — по позиціях. */
+  function graphicCards(kind){
+    kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
-    var год = dzHours();
+    var год = kindHours(kind);
     return U.pairs().map(function(p){
-      var mine = myDz(p.job, 'graphic', only ? m : '');
+      var mine = myDz(p.job, kind, only ? m : '');
       if(!mine.length) return null;
       var st = dzStep(mine);
       /* Строк — найгостріший із моїх: коли їх два, працюють по тому, що
@@ -4415,7 +4529,7 @@
         if(l === null) return;
         if(лишок === null || l < лишок) лишок = l;
       });
-      var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m, 'graphic', 'graphic'); }, 0);
+      var нових = mine.reduce(function(a, x){ return a + D.dzUnseen(x.d, m, kind, kind); }, 0);
       var верс = mine.reduce(function(a, x){ return Math.max(a, x.d.vers.length); }, 0);
       return { id: p.o.orderId, step: DZ_COL[st] || 'new',
         title: U.jobNo(p.job),
@@ -4633,8 +4747,8 @@
      законна: завантажений або хворий дизайнер мусить повернути роботу
      ЗАРАЗ, а не за добу, коли строк уже вийшов і ніхто нічого не малював.
      ══════════════════════════════════════════════════════════════════════ */
-  function dzLeftTxt(d){
-    var l = D.dzLeft(d, dzHours());
+  function dzLeftTxt(d, kind){
+    var l = D.dzLeft(d, kindHours(kind));
     if(l === null) return '';
     return l < 0 ? ('прострочено на ' + U.hm(-l)) : ('лишилось ' + U.hm(l));
   }
@@ -4664,6 +4778,30 @@
      картку, щоб віддати роботу, і першим натикався на порожнє поле для
      листа. Андрій: «щоб воно не відволікало від ТЗшки і від
      завантаження». */
+  /* ТЗ ВИШИВАЛЬНОГО — ПОГОДЖЕНИЙ ЕСКІЗ. Оцифровують рівно ту версію, яку
+     погодив клієнт: робота, мокап і картка з розмірами — плитками з
+     переглядом і скачуванням. */
+  function stitchBriefHtml(u, d){
+    var g = D.dzList(u, 'graphic');
+    var out = [];
+    g.forEach(function(gd, gi){
+      var n = (gd.ok && gd.ok.ver) || gd.vers.length;
+      var v = gd.vers.filter(function(x){ return +x.n === +n; })[0] || gd.vers[gd.vers.length - 1];
+      if(!v) return;
+      out.push('<div class="dz-w-note"><i>Погоджений ескіз' + (g.length > 1 ? ' · дизайн ' + (gi + 1) : '') +
+        ' · версія ' + v.n + '</i>' + U.verTilesHtml(v, 'ескіз-v' + v.n) + '</div>');
+    });
+    return out.length ? out.join('')
+      : '<div class="dz-miss is-calm">Погодженого ескізу на цій позиції немає.</div>';
+  }
+  /* ЗДАТИ ВИШИВКУ: файл для машини (DST або EMB) і скрін дизайну з Wilcom.
+     Андрій: «дст або емб і скрін дизайну з вілкома». Обидва обовʼязкові. */
+  function stitchHandHtml(key){
+    return '<div class="dz-w-send">' +
+      '<button class="dz-b pri wide" data-do="dz-stitch-up" data-dz="' + key + '">⤒ Завантажити роботу</button>' +
+      '<div class="dz-miss is-calm">Файл DST або EMB і скрін дизайну з Wilcom — обидва обовʼязкові.</div>' +
+    '</div>';
+  }
   function sayHtml(key){
     return '<div class="dz-w-say">' +
       '<textarea rows="2" data-dzsay="' + key + '" ' +
@@ -4763,13 +4901,14 @@
       (m.sideCm ? ' · від центру ' + (m.sideCm > 0 ? '+' : '−') + мсм(Math.abs(m.sideCm)) : '') +
       (m.size ? ' · на ' + m.size : '');
   }
-  function dzWorkHtml(x, i){
+  function dzWorkHtml(x, i, kind){
+    kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var u = x.u, d = x.d;
-    var key = esc(u.id) + '|graphic|' + D.dzList(u, 'graphic').indexOf(d);
+    var key = esc(u.id) + '|' + kind + '|' + D.dzList(u, kind).indexOf(d);
     var g = U.catItem(u.gid);
-    var l = D.dzLeft(d, dzHours());
+    var l = D.dzLeft(d, kindHours(kind));
     var м = (host().me && host().me()) || '';
-    var нових = D.dzUnseen(d, м, 'graphic', 'graphic');
+    var нових = D.dzUnseen(d, м, kind, kind);
     return '<div class="dz-w' + (d.status === 'revision' ? ' is-fix' : '') + '">' +
       '<div class="dz-w-h">' +
         '<b>' + esc((g && g.name) || u.name || 'Виріб') + '</b>' +
@@ -4779,11 +4918,11 @@
         (u.size ? '<span class="dz-w-c">' + esc(u.size) + '</span>' : '') +
         '<span class="dz-w-c">' + (+u.qty || 0) + ' шт</span>' +
         (нових ? '<button type="button" class="dz-unread" data-do="dz-seen" data-u="' + esc(u.id) +
-          '" data-side="graphic" title="Пропущене від менеджера — позначити прочитаним">' + нових + '</button>' +
+          '" data-side="' + kind + '" title="Пропущене від менеджера — позначити прочитаним">' + нових + '</button>' +
           '<button type="button" class="dz-eye" data-do="dz-seen" data-u="' + esc(u.id) +
-          '" data-side="graphic" title="Позначити прочитаним" aria-label="Позначити прочитаним">\uD83D\uDC41</button>' : '') +
+          '" data-side="' + kind + '" title="Позначити прочитаним" aria-label="Позначити прочитаним">\uD83D\uDC41</button>' : '') +
         (l === null ? '' : '<em class="dz-w-t' + (l < 0 ? ' late' : l < 180 ? ' soon' : '') +
-          '">' + esc(dzLeftTxt(d)) + '</em>') +
+          '">' + esc(dzLeftTxt(d, kind)) + '</em>') +
       '</div>' +
       /* Правка стоїть НАД роботою, а не в кінці розмови: її й треба
          прочитати перш, ніж відкривати файл. */
@@ -4809,6 +4948,7 @@
          говориться. Тому вони й виглядають як три окремі блоки зі своїм
          кольором — так само, як зони в картці менеджера, де це працює. */
       U.zoneHtml('blue', '\uD83D\uDCCB', 'ТЗ', '',
+        (kind === 'stitch' ? stitchBriefHtml(u, d) : '') +
         (u.note ? '<div class="dz-w-note"><i>Що просить клієнт</i>' +
                   esc(u.note) + '</div>' : '') +
       /* Картинки зі СКАЧУВАННЯМ просто з мініатюри. Дизайнеру потрібен не
@@ -4853,7 +4993,7 @@
           ? '<div class="dz-w-take">' +
               '<button class="dz-b pri" data-do="dz-take" data-dz="' + key + '">Беру в роботу</button>' +
             '</div>'
-          : handHtml(u, d, key))) +
+          : (kind === 'stitch' ? stitchHandHtml(key) : handHtml(u, d, key)))) +
       /* НАДІСЛАНІ ВЕРСІЇ — ОДРАЗУ ПІД ЗДАЧЕЮ.
 
          Андрій: «воно надіслалося, але воно повинно показуватись тут, у
@@ -4871,19 +5011,20 @@
          щоб зрозуміти, на чому зупинились, їх доводилось складати в голові
          за часом. */
       U.zoneHtml('green', '\uD83D\uDCAC', 'Переписка', '',
-        U.dzChatHtml(u, 'graphic', d, D.dzList(u, 'graphic').indexOf(d), { ro:true, as:'graphic' }) +
+        U.dzChatHtml(u, kind, d, D.dzList(u, kind).indexOf(d), { ro:true, as:kind }) +
         (d.status === 'approved' || d.status === 'sent' ? '' : sayHtml(key))) +
     '</div>';
   }
-  function graphicPanel(p){
+  function graphicPanel(p, kind){
+    kind = kind === 'stitch' ? 'stitch' : 'graphic';
     var job = p.job, o = p.o;
     var only = host().onlyMine && host().onlyMine();
     var m = (host().me && host().me()) || '';
-    var mine = myDz(job, 'graphic', only ? m : '');
+    var mine = myDz(job, kind, only ? m : '');
     var st = dzStep(mine);
     var лишок = null;
     mine.forEach(function(x){
-      var l = D.dzLeft(x.d, dzHours());
+      var l = D.dzLeft(x.d, kindHours(kind));
       if(l === null) return;
       if(лишок === null || l < лишок) лишок = l;
     });
@@ -4903,9 +5044,9 @@
            «здати за 8 годин» і «посилка 14 жовтня» — не доповнюють одна
            одну, а сперечаються. Друга щоразу виглядає як запас часу,
            якого немає. */
-        U.taskBlockHtml(p, 'graphic') +
+        U.taskBlockHtml(p, kind) +
         (mine.length
-          ? mine.map(dzWorkHtml).join('')
+          ? mine.map(function(x, i){ return dzWorkHtml(x, i, kind); }).join('')
           : '<div class="dz-miss is-calm">Це замовлення вам не передавали.</div>') +
       '</div>';
   }
@@ -5148,8 +5289,8 @@
   /* Дошка ролі: етапи і картки. Одне місце, де це вирішується, — інакше
      дошка й панель почнуть розходитись у тому, що вважати колонкою. */
   function boardOf(seat){
-    if(seat === 'graphic') return { steps: D.GRAPHIC, cards: graphicCards() };
-    if(seat === 'stitch')  return { steps: D.STITCH,  cards: stitchOrderCards() };
+    if(seat === 'graphic') return { steps: D.GRAPHIC, cards: graphicCards('graphic') };
+    if(seat === 'stitch')  return { steps: D.GRAPHIC, cards: graphicCards('stitch') };
     if(seat === 'prod')    return { steps: D.PROD,    cards: prodCards() };
     if(seat === 'supply')  return { steps: D.SUPPLY,  cards: supplyCards() };
     return { steps: D.CHAIN, cards: chainCards() };     // акаунт-менеджер
@@ -5516,17 +5657,11 @@
   function panelFor(seat, id){
     var pr = U.pairOf(String(id).split('|')[0]);
     if(!pr) return '';
-    if(seat === 'graphic') return graphicPanel(pr);
+    if(seat === 'graphic') return graphicPanel(pr, 'graphic');
     if(seat === 'supply')  return supplyPanel(pr);
     if(seat === 'prod')    return packPanel(pr);
-    if(seat === 'stitch'){
-      /* Файлів на замовлення буває кілька — показуємо всі підряд, у
-         порядку роботи. Окремими картками на дошці вони більше не стоять:
-         одне замовлення розповзалось по ній на три місця. */
-      var list = (pr.job.stitch || []).filter(function(x){ return !x.gone; });
-      if(!list.length) return stitchPanel(pr, { key:'', label:'', status:'wait' });
-      return list.map(function(x, i){ return stitchPanel(pr, x, i > 0); }).join('');
-    }
+    /* Вишивальні — на тій самій схемі, що й графічні: по позиціях. */
+    if(seat === 'stitch') return graphicPanel(pr, 'stitch');
     return queuePanel(pr);           // акаунт-менеджер
   }
 
@@ -5916,7 +6051,7 @@
     /* Взяти, відмовитись і здати роботу — дії ВИКОНАВЦЯ, не складу. Якби
        вони лежали під зоною «art», дизайнер не зміг би ні взяти те, що
        йому дали, ні повернути те, чого не потягне. */
-    'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
+    'dz-take':'', 'dz-no':'', 'dz-hand':'', 'dz-stitch-up':'', 'dz-art':'', 'dz-art-del':'', 'dz-mock':'',
     'dz-msg':'', 'dz-msg-file':'', 'dz-swap':'', 'dz-reply':'art',
     'dz-tell-pick':'art', 'dz-ok-pick':'art',
     'dz-send':'art', 'dz-ok':'art', 'dz-unok':'art',
@@ -6204,7 +6339,7 @@
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
        what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' ||
-       what === 'dz-work' ||
+       what === 'dz-work' || what === 'dz-stitch-up' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
        what === 'dz-tell-pick' || what === 'dz-ok-pick'){
@@ -6302,8 +6437,10 @@
          дорожче за чесне «віддайте іншому». */
       if(what === 'dz-take'){
         if(D.dzInQueue(dd) || (dd.pool && dd.who && dd.who !== m)){
-          var ліміт = +((host().dzLimit && host().dzLimit()) || 0);
-          var тримаю = busyOrders(m);
+          var ліміт = +((dk === 'stitch'
+            ? (host().stitchLimit && host().stitchLimit())
+            : (host().dzLimit && host().dzLimit())) || 0);
+          var тримаю = busyOrders(m, dk);
           if(ліміт > 0 && тримаю >= ліміт && D.dzInQueue(dd))
             return say('У вас уже ' + тримаю + ' в роботі (можна ' + ліміт +
                        ') — здайте щось на перевірку, щоб узяти нове');
@@ -6349,6 +6486,16 @@
          вмісту рахуємо тут же: за ним ми потім відрізняємо «намалював
          удруге» від «переклав готове», а за назвою це не відрізнити —
          «logo.png» називається так у половини клієнтів. */
+      /* ЗДАТИ ВИШИВКУ: файл для машини й скрін із Wilcom — маленьким вікном. */
+      if(what === 'dz-stitch-up'){
+        return stitchUpOpen(async function(res){
+          D.dzVer(dd, m, [Object.assign({}, res.file, { role:'machine' }),
+                          Object.assign({}, res.shot, { role:'shot' })], res.note || '', null, 'stitch');
+          dd.status = 'review';
+          D.dzSeen(dd, m, 'stitch');
+          await save(job, o, 'Вишивку здано на перевірку');
+        });
+      }
       if(what === 'dz-work'){
         if(!window.LQMock || !window.LQMock.openWork)
           return say('Вікно здачі не завантажилось');
@@ -6605,10 +6752,13 @@
         var дія = what === 'dz-ok-pick' ? 'dz-ok' : 'dz-tell';
         var vs = (dd.vers || []).slice();
         if(!vs.length) return say('Версії ще немає');
+        /* Вишивку погоджує лише менеджер (Андрій), клієнт її не бачить. */
+        var як = dk === 'stitch' ? 'acct' : 'client';
         if(vs.length === 1)
-          return act(дія, root, { dz: dkey, v: vs[0].n, how: 'client' });
+          return act(дія, root, { dz: dkey, v: vs[0].n, how: як });
         return U.pickOpen(
-          дія === 'dz-ok' ? 'Яку версію погодив клієнт' : 'Яку версію надіслати',
+          дія === 'dz-ok' ? (dk === 'stitch' ? 'Яку версію вишивки погоджуєте' : 'Яку версію погодив клієнт')
+                          : 'Яку версію надіслати',
           'Версій ' + vs.length + ' — оберіть ту, про яку домовились',
           vs.slice().reverse().map(function(v){
             var vpp = D.verParts(v);
@@ -6620,7 +6770,7 @@
                 (v.sentToClient ? ' · надіслано' : '') + '</i></span>' +
             '</button>';
           }).join(''),
-          function(n){ act(дія, root, { dz: dkey, v: n, how: 'client' }); });
+          function(n){ act(дія, root, { dz: dkey, v: n, how: як }); });
       }
       /* ══════════ НАДІСЛАТИ КЛІЄНТУ ══════════
 
@@ -6741,8 +6891,10 @@
 
            Тому скидаємо ручний вибір: далі вирішує робота. */
         try{ delete U.SIDE[du.id]; }catch(e){}
+        if(dk === 'stitch')
+          return save(job, o, 'Вишивку погоджено · v' + ((dd.ok && dd.ok.ver) || dd.vers.length));
         return save(job, o, 'Ескіз погоджений · v' +
-          ((dd.ok && dd.ok.ver) || dd.vers.length));
+          ((dd.ok && dd.ok.ver) || dd.vers.length) + ' — вишивка стала в чергу');
       }
       D.dzUnok(dd);
       return save(job, o, 'Затвердження знято');

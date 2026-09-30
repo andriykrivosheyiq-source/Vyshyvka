@@ -4369,6 +4369,18 @@
   .dz-cf-t{width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;border:1px solid var(--line);
     border-radius:10px;padding:9px 11px;resize:vertical;}
   .dz-cf-f{display:flex;gap:8px;justify-content:flex-end;}
+  .dz-cf-f .dz-b[disabled]{opacity:.45;cursor:default;}
+  /* Здати вишивку: два рядки — файл для машини й скрін з Wilcom. */
+  .dz-su-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;
+    border:1px solid var(--line);border-radius:10px;}
+  .dz-su-r>span{flex:1;min-width:150px;font-weight:700;font-size:13px;}
+  .dz-su-r>span i{display:block;font-style:normal;font-weight:500;color:var(--muted);font-size:11.5px;}
+  .dz-su-ok{font-size:12px;color:#0B7F58;}
+  .dz-su-i{width:54px;height:54px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:#fff;}
+  .dz-tile-f{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;background:#F5F3FF;border-color:#DDD6FE;}
+  .dz-tile-f b{font-size:15px;font-weight:800;color:#5B21B6;}
+  .dz-tile-f i{font-style:normal;font-size:13px;color:#5B21B6;}
   .dz-pick{position:fixed;inset:0;z-index:260;background:rgba(15,32,52,.42);
     display:flex;align-items:center;justify-content:center;padding:20px;}
   .dz-pick-w{background:var(--paper);border-radius:16px;box-shadow:var(--sh-3);
@@ -6776,19 +6788,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=5aef8baacd"></script>
-<script src="loomiq-fingerprint.js?v=5aef8baacd"></script>
-<script src="loomiq-pricing.js?v=5aef8baacd"></script>
+<script src="loomiq-select.js?v=a228fd8144"></script>
+<script src="loomiq-fingerprint.js?v=a228fd8144"></script>
+<script src="loomiq-pricing.js?v=a228fd8144"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=5aef8baacd"></script>
-<script src="loomiq-mock.js?v=5aef8baacd"></script>
+<script src="loomiq-design.js?v=a228fd8144"></script>
+<script src="loomiq-mock.js?v=a228fd8144"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=5aef8baacd"></script>
+<script src="loomiq-cards.js?v=a228fd8144"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6813,7 +6825,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '5aef8baacd';
+var LQ_VER = 'a228fd8144';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -9641,6 +9653,8 @@ function b2cCfg(){
               Нуль — без обмеження: доки число не поставили, черга працює
               вільно, як Андрій і просив спершу. */
            dzLimit: (+c.dzLimit > 0) ? Math.round(+c.dzLimit) : 0,
+           /* Те саме для вишивальних — окремим числом (Андрій). */
+           stitchLimit: (+c.stitchLimit > 0) ? Math.round(+c.stitchLimit) : 0,
            /* Примітка на картці макета. Порожньої не буває: якщо її не
               заповнили, беремо ту, яку й доти писали руками, — інакше
               картка поїде клієнту без застереження про колір. */
@@ -9674,9 +9688,15 @@ function paintB2cTerms(){
   /* Обмеження черги — поруч зі строками: і те, і те про те, скільки роботи
      людина тримає в руках. */
   `<label class="b2c-term">
-      <span class="b2c-term-t"><b>Одночасно в роботі</b><i>скільки замовлень графічний дизайнер може взяти з черги, поки не здасть попередні на перевірку; порожньо — без обмеження</i></span>
+      <span class="b2c-term-t"><b>Одночасно в роботі · графічний</b><i>скільки замовлень графічний дизайнер може взяти з черги, поки не здасть попередні на перевірку; порожньо — без обмеження</i></span>
       <input type="number" min="0" max="50" step="1" id="b2c-dzlimit"
              placeholder="—" value="${b2cCfg().dzLimit || ''}">
+      <span class="b2c-term-h">зам.</span>
+    </label>
+    <label class="b2c-term">
+      <span class="b2c-term-t"><b>Одночасно в роботі · вишивальний</b><i>те саме для вишивальних дизайнерів</i></span>
+      <input type="number" min="0" max="50" step="1" id="b2c-stitchlimit"
+             placeholder="—" value="${b2cCfg().stitchLimit || ''}">
       <span class="b2c-term-h">зам.</span>
     </label>`;
 }
@@ -9774,9 +9794,10 @@ function retailCost(gid){
        його читають старі збірки, які ще можуть бути відкриті в сусідній
        вкладці, і мовчки змінити їм строк було б гірше за зайве поле. */
     const dzLimit = Math.max(0, Math.round(parseFloat((document.getElementById('b2c-dzlimit') || {}).value) || 0));
+    const stitchLimit = Math.max(0, Math.round(parseFloat((document.getElementById('b2c-stitchlimit') || {}).value) || 0));
     const b2c = { extras: readExtras(), days: days || null,
                   terms: Object.keys(terms).length ? terms : null,
-                  dzLimit: dzLimit || null,
+                  dzLimit: dzLimit || null, stitchLimit: stitchLimit || null,
                   dzHours: terms.graphic || null,
                   note: note || null };
     /* Ціни пишемо туди ж, де вони й лежать, — у картку товару. Другий
@@ -27449,6 +27470,7 @@ function openDesign(){
     /* Скільки замовлень дизайнер може тримати в роботі одночасно (0 — без
        обмеження). Відділ питає, налаштування відповідають. */
     dzLimit: () => b2cCfg().dzLimit,
+    stitchLimit: () => b2cCfg().stitchLimit,
     /* Графік дизайнера. Відділ не знає нічого про команду — він питає, чи
        цей день у цієї людини вихідний, і все. */
     dayOff: (who, iso) => shiftOff(who, iso),
