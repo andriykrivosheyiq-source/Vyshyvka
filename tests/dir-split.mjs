@@ -507,6 +507,49 @@ ok(скрипт.b1 !== скрипт.c1,
   'у B2B текст інший — компанії й приватній людині пишуть різними словами',
   'B2B і B2C шлють однаковий текст');
 
+console.log('\n═══ ХРЕСТИК ВИДНО ЗАВЖДИ, А ДАТИ З 1929 НЕ БУВАЄ ═══');
+/* У картці стояло «ГОТОВО 04.12.29 · прострочено 35364 дні», і цей рядок
+   виштовхував за край кнопку «закрити» — картку не було чим закрити. */
+const шапкa = await p.evaluate(async () => {
+  const U = window.LQDesign.ui;
+  /* Попередні перевірки ходили в картку замовлення й у чати — повертаємо
+     відділ на екран, інакше вимірювати нічого: у схованої секції всі
+     прямокутники нульові. */
+  document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
+  document.getElementById('view-design').style.display = 'block';
+  closeOrderDrawer();
+  const job = designJobs['2000101'];
+  job.due = '1929-12-04'; job.dueSet = true;   // рівно те, що було в базі
+  U.setTab('acct'); U.open('2000101');
+  U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 400));
+  const h = document.querySelector('.dz-panel-h');
+  const x = document.querySelector('.dz-panel-h .dz-x');
+  const hb = h ? h.getBoundingClientRect() : null;
+  const xb = x ? x.getBoundingClientRect() : null;
+  return {
+    текст: h ? h.textContent.replace(/\s+/g, ' ').trim() : '',
+    /* Геометрія, а не наявність у розмітці: кнопка може бути в DOM і
+       водночас лежати за краєм вікна. */
+    хрестикВидно: !!(xb && hb && xb.width > 0 && xb.right <= hb.right + 1 &&
+                     xb.left >= hb.left),
+    рамки: { h: hb && [Math.round(hb.left), Math.round(hb.right)],
+              x: xb && [Math.round(xb.left), Math.round(xb.right), Math.round(xb.width)] },
+    биту: U.dueTxt('1929-12-04'),
+    живу: U.dueTxt('2026-10-20')
+  };
+});
+console.log('  ' + JSON.stringify(шапкa));
+ok(шапкa.хрестикВидно,
+  'хрестик у шапці на місці, у межах вікна',
+  'хрестик виїхав за край — картку немає чим закрити');
+ok(!/35364|1929|04\.12\.29/.test(шапкa.текст),
+  'а дати з 1929 в шапці немає: ' + шапкa.текст.slice(0, 60),
+  'у шапці досі сміття: ' + шапкa.текст);
+ok(!шапкa.биту && шапкa.живу,
+  'дата поза робочим діапазоном не читається як дата, робоча читається',
+  'битa дата й далі вважається датою: ' + JSON.stringify(шапкa));
+
 console.log('');
 ok(!errs.length, 'сторінка без помилок', 'помилки: ' + errs.join(' | '));
 await browser.close();

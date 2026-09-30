@@ -3503,7 +3503,18 @@
   /* Шапка картки відділу — та сама система, що й у Канбані: номер великим,
      стан плашкою поруч. Доти тут стояв самий номер жирним і сірий рядок
      стану, і картка читалась як службове вікно, а не як робоче місце. */
-  .dz-panel-h{flex:none;display:flex;align-items:center;gap:10px;padding:14px 16px;
+  /* ХРЕСТИК ВИДНО ЗАВЖДИ.
+
+     Шапка — це рядок, у який усе складається підряд: номер, стан, строк,
+     лишок днів. Досить одному з них стати довшим («прострочено 35364 дні»),
+     і рядок виштовхує за край те, що стоїть останнім, — а останнім стоїть
+     кнопка «закрити». Картку, з якої немає виходу, доводиться закривати
+     клавішею або перезавантаженням.
+
+     Тому шапка загортається в кілька рядків, а хрестик стоїть окремо й не
+     стискається ніколи: він частина вікна, а не частина напису. */
+  .dz-panel-h{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px 16px;padding-right:46px;position:relative;
     border-bottom:1px solid var(--line);font-weight:700;font-size:17px;
     letter-spacing:-.01em;color:var(--ink);background:var(--paper);}
   .dz-state{font-weight:600;font-size:11.5px;color:var(--ink-soft);background:var(--canvas);
@@ -3542,8 +3553,13 @@
   .dz-ship-l b{font-size:13.5px;color:var(--ink);}
   .dz-ship-ttn{font-size:11.5px;color:var(--good);font-weight:600;}
   .dz-ship-no{font-size:11.5px;color:var(--muted);}
-  .dz-x{margin-left:auto;font:inherit;font-size:20px;line-height:1;background:none;border:0;
+  .dz-x{position:absolute;top:12px;right:12px;flex:none;
+    font:inherit;font-size:20px;line-height:1;background:none;border:0;
+    width:26px;height:26px;border-radius:7px;
     color:var(--ink-soft);cursor:pointer;}
+  .dz-x:hover{background:var(--canvas);color:var(--ink);}
+  /* Строк може стати довгим — хай переноситься, а не розпихає рядок. */
+  .dz-duo{max-width:100%;flex-wrap:wrap;}
   .dz-panel-b{flex:1;min-height:0;overflow:auto;padding:12px 14px;}
   /* ── Картка читається згори вниз ──
      Доти всі блоки мали однакову вагу: заголовки того самого розміру,
@@ -6442,19 +6458,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=f82cf1ae6a"></script>
-<script src="loomiq-fingerprint.js?v=f82cf1ae6a"></script>
-<script src="loomiq-pricing.js?v=f82cf1ae6a"></script>
+<script src="loomiq-select.js?v=b287a78289"></script>
+<script src="loomiq-fingerprint.js?v=b287a78289"></script>
+<script src="loomiq-pricing.js?v=b287a78289"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=f82cf1ae6a"></script>
-<script src="loomiq-mock.js?v=f82cf1ae6a"></script>
+<script src="loomiq-design.js?v=b287a78289"></script>
+<script src="loomiq-mock.js?v=b287a78289"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=f82cf1ae6a"></script>
+<script src="loomiq-cards.js?v=b287a78289"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6479,7 +6495,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = 'f82cf1ae6a';
+var LQ_VER = 'b287a78289';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -19456,7 +19472,10 @@ function odDueB2cHtml(o){
     return `<span title="Коли здавати">${ICO.cal}Здати до <b>—</b></span>`;
   let v = '', л = null;
   try{
-    v = job.due || U.readyFrom(job) || '';
+    /* Та сама перевірка, що й у відділі: зіпсовану дату не показуємо, а
+       рахуємо строк наново. Інакше картка замовлення й відділ сказали б
+       про один строк різне. */
+    v = (job.due && U.dueTxt(job.due)) ? job.due : (U.readyFrom(job) || '');
     л = v ? U.leftTxt(v) : null;
   }catch(e){ console.warn('строк', e); }
   return `<span class="od-due-c" title="Коли обіцяємо — той самий строк, що й у відділі">
