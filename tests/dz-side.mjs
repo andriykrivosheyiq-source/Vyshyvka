@@ -395,6 +395,13 @@ const графік = await p.evaluate(async () => {
   U.host.dayOff = (who, iso) => !!сховище[who + '|' + iso];
   U.host.shiftSet = (who, iso, off) => { сховище[who + '|' + iso] = off; };
   U.host.designers = () => [{ email:'art@loomiq', name:'Оля' }];
+  /* Кнопка графіка є ТІЛЬКИ на дизайнерських дошках. На дошці акаунта її
+     немає й бути не повинно: строки акаунта, закупівлі й виробництва
+     вихідних не мають, і графік там нічого не міняє. */
+  const наАкаунті = !document.querySelector('[data-do="shift"]');
+  U.setTab('graphic');
+  U.render(document.getElementById('dzRoot'));
+  await new Promise(r => setTimeout(r, 300));
   document.querySelector('[data-do="shift"]').click();
   await new Promise(r => setTimeout(r, 300));
   const днів = document.querySelectorAll('.dz-sh-d').length;
@@ -403,7 +410,13 @@ const графік = await p.evaluate(async () => {
   перший.click();
   await new Promise(r => setTimeout(r, 300));
   const став = document.querySelector('[data-sh-d="' + iso + '"]');
-  return { днів, iso, вихідний: !!(став && став.classList.contains('off')),
+  return { днів, iso, наАкаунті,
+           /* Вікно має бути справжньою накладкою: без класу `dz-pick` воно
+              ставало звичайним блоком у кінці сторінки — відкривалось, але
+              побачити його можна було лише догорнувши донизу. Зовні це
+              виглядало як «кнопка не натискається». */
+           накладка: !!document.querySelector('.dz-pick .dz-sh-w'),
+           вихідний: !!(став && став.classList.contains('off')),
            уСховищі: !!сховище['art@loomiq|' + iso] };
 });
 console.log('  ' + JSON.stringify(графік));
@@ -413,6 +426,12 @@ ok(графік.днів >= 28 && графік.днів <= 31,
 ok(графік.вихідний && графік.уСховищі,
   'натиск робить день вихідним, і це лягає в робоче місце',
   'день не перемкнувся: ' + JSON.stringify(графік));
+ok(графік.наАкаунті,
+  'а на дошці акаунт-менеджера кнопки графіка немає — там вихідних не буває',
+  'графік виліз на чужу дошку');
+ok(графік.накладка,
+  'вікно графіка — справжня накладка поверх екрана, а не блок унизу сторінки',
+  'вікно відкривається туди, де його не видно');
 
 console.log('\n═══ СТРОК Є В КОЖНОГО ЕТАПУ ═══');
 /* Доти годинник був один — у дизайнера. Решта ланцюга жила без строку, і
