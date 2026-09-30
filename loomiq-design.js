@@ -3265,15 +3265,35 @@
     try{ return Math.max(0, Math.round((host.retail && host.retail(gid)) || 0)); }
     catch(e){ return 0; }
   }
+  function costOf(gid){
+    try{ return Math.max(0, Math.round((host.cost && host.cost(gid)) || 0)); }
+    catch(e){ return 0; }
+  }
   function sumRows(job){
     return unitsOf(job).map(function(u){
       var g = catItem(u.gid);
       var ціна = retailOf(u.gid);
+      var соб = costOf(u.gid);
       var к = Math.max(0, Math.round(+u.qty || 0));
       return { name: (g && g.name) || u.name || 'без виробу',
                color: u.color || '', qty: к, price: ціна, sum: ціна * к,
+               cost: соб, costSum: соб * к,
                нема: !!u.gid && !ціна };
     });
+  }
+  /* Собівартість замовлення. Порожня собівартість виробу — це «невідомо», а
+     не нуль: нуль означав би, що виріб дістався безкоштовно, і прибуток
+     вийшов би завищеним рівно на вартість тканини. Тому разом із сумою
+     віддаємо й те, чи вона повна: аналітика мусить знати, коли мовчати. */
+  function orderCost(job){
+    var rows = sumRows(job);
+    var сума = 0, повна = true;
+    rows.forEach(function(r){
+      if(!r.qty) return;
+      if(!r.cost){ повна = false; return; }
+      сума += r.costSum;
+    });
+    return { sum: сума, full: повна && rows.some(function(r){ return r.qty; }) };
   }
   function orderSum(o, job){
     var з = sumRows(job).reduce(function(a, r){ return a + r.sum; }, 0);
@@ -3665,6 +3685,7 @@
     moneyBody: moneyBody, moneySub: moneySub, orderSum: orderSum,
     /* Календар і коротка дата: тією ж кнопкою, звідки б її не показували. */
     calOpen: calOpen, dueTxt: dueTxt, PAY_TAG: PAY_TAG, CAL_M: CAL_M,
+    orderCost: orderCost, sumRows: sumRows,
     daysBetween: daysBetween, calIso: calIso, leftTxt: leftTxt, pad2: pad2,
     unitNew: unitNew, catItem: catItem,
     pickGarment: pickGarment, pickColor: pickColor, pickSize: pickSize,
