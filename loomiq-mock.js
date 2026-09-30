@@ -330,6 +330,398 @@
   }
 
   /* ══════════════════════════════════════════════════════════════════════
+     ЗДАЧА РОБОТИ — ОДНЕ ВІКНО НА ВСЕ
+
+     Доти здача була трьома кроками: завантаж макет → зроби мокап →
+     надішли. Кроки бентежили, і не дарма: вони описували не роботу, а
+     порядок натискань. Андрій: «просто завантажити роботу, потім випадає
+     вікно, ми завантажуємо роботу, потім наступним кроком розміщуємо
+     його, де можемо додати ще одну роботу, перед-зад, розмістили».
+
+     Тому тут одне вікно. Зверху роботи: кинув файл — він одразу поїхав у
+     сховище, нічого не тримається «в памʼяті вікна». Натиснув на роботу —
+     вона лягла на виріб. Тягнеш, масштабуєш. Сторони вкладками — рівно
+     ті, фото яких справді є: вкладка, за якою порожньо, це обіцянка, якої
+     система не виконує.
+
+     Одна кнопка «Надіслати» збирає мокапи всіх сторін і віддає їх у
+     переписку. Дизайнер не думає про порядок дій — він розкладає роботу й
+     віддає.
+
+     ── ДВА РІЗНІ ЧИСЛА, І ПЛУТАТИ ЇХ ДОРОГО ──
+
+     НАНЕСЕННЯ — те, що робить цех: той самий логотип спереду й ззаду
+     вишивається двічі й коштує подвійно.
+     РОБОТА — те, що робить дизайнер: той самий файл, покладений двічі,
+     намальований один раз.
+
+     Тому лічимо окремо: нанесення — по розміщеннях, роботи — по РІЗНИХ
+     файлах. Однаковість беремо з відбитка вмісту, а не з назви: «logo.png»
+     називається так у половини клієнтів, а той самий логотип приходить під
+     трьома іменами. */
+  var SIDE_UA = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік' };
+  async function openWork(opt){
+    close();
+    opt = opt || {};
+    var сторони = (opt.sides || []).filter(function(s){ return s && s.url; });
+    if(!сторони.length) return say('У цього виробу немає жодного фото в каталозі');
+    var шир = widthCm(opt.gid, opt.size);
+
+    /* Що вже лежить: роботи (файли) і розміщення по сторонах. */
+    var works = (opt.works || []).slice();
+    var places = {};
+    сторони.forEach(function(s){ places[s.key] = []; });
+    (opt.places || []).forEach(function(p){
+      if(places[p.side]) places[p.side].push({ work:+p.work || 0,
+        box:{ x:+p.x, y:+p.y, w:+p.w } });
+    });
+
+    var бік = сторони[0].key;
+    /* Перше нанесення обране одразу: числа під ним — головне, що тут є, і
+       відкривати вікно з порожньою колонкою й проханням «натисніть» —
+       це зайвий крок рівно там, де людина вже прийшла дивитись розміри. */
+    var обране = 0;
+    var кадри = {};          // завантажені фото сторін
+    var арт = [];            // завантажені картинки робіт
+
+    var el = document.createElement('div');
+    el.className = 'mko-wrap';
+    document.body.appendChild(el);
+    W = { el: el, esk: null };
+
+    function calKey(){ return бік; }
+    function calNow(){
+      var c = null;
+      try{ c = HOST.cal && HOST.cal(opt.gid, calKey()); }catch(e){}
+      return (c && c.x2 > c.x1) ? { x1:+c.x1, x2:+c.x2, y:+c.y } : null;
+    }
+    var режим = 'art';
+    var cal = calNow() || { x1:0.22, x2:0.78, y:0.16 };
+    var маркуємо = !calNow();
+
+    function міри(pl){
+      var st = el.querySelector('[data-mko-stage]');
+      if(!шир || !st) return null;
+      var r = st.getBoundingClientRect();
+      if(!r.width) return null;
+      var смуга = (cal.x2 - cal.x1) * r.width;
+      if(смуга <= 0) return null;
+      var pxСм = смуга / шир;
+      var a = арт[pl.work];
+      var ar = a ? (a.height / a.width) : 1;
+      var w = pl.box.w * r.width;
+      var центр = (cal.x1 + cal.x2) / 2 * r.width;
+      return { wCm: w / pxСм, hCm: w * ar / pxСм,
+               topCm: (pl.box.y * r.height - cal.y * r.height) / pxСм,
+               sideCm: (pl.box.x * r.width - центр) / pxСм };
+    }
+    function рахунок(){
+      var нанесень = 0, хеші = {};
+      Object.keys(places).forEach(function(k){
+        places[k].forEach(function(pl){
+          нанесень++;
+          var w = works[pl.work];
+          if(w) хеші[w.hash || w.url] = 1;
+        });
+      });
+      return { нанесень: нанесень, робіт: Object.keys(хеші).length };
+    }
+    function шапкаHtml(){
+      var c = рахунок();
+      return '<div class="mko-h"><b>Здати роботу · ' + esc(opt.name || 'виріб') + '</b>' +
+        '<span class="mko-h-s">' + c.нанесень + ' ' +
+          (c.нанесень === 1 ? 'нанесення' : 'нанесень') +
+          (c.робіт && c.робіт !== c.нанесень ? ' · робіт ' + c.робіт : '') + '</span>' +
+        '<button class="mko-x" data-mko-x>×</button></div>';
+    }
+    function малюй(){
+      var pl = places[бік] || [];
+      el.innerHTML =
+        '<div class="mko-w is-work">' + шапкаHtml() +
+          '<div class="mko-works">' +
+            works.map(function(w, i){
+              return '<button type="button" class="mko-wk" data-mko-w="' + i + '" ' +
+                'title="' + esc(w.name || 'робота') + ' — натисніть, щоб покласти на виріб">' +
+                '<img src="' + esc(w.url) + '" alt=""></button>';
+            }).join('') +
+            '<button type="button" class="mko-wk add" data-mko-up>＋<i>завантажити</i></button>' +
+          '</div>' +
+          '<div class="mko-tabs">' + сторони.map(function(s){
+            var n = (places[s.key] || []).length;
+            return '<button type="button" class="mko-tab' + (s.key === бік ? ' on' : '') +
+              '" data-mko-side="' + esc(s.key) + '">' + esc(s.label) +
+              (n ? '<i>' + n + '</i>' : '') + '</button>';
+          }).join('') + '</div>' +
+          '<div class="mko-body">' +
+            '<div class="mko-stage" data-mko-stage>' +
+              '<img class="mko-base" src="' + esc(сторонаUrl()) + '" alt="">' +
+              pl.map(function(p, i){
+                var w = works[p.work] || {};
+                return '<div class="mko-art' + (i === обране ? ' on' : '') +
+                  '" data-mko-p="' + i + '"><img src="' + esc(w.url || '') + '" alt="">' +
+                  (i === обране ? '<i class="mko-gr" data-mko-grip></i>' +
+                    '<button type="button" class="mko-rm" data-mko-rm="' + i + '">×</button>' : '') +
+                '</div>';
+              }).join('') +
+              '<div class="mko-cal" data-mko-cal>' +
+                '<i class="mko-cal-v" data-mko-cal-h="x1"></i>' +
+                '<i class="mko-cal-v" data-mko-cal-h="x2"></i>' +
+                '<i class="mko-cal-y" data-mko-cal-h="y"></i>' +
+              '</div>' +
+            '</div>' +
+            '<div class="mko-side">' +
+              '<div class="mko-num" data-mko-nums></div>' +
+              '<div class="mko-note" data-mko-note></div>' +
+              '<button class="mko-cal-b" data-mko-caltoggle>' +
+                (режим === 'cal' ? 'Готово, розмітив' : 'Розмітити виріб') + '</button>' +
+              '<div class="mko-acts">' +
+                '<button class="mko-b" data-mko-x>Скасувати</button>' +
+                '<button class="mko-b pri" data-mko-save>Надіслати</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      постав();
+    }
+    function сторонаUrl(){
+      var s = сторони.filter(function(x){ return x.key === бік; })[0];
+      return (s && s.url) || '';
+    }
+    function постав(){
+      var st = el.querySelector('[data-mko-stage]');
+      if(!st) return;
+      var r = st.getBoundingClientRect();
+      if(!r.width) return;
+      (places[бік] || []).forEach(function(p, i){
+        var node = st.querySelector('[data-mko-p="' + i + '"]');
+        if(!node) return;
+        var a = арт[p.work];
+        var ar = a ? (a.height / a.width) : 1;
+        var w = p.box.w * r.width;
+        node.style.width = w + 'px';
+        node.style.height = (w * ar) + 'px';
+        node.style.left = (p.box.x * r.width - w / 2) + 'px';
+        node.style.top = (p.box.y * r.height) + 'px';
+      });
+      var calEl = el.querySelector('[data-mko-cal]');
+      if(calEl){
+        calEl.style.display = режим === 'cal' ? 'block' : 'none';
+        calEl.querySelector('[data-mko-cal-h="x1"]').style.left = (cal.x1 * 100) + '%';
+        calEl.querySelector('[data-mko-cal-h="x2"]').style.left = (cal.x2 * 100) + '%';
+        calEl.querySelector('[data-mko-cal-h="y"]').style.top = (cal.y * 100) + '%';
+      }
+      числа();
+    }
+    function числа(){
+      var nums = el.querySelector('[data-mko-nums]');
+      var note = el.querySelector('[data-mko-note]');
+      if(!nums || !note) return;
+      var pl = (places[бік] || [])[обране];
+      if(!pl){
+        nums.innerHTML = '';
+        note.innerHTML = (places[бік] || []).length
+          ? 'Натисніть нанесення на виробі, щоб побачити його розміри.'
+          : 'Натисніть роботу вгорі — вона ляже на виріб.';
+        return;
+      }
+      var m = міри(pl);
+      if(!m){
+        nums.innerHTML = '';
+        note.innerHTML = шир
+          ? 'Розмітьте виріб — без цього фото не знає свого масштабу, і ' +
+            'сантиметри рахувати нема з чого.'
+          : 'У товару немає розмірної сітки для розміру «' + esc(opt.size || '—') +
+            '». Розмістити можна, але сантиметрів під цим не буде: ' +
+            'вигадувати їх не можна, за ними шиють.';
+        return;
+      }
+      nums.innerHTML =
+        '<div class="mko-n"><span>Ширина нанесення</span><b>' + esc(см(m.wCm)) + '</b></div>' +
+        '<div class="mko-n"><span>Висота</span><b>' + esc(см(m.hCm)) + '</b></div>' +
+        '<div class="mko-n"><span>Від горловини</span><b>' + esc(см(m.topCm)) + '</b></div>' +
+        '<div class="mko-n"><span>Від центру</span><b>' +
+          esc((m.sideCm >= 0 ? '' : '−') + см(Math.abs(m.sideCm))) + '</b></div>';
+      note.innerHTML = 'Рахується під розмір <b>' + esc(opt.size || '—') +
+        '</b>: ширина виробу ' + esc(см(шир)) + '.';
+    }
+
+    /* ── Миша ── */
+    function frac(ev){
+      var st = el.querySelector('[data-mko-stage]');
+      var r = st.getBoundingClientRect();
+      return { x: clamp((ev.clientX - r.left) / r.width, 0, 1),
+               y: clamp((ev.clientY - r.top) / r.height, 0, 1) };
+    }
+    var drag = null;
+    el.addEventListener('mousedown', function(ev){
+      var h = ev.target.closest && ev.target.closest('[data-mko-cal-h]');
+      if(h && режим === 'cal') return (drag = { тип:'cal', ключ:h.getAttribute('data-mko-cal-h') }),
+        ev.preventDefault();
+      if(ev.target.closest && ev.target.closest('[data-mko-grip]'))
+        return (drag = { тип:'size' }), ev.preventDefault();
+      var node = ev.target.closest && ev.target.closest('[data-mko-p]');
+      if(!node) return;
+      var i = +node.getAttribute('data-mko-p');
+      if(i !== обране){ обране = i; малюй(); }
+      var pl = (places[бік] || [])[обране];
+      if(!pl) return;
+      var f0 = frac(ev);
+      drag = { тип:'move', dx: pl.box.x - f0.x, dy: pl.box.y - f0.y };
+      ev.preventDefault();
+    });
+    function move(ev){
+      if(!drag) return;
+      var f = frac(ev);
+      if(drag.тип === 'cal'){
+        if(drag.ключ === 'y') cal.y = f.y;
+        else if(drag.ключ === 'x1') cal.x1 = Math.min(f.x, cal.x2 - 0.03);
+        else cal.x2 = Math.max(f.x, cal.x1 + 0.03);
+        return постав();
+      }
+      var pl = (places[бік] || [])[обране];
+      if(!pl) return;
+      if(drag.тип === 'move'){
+        pl.box.x = clamp(f.x + drag.dx, 0, 1);
+        pl.box.y = clamp(f.y + drag.dy, 0, 1);
+      } else {
+        /* Тягнемо за кут — міняється ширина; висота йде за пропорцією
+           файлу. Розтягувати макет непропорційно не можна взагалі: це вже
+           не той логотип, який погодив клієнт. */
+        pl.box.w = clamp(f.x - (pl.box.x - pl.box.w / 2), 0.04, 1);
+      }
+      постав();
+    }
+    document.addEventListener('mousemove', move);
+    var up = function(){ drag = null; };
+    document.addEventListener('mouseup', up);
+
+    function прибрати(){
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      close();
+    }
+    el.addEventListener('click', async function(ev){
+      var t = ev.target;
+      if(t === el || (t.closest && t.closest('[data-mko-x]'))) return прибрати();
+      var rm = t.closest && t.closest('[data-mko-rm]');
+      if(rm){
+        places[бік].splice(+rm.getAttribute('data-mko-rm'), 1);
+        обране = -1;
+        return малюй();
+      }
+      var tab = t.closest && t.closest('[data-mko-side]');
+      if(tab){
+        бік = tab.getAttribute('data-mko-side');
+        обране = -1;
+        cal = calNow() || cal;
+        режим = calNow() ? 'art' : 'cal';
+        малюй();
+        var b = el.querySelector('.mko-base');
+        if(b) b.onload = постав;
+        return;
+      }
+      var wk = t.closest && t.closest('[data-mko-w]');
+      if(wk){
+        var i = +wk.getAttribute('data-mko-w');
+        places[бік].push({ work:i, box:{ x:0.5, y:0.34, w:0.26 } });
+        обране = places[бік].length - 1;
+        return малюй();
+      }
+      if(t.closest && t.closest('[data-mko-up]')) return вантажити();
+      if(t.closest && t.closest('[data-mko-caltoggle]')){
+        режим = режим === 'cal' ? 'art' : 'cal';
+        if(режим === 'art' && HOST.calSave){
+          try{ HOST.calSave(opt.gid, { x1:cal.x1, x2:cal.x2, y:cal.y }, calKey()); }catch(e){}
+        }
+        return малюй();
+      }
+      if(t.closest && t.closest('[data-mko-save]')) return зберегти();
+    });
+    var esk = function(ev){ if(ev.key === 'Escape') прибрати(); };
+    document.addEventListener('keydown', esk, true);
+    W.esk = esk;
+
+    async function вантажити(){
+      if(!opt.onUpload) return say('Завантаження недоступне');
+      var f = null;
+      try{ f = await opt.onUpload(); }catch(e){ console.error(e); }
+      if(!f || !f.url) return;
+      var im = await img(f.url);
+      if(!im) return say('Картинка не відкрилась');
+      works.push(f);
+      арт.push(im);
+      /* Щойно завантажену роботу одразу кладемо на виріб: людина її для
+         цього й вантажила, а зайве натискання тут читається як «а що тепер?». */
+      places[бік].push({ work: works.length - 1, box:{ x:0.5, y:0.34, w:0.26 } });
+      обране = places[бік].length - 1;
+      малюй();
+    }
+
+    async function зберегти(){
+      var btn = el.querySelector('[data-mko-save]');
+      var c = рахунок();
+      if(!c.нанесень) return say('Покладіть хоч одну роботу на виріб');
+      btn.disabled = true; btn.textContent = 'Збираю…';
+      try{
+        var out = [];
+        for(var si = 0; si < сторони.length; si++){
+          var s = сторони[si];
+          var pl = places[s.key] || [];
+          if(!pl.length) continue;
+          var base = кадри[s.key] || await img(s.url);
+          if(!base){ say('Фото сторони «' + s.label + '» не відкрилось'); continue; }
+          кадри[s.key] = base;
+          var cv = document.createElement('canvas');
+          cv.width = base.naturalWidth || base.width;
+          cv.height = base.naturalHeight || base.height;
+          var x = cv.getContext('2d');
+          x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+          x.drawImage(base, 0, 0, cv.width, cv.height);
+          var мірки = [];
+          for(var pi = 0; pi < pl.length; pi++){
+            var p = pl[pi];
+            var a = арт[p.work];
+            if(!a) continue;
+            var ar = a.height / a.width;
+            var w = p.box.w * cv.width;
+            x.drawImage(a, p.box.x * cv.width - w / 2, p.box.y * cv.height, w, w * ar);
+            var m = (s.key === бік) ? міри(p) : null;
+            мірки.push({ work:p.work, name:(works[p.work] || {}).name || '',
+                         x:p.box.x, y:p.box.y, w:p.box.w,
+                         wCm: m ? Math.round(m.wCm * 10) / 10 : 0,
+                         hCm: m ? Math.round(m.hCm * 10) / 10 : 0,
+                         topCm: m ? Math.round(m.topCm * 10) / 10 : 0,
+                         sideCm: m ? Math.round(m.sideCm * 10) / 10 : 0 });
+          }
+          out.push({ side:s.key, label:s.label, png: cv.toDataURL('image/png'),
+                     places: мірки });
+        }
+        if(HOST.calSave){
+          try{ HOST.calSave(opt.gid, { x1:cal.x1, x2:cal.x2, y:cal.y }, calKey()); }catch(e){}
+        }
+        прибрати();
+        opt.onDone({ works: works, sides: out, size: opt.size || '',
+                     нанесень: c.нанесень, робіт: c.робіт });
+      }catch(e){
+        console.error(e);
+        btn.disabled = false; btn.textContent = 'Надіслати';
+        say('Мокап не зібрався. Найчастіше це фото виробу з чужого домену — ' +
+            'перезавантажте його в каталог товарів.');
+      }
+    }
+
+    малюй();
+    /* Картинки робіт і фото сторони можуть ще вантажитись — перше
+       малювання лягло б у порожнечу. */
+    for(var i = 0; i < works.length; i++) арт[i] = await img(works[i].url);
+    var b0 = el.querySelector('.mko-base');
+    if(b0){ if(b0.complete) постав(); else b0.onload = постав; }
+    window.addEventListener('resize', постав);
+    setTimeout(постав, 60);
+    if(!works.length) вантажити();
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
      КАРТКА ДЛЯ МЕНЕДЖЕРА
 
      Те, що менеджер качає й кладе в роботу: горизонтальний аркуш, де ліворуч
@@ -534,7 +926,7 @@
   window.LQMock = {
     set host(h){ HOST = h || {}; },
     get host(){ return HOST; },
-    open: open, card: card, close: close,
+    open: open, openWork: openWork, card: card, close: close,
     /* Назовні віддаємо й перерахунок: панель показує ті самі сантиметри в
        рядку під мокапом, і рахувати їх удруге своїм способом означає
        рано чи пізно показати інше число. */

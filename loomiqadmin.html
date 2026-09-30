@@ -3822,6 +3822,31 @@
     overflow:hidden;background:#fff;border:1px solid var(--line);}
   .dz-ch-i img{width:100%;height:100%;object-fit:contain;display:block;}
   .dz-ch-p{display:flex;flex-wrap:wrap;gap:5px;}
+  /* ── Вікно здачі: роботи, сторони, нанесення ── */
+  .mko-w.is-work{width:min(1040px,96vw);}
+  .mko-works{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;
+    border-bottom:1px solid var(--line);}
+  .mko-wk{all:unset;cursor:pointer;width:56px;height:56px;border-radius:9px;
+    overflow:hidden;background:#fff;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;}
+  .mko-wk:hover{border-color:var(--accent);}
+  .mko-wk img{width:100%;height:100%;object-fit:contain;}
+  .mko-wk.add{flex-direction:column;gap:2px;border-style:dashed;color:var(--muted);
+    font-size:17px;}
+  .mko-wk.add i{font-style:normal;font-size:8.5px;letter-spacing:.02em;}
+  .mko-tabs{display:flex;gap:6px;padding:10px 14px 0;}
+  .mko-tab{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+    padding:7px 14px;border-radius:9px 9px 0 0;border:1px solid var(--line);
+    border-bottom:0;background:var(--canvas);}
+  .mko-tab.on{background:#fff;color:var(--ink);font-weight:700;}
+  .mko-tab i{font-style:normal;margin-left:6px;font-size:10.5px;font-weight:800;
+    background:var(--ink);color:#fff;border-radius:999px;padding:1px 6px;}
+  /* Обране нанесення обведене — решта просто лежать. Без цього незрозуміло,
+     що саме зараз тягнеш і чиї сантиметри показані збоку. */
+  .mko-art.on{outline:2px solid var(--accent);outline-offset:2px;}
+  .mko-rm{all:unset;cursor:pointer;position:absolute;top:-9px;right:-9px;
+    width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;
+    font-size:12px;line-height:18px;text-align:center;}
   /* Подія — не репліка: «Передано в роботу» ніхто не казав, це сталось.
      Тому вона рядком посередині, а не бульбашкою з боку. */
   .dz-ch-e{align-self:center;max-width:92%;text-align:center;display:flex;
@@ -6660,19 +6685,19 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
 <!-- Firebase SDK (compat) -->
 <!-- Рушій цін — один на сайт, адмінку й сторінку пропозиції -->
 <!-- Випадаючі списки одного вигляду на весь Loomiq -->
-<script src="loomiq-select.js?v=1baa3dc4a0"></script>
-<script src="loomiq-fingerprint.js?v=1baa3dc4a0"></script>
-<script src="loomiq-pricing.js?v=1baa3dc4a0"></script>
+<script src="loomiq-select.js?v=d3eafb402e"></script>
+<script src="loomiq-fingerprint.js?v=d3eafb402e"></script>
+<script src="loomiq-pricing.js?v=d3eafb402e"></script>
 <!-- Дизайн-відділ: модель контуру й екрани. Окремим файлом, бо це окремий
      цикл роботи зі своїми станами — тримати його в адмінці разом із
      продажами означало б мішати два різні життя одного замовлення. -->
-<script src="loomiq-design.js?v=1baa3dc4a0"></script>
-<script src="loomiq-mock.js?v=1baa3dc4a0"></script>
+<script src="loomiq-design.js?v=d3eafb402e"></script>
+<script src="loomiq-mock.js?v=d3eafb402e"></script>
 <!-- Малювальник карток для Direct. Доти він жив лише у вікні пропозиції, і
      картки можна було тільки завантажити собі на диск, а тоді вручну
      перекинути в месенджер. Тепер їх надсилають прямо з розмови, тож
      малювати їх має те саме місце, звідки надсилають. -->
-<script src="loomiq-cards.js?v=1baa3dc4a0"></script>
+<script src="loomiq-cards.js?v=d3eafb402e"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -6697,7 +6722,7 @@ IT-компанія | 60 виробів | Худі з вишивкою для к
    адмінка обходить кеш вкладених сторінок. Вона міняється щоразу, тож
    порівнювати з нею версію збірки безглуздо — а однакові імена в одній
    області видимості просто затирають одне одного. */
-var LQ_VER = '1baa3dc4a0';
+var LQ_VER = 'd3eafb402e';
 (function(){
   if(LQ_VER === 'dev') return;
   var сказано = false;
@@ -17460,17 +17485,40 @@ function garmentWidthCm(gid, size){
 /* Розмітка виробу на фото — при ТОВАРІ, а не при замовленні: знімок один на
    всі замовлення, і розмічати його вдруге означає мати дві різні правди про
    ту саму картинку. */
-function mockCal(gid){
-  const m = (contentData.mockcal || {})[gid];
+/* Розмітка — НА СТОРОНУ, а не на виріб. Перед і спина зняті по-різному:
+   виріб на них стоїть не в тих самих межах кадру, і одна розмітка на двох
+   давала на спині сантиметри, яких там немає. Ключ без сторони лишається
+   переду: так воно й лежить у базі з тих часів, коли сторона була одна. */
+function mockCalKey(gid, side){
+  const s = String(side || 'front');
+  return s === 'front' ? String(gid) : (String(gid) + '-' + s);
+}
+function mockCal(gid, side){
+  const m = (contentData.mockcal || {})[mockCalKey(gid, side)];
   return (m && m.x2 > m.x1) ? m : null;
 }
-async function mockCalSave(gid, c){
+async function mockCalSave(gid, c, side){
   if(!gid || !c) return;
   if(!contentData.mockcal) contentData.mockcal = {};
+  const k = mockCalKey(gid, side);
   const v = { x1:+c.x1, x2:+c.x2, y:+c.y };
-  contentData.mockcal[gid] = v;
-  try{ await PHOTOS_DOC.set({ mockcal: { [gid]: v } }, { merge:true }); }
+  contentData.mockcal[k] = v;
+  try{ await PHOTOS_DOC.set({ mockcal: { [k]: v } }, { merge:true }); }
   catch(e){ console.warn('розмітка виробу не збереглась', e); }
+}
+/* Сторони виробу — рівно ті, фото яких справді є. Вкладка, за якою
+   порожньо, це обіцянка, якої система не виконує. */
+const SIDE_UA_ADM = { front:'Перед', back:'Спина', left:'Лівий бік', right:'Правий бік' };
+function garmentSides(gid, colorName){
+  const g = (allPhotoCfg() || []).filter(x => x.id === gid)[0];
+  if(!g) return [];
+  const c = (effectiveColors(gid) || [])
+    .filter(x => String(x.name || x.id) === String(colorName || ''))[0]
+    || (effectiveColors(gid) || [])[0];
+  if(!c) return [];
+  return (g.views || ['front']).map(v => ({
+    key: v, label: SIDE_UA_ADM[v] || v, url: photoUrlFor(gid, c.id, v)
+  }));
 }
 function sizeQty(it){ return (it && it.sizeQty && typeof it.sizeQty === 'object') ? it.sizeQty : {}; }
 function sizeQtySum(it){
@@ -27086,8 +27134,8 @@ function openDesign(){
      виробу для потрібного розміру й куди сказати людині, що щось пішло не
      так. Каталог і збереження воно не чіпає — це робота панелі. */
   if(window.LQMock) window.LQMock.host = {
-    cal: gid => mockCal(gid),
-    calSave: (gid, c) => mockCalSave(gid, c),
+    cal: (gid, side) => mockCal(gid, side),
+    calSave: (gid, c, side) => mockCalSave(gid, c, side),
     widthCm: (gid, size) => garmentWidthCm(gid, size),
     toast: m => toast(m)
   };
@@ -27106,6 +27154,8 @@ function openDesign(){
        сайті й у прорахунку. Свого довідника відділ не заводить навмисно:
        два списки товарів рано чи пізно розійдуться, і «Худі базове» у
        відділі виявиться не тим «Худі базовим», що в замовленні. */
+    /* Сторони виробу для вікна здачі: рівно ті, фото яких є в каталозі. */
+    sides: (gid, color) => garmentSides(gid, color),
     catalog: ()=> allPhotoCfg().map(g => ({
       id: g.id,
       name: (contentData.names && contentData.names[g.id]) || g.name.replace(' · свій', ''),
@@ -27163,8 +27213,8 @@ function openDesign(){
        показана клієнту на сайті. Свою тут заводити нема чого: дві сітки
        рано чи пізно розійдуться, і виробництво пошиє по чужій. */
     widthCm: (gid, size) => garmentWidthCm(gid, size),
-    cal: gid => mockCal(gid),
-    calSave: (gid, c) => mockCalSave(gid, c),
+    cal: (gid, side) => mockCal(gid, side),
+    calSave: (gid, c, side) => mockCalSave(gid, c, side),
     /* Скільки за цим замовленням уже прийшло грошей — сумою привʼязаних
        платежів. Рахує робоче місце: воно й тримає список рухів. */
     paid: o => payPaid(o && o.orderId),

@@ -108,7 +108,11 @@ await p.evaluate(() => {
   window.toast = m => { window.__SAID.push(String(m)); try{ був(m); }catch(e){} };
 });
 
+const АРТ = 'data:image/svg+xml;base64,' + Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60">' +
+  '<rect width="120" height="60" fill="#E4572E"/></svg>').toString('base64');
 const ЗАВЕСТИ = size => `(() => {
+  const АРТ = ${JSON.stringify(АРТ)};
   document.querySelectorAll('main > section').forEach(x => x.style.display = 'none');
   document.getElementById('view-design').style.display = 'block';
   const U = window.LQDesign.ui, D = window.LQDesign;
@@ -119,6 +123,11 @@ const ЗАВЕСТИ = size => `(() => {
   D.dzAttach(d, 'test@loomiq', 'mgr@loomiq');
   D.dzSend(d, 'mgr@loomiq');
   D.dzTake(d, 'test@loomiq');
+  /* Чернетка здачі: робота вже завантажена й покладена на перед. Так воно
+     й буває після першого ж кроку у вікні — інакше вікно відкривається
+     порожнім і питати в нього нема про що. */
+  d.draft = { works: [{ name:'лого.png', url: АРТ }],
+              places: [{ side:'front', work:0, x:0.5, y:0.34, w:0.26 }] };
   D.dzList(job.units[0], 'graphic').push(d);
   openDesign();
   U.setTab('graphic');
@@ -128,57 +137,30 @@ const ЗАВЕСТИ = size => `(() => {
 await p.evaluate(ЗАВЕСТИ('M'));
 await p.waitForTimeout(800);
 
-console.log('\n═══ ТРИ КРОКИ, І ДРУГИЙ НЕ ПРОПУСТИТИ ═══');
-const кроки = await p.evaluate(() => ({
-  видно: [...document.querySelectorAll('.dz-step')].map(s => s.textContent.trim()),
-  на: ((document.querySelector('.dz-step.on') || {}).textContent || '').trim(),
-  /* Дивимось саме на БЛОК ЗДАЧІ. Поруч із ним тепер є вільна репліка зі
-     своєю кнопкою «Надіслати» — і вона тут ні до чого: писати менеджеру
-     можна завжди, а здавати роботу — лише з мокапом. */
-  кнопки: [...document.querySelectorAll('.dz-hand .dz-b')].map(b => b.textContent.trim())
-}));
-console.log('  ' + JSON.stringify(кроки));
-ok(кроки.видно.length === 3 && /Мокап/.test(кроки.видно.join(' ')),
-  'шлях видно весь одразу: ' + кроки.видно.join(' → '),
-  'кроків здачі не видно: ' + JSON.stringify(кроки.видно));
-ok(/Макет/.test(кроки.на),
-  'і людина бачить, на якому вона місці',
-  'поточний крок не позначений: ' + кроки.на);
-ok(!кроки.кнопки.some(t => /Здати/.test(t)),
-  'здати ще не можна: макета немає',
-  'здача доступна з порожніми руками: ' + JSON.stringify(кроки.кнопки));
+console.log('\n═══ ОДНА КНОПКА ЗАМІСТЬ ТРЬОХ КРОКІВ ═══');
+/* Кроків «Макет → Мокап → Надіслати» більше немає, і це свідома зміна
+   рішення. Вони описували не роботу, а порядок натискань — і саме тому
+   бентежили. Андрій: «одна кнопка завантажити роботу у дизайнера, він
+   завантажує роботу і вже в попапі це все він налаштовує».
 
-console.log('\n═══ БЕЗ МОКАПУ НЕ ВІДПРАВЛЯЄМО ═══');
-/* Клієнту йде макет НА ВИРОБІ, а не файл на прозорому тлі: за ним не видно
-   ні розміру, ні місця — і замість погодження починається листування. */
-const без = await p.evaluate(async () => {
-  const D = window.LQDesign, U = D.ui;
-  const d = D.dzList(designJobs['2000101'].units[0], 'graphic')[0];
-  /* Справжня картинка, а не однопіксельна заглушка: вікно мокапу читає
-     пропорції файлу, і на биту картинку воно чесно скаржиться. */
-  d.draft = { art:{ name:'лого.png', url:'data:image/svg+xml;base64,' + btoa(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60">' +
-    '<rect width="120" height="60" fill="#E4572E"/></svg>') } };
-  U.render(document.getElementById('dzRoot'));
-  await new Promise(r => setTimeout(r, 250));
-  const кн = [...document.querySelectorAll('.dz-hand .dz-b')].map(b => b.textContent.trim());
-  /* Тиснемо здачу напряму: кнопки немає, але дія існує — і мусить сама
-     сказати «ні». Інакше її можна було б викликати повз інтерфейс. */
-  window.__SAID = [];
-  await window.LQDesign.ui.act('dz-hand', document.getElementById('dzRoot'),
-    { dz: designJobs['2000101'].units[0].id + '|graphic|0' });
-  return { кнопки: кн, версій: d.vers.length, сказано: window.__SAID.join(' | ') };
-});
-console.log('  ' + JSON.stringify(без));
-ok(без.кнопки.some(t => /Створити мокап/.test(t)),
-  'після макета зʼявилась кнопка мокапу',
-  'кнопки мокапу немає: ' + JSON.stringify(без.кнопки));
-ok(!без.кнопки.some(t => /Здати/.test(t)),
-  'а «Здати» ще немає',
-  'здача доступна без мокапу: ' + JSON.stringify(без.кнопки));
-ok(без.версій === 0 && /мокап/i.test(без.сказано),
-  'і навіть викликана напряму здача не проходить, ще й каже чому: ' + без.сказано,
-  'здача без мокапу пройшла: ' + JSON.stringify(без));
+   Тепер натиск відкриває вікно, у якому й вантажать, і розкладають по
+   сторонах, і віддають. Порядок дій дизайнер тримає в руках, а не читає
+   з екрана. */
+const здача = await p.evaluate(() => ({
+  кроків: document.querySelectorAll('.dz-step').length,
+  кнопка: ((document.querySelector('[data-do="dz-work"]') || {}).textContent || '').trim(),
+  старі: [...document.querySelectorAll('[data-do="dz-art"],[data-do="dz-hand"]')].length
+}));
+console.log('  ' + JSON.stringify(здача));
+ok(!здача.кроків,
+  'кроків більше немає — порядок дій не треба читати з екрана',
+  'кроки здачі лишились: ' + здача.кроків);
+ok(/Завантажити роботу/.test(здача.кнопка),
+  'замість них одна кнопка: ' + здача.кнопка,
+  'кнопки здачі немає: ' + здача.кнопка);
+ok(!здача.старі,
+  'і жодного залишку старого шляху',
+  'старі кнопки здачі лишились: ' + здача.старі);
 
 console.log('\n═══ САНТИМЕТРИ — З РОЗМІРНОЇ СІТКИ ═══');
 /* Фото виробу не знає свого масштабу. Виріб на ньому розмічають один раз:
@@ -221,9 +203,9 @@ ok(порівняння.XL > порівняння.S + 5,
     порівняння.S + ' на S проти ' + порівняння.XL + ' на XL',
   'сантиметри не залежать від розміру: ' + JSON.stringify(порівняння));
 
-console.log('\n═══ ВІКНО МОКАПУ ВІДКРИВАЄТЬСЯ Й РАХУЄ ═══');
+console.log('\n═══ ВІКНО ЗДАЧІ ВІДКРИВАЄТЬСЯ Й РАХУЄ ═══');
 const вікно = await p.evaluate(async () => {
-  document.querySelector('[data-do="dz-mock"]').click();
+  document.querySelector('[data-do="dz-work"]').click();
   await new Promise(r => setTimeout(r, 1400));
   const w = document.querySelector('.mko-wrap');
   if(!w) return { є:false, чому: (window.__SAID || []).join(' | ') };
@@ -257,7 +239,7 @@ const мовчки = await p.evaluate(async () => {
   designJobs['2000101'].units[0].size = 'XXXL';   // такого рядка в сітці немає
   U.render(document.getElementById('dzRoot'));
   await new Promise(r => setTimeout(r, 250));
-  document.querySelector('[data-do="dz-mock"]').click();
+  document.querySelector('[data-do="dz-work"]').click();
   await new Promise(r => setTimeout(r, 1400));
   const w = document.querySelector('.mko-wrap');
   return { числа: w ? w.querySelectorAll('.mko-n').length : -1,

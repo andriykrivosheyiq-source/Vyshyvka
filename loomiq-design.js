@@ -4364,6 +4364,27 @@
     '</div>';
   }
   function handHtml(u, d, key){
+    /* ОДНА КНОПКА ЗАМІСТЬ ТРЬОХ КРОКІВ.
+
+       Андрій: «одна кнопка завантажити роботу у дизайнера, він завантажує
+       роботу і вже в попапі це все він налаштовує».
+
+       Кроки описували не роботу, а порядок натискань — і саме тому
+       бентежили. Тепер натиск відкриває вікно, у якому й вантажать, і
+       розкладають по сторонах, і віддають. */
+    var сторін = 0;
+    try{ сторін = ((host().sides && host().sides(u.gid, u.color)) || []).length; }catch(e){}
+    return '<div class="dz-w-send">' +
+      (сторін
+        ? '<button class="dz-b pri wide" data-do="dz-work" data-dz="' + key + '">' +
+          '⤒ Завантажити роботу</button>' +
+          '<div class="dz-miss is-calm">Вікно відкриється одразу: там і файли, і ' +
+          'розміщення на виробі, і сторони. Одна кнопка «Надіслати» на все.</div>'
+        : '<div class="dz-miss">У цього виробу немає фото в каталозі — покласти ' +
+          'роботу нема на що. Скажіть менеджеру: фото додають у каталог товарів.</div>') +
+    '</div>';
+  }
+  function handHtmlOld(u, d, key){
     var чер = d.draft || {};
     var крок = !чер.art ? 1 : !чер.mock ? 2 : 3;
     var фото = U.unitPhoto(u);
@@ -5458,6 +5479,20 @@
      Класти його в картку як `data:` не можна: картка їде в базу, де на
      документ є ліміт, і один мокап зʼїв би його цілком. Тому переводимо в
      звичайний файл і кладемо в сховище тим самим шляхом, що й усе інше. */
+  /* Відбиток вмісту файлу. За ним ми відрізняємо «намалював удруге» від
+     «переклав готове»: той самий логотип приходить під трьома іменами, а
+     байти в нього ті самі. Не вийшло порахувати (старий браузер, файл не
+     прочитався) — повертаємо порожньо, і тоді робота вважається новою:
+     переплатити чесніше, ніж недоплатити за здогадом. */
+  async function fileHash(url){
+    try{
+      if(!window.crypto || !crypto.subtle) return '';
+      var buf = await (await fetch(url)).arrayBuffer();
+      var h = await crypto.subtle.digest('SHA-256', buf);
+      return Array.prototype.map.call(new Uint8Array(h), function(b){
+        return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 32);
+    }catch(e){ console.warn('відбиток', e); return ''; }
+  }
   async function uploadDataUrl(dataUrl, name){
     try{
       var blob = await (await fetch(dataUrl)).blob();
@@ -5776,6 +5811,7 @@
        what === 'dz-art' || what === 'dz-art-del' || what === 'dz-mock' ||
        what === 'dz-card' || what === 'dz-tell' || what === 'dz-fix' ||
        what === 'dz-sheet' || what === 'dz-tail' || what === 'dz-note' ||
+       what === 'dz-work' ||
        what === 'dz-msg' || what === 'dz-msg-file' ||
        what === 'dz-swap' || what === 'dz-reply' ||
        what === 'dz-tell-pick' || what === 'dz-ok-pick'){
@@ -5894,6 +5930,71 @@
       if(what === 'dz-art-del'){
         dd.draft = null;
         return save(job, o, 'Прибрано');
+      }
+      /* ЗДАЧА ОДНИМ ВІКНОМ.
+
+         Вантажимо файл одразу у сховище — вікно тримає посилання, а не
+         байти: закрили випадково, повернулись — роботи на місці. Відбиток
+         вмісту рахуємо тут же: за ним ми потім відрізняємо «намалював
+         удруге» від «переклав готове», а за назвою це не відрізнити —
+         «logo.png» називається так у половини клієнтів. */
+      if(what === 'dz-work'){
+        if(!window.LQMock || !window.LQMock.openWork)
+          return say('Вікно здачі не завантажилось');
+        var сторони = [];
+        try{ сторони = (host().sides && host().sides(du.gid, du.color)) || []; }catch(e){}
+        if(!сторони.length) return say('У цього виробу немає фото в каталозі');
+        var чер3 = dd.draft || {};
+        return window.LQMock.openWork({
+          gid: du.gid, size: du.size || '', color: du.color || '',
+          name: [(U.catItem(du.gid) || {}).name || du.name, du.color, du.size]
+                  .filter(Boolean).join(' · '),
+          sides: сторони,
+          works: чер3.works || [],
+          places: чер3.places || [],
+          onUpload: async function(){
+            var f = await upload('image/*');
+            if(!f) return null;
+            f.hash = await fileHash(f.url);
+            return f;
+          },
+          onDone: async function(res){
+            say('Збираю мокапи…');
+            /* Мокапи зібрались у браузері як data:URL. Класти їх у картку
+               такими не можна: картка їде в базу, а там ліміт на документ. */
+            var файли = [];
+            var місця = [];
+            for(var i = 0; i < res.sides.length; i++){
+              var s = res.sides[i];
+              var up = await uploadDataUrl(s.png, 'мокап-' + s.side + '.png');
+              if(!up || !up.url) return say('Мокап не зберігся у сховищі');
+              файли.push({ name: s.label + '.png', url: up.url });
+              s.places.forEach(function(p){
+                місця.push({ side:s.side, label:s.label, name:p.name,
+                             wCm:p.wCm, hCm:p.hCm, topCm:p.topCm, sideCm:p.sideCm }); });
+            }
+            /* Самі роботи теж кладемо у версію: вишивальному дизайнеру
+               потрібні вони, а не мокап, і клієнту йде аркуш. */
+            (res.works || []).forEach(function(w){
+              файли.push({ name: w.name || 'робота', url: w.url, hash: w.hash || '' }); });
+            var hEl2 = document.querySelector('[data-dzsay="' + dkey + '"]');
+            var hTxt2 = hEl2 ? String(hEl2.value || '').trim() : '';
+            D.dzVer(dd, m, файли, hTxt2, {
+              works: (res.works || []).map(function(w){
+                return { name:w.name || '', url:w.url, hash:w.hash || '' }; }),
+              spots: місця, нанесень: res.нанесень, робіт: res.робіт,
+              size: res.size || du.size || '',
+              /* Перше нанесення — те, що показують у рядку під версією:
+                 одне число «на дизайн» тут неможливе, бо їх кілька. */
+              wCm: (місця[0] || {}).wCm || 0, hCm: (місця[0] || {}).hCm || 0,
+              topCm: (місця[0] || {}).topCm || 0, sideCm: (місця[0] || {}).sideCm || 0
+            });
+            dd.status = 'review';
+            dd.draft = null;
+            if(hEl2) hEl2.value = '';
+            await save(job, o, 'Надіслано · ' + res.нанесень + ' нанесень');
+          }
+        });
       }
       if(what === 'dz-mock'){
         if(!window.LQMock) return say('Вікно мокапу не завантажилось');
